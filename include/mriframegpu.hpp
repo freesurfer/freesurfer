@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 17:55:12 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/02/12 15:50:09 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,7 +37,7 @@
 
 #include "mri.h"
 
-
+#include "cudatypeutils.hpp"
 #include "cudacheck.h"
 
 // ==================================================================
@@ -65,35 +65,29 @@ namespace GPU {
       // Constructors & destructors
 
       //! Default constructor
-      MRIframeGPU( void ) : cpuDims(make_uint3(0,0,0)),
-			    gpuDims(make_uint3(0,0,0)),
+      MRIframeGPU( void ) : dims(make_uint3(0,0,0)),
 			    extent(make_cudaExtent(0,0,0)),
 			    d_data(make_cudaPitchedPtr(NULL,0,0,0)),
 			    dca_data(NULL) {};
-
- 
+      
+      
       //! Destructor
       ~MRIframeGPU( void ) {
 	this->ReleaseArray();
 	this->Release();
       }
-
+      
       // --------------------------------------------------------
       // Data accessors
-
-      //! Return the dimensions on the GPU of this MRI frame
-      const dim3 GetGPUDims( void ) const {
-	return( this->gpuDims );
+				 
+      //! Return the dimensions of this MRI frame
+      const dim3 GetDims( void ) const {
+	return( this->dims );
       }
-
-      //! Return the dimensions on the CPU of this MRI frame
-      const dim3 GetCPUDims( void ) const {
-	return( this->cpuDims );
-      }
-
+      
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.25 2010/02/05 17:55:12 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.26 2010/02/12 15:50:09 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -109,7 +103,7 @@ namespace GPU {
       size_t GetBufferSize( void ) const {
 	unsigned int nElements;
 	
-	nElements = this->gpuDims.x * this->gpuDims.y * this->gpuDims.z;
+	nElements = this->dims.x * this->dims.y * this->dims.z;
 
 	return( nElements * sizeof(T) );
       }
@@ -117,13 +111,11 @@ namespace GPU {
       // -----
 
       //! Extracts frame dimensions from a given MRI and allocates the memory
-      void Allocate( const MRI* src,
-		     const unsigned int padSize = 1 ) {
+      void Allocate( const MRI* src ) {
 	/*!
 	  Fills out the cpuDims, gpuDims and extent data members.
 	  Uses this information to call cudaMalloc3D
 	  @params[in] src The MRI to use as a template
-	  @params[in] padSize Each dimension will be padded to be a multiple of this
 	*/
 	
 	// Sanity checks
@@ -134,49 +126,28 @@ namespace GPU {
 	  exit( EXIT_FAILURE );
 	}
 
-	if( padSize == 0 ) {
-	  std::cerr << __FUNCTION__
-		    << ": Must have non-zero padSize"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
 	
 	dim3 myDims = make_uint3( src->width, src->height, src->depth );
 
-	this->Allocate( myDims, padSize );
+	this->Allocate( myDims );
       }
 
       // -----
 
       //! Allocates storage based on input dimensions and padding
-      void Allocate( const dim3 cpuDims,
-		     const unsigned int padSize = 1 ) {
+      void Allocate( const dim3 myDims ) {
 	/*!
-	  Given a set of dimensions on the CPU, sets up cpuDims, gpuDims
-	  and extent data members based on the padSize argument.
+	  Given a set of dimensions on the CPU, sets up everything
+	  except the CUDA array for this object
 	  Uses this to do a cudaMalloc3D
 	*/
-
-	if( padSize == 0 ) {
-	  std::cerr << __FUNCTION__
-		    << ": Must have non-zero padSize"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
 	
 	// Get rid of old data
 	this->ReleaseArray();
 	this->Release();
 	
 	// Make a note of the dimensions on the CPU
-	this->cpuDims = cpuDims;
-	
-	// Generate the dimensions on the GPU
-	this->gpuDims.x = this->RoundToBlock( this->cpuDims.x, padSize );
-	this->gpuDims.y = this->RoundToBlock( this->cpuDims.y, padSize );
-	this->gpuDims.z = this->RoundToBlock( this->cpuDims.z, padSize );
+	this->dims = myDims;
 	
 	// Do the actual allocation
 	this->AllocateFromDims();
@@ -200,8 +171,7 @@ namespace GPU {
 	this->Release();
 
 	// Get the new
-	this->cpuDims = src.GetCPUDims();
-	this->gpuDims = src.GetGPUDims();
+	this->dims = src.GetDims();
 
 	// Do the allocation
 	this->AllocateFromDims();
@@ -214,8 +184,7 @@ namespace GPU {
 	if( this->d_data.ptr != NULL ) {
 	  CUDA_SAFE_CALL( cudaFree( d_data.ptr ) );
 	}
-	this->cpuDims = make_uint3(0,0,0);
-	this->gpuDims = make_uint3(0,0,0);
+	this->dims = make_uint3(0,0,0);
 	this->extent = make_cudaExtent(0,0,0);
 	this->d_data = make_cudaPitchedPtr(NULL,0,0,0);
       }
@@ -300,10 +269,6 @@ namespace GPU {
 					 cudaHostAllocDefault ) );
 	}
 	
-	// Zero the memory if needed
-	if( this->IsPadded() ) {
-	  memset( h_data, 0 , bSize );
-	}
 	
 	// Extract the data
 	this->ExhumeFrame( src, h_data, iFrame );
@@ -311,9 +276,9 @@ namespace GPU {
 	// Do the copy
 	cudaMemcpy3DParms copyParams = {0};
 	copyParams.srcPtr = make_cudaPitchedPtr( (void*)h_data,
-						 gpuDims.x*sizeof(T),
-						 gpuDims.x,
-						 gpuDims.y );
+						 this->dims.x*sizeof(T),
+						 this->dims.x,
+						 this->dims.y );
 	copyParams.dstPtr = this->d_data;
 	copyParams.extent = this->extent;
 	copyParams.kind = cudaMemcpyHostToDevice;
@@ -371,9 +336,9 @@ namespace GPU {
 	cudaMemcpy3DParms cpyPrms = {0};
 	cpyPrms.srcPtr = this->d_data;
 	cpyPrms.dstPtr = make_cudaPitchedPtr( (void*)h_data,
-					      gpuDims.x*sizeof(T),
-					      gpuDims.x,
-					      gpuDims.y );
+					      this->dims.x*sizeof(T),
+					      this->dims.x,
+					      this->dims.y );
 	cpyPrms.extent = this->extent;
 	cpyPrms.kind = cudaMemcpyDeviceToHost;
 
@@ -448,37 +413,46 @@ namespace GPU {
 	return(-1);
       }
       
-      //! Method to check padding size of an MRI
-      bool CheckPadding( const unsigned int padSize ) const {
-	/*!
-	  Some routines may require that the data on the GPU
-	  are sized to a multiple of padSize.
-	  This routine checks the size of gpuDims.
-	*/
-	
-	bool res;
-	
-	res = ( (this->gpuDims.x % padSize) == 0 );
-	res = res && ( (this->gpuDims.y % padSize) == 0 );
-	res = res && ( (this->gpuDims.z % padSize) == 0 );
-	
-	return( res );
-      }
 
       //! Method to check if the CUDA array is allocated
       bool HasArray( void ) const {
 	return( this->dca_data != NULL );
       }
-  
+
+      // --------------------------------------------------------------------
+      //! Method to return number of 'covering' blocks
+      dim3 CoverBlocks( const dim3 threadBlock ) const {
+	/*!
+	  Method to return the number of blocks required to
+	  'cover' the frame with threads, given the dimensions
+	  of the thread block.
+	*/
+	dim3 grid;
+
+	grid.x = this->DivRoundUp( this->dims.x, threadBlock.x );
+	grid.y = this->DivRoundUp( this->dims.y, threadBlock.y );
+	grid.z = this->DivRoundUp( this->dims.z, threadBlock.z );
+
+	return( grid );
+      }
+
+      //! Returns a / b, rounded up to next integer
+      unsigned int DivRoundUp( const unsigned int a,
+			       const unsigned int b ) const {
+	float tmp;
+
+	tmp = static_cast<float>(a) / b;
+
+	return( static_cast<unsigned int>( ceilf( tmp ) ) );
+      }
  
     private:
       // --------------------------------------------------------------------
       // Data members
 
-      //! Original data size
-      dim3 cpuDims;
-      //! Data size on GPU (may be padded)
-      dim3 gpuDims;
+      //! Dimensions of the MRI frame
+      dim3 dims;
+      
       //! Extent of allocated 3D array
       cudaExtent extent;
       //! Pointer to the allocated memory
@@ -490,8 +464,7 @@ namespace GPU {
       // Prevent copying
       
       //! Copy constructor - don't use
-      MRIframeGPU( const MRIframeGPU& src ) : cpuDims(make_uint3(0,0,0)),
-					      gpuDims(make_uint3(0,0,0)),
+      MRIframeGPU( const MRIframeGPU& src ) : dims(make_uint3(0,0,0)),
 					      extent(make_cudaExtent(0,0,0)),
 					      d_data(make_cudaPitchedPtr(NULL,0,0,0)) {
 	std::cerr << __PRETTY_FUNCTION__
@@ -516,71 +489,29 @@ namespace GPU {
 	/*!
 	  This routine allocates GPU memory to hold an MRI frame, and
 	  also sets up the extent data member.
-	  It assumes that the gpuDims data member has been correctly
+	  It assumes that the dims data member has been correctly
 	  set prior to the call.
 	*/
 	// Make the extent
-	this->extent = make_cudaExtent( this->gpuDims.x * sizeof(T),
-					this->gpuDims.y,
-					this->gpuDims.z );
+	this->extent = make_cudaExtent( this->dims.x * sizeof(T),
+					this->dims.y,
+					this->dims.z );
 	
 	// Allocate the memory
 	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), this->extent ) );
       }
 
-      // ----------------------------------------------------------------------
-      
-      //! Rounds an array length up to multiple of given padding size
-      unsigned int RoundToBlock( const unsigned int arrayLength,
-				 const unsigned int padSize ) const {
-	/*!
-	  Rounds the given array length up to the next multiple of
-	  padSize
-	*/
-	unsigned int nBlocks;
-	
-	float nBfloat;
-	
-	nBfloat = static_cast<float>(arrayLength) / padSize;
-	
-	nBlocks = static_cast<unsigned int>( ceilf( nBfloat ) );
-	
-	return( nBlocks * padSize );
-      }
-
-
-      //! Checks to see if we're padding on the GPU
-      bool IsPadded( void ) const {
-	/*!
-	  It's sometimes useful to know if the sizes
-	  on the CPU and GPU match exactly.
-	  This method is used for checking for
-	  this property.
-	*/
-	bool res;
-	
-	// Check for equality, return inverse
-	res = (this->cpuDims.x == this->gpuDims.x );
-	res = res && (this->cpuDims.y == this->gpuDims.y );
-	res = res && (this->cpuDims.z == this->gpuDims.z );
-	
-	return( !res );
-      }
       
       // ----------------------------------------------------------------------
       
       //! Function to sanity check dimensions
       bool CheckDims( const MRI* mri ) const {
+
+	const dim3 mriDims = make_uint3( mri->width,
+					 mri->height,
+					 mri->depth );
 	
-	bool goodDims;
-	
-	goodDims = ( static_cast<unsigned int>(mri->width) == this->cpuDims.x );
-	goodDims = goodDims &&
-	  ( static_cast<unsigned int>(mri->height) == this->cpuDims.y );
-	goodDims = goodDims &&
-	  ( static_cast<unsigned int>(mri->depth) == this->cpuDims.z );
-	
-	return( goodDims );
+	return( mriDims == this->dims );
       }
       
       
@@ -621,8 +552,8 @@ namespace GPU {
 	
 	
 	// Main extraction loop
-	for( unsigned int iz=0; iz<this->cpuDims.z; iz++ ) {
-	  for( unsigned int iy=0; iy<this->cpuDims.y; iy++ ) {
+	for( unsigned int iz=0; iz<this->dims.z; iz++ ) {
+	  for( unsigned int iy=0; iy<this->dims.y; iy++ ) {
 	    unsigned int iStart = this->Index1D( 0, iy, iz );
 	    
 	    this->ExhumeRow( src, &( h_slab[iStart] ), iy, iz, iFrame );
@@ -661,8 +592,8 @@ namespace GPU {
 	this->VerifyMRI( dst );
 	
 	// Main extraction loop
-	for( unsigned int iz=0; iz<this->cpuDims.z; iz++ ) {
-	  for( unsigned int iy=0; iy<this->cpuDims.y; iy++ ) {
+	for( unsigned int iz=0; iz<this->dims.z; iz++ ) {
+	  for( unsigned int iy=0; iy<this->dims.y; iy++ ) {
 	    unsigned int iStart = this->Index1D( 0, iy, iz );
 	
 	    this->InhumeRow( dst, &( h_slab[iStart] ), iy, iz, iFrame );
@@ -719,7 +650,7 @@ namespace GPU {
       unsigned int Index1D( const unsigned int ix,
 			    const unsigned int iy,
 			    const unsigned int iz ) const {
-	return( ix + ( this->gpuDims.x * ( iy + ( this->gpuDims.y * iz ) ) ) );
+	return( ix + ( this->dims.x * ( iy + ( this->dims.y * iz ) ) ) );
       }
 
     };
@@ -787,6 +718,9 @@ namespace GPU {
     template<typename T>
     class MRIframeOnGPU {
     public:
+      //! Out of range value
+      static const T kOutOfRangeVal = 0;
+
       //! Padded data size
       dim3 dims;
       //! Extent of allocated 3D array
@@ -802,7 +736,7 @@ namespace GPU {
 			      data(make_cudaPitchedPtr(NULL,0,0,0)) {};
       
       //! Constructor from MRIframeGPU
-      MRIframeOnGPU( const MRIframeGPU<T>& src ) : dims(src.gpuDims),
+      MRIframeOnGPU( const MRIframeGPU<T>& src ) : dims(src.dims),
 						   extent(src.extent),
 						   data(src.d_data) {};
       
@@ -810,9 +744,10 @@ namespace GPU {
       // --------------------------------------------------------
       // Subscripting operators
       
-      __device__ T operator() ( const unsigned int ix,
-				const unsigned int iy,
-				const unsigned int iz ) const {
+      //! Unsafe RHS subscripting routine
+      __device__ T UnsafeAt( const unsigned int ix,
+			     const unsigned int iy,
+			     const unsigned int iz ) const {
 	const char* data = reinterpret_cast<const char*>(this->data.ptr);
 	// Rows are pitch apart
 	size_t pitch = this->data.pitch;
@@ -824,8 +759,25 @@ namespace GPU {
 	
 	return( reinterpret_cast<const T*>(row)[ix] );
       }
+
+      //! RHS Subscripting operator
+      __device__ T operator() ( const unsigned int ix,
+				const unsigned int iy,
+				const unsigned int iz ) const {
+	/*!
+	  This version of the subscripting operator is safe.
+	  It bounds checks the requested dimensions,
+	  and returns kOutofRangeVal if out of range
+	*/
+	if( this->InVolume( ix, iy, iz ) ) {
+	  return( this->UnsafeAt( ix, iy, iz ) );
+	} else {
+	  return( this->kOutOfRangeVal );
+	}
+      }
       
       
+      //! LHS subscripting operator
       __device__ T& operator() ( const unsigned int ix,
 				 const unsigned int iy,
 				 const unsigned int iz ) {
@@ -851,6 +803,17 @@ namespace GPU {
       }
       
       // --------------------------------------------------------
+
+      //! Checks if given co-ordinate is in the volume
+      __device__ bool InVolume( const unsigned int ix,
+				const unsigned int iy,
+				const unsigned int iz ) const {
+	bool res = ( ix < (this->dims.x) );
+	res = res && ( iy < (this->dims.y) );
+	res = res && ( iz < (this->dims.z) );
+
+	return( res );
+      }
 
       //! Clamps input integer into range
       __device__ unsigned int ClampCoord( const int i,

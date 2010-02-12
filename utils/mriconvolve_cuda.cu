@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 16:14:10 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/02/12 15:50:05 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,7 +105,8 @@ namespace GPU {
     //! Kernel to convolve in the X direction
     template<typename T, typename U>
     __global__ void MRIConvolveKernelX( const GPU::Classes::MRIframeOnGPU<T> src,
-					GPU::Classes::MRIframeOnGPU<U> dst ) {
+					GPU::Classes::MRIframeOnGPU<U> dst,
+					const dim3 coverGrid ) {
       /*!
 	Kernel to do a convolution in the x direction, using the
 	convolution kernel set up in the texture.
@@ -117,8 +118,8 @@ namespace GPU {
 	don't have to worry about nasty edge cases
       */
       // Extract some co-ordinates
-      const unsigned int by = blockIdx.x / (src.dims.x/kConv1dBlockSize);
-      const unsigned int bx = blockIdx.x % (src.dims.x/kConv1dBlockSize);
+      const unsigned int by = blockIdx.x / coverGrid.x;
+      const unsigned int bx = blockIdx.x % coverGrid.x;
       const unsigned int iz = blockIdx.y;
       const unsigned int tx = threadIdx.x;
       const unsigned int ty = threadIdx.y;
@@ -158,7 +159,9 @@ namespace GPU {
 	__syncthreads();
       }
       
-      dst(myx, myy, iz) = dst.ConvertFloat( myVoxel );
+      if( dst.InVolume( myx, myy, iz ) ) {
+	dst(myx, myy, iz) = dst.ConvertFloat( myVoxel );
+      }
       
     }
     
@@ -167,7 +170,8 @@ namespace GPU {
     //! Kernel to convolve in the Y direction
     template<typename T, typename U>
     __global__ void MRIConvolveKernelY( const GPU::Classes::MRIframeOnGPU<T> src,
-				     GPU::Classes::MRIframeOnGPU<U> dst ) {
+					GPU::Classes::MRIframeOnGPU<U> dst,
+					const dim3 coverGrid ) {
       /*!
 	Kernel to do a convolution in the y direction, using the
 	convolution kernel set up in the texture.
@@ -179,8 +183,8 @@ namespace GPU {
 	don't have to worry about nasty edge cases
       */
       // Extract some co-ordinates
-      const unsigned int by = blockIdx.x / (src.dims.x/kConv1dBlockSize);
-      const unsigned int bx = blockIdx.x % (src.dims.x/kConv1dBlockSize);
+      const unsigned int by = blockIdx.x / coverGrid.x;
+      const unsigned int bx = blockIdx.x % coverGrid.x;
       const unsigned int iz = blockIdx.y;
       const unsigned int tx = threadIdx.x;
       const unsigned int ty = threadIdx.y;
@@ -220,7 +224,9 @@ namespace GPU {
 	__syncthreads();
       }
       
-      dst(myx, myy, iz) = dst.ConvertFloat( myVoxel );
+      if( dst.InVolume( myx, myy, iz ) ) {
+	dst(myx, myy, iz) = dst.ConvertFloat( myVoxel );
+      }
       
     }
     
@@ -230,7 +236,8 @@ namespace GPU {
     //! Kernel to convolve in the Z direction
     template<typename T, typename U>
     __global__ void MRIConvolveKernelZ( const GPU::Classes::MRIframeOnGPU<T> src,
-					GPU::Classes::MRIframeOnGPU<U> dst ) {
+					GPU::Classes::MRIframeOnGPU<U> dst,
+					const dim3 coverGrid ) {
       /*!
 	Kernel to do a convolution in the z direction, using the
 	convolution kernel set up in the texture.
@@ -242,8 +249,8 @@ namespace GPU {
 	don't have to worry about nasty edge cases
       */
       // Extract some co-ordinates
-      const unsigned int bz = blockIdx.x / (src.dims.x/kConv1dBlockSize);
-      const unsigned int bx = blockIdx.x % (src.dims.x/kConv1dBlockSize);
+      const unsigned int bz = blockIdx.x / coverGrid.x;
+      const unsigned int bx = blockIdx.x % coverGrid.x;
       const unsigned int iy = blockIdx.y;
       const unsigned int tx = threadIdx.x;
       // Note that we assign y thread index to tz, for naming ease
@@ -284,7 +291,9 @@ namespace GPU {
 	__syncthreads();
       }
       
-      dst(myx, iy, myz) = dst.ConvertFloat( myVoxel );
+      if( dst.InVolume( myx, iy, myz ) ) {
+	dst(myx, iy, myz) = dst.ConvertFloat( myVoxel );
+      }
   
     }
 
@@ -412,8 +421,8 @@ namespace GPU {
       
 	// Allocate the GPU arrays
 	this->tMem.Start();
-	srcGPU.Allocate( src, kConv1dBlockSize );
-	dstGPU.Allocate( dst, kConv1dBlockSize );
+	srcGPU.Allocate( src );
+	dstGPU.Allocate( dst );
 	this->tMem.Stop();
 	
 	// Put in some sanity checks
@@ -466,62 +475,67 @@ namespace GPU {
 	*/
       
 
-	const dim3 srcDims = src.GetGPUDims();
-	const dim3 dstDims = dst.GetGPUDims();
+	const dim3 srcDims = src.GetDims();
+	const dim3 dstDims = dst.GetDims();
 
 	// Check dimensions
-	if( (srcDims.x != dstDims.x) &&
-	    (srcDims.y != dstDims.y) &&
-	    (srcDims.z != dstDims.z) ) {
+	if( srcDims != dstDims ) {
 	  std::cerr << __FUNCTION__
 		    << ": Dimension mismatch" << std::endl;
 	  exit( EXIT_FAILURE );
 	}
       
-	// Check padding (only need to do one, given above check)
-	if( !dst.CheckPadding( kConv1dBlockSize ) ) {
-	  std::cerr << __FUNCTION__
-		    << ": Arrays improperly padded"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-      
 	
 	dim3 grid, threads;
+
+	/*
+	  Note that we play a small trick with the number
+	  of threads here.
+	  This is because the kernels always have an
+	  (x,y) indexed grid of threads, even when doing (x,z)
+	*/
+	threads.x = threads.y = threads.z = kConv1dBlockSize;
+	const dim3 coverGrid = dst.CoverBlocks( threads );
+	threads.z = 1;
+
 	GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
 	GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
       
+
 	switch( axis ) {
 	case MRI_WIDTH:
-	  grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.y/kConv1dBlockSize);
+	  grid.x = coverGrid.x * coverGrid.y;
 	  grid.y = srcDims.z;
 	  grid.z = 1;
-	  threads.x = threads.y = kConv1dBlockSize;
-	  threads.z = 1;
 	  
-	  MRIConvolveKernelX<T,U><<<grid,threads,0,this->stream>>>( srcGPU, dstGPU );
+	  MRIConvolveKernelX
+	    <T,U>
+	    <<<grid,threads,0,this->stream>>>
+	    ( srcGPU, dstGPU, coverGrid );
 	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelX failed!" );
 	  break;
 	  
 	case MRI_HEIGHT:
-	  grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.y/kConv1dBlockSize);
+	  grid.x = coverGrid.x * coverGrid.y;
 	  grid.y = srcDims.z;
 	  grid.z = 1;
-	  threads.x = threads.y = kConv1dBlockSize;
-	  threads.z = 1;
-	  
-	  MRIConvolveKernelY<T,U><<<grid,threads,0,this->stream>>>( srcGPU, dstGPU );
+
+	  MRIConvolveKernelY
+	    <T,U>
+	    <<<grid,threads,0,this->stream>>>
+	    ( srcGPU, dstGPU, coverGrid );
 	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelY failed!" );
 	  break;
 	  
 	case MRI_DEPTH:
 	  // Slight change, since we do (x,z) patches
-	  grid.x = (srcDims.x/kConv1dBlockSize) * (srcDims.z/kConv1dBlockSize);
+	  grid.x = coverGrid.x * coverGrid.z;
 	  grid.y = srcDims.y;
-	  threads.x = threads.y = kConv1dBlockSize;
-	  threads.z = 1;
 	  
-	  MRIConvolveKernelZ<T,U><<<grid,threads,0,this->stream>>>( srcGPU, dstGPU );
+	  MRIConvolveKernelZ
+	    <T,U>
+	    <<<grid,threads,0,this->stream>>>
+	    ( srcGPU, dstGPU, coverGrid );
 	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelZ failed!" );
 	  break;
 	  
@@ -607,8 +621,8 @@ namespace GPU {
 
 	// Do some allocation
 	this->tMem.Start();
-	frame1.Allocate( src, kConv1dBlockSize );
-	frame2.Allocate( src, kConv1dBlockSize );
+	frame1.Allocate( src );
+	frame2.Allocate( src );
 	this->tMem.Stop();
 
 	// Verify (note frame2 verified from dst)

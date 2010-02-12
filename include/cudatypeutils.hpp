@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/11 15:30:10 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/12 15:50:09 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,11 +38,36 @@ std::ostream& operator<<( std::ostream& os, const float3& me );
 //! Stream insertion for dim3
 std::ostream& operator<<( std::ostream& os, const dim3& me );
 
+
+// =======================================================
+// dim3 operators
+
+//! Equality for dim3
+static
+__device__ __host__
+bool operator==( const dim3& a, const dim3& b ) {
+
+  bool res = ( a.x == b.x );
+  res = res && ( a.y == b.y );
+  res = res && ( a.z == b.z );
+
+  return( res );
+}
+
+//! Inequality for dim3
+static
+__device__ __host__
+bool operator!=( const dim3& a, const dim3& b ) {
+  return( !(a==b) );
+}
+
 // =======================================================
 // float3 operators
 
 //! Unary negation for float3
-__device__ float3 operator-( const float3& a ) {
+static
+__device__ __host__
+float3 operator-( const float3& a ) {
   float3 b;
 
   b.x = -a.x;

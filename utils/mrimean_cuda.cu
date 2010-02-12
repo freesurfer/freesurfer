@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 16:14:10 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/02/12 15:50:05 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -87,7 +87,7 @@ namespace GPU {
     template<typename T>
     __global__ void MRImeanX( const GPU::Classes::MRIframeOnGPU<T> src,
 			      GPU::Classes::MRIframeOnGPU<float> dst,
-			      const dim3 actualDims,
+			      const dim3 coverGrid,
 			      const unsigned int wSize ) {
       /*!
 	Kernel to compute means in the x direction, based on
@@ -97,8 +97,8 @@ namespace GPU {
 	Also, since this is meant to be part of a pipeline,
 	the destination type must be float
       */
-      const unsigned int by = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
-      const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
+      const unsigned int by = blockIdx.x / coverGrid.x;
+      const unsigned int bx = blockIdx.x % coverGrid.x;
       const unsigned int tx = threadIdx.x;
       const unsigned int ty = threadIdx.y;
       
@@ -112,8 +112,8 @@ namespace GPU {
       const int wHalf = wSize/2;
 
       // Calculate voxels which will contribute, clamping to edges
-      const unsigned int myxMin = max( 0           , ix - wHalf );
-      const unsigned int myxMax = min( actualDims.x, ix + wHalf );
+      const unsigned int myxMin = max( 0         , ix - wHalf );
+      const unsigned int myxMax = min( dst.dims.x, ix + wHalf );
 
       // Again, declare int to remove need for some casts
       const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
@@ -146,7 +146,9 @@ namespace GPU {
       }
 
       // Save result
-      dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+      if( dst.InVolume( ix, iy, iz ) ) {
+	dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+      }
     }
 
     
@@ -154,7 +156,7 @@ namespace GPU {
     template<typename T>
     __global__ void MRImeanY( const GPU::Classes::MRIframeOnGPU<T> src,
 			      GPU::Classes::MRIframeOnGPU<float> dst,
-			      const dim3 actualDims,
+			      const dim3 coverGrid,
 			      const unsigned int wSize ) {
       /*!
 	Kernel to compute means in the y direction, based on
@@ -164,8 +166,8 @@ namespace GPU {
 	Also, since this is meant to be part of a pipeline,
 	the destination type must be float
       */
-      const unsigned int by = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
-      const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
+      const unsigned int by = blockIdx.x / coverGrid.x;
+      const unsigned int bx = blockIdx.x % coverGrid.x;
       const unsigned int tx = threadIdx.x;
       const unsigned int ty = threadIdx.y;
       
@@ -179,8 +181,8 @@ namespace GPU {
       const int wHalf = wSize/2;
 
       // Calculate voxels which will contribute, clamping to edges
-      const unsigned int myyMin = max( 0           , iy - wHalf );
-      const unsigned int myyMax = min( actualDims.x, iy + wHalf );
+      const unsigned int myyMin = max( 0         , iy - wHalf );
+      const unsigned int myyMax = min( dst.dims.y, iy + wHalf );
 
       // Again, declare int to remove need for some casts
       const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
@@ -213,7 +215,9 @@ namespace GPU {
       }
 
       // Save result
-      dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+      if( dst.InVolume( ix, iy, iz ) ) {
+	dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+      }
     }
 
 
@@ -221,7 +225,7 @@ namespace GPU {
     template<typename T>
     __global__ void MRImeanZ( const GPU::Classes::MRIframeOnGPU<T> src,
 			      GPU::Classes::MRIframeOnGPU<float> dst,
-			      const dim3 actualDims,
+			      const dim3 coverGrid,
 			      const unsigned int wSize ) {
       /*!
 	Kernel to compute means in the x direction, based on
@@ -231,8 +235,8 @@ namespace GPU {
 	Also, since this is meant to be part of a pipeline,
 	the destination type must be float
       */
-      const unsigned int bz = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
-      const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
+      const unsigned int bz = blockIdx.x / coverGrid.x;
+      const unsigned int bx = blockIdx.x % coverGrid.x;
       const unsigned int tx = threadIdx.x;
       // Note... tz is threadIdx.y
       const unsigned int tz = threadIdx.y;
@@ -247,8 +251,8 @@ namespace GPU {
       const int wHalf = wSize/2;
 
       // Calculate voxels which will contribute, clamping to edges
-      const unsigned int myzMin = max( 0           , iz - wHalf );
-      const unsigned int myzMax = min( actualDims.z, iz + wHalf );
+      const unsigned int myzMin = max( 0         , iz - wHalf );
+      const unsigned int myzMax = min( dst.dims.z, iz + wHalf );
 
       // Again, declare int to remove need for some casts
       const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
@@ -281,7 +285,9 @@ namespace GPU {
       }
 
       // Save result
-      dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+      if( dst.InVolume( ix, iy, iz ) ) {
+	dst(ix,iy,iz) = dst.ConvertFloat( myVal );
+      }
     }
 
 
@@ -289,15 +295,15 @@ namespace GPU {
     template<typename U>
     __global__ void MRImeanNormal( const GPU::Classes::MRIframeOnGPU<float> src,
 				   GPU::Classes::MRIframeOnGPU<U> dst,
-				   const dim3 actualDims,
+				   const dim3 coverGrid,
 				   const unsigned int wSize ) {
       /*!
 	Kernel to normalise the means computed by the earlier
 	stages.
 	As such, the input type must be a float
       */
-      const unsigned int by = blockIdx.x / (src.dims.x/kMRImeanBlockSize);
-      const unsigned int bx = blockIdx.x % (src.dims.x/kMRImeanBlockSize);
+      const unsigned int by = blockIdx.x / coverGrid.x;
+      const unsigned int bx = blockIdx.x % coverGrid.x;
       const unsigned int tx = threadIdx.x;
       const unsigned int ty = threadIdx.y;
       
@@ -311,19 +317,21 @@ namespace GPU {
       const int wHalf = wSize/2;
 
       // Calculate voxels which contributed, clamping to edges
-      const unsigned int myxMin = max( 0           , ix - wHalf );
-      const unsigned int myxMax = min( actualDims.x, ix + wHalf );
-      const unsigned int myyMin = max( 0           , iy - wHalf );
-      const unsigned int myyMax = min( actualDims.y, iy + wHalf );
-      const unsigned int myzMin = max( 0           , iz - wHalf );
-      const unsigned int myzMax = min( actualDims.z, iz + wHalf );
+      const unsigned int myxMin = max( 0         , ix - wHalf );
+      const unsigned int myxMax = min( dst.dims.x, ix + wHalf );
+      const unsigned int myyMin = max( 0         , iy - wHalf );
+      const unsigned int myyMax = min( dst.dims.y, iy + wHalf );
+      const unsigned int myzMin = max( 0         , iz - wHalf );
+      const unsigned int myzMax = min( dst.dims.z, iz + wHalf );
 
 
       const unsigned long myVolume = ( myxMax - myxMin + 1 ) *
 	(myyMax - myyMin + 1 ) *
 	(myzMax - myzMin + 1 );
 
-      dst( ix, iy, iz ) = dst.ConvertFloat( src( ix, iy, iz ) / myVolume );
+      if( dst.InVolume( ix, iy, iz ) ) {
+	dst( ix, iy, iz ) = dst.ConvertFloat( src( ix, iy, iz ) / myVolume );
+      }
     }
 
 
@@ -508,8 +516,8 @@ namespace GPU {
       
 	// Allocate the GPU arrays
 	this->tMem.Start();
-	srcGPU.Allocate( src, kMRImeanBlockSize );
-	dstGPU.Allocate( dst, kMRImeanBlockSize );
+	srcGPU.Allocate( src );
+	dstGPU.Allocate( dst );
 	this->tMem.Stop();
 
 	// Put in some sanity checks
@@ -555,26 +563,16 @@ namespace GPU {
 	  Runs the mean filtering kernel on the GPU.
 	  Assumes most things are properly set already
 	*/
-	const dim3 srcDims = src.GetGPUDims();
-	const dim3 dstDims = dst.GetGPUDims();
-	const dim3 srcCPUdims = src.GetCPUDims();
+	const dim3 srcDims = src.GetDims();
+	const dim3 dstDims = dst.GetDims();
 
 	// Check dimensions
-	if( (srcDims.x != dstDims.x) &&
-	    (srcDims.y != dstDims.y) &&
-	    (srcDims.z != dstDims.z) ) {
+	if( srcDims != dstDims ) {
 	  std::cerr << __FUNCTION__ << ": Dimension mismatch"
 		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
-	
-	// Check padding (only need to do one, given above check)
-	if( !dst.CheckPadding( kMRImeanBlockSize ) ) {
-	  std::cerr << __FUNCTION__
-		    << ": Arrays on GPU must be padded to multiples"
-		    << " of kMRImeanBlockSize" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
+
 
 	// We need intermediates which are floats
 	GPU::Classes::MRIframeGPU<float> f1, f2;
@@ -594,36 +592,43 @@ namespace GPU {
 	// Do the three convolutions. Recall objects have same dims
 	dim3 grid, threads;
 
-	grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.y/kMRImeanBlockSize);
+	/*
+	  Play a small trick with thread block size, given
+	  that the kernels always use (x,y) indexing of threads
+	  even when dealing with an (x,z) slice
+	*/
+	threads.x = threads.y = threads.z = kMRImeanBlockSize;
+	const dim3 coverGrid = dst.CoverBlocks( threads );
+	threads.z = 1;
+
+	grid.x = coverGrid.x * coverGrid.y;
 	grid.y = dstDims.z;
 	grid.z = 1;
-	threads.x = threads.y = kMRImeanBlockSize;
-	threads.z = 1;
 
 	this->tCompute.Start();
 
 	// Do the X direction
 	MRImeanX<<<grid,threads,0,this->stream>>>( srcGPU, f1GPU,
-						   srcCPUdims, wSize );
+						   coverGrid, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanX kernel failed" );
 
 	// Do the Y direction
 	MRImeanY<<<grid,threads,0,this->stream>>>( f1GPU, f2GPU,
-						   srcCPUdims, wSize );
+						   coverGrid, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanY kernel failed" );
 
 	// Slight change for Z direction
-	grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.z/kMRImeanBlockSize);
+	grid.x = coverGrid.x * coverGrid.z;
 	grid.y = dstDims.y;
 	MRImeanZ<<<grid,threads,0,this->stream>>>( f2GPU, f1GPU,
-							 srcCPUdims, wSize );
+						   coverGrid, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanZ kernel failed" );
 
 	// Normalise
-	grid.x = (dstDims.x/kMRImeanBlockSize) * (dstDims.y/kMRImeanBlockSize);
+	grid.x = coverGrid.x * coverGrid.y;
 	grid.y = dstDims.z;
 	MRImeanNormal<<<grid,threads,0,this->stream>>>( f1GPU, dstGPU,
-							srcCPUdims, wSize );
+							coverGrid, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanNormal failed!" );
 
 	this->tCompute.Stop();

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 16:14:10 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/02/12 15:50:05 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -211,7 +211,8 @@ namespace GPU {
     //! Kernel to perform the affine transformation
     template<typename T, typename U>
     __global__ void MRIVol2VolKernel( GPU::Classes::MRIframeOnGPU<U> dst,
-				      GPU::Classes::AffineTransformation afTrans ) {
+				      GPU::Classes::AffineTransformation afTrans,
+				      const dim3 coverGrid ) {
       /*!
 	Kernel to perform the affine transformation supplied on the
 	MRI frame bound to the textures.
@@ -225,8 +226,8 @@ namespace GPU {
       */
 
       // Extract some co-ordinates
-      const unsigned int by = blockIdx.x / (dst.dims.x/kVol2VolBlockSize);
-      const unsigned int bx = blockIdx.x % (dst.dims.x/kVol2VolBlockSize);
+      const unsigned int by = blockIdx.x / coverGrid.x;
+      const unsigned int bx = blockIdx.x % coverGrid.x;
       const unsigned int iz = blockIdx.y;
       const unsigned int tx = threadIdx.x;
       const unsigned int ty = threadIdx.y;
@@ -238,7 +239,9 @@ namespace GPU {
 
       float3 rOut = afTrans.transform( make_float3( myx, myy, iz ) );
 
-      dst( myx, myy, iz ) = dst.ConvertFloat( FetchSrcVoxel<T>( rOut ) );
+      if( dst.InVolume( myx, myy, iz ) ) {
+	dst( myx, myy, iz ) = dst.ConvertFloat( FetchSrcVoxel<T>( rOut ) );
+      }
     }
 
 
@@ -262,18 +265,23 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
-      if( !dst.CheckPadding( kVol2VolBlockSize ) ) {
-	std::cerr << __FUNCTION__ <<
-	  ": Destination array must be padded" << std::endl;
-	exit( EXIT_FAILURE );
-      }
       
       // Bind the texture and array
       BindSourceTexture( src, InterpMode );
 
 
-      const dim3 dstDims = dst.GetGPUDims();
+      const dim3 dstDims = dst.GetDims();
       dim3 grid, threads;
+
+      threads.x = threads.y = kVol2VolBlockSize;
+      threads.z = 1;
+
+      const dim3 coverGrid = dst.CoverBlocks( threads );
+
+      grid.x = coverGrid.x * coverGrid.y;
+      grid.y = dstDims.z;
+      grid.z = 1;
+
       GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
 
       // Main dispatch
@@ -281,12 +289,7 @@ namespace GPU {
 
       case SAMPLE_NEAREST:
       case SAMPLE_TRILINEAR:
-	grid.x = (dstDims.x/kVol2VolBlockSize) * (dstDims.y/kVol2VolBlockSize);
-	grid.y = dstDims.z;
-	grid.z = 1;
-	threads.x = threads.y = kVol2VolBlockSize;
-	threads.z = 1;
-	MRIVol2VolKernel<T,U><<<grid,threads>>>( dstGPU, transform );
+	MRIVol2VolKernel<T,U><<<grid,threads>>>( dstGPU, transform, coverGrid );
 	CUDA_CHECK_ERROR_ASYNC( "MRIVol2VolKernel call failed!\n" );
 	break;
 
@@ -324,7 +327,7 @@ namespace GPU {
       tVol2VolMem.Start();
       srcGPU.Allocate( src );
       srcGPU.AllocateArray();
-      dstGPU.Allocate( targ, kVol2VolBlockSize );
+      dstGPU.Allocate( targ );
       tVol2VolMem.Stop();
 
       // Sanity check
