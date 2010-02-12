@@ -2,6 +2,7 @@
 ## Makefile.am 
 ##
 
+## change to check the CVS commit prefixes
 #######################################################################
 # When you create your own program directory, copy the 'from' to the 
 # 'to' lines to your Makefile.am and change dummy to your program name.
