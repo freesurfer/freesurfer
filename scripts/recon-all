@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2010/02/11 17:22:53 $
-#    $Revision: 1.267 $
+#    $Author: nicks $
+#    $Date: 2010/02/13 18:47:51 $
+#    $Revision: 1.268 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.267 2010/02/11 17:22:53 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.268 2010/02/13 18:47:51 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -454,6 +454,7 @@ mris_ca_label -all-info >> $LF
 mris_euler_number -all-info >> $LF
 mris_make_surfaces -all-info >> $LF
 mris_register -all-info >> $LF
+mris_volmask --all-info >> $LF
 mris_anatomical_stats -all-info >> $LF
 mrisp_paint -all-info >> $LF
 mris_curvature_stats -all-info >> $LF
