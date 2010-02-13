@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/12 02:19:01 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/13 18:54:34 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -21,7 +21,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 #include <string>
@@ -53,7 +52,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: mris_label_calc.cpp,v 1.2 2010/02/12 02:19:01 mreuter Exp $";
+//static char vcid[] = "$Id: mris_label_calc.cpp,v 1.3 2010/02/13 18:54:34 mreuter Exp $";
 char *Progname = NULL;
 
 
@@ -75,14 +74,16 @@ int main(int argc, char *argv[])
     cout << endl;
     cout << argv[0] << " command input1 input2 output" << endl;
     cout << endl;
-    cout << "    command: " << endl;
-    cout << "       union       union of both input labels" << endl;
-    cout << "       intersect   intersection of both input labels" << endl;
-//    cout << "       invert label surface   compute inverse of label (need surface)" << endl;
+		cout << "    To calculate stuff on surface labels..." << endl;
+		cout << endl;
+    cout << "    commands: " << endl;
+    cout << "       union       union (OR) of both input labels" << endl;
+    cout << "       intersect   intersection (AND) of both input labels" << endl;
+    cout << "       invert      inverse (NOT) of label on surface (input2)" << endl;
     cout << endl;
     exit(1);
   }
-  string comm = argv[1];
+  string comm  = argv[1];
   string if1   = argv[2];
   string if2   = argv[3];
 	string of    = argv[4];
@@ -109,6 +110,14 @@ int main(int argc, char *argv[])
 		l1->subject_name[0]='\0';
 		LabelWrite(l1,of.c_str());
 	
+	}
+	else if (comm == "invert")
+	{
+	  LABEL *l1   = LabelRead(NULL,if1.c_str());
+		MRIS *surf  = MRISread(if2.c_str());
+	  LABEL *linv = MRISlabelInvert(surf,l1);
+		linv->subject_name[0]='\0';
+		LabelWrite(linv,of.c_str());
 	}
 	else
 	{
