@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/02 20:29:25 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/02/14 05:42:17 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -887,7 +887,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
   // project meanr back to SO(3) (using polar decomposition)
 	assert(rigid);
 //   VECTOR * vz = VectorAlloc(3,MATRIX_REAL);
-//   MATRIX * mv = MatrixSVD(meanr,vz,NULL);
+//   MATRIX * mv = MatrixSVD(meanr,vz,NULL); // setting meanr = U
 //   //MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
 //   //MatrixPrintFmt(stdout,"% 2.8f",vz); cout << endl;
 //   //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
@@ -902,9 +902,10 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
   vnl_svd < double > svd_decomp(meanr);
   if ( svd_decomp.valid() )
   {
+	    vnl_matrix < double > mu = svd_decomp.U();
       vnl_matrix < double > mv = svd_decomp.V();
 			mv.inplace_transpose();
-			meanr = meanr * mv;
+			meanr = mu * mv;
   }
   else
   {
