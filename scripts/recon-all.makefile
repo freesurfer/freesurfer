@@ -257,7 +257,7 @@ APARC_A2009S_STATS_RH=$(subj)/stats/rh.aparc.a2009s.stats
 RIBBON_LH=$(subj)/mri/lh.ribbon.mgz
 RIBBON_RH=$(subj)/mri/rh.ribbon.mgz
 APARC_ASEG=$(subj)/mri/aparc+aseg.mgz
-WMPARC=$(subj)/mri/wmparc.mgz
+WMPARC=$(subj)/stats/wmparc.stats
 
 AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(SPHERE_REG_LH) $(SPHERE_REG_RH) \
