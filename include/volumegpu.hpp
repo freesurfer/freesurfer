@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:58:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/02/16 19:41:18 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -159,8 +159,8 @@ namespace GPU {
       // -------------------------------------------
       // Conversion operator
 
-      //! Converts volume to a kernel argument
-      operator VolumeArgGPU<T>( void ) {
+      //! Converts a GPU volume to a kernel argument
+      operator VolumeArgGPU<T>( void ) const {
 	VolumeArgGPU<T> vag;
 
 	vag.dims = this->dims;
@@ -180,7 +180,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.5 2010/02/16 16:58:24 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.6 2010/02/16 19:41:18 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
