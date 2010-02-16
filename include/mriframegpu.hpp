@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 20:57:57 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/02/16 16:09:48 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,7 +56,7 @@ namespace GPU {
 
     //! Templated class to hold an MRI frame on the GPU
     template<typename T>
-    class MRIframeGPU {
+    class MRIframeGPU : public VolumeGPU<T> {
     public:
       // -------------------------------------------------------
 
@@ -65,51 +65,19 @@ namespace GPU {
   
       // --------------------------------------------------------
       // Constructors & destructors
+      MRIframeGPU<T>( void ) : VolumeGPU<T>() {};
 
-      //! Default constructor
-      MRIframeGPU( void ) : dims(make_uint3(0,0,0)),
-			    extent(make_cudaExtent(0,0,0)),
-			    d_data(make_cudaPitchedPtr(NULL,0,0,0)),
-			    dca_data(NULL) {};
-      
-      
-      //! Destructor
-      ~MRIframeGPU( void ) {
-	this->ReleaseArray();
-	this->Release();
-      }
-      
       // --------------------------------------------------------
       // Data accessors
-				 
-      //! Return the dimensions of this MRI frame
-      const dim3 GetDims( void ) const {
-	return( this->dims );
-      }
-      
+
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.28 2010/02/12 20:57:57 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.29 2010/02/16 16:09:48 rge21 Exp $";
       }
       
-      //! Return pointer to the cudaArray
-      const cudaArray* GetArray( void ) const {
-	return( this->dca_data );
-      }
-
-  
       // --------------------------------------------------------
       // Memory manipulation
       
-      //! Supplies the size of buffer required on the host
-      size_t GetBufferSize( void ) const {
-	unsigned int nElements;
-	
-	nElements = this->dims.x * this->dims.y * this->dims.z;
-
-	return( nElements * sizeof(T) );
-      }
-
       // -----
 
       //! Extracts frame dimensions from a given MRI and allocates the memory
@@ -131,103 +99,16 @@ namespace GPU {
 	
 	dim3 myDims = make_uint3( src->width, src->height, src->depth );
 
-	this->Allocate( myDims );
+	static_cast<VolumeGPU<T>*>(this)->Allocate( myDims );
       }
 
       // -----
 
-      //! Allocates storage based on input dimensions
-      void Allocate( const dim3 myDims ) {
-	/*!
-	  Given a set of dimensions on the CPU, sets up everything
-	  except the CUDA array for this object
-	  Uses this to do a cudaMalloc3D
-	*/
-	
-	// Get rid of old data
-	this->ReleaseArray();
-	this->Release();
-	
-	// Make a note of the dimensions on the CPU
-	this->dims = myDims;
-	
-	// Do the actual allocation
-	this->AllocateFromDims();
-	
-	
-      }
-
       // -----
 
-      //! Allocates storage to match dimensions of given MRIframe
-      template<typename U>
-      void Allocate( const MRIframeGPU<U>& src ) {
-	/*!
-	  Copies the dimensions from the given source
-	  MRIframeGPU (which may be of different datatype)
-	  and then allocates memory for the current object
-	*/
-	
-	// Get rid of the old
-	this->ReleaseArray();
-	this->Release();
-
-	// Get the new
-	this->dims = src.GetDims();
-
-	// Do the allocation
-	this->AllocateFromDims();
-      }
 
       // -----
-      
-      //! Releases memory associated with class instance
-      void Release( void ) {
-	if( this->d_data.ptr != NULL ) {
-	  CUDA_SAFE_CALL( cudaFree( d_data.ptr ) );
-	}
-	this->dims = make_uint3(0,0,0);
-	this->extent = make_cudaExtent(0,0,0);
-	this->d_data = make_cudaPitchedPtr(NULL,0,0,0);
-      }
-
-      // -----
-
-      //! Allocates the CUDA array member
-      void AllocateArray( void ) {
-	/*!
-	  Allocates the CUDA array member based on the existing
-	  data stored in the class.
-	  Checks to see that the sizes are non-zero by
-	  examining the d_data pointer
-	*/
-
-	// Check for initialisation
-	if( this->d_data.ptr == NULL ) {
-	  std::cerr << __FUNCTION__
-		    << ": d_data is NULL!"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-
-	this->ReleaseArray();
-
-	cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
-
-	CUDA_SAFE_CALL( cudaMalloc3DArray( &(this->dca_data),
-					   &cd,
-					   this->extent ) );
-      }
-      
-      // -----
-
-      //! Releases the CUDA array member
-      void ReleaseArray( void ) {
-	if( this->dca_data != NULL ) {
-	  CUDA_SAFE_CALL( cudaFreeArray( this->dca_data ) );
-	  this->dca_data = NULL;
-	}
-      }
+     
 
       // --------------------------------------------------------
       // Data transfer
@@ -260,7 +141,7 @@ namespace GPU {
 	  exit( EXIT_FAILURE );
 	}
 	
-	const size_t bSize = this->GetBufferSize();
+	const size_t bSize = this->BufferSize();
 	// See if we were supplied with workspace
 	if( h_work != NULL ) {
 	  h_data = reinterpret_cast<T*>(h_work);
@@ -276,16 +157,7 @@ namespace GPU {
 	this->ExhumeFrame( src, h_data, iFrame );
 	
 	// Do the copy
-	cudaMemcpy3DParms copyParams = {0};
-	copyParams.srcPtr = make_cudaPitchedPtr( (void*)h_data,
-						 this->dims.x*sizeof(T),
-						 this->dims.x,
-						 this->dims.y );
-	copyParams.dstPtr = this->d_data;
-	copyParams.extent = this->extent;
-	copyParams.kind = cudaMemcpyHostToDevice;
-	
-	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &copyParams, stream ) );
+	this->SendBuffer( h_data, stream );
 	
 	// Release host memory if needed
 	if( h_work == NULL ) {
@@ -323,7 +195,7 @@ namespace GPU {
 	  exit( EXIT_FAILURE );
 	}
 	
-	const size_t bSize = this->GetBufferSize();
+	const size_t bSize = this->BufferSize();
 	
 	// Allocate contiguous host memory if needed
 	if( h_work != NULL ) {
@@ -335,16 +207,8 @@ namespace GPU {
 	}
 	
 	// Retrieve from GPU
-	cudaMemcpy3DParms cpyPrms = {0};
-	cpyPrms.srcPtr = this->d_data;
-	cpyPrms.dstPtr = make_cudaPitchedPtr( (void*)h_data,
-					      this->dims.x*sizeof(T),
-					      this->dims.x,
-					      this->dims.y );
-	cpyPrms.extent = this->extent;
-	cpyPrms.kind = cudaMemcpyDeviceToHost;
+	this->RecvBuffer( h_data, stream );
 
-	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cpyPrms, stream ) );
 	CUDA_SAFE_CALL( cudaStreamSynchronize( stream ) );
 	
 	// Retrieve from contiguous RAM
@@ -450,60 +314,14 @@ namespace GPU {
  
     private:
       // --------------------------------------------------------------------
-      // Data members
-
-      //! Dimensions of the MRI frame
-      dim3 dims;
       
-      //! Extent of allocated 3D array
-      cudaExtent extent;
-      //! Pointer to the allocated memory
-      cudaPitchedPtr d_data;
-      //! CUDA array for texturing
-      cudaArray *dca_data;
 
       // ----------------------------------------------------------------------
       // Prevent copying
-      
-      //! Copy constructor - don't use
-      MRIframeGPU( const MRIframeGPU& src ) : dims(make_uint3(0,0,0)),
-					      extent(make_cudaExtent(0,0,0)),
-					      d_data(make_cudaPitchedPtr(NULL,0,0,0)) {
-	std::cerr << __PRETTY_FUNCTION__
-		  << ": Please don't use copy constructor"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      //! Assignment operator - don't use
-      MRIframeGPU& operator=( const MRIframeGPU &src ) {
-	std::cerr << __PRETTY_FUNCTION__
-		  << ": Please don't use assignment operator"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
-
+  
       
       // ----------------------------------------------------------------------
 
-      //! Allocates extent and memory space from object's gpuDims member
-      void AllocateFromDims( void ) {
-	/*!
-	  This routine allocates GPU memory to hold an MRI frame, and
-	  also sets up the extent data member.
-	  It assumes that the dims data member has been correctly
-	  set prior to the call.
-	*/
-	// Make the extent
-	this->extent = make_cudaExtent( this->dims.x * sizeof(T),
-					this->dims.y,
-					this->dims.z );
-	
-	// Allocate the memory
-	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), this->extent ) );
-      }
-
-      
       // ----------------------------------------------------------------------
       
       //! Function to sanity check dimensions

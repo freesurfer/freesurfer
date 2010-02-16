@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 15:14:06 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/16 16:09:49 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -180,7 +180,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.3 2010/02/16 15:14:06 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.4 2010/02/16 16:09:49 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -197,7 +197,7 @@ namespace GPU {
       // Memory management
 
       //! Allocates storage of the given dimensions
-      void Allocate( const dim3& myDims ) {
+      void Allocate( const dim3 myDims ) {
 	/*!
 	  Allocates GPU memory to hold a volume of the
 	  given size.
@@ -225,6 +225,13 @@ namespace GPU {
 	
 	// Allocate the memory
 	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), this->extent ) );
+      }
+
+      //! Allocates storage matching dimensions of potentially different type
+      template<typename U>
+      void Allocate( const VolumeGPU<U>& src ) {
+
+	this->Allocate( src.GetDims() );
       }
 
 
@@ -328,7 +335,7 @@ namespace GPU {
 
       //! Receive a buffer from the GPU
       void RecvBuffer( T* const h_buffer,
-		       const cudaStream_t stream = 0 ) {
+		       const cudaStream_t stream = 0 ) const {
 	/*!
 	  Retrieves data from the GPU into the
 	  contiguous buffer on the host.
@@ -399,7 +406,7 @@ namespace GPU {
       }
 
       // ============================================
-    private:
+    protected:
       //! Dimensions of the volume
       dim3 dims;
       
@@ -411,6 +418,8 @@ namespace GPU {
       cudaArray *dca_data;
 
 
+
+    private:
       // -------------------------------------------
       // Prevent copying
 

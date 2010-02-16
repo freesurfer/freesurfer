@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 15:50:05 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/02/16 16:08:59 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -430,8 +430,8 @@ namespace GPU {
 	dstGPU.VerifyMRI( dst );
 	
 	// Allocate the workspace array
-	srcWorkSize = srcGPU.GetBufferSize();
-	dstWorkSize = dstGPU.GetBufferSize();
+	srcWorkSize = srcGPU.BufferSize();
+	dstWorkSize = dstGPU.BufferSize();
       
 	if( srcWorkSize > dstWorkSize ) {
 	  this->AllocateWorkspace( srcWorkSize );
@@ -630,7 +630,7 @@ namespace GPU {
 	frame2.VerifyMRI( dst );
 
 	// Allocate workspace
-	workSize = frame1.GetBufferSize();
+	workSize = frame1.BufferSize();
 	this->AllocateWorkspace( workSize );
 
 	this->tSend.Start();
