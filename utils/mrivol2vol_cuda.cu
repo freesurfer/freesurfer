@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 16:42:48 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/02/16 16:27:38 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -346,8 +346,8 @@ namespace GPU {
 
       // Allocate workspace array
       tVol2VolMemHost.Start();
-      srcWorkSize = srcGPU.GetBufferSize();
-      dstWorkSize = dstGPU.GetBufferSize();
+      srcWorkSize = srcGPU.BufferSize();
+      dstWorkSize = dstGPU.BufferSize();
       
       if( srcWorkSize > dstWorkSize ) {
 	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_workspace,
