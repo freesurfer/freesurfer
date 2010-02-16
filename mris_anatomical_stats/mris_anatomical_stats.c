@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: ohinds $
- *    $Date: 2009/10/13 20:56:13 $
- *    $Revision: 1.62 $
+ *    $Author: fischl $
+ *    $Date: 2010/02/16 22:32:18 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.62 2009/10/13 20:56:13 ohinds Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.63 2010/02/16 22:32:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -117,7 +117,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.62 2009/10/13 20:56:13 ohinds Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.63 2010/02/16 22:32:18 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -411,6 +411,8 @@ main(int argc, char *argv[])
   if (tablefile != NULL)
   {
     fp = fopen(tablefile,"w");
+    if (fp == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: couldn't open file %s",Progname,tablefile);
     fprintf(fp,"# Table of FreeSurfer cortical "
             "parcellation anatomical statistics \n");
     fprintf(fp,"# \n");
