@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:58:21 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/02/16 20:47:31 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -292,14 +292,12 @@ namespace GPU {
       grid.y = dstDims.z;
       grid.z = 1;
 
-      GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
-
       // Main dispatch
       switch( InterpMode ) {
 
       case SAMPLE_NEAREST:
       case SAMPLE_TRILINEAR:
-	MRIVol2VolKernel<T,U><<<grid,threads>>>( dstGPU, transform, coverGrid );
+	MRIVol2VolKernel<T,U><<<grid,threads>>>( dst, transform, coverGrid );
 	CUDA_CHECK_ERROR_ASYNC( "MRIVol2VolKernel call failed!\n" );
 	break;
 
