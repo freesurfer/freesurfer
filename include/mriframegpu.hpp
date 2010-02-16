@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 20:35:28 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/02/16 20:39:27 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,7 +72,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.34 2010/02/16 20:35:28 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.35 2010/02/16 20:39:27 rge21 Exp $";
       }
       
       // --------------------------------------------------------
@@ -465,11 +465,8 @@ namespace GPU {
       MRIframeOnGPU<T>( void ) : VolumeArgGPU<T>() {};
       
       //! Constructor from MRIframeGPU
-      MRIframeOnGPU<T>( const MRIframeGPU<T>& src ) : VolumeArgGPU<T>() {
-	this->dims = src.dims;
-	this->extent = src.extent;
-	this->data = src.d_data;
-      };
+      MRIframeOnGPU<T>( const MRIframeGPU<T>& src ) :
+	VolumeArgGPU<T>(static_cast<const VolumeGPU<T>&>(src)) {};
       
       
       // --------------------------------------------------------
