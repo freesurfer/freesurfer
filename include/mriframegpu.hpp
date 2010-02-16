@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 19:41:17 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/02/16 20:27:41 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,25 +65,14 @@ namespace GPU {
   
       // --------------------------------------------------------
       // Constructors & destructors
-
-      //! Default constructor falls through to VolumeGPU constructor
       MRIframeGPU<T>( void ) : VolumeGPU<T>() {};
-
-      // --------------------------------------------------------
-      // Conversion operator
-
-      operator MRIframeOnGPU<T>( void ) {
-	MRIframeOnGPU<T> mfog( *this );
-
-	return( mfog );
-      }
 
       // --------------------------------------------------------
       // Data accessors
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.32 2010/02/16 19:41:17 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.33 2010/02/16 20:27:41 rge21 Exp $";
       }
       
       // --------------------------------------------------------
@@ -466,25 +455,80 @@ namespace GPU {
       doesn't go zapping memory allocations prematurely
     */
     template<typename T>
-    class MRIframeOnGPU : public VolumeArgGPU<T> {
+    class MRIframeOnGPU {
     public:
-      
+      //! Out of range value
+      static const T kOutOfRangeVal = 0;
+
+      //! Padded data size
+      dim3 dims;
+      //! Extent of allocated 3D array
+      cudaExtent extent;
+      //! Pointer to the allocated memory
+      cudaPitchedPtr data;
       // --------------------------------------------------------
       // Constructors
       
       //! Default constructor
-      MRIframeOnGPU<T>( void ) : VolumeArgGPU<T>() {};
-
-
-      //! Constructor with given VolumeArgGPU
-      MRIframeOnGPU<T>( const VolumeArgGPU<T>& src ) : VolumeArgGPU<T>(src) {};
-      
+      MRIframeOnGPU( void ) : dims(make_uint3(0,0,0)),
+			      extent(make_cudaExtent(0,0,0)),
+			      data(make_cudaPitchedPtr(NULL,0,0,0)) {};
       
       //! Constructor from MRIframeGPU
-      MRIframeOnGPU( const MRIframeGPU<T>& src ) : 
-	VolumeArgGPU<T>( static_cast<const VolumeGPU<T>&>(src) ) {};
-     
+      MRIframeOnGPU( const MRIframeGPU<T>& src ) : dims(src.dims),
+						   extent(src.extent),
+						   data(src.d_data) {};
       
+      
+      // --------------------------------------------------------
+      // Subscripting operators
+      
+      //! Unsafe RHS subscripting routine
+      __device__ T UnsafeAt( const unsigned int ix,
+			     const unsigned int iy,
+			     const unsigned int iz ) const {
+	const char* data = reinterpret_cast<const char*>(this->data.ptr);
+	// Rows are pitch apart
+	size_t pitch = this->data.pitch;
+	// Slices are slicePitch apart
+	size_t slicePitch = pitch * this->extent.height;
+	
+	const char* slice = data + ( iz * slicePitch );
+	const char* row = slice + ( iy * pitch );
+	
+	return( reinterpret_cast<const T*>(row)[ix] );
+      }
+
+      //! RHS Subscripting operator
+      __device__ T operator() ( const unsigned int ix,
+				const unsigned int iy,
+				const unsigned int iz ) const {
+	/*!
+	  This version of the subscripting operator is safe.
+	  It bounds checks the requested dimensions,
+	  and returns kOutofRangeVal if out of range
+	*/
+	if( this->InVolume( ix, iy, iz ) ) {
+	  return( this->UnsafeAt( ix, iy, iz ) );
+	} else {
+	  return( this->kOutOfRangeVal );
+	}
+      }
+      
+      
+      //! LHS subscripting operator
+      __device__ T& operator() ( const unsigned int ix,
+				 const unsigned int iy,
+				 const unsigned int iz ) {
+	char* data = reinterpret_cast<char*>(this->data.ptr);
+	size_t pitch = this->data.pitch;
+	size_t slicePitch = pitch * this->extent.height;
+    
+	char* slice = data + ( iz * slicePitch );
+	char* row = slice + ( iy * pitch );
+	
+	return( reinterpret_cast<T*>(row)[ix] );
+      }
       
 
       //! Utility function to convert float to the class' datatype
@@ -499,6 +543,26 @@ namespace GPU {
       
       // --------------------------------------------------------
 
+      //! Checks if given co-ordinate is in the volume
+      __device__ bool InVolume( const unsigned int ix,
+				const unsigned int iy,
+				const unsigned int iz ) const {
+	bool res = ( ix < (this->dims.x) );
+	res = res && ( iy < (this->dims.y) );
+	res = res && ( iz < (this->dims.z) );
+
+	return( res );
+      }
+
+      //! Checks is given location is in volume within given tolerance
+      __device__ bool InFuzzyVolume( const float3& r,
+				     const float tol ) const {
+	bool res = ( (r.x>-tol) && (r.x<(this->dims.x+tol)) );
+	res = res && (r.y>-tol) && (r.y<(this->dims.y+tol));
+	res = res && (r.z>-tol) && (r.z<(this->dims.z+tol));
+
+	return( res );
+      }
 
       //! Clamps input integer into range
       __device__ unsigned int ClampCoord( const int i,

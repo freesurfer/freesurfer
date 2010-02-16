@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 19:56:40 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/02/16 20:27:37 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -494,6 +494,9 @@ namespace GPU {
 	const dim3 coverGrid = dst.CoverBlocks( kConv1dBlockSize );
       
 
+	GPU::Classes::MRIframeOnGPU<T> srcGPU( src );
+	GPU::Classes::MRIframeOnGPU<U> dstGPU( dst );
+
 	switch( axis ) {
 	case MRI_WIDTH:
 	  grid.x = coverGrid.x * coverGrid.y;
@@ -503,7 +506,7 @@ namespace GPU {
 	  MRIConvolveKernelX
 	    <T,U>
 	    <<<grid,threads,0,this->stream>>>
-	    ( src, dst, coverGrid );
+	    ( srcGPU, dstGPU, coverGrid );
 	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelX failed!" );
 	  break;
 	  
@@ -515,7 +518,7 @@ namespace GPU {
 	  MRIConvolveKernelY
 	    <T,U>
 	    <<<grid,threads,0,this->stream>>>
-	    ( src, dst, coverGrid );
+	    ( srcGPU, dstGPU, coverGrid );
 	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelY failed!" );
 	  break;
 	  
@@ -527,7 +530,7 @@ namespace GPU {
 	  MRIConvolveKernelZ
 	    <T,U>
 	    <<<grid,threads,0,this->stream>>>
-	    ( src, dst, coverGrid );
+	    ( srcGPU, dstGPU, coverGrid );
 	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelZ failed!" );
 	  break;
 	  
