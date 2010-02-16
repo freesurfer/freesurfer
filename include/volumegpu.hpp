@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 19:41:18 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/02/16 20:23:08 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,8 @@ namespace GPU {
 
       // --------------------------------------
       // Constructors
+
+      //! Default constructor
       VolumeArgGPU( void ) : dims(make_uint3(0,0,0)),
 			     extent(make_cudaExtent(0,0,0)),
 			     data(make_cudaPitchedPtr(NULL,0,0,0)) {};
@@ -180,7 +182,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.6 2010/02/16 19:41:18 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.7 2010/02/16 20:23:08 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
