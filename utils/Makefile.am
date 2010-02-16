@@ -335,6 +335,7 @@ libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
 # We have some templating dependencies
 mriframegpu_cuda.o: ../include/mriframegpu.hpp
 mriconvolve_cuda.o: ../include/mriframegpu.hpp
+mrimean_cuda.o: ../include/mriframegpu.hpp
 affinegpu.o: ../include/affinegpu.hpp
 gcasgpu.o: ../include/gcasgpu.hpp
 
