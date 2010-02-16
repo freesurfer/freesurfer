@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/08 22:21:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/16 20:49:01 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -92,6 +92,8 @@ int DialogLoadPointSet::GetPointSetType()
 {
   if (m_radioControlPoints->GetValue() )
     return LayerPropertiesWayPoints::ControlPoints;
-  else
+  else if ( m_radioWayPoints->GetValue() )
     return LayerPropertiesWayPoints::WayPoints;
+  else
+    return -1;
 }

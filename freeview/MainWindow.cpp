@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/09 23:51:56 $
- *    $Revision: 1.94 $
+ *    $Author: rpwang $
+ *    $Date: 2010/02/16 20:49:01 $
+ *    $Revision: 1.95 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1019,9 +1019,17 @@ void MainWindow::LoadWayPoints()
   DialogLoadPointSet dlg( this );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    if ( dlg.GetPointSetType() == LayerPropertiesWayPoints::WayPoints )
+    int nType = dlg.GetPointSetType();
+    if ( nType == -1 )  // auto
+    {
+      if ( FSWayPoints::IsLabelFormat( dlg.GetFileName().c_str() ) )
+        nType = LayerPropertiesWayPoints::WayPoints;
+      else 
+        nType = LayerPropertiesWayPoints::ControlPoints;
+    }
+    if ( nType == LayerPropertiesWayPoints::WayPoints )
       this->LoadWayPointsFile( dlg.GetFileName() );
-    else if ( dlg.GetPointSetType() == LayerPropertiesWayPoints::ControlPoints )
+    else if ( nType == LayerPropertiesWayPoints::ControlPoints )
       this->LoadControlPointsFile( dlg.GetFileName() );
   }
 }
