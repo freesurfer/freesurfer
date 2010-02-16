@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:09:49 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/16 16:58:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -180,7 +180,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.4 2010/02/16 16:09:49 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.5 2010/02/16 16:58:24 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -389,6 +389,22 @@ namespace GPU {
 	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cp, myStream ) );
       }
       
+      // --------------------------------------
+      //! Method to return number of 'covering' blocks
+      dim3 CoverBlocks( const unsigned int threadCount ) const {
+	/*!
+	  Method to return the number of blocks which
+	  will be required to cover the volume of cubic blocks
+	  of size threadCount
+	*/
+	dim3 grid;
+
+	grid.x = DivRoundUp( this->dims.x, threadCount );
+	grid.y = DivRoundUp( this->dims.y, threadCount );
+	grid.z = DivRoundUp( this->dims.z, threadCount );
+
+	return( grid );
+      }
 
       // --------------------------------------
 
@@ -407,6 +423,7 @@ namespace GPU {
 
       // ============================================
     protected:
+   
       //! Dimensions of the volume
       dim3 dims;
       
@@ -418,7 +435,8 @@ namespace GPU {
       cudaArray *dca_data;
 
 
-
+      // ============================================
+   
     private:
       // -------------------------------------------
       // Prevent copying

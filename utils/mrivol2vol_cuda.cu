@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:27:38 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/02/16 16:58:21 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -286,7 +286,7 @@ namespace GPU {
       threads.x = threads.y = kVol2VolBlockSize;
       threads.z = 1;
 
-      const dim3 coverGrid = dst.CoverBlocks( threads );
+      const dim3 coverGrid = dst.CoverBlocks( kVol2VolBlockSize );
 
       grid.x = coverGrid.x * coverGrid.y;
       grid.y = dstDims.z;

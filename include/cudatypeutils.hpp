@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 15:50:09 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/16 16:58:23 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,7 @@
 #ifndef CUDA_TYPE_UTILS_H
 #define CUDA_TYPE_UTILS_H
 
+#include <cmath>
 #include <iostream>
 
 // =======================================================
@@ -41,6 +42,40 @@ std::ostream& operator<<( std::ostream& os, const dim3& me );
 
 // =======================================================
 // dim3 operators
+
+//! Returns a / b, rounded up to next integer
+template<typename T>
+__device__ __host__
+unsigned int DivRoundUp( const T a,
+			 const unsigned int b )  {
+  /*!
+    This isn't strictly a routine just for CUDA types,
+    but it's the sort of code which comes up repeatedly
+    when configuring kernel launches
+  */
+  float tmp;
+  
+  tmp = static_cast<float>(a) / b;
+  
+  return( static_cast<unsigned int>( ceilf( tmp ) ) );
+}
+
+//! Returns the next multiple of b which is greater than a
+template<typename T>
+__device__ __host__
+unsigned int NextMultiple( const T a,
+			   const unsigned int b ) {
+  /*!
+    This isn't strictly a routine for CUDA types
+    but it's the sort of thing which comes up
+    repeatedly in CUDA code
+  */
+
+  unsigned int tmp = DivRoundUp( a, b );
+
+  return( b * tmp );
+}
+
 
 //! Equality for dim3
 static

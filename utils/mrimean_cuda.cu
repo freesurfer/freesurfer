@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:22:00 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/02/16 16:58:21 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,19 +69,6 @@ namespace GPU {
       }
     }
 
-    //! Function to round up a value to multiple of given number
-    template<typename T>
-    __device__ T Roundup( const T val, const unsigned int num ) {
-      
-      float tmp;
-      
-      tmp = static_cast<float>( val ) / num;
-
-      T tmpVal = static_cast<T>( ceilf( tmp ) );
-
-      return( num * tmpVal );
-    }
-
     
     //! Kernel to compute x direction means
     template<typename T>
@@ -116,7 +103,7 @@ namespace GPU {
       const unsigned int myxMax = min( dst.dims.x-1, ix + wHalf );
 
       // Again, declare int to remove need for some casts
-      const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
+      const int patchSize = NextMultiple( max(wHalf,1), kMRImeanBlockSize );
 
       // Accumulator
       float myVal = 0;
@@ -124,7 +111,7 @@ namespace GPU {
       __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
 
       // Calculate patch limits (note integer declarations avoid -ve trouble)
-      const int xDimRound = Roundup( src.dims.x, kMRImeanBlockSize );
+      const int xDimRound = NextMultiple( src.dims.x, kMRImeanBlockSize );
       const int xFirst = max( 0, ixStart - patchSize );
       const int xLast  = min( xDimRound - kMRImeanBlockSize,
 			      ixStart + patchSize );
@@ -187,7 +174,7 @@ namespace GPU {
       const unsigned int myyMax = min( dst.dims.y-1, iy + wHalf );
 
       // Again, declare int to remove need for some casts
-      const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
+      const int patchSize = NextMultiple( max(wHalf,1), kMRImeanBlockSize );
 
       // Accumulator
       float myVal = 0;
@@ -195,7 +182,7 @@ namespace GPU {
       __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
 
       // Calculate patch limits (note integer declarations avoid -ve trouble)
-      const int yDimRound = Roundup( src.dims.y, kMRImeanBlockSize );
+      const int yDimRound = NextMultiple( src.dims.y, kMRImeanBlockSize );
 
       const int yFirst = max( 0, iyStart - patchSize );
       const int yLast  = min( yDimRound - kMRImeanBlockSize,
@@ -260,7 +247,7 @@ namespace GPU {
       const unsigned int myzMax = min( dst.dims.z-1, iz + wHalf );
 
       // Again, declare int to remove need for some casts
-      const int patchSize = Roundup( max(wHalf,1), kMRImeanBlockSize );
+      const int patchSize = NextMultiple( max(wHalf,1), kMRImeanBlockSize );
 
       // Accumulator
       float myVal = 0;
@@ -268,7 +255,7 @@ namespace GPU {
       __shared__ float currPatch[kMRImeanBlockSize][kMRImeanBlockSize];
 
       // Calculate patch limits (note integer declarations avoid -ve trouble)
-      const int zDimRound = Roundup( src.dims.z, kMRImeanBlockSize );
+      const int zDimRound = NextMultiple( src.dims.z, kMRImeanBlockSize );
 
       const int zFirst = max( 0, izStart - patchSize );
       const int zLast  = min( zDimRound - kMRImeanBlockSize,
@@ -600,14 +587,11 @@ namespace GPU {
 	// Do the three convolutions. Recall objects have same dims
 	dim3 grid, threads;
 
-	/*
-	  Play a small trick with thread block size, given
-	  that the kernels always use (x,y) indexing of threads
-	  even when dealing with an (x,z) slice
-	*/
-	threads.x = threads.y = threads.z = kMRImeanBlockSize;
-	const dim3 coverGrid = dst.CoverBlocks( threads );
+	
+	threads.x = threads.y = kMRImeanBlockSize;
 	threads.z = 1;
+
+	const dim3 coverGrid = dst.CoverBlocks( kMRImeanBlockSize );
 
 	grid.x = coverGrid.x * coverGrid.y;
 	grid.y = dstDims.z;

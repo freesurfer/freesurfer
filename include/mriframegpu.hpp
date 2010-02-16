@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:22:02 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/02/16 16:58:23 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,7 +72,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.30 2010/02/16 16:22:02 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.31 2010/02/16 16:58:23 rge21 Exp $";
       }
       
       // --------------------------------------------------------
@@ -110,11 +110,6 @@ namespace GPU {
 	static_cast<VolumeGPU<T>*>(this)->Allocate( static_cast<const VolumeGPU<U>& >(src) );
       }
 
-      // -----
-
-
-      // -----
-     
 
       // --------------------------------------------------------
       // Data transfer
@@ -229,38 +224,6 @@ namespace GPU {
 
       // -----
 
-      //! Copies frame data to a CUDA array for texturing
-      void SendArray( const cudaStream_t myStream = 0 ) {
-	/*!
-	  Method to copy the data currently on the GPU
-	  into a CUDA array, which can then be used in a
-	  texture.
-	  Copy is done asynchronously within the (optionally)
-	  given stream
-	*/
-	if( this->d_data.ptr == NULL ) {
-	  std::cerr << __FUNCTION__
-		    << ": GPU data not available!"
-		    << std::endl;
-	}
-
-	if( this->dca_data == NULL ) {
-	  std::cerr << __FUNCTION__
-		    << ": CUDA array not allocated!"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-
-	cudaMemcpy3DParms cp = {0};
-	
-	cp.srcPtr = this->d_data;
-	cp.dstArray = this->dca_data;
-	cp.extent = this->extent;
-	cp.kind = cudaMemcpyDeviceToDevice;
-
-	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cp, myStream ) );
-      }
-      
       // ----------------------------------------------------------------------
       //! Method to sanity check MRI
       void VerifyMRI( const MRI* mri ) const {
@@ -285,51 +248,10 @@ namespace GPU {
 	return(-1);
       }
       
-
-      //! Method to check if the CUDA array is allocated
-      bool HasArray( void ) const {
-	return( this->dca_data != NULL );
-      }
-
-      // --------------------------------------------------------------------
-      //! Method to return number of 'covering' blocks
-      dim3 CoverBlocks( const dim3 threadBlock ) const {
-	/*!
-	  Method to return the number of blocks required to
-	  'cover' the frame with threads, given the dimensions
-	  of the thread block.
-	*/
-	dim3 grid;
-
-	grid.x = this->DivRoundUp( this->dims.x, threadBlock.x );
-	grid.y = this->DivRoundUp( this->dims.y, threadBlock.y );
-	grid.z = this->DivRoundUp( this->dims.z, threadBlock.z );
-
-	return( grid );
-      }
-
-      //! Returns a / b, rounded up to next integer
-      unsigned int DivRoundUp( const unsigned int a,
-			       const unsigned int b ) const {
-	float tmp;
-
-	tmp = static_cast<float>(a) / b;
-
-	return( static_cast<unsigned int>( ceilf( tmp ) ) );
-      }
  
     private:
       // --------------------------------------------------------------------
-      
-
-      // ----------------------------------------------------------------------
-      // Prevent copying
-  
-      
-      // ----------------------------------------------------------------------
-
-      // ----------------------------------------------------------------------
-      
+    
       //! Function to sanity check dimensions
       bool CheckDims( const MRI* mri ) const {
 
@@ -470,15 +392,6 @@ namespace GPU {
       }
       
       
-      // ----------------------------------------------------------------------
-      
-      // Index into host memory defined by gpuDims
-      unsigned int Index1D( const unsigned int ix,
-			    const unsigned int iy,
-			    const unsigned int iz ) const {
-	return( ix + ( this->dims.x * ( iy + ( this->dims.y * iz ) ) ) );
-      }
-
     };
 
 

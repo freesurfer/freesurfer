@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:08:59 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/02/16 16:58:21 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,13 +90,12 @@ namespace GPU {
 	Note that we have an extra divide by two since we're only
 	really interested in the half-width of the convolution kernel
       */
-      float temp;
+     
 
-      temp = static_cast<float>(dc_mriconv1d_kernel_nVals/2) / kConv1dBlockSize ;
+      unsigned int n = NextMultiple( dc_mriconv1d_kernel_nVals/2,
+				     kConv1dBlockSize );
 
-      unsigned int n = static_cast<unsigned int>(ceilf( temp ) );
-
-      return( n * kConv1dBlockSize );
+      return( n );
     }
 
 
@@ -488,15 +487,11 @@ namespace GPU {
 	
 	dim3 grid, threads;
 
-	/*
-	  Note that we play a small trick with the number
-	  of threads here.
-	  This is because the kernels always have an
-	  (x,y) indexed grid of threads, even when doing (x,z)
-	*/
-	threads.x = threads.y = threads.z = kConv1dBlockSize;
-	const dim3 coverGrid = dst.CoverBlocks( threads );
+	
+	threads.x = threads.y = kConv1dBlockSize;
 	threads.z = 1;
+
+	const dim3 coverGrid = dst.CoverBlocks( kConv1dBlockSize );
 
 	GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
 	GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
