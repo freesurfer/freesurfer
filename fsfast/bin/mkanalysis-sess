@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/29 18:40:50 $
-#    $Revision: 1.24 $
+#    $Date: 2010/02/17 21:44:23 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.24 2009/06/29 18:40:50 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.25 2010/02/17 21:44:23 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -586,10 +586,18 @@ while( $#argv != 0 )
 
     case "-extreg": # External regressor file
       if ( $#argv == 0) goto arg1err;
+      if($#extreg != 0) then
+        echo "ERROR: can only spec one -extreg or -mcextreg"
+        exit 1;
+      endif
       set extreg = $argv[1]; shift;
       breaksw
 
     case "-mcextreg": # MotionCor External regressor file
+      if($#extreg != 0) then
+        echo "ERROR: can only spec one -extreg or -mcextreg"
+        exit 1;
+      endif
       set extreg = mcextreg;
       set nextreg = 3;
       breaksw
@@ -955,6 +963,12 @@ check_params:
     echo $TauMax
     exit 1;
   endif
+
+  if($#extreg != 0 && $#nextreg == 0) then
+    echo "ERROR: you must spec -nextreg with -extreg"
+    exit 1;
+  endif
+
  endif # Dont use GUI
 
 
@@ -997,7 +1011,8 @@ usage_exit:
   echo "   -tpef      filename    : time-point exclude file name"
   echo "   -polyfit N             : fit trend with polynomial of order N"
   echo "   -extreg extregstem     : external regressor"
-  echo "   -mcextreg              : use motion parameters as external regressors"
+  echo "   -nextreg N             : number of external regressor"
+  echo "   -mcextreg              : use motion parameters as external regressors (sets n=3)"
   echo ""
   echo "Event-Related and Blocked Arguments "
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"
