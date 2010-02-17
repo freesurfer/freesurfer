@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/02/10 19:50:19 $
- *    $Revision: 1.448 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/17 21:19:28 $
+ *    $Revision: 1.449 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.448 $";
+const char *MRI_C_VERSION = "$Revision: 1.449 $";
 
 
 /*-----------------------------------------------------
@@ -14231,17 +14231,19 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals,
                                                MRI *mri_nbr_labels)
 {
   float   volume, vox_vol ;
-  int     x, y, z, nbr_label_counts[10000];
-  int     label_counts[10000], this_label, border;
+  int     x, y, z, nbr_label_counts[20000];
+  int     label_counts[20000], this_label, border;
   int     nbr_label, max_count, vox_label ;
   MRI     *mri_border ;
-  float   label_means[10000], pv, mean_label, mean_nbr, val ;
-  int     maxlabels = 10000;
+  float   label_means[20000], pv, mean_label, mean_nbr, val ;
+  int     maxlabels = 20000;
   // DNG 6/7/07 : had to use maxlabels instead of MAX_CMA_LABELS here
   // so that segmentations with values > MAX_CMA_LABELS can be
   // accessed. This includes the cortical segmentations as well as
   // white matter segs. Currently, the max seg no is 4181, but this
   // could easily change.
+  // NJS 2/17/10 : Indeed, it did change... the Destrieux a2009s atlas has
+  // label values up to about 15000.
 
   if(label >= maxlabels){
     printf("ERROR: MRIvoxelsInLabelWithPartialVolumeEffects()\n");
