@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/22 00:51:24 $
-#    $Revision: 1.1 $
+#    $Date: 2010/02/17 16:39:56 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 # Sample to anat
 # Sample to tal
 
-set VERSION = '$Id: mc-bbr,v 1.1 2009/06/22 00:51:24 greve Exp $';
+set VERSION = '$Id: mc-bbr,v 1.2 2010/02/17 16:39:56 greve Exp $';
 
 set invol = ();
 set outvol = ();
@@ -133,8 +133,8 @@ while ($nthframe < $nframes)
   set rmsframe = $tmpdir/f.$zp.rms
   set cmd = (mri_segreg --mov $f --init-reg $reg0 \
     --out-reg $regframe --brute -4 4 4 --interp trilinear \
-    --gm-proj-abs 1 --wm-proj-abs 1 --dof 6 \
-    --tol 1e-6 --tol1d 1e-2 --rms $rmsframe)
+    --gm-proj-abs 1 --wm-proj-abs 1 --dof 6 --tol 1e-4 \
+    --tol1d 1e-1 --rms $rmsframe)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -223,6 +223,7 @@ while( $#argv != 0 )
       set frame = $argv[1]; shift;
       breaksw
 
+    case "--tmpdir":
     case "--tmp":
       if ( $#argv == 0) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -235,10 +236,6 @@ while( $#argv != 0 )
 
     case "--cleanup":
       set cleanup = 1;
-      breaksw
-
-    case "--nolog":
-      set nolog = 1;
       breaksw
 
     case "--debug":
@@ -308,12 +305,14 @@ usage_exit:
   echo " Required:";
   echo "   --i invol  : input  volume "
   echo "   --o outvol : output volume "
+  echo "   --s subject : freesurfer subject"
   echo ""
   echo " Options:";
   echo "   --t templatevol   : default is to use input volume"
   echo "   --frame frame     : 0-based frame of template "
   echo "   --mcdat mcdatfile : text file with mc parameters"
   echo ""
+  echo "   --sd SUBJECTS_DIR"
   echo "   --tmp tmpdir   : specify template directory (implies --nocleanup)"
   echo "   --nocleanup    : do not delete temporary files"
   echo "   --cleanup      : force cleanup"
