@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/13 18:47:51 $
-#    $Revision: 1.268 $
+#    $Date: 2010/02/17 20:03:59 $
+#    $Revision: 1.269 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.268 2010/02/13 18:47:51 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.269 2010/02/17 20:03:59 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -422,6 +422,7 @@ if ("`uname -s`" == "Darwin") then
 endif
 
 ## gather all versions here
+if ($DoMakefile) goto skip_all_info
 echo "########################################" >> $LF
 echo "program versions used" >> $LF
 echo $VERSION                >> $LF
@@ -472,6 +473,7 @@ echo "AvgCurvTif $AvgCurvTif" >> $LF
 echo "GCSDIR $GCSDIR" >> $LF
 echo "GCS $GCS" >> $LF
 echo "#######################################" >> $LF
+skip_all_info:
 
 if($DoVersionsOnly) exit 0;
 
@@ -2949,7 +2951,7 @@ uname -a         >> $DoneFile
 echo $VERSION    >> $DoneFile
 echo $0          >> $DoneFile
 
-echo "recon-all finished without error at `date`" |& tee -a $LF |& tee -a $SF
+echo "recon-all $subjid finished without error at `date`" |& tee -a $LF |& tee -a $SF
 
 
 if($#mailuser != 0) then
@@ -2968,7 +2970,7 @@ exit 0
 error_exit:
   uname -a | tee -a $LF | tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
-  echo "recon-all exited with ERRORS at `date`" |& tee -a $LF |& tee -a $SF
+  echo "recon-all $subjid exited with ERRORS at `date`" |& tee -a $LF |& tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
   # Handle IsRunningFile
   if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
