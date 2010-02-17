@@ -21,6 +21,7 @@ extern "C"
 #ifdef __cplusplus
 
 #include <iostream>
+#include <limits.h>
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_vector.h>
 #include <vnl/algo/vnl_symmetric_eigensystem.h>
@@ -219,13 +220,26 @@ namespace Math
    */
   void GetSortedEigenVectors ( vnl_symmetric_eigensystem<double> eigenSystem, double *evalues, double *max, double *mid, double *min)
   {
-    vnl_vector<double> _evals(3);
     vnl_vector<double> _ev(3);
+    int _max=0, _min=0, _mid; 
+    double maxval=std::numeric_limits<float>::min(), minval=std::numeric_limits<float>::max();
+
+    // sort the eigenvector indices according to the eigenvalues
     for ( int i=0; i<3; i++)
-      _evals[i] = eigenSystem.get_eigenvalue(i);
-    int _max = _evals.arg_max();
-    int _min = _evals.arg_min();
-    int _mid = 3 - _max - _min; // since the vector is only 3 items long 
+    {
+      double curval = eigenSystem.get_eigenvalue(i);
+      if ( curval > maxval ) 
+      {
+        maxval = curval;
+        _max = i;
+      }
+      if ( curval < minval )
+      {
+        minval = curval;
+        _min = i;
+      }
+    }
+    _mid = 3 - _max - _min; // since there are only 3 indices
 
     _ev = eigenSystem.get_eigenvector(_max);
     max[0] = _ev[0]; max[1] = _ev[1]; max[2] = _ev[2];
