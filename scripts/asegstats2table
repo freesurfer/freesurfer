@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.28 2010/02/04 19:57:31 greve Exp $
+# $Id: asegstats2table,v 1.29 2010/02/17 01:00:58 krish Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -100,7 +100,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.28 2010/02/04 19:57:31 greve Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.29 2010/02/17 01:00:58 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -304,6 +304,10 @@ def build_table(options):
             if o.verboseflag:
                 print 'Processing file %s' %statfile
             rows.append(statno+subname)
+            # if file size is less than 10, not a valid segstats file. so exit
+            if os.path.getsize(statfile) < 10:
+                print 'WARNING: File:' + statfile + ' is not a valid aseg statsfile'
+                print 'Exclude it from the list of subjects/don\'t use common-segs option'
             fp = open(statfile, 'r')
             cols = []
             for line in fp:

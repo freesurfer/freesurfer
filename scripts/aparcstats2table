@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: aparcstats2table,v 1.18 2010/01/11 19:18:55 greve Exp $
+# $Id: aparcstats2table,v 1.19 2010/02/17 01:00:58 krish Exp $
 
 # this is a map of measure requested and its corresponding column# in ?h.aparc*.stats
 measure_field_map = {'area':2, 'volume':3, 'thickness':4, 'thicknessstd':5, 'meancurv':6 }
@@ -80,7 +80,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.18 2010/01/11 19:18:55 greve Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: aparcstats2table,v 1.19 2010/02/17 01:00:58 krish Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -186,6 +186,10 @@ def build_table(options):
             print 'Subject:%s' %subject 
             print 'Stats File:%s' %statsfile,
         if os.path.exists(statsfile):
+            # if file size is less than 10, not a valid parcstats file. so exit
+            if os.path.getsize(statsfile) < 10:
+                print 'WARNING: File:' + statsfile + ' is not a valid aparc statsfile'
+                print 'Exclude it from the list of subjects/don\'t use common-segs option'
             fp = open(statsfile, 'r')
             if o.verboseflag: print '\nParcellations: ',
             for line in fp:
