@@ -11,7 +11,7 @@
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2010/02/10 16:42:23 $
+ *    $Date: 2010/02/17 22:51:19 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -50,6 +50,7 @@ extern "C"
 #include "diag.h"
 #include "macros.h"
 #include "gca.h"
+#include "version.h"
 };
 char *Progname;
 
@@ -154,6 +155,19 @@ struct IoParams
 int
 main(int ac, char* av[])
 {
+
+  // first, handle stuff for --version and --all-info args
+  int nargs = 0;
+  nargs =
+    handle_version_option
+    ( ac, av,
+      "$Id: mris_volmask.cpp,v 1.22 2010/02/17 22:51:19 krish Exp $", 
+      "$Name:  $"
+      );
+  if (nargs && ac - nargs == 1)
+    exit (0);
+  ac -= nargs;
+
   // parse command-line
   IoParams params;
   try
