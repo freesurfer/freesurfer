@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 20:46:54 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/02/17 20:49:42 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,8 +48,63 @@ namespace GPU {
 
   namespace Classes {
 
-    // Forward declaration of the class which will be passed to kernels
-    template<typename T> class MRIframeOnGPU;
+     
+    //! Ancillary class for use in kernel calls
+    /*!
+      This is an auxillary class, for use in actual
+      kernel calls.
+      The kernel invocation has to be on a call-by-value
+      copy, so we want to make sure that the destructor
+      doesn't go zapping memory allocations prematurely
+    */
+    template<typename T>
+    class MRIframeOnGPU : public VolumeArgGPU<T> {
+    public:
+      
+      // --------------------------------------------------------
+      // Constructors
+      
+      //! Default constructor
+      MRIframeOnGPU<T>( void ) : VolumeArgGPU<T>() {};
+      
+     
+      //! Constructor from MRIframeGPU
+      MRIframeOnGPU<T>( const VolumeArgGPU<T>& src ) :
+	VolumeArgGPU<T>(src) {};
+      
+      
+      // --------------------------------------------------------
+      // Subscripting operators
+      
+      //! Utility function to convert float to the class' datatype
+      __device__ T ConvertFloat( const float in ) const {
+	/*!
+	  This template is specialised for each supported class.
+	  The unspecialised default will write a constant
+	  negative value
+	*/
+	return( -1 );
+      }
+      
+      // --------------------------------------------------------
+
+      //! Clamps input integer into range
+      __device__ unsigned int ClampCoord( const int i,
+					  const unsigned int iMax ) const {
+	/*!
+	  Performs clamping on the input index.
+	  Negative values are set to 0, values greater than iMax-1 are
+	  set to iMax-1
+	*/
+	if( i < 0 ) {
+	  return 0;
+	} else if( i > (iMax-1) ) {
+	  return( iMax-1 );
+	} else {
+	  return i;
+	}
+      }
+    };
 
     // ================================================================
 
@@ -63,12 +118,18 @@ namespace GPU {
       // Constructors & destructors
       MRIframeGPU<T>( void ) : VolumeGPU<T>() {};
 
+      operator MRIframeOnGPU<T>( void ) const {
+	VolumeArgGPU<T> vag( static_cast<const VolumeGPU<T>&>(*this) );
+
+	return( MRIframeOnGPU<T>( vag ) );
+      }
+
       // --------------------------------------------------------
       // Data accessors
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.36 2010/02/16 20:46:54 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.37 2010/02/17 20:49:42 rge21 Exp $";
       }
       
       // --------------------------------------------------------
@@ -441,62 +502,7 @@ namespace GPU {
     
     // ======================================================================
 
-    
-    //! Ancillary class for use in kernel calls
-    /*!
-      This is an auxillary class, for use in actual
-      kernel calls.
-      The kernel invocation has to be on a call-by-value
-      copy, so we want to make sure that the destructor
-      doesn't go zapping memory allocations prematurely
-    */
-    template<typename T>
-    class MRIframeOnGPU : public VolumeArgGPU<T> {
-    public:
-      
-      // --------------------------------------------------------
-      // Constructors
-      
-      //! Default constructor
-      MRIframeOnGPU<T>( void ) : VolumeArgGPU<T>() {};
-      
-      //! Constructor from MRIframeGPU
-      MRIframeOnGPU<T>( const MRIframeGPU<T>& src ) :
-	VolumeArgGPU<T>(static_cast<const VolumeGPU<T>&>(src)) {};
-      
-      
-      // --------------------------------------------------------
-      // Subscripting operators
-      
-      //! Utility function to convert float to the class' datatype
-      __device__ T ConvertFloat( const float in ) const {
-	/*!
-	  This template is specialised for each supported class.
-	  The unspecialised default will write a constant
-	  negative value
-	*/
-	return( -1 );
-      }
-      
-      // --------------------------------------------------------
-
-      //! Clamps input integer into range
-      __device__ unsigned int ClampCoord( const int i,
-					  const unsigned int iMax ) const {
-	/*!
-	  Performs clamping on the input index.
-	  Negative values are set to 0, values greater than iMax-1 are
-	  set to iMax-1
-	*/
-	if( i < 0 ) {
-	  return 0;
-	} else if( i > (iMax-1) ) {
-	  return( iMax-1 );
-	} else {
-	  return i;
-	}
-      }
-    };
+   
 
     template<> __device__
     unsigned char MRIframeOnGPU<unsigned char>::ConvertFloat( const float in ) const {

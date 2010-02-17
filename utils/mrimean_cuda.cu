@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:58:21 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/02/17 20:49:34 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -361,7 +361,7 @@ namespace GPU {
 	case MRI_UCHAR:
 	  this->MeanDispatch<T,unsigned char>( src, dst, wSize, srcFrame, dstFrame );
 	  break;
-	  
+
 	case MRI_SHORT:
 	  this->MeanDispatch<T,short>( src, dst, wSize, srcFrame, dstFrame );
 	  break;
@@ -369,7 +369,7 @@ namespace GPU {
 	case MRI_FLOAT:
 	  this->MeanDispatch<T,float>( src, dst, wSize, srcFrame, dstFrame );
 	  break;
-	  
+
 	default:
 	  std::cerr << __FUNCTION__
 		    << ": Unrecognised destination MRI type "
@@ -473,7 +473,7 @@ namespace GPU {
 	case MRI_UCHAR:
 	  this->DispatchWrap<unsigned char>( src, dst, wSize, srcFrame, dstFrame );
 	  break;
-	  
+  
 	case MRI_SHORT:
 	  this->DispatchWrap<short>( src, dst, wSize, srcFrame, dstFrame );
 	  break;
@@ -481,7 +481,7 @@ namespace GPU {
 	case MRI_FLOAT:
 	  this->DispatchWrap<float>( src, dst, wSize, srcFrame, dstFrame );
 	  break;
-	  
+ 
 	default:
 	  std::cerr << __FUNCTION__
 		    << ": Unrecognised source MRI type "
@@ -579,10 +579,13 @@ namespace GPU {
 	this->tMem.Stop();
 
 	// Create the GPU kernel objects
+#if 0
 	GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
 	GPU::Classes::MRIframeOnGPU<float> f1GPU( f1 );
 	GPU::Classes::MRIframeOnGPU<float> f2GPU( f2 );
 	GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
+#endif
+
 
 	// Do the three convolutions. Recall objects have same dims
 	dim3 grid, threads;
@@ -600,27 +603,31 @@ namespace GPU {
 	this->tCompute.Start();
 
 	// Do the X direction
-	MRImeanX<<<grid,threads,0,this->stream>>>( srcGPU, f1GPU,
-						   coverGrid, wSize );
+	MRImeanX<T>
+	  <<<grid,threads,0,this->stream>>>
+	  ( src, f1, coverGrid, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanX kernel failed" );
 
 	// Do the Y direction
-	MRImeanY<<<grid,threads,0,this->stream>>>( f1GPU, f2GPU,
-						   coverGrid, wSize );
+	MRImeanY<float>
+	  <<<grid,threads,0,this->stream>>>
+	  ( f1, f2, coverGrid, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanY kernel failed" );
 
 	// Slight change for Z direction
 	grid.x = coverGrid.x * coverGrid.z;
 	grid.y = dstDims.y;
-	MRImeanZ<<<grid,threads,0,this->stream>>>( f2GPU, f1GPU,
-						   coverGrid, wSize );
+	MRImeanZ<float>
+	  <<<grid,threads,0,this->stream>>>
+	  ( f2, f1, coverGrid, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanZ kernel failed" );
 
 	// Normalise
 	grid.x = coverGrid.x * coverGrid.y;
 	grid.y = dstDims.z;
-	MRImeanNormal<<<grid,threads,0,this->stream>>>( f1GPU, dstGPU,
-							coverGrid, wSize );
+	MRImeanNormal<U>
+	  <<<grid,threads,0,this->stream>>>
+	  ( f1, dst, coverGrid, wSize );
 	CUDA_CHECK_ERROR_ASYNC( "MRImeanNormal failed!" );
 
 	this->tCompute.Stop();
