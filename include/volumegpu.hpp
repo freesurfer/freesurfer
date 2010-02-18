@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/18 18:42:38 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/02/18 19:34:47 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,16 +35,46 @@
 #ifndef VOLUME_GPU_CUDA_H
 #define VOLUME_GPU_CUDA_H
 
+//! Namespace to hold everything related to the GPU
 namespace GPU {
 
+  //! Namespace to hold the datatypes used by the GPU
   namespace Classes {
 
     //! Templated ancilliary class for use in kernel calls
+    /*!
+      This is an ancilliary class which should be used in
+      kernel arguments when manipulating a VolumeGPU class.
+      It exists because CUDA kernels are invoked with
+      copies of the actual arguments given.
+      The VolumeGPU class has the copy constructor declared
+      private, since casually copying them around is
+      going to kill performance, and if you just copy pointers,
+      then when the kernel exits and the destructor is called
+      on the copy, all of your memory just vanished.
+      The solution is to declare kernel arguments as this type:
+      \code
+      template<typename T, typename U>
+      __global__ void MyKernel( const VolumeArgGPU<T> a,
+                                VolumeArgGPU<U> b ) {
+         ...
+      }
+      \endcode
+      Appropriate conversion operators are provided so that
+      the kernel can be invoked using VolumeArg types.
+      However, if templating then the invocation must be
+      explicit, in order to enable the compiler to work out
+      what you really want to happen
+      \code
+      VolumeGPU<float> a;
+      VolumeGPU<short> b;
+      ...
+      MyKernel<float,short><<<grid,threads>>>( a, b );
+      \endcode
+    */
     template<typename T>
     class VolumeArgGPU {
     public:
-
-      
 
       //! Padded data size
       dim3 dims;
@@ -64,7 +94,7 @@ namespace GPU {
       // --------------------------------------
       // Subscripting operators
       
-      //! Unsafe RHS subscripting routine
+      //! Unsafe RHS subscripting operator
       __device__ T operator()( const unsigned int ix,
 			       const unsigned int iy,
 			       const unsigned int iz ) const {
@@ -113,6 +143,13 @@ namespace GPU {
       //! Checks is given location is in volume within given tolerance
       __device__ bool InFuzzyVolume( const float3& r,
 				     const float tol ) const {
+	/*!
+	  Sometimes we want to know if a point is almost within
+	  a volume.
+	  This routine performs that check.
+	  @param[in] r The location in question
+	  @param[in] tol The distance outside the volume still considered 'inside'
+	*/
 	bool res = ( (r.x>-tol) && (r.x<(this->dims.x+tol)) );
 	res = res && (r.y>-tol) && (r.y<(this->dims.y+tol));
 	res = res && (r.z>-tol) && (r.z<(this->dims.z+tol));
@@ -124,6 +161,16 @@ namespace GPU {
 
 
     //! Templated class to hold volume data on the GPU
+    /*!
+      This templated class provides a container for volume data.
+      It provides a simple interface to padded arrays on the
+      device, as well as the ability to copy data into a CUDA
+      array (for texturing).
+      Although it should not (and cannot) be used directly as
+      a kernel argument, the VolumeArgGPU is provided for
+      this purpose.
+      @see VolumeArgGPU
+    */
     template<typename T>
     class VolumeGPU {
     public:
@@ -166,7 +213,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.8 2010/02/18 18:42:38 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.9 2010/02/18 19:34:47 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -189,7 +236,7 @@ namespace GPU {
 	  given size.
 	  This memory may include padding for GPU
 	  memory alignment requirements
-	  @params[in] myDims The dimensions required
+	  @param[in] myDims The dimensions required
 	*/
 	
 	// Check if we can re-use current memory
@@ -216,7 +263,12 @@ namespace GPU {
       //! Allocates storage matching dimensions of potentially different type
       template<typename U>
       void Allocate( const VolumeGPU<U>& src ) {
-
+	/*!
+	  This routine allocates storage of identical dimensions to the
+	  given argument, but of potentially different type.
+	  It is useful if intermediate results have to be in 
+	  higher precision
+	*/
 	this->Allocate( src.GetDims() );
       }
 
@@ -279,6 +331,12 @@ namespace GPU {
 
       //! Supplies the size of buffer required on the host
       size_t BufferSize( void ) const {
+	/*!
+	  Prior to copying data to the GPU, the host must
+	  organise the volume into contiguous pinned memory.
+	  This routine supplies the number of bytes required
+	  by the current class.
+	*/
 	unsigned int nElements;
 
 	nElements = this->dims.x * this->dims.y * this->dims.z;
@@ -302,6 +360,8 @@ namespace GPU {
 	  Accordingly, this routine may return before the
 	  copy is complete - the user is responsible for
 	  stream management.
+	  @param[in] h_buffer The buffer of length BufferSize() to be send
+	  @param[in] stream The CUDA stream in which the copy should occur
 	*/
 
 	cudaMemcpy3DParms copyParams = {0};
@@ -327,6 +387,8 @@ namespace GPU {
 	  contiguous buffer on the host.
 	  The copy is done asynchronously, so the
 	  user is responsible for stream management
+	  @param[in] h_buffer The buffer of length BufferSize() to be received
+	  @param[in] stream The CUDA stream in which the copy should occur
 	*/
 	
 	cudaMemcpy3DParms cpyPrms = {0};
@@ -351,6 +413,7 @@ namespace GPU {
 	  texture.
 	  Copy is done asynchronously within the (optionally)
 	  given stream
+	  @param[in] stream The CUDA stream in which the copy should occur
 	*/
 	if( this->d_data.ptr == NULL ) {
 	  std::cerr << __FUNCTION__
@@ -381,7 +444,9 @@ namespace GPU {
 	/*!
 	  Method to return the number of blocks which
 	  will be required to cover the volume of cubic blocks
-	  of size threadCount
+	  of size threadCount.
+	  This is provided as an easy way of configuring
+	  kernel calls.
 	*/
 	dim3 grid;
 
