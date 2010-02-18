@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 20:47:31 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/02/18 20:06:22 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -241,7 +241,7 @@ namespace GPU {
 
       float res;
 
-      const float tol = -0.5f;
+      const float tol = 0.5f;
 
       if( dst.InFuzzyVolume( rOut, tol ) ) {
 	res = FetchSrcVoxel<T>( rOut );
