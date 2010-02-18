@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/17 20:03:59 $
-#    $Revision: 1.269 $
+#    $Date: 2010/02/18 21:28:33 $
+#    $Revision: 1.270 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.269 2010/02/17 20:03:59 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.270 2010/02/18 21:28:33 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3396,6 +3396,7 @@ while( $#argv != 0 )
       breaksw
     case "-wsgcaatlas":
       set WSGcaAtlas = 1; breaksw
+    case "-nowsgcaatlas":
     case "-no-wsgcaatlas":
       set WSGcaAtlas = 0; breaksw
     case "-wstalxfm":
@@ -4797,6 +4798,7 @@ usage_exit:
   echo "  -wsmore : increase watershed threshold (expands skull surface)"
   echo "  -wsatlas : use atlas when skull stripping"
   echo "  -no-wsatlas : do not use atlas when skull stripping"
+  echo "  -no-wsgcaatlas : do not use GCA atlas when skull stripping"
   echo "  -wsthresh pct : explicity set watershed threshold"
   echo "  -wsseed C R S : identify an index (C, R, S) point in the skull"
   echo "  -nuiterations N : set number of iterations for nu intensity "
@@ -5068,6 +5070,11 @@ matter.  By default, this point will be determined automatically. It
 should only be specified if there is a strip failure. To determine
 what this point should be, find a point in the white matter using
 tkmedit and record the Volume Index values (NOT the XYZ coordinates).
+
+-no-wsgcaatlas
+
+Disable usage of the GCA atlas when running mri_watershed skull-stripping.
+The default is to use the GCA atlas to locate anatomy aiding skull-strip.
 
 -gca gcafile
 
