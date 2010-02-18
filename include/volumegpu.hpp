@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 20:23:08 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/02/18 18:42:38 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,8 +44,7 @@ namespace GPU {
     class VolumeArgGPU {
     public:
 
-      //! Out of range value
-      static const T kOutOfRangeVal = 0;
+      
 
       //! Padded data size
       dim3 dims;
@@ -66,9 +65,9 @@ namespace GPU {
       // Subscripting operators
       
       //! Unsafe RHS subscripting routine
-      __device__ T UnsafeAt( const unsigned int ix,
-			     const unsigned int iy,
-			     const unsigned int iz ) const {
+      __device__ T operator()( const unsigned int ix,
+			       const unsigned int iy,
+			       const unsigned int iz ) const {
 	const char* data = reinterpret_cast<const char*>(this->data.ptr);
 	// Rows are pitch apart
 	size_t pitch = this->data.pitch;
@@ -81,24 +80,9 @@ namespace GPU {
 	return( reinterpret_cast<const T*>(row)[ix] );
       }
 
-      //! RHS Subscripting operator
-      __device__ T operator() ( const unsigned int ix,
-				const unsigned int iy,
-				const unsigned int iz ) const {
-	/*!
-	  This version of the subscripting operator is safe.
-	  It bounds checks the requested dimensions,
-	  and returns kOutofRangeVal if out of range
-	*/
-	if( this->InVolume( ix, iy, iz ) ) {
-	  return( this->UnsafeAt( ix, iy, iz ) );
-	} else {
-	  return( this->kOutOfRangeVal );
-	}
-      }
       
       
-      //! LHS subscripting operator
+      //! Unsafe LHS subscripting operator
       __device__ T& operator() ( const unsigned int ix,
 				 const unsigned int iy,
 				 const unsigned int iz ) {
@@ -182,7 +166,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.7 2010/02/16 20:23:08 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.8 2010/02/18 18:42:38 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray

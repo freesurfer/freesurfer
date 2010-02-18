@@ -328,7 +328,8 @@ libutils_cuda_a_SOURCES=\
         affinegpu.cu\
         mrimean_cuda.cu\
         gcasgpu.cu\
-        cudatypeutils.cu
+        cudatypeutils.cu\
+        gcamorphgpu.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
 

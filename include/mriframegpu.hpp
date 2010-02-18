@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/17 20:49:42 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/02/18 18:42:38 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,10 +72,48 @@ namespace GPU {
       MRIframeOnGPU<T>( const VolumeArgGPU<T>& src ) :
 	VolumeArgGPU<T>(src) {};
       
+
+      // --------------------------------------------------------
+
+      //! Out of range value
+      static const T kOutOfRangeVal = 0;
       
       // --------------------------------------------------------
       // Subscripting operators
       
+      //! RHS Subscripting operator
+      __device__ T operator() ( const unsigned int ix,
+				const unsigned int iy,
+				const unsigned int iz ) const {
+	/*!
+	  This version of the subscripting operator is safe.
+	  It overrides the unsafe version in VolumeArgGPU
+	  It bounds checks the requested dimensions,
+	  and returns kOutofRangeVal if out of range
+	*/
+	if( this->InVolume( ix, iy, iz ) ) {
+	  // Use the unsafe operator() of the base class
+	  return( this->VolumeArgGPU<T>::operator()( ix, iy, iz ) );
+	} else {
+	  return( this->kOutOfRangeVal );
+	}
+      }
+      
+
+      //! LHS subscripting operator
+      __device__ T& operator() ( const unsigned int ix,
+				 const unsigned int iy, 
+				 const unsigned int iz ) {
+	/*!
+	  This is a thin wrapper around the base class operator.
+	  For reasons which are probably lost in the depths of the
+	  C++ standard (to do with resolving overloaded and overridden
+	  methods), this is necessary to use subscripting on the LHS
+	  of an expression
+	*/
+	return( this->VolumeArgGPU<T>::operator()( ix, iy, iz ) );
+      }
+
       //! Utility function to convert float to the class' datatype
       __device__ T ConvertFloat( const float in ) const {
 	/*!
@@ -116,10 +154,13 @@ namespace GPU {
   
       // --------------------------------------------------------
       // Constructors & destructors
+
+      //! Default constructor does nothing
       MRIframeGPU<T>( void ) : VolumeGPU<T>() {};
 
+      //! Conversion operator to MRIframeOnGPU
       operator MRIframeOnGPU<T>( void ) const {
-	VolumeArgGPU<T> vag( static_cast<const VolumeGPU<T>&>(*this) );
+	VolumeArgGPU<T> vag( *this );
 
 	return( MRIframeOnGPU<T>( vag ) );
       }
@@ -129,7 +170,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.37 2010/02/17 20:49:42 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.38 2010/02/18 18:42:38 rge21 Exp $";
       }
       
       // --------------------------------------------------------
@@ -156,7 +197,7 @@ namespace GPU {
 	
 	dim3 myDims = make_uint3( src->width, src->height, src->depth );
 
-	static_cast<VolumeGPU<T>*>(this)->Allocate( myDims );
+	this->VolumeGPU<T>::Allocate( myDims );
       }
 
       // -----
@@ -164,7 +205,7 @@ namespace GPU {
       //! Allocates matching storage of possibly different type
       template<typename U>
       void Allocate( const MRIframeGPU<U>& src ) {
-	static_cast<VolumeGPU<T>*>(this)->Allocate( static_cast<const VolumeGPU<U>& >(src) );
+	this->VolumeGPU<T>::Allocate( src );
       }
 
 
