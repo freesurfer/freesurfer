@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/01/11 17:59:01 $
-#    $Revision: 1.32 $
+#    $Date: 2010/02/18 21:39:42 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.32 2010/01/11 17:59:01 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.33 2010/02/18 21:39:42 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -710,7 +710,7 @@ usage_exit:
   echo "Contrast Arguments (one required)"
   echo ""
   echo "   --t1 : assume t1 contrast, ie, WM brighter than GM"
-  echo "   --t2 : assume t2 contrast, ie, GM brighter than WM (default)"
+  echo "   --t2 : assume t2 contrast, ie, GM brighter than WM"
   echo "   --bold : same as --t2"
   echo "   --dti  : same as --t2"
   echo ""
