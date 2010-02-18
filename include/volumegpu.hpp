@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/18 19:34:47 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/02/18 20:07:32 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -150,9 +150,9 @@ namespace GPU {
 	  @param[in] r The location in question
 	  @param[in] tol The distance outside the volume still considered 'inside'
 	*/
-	bool res = ( (r.x>-tol) && (r.x<(this->dims.x+tol)) );
-	res = res && (r.y>-tol) && (r.y<(this->dims.y+tol));
-	res = res && (r.z>-tol) && (r.z<(this->dims.z+tol));
+	bool res = ( (r.x>-tol) && (r.x<=(this->dims.x+tol-1)) );
+	res = res && (r.y>-tol) && (r.y<=(this->dims.y+tol-1));
+	res = res && (r.z>-tol) && (r.z<=(this->dims.z+tol-1));
 
 	return( res );
       }
@@ -213,7 +213,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.9 2010/02/18 19:34:47 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.10 2010/02/18 20:07:32 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -413,7 +413,7 @@ namespace GPU {
 	  texture.
 	  Copy is done asynchronously within the (optionally)
 	  given stream
-	  @param[in] stream The CUDA stream in which the copy should occur
+	  @param[in] myStream The CUDA stream in which the copy should occur
 	*/
 	if( this->d_data.ptr == NULL ) {
 	  std::cerr << __FUNCTION__
