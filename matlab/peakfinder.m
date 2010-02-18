@@ -6,7 +6,7 @@ function [indpeak twfPer indtrough] = peakfinder(twf)
 % samples. If the 1st or last peak are less than 90% of the mean of
 % the rest of the peaks, they are exluded.
 %
-% $Id: peakfinder.m,v 1.6 2010/02/17 19:04:17 greve Exp $
+% $Id: peakfinder.m,v 1.7 2010/02/18 15:22:52 greve Exp $
 
 indpeak = [];
 
@@ -18,8 +18,8 @@ end
 Ntp = length(twf);
 
 % detrend - necessary?
-[X R] = fast_polytrendmtx(1,Ntp,1,3);
-twf = R*twf;
+X = fast_polytrendmtx(1,Ntp,1,3);
+twf = twf - X*(inv(X'*X)*(X'*twf));
 
 % Get major period of waveform
 [fftaxis, deltafreq] = fast_fftaxis(Ntp,1);
