@@ -2,13 +2,53 @@
  * @file  mri_gcut.cpp
  * @input T1.mgz; output brainmask.auto.mgz
  *
+ * the main idea of the program:
+ * the program first estimates the white matter mask, then does a graph cut.
+ *
+ * two ways to set white matter mask:
+ * you can either use the program to estimate the white matter for you,
+ * or you can use intensity 110 (T1 image from FreeSurfer) voxels as 
+ * the white matter mask.
+ *
+ * the input and output:
+ * input and output files are in .mgz format. 
+ * the output file is "brainmask_auto.mgz".
+ * if "-mult" is applied, the original "brainmask_auto.mgz" will be saved as 
+ * "brainmask_auto_old.mgz".
+ *
+ * expected memory requirements:
+ * the memory needed to process a standard 256*256*256 .mgz file is
+ * about 1GB ~ 1.5GB.
+ * 
+ * usage:
+ * ./mri_gcut [-110|-mult|-T (value)] input_filename
+ * -110: use voxels with intensity 110 as white matter mask (FreeSurfer only)
+ * -mult: apply existing "brainmask.auto.mgz"; when this option is present and
+ *        there is already an existing "brainmask_auto.mgz" in the same folder,
+ *        then program load the existing mask, binarize graph cutted mask and 
+ *        multiply the two together. the old mask will be saved as 
+ *        "brainmask_auto_old.mgz".
+ * -T (value): set threshold to value% of white matter intensity, 
+ *             value should be >0 and <1;
+ *             larger values would correspond to cleaner skull strip but 
+ *             higher chance of brain erosion.
+ *
+ * Notes:
+ * 1) If parameter -110 is chosen but the largest connected component of 110 
+ * intensity voxels is too small to be used as front seed, then we default on 
+ * our own region growing procedure that is initiated within the largest
+ * connected component. 
+ * 2) If the volume of gcut mask is less than 75% of hwa mask and -mult option
+ * is present, then gcut result is ignored and hwa mask is produced at the
+ * output. This is to prevent occasional catastrophic results.
+ *
  */
 /*
- * Original Author: Vitali Zagorodnov, ZHU Jiaqi (September, 2009)
- * CVS Revision Info:
- *    $Author:
- *    $Date:
- *    $Revision:
+ * Original Authors: Vitali Zagorodnov, ZHU Jiaqi
+ * CVS Revision Info: 1.4
+ *    $Author: Vitali Zagorodnov, ZHU Jiaqi
+ *    $Date: Feb. 2010
+ *    $Revision: 1.4
  *
  * Copyright (C) 2009-2010
  * Nanyang Technological University, Singapore
@@ -43,7 +83,7 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-"$Id: mri_gcut.cpp,v 1.6 2010/01/26 22:10:12 nicks Exp $";
+  "$Id: mri_gcut.cpp,v 1.7 2010/02/18 19:50:06 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -145,14 +185,15 @@ static void print_help(void)
 }
 
 /* --------------------------------------------- */
-static void print_version(void) 
+static void print_version(void)
 {
   printf("%s\n", vcid) ;
   exit(1) ;
 }
 
 /* --------------------------------------------- */
-static int parse_commandline(int argc, char **argv) {
+static int parse_commandline(int argc, char **argv)
+{
   int  nargc , nargsused;
   char **pargv, *option ;
 
@@ -168,7 +209,7 @@ static int parse_commandline(int argc, char **argv) {
 
   nargc = argc;
   pargv = argv;
-  while (nargc > 0) 
+  while (nargc > 0)
   {
     option = pargv[0];
 
@@ -179,19 +220,19 @@ static int parse_commandline(int argc, char **argv) {
 
     if (!strcasecmp(option, "--help")) print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
-    else if (!strcmp(option, "-110") || !strcmp(option, "--110")) 
+    else if (!strcmp(option, "-110") || !strcmp(option, "--110"))
     {
       bNeedPreprocessing = 0;
-    } 
-    else if (!strcmp(option, "-mult") || 
+    }
+    else if (!strcmp(option, "-mult") ||
              !strcmp(option, "--mult") ||
-             !strcmp(option, "--mask")) 
+             !strcmp(option, "--mask"))
     {
       bNeedMasking = 1;
       strcpy(mask_filename, pargv[0]);
       nargsused = 1;
-    } 
-    else if (!strcmp(option, "-T")) 
+    }
+    else if (!strcmp(option, "-T"))
     {
       _t = atof(pargv[0]);
       if ( _t <= 0 || _t >= 1 )
@@ -200,10 +241,10 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } 
+    }
     else
     {
-      if (option[0] == '-') 
+      if (option[0] == '-')
       {
         printf("\n%s: unknown flag \"%s\"\n", Progname, option);
         print_help();
@@ -240,7 +281,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.6 2010/01/26 22:10:12 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.7 2010/02/18 19:50:06 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -256,7 +297,7 @@ int main(int argc, char *argv[])
   mri3  = MRIread(in_filename);
   if ( mri3 == NULL )
   {
-    printf("can't read file %s\nexit!", in_filename);
+    printf("can't read file %s\nexit!\n", in_filename);
     exit(0);
   }
   mri   = MRISeqchangeType(mri3, MRI_UCHAR, 0.0, 0.999, FALSE);
@@ -279,7 +320,7 @@ int main(int argc, char *argv[])
            mri_mask->height != mri->height ||
            mri_mask->depth != mri->depth )
       {
-        printf("2 masks are of different size, omit -mult option!\n");
+        printf("Two masks are of different size, omit -mult option!\n");
         print_help();
         exit(1);
       }
@@ -341,30 +382,33 @@ int main(int argc, char *argv[])
   if (bNeedPreprocessing == 0)
   {
     // pre-processed: 110 intensity voxels are the WM
-    pre_porocessing(mri ->slices,
-                    label,
-                    mri->width,
-                    mri->height,
-                    mri->depth,
-                    110);
-    /* 
-    if ( whitemean < 0 )
+    if (LCC_function(mri ->slices, 
+                     label,
+                     mri->width,
+                     mri->height,
+                     mri->depth,
+                     whitemean) == 1)
     {
-      printf("whitemean < 0 error!\n");
-      exit(0);
+      if ( whitemean < 0 )
+      {
+        printf("whitemean < 0 error!\n");
+        exit(0);
+      }
     }
-    */
-    whitemean = 110;
-    printf("use voxels with intensity 110 as WM mask\n");
+    else
+    {
+      whitemean = 110;
+      printf("use voxels with intensity 110 as WM mask\n");
+    }
   }
   else
   {
     printf("estimating WM mask\n");
-    whitemean = pre_porocessing(mri ->slices,
-                                label,
-                                mri->width,
-                                mri->height,
-                                mri->depth);
+    whitemean = pre_processing(mri ->slices,
+                               label,
+                               mri->width,
+                               mri->height,
+                               mri->depth);
     if ( whitemean < 0 )
     {
       printf("whitemean < 0 error!\n");
@@ -423,19 +467,58 @@ int main(int argc, char *argv[])
     }
   }
 
+  //if the output might have some problem
+  int numGcut = 0, numMask = 0;
+  double _ratio = 0;
+  int error_Hurestic = 0;
+  if (bNeedMasking == 1)//-110 and masking are both set
+  {
+    for (int z = 0 ; z < mri_mask->depth ; z++)
+    {
+      for (int y = 0 ; y < mri_mask->height ; y++)
+      {
+        for (int x = 0 ; x < mri_mask->width ; x++)
+        {
+          if ( im_diluteerode[z][y][x] != 0 )
+            numGcut++;
+          if ( mri_mask->slices[z][y][x] != 0 )
+            numMask++;
+        }
+      }
+    }
+    _ratio = (double)numGcut / numMask;
+    if (_ratio <= 0.75)
+      error_Hurestic = 1;
+  }
+
+  if (error_Hurestic == 1)
+  {
+    printf("** Gcutted brain is much smaller than the mask!\n");
+    printf("** Using the mask as the output instead!\n");
+    //printf("** Gcutted output is written as: 'error_gcutted_sample'\n");
+  }
+
   for (int z = 0 ; z < mri->depth ; z++)
   {
     for (int y = 0 ; y < mri->height ; y++)
     {
       for (int x = 0 ; x < mri->width ; x++)
       {
-        if ( im_diluteerode[z][y][x] == 0 )
-          mri2 ->slices[z][y][x] = 0;
+        if (error_Hurestic == 0)
+        {
+          if ( im_diluteerode[z][y][x] == 0 )
+            mri2 ->slices[z][y][x] = 0;
+        }
+        else
+        {
+          if ( mri_mask->slices[z][y][x] == 0 )
+            mri2 ->slices[z][y][x] = 0;
+          //if( im_diluteerode[z][y][x] == 0 )
+          //mri ->slices[z][y][x] = 0;
+        }
       }
-      //fprintf(fp1, "\n");
-    }//end of for
-    //fprintf(fp1, "\n");
-  }
+    }//end of for 2
+  }//end of for 1
 
   MRIwrite(mri2, out_filename);
 

@@ -1,9 +1,9 @@
 /*
- * Original Author: Vitali Zagorodnov, ZHU Jiaqi (September, 2009)
- * CVS Revision Info:
- *    $Author:
- *    $Date:
- *    $Revision:
+ * Original Author: Vitali Zagorodnov, ZHU Jiaqi
+ * CVS Revision Info: 1.4
+ *    $Author: Vitali Zagorodnov, ZHU Jiaqi
+ *    $Date: Feb. 2010
+ *    $Revision: 1.4
  *
  * Copyright (C) 2009-2010
  * Nanyang Technological University, Singapore
@@ -48,7 +48,7 @@ CCubeNode::CCubeNode(int subX, int subY, int subZ, int index, double mean)
   thisPtrNextNode = NULL;
 }
 
-CCubeNode::CCubeNode(int subX, int subY, int subZ, int index, 
+CCubeNode::CCubeNode(int subX, int subY, int subZ, int index,
                      double mean, double variance, double variance8V)
 {
   thisSubX = subX;
@@ -246,7 +246,7 @@ int AutoSelectSeed(gc_POS *iSeed,
     };
   double shortListVariance[10] =
     {
-      100000, 100000, 100000, 100000, 100000, 
+      100000, 100000, 100000, 100000, 100000,
       100000, 100000, 100000, 100000, 100000
     };
   int shortListSeedX[10] =
@@ -290,18 +290,18 @@ int AutoSelectSeed(gc_POS *iSeed,
             tempY = sY + neighbor6[n1][1];
             tempZ = sZ + neighbor6[n1][2];
             //boundary check again!
-            if ( tempX >= iSizeX-size || 
-                 tempY >= iSizeY-size || 
+            if ( tempX >= iSizeX-size ||
+                 tempY >= iSizeY-size ||
                  tempZ >= iSizeZ-size )
             {
               qualifiedFlag = false;
               break;
             }
             tempMean = Mean5x5x5(tempX, tempY, tempZ, iSizeX, iSizeY, Mat);
-            tempVariance = Variance5x5x5(tempX, tempY, tempZ, 
+            tempVariance = Variance5x5x5(tempX, tempY, tempZ,
                                          iSizeX, iSizeY, tempMean, Mat);
 
-            if (!( (tempMean>MeanThreshold) && 
+            if (!( (tempMean>MeanThreshold) &&
                    (tempVariance<VarianceThreshold) ))
             {
               qualifiedFlag = false;
@@ -390,7 +390,7 @@ int RegionGrowing(gc_POS iSeed,
   int iSeedPosY = iSeed.y;
   int iSeedPosZ = iSeed.z;
 
-  // -- create the label array, which is to be returned as 
+  // -- create the label array, which is to be returned as
   // the result of region growing
   //double *ptrILabel = (double*) malloc(iSizeX*iSizeY*iSizeZ*sizeof(double));
 
@@ -480,10 +480,10 @@ int RegionGrowing(gc_POS iSeed,
       subYNeighborNode = subYCurrentNode + sixNeighbourOffset[n1][1];
       subZNeighborNode = subZCurrentNode + sixNeighbourOffset[n1][2];
 
-      if ( subXNeighborNode <= 3 || 
-           subXNeighborNode >= iSizeX-3 || 
+      if ( subXNeighborNode <= 3 ||
+           subXNeighborNode >= iSizeX-3 ||
            subYNeighborNode <= 3 ||
-           subYNeighborNode >= iSizeY-3 || 
+           subYNeighborNode >= iSizeY-3 ||
            subZNeighborNode <= 3 ||
            subZNeighborNode >= iSizeZ-3 ) // skip the pixel out of the image
         continue;
@@ -566,20 +566,20 @@ int RegionGrowing(gc_POS iSeed,
 }
 
 // -- the main pre_processing function
-double pre_porocessing(unsigned char ***image,
-                       unsigned char ***label,
-                       int xVol, int yVol, int zVol)
+double pre_processing(unsigned char ***image,
+                      unsigned char ***label,
+                      int xVol, int yVol, int zVol)
 {
   gc_POS iSeed;
-  double meanThreshold = 0.45 * 255;
-  double varianceThreshold = 0.004 * 255 * 255;
+  double meanThreshold = 0.45 * 160;
+  double varianceThreshold = 0.004 * 160 * 160;
 
   AutoSelectSeed(&iSeed, image, xVol, yVol, zVol,
                  meanThreshold, varianceThreshold);
   int repetition = 1;
   while ( iSeed.x == -1 || iSeed.y == -1 || iSeed.z == -1 )
   {
-    meanThreshold = meanThreshold - 0.05 * 255;
+    meanThreshold = meanThreshold - 0.05 * 160;
     AutoSelectSeed(&iSeed, image, xVol, yVol, zVol,
                    meanThreshold, varianceThreshold);
     if ( repetition++ >= 8 )
@@ -594,12 +594,12 @@ double pre_porocessing(unsigned char ***image,
   iSeed.y += 2;
   iSeed.z += 2;
   // -- grow
-  double meanDiffThreshold = 0.03 * 255;
-  //double varianceThreshold = 0.004 * 255 * 255;
-  double lmdT = 0.05 * 255;
-  double umdT = 0.25 * 255;
+  double meanDiffThreshold = 0.03 * 160;
+  double varianceDiffThreshold = 0.004 * 160 * 160;
+  double lmdT = 0.05 * 160;
+  double umdT = 0.25 * 160;
   RegionGrowing(iSeed, image, label, xVol, yVol, zVol,
-                lmdT, umdT, meanDiffThreshold, varianceThreshold);
+                lmdT, umdT, meanDiffThreshold, varianceDiffThreshold);
   //mean of white matte
   double whitemean = 0;
   int numSeed = 0;
@@ -687,10 +687,52 @@ bool IsLeaf(lc_Component* p, int current, int & x, int & y, int & z,
   return true;
 }
 
-// -- the main pre_processing function: when -110 is used
-void pre_porocessing(unsigned char ***image,
-                     unsigned char ***label,
-                     int xVol, int yVol, int zVol, int _default)
+//locate a seed from within the LCC
+int locateSeedfromLCC(gc_POS & iSeed,
+                      unsigned char ***label,
+                      int xVol, int yVol, int zVol)
+{
+  //int xStart, yStart, zStart, xEnd, yEnd, zEnd;
+  int bExit = 0;
+  int offset = 10;
+  //start
+  for (int z = offset; z < zVol - offset && bExit == 0; z++)
+  {
+    for (int y = offset; y < yVol - offset && bExit == 0; y++)
+    {
+      for (int x = offset; x < xVol - offset && bExit == 0; x++)
+      {
+        if (label[z][y][x] == 1)
+        {
+          iSeed.x = x;
+          iSeed.y = y;
+          iSeed.z = z;
+          bExit = 1;
+        }
+      }
+    }
+  }
+
+  //reset lable
+  for (int z = 0; z < zVol; z++)
+  {
+    for (int y = 0; y < yVol; y++)
+    {
+      for (int x = 0; x < xVol; x++)
+      {
+        label[z][y][x] = 0;
+      }
+    }
+  }
+
+  return bExit;
+}
+
+// -- finding the largest connected component function: when -110 is used
+int LCC_function(unsigned char ***image,
+                 unsigned char ***label,
+                 int xVol, int yVol, int zVol,
+                 double & whitemean)
 {
   //110 voxels
   int voxelCount = 0;
@@ -728,7 +770,7 @@ void pre_porocessing(unsigned char ***image,
   int current_comNum = -1;
   int group_id = 0;
   int xPos = -1, yPos = -1, zPos = -1;
-  int _limit = 1;
+  int _limit = 10;
   for (int z = 1; z < zVol - 1; z++)
   {
     for (int y = 1; y < yVol - 1; y++)
@@ -738,15 +780,21 @@ void pre_porocessing(unsigned char ***image,
         if ( label[z][y][x] == 1 && marked[z][y][x] == 0 )
         {
           group_id++;
+          //LC_func(label, marked, group_id, x, y, z, 1, xVol-10, 1, yVol-1, 1, zVol-1);
           marked[z][y][x] = group_id;
           push(component_list, current_comNum, x, y, z);
           while (current_comNum >= 0)
           {
-            while ( !IsLeaf(component_list, current_comNum,
+            while ( !IsLeaf(component_list,
+                            current_comNum,
                             xPos, yPos, zPos,
-                            label, marked, _limit,
-                            xVol - _limit, _limit,
-                            yVol - _limit, _limit,
+                            label,
+                            marked,
+                            _limit,
+                            xVol - _limit,
+                            _limit,
+                            yVol - _limit,
+                            _limit,
                             zVol - _limit) )
             {
               marked[zPos][yPos][xPos] = group_id;
@@ -775,6 +823,7 @@ void pre_porocessing(unsigned char ***image,
   }
   int temp = -1;
   int max_group = 0;
+  //find max
   for (int i = 1; i <= group_id; i++)
   {
     if (max_array[i] > temp)
@@ -783,6 +832,11 @@ void pre_porocessing(unsigned char ***image,
       max_group = i;
     }
   }
+  //check percentage
+  int bNeedGrow = 0;
+  if ( max_array[max_group] < 150000 )
+    bNeedGrow = 1;
+  //LCC
   for (int z = 0; z < zVol; z++)
   {
     for (int y = 0; y < yVol; y++)
@@ -796,7 +850,6 @@ void pre_porocessing(unsigned char ***image,
       }
     }
   }
-
   //free
   delete[] max_array;
   delete[] component_list;
@@ -809,6 +862,52 @@ void pre_porocessing(unsigned char ***image,
     delete[] marked[i];
   }
   delete[] marked;
+
+  if ( bNeedGrow == 1 )//still need region grow
+  {
+    gc_POS iSeed;
+    if ( locateSeedfromLCC(iSeed, label, xVol, yVol, zVol) == 1 )
+    {
+      // -- grow
+      double meanDiffThreshold = 0.03 * 160;
+      double varianceDiffThreshold = 0.004 * 160 * 160;
+      double lmdT = 0.05 * 160;
+      double umdT = 0.25 * 160;
+      RegionGrowing(iSeed,
+                    image,
+                    label,
+                    xVol, yVol, zVol,
+                    lmdT,
+                    umdT,
+                    meanDiffThreshold,
+                    varianceDiffThreshold);
+      //mean of white matte
+      //double whitemean = 0;
+      int numSeed = 0;
+      for (int z = 0; z < zVol; z++)
+      {
+        for (int y = 0; y < yVol; y++)
+        {
+          for (int x = 0; x < xVol; x++)
+          {
+            if ( label[z][y][x] == 1 )
+            {
+              whitemean += image[z][y][x];
+              numSeed++;
+            }
+          }
+        }
+      }
+      if ( numSeed == 0 || whitemean <= 1 )
+        printf("no white mean!!\n");
+      else
+      {
+        whitemean = whitemean / numSeed;
+        printf("white mean: %f\n", whitemean);
+      }
+    }
+  }
+  return bNeedGrow;
 
 }
 

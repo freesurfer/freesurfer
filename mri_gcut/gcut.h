@@ -1,5 +1,5 @@
 /*
- * Original Author: Vitali Zagorodnov, ZHU Jiaqi (Sept. 2009, revised Jan. 2010)
+ * Original Author: Vitali Zagorodnov, ZHU Jiaqi (Sept. 2009, revised Feb. 2010)
  * CVS Revision Info:
  *    $Author:
  *    $Date:
