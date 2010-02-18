@@ -23,9 +23,9 @@ function [Xptm_run, Rptm] = fast_polytrendmtx(run,ntrs,nruns,order)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.4 $
+%    $Author: greve $
+%    $Date: 2010/02/18 15:21:09 $
+%    $Revision: 1.5 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -55,8 +55,7 @@ Xptm = ones(ntrs,1);
 t = [0:ntrs-1]'; %'
 for n = 1:order
   r0 = t.^n;
-  M = eye(ntrs) - Xptm*inv(Xptm'*Xptm)*Xptm';
-  r = M*r0;
+  r = r0 - Xptm*(inv(Xptm'*Xptm)*Xptm'*r0);
   r = r/std(r);
   Xptm = [Xptm r];
 end
@@ -66,7 +65,8 @@ n1 = (run-1)*(order+1) + 1;
 n2 = n1 + order;
 Xptm_run(:,n1:n2) = Xptm;
 
-if(nargout)
+
+if(nargout == 2)
   Rptm = eye(ntrs) - Xptm*inv(Xptm'*Xptm)*Xptm';
 end
 
