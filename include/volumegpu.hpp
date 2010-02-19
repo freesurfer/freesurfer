@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/18 20:07:32 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/02/19 20:46:53 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -213,7 +213,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.10 2010/02/18 20:07:32 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.11 2010/02/19 20:46:53 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -342,6 +342,31 @@ namespace GPU {
 	nElements = this->dims.x * this->dims.y * this->dims.z;
 
 	return( nElements * sizeof(T) );
+      }
+
+
+      //! Allocates a pinned memory buffer on the host
+      T* AllocateHostBuffer( void ) const {
+	/*!
+	  Allocates a pinned memory buffer on the
+	  host of sufficient size to hold the volume
+	  in contiguous memory.
+	  It will abort if the allocation fails,
+	  so it should not be necessary to check
+	  the return value.
+	  Note that there is no provision within this
+	  class for releasing the memory so allocated.
+	  It is simply a convenience wrapper around
+	  cudaHostAlloc.
+	*/
+	
+	T* h_buf = NULL;
+
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&h_buf,
+				       this->BufferSize(),
+				       cudaHostAllocDefault ) );
+	
+	return( h_buf );
       }
 
       // -------------------------------------------

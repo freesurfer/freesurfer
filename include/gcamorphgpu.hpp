@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/19 19:32:17 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/19 20:46:52 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,8 @@
 
 #ifndef GCA_MORPH_GPU_H
 #define GCA_MORPH_GPU_H
+
+#include "gcamorph.h"
 
 #include "volumegpu.hpp"
 
@@ -67,7 +69,7 @@ namespace GPU {
       // -------------------------------------------
 
       //! Checks integrity of members
-      void CheckIntegrity( void );
+      void CheckIntegrity( void ) const;
 
       // -------------------------------------------
       // Memory management
@@ -77,6 +79,12 @@ namespace GPU {
 
       //! Releases all the GPU memory
       void ReleaseAll( void );
+
+      // -------------------------------------------
+      // Transfer routines
+
+      //! Sends all data to the GPU
+      void SendAll( const GCAM* src );
 
     private:
 
