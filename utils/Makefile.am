@@ -309,7 +309,8 @@ G++FLAGS = -Wall -Wextra -Weffc++
 NVCCFLAGS += $(patsubst -%, --compiler-options -%, $(G++FLAGS) )
 NVCCFLAGS += -Xopencc "-Wall"
 
-
+CUDA_DEPS = ../include/volumegpu.hpp\
+            ../include/mriframegpu.hpp
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS
@@ -334,13 +335,13 @@ libutils_cuda_a_SOURCES=\
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
 
 # We have some templating dependencies
-mriframegpu_cuda.o: ../include/mriframegpu.hpp
-mriconvolve_cuda.o: ../include/mriframegpu.hpp
-mrimean_cuda.o: ../include/mriframegpu.hpp
-mrivol2vol_cuda.o: ../include/mriframegpu.hpp
-affinegpu.o: ../include/affinegpu.hpp
-gcasgpu.o: ../include/gcasgpu.hpp
-gcamorphgpu.o: ../include/gcamorphgpu.hpp
+mriframegpu_cuda.o: $(CUDA_DEPS)
+mriconvolve_cuda.o: $(CUDA_DEPS)
+mrimean_cuda.o: $(CUDA_DEPS)
+mrivol2vol_cuda.o: $(CUDA_DEPS)
+affinegpu.o: $(CUDA_DEPS)
+gcasgpu.o: $(CUDA_DEPS)
+gcamorphgpu.o: $(CUDA_DEPS)
 
 endif
 
