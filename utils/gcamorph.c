@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/11 20:58:01 $
- *    $Revision: 1.145 $
+ *    $Date: 2010/02/19 20:45:20 $
+ *    $Revision: 1.146 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,7 @@
 
 #ifdef FS_CUDA
 #include "chronometer.h"
+#include "testgpu.h"
 #endif
 
 #if WITH_DMALLOC
@@ -3186,6 +3187,8 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   StopChronometer( &tCMP );
   printf( "%s: Complete in %9.3f ms\n",
 	  __FUNCTION__, GetChronometerValue( &tCMP ) );
+
+  TestGCAMorphGPU( gcam );
 #endif
 
   return(NO_ERROR) ;

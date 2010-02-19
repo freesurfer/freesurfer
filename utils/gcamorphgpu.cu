@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/19 19:32:15 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/19 20:45:21 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,6 +24,8 @@
  *
  */
 
+#include "chronometer.hpp"
+
 
 #include "gcamorphgpu.hpp"
 
@@ -34,7 +36,7 @@ namespace GPU {
 
     // --------------------------------------------
 
-    void GCAmorphGPU::CheckIntegrity( void ) {
+    void GCAmorphGPU::CheckIntegrity( void ) const {
       /*!
 	Checks that all the allocated member arrays have
 	the same dimensions.
@@ -97,5 +99,103 @@ namespace GPU {
       this->d_area1.Release();
       this->d_area2.Release();
     }
+
+    // --------------------------------------------
+
+    void GCAmorphGPU::SendAll( const GCAM* src ) {
+      /*!
+	Sends all supported data in the given GCAM
+	to the GPU.
+	This involves a lot of packing data, and hence
+	is going to be painfully slow
+      */
+      
+      SciGPU::Utilities::Chronometer t_tot;
+      SciGPU::Utilities::Chronometer t_mem, t_pack, t_send;
+
+      t_tot.Start();
+
+      // Extract the dimensions
+      const dim3 dims = make_uint3( src->width,
+				    src->height,
+				    src->depth );
+
+      t_mem.Start();
+      // Allocate device memory
+      this->AllocateAll( dims );
+
+      // Allocate some page-locked host buffers
+      float3* h_r = this->d_r.AllocateHostBuffer();
+      unsigned char* h_invalid = this->d_invalid.AllocateHostBuffer();
+      float* h_area = this->d_area.AllocateHostBuffer();
+      float* h_area1 = this->d_area1.AllocateHostBuffer();
+      float* h_area2 = this->d_area2.AllocateHostBuffer();
+      t_mem.Stop();
+
+      t_pack.Start();
+      for( unsigned int i=0; i<dims.x; i++ ) {
+	for( unsigned int j=0; j<dims.y; j++ ) {
+	  for( unsigned int k=0; k<dims.z; k++ ) {
+
+	    // Get the 1d index (same for all arrays)
+	    const unsigned int i1d = this->d_r.Index1D( i, j, k );
+	    // Get the current node
+	    const GCA_MORPH_NODE gcamn = src->nodes[i][j][k];
+	    
+	    // Pack the data
+	    h_r[i1d] = make_float3( gcamn.x,
+				    gcamn.y,
+				    gcamn.z );
+
+	    h_invalid[i1d] = gcamn.invalid;
+	    h_area[i1d] = gcamn.area;
+	    h_area1[i1d] = gcamn.area1;
+	    h_area2[i1d] = gcamn.area2;
+	  }
+	}
+      }
+      t_pack.Stop();
+
+      t_send.Start();
+      // Send the data
+      this->d_r.SendBuffer( h_r );
+      this->d_invalid.SendBuffer( h_invalid );
+      this->d_area.SendBuffer( h_area );
+      this->d_area1.SendBuffer( h_area1 );
+      this->d_area2.SendBuffer( h_area2 );
+
+      // Wait for the copies to complete
+      CUDA_SAFE_CALL( cudaThreadSynchronize() );
+      t_send.Stop();
+
+      // Release page-locked host memory
+      t_mem.Start();
+      CUDA_SAFE_CALL( cudaFreeHost( h_r ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
+      t_mem.Stop();
+
+      t_tot.Stop();
+
+      std::cout << __FUNCTION__ << std::endl;
+      std::cout << "t_mem " << t_mem << std::endl;
+      std::cout << "t_pack " << t_pack << std::endl;
+      std::cout << "t_send " << t_send << std::endl;
+      std::cout << "Total : " << t_tot << std:: endl;
+      std::cout << "-------------" << std::endl;
+    }
+
   }
+}
+
+#include "testgpu.h"
+
+void TestGCAMorphGPU( const GCAM* src ) {
+
+  GPU::Classes::GCAmorphGPU myMorph;
+
+  myMorph.SendAll( src );
+
 }
