@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/18 18:42:38 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/02/19 17:59:10 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,9 +53,34 @@ namespace GPU {
     /*!
       This is an auxillary class, for use in actual
       kernel calls.
+      Host side functions should simply use the MRIframeGPU
+      class.
       The kernel invocation has to be on a call-by-value
       copy, so we want to make sure that the destructor
-      doesn't go zapping memory allocations prematurely
+      doesn't go zapping memory allocations prematurely.
+      Most of its functionality is provided by the base
+      class VolumeArgGPU.
+
+      To use in a kernel, simply declare the kernel
+      arguments to be of this type:
+      \code
+      template<typename T, typename U>
+      __global__ void MyKernel( const MRIframeOnGPU<T> a,
+                                MRIframeOnGPU<U> b ) {
+	 ...
+      }
+      \endcode
+      Since appropriate conversion operators are provided,
+      the kernel can be invoked simply with MRIframeGPU
+      arguments:
+      \code
+      MRIframeGPU<T> a;
+      MRIframeGPU<U> b;
+      MyKernel<T,U><<<grid,threads>>>( a, b );
+      \endcode
+      The necessary casts and copies will occur automatically.
+      @see VolumeArgGPU
+      @see MRIframeGPU
     */
     template<typename T>
     class MRIframeOnGPU : public VolumeArgGPU<T> {
@@ -148,6 +173,22 @@ namespace GPU {
 
 
     //! Templated class to hold an MRI frame on the GPU
+    /*!
+      This class is provided to host code to hold one frame
+      of MRI data on the GPU.
+      The data are held in linear memory, which is padded to
+      optimise CUDA memory accesses.
+      The data can also be copied into a CUDA array, in order
+      to enable texturing.
+      Most of the device-side functionality is provided by
+      the VolumeGPU base class.
+      On the host side, this derived class provides easy methods
+      of copying data to the GPU.
+      This class is templated based on the stored data type.
+      As a result, switch blocks (and specialised templates) are
+      often necessay to handle incoming MRI structures.
+      @see MRIframeOnGPU
+    */
     template<typename T>
     class MRIframeGPU : public VolumeGPU<T> {
     public:
@@ -170,7 +211,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.38 2010/02/18 18:42:38 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.39 2010/02/19 17:59:10 rge21 Exp $";
       }
       
       // --------------------------------------------------------
@@ -181,9 +222,12 @@ namespace GPU {
       //! Extracts frame dimensions from a given MRI and allocates the memory
       void Allocate( const MRI* src ) {
 	/*!
-	  Fills out the cpuDims, gpuDims and extent data members.
-	  Uses this information to call cudaMalloc3D
-	  @params[in] src The MRI to use as a template
+	  Extracts frame dimensions from the supplied MRI, and uses
+	  this to allocate the appropriate amount of device
+	  memory.
+	  It first performs a sanity check on the type field
+	  of the MRI structure
+	  @param[in] src The MRI to use as a template
 	*/
 	
 	// Sanity checks
@@ -205,6 +249,14 @@ namespace GPU {
       //! Allocates matching storage of possibly different type
       template<typename U>
       void Allocate( const MRIframeGPU<U>& src ) {
+	/*!
+	  Some algorithms require intermediate results to be
+	  stored in higher precision.
+	  These will require identically dimensioned MRIframeGPU
+	  classes, but of a different type.
+	  This method clones the dimensions of the given source
+	  frame, but allocates space for its own type.
+	*/
 	this->VolumeGPU<T>::Allocate( src );
       }
 
@@ -223,9 +275,13 @@ namespace GPU {
 	  host memory for the transfer, and a stream in which
 	  to perform the transfer.
 	  If supplied, the array h_work must be at least
-	  this->GetBufferSize() bytes long.
+	  GetBufferSize() bytes long.
 	  Furthermore, the calling routine is responsible
 	  for synchronisation
+	  @param[in] src The MRI we wish to send to the GPU
+	  @param[in] iFrame Which frame of the MRI we wish to send
+	  @param h_work Optional pagelocked host memory
+	  @param[in] stream Optional CUDA stream for the copy
 	*/
 	
 	T* h_data;
@@ -279,7 +335,7 @@ namespace GPU {
 	  host memory for the transfer, and a stream in which
 	  to perform the transfer.
 	  If supplied, the array h_work must be at least
-	  this->GetBufferSize() bytes long
+	  GetBufferSize() bytes long
 	*/
 	
 	T* h_data;
@@ -325,6 +381,11 @@ namespace GPU {
       // ----------------------------------------------------------------------
       //! Method to sanity check MRI
       void VerifyMRI( const MRI* mri ) const {
+	/*!
+	  A very simple routine to check that both the type
+	  and dimensions of the current object match those
+	  of the given MRI structure.
+	*/
 	
 	if( mri->type != this->MRItype()  ) {
 	  std::cerr << __PRETTY_FUNCTION__
@@ -343,6 +404,11 @@ namespace GPU {
       
       //! Method to return MRI type (has specialisations below)
       int MRItype( void ) const {
+	/*!
+	  Returns the type of data held in a form that the
+	  rest of the Freesurfer package will recognise.
+	  This is implemented as a set of specialised templates.
+	*/
 	return(-1);
       }
       
