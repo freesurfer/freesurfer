@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/17 20:49:34 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/02/19 18:16:45 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,8 +58,10 @@ texture<float, 1, cudaReadModeElementType> dtl_mriconv1d_kernel;
 
 
 namespace GPU {
+  //! Namespace to hold algorithms which operate on GPU data
   namespace Algorithms {
 
+    //! Break frames into tiles of this size
     const unsigned int kConv1dBlockSize = 16;
   
     // =================================================
@@ -85,7 +87,7 @@ namespace GPU {
     __device__ unsigned int MRIRoundUpConvolutionKernelSize( void ) {
       /*!
 	To avoid edge cases, we want to make everything into
-	units of kConv1dBlockSize.
+	units of \c kConv1dBlockSize.
 	This performs the task for the convolution kernel
 	Note that we have an extra divide by two since we're only
 	really interested in the half-width of the convolution kernel
@@ -110,11 +112,10 @@ namespace GPU {
 	Kernel to do a convolution in the x direction, using the
 	convolution kernel set up in the texture.
 	Each block will do one 16x16 (x,y) patch of the MRI.
-	The z co-ordinate will be in blockIdx.y
-	The (x,y) location of the patch will be derived from blockIdx.x.
-	Since the slices array is padded out to multiples of 16 by
-	the other MRI slices routines (the host routine checks this), we
-	don't have to worry about nasty edge cases
+	The z co-ordinate will be in \c blockIdx.y.
+	The (x,y) location of the patch will be derived from \c blockIdx.x
+	and the \a coverGrid argument.
+	Edge cases are handled through boundary checks.
       */
       // Extract some co-ordinates
       const unsigned int by = blockIdx.x / coverGrid.x;
@@ -175,11 +176,9 @@ namespace GPU {
 	Kernel to do a convolution in the y direction, using the
 	convolution kernel set up in the texture.
 	Each block will do one 16x16 (x,y) patch of the MRI.
-	The z co-ordinate will be in blockIdx.y
-	The (x,y) location of the patch will be derived from blockIdx.x.
-	Since the slices array is padded out to multiples of 16 by
-	the other MRI slices routines (the host routine checks this), we
-	don't have to worry about nasty edge cases
+	The z co-ordinate will be in \c blockIdx.y.
+	The (x,y) location of the patch will be derived from \c blockIdx.x
+	and \a coverGrid.
       */
       // Extract some co-ordinates
       const unsigned int by = blockIdx.x / coverGrid.x;
@@ -241,11 +240,9 @@ namespace GPU {
 	Kernel to do a convolution in the z direction, using the
 	convolution kernel set up in the texture.
 	Each block will do one 16x16 (x,z) patch of the MRI.
-	The y co-ordinate will be in blockIdx.y
-	The (x,z) location of the patch will be derived from blockIdx.x.
-	Since the slices array is padded out to multiples of 16 by
-	the other MRI slices routines (the host routine checks this), we
-	don't have to worry about nasty edge cases
+	The y co-ordinate will be in \c blockIdx.y
+	The (x,z) location of the patch will be derived from \c blockIdx.x
+	and \a coverGrid.
       */
       // Extract some co-ordinates
       const unsigned int bz = blockIdx.x / coverGrid.x;
@@ -303,6 +300,15 @@ namespace GPU {
 
     
     //! Class to contain MRI convolution algorithms
+    /*!
+      This is a class designed to encapsulate all of
+      the GPU convolution algorithms.
+      It maintains internal timers for various
+      operations, and when the destructor is called
+      it can print these to stdout.
+      A static instance of this class is called
+      by the C routines in the Freesurfer suite.
+    */
     class MRIconvolve {
     public:
       // ---------------------------------------
@@ -365,7 +371,24 @@ namespace GPU {
 		       const unsigned int kernelLength,
 		       const int axis,
 		       const int srcFrame, const int dstFrame ) {
-
+	/*!
+	  If the data types of the source and destination MRI
+	  structures is not known, then this dispatch routine
+	  should be used for 1D convolutions.
+	  It puts the convolution kernel on the device,
+	  and then handles the templated dispatching of the
+	  appropriate convolution call.
+	  Note that the destination MRI must already be allocated.
+	  If called from the main Freesurfer routine, this will
+	  be the case.
+	  @param[in] src The source MRI
+	  @param[out] dst The destination MRI
+	  @param[in] kernel The convolution kernel to use
+	  @param[in] kernelLength The size of the convolution kernel
+	  @param[in] axis The axis along which the convolution should be made
+	  @param[in] srcFrame The frame of the source to be convolved
+	  @param[in] dstFrame The frame of the destination in which the result should be stored
+	*/
 	this->tTotal1d.Start();
 
 	this->BindKernel( kernel, kernelLength );
@@ -469,8 +492,8 @@ namespace GPU {
 	/*!
 	  Runs the 1D convolution kernel on the GPU.
 	  Prior to calling this routine, convolution
-	  kernel must be set up on the device
-	  
+	  kernel must be set up on the device, and
+	  the source MRI transferred to the GPU.
 	*/
       
 
@@ -643,6 +666,7 @@ namespace GPU {
 
       // ---------------------------------------
       
+      //! Gets the given convolution kernel onto the GPU.
       void BindKernel( const float *kernel, const unsigned int nVals ) {
 	/*!
 	  This routine is responsible for preparing the dtl_mriconv1d_kernel
@@ -696,7 +720,7 @@ namespace GPU {
 	this->tTextureKernel.Stop();
       }
 
-      // Unbinds the kernel texture
+      //! Unbinds the kernel texture
       void UnbindKernel( void ) {
 	CUDA_SAFE_CALL( cudaUnbindTexture( dtl_mriconv1d_kernel ) );
       }
@@ -841,7 +865,7 @@ namespace GPU {
 
 static GPU::Algorithms::MRIconvolve myConvolve;
 
-
+//! Routine to be called from C code.
 MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
 			 const float *kernel,
 			 const unsigned int kernelLength,
@@ -849,9 +873,9 @@ MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
 			 const int srcFrame, const int dstFrame ) {
   /*!
     Reimplementation of MRIconvolve1d for the GPU.
-    This is the 'drop in' replacement, and so has to do a lot of
-    data transfers.
-    As such, I don't expect it to be fast
+    This is called from MRIconvolve1d in the main 
+    Freesurfer suite, after that routine has verified the
+    input and output MRI are allocated.
   */
 
   myConvolve.Convolve1D( src, dst,
@@ -864,6 +888,7 @@ MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
 
 // =================================================
 
+//! Routine to be called from C code
 MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
 			       const float *kernel,
 			       const unsigned int kernelLength ) {
