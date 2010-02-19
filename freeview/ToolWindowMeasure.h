@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 01:46:01 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/19 16:33:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,8 @@
 #include "Listener.h"
 
 class wxToolBar;
-class wxListBox;
+class wxTextCtrl;
+class wxButton;
 class Region2D;
 
 class ToolWindowMeasure : public wxFrame, public Listener
@@ -63,7 +64,10 @@ protected:
   void DoUpdateStats();
   
   wxToolBar*  m_toolbar;
-  wxListBox*  m_listStats;
+  wxTextCtrl* m_textStats;
+  wxButton*   m_btnExport;
+  wxButton*   m_btnCopy;
+  
   Region2D*   m_region;
   bool        m_bToUpdateStats;
   

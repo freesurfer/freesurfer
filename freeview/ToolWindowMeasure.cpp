@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 01:46:01 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/19 16:33:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -63,8 +63,10 @@ END_EVENT_TABLE()
 ToolWindowMeasure::ToolWindowMeasure( wxWindow* parent ) : Listener( "ToolWindowMeasure" )
 {
   wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_TOOLWINDOW_MEASURE") );
-  m_toolbar = XRCCTRL( *this, "ID_TOOLBAR_MEASURE", wxToolBar );
-  m_listStats = XRCCTRL( *this, "ID_LISTBOX_STATS", wxListBox );
+  m_toolbar   = XRCCTRL( *this, "ID_TOOLBAR_MEASURE", wxToolBar );
+  m_textStats = XRCCTRL( *this, "ID_TEXT_STATS",      wxTextCtrl );
+  m_btnCopy   = XRCCTRL( *this, "ID_BUTTON_COPY",     wxButton );
+  m_btnExport = XRCCTRL( *this, "ID_BUTTON_EXPORT",   wxButton );
   m_region = NULL;
   m_bToUpdateStats = false;
 }
@@ -116,7 +118,8 @@ void ToolWindowMeasure::ResetPosition()
 void ToolWindowMeasure::SetRegion( Region2D* reg )
 {
   m_region = reg;
-  m_region->AddListener( this );  
+  if ( m_region )
+    m_region->AddListener( this );  
   UpdateStats();
 }
 
@@ -127,11 +130,16 @@ void ToolWindowMeasure::UpdateStats( )
 
 void ToolWindowMeasure::DoUpdateStats()
 {
+  wxString strg;
   if ( m_region )
   {
-    m_listStats->Clear();
-    m_listStats->Append( m_region->GetLongStats() );    
+    wxArrayString strgs = m_region->GetLongStats();
+    for ( size_t i = 0; i < strgs.size(); i++ )
+      strg += strgs[i] + "\n";   
   }
+  m_textStats->ChangeValue( strg ); 
+  m_btnCopy->Enable( !strg.IsEmpty() );
+  m_btnExport->Enable( !strg.IsEmpty() );
   
   m_bToUpdateStats = false;
 }
@@ -184,12 +192,7 @@ void ToolWindowMeasure::OnActionMeasureRectangleUpdateUI( wxUpdateUIEvent& event
 
 void ToolWindowMeasure::OnButtonCopy( wxCommandEvent& event )
 {
-  wxArrayString strgs = m_listStats->GetStrings();
-  wxString output;
-  for ( size_t i = 0; i < strgs.size(); i++ )
-  {
-    output += strgs[i] + "\n";
-  }
+  wxString output = m_textStats->GetValue();
   if (wxTheClipboard->Open())
   {
     wxTheClipboard->SetData( new wxTextDataObject( output ) );
@@ -199,23 +202,15 @@ void ToolWindowMeasure::OnButtonCopy( wxCommandEvent& event )
 
 void ToolWindowMeasure::OnButtonExport( wxCommandEvent& event )
 {
-  wxArrayString strgs = m_listStats->GetStrings();
-  wxString output;
-  for ( size_t i = 0; i < strgs.size(); i++ )
-  {
-    output += strgs[i] + "\n";
-  }
-  
   wxFileDialog dlg( this, _("Export to file"), _(""), _(""),
                     _("All files (*.*)|*.*"),
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
   if ( dlg.ShowModal() == wxID_OK )
   {
     wxString fn = dlg.GetPath();
-    wxFFile file;
-    if ( !file.Open( fn.c_str(), "w" ) || !file.Write( output ) )
+    if ( !m_textStats->SaveFile( fn ) )
     {
-      wxMessageDialog msg_dlg( this, _("Can not write to file."), 
+      wxMessageDialog msg_dlg( this, wxString("Can not write to file ") + fn, 
                            _("Error"), wxOK );
       msg_dlg.ShowModal();
     } 
