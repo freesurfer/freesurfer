@@ -340,6 +340,7 @@ mrimean_cuda.o: ../include/mriframegpu.hpp
 mrivol2vol_cuda.o: ../include/mriframegpu.hpp
 affinegpu.o: ../include/affinegpu.hpp
 gcasgpu.o: ../include/gcasgpu.hpp
+gcamorphgpu.o: ../include/gcamorphgpu.hpp
 
 endif
 

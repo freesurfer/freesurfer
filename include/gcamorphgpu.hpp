@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/18 18:42:38 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/19 19:32:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,18 +41,42 @@ namespace GPU {
     class GCAmorphGPU {
     public:
       //! Matches x, y and z in GCAmorph
-      VolumeArgGPU<float3> d_r;
+      VolumeGPU<float3> d_r;
       //! Matches invalid flag in GCAmorph
-      VolumeArgGPU<unsigned char> d_invalid;
+      VolumeGPU<unsigned char> d_invalid;
       //! Matches area field in GCAmorph
-      VolumeArgGPU<float> d_area;
+      VolumeGPU<float> d_area;
       //! Matches area1 field in GCAmorph
-      VolumeArgGPU<float> d_area1;
+      VolumeGPU<float> d_area1;
       //! Matches area2 field in GCAmorph
-      VolumeArgGPU<float> d_area2;
+      VolumeGPU<float> d_area2;
 
       // -----------------------------------------
+      // Constructors & Destructor
+
+      //! Default constructor
+      GCAmorphGPU( void ) : d_r(),
+			    d_invalid(),
+			    d_area(),
+			    d_area1(),
+			    d_area2() {};
+
+      //! Destructor
+      ~GCAmorphGPU( void ) {};
+
+      // -------------------------------------------
+
+      //! Checks integrity of members
+      void CheckIntegrity( void );
+
+      // -------------------------------------------
+      // Memory management
       
+      //! Allocates GPU memory for volume of given size
+      void AllocateAll( const dim3& dims );
+
+      //! Releases all the GPU memory
+      void ReleaseAll( void );
 
     private:
 
