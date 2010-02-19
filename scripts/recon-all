@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/18 21:28:33 $
-#    $Revision: 1.270 $
+#    $Date: 2010/02/19 20:48:01 $
+#    $Revision: 1.271 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.270 2010/02/18 21:28:33 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.271 2010/02/19 20:48:01 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -318,7 +318,7 @@ endif
 
 
 if ($DoMakefile) then
-  setenv MAKE_SUBJECT $subjid
+  setenv RECONALL_MAKE_SUBJECT $subjid
   set make_flags=( $MakefileTarget )
   if ( ! $RunIt) set make_flags=( -n $make_flags )
   echo "Subject '$subjid': make $make_flags"
@@ -401,6 +401,8 @@ date >> $LF
 $PWD >> $LF
 echo $0 >> $LF
 echo $inputargs >> $LF
+# if running using -make, then dont bother with repeated info dumps
+if ($?RECONALL_MAKE_SUBJECT) goto skip_all_info
 echo "subjid $subjid" >> $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" >> $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" >> $LF
@@ -422,7 +424,6 @@ if ("`uname -s`" == "Darwin") then
 endif
 
 ## gather all versions here
-if ($DoMakefile) goto skip_all_info
 echo "########################################" >> $LF
 echo "program versions used" >> $LF
 echo $VERSION                >> $LF

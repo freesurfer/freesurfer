@@ -1,5 +1,5 @@
 
-subj=$(SUBJECTS_DIR)/$(MAKE_SUBJECT)
+subj=$(SUBJECTS_DIR)/$(RECONALL_MAKE_SUBJECT)
 
 all: $(subj) autorecon1 autorecon2 autorecon3
 
