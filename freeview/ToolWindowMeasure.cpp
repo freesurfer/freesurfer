@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -33,6 +33,9 @@
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/spinctrl.h>
+#include <wx/listbox.h>
+#include <wx/clipbrd.h>
+#include <wx/ffile.h>
 #include "MainWindow.h"
 #include "RenderView2D.h"
 #include "RenderView3D.h"
@@ -41,22 +44,29 @@
 #include "LayerCollection.h"
 #include "LayerMRI.h"
 #include "LayerPropertiesMRI.h"
+#include "Region2D.h"
 
 BEGIN_EVENT_TABLE( ToolWindowMeasure, wxFrame )
-EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_LINE" ),    ToolWindowMeasure::OnActionMeasureLine )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_LINE" ),    ToolWindowMeasure::OnActionMeasureLineUpdateUI )
-EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_RECT" ),    ToolWindowMeasure::OnActionMeasureRectangle )
-EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_RECT" ),    ToolWindowMeasure::OnActionMeasureRectangleUpdateUI )
+  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_LINE" ),    ToolWindowMeasure::OnActionMeasureLine )
+  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_LINE" ),    ToolWindowMeasure::OnActionMeasureLineUpdateUI )
+  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_RECT" ),    ToolWindowMeasure::OnActionMeasureRectangle )
+  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_RECT" ),    ToolWindowMeasure::OnActionMeasureRectangleUpdateUI )
 
-EVT_SHOW      ( ToolWindowMeasure::OnShow )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_COPY" ),            ToolWindowMeasure::OnButtonCopy )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_EXPORT" ),          ToolWindowMeasure::OnButtonExport )
+  
+  EVT_SHOW      ( ToolWindowMeasure::OnShow )
 
 END_EVENT_TABLE()
 
 
-ToolWindowMeasure::ToolWindowMeasure( wxWindow* parent ) 
+ToolWindowMeasure::ToolWindowMeasure( wxWindow* parent ) : Listener( "ToolWindowMeasure" )
 {
   wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_TOOLWINDOW_MEASURE") );
   m_toolbar = XRCCTRL( *this, "ID_TOOLBAR_MEASURE", wxToolBar );
+  m_listStats = XRCCTRL( *this, "ID_LISTBOX_STATS", wxListBox );
+  m_region = NULL;
+  m_bToUpdateStats = false;
 }
 
 ToolWindowMeasure::~ToolWindowMeasure()
@@ -103,6 +113,45 @@ void ToolWindowMeasure::ResetPosition()
   }
 }
 
+void ToolWindowMeasure::SetRegion( Region2D* reg )
+{
+  m_region = reg;
+  m_region->AddListener( this );  
+  UpdateStats();
+}
+
+void ToolWindowMeasure::UpdateStats( )
+{
+  m_bToUpdateStats = true;
+}
+
+void ToolWindowMeasure::DoUpdateStats()
+{
+  if ( m_region )
+  {
+    m_listStats->Clear();
+    m_listStats->Append( m_region->GetLongStats() );    
+  }
+  
+  m_bToUpdateStats = false;
+}
+
+void ToolWindowMeasure::OnInternalIdle()
+{
+  wxFrame::OnInternalIdle();
+  
+  if ( m_bToUpdateStats )
+    DoUpdateStats();
+}
+
+void ToolWindowMeasure::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
+{
+  if ( iMsg == "RegionStatsUpdated" )
+  {
+    if ( m_region == iData || m_region == sender )
+      UpdateStats();
+  }
+}
 
 void ToolWindowMeasure::OnActionMeasureLine( wxCommandEvent& event )
 {
@@ -132,3 +181,44 @@ void ToolWindowMeasure::OnActionMeasureRectangleUpdateUI( wxUpdateUIEvent& event
   event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
       && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
 }
+
+void ToolWindowMeasure::OnButtonCopy( wxCommandEvent& event )
+{
+  wxArrayString strgs = m_listStats->GetStrings();
+  wxString output;
+  for ( size_t i = 0; i < strgs.size(); i++ )
+  {
+    output += strgs[i] + "\n";
+  }
+  if (wxTheClipboard->Open())
+  {
+    wxTheClipboard->SetData( new wxTextDataObject( output ) );
+    wxTheClipboard->Close();
+  }
+}
+
+void ToolWindowMeasure::OnButtonExport( wxCommandEvent& event )
+{
+  wxArrayString strgs = m_listStats->GetStrings();
+  wxString output;
+  for ( size_t i = 0; i < strgs.size(); i++ )
+  {
+    output += strgs[i] + "\n";
+  }
+  
+  wxFileDialog dlg( this, _("Export to file"), _(""), _(""),
+                    _("All files (*.*)|*.*"),
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    wxString fn = dlg.GetPath();
+    wxFFile file;
+    if ( !file.Open( fn.c_str(), "w" ) || !file.Write( output ) )
+    {
+      wxMessageDialog msg_dlg( this, _("Can not write to file."), 
+                           _("Error"), wxOK );
+      msg_dlg.ShowModal();
+    } 
+  }
+}
+

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/30 21:17:20 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -48,7 +48,7 @@
 #include "Interactor2DMeasure.h"
 #include "MyUtils.h"
 #include "Region2DRectangle.h"
-
+#include "ToolWindowMeasure.h"
 
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))

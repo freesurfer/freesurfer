@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/06 20:12:06 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@
 #include "CursorFactory.h"
 #include "Region2DLine.h"
 #include "Region2DRectangle.h"
+#include "ToolWindowMeasure.h"
 #include <vtkRenderer.h>
 
 Interactor2DMeasure::Interactor2DMeasure() :
@@ -95,6 +96,7 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
         m_region->Highlight();
         view->NeedRedraw();
       }
+      MainWindow::GetMainWindowPointer()->GetToolWindowMeasure()->SetRegion( m_region );
       return false;
     }
   }

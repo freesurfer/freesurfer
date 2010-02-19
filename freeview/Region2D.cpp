@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/30 21:17:19 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,8 +37,9 @@ Region2D::Region2D( RenderView2D* view ) :
 Region2D::~Region2D()
 {}
 
-void Region2D::Update()
+void Region2D::UpdateStats()
 {
+  SendBroadcast( "RegionStatsUpdated", this );
 }
 
 void Region2D::UpdateSlicePosition( int nPlane, double pos )

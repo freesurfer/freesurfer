@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/03 19:33:24 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -153,8 +153,10 @@ public:
   bool GetVoxelValueRange( const double* pt0, const double* pt1, 
                            int nPlane, double* range_out );
   
-  bool GetVoxelStats( const double* pt0, const double* pt1, 
-                           int nPlane, double* mean_out, double* sd_out = NULL );
+  bool GetVoxelStatsRectangle( const double* pt0, const double* pt1, 
+                           int nPlane, double* mean_out, double* sd_out = NULL, int* cnt_out = NULL );
+  
+  bool GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out );
   
   void ResetWindowLevel();
   
@@ -187,6 +189,8 @@ protected:
   void UpdateVectorActor();
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
   virtual void UpdateVectorActor( int nPlane );
+  
+  std::vector<int> GetVoxelIndicesBetweenPoints( int* n0, int* n1 );
   
   void UpdateLabelOutline();
   void UpdateUpSampleMethod();

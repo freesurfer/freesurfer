@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/30 21:17:20 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -52,14 +52,28 @@ public:
   
   virtual void Show( bool bshow );
   
-  virtual void Update();
+  virtual void Update() {}
+  
+  virtual void UpdateStats();
   
   virtual void UpdateSlicePosition( int nPlane, double pos );
   
   virtual void GetWorldPoint( int nIndex, double* pt ) = 0;
+  
+  wxString GetShortStats()
+  {
+    return m_strShortStats;
+  }
+  
+  wxArrayString GetLongStats()
+  {
+    return m_strsLongStats;
+  }
 
 protected:
   RenderView2D* m_view;
+  wxString      m_strShortStats;
+  wxArrayString m_strsLongStats;
 };
 
 #endif

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/30 21:17:20 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -135,20 +135,35 @@ void Region2DRectangle::Update()
   
   if ( m_bEnableStats )
   {
-    LayerMRI* layer = m_view->GetFirstNonLabelVolume();
-    if ( layer )
-    {
-      double mean, sd;
-      layer->GetVoxelStats( m_dPt[0], m_dPt[2], m_view->GetViewPlane(), &mean, &sd );
-      char ch[1000];
-      sprintf( ch, "%.2f +/-%.2f", mean, sd );
-      m_actorText->SetInput( ch );
-      double pt[3];
-      for ( int i = 0; i < 3; i++ )
-        pt[i] = ( pt0[i] + pt2[i] ) / 2;
-      m_actorText->SetPosition( pt );
-    }
+    UpdateStats();
+    
+    double pt[3];
+    for ( int i = 0; i < 3; i++ )
+      pt[i] = ( pt0[i] + pt2[i] ) / 2;
+    m_actorText->SetInput( m_strShortStats.c_str() );
+    m_actorText->SetPosition( pt );
   }
+}
+
+void Region2DRectangle::UpdateStats()
+{
+  LayerMRI* layer = m_view->GetFirstNonLabelVolume();
+  if ( layer )
+  {
+    double mean, sd;
+    int count;
+    layer->GetVoxelStatsRectangle( m_dPt[0], m_dPt[2], m_view->GetViewPlane(), &mean, &sd, &count );
+    char ch[1000];
+    sprintf( ch, "%.2f +/-%.2f", mean, sd );
+    m_actorText->SetInput( ch );
+    m_strShortStats = ch;
+    
+    m_strsLongStats.clear();
+    m_strsLongStats.push_back( wxString("Number of voxels: ") << count );
+    m_strsLongStats.push_back( wxString("Mean: ") + m_strShortStats );  
+  }
+    
+  Region2D::UpdateStats();
 }
 
 void Region2DRectangle::AppendProp( vtkRenderer* renderer )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/30 21:17:20 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,6 +38,7 @@
 #include <vtkTextProperty.h>
 #include <vtkMath.h>
 #include <vtkLine.h>
+#include "LayerMRI.h"
 
 Region2DLine::Region2DLine( RenderView2D* view ) :
   Region2D( view )
@@ -124,10 +125,37 @@ void Region2DLine::Update()
   mapper->SetTransformCoordinate( coords );
   m_actorLine->SetMapper( mapper );
   
+//  m_actorText->SetInput( GetShortStats().c_str() );
+  m_actorText->SetPosition( pt3 );
+  UpdateStats();
+}
+
+void Region2DLine::UpdateStats()
+{
   char ch[1000];
   sprintf( ch, "%.2f mm", sqrt(vtkMath::Distance2BetweenPoints( m_dPt1, m_dPt2 )) );
+  m_strShortStats = ch;
   m_actorText->SetInput( ch );
-  m_actorText->SetPosition( pt3 );
+ 
+  LayerMRI* layer = m_view->GetFirstNonLabelVolume();
+  if ( layer )
+  {
+    double* values = NULL;
+    int* indices = NULL;
+    int count = 0;
+    layer->GetVoxelsOnLine( m_dPt1, m_dPt2, m_view->GetViewPlane(), indices, values, &count );
+    char ch[1000];  
+    m_strsLongStats.clear();
+    for ( int i = 0; i < count; i++ )
+    {
+      sprintf( ch, "[%d, %d, %d]  %.2f", indices[i*3], indices[i*3+1], indices[i*3+2], values[i] );
+      m_strsLongStats.push_back( ch );
+    }
+    delete[] indices;
+    delete[] values;
+  }
+  
+  Region2D::UpdateStats();
 }
 
 void Region2DLine::AppendProp( vtkRenderer* renderer )

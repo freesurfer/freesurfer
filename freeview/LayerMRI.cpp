@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/03 19:33:24 $
- *    $Revision: 1.53 $
+ *    $Date: 2010/02/19 01:46:01 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1321,7 +1321,7 @@ bool LayerMRI::GetVoxelValueRange( const double* pt0, const double* pt1, int nPl
 }
 
 // Get rectangle region stats
-bool LayerMRI::GetVoxelStats( const double* pt0, const double* pt1, int nPlane, double* mean_out, double* sd_out )
+bool LayerMRI::GetVoxelStatsRectangle( const double* pt0, const double* pt1, int nPlane, double* mean_out, double* sd_out, int* cnt_out )
 {
   double* orig = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
@@ -1343,7 +1343,7 @@ bool LayerMRI::GetVoxelStats( const double* pt0, const double* pt1, int nPlane, 
       p0 = max( 0, min( dim[i]-1, p0 ) );
       p1 = max( 0, min( dim[i]-1, p1 ) );
       n0[i] = min( p0, min( p1, n0[i] ) );
-      n1[i] = max( p0, max( p1, n0[i] ) );
+      n1[i] = max( p0, max( p1, n1[i] ) );
     }
   }
   
@@ -1384,7 +1384,103 @@ bool LayerMRI::GetVoxelStats( const double* pt0, const double* pt1, int nPlane, 
       *sd_out = 0;
   }
   
+  if ( cnt_out )
+    *cnt_out = nCount;
+  
   return true;
+}
+
+
+// memory allocated for indice_out and value_out need to be freed outside of this function!
+bool LayerMRI::GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out )
+{
+  double* orig = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  int* dim = m_imageData->GetDimensions();
+  
+  if ( nPlane < 0 || nPlane >= dim[nPlane] )
+    return false;
+  
+  // find the index range of the selection
+  int n0[3], n1[3]; 
+  n0[nPlane] = n1[nPlane] = (int)( ( pt0[nPlane] - orig[nPlane] ) / voxel_size[nPlane] + 0.5 ); 
+  for ( int i = 0; i < 3; i++ )
+  {
+    if ( i != nPlane )
+    {
+      int p0 = (int)( ( pt0[i] - orig[i] ) / voxel_size[i] + 0.5 ); 
+      int p1 = (int)( ( pt1[i] - orig[i] ) / voxel_size[i] + 0.5 ); 
+      n0[i] = max( 0, min( dim[i]-1, p0 ) );
+      n1[i] = max( 0, min( dim[i]-1, p1 ) );
+    }
+  }
+  
+  std::vector<int> indices = GetVoxelIndicesBetweenPoints( n0, n1 );
+  std::vector<double> values;
+  
+  int nActiveComp = GetActiveFrame();  
+  double dMean = 0;
+  int nCount = 0;
+  for ( size_t i = 0; i < indices.size(); i += 3 )
+  {
+    double value = m_imageData->GetScalarComponentAsDouble( indices[i], indices[i+1], indices[i+2], nActiveComp );
+    dMean += value;
+    values.push_back( value );
+    nCount++;
+  }
+  
+  indice_out = new int[nCount*3];
+  value_out = new double[nCount];
+  double pt[3], ras[3];
+  int nIndex[3];
+  for ( int i = 0; i < nCount; i++ )
+  {
+    pt[0] = indices[i*3]*voxel_size[0] + orig[0];
+    pt[1] = indices[i*3+1]*voxel_size[1] + orig[1];
+    pt[2] = indices[i*3+2]*voxel_size[2] + orig[2];
+    RemapPositionToRealRAS( pt, ras );
+    RASToOriginalIndex( ras, nIndex );
+    indice_out[i*3]   = nIndex[0];
+    indice_out[i*3+1] = nIndex[1];
+    indice_out[i*3+2] = nIndex[2];
+    value_out[i] = values[i];
+  }
+  
+  *cnt_out = nCount;
+  return true;
+}
+
+std::vector<int> LayerMRI::GetVoxelIndicesBetweenPoints( int* n0, int* n1 )
+{
+  std::vector<int> indices;
+  if ( n1[0] == n0[0] && n1[1] == n0[1] && n1[2] == n0[2] )
+  {
+    indices.push_back( n0[0] );
+    indices.push_back( n0[1] );
+    indices.push_back( n0[2] );
+  }
+  else if ( fabs(n0[0]-n1[0]) <= 1 && fabs(n0[1]-n1[1]) <= 1 && fabs(n0[2]-n1[2]) <= 1 )
+  {
+    indices.push_back( n0[0] );
+    indices.push_back( n0[1] );
+    indices.push_back( n0[2] );
+    indices.push_back( n1[0] );
+    indices.push_back( n1[1] );
+    indices.push_back( n1[2] );
+  }
+  else
+  {
+    int n[3];
+    for ( int i = 0; i < 3; i++ )
+      n[i] = (int)( (n0[i]+n1[i]) / 2.0 + 0.5 );
+    
+    indices = GetVoxelIndicesBetweenPoints( n0, n );
+    std::vector<int> indices1 = GetVoxelIndicesBetweenPoints( n, n1 );
+    for ( size_t i = 3; i < indices1.size(); i++ )
+      indices.push_back( indices1[i] );
+  }
+    
+  return indices;
 }
 
 void LayerMRI::ResetWindowLevel()
