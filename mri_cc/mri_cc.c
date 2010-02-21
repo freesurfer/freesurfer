@@ -9,11 +9,11 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/01/16 01:26:57 $
- *    $Revision: 1.26 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/21 19:40:15 $
+ *    $Revision: 1.27 $
  *
- * Copyright (C) 2004-2007,
+ * Copyright (C) 2004-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -165,13 +164,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.26 2010/01/16 01:26:57 mreuter Exp $",
+   "$Id: mri_cc.c,v 1.27 2010/02/21 19:40:15 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.26 2010/01/16 01:26:57 mreuter Exp $",
+           "$Id: mri_cc.c,v 1.27 2010/02/21 19:40:15 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1493,7 +1492,7 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   printf("final transformation (x=%2.1f, yr=%2.3f, zr=%2.3f):\n",x0_best,
          DEGREES(yrot_best), DEGREES(zrot_best)) ;
   MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
- /* if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)*/
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     LTAwrite(lta, "test.lta") ; 
   MatrixFree(&m_trans) ;
   MatrixFree(&m_trans_inv) ;
