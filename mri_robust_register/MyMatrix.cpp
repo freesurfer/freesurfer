@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:04 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/22 03:16:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -340,7 +340,7 @@ void MyMatrix::getRTfromM(const vnl_matrix_fixed < double , 4 , 4 > &m,
 														    vnl_vector_fixed < double, 3 >      &t)
 {
 	r = m.extract(3,3);
-	t = m.extract(3,1,3,0).get_column(0);
+	t = m.extract(3,1,0,3).get_column(0);
 }
 
 vnl_matrix_fixed < double , 4 , 4 >  MyMatrix::getMfromRT(
@@ -349,8 +349,12 @@ vnl_matrix_fixed < double , 4 , 4 >  MyMatrix::getMfromRT(
 {
   vnl_matrix_fixed < double, 4, 4 > m;
 	m.set_identity();
-	m.set_columns(0,r);
-	m.set_column(3,t);
+	for (uint rr = 0;rr<3;rr++)
+	{
+	  for (uint cc = 0;cc<3;cc++)
+		   m[rr][cc] = r[rr][cc];
+		m[rr][3] = t[rr];
+  }
 	return m;
 }
 
