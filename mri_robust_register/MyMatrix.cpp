@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/22 03:16:29 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/02/22 16:55:12 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -349,9 +349,9 @@ vnl_matrix_fixed < double , 4 , 4 >  MyMatrix::getMfromRT(
 {
   vnl_matrix_fixed < double, 4, 4 > m;
 	m.set_identity();
-	for (uint rr = 0;rr<3;rr++)
+	for (unsigned int rr = 0;rr<3;rr++)
 	{
-	  for (uint cc = 0;cc<3;cc++)
+	  for (unsigned int cc = 0;cc<3;cc++)
 		   m[rr][cc] = r[rr][cc];
 		m[rr][3] = t[rr];
   }
