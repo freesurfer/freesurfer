@@ -7,9 +7,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/11/13 17:42:11 $
- *    $Revision: 1.15 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/22 23:00:01 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -162,7 +162,7 @@ static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mris_label2annot.c,v 1.15 2009/11/13 17:42:11 greve Exp $";
+"$Id: mris_label2annot.c,v 1.16 2010/02/22 23:00:01 nicks Exp $";
 
 
 static int dilate_label_into_unknown(MRI_SURFACE *mris, int annot) ;
@@ -173,6 +173,7 @@ char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
+int verbose=1; // print overlap warnings and maxstat overrides
 struct utsname uts;
 
 char tmpstr[1000];
@@ -186,6 +187,8 @@ LABEL *label;
 COLOR_TABLE *ctab = NULL;
 MRI *nhits;
 char *NHitsFile=NULL;
+MRI *maxstat;
+int maxstatwinner=0;
 int MapUnhitToUnknown=1;
 char *labeldir=NULL;
 int labeldirdefault=0;
@@ -245,6 +248,9 @@ int main(int argc, char *argv[]) {
   // Set up something to keep track of nhits
   nhits = MRIalloc(mris->nvertices,1,1,MRI_INT);
 
+  // Set up something to keep track of max stat for that vertex
+  if (maxstatwinner) maxstat = MRIalloc(mris->nvertices,1,1,MRI_FLOAT);
+
   // Go thru each label
   for (nthlabel = 0; nthlabel < nlabels; nthlabel ++) {
     label = LabelRead(subject,LabelFiles[nthlabel]);
@@ -265,12 +271,29 @@ int main(int argc, char *argv[]) {
         exit(1);
       }
       if(DoLabelThresh && label->lv[n].stat < LabelThresh) continue;
-      if (MRIgetVoxVal(nhits,vtxno,0,0,0) > 0) {
-        printf
-          ("WARNING: vertex %d maps to multiple labels! (overwriting)\n",
-           vtxno);
+
+      if (maxstatwinner) {
+        float stat = MRIgetVoxVal(maxstat,vtxno,0,0,0);
+        if (label->lv[n].stat < stat) {
+          if (verbose) {
+            printf("Keeping prior label for vtxno %d "
+                   "(old_stat=%f > this_stat=%f)\n",
+                   vtxno,stat,label->lv[n].stat);
+          }
+          continue;
+        }
+        MRIsetVoxVal(maxstat,vtxno,0,0,0,label->lv[n].stat);
+      }
+
+      if (verbose) {
+        if (MRIgetVoxVal(nhits,vtxno,0,0,0) > 0) {
+          printf
+            ("WARNING: vertex %d maps to multiple labels! (overwriting)\n",
+             vtxno);
+        }
       }
       MRIsetVoxVal(nhits,vtxno,0,0,0,MRIgetVoxVal(nhits,vtxno,0,0,0)+1);
+
       mris->vertices[vtxno].annotation = ano;
       //printf("%5d %2d %2d %s\n",vtxno,segid,ano,index_to_name(segid));
     } // label ponts
@@ -328,6 +351,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcmp(option, "--no-unknown")) MapUnhitToUnknown = 0;
     else if (!strcmp(option, "--ldir-default")) labeldirdefault = 1;
+    else if (!strcmp(option, "--noverbose")) verbose = 0;
+    else if (!strcmp(option, "--maxstatwinner")) maxstatwinner = 1;
     else if (!strcmp(option, "--dilate-into-unknown")) 
     {
       dilate_label_name = pargv[0] ;
@@ -418,8 +443,10 @@ static void print_usage(void) {
   printf("   --ldir-default : use subject/labels as labeldir\n");
   printf("   --no-unknown : do not map unhit labels to index 0\n");
   printf("   --thresh thresh : threshold label by stats field\n");
+  printf("   --maxstatwinner : keep label with highest 'stat' value\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
+  printf("   --noverbose turn off overlap and stat override messages\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
   printf("   --version   print out version and exit\n");
