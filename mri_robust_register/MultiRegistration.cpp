@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/14 05:42:17 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/02/22 03:17:42 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -846,20 +846,20 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     cout << "  computing coord of TP "<< j+1 <<" ( "<<mov[j]<<" )" << endl;
 		cout << "   wrt to TP "<<tpi+1<<" ( "<<mov[tpi]<<" )" << endl;
     mras[i] = MyMRI::MRIvoxelXformToRasXform (mri_mov[j],mri_mov[tpi],Md[i].first);
-    //MatrixPrintFmt(stdout,"% 2.8f",mras);cout << endl;
+		//cout << " mras[" << i << "]: " << endl << mras[i] << endl;
+
     // split into rotation translation
     MyMatrix::getRTfromM(mras[i],rot,trans);
-   //MatrixPrintFmt(stdout,"% 2.8f",trans); cout << endl;
-   //cout << " Mras: " << endl;
-   //MatrixPrintFmt(stdout,"% 2.8f",mras[i]); cout << endl;
+		//cout << " trans: " << endl << trans << endl;
+    //cout << " rot  : " << endl << rot << endl;
 
     // reverse order (first translate, then rotate)
     // rot stays, trans changes: Rx+t = R (x + R^{-1} t)
     roti  = rot.transpose(); // inverse
-    //cout << " roti: " << endl;MatrixPrintFmt(stdout,"% 2.8f",roti); cout << endl;
+    //cout << " roti: " << endl << roti << endl;
     
     trans = roti * trans;
-    //cout << "transi: - " << endl; MatrixPrintFmt(stdout,"% 2.8f",trans); cout << endl;
+		//cout << " transi: - " << endl << trans << endl;
     
 //     if (P.debug) // output transonly
 //     {
@@ -880,32 +880,44 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 
   //average
   meant = (1.0/nin) * meant;
-  //cout << "meant: " << endl; MatrixPrintFmt(stdout,"% 2.8f",meant); cout << endl;
+	//cout << "meant: "<< endl << meant << endl;
   meanr = (1.0/nin) *meanr;
-  //cout << "meanr: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
+	//cout << "meanr: " << endl << meanr << endl;
   
   // project meanr back to SO(3) (using polar decomposition)
 	assert(rigid);
-//   VECTOR * vz = VectorAlloc(3,MATRIX_REAL);
-//   MATRIX * mv = MatrixSVD(meanr,vz,NULL); // setting meanr = U
-//   //MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
-//   //MatrixPrintFmt(stdout,"% 2.8f",vz); cout << endl;
-//   //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
-//   mv = MatrixTranspose(mv,mv);
-//   //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
-//   meanr = MatrixMultiply(meanr,mv,meanr);
-//   //cout << " meanr.proj: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanr); cout << endl;
-//   MatrixFree(&mv);
-//   MatrixFree(&vz);
-//   // Mm is the matrix from tpi ras to mean ras:
-//   MATRIX * Mm = MyMatrix::getMfromRT(meanr,meant,NULL);
+	
+// 	{
+//      VECTOR * vz = VectorAlloc(3,MATRIX_REAL);
+// 		 MATRIX * meanro = MyMatrix::convertVNL2MATRIX(meanr,NULL);
+//      MATRIX * mv = MatrixSVD(meanro,vz,NULL); // setting meanr = U
+//      MatrixPrintFmt(stdout,"% 2.8f",meanro); cout << endl;
+//      //MatrixPrintFmt(stdout,"% 2.8f",vz); cout << endl;
+//      MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
+//      mv = MatrixTranspose(mv,mv);
+//      //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
+//      meanro = MatrixMultiply(meanro,mv,meanro);
+//      cout << " meanr.proj: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanro); cout << endl;
+//      MatrixFree(&mv);
+//      MatrixFree(&vz);
+//      // Mm is the matrix from tpi ras to mean ras:
+//      //MATRIX * Mm = MyMatrix::getMfromRT(meanro,meant,NULL);
+//   	 //cout << " mm : " << endl; MatrixPrintFmt(stdout, "% 2.8f",Mm); cout << endl;
+// 		 cout << " -----------------------------------------------" << endl;
+//   }
+
   vnl_svd < double > svd_decomp(meanr);
   if ( svd_decomp.valid() )
   {
 	    vnl_matrix < double > mu = svd_decomp.U();
+			//cout << " mu   : " << mu << endl;
       vnl_matrix < double > mv = svd_decomp.V();
+			//cout << " mv   : " << mv << endl;
 			mv.inplace_transpose();
 			meanr = mu * mv;
+			//cout << " meanr: " << meanr << endl;
+			//cout << " meant: " << meant << endl;
+			//cout << " mm   : " << MyMatrix::getMfromRT(meanr,meant) << endl;
   }
   else
   {
