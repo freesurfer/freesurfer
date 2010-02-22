@@ -866,6 +866,7 @@ int LCC_function(unsigned char ***image,
   if ( bNeedGrow == 1 )//still need region grow
   {
     gc_POS iSeed;
+    iSeed.x = iSeed.y = iSeed.z = 0;
     if ( locateSeedfromLCC(iSeed, label, xVol, yVol, zVol) == 1 )
     {
       // -- grow
