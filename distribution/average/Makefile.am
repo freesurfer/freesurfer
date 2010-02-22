@@ -33,6 +33,7 @@ TIF=\
 
 TXT=\
 	colortable_desikan_killiany.txt \
+	colortable_BA.txt \
 	tissue_parms.txt
 
 MGZ=\
