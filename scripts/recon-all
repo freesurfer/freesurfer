@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/19 20:48:01 $
-#    $Revision: 1.271 $
+#    $Date: 2010/02/22 23:02:54 $
+#    $Revision: 1.272 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.271 2010/02/19 20:48:01 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.272 2010/02/22 23:02:54 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2867,32 +2867,79 @@ endif # DoLocalGyriIndex
 
 
 # --------------------------------------------------------------------
-# Create Brodmann area labels by mapping from fsaverage (if it exists)
+# Create Brodmann area labels by mapping from fsaverage,
+# then create the ?h.BA.annot file from these labels,
+# then generate a ?h.BA.stats file from that annot.
 if ($DoBaLabels) then
   cd $subjdir/label
   $PWD |& tee -a $LF
   foreach hemi ($hemilist)
-      echo "#--------------------------------------------" \
-          |& tee -a $LF |& tee -a $CF
-      echo "#@# BA Labels $hemi `date`" \
-          |& tee -a $SF |& tee -a $LF |& tee -a $CF
-      if ( ! -e $SUBJECTS_DIR/fsaverage) then
-        echo "WARNING: Cannot create BA labels: fsaverage subject does not exist in SUBJECTS_DIR" \
-          |& tee -a $LF |& tee -a $CF
-      else
-        foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 V1 V2 MT)
-          set cmd=(mri_label2label \
-            --srcsubject fsaverage \
-            --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
-            --trgsubject $subjid \
-            --trglabel ./${hemi}.${balabel}.label \
-            --hemi ${hemi} \
-            --regmethod surface)
-          echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-          if($RunIt) $fs_time $cmd |& tee -a $LF
-          if($status) goto error_exit;
-        end # balabel
-      endif # fsaverage exists
+    echo "#--------------------------------------------" \
+        |& tee -a $LF |& tee -a $CF
+    echo "#@# BA Labels $hemi `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    if ( ! -e $SUBJECTS_DIR/fsaverage) then
+      echo "INFO: fsaverage subject does not exist in SUBJECTS_DIR" \
+        |& tee -a $LF |& tee -a $CF
+      echo "INFO: Creating symlink to fsaverage subject..." \
+        |& tee -a $LF |& tee -a $CF
+      set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage \
+        $SUBJECTS_DIR/fsaverage)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+
+    # generate labels
+    foreach balabel (BA1 BA2 BA3a BA3b BA4a BA4p BA6 BA44 BA45 V1 V2 MT)
+      set cmd=(mri_label2label \
+        --srcsubject fsaverage \
+        --srclabel $SUBJECTS_DIR/fsaverage/label/${hemi}.${balabel}.label \
+        --trgsubject $subjid \
+        --trglabel ./${hemi}.${balabel}.label \
+        --hemi ${hemi} \
+        --regmethod surface)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    end # balabel
+
+    # create .annot
+    set cmd=(mris_label2annot \
+        --s $subjid \
+        --hemi $hemi \
+        --ctab $FREESURFER_HOME/average/colortable_BA.txt \
+        --l $hemi.BA1.label \
+        --l $hemi.BA2.label \
+        --l $hemi.BA3a.label \
+        --l $hemi.BA3b.label \
+        --l $hemi.BA4a.label \
+        --l $hemi.BA4p.label \
+        --l $hemi.BA6.label \
+        --l $hemi.BA44.label \
+        --l $hemi.BA45.label \
+        --l $hemi.V1.label \
+        --l $hemi.V2.label \
+        --l $hemi.MT.label \
+        --a BA \
+        --maxstatwinner \
+        --noverbose )
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) if ( -e ./$hemi.BA.annot) rm -fv ./$hemi.BA.annot
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    # generate stats
+    set annot = ./$hemi.BA.annot
+    set stats = ../stats/$hemi.BA.stats
+    set ctab  = ./BA.ctab
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set cmd = (mris_anatomical_stats -mgz -f $stats \
+            -b -a $annot -c $ctab $xopts $subjid $hemi);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
   end # hemi
 endif # DoBaLabels
 
