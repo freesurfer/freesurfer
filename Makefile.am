@@ -50,6 +50,7 @@ MRISUBDIRS=\
 	mri_ca_tissue_parms \
 	mri_ca_register \
 	mri_ca_train \
+	mri_cvs_register \
 	mri_gcab_train \
 	mri_gcut \
 	mri_cc mri_cht2p \

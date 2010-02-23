@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/12 19:33:27 $
-#    $Revision: 1.459 $
+#    $Date: 2010/02/23 22:51:46 $
+#    $Revision: 1.460 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2976,6 +2976,7 @@ AC_OUTPUT([Makefile
            mri_convert_mdh/Makefile
            mri_copy_values/Makefile
            mri_cor2label/Makefile
+           mri_cvs_register/Makefile
            mri_deface/Makefile
            mri_diff/Makefile
            mri_distance_transform/Makefile
