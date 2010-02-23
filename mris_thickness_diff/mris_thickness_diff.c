@@ -13,9 +13,9 @@
 /*
  * Original Author: Xaio Han
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/12/01 23:28:43 $
- *    $Revision: 1.13 $
+ *    $Author: mreuter $
+ *    $Date: 2010/02/23 00:52:15 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +70,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-  "$Id: mris_thickness_diff.c,v 1.13 2007/12/01 23:28:43 nicks Exp $";
+  "$Id: mris_thickness_diff.c,v 1.14 2010/02/23 00:52:15 mreuter Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -88,6 +88,7 @@ static char *trgtypestring = "";
 static int trgtype = MRI_VOLUME_TYPE_UNKNOWN;
 
 static char *out_name = NULL;
+static char *out_resampled_name = NULL;
 static char *maplike_fname = NULL; /*Generate maps to indicate 
                                      thickness difference */
 static char *mapout_fname = NULL; /* must be used together with above */
@@ -171,7 +172,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_thickness_diff.c,v 1.13 2007/12/01 23:28:43 nicks Exp $",
+           "$Id: mris_thickness_diff.c,v 1.14 2010/02/23 00:52:15 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -673,22 +674,23 @@ static void print_usage(void)
           Progname) ;
   fprintf(stdout, "\n");
   fprintf(stdout, "Options:\n");
-  fprintf(stdout, "   -src_type %%s  input surface data format "
+  fprintf(stdout, "   -src_type %%s       input surface data format "
           "(curv, paint or w)\n");
-  fprintf(stdout, "   -trg_type %%s  output format\n");
-  fprintf(stdout, "   -out %%s       output file name\n");
-  fprintf(stdout, "   -nsmooth %%d   number of smoothing steps\n");
-  fprintf(stdout, "   -register     force a rigid registration of "
-          "surface2 to surface1\n");
-  fprintf(stdout, "   -xform %%s     apply LTA transform to align input "
-          "surface1 to surface2\n");
-  fprintf(stdout, "   -invert       reversely apply -xform \n");
-  fprintf(stdout, "   -src %%s       source volume for -xform \n");
-  fprintf(stdout, "   -dst %%s       target volume for -xform \n");
-  fprintf(stdout, "   -abs          compute the std of abs-thickness-diff \n");
-  fprintf(stdout, "   -L %%s         log_file name \n");
-  fprintf(stdout, "   -S %%s         subject name \n");
-  fprintf(stdout, "   --help        more help \n");
+  fprintf(stdout, "   -trg_type %%s       output format\n");
+  fprintf(stdout, "   -out %%s            output file name\n");
+  fprintf(stdout, "   -out_resampled %%s  output resampled thickness\n");
+  fprintf(stdout, "   -nsmooth %%d        number of smoothing steps\n");
+  fprintf(stdout, "   -register          force a rigid registration of "
+          "surf2 to surf1\n");
+  fprintf(stdout, "   -xform %%s          apply LTA transform to align input "
+          "surf1 to surf2\n");
+  fprintf(stdout, "   -invert            reversely apply -xform \n");
+  fprintf(stdout, "   -src %%s            source volume for -xform \n");
+  fprintf(stdout, "   -dst %%s            target volume for -xform \n");
+  fprintf(stdout, "   -abs               compute the std of abs-thickness-diff \n");
+  fprintf(stdout, "   -L %%s              log_file name \n");
+  fprintf(stdout, "   -S %%s              subject name \n");
+  fprintf(stdout, "   --help             more help \n");
   fprintf(stdout, "\n");
   printf("%s\n", vcid) ;
   printf("\n");
@@ -858,6 +860,12 @@ static int get_option(int argc, char *argv[])
   {
     out_name = argv[2];
     printf("Output differences to file %s\n", out_name);
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "out_resampled"))
+  {
+    out_resampled_name = argv[2];
+    printf("Output TP2 thickness resampled to TP1 as file %s\n", out_resampled_name);
     nargs = 1 ;
   }
   else if (!stricmp(option, "nsmooth"))
@@ -1121,6 +1129,7 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
   double max_distance, std_dist;
   float dmin;
   MHT *SrcHash;
+	MRI *mri_resampled = MRIclone(mri_data1, NULL);
 
   SrcHash = MHTfillVertexTableRes(Mesh2, NULL,CURRENT_VERTICES,16);
 
@@ -1174,6 +1183,8 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
       facenumber =  Mesh2->vertices[nnindex].f[k]; /* index of the k-th face */
       if (facenumber < 0 || facenumber >= Mesh2->nfaces) continue;
       value = v_to_f_distance(vertex, Mesh2, facenumber, 0, &tmps, &tmpt);
+      /* Here it would be better to compute the correct distance together
+			   with the closest point and then use barycentric coordinates below (mr) */
 
       if (distance > value)
       {
@@ -1218,6 +1229,10 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
     sumweight += weight;
 
     sumcurv /= (sumweight + 1e-30);
+		
+    MRIsetVoxVal(mri_resampled,index, 0, 0, 0, sumcurv);
+		
+		
     value =  sumcurv -
              MRIgetVoxVal(mri_data1,index,0,0,0);
 
@@ -1238,6 +1253,39 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
            "the two surfaces are %g, %g and %g\n",
            max_distance, total_distance, std_dist);
   }
+	
+	if (out_resampled_name) // output thickness TP2 resampled to TP1
+	{
+	  MRI_SURFACE *Surfresampled = MRISclone(Mesh1);
+    MRIScopyMRI(Surfresampled, mri_resampled, framesave, "curv");
+    if (!strcmp(trgtypestring,"paint") || !strcmp(trgtypestring,"w"))
+    {
+
+      /* This function will remove a zero-valued vertices */
+      /* Make sense, since default value is considered as zero */
+      /* But it will confuse the processing with matlab! */
+      /* So I copy the data to the curv field to force every value is
+       *  written out
+       */
+      MRISwriteCurvatureToWFile(Surfresampled,out_resampled_name);
+    }
+    else if (!strcmp(trgtypestring,"curv"))
+    {
+      MRISwriteCurvature(Surfresampled, out_resampled_name);
+    }
+    else
+    {
+      if (MRIwrite(mri_resampled, out_resampled_name)) 
+      {
+        fprintf(stderr,"ERROR: failed MRIwrite file %s\n",out_resampled_name);
+        exit(1);
+      }
+    }
+	   
+	
+	}
+	
+	MRIfree(&mri_resampled);
 
   return (mri_res);
 }
