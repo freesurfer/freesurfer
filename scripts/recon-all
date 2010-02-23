@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/22 23:02:54 $
-#    $Revision: 1.272 $
+#    $Date: 2010/02/23 17:52:17 $
+#    $Revision: 1.273 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.272 2010/02/22 23:02:54 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.273 2010/02/23 17:52:17 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2924,8 +2924,8 @@ if ($DoBaLabels) then
         --a BA \
         --maxstatwinner \
         --noverbose )
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) if ( -e ./$hemi.BA.annot) rm -fv ./$hemi.BA.annot
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
