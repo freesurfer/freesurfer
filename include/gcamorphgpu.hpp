@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/19 20:46:52 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/02/24 15:23:37 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,6 +85,9 @@ namespace GPU {
 
       //! Sends all data to the GPU
       void SendAll( const GCAM* src );
+
+      //! Receives all data from the GPU
+      void RecvAll( GCAM* dst ) const;
 
     private:
 
