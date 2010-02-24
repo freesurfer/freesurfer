@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/19 20:45:20 $
- *    $Revision: 1.146 $
+ *    $Date: 2010/02/24 16:20:37 $
+ *    $Revision: 1.147 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -3058,7 +3058,9 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   StartChronometer( &tCMP );
 #endif
 
+  // Ginvalid has file scope and static storage.....
   Ginvalid = 0 ;
+
   v_i = VectorAlloc(3, MATRIX_REAL) ;
   v_j = VectorAlloc(3, MATRIX_REAL) ;
   v_k = VectorAlloc(3, MATRIX_REAL) ;
@@ -3077,6 +3079,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
         if (i == Gx && j == Gy && k == Gz)
           DiagBreak() ;
 
+	// Test to see if current location is valid
         if (gcamn->invalid == GCAM_POSITION_INVALID)
         {
           Ginvalid++ ;
@@ -3087,7 +3090,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
         gcamn->area = 0.0 ;
 
 
-        // one side
+        // Compute Jacobean determinants on the 'right'
         if ((i < width-1) && (j < height-1) && (k < depth-1))
         {
           gcamni = &gcam->nodes[i+1][j][k] ;
@@ -3110,15 +3113,20 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
               neg = 1 ;
               DiagBreak() ;
             }
+
+	    // Store the 'right' Jacobean determinant
             gcamn->area1 = area1 ;
+
+	    // Accumulate onto common determinant
             gcamn->area += area1 ;
           }
         } else {
+	  // Going to the 'right' would fall out of the volume
           gcamn->area1 = 0 ;
 	}
 
 
-        // the other side
+        // Compute Jacobean determinants on the 'left'
         if ((i > 0) && (j > 0) && (k > 0))  /* left-hand coordinate system */
         {
           gcamni = &gcam->nodes[i-1][j][k] ;
@@ -3131,26 +3139,35 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           {
             /* invert v_i so that coordinate system is right-handed */
             num++ ;
-            GCAMN_SUB(gcamn, gcamni, v_i) ;
+            GCAMN_SUB(gcamn, gcamni, v_i) ; // Note args swapped compared to above
             GCAMN_SUB(gcamnj, gcamn, v_j) ;
             GCAMN_SUB(gcamnk, gcamn, v_k) ;
             // add two volume
-            area2 = VectorTripleProduct(v_j, v_k, v_i) ;
+            area2 = VectorTripleProduct(v_j, v_k, v_i);
+
+	    // Store the 'left' Jacobean determinant
             gcamn->area2 = area2 ;
+
             if (area2 <= 0)
             {
               neg = 1 ;
               DiagBreak() ;
             }
+
+	    // Accumulate onto common determinant
             gcamn->area += area2 ;
           }
         } else {
+	  // Going to the 'left' would fall out of the volume
           gcamn->area2 = 0 ;
 	}
 
+	// Check if at least one Jacobean determinant was computed
         if (num > 0) {
+	  // Store the average of computed determinants in the common determinant
           gcamn->area = gcamn->area / (float)num ; // average volume
         } else {
+	  // If no determinants computed, this node becomes invalid
           if (i == Gx && j == Gy && k == Gz) {
             DiagBreak() ;
 	  }
@@ -3158,7 +3175,8 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           gcamn->area = 0 ;
         }
 
-        if ((gcamn->invalid == 0) && neg && (gcamn->orig_area > 0))
+	// Keep track of determinants which have become negative
+        if ((gcamn->invalid == GCAM_VALID) && neg && (gcamn->orig_area > 0))
         {
 
           if (i > 0 && j > 0 && k > 0&&
@@ -3172,6 +3190,8 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 	  }
           gcam->neg++ ;
         }
+
+	// Add to count of invalid locations
         if (gcamn->invalid) {
           Ginvalid++ ;
 	}
@@ -3188,7 +3208,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   printf( "%s: Complete in %9.3f ms\n",
 	  __FUNCTION__, GetChronometerValue( &tCMP ) );
 
-  TestGCAMorphGPU( gcam );
+  //TestGCAMorphGPU( gcam );
 #endif
 
   return(NO_ERROR) ;
