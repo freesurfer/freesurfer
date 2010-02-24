@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/13 18:54:34 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/24 17:17:50 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -52,9 +52,24 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: mris_label_calc.cpp,v 1.3 2010/02/13 18:54:34 mreuter Exp $";
+//static char vcid[] = "$Id: mris_label_calc.cpp,v 1.4 2010/02/24 17:17:50 mreuter Exp $";
 char *Progname = NULL;
 
+void printUsage()
+{
+    cout << endl;
+    cout << "> mris_label_calc command input1 input2 output" << endl;
+    cout << endl;
+		cout << "   To calculate stuff on surface labels..." << endl;
+		cout << endl;
+    cout << "   commands: " << endl;
+    cout << "      union         union (OR) of both input labels" << endl;
+    cout << "      intersect     intersection (AND) of both input labels" << endl;
+    cout << "      invert        inverse (NOT) of label on surface (input2)" << endl;
+    cout << "      erode <n>     erode  label <n> times on surface (input2)" << endl;
+    cout << "      dilate <n>    dilate label <n> times on surface (input2)" << endl;
+    cout << endl;
+}
 
 int main(int argc, char *argv[])
 {
@@ -69,30 +84,25 @@ int main(int argc, char *argv[])
 //  if (vcid)
 //  {};
 
-  if (argc < 3)
+  if (argc < 5)
   {
-    cout << endl;
-    cout << argv[0] << " command input1 input2 output" << endl;
-    cout << endl;
-		cout << "    To calculate stuff on surface labels..." << endl;
-		cout << endl;
-    cout << "    commands: " << endl;
-    cout << "       union       union (OR) of both input labels" << endl;
-    cout << "       intersect   intersection (AND) of both input labels" << endl;
-    cout << "       invert      inverse (NOT) of label on surface (input2)" << endl;
-    cout << endl;
+    printUsage();
     exit(1);
   }
   string comm  = argv[1];
-  string if1   = argv[2];
-  string if2   = argv[3];
-	string of    = argv[4];
-
 	
 	if (comm == "union")
 	{
-    LABEL *l1 = LabelRead(NULL,if1.c_str());
-	  LABEL *l2 = LabelRead(NULL,if2.c_str());
+	  if (argc != 5)
+		{
+		   cerr << "Command 'union' needs 4 arguments: union inlabel1 inlabel2 outlabel" << endl;
+			 exit(1);
+		}
+    string if1 = argv[2];
+    string if2 = argv[3];
+	  string of  = argv[4];
+    LABEL *l1  = LabelRead(NULL,if1.c_str());
+	  LABEL *l2  = LabelRead(NULL,if2.c_str());
 	  assert (l1 != NULL);
 	  assert (l2 != NULL);
 	  LABEL * ret = LabelCombine(l1,l2);
@@ -102,8 +112,18 @@ int main(int argc, char *argv[])
 	}
 	else if (comm == "intersect")
 	{
-    LABEL *l1 = LabelRead(NULL,if1.c_str());
-	  LABEL *l2 = LabelRead(NULL,if2.c_str());
+	  if (argc != 5)
+		{
+		   cerr << endl << "  Command 'intersect' needs 4 arguments: " << endl << endl;;
+			 cerr << "> mris_label_calc intersect inlabel1 inlabel2 outlabel" << endl;
+			 cerr << endl;
+			 exit(1);
+		}
+    string if1 = argv[2];
+    string if2 = argv[3];
+	  string of  = argv[4];
+    LABEL *l1  = LabelRead(NULL,if1.c_str());
+	  LABEL *l2  = LabelRead(NULL,if2.c_str());
 	  assert (l1 != NULL);
 	  assert (l2 != NULL);
 		LabelIntersect(l1,l2);
@@ -113,15 +133,65 @@ int main(int argc, char *argv[])
 	}
 	else if (comm == "invert")
 	{
+	  if (argc != 5)
+		{
+		   cerr << endl << "  Command 'invert' needs 4 arguments:" << endl << endl;
+			 cerr << "> mris_label_calc invert inlabel insurface outlabel" << endl<< endl;
+			 exit(1);
+		}
+    string if1  = argv[2];
+    string if2  = argv[3];
+	  string of   = argv[4];
 	  LABEL *l1   = LabelRead(NULL,if1.c_str());
 		MRIS *surf  = MRISread(if2.c_str());
 	  LABEL *linv = MRISlabelInvert(surf,l1);
 		linv->subject_name[0]='\0';
 		LabelWrite(linv,of.c_str());
 	}
+	else if (comm == "erode")
+	{
+	  if (argc != 6)
+		{
+		   cerr << endl << "  Command 'erode' needs 5 arguments:"<< endl << endl;
+			 cerr << "> mris_label_calc erode iterations inlabel insurface outlabel" << endl<< endl;
+			 exit(1);
+		}
+		int it      = atoi(argv[2]);
+    string if1  = argv[3];
+    string if2  = argv[4];
+	  string of   = argv[5];
+	  LABEL *l1   = LabelRead(NULL,if1.c_str());
+		MRIS *surf  = MRISread(if2.c_str());
+		if (LabelErode(l1,surf,it) == NO_ERROR)
+		{
+		  l1->subject_name[0]='\0';
+		  LabelWrite(l1,of.c_str());		  
+		}
+  }
+	else if (comm == "dilate")
+	{
+	  if (argc != 6)
+		{
+		   cerr << endl << "  Command 'dilate' needs 5 arguments:" << endl << endl;
+			 cerr << "> mris_label_calc dilate iterations inlabel insurface outlabel" << endl << endl;
+			 exit(1);
+		}
+		int it      = atoi(argv[2]);
+    string if1  = argv[3];
+    string if2  = argv[4];
+	  string of   = argv[5];
+	  LABEL *l1   = LabelRead(NULL,if1.c_str());
+		MRIS *surf  = MRISread(if2.c_str());
+		if (LabelDilate(l1,surf,it) == NO_ERROR)
+		{
+		  l1->subject_name[0]='\0';
+		  LabelWrite(l1,of.c_str());		  
+		}
+  }
 	else
 	{
-	  cerr << " Command: " << comm << " unknown !" << endl;
+	  cerr << endl<< "  Command: " << comm << " unknown !" <<  endl;
+		printUsage();
 		exit(1);
   }
 
