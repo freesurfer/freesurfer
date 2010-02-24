@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/12 01:43:40 $
- *    $Revision: 1.94 $
+ *    $Date: 2010/02/24 22:18:12 $
+ *    $Revision: 1.95 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -625,32 +625,54 @@ LabelRemoveOverlap(LABEL *area1, LABEL *area2)
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
-        Parameters:
+        Parameters: two labels to be intersected
 
-        Returns value:
+        Returns value: error code and intersection in area1
 
-        Description
+        Description: elements are not removed, only the deleted 
+				             flag is set
 ------------------------------------------------------*/
 int
 LabelIntersect(LABEL *area1, LABEL *area2)
 {
-  int   n1, n2, vno ;
-	int found;
-
-  for (n1 = 0 ; n1 < area1->n_points ; n1++)
+  int n, vno ;
+	int vmin, vmax,vnum;
+	int * isec;
+	if (area1->n_points == 0) return(NO_ERROR) ;
+  
+	vmin = area1->lv[0].vno;
+	vmax = area1->lv[0].vno;
+  for (n = 0 ; n < area1->n_points ; n++)
   {
-    vno = area1->lv[n1].vno ;
-		found = 0;
-    for (n2 = 0 ; n2 < area2->n_points ; n2++)
-    {
-      if (vno == area2->lv[n2].vno)
-      {
-        found = 1;
-        break ;
-      }
-    }
-		if (found == 0) area1->lv[n1].deleted = 1;
-  }
+    vno = area1->lv[n].vno ;
+	  if ( vno < vmin) vmin = vno;
+		if ( vno > vmax) vmax = vno;
+	}
+  for (n = 0 ; n < area2->n_points ; n++)
+  {
+    vno = area2->lv[n].vno ;
+	  if ( vno < vmin) vmin = vno;
+		if ( vno > vmax) vmax = vno;
+	}
+	vnum = vmax - vmin;
+	isec = (int*) calloc(vnum,sizeof(int));
+  if (!isec)
+    ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LabelIntersect struct.",Progname);
+  for (n = 0 ; n<vnum; n++) isec[n] = -1;
+
+  for (n = 0 ; n < area1->n_points ; n++)
+  {
+    vno = area1->lv[n].vno - vmin ;
+		isec[vno] = n;
+		area1->lv[n].deleted = 1;
+	}
+  for (n = 0 ; n < area2->n_points ; n++)
+  {
+    vno = area2->lv[n].vno -vmin;
+	  if (isec[vno] > -1) 
+		  area1->lv[isec[vno]].deleted = 0;
+	}
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
