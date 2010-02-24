@@ -4,6 +4,10 @@
 
 use lib "$ENV{'$FREESURFER_HOME/bin'}";
 
+BEGIN {
+   push @INC,"$ENV{'$FREESURFER_HOME/bin'}";
+}
+
 use Getopt::Long;
 use getConfig;
 
