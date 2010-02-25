@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/02/25 17:50:56 $
- *    $Revision: 1.175 $
+ *    $Date: 2010/02/25 19:36:16 $
+ *    $Revision: 1.176 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -554,7 +554,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.175 2010/02/25 17:50:56 greve Exp $";
+"$Id: mri_glmfit.c,v 1.176 2010/02/25 19:36:16 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -955,12 +955,19 @@ int main(int argc, char **argv) {
   Xcond = MatrixNSConditionNumber(Xnorm);
   printf("Matrix condition is %g\n",Xcond);
   if(Xcond > 10000 && ! IllCondOK) {
+    printf("Design matrix ------------------\n");
+    MatrixPrint(stdout,mriglm->Xg);
+    printf("--------------------------------\n");
     printf("ERROR: matrix is ill-conditioned or badly scaled, condno = %g\n",
            Xcond);
     printf("Possible problem with experimental design:\n");
     printf("Check for duplicate entries and/or lack of range of\n"
            "continuous variables within a class.\n");
-    MatrixPrint(stdout,mriglm->Xg);
+    printf("If you seek help with this problem, make sure to send:\n");
+    printf("  1. Your command line:\n");
+    printf("    %s\n",cmdline);
+    printf("  2. The FSGD file (if using one)\n");
+    printf("  3. And the design matrix above\n");
     exit(1);
   }
   // Load Per-Voxel Regressors -----------------------------------
