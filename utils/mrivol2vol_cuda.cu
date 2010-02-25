@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/18 20:06:22 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/02/25 20:28:14 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,10 @@
 
 //! Texture reference for an unsigned char source
 texture<unsigned char, 3, cudaReadModeNormalizedFloat> dt_src_uchar;
+
+//! Texture reference for a short source
+texture<short, 3, cudaReadModeNormalizedFloat> dt_src_short;
+
 //! Texture reference for a float source
 texture<float, 3, cudaReadModeElementType> dt_src_float;
 
@@ -112,7 +116,7 @@ namespace GPU {
     void BindSourceTexture<float>( const GPU::Classes::MRIframeGPU<float>& src,
 				   const int InterpMode ) {
       /*!
-	Binds the unsigned char texture
+	Binds the float texture
       */
 
       dt_src_float.normalized = false;
@@ -140,6 +144,38 @@ namespace GPU {
 
     }
 
+    template<>
+    void BindSourceTexture<short>( const GPU::Classes::MRIframeGPU<short>& src,
+				   const int InterpMode ) {
+      /*!
+	Binds the short texture
+      */
+
+      dt_src_short.normalized = false;
+      dt_src_short.addressMode[0] = cudaAddressModeClamp;
+      dt_src_short.addressMode[1] = cudaAddressModeClamp;
+      dt_src_short.addressMode[2] = cudaAddressModeClamp;
+
+      // Set the interpolation
+      switch( InterpMode ) {
+      case SAMPLE_NEAREST:
+	dt_src_short.filterMode = cudaFilterModePoint;
+	break;
+
+      case SAMPLE_TRILINEAR:
+	dt_src_short.filterMode = cudaFilterModeLinear;
+	break;
+
+      default:
+	std::cerr << __FUNCTION__ << ": Unrecognised InterpMode "
+		  << InterpMode << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_src_short, src.GetArray() ) );
+
+    }
+
 
     // ---------------------------------------
 
@@ -159,6 +195,10 @@ namespace GPU {
 
     template<> void UnbindSourceTexture<float>( void ) {
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_src_float ) );
+    }
+
+    template<> void UnbindSourceTexture<short>( void ) {
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_src_short ) );
     }
 
     // ---------------------------------------
@@ -189,6 +229,20 @@ namespace GPU {
 
       // We configured to return a normalised float, so get back in range
       texVal *= UCHAR_MAX;
+
+      return( texVal );
+    }
+
+    template<>
+    __device__ float FetchSrcVoxel<short>( const float3 r ) {
+
+      float texVal;
+      
+      // Do the fetch, remembering texel centre offset
+      texVal = tex3D( dt_src_short, r.x+0.5f, r.y+0.5f, r.z+0.5f );
+
+      // We configured to return a normalised float, so get back in range
+      texVal *= SHRT_MAX;
 
       return( texVal );
     }
@@ -418,6 +472,13 @@ namespace GPU {
 					 param );
 	break;
 
+      case MRI_SHORT:
+	MRIVol2VolAllFramesGPU<T,short>( src, targ,
+					 transformMatrix,
+					 InterpMode,
+					 param );
+	break;
+
       default:
 	std::cerr << __FUNCTION__ << ": Unrecognised target type "
 		  << targ->type << std::endl;
@@ -451,6 +512,13 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
 
   case MRI_FLOAT:
     GPU::Algorithms::MRIVol2VolAllFramesDstDispatch<float>( src, targ,
+							    transformMatrix,
+							    InterpMode,
+							    param );
+    break;
+
+  case MRI_SHORT:
+    GPU::Algorithms::MRIVol2VolAllFramesDstDispatch<short>( src, targ,
 							    transformMatrix,
 							    InterpMode,
 							    param );
