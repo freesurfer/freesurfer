@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/23 18:13:10 $
-#    $Revision: 1.274 $
+#    $Date: 2010/02/25 15:30:26 $
+#    $Revision: 1.275 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.274 2010/02/23 18:13:10 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.275 2010/02/25 15:30:26 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5821,7 +5821,7 @@ Topologically Correct Models of the Human Cerebral Cortex. IEEE
 Transactions on Medical Imaging, 20(1):70-80
 
 [7] Non-Uniform Intensity Correction.
-http://www.bic.mni.mcgill.ca/software/N3/node6.html
+http://www.nitrc.org/projects/nu_correct/
 
 [8] Fischl B, Salat DH, Busa E, Albert M, Dieterich M, Haselgrove C,
 van der Kouwe A, Killiany R, Kennedy D, Klaveness S, Montillo A,
