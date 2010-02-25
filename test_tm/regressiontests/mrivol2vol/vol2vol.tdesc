@@ -1,0 +1,92 @@
+-- -*- lua -*-
+
+local inputFiles = { 'uchar-256-256-256.mgz', 'uchar-37-71-137.mgz',
+		     'short-256-256-256.mgz', 'short-37-71-137.mgz',
+		     'float-256-256-256.mgz', 'float-37-71-137.mgz', }
+local transformFiles = { "identity.fsl" }
+
+-- From lua-users wiki
+function split(str, pat)
+   local t = {}  -- NOTE: use {n = 0} in Lua-5.0
+   local fpat = "(.-)" .. pat
+   local last_end = 1
+   local s, e, cap = str:find(fpat, 1)
+   while s do
+      if s ~= 1 or cap ~= "" then
+	 table.insert(t,cap)
+      end
+      last_end = e+1
+      s, e, cap = str:find(fpat, last_end)
+   end
+   if last_end <= #str then
+      cap = str:sub(last_end)
+      table.insert(t, cap)
+   end
+   return t
+end
+
+
+-- Function to turn an input filename and tranform matrix into a test name
+local function testName( input, transform )
+   local inputItems = split( input, "-" )
+   local transformItems = split( transform, "%." )
+
+   return inputItems[1].."-"..inputItems[2].."-"..transformItems[1]
+end
+
+
+
+-- Function to generate a list of tests
+local function testGen( inputs, transforms, tol )
+   local testTable = {}
+
+   -- inputs is a table of input file names
+   -- transform is a table of transform matrix names
+   -- tol is the tolerance for mri_diff
+   -- Generates nInputs*nTransforms tests
+
+   for i,input in ipairs(inputs) do
+      for t,transform in ipairs(transforms) do
+	 local tName = testName( input, transform )
+	 table.insert( testTable, { id=tName, tol=tol, input=input, transform=transform } )
+      end
+   end
+
+   return testTable
+end
+
+
+-- Table required by tm itself
+testdescript = {
+
+   -- Lengthier description of the test
+   description = [[
+	 A set of tests for the MRI vol2vol routine
+   ]],
+
+   -- Keywords (for subtest selection)
+   keywords = { "basic" },
+
+   -- Designate the test as active
+   active = 1,
+
+   -- The test name
+   testName = "MRI_vol2vol_Test",
+
+   -- The script to run the test case
+   runScript = [[
+	 export MAINCMDS=" --mov $(projectDir)/inputs/$(input) --targ $(projectDir)/inputs/$(input) --fsl $(testDir)/$(transform)"
+	 export CPUOUT="$(outputDir)/$(id).cpu.mgz"
+	 export GPUOUT="$(outputDir)/$(id).gpu.mgz"
+
+	 mri_vol2vol $MAINCMDS \--o $CPUOUT
+	 mri_vol2vol_cuda $MAINCMDS \--o $GPUOUT
+
+	 $(projectDir)/bin/mridiff.pl \--results=$(cmdResultFn) \--gold=$CPUOUT \--test=$GPUOUT \--threshold=$(tol)
+	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
+   ]],
+
+   -- The list of tests to run
+   tests = testGen( inputFiles, transformFiles, 1e0 )
+  
+}
