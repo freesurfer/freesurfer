@@ -1,0 +1,216 @@
+#!/bin/tcsh -f
+# mni152reg
+
+set VERSION = '$Id: mni152reg,v 1.1 2010/02/25 03:16:48 greve Exp $';
+
+set subject = ();
+set res = 2;
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set sd = $SUBJECTS_DIR/$subject
+set LF = $sd/scripts/mni152reg.log
+rm -f $LF
+
+echo "Log file for mni152reg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+uname -a  | tee -a $LF
+
+set mni152reg = $sd/mri/transforms/reg.mni152.$res"mm.dat"
+
+set cmd = (fslregister --mov $mni152 --s $subject --reg $mni152reg --dof 12)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--1":
+      set res = 1;
+      breaksw
+
+    case "--2":
+      set res = 2;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#subject == 0) then
+  echo "ERROR: must spec subject"
+  exit 1;
+endif
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject"
+  exit 1;
+endif
+
+set mni152 = $FSLDIR/data/standard/MNI152_T1_$res"mm_brain.nii.gz"
+if(! -e $mni152) then
+  echo "ERROR: cannot find $mni152"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "mni152reg --s subject"
+  echo ""
+  echo "  --1 : register to 1mm target (instead of 2mm)"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Registers the FreeSurfer subject to the FSL MNI 152 brain to create a
+tkregister-style registration matrix. The registration created by this
+program is primarily for integrating FreeSurfer with higher level FSL
+functional analysis (GFEAT) of a SINGLE subject, particularly for
+preparing for a surface-based group analysis. 
+
+Currently, this program is just a front-end for the FSL FLIRT program.
+
+To check the registration, run:
+
+tkregister2 --mov $FSLDIR/data/standard/MNI152_T1_2mm_brain.nii.gz \
+  --reg $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat \
+  --surf 
+
+Note that the surfaces will not line up with the mni152 because this
+is a volumetric registration. 
+
+You should also check the registration with your GFEAT results:
+
+tkregister2 --mov subject.gfeat/mean_func.nii.gz \
+  --reg $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat \
+  --surf 
+
+This matrix can also be used with tkmedit, tksurfer, mri_vol2vol,
+mri_vol2surf, and any other FreeSurfer program that uses a
+tkregister-style registration matrix.
+
+The mni152 registration target will be either
+MNI152_T1_1mm_brain.nii.gz or MNI152_T1_2mm_brain.nii.gz and is
+assumed to be in $FSLDIR/data/standard. 2mm is the default because
+this is what the FSL functional analysis uses. To create the
+1mm reg, add --1 to the command line.
+
+The output will be either reg.mni152.1mm.dat or reg.mni152.2mm.dat,
+depending upon the resolution selected. The output will be stored in
+$SUBJECTS_DIR/$subject/mri/transforms
+
+----------------------------------------------------------------------
+Example usage with FSL GFEAT of a single subject:
+
+tkmedit subject orig.mgz -aparc+aseg \
+  -overlay subject.gfeat/cope1.feat/stats/zstat1.nii.gz \
+  -reg $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat
+
+mri_vol2surf --mov subject.gfeat/cope1.feat/stats/zstat1.nii.gz \
+  -reg $SUBJECTS_DIR/$subject/mri/transforms/reg.mni152.2mm.dat \
+  --hemi lh --projfrac 0.5 --o lh.subject.zstat1.mgh 
+tksurfer subject lh inflated -aparc -overlay lh.subject.zstat1.mgh 
+
+----------------------------------------------------------------------
+Example usage with FSL GFEAT of multiple subjects in preparation
+for a surface-based group analysis:
+
+# Map the copes
+mris_preproc --hemi lh --target fsaverage \
+  --iv subject1.gfeat/cope1.feat/stats/cope1.nii.gz \
+       $SUBJECTS_DIR/$subject1/mri/transforms/reg.mni152.2mm.dat \
+  --iv subject2.gfeat/cope1.feat/stats/cope1.nii.gz \
+       $SUBJECTS_DIR/$subject2/mri/transforms/reg.mni152.2mm.dat \
+  --iv subject3.gfeat/cope1.feat/stats/cope1.nii.gz \
+       $SUBJECTS_DIR/$subject3/mri/transforms/reg.mni152.2mm.dat \
+  --out lh.fsaverage.cope1.mgh 
+
+# Map the varcopes
+mris_preproc --hemi lh --target fsaverage \
+  --iv subject1.gfeat/cope1.feat/stats/varcope1.nii.gz \
+       $SUBJECTS_DIR/$subject1/mri/transforms/reg.mni152.2mm.dat \
+  --iv subject2.gfeat/cope1.feat/stats/varcope1.nii.gz \
+       $SUBJECTS_DIR/$subject2/mri/transforms/reg.mni152.2mm.dat \
+  --iv subject3.gfeat/cope1.feat/stats/varcope1.nii.gz \
+       $SUBJECTS_DIR/$subject3/mri/transforms/reg.mni152.2mm.dat \
+  --out lh.fsaverage.varcope1.mgh 
+
