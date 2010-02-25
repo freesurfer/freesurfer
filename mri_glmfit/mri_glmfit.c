@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/11/04 22:01:19 $
- *    $Revision: 1.174 $
+ *    $Date: 2010/02/25 17:50:56 $
+ *    $Revision: 1.175 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -554,7 +554,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.174 2009/11/04 22:01:19 greve Exp $";
+"$Id: mri_glmfit.c,v 1.175 2010/02/25 17:50:56 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -697,12 +697,14 @@ int FWHMSet = 0;
 int DoKurtosis = 0;
 
 char *Gamma0File[GLMMAT_NCONTRASTS_MAX];
+MATRIX *Xtmp=NULL, *Xnorm=NULL;
+char *XOnlyFile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs,n, m;
   int msecFitTime;
-  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Xnorm=NULL;
+  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL;
   MATRIX *Ct, *CCt;
   FILE *fp;
   double Ccond, dtmp, threshadj;
@@ -2187,7 +2189,8 @@ static int parse_commandline(int argc, char **argv) {
         nargsused = 1;
       }
       pcaSave = 1;
-    } else if ( !strcmp(option, "--fsgd") ) {
+    } 
+    else if ( !strcmp(option, "--fsgd") ) {
       if (nargc < 1) CMDargNErr(option,1);
       fsgdfile = pargv[0];
       nargsused = 1;
@@ -2200,7 +2203,13 @@ static int parse_commandline(int argc, char **argv) {
       } else gd2mtx_method = "dods";
       printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
       strcpy(fsgd->DesignMatMethod,gd2mtx_method);
-    } else if (!strcmp(option, "--maxvox")) {
+    } 
+    else if ( !strcmp(option, "--xonly") ) {
+      if(nargc < 1) CMDargNErr(option,1);
+      XOnlyFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--maxvox")) {
       if (nargc < 1) CMDargNErr(option,1);
       MaxVoxBase = pargv[0];
       nargsused = 1;
@@ -2302,6 +2311,7 @@ printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comap
 printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must appear\n");
 printf("                  before --fsgd)\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
+printf("   --xonly Xfile : save design matrix and exit\n");
 printf("   --sim-done SimDoneFile : create SimDoneFile when simulation finished\n");
 printf("\n");
 
@@ -2687,10 +2697,6 @@ static void print_version(void) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (yFile == NULL) {
-    printf("ERROR: must specify input y file\n");
-    exit(1);
-  }
   if(XFile == NULL && bvalfile == NULL && fsgdfile == NULL &&
      ! OneSampleGroupMean && ! useasl && !useqa) {
     printf("ERROR: must specify an input X file or fsgd file or --osgm\n");
@@ -2702,6 +2708,25 @@ static void check_options(void) {
   }
   if (XFile && OneSampleGroupMean) {
     printf("ERROR: cannot specify both X file and --osgm\n");
+    exit(1);
+  }
+  if(XOnlyFile != NULL){
+    if(fsgdfile == NULL) {
+      printf("ERROR: you must spec --fsgd with --xonly\n");
+      exit(1);
+    }
+    printf("INFO: gd2mtx_method is %s\n",gd2mtx_method);
+    Xtmp = gdfMatrix(fsgd,gd2mtx_method,NULL);
+    if(Xtmp==NULL) exit(1);
+    Xnorm = MatrixNormalizeCol(Xtmp,NULL);
+    Xcond = MatrixNSConditionNumber(Xnorm);
+    printf("Matrix condition is %g\n",Xcond);
+    MatrixWriteTxt(XOnlyFile, Xtmp);
+    exit(0);
+  }
+
+  if(yFile == NULL) {
+    printf("ERROR: must specify input y file\n");
     exit(1);
   }
   if (nContrasts > 0 && OneSampleGroupMean) {
