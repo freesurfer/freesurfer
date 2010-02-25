@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/12/05 18:30:14 $
- *    $Revision: 1.52 $
+ *    $Date: 2010/02/25 21:25:32 $
+ *    $Revision: 1.53 $
  *
- * Copyright (C) 2007-2009,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -24,7 +24,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -104,7 +103,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.52 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.53 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4988,7 +4987,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     stringstream ssTkmeditCommand;
     // catch { exec tkmedit $s norm.mgz $hemi.white -segmentation aseg.mgz }
     ssTkmeditCmd << envVars->FREESURFER_HOME << "/bin/tkmedit "
-                 << isElement << " norm.mgz " 
+                 << isElement << " norm.mgz -aux T1.mgz " 
                  << "lh.white -aux-surface rh.white "
                  << "-segmentation aseg.mgz &";
     ssTkmeditCommand << "set err [catch { exec "
