@@ -92,6 +92,7 @@ mkima_index.tcl \
 mkmnc_index.tcl \
 mksubjdirs \
 mksurfatlas \
+mni152reg \
 morph_only_subject \
 morph_only_subject-lh \
 morph_only_subject-rh \
