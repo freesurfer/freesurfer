@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/16 16:58:23 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/26 16:34:50 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -111,6 +111,24 @@ float3 operator-( const float3& a ) {
 
   return( b );
 }
+
+// =======================================================
+// cudaExtent operators
+
+
+//! Copy a dim3 to a cudaExtent
+static
+__host__
+cudaExtent ExtentFromDims( const dim3 dims ) {
+  cudaExtent e;
+
+  e.width = dims.x;
+  e.height = dims.y;
+  e.depth = dims.z;
+
+  return( e );
+}
+
 
 
 #endif
