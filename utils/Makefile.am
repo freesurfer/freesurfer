@@ -119,6 +119,8 @@ libutils_main_SOURCES=\
 	ic163842.c \
 	ic2562.c \
 	ic642.c \
+	ic42.c \
+	ic12.c \
 	icosahedron.c \
 	image.c \
 	imageio.c \
