@@ -46,15 +46,17 @@ local function testGen( inputs, precisions, interps )
    local testTable = {}
 
    -- inputs is a table of input file names
-   -- transform is a table of transform matrix names
-   -- tol is the tolerance for mri_diff
-   -- Generates nInputs*nTransforms tests
+   -- precisions is a table of output precisions
+   -- interps is a table of interpolation modes
 
    for i,input in ipairs(inputs) do
       for p,precision in ipairs(precisions) do
 	 for im,interp in ipairs(interps) do
 	    local tName = testName( input, precision, interp )
-	    table.insert( testTable, { id=tName, input=input, outputPrecision=precision, interp=interp } )
+	    table.insert( testTable, { id=tName,
+				       input=input,
+				       outputPrecision=precision,
+				       interp=interp } )
 	 end
       end
    end
