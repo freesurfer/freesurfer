@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/17 21:19:28 $
- *    $Revision: 1.449 $
+ *    $Author: mreuter $
+ *    $Date: 2010/02/26 19:06:18 $
+ *    $Revision: 1.450 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.449 $";
+const char *MRI_C_VERSION = "$Revision: 1.450 $";
 
 
 /*-----------------------------------------------------
@@ -980,16 +980,16 @@ inline void MRIdbl2ptr(double v, void *pmric, int mritype)
   switch (mritype)
   {
   case MRI_UCHAR:
-    *((char*)pmric)  = v;
+    *((char*)pmric)  = nint(v);
     break;
   case MRI_SHORT:
-    *((short*)pmric) = v;
+    *((short*)pmric) = nint(v);
     break;
   case MRI_INT:
-    *((int*)pmric)   = v;
+    *((int*)pmric)   = nint(v);
     break;
   case MRI_LONG:
-    *((long*)pmric)  = v;
+    *((long*)pmric)  = nint(v);
     break;
   case MRI_FLOAT:
     *((float*)pmric) = v;
@@ -4088,9 +4088,9 @@ MRIprincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
         val = *psrc++ ;
         if (val > threshold)
         {
-          mX->rptr[1][1] = (x - (int)mx)*val ;
-          mX->rptr[2][1] = (y - (int)my)*val ;
-          mX->rptr[3][1] = (z - (int)mz)*val ;
+          mX->rptr[1][1] = ((float)x - mx)*val ;
+          mX->rptr[2][1] = ((float)y - my)*val ;
+          mX->rptr[3][1] = ((float)z - mz)*val ;
           mXT = MatrixTranspose(mX, mXT) ;
           mTmp = MatrixMultiply(mX, mXT, mTmp) ;
           mCov = MatrixAdd(mTmp, mCov, mCov) ;
@@ -4178,9 +4178,9 @@ MRIprincipleComponentsRange(MRI *mri, MATRIX *mEvectors, float *evalues,
         val = MRIgetVoxVal(mri, x, y,z, 0) ;
         if (val >= low_thresh && val <= hi_thresh)
         {
-          mX->rptr[1][1] = (x - (int)mx)*val ;
-          mX->rptr[2][1] = (y - (int)my)*val ;
-          mX->rptr[3][1] = (z - (int)mz)*val ;
+          mX->rptr[1][1] = ((float)x - mx)*val ;
+          mX->rptr[2][1] = ((float)y - my)*val ;
+          mX->rptr[3][1] = ((float)z - mz)*val ;
           mXT = MatrixTranspose(mX, mXT) ;
           mTmp = MatrixMultiply(mX, mXT, mTmp) ;
           mCov = MatrixAdd(mTmp, mCov, mCov) ;
@@ -4277,9 +4277,9 @@ MRIbinaryPrincipleComponents(MRI *mri, MATRIX *mEvectors, float *evalues,
         val = *psrc++ ;
         if (val > threshold)
         {
-          mX->rptr[1][1] = (x - (int)mx) ;
-          mX->rptr[2][1] = (y - (int)my) ;
-          mX->rptr[3][1] = (z - (int)mz) ;
+          mX->rptr[1][1] = ((float)x - mx) ;
+          mX->rptr[2][1] = ((float)y - my) ;
+          mX->rptr[3][1] = ((float)z - mz) ;
           mXT = MatrixTranspose(mX, mXT) ;
           mTmp = MatrixMultiply(mX, mXT, mTmp) ;
           mCov = MatrixAdd(mTmp, mCov, mCov) ;
@@ -4815,19 +4815,19 @@ MRI *MRIsubtract(MRI *mri1, MRI *mri2, MRI *mri_dst)
           switch (mri_dst->type)
           {
           case MRI_UCHAR:
-            (*pdst++)  = (BUFTYPE) v;
+            (*pdst++)  = (BUFTYPE) nint(v);
             break;
           case MRI_SHORT:
-            (*psdst++) = (short)   v;
+            (*psdst++) = (short)   nint(v);
             break;
           case MRI_INT:
-            (*pidst++) = (int)     v;
+            (*pidst++) = (int)     nint(v);
             break;
           case MRI_LONG:
-            (*pldst++) = (long)    v;
+            (*pldst++) = (long)    nint(v);
             break;
           case MRI_FLOAT:
-            (*pfdst++) = (float)   v;
+            (*pfdst++) = (float)    v;
             break;
           }
 
@@ -5132,10 +5132,10 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
           break;
         }
 
+        /* note, the code below does not check for over/underflow! */
+        switch (mri_dst->type)
         for (x = 0 ; x < width ; x++)
         {
-
-          switch (mri_dst->type)
           {
           case MRI_UCHAR:
             switch (mri1->type)
@@ -5153,7 +5153,7 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
               (*pdst++) = (BUFTYPE) ((*pl1++)+(*pl2++));
               break;
             case MRI_FLOAT:
-              (*pdst++) = (BUFTYPE) ((*pf1++)+(*pf2++));
+              (*pdst++) = (BUFTYPE) nint((*pf1++)+(*pf2++));
               break;
             }
             break;
@@ -5173,7 +5173,7 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
               (*psdst++) = (short) ((*pl1++)+(*pl2++));
               break;
             case MRI_FLOAT:
-              (*psdst++) = (short) ((*pf1++)+(*pf2++));
+              (*psdst++) = (short) nint((*pf1++)+(*pf2++));
               break;
             }
             break;
@@ -5193,7 +5193,7 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
               (*pidst++) = (int) ((*pl1++)+(*pl2++));
               break;
             case MRI_FLOAT:
-              (*pidst++) = (int) ((*pf1++)+(*pf2++));
+              (*pidst++) = (int) nint((*pf1++)+(*pf2++));
               break;
             }
             break;
@@ -5213,7 +5213,7 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
               (*pldst++) = (long) ((*pl1++)+(*pl2++));
               break;
             case MRI_FLOAT:
-              (*pldst++) = (long) ((*pf1++)+(*pf2++));
+              (*pldst++) = (long) nint((*pf1++)+(*pf2++));
               break;
             }
             break;
@@ -11602,13 +11602,13 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
             val = (float)MRIFvox(src, i, j, k);
 
           if (dest_type == MRI_UCHAR)
-            MRIvox(dest, i, j, k) = (unsigned char)val;
+            MRIvox(dest, i, j, k) = (unsigned char)nint(val);
           if (dest_type == MRI_SHORT)
-            MRISvox(dest, i, j, k) = (short)val;
+            MRISvox(dest, i, j, k) = (short)nint(val);
           if (dest_type == MRI_INT)
-            MRIIvox(dest, i, j, k) = (int)val;
+            MRIIvox(dest, i, j, k) = (int)nint(val);
           if (dest_type == MRI_LONG)
-            MRILvox(dest, i, j, k) = (long)val;
+            MRILvox(dest, i, j, k) = (long)nint(val);
           if (dest_type == MRI_FLOAT)
             MRIFvox(dest, i, j, k) = (float)val;
         }
@@ -11728,7 +11728,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
               val = UCHAR_MIN;
             if (val > UCHAR_MAX)
               val = UCHAR_MAX;
-            MRIvox(dest, i, j, k) = (unsigned char)val;
+            MRIvox(dest, i, j, k) = (unsigned char)nint(val);
           }
           if (dest->type == MRI_SHORT)
           {
@@ -11736,7 +11736,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
               val = SHORT_MIN;
             if (val > SHORT_MAX)
               val = SHORT_MAX;
-            MRISvox(dest, i, j, k) = (short)val;
+            MRISvox(dest, i, j, k) = (short)nint(val);
           }
           if (dest->type == MRI_INT)
           {
@@ -11744,7 +11744,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
               val = INT_MIN;
             if (val > INT_MAX)
               val = INT_MAX;
-            MRIIvox(dest, i, j, k) = (int)val;
+            MRIIvox(dest, i, j, k) = (int)nint(val);
           }
           if (dest->type == MRI_LONG)
           {
@@ -11752,7 +11752,7 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
               val = LONG_MIN;
             if (val > LONG_MAX)
               val = LONG_MAX;
-            MRILvox(dest, i, j, k) = (long)val;
+            MRILvox(dest, i, j, k) = (long)nint(val);
           }
 
         }
@@ -12403,13 +12403,13 @@ MRI *MRIresampleFill
           }
 
           if (dest->type == MRI_UCHAR)
-            MRIvox(dest, di, dj, dk) = (unsigned char)val;
+            MRIvox(dest, di, dj, dk) = (unsigned char)nint(val);
           if (dest->type == MRI_SHORT)
-            MRISvox(dest, di, dj, dk) = (short)val;
+            MRISvox(dest, di, dj, dk) = (short)nint(val);
           if (dest->type == MRI_INT)
-            MRIIvox(dest, di, dj, dk) = (int)val;
+            MRIIvox(dest, di, dj, dk) = (int)nint(val);
           if (dest->type == MRI_LONG)
-            MRILvox(dest, di, dj, dk) = (long)val;
+            MRILvox(dest, di, dj, dk) = (long)nint(val);
           if (dest->type == MRI_FLOAT)
             MRIFvox(dest, di, dj, dk) = (float)val;
 
@@ -13795,16 +13795,16 @@ MRI *MRIdrand48(int ncols, int nrows, int nslices, int nframes,
           switch (mri->type)
           {
           case MRI_UCHAR:
-            *pmri++  = (BUFTYPE) v;
+            *pmri++  = (BUFTYPE) nint(v);
             break;
           case MRI_SHORT:
-            *psmri++ = (short) v;
+            *psmri++ = (short) nint(v);
             break;
           case MRI_INT:
-            *pimri++ = (int)   v;
+            *pimri++ = (int)   nint(v);
             break;
           case MRI_LONG:
-            *plmri++ = (long)  v;
+            *plmri++ = (long)  nint(v);
             break;
           case MRI_FLOAT:
             *pfmri++ = (float) v;
@@ -13932,16 +13932,16 @@ MRI *MRIconst(int ncols, int nrows, int nslices, int nframes,
           switch (mri->type)
           {
           case MRI_UCHAR:
-            *pmri++  = (BUFTYPE) val;
+            *pmri++  = (BUFTYPE) nint(val);
             break;
           case MRI_SHORT:
-            *psmri++ = (short) val;
+            *psmri++ = (short) nint(val);
             break;
           case MRI_INT:
-            *pimri++ = (int)   val;
+            *pimri++ = (int)   nint(val);
             break;
           case MRI_LONG:
-            *plmri++ = (long)  val;
+            *plmri++ = (long)  nint(val);
             break;
           case MRI_FLOAT:
             *pfmri++ = (float) val;
