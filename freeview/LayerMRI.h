@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 01:46:01 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/02/26 21:37:19 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -172,6 +172,8 @@ public:
   }
   
   void RealizeContourActor();
+  
+  void GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out );
   
 protected:
   virtual void SetModified();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 01:46:01 $
- *    $Revision: 1.54 $
+ *    $Date: 2010/02/26 21:37:19 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1579,3 +1579,45 @@ void LayerMRI::UpdateUpSampleMethod()
   }
 }
 
+
+void LayerMRI::GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out )
+{
+  if ( !m_imageData || nPlane < 0 || nPlane > 2 )
+    return;
+  
+  double* origin = m_imageData->GetOrigin();
+  int* dim = m_imageData->GetDimensions();
+  double* pos = GetSlicePosition();
+  double vs[3];
+  m_imageData->GetSpacing( vs );
+  
+  int n[3];
+  for ( int i = 0; i < 3; i++ )
+    n[i] = (int)( ( pos[i] - origin[i] ) / vs[i] );
+  
+  float fLabel = 0;
+  if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] && n[2] >= 0 && n[2] < dim[2] )
+    fLabel = m_imageData->GetScalarComponentAsFloat( n[0], n[1], n[2], m_nActiveFrame );
+  
+  int cnt = 0;
+  int ext[3][2] = { { 0, dim[0]-1 }, {0, dim[1]-1}, {0, dim[2]-1} };
+  ext[nPlane][0] = ext[nPlane][1] = n[nPlane];
+  for ( int i = ext[0][0]; i <= ext[0][1]; i++ )
+  {
+    for ( int j = ext[1][0]; j <= ext[1][1]; j++ )
+    {
+      for ( int k = ext[2][0]; k <= ext[2][1]; k++ )
+      {
+        if ( m_imageData->GetScalarComponentAsFloat( i, j, k, m_nActiveFrame ) == fLabel )
+        {
+          cnt++;
+        }
+      }
+    }
+  }
+  vs[nPlane] = 1.0;
+  
+  *label_out = fLabel;
+  *count_out = cnt;
+  *area_out = cnt*vs[0]*vs[1]*vs[2]; 
+}

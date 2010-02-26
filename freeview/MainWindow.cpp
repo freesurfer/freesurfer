@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/16 20:49:01 $
- *    $Revision: 1.95 $
+ *    $Date: 2010/02/26 21:37:19 $
+ *    $Revision: 1.96 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -228,6 +228,9 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GOTO_POINT" ),        MainWindow::OnToolGotoPointUpdateUI )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GOTO_POINT_SUBMENU" ),        MainWindow::OnToolGotoPointUpdateUI )
   EVT_MENU_RANGE  ( ID_TOOL_GOTO_POINT_1, ID_TOOL_GOTO_POINT_1+1000,            MainWindow::OnToolMenuGotoPoint )
+  
+  EVT_MENU        ( XRCID( "ID_TOOL_LABEL_STATS" ),       MainWindow::OnToolLabelStats )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_LABEL_STATS" ),       MainWindow::OnToolLabelStatsUpdateUI )
   
   EVT_MENU  ( XRCID( "ID_HELP_QUICK_REF" ),               MainWindow::OnHelpQuickReference )
   EVT_MENU  ( XRCID( "ID_HELP_ABOUT" ),                   MainWindow::OnHelpAbout )
@@ -2616,6 +2619,14 @@ void MainWindow::RunScript()
   {
     CommandSetLayerName( sa );
   }
+  else if ( sa[0] == _("locklayer") )
+  {
+    CommandLockLayer( sa );
+  }
+  else if ( sa[0] == _("showlayer") )
+  {
+    CommandShowLayer( sa );
+  }
 }
 
 void MainWindow::CommandLoadVolume( const wxArrayString& sa )
@@ -2737,6 +2748,22 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
         script.Add( subArgu );
         m_scripts.insert( m_scripts.begin(), script );
       }
+      else if ( subOption == _("lock") )
+      {
+        wxArrayString script;
+        script.Add( _("locklayer") );
+        script.Add( _("MRI") );
+        script.Add( subArgu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _("visible") )
+      {
+        wxArrayString script;
+        script.Add( _("showlayer") );
+        script.Add( _("MRI") );
+        script.Add( subArgu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
@@ -2852,6 +2879,33 @@ void MainWindow::CommandSetLayerName( const wxArrayString& cmd )
   }
   ContinueScripts();
 }
+
+void MainWindow::CommandLockLayer( const wxArrayString& cmd )
+{
+  if ( cmd.size() > 2 && ( cmd[2] == _("1") || cmd[2] == _("true") ) )
+  {
+    LayerCollection* lc = GetLayerCollection( cmd[1].c_str() );
+    if ( lc && !lc->IsEmpty() )
+    {
+      lc->GetActiveLayer()->Lock( true );
+    }
+  }
+  ContinueScripts();
+}
+
+void MainWindow::CommandShowLayer( const wxArrayString& cmd )
+{
+  if ( cmd.size() > 2 && ( cmd[2] == _("0") || cmd[2] == _("false") ) )
+  {
+    LayerCollection* lc = GetLayerCollection( cmd[1].c_str() );
+    if ( lc && !lc->IsEmpty() )
+    {
+      lc->GetActiveLayer()->SetVisible( false );
+    }
+  }
+  ContinueScripts();
+}
+
 
 void MainWindow::CommandSetDisplayVector( const wxArrayString& cmd )
 {
@@ -3269,6 +3323,22 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
         script.Add( subArgu );
         m_scripts.insert( m_scripts.begin(), script );
       }
+      else if ( subOption == _("lock") )
+      {
+        wxArrayString script;
+        script.Add( _("lock") );
+        script.Add( _("Surface") );
+        script.Add( subArgu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _("visible") )
+      {
+        wxArrayString script;
+        script.Add( _("showlayer") );
+        script.Add( _("Surface") );
+        script.Add( subArgu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
       else if ( subOption == _( "offset" ) )
       {
         wxArrayString script;
@@ -3516,6 +3586,14 @@ void MainWindow::CommandLoadWayPoints( const wxArrayString& cmd )
         script.Add( argu );
         m_scripts.insert( m_scripts.begin(), script );
       }
+      else if ( option == _("visible") )
+      {
+        wxArrayString script;
+        script.Add( _("showlayer") );
+        script.Add( _("WayPoints") );
+        script.Add( argu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
       else
       {
         cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
@@ -3575,6 +3653,14 @@ void MainWindow::CommandLoadControlPoints( const wxArrayString& cmd )
       {
         wxArrayString script;
         script.Add( _("setlayername") );
+        script.Add( _("WayPoints") );
+        script.Add( argu );
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( option == _("visible") )
+      {
+        wxArrayString script;
+        script.Add( _("showlayer") );
         script.Add( _("WayPoints") );
         script.Add( argu );
         m_scripts.insert( m_scripts.begin(), script );
@@ -3980,6 +4066,25 @@ void MainWindow::OnToolMenuGotoPoint( wxCommandEvent& event )
   wxArrayString ar = MyUtils::SplitString( m_strGotoPoints[n], "," );
   ar.RemoveAt( 0 );
   CommandSetRAS( ar );  
+}
+
+
+void MainWindow::OnToolLabelStats( wxCommandEvent& event )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection("MRI")->GetActiveLayer();
+  float fLabel, fArea = 0;
+  int nCount = 0;
+  mri->GetCurrentLabelStats( m_nMainView, &fLabel, &nCount, &fArea );
+  wxString strg = ( wxString() << "Label: " << (int)fLabel << "\nCount: " << nCount << "\nArea: " << fArea << " mm2" ); 
+  wxMessageDialog dlg( this, strg, 
+                       _("Label Stats"), wxOK );
+  dlg.ShowModal();
+}
+
+void MainWindow::OnToolLabelStatsUpdateUI( wxUpdateUIEvent& event )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection("MRI")->GetActiveLayer();
+  event.Enable( m_nMainView != MV_3D && mri && mri->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT );
 }
 
 void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )

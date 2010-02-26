@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 01:46:01 $
- *    $Revision: 1.62 $
+ *    $Date: 2010/02/26 21:37:19 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -210,6 +210,9 @@ public:
   void OnToolGotoPoint              ( wxCommandEvent& event );
   void OnToolGotoPointUpdateUI      ( wxUpdateUIEvent& event );
   void OnToolMenuGotoPoint          ( wxCommandEvent& event );
+  
+  void OnToolLabelStats             ( wxCommandEvent& event );
+  void OnToolLabelStatsUpdateUI     ( wxUpdateUIEvent& event );
 
   void OnMouseEnterWindow           ( wxMouseEvent& event );
 
@@ -404,6 +407,8 @@ protected:
   void CommandSetDisplayVector  ( const wxArrayString& cmd );
   void CommandSetDisplayTensor  ( const wxArrayString& cmd );
   void CommandSetDisplayIsoSurface  ( const wxArrayString& cmd );
+  void CommandLockLayer         ( const wxArrayString& cmd );
+  void CommandShowLayer         ( const wxArrayString& cmd );
   
   void CommandSetLayerName      ( const wxArrayString& cmd );
 
