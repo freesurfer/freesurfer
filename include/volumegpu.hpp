@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/26 14:18:10 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/02/26 14:43:18 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,8 +78,6 @@ namespace GPU {
 
       //! Padded data size
       dim3 dims;
-      //! Extent of allocated 3D array
-      cudaExtent extent;
       //! Pointer to the allocated memory
       cudaPitchedPtr data;
 
@@ -88,7 +86,6 @@ namespace GPU {
 
       //! Default constructor
       VolumeArgGPU( void ) : dims(make_uint3(0,0,0)),
-			     extent(make_cudaExtent(0,0,0)),
 			     data(make_cudaPitchedPtr(NULL,0,0,0)) {};
       
       // --------------------------------------
@@ -102,7 +99,7 @@ namespace GPU {
 	// Rows are pitch apart
 	size_t pitch = this->data.pitch;
 	// Slices are slicePitch apart
-	size_t slicePitch = pitch * this->extent.height;
+	size_t slicePitch = pitch * this->dims.y;
 	
 	const char* slice = data + ( iz * slicePitch );
 	const char* row = slice + ( iy * pitch );
@@ -118,7 +115,7 @@ namespace GPU {
 				 const unsigned int iz ) {
 	char* data = reinterpret_cast<char*>(this->data.ptr);
 	size_t pitch = this->data.pitch;
-	size_t slicePitch = pitch * this->extent.height;
+	size_t slicePitch = pitch * this->dims.y;
     
 	char* slice = data + ( iz * slicePitch );
 	char* row = slice + ( iy * pitch );
@@ -197,7 +194,6 @@ namespace GPU {
 	VolumeArgGPU<T> vag;
 
 	vag.dims = this->dims;
-	vag.extent = this->extent;
 	vag.data = this->d_data;
 	
 	return( vag );
@@ -213,7 +209,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.12 2010/02/26 14:18:10 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.13 2010/02/26 14:43:18 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
