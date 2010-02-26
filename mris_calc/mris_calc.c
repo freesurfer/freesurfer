@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/02/26 21:45:03 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/02/26 22:03:49 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.20 2010/02/26 21:45:03 greve Exp $";
+"$Id: mris_calc.c,v 1.21 2010/02/26 22:03:49 greve Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -1030,7 +1030,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.20 2010/02/26 21:45:03 greve Exp $",
+     "$Id: mris_calc.c,v 1.21 2010/02/26 22:03:49 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1268,25 +1268,29 @@ VOL_fileWrite(
   int		I				= 0;
   char          	pch_readMessage[STRBUF];
   int           ret;
+  MRI *out;
 
   if(!Gp_MRI)   error_noVolumeStruct();
   volSize	= Gp_MRI->width*Gp_MRI->height*Gp_MRI->depth*Gp_MRI->nframes;
   if(volSize != a_vectorSize)	error_volumeWriteSizeMismatch();
   sprintf(pch_readMessage, "Packing %s", apch_volFileName);
+  out = MRIallocSequence(Gp_MRI->width, Gp_MRI->height, Gp_MRI->depth, MRI_FLOAT, Gp_MRI->nframes);
+  MRIcopyHeader(Gp_MRI,out);
   for(f=0; f<Gp_MRI->nframes; f++)              // number of frames
     for(i=0; i<Gp_MRI->width; i++)		// 'x', i.e. columns in slice
       for(j=0; j<Gp_MRI->height; j++)		// 'y', i.e. rows in slice
         for(k=0; k<Gp_MRI->depth; k++) {	// 'z', i.e. # of slices
 	  CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
-	  MRIsetVoxVal(Gp_MRI, i, j, k, f, (float) apf_data[I++]);
+	  MRIsetVoxVal(out, i, j, k, f, (float) apf_data[I++]);
         }
-  sprintf(pch_readMessage, "Saving result to '%s' (type=%d)", apch_volFileName,Gp_MRI->type);
+  sprintf(pch_readMessage, "Saving result to '%s' (type=%d)", apch_volFileName,out->type);
   cprints(pch_readMessage, "");
-  ret = MRIwrite(Gp_MRI, apch_volFileName);
+  ret = MRIwrite(out, apch_volFileName);
   if(!ret)
     cprints("", "ok");
   else
     cprints("", "error");
+  MRIfree(&out);
   return(ret);
 }
 
