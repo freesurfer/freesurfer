@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/19 20:46:53 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/02/26 14:18:10 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -213,7 +213,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.11 2010/02/19 20:46:53 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.12 2010/02/26 14:18:10 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -252,7 +252,7 @@ namespace GPU {
 
 
 	// Make the extent
-	this->extent = make_cudaExtent( this->dims.x * sizeof(T),
+	this->extent = make_cudaExtent( this->dims.x*sizeof(T),
 					this->dims.y,
 					this->dims.z );
 	
@@ -303,9 +303,12 @@ namespace GPU {
 
 	cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
 
+	cudaExtent tmp = this->extent;
+	tmp.width /= sizeof(T);
+
 	CUDA_SAFE_CALL( cudaMalloc3DArray( &(this->dca_data),
 					   &cd,
-					   this->extent ) );
+					   tmp ) );
       }
 
 
@@ -458,6 +461,7 @@ namespace GPU {
 	cp.srcPtr = this->d_data;
 	cp.dstArray = this->dca_data;
 	cp.extent = this->extent;
+	cp.extent.width /= sizeof(T);
 	cp.kind = cudaMemcpyDeviceToDevice;
 	
 	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cp, myStream ) );
