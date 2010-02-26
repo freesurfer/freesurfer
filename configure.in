@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/26 20:01:07 $
-#    $Revision: 1.461 $
+#    $Date: 2010/02/26 22:35:11 $
+#    $Revision: 1.462 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -767,7 +767,7 @@ case "$CPUTYPE" in
      ;;
   opteron)
 #     CPUFLAGS="-march=x86-64"
-     CPUFLAGS="-m64 -march=opteron"
+     CPUFLAGS="-m64"
      ;;
   itanium)
      CPUFLAGS="-mtune=itanium2"
