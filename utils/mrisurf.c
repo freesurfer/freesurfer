@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/02/10 14:04:39 $
- *    $Revision: 1.657 $
+ *    $Date: 2010/02/26 14:23:46 $
+ *    $Revision: 1.658 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.657 2010/02/10 14:04:39 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.658 2010/02/26 14:23:46 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -11419,7 +11419,8 @@ MRISwriteValues(MRI_SURFACE *mris, const char *sname)
       printf("ERROR: MRISwriteValues: could not alloc MRI\n");
       return(1);
     }
-    printf("Saving surf vals in 'volume' format to %s\n",sname);
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+      printf("Saving surf vals in 'volume' format to %s\n",sname);
     err = MRIwrite(TempMRI,sname);
     return(err);
   }
@@ -17477,6 +17478,8 @@ mrisComputeTargetLocationTerm(MRI_SURFACE *mris, double l_location, MRI *mri_bra
       dx /= norm ; dy /= norm ; dz /= norm ;
     }
 
+    if (!devFinite(dx) || !devFinite(dy) || !devFinite(dz))
+      DiagBreak() ;
     v->dx += l_location * dx ;
     v->dy += l_location * dy ;
     v->dz += l_location * dz ;
@@ -25020,6 +25023,135 @@ MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians)
   Description
   ------------------------------------------------------*/
 int
+MRISmedianFilterVerexPositions(MRI_SURFACE *mris, int nmedians)
+{
+  int    i, vno, vnb, *pnb, vnum, num ;
+  float  val_list[MAX_NEIGHBORS] ;
+  VERTEX *v, *vn ;
+
+  for (i = 0 ; i < nmedians ; i++)
+  {
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      pnb = v->v ;
+      vnum = v->vnum ;
+      val_list[0] = v->x ;
+      for (num = 1, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+
+        val_list[num++] = vn->x ;
+      }
+      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals) ;
+      if (ISODD(num))
+        v->tdx = val_list[(num-1)/2] ;
+      else
+        v->tdx = (val_list[num/2] + val_list[num/2-1])/2 ;
+
+      pnb = v->v ;
+      vnum = v->vnum ;
+      val_list[0] = v->y ;
+      for (num = 1, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+
+        val_list[num++] = vn->y ;
+      }
+      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals) ;
+      if (ISODD(num))
+        v->tdy = val_list[(num-1)/2] ;
+      else
+        v->tdy = (val_list[num/2] + val_list[num/2-1])/2 ;
+
+      pnb = v->v ;
+      vnum = v->vnum ;
+      val_list[0] = v->z ;
+      for (num = 1, vnb = 0 ; vnb < vnum ; vnb++)
+      {
+        vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+        if (vn->ripflag)
+          continue ;
+
+        val_list[num++] = vn->z ;
+      }
+      qsort(val_list, num, sizeof(val_list[0]), compare_sort_vals) ;
+      if (ISODD(num))
+        v->tdz = val_list[(num-1)/2] ;
+      else
+        v->tdz = (val_list[num/2] + val_list[num/2-1])/2 ;
+    }
+    for (vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag)
+        continue ;
+      v->x = v->tdx ;
+      v->y = v->tdy ;
+      v->z = v->tdz ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRISgaussianFilterD(MRI_SURFACE *mris, double wt)
+{
+  int    vno, vnb, *pnb, vnum ;
+  double nbr_wt, val, norm ;
+  VERTEX *v, *vn ;
+
+  nbr_wt = 1-wt ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    pnb = v->v ;
+    vnum = v->vnum ;
+    
+    val = wt * v->d ;
+    
+    for ( norm = wt, vnb = 0 ; vnb < vnum ; vnb++)
+    {
+      vn = &mris->vertices[*pnb++]; /* neighboring vertex pointer */
+      if (vn->ripflag)
+        continue ;
+      
+      val += nbr_wt*vn->d ;
+      norm += nbr_wt ;
+    }
+    v->tdx = val/norm ;
+  }
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->d = v->tdx ;
+  }
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
 MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal)
 {
   int    i, vno, vnb, *pnb, vnum, num ;
@@ -32529,6 +32661,8 @@ mrisComputeTargetLocationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mag = dx * dx + dy * dy + dz*dz ;
     if (mag > 50)
       DiagBreak() ;
+    if (!devFinite(mag))
+      DiagBreak() ;
     sse += mag ;
   }
 
@@ -33794,9 +33928,10 @@ MRISsoapBubbleVals(MRI_SURFACE *mris, int navgs)
   VERTEX  *v, *vn ;
   double  mean ;
 
-  fprintf(stdout,
-          "performing soap bubble smoothing of vals for %d iterations.\n",
-          navgs) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stdout,
+            "performing soap bubble smoothing of vals for %d iterations.\n",
+            navgs) ;
   for (i = 0 ; i < navgs ; i++)
   {
     for (nmarked = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -33850,9 +33985,10 @@ MRISsoapBubbleD(MRI_SURFACE *mris, int navgs)
   VERTEX  *v, *vn ;
   double  mean ;
 
-  fprintf(stdout,
-          "performing soap bubble smoothing of D vals for %d iterations.\n",
-          navgs) ;
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    fprintf(stdout,
+            "performing soap bubble smoothing of D vals for %d iterations.\n",
+            navgs) ;
   for (i = 0 ; i < navgs ; i++)
   {
     for (nmarked = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -66904,4 +67040,19 @@ mrisRmsDistanceError(MRI_SURFACE *mris)
   parms.l_location = 1 ;
   rms = mrisComputeTargetLocationError(mris, &parms);
   return(sqrt(rms / MRISvalidVertices(mris))) ;
+}
+int
+MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale)
+{
+  VERTEX  *v ;
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->x *= scale ; v->y *= scale ; v->z *= scale ;
+  }
+  return(NO_ERROR) ;
 }
