@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/02/26 19:06:18 $
- *    $Revision: 1.450 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/26 22:35:35 $
+ *    $Revision: 1.451 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -20,12 +20,11 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.450 $";
+const char *MRI_C_VERSION = "$Revision: 1.451 $";
 
 
 /*-----------------------------------------------------
@@ -5132,10 +5131,11 @@ MRI * MRIadd(MRI *mri1, MRI *mri2, MRI *mri_dst)
           break;
         }
 
-        /* note, the code below does not check for over/underflow! */
-        switch (mri_dst->type)
         for (x = 0 ; x < width ; x++)
         {
+
+          /* note, the code below does not check for over/underflow! */
+          switch (mri_dst->type)
           {
           case MRI_UCHAR:
             switch (mri1->type)
