@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/26 14:56:44 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/02/26 15:00:02 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,12 +76,9 @@ namespace GPU {
     class VolumeArgGPU {
     public:
 
-      //! Padded data size
+      //! Size of the volume
       const dim3 dims;
-      //! Pointer to the allocated memory
-      void* const pitchedPtr;
-      //! Pitch of the allocated memory
-      const size_t dataPitch;
+      
 
       // --------------------------------------
       // Constructors
@@ -107,9 +104,9 @@ namespace GPU {
 			       const unsigned int iz ) const {
 	const char* data = reinterpret_cast<const char*>(this->pitchedPtr);
 	// Rows are pitch apart
-	size_t pitch = this->dataPitch;
+	const size_t pitch = this->dataPitch;
 	// Slices are slicePitch apart
-	size_t slicePitch = pitch * this->dims.y;
+	const size_t slicePitch = pitch * this->dims.y;
 	
 	const char* slice = data + ( iz * slicePitch );
 	const char* row = slice + ( iy * pitch );
@@ -124,8 +121,8 @@ namespace GPU {
 				 const unsigned int iy,
 				 const unsigned int iz ) {
 	char* data = reinterpret_cast<char*>(this->pitchedPtr);
-	size_t pitch = this->dataPitch;
-	size_t slicePitch = pitch * this->dims.y;
+	const size_t pitch = this->dataPitch;
+	const size_t slicePitch = pitch * this->dims.y;
     
 	char* slice = data + ( iz * slicePitch );
 	char* row = slice + ( iy * pitch );
@@ -163,6 +160,13 @@ namespace GPU {
 
 	return( res );
       }
+
+    private:
+      
+      //! Pointer to the allocated memory
+      void* const pitchedPtr;
+      //! Pitch of the allocated memory
+      const size_t dataPitch;
     };
 
 
@@ -216,7 +220,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.14 2010/02/26 14:56:44 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.15 2010/02/26 15:00:02 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
