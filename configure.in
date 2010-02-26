@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/26 22:35:11 $
-#    $Revision: 1.462 $
+#    $Date: 2010/02/26 23:37:55 $
+#    $Revision: 1.463 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2581,14 +2581,12 @@ AC_SUBST(VTK_Z_LIB)
 
 AC_CHECK_LIB([vtkjpeg], [vtk_jpeg_start_compress], 
              [VTK_JPEG_LIB="-lvtkjpeg"],
-             [AC_CHECK_LIB([jpeg],[jpeg_start_compress],[VTK_JPEG_LIB="-ljpeg"],
-             [AC_MSG_ERROR([FATAL: libvtkjpeg or libjpeg not found.])])])
+             [VTK_JPEG_LIB="-ljpeg"])
 AC_SUBST(VTK_JPEG_LIB)
 
 AC_CHECK_LIB([vtktiff $VTK_JPEG_LIB $VTK_Z_LIB], [vtk_TIFFGetVersion],
              [VTK_TIFF_LIB="-lvtktiff"],
-             [AC_CHECK_LIB([tiff],[TIFFGetVersion],[VTK_TIFF_LIB="-ltiff"],
-             [AC_MSG_ERROR([FATAL: libvtktiff or libtiff not found.])])])
+             [VTK_TIFF_LIB="-ltiff"])
 AC_SUBST(VTK_TIFF_LIB)
 
 AC_CHECK_LIB([vtkpng $VTK_Z_LIB], [main],
@@ -2605,7 +2603,7 @@ AC_CHECK_FILE($VTK_LIB/libvtkCommon$DYNAMIC_LIB_EXT,
      export LD_LIBRARY_PATH="$VTK_LIB":"$LD_LIBRARY_PATH"
    fi],[])
 AC_CHECK_LIB([vtkCommon -lstdc++], [main],[],
-  [AC_MSG_ERROR([FATAL: vtkCommon lib not found. \
+  [AC_MSG_RESULT([INFO: vtkCommon lib not found. \
 Try setting LDFLAGS, LD_LIBRARY_PATH and-or --with-vtk-dir.])] )
 
 # libverdict appeared in VTK v5.1.0, and is required by libvtkHybrid,
