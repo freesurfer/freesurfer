@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/26 14:43:18 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/02/26 14:56:44 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -77,16 +77,26 @@ namespace GPU {
     public:
 
       //! Padded data size
-      dim3 dims;
+      const dim3 dims;
       //! Pointer to the allocated memory
-      cudaPitchedPtr data;
+      void* const pitchedPtr;
+      //! Pitch of the allocated memory
+      const size_t dataPitch;
 
       // --------------------------------------
       // Constructors
 
       //! Default constructor
       VolumeArgGPU( void ) : dims(make_uint3(0,0,0)),
-			     data(make_cudaPitchedPtr(NULL,0,0,0)) {};
+			     pitchedPtr(NULL),
+			     dataPitch(0) {};
+
+      //! Constructor from inputs
+      VolumeArgGPU( const dim3 myDims,
+		    void* const myPitchedPtr,
+		    const size_t myPitch ) : dims(myDims),
+					     pitchedPtr(myPitchedPtr),
+					     dataPitch(myPitch) {};
       
       // --------------------------------------
       // Subscripting operators
@@ -95,9 +105,9 @@ namespace GPU {
       __device__ T operator()( const unsigned int ix,
 			       const unsigned int iy,
 			       const unsigned int iz ) const {
-	const char* data = reinterpret_cast<const char*>(this->data.ptr);
+	const char* data = reinterpret_cast<const char*>(this->pitchedPtr);
 	// Rows are pitch apart
-	size_t pitch = this->data.pitch;
+	size_t pitch = this->dataPitch;
 	// Slices are slicePitch apart
 	size_t slicePitch = pitch * this->dims.y;
 	
@@ -113,8 +123,8 @@ namespace GPU {
       __device__ T& operator() ( const unsigned int ix,
 				 const unsigned int iy,
 				 const unsigned int iz ) {
-	char* data = reinterpret_cast<char*>(this->data.ptr);
-	size_t pitch = this->data.pitch;
+	char* data = reinterpret_cast<char*>(this->pitchedPtr);
+	size_t pitch = this->dataPitch;
 	size_t slicePitch = pitch * this->dims.y;
     
 	char* slice = data + ( iz * slicePitch );
@@ -191,11 +201,8 @@ namespace GPU {
 
       //! Converts a GPU volume to a kernel argument
       operator VolumeArgGPU<T>( void ) const {
-	VolumeArgGPU<T> vag;
+	VolumeArgGPU<T> vag( this->dims, this->d_data.ptr, this->d_data.pitch );
 
-	vag.dims = this->dims;
-	vag.data = this->d_data;
-	
 	return( vag );
       }
 
@@ -209,7 +216,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.13 2010/02/26 14:43:18 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.14 2010/02/26 14:56:44 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
