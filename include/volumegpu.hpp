@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/26 15:00:02 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/02/26 18:02:01 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -191,7 +191,6 @@ namespace GPU {
       
       //! Default constructor
       VolumeGPU( void ) : dims(make_uint3(0,0,0)),
-			  extent(make_cudaExtent(0,0,0)),
 			  d_data(make_cudaPitchedPtr(NULL,0,0,0)),
 			  dca_data(NULL) {};
 
@@ -220,7 +219,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.15 2010/02/26 15:00:02 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.16 2010/02/26 18:02:01 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -259,12 +258,11 @@ namespace GPU {
 
 
 	// Make the extent
-	this->extent = make_cudaExtent( this->dims.x*sizeof(T),
-					this->dims.y,
-					this->dims.z );
-	
+	cudaExtent tmpExtent = ExtentFromDims( this->dims );
+	tmpExtent.width *= sizeof(T);
+
 	// Allocate the memory
-	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), this->extent ) );
+	CUDA_SAFE_CALL( cudaMalloc3D( &(this->d_data), tmpExtent ) );
       }
 
       //! Allocates storage matching dimensions of potentially different type
@@ -310,8 +308,7 @@ namespace GPU {
 
 	cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
 
-	cudaExtent tmp = this->extent;
-	tmp.width /= sizeof(T);
+	cudaExtent tmp = ExtentFromDims( this->dims );
 
 	CUDA_SAFE_CALL( cudaMalloc3DArray( &(this->dca_data),
 					   &cd,
@@ -326,7 +323,6 @@ namespace GPU {
 	  CUDA_SAFE_CALL( cudaFree( d_data.ptr ) );
 	}
 	this->dims = make_uint3(0,0,0);
-	this->extent = make_cudaExtent(0,0,0);
 	this->d_data = make_cudaPitchedPtr(NULL,0,0,0);
       }
 
@@ -406,7 +402,8 @@ namespace GPU {
 						 this->dims.x,
 						 this->dims.y );
 	copyParams.dstPtr = this->d_data;
-	copyParams.extent = this->extent;
+	copyParams.extent = ExtentFromDims( this->dims );
+	copyParams.extent.width *= sizeof(T);
 	copyParams.kind = cudaMemcpyHostToDevice;
 
 	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &copyParams, stream ) );
@@ -432,7 +429,8 @@ namespace GPU {
 					      this->dims.x*sizeof(T),
 					      this->dims.x,
 					      this->dims.y );
-	cpyPrms.extent = this->extent;
+	cpyPrms.extent = ExtentFromDims( this->dims );
+	cpyPrms.extent.width *= sizeof(T);
 	cpyPrms.kind = cudaMemcpyDeviceToHost;
 
 	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cpyPrms, stream ) );
@@ -467,8 +465,7 @@ namespace GPU {
 	
 	cp.srcPtr = this->d_data;
 	cp.dstArray = this->dca_data;
-	cp.extent = this->extent;
-	cp.extent.width /= sizeof(T);
+	cp.extent = ExtentFromDims( this->dims );
 	cp.kind = cudaMemcpyDeviceToDevice;
 	
 	CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cp, myStream ) );
@@ -513,9 +510,6 @@ namespace GPU {
    
       //! Dimensions of the volume
       dim3 dims;
-      
-      //! Extent of the allocated 3D array
-      cudaExtent extent;
       //! Pointer to the allocated device memory
       cudaPitchedPtr d_data;
       //! CUDA array pointer for texturing
@@ -530,7 +524,6 @@ namespace GPU {
 
       //! Hidden copy constructor
       VolumeGPU( const VolumeGPU& src ) : dims(make_uint3(0,0,0)),
-					  extent(make_cudaExtent(0,0,0)),
 					  d_data(make_cudaPitchedPtr(NULL,0,0,0)),
 					  dca_data(NULL) {
 	std::cerr << __FUNCTION__
