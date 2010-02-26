@@ -3290,7 +3290,7 @@ int gifti_compare_coordsys(const giiCoordSystem *s1, const giiCoordSystem *s2,
     offset = gifti_compare_raw_data(s1->xform, s2->xform, sizeof(s1->xform));
     if( offset >= 0 ) {
         if(lverb>2) printf("-- coordsys xform diff at offset %lu\n",
-                           offset/sizeof(double));
+                           (long unsigned int)(offset/sizeof(double)));
         if( lverb < 3 ) return 1;
         diffs++;
     }
