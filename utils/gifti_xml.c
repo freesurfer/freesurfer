@@ -15,6 +15,7 @@ static int  append_to_data_b64  (gxml_data *, char*,long long,const char*, int);
 static int  append_to_data_b64gz(gxml_data *, const char *, int);
 */
 
+static int  add_label_rgba      (gxml_data *, giiLabelTable *, float *);
 static int  append_to_xform     (gxml_data *, const char *, int);
 static int  apply_da_list_order (gxml_data *, const int *, int);
 static int  int_compare         (const void * v0, const void * v1);
@@ -26,8 +27,10 @@ static int  ename2type          (const char *);
 static int  epush               (gxml_data *, int, const char *, const char **);
 static int  epop                (gxml_data *, int, const char *);
 static int  free_xd_data        (gxml_data *);
+static int  get_rgba_attrs      (gxml_data *, const char **, float *);
 static int  init_gxml_data      (gxml_data *, int, const int *, int);
 static int  partial_buf_size    (long long);
+static int  process_label_rgba  (gxml_data *, const char **, giiLabelTable *);
 
 static int  push_gifti          (gxml_data *, const char **);
 static int  push_meta           (gxml_data *);
@@ -59,6 +62,26 @@ static int  count_bad_b64_chars (const char *, int);
 static int  show_bad_b64_chars  (const char *, int);
 
 static giiMetaData * find_current_MetaData(gxml_data *, int);
+
+#ifndef XMLCALL
+/* XMLCALL was added to expat in version 1.95.7 to define a calling convention,
+ * as cdecl
+ */
+#if defined(XML_USE_MSC_EXTENSIONS)
+#define XMLCALL __cdecl
+#elif defined(__GNUC__) && defined(__i386)
+#define XMLCALL __attribute__((cdecl))
+#else
+#define XMLCALL 
+#endif
+#endif /* not defined XMLCALL */
+
+#ifndef XML_STATUS_ERROR
+#define XML_STATUS_ERROR 0
+#endif
+#ifndef XML_STATUS_OK
+#define XML_STATUS_OK 1
+#endif
 
 static void XMLCALL cb_start_ele    (void *, const char *, const char **);
 static void XMLCALL cb_end_ele      (void *, const char *);
@@ -334,10 +357,11 @@ static int apply_da_list_order(gxml_data * xd, const int * orig, int len)
 
     /* create new DA list */
     newlist = (giiDataArray **)malloc(len * sizeof(giiDataArray *));
-    if(!newlist){ fprintf(stderr,"** ADLO: no alloc fo DAlist\n"); return 1; }
+    if(!newlist){ fprintf(stderr,"** ADLO: no alloc for DAlist\n"); return 1; }
 
     /* create taken list (of all 0) */
     taken = (int *)calloc(nDA, sizeof(int));
+    if(!taken){ fprintf(stderr,"** ADLO: no alloc for taken\n"); return 1; }
 
     /* insert pointers to current or copied DA */
     for( newc = 0; newc < len; newc++ ) {
@@ -884,12 +908,19 @@ static int push_label(gxml_data * xd, const char ** attr)
     lt->index = (int *)realloc(lt->index, lt->length * sizeof(int));
     lt->label = (char **)realloc(lt->label, lt->length * sizeof(char *));
 
+    if( !lt->index || !lt->label ) {
+        fprintf(stderr,"** gifti alloc failure for label %d\n",lt->length);
+        return 1;
+    }
+
     /* set index from the attributes */
     if( !attr || !attr[0] || strcmp(attr[0],"Index")) {
         fprintf(stderr,"** Label %d missing Index attribute\n", lt->length-1);
         lt->index[lt->length-1] = 0;
-    } else
+    } else {
         lt->index[lt->length-1] = atoi(attr[1]);
+        (void)process_label_rgba(xd, attr, lt); /* errors are non-fatal? */
+    }
 
     xd->cdata = lt->label + (lt->length-1); /* addr of newest (char *) */
     *xd->cdata = NULL;                      /* init to empty */
@@ -897,6 +928,170 @@ static int push_label(gxml_data * xd, const char ** attr)
 
     return 0;
 }
+
+/* Check for any RGBA attributes for the label.
+ * If they are there for 1, they should be there for all.
+ * 
+ * return 0 if all is well, 1 on error */
+static int process_label_rgba(gxml_data * xd, const char ** attr,
+                              giiLabelTable * lt)
+{
+    float rgba[4];
+    int   rv;
+
+    rv = get_rgba_attrs(xd, attr, rgba);
+
+    /* if no rgba found... */
+    if( rv != 1 ) {
+        /* if no current list, but error or none found, just return */
+        if( !lt->rgba ) {
+            if( !rv ) return 0;
+            return 1;
+        }
+
+        /* else if current list, but none found, whine and return */
+        if( rv == 0 ) {
+            fprintf(stderr,"** missing RGBA for Label %d\n", lt->length-1);
+            free(lt->rgba);  lt->rgba = NULL;   /* nuke table */
+            return 1;
+        }
+
+        /* else current list but error: so fill with zeros
+         * (whining should have been done already) */
+        memset(rgba, 0, sizeof(rgba));
+        add_label_rgba(xd, lt, rgba);
+
+        return 1;
+    }
+
+    /* ---- have RGBA ---- */
+
+    /* if this is the first label, just add it */
+    if( lt->length == 1 )
+        return add_label_rgba(xd, lt, rgba);
+
+    /* else if the list does not yet exist, it's an error */
+    if( !lt->rgba ) {
+        fprintf(stderr,"** Label %d has RGBA, but no list exists\n"
+                       "   (so no RGBA at Label #0)\n", lt->length-1);
+        return 1;
+    }
+
+    /* list exists, so add */
+    return add_label_rgba(xd, lt, rgba);
+}
+
+/* add the rgba entries to the LabelTable, length is already updated */
+static int add_label_rgba(gxml_data * xd, giiLabelTable * lt, float * rgba)
+{
+    if( !xd || !lt || !rgba ) {
+        fprintf(stderr,"** add_label_rgba, bad params\n");
+        return 1;
+    }
+
+    lt->rgba = (float *)realloc(lt->rgba, lt->length * 4 * sizeof(float));
+    if( !lt->rgba ) {
+        fprintf(stderr,"** failed to malloc rgba of length %d\n", lt->length);
+        return 1;
+    }
+
+    memcpy(lt->rgba + 4*(lt->length-1), rgba, 4*sizeof(float));
+
+    if(xd->verb > 4)
+        fprintf(stderr,"-- adding Label RGBA %g %g %g %g\n",
+                   lt->rgba[0], lt->rgba[1], lt->rgba[2], lt->rgba[3]);
+
+    return 0;
+}
+
+/* return 1 if RGBA attrs exist, 0 if not, -1 if error
+ * (skip the Index attribute) */
+static int get_rgba_attrs(gxml_data * xd, const char ** attr, float * rgba)
+{
+    const char * atrval;
+    char       * endp;  /* for verifying float read */
+    int          c;
+
+    if( !xd || !rgba ) {
+        fprintf(stderr,"** GRA: missing params\n");
+        return -1;
+    }
+    if( !attr ) return 0;
+
+    for (c = 0; c < 8; c++ ) if( !attr[2+c] ) break;
+    if( c == 0 ) return 0;      /* nada */
+    if( c < 8 ) {               /* partial? */
+        if(xd->verb > 0) {
+            fprintf(stderr,"** missing some GIFTI Label attribute\n"
+                           "   (one or more of Red, Blue, Green, Alpha)\n");
+            show_attrs(xd, GXML_ETYPE_LABEL, attr+2);
+        }
+        return -1;
+    }
+
+    /* we have 4 attributes, if any are unexpected, bail */
+    if( strcmp(attr[2],"Red")  || strcmp(attr[4],"Green") ||
+        strcmp(attr[6],"Blue") || strcmp(attr[8],"Alpha") )
+    {
+        if(xd->verb>1) {
+            fprintf(stderr,"** unexpected GIFTI Label attribute\n"
+                           "   (should be Red, Blue, Green, Alpha)\n");
+            show_attrs(xd, GXML_ETYPE_LABEL, attr+2);
+        }
+        return -1;
+    }
+
+    /* if the contents are empty, same as not existing */
+    if( !*attr[3] && !*attr[5] && !*attr[7] && !*attr[9] ) {
+        if( xd->verb > 4 ) fprintf(stderr,"-- have empty label colors\n");
+        return 0;
+    }
+
+    /* read the 4 numbers now (starting at attr[3]); failure is an error */
+    for( c = 0; c < 4; c++ ) {
+        atrval = attr[3 + 2*c];
+        rgba[c] = strtod(atrval, &endp); /* strtof requires -std=c99 */
+        if( endp <= atrval) {
+            fprintf(stderr,"** bad GIFTI Label RGBA attr values a[%d]\n", c);
+            show_attrs(xd, GXML_ETYPE_LABEL, attr+2);
+            return -1;
+        }
+    }
+
+    if(xd->verb > 2)
+        fprintf(stderr,"-- have Label RGBA %g %g %g %g\n",
+                       rgba[0], rgba[1], rgba[2], rgba[3]);
+
+    return 1;
+}
+
+
+#if 0 /* rcr - do we want this? */
+/* check if attr[index] is the given name
+ * if safe, walk through list to make sure index is not out of range */
+static int attr_index_match(const char ** attr, int index, const char * val,
+                            int safe)
+{
+    int c;
+
+    /* first check for set pointers */
+    if( !attr || !val ) {
+        if( attr || val ) return 0;
+        return 1;
+    }
+    if( index < 0 ) return 0;
+
+    /* if safe, avoid crashes by walking through list */
+    if( safe ) {
+        for( c = 0; c < index && attr[c]; c++ ) ;
+        if( c < index ) return 0;
+    }
+
+    if( !strcmp(attr[index], val) ) return 1;
+    return 0;
+}
+#endif
+
 
 /* initialize the gifti_element and set attributes */
 static int push_darray(gxml_data * xd, const char ** attr)
@@ -1931,7 +2126,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
         default : 
             fprintf(stderr,"** decode_ascii cannot decode type %d\n",type);
             return -1;
-        case 2: {       /* NIFTI_TYPE_UINT8 */
+        case NIFTI_TYPE_UINT8: {
             unsigned char * ptr = (unsigned char *)dptr;
             p1 = cdata;
             prev = p1;
@@ -1948,7 +2143,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 4: {       /* NIFTI_TYPE_INT16 */
+        case NIFTI_TYPE_INT16: {
             short * ptr = (short *)dptr;
             p1 = cdata;
             prev = p1;
@@ -1964,7 +2159,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 8: {       /* NIFTI_TYPE_INT32 */
+        case NIFTI_TYPE_INT32: {
             int * ptr = (int *)dptr;
             p1 = cdata;
             prev = p1;
@@ -1980,7 +2175,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 16: {      /* NIFTI_TYPE_FLOAT32 */
+        case NIFTI_TYPE_FLOAT32: {
             float * ptr = (float *)dptr;
             p1 = cdata;
             prev = p1;
@@ -1996,7 +2191,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 64: {      /* NIFTI_TYPE_FLOAT64 */
+        case NIFTI_TYPE_FLOAT64: {
             double * ptr = (double *)dptr;
             p1 = cdata;
             prev = p1;
@@ -2012,7 +2207,24 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
             if(xd->verb > 6) fputc('\n', stderr);
             break;
         }
-        case 512: {     /* NIFTI_TYPE_UINT16 */
+        case NIFTI_TYPE_INT8: {
+            char * ptr = (char *)dptr;
+            p1 = cdata;
+            prev = p1;
+            /* vals could be < 0, but we must care for promotion to size_t */
+            while( (vals < 0 || vals < *nvals) && p1 ) {
+                lval = strtol(p1, &p2, 10);   /* try to read next value */
+                if( p1 == p2 ) break;   /* nothing read, terminate loop */
+                prev = p1;              /* store old success ptr */
+                p1 = p2;                /* move to next posn */
+                ptr[vals] = lval;       /* assign new value  */
+                if(xd->verb>6)fprintf(stderr,"  v %d (%ld)",ptr[vals],lval);
+                vals++;                 /* count new value   */
+            }
+            if(xd->verb > 6) fputc('\n', stderr);
+            break;
+        }
+        case NIFTI_TYPE_UINT16: {
             unsigned short * ptr = (unsigned short *)dptr;
             p1 = cdata;
             prev = p1;
@@ -2023,6 +2235,23 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
                 p1 = p2;                /* move to next posn */
                 ptr[vals] = lval;       /* assign new value  */
                 if(xd->verb>6)fprintf(stderr,"  v %d (%ld)",ptr[vals],lval);
+                vals++;                 /* count new value   */
+            }
+            if(xd->verb > 6) fputc('\n', stderr);
+            break;
+        }
+        case NIFTI_TYPE_INT64: {
+            long long * ptr = (long long *)dptr;
+            long long llval;
+            p1 = cdata;
+            prev = p1;
+            while( (vals < 0 || vals < *nvals) && p1 ) {
+                llval = strtoll(p1, &p2, 10);   /* try to read next value */
+                if( p1 == p2 ) break;   /* nothing read, terminate loop */
+                prev = p1;              /* store old success ptr */
+                p1 = p2;                /* move to next posn */
+                ptr[vals] = llval;      /* assign new value  */
+                if(xd->verb>6)fprintf(stderr,"  v %lld (%lld)",ptr[vals],llval);
                 vals++;                 /* count new value   */
             }
             if(xd->verb > 6) fputc('\n', stderr);
@@ -2727,8 +2956,9 @@ static int ewrite_text_ele(int ele, const char * cdata, const char * attr,
 
 static int ewrite_LT(gxml_data *xd, giiLabelTable *lt, int in_CDATA, FILE *fp)
 {
-    char attr[32] = "";
-    int  c, spaces = xd->indent * xd->depth;
+    char    attr[256] = "";
+    float * rgba;
+    int     c, spaces = xd->indent * xd->depth;
 
     if( xd->verb > 3 ) fprintf(stderr,"++ write giiLabelTable\n");
 
@@ -2738,13 +2968,22 @@ static int ewrite_LT(gxml_data *xd, giiLabelTable *lt, int in_CDATA, FILE *fp)
     }
 
     fprintf(fp, "%*s<LabelTable>\n", spaces, "");
+    rgba = lt->rgba;
     for( c = 0; c < lt->length; c++ ) {
         if( !lt->label[c] ) {
             if(xd->verb > 1) fprintf(stderr,"** label[%d] unset\n", c);
             continue;
         }
 
-        sprintf(attr, " Index=\"%d\"", lt->index[c]);
+        /* store the Index and optional RGBA attributes */
+        if( lt->rgba ) {
+           sprintf(attr, " Index=\"%d\""
+                         " Red=\"%g\" Green=\"%g\" Blue=\"%g\" Alpha=\"%g\"",
+                   lt->index[c], rgba[0], rgba[1], rgba[2], rgba[3]);
+           rgba += 4;
+        } else
+            sprintf(attr, " Index=\"%d\"", lt->index[c]);
+
         ewrite_text_ele(GXML_ETYPE_LABEL, lt->label[c], attr,
                         spaces+xd->indent, in_CDATA, fp);
     }

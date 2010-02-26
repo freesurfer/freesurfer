@@ -97,13 +97,32 @@ static char * gifti_history[] =
   "0.18 08 May, 2008 : DataArray can now contain a list of CoordSystems\n",
   "     - modified giiDataArray struct: new numCS, coordsys is now CS**\n"
   "     - added gifti_free_CS_list, gifti_add_empty_CS\n"
-  "1.0  13 May, 2008 : release version of gifticlib\n",
-  "     - (allow external data)\n"
+  "\n"
+  "------------------------ initial release version -----------------------\n",
+  "1.00 13 May, 2008 : release version of gifticlib\n",
+  "     - allowed external data\n"
   "     - added gifti_read/write_extern_DA_data() and\n"
   "             gifti_set_extern_filelist()\n"
+  "1.01 02 June, 2008 :\n",
+  "     - added CMakeLists.txt and XMLCALL update from Simon Warfield\n"
+  "       (define XMLCALL for pre-1.95.7 versions of expat)\n"
+  "     - added LICENSE.gifti\n"
+  "1.02 02 October, 2008 :\n",
+  "     - separate diffs in DAs from those in gifti_image\n"
+  "     - decode additional data types: INT8, UINT16, INT64\n"
+  "     - add link flags to libgiftiio_la target\n"
+  "1.03 17 April, 2009 : allow DA size to vary over each external file\n",
+  "1.04 27 October, 2009 : added support for LabelTable RGBA attributes\n"
+  "     - valid LabelTable requires RGBA values in [0,1.0]\n"
+  "     - compare_labeltable requires equality of RGBA values (no approx.)\n",
+  "1.05 08 December, 2009: ignore invalid GIFTI attrs by default\n"
+  "1.06 24 December, 2009: added approximate difference functions\n",
+  "     - added gifti_approx_gifti_images, DA_pair, labeltables, diff_offset\n"
+  "     - added gifti_triangle_diff_offset\n"
+  "     - gifti_compare_coordsys takes comp_data param\n"
 };
 
-static char gifti_version[] = "gifti library version 1.0, 13 May, 2008";
+static char gifti_version[] = "gifti library version 1.06, 24 December, 2009";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -191,10 +210,14 @@ char * gifti_endian_list[] = {"Undefined", "BigEndian", "LittleEndian"};
 
 /* ---------------------------------------------------------------------- */
 /* local prototypes */
-static int str2list_index(char *list[], int max, const char *str);
-static int DA_data_exists(gifti_image * gim, const int * dalist, int len);
+static int can_compare_DA_data(const giiDataArray *d1,const giiDataArray *d2,
+                               int verb);
+static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
+                               int verb, int approx);
 static int copy_data_as_float(void * dest, int dtype, void * src, int stype,
                               long long nvals);
+static int DA_data_exists(gifti_image * gim, const int * dalist, int len);
+static int str2list_index(char *list[], int max, const char *str);
 
 /* ---------------------------------------------------------------------- */
 /*! giftilib globals */
@@ -276,7 +299,7 @@ int gifti_str2attr_gifti(gifti_image * gim, const char *attr, const char *val)
             return 1;
         }
     } else {
-        if( G.verb > 0 )
+        if( G.verb > 1 )
             fprintf(stderr,"** unknown GIFTI attrib, '%s'='%s'\n",attr,val);
         return 1;
     }
@@ -458,7 +481,7 @@ int gifti_free_LabelTable( giiLabelTable * T )
     }
 
     if(G.verb > 3)
-        fprintf(stderr,"-- freeing %d giiLabelTables\n", T->length);
+        fprintf(stderr,"-- freeing %d giiLabelTable entries\n", T->length);
 
     if( T->index && T->label ) {
         for( c = 0; c < T->length; c++ )
@@ -468,6 +491,12 @@ int gifti_free_LabelTable( giiLabelTable * T )
         T->index = NULL;
         T->label = NULL;
     }
+
+    if( T->rgba ) {
+        free(T->rgba);
+        T->rgba = NULL;
+    }
+
     T->length = 0;
 
     return 0;
@@ -756,7 +785,8 @@ int gifti_valid_nvpairs(const nvpairs * nvp, int whine)
 *//*-------------------------------------------------------------------*/
 int gifti_valid_LabelTable(const giiLabelTable * T, int whine)
 {
-    int c;
+    float * rgba;
+    int     c, c2;
 
     if( !T ) {
         if(G.verb>2||whine) fprintf(stderr,"** invalid LabelTable pointer\n");
@@ -779,11 +809,22 @@ int gifti_valid_LabelTable(const giiLabelTable * T, int whine)
     }
 
     /* quit on first error */
+    rgba = T->rgba;
     for( c = 0; c < T->length; c++ ) {
         if( ! T->label[c] ) {
             if( G.verb > 3 || whine )
                 fprintf(stderr,"** invalid nvpair label[%d]\n", c);
             return 0;
+        }
+        if( rgba ) {
+            for( c2 = 0; c2 < 4; c2++ )
+                if( rgba[c2] < 0.0 || rgba[c2] > 1.0 ) {
+                    if( G.verb > 3 || whine )
+                        fprintf(stderr,"** RGBA values out of [0.0,1,0] at "
+                                       "Label[%d]\n", c);
+                    return 0;
+                }
+            rgba += 4; /* if list exists, go to next set */
         }
     }
 
@@ -1080,6 +1121,7 @@ int gifti_clear_LabelTable(giiLabelTable * p)
     p->length = 0;
     p->index = NULL;
     p->label = NULL;
+    p->rgba = NULL;
 
     return 0;
 }
@@ -1246,7 +1288,8 @@ int gifti_disp_nvpairs(const char * mesg, const nvpairs * p)
 *//*-------------------------------------------------------------------*/
 int gifti_disp_LabelTable(const char * mesg, const giiLabelTable * p)
 {
-    int c;
+    float * rgba;
+    int     c;
 
     if( mesg ) { fputs(mesg, stderr); fputc(' ', stderr); }
 
@@ -1254,9 +1297,17 @@ int gifti_disp_LabelTable(const char * mesg, const giiLabelTable * p)
 
     fprintf(stderr,"giiLabelTable struct, len = %d :\n", p->length);
 
-    for(c = 0; c < p->length; c++ )
-        fprintf(stderr,"    index %d, label '%s'\n",
-                p->index[c], G_CHECK_NULL_STR(p->label[c]));
+    rgba = p->rgba;
+    for(c = 0; c < p->length; c++ ) {
+        fprintf(stderr,"    index %d, ", p->index[c]);
+        if( rgba ) {
+            fprintf(stderr,"rgba (%5.3f, %5.3f, %5.3f, %5.3f), ",
+                    rgba[0], rgba[1], rgba[2], rgba[3]);
+            rgba += 4;
+        }
+        fprintf(stderr,"label '%s'\n", G_CHECK_NULL_STR(p->label[c]));
+    }
+
     if( p->length > 0 ) fputc('\n', stderr);
 
     return 0;
@@ -1380,8 +1431,8 @@ int gifti_disp_gifti_image(const char * mesg, const gifti_image * p, int subs)
                    "    swapped    = %d\n"
                    "    compressed = %d\n", p->swapped, p->compressed);
 
+    fprintf(stderr," -- darray totals: %lld MB\n",gifti_gim_DA_size(p,1));
     if( subs ) gifti_disp_nvpairs("gim->ex_atrs" , &p->ex_atrs);
-    else fprintf(stderr," -- darray totals: %lld MB\n",gifti_gim_DA_size(p,1));
 
     fprintf(stderr,"==================================================\n");
 
@@ -1946,19 +1997,14 @@ int gifti_set_extern_filelist(gifti_image * gim, int nfiles, char ** files)
         return 1;
     }
 
-    if(G.verb > 4) fprintf(stderr,"-- set_extern_flist for %d files\n", nfiles);
-
     nper = gim->numDA / nfiles;
+
+    if(G.verb>4) fprintf(stderr,"-- set_extern_flist for %d files (nper=%d)\n",
+                         nfiles, nper);
+
     if( nfiles * nper != gim->numDA ) { /* be sure division is integral */
         fprintf(stderr,"** Cannot evenly divide %d DataArrays by %d"
                        " external files\n", gim->numDA, nfiles);
-        return 1;
-    }
-
-    /* note and check nbytes */
-    nbytes = gim->darray[0]->nvals * gim->darray[0]->nbyper;
-    if( nbytes <= 0 ) {
-        fprintf(stderr,"** gifti_set_extern_filelist: bad nbytes\n");
         return 1;
     }
 
@@ -1969,13 +2015,21 @@ int gifti_set_extern_filelist(gifti_image * gim, int nfiles, char ** files)
             return 1;
         }
 
+        /* note and check nbytes */
+        nbytes = gim->darray[daindex]->nvals * gim->darray[daindex]->nbyper;
+        if( nbytes <= 0 ) {
+            fprintf(stderr,"** gifti_set_extern_filelist: bad nbytes\n");
+            return 1;
+        }
+
         /* within this file, offset will be multiples of nbytes */
         for( oindex=0, offset=0; oindex < nper; oindex++, offset += nbytes ) {
             da = gim->darray[daindex];
 
             if( nbytes != da->nvals * da->nbyper ) {
-              fprintf(stderr,"** set_extern_flist: nbytes mismatch at DA[%d]\n",
-                      daindex);
+              fprintf(stderr,"** set_extern_flist: nbytes mismatch at DA[%d]\n"
+                             "   (expected %lld, found %lld)\n",
+                             daindex, nbytes, da->nvals * da->nbyper);
               return 1;
             }
 
@@ -2173,26 +2227,27 @@ int gifti_copy_LabelTable(giiLabelTable * dest, const giiLabelTable * src)
     if( G.verb > 6 ) fprintf(stderr,"++ copy_LT\n");
 
     /* quick case: empty table */
-    if( src->length <= 0 ) {
-        dest->length = 0;
-        dest->index = NULL;
-        dest->label = NULL;
-        return 0;
-    }
+    if( src->length <= 0 ) return gifti_clear_LabelTable(dest);
 
     /* otherwise, allocate and copy lists */
     dest->length = src->length;
 
     dest->index = (int *)malloc(dest->length * sizeof(int));
     dest->label = (char **)malloc(dest->length * sizeof(char *));
+    if( src->rgba )
+        dest->rgba = (float *)malloc(dest->length * 4 * sizeof(float));
 
     /* check for failure */
-    if( !dest->index || !dest->label ) {
+    if( !dest->index || !dest->label || (src->rgba && !dest->rgba) ) {
         fprintf(stderr,"** failed to dup label arrays of length %d\n",
                 dest->length);
         gifti_free_LabelTable(dest);
         return 1;
     }
+
+    /* copy any rgba list */
+    if( dest->rgba )
+        memcpy(dest->rgba, src->rgba, dest->length * 4 * sizeof(float));
 
     /* copy indices */
     for( c = 0; c < dest->length; c++ )
@@ -2391,10 +2446,10 @@ int gifti_copy_all_DA_meta(giiDataArray *dest, giiDataArray *src)
 int gifti_compare_gifti_images(const gifti_image * g1, const gifti_image * g2,
                                int comp_data, int verb)
 {
-    int diffs = 0, data_diffs = 0, c, rv, numDA;
+    int diffs = 0, data_diffs = 0, gdiffs = 0, c, rv, numDA;
     int lverb = verb;           /* possibly override passed 'verb' */
 
-    if( G.verb > 3 ) lverb = 3;
+    if( G.verb > lverb ) lverb = G.verb;
 
     if( !g1 || !g2 ) {
         if( !g1 && !g2 ) return 0;  /* both NULL means equal */
@@ -2407,7 +2462,7 @@ int gifti_compare_gifti_images(const gifti_image * g1, const gifti_image * g2,
     if( gifti_compare_gims_only(g1, g2, lverb) ) {
         if( lverb > 0 ) printf("++ gifti_images differ\n");
         if( lverb < 2 ) return 1;        /* all we need to know */
-        diffs++;
+        gdiffs++;
     }
 
     /* get min numDA, just to be safe */
@@ -2424,14 +2479,17 @@ int gifti_compare_gifti_images(const gifti_image * g1, const gifti_image * g2,
         }
     }
 
-    /* maybe we should state data diffs separately */
-    if( G.verb > 2 && comp_data ) {
-        if( ! data_diffs ) fprintf(stderr,"-- no data differences found\n");
-        else fprintf(stderr,"-- data differences found in %d of %d DAs\n",
-                            data_diffs, numDA);
+    if( diffs && lverb > 0 )
+        printf("-- differences found in %d of %d DAs\n", diffs, numDA);
+
+    /* state data diffs separately */
+    if( lverb > 2 && comp_data ) {
+        if( ! data_diffs ) printf("-- no data differences found\n");
+        else printf("-- data differences found in %d of %d DAs\n",
+                    data_diffs, numDA);
     }
 
-    if( diffs ) return 1;
+    if( diffs || gdiffs ) return 1;
     return 0;
 }
 
@@ -2447,7 +2505,7 @@ int gifti_compare_gifti_data(const gifti_image * g1, const gifti_image * g2,
 {
     int lverb = verb, c, diffs = 0, numDA;
 
-    if( G.verb > 2 ) lverb = 2;
+    if( G.verb > lverb ) lverb = G.verb;
 
     if( !g1 || !g2 ) {
         if( !g1 && !g2 ) return 0;  /* both NULL means equal */
@@ -2468,7 +2526,7 @@ int gifti_compare_gifti_data(const gifti_image * g1, const gifti_image * g2,
     for( c = 0; c < numDA; c++ ) {
         if( gifti_compare_DA_data(g1->darray[c],g2->darray[c],lverb) ) {
             diffs++;
-            if( lverb > 0 ) printf("++ data differece at DataArray[%d]\n", c);
+            if( lverb > 0 ) printf("++ data difference at DataArray[%d]\n", c);
             if( lverb < 2 ) return 1;
         }
     }
@@ -2479,6 +2537,7 @@ int gifti_compare_gifti_data(const gifti_image * g1, const gifti_image * g2,
     }
 
     if( G.verb > 1 ) fprintf(stderr,"-- no data diffs found\n");
+
     return 0;
 }
 
@@ -2508,11 +2567,9 @@ int gifti_compare_DA_data(const giiDataArray * d1, const giiDataArray * d2,
     /* okay, let's test the data */
     offset = gifti_compare_raw_data(d1->data,d2->data,nbytes);
 
-    if( offset < 0 ) {  /* some pointer not set */
-        if( verb > 1 ) printf("-- diff in DA data pointers set\n");
-        return 1;
-    } else if ( offset > 0 ) {  /* actual difference in data */
-        if(verb > 1) printf("-- diff in DA data at offset %lld\n",offset);
+    if ( offset >= 0 ) {  /* difference in data */
+        if(verb > 1) printf("-- diff in DA data at posn %lld\n",
+                            offset/d1->nbyper);
         return 1;
     }
 
@@ -2528,7 +2585,7 @@ int gifti_compare_gims_only(const gifti_image * g1, const gifti_image * g2,
     int diffs = 0;
     int lverb = verb;           /* possibly override passed 'verb' */
 
-    if( G.verb > 3 ) lverb = 3;
+    if( G.verb > lverb ) lverb = G.verb;
 
     if( !g1 || !g2 ) {
         if( !g1 && !g2 ) return 0;   /* equal */
@@ -2599,6 +2656,7 @@ int gifti_compare_gims_only(const gifti_image * g1, const gifti_image * g2,
     return diffs;
 }
 
+/*! return 0 if equal, 1 if diffs, 2 if data diffs (and 3 if both diffs) */
 int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
                           int comp_data, int verb)
 {
@@ -2606,13 +2664,13 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
     int       c, top, diffs = 0, data_diffs = 0;
     int       lverb = verb;           /* possibly override passed 'verb' */
 
-    if( G.verb > 3 ) lverb = 3;
+    if( G.verb > lverb ) lverb = G.verb;
 
     if( !d1 || !d2 ) {
         if( !d1 && !d2 ) return 0;   /* equal */
         if(lverb>2)
             printf("-- comp DA: have NULL: %p, %p\n", (void*)d1,(void*)d2);
-        return 1;   /* not equal */
+        return 3;   /* not equal */
     }
 
     if( d1->intent != d2->intent ) {
@@ -2650,7 +2708,7 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
         if( lverb > 1 )
             printf("-- diff in DA num_dim: %d vs. %d\n",
                    d1->num_dim, d2->num_dim );
-        if( lverb < 3 ) return 1;
+        if( lverb < 3 ) return 3;
     }
 
     /* get minimum num_dim */
@@ -2665,7 +2723,7 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
             printf("  vs  ");
             gifti_disp_raw_data(d2->dims, NIFTI_TYPE_INT32, top, 1, stdout);
         }
-        if( lverb < 3 ) return 1;
+        if( lverb < 3 ) return 3;
     }
 
     if( d1->encoding != d2->encoding ) {
@@ -2725,7 +2783,7 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
     /* compare each of the CoordSystem structs */
     top = d1->numCS < d2->numCS ? d1->numCS : d2->numCS;
     for( c = 0; c < top; c++ )
-        if( gifti_compare_coordsys(d1->coordsys[c], d2->coordsys[c], verb) ) {
+        if( gifti_compare_coordsys(d1->coordsys[c], d2->coordsys[c],1,verb) ) {
             diffs = 1;
             if( lverb > 1 ) printf("-- diff in DA coordsys[%d]\n", c);
             if( lverb < 3 ) return 1;
@@ -2737,7 +2795,7 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
         if( lverb > 1 )
             printf("-- diff in DA nvals: %lld vs. %lld\n",
                d1->nvals, d2->nvals);
-        if( lverb < 3 ) return 1;
+        if( lverb < 3 ) return 3;
     }
 
     if( d1->nbyper != d2->nbyper ) {
@@ -2745,7 +2803,7 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
         data_diffs = 1;
         if( lverb > 1 )
             printf("-- diff in DA nbyper: %d vs. %d\n", d1->nbyper, d2->nbyper);
-        if( lverb < 3 ) return 1;
+        if( lverb < 3 ) return 3;
     }
 
     if( gifti_compare_nvpairs(&d1->ex_atrs, &d2->ex_atrs, verb) ) {
@@ -2758,18 +2816,242 @@ int gifti_compare_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
     /* (set the 2^1 bit for a data diff)                             */
     if( comp_data && !data_diffs && gifti_valid_dims(d1, 0) ) {
         offset = gifti_compare_raw_data(d1->data,d2->data,d1->nvals*d1->nbyper);
-        if( offset < 0 ) {
+        if ( offset >= 0 ) {
             diffs |= 2;
-            if( lverb > 1 ) printf("-- diff in DA data pointers set\n");
-            if( lverb < 3 ) return 1;
-        } else if ( offset > 0 ) {
-            diffs |= 2;
-            if(lverb > 1) printf("-- diff in DA data at offset %lld\n",offset);
-            if(lverb < 3) return 1;
+            if(lverb>1) printf("-- diff in DA data at position %lld\n",
+                               offset/d1->nbyper);
+            if(lverb<3) return 3;
         }
     }
 
     return diffs;
+}
+
+/*---------------------------------------------------------------------*/
+/*! return 1 if gifti_images are approximately equal (from a data standpoint)
+ *           note: return value is opposite from gifti_compare_gifti_images
+ *
+ *  verb  0-3 = quiet, state diff, state per DA, state all diffs
+ *
+ *  compare information close to the data:
+ *      - numDA
+ *      - labeltable
+ *      - darray elements (pairwise)
+ *  ignore version, meta, swapped, encoding, endian, ext_*, ex_atrs, etc.
+ *
+ *  return 1 if they are approximately the same, 0 if otherwise
+*//*-------------------------------------------------------------------*/
+int gifti_approx_gifti_images(const gifti_image * g1, const gifti_image * g2,
+                              int comp_data, int verb)
+{
+    int diffs = 0, c, numDA;
+    int lverb = verb;           /* possibly override passed 'verb' */
+
+    if( G.verb > lverb ) lverb = G.verb;
+
+    if( !g1 || !g2 ) {
+        if( !g1 && !g2 ) return 1;  /* both NULL means equal */
+
+        if(lverb) printf("-- gifti_images not approx (exactly one is NULL)\n");
+        return 0;
+    }
+
+    if( g1->numDA != g2->numDA ) {
+        if( lverb ) printf("-- gifti_images differ in numDA\n");
+        if( lverb < 2 ) return 0;
+        diffs++;
+    }
+
+    if( ! gifti_approx_labeltables(&g1->labeltable, &g2->labeltable, lverb) ) {
+        if( lverb ) printf("-- gifti labeltables not approx. equal\n");
+        if( lverb < 2 ) return 0;
+        diffs++;
+    }
+
+    /* get min numDA, just to be safe */
+    numDA = g1->numDA < g2->numDA ? g1->numDA : g2->numDA;
+    for( c = 0; c < numDA; c++ ) {
+        if( !gifti_approx_DA_pair(g1->darray[c],g2->darray[c],comp_data,lverb)){
+            diffs++;
+            if(lverb) printf("++ DataArrays[%d] - not approximately equal\n",c);
+            if( lverb < 2 ) break;
+        }
+    }
+
+    if( diffs && lverb > 0 ) printf("-- GIFTI: approx diffs found\n");
+
+    return ! diffs;
+}
+
+/* ------------------------------------------------------------------------- */
+/*! return 1 if DAs are approximately equal (opposite of compare functions)
+ *
+ * test for difference in:
+ *
+ *      transformation matrices : 16 values each (approx)
+ *      coordinates             : 3 values per node (approx)
+ *      triangles               : exact (starting node can be any of the 3)
+ *      data                    : approx
+ *
+ * lverb = 0    : no print (no print anywhere)
+ *         1    : no print (print at higher level)
+ *         2    : print DA level diff
+ *         3    : print all diffs
+ *
+ */
+int gifti_approx_DA_pair(const giiDataArray * d1, const giiDataArray * d2,
+                          int comp_data, int verb)
+{
+    int c, top, can_comp, offset, diffs = 0;
+    int lverb = verb;           /* possibly override passed 'verb' */
+
+    if( G.verb > lverb ) lverb = G.verb;
+
+    /* deal with any NULLs for starter */
+    if( !d1 && !d2 ) {
+        if(lverb>2) printf("-- approx DA: have NULL\n");
+        return 1;       /* yes, these are equal */
+    } else if( !d1 || !d2 ) {
+        if(lverb>2) printf("-- approx DA: have one NULL\n");
+        return 0;       /* not approximately equal */
+    }
+
+    /* do early, to put higher level whining first */
+    can_comp = can_compare_DA_data(d1, d2, verb);
+
+    if( d1->numCS != d2->numCS ) {
+        diffs = 1;
+        if( lverb > 1 ) printf("-- approx DA: diff in numCS\n");
+        if( lverb < 3 ) return 0;
+    }
+
+    /* compare each of the CoordSystem structs */
+    top = d1->numCS < d2->numCS ? d1->numCS : d2->numCS;
+    for( c = 0; c < top; c++ ) {
+        /* first compare without checking the data */
+        if( gifti_compare_coordsys(d1->coordsys[c], d2->coordsys[c],1,verb) ) {
+            diffs = 1;
+            if( lverb > 1 ) printf("-- diff in DA coordsys[%d]\n", c);
+            if( lverb < 3 ) return 0;
+        }
+    }
+
+    /* if we cannot or do not want to compare the data, return */
+    if( ! comp_data || ! can_comp ) return !diffs;
+
+    /* if data is coordinates, compare percent diff
+     * if trianges, compare exactly, but with any starting index
+     * else, compare percent diff */
+    if( d1->intent == d2->intent && d1->intent==NIFTI_INTENT_TRIANGLE ) {
+        /* verify that these look like triangles */
+        if( d1->num_dim < 2 || d1->dims[1] != 3 ) {
+            if( lverb > 1 ) printf("-- approx DA: bad dims for TRIANGLEs: "
+                       "num_dim=%d, dims[1]=%d\n", d1->num_dim, d1->dims[1]);
+            return 0;
+        }
+
+        offset = gifti_triangle_diff_offset(d1->data, d2->data, d1->dims[0],
+                                            d1->datatype);
+        if( offset >= 0 ) {
+            diffs |= 2;
+            if(lverb > 1) printf("-- approx DA: triange diff at offset %d\n",
+                                 offset);
+            if(lverb < 3) return 0;
+        }
+    } else {
+        offset = gifti_approx_diff_offset(d1->data, d2->data, d1->nvals,
+                                          d1->datatype, 1.0);
+        if( offset >= 0 ) {
+            diffs |= 2;
+            if(lverb>1) printf("-- approx DA: data diff at offset %d\n",offset);
+            if(lverb<3) return 0;
+        }
+    }
+
+    return !diffs;
+}
+
+
+/* return whether the DA elements match so as to compare the data
+ *
+ * apply the same verb as above
+ */
+static int can_compare_DA_data(const giiDataArray *d1,const giiDataArray *d2,
+                               int verb)
+{
+    int c, top, rv = 1;
+    int lverb = verb;   /* possibly override passed 'verb' */
+
+    if( G.verb > lverb ) lverb = G.verb;
+
+    if( !d1 || !d2 ) {
+        if(lverb>1) printf("-- comp DAs: have NULL DA(s) (%p, %p)\n",
+                           (void*)d1,(void*)d2);
+        return 0;   /* not equal */
+    }
+
+    if( d1->datatype != d2->datatype ) {
+        rv = 0;
+        if( lverb > 1 )
+            printf("-- comp DAs: DA datatype diff: %d (%s) vs. %d (%s)\n",
+                   d1->datatype, gifti_datatype2str(d1->datatype),
+                   d2->datatype, gifti_datatype2str(d2->datatype));
+        if( lverb < 3 ) return 0;
+    }
+
+    if( d1->ind_ord != d2->ind_ord ) {
+        rv = 0;
+        if( lverb > 1 )
+            printf("-- comp DAs: ind_ord diff: %d (%s) vs. %d (%s)\n",
+               d1->ind_ord,
+               gifti_list_index2string(gifti_index_order_list, d1->ind_ord),
+               d2->ind_ord,
+               gifti_list_index2string(gifti_index_order_list, d2->ind_ord));
+        if( lverb < 3 ) return 0;
+    }
+
+    if( d1->num_dim != d2->num_dim ) {
+        rv = 0;
+        if( lverb > 1 ) printf("-- comp DAs: num_dim diff: %d vs. %d\n",
+                               d1->num_dim, d2->num_dim );
+        if( lverb < 3 ) return 0;
+    }
+
+    /* get minimum num_dim */
+    top = d1->num_dim < d2->num_dim ? d1->num_dim : d2->num_dim;
+    for( c = 0; c < top; c++ ) if( d1->dims[c] != d2->dims[c] ) break;
+    if( c < top ) {
+        rv = 0;
+        if( lverb > 1 ) {
+            printf("-- comp DAs: DA dims diff (length %d)\n   ", top);
+            gifti_disp_raw_data(d1->dims, NIFTI_TYPE_INT32, top, 0, stdout);
+            printf("  vs  ");
+            gifti_disp_raw_data(d2->dims, NIFTI_TYPE_INT32, top, 1, stdout);
+        }
+        if( lverb < 3 ) return 0;
+    }
+
+    if( d1->nvals != d2->nvals ) {
+        rv = 0;
+        if( lverb > 1 ) printf("-- comp DAs: nvals diff: %lld vs. %lld\n",
+                               d1->nvals, d2->nvals);
+        if( lverb < 3 ) return 0;
+    }
+
+    if( d1->nbyper != d2->nbyper ) {
+        rv = 0;
+        if( lverb > 1 ) printf("-- comp DAs: nbyper diff: %d vs. %d\n",
+                               d1->nbyper, d2->nbyper);
+        if( lverb < 3 ) return 0;
+    }
+
+    /* as a last test, make sure dims are valid, not just the same */
+    if( ! gifti_valid_dims(d1, 0) ) {
+        rv = 0;
+        if( lverb > 1 ) printf("-- comp DAs: dims not valid\n");
+    }
+
+    return rv;
 }
 
 /*---------------------------------------------------------------------*/
@@ -2784,7 +3066,7 @@ int gifti_compare_nvpairs(const nvpairs * p1, const nvpairs * p2, int verb)
     int    lverb = verb;        /* possibly override passed verb */
     int    c, len, diffs = 0;
 
-    if( G.verb > 3 ) lverb = 3;
+    if( G.verb > lverb ) lverb = G.verb;
 
     if( !p1 || !p2 ) {
         if(!p1 && !p2) return 0;   /* equal */
@@ -2843,15 +3125,43 @@ int gifti_compare_nvpairs(const nvpairs * p1, const nvpairs * p2, int verb)
 /*---------------------------------------------------------------------*/
 /*! check pointers, lengths and contents
  *
+ *  return 0 if equal
+ *
  *  only state diffs in the verb=3 case
 *//*-------------------------------------------------------------------*/
 int gifti_compare_labeltable(const giiLabelTable *t1, const giiLabelTable *t2,
                              int verb)
 {
-    int lverb = verb;        /* possibly override passed verb */
-    int c, diffs = 0;
+    return compare_labeltables(t1, t2, verb, 0);
+}
 
-    if( G.verb > 3 ) lverb = 3;
+/*---------------------------------------------------------------------*/
+/*! return 1 if tables are approximately equal (opposite of compare function)
+ *
+ *  RGBA data is compared approximately
+ *
+ *  only state diffs in the verb=3 case
+*//*-------------------------------------------------------------------*/
+int gifti_approx_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
+                             int verb)
+{
+    return( ! compare_labeltables(t1, t2, verb, 1));
+}
+
+/*---------------------------------------------------------------------*/
+/*! check pointers, lengths and contents
+ *
+ *  only state diffs in the verb=3 case
+ *
+ *  if approx, compare RBGA approximately
+*//*-------------------------------------------------------------------*/
+static int compare_labeltables(const giiLabelTable *t1, const giiLabelTable *t2,
+                               int verb, int approx)
+{
+    int lverb = verb;        /* possibly override passed verb */
+    int c, roff, offset, diffs = 0;
+
+    if( G.verb > lverb ) lverb = G.verb;
 
     if( !t1 || !t2 ) {
         if(!t1 && !t2) return 0;   /* equal */
@@ -2866,16 +3176,44 @@ int gifti_compare_labeltable(const giiLabelTable *t1, const giiLabelTable *t2,
     if( t1->length != t2->length ) {
         if(lverb>2)printf("-- labeltable lengths diff: %d vs. %d\n",
                           t1->length, t2->length);
+        return 1;  /* cannot compare without equal lengths */
+    }
+
+    /* exactly 1 RGBA list is a difference */
+    if( (t1->rgba && !t2->rgba) || (!t1->rgba && t2->rgba) ) {
+        if(lverb>2)printf("-- only 1 labeltable has RGBA list\n");
+        if(lverb<3) return 1;
+    }
+
+    /* so lengths are positive and equal, compare index list and labels */
+
+    /* set limit to 0.0 to compare indicies exactly */
+    offset = (int)gifti_approx_diff_offset(t1->index, t2->index,
+                       t1->length, NIFTI_TYPE_INT32, approx?1.0:0.0);
+    if( offset >= 0 ) {
+        if(lverb>2)printf("-- labeltable Index diff at index %d\n", offset);
         if(lverb<3) return 1;
         diffs++;
     }
 
-    /* so lengths are positive and equal, find first difference */
+    /* walk through list to compare labels */
+    roff = 0;
     for( c = 0; c < t1->length; c++ ) {
-        if( t1->index[c] != t2->index[c] ||
-            gifti_strdiff(t1->label[c], t2->label[c]) )
-        {
-            if(lverb>2)printf("-- labeltable diff at index %d\n", c);
+        if( gifti_strdiff(t1->label[c], t2->label[c]) ) {
+            if(lverb>2)printf("-- labeltable Label diff at index %d\n", c);
+            if(lverb<3) return 1;
+            diffs++;
+            break;      /* stop at first difference */
+        }
+    }
+
+    if( t1->rgba && t2->rgba ) {
+        /* if not approx, set limit to 0.0 to compare exactly */
+        offset = (int)gifti_approx_diff_offset(t1->rgba, t2->rgba,
+                           4*t1->length, NIFTI_TYPE_FLOAT32, approx?1.0:0.0);
+        if( offset >= 0 ) {
+            offset /= 4;  /* convert from float index to RGBA index */
+            if(lverb>2)printf("-- labeltable RGBA diff at index %d\n", offset);
             if(lverb<3) return 1;
             diffs++;
         }
@@ -2905,13 +3243,13 @@ int gifti_strdiff(const char * s1, const char * s2)
  *  only state diffs in the verb=3 case
 *//*-------------------------------------------------------------------*/
 int gifti_compare_coordsys(const giiCoordSystem *s1, const giiCoordSystem *s2,
-                           int verb)
+                           int comp_data, int verb)
 {
     long long offset;
     int       lverb = verb;        /* possibly override passed verb */
     int       diffs = 0;
 
-    if( G.verb > 3 ) lverb = 3;
+    if( G.verb > lverb ) lverb = G.verb;
 
     if( !s1 || !s2 ) {
         if(!s1 && !s2) return 0;   /* equal */
@@ -2947,9 +3285,12 @@ int gifti_compare_coordsys(const giiCoordSystem *s1, const giiCoordSystem *s2,
         diffs++;
     }
 
+    if( ! comp_data ) return diffs;     /* maybe we are done */
+
     offset = gifti_compare_raw_data(s1->xform, s2->xform, sizeof(s1->xform));
-    if( offset ) {
-        if(lverb>2) printf("-- coordsys xform diff at posn %lld\n", offset);
+    if( offset >= 0 ) {
+        if(lverb>2) printf("-- coordsys xform diff at offset %lld\n",
+                           offset/sizeof(double));
         if( lverb < 3 ) return 1;
         diffs++;
     }
@@ -2960,7 +3301,7 @@ int gifti_compare_coordsys(const giiCoordSystem *s1, const giiCoordSystem *s2,
 /*---------------------------------------------------------------------*/
 /*! compare raw data, returing the first location difference
  *
- * (return -1 if the pointers differ in whether they are set) 
+ * return byte position of difference, so that < 0 means no difference
 *//*-------------------------------------------------------------------*/
 long long gifti_compare_raw_data(const void * p1, const void * p2,
                                  long long length)
@@ -2969,9 +3310,9 @@ long long gifti_compare_raw_data(const void * p1, const void * p2,
     char      * d1 = (char *)p1, * d2 = (char *)p2;
 
     if( !p1 || !p2 ) {
-        if( !p1 && !p2 ) return 0; /* both NULL -> same */
+        if( !p1 && !p2 ) return -1; /* both NULL -> same */
         if( G.verb > 3 ) fprintf(stderr,"-- raw_data pointer diff\n");
-        return -1;  /* set difference */
+        return 0;  /* set difference */
     }
 
     /* scan data until done or a difference is found */
@@ -2982,10 +3323,276 @@ long long gifti_compare_raw_data(const void * p1, const void * p2,
 
     if( posn < length ) return posn;    /* differ at posn */
 
-    return 0;  /* equal */
+    return -1;  /* equal */
+}
+
+
+/* make a local definition for this symmetric fractional difference */
+#undef GIFTI_SFD
+#define GIFTI_SFD(a,b) (fabs((a)-(double)(b))/(fabs(a)+fabs(b)))
+
+/*---------------------------------------------------------------------*/
+/*! approximate comparison of raw data, returing the first location difference
+ *  (>= 0 means difference, -1 means "approximately equal")
+ *
+ * Compute a symmetric fractional difference:
+ *
+ *      SFD = abs(a-b)/(abs(a)+abs(b))
+ *
+ * length       - number of contiguous elements to test
+ * ni_type      - NIFTI_TYPE_*, denoting the type of data to compare
+ * limit        - maximum SFD to be considered approximately equal
+ *
+ *              * if limit = 0.0, check is faster
+ *
+ *              * if limit >= 1.0, apply a default requiring almost all
+ *                significant bits
+ *
+ *              * for integers, all bits are considered significant
+ *              * for real numbers, mantissa bits are considered significant
+ *
+ * return offset index, so that < 0 (-1)  means no difference
+ *
+ * (return -1 if the pointers differ in whether they are set) 
+*//*-------------------------------------------------------------------*/
+long long gifti_approx_diff_offset(const void * p1, const void * p2,
+                                   long long length, int ni_type, double limit)
+{
+    long long posn;
+    double    llim = limit; /* local limit (passed limit or default) */
+
+    if( !p1 || !p2 ) {
+        if( !p1 && !p2 ) return -1; /* same */
+        return 0;                   /* different */
+    }
+
+    switch( ni_type ) {
+        default:
+            fprintf(stderr,"** cannot test approx data with type %d (%s)\n",
+                    ni_type, nifti_datatype_to_string(ni_type));
+            return 0;
+
+        case NIFTI_TYPE_INT8: {
+            char * d1 = (char *)p1, * d2 = (char *)p2;
+            if( llim >= 1.0 ) llim = 1e-2;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_INT16: {
+            short * d1 = (short *)p1, * d2 = (short *)p2;
+            if( llim >= 1.0 ) llim = 1e-3;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_INT32: {
+            int * d1 = (int *)p1, * d2 = (int *)p2;
+            if( llim >= 1.0 ) llim = 1e-9;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_INT64: {
+            long long * d1 = (long long *)p1, * d2 = (long long *)p2;
+            if( llim >= 1.0 ) llim = 1e-18;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_UINT8: {
+            unsigned char *d1 = (unsigned char *)p1, *d2 = (unsigned char *)p2;
+            if( llim >= 1.0 ) llim = 1e-2;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_UINT16: {
+            unsigned short *d1=(unsigned short *)p1, *d2=(unsigned short *)p2;
+            if( llim >= 1.0 ) llim = 1e-4;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_UINT32: {
+            unsigned int * d1 = (unsigned int *)p1, * d2 = (unsigned int *)p2;
+            if( llim >= 1.0 ) llim = 1e-9;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_UINT64: {
+            unsigned long long * d1 = (unsigned long long *)p1;
+            unsigned long long * d2 = (unsigned long long *)p2;
+            if( llim >= 1.0 ) llim = 1e-18;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_FLOAT32: {
+            float * d1 = (float *)p1, * d2 = (float *)p2;
+            if( llim >= 1.0 ) llim = 1e-6;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+        case NIFTI_TYPE_FLOAT64: {
+            double * d1 = (double *)p1, * d2 = (double *)p2;
+            if( llim >= 1.0 ) llim = 1e-12;
+            for( posn = 0; posn < length; posn++, d1++, d2++ ) {
+                if( *d1 == *d2 ) continue;      /* fast check for equality */
+                if( llim == 0.0 ) break;        /* fast check for inequality */
+                if( GIFTI_SFD(*d1,*d2) > llim ) break; /* not approximate */
+            }
+            break;
+        }
+    }
+
+    if( posn < length ) return posn;    /* differ at 1-based posn */
+
+    return -1;  /* approximately equal */
 }
 
 /*---------------------------------------------------------------------*/
+/*! compare triangles - return triangle index of first difference
+ *                    - so -1 means no difference
+ *
+ *  require the type to be 1, 2 or 4-byte integers
+ *  could cheat and compare as unsigned...
+ *
+ *  require consistent wrapping, but allow for varying first vertex
+*//*-------------------------------------------------------------------*/
+int gifti_triangle_diff_offset(const void *p1, const void *p2, int ntri,
+                               int ni_type)
+{
+    int posn = -1;
+
+    /* if either pointer is not set, we're out of here */
+    if( !p1 || !p2 ) {
+        if( !p1 && !p2 ) return -1; /* same */
+        return 0;                   /* different */
+    }
+
+    if( ntri <= 0 ) return -1;
+
+    switch( ni_type ) {
+        case NIFTI_TYPE_INT8: {
+            char * d1 = (char *)p1, * d2 = (char *)p2;
+            for( posn = 0; posn < ntri; posn++, d1+=3, d2+=3 ) {
+                if( *d1 == *d2 ) {              /* same first index */
+                    if( d1[1] != d2[1] || d1[2] != d2[2] ) break;
+                } else if ( d1[0] == d2[1] ) {  /* index off by 1   */
+                    if( d1[1] != d2[2] || d1[2] != d2[0] ) break;
+                } else if ( d1[0] == d2[2] ) {  /* index off by 2   */
+                    if( d1[1] != d2[0] || d1[2] != d2[1] ) break;
+                }
+            }
+            break;
+        }
+        case NIFTI_TYPE_INT16: {
+            short * d1 = (short *)p1, * d2 = (short *)p2;
+            for( posn = 0; posn < ntri; posn++, d1+=3, d2+=3 ) {
+                if( *d1 == *d2 ) {              /* same first index */
+                    if( d1[1] != d2[1] || d1[2] != d2[2] ) break;
+                } else if ( d1[0] == d2[1] ) {  /* index off by 1   */
+                    if( d1[1] != d2[2] || d1[2] != d2[0] ) break;
+                } else if ( d1[0] == d2[2] ) {  /* index off by 2   */
+                    if( d1[1] != d2[0] || d1[2] != d2[1] ) break;
+                }
+            }
+            break;
+        }
+        case NIFTI_TYPE_INT32: {
+            int * d1 = (int *)p1, * d2 = (int *)p2;
+            for( posn = 0; posn < ntri; posn++, d1+=3, d2+=3 ) {
+                if( *d1 == *d2 ) {              /* same first index */
+                    if( d1[1] != d2[1] || d1[2] != d2[2] ) break;
+                } else if ( d1[0] == d2[1] ) {  /* index off by 1   */
+                    if( d1[1] != d2[2] || d1[2] != d2[0] ) break;
+                } else if ( d1[0] == d2[2] ) {  /* index off by 2   */
+                    if( d1[1] != d2[0] || d1[2] != d2[1] ) break;
+                }
+            }
+            break;
+        }
+        case NIFTI_TYPE_UINT8: {
+            unsigned char *d1 = (unsigned char *)p1, *d2 = (unsigned char *)p2;
+            for( posn = 0; posn < ntri; posn++, d1+=3, d2+=3 ) {
+                if( *d1 == *d2 ) {              /* same first index */
+                    if( d1[1] != d2[1] || d1[2] != d2[2] ) break;
+                } else if ( d1[0] == d2[1] ) {  /* index off by 1   */
+                    if( d1[1] != d2[2] || d1[2] != d2[0] ) break;
+                } else if ( d1[0] == d2[2] ) {  /* index off by 2   */
+                    if( d1[1] != d2[0] || d1[2] != d2[1] ) break;
+                }
+            }
+            break;
+        }
+        case NIFTI_TYPE_UINT16: {
+            unsigned short *d1=(unsigned short *)p1, *d2=(unsigned short *)p2;
+            for( posn = 0; posn < ntri; posn++, d1+=3, d2+=3 ) {
+                if( *d1 == *d2 ) {              /* same first index */
+                    if( d1[1] != d2[1] || d1[2] != d2[2] ) break;
+                } else if ( d1[0] == d2[1] ) {  /* index off by 1   */
+                    if( d1[1] != d2[2] || d1[2] != d2[0] ) break;
+                } else if ( d1[0] == d2[2] ) {  /* index off by 2   */
+                    if( d1[1] != d2[0] || d1[2] != d2[1] ) break;
+                }
+            }
+            break;
+        }
+        case NIFTI_TYPE_UINT32: {
+            unsigned int * d1 = (unsigned int *)p1, * d2 = (unsigned int *)p2;
+            for( posn = 0; posn < ntri; posn++, d1+=3, d2+=3 ) {
+                if( *d1 == *d2 ) {              /* same first index */
+                    if( d1[1] != d2[1] || d1[2] != d2[2] ) break;
+                } else if ( d1[0] == d2[1] ) {  /* index off by 1   */
+                    if( d1[1] != d2[2] || d1[2] != d2[0] ) break;
+                } else if ( d1[0] == d2[2] ) {  /* index off by 2   */
+                    if( d1[1] != d2[0] || d1[2] != d2[1] ) break;
+                }
+            }
+            break;
+        }
+        default: {
+            fprintf(stderr,"** gifti_tri_diff: invalid type %d\n", ni_type);
+            return 1;
+        }
+    }
+
+    if( posn < ntri ) return posn;   /* difference offset */
+
+    return -1;  /* no difference */
+}
+
+/*-----------------------------------------------------------------*/
 /*! print raw data (nvals of type 'type') to the given file stream
  *
  *  possibly write a trailing newline
@@ -3040,7 +3647,7 @@ int gifti_disp_raw_data(const void * data, int type, int nvals, int newline,
                 fprintf(fp, "%s", fbuf);
                 break;
             default:
-                fprintf(stderr,"** Gdisp_raw_data: unknown type %d\n", type);
+                fprintf(stderr,"** Gdisp_raw_data: invalid type %d\n", type);
                 return 1;
         }
         if( c < nvals - 1 ) fputc(' ', fp);

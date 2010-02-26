@@ -82,9 +82,10 @@ typedef struct {
 typedef nvpairs giiMetaData;
 
 typedef struct {
-    int     length;
-    int   * index;
-    char ** label;
+    int      length;      /* length of each array, if allocated            */
+    int    * index;
+    char  ** label;
+    float  * rgba;        /* (optional) RGBA tuples (4*length, in [0,1.0]) */
 } giiLabelTable;
 
 typedef struct {
@@ -102,7 +103,7 @@ typedef struct {
     int               dims[6];    /* dimension lengths (first num_dim set) */
     int               encoding;   /* format of Data on disk                */
     int               endian;     /* endian, if binary Encoding            */
-    char *            ext_fname;  /* external filename, in cur directory   */
+    char            * ext_fname;  /* external filename, in cur directory   */
     long long         ext_offset; /* offset of data within external file   */
 
     /* elements */
@@ -260,16 +261,23 @@ int    gifti_valid_nvpairs      (const nvpairs * nvp, int whine);
 int    gifti_write_extern_DA_data(giiDataArray * da);
 
 /* comparison functions */
+int gifti_approx_gifti_images   (const gifti_image * g1, const gifti_image * g2,
+                                 int comp_data, int verb);
+int gifti_compare_gifti_images  (const gifti_image * g1, const gifti_image * g2,
+                                 int comp_data, int verb);
+
+int gifti_approx_DA_pair        (const giiDataArray*d1, const giiDataArray *d2,
+                                 int comp_data, int verb);
+int gifti_approx_labeltables    (const giiLabelTable*t1,const giiLabelTable *t2,
+                                 int verb);
 int gifti_compare_coordsys      (const giiCoordSystem * s1,
-                                 const giiCoordSystem * s2,int verb);
+                           const giiCoordSystem * s2,int comp_data, int verb);
 int gifti_compare_DA_data       (const giiDataArray *d1, const giiDataArray *d2,
                                  int verb);
 int gifti_compare_DA_pair       (const giiDataArray *d1, const giiDataArray *d2,
                                  int comp_data, int verb);
 int gifti_compare_gifti_data    (const gifti_image * g1, const gifti_image * g2,
                                  int verb);
-int gifti_compare_gifti_images  (const gifti_image * g1, const gifti_image * g2,
-                                 int comp_data, int verb);
 int gifti_compare_gims_only     (const gifti_image * g1, const gifti_image * g2,
                                  int verb);
 int gifti_compare_labeltable    (const giiLabelTable*t1, const giiLabelTable*t2,
@@ -277,8 +285,12 @@ int gifti_compare_labeltable    (const giiLabelTable*t1, const giiLabelTable*t2,
 int gifti_compare_nvpairs       (const nvpairs *p1, const nvpairs *p2,int verb);
 int gifti_strdiff               (const char * s1, const char * s2);
 
+long long gifti_approx_diff_offset(const void * p1, const void * p2,
+                                 long long length, int ni_type, double limit);
 long long gifti_compare_raw_data(const void * p1, const void * p2,
                                  long long length);
+int       gifti_triangle_diff_offset(const void *p1, const void *p2,
+                                 int ntri, int ni_type);
 
 /* display functions */
 void   gifti_disp_dtd_url        (void);

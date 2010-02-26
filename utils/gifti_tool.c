@@ -34,9 +34,12 @@ static char * g_history[] =
   "     - added -copy_gifti_meta, -copy_DA_meta\n"
   "1.0  13 May, 2008: based on release library version 1.0\n",
   "     - added -set_extern_filelist\n"
+  "1.1  02 Oct, 2008: mention NITRC web site in help\n"
+  "1.2  17 Apr, 2009: added -set_extern_filelist help and more examples\n",
+  "1.3  24 Dec, 2009: added -approx_gifti option\n"
 };
 
-static char g_version[] = "gifti_tool version 1.0, 13 March 2008";
+static char g_version[] = "gifti_tool version 1.3, 24 December 2009";
 
 /* globals: verbosity, for now */
 typedef struct { int verb; } gt_globs;
@@ -125,7 +128,10 @@ static int process_opts(int argc, char *argv[], gt_opts * opts)
         }
 
         /* now alphabetical */
-        else if( !strcmp(argv[ac], "-b64_check") ) {
+        else if( !strcmp(argv[ac], "-approx_gifti") ) {
+            opts->approx_gifti = 1;
+            opts->gt_compare = 1;
+        } else if( !strcmp(argv[ac], "-b64_check") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-b64_check");
             if     ( !strcmp(argv[ac], "NONE" ) )
@@ -481,8 +487,13 @@ int gt_compare(gt_opts * opts)
     gimA = gt_read_dataset(opts, opts->infiles.list[0]);
     gimB = gt_read_dataset(opts, opts->infiles.list[1]);
 
-    if( !gimA || !gimB ) rv0 = -1;  /* if failure, make no comparison */
-    else {
+    if( !gimA || !gimB ) { /* if failure, make no comparison */
+        gifti_free_image(gimA);
+        gifti_free_image(gimB);
+        return -1;
+    }
+
+    if( opts->comp_gifti || opts->comp_data ) {
         if( opts->comp_gifti ) {
             rv0 = gifti_compare_gifti_images(gimA, gimB, 0, opts->comp_verb);
             if( !rv0 && opts->comp_verb > 0 )
@@ -495,6 +506,14 @@ int gt_compare(gt_opts * opts)
         }
 
         rv0 |= rv1;
+    } 
+
+    if( opts->approx_gifti ) {
+            /* return value of approx is opposite that of compare */
+            rv0 = gifti_approx_gifti_images(gimA, gimB, 1, opts->comp_verb);
+            if( rv0 && opts->comp_verb > 0 )
+                printf("++ gifti_images are approximately equal\n");
+        rv0 = !rv0;  /* invert return value for exit status */
     }
 
     gifti_free_image(gimA);
@@ -948,7 +967,8 @@ static int show_hist(void)
 {
     int c, len = sizeof(g_history)/sizeof(char *);
     for( c = 0; c < len; c++)
-        printf(g_history[c]);
+        fputs(g_history[c], stdout);
+    putchar('\n');
     return 0;
 }
 
@@ -1026,7 +1046,8 @@ static int show_help()
     "                    -new_ndim 1 -new_dims 40 0 0 0 0 0        \\\n"
     "                    -set_extern_filelist ext1.bin ext2.bin    \\\n"
     "                    -write_gifti points_to_extern.gii\n"
-    "\n"
+    "\n");
+    printf(
     "    5. modify a gifti dataset\n"
     "\n"
     "      a. apply various modifications at the GIFTI level and to all DAs\n"
@@ -1062,10 +1083,48 @@ static int show_help()
     "\n"
     );
     printf (
+    "      d. convert a POINTSET/TRIANGLE Base64 format dataset to one where\n"
+    "         to one where the data is external (raw binary):\n"
+    "\n"
+    "           gifti_tool -infiles inflated.gii                     \\\n"
+    "                      -set_extern_filelist points.data tri.data \\\n"
+    "                      -write_gifti inflated.external.gii\n"
+    "\n"
+    "      e. convert a 5 run time series dataset from internal Base64 format\n"
+    "         to one where the data is external (raw binary):\n"
+    "\n"
+    "         as one external file:\n"
+    "\n"
+    "           gifti_tool -infiles epi.5runs.gii               \\\n"
+    "                      -set_extern_filelist data.5runs.bin  \\\n"
+    "                      -write_gifti epi.ext.5runs.gii\n"
+    "\n"
+    "         as 5 external files (1 per run):\n"
+    "\n"
+    "           gifti_tool -infiles epi.5runs.gii                      \\\n"
+    "                 -set_extern_filelist data.5runs.r{1,2,3,4,5}.bin \\\n"
+    "                 -write_gifti epi.ext.5runs.gii\n"
+    "\n"
+    "      f. convert the previous external dataset back to internal form\n"
+    "         (i.e. it should be the same as epi.5runs.gii)\n"
+    "\n"
+    "           gifti_tool -infiles epi.ext.5runs.gii      \\\n"
+    "                      -encoding BASE64                \\\n"
+    "                      -write_gifti epi.int.5runs.gii\n"
+    "\n"
+    );
+    printf (
     "    6. compare 2 gifti datasets\n"
-    "       (compare GIFTI structures, compare data, and report all diffs)\n"
+    "\n"
+    "      a. compare GIFTI structures, compare data, and report all diffs\n"
     "\n"
     "         gifti_tool -compare_gifti -compare_data -compare_verb 3 \\\n"
+    "                    -infiles created.gii first_mod.gii\n"
+    "\n"
+    "      b. report approximate comparison: focusing on data, but allowing\n"
+    "         for small, fractional differences varying per datatype\n"
+    "\n"
+    "         gifti_tool -approx_gifti -compare_verb 3 \\\n"
     "                    -infiles created.gii first_mod.gii\n"
     "\n"
     "    7. copy MetaData from one dataset to another\n"
@@ -1087,7 +1146,7 @@ static int show_help()
     );
     printf (
     "\n"
-    "  (all warranties are void in Montana, and after 4 pm)\n"
+    "  (all warranties are void in Montana, and after 4 pm on Tuesdays)\n"
     "\n"
     "----------------------------------------------------------------------\n"
     "  informational options:\n"
@@ -1179,7 +1238,7 @@ static int show_help()
     "\n"
     "           The other special way is to specify which DataArray elements\n"
     "           should be read in, using AFNI-style syntax within '[]'.  The\n"
-    "           quotes prevent the shell from interpretting the brackets.\n"
+    "           quotes prevent the shell from interpreting the brackets.\n"
     "\n"
     "           DataArray indices are zero-based.\n"
     "\n"
@@ -1218,7 +1277,7 @@ static int show_help()
     "\n"
     "           e.g. -verb 2\n"
     "\n"
-    "           Pring extra information to the screen.  The VERB level can\n"
+    "           Print extra information to the screen.  The VERB level can\n"
     "           be from 0 to 8, currently.\n"
     "\n"
     "           Level 0 is considered 'quiet' mode, and should only report\n"
@@ -1240,6 +1299,46 @@ static int show_help()
     "           This operation can also be performed via -mod_DA_atr:\n"
     "           e.g. -mod_DA_atr Encoding BASE64GZIP\n"
     "\n"
+    "     -set_extern_filelist F1 F2 ... : store data in external files\n"
+    "\n"
+    "           e.g. -set_extern_filelist run.1.data run.2.data run.3.data\n"
+    "           e.g. -set_extern_filelist runs.all.data\n"
+    "           e.g. -set_extern_filelist points.data triangles.data\n"
+    "\n"
+    "           Data is normally stored within the XML file as numerical\n"
+    "           text or Base64 encoded raw or compressed data.\n"
+    "\n"
+    "           With use of this option, users can set to have data stored in\n"
+    "           external binary files (neither encoded nor compressed) upon a\n"
+    "           write operation.\n"
+    "\n"
+    "           External file storage is subject to a couple of restrictions:\n"
+    "\n"
+    "             - GIFTI requires that they are in the same directory\n"
+    "\n"
+    "             - the library allows multiple DataArrays per file, but each\n"
+    "               DataArray within the same file must have the same size\n"
+    "               (this is a gifticlib limit, not a GIFTI limit)\n"
+    "\n"
+    "                 OK : equal data in 1 file\n"
+    "                 OK : equal data in k files, numDA is multiple of k\n"
+    "                 BAD: equal data in k files, numDA is NOT multiple of k\n"
+    "                 OK : points/triangles in 2 files\n"
+    "                 BAD: points/triangles in 1 file (sizes differ)\n"
+    "\n"
+    "           The most basic use of this option is to convert data from\n"
+    "           internal to external.  See examples 5d and 5e.\n"
+    "\n"
+    "           Note that one can also create a GIFTI dataset out of nothing\n"
+    "           and use this option to point to existing external data files.\n"
+    "           This would help conversion from other dataset formats.  See\n"
+    "           example 5c.\n"
+    "\n"
+    "           Note that one can convert from an external data format to\n"
+    "           internal just by modifying the -encoding.  See example 5f.\n"
+    "\n"
+    );
+    printf (
     "     -write_1D    DSET : write out data to AFNI style 1D file\n"
     "\n"
     "           e.g. -write_1D stats.1D\n"
@@ -1321,7 +1420,7 @@ static int show_help()
     "\n"
     "           e.g. -mod_gim_atr Version 3.141592\n"
     "\n"
-    "           Set the GIFTI element attribute correponding to NAME to the\n"
+    "           Set the GIFTI element attribute corresponding to NAME to the\n"
     "           value, VALUE.\n"
     "\n"
     "           Given that numDA is computed and version will rarely change,\n"
@@ -1366,6 +1465,15 @@ static int show_help()
     "  ----------------------------------------\n"
     "  comparison options\n"
     "\n"
+    "     -approx_gifti            : approximate comparison of GIFTI dsets\n"
+    "\n"
+    "           This compares all data elements of the two GIFTI structures.\n"
+    "           The attributes, MetaData, etc. are ignored if they do not\n"
+    "           pertain directly to the data.\n"
+    "\n"
+    "           The comparisons allow for small, fractional differences,\n"
+    "           which depend on the datatype.\n"
+    "\n"
     "     -compare_gifti           : specifies to compare two GIFTI datasets\n"
     "\n"
     "           This compares all elements of the two GIFTI structures.\n"
@@ -1397,7 +1505,6 @@ static int show_help()
     );
     printf (
     "  ----------------------------------------\n"
-    "\n"
     "  MetaData copy options\n"
     "\n"
     "     -copy_gifti_meta MD_NAME      : copy MetaData with name MD_NAME\n"
@@ -1424,6 +1531,12 @@ static int show_help()
     "\n"
     );
     printf (
+    "------------------------------------------------------------\n"
+    "see the GIfTI community web site at:\n"
+    "\n"
+    "           http://www.nitrc.org/projects/gifti\n"
+    "\n"
+    "R Reynolds, National Institutes of Health\n"
     "------------------------------------------------------------\n"
     );
     return 0;
