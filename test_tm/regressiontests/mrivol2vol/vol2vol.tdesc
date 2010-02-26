@@ -3,7 +3,8 @@
 local inputFiles = { 'uchar-256-256-256.mgz', 'uchar-37-71-137.mgz',
 		     'short-256-256-256.mgz', 'short-37-71-137.mgz',
 		     'float-256-256-256.mgz', 'float-37-71-137.mgz', }
-local transformFiles = { "transform1.fsl" }
+local transformFiles = { "translation1.fsl", "translation2.fsl",
+			 "transform1.fsl" }
 local outputPrecisions = { "uchar", "short", "float", }
 local interpModes = { "trilin", "nearest", }
 
@@ -51,7 +52,6 @@ local function testGen( inputs, transforms, precisions, interps )
    -- transform is a table of transform matrix names
    -- precisions is a table of output precisions
    -- interps is a table of interpolation modes
-   -- Generates nInputs*nTransforms tests
 
    for i,input in ipairs(inputs) do
       for p,precision in ipairs(precisions) do
