@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/01/15 15:53:17 $
- *    $Revision: 1.336 $
+ *    $Date: 2010/02/26 14:24:05 $
+ *    $Revision: 1.337 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -1032,6 +1032,7 @@ int   MRISmoveSurface(MRI_SURFACE *mris, MRI *mri_brain,
 int   MRISscaleVals(MRI_SURFACE *mris, float scale) ;
 int   MRISsetVals(MRI_SURFACE *mris, float val) ;
 int   MRISaverageD(MRI_SURFACE *mris, int navgs) ;
+int   MRISgaussianFilterD(MRI_SURFACE *mris, double wt) ;
 int   MRISaverageVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2s(MRI_SURFACE *mris, int navgs) ;
@@ -1515,6 +1516,7 @@ int  MRISclearFlags(MRI_SURFACE *mris, int flags) ;
 int  MRISsetCurvature(MRI_SURFACE *mris, float val) ;
 int  MRISsetFlags(MRI_SURFACE *mris, int flags) ;
 
+int MRISgaussianFilterD(MRI_SURFACE *mris, double wt) ;
 int MRISmedianFilterD(MRI_SURFACE *mris, int nmedians, int vtotal) ;
 int MRISmedianFilterVals(MRI_SURFACE *mris, int nmedians) ;
 int MRISmedianFilterVal2s(MRI_SURFACE *mris, int nmedians) ;
@@ -1900,3 +1902,4 @@ double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double 
                        int which, MRI *mri_vals) ;
 int MRIScopyAnnotationsToMarkedIndex(MRI_SURFACE *mris) ;
 int MRISmaxMarked(MRI_SURFACE *mris) ;
+int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale) ;
