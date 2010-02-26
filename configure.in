@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/23 22:51:46 $
-#    $Revision: 1.460 $
+#    $Date: 2010/02/26 20:01:07 $
+#    $Revision: 1.461 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -453,7 +453,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
- CPPFLAGS="-g -O3 $NSALIASING $WALL $WERROR $LFS_CFLAGS"
+ CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $NSALIASING $WALL $WERROR $LFS_CFLAGS"
  ;;
  x86_64-*)
  OS=Linux
@@ -463,7 +463,7 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CPPFLAGS="-g -O3 $NSALIASING $WALL $WERROR"
+ CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $NSALIASING $WALL $WERROR"
  TEEM_32BIT=0
  ;;
  ia64-*)
@@ -767,7 +767,7 @@ case "$CPUTYPE" in
      ;;
   opteron)
 #     CPUFLAGS="-march=x86-64"
-     CPUFLAGS="-m64"
+     CPUFLAGS="-m64 -march=opteron"
      ;;
   itanium)
      CPUFLAGS="-mtune=itanium2"
