@@ -8,10 +8,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/06/11 19:01:08 $
-#    $Revision: 1.5 $
+#    $Date: 2010/02/27 02:03:08 $
+#    $Revision: 1.6 $
 #
-# Copyright (C) 2009,
+# Copyright (C) 2009-2010,
 # The General Hospital Corporation (Boston, MA). 
 # All rights reserved.
 #
@@ -21,10 +21,9 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_ca_normalize,v 1.5 2009/06/11 19:01:08 nicks Exp $'
+set VERSION='$Id: test_mri_ca_normalize,v 1.6 2010/02/27 02:03:08 nicks Exp $'
 
 umask 002
 
@@ -58,7 +57,6 @@ endif
 #
 set TST_VOL=norm.mgz
 set REF_VOL=reference_norm.mgz
-if ("`uname -p`" == "i686") set REF_VOL=reference_i686_norm.mgz
 if ("`uname -p`" == "powerpc") set REF_VOL=reference_ppc_norm.mgz
 set DIFF_VOL = $PWD/mri_diff-$TST_VOL
 set MRIDIFFF = $PWD/mri_diff-$TST_VOL.txt
