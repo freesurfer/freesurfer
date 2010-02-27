@@ -12,10 +12,10 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/11 20:48:01 $
- *    $Revision: 1.79 $
+ *    $Date: 2010/02/27 01:11:28 $
+ *    $Revision: 1.80 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -25,11 +25,10 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.79 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.80 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -863,7 +862,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.79 2010/02/11 20:48:01 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.80 2010/02/27 01:11:28 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -876,7 +875,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.79 2010/02/11 20:48:01 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.80 2010/02/27 01:11:28 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1491,7 +1490,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
         MRISshrink_surface(MRI_var->mris,parms->h_shk);
 
       /*writing out the surface*/
-      sprintf(fname,parms->surfname);
+      sprintf(fname,"%s",parms->surfname);
       strcat(fname,"_brain_surface");
       //MRISwrite(MRI_var->mris,fname);
       writeSurface(fname, MRI_var, parms);
@@ -1510,7 +1509,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
       write_image(MRI_var);
 
     /*writing out the inner skull surface*/
-    sprintf(fname,parms->surfname);
+    sprintf(fname,"%s",parms->surfname);
     strcat(fname,"_inner_skull_surface");
     // MRISwrite(MRI_var->mris,fname);
     writeSurface(fname, MRI_var, parms);
@@ -1531,7 +1530,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
       write_image(MRI_var);
 
     /*writing out the surface*/
-    sprintf(fname,parms->surfname);
+    sprintf(fname,"%s",parms->surfname);
     strcat(fname,"_outer_skin_surface");
     // MRISwrite(MRI_var->mris,fname);
     writeSurface(fname, MRI_var, parms);
@@ -1545,7 +1544,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull,
       write_image(MRI_var);
 
     /*writing out the outer skull surface*/
-    sprintf(fname,parms->surfname);
+    sprintf(fname,"%s",parms->surfname);
     strcat(fname,"_outer_skull_surface");
     // MRISwrite(MRI_var->mris,fname);
     writeSurface(fname, MRI_var, parms);

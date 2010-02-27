@@ -1,17 +1,20 @@
 /**
  * @file  mri_topologycorrection.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief topology correction routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "A Hybrid Approach to the Skull-Stripping Problem in MRI",
+ * Ségonne, F., Dale, A.M., Busa, E., Glessner, M., Salvolini, U.,
+ * Hahn, H.K., Fischl, B.
+ * (2004) NeuroImage, 22:1160-1075.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: F. Segonne
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/01/01 16:21:25 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 01:13:18 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +24,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -455,7 +457,7 @@ int main(int argc, char *argv[]) {
     euler=MRIScomputeEulerNumber(mris,&pnvertices,&pnfaces,&pnedges);
     fprintf(stderr,"\nfinal euler characteristic = %d, %d vertices, %d faces, %d edges"
             ,euler,pnvertices,pnfaces,pnedges);
-    sprintf(fname,parms.final_surface_file);
+    sprintf(fname,"%s",parms.final_surface_file);
     MRISwrite(mris,fname);
 
 #if 0

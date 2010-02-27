@@ -10,10 +10,10 @@
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/02/09 22:31:41 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/02/27 01:14:19 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -48,7 +47,7 @@
 #include "transform.h"
 
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.9 2007/02/09 22:31:41 nicks Exp $";
+"$Id: talairach_afd.c,v 1.10 2010/02/27 01:14:19 nicks Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
@@ -91,7 +90,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.9 2007/02/09 22:31:41 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.10 2010/02/27 01:14:19 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -125,7 +124,7 @@ int main(int argc, char *argv[])
     sprintf(xfm, "%s/mri/transforms/talairach.xfm", subject_name);
   } else {
     // use command-line specified transform
-    sprintf(xfm,xfm_fname);
+    sprintf(xfm,"%s",xfm_fname);
   }
 
   if (afd_dir == NULL) {

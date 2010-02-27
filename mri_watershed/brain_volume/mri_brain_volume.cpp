@@ -7,10 +7,10 @@
  * Original Author: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/30 21:37:54 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/02/27 01:10:10 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,12 +20,11 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.9 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.10 $";
 
 using namespace std;
 
@@ -645,7 +644,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
         MRISshrink_surface(MRI_var->mris,parms->h_shk);
 
       /*writing out the surface*/
-      sprintf(fname,parms->surfname);
+      sprintf(fname,"%s",parms->surfname);
       strcat(fname,"_brain_surface");
       MRI_var->mris->useRealRAS = 1;
       MRISwrite(MRI_var->mris,fname);
@@ -663,7 +662,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       write_image(MRI_var, 128);
 
     /*writing out the inner skull surface*/
-    sprintf(fname,parms->surfname);
+    sprintf(fname,"%s",parms->surfname);
     strcat(fname,"_inner_skull_surface");
     MRISwrite(MRI_var->mris,fname);
 
@@ -683,7 +682,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       write_image(MRI_var, 180);
 
     /*writing out the surface*/
-    sprintf(fname,parms->surfname);
+    sprintf(fname,"%s",parms->surfname);
     strcat(fname,"_outer_skin_surface");
     MRISwrite(MRI_var->mris,fname);
 
@@ -696,7 +695,7 @@ MRI *MRIstripSkull(MRI *mri_with_skull, MRI *mri_without_skull,
       write_image(MRI_var,200);
 
     /*writing out the outer skull surface*/
-    sprintf(fname,parms->surfname);
+    sprintf(fname,"%s",parms->surfname);
     strcat(fname,"_outer_skull_surface");
     MRISwrite(MRI_var->mris,fname);
 
