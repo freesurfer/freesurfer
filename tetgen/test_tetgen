@@ -10,30 +10,8 @@ if (-e example.1.node) rm -f example.1.node
 # create new output from sample input
 ./tetgen example.poly
 
-set PROC=`uname -m`
-if ("$PROC" == "i686") then
-  # known architecture
-else if ("$PROC" == "i86pc") then
-  # Solaris PC produces same results as Linux 32bit PC
-  set PROC=i686
-else if  ("$PROC" == "x86_64") then
-  # known architecture
-
-  # the Intel compiler produces an x86_64 tetgen that produces results 
-  # that match the i686 platform, so compare against that
-  if ( $?CC ) then 
-    if ( "x${CC}" == "xicc" ) set PROC=i686
-  endif
-else if  ("$PROC" == "Power Macintosh") then
-  # PowerPC Mac produces the same results as x86_64
-  set PROC=x86_64
-else if  ("`uname -ms`" == "Darwin i386") then
-  # Intel Mac produces the same results as x86_64
-  set PROC=x86_64
-else
-  echo "Known-good results not available for this architecture."
-  exit 77
-endif
+# all platforms should produces what x86_64 produces!
+set PROC=x86_64
 
 # compare against known-good output for this architecture
 diff ${PROC}-example.1.face example.1.face
