@@ -1,17 +1,19 @@
 /**
  * @file  mri_topology.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief topology routines
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * "Genetic Algorithm for the Topology Correction of Cortical Surfaces",
+ * F. Segonne, E. Grimson, B. Fischl
+ * (2005) IPMI pp393--405.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: F. Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/29 23:34:50 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/02/27 00:32:29 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2003-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -1764,14 +1765,14 @@ static int initCellsFromMap(TC_PARMS *parms)
         }
 
 
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_d.mgh");
     MRIwrite(mri_dist,fname);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_c.mgh");
     MRIwrite(mri_c,fname);
     MRIfree(&mri_c);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_pr.mgh");
     MRIwrite(mri_prior,fname);
     MRIfree(&mri_prior);
@@ -2189,22 +2190,22 @@ static void initProb(TC_PARMS *parms)
 
   if (parms->mapsfname)
   {
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_ps.mgh");
     MRIwrite(mri_ps,fname);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_pcs.mgh");
     MRIwrite(mri_pcs,fname);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_pis.mgh");
     MRIwrite(mri_pis,fname);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_pi.mgh");
     MRIwrite(mri_pi,fname);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_psi.mgh");
     MRIwrite(mri_psi,fname);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_pcsi.mgh");
     MRIwrite(mri_pcsi,fname);
 
@@ -2292,10 +2293,10 @@ static void initCostMaps(TC_PARMS *parms)
 
   if (parms->mapsfname)
   {
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_fc.mgh");
     MRIwrite(mri_fcost,fname);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_bc.mgh");
     MRIwrite(mri_bcost,fname);
   }
@@ -2354,10 +2355,10 @@ static void initPriorMaps(TC_PARMS *parms)
   }
   if (parms->mapsfname)
   {
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_fpr.mgh");
     MRIwrite(mri_fprior,fname);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_bpr.mgh");
     MRIwrite(mri_bprior,fname);
   }
@@ -2851,7 +2852,7 @@ static void modifyImage(TC_PARMS *parms)
           if (nint(MRIgetVoxVal(mri,i,j,k,0))==F_B)
             MRIFvox(mri_final,i,j,k)=1;
 
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_output.mgh");
     MRIwrite(mri_final,fname);
     MRIfree(&mri_final);
@@ -3886,7 +3887,7 @@ static void SaveOrigMaps(TC_PARMS *parms)
             MRIFvox(mri,x,y,z)=1;
       }
 
-  sprintf(fname,parms->mapsfname);
+  sprintf(fname,"%s",parms->mapsfname);
   strcat(fname,"/out_input.mgh");
   MRIwrite(mri,fname);
 
@@ -3896,7 +3897,7 @@ static void SaveOrigMaps(TC_PARMS *parms)
       for (y=1;y<height-1;y++)
         for (x=1;x<width-1;x++)
           MRIFvox(mri,x,y,z)=(float)MRIgetVoxVal(parms->mri_orig,xinit+x,yinit+y,zinit+z,0);
-    sprintf(fname,parms->mapsfname);
+    sprintf(fname,"%s",parms->mapsfname);
     strcat(fname,"/out_orig.mgh");
     MRIwrite(mri,fname);
   }
@@ -3942,7 +3943,7 @@ static void SaveInitMaps(TC_PARMS *parms)
         MRIFvox(mri_cost,x,y,z)=seg->components[k].map;
         MRIFvox(mri_seg,x,y,z)=3;
       }
-  sprintf(fname,parms->mapsfname);
+  sprintf(fname,"%s",parms->mapsfname);
   strcat(fname,"/out_fs.mgh");
   MRIwrite(mri,fname);
   MRIfree(&mri);
@@ -3970,19 +3971,19 @@ static void SaveInitMaps(TC_PARMS *parms)
         MRIFvox(mri_cost,x,y,z)=seg->components[k].map;
         MRIFvox(mri_seg,x,y,z)=2;
       }
-  sprintf(fname,parms->mapsfname);
+  sprintf(fname,"%s",parms->mapsfname);
   strcat(fname,"/out_bs.mgh");
   MRIwrite(mri,fname);
   MRIfree(&mri);
 
-  sprintf(fname,parms->mapsfname);
+  sprintf(fname,"%s",parms->mapsfname);
   strcat(fname,"/out_seg.mgh");
   MRIwrite(mri_seg,fname);
   MRIfree(&mri_seg);
 
 
 
-  sprintf(fname,parms->mapsfname);
+  sprintf(fname,"%s",parms->mapsfname);
   strcat(fname,"/out_ccost.mgh");
   MRIwrite(mri_cost,fname);
   MRIfree(&mri_cost);
