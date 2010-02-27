@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/27 00:05:43 $
-#    $Revision: 1.464 $
+#    $Date: 2010/02/27 00:59:49 $
+#    $Revision: 1.465 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1984,6 +1984,8 @@ if test ! "$ac_vtk_libraries" = "NO"; then
     VTK_LIB_VTK="$ac_vtk_libraries/vtk"
   fi
 fi
+
+AM_CONDITIONAL(HAVE_VTK_LIBS, test ! "x$VTK_DIR" = "x")
 
 AC_SUBST(VTK_CFLAGS)
 AC_SUBST(VTK_CXXFLAGS)

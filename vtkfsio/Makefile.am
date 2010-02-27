@@ -2,6 +2,8 @@
 # Makefile.am for libvtkfsio.a
 #
 
+if HAVE_VTK_LIBS
+
 AM_CPPFLAGS= -Wno-deprecated \
 	$(X_CFLAGS) \
 	$(VXL_CFLAGS) \
@@ -60,3 +62,5 @@ vtkFSSurfaceWriterTester_LDADD=\
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+endif
