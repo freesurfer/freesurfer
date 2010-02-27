@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.15 2007/06/09 22:17:47 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.16 2010/02/27 16:23:08 nicks Exp $'
 
 umask 002
 
@@ -36,6 +36,8 @@ set EXPECTED=$WD/test_data
 cd $EXPECTED
 set PROC=`uname -p`
 if ($status) set PROC=`uname -m`
+echo $PROC | grep 86
+if (! $status) set PROC=(x86_64)
 set TEST_DATA=$EXPECTED/$PROC-emot.tar.gz
 if (! -e $TEST_DATA) then
   echo "Architecture-specific test data file $TEST_DATA does not exist"

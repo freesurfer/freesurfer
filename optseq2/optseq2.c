@@ -9,9 +9,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/01/26 05:13:15 $
- *    $Revision: 2.16 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 16:23:08 $
+ *    $Revision: 2.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,7 +78,7 @@ Can something be done to affect the off-diagonals?
 #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.16 2010/01/26 05:13:15 greve Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.17 2010/02/27 16:23:08 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -147,7 +147,7 @@ FILE *fpSvAll;
 int nTaskAvgs;
 int   CostId = EVS_COST_EFF;
 char *CostString;
-float CostSum, CostSum2, CostAvg, CostStd;
+float CostSum, CostSum2, CostAvg, CostStd, SumCorrect, Sum2Correct;
 float EffMax, VRFAvgMax;
 float VRFAvgStd_Cost_Ratio;
 int nSince; /* niterations since one of the kept schedules  has changed */
@@ -181,7 +181,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.16 2010/01/26 05:13:15 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.17 2010/02/27 16:23:08 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -330,6 +330,8 @@ int main(int argc, char **argv) {
   nSince = 0;
   CostSum = 0.0;
   CostSum2 = 0.0;
+  SumCorrect = 0.0;
+  Sum2Correct = 0.0;
   EffMax = 0.0;
   VRFAvgMax = 0.0;
   PctDone = 0.0;
@@ -409,8 +411,21 @@ int main(int argc, char **argv) {
 
     /* Compute the Cost (to be maximized) */
     EVScost(EvSch, CostId, &VRFAvgStd_Cost_Ratio);
-    CostSum += EvSch->cost;
-    CostSum2 += (EvSch->cost * EvSch->cost);
+//  CostSum += EvSch->cost;
+    { // Kahan summation algorithm for correction of sum error accumulation:
+      // http://en.wikipedia.org/wiki/Kahan_summation_algorithm
+      float y = EvSch->cost - SumCorrect;
+      float t = CostSum + y;
+      SumCorrect = (t - CostSum) - y;
+      CostSum = t;
+    }
+//  CostSum2 += (EvSch->cost * EvSch->cost);
+    { // Kahan summation algorithm for correction of sum error accumulation:
+      float y = (EvSch->cost * EvSch->cost) - Sum2Correct;
+      float t = CostSum2 + y;
+      Sum2Correct = (t - CostSum2) - y;
+      CostSum2 = t;
+    }
     if (EffMax < EvSch->eff)       EffMax    = EvSch->eff;
     if (VRFAvgMax < EvSch->vrfavg) VRFAvgMax = EvSch->vrfavg;
 
