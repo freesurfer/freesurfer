@@ -19,11 +19,11 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/09/21 22:29:39 $
- *    $Revision: 1.27 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 16:56:04 $
+ *    $Revision: 1.28 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2005-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -33,7 +33,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -174,7 +173,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.27 2009/09/21 22:29:39 mreuter Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.28 2010/02/27 16:56:04 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -360,8 +359,8 @@ int main(int argc, char *argv[]) {
         val2 = vox2ras2->rptr[r][c];
         diff = fabs(val1-val2);
         if (diff > geothresh) {
-          printf("Volumes differ in geometry %d %d %lf\n",
-                 r,c,diff);
+          printf("Volumes differ in geometry row=%d col=%d diff=%lf (%g)\n",
+                 r,c,diff,diff);
           if (DiffFile) {
             fp = fopen(DiffFile,"w");
             if (fp==NULL) {
