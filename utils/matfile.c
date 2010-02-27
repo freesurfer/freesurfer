@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:52 $
- *    $Revision: 1.30 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 00:21:38 $
+ *    $Revision: 1.31 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -1415,7 +1414,7 @@ char *znzMatReadHeader(FILE *fp, MATFILE *mf, char **data)
   }
 
   // Get the name of the varible. See MatReadHeader() for docs.
-  memmove(&tmp, &unbuff[40], sizeof(long));
+  memmove(&tmp, &unbuff[40], sizeof(long32));
   if (DIFFERENT_ENDIAN(mf))  tmp = swapLong32(tmp) ;
   memmove(&test_data, &tmp, 4);
   if (test_data[0]==0 && test_data[1]==0 )

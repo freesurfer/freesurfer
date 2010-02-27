@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/31 16:28:22 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/02/27 00:18:04 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -83,7 +82,7 @@ void chklc(void)
   if (cp == NULL)
   {
     //fprintf(stdout,errmsg);
-    fprintf(stderr,errmsg);
+    fprintf(stderr,"%s",errmsg);
     exit(-1);
   }
 
