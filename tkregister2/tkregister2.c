@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/27 01:03:57 $
- *    $Revision: 1.115 $
+ *    $Date: 2010/02/27 01:03:10 $
+ *    $Revision: 1.114 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -34,7 +34,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.115 2010/02/27 01:03:57 nicks Exp $";
+"$Id: tkregister2.c,v 1.114 2010/02/27 01:03:10 nicks Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -4887,7 +4887,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.115 2010/02/27 01:03:57 nicks Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.114 2010/02/27 01:03:10 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -5039,7 +5039,7 @@ int main(argc, argv)   /* new main */
   /* run tcl/tk startup script to set vars, make interface; no display yet */
   printf("tkregister2: interface: %s\n",tkregister_tcl);
   Tcl_EvalFile(interp,tkregister_tcl);
-  if (*interp->result != 0)  printf("%s",interp->result);
+  if (*interp->result != 0)  printf(interp->result);
   plane = plane_init;
 
   /* always start up command line shell too */
