@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/26 23:37:55 $
-#    $Revision: 1.463 $
+#    $Date: 2010/02/27 00:05:43 $
+#    $Revision: 1.464 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2290,7 +2290,8 @@ fi
 
 # stupid Mac OS Leopard fix:
 if test "$OS" = "Darwin"; then
-  gl_libs="$gl_libs $X_LIBS -Wl,-dylib_file,\
+  gl_cflags="-I/usr/X11R6/include"
+  gl_libs="-L/usr/X11R6/lib $X_LIBS -Wl,-dylib_file,\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib:\
 /System/Library/Frameworks/OpenGL.framework/Versions/A/Libraries/libGL.dylib"
   mac_gl_libs=$gl_libs
