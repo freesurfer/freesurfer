@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/25 21:25:32 $
- *    $Revision: 1.53 $
+ *    $Date: 2010/02/27 22:10:36 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -103,7 +103,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.53 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.54 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4987,8 +4987,7 @@ vtkKWQdecWindow::ScatterPlotGraphSetUpContextualMenu (const char* isElement,
     stringstream ssTkmeditCommand;
     // catch { exec tkmedit $s norm.mgz $hemi.white -segmentation aseg.mgz }
     ssTkmeditCmd << envVars->FREESURFER_HOME << "/bin/tkmedit "
-                 << isElement << " norm.mgz -aux T1.mgz " 
-                 << "lh.white -aux-surface rh.white "
+                 << isElement << " norm.mgz -aux T1.mgz -surfs " 
                  << "-segmentation aseg.mgz &";
     ssTkmeditCommand << "set err [catch { exec "
                      << ssTkmeditCmd.str().c_str()
