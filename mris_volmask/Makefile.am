@@ -5,8 +5,10 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
 
-bin_PROGRAMS=mris_volmask mris_volmask_novtk mris_volmask_vtk
+bin_PROGRAMS=mris_volmask mris_volmask_novtk
 
+if HAVE_VTK_LIBS
+bin_PROGRAMS += mris_volmask_vtk
 mris_volmask_vtk_SOURCES=mris_volmask_old.cpp cmd_line_interface.cpp
 mris_volmask_vtk_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 $(X_LIBS) \
@@ -21,6 +23,7 @@ $(VTK_Z_LIB) $(VTK_EXPAT_LIB) $(VTK_METAIO_LIB) \
 -lvtkIO -lvtkFiltering -lvtkCommon -lvtkDICOMParser \
 -lvtksys \
 $(VTK_MPEG2ENCODE_LIB) -lvtkexoIIc -lvtkNetCDF
+endif
 
 mris_volmask_novtk_SOURCES=mris_volmask_old.cpp cmd_line_interface.cpp
 mris_volmask_novtk_CPPFLAGS=-DNO_VTK
@@ -60,6 +63,7 @@ if HAVE_CPPUNIT
 endif
 
 # put a wrapper around the bin, used to setup VTK enviro vars
+if HAVE_VTK_LIBS
 install-exec-hook:
 	cp $(top_builddir)/mris_volmask/mris_volmask_vtk \
 		$(DESTDIR)$(bindir)/mris_volmask_vtk.bin
@@ -71,6 +75,7 @@ install-exec-hook:
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/mris_volmask_vtk.bin
+endif
 
 EXTRA_DIST=cmd_line_interface.h test_mris_volmask
 # Our release target. Include files to be excluded here. They will be
