@@ -1,42 +1,25 @@
 /**
  * @file  fs_lbfgs.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief This is core/vnl/algo/vnl_lbfgs.cxx
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Andrew W. Fitzgibbon, Oxford RRG
  * CVS Revision Info:
  *    $Author$
  *    $Date$
  *    $Revision$
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
- *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
- *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 
-// This is core/vnl/algo/vnl_lbfgs.cxx
+// 
 #ifdef VCL_NEEDS_PRAGMA_INTERFACE
 #pragma implementation
 #endif
-//:
-// \file
-//
-// \author Andrew W. Fitzgibbon, Oxford RRG
-// \date   22 Aug 99
-//
-//-----------------------------------------------------------------------------
 
 #include "fs_vnl/fs_lbfgs.h"
 #include <vcl_cmath.h>
@@ -211,7 +194,7 @@ bool fs_lbfgs::minimize(vnl_vector<double>& x)
 
     if (++this->num_evaluations_ > get_max_function_evals())
     {
-      failure_code_ = FAILED_TOO_MANY_ITERATIONS;
+      failure_code_ = FAILED_USER_REQUEST;
       ok = false;
 
       // this is an DJ addition for when the best_x is not initialized yet

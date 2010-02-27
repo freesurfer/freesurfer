@@ -5,9 +5,9 @@
 /*
  * Original Author: Dennis Jen and Silvester Czanner
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/12/29 02:48:04 $
- *    $Revision: 1.14 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 00:45:41 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,7 @@
 #include <vnl/algo/vnl_real_eigensystem.h>
 #include <vnl/algo/vnl_symmetric_eigensystem.h>
 #include <vnl/vnl_inverse.h>
+#include <vnl/vnl_nonlinear_minimizer.h>
 
 #include "fs_vnl/fs_powell.h"
 #include "fs_vnl/fs_lbfgs.h"
@@ -1018,7 +1019,7 @@ extern "C" int OpenDFPMin
     }
     else if
     (
-      returnCode == vnl_nonlinear_minimizer::FAILED_TOO_MANY_ITERATIONS ||
+      returnCode == vnl_nonlinear_minimizer::TOO_MANY_ITERATIONS ||
       returnCode == vnl_nonlinear_minimizer::FAILED_FTOL_TOO_SMALL ||
       returnCode == vnl_nonlinear_minimizer::FAILED_XTOL_TOO_SMALL ||
       returnCode == vnl_nonlinear_minimizer::FAILED_GTOL_TOO_SMALL
@@ -1123,7 +1124,7 @@ extern "C" void OpenPowell( float iaParams[], float **ioInitialDirection,
   int returnCode = minimizer.minimize( finalParameters, &initialDirection );
 
   // exit if failure
-  if ( returnCode == fs_powell::FAILED_TOO_MANY_ITERATIONS )
+  if ( returnCode == fs_powell::TOO_MANY_ITERATIONS )
   {
     ErrorExit(ERROR_BADPARM, "powell exceeding maximum iterations.");
   }
@@ -1199,7 +1200,7 @@ extern "C" int OpenPowell2( float iaParams[], float **ioInitialDirection,
   ConvertFromVNLDoubleToFloat( initialDirection, ioInitialDirection,
 			       icParams);
 
-  if ( returnCode == fs_powell::FAILED_TOO_MANY_ITERATIONS ){
+  if ( returnCode == fs_powell::TOO_MANY_ITERATIONS ){
     printf("powell exceeded maximum iterations\n");
     return(1);
   }

@@ -191,7 +191,7 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
 
     if (num_iterations_ == unsigned(maxfev))
     {
-      return FAILED_TOO_MANY_ITERATIONS;
+      return FAILED_USER_REQUEST;
     }
 
     for (int j=0;j<n;++j)
@@ -230,5 +230,5 @@ fs_powell::minimize(vnl_vector<double>& p, vnl_matrix<double>* xi)
     report_iter();
   }
   if(verbose_) printf("  niters %d\n",(int)num_iterations_);
-  return FAILED_TOO_MANY_ITERATIONS;
+  return FAILED_USER_REQUEST;
 }
