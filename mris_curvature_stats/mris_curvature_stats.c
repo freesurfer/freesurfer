@@ -11,11 +11,11 @@
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2009/08/06 16:09:49 $
- *    $Revision: 1.59 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 01:49:33 $
+ *    $Revision: 1.60 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,7 +25,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -122,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.59 2009/08/06 16:09:49 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.60 2010/02/27 01:49:33 nicks Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -478,7 +477,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.59 2009/08/06 16:09:49 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.60 2010/02/27 01:49:33 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1903,7 +1902,7 @@ OFSP_create(
   switch (ae_OFSP) {
   case e_None:
     if(output_fname != NULL)
-      sprintf(apch_prefix, output_fname);
+      sprintf(apch_prefix, "%s", output_fname);
     break;
   case e_Partial:
     sprintf(apch_prefix, "%s.%s.%s",
@@ -3076,7 +3075,7 @@ print_help(void) {
  \n\
 \n");
 
-  fprintf(stdout, pch_synopsis);
+  fprintf(stdout, "%s", pch_synopsis);
   exit(1) ;
 }
 

@@ -11,11 +11,11 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/02/26 22:03:49 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 01:47:17 $
+ *    $Revision: 1.22 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -25,7 +25,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 #define _ISOC99_SOURCE
@@ -61,7 +60,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.21 2010/02/26 22:03:49 greve Exp $";
+"$Id: mris_calc.c,v 1.22 2010/02/27 01:47:17 nicks Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -719,7 +718,7 @@ synopsis_show(void) {
  \n\
 \n");
 
-  fprintf(stdout,pch_synopsis);
+  fprintf(stdout,"%s",pch_synopsis);
   exit(1) ;
 }
 
@@ -783,7 +782,7 @@ error_exit(
   sprintf(pch_errorMessage,
 	"%s\n\t%s\n", pch_errorMessage, apch_error);
 
-  fprintf(stderr, pch_errorMessage);
+  fprintf(stderr, "%s", pch_errorMessage);
   fprintf(stderr, "\n");
   exit(exitCode);
 }
@@ -1030,7 +1029,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.21 2010/02/26 22:03:49 greve Exp $",
+     "$Id: mris_calc.c,v 1.22 2010/02/27 01:47:17 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
