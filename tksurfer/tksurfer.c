@@ -11,11 +11,11 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/01/20 23:53:47 $
- *    $Revision: 1.336 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 01:04:59 $
+ *    $Revision: 1.337 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -25,7 +25,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -21196,7 +21195,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.336 2010/01/20 23:53:47 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.337 2010/02/27 01:04:59 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -22371,7 +22370,7 @@ int main(int argc, char *argv[])   /* new main */
   {    /* script may or may not open gl window */
     printf("tksurfer: run tcl script: %s\n",script_tcl);
     code = Tcl_EvalFile (g_interp, script_tcl);
-    if (code != TCL_OK)  printf(Tcl_GetStringResult(interp));
+    if (code != TCL_OK)  printf("%s",Tcl_GetStringResult(interp));
   }
   else
   {

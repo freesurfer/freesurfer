@@ -7,11 +7,11 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/04 18:44:42 $
- *    $Revision: 1.113 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 01:03:57 $
+ *    $Revision: 1.115 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -21,7 +21,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -35,7 +34,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.113 2010/01/04 18:44:42 fischl Exp $";
+"$Id: tkregister2.c,v 1.115 2010/02/27 01:03:57 nicks Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -4660,7 +4659,7 @@ void read_float_images
     *buf = (short *)calloc(bufsize,sizeof(float));
 
   if (imtype==AFNI) { /* one file per scan (x,y,z,t)  */
-    sprintf(fname,format);
+    sprintf(fname,"%s",format);
     fp = fopen(fname,"r");
     if (fp==NULL) {
       printf("register: ### File %s not found\n",fname);
@@ -4888,7 +4887,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.113 2010/01/04 18:44:42 fischl Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.115 2010/02/27 01:03:57 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -5040,7 +5039,7 @@ int main(argc, argv)   /* new main */
   /* run tcl/tk startup script to set vars, make interface; no display yet */
   printf("tkregister2: interface: %s\n",tkregister_tcl);
   Tcl_EvalFile(interp,tkregister_tcl);
-  if (*interp->result != 0)  printf(interp->result);
+  if (*interp->result != 0)  printf("%s",interp->result);
   plane = plane_init;
 
   /* always start up command line shell too */

@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 15:10:58 $
- *    $Revision: 1.339 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/27 01:00:40 $
+ *    $Revision: 1.340 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -35,7 +34,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.339 $";
+char *VERSION = "$Revision: 1.340 $";
 
 #define TCL
 #define TKMEDIT
@@ -1191,7 +1190,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.339 2009/11/19 15:10:58 fischl Exp $",
+     "$Id: tkmedit.c,v 1.340 2010/02/27 01:00:40 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5913,7 +5912,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.339 2009/11/19 15:10:58 fischl Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.340 2010/02/27 01:00:40 nicks Exp $ $Name:  $\n"
         )
       );
 
@@ -12829,7 +12828,7 @@ void tkm_FinishProgressBar ( char* isName ) {
 
 void tkm_DisplayMessage ( char* isMessage ) {
 
-  fprintf( stdout, isMessage );
+  fprintf( stdout, "%s", isMessage );
   fflush( stdout );
 }
 
