@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/27 01:47:17 $
- *    $Revision: 1.22 $
+ *    $Author: greve $
+ *    $Date: 2010/02/27 02:00:06 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -60,7 +60,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.22 2010/02/27 01:47:17 nicks Exp $";
+"$Id: mris_calc.c,v 1.23 2010/02/27 02:00:06 greve Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -109,6 +109,7 @@ typedef enum _operation {
   e_sqrt,
   e_set,
   e_atan2,
+  e_mag,
   e_abs,
   e_sign,
   e_lt,
@@ -148,6 +149,7 @@ const char* Gppch_operation[] = {
   "square root"
   "set",
   "atan2",
+  "mag",
   "abs",
   "sign",
   "less than",
@@ -245,6 +247,7 @@ double fn_sub(float af_A, float af_B)   {return (af_A - af_B);}
 double fn_sqd(float af_A, float af_B)   {return (af_A - af_B)*(af_A - af_B);}
 double fn_set(float af_A, float af_B)   {return (af_B);}
 double fn_atan2(float af_A, float af_B) {return (atan2(af_A,af_B));}
+double fn_mag(float af_A, float af_B) {return (sqrt(af_A*af_A + af_B*af_B));}
 
 // Simple relational functions on two float arguments
 double  fn_lt(float af_A,  float af_B)  {return (af_A < af_B ? af_A : 0.0);}
@@ -504,6 +507,7 @@ synopsis_show(void) {
           sqd      2      1     <outputFile> = (<file1> - <file2>)^2 \n\
           set      2      1     <file1>      = <file2> \n\
           atan2    2      1     <outputFile> = atan2(<file1>,<file2>) \n\
+          mag      2      1     <outputFile> = sqrt(<file1>^2 + <file2>^2) \n\
           sqr      1      1     <outputFile> = <file1> * <file1> \n\
           sqrt     1      1     <outputFile> = sqrt(<file1>) \n\
           abs      1      1     <outputFile> = abs(<file1>) \n\
@@ -541,7 +545,7 @@ synopsis_show(void) {
     NOTES ON ACTIONS \n\
  \n\
       MATHEMATICAL \n\
-        The 'add', 'sub', 'div', 'mul', 'atan2', operations all function as one \n\
+        The add, sub, div, mul, atan2, and mag operations all function as one \n\
         would expect. The 'norm' creates an output file such that all values are \n\
         constrained (normalized) between 0.0 and 1.0. The 'sqd' stores the \n\
         square difference between two inputs. \n\
@@ -1029,7 +1033,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.22 2010/02/27 01:47:17 nicks Exp $",
+     "$Id: mris_calc.c,v 1.23 2010/02/27 02:00:06 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1169,6 +1173,7 @@ operation_lookup(
   else if(!strcmp(apch_operation, "sqrt"))	e_op    = e_sqrt;
   else if(!strcmp(apch_operation, "set"))       e_op    = e_set;
   else if(!strcmp(apch_operation, "atan2"))     e_op    = e_atan2;
+  else if(!strcmp(apch_operation, "mag"))       e_op    = e_mag;
   else if(!strcmp(apch_operation, "abs"))       e_op    = e_abs;
   else if(!strcmp(apch_operation, "sign"))      e_op    = e_sign;
 
@@ -1470,6 +1475,7 @@ b_outCurvFile_write(e_operation e_op)
         e_op == e_sqrt          ||
         e_op == e_set           ||
         e_op == e_atan2         ||
+        e_op == e_mag           ||
         e_op == e_abs           ||
         e_op == e_sign		||
         e_op == e_lt            ||
@@ -1533,6 +1539,7 @@ CURV_process(void)
     case  e_sub:        CURV_functionRunABC(fn_sub);    break;
     case  e_set:        CURV_functionRunABC(fn_set);    break;
     case  e_atan2:      CURV_functionRunABC(fn_atan2);    break;
+    case  e_mag:        CURV_functionRunABC(fn_mag);    break;
     case  e_sqd:        CURV_functionRunABC(fn_sqd);    break;
     case  e_abs:        CURV_functionRunAC( fn_abs);    break;
     case  e_sign:	CURV_functionRunAC( fn_sign);	break;
