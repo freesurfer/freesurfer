@@ -8,8 +8,8 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/05 00:00:07 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/27 01:41:53 $
+ *    $Revision: 1.3 $
  *
  * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
  * Washington University, Mallinckrodt Institute of Radiology.
@@ -20,7 +20,6 @@
  * contact A. Z. Snyder.
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -40,7 +39,9 @@
 /*************/
 /* externals */
 /*************/
+#ifndef HAVE_GFORTRAN
 extern void	f_init (void), f_exit (void);	/* FORTRAN i/o */
+#endif
 extern void	t4_init_ (float *t4);					/* t4_sub.f */
 extern void	t4_read_ (char *t4file, float *t4);			/* t4_sub.f */
 extern void	to_711_2b_ (float *t4);					/* to_711-2B.f */
@@ -85,7 +86,7 @@ typedef struct {
 	int		shift;
 } RUN_INFO;
 
-static char rcsid[] = "$Id: t4imgs_4dfp.c,v 1.2 2007/05/05 00:00:07 nicks Exp $";
+static char rcsid[] = "$Id: t4imgs_4dfp.c,v 1.3 2010/02/27 01:41:53 nicks Exp $";
 int main (int argc, char *argv[]) {
 	FILE			*lstfp;			/* input image list */
 	FILE			*imgfp, *mskfp;		/* input image and mask file pointers */
@@ -151,7 +152,9 @@ int main (int argc, char *argv[]) {
 	printf ("%s\n", rcsid);
 	if (!(ptr = strrchr (argv[0], '/'))) ptr = argv[0]; else ptr++;
 	strcpy (program, ptr);
+#ifndef HAVE_GFORTRAN
 	f_init ();					/* open FORTRAN I/O */
+#endif
 	t4_init_ (t4mat);
 /************************/
 /* process command line */
@@ -518,7 +521,9 @@ int main (int argc, char *argv[]) {
 /*********************/
 	free (stackspc);
 	free (imgo); free (imgw); free (imgs);
+#ifndef HAVE_GFORTRAN
 	f_exit ();				/* close FORTRAN I/O */
+#endif
 	exit (status);
 } 
 

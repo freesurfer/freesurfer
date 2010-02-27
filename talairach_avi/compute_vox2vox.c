@@ -7,8 +7,8 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/05 00:00:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/02/27 01:41:53 $
+ *    $Revision: 1.3 $
  *
  * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
  * Washington University, Mallinckrodt Institute of Radiology.
@@ -19,7 +19,6 @@
  * contact A. Z. Snyder.
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -37,7 +36,9 @@
 /*************/
 /* externals */
 /*************/
+#ifndef HAVE_GFORTRAN
 extern void	f_init (void), f_exit (void);	/* FORTRAN i/o */
+#endif
 extern void	t4_init_ (float *t4);					/* t4_sub.f */
 extern void	t4_read_ (char *t4file, float *t4);			/* t4_sub.f */
 extern void	vrtflip_ (int *iori, int *imgdim, float *centeri, float *mmppixi, float *centert, float *mmppixt);	/* ft4imgo.f */
@@ -45,7 +46,7 @@ extern void	vrtflip_ (int *iori, int *imgdim, float *centeri, float *mmppixi, fl
 /***********/
 /* globals */
 /***********/
-static char rcsid[] = "$Id: compute_vox2vox.c,v 1.2 2007/05/05 00:00:06 nicks Exp $";
+static char rcsid[] = "$Id: compute_vox2vox.c,v 1.3 2010/02/27 01:41:53 nicks Exp $";
 static char program[MAXL];
 
 void	t4list (FILE *fp, float *t4) {
@@ -89,7 +90,9 @@ int main (int argc, char *argv[]) {
 	printf ("%s\n", rcsid);
 	if (!(ptr = strrchr (argv[0], '/'))) ptr = argv[0]; else ptr++;
 	strcpy (program, ptr);
+#ifndef HAVE_GFORTRAN
 	f_init ();					/* open FORTRAN I/O */
+#endif
 /************************/
 /* process command line */
 /************************/
@@ -152,6 +155,8 @@ int main (int argc, char *argv[]) {
 	t4list (fp, vox2voxc);
 	if (fclose (fp)) errw (program, outfile);
 
+#ifndef HAVE_GFORTRAN
 	f_exit ();				/* close FORTRAN I/O */
+#endif
 	exit (status);
 } 

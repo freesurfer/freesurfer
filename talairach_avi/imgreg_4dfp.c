@@ -8,8 +8,8 @@
  * 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/08/04 04:19:24 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/02/27 01:41:53 $
+ *    $Revision: 1.4 $
  *
  * Copyright 1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007
  * Washington University, Mallinckrodt Institute of Radiology.
@@ -38,7 +38,9 @@
 /*************/
 /* externals */
 /*************/
+#ifndef HAVE_GFORTRAN
 extern void	f_init (void), f_exit (void);	/* FORTRAN i/o */
+#endif
 extern void	tparam2warp_  (int *mode, float *params, float *t4);	/* t4_sub.f */
 extern void	t4file2param_ (int *mode, char *t4file, float *params);	/* t4_sub.f */
 extern void	ffind_   (float *img1, short *msk1, int *nx1, int *ny1, int *nz1, float *mmppix1, float *center1,
@@ -65,7 +67,7 @@ void read_file_float (char *filename, float *stack, int dimension, char *program
       ||  fclose (fp)) errr (program, filename);
 }
 
-static char rcsid[] = "$Id: imgreg_4dfp.c,v 1.3 2007/08/04 04:19:24 nicks Exp $";
+static char rcsid[] = "$Id: imgreg_4dfp.c,v 1.4 2010/02/27 01:41:53 nicks Exp $";
 int main (int argc, char **argv) {
 /************/
 /* imag I/O */
@@ -92,7 +94,9 @@ int main (int argc, char **argv) {
 /***********/
 	int		i, j, k;
  
+#ifndef HAVE_GFORTRAN
 	f_init ();			/* initialize FORTRAN I/O */
+#endif
 	fprintf (stdout, "%s\n", rcsid);
   fflush (stdout);
 	setprog (program, argv);
@@ -207,7 +211,9 @@ int main (int argc, char **argv) {
 	fclose (fp);
 
 	for (j = 0; j < 2; j++) {free (imag[j]); free (mask[j]);}
+#ifndef HAVE_GFORTRAN
 	f_exit ();		/* close FORTRAN I/O */
+#endif
 	exit (0);
 }
 
