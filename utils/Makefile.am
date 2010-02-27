@@ -154,7 +154,6 @@ libutils_main_SOURCES=\
 	mrihisto.c \
 	mri_identify.c \
 	mriio.c \
-	MRIio_old.c \
 	mri_level_set.c \
 	mrifilter.c \
 	mrimorph.c \
