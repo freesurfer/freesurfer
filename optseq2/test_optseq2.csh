@@ -10,7 +10,7 @@
 #
 #############################################################################
 
-set VERSION='$Id: test_optseq2.csh,v 2.16 2010/02/27 16:23:08 nicks Exp $'
+set VERSION='$Id: test_optseq2.csh,v 2.17 2010/02/28 18:56:51 nicks Exp $'
 
 umask 002
 
@@ -25,7 +25,7 @@ set WD=$PWD
 #
 # extract testing data
 #
-gunzip -c test_data.tar.gz | tar xvf -
+gunzip -vc test_data.tar.gz | tar xvf -
 
 #
 # extract arch-specific expected results and 
@@ -39,13 +39,16 @@ if ($status) set PROC=`uname -m`
 echo $PROC | grep 86
 if (! $status) set PROC=(x86_64)
 set TEST_DATA=$EXPECTED/$PROC-emot.tar.gz
+# Mac OS has its own test data since it uses a different RNG
+set OS=`uname -s`
+if ("$OS" == "Darwin") set TEST_DATA=$EXPECTED/Darwin-emot.tar.gz
 if (! -e $TEST_DATA) then
   echo "Architecture-specific test data file $TEST_DATA does not exist"
   # status 77 means test result is ignored
   exit 77
 endif
 if (-e emot.sum) rm -Rf emot*
-gunzip -c $TEST_DATA | tar xvf -
+gunzip -vc $TEST_DATA | tar xvf -
 if ($status != 0) then
   echo "Failure extracting architecture-specific test data."
   exit 1
