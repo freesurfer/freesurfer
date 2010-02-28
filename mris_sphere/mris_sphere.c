@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/20 22:51:46 $
- *    $Revision: 1.50 $
+ *    $Author: fischl $
+ *    $Date: 2010/02/28 23:09:47 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@
 #endif // FS_CUDA
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.50 2010/01/20 22:51:46 nicks Exp $";
+  "$Id: mris_sphere.c,v 1.51 2010/02/28 23:09:47 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -122,19 +122,17 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.50 2010/01/20 22:51:46 nicks Exp $",
+   "$Id: mris_sphere.c,v 1.51 2010/02/28 23:09:47 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.50 2010/01/20 22:51:46 nicks Exp $",
+           "$Id: mris_sphere.c,v 1.51 2010/02/28 23:09:47 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
-
-  Gdiag = DIAG_SHOW ;
 
 #ifdef FS_CUDA
   /* print GPU device info */
