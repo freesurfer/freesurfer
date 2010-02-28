@@ -10,9 +10,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2010/02/28 22:51:48 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -121,7 +121,8 @@ bool SurfaceAnnotation::LoadAnnotation( const char* fn )
         {
           m_nIndices[i] = n;
           
-          if ( mris->vertices[i].ripflag == 0 )
+          if ( mris->vertices[i].ripflag == 0 &&
+               m_nIndices[i] != -1 )
           {
             vcount[n]++;
             pts[n][0] += mris->vertices[i].x;
