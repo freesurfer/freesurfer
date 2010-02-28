@@ -10,10 +10,10 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/27 16:23:08 $
- *    $Revision: 2.17 $
+ *    $Date: 2010/02/28 19:22:13 $
+ *    $Revision: 2.18 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -78,7 +77,7 @@ Can something be done to affect the off-diagonals?
 #undef X
 #endif
 
-static char vcid[] = "$Id: optseq2.c,v 2.17 2010/02/27 16:23:08 nicks Exp $";
+static char vcid[] = "$Id: optseq2.c,v 2.18 2010/02/28 19:22:13 nicks Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -181,7 +180,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.17 2010/02/27 16:23:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: optseq2.c,v 2.18 2010/02/28 19:22:13 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -498,7 +497,8 @@ int main(int argc, char **argv) {
            nSearch-nthhit,nSearch);
   }
   CostAvg = CostSum/nthhit;
-  CostStd = sqrt(CostSum2/nthhit - CostAvg*CostAvg);
+  CostStd = sqrt((double)CostSum2/(double)nthhit - 
+                 (double)CostAvg*(double)CostAvg);
 
   /*-------- Check for ill-conditioned schedules ----------------------*/
   if (nthhit == 0) {
@@ -555,7 +555,7 @@ PastSearch:
               nSearch-nthhit,nSearch);
     }
     fprintf(fpsum,"Number of iterations since last substitution %d\n",nSince);
-    fprintf(fpsum,"Cost Avg/Std: %g %g\n",CostAvg,CostStd);
+    fprintf(fpsum,"Cost Avg/Std: %.7g %.7g\n",CostAvg,CostStd);
     fprintf(fpsum,"Max Eff Encountered:    %g\n",EffMax);
     fprintf(fpsum,"Max VRFAvg Encountered: %g\n",VRFAvgMax);
   } else {
