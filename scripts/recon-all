@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/26 16:36:26 $
-#    $Revision: 1.276 $
+#    $Date: 2010/02/28 03:22:16 $
+#    $Revision: 1.277 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.276 2010/02/26 16:36:26 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.277 2010/02/28 03:22:16 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2890,7 +2890,6 @@ if ($DoBaLabels) then
         $SUBJECTS_DIR/fsaverage)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
     endif
 
     # generate labels
