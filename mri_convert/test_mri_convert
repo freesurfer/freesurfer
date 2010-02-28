@@ -8,10 +8,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/09 19:28:17 $
-#    $Revision: 1.4 $
+#    $Date: 2010/02/28 03:43:21 $
+#    $Revision: 1.5 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2010
 # The General Hospital Corporation (Boston, MA). 
 # All rights reserved.
 #
@@ -21,10 +21,9 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_convert,v 1.4 2007/12/09 19:28:17 nicks Exp $'
+set VERSION='$Id: test_mri_convert,v 1.5 2010/02/28 03:43:21 nicks Exp $'
 
 umask 002
 
@@ -38,6 +37,15 @@ gunzip -c testdata.tar.gz | tar xvf -
 #
 
 cd testdata
+
+# --conform function
+set cmd=(../mri_convert rawavg.mgz orig.mgz --conform)
+echo ""
+$cmd
+if ($status != 0) then
+  echo "mri_convert FAILED"
+  exit 1
+endif
 
 # DICOM
 set cmd=(../mri_convert 261000-10-60.dcm dicom.mgz)
@@ -74,10 +82,11 @@ echo ""
 # compare expected results with actual (produced) results
 #
 
-set TEST_FILES=( dicom.mgz nifti.mgz analyze.mgz )
+set TEST_FILES=( orig.mgz dicom.mgz nifti.mgz analyze.mgz )
 foreach tstvol ($TEST_FILES)
   # now compare expected with observed data
   set REF_VOL  = freesurfer.mgz
+  if ( "x$tstvol" == "xorig.mgz" ) set REF_VOL = ref_orig.mgz
   set TST_VOL  = $tstvol
   set DIFF_VOL = $PWD/mri_diff-$tstvol
   set MRIDIFFF = $PWD/mri_diff-$tstvol.txt
