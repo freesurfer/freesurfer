@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/13 19:21:43 $
- *    $Revision: 1.55 $
+ *    $Date: 2010/02/28 23:08:04 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.55 2009/11/13 19:21:43 fischl Exp $";
+"$Id: mris_register.c,v 1.56 2010/02/28 23:08:04 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -142,21 +142,20 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.55 2009/11/13 19:21:43 fischl Exp $", 
+     "$Id: mris_register.c,v 1.56 2010/02/28 23:08:04 fischl Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.55 2009/11/13 19:21:43 fischl Exp $", 
+     "$Id: mris_register.c,v 1.56 2010/02/28 23:08:04 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
 
   TimerStart(&start) ;
-  Gdiag = DIAG_SHOW ;
   Progname = argv[0] ;
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
