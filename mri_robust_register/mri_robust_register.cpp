@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/02 20:29:25 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/03/01 23:51:39 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -73,7 +73,8 @@ extern "C"
 
 using namespace std;
 
-#define SAT 4.685 // this is suggested for gaussian noise
+#define SAT -1 // leave blank, either passed by user or --satit
+//#define SAT 4.685 // this is suggested for gaussian noise
 //#define SAT 20
 #define SSAMPLE -1
 
@@ -115,7 +116,7 @@ struct Parameters
 	bool   inittrans;
 	int    verbose;
 	int    highit;
-	bool   floatsvd;
+	bool   doublesvd;
 	double wlimit;
 };
 static struct Parameters P =
@@ -127,7 +128,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.27 2010/02/02 20:29:25 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.28 2010/03/01 23:51:39 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -747,47 +748,49 @@ static void printUsage(void)
   cout << "Short description: finds translation and rotation (using robust statistics)" << endl << endl;
 
   cout << "Required arguments" << endl << endl ;
-  cout << "  -M, --mov srcvol.mgz       movable/source volume to be registered" << endl;
-  cout << "  -D, --dst dstvol.mgz       destination/target volume for the registration" << endl;
-  cout << "      --lta regfile.lta      output registration file" << endl << endl;
+  cout << "  --mov srcvol.mgz       movable/source volume to be registered" << endl;
+  cout << "  --dst dstvol.mgz       destination/target volume for the registration" << endl;
+  cout << "  --lta regfile.lta      output registration file" << endl;
+	cout << "  Either --satit or --sat <real> (if not --leastsquares) for sensitivity" << endl << endl;
 
   cout << "Optional arguments" << endl << endl;
-  cout << "  -W, --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
-  cout << "      --weights wvol.mgz     output weights (in target space) as wvol.mgz" << endl;
+  cout << "  --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
+  cout << "  --weights wvol.mgz     output weights (in target space) as wvol.mgz" << endl;
 
-  cout << "      --halfmov hm.mgz       outputs half-way mov (mapped to halfway space)" << endl;
-  cout << "      --halfdst hd.mgz       outputs half-way dst (mapped to halfway space)" << endl;
-  cout << "      --halfweights hw.mgz   outputs half-way weights (mapped to halfway space)" << endl;
-  cout << "      --halfmovlta hm.lta    outputs transform from mov to half-way space" << endl;
-  cout << "      --halfdstlta hd.lta    outputs transform from dst to half-way space" << endl;
+  cout << "  --halfmov hm.mgz       outputs half-way mov (mapped to halfway space)" << endl;
+  cout << "  --halfdst hd.mgz       outputs half-way dst (mapped to halfway space)" << endl;
+  cout << "  --halfweights hw.mgz   outputs half-way weights (mapped to halfway space)" << endl;
+  cout << "  --halfmovlta hm.lta    outputs transform from mov to half-way space" << endl;
+  cout << "  --halfdstlta hd.lta    outputs transform from dst to half-way space" << endl;
 
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
-  cout << "  -I, --iscale               estimate intensity scale factor (default no)" << endl;
+  cout << "  --iscale               estimate intensity scale factor (default no)" << endl;
   cout << "                                !!Highly recommended for unnormalized images!!" << endl;
-  cout << "      --transonly            find 3 parameter translation only" << endl;
-  cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
+  cout << "  --transonly            find 3 parameter translation only" << endl;
+  cout << "  --transform lta        use initial transform lta on source ('id'=identity)" << endl;
   cout << "                                default is align center (using moments)" << endl;
-  cout << "      --initorient           use moments for orientation init. (default false)" << endl;
+  cout << "  --initorient           use moments for orientation init. (default false)" << endl;
   cout << "                                (recommended for stripped brains, but not with" << endl;
   cout << "                                 with full head images with different cropping)"<<endl;
-	cout << "      --noinit               skip transform init, default: transl. of centers" << endl;
-  cout << "      --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
-  cout << "  -L, --leastsquares         use least squares instead of robust M-estimator" << endl;
-  cout << "      --maxit <#>            iterate max # times on each resolution (default "<<P.iterate<<")"  << endl;
-  cout << "      --highit <#>           iterate max # times on highest resol. (default "<<P.iterate<<")"  << endl;
-  cout << "      --epsit <real>         stop iterations when below <real> (default "<<P.epsit <<")" << endl;
-  cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "      --sat <real>           set saturation for robust estimator (default "<<SAT<<")" << endl;
-  cout << "      --satit                determine good sat iteratively" << endl;
-	cout << "      --wlimit <real>        sets maximal outlier limit in satit (default "<<P.wlimit<<")" << endl;
-  cout << "      --subsample <#>        subsample if dim > # on all axes (default no subs.)" << endl;
-  cout << "      --floatsvd             float svd (instead of double) saves ~1Gig Memory" << endl;
-  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
-  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
-  cout << "      --uchar                set volumes type to UCHAR (with intens. scaling)" << endl;
-  cout << "      --conform              conform volumes to 1mm vox (256^3)" << endl;
-  cout << "      --debug                create debug hw-images (default: no debug files)" << endl;
-  cout << "      --verbose              0 quiet, 1 normal (default), 2 detail" << endl;
+	cout << "  --noinit               skip transform init, default: transl. of centers" << endl;
+  cout << "  --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
+  cout << "  --leastsquares         use least squares instead of robust M-estimator" << endl;
+  cout << "  --maxit <#>            iterate max # times on each resolution (default "<<P.iterate<<")"  << endl;
+  cout << "  --highit <#>           iterate max # times on highest resol. (default "<<P.iterate<<")"  << endl;
+  cout << "  --epsit <real>         stop iterations when below <real> (default "<<P.epsit <<")" << endl;
+  cout << "  --nomulti              work on highest resolution (no multiscale)" << endl;
+  cout << "  --sat <real>           set outlier sensitivity manually (e.g. '--sat 5' )" << endl;
+	cout << "                                 higher values mean less sensitivity" << endl;
+  cout << "  --satit                auto-detect good sensitivity (for head scans)" << endl;
+	cout << "  --wlimit <real>        sets maximal outlier limit in satit (default "<<P.wlimit<<")" << endl;
+  cout << "  --subsample <#>        subsample if dim > # on all axes (default no subs.)" << endl;
+  cout << "  --doublesvd            double svd (instead of float) ~1Gig more memory" << endl;
+  cout << "  --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
+  cout << "  --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
+  //cout << "  --uchar                set volumes type to UCHAR (with intens. scaling)" << endl;
+  cout << "  --conform              conform volumes to 1mm vox (256^3)" << endl;
+  cout << "  --debug                create debug hw-images (default: no debug files)" << endl;
+  cout << "  --verbose              0 quiet, 1 normal (default), 2 detail" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
   cout << endl;
@@ -803,7 +806,7 @@ static void printUsage(void)
 	cout << " value (eg. --sat 9) or use --satit to automatically determine a good sat value." << endl;
   cout << endl;
 
-  cout << " Report bugs to: Freesurfer@nmr.mgh.harvard.edu" << endl;
+  cout << " Report bugs to: freesurfer@nmr.mgh.harvard.edu" << endl;
 
 
   cout << endl;
@@ -828,7 +831,7 @@ static void initRegistration(Registration & R, Parameters & P)
 	R.setHighit(P.highit);
 	R.setInitTransform(P.inittrans);
   R.setInitOrient(P.initorient);
-	R.setFloatSVD(P.floatsvd);
+	R.setFloatSVD(!P.doublesvd);
 	R.setWLimit(P.wlimit);
   //R.setOutputWeights(P.weights,P.weightsout);
 
@@ -1152,11 +1155,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Will estimate SAT!" << endl;
   }
-  else if (!strcmp(option, "FLOATSVD") )
+  else if (!strcmp(option, "DOUBLESVD") )
   {
-    P.floatsvd = true;
+    P.doublesvd = true;
     nargs = 0 ;
-    cout << "Will perform SVD with float precision only to reduce mem usage!" << endl;
+    cout << "Will perform SVD with double precision (higher mem usage)!" << endl;
   }
   else if (!strcmp(option, "DEBUG") )
   {
@@ -1281,5 +1284,15 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     argv += nargs ;
   }
 
-  return (P.mov != "" && P.dst != "" && P.lta != "");
+  bool test1 = ( P.mov != "" && P.dst != "" && P.lta != "" );
+	if (!test1)
+	{
+	  cerr << endl << "Please specify --mov --dst and --lta !  "<< endl;
+	}
+	bool test2 = ( P.satit || P.sat > 0 || P.leastsquares );
+	if (!test2)
+	{
+	  cerr << endl << "Please specify either --satit or --sat <float> !  "<< endl;
+	}
+  return (test1 && test2);
 }

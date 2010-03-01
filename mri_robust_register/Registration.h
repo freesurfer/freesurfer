@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/02 20:29:25 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/03/01 23:51:39 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,13 +56,13 @@ public:
   Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
       robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
       inittransform(true),highit(-1),mri_source(NULL),mri_target(NULL),
-      iscalefinal(1.0),floatsvd(false),wlimit(0.175),resample(false),
+      iscalefinal(1.0),floatsvd(true),wlimit(0.175),resample(false),
 			mri_weights(NULL), mri_indexing(NULL)
   {};
   Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
       robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
       inittransform(true),highit(-1),mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
-      iscalefinal(1.0),floatsvd(false),wlimit(0.175),resample(false),
+      iscalefinal(1.0),floatsvd(true),wlimit(0.175),resample(false),
 			mri_weights(NULL),mri_indexing(NULL)
   {};
 

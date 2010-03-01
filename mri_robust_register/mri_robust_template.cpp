@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:05 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/03/01 23:51:39 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,7 +56,8 @@ extern "C"
 
 using namespace std;
 
-#define SAT 4.685 // this is suggested for gaussian noise
+#define SAT -1 // leave blank, either passed by user or --satit
+//#define SAT 4.685 // this is suggested for gaussian noise
 //#define SAT 20
 #define SSAMPLE -1
 
@@ -114,6 +115,7 @@ struct Parameters
 	bool   fixtp;
 	bool   satit;
 	string conform;
+	bool   doublesvd;
 };
 
 // Initializations:
@@ -143,7 +145,8 @@ static struct Parameters P =
 	SSAMPLE,
 	false,
 	false,
-	""
+	"",
+	false
 };
 
 
@@ -151,7 +154,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.14 2010/01/14 19:41:05 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.15 2010/03/01 23:51:39 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -212,6 +215,7 @@ int main(int argc, char *argv[])
 	MR.setFixVoxel(P.fixvoxel);
 	MR.setFixType(P.fixtype);
 	MR.setAverage(P.average);
+	MR.setFloatSVD(!P.doublesvd);
 	MR.setSubsamplesize(P.subsamplesize);
 
 	// init MultiRegistration and load movables
@@ -328,6 +332,7 @@ static void printUsage(void)
   cout << "Required arguments" << endl << endl ;
   cout << "  --mov tp1.mgz tp2.mgz ...  movable/source volumes to be registered" << endl;
   cout << "  --template template.mgz    output template volume" << endl;
+	cout << "  Either --satit or --sat <real> for sensitivity" << endl ;
   cout << endl;
   cout << "Optional arguments" << endl << endl;
 //  cout << "      --outdir               output directory (default ./ )" << endl;
@@ -340,25 +345,23 @@ static void printUsage(void)
 	
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
   cout << "  --iscale                   allow also intensity scaling (default no)" << endl;
-//  cout << "      --transonly            find 3 parameter translation only" << endl;
-//  cout << "  -T, --transform lta        use initial transform lta on source ('id'=identity)" << endl;
   cout << "  --ixforms t1.lta t2.lta .. use initial transforms (lta) on source  ('id'=identity)" << endl;
-//  cout << "                                default is geometry (RAS2VOX_dst * VOX2RAS_mov)" << endl;
   cout << "  --vox2vox                  output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  --leastsquares             use least squares instead of robust M-estimator" << endl;
   cout << "  --noit                     do not iterate, just create first template" << endl;
   cout << "  --maxit <#>                iterate max # times (if #tp>2 default 6, else 5 for 2tp reg.)"  << endl;
-  cout << "  --epsit <float>            stop iterations when all tp changes below <float> "<< endl;
+  cout << "  --epsit <real>            stop iterations when all tp changes below <float> "<< endl;
 	cout << "                               (if #tp>2 default 0.03, else 0.01 for 2tp reg.)" << endl;
 //  cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "  --sat <float>              set saturation for robust estimator (default "<<SAT<<")" << endl;
-  cout << "  --satit                    find saturation for robust estimator" << endl;
+  cout << "  --sat <real>           set outlier sensitivity manually (e.g. '--sat 5' )" << endl;
+	cout << "                                 higher values mean less sensitivity" << endl;
+  cout << "  --satit                auto-detect good sensitivity (for head scans)" << endl;
+  cout << "  --doublesvd                double svd (instead of float) ~1Gig more memory" << endl;
   cout << "  --subsample <#>            subsample if dim > # on all axes (default no subs.)" << endl;
 //  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
 //  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
 //  cout << "  --uchar                    set input type to UCHAR (with intensity scaling)" << endl;
   cout << "  --conform conform.mgz      output conform template, 1mm vox (256^3)" << endl;
-//  cout << "      --satit                iterate on highest res with different sat" << endl;
   cout << "  --debug                    show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
@@ -367,7 +370,7 @@ static void printUsage(void)
   cout << "Good images are, for example, the T1.mgz and norm.mgz from the FreeSurfer stream." << endl;
   cout << endl;
 
-  cout << "Report bugs to: Freesurfer@nmr.mgh.harvard.edu" << endl;
+  cout << "Report bugs to: freesurfer@nmr.mgh.harvard.edu" << endl;
 
   cout << endl;
 }
@@ -541,6 +544,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Will estimate SAT iteratively!" << endl;
   }
+  else if (!strcmp(option, "DOUBLESVD") )
+  {
+    P.doublesvd = true;
+    nargs = 0 ;
+    cout << "Will perform SVD with double precision (higher mem usage)!" << endl;
+  }
   else if (!strcmp(option, "WEIGHTS") )
   {
     nargs = 0;
@@ -657,6 +666,13 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   {
     ntest = false;
     cerr << " No. of filnames for --weights should agree with no. of inputs!"
+         << endl;
+    exit(1);
+  }
+  if (!P.satit &&  P.sat <= 0 )
+  {
+    ntest = false;
+    cerr << " Specify either --satit or set sensitivity manually with --sat <real> !"
          << endl;
     exit(1);
   }

@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/22 03:17:42 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/03/01 23:51:39 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -147,7 +147,7 @@ int MultiRegistration::loadLTAs(const std::vector < std::string > nltas)
 
 /*!
   \fn void initRegistration(Registration & R, const Parameters & P)
-  \brief Initializes a Registration with Parameters (rigid, iscale, transonly, robust, sat and trans)
+  \brief Initializes a Registration with Parameters (rigid, iscale, transonly, robust, sat and floatsvd)
   \param R  Registration to be initialized
 */
 void MultiRegistration::initRegistration(Registration & R)
@@ -159,6 +159,7 @@ void MultiRegistration::initRegistration(Registration & R)
   R.setTransonly(transonly);
   R.setRobust(robust);
   R.setSaturation(sat);
+  R.setFloatSVD(floatsvd);
   //R.setDebug(debug);
   
 	
