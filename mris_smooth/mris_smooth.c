@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/23 20:39:13 $
- *    $Revision: 1.23 $
+ *    $Author: greve $
+ *    $Date: 2010/03/01 23:11:14 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_smooth.c,v 1.23 2007/11/23 20:39:13 nicks Exp $";
+  "$Id: mris_smooth.c,v 1.24 2010/03/01 23:11:14 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,13 +87,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_smooth.c,v 1.23 2007/11/23 20:39:13 nicks Exp $",
+   "$Id: mris_smooth.c,v 1.24 2010/03/01 23:11:14 greve Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_smooth.c,v 1.23 2007/11/23 20:39:13 nicks Exp $",
+           "$Id: mris_smooth.c,v 1.24 2010/03/01 23:11:14 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -352,6 +352,10 @@ get_option(int argc, char *argv[]) {
       rescale = 1 ;
       fprintf(stderr, "rescaling brain area after smoothing...\n") ;
       break ;
+    case 'B':
+      strcpy(area_fname, argv[2]) ;
+      nargs = 1 ;
+      break ;
     case 'C':
       strcpy(curvature_fname, argv[2]) ;
       nargs = 1 ;
@@ -385,18 +389,22 @@ print_usage(void) {
 static void
 print_help(void) {
   print_usage() ;
-  fprintf(stderr,
-          "\nThis program smooths the tessellation of a surface and\n"
+  printf("\nThis program smooths the tessellation of a surface and\n"
           "writes-out the first and second order properties after smoothing\n"
           "to the files $hemi.curv (mean curvature) and $hemi.area (area).\n");
-  fprintf(stderr, "\nValid options are:\n\n") ;
-  fprintf(stderr, "-a <avgs>  "
+  printf( "\nValid options are:\n\n") ;
+  printf( "-a <avgs>  "
           "specify # of curvature averaging iterations (def=10).\n") ;
-  fprintf(stderr, "-n <niter> specify # of smoothing iterations (def=10).\n") ;
-  fprintf(stderr, "-nw        disable writing of curvature and area estimates\n");
-  fprintf(stderr, "-g <norm> <steps>  use Gaussian curvature smoothing with\n"
+  printf( "-n <niter> specify # of smoothing iterations (def=10).\n") ;
+  printf( "-nw        disable writing of curvature and area estimates\n");
+  printf( "-c curvname : write curv to ?h.curvname (default 'curv')\n");
+  printf( "-b areaname : write area to ?h.areaname (default 'area')\n");
+  printf( "-g <norm> <steps>  use Gaussian curvature smoothing with\n"
           "           norm <norm> and <steps> smoothing steps\n"
           "           (-g 20 8 works well for hippo)\n");
+  printf( "-area : normalize area after smoothing\n") ;
+  printf( "-m momentum\n") ;
+  printf( "-w nwrite : write snapshot every nwrite iterations\n") ;
   exit(1) ;
 }
 
