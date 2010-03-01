@@ -9,11 +9,11 @@
 /*
  * Original Author: Kevin Teich 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.7 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/01 00:11:00 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -34,10 +33,13 @@
 #include "mrisurf.h"
 
 MRI_SURFACE * mrisReadGIFTIfile(const char *fname);
-int mrisReadScalarGIFTIfile(MRI_SURFACE *mris,const  char *fname);
+int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, const char *fname);
+int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname);
 MRI * MRISreadGiftiAsMRI(const char *fname, int read_volume);
-int MRISwriteGIFTI(MRIS* mris,const  char *fname);
-int MRISwriteScalarGIFTI(MRIS* mris,const  char *fname,const  char *scalar_fname);
-int mriWriteGifti(MRI* mri,const  char *fname);
+int MRISwriteGIFTI(MRIS* mris, const char *fname);
+int MRISwriteScalarGIFTI(MRIS* mris,
+                         const char *fname,
+                         const char *scalar_fname);
+int mriWriteGifti(MRI* mri, const char *fname);
 
 #endif

@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/08/05 21:57:11 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/03/01 00:10:59 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -713,6 +713,190 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
   /* And we're done. */
   gifti_free_image (image);
   return(mri) ;
+}
+
+
+/*
+ * Extracts label table data from a gifti file:
+ * puts the LabelTable in the freesurfer colortable struct
+ * and puts the DataArray containing an 'index' for each vertex into
+ * the vertex's 'annotation' element (which should be contained in
+ * the colortable)
+ */
+int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
+{
+  MRISclearAnnotations(mris);
+
+  /* Attempt to read the file. */
+  gifti_image* image = gifti_read_image (fname, 1);
+  if (NULL == image)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadLabelTableGIFTIfile: gifti_read_image() returned NULL\n");
+    return ERROR_BADFILE;
+  }
+
+  /* check for compliance */
+  int valid = gifti_valid_gifti_image (image, 1);
+  if (valid == 0)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadLabelTableGIFTIfile: GIFTI file %s is invalid!\n", fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* check for 'label table' data */
+  if (image->labeltable.length == 0)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadLabelTableGIFTIfile: no labeltable data found in file %s\n", 
+       fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* check validity of labeltable data */
+  if (!gifti_valid_LabelTable(&image->labeltable,1))
+  {
+    fprintf 
+      (stderr,
+       "mrisReadLabelTableGIFTIfile: invalid labeltable found in file %s\n", 
+       fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* copy label table contents to our color_table struct */
+  COLOR_TABLE* ct = (COLOR_TABLE *)calloc(1, sizeof(COLOR_TABLE));
+  if (ct == NULL)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadLabelTableGIFTIfile: could not alloc colortable memory\n");
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+  memset(ct,0,sizeof(COLOR_TABLE));
+  ct->nentries = image->labeltable.length + 1;
+  ct->entries = (COLOR_TABLE_ENTRY**)
+                calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY*));
+  if (ct->entries == NULL)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadLabelTableGIFTIfile: could not alloc colortable entries\n");
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+  memset(ct->entries,0,sizeof(ct->entries));
+  strncpy(ct->fname, fname, sizeof(ct->fname));
+  int label_index;
+  float* rgba = image->labeltable.rgba;
+  for (label_index = 0; label_index < image->labeltable.length; label_index++)
+  {
+    ct->entries[label_index] = (CTE*) malloc(sizeof(CTE));
+    if (ct->entries[label_index] == NULL)
+    {
+      fprintf 
+        (stderr,
+         "mrisReadLabelTableGIFTIfile: could not alloc colortable entry\n");
+      gifti_free_image (image);
+      return ERROR_BADFILE;
+    }
+    strncpy(ct->entries[label_index]->name,
+            image->labeltable.label[label_index],
+            sizeof(ct->entries[label_index]->name));
+    if( rgba ) 
+    {
+      ct->entries[label_index]->rf = *rgba;
+      ct->entries[label_index]->ri = floor((*rgba++)*256);
+      ct->entries[label_index]->gf = *rgba;
+      ct->entries[label_index]->gi = floor((*rgba++)*256);
+      ct->entries[label_index]->bf = *rgba;
+      ct->entries[label_index]->bi = floor((*rgba++)*256);
+      ct->entries[label_index]->af = *rgba;
+      ct->entries[label_index]->ai = floor((*rgba++)*256);
+      /*
+      printf("RGBA: %d %d %d %d %f %f %f %f\n",
+             ct->entries[label_index]->ri,
+             ct->entries[label_index]->gi,
+             ct->entries[label_index]->bi,
+             ct->entries[label_index]->ai,
+             ct->entries[label_index]->rf,
+             ct->entries[label_index]->gf,
+             ct->entries[label_index]->bf,
+             ct->entries[label_index]->af);
+      */
+    }
+  }
+  ct->entries[label_index] = NULL;
+  CTABfindDuplicateNames(ct);
+  // and of course store this colortable
+  mris->ct = ct;
+
+  // sanity-check
+  int numEntries=0;
+  CTABgetNumberOfValidEntries(mris->ct,&numEntries);
+  if (numEntries != image->labeltable.length)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadLabelTableGIFTIfile: "
+       "ct_entries:%d != labeltable_entries:%d\n", 
+       numEntries, image->labeltable.length);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* check for 'label' data */
+  giiDataArray* labels = gifti_find_DA (image, NIFTI_INTENT_NONE, 0);
+  if (NULL == labels)
+  {
+    giiDataArray* labels = gifti_find_DA (image, NIFTI_INTENT_LABEL, 0);
+    if (NULL == labels)
+    {
+      fprintf 
+        (stderr,
+         "mrisReadLabelTableGIFTIfile: no label data found in file %s\n", 
+         fname);
+      gifti_free_image (image);
+      return ERROR_BADFILE;
+    }
+  }
+
+  /* Check the number of vertices */
+  long long num_vertices = 0;
+  long long num_cols = 0;
+  gifti_DA_rows_cols (labels, &num_vertices, &num_cols);
+  if (num_vertices <= 0 ||
+      num_vertices != mris->nvertices ||
+      num_cols != 1)
+  {
+    fprintf 
+      (stderr,
+       "mrisReadLabelTableGIFTIfile: malformed labels data array in file "
+       "%s: num_vertices=%d num_cols=%d expected nvertices=%d\n",
+       fname, (int)num_vertices, (int)num_cols, mris->nvertices);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* Copy in all our data. */
+  unsigned int* label_data = labels->data;
+  for (label_index = 0; label_index < mris->nvertices; label_index++)
+  {
+    if (mris->vertices[label_index].ripflag) continue;
+    mris->vertices[label_index].annotation = *label_data++;
+    //printf("%8.8X ", mris->vertices[label_index].annotation);
+  }
+
+  /* And we're done. */
+  gifti_free_image (image);
+  return(NO_ERROR) ;
 }
 
 

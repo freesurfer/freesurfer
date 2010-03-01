@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/02/26 14:23:46 $
- *    $Revision: 1.658 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/01 00:10:59 $
+ *    $Revision: 1.659 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.658 2010/02/26 14:23:46 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.659 2010/03/01 00:10:59 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -11585,6 +11585,14 @@ MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   float f;
   char  histfname[STRLEN], freqfname[STRLEN];
 #endif
+
+  // first attempt to read as gifti file
+  int mritype = mri_identify(sname);
+  if (mritype == GIFTI_FILE)
+  {
+    return mrisReadLabelTableGIFTIfile(mris,sname);
+  }
+  // else fall-thru with default .annot processing...
 
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
