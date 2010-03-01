@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/02/28 03:43:21 $
-#    $Revision: 1.5 $
+#    $Date: 2010/03/01 21:06:30 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2010
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_convert,v 1.5 2010/02/28 03:43:21 nicks Exp $'
+set VERSION='$Id: test_mri_convert,v 1.6 2010/03/01 21:06:30 nicks Exp $'
 
 umask 002
 
@@ -86,7 +86,10 @@ set TEST_FILES=( orig.mgz dicom.mgz nifti.mgz analyze.mgz )
 foreach tstvol ($TEST_FILES)
   # now compare expected with observed data
   set REF_VOL  = freesurfer.mgz
-  if ( "x$tstvol" == "xorig.mgz" ) set REF_VOL = ref_orig.mgz
+  if ( "x$tstvol" == "xorig.mgz" ) then
+    set REF_VOL = ref_orig.mgz
+    if ( "`uname -p`" == "powerpc" ) set REF_VOL = ref_powerpc_orig.mgz
+  endif
   set TST_VOL  = $tstvol
   set DIFF_VOL = $PWD/mri_diff-$tstvol
   set MRIDIFFF = $PWD/mri_diff-$tstvol.txt
