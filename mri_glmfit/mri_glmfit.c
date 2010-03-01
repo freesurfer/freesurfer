@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/02/25 19:36:16 $
- *    $Revision: 1.176 $
+ *    $Date: 2010/03/01 22:54:21 $
+ *    $Revision: 1.177 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -41,6 +41,7 @@ USAGE: ./mri_glmfit
    --glmdir dir : save outputs to dir
 
    --y inputfile
+   --table stats-table : as output by asegstats2table or aparcstats2table 
    --fsgd FSGDF <gd2mtx> : freesurfer descriptor file
    --X design matrix file
    --C contrast1.mtx <--C contrast2.mtx ...>
@@ -207,6 +208,12 @@ Path to input file with each frame being a separate input. This can be
 volume or surface-based, but the file must be one of the 'volume'
 formats (eg, mgh, img, nii, etc) accepted by mri_convert. See
 mris_preproc for an easy way to generate this file for surface data.
+Not with --table.
+
+--table stats-table
+
+Use text table as input instead of --y. The stats-table is that of
+the form produced by asegstats2table or aparcstats2table.
 
 --fsgd fname <gd2mtx>
 
@@ -554,7 +561,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.176 2010/02/25 19:36:16 greve Exp $";
+"$Id: mri_glmfit.c,v 1.177 2010/03/01 22:54:21 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2254,6 +2261,7 @@ printf("\n");
 printf("   --glmdir dir : save outputs to dir\n");
 printf("\n");
 printf("   --y inputfile\n");
+printf("   --table stats-table : as output by asegstats2table or aparcstats2table \n");
 printf("   --fsgd FSGDF <gd2mtx> : freesurfer descriptor file\n");
 printf("   --X design matrix file\n");
 printf("   --C contrast1.mtx <--C contrast2.mtx ...>\n");
@@ -2279,7 +2287,7 @@ printf("   --no-est-fwhm : turn off FWHM output estimation\n");
 printf("\n");
 printf("   --mask maskfile : binary mask\n");
 printf("   --label labelfile : use label as mask, surfaces only\n");
-printf("   --cortex use subjects ?h.cortex.label as --label\n");
+printf("   --cortex : use subjects ?h.cortex.label as --label\n");
 printf("   --mask-inv : invert mask\n");
 printf("   --prune : remove voxels that do not have a non-zero value at each frame (def)\n");
 printf("   --no-prune : do not prune\n");
@@ -2318,10 +2326,8 @@ printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comap
 printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must appear\n");
 printf("                  before --fsgd)\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
-printf("   --xonly Xfile : save design matrix and exit\n");
-printf("   --sim-done SimDoneFile : create SimDoneFile when simulation finished\n");
+printf("   --sim-done SimDoneFile : create DoneFile when simulation finished \n");
 printf("\n");
-
 }
 
 
@@ -2425,6 +2431,12 @@ printf("Path to input file with each frame being a separate input. This can be\n
 printf("volume or surface-based, but the file must be one of the 'volume'\n");
 printf("formats (eg, mgh, img, nii, etc) accepted by mri_convert. See\n");
 printf("mris_preproc for an easy way to generate this file for surface data.\n");
+printf("Not with --table.\n");
+printf("\n");
+printf("--table stats-table\n");
+printf("\n");
+printf("Use text table as input instead of --y. The stats-table is that of\n");
+printf("the form produced by asegstats2table or aparcstats2table.\n");
 printf("\n");
 printf("--fsgd fname <gd2mtx>\n");
 printf("\n");
