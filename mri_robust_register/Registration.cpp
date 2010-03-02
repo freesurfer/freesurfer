@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/02 20:29:25 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/03/02 20:14:27 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -866,15 +866,18 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
 		{
        counter++;
 		   if (verbose >0 ) cout << " Iteration: " << counter << endl;
-       // write out wcheck
-			 string fn = getName() + "-wcheck-est.txt";
-       ofstream f(fn.c_str(),ios::out);
-       f << sat << " " << wcheck << endl;
-       f.close();  
-			 string fn2 = getName() + "-wchecksqrt-est.txt";
-       ofstream f2(fn.c_str(),ios::out);
-       f2 << sat << " " << wchecksqrt << endl;
-       f2.close();  
+			 if (debug)
+			 {
+         // write out wcheck
+			   string fn = getName() + "-wcheck-est.txt";
+         ofstream f(fn.c_str(),ios::out);
+         f << sat << " " << wcheck << endl;
+         f.close();  
+			   string fn2 = getName() + "-wchecksqrt-est.txt";
+         ofstream f2(fn.c_str(),ios::out);
+         f2 << sat << " " << wchecksqrt << endl;
+         f2.close();  
+			 }
 			 
 			 cout << "   - Checking " << wcheck << " > "<< wlimit << " ?? " << endl;
 			 if (wcheck > wlimit)
@@ -1134,14 +1137,21 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
 		if (r == 2)
 		{
        // write out wcheck
-			 string fn = getName() + "-wcheck.txt";
-       ofstream f(fn.c_str(),ios::out);
-       f << sat << " " << wcheck << endl;
-       f.close();  
-			 string fn2 = getName() + "-wchecksqrt.txt";
-       ofstream f2(fn.c_str(),ios::out);
-       f2 << sat << " " << wchecksqrt << endl;
-       f2.close();  
+			 if (debug)
+			 {
+			   string fn = getName() + "-wcheck.txt";
+         ofstream f(fn.c_str(),ios::out);
+         f << sat << " " << wcheck << endl;
+         f.close();  
+			   string fn2 = getName() + "-wchecksqrt.txt";
+         ofstream f2(fn.c_str(),ios::out);
+         f2 << sat << " " << wchecksqrt << endl;
+         f2.close();  
+			 }
+			 if (verbose > 1)
+			 {
+			   cout << " wcheck : " << wcheck << "  wchecksqrt: " << wchecksqrt << endl;
+			 }
 			 
 // 			 if (wcheck > 0.3)
 // 			 {
