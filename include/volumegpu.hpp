@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/26 18:02:01 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/03/02 15:44:07 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -154,9 +154,9 @@ namespace GPU {
 	  @param[in] r The location in question
 	  @param[in] tol The distance outside the volume still considered 'inside'
 	*/
-	bool res = ( (r.x>-tol) && (r.x<=(this->dims.x+tol-1)) );
-	res = res && (r.y>-tol) && (r.y<=(this->dims.y+tol-1));
-	res = res && (r.z>-tol) && (r.z<=(this->dims.z+tol-1));
+	bool res = ( (r.x>-tol) && (r.x<(this->dims.x+tol-1)) );
+	res = res && (r.y>-tol) && (r.y<(this->dims.y+tol-1));
+	res = res && (r.z>-tol) && (r.z<(this->dims.z+tol-1));
 
 	return( res );
       }
@@ -219,7 +219,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.16 2010/02/26 18:02:01 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.17 2010/03/02 15:44:07 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
