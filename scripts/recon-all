@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2010/03/02 01:10:37 $
-#    $Revision: 1.278 $
+#    $Date: 2010/03/02 01:12:35 $
+#    $Revision: 1.279 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.278 2010/03/02 01:10:37 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.279 2010/03/02 01:12:35 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1713,6 +1713,7 @@ if($DoCALabel) then
       set cmd=($cmd --mov ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
       set cmd=($cmd --dst ${subjdir}/mri/norm.mgz)
       set cmd=($cmd --lta ${subjdir}/mri/transforms/${s}_to_${subjid}.lta)
+			set cmd=($cmd --sat 4.685 )
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
