@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/02 17:07:47 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/03/02 20:36:36 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,8 +26,12 @@
 
 #include "chronometer.hpp"
 
+#include "volumegpucompare.hpp"
+
 
 #include "gcamorphgpu.hpp"
+
+
 
 // ==============================================================
 
@@ -293,3 +297,12 @@ void GCAMorphSendAfter( const GCAM* src ) {
 }
 
 
+void GCAMorphCompareBeforeAfter( void ) {
+
+  GPU::Algorithms::VolumeGPUCompare myComp;
+  float areaDiff;
+  dim3 areaLoc;
+
+  myComp.MaxDiff( CPUbefore.d_area, CPUafter.d_area, areaDiff, areaLoc );
+  
+}

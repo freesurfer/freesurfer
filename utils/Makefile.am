@@ -343,7 +343,7 @@ mrimean_cuda.o: $(CUDA_DEPS)
 mrivol2vol_cuda.o: $(CUDA_DEPS)
 affinegpu.o: $(CUDA_DEPS)
 gcasgpu.o: $(CUDA_DEPS)
-gcamorphgpu.o: $(CUDA_DEPS)
+gcamorphgpu.o: $(CUDA_DEPS) ../include/volumegpucompare.hpp
 
 endif
 

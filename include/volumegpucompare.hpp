@@ -1,0 +1,149 @@
+/**
+ * @file  volumegpucompare.hpp
+ * @brief Holds routines to compare VolumeGPU types
+ *
+ * Holds routines (inside a class) to perform comparisons
+ * between instances of VolumeGPUs.
+ */
+/*
+ * Original Author: Richard Edgar
+ * CVS Revision Info:
+ *    $Author: rge21 $
+ *    $Date: 2010/03/02 20:36:42 $
+ *    $Revision: 1.1 $
+ *
+ * Copyright (C) 2002-2008,
+ * The General Hospital Corporation (Boston, MA). 
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
+#include <cstdlib>
+
+#include <iostream>
+
+#include <thrust/device_new_allocator.h>
+#include <thrust/device_ptr.h>
+#include <thrust/extrema.h>
+
+
+#include "cudacheck.h"
+#include "cudatypeutils.hpp"
+
+#include "volumegpu.hpp"
+
+#ifndef VOLUME_GPU_COMPARE_CUDA_H
+#define VOLUME_GPU_COMPARE_CUDA_H
+
+
+
+namespace GPU {
+  namespace Algorithms {
+
+    const unsigned int kAbsDiffBlockSize = 16;
+
+
+    //! Kernel to compute absolute differences between all voxels
+    template<typename T>
+    __global__
+    void ComputeAbsDiffs( const GPU::Classes::VolumeArgGPU<T> a,
+			  const GPU::Classes::VolumeArgGPU<T> b,
+			  T *diffs ) {
+
+      const unsigned int ix = threadIdx.x + ( blockIdx.x * blockDim.x );
+      const unsigned int iy = threadIdx.y + ( blockIdx.y * blockDim.y );
+     
+      
+      // Check if our voxel is in range
+      if( !a.InVolume( ix, iy, 0 ) ) {
+	return;
+      }
+
+      // Loop over each z slice
+      for( unsigned int iz = 0; iz < a.dims.z; iz++ ) {
+	// Compute the 1D index of the current location
+	const unsigned int iLoc = a.Index1D( ix, iy, iz );
+
+	// Get the difference
+	// Rely on fabs overload
+	diffs[iLoc] = fabs( a(ix,iy,iz) - b(ix,iy,iz) );
+      }
+    }
+
+    class VolumeGPUCompare {
+
+    public:
+
+      //! Finds voxels with maximum difference
+      template<typename T>
+      void MaxDiff( const GPU::Classes::VolumeGPU<T>& a,
+		    const GPU::Classes::VolumeGPU<T>& b,
+		    T& maxDiff,
+		    dim3& maxLoc ) const {
+	/*!
+	  Routine to compare two volumes, and find
+	  the voxel with the maximum difference.
+	*/
+	const dim3 aDims = a.GetDims();
+	const dim3 bDims = b.GetDims();
+
+	// Verify dimensions
+	if( aDims != bDims ) {
+	  std::cerr << __FUNCTION__
+		    << ": Dimension mismatch"
+		    << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	
+	// Allocate 'difference' array
+	thrust::device_ptr<T> d_absDiffs;
+	
+	const unsigned int nVoxels = aDims.x * aDims.y * aDims.z;
+
+	d_absDiffs = thrust::device_new<T>( nVoxels );
+
+
+	// Run the difference kernel
+	dim3 grid, threads;
+	threads.x = threads.y = kAbsDiffBlockSize;
+	threads.z = 1;
+
+	grid = a.CoverBlocks( kAbsDiffBlockSize );
+	grid.z = 1;
+
+	ComputeAbsDiffs<T>
+	  <<<grid,threads>>>
+	  ( a, b, thrust::raw_pointer_cast( d_absDiffs ) );
+	CUDA_CHECK_ERROR( "ComputeAbsDiffs kernel failed!\n" );
+	
+
+	// Extract the maximum and its location
+	thrust::device_ptr<float> d_maxLoc;
+	d_maxLoc = thrust::max_element( d_absDiffs, d_absDiffs + nVoxels );
+
+	maxDiff = *d_maxLoc;
+	maxLoc = a.Index3D( d_maxLoc - d_absDiffs );
+
+	std::cout << __FUNCTION__ << ": maxLoc = " << maxLoc << std::endl;
+	std::cout << __FUNCTION__ << ": maxDiff = " << maxDiff << std::endl;
+
+	// Release 'difference' array
+	thrust::device_delete( d_absDiffs );
+	
+      }
+
+    };
+  }
+}
+
+
+
+#endif

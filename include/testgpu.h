@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/02 17:07:51 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/02 20:36:42 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@ extern "C" {
 
   void GCAMorphSendBefore( const GCAM* src );
   void GCAMorphSendAfter( const GCAM* src );
-
+  void GCAMorphCompareBeforeAfter( void );
 #if defined(__cplusplus)
 };
 #endif
