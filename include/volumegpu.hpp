@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/02 20:09:33 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/03/02 20:29:29 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -237,7 +237,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.18 2010/03/02 20:09:33 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.19 2010/03/02 20:29:29 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -521,6 +521,30 @@ namespace GPU {
 	  derived classes
 	*/
 	return( ix + ( this->dims.x * ( iy + ( this->dims.y * iz ) ) ) );
+      }
+
+
+      //! Converts a 1D index to a dim3 location
+      dim3 Index3D( unsigned int idx ) const {
+	/*!
+	  Computes the x, y and z location of a given
+	  1D index.
+	  It is the inverse of the Index1D method
+	  Note that idx is not declared const.
+	  We rely on it being passed by value.
+	*/
+
+	dim3 loc;
+
+	loc.x = idx % this->dims.x;
+	idx /= this->dims.x;
+
+	loc.y = idx % this->dims.y;
+	idx /= this->dims.y;
+
+	loc.z = idx;
+
+	return( loc );
       }
 
       // ============================================
