@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/02 15:44:07 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/03/02 20:09:33 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -131,6 +131,24 @@ namespace GPU {
       }
 
 
+
+      //! Function to return the 1D index of a location
+      __device__ unsigned int Index1D ( const unsigned int ix,
+					const unsigned int iy,
+					const unsigned int iz ) const {
+	/*!
+	  Provides the 1D index of the given location, if the
+	  current object were to be packed into linear memory
+	  (i.e. without the padding implied by the pitch).
+	*/
+	unsigned int loc;
+
+	loc = ix + ( this->dims.x * ( iy + ( this->dims.y * iz ) ) );
+	
+	return( loc );
+      }
+      
+
       // --------------------------------------
       
       //! Checks if given co-ordinate is in the volume
@@ -219,7 +237,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.17 2010/03/02 15:44:07 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.18 2010/03/02 20:09:33 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
