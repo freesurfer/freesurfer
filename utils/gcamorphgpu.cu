@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/24 15:23:35 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/02 17:07:47 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -270,14 +270,26 @@ namespace GPU {
   }
 }
 
+
+/*
+  The following functions are a bunch of ugly hacks designed
+  to permit testing deep within mri_ca_register.
+  They should never be included in a release.
+  Indeed, if you are reading this in a release version of the
+  code, please report it as a bug.
+*/
+
 #include "testgpu.h"
 
-void TestGCAMorphGPU( GCAM* src ) {
+static GPU::Classes::GCAmorphGPU CPUbefore, CPUafter;
 
-  GPU::Classes::GCAmorphGPU myMorph;
 
-  myMorph.SendAll( src );
-
-  myMorph.RecvAll( src );
-
+void GCAMorphSendBefore( const GCAM* src ) {
+  CPUbefore.SendAll( src );
 }
+
+void GCAMorphSendAfter( const GCAM* src ) {
+  CPUafter.SendAll( src );
+}
+
+
