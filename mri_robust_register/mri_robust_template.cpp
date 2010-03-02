@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/01 23:51:39 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/03/02 01:18:08 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -154,7 +154,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.15 2010/03/01 23:51:39 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.16 2010/03/02 01:18:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -639,7 +639,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 static bool parseCommandLine(int argc, char *argv[], Parameters & P)
 {
   int nargs;
-
+  int n = argc;
   for ( ; argc > 0 && ISOPTION(*argv[0]) ; argc--, argv++)
   {
     nargs = parseNextCommand(argc, argv,P) ;
@@ -669,7 +669,7 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
          << endl;
     exit(1);
   }
-  if (!P.satit &&  P.sat <= 0 )
+  if (n>0 &&!P.satit &&  P.sat <= 0 )
   {
     ntest = false;
     cerr << " Specify either --satit or set sensitivity manually with --sat <real> !"
