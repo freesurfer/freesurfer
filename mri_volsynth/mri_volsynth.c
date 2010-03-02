@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/08/13 21:29:20 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/03/02 22:00:10 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -64,7 +64,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.40 2009/08/13 21:29:20 greve Exp $";
+"$Id: mri_volsynth.c,v 1.41 2010/03/02 22:00:10 greve Exp $";
 
 char *Progname = NULL;
 
@@ -83,6 +83,8 @@ char *tempfmt = NULL;
 int dim[4];
 float res[4];
 float cras[4];
+float p0[4];
+int usep0 = 0;
 float cdircos[3], rdircos[3], sdircos[3];
 char *pdfname = "gaussian";
 char *precision=NULL; /* not used yet */
@@ -354,9 +356,12 @@ int main(int argc, char **argv)
     mri->z_r = sdircos[0];
     mri->z_a = sdircos[1];
     mri->z_s = sdircos[2];
-    mri->c_r = cras[0];
-    mri->c_a = cras[1];
-    mri->c_s = cras[2];
+    if(!usep0){
+      mri->c_r = cras[0];
+      mri->c_a = cras[1];
+      mri->c_s = cras[2];
+    } 
+    else MRIp0ToCRAS(mri, p0[0], p0[1], p0[2]);
   }
 
   if (gstd > 0) {
@@ -516,11 +521,19 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 4) argnerr(option,4);
       for (i=0;i<4;i++) sscanf(pargv[i],"%f",&res[i]);
       nargsused = 4;
-    } else if ( !strcmp(option, "--c_ras") ) {
+    } 
+    else if ( !strcmp(option, "--c_ras") ) {
       if (nargc < 3) argnerr(option,3);
       for (i=0;i<3;i++) sscanf(pargv[i],"%f",&cras[i]);
       nargsused = 3;
-    } else if ( !strcmp(option, "--cdircos") ) {
+    } 
+    else if ( !strcmp(option, "--p0") ) {
+      if (nargc < 3) argnerr(option,3);
+      for (i=0;i<3;i++) sscanf(pargv[i],"%f",&p0[i]);
+      usep0 = 1;
+      nargsused = 3;
+    } 
+    else if ( !strcmp(option, "--cdircos") ) {
       if (nargc < 3) argnerr(option,3);
       for (i=0;i<3;i++) sscanf(pargv[i],"%f",&cdircos[i]);
       nargsused = 3;
@@ -649,7 +662,8 @@ static void print_usage(void) {
   printf("   --cdircos x y z\n");
   printf("   --rdircos x y z\n");
   printf("   --sdircos x y z\n");
-  printf("   --c_ras   c_r c_a c_s\n");
+  printf("   --c_ras   c_r c_a c_s : 'center' voxel\n");
+  printf("   --p0   p0r p0a p0s : first voxel\n");
   printf("   --precision precision : eg, float\n");
   printf("\n");
   printf(" Value distribution flags\n");
