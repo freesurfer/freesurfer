@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/01 00:11:00 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/03/02 19:38:02 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,5 +41,6 @@ int MRISwriteScalarGIFTI(MRIS* mris,
                          const char *fname,
                          const char *scalar_fname);
 int mriWriteGifti(MRI* mri, const char *fname);
+int MRISwriteLabelTableGIFTI(MRI_SURFACE *mris, const char *fname);
 
 #endif

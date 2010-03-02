@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/29 20:10:36 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/03/02 19:38:03 $
+ *    $Revision: 1.32 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -47,7 +46,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.31 2009/07/29 20:10:36 nicks Exp $";
+"$Id: mris_convert.c,v 1.32 2010/03/02 19:38:03 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -78,6 +77,8 @@ static int curv_file_flag = 0 ;
 static char *curv_fname ;
 static int func_file_flag = 0 ;
 static char *func_fname ;
+static int annot_file_flag = 0 ;
+static char *annot_fname ;
 static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
@@ -92,15 +93,15 @@ int MRISwriteVertexNeighborsAscii(MRIS *mris, char *out_fname);
 int
 main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
-  char         **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
+  char **av, *in_fname, *out_fname, fname[STRLEN], hemi[10],
     *cp, path[STRLEN], *dot, ext[STRLEN] ;
-  int          ac, nargs,nthvtx ;
+  int ac, nargs,nthvtx ;
   FILE *fp=NULL;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.31 2009/07/29 20:10:36 nicks Exp $",
+     "$Id: mris_convert.c,v 1.32 2010/03/02 19:38:03 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -218,6 +219,30 @@ main(int argc, char *argv[]) {
     else
       MRISwriteCurvature(mris, out_fname) ;
   } 
+  else if (annot_file_flag) {
+    // first read the annotation/label data...
+    int type = MRISfileNameType(annot_fname);
+    if (type == MRIS_ANNOT_FILE) {
+      if (MRISreadAnnotation(mris, annot_fname) != NO_ERROR) exit(1);
+    } else if (type == MRIS_GIFTI_FILE) {
+      if (mrisReadLabelTableGIFTIfile(mris, annot_fname) != NO_ERROR) exit(1);
+    } else {
+      printf("ERROR: unknown file annot file type specified for --annot: "
+             "%s\n",annot_fname);
+      exit(1);
+    }
+    // now write it
+    type = MRISfileNameType(out_fname);
+    if (type == MRIS_ANNOT_FILE) {
+      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR) exit(1);
+    } else if (type == MRIS_GIFTI_FILE) {
+      if (MRISwriteLabelTableGIFTI(mris, out_fname) != NO_ERROR) exit(1);
+    } else {
+      printf("ERROR: unknown file annot file type specified for output: "
+             "%s\n",out_fname);
+      exit(1);
+    }
+  } 
   else if (func_file_flag) {
     MRI* mri = MRIread( func_fname );
     if (NULL == mri) {
@@ -249,8 +274,10 @@ main(int argc, char *argv[]) {
     }
     fclose(fp);
   }
-  else
+  else {
+    // default output: 
     MRISwrite(mris, out_fname) ;
+  }
 
   MRISfree(&mris) ;
 
@@ -274,6 +301,11 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "-annot")) {
+    annot_fname = argv[2] ;
+    annot_file_flag = 1;
+    nargs = 1 ;
+  }
   else switch (toupper(*option)) {
   case 'A':
     PrintXYZOnly = 1;
@@ -355,6 +387,7 @@ print_help(void) {
           "                    specify surface)\n") ;
   printf( "  -f <scalar file>  input is functional time-series or other\n"
           "                    multi-frame data (must specify surface)\n") ;
+  printf( "  --annot <annot file> input is annotation or gifti label data\n") ;
   printf( "  -o origname       read orig positions\n") ;
   printf( "  -s scale          scale vertex xyz by scale\n") ;
   printf( "  -r                rescale vertex xyz so total area is\n"
@@ -395,6 +428,12 @@ print_help(void) {
   printf( "\n");
   printf( "Convert a scalar overlay file to ascii:\n");
   printf( "  mris_convert -c lh.thickness lh.white lh.thickness.asc\n") ;
+  printf( "\n") ;
+  printf( "Convert a .annot file to Gifti label file:\n");
+  printf( "  mris_convert --annot lh.aparc.annot lh.white lh.aparc.gii\n") ;
+  printf( "\n") ;
+  printf( "Convert a Gifti label file to .annot:\n");
+  printf( "  mris_convert --annot lh.aparc.gii lh.white.gii lh.aparc.annot\n") ;
   printf( "\n") ;
   printf( "See also mri_surf2surf\n") ;
   exit(1) ;

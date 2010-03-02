@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/01 00:10:59 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/03/02 19:38:03 $
+ *    $Revision: 1.14 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -782,6 +781,7 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
   }
   memset(ct,0,sizeof(COLOR_TABLE));
   ct->nentries = image->labeltable.length + 1;
+  ct->version = 2;
   ct->entries = (COLOR_TABLE_ENTRY**)
                 calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY*));
   if (ct->entries == NULL)
@@ -812,14 +812,19 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
             sizeof(ct->entries[label_index]->name));
     if( rgba ) 
     {
-      ct->entries[label_index]->rf = *rgba;
-      ct->entries[label_index]->ri = floor((*rgba++)*256);
-      ct->entries[label_index]->gf = *rgba;
-      ct->entries[label_index]->gi = floor((*rgba++)*256);
-      ct->entries[label_index]->bf = *rgba;
-      ct->entries[label_index]->bi = floor((*rgba++)*256);
-      ct->entries[label_index]->af = *rgba;
-      ct->entries[label_index]->ai = floor((*rgba++)*256);
+      ct->entries[label_index]->rf = rgba[0];
+      ct->entries[label_index]->ri = floor((rgba[0])*256);
+      if (ct->entries[label_index]->ri > 255) ct->entries[label_index]->ri=255;
+      ct->entries[label_index]->gf = rgba[1];
+      ct->entries[label_index]->gi = floor((rgba[1])*256);
+      if (ct->entries[label_index]->gi > 255) ct->entries[label_index]->gi=255;
+      ct->entries[label_index]->bf = rgba[2];
+      ct->entries[label_index]->bi = floor((rgba[2])*256);
+      if (ct->entries[label_index]->bi > 255) ct->entries[label_index]->bi=255;
+      ct->entries[label_index]->af = rgba[3];
+      ct->entries[label_index]->ai = floor((rgba[3])*256);
+      if (ct->entries[label_index]->ai > 255) ct->entries[label_index]->ai=255;
+      rgba += 4;
       /*
       printf("RGBA: %d %d %d %d %f %f %f %f\n",
              ct->entries[label_index]->ri,
@@ -831,6 +836,25 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
              ct->entries[label_index]->bf,
              ct->entries[label_index]->af);
       */
+    }
+    else
+    {
+      fprintf 
+        (stderr,
+         "mrisReadLabelTableGIFTIfile: missing rgba floats!\n");
+      gifti_free_image (image);
+      return ERROR_BADFILE;
+    }
+
+    // sanity-cross-check:
+    int annotation = CTABrgb2Annotation(ct->entries[label_index]->ri,
+                                        ct->entries[label_index]->gi,
+                                        ct->entries[label_index]->bi);
+    if (annotation != image->labeltable.index[label_index])
+    {
+      printf("WARNING: rgb2annot:%8.8X != labeltable.index:%8.8X\n",
+             annotation,
+             image->labeltable.index[label_index]);
     }
   }
   ct->entries[label_index] = NULL;
@@ -853,10 +877,10 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
   }
 
   /* check for 'label' data */
-  giiDataArray* labels = gifti_find_DA (image, NIFTI_INTENT_NONE, 0);
+  giiDataArray* labels = gifti_find_DA (image, NIFTI_INTENT_LABEL, 0);
   if (NULL == labels)
   {
-    giiDataArray* labels = gifti_find_DA (image, NIFTI_INTENT_LABEL, 0);
+    labels = gifti_find_DA (image, NIFTI_INTENT_NONE, 0);
     if (NULL == labels)
     {
       fprintf 
@@ -885,13 +909,30 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
     return ERROR_BADFILE;
   }
 
-  /* Copy in all our data. */
+  /* Copy label node data (annotation for each vertex) */
   unsigned int* label_data = labels->data;
   for (label_index = 0; label_index < mris->nvertices; label_index++)
   {
     if (mris->vertices[label_index].ripflag) continue;
-    mris->vertices[label_index].annotation = *label_data++;
-    //printf("%8.8X ", mris->vertices[label_index].annotation);
+    mris->vertices[label_index].annotation = *(label_data + label_index);
+    // cross-check:
+    int index = -1;
+    int result = CTABfindAnnotation(mris->ct,
+                                    mris->vertices[label_index].annotation,
+                                    &index);
+    if ((result != NO_ERROR) || 
+        (index < 0) || 
+        (index > image->labeltable.length))
+    {
+      fprintf 
+        (stderr,
+         "mrisReadLabelTableGIFTIfile: "
+         "label node data not found in colortable! "
+         "vno: %d, annot: %8.8X\n",
+         label_index, mris->vertices[label_index].annotation);
+      gifti_free_image (image);
+      return ERROR_BADFILE;
+    }
   }
 
   /* And we're done. */
@@ -1176,7 +1217,9 @@ int MRISwriteGIFTI(MRIS* mris,const  char *fname)
   Description:   writes a GIFTI file containing 'shape'
                  data, ie. thickness, curv, sulc...
   ------------------------------------------------------*/
-int MRISwriteScalarGIFTI(MRIS* mris,const  char *fname,const  char *scalar_fname)
+int MRISwriteScalarGIFTI(MRIS* mris,
+                         const char *fname,
+                         const char *scalar_fname)
 {
   if (NULL == mris || NULL == fname)
   {
@@ -1293,7 +1336,7 @@ int MRISwriteScalarGIFTI(MRIS* mris,const  char *fname,const  char *scalar_fname
   Description:   writes a GIFTI file containing functional or
                  timeseries data
   -----------------------------------------------------------*/
-int mriWriteGifti(MRI* mri,const  char *fname)
+int mriWriteGifti(MRI* mri, const char *fname)
 {
   if (NULL == mri || NULL == fname)
   {
@@ -1380,6 +1423,163 @@ int mriWriteGifti(MRI* mri,const  char *fname)
   if (gifti_write_image (image, fname, 1))
   {
     fprintf (stderr,"mriWriteGifti: couldn't write image\n");
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  gifti_free_image (image);
+
+  return ERROR_NONE;
+}
+
+
+/*
+ * Writes .annot data to a label table data gifti file:
+ * puts the freesurfer colortable struct into a LabelTable,
+ * and puts the .annotation field from each vertex into a 
+ * DataArray
+ */
+int MRISwriteLabelTableGIFTI(MRI_SURFACE *mris, const char *fname)
+{
+  if (NULL == mris || NULL == fname)
+  {
+    fprintf (stderr,"MRISwriteLabelTableGIFTI: invalid input parameters\n");
+    return ERROR_BADPARM;
+  }
+
+  gifti_image* image = (gifti_image *)calloc(1,sizeof(gifti_image));
+  if (NULL == image)
+  {
+    fprintf (stderr,"MRISwriteLabelTableGIFTI: "
+             "couldn't allocate gifti_image\n");
+    return ERROR_NOMEMORY;
+  }
+  image->version = strcpyalloc(GIFTI_XML_VERSION);
+
+  /* -------------------------------------------------------
+   * LabelTable struct, fill it in with our colortable stuff
+   */
+  giiLabelTable labeltable;
+  labeltable.length = mris->ct->nentries;
+  if (labeltable.length == 0)
+  {
+    fprintf(stderr, "MRISwriteLabelTableGIFTI: "
+             "colortable is empty!\n");
+    return ERROR_BADFILE;
+  }
+  labeltable.index = (int *)calloc(labeltable.length, sizeof(int *));
+  labeltable.label = (char **)calloc(labeltable.length, sizeof(char *));
+  labeltable.rgba = (float *)calloc(labeltable.length, 4*sizeof(float *));
+  if ((NULL == labeltable.index) ||
+      (NULL == labeltable.label) ||
+      (NULL == labeltable.rgba))
+  {
+    fprintf (stderr,"MRISwriteLabelTableGIFTI: "
+             "couldn't allocate giftiLabelTable\n");
+    return ERROR_NOMEMORY;
+  }
+  float* rgba = labeltable.rgba;
+  int idx;
+  for (idx=0; idx < labeltable.length; idx++)
+  {
+    labeltable.index[idx] = CTABrgb2Annotation(mris->ct->entries[idx]->ri,
+                                               mris->ct->entries[idx]->gi,
+                                               mris->ct->entries[idx]->bi);
+    //printf("%8.8X\n",labeltable.index[idx]);
+
+    labeltable.label[idx] = strcpyalloc(mris->ct->entries[idx]->name);
+
+    rgba[0] = mris->ct->entries[idx]->rf;
+    rgba[1] = mris->ct->entries[idx]->gf;
+    rgba[2] = mris->ct->entries[idx]->bf;
+    rgba[3] = 1.0f;
+    rgba += 4;
+    /*
+    printf("RGBA: %d %d %d %d %f %f %f %f\n",
+           mris->ct->entries[idx]->ri,
+           mris->ct->entries[idx]->gi,
+           mris->ct->entries[idx]->bi,
+           mris->ct->entries[idx]->ai,
+           mris->ct->entries[idx]->rf,
+           mris->ct->entries[idx]->gf,
+           mris->ct->entries[idx]->bf,
+           mris->ct->entries[idx]->af);
+    */
+  }
+  // dont forget to stick us in the image
+  image->labeltable = labeltable;
+  //gifti_disp_LabelTable(NULL,&image->labeltable);
+
+  /* -------------------------------------------------------
+   * LabelTables array
+   */
+  giiDataArray* labels = gifti_alloc_and_add_darray (image);
+  if (NULL == labels)
+  {
+    fprintf (stderr,"MRISwriteLabelTableGIFTI: "
+             "couldn't allocate giiDataArray\n");
+    gifti_free_image (image);
+    return ERROR_NOMEMORY;
+  }
+
+  /* Set its attributes. */
+  labels->intent = NIFTI_INTENT_LABEL;
+  labels->datatype = NIFTI_TYPE_UINT32;
+  labels->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
+  labels->num_dim = 1;
+  labels->dims[0] = mris->nvertices;
+  labels->dims[1] = 1;
+  labels->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+  labels->endian = GIFTI_ENDIAN_LITTLE;
+#else
+  labels->endian = GIFTI_ENDIAN_BIG;
+#endif
+  labels->coordsys = NULL;
+  labels->nvals = gifti_darray_nvals (labels);
+  gifti_datatype_sizes (labels->datatype, &labels->nbyper, NULL);
+
+  /* include some metadata describing this thing */
+  insertMetaData (mris, labels); /* standard meta data */
+  gifti_add_to_meta( &labels->meta, "Name", "node label", 1 );
+
+  /* Allocate the data array. */
+  labels->data = NULL;
+  labels->data = (void*) calloc (labels->nvals, labels->nbyper);
+  if (NULL == labels->data)
+  {
+    fprintf (stderr,"MRISwriteLabelTableGIFTI: "
+             "couldn't allocate labels data of "
+             "length %d, element size %d\n",
+             (int)labels->nvals,labels->nbyper);
+    gifti_free_image (image);
+    return ERROR_NOMEMORY;
+  }
+
+  /* Copy our 'annotation' data for each vertex */
+  unsigned int* label_data = labels->data;
+  int label_index;
+  for (label_index = 0; label_index < mris->nvertices; label_index++)
+  {
+    if (mris->vertices[label_index].ripflag) continue;
+    *(label_data + label_index) = mris->vertices[label_index].annotation;
+    //printf("%8.8X ", *(label_data + label_index));
+  }
+
+  /* check for compliance */
+  int valid = gifti_valid_gifti_image (image, 1);
+  if (valid == 0)
+  {
+    fprintf (stderr,"MRISwriteLabelTableGIFTI: GIFTI file %s is invalid!\n", 
+             fname);
+    gifti_free_image (image);
+    return ERROR_BADFILE;
+  }
+
+  /* Write the file. */
+  if (gifti_write_image (image, fname, 1))
+  {
+    fprintf (stderr,"MRISwriteLabelTableGIFTI: couldn't write image\n");
     gifti_free_image (image);
     return ERROR_BADFILE;
   }

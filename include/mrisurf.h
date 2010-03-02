@@ -8,11 +8,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/02/26 14:24:05 $
- *    $Revision: 1.337 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/02 19:38:02 $
+ *    $Revision: 1.338 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -1422,6 +1421,7 @@ MRI   *MRISpartialfloodoutside(MRI *mri_src,
 #define MRIS_VTK_FILE                  5
 #define MRIS_STL_FILE                  6
 #define MRIS_GIFTI_FILE                7
+#define MRIS_ANNOT_FILE                8
 
 
 #define IS_QUADRANGULAR(mris)                   \

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/01 00:10:59 $
- *    $Revision: 1.659 $
+ *    $Date: 2010/03/02 19:38:03 $
+ *    $Revision: 1.660 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.659 2010/03/01 00:10:59 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.660 2010/03/02 19:38:03 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -22050,6 +22050,8 @@ MRISfileNameType(const char *fname)
     type = MRIS_GIFTI_FILE ;
   else if (!strcmp(ext, "MGH"))
     type = MRI_MGH_FILE ; // surface-encoded volume
+  else if (!strcmp(ext, "ANNOT"))
+    type = MRIS_ANNOT_FILE ;
   else
     type = MRIS_BINARY_QUADRANGLE_FILE ;
 
