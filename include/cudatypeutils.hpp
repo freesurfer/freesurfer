@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 17:18:24 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/03/03 17:28:21 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -248,6 +248,17 @@ float3 cross( const float3& a, const float3& b ) {
 
   return( res );
 }
+
+
+
+
+//! Scalar triple product \f$ \mathbf{a} \times \mathbf{b} \cdot \mathbf{c} \f$
+static inline
+__device__ __host__
+float stp( const float3& a, const float3& b, const float3& c ) {
+  return( dot( cross( a, b ), c ) );
+}
+
 
 
 // =======================================================
