@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 15:45:04 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/03 20:13:22 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -164,9 +164,6 @@ namespace GPU {
 
 	maxDiff = *d_maxLoc;
 	maxLoc = a.Index3D( d_maxLoc - d_absDiffs );
-
-	std::cout << __FUNCTION__ << ": maxLoc = " << maxLoc << std::endl;
-	std::cout << __FUNCTION__ << ": maxDiff = " << maxDiff << std::endl;
 
 	// Release 'difference' array
 	thrust::device_delete( d_absDiffs );

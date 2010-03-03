@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 19:33:49 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/03/03 20:13:19 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -394,6 +394,7 @@ namespace GPU {
       // Allocate temporary on the device to hold invalid and neg
       int *d_globals;
       CUDA_SAFE_CALL( cudaMalloc( (void**)&d_globals, 2*sizeof(int) ) );
+      CUDA_SAFE_CALL( cudaMemset( d_globals, 0, 2*sizeof(int) ) );
 
       // Run the kernel
       dim3 grid, threads;
@@ -447,6 +448,9 @@ void GCAMorphSendBefore( const GCAM* src ) {
 
   compGPU.SendAll( src );
   compGPU.ComputeMetricProperties( invalid, neg );
+
+  std::cout << __FUNCTION__ << ": invalid = " << invalid << std::endl;
+  std::cout << __FUNCTION__ << ": neg = " << neg << std::endl;
 }
 
 void GCAMorphSendAfter( const GCAM* src ) {
@@ -462,6 +466,11 @@ void GCAMorphCompareBeforeAfter( void ) {
 
   myComp.MaxDiff( compGPU.d_area, compCPU.d_area, areaDiff, areaLoc );
   
+
+
+  std::cout << __FUNCTION__ << ": areaLoc = " << areaLoc << std::endl;
+  std::cout << __FUNCTION__ << ": areaDiff = " << areaDiff << std::endl;
+
   double errL2;
 
   errL2 = myComp.ErrL2Norm( compGPU.d_area, compCPU.d_area );
