@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/02 20:36:42 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/03/03 19:09:47 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,8 @@ namespace GPU {
       VolumeGPU<float3> d_r;
       //! Matches invalid flag in GCAmorph
       VolumeGPU<unsigned char> d_invalid;
+      //! Matches orig_area field in GCAmorph
+      VolumeGPU<float> d_origArea;
       //! Matches area field in GCAmorph
       VolumeGPU<float> d_area;
       //! Matches area1 field in GCAmorph
@@ -87,6 +89,12 @@ namespace GPU {
 
       //! Receives all data from the GPU
       void RecvAll( GCAM* dst ) const;
+
+      // -------------------------------------------
+      // Computations
+
+      //! Computes the properties of the metric
+      void ComputeMetricProperties( int& invalid, int& neg );
 
     private:
 
