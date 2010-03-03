@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 19:09:46 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/03/03 19:22:46 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -340,6 +340,7 @@ namespace GPU {
 	    
 	    num++;
 	    
+
 	    float3 vi = r(ix+1,iy  ,iz  ) - r(ix,iy,iz);
 	    float3 vj = r(ix  ,iy+1,iz  ) - r(ix,iy,iz);
 	    float3 vk = r(ix  ,iy  ,iz+1) - r(ix,iy,iz);
@@ -394,6 +395,19 @@ namespace GPU {
 	} else {
 	  invalid(ix,iy,iz) = GCAM_AREA_INVALID;
 	  area(ix,iy,iz) = 0;
+	}
+
+	// Keep track of sign changes
+	if( (invalid(ix,iy,iz)==GCAM_VALID) &&
+	    neg &&
+	    origArea(ix,iy,iz) > 0 ) {
+	  atomicAdd( &(globals[iCMPGlobalsNeg]), 1 );
+	}
+
+	// Increment invalid counter
+	if( invalid(ix,iy,iz) != GCAM_VALID ) {
+	  // We need to test again
+	  atomicAdd( &(globals[iCMPGlobalsInvalid]), 1 );
 	}
       }
     }
@@ -459,15 +473,18 @@ namespace GPU {
 
 #include "testgpu.h"
 
-static GPU::Classes::GCAmorphGPU CPUbefore, CPUafter;
+static GPU::Classes::GCAmorphGPU compGPU, compCPU;
 
 
 void GCAMorphSendBefore( const GCAM* src ) {
-  CPUbefore.SendAll( src );
+  int invalid, neg;
+
+  compGPU.SendAll( src );
+  compGPU.ComputeMetricProperties( invalid, neg );
 }
 
 void GCAMorphSendAfter( const GCAM* src ) {
-  CPUafter.SendAll( src );
+  compCPU.SendAll( src );
 }
 
 
@@ -477,10 +494,10 @@ void GCAMorphCompareBeforeAfter( void ) {
   float areaDiff;
   dim3 areaLoc;
 
-  myComp.MaxDiff( CPUbefore.d_area, CPUafter.d_area, areaDiff, areaLoc );
+  myComp.MaxDiff( compGPU.d_area, compCPU.d_area, areaDiff, areaLoc );
   
   double errL2;
 
-  errL2 = myComp.ErrL2Norm( CPUbefore.d_area, CPUafter.d_area );
+  errL2 = myComp.ErrL2Norm( compGPU.d_area, compCPU.d_area );
   std::cout << __FUNCTION__ << ": Err L2 = " << errL2 << std::endl;
 }
