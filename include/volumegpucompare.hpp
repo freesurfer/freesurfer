@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/02 20:36:42 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/03 15:45:04 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,7 @@
 #include <thrust/device_new_allocator.h>
 #include <thrust/device_ptr.h>
 #include <thrust/extrema.h>
+#include <thrust/reduce.h>
 
 
 #include "cudacheck.h"
@@ -48,6 +49,7 @@ namespace GPU {
   namespace Algorithms {
 
     const unsigned int kAbsDiffBlockSize = 16;
+    const unsigned int kErrL2BlockSize = 16;
 
 
     //! Kernel to compute absolute differences between all voxels
@@ -75,6 +77,37 @@ namespace GPU {
 	// Rely on fabs overload
 	diffs[iLoc] = fabs( a(ix,iy,iz) - b(ix,iy,iz) );
       }
+    }
+
+
+    //! Kernel for the error in the L2 norm
+    template<typename T>
+    __global__
+    void ErrL2Compute( const GPU::Classes::VolumeArgGPU<T> cmp,
+		       const GPU::Classes::VolumeArgGPU<T> ref,
+		       double *errors,
+		       double *refL2s ) {
+
+      
+      const unsigned int ix = threadIdx.x + ( blockIdx.x * blockDim.x );
+      const unsigned int iy = threadIdx.y + ( blockIdx.y * blockDim.y );
+     
+      
+      // Check if our voxel is in range
+      if( !ref.InVolume( ix, iy, 0 ) ) {
+	return;
+      }
+
+      // Loop over each z slice
+      for( unsigned int iz = 0; iz < ref.dims.z; iz++ ) {
+	// Compute the 1D index of the current location
+	const unsigned int iLoc = ref.Index1D( ix, iy, iz );
+
+	double tmp = cmp(ix,iy,iz) - ref(ix,iy,iz);
+	errors[iLoc] = tmp*tmp;
+	refL2s[iLoc] = ref(ix,iy,iz) * ref(ix,iy,iz);
+      }
+
     }
 
     class VolumeGPUCompare {
@@ -140,7 +173,66 @@ namespace GPU {
 	
       }
 
+
+      //! Computes error in the L2 norm
+      template<typename T>
+      double ErrL2Norm( const GPU::Classes::VolumeGPU<T>& cmp,
+			const GPU::Classes::VolumeGPU<T>& ref ) const {
+	/*!
+	  Routine to compute the error in the L2 norm between
+	  two volumes
+	*/
+	const dim3 cmpDims = cmp.GetDims();
+	const dim3 refDims = ref.GetDims();
+
+	// Verify dimensions
+	if( refDims != cmpDims ) {
+	  std::cerr << __FUNCTION__
+		    << ": Dimension mismatch"
+		    << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+      
+	// Compute number of voxels
+	const unsigned int nVoxels = refDims.x * refDims.y * refDims.z;
+	
+	// Allocate thrust arrays
+	thrust::device_ptr<double> d_err;
+	thrust::device_ptr<double> d_reference;
+	d_err = thrust::device_new<double>( nVoxels );
+	d_reference = thrust::device_new<double>( nVoxels );
+	
+	// Run the kernel
+	dim3 grid, threads;
+	threads.x = threads.y = kErrL2BlockSize;
+	threads.z = 1;
+
+	grid = ref.CoverBlocks( kErrL2BlockSize );
+	grid.z = 1;
+
+	ErrL2Compute<T><<<grid,threads>>>
+	  ( cmp, ref,
+	    thrust::raw_pointer_cast( d_err ),
+	    thrust::raw_pointer_cast( d_reference ) );
+	CUDA_CHECK_ERROR( "ErrL2Compute kernel failed!\n" );
+
+	// Extract sums
+	double totErr = thrust::reduce( d_err, d_err+nVoxels );
+	double totRef = thrust::reduce( d_reference, d_reference+nVoxels );
+	
+	// Release thrust arrays
+	thrust::device_delete( d_err );
+	thrust::device_delete( d_reference );
+
+	return( sqrt( totErr / totRef ) );
+
+      }
+
+
     };
+
+
+
   }
 }
 

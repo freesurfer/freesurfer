@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/02 20:36:35 $
- *    $Revision: 1.149 $
+ *    $Date: 2010/03/03 15:45:00 $
+ *    $Revision: 1.150 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -3210,7 +3210,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   StopChronometer( &tCMP );
   printf( "%s: Complete in %9.3f ms\n",
 	  __FUNCTION__, GetChronometerValue( &tCMP ) );
-
+  
   GCAMorphSendAfter( gcam );
   GCAMorphCompareBeforeAfter();
 #endif

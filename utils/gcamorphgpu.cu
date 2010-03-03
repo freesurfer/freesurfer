@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/02 20:36:36 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/03/03 15:45:00 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -305,4 +305,8 @@ void GCAMorphCompareBeforeAfter( void ) {
 
   myComp.MaxDiff( CPUbefore.d_area, CPUafter.d_area, areaDiff, areaLoc );
   
+  double errL2;
+
+  errL2 = myComp.ErrL2Norm( CPUbefore.d_area, CPUafter.d_area );
+  std::cout << __FUNCTION__ << ": Err L2 = " << errL2 << std::endl;
 }
