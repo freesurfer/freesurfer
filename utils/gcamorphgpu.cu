@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 19:22:46 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/03/03 19:33:49 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -116,18 +116,12 @@ namespace GPU {
 	This involves a lot of packing data, and hence
 	is going to be painfully slow
       */
-      
-      SciGPU::Utilities::Chronometer t_tot;
-      SciGPU::Utilities::Chronometer t_mem, t_pack, t_send;
-
-      t_tot.Start();
 
       // Extract the dimensions
       const dim3 dims = make_uint3( src->width,
 				    src->height,
 				    src->depth );
 
-      t_mem.Start();
       // Allocate device memory
       this->AllocateAll( dims );
 
@@ -138,9 +132,7 @@ namespace GPU {
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
-      t_mem.Stop();
 
-      t_pack.Start();
       for( unsigned int i=0; i<dims.x; i++ ) {
 	for( unsigned int j=0; j<dims.y; j++ ) {
 	  for( unsigned int k=0; k<dims.z; k++ ) {
@@ -163,9 +155,8 @@ namespace GPU {
 	  }
 	}
       }
-      t_pack.Stop();
 
-      t_send.Start();
+
       // Send the data
       this->d_r.SendBuffer( h_r );
       this->d_invalid.SendBuffer( h_invalid );
@@ -176,26 +167,15 @@ namespace GPU {
 
       // Wait for the copies to complete
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
-      t_send.Stop();
 
       // Release page-locked host memory
-      t_mem.Start();
       CUDA_SAFE_CALL( cudaFreeHost( h_r ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
-      t_mem.Stop();
 
-      t_tot.Stop();
-
-      std::cout << __FUNCTION__ << std::endl;
-      std::cout << "t_mem " << t_mem << std::endl;
-      std::cout << "t_pack " << t_pack << std::endl;
-      std::cout << "t_send " << t_send << std::endl;
-      std::cout << "Total : " << t_tot << std:: endl;
-      std::cout << "-------------" << std::endl;
     }
 
     // --------------------------------------------
@@ -207,17 +187,10 @@ namespace GPU {
 	This involves a lot of packing data, and hence
 	is going to be painfully slow
       */
-      
-      SciGPU::Utilities::Chronometer t_tot;
-      SciGPU::Utilities::Chronometer t_mem, t_pack, t_recv;
-
-      t_tot.Start();
 
       // Extract the dimensions
       const dim3 dims = this->d_r.GetDims();
 
-      t_mem.Start();
-     
       // Allocate some page-locked host buffers
       float3* h_r = this->d_r.AllocateHostBuffer();
       unsigned char* h_invalid = this->d_invalid.AllocateHostBuffer();
@@ -225,10 +198,8 @@ namespace GPU {
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
-      t_mem.Stop();
 
       // Fetch the data
-      t_recv.Start();
       this->d_r.RecvBuffer( h_r );
       this->d_invalid.RecvBuffer( h_invalid );
       this->d_area.RecvBuffer( h_area );
@@ -236,9 +207,7 @@ namespace GPU {
       this->d_area1.RecvBuffer( h_area1 );
       this->d_area2.RecvBuffer( h_area2 );
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
-      t_recv.Stop();
 
-      t_pack.Start();
       for( unsigned int i=0; i<dims.x; i++ ) {
 	for( unsigned int j=0; j<dims.y; j++ ) {
 	  for( unsigned int k=0; k<dims.z; k++ ) {
@@ -260,27 +229,16 @@ namespace GPU {
 	  }
 	}
       }
-      t_pack.Stop();
 
 
       // Release page-locked host memory
-      t_mem.Start();
       CUDA_SAFE_CALL( cudaFreeHost( h_r ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
-      t_mem.Stop();
 
-      t_tot.Stop();
-
-      std::cout << __FUNCTION__ << std::endl;
-      std::cout << "t_mem " << t_mem << std::endl;
-      std::cout << "t_pack " << t_pack << std::endl;
-      std::cout << "t_recv " << t_recv << std::endl;
-      std::cout << "Total : " << t_tot << std:: endl;
-      std::cout << "-------------" << std::endl;
     }
 
 
@@ -426,6 +384,10 @@ namespace GPU {
 	when called.
       */
 
+      SciGPU::Utilities::Chronometer tTotal;
+
+      tTotal.Start();
+
       // Sanity check
       this->CheckIntegrity();
 
@@ -458,6 +420,10 @@ namespace GPU {
 
       // Release device temporary
       CUDA_SAFE_CALL( cudaFree( d_globals ) );
+
+      tTotal.Stop();
+
+      std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
     }
   }
 }
