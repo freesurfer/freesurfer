@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/02 19:38:03 $
- *    $Revision: 1.660 $
+ *    $Date: 2010/03/03 20:49:19 $
+ *    $Revision: 1.661 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.660 2010/03/02 19:38:03 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.661 2010/03/03 20:49:19 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1153,7 +1153,10 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   sprintf(tmpstr,"%s.avg.area.mgh",fname);
   if (fio_FileExistsReadable(tmpstr))
   {
-    fprintf(stderr,"Reading in average area %s\n",tmpstr);
+    if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    {
+      fprintf(stdout,"Reading in average area %s\n",tmpstr);
+    }
     mri = MRIread(tmpstr);
     if (!mri)
     {
