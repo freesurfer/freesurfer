@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/02 19:38:03 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/03/03 18:50:29 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -1367,7 +1367,8 @@ int mriWriteGifti(MRI* mri, const char *fname)
     }
 
     /* Set its attributes. */
-    scalars->intent = NIFTI_INTENT_NONE;
+    if (mri->nframes > 1) scalars->intent = NIFTI_INTENT_TIME_SERIES;
+    else scalars->intent = NIFTI_INTENT_NONE;
     scalars->datatype = NIFTI_TYPE_FLOAT32;
     scalars->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
     scalars->num_dim = 2;
