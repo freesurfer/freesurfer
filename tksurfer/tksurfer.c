@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/27 01:04:59 $
- *    $Revision: 1.337 $
+ *    $Author: greve $
+ *    $Date: 2010/03/03 22:18:57 $
+ *    $Revision: 1.338 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2944,7 +2944,7 @@ int  main(int argc,char *argv[])
     }
 #else
     // there is no 'default' colortable, since there are multiple parc schemes
-    fprintf( stderr, "\n\nWARNING: No colortable found!\n\n");
+    //fprintf( stderr, "\n\nWARNING: No colortable found!\n\n");
 #endif
   }
 
@@ -8470,28 +8470,36 @@ find_orig_vertex_coordinates(int vindex)
 
   x_tal = y_tal = z_tal = 0.0 ;
 
-  if (origsurfloaded == FALSE)
-  {
-    printf("surfer: reading original coordinates from\n");
-    printf("surfer:   %s\n",orfname);
+  if (white_surf_loaded == FALSE){
+    if (origsurfloaded == FALSE)
+      {
+	printf("surfer: reading original coordinates from\n");
+	printf("surfer:   %s\n",orfname);
+      }
+    /* read coordinates from .orig file and put them in the .tx fields */
+    if (origsurfloaded == FALSE &&
+	read_orig_vertex_coordinates(orfname) != NO_ERROR)
+      {
+	error = 1 ;
+	printf("surfer: wrong number of vertices/faces in file %s\n",orfname);
+	PR printf("surfer: writing current coordinate (not orig) to file\n");
+	PR x = mris->vertices[vindex].x ;
+	y = mris->vertices[vindex].y ;
+	z = mris->vertices[vindex].z ;
+      }
+    else  /* read file successfully */
+      {
+	x = mris->vertices[vindex].origx ;
+	y = mris->vertices[vindex].origy ;
+	z = mris->vertices[vindex].origz ;
+      }
+  } else {
+    printf("Reading  coordinates from %s\n",white_suffix);
+    x = mris->vertices[vindex].whitex ;
+    y = mris->vertices[vindex].whitey ;
+    z = mris->vertices[vindex].whitez ;
   }
-  /* read coordinates from .orig file and put them in the .tx fields */
-  if (origsurfloaded == FALSE &&
-      read_orig_vertex_coordinates(orfname) != NO_ERROR)
-  {
-    error = 1 ;
-    printf("surfer: wrong number of vertices/faces in file %s\n",orfname);
-    PR printf("surfer: writing current coordinate (not orig) to file\n");
-    PR x = mris->vertices[vindex].x ;
-    y = mris->vertices[vindex].y ;
-    z = mris->vertices[vindex].z ;
-  }
-  else  /* read file successfully */
-  {
-    x = mris->vertices[vindex].origx ;
-    y = mris->vertices[vindex].origy ;
-    z = mris->vertices[vindex].origz ;
-  }
+
   if (transform_loaded)
     conv_ras_to_tal(x, y, z, &x_tal, &y_tal, &z_tal) ;
   copy_edit_dat_file_name (fname, sizeof(fname));
@@ -8502,12 +8510,12 @@ find_orig_vertex_coordinates(int vindex)
     printf("surfer: ### can't create file %s\n",fname);
     PR return;
   }
-  printf("vertex %d coordinates:\n", vindex);
-  if (!error)
-  {
+  printf("vertex %d coordinates %5.2f %5.2f %5.2f:\n", 
+	 vindex,x,y,z);
+  if(!error){
     if (transform_loaded)
       printf("TALAIRACH (%2.1f %2.1f %2.1f)\n",x_tal,y_tal,z_tal);
-    printf("ORIGINAL  (%2.1f %2.1f %2.1f)\n",x,y,z);
+    //printf("ORIGINAL  (%2.1f %2.1f %2.1f)\n",x,y,z);
   }
   else
     printf("CURRENT   (%2.1f %2.1f %2.1f)\n",x,y,z);
@@ -21195,7 +21203,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.337 2010/02/27 01:04:59 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.338 2010/03/03 22:18:57 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -23300,8 +23308,7 @@ print_vertex_data(int vno, FILE *fp, float dmin)
   int      i, j, imnr ;
 
   v = &mris->vertices[vno] ;
-  if (twocond_flag)
-  {
+  if(twocond_flag){
     if (!FZERO(v->imag_val))
       fprintf(fp, "cond %d: %2.3f +- %2.3f, cond %d: %2.3f +- %2.3f, "
               "scale=%2.0f\n",
@@ -23312,37 +23319,33 @@ print_vertex_data(int vno, FILE *fp, float dmin)
               cond0, v->val, v->valbak, cond1, v->val2, v->val2bak);
     PR;
   }
-  else if (disc_flag)
-  {
+  else if (disc_flag){
     fprintf(fp, "v %d:\n\tdisc:\t\t%2.3f\n\tmdiff:"
             "\t\t%2.3f\n\tthickness:\t%2.3f\n\toffset:\t\t%2.3f\n"
             "\tdiff:\t\t%2.3f\n\tproj:\t\t%2.3f\n",
             vno, v->imag_val, v->valbak, v->val2, v->val2bak,
             v->val2-v->val2bak, v->val);
     PR;
-
   }
   else
   {
-#if 0
-    fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f, "
-            "nz=%3.4f\n", dmin,vno,v->x,
-            v->y,
-            v->z,nzs);
-    PR;
-#else
+    fprintf(fp, "-----------------------------------\n");
+    fprintf(fp, "selected vertex %d out of %d\n",vno,mris->nvertices);
+    fprintf(fp, "current  %6.2f %6.2f %6.2f\n",v->x,v->y,v->z);
+    fprintf(fp, "orig     %6.2f %6.2f %6.2f\n",v->origx,v->origy,v->origz);
+    fprintf(fp, "pial     %6.2f %6.2f %6.2f\n",v->pialx,v->pialy,v->pialz);
+    fprintf(fp, "white    %6.2f %6.2f %6.2f\n",v->whitex,v->whitey,v->whitez);
+    fprintf(fp, "inflated %6.2f %6.2f %6.2f\n",v->infx,v->infy,v->infz);
+    fprintf(fp, "normals  %6.2f %6.2f %6.2f\n",v->nx,v->ny,v->nz);
+    fprintf(fp, "nneighbors  %d\n",v->vtotal);
+    fprintf(fp, "ripflag     %d\n",v->ripflag);
     fprintf(fp, "surfer: dmin=%3.4f, vno=%d, x=%3.4f, y=%3.4f, z=%3.4f\n",
             dmin,vno,v->x, v->y, v->z);
-    PR;
-#endif
     fprintf(fp, "surfer: curv=%f, fs=%f\n",v->curv,v->fieldsign);
-    PR;
     fprintf(fp, "surfer: val=%f, val2=%f\n",v->val,v->val2);
-    PR;
     fprintf(fp, "surfer: amp=%f, angle=%f deg (%f)\n",hypot(v->val,v->val2),
             (float)(atan2(v->val2,v->val)*180/M_PI),
             (float)(atan2(v->val2,v->val)/(2*M_PI)));
-    PR;
   }
   if (annotationloaded)
   {
@@ -24085,8 +24088,18 @@ int vset_read_vertex_set(int set, char* fname)
   /* save the verts into external storage */
   vset_save_surface_vertices(set);
 
+  if(strcmp(fname,"orig") == 0)
+    MRISsaveVertexPositions(mris, ORIG_VERTICES) ;
+  if(strcmp(fname,"pial") == 0)
+    MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
+  if(strcmp(fname,"white") == 0)
+    MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+  if(strcmp(fname,"inflated") == 0)
+    MRISsaveVertexPositions(mris, INFLATED_VERTICES) ;
+
   /* copy the saved verts back into main space */
   MRISrestoreVertexPositions( mris, TMP_VERTICES );
+
 
   /* enable the set menu */
   switch (set)
