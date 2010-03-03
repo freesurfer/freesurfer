@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/26 16:34:50 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/03 17:18:24 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,7 +78,7 @@ unsigned int NextMultiple( const T a,
 
 
 //! Equality for dim3
-static
+static inline
 __device__ __host__
 bool operator==( const dim3& a, const dim3& b ) {
 
@@ -90,7 +90,7 @@ bool operator==( const dim3& a, const dim3& b ) {
 }
 
 //! Inequality for dim3
-static
+static inline
 __device__ __host__
 bool operator!=( const dim3& a, const dim3& b ) {
   return( !(a==b) );
@@ -100,7 +100,7 @@ bool operator!=( const dim3& a, const dim3& b ) {
 // float3 operators
 
 //! Unary negation for float3
-static
+static inline
 __device__ __host__
 float3 operator-( const float3& a ) {
   float3 b;
@@ -111,6 +111,144 @@ float3 operator-( const float3& a ) {
 
   return( b );
 }
+
+
+//! Self addition for float3
+static inline
+__device__ __host__
+void operator+=( float3& a, const float3 b ) {
+
+  a.x += b.x;
+  a.y += b.y;
+  a.z += b.z;
+}
+
+//! Addition for float3
+static inline
+__device__ __host__
+float3 operator+( const float3& a, const float3& b ) {
+  float3 res = a;
+
+  res += b;
+
+  return( res );
+}
+
+
+
+//! Self subtraction for float3
+static inline
+__device__ __host__
+void operator-=( float3& a, const float3 b ) {
+  a.x -= b.x;
+  a.y -= b.y;
+  a.z -= b.z;
+}
+
+//! Subtraction for float3
+static inline
+__device__ __host__
+float3 operator-( const float3& a, const float3& b ) {
+  float3 res = a;
+
+  res -= b;
+
+  return( res );
+}
+
+
+
+//! Scalar self-multiplication for float3
+static inline
+__device__ __host__
+void operator*=( float3& a, const float b ) {
+  a.x *= b;
+  a.y *= b;
+  a.z *= b;
+}
+
+//! Scalar multiplication for float3 (on right)
+static inline
+__device__ __host__
+float3 operator*( const float3& a, const float b ) {
+  float3 res = a;
+  
+  res *= b;
+  
+  return( res );
+}
+
+//! Scalar multiplication for float3 (on left)
+static inline
+__device__ __host__
+float3 operator*( const float b, const float3& a ) {
+ 
+  return( a * b );
+}
+
+
+
+//! Scalar self-division for float3
+static inline
+__device__ __host__
+void operator/=( float3& a, const float b ) {
+
+  a *= (1/b);
+}
+
+//! Scalar division for float3
+static inline
+__device__ __host__
+float3 operator/( const float3& a, const float b ) {
+  float3 res = a;
+
+  res /= b;
+
+  return( res );
+}
+
+
+
+//! Dot product for float3
+static inline
+__device__ __host__
+float dot( const float3& a, const float3& b ) {
+  float res;
+
+  res = (a.x*b.x) + (a.y*b.y) + (a.z*b.z);
+
+  return( res );
+}
+
+//! Modulus squared for float3
+static inline
+__device__ __host__
+float modsq( const float3& a ) {
+  return( dot( a, a ) );
+}
+
+//! Modulus for float3
+static inline
+__device__ __host__
+float mod( const float3& a ) {
+  return( sqrtf( modsq( a ) ) );
+}
+
+
+
+//! Cross product for float3
+static inline
+__device__ __host__
+float3 cross( const float3& a, const float3& b ) {
+  float3 res;
+
+  res.x = (a.y*b.z) - (a.z*b.y);
+  res.y = (a.z*b.x) - (a.x*b.z);
+  res.z = (a.x*b.y) - (a.y*b.x);
+
+  return( res );
+}
+
 
 // =======================================================
 // cudaExtent operators
