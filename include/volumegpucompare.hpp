@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 20:13:22 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/04 15:48:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,8 +74,9 @@ namespace GPU {
 	const unsigned int iLoc = a.Index1D( ix, iy, iz );
 
 	// Get the difference
-	// Rely on fabs overload
-	diffs[iLoc] = fabs( a(ix,iy,iz) - b(ix,iy,iz) );
+	// Convert to float to avoid 'unsigned' trouble
+	float diff = static_cast<float>(a(ix,iy,iz)) - b(ix,iy,iz);
+	diffs[iLoc] = fabs( diff );
       }
     }
 
@@ -159,7 +160,7 @@ namespace GPU {
 	
 
 	// Extract the maximum and its location
-	thrust::device_ptr<float> d_maxLoc;
+	thrust::device_ptr<T> d_maxLoc;
 	d_maxLoc = thrust::max_element( d_absDiffs, d_absDiffs + nVoxels );
 
 	maxDiff = *d_maxLoc;
