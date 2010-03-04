@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 17:17:40 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/03/04 20:34:14 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -424,7 +424,7 @@ namespace GPU {
 
       tTotal.Stop();
 
-      std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+      //std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
     }
   }
 }
@@ -444,9 +444,6 @@ void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
   gcamGPU.ComputeMetricProperties( *invalid, gcam->neg );
   gcamGPU.RecvAll( gcam );
 
-  std::cout << __FUNCTION__ << ": "
-	    << *invalid << " " << gcam->neg
-	    << std::endl;
 }
 
 /*
