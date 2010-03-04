@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 21:54:02 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/03/04 22:18:25 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -327,7 +327,16 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderV
 bool Interactor2DVolumeEdit::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* renderview )
 {
   UpdateCursor( event, renderview );
-
+  
+  RenderView2D* view = ( RenderView2D* )renderview;
+  if ( event.GetModifiers() == wxMOD_ALT && event.GetKeyCode() == 'H' )
+  {
+    Contour2D* c2d = view->GetContour2D();
+    c2d->SetVisible( !c2d->IsVisible() );
+    view->NeedRedraw();
+    return false;
+  }
+  
   if ( !m_bEditing )
     return Interactor2D::ProcessKeyDownEvent( event, renderview );
   else
