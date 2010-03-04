@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/05/21 16:17:15 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/04 23:41:39 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "label.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_spherical_average.c,v 1.28 2009/05/21 16:17:15 fischl Exp $";
+static char vcid[] = "$Id: mris_spherical_average.c,v 1.29 2010/03/04 23:41:39 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -92,10 +92,10 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
-  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.28 2009/05/21 16:17:15 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mris_spherical_average.c,v 1.29 2010/03/04 23:41:39 fischl Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.28 2009/05/21 16:17:15 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_spherical_average.c,v 1.29 2010/03/04 23:41:39 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -204,7 +204,8 @@ main(int argc, char *argv[]) {
     if (i == FIRST_SUBJECT)  /* scale the icosahedron up */
     {
       MRISprojectOntoSphere(mris_avg, mris_avg, DEFAULT_RADIUS) ;
-      mean = MRIScomputeVertexSpacingStats(mris_avg, &sigma, NULL, &max_len, NULL,NULL);
+      mean = MRIScomputeVertexSpacingStats(mris_avg, &sigma, NULL, &max_len, NULL,NULL,
+                                           CURRENT_VERTICES);
       if (max_len > mean+3*sigma)
         max_len = mean+3*sigma ;
       mht = MHTfillVertexTableRes(mris_avg, NULL, CURRENT_VERTICES,2*max_len);
@@ -301,7 +302,8 @@ main(int argc, char *argv[]) {
   }
 
   MRISclear(mris, which) ;
-  mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, &max_len, NULL,NULL);
+  mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, &max_len, NULL,NULL,
+                                       CURRENT_VERTICES);
   if (max_len > mean+3*sigma)
     max_len = mean+3*sigma ;
   mht = MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_len);
