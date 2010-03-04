@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/11 16:37:11 $
- *    $Revision: 1.102 $
+ *    $Date: 2010/03/04 19:53:02 $
+ *    $Revision: 1.103 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -400,17 +400,22 @@ GC1D *GCAfindGC(GCA *gca, int x, int y, int z,int label) ;
 GC1D *GCAfindSourceGC(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
 int GCAlabelExists(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
 
-VECTOR *load_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
-MATRIX *load_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
+VECTOR *load_mean_vector( const GC1D *gc,
+			  VECTOR *v_means, const int ninputs);
+MATRIX *load_covariance_matrix( const GC1D *gc,
+				MATRIX *m_cov, const int ninputs);
 MATRIX *load_inverse_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
 double covariance_determinant(GC1D *gc, int ninputs) ;
-void load_vals(MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs) ;
+void load_vals( const MRI *mri_inputs,
+		float x, float y, float z,
+		float *vals, int ninputs ) ;
 double GCAcomputePosteriorDensity(GCA_PRIOR *gcap, GCA_NODE *gcan, int node_n, int prior_n, float *vals, 
                                   int ninputs, int xn, int yn, int zn, GCA *gca) ;
 int    GCAisPossible(GCA *gca, MRI *mri, int label, TRANSFORM *transform, int x, int y, int z, int use_mrf) ;
 double GCAcomputeConditionalDensity(GC1D *gc, float *vals, int ninputs, int label) ;
 double GCAmahDistIdentityCovariance(GC1D *gc, float *vals, int ninputs) ;
-double GCAmahDist(GC1D *gc, float *vals, int ninputs) ;
+double GCAmahDist( const GC1D *gc,
+		   const float *vals, const int ninputs );
 int    GCAfreeSamples(GCA_SAMPLE **pgcas, int nsamples) ;
 double GCAsampleMahDist(GCA_SAMPLE *gcas, float *vals, int ninputs) ;
 int GCAnormalizePD(GCA *gca, MRI *mri_inputs, TRANSFORM *transform) ;

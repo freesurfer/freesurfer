@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/11 16:37:09 $
- *    $Revision: 1.270 $
+ *    $Date: 2010/03/04 19:53:00 $
+ *    $Revision: 1.271 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -14160,7 +14160,7 @@ GCArenormalizeFromAtlas(GCA *gca, GCA *gca_template)
 
 
 void
-load_vals(MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs)
+load_vals( const MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs)
 {
   int  n ;
   Real val ;
@@ -14175,7 +14175,8 @@ load_vals(MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs)
 }
 
 double
-GCAmahDist(GC1D *gc, float *vals, int ninputs)
+GCAmahDist( const GC1D *gc,
+	    const float *vals, const int ninputs )
 {
   static VECTOR *v_means = NULL, *v_vals = NULL ;
   static MATRIX *m_cov = NULL, *m_cov_inv ;
@@ -14274,7 +14275,7 @@ GCAcomputePosteriorDensity(GCA_PRIOR *gcap, GCA_NODE *gcan,
 }
 
 VECTOR *
-load_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs)
+load_mean_vector( const GC1D *gc, VECTOR *v_means, const int ninputs)
 {
   int n ;
 
@@ -14288,7 +14289,7 @@ load_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs)
 }
 
 MATRIX *
-load_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs)
+load_covariance_matrix( const GC1D *gc, MATRIX *m_cov, const int ninputs)
 {
   int n, m, i ;
 
