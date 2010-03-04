@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 19:53:02 $
- *    $Revision: 1.103 $
+ *    $Date: 2010/03/04 20:05:12 $
+ *    $Revision: 1.104 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -405,7 +405,7 @@ VECTOR *load_mean_vector( const GC1D *gc,
 MATRIX *load_covariance_matrix( const GC1D *gc,
 				MATRIX *m_cov, const int ninputs);
 MATRIX *load_inverse_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
-double covariance_determinant(GC1D *gc, int ninputs) ;
+double covariance_determinant( const GC1D *gc, const int ninputs );
 void load_vals( const MRI *mri_inputs,
 		float x, float y, float z,
 		float *vals, int ninputs ) ;

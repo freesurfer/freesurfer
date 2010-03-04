@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 19:53:00 $
- *    $Revision: 1.271 $
+ *    $Date: 2010/03/04 20:05:10 $
+ *    $Revision: 1.272 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -14353,7 +14353,7 @@ load_inverse_covariance_matrix(GC1D *gc, MATRIX *m_inv_cov, int ninputs)
 }
 
 double
-covariance_determinant(GC1D *gc, int ninputs)
+covariance_determinant( const GC1D *gc, const int ninputs)
 {
   double det ;
   static MATRIX *m_cov = NULL ;
