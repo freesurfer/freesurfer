@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/04 02:34:39 $
- *    $Revision: 1.662 $
+ *    $Date: 2010/03/04 12:25:43 $
+ *    $Revision: 1.663 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.662 2010/03/04 02:34:39 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.663 2010/03/04 12:25:43 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -34939,6 +34939,7 @@ MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
       default:
         ErrorExit(ERROR_BADPARM, "MRIScomputeVertexSpacingStats: unsupported vertex set %d",
                   which_vertices) ;
+        dist = 0 ;
         break ;
       case CURRENT_VERTICES:
         dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
