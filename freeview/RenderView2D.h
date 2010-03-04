@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/06 20:12:06 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,6 +39,7 @@ class Interactor2DROIEdit;
 class Interactor2DWayPointsEdit;
 class Region2DRectangle;
 class Region2D;
+class Contour2D;
 class LayerMRI;
 
 class VTK_RENDERING_EXPORT RenderView2D : public RenderView
@@ -48,8 +49,8 @@ class VTK_RENDERING_EXPORT RenderView2D : public RenderView
   DECLARE_DYNAMIC_CLASS(RenderView2D)
 
 public:
-  RenderView2D();
-  RenderView2D(wxWindow *parent, int id);
+  RenderView2D( int nPlane = 0 );
+  RenderView2D( int nPlane, wxWindow *parent, int id = wxID_ANY );
   virtual ~RenderView2D();
 
   void OnSize( wxSizeEvent& event );
@@ -63,7 +64,6 @@ public:
 
   virtual void TriggerContextMenu( const wxPoint& pos );
 
-  void SetViewPlane( int nPlane );
   int GetViewPlane();
 
   void UpdateViewByWorldCoordinate();
@@ -108,6 +108,11 @@ public:
   
   LayerMRI* GetFirstNonLabelVolume();
   
+  Contour2D* GetContour2D()
+  {
+    return m_contour2D;
+  }
+  
 protected:
   void Initialize2D();
   void UpdateAnnotation();
@@ -120,6 +125,7 @@ protected:
 
   Annotation2D*   m_annotation2D;
   Cursor2D*       m_cursor2D;
+  Contour2D*      m_contour2D;
   Region2DRectangle*     m_selection2D;
   
   Interactor2DNavigate*       m_interactorNavigate;

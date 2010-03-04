@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/26 21:37:19 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -74,6 +74,8 @@ public:
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
   bool HasProp( vtkProp* prop );
+  
+  void Remove2DProps( vtkRenderer* render, int nPlane );
 
 //  void SetSliceNumber( int* sliceNumber );
   void SetSlicePositionToWorldCenter();
@@ -174,6 +176,8 @@ public:
   void RealizeContourActor();
   
   void GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out );
+  
+  vtkImageData* GetSliceImageData( int nPlane );
   
 protected:
   virtual void SetModified();

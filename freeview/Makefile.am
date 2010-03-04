@@ -25,6 +25,8 @@ freeview_SOURCES=\
 	ConnectivityData.h \
 	ControlPanel.cpp \
 	ControlPanel.h \
+	Contour2D.cpp \
+	Contour2D.h \
 	Cursor2D.cpp \
 	Cursor2D.h \
 	Cursor3D.cpp \

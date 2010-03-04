@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/26 21:37:19 $
- *    $Revision: 1.96 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.97 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -318,13 +318,10 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_splitterSub->SetSashGravity( 1 );
 
   // create 4 render views
-  m_viewCoronal = new RenderView2D( m_renderViewHolder, wxID_ANY );
-  m_viewSagittal = new RenderView2D( m_renderViewHolder, wxID_ANY );
-  m_viewAxial = new RenderView2D( m_renderViewHolder, wxID_ANY );
-  m_view3D = new RenderView3D( m_renderViewHolder, wxID_ANY );
-  m_viewSagittal->SetViewPlane( 0 );
-  m_viewCoronal->SetViewPlane( 1 );
-  m_viewAxial->SetViewPlane( 2 );
+  m_viewSagittal = new RenderView2D( 0, m_renderViewHolder );
+  m_viewCoronal = new RenderView2D( 1, m_renderViewHolder );
+  m_viewAxial = new RenderView2D( 2, m_renderViewHolder );
+  m_view3D = new RenderView3D( m_renderViewHolder );
   m_viewSagittal->SetFocusFrameColor( 1, 0, 0 );
   m_viewCoronal->SetFocusFrameColor( 0, 1, 0 );
   m_viewAxial->SetFocusFrameColor( 0, 0, 1 );
@@ -2377,6 +2374,11 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   else if ( iMsg == "MRINotEditable" )
   {
     wxMessageDialog dlg( this, _("Active volume is not editable."), _("Error"), wxOK | wxICON_ERROR );
+    dlg.ShowModal();
+  }
+  else if ( iMsg == "MRIReferenceNotSet" )
+  {
+    wxMessageDialog dlg( this, _("Reference volume is not set."), _("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
   }
   else if ( iMsg == "ROINotVisible" )

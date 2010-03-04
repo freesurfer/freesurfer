@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/26 21:37:19 $
- *    $Revision: 1.55 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -526,6 +526,16 @@ void LayerMRI::Append2DProps( vtkRenderer* renderer, int nPlane )
     renderer->AddViewProp( m_glyphActor2D[nPlane] );
   else
     renderer->AddViewProp( m_sliceActor2D[nPlane] );
+}
+
+void LayerMRI::Remove2DProps( vtkRenderer* renderer, int nPlane )
+{
+  wxASSERT ( nPlane >= 0 && nPlane <= 2 );
+
+  if ( GetProperties()->GetDisplayVector() || GetProperties()->GetDisplayTensor() )
+    renderer->RemoveViewProp( m_glyphActor2D[nPlane] );
+  else
+    renderer->RemoveViewProp( m_sliceActor2D[nPlane] );
 }
 
 void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
@@ -1621,3 +1631,9 @@ void LayerMRI::GetCurrentLabelStats( int nPlane, float* label_out, int* count_ou
   *count_out = cnt;
   *area_out = cnt*vs[0]*vs[1]*vs[2]; 
 }
+
+vtkImageData* LayerMRI::GetSliceImageData( int nPlane )
+{
+  return mReslice[nPlane]->GetOutput();
+}
+

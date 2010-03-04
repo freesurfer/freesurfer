@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/09 03:45:03 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,7 +40,7 @@ class VTK_RENDERING_EXPORT RenderView3D : public RenderView
 
 public:
   RenderView3D();
-  RenderView3D(wxWindow *parent, int id);
+  RenderView3D(wxWindow *parent, int id = wxID_ANY);
   virtual ~RenderView3D();
 
   static RenderView3D * New();

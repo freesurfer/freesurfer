@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -541,3 +541,11 @@ void RenderView::ScreenToWorld( int x, int y, int z, double& world_x, double& wo
   MyUtils::ViewportToWorld( m_renderer, x, GetClientSize().GetHeight()-y, z, world_x, world_y, world_z );
 }
 
+void RenderView::GetWorldBound( double* bound )
+{
+  for ( int i = 0; i < 3; i++ )
+  {
+    bound[i*2] = m_dWorldOrigin[i];
+    bound[i*2+1] = m_dWorldOrigin[i] + m_dWorldSize[i];
+  }
+}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/06 20:12:06 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,7 @@ public:
   static wxCursor CursorMeasureLine;
   static wxCursor CursorMeasureRectangle;
   static wxCursor CursorGrab;
+  static wxCursor CursorContour;
 };
 
 #endif

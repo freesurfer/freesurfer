@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/07 22:05:04 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -54,6 +54,8 @@ public:
   void OnActionVoxelLivewireUpdateUI  ( wxUpdateUIEvent& event );
   void OnActionVoxelColorPicker       ( wxCommandEvent& event );
   void OnActionVoxelColorPickerUpdateUI  ( wxUpdateUIEvent& event );
+  void OnActionVoxelContour           ( wxCommandEvent& event );
+  void OnActionVoxelContourUpdateUI   ( wxUpdateUIEvent& event );
 
   void OnActionROIFreehand            ( wxCommandEvent& event );
   void OnActionROIFreehandUpdateUI    ( wxUpdateUIEvent& event );

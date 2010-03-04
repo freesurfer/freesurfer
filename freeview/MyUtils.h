@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,6 +45,7 @@ public:
   {}
 
   static void FloodFill( char** data, int x, int y, int min_x, int min_y, int max_x, int max_y, int fill_value, int border_value );
+  static void FloodFill( char* data, int x, int y, int dim_x, int dim_y, int fill_value, int border_value );
 
   template <class T> static double GetDistance( T* pt1, T* pt2 );
   template <class T> static void GetVector( T* pt1, T* pt2, double* v_out );

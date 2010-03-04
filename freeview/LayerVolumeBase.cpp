@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/08 21:06:43 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@
 #include "BrushProperty.h"
 #include "MainWindow.h"
 #include "LivewireTool.h"
+#include "Contour2D.h"
 #include <stdlib.h>
 
 LayerVolumeBase::LayerVolumeBase() : LayerEditable()
@@ -264,6 +265,86 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd )
   return true;
 }
 
+bool LayerVolumeBase::FloodFillByRAS( double* ras, Contour2D* c2d )
+{
+  vtkImageData* image = c2d->GetThresholdedImage();
+  int* nDim = image->GetDimensions();      // 2D image
+  char* mask = new char[nDim[0]*nDim[1]];
+  memcpy( mask, image->GetScalarPointer(), nDim[0]*nDim[1] );
+  int n[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  for ( int i = 0; i < 3; i++ )
+    n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
+  int nPlane = c2d->GetPlane();
+  int nx = nDim[0], ny = nDim[1], x = 0, y = 0;
+  switch ( nPlane )
+  {
+    case 0:
+      x = nx-n[1]-1;
+      y = n[2];
+      break;
+    case 1:
+      x = n[0];
+      y = n[2];
+      break;
+    case 2:
+      x = n[0];
+      y = n[1];
+      break;
+  }
+  
+  MyUtils::FloodFill( mask, x, y, nx, ny, 2, 0 ); 
+  
+  int nActiveComp = this->GetActiveFrame();
+  int cnt = 0;
+  switch ( nPlane )
+  {
+    case 0:
+      for ( int i = 0; i < nx; i++ )
+      {
+        for ( int j = 0; j < ny; j++ )
+        {
+          if ( mask[j*nx+i] == 2 )
+          {
+            m_imageData->SetScalarComponentFromFloat( n[nPlane], nx-i-1, j, nActiveComp, m_fFillValue );
+            cnt++;
+          }
+        }
+      }
+      break;
+    case 1:
+      for ( int i = 0; i < nx; i++ )
+      {
+        for ( int j = 0; j < ny; j++ )
+        {
+          if ( mask[j*nx+i] == 2 )
+          {
+            m_imageData->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, m_fFillValue );
+            cnt++;
+          }
+        }
+      }
+      break;
+    case 2:
+      for ( int i = 0; i < nx; i++ )
+      {
+        for ( int j = 0; j < ny; j++ )
+        {
+          if ( mask[j*nx+i] == 2 )
+          {
+            m_imageData->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, m_fFillValue );
+            cnt++;
+          }
+        }
+      }
+      break;
+  }
+  SetModified();
+  this->SendBroadcast( "LayerActorUpdated", this );
+  return true;
+}
+
 bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, char* mask_out )
 {
   int n[3];
@@ -405,7 +486,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
     break;
   }
 
-  MyUtils::FloodFill( mask, x, y, 0, 0, nx-1, ny-1, 2, 0 ); // unfill
+  MyUtils::FloodFill( mask, x, y, 0, 0, nx-1, ny-1, 2, 0 ); 
 
   int ncnt;
   switch ( nPlane )

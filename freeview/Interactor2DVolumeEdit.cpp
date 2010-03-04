@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/08/05 17:13:06 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,7 +32,9 @@
 #include "LayerCollectionManager.h"
 #include "LayerVolumeBase.h"
 #include "LayerMRI.h"
+#include "Contour2D.h"
 #include "CursorFactory.h"
+#include "BrushProperty.h"
 #include <vtkRenderer.h>
 
 Interactor2DVolumeEdit::Interactor2DVolumeEdit( const char* layerTypeName) :
@@ -139,6 +141,41 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
           {
             mri->SetFillValue( (float)dValue );
             mri->SendBroadcast( "LayerActorUpdated", mri );
+          }
+        }
+      }
+      else if ( m_nAction == EM_Contour && mri->IsTypeOf( "MRI" ) )
+      {
+        LayerMRI* mri_ref = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetBrushProperty()->GetReferenceLayer();
+        if ( !mri_ref )
+        {
+          SendBroadcast( m_strLayerTypeName + "ReferenceNotSet", this );
+          return false;
+        }
+          
+        Contour2D* c2d = view->GetContour2D();
+        if ( event.ControlDown() )
+        {
+          mri->SaveForUndo( view->GetViewPlane() );
+          mri->FloodFillByRAS( ras, c2d );
+        }
+        else if ( event.ShiftDown() )
+        {
+          
+        }
+        else
+        {
+          double dValue = mri_ref->GetVoxelValue( ras );
+          if ( dValue != 0 )
+          {
+            m_bEditing = true;
+            c2d->SetInput( mri_ref->GetSliceImageData( view->GetViewPlane() ), dValue, ras[view->GetViewPlane()] );
+            c2d->SetVisible( true );
+            view->NeedRedraw();
+          }
+          else if ( c2d->IsVisible() )
+          {
+            m_bEditing = true;
           }
         }
       }
@@ -250,6 +287,12 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderV
       view->GetCursor2D()->SetPosition( view->GetCursor2D()->GetPosition(), true );
       view->NeedRedraw();
     }
+    else if ( m_nAction == EM_Contour )
+    {
+      Contour2D* c2d = view->GetContour2D();
+      c2d->SetContourValue( c2d->GetContourValue() + 0.2*( posY - m_nMousePosY ) ); 
+      view->NeedRedraw();
+    }
 
     m_nMousePosX = posX;
     m_nMousePosY = posY;
@@ -313,7 +356,20 @@ void Interactor2DVolumeEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
       else if ( m_nAction == EM_ColorPicker )
         wnd->SetCursor( CursorFactory::CursorColorPicker );
       else if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) )
-        wnd->SetCursor( m_nAction == EM_Freehand ? CursorFactory::CursorPencil : CursorFactory::CursorPolyline );
+      {
+        switch ( m_nAction )
+        {
+          case EM_Freehand:
+            wnd->SetCursor( CursorFactory::CursorPencil );
+            break;
+          case EM_Polyline:
+            wnd->SetCursor( CursorFactory::CursorPolyline );
+            break;
+          case EM_Contour:
+            wnd->SetCursor( CursorFactory::CursorContour );
+            break;
+        }
+      }
     }
     else 
       wnd->SetCursor( CursorFactory::CursorFill );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 01:46:01 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,6 +34,7 @@
 #include <vtkScalarBarActor.h>
 #include <vtkPropCollection.h>
 #include <vtkCoordinate.h>
+#include <vtkImageActor.h>
 #include "LayerCollection.h"
 #include "LayerCollectionManager.h"
 #include "MainWindow.h"
@@ -49,6 +50,7 @@
 #include "MyUtils.h"
 #include "Region2DRectangle.h"
 #include "ToolWindowMeasure.h"
+#include "Contour2D.h"
 
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
@@ -60,24 +62,24 @@ BEGIN_EVENT_TABLE(RenderView2D, RenderView)
 EVT_SIZE        ( RenderView2D::OnSize )
 END_EVENT_TABLE()
 
-RenderView2D::RenderView2D() : RenderView(), m_nViewPlane( 0 )
+RenderView2D::RenderView2D( int nPlane ) : RenderView(), m_nViewPlane( nPlane )
 {
   Initialize2D();
 }
 
-RenderView2D::RenderView2D( wxWindow* parent, int id ) : RenderView( parent, id )
+RenderView2D::RenderView2D( int nPlane, wxWindow* parent, int id ) : RenderView( parent, id ), m_nViewPlane( nPlane )
 {
   Initialize2D();
 }
 
 void RenderView2D::Initialize2D()
 {
-  m_nViewPlane = 0;
   m_renderer->GetActiveCamera()->ParallelProjectionOn();
   m_annotation2D = new Annotation2D;
   m_cursor2D = new Cursor2D( this );
   m_selection2D = new Region2DRectangle( this );
   m_selection2D->SetEnableStats( false );
+  m_contour2D = new Contour2D( this );
 
   m_interactorNavigate  = new Interactor2DNavigate();
   m_interactorMeasure  = new Interactor2DMeasure();
@@ -97,7 +99,7 @@ void RenderView2D::Initialize2D()
 RenderView2D* RenderView2D::New()
 {
   // we don't make use of the objectfactory, because we're not registered
-  return new RenderView2D;
+  return new RenderView2D();
 }
 
 RenderView2D::~RenderView2D()
@@ -105,6 +107,7 @@ RenderView2D::~RenderView2D()
   m_interactor = NULL;
   delete m_annotation2D;
   delete m_cursor2D;
+  delete m_contour2D;
   
   delete m_interactorNavigate;
   delete m_interactorMeasure;
@@ -156,12 +159,24 @@ void RenderView2D::SetInteractionMode( int nMode )
 void RenderView2D::RefreshAllActors()
 {
   LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
-
+  LayerCollection* lc_mri = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+  
   m_renderer->RemoveAllViewProps();
   lcm->Append2DProps( m_renderer, m_nViewPlane );
-
-  if ( lcm->HasLayer( "MRI" ) )
+  
+  LayerMRI* mri = NULL;
+  if ( !lc_mri->IsEmpty() )
   {
+    mri = (LayerMRI*)lc_mri->GetLayer(0);
+    mri->Remove2DProps( m_renderer, m_nViewPlane );
+  }
+  m_renderer->AddViewProp( m_contour2D->GetActor() );
+  
+  if ( !lc_mri->IsEmpty() )
+  {
+    if ( mri )
+      mri->Append2DProps( m_renderer, m_nViewPlane );
+    
     // add annotation and cursor
     m_cursor2D->AppendActor( m_renderer );
     m_annotation2D->AppendAnnotations( m_renderer );
@@ -170,7 +185,7 @@ void RenderView2D::RefreshAllActors()
     // add scalar bar
     m_renderer->AddViewProp( m_actorScalarBar );
   }
-
+  
   // add regions
   for ( size_t i = 0; i < m_regions.size(); i++ )
     m_regions[i]->AppendProp( m_renderer );
@@ -180,11 +195,6 @@ void RenderView2D::RefreshAllActors()
 
   NeedRedraw();
   //Render();
-}
-
-void RenderView2D::SetViewPlane( int nPlane )
-{
-  m_nViewPlane = nPlane;
 }
 
 int RenderView2D::GetViewPlane()
@@ -418,6 +428,10 @@ void RenderView2D::Update2DOverlay()
   m_selection2D->Update();
   for ( size_t i = 0; i < m_regions.size(); i++ )
     m_regions[i]->Update();
+  
+  double slicePos[3];
+  MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetSlicePosition( slicePos );
+  m_contour2D->UpdateSliceLocation( slicePos[m_nViewPlane] );
 }
 
 void RenderView2D::MoveLeft()

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -154,6 +154,64 @@ SKIP:
       }
 
       left = x;
+    }
+    while (x <= x2);
+  }
+}
+
+void MyUtils::FloodFill(char* data, int x, int y, 
+                        int dim_x, int dim_y, 
+                        int fill_value, int border_value)
+{
+  int left, x1, x2, dy;
+  LINESEGMENT stack[MAXDEPTH], *sp = stack;
+
+  if (data[y*dim_x+x] == border_value || data[y*dim_x+x] == fill_value)
+    return;
+
+  int min_x = 0, max_x = dim_x-1, min_y = 0, max_y = dim_y-1;
+  if (x < min_x || x > max_x || y < min_y || y > max_y)
+    return;
+
+  PUSH(x, x, y, 1);        /* needed in some cases */
+  PUSH(x, x, y+1, -1);    /* seed segment (popped 1st) */
+
+  while (sp > stack )
+  {
+    POP(x1, x2, y, dy);
+
+    for (x = x1; x >= min_x && 
+         data[y*dim_x+x] != border_value && data[y*dim_x+x] != fill_value; x--)
+      data[y*dim_x+x] = fill_value;
+
+    if ( x >= x1 )
+      goto SKIP;
+
+    left = x+1;
+    if ( left < x1 )
+      PUSH(left, x1-1, y, -dy);    /* leak on left? */
+
+    x = x1+1;
+
+    do
+    {
+      for (; x<=max_x && 
+             data[y*dim_x+x] != border_value && data[y*dim_x+x] != fill_value; x++)
+        data[y*dim_x+x] = fill_value;
+
+      PUSH(left, x-1, y, dy);
+
+      if (x > x2+1)
+        PUSH(x2+1, x-1, y, -dy);    /* leak on right? */
+
+SKIP:
+    for (x++; x <= x2 && 
+    (data[y*dim_x+x] == border_value || data[y*dim_x+x] == fill_value); x++)
+    {
+      ;
+    }
+
+    left = x;
     }
     while (x <= x2);
   }

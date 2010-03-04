@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/03/04 17:17:27 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -63,6 +63,9 @@ public:
   void OnSize   ( wxSizeEvent& event );
 
   void SetWorldCoordinateInfo( const double* origin, const double* size );
+  
+  void GetWorldBound( double* bound );
+  
   virtual void UpdateViewByWorldCoordinate()
   {}
 
