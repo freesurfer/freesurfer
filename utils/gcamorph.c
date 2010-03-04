@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 19:56:10 $
- *    $Revision: 1.154 $
+ *    $Date: 2010/03/04 20:00:36 $
+ *    $Revision: 1.155 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -247,7 +247,7 @@ static int gcamAreaIntensityTerm(GCA_MORPH *gcam,
                                  NODE_LOOKUP_TABLE *nlt, float sigma) ;
 static int gcamClearGradient(GCA_MORPH *gcam) ;
 static int gcamComputeMetricProperties(GCA_MORPH *gcam) ;
-static double gcamLogLikelihoodEnergy(GCA_MORPH *gcam, const MRI *mri );
+static double gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri );
 static double gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
 static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
@@ -1826,11 +1826,10 @@ static float ***last_sse = NULL;
 #endif
 
 static double
-gcamLogLikelihoodEnergy(GCA_MORPH *gcam, const MRI *mri)
+gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
 {
   double          sse = 0.0, error ;
   int             x, y, z, max_x, max_y, max_z ;
-  GCA_MORPH_NODE  *gcamn ;
   float            vals[MAX_GCA_INPUTS] ;
 
 #if DEBUG_LL_SSE
@@ -1856,7 +1855,7 @@ gcamLogLikelihoodEnergy(GCA_MORPH *gcam, const MRI *mri)
       {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
-        gcamn = &gcam->nodes[x][y][z] ;
+        const GCA_MORPH_NODE* const gcamn = &gcam->nodes[x][y][z] ;
 
         if (gcamn->invalid == GCAM_POSITION_INVALID)
           continue;
