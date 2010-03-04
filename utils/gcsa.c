@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 18:58:12 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/03/04 02:34:40 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -188,13 +188,13 @@ GCSAalloc(int ninputs, int icno_priors, int icno_classifiers)
   }
 
   MRIScomputeVertexSpacingStats(gcsa->mris_classifiers, NULL, NULL, &max_len,
-                                NULL,NULL);
+                                NULL,NULL, CURRENT_VERTICES);
   gcsa->mht_classifiers =
     MHTfillVertexTableRes(gcsa->mris_classifiers, NULL, CURRENT_VERTICES,
                           2*max_len);
 
   MRIScomputeVertexSpacingStats(gcsa->mris_priors, NULL, NULL, &max_len,
-                                NULL,NULL);
+                                NULL,NULL, CURRENT_VERTICES);
   gcsa->mht_priors =
     MHTfillVertexTableRes(gcsa->mris_priors, NULL, CURRENT_VERTICES,2*max_len);
 

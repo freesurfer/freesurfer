@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/02/24 22:18:12 $
- *    $Revision: 1.95 $
+ *    $Author: fischl $
+ *    $Date: 2010/03/04 02:34:40 $
+ *    $Revision: 1.96 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1573,7 +1573,7 @@ LabelFillUnassignedVertices(MRI_SURFACE *mris, LABEL *area, int coords)
   vx = vy = vz = -1;
 
   MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_spacing, 
-                                NULL,&max_vno);
+                                NULL,&max_vno, CURRENT_VERTICES);
 
   for (i = n = 0 ; n < area->n_points ; n++)
   {
@@ -1724,7 +1724,8 @@ LabelSphericalCombine(MRI_SURFACE *mris, LABEL *asrc, MRIS_HASH_TABLE *mht,
     lv_dst->stat += asrc->lv[n].stat ;
   }
 
-  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_len, NULL,NULL);
+  MRIScomputeVertexSpacingStats(mris, NULL, NULL, &max_len, NULL,
+                                NULL,CURRENT_VERTICES);
   mht_src =
     MHTfillVertexTableRes(mris, NULL, CURRENT_VERTICES, 2*max_len);
 

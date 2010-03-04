@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/03 20:49:19 $
- *    $Revision: 1.661 $
+ *    $Author: fischl $
+ *    $Date: 2010/03/04 02:34:39 $
+ *    $Revision: 1.662 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.661 2010/03/03 20:49:19 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.662 2010/03/04 02:34:39 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -20280,7 +20280,7 @@ mrisComputeNonlinearSpringTerm(MRI_SURFACE *mris,double l_nlspring, INTEGRATION_
   area_scale = 1.0 ;
 #endif
 
-  mean_vdist = MRIScomputeVertexSpacingStats(mris, NULL, NULL, NULL, NULL, NULL) ;
+  mean_vdist = MRIScomputeVertexSpacingStats(mris, NULL, NULL, NULL, NULL,NULL,CURRENT_VERTICES);
   lsq = mean_vdist * mean_vdist ;
 
   rmax = parms->rmax ; rmin = parms->rmin ;
@@ -20327,7 +20327,7 @@ mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   VERTEX  *v, *vn ;
   float   dx, dy, dz, nc, r, lsq, mean_vdist ;
 
-  mean_vdist = MRIScomputeVertexSpacingStats(mris, NULL, NULL, NULL, NULL, NULL) ;
+  mean_vdist = MRIScomputeVertexSpacingStats(mris, NULL, NULL,NULL,NULL,NULL,CURRENT_VERTICES) ;
   lsq = mean_vdist * mean_vdist ;
 #if METRIC_SCALE
   if (mris->patch)
@@ -34643,7 +34643,7 @@ mrisAddVertices(MRI_SURFACE *mris, double nsigma)
   float    x, y, z, sx, sy, sz, nx, ny, nz ;
 
 #if 1
-  mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, NULL, NULL, NULL) ;
+  mean = MRIScomputeVertexSpacingStats(mris, &sigma, NULL, NULL, NULL, NULL, CURRENT_VERTICES) ;
 #else
   mean = mrisComputeVertexNormalSpacingStats(mris, &sigma) ;
   thresh *= thresh ;   /* make it squared so we don't need sqrts later */
@@ -34907,7 +34907,8 @@ MRIScomputeFaceAreaStats(MRI_SURFACE *mris, double *psigma,
   ------------------------------------------------------*/
 double
 MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
-                              double *pmin, double *pmax, int *pvno,int *pvno2)
+                              double *pmin, double *pmax, int *pvno,int *pvno2,
+                              int which_vertices)
 {
   double   total_dist, mean, var, nv, dist, sigma, min_dist, max_dist,
   dist_scale ;
@@ -34933,7 +34934,28 @@ MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
     {
       vn = &mris->vertices[v->v[n]] ;
       nv++ ;
-      dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
+      switch (which_vertices)
+      {
+      default:
+        ErrorExit(ERROR_BADPARM, "MRIScomputeVertexSpacingStats: unsupported vertex set %d",
+                  which_vertices) ;
+        break ;
+      case CURRENT_VERTICES:
+        dist = sqrt(SQR(vn->x - v->x) + SQR(vn->y - v->y) + SQR(vn->z - v->z));
+        break ;
+#if 0
+      case PIAL_VERTICES:
+        dist = sqrt(SQR(vn->px - v->px) + SQR(vn->py - v->py) + SQR(vn->pz - v->pz));
+        break ;
+#endif
+      case PIAL_VERTICES:
+        dist = sqrt(SQR(vn->pialx-v->pialx) + SQR(vn->pialy-v->pialy) + SQR(vn->pialz-v->pialz));
+        break ;
+      case TARGET_VERTICES:
+        dist = sqrt(SQR(vn->targx-v->targx) + SQR(vn->targy-v->targy) + SQR(vn->targz-v->targz));
+        break ;
+      }
+
       dist *= dist_scale ;
       if (dist > max_dist)
       {
@@ -36935,7 +36957,7 @@ MRISprintTessellationStats(MRI_SURFACE *mris, FILE *fp)
   double  mean, dsigma, dmin, dmax ;
   int     vno, vno2 ;
 
-  mean = MRIScomputeVertexSpacingStats(mris, &dsigma, &dmin,&dmax,&vno,&vno2) ;
+  mean = MRIScomputeVertexSpacingStats(mris, &dsigma, &dmin,&dmax,&vno,&vno2, CURRENT_VERTICES) ;
   fprintf(fp, "vertex spacing %2.2f +- %2.2f (%2.2f-->%2.2f) "
           "(max @ vno %d --> %d)\n",
           mean, dsigma, dmin, dmax, vno, vno2) ;
@@ -59357,7 +59379,7 @@ MRIScombine(MRI_SURFACE *mris_src, MRI_SURFACE *mris_total,
       double mean, sigma ;
 
       mean = MRIScomputeVertexSpacingStats
-             (mris_src, &sigma, NULL, &max_len, NULL,NULL);
+        (mris_src, &sigma, NULL, &max_len, NULL,NULL, CURRENT_VERTICES);
       if (max_len > mean+3*sigma)
         max_len = mean+3*sigma ;
       mht_src = MHTfillVertexTableRes
@@ -59422,7 +59444,7 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     vdst->val2 = 0 ;
   }
 
-  MRIScomputeVertexSpacingStats(mris_src, NULL, NULL, &max_len, NULL,NULL);
+  MRIScomputeVertexSpacingStats(mris_src, NULL, NULL, &max_len, NULL,NULL, CURRENT_VERTICES);
   mht_src = MHTfillVertexTableRes(mris_src, NULL, CURRENT_VERTICES, 2*max_len);
 
   /* sample from dst to source to fill holes */
@@ -59529,7 +59551,7 @@ MRISsphericalCopy(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst,
     if (!mht_src)
     {
       MRIScomputeVertexSpacingStats
-      (mris_src, NULL, NULL, &max_len, NULL,NULL);
+        (mris_src, NULL, NULL, &max_len, NULL,NULL, CURRENT_VERTICES);
       mht_src =
         MHTfillVertexTableRes(mris_src, NULL, CURRENT_VERTICES, 2*max_len);
     }
@@ -63189,8 +63211,9 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   while (negative > 0)
   {
     old_neg = negative ;
-    printf("%03d: dt=%2.4f, %d negative triangles\n", parms->t++, parms->dt,
-           negative) ;
+    if (Gdiag & DIAG_SHOW)
+      printf("%03d: dt=%2.4f, %d negative triangles\n", parms->t++, parms->dt,
+             negative) ;
     if (parms->fp)
       fprintf(parms->fp, "%03d: dt=%2.4f, %d negative triangles\n", parms->t++, parms->dt,
               negative) ;
@@ -63272,6 +63295,7 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
       break ;
   }
 
+  printf("%03d: %d negative triangles\n", parms->t, negative) ;
   if (parms->fp)
   {
     fclose(parms->fp) ;
@@ -66804,10 +66828,8 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
 {
   int     vno, fno ;
   VERTEX  *v ;
-  double  dx, dy, dz, fdist ;
   float   xp, yp, zp ;
   MHT     *mht_pial ;
-  FACE    *face ;
 
   parms->integration_type = INTEGRATE_MOMENTUM ;
   parms->b = parms->c = parms->a = DEFAULT_RADIUS ;
@@ -66847,13 +66869,14 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
   // compute thickness and put it in v->curv field
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
+    double thick_sq ;
+
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    MHTfindClosestFaceGeneric(mht_pial, mris_ico, v->cx, v->cy, v->cz, 1000, -1, &face, &fno, &fdist) ;
     MRISsampleFaceCoords(mris_ico, fno, v->cx, v->cy, v->cz, PIAL_VERTICES, &xp, &yp, &zp) ;
-    dx = xp - v->whitex  ; dy = yp - v->whitey ; dz = zp - v->whitez ;
-    v->curv = sqrt(dx*dx + dy*dy + dz*dz) ;
+    thick_sq = mrisSampleMinimizationEnergy(mris, v, parms, v->x, v->y, v->z) ;
+    v->curv = sqrt(thick_sq) ;
     v->tx = xp ; v->ty = yp ; v->tz = zp ;
   }
 
