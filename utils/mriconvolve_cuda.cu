@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 17:41:19 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/03/04 18:33:37 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -322,7 +322,7 @@ namespace GPU {
 						tSend(), tRecv(),
 						tTextureKernel(),
 						tCompute1d(), tTotal1d(),
-						tComputeGauss(), tTotalGauss() {}
+						tCompute3d(), tTotal3d() {}
 
       //! Destructor
       ~MRIconvolve( void ) {
@@ -352,9 +352,9 @@ namespace GPU {
 	std::cout << "Total         : " << this->tTotal1d << std::endl;
 	std::cout << std::endl;
 
-	std::cout << "Convolve Gauss:" << std::endl;
-	std::cout << "      Compute : " << this->tComputeGauss << std::endl;
-	std::cout << "Total         : " << this->tTotalGauss << std::endl;
+	std::cout << "Convolve 3D:" << std::endl;
+	std::cout << "      Compute : " << this->tCompute3d << std::endl;
+	std::cout << "Total         : " << this->tTotal3d << std::endl;
 	std::cout << std::endl;
 
 
@@ -367,10 +367,10 @@ namespace GPU {
 
       //! Dispatch for 1D convolution of unknown type
       void Convolve1D( const MRI* src, MRI* dst,
+		       const int srcFrame, const int dstFrame,
 		       const float *kernel,
 		       const unsigned int kernelLength,
-		       const int axis,
-		       const int srcFrame, const int dstFrame ) {
+		       const int axis ) {
 	/*!
 	  If the data types of the source and destination MRI
 	  structures is not known, then this dispatch routine
@@ -395,15 +395,21 @@ namespace GPU {
 
 	switch( src->type ) {
 	case MRI_UCHAR:
-	  this->DispatchWrap1D<unsigned char>( src, dst, axis, srcFrame, dstFrame );
+	  this->DispatchWrap1D<unsigned char>( src, dst,
+					       srcFrame, dstFrame,
+					       axis );
 	  break;
 	  
 	case MRI_SHORT:
-	  this->DispatchWrap1D<short>( src, dst, axis, srcFrame, dstFrame );
+	  this->DispatchWrap1D<short>( src, dst,
+				       srcFrame, dstFrame,
+				       axis );
 	  break;
 	  
 	case MRI_FLOAT:
-	  this->DispatchWrap1D<float>( src, dst, axis, srcFrame, dstFrame );
+	  this->DispatchWrap1D<float>( src, dst,
+				       srcFrame, dstFrame,
+				       axis );
 	  break;
 	  
 	default:
@@ -423,8 +429,8 @@ namespace GPU {
       //! Dispatch routine with transfers
       template<typename T, typename U>
       void Dispatch1D( const MRI* src, MRI* dst,
-		       const int axis,
-		       const int srcFrame, const int dstFrame ) const {
+		       const int srcFrame, const int dstFrame,
+		       const int axis ) const {
 	/*!
 	  This is a dispatch routine for the 1D convolution on
 	  the GPU.
@@ -573,9 +579,9 @@ namespace GPU {
 
       //! Dispatch for 3D convolution of unknown MRI with single kernel
       void Convolve3D( const MRI* src, MRI* dst,
+		       const int srcFrame, const int dstFrame,
 		       const float *kernel,
-		       const unsigned int kernelLength,
-		       const int srcFrame, const int dstFrame ) {
+		       const unsigned int kernelLength ) {
 	/*!
 	  Performs a 3D convolution with a single 1D kernel of
 	  \a srcFrame of the MRI \a src, storing the result in
@@ -583,7 +589,7 @@ namespace GPU {
 	  The convolution kernel is stored in the array \a kernel.
 	*/
 
-	this->tTotalGauss.Start();
+	this->tTotal3d.Start();
 
 	// Send the convolution kernel
 	this->BindKernel( kernel, kernelLength );
@@ -619,7 +625,7 @@ namespace GPU {
 
 	this->UnbindKernel();
 
-	this->tTotalGauss.Stop();
+	this->tTotal3d.Stop();
       }
 
       // --
@@ -661,17 +667,69 @@ namespace GPU {
 	frame1.Send( src, srcFrame, this->h_workspace, this->stream );
 	this->tSend.Stop();
 	
-	this->tComputeGauss.Start();
+	this->tCompute3d.Start();
 	this->RunGPU1D( frame1, frame2, MRI_WIDTH );
 	this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
 	this->RunGPU1D( frame1, frame2, MRI_DEPTH );
-	this->tComputeGauss.Stop();
+	this->tCompute3d.Stop();
 	
 	this->tRecv.Start();
 	frame2.Recv( dst, dstFrame, this->h_workspace, this->stream );
 	this->tRecv.Stop();
 
-	CUDA_CHECK_ERROR_ASYNC( "Gaussian convolution failure" );
+	CUDA_CHECK_ERROR_ASYNC( "3D convolution  with single kernel failure" );
+      }
+
+
+      //! Dispatch for 3D convolution of unknown MRI with separate kernels
+      void Convolve3D( const MRI* src,
+		       MRI* dst,
+		       const int srcFrame,
+		       const int dstFrame,
+		       const float* xKernel,
+		       const unsigned int xL,
+		       const float* yKernel,
+		       const unsigned int yL,
+		       const float* zKernel,
+		       const unsigned int zL ) {
+
+	switch( src->type ) {
+	case MRI_UCHAR:
+	  this->Convolve3DMultiKernelDispatch<unsigned char>( src,
+							      dst,
+							      srcFrame,
+							      dstFrame,
+							      xKernel,
+							      xL,
+							      yKernel,
+							      yL,
+							      zKernel,
+							      zL );
+	  break;
+
+	case MRI_SHORT:
+	  this->Convolve3DMultiKernelDispatch<short>( src, dst,
+						      srcFrame, dstFrame,
+						      xKernel, xL,
+						      yKernel, yL,
+						      zKernel, zL );
+	  break;
+
+	case MRI_FLOAT:
+	  this->Convolve3DMultiKernelDispatch<float>( src, dst,
+						      srcFrame, dstFrame,
+						      xKernel, xL,
+						      yKernel, yL,
+						      zKernel, zL );
+	  break;
+
+
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Unrecognised source MRI type " << src->type
+		    << std::endl;
+	  exit( EXIT_FAILURE );
+	}
       }
 
       //! Wrapper for a 3D convolution with different kernels
@@ -686,6 +744,52 @@ namespace GPU {
 					  const unsigned int yL,
 					  const float* zKernel,
 					  const unsigned int zL ) {
+
+	GPU::Classes::MRIframeGPU<T> frame1, frame2;
+	size_t workSize;
+
+	this->tTotal3d.Start();
+
+	// Do some allocation
+	this->tMem.Start();
+	frame1.Allocate( src );
+	frame2.Allocate( src );
+	this->tMem.Stop();
+
+	// Verify (note frame2 verified from dst)
+	frame1.VerifyMRI( src );
+	frame2.VerifyMRI( dst );
+
+	// Allocate workspace
+	workSize = frame1.BufferSize();
+	this->AllocateWorkspace( workSize );
+
+	// Send the data
+	this->tSend.Start();
+	frame1.Send( src, srcFrame, this->h_workspace, this->stream );
+	this->tSend.Stop();
+	
+	// Convolve along x
+	this->tCompute3d.Start();
+	this->BindKernel( xKernel, xL );
+	this->RunGPU1D( frame1, frame2, MRI_WIDTH );
+
+	// And y
+	this->BindKernel( yKernel, yL );
+	this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
+	
+	// And z
+	this->BindKernel( zKernel, zL );
+	this->RunGPU1D( frame1, frame2, MRI_DEPTH );
+	this->tCompute3d.Stop();
+
+	// Get the results
+	this->tRecv.Start();
+	frame2.Recv( dst, dstFrame, this->h_workspace, this->stream );
+	this->tRecv.Stop();
+
+	CUDA_CHECK_ERROR_ASYNC( "3D convolution  with multi-kernel failure" );
+	this->tTotal3d.Stop();
       }
 
       // ---------------------------------------
@@ -768,7 +872,7 @@ namespace GPU {
       mutable SciGPU::Utilities::Chronometer tSend, tRecv;
       mutable SciGPU::Utilities::Chronometer tTextureKernel;
       mutable SciGPU::Utilities::Chronometer tCompute1d, tTotal1d;
-      mutable SciGPU::Utilities::Chronometer tComputeGauss, tTotalGauss;
+      mutable SciGPU::Utilities::Chronometer tCompute3d, tTotal3d;
 
       // ----------------------------------------------
       // Suppress copying
@@ -781,7 +885,7 @@ namespace GPU {
 					      tSend(), tRecv(),
 					      tTextureKernel(),
 					      tCompute1d(), tTotal1d(),
-					      tComputeGauss(), tTotalGauss() {
+					      tCompute3d(), tTotal3d() {
 	std::cerr << __FUNCTION__
 		  << ": Please do not copy"
 		  << std::endl;
@@ -853,22 +957,25 @@ namespace GPU {
       //! Dispatch wrapper for 1D convolutions based on dst type
       template<typename T>
       void DispatchWrap1D( const MRI* src, MRI* dst,
-			   const int axis,
-			   const int srcFrame, const int dstFrame ) const {
+			   const int srcFrame, const int dstFrame,
+			   const int axis ) const {
 	switch( dst->type ) {
 	case MRI_UCHAR:
-	  this->Dispatch1D<T,unsigned char>( src, dst, axis,
-					     srcFrame, dstFrame );
+	  this->Dispatch1D<T,unsigned char>( src, dst,
+					     srcFrame, dstFrame,
+					     axis );
 	  break;
 	  
 	case MRI_SHORT:
-	  this->Dispatch1D<T,short>( src, dst, axis,\
-				     srcFrame, dstFrame );
+	  this->Dispatch1D<T,short>( src, dst,
+				     srcFrame, dstFrame,
+				     axis );
 	  break;
 	  
 	case MRI_FLOAT:
-	  this->Dispatch1D<T,float>( src, dst, axis,
-				     srcFrame, dstFrame );
+	  this->Dispatch1D<T,float>( src, dst,
+				     srcFrame, dstFrame,
+				     axis );
 	  break;
 	  
 	default:
@@ -903,9 +1010,9 @@ MRI* MRIconvolve1d_cuda( const MRI* src, MRI* dst,
   */
 
   myConvolve.Convolve1D( src, dst,
+			 srcFrame, dstFrame,
 			 kernel, kernelLength,
-			 axis,
-			 srcFrame, dstFrame );
+			 axis );
 
   return( dst );
 }
@@ -925,8 +1032,8 @@ MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
 
   for( int iFrame=0; iFrame < src->nframes; iFrame++ ) {
     myConvolve.Convolve3D( src, dst,
-			   kernel, kernelLength,
-			   iFrame, iFrame );
+			   iFrame, iFrame,
+			   kernel, kernelLength );
   }
 
   return( dst );
