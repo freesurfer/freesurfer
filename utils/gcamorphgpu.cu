@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 15:50:14 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/03/04 17:17:40 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -215,17 +215,17 @@ namespace GPU {
 	    // Get the 1d index (same for all arrays)
 	    const unsigned int i1d = this->d_r.Index1D( i, j, k );
 	    // Get the current node
-	    GCA_MORPH_NODE gcamn = dst->nodes[i][j][k];
+	    GCA_MORPH_NODE* gcamn = &(dst->nodes[i][j][k]);
 
-	    gcamn.x = h_r[i1d].x;
-	    gcamn.y = h_r[i1d].y;
-	    gcamn.z = h_r[i1d].z;
+	    gcamn->x = h_r[i1d].x;
+	    gcamn->y = h_r[i1d].y;
+	    gcamn->z = h_r[i1d].z;
 
-	    gcamn.invalid = h_invalid[i1d];
-	    gcamn.area = h_area[i1d];
-	    gcamn.orig_area = h_origArea[i1d];
-	    gcamn.area1 = h_area1[i1d];
-	    gcamn.area2 = h_area2[i1d];
+	    gcamn->invalid = h_invalid[i1d];
+	    gcamn->area = h_area[i1d];
+	    gcamn->orig_area = h_origArea[i1d];
+	    gcamn->area1 = h_area1[i1d];
+	    gcamn->area2 = h_area2[i1d];
 	  }
 	}
       }
@@ -309,7 +309,6 @@ namespace GPU {
 	    }
 
 	    area1(ix,iy,iz) = tmpArea;
-
 	    area(ix,iy,iz) += tmpArea;
 
 	  }
@@ -349,6 +348,7 @@ namespace GPU {
 
 	// Check if at least one determinant was computed
 	if( num > 0 ) {
+	  // area is mean of 'left' and 'right' areas
 	  area(ix,iy,iz) /= num;
 	} else {
 	  invalid(ix,iy,iz) = GCAM_AREA_INVALID;
@@ -505,7 +505,11 @@ void GCAMorphCompareBeforeAfter( GCAM* dst ) {
   double errL2;
 
   errL2 = myComp.ErrL2Norm( compGPU.d_area, compCPU.d_area );
-  std::cout << __FUNCTION__ << ": Err L2 = " << errL2 << std::endl;
+  std::cout << __FUNCTION__ << ": Area L2 = " << errL2 << std::endl;
+  errL2 = myComp.ErrL2Norm( compGPU.d_area1, compCPU.d_area1 );
+  std::cout << __FUNCTION__ << ": Area1 L2 = " << errL2 << std::endl;
+  errL2 = myComp.ErrL2Norm( compGPU.d_area2, compCPU.d_area2 );
+  std::cout << __FUNCTION__ << ": Area2 L2 = " << errL2 << std::endl;
 
   compGPU.RecvAll( dst );
 }
