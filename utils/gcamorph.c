@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 20:13:19 $
- *    $Revision: 1.151 $
+ *    $Date: 2010/03/04 15:06:41 $
+ *    $Revision: 1.152 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -3215,7 +3215,9 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   printf( "%s: neg = %i\n", __FUNCTION__, gcam->neg );
 
   GCAMorphSendAfter( gcam );
-  GCAMorphCompareBeforeAfter();
+  GCAMorphCompareBeforeAfter( gcam );
+
+  gcamComputeMetricPropertiesGPU( gcam, &Ginvalid );
 #endif
 
   return(NO_ERROR) ;
