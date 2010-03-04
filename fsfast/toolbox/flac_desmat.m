@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac,IRFOnly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/02/22 21:41:42 $
-%    $Revision: 1.16 $
+%    $Date: 2010/03/04 19:20:57 $
+%    $Revision: 1.17 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -61,7 +61,7 @@ for nthev = 1:nev
 	return; 
       end
     end
-    [Xirf tirf] = flac_ev2irf(flac,nthev);
+    [Xirf tirf scalef] = flac_ev2irf(flac,nthev);
     if(isempty(Xirf)) 
       fprintf('ERROR: creating IRF design matrix for %s\n',...
 	      flacnew.ev(nthev).name);
@@ -70,6 +70,7 @@ for nthev = 1:nev
     end
     flacnew.ev(nthev).Xirf = Xirf;
     flacnew.ev(nthev).tirf = tirf;
+    flacnew.ev(nthev).scalef = scalef;
     flacnew.ev(nthev).X = flacnew.ev(nthev).Xfir * flacnew.ev(nthev).Xirf;
   else
     switch(ev.model)

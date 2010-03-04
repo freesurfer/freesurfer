@@ -1,5 +1,5 @@
-function [Xirf tirf] = flac_ev2irf(flac,nthev)
-% [Xirf tirf] = flac_ev2irf(flac,nthev)
+function [Xirf tirf scalef] = flac_ev2irf(flac,nthev)
+% [Xirf tirf scalef] = flac_ev2irf(flac,nthev)
 %
 %
 
@@ -10,8 +10,8 @@ function [Xirf tirf] = flac_ev2irf(flac,nthev)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/08/15 16:30:35 $
-%    $Revision: 1.6 $
+%    $Date: 2010/03/04 19:20:57 $
+%    $Revision: 1.7 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -97,6 +97,8 @@ switch(ev.model)
   fprintf('ERROR: model %s unrecognized\n',ev.model);
   
 end
+
+scalef = sum(Xirf .* repmat(tirf,[1 size(Xirf,2)]));
 
 return;
 
