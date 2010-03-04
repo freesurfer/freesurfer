@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 14:33:43 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/03/04 15:50:14 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -444,6 +444,9 @@ void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
   gcamGPU.ComputeMetricProperties( *invalid, gcam->neg );
   gcamGPU.RecvAll( gcam );
 
+  std::cout << __FUNCTION__ << ": "
+	    << *invalid << " " << gcam->neg
+	    << std::endl;
 }
 
 /*
@@ -474,21 +477,35 @@ void GCAMorphSendAfter( const GCAM* src ) {
 }
 
 
-void GCAMorphCompareBeforeAfter( void ) {
+void GCAMorphCompareBeforeAfter( GCAM* dst ) {
 
   GPU::Algorithms::VolumeGPUCompare myComp;
   float areaDiff;
-  dim3 areaLoc;
+  dim3 loc;
 
-  myComp.MaxDiff( compGPU.d_area, compCPU.d_area, areaDiff, areaLoc );
+  myComp.MaxDiff( compGPU.d_area, compCPU.d_area, areaDiff, loc );
   
+  std::cout << __FUNCTION__
+	    << ": area " << areaDiff << " at " << loc << std::endl;
 
+  myComp.MaxDiff( compGPU.d_area1, compCPU.d_area1, areaDiff, loc );
+  std::cout << __FUNCTION__
+	    << ": area1 " << areaDiff << " at " << loc << std::endl;
 
-  std::cout << __FUNCTION__ << ": areaLoc = " << areaLoc << std::endl;
-  std::cout << __FUNCTION__ << ": areaDiff = " << areaDiff << std::endl;
+  myComp.MaxDiff( compGPU.d_area2, compCPU.d_area2, areaDiff, loc );
+  std::cout << __FUNCTION__
+	    << ": area2 " << areaDiff << " at " << loc << std::endl;
+
+  unsigned char invalidDiff;
+  myComp.MaxDiff( compGPU.d_invalid, compCPU.d_invalid, invalidDiff, loc );
+  std::cout << __FUNCTION__
+	    << ": invalid " << static_cast<int>(invalidDiff)
+	    << " at " << loc << std::endl;
 
   double errL2;
 
   errL2 = myComp.ErrL2Norm( compGPU.d_area, compCPU.d_area );
   std::cout << __FUNCTION__ << ": Err L2 = " << errL2 << std::endl;
+
+  compGPU.RecvAll( dst );
 }
