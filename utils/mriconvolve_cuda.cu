@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 18:33:37 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/03/04 18:37:50 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -383,11 +383,11 @@ namespace GPU {
 	  be the case.
 	  @param[in] src The source MRI
 	  @param[out] dst The destination MRI
+	  @param[in] srcFrame The frame of the source to be convolved
+	  @param[in] dstFrame The frame of the destination in which the result should be stored
 	  @param[in] kernel The convolution kernel to use
 	  @param[in] kernelLength The size of the convolution kernel
 	  @param[in] axis The axis along which the convolution should be made
-	  @param[in] srcFrame The frame of the source to be convolved
-	  @param[in] dstFrame The frame of the destination in which the result should be stored
 	*/
 	this->tTotal1d.Start();
 
@@ -587,6 +587,12 @@ namespace GPU {
 	  \a srcFrame of the MRI \a src, storing the result in
 	  \a dstFrame of the MRI \a dst.
 	  The convolution kernel is stored in the array \a kernel.
+	  @param[in] src The source MRI
+	  @param[out] dst The destination MRI
+	  @param[in] srcFrame The frame of the source to be convolved
+	  @param[in] dstFrame The frame of the destination in which the result should be stored
+	  @param[in] kernel The convolution kernel to use
+	  @param[in] kernelLength The size of the convolution kernel
 	*/
 
 	this->tTotal3d.Start();
@@ -692,7 +698,23 @@ namespace GPU {
 		       const unsigned int yL,
 		       const float* zKernel,
 		       const unsigned int zL ) {
-
+	/*!
+	  Performs a 3D convolution of
+	  \a srcFrame of the MRI \a src, storing the result in
+	  \a dstFrame of the MRI \a dst.
+	  A separate convolution kernel is used for each axis.
+	  
+	  @param[in] src The source MRI
+	  @param[out] dst The destination MRI
+	  @param[in] srcFrame The frame of the source to be convolved
+	  @param[in] dstFrame The frame of the destination in which the result should be stored
+	  @param[in] xKernel The convolution kernel to use in the x direction
+	  @param[in] xL The size of the x convolution kernel
+	  @param[in] yKernel The convolution kernel to use in the y direciton
+	  @param[in] yL The size of the y convolution kernel
+	  @param[in] zKernel The z convolution kernel
+	  @param[in] zL The size of the z convolution kernel
+	*/
 	switch( src->type ) {
 	case MRI_UCHAR:
 	  this->Convolve3DMultiKernelDispatch<unsigned char>( src,
