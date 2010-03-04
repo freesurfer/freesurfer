@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/26 22:35:35 $
- *    $Revision: 1.451 $
+ *    $Author: rge21 $
+ *    $Date: 2010/03/04 19:43:21 $
+ *    $Revision: 1.452 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.451 $";
+const char *MRI_C_VERSION = "$Revision: 1.452 $";
 
 
 /*-----------------------------------------------------
@@ -9096,7 +9096,10 @@ MRIinterpolate(MRI *mri_src, MRI *mri_dst)
   Description
   ------------------------------------------------------*/
 int
-MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval)
+MRIsampleVolumeFrame( const MRI *mri,
+		      Real x, Real y, Real z,
+		      const int frame,
+		      Real *pval )
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
@@ -9417,7 +9420,10 @@ MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
   ------------------------------------------------------*/
 int
 MRIsampleVolumeFrameType
-(MRI *mri, Real x, Real y, Real z, int frame, int type, Real *pval)
+( const MRI *mri,
+  const Real x, const Real y, const Real z,
+  const int frame, int type,
+  Real *pval )
 {
   int   xv, yv, zv ;
   int OutOfBounds;
@@ -10220,7 +10226,8 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
   volume. In this case the index of the nearest neighbor can safely
   be computed as the nearest integer to col, row, and slice.
   -----------------------------------------------------------------*/
-int MRIindexNotInVolume(MRI *mri, Real col, Real row, Real slice)
+int MRIindexNotInVolume( const MRI *mri,
+			 const Real col, const Real row, const Real slice )
 {
   float nicol, nirow, nislice;
 

@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 16:14:19 $
- *    $Revision: 1.394 $
+ *    $Date: 2010/03/04 19:43:24 $
+ *    $Revision: 1.395 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -617,7 +617,8 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
                     float dx, float dy, float dz, int fill_val);
 
 int   MRIeraseBorders(MRI *mri, int width) ;
-int   MRIindexNotInVolume(MRI *mri, Real col, Real row, Real slice) ;
+int   MRIindexNotInVolume( const MRI *mri,
+			   const Real col, const Real row, const Real slice );
 int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
 double *MRItrilinKernel(MRI *mri,
                         double c,
@@ -635,9 +636,15 @@ int   MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval,
                           int type) ;
 int   MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval,
                              unsigned char ucharLabel);
-int   MRIsampleVolumeFrame(MRI *mri,Real x,Real y,Real z,int frame,Real *pval);
-int   MRIsampleVolumeFrameType(MRI *mri,Real x,Real y,Real z,
-                               int frame, int interp_type,Real *pval);
+int   MRIsampleVolumeFrame( const MRI *mri,
+			    Real x, Real y, Real z,
+			    const int frame,
+			    Real *pval);
+int   MRIsampleVolumeFrameType( const MRI *mri,
+				const Real x, const Real y, const Real z,
+				const int frame,
+				int interp_type,
+				Real *pval );
 int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
                               Real *pdx, Real *pdy, Real *pdz) ;
 int   MRIsampleVolumeGradientFrame(MRI *mri, Real x, Real y, Real z,
