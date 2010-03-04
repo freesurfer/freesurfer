@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 20:00:36 $
- *    $Revision: 1.155 $
+ *    $Date: 2010/03/04 20:49:40 $
+ *    $Revision: 1.156 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1828,9 +1828,23 @@ static float ***last_sse = NULL;
 static double
 gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
 {
+
+#ifdef FS_CUDA
+  Chronometer tTotal;
+
+  InitChronometer( &tTotal );
+  StartChronometer( &tTotal );
+#endif
+
   double          sse = 0.0, error ;
-  int             x, y, z, max_x, max_y, max_z ;
+  int             x, y, z;
   float            vals[MAX_GCA_INPUTS] ;
+
+#if DEBUG_LL_SSE
+  int max_x, max_y, max_z ;
+  max_x = max_y = max_z = 0 ;
+#endif
+ 
 
 #if DEBUG_LL_SSE
   Real            max_increase = 0, increase ;
@@ -1848,40 +1862,62 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
   }
 #endif
 
-  max_x = max_y = max_z = 0 ;
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
+#ifdef FS_CUDA
+  if( gcam->ninputs != 1 ) {
+    printf( "%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs );
+  }
+#endif
+
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
+
+	// Debugging breakpoint
+        if (x == Gx && y == Gy && z == Gz) {
+          DiagBreak();
+	}
+	
+	// Shorthand way of accessing current node
         const GCA_MORPH_NODE* const gcamn = &gcam->nodes[x][y][z] ;
 
-        if (gcamn->invalid == GCAM_POSITION_INVALID)
+	// Don't operate on invalid nodes
+        if (gcamn->invalid == GCAM_POSITION_INVALID) {
           continue;
+	}
         check_gcam(gcam) ;
-        if (gcamn->status & (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD))
+
+	// Check for ignore
+        if ( gcamn->status &
+	     (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD) ) {
           continue ;
+	}
+
         /* don't use unkown nodes unless they border 
            something that's not unknown */
         if (IS_UNKNOWN(gcamn->label) && 
-            different_neighbor_labels(gcam, x,y,z,1) == 0)
+            (different_neighbor_labels(gcam, x,y,z,1) == 0) ) {
           continue ;
+	}
 
         check_gcam(gcam) ;
-        load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs) ;
-        check_gcam(gcam) ;
-        if (gcamn->gc)
-          error = GCAmahDist(gcamn->gc, vals, gcam->ninputs) + \
-                  log(covariance_determinant(gcamn->gc, gcam->ninputs)) ;
-        else
-        {
+
+	// Load up the MRI values (which will interpolate)
+        load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs);
+        check_gcam(gcam);
+
+	// Compute 'error' for this node
+        if( gcamn->gc ) {
+          error = GCAmahDist(gcamn->gc, vals, gcam->ninputs)
+	    + log(covariance_determinant(gcamn->gc, gcam->ninputs));
+        } else {
           int n ;
           for (n = 0, error = 0.0 ; n < gcam->ninputs ; n++)
             error += (vals[n]*vals[n]/MIN_VAR) ;
         }
 
         check_gcam(gcam) ;
+
+	// Random output
         if (x == Gx && y == Gy && z == Gz)
           printf("E_like: node(%d,%d,%d) -> "
                  "(%2.1f,%2.1f,%2.1f), target=%2.1f+-%2.1f, val=%2.1f\n",
@@ -1906,15 +1942,29 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
         }
         last_sse[x][y][z] = (error) ;
 #endif
+
+	// Accumulate onto main variable
         sse += (error) ;
-        if (!finitep(sse))
+
+	// Enable debugging breakpoint if not finite
+        if (!finitep(sse)) {
           DiagBreak() ;
+	}
       }
+    }
+  }
 #if DEBUG_LL_SSE
   if (Gdiag & DIAG_SHOW)
     printf("max increase %2.2f at (%d, %d, %d)\n",
            max_increase, max_x, max_y, max_z) ;
 #endif
+
+#ifdef FS_CUDA
+  StopChronometer( &tTotal );
+
+  printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );
+#endif
+
   return(sse) ;
 }
 
