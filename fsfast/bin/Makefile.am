@@ -152,8 +152,6 @@ FSF_FILES=\
 	mergecontrasts-sess \
 	mergecontrasts-xsess \
 	mkanalysis-sess \
-	mkanalysis-sess.new \
-	mkanalysis-sess.old \
 	mkblockpar \
 	mkbrainmask \
 	mkbrainmask-sess \
