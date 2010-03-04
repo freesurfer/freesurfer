@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 20:13:19 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/03/04 14:33:43 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -429,6 +429,22 @@ namespace GPU {
   }
 }
 
+
+
+void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
+				     int *invalid ) {
+  /*!
+    This is a wrapper around the CUDA implementation
+    of gcamComputeMetricProperties
+  */
+
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.ComputeMetricProperties( *invalid, gcam->neg );
+  gcamGPU.RecvAll( gcam );
+
+}
 
 /*
   The following functions are a bunch of ugly hacks designed
