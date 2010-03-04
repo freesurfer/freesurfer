@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/02/17 21:44:23 $
-#    $Revision: 1.25 $
+#    $Date: 2010/03/04 19:24:03 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.25 2010/02/17 21:44:23 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.26 2010/03/04 19:24:03 greve Exp $';
 
 set scriptsdir = ();
 set fsd    = ();
@@ -1028,8 +1028,9 @@ usage_exit:
   echo "   -acfbins nbins : spatially segment autocorrelation into nbins"
   echo "   -no-fix-acf    : do NOT compensate for resdualized ACF"
   echo "   -fix-acf       : DO compensate for resdualized ACF (default)"
-  echo "   -autostimdur         : automatically compute stimulus duration"
-  echo "   -noautostimdur       : do not automatically compute stimulus duration (default)"
+  echo "   -autostimdur    : automatically compute stimulus duration"
+  echo "   -noautostimdur  : do not automatically compute stimulus duration (default)"
+  echo "   -nowhiten : turn off temporal whitening"
   echo "   -fsv3-st2fir : generate design matrix like FreeSurfer Version 3 (and -no-)"
   echo "   -fsv3-whiten : perform whitening like FreeSurfer Version 3 (and -no-)"
   echo "   -fsv3 : set all fsv3 flags (FreeSurfer Version 3) (and -no-)"
