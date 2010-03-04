@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/02 19:38:02 $
- *    $Revision: 1.338 $
+ *    $Author: fischl $
+ *    $Date: 2010/03/04 02:34:53 $
+ *    $Revision: 1.339 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -1165,7 +1165,7 @@ int  MRISmatrixMultiply(MRIS *mris, MATRIX *M);
 int  MRISanisotropicScale(MRI_SURFACE *mris, float sx, float sy, float sz) ;
 double MRIScomputeVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
                                      double *pmin, double *pmax, int *pvno,
-                                     int *pvno2);
+                                     int *pvno2, int which_vertices);
 double MRIScomputeTotalVertexSpacingStats(MRI_SURFACE *mris, double *psigma,
                                           double *pmin, double *pmax,
                                           int *pvno,
