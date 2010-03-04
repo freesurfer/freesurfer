@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/19 18:16:45 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/03/04 17:41:19 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -571,14 +571,16 @@ namespace GPU {
 
       // ---------------------------------------------------
 
-      //! Dispatch for gaussian convolution of unknown type
-      void ConvolveGaussian( const MRI* src, MRI* dst,
-			     const float *kernel,
-			     const unsigned int kernelLength,
-			     const int srcFrame, const int dstFrame ) {
+      //! Dispatch for 3D convolution of unknown MRI with single kernel
+      void Convolve3D( const MRI* src, MRI* dst,
+		       const float *kernel,
+		       const unsigned int kernelLength,
+		       const int srcFrame, const int dstFrame ) {
 	/*!
-	  Implementation of MRIconvolveGaussian for the GPU,
-	  but doesn't attempt to allocate inputs
+	  Performs a 3D convolution with a single 1D kernel of
+	  \a srcFrame of the MRI \a src, storing the result in
+	  \a dstFrame of the MRI \a dst.
+	  The convolution kernel is stored in the array \a kernel.
 	*/
 
 	this->tTotalGauss.Start();
@@ -588,18 +590,24 @@ namespace GPU {
 
 	switch( src->type ) {
 	case MRI_UCHAR:
-	  this->GaussianDispatch<unsigned char>( src, dst,
-						 srcFrame, dstFrame );
+	  this->Conv3DSingleKernelDispatch<unsigned char>( src,
+							   dst,
+							   srcFrame,
+							   dstFrame );
 	  break;
 	  
 	case MRI_SHORT:
-	  this->GaussianDispatch<short>( src, dst,
-					 srcFrame, dstFrame );
+	  this->Conv3DSingleKernelDispatch<short>( src,
+						   dst,
+						   srcFrame,
+						   dstFrame );
 	  break;
 	  
 	case MRI_FLOAT:
-	  this->GaussianDispatch<float>( src, dst,
-					 srcFrame, dstFrame );
+	  this->Conv3DSingleKernelDispatch<float>( src,
+						   dst,
+						   srcFrame,
+						   dstFrame );
 	  break;
 	  
 	default:
@@ -617,17 +625,19 @@ namespace GPU {
       // --
 
 
-      //! Wrapper for Gaussian convolution
+      //! Wrapper for 3D convolution with single kernel
       template<typename T>
-      void GaussianDispatch( const MRI* src, MRI* dst,
-			     const int srcFrame, const int dstFrame ) const {
+      void Conv3DSingleKernelDispatch( const MRI* src,
+				       MRI* dst,
+				       const int srcFrame,
+				       const int dstFrame ) const {
 	/*!
-	  Function to run the 3D gaussian convolution on the GPU
-	  without pulling intermediate results back to the host.
+	  Function to run the 3D convolution on the GPU when
+	  all three directions use the same convolution kernel.
+	  This routine does not pull intermediate results
+	  back to the host.
 	  Assumes that src and dst types are the same.
 	  Assumes that the texture is already set up on the GPU.
-	  Also works on every frame in the MRI, which may or may
-	  not be what you want.
 	*/
 
 	GPU::Classes::MRIframeGPU<T> frame1, frame2;
@@ -662,6 +672,20 @@ namespace GPU {
 	this->tRecv.Stop();
 
 	CUDA_CHECK_ERROR_ASYNC( "Gaussian convolution failure" );
+      }
+
+      //! Wrapper for a 3D convolution with different kernels
+      template<typename T>
+      void Convolve3DMultiKernelDispatch( const MRI* src,
+					  MRI* dst,
+					  const int srcFrame,
+					  const int dstFrame,
+					  const float* xKernel,
+					  const unsigned int xL,
+					  const float* yKernel,
+					  const unsigned int yL,
+					  const float* zKernel,
+					  const unsigned int zL ) {
       }
 
       // ---------------------------------------
@@ -894,13 +918,15 @@ MRI* MRIconvolveGaussian_cuda( const MRI* src, MRI* dst,
 			       const unsigned int kernelLength ) {
   /*!
     Implementation of MRIconvolveGaussian for the GPU.
-    Designed to be called form that routine
+    Designed to be called form that routine.
+    This operates on every frame, as the calling routine,
+    but this may not be what you want.
   */
 
   for( int iFrame=0; iFrame < src->nframes; iFrame++ ) {
-    myConvolve.ConvolveGaussian( src, dst,
-				 kernel, kernelLength,
-				 iFrame, iFrame );
+    myConvolve.Convolve3D( src, dst,
+			   kernel, kernelLength,
+			   iFrame, iFrame );
   }
 
   return( dst );
