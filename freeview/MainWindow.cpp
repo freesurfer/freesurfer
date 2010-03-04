@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.97 $
+ *    $Date: 2010/03/04 21:54:02 $
+ *    $Revision: 1.98 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2345,13 +2345,23 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerMoved" )
   {
     UpdateToolbars();
+  }
+  else if ( iMsg == "ActiveLayerChanged" )
+  {
     if ( !GetLayerCollection( "MRI" )->IsEmpty() )
     {
-      SetTitle( wxString::FromAscii( GetLayerCollection( "MRI" )->GetLayer( 0 )->GetName() ) + _(" - freeview") );
+      LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+      wxString fn;
+      if ( mri->IsTypeOf( "DTI" ) )
+        fn = wxString::FromAscii( ((LayerDTI*)mri)->GetVectorFileName() );
+      else
+        fn = wxString::FromAscii( mri->GetFileName() );
+      SetTitle( wxString::FromAscii( mri->GetName() ) + _(" (") + fn + _(") - freeview") );
     }
     else if ( !GetLayerCollection( "Surface" )->IsEmpty() )
     {
-      SetTitle( wxString::FromAscii( GetLayerCollection( "Surface" )->GetLayer( 0 )->GetName() ) + _(" - freeview") );
+      LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
+      SetTitle( wxString::FromAscii( surf->GetName() ) + _(" (") + surf->GetFileName() + _(") - freeview") );
     }
     else
     {

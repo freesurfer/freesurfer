@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/03/04 21:54:02 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -109,7 +109,7 @@ public:
   {
     return m_volumeRef;
   }
-
+  
   void SetRefVolume( FSVolume* ref )
   {
     m_volumeRef = ref;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/03/04 21:54:02 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,7 @@
 #define ToolWindowEdit_h
 
 #include <wx/wx.h>
+#include <vector>
 
 class wxTextCtrl;
 class wxCheckBox;
@@ -81,6 +82,8 @@ public:
   void UpdateTools();
 
   void ResetPosition();
+  
+  void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
 
 protected:
   void DoUpdateTools();
@@ -102,6 +105,12 @@ protected:
   wxCheckBox*   m_checkDrawConnectedOnly;
 
   bool m_bToUpdateTools;
+  
+  std::vector<wxWindow*>  m_widgetsBrushSize;
+  std::vector<wxWindow*>  m_widgetsReference;
+  std::vector<wxWindow*>  m_widgetsTolerance;
+  std::vector<wxWindow*>  m_widgetsConstrain;
+  std::vector<wxWindow*>  m_widgetsNotesContour;
 
   DECLARE_EVENT_TABLE()
 };

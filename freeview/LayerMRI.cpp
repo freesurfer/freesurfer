@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.56 $
+ *    $Date: 2010/03/04 21:54:02 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1636,4 +1636,5 @@ vtkImageData* LayerMRI::GetSliceImageData( int nPlane )
 {
   return mReslice[nPlane]->GetOutput();
 }
+
 

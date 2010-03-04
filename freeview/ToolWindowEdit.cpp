@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/03/04 21:54:02 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -107,10 +107,43 @@ ToolWindowEdit::ToolWindowEdit( wxWindow* parent ) :
   m_editExcludeRangeLow     = XRCCTRL( *this, "ID_EDIT_EXCLUDE_RANGE_LOW",  wxTextCtrl );
   m_editExcludeRangeHigh    = XRCCTRL( *this, "ID_EDIT_EXCLUDE_RANGE_HIGH", wxTextCtrl );
   m_checkDrawConnectedOnly  = XRCCTRL( *this, "ID_CHECK_DRAW_CONNECTED",    wxCheckBox );
+  
+  m_widgetsBrushSize.push_back( XRCCTRL( *this, "ID_STATIC_BRUSH_SIZE", wxStaticText ) );
+  m_widgetsBrushSize.push_back( m_spinBrushSize );
+  
+  m_widgetsReference.push_back( XRCCTRL( *this, "ID_STATIC_REFERENCE", wxStaticText ) );
+  m_widgetsReference.push_back( m_choiceTemplate );
+  
+  m_widgetsTolerance.push_back( m_spinBrushTolerance );
+  m_widgetsTolerance.push_back( XRCCTRL( *this, "ID_STATIC_TOLERANCE", wxStaticText ) );
+  m_widgetsTolerance.push_back( XRCCTRL( *this, "ID_STATIC_PERCENTAGE", wxStaticText ) );
+  
+  m_widgetsConstrain.push_back( m_checkDrawConnectedOnly );  
+  m_widgetsConstrain.push_back( m_checkDrawRange );
+  m_widgetsConstrain.push_back( m_editDrawRangeLow );
+  m_widgetsConstrain.push_back( m_editDrawRangeHigh );
+  m_widgetsConstrain.push_back( m_checkExcludeRange );
+  m_widgetsConstrain.push_back( m_editExcludeRangeLow );
+  m_widgetsConstrain.push_back( m_editExcludeRangeHigh );
+  m_widgetsConstrain.push_back( XRCCTRL( *this, "ID_STATIC_DRAW_LOW", wxStaticText ) );
+  m_widgetsConstrain.push_back( XRCCTRL( *this, "ID_STATIC_DRAW_HIGH", wxStaticText ) );
+  m_widgetsConstrain.push_back( XRCCTRL( *this, "ID_STATIC_EXCLUDE_LOW", wxStaticText ) );
+  m_widgetsConstrain.push_back( XRCCTRL( *this, "ID_STATIC_EXCLUDE_HIGH", wxStaticText ) );
+  
+  m_widgetsNotesContour.push_back( XRCCTRL( *this, "ID_STATIC_NOTES_CONTOUR", wxStaticText ) );
 }
 
 ToolWindowEdit::~ToolWindowEdit()
 {}
+
+
+void ToolWindowEdit::ShowWidgets( std::vector<wxWindow*>& list, bool bShow )
+{
+  for ( size_t i = 0; i < list.size(); i++ )
+  {
+    list[i]->Show( bShow );
+  }
+}
 
 void ToolWindowEdit::OnShow( wxShowEvent& event )
 {
@@ -220,7 +253,24 @@ void ToolWindowEdit::DoUpdateTools()
   UpdateTextValue( m_editExcludeRangeLow, range[0] );
   UpdateTextValue( m_editExcludeRangeHigh, range[1] );
 
+  int nAction = view->GetAction(); 
+  ShowWidgets( m_widgetsBrushSize, nAction != Interactor2DVoxelEdit::EM_Contour &&
+                                   nAction != Interactor2DVoxelEdit::EM_ColorPicker && 
+                                   nAction != Interactor2DVoxelEdit::EM_Fill );
+  ShowWidgets( m_widgetsReference, nAction == Interactor2DVoxelEdit::EM_Fill || 
+                                   nAction == Interactor2DVoxelEdit::EM_Contour );  
+  ShowWidgets( m_widgetsTolerance, nAction == Interactor2DVoxelEdit::EM_Fill );
+  ShowWidgets( m_widgetsConstrain, nAction != Interactor2DVoxelEdit::EM_ColorPicker && 
+                                   nAction != Interactor2DVoxelEdit::EM_Contour ); 
+  ShowWidgets( m_widgetsNotesContour, nAction == Interactor2DVoxelEdit::EM_Contour );
+  
   m_bToUpdateTools = false;
+  wxPanel* panel = XRCCTRL( *this, "ID_PANEL_HOLDER", wxPanel );
+  panel->Layout();
+  panel->Fit();
+  Fit();
+  Refresh();
+  MainWindow::GetMainWindowPointer()->NeedRedraw( 1 );
 }
 
 void ToolWindowEdit::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
@@ -349,8 +399,9 @@ void ToolWindowEdit::OnActionVoxelContourUpdateUI( wxUpdateUIEvent& event)
   event.Check( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit
       && view->GetAction() == Interactor2DVoxelEdit::EM_Contour );
 
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
   event.Enable( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit
-      && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
+      && mri && mri->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT );
 }
 
 void ToolWindowEdit::OnActionROIFreehand( wxCommandEvent& event )

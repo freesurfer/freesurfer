@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/03/04 21:54:02 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,7 @@
 #include "LayerCollectionManager.h"
 #include "LayerVolumeBase.h"
 #include "LayerMRI.h"
+#include "LayerPropertiesMRI.h"
 #include "Contour2D.h"
 #include "CursorFactory.h"
 #include "BrushProperty.h"
@@ -161,7 +162,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
         }
         else if ( event.ShiftDown() )
         {
-          
+          m_bEditing = true;
         }
         else
         {
@@ -289,8 +290,26 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderV
     }
     else if ( m_nAction == EM_Contour )
     {
+      LayerMRI* mri_ref = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetBrushProperty()->GetReferenceLayer();
       Contour2D* c2d = view->GetContour2D();
-      c2d->SetContourValue( c2d->GetContourValue() + 0.2*( posY - m_nMousePosY ) ); 
+      if ( event.ShiftDown() )
+      {
+        double ras1[3], ras2[3];
+        view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
+        view->MousePositionToRAS( posX, posY, ras2 );
+        c2d->AddPatchLineOnMask( ras1, ras2 );
+      }
+      else
+      {
+        double scale = 0.2;
+        if ( mri_ref )
+        {
+          double dMin = mri_ref->GetProperties()->GetMinValue();
+          double dMax = mri_ref->GetProperties()->GetMaxValue();
+          scale = ( dMax - dMin ) * 0.0005;
+        }
+        c2d->SetContourValue( c2d->GetContourValue() + scale * ( posY - m_nMousePosY ) ); 
+      }
       view->NeedRedraw();
     }
 
