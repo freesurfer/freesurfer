@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 19:09:47 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/03/04 15:50:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,6 +61,7 @@ namespace GPU {
       GCAmorphGPU( void ) : d_r(),
 			    d_invalid(),
 			    d_area(),
+			    d_origArea(),
 			    d_area1(),
 			    d_area2() {};
 
