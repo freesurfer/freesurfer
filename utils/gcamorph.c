@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 15:06:41 $
- *    $Revision: 1.152 $
+ *    $Date: 2010/03/04 18:29:13 $
+ *    $Revision: 1.153 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -3047,19 +3047,14 @@ gcamAreaTermAtNode(GCA_MORPH *gcam, double l_area,
 static int
 gcamComputeMetricProperties(GCA_MORPH *gcam)
 {
+ 
+#ifdef FS_CUDA
+  gcamComputeMetricPropertiesGPU( gcam, &Ginvalid );
+#else
   double         area1, area2 ;
   int            i, j, k, width, height, depth, num, neg ;
   GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
   VECTOR         *v_i, *v_j, *v_k ;
-
-#ifdef FS_CUDA
-  Chronometer tCMP;
-
-  GCAMorphSendBefore( gcam );
-
-  InitChronometer( &tCMP );
-  StartChronometer( &tCMP );
-#endif
 
   // Ginvalid has file scope and static storage.....
   Ginvalid = 0 ;
@@ -3206,18 +3201,6 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   VectorFree(&v_j) ;
   VectorFree(&v_k) ;
 
-#ifdef FS_CUDA
-  StopChronometer( &tCMP );
-  printf( "%s: Complete in %9.3f ms\n",
-	  __FUNCTION__, GetChronometerValue( &tCMP ) );
-  
-  printf( "%s: invalid = %i\n", __FUNCTION__, Ginvalid );
-  printf( "%s: neg = %i\n", __FUNCTION__, gcam->neg );
-
-  GCAMorphSendAfter( gcam );
-  GCAMorphCompareBeforeAfter( gcam );
-
-  gcamComputeMetricPropertiesGPU( gcam, &Ginvalid );
 #endif
 
   return(NO_ERROR) ;
