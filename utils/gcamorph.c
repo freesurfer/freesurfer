@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 18:29:13 $
- *    $Revision: 1.153 $
+ *    $Date: 2010/03/04 19:56:10 $
+ *    $Revision: 1.154 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -165,8 +165,9 @@ static NODE_LOOKUP_TABLE *gcamCreateNodeLookupTable(GCA_MORPH *gcam,
 //static int gcamSetGradientToNbrAverage(GCA_MORPH *gcam, int x, int y, int z);
 static int gcamFreeNodeLookupTable(NODE_LOOKUP_TABLE **pnlt) ;
 static MRI *gcamCreateJacobianImage(GCA_MORPH *gcam) ;
-static int different_neighbor_labels(GCA_MORPH *gcam, 
-                                     int x,int y,int z,int whalf) ;
+static int different_neighbor_labels( const GCA_MORPH *gcam, 
+				      const int x, const int y, const int z,
+				      const int whalf);
 static int zero_vals(float *vals, int nvals) ;
 #if 0
 static int gcamMLElabelAtLocation(GCA_MORPH *gcam, 
@@ -246,7 +247,7 @@ static int gcamAreaIntensityTerm(GCA_MORPH *gcam,
                                  NODE_LOOKUP_TABLE *nlt, float sigma) ;
 static int gcamClearGradient(GCA_MORPH *gcam) ;
 static int gcamComputeMetricProperties(GCA_MORPH *gcam) ;
-static double gcamLogLikelihoodEnergy(GCA_MORPH *gcam, MRI *mri) ;
+static double gcamLogLikelihoodEnergy(GCA_MORPH *gcam, const MRI *mri );
 static double gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
 static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
@@ -281,7 +282,7 @@ static double gcamJacobianEnergy(GCA_MORPH *gcam, MRI *mri) ;
 static int gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms) ;
 static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
 static int gcamUndoGradient(GCA_MORPH *gcam) ;
-static int check_gcam(GCAM *gcam) ;
+static int check_gcam( const GCAM *gcam ) ;
 static MATRIX *gcamComputeOptimalLinearTransformInRegion
 (GCA_MORPH *gcam, MRI *mri_mask, MATRIX *m_L,
  int x0, int y0, int z0, int whalf);
@@ -1825,7 +1826,7 @@ static float ***last_sse = NULL;
 #endif
 
 static double
-gcamLogLikelihoodEnergy(GCA_MORPH *gcam, MRI *mri)
+gcamLogLikelihoodEnergy(GCA_MORPH *gcam, const MRI *mri)
 {
   double          sse = 0.0, error ;
   int             x, y, z, max_x, max_y, max_z ;
@@ -8171,7 +8172,7 @@ gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   return(NO_ERROR) ;
 }
 static int
-check_gcam(GCAM *gcam)
+check_gcam( const GCAM *gcam )
 {
   if ((abs(gcam->width) > 10000) ||
       (abs(gcam->height) > 10000) ||
@@ -8310,7 +8311,9 @@ zero_vals(float *vals, int nvals)
 }
 
 static int
-different_neighbor_labels(GCA_MORPH *gcam, int x,int y,int z,int whalf)
+different_neighbor_labels( const GCA_MORPH *gcam,
+			   const int x, const int y, const int z,
+			   const int whalf )
 {
   int        label, num, i, j, k ;
 
