@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/04 12:25:43 $
- *    $Revision: 1.663 $
+ *    $Date: 2010/03/04 13:23:32 $
+ *    $Revision: 1.664 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.663 2010/03/04 12:25:43 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.664 2010/03/04 13:23:32 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -66827,9 +66827,8 @@ MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, i
 int
 MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float max_thick, MRI_SURFACE *mris_ico)
 {
-  int     vno, fno ;
+  int     vno ;
   VERTEX  *v ;
-  float   xp, yp, zp ;
   MHT     *mht_pial ;
 
   parms->integration_type = INTEGRATE_MOMENTUM ;
@@ -66870,12 +66869,18 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
   // compute thickness and put it in v->curv field
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    double thick_sq ;
+    float   xw, yw, zw, xp, yp, zp, thick_sq ;
+    FACE    *face ;
+    int     fno ;
+    double  fdist ;
 
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
-    MRISsampleFaceCoords(mris_ico, fno, v->cx, v->cy, v->cz, PIAL_VERTICES, &xp, &yp, &zp) ;
+    MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
+    MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, 
+                              v->x, v->y, v->z, 1000, -1, &face, &fno, &fdist) ;
+    MRISsampleFaceCoords(mris_ico, fno, v->x, v->y, v->z, PIAL_VERTICES, &xp, &yp, &zp) ;
     thick_sq = mrisSampleMinimizationEnergy(mris, v, parms, v->x, v->y, v->z) ;
     v->curv = sqrt(thick_sq) ;
     v->tx = xp ; v->ty = yp ; v->tz = zp ;
