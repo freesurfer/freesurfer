@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/02 20:29:25 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/03/05 17:52:48 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -218,11 +218,16 @@ MRI * MyMRI::getDerfilter()
 {
   MRI *mri_derfilter ;
   mri_derfilter = MRIalloc(5,1,1, MRI_FLOAT);
-  MRIFvox(mri_derfilter, 0, 0, 0) =  0.10689 ;
-  MRIFvox(mri_derfilter, 1, 0, 0) =  0.28461 ;
-  MRIFvox(mri_derfilter, 2, 0, 0) =  0.0 ;
-  MRIFvox(mri_derfilter, 3, 0, 0) =  -0.28461 ;
-  MRIFvox(mri_derfilter, 4, 0, 0) =  -0.10689 ;
+//  MRIFvox(mri_derfilter, 0, 0, 0) =  0.10689 ;
+//  MRIFvox(mri_derfilter, 1, 0, 0) =  0.28461 ;
+//  MRIFvox(mri_derfilter, 2, 0, 0) =  0.0 ;
+//  MRIFvox(mri_derfilter, 3, 0, 0) =  -0.28461 ;
+//  MRIFvox(mri_derfilter, 4, 0, 0) =  -0.10689 ;
+  MRIFvox(mri_derfilter, 0, 0, 0) =  -0.10689 ;
+  MRIFvox(mri_derfilter, 1, 0, 0) =  -0.28461 ;
+  MRIFvox(mri_derfilter, 2, 0, 0) =   0.0 ;
+  MRIFvox(mri_derfilter, 3, 0, 0) =   0.28461 ;
+  MRIFvox(mri_derfilter, 4, 0, 0) =   0.10689 ;
   return mri_derfilter;
 }
 
@@ -310,23 +315,36 @@ bool MyMRI::getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* 
   // construct convolution masks:
   MRI *mri_prefilter = getPrefilter();
   MRI *mri_derfilter = getDerfilter();
+  int klen = mri_prefilter->width ;
+  int whd[3] = {MRI_WIDTH ,MRI_HEIGHT, MRI_DEPTH};
 
-  MRI* mdz   = convolute(mri,mri_derfilter,3);
-  MRI* mbz   = convolute(mri,mri_prefilter,3);
+  MRI* mdz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+  //MRI* mdz   = convolute(mri,mri_derfilter,3);
 
-  MRI* mdzby = convolute(mdz,mri_prefilter,2);
+  MRI* mbz =  MRIconvolve1d(mri, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[3-1], 0, 0) ;
+  //MRI* mbz   = convolute(mri,mri_prefilter,3);
+
+  MRI* mdzby = MRIconvolve1d(mdz, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+  //MRI* mdzby = convolute(mdz,mri_prefilter,2);
+  
   MRIfree(&mdz);
-  outfz = convolute(mdzby,mri_prefilter,1);
+  outfz = MRIconvolve1d(mdzby, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+  //outfz = convolute(mdzby,mri_prefilter,1);
   MRIfree(&mdzby);
 	
-  MRI* mbzby = convolute(mbz,mri_prefilter,2);
-  MRI* mbzdy = convolute(mbz,mri_derfilter,2);
+  MRI* mbzby = MRIconvolve1d(mbz, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+  //MRI* mbzby = convolute(mbz,mri_prefilter,2);
+  MRI* mbzdy = MRIconvolve1d(mbz, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[2-1], 0, 0) ;
+  //MRI* mbzdy = convolute(mbz,mri_derfilter,2);
   MRIfree(&mbz);
-  outfy = convolute(mbzdy,mri_prefilter,1);
+  outfy = MRIconvolve1d(mbzdy, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+  //outfy = convolute(mbzdy,mri_prefilter,1);
   MRIfree(&mbzdy);
 	
-  outfx = convolute(mbzby,mri_derfilter,1);
-  outblur = convolute(mbzby,mri_prefilter,1);
+  outfx = MRIconvolve1d(mbzby, NULL, &MRIFvox(mri_derfilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+  //outfx = convolute(mbzby,mri_derfilter,1);
+  outblur = MRIconvolve1d(mbzby, NULL, &MRIFvox(mri_prefilter, 0, 0, 0), klen, whd[1-1], 0, 0) ;
+  //outblur = convolute(mbzby,mri_prefilter,1);
   MRIfree(&mbzby);
 
   //cout << " size fx: " << outfx->width << " " << outfx->height << " " << outfx->depth << endl;
