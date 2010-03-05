@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 20:17:45 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/05 20:45:38 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
 
+#include "cma.h"
 
 #include "chronometer.hpp"
 
@@ -88,6 +89,17 @@ namespace GPU {
       return( sqrtf( v ) );
     }
 
+    __device__
+    bool IsUnknown( const int label ) {
+      bool res;
+
+      res = (label==Unknown);
+      res = res || (label==255);
+      res = res || (label==Bright_Unknown);
+      res = res || (label==Dark_Unknown);
+      
+      return(res);
+    }
 
     template<typename T>
     __global__
@@ -99,20 +111,73 @@ namespace GPU {
 		     const GPU::Classes::VolumeArgGPU<float> variance,
 		     float* energies ) {
       
-      const unsigned int ix = threadIdx.x + ( blockIdx.x * blockDim.x );
-      const unsigned int iy = threadIdx.y + ( blockIdx.y * blockDim.y );
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.x * blockDim.x );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
 
       __shared__ int labelCache[3][kGCAmorphLLEkernelSize+2][kGCAmorphLLEkernelSize+2];
 
       float myEnergy;
+
+      // Begin loading up the labelCache
+      int myLabel;
+
+      if( label.InVolume(ix,iy,0) ) {
+	myLabel = label(ix,iy,0);
+      } else {
+	myLabel = Unknown;
+      }
+      labelCache[0][1+threadIdx.y][1+threadIdx.x] = myLabel;
+      labelCache[1][1+threadIdx.y][1+threadIdx.x] = myLabel;
 
       // Loop over z slices
       for( unsigned int iz = 0; iz< r.dims.z; iz++ ) {
 
 	// We need to do all the other checks done by the CPU routine
 
+	// Fill in the 'above' slab of the label cache
+	if( label.InVolume(ix,iy,iz+1) ) {
+	  myLabel = label(ix,iy,iz+1);
+	} else {
+	  myLabel = Unknown;
+	}
+	labelCache[2][1+threadIdx.y][1+threadIdx.x] = myLabel;
+	// Fill in the edges
+	if( threadIdx.x < kGCAmorphLLEkernelSize ) {
+	  if( label.InVolume(bx-1,by+threadIdx.x,iz) ) {
+	    myLabel = label(bx-1,by+threadIdx.x,iz);
+	  } else {
+	    myLabel = Unknown;
+	  }
+	  labelCache[1][threadIdx.x][0] = myLabel;
+
+	  if( label.InVolume(bx+kGCAmorphLLEkernelSize,by+threadIdx.x,iz) ) {
+	    myLabel = label(bx+kGCAmorphLLEkernelSize,by+threadIdx.x,iz);
+	  } else {
+	    myLabel = Unknown;
+	  }
+	  labelCache[1][threadIdx.x][kGCAmorphLLEkernelSize+1] = myLabel;
+
+	  if( label.InVolume(ix,by-1,iz) ) {
+	    myLabel = label(ix,by-1,iz);
+	  } else {
+	    myLabel = Unknown;
+	  }
+	  labelCache[1][0][1+threadIdx.x] = myLabel;
+
+	  if( label.InVolume(ix,by+kGCAmorphLLEkernelSize,iz) ) {
+	    myLabel = label(ix,by+kGCAmorphLLEkernelSize,iz);
+	  } else {
+	    myLabel = Unknown;
+	  }
+	  labelCache[1][kGCAmorphLLEkernelSize+1][1+threadIdx.x] = myLabel;
+
+	  // Still need the corners (and above, too!)
+	}
 
 
+	__syncthreads();
 
 	// Only compute if ix, iy & iz are inside the bounding box
 	if( r.InVolume(ix,iy,iz) ) {
