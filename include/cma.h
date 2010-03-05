@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/11/15 02:41:39 $
- *    $Revision: 1.48 $
+ *    $Author: rge21 $
+ *    $Date: 2010/03/05 20:48:50 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,13 @@
 
 #ifndef CMA_H
 #define CMA_H
+
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+
 
 /*
  * colors for these labels defined in distribution/FreeSurferColorLUT.txt
@@ -389,4 +396,13 @@ char *cma_label_to_name(int label) ;
 int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg, 
                             MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial, 
                             int hemi) ;
+
+
+
+#if defined(__cplusplus)
+};
+#endif
+
+
+
 #endif
