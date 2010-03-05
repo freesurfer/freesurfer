@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/05 17:52:48 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/03/05 18:11:29 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -248,16 +248,20 @@ MRI * MyMRI::subSample(MRI * mri)
 
 }
 
-MRI * MyMRI::getBlur(MRI* mriS)
+MRI * MyMRI::getBlur(MRI* mriS, MRI* mriT)
 {
-  MRI *mri_prefilter = MyMRI::getPrefilter();
-  MRI *tmp1 = MyMRI::convolute(mriS,mri_prefilter,1);
-  MRI *tmp2 = MyMRI::convolute(tmp1,mri_prefilter,2);
-  MRI *tmp3 = MyMRI::convolute(tmp2,mri_prefilter,3);
-  MRIfree(&tmp1);
-  MRIfree(&tmp2);
-  MRIfree(&mri_prefilter);
-  return tmp3;
+	MRI *mri_prefilter = MyMRI::getPrefilter();
+  mriT = MRIconvolveGaussian(mriS,mriT,mri_prefilter);
+	MRIfree(&mri_prefilter);
+	return mriT;
+//   MRI *mri_prefilter = MyMRI::getPrefilter();
+//   MRI *tmp1 = MyMRI::convolute(mriS,mri_prefilter,1);
+//   MRI *tmp2 = MyMRI::convolute(tmp1,mri_prefilter,2);
+//   MRI *tmp3 = MyMRI::convolute(tmp2,mri_prefilter,3);
+//   MRIfree(&tmp1);
+//   MRIfree(&tmp2);
+//   MRIfree(&mri_prefilter);
+//   return tmp3;
 }
 
 MRI * MyMRI::getPartial(MRI* mriS, int dir)

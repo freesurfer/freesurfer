@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/05 17:54:16 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/03/05 18:11:30 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -2099,8 +2099,8 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 
   // we will need the derivatives
   if (verbose > 1) cout << "     -- compute smoothie ... " << flush;
-  MRI *Sbl= MyMRI::getBlur(mriS);
-  MRI *Tbl= MyMRI::getBlur(mriT);
+  MRI *Sbl= MyMRI::getBlur(mriS,NULL);
+  MRI *Tbl= MyMRI::getBlur(mriT,NULL);
 
   if (verbose > 1) cout << " done!" << endl;
 
@@ -2331,9 +2331,7 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
 	MyMRI::getPartials(SpTh,fx1,fy1,fz1,ft1);
 	MRI * SmT = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
 	SmT = MRIsubtract(mriS,mriT,SmT);
-	MRI *mri_prefilter = MyMRI::getPrefilter();
-  MRIconvolveGaussian(SmT,SmT,mri_prefilter);
-	MRIfree(&mri_prefilter);
+	SmT = MyMRI::getBlur(SmT,SmT);
 #endif
   if (verbose > 1) cout << " done!" << endl;
   //MRIwrite(fx1,"fx.mgz");

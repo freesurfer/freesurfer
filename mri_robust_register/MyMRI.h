@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:04 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/05 18:11:30 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -50,25 +50,31 @@ extern "C"
 class MyMRI
 {
 public:
-  static MRI *  MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
-  static MRI * convolute(MRI * mri, MRI * filter, int dir);
+  static MRI * MRIvalscale(MRI *mri_src, MRI *mri_dst, double s);
+  static bool  getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
+  static MRI * getBlur(MRI* mriS, MRI* mriT);
+  static MRI * subSample(MRI * mri);
+
+  static vnl_matrix_fixed < double, 4, 4 > MRIvoxelXformToRasXform(MRI * src, MRI * trg, const vnl_matrix_fixed < double, 4, 4> &vox);
+	static MRI* MRIlinearTransform(MRI* mriS, MRI* mriT, const vnl_matrix_fixed < double, 4, 4 >& m);
+
+	static bool isIsotropic(MRI *mri);
+  static std::vector < int > findRightSize(MRI *mri, float conform_size, bool conform);
+
+private:
   static MRI * getPrefilter();
   static MRI * getDerfilter();
-  static MRI * subSample(MRI * mri);
-  static MRI * getBlur(MRI* mriS);
+	
+	// these are not really used any alonger (maybe delete)?
   static MRI * getPartial(MRI* mriS, int dir);
-  static bool  getPartials(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
   static MRI * getBlur2(MRI* mri);
   static bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);
+  static MRI * convolute(MRI * mri, MRI * filter, int dir);
 
-  static std::vector < int > findRightSize(MRI *mri, float conform_size, bool conform);
 	static bool isConform(MRI *mri);
-	static bool isIsotropic(MRI *mri);
 
   static MATRIX* MRIgetZslice(MRI * mri, int slice);
 	
-  static vnl_matrix_fixed < double, 4, 4 > MRIvoxelXformToRasXform(MRI * src, MRI * trg, const vnl_matrix_fixed < double, 4, 4> &vox);
-	static MRI* MRIlinearTransform(MRI* mriS, MRI* mriT, const vnl_matrix_fixed < double, 4, 4 >& m);
 };
 
 
