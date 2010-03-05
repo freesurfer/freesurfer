@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 20:34:14 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/03/05 15:54:41 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -140,7 +140,7 @@ namespace GPU {
 	    // Get the 1d index (same for all arrays)
 	    const unsigned int i1d = this->d_r.Index1D( i, j, k );
 	    // Get the current node
-	    const GCA_MORPH_NODE gcamn = src->nodes[i][j][k];
+	    const GCA_MORPH_NODE& gcamn = src->nodes[i][j][k];
 	    
 	    // Pack the data
 	    h_r[i1d] = make_float3( gcamn.x,
