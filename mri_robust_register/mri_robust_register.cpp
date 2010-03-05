@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/01 23:51:39 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/05 17:51:11 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -128,7 +128,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.28 2010/03/01 23:51:39 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.29 2010/03/05 17:51:11 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -779,7 +779,7 @@ static void printUsage(void)
   cout << "  --highit <#>           iterate max # times on highest resol. (default "<<P.iterate<<")"  << endl;
   cout << "  --epsit <real>         stop iterations when below <real> (default "<<P.epsit <<")" << endl;
   cout << "  --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "  --sat <real>           set outlier sensitivity manually (e.g. '--sat 5' )" << endl;
+  cout << "  --sat <real>           set outlier sensitivity manually (e.g. '--sat 4.685' )" << endl;
 	cout << "                                 higher values mean less sensitivity" << endl;
   cout << "  --satit                auto-detect good sensitivity (for head scans)" << endl;
 	cout << "  --wlimit <real>        sets maximal outlier limit in satit (default "<<P.wlimit<<")" << endl;
