@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 19:39:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/05 20:17:45 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,11 @@
 #include "mriframegpu.hpp"
 #include "gcamorphgpu.hpp"
 
+// Stolen from gcamorph.c
+#define MIN_STD 2
+#define MIN_VAR (MIN_STD*MIN_STD)
+
+
 //! Texture reference for an unsigned char mri
 texture<unsigned char, 3, cudaReadModeNormalizedFloat> dt_mri_uchar;
 
@@ -43,6 +48,8 @@ texture<unsigned char, 3, cudaReadModeNormalizedFloat> dt_mri_uchar;
 namespace GPU {
   namespace Algorithms {
 
+
+    const unsigned int kGCAmorphLLEkernelSize = 16;
 
     //! Templated texture fetch
     template<typename T>
@@ -69,6 +76,78 @@ namespace GPU {
       return( texVal );
     }
 
+
+    __device__
+    float GCAmorphDist( const float mean, const float variance,
+			const float val ) {
+      float v;
+      v = val - mean;
+      v = v*v;
+      v /= variance;
+
+      return( sqrtf( v ) );
+    }
+
+
+    template<typename T>
+    __global__
+    void ComputeLLE( const GPU::Classes::VolumeArgGPU<float3> r,
+		     const GPU::Classes::VolumeArgGPU<unsigned char> invalid,
+		     const GPU::Classes::VolumeArgGPU<int> status,
+		     const GPU::Classes::VolumeArgGPU<int> label,
+		     const GPU::Classes::VolumeArgGPU<float> mean,
+		     const GPU::Classes::VolumeArgGPU<float> variance,
+		     float* energies ) {
+      
+      const unsigned int ix = threadIdx.x + ( blockIdx.x * blockDim.x );
+      const unsigned int iy = threadIdx.y + ( blockIdx.y * blockDim.y );
+
+      __shared__ int labelCache[3][kGCAmorphLLEkernelSize+2][kGCAmorphLLEkernelSize+2];
+
+      float myEnergy;
+
+      // Loop over z slices
+      for( unsigned int iz = 0; iz< r.dims.z; iz++ ) {
+
+	// We need to do all the other checks done by the CPU routine
+
+
+
+
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( r.InVolume(ix,iy,iz) ) {
+
+	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
+	    continue;
+	  }
+
+	  if( status(ix,iy,iz) &
+	      (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD) ) {
+	    continue ;
+	  }
+
+	  // Get the MRI value, clamping exterior to 0
+	  float mriVal = 0;
+	  if( r.InFuzzyVolume( r(ix,iy,iz), 0.5f ) ) {
+	    mriVal = FetchMRIVoxel<T>( r(ix,iy,iz) );
+	  }
+	  
+	  // Compute contribution to the energy
+	  if( variance(ix,iy,iz) >= 0 ) {
+	    // We have a valid variance
+	    myEnergy = GCAmorphDist( mean(ix,iy,iz),
+				     variance(ix,iy,iz),
+				     mriVal );
+	    myEnergy += logf( variance(ix,iy,iz) );
+	  } else {
+	    myEnergy = mriVal*mriVal / MIN_VAR;
+	  }
+
+	  const unsigned int iLoc = r.Index1D( ix, iy, iz );
+	  energies[iLoc] = myEnergy;
+	}
+      }
+    }
 
 
 
@@ -108,6 +187,18 @@ namespace GPU {
 
 
 	// Run the computation
+	dim3 grid, threads;
+	threads.x = threads.y = kGCAmorphLLEkernelSize;
+	threads.z = 1;
+
+	grid = gcam.d_r.CoverBlocks( kGCAmorphLLEkernelSize );
+	grid.z = 1;
+
+	ComputeLLE<T><<<grid,threads>>>
+	  ( gcam.d_r, gcam.d_invalid, gcam.d_status,
+	    gcam.d_label, gcam.d_mean, gcam.d_variance,
+	    thrust::raw_pointer_cast( d_energies ) );
+	CUDA_CHECK_ERROR( "ComputeLLE kernel failed!\n" );
 
 
 
