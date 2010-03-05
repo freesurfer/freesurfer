@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 16:14:13 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/03/05 18:05:50 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,11 @@ namespace GPU {
 
     //! Class to hold a GCA morph on the GPU
     class GCAmorphGPU {
+      /*!
+	Class to hold a GCA morph on the GPU.
+	This version of the class only supports
+	one 'input' in the GC1D structure
+      */
     public:
       //! Matches x, y and z in GCAmorph
       VolumeGPU<float3> d_r;
@@ -57,6 +62,10 @@ namespace GPU {
       VolumeGPU<int> d_label;
       //! Matches status field in GCAMorph
       VolumeGPU<int> d_status;
+      //! Matches the 'means' field of the GC1D
+      VolumeGPU<float> d_mean;
+      //! Matches the 'covars' field of the GC1D (a variance with only one mean). A negative value indicates that no value is stored for this or corresponding d_mean
+      VolumeGPU<float> d_variance;
 
       // -----------------------------------------
       // Constructors & Destructor
@@ -69,7 +78,9 @@ namespace GPU {
 			    d_area1(),
 			    d_area2(),
 			    d_label(),
-			    d_status() {};
+			    d_status(),
+			    d_mean(),
+			    d_variance() {};
 
       //! Destructor
       ~GCAmorphGPU( void ) {};

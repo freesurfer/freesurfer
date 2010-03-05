@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 16:14:06 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/03/05 18:05:47 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,8 @@ namespace GPU {
       good = ( good && ( myDims == this->d_area2.GetDims() ) );
       good = ( good && ( myDims == this->d_label.GetDims() ) );
       good = ( good && ( myDims == this->d_status.GetDims() ) );
+      good = ( good && ( myDims == this->d_mean.GetDims() ) );
+      good = ( good && ( myDims == this->d_variance.GetDims() ) );
 
       if( !good ) {
 	std::cerr << __FUNCTION__
@@ -94,6 +96,8 @@ namespace GPU {
       this->d_area2.Allocate( dims );
       this->d_label.Allocate( dims );
       this->d_status.Allocate( dims );
+      this->d_mean.Allocate( dims );
+      this->d_variance.Allocate( dims );
     }
 
 
@@ -111,6 +115,8 @@ namespace GPU {
       this->d_area2.Release();
       this->d_label.Release();
       this->d_status.Release();
+      this->d_mean.Release();
+      this->d_variance.Release();
     }
 
     // --------------------------------------------
@@ -122,6 +128,14 @@ namespace GPU {
 	This involves a lot of packing data, and hence
 	is going to be painfully slow
       */
+
+      // Check for number of inputs
+      if( src->ninputs != 1 ) {
+	std::cerr << __FUNCTION__
+		  << ": Must have only one input in the GC1D!"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
 
       // Extract the dimensions
       const dim3 dims = make_uint3( src->width,
@@ -140,6 +154,8 @@ namespace GPU {
       float* h_area2 = this->d_area2.AllocateHostBuffer();
       int* h_status = this->d_status.AllocateHostBuffer();
       int* h_label = this->d_status.AllocateHostBuffer();
+      float* h_mean = this->d_mean.AllocateHostBuffer();
+      float* h_variance = this->d_variance.AllocateHostBuffer();
 
       for( unsigned int i=0; i<dims.x; i++ ) {
 	for( unsigned int j=0; j<dims.y; j++ ) {
@@ -162,6 +178,30 @@ namespace GPU {
 	    h_area2[i1d] = gcamn.area2;
 	    h_status[i1d] = gcamn.status;
 	    h_label[i1d] = gcamn.label;
+	    
+	    // Deal with the GC1D
+	    if( gcamn.gc != NULL ) {
+	      /*
+		Store the mean and variance.
+		Check at top of the routine has ensured
+		that there's only one input.
+		This means that the covariance is really
+		a variance
+	      */
+	      h_mean[i1d] = gcamn.gc->means[0];
+	      h_variance[i1d] = gcamn.gc->covars[0];
+	    } else {
+	      /*
+		Store negative numbers to indicate that
+		there is no GC1D here.
+		Since a variance must be >=0, this is
+		a reliable test
+	      */
+	      h_mean[i1d] = -1;
+	      h_variance[i1d] = -1;
+	    }
+
+
 	  }
 	}
       }
@@ -176,6 +216,8 @@ namespace GPU {
       this->d_area2.SendBuffer( h_area2 );
       this->d_status.SendBuffer( h_status );
       this->d_label.SendBuffer( h_label );
+      this->d_mean.SendBuffer( h_mean );
+      this->d_variance.SendBuffer( h_variance );
 
       // Wait for the copies to complete
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
@@ -189,6 +231,8 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_label ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_mean ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_variance ) );
 
     }
 
@@ -202,6 +246,15 @@ namespace GPU {
 	is going to be painfully slow
       */
 
+      // Check for number of inputs
+      if( dst->ninputs != 1 ) {
+	std::cerr << __FUNCTION__
+		  << ": Must have only one input in the GC1D!"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+
       // Extract the dimensions
       const dim3 dims = this->d_r.GetDims();
 
@@ -214,6 +267,8 @@ namespace GPU {
       float* h_area2 = this->d_area2.AllocateHostBuffer();
       int* h_status = this->d_status.AllocateHostBuffer();
       int* h_label = this->d_status.AllocateHostBuffer();
+      float* h_mean = this->d_mean.AllocateHostBuffer();
+      float* h_variance = this->d_variance.AllocateHostBuffer();
 
       // Fetch the data
       this->d_r.RecvBuffer( h_r );
@@ -224,6 +279,8 @@ namespace GPU {
       this->d_area2.RecvBuffer( h_area2 );
       this->d_status.RecvBuffer( h_status );
       this->d_label.RecvBuffer( h_label );
+      this->d_mean.RecvBuffer( h_mean );
+      this->d_variance.RecvBuffer( h_variance );
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
       for( unsigned int i=0; i<dims.x; i++ ) {
@@ -246,6 +303,21 @@ namespace GPU {
 	    gcamn->area2 = h_area2[i1d];
 	    gcamn->label = h_label[i1d];
 	    gcamn->status = h_status[i1d];
+
+	    // We now have a quandary... how to test for validity
+	    if( gcamn->gc != NULL ) {
+	      // We know there's only one input from test at the top
+	      gcamn->gc->means[0] = h_mean[i1d];
+	      gcamn->gc->covars[0] = h_variance[i1d];
+	    } else {
+	      if( h_variance[i1d] >= 0 ) {
+		std::cerr << __FUNCTION__
+			  << ": Host has no GC1D but GPU has valid variance"
+			  << std::endl;
+		exit( EXIT_FAILURE );
+	      }
+	    }
+
 	  }
 	}
       }
@@ -260,6 +332,8 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_label ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_mean ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_variance ) );
 
     }
 
