@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 15:50:56 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/03/05 16:14:13 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,10 @@ namespace GPU {
       VolumeGPU<float> d_area1;
       //! Matches area2 field in GCAmorph
       VolumeGPU<float> d_area2;
+      //! Matches label field in GCAMorph
+      VolumeGPU<int> d_label;
+      //! Matches status field in GCAMorph
+      VolumeGPU<int> d_status;
 
       // -----------------------------------------
       // Constructors & Destructor
@@ -63,7 +67,9 @@ namespace GPU {
 			    d_area(),
 			    d_origArea(),
 			    d_area1(),
-			    d_area2() {};
+			    d_area2(),
+			    d_label(),
+			    d_status() {};
 
       //! Destructor
       ~GCAmorphGPU( void ) {};

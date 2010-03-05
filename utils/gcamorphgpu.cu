@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 15:54:41 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/03/05 16:14:06 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,8 @@ namespace GPU {
       good = ( good && ( myDims == this->d_origArea.GetDims() ) );
       good = ( good && ( myDims == this->d_area1.GetDims() ) );
       good = ( good && ( myDims == this->d_area2.GetDims() ) );
+      good = ( good && ( myDims == this->d_label.GetDims() ) );
+      good = ( good && ( myDims == this->d_status.GetDims() ) );
 
       if( !good ) {
 	std::cerr << __FUNCTION__
@@ -90,6 +92,8 @@ namespace GPU {
       this->d_origArea.Allocate( dims );
       this->d_area1.Allocate( dims );
       this->d_area2.Allocate( dims );
+      this->d_label.Allocate( dims );
+      this->d_status.Allocate( dims );
     }
 
 
@@ -105,6 +109,8 @@ namespace GPU {
       this->d_origArea.Release();
       this->d_area1.Release();
       this->d_area2.Release();
+      this->d_label.Release();
+      this->d_status.Release();
     }
 
     // --------------------------------------------
@@ -132,6 +138,8 @@ namespace GPU {
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
+      int* h_status = this->d_status.AllocateHostBuffer();
+      int* h_label = this->d_status.AllocateHostBuffer();
 
       for( unsigned int i=0; i<dims.x; i++ ) {
 	for( unsigned int j=0; j<dims.y; j++ ) {
@@ -152,6 +160,8 @@ namespace GPU {
 	    h_origArea[i1d] = gcamn.orig_area;
 	    h_area1[i1d] = gcamn.area1;
 	    h_area2[i1d] = gcamn.area2;
+	    h_status[i1d] = gcamn.status;
+	    h_label[i1d] = gcamn.label;
 	  }
 	}
       }
@@ -164,6 +174,8 @@ namespace GPU {
       this->d_origArea.SendBuffer( h_origArea );
       this->d_area1.SendBuffer( h_area1 );
       this->d_area2.SendBuffer( h_area2 );
+      this->d_status.SendBuffer( h_status );
+      this->d_label.SendBuffer( h_label );
 
       // Wait for the copies to complete
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
@@ -175,6 +187,8 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_label ) );
 
     }
 
@@ -198,6 +212,8 @@ namespace GPU {
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
+      int* h_status = this->d_status.AllocateHostBuffer();
+      int* h_label = this->d_status.AllocateHostBuffer();
 
       // Fetch the data
       this->d_r.RecvBuffer( h_r );
@@ -206,6 +222,8 @@ namespace GPU {
       this->d_origArea.RecvBuffer( h_origArea );
       this->d_area1.RecvBuffer( h_area1 );
       this->d_area2.RecvBuffer( h_area2 );
+      this->d_status.RecvBuffer( h_status );
+      this->d_label.RecvBuffer( h_label );
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
       for( unsigned int i=0; i<dims.x; i++ ) {
@@ -226,6 +244,8 @@ namespace GPU {
 	    gcamn->orig_area = h_origArea[i1d];
 	    gcamn->area1 = h_area1[i1d];
 	    gcamn->area2 = h_area2[i1d];
+	    gcamn->label = h_label[i1d];
+	    gcamn->status = h_status[i1d];
 	  }
 	}
       }
@@ -238,6 +258,8 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_label ) );
 
     }
 
