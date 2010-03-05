@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/02/04 21:09:58 $
- *    $Revision: 1.61 $
+ *    $Date: 2010/03/05 14:30:04 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,8 +33,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2010/02/04 21:09:58 $
-// Revision       : $Revision: 1.61 $
+// Revision Date  : $Date: 2010/03/05 14:30:04 $
+// Revision       : $Revision: 1.62 $
 //
 ////////////////////////////////////////////////////////////////////
 
@@ -218,12 +218,12 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ms_fitparms.c,v 1.61 2010/02/04 21:09:58 fischl Exp $", "$Name:  $",
+   "$Id: mri_ms_fitparms.c,v 1.62 2010/03/05 14:30:04 fischl Exp $", "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_ms_fitparms.c,v 1.61 2010/02/04 21:09:58 fischl Exp $", "$Name:  $");
+                                 "$Id: mri_ms_fitparms.c,v 1.62 2010/03/05 14:30:04 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1096,8 +1096,8 @@ FLASHforwardModel(double flip_angle, double TR, double PD, double T1) {
 }
 
 #define T1_MIN     10.0
-#define T1_MAX     20000.0
-#define MAX_NVALS  5000
+#define T1_MAX     50000.0
+#define MAX_NVALS  10000
 #define MAX_NVOLS  MAX_IMAGES
 #define FAk_MAX    2.0
 #define FAk_MIN    0.5
