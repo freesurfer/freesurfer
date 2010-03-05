@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 18:46:50 $
- *    $Revision: 1.157 $
+ *    $Date: 2010/03/05 20:12:32 $
+ *    $Revision: 1.158 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1912,6 +1912,7 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
 	    + log(covariance_determinant(gcamn->gc, gcam->ninputs));
         } else {
           int n ;
+	  // Note that the for loop sets error=0 on the first iteration
           for (n = 0, error = 0.0 ; n < gcam->ninputs ; n++)
             error += (vals[n]*vals[n]/MIN_VAR) ;
         }
