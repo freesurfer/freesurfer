@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/05 18:11:30 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/05 18:19:33 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -65,7 +65,7 @@ private:
   static MRI * getPrefilter();
   static MRI * getDerfilter();
 	
-	// these are not really used any alonger (maybe delete)?
+	// these are not really used any longer (maybe delete)?
   static MRI * getPartial(MRI* mriS, int dir);
   static MRI * getBlur2(MRI* mri);
   static bool  getPartials2(MRI* mri, MRI* & outfx, MRI* & outfy, MRI* &outfz, MRI* &outblur);

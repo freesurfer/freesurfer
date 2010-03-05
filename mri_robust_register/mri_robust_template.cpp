@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/02 20:14:27 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/03/05 18:19:33 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -154,7 +154,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.17 2010/03/02 20:14:27 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.18 2010/03/05 18:19:33 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -353,7 +353,7 @@ static void printUsage(void)
   cout << "  --epsit <real>            stop iterations when all tp changes below <float> "<< endl;
 	cout << "                               (if #tp>2 default 0.03, else 0.01 for 2tp reg.)" << endl;
 //  cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "  --sat <real>           set outlier sensitivity manually (e.g. '--sat 5' )" << endl;
+  cout << "  --sat <real>           set outlier sensitivity manually (e.g. '--sat 4.685' )" << endl;
 	cout << "                                 higher values mean less sensitivity" << endl;
   cout << "  --satit                auto-detect good sensitivity (for head scans)" << endl;
   cout << "  --doublesvd                double svd (instead of float) ~1Gig more memory" << endl;
