@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 20:49:40 $
- *    $Revision: 1.156 $
+ *    $Date: 2010/03/05 18:46:50 $
+ *    $Revision: 1.157 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1863,7 +1863,7 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
 #endif
 
 #ifdef FS_CUDA
-  if( gcam->ninputs != 1 ) {
+  if( gcam->ninputs != 0 ) {
     printf( "%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs );
   }
 #endif
@@ -1896,12 +1896,13 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
            something that's not unknown */
         if (IS_UNKNOWN(gcamn->label) && 
             (different_neighbor_labels(gcam, x,y,z,1) == 0) ) {
+
           continue ;
 	}
 
         check_gcam(gcam) ;
 
-	// Load up the MRI values (which will interpolate)
+	// Load up the MRI values (which will do trilinear interpolation)
         load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs);
         check_gcam(gcam);
 
@@ -1961,7 +1962,7 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
 
 #ifdef FS_CUDA
   StopChronometer( &tTotal );
-
+  
   printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );
 #endif
 
