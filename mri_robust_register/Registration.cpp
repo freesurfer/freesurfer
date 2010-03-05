@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/02 20:14:27 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/03/05 17:54:16 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -756,6 +756,7 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
  // if (verbose >0) cout << "   - Gaussian Pyramid " << endl;
   if (!mriS) mriS = mri_source;
   if (!mriT) mriT = mri_target;
+	if (sat == -1) sat = 4.685; // set start value
 	
 //	if (! MyMRI::isConform(mriS) || ! MyMRI::isConform(mriT) )
 //	{
@@ -2304,11 +2305,12 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
 
   // we will need the derivatives
   if (verbose > 1) cout << "     -- compute derivatives ... " << flush;
+#if 0
   MRI *Sfx=NULL,*Sfy=NULL,*Sfz=NULL,*Sbl=NULL;
   MRI *Tfx=NULL,*Tfy=NULL,*Tfz=NULL,*Tbl=NULL;
   MyMRI::getPartials(mriS,Sfx,Sfy,Sfz,Sbl);
   MyMRI::getPartials(mriT,Tfx,Tfy,Tfz,Tbl);
-
+  MRI * SmT  = MRIsubtract(Sbl,Tbl,NULL); //S-T = f2-f1 =  delta f from paper
   MRI * fx1  = MRIadd(Sfx,Tfx,Tfx); // store at Tfx location, renamed to fx1
   MRIfree(&Sfx);
   MRIscalarMul(fx1,fx1,0.5);
@@ -2318,11 +2320,21 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
   MRI * fz1  = MRIadd(Sfz,Tfz,Tfz); // store at Tfz location, renamed to fz1
   MRIfree(&Sfz);
   MRIscalarMul(fz1,fz1,0.5);
-	
- // MRI * ft1  = MRIsubtract(Tbl,Sbl,Tbl); //T-S = f1-f2 = - delta f from paper
-  MRI * ft1  = MRIsubtract(Tbl,Sbl,NULL); //T-S = f1-f2 = - delta f from paper
-  // Sbl Tbl might be needed below for intensity scaling?
-
+  MRI * ft1  = MRIadd(Sbl,Tbl,Tbl); // store at Tbl location, renamed to ft1
+  MRIfree(&Sbl);
+  MRIscalarMul(ft1,ft1,0.5);
+#else
+  MRI *SpTh = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
+	SpTh = MRIadd(mriS,mriT,SpTh);
+	SpTh = MRIscalarMul(SpTh,SpTh,0.5);
+	MRI *fx1 = NULL, *fy1 = NULL, *fz1 = NULL, *ft1 = NULL;
+	MyMRI::getPartials(SpTh,fx1,fy1,fz1,ft1);
+	MRI * SmT = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
+	SmT = MRIsubtract(mriS,mriT,SmT);
+	MRI *mri_prefilter = MyMRI::getPrefilter();
+  MRIconvolveGaussian(SmT,SmT,mri_prefilter);
+	MRIfree(&mri_prefilter);
+#endif
   if (verbose > 1) cout << " done!" << endl;
   //MRIwrite(fx1,"fx.mgz");
   //MRIwrite(fy1,"fy.mgz");
@@ -2344,12 +2356,9 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
     ft = MyMRI::subSample(ft1);
     MRIfree(&ft1);
 		
-		MRI * Sblt = Sbl;
-		Sbl = MyMRI::subSample(Sblt);
-		MRIfree(&Sblt);
-		MRI * Tblt = Tbl;
-		Tbl = MyMRI::subSample(Tblt);
-		MRIfree(&Tblt);
+		MRI * SmTt = SmT;
+		SmT = MyMRI::subSample(SmTt);
+    MRIfree(&SmTt);
 		
     if (verbose > 1) cout << " done! " << endl;
   }
@@ -2369,9 +2378,13 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
   if (verbose > 1) cout << "     -- size " << fx->width << " x " << fx->height << " x " << fx->depth << " = " << n << flush;
   long int counti = 0;
   double eps = 0.00001;
-  for (z = 0 ; z < fx->depth ; z++)
-    for (x = 0 ; x < fx->width ; x++)
-      for (y = 0 ; y < fx->height ; y++)
+	int fxd = fx->depth ;
+	int fxw = fx->width ;
+	int fxh = fx->height ;
+	int fxstart = 0;
+  for (z = fxstart ; z < fxd ; z++)
+    for (x = fxstart ; x < fxw ; x++)
+      for (y = fxstart ; y < fxh ; y++)
       {
         if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
         {
@@ -2430,9 +2443,9 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
   // Loop and construct A and b
   int xp1,yp1,zp1;
 	long int count = 0;
-  for (z = 0 ; z < fx->depth ; z++)
-    for (x = 0 ; x < fx->width ; x++)
-      for (y = 0 ; y < fx->height ; y++)
+  for (z = fxstart ; z < fxd ; z++)
+    for (x = fxstart ; x < fxw ; x++)
+      for (y = fxstart ; y < fxh ; y++)
       {
         if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
         {
@@ -2442,15 +2455,21 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
 
         if (dosubsample)
         {
-          xp1 = 2*x+2;
-          yp1 = 2*y+2;
-          zp1 = 2*z+2;
+          //xp1 = 2*x+2;
+          //yp1 = 2*y+2;
+          //zp1 = 2*z+2;
+          xp1 = 2*x;
+          yp1 = 2*y;
+          zp1 = 2*z;
         }
         else // if not subsampled, shift only due to 5 tab derivative above
         {
-          xp1 = x+2;
-          yp1 = y+2;
-          zp1 = z+2; 
+          //xp1 = x+2;
+          //yp1 = y+2;
+          //zp1 = z+2; 
+          xp1 = x;
+          yp1 = y;
+          zp1 = z; 
         }
         assert(xp1 < mriS->width);
         assert(yp1 < mriS->height);
@@ -2496,12 +2515,12 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
 //           *MATRIX_RELT(A, count, 4) = MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1;
 //           *MATRIX_RELT(A, count, 5) = MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1;
 //           *MATRIX_RELT(A, count, 6) = MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1;
-          A[count][0] = MRIFvox(fx, x, y, z);
-          A[count][1] = MRIFvox(fy, x, y, z);
-          A[count][2] = MRIFvox(fz, x, y, z);
-          A[count][3] = MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1;
-          A[count][4] = MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1;
-          A[count][5] = MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1;
+          A[count][0] =  MRIFvox(fx, x, y, z);
+          A[count][1] =  MRIFvox(fy, x, y, z);
+          A[count][2] =  MRIFvox(fz, x, y, z);
+          A[count][3] =  (MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1);
+          A[count][4] =  (MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1);
+          A[count][5] =  (MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1);
 					dof = 6;
 					
         }
@@ -2540,11 +2559,13 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
  // !! ISCALECHANGE
         // if (iscale) *MATRIX_RELT(A, count, dof+1) =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
 
-         if (iscale) A[count][dof] =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
+        // if (iscale) A[count][dof] =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
+         if (iscale) A[count][dof] =  MRIFvox(ft, x, y, z) / iscalefinal;
 //         if (iscale) A[count][dof]  = MRIFvox(Sbl,x,y,z);
 				 
 //         *MATRIX_RELT(b, count, 1) = - MRIFvox(ft, x, y, z); // ft = T-S => -ft = S-T
-         b[count] = - MRIFvox(ft, x, y, z); // ft = T-S => -ft = S-T
+//         b[count] = - MRIFvox(ft, x, y, z); // ft was = T-S => -ft = S-T
+         b[count] =  MRIFvox(SmT, x, y, z); // S-T
 
         count++; // start with 0 above
 
@@ -2556,8 +2577,9 @@ void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl
   MRIfree(&fy);
   MRIfree(&fz);
   MRIfree(&ft);
-  if (Sbl) MRIfree(&Sbl);
-  if (Tbl) MRIfree(&Tbl);
+	MRIfree(&SmT);
+  //if (Sbl) MRIfree(&Sbl);
+  //if (Tbl) MRIfree(&Tbl);
 
   // Setup return pair
  //  pair <MATRIX*, VECTOR* > Ab(A,b);
