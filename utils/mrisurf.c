@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/04 13:23:32 $
- *    $Revision: 1.664 $
+ *    $Date: 2010/03/08 18:55:50 $
+ *    $Revision: 1.665 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.664 2010/03/04 13:23:32 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.665 2010/03/08 18:55:50 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -4445,6 +4445,27 @@ MRISwriteMarked(MRI_SURFACE *mris, const char *sname)
   MRISextractCurvatureVector(mris, curv_save) ;
   MRISmarkedToCurv(mris) ;
   MRISwriteCurvature(mris, sname) ;
+  MRISimportCurvatureVector(mris, curv_save) ;
+  free(curv_save) ;
+  return(NO_ERROR) ;
+}
+
+
+int
+MRISreadMarked(MRI_SURFACE *mris, const char *sname)
+{
+  float  *curv_save ;
+
+  curv_save = (float *)calloc(mris->nvertices, sizeof(float)) ;
+  if (!curv_save)
+    ErrorExit(ERROR_NOMEMORY,
+              "MRISwriteMarked: could not alloc %d vertex curv storage",
+              mris->nvertices) ;
+
+  MRISextractCurvatureVector(mris, curv_save) ;
+  if (MRISreadCurvatureFile(mris, sname) != NO_ERROR)
+    return(Gerror) ;
+  MRIScurvToMarked(mris) ;
   MRISimportCurvatureVector(mris, curv_save) ;
   free(curv_save) ;
   return(NO_ERROR) ;
@@ -59713,6 +59734,22 @@ MRISmarkedToCurv(MRI_SURFACE *mris)
     if (v->ripflag)
       continue ;
     v->curv = (float)v->marked ;
+  }
+  return(NO_ERROR) ;
+}
+
+int
+MRIScurvToMarked(MRI_SURFACE *mris)
+{
+  int     vno ;
+  VERTEX  *v ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->marked = (int)v->curv ;
   }
   return(NO_ERROR) ;
 }
