@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/03 20:49:19 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/03/08 21:17:35 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -412,11 +412,13 @@ MRI_SURFACE * mrisReadGIFTIfile(const char *fname)
     mris->hemisphere = RIGHT_HEMISPHERE ;
   else if (hemi && (strcmp(hemi,"CortexLeft")==0))
     mris->hemisphere = LEFT_HEMISPHERE ;
+  else
+    mris->hemisphere = NO_HEMISPHERE;
 
   /* Copy in the vertices. */
   float x, y, z, xhi, xlo, yhi, ylo, zhi, zlo ;
-  xhi=yhi=zhi= -10000;
-  xlo=ylo=zlo= 10000;
+  xhi=yhi=zhi= -1000000;
+  xlo=ylo=zlo= 1000000;
   int vertex_index;
   for (vertex_index = 0; vertex_index < num_vertices; vertex_index++)
   {
@@ -463,7 +465,7 @@ MRI_SURFACE * mrisReadGIFTIfile(const char *fname)
       mris->vertices[vertex_index].num++;
     }
   }
-  // each vertex has a face list (faster that face list in some operations)
+  // each vertex has a face list (faster than face list in some operations)
   for (vertex_index = 0; vertex_index < num_vertices; vertex_index++)
   {
     mris->vertices[vertex_index].f =
@@ -515,7 +517,7 @@ MRI_SURFACE * mrisReadGIFTIfile(const char *fname)
 /*
  *
  */
-int mrisReadScalarGIFTIfile(MRI_SURFACE *mris,const  char *fname)
+int mrisReadScalarGIFTIfile(MRI_SURFACE *mris, const char *fname)
 {
   /* Attempt to read the file. */
   gifti_image* image = gifti_read_image (fname, 1);
@@ -538,13 +540,24 @@ int mrisReadScalarGIFTIfile(MRI_SURFACE *mris,const  char *fname)
     return ERROR_BADFILE;
   }
 
-  /* check for 'shape' data */
-  giiDataArray* scalars = gifti_find_DA (image, NIFTI_INTENT_SHAPE, 0);
+  /* check for data that is indicative of 'overlay' data */
+  giiDataArray* scalars = NULL;
+  int intent_overlay[] = {NIFTI_INTENT_GENMATRIX, 
+                          NIFTI_INTENT_SHAPE,
+                          NIFTI_INTENT_TIME_SERIES,
+                          NIFTI_INTENT_CORREL,
+                          NIFTI_INTENT_NONE};
+  int idx=0;
+  for (idx=0; idx < sizeof(intent_overlay); idx++)
+  {
+    scalars = gifti_find_DA (image, intent_overlay[idx], 0);
+    if (scalars) break;
+  }
   if (NULL == scalars)
   {
     fprintf 
       (stderr,
-       "mrisReadScalarGIFTIfile: no shape data found in file %s\n", 
+       "mrisReadScalarGIFTIfile: no overlay data found in file %s\n", 
        fname);
     gifti_free_image (image);
     return ERROR_BADFILE;
@@ -850,11 +863,11 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
     int annotation = CTABrgb2Annotation(ct->entries[label_index]->ri,
                                         ct->entries[label_index]->gi,
                                         ct->entries[label_index]->bi);
-    if (annotation != image->labeltable.index[label_index])
+    if (annotation != image->labeltable.key[label_index])
     {
-      printf("WARNING: rgb2annot:%8.8X != labeltable.index:%8.8X\n",
+      printf("WARNING: rgb2annot:%8.8X != labeltable.key:%8.8X\n",
              annotation,
-             image->labeltable.index[label_index]);
+             image->labeltable.key[label_index]);
     }
   }
   ct->entries[label_index] = NULL;
@@ -957,10 +970,14 @@ static void insertMetaData(MRIS* mris, giiDataArray* dataArray)
     if (strstr(name, ".orig"))     secondary = "GrayWhite";
     if (strstr(name, ".smoothwm")) secondary = "GrayWhite";
     if (strstr(name, ".white"))    secondary = "GrayWhite";
+    if (strstr(name, ".graymid"))  secondary = "MidThickness";
+    if (strstr(name, ".gray"))     secondary = "Pial";
     if (strstr(name, ".pial"))     secondary = "Pial";
     if (strstr(name, ".orig"))     geotype = "Reconstruction";
     if (strstr(name, ".smoothwm")) geotype = "Anatomical";
     if (strstr(name, ".white"))    geotype = "Anatomical";
+    if (strstr(name, ".gray"))     geotype = "Anatomical";
+    if (strstr(name, ".graymid"))  geotype = "Anatomical";
     if (strstr(name, ".pial"))     geotype = "Anatomical";
     if (strstr(name, ".inflated")) geotype = "Inflated";
     if (strstr(name, ".sphere"))   geotype = "Sphere";
@@ -1028,7 +1045,7 @@ static void insertMetaData(MRIS* mris, giiDataArray* dataArray)
   Description:   writes a GIFTI file, putting vertices, 
                  and faces from input MRIS_SURFACE structure.
   ------------------------------------------------------*/
-int MRISwriteGIFTI(MRIS* mris,const  char *fname)
+int MRISwriteGIFTI(MRIS* mris, const char *fname)
 {
   if (NULL == mris || NULL == fname)
   {
@@ -1475,10 +1492,10 @@ int MRISwriteLabelTableGIFTI(MRI_SURFACE *mris, const char *fname)
              "colortable is empty!\n");
     return ERROR_BADFILE;
   }
-  labeltable.index = (int *)calloc(labeltable.length, sizeof(int *));
+  labeltable.key = (int *)calloc(labeltable.length, sizeof(int *));
   labeltable.label = (char **)calloc(labeltable.length, sizeof(char *));
   labeltable.rgba = (float *)calloc(labeltable.length, 4*sizeof(float *));
-  if ((NULL == labeltable.index) ||
+  if ((NULL == labeltable.key) ||
       (NULL == labeltable.label) ||
       (NULL == labeltable.rgba))
   {
@@ -1490,10 +1507,10 @@ int MRISwriteLabelTableGIFTI(MRI_SURFACE *mris, const char *fname)
   int idx;
   for (idx=0; idx < labeltable.length; idx++)
   {
-    labeltable.index[idx] = CTABrgb2Annotation(mris->ct->entries[idx]->ri,
+    labeltable.key[idx] = CTABrgb2Annotation(mris->ct->entries[idx]->ri,
                                                mris->ct->entries[idx]->gi,
                                                mris->ct->entries[idx]->bi);
-    //printf("%8.8X\n",labeltable.index[idx]);
+    //printf("%8.8X\n",labeltable.key[idx]);
 
     labeltable.label[idx] = strcpyalloc(mris->ct->entries[idx]->name);
 

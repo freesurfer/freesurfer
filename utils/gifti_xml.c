@@ -27,10 +27,9 @@ static int  ename2type          (const char *);
 static int  epush               (gxml_data *, int, const char *, const char **);
 static int  epop                (gxml_data *, int, const char *);
 static int  free_xd_data        (gxml_data *);
-static int  get_rgba_attrs      (gxml_data *, const char **, float *);
+static int  get_label_attrs     (gxml_data *, const char **, int *, float *);
 static int  init_gxml_data      (gxml_data *, int, const int *, int);
 static int  partial_buf_size    (long long);
-static int  process_label_rgba  (gxml_data *, const char **, giiLabelTable *);
 
 static int  push_gifti          (gxml_data *, const char **);
 static int  push_meta           (gxml_data *);
@@ -891,7 +890,7 @@ static int push_LT(gxml_data * xd)
 {
     giiLabelTable * lt = &xd->gim->labeltable;
 
-    if( lt->length || lt->index || lt->label ) {
+    if( lt->length || lt->key || lt->label ) {
         fprintf(stderr,"** multiple giiLabelTables?\n");
     }
 
@@ -899,27 +898,37 @@ static int push_LT(gxml_data * xd)
 }
 
 /* increase LabelTable length by 1, and fill new entries
- * (note that the Index attribute is required) */
+ * (note that the Key (or Index) attribute is required)
+ *
+ * 'Index' attribute has been replaced by 'Key'    7 Mar 2010 */
 static int push_label(gxml_data * xd, const char ** attr)
 {
     giiLabelTable * lt = &xd->gim->labeltable;
+    float           rgba[4]={0.0, 0.0, 0.0, 0.0};
+    int             key=0, rv;
 
     lt->length++;
-    lt->index = (int *)realloc(lt->index, lt->length * sizeof(int));
+    lt->key = (int *)realloc(lt->key, lt->length * sizeof(int));
     lt->label = (char **)realloc(lt->label, lt->length * sizeof(char *));
 
-    if( !lt->index || !lt->label ) {
+    if( !lt->key || !lt->label ) {
         fprintf(stderr,"** gifti alloc failure for label %d\n",lt->length);
         return 1;
     }
 
-    /* set index from the attributes */
-    if( !attr || !attr[0] || strcmp(attr[0],"Index")) {
-        fprintf(stderr,"** Label %d missing Index attribute\n", lt->length-1);
-        lt->index[lt->length-1] = 0;
+    /* set key from the attributes */
+    if( !attr ) {
+        fprintf(stderr,"** Label %d missing attributes\n", lt->length-1);
+        lt->key[lt->length-1] = 0;
     } else {
-        lt->index[lt->length-1] = atoi(attr[1]);
-        (void)process_label_rgba(xd, attr, lt); /* errors are non-fatal? */
+        /* get any known attributes */
+        rv = get_label_attrs(xd, attr, &key, rgba);
+        if ( rv == 1 ) {
+           lt->key[lt->length-1] = key;
+        } else if ( rv == 2 ) {
+           lt->key[lt->length-1] = key;
+           (void) add_label_rgba(xd, lt, rgba);
+        } /* else error already printed */
     }
 
     xd->cdata = lt->label + (lt->length-1); /* addr of newest (char *) */
@@ -929,63 +938,18 @@ static int push_label(gxml_data * xd, const char ** attr)
     return 0;
 }
 
-/* Check for any RGBA attributes for the label.
- * If they are there for 1, they should be there for all.
- * 
- * return 0 if all is well, 1 on error */
-static int process_label_rgba(gxml_data * xd, const char ** attr,
-                              giiLabelTable * lt)
-{
-    float rgba[4];
-    int   rv;
-
-    rv = get_rgba_attrs(xd, attr, rgba);
-
-    /* if no rgba found... */
-    if( rv != 1 ) {
-        /* if no current list, but error or none found, just return */
-        if( !lt->rgba ) {
-            if( !rv ) return 0;
-            return 1;
-        }
-
-        /* else if current list, but none found, whine and return */
-        if( rv == 0 ) {
-            fprintf(stderr,"** missing RGBA for Label %d\n", lt->length-1);
-            free(lt->rgba);  lt->rgba = NULL;   /* nuke table */
-            return 1;
-        }
-
-        /* else current list but error: so fill with zeros
-         * (whining should have been done already) */
-        memset(rgba, 0, sizeof(rgba));
-        add_label_rgba(xd, lt, rgba);
-
-        return 1;
-    }
-
-    /* ---- have RGBA ---- */
-
-    /* if this is the first label, just add it */
-    if( lt->length == 1 )
-        return add_label_rgba(xd, lt, rgba);
-
-    /* else if the list does not yet exist, it's an error */
-    if( !lt->rgba ) {
-        fprintf(stderr,"** Label %d has RGBA, but no list exists\n"
-                       "   (so no RGBA at Label #0)\n", lt->length-1);
-        return 1;
-    }
-
-    /* list exists, so add */
-    return add_label_rgba(xd, lt, rgba);
-}
 
 /* add the rgba entries to the LabelTable, length is already updated */
 static int add_label_rgba(gxml_data * xd, giiLabelTable * lt, float * rgba)
 {
     if( !xd || !lt || !rgba ) {
         fprintf(stderr,"** add_label_rgba, bad params\n");
+        return 1;
+    }
+
+    if( lt->length > 1 && !lt->rgba ) {
+        fprintf(stderr,"** first RGBA at Label %d, so table is incomplete\n",
+                       lt->length-1);
         return 1;
     }
 
@@ -1004,93 +968,99 @@ static int add_label_rgba(gxml_data * xd, giiLabelTable * lt, float * rgba)
     return 0;
 }
 
-/* return 1 if RGBA attrs exist, 0 if not, -1 if error
- * (skip the Index attribute) */
-static int get_rgba_attrs(gxml_data * xd, const char ** attr, float * rgba)
+/* get key and RGBA attributes, if they exist
+ * return 1 if key, 2 if key+rgba, 0 if neither, -1 on error */
+static int get_label_attrs(gxml_data * xd, const char ** attr, int * key,
+                           float * rgba)
 {
-    const char * atrval;
-    char       * endp;  /* for verifying float read */
-    int          c;
+    giiLabelTable  * lt = &xd->gim->labeltable;
+    const char    ** aptr;
+    char           * endp;  /* for verifying float read */
+    int              found, lind;
 
-    if( !xd || !rgba ) {
-        fprintf(stderr,"** GRA: missing params\n");
+    if( !xd || !key || !rgba ) {
+        fprintf(stderr,"** GLA: missing params\n");
         return -1;
     }
-    if( !attr ) return 0;
+    if( !attr || !*attr ) return 0;
 
-    for (c = 0; c < 8; c++ ) if( !attr[2+c] ) break;
-    if( c == 0 ) return 0;      /* nada */
-    if( c < 8 ) {               /* partial? */
-        if(xd->verb > 0) {
-            fprintf(stderr,"** missing some GIFTI Label attribute\n"
-                           "   (one or more of Red, Blue, Green, Alpha)\n");
-            show_attrs(xd, GXML_ETYPE_LABEL, attr+2);
+    /* note label index */
+    lind = lt->length - 1;
+
+    found = 0;  /* bitmask, key,R,G,B,A (in 0..31, should end as 1 or 31) */
+    for( aptr = attr; *aptr ; aptr += 2 ) {
+        if( !aptr[1] ) {
+            fprintf(stderr,"** label %d, attr %s, missing value\n",lind,*aptr);
+            return -1;
         }
-        return -1;
-    }
-
-    /* we have 4 attributes, if any are unexpected, bail */
-    if( strcmp(attr[2],"Red")  || strcmp(attr[4],"Green") ||
-        strcmp(attr[6],"Blue") || strcmp(attr[8],"Alpha") )
-    {
-        if(xd->verb>1) {
-            fprintf(stderr,"** unexpected GIFTI Label attribute\n"
-                           "   (should be Red, Blue, Green, Alpha)\n");
-            show_attrs(xd, GXML_ETYPE_LABEL, attr+2);
+        if( !strcmp(*aptr, "Key") ) {
+            *key = atoi(aptr[1]);
+            found |= (1<<0);
         }
-        return -1;
-    }
-
-    /* if the contents are empty, same as not existing */
-    if( !*attr[3] && !*attr[5] && !*attr[7] && !*attr[9] ) {
-        if( xd->verb > 4 ) fprintf(stderr,"-- have empty label colors\n");
-        return 0;
-    }
-
-    /* read the 4 numbers now (starting at attr[3]); failure is an error */
-    for( c = 0; c < 4; c++ ) {
-        atrval = attr[3 + 2*c];
-        rgba[c] = strtod(atrval, &endp); /* strtof requires -std=c99 */
-        if( endp <= atrval) {
-            fprintf(stderr,"** bad GIFTI Label RGBA attr values a[%d]\n", c);
-            show_attrs(xd, GXML_ETYPE_LABEL, attr+2);
+        else if( !strcmp(*aptr, "Index") ) { /* old form of Key */
+            *key = atoi(aptr[1]);
+            found |= (1<<0);
+        }
+        else if( !strcmp(*aptr, "Red") ) {
+            rgba[0] = strtod(aptr[1], &endp);
+            if( endp <= aptr[1] ) {
+                fprintf(stderr,"** bad GIFTI label %d Red attr\n", lind);
+                show_attrs(xd, GXML_ETYPE_LABEL, attr);
+                return -1;
+            }
+            found |= (1<<1);
+        }
+        else if( !strcmp(*aptr, "Green") ) {
+            rgba[1] = strtod(aptr[1], &endp);
+            if( endp <= aptr[1] ) {
+                fprintf(stderr,"** bad GIFTI label %d Green attr\n", lind);
+                show_attrs(xd, GXML_ETYPE_LABEL, attr);
+                return -1;
+            }
+            found |= (1<<2);
+        }
+        else if( !strcmp(*aptr, "Blue") ) {
+            rgba[2] = strtod(aptr[1], &endp);
+            if( endp <= aptr[1] ) {
+                fprintf(stderr,"** bad GIFTI label %d Blue attr\n", lind);
+                show_attrs(xd, GXML_ETYPE_LABEL, attr);
+                return -1;
+            }
+            found |= (1<<3);
+        }
+        else if( !strcmp(*aptr, "Alpha") ) {
+            rgba[3] = strtod(aptr[1], &endp);
+            if( endp <= aptr[1] ) {
+                fprintf(stderr,"** bad GIFTI label %d Alpha attr\n", lind);
+                show_attrs(xd, GXML_ETYPE_LABEL, attr);
+                return -1;
+            }
+            found |= (1<<4);
+        } else {
+            fprintf(stderr,"** unknown GIFTI label %d attr\n", lind);
+            show_attrs(xd, GXML_ETYPE_LABEL, attr);
             return -1;
         }
     }
 
-    if(xd->verb > 2)
-        fprintf(stderr,"-- have Label RGBA %g %g %g %g\n",
-                       rgba[0], rgba[1], rgba[2], rgba[3]);
-
-    return 1;
-}
-
-
-#if 0 /* rcr - do we want this? */
-/* check if attr[index] is the given name
- * if safe, walk through list to make sure index is not out of range */
-static int attr_index_match(const char ** attr, int index, const char * val,
-                            int safe)
-{
-    int c;
-
-    /* first check for set pointers */
-    if( !attr || !val ) {
-        if( attr || val ) return 0;
-        return 1;
-    }
-    if( index < 0 ) return 0;
-
-    /* if safe, avoid crashes by walking through list */
-    if( safe ) {
-        for( c = 0; c < index && attr[c]; c++ ) ;
-        if( c < index ) return 0;
+    if( found == 0 ) {
+        fprintf(stderr,"** GIFTI label %d, missing 'Key' attr\n", lind);
+        return 0;
+    } else if( found != 1 && found != 31 ) {
+        fprintf(stderr,"** GIFTI label %d, partial attributes\n", lind);
+        show_attrs(xd, GXML_ETYPE_LABEL, attr);
+        return -1;
     }
 
-    if( !strcmp(attr[index], val) ) return 1;
-    return 0;
+    if(xd->verb > 2) {
+        if( found == 1 ) fprintf(stderr,"-- have Label Key %d\n", *key);
+        else fprintf(stderr,"-- have Label Key %d, RGBA %g %g %g %g\n",
+                     *key, rgba[0], rgba[1], rgba[2], rgba[3]);
+    }
+
+    if( found == 1 ) return 1;
+    return 2;
 }
-#endif
 
 
 /* initialize the gifti_element and set attributes */
@@ -1158,18 +1128,23 @@ static int pop_darray(gxml_data * xd)
 
         /* unzip zdata to da->data */
 
+        if( xd->verb > 2 )
+            fprintf(stderr,"-- uncompressing %lld bytes into %lld\n",
+                           xd->dind, (long long)outlen);
+
         rv = uncompress(da->data, &outlen, (Bytef*)xd->zdata, xd->dind);
         olen = outlen;
+
         if( rv != Z_OK ) {
             fprintf(stderr,"** uncompress fails for DA[%d]\n",xd->gim->numDA-1);
             if( rv == Z_MEM_ERROR )
-                fprintf(stderr,"** zlib failure, not enough memory\n");
+                fprintf(stderr,"   (zlib failure, not enough memory)\n");
             else if ( rv == Z_BUF_ERROR )
-                fprintf(stderr,"** zlib failure, output buffer too short\n");
+                fprintf(stderr,"   (zlib failure, output buffer too short)\n");
             else if ( rv == Z_DATA_ERROR )
-                fprintf(stderr,"** zlib failure, corrupted data\n");
+                fprintf(stderr,"   (zlib failure, corrupted data)\n");
             else if ( rv != Z_OK )
-                fprintf(stderr,"** zlib failure, unknown error %d\n", rv);
+                fprintf(stderr,"   (zlib failure, unknown error %d)\n", rv);
         } else if ( xd->verb > 2 || (xd->verb > 1 && xd->gim->numDA == 1 ))
             fprintf(stderr,"-- uncompressed buffer (%.2f%% of %lld bytes)\n",
                     100.0*xd->dind/olen, olen);
@@ -2355,8 +2330,9 @@ static void XMLCALL cb_start_doctype(void *udata, const char * doctype,
     gxml_data * xd = (gxml_data *)udata;
     if( xd->verb > 2 ){
         show_depth(xd->depth, 1, stderr);
+        /* check for NULL in optional strings   4 Mar 2010 */
         fprintf(stderr, "start_doctype, dt='%s', sid='%s',pid='%s', sub=%d\n",
-               doctype, sysid, pubid, has_subset);
+               doctype, sysid?sysid:"NULL", pubid?pubid:"NULL", has_subset);
     }
 }
 
@@ -2730,17 +2706,18 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
 
             rv = compress2((Bytef *)xd->zdata, &blen, da->data,
                            da->nvals*da->nbyper, xd->zlevel);
+            if ( xd->verb > 2 )
+                fprintf(stderr,"-- compress buffer (%.2f%% of %lld bytes)...\n",
+                        100.0*blen/(da->nvals*da->nbyper),da->nvals*da->nbyper);
             if( rv != Z_OK ) {
-                if( rv == Z_MEM_ERROR )
-                    fprintf(stderr,"** zlibc failure, not enough memory\n");
-                if( rv == Z_BUF_ERROR )
-                    fprintf(stderr,"** zlibc failure, buffer too short\n");
-                else
-                    fprintf(stderr,"** zlibc failure, unknown error %d\n", rv);
+                fprintf(stderr,"** zlib compression failure: ");
+                if( rv == Z_MEM_ERROR ) fprintf(stderr,"not enough memory\n");
+                if( rv == Z_BUF_ERROR ) fprintf(stderr,"buffer too short\n");
+                else                    fprintf(stderr,"unknown error %d\n",rv);
                 errs++;
             } else if ( xd->verb > 2 )
-                fprintf(stderr,"-- compressed buffer (%.2f%% of %lld bytes)\n",
-                        100.0*blen/(da->nvals*da->nbyper),da->nvals*da->nbyper);
+                fprintf(stderr,"-- compression succeeded\n");
+
             gxml_disp_b64_data(NULL, xd->zdata, blen, fp);
 #else
             fprintf(stderr,"** ewrite_data: no ZLIB to compress with\n");
@@ -2962,7 +2939,7 @@ static int ewrite_LT(gxml_data *xd, giiLabelTable *lt, int in_CDATA, FILE *fp)
 
     if( xd->verb > 3 ) fprintf(stderr,"++ write giiLabelTable\n");
 
-    if( !lt || lt->length == 0 || !lt->index || !lt->label ) {
+    if( !lt || lt->length == 0 || !lt->key || !lt->label ) {
         fprintf(fp, "%*s<LabelTable/>\n", spaces, "");
         return 0;
     }
@@ -2975,14 +2952,14 @@ static int ewrite_LT(gxml_data *xd, giiLabelTable *lt, int in_CDATA, FILE *fp)
             continue;
         }
 
-        /* store the Index and optional RGBA attributes */
+        /* store the Key and optional RGBA attributes */
         if( lt->rgba ) {
-           sprintf(attr, " Index=\"%d\""
+           sprintf(attr, " Key=\"%d\""
                          " Red=\"%g\" Green=\"%g\" Blue=\"%g\" Alpha=\"%g\"",
-                   lt->index[c], rgba[0], rgba[1], rgba[2], rgba[3]);
+                   lt->key[c], rgba[0], rgba[1], rgba[2], rgba[3]);
            rgba += 4;
         } else
-            sprintf(attr, " Index=\"%d\"", lt->index[c]);
+            sprintf(attr, " Key=\"%d\"", lt->key[c]);
 
         ewrite_text_ele(GXML_ETYPE_LABEL, lt->label[c], attr,
                         spaces+xd->indent, in_CDATA, fp);

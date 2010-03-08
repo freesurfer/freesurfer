@@ -83,7 +83,7 @@ typedef nvpairs giiMetaData;
 
 typedef struct {
     int      length;      /* length of each array, if allocated            */
-    int    * index;
+    int    * key;         /* changed from index                 7 Mar 2010 */
     char  ** label;
     float  * rgba;        /* (optional) RGBA tuples (4*length, in [0,1.0]) */
 } giiLabelTable;

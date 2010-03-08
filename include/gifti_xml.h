@@ -6,8 +6,8 @@
 
 #define GIFTI_XML_VERSION       "1.0"
 #define GIFTI_XML_ENCODING      "UTF-8"
-#define GIFTI_XML_DTD_SOURCE    \
-                  "http://www.nitrc.org/frs/download.php/115/gifti.dtd"
+                                /* use non-changing address  2 Mar 2010 */
+#define GIFTI_XML_DTD_SOURCE    "http://gifti.projects.nitrc.org/gifti.dtd"
 
 /* ----------------------------------------------------------------------
    element      depths  parent(s)       children
