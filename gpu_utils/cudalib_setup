@@ -1,0 +1,7 @@
+#!/bin/tcsh -ef
+if ( -e /usr/local/cuda/lib) set CUDALIB=(/usr/local/cuda/lib)
+if ( -e /usr/local/cuda/lib64) set CUDALIB=(/usr/local/cuda/lib64)
+if ( ! $?LD_LIBRARY_PATH) set LD_LIBRARY_PATH=()
+if ( ! $?DYLD_LIBRARY_PATH) set DYLD_LIBRARY_PATH=()
+setenv LD_LIBRARY_PATH "$CUDALIB":"$LD_LIBRARY_PATH"
+setenv DYLD_LIBRARY_PATH "$CUDALIB":"$DYLD_LIBRARY_PATH"
