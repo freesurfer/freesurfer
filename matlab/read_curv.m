@@ -10,9 +10,9 @@ function [curv, fnum] = read_curv(fname)
 %
 % Original Author: Bruce Fischl
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.2 $
+%    $Author: fischl $
+%    $Date: 2010/03/08 18:55:25 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@ function [curv, fnum] = read_curv(fname)
 % open it as a big-endian file
 fid = fopen(fname, 'rb', 'b') ;
 if (fid < 0)
-	 str = sprintf('could not open curvature file %s.', fname) ;
+	 str = sprintf('could not open curvature file %s', fname) ;
 	 error(str) ;
 end
 vnum = fread3(fid) ;
