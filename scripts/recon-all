@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/07 03:41:52 $
-#    $Revision: 1.282 $
+#    $Date: 2010/03/08 21:32:19 $
+#    $Revision: 1.283 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.282 2010/03/07 03:41:52 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.283 2010/03/08 21:32:19 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -55,7 +55,7 @@ set ErrorFile = /dev/null
 set cmd = ();
 
 set Force = 0;
-set DoCleanCSFD  = 0;
+set DoCleanCSDF  = 0;
 set DoCleanTal   = 0;
 set DoCleanLta   = 0;
 set DoCleanCP    = 0;
@@ -535,7 +535,7 @@ endif
 
 # ------- Check FREESURFER HOME consistency ---------------------#
 set CSDF = $subjdir/scripts/csurfdir
-if($DoCleanCSFD) rm -vf $CSFD
+if($DoCleanCSDF) rm -vf $CSDF
 if(-e $CSDF) then
   set tmp = `cat $CSDF`;
   if($tmp != $FREESURFER_HOME) then
@@ -3776,7 +3776,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-clean":
-      set DoCleanCSFD  = 1;
+      set DoCleanCSDF  = 1;
       set DoCleanTal   = 1;
       set DoCleanLta   = 1;
       set DoCleanCP    = 1;
