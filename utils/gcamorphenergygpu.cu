@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 20:45:38 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/09 18:33:43 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -104,7 +104,7 @@ namespace GPU {
     template<typename T>
     __global__
     void ComputeLLE( const GPU::Classes::VolumeArgGPU<float3> r,
-		     const GPU::Classes::VolumeArgGPU<unsigned char> invalid,
+		     const GPU::Classes::VolumeArgGPU<char> invalid,
 		     const GPU::Classes::VolumeArgGPU<int> status,
 		     const GPU::Classes::VolumeArgGPU<int> label,
 		     const GPU::Classes::VolumeArgGPU<float> mean,
