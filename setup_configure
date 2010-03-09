@@ -16,7 +16,7 @@ endif
 # and config.guess are links, and make not be present,
 # so if missing, --add-missing will add them for this
 # platform
-set cmd4=(automake --add-missing)
+set cmd4=(automake --add-missing -Wno-portability)
 set cmd5=(autoreconf --force)
 #automake Note: autoreconf --force runs automake
 set cmd6=(autoconf)
