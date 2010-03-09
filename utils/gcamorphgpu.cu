@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 18:05:47 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/03/09 18:28:20 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -147,7 +147,7 @@ namespace GPU {
 
       // Allocate some page-locked host buffers
       float3* h_r = this->d_r.AllocateHostBuffer();
-      unsigned char* h_invalid = this->d_invalid.AllocateHostBuffer();
+      char* h_invalid = this->d_invalid.AllocateHostBuffer();
       float* h_area = this->d_area.AllocateHostBuffer();
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
@@ -260,7 +260,7 @@ namespace GPU {
 
       // Allocate some page-locked host buffers
       float3* h_r = this->d_r.AllocateHostBuffer();
-      unsigned char* h_invalid = this->d_invalid.AllocateHostBuffer();
+      char* h_invalid = this->d_invalid.AllocateHostBuffer();
       float* h_area = this->d_area.AllocateHostBuffer();
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
@@ -350,7 +350,7 @@ namespace GPU {
     __global__
     void CompMetPropKernel( const VolumeArgGPU<float3> r,
 			    const VolumeArgGPU<float> origArea,
-			    VolumeArgGPU<unsigned char> invalid,
+			    VolumeArgGPU<char> invalid,
 			    VolumeArgGPU<float> area,
 			    VolumeArgGPU<float> area1,
 			    VolumeArgGPU<float> area2,
@@ -589,7 +589,7 @@ void GCAMorphCompareBeforeAfter( GCAM* dst ) {
   std::cout << __FUNCTION__
 	    << ": area2 " << areaDiff << " at " << loc << std::endl;
 
-  unsigned char invalidDiff;
+  char invalidDiff;
   myComp.MaxDiff( compGPU.d_invalid, compCPU.d_invalid, invalidDiff, loc );
   std::cout << __FUNCTION__
 	    << ": invalid " << static_cast<int>(invalidDiff)
