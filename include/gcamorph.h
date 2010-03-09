@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 14:34:03 $
- *    $Revision: 1.54 $
+ *    $Date: 2010/03/09 15:49:08 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -227,7 +227,7 @@ GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, 
                    TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
-int       GCAMwrite(GCA_MORPH *gcam, const char *fname) ;
+int       GCAMwrite( const GCA_MORPH *gcam, const char *fname );
 int       GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam);
 GCA_MORPH *GCAMread(const char *fname) ;
 GCA_MORPH *GCAMreadAndInvert(const char *gcamfname);

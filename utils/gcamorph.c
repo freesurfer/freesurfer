@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/05 20:12:32 $
- *    $Revision: 1.158 $
+ *    $Date: 2010/03/09 15:49:03 $
+ *    $Revision: 1.159 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -299,7 +299,7 @@ static int Galigned = 0 ;
 #define MIN_NODE_DIST    (1)
 #define MIN_NODE_DIST_SQ (MIN_NODE_DIST*MIN_NODE_DIST)
 
-void GCAMwriteGeom(GCA_MORPH *gcam, FILE *fp)
+void GCAMwriteGeom( const GCA_MORPH *gcam, FILE *fp )
 {
   char buf[512];
 
@@ -403,7 +403,7 @@ void GCAMreadGeom(GCA_MORPH *gcam, FILE *fp)
 static int (*myclose)(FILE *stream);
 
 int
-GCAMwrite(GCA_MORPH *gcam, const char *fname)
+GCAMwrite( const GCA_MORPH *gcam, const char *fname )
 {
   FILE            *fp=0 ;
   int             x, y, z ;
