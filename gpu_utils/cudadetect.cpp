@@ -10,7 +10,7 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- * $Id: cudadetect.cpp,v 1.3 2010/01/16 06:12:47 nicks Exp $
+ * $Id: cudadetect.cpp,v 1.4 2010/03/09 15:21:40 nicks Exp $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -69,7 +69,7 @@ int main(int argc, char **argv)
   void (*pGetDeviceCount)(int *);
   int number ;
 
-  printf("Detecting CUDA...");
+  printf("Detecting CUDA... ");
   handle = dlopen(cudalibname, RTLD_LAZY);
   if (!handle)
   {
@@ -100,6 +100,7 @@ int main(int argc, char **argv)
   // print device info (if cuda is installed)
   return dump();
 #else
+  printf("%d CUDA enabled device(s) detected.\n");
   return 0;
 #endif /* FS_CUDA */
 }
