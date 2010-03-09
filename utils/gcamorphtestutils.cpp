@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 17:45:42 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/09 19:52:12 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,6 +47,7 @@ enum dimID{ iX, iY, iZ };
 		<< ": NetCDF failure on line " << __LINE__	\
 		<< " of file " << __FILE__			\
 		<< std::endl;					\
+      std::cerr << "Error code was " << err << std::endl;	\
       exit( EXIT_FAILURE );					\
     }								\
   } while ( 0 );
@@ -98,14 +99,14 @@ void WriteGCAMforMetricProperties( const GCAM* src, const char* fName ) {
   NC_SAFE_CALL( nc_def_var( ncid, "r_y",
 			    NC_DOUBLE, nDims, dimIDs, &varIDs[ry] ) );
   NC_SAFE_CALL( nc_def_var( ncid, "r_z",
-			    NC_FLOAT, nDims, dimIDs, &varIDs[rz] ) );
+			    NC_DOUBLE, nDims, dimIDs, &varIDs[rz] ) );
 
   NC_SAFE_CALL( nc_def_var( ncid, "origArea",
 			    NC_FLOAT, nDims, dimIDs, &varIDs[origArea] ) );
   NC_SAFE_CALL( nc_def_var( ncid, "area",
 			    NC_FLOAT, nDims, dimIDs, &varIDs[area] ) );
   NC_SAFE_CALL( nc_def_var( ncid, "area1",
-			    NC_FLOAT, nDims, dimIDs, &varIDs[area2] ) );
+			    NC_FLOAT, nDims, dimIDs, &varIDs[area1] ) );
   NC_SAFE_CALL( nc_def_var( ncid, "area2",
 			    NC_FLOAT, nDims, dimIDs, &varIDs[area2] ) );
 
@@ -129,9 +130,24 @@ void WriteGCAMforMetricProperties( const GCAM* src, const char* fName ) {
 	
 	
 
-	nc_put_vara_double( ncid, varIDs[rx], loc, count, &gcamn.x );
-	nc_put_vara_double( ncid, varIDs[ry], loc, count, &gcamn.y );
-	nc_put_vara_double( ncid, varIDs[ry], loc, count, &gcamn.z );
+	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[rx],
+					  loc, count, &gcamn.x ) );
+	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[ry],
+					  loc, count, &gcamn.y ) );
+	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[ry],
+					  loc, count, &gcamn.z ) );
+	
+	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[origArea],
+					 loc, count, &gcamn.orig_area ) );
+	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[area],
+					 loc, count, &gcamn.area ) );
+	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[area1],
+					 loc, count, &gcamn.area1 ) );
+	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[area2],
+					 loc, count, &gcamn.area2 ) );
+
+	NC_SAFE_CALL( nc_put_vara_text( ncid, varIDs[invalid],
+					loc, count, &gcamn.invalid ) );
       }
     }
   }
