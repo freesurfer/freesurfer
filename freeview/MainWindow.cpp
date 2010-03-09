@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 21:54:02 $
- *    $Revision: 1.98 $
+ *    $Date: 2010/03/09 19:47:23 $
+ *    $Revision: 1.99 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -3535,6 +3535,8 @@ void MainWindow::CommandSetSurfaceOffset( const wxArrayString& cmd )
 void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
 {
   LoadSurfaceVectorFile( cmd[1] );
+  
+  ContinueScripts();
 }
 
 void MainWindow::CommandLoadSurfaceCurvature( const wxArrayString& cmd )
@@ -4320,7 +4322,6 @@ void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )
 // event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
   event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() && !IsWritingMovieFrames() );
 }
-
 
 void MainWindow::OnToolOptimalVolume( wxCommandEvent& event )
 {

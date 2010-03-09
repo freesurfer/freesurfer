@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 21:54:02 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/09 19:47:23 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -140,15 +140,50 @@ void Contour2D::AddPatchLineOnMask( double* ras1, double* ras2 )
   }
   
   unsigned char* ptr = (unsigned char*)m_imageMask->GetScalarPointer();
+  int x0 = n1[nx], y0 = n1[ny], x1 = n2[nx], y1 = n2[ny];
+  int dx = x1 - x0;
+  int dy = y1 - y0;
+  double t = 0.5;
+  int n[3];
   if ( m_nPlane == 0 )
-  {
     ptr[n1[ny]*dim[0]+dim[0]-n1[nx]-1] = 0;
-    ptr[n2[ny]*dim[0]+dim[0]-n2[nx]-1] = 0;
+  else
+    ptr[n1[ny]*dim[0]+n1[nx]] = 0;
+  if ( abs( dx ) > abs( dy ) )
+  {
+    double m = (double) dy / (double) dx;
+    t += y0;
+    dx = ( dx < 0 ? -1 : 1 );
+    m *= dx;
+    while ( x0 != x1 )
+    {
+      x0 += dx;
+      t += m;
+      n[nx] = x0;
+      n[ny] = (int) t;
+      if ( m_nPlane == 0 )
+        ptr[n[ny]*dim[0]+dim[0]-n[nx]-1] = 0;
+      else
+        ptr[n[ny]*dim[0]+n[nx]] = 0;
+    }
   }
   else
   {
-    ptr[n1[ny]*dim[0]+n1[nx]] = 0;
-    ptr[n2[ny]*dim[0]+n2[nx]] = 0;
+    double m = (double) dx / (double) dy;
+    t += x0;
+    dy = ( dy < 0 ? -1 : 1 );
+    m *= dy;
+    while ( y0 != y1 )
+    {
+      y0 += dy;
+      t += m;
+      n[nx] = (int) t;
+      n[ny] = y0;
+      if ( m_nPlane == 0 )
+        ptr[n[ny]*dim[0]+dim[0]-n[nx]-1] = 0;
+      else
+        ptr[n[ny]*dim[0]+n[nx]] = 0;
+    }
   }
   
   m_imageMask->Modified();

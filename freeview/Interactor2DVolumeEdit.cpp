@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 22:18:25 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/03/09 19:47:23 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -163,6 +163,8 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
         else if ( event.ShiftDown() )
         {
           m_bEditing = true;
+          c2d->AddPatchLineOnMask( ras, ras );
+          view->NeedRedraw();
         }
         else
         {

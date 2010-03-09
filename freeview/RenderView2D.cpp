@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/03/09 19:47:23 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -158,21 +158,20 @@ void RenderView2D::SetInteractionMode( int nMode )
 
 void RenderView2D::RefreshAllActors()
 {
-  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
-  LayerCollection* lc_mri = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+  LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
   
   m_renderer->RemoveAllViewProps();
-  lcm->Append2DProps( m_renderer, m_nViewPlane );
+  lc->Append2DProps( m_renderer, m_nViewPlane );
   
   LayerMRI* mri = NULL;
-  if ( !lc_mri->IsEmpty() )
+  if ( !lc->IsEmpty() )
   {
-    mri = (LayerMRI*)lc_mri->GetLayer(0);
+    mri = (LayerMRI*)lc->GetLayer(0);
     mri->Remove2DProps( m_renderer, m_nViewPlane );
   }
   m_renderer->AddViewProp( m_contour2D->GetActor() );
   
-  if ( !lc_mri->IsEmpty() )
+  if ( !lc->IsEmpty() )
   {
     if ( mri )
       mri->Append2DProps( m_renderer, m_nViewPlane );
@@ -185,6 +184,10 @@ void RenderView2D::RefreshAllActors()
     // add scalar bar
     m_renderer->AddViewProp( m_actorScalarBar );
   }
+  
+  MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" )->Append2DProps( m_renderer, m_nViewPlane );
+  MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->Append2DProps( m_renderer, m_nViewPlane );
+  MainWindow::GetMainWindowPointer()->GetLayerCollection( "WayPoints" )->Append2DProps( m_renderer, m_nViewPlane );
   
   // add regions
   for ( size_t i = 0; i < m_regions.size(); i++ )
