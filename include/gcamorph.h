@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 15:49:08 $
- *    $Revision: 1.55 $
+ *    $Date: 2010/03/09 17:36:28 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,12 @@ extern "C" {
 
 typedef struct
 {
+  /*
+    In
+    /usr/pubsw/packages/mni/1.4/include/volume_io/basic.h
+    you will eventually find that 'Real' is defined to be
+    double precision
+  */
   Real   origx ;      //  mri original src voxel position (using lta)
   Real   origy ;
   Real   origz ;
