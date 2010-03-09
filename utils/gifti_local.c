@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/08 21:17:35 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/03/09 23:05:49 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -807,8 +807,37 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
   }
   memset(ct->entries,0,sizeof(ct->entries));
   strncpy(ct->fname, fname, sizeof(ct->fname));
-  int label_index;
+
   float* rgba = image->labeltable.rgba;
+  if (NULL != rgba)
+  {
+    // optional rgba values are missing, so we must create colors for 
+    // the labels
+    image->labeltable.rgba = 
+      (float *)calloc(image->labeltable.length, 4*sizeof(float *));
+    if (NULL == image->labeltable.rgba)
+    {
+      fprintf (stderr,"MRISwriteLabelTableGIFTI: "
+               "couldn't allocate giftiLabelTable\n");
+      return ERROR_NOMEMORY;
+    }
+    rgba = image->labeltable.rgba;
+    setRandomSeed(12);// so that color generation is consistent
+    int label_index;
+    for (label_index = 0; 
+         label_index < image->labeltable.length;
+         label_index++)
+    {
+      rgba[0] = (float)randomNumber(0.0f,1.0f);
+      rgba[1] = (float)randomNumber(0.0f,1.0f);
+      rgba[2] = (float)randomNumber(0.0f,1.0f);
+      rgba[3] = 1.0f;
+      rgba += 4;
+    }
+  }
+
+  rgba = image->labeltable.rgba;
+  int label_index;
   for (label_index = 0; label_index < image->labeltable.length; label_index++)
   {
     ct->entries[label_index] = (CTE*) malloc(sizeof(CTE));
@@ -823,52 +852,31 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
     strncpy(ct->entries[label_index]->name,
             image->labeltable.label[label_index],
             sizeof(ct->entries[label_index]->name));
-    if( rgba ) 
-    {
-      ct->entries[label_index]->rf = rgba[0];
-      ct->entries[label_index]->ri = floor((rgba[0])*256);
-      if (ct->entries[label_index]->ri > 255) ct->entries[label_index]->ri=255;
-      ct->entries[label_index]->gf = rgba[1];
-      ct->entries[label_index]->gi = floor((rgba[1])*256);
-      if (ct->entries[label_index]->gi > 255) ct->entries[label_index]->gi=255;
-      ct->entries[label_index]->bf = rgba[2];
-      ct->entries[label_index]->bi = floor((rgba[2])*256);
-      if (ct->entries[label_index]->bi > 255) ct->entries[label_index]->bi=255;
-      ct->entries[label_index]->af = rgba[3];
-      ct->entries[label_index]->ai = floor((rgba[3])*256);
-      if (ct->entries[label_index]->ai > 255) ct->entries[label_index]->ai=255;
-      rgba += 4;
-      /*
-      printf("RGBA: %d %d %d %d %f %f %f %f\n",
-             ct->entries[label_index]->ri,
-             ct->entries[label_index]->gi,
-             ct->entries[label_index]->bi,
-             ct->entries[label_index]->ai,
-             ct->entries[label_index]->rf,
-             ct->entries[label_index]->gf,
-             ct->entries[label_index]->bf,
-             ct->entries[label_index]->af);
-      */
-    }
-    else
-    {
-      fprintf 
-        (stderr,
-         "mrisReadLabelTableGIFTIfile: missing rgba floats!\n");
-      gifti_free_image (image);
-      return ERROR_BADFILE;
-    }
 
-    // sanity-cross-check:
-    int annotation = CTABrgb2Annotation(ct->entries[label_index]->ri,
-                                        ct->entries[label_index]->gi,
-                                        ct->entries[label_index]->bi);
-    if (annotation != image->labeltable.key[label_index])
-    {
-      printf("WARNING: rgb2annot:%8.8X != labeltable.key:%8.8X\n",
-             annotation,
-             image->labeltable.key[label_index]);
-    }
+    ct->entries[label_index]->rf = rgba[0];
+    ct->entries[label_index]->ri = floor((rgba[0])*256);
+    if (ct->entries[label_index]->ri > 255) ct->entries[label_index]->ri=255;
+    ct->entries[label_index]->gf = rgba[1];
+    ct->entries[label_index]->gi = floor((rgba[1])*256);
+    if (ct->entries[label_index]->gi > 255) ct->entries[label_index]->gi=255;
+    ct->entries[label_index]->bf = rgba[2];
+    ct->entries[label_index]->bi = floor((rgba[2])*256);
+    if (ct->entries[label_index]->bi > 255) ct->entries[label_index]->bi=255;
+    ct->entries[label_index]->af = rgba[3];
+    ct->entries[label_index]->ai = floor((rgba[3])*256);
+    if (ct->entries[label_index]->ai > 255) ct->entries[label_index]->ai=255;
+    rgba += 4;
+    /*
+    printf("RGBA: %d %d %d %d %f %f %f %f\n",
+           ct->entries[label_index]->ri,
+           ct->entries[label_index]->gi,
+           ct->entries[label_index]->bi,
+           ct->entries[label_index]->ai,
+           ct->entries[label_index]->rf,
+           ct->entries[label_index]->gf,
+           ct->entries[label_index]->bf,
+           ct->entries[label_index]->af);
+    */
   }
   ct->entries[label_index] = NULL;
   CTABfindDuplicateNames(ct);
@@ -927,7 +935,32 @@ int mrisReadLabelTableGIFTIfile(MRI_SURFACE *mris, const char *fname)
   for (label_index = 0; label_index < mris->nvertices; label_index++)
   {
     if (mris->vertices[label_index].ripflag) continue;
-    mris->vertices[label_index].annotation = *(label_data + label_index);
+    int table_key = *(label_data + label_index);
+    int table_index;
+    for (table_index = 0; table_index < ct->nentries; table_index++)
+    {
+      if (table_key == image->labeltable.key[table_index])
+      {
+        // found the label key for this node
+        break;
+      }
+    }
+    if (table_index == ct->nentries)
+    {
+      fprintf
+        (stderr,
+         "mrisReadLabelTableGIFTIfile: failed to find labeltable key "
+         "for vertex %d in file %s\n", label_index, fname);
+      gifti_free_image (image);
+      return ERROR_BADFILE;
+    }
+    //printf("vno: %d, tidx: %d, name: %s\n",
+    //     label_index,table_index,ct->entries[table_index]->name);
+    int annotation = CTABrgb2Annotation(ct->entries[table_index]->ri,
+                                        ct->entries[table_index]->gi,
+                                        ct->entries[table_index]->bi);
+    mris->vertices[label_index].annotation = annotation;
+
     // cross-check:
     int index = -1;
     int result = CTABfindAnnotation(mris->ct,
