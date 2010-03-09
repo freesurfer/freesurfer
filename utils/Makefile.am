@@ -230,7 +230,8 @@ libutils_main_SOURCES=\
 	mriio_nrrd.c \
 	mriio_nrrd_itk.cpp \
 	numerics.cpp \
-        chronometerpp.cpp
+        chronometerpp.cpp\
+        gcamorphtestutils.cpp
 
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \
