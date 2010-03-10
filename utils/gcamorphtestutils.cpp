@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/10 14:54:48 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/10 15:05:53 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,6 +48,8 @@ enum dimID{ iX, iY, iZ };
 		<< " of file " << __FILE__			\
 		<< std::endl;					\
       std::cerr << "Error code was " << err << std::endl;	\
+      std::cerr << "Error string was : " << nc_strerror(err)	\
+		<< std::endl;					\
       exit( EXIT_FAILURE );					\
     }								\
   } while ( 0 );
