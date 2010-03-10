@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/10 20:12:09 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/03/10 20:39:13 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -132,7 +132,7 @@ void WriteGCAMforMetricProperties( const GCAM* src, const char* fName ) {
 					  loc, count, &gcamn.x ) );
 	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[ry],
 					  loc, count, &gcamn.y ) );
-	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[ry],
+	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[rz],
 					  loc, count, &gcamn.z ) );
 	
 	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[origArea],
@@ -178,7 +178,8 @@ void ReadGCAMforMetricProperties( GCAM** dst, const char* fName ) {
 
   fileName += ".nc";
 
-  std::cout << __FUNCTION__ << ": Reading file " << fileName << std::endl;
+  std::cout << __FUNCTION__ << ": Reading file " << fileName << " ... ";
+  std::cout.flush();
 
   // Reference for the file
   int ncid;
@@ -271,5 +272,5 @@ void ReadGCAMforMetricProperties( GCAM** dst, const char* fName ) {
 
   NC_SAFE_CALL( nc_close( ncid ) );
 
-  std::cout << __FUNCTION__ << ": Read complete" << std::endl;
+  std::cout << "complete" << std::endl;
 }
