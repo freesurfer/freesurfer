@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/01 20:23:06 $
-#    $Revision: 1.15 $
+#    $Date: 2010/03/10 22:40:56 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: selxavg2,v 1.15 2008/04/01 20:23:06 greve Exp $'
+set VERSION = '$Id: selxavg2,v 1.16 2010/03/10 22:40:56 greve Exp $'
 
 ## If there are no arguments, just print useage and exit ##
 if ( $#argv == 0  )  goto usage_exit;
@@ -76,7 +76,6 @@ set mincond = 1;
 set seed  = -1;
 set cfgfile = ();
 set UseMRIread = 0;
-echo here
 if($?FSF_OUTPUT_FORMAT) set UseMRIread = 1;
 
 set instems  = ();
@@ -640,6 +639,11 @@ while( $#argv != 0 )
 
     case "-mail":
       set mailuser = 1;
+      breaksw
+
+    case "-fix-acf":
+    case "-no-fsv3-st2fir":
+    case "-no-fsv3-whiten":
       breaksw
 
     default:
