@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/10 18:52:52 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/03/10 20:12:09 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,11 +66,6 @@ void WriteGCAMforMetricProperties( const GCAM* src, const char* fName ) {
   */
 
   enum myVars{ rx, ry, rz, origArea, invalid, area, area1, area2 };
-
-  if( src->ninputs != 1 ) {
-    std::cerr << __FUNCTION__ << ": Must have ninputs=1!" << std::endl;
-    exit( EXIT_FAILURE );
-  }
 
   // Construct the filename
   std::string fileName( fName );
