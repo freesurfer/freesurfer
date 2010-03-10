@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/10 18:09:48 $
- *    $Revision: 1.161 $
+ *    $Date: 2010/03/10 20:31:02 $
+ *    $Revision: 1.162 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -3097,7 +3097,7 @@ gcamAreaTermAtNode(GCA_MORPH *gcam, double l_area,
 
   Description
   ------------------------------------------------------*/
-#define GCAM_CMP_OUTPUT 1
+#define GCAM_CMP_OUTPUT 0
 #if 1
 static int
 gcamComputeMetricProperties(GCA_MORPH *gcam)
