@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 17:36:28 $
- *    $Revision: 1.56 $
+ *    $Date: 2010/03/10 18:09:51 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -229,7 +229,7 @@ GCA_MORPH_PARMS, GMP ;
 
 
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
-GCA_MORPH *GCAMalloc(int width, int height, int depth) ;
+GCA_MORPH *GCAMalloc( const int width, const int height, const int depth );
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, 
                    TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
