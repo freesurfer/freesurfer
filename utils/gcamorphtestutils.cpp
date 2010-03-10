@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 19:52:12 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/10 14:54:48 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -76,6 +76,7 @@ void WriteGCAMforMetricProperties( const GCAM* src, const char* fName ) {
   fileName += ".nc";
 
   std::cout << __FUNCTION__ << ": Writing file " << fileName << " ... ";
+  std::cout.flush();
 
   // Reference for the file
   int ncid;
