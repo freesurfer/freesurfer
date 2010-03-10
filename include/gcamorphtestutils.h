@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 16:49:39 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/10 20:49:08 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,9 +36,10 @@ extern "C" {
 #endif
 
 
-  //! Writes the parts required the gcamComputeMetricProperties
+  //! Writes the parts required by gcamComputeMetricProperties
   void WriteGCAMforMetricProperties( const GCAM* src, const char* fName );
-
+  //! Reads the parts required by gcamComputeMetricProperties
+  void ReadGCAMforMetricProperties( GCAM** dst, const char* fName );
 
 
 
