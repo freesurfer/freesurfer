@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/09 19:47:23 $
- *    $Revision: 1.99 $
+ *    $Date: 2010/03/10 21:40:06 $
+ *    $Revision: 1.100 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1205,6 +1205,7 @@ void MainWindow::DoUpdateToolbars()
 {
   if ( !m_toolWindowEdit )
     m_toolWindowEdit = new ToolWindowEdit( this );
+  
   if ( !m_toolWindowMeasure )
     m_toolWindowMeasure = new ToolWindowMeasure( this );
     
@@ -1595,6 +1596,7 @@ void MainWindow::SetMainView( int nView )
   m_nMainView = nView;
 
   SetViewLayout( m_nViewLayout );
+  this->SendBroadcast( "MainViewChanged", this );
 }
 
 void MainWindow::OnViewLayout1X1( wxCommandEvent& event )

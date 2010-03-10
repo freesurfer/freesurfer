@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 21:54:02 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/03/10 21:40:06 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,6 @@
  */
 
 
-
 #include "ToolWindowEdit.h"
 #include <wx/wx.h>
 #include <wx/config.h>
@@ -33,6 +32,7 @@
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/spinctrl.h>
+#include <wx/clrpicker.h>
 #include "MainWindow.h"
 #include "RenderView2D.h"
 #include "RenderView3D.h"
@@ -44,6 +44,7 @@
 #include "LayerPropertiesMRI.h"
 #include "LayerROI.h"
 #include "LayerDTI.h"
+#include "Contour2D.h"
 
 BEGIN_EVENT_TABLE( ToolWindowEdit, wxFrame )
 // EVT_BUTTON   ( wxID_OK,          ToolWindowEdit::OnOK )
@@ -85,13 +86,18 @@ BEGIN_EVENT_TABLE( ToolWindowEdit, wxFrame )
   EVT_TEXT      ( XRCID( "ID_EDIT_DRAW_RANGE_HIGH" ),   ToolWindowEdit::OnEditDrawRangeHigh )
   EVT_TEXT      ( XRCID( "ID_EDIT_EXCLUDE_RANGE_LOW" ), ToolWindowEdit::OnEditExcludeRangeLow )
   EVT_TEXT      ( XRCID( "ID_EDIT_EXCLUDE_RANGE_HIGH" ),  ToolWindowEdit::OnEditExcludeRangeHigh )
+  
+  EVT_CHECKBOX  ( XRCID( "ID_CHECK_SMOOTH" ),           ToolWindowEdit::OnCheckSmooth )
+  EVT_TEXT      ( XRCID( "ID_EDIT_SMOOTH_SD" ),         ToolWindowEdit::OnEditSmoothSD )
+  EVT_TEXT      ( XRCID( "ID_EDIT_CONTOUR_VALUE" ),     ToolWindowEdit::OnEditContourValue )
+  EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_CONTOUR" ),  ToolWindowEdit::OnColorContour )
 
   EVT_SHOW      ( ToolWindowEdit::OnShow )
 
 END_EVENT_TABLE()
 
 
-ToolWindowEdit::ToolWindowEdit( wxWindow* parent ) :
+ToolWindowEdit::ToolWindowEdit( wxWindow* parent ) : Listener( "ToolWindowMeasure" ),
     m_bToUpdateTools( false )
 {
   wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_TOOLWINDOW_EDIT") );
@@ -107,6 +113,10 @@ ToolWindowEdit::ToolWindowEdit( wxWindow* parent ) :
   m_editExcludeRangeLow     = XRCCTRL( *this, "ID_EDIT_EXCLUDE_RANGE_LOW",  wxTextCtrl );
   m_editExcludeRangeHigh    = XRCCTRL( *this, "ID_EDIT_EXCLUDE_RANGE_HIGH", wxTextCtrl );
   m_checkDrawConnectedOnly  = XRCCTRL( *this, "ID_CHECK_DRAW_CONNECTED",    wxCheckBox );
+  m_checkSmooth         = XRCCTRL( *this, "ID_CHECK_SMOOTH",          wxCheckBox );
+  m_editSmoothSD        = XRCCTRL( *this, "ID_EDIT_SMOOTH_SD",        wxTextCtrl );
+  m_editContourValue    = XRCCTRL( *this, "ID_EDIT_CONTOUR_VALUE",    wxTextCtrl );
+  m_colorPickerContour  = XRCCTRL( *this, "ID_COLORPICKER_CONTOUR",   wxColourPickerCtrl );
   
   m_widgetsBrushSize.push_back( XRCCTRL( *this, "ID_STATIC_BRUSH_SIZE", wxStaticText ) );
   m_widgetsBrushSize.push_back( m_spinBrushSize );
@@ -130,7 +140,15 @@ ToolWindowEdit::ToolWindowEdit( wxWindow* parent ) :
   m_widgetsConstrain.push_back( XRCCTRL( *this, "ID_STATIC_EXCLUDE_LOW", wxStaticText ) );
   m_widgetsConstrain.push_back( XRCCTRL( *this, "ID_STATIC_EXCLUDE_HIGH", wxStaticText ) );
   
-  m_widgetsNotesContour.push_back( XRCCTRL( *this, "ID_STATIC_NOTES_CONTOUR", wxStaticText ) );
+  m_widgetsSmooth.push_back( m_checkSmooth );
+  m_widgetsSmooth.push_back( m_editSmoothSD );
+  m_widgetsSmooth.push_back( XRCCTRL( *this, "ID_STATIC_SMOOTH_SD", wxStaticText ) );
+  
+  m_widgetsContour.push_back( XRCCTRL( *this, "ID_STATIC_NOTES_CONTOUR", wxStaticText ) );
+  m_widgetsContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_VALUE", wxStaticText ) );
+  m_widgetsContour.push_back( m_editContourValue );
+  m_widgetsContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_COLOR", wxStaticText ) );
+  m_widgetsContour.push_back( m_colorPickerContour );
 }
 
 ToolWindowEdit::~ToolWindowEdit()
@@ -155,6 +173,11 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
       int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
       int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
       Move( x, y );
+    }
+    for ( int i = 0; i < 3; i++ )
+    {
+      RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( i );
+      view->GetContour2D()->AddListener( this );
     }
   }
   else
@@ -185,6 +208,14 @@ void ToolWindowEdit::ResetPosition()
   }
 }
 
+void ToolWindowEdit::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
+{
+  if ( iMsg == "ContourValueChanged" )
+  {
+    UpdateTools();
+  }
+}
+
 void ToolWindowEdit::UpdateTools()
 {
   m_bToUpdateTools = true;
@@ -192,8 +223,11 @@ void ToolWindowEdit::UpdateTools()
 
 void ToolWindowEdit::DoUpdateTools()
 {
-  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
-
+  int nViewId = MainWindow::GetMainWindowPointer()->GetActiveViewId();
+  if ( nViewId < 0 || nViewId > 2 )
+    nViewId = 0;
+  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( nViewId );
+  
   bool bVoxelEditVisible = m_toolbarVoxelEdit->IsShown();
   bool bROIEditVisible = m_toolbarROIEdit->IsShown();
   if ( bVoxelEditVisible != (view->GetInteractionMode() == RenderView2D::IM_VoxelEdit) ||
@@ -253,6 +287,15 @@ void ToolWindowEdit::DoUpdateTools()
   UpdateTextValue( m_editExcludeRangeLow, range[0] );
   UpdateTextValue( m_editExcludeRangeHigh, range[1] );
 
+  Contour2D* c2d = view->GetContour2D();
+  m_checkSmooth->SetValue( c2d->GetSmooth() );
+  UpdateTextValue( m_editSmoothSD, c2d->GetSmoothSD() );
+  m_editSmoothSD->Enable( c2d->GetSmooth() );
+  UpdateTextValue( m_editContourValue, c2d->GetContourValue() );
+  
+  double* rgb = c2d->GetContourColor();
+  m_colorPickerContour->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+  
   int nAction = view->GetAction(); 
   ShowWidgets( m_widgetsBrushSize, nAction != Interactor2DVoxelEdit::EM_Contour &&
                                    nAction != Interactor2DVoxelEdit::EM_ColorPicker && 
@@ -261,8 +304,9 @@ void ToolWindowEdit::DoUpdateTools()
                                    nAction == Interactor2DVoxelEdit::EM_Contour );  
   ShowWidgets( m_widgetsTolerance, nAction == Interactor2DVoxelEdit::EM_Fill );
   ShowWidgets( m_widgetsConstrain, nAction != Interactor2DVoxelEdit::EM_ColorPicker && 
-                                   nAction != Interactor2DVoxelEdit::EM_Contour ); 
-  ShowWidgets( m_widgetsNotesContour, nAction == Interactor2DVoxelEdit::EM_Contour );
+      nAction != Interactor2DVoxelEdit::EM_Contour ); 
+  ShowWidgets( m_widgetsSmooth, nAction == Interactor2DVoxelEdit::EM_Contour );
+  ShowWidgets( m_widgetsContour, nAction == Interactor2DVoxelEdit::EM_Contour );
   
   m_bToUpdateTools = false;
   wxPanel* panel = XRCCTRL( *this, "ID_PANEL_HOLDER", wxPanel );
@@ -275,6 +319,10 @@ void ToolWindowEdit::DoUpdateTools()
 
 void ToolWindowEdit::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
 {
+  double dtemp;
+  if ( ctrl->GetValue().ToDouble( &dtemp ) && dtemp == dvalue )
+    return;
+  
   wxString value_strg = ( wxString() << dvalue );
   if ( value_strg != ctrl->GetValue() && (value_strg + _(".")) != ctrl->GetValue() )
     ctrl->ChangeValue( value_strg );
@@ -291,6 +339,7 @@ void ToolWindowEdit::OnInternalIdle()
 void ToolWindowEdit::OnActionVoxelFreehand( wxCommandEvent& event )
 {
   MainWindow::GetMainWindowPointer()->SetAction( Interactor2DVoxelEdit::EM_Freehand );
+  MainWindow::GetMainWindowPointer()->GetBrushProperty()->SetReferenceLayer( NULL );
   UpdateTools();
 }
 
@@ -307,6 +356,7 @@ void ToolWindowEdit::OnActionVoxelFreehandUpdateUI( wxUpdateUIEvent& event)
 void ToolWindowEdit::OnActionVoxelPolyline( wxCommandEvent& event )
 {
   MainWindow::GetMainWindowPointer()->SetAction( Interactor2DVoxelEdit::EM_Polyline );
+  MainWindow::GetMainWindowPointer()->GetBrushProperty()->SetReferenceLayer( NULL );
   UpdateTools();
 }
 
@@ -340,6 +390,7 @@ void ToolWindowEdit::OnActionVoxelLivewireUpdateUI( wxUpdateUIEvent& event)
 void ToolWindowEdit::OnActionVoxelFill( wxCommandEvent& event )
 {
   MainWindow::GetMainWindowPointer()->SetAction( Interactor2DVoxelEdit::EM_Fill );
+  MainWindow::GetMainWindowPointer()->GetBrushProperty()->SetReferenceLayer( NULL );
   UpdateTools();
 }
 
@@ -401,7 +452,7 @@ void ToolWindowEdit::OnActionVoxelContourUpdateUI( wxUpdateUIEvent& event)
 
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
   event.Enable( view->GetInteractionMode() == RenderView2D::IM_VoxelEdit
-      && mri && mri->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT );
+      && mri /*&& mri->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT*/ );
 }
 
 void ToolWindowEdit::OnActionROIFreehand( wxCommandEvent& event )
@@ -562,3 +613,64 @@ void ToolWindowEdit::OnEditExcludeRangeHigh( wxCommandEvent& event )
     UpdateTools();
   }
 }
+
+void ToolWindowEdit::OnCheckSmooth( wxCommandEvent& event )
+{
+  for ( int i = 0; i < 3; i++ )
+  {
+    RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( i );
+    Contour2D* c2d = view->GetContour2D();
+    c2d->SetSmooth( event.IsChecked() );
+  }
+  UpdateTools();
+}
+
+void ToolWindowEdit::OnEditSmoothSD( wxCommandEvent& event )
+{
+  double value;
+  if ( m_editSmoothSD->GetValue().ToDouble( &value ) && value > 0 )
+  {
+    for ( int i = 0; i < 3; i++ )
+    {
+      RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( i );
+      Contour2D* c2d = view->GetContour2D();
+      c2d->SetSmoothSD( value );
+    }
+    UpdateTools();
+  }
+}
+
+void ToolWindowEdit::OnEditContourValue( wxCommandEvent& event )
+{
+  double value;
+  if ( m_editContourValue->GetValue().ToDouble( &value ) && value > 0 )
+  {
+    BrushProperty* bp = MainWindow::GetMainWindowPointer()->GetBrushProperty();
+    LayerMRI* mri = (LayerMRI*)bp->GetReferenceLayer();
+    for ( int i = 0; i < 3; i++ )
+    {
+      RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( i );
+      Contour2D* c2d = view->GetContour2D();
+      if ( c2d->GetInputImage() )
+        c2d->SetContourValue( value );
+      else if ( mri )
+      {
+        c2d->SetInput( mri->GetSliceImageData( view->GetViewPlane() ), value, mri->GetSlicePosition()[i] ); 
+        c2d->SetVisible( true );
+      }
+    }
+    UpdateTools();
+  }
+}
+
+void ToolWindowEdit::OnColorContour( wxColourPickerEvent& event )
+{
+  wxColour c = event.GetColour();
+  for ( int i = 0; i < 3; i++ )
+  {
+    RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( i );
+    Contour2D* c2d = view->GetContour2D();
+    c2d->SetContourColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
+  }
+}
+

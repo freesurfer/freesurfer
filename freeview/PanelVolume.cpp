@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/03 19:33:24 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/03/10 21:40:06 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,13 +46,6 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_VOLUMES" ),        PanelVolume::OnLayerVisibilityChanged )
   EVT_LISTBOX_DCLICK  ( XRCID( "ID_LISTBOX_VOLUMES" ),        PanelVolume::OnListDoubleClicked )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_OPACITY" ),         PanelVolume::OnSliderOpacityChanged )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_LOAD" ),            PanelVolume::OnButtonLoad )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_MOVE_UP" ),         PanelVolume::OnButtonMoveUp )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_MOVE_DOWN" ),       PanelVolume::OnButtonMoveDown )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_DELETE" ),          PanelVolume::OnButtonDelete )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_NEW" ),             PanelVolume::OnButtonNew )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_LOAD" ),            PanelVolume::OnButtonLoad )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_SAVE" ),            PanelVolume::OnButtonSave )
   EVT_MENU            ( XRCID( "ID_VOLUME_CLOSE" ),           PanelVolume::OnButtonDelete )
   EVT_UPDATE_UI       ( XRCID( "ID_VOLUME_CLOSE" ),           PanelVolume::OnVolumeCloseUpdateUI )
   EVT_MENU            ( XRCID( "ID_VOLUME_MOVE_UP" ),         PanelVolume::OnButtonMoveUp )
@@ -70,6 +63,7 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_CLEAR_BACKGROUND" ), PanelVolume::OnCheckClearBackground )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_SMOOTH" ),        PanelVolume::OnCheckSmooth )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_UPSAMPLE" ),      PanelVolume::OnCheckUpsample )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_COLORMAP" ),        PanelVolume::OnChoiceColorMap )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_LUT" ),             PanelVolume::OnChoiceLUT )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_DIRECTION_CODE" ),  PanelVolume::OnChoiceDirectionCode )
@@ -134,16 +128,12 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_layerCopied = NULL;
 
   wxXmlResource::Get()->LoadPanel( this, parent, _("ID_PANEL_VOLUME") );
-  m_btnNew              = XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
-  m_btnDelete           = XRCCTRL( *this, "ID_BUTTON_DELETE", wxButton );
-  m_btnMoveUp           = XRCCTRL( *this, "ID_BUTTON_MOVE_UP", wxButton );
-  m_btnMoveDown         = XRCCTRL( *this, "ID_BUTTON_MOVE_DOWN", wxButton );
-  m_btnSave             = XRCCTRL( *this, "ID_BUTTON_SAVE", wxButton );
   m_listBoxLayers       = XRCCTRL( *this, "ID_LISTBOX_VOLUMES", wxCheckListBox );
   m_sliderOpacity       = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
   m_textOpacity         = XRCCTRL( *this, "ID_TEXT_OPACITY", wxTextCtrl );
   m_checkClearBackground =  XRCCTRL( *this, "ID_CHECKBOX_CLEAR_BACKGROUND", wxCheckBox );
   m_checkSmooth         = XRCCTRL( *this, "ID_CHECKBOX_SMOOTH", wxCheckBox );
+  m_checkUpsample       = XRCCTRL( *this, "ID_CHECKBOX_UPSAMPLE", wxCheckBox );
   m_listColorTable      = XRCCTRL( *this, "ID_LISTBOX_COLORTABLE", wxListBox );
   m_choiceColorMap      = XRCCTRL( *this, "ID_CHOICE_COLORMAP", wxChoice );
   m_choiceLUT           = XRCCTRL( *this, "ID_CHOICE_LUT", wxChoice );
@@ -279,6 +269,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistNormalDisplay.push_back( m_sliderOpacity );
   m_widgetlistNormalDisplay.push_back( m_textOpacity );
   m_widgetlistNormalDisplay.push_back( m_checkSmooth );
+  m_widgetlistNormalDisplay.push_back( m_checkUpsample );
   m_widgetlistNormalDisplay.push_back( XRCCTRL( *this, "ID_STATIC_COLORMAP", wxStaticText ) );
   m_widgetlistNormalDisplay.push_back( m_choiceColorMap );
   for ( size_t i = 0; i < m_widgetlistGrayScale.size(); i++ )
@@ -484,6 +475,16 @@ void PanelVolume::OnCheckSmooth( wxCommandEvent& event )
   }
 }
 
+void PanelVolume::OnCheckUpsample( wxCommandEvent& event )
+{
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+      layer->GetProperties()->SetUpSampleMethod( event.IsChecked() ? LayerPropertiesMRI::UM_BiLinear : LayerPropertiesMRI::UM_None );
+  }
+}
+
 void PanelVolume::OnButtonNew( wxCommandEvent& event )
 {
   MainWindow::GetMainWindowPointer()->NewVolume();
@@ -675,7 +676,9 @@ void PanelVolume::DoUpdateUI()
 			m_sliderOpacity->SetValue( (int)( layer->GetProperties()->GetOpacity() * 100 ) );
 			UpdateTextValue( m_textOpacity, layer->GetProperties()->GetOpacity() );
 			m_checkClearBackground->SetValue( layer->GetProperties()->GetClearZero() );
-			m_checkSmooth->SetValue( layer->GetProperties()->GetTextureSmoothing() );
+      m_checkSmooth->SetValue( layer->GetProperties()->GetTextureSmoothing() );
+      m_checkUpsample->SetValue( layer->GetProperties()->GetUpSampleMethod() != 0 );
+      m_checkUpsample->Enable( layer->GetProperties()->GetColorMap() != LayerPropertiesMRI::LUT );
 			
       // color map settings
 			m_choiceColorMap->SetSelection( layer->GetProperties()->GetColorMap() );
@@ -798,13 +801,7 @@ void PanelVolume::DoUpdateUI()
       m_choiceUpSampleMethod->SetSelection( layer->GetProperties()->GetUpSampleMethod() );
 		}
 	}
-	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
-	m_btnNew->Enable( bHasVolume );
-	m_btnDelete->Enable( bHasVolume && !mainWnd->IsProcessing() );	
-	m_btnMoveUp->Enable( bHasVolume && m_listBoxLayers->GetSelection() != 0 );
-	m_btnMoveDown->Enable( bHasVolume && m_listBoxLayers->GetSelection() != ( (int)m_listBoxLayers->GetCount() - 1 ) );
-	m_btnSave->Enable( bHasVolume && layer && layer->IsModified() && !mainWnd->IsProcessing() );	
-	
+//	MainWindow* mainWnd = MainWindow::GetMainWindowPointer();
   ShowWidgets( m_widgetlistNormalDisplay, layer && 
                                           !layer->GetProperties()->GetDisplayVector() &&
                                           !layer->GetProperties()->GetDisplayTensor());

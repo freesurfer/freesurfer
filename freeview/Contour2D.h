@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 21:54:02 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/10 21:40:06 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,6 +42,7 @@ class vtkImageThreshold;
 class vtkSimpleLabelEdgeFilter;
 class vtkImageMapToColors;
 class vtkImageMask;
+class vtkImageGaussianSmooth;
 
 class Contour2D : public Broadcaster, public Listener
 {
@@ -49,6 +50,11 @@ public:
   Contour2D( RenderView2D* view );
   virtual ~Contour2D();
 
+  vtkImageData* GetInputImage()
+  {
+    return m_imageInput;
+  }
+  
   void SetInput( vtkImageData* imagedata, double dContourValue, double dSliceLocation );
   
   void SetContourValue( double dvalue );
@@ -77,11 +83,32 @@ public:
   
   void AddPatchLineOnMask( double* ras1, double* ras2 );
   
+  bool GetSmooth()
+  {
+    return m_bSmooth;
+  }
+  
+  void SetSmooth( bool bSmooth );
+  
+  double GetSmoothSD();
+  
+  void SetSmoothSD( double sd );
+  
+  void SetContourColor( double r, double g, double b );
+  
+  double* GetContourColor()
+  {
+    return m_dContourColor;
+  }
+  
 protected:
   RenderView2D*   m_view;
   int             m_nPlane;
   double          m_dSliceLocation;
   double          m_dContourValue;
+  bool            m_bSmooth;
+  vtkImageData*   m_imageInput;
+  double          m_dContourColor[3];
   
   vtkSmartPointer<vtkImageActor>      m_actorContour;
   vtkSmartPointer<vtkImageThreshold>  m_filterThreshold;
@@ -90,6 +117,7 @@ protected:
   vtkSmartPointer<vtkSimpleLabelEdgeFilter> m_filterEdge;
   vtkSmartPointer<vtkImageMapToColors>      m_colormap;
   vtkSmartPointer<vtkImageData>       m_imageMask;
+  vtkSmartPointer<vtkImageGaussianSmooth>   m_filterSmooth;
 };
 
 #endif

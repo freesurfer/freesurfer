@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 21:54:02 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/03/10 21:40:06 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 
 #include <wx/wx.h>
 #include <vector>
+#include "Listener.h"
 
 class wxTextCtrl;
 class wxCheckBox;
@@ -36,8 +37,10 @@ class wxChoice;
 class wxToolBar;
 class wxSpinEvent;
 class wxSpinCtrl;
+class wxColourPickerCtrl;
+class wxColourPickerEvent;
 
-class ToolWindowEdit : public wxFrame
+class ToolWindowEdit : public wxFrame, public Listener
 {
 public:
   ToolWindowEdit( wxWindow* parent );
@@ -76,8 +79,13 @@ public:
   void OnEditDrawRangeHigh      ( wxCommandEvent& event );
   void OnEditExcludeRangeLow    ( wxCommandEvent& event );
   void OnEditExcludeRangeHigh   ( wxCommandEvent& event );
+  void OnEditSmoothSD           ( wxCommandEvent& event );
+  
+  void OnEditContourValue       ( wxCommandEvent& event );
+  void OnColorContour           ( wxColourPickerEvent& event );
 
   void OnCheckDrawConnectedOnly ( wxCommandEvent& event );
+  void OnCheckSmooth            ( wxCommandEvent& event );
 
   void UpdateTools();
 
@@ -86,6 +94,7 @@ public:
   void ShowWidgets( std::vector<wxWindow*>& list, bool bShow );
 
 protected:
+  void DoListenToMessage ( std::string const iMsg, void* iData, void* sender );
   void DoUpdateTools();
   void UpdateTextValue( wxTextCtrl* ctrl, double dvalue );
 
@@ -103,6 +112,10 @@ protected:
   wxTextCtrl*   m_editExcludeRangeLow;
   wxTextCtrl*   m_editExcludeRangeHigh;
   wxCheckBox*   m_checkDrawConnectedOnly;
+  wxTextCtrl*   m_editSmoothSD;
+  wxCheckBox*   m_checkSmooth;
+  wxTextCtrl*   m_editContourValue;
+  wxColourPickerCtrl*  m_colorPickerContour;
 
   bool m_bToUpdateTools;
   
@@ -110,7 +123,8 @@ protected:
   std::vector<wxWindow*>  m_widgetsReference;
   std::vector<wxWindow*>  m_widgetsTolerance;
   std::vector<wxWindow*>  m_widgetsConstrain;
-  std::vector<wxWindow*>  m_widgetsNotesContour;
+  std::vector<wxWindow*>  m_widgetsSmooth;
+  std::vector<wxWindow*>  m_widgetsContour;
 
   DECLARE_EVENT_TABLE()
 };

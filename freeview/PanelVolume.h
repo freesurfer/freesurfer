@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/03 19:33:24 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/03/10 21:40:06 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -101,6 +101,7 @@ private:
   void OnTextMaxJetScaleChanged       ( wxCommandEvent& event );
   void OnSliderMinJetScaleChanged     ( wxScrollEvent& event );
   void OnSliderMaxJetScaleChanged     ( wxScrollEvent& event );
+  void OnCheckUpsample                ( wxCommandEvent& event );
   void OnCheckSmooth                  ( wxCommandEvent& event );
   void OnChoiceDirectionCode          ( wxCommandEvent& event );
   void OnSliderFrameChanged           ( wxScrollEvent& event );
@@ -145,11 +146,6 @@ private:
   void UpdateTextValue( wxTextCtrl* textctrl, double dvalue );
 
   wxCheckListBox* m_listBoxLayers;
-  wxButton*       m_btnMoveUp;
-  wxButton*       m_btnMoveDown;
-  wxButton*       m_btnNew;
-  wxButton*       m_btnDelete;
-  wxButton*       m_btnSave;
   wxSlider*       m_sliderOpacity;
   wxTextCtrl*     m_textOpacity;
   wxCheckBox*     m_checkClearBackground;
@@ -180,6 +176,7 @@ private:
   wxTextCtrl*     m_textJetScaleMin;
   wxTextCtrl*     m_textJetScaleMax;
   wxCheckBox*     m_checkSmooth;
+  wxCheckBox*     m_checkUpsample;
   wxChoice*       m_choiceDirectionCode;
   wxColorIndicator* m_colorIndicator;
   wxTextCtrl*     m_textFrame;

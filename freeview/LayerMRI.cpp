@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 21:54:02 $
- *    $Revision: 1.57 $
+ *    $Date: 2010/03/10 21:40:06 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -71,6 +71,8 @@
 #ifndef min
 #define min(a,b)            (((a) < (b)) ? (a) : (b))
 #endif
+
+#define IMAGE_RESAMPLE_FACTOR     4.0     // must be multiples of 2
 
 LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
     m_volumeSource( NULL),
@@ -363,9 +365,9 @@ void LayerMRI::InitializeActors()
 
     mEdgeFilter[i] = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
     mResample[i] = vtkSmartPointer<vtkImageResample>::New();
-    mResample[i]->SetAxisMagnificationFactor( 0, 2.0 );
-    mResample[i]->SetAxisMagnificationFactor( 1, 2.0 );
-    mResample[i]->SetAxisMagnificationFactor( 2, 2.0 );
+    mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+    mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+    mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
     mResample[i]->SetInterpolationModeToNearestNeighbor();
     
     // Set ourselves up.
@@ -1535,7 +1537,11 @@ void LayerMRI::UpdateLabelOutline()
     double* vsize = m_imageData->GetSpacing();
     for ( int i = 0; i < 3; i++ )
     {
-      double pos[3] = { vsize[0]/4.0, vsize[1]/4.0, vsize[2]/4.0 };
+      mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR );
+      mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR );
+      mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
+      mResample[i]->SetInterpolationModeToNearestNeighbor();
+      double pos[3] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2, vsize[2]/IMAGE_RESAMPLE_FACTOR/2 };
       mResample[i]->SetInput( mReslice[i]->GetOutput() );
       mEdgeFilter[i]->SetInput( mResample[i]->GetOutput() );
       mColorMap[i]->SetInput( mEdgeFilter[i]->GetOutput() );
@@ -1585,6 +1591,12 @@ void LayerMRI::UpdateUpSampleMethod()
     {
       mResample[i]->SetInput( mReslice[i]->GetOutput() );
       mColorMap[i]->SetInput( mResample[i]->GetOutput() );
+      if ( !GetProperties()->GetShowLabelOutline() )
+      {
+        mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR/2 );
+        mResample[i]->SetAxisMagnificationFactor( 1, IMAGE_RESAMPLE_FACTOR/2 );
+        mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR/2 );
+      }
     }
   }
 }
