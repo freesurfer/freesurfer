@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/02 19:38:03 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/03/10 22:32:20 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.32 2010/03/02 19:38:03 nicks Exp $";
+"$Id: mris_convert.c,v 1.33 2010/03/10 22:32:20 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -101,7 +101,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.32 2010/03/02 19:38:03 nicks Exp $",
+     "$Id: mris_convert.c,v 1.33 2010/03/10 22:32:20 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -225,7 +225,7 @@ main(int argc, char *argv[]) {
     if (type == MRIS_ANNOT_FILE) {
       if (MRISreadAnnotation(mris, annot_fname) != NO_ERROR) exit(1);
     } else if (type == MRIS_GIFTI_FILE) {
-      if (mrisReadLabelTableGIFTIfile(mris, annot_fname) != NO_ERROR) exit(1);
+      if (NULL == mrisReadGIFTIfile(annot_fname, mris)) exit(1);
     } else {
       printf("ERROR: unknown file annot file type specified for --annot: "
              "%s\n",annot_fname);

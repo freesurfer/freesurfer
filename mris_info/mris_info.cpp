@@ -7,10 +7,10 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:35 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/03/10 22:32:20 $
+ *    $Revision: 1.30 $
  *
- * Copyright (C) 2004-2007,
+ * Copyright (C) 2004-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -47,6 +46,7 @@ extern "C" {
 #include "version.h"
 #include "proto.h"
 #include "error.h"
+#include "gifti_local.h"
 
 const char *Progname = "mris_info";
 }
@@ -64,7 +64,7 @@ static void print_version(void);
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
 static char vcid[] = 
-"$Id: mris_info.cpp,v 1.29 2007/11/18 03:03:35 nicks Exp $";
+"$Id: mris_info.cpp,v 1.30 2010/03/10 22:32:20 nicks Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL, *curvfile=NULL, *annotfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -110,6 +110,28 @@ int main(int argc, char *argv[]) {
       printf("color table:\n") ;
       CTABprintASCII(gcsa->ct,stdout) ;
     }
+    return(0) ;
+  }
+
+  // Check whether it's a Gifti file. If so, just dump gifti struct
+  if (!stricmp(FileNameExtension(surffile, ext), (char*)"gii")) {
+
+    gifti_image* image = gifti_read_image (surffile, 1);
+    if (NULL == image)
+    {
+      fprintf (stderr,"gifti_read_image() returned NULL\n");
+      return 1;
+    }
+    int valid = gifti_valid_gifti_image (image, 1);
+    if (valid == 0)
+    {
+      fprintf (stderr,"GIFTI file %s is invalid!\n", surffile);
+      gifti_free_image (image);
+      return 1;
+    }
+
+    gifti_disp_gifti_image(NULL,image,1);
+    
     return(0) ;
   }
 

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/08 18:55:50 $
- *    $Revision: 1.665 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/10 22:32:20 $
+ *    $Revision: 1.666 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -715,7 +715,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.665 2010/03/08 18:55:50 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.666 2010/03/10 22:32:20 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -776,7 +776,7 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
   }
   else if (type == MRIS_GIFTI_FILE)  /* .gii */
   {
-    mris = mrisReadGIFTIfile(fname) ;
+    mris = mrisReadGIFTIfile(fname, NULL) ;
     if (!mris)
       return(NULL) ;
     version = -3 ; /* Not really sure what is appropriate here */
@@ -4101,7 +4101,9 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
   mritype = mri_identify(sname);
   if (mritype == GIFTI_FILE)
   {
-    return(mrisReadScalarGIFTIfile(mris, fname)) ;
+    mris = mrisReadGIFTIfile(fname, mris) ;
+    if (mris) return(NO_ERROR);
+    else return(ERROR_BADFILE);
   }
   if (mritype == VTK_FILE)
   {
@@ -4158,7 +4160,11 @@ MRISreadCurvatureFile(MRI_SURFACE *mris, const char *sname)
   if (type == MRIS_ASCII_TRIANGLE_FILE)
     return(mrisReadAsciiCurvatureFile(mris, fname)) ;
   else if (type == MRIS_GIFTI_FILE)
-    return(mrisReadScalarGIFTIfile(mris, fname)) ;
+  {
+    mris = mrisReadGIFTIfile(fname, mris);
+    if (mris) return(NO_ERROR);
+    else return(ERROR_BADFILE);
+  }
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stdout, "reading curvature file...") ;
@@ -11614,7 +11620,9 @@ MRISreadAnnotation(MRI_SURFACE *mris, const char *sname)
   int mritype = mri_identify(sname);
   if (mritype == GIFTI_FILE)
   {
-    return mrisReadLabelTableGIFTIfile(mris,sname);
+    mris = mrisReadGIFTIfile(sname, mris);
+    if (mris) return (NO_ERROR);
+    else return (ERROR_BADFILE);
   }
   // else fall-thru with default .annot processing...
 
