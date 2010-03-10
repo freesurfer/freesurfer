@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 15:49:03 $
- *    $Revision: 1.159 $
+ *    $Date: 2010/03/10 14:38:05 $
+ *    $Revision: 1.160 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,6 +57,8 @@
 #include "chronometer.h"
 #include "testgpu.h"
 #endif
+
+#include "gcamorphtestutils.h"
 
 #if WITH_DMALLOC
 #include <dmalloc.h>
@@ -3095,11 +3097,19 @@ gcamAreaTermAtNode(GCA_MORPH *gcam, double l_area,
 
   Description
   ------------------------------------------------------*/
+#define GCAM_CMP_OUTPUT 0
 #if 1
 static int
 gcamComputeMetricProperties(GCA_MORPH *gcam)
 {
- 
+#if GCAM_CMP_OUTPUT
+  static unsigned int nCalls = 0;
+  char fname[STRLEN];
+  snprintf( fname, STRLEN-1, "before%04u", nCalls );
+  fname[STRLEN-1] = '\0';
+  WriteGCAMforMetricProperties( gcam, fname );
+#endif
+
 #ifdef FS_CUDA
   gcamComputeMetricPropertiesGPU( gcam, &Ginvalid );
 #else
@@ -3253,6 +3263,13 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   VectorFree(&v_j) ;
   VectorFree(&v_k) ;
 
+#endif
+
+#if GCAM_CMP_OUTPUT
+  snprintf( fname, STRLEN-1, "after%04u", nCalls );
+  fname[STRLEN-1] = '\0';
+  WriteGCAMforMetricProperties( gcam, fname );
+  nCalls++;
 #endif
 
   return(NO_ERROR) ;
