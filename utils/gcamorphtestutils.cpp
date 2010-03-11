@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/10 20:39:13 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/03/11 15:29:16 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,10 @@
  */
 
 #include <string>
+#include <vector>
 #include <iostream>
+#include <map>
+using namespace std;
 
 #include <netcdf.h>
 
@@ -53,6 +56,157 @@ enum dimID{ iX, iY, iZ };
       exit( EXIT_FAILURE );					\
     }								\
   } while ( 0 );
+
+
+// ======================================================================
+
+// Class to handle things for gcamComputeMetricProperties test
+class GCAMforCMP {
+public:
+
+  //! Constructor fills the lists
+  GCAMforCMP( void ) : varTypeMap() {
+    
+    // Sanity check
+    if( this->nVars != 8 ) {
+      cerr << __FUNCTION__ << ": Invalid nVars!" << endl;
+      exit( EXIT_FAILURE );
+    }
+    if( this->nDims != 3 ) {
+      cerr << __FUNCTION__ << ": Invalid nDims!" << endl;
+      exit( EXIT_FAILURE );
+    }
+
+    varTypeMap[ "rx" ] = NC_DOUBLE;
+    varTypeMap[ "ry" ] = NC_DOUBLE;
+    varTypeMap[ "rz" ] = NC_DOUBLE;
+
+    varTypeMap[ "origArea" ] = NC_FLOAT;
+    varTypeMap[ "area" ] = NC_FLOAT;
+    varTypeMap[ "area1" ] = NC_FLOAT;
+    varTypeMap[ "area2" ] = NC_FLOAT;
+
+    varTypeMap[ "invalid" ] = NC_CHAR;
+
+    // And another sanity check
+    if( varTypeMap.size() != this->nVars ) {
+      cerr << __FUNCTION__ << ": Incorrect entries in varTypeMap" << endl;
+      exit( EXIT_FAILURE );
+    }
+  }
+
+
+
+  //! Function to write out relevant portions of a GCAM
+  void Write( const GCAM* src, string fName ) const {
+
+    // Construct the filename, using fName passed by value
+    fName += ".nc";
+
+    std::cout << __FUNCTION__ << ": Writing file " << fName << " ... ";
+    std::cout.flush();
+
+    // Reference for the file
+    int ncid;
+
+    // Open the file
+    NC_SAFE_CALL( nc_create( fName.c_str(), NC_CLOBBER, &ncid ) );
+
+
+    // Set up the dimensions
+    int dimIDs[nDims];
+    NC_SAFE_CALL( nc_def_dim( ncid, "x", src->width, &dimIDs[iX] ) );
+    NC_SAFE_CALL( nc_def_dim( ncid, "y", src->height, &dimIDs[iY] ) );
+    NC_SAFE_CALL( nc_def_dim( ncid, "z", src->depth, &dimIDs[iZ] ) );
+
+    // Set up the variable IDs
+    map<string,int> varIDmap;
+    map<string,nc_type>::const_iterator myIt;
+
+    for( myIt = this->varTypeMap.begin();
+	 myIt != this->varTypeMap.end();
+	 myIt++ ) {
+      NC_SAFE_CALL( nc_def_var( ncid,
+				myIt->first.c_str(), // Name of the variable
+				myIt->second,        // Type of the variable
+				nDims, dimIDs,
+				&varIDmap[ myIt->first ] ) );
+    }
+
+    // Sanity check
+    if( varTypeMap.size() != varIDmap.size() ) {
+      cerr << __FUNCTION__ << ": Failed to create varIDmap correctly" << endl;
+      exit( EXIT_FAILURE );
+    }
+
+    // Make the end of the 'definition' region
+    NC_SAFE_CALL( nc_enddef( ncid ) );
+
+    // Ugly loop to do the writing element by element
+    for( int i=0; i<src->width; i++ ) {
+      for( int j=0; j<src->height; j++ ) {
+	for( int k=0; k<src->depth; k++ ) {
+	  const GCA_MORPH_NODE& gcamn = src->nodes[i][j][k];
+	
+	  const size_t count[nDims] = { 1, 1, 1};
+	  const size_t loc[nDims] = { i, j, k };
+	
+	
+	  // We use 'find' to get an exception if the name doesn't exist
+	  NC_SAFE_CALL( nc_put_vara_double( ncid,
+					    varIDmap.find( "rx" )->second,
+					    loc, count,
+					    &gcamn.x ) );
+	  NC_SAFE_CALL( nc_put_vara_double( ncid,
+					    varIDmap.find( "ry" )->second,
+					    loc, count,
+					    &gcamn.y ) );
+	  NC_SAFE_CALL( nc_put_vara_double( ncid,
+					    varIDmap.find( "rz" )->second,
+					    loc, count,
+					    &gcamn.z ) );
+
+	  NC_SAFE_CALL( nc_put_vara_float( ncid,
+					   varIDmap.find( "origArea" )->second,
+					   loc, count,
+					   &gcamn.orig_area ) );
+	  NC_SAFE_CALL( nc_put_vara_float( ncid,
+					   varIDmap.find( "area" )->second,
+					   loc, count,
+					   &gcamn.area ) );
+	  NC_SAFE_CALL( nc_put_vara_float( ncid,
+					   varIDmap.find( "area1" )->second,
+					   loc, count,
+					   &gcamn.area1 ) );
+	  NC_SAFE_CALL( nc_put_vara_float( ncid,
+					   varIDmap.find( "area2" )->second,
+					   loc, count,
+					   &gcamn.area2 ) );
+	  
+	  NC_SAFE_CALL( nc_put_vara_text( ncid,
+					  varIDmap.find( "invalid" )->second,
+					  loc, count,
+					  &gcamn.invalid ) );
+	}
+      }
+    }
+
+
+    // Close the file
+    NC_SAFE_CALL( nc_close( ncid ) );
+
+    std::cout << "complete" << std::endl;
+  }
+
+
+private:
+  //! Map of variable names and types
+  map<string,nc_type> varTypeMap;
+  enum dimID{ iX, iY, iZ };
+
+  static const unsigned int nDims = 3;
+  static const unsigned int nVars = 8;
+};
 
 
 
