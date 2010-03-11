@@ -1,6 +1,6 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.42 2009/04/02 23:32:37 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.43 2010/03/11 21:05:06 greve Exp $'
 
 
 %
@@ -9,8 +9,8 @@ function r = fast_selxavg(varargin)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/02 23:32:37 $
-%    $Revision: 1.42 $
+%    $Date: 2010/03/11 21:05:06 $
+%    $Revision: 1.43 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@ function r = fast_selxavg(varargin)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_selxavg.m,v 1.42 2009/04/02 23:32:37 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.43 2010/03/11 21:05:06 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -1473,7 +1473,7 @@ function s = parse_args(varargin)
         arg1check(flag,narg,ninputargs);
         narg = narg + 1;
 
-      case {'-debug','-echo'}, % ignore
+      case {'-debug','-echo','-fix-acf','-no-fsv3-st2fir','-no-fsv3-whiten'}, % ignore
         s.debug = 1;
 
       otherwise
