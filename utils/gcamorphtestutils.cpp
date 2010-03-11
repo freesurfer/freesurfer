@@ -1,5 +1,5 @@
 /**
- * @file  gcamorphtestutils.c
+ * @file  gcamorphtestutils.cpp
  * @brief Utilities to help with testing GCAmorph routines
  *
  * Reference:
@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/11 15:47:06 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/03/11 16:24:45 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,9 +36,6 @@ using namespace std;
 
 
 #include "gcamorphtestutils.h"
-
-const unsigned int nDims = 3;
-enum dimID{ iX, iY, iZ };
 
 // ======================================================================
 
@@ -215,7 +212,7 @@ public:
     // Construct the filename, using fName passed by value
     fName += ".nc";
 
-    std::cout << __FUNCTION__ << ": Writing file " << fName << " ... ";
+    std::cout << __FUNCTION__ << ": Reading file " << fName << " ... ";
     std::cout.flush();
 
     // Reference for the file
