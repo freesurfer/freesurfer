@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/11 15:29:16 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/03/11 15:47:06 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,11 +61,11 @@ enum dimID{ iX, iY, iZ };
 // ======================================================================
 
 // Class to handle things for gcamComputeMetricProperties test
-class GCAMforCMP {
+class GCAMforCMPutils {
 public:
 
   //! Constructor fills the lists
-  GCAMforCMP( void ) : varTypeMap() {
+  GCAMforCMPutils( void ) : varTypeMap() {
     
     // Sanity check
     if( this->nVars != 8 ) {
@@ -195,8 +195,137 @@ public:
     // Close the file
     NC_SAFE_CALL( nc_close( ncid ) );
 
-    std::cout << "complete" << std::endl;
+    cout << "complete" << endl;
   }
+
+
+
+
+  //! Reads file containing portions of GCAM used for gcamComputeMetricProperties
+  void Read( GCAM** dst, string fName ) const {
+
+    // Make sure input pointer is NULL
+    if( *dst != NULL ) {
+      cerr << __FUNCTION__
+	   << ": dst pointer not NULL!"
+	   << endl;
+      exit( EXIT_FAILURE );
+    }
+
+    // Construct the filename, using fName passed by value
+    fName += ".nc";
+
+    std::cout << __FUNCTION__ << ": Writing file " << fName << " ... ";
+    std::cout.flush();
+
+    // Reference for the file
+    int ncid;
+
+    // Open the file
+    NC_SAFE_CALL( nc_open( fName.c_str(), NC_NOWRITE, &ncid ) );
+
+    // Query number of variables and dimensions
+    int nDimFile, nVarFile;
+    NC_SAFE_CALL( nc_inq_ndims( ncid, &nDimFile ) );
+    NC_SAFE_CALL( nc_inq_nvars( ncid, &nVarFile ) );
+
+    if( nDimFile != static_cast<int>(this->nDims) ) {
+      cerr << "Invalid number of dimensions " << nDimFile << endl;
+      exit( EXIT_FAILURE );
+    }
+
+    if( nVarFile != static_cast<int>(this->nVars) ) {
+      std::cerr << "Invalid number of variables " << nVarFile << endl;
+    }
+
+    int dimIDs[3];
+    size_t dimLen[3];
+
+    NC_SAFE_CALL( nc_inq_dimid( ncid, "x", &dimIDs[iX] ) );
+    NC_SAFE_CALL( nc_inq_dimid( ncid, "y", &dimIDs[iY] ) );
+    NC_SAFE_CALL( nc_inq_dimid( ncid, "z", &dimIDs[iZ] ) );
+
+    NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[iX], &dimLen[iX] ) );
+    NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[iY], &dimLen[iY] ) );
+    NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[iZ], &dimLen[iZ] ) );
+
+    // Allocate the target
+    *dst = GCAMalloc( dimLen[iX], dimLen[iY], dimLen[iZ] );
+    if( *dst == NULL ) {
+      std::cerr << __FUNCTION__
+		<< ": GCAMalloc failed!" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    // Get hold of the variable IDs
+    map<string,int> varIDmap;
+    map<string,nc_type>::const_iterator myIt;
+
+    for( myIt = this->varTypeMap.begin();
+	 myIt != this->varTypeMap.end();
+	 myIt++ ) {
+      NC_SAFE_CALL( nc_inq_varid( ncid,
+				  myIt->first.c_str(), // Name of the variable
+				  &varIDmap[ myIt->first ] ) );
+    }
+
+    // Read the data element by element
+    for( int i=0; i<(*dst)->width; i++ ) {
+      for( int j=0; j<(*dst)->height; j++ ) {
+	for( int k=0; k<(*dst)->depth; k++ ) {
+	  // Save some type
+	  GCA_MORPH_NODE& gcamn = (*dst)->nodes[i][j][k];
+	  
+	  const size_t count[nDims] = { 1, 1, 1};
+	  const size_t loc[nDims] = { i, j, k };
+	  
+	  
+	  NC_SAFE_CALL( nc_get_vara_double( ncid,
+					    varIDmap.find( "rx" )->second,
+					    loc, count,
+					    &gcamn.x ) );
+	  NC_SAFE_CALL( nc_get_vara_double( ncid,
+					    varIDmap.find( "ry" )->second,
+					    loc, count,
+					    &gcamn.y ) );
+	  NC_SAFE_CALL( nc_get_vara_double( ncid,
+					    varIDmap.find( "rz" )->second,
+					    loc, count,
+					    &gcamn.z ) );
+
+	  NC_SAFE_CALL( nc_get_vara_float( ncid,
+					   varIDmap.find( "origArea" )->second,
+					   loc, count,
+					   &gcamn.orig_area ) );
+	  NC_SAFE_CALL( nc_get_vara_float( ncid,
+					   varIDmap.find( "area" )->second,
+					   loc, count,
+					   &gcamn.area ) );
+	  NC_SAFE_CALL( nc_get_vara_float( ncid,
+					   varIDmap.find( "area1" )->second,
+					   loc, count,
+					   &gcamn.area1 ) );
+	  NC_SAFE_CALL( nc_get_vara_float( ncid,
+					   varIDmap.find( "area2" )->second,
+					   loc, count,
+					   &gcamn.area2 ) );
+	  
+	  NC_SAFE_CALL( nc_get_vara_text( ncid,
+					  varIDmap.find( "invalid" )->second,
+					  loc, count,
+					  &gcamn.invalid ) );
+	}
+      }
+    }
+
+    
+    NC_SAFE_CALL( nc_close( ncid ) );
+
+    cout << "complete" << endl;
+  }
+  
+
+
 
 
 private:
@@ -210,6 +339,8 @@ private:
 
 
 
+static GCAMforCMPutils myCMPutils;
+
 // ======================================================================
 
 void WriteGCAMforMetricProperties( const GCAM* src, const char* fName ) {
@@ -219,95 +350,8 @@ void WriteGCAMforMetricProperties( const GCAM* src, const char* fName ) {
     Currently uses the C API, since the C++ one doesn't seem to be available
   */
 
-  enum myVars{ rx, ry, rz, origArea, invalid, area, area1, area2 };
-
-  // Construct the filename
-  std::string fileName( fName );
-
-  fileName += ".nc";
-
-  std::cout << __FUNCTION__ << ": Writing file " << fileName << " ... ";
-  std::cout.flush();
-
-  // Reference for the file
-  int ncid;
-
-  // Open the file
-  NC_SAFE_CALL( nc_create( fileName.c_str(), NC_CLOBBER, &ncid ) );
-
-
-  // Set up the dimension references
-  int dimIDs[nDims];
-  NC_SAFE_CALL( nc_def_dim( ncid, "x", src->width, &dimIDs[iX] ) );
-  NC_SAFE_CALL( nc_def_dim( ncid, "y", src->height, &dimIDs[iY] ) );
-  NC_SAFE_CALL( nc_def_dim( ncid, "z", src->depth, &dimIDs[iZ] ) );
-
+  myCMPutils.Write( src, fName );
   
-
-  // Set up the variables
-  int varIDs[8];
-  NC_SAFE_CALL( nc_def_var( ncid, "r_x",
-			    NC_DOUBLE, nDims, dimIDs, &varIDs[rx] ) );
-  NC_SAFE_CALL( nc_def_var( ncid, "r_y",
-			    NC_DOUBLE, nDims, dimIDs, &varIDs[ry] ) );
-  NC_SAFE_CALL( nc_def_var( ncid, "r_z",
-			    NC_DOUBLE, nDims, dimIDs, &varIDs[rz] ) );
-
-  NC_SAFE_CALL( nc_def_var( ncid, "origArea",
-			    NC_FLOAT, nDims, dimIDs, &varIDs[origArea] ) );
-  NC_SAFE_CALL( nc_def_var( ncid, "area",
-			    NC_FLOAT, nDims, dimIDs, &varIDs[area] ) );
-  NC_SAFE_CALL( nc_def_var( ncid, "area1",
-			    NC_FLOAT, nDims, dimIDs, &varIDs[area1] ) );
-  NC_SAFE_CALL( nc_def_var( ncid, "area2",
-			    NC_FLOAT, nDims, dimIDs, &varIDs[area2] ) );
-
-
-  NC_SAFE_CALL( nc_def_var( ncid, "invalid",
-			    NC_CHAR, nDims, dimIDs, &varIDs[invalid] ) );
-
-
-  // Make the end of the 'definition' region
-  NC_SAFE_CALL( nc_enddef( ncid ) );
-
-
-  // Write the data (in a very ugly way)
-  for( int i=0; i<src->width; i++ ) {
-    for( int j=0; j<src->height; j++ ) {
-      for( int k=0; k<src->depth; k++ ) {
-	const GCA_MORPH_NODE& gcamn = src->nodes[i][j][k];
-	
-	const size_t count[nDims] = { 1, 1, 1};
-	const size_t loc[nDims] = { i, j, k };
-	
-	
-
-	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[rx],
-					  loc, count, &gcamn.x ) );
-	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[ry],
-					  loc, count, &gcamn.y ) );
-	NC_SAFE_CALL( nc_put_vara_double( ncid, varIDs[rz],
-					  loc, count, &gcamn.z ) );
-	
-	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[origArea],
-					 loc, count, &gcamn.orig_area ) );
-	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[area],
-					 loc, count, &gcamn.area ) );
-	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[area1],
-					 loc, count, &gcamn.area1 ) );
-	NC_SAFE_CALL( nc_put_vara_float( ncid, varIDs[area2],
-					 loc, count, &gcamn.area2 ) );
-
-	NC_SAFE_CALL( nc_put_vara_text( ncid, varIDs[invalid],
-					loc, count, &gcamn.invalid ) );
-      }
-    }
-  }
-
-  // Close the file
-  NC_SAFE_CALL( nc_close( ncid ) );
-
-  std::cout << "complete" << std::endl;
 }
 
 
@@ -319,112 +363,5 @@ void ReadGCAMforMetricProperties( GCAM** dst, const char* fName ) {
     Complement of WriteGCAMforMetricProperties
   */
 
-  if( *dst != NULL ) {
-    std::cerr << __FUNCTION__
-	      << ": dst pointer not NULL!"
-	      << std::endl;
-    exit( EXIT_FAILURE );
-  }
- 
-
-  // Construct the filename
-  std::string fileName( fName );
-
-  fileName += ".nc";
-
-  std::cout << __FUNCTION__ << ": Reading file " << fileName << " ... ";
-  std::cout.flush();
-
-  // Reference for the file
-  int ncid;
-
-  // Open the file
-  NC_SAFE_CALL( nc_open( fileName.c_str(), NC_NOWRITE, &ncid ) );
-
-  // Query number of variables and dimensions
-  int nDim, nVar;
-  NC_SAFE_CALL( nc_inq_ndims( ncid, &nDim ) );
-  NC_SAFE_CALL( nc_inq_nvars( ncid, &nVar ) );
-
-  if( nDim != 3 ) {
-    std::cerr << "Invalid number of dimensions " << nDim << std::endl;
-    exit( EXIT_FAILURE );
-  }
-
-  if( nVar != 8 ) {
-    std::cerr << "Invalid number of variables " << nVar << std::endl;
-  }
-
-  // Fetch the dimensions
-  int dimIDs[3];
-  size_t dimLen[3];
-
-  NC_SAFE_CALL( nc_inq_dimid( ncid, "x", &dimIDs[iX] ) );
-  NC_SAFE_CALL( nc_inq_dimid( ncid, "y", &dimIDs[iY] ) );
-  NC_SAFE_CALL( nc_inq_dimid( ncid, "z", &dimIDs[iZ] ) );
-
-  NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[iX], &dimLen[iX] ) );
-  NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[iY], &dimLen[iY] ) );
-  NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[iZ], &dimLen[iZ] ) );
-
-  // Allocate the target
-  *dst = GCAMalloc( dimLen[iX], dimLen[iY], dimLen[iZ] );
-  if( *dst == NULL ) {
-    std::cerr << __FUNCTION__
-	      << ": GCAMalloc failed!" << std::endl;
-    exit( EXIT_FAILURE );
-  }
-
-  // Get hold of the variable IDs
-  enum myVars{ rx, ry, rz, origArea, invalid, area, area1, area2 };
-  int varIDs[8];
-
-  NC_SAFE_CALL( nc_inq_varid( ncid, "r_x", &varIDs[rx] ) );
-  NC_SAFE_CALL( nc_inq_varid( ncid, "r_y", &varIDs[ry] ) );
-  NC_SAFE_CALL( nc_inq_varid( ncid, "r_z", &varIDs[rz] ) );
-
-  NC_SAFE_CALL( nc_inq_varid( ncid, "origArea", &varIDs[origArea] ) );
-  NC_SAFE_CALL( nc_inq_varid( ncid, "area", &varIDs[area] ) );
-  NC_SAFE_CALL( nc_inq_varid( ncid, "area1", &varIDs[area1] ) );
-  NC_SAFE_CALL( nc_inq_varid( ncid, "area2", &varIDs[area2] ) );
-
-  NC_SAFE_CALL( nc_inq_varid( ncid, "invalid", &varIDs[invalid] ) );
-
-  // Read the data element by element
-  for( int i=0; i<(*dst)->width; i++ ) {
-    for( int j=0; j<(*dst)->height; j++ ) {
-      for( int k=0; k<(*dst)->depth; k++ ) {
-	// Save some type
-	GCA_MORPH_NODE& gcamn = (*dst)->nodes[i][j][k];
-
-	const size_t count[nDims] = { 1, 1, 1};
-	const size_t loc[nDims] = { i, j, k };
-
-	NC_SAFE_CALL( nc_get_vara_double( ncid, varIDs[rx],
-					  loc, count, &gcamn.x ) );
-	NC_SAFE_CALL( nc_get_vara_double( ncid, varIDs[ry],
-					  loc, count, &gcamn.y ) );
-	NC_SAFE_CALL( nc_get_vara_double( ncid, varIDs[rz],
-					  loc, count, &gcamn.z ) );
-
-	NC_SAFE_CALL( nc_get_vara_float( ncid, varIDs[origArea],
-					 loc, count, &gcamn.orig_area ) );
-	NC_SAFE_CALL( nc_get_vara_float( ncid, varIDs[area],
-					 loc, count, &gcamn.area ) );
-	NC_SAFE_CALL( nc_get_vara_float( ncid, varIDs[area1],
-					 loc, count, &gcamn.area1 ) );
-	NC_SAFE_CALL( nc_get_vara_float( ncid, varIDs[area2],
-					 loc, count, &gcamn.area2 ) );
-
-	NC_SAFE_CALL( nc_get_vara_text( ncid, varIDs[invalid],
-					loc, count, &gcamn.invalid ) );
-	
-      }
-    }
-  }
-
-
-  NC_SAFE_CALL( nc_close( ncid ) );
-
-  std::cout << "complete" << std::endl;
+  myCMPutils.Read( dst, fName );
 }
