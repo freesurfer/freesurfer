@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/10 22:32:20 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/03/11 03:57:36 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -325,8 +325,10 @@ static void gifti_set_DA_value_2D (giiDataArray* da,
 
 
 
-/*-----------------------------------------------------
+/*-------------------------------------------------------------------
   Parameters:    input file name of GIFTI file
+                 optional mris structure to store data found
+                 optional data array number to read
 
   Returns value: freesurfer surface structure
 
@@ -334,8 +336,10 @@ static void gifti_set_DA_value_2D (giiDataArray* da,
                  and faces into an MRIS_SURFACE structure,
                  along with any other data, like labels,
                  colors, curv data, stats or values.
-  ------------------------------------------------------*/
-MRI_SURFACE * mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris)
+                 if daNum is not -1, then read only the 
+                 data in data array number daNum
+  -------------------------------------------------------------------*/
+MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
 {
   /* 
    * attempt to read the file
@@ -402,7 +406,7 @@ MRI_SURFACE * mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris)
     strncpy(ct->fname, fname, sizeof(ct->fname));
 
     float* rgba = image->labeltable.rgba;
-    if (NULL != rgba)
+    if (NULL == rgba)
     {
       // optional rgba values are missing, so we must create colors for 
       // the labels
@@ -684,7 +688,14 @@ MRI_SURFACE * mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris)
    * Now re-parse the DataArrays looking for all the other data type (except
    * coordinate and face data arrays) and fill-in  mris structure as needed.
    */
-  for (numDA = 0; numDA < image->numDA; numDA++)
+  int startDAnum = 0;
+  int endDAnum = image->numDA;
+  if (daNum != -1)
+  {
+    startDAnum = daNum;
+    endDAnum = daNum+1;
+  }
+  for (numDA = startDAnum; numDA < endDAnum; numDA++)
   {
     giiDataArray* darray = image->darray[numDA];
 
@@ -882,6 +893,12 @@ MRI_SURFACE * mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris)
   gifti_free_image (image);
 
   return mris;
+}
+
+MRI_SURFACE * mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris)
+{
+  // default read routine (read all data arrays)
+  return mrisReadGIFTIdanum(fname, mris, -1);
 }
 
 

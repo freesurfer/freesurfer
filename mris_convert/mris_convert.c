@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/10 22:32:20 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/03/11 03:57:36 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.33 2010/03/10 22:32:20 nicks Exp $";
+"$Id: mris_convert.c,v 1.34 2010/03/11 03:57:36 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 
@@ -79,6 +79,7 @@ static int func_file_flag = 0 ;
 static char *func_fname ;
 static int annot_file_flag = 0 ;
 static char *annot_fname ;
+static int gifti_da_num = -1;
 static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
@@ -101,7 +102,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.33 2010/03/10 22:32:20 nicks Exp $",
+     "$Id: mris_convert.c,v 1.34 2010/03/11 03:57:36 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -225,7 +226,7 @@ main(int argc, char *argv[]) {
     if (type == MRIS_ANNOT_FILE) {
       if (MRISreadAnnotation(mris, annot_fname) != NO_ERROR) exit(1);
     } else if (type == MRIS_GIFTI_FILE) {
-      if (NULL == mrisReadGIFTIfile(annot_fname, mris)) exit(1);
+      if (NULL == mrisReadGIFTIdanum(annot_fname, mris, gifti_da_num)) exit(1);
     } else {
       printf("ERROR: unknown file annot file type specified for --annot: "
              "%s\n",annot_fname);
@@ -304,6 +305,10 @@ get_option(int argc, char *argv[]) {
   else if (!stricmp(option, "-annot")) {
     annot_fname = argv[2] ;
     annot_file_flag = 1;
+    nargs = 1 ;
+  }
+  else if (!stricmp(option, "-da_num")) {
+    sscanf(argv[2],"%d",&gifti_da_num);
     nargs = 1 ;
   }
   else switch (toupper(*option)) {
@@ -388,6 +393,8 @@ print_help(void) {
   printf( "  -f <scalar file>  input is functional time-series or other\n"
           "                    multi-frame data (must specify surface)\n") ;
   printf( "  --annot <annot file> input is annotation or gifti label data\n") ;
+  printf( "  --da_num <num>    if input is gifti, 'num' specifies which\n"
+          "                    data array to use\n");
   printf( "  -o origname       read orig positions\n") ;
   printf( "  -s scale          scale vertex xyz by scale\n") ;
   printf( "  -r                rescale vertex xyz so total area is\n"
