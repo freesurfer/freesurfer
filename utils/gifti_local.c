@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/11 03:57:36 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/03/11 22:02:59 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -69,19 +69,37 @@ static giiDataArray* gifti_alloc_and_add_darray (gifti_image* image)
 static double gifti_get_DA_value_2D (giiDataArray* da, int row, int col)
 {
   int dim0_index, dim1_index;
+  int dims_0=0, dims_1=0;
 
   if (!da || !da->data)
   {
     fprintf (stderr,"** gifti_get_DA_value_2D, invalid params: data=%p\n",
              da);
-    return 0;
+    exit(1);
   }
 
-  if (da->num_dim != 2)
+  if (da->num_dim == 1)
+  {
+    // support for using this routine to read 1D data, under one condition...
+    if (col != 0)
+    {
+      fprintf (stderr,"** gifti_get_DA_value_2D, array dim is 1 "
+               "but trying to access 2D data element (col=%d)\n",col);
+      exit(1);
+    }
+    dims_0 = da->dims[0];
+    dims_1 = 1; // 1D data
+  }
+  else if (da->num_dim != 2)
   {
     fprintf (stderr,"** gifti_get_DA_value_2D, array dim is %d\n",
              da->num_dim);
-    return 0;
+    exit(1);
+  }
+  else
+  {
+    dims_0 = da->dims[0];
+    dims_1 = da->dims[1];
   }
 
   /* Get the dim0 and dims[1] indices based on our order. */
@@ -99,17 +117,22 @@ static double gifti_get_DA_value_2D (giiDataArray* da, int row, int col)
   {
     fprintf (stderr,"** gifti_get_DA_value_2D, unknown ind_ord: %d\n",
              da->ind_ord);
-    return 0;
+    exit(1);
+  }
+  if (da->num_dim == 1) // support for using this routine to read 1D data
+  {
+    dim0_index = row;
+    dim1_index = col;
   }
 
   /* Check the indices. */
-  if (dim0_index < 0 || dim0_index >= da->dims[0] ||
-      dim1_index < 0 || dim1_index >= da->dims[1])
+  if (dim0_index < 0 || dim0_index >= dims_0 ||
+      dim1_index < 0 || dim1_index >= dims_1)
   {
     fprintf(stderr,"** gifti_get_DA_value_2D, invalid params: "
             "dim0_index=%d (max=%d), dim1_index=%d (max=%d)\n",
-            dim0_index, da->dims[0], dim1_index, da->dims[1]);
-    return 0;
+            dim0_index, dims_0, dim1_index, dims_1);
+    exit(1);
   }
 
   /* Switch on the data type and return the appropriate
@@ -119,80 +142,80 @@ static double gifti_get_DA_value_2D (giiDataArray* da, int row, int col)
   default :
     fprintf(stderr,"** gifti_get_DA_value_2D, unsupported type %d-"
             "unknown, or can't convert to double\n",da->datatype);
-    return 0;
+    exit(1);
   case NIFTI_TYPE_UINT8:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
       return (double)*((unsigned char*)
-                       (da->data) + (dim0_index*da->dims[1]) + dim1_index);
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
     else
-      return (double)*((unsigned char*)
-                       (da->data) + dim0_index + (dim1_index*da->dims[0]));
+                              return (double)*((unsigned char*)
+                       (da->data) + dim0_index + (dim1_index*dims_0));
     break;
   }
   case NIFTI_TYPE_INT16:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
       return (double)*((short*)
-                       (da->data) + (dim0_index*da->dims[1]) + dim1_index);
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
     else
       return (double)*((short*)
-                       (da->data) + dim0_index + (dim1_index*da->dims[0]));
+                       (da->data) + dim0_index + (dim1_index*dims_0));
     break;
   }
   case NIFTI_TYPE_INT32:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
       return (double)*((int*)
-                       (da->data) + (dim0_index*da->dims[1]) + dim1_index);
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
     else
       return (double)*((int*)
-                       (da->data) + dim0_index + (dim1_index*da->dims[0]));
+                       (da->data) + dim0_index + (dim1_index*dims_0));
     break;
   }
   case NIFTI_TYPE_FLOAT32:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
       return (double)*((float*)
-                       (da->data) + (dim0_index*da->dims[1]) + dim1_index);
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
     else
       return (double)*((float*)
-                       (da->data) + dim0_index + (dim1_index*da->dims[0]));
+                       (da->data) + dim0_index + (dim1_index*dims_0));
     break;
   }
   case NIFTI_TYPE_INT8:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
       return (double)*((char*)
-                       (da->data) + (dim0_index*da->dims[1]) + dim1_index);
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
     else
       return (double)*((char*)
-                       (da->data) + dim0_index + (dim1_index*da->dims[0]));
+                       (da->data) + dim0_index + (dim1_index*dims_0));
     break;
   }
   case NIFTI_TYPE_UINT16:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
       return (double)*((unsigned short*)
-                       (da->data) + (dim0_index*da->dims[1]) + dim1_index);
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
     else
       return (double)*((unsigned short*)
-                       (da->data) + dim0_index + (dim1_index*da->dims[0]));
+                       (da->data) + dim0_index + (dim1_index*dims_0));
     break;
   }
   case NIFTI_TYPE_UINT32:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
       return (double)*((unsigned int*)
-                       (da->data) + (dim0_index*da->dims[1]) + dim1_index);
+                       (da->data) + (dim0_index*dims_1) + dim1_index);
     else
       return (double)*((unsigned int*)
-                       (da->data) + dim0_index + (dim1_index*da->dims[0]));
+                       (da->data) + dim0_index + (dim1_index*dims_0));
     break;
   }
   }
 
-  return 0;
+  exit(1);
 }
 
 
@@ -203,19 +226,37 @@ static void gifti_set_DA_value_2D (giiDataArray* da,
                                    int row, int col, double value)
 {
   int dim0_index, dim1_index;
+  int dims_0=0, dims_1=0;
 
   if (!da || !da->data)
   {
     fprintf (stderr,"** gifti_set_DA_value_2D, invalid params: data=%p\n",
              da);
-    return;
+    exit(1);
   }
 
-  if (da->num_dim != 2)
+  if (da->num_dim == 1)
+  {
+    // support for using this routine to write 1D data, under one condition...
+    if (col != 0)
+    {
+      fprintf (stderr,"** gifti_set_DA_value_2D, array dim is 1 "
+               "but trying to access 2D data element (col=%d)\n",col);
+      exit(1);
+    }
+    dims_0 = da->dims[0];
+    dims_1 = 1; // 1D data
+  }
+  else if (da->num_dim != 2)
   {
     fprintf (stderr,"** gifti_set_DA_value_2D, array dim is %d\n",
              da->num_dim);
-    return;
+    exit(1);
+  }
+  else
+  {
+    dims_0 = da->dims[0];
+    dims_1 = da->dims[1];
   }
 
   /* Get the dim0 and dims[1] indices based on our order. */
@@ -229,14 +270,19 @@ static void gifti_set_DA_value_2D (giiDataArray* da,
     dim0_index = col;
     dim1_index = row;
   }
+  if (da->num_dim == 1) // support for using this routine to read 1D data
+  {
+    dim0_index = row;
+    dim1_index = col;
+  }
 
   /* Check the indices. */
-  if (dim0_index < 0 || dim0_index >= da->dims[0] ||
-      dim1_index < 0 || dim1_index >= da->dims[1])
+  if (dim0_index < 0 || dim0_index >= dims_0 ||
+      dim1_index < 0 || dim1_index >= dims_1)
   {
     fprintf(stderr,"** gifti_set_DA_value_2D, invalid params: "
             "dim0_index=%d (max=%d), dim1_index=%d (max=%d)\n",
-            dim0_index, da->dims[0], dim1_index, da->dims[1]);
+            dim0_index, dims_0, dim1_index, dims_1);
     return;
   }
 
@@ -251,70 +297,70 @@ static void gifti_set_DA_value_2D (giiDataArray* da,
   case NIFTI_TYPE_UINT8:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
-      *((unsigned char*)(da->data) + (dim0_index*da->dims[1]) + dim1_index) =
+      *((unsigned char*)(da->data) + (dim0_index*dims_1) + dim1_index) =
         (unsigned char)value;
     else
-      *((unsigned char*)(da->data) + dim0_index + (dim1_index*da->dims[0])) =
+      *((unsigned char*)(da->data) + dim0_index + (dim1_index*dims_0)) =
         (unsigned char)value;
     break;
   }
   case NIFTI_TYPE_INT16:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
-      *((short*)(da->data) + (dim0_index*da->dims[1]) + dim1_index) =
+      *((short*)(da->data) + (dim0_index*dims_1) + dim1_index) =
         (short)value;
     else
-      *((short*)(da->data) + dim0_index + (dim1_index*da->dims[0])) =
+      *((short*)(da->data) + dim0_index + (dim1_index*dims_0)) =
         (short)value;
     break;
   }
   case NIFTI_TYPE_INT32:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
-      *((int*)(da->data) + (dim0_index*da->dims[1]) + dim1_index) =
+      *((int*)(da->data) + (dim0_index*dims_1) + dim1_index) =
         (int)value;
     else
-      *((int*)(da->data) + dim0_index + (dim1_index*da->dims[0])) =
+      *((int*)(da->data) + dim0_index + (dim1_index*dims_0)) =
         (int)value;
     break;
   }
   case NIFTI_TYPE_FLOAT32:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
-      *((float*)(da->data) + (dim0_index*da->dims[1]) + dim1_index) =
+      *((float*)(da->data) + (dim0_index*dims_1) + dim1_index) =
         (float)value;
     else
-      *((float*)(da->data) + dim0_index + (dim1_index*da->dims[0])) =
+      *((float*)(da->data) + dim0_index + (dim1_index*dims_0)) =
         (float)value;
     break;
   }
   case NIFTI_TYPE_INT8:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
-      *((char*)(da->data) + (dim0_index*da->dims[1]) + dim1_index) =
+      *((char*)(da->data) + (dim0_index*dims_1) + dim1_index) =
         (char)value;
     else
-      *((char*)(da->data) + dim0_index + (dim1_index*da->dims[0])) =
+      *((char*)(da->data) + dim0_index + (dim1_index*dims_0)) =
         (char)value;
     break;
   }
   case NIFTI_TYPE_UINT16:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
-      *((unsigned short*)(da->data) + (dim0_index*da->dims[1]) + dim1_index) =
+      *((unsigned short*)(da->data) + (dim0_index*dims_1) + dim1_index) =
         (unsigned short)value;
     else
-      *((unsigned short*)(da->data) + dim0_index + (dim1_index*da->dims[0])) =
+      *((unsigned short*)(da->data) + dim0_index + (dim1_index*dims_0)) =
         (unsigned short)value;
     break;
   }
   case NIFTI_TYPE_UINT32:
   {
     if ( GIFTI_IND_ORD_ROW_MAJOR == da->ind_ord )
-      *((unsigned int*)(da->data) + (dim0_index*da->dims[1]) + dim1_index) =
+      *((unsigned int*)(da->data) + (dim0_index*dims_1) + dim1_index) =
         (unsigned int)value;
     else
-      *((unsigned int*)(da->data) + dim0_index + (dim1_index*da->dims[0])) =
+      *((unsigned int*)(da->data) + dim0_index + (dim1_index*dims_0)) =
         (unsigned int)value;
     break;
   }
@@ -390,10 +436,10 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
       return NULL;
     }
     memset(ct,0,sizeof(COLOR_TABLE));
-    ct->nentries = image->labeltable.length + 1;
+    ct->nentries = image->labeltable.length;
     ct->version = 2;
     ct->entries = (COLOR_TABLE_ENTRY**)
-      calloc(ct->nentries, sizeof(COLOR_TABLE_ENTRY*));
+      calloc(ct->nentries+1, sizeof(COLOR_TABLE_ENTRY*));
     if (ct->entries == NULL)
     {
       fprintf 
@@ -686,11 +732,15 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
 
   /*
    * Now re-parse the DataArrays looking for all the other data type (except
-   * coordinate and face data arrays) and fill-in  mris structure as needed.
+   * coordinate and face data arrays) and fill-in mris structure as needed.
    */
+  int found_curv_data = 0; // track if multiple shape data arrays exist
+  int found_statval_data = 0; // track if multiple stat/val data arrays exist
+  giiDataArray* node_index = NULL; // support for sparse data storage
+  long long num_index_nodes = 0; // support for sparse data storage
   int startDAnum = 0;
   int endDAnum = image->numDA;
-  if (daNum != -1)
+  if (daNum != -1) // support for extracting one particular data array
   {
     startDAnum = daNum;
     endDAnum = daNum+1;
@@ -699,42 +749,112 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
   {
     giiDataArray* darray = image->darray[numDA];
 
+    // did these already
     if ((darray->intent == NIFTI_INTENT_POINTSET) ||
         (darray->intent == NIFTI_INTENT_TRIANGLE)) continue;
 
-    /* Check the number of vertices */
-    long long num_vertices = 0;
-    long long num_cols = 0;
-    long long expected_num_cols = 1;
-    if (darray->intent == NIFTI_INTENT_VECTOR) expected_num_cols = 3;
-    else if (darray->intent == NIFTI_INTENT_RGB_VECTOR) expected_num_cols = 3;
-    else if (darray->intent == NIFTI_INTENT_RGBA_VECTOR) expected_num_cols = 4;
-    else if (darray->intent == NIFTI_INTENT_GENMATRIX) expected_num_cols = 9;
-    gifti_DA_rows_cols (darray, &num_vertices, &num_cols);
-    if (num_vertices <= 0 ||
-        num_vertices != mris->nvertices ||
-        num_cols != expected_num_cols)
+    /* support for sparse data storage.  this array contains a list of node 
+       numbers and it should be the first data array in the file. The remaining
+       data arrays in the file that contain data assigned to nodes must contain
+       the same number of elements as the NIFTI_INTENT_NODE_INDEX array. */
+    if (darray->intent == NIFTI_INTENT_NODE_INDEX)
     {
-      fprintf 
-        (stderr,
-         "mrisReadGIFTIfile: malformed data array [%d] in file %s: "
-         "num_vertices=%d num_cols=%d expected nvertices=%d, num_cols=%d\n",
-         numDA, fname, (int)num_vertices, 
-         (int)num_cols, mris->nvertices, (int)expected_num_cols);
-      gifti_free_image (image);
-      return NULL;
+      if (numDA != 0)
+      {
+        fprintf 
+          (stderr,
+           "mrisReadGIFTIfile: NODE_INDEX data array found but its not the "
+           "first data array in file %s\n", fname);
+        gifti_free_image (image);
+        return NULL;
+      }
+      long long num_cols = 0;
+      gifti_DA_rows_cols (darray, &num_index_nodes, &num_cols);
+      if (num_index_nodes <= 0 ||
+          num_index_nodes > mris->nvertices ||
+          num_cols > 1)
+      {
+        fprintf 
+          (stderr,
+           "mrisReadGIFTIfile: malformed NODE_INDEX data array in file %s: "
+           "num_index_nodes=%d num_cols=%d max nvertices=%d, num_cols>1\n",
+           fname, (int)num_index_nodes, (int)num_cols, mris->nvertices);
+        gifti_free_image (image);
+        return NULL;
+      }
+      // else good to do, so store this node index info
+      node_index = darray;
+      continue;
+    }
+    else
+    {
+      /* Check the number of vertices, so we dont trounce the mris struct */
+      long long num_vertices = 0;
+      long long num_cols = 0;
+      long long expected_num_cols = 1;
+      if (darray->intent == NIFTI_INTENT_VECTOR)
+        expected_num_cols = 3;
+      else if (darray->intent == NIFTI_INTENT_RGB_VECTOR)
+        expected_num_cols = 3;
+      else if (darray->intent == NIFTI_INTENT_RGBA_VECTOR)
+        expected_num_cols = 4;
+      else if (darray->intent == NIFTI_INTENT_GENMATRIX)
+        expected_num_cols = 9;
+      gifti_DA_rows_cols (darray, &num_vertices, &num_cols);
+      if (num_vertices <= 0 ||
+          num_vertices != mris->nvertices ||
+          num_cols > expected_num_cols)
+      {
+        fprintf 
+          (stderr,
+           "mrisReadGIFTIfile: malformed data array [%d] in file %s: "
+           "num_vertices=%d num_cols=%d expected nvertices=%d, num_cols=%d\n",
+           numDA, fname, (int)num_vertices, 
+           (int)num_cols, mris->nvertices, (int)expected_num_cols);
+        gifti_free_image (image);
+        return NULL;
+      }
     }
 
-    /* parse each intent type */
+
+    /* 
+     * parse each intent type 
+     */
     if (darray->intent == NIFTI_INTENT_SHAPE)
     {
       // 'shape' data goes in our 'curv' data element of mris
-      int vno;
-      for (vno = 0; vno < mris->nvertices; vno++)
+      if (found_curv_data)
       {
-        if (mris->vertices[vno].ripflag) continue;
-        mris->vertices[vno].curv = 
-          (float) gifti_get_DA_value_2D (darray, vno, 0);
+        fprintf(stderr,
+                "WARNING: a prior data array of shape data has already "
+                "been read!  Skipping data in array #%d in file %s\n",
+                numDA, fname);
+      }
+      else
+      {
+        found_curv_data++;
+
+        if (node_index) // sparse data storage
+        {
+          int nindex;
+          for (nindex = 0; nindex < num_index_nodes; nindex++)
+          {
+            int vno = gifti_get_DA_value_2D (node_index, nindex, 0);
+            if (mris->vertices[vno].ripflag) continue;
+            mris->vertices[vno].curv = 
+              (float) gifti_get_DA_value_2D (darray, nindex, 0);
+          }
+        }
+        else // regular indexing
+        {
+          int vno;
+          for (vno = 0; vno < mris->nvertices; vno++)
+          {
+            if (mris->vertices[vno].ripflag) continue;
+            mris->vertices[vno].curv = 
+              (float) gifti_get_DA_value_2D (darray, vno, 0);
+          }
+        }
       }
     }
     else if (darray->intent == NIFTI_INTENT_LABEL)
@@ -747,11 +867,23 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
         return NULL;
       }
       unsigned int* label_data = darray->data;
-      int vno;
-      for (vno = 0; vno < mris->nvertices; vno++)
+      int nindex = 0; // index into node_index (if sparse data storage is used)
+      int da_index = 0; // index into the data array at hand
+      int vno = 0; // index into the mris struct (vertex number)
+      while (vno < mris->nvertices)
       {
+        if (node_index) // sparse data storage support
+        {
+          vno = gifti_get_DA_value_2D (node_index, nindex, 0);
+          da_index = nindex;
+        }
+        else // regular indexing
+        {
+          da_index = vno;
+        }
+
         if (mris->vertices[vno].ripflag) continue;
-        int table_key = *(label_data + vno);
+        int table_key = *(label_data + da_index);
         int table_index;
         for (table_index = 0; table_index < ct->nentries; table_index++)
         {
@@ -794,39 +926,15 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
           gifti_free_image (image);
           return NULL;
         }
-      }
-    }
-    else if ((darray->intent == NIFTI_INTENT_CORREL) ||
-             (darray->intent == NIFTI_INTENT_TTEST) ||
-             (darray->intent == NIFTI_INTENT_FTEST) ||
-             (darray->intent == NIFTI_INTENT_ZSCORE) ||
-             (darray->intent == NIFTI_INTENT_CHISQ) ||
-             (darray->intent == NIFTI_INTENT_BETA) ||
-             (darray->intent == NIFTI_INTENT_BINOM) ||
-             (darray->intent == NIFTI_INTENT_GAMMA) ||
-             (darray->intent == NIFTI_INTENT_POISSON) ||
-             (darray->intent == NIFTI_INTENT_FTEST_NONC) ||
-             (darray->intent == NIFTI_INTENT_CHISQ_NONC) ||
-             (darray->intent == NIFTI_INTENT_LOGISTIC) ||
-             (darray->intent == NIFTI_INTENT_LAPLACE) ||
-             (darray->intent == NIFTI_INTENT_UNIFORM) ||
-             (darray->intent == NIFTI_INTENT_TTEST_NONC) ||
-             (darray->intent == NIFTI_INTENT_WEIBULL) ||
-             (darray->intent == NIFTI_INTENT_CHI) ||
-             (darray->intent == NIFTI_INTENT_INVGAUSS) ||
-             (darray->intent == NIFTI_INTENT_EXTVAL) ||
-             (darray->intent == NIFTI_INTENT_PVAL) ||
-             (darray->intent == NIFTI_INTENT_LOGPVAL) ||
-             (darray->intent == NIFTI_INTENT_LOG10PVAL) ||
-             (darray->intent == NIFTI_INTENT_ESTIMATE))
-    {
-      // statistics data goes in our 'stats' data element in mris struct
-      int vno;
-      for (vno = 0; vno < mris->nvertices; vno++)
-      {
-        if (mris->vertices[vno].ripflag) continue;
-        mris->vertices[vno].stat = 
-          (float) gifti_get_DA_value_2D (darray, vno, 0);
+
+        if (node_index) // sparse data storage support
+        {
+          if (++nindex >= num_index_nodes) break;
+        }
+        else // regular indexing
+        {
+          vno++;
+        }
       }
     }
     else if (darray->intent == NIFTI_INTENT_VECTOR)
@@ -872,17 +980,48 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     {
       fprintf(stderr,
               "WARNING: ignoring unsupported data array NIFTI_INTENT_GENMATRIX"
-              "in file %s\n", fname);
+              " in file %s\n", fname);
     }
     else
     {
-      // all other kinds of data we'll put in our 'val' data element
-      int vno;
-      for (vno = 0; vno < mris->nvertices; vno++)
+      // 'statistics' and all other kinds of data we'll put in both our 
+      // 'stat' and 'val' data elements of the mris structure
+      if (found_statval_data)
       {
-        if (mris->vertices[vno].ripflag) continue;
-        mris->vertices[vno].val = 
-          (float) gifti_get_DA_value_2D (darray, vno, 0);
+        fprintf(stderr,
+                "WARNING: a prior data array of stat/val data has already "
+                "been read!  Skipping data in array #%d in file %s\n",
+                numDA, fname);
+      }
+      else
+      {
+        found_statval_data++;
+
+        if (node_index) // sparse data storage
+        {
+          int nindex;
+          for (nindex = 0; nindex < num_index_nodes; nindex++)
+          {
+            int vno = gifti_get_DA_value_2D (node_index, nindex, 0);
+            if (mris->vertices[vno].ripflag) continue;
+            mris->vertices[vno].val = 
+              (float) gifti_get_DA_value_2D (darray, nindex, 0);
+            mris->vertices[vno].stat = 
+              (float) gifti_get_DA_value_2D (darray, nindex, 0);
+          }
+        }
+        else // regular indexing
+        {
+          int vno;
+          for (vno = 0; vno < mris->nvertices; vno++)
+          {
+            if (mris->vertices[vno].ripflag) continue;
+            mris->vertices[vno].val = 
+              (float) gifti_get_DA_value_2D (darray, vno, 0);
+            mris->vertices[vno].stat = 
+              (float) gifti_get_DA_value_2D (darray, vno, 0);
+          }
+        }
       }
     }
   }
@@ -1354,9 +1493,9 @@ int MRISwriteScalarGIFTI(MRIS* mris,
   scalars->intent = NIFTI_INTENT_SHAPE;
   scalars->datatype = NIFTI_TYPE_FLOAT32;
   scalars->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
-  scalars->num_dim = 2;
+  scalars->num_dim = 1;
   scalars->dims[0] = mris->nvertices;
-  scalars->dims[1] = 1;
+  scalars->dims[1] = 0;
   scalars->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   scalars->endian = GIFTI_ENDIAN_LITTLE;
@@ -1475,9 +1614,9 @@ int mriWriteGifti(MRI* mri, const char *fname)
     }
     scalars->datatype = NIFTI_TYPE_FLOAT32;
     scalars->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
-    scalars->num_dim = 2;
+    scalars->num_dim = 1;
     scalars->dims[0] = mri->width;
-    scalars->dims[1] = 1;
+    scalars->dims[1] = 0;
     scalars->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
 #if (BYTE_ORDER == LITTLE_ENDIAN)
     scalars->endian = GIFTI_ENDIAN_LITTLE;
@@ -1629,11 +1768,11 @@ int MRISwriteLabelTableGIFTI(MRI_SURFACE *mris, const char *fname)
 
   /* Set its attributes. */
   labels->intent = NIFTI_INTENT_LABEL;
-  labels->datatype = NIFTI_TYPE_UINT32;
+  labels->datatype = NIFTI_TYPE_INT32;
   labels->ind_ord = GIFTI_IND_ORD_ROW_MAJOR;
   labels->num_dim = 1;
   labels->dims[0] = mris->nvertices;
-  labels->dims[1] = 1;
+  labels->dims[1] = 0;
   labels->encoding = GIFTI_ENCODING_B64GZ; // data stored in gzip'd base64
 #if (BYTE_ORDER == LITTLE_ENDIAN)
   labels->endian = GIFTI_ENDIAN_LITTLE;
