@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/12 15:37:44 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/12 15:38:11 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,8 @@
 
 #include <string>
 #include <map>
+#include <iostream>
+#include <cstdlib>
 
 #include <netcdf.h>
 
