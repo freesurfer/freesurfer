@@ -10,8 +10,8 @@
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/12 16:55:36 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/12 23:23:05 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2004-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -172,13 +172,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.28 2010/03/12 16:55:36 fischl Exp $",
+   "$Id: mri_cc.c,v 1.29 2010/03/12 23:23:05 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.28 2010/03/12 16:55:36 fischl Exp $",
+           "$Id: mri_cc.c,v 1.29 2010/03/12 23:23:05 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1942,7 +1942,7 @@ cc_cutting_plane_correct(MRI *mri_aseg, double x0, double y0, double z0,
 static MRI *
 remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
 {
-  int xmin, xmax, x, y, edges_found, val, last_val, i, x1, changed, found ;
+  int xmin, xmax, x, y, edges_found, val, last_val, i, x1, changed, found,ymax;
   MRI_SEGMENTATION *mseg ;
   MRI              *mri_tmp ;
 
@@ -1951,7 +1951,7 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
 
   // find posterior/anterior extent of the cc
   xmin = mri_slice->width ;
-  xmax =  0 ;
+  ymax = xmax =  0 ;
   for (x = 0 ; x < mri_slice->width; x++)
   {
     for (y = 0 ; y < mri_slice->height; y++)
@@ -1962,6 +1962,8 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
           xmin = x ;
         if (x > xmax)
           xmax = x ;
+        if (y > ymax)
+          ymax = y ;
       }
     }
   }
@@ -2092,6 +2094,20 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
       MRIwrite(mri_slice, "s.mgz") ;
       MRIwrite(mri_slice_edited, "ed.mgz") ;
     }
+
+    // add back stuff that is directly anterior to real CC
+    for (x = xmin ; x <= xmax ; x++)
+      for (y = ymax-10 ; y <= ymax ; y++)
+      {
+        if (MRIvox(mri_slice_edited, x, y, 0) != LABEL_ERASE)
+          continue ;
+        if ((MRIvox(mri_slice_edited, x-1, y, 0) == LABEL_IN_CC) &&
+            (MRIvox(mri_slice_edited, x-2, y, 0) == LABEL_IN_CC) &&
+            (MRIvox(mri_slice_edited, x-3, y, 0) == LABEL_IN_CC))
+          MRIvox(mri_slice_edited, x, y, 0) = LABEL_IN_CC ;
+      }
+
+
     for (x = xmin ; x <= xmax ; x++)
     {
       int val2, y1 ;
