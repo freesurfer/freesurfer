@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/11 16:57:23 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/12 15:37:44 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,22 @@
 
 
 #include "gcamorph.h"
+
+// ======================================================================
+
+#define NC_SAFE_CALL( call ) do {		\
+    int err = call;				\
+    if( NC_NOERR != err ) {			\
+      std::cerr << __FUNCTION__ \
+		<< ": NetCDF failure on line " << __LINE__	\
+		<< " of file " << __FILE__			\
+		<< std::endl;					\
+      std::cerr << "Error code was " << err << std::endl;	\
+      std::cerr << "Error string was : " << nc_strerror(err)	\
+		<< std::endl;					\
+      exit( EXIT_FAILURE );					\
+    }								\
+  } while ( 0 );
 
 // ======================================================================
 
