@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/02/27 01:42:19 $
-#    $Revision: 1.466 $
+#    $Author: rge21 $
+#    $Date: 2010/03/12 20:00:03 $
+#    $Revision: 1.467 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3225,7 +3225,8 @@ AC_OUTPUT([Makefile
            qdec_glmfit/Makefile
            qdecproject/Makefile
            vtkfsio/Makefile
-           vtkutils/Makefile])
+           vtkutils/Makefile
+	   cudatest/Makefile])
 
 ########################################################################
 
