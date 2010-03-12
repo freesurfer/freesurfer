@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/12 17:15:39 $
-#    $Revision: 1.284 $
+#    $Date: 2010/03/12 17:24:19 $
+#    $Revision: 1.285 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -21,13 +21,12 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.284 2010/03/12 17:15:39 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.285 2010/03/12 17:24:19 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1075,6 +1074,18 @@ if($DoTalairach) then
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
+
+  if( -e $xfm && ! $DoCleanTal) then
+    echo "\nINFO: $xfm already exists!" \
+        |& tee -a $LF |& tee -a $CF
+    echo "The new $xfma will not be copied to $xfm" \
+        |& tee -a $LF |& tee -a $CF
+    echo "This is done to retain any edits made to $xfm" \
+        |& tee -a $LF |& tee -a $CF
+    echo "Add the -clean-tal flag to recon-all to overwrite $xfm\n" \
+        |& tee -a $LF |& tee -a $CF
+  endif
+
   if($DoCleanTal || ! -e $xfm) then
     if(-e $xfm) cp $xfm transforms/bak/talairach.xfm.$DateString
     set cmd = (cp $xfma $xfm)
