@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 21:54:02 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/03/12 18:26:07 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -58,6 +58,7 @@ class FSVolume;
 class wxWindow;
 class wxCommandEvent;
 class BuildContourThread;
+class Contour2D;
 
 class LayerMRI : public LayerVolumeBase
 {
@@ -178,6 +179,8 @@ public:
   void GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out );
   
   vtkImageData* GetSliceImageData( int nPlane );
+  
+  bool FloodFillByContour2D( double* ras, Contour2D* c2d );
   
 protected:
   virtual void SetModified();

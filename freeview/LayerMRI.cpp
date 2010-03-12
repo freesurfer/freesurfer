@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/10 21:40:06 $
- *    $Revision: 1.58 $
+ *    $Date: 2010/03/12 18:26:07 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -63,7 +63,7 @@
 #include "MainWindow.h"
 #include "vtkMath.h"
 #include "BuildContourThread.h"
-
+#include "Contour2D.h"
 
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
@@ -1649,4 +1649,97 @@ vtkImageData* LayerMRI::GetSliceImageData( int nPlane )
   return mReslice[nPlane]->GetOutput();
 }
 
+bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
+{
+  int nPlane = c2d->GetPlane();
+  vtkImageData* image = c2d->GetThresholdedImage();
+  vtkImageData* original_image = GetSliceImageData( nPlane );
+  int* nDim = image->GetDimensions();      // 2D image
+  int n[3];
+  double* origin = m_imageData->GetOrigin();
+  double* voxel_size = m_imageData->GetSpacing();
+  for ( int i = 0; i < 3; i++ )
+    n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
+  int nx = nDim[0], ny = nDim[1], x = 0, y = 0;
+  switch ( nPlane )
+  {
+    case 0:
+      x = nx-n[1]-1;
+      y = n[2];
+      break;
+    case 1:
+      x = n[0];
+      y = n[2];
+      break;
+    case 2:
+      x = n[0];
+      y = n[1];
+      break;
+  }
+  
+  char* mask = new char[nDim[0]*nDim[1]];
+  memset( mask, 0, nDim[0]*nDim[1] );
+  double dVoxelValue = original_image->GetScalarComponentAsDouble( x, y, 0, 0 );
+  double dMaskValue = image->GetScalarComponentAsDouble( x, y, 0, 0 );
+  for ( int i = 0; i < nDim[0]; i++ )
+  {
+    for ( int j = 0; j < nDim[1]; j++ )
+    {
+      if ( original_image->GetScalarComponentAsDouble( i, j, 0, 0 ) == dVoxelValue &&
+           image->GetScalarComponentAsDouble( i, j, 0, 0 ) == dMaskValue )
+        mask[j*nDim[0]+i] = 1;
+    }
+  }
+  
+  int nFillValue = 2;  
+  MyUtils::FloodFill( mask, x, y, nx, ny, nFillValue, 0 ); 
+  
+  int nActiveComp = this->GetActiveFrame();
+  int cnt = 0;
+  switch ( nPlane )
+  {
+    case 0:
+      for ( int i = 0; i < nx; i++ )
+      {
+        for ( int j = 0; j < ny; j++ )
+        {
+          if ( mask[j*nx+i] == nFillValue )
+          {
+            m_imageData->SetScalarComponentFromFloat( n[nPlane], nx-i-1, j, nActiveComp, m_fFillValue );
+            cnt++;
+          }
+        }
+      }
+      break;
+    case 1:
+      for ( int i = 0; i < nx; i++ )
+      {
+        for ( int j = 0; j < ny; j++ )
+        {
+          if ( mask[j*nx+i] == nFillValue )
+          {
+            m_imageData->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, m_fFillValue );
+            cnt++;
+          }
+        }
+      }
+      break;
+    case 2:
+      for ( int i = 0; i < nx; i++ )
+      {
+        for ( int j = 0; j < ny; j++ )
+        {
+          if ( mask[j*nx+i] == nFillValue )
+          {
+            m_imageData->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, m_fFillValue );
+            cnt++;
+          }
+        }
+      }
+      break;
+  }
+  SetModified();
+  this->SendBroadcast( "LayerActorUpdated", this );
+  return true;
+}
 

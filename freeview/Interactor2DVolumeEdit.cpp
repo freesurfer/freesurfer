@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/09 19:47:23 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/03/12 18:26:06 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -158,7 +158,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
         if ( event.ControlDown() )
         {
           mri->SaveForUndo( view->GetViewPlane() );
-          mri->FloodFillByRAS( ras, c2d );
+          ((LayerMRI*)mri)->FloodFillByContour2D( ras, c2d );
         }
         else if ( event.ShiftDown() )
         {

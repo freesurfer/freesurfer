@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/03/12 18:26:07 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,6 @@ public:
   void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
   void SetVoxelByRAS( double* ras1, double* ras2, int nPlane, bool bAdd = true );
   bool FloodFillByRAS( double* ras, int nPlane, bool bAdd = true, char* mask_out = false );
-  bool FloodFillByRAS( double* ras, Contour2D* c2d );
 
   void SetLiveWireByRAS( double* ras1, double* raw2, int nPlane );
   std::vector<double> GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane );
