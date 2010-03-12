@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/03 18:27:45 $
-#    $Revision: 1.6 $
+#    $Date: 2010/03/12 22:51:46 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 
 # mkheadsurf
 
-set VERSION = '$Id: mkheadsurf,v 1.6 2010/03/03 18:27:45 greve Exp $';
+set VERSION = '$Id: mkheadsurf,v 1.7 2010/03/12 22:51:46 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -42,8 +42,9 @@ set thresh1 = 20;
 set thresh2 = 20;
 set nhitsmin = 2;
 set fillval  = 255;
-
+set NSmooth = 10;
 set PrintHelp = 0;
+set DoInflate = 1;
 
 if($#argv == 0) goto usage_exit;
 
@@ -127,6 +128,7 @@ endif
 
 #----- Smooth the tessellation ---------#
 set cmd = (mris_smooth \
+   -n $NSmooth \
    -b area.$headsurf \
    -c curv.$headsurf \
    $subjdir/surf/$hemi.$headsurf \
@@ -143,17 +145,19 @@ if($status) then
 endif
 
 #----- Inflate ---------#
-set cmd = (mris_inflate -n 10 \
-   -sulc sulc.$headsurf \
-   $subjdir/surf/$hemi.$headsurf \
-   $subjdir/surf/$hemi.$headsurf.inflated)
-echo "--------------------------------" |& tee -a $LF
-date |& tee -a $LF
-pwd |& tee -a $LF
-echo $cmd |& tee -a $LF
-echo "--------------------------------" |& tee -a $LF
-$cmd |& tee -a $LF
-if($status) exit 1;
+if($DoInflate) then
+  set cmd = (mris_inflate -n 10 \
+     -sulc sulc.$headsurf \
+     $subjdir/surf/$hemi.$headsurf \
+     $subjdir/surf/$hemi.$headsurf.inflated)
+  echo "--------------------------------" |& tee -a $LF
+  date |& tee -a $LF
+  pwd |& tee -a $LF
+  echo $cmd |& tee -a $LF
+  echo "--------------------------------" |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 echo "Started at: $StartTime" |& tee -a $LF
 echo "Ended   at: `date`"     |& tee -a $LF
@@ -178,6 +182,11 @@ while( $#argv != 0 )
     case "-subjid":
       if ( $#argv == 0) goto arg1err;
       set subjid = $argv[1]; shift;
+      breaksw
+
+    case "-nsmooth":
+      if ( $#argv == 0) goto arg1err;
+      set NSmooth = $argv[1]; shift;
       breaksw
 
     case "-thresh1":
@@ -237,6 +246,10 @@ while( $#argv != 0 )
 
     case "-noseghead":
       set noseghead = 1;
+      breaksw
+
+    case "-noinflate":
+      set DoInflate = 0;
       breaksw
 
     case "-verbose":
@@ -334,7 +347,9 @@ usage_exit:
   echo "  -s subjectid"
   echo ""
   echo "Other Arguments (Optional)"
-  echo "   -noseghead : don't seg the head, just tess and smooth existing"
+  echo "   -nsmooth N : number of smoothing iterations (def $NSmooth)"
+  echo "   -noseghead : do not seg the head, just tess and smooth existing"
+  echo "   -noinflate : do not inflate or compute sulc"
   echo "   -thresh1 threshold : default is $thresh1"
   echo "   -thresh2 threshold : default is $thresh2"
   echo "   -nhitsmin N        : default is $nhitsmin"
