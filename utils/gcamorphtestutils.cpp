@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/11 16:57:20 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/03/12 15:31:51 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,30 +26,16 @@
  *
  */
 
+#include <vector>
 #include <iostream>
 using namespace std;
+
+#include "chronometer.hpp"
 
 #include "gcamorphtestutils.hpp"
 
 
 #include "gcamorphtestutils.h"
-
-// ======================================================================
-
-
-#define NC_SAFE_CALL( call ) do {		\
-    int err = call; \
-    if( NC_NOERR != err ) {			\
-      std::cerr << __FUNCTION__ \
-		<< ": NetCDF failure on line " << __LINE__	\
-		<< " of file " << __FILE__			\
-		<< std::endl;					\
-      std::cerr << "Error code was " << err << std::endl;	\
-      std::cerr << "Error string was : " << nc_strerror(err)	\
-		<< std::endl;					\
-      exit( EXIT_FAILURE );					\
-    }								\
-  } while ( 0 );
 
 
 // ======================================================================
@@ -91,6 +77,10 @@ GCAMforCMPutils::GCAMforCMPutils( void ) : varTypeMap() {
 
 void GCAMforCMPutils::Write( const GCAM* src, string fName ) const {
   
+  SciGPU::Utilities::Chronometer tTotal;
+
+  tTotal.Start();
+
   // Construct the filename, using fName passed by value
   fName += ".nc";
   
@@ -133,60 +123,75 @@ void GCAMforCMPutils::Write( const GCAM* src, string fName ) const {
   // Make the end of the 'definition' region
   NC_SAFE_CALL( nc_enddef( ncid ) );
   
+  // Pack into contiguous arrays
+  const size_t nElems = src->width * src->height * src->depth;
+  
+  vector<double> x( nElems ), y( nElems ), z( nElems );
+  vector<float> area(nElems ), area1( nElems ), area2( nElems );
+  vector<float> origArea( nElems );
+  vector<char> invalid( nElems );
+
   // Ugly loop to do the writing element by element
   for( int i=0; i<src->width; i++ ) {
     for( int j=0; j<src->height; j++ ) {
       for( int k=0; k<src->depth; k++ ) {
 	const GCA_MORPH_NODE& gcamn = src->nodes[i][j][k];
 	
-	const size_t count[nDims] = { 1, 1, 1};
-	const size_t loc[nDims] = { i, j, k };
-	
-	
-	// We use 'find' to get an exception if the name doesn't exist
-	NC_SAFE_CALL( nc_put_vara_double( ncid,
-					  varIDmap.find( "rx" )->second,
-					  loc, count,
-					  &gcamn.x ) );
-	NC_SAFE_CALL( nc_put_vara_double( ncid,
-					  varIDmap.find( "ry" )->second,
-					  loc, count,
-					  &gcamn.y ) );
-	NC_SAFE_CALL( nc_put_vara_double( ncid,
-					  varIDmap.find( "rz" )->second,
-					  loc, count,
-					  &gcamn.z ) );
+	const size_t i1d = k + ( src->depth * ( j + ( src->height * i ) ) );
 
-	NC_SAFE_CALL( nc_put_vara_float( ncid,
-					 varIDmap.find( "origArea" )->second,
-					 loc, count,
-					 &gcamn.orig_area ) );
-	NC_SAFE_CALL( nc_put_vara_float( ncid,
-					 varIDmap.find( "area" )->second,
-					 loc, count,
-					 &gcamn.area ) );
-	NC_SAFE_CALL( nc_put_vara_float( ncid,
-					   varIDmap.find( "area1" )->second,
-					 loc, count,
-					 &gcamn.area1 ) );
-	NC_SAFE_CALL( nc_put_vara_float( ncid,
-					 varIDmap.find( "area2" )->second,
-					 loc, count,
-					 &gcamn.area2 ) );
-	
-	NC_SAFE_CALL( nc_put_vara_text( ncid,
-					varIDmap.find( "invalid" )->second,
-					loc, count,
-					&gcamn.invalid ) );
+	x.at(i1d) = gcamn.x;
+	y.at(i1d) = gcamn.y;
+	z.at(i1d) = gcamn.z;
+
+	area.at(i1d) = gcamn.area;
+	area1.at(i1d) = gcamn.area1;
+	area2.at(i1d) = gcamn.area2;
+	origArea.at(i1d) = gcamn.orig_area;
+
+	invalid.at(i1d) = gcamn.invalid;
       }
     }
   }
+
+  // We use 'find' to get an exception if the name doesn't exist
+
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "rx" )->second,
+				   &x[0] ) );
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "ry" )->second,
+				   &y[0] ) );
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "rz" )->second,
+				   &z[0] ) );
+
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "origArea" )->second,
+				  &origArea[0] ) );
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "area" )->second,
+				  &area[0] ) );
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "area1" )->second,
+				  &area1[0] ) );
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "area2" )->second,
+				  &area2[0] ) );
+
+  NC_SAFE_CALL( nc_put_var_text( ncid,
+				 varIDmap.find( "invalid" )->second,
+				 &invalid[0] ) );
+
+
   
   
   // Close the file
   NC_SAFE_CALL( nc_close( ncid ) );
   
+  tTotal.Stop();
+
   cout << "complete" << endl;
+  cout << tTotal << endl;
 }
 
 
