@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/03/12 18:00:26 $
-#    $Revision: 1.287 $
+#    $Author: greve $
+#    $Date: 2010/03/12 23:13:30 $
+#    $Revision: 1.288 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.287 2010/03/12 18:00:26 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.288 2010/03/12 23:13:30 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2765,10 +2765,10 @@ if($DoWMParc) then
   echo $cmd > $touchdir/wmaparc.touch
   # Do segstats while we're here
   set cmd = (mri_segstats --seg mri/wmparc.mgz --sum stats/wmparc.stats \
-    --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg  --empty\
+    --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg  \
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
     --in-intensity-units MR --subject $subjid --surf-wm-vol \
-    --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt )
+    --ctab $FREESURFER_HOME/WMParcStatsLUT.txt )
   if ( -e mri/transforms/talairach.xfm ) then
     set cmd = ($cmd --etiv);
   else
