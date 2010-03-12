@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/12 17:24:19 $
-#    $Revision: 1.285 $
+#    $Date: 2010/03/12 17:34:56 $
+#    $Revision: 1.286 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.285 2010/03/12 17:24:19 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.286 2010/03/12 17:34:56 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1897,7 +1897,8 @@ if($DoSegmentation) then
   set xopts = `fsr-getxopts mri_segment $XOptsFile`;
   set cmd = (mri_segment);
   if ($NoThicken) set cmd = ($cmd -thicken 0)
-  if(! $DoCleanWM && -e wm.seg.mgz) set cmd = ($cmd -keep)
+  # note: check for wm.mgz happens so that -dontrun output is correct
+  if(! $DoCleanWM && -e wm.mgz && -e wm.seg.mgz) set cmd = ($cmd -keep)
   if($IsMPRAGE)         set cmd = ($cmd -mprage)
   if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
   set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts brain.mgz wm.seg.mgz)
