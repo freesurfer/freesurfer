@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/12 16:02:53 $
- *    $Revision: 1.164 $
+ *    $Date: 2010/03/12 18:43:44 $
+ *    $Revision: 1.165 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -3105,10 +3105,10 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 {
 #if GCAM_CMP_OUTPUT
   static unsigned int nCalls = 0;
-  char fname[STRLEN];
-  snprintf( fname, STRLEN-1, "before%04u", nCalls );
-  fname[STRLEN-1] = '\0';
   if( (nCalls%gcamCMPoutputFreq)==0 ) {
+    char fname[STRLEN];
+    snprintf( fname, STRLEN-1, "gcamCMPinput%04u", nCalls/gcamCMPoutputFreq );
+    fname[STRLEN-1] = '\0';
     WriteGCAMforMetricProperties( gcam, fname );
   }
 #endif
@@ -3269,11 +3269,13 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 #endif
 
 #if GCAM_CMP_OUTPUT
-  snprintf( fname, STRLEN-1, "after%04u", nCalls );
-  fname[STRLEN-1] = '\0';
+#if 0
   if( (nCalls%gcamCMPoutputFreq)==0 ) {
+    snprintf( fname, STRLEN-1, "after%04u", nCalls/gcamCMPoutputFreq );
+    fname[STRLEN-1] = '\0';
     WriteGCAMforMetricProperties( gcam, fname );
   }
+#endif
   nCalls++;
 #endif
 
