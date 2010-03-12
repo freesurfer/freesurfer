@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/12 17:34:56 $
-#    $Revision: 1.286 $
+#    $Date: 2010/03/12 18:00:26 $
+#    $Revision: 1.287 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.286 2010/03/12 17:34:56 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.287 2010/03/12 18:00:26 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -589,6 +589,12 @@ if($#WaitForFile != 0) then
   endif
   echo "Finished Waiting `date`" |& tee -a $SF |& tee -a $LF
 endif
+
+if( ! $RunIt) then
+  echo "INFO: -dontrun flag is in effect, so subsequent commands" |& tee -a $LF
+  echo "may not have accurate arguments!" |& tee -a $LF
+endif
+
 
 #------------ Clean -----------------------------#
 if($DoCleanSeed) then
@@ -1715,6 +1721,11 @@ if($DoCALabel) then
       set cmd = (mri_seg_diff --seg1 aseg.auto.mgz \
         --seg2 aseg.mgz --diff aseg.manedit.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if( ! $RunIt) then
+        echo "INFO: mri_seg_diff was not actually executed," |& tee -a $LF
+        echo "so subsequent commands (shown with -dontrun)" |& tee -a $LF
+        echo "may not have accurate arguments!" |& tee -a $LF
+      endif
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
     else
@@ -1725,6 +1736,11 @@ if($DoCALabel) then
       set cmd = (mri_seg_diff --seg1 aseg.auto.mgz \
         --seg2 aseg.mgz --diff aseg.manedit.tmp.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if( ! $RunIt) then
+        echo "INFO: mri_seg_diff was not actually executed," |& tee -a $LF
+        echo "so subsequent commands (shown with -dontrun)" |& tee -a $LF
+        echo "may not have accurate arguments!" |& tee -a $LF
+      endif
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
       # 2. Merge new and old edits with manedit. If manedit has not
@@ -1817,6 +1833,11 @@ if($DoASegMerge) then
     set cmd = (mri_seg_diff --seg aseg.auto.mgz \
       --diff-in aseg.manedit.mgz --merged aseg.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if( ! $RunIt) then
+      echo "INFO: mri_seg_diff was not actually executed," |& tee -a $LF
+      echo "so subsequent commands (shown with -dontrun)" |& tee -a $LF
+      echo "may not have accurate arguments!" |& tee -a $LF
+    endif
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
