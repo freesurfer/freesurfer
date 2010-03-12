@@ -32,7 +32,8 @@ NVCCFLAGS += -g -arch sm_13 --ptxas-options=-v
 bin_PROGRAMS += mri_ca_register_cuda\
                 conv1d_test_cuda conv1d_test\
                 convgaussian_test convgaussian_test_cuda\
-                gcam_cmp_test gcam_cmp_test_cuda
+                gcam_cmp_test gcam_cmp_test_cuda\
+                gcamCompare
 
 mri_ca_register_cuda_SOURCES = mri_ca_register.c
 mri_ca_register_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
@@ -88,6 +89,10 @@ gcam_cmp_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(CFLAGS) $(gcam_cmp_test_cuda_LDFLAGS) $(LDFLAGS) -o $@
 
 
+
+gcamCompare_sources = gcamCompare.cpp
+gcamCompare_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LIB)
+gcamCompare_LDFLAGS=$(OS_LDFLAGS)
 
 endif
 # endif BUILDCUDA
