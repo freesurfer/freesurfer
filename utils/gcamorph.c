@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/12 15:57:31 $
- *    $Revision: 1.163 $
+ *    $Date: 2010/03/12 16:02:53 $
+ *    $Revision: 1.164 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -3098,6 +3098,7 @@ gcamAreaTermAtNode(GCA_MORPH *gcam, double l_area,
   Description
   ------------------------------------------------------*/
 #define GCAM_CMP_OUTPUT 0
+const unsigned int gcamCMPoutputFreq=10;
 #if 1
 int
 gcamComputeMetricProperties(GCA_MORPH *gcam)
@@ -3107,7 +3108,9 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   char fname[STRLEN];
   snprintf( fname, STRLEN-1, "before%04u", nCalls );
   fname[STRLEN-1] = '\0';
-  WriteGCAMforMetricProperties( gcam, fname );
+  if( (nCalls%gcamCMPoutputFreq)==0 ) {
+    WriteGCAMforMetricProperties( gcam, fname );
+  }
 #endif
 
 #ifdef FS_CUDA
@@ -3268,7 +3271,9 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 #if GCAM_CMP_OUTPUT
   snprintf( fname, STRLEN-1, "after%04u", nCalls );
   fname[STRLEN-1] = '\0';
-  WriteGCAMforMetricProperties( gcam, fname );
+  if( (nCalls%gcamCMPoutputFreq)==0 ) {
+    WriteGCAMforMetricProperties( gcam, fname );
+  }
   nCalls++;
 #endif
 
