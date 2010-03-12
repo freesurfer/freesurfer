@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/21 19:40:15 $
- *    $Revision: 1.27 $
+ *    $Author: fischl $
+ *    $Date: 2010/03/12 16:55:36 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2004-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -54,9 +54,17 @@
 #include "mrisegment.h"
 #include "tritri.h"
 
+#define MAX_CC_ROT      RADIANS(7)
+#define CC_ANGLE_DELTA  RADIANS(.25)
+#define LABEL_IN_CC     128
+#define LABEL_BORDER_CC 64
+#define MAX_CENTRAL_SLICES      500
+
+static double max_cc_rot = MAX_CC_ROT ;
 static int use_aseg = 1 ;
 static int write_lta = 0 ;
 static int force = 0 ;
+static MRI *find_voxels_close_to_both_hemis(MRI *mri_aseg, int lh_label, int rh_label, int wsize) ;
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
 static void     print_usage();
@@ -164,13 +172,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.27 2010/02/21 19:40:15 nicks Exp $",
+   "$Id: mri_cc.c,v 1.28 2010/03/12 16:55:36 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.27 2010/02/21 19:40:15 nicks Exp $",
+           "$Id: mri_cc.c,v 1.28 2010/03/12 16:55:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1237,6 +1245,7 @@ print_usage()
 			fprintf(stdout," -d <int>       subdivide into <int> compartments \n");
 			fprintf(stdout," -t <int>       setting CC thickness to <int> mm \n");
 			fprintf(stdout," -s <int>       skipping <int> voxels in rotational align \n");
+			fprintf(stdout," -m <float>     set max of rotations to be searched (default=7deg)\n");
 			
     fprintf(stdout,
             "\nSegments the corpus callosum into five parts divided along\n"
@@ -1286,6 +1295,12 @@ get_option(int argc, char *argv[])
   }
   else switch (toupper(*option))
     {
+    case 'M':
+      max_cc_rot = RADIANS(atof(argv[2])) ;
+      nargs = 1 ;
+      printf("setting maximum rotation search to %2.1f deg\n",
+             DEGREES(max_cc_rot)) ;
+      break ;
     case '?':
     case 'U':
 		  print_usage();
@@ -1331,11 +1346,6 @@ get_option(int argc, char *argv[])
   return(nargs) ;
 }
 
-#define MAX_CC_ROT      RADIANS(10.0)
-#define CC_ANGLE_DELTA  RADIANS(.25)
-#define LABEL_IN_CC     128
-#define LABEL_BORDER_CC 64
-#define MAX_CENTRAL_SLICES      100
 
 static MRI *
 find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
@@ -1345,15 +1355,16 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   LTA         *lta ;
   VOXEL_LIST  *vl_left, *vl_right ;
   double      dx, dy, dz, yrot, zrot, yrot_best, zrot_best ;
-  double      x0, x0_best ;
+  double      x0, x0_best, means[3] ;
+  float       evalues[3] ;
   int         y0, z0, y0_best, z0_best, label,
-  i, correct, max_correct, xmin, xmax,
-  slice_voxels[MAX_CENTRAL_SLICES], best_slice, changed,
-  xleft_min, xright_max ;
-  MATRIX      *m, *m_yrot, *m_zrot, *m_trans, *m_trans_inv, *m_tmp ;
+              i, correct, max_correct, xmin, xmax, scale,
+              slice_voxels[MAX_CENTRAL_SLICES], best_slice, changed,
+              xleft_min, xright_max ;
+  MATRIX      *m, *m_yrot, *m_zrot, *m_trans, *m_trans_inv, *m_tmp, *m_evectors ;
   VECTOR      *v1, *v2 ;
   MRI_SEGMENTATION *mseg ;
-  MRI         *mri_slice, *mri_slice_edited, *mri_tmp = NULL, *mri_aseg ;
+  MRI         *mri_slice, *mri_slice_edited, *mri_tmp = NULL, *mri_aseg, *mri_midline ;
   MRI_REGION  box  ;
 
   mri_aseg = MRIcopy(mri_aseg_orig, NULL) ;  // we'll modify it
@@ -1412,64 +1423,88 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   printf("%d voxels in left wm, %d in right wm, xrange [%d, %d]\n",
          vl_left->nvox, vl_right->nvox, xmin, xmax) ;
 
-  dx = 1 ;
-  dy = 0 ;
-  dz = 0 ;
-  yrot_best = 0 ;
-  zrot_best = 0 ;
+  // find principal components of regions close to both lh and rh wm.
+  mri_midline = find_voxels_close_to_both_hemis(mri_aseg, 
+                                                Left_Cerebral_Cortex, Right_Cerebral_Cortex, 5) ;
+  if (Gdiag & DIAG_WRITE)
+    MRIwrite(mri_midline, "m.mgz") ;
+  m_evectors = MatrixAlloc(3, 3, MATRIX_REAL) ;
+  MRIprincipleComponents(mri_midline, m_evectors, evalues, means, 0) ;
+  MRIfree(&mri_midline) ;
+  
+  dx = 1 ; dy = 0 ; dz = 0 ;
+  yrot_best = 0 ; zrot_best = 0 ;
   x0 = x0_best = ((xmin+xmax)/2) ;
-  y0 = y0_best = 128 ;
-  z0 = z0_best = 128 ;
-  max_correct = -1 ;
+  y0 = y0_best = 128 ; z0 = z0_best = 128 ; max_correct = -1 ;
+
+  dx = *MATRIX_RELT(m_evectors, 1, 3) ;
+  dy = *MATRIX_RELT(m_evectors, 2, 3) ;
+  dz = *MATRIX_RELT(m_evectors, 3, 3) ;
+  if (dx < 0)
+  {
+    dx *= -1 ; dy *= -1 ; dz *= -1 ;
+  }
+  x0 = means[0] ; y0 = means[1] ; z0 = means[2] ;
+  correct = cc_cutting_plane_correct(mri_aseg, x0, y0, z0, dx, dy, dz,
+                                     vl_left, vl_right, 0) ;
+  max_correct = correct ;
+  x0_best = x0 ; y0_best = y0 ; z0_best = z0 ;
+  zrot_best = -asin(dy) ;
+  yrot_best = asin(dz/cos(zrot_best)) ;
 
   m = MatrixAlloc(4, 4, MATRIX_REAL) ;
-  m_yrot = MatrixIdentity(4, NULL) ;
-  m_zrot = MatrixIdentity(4, NULL) ;
-  v1 = VectorAlloc(4, MATRIX_REAL) ;
-  v2 = VectorAlloc(4, MATRIX_REAL) ;
-  VECTOR_ELT(v1, 4) = 1.0 ;
-  VECTOR_ELT(v2, 4) = 1.0 ;
-  for (zrot = -MAX_CC_ROT ; zrot <= MAX_CC_ROT ; zrot += CC_ANGLE_DELTA)
+  m_yrot = MatrixIdentity(4, NULL) ; m_zrot = MatrixIdentity(4, NULL) ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ; v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+  for (scale = 1 ; scale >= 1 ; scale /= 2)
   {
-    MatrixReallocRotation(4, zrot, Z_ROTATION, m_zrot) ;
-    for (yrot = -MAX_CC_ROT ; yrot <= MAX_CC_ROT ; yrot += CC_ANGLE_DELTA)
+    printf("searching rotation angles z=[%2.0f %2.0f], y=[%2.0f %2.0f]\n",
+           DEGREES(zrot_best-scale*max_cc_rot), 
+           DEGREES(zrot_best+scale*max_cc_rot),
+           DEGREES(yrot_best-scale*max_cc_rot), 
+           DEGREES(yrot_best+scale*max_cc_rot));
+    for (zrot = zrot_best-scale*max_cc_rot ; 
+         zrot <= zrot_best+scale*max_cc_rot ; 
+         zrot += scale*CC_ANGLE_DELTA)
     {
-      // rotate vector away from 1,0,0
-      MatrixReallocRotation(4, yrot, Y_ROTATION, m_yrot) ;
-      MatrixMultiply(m_yrot, m_zrot, m) ;
-      V3_X(v1) = 1 ;
-      V3_Y(v1) = 0 ;
-      V3_Z(v1) = 0 ;
-      MatrixMultiply(m, v1, v2) ;
-      dx = V3_X(v2) ;
-      dy = V3_Y(v2) ;
-      dz = V3_Z(v2) ;
-
-      for (x0 = xmin ; x0 <= xmax ; x0 += 1.0)
+      printf("\rsearching scale %d Z rot %2.1f  ", scale, DEGREES(zrot)) ;
+      fflush(stdout) ;
+      MatrixReallocRotation(4, zrot, Z_ROTATION, m_zrot) ;
+      for (yrot = yrot_best-scale*max_cc_rot ; 
+           yrot <= yrot_best+scale*max_cc_rot ; 
+           yrot += scale*CC_ANGLE_DELTA)
       {
-        correct = cc_cutting_plane_correct(mri_aseg, x0, y0, z0, dx, dy, dz,
-                                           vl_left, vl_right, 0) ;
-        if (correct > max_correct)
+        // rotate vector away from 1,0,0
+        MatrixReallocRotation(4, yrot, Y_ROTATION, m_yrot) ;
+        MatrixMultiply(m_yrot, m_zrot, m) ;
+        V3_X(v1) = 1 ;  V3_Y(v1) = 0 ; V3_Z(v1) = 0 ;
+        MatrixMultiply(m, v1, v2) ;
+        dx = V3_X(v2) ; dy = V3_Y(v2) ; dz = V3_Z(v2) ;
+        
+        for (x0 = xmin ; x0 <= xmax ; x0 += 1.0)
         {
-          x0_best = x0 ;
-          max_correct = correct ;
-          yrot_best = yrot ;
-          zrot_best = zrot ;
+          correct = cc_cutting_plane_correct(mri_aseg, x0, y0, z0, dx, dy, dz,
+                                             vl_left, vl_right, 0) ;
+          if (correct > max_correct)
+          {
+            x0_best = x0 ;
+            max_correct = correct ;
+            yrot_best = yrot ;
+            zrot_best = zrot ;
+          }
         }
       }
     }
-  }
 
-  MatrixReallocRotation(4, yrot_best, Y_ROTATION, m_yrot) ;
-  MatrixReallocRotation(4, zrot_best, Z_ROTATION, m_zrot) ;
-  MatrixMultiply(m_yrot, m_zrot, m) ;
-  V3_X(v1) = 1 ;
-  V3_Y(v1) = 0 ;
-  V3_Z(v1) = 0 ;
-  MatrixMultiply(m, v1, v2) ;
-  dx = V3_X(v2) ;
-  dy = V3_Y(v2) ;
-  dz = V3_Z(v2) ;
+    MatrixReallocRotation(4, yrot_best, Y_ROTATION, m_yrot) ;
+    MatrixReallocRotation(4, zrot_best, Z_ROTATION, m_zrot) ;
+    MatrixMultiply(m_yrot, m_zrot, m) ;
+    
+    V3_X(v1) = 1 ;  V3_Y(v1) = 0 ;  V3_Z(v1) = 0 ;
+    MatrixMultiply(m, v1, v2) ;
+    dx = V3_X(v2) ;  dy = V3_Y(v2) ; dz = V3_Z(v2) ;
+    max_correct = -1 ;
+  }
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     correct = cc_cutting_plane_correct(mri_aseg, x0_best, y0_best, z0_best,
                                        dx, dy, dz, vl_left,vl_right,2);
@@ -1685,25 +1720,21 @@ find_cc_with_aseg(MRI *mri_aseg_orig, MRI *mri_cc, LTA **plta,
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_cc, "s4.mgz") ;
 
-  VLSTfree(&vl_left) ;
-  VLSTfree(&vl_right) ;
-  MatrixFree(&m) ;
-  MatrixFree(&m_yrot) ;
-  MatrixFree(&m_zrot) ;
-  VectorFree(&v1) ;
+  VLSTfree(&vl_left) ; VLSTfree(&vl_right) ; MatrixFree(&m) ;
+  MatrixFree(&m_yrot) ; MatrixFree(&m_zrot) ;VectorFree(&v1) ;
   VectorFree(&v2) ;
   *plta = lta ;
-  *pxc = (Real)best_slice ;
-  *pyc = (Real)y0_best ;
-  *pzc = (Real)z0_best ;
+  *pxc = (Real)best_slice ; *pyc = (Real)y0_best ; *pzc = (Real)z0_best ;
 
   mri_tmp = MRIclone(mri_cc, NULL) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_cc, "cc_with_fornix.mgz") ;
 
   MRIcopy(mri_cc, mri_fornix) ;
-  for (x0 = best_slice-thick ; x0 <= best_slice+thick ; x0++)
+  for (x0 = best_slice-thick ; x0 <= best_slice+thick ; x0++)  // build fornix model slice-by-slice
   {
+    if (x0 == Gdiag_no)
+      DiagBreak() ;
     mri_slice = MRIextractPlane(mri_cc, NULL, MRI_SAGITTAL, x0);
     mri_slice_edited = remove_fornix_new(mri_slice, NULL) ;
     MRIfillPlane(mri_slice_edited, mri_tmp, MRI_SAGITTAL, x0, CC_VAL);
@@ -1801,12 +1832,8 @@ cc_cutting_plane_correct(MRI *mri_aseg, double x0, double y0, double z0,
   if (debug)
     mri_debug = MRIclone(mri_aseg, NULL) ;
 
-  n[0] = dx ;
-  n[1] = dy ;
-  n[2] = dz ;
-  e2[0] = dy ;
-  e2[1] = dx ;
-  e2[2] = dx ;
+  n[0] = dx ; n[1] = dy ; n[2] = dz ;
+  e2[0] = dy ; e2[1] = dx ; e2[2] = dx ;
   CROSS(e1, n, e2) ;   // e1 is first basis vector
   len = VLEN(e1) ;
   SCALAR_MUL(e1, 1/len, e1) ;
@@ -1955,10 +1982,13 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
       if (val > 0 && last_val == 0)  // transition from off to on
         edges_found++ ;
       last_val = val ;
-      if (val && edges_found > 1)
+      if (val && edges_found > 1)  // vertical transition back to on
         MRIsetVoxVal(mri_slice_edited, x, y, 0, 0, FORNIX_VAL);// mark fornix
     }
   }
+
+  // now use a 45deg line and look for on-off-on transitions
+
 
   // set seeds at either end of the cc and grow them inwards
   mri_tmp = MRIclone(mri_slice, NULL) ;
@@ -2153,5 +2183,48 @@ remove_fornix_new(MRI *mri_slice, MRI *mri_slice_edited)
   MRIsegmentFree(&mseg) ;
 
   return(mri_slice_edited) ;
+}
+
+static MRI *
+find_voxels_close_to_both_hemis(MRI *mri_aseg, int lh_label, int rh_label, int wsize)
+{
+  int  x, y, z, xk, yk, zk, xi, yi, zi, num_lh, num_rh, whalf, label ;
+  MRI  *mri_dst ;
+
+  mri_dst = MRIclone(mri_aseg, NULL) ;
+  whalf = (wsize-1)/2 ;
+  for (x = 0 ; x < mri_aseg->width ; x++)
+    for (y = 0 ; y < mri_aseg->height ; y++)
+      for (z = 0 ; z < mri_aseg->depth ; z++)
+      {
+        num_lh = num_rh= 0 ;
+        for (xk = -whalf ; xk <= whalf ; xk++)
+        {
+          xi = mri_aseg->xi[x+xk] ;
+          for (yk = -whalf ; yk <= whalf ; yk++)
+          {
+            yi = mri_aseg->yi[y+yk] ;
+            for (zk = -whalf ; zk <= whalf ; zk++)
+            {
+              zi = mri_aseg->zi[z+zk] ;
+              label = MRIgetVoxVal(mri_aseg, xi, yi, zi, 0) ;
+              if (label == lh_label)
+                num_lh++ ;
+              else if (label == rh_label)
+                num_rh++ ;
+              if (num_lh > 0 && num_rh > 0)
+                break ;
+            }
+            if (num_lh > 0 && num_rh > 0)
+              break ;
+          }
+          if (num_lh > 0 && num_rh > 0)
+            break ;
+        }
+        if (num_lh > 0 && num_rh > 0)
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 1) ;
+      }
+
+  return(mri_dst) ;
 }
 
