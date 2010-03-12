@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/11 22:02:59 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/03/12 00:39:23 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -1046,6 +1046,8 @@ MRI_SURFACE * mrisReadGIFTIfile(const char *fname, MRI_SURFACE *mris)
   an MRI volume struct, which is a retro-fit usage to store
   multiple frames of data (where in this case, a frame is one
   complete vector of vertices).
+  This routine will only read NIFTI_INTENT_TIME_SERIES data
+  arrays.
   -----------------------------------------------------------*/
 MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
 {
@@ -1072,37 +1074,22 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
 
   /* check for overlay data */
   giiDataArray* scalars = NULL;
+  int da_num = 0;
   int frame_count = 0;
-  long long num_vertices = 0;
+  long long num_vertices = -1;
   long long num_cols = 0;
   do
   {
-    scalars = gifti_find_DA (image, NIFTI_INTENT_NONE, frame_count);
+    scalars = gifti_find_DA (image, NIFTI_INTENT_TIME_SERIES, da_num);
     if (NULL == scalars)
     {
-      scalars = gifti_find_DA (image, NIFTI_INTENT_TIME_SERIES, frame_count);
-      if (NULL == scalars)
-      {
-        scalars = gifti_find_DA (image, NIFTI_INTENT_SHAPE, frame_count);
-        if (NULL == scalars) break;
-        else
-        {
-          //printf("Found NIFTI_INTENT_SHAPE data array #%d\n", frame_count);
-        }
-      }
-      else
-      {
-        //printf("Found NIFTI_INTENT_TIME_SERIES data array #%d\n", 
-        //     frame_count);
-      }
+      if (++da_num >= image->numDA) break;
+      else continue;
     }
-    else
-    {
-      //printf("Found NIFTI_INTENT_NONE data array #%d\n", frame_count);
-    }
-    long long nvertices, ncols;
+    frame_count++;
+    long long nvertices=0, ncols=0;
     gifti_DA_rows_cols (scalars, &nvertices, &ncols);
-    if (frame_count == 0)
+    if (num_vertices == -1)
     {
       num_vertices=nvertices;
       num_cols=ncols;
@@ -1115,14 +1102,14 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
       {
         fprintf 
           (stderr,
-           "MRISreadGiftiAsMRI: malformed data array in file "
+           "MRISreadGiftiAsMRI: malformed time-series data array in file "
            "%s: nvertices=%d ncols=%d expected num_vertices=%d\n",
            fname, (int)nvertices, (int)num_cols, (int)num_vertices);
         gifti_free_image (image);
         return NULL;
       }
     }
-    frame_count++;
+    if (++da_num >= image->numDA) break;
   } while ( scalars );
 
   if (frame_count == 0)
@@ -1146,25 +1133,19 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
 
   /* Copy in each scalar frame to 'volume' frame. */
   mri =  MRIallocSequence(num_vertices,1,1,MRI_FLOAT,frame_count);
-  int frame_counter;
-  for (frame_counter = 0; frame_counter < frame_count; frame_counter++)
+  frame_count = 0;
+  for (da_num = 0; da_num < image->numDA; da_num++)
   {
-    scalars = gifti_find_DA (image, NIFTI_INTENT_NONE, frame_counter);
-    if (NULL == scalars)
+    scalars = gifti_find_DA (image, NIFTI_INTENT_TIME_SERIES, da_num);
+    if (NULL == scalars) continue;
+    int vno;
+    for (vno = 0; vno < num_vertices; vno++)
     {
-      scalars = gifti_find_DA (image, NIFTI_INTENT_TIME_SERIES, frame_counter);
-      if (NULL == scalars)
-      {
-        scalars = gifti_find_DA (image, NIFTI_INTENT_SHAPE, frame_counter);
-      }
-      if (NULL == scalars) break;
+      float val = (float) gifti_get_DA_value_2D (scalars, vno, 0);
+      MRIsetVoxVal(mri,vno,0,0,frame_count,val);
     }
-    int scalar_index;
-    for (scalar_index = 0; scalar_index < num_vertices; scalar_index++)
-    {
-      float val = (float) gifti_get_DA_value_2D (scalars, scalar_index, 0);
-      MRIsetVoxVal(mri,scalar_index,0,0,frame_counter,val);
-    }
+    //printf("frame #%d\n",frame_count);
+    frame_count++;
   }
 
   /* And we're done. */
