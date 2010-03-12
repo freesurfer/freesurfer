@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/10 20:31:02 $
- *    $Revision: 1.162 $
+ *    $Date: 2010/03/12 15:57:31 $
+ *    $Revision: 1.163 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -248,7 +248,7 @@ static int gcamAreaIntensityTerm(GCA_MORPH *gcam,
                                  double l_area_intensity, 
                                  NODE_LOOKUP_TABLE *nlt, float sigma) ;
 static int gcamClearGradient(GCA_MORPH *gcam) ;
-static int gcamComputeMetricProperties(GCA_MORPH *gcam) ;
+
 static double gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri );
 static double gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
@@ -3099,7 +3099,7 @@ gcamAreaTermAtNode(GCA_MORPH *gcam, double l_area,
   ------------------------------------------------------*/
 #define GCAM_CMP_OUTPUT 0
 #if 1
-static int
+int
 gcamComputeMetricProperties(GCA_MORPH *gcam)
 {
 #if GCAM_CMP_OUTPUT

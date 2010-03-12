@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/10 18:09:51 $
- *    $Revision: 1.57 $
+ *    $Date: 2010/03/12 15:57:34 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -431,6 +431,7 @@ MRI *replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels,
 double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
 
+  int gcamComputeMetricProperties(GCA_MORPH *gcam) ;
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties
   void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
