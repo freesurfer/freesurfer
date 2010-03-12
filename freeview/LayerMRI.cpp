@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/12 18:26:07 $
- *    $Revision: 1.59 $
+ *    $Date: 2010/03/12 21:32:13 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -661,7 +661,7 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
   {
     UpdateTensorActor( nPlane );
   }
-  else if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT && GetProperties()->GetShowLabelOutline() )
+  else if ( /*GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT &&*/ GetProperties()->GetShowLabelOutline() )
   {
     UpdateLabelOutline();
   }
@@ -1532,7 +1532,7 @@ void LayerMRI::SnagToVoxelCenter( const double* pt_in, double* pt_out )
 
 void LayerMRI::UpdateLabelOutline()
 {
-  if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT && GetProperties()->GetShowLabelOutline() )
+  if ( /*GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT &&*/ GetProperties()->GetShowLabelOutline() )
   {
     double* vsize = m_imageData->GetSpacing();
     for ( int i = 0; i < 3; i++ )
