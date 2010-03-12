@@ -15,6 +15,7 @@ foo_DATA= \
 	FreeSurferEnv.sh \
 	SetUpFreeSurfer.sh \
 	FreeSurferColorLUT.txt \
+	WMParcStatsLUT.txt \
 	numaris4-protocols.unpackcfg \
 	ASegStatsLUT.txt \
 	DefectLUT.txt \
