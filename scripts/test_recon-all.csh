@@ -32,10 +32,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/13 17:54:16 $
-#    $Revision: 1.33 $
+#    $Date: 2010/03/13 18:12:37 $
+#    $Revision: 1.34 $
 #
-# Copyright (C) 2007-2008,
+# Copyright (C) 2007-2010,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -45,11 +45,10 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.33 2010/03/13 17:54:16 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.34 2010/03/13 18:12:37 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -354,12 +353,18 @@ foreach tstvol ($TEST_VOLUMES)
     # squeeze-in a check of the transform matrices, where appropriate
     if ("$tstvol" == "brainmask.mgz") then
       foreach xform (talairach.xfm talairach.lta talairach_with_skull.lta)
-        # filter-out time-stamp from .lta files:
+        # filter-out time-stamp and filename from .lta files:
         grep -v created $SUBJECTS_DIR/ref_subj/mri/transforms/$xform \
+            > $SUBJECTS_DIR/ref.tmp.$xform
+        grep -v filename $SUBJECTS_DIR/ref.tmp.$xform \
             > $SUBJECTS_DIR/ref.$xform
+        rm $SUBJECTS_DIR/ref.tmp.$xform
         grep -v created $SUBJECTS_DIR/$TEST_SUBJ/mri/transforms/$xform \
+            > $SUBJECTS_DIR/tst.tmp.$xform
+        grep -v filename $SUBJECTS_DIR/tst.tmp.$xform \
             > $SUBJECTS_DIR/tst.$xform
-        set cmd=(diff $SUBJECTS_DIR/ref.$xform $SUBJECTS_DIR/tst.$xform)           
+        rm $SUBJECTS_DIR/tst.tmp.$xform
+        set cmd=(diff $SUBJECTS_DIR/ref.$xform $SUBJECTS_DIR/tst.$xform)
         $cmd >& $LOG_DIR/diff-$xform.txt
         set diff_status=$status
         if ($diff_status != 0) then
