@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: rge21 $
-#    $Date: 2010/03/12 20:00:03 $
-#    $Revision: 1.467 $
+#    $Author: nicks $
+#    $Date: 2010/03/13 18:51:28 $
+#    $Revision: 1.468 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -456,6 +456,7 @@ case "${target}" in
  SHARED_CFLAGS="-fPIC "
  SHARED_LDFLAGS="-shared "
  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $NSALIASING $WALL $WERROR $LFS_CFLAGS"
+ FFLAGS="-g -O3 -msse2 -mfpmath=sse"
  ;;
  x86_64-*)
  OS=Linux
@@ -466,6 +467,7 @@ case "${target}" in
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $NSALIASING $WALL $WERROR"
+ FFLAGS="-g -O3 -msse2 -mfpmath=sse"
  TEEM_32BIT=0
  ;;
  ia64-*)
@@ -3241,6 +3243,7 @@ FreeSurfer is now configured for ${host}
 
   C compiler:   ${CC} ${CPPFLAGS} ${CFLAGS}
   C++ compiler: ${CXX} ${CPPFLAGS} ${CXXFLAGS}
+  Fortran:      ${F77} ${FFLAGS}
   Linker:       ${LD} ${LDFLAGS}
   Libs:         ${LIBS}
 ])
