@@ -1,17 +1,16 @@
 /**
  * @file  matrix.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief matrix manipulation utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/02/11 19:16:19 $
- *    $Revision: 1.71 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.72 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -192,7 +190,9 @@ double MatrixTransformDistance(MATRIX *m1, MATRIX *m2, double radius);
 VECTOR *MatrixColumn(MATRIX *m, VECTOR *v, int col) ;
 MATRIX *VectorOuterProduct(VECTOR *v1, VECTOR *v2, MATRIX *m) ;
 VECTOR *VectorCrossProduct( const VECTOR *v1, const VECTOR *v2, VECTOR *vdst) ;
-float  VectorTripleProduct( const VECTOR *v1, const VECTOR *v2, const VECTOR *v3) ;
+float  VectorTripleProduct( const VECTOR *v1,
+                            const VECTOR *v2,
+                            const VECTOR *v3) ;
 VECTOR *VectorNormalize( const VECTOR *vin, VECTOR *vout) ;
 MATRIX *MatrixNormalizeCol(MATRIX *m, MATRIX *mcnorm);
 

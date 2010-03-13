@@ -1,17 +1,15 @@
 /**
  * @file  mri_transform.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief transform utils
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/13 01:32:44 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,10 +19,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #include "mri_transform.h"
 
@@ -37,28 +33,25 @@ void trans_SetBounds ( float ifStartX, float ifEndX,
                        float ifStartY, float ifEndY,
                        float ifStartZ, float ifEndZ )
 {
-
   mfStartX = ifStartX;
   mfEndX   = ifEndX;
   mfStartY = ifStartY;
   mfEndY   = ifEndY;
   mfStartZ = ifStartZ;
   mfEndZ   = ifEndZ;
-
 }
 
 void trans_SetResolution ( float ifSizeX, float ifSizeY, float ifSizeZ )
 {
-
   mfSizeX = ifSizeX;
   mfSizeY = ifSizeY;
   mfSizeZ = ifSizeZ;
 }
 
-void trans_RASToVoxelIndex ( Real irRASX, Real irRASY, Real irRASZ,
+void trans_RASToVoxelIndex ( double irRASX, double irRASY, double irRASZ,
                              int *onVoxX, int *onVoxY, int *onVoxZ )
 {
-  Real orVoxX, orVoxY, orVoxZ ;
+  double orVoxX, orVoxY, orVoxZ ;
 
   trans_RASToVoxel(irRASX, irRASY, irRASZ, &orVoxX, &orVoxY, &orVoxZ) ;
   *onVoxX = (int)orVoxX ;
@@ -66,10 +59,9 @@ void trans_RASToVoxelIndex ( Real irRASX, Real irRASY, Real irRASZ,
   *onVoxZ = (int)orVoxZ ;
 }
 
-void trans_RASToVoxel ( Real irRASX, Real irRASY, Real irRASZ,
-                        Real *orVoxX, Real *orVoxY, Real *orVoxZ )
+void trans_RASToVoxel ( double irRASX, double irRASY, double irRASZ,
+                        double *orVoxX, double *orVoxY, double *orVoxZ )
 {
-
   /* we need to stay in the same type so
      as not to typecast thee conversion to
      int until right at the very end. */
@@ -83,25 +75,21 @@ void trans_RASToVoxel ( Real irRASX, Real irRASY, Real irRASZ,
   *orVoxZ = ( (  fRASY  - mfStartZ ) / mfSizeZ );
 }
 
-void trans_VoxelToRAS ( Real irVoxX, Real  irVoxY, Real  irVoxZ,
-                        Real *orRASX, Real *orRASY, Real *orRASZ )
+void trans_VoxelToRAS ( double irVoxX, double  irVoxY, double  irVoxZ,
+                        double *orRASX, double *orRASY, double *orRASZ )
 {
-
-
-  *orRASX = (Real) (     mfEndX   - ( irVoxX * mfSizeX )   );
-  *orRASY = (Real) (     mfStartZ + ( irVoxZ * mfSizeZ )   );
-  *orRASZ = (Real) ( - ( mfStartY + ( irVoxY * mfSizeY ) ) );
-
+  *orRASX = (double) (     mfEndX   - ( irVoxX * mfSizeX )   );
+  *orRASY = (double) (     mfStartZ + ( irVoxZ * mfSizeZ )   );
+  *orRASZ = (double) ( - ( mfStartY + ( irVoxY * mfSizeY ) ) );
 }
 
 void trans_VoxelIndexToRAS ( int inVoxX, int  inVoxY, int  inVoxZ,
-                             Real *orRASX, Real *orRASY, Real *orRASZ )
+                             double *orRASX, double *orRASY, double *orRASZ )
 {
+  double irVoxX, irVoxY, irVoxZ ;
 
-  Real irVoxX, irVoxY, irVoxZ ;
-
-  irVoxX = (Real)inVoxX ;
-  irVoxY = (Real)inVoxY ;
-  irVoxZ = (Real)inVoxZ ;
+  irVoxX = (double)inVoxX ;
+  irVoxY = (double)inVoxY ;
+  irVoxZ = (double)inVoxZ ;
   trans_VoxelToRAS(inVoxX, inVoxY, inVoxZ, orRASX, orRASY, orRASZ) ;
 }

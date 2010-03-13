@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/22 01:40:24 $
- *    $Revision: 1.71 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:45 $
+ *    $Revision: 1.72 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -1580,7 +1579,7 @@ mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_intensity,
 {
   int    x1, x2, x3, width, height, depth ;
   VECTOR *v_X, *v_Y ;  /* original and transformed coordinate systems */
-  Real   val, y1, y2, y3, thick ;
+  double   val, y1, y2, y3, thick ;
   double sse = 0.0f, delta = 0.0, std, mean_std, dot, nx, ny, nz, ndx,ndy,ndz;
   float  in_val ;
 
@@ -1618,9 +1617,9 @@ mriIntensityRMS(MRI *mri_in, MRI *mri_ref, LTA *lta, double l_intensity,
         if (dot >= 0)
           DiagBreak() ;
         dot = 1 / (1 + exp(dot)) ;  /* 'don't care' weighting */
-        y1 = (Real)v_Y->rptr[1][1] ;
-        y2 = (Real)v_Y->rptr[2][1] ;
-        y3 = (Real)v_Y->rptr[3][1] ;
+        y1 = (double)v_Y->rptr[1][1] ;
+        y2 = (double)v_Y->rptr[2][1] ;
+        y3 = (double)v_Y->rptr[3][1] ;
 
         in_val = MRIgetVoxVal(mri_in, x1, x2, x3, 0) ;
         if (y1 > -1 && y1 < width &&
@@ -1727,7 +1726,7 @@ ltaGradientStep(MRI *mri_in, MRI *mri_ref, LTA *lta, double dt,
   VECTOR *v_X, *v_Y, *v_Yk ; /* original and transformed coordinate systems */
   MATRIX *m_tmp, *m_L, *m_dT_X_T ;
   VECTOR *v_dT, *v_X_T ;      /* gradient of mri_ref */
-  Real   val, x1, x2, x3, y1, y2, y3, thick /*, len*/, in_val ;
+  double   val, x1, x2, x3, y1, y2, y3, thick /*, len*/, in_val ;
   double delta = 0.0, n, std, sigma, dx, dy, dz, wtotal, dsq, w_k_p, mean_std,
                  dot, nx, ny, nz, ndx,ndy,ndz;
   int    only_translation, k ;
@@ -2026,7 +2025,7 @@ static double   m3dNonlinearAreaSSE(MRI *mri_in,MRI *mri_ref,MORPH_3D *m3d,
 static int      m3dCorrelationTerm(MRI *mri_in, MRI *mri_ref,
                                    MRI *mri_ref_blur, double l_intensity,
                                    int xin, int yin, int zin,
-                                   Real xref, Real yref, Real zref,
+                                   double xref, double yref, double zref,
                                    double *pdx, double *pdy, double *pdz) ;
 static int      m3dDistanceTerm(MORPH_3D *m3d, double l_distance,
                                 int i, int j, int k,
@@ -2110,7 +2109,7 @@ m3dCorrelationSSE(MRI *mri_in, MRI *mri_ref,MORPH_3D *m3d, NECK_PARMS *np)
   MORPH_NODE *mn ;
   float      x1, x2, x3, scale, dot, nx, ny, nz, ndx, ndy, ndz, thick,
   pdx, pdy, pdz ;
-  Real       ref_val, in_val, delta, xd, yd, zd, ref_std, mean_std ;
+  double       ref_val, in_val, delta, xd, yd, zd, ref_std, mean_std ;
 
   mean_std = mri_ref->mean ;
   thick = mri_in->thick ;
@@ -3024,7 +3023,7 @@ MRIapply3DMorph(MRI *mri_in, MORPH_3D *m3d, MRI *mri_morphed)
   int        width, height, depth, x, y, z,
   xm1, ym1, zm1, xp1, yp1, zp1 ;
   float      xd, yd, zd, dx, dy, dz, thick ;
-  Real       weight, orig_val, val ;
+  double       weight, orig_val, val ;
   MRI        *mri_weights, *mri_ctrl, *mri_s_morphed ;
 
   width = mri_in->width ;
@@ -3140,7 +3139,7 @@ MRIapply3DMorph(MRI *mri_in, MORPH_3D *m3d, MRI *mri_morphed)
         weight = (float)MRIvox(mri_weights,x,y,z) / SCALE_FACTOR ;
         if (!FZERO(weight))
         {
-          val = (Real)MRISvox(mri_s_morphed,x,y,z) / weight ;
+          val = (double)MRISvox(mri_s_morphed,x,y,z) / weight ;
           if (val > 255.0)
             val = 255.0 ;
           MRISvox(mri_s_morphed,x,y,z) = (short)nint(val) ;
@@ -3216,7 +3215,7 @@ MRIapplyInverse3DMorph(MRI *mri_ref,MORPH_3D *m3d,MRI *mri_morphed)
 {
   int        width, height, depth, x, y, z ;
   float      xd, yd, zd ;
-  Real       val ;
+  double       val ;
 
   width = mri_ref->width ;
   height = mri_ref->height ;
@@ -3494,10 +3493,10 @@ MRI3DmorphFree(MORPH_3D **pm3d)
 ------------------------------------------------------*/
 static int
 m3dCorrelationTerm(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
-                   double l_intensity, int xin, int yin, int zin, Real xref,
-                   Real yref, Real zref, double *pdx, double *pdy,double *pdz)
+                   double l_intensity, int xin, int yin, int zin, double xref,
+                   double yref, double zref, double *pdx, double *pdy,double *pdz)
 {
-  Real   ref_val, in_val, delta, Tdx, Tdy, Tdz, len, ref_std, mean_std ;
+  double   ref_val, in_val, delta, Tdx, Tdy, Tdz, len, ref_std, mean_std ;
 
   mean_std = mri_ref->mean ;
   if (FZERO(l_intensity))
@@ -4224,7 +4223,7 @@ m3dIntegrationStep(MRI *mri_in, MRI *mri_ref, MRI *mri_ref_blur,
   int        width, height, depth, x, y, z, xsi, ysi, zsi, *pxi, *pyi, *pzi ;
   MORPH_NODE *mn ;
   MNP        *mnp ;
-  Real       xin, yin, zin, scale, xref, yref, zref ;
+  double       xin, yin, zin, scale, xref, yref, zref ;
 
   nx = parms->in_np.neck_x0 ;
   ny = parms->in_np.neck_y0 ;
@@ -5948,7 +5947,7 @@ static float
 mriMaxRadius(MRI *mri, int low_val,int hi_val,float *px0,float *py0,float *pz0)
 {
   int     x, y, z, width, depth, height, nvox ;
-  Real    xw, yw, zw, max_radius, radius, xd, yd, zd ;
+  double    xw, yw, zw, max_radius, radius, xd, yd, zd ;
   float   x0, y0, z0 ;
   BUFTYPE val ;
 
@@ -5967,7 +5966,7 @@ mriMaxRadius(MRI *mri, int low_val,int hi_val,float *px0,float *py0,float *pz0)
         if (val >= low_val && val <= hi_val)
         {
           nvox++ ;
-          MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xw, &yw, &zw) ;
+          MRIvoxelToWorld(mri, (double)x, (double)y, (double)z, &xw, &yw, &zw) ;
           x0 += xw ;
           y0 += yw ;
           z0 += zw ;
@@ -5989,7 +5988,7 @@ mriMaxRadius(MRI *mri, int low_val,int hi_val,float *px0,float *py0,float *pz0)
         val = MRIvox(mri, x, y, z) ;
         if (val >= low_val && val <= hi_val)
         {
-          MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &xw, &yw, &zw) ;
+          MRIvoxelToWorld(mri, (double)x, (double)y, (double)z, &xw, &yw, &zw) ;
           xd = xw - x0 ;
           yd = yw - y0 ;
           zd = zw - z0 ;
@@ -6973,7 +6972,7 @@ m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull,
   int        i, j, k, width, height, depth, n ;
   float      in_x0, in_y0, in_z0, ref_x0, ref_y0, ref_z0, scale, nx, ny, nz,
   ref_v_x0, ref_v_y0, ref_v_z0, thick, dx, dy, dz,ref_dist,in_dist;
-  Real       xw, yw, zw, xv, yv, zv, mean_scale ;
+  double       xw, yw, zw, xv, yv, zv, mean_scale ;
 
   thick = mri->thick ;
 
@@ -7033,7 +7032,7 @@ m3dMorphSkull(MORPH_3D *m3d, MRI_SURFACE *mris_in_skull,
         xv = mn->x / thick ;
         yv = mn->y / thick ;
         zv = mn->z / thick ;
-        MRIvoxelToWorld(mri, (Real)xv, (Real)yv, (Real)zv, &xw, &yw, &zw) ;
+        MRIvoxelToWorld(mri, (double)xv, (double)yv, (double)zv, &xw, &yw, &zw) ;
         nx = xw - ref_x0 ;
         ny = yw - ref_y0 ;
         nz = zw - ref_z0 ;
@@ -7594,7 +7593,7 @@ void computeRigidAlignmentGradient(float *p, float *g)
   VECTOR *v_crop ;
   MATRIX *m_tmp, *m_L, *m_dL, *m_dT_X_T, *m_L_inv, *m_dw_X_T, *m_crop ;
   VECTOR *v_dT, *v_X_T, *v_dw ;      /* gradient of mri_ref */
-  Real   ref_val, in_val, x1, x2, x3 /*, len*/ ;
+  double   ref_val, in_val, x1, x2, x3 /*, len*/ ;
   double delta = 0.0, dx, dy, dz, std, mean_std, ref_wt ;
   MRI    *mri_ref, *mri_in ;
   MP     *parms ;
@@ -7795,7 +7794,7 @@ computeRigidAlignmentErrorFunctional(float *p)
 {
   int    y1, y2, y3, width, height, depth, row, col, i ;
   VECTOR *v_X, *v_Y, *v_crop ;/* original and transformed coordinate systems */
-  Real   ref_val, in_val, x1, x2, x3 ;
+  double   ref_val, in_val, x1, x2, x3 ;
   double sse = 0.0f, delta = 0.0, std, mean_std, wt ;
   MATRIX *m_L, *m_L_inv, *m_crop ;
   MRI    *mri_ref, *mri_in ;
@@ -8211,7 +8210,7 @@ computeRigidAlignmentErrorFunctionalAndGradient(int index, float *p,
   static VECTOR *v_X = NULL, *v_Y = NULL, *v_dT = NULL, *v_X_T = NULL ;
   static MATRIX *m_dT_X_T = NULL ;
   static float mean_std = 1.0 ;
-  Real   val, y1, y2, y3 ;
+  double   val, y1, y2, y3 ;
   double delta, std, dx, dy, dz ;
 
   index-- ;  /* make it zero-based */
@@ -8245,9 +8244,9 @@ computeRigidAlignmentErrorFunctionalAndGradient(int index, float *p,
   height = g_mri_ref->height ;
   depth = g_mri_ref->depth ;
   npix = width * height * depth ;
-  x3 = (Real)(index % depth) ;
-  x1 = (Real)(index / (depth*height)) ;
-  x2 = (Real)((index - (x1*depth*height)) / depth) ;
+  x3 = (double)(index % depth) ;
+  x1 = (double)(index / (depth*height)) ;
+  x2 = (double)((index - (x1*depth*height)) / depth) ;
 
   v_X->rptr[4][1] = 1.0f ;
   V3_Z(v_X) = x3 ;
@@ -8334,9 +8333,9 @@ MRIsampleReferenceWeighting(MRI *mri, int x, int y, int z)
 {
 #if 0
   double wt, dist  ;
-  Real   x_ras, y_ras, z_ras, dx, dy, dz ;
+  double   x_ras, y_ras, z_ras, dx, dy, dz ;
 
-  MRIvoxelToWorld(mri, (Real)x, (Real)y, (Real)z, &x_ras, &y_ras, &z_ras) ;
+  MRIvoxelToWorld(mri, (double)x, (double)y, (double)z, &x_ras, &y_ras, &z_ras) ;
   dx = x_ras - T0_X ;
   dy = y_ras - T0_Y ;
   dz = y_ras - T0_Z ;
@@ -8573,7 +8572,7 @@ compute_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L, fl
   VECTOR  *v1, *v2 ;
   MRI     *mri_target, *mri_source ;
   double  sse, error ;
-  Real    d1, d2, xd, yd, zd ;
+  double    d1, d2, xd, yd, zd ;
   MATRIX  *m_L_inv ;
 
   m_L_inv = MatrixInverse(m_L, NULL) ;
@@ -9055,10 +9054,10 @@ static int ComputeStepTransform(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, fl
   //(cx, cy, cz) is used to translate the coordinates system to be centered at it; may help reduce numerical errors
   int i, j, k, width, height, depth;
   int x, y, z;
-  Real d1, d2;
+  double d1, d2;
   float x1, y1, z1;
 
-  Real fx, fy, fz, ft, ck;
+  double fx, fy, fz, ft, ck;
   MATRIX *sumCC, *invCC;
   VECTOR *sumCk;
 #ifdef NPARMS
@@ -9228,7 +9227,7 @@ static int farid_align(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m_L
   int minX, maxX, minY, maxY, minZ, maxZ;
   float cx, cy, cz;
   VECTOR  *v1, *v2 ;
-  Real    d2, xd, yd, zd ;
+  double    d2, xd, yd, zd ;
   int flag;
   MATRIX *Minc, *Mtmp;
   //  float  evalues[4] ;
@@ -9351,7 +9350,7 @@ compute_label_likelihood(VOXEL_LIST *vl_source, VOXEL_LIST *vl_target, MATRIX *m
   VECTOR  *v1, *v2 ;
   MRI     *mri_target, *mri_source ;
   double  sse;
-  Real    xd, yd, zd ;
+  double    xd, yd, zd ;
   int d1, d2;
   MATRIX  *m_L_inv ;
 
@@ -9837,7 +9836,7 @@ mriIntensitySSE(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   VECTOR  *v1, *v2 ;
   double  xd, yd, zd, sse, width, height, depth ;
   MATRIX  *m_L_inv ;
-  Real    d1, d2, error ;
+  double  d1, d2, error ;
   
   m_L_inv = MatrixInverse(m_L, NULL) ;
   if (m_L_inv == NULL)

@@ -1,17 +1,16 @@
 /**
  * @file  ctrpoints.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief read and write control points
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y.Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,26 +20,17 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-
-//
-// ctrpoints.h
-//
-// purpose: read and write control points
-//
 #ifndef ctrpoints_h
 #define ctrpoints_h
 
-#include "volume_io/basic.h" /* defines Real */
-
 typedef struct
 {
-  Real x;
-  Real y;
-  Real z ;
+  double x;
+  double y;
+  double z ;
 }
 MPoint;
 
@@ -54,6 +44,9 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS);
 // returning array of MGHPoint
 // we will write whether they are in scannerRAS or surfaceRAS
 // Note that use must tell which coordinate system it is.
-int MRIwriteControlPoints(MPoint *pointArray, int count, int useRealRAS, char *fname);
+int MRIwriteControlPoints(MPoint *pointArray,
+                          int count,
+                          int useRealRAS,
+                          char *fname);
 
 #endif // inclusion guard

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/13 01:32:46 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@ MRI *unwarpGradientNonlinearity(MRI *mri,
   float voxel_CC_plus_dCC, voxel_RR_plus_dRR, voxel_SS_plus_dSS;
   float *bead_dX, *bead_dY, *bead_dZ;
   int maxBeadI, maxBeadJ, maxBeadK;
-  Real tmpVal;
+  double tmpVal;
   int index;
   float *voxelCornerCC_slab1, *voxelCornerCC_slab2;
   float *voxelCornerRR_slab1, *voxelCornerRR_slab2;
@@ -179,9 +179,9 @@ MRI *unwarpGradientNonlinearity(MRI *mri,
         {
           if (strcmp(unwarp_interpType, "linear") == 0)
             MRIsampleVolumeFrame(mri,
-                                 ((Real) voxel_CC_plus_dCC),
-                                 ((Real) voxel_RR_plus_dRR),
-                                 ((Real) voxel_SS_plus_dSS),
+                                 ((double) voxel_CC_plus_dCC),
+                                 ((double) voxel_RR_plus_dRR),
+                                 ((double) voxel_SS_plus_dSS),
                                  FF,
                                  &tmpVal);
           else if (strcmp(unwarp_interpType, "sinc") == 0)
@@ -192,9 +192,9 @@ MRI *unwarpGradientNonlinearity(MRI *mri,
 
             /*
             MRIsincSampleVolumeFrame(mri,
-            ((Real) voxel_CC_plus_dCC),
-            ((Real) voxel_RR_plus_dRR),
-            ((Real) voxel_SS_plus_dSS),
+            ((double) voxel_CC_plus_dCC),
+            ((double) voxel_RR_plus_dRR),
+            ((double) voxel_SS_plus_dSS),
             FF,
             unwarp_sincInterpHW,
             &tmpVal);
@@ -210,9 +210,9 @@ MRI *unwarpGradientNonlinearity(MRI *mri,
             }
             else
               MRIsincSampleVolume(mri,
-                                  ((Real) voxel_CC_plus_dCC),
-                                  ((Real) voxel_RR_plus_dRR),
-                                  ((Real) voxel_SS_plus_dSS),
+                                  ((double) voxel_CC_plus_dCC),
+                                  ((double) voxel_RR_plus_dRR),
+                                  ((double) voxel_SS_plus_dSS),
                                   unwarp_sincInterpHW,
                                   &tmpVal);
             /* %^& -- end cut here --- */
@@ -742,6 +742,6 @@ int uGN_linInterp(float *bead_dX, float *bead_dY, float *bead_dZ,
 
 }
 
-/* printf("!!! %f !!!\n", ((Real) MRISvox(mri, 114, 114, 114))); */
+/* printf("!!! %f !!!\n", ((double) MRISvox(mri, 114, 114, 114))); */
 /* MRIsampleVolume(mri, 114, 114, 114, &tmpmuk); */
 

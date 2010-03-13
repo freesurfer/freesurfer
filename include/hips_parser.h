@@ -1,48 +1,21 @@
 /**
  * @file  hips_parser.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief definitions related to the HIPS argument parser
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Michael Landy
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
- *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
- *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
- *
- */
-
-
-/*
  * Copyright (c) 1991 Michael Landy
  *
  * Disclaimer:  No guarantees of performance accompany this software,
  * nor is any responsibility assumed on the part of the authors.  All the
  * software has been tested extensively and every effort has been made to
  * insure its reliability.
- */
-
-/*
- * hips_parser.h - definitions related to the HIPS argument parser
- *
- * David Wilson - 30/1/91
- */
-
-/*
- * Definitions for the command line parser lib/sources/parseargs.c
  */
 
 /*

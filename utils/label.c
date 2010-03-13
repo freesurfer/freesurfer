@@ -8,11 +8,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/04 02:34:40 $
- *    $Revision: 1.96 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.97 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -34,7 +33,7 @@
 #include <errno.h>
 
 #include "macros.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "error.h"
 #include "diag.h"
 #include "proto.h"
@@ -48,7 +47,8 @@
 extern const char* Progname;
 
 static LABEL_VERTEX *labelFindVertexNumber(LABEL *area, int vno) ;
-static Transform *labelLoadTransform(const char *subject_name, const char *sdir,
+static Transform *labelLoadTransform(const char *subject_name,
+                                     const char *sdir,
                                      General_transform *transform) ;
 
 #define MAX_VERTICES 500000
@@ -235,7 +235,7 @@ LabelFromCanonical(LABEL *area, MRI_SURFACE *mris)
   int     n, vno, ui, vi, vlist[500000], nvertices ;
   VERTEX  *v ;
   MRI_SP  *mrisp ;
-  LV     *lv ;
+  LV      *lv ;
 
   mrisp = MRISPalloc(0.0f, 1) ;
 
@@ -304,8 +304,8 @@ LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
   int     n, vno, vlist[MAX_VERTICES], nvertices, xv, yv, zv ;
   VERTEX  *v ;
   MRI     *mri ;
-  Real    xw, yw, zw ;
-  LV     *lv ;
+  double  xw, yw, zw ;
+  LV      *lv ;
 
   /* first write it into a volume */
   mri = MRIalloc(VDIM,VDIM,VDIM, MRI_UCHAR) ;
@@ -390,7 +390,10 @@ LabelFromTalairach(LABEL *area, MRI_SURFACE *mris)
   for (n = 0 ; n < area->n_points ; n++)
   {
     DiagHeartbeat((float)(n+1) / (float)area->n_points) ;
-    vno = MRIStalairachToVertex(mris,area->lv[n].x,area->lv[n].y,area->lv[n].z);
+    vno = MRIStalairachToVertex(mris,
+                                area->lv[n].x,
+                                area->lv[n].y,
+                                area->lv[n].z);
     v = &mris->vertices[vno] ;
     area->lv[n].vno = vno ;
     area->lv[n].x = v->origx ;
@@ -419,7 +422,7 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
   for (n = 0 ; n < area->n_points ; n++)
   {
     vno = area->lv[n].vno ;
-    if (vno >= 0 && vno < mris->nvertices)   /* already have associated vertex */
+    if (vno >= 0 && vno < mris->nvertices)/* already have associated vertex */
     {
       v = &mris->vertices[vno] ;
       area->lv[n].x = v->x ;
@@ -430,10 +433,19 @@ LabelToFlat(LABEL *area, MRI_SURFACE *mris)
     {
 #if 0
       vno =
-        MRISfindClosestVertex(mris, area->lv[n].x,area->lv[n].y,area->lv[n].z,&dmin);
+        MRISfindClosestVertex(mris,
+                              area->lv[n].x,
+                              area->lv[n].y,
+                              area->lv[n].z,
+                              &dmin);
 #endif
       v =
-        MHTfindClosestVertexInTable(mht, mris, area->lv[n].x,area->lv[n].y,area->lv[n].z, 0);
+        MHTfindClosestVertexInTable(mht,
+                                    mris,
+                                    area->lv[n].x,
+                                    area->lv[n].y,
+                                    area->lv[n].z,
+                                    0);
       if (v == NULL)
         continue ;
       vno = v - mris->vertices ;
@@ -571,7 +583,9 @@ LabelRipRestOfSurface(LABEL *area, MRI_SURFACE *mris)
         Description
 ------------------------------------------------------*/
 int
-LabelRipRestOfSurfaceWithThreshold(LABEL *area, MRI_SURFACE *mris, float thresh)
+LabelRipRestOfSurfaceWithThreshold(LABEL *area,
+                                   MRI_SURFACE *mris,
+                                   float thresh)
 {
   int    vno, n ;
   VERTEX *v ;
@@ -657,7 +671,8 @@ LabelIntersect(LABEL *area1, LABEL *area2)
 	vnum = vmax - vmin;
 	isec = (int*) calloc(vnum,sizeof(int));
   if (!isec)
-    ErrorExit(ERROR_NOMEMORY,"%s: could not allocate LabelIntersect struct.",Progname);
+    ErrorExit(ERROR_NOMEMORY,
+              "%s: could not allocate LabelIntersect struct.",Progname);
   for (n = 0 ; n<vnum; n++) isec[n] = -1;
 
   for (n = 0 ; n < area1->n_points ; n++)
@@ -818,7 +833,6 @@ LabelFillMarked(LABEL *area, MRI_SURFACE *mris)
   VERTEX *v, *vn ;
   LV     *lv, *lvn ;
 
-
   do
   {
     nfilled = 0 ;
@@ -874,7 +888,6 @@ LabelFillAnnotated(LABEL *area, MRI_SURFACE *mris)
   int    n, nfilled, nv, annotation ;
   VERTEX *v, *vn ;
   LV     *lv, *lvn ;
-
 
   annotation = mris->vertices[area->lv[0].vno].annotation ;
   do
@@ -996,7 +1009,9 @@ LabelFillAll(LABEL *area, int *vertex_list, int nvertices,
         Description
 ------------------------------------------------------*/
 static Transform *
-labelLoadTransform(const char *subject_name, const char *sdir,General_transform *transform)
+labelLoadTransform(const char *subject_name,
+                   const char *sdir,
+                   General_transform *transform)
 {
   char xform_fname[STRLEN] ;
 
@@ -1021,7 +1036,7 @@ LabelTalairachTransform(LABEL *area, MRI_SURFACE *mris)
 {
   int    n ;
   LV     *lv ;
-  Real   x, y, z, xt, yt, zt ;
+  double   x, y, z, xt, yt, zt ;
   VERTEX *v ;
 
   for (n = 0 ; n < area->n_points ; n++)
@@ -1314,7 +1329,9 @@ LabelMarkUndeleted(LABEL *area, MRI_SURFACE *mris)
   VERTEX *v ;
 
   if (NULL == area || NULL == mris)
-    ErrorReturn( ERROR_BADPARM, (ERROR_BADPARM, "LabelMarkUndeleted: area or mris was NULL" ));
+    ErrorReturn( ERROR_BADPARM, 
+                 (ERROR_BADPARM,
+                  "LabelMarkUndeleted: area or mris was NULL" ));
 
   /* For every point, if it's not deleted, get the vno. Check the
      vno. If it's good, set the vertex's marked flag.*/
@@ -1921,7 +1938,8 @@ LabelErode(LABEL *area, MRI_SURFACE *mris, int num_times)
       if (vno == Gdiag_no)
         DiagBreak() ;
 
-      // check to see if we should not add this label (if one of it's nbrs is not in label)
+      // check to see if we should not add this label
+      // (if one of it's nbrs is not in label)
       found = 0 ;
       for (neighbor_index = 0;
            neighbor_index < mris->vertices[vno].vnum; neighbor_index++)
@@ -2083,7 +2101,7 @@ LabelFillHoles(LABEL *area_src, MRI_SURFACE *mris, int coords)
 {
   MRI    *mri ;
   int    i, dst_index, vno, xi, yi, zi, xk, yk, zk, found, x2, y2, z2,nchanged;
-  Real   xw, yw, zw, xv, yv, zv ;
+  double xw, yw, zw, xv, yv, zv ;
   VERTEX *v ;
   LABEL  *area_dst ;
   float  vx, vy, vz, dist, dx, dy, dz;
@@ -2186,7 +2204,7 @@ LabelFillHolesWithOrig(LABEL *area_src, MRI_SURFACE *mris)
 {
   MRI    *mri ;
   int    i, dst_index, vno ;
-  Real   xw, yw, zw, xv, yv, zv ;
+  double xw, yw, zw, xv, yv, zv ;
   VERTEX *v ;
   LABEL  *area_dst ;
 
@@ -2445,9 +2463,11 @@ LabelInFOV(MRI_SURFACE *mris, MRI *mri, float pad)
   int          vno, npoints ;
   VERTEX       *v ;
   LABEL_VERTEX *lv ;
-  Real         xv, yv, zv, nvox ;
+  double       xv, yv, zv, nvox ;
 
-  nvox = pad / MAX(MAX(mri->xsize, mri->ysize), mri->zsize) ;  // convert to voxels
+  // convert to voxels
+  nvox = pad / MAX(MAX(mri->xsize, mri->ysize), mri->zsize) ;
+
   for (npoints = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -2586,7 +2606,8 @@ LabelCopyStatsToSurface(LABEL *area, MRI_SURFACE *mris, int which)
     case VERTEX_CURV: v->curv = area->lv[n].stat ; break ;
     case VERTEX_STATS: v->stat = area->lv[n].stat ; break ;
     default:
-      ErrorExit(ERROR_BADPARM, "LabelCopyStatsToSurface: unsupported which = %d", which);
+      ErrorExit(ERROR_BADPARM, 
+                "LabelCopyStatsToSurface: unsupported which = %d", which);
     }
   }
   return(NO_ERROR) ;

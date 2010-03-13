@@ -1,17 +1,16 @@
 /**
  * @file  density.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for computing joint densities from images
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:31 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/13 01:32:41 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -304,7 +302,7 @@ DensityLikelihoodImage(MRI *mri1,
                        MRI *mri_seg,
                        int inverse)
 {
-  Real   val_src, val_dst, xs, ys, thick, ll ;
+  double   val_src, val_dst, xs, ys, thick, ll ;
   int    x, y ;
   VECTOR *v_src, *v_dst ;
 

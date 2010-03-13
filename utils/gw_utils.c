@@ -7,10 +7,10 @@
  * Original Author: Graham Wideman
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/29 17:17:13 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2007,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -211,10 +210,6 @@ MRI * MRIFromMHTandMRIS(MHT * mht, MRIS * mris, MFMM_Option_t mfmm_option)
 
 #define HALFMHTFOV 200
 #define HALFMRIFOV 128
-  // int  xsi, ysi, zsi, xvi, yvi, zvi;
-  // Real xs,  ys,  zs,  xv,  yv,  zv;  // WTF is Real?
-  // VERTEX vtx;
-  // FACE   face;
 
   fno_usage = mht->fno_usage;
 

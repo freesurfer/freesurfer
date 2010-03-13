@@ -8,11 +8,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 15:11:20 $
- *    $Revision: 1.72 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:45 $
+ *    $Revision: 1.73 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -41,7 +40,7 @@
 #include "mri2.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "filter.h"
 #include "box.h"
 #include "region.h"
@@ -210,7 +209,7 @@ MRI *
 MRIand(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
 {
   int     width, height, depth, x, y, z, f ;
-  Real    val1, val2 ;
+  double    val1, val2 ;
 
   MRIcheckVolDims(mri1, mri2);
 
@@ -253,7 +252,7 @@ MRI *
 MRIor(MRI *mri1, MRI *mri2, MRI *mri_dst, int thresh)
 {
   int     width, height, depth, x, y, z, f ;
-  Real    val1, val2 ;
+  double    val1, val2 ;
 
   MRIcheckVolDims(mri1, mri2);
 
@@ -390,7 +389,7 @@ MRI * MRIerode(MRI *mri_src, MRI *mri_dst)
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
   {
-    Real fmin_val, fval ;
+    double fmin_val, fval ;
 
     for (z = 0 ; z < depth ; z++)
     {
@@ -462,7 +461,7 @@ MRI * MRIerodeThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
                      MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
-  Real    min_val, val ;
+  double    min_val, val ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -524,7 +523,7 @@ MRI * MRIdilateThresh(MRI *mri_src, MRI *mri_intensity, double thresh,
                      MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
-  Real    max_val, val ;
+  double    max_val, val ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -586,7 +585,7 @@ MRI * MRIdilate6Thresh(MRI *mri_src, MRI *mri_intensity, double thresh,
                        MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same ;
-  Real    max_val, val ;
+  double    max_val, val ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -671,7 +670,7 @@ MRI *MRIerodeZero(MRI *mri_src, MRI *mri_dst)
 
   if (mri_src->type != MRI_UCHAR || mri_dst->type != MRI_UCHAR)
   {
-    Real fmin_val, fval ;
+    double fmin_val, fval ;
 
     for (z = 0 ; z < depth ; z++)
     {
@@ -744,7 +743,7 @@ MRI *MRIerodeZero(MRI *mri_src, MRI *mri_dst)
 MRI * MRIerode2D(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, xi, yi, same ;
-  Real fmin_val, fval ;
+  double fmin_val, fval ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -1255,7 +1254,7 @@ MRIdilateLabel(MRI *mri_src, MRI *mri_dst, int label, int niter)
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi,
   xmin, xmax, ymin, ymax, zmin, zmax, i, f ;
   MRI     *mri_tmp = NULL ;
-  Real    out_val, val ;
+  double    out_val, val ;
 
   MRIcheckVolDims(mri_src, mri_dst);
 
@@ -1475,7 +1474,7 @@ MRIdilate(MRI *mri_src, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, x0, y0, z0, xi, yi, zi, same,
   xmin, xmax, ymin, ymax, zmin, zmax, f;
-  Real    val, max_val ;
+  double    val, max_val ;
 
   if (mri_src->type == MRI_UCHAR)
     return(MRIdilateUchar(mri_src, mri_dst)) ;
@@ -3321,7 +3320,8 @@ MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, int which, FILE *fp)
   MRInonzeroValRange(mri_src, &min_val, &max_val) ;
   present = (int *)calloc(max_val+1, sizeof(int)) ;
   if (present == NULL)
-    ErrorExit(ERROR_NOMEMORY, "MRIcomputeLabelAccuracy: could not allocate %d element array",max_val+1) ;
+    ErrorExit(ERROR_NOMEMORY, "MRIcomputeLabelAccuracy: "
+              "could not allocate %d element array",max_val+1) ;
 
   present[0] = 1 ; // don't do unknown/background
   max_val = 0 ;
@@ -3351,7 +3351,8 @@ MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, int which, FILE *fp)
     total_accuracy += accuracy ;
     if (fp)
     {
-      fprintf(fp, "%d %s %f\n", label, cma_label_to_name(label), vsize*accuracy) ;
+      fprintf(fp, "%d %s %f\n",
+              label, cma_label_to_name(label), vsize*accuracy) ;
       fflush(fp) ;
     }
   }
@@ -3370,8 +3371,10 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
   VECTOR *v1, *v2 ;
   MATRIX *m_vox2vox ;
 
-  mri_src_dist = MRIdistanceTransform(mri_src, NULL, label, -1, DTRANS_MODE_UNSIGNED, NULL) ;
-  mri_ref_dist = MRIdistanceTransform(mri_ref, NULL, label, -1, DTRANS_MODE_UNSIGNED, NULL) ;
+  mri_src_dist = 
+    MRIdistanceTransform(mri_src, NULL, label, -1, DTRANS_MODE_UNSIGNED, NULL);
+  mri_ref_dist =
+    MRIdistanceTransform(mri_ref, NULL, label, -1, DTRANS_MODE_UNSIGNED, NULL);
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
   {
     MRIwrite(mri_src, "s.mgz") ;
@@ -3398,7 +3401,8 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
         MRIsampleVolume(mri_ref_dist, xd, yd, zd, &val2) ;
         nvox1++ ; min_dist1 += fabs(val2-val1) ;
         if (((label == Gdiag_no) || (Gdiag_no < 0)) && Gdiag_fp != NULL)
-          fprintf(Gdiag_fp, "%d %f %f %f %f %f\n", label, xd, yd, zd, val1, val2) ;
+          fprintf(Gdiag_fp, "%d %f %f %f %f %f\n",
+                  label, xd, yd, zd, val1, val2) ;
       }
 
 
@@ -3419,7 +3423,8 @@ MRIcomputeMeanMinLabelDistance(MRI *mri_src, MRI *mri_ref, int label)
         MRIsampleVolume(mri_src_dist, xd, yd, zd, &val2) ;
         nvox2++ ; min_dist2 += fabs(val2-val1) ;
         if (((label == Gdiag_no) || (Gdiag_no < 0)) && Gdiag_fp != NULL)
-          fprintf(Gdiag_fp, "%d %d %d %d %f %f\n", label, x, y, z, val2, val1) ;
+          fprintf(Gdiag_fp, "%d %d %d %d %f %f\n",
+                  label, x, y, z, val2, val1) ;
       }
 
   if (nvox1 == 0 || nvox2 == 0)
@@ -3716,7 +3721,8 @@ MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst,
   Returns value:
 
   Description
-  set voxels with a different value in mri1 and mri2 to a dst_val in target volume
+  set voxels with a different value in mri1 and mri2 to 
+  a dst_val in target volume
   ------------------------------------------------------*/
 int
 MRIsetDifferentVoxelsWithValue(MRI *mri1, MRI *mri2, MRI *mri_dst, int dst_val)

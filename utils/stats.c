@@ -6,11 +6,11 @@
 /*
  * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:55 $
- *    $Revision: 1.31 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:46 $
+ *    $Revision: 1.32 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -54,7 +53,7 @@ extern const char* Progname;
 MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile);
 
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 fMRI_REG *
 StatReadRegistration(const char *fname)
 {
@@ -110,7 +109,7 @@ StatReadRegistration(const char *fname)
 }
 
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 int
 StatFreeRegistration(fMRI_REG **preg)
 {
@@ -125,14 +124,14 @@ StatFreeRegistration(fMRI_REG **preg)
 }
 
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 SV *StatReadVolume(const char *prefix)
 {
   char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN], *cp ;
   STAT_VOLUME  *sv ;
   FILE         *fp ;
   int          dof_mean, dof_sigma, event_number, slice_number, which_alloc,
-  width, height, nframes, nslices, t, event, nitems, x, y, z ;
+    width, height, nframes, nslices, t, event, nitems, x, y, z ;
   float        *buf, fval ;
   int DatVersion, DOF;
   float TER;
@@ -186,7 +185,7 @@ SV *StatReadVolume(const char *prefix)
   else
   {
     /*fprintf(stderr,"WARNING: %s: StatReadVolume():\n",Progname);
-    fprintf(stderr,"%s does not exist\n",fname);*/
+      fprintf(stderr,"%s does not exist\n",fname);*/
     fprintf(stderr,"INFO: detected volume %s as type raw\n",prefix);
     sv->nevents = 1 ;
     sv->time_per_event = 0 ;  /* will be filled in later by .hdr file */
@@ -334,22 +333,22 @@ SV *StatReadVolume(const char *prefix)
 
       /* read slice of standard deviations for each time point */
       if (sv->mri_stds[event]) for (t = 0 ; t < sv->time_per_event ; t++)
+      {
+        if (fread(buf, sizeof(float), nitems, fp) != nitems)
+          ErrorReturn(NULL, (ERROR_BADFILE, "StatReadVolume: could not read "
+                             "%dth slice",z)) ;
+        for (y = 0 ; y < height ; y++)
         {
-          if (fread(buf, sizeof(float), nitems, fp) != nitems)
-            ErrorReturn(NULL, (ERROR_BADFILE, "StatReadVolume: could not read "
-                               "%dth slice",z)) ;
-          for (y = 0 ; y < height ; y++)
+          for (x = 0 ; x < width ; x++)
           {
-            for (x = 0 ; x < width ; x++)
-            {
-              fval = buf[y*width+x] ;
+            fval = buf[y*width+x] ;
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-              fval = swapFloat(fval) ;
+            fval = swapFloat(fval) ;
 #endif
-              MRIFseq_vox(sv->mri_stds[event],x,y,z,t) = fval ;
-            }
+            MRIFseq_vox(sv->mri_stds[event],x,y,z,t) = fval ;
           }
         }
+      }
     }
 
     fclose(fp) ;
@@ -387,22 +386,22 @@ SV *StatReadVolume(const char *prefix)
 
       /* read slice of standard deviation dofs for each time point */
       if (sv->mri_stds[event]) for (t = 0 ; t < sv->time_per_event ; t++)
+      {
+        if (fread(buf, sizeof(float), nitems, fp) != nitems)
+          ErrorReturn(NULL, (ERROR_BADFILE, "StatReadVolume: could not read "
+                             "%dth slice",z)) ;
+        for (y = 0 ; y < height ; y++)
         {
-          if (fread(buf, sizeof(float), nitems, fp) != nitems)
-            ErrorReturn(NULL, (ERROR_BADFILE, "StatReadVolume: could not read "
-                               "%dth slice",z)) ;
-          for (y = 0 ; y < height ; y++)
+          for (x = 0 ; x < width ; x++)
           {
-            for (x = 0 ; x < width ; x++)
-            {
-              fval = buf[y*width+x] ;
+            fval = buf[y*width+x] ;
 #if (BYTE_ORDER == LITTLE_ENDIAN)
-              fval = swapFloat(fval) ;
+            fval = swapFloat(fval) ;
 #endif
-              MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) = fval ;
-            }
+            MRIFseq_vox(sv->mri_std_dofs[event],x,y,z,t) = fval ;
           }
         }
+      }
     }
 
     fclose(fp) ;
@@ -413,7 +412,7 @@ SV *StatReadVolume(const char *prefix)
 }
 
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 SV *StatReadVolume2(const char *prefix)
 {
   char         path[STRLEN], fname[STRLEN], line[MAX_LINE_LEN];
@@ -489,7 +488,7 @@ SV *StatReadVolume2(const char *prefix)
   if(which_alloc & ALLOC_STDS)  nframes *= 2;
 
   StatAllocVolume(sv, sv->nevents, h->width, h->height, h->depth,
-		  sv->time_per_event, which_alloc);
+                  sv->time_per_event, which_alloc);
 
   /* read it after nevents */
   if(stricmp(sv->reg->name, "talairach") &&
@@ -501,9 +500,9 @@ SV *StatReadVolume2(const char *prefix)
     /* read slice of means for each time point */
     for (t = 0 ; t < sv->time_per_event ; t++)  {
       for (z = 0 ; z < h->depth ; z++)    {
-	for (y = 0 ; y < h->height ; y++)   {
-	  for (x = 0 ; x < h->width ; x++)    {
-	    fval = MRIgetVoxVal(h,x,y,z,f);
+        for (y = 0 ; y < h->height ; y++)   {
+          for (x = 0 ; x < h->width ; x++)    {
+            fval = MRIgetVoxVal(h,x,y,z,f);
             MRIFseq_vox(sv->mri_avgs[event],x,y,z,t) = fval ;
           } // x
         } // y
@@ -514,9 +513,9 @@ SV *StatReadVolume2(const char *prefix)
     /* read slice of std for each time point */
     for (t = 0 ; t < sv->time_per_event ; t++)  {
       for (z = 0 ; z < h->depth ; z++)    {
-	for (y = 0 ; y < h->height ; y++)   {
-	  for (x = 0 ; x < h->width ; x++)    {
-	    fval = MRIgetVoxVal(h,x,y,z,f);
+        for (y = 0 ; y < h->height ; y++)   {
+          for (x = 0 ; x < h->width ; x++)    {
+            fval = MRIgetVoxVal(h,x,y,z,f);
             MRIFseq_vox(sv->mri_stds[event],x,y,z,t) = fval ;
           } // x
         } // y
@@ -538,7 +537,7 @@ SV *StatReadVolume2(const char *prefix)
 }
 
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 int
 StatFree(SV **psv)
 {
@@ -569,7 +568,7 @@ StatFree(SV **psv)
   return(NO_ERROR) ;
 }
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 #if 0
 MRI *
 StatVolumeToTalairach(SV *sv, MRI *mri, int resolution)
@@ -586,7 +585,7 @@ StatVolumeToTalairach(SV *sv, MRI *mri, int resolution)
 }
 #endif
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 STAT_VOLUME *
 StatAllocVolume(SV *sv, int nevents, int width, int height,
                 int nslices, int time_points, int which_alloc)
@@ -646,9 +645,12 @@ StatAllocVolume(SV *sv, int nevents, int width, int height,
   return(sv) ;
 }
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 SV *
-StatAllocStructuralVolume(SV *sv, float fov, float resolution, const char *name)
+StatAllocStructuralVolume(SV *sv,
+                          float fov,
+                          float resolution,
+                          const char *name)
 {
   SV     *sv_tal ;
   int    width, height, depth, event ;
@@ -691,15 +693,15 @@ StatAllocStructuralVolume(SV *sv, float fov, float resolution, const char *name)
   return(sv_tal) ;
 }
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 int
 StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
 {
   int    x, y, z, width, height, depth, event, t, xv, yv, zv, swidth, sheight,
-  sdepth, vno ;
-  Real   xf, yf, zf, xr, yr, zr ;
+    sdepth, vno ;
+  double   xf, yf, zf, xr, yr, zr ;
   float  mean, surf_mean, std, surf_std, surf_dof, dof, xoff, yoff, zoff,
-  sxoff, syoff, szoff, xs, ys, zs ;
+    sxoff, syoff, szoff, xs, ys, zs ;
   VECTOR *v_struct, *v_func ;
   MRI    *mri_avg, *mri_std, *mri_ctrl ;
   VERTEX *vertex ;
@@ -753,23 +755,23 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
         sample from the surface, through the strucural space, 
         into the functional
         one.
-       */
+      */
 
       /*
-         first build average volume for this subjects. 
-         This is to avoid sampling
-         from the volume onto the surface which would take forever since it
-         would require searching the entire surface for the nearest point for
-         every point in the volume.
-         */
+        first build average volume for this subjects. 
+        This is to avoid sampling
+        from the volume onto the surface which would take forever since it
+        would require searching the entire surface for the nearest point for
+        every point in the volume.
+      */
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
         vertex = &mris->vertices[vno] ;
 
         /*
-           read the functional data from the coordinates in 'folded' space, 
-           then write them into the structural volume using the 
-           canonical coordinates.
+          read the functional data from the coordinates in 'folded' space, 
+          then write them into the structural volume using the 
+          canonical coordinates.
         */
         xs = vertex->x ;
         ys = vertex->y ;
@@ -780,8 +782,11 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
         MatrixMultiply(sv->reg->mri2fmri, v_struct, v_func) ;
 
         /* transform it into a (functional) voxel coordinate */
-        MRIworldToVoxel(sv->mri_avgs[event], (Real)V3_X(v_func),
-                        (Real)V3_Y(v_func), (Real)V3_Z(v_func), &xf, &yf, &zf);
+        MRIworldToVoxel(sv->mri_avgs[event],
+                        (double)V3_X(v_func),
+                        (double)V3_Y(v_func),
+                        (double)V3_Z(v_func),
+                        &xf, &yf, &zf);
         xv = nint(xf) ;
         yv = nint(yf) ;
         zv = nint(zf) ;
@@ -806,9 +811,9 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
             continue ;
 
           /*
-             at this point (xv,yv,zv) is a functional coordinate, 
-             and (x,y,z) is the corresponding structural coordinate.
-           */
+            at this point (xv,yv,zv) is a functional coordinate, 
+            and (x,y,z) is the corresponding structural coordinate.
+          */
           /* update means */
           surf_mean = MRIFseq_vox(mri_avg, x, y, z, 0) ;
           surf_dof  = MRIFseq_vox(mri_avg, x, y, z, 1) ;
@@ -850,8 +855,8 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
       }
 
       /*
-         now use the intermediate structural volumes to update the
-         cross-subject average volume.
+        now use the intermediate structural volumes to update the
+        cross-subject average volume.
       */
       for (z = 0 ; z < depth ; z++)
       {
@@ -901,15 +906,15 @@ StatAccumulateSurfaceVolume(SV *sv_surf, SV *sv, MRI_SURFACE *mris)
   return(NO_ERROR) ;
 }
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 int
 StatAccumulateTalairachVolume(SV *sv_tal, SV *sv)
 {
   int    x, y, z, width, height, depth, event, t, xv, yv, zv, swidth, sheight,
-  sdepth ;
-  //Real   xf, yf, zf ;
+    sdepth ;
+  //double   xf, yf, zf ;
   float  mean, tal_mean, std, tal_std, tal_dof, dof, xoff, yoff, zoff, sxoff,
-  syoff, szoff ;
+    syoff, szoff ;
   VECTOR *v_struct, *v_func ;
   MRI    *mri_avg, *mri_std ;
   MATRIX *Tfunc, *Ttal;
@@ -1098,7 +1103,7 @@ StatWriteVolume(SV *sv, const char *prefix)
   char         path[STRLEN], fname[STRLEN] ;
   FILE         *fp ;
   int          event_number, width, height, nslices, t,
-  event, nitems, x, y, z, nframes ;
+    event, nitems, x, y, z, nframes ;
   float        *buf, fval ;
 
   width = sv->slice_width ;
@@ -1342,7 +1347,7 @@ StatReadTransform(STAT_VOLUME *sv, const char *name)
   return(NO_ERROR) ;
 }
 /*------------------------------------------------------------------------
-------------------------------------------------------------------------*/
+  ------------------------------------------------------------------------*/
 int
 StatVolumeExists(const char *prefix)
 {

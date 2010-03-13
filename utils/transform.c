@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/26 16:41:35 $
- *    $Revision: 1.141 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:46 $
+ *    $Revision: 1.142 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -740,7 +739,7 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
 {
   int         y1, y2, y3, width, height, depth, xi, yi, zi, f ;
   VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
-  Real        x1, x2, x3 ;
+  double        x1, x2, x3 ;
   MATRIX      *m_L, *m_L_inv ;
   LT *tran = &lta->xforms[0];
   MATRIX *r2i = 0;
@@ -962,7 +961,7 @@ LTAinverseTransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
 {
   int         y1, y2, y3, width, height, depth, xi, yi, zi, f ;
   VECTOR      *v_X, *v_Y ;/* original and transformed coordinate systems */
-  Real        x1, x2, x3 ;
+  double        x1, x2, x3 ;
   MATRIX      *m_L, *m_L_inv ;
   LT *tran = &lta->inv_xforms[0];
   MATRIX *r2i = 0;
@@ -1418,7 +1417,7 @@ int TransformFileNameType(const char *fname)
   return(file_type) ;
 }
 
-#include "volume_io.h"
+#include "minc_volume_io.h"
 
 static int
 ltaMNIwrite(LTA *lta, const char *fname)

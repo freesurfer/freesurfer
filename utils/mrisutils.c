@@ -6,11 +6,11 @@
 /*
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/01/07 21:43:15 $
- *    $Revision: 1.34 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:46 $
+ *    $Revision: 1.35 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -588,7 +587,7 @@ static double
 mrisRmsValError(MRI_SURFACE *mris, MRI *mri)
 {
   int     vno, n, xv, yv, zv ;
-  Real    val, total, delta, x, y, z ;
+  double    val, total, delta, x, y, z ;
   VERTEX  *v ;
 
   for (total = 0.0, n = vno = 0 ; vno < mris->nvertices ; vno++)
@@ -909,7 +908,7 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris,
   int     vno ;
   VERTEX  *v ;
   float   x, y, z, nx, ny, nz, dx, dy, dz ;
-  Real    val0, xw, yw, zw, del, val_outside, val_inside, delI, delV;
+  double    val0, xw, yw, zw, del, val_outside, val_inside, delI, delV;
   //int k,ktotal ;
 
   if (FZERO(l_intensity))
@@ -938,7 +937,7 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris,
 
 #if 1
     {
-      Real val;
+      double val;
       xw = x + nx ;
       yw = y + ny ;
       zw = z + nz ;
@@ -960,7 +959,7 @@ mrisComputeIntensityTerm(MRI_SURFACE *mris,
 #else
     /* compute intensity gradient using smoothed volume */
     {
-      Real dist, val, step_size ;
+      double dist, val, step_size ;
       int  n ;
 
       step_size = MIN(sigma/2, 0.5) ;

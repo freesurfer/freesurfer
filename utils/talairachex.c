@@ -1,17 +1,18 @@
 /**
  * @file  talairachex.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief new talairach related routines with Ex
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * takes lta as the talairach transform (use LTAreadEx routine)
+ * doesn't rely on COR volume type
  */
 /*
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/02/10 16:55:46 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:46 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2003-2007,
+ * Copyright (C) 2003-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -225,12 +225,12 @@ MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta)
 }
 
 void TransformWithMatrix( const MATRIX *mat,
-			  const Real x,
-			  const Real y,
-			  const Real z,
-			  Real *px,
-			  Real *py,
-			  Real *pz )
+			  const double x,
+			  const double y,
+			  const double z,
+			  double *px,
+			  double *py,
+			  double *pz )
 {
   // VECTOR *src, *dst;
   if (src__ == 0)
@@ -250,8 +250,8 @@ void TransformWithMatrix( const MATRIX *mat,
 // point to point routines
 //////////////////////////////////////////////////////////////////////////////////
 int
-MRIvoxelToTalairachEx(MRI *mri_src, Real xv, Real yv, Real zv,
-                      Real *pxt, Real *pyt, Real *pzt, const LTA *lta)
+MRIvoxelToTalairachEx(MRI *mri_src, double xv, double yv, double zv,
+                      double *pxt, double *pyt, double *pzt, const LTA *lta)
 {
   MATRIX *talairachFromVoxel = MtalairachFromVoxel(mri_src, lta);
   TransformWithMatrix(talairachFromVoxel, xv, yv, zv, pxt, pyt, pzt);
@@ -264,8 +264,8 @@ MRIvoxelToTalairachEx(MRI *mri_src, Real xv, Real yv, Real zv,
 // voxel -> RAS -> talairach RAS -> talairachVolume
 // mri must be the source volume
 int
-MRIvoxelToTalairachVoxelEx(MRI *mri_src, Real xv, Real yv, Real zv,
-                           Real *pxt, Real *pyt, Real *pzt, const LTA *lta)
+MRIvoxelToTalairachVoxelEx(MRI *mri_src, double xv, double yv, double zv,
+                           double *pxt, double *pyt, double *pzt, const LTA *lta)
 {
   MATRIX *talVoxelFromVoxel = MtalVoxelFromVoxel(mri_src, lta);
   TransformWithMatrix(talVoxelFromVoxel, xv, yv, zv, pxt, pyt, pzt);
@@ -277,8 +277,8 @@ MRIvoxelToTalairachVoxelEx(MRI *mri_src, Real xv, Real yv, Real zv,
 // talairachRAS -> RAS -> voxel
 // needs the target non-tal volume
 int
-MRItalairachToVoxelEx(MRI *mri_dst, Real xt, Real yt, Real zt,
-                      Real *pxv, Real *pyv, Real *pzv, const LTA *lta)
+MRItalairachToVoxelEx(MRI *mri_dst, double xt, double yt, double zt,
+                      double *pxv, double *pyv, double *pzv, const LTA *lta)
 {
   MATRIX *voxelFromTalairach = MvoxelFromTalairach(mri_dst, lta);
   TransformWithMatrix(voxelFromTalairach, xt, yt, zt, pxv, pyv, pzv);
@@ -290,8 +290,8 @@ MRItalairachToVoxelEx(MRI *mri_dst, Real xt, Real yt, Real zt,
 // talairachVolume-> talairachRAS -> RAS
 // dst is the non-talairach volume
 int
-MRItalairachVoxelToWorldEx(MRI *mri_dst, Real xt, Real yt, Real zt,
-                           Real *pxw, Real *pyw, Real *pzw, const LTA *lta)
+MRItalairachVoxelToWorldEx(MRI *mri_dst, double xt, double yt, double zt,
+                           double *pxw, double *pyw, double *pzw, const LTA *lta)
 {
   MATRIX *RASfromTalVoxel = MRASFromTalVoxel(mri_dst, lta);
   TransformWithMatrix(RASfromTalVoxel, xt, yt, zt, pxw, pyw, pzw);
@@ -302,8 +302,8 @@ MRItalairachVoxelToWorldEx(MRI *mri_dst, Real xt, Real yt, Real zt,
 
 // talairachVolume-> talairach RAS -> RAS -> voxel
 int
-MRItalairachVoxelToVoxelEx(MRI *mri_dst, Real xtv, Real ytv, Real ztv,
-                           Real *pxv, Real *pyv, Real *pzv, const LTA *lta)
+MRItalairachVoxelToVoxelEx(MRI *mri_dst, double xtv, double ytv, double ztv,
+                           double *pxv, double *pyv, double *pzv, const LTA *lta)
 {
   MATRIX *voxelFromTalVoxel = MvoxelFromTalVoxel(mri_dst, lta);
   TransformWithMatrix(voxelFromTalVoxel, xtv, ytv, ztv, pxv, pyv, pzv);
@@ -373,9 +373,9 @@ MRI *
 MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation,
                            int x, int y, int z, int wsize, LTA *lta)
 {
-  Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
+  double     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi ;
-  Real     ex, ey, ez, len, x0, y0, z0 ;
+  double     ex, ey, ez, len, x0, y0, z0 ;
 
   whalf = (wsize-1)/2 ;
 
@@ -400,62 +400,62 @@ MRIextractTalairachPlaneEx(MRI *mri_src, MRI *mri_dst, int orientation,
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector in talairach space */
-    ex = (Real)x0+1 ;
-    ey = (Real)y0 ;
-    ez = (Real)z0 ;
+    ex = (double)x0+1 ;
+    ey = (double)y0 ;
+    ez = (double)z0 ;
     // get the vector in src volume
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector in talairach space */
-    ex = (Real)x0 ;
-    ey = (Real)y0+1 ;
-    ez = (Real)z0 ;
+    ex = (double)x0 ;
+    ey = (double)y0+1 ;
+    ez = (double)z0 ;
     // get the vector
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector in talairach space */
-    ex = (Real)x0+1 ;
-    ey = (Real)y0 ;
-    ez = (Real)z0 ;
+    ex = (double)x0+1 ;
+    ey = (double)y0 ;
+    ez = (double)z0 ;
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector in talairach space */
-    ex = (Real)x0 ;
-    ey = (Real)y0 ;
-    ez = (Real)z0+1 ;
+    ex = (double)x0 ;
+    ey = (double)y0 ;
+    ez = (double)z0+1 ;
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x0 ;
-    ey = (Real)y0 ;
-    ez = (Real)z0+1.0 ;
+    ex = (double)x0 ;
+    ey = (double)y0 ;
+    ez = (double)z0+1.0 ;
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)x0 ;
-    ey = (Real)y0+1.0 ;
-    ez = (Real)z0 ;
+    ex = (double)x0 ;
+    ey = (double)y0+1.0 ;
+    ez = (double)z0 ;
     MRItalairachVoxelToVoxelEx(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   }
   // calculate the length of the vector in x direction
@@ -487,9 +487,9 @@ int
 MRIeraseTalairachPlaneNewEx(MRI *mri, MRI *mri_mask, int orientation, int x,
                             int y, int z, int wsize, int fill_val, LTA *lta)
 {
-  Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
+  double     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi, xki, yki, x0, y0 ;
-  Real     ex, ey, ez, len, xt0, yt0, zt0 ;
+  double     ex, ey, ez, len, xt0, yt0, zt0 ;
 
   whalf = (wsize-1)/2 ;
 
@@ -501,60 +501,60 @@ MRIeraseTalairachPlaneNewEx(MRI *mri, MRI *mri_mask, int orientation, int x,
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0+1 ;
-    ey = (Real)yt0 ;
-    ez = (Real)zt0 ;
+    ex = (double)xt0+1 ;
+    ey = (double)yt0 ;
+    ez = (double)zt0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ;
-    ey = (Real)yt0+1 ;
-    ez = (Real)zt0 ;
+    ex = (double)xt0 ;
+    ey = (double)yt0+1 ;
+    ez = (double)zt0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0+1 ;
-    ey = (Real)yt0 ;
-    ez = (Real)zt0 ;
+    ex = (double)xt0+1 ;
+    ey = (double)yt0 ;
+    ez = (double)zt0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ;
-    ey = (Real)yt0 ;
-    ez = (Real)zt0+1 ;
+    ex = (double)xt0 ;
+    ey = (double)yt0 ;
+    ez = (double)zt0+1 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0 ;
-    ey = (Real)yt0 ;
-    ez = (Real)zt0+1.0 ;
+    ex = (double)xt0 ;
+    ey = (double)yt0 ;
+    ez = (double)zt0+1.0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z, lta) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ;
-    ey = (Real)yt0+1.0 ;
-    ez = (Real)zt0 ;
+    ex = (double)xt0 ;
+    ey = (double)yt0+1.0 ;
+    ez = (double)zt0 ;
     MRItalairachVoxelToVoxelEx(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z, lta) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   }
 

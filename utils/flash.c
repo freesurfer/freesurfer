@@ -1,17 +1,16 @@
 /**
  * @file  flash.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for computing flash intensities from T1/PD pairs
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 05:55:29 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/03/13 01:32:41 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,10 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #include <math.h>
 #include "macros.h"
@@ -52,14 +49,25 @@ typedef struct
 }
 FLASH_LOOKUP_TABLE, FLT ;
 
-static int build_lookup_table(double tr, double flip_angle, double te, double min_T1, double max_T1, double step) ;
-static double lookup_flash_value(double TR, double flip_angle, double PD, double T1) ;
+static int build_lookup_table(double tr,
+                              double flip_angle,
+                              double te,
+                              double min_T1,
+                              double max_T1,
+                              double step) ;
+static double lookup_flash_value(double TR,
+                                 double flip_angle,
+                                 double PD,
+                                 double T1) ;
 static FLT *find_lookup_table(double TR, double flip_angle) ;
 static FLT lookup_tables[MAX_FLASH_VOLUMES] ;
 static double *norms = NULL ;
 static int ntables = 0 ;
 
-static double FLASHforwardModelLookup(double T1, double PD, double TR, double flip_angle) ;
+static double FLASHforwardModelLookup(double T1,
+                                      double PD,
+                                      double TR,
+                                      double flip_angle) ;
 
 double
 dFlash_dT1(double T1, double PD, double TR, double flip_angle, double TE)
@@ -89,11 +97,14 @@ dFlash_dPD(double T1, double PD, double TR, double flip_angle, double TE)
 }
 
 double
-FLASHforwardModel(double T1, double PD, double TR, double flip_angle, double TE)
+FLASHforwardModel(double T1,
+                  double PD,
+                  double TR,
+                  double flip_angle,
+                  double TE)
 {
   double FLASH, E1 ;
   double  CFA, SFA ;
-
 
   CFA = cos(flip_angle) ;
   SFA = sin(flip_angle) ;
@@ -105,11 +116,16 @@ FLASHforwardModel(double T1, double PD, double TR, double flip_angle, double TE)
   return(FLASH) ;
 }
 MRI *
-MRIparameterMapsToFlash(MRI *mri_src, MRI *mri_dst, double *TRs, double *TEs, double *FAs, int nflash)
+MRIparameterMapsToFlash(MRI *mri_src,
+                        MRI *mri_dst,
+                        double *TRs,
+                        double *TEs,
+                        double *FAs,
+                        int nflash)
 {
   int    x, y, z, n ;
   double T1, PD ;
-  Real   val ;
+  double val ;
 
   if (!mri_dst)
     mri_dst = MRIallocSequence(mri_src->width, mri_src->height, mri_src->depth,
@@ -140,7 +156,13 @@ MRIparameterMapsToFlash(MRI *mri_src, MRI *mri_dst, double *TRs, double *TEs, do
 }
 
 int
-compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double *TEs, double *pT1, double *pPD)
+compute_T1_PD(int nvolumes,
+              float *image_vals,
+              double *TRs,
+              double *FAs,
+              double *TEs,
+              double *pT1,
+              double *pPD)
 {
   double    best_T1, best_PD, norm_im, norm_pred, sse, best_sse, T1,
   pred_vals[MAX_FLASH_VOLUMES], error, upper_T1, lower_T1, mid_T1,
@@ -149,9 +171,11 @@ compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double 
 
   if (!norms)
   {
-    norms = (double *)calloc(nint((MAX_T1-MIN_T1)/T1_STEP_SIZE)+1, sizeof(double)) ;
+    norms = (double *)calloc(nint((MAX_T1-MIN_T1)/T1_STEP_SIZE)+1,
+                             sizeof(double)) ;
     if (!norms)
-      ErrorExit(ERROR_NOMEMORY, "%s: could not allocate norm table", Progname) ;
+      ErrorExit(ERROR_NOMEMORY,
+                "%s: could not allocate norm table", Progname) ;
     for (j = 0, T1 = MIN_T1 ; T1 < MAX_T1 ; T1 += T1_STEP_SIZE, j++)
     {
       for (norm_pred = 0.0, i = 0 ; i < nvolumes ; i++)
@@ -242,7 +266,8 @@ compute_T1_PD(int nvolumes, float *image_vals, double *TRs, double *FAs, double 
       lower_sse += (error * error) ;
     }
 
-    if (lower_sse <= mid_sse && lower_sse <= upper_sse) /* make lower new mid */
+    if (lower_sse <= mid_sse && 
+        lower_sse <= upper_sse) /* make lower new mid */
     {
       mid_sse = lower_sse ;
       mid_j = lower_j ;
@@ -340,7 +365,8 @@ find_lookup_table(double TR, double flip_angle)
   int   i ;
 
   for (i = 0 ; i < ntables ; i++)
-    if (FEQUAL(lookup_tables[i].TR, TR) && FEQUAL(lookup_tables[i].alpha, flip_angle))
+    if (FEQUAL(lookup_tables[i].TR, TR) &&
+        FEQUAL(lookup_tables[i].alpha, flip_angle))
       break ;
 
   if (i >= ntables)
@@ -366,7 +392,8 @@ lookup_flash_value(double TR, double flip_angle, double PD, double T1)
 
   flt = find_lookup_table(TR, flip_angle) ;
   if (!flt)
-    return(FLASHforwardModel(T1, PD, TR, flip_angle, 3.0)) ;   /* should propagate TE here! */
+    return(FLASHforwardModel(T1, PD, TR, flip_angle, 3.0)) ;
+  /* should propagate TE here! */
 
   index = T1_TO_INDEX(T1) ;
   if (index < 0)
@@ -377,7 +404,12 @@ lookup_flash_value(double TR, double flip_angle, double PD, double T1)
   return(FLASH) ;
 }
 double
-FLASHforwardModelT2star(double T1, double PD, double T2star, double TR, double flip_angle, double TE)
+FLASHforwardModelT2star(double T1,
+                        double PD,
+                        double T2star,
+                        double TR,
+                        double flip_angle,
+                        double TE)
 {
   double FLASH, E1 ;
   double  CFA, SFA ;
@@ -394,3 +426,4 @@ FLASHforwardModelT2star(double T1, double PD, double T2star, double TR, double f
     FLASH *= exp(-TE/T2star) ;
   return(FLASH) ;
 }
+

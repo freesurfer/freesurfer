@@ -10,11 +10,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/04 02:34:40 $
- *    $Revision: 1.32 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.33 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,7 +24,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -2407,7 +2406,7 @@ GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
   GCSA_NODE  *gcsan ;
   CP_NODE    *cpn ;
   double     v_inputs[100], p ;
-  Real       x, y, z ;
+  double     x, y, z ;
 
   for (changed = vno = 0 ; vno < mris->nvertices ; vno++)
   {

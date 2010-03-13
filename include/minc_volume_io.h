@@ -1,16 +1,16 @@
 /**
  * @file  minc_volume_io.h
- * @brief Wrapper for MNI's volume_io.h, to address some annoyances
+ * @brief Wrapper for MNI's volume_io.h, to decouple from MNI lib
  *
  */
 /*
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/05/01 21:53:42 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 

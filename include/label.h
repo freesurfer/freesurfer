@@ -2,17 +2,18 @@
  * @file  label.h
  * @brief include file for ROI utilies.
  *
- * structures, macros, constants and prototypes for the manipulation, creation and 
+ * structures, macros, constants and prototypes for the 
+ * manipulation, creation and 
  * I/O for labels (lists of vertices and/or voxels)
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/02/12 01:43:07 $
- *    $Revision: 1.45 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.46 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -22,10 +23,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #ifndef LABEL_H
 #define LABEL_H

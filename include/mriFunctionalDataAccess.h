@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:14 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -178,7 +178,7 @@ typedef struct
   xVoxel mTmpVoxel1;
   xVoxel mTmpVoxel2;
   int    mTmpFrame;
-  Real   mTmpReal;
+  double   mTmpReal;
 
 }
 mriFunctionalData, *mriFunctionalDataRef;

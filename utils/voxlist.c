@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 15:11:20 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:46 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@ VLSTcreateInRegion(MRI *mri, float low_val, float hi_val ,
                    MRI_REGION *box)
 {
   int   x, y, z, nvox, i, width, height, depth ;
-  Real  val ;
+  double  val ;
 
   skip++ ;  /* next voxel + amount to skip */
   width = box->x+box->dx ;
@@ -131,7 +131,7 @@ VLSTcreate(MRI *mri,
            int border_only)
 {
   int   x, y, z, nvox, i ;
-  Real  val ;
+  double  val ;
 
   skip++ ;  /* next voxel + amount to skip */
   for (nvox = x = 0 ; x < mri->width ; x+=skip)
@@ -271,7 +271,7 @@ MRI *
 VLSTtoMri(VOXEL_LIST *vl, MRI *mri)
 {
   int   i ;
-  Real  val ;
+  double  val ;
 
   if (mri == NULL)
     mri = MRIclone(vl->mri, NULL) ;
@@ -421,7 +421,7 @@ void VLSTcomputeStats(VOXEL_LIST *vl)
 int
 VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
 {
-  Real   val, xd, yd, zd ;
+  double   val, xd, yd, zd ;
   int    i ;
 
   VLSTtransformCoords(vl, m) ;
@@ -451,7 +451,7 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
 int
 VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m)
 {
-  Real   xd, yd, zd, val ;
+  double   xd, yd, zd, val ;
   int    i, x, y, z ;
   static VECTOR *v1 = NULL, *v2 ;
 
@@ -483,7 +483,7 @@ VOXEL_LIST  *
 VLSTcreateFromDifference(MRI *mri1, MRI *mri2, VOXEL_LIST *vl, int target_label)
 {
   int   x, y, z, nvox, i ;
-  Real  val1, val2 ;
+  double  val1, val2 ;
 
   for (nvox = x = 0 ; x < mri1->width ; x++)
   {

@@ -1,17 +1,18 @@
 /**
  * @file  talairachex.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief new talairach related routines with Ex
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * takes lta as the talairach transform (use LTAreadEx routine)
+ * doesn't rely on COR volume type
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y. Tosa
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/02/10 16:55:50 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,23 +22,9 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-
-//
-// talairachex.h
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: rge21 $
-// Revision Date  : $Date: 2010/02/10 16:55:50 $
-// Revision       : $Revision: 1.4 $
-/////////////////////////////////////////////////////////////////////////////
-// new talairach related routines with Ex
-//  takes lta as the talairach transform (use LTAreadEx routine)
-//  don't rely on COR volume type
-/////////////////////////////////////////////////////////////////////////////
 #ifndef c_talairach_h
 #define c_talairach_h
 
@@ -51,30 +38,36 @@ MATRIX *MvoxelFromTalairach(MRI *mri_dst, const LTA *lta);
 MATRIX *MvoxelFromTalVoxel(MRI *mri_dst, const LTA *lta);
 MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta);
 void TransformWithMatrix( const MATRIX *mat,
-			  const Real x,
-			  const Real y,
-			  const Real z,
-			  Real *px,
-			  Real *py,
-			  Real *pz );
+			  const double x,
+			  const double y,
+			  const double z,
+			  double *px,
+			  double *py,
+			  double *pz );
 
 int
 ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta);
 int
-MRIvoxelToTalairachEx(MRI *mri_src, Real xv, Real yv, Real zv,
-                      Real *pxt, Real *pyt, Real *pzt, const LTA *lta);
+MRIvoxelToTalairachEx(MRI *mri_src, double xv, double yv, double zv,
+                      double *pxt, double *pyt, double *pzt, const LTA *lta);
 int
-MRItalairachToVoxelEx(MRI *mri_dst, Real xt, Real yt, Real zt,
-                      Real *pxv, Real *pyv, Real *pzv, const LTA *lta);
+MRItalairachToVoxelEx(MRI *mri_dst, double xt, double yt, double zt,
+                      double *pxv, double *pyv, double *pzv, const LTA *lta);
 int
-MRItalairachVoxelToWorldEx(MRI *mri_dst, Real xtv, Real ytv, Real ztv,
-                           Real *pxw, Real *pyw, Real *pzw, const LTA *lta);
+MRItalairachVoxelToWorldEx(MRI *mri_dst,
+                           double xtv, double ytv, double ztv,
+                           double *pxw, double *pyw, double *pzw,
+                           const LTA *lta);
 int
-MRIvoxelToTalairachVoxelEx(MRI *mri_src, Real xv, Real yv, Real zv,
-                           Real *pxt, Real *pyt, Real *pzt, const LTA *lta);
+MRIvoxelToTalairachVoxelEx(MRI *mri_src,
+                           double xv, double yv, double zv,
+                           double *pxt, double *pyt, double *pzt,
+                           const LTA *lta);
 int
-MRItalairachVoxelToVoxelEx(MRI *mri_dst, Real xv, Real yv, Real zv,
-                           Real *pxnv, Real *pynv, Real *pznv, const LTA *lta) ;
+MRItalairachVoxelToVoxelEx(MRI *mri_dst,
+                           double xv, double yv, double zv,
+                           double *pxnv, double *pynv, double *pznv,
+                           const LTA *lta) ;
 MRI *
 MRItoTalairachEx(MRI *mri_src, MRI *mri_tal, const LTA *lta);
 MRI *

@@ -1,17 +1,50 @@
 /**
  * @file  resample.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief code to perform resapling from one space to another
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
- */
+ * Purpose: code to perform resapling from one space to another,
+ * including: volume-to-volume, volume-to-surface, and surface-to-surface.
+ * Notes:
+ * 1. Values on the surface are stored as MRI structures. In general,
+ * they cannot be stored as part of the MRIS structure because this
+ * does not accomodate multiple values per vertex. When stored as an
+ * MRI, width = nvertices, height=1, depth=1, nframes=nframes.
+ * 2. Interpolation - the code implies that trilinear and sinc
+ * interpolation are available. They are not as of 2/4/01.
+ * 3. Float2Int - the software supports three ways to convert floating
+ * to integer when computing the index of a voxel: round, floor, tkreg.
+ * Ideally, round should be used because it makes the mapping invertible.
+ * However, tkregister uses it's own funky scheme (replicated with the
+ * tkreg option), and paint uses floor. In the end, the conversion must
+ * be compatible with the registration program.
+ * 4. Volume-to-Volume - V2V is a necessary step when converting functional
+ * data to talairach or painting onto the surface. The model as of 2/4/01
+ * assumes that the transformation is completely linear from one space to
+ * another, though there are variables for intermediate transformations
+ * built in. The four variables are: (1) Quantization matrix Q, (2) Field-
+ * of-view matrix F, (3) Warping matrix W, and (4), Registration matrix D.
+ * D - Registration matrix. Converts from Anatomical Space to Unwarpded
+ *     Scanner Space.
+ * W - Warping matrix. Converts from Unwarped Scanner Space to Warped
+ *     Scanner Space.
+ * F - FOV matrix. Converts from Warpded Scanner Space to Field-of-View
+ *     Space (the space created by the axes centered in the FOV and
+ *     parallel with the edges of the FOV).
+ * Q - Quantization matrix. Converts from FOV space to ColRowSlice Index
+ *     Space.
+ * The matrix in register.dat = D*W*F
+ * In theory, the warping matrix can be replaced by a non-linear warping
+ * function to account for warping of the scanner space, but this is yet
+ * to be implemented.
+ **/
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/08 16:39:12 $
- *    $Revision: 1.32 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:46 $
+ *    $Revision: 1.33 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,58 +54,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*---------------------------------------------------------------
-  Name: resample.c
-  $Id: resample.c,v 1.32 2009/10/08 16:39:12 greve Exp $
-  Author: Douglas N. Greve
-  Purpose: code to perform resapling from one space to another,
-  including: volume-to-volume, volume-to-surface, and surface-to-surface.
-
-  Notes:
-
-  1. Values on the surface are stored as MRI structures. In general,
-  they cannot be stored as part of the MRIS structure because this
-  does not accomodate multiple values per vertex. When stored as an
-  MRI, width = nvertices, height=1, depth=1, nframes=nframes.
-
-  2. Interpolation - the code implies that trilinear and sinc
-  interpolation are available. They are not as of 2/4/01.
-
-  3. Float2Int - the software supports three ways to convert floating
-  to integer when computing the index of a voxel: round, floor, tkreg.
-  Ideally, round should be used because it makes the mapping invertible.
-  However, tkregister uses it's own funky scheme (replicated with the
-  tkreg option), and paint uses floor. In the end, the conversion must
-  be compatible with the registration program.
-
-  4. Volume-to-Volume - V2V is a necessary step when converting functional
-  data to talairach or painting onto the surface. The model as of 2/4/01
-  assumes that the transformation is completely linear from one space to
-  another, though there are variables for intermediate transformations
-  built in. The four variables are: (1) Quantization matrix Q, (2) Field-
-  of-view matrix F, (3) Warping matrix W, and (4), Registration matrix D.
-
-  D - Registration matrix. Converts from Anatomical Space to Unwarpded
-      Scanner Space.
-  W - Warping matrix. Converts from Unwarped Scanner Space to Warped
-      Scanner Space.
-  F - FOV matrix. Converts from Warpded Scanner Space to Field-of-View
-      Space (the space created by the axes centered in the FOV and
-      parallel with the edges of the FOV).
-  Q - Quantization matrix. Converts from FOV space to ColRowSlice Index
-      Space.
-
-  The matrix in register.dat = D*W*F
-
-  In theory, the warping matrix can be replaced by a non-linear warping
-  function to account for warping of the scanner space, but this is yet
-  to be implemented.
-  ---------------------------------------------------------------*/
 
 #define RESAMPLE_SOURCE_CODE_FILE
 #include <stdio.h>
@@ -741,7 +724,7 @@ MRI *vol2surf_linear(MRI *SrcVol,
   int frm, FreeQsrc=0;
   int vtx,nhits;
   float *valvect;
-  Real rval;
+  double rval;
 
   if(Qsrc == NULL){
     Qsrc = MRIxfmCRS2XYZtkreg(SrcVol);

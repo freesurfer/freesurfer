@@ -6,11 +6,11 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/02/10 21:20:22 $
- *    $Revision: 1.56 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.57 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -710,7 +709,7 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
   int   ct,  rt,  st,  f;
   int   ics, irs, iss;
   float fcs, frs, fss;
-  Real rval;
+  double rval;
   float *valvect;
 #endif
   int sinchw;
@@ -2800,7 +2799,7 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
   float fcs, frs, fss;
   float *valvect,drvsm;
   int sinchw;
-  Real rval;
+  double rval;
   MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
   MATRIX *crsT=NULL,*crsS=NULL;
   int FreeMats=0;
@@ -2924,7 +2923,7 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   float frow, fcol, fslc; /* float row, col, slc in source */
   float srcval, *valvect, rshift;
   int frm, vtx,nhits, err;
-  Real rval;
+  double rval;
   float Tx, Ty, Tz;
 
   if (vsm)

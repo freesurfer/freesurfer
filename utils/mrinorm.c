@@ -9,11 +9,11 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/02/10 01:01:23 $
- *    $Revision: 1.97 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:45 $
+ *    $Revision: 1.98 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -42,7 +41,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "filter.h"
 #include "box.h"
 #include "region.h"
@@ -428,7 +427,7 @@ MRInormInit(MRI *mri, MNI *mni, int windows_above_t0,int windows_below_t0,
   int         i, x, y, z, dx, dy, dz, nup, z_offset, nwindows;
   int         x0_tal, y0_tal, z0_tal ;
   float       size_mod ;
-  Real        x0, y0, z0 ;
+  double        x0, y0, z0 ;
 
   LTA         *lta = 0; // need to be freeed
   LT          *lt;   // just a reference pointer (no need to free)
@@ -3731,7 +3730,7 @@ int
 MRI3dUseFileControlPoints(MRI *mri,const char *fname)
 {
   int  i = 0 ;
-  Real xr, yr, zr;
+  double xr, yr, zr;
   MPoint *pArray = 0;
   int count = 0;
   int useRealRAS = 0;
@@ -4717,7 +4716,7 @@ MRI *
 MRIapplyBiasCorrection(MRI *mri_in, MRI *mri_bias, MRI *mri_out)
 {
   int    x, y, z ;
-  Real   bias, val, xd, yd, zd ;
+  double   bias, val, xd, yd, zd ;
   MATRIX *m_in_vox2ras, *m_bias_ras2vox, *m_vox2vox ;
   VECTOR *v1, *v2 ;
 
@@ -4776,7 +4775,7 @@ MRIapplyBiasCorrectionSameGeometry(MRI *mri_in,
                                    float target_val)
 {
   int    x, y, z ;
-  Real   bias, val ;
+  double bias, val ;
 
   if (mri_out == NULL)
     mri_out = MRIclone(mri_in, NULL) ;

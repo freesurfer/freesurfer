@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/03/04 19:43:21 $
- *    $Revision: 1.452 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.453 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.452 $";
+const char *MRI_C_VERSION = "$Revision: 1.453 $";
 
 
 /*-----------------------------------------------------
@@ -44,7 +44,7 @@ const char *MRI_C_VERSION = "$Revision: 1.452 $";
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "filter.h"
 #include "box.h"
 #include "region.h"
@@ -1483,7 +1483,11 @@ MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame)
   return(mri_dst) ;
 }
 int
-MRIlabelValRange(MRI *mri, MRI *mri_labeled, int label, float *pmin, float *pmax)
+MRIlabelValRange(MRI *mri,
+                 MRI *mri_labeled,
+                 int label,
+                 float *pmin,
+                 float *pmax)
 {
   int      width, height, depth, x, y, z, frame, l, first = 1 ;
   float    fmin, fmax, val ;
@@ -2193,7 +2197,7 @@ MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,MRI_REGION *box)
   int      width, height, depth, x, y, z, x1, y1, z1;
   int      ndark, max_dark, start, nlight, max_light ;
   double   means[3] ;
-  Real     val ;
+  double     val ;
 
   width = mri->width ;
   height = mri->height ;
@@ -2657,7 +2661,7 @@ int
 MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                    MRI_REGION *dst_region)
 {
-  Real  xw, yw, zw, xt, yt, zt, xv, yv, zv ;
+  double  xw, yw, zw, xt, yt, zt, xv, yv, zv ;
 
   if (getSliceDirection(mri_src) != getSliceDirection(mri_dst))
     ErrorReturn(ERROR_UNSUPPORTED,
@@ -2693,9 +2697,9 @@ MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
       getSliceDirection(mri_src))) ;
   }
 
-  xv = (Real)src_region->x ;
-  yv = (Real)src_region->y ;
-  zv = (Real)src_region->z ;
+  xv = (double)src_region->x ;
+  yv = (double)src_region->y ;
+  zv = (double)src_region->z ;
   MRIvoxelToWorld(mri_src, xv, yv, zv, &xw, &yw, &zw) ;
   transform_point(mri_src->linear_transform, xw, yw, zw, &xt, &yt, &zt) ;
   transform_point(mri_dst->inverse_linear_transform, xt, yt, zt, &xw,&yw,&zw);
@@ -2704,26 +2708,26 @@ MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
   dst_region->y = nint(yv) ;
   dst_region->z = nint(zv) ;
 
-  xv = (Real)(src_region->x + src_region->dx - 1) ;
-  yv = (Real)(src_region->y + src_region->dy - 1) ;
-  zv = (Real)(src_region->z + src_region->dz - 1) ;
+  xv = (double)(src_region->x + src_region->dx - 1) ;
+  yv = (double)(src_region->y + src_region->dy - 1) ;
+  zv = (double)(src_region->z + src_region->dz - 1) ;
   MRIvoxelToWorld(mri_src, xv, yv, zv, &xw, &yw, &zw) ;
   transform_point(mri_src->linear_transform, xw, yw, zw, &xt, &yt, &zt) ;
   transform_point(mri_dst->inverse_linear_transform, xt, yt, zt, &xw,&yw,&zw);
   MRIworldToVoxel(mri_dst, xw, yw, zw, &xv, &yv, &zv) ;
-  dst_region->dx = nint(xv - (Real)dst_region->x) + 1 ;
-  dst_region->dy = nint(yv - (Real)dst_region->y) + 1 ;
-  dst_region->dz = nint(zv - (Real)dst_region->z) + 1 ;
+  dst_region->dx = nint(xv - (double)dst_region->x) + 1 ;
+  dst_region->dy = nint(yv - (double)dst_region->y) + 1 ;
+  dst_region->dz = nint(zv - (double)dst_region->z) + 1 ;
 
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int
-MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, Real xv, Real yv, Real zv,
-                Real *pxt, Real *pyt, Real *pzt)
+MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, double xv, double yv, double zv,
+                double *pxt, double *pyt, double *pzt)
 {
-  Real  xw, yw, zw, xt, yt, zt ;
+  double  xw, yw, zw, xt, yt, zt ;
 
 #if 0
   if (!mri_src->linear_transform)
@@ -2787,10 +2791,10 @@ MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst, Real xv, Real yv, Real zv,
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int
-MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
-                         Real *pxt, Real *pyt, Real *pzt)
+MRIvoxelToTalairachVoxel(MRI *mri, double xv, double yv, double zv,
+                         double *pxt, double *pyt, double *pzt)
 {
-  Real  xw, yw, zw, xt, yt, zt ;
+  double  xw, yw, zw, xt, yt, zt ;
 
 #if 0
   if (!mri->linear_transform)
@@ -2832,10 +2836,10 @@ MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int
-MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
-                    Real *pxt, Real *pyt, Real *pzt)
+MRIvoxelToTalairach(MRI *mri, double xv, double yv, double zv,
+                    double *pxt, double *pyt, double *pzt)
 {
-  Real  xw, yw, zw ;
+  double  xw, yw, zw ;
 
 #if 0
   if (!mri->linear_transform)
@@ -2877,10 +2881,10 @@ MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int
-MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
-                    Real *pxv, Real *pyv, Real *pzv)
+MRItalairachToVoxel(MRI *mri, double xt, double yt, double zt,
+                    double *pxv, double *pyv, double *pzv)
 {
-  Real  xw, yw, zw ;
+  double  xw, yw, zw ;
 
 #if 0
   if (!mri->inverse_linear_transform)
@@ -2922,10 +2926,10 @@ MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int
-MRItalairachVoxelToVoxel(MRI *mri, Real xtv, Real ytv, Real ztv,
-                         Real *pxv, Real *pyv, Real *pzv)
+MRItalairachVoxelToVoxel(MRI *mri, double xtv, double ytv, double ztv,
+                         double *pxv, double *pyv, double *pzv)
 {
-  Real  xw, yw, zw, xt, yt, zt ;
+  double  xw, yw, zw, xt, yt, zt ;
 
 #if 0
   if (!mri->inverse_linear_transform)
@@ -2968,10 +2972,10 @@ MRItalairachVoxelToVoxel(MRI *mri, Real xtv, Real ytv, Real ztv,
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int
-MRItalairachVoxelToWorld(MRI *mri, Real xtv, Real ytv, Real ztv,
-                         Real *pxw, Real *pyw, Real *pzw)
+MRItalairachVoxelToWorld(MRI *mri, double xtv, double ytv, double ztv,
+                         double *pxw, double *pyw, double *pzw)
 {
-  Real  xw, yw, zw, xt, yt, zt ;
+  double  xw, yw, zw, xt, yt, zt ;
 
 #if 0
   if (!mri->inverse_linear_transform)
@@ -3018,8 +3022,8 @@ MRItalairachVoxelToWorld(MRI *mri, Real xtv, Real ytv, Real ztv,
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
-int MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
-                    Real *pxw, Real *pyw, Real *pzw)
+int MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv,
+                    double *pxw, double *pyw, double *pzw)
 {
   VECTOR *vw, *vv;
   MATRIX *RfromI;
@@ -3045,10 +3049,10 @@ int MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
 /*-----------------------------------------------------
   ------------------------------------------------------*/
 int
-MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
-                         Real *pxv, Real *pyv, Real *pzv)
+MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw,
+                         double *pxv, double *pyv, double *pzv)
 {
-  Real  xt, yt, zt ;
+  double  xt, yt, zt ;
 
   transform_point(mri->linear_transform, xw, yw, zw, &xt, &yt, &zt) ;
   MRIworldToVoxel(mri, xt, yt, zt, pxv, pyv, pzv) ;
@@ -3056,10 +3060,10 @@ MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
 }
 /*-----------------------------------------------------
   ------------------------------------------------------*/
-int MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
+int MRIworldToVoxelIndex(MRI *mri, double xw, double yw, double zw,
                          int *pxv, int *pyv, int *pzv)
 {
-  Real xv, yv, zv;
+  double xv, yv, zv;
   MRIworldToVoxel(mri, xw, yw, zw, &xv, &yv, &zv);
   // Changed on 7/25/08 so that it rounds intead of truncates
   *pxv = (int)rint(xv);
@@ -3214,8 +3218,8 @@ MATRIX *RASFromSurfaceRAS_(MRI *mri)
   and dealloced, so it might not be a good thing to have inside a
   loop.
   -------------------------------------------------------------*/
-int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr,
-                       Real *xsr, Real *ysr, Real *zsr)
+int MRIRASToSurfaceRAS(MRI *mri, double xr, double yr, double zr,
+                       double *xsr, double *ysr, double *zsr)
 {
   MATRIX *surfaceRASFromRAS=0;
   VECTOR *v, *sr;
@@ -3236,8 +3240,8 @@ int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr,
   scanner RAS. Note: intermediate matrices are alloced, inverted, and
   dealloced, so it might not be a good thing to have inside a loop.
   -------------------------------------------------------------*/
-int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
-                       Real *xr, Real *yr, Real *zr)
+int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr,
+                       double *xr, double *yr, double *zr)
 {
   MATRIX *RASFromSurfaceRAS=0;
   VECTOR *v, *r;
@@ -3255,8 +3259,8 @@ int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
 }
 
 //--------------------------------------------------------------
-int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv,
-                         Real *xs, Real *ys, Real *zs)
+int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv,
+                         double *xs, double *ys, double *zs)
 {
   MATRIX *sRASFromVoxel;
   VECTOR *vv, *sr;
@@ -3283,8 +3287,8 @@ MATRIX *GetSurfaceRASToVoxelMatrix(MRI *mri)
   return voxelFromSurfaceRAS_(mri);
 }
 
-int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr,
-                         Real *xv, Real *yv, Real *zv)
+int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr,
+                         double *xv, double *yv, double *zv)
 {
   MATRIX *voxelFromSRAS;
   static VECTOR *sr = NULL, *vv = NULL;
@@ -3307,8 +3311,8 @@ int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr,
 
 // same as above, but don't free matrix. Won't work if mri is changing
 int
-MRIsurfaceRASToVoxelCached(MRI *mri, Real xr, Real yr, Real zr,
-                           Real *xv, Real *yv, Real *zv)
+MRIsurfaceRASToVoxelCached(MRI *mri, double xr, double yr, double zr,
+                           double *xv, double *yv, double *zv)
 {
   static MATRIX *voxelFromSRAS = NULL;
   static VECTOR *sr = NULL, *vv = NULL;
@@ -3329,8 +3333,8 @@ MRIsurfaceRASToVoxelCached(MRI *mri, Real xr, Real yr, Real zr,
 
 /*------------------------------------------------------*/
 int
-MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
-                Real *pxv, Real *pyv, Real *pzv)
+MRIworldToVoxel(MRI *mri, double xw, double yw, double zw,
+                double *pxv, double *pyv, double *pzv)
 {
   VECTOR *vv, *vw;
   MATRIX *IfromR;
@@ -3496,7 +3500,7 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
 {
   int  width, height, depth, ys, zs, yd, zd, bytes, frame, xsize,ysize,zsize,
   dst_alloced = 0 ;
-  Real c_r, c_a, c_s;
+  double c_r, c_a, c_s;
 
   width = mri_src->width ;
   depth = mri_src->depth ;
@@ -3963,7 +3967,7 @@ MRIcenterOfMass(MRI *mri,double *means, BUFTYPE threshold)
   int     width, height, depth, x, y, z ;
   long    npoints ;
   double  mx, my, mz, weight ;
-  Real    val ;
+  double    val ;
 
   width = mri->width ;
   height = mri->height ;
@@ -4397,34 +4401,34 @@ MRIthresholdAllFrames(MRI *mri_src, MRI *mri_dst, float threshold)
   frame = mri_src->nframes ;
 
   for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
     {
-      for (y = 0 ; y < height ; y++)
-	{
-	  for (x = 0 ; x < width ; x++)
+      for (x = 0 ; x < width ; x++)
 	    {
 	      n = 0;
 	      for (f = 0 ; f < frame ; f++) 
-		{
-		  val = MRIgetVoxVal(mri_src, x, y, z, f) ;
-		  if (val < threshold) n++;
-		}
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+          if (val < threshold) n++;
+        }
 	      if(n > 0) 
-		{ 
-		  val = 0;
-		  for (f = 0 ; f < frame ; f++) 
-		    MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
-		}
+        { 
+          val = 0;
+          for (f = 0 ; f < frame ; f++) 
+            MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+        }
 	      else
-		{ 
-		  for (f = 0 ; f < frame ; f++) 
-		    {
-		      val = MRIgetVoxVal(mri_src, x, y, z, f);
-		      MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
-		    }
-		}
+        { 
+          for (f = 0 ; f < frame ; f++) 
+          {
+            val = MRIgetVoxVal(mri_src, x, y, z, f);
+            MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+          }
+        }
 	    }
-	}
     }
+  }
   
   return(mri_dst) ;
 }
@@ -4443,34 +4447,34 @@ MRIupperthresholdAllFrames(MRI *mri_src, MRI *mri_dst, float threshold)
   frame = mri_src->nframes ;
 
   for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
     {
-      for (y = 0 ; y < height ; y++)
-	{
-	  for (x = 0 ; x < width ; x++)
+      for (x = 0 ; x < width ; x++)
 	    {
 	      n = 0;
 	      for (f = 0 ; f < frame ; f++) 
-		{
-		  val = MRIgetVoxVal(mri_src, x, y, z, f) ;
-		  if (val > threshold) n++;
-		}
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, f) ;
+          if (val > threshold) n++;
+        }
 	      if(n > 0) 
-		{ 
-		  val = threshold;
-		  for (f = 0 ; f < frame ; f++) 
-		    MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
-		}
+        { 
+          val = threshold;
+          for (f = 0 ; f < frame ; f++) 
+            MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
+        }
 	      else
-		{ 
-		  for (f = 0 ; f < frame ; f++) 
-		    {
-		      val = MRIgetVoxVal(mri_src, x, y, z, f);
-		      MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
-		    }
-		}
+        { 
+          for (f = 0 ; f < frame ; f++) 
+          {
+            val = MRIgetVoxVal(mri_src, x, y, z, f);
+            MRIsetVoxVal(mri_dst, x, y, z, f, val) ;
+          }
+        }
 	    }
-	}
     }
+  }
   
   return(mri_dst) ;
 }
@@ -4499,18 +4503,18 @@ MRIthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame)
     {
       for (x = 0 ; x < width ; x++)
       {
-	for ( w = 0; w < f ; w++)
-	  {
-	    val = MRIgetVoxVal(mri_src, x, y, z, w) ;
-	    if (w == frame-1)
-	      {	    
-		if (val < threshold)
-		  val = 0 ;
-		MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
-	      }
-	    else 
-	      MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
-	  }
+        for ( w = 0; w < f ; w++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, w) ;
+          if (w == frame-1)
+          {	    
+            if (val < threshold)
+              val = 0 ;
+            MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
+          }
+          else 
+            MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
+        }
       }
     }
   }
@@ -4541,18 +4545,18 @@ MRIupperthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame)
     {
       for (x = 0 ; x < width ; x++)
       {
-	for ( w = 0; w < f ; w++)
-	  {
-	    val = MRIgetVoxVal(mri_src, x, y, z, w) ;
-	    if (w == frame-1)
-	      {	    
-		if (val > threshold)
-		  val = threshold ;
-		MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
-	      }
-	    else 
-	      MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
-	  }
+        for ( w = 0; w < f ; w++)
+        {
+          val = MRIgetVoxVal(mri_src, x, y, z, w) ;
+          if (w == frame-1)
+          {	    
+            if (val > threshold)
+              val = threshold ;
+            MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
+          }
+          else 
+            MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
+        }
       }
     }
   }
@@ -4585,20 +4589,20 @@ MRIthresholdByFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame)
     {
       for (x = 0 ; x < width ; x++)
       {
-	for ( w = 0; w < f ; w++)
-	  {
-	    //	    val = MRIgetVoxVal(mri_src, x, y, z, w) ;
-	    val = MRIgetVoxVal(mri_src, x, y, z, frame-1) ;
-	    if (val < threshold)
-	      val = 0 ;
-	    if (w == frame-1)
-	      {	    
+        for ( w = 0; w < f ; w++)
+        {
+          //	    val = MRIgetVoxVal(mri_src, x, y, z, w) ;
+          val = MRIgetVoxVal(mri_src, x, y, z, frame-1) ;
+          if (val < threshold)
+            val = 0 ;
+          if (w == frame-1)
+          {	    
 		
-		MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
-	      }
-	    else 
-	      MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
-	  }
+            MRIsetVoxVal(mri_dst, x, y, z, frame-1, val) ;
+          }
+          else 
+            MRIsetVoxVal(mri_dst, x, y, z, w, val) ;
+        }
       }
     }
   }
@@ -4658,7 +4662,7 @@ MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold, float low_val,
             float hi_val)
 {
   int     width, height, depth, x, y, z, f ;
-  Real    val ;
+  double    val ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -4988,7 +4992,7 @@ MRI *MRIpos(MRI *mri_src, MRI *mri_dst)
       for (x = 0 ; x < width ; x++)      {
         for (f = 0 ; f < nframes ; f++) {
           val = MRIgetVoxVal(mri_src,x,y,z,f);
-	  if(val < 0.0) val = 0.0;
+          if(val < 0.0) val = 0.0;
           MRIsetVoxVal(mri_dst,x,y,z,f,val);
         }
       }
@@ -5020,7 +5024,7 @@ MRI *MRIneg(MRI *mri_src, MRI *mri_dst)
       for (x = 0 ; x < width ; x++)      {
         for (f = 0 ; f < nframes ; f++) {
           val = MRIgetVoxVal(mri_src,x,y,z,f);
-	  if(val > 0.0) val = 0.0;
+          if(val > 0.0) val = 0.0;
           MRIsetVoxVal(mri_dst,x,y,z,f,val);
         }
       }
@@ -5253,7 +5257,7 @@ MRI *
 MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z, f ;
-  Real    src, dst ;
+  double    src, dst ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -5289,7 +5293,7 @@ MRIaverage(MRI *mri_src, int dof, MRI *mri_dst)
           MRIsampleVolumeFrameType
           (mri_dst, x,  y, z, f, SAMPLE_NEAREST, &dst) ;
           MRIsetVoxVal
-          (mri_dst, x, y, z, f, (dst*dof+src)/(Real)(dof+1))  ;
+          (mri_dst, x, y, z, f, (dst*dof+src)/(double)(dof+1))  ;
         }
       }
     }
@@ -5405,7 +5409,7 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
 
   if (mri1->type != MRI_UCHAR || mri2->type != MRI_UCHAR)
   {
-    Real val1, val2, dst ;
+    double val1, val2, dst ;
 
     for (z = 0 ; z < depth ; z++)
     {
@@ -5840,7 +5844,8 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
   void *p;
 
   if( sizeof(mri->bytes_total) != sizeof(size_t) ) {
-    fprintf( stderr, "%s: WARNING\nbytes_total is not a size_t\n", __FUNCTION__ );
+    fprintf( stderr, "%s: WARNING\nbytes_total is not a size_t\n",
+             __FUNCTION__ );
   }
 
   mris_alloced++ ;
@@ -6226,7 +6231,8 @@ int MRIfreeFrames(MRI *mri, int start_frame)
 
   if (mri->ischunked)
   {
-    printf("WARNING: MRIfreeFrames(): cannot free frames from chunked memory\n");
+    printf("WARNING: MRIfreeFrames(): cannot free frames "
+           "from chunked memory\n");
     return(1);
   }
 
@@ -6533,7 +6539,7 @@ MRItranslate(MRI *mri_src, MRI *mri_dst, double dx, double dy, double dz)
 {
   int      y1, y2, y3, width, height, depth ;
   BUFTYPE *pdst ;
-  Real     x1, x2, x3, val ;
+  double     x1, x2, x3, val ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -6545,20 +6551,20 @@ MRItranslate(MRI *mri_src, MRI *mri_dst, double dx, double dy, double dz)
 
   for (y3 = 0 ; y3 < depth ; y3++)
   {
-    x3 = (Real)y3 - dz ;
+    x3 = (double)y3 - dz ;
     if (x3 < 0 || x3 >= depth)
       continue ;
 
     for (y2 = 0 ; y2 < height ; y2++)
     {
-      x2 = (Real)y2 - dy ;
+      x2 = (double)y2 - dy ;
       if (x2 < 0 || x2 >= height)
         continue ;
 
       pdst = &MRIvox(mri_dst, 0, y2, y3) ;
       for (y1 = 0 ; y1 < width ; y1++, pdst++)
       {
-        x1 = (Real)y1 - dx ;
+        x1 = (double)y1 - dx ;
         if (x1 >= 0 && x1 < width)
         {
           MRIsampleVolume(mri_src, x1, x2, x3, &val) ;
@@ -6917,7 +6923,7 @@ MRIrotate_I(MRI *mri_src, MRI *mri_dst, MATRIX *mR, MATRIX *mO)
   MATRIX *mX, *mY ;   /* original and transformed coordinate systems */
   MATRIX *mRinv ;   /* inverse of R */
   float  x1, x2, x3 ;
-  Real   val ;
+  double   val ;
 
   mRinv = MatrixInverse(mR, NULL) ;
   if (!mRinv)
@@ -7062,7 +7068,7 @@ MRItoImageView(MRI *mri, IMAGE *I, int slice, int view, int frame)
   int      width, height, depth, x, y, yp, w, h, d,
   xm, ym, zm, format ;
   float    fmin, fmax ;
-  Real     val ;
+  double     val ;
   int src_slice_direction;
   int xsign, ysign;
 
@@ -7536,7 +7542,8 @@ ImageToMRI(IMAGE *I)
             if (*IMAGESpix(I, x, yp) < 0)
               DiagBreak() ;
             if (I->pixel_format == PFSHORT)
-              MRIIseq_vox(mri, x, y, 0, frames) = (int)((unsigned short)(*IMAGESpix(I, x, yp)));
+              MRIIseq_vox(mri, x, y, 0, frames) = 
+                (int)((unsigned short)(*IMAGESpix(I, x, yp)));
             else
               MRIIseq_vox(mri, x, y, 0, frames) = *IMAGEIpix(I, x, yp);
             val = MRIIseq_vox(mri, x, y, 0, frames);
@@ -7665,7 +7672,7 @@ MRIupsampleN(MRI *mri_src, MRI *mri_dst, int N)
 
   if (!mri_dst)
   {
-    //    Real c_r, c_a, c_s;
+    //    double c_r, c_a, c_s;
   
     mri_dst = MRIalloc(width, height, depth, mri_src->type) ;
     MRIcopyHeader(mri_src, mri_dst) ;
@@ -8392,9 +8399,9 @@ MRI *
 MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation,
                          int x, int y, int z, int wsize)
 {
-  Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
+  double     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi ;
-  Real     ex, ey, ez, len, x0, y0, z0 ;
+  double     ex, ey, ez, len, x0, y0, z0 ;
 
   whalf = (wsize-1)/2 ;
 
@@ -8418,60 +8425,60 @@ MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation,
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector */
-    ex = (Real)x0+1 ;
-    ey = (Real)y0 ;
-    ez = (Real)z0 ;
+    ex = (double)x0+1 ;
+    ey = (double)y0 ;
+    ez = (double)z0 ;
     MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)x0 ;
-    ey = (Real)y0+1 ;
-    ez = (Real)z0 ;
+    ex = (double)x0 ;
+    ey = (double)y0+1 ;
+    ez = (double)z0 ;
     MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x0+1 ;
-    ey = (Real)y0 ;
-    ez = (Real)z0 ;
+    ex = (double)x0+1 ;
+    ey = (double)y0 ;
+    ez = (double)z0 ;
     MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)x0 ;
-    ey = (Real)y0 ;
-    ez = (Real)z0+1 ;
+    ex = (double)x0 ;
+    ey = (double)y0 ;
+    ez = (double)z0+1 ;
     MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x0 ;
-    ey = (Real)y0 ;
-    ez = (Real)z0+1.0 ;
+    ex = (double)x0 ;
+    ey = (double)y0 ;
+    ez = (double)z0+1.0 ;
     MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)x0 ;
-    ey = (Real)y0+1.0 ;
-    ez = (Real)z0 ;
+    ex = (double)x0 ;
+    ey = (double)y0+1.0 ;
+    ez = (double)z0 ;
     MRItalairachVoxelToVoxel(mri_src, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   }
 
@@ -8506,11 +8513,11 @@ MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation,
   ------------------------------------------------------*/
 MRI *
 MRIextractArbitraryPlane(MRI *mri_src, MRI *mri_dst,
-                         Real e1_x, Real e1_y, Real e1_z,
-                         Real e2_x, Real e2_y, Real e2_z,
+                         double e1_x, double e1_y, double e1_z,
+                         double e2_x, double e2_y, double e2_z,
                          int x, int y, int z, int wsize)
 {
-  Real     xbase, ybase, zbase ;
+  double     xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi ;
 
   whalf = (wsize-1)/2 ;
@@ -8528,8 +8535,6 @@ MRIextractArbitraryPlane(MRI *mri_src, MRI *mri_dst,
     mri_dst->imnr0 = z + mri_src->imnr0 ;
     mri_dst->imnr1 = mri_dst->imnr0 ;
   }
-
-
 
   for (yk = -whalf ; yk <= whalf ; yk++)
   {
@@ -8559,9 +8564,9 @@ int
 MRIeraseTalairachPlaneNew(MRI *mri, MRI *mri_mask, int orientation, int x,
                           int y, int z, int wsize, int fill_val)
 {
-  Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
+  double     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi, xki, yki, x0, y0 ;
-  Real     ex, ey, ez, len, xt0, yt0, zt0 ;
+  double     ex, ey, ez, len, xt0, yt0, zt0 ;
 
   whalf = (wsize-1)/2 ;
 
@@ -8573,60 +8578,60 @@ MRIeraseTalairachPlaneNew(MRI *mri, MRI *mri_mask, int orientation, int x,
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0+1 ;
-    ey = (Real)yt0 ;
-    ez = (Real)zt0 ;
+    ex = (double)xt0+1 ;
+    ey = (double)yt0 ;
+    ez = (double)zt0 ;
     MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ;
-    ey = (Real)yt0+1 ;
-    ez = (Real)zt0 ;
+    ex = (double)xt0 ;
+    ey = (double)yt0+1 ;
+    ez = (double)zt0 ;
     MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0+1 ;
-    ey = (Real)yt0 ;
-    ez = (Real)zt0 ;
+    ex = (double)xt0+1 ;
+    ey = (double)yt0 ;
+    ez = (double)zt0 ;
     MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ;
-    ey = (Real)yt0 ;
-    ez = (Real)zt0+1 ;
+    ex = (double)xt0 ;
+    ey = (double)yt0 ;
+    ez = (double)zt0+1 ;
     MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)xt0 ;
-    ey = (Real)yt0 ;
-    ez = (Real)zt0+1.0 ;
+    ex = (double)xt0 ;
+    ey = (double)yt0 ;
+    ez = (double)zt0+1.0 ;
     MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)xt0 ;
-    ey = (Real)yt0+1.0 ;
-    ez = (Real)zt0 ;
+    ex = (double)xt0 ;
+    ey = (double)yt0+1.0 ;
+    ez = (double)zt0 ;
     MRItalairachVoxelToVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   }
 
@@ -8670,9 +8675,9 @@ int
 MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, int x, int y,
                        int z, int wsize, int fill_val)
 {
-  Real     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
+  double     e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
   int      whalf, xk, yk, xi, yi, zi ;
-  Real     ex, ey, ez, len ;
+  double     ex, ey, ez, len ;
 
   whalf = (wsize-1)/2 ;
 
@@ -8681,60 +8686,60 @@ MRIeraseTalairachPlane(MRI *mri, MRI *mri_mask, int orientation, int x, int y,
   default:
   case MRI_CORONAL:   /* basis vectors in x-y plane */
     /* the 'x' basis vector */
-    ex = (Real)x+1 ;
-    ey = (Real)y ;
-    ez = (Real)z ;
+    ex = (double)x+1 ;
+    ey = (double)y ;
+    ez = (double)z ;
     MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)x ;
-    ey = (Real)y+1 ;
-    ez = (Real)z ;
+    ex = (double)x ;
+    ey = (double)y+1 ;
+    ez = (double)z ;
     MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_HORIZONTAL:  /* basis vectors in x-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x+1 ;
-    ey = (Real)y ;
-    ez = (Real)z ;
+    ex = (double)x+1 ;
+    ey = (double)y ;
+    ez = (double)z ;
     MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)x ;
-    ey = (Real)y ;
-    ez = (Real)z+1 ;
+    ex = (double)x ;
+    ey = (double)y ;
+    ez = (double)z+1 ;
     MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   case MRI_SAGITTAL:    /* basis vectors in y-z plane */
     /* the 'x' basis vector */
-    ex = (Real)x ;
-    ey = (Real)y ;
-    ez = (Real)z+1.0 ;
+    ex = (double)x ;
+    ey = (double)y ;
+    ez = (double)z+1.0 ;
     MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e1_x, &e1_y, &e1_z) ;
-    e1_x -= (Real)x ;
-    e1_y -= (Real)y ;
-    e1_z -= (Real)z ;
+    e1_x -= (double)x ;
+    e1_y -= (double)y ;
+    e1_z -= (double)z ;
 
     /* the 'y' basis vector */
-    ex = (Real)x ;
-    ey = (Real)y+1.0 ;
-    ez = (Real)z ;
+    ex = (double)x ;
+    ey = (double)y+1.0 ;
+    ez = (double)z ;
     MRIvoxelToTalairachVoxel(mri, ex, ey, ez, &e2_x, &e2_y, &e2_z) ;
-    e2_x -= (Real)x ;
-    e2_y -= (Real)y ;
-    e2_z -= (Real)z ;
+    e2_x -= (double)x ;
+    e2_y -= (double)y ;
+    e2_z -= (double)z ;
     break ;
   }
 
@@ -9097,13 +9102,13 @@ MRIinterpolate(MRI *mri_src, MRI *mri_dst)
   ------------------------------------------------------*/
 int
 MRIsampleVolumeFrame( const MRI *mri,
-		      Real x, Real y, Real z,
+		      double x, double y, double z,
 		      const int frame,
-		      Real *pval )
+		      double *pval )
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
-  Real val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+  double val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
   if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
     return(MRIsampleVolumeFrameType
@@ -9157,58 +9162,58 @@ MRIsampleVolumeFrame( const MRI *mri,
   {
   case MRI_UCHAR:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRIseq_vox(mri, xm, ym, zm, frame) +
-              xpd * ypd * zmd * (Real)MRIseq_vox(mri, xm, ym, zp, frame) +
-              xpd * ymd * zpd * (Real)MRIseq_vox(mri, xm, yp, zm, frame) +
-              xpd * ymd * zmd * (Real)MRIseq_vox(mri, xm, yp, zp, frame) +
-              xmd * ypd * zpd * (Real)MRIseq_vox(mri, xp, ym, zm, frame) +
-              xmd * ypd * zmd * (Real)MRIseq_vox(mri, xp, ym, zp, frame) +
-              xmd * ymd * zpd * (Real)MRIseq_vox(mri, xp, yp, zm, frame) +
-              xmd * ymd * zmd * (Real)MRIseq_vox(mri, xp, yp, zp, frame) ;
+              xpd * ypd * zpd * (double)MRIseq_vox(mri, xm, ym, zm, frame) +
+              xpd * ypd * zmd * (double)MRIseq_vox(mri, xm, ym, zp, frame) +
+              xpd * ymd * zpd * (double)MRIseq_vox(mri, xm, yp, zm, frame) +
+              xpd * ymd * zmd * (double)MRIseq_vox(mri, xm, yp, zp, frame) +
+              xmd * ypd * zpd * (double)MRIseq_vox(mri, xp, ym, zm, frame) +
+              xmd * ypd * zmd * (double)MRIseq_vox(mri, xp, ym, zp, frame) +
+              xmd * ymd * zpd * (double)MRIseq_vox(mri, xp, yp, zm, frame) +
+              xmd * ymd * zmd * (double)MRIseq_vox(mri, xp, yp, zp, frame) ;
     break ;
   case MRI_FLOAT:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRIFseq_vox(mri, xm, ym, zm, frame) +
-              xpd * ypd * zmd * (Real)MRIFseq_vox(mri, xm, ym, zp, frame) +
-              xpd * ymd * zpd * (Real)MRIFseq_vox(mri, xm, yp, zm, frame) +
-              xpd * ymd * zmd * (Real)MRIFseq_vox(mri, xm, yp, zp, frame) +
-              xmd * ypd * zpd * (Real)MRIFseq_vox(mri, xp, ym, zm, frame) +
-              xmd * ypd * zmd * (Real)MRIFseq_vox(mri, xp, ym, zp, frame) +
-              xmd * ymd * zpd * (Real)MRIFseq_vox(mri, xp, yp, zm, frame) +
-              xmd * ymd * zmd * (Real)MRIFseq_vox(mri, xp, yp, zp, frame) ;
+              xpd * ypd * zpd * (double)MRIFseq_vox(mri, xm, ym, zm, frame) +
+              xpd * ypd * zmd * (double)MRIFseq_vox(mri, xm, ym, zp, frame) +
+              xpd * ymd * zpd * (double)MRIFseq_vox(mri, xm, yp, zm, frame) +
+              xpd * ymd * zmd * (double)MRIFseq_vox(mri, xm, yp, zp, frame) +
+              xmd * ypd * zpd * (double)MRIFseq_vox(mri, xp, ym, zm, frame) +
+              xmd * ypd * zmd * (double)MRIFseq_vox(mri, xp, ym, zp, frame) +
+              xmd * ymd * zpd * (double)MRIFseq_vox(mri, xp, yp, zm, frame) +
+              xmd * ymd * zmd * (double)MRIFseq_vox(mri, xp, yp, zp, frame) ;
     break ;
   case MRI_SHORT:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRISseq_vox(mri, xm, ym, zm, frame) +
-              xpd * ypd * zmd * (Real)MRISseq_vox(mri, xm, ym, zp, frame) +
-              xpd * ymd * zpd * (Real)MRISseq_vox(mri, xm, yp, zm, frame) +
-              xpd * ymd * zmd * (Real)MRISseq_vox(mri, xm, yp, zp, frame) +
-              xmd * ypd * zpd * (Real)MRISseq_vox(mri, xp, ym, zm, frame) +
-              xmd * ypd * zmd * (Real)MRISseq_vox(mri, xp, ym, zp, frame) +
-              xmd * ymd * zpd * (Real)MRISseq_vox(mri, xp, yp, zm, frame) +
-              xmd * ymd * zmd * (Real)MRISseq_vox(mri, xp, yp, zp, frame) ;
+              xpd * ypd * zpd * (double)MRISseq_vox(mri, xm, ym, zm, frame) +
+              xpd * ypd * zmd * (double)MRISseq_vox(mri, xm, ym, zp, frame) +
+              xpd * ymd * zpd * (double)MRISseq_vox(mri, xm, yp, zm, frame) +
+              xpd * ymd * zmd * (double)MRISseq_vox(mri, xm, yp, zp, frame) +
+              xmd * ypd * zpd * (double)MRISseq_vox(mri, xp, ym, zm, frame) +
+              xmd * ypd * zmd * (double)MRISseq_vox(mri, xp, ym, zp, frame) +
+              xmd * ymd * zpd * (double)MRISseq_vox(mri, xp, yp, zm, frame) +
+              xmd * ymd * zmd * (double)MRISseq_vox(mri, xp, yp, zp, frame) ;
     break ;
   case MRI_INT:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRIIseq_vox(mri, xm, ym, zm, frame) +
-              xpd * ypd * zmd * (Real)MRIIseq_vox(mri, xm, ym, zp, frame) +
-              xpd * ymd * zpd * (Real)MRIIseq_vox(mri, xm, yp, zm, frame) +
-              xpd * ymd * zmd * (Real)MRIIseq_vox(mri, xm, yp, zp, frame) +
-              xmd * ypd * zpd * (Real)MRIIseq_vox(mri, xp, ym, zm, frame) +
-              xmd * ypd * zmd * (Real)MRIIseq_vox(mri, xp, ym, zp, frame) +
-              xmd * ymd * zpd * (Real)MRIIseq_vox(mri, xp, yp, zm, frame) +
-              xmd * ymd * zmd * (Real)MRIIseq_vox(mri, xp, yp, zp, frame) ;
+              xpd * ypd * zpd * (double)MRIIseq_vox(mri, xm, ym, zm, frame) +
+              xpd * ypd * zmd * (double)MRIIseq_vox(mri, xm, ym, zp, frame) +
+              xpd * ymd * zpd * (double)MRIIseq_vox(mri, xm, yp, zm, frame) +
+              xpd * ymd * zmd * (double)MRIIseq_vox(mri, xm, yp, zp, frame) +
+              xmd * ypd * zpd * (double)MRIIseq_vox(mri, xp, ym, zm, frame) +
+              xmd * ypd * zmd * (double)MRIIseq_vox(mri, xp, ym, zp, frame) +
+              xmd * ymd * zpd * (double)MRIIseq_vox(mri, xp, yp, zm, frame) +
+              xmd * ymd * zmd * (double)MRIIseq_vox(mri, xp, yp, zp, frame) ;
     break ;
   case MRI_LONG:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRILseq_vox(mri, xm, ym, zm, frame) +
-              xpd * ypd * zmd * (Real)MRILseq_vox(mri, xm, ym, zp, frame) +
-              xpd * ymd * zpd * (Real)MRILseq_vox(mri, xm, yp, zm, frame) +
-              xpd * ymd * zmd * (Real)MRILseq_vox(mri, xm, yp, zp, frame) +
-              xmd * ypd * zpd * (Real)MRILseq_vox(mri, xp, ym, zm, frame) +
-              xmd * ypd * zmd * (Real)MRILseq_vox(mri, xp, ym, zp, frame) +
-              xmd * ymd * zpd * (Real)MRILseq_vox(mri, xp, yp, zm, frame) +
-              xmd * ymd * zmd * (Real)MRILseq_vox(mri, xp, yp, zp, frame) ;
+              xpd * ypd * zpd * (double)MRILseq_vox(mri, xm, ym, zm, frame) +
+              xpd * ypd * zmd * (double)MRILseq_vox(mri, xm, ym, zp, frame) +
+              xpd * ymd * zpd * (double)MRILseq_vox(mri, xm, yp, zm, frame) +
+              xpd * ymd * zmd * (double)MRILseq_vox(mri, xm, yp, zp, frame) +
+              xmd * ypd * zpd * (double)MRILseq_vox(mri, xp, ym, zm, frame) +
+              xmd * ypd * zmd * (double)MRILseq_vox(mri, xp, ym, zp, frame) +
+              xmd * ymd * zpd * (double)MRILseq_vox(mri, xp, yp, zm, frame) +
+              xmd * ymd * zmd * (double)MRILseq_vox(mri, xp, yp, zp, frame) ;
     break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED,
@@ -9242,15 +9247,16 @@ MRIsampleVolumeFrame( const MRI *mri,
 #define uchar unsigned char
 #endif
 int
-MRIsampleLabeledVolume
-(MRI *mri, Real x, Real y, Real z, Real *pval, unsigned char ucharLabel)
+MRIsampleLabeledVolume(MRI *mri,
+                       double x, double y, double z,
+                       double *pval, unsigned char ucharLabel)
 {
   /* m's are the mri grid locations less than x (or y or z)
      (i.e. floor(x), p's are essentially rounding up  to the next
      grid location  greater than x  */
   int  xm, xp, ym, yp, zm, zp;
   int width, height, depth ;
-  Real xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+  double xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
   uchar ucharDmmm;
   uchar ucharDmmp;
   uchar ucharDmpm;
@@ -9260,10 +9266,7 @@ MRIsampleLabeledVolume
   uchar ucharDppm;
   uchar ucharDppp;
 
-
   *pval=0.0;
-
-
 
   width = mri->width ;
   height = mri->height ;
@@ -9314,20 +9317,18 @@ MRIsampleLabeledVolume
   ypd = (1.0f - ymd) ;
   zpd = (1.0f - zmd) ;
 
-
-
   switch (mri->type)
   {
   case MRI_UCHAR:
     *pval =
-      xpd * ypd * zpd * (Real)ucharDmmm +
-      xpd * ypd * zmd * (Real)ucharDmmp +
-      xpd * ymd * zpd * (Real)ucharDmpm +
-      xpd * ymd * zmd * (Real)ucharDmpp +
-      xmd * ypd * zpd * (Real)ucharDpmm +
-      xmd * ypd * zmd * (Real)ucharDpmp +
-      xmd * ymd * zpd * (Real)ucharDppm +
-      xmd * ymd * zmd * (Real)ucharDppp ;
+      xpd * ypd * zpd * (double)ucharDmmm +
+      xpd * ypd * zmd * (double)ucharDmmp +
+      xpd * ymd * zpd * (double)ucharDmpm +
+      xpd * ymd * zmd * (double)ucharDmpp +
+      xmd * ypd * zpd * (double)ucharDpmm +
+      xmd * ypd * zmd * (double)ucharDpmp +
+      xmd * ymd * zpd * (double)ucharDppm +
+      xmd * ymd * zmd * (double)ucharDppp ;
     break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED,
@@ -9345,7 +9346,9 @@ MRIsampleLabeledVolume
   Description
   ------------------------------------------------------*/
 int
-MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
+MRIsampleVolumeType(MRI *mri,
+                    double x, double y, double z,
+                    double *pval, int type)
 {
   int   xv, yv, zv ;
   int OutOfBounds;
@@ -9421,9 +9424,9 @@ MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval, int type)
 int
 MRIsampleVolumeFrameType
 ( const MRI *mri,
-  const Real x, const Real y, const Real z,
+  const double x, const double y, const double z,
   const int frame, int type,
-  Real *pval )
+  double *pval )
 {
   int   xv, yv, zv ;
   int OutOfBounds;
@@ -9499,11 +9502,11 @@ MRIsampleVolumeFrameType
 
 
 int
-MRIinterpolateIntoVolume(MRI *mri, Real x, Real y, Real z, Real val)
+MRIinterpolateIntoVolume(MRI *mri, double x, double y, double z, double val)
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
-  Real xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+  double xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if (OutOfBounds == 1)
@@ -9604,11 +9607,11 @@ MRIinterpolateIntoVolume(MRI *mri, Real x, Real y, Real z, Real val)
   multi-frame.
   -------------------------------------------------------------------*/
 int
-MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
+MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval)
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
-  Real val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+  double val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
   if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
     return(MRIsampleVolumeType(mri, x, y, z, pval, SAMPLE_NEAREST)) ;
@@ -9650,58 +9653,58 @@ MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
   {
   case MRI_UCHAR:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRIvox(mri, xm, ym, zm) +
-              xpd * ypd * zmd * (Real)MRIvox(mri, xm, ym, zp) +
-              xpd * ymd * zpd * (Real)MRIvox(mri, xm, yp, zm) +
-              xpd * ymd * zmd * (Real)MRIvox(mri, xm, yp, zp) +
-              xmd * ypd * zpd * (Real)MRIvox(mri, xp, ym, zm) +
-              xmd * ypd * zmd * (Real)MRIvox(mri, xp, ym, zp) +
-              xmd * ymd * zpd * (Real)MRIvox(mri, xp, yp, zm) +
-              xmd * ymd * zmd * (Real)MRIvox(mri, xp, yp, zp) ;
+              xpd * ypd * zpd * (double)MRIvox(mri, xm, ym, zm) +
+              xpd * ypd * zmd * (double)MRIvox(mri, xm, ym, zp) +
+              xpd * ymd * zpd * (double)MRIvox(mri, xm, yp, zm) +
+              xpd * ymd * zmd * (double)MRIvox(mri, xm, yp, zp) +
+              xmd * ypd * zpd * (double)MRIvox(mri, xp, ym, zm) +
+              xmd * ypd * zmd * (double)MRIvox(mri, xp, ym, zp) +
+              xmd * ymd * zpd * (double)MRIvox(mri, xp, yp, zm) +
+              xmd * ymd * zmd * (double)MRIvox(mri, xp, yp, zp) ;
     break ;
   case MRI_FLOAT:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRIFvox(mri, xm, ym, zm) +
-              xpd * ypd * zmd * (Real)MRIFvox(mri, xm, ym, zp) +
-              xpd * ymd * zpd * (Real)MRIFvox(mri, xm, yp, zm) +
-              xpd * ymd * zmd * (Real)MRIFvox(mri, xm, yp, zp) +
-              xmd * ypd * zpd * (Real)MRIFvox(mri, xp, ym, zm) +
-              xmd * ypd * zmd * (Real)MRIFvox(mri, xp, ym, zp) +
-              xmd * ymd * zpd * (Real)MRIFvox(mri, xp, yp, zm) +
-              xmd * ymd * zmd * (Real)MRIFvox(mri, xp, yp, zp) ;
+              xpd * ypd * zpd * (double)MRIFvox(mri, xm, ym, zm) +
+              xpd * ypd * zmd * (double)MRIFvox(mri, xm, ym, zp) +
+              xpd * ymd * zpd * (double)MRIFvox(mri, xm, yp, zm) +
+              xpd * ymd * zmd * (double)MRIFvox(mri, xm, yp, zp) +
+              xmd * ypd * zpd * (double)MRIFvox(mri, xp, ym, zm) +
+              xmd * ypd * zmd * (double)MRIFvox(mri, xp, ym, zp) +
+              xmd * ymd * zpd * (double)MRIFvox(mri, xp, yp, zm) +
+              xmd * ymd * zmd * (double)MRIFvox(mri, xp, yp, zp) ;
     break ;
   case MRI_SHORT:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRISvox(mri, xm, ym, zm) +
-              xpd * ypd * zmd * (Real)MRISvox(mri, xm, ym, zp) +
-              xpd * ymd * zpd * (Real)MRISvox(mri, xm, yp, zm) +
-              xpd * ymd * zmd * (Real)MRISvox(mri, xm, yp, zp) +
-              xmd * ypd * zpd * (Real)MRISvox(mri, xp, ym, zm) +
-              xmd * ypd * zmd * (Real)MRISvox(mri, xp, ym, zp) +
-              xmd * ymd * zpd * (Real)MRISvox(mri, xp, yp, zm) +
-              xmd * ymd * zmd * (Real)MRISvox(mri, xp, yp, zp) ;
+              xpd * ypd * zpd * (double)MRISvox(mri, xm, ym, zm) +
+              xpd * ypd * zmd * (double)MRISvox(mri, xm, ym, zp) +
+              xpd * ymd * zpd * (double)MRISvox(mri, xm, yp, zm) +
+              xpd * ymd * zmd * (double)MRISvox(mri, xm, yp, zp) +
+              xmd * ypd * zpd * (double)MRISvox(mri, xp, ym, zm) +
+              xmd * ypd * zmd * (double)MRISvox(mri, xp, ym, zp) +
+              xmd * ymd * zpd * (double)MRISvox(mri, xp, yp, zm) +
+              xmd * ymd * zmd * (double)MRISvox(mri, xp, yp, zp) ;
     break ;
   case MRI_INT:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRIIvox(mri, xm, ym, zm) +
-              xpd * ypd * zmd * (Real)MRIIvox(mri, xm, ym, zp) +
-              xpd * ymd * zpd * (Real)MRIIvox(mri, xm, yp, zm) +
-              xpd * ymd * zmd * (Real)MRIIvox(mri, xm, yp, zp) +
-              xmd * ypd * zpd * (Real)MRIIvox(mri, xp, ym, zm) +
-              xmd * ypd * zmd * (Real)MRIIvox(mri, xp, ym, zp) +
-              xmd * ymd * zpd * (Real)MRIIvox(mri, xp, yp, zm) +
-              xmd * ymd * zmd * (Real)MRIIvox(mri, xp, yp, zp) ;
+              xpd * ypd * zpd * (double)MRIIvox(mri, xm, ym, zm) +
+              xpd * ypd * zmd * (double)MRIIvox(mri, xm, ym, zp) +
+              xpd * ymd * zpd * (double)MRIIvox(mri, xm, yp, zm) +
+              xpd * ymd * zmd * (double)MRIIvox(mri, xm, yp, zp) +
+              xmd * ypd * zpd * (double)MRIIvox(mri, xp, ym, zm) +
+              xmd * ypd * zmd * (double)MRIIvox(mri, xp, ym, zp) +
+              xmd * ymd * zpd * (double)MRIIvox(mri, xp, yp, zm) +
+              xmd * ymd * zmd * (double)MRIIvox(mri, xp, yp, zp) ;
     break ;
   case MRI_LONG:
     *pval = val =
-              xpd * ypd * zpd * (Real)MRILvox(mri, xm, ym, zm) +
-              xpd * ypd * zmd * (Real)MRILvox(mri, xm, ym, zp) +
-              xpd * ymd * zpd * (Real)MRILvox(mri, xm, yp, zm) +
-              xpd * ymd * zmd * (Real)MRILvox(mri, xm, yp, zp) +
-              xmd * ypd * zpd * (Real)MRILvox(mri, xp, ym, zm) +
-              xmd * ypd * zmd * (Real)MRILvox(mri, xp, ym, zp) +
-              xmd * ymd * zpd * (Real)MRILvox(mri, xp, yp, zm) +
-              xmd * ymd * zmd * (Real)MRILvox(mri, xp, yp, zp) ;
+              xpd * ypd * zpd * (double)MRILvox(mri, xm, ym, zm) +
+              xpd * ypd * zmd * (double)MRILvox(mri, xm, ym, zp) +
+              xpd * ymd * zpd * (double)MRILvox(mri, xm, yp, zm) +
+              xpd * ymd * zmd * (double)MRILvox(mri, xm, yp, zp) +
+              xmd * ypd * zpd * (double)MRILvox(mri, xp, ym, zm) +
+              xmd * ypd * zmd * (double)MRILvox(mri, xp, ym, zp) +
+              xmd * ymd * zpd * (double)MRILvox(mri, xp, yp, zm) +
+              xmd * ymd * zmd * (double)MRILvox(mri, xp, yp, zp) ;
     break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED,
@@ -9720,12 +9723,12 @@ MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
   sampled at the same time (this can be important in time-sensitive
   applications).
   -------------------------------------------------------------------*/
-int MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
+int MRIsampleSeqVolume(MRI *mri, double x, double y, double z, float *valvect,
                        int firstframe, int lastframe)
 {
   int  OutOfBounds;
   int  f,xm, xp, ym, yp, zm, zp, width, height, depth ;
-  Real xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+  double xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
 
   OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
   if (OutOfBounds == 1)
@@ -9766,58 +9769,58 @@ int MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
     {
     case MRI_UCHAR:
       valvect[f] =
-        xpd * ypd * zpd * (Real)MRIseq_vox(mri, xm, ym, zm, f) +
-        xpd * ypd * zmd * (Real)MRIseq_vox(mri, xm, ym, zp, f) +
-        xpd * ymd * zpd * (Real)MRIseq_vox(mri, xm, yp, zm, f) +
-        xpd * ymd * zmd * (Real)MRIseq_vox(mri, xm, yp, zp, f) +
-        xmd * ypd * zpd * (Real)MRIseq_vox(mri, xp, ym, zm, f) +
-        xmd * ypd * zmd * (Real)MRIseq_vox(mri, xp, ym, zp, f) +
-        xmd * ymd * zpd * (Real)MRIseq_vox(mri, xp, yp, zm, f) +
-        xmd * ymd * zmd * (Real)MRIseq_vox(mri, xp, yp, zp, f) ;
+        xpd * ypd * zpd * (double)MRIseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRIseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRIseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRIseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRIseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRIseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRIseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRIseq_vox(mri, xp, yp, zp, f) ;
       break ;
     case MRI_FLOAT:
       valvect[f] =
-        xpd * ypd * zpd * (Real)MRIFseq_vox(mri, xm, ym, zm, f) +
-        xpd * ypd * zmd * (Real)MRIFseq_vox(mri, xm, ym, zp, f) +
-        xpd * ymd * zpd * (Real)MRIFseq_vox(mri, xm, yp, zm, f) +
-        xpd * ymd * zmd * (Real)MRIFseq_vox(mri, xm, yp, zp, f) +
-        xmd * ypd * zpd * (Real)MRIFseq_vox(mri, xp, ym, zm, f) +
-        xmd * ypd * zmd * (Real)MRIFseq_vox(mri, xp, ym, zp, f) +
-        xmd * ymd * zpd * (Real)MRIFseq_vox(mri, xp, yp, zm, f) +
-        xmd * ymd * zmd * (Real)MRIFseq_vox(mri, xp, yp, zp, f) ;
+        xpd * ypd * zpd * (double)MRIFseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRIFseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRIFseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRIFseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRIFseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRIFseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRIFseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRIFseq_vox(mri, xp, yp, zp, f) ;
       break ;
     case MRI_SHORT:
       valvect[f] =
-        xpd * ypd * zpd * (Real)MRISseq_vox(mri, xm, ym, zm, f) +
-        xpd * ypd * zmd * (Real)MRISseq_vox(mri, xm, ym, zp, f) +
-        xpd * ymd * zpd * (Real)MRISseq_vox(mri, xm, yp, zm, f) +
-        xpd * ymd * zmd * (Real)MRISseq_vox(mri, xm, yp, zp, f) +
-        xmd * ypd * zpd * (Real)MRISseq_vox(mri, xp, ym, zm, f) +
-        xmd * ypd * zmd * (Real)MRISseq_vox(mri, xp, ym, zp, f) +
-        xmd * ymd * zpd * (Real)MRISseq_vox(mri, xp, yp, zm, f) +
-        xmd * ymd * zmd * (Real)MRISseq_vox(mri, xp, yp, zp, f) ;
+        xpd * ypd * zpd * (double)MRISseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRISseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRISseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRISseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRISseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRISseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRISseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRISseq_vox(mri, xp, yp, zp, f) ;
       break ;
     case MRI_INT:
       valvect[f] =
-        xpd * ypd * zpd * (Real)MRIIseq_vox(mri, xm, ym, zm, f) +
-        xpd * ypd * zmd * (Real)MRIIseq_vox(mri, xm, ym, zp, f) +
-        xpd * ymd * zpd * (Real)MRIIseq_vox(mri, xm, yp, zm, f) +
-        xpd * ymd * zmd * (Real)MRIIseq_vox(mri, xm, yp, zp, f) +
-        xmd * ypd * zpd * (Real)MRIIseq_vox(mri, xp, ym, zm, f) +
-        xmd * ypd * zmd * (Real)MRIIseq_vox(mri, xp, ym, zp, f) +
-        xmd * ymd * zpd * (Real)MRIIseq_vox(mri, xp, yp, zm, f) +
-        xmd * ymd * zmd * (Real)MRIIseq_vox(mri, xp, yp, zp, f) ;
+        xpd * ypd * zpd * (double)MRIIseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRIIseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRIIseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRIIseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRIIseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRIIseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRIIseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRIIseq_vox(mri, xp, yp, zp, f) ;
       break ;
     case MRI_LONG:
       valvect[f] =
-        xpd * ypd * zpd * (Real)MRILseq_vox(mri, xm, ym, zm, f) +
-        xpd * ypd * zmd * (Real)MRILseq_vox(mri, xm, ym, zp, f) +
-        xpd * ymd * zpd * (Real)MRILseq_vox(mri, xm, yp, zm, f) +
-        xpd * ymd * zmd * (Real)MRILseq_vox(mri, xm, yp, zp, f) +
-        xmd * ypd * zpd * (Real)MRILseq_vox(mri, xp, ym, zm, f) +
-        xmd * ypd * zmd * (Real)MRILseq_vox(mri, xp, ym, zp, f) +
-        xmd * ymd * zpd * (Real)MRILseq_vox(mri, xp, yp, zm, f) +
-        xmd * ymd * zmd * (Real)MRILseq_vox(mri, xp, yp, zp, f) ;
+        xpd * ypd * zpd * (double)MRILseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRILseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRILseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRILseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRILseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRILseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRILseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRILseq_vox(mri, xp, yp, zp, f) ;
       break ;
     default:
       ErrorReturn(ERROR_UNSUPPORTED,
@@ -9899,7 +9902,7 @@ double *MRItrilinKernel(MRI *mri, double c, double r, double s, double *kernel)
   ------------------------------------------------------*/
 
 double
-localeval(Real x, int iter)
+localeval(double x, int iter)
 {
   double p;
   switch (iter)
@@ -9938,7 +9941,7 @@ localeval(Real x, int iter)
 
   ------------------------------------------------------*/
 int
-MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
+MRIcubicSampleVolume(MRI *mri, double x, double y, double z, double *pval)
 {
   int  OutOfBounds;
   int  width, height, depth ;
@@ -9961,7 +9964,7 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
 
   /*E* I suppose these are for "ambiguously out of bounds" - within .5vox */
 
-  /*E* I think this needs an edit - x is Real, whatever that is, not
+  /*E* I think this needs an edit - x is double, whatever that is, not
     int, so any x>= width-1 should be set to width-1.
     if (x >= width)    x = width - 1.0 ;
     if (y >= height)   y = height - 1.0 ;
@@ -10053,7 +10056,7 @@ MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval)
       for (ix=0; ix<=3; ix++)
       {
         fx = localeval(xx,ix);
-        val += (Real)(vv[ix][iy][iz]*fx*fy*fz);
+        val += (double)(vv[ix][iy][iz]*fx*fy*fz);
       }
     }
   }
@@ -10087,9 +10090,10 @@ double ham_sinc(double x,double fullwidth)
 
 /*-------------------------------------------------------------------------*/
 int
-MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
+MRIsincSampleVolume(MRI *mri,
+                    double x, double y, double z,
+                    int hw, double *pval)
 {
-
   int  OutOfBounds;
   int  width, height, depth ;
   int nwidth;
@@ -10227,7 +10231,7 @@ MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval)
   be computed as the nearest integer to col, row, and slice.
   -----------------------------------------------------------------*/
 int MRIindexNotInVolume( const MRI *mri,
-			 const Real col, const Real row, const Real slice )
+			 const double col, const double row, const double slice )
 {
   float nicol, nirow, nislice;
 
@@ -10370,13 +10374,13 @@ MRIsampleZDerivative(MRI *mri, int x, int y, int z, int dir)
   return(dz) ;
 }
 int
-MRIsampleVolumeDirectionScale(MRI *mri, Real x, Real y, Real z,
-                              Real dx, Real dy, Real dz, Real *pmag,
+MRIsampleVolumeDirectionScale(MRI *mri, double x, double y, double z,
+                              double dx, double dy, double dz, double *pmag,
                               double sigma)
 {
   int  width, height, depth ;
-  Real xp1, xm1, yp1, ym1, zp1, zm1, len ;
-  Real dist, val, k, ktotal, step_size, total_val ;
+  double xp1, xm1, yp1, ym1, zp1, zm1, len ;
+  double dist, val, k, ktotal, step_size, total_val ;
   int  n ;
 
   width = mri->width ;
@@ -10427,12 +10431,14 @@ MRIsampleVolumeDirectionScale(MRI *mri, Real x, Real y, Real z,
 }
 
 int
-MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z, Real dx,
-                               Real dy, Real dz, Real *pmag, double sigma)
+MRIsampleVolumeDerivativeScale(MRI *mri,
+                               double x, double y, double z,
+                               double dx, double dy, double dz,
+                               double *pmag, double sigma)
 {
   int  width, height, depth ;
-  Real xp1, xm1, yp1, ym1, zp1, zm1, vp1, vm1, len ;
-  Real dist, val, k, ktotal, step_size ;
+  double xp1, xm1, yp1, ym1, zp1, zm1, vp1, vm1, len ;
+  double dist, val, k, ktotal, step_size ;
   int  n ;
 
   width = mri->width ;
@@ -10493,11 +10499,11 @@ MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z, Real dx,
   trilinear interpolation.
   ------------------------------------------------------*/
 int
-MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
-                          Real dx, Real dy, Real dz, Real *pmag)
+MRIsampleVolumeDerivative(MRI *mri, double x, double y, double z,
+                          double dx, double dy, double dz, double *pmag)
 {
   int  width, height, depth ;
-  Real xp1, xm1, yp1, ym1, zp1, zm1, vp1, vm1, len ;
+  double xp1, xm1, yp1, ym1, zp1, zm1, vp1, vm1, len ;
 
   width = mri->width ;
   height = mri->height ;
@@ -10516,7 +10522,7 @@ MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
     z = 0.0 ;
 #if 1
   {
-    Real dist, val ;
+    double dist, val ;
     int  n ;
 
     for (n = 0, len = vp1 = vm1 = 0.0, dist = .5 ; dist <= 2 ;
@@ -10563,11 +10569,11 @@ MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
   Interpolate the volume gradient to cubic voxels.
   ------------------------------------------------------*/
 int
-MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
-                        Real *pdx, Real *pdy, Real *pdz)
+MRIsampleVolumeGradient(MRI *mri, double x, double y, double z,
+                        double *pdx, double *pdy, double *pdz)
 {
   int  width, height, depth ;
-  Real xp1, xm1, yp1, ym1, zp1, zm1 ;
+  double xp1, xm1, yp1, ym1, zp1, zm1 ;
 
   width = mri->width ;
   height = mri->height ;
@@ -10628,11 +10634,11 @@ MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
   Interpolate the volume gradient to cubic voxels.
   ------------------------------------------------------*/
 int
-MRIsampleVolumeGradientFrame(MRI *mri, Real x, Real y, Real z,
-                             Real *pdx, Real *pdy, Real *pdz, int frame)
+MRIsampleVolumeGradientFrame(MRI *mri, double x, double y, double z,
+                             double *pdx, double *pdy, double *pdz, int frame)
 {
   int  width, height, depth ;
-  Real xp1, xm1, yp1, ym1, zp1, zm1 ;
+  double xp1, xm1, yp1, ym1, zp1, zm1 ;
 
   width = mri->width ;
   height = mri->height ;
@@ -10793,7 +10799,11 @@ MRIneighbors(MRI *mri, int x0, int y0, int z0, int val)
   Description
   ------------------------------------------------------*/
 int
-MRIneighborsInRange(MRI *mri, int x0, int y0, int z0, int frame, float  low_val, float hi_val)
+MRIneighborsInRange(MRI *mri, 
+                    int x0, int y0, int z0,
+                    int frame,
+                    float low_val,
+                    float hi_val)
 {
   int   nbrs = 0 ;
   float val ;
@@ -10976,7 +10986,7 @@ MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw)
   int    y1, y2, y3, width, height, depth ;
   VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
   MATRIX *mAinv ;     /* inverse of mA */
-  Real   val, x1, x2, x3 ;
+  double   val, x1, x2, x3 ;
 
   mAinv = MatrixInverse(mA, NULL) ;      /* will sample from dst back to src */
   if (!mAinv)
@@ -11066,7 +11076,7 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
   int    y1, y2, y3, width, height, depth,frame ;
   VECTOR *v_X, *v_Y ;   /* original and transformed coordinate systems */
   MATRIX *mAinv ;     /* inverse of mA */
-  Real   val, x1, x2, x3 ;
+  double   val, x1, x2, x3 ;
 
   if (InterpMethod != SAMPLE_NEAREST &&
       InterpMethod != SAMPLE_TRILINEAR &&
@@ -11126,7 +11136,8 @@ MRIlinearTransformInterp(MRI *mri_src, MRI *mri_dst, MATRIX *mA,
         //MRIsampleVolume(mri_src, x1, x2, x3, &val);
         for (frame = 0 ; frame < mri_src->nframes ; frame++)
         {
-          MRIsampleVolumeFrameType(mri_src, x1, x2, x3, frame, InterpMethod, &val);
+          MRIsampleVolumeFrameType(mri_src, x1, x2, x3, 
+                                   frame, InterpMethod, &val);
           MRIsetVoxVal(mri_dst, y1, y2, y3, frame, val) ;
 #if 0
           switch (mri_dst->type)
@@ -11295,7 +11306,7 @@ MRImeanFrame(MRI *mri, int frame)
 {
   int       width, height, depth, x, y, z ;
   double    mean ;
-  Real      val ;
+  double      val ;
 
   width = mri->width ;
   height = mri->height ;
@@ -11352,7 +11363,7 @@ MRImeanFrameNonzeroMask(MRI *mri, int frame, MRI *mri_mask)
 {
   int       width, height, depth, x, y, z, nvox ;
   double    mean ;
-  Real      val ;
+  double      val ;
 
   width = mri->width ; height = mri->height ; depth = mri->depth ;
   if (mri->nframes <= frame)
@@ -11413,7 +11424,7 @@ MRImeanFrameThresh(MRI *mri, int frame, float thresh)
 {
   int       width, height, depth, x, y, z, num ;
   double    mean ;
-  Real      val ;
+  double      val ;
 
   width = mri->width ;
   height = mri->height ;
@@ -11581,13 +11592,14 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
           src_max <= LONG_MAX)
         no_scale_flag = TRUE;
       if (no_scale_flag == FALSE)
-        printf("******* WARNING - forcing scaling of values to prevent cropping of input [%2.0f, %2.0f]\n", src_min, src_max) ;
+        printf("******* WARNING - forcing scaling of values "
+               "to prevent cropping of input [%2.0f, %2.0f]\n",
+               src_min, src_max) ;
     }
   }
 
   if (no_scale_flag)
   {
-
     dest = MRIalloc(src->width, src->height, src->depth, dest_type);
     MRIcopyHeader(src, dest);
     dest->type = dest_type;
@@ -11913,7 +11925,7 @@ MRI *MRIresampleFill
   float w[8];
   int wi[8];
   int mwi;
-  Real pval;
+  double pval;
   int i_good_flag, i1_good_flag;
   int j_good_flag, j1_good_flag;
   int k_good_flag, k1_good_flag;
@@ -13203,7 +13215,10 @@ MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst)
   return(NO_ERROR) ;
 }
 float
-MRIfindNearestNonzero(MRI *mri, int wsize, Real xr, Real yr, Real zr, float max_dist)
+MRIfindNearestNonzero(MRI *mri,
+                      int wsize,
+                      double xr, double yr, double zr,
+                      float max_dist)
 {
   int   xk, yk, zk, xi, yi, zi, whalf, x, y, z ;
   float dist, min_dist, min_val, dx, dy, dz ;
@@ -13292,7 +13307,8 @@ MRIareNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z)
   return(0) ;
 }
 float
-MRIfindNearestNonzeroLocation(MRI *mri, int wsize, Real xr, Real yr, Real zr,
+MRIfindNearestNonzeroLocation(MRI *mri, int wsize,
+                              double xr, double yr, double zr,
                               int *pxv, int *pyv, int *pzv)
 {
   int   xk, yk, zk, xi, yi, zi, whalf, x, y, z ;
@@ -13344,20 +13360,20 @@ MRI *
 MRIfromTalairach(MRI *mri_src, MRI *mri_dst)
 {
   int  x, y, z, xv, yv, zv ;
-  Real xt, yt, zt, xn, yn, zn, val ;
+  double xt, yt, zt, xn, yn, zn, val ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
   for (x = 0 ; x < mri_dst->width ; x++)
   {
-    xn = (Real)x ;
+    xn = (double)x ;
     for (y = 0 ; y < mri_dst->height ; y++)
     {
-      yn = (Real)y ;
+      yn = (double)y ;
       for (z = 0 ; z < mri_dst->depth ; z++)
       {
-        zn = (Real)z ;
+        zn = (double)z ;
         MRIvoxelToTalairachVoxel(mri_src, xn, yn, zn, &xt, &yt, &zt) ;
         xv = nint(xt) ;
         yv = nint(yt) ;
@@ -13381,20 +13397,20 @@ MRI *
 MRItoTalairach(MRI *mri_src, MRI *mri_dst)
 {
   int  x, y, z, xv, yv, zv ;
-  Real xt, yt, zt, xn, yn, zn, val ;
+  double xt, yt, zt, xn, yn, zn, val ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
   for (x = 0 ; x < mri_dst->width ; x++)
   {
-    xt = (Real)x ;
+    xt = (double)x ;
     for (y = 0 ; y < mri_dst->height ; y++)
     {
-      yt = (Real)y ;
+      yt = (double)y ;
       for (z = 0 ; z < mri_dst->depth ; z++)
       {
-        zt = (Real)z ;
+        zt = (double)z ;
         MRItalairachVoxelToVoxel(mri_src, xt, yt, zt, &xn, &yn, &zn) ;
         xv = nint(xn) ;
         yv = nint(yn) ;
@@ -13969,7 +13985,7 @@ MRInormalizeSequence(MRI *mri, float target)
 {
   int    x, y, z, frame ;
   double norm ;
-  Real   val ;
+  double   val ;
 
   for (x = 0 ; x < mri->width ; x++)
   {
@@ -14170,12 +14186,12 @@ MRIeraseNegative(MRI *mri_src, MRI *mri_dst)
 }
 int
 MRIsampleVolumeSlice
-(MRI *mri, Real x, Real y, Real z, Real *pval, int slice_direction)
+(MRI *mri, double x, double y, double z, double *pval, int slice_direction)
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
-  Real val, xmd, ymd, xpd, ypd ;  /* d's are distances */
-  Real val11, val12, val21, val22 ;
+  double val, xmd, ymd, xpd, ypd ;  /* d's are distances */
+  double val11, val12, val21, val22 ;
 
   if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
     return(MRIsampleVolumeType(mri, x, y, z, pval, SAMPLE_NEAREST)) ;
@@ -14359,7 +14375,11 @@ float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals,
 }
 
 MRI *
-MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst, float orig_res)
+MRImakeDensityMap(MRI *mri,
+                  MRI *mri_vals,
+                  int label,
+                  MRI *mri_dst,
+                  float orig_res)
 {
   float   vox_vol, volume, current_res ;
   int     x, y, z, nbr_label_counts[MAX_CMA_LABELS], ndilates;
@@ -14568,12 +14588,12 @@ MRIcomputeLabelNbhd
  * @param ps  output ptr to c_s
  */
 void MRIcalcCRASforSampledVolume
-(MRI *src, MRI *dst, Real *pr, Real *pa, Real *ps)
+(MRI *src, MRI *dst, double *pr, double *pa, double *ps)
 {
   // get the voxel position of the "center" voxel of the dst in the src volume
   // i.e. sample is 2, then get the voxel position 64 in the src volume
   //      thus  it is 128.5 (in the src) for 64 (in the dst)
-  Real sx, sy, sz;
+  double sx, sy, sz;
   int dx, dy, dz;
   int samplex, sampley, samplez;
 
@@ -14639,22 +14659,22 @@ void MRIcalcCRASforSampledVolume
  * @param x1   target start position of the extracted region
  * @param y1
  * @param z1
- * @param pr   output Real*  c_r
+ * @param pr   output double*  c_r
  * @param pa                 c_a
  * @param ps                 c_s
  */
 void MRIcalcCRASforExtractedVolume
 (MRI *src, MRI *dst, int x0, int y0, int z0, int x1, int y1, int z1,
- Real *pr, Real *pa, Real *ps)
+ double *pr, double *pa, double *ps)
 {
-  Real cx, cy, cz;
+  double cx, cy, cz;
   // The "center" voxel position of the
   // extracted volume in the original voxel position
   //        x1 of dst corresponds to x0 of src
   // Thus, the "center" of dst corresponds to that of the src is
-  cx = x0+(Real)dst->width/2.0 - x1;  // integer divide cutoff extra
-  cy = y0+(Real)dst->height/2.0 - y1;
-  cz = z0+(Real)dst->depth/2.0 - z1;
+  cx = x0+(double)dst->width/2.0 - x1;  // integer divide cutoff extra
+  cy = y0+(double)dst->height/2.0 - y1;
+  cz = z0+(double)dst->depth/2.0 - z1;
 
   if (!src->i_to_r__)
   {
@@ -14673,12 +14693,13 @@ void MRIcalcCRASforExtractedVolume
 }
 
 // transform is the hires to lowres vox-to-vox transform
-void MRIcalcCRASforHiresVolume
-(MRI *hires, MRI *lowres, MATRIX *vox_xform, Real *pr, Real *pa, Real *ps)
+void MRIcalcCRASforHiresVolume(MRI *hires, MRI *lowres,
+                               MATRIX *vox_xform,
+                               double *pr, double *pa, double *ps)
 {
   // get where the center of hires volume goes to in the lowres volume
-  Real cx, cy, cz;
-  Real dx, dy, dz;
+  double cx, cy, cz;
+  double dx, dy, dz;
   cx = (double)hires->width/2.0;
   cy = (double)hires->height/2.0;
   cz = (double)hires->depth/2.0;
@@ -14698,7 +14719,7 @@ MRI *
 MRIsrcTransformedCentered
 (MRI *src, MRI *dst, MATRIX *stod_voxtovox, int interp_method)
 {
-  Real cr, ca, cs;
+  double cr, ca, cs;
   MRI *rotated;
   MATRIX *stosrotVox;
   MATRIX *tmp;
@@ -14750,8 +14771,8 @@ MRI *MRITransformedCenteredMatrix(MRI *src, MRI *orig_dst, MATRIX *m_L)
 MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
 {
   MRI *dst = 0;
-  Real cx, cy, cz;
-  Real cr, ca, cs;
+  double cx, cy, cz;
+  double cr, ca, cs;
   MATRIX *dstToRas = 0;
   MATRIX *SI = 0;
   MATRIX *D = 0;
@@ -15264,7 +15285,12 @@ char *MRIsliceDirectionName(MRI *mri)
  * instead 
  **/
 MRI *
-MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int mode, MRI *mri_mask)
+MRIdistanceTransform(MRI *mri_src,
+                     MRI *mri_dist,
+                     int label,
+                     float max_dist,
+                     int mode,
+                     MRI *mri_mask)
 {
 
   const int width = mri_src->width;
@@ -15302,11 +15328,13 @@ MRIdistanceTransform(MRI *mri_src, MRI *mri_dist, int label, float max_dist, int
   if (mri_src->type != MRI_FLOAT)
     {
       MRI *mri_tmp = MRIchangeType(mri_src, MRI_FLOAT, 0, 1, 1) ;
-      mri_dist = MRIextractDistanceMap( mri_tmp, mri_dist, label, max_dist, mode, mri_mask);
+      mri_dist = MRIextractDistanceMap
+        ( mri_tmp, mri_dist, label, max_dist, mode, mri_mask);
       MRIfree(&mri_tmp); 
     }
   else
-    mri_dist = MRIextractDistanceMap( mri_src, mri_dist, label, max_dist, mode, mri_mask);
+    mri_dist = MRIextractDistanceMap
+      ( mri_src, mri_dist, label, max_dist, mode, mri_mask);
 
   mri_dist->outside_val = max_dist ;  
   MRIscalarMul(mri_dist, mri_dist, mri_src->xsize) ;
@@ -15367,9 +15395,9 @@ MRI *
 MRInonMaxSuppress(MRI *mri_src, MRI *mri_sup, float thresh, int thresh_dir)
 {
   int  x, y, z, i, max_i ;
-  Real val, dx, dy, dz, Ix, Iy, Iz;
-  Real dot, max_dot, p1_x, p1_y, p1_z, p2_x, p2_y, p2_z;
-  Real p3_x, p3_y, p3_z, nx, ny, nz, u, xf, yf, zf, oval, numer, denom ;
+  double val, dx, dy, dz, Ix, Iy, Iz;
+  double dot, max_dot, p1_x, p1_y, p1_z, p2_x, p2_y, p2_z;
+  double p3_x, p3_y, p3_z, nx, ny, nz, u, xf, yf, zf, oval, numer, denom ;
 
   mri_sup = MRIcopy(mri_src, mri_sup) ;
 
@@ -15543,7 +15571,11 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
 }
 
 int
-MRIlabelsInPlanarNbhd(MRI *mri, int x, int y, int z, int whalf, int label, int which)
+MRIlabelsInPlanarNbhd(MRI *mri,
+                      int x, int y, int z,
+                      int whalf,
+                      int label,
+                      int which)
 {
   int xi, yi, zi, xk, yk, zk, count ;
 
@@ -15767,7 +15799,8 @@ MRImeanTimecourse(MRI *mri_src, MRI *mri_dst)
 
   if (mri_dst == NULL)
   {
-    mri_dst = MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
+    mri_dst = 
+      MRIalloc(mri_src->width, mri_src->height, mri_src->depth, MRI_FLOAT) ;
     MRIcopyHeader(mri_src, mri_dst) ;
   }
 
@@ -15957,7 +15990,8 @@ MRIhistogramLabels(MRI *mri, int *counts, int max_label)
   if (counts == NULL)
     counts = (int *)calloc(max_label+1, sizeof(*counts)) ;
   if (counts == NULL)
-    ErrorExit(ERROR_NOMEMORY, "MRIhistogramLabels: could not allocate %d counts",
+    ErrorExit(ERROR_NOMEMORY, 
+              "MRIhistogramLabels: could not allocate %d counts",
               max_label+1) ;
   for (x = 0 ; x < mri->width ; x++)
     for (y = 0 ; y < mri->height ; y++)
@@ -16314,7 +16348,8 @@ MRImaskZero(MRI *mri_src, MRI *mri_mask, MRI *mri_dst)
       for (z = 0 ; z < mri_src->depth ; z++)
       {
         if (MRIgetVoxVal(mri_mask, x, y, z, 0) > 0)
-          MRIsetVoxVal(mri_dst, x, y, z, 0, MRIgetVoxVal(mri_src, x, y, z, 0)) ;
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 
+                       MRIgetVoxVal(mri_src, x, y, z, 0)) ;
         else
           MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
       }

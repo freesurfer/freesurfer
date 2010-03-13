@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/08 18:55:56 $
- *    $Revision: 1.340 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.341 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -291,7 +291,7 @@ typedef struct
                                               at each vertex */
   int    triangle_links_removed ;  // for quad surfaces
   void   *user_parms ;             // for whatever the user wants to hang here 
-  MATRIX *m_sras2vox ;             // for converting surface ras to voxel coords
+  MATRIX *m_sras2vox ;             // for converting surface ras to voxel 
   MRI    *mri_sras2vox ;           // volume that the above matrix is for
 }
 MRI_SURFACE, MRIS ;
@@ -609,7 +609,9 @@ int MRISfindClosestOriginalVertex(MRI_SURFACE *mris, float x, float y,
 double MRIScomputeWhiteVolume(MRI_SURFACE *mris, 
                               MRI *mri_aseg, 
                               double resolution) ;
-MRI *MRISfillWhiteMatterInterior(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_filled,
+MRI *MRISfillWhiteMatterInterior(MRI_SURFACE *mris,
+                                 MRI *mri_aseg,
+                                 MRI *mri_filled,
                                  double resolution,
                                  int wm_val, int gm_val, int csf_val);
 int MRISfindClosestWhiteVertex(MRI_SURFACE *mris, float x, float y,
@@ -627,19 +629,25 @@ MRI_SURFACE  *MRISread(const char *fname) ;
 MRI_SURFACE  *MRISreadOverAlloc(const char *fname, double pct_over) ;
 MRI_SURFACE  *MRISfastRead(const char *fname) ;
 int          MRISreadOriginalProperties(MRI_SURFACE *mris,const  char *sname) ;
-int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris,const  char *sname) ;
-int          MRISreadInflatedCoordinates(MRI_SURFACE *mris,const  char *sname) ;
-int          MRISreadFlattenedCoordinates(MRI_SURFACE *mris,const  char *sname) ;
+int          MRISreadCanonicalCoordinates(MRI_SURFACE *mris,
+                                          const  char *sname) ;
+int          MRISreadInflatedCoordinates(MRI_SURFACE *mris,
+                                         const  char *sname) ;
+int          MRISreadFlattenedCoordinates(MRI_SURFACE *mris,
+                                          const  char *sname) ;
 int          MRISreadWhiteCoordinates(MRI_SURFACE *mris,const  char *sname) ;
 int          MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) ;
-int          MRIScanonicalToWorld(MRI_SURFACE *mris, Real phi, Real theta,
-                                  Real *pxw, Real *pyw, Real *pzw) ;
+int          MRIScanonicalToWorld(MRI_SURFACE *mris, double phi, double theta,
+                                  double *pxw, double *pyw, double *pzw) ;
 int          MRISreadPatch(MRI_SURFACE *mris,const  char *pname) ;
 int          MRISreadPatchNoRemove(MRI_SURFACE *mris,const  char *pname) ;
-int          MRISreadTriangleProperties(MRI_SURFACE *mris,const  char *mris_fname) ;
-int          MRISreadBinaryCurvature(MRI_SURFACE *mris,const  char *mris_fname) ;
+int          MRISreadTriangleProperties(MRI_SURFACE *mris,
+                                        const  char *mris_fname) ;
+int          MRISreadBinaryCurvature(MRI_SURFACE *mris,
+                                     const  char *mris_fname) ;
 int          MRISreadCurvatureFile(MRI_SURFACE *mris,const char *fname) ;
-float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris,const  char *sname) ;
+float        *MRISreadNewCurvatureVector(MRI_SURFACE *mris,
+                                         const  char *sname) ;
 int          MRISreadNewCurvatureIntoArray(const char *fname,
                                            int in_array_size,
                                            float** out_array) ;
@@ -650,8 +658,12 @@ int          MRISreadCurvatureIntoArray(const char *fname,
 int          MRISreadFloatFile(MRI_SURFACE *mris,const char *fname) ;
 #define MRISreadCurvature MRISreadCurvatureFile
 
-MRI *MRISloadSurfVals(const char *srcvalfile,const  char *typestring, MRI_SURFACE *Surf,
-                     const  char *subject,const  char *hemi,const  char *subjectsdir);
+MRI *MRISloadSurfVals(const char *srcvalfile,
+                      const char *typestring,
+                      MRI_SURFACE *Surf,
+                      const char *subject,
+                      const char *hemi,
+                      const char *subjectsdir);
 int          MRISreadValues(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISreadValuesIntoArray(const char *fname,
                                      int in_array_size,
@@ -707,14 +719,16 @@ int          MRISwritePatch(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteValues(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteD(MRI_SURFACE *mris, const char *fname) ;
 int          MRISwriteCurvatureToWFile(MRI_SURFACE *mris, const char *fname) ;
-int          MRISwriteTriangleProperties(MRI_SURFACE *mris, const char *mris_fname);
+int          MRISwriteTriangleProperties(MRI_SURFACE *mris,
+                                         const char *mris_fname);
 int          MRISaverageCurvatures(MRI_SURFACE *mris, int navgs) ;
 int          MRISminFilterCurvatures(MRI_SURFACE *mris, int niter) ;
 int          MRISmaxFilterCurvatures(MRI_SURFACE *mris, int niter) ;
 int          MRISaverageMarkedCurvatures(MRI_SURFACE *mris, int navgs) ;
 double       MRIScomputeAverageCurvature(MRI_SURFACE *mris, double *psigma) ;
 int          MRISaverageVertexPositions(MRI_SURFACE *mris, int navgs) ;
-int          MRIScomputeNormal(MRIS *mris, int which, int vno, double *pnx, double *pny, double *pnz) ;
+int          MRIScomputeNormal(MRIS *mris, int which, int vno,
+                               double *pnx, double *pny, double *pnz) ;
 
 MRI_SURFACE  *MRISoverAlloc(int max_vertices, int max_faces,
                             int nvertices, int nfaces) ;
@@ -741,45 +755,48 @@ MRI_SURFACE  *MRIScenter(MRI_SURFACE *mris_src, MRI_SURFACE *mris_dst) ;
 int MRISorigVertexToVoxel(MRI_SURFACE *,
                           VERTEX *v,
                           MRI *mri,
-                          Real *pxv, Real *pyv, Real *pzv) ;
+                          double *pxv, double *pyv, double *pzv) ;
 int MRISwhiteVertexToVoxel(MRI_SURFACE *,
                            VERTEX *v,
                            MRI *mri,
-                           Real *pxv, Real *pyv, Real *pzv) ;
+                           double *pxv, double *pyv, double *pzv) ;
 int          MRISvertexToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
-                               Real *pxv, Real *pyv,
-                               Real *pzv) ;
+                               double *pxv, double *pyv,
+                               double *pzv) ;
 int          MRISvertexCoordToVoxel(MRI_SURFACE *, VERTEX *v, MRI *mri,
                                     int coord,
-                                    Real *pxv, Real *pyv,
-                                    Real *pzv) ;
+                                    double *pxv, double *pyv,
+                                    double *pzv) ;
 #if 0
 int          MRISworldToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
-                                       Real xw, Real yw, Real zw,
-                                       Real *pxv, Real *pyv, Real *pzv) ;
+                                       double xw, double yw, double zw,
+                                       double *pxv, double *pyv, double *pzv) ;
 #endif
-int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, Real r, 
-                                   Real a, Real s, 
-                                   Real *px, Real *py, Real *pz) ;
-int          MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, Real r, 
-                                         Real a, Real s, 
-                                         Real *px, Real *py, Real *pz) ;
+int          MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, 
+                                   double a, double s, 
+                                   double *px, double *py, double *pz) ;
+int          MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris,
+                                         MRI *mri,
+                                         double r, double a, double s, 
+                                         double *px, double *py, double *pz) ;
 
 // these are the inverse of the previous two
 int          MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, 
-                                     Real x, Real y, Real z, 
-                                     Real *pr, Real *pa, Real *ps) ;
+                                     double x, double y, double z, 
+                                     double *pr, double *pa, double *ps) ;
 int          MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, MRI *mri, 
-                                           Real x, Real y, Real z, 
-                                           Real *pr, Real *pa, Real *ps) ;
+                                           double x, double y, double z, 
+                                           double *pr, double *pa, double *ps);
 
 int          MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri,
-    Real xw, Real yw, Real zw,
-    Real *pxv, Real *pyv, Real *pzv) ;
+    double xw, double yw, double zw,
+    double *pxv, double *pyv, double *pzv) ;
 
 int          MRIStalairachToVertex(MRI_SURFACE *mris,
-                                   Real xt, Real yt, Real zt) ;
-int           MRIScanonicalToVertex(MRI_SURFACE *mris, Real phi, Real theta) ;
+                                   double xt, double yt, double zt) ;
+int           MRIScanonicalToVertex(MRI_SURFACE *mris,
+                                    double phi,
+                                    double theta) ;
 MRI_SURFACE  *MRIStalairachTransform(MRI_SURFACE *mris_src,
                                      MRI_SURFACE *mris_dst);
 MRI_SURFACE  *MRISunfold(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
@@ -877,7 +894,9 @@ double       MRIScomputeAnalyticDistanceError(MRI_SURFACE *mris, int which,
 int          MRISzeroNegativeAreas(MRI_SURFACE *mris) ;
 int          MRIScountNegativeTriangles(MRI_SURFACE *mris) ;
 int          MRISstoreMeanCurvature(MRI_SURFACE *mris) ;
-int          MRISreadTetherFile(MRI_SURFACE *mris,const  char *fname, float radius) ;
+int          MRISreadTetherFile(MRI_SURFACE *mris,
+                                const char *fname,
+                                float radius) ;
 int          MRISreadVertexPositions(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISspringTermWithGaussianCurvature(MRI_SURFACE *mris,
                                                  double gaussian_norm,
@@ -890,7 +909,9 @@ double       MRISmomentumTimeStep(MRI_SURFACE *mris,
                                   float n_averages) ;
 int          MRISapplyGradient(MRI_SURFACE *mris, double dt) ;
 int          MRIScomputeNormals(MRI_SURFACE *mris) ;
-int          MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs) ;
+int          MRIScomputeSurfaceNormals(MRI_SURFACE *mris,
+                                       int which,
+                                       int navgs) ;
 int          MRIScomputeMetricProperties(MRI_SURFACE *mris) ;
 double       MRISrescaleMetricProperties(MRIS *surf);
 int          MRISrestoreOldPositions(MRI_SURFACE *mris) ;
@@ -958,8 +979,8 @@ double       MRISParea(MRI_SP *mrisp) ;
 #define TARGET_VERTICES     10
 #define LAYERIV_VERTICES    11
 
-int          MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
-int          MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
+int MRISsaveVertexPositions(MRI_SURFACE *mris, int which) ;
+int MRISrestoreVertexPositions(MRI_SURFACE *mris, int which) ;
 int MRISrestoreNormals(MRI_SURFACE *mris, int which) ;
 int MRISsaveNormals(MRI_SURFACE *mris, int which) ;
 
@@ -1037,8 +1058,9 @@ int   MRISaverageVal2baks(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageVal2s(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageMarkedVals(MRI_SURFACE *mris, int navgs) ;
 int   MRISaverageMarkedStats(MRI_SURFACE *mris, int navgs) ;
-int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris, int navgs,
-    int which) ;
+int   MRISaverageEveryOtherVertexPositions(MRI_SURFACE *mris,
+                                           int navgs,
+                                           int which) ;
 int   MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs) ;
 int   MRISsoapBubbleOrigVertexPositions(MRI_SURFACE *mris, int navgs) ;
 MRI   *MRISwriteSurfaceIntoVolume(MRI_SURFACE *mris, MRI *mri_template,
@@ -1097,7 +1119,8 @@ int   MRISaccumulateStandardErrorsOnSurface(MRI_SURFACE *mris,
 int
 MRIScomputeMaxGradBorderValuesPial(MRI_SURFACE *mris,MRI *mri_brain,
                                    MRI *mri_smooth, double sigma,
-                                   float max_thickness, float dir, FILE *log_fp,
+                                   float max_thickness,
+                                   float dir, FILE *log_fp,
                                    int callno, MRI *mri_mask) ;
 int
 MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
@@ -1107,33 +1130,33 @@ MRIScomputeMaxGradBorderValues(MRI_SURFACE *mris,MRI *mri_brain,
 int MRIScomputeInvertedGrayWhiteBorderValues(MRI_SURFACE *mris,
                                              MRI *mri_brain,
                                              MRI *mri_smooth,
-                                             Real inside_hi,
-                                             Real border_hi,
-                                             Real border_low,
-                                             Real outside_low,
-                                             Real outside_hi,
+                                             double inside_hi,
+                                             double border_hi,
+                                             double border_low,
+                                             double outside_low,
+                                             double outside_hi,
                                              double sigma,
                                              float max_thickness,
                                              FILE *log_fp);
 int MRIScomputeInvertedPialBorderValues(MRI_SURFACE *mris,
                                         MRI *mri_brain,
                                         MRI *mri_smooth,
-                                        Real inside_hi,
-                                        Real border_hi,
-                                        Real border_low,
-                                        Real outside_low,
-                                        Real outside_hi,
+                                        double inside_hi,
+                                        double border_hi,
+                                        double border_low,
+                                        double outside_low,
+                                        double outside_hi,
                                         double sigma,
                                         float max_thickness,
                                         FILE *log_fp);
 int   MRIScomputeBorderValues(MRI_SURFACE *mris,
                               MRI *mri_brain,
                               MRI *mri_smooth,
-                              Real inside_hi,
-                              Real border_hi,
-                              Real border_low,
-                              Real outside_low,
-                              Real outside_hi,
+                              double inside_hi,
+                              double border_hi,
+                              double border_low,
+                              double outside_low,
+                              double outside_hi,
                               double sigma,
                               float max_dist,
                               FILE *log_fp,
@@ -1588,7 +1611,11 @@ int MRISerodeMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateMarked(MRI_SURFACE *mris, int ndil) ;
 int MRISerodeRipped(MRI_SURFACE *mris, int ndil) ;
 int MRISdilateRipped(MRI_SURFACE *mris, int ndil) ;
-MRI *MRISdilateConfined(MRIS *surf, MRI *mask, int annotidmask, int niters, int newid);
+MRI *MRISdilateConfined(MRIS *surf,
+                        MRI *mask,
+                        int annotidmask,
+                        int niters,
+                        int newid);
 MRI *MRISfbirnMask_SFG_Cing(MRIS *surf);
 MRI *MRISfbirnMask_MOF_RACing(MRIS *surf);
 
@@ -1608,8 +1635,8 @@ int MRIScomputeClassModes(MRI_SURFACE *mris,
                           float *pcsf_mode);
 int MRISrasToVoxel(MRI_SURFACE *mris,
                    MRI *mri,
-                   Real xs, Real ys, Real zs,
-                   Real *pxv, Real *pyv, Real *pzv) ;
+                   double xs, double ys, double zs,
+                   double *pxv, double *pyv, double *pzv) ;
 int MRISrestoreRipFlags(MRI_SURFACE *mris) ;
 int MRISstoreRipFlags(MRI_SURFACE *mris) ;
 int MRISripMedialWall(MRI_SURFACE *mris) ;
@@ -1673,9 +1700,15 @@ double MRIScomputeWhiteVolume(MRI_SURFACE *mris,
                               double resolution);
 int MRIShistoThresholdCurvature(MRI_SURFACE *mris, float thresh_pct);
 int MRISthresholdCurvature(MRI_SURFACE *mris, float thresh, int use_abs);
-int MRISbinarizeCurvature(MRI_SURFACE *mris, float thresh, float low, float high, int use_abs);
+int MRISbinarizeCurvature(MRI_SURFACE *mris,
+                          float thresh,
+                          float low,
+                          float high,
+                          int use_abs);
 int MRISsetVal2(MRI_SURFACE *mris, float val);
-MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris, MRI *mri, float resolution) ;
+MRI *MRIScomputeDistanceToSurface(MRI_SURFACE *mris,
+                                  MRI *mri,
+                                  float resolution) ;
 int MRISdistanceTransform(MRI_SURFACE *mris,LABEL *area, int mode) ;
 int MRISinvertMarks(MRI_SURFACE *mris) ;
 
@@ -1701,8 +1734,6 @@ int MRISinvertMarks(MRI_SURFACE *mris) ;
 #define SCLV_STD_ERROR    8
 #define NUM_SCALAR_VALUES 9
 HISTOGRAM *MRISgetHistogram(MRI_SURFACE *mris, int nbins, int field);
-
-#endif
 
 // Discrete Principal Curvature and Related  vvvvvvvvvvvvvvvvvv
 // Column / width for formatted output
@@ -1892,16 +1923,37 @@ LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index) ;
 
 
 // thickness stuff
-int MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float max_thick, MRI_SURFACE *mris_ico);
-int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris, MRI_SURFACE *mris2, int signed_dist) ;
-int MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertices);
-int MRISvertexCoord2XYZ_float (VERTEX * v, int which, float  *x, float  *y, float  *z);
-int MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, int which, float *px, float *py, float *pz);
-MRI *MRISlaplacian(MRI_SURFACE *mris, MRI *mri_cmatrix, double inner_width, double outer_width);
-double MRISsampleValue(MRI_SURFACE *mris, FACE *f, double xp, double yp, double zp, 
+int MRISminimizeThicknessFunctional(MRI_SURFACE *mris,
+                                    INTEGRATION_PARMS *parms,
+                                    float max_thick,
+                                    MRI_SURFACE *mris_ico);
+int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris,
+                                       MRI_SURFACE *mris2,
+                                       int signed_dist) ;
+int MRISwriteCoordsToIco(MRI_SURFACE *mris,
+                         MRI_SURFACE *mris_ico,
+                         int which_vertices);
+int MRISvertexCoord2XYZ_float (VERTEX * v,
+                               int which,
+                               float  *x, float  *y, float  *z);
+int MRISsampleFaceCoords(MRI_SURFACE *mris,
+                         int fno,
+                         double x, double y, double z,
+                         int which,
+                         float *px, float *py, float *pz);
+MRI *MRISlaplacian(MRI_SURFACE *mris,
+                   MRI *mri_cmatrix,
+                   double inner_width,
+                   double outer_width);
+double MRISsampleValue(MRI_SURFACE *mris,
+                       FACE *f,
+                       double xp, double yp, double zp, 
                        int which, MRI *mri_vals) ;
 int MRIScopyAnnotationsToMarkedIndex(MRI_SURFACE *mris) ;
 int MRISmaxMarked(MRI_SURFACE *mris) ;
 int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale) ;
 int MRIScurvToMarked(MRI_SURFACE *mris) ;
 int MRISreadMarked(MRI_SURFACE *mris, const char *sname) ;
+
+
+#endif // MRISURF_H

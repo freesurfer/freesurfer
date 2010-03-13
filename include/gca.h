@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/03/04 20:05:12 $
- *    $Revision: 1.104 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.105 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -198,8 +198,8 @@ GAUSSIAN_CLASSIFIER_ARRAY, GCA ;
 int  GCAsetFlashParameters(GCA *gca, double *TRs, double *FAs, double *TEs) ;
 int  GCAunifyVariance(GCA *gca) ;
 int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
-			 const Real xv, const Real yv, const Real zv,
-			 Real *pxp, Real *pyp, Real *pzp );
+			 const double xv, const double yv, const double zv,
+			 double *pxp, double *pyp, double *pzp );
 int  GCAvoxelToPrior( GCA *gca, const MRI *mri,
 		      const int xv, const int yv, const int zv,
 		      int *pxp,int *pyp,int *pzp );
@@ -262,7 +262,7 @@ int    GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                              int *pxp, int *pyp, int *pzp) ;
 int    GCAsourceVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
                                  int xv, int yv, int zv,
-                                 Real *pxp, Real *pyp, Real *pzp) ;
+                                 double *pxp, double *pyp, double *pzp) ;
 int    GCAsourceFloatVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                                   float xv, float yv, float zv,
                                   int *pxp, int *pyp, int *pzp) ;
@@ -274,8 +274,8 @@ int  GCAnodeToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
                                float *pxn, float *pyn, float *pzn) ;
 #if 0
 int    GCAsampleStats(GCA *gca, MRI *mri, TRANSFORM *transform, int class,
-                      Real x, Real y, Real z,
-                      Real *pmean, Real *pvar, Real *pprior) ;
+                      double x, double y, double z,
+                      double *pmean, double *pvar, double *pprior) ;
 #endif
 
 

@@ -10,11 +10,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/03/12 18:43:44 $
- *    $Revision: 1.165 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.166 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,7 +24,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -1593,7 +1592,7 @@ gcamLogLikelihoodTerm(GCA_MORPH *gcam,
                       double l_log_likelihood)
 {
   int             x, y, z, n /*,label*/ ;
-  Real            dx, dy, dz, norm;
+  double            dx, dy, dz, norm;
   float           vals[MAX_GCA_INPUTS] ;
   GCA_MORPH_NODE  *gcamn ;
   MATRIX          *m_delI, *m_inv_cov ;
@@ -1730,7 +1729,7 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                    GCA_MORPH_PARMS *parms)
 {
   int             x, y, z, len, xi, yi, zi, x0, y0, z0, half_len ;
-  Real            dx, dy, dz ;
+  double            dx, dy, dz ;
   float           val, mean, var ;
   GCA_MORPH_NODE  *gcamn ;
   MRI             *mri_nbhd, *mri_kernel ;
@@ -1849,7 +1848,7 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
  
 
 #if DEBUG_LL_SSE
-  Real            max_increase = 0, increase ;
+  double            max_increase = 0, increase ;
   if (last_sse == NULL)
   {
     last_sse = (float ***)calloc(gcam->width, sizeof(float*)) ;
@@ -3547,7 +3546,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
 #if 1
   TRANSFORM   _transform, *transform = &_transform ;
   int         x, y, z ;
-  Real        xr, yr, zr, scale, val ;
+  double        xr, yr, zr, scale, val ;
 
   if (mri_morphed == NULL)
     mri_morphed = MRIalloc(gcam->image.width, gcam->image.height, 
@@ -3594,7 +3593,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
   int        width, height, depth, x, y, z,
              xm1, ym1, zm1, xp1, yp1, zp1 ;
   float      xd, yd, zd, dx, dy, dz, thick ;
-  Real       weight, orig_val, val ;
+  double       weight, orig_val, val ;
   MRI        *mri_weights, *mri_ctrl, *mri_s_morphed ;
 
   // GCAM is a non-linear voxel-to-voxel transform
@@ -3730,7 +3729,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
         weight = (float)MRIFvox(mri_weights,x,y,z) ;
         if (!FZERO(weight))
         {
-          val = (Real)MRIFvox(mri_s_morphed,x,y,z) / weight ;
+          val = (double)MRIFvox(mri_s_morphed,x,y,z) / weight ;
           if (val > 255.0)
             val = 255.0 ;
           MRIFvox(mri_s_morphed,x,y,z) = (short)nint(val) ;
@@ -3824,7 +3823,7 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int
   int        width, height, depth, x, y, z, start_frame, end_frame ;
   int        out_of_gcam;
   float      xd, yd, zd ;
-  Real       val, xoff, yoff, zoff ;
+  double       val, xoff, yoff, zoff ;
 
   if (frame >= 0 && frame < mri_src->nframes)
     start_frame = end_frame = frame ;
@@ -3953,7 +3952,7 @@ GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, GCA_MORPH *gcam,
 {
   int        width, height, depth, x, y, z, start_frame, end_frame ;
   float      xd, yd, zd ;
-  Real       val, jacobian ;
+  double       val, jacobian ;
   MRI        *mri_jacobian ;
 
   mri_morphed = GCAMmorphToAtlas(mri_src, gcam, mri_morphed, frame, SAMPLE_TRILINEAR) ;
@@ -4010,7 +4009,7 @@ GCAMmorphToAtlasType(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed,
 {
   int        width, height, depth, x, y, z, start_frame, end_frame ;
   float      xd, yd, zd ;
-  Real       val ;
+  double       val ;
 
   if (frame >= 0 && frame < mri_src->nframes)
     start_frame = end_frame = frame ;
@@ -4901,7 +4900,7 @@ int GCAMsampleInverseMorph(GCA_MORPH *gcam,
                            float *cMorph, float *rMorph, float *sMorph)
 {
   int err;
-  Real v;
+  double v;
 
   if (gcam->mri_xind == NULL)
   {
@@ -6452,7 +6451,7 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   int            x, y, z, width, height, depth, xv, yv, zv ;
   MRI            *mri_ctrl, *mri_counts ;
   GCA_MORPH_NODE *gcamn ;
-  Real           xf, yf, zf ;
+  double           xf, yf, zf ;
   float          num ;
 
   if (gcam->mri_xind)   /* already inverted */
@@ -6532,16 +6531,16 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
         if (abs(xf-Gx)<1 && abs(yf-Gy) <1 && abs(zf-Gz) < 1)
           DiagBreak() ;
         MRIinterpolateIntoVolume
-          (gcam->mri_xind, (Real)xf, (Real)yf, (Real)zf, (Real)x) ;
+          (gcam->mri_xind, (double)xf, (double)yf, (double)zf, (double)x) ;
         // src -> gcam volume position
         MRIinterpolateIntoVolume
-          (gcam->mri_yind, (Real)xf, (Real)yf, (Real)zf, (Real)y) ;
+          (gcam->mri_yind, (double)xf, (double)yf, (double)zf, (double)y) ;
         MRIinterpolateIntoVolume
-          (gcam->mri_zind, (Real)xf, (Real)yf, (Real)zf, (Real)z) ;
+          (gcam->mri_zind, (double)xf, (double)yf, (double)zf, (double)z) ;
 
         // mark counts (how many went in)
         MRIinterpolateIntoVolume
-          (mri_counts, (Real)xf, (Real)yf, (Real)zf, (Real)1.0) ;
+          (mri_counts, (double)xf, (double)yf, (double)zf, (double)1.0) ;
 #ifndef __OPTIMIZE__
         if (xv == Ggca_x && yv == Ggca_y && zv == Ggca_z)
         {
@@ -7321,7 +7320,7 @@ static int
 gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 {
   int x, y, z, wm_label, num, xn, yn, zn, best_label, sup_wm, sup_ven ;
-  Real            dy;
+  double            dy;
   GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup, 
     *gcamn_medial, *gcamn_lateral, *gcamn_ant, *gcamn_post ;
   float           vals[MAX_GCA_INPUTS], yi, yk, min_dist ;
@@ -8460,7 +8459,7 @@ GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int t
   int    whalf, x, y, z /*, xv, yv, zv*/ ;
   //  float  xa, ya, za ;
   MRI    *mri_density ;
-  Real   volume, det ;
+  double   volume, det ;
   GCA_MORPH_NODE *gcamn ;
   MATRIX *m_L = NULL ;
 
@@ -8510,7 +8509,7 @@ GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int t
           printf("voxel(%d, %d, %d) maps to atlas (%2.1f, %2.1f, %2.1f)\n",
                  x, y, z, xa, ya, za) ;
 #if 0
-        MRIinterpolateIntoVolume(mri_out, (Real)xa, (Real)ya, (Real)za, (Real)volume) ;
+        MRIinterpolateIntoVolume(mri_out, (double)xa, (double)ya, (double)za, (double)volume) ;
 #else
         xv = nint(xa) ;
         yv = nint(ya) ;
@@ -8565,7 +8564,7 @@ GCAMextract_density_map(MRI *mri_seg, MRI *mri_intensity, GCA_MORPH *gcam, int t
 int
 GCAMsample(GCA_MORPH *gcam, float xv, float yv, float zv, float *px, float *py, float *pz)
 {
-  Real            xt, yt, zt ;
+  double            xt, yt, zt ;
 #if 0
   int             xi, yi, zi ;
 #endif
@@ -8764,7 +8763,7 @@ gcamBinaryEnergy(GCA_MORPH *gcam, MRI *mri)
 {
   int            x, y, z ;
   double         sse, error ;
-  Real           val ;
+  double           val ;
   GCA_MORPH_NODE *gcamn ;
 
   sse = 0.0 ;
@@ -9046,7 +9045,7 @@ gcamBinaryTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, MRI *mri_dist, double
 {
   int            x, y, z ;
   double         sse, error, dx, dy, dz, odx, ody, odz, norm ;
-  Real           val ;
+  double           val ;
   GCA_MORPH_NODE *gcamn ;
 
   if (DZERO(l_binary))
@@ -9121,7 +9120,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
   *m_hires_vox2ras ;
   float          cx, cy, cz, rcx, rcy, rcz, rxmin, rxmax, rymin, rymax,
   rzmin, rzmax ;
-  Real           xr, yr, zr, num ;
+  double           xr, yr, zr, num ;
   int            type, nframes = 1, label ;
 
   switch (which)
@@ -9431,10 +9430,10 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
 
         if (inverted == 0)
         {
-          MRIinterpolateIntoVolume(mri_counts, xr, yr, zr, (Real)1.0) ;
-          MRIinterpolateIntoVolume(mri_xind, xr, yr, zr, (Real)x) ;
-          MRIinterpolateIntoVolume(mri_yind, xr, yr, zr, (Real)y) ;
-          MRIinterpolateIntoVolume(mri_zind, xr, yr, zr, (Real)z) ;
+          MRIinterpolateIntoVolume(mri_counts, xr, yr, zr, (double)1.0) ;
+          MRIinterpolateIntoVolume(mri_xind, xr, yr, zr, (double)x) ;
+          MRIinterpolateIntoVolume(mri_yind, xr, yr, zr, (double)y) ;
+          MRIinterpolateIntoVolume(mri_zind, xr, yr, zr, (double)z) ;
         }
         if (xd == Gx && yd == Gy && zd == Gz)
           DiagBreak() ;
@@ -9712,7 +9711,7 @@ GCAMmorphFieldFromAtlas(GCA_MORPH *gcam, MRI *mri, int which, int save_inversion
   GCA_MORPH_NODE *gcamn ;
   VECTOR         *v1, *v2 ;
   MATRIX         *m_target_vox2ras, *m_morphed_ras2vox, *m_vox2vox ;
-  Real           xr, yr, zr, num, val ;
+  double           xr, yr, zr, num, val ;
   int            type, nframes = 1, label, pad ;
   MRI_REGION     box ;
 
@@ -9996,10 +9995,10 @@ mri_tmp->c_s = gcam->atlas.c_s ;
 
         if (inverted == 0)
         {
-          MRIinterpolateIntoVolume(mri_counts, xr, yr, zr, (Real)1.0) ;
-          MRIinterpolateIntoVolume(mri_xind, xr, yr, zr, (Real)x) ;
-          MRIinterpolateIntoVolume(mri_yind, xr, yr, zr, (Real)y) ;
-          MRIinterpolateIntoVolume(mri_zind, xr, yr, zr, (Real)z) ;
+          MRIinterpolateIntoVolume(mri_counts, xr, yr, zr, (double)1.0) ;
+          MRIinterpolateIntoVolume(mri_xind, xr, yr, zr, (double)x) ;
+          MRIinterpolateIntoVolume(mri_yind, xr, yr, zr, (double)y) ;
+          MRIinterpolateIntoVolume(mri_zind, xr, yr, zr, (double)z) ;
         }
         if (xd == Gx && yd == Gy && zd == Gz)
           DiagBreak() ;
@@ -11488,7 +11487,7 @@ int
 GCAMaddIntensitiesFromImage(GCA_MORPH *gcam, MRI *mri_target)
 {
   int             x, y, z, num ;
-  Real            val, mean ;
+  double            val, mean ;
   GCA_MORPH_NODE  *gcamn ;
 
   if (gcam->ninputs == 0)
@@ -11571,7 +11570,7 @@ GCAMcreateFromIntensityImage
 {
   GCA_MORPH       *gcam ;
   int             x, y, z, num ;
-  Real            val, mean ;
+  double            val, mean ;
   GCA_MORPH_NODE  *gcamn ;
 
   gcam = GCAMalloc(mri_target->width, mri_target->height, mri_target->depth) ;
@@ -11679,7 +11678,7 @@ int
 GCAMthresholdLikelihoodStatus(GCAM *gcam, MRI *mri, float thresh)
 {
   int             x, y, z ;
-  Real            val ;
+  double            val ;
   GCA_MORPH_NODE  *gcamn ;
 
   for (x = 0 ; x < gcam->width ; x++)
@@ -12430,7 +12429,7 @@ GCAMupsample2(GCA_MORPH *gcam)
   int            xn, yn, zn, xo, yo, zo ;
   GCA_MORPH      *gcam_new ;
   GCA_MORPH_NODE *gcamn_old, *gcamn_new ;
-  Real           xd, yd, zd ;
+  double           xd, yd, zd ;
   MRI            *mri_origx, *mri_origy, *mri_origz, *mri_x, *mri_y, *mri_z ;
 
   mri_origx = GCAMwriteMRI(gcam, NULL, GCAM_ORIGX) ;
@@ -12541,7 +12540,7 @@ int
 GCAMignoreZero(GCA_MORPH *gcam, MRI *mri_target)
 {
   int             x, y, z ;
-  Real            val ;
+  double            val ;
   GCA_MORPH_NODE  *gcamn ;
 
   for (x = 0 ; x < gcam->width ; x++)
@@ -12570,7 +12569,7 @@ gcamComputeOptimalLinearTransformInRegion(GCA_MORPH *gcam, MRI *mri_mask, MATRIX
   int            ncols, col, xi, yi, zi, xk, yk, zk ;
   GCA_MORPH_NODE *gcamn ;
   MATRIX         *m_U, *m_V, *m_Uinv ;
-  Real            mask ;
+  double            mask ;
 
 
   ncols = 0 ;    // first count the # of measurements
@@ -13369,7 +13368,7 @@ int
 GCAMnormalizeIntensities(GCA_MORPH *gcam, MRI *mri_target)
 {
   int             x, y, z, num ;
-  Real            val, mean, std, low_thresh, hi_thresh ;
+  double            val, mean, std, low_thresh, hi_thresh ;
   GCA_MORPH_NODE  *gcamn ;
 
   std = mean = 0.0 ;

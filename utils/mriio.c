@@ -8,11 +8,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/02/05 23:48:09 $
- *    $Revision: 1.363 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:45 $
+ *    $Revision: 1.364 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -54,7 +53,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "region.h"
 #include "machine.h"
 #include "analyze.h"
@@ -102,10 +101,10 @@ static int mincWrite2(MRI *mri, const char *fname);
 static int GetMINCInfo(MRI *mri,
                        const char *dim_names[4],
                        int   dim_sizes[4],
-                       Real separations[4],
-                       Real dircos[3][3],
-                       Real VolCenterVox[3],
-                       Real VolCenterWorld[3]);
+                       double separations[4],
+                       double dircos[3][3],
+                       double VolCenterVox[3],
+                       double VolCenterWorld[3]);
 #endif
 
 static MRI *mri_read
@@ -129,7 +128,9 @@ static MRI *bvolumeRead(const char *fname_passed, int read_volume, int type);
 static MRI *genesisRead(const char *stem, int read_volume);
 static MRI *gelxRead(const char *stem, int read_volume);
 
-static int CountAnalyzeFiles(const char *analyzefname, int nzpad, char **ppstem);
+static int CountAnalyzeFiles(const char *analyzefname,
+                             int nzpad,
+                             char **ppstem);
 static MRI *analyzeRead(const char *fname, int read_volume);
 static dsr *ReadAnalyzeHeader(const char *hdrfile, int *swap,
                               int *mritype, int *bytes_per_voxel);
@@ -1062,7 +1063,9 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
   {
     IMAGE *image ;
     if (mri->depth != 1)
-      ErrorExit(ERROR_BADPARM, "MRIwriteType(%s): image files cannnot have depth > 1\n",fname);
+      ErrorExit(ERROR_BADPARM,
+                "MRIwriteType(%s): image files cannnot have depth > 1\n",
+                fname);
     image = MRItoImage(mri, NULL, 0) ;
     ImageWrite(image, fname) ;
     ImageFree(&image) ;
@@ -2383,7 +2386,7 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
 /*-----------------------------------------------------------*/
 static MRI *mincRead(const char *fname, int read_volume)
 {
-  // Real wx, wy, wz;
+  // double wx, wy, wz;
   MRI *mri;
   Volume vol;
   VIO_Status status;
@@ -2392,13 +2395,13 @@ static MRI *mincRead(const char *fname, int read_volume)
   int ndims;
   int dtype;
   volume_input_struct input_info;
-  Real separations[4];
-  Real voxel[4];
-  Real worldr, worlda, worlds;
-  Real val;
+  double separations[4];
+  double voxel[4];
+  double worldr, worlda, worlds;
+  double val;
   int i, j, k, t;
   float xfov, yfov, zfov;
-  Real f;
+  double f;
   BOOLEAN sflag = TRUE ;
   Transform *pVox2WorldLin;
   General_transform *pVox2WorldGen;
@@ -2629,13 +2632,13 @@ static MRI *mincRead2(const char *fname, int read_volume)
   int ndims;
   int dtype;
   volume_input_struct input_info;
-  Real separations[4];
-  Real voxel[4];
-  Real worldr, worlda, worlds;
-  Real val;
+  double separations[4];
+  double voxel[4];
+  double worldr, worlda, worlds;
+  double val;
   int i, j, k, t;
   float xfov, yfov, zfov;
-  Real f;
+  double f;
   BOOLEAN sflag = TRUE ;
   MATRIX *T;
   Transform *pVox2WorldLin;
@@ -2875,16 +2878,16 @@ static MRI *mincRead2(const char *fname, int read_volume)
 static int GetMINCInfo(MRI *mri,
                        char *dim_names[4],
                        int   dim_sizes[4],
-                       Real separations[4],
-                       Real dircos[3][3],
-                       Real VolCenterVox[3],
-                       Real VolCenterWorld[3])
+                       double separations[4],
+                       double dircos[3][3],
+                       double VolCenterVox[3],
+                       double VolCenterWorld[3])
 {
   int xspacehit, yspacehit, zspacehit;
   float col_dc_x, col_dc_y, col_dc_z;
   float row_dc_x, row_dc_y, row_dc_z;
   float slc_dc_x, slc_dc_y, slc_dc_z;
-  Real col_dc_sign, row_dc_sign, slc_dc_sign;
+  double col_dc_sign, row_dc_sign, slc_dc_sign;
   int err,i,j;
 
   col_dc_x = fabs(mri->x_r);
@@ -3043,17 +3046,17 @@ static int mincWrite2(MRI *mri, const char *fname)
   Volume minc_volume;
   nc_type nc_data_type = NC_BYTE;
   int ndim,i,j;
-  Real min, max;
+  double min, max;
   float fmin, fmax;
   char *dim_names[4];
   int   dim_sizes[4];
-  Real separations[4];
-  Real dircos[3][3];
-  Real VolCenterVox[3];
-  Real VolCenterWorld[3];
+  double separations[4];
+  double dircos[3][3];
+  double VolCenterVox[3];
+  double VolCenterWorld[3];
   int signed_flag = 0;
   int r,c,s,f;
-  Real VoxVal = 0.0;
+  double VoxVal = 0.0;
   int return_value;
   VIO_Status status;
   MATRIX *T;
@@ -3063,8 +3066,8 @@ static int mincWrite2(MRI *mri, const char *fname)
   /* Get the min and max for the volume */
   if ((return_value = MRIlimits(mri, &fmin, &fmax)) != NO_ERROR)
     return(return_value);
-  min = (Real)fmin;
-  max = (Real)fmax;
+  min = (double)fmin;
+  max = (double)fmax;
 
   /* Translate mri type to NetCDF type */
   switch (mri->type)
@@ -3153,19 +3156,19 @@ static int mincWrite2(MRI *mri, const char *fname)
           switch (mri->type)
           {
           case MRI_UCHAR:
-            VoxVal = (Real)MRIseq_vox(mri,  c, r, s, f);
+            VoxVal = (double)MRIseq_vox(mri,  c, r, s, f);
             break;
           case MRI_SHORT:
-            VoxVal = (Real)MRISseq_vox(mri, c, r, s, f);
+            VoxVal = (double)MRISseq_vox(mri, c, r, s, f);
             break;
           case MRI_INT:
-            VoxVal = (Real)MRIIseq_vox(mri, c, r, s, f);
+            VoxVal = (double)MRIIseq_vox(mri, c, r, s, f);
             break;
           case MRI_LONG:
-            VoxVal = (Real)MRILseq_vox(mri, c, r, s, f);
+            VoxVal = (double)MRILseq_vox(mri, c, r, s, f);
             break;
           case MRI_FLOAT:
-            VoxVal = (Real)MRIFseq_vox(mri, c, r, s, f);
+            VoxVal = (double)MRIFseq_vox(mri, c, r, s, f);
             break;
           }
           set_volume_voxel_value(minc_volume, c, r, s, f, 0, VoxVal);
@@ -3213,13 +3216,13 @@ static int mincWrite(MRI *mri, const char *fname)
   Volume minc_volume;
   STRING dimension_names[4] = { "xspace", "yspace", "zspace", "time" };
   nc_type nc_data_type;
-  Real min, max;
+  double min, max;
   float fmin, fmax;
   int dimension_sizes[4];
-  Real separations[4];
-  Real dir_cos[4];
+  double separations[4];
+  double dir_cos[4];
   int return_value;
-  Real voxel[4], world[4];
+  double voxel[4], world[4];
   int signed_flag;
   int di_x, di_y, di_z;
   int vi[4];
@@ -3380,8 +3383,8 @@ static int mincWrite(MRI *mri, const char *fname)
   if ((return_value = MRIlimits(mri, &fmin, &fmax)) != NO_ERROR)
     return(return_value);
 
-  min = (Real)fmin;
-  max = (Real)fmax;
+  min = (double)fmin;
+  max = (double)fmax;
 
   if (mri->nframes == 1)
     minc_volume = create_volume
@@ -3401,35 +3404,35 @@ static int mincWrite(MRI *mri, const char *fname)
 
   alloc_volume_data(minc_volume);
 
-  separations[di_x] = (Real)(mri->xsize);
-  separations[di_y] = (Real)(mri->ysize);
-  separations[di_z] = (Real)(mri->zsize);
+  separations[di_x] = (double)(mri->xsize);
+  separations[di_y] = (double)(mri->ysize);
+  separations[di_z] = (double)(mri->zsize);
   separations[3] = 1.0; // appears to do nothing
   set_volume_separations(minc_volume, separations);
   /* has side effect to change transform and thus must be set first */
 
-  dir_cos[0] = (Real)mri->x_r;
-  dir_cos[1] = (Real)mri->x_a;
-  dir_cos[2] = (Real)mri->x_s;
+  dir_cos[0] = (double)mri->x_r;
+  dir_cos[1] = (double)mri->x_a;
+  dir_cos[2] = (double)mri->x_s;
   set_volume_direction_cosine(minc_volume, di_x, dir_cos);
 
-  dir_cos[0] = (Real)mri->y_r;
-  dir_cos[1] = (Real)mri->y_a;
-  dir_cos[2] = (Real)mri->y_s;
+  dir_cos[0] = (double)mri->y_r;
+  dir_cos[1] = (double)mri->y_a;
+  dir_cos[2] = (double)mri->y_s;
   set_volume_direction_cosine(minc_volume, di_y, dir_cos);
 
-  dir_cos[0] = (Real)mri->z_r;
-  dir_cos[1] = (Real)mri->z_a;
-  dir_cos[2] = (Real)mri->z_s;
+  dir_cos[0] = (double)mri->z_r;
+  dir_cos[1] = (double)mri->z_a;
+  dir_cos[2] = (double)mri->z_s;
   set_volume_direction_cosine(minc_volume, di_z, dir_cos);
 
   voxel[di_x] = mri->width / 2.0; // promoted to double
   voxel[di_y] = mri->height/ 2.0;
   voxel[di_z] = mri->depth / 2.0;
   voxel[3] = 0.0;
-  world[0] = (Real)(mri->c_r);
-  world[1] = (Real)(mri->c_a);
-  world[2] = (Real)(mri->c_s);
+  world[0] = (double)(mri->c_r);
+  world[1] = (double)(mri->c_a);
+  world[2] = (double)(mri->c_s);
   world[3] = 0.0;
   set_volume_translation(minc_volume, voxel, world);
 
@@ -3452,23 +3455,23 @@ static int mincWrite(MRI *mri, const char *fname)
           if (mri->type == MRI_UCHAR)
             set_volume_voxel_value
             (minc_volume, vi[0], vi[1], vi[2], vi[3], 0,
-             (Real)MRIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+             (double)MRIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if (mri->type == MRI_SHORT)
             set_volume_voxel_value
             (minc_volume, vi[0], vi[1], vi[2], vi[3], 0,
-             (Real)MRISseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+             (double)MRISseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if (mri->type == MRI_INT)
             set_volume_voxel_value
             (minc_volume, vi[0], vi[1], vi[2], vi[3], 0,
-             (Real)MRIIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+             (double)MRIIseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if (mri->type == MRI_LONG)
             set_volume_voxel_value
             (minc_volume, vi[0], vi[1], vi[2], vi[3], 0,
-             (Real)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+             (double)MRILseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
           if (mri->type == MRI_FLOAT)
             set_volume_voxel_value
             (minc_volume, vi[0], vi[1], vi[2], vi[3], 0,
-             (Real)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
+             (double)MRIFseq_vox(mri, vi[di_x], vi[di_y], vi[di_z], vi[3]));
         }
       }
     }
@@ -4148,7 +4151,11 @@ static int bvolumeWrite(MRI *vol, const char *fname_passed, int type)
 } /* end bvolumeWrite() */
 
 static MRI *get_b_info
-(const char *fname_passed, int read_volume, char *directory, char *stem, int type)
+(const char *fname_passed,
+ int read_volume,
+ char *directory,
+ char *stem,
+ int type)
 {
 
   MRI *mri, *mri2;
@@ -6458,7 +6465,8 @@ static MRI *analyzeRead(const char *fname, int read_volume)
   free(hdr);
 
   MRIlimits(mri,&min,&max);
-  if (Gdiag_no > 0) printf("INFO: analyzeRead(): min = %g, max = %g\n",min,max);
+  if (Gdiag_no > 0)
+    printf("INFO: analyzeRead(): min = %g, max = %g\n",min,max);
 
   return(mri);
 }
@@ -9974,7 +9982,8 @@ static MRI *niiRead(const char *fname, int read_volume)
     // This can be a tricky situation because the time units may not mean
     // anything even with multiple frames (eg, BO mag and phase).
     if(hdr.dim[4] > 1)
-      printf("WARNING: niiRead(): unknown time units %d in %s\n",time_units,fname);
+      printf("WARNING: niiRead(): unknown time units %d in %s\n",
+             time_units,fname);
     time_units_factor = 0;
   }
   //printf("hdr.xyzt_units = %d, time_units = %d, %g, %g\n",
@@ -10108,8 +10117,10 @@ static MRI *niiRead(const char *fname, int read_volume)
   else
   {
     // Should probably just die here.
-    fprintf(stderr, "WARNING: neither NIfTI-1 qform or sform are valid\n");
-    fprintf(stderr, "WARNING: your volume will probably be incorrectly oriented\n");
+    fprintf(stderr,
+            "WARNING: neither NIfTI-1 qform or sform are valid\n");
+    fprintf(stderr,
+            "WARNING: your volume will probably be incorrectly oriented\n");
     mri->x_r = -1.0;
     mri->x_a = 0.0;
     mri->x_s = 0.0;
@@ -10900,7 +10911,8 @@ static int mriToNiftiQform(MRI *mri, struct nifti_1_header *hdr)
           + r13 * (r21*r32 - r31*r22);
 
   if (r_det == 0.0) {
-    printf("WARNING: bad orientation matrix (determinant = 0) in nifti1 file ...\n");
+    printf("WARNING: bad orientation matrix (determinant = 0) "
+           "in nifti1 file ...\n");
     printf(" ... continuing.\n");
   }
   else if (r_det > 0.0)
@@ -12267,7 +12279,10 @@ mghWrite(MRI *mri, const char *fname, int frame)
     int i ;
 
     for (i = 0 ; i < mri->ncmds ; i++)
-      znzTAGwrite(fp, TAG_CMDLINE, mri->cmdlines[i], strlen(mri->cmdlines[i])+1) ;
+      znzTAGwrite(fp, 
+                  TAG_CMDLINE,
+                  mri->cmdlines[i],
+                  strlen(mri->cmdlines[i])+1) ;
   }
 
 
@@ -12298,8 +12313,12 @@ MRI *MRIreorder4(MRI *mri, int order[4])
   olddims[3] = mri->nframes;
 
   for(n=0; n<4; n++) newdims[n] = olddims[order[n]-1];
-  //for(n=0; n<4; n++) printf("%d %d  %d  %d\n",n,order[n],olddims[n],newdims[n]);
-  new = MRIallocSequence(newdims[0],newdims[1],newdims[2],mri->type,newdims[3]);
+  //for(n=0; n<4; n++) 
+  //  printf("%d %d  %d  %d\n",n,order[n],olddims[n],newdims[n]);
+  new = MRIallocSequence(newdims[0],
+                         newdims[1],
+                         newdims[2],
+                         mri->type,newdims[3]);
   if(new == NULL) return(NULL);
   MRIcopyHeader(mri,new);
 

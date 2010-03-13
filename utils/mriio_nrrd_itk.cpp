@@ -8,10 +8,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/07/23 19:55:37 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/13 01:32:45 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +21,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -70,7 +69,7 @@ extern "C" {
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "region.h"
 #include "machine.h"
 #include "analyze.h"

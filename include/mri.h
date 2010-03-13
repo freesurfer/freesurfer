@@ -7,11 +7,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/03/04 19:43:24 $
- *    $Revision: 1.395 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.396 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,10 +21,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #ifndef MRI_H
 #define MRI_H
@@ -32,7 +30,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
 
 #include "minc_volume_io.h"
 #include "const.h"
@@ -167,7 +164,9 @@ MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base); /* Native Vox2RAS Matrix
                                               (scanner and xfm too) */
 MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);      // TkReg  Vox2RAS Matrix
 MATRIX *MRIxfmCRS2XYZfsl(MRI *mri);        // FSL/FLIRT  Vox2RAS Matrix
-MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref, MRI *mov, MATRIX *vox2vox); //ras2ras from vox2vox
+MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref,
+                               MRI *mov,
+                               MATRIX *vox2vox); //ras2ras from vox2vox
 
 MATRIX *MRItkReg2Native(MRI *ref, MRI *mov, MATRIX *R); /* tkreg2native
                                                            (scanner and
@@ -207,10 +206,10 @@ int MRIprecisionCode(char *PrecisionString);
 int MRIareNonzeroInNbhd(MRI *mri, int wsize, int x, int y, int z) ;
 float  MRIfindNearestNonzero(MRI *mri,
                              int wsize,
-                             Real x0, Real y0, Real z0,
+                             double x0, double y0, double z0,
                              float max_dist) ;
 float  MRIfindNearestNonzeroLocation(MRI *mri, int wsize,
-                                     Real xr, Real yr, Real zr,
+                                     double xr, double yr, double zr,
                                      int *pxv, int *pyv, int *pzv) ;
 /* single pixel filtering */
 float MRIvoxelMedian(MRI *mri, int x0, int y0, int z0, int wsize) ;
@@ -288,7 +287,10 @@ int   MRIlabelBoundingBox(MRI *mri, int label, MRI_REGION *region) ;
 int   MRIfindApproximateSkullBoundingBox(MRI *mri, int thresh,
     MRI_REGION *region) ;
 int   MRIboundingBoxNbhd(MRI *mri, int thresh, int wsize,MRI_REGION *region) ;
-MRI *MRIsetBoundingBox(MRI *mri_template, MRI_REGION *region, double InVal, double OutVal);
+MRI *MRIsetBoundingBox(MRI *mri_template,
+                       MRI_REGION *region,
+                       double InVal,
+                       double OutVal);
 
 /* coordinate transforms */
 MRI   *MRItranslate(MRI *mri_src, MRI *mri_dst,
@@ -334,8 +336,11 @@ MRI   *MRIscaleAndMultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst) ;
 MRI   *MRIabs(MRI *mri, MRI *mri_dst) ;
 MRI   *MRIneg(MRI *mri_src, MRI *mri_dst);
 MRI   *MRIpos(MRI *mri_src, MRI *mri_dst);
-
-MRI   *MRIlinearScale(MRI *mri_src, MRI *mri_dst, float scale, float offset, int only_nonzer) ;
+MRI   *MRIlinearScale(MRI *mri_src,
+                      MRI *mri_dst,
+                      float scale,
+                      float offset,
+                      int only_nonzer) ;
 MRI   *MRIscalarMul(MRI *mri_src, MRI *mri_dst, float scalar) ;
 MRI   *MRIscalarMulFrame(MRI *mri_src, MRI *mri_dst, float scalar, int frame) ;
 
@@ -409,11 +414,11 @@ MRI   *MRIdiffusePerona(MRI *mri_src, MRI *mri_dst,
 MRI   *MRIdirectionMap(MRI *mri_grad, MRI *mri_direction, int wsize);
 MRI   *MRIdirectionMapUchar(MRI *mri_grad, MRI *mri_direction, int wsize);
 void  MRIcalcCRASforSampledVolume(MRI *src, MRI *sampled,
-                                  Real *pr, Real *pa, Real *ps);
+                                  double *pr, double *pa, double *ps);
 void  MRIcalcCRASforExtractedVolume(MRI *src, MRI *dst,
                                     int x0, int y0, int z0,
                                     int x1, int y1, int z1,
-                                    Real *pr, Real *pa, Real *ps);
+                                    double *pr, double *pa, double *ps);
 // 0 is the src extract position start
 // 1 is the dst extracted region start
 MRI   *MRIsrcTransformedCentered(MRI *src, MRI *dst,
@@ -445,9 +450,12 @@ int   MRIcenterOfMass(MRI *mri,double *means, BUFTYPE threshold) ;
 int   MRIbinaryPrincipleComponents(MRI *mri, MATRIX *mEvectors,
                                    float *evalues,
                                    double *means, BUFTYPE theshold) ;
-int   MRIprincipleComponentsRange(MRI *mri, MATRIX *mEvectors,
-                                   float *evalues,
-                                   double *means, float low_thresh, float hi_thresh) ;
+int   MRIprincipleComponentsRange(MRI *mri,
+                                  MATRIX *mEvectors,
+                                  float *evalues,
+                                  double *means,
+                                  float low_thresh,
+                                  float hi_thresh) ;
 int   MRIclear(MRI *mri_src) ;
 
 /* these routines use trilinear interpolation */
@@ -573,35 +581,35 @@ int   MRIinitHeader(MRI *mri) ;
 int   MRIreInitCache(MRI *mri); /* when header is modified,
                                    you must call this function
                                    to update cached info */
-int   MRIvoxelToWorld(MRI *mri, Real xv, Real yv, Real zv,
-                      Real *xw, Real *yw, Real *zw) ;
-int   MRIworldToVoxel(MRI *mri, Real xw, Real yw, Real zw,
-                      Real *pxv, Real *pyv, Real *pzv) ;
-int   MRIworldToVoxelIndex(MRI *mri, Real xw, Real yw, Real zw,
+int   MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv,
+                      double *xw, double *yw, double *zw) ;
+int   MRIworldToVoxel(MRI *mri, double xw, double yw, double zw,
+                      double *pxv, double *pyv, double *pzv) ;
+int   MRIworldToVoxelIndex(MRI *mri, double xw, double yw, double zw,
                            int *pxv, int *pyv, int *pzv) ;
 MRI *MRItoTalairach(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRIfromTalairach(MRI *mri_src, MRI *mri_dst) ;
-int   MRIworldToTalairachVoxel(MRI *mri, Real xw, Real yw, Real zw,
-                               Real *pxv, Real *pyv, Real *pzv) ;
-int   MRIvoxelToTalairachVoxel(MRI *mri, Real xv, Real yv, Real zv,
-                               Real *pxt, Real *pyt, Real *pzt) ;
+int   MRIworldToTalairachVoxel(MRI *mri, double xw, double yw, double zw,
+                               double *pxv, double *pyv, double *pzv) ;
+int   MRIvoxelToTalairachVoxel(MRI *mri, double xv, double yv, double zv,
+                               double *pxt, double *pyt, double *pzt) ;
 int   MRIvoxelToVoxel(MRI *mri_src, MRI *mri_dst,
-                      Real xv, Real yv, Real zv,
-                      Real *pxt, Real *pyt, Real *pzt) ;
-int   MRItalairachVoxelToVoxel(MRI *mri, Real xt, Real yt, Real zt,
-                               Real *pxv, Real *pyv, Real *pzv) ;
-int   MRItalairachVoxelToWorld(MRI *mri, Real xt, Real yt, Real zt,
-                               Real *pxw, Real *pyw, Real *pzw) ;
-int   MRIvoxelToTalairach(MRI *mri, Real xv, Real yv, Real zv,
-                          Real *pxt, Real *pyt, Real *pzt) ;
-int   MRItalairachToVoxel(MRI *mri, Real xt, Real yt, Real zt,
-                          Real *pxv, Real *pyv, Real *pzv) ;
+                      double xv, double yv, double zv,
+                      double *pxt, double *pyt, double *pzt) ;
+int   MRItalairachVoxelToVoxel(MRI *mri, double xt, double yt, double zt,
+                               double *pxv, double *pyv, double *pzv) ;
+int   MRItalairachVoxelToWorld(MRI *mri, double xt, double yt, double zt,
+                               double *pxw, double *pyw, double *pzw) ;
+int   MRIvoxelToTalairach(MRI *mri, double xv, double yv, double zv,
+                          double *pxt, double *pyt, double *pzt) ;
+int   MRItalairachToVoxel(MRI *mri, double xt, double yt, double zt,
+                          double *pxv, double *pyv, double *pzv) ;
 
 int   MRItransformRegion(MRI *mri_src, MRI *mri_dst, MRI_REGION *src_region,
                          MRI_REGION *dst_region) ;
 MRI  *MRIextractArbitraryPlane(MRI *mri_src, MRI *mri_dst,
-                               Real e1_x, Real e1_y, Real e1_z,
-                               Real e2_x, Real e2_y, Real e2_z,
+                               double e1_x, double e1_y, double e1_z,
+                               double e2_x, double e2_y, double e2_z,
                                int x, int y, int z, int wsize);
 MRI   *MRIextractTalairachPlane(MRI *mri_src, MRI *mri_dst, int orientation,
                                 int x, int y, int z, int size) ;
@@ -618,45 +626,59 @@ int   MRIerasePlane(MRI *mri, float x0, float y0, float z0,
 
 int   MRIeraseBorders(MRI *mri, int width) ;
 int   MRIindexNotInVolume( const MRI *mri,
-			   const Real col, const Real row, const Real slice );
-int   MRIsampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval) ;
+			   const double col, const double row, const double slice );
+int   MRIsampleVolume(MRI *mri, double x, double y, double z, double *pval) ;
 double *MRItrilinKernel(MRI *mri,
                         double c,
                         double r,
                         double s,
                         double *kernel);
-int   MRIinterpolateIntoVolume(MRI *mri, Real x, Real y, Real z, Real val) ;
-int   MRIsampleVolumeSlice(MRI *mri, Real x, Real y, Real z, Real *pval,
+int   MRIinterpolateIntoVolume(MRI *mri,
+                               double x, double y, double z,
+                               double val) ;
+int   MRIsampleVolumeSlice(MRI *mri,
+                           double x, double y, double z,
+                           double *pval,
                            int slice_direction) ;
-
-int   MRIsampleSeqVolume(MRI *mri, Real x, Real y, Real z, float *valvect,
+int   MRIsampleSeqVolume(MRI *mri,
+                         double x, double y, double z,
+                         float *valvect,
                          int firstframe, int lastframe);
-
-int   MRIsampleVolumeType(MRI *mri, Real x, Real y, Real z, Real *pval,
+int   MRIsampleVolumeType(MRI *mri,
+                          double x, double y, double z,
+                          double *pval,
                           int type) ;
-int   MRIsampleLabeledVolume(MRI *mri, Real x, Real y, Real z, Real *pval,
+int   MRIsampleLabeledVolume(MRI *mri,
+                             double x, double y, double z,
+                             double *pval,
                              unsigned char ucharLabel);
 int   MRIsampleVolumeFrame( const MRI *mri,
-			    Real x, Real y, Real z,
+			    double x, double y, double z,
 			    const int frame,
-			    Real *pval);
+			    double *pval);
 int   MRIsampleVolumeFrameType( const MRI *mri,
-				const Real x, const Real y, const Real z,
+				const double x, const double y, const double z,
 				const int frame,
 				int interp_type,
-				Real *pval );
-int   MRIsampleVolumeGradient(MRI *mri, Real x, Real y, Real z,
-                              Real *pdx, Real *pdy, Real *pdz) ;
-int   MRIsampleVolumeGradientFrame(MRI *mri, Real x, Real y, Real z,
-                                   Real *pdx, Real *pdy, Real *pdz,
+				double *pval );
+int   MRIsampleVolumeGradient(MRI *mri, double x, double y, double z,
+                              double *pdx, double *pdy, double *pdz) ;
+int   MRIsampleVolumeGradientFrame(MRI *mri, double x, double y, double z,
+                                   double *pdx, double *pdy, double *pdz,
                                    int frame) ;
-int   MRIsampleVolumeDerivative(MRI *mri, Real x, Real y, Real z,
-                                Real dx, Real dy, Real dz, Real *pmag) ;
-int   MRIsampleVolumeDerivativeScale(MRI *mri, Real x, Real y, Real z,
-                                     Real dx, Real dy, Real dz, Real *pmag,
+int   MRIsampleVolumeDerivative(MRI *mri,
+                                double x, double y, double z,
+                                double dx, double dy, double dz,
+                                double *pmag) ;
+int   MRIsampleVolumeDerivativeScale(MRI *mri,
+                                     double x, double y, double z,
+                                     double dx, double dy, double dz,
+                                     double *pmag,
                                      double sigma) ;
-int   MRIsampleVolumeDirectionScale(MRI *mri, Real x, Real y, Real z,
-                                    Real dx, Real dy, Real dz, Real *pmag,
+int   MRIsampleVolumeDirectionScale(MRI *mri,
+                                    double x, double y, double z,
+                                    double dx, double dy, double dz,
+                                    double *pmag,
                                     double sigma) ;
 float MRIsampleCardinalDerivative(MRI *mri, int x, int y, int z,
                                   int xk, int yk, int zk) ;
@@ -679,16 +701,16 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri);
 MATRIX *surfaceRASFromRAS_(MRI *mri);
 MATRIX *RASFromSurfaceRAS_(MRI *mri);
 
-int MRIvoxelToSurfaceRAS(MRI *mri, Real xv, Real yv, Real zv,
-                         Real *xs, Real *ys, Real *zs);
-int MRIsurfaceRASToVoxel(MRI *mri, Real xr, Real yr, Real zr,
-                         Real *xv, Real *yv, Real *zv);
-int MRIsurfaceRASToVoxelCached(MRI *mri, Real xr, Real yr, Real zr,
-                               Real *xv, Real *yv, Real *zv);
-int MRIRASToSurfaceRAS(MRI *mri, Real xr, Real yr, Real zr,
-                       Real *xsr, Real *ysr, Real *zsr);
-int MRIsurfaceRASToRAS(MRI *mri, Real xsr, Real ysr, Real zsr,
-                       Real *xr, Real *yr, Real *zr);
+int MRIvoxelToSurfaceRAS(MRI *mri, double xv, double yv, double zv,
+                         double *xs, double *ys, double *zs);
+int MRIsurfaceRASToVoxel(MRI *mri, double xr, double yr, double zr,
+                         double *xv, double *yv, double *zv);
+int MRIsurfaceRASToVoxelCached(MRI *mri, double xr, double yr, double zr,
+                               double *xv, double *yv, double *zv);
+int MRIRASToSurfaceRAS(MRI *mri, double xr, double yr, double zr,
+                       double *xsr, double *ysr, double *zsr);
+int MRIsurfaceRASToRAS(MRI *mri, double xsr, double ysr, double zsr,
+                       double *xr, double *yr, double *zr);
 
 /* bitmap image access macros */
 #define MRIset_bit(mri,x,y,z)    MRIvox(mri,(x)/8,y,z) |= (0x001 << ((x)%8))
@@ -777,8 +799,13 @@ int        MRIvalRangeFrame(MRI *mri, float *pmin, float *pmax, int frame) ;
 MRI        *MRIvalScale(MRI *mri_src, MRI *mri_dst, float fmin, float fmax) ;
 
 #include "histo.h" // HISTOGRAM
-HISTOGRAM *MRIhistogramVoxel(MRI *mri, int nbins, HISTOGRAM *histo, int x0, int y0, int z0,
-                             int wsize, MRI *mri_thresh, float thresh) ;
+HISTOGRAM *MRIhistogramVoxel(MRI *mri,
+                             int nbins,
+                             HISTOGRAM *histo,
+                             int x0, int y0, int z0,
+                             int wsize,
+                             MRI *mri_thresh,
+                             float thresh) ;
 int        *MRIhistogramLabels(MRI *mri, int *counts, int max_label);
 HISTOGRAM  *MRIhistogram(MRI *mri, int nbins) ;
 HISTOGRAM  *MRIhistogramLabel(MRI *mri, MRI *mri_labeled,
@@ -828,7 +855,10 @@ MRI        *MRIfillFG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
 MRI        *MRIfillBG(MRI *mri_src, MRI *mri_dst, int seed_x, int seed_y,
                       int seed_z, int threshold, int fill_val, int *npix) ;
 
-int   MRIneighborsInRange(MRI *mri, int x0, int y0, int z0, int frame, float  low_val, float hi_val) ;
+int   MRIneighborsInRange(MRI *mri,
+                          int x0, int y0, int z0,
+                          int frame,
+                          float  low_val, float hi_val) ;
 int   MRIneighbors3x3(MRI *mri, int x, int y, int z, int val) ;
 int   MRIneighbors(MRI *mri, int x, int y, int z, int val) ;
 int   MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val) ;
@@ -845,7 +875,9 @@ int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
 
 MRI *MRIresampleFill(MRI *src, MRI *template_vol,
                      int resample_type, float fill_val) ;
-MRI *MRIreplaceValuesOnly(MRI *mri_src, MRI *mri_dst, float in_val, float out_val) ;
+MRI *MRIreplaceValuesOnly(MRI *mri_src,
+                          MRI *mri_dst,
+                          float in_val, float out_val) ;
 MRI   *MRIreplaceValues(MRI *mri_src, MRI *mri_dst,
                         float in_val, float out_val) ;
 MRI   *MRIreplaceValueRange(MRI *mri_src, MRI *mri_dst,
@@ -923,8 +955,14 @@ MRI *MRImeanLabel(MRI *mri_src, MRI *mri_label, MRI*mri_dst, int wsize) ;
 int MRIvoxelsInLabel(MRI *mri, int label) ;
 int MRItotalVoxelsOn(MRI *mri, int thresh) ;
 int MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int val) ;
-int MRIsetVoxelsWithValue(MRI *mri_src, MRI *mri_dst, int src_val, int dst_val) ;
-int MRIsetDifferentVoxelsWithValue(MRI *mri1, MRI *mri2, MRI *mri_dst, int dst_val) ;
+int MRIsetVoxelsWithValue(MRI *mri_src,
+                          MRI *mri_dst,
+                          int src_val,
+                          int dst_val) ;
+int MRIsetDifferentVoxelsWithValue(MRI *mri1,
+                                   MRI *mri2,
+                                   MRI *mri_dst,
+                                   int dst_val) ;
 int MRIcopyLabeledVoxels(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
                          int label) ;
 MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize,
@@ -935,8 +973,6 @@ MRI *MRImaskLabels(MRI *mri_src, MRI *mri_mask, MRI *mri_dst) ;
 MRI *MRIsphereMask(int ncols, int nrows, int nslices, int nframes,
                    int c0, int r0, int s0, double voxradius, double val,
                    MRI *mri);
-
-
 MRI *MRIwmfilterMarked(MRI *mri_src, MRI *mri_mask, MRI *mri_dst, int wsize,
                        float pct, int onoff) ;
 int  MRIcountCpolvAtVoxel(MRI *mri_src, int x, int y, int z, int wsize,
@@ -958,7 +994,6 @@ float MRIcpolvMedianAtVoxel(MRI *mri_src, int vertex,
 MRI   *MRIcpolvMedianCurveSegment(MRI *mri,MRI *mri_labeled, MRI *mri_dst,
                                   int wsize,float len, float gray_hi,
                                   float wm_low);
-
 MRI   *MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst) ;
 int   MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x,
                              int y, int z, float *ppw, float *ppg) ;
@@ -967,12 +1002,9 @@ int   MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border,
 
 int   MRIclassifyAmbiguous(MRI *mri_src, MRI *mri_labeled, MRI *mri_border,
                            MRI *mri_dst, int wsize) ;
-
 MRI   *MRIremoveBrightStuff(MRI *mri_src, MRI *mri_dst, int threshold) ;
 int   MRIreclassify(MRI *mri_src, MRI *mri_labeled,
                     MRI *mri_dst, float wm_low, float gray_hi, int wsize) ;
-
-
 MRI *MRImaskThreshold(MRI *mri_src, MRI *mri_mask, MRI *mri_dst,
                       float threshold, int out_label) ;
 int MRIgrowLabel(MRI *mri, MRI *mri_bg, int in_label, int out_label) ;
@@ -1111,8 +1143,12 @@ MATRIX *MRIrasXformToVoxelXform(MRI *mri_src, MRI *mri_dst,
                                 MATRIX *m_ras_xform, MATRIX *m_voxel_xform);
 
 
-int MRIsincSampleVolume(MRI *mri, Real x, Real y, Real z, int hw, Real *pval);
-int MRIcubicSampleVolume(MRI *mri, Real x, Real y, Real z, Real *pval); /*E*/
+int MRIsincSampleVolume(MRI *mri,
+                        double x, double y, double z,
+                        int hw, double *pval);
+int MRIcubicSampleVolume(MRI *mri,
+                         double x, double y, double z,
+                         double *pval); /*E*/
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri, int mask_size) ;
@@ -1189,7 +1225,8 @@ MRI *MRIreverseSliceOrder(MRI *invol, MRI *outvol);
 #define DTRANS_MODE_OUTSIDE  3
 #define DTRANS_MODE_INSIDE   4
 
-/** This is deprecated.  Please use MRIextractDistanceMap in fastmarching.h instead */
+/** This is deprecated.  
+    Please use MRIextractDistanceMap in fastmarching.h instead */
 MRI *MRIdistanceTransform(MRI *mri_src, MRI *mri_dist,
                           int label, float max_dist, int mode, MRI *mri_mask);
 int MRIaddCommandLine(MRI *mri, char *cmdline) ;
@@ -1229,14 +1266,18 @@ int MRIcomputeLabelCentroid(MRI *mri_aseg, int label,
 MRI *MRIdivideAseg(MRI *mri_src, MRI *mri_dst, int label, int nunits);
 int MRIgeometryMatched(MRI *mri1, MRI *mri2) ;
 
-MRI *MRIsegmentationSurfaceNormals(MRI *mri_seg, MRI *mri_normals, int target_label, MRI **pmri_ctrl) ;
+MRI *MRIsegmentationSurfaceNormals(MRI *mri_seg,
+                                   MRI *mri_normals,
+                                   int target_label,
+                                   MRI **pmri_ctrl) ;
 MRI *MRIbinMaskToCol(MRI *binmask, MRI *bincol);
 MRI *MRIfillHoles(MRI *mri_src, MRI *mri_fill, int thresh)  ;
 int  MRIfillRegion(MRI *mri, int x,int y,int z,float fill_val,int whalf) ;
 MRI *MRIfloodFillRegion(MRI *mri_src, MRI *mri_dst, 
                         int threshold, int fill_val, int max_count) ;
 int  MRIcomputeBorderNormalAtVoxel(MRI *mri_seg, int x0, int y0, int z0, 
-                                   float *pnx, float *pny,float *pnz, int label) ;
+                                   float *pnx, float *pny, float *pnz,
+                                   int label) ;
 MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched, 
                              double min_scale, double max_scale,
                              double low_thresh, double high_thresh);
@@ -1252,17 +1293,25 @@ MRI  *MRImatchIntensityRatio(MRI *mri_source, MRI *_target, MRI *mri_matched,
 MRI *MRIcreateDistanceTransforms(MRI *mri, MRI *mri_all_dtrans, 
                                  float max_dist,
                                  int *labels, int nlabels);
-MRI *MRIapplyMorph(MRI *mri_source, MRI *mri_morph, MRI *mri_dst, int sample_type);
-int MRIorderIndices(MRI *mri, short *x_indices, short *y_indices, short *z_indices) ;
-int MRIcomputeVoxelPermutation(MRI *mri, short *x_indices, short *y_indices,
+MRI *MRIapplyMorph(MRI *mri_source,
+                   MRI *mri_morph,
+                   MRI *mri_dst,
+                   int sample_type);
+int MRIorderIndices(MRI *mri,
+                    short *x_indices,
+                    short *y_indices,
+                    short *z_indices) ;
+int MRIcomputeVoxelPermutation(MRI *mri,
+                               short *x_indices,
+                               short *y_indices,
                                short *z_indices);
-MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist, MRI *mri_ref_dist, 
+MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
+                                           MRI *mri_ref_dist, 
                                            MRI *mri_dst_dist);
 
 
 #if defined(__cplusplus)
 };
 #endif
-
 
 #endif

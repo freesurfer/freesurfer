@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/20 19:28:03 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/03/13 01:32:45 $
+ *    $Revision: 1.40 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -39,7 +39,7 @@
 #include "mrimorph.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "filter.h"
 #include "box.h"
 #include "region.h"
@@ -1600,7 +1600,7 @@ MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness)
   int      width, height, depth, x, y, z, vertex, thin, i ;
   float    nx, ny, nz, nd ;
   BUFTYPE  *pdst, *psrc ;
-  Real     val, xf, yf, zf, max_dist, up_dist, down_dist ;
+  double     val, xf, yf, zf, max_dist, up_dist, down_dist ;
   MRI      *mri_label ;
   MRI_SEGMENTATION *mriseg ;
 
@@ -1635,9 +1635,9 @@ MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness)
             down_dist = thickness+1 ;
             for (nd = 0 ; nd <= thickness+1 ; nd++)
             {
-              xf = (Real)x - nd*nx ;
-              yf = (Real)y - nd*ny ;
-              zf = (Real)z - nd*nz ;
+              xf = (double)x - nd*nx ;
+              yf = (double)y - nd*ny ;
+              zf = (double)z - nd*nz ;
               MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
               if (val < WM_MIN_VAL)
               {
@@ -1650,9 +1650,9 @@ MRIresegmentThinWMStrands(MRI *mri_src, MRI *mri_dst, int thickness)
             up_dist = thickness+1 ;
             for (nd = 0 ; nd <= thickness+1 ; nd++)
             {
-              xf = (Real)x + nd*nx ;
-              yf = (Real)y + nd*ny ;
-              zf = (Real)z + nd*nz ;
+              xf = (double)x + nd*nx ;
+              yf = (double)y + nd*ny ;
+              zf = (double)z + nd*nz ;
               MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
               if (val < WM_MIN_VAL)
               {
@@ -1732,7 +1732,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
   nfilled, nseg ;
   float    nx, ny, nz, nd ;
   BUFTYPE  *psrc, *pthin ;
-  Real     val, xf, yf, zf, max_dist, up_dist, down_dist ;
+  double     val, xf, yf, zf, max_dist, up_dist, down_dist ;
   MRI_SEGMENTATION *mriseg ;
   MRI              *mri_thin ;
 
@@ -1771,9 +1771,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
             down_dist = thickness+1 ;
             for (nd = 0 ; nd <= thickness+1 ; nd++)
             {
-              xf = (Real)x - nd*nx ;
-              yf = (Real)y - nd*ny ;
-              zf = (Real)z - nd*nz ;
+              xf = (double)x - nd*nx ;
+              yf = (double)y - nd*ny ;
+              zf = (double)z - nd*nz ;
               MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
               if (val < WM_MIN_VAL)
               {
@@ -1786,9 +1786,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
             up_dist = thickness+1 ;
             for (nd = 0 ; nd <= thickness+1 ; nd++)
             {
-              xf = (Real)x + nd*nx ;
-              yf = (Real)y + nd*ny ;
-              zf = (Real)z + nd*nz ;
+              xf = (double)x + nd*nx ;
+              yf = (double)y + nd*ny ;
+              zf = (double)z + nd*nz ;
               MRIsampleVolume(mri_src, xf, yf, zf, &val) ;
               if (val < WM_MIN_VAL)
               {
@@ -1825,9 +1825,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
         z = mseg->voxels[v].z;
         for (nd = -(thickness) ; nd <= thickness ; nd++)
         {
-          xd = nint((Real)x + nd*nx) ;
-          yd = nint((Real)y + nd*ny) ;
-          zd = nint((Real)z + nd*nz) ;
+          xd = nint((double)x + nd*nx) ;
+          yd = nint((double)y + nd*ny) ;
+          zd = nint((double)z + nd*nz) ;
           if (xd == 110 && yd == 125 && zd == 172)  /* T1=148, wm=THICKEN */
             DiagBreak() ;
           if (xd == 126 && yd == 69 && zd == 127)
@@ -1870,7 +1870,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
   down_added, total_filled, nfilled, nseg, nx, ny, nz, xv, yv, zv, v ;
   float    nd ;
   BUFTYPE  *psrc, *pthin ;
-  Real     val, xf, yf, zf, max_dist, up_dist, down_dist /*, xt, yt, zt*/ ;
+  double     val, xf, yf, zf, max_dist, up_dist, down_dist /*, xt, yt, zt*/ ;
   MRI_SEGMENTATION *mriseg ;
   MRI              *mri_thin, *mri_tmp ;
 
@@ -1941,9 +1941,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                 down_dist = thickness+1 ;
                 for (nd = 0 ; nd <= thickness+1 ; nd++)
                 {
-                  xf = (Real)x - nd*nx ;
-                  yf = (Real)y - nd*ny ;
-                  zf = (Real)z - nd*nz ;
+                  xf = (double)x - nd*nx ;
+                  yf = (double)y - nd*ny ;
+                  zf = (double)z - nd*nz ;
                   MRIsampleVolume(mri_tmp, xf, yf, zf, &val) ;
                   if (val < WM_MIN_VAL)
                   {
@@ -1956,9 +1956,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                 up_dist = thickness+1 ;
                 for (nd = 0 ; nd <= thickness+1 ; nd++)
                 {
-                  xf = (Real)x + nd*nx ;
-                  yf = (Real)y + nd*ny ;
-                  zf = (Real)z + nd*nz ;
+                  xf = (double)x + nd*nx ;
+                  yf = (double)y + nd*ny ;
+                  zf = (double)z + nd*nz ;
                   MRIsampleVolume(mri_tmp, xf, yf, zf, &val) ;
                   if (val < WM_MIN_VAL)
                   {
@@ -2075,9 +2075,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
             down_dist = TOO_THIN+1 ;
             for (nd = 0 ; nd <= TOO_THIN+1 ; nd++)
             {
-              xf = (Real)x - nd*nx ;
-              yf = (Real)y - nd*ny ;
-              zf = (Real)z - nd*nz ;
+              xf = (double)x - nd*nx ;
+              yf = (double)y - nd*ny ;
+              zf = (double)z - nd*nz ;
               MRIsampleVolume(mri_dst, xf, yf, zf, &val) ;
               if (val < WM_MIN_VAL)
               {
@@ -2090,9 +2090,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
             up_dist = TOO_THIN+1 ;
             for (nd = 0 ; nd <= TOO_THIN+1 ; nd++)
             {
-              xf = (Real)x + nd*nx ;
-              yf = (Real)y + nd*ny ;
-              zf = (Real)z + nd*nz ;
+              xf = (double)x + nd*nx ;
+              yf = (double)y + nd*ny ;
+              zf = (double)z + nd*nz ;
               MRIsampleVolume(mri_dst, xf, yf, zf, &val) ;
               if (val < WM_MIN_VAL)
               {
@@ -2106,9 +2106,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
               down_added = up_added = 0 ;
               if (up_dist <= down_dist)
               {
-                xv = nint((Real)x + (up_dist+1.5)*nx) ;
-                yv = nint((Real)y + (up_dist+1.5)*ny) ;
-                zv = nint((Real)z + (up_dist+1.5)*nz) ;
+                xv = nint((double)x + (up_dist+1.5)*nx) ;
+                yv = nint((double)y + (up_dist+1.5)*ny) ;
+                zv = nint((double)z + (up_dist+1.5)*nz) ;
                 // bounds-checking
                 if (xv >= mri_dst->width || xv < 0 || 
                     yv >= mri_dst->height || yv < 0 ||
@@ -2121,9 +2121,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                     !MRIvox(mri_dst, xv, yv, zv))
                 {
                   up_added = 1 ;
-                  xv = nint((Real)x + (up_dist+.5)*nx) ;
-                  yv = nint((Real)y + (up_dist+.5)*ny) ;
-                  zv = nint((Real)z + (up_dist+.5)*nz) ;
+                  xv = nint((double)x + (up_dist+.5)*nx) ;
+                  yv = nint((double)y + (up_dist+.5)*ny) ;
+                  zv = nint((double)z + (up_dist+.5)*nz) ;
 
                   if (MRIvox(mri_T1, xv, yv, zv) < wm_hi)
                   {
@@ -2137,9 +2137,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
               }
               if (up_dist >= down_dist)
               {
-                xv = nint((Real)x - (down_dist+1.5)*nx) ;
-                yv = nint((Real)y - (down_dist+1.5)*ny) ;
-                zv = nint((Real)z - (down_dist+1.5)*nz) ;
+                xv = nint((double)x - (down_dist+1.5)*nx) ;
+                yv = nint((double)y - (down_dist+1.5)*ny) ;
+                zv = nint((double)z - (down_dist+1.5)*nz) ;
                 // bounds-checking
                 if (xv >= mri_dst->width || xv < 0 || 
                     yv >= mri_dst->height || yv < 0 ||
@@ -2151,9 +2151,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                 if (!MRIvox(mri_dst, xv, yv, zv))
                 {
                   down_added = 1 ;
-                  xv = nint((Real)x - (down_dist+.5)*nx) ;
-                  yv = nint((Real)y - (down_dist+.5)*ny) ;
-                  zv = nint((Real)z - (down_dist+.5)*nz) ;
+                  xv = nint((double)x - (down_dist+.5)*nx) ;
+                  yv = nint((double)y - (down_dist+.5)*ny) ;
+                  zv = nint((double)z - (down_dist+.5)*nz) ;
                   if (MRIvox(mri_T1, xv, yv, zv) < wm_hi)
                   {
                     if (xv == 110 && yv == 125 && zv == 172)
@@ -2471,7 +2471,7 @@ MRIwmfilter(MRI *mri_src, MRI *mri_polv, MRI *mri_dst, float nslope,
         /* now compute the curvature in the normal direction */
         for (curv = 0.0f, i = -whalf ; i <= whalf ; i++)
         {
-          Real rval ;
+          double rval ;
           if (!i)
             continue ;
           dx = (float)i * nx ;
@@ -2500,7 +2500,7 @@ MRIwmfilter(MRI *mri_src, MRI *mri_polv, MRI *mri_dst, float nslope,
           val = (float)MRIvox(mri_src, xi, yi, zi) ;
 #else
         {
-          Real rval ;
+          double rval ;
           MRIsampleVolume(mri_src, x+dx, y+dy, z+dz, &rval) ;
           val = (float)rval ;
           if (val < 70)
@@ -3518,7 +3518,7 @@ MRIextractVertexPlane(MRI *mri_src, MRI *mri_dst, int vertex, int x0, int y0,
 {
   float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase,x,y,z ;
   int      whalf, xk, yk ;
-  Real     val ;
+  double     val ;
 
   init_basis_vectors() ;
   whalf = (wsize-1)/2 ;
@@ -4740,7 +4740,7 @@ MRIcpolvMedianAtVoxel(MRI *mri_src, int vertex, float x, float y, float z,
   int      whalf, xk, yk ;
   float    xbase, ybase, zbase, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
   float    plane_vals[MAXLEN], *pvals ;
-  Real     rval, xr, yr, zr ;
+  double     rval, xr, yr, zr ;
 
   init_basis_vectors() ;
 
@@ -4959,7 +4959,7 @@ MRIcpolvMaxWhiteAtVoxel(MRI *mri, int x, int y, int z, int wsize)
   int      whalf, vertex, xk, yk, peak_vertex, max_count, num, xi, yi, zi ;
   float    xbase, ybase, zbase, *pe1_x, *pe1_y, *pe1_z, xf, yf, zf,
   *pe2_x, *pe2_y, *pe2_z, e1_x, e1_y, e1_z, e2_x, e2_y, e2_z ;
-  Real     val ;
+  double     val ;
 
   init_basis_vectors() ;
 
@@ -5032,7 +5032,7 @@ MRIcpolvAllQuadrantsFilled(MRI *mri, int x, int y, int z,int vertex,int wsize)
 #if 1
   int      whalf ;
   float    xf, yf, zf, e1_x, e1_y, e1_z, e2_x, e2_y,e2_z, dist ;
-  Real     val ;
+  double     val ;
 
   init_basis_vectors() ;
 
@@ -5116,7 +5116,7 @@ MRIcpolvAllQuadrantsFilled(MRI *mri, int x, int y, int z,int vertex,int wsize)
 #else
   int      whalf, xk, yk, quads[2][2], xi, yi, i, j ;
   float    xbase, ybase, zbase, xf, yf, zf, e1_x, e1_y, e1_z, e2_x, e2_y,e2_z;
-  Real     val ;
+  double   val ;
 
   init_basis_vectors() ;
 

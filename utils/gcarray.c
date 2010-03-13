@@ -1,17 +1,16 @@
 /**
  * @file  gcarray.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utils for MRI classification using an array of Gaussian classifiers
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:32 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,21 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   gcarray.c
- *
- *       DESCRIPTION: utilities for MRI classification using
- *                    an array of Gaussian classifiers
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -103,7 +89,7 @@ GCarrayAlloc(MRI *mri_template, int scale, int nvars)
 {
   GCARRAY *gcarray ;
   int  x, y, z, width, height, depth ;
-  Real xw, yw, zw ;
+  double xw, yw, zw ;
 
   width = mri_template->width ;
   height = mri_template->height ;
@@ -218,7 +204,10 @@ GCarrayFree(GCARRAY **pgcarray)
 
 ------------------------------------------------------*/
 GCARRAY *
-GCarrayTrainAll(GCARRAY *gcarray, char *training_file_name, int scale, int ninputs)
+GCarrayTrainAll(GCARRAY *gcarray,
+                char *training_file_name,
+                int scale,
+                int ninputs)
 {
   char  source_fname[100], target_fname[100], line[300], *cp ;
   FILE  *fp ;
@@ -390,7 +379,7 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
   width, depth, height, scale, classno, nclasses, nobs[NCLASSES],
   swidth, sheight, sdepth, overlap, ninputs ;
   BUFTYPE    src, target ;
-  Real       xrv, yrv, zrv, xt, yt, zt ;
+  double       xrv, yrv, zrv, xt, yt, zt ;
 
   scale = gcarray->scale ;
   overlap = MAX(1, scale/4) ;
@@ -441,9 +430,9 @@ GCarrayTrain(GCARRAY *gcarray, MRI *mri_src, MRI *mri_zscore, MRI *mri_target)
             {
               /* convert to Talairach coords, then to voxel coords of src */
               /* convert from natural axes of coronal slices  Talairach axes */
-              xt = (Real)xm + gcarray->xstart ;   /* voxel to world */
-              yt = (Real)zm + gcarray->ystart ;
-              zt = (Real)-ym + gcarray->zstart ;
+              xt = (double)xm + gcarray->xstart ;   /* voxel to world */
+              yt = (double)zm + gcarray->ystart ;
+              zt = (double)-ym + gcarray->zstart ;
               MRItalairachToVoxel(mri_src, xt, yt, zt, &xrv, &yrv, &zrv) ;
               xv = nint(xrv) ;
               yv = nint(yrv) ;
@@ -519,7 +508,7 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
   nclasses, swidth, sheight, sdepth ;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
   float      *pzscore, prob, *pprobs = NULL ;
-  Real       xt, yt, zt, xv, yv, zv ;
+  double       xt, yt, zt, xv, yv, zv ;
   MRI        *mri_std, *mri_zscore, *mri_mean ;
 
   mri_mean = MRImean(mri_src, NULL, 3) ;
@@ -571,12 +560,14 @@ GCarrayClassify(GCARRAY *gcarray, MRI *mri_src, MRI *mri_dst,
       {
 
         /* find the appropriate classifier for this location */
-        MRIvoxelToTalairach(mri_src, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
+        MRIvoxelToTalairach(mri_src,
+                            (double)x, (double)y, (double)z,
+                            &xt, &yt, &zt);
 
         /* convert from Talairach axes to natural axes of coronal slice data */
-        xv = (xt - (Real)gcarray->xstart) ;
-        zv = (yt - (Real)gcarray->ystart) ;
-        yv = (-zt + (Real)gcarray->zstart);
+        xv = (xt - (double)gcarray->xstart) ;
+        zv = (yt - (double)gcarray->ystart) ;
+        yv = (-zt + (double)gcarray->zstart);
         xc = nint(((xv) - scale/2) / scale) ;
         if (xc < 0)
           xc = 0 ;
@@ -840,7 +831,7 @@ GCLASSIFY *
 MRIgetClassifier(GCARRAY *gcarray, MRI *mri, int x, int y, int z)
 {
   GCLASSIFY  *gc ;
-  Real       xt, yt, zt ;
+  double       xt, yt, zt ;
   int        width, depth, height, scale, xc, yc, zc, xv, yv, zv ;
 
   width = gcarray->width ;
@@ -849,12 +840,12 @@ MRIgetClassifier(GCARRAY *gcarray, MRI *mri, int x, int y, int z)
   scale = gcarray->scale ;
 
   /* find the appropriate classifier for this location */
-  MRIvoxelToTalairach(mri, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
+  MRIvoxelToTalairach(mri, (double)x, (double)y, (double)z, &xt, &yt, &zt);
 
   /* convert from Talairach axes to natural axes of coronal slice data */
-  xv = (xt - (Real)gcarray->xstart) ;
-  zv = (yt - (Real)gcarray->ystart) ;
-  yv = (-zt + (Real)gcarray->zstart);
+  xv = (xt - (double)gcarray->xstart) ;
+  zv = (yt - (double)gcarray->ystart) ;
+  yv = (-zt + (double)gcarray->zstart);
   xc = nint(((xv) - scale/2) / scale) ;
   if (xc < 0)
     xc = 0 ;
@@ -896,7 +887,7 @@ GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
   nclasses, swidth, sheight, sdepth, overlap ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pzscore ;
-  Real       xt, yt, zt, xv, yv, zv ;
+  double       xt, yt, zt, xv, yv, zv ;
   MRI        *mri_src ;
 
   mri_src = mris[0] ;
@@ -934,10 +925,12 @@ GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
       for (x = 0 ; x < swidth ; x++)
       {
         /* find the appropriate classifier for this location */
-        MRIvoxelToTalairach(mri_src, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
-        xv = (xt - (Real)gcarray->xstart) ;
-        zv = (yt - (Real)gcarray->ystart) ;
-        yv = (-zt + (Real)gcarray->zstart);
+        MRIvoxelToTalairach(mri_src,
+                            (double)x, (double)y, (double)z,
+                            &xt, &yt, &zt);
+        xv = (xt - (double)gcarray->xstart) ;
+        zv = (yt - (double)gcarray->ystart) ;
+        yv = (-zt + (double)gcarray->zstart);
         xc = nint(((xv) - scale/2) / scale) ;
         if (xc < 0)
           xc = 0 ;
@@ -995,7 +988,10 @@ GCarrayUpdateMeans(GCARRAY *gcarray, MRI *mris[], MRI *mri_target, int nimages)
            update the covariance estimates based on new observations
 ------------------------------------------------------*/
 int
-GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[],MRI *mri_target,int nimages)
+GCarrayUpdateCovariances(GCARRAY *gcarray,
+                         MRI *mris[],
+                         MRI *mri_target,
+                         int nimages)
 {
   GCLASSIFY  *gc ;
   GCLASS     *gcl ;
@@ -1003,11 +999,10 @@ GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[],MRI *mri_target,int nimag
   nclasses, swidth, sheight, sdepth, overlap, col, row ;
   BUFTYPE    *psrc, *ptarget, src, target ;
   float      *pzscore, obs[6], covariance ;
-  Real       xt, yt, zt, xv, yv, zv ;
+  double       xt, yt, zt, xv, yv, zv ;
   MRI        *mri_src ;
 
   mri_src = mris[0] ;
-
 
   scale = gcarray->scale ;
   overlap = MAX(1, scale/4) ;
@@ -1042,10 +1037,12 @@ GCarrayUpdateCovariances(GCARRAY *gcarray, MRI *mris[],MRI *mri_target,int nimag
       for (x = 0 ; x < swidth ; x++)
       {
         /* find the appropriate classifier for this location */
-        MRIvoxelToTalairach(mri_src, (Real)x, (Real)y, (Real)z, &xt, &yt, &zt);
-        xv = (xt - (Real)gcarray->xstart) ;
-        zv = (yt - (Real)gcarray->ystart) ;
-        yv = (-zt + (Real)gcarray->zstart);
+        MRIvoxelToTalairach(mri_src,
+                            (double)x, (double)y, (double)z,
+                            &xt, &yt, &zt);
+        xv = (xt - (double)gcarray->xstart) ;
+        zv = (yt - (double)gcarray->ystart) ;
+        yv = (-zt + (double)gcarray->zstart);
         xc = nint(((xv) - scale/2) / scale) ;
         if (xc < 0)
           xc = 0 ;

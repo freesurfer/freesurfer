@@ -1,17 +1,16 @@
 /**
  * @file  mriflood.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief flood and erode voxels
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Andre van der Kouwe
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/12/03 22:14:27 $
- *    $Revision: 1.30 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:44 $
+ *    $Revision: 1.31 $
  *
- * Copyright (C) 2002-2007
+ * Copyright (C) 2002-2010
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,11 +20,10 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-char *MRIFLOOD_VERSION = "$Revision: 1.30 $";
+char *MRIFLOOD_VERSION = "$Revision: 1.31 $";
 
 #include <math.h>
 #include <stdlib.h>
@@ -197,7 +195,7 @@ MRI *MRISshell(MRI *mri_src,MRI_SURFACE *mris,MRI *mri_dst,int clearflag)
   int imnr0;
   float ps,st,xx0,xx1,yy0,yy1,zz0,zz1,x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax;
   float px0,py0,pz0,px1,py1,pz1,px,py,pz;
-  Real fi,fj,fimnr;
+  double fi,fj,fimnr;
   VERTEX *v_0,*v_1,*v_2;
   FACE *f;
 
@@ -630,7 +628,7 @@ MRI *MRISpartialshell(MRI *mri_src,
   int imnr0;
   float ps,st,xx0,xx1,yy0,yy1,zz0,zz1,x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax;
   float px0,py0,pz0,px1,py1,pz1,px,py,pz;
-  Real fi,fj,fimnr;
+  double fi,fj,fimnr;
   VERTEX *v_0,*v_1,*v_2;
   FACE *f;
   int  val ;
@@ -727,7 +725,9 @@ MRI *MRISpartialshell(MRI *mri_src,
           jsub = (int)((fj-nint(fj))*2+1);
           /* (isubmnr, isub, jsub) should be in the range (0..1, 0..1, 0..1) */
           /* Assume that the initial value for all voxels is zero */
-          val = (int)MRIgetVoxVal(mri_dst,i,j,imnr,0)|subvoxmask(isub,jsub,isubmnr);
+          val = 
+            (int)MRIgetVoxVal(mri_dst,i,j,imnr,0)|
+            subvoxmask(isub,jsub,isubmnr);
           MRIsetVoxVal(mri_dst,i,j,imnr,0, val) ;
         }
       }
@@ -1651,7 +1651,7 @@ MRISfillInterior(MRI_SURFACE *mris, double resolution, MRI *mri_interior)
   {
     MRI    *mri_tmp ;
     MATRIX *m, *m_invertz ;
-    Real    val ;
+    double  val ;
 
     // invert one dimension (z) so that ras2vox xform has negative determinant (standard)
     m_invertz = MatrixIdentity(4, NULL) ;

@@ -1,15 +1,14 @@
 /**
  * @file  mriVolume.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief early form of mri volume utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: inverse
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:31 $
- *    $Revision: 1.91 $
+ *    $Date: 2010/03/13 01:32:43 $
+ *    $Revision: 1.92 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -1607,9 +1605,9 @@ Volm_tErr Volm_ConvertIdxToRAS ( mriVolumeRef this,
 
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel    mriIdx;
-  Real      rasX    = 0;
-  Real      rasY    = 0;
-  Real      rasZ    = 0;
+  double      rasX    = 0;
+  double      rasY    = 0;
+  double      rasZ    = 0;
 
 
   DebugEnterFunction( ("Volm_ConvertIdxToRAS( this=%p, iIdx=%p, oRAS=%p )",
@@ -1654,9 +1652,9 @@ Volm_tErr Volm_ConvertRASToIdx ( mriVolumeRef this,
 {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
-  Real      idxX    = 0;
-  Real      idxY    = 0;
-  Real      idxZ    = 0;
+  double      idxX    = 0;
+  double      idxY    = 0;
+  double      idxZ    = 0;
   xVoxel    mriIdx;
 
   DebugEnterFunction( ("Volm_ConvertRASToIdx( this=%p, iRAS=%p, oIdx=%p )",
@@ -1700,9 +1698,9 @@ Volm_tErr Volm_ConvertIdxToMNITal ( mriVolumeRef this,
 
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel    scannerRAS;
-  Real      talX    = 0;
-  Real      talY    = 0;
-  Real      talZ    = 0;
+  double      talX    = 0;
+  double      talY    = 0;
+  double      talZ    = 0;
 
   DebugEnterFunction( ("Volm_ConvertIdxToMNITal( this=%p, iIdx=%p, "
                        "oMNITal=%p )", this, iIdx, oMNITal) );
@@ -1747,9 +1745,9 @@ Volm_tErr Volm_ConvertIdxToTal ( mriVolumeRef this,
 
   Volm_tErr eResult = Volm_tErr_NoErr;
   xVoxel    scannerRAS;
-  Real      talX    = 0;
-  Real      talY    = 0;
-  Real      talZ    = 0;
+  double      talX    = 0;
+  double      talY    = 0;
+  double      talZ    = 0;
   xVoxel    tal;
 
   DebugEnterFunction( ("Volm_ConvertIdxToTal( this=%p, iIdx=%p, "
@@ -1803,9 +1801,9 @@ Volm_tErr Volm_ConvertTalToIdx ( mriVolumeRef this,
 {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
-  Real      idxX    = 0;
-  Real      idxY    = 0;
-  Real      idxZ    = 0;
+  double      idxX    = 0;
+  double      idxY    = 0;
+  double      idxZ    = 0;
   xVoxel    mniTal;
   int       eMRI    = 0;
 
@@ -1997,9 +1995,9 @@ Volm_tErr Volm_ConvertMRIIdxToRAS ( mriVolumeRef this,
 {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
-  Real      rasX    = 0;
-  Real      rasY    = 0;
-  Real      rasZ    = 0;
+  double      rasX    = 0;
+  double      rasY    = 0;
+  double      rasZ    = 0;
 
 
   DebugEnterFunction( ("Volm_ConvertIdxToRAS( this=%p, iMRIIdx=%p, oRAS=%p )",
@@ -2039,9 +2037,9 @@ Volm_tErr Volm_ConvertRASToMRIIdx ( mriVolumeRef this,
 {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
-  Real      idxX    = 0;
-  Real      idxY    = 0;
-  Real      idxZ    = 0;
+  double      idxX    = 0;
+  double      idxY    = 0;
+  double      idxZ    = 0;
 
   DebugEnterFunction( ("Volm_ConvertRASToIdx( this=%p, iRAS=%p, oMRIIdx=%p )",
                        this, iRAS, oMRIIdx) );
@@ -2079,9 +2077,9 @@ Volm_tErr Volm_ConvertMRIIdxToSurfaceRAS ( mriVolumeRef this,
 {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
-  Real      rasX    = 0;
-  Real      rasY    = 0;
-  Real      rasZ    = 0;
+  double      rasX    = 0;
+  double      rasY    = 0;
+  double      rasZ    = 0;
 
 
   DebugEnterFunction( ("Volm_ConvertIdxToSurfaceRAS( this=%p, iMRIIdx=%p, "
@@ -2121,9 +2119,9 @@ Volm_tErr Volm_ConvertSurfaceRASToMRIIdx ( mriVolumeRef this,
 {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
-  Real      idxX    = 0;
-  Real      idxY    = 0;
-  Real      idxZ    = 0;
+  double      idxX    = 0;
+  double      idxY    = 0;
+  double      idxZ    = 0;
 
   DebugEnterFunction( ("Volm_ConvertRASToIdx( this=%p, iSurfaceRAS=%p, "
                        "oMRIIdx=%p )", this, iSurfaceRAS, oMRIIdx) );
@@ -3755,7 +3753,7 @@ void Volm_GetSampledValueAtIdx_ ( mriVolumeRef      this,
                                   float*            oValue)
 {
 
-  Real value;
+  double value;
 
   /* First convert to MRI index, then use the MRI access function to
      get the sinc value. */
@@ -3779,7 +3777,7 @@ void Volm_GetSampledValueAtIdxFrame_ ( mriVolumeRef      this,
                                        float*            oValue )
 {
 
-  Real value;
+  double value;
 
   /* First convert to MRI index, then use the MRI access function to
      get the sinc value. */

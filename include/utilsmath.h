@@ -1,3 +1,24 @@
+/**
+ * @file  utilsmath.h
+ * @brief utilities for distance field algorithm and the OBB Tree algorithm
+ */
+/*
+ * Original Author: Krish Subramanium
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.3 $
+ *
+ * Geometric Tools, LLC
+ * Copyright (c) 1998-2010
+ * Distributed under the Boost Software License, Version 1.0.
+ * http://www.boost.org/LICENSE_1_0.txt
+ * http://www.geometrictools.com/License/Boost/LICENSE_1_0.txt
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #ifndef utilsmath_h
 #define utilsmath_h
 
@@ -30,16 +51,19 @@ namespace Math
 {
   //! A simple templated 3D Point class 
   template <typename T>
-  class Point
+    class Point
   {
-    public:      // a very simple Point class which has 3 elements where v[j] = x, y or z coord depending on j = 0, 1, 2
-    T v[3]; // this is easier because VERTEX has x, y and z which doesn't lend itself to computational ease
+  public:      // a very simple Point class which has 3 elements 
+    // where v[j] = x, y or z coord depending on j = 0, 1, 2
+    T v[3]; // this is easier because VERTEX has x, y and z 
+            // which doesn't lend itself to computational ease
   };
     
   //! A simple axis aligned bounding box class for a MRIS surface
   class AABB
   {
-    public:   // Axis Aligned Bounding Box to trivially reject points in inclusion tests
+  public:   // Axis Aligned Bounding Box to trivially
+    // reject points in inclusion tests
     double mincorner[3];
     double maxcorner[3];
 
@@ -47,13 +71,16 @@ namespace Math
     //! Results in a bounding box which just bounds the surface
     //! a leeway of delta units is added to both the corners of AABB
     //! which results in a looser bounding box
-    //! Essentially a tighter bounding box just touches the surface, so rejection test might 
+    //! Essentially a tighter bounding box just touches the surface,
+    //! so rejection test might 
     //! exclude voxels which are in the surface.. so use a looser AABB
     AABB(MRIS *mris, double delta)
     {
       VERTEX* v;
-      mincorner[0] = mincorner[1] = mincorner[2] = std::numeric_limits<float>::max();
-      maxcorner[0] = maxcorner[1] = maxcorner[2] = -std::numeric_limits<float>::max();
+      mincorner[0] = mincorner[1] = mincorner[2] =
+        std::numeric_limits<float>::max();
+      maxcorner[0] = maxcorner[1] = maxcorner[2] =
+        -std::numeric_limits<float>::max();
 
       for ( int i=0; i< mris->nvertices; i++)
       {
@@ -78,15 +105,15 @@ namespace Math
       maxcorner[0] += delta;
       maxcorner[1] += delta;
       maxcorner[2] += delta;
-     }
+    }
 
     ~AABB(){}
 
     //! Check to see if the point given is outside.. 
     /*! 
-     \param x,y,z - the point
-     \returns 1 if the point is inside and 0 otherwise
-     */
+      \param x,y,z - the point
+      \returns 1 if the point is inside and 0 otherwise
+    */
     bool CheckOutside(double x, double y, double z)
     {
       if ( x < mincorner[0] || y < mincorner[1] || z < mincorner[2] || \
@@ -98,56 +125,63 @@ namespace Math
 
   //! A simple templated bounding box class
   template <typename T>
-  class BoundingBox
+    class BoundingBox
   {
-    public:
-      T minc[3]; //left bottom ( minimum corner)
-      T maxc[3]; //top right ( max corner )
+  public:
+    T minc[3]; //left bottom ( minimum corner)
+    T maxc[3]; //top right ( max corner )
 
-      //! Adjust bounds
-      /*!
-       \param maxdist - the maximum distance by which the BB's bounds have to be extended
-       */
-      void adjustbounds(double maxdist)
-      {
-        minc[0] = minc[0] - maxdist;
-        minc[1] = minc[1] - maxdist;
-        minc[2] = minc[2] - maxdist;
-        maxc[0] = maxc[0] + maxdist;
-        maxc[1] = maxc[1] + maxdist;
-        maxc[2] = maxc[2] + maxdist;
-      }
+    //! Adjust bounds
+    /*!
+      \param maxdist - the maximum distance by which the 
+      BB's bounds have to be extended
+    */
+    void adjustbounds(double maxdist)
+    {
+      minc[0] = minc[0] - maxdist;
+      minc[1] = minc[1] - maxdist;
+      minc[2] = minc[2] - maxdist;
+      maxc[0] = maxc[0] + maxdist;
+      maxc[1] = maxc[1] + maxdist;
+      maxc[2] = maxc[2] + maxdist;
+    }
   };
 
-    /** The surface vertices are in RAS. They need to be converted to Vox space
-    * because the test voxels are in Vox space.
-    * For this we need a mri_template image which is in the same space as the MRIS surface
-    * Note that for every voxel we check, we can convert them to RAS and eliminate this method
-    * But that is a order of magnitude slower because the number of voxels to check is usually 
-    * much greater than the number of vertex points 
-    \param mris - the surface whose vertices have to be converted to vox space
-    \param mri_template - the MRI template of the same subject which is needed for the ras2vox call
-    */
-    void ConvertSurfaceRASToVoxel(MRIS *mris, MRI *mri_template)
+  /** The surface vertices are in RAS. They need to be converted to Vox space
+   * because the test voxels are in Vox space.
+   * For this we need a mri_template image which is in the same
+   * space as the MRIS surface
+   * Note that for every voxel we check, we can convert them
+   * to RAS and eliminate this method
+   * But that is a order of magnitude slower because 
+   * the number of voxels to check is usually 
+   * much greater than the number of vertex points 
+   \param mris - the surface whose vertices have to be converted to vox space
+   \param mri_template - the MRI template of the same subject which is needed for the ras2vox call
+  */
+  void ConvertSurfaceRASToVoxel(MRIS *mris, MRI *mri_template)
+  {
+    VERTEX* vertex;
+    double cx, cy, cz; 
+    double vx, vy, vz;
+    for (int i=0; i< mris->nvertices; i++)
     {
-      VERTEX* vertex;
-      double cx, cy, cz; 
-      Real vx, vy, vz;
-      for (int i=0; i< mris->nvertices; i++)
-      {
-        vertex = &mris->vertices[i];
-        cx = vertex->x;
-        cy = vertex->y;
-        cz = vertex->z;
+      vertex = &mris->vertices[i];
+      cx = vertex->x;
+      cy = vertex->y;
+      cz = vertex->z;
 
-        // for every surface vertex do this call
-        MRISsurfaceRASToVoxelCached(mris, mri_template, cx, cy, cz, &vx, &vy, &vz);
-        // and reassign the vertices
-        vertex->x = vx;
-        vertex->y = vy; 
-        vertex->z = vz;
-      }
+      // for every surface vertex do this call
+      MRISsurfaceRASToVoxelCached(mris,
+                                  mri_template,
+                                  cx, cy, cz,
+                                  &vx, &vy, &vz);
+      // and reassign the vertices
+      vertex->x = vx;
+      vertex->y = vy; 
+      vertex->z = vz;
     }
+  }
 
   //! Return the dot product of v1 and v2
   inline double Dot(const double v1[3], const double v2[3])
@@ -180,17 +214,19 @@ namespace Math
   {
     double den; 
     if ( (den = Norm(x)) != 0.0 )
-      {
+    {
       for (int i=0; i < 3; i++)
-        {
+      {
         x[i] /= den;
-        }
       }
+    }
     return den;
   }
 
   //! Return the normal of the triangle formed by v1,v2 and v3 in 'n'
-  inline void ComputeNormal(const double v1[3], const double v2[3], const double v3[3], 
+  inline void ComputeNormal(const double v1[3],
+                            const double v2[3],
+                            const double v3[3], 
                             double n[3])
   {
     double ax, ay, az, bx, by, bz;
@@ -212,17 +248,22 @@ namespace Math
   //! Sort the eigen vectors of a 3x3 matrix in descending order based on its eigen values
   //! and return the eigen vectors in max, mid and min arrays
   /*!
-   \param eigenSystem - the input vnl_symmetric_eigensystem
-   \param evalues - <deprecated>
-   \returns max - the maximum eigenvector
-   \returns mid - the mid eigenvector
-   \returns min - the min eigenvector
-   */
-  void GetSortedEigenVectors ( vnl_symmetric_eigensystem<double> eigenSystem, double *evalues, double *max, double *mid, double *min)
+    \param eigenSystem - the input vnl_symmetric_eigensystem
+    \param evalues - <deprecated>
+    \returns max - the maximum eigenvector
+    \returns mid - the mid eigenvector
+    \returns min - the min eigenvector
+  */
+  void GetSortedEigenVectors ( vnl_symmetric_eigensystem<double> eigenSystem,
+                               double *evalues,
+                               double *max,
+                               double *mid,
+                               double *min)
   {
     vnl_vector<double> _ev(3);
     int _max=0, _min=0, _mid; 
-    double maxval=std::numeric_limits<float>::min(), minval=std::numeric_limits<float>::max();
+    double maxval=std::numeric_limits<float>::min(),
+      minval=std::numeric_limits<float>::max();
 
     // sort the eigenvector indices according to the eigenvalues
     for ( int i=0; i<3; i++)
@@ -249,7 +290,8 @@ namespace Math
     min[0] = _ev[0]; min[1] = _ev[1]; min[2] = _ev[2];
   }
 
-  //! Compute distance from x to line segment p1p2. Returns parametric coordinate t
+  //! Compute distance from x to line segment p1p2.
+  // Returns parametric coordinate t
   inline double DistanceToLine( double x[3], double p1[3], double p2[3] )
   {
     double p21[3], denom, num;
@@ -275,11 +317,14 @@ namespace Math
   //! from the face to a point pt
   //! Algorithm - http://www.geometrictools.com/Documentation/DistancePoint3Triangle3.pdf
   /*! 
-   \param v0, v1, v2 - the vertices of the face
-   \param pt - the point 
-   \returns the distance in double
-   */
-  double  DistancePointToFace(VERTEX *v0, VERTEX *v1, VERTEX *v2, double pt[3]) 
+    \param v0, v1, v2 - the vertices of the face
+    \param pt - the point 
+    \returns the distance in double
+  */
+  double  DistancePointToFace(VERTEX *v0,
+                              VERTEX *v1,
+                              VERTEX *v2,
+                              double pt[3]) 
   {
     double kDiff[3];
     kDiff[0]= v0->x - pt[0];
@@ -307,215 +352,215 @@ namespace Math
 
     if (fS + fT <= fDet)
     {
-        if (fS < 0.0)
+      if (fS < 0.0)
+      {
+        if (fT < 0.0)  // region 4
         {
-            if (fT < 0.0)  // region 4
-            {
-                if (fB0 < 0.0)
-                {
-                    fT = 0.0;
-                    if (-fB0 >= fA00)
-                    {
-                        fS = 1.0;
-                        fSqrDistance = fA00+(2.0)*fB0+fC;
-                    }
-                    else
-                    {
-                        fS = -fB0/fA00;
-                        fSqrDistance = fB0*fS+fC;
-                    }
-                }
-                else
-                {
-                    fS = 0.0;
-                    if (fB1 >= 0.0)
-                    {
-                        fT = 0.0;
-                        fSqrDistance = fC;
-                    }
-                    else if (-fB1 >= fA11)
-                    {
-                        fT = 1.0;
-                        fSqrDistance = fA11+(2.0)*fB1+fC;
-                    }
-                    else
-                    {
-                        fT = -fB1/fA11;
-                        fSqrDistance = fB1*fT+fC;
-                    }
-                }
-            }
-            else  // region 3
-            {
-                fS = 0.0;
-                if (fB1 >= 0.0)
-                {
-                    fT = 0.0;
-                    fSqrDistance = fC;
-                }
-                else if (-fB1 >= fA11)
-                {
-                    fT = 1.0;
-                    fSqrDistance = fA11+(2.0)*fB1+fC;
-                }
-                else
-                {
-                    fT = -fB1/fA11;
-                    fSqrDistance = fB1*fT+fC;
-                }
-            }
-        }
-        else if (fT < 0.0)  // region 5
-        {
+          if (fB0 < 0.0)
+          {
             fT = 0.0;
-            if (fB0 >= 0.0)
+            if (-fB0 >= fA00)
             {
-                fS = 0.0;
-                fSqrDistance = fC;
-            }
-            else if (-fB0 >= fA00)
-            {
-                fS = 1.0;
-                fSqrDistance = fA00+(2.0)*fB0+fC;
+              fS = 1.0;
+              fSqrDistance = fA00+(2.0)*fB0+fC;
             }
             else
             {
-                fS = -fB0/fA00;
-                fSqrDistance = fB0*fS+fC;
+              fS = -fB0/fA00;
+              fSqrDistance = fB0*fS+fC;
             }
+          }
+          else
+          {
+            fS = 0.0;
+            if (fB1 >= 0.0)
+            {
+              fT = 0.0;
+              fSqrDistance = fC;
+            }
+            else if (-fB1 >= fA11)
+            {
+              fT = 1.0;
+              fSqrDistance = fA11+(2.0)*fB1+fC;
+            }
+            else
+            {
+              fT = -fB1/fA11;
+              fSqrDistance = fB1*fT+fC;
+            }
+          }
         }
-        else  // region 0
+        else  // region 3
         {
-            // minimum at interior point
-            double fInvDet = (1.0)/fDet;
-            fS *= fInvDet;
-            fT *= fInvDet;
-            fSqrDistance = fS*(fA00*fS+fA01*fT+(2.0)*fB0) +
-                fT*(fA01*fS+fA11*fT+(2.0)*fB1)+fC;
+          fS = 0.0;
+          if (fB1 >= 0.0)
+          {
+            fT = 0.0;
+            fSqrDistance = fC;
+          }
+          else if (-fB1 >= fA11)
+          {
+            fT = 1.0;
+            fSqrDistance = fA11+(2.0)*fB1+fC;
+          }
+          else
+          {
+            fT = -fB1/fA11;
+            fSqrDistance = fB1*fT+fC;
+          }
         }
+      }
+      else if (fT < 0.0)  // region 5
+      {
+        fT = 0.0;
+        if (fB0 >= 0.0)
+        {
+          fS = 0.0;
+          fSqrDistance = fC;
+        }
+        else if (-fB0 >= fA00)
+        {
+          fS = 1.0;
+          fSqrDistance = fA00+(2.0)*fB0+fC;
+        }
+        else
+        {
+          fS = -fB0/fA00;
+          fSqrDistance = fB0*fS+fC;
+        }
+      }
+      else  // region 0
+      {
+        // minimum at interior point
+        double fInvDet = (1.0)/fDet;
+        fS *= fInvDet;
+        fT *= fInvDet;
+        fSqrDistance = fS*(fA00*fS+fA01*fT+(2.0)*fB0) +
+          fT*(fA01*fS+fA11*fT+(2.0)*fB1)+fC;
+      }
     }
     else
     {
-        double fTmp0, fTmp1, fNumer, fDenom;
+      double fTmp0, fTmp1, fNumer, fDenom;
 
-        if (fS < 0.0)  // region 2
+      if (fS < 0.0)  // region 2
+      {
+        fTmp0 = fA01 + fB0;
+        fTmp1 = fA11 + fB1;
+        if (fTmp1 > fTmp0)
         {
-            fTmp0 = fA01 + fB0;
-            fTmp1 = fA11 + fB1;
-            if (fTmp1 > fTmp0)
-            {
-                fNumer = fTmp1 - fTmp0;
-                fDenom = fA00-2.0f*fA01+fA11;
-                if (fNumer >= fDenom)
-                {
-                    fS = 1.0;
-                    fT = 0.0;
-                    fSqrDistance = fA00+(2.0)*fB0+fC;
-                }
-                else
-                {
-                    fS = fNumer/fDenom;
-                    fT = 1.0 - fS;
-                    fSqrDistance = fS*(fA00*fS+fA01*fT+2.0f*fB0) +
-                        fT*(fA01*fS+fA11*fT+(2.0)*fB1)+fC;
-                }
-            }
-            else
-            {
-                fS = 0.0;
-                if (fTmp1 <= 0.0)
-                {
-                    fT = 1.0;
-                    fSqrDistance = fA11+(2.0)*fB1+fC;
-                }
-                else if (fB1 >= 0.0)
-                {
-                    fT = 0.0;
-                    fSqrDistance = fC;
-                }
-                else
-                {
-                    fT = -fB1/fA11;
-                    fSqrDistance = fB1*fT+fC;
-                }
-            }
+          fNumer = fTmp1 - fTmp0;
+          fDenom = fA00-2.0f*fA01+fA11;
+          if (fNumer >= fDenom)
+          {
+            fS = 1.0;
+            fT = 0.0;
+            fSqrDistance = fA00+(2.0)*fB0+fC;
+          }
+          else
+          {
+            fS = fNumer/fDenom;
+            fT = 1.0 - fS;
+            fSqrDistance = fS*(fA00*fS+fA01*fT+2.0f*fB0) +
+              fT*(fA01*fS+fA11*fT+(2.0)*fB1)+fC;
+          }
         }
-        else if (fT < 0.0)  // region 6
+        else
         {
-            fTmp0 = fA01 + fB1;
-            fTmp1 = fA00 + fB0;
-            if (fTmp1 > fTmp0)
-            {
-                fNumer = fTmp1 - fTmp0;
-                fDenom = fA00-(2.0)*fA01+fA11;
-                if (fNumer >= fDenom)
-                {
-                    fT = 1.0;
-                    fS = 0.0;
-                    fSqrDistance = fA11+(2.0)*fB1+fC;
-                }
-                else
-                {
-                    fT = fNumer/fDenom;
-                    fS = 1.0 - fT;
-                    fSqrDistance = fS*(fA00*fS+fA01*fT+(2.0)*fB0) +
-                        fT*(fA01*fS+fA11*fT+(2.0)*fB1)+fC;
-                }
-            }
-            else
-            {
-                fT = 0.0;
-                if (fTmp1 <= 0.0)
-                {
-                    fS = 1.0;
-                    fSqrDistance = fA00+(2.0)*fB0+fC;
-                }
-                else if (fB0 >= 0.0)
-                {
-                    fS = 0.0;
-                    fSqrDistance = fC;
-                }
-                else
-                {
-                    fS = -fB0/fA00;
-                    fSqrDistance = fB0*fS+fC;
-                }
-            }
+          fS = 0.0;
+          if (fTmp1 <= 0.0)
+          {
+            fT = 1.0;
+            fSqrDistance = fA11+(2.0)*fB1+fC;
+          }
+          else if (fB1 >= 0.0)
+          {
+            fT = 0.0;
+            fSqrDistance = fC;
+          }
+          else
+          {
+            fT = -fB1/fA11;
+            fSqrDistance = fB1*fT+fC;
+          }
         }
-        else  // region 1
+      }
+      else if (fT < 0.0)  // region 6
+      {
+        fTmp0 = fA01 + fB1;
+        fTmp1 = fA00 + fB0;
+        if (fTmp1 > fTmp0)
         {
-            fNumer = fA11 + fB1 - fA01 - fB0;
-            if (fNumer <= 0.0)
-            {
-                fS = 0.0;
-                fT = 1.0;
-                fSqrDistance = fA11+(2.0)*fB1+fC;
-            }
-            else
-            {
-                fDenom = fA00-2.0f*fA01+fA11;
-                if (fNumer >= fDenom)
-                {
-                    fS = 1.0;
-                    fT = 0.0;
-                    fSqrDistance = fA00+(2.0)*fB0+fC;
-                }
-                else
-                {
-                    fS = fNumer/fDenom;
-                    fT = 1.0 - fS;
-                    fSqrDistance = fS*(fA00*fS+fA01*fT+(2.0)*fB0) +
-                        fT*(fA01*fS+fA11*fT+(2.0)*fB1)+fC;
-                }
-            }
+          fNumer = fTmp1 - fTmp0;
+          fDenom = fA00-(2.0)*fA01+fA11;
+          if (fNumer >= fDenom)
+          {
+            fT = 1.0;
+            fS = 0.0;
+            fSqrDistance = fA11+(2.0)*fB1+fC;
+          }
+          else
+          {
+            fT = fNumer/fDenom;
+            fS = 1.0 - fT;
+            fSqrDistance = fS*(fA00*fS+fA01*fT+(2.0)*fB0) +
+              fT*(fA01*fS+fA11*fT+(2.0)*fB1)+fC;
+          }
         }
+        else
+        {
+          fT = 0.0;
+          if (fTmp1 <= 0.0)
+          {
+            fS = 1.0;
+            fSqrDistance = fA00+(2.0)*fB0+fC;
+          }
+          else if (fB0 >= 0.0)
+          {
+            fS = 0.0;
+            fSqrDistance = fC;
+          }
+          else
+          {
+            fS = -fB0/fA00;
+            fSqrDistance = fB0*fS+fC;
+          }
+        }
+      }
+      else  // region 1
+      {
+        fNumer = fA11 + fB1 - fA01 - fB0;
+        if (fNumer <= 0.0)
+        {
+          fS = 0.0;
+          fT = 1.0;
+          fSqrDistance = fA11+(2.0)*fB1+fC;
+        }
+        else
+        {
+          fDenom = fA00-2.0f*fA01+fA11;
+          if (fNumer >= fDenom)
+          {
+            fS = 1.0;
+            fT = 0.0;
+            fSqrDistance = fA00+(2.0)*fB0+fC;
+          }
+          else
+          {
+            fS = fNumer/fDenom;
+            fT = 1.0 - fS;
+            fSqrDistance = fS*(fA00*fS+fA01*fT+(2.0)*fB0) +
+              fT*(fA01*fS+fA11*fT+(2.0)*fB1)+fC;
+          }
+        }
+      }
     }
 
     // account for numerical round-off error
     if (fSqrDistance < 0.0)
     {
-        fSqrDistance = 0.0;
-        //fSqrDistance = -fSqrDistance;
+      fSqrDistance = 0.0;
+      //fSqrDistance = -fSqrDistance;
     }
     return sqrt(fSqrDistance);
   }
@@ -533,7 +578,8 @@ namespace Math
     double fi, fj, fimnr;
     int i, j, imnr;
     
-    /* For each vertex, find the edge with the maximum length and store it in an array */
+    /* For each vertex, find the edge with the 
+       maximum length and store it in an array */
     for (int vno = 0; vno < mris->nvertices; vno++)
     {
       vert = &mris->vertices[vno];
@@ -556,8 +602,8 @@ namespace Math
           {
             if ( xk*xk + yk*yk + zk*zk > distance*distance ) continue;
             MRISsurfaceRASToVoxelCached(mris, mrisrc,
-                                      vert->x + xk,vert->y+yk,vert->z+zk,
-                                      &fi,&fj,&fimnr);
+                                        vert->x + xk,vert->y+yk,vert->z+zk,
+                                        &fi,&fj,&fimnr);
             i=nint(fi);
             j=nint(fj);
             imnr=nint(fimnr);
@@ -581,7 +627,7 @@ namespace Math
     double ps,st,xx0,xx1,yy0,yy1,zz0,zz1,x0,y0,z0,x1,y1,z1,x2,y2,z2;
     double px,py,pz;
     double a, b, c;
-    Real fi,fj,fimnr;
+    double fi,fj,fimnr;
     VERTEX *v_0,*v_1,*v_2;
     FACE *f;
 

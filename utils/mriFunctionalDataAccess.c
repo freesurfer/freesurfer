@@ -6,11 +6,11 @@
 /*
  * Original Author: inverse
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2008/11/21 22:47:04 $
- *    $Revision: 1.51 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.52 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 

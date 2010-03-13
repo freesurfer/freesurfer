@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:31 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/03/13 01:32:43 $
+ *    $Revision: 1.36 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,10 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #include "mriSurface.h"
 #include "error.h"

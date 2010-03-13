@@ -7,10 +7,10 @@
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/08/21 01:34:26 $
- *    $Revision: 1.69 $
+ *    $Date: 2010/03/13 01:32:44 $
+ *    $Revision: 1.70 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 

@@ -1,17 +1,16 @@
 /**
  * @file  mriclass.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities for MRI classification using a variety of classifiers
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:35 $
- *    $Revision: 1.55 $
+ *    $Date: 2010/03/13 01:32:44 $
+ *    $Revision: 1.56 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,21 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   mriclass.c
- *
- *       DESCRIPTION: utilities for MRI classification using
- *                    a variety of classifiers
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -508,8 +494,9 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
   round, x1, y1, z1, x0, c, bg, max_white_class,max_non_white_class;
   BUFTYPE    *psrc, src, *pdst, *pclasses ;
   float      prob, *pprobs = NULL, total, min_output, fmin, fmax, white_prob,
-                             non_white_prob, max_white_prob, max_non_white_prob, p ;
-  Real       xrt, yrt, zrt ;
+    non_white_prob, max_white_prob, 
+    max_non_white_prob, p ;
+  double     xrt, yrt, zrt ;
   MRI        *mri_priors, *mri_in ;
   MRI_REGION bounding_box ;
   RBF        *rbf ;
@@ -576,7 +563,7 @@ MRICclassify(MRIC *mric, MRI *mri_src, MRI *mri_dst,
           if (mri_priors)
           {
             MRIvoxelToVoxel(mri_src, mri_priors,
-                            (Real)x, (Real)y, (Real)z,&xrt, &yrt,&zrt);
+                            (double)x, (double)y, (double)z,&xrt, &yrt,&zrt);
             xt = mri_priors->xi[nint(xrt)] ;
             yt = mri_priors->yi[nint(yrt)] ;
             zt = mri_priors->zi[nint(zrt)] ;
@@ -742,14 +729,14 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
       0,0, 0, 0,0,0
     } ;
   static MRI  *mri_prev = NULL, *mri_zscore3 = NULL, *mri_zscore5 = NULL ,
-                          *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL,
-                                                              *mri_cpolv = NULL, *mri_cpolv_mean3 = NULL,
-                                                                                                    *mri_cpolv_mean5 = NULL, *mri_cpolv_median3 = NULL,
-                                                                                                                       *mri_cpolv_median5 = NULL,
-                                                                                                                                            *mri_min3 = NULL, *mri_min5 = NULL, *mri_min7 = NULL,
-                                                                                                                                                                          *mri_cpolv_zscore5 = NULL, *mri_cpolv_zscore7 = NULL,
-                                                                                                                                                                                               *mri_cpolv_curv5 = NULL, *mri_cpolv_curv7 = NULL,
-                                                                                                                                                                                                                  *mri_cpolv_order = NULL ;
+    *mri_direction = NULL, *mri_mean3 = NULL, *mri_mean5 = NULL,
+    *mri_cpolv = NULL, *mri_cpolv_mean3 = NULL,
+    *mri_cpolv_mean5 = NULL, *mri_cpolv_median3 = NULL,
+    *mri_cpolv_median5 = NULL,
+    *mri_min3 = NULL, *mri_min5 = NULL, *mri_min7 = NULL,
+    *mri_cpolv_zscore5 = NULL, *mri_cpolv_zscore7 = NULL,
+    *mri_cpolv_curv5 = NULL, *mri_cpolv_curv7 = NULL,
+    *mri_cpolv_order = NULL ;
 
   int         x0, y0, z0, index ;
   char        *cp ;
@@ -1045,12 +1032,15 @@ MRICcomputeInputs(MRIC *mric, MRI *mri, int x,int y,int z,VECTOR *v_inputs,
     VECTOR_ELT(v_inputs, index++) = (float)z ;
   if ((features & FEATURE_PRIORS) && mric->mri_priors)
   {
-    Real xrt, yrt, zrt ;
+    double xrt, yrt, zrt ;
     int  xt, yt, zt ;
     MRI  *mri_priors ;
 
     mri_priors = mric->mri_priors ;
-    MRIvoxelToVoxel(mri, mri_priors, (Real)x, (Real)y, (Real)z,&xrt,&yrt,&zrt);
+    MRIvoxelToVoxel(mri,
+                    mri_priors,
+                    (double)x, (double)y, (double)z,
+                    &xrt,&yrt,&zrt);
     xt = mri_priors->xi[nint(xrt)] ;
     yt = mri_priors->yi[nint(yrt)] ;
     zt = mri_priors->zi[nint(zrt)] ;
@@ -1160,7 +1150,7 @@ MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale)
 {
   int      width, height, depth, x, y, z, class,w,h,d, xt, yt, zt ;
   BUFTYPE  *ptarget ;
-  Real     xrt, yrt, zrt ;
+  double     xrt, yrt, zrt ;
 
   width = mri_target->width ;
   height = mri_target->height ;
@@ -1191,7 +1181,7 @@ MRICupdatePriors(MRI *mri_target, MRI *mri_priors, int scale)
       ptarget = &MRIvox(mri_target, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        MRIvoxelToTalairachVoxel(mri_target, (Real)x, (Real)y, (Real)z,
+        MRIvoxelToTalairachVoxel(mri_target, (double)x, (double)y, (double)z,
                                  &xrt, &yrt, &zrt) ;
         xt = mri_priors->xi[nint(xrt/scale)] ;
         yt = mri_priors->yi[nint(yrt/scale)] ;
@@ -1295,7 +1285,10 @@ MRICupdateStatistics(MRIC *mric, int round, MRI *mri_src, MRI *mri_wm,
         gcl = &gc->classes[classno] ;
         gcl->nobs++ ;
 
-        MRICcomputeInputs(mric,mri_src, x, y, z, v_inputs,mric->features[round]);
+        MRICcomputeInputs(mric,
+                          mri_src,
+                          x, y, z,
+                          v_inputs,mric->features[round]);
         for (row = 1 ; row <= mric->ninputs[round] ; row++)
           gcl->m_u->rptr[row][1] += VECTOR_ELT(v_inputs, row);
         for (row = 1 ; row <= gcl->m_covariance->rows ; row++)
@@ -1348,7 +1341,8 @@ MRICcomputeStatistics(MRIC *mric, int round)
         for (col = 1 ; col <= row ; col++)
         {
           mean_b = gcl->m_u->rptr[col][1] ;
-          covariance = gcl->m_covariance->rptr[row][col] / nobs - mean_a*mean_b;
+          covariance =
+            gcl->m_covariance->rptr[row][col] / nobs - mean_a*mean_b;
           gcl->m_covariance->rptr[row][col] = covariance ;
           gcl->m_covariance->rptr[col][row] = covariance ;
         }

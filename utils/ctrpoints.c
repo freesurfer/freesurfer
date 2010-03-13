@@ -1,17 +1,16 @@
 /**
  * @file  ctrpoints.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilities handling control points
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Y. Tosa
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/02/09 16:37:57 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:41 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,22 +20,9 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-
-///////////////////////////////////////////////////////////////////
-// ctrpoints.c
-//
-// originally written by y.tosa
-//
-// Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2010/02/09 16:37:57 $
-// Revision       : $Revision: 1.6 $
-//
-////////////////////////////////////////////////////////////////////
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -118,16 +104,19 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
       i-- ;    // not a control point
       continue ;
     }
-    pointArray[i].x = (Real) xw;
-    pointArray[i].y = (Real) yw;
-    pointArray[i].z = (Real) zw;
+    pointArray[i].x = (double) xw;
+    pointArray[i].y = (double) yw;
+    pointArray[i].z = (double) zw;
   }
   fclose(fp) ;
 
   return pointArray;
 }
 
-int MRIwriteControlPoints(MPoint *pointArray, int count, int useRealRAS, char *fname)
+int MRIwriteControlPoints(MPoint *pointArray,
+                          int count,
+                          int useRealRAS,
+                          char *fname)
 {
   FILE *fp;
   int i;
@@ -139,7 +128,9 @@ int MRIwriteControlPoints(MPoint *pointArray, int count, int useRealRAS, char *f
 
   if (useRealRAS > 1 || useRealRAS < 0)
     ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM, "MRIwriteControlPoints useRealRAS must be 0 (surfaceRAS) or 1 (scannerRAS) but %d\n",
+                (ERROR_BADPARM,
+                 "MRIwriteControlPoints useRealRAS must"
+                 " be 0 (surfaceRAS) or 1 (scannerRAS) but %d\n",
                  useRealRAS))
 
     fp = fopen(fname, "w") ;
@@ -149,7 +140,10 @@ int MRIwriteControlPoints(MPoint *pointArray, int count, int useRealRAS, char *f
                  " open file", fname)) ;
   for (i=0 ; i < count; ++i)
   {
-    if ((res = fprintf(fp, "%f %f %f\n", pointArray[i].x, pointArray[i].y, pointArray[i].z))< 0)
+    if ((res = fprintf(fp, "%f %f %f\n",
+                       pointArray[i].x,
+                       pointArray[i].y,
+                       pointArray[i].z))< 0)
       ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM, "MRIwriteControlPoints(%s): could not"
                    " writing file", fname)) ;
@@ -158,7 +152,8 @@ int MRIwriteControlPoints(MPoint *pointArray, int count, int useRealRAS, char *f
   res=fprintf(fp, "info\n");
   res=fprintf(fp, "numpoints %d\n", count);
   res=fprintf(fp, "useRealRAS %d\n", useRealRAS);
-  res=fprintf(fp, "written by %s on %s\n",cuserid(0), asctime(localtime(&time)));
+  res=fprintf(fp, "written by %s on %s\n",
+              cuserid(0), asctime(localtime(&time)));
   res=fclose(fp);
 
   return (NO_ERROR);

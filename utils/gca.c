@@ -13,11 +13,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/03/04 20:05:10 $
- *    $Revision: 1.272 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:41 $
+ *    $Revision: 1.273 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -27,7 +27,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -616,12 +615,14 @@ getGCAP(GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv)
 }
 
 GCA_PRIOR *
-getGCAPfloat(GCA *gca, MRI *mri, TRANSFORM *transform, float xv, float yv, float zv)
+getGCAPfloat(GCA *gca, MRI *mri, TRANSFORM *transform,
+             float xv, float yv, float zv)
 {
   int       xp, yp, zp ;
   GCA_PRIOR *gcap=NULL;
 
-  if (!GCAsourceFloatVoxelToPrior(gca, mri, transform, xv, yv, zv, &xp, &yp, &zp))
+  if (!GCAsourceFloatVoxelToPrior(gca, mri, transform,
+                                  xv, yv, zv, &xp, &yp, &zp))
     gcap = &gca->priors[xp][yp][zp] ;
 
   return(gcap) ;
@@ -924,8 +925,8 @@ dump_gcan(GCA *gca, GCA_NODE *gcan, FILE *fp, int verbose, GCA_PRIOR *gcap)
 ////////////////////////////////////////////////////////////////
 // transform from template -> node
 ////////////////////////////////////////////////////////////////
-int GCAvoxelToNodeReal(GCA *gca, MRI *mri, Real xv, Real yv, Real zv,
-                       Real *pxn, Real *pyn, Real *pzn)
+int GCAvoxelToNodeReal(GCA *gca, MRI *mri, double xv, double yv, double zv,
+                       double *pxn, double *pyn, double *pzn)
 {
   //               i_to_r
   //        mri    ----->    RAS
@@ -974,7 +975,7 @@ int
 GCAvoxelToNodeNearest(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
                       int *pyn, int *pzn)
 {
-  Real xn, yn, zn;
+  double xn, yn, zn;
   int   ixn, iyn, izn;
   int errCode = NO_ERROR;
 
@@ -998,8 +999,8 @@ GCAvoxelToNodeNearest(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
 // transform from template -> prior
 ////////////////////////////////////////////////////////////////////
 int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
-			 const Real xv, const Real yv, const Real zv,
-			 Real *pxp, Real *pyp, Real *pzp )
+			 const double xv, const double yv, const double zv,
+			 double *pxp, double *pyp, double *pzp )
 {
   MATRIX *rasFromVoxel = mri->i_to_r__; //extract_i_to_r(mri);
   MATRIX *priorFromRAS = gca->prior_r_to_i__;
@@ -1025,7 +1026,7 @@ GCAvoxelToPrior( GCA *gca, const MRI *mri,
 		 const int xv, const int yv, const int zv,
 		 int *pxp, int *pyp, int *pzp )
 {
-  Real xp, yp, zp;
+  double xp, yp, zp;
   int ixp, iyp, izp;
   int errCode = NO_ERROR;
 
@@ -1054,7 +1055,7 @@ int
 GCAvoxelToPriorNearest(GCA *gca, MRI *mri, int xv, int yv, int zv,
                        int *pxp, int *pyp, int *pzp)
 {
-  Real xp, yp, zp;
+  double xp, yp, zp;
   int ixp, iyp, izp;
   int errCode = NO_ERROR;
 
@@ -1077,8 +1078,8 @@ GCAvoxelToPriorNearest(GCA *gca, MRI *mri, int xv, int yv, int zv,
 /////////////////////////////////////////////////////////////////////
 // transform node->template
 /////////////////////////////////////////////////////////////////////
-int GCAnodeToVoxelReal(GCA *gca, MRI *mri, Real xn, Real yn, Real zn,
-                       Real *pxv, Real *pyv, Real *pzv)
+int GCAnodeToVoxelReal(GCA *gca, MRI *mri, double xn, double yn, double zn,
+                       double *pxv, double *pyv, double *pzv)
 {
   //               r_to_i
   //        mri    <-----    RAS
@@ -1106,7 +1107,7 @@ int
 GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn,
                int *pxv, int *pyv, int *pzv)
 {
-  Real xv, yv, zv;
+  double xv, yv, zv;
   int ixv, iyv, izv;
   int errCode = NO_ERROR;
 
@@ -1134,8 +1135,8 @@ GCAnodeToVoxel(GCA *gca, MRI *mri, int xn, int yn, int zn,
 //////////////////////////////////////////////////////////////////////
 // transform from prior-> template
 //////////////////////////////////////////////////////////////////////
-int GCApriorToVoxelReal(GCA *gca, MRI *mri, Real xp, Real yp, Real zp,
-                        Real *pxv, Real *pyv, Real *pzv)
+int GCApriorToVoxelReal(GCA *gca, MRI *mri, double xp, double yp, double zp,
+                        double *pxv, double *pyv, double *pzv)
 {
   MATRIX *rasFromPrior = gca->prior_i_to_r__;
   // extract_i_to_r(gca->mri_prior__);
@@ -1157,7 +1158,7 @@ int
 GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp,
                 int *pxv, int *pyv, int *pzv)
 {
-  Real xv, yv, zv;
+  double xv, yv, zv;
   int ixv, iyv, izv;
   int errCode = NO_ERROR;
 
@@ -1188,7 +1189,7 @@ GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                       int xv, int yv, int zv, int *pxp, int *pyp, int *pzp)
 {
   float   xt, yt, zt ;
-  Real    xrt, yrt, zrt;
+  double    xrt, yrt, zrt;
   int     retval ;
 
   LTA *lta;
@@ -1237,10 +1238,11 @@ GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
 
 int
 GCAsourceFloatVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
-                           float xv, float yv, float zv, int *pxp, int *pyp, int *pzp)
+                           float xv, float yv, float zv,
+                           int *pxp, int *pyp, int *pzp)
 {
   float   xt, yt, zt ;
-  Real    xrt, yrt, zrt, xrp, yrp, zrp;
+  double    xrt, yrt, zrt, xrp, yrp, zrp;
 
   LTA *lta;
   if (transform->type != MORPH_3D_TYPE)
@@ -1286,7 +1288,7 @@ GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
                      int *pxn, int *pyn, int *pzn)
 {
   float xt, yt, zt;
-  Real  xrt, yrt, zrt ;
+  double  xrt, yrt, zrt ;
   LTA *lta;
   int  xp, yp, zp ;
 
@@ -1355,9 +1357,9 @@ GCApriorToSourceVoxelFloat( GCA *gca,
 			    float *pxv, float *pyv, float *pzv )
 {
   int   width, height, depth;
-  Real  xt, yt, zt ;
+  double  xt, yt, zt ;
   float  xv, yv, zv ;
-  Real  xc, yc, zc;
+  double  xc, yc, zc;
   int errCode = NO_ERROR;
   LTA *lta;
   width = mri->width ;
@@ -1411,9 +1413,9 @@ GCAnodeToSourceVoxelFloat(GCA *gca, MRI *mri, TRANSFORM *transform,
                           float *pxv, float *pyv, float *pzv)
 {
   int   width, height, depth;
-  Real  xt, yt, zt ;
+  double  xt, yt, zt ;
   float  xv, yv, zv ;
-  Real  xc, yc, zc ;
+  double  xc, yc, zc ;
   int errCode = NO_ERROR;
   LTA *lta;
   width = mri->width ;
@@ -1625,7 +1627,8 @@ gcaAllocMax(int ninputs,
       }
     }
     
-    gca->priors = (GCA_PRIOR ***)calloc(gca->prior_width, sizeof(GCA_PRIOR **)) ;
+    gca->priors = (GCA_PRIOR ***)calloc(gca->prior_width, 
+                                        sizeof(GCA_PRIOR **)) ;
     if (!gca->priors)
       ErrorExit(ERROR_NOMEMORY, "GCAalloc: could not allocate priors") ;
     // setting values to gca->prior volume
@@ -2064,7 +2067,8 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                 gc = GCAfindGC(gca, xn, yn, zn, gcap->labels[n]) ;
                 if (gc == NULL)
                 {
-                  printf("gcap[%d][%d][%d]->labels[%d] = %s - node (%d, %d, %d): no gc!\n",
+                  printf("gcap[%d][%d][%d]->labels[%d] ="
+                         " %s - node (%d, %d, %d): no gc!\n",
                          xp, yp, zp, n, cma_label_to_name(gcap->labels[n]),
                          xn, yn, zn) ;
                   DiagBreak() ;
@@ -2182,7 +2186,8 @@ GCAtrain(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
               DiagBreak() ;
             load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
             if (xp == Gxp && yp == Gyp && zp == Gzp)
-              printf("filling prior hole at (%d, %d, %d) %s, node = (%d, %d, %d)\n",
+              printf("filling prior hole at (%d, %d, %d) %s,"
+                     " node = (%d, %d, %d)\n",
                      xp, yp, zp, cma_label_to_name(label), xn, yn, zn) ;
             if ((GCAupdateNode(gca, mri_inputs, xn, yn, zn,
                                vals,label,gca_prune, noint) ==
@@ -2735,10 +2740,11 @@ GCAread(const char *fname)
         case TAG_GCA_COLORTABLE:
           /* We have a color table, read it with CTABreadFromBinary. If it
              fails, it will print its own error message. */
-          fprintf(stderr, "reading colortable from GCA file...\n") ;
+          fprintf(stdout, "reading colortable from GCA file...\n") ;
           gca->ct = CTABreadFromBinary (fp);
           if (NULL != gca->ct)
-            fprintf(stderr, "colortable with %d entries read (originally %s)\n",
+            fprintf(stdout, 
+                    "colortable with %d entries read (originally %s)\n",
                     gca->ct->nentries, gca->ct->fname);
           break ;
         case TAG_GCA_TYPE:
@@ -4558,12 +4564,12 @@ GCAcomputeLogImageProbability(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
 #if 0
 int
 GCAsampleStats(GCA *gca, MRI *mri, int class,
-               Real x, Real y, Real z,
-               Real *pmean, Real *pvar, Real *pprior)
+               double x, double y, double z,
+               double *pmean, double *pvar, double *pprior)
 {
   int    xm, xp, ym, yp, zm, zp, width, height, depth, n ;
-  Real   val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
-  Real   prior, mean, var, wt ;
+  double   val, xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+  double   prior, mean, var, wt ;
   GCAN   *gcan ;
   GC1D   *gc ;
 
@@ -9351,7 +9357,7 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
   T1_index = 0 ;
   float   bias ;
   double  mean, sigma ;
-  Real    val ;
+  double    val ;
   float      gm_means[MAX_GCA_INPUTS], gray_white_CNR;
 
   if (nsamples == 0)   /* only using control points from file */
@@ -9687,7 +9693,7 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
   int    xv, yv, zv, n, x, y, z, width, height, depth, xn, yn, zn, num, total;
   float   bias ;
   double  mean, sigma ;
-  Real    val ;
+  double    val ;
 
   width = mri_in->width ;
   height = mri_in->height ;
@@ -10005,7 +10011,7 @@ GCAnormalizeSamplesT1PD(MRI *mri_in, GCA *gca,
   MRI    *mri_dst, *mri_ctrl, *mri_bias ;
   int    xv, yv, zv, n, x, y, z, width, height, depth, \
   out_val, xn, yn, zn, num, total ;
-  Real   val ;
+  double   val ;
   float   bias ;
   double  mean, sigma ;
 
@@ -11804,7 +11810,7 @@ GCArenormalizeAdaptive(MRI *mri_in, MRI *mri_labeled,
 #if 0
   int              i, index, *ordered_indices ;
   float            mean, var ;
-  Real             val ;
+  double             val ;
 #endif
   GCA_NODE         *gcan ;
   GCA_SAMPLE       *gcas ;
@@ -14095,7 +14101,7 @@ gcaHistogramSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri,
 {
   int    i ;
   double mean, var ;
-  Real   val ;
+  double   val ;
   float  fmin, fmax ;
 
   if (!histo)
@@ -14163,7 +14169,7 @@ void
 load_vals( const MRI *mri_inputs, float x, float y, float z, float *vals, int ninputs)
 {
   int  n ;
-  Real val ;
+  double val ;
 
   // go through all inputs and get values from inputs
   for (n = 0 ; n < ninputs ; n++)
@@ -14577,7 +14583,7 @@ GCAnormalizePD(GCA *gca, MRI *mri_inputs, TRANSFORM *transform)
   int        n, x, y, z, brain_node, nvals, label ;
   GCA_PRIOR  *gcap ;
   GC1D       *gc ;
-  Real      val ;
+  double      val ;
 
   if (mri_inputs->nframes != 2 || gca->ninputs != 2)
     ErrorReturn(ERROR_BADPARM,
@@ -15732,7 +15738,7 @@ GCAnormalizeMeans(GCA *gca, float target)
 {
   int       x, y, z, frame, n ;
   double    norm ;
-  Real      val ;
+  double      val ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
 
@@ -16061,7 +16067,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
   mean_gm_scale, mean_wm_scale, mean_csf_scale,
   label_offsets[MAX_CMA_LABELS], mean_wm_offset, \
   mean_csf_offset, mean_gm_offset ;
-  Real      val/*, scale*/ ;
+  double      val/*, scale*/ ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
   MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL ;
@@ -16957,7 +16963,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
             label_offsets[MAX_CMA_LABELS], \
             mean_wm_offset, mean_csf_offset, mean_gm_offset,
             lower_thresh, upper_thresh ;
-  Real      val/*, scale*/ ;
+  double      val/*, scale*/ ;
   MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL ;
   char      fname[STRLEN] ;
   MATRIX    *m_L, *m_by_label[MAX_CMA_LABELS] ;
@@ -18356,7 +18362,7 @@ GCAmapRenormalize(GCA *gca, MRI *mri, TRANSFORM *transform)
   float     fmin, fmax, prior, label_scales[MAX_CMA_LABELS],
   label_modes[MAX_CMA_LABELS],
   modes[MAX_GCA_INPUTS],std, peak, smooth_peak ;
-  Real      val/*, scale*/ ;
+  double      val/*, scale*/ ;
   GCA_PRIOR *gcap ;
   GCA_NODE  *gcan ;
   GC1D      *gc ;
@@ -18738,7 +18744,7 @@ GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform)
   float     fmin, fmax, prior, label_scales[MAX_CMA_LABELS],
   class_modes[NTISSUE_CLASSES], class_scales[NTISSUE_CLASSES],
   modes[MAX_GCA_INPUTS], peak, smooth_peak ;
-  Real      val ;
+  double      val ;
   float     vals[MAX_GCA_INPUTS] ;
   GCA_PRIOR *gcap ;
   GCA_NODE  *gcan ;
@@ -20348,7 +20354,7 @@ static float
 gcaComputePrior(GCA *gca, MRI *mri, TRANSFORM *transform,
                 int x0, int y0, int z0, int label)
 {
-  Real  x, y, z, xmd, ymd, zmd, xpd, ypd, zpd, prior ;
+  double  x, y, z, xmd, ymd, zmd, xpd, ypd, zpd, prior ;
   int   xm, ym, zm, xp, yp, zp ;
   GCA_PRIOR *gcap ;
   float  total_prior  ;
@@ -23456,10 +23462,10 @@ GCAnodeDownsample2(GCA *gca)
 int
 GCAsourceVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
                           int xv, int yv, int zv,
-                          Real *pxp, Real *pyp, Real *pzp)
+                          double *pxp, double *pyp, double *pzp)
 {
   float   xt, yt, zt ;
-  Real    xrt, yrt, zrt;
+  double    xrt, yrt, zrt;
   int     retval ;
 
   LTA *lta;

@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl (1/8/97)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/12 16:21:37 $
- *    $Revision: 1.40 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:44 $
+ *    $Revision: 1.41 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -38,7 +37,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "filter.h"
 #include "box.h"
 #include "region.h"
@@ -58,8 +57,11 @@
 /*-----------------------------------------------------
   STATIC PROTOTYPES
   -------------------------------------------------------*/
-static HISTOGRAM *mriHistogramRegionWithThreshold(MRI *mri, int nbins, HISTOGRAM *histo,
-                                                  MRI_REGION *region, MRI *mri_thresh, 
+static HISTOGRAM *mriHistogramRegionWithThreshold(MRI *mri,
+                                                  int nbins,
+                                                  HISTOGRAM *histo,
+                                                  MRI_REGION *region,
+                                                  MRI *mri_thresh, 
                                                   float thresh);
 static HISTOGRAM *mriHistogramRegion(MRI *mri, int nbins, HISTOGRAM *histo,
                                      MRI_REGION *region);
@@ -241,7 +243,7 @@ mriHistogramLabel(MRI *mri, int nbins, HISTOGRAM *histo, LABEL *label)
 {
   int        width, height, depth, x, y, z, bin_no, i ;
   float      fmin, fmax, bin_size, val ;
-  Real       xv, yv, zv ;
+  double     xv, yv, zv ;
 
 
   if (mri->type == MRI_UCHAR)
@@ -764,7 +766,7 @@ MRIhistogram(MRI *mri, int nbins)
   int        width, height, depth, x, y, z, bin_no ;
   HISTOGRAM  *histo ;
   float      fmin, fmax, bin_size ;
-  Real       val ;
+  double     val ;
 
   MRIvalRange(mri, &fmin, &fmax) ; // fmin = is wrong!
   if (!nbins)
@@ -1280,8 +1282,13 @@ MRIhistoSegmentVoxel(MRI *mri_src, MRI *mri_labeled, int wm_low, int wm_hi,
   Description
   ------------------------------------------------------*/
 HISTOGRAM *
-MRIhistogramVoxel(MRI *mri, int nbins, HISTOGRAM *histo, int x0, int y0, int z0,
-                  int wsize, MRI *mri_thresh, float thresh)
+MRIhistogramVoxel(MRI *mri,
+                  int nbins,
+                  HISTOGRAM *histo,
+                  int x0, int y0, int z0,
+                  int wsize,
+                  MRI *mri_thresh,
+                  float thresh)
 {
   int               whalf ;
   float             fmin, fmax, bin_size ;
@@ -1311,9 +1318,11 @@ MRIhistogramVoxel(MRI *mri, int nbins, HISTOGRAM *histo, int x0, int y0, int z0,
   histo->bin_size = bin_size ;
   
   if (mri_thresh == NULL)
-    mriHistogramRegion(mri, nbins, histo, &region) ;
+    mriHistogramRegion
+      (mri, nbins, histo, &region) ;
   else
-    mriHistogramRegionWithThreshold(mri, nbins, histo, &region, mri_thresh, thresh) ;
+    mriHistogramRegionWithThreshold
+      (mri, nbins, histo, &region, mri_thresh, thresh) ;
 
   HISTOsoapBubbleZeros(histo, histo,100);
   return(histo) ;

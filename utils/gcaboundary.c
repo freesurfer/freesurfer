@@ -1,9 +1,6 @@
 /**
  * @file  gcaboundary.c
- * @brief  Routines for boundary deformations based on gca.
- *
- * 
- * 
+ * @brief Routines for boundary deformations based on gca.
  *
  * Reference:
  * "Whole Brain Segmentation: Automated Labeling of Neuroanatomical
@@ -13,11 +10,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/26 02:17:58 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:42 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -27,7 +24,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 #include <stdlib.h>
@@ -1070,7 +1066,7 @@ GCABsourceVoxelToNode(GCAB *gcab, MRI *mri, TRANSFORM *transform,
                       float *pxn, float *pyn, float *pzn)
 {
   float  xt, yt, zt;
-  Real   xrt, yrt, zrt ;
+  double   xrt, yrt, zrt ;
   LTA    *lta;
 
   if (transform->type != MORPH_3D_TYPE)

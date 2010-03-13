@@ -8,10 +8,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:25 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/13 01:32:41 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +21,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -48,16 +47,20 @@ DCTalloc(int ncoef, MRI *mri_source)
 
   dct->b = 1.0 ;
   dct->ncoef = ncoef ;
-  dct->res = .25*MIN(MIN(mri_source->xsize, mri_source->ysize), mri_source->zsize) ;
+  dct->res = .25*MIN(MIN(mri_source->xsize, mri_source->ysize),
+                     mri_source->zsize) ;
   dct->mri_source = mri_source ;
   dct->v_xk = VectorAlloc(ncoef, MATRIX_REAL) ;
   dct->v_yk = VectorAlloc(ncoef, MATRIX_REAL) ;
   dct->v_zk = VectorAlloc(ncoef, MATRIX_REAL) ;
   if (dct->v_xk == NULL || dct->v_yk == NULL || dct->v_zk == NULL)
     ErrorExit(ERROR_NOMEMORY, "DCTalloc(%d): allocation failed", ncoef) ;
-  dct->x_inv = (double *)calloc(ceil(mri_source->width/dct->res), sizeof(double)) ;
-  dct->y_inv = (double *)calloc(ceil(mri_source->height/dct->res), sizeof(double)) ;
-  dct->z_inv = (double *)calloc(ceil(mri_source->depth/dct->res), sizeof(double)) ;
+  dct->x_inv = (double *)calloc(ceil(mri_source->width/dct->res),
+                                sizeof(double)) ;
+  dct->y_inv = (double *)calloc(ceil(mri_source->height/dct->res),
+                                sizeof(double)) ;
+  dct->z_inv = (double *)calloc(ceil(mri_source->depth/dct->res),
+                                sizeof(double)) ;
   dct->x = (double *)calloc(mri_source->width, sizeof(double)) ;
   dct->y = (double *)calloc(mri_source->height, sizeof(double)) ;
   dct->z = (double *)calloc(mri_source->depth, sizeof(double)) ;
@@ -114,8 +117,12 @@ DCTcreateMatrix(DCT *dct, MRI *mri, int skip)
   dct->m_x_basis = MatrixAlloc(Nx, dct->ncoef, MATRIX_REAL) ;
   dct->m_y_basis = MatrixAlloc(Ny, dct->ncoef, MATRIX_REAL) ;
   dct->m_z_basis = MatrixAlloc(Nz, dct->ncoef, MATRIX_REAL) ;
-  if (dct->m_x_basis == NULL || dct->m_y_basis == NULL || dct->m_z_basis == NULL)
-    ErrorExit(ERROR_NOMEMORY, "DCTcreateMatrix(%d, %d, %d, %d,): allocation failed", dct->ncoef,Nx,Ny,Nz) ;
+  if (dct->m_x_basis == NULL || 
+      dct->m_y_basis == NULL || 
+      dct->m_z_basis == NULL)
+    ErrorExit(ERROR_NOMEMORY,
+              "DCTcreateMatrix(%d, %d, %d, %d,): allocation failed",
+              dct->ncoef,Nx,Ny,Nz) ;
 
   for (i = 0 ; i < 3 ; i++) // for each coordinate direction
   {
@@ -148,23 +155,31 @@ DCTcopy(DCT *dct_src, DCT *dct_dst)
     dct_dst = DCTalloc(dct_src->ncoef, dct_src->mri_source) ;
 
   MatrixCopyRealRegion(dct_src->v_xk, dct_dst->v_xk,
-                       1, 1, MIN(dct_src->v_xk->rows, dct_dst->v_xk->rows), 1, 1, 1) ;
+                       1, 1, 
+                       MIN(dct_src->v_xk->rows,
+                           dct_dst->v_xk->rows), 1, 1, 1) ;
   MatrixCopyRealRegion(dct_src->v_yk, dct_dst->v_yk,
-                       1, 1, MIN(dct_src->v_yk->rows, dct_dst->v_yk->rows), 1, 1, 1) ;
+                       1, 1,
+                       MIN(dct_src->v_yk->rows,
+                           dct_dst->v_yk->rows), 1, 1, 1) ;
   MatrixCopyRealRegion(dct_src->v_zk, dct_dst->v_zk,
-                       1, 1, MIN(dct_src->v_zk->rows, dct_dst->v_zk->rows), 1, 1, 1) ;
+                       1, 1,
+                       MIN(dct_src->v_zk->rows,
+                           dct_dst->v_zk->rows), 1, 1, 1) ;
   return(dct_dst) ;
 }
 
-MRI *
-DCTapply(DCT *dct, MRI *mri_src, MRI *mri_target, MRI *mri_dst, int sample_type)
+MRI *DCTapply(DCT *dct,
+              MRI *mri_src,
+              MRI *mri_target,
+              MRI *mri_dst,
+              int sample_type)
 {
   int    x, y, z ;
   double xd, yd, zd ;
-  Real   val ;
+  double   val ;
   MATRIX *m_vox2vox ;
   VECTOR *v1, *v2 ;
-
 
   if (mri_target == NULL)
     mri_target = mri_src ;   // assume output geometry is same as input
@@ -188,7 +203,9 @@ DCTapply(DCT *dct, MRI *mri_src, MRI *mri_target, MRI *mri_dst, int sample_type)
           DiagBreak() ;
         V3_Z(v1) = z ; 
         MatrixMultiply(m_vox2vox, v1, v2) ;
-        DCTinverseTransformPoint(dct, V3_X(v2), V3_Y(v2), V3_Z(v2), &xd, &yd, &zd) ;
+        DCTinverseTransformPoint(dct,
+                                 V3_X(v2), V3_Y(v2), V3_Z(v2),
+                                 &xd, &yd, &zd) ;
         MRIsampleVolumeType(mri_src, xd, yd, zd, &val, sample_type) ;
         MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
@@ -203,7 +220,7 @@ DCTapplyInverse(DCT *dct, MRI *mri_src, MRI *mri_dst, int sample_type)
 {
   int    x, y, z ;
   double xs, ys, zs ;
-  Real   val ;
+  double val ;
 
   if (mri_dst == NULL)
     mri_dst = MRIclone(mri_src, NULL) ;
@@ -280,7 +297,9 @@ DCTinverseTransformVoxlist(DCT *dct, VOXEL_LIST *vl)
       z = dct->mri_source->depth-1;
 
 #if 0    
-    vl->xd[i] = dct->x_inv[x] ; vl->yd[i] = dct->y_inv[y] ; vl->zd[i] = dct->z_inv[z] ;
+    vl->xd[i] = dct->x_inv[x] ;
+    vl->yd[i] = dct->y_inv[y] ;
+    vl->zd[i] = dct->z_inv[z] ;
 #else
     DCTinverseTransformPoint(dct, x, y, z, &xd, &yd, &zd) ;
     vl->xd[i] = xd ; vl->yd[i] = yd ; zd = vl->zd[i] ;
@@ -291,7 +310,9 @@ DCTinverseTransformVoxlist(DCT *dct, VOXEL_LIST *vl)
   return(NO_ERROR) ;
 }
 int
-DCTtransformPoint(DCT *dct, int x, int y, int z, double *px, double *py,  double *pz)
+DCTtransformPoint(DCT *dct,
+                  int x, int y, int z,
+                  double *px, double *py,  double *pz)
 {
   double xd, yd, zd ;
 
@@ -303,7 +324,9 @@ DCTtransformPoint(DCT *dct, int x, int y, int z, double *px, double *py,  double
 }
 
 int
-DCTinverseTransformPoint(DCT *dct, double x, double y, double z, double *px, double *py,  double *pz)
+DCTinverseTransformPoint(DCT *dct,
+                         double x, double y, double z,
+                         double *px, double *py,  double *pz)
 {
   double xd, yd, zd ;
   int    xi, yi, zi ;
@@ -340,16 +363,23 @@ DCTdump(DCT *dct, FILE *fp)
   fflush(fp) ;
   return(NO_ERROR) ;
 }
-static int soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_change_allowed) ;
+static int soap_bubble(double *in_vals,
+                       double *ctrl,
+                       double *out_vals,
+                       int N,
+                       double max_change_allowed) ;
 int
 DCTupdate(DCT *dct)
 {
   double   *x_wts, *y_wts, *z_wts, xd, yd, zd, jcd, jfd, *wts, *inv, *fwd, jd ;
   int      jc, jf, x, y, z, N, i, j, Ninv ;
 
-  x_wts = (double *)calloc(ceil(dct->mri_source->width/dct->res), sizeof(double)) ;
-  y_wts = (double *)calloc(ceil(dct->mri_source->height/dct->res), sizeof(double)) ;
-  z_wts = (double *)calloc(ceil(dct->mri_source->depth/dct->res), sizeof(double)) ;
+  x_wts = (double *)calloc(ceil(dct->mri_source->width/dct->res),
+                           sizeof(double)) ;
+  y_wts = (double *)calloc(ceil(dct->mri_source->height/dct->res),
+                           sizeof(double)) ;
+  z_wts = (double *)calloc(ceil(dct->mri_source->depth/dct->res),
+                           sizeof(double)) ;
   if (x_wts == NULL || y_wts == NULL || z_wts == NULL)
     ErrorExit(ERROR_NOMEMORY, "DCTupdate(%d): allocation failed", dct->ncoef) ;
 
@@ -358,9 +388,24 @@ DCTupdate(DCT *dct)
     switch (i)
     {
     default:
-    case 0: wts = x_wts ; N = dct->mri_source->width ; inv = dct->x_inv ; fwd = dct->x ; break ;
-    case 1: wts = y_wts ; N = dct->mri_source->height ; inv = dct->y_inv ; fwd = dct->y ; break ;
-    case 2: wts = z_wts ; N = dct->mri_source->depth ; inv = dct->z_inv ; fwd = dct->z ;break ;
+    case 0:
+      wts = x_wts ;
+      N = dct->mri_source->width ;
+      inv = dct->x_inv ;
+      fwd = dct->x ;
+      break ;
+    case 1:
+      wts = y_wts ;
+      N = dct->mri_source->height ;
+      inv = dct->y_inv ;
+      fwd = dct->y ;
+      break ;
+    case 2:
+      wts = z_wts ;
+      N = dct->mri_source->depth ;
+      inv = dct->z_inv ;
+      fwd = dct->z ;
+      break ;
     }
     Ninv = ceil(N/dct->res) ;
     memset(inv, 0, Ninv*sizeof(inv[0])) ;
@@ -409,14 +454,17 @@ DCTupdate(DCT *dct)
   return(NO_ERROR) ;
 }
 static int
-soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_change_allowed)
+soap_bubble(double *in_vals,
+            double *ctrl,
+            double *out_vals,
+            int N,
+            double max_change_allowed)
 {
   double *tmp_vals, max_change, change, out_val, min_val, max_val ;
   int    iter, i, j, num ;
   
   tmp_vals = (double *)calloc(N, sizeof(double)) ;
   memmove(out_vals, in_vals, N*sizeof(double)) ;
-
 
   // fix first and last point to min and max index +- 1
   min_val = 1e8 ; max_val = -min_val ;
@@ -452,7 +500,9 @@ soap_bubble(double *in_vals, double *ctrl, double *out_vals, int N, double max_c
         out_vals[i] = tmp_vals[i] ;
         continue ;  // fixed point
       }
-      for (out_val = 0.0, num = 0, j = MAX(i-1,0) ; j <= MIN(i+1, N) ; j++, num++)
+      for (out_val = 0.0, num = 0, j = MAX(i-1,0) ;
+           j <= MIN(i+1, N) ;
+           j++, num++)
         out_val += tmp_vals[j] ;
       out_vals[i] = out_val / num ;
       change = fabs(out_vals[i] - tmp_vals[i]) ;

@@ -1,17 +1,16 @@
 /**
  * @file  fastmarching.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief fast marching algorithm
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Florent Segonne  
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/26 02:16:54 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.11 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -39,8 +37,19 @@ extern "C"
 #include "mrisurf.h"
 #include "diag.h"
 
-  MRI *MRIextractDistanceMap(MRI *mri_src, MRI *mri_dst,int label, float max_distance, int mode, MRI *mri_mask);
-  void MRISextractOutsideDistanceMap(MRIS *mris, MRI *mri_src, int label , int offset, float resolution, float max_distance);
+MRI *MRIextractDistanceMap(MRI *mri_src,
+                           MRI *mri_dst,
+                           int label,
+                           float max_distance,
+                           int mode,
+                           MRI *mri_mask);
+
+void MRISextractOutsideDistanceMap(MRIS *mris,
+                                   MRI *mri_src,
+                                   int label,
+                                   int offset,
+                                   float resolution,
+                                   float max_distance);
 
 #ifdef __cplusplus
 }
@@ -101,7 +110,9 @@ class HeapCompare : std::binary_function<stCoord, stCoord, bool>
     
     bool operator() (const stCoord &a, const stCoord &b) const
     {
-      return (sign * MRIFvox(mri,a.x,a.y,a.z) > sign * MRIFvox(mri,b.x,b.y,b.z));
+      return (sign * 
+              MRIFvox(mri,a.x,a.y,a.z) > sign * 
+              MRIFvox(mri,b.x,b.y,b.z));
     }
     
   };
@@ -500,7 +511,7 @@ public:
 
   void InitForOutsideMatch(MRI *mri_distance, MRI* _mri,int label)
   {
-    Real xv,yv,zv;
+    double xv,yv,zv;
     MRI *mri_seg=MRIalloc(width,height,depth,MRI_UCHAR);
     mapMRI_XYZ(mri,x,y,z)
     {

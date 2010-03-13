@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/02/02 19:38:07 $
- *    $Revision: 1.83 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:44 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -37,7 +37,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 #include "filter.h"
 #include "box.h"
 #include "region.h"
@@ -1061,7 +1061,7 @@ MRI2ndDirectionalDerivative(MRI *mri_src, MRI *mri_deriv,
 {
   int   x, y, z, dn, d1, d2 ;
   float deriv, xf, yf, zf, e1x, e1y, e1z, e2x, e2y, e2z, wt  = 1;
-  Real  val ;
+  double  val ;
 
   if (mri_deriv == NULL)
     mri_deriv = MRIcloneDifferentType(mri_src, MRI_FLOAT) ;
@@ -2844,7 +2844,7 @@ MRI *MRImaskedGaussianSmooth(MRI *src, MRI *binmask, float std, MRI *targ)
  */
 static void MRImodifySampledHeader(MRI *mri_src, MRI *mri_dst)
 {
-  Real c_r, c_a, c_s;
+  double c_r, c_a, c_s;
 
   if (!mri_dst)
     ErrorExit(ERROR_BADPARM, "dst volume must be given");
@@ -5581,7 +5581,7 @@ MRI *
 MRIxDerivative(MRI *mri_src, MRI *mri_dx)
 {
   int  x, y, z ;
-  Real dx ;
+  double dx ;
 
   if (mri_dx == NULL)
   {
@@ -5612,7 +5612,7 @@ MRI *
 MRIyDerivative(MRI *mri_src, MRI *mri_dy)
 {
   int  x, y, z ;
-  Real dy ;
+  double dy ;
 
   if (mri_dy == NULL)
   {
@@ -5639,7 +5639,7 @@ MRI *
 MRIzDerivative(MRI *mri_src, MRI *mri_dz)
 {
   int  x, y, z ;
-  Real dz ;
+  double dz ;
 
   if (mri_dz == NULL)
   {

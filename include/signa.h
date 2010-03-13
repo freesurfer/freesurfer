@@ -1,27 +1,16 @@
 /**
  * @file  signa.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief signa mri file format 
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Defines the sizes, image file offsets, and the header word
+ * offsets into the study, series, image and dss headers.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: G.E. Medical Systems, Gregory L. Meyers
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.5 $
- *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
- *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
- *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.6 $
  *
  */
 

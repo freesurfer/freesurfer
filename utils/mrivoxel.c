@@ -1,17 +1,16 @@
 /**
  * @file  mrivoxel.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief voxel utilities for MRI data structure
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/09/24 17:43:44 $
- *    $Revision: 1.10 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/13 01:32:46 $
+ *    $Revision: 1.11 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,20 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-/*
- *       FILE NAME:   mri.c
- *
- *       DESCRIPTION: utilities for MRI  data structure
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        1/8/97
- *
-*/
 
 /*-----------------------------------------------------
                     INCLUDE FILES
@@ -50,7 +37,7 @@
 #include "mri.h"
 #include "macros.h"
 #include "diag.h"
-#include "volume_io.h"
+#include "minc_volume_io.h"
 
 /*-----------------------------------------------------
                     MACROS AND CONSTANTS
@@ -448,7 +435,7 @@ MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0, int wsize)
   int     whalf, width, height, depth ;
   float   odx, ody, odz, len,
   d2I_dg2, xf, yf, zf, d ;
-  Real    val ;
+  double    val ;
 
   whalf = wsize/2 ;
   width = mri->width ;
@@ -468,7 +455,7 @@ MRIvoxelGradientDir2ndDerivative(MRI *mri, int x0, int y0, int z0, int wsize)
 
 
   /* second derivative of intensity in gradient direction */
-  MRIsampleVolume(mri, (Real)x0, (Real)y0, (Real)z0, &val) ;
+  MRIsampleVolume(mri, (double)x0, (double)y0, (double)z0, &val) ;
   d2I_dg2 = (wsize-1)*val ;
   for (d = 1 ; d <= whalf ; d++)
   {

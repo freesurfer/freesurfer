@@ -1,17 +1,16 @@
 /**
  * @file  mri_ca_statisticsVolumeHeader.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief i have no idea
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/13 01:32:40 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,7 +23,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 #ifndef StatisticsVolumeHeader_h
 #define StatisticsVolumeHeader_h
@@ -65,13 +63,19 @@ class CStatisticsVolumeHeader
 {
 
 public:
-  enum NMRAutoFixerLabelType { AFLTUnknown=0, AFLTNonWhite, AFLTWhite, AFLTEditedWhite, AFLTEditedNonWhite };
+  enum NMRAutoFixerLabelType { 
+    AFLTUnknown=0,
+    AFLTNonWhite,
+    AFLTWhite,
+    AFLTEditedWhite,
+    AFLTEditedNonWhite };
 
-
-  bool writeStatisticsVolumeInfoFile(string strStatisticsVolumePath, bool bEchoToStdOut=false)
+  bool writeStatisticsVolumeInfoFile(string strStatisticsVolumePath,
+                                     bool bEchoToStdOut=false)
   {
     CConfigFile statisticsVolumeInfoConfigFile;
-    // erase what is there since we may be updating the contents that were there
+    // erase what is there since we may 
+    // be updating the contents that were there
 
     if (bEchoToStdOut)
     {
@@ -81,29 +85,49 @@ public:
     {
       statisticsVolumeInfoConfigFile.init(strStatisticsVolumePath, ios::trunc);
     }
-    statisticsVolumeInfoConfigFile.writeSection("StatisticsVolumeInfo",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(nNumSubjects, "numberOfSubjects",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(nNumSlices, "numberOfSlices",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(nNumMeasures, "numberOfMeasures",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(nXDIM, "xdim",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(nYDIM, "ydim",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(strLabelLUTPath, "LabelLUT",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(fSliceThickness, "fSliceThickness",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(fSquarePixelSize, "fSquarePixelSize",bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.writeSection("StatisticsVolumeInfo",
+                                                bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(nNumSubjects,
+                                         "numberOfSubjects",
+                                         bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(nNumSlices,
+                                         "numberOfSlices",
+                                         bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(nNumMeasures,
+                                         "numberOfMeasures",
+                                         bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(nXDIM,"xdim",bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(nYDIM,"ydim",bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(strLabelLUTPath,
+                                         "LabelLUT",
+                                         bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(fSliceThickness,
+                                         "fSliceThickness",
+                                         bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(fSquarePixelSize,
+                                         "fSquarePixelSize",
+                                         bEchoToStdOut);
     statisticsVolumeInfoConfigFile.write(fStartX, "fStartX",bEchoToStdOut);
     statisticsVolumeInfoConfigFile.write(fEndX, "fEndX",bEchoToStdOut);
     statisticsVolumeInfoConfigFile.write(fStartY, "fStartY",bEchoToStdOut);
     statisticsVolumeInfoConfigFile.write(fEndY, "fEndY",bEchoToStdOut);
     statisticsVolumeInfoConfigFile.write(fStartZ, "fStartZ",bEchoToStdOut);
     statisticsVolumeInfoConfigFile.write(fEndZ, "fEndZ",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(strLabeledVolumeSourceType, "strLabeledVolumeSourceType",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.writeSection("TrainedSubjectsAndMeasures",bEchoToStdOut);
-    statisticsVolumeInfoConfigFile.write(arr2DstrTrainedScans, "",bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(strLabeledVolumeSourceType,
+                                         "strLabeledVolumeSourceType",
+                                         bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.writeSection("TrainedSubjectsAndMeasures",
+                                                bEchoToStdOut);
+    statisticsVolumeInfoConfigFile.write(arr2DstrTrainedScans,
+                                         "",
+                                         bEchoToStdOut);
 
     return(true);
   }
 
-  bool getStatisticsVolumeInfoFile(string strStatisticsVolumePath, string strDefaultLabelLUTPath="../LabelsAutoFixer.cfg")
+  bool getStatisticsVolumeInfoFile
+    (string strStatisticsVolumePath,
+     string strDefaultLabelLUTPath="../LabelsAutoFixer.cfg")
   {
     bool bReturnValue=true;
     CConfigFile statisticsVolumeInfoConfigFile;
@@ -128,24 +152,47 @@ public:
       strLabeledVolumeSourceType="NMRAutoFixer";
       enumLabeledVolumeSourceType=enumNMRAutoFixer;
 
-      statisticsVolumeInfoConfigFile.init(strStatisticsVolumePath, ios::nocreate);
-      statisticsVolumeInfoConfigFile.get(nNumSubjects, "StatisticsVolumeInfo", "numberOfSubjects");
-      statisticsVolumeInfoConfigFile.get(arr2DstrTrainedScans, "TrainedSubjectsAndMeasures", "");
-      statisticsVolumeInfoConfigFile.get(nNumSlices,"StatisticsVolumeInfo","numberOfSlices");
-      statisticsVolumeInfoConfigFile.get(nNumMeasures,"StatisticsVolumeInfo","numberOfMeasures");
+      statisticsVolumeInfoConfigFile.init(strStatisticsVolumePath,
+                                          ios::nocreate);
+      statisticsVolumeInfoConfigFile.get(nNumSubjects,
+                                         "StatisticsVolumeInfo",
+                                         "numberOfSubjects");
+      statisticsVolumeInfoConfigFile.get(arr2DstrTrainedScans,
+                                         "TrainedSubjectsAndMeasures", "");
+      statisticsVolumeInfoConfigFile.get(nNumSlices,
+                                         "StatisticsVolumeInfo",
+                                         "numberOfSlices");
+      statisticsVolumeInfoConfigFile.get(nNumMeasures,
+                                         "StatisticsVolumeInfo",
+                                         "numberOfMeasures");
       statisticsVolumeInfoConfigFile.get(nXDIM,"StatisticsVolumeInfo","xdim");
       statisticsVolumeInfoConfigFile.get(nYDIM,"StatisticsVolumeInfo","ydim");
-      statisticsVolumeInfoConfigFile.get(strLabelLUTPath,"StatisticsVolumeInfo","LabelLUT");
-      statisticsVolumeInfoConfigFile.get(fSliceThickness,"StatisticsVolumeInfo","fSliceThickness");
-      statisticsVolumeInfoConfigFile.get(fSquarePixelSize,"StatisticsVolumeInfo","fSquarePixelSize");
-      statisticsVolumeInfoConfigFile.get(fStartX,"StatisticsVolumeInfo","fStartX");
+      statisticsVolumeInfoConfigFile.get(strLabelLUTPath,
+                                         "StatisticsVolumeInfo",
+                                         "LabelLUT");
+      statisticsVolumeInfoConfigFile.get(fSliceThickness,
+                                         "StatisticsVolumeInfo",
+                                         "fSliceThickness");
+      statisticsVolumeInfoConfigFile.get(fSquarePixelSize,
+                                         "StatisticsVolumeInfo",
+                                         "fSquarePixelSize");
+      statisticsVolumeInfoConfigFile.get(fStartX,
+                                         "StatisticsVolumeInfo",
+                                         "fStartX");
       statisticsVolumeInfoConfigFile.get(fEndX,"StatisticsVolumeInfo","fEndX");
-      statisticsVolumeInfoConfigFile.get(fStartY,"StatisticsVolumeInfo","fStartY");
+      statisticsVolumeInfoConfigFile.get(fStartY,
+                                         "StatisticsVolumeInfo",
+                                         "fStartY");
       statisticsVolumeInfoConfigFile.get(fEndY,"StatisticsVolumeInfo","fEndY");
-      statisticsVolumeInfoConfigFile.get(fStartZ,"StatisticsVolumeInfo","fStartZ");
+      statisticsVolumeInfoConfigFile.get(fStartZ,
+                                         "StatisticsVolumeInfo",
+                                         "fStartZ");
       statisticsVolumeInfoConfigFile.get(fEndZ,"StatisticsVolumeInfo","fEndZ");
-      statisticsVolumeInfoConfigFile.get(strLabeledVolumeSourceType,"StatisticsVolumeInfo","strLabeledVolumeSourceType");
-      enumLabeledVolumeSourceType=stringToLabeledVolumeSourceType(strLabeledVolumeSourceType);
+      statisticsVolumeInfoConfigFile.get(strLabeledVolumeSourceType,
+                                         "StatisticsVolumeInfo",
+                                         "strLabeledVolumeSourceType");
+      enumLabeledVolumeSourceType=stringToLabeledVolumeSourceType
+        (strLabeledVolumeSourceType);
     }
     catch (char* s)
     {
@@ -169,7 +216,8 @@ public:
       enumLabeledVolumeSourceType=enumNMRAutoFixer;
     }
 
-    // extract the directory path from the strStatisticsVolumePath and use that for the directory for the statistics volume files
+    // extract the directory path from the strStatisticsVolumePath and use 
+    // that for the directory for the statistics volume files
     char cstrTemp[500];
     sprintf(cstrTemp,"%s",strStatisticsVolumePath.c_str());
     char* cstrStatisticsVolumeDirPath = strrchr(cstrTemp, '/');
@@ -183,12 +231,16 @@ public:
       strStatisticsVolumeDirPath=cstrTemp;
     }
 
-
-    // create an MRI structure so that we can map from the Talairach space Index coordinates to Talairach space RAS coordinates
-    pTalairachMRI=MRIallocHeader(1, 1, 1, MRI_UCHAR);  // contents are meaningless, except for the values needed by MRIvoxelToWorld
+    // create an MRI structure so that we can map from 
+    // the Talairach space Index coordinates to Talairach space RAS coordinates
+    pTalairachMRI=MRIallocHeader(1, 1, 1, MRI_UCHAR);
+    // contents are meaningless, except for the values 
+    // needed by MRIvoxelToWorld
     if (pTalairachMRI!=NULL)
     {
-      // Ripped this stuff out of mriio,c in corRead. Its ugly but dont know how else to get MRIworldToVoxel to work. Dont want to have dummy
+      // Ripped this stuff out of mriio,c in corRead. 
+      // Its ugly but dont know how else to get MRIworldToVoxel to work.
+      // Dont want to have dummy
       // COR-.info file lying around by itself confusing things on disk.
       // pTalairachMRI->slice_direction=MRI_CORONAL;
 
@@ -202,8 +254,6 @@ public:
       pTalairachMRI->xsize=fSquarePixelSize * 1000;
       pTalairachMRI->ysize=fSquarePixelSize * 1000;
       pTalairachMRI->zsize=fSliceThickness * 1000;
-
-
     }
     else
     {
@@ -254,16 +304,22 @@ public:
 
 
   // note this routine does NOT do bounds checking - this is done by the caller
-  bool nativeIndexToTalairachIndex(MRI* pNativeVolume,int nNiX, int nNiY, int nNiZ, float& fTiX, float& fTiY, float& fTiZ)
+  bool nativeIndexToTalairachIndex(MRI* pNativeVolume,
+                                   int nNiX, int nNiY, int nNiZ,
+                                   float& fTiX, float& fTiY, float& fTiZ)
   {
-    Real realTrX;
-    Real realTrY;
-    Real realTrZ;
-    MRIvoxelToTalairach(pNativeVolume, nNiX, nNiY, nNiZ, &realTrX, &realTrY, &realTrZ); // Index->TalRAS
-    Real realTiX;
-    Real realTiY;
-    Real realTiZ;
-    MRIworldToVoxel(pTalairachMRI,realTrX, realTrY, realTrZ, &realTiX, &realTiY, &realTiZ);  // RAS->Index
+    double realTrX;
+    double realTrY;
+    double realTrZ;
+    MRIvoxelToTalairach(pNativeVolume,
+                        nNiX, nNiY, nNiZ,
+                        &realTrX, &realTrY, &realTrZ); // Index->TalRAS
+    double realTiX;
+    double realTiY;
+    double realTiZ;
+    MRIworldToVoxel(pTalairachMRI,
+                    realTrX, realTrY, realTrZ,
+                    &realTiX, &realTiY, &realTiZ);  // RAS->Index
     fTiX=realTiX;
     fTiY=realTiY;
     fTiZ=realTiZ;
@@ -273,7 +329,9 @@ public:
 
 
   // note this routine does NOT do bounds checking - this is done by the caller
-  bool talairachIndexToNativeIndex(MRI* pNativeVolume,float fTiX, float fTiY, float fTiZ, float& fNiX, float& fNiY, float& fNiZ)
+  bool talairachIndexToNativeIndex(MRI* pNativeVolume,
+                                   float fTiX, float fTiY, float fTiZ,
+                                   float& fNiX, float& fNiY, float& fNiZ)
   {
     /* Strategy for transforming talairach index space to native index space
        -------------
@@ -302,14 +360,19 @@ public:
 
 
     // Make sure we use the same size as Real
-    Real realTrX;
-    Real realTrY;
-    Real realTrZ;
-    MRIvoxelToWorld(pTalairachMRI,fTiX,fTiY, fTiZ, &realTrX, &realTrY, &realTrZ);   // Tal Index -> Tal RAS
-    Real realNiX;
-    Real realNiY;
-    Real realNiZ;
-    MRItalairachToVoxel(pNativeVolume,realTrX,realTrY,realTrZ, &realNiX, &realNiY, &realNiZ); // Tal RAS -> Native Index
+    double realTrX;
+    double realTrY;
+    double realTrZ;
+    MRIvoxelToWorld(pTalairachMRI,
+                    fTiX,fTiY, fTiZ,
+                    &realTrX, &realTrY, &realTrZ);   // Tal Index -> Tal RAS
+    double realNiX;
+    double realNiY;
+    double realNiZ;
+    MRItalairachToVoxel(pNativeVolume,
+                        realTrX,realTrY,realTrZ,
+                        &realNiX, &realNiY, &realNiZ);
+                        // Tal RAS -> Native Index
     fNiX=realNiX;
     fNiY=realNiY;
     fNiZ=realNiZ;
@@ -318,7 +381,9 @@ public:
 
 
 
-  void mapPrevNext(float fCoordinate, int nMin, int nMax, float& fPrev, float& fNext)
+  void mapPrevNext(float fCoordinate,
+                   int nMin, int nMax,
+                   float& fPrev, float& fNext)
   {
     fPrev=max<int>(nMin,floor(fCoordinate));
     fNext=min<int>(nMax-1,ceil(fCoordinate));
@@ -337,7 +402,8 @@ public:
 
   float round(float fValue)
   {
-    return( (floor(fValue - 0.5) == floor(fValue) ) ? ceil(fValue) : floor(fValue));
+    return( (floor(fValue - 0.5) == floor(fValue) ) ? 
+            ceil(fValue) : floor(fValue));
   }
 
   bool inBounds(int nXMax, int nYMax, int nZMax, float fX, float fY, float fZ)
@@ -351,9 +417,13 @@ public:
     return(true);
   }
 
-  // find8ClosestVoxels: The returned canonical points must have the order of the points preserved since InterpolateLinear depends on the order to compute the
+  // find8ClosestVoxels: The returned canonical points must have 
+  // the order of the points preserved since InterpolateLinear depends
+  // on the order to compute the
   // interpolated  value
-  bool find8ClosestVoxels(float fTiX, float fTiY, float fTiZ, TypeMatrixFloat& vectorCanonicalPointsForInterpolation)
+  bool find8ClosestVoxels
+    (float fTiX, float fTiY, float fTiZ,
+     TypeMatrixFloat& vectorCanonicalPointsForInterpolation)
   {
     vectorCanonicalPointsForInterpolation.clear();
     float fTiXNext, fTiXPrev, fTiYNext, fTiYPrev,fTiZNext, fTiZPrev;
@@ -405,9 +475,10 @@ public:
     return(true);
   }
 
-  float interpolateLinear(float fTiX, float fTiY, float fTiZ,
-                          const TypeMatrixFloat& vectorCanonicalPointsForInterpolation,
-                          const TypeVectorFloat& vectorValueAtTriplets, bool bDebug=false)
+  float interpolateLinear
+    (float fTiX, float fTiY, float fTiZ,
+     const TypeMatrixFloat& vectorCanonicalPointsForInterpolation,
+     const TypeVectorFloat& vectorValueAtTriplets, bool bDebug=false)
   {
     float fInterpolatedValue=0.0;
 
@@ -452,8 +523,6 @@ public:
     return fInterpolatedValue;
   }
 
-
-
   // Returns a map from label (uchar) to fractional volume that the given canonical space voxel is labeled with the label
   //  (labels which do not label the voxel are not included in the map)
   // Along with each label is a list of the Native space index coordinates of which had that label. This is used when computing the measurement
@@ -488,7 +557,6 @@ public:
     float arr1DZPoints[8];
     const float AREA_FACTOR = 0.4999;
 
-
     float fNiX, fNiY, fNiZ;
     talairachIndexToNativeIndex(pLabeledVolume, fTiX, fTiY, fTiZ, fNiX, fNiY, fNiZ);
     if (!inBounds(pLabeledVolume->width, pLabeledVolume->height, pLabeledVolume->depth, fNiX, fNiY, fNiZ))
@@ -521,9 +589,6 @@ public:
           cout << cstrMsg << "\n";
         }
       }
-
-
-
 
       const float MIN_NATIVE_INDEX_X=0;
       const float MAX_NATIVE_INDEX_X=pLabeledVolume->width-1;
@@ -584,7 +649,6 @@ public:
         }
         cout << "Tal voxel is labeled:\n";
       }
-
 
       int nNumNiVoxelsInTightestBoundingRectanguloid=(int)((fMaxX-fMinX+1)*(fMaxY-fMinY+1)*(fMaxZ-fMinZ+1));
       if  (nNumNiVoxelsInTightestBoundingRectanguloid<=0)   nNumNiVoxelsInTightestBoundingRectanguloid=1;
@@ -682,7 +746,5 @@ public:
   LabeledVolumeSourceType enumLabeledVolumeSourceType;
 
 };
-
-
 
 #endif
