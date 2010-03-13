@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/03/13 22:27:10 $
-#    $Revision: 1.289 $
+#    $Author: mreuter $
+#    $Date: 2010/03/13 23:27:58 $
+#    $Revision: 1.290 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.289 2010/03/13 22:27:10 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.290 2010/03/13 23:27:58 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -150,7 +150,7 @@ set DoAparcStatsDiff = 0; # if 1, then run aparcstatsdiff
 set diffsubj = (); # the subject used by asegstatsdiff and aparcstatsdiff
 set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
 set DoRobustMotionCor = 0; # if 1, then use mri_robust_template for motion cor
-set mc_robust_template_avg_arg = 0; # when using mri_robust_template for motion
+set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
                      # correction, construct template from: 0 Mean, 1 Median 
 
 # Longitudinal processing:
@@ -913,7 +913,7 @@ if($DoMotionCor) then
       set cmd = (mri_robust_template --mov ${RunList})
       set cmd = ($cmd --average ${mc_robust_template_avg_arg})
       set cmd = ($cmd --template ${rawavg})
-      set cmd = ($cmd --sat 4.685)
+      set cmd = ($cmd --satit --iscale --subsample 200)
     else
       set cmd = (mri_motion_correct.fsl -o $rawavg -wild $RunList)
     endif
