@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2010/03/12 23:13:30 $
-#    $Revision: 1.288 $
+#    $Author: nicks $
+#    $Date: 2010/03/13 22:27:10 $
+#    $Revision: 1.289 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.288 2010/03/12 23:13:30 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.289 2010/03/13 22:27:10 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -913,6 +913,7 @@ if($DoMotionCor) then
       set cmd = (mri_robust_template --mov ${RunList})
       set cmd = ($cmd --average ${mc_robust_template_avg_arg})
       set cmd = ($cmd --template ${rawavg})
+      set cmd = ($cmd --sat 4.685)
     else
       set cmd = (mri_motion_correct.fsl -o $rawavg -wild $RunList)
     endif
@@ -3226,6 +3227,9 @@ while( $#argv != 0 )
     case "-robust-motioncor":
       set DoMotionCor = 1;
       set DoRobustMotionCor = 1;
+      breaksw
+    case "-norobust-motioncor":
+      set DoRobustMotionCor = 0;
       breaksw
 
     case "-talairach":
