@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/05/21 21:45:14 $
-#    $Revision: 1.4 $
+#    $Date: 2010/03/13 05:56:44 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2008,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_gifti,v 1.4 2008/05/21 21:45:14 nicks Exp $'
+set VERSION='$Id: test_gifti,v 1.5 2010/03/13 05:56:44 nicks Exp $'
 
 umask 002
 
@@ -119,7 +119,7 @@ endif
 
 # create freesurfer ascii functional scalar file from gifti
 set cmd=(./mris_convert \
-    -f rh.colin.func.gii \
+    -c rh.colin.func.gii \
     rh.colin.fudicial.gii \
     rh.colin.func.mgh)
 echo ""
