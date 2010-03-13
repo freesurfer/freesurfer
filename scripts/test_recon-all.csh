@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/01/15 04:16:47 $
-#    $Revision: 1.32 $
+#    $Date: 2010/03/13 17:54:16 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2007-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -49,7 +49,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.32 2010/01/15 04:16:47 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.33 2010/03/13 17:54:16 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -577,32 +577,45 @@ foreach statfile ($STATS_FILES)
   set REF_STAT   = $SUBJECTS_DIR/ref_subj/stats/$statfile
   set TST_STAT   = $SUBJECTS_DIR/$TEST_SUBJ/stats/$statfile
   set STATSDIFFF = $LOG_DIR/diff-$statfile.txt
+
+  # grep-out stuff that legitimately changes from run-to-run
   set cmd1a=(grep -v "TimeStamp" $REF_STAT)
   set cmd1b=(grep -v "CreationTime" $SUBJECTS_DIR/ref.stats)
   set cmd1c=(grep -v "cvs_version" $SUBJECTS_DIR/ref.stats)
   set cmd1d=(grep -v "${REF_SUBJ}" $SUBJECTS_DIR/ref.stats)
   set cmd1e=(grep -v "hostname" $SUBJECTS_DIR/ref.stats)
   set cmd1f=(grep -v "SUBJECTS_DIR" $SUBJECTS_DIR/ref.stats)
+  set cmd1g=(grep -v "machine" $SUBJECTS_DIR/ref.stats)
+  set cmd1h=(grep -v "ColorTable" $SUBJECTS_DIR/ref.stats)
   echo $cmd1a
   echo $cmd1b
   echo $cmd1c
   echo $cmd1d
   echo $cmd1e
   echo $cmd1f
+  echo $cmd1g
+  echo $cmd1h
+
   set cmd2a=(grep -v "TimeStamp" $TST_STAT)
   set cmd2b=(grep -v "CreationTime" $SUBJECTS_DIR/tst.stats)
   set cmd2c=(grep -v "cvs_version" $SUBJECTS_DIR/tst.stats)
   set cmd2d=(grep -v "${TEST_SUBJ}" $SUBJECTS_DIR/tst.stats)
   set cmd2e=(grep -v "hostname" $SUBJECTS_DIR/tst.stats)
   set cmd2f=(grep -v "SUBJECTS_DIR" $SUBJECTS_DIR/tst.stats)
+  set cmd2g=(grep -v "machine" $SUBJECTS_DIR/ref.stats)
+  set cmd2h=(grep -v "ColorTable" $SUBJECTS_DIR/ref.stats)
   echo $cmd2a
   echo $cmd2b
   echo $cmd2c
   echo $cmd2d
   echo $cmd2e
   echo $cmd2f
+  echo $cmd2g
+  echo $cmd2h
+
   set cmd3=(diff $SUBJECTS_DIR/ref.$statfile $SUBJECTS_DIR/tst.$statfile)
   echo $cmd3
+
   if ($RunIt) then
     if (-e $STATSDIFFF) rm -f $STATSDIFFF
     $cmd1a >& $SUBJECTS_DIR/ref.stats.tmp
@@ -617,6 +630,11 @@ foreach statfile ($STATS_FILES)
     mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.stats
     $cmd1f >& $SUBJECTS_DIR/ref.stats.tmp
     mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.$statfile
+    $cmd1g >& $SUBJECTS_DIR/ref.stats.tmp
+    mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.$statfile
+    $cmd1h >& $SUBJECTS_DIR/ref.stats.tmp
+    mv $SUBJECTS_DIR/ref.stats.tmp $SUBJECTS_DIR/ref.$statfile
+
     $cmd2a >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
     $cmd2b >& $SUBJECTS_DIR/tst.stats.tmp
@@ -629,6 +647,11 @@ foreach statfile ($STATS_FILES)
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.stats
     $cmd2f >& $SUBJECTS_DIR/tst.stats.tmp
     mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.$statfile
+    $cmd2g >& $SUBJECTS_DIR/tst.stats.tmp
+    mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.$statfile
+    $cmd2h >& $SUBJECTS_DIR/tst.stats.tmp
+    mv $SUBJECTS_DIR/tst.stats.tmp $SUBJECTS_DIR/tst.$statfile
+
     $cmd3 >& $STATSDIFFF
     set stats_diff_status=$status
     if ($stats_diff_status != 0) then
