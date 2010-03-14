@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2010/03/14 00:44:00 $
-#    $Revision: 1.291 $
+#    $Author: nicks $
+#    $Date: 2010/03/14 17:41:59 $
+#    $Revision: 1.292 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.291 2010/03/14 00:44:00 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.292 2010/03/14 17:41:59 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -880,6 +880,7 @@ if($DoMotionCor) then
       |& tee -a $LF
     echo "See also: http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Conversion" \
       |& tee -a $LF
+    goto error_exit;
   else
     if ($RunIt) then
       echo "Found $#RunList runs" |& tee -a $LF
@@ -4457,6 +4458,9 @@ check_params:
     popd > /dev/null
 
     set subjdir = $SUBJECTS_DIR/$subjid
+    set cmd = (mkdir -p ${subjdir})
+    echo "\n $cmd \n"
+    $cmd
 
     #------------ Longitudinal -----------------------------------#
     if($longitudinal) then
