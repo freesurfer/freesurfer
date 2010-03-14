@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/14 17:41:59 $
-#    $Revision: 1.292 $
+#    $Date: 2010/03/14 18:06:19 $
+#    $Revision: 1.293 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.292 2010/03/14 17:41:59 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.293 2010/03/14 18:06:19 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -911,18 +911,34 @@ if($DoMotionCor) then
   # Actually perform the motion correction -- creates rawavg
   if($#RunList > 1) then
     if($DoRobustMotionCor) then
-      set cmd = (mri_robust_template --mov ${RunList})
+      set cmd = (mri_robust_template)
+      set cmd = ($cmd --mov ${RunList})
       set cmd = ($cmd --average ${mc_robust_template_avg_arg})
       set cmd = ($cmd --template ${rawavg})
-      set cmd = ($cmd --satit --inittp 1 --fixtp --noit --iscale --subsample 200)
+      set cmd = ($cmd --satit)
+      set cmd = ($cmd --inittp 1)
+      set cmd = ($cmd --fixtp)
+      set cmd = ($cmd --noit)
+      set cmd = ($cmd --iscale)
+      set cmd = ($cmd --subsample 200)
     else
+      # use FSL's flirt to do motion correction (averaging of runs)
       set cmd = (mri_motion_correct.fsl -o $rawavg -wild $RunList)
     endif
     echo "#-----------------------------------------------"
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
-      $fs_time $cmd |& tee -a $LF
+      if($DoRobustMotionCor) then
+        set MRTLF = ${subjdir}/mri/mri_robust_template.log
+        if(-e $MRTLF) mv $MRTLF $MRTLF.old
+        echo "--------------------------------------------------------------"
+        echo "mri_robust_template logfile is $MRTLF" |& tee -a $LF
+        echo "--------------------------------------------------------------"
+        $fs_time $cmd |& tee -a $MRTLF
+      else
+        $fs_time $cmd |& tee -a $LF
+      endif
       if($status) goto error_exit;
       echo $cmd > $touchdir/motion_correct.touch
     endif
