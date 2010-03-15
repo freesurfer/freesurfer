@@ -3,13 +3,13 @@
  * @brief program to find all edits made to a subject and write out
  *    a .mgz volume summarizing them.
  *
- */
-/*
+ * combines all the edits made to various volumes during the recon
+ * stream and writes them into a single volume with different labels.
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/04 20:12:32 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2010/03/15 20:13:10 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,7 +72,7 @@ main(int argc, char *argv[]) {
   MRI          *mri, *mri_edits, *mri_aseg_auto ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compile_edits.c,v 1.2 2010/01/04 20:12:32 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compile_edits.c,v 1.3 2010/03/15 20:13:10 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -260,12 +260,9 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
-  printf("usage: %s [options] <inverse operator> <EEG/MEG data file>",
+  printf("usage: %s [options] <subject name> <output volume>",
          Progname) ;
-  printf(
-    "\tf <f low> <f hi> - apply specified filter (not implemented yet)\n"
-  );
-  printf("\tn - noise-sensitivity normalize inverse (default=1)") ;
+  printf("program to create a single volume showing all the volumetric edits made to a subject\n") ;
   exit(code) ;
 }
 
