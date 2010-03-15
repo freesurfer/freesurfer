@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/12 21:32:13 $
- *    $Revision: 1.60 $
+ *    $Date: 2010/03/15 03:06:43 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -387,6 +387,7 @@ void LayerMRI::UpdateOpacity()
     m_sliceActor2D[i]->SetOpacity( GetProperties()->GetOpacity() );
     m_sliceActor3D[i]->SetOpacity( GetProperties()->GetOpacity() );
   }
+  m_actorContour->GetProperty()->SetOpacity( GetProperties()->GetOpacity() );
 }
 
 void LayerMRI::UpdateColorMap ()
