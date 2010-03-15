@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/14 18:06:19 $
-#    $Revision: 1.293 $
+#    $Date: 2010/03/15 19:17:29 $
+#    $Revision: 1.294 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.293 2010/03/14 18:06:19 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.294 2010/03/15 19:17:29 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -149,7 +149,7 @@ set DoAsegStatsDiff = 0; # if 1, then run asegstatsdiff
 set DoAparcStatsDiff = 0; # if 1, then run aparcstatsdiff
 set diffsubj = (); # the subject used by asegstatsdiff and aparcstatsdiff
 set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
-set DoRobustMotionCor = 0; # if 1, then use mri_robust_template for motion cor
+set DoRobustMotionCor = 1; # if 1, then use mri_robust_template for motion cor
 set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
                      # correction, construct template from: 0 Mean, 1 Median 
 
@@ -913,7 +913,7 @@ if($DoMotionCor) then
     if($DoRobustMotionCor) then
       set cmd = (mri_robust_template)
       set cmd = ($cmd --mov ${RunList})
-      set cmd = ($cmd --average ${mc_robust_template_avg_arg})
+      set cmd = ($cmd --average 1)
       set cmd = ($cmd --template ${rawavg})
       set cmd = ($cmd --satit)
       set cmd = ($cmd --inittp 1)
@@ -4474,9 +4474,11 @@ check_params:
     popd > /dev/null
 
     set subjdir = $SUBJECTS_DIR/$subjid
-    set cmd = (mkdir -p ${subjdir})
-    echo "\n $cmd \n"
-    $cmd
+    if( ! -e $subjdir) then
+      set cmd = (mkdir -p ${subjdir})
+      echo "\n $cmd \n"
+      $cmd
+    endif
 
     #------------ Longitudinal -----------------------------------#
     if($longitudinal) then
