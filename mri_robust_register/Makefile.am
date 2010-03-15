@@ -27,8 +27,20 @@ mri_gradient_info_SOURCES=mri_gradient_info.cpp
 mri_gradient_info_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_gradient_info_LDFLAGS=$(OS_LDFLAGS)
 
+# trick to get test data into the build directory
+foo_SOURCES=
+foo:
+	if ! test -f "$(top_builddir)/mri_robust_register/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mri_robust_register/testdata.tar.gz \
+					$(top_builddir)/mri_robust_register/; fi;
+
+check_PROGRAMS=foo
+
+TESTS=test_mri_robust_template
+
 EXTRA_DIST=Regression.h Registration.h MultiRegistration.h Quaternion.h \
-	CostFunctions.h RobustGaussian.h RegPowell.h MyMatrix.h MyMRI.h
+	CostFunctions.h RobustGaussian.h RegPowell.h MyMatrix.h MyMRI.h \
+	testdata.tar.gz
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
