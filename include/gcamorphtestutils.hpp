@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 17:11:25 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/16 17:49:51 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -96,8 +96,11 @@ public:
   //! Constructor fills in the type map
   GCAMorphUtils( void );
 
-  //! Writes out a GCAM
+  //! Writes out a GCAM with one input
   void Write( const GCAM* src, std::string fName ) const;
+
+  //! Reads in a GCAM with one input
+  void Read( GCAM** dst, std::string fName ) const;
 
 private:
   
