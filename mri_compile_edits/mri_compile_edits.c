@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/16 23:38:12 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/16 23:52:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA).
@@ -74,11 +74,11 @@ main(int argc, char *argv[])
   // default output file name:
   out_fname = strcpyalloc("edits.mgz");
 
- /* rkt: check for and handle version tag */
+  /* rkt: check for and handle version tag */
   nargs = handle_version_option
-          (argc, argv,
-           "$Id: mri_compile_edits.c,v 1.4 2010/03/16 23:38:12 nicks Exp $",
-           "$Name:  $");
+    (argc, argv,
+     "$Id: mri_compile_edits.c,v 1.5 2010/03/16 23:52:58 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -104,9 +104,9 @@ main(int argc, char *argv[])
     cp = getenv("SUBJECTS_DIR") ;
     if (cp == NULL)
       ErrorExit
-      (ERROR_BADPARM,
-       "%s: SUBJECTS_DIR must be defined in the env or on cmdline "
-       "with -sdir", Progname) ;
+        (ERROR_BADPARM,
+         "%s: SUBJECTS_DIR must be defined in the env or on cmdline "
+         "with -sdir", Progname) ;
     strcpy(sdir, cp) ;
   }
 
@@ -124,7 +124,7 @@ main(int argc, char *argv[])
   mri = MRIread(fname) ;
   if (mri)
   {
-    mri_edits = MRIclone(mri, NULL) ;
+    if(NULL == mri_edits) mri_edits = MRIclone(mri, NULL) ;
     int edits = MRIsetVoxelsWithValue(mri,
                                       mri_edits,
                                       WM_EDITED_OFF_VAL,
@@ -146,6 +146,7 @@ main(int argc, char *argv[])
   mri = MRIread(fname) ;
   if (mri)
   {
+    if(NULL == mri_edits) mri_edits = MRIclone(mri, NULL) ;
     int edits = MRIsetVoxelsWithValue(mri,
                                       mri_edits,
                                       WM_EDITED_OFF_VAL,
@@ -166,6 +167,7 @@ main(int argc, char *argv[])
   mri = MRIread(fname) ;
   if (mri)
   {
+    if(NULL == mri_edits) mri_edits = MRIclone(mri, NULL) ;
     int edits = MRIsetVoxelsWithValue(mri,
                                       mri_edits,
                                       WM_EDITED_OFF_VAL,
@@ -186,6 +188,7 @@ main(int argc, char *argv[])
   mri = MRIread(fname) ;
   if (mri)
   {
+    if(NULL == mri_edits) mri_edits = MRIclone(mri, NULL) ;
     int edits = MRIsetVoxelsWithValue(mri,
                                       mri_edits,
                                       WM_EDITED_OFF_VAL,
@@ -207,6 +210,7 @@ main(int argc, char *argv[])
   mri = MRIread(fname) ;
   if (mri)
   {
+    if(NULL == mri_edits) mri_edits = MRIclone(mri, NULL) ;
     sprintf(fname, "%s/aseg.auto.mgz", mdir) ;
     mri_aseg_auto = MRIread(fname) ;
     if (mri_aseg_auto)
@@ -223,96 +227,99 @@ main(int argc, char *argv[])
     }
   }
 
-  mri_edits->ct = CTABalloc(CTAB_ENTRIES) ;
-  strcpy (mri_edits->fname, "mri_compile_edits");
-  for (i = 0 ; i < CTAB_ENTRIES ; i++)
+  if (mri_edits)
   {
-    switch (i)
+    mri_edits->ct = CTABalloc(CTAB_ENTRIES) ;
+    strcpy (mri_edits->fname, "mri_compile_edits");
+    for (i = 0 ; i < CTAB_ENTRIES ; i++)
     {
-    case EDIT_WM_OFF:
-      name = "wm-OFF" ;
-      r = 0 ;
-      g = 0 ;
-      b = 255 ;
-      break ;
-    case EDIT_WM_ON:
-      name = "wm-ON" ;
-      r = 255 ;
-      g = 0 ;
-      b = 0 ;
-      break ;
-    case EDIT_BRAIN_OFF:
-      name = "brain-OFF" ;
-      r = 0 ;
-      g = 255 ;
-      b = 255 ;
-      break ;
-    case EDIT_BRAIN_ON:
-      name = "brain-ON" ;
-      r = 255 ;
-      g = 255 ;
-      b = 0 ;
-      break ;
-    case EDIT_BRAINMASK_OFF:
-      name = "brainmask-OFF" ;
-      r = 0 ;
-      g = 64 ;
-      b = 255 ;
-      break ;
-    case EDIT_BRAINMASK_ON:
-      name = "brainmask-ON" ;
-      r = 255 ;
-      g = 26 ;
-      b = 0 ;
-      break ;
-    case EDIT_FINALSURFS_OFF:
-      name = "brain.finalsurf-OFF" ;
-      r = 0 ;
-      g = 128 ;
-      b = 255 ;
-      break ;
-    case EDIT_FINALSURFS_ON:
-      name = "brain.finalsurfs-ON" ;
-      r = 255 ;
-      g = 128 ;
-      b = 0 ;
-      break ;
-    case EDIT_ASEG_CHANGED:
-      name = "aseg-CHANGED" ;
-      r = 255 ;
-      g = 255 ;
-      b = 128 ;
-      break ;
-    default:
-      continue ;
+      switch (i)
+      {
+      case EDIT_WM_OFF:
+        name = "wm-OFF" ;
+        r = 0 ;
+        g = 0 ;
+        b = 255 ;
+        break ;
+      case EDIT_WM_ON:
+        name = "wm-ON" ;
+        r = 255 ;
+        g = 0 ;
+        b = 0 ;
+        break ;
+      case EDIT_BRAIN_OFF:
+        name = "brain-OFF" ;
+        r = 0 ;
+        g = 255 ;
+        b = 255 ;
+        break ;
+      case EDIT_BRAIN_ON:
+        name = "brain-ON" ;
+        r = 255 ;
+        g = 255 ;
+        b = 0 ;
+        break ;
+      case EDIT_BRAINMASK_OFF:
+        name = "brainmask-OFF" ;
+        r = 0 ;
+        g = 64 ;
+        b = 255 ;
+        break ;
+      case EDIT_BRAINMASK_ON:
+        name = "brainmask-ON" ;
+        r = 255 ;
+        g = 26 ;
+        b = 0 ;
+        break ;
+      case EDIT_FINALSURFS_OFF:
+        name = "brain.finalsurf-OFF" ;
+        r = 0 ;
+        g = 128 ;
+        b = 255 ;
+        break ;
+      case EDIT_FINALSURFS_ON:
+        name = "brain.finalsurfs-ON" ;
+        r = 255 ;
+        g = 128 ;
+        b = 0 ;
+        break ;
+      case EDIT_ASEG_CHANGED:
+        name = "aseg-CHANGED" ;
+        r = 255 ;
+        g = 255 ;
+        b = 128 ;
+        break ;
+      default:
+        continue ;
+      }
+
+      strcpy(mri_edits->ct->entries[i]->name, name) ;
+      mri_edits->ct->entries[i]->ri = r ;
+      mri_edits->ct->entries[i]->gi = g ;
+      mri_edits->ct->entries[i]->bi = b ;
+      mri_edits->ct->entries[i]->ai = 255;
+
+      /* Now calculate the float versions. */
+      mri_edits->ct->entries[i]->rf =
+        (float)mri_edits->ct->entries[i]->ri / 255.0;
+      mri_edits->ct->entries[i]->gf =
+        (float)mri_edits->ct->entries[i]->gi / 255.0;
+      mri_edits->ct->entries[i]->bf =
+        (float)mri_edits->ct->entries[i]->bi / 255.0;
+      mri_edits->ct->entries[i]->af =
+        (float)mri_edits->ct->entries[i]->ai / 255.0;
     }
-
-    strcpy(mri_edits->ct->entries[i]->name, name) ;
-    mri_edits->ct->entries[i]->ri = r ;
-    mri_edits->ct->entries[i]->gi = g ;
-    mri_edits->ct->entries[i]->bi = b ;
-    mri_edits->ct->entries[i]->ai = 255;
-
-    /* Now calculate the float versions. */
-    mri_edits->ct->entries[i]->rf =
-      (float)mri_edits->ct->entries[i]->ri / 255.0;
-    mri_edits->ct->entries[i]->gf =
-      (float)mri_edits->ct->entries[i]->gi / 255.0;
-    mri_edits->ct->entries[i]->bf =
-      (float)mri_edits->ct->entries[i]->bi / 255.0;
-    mri_edits->ct->entries[i]->af =
-      (float)mri_edits->ct->entries[i]->ai / 255.0;
   }
 
   // recon-all -show-edits greps on this text, so dont change it
-  if (nedits)
+  if (nedits && mri_edits)
   {
     printf("%d mri_compile_edits_found, saving results to %s\n",
            nedits, out_fname) ;
     MRIwrite(mri_edits, out_fname);
     printf("Edits can be viewed with command:\n");
     printf("tkmedit %s T1.mgz -segmentation %s\n",subject,out_fname);
-  }    
+  }
   else
   {
     printf("0 mri_compile_edits_found\n") ;
@@ -324,10 +331,10 @@ main(int argc, char *argv[])
 
 
 /*----------------------------------------------------------------------
-            Parameters:
+  Parameters:
 
-           Description:
-----------------------------------------------------------------------*/
+  Description:
+  ----------------------------------------------------------------------*/
 static int
 get_option(int argc, char *argv[])
 {
@@ -342,26 +349,26 @@ get_option(int argc, char *argv[])
     printf("using %s as SUBJECTS_DIR\n", sdir) ;
   }
   else switch (toupper(*option))
-    {
-    case '?':
-    case 'U':
-      usage_exit(0) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  {
+  case '?':
+  case 'U':
+    usage_exit(0) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
 
 
 /*----------------------------------------------------------------------
-            Parameters:
+  Parameters:
 
-           Description:
-----------------------------------------------------------------------*/
+  Description:
+  ----------------------------------------------------------------------*/
 static void
 usage_exit(int code)
 {
