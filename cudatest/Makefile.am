@@ -22,7 +22,8 @@ NVCCFLAGS += -g -arch sm_13 --ptxas-options=-v
 
 bin_PROGRAMS = gcamCompare\
                conv1d_test conv1d_test_cuda\
-               convgaussian_test convgaussian_test_cuda
+               convgaussian_test convgaussian_test_cuda\
+               gcam_cmp_test gcam_cmp_test_cuda
 
 
 gcamCompare_SOURCES = gcamCompare.cpp
@@ -52,7 +53,6 @@ convgaussian_test_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_
 convgaussian_test_LDFLAGS=$(OS_LDFLAGS)
 
 
-
 convgaussian_test_cuda_SOURCES = convgaussian_test.cpp
 convgaussian_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
 convgaussian_test_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
@@ -61,6 +61,23 @@ convgaussian_test_cuda_LDFLAGS = $(OS_LDFLAGS)
 convgaussian_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(LIBTOOLFLAGS) --mode=link $(CCLD) $(convgaussian_test_cuda_CFLAGS) \
         $(CFLAGS) $(convgaussian_test_cuda_LDFLAGS) $(LDFLAGS) -o $@
+
+# --
+
+gcam_cmp_test_SOURCES = gcam_cmp_test.cpp
+gcam_cmp_test_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LIB)
+gcam_cmp_test_LDFLAGS=$(OS_LDFLAGS)
+
+
+gcam_cmp_test_cuda_SOURCES = gcam_cmp_test.cpp
+gcam_cmp_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
+gcam_cmp_test_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_cmp_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
+gcam_cmp_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
+gcam_cmp_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(gcam_cmp_test_cuda_CFLAGS) \
+        $(CFLAGS) $(gcam_cmp_test_cuda_LDFLAGS) $(LDFLAGS) -o $@
+
 
 
 endif
