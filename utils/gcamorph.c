@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 17:34:32 $
- *    $Revision: 1.168 $
+ *    $Date: 2010/03/16 18:20:11 $
+ *    $Revision: 1.169 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1826,7 +1826,7 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 static float ***last_sse = NULL;
 #endif
 
-#define GCAM_LLENERGY_OUTPUT 1
+#define GCAM_LLENERGY_OUTPUT 0
 const unsigned int gcamLLEoutputFreq = 10;
 
 double
