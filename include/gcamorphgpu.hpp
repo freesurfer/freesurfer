@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 18:28:23 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/03/16 16:04:07 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,8 +46,12 @@ namespace GPU {
 	one 'input' in the GC1D structure
       */
     public:
-      //! Matches x, y and z in GCAmorph
-      VolumeGPU<float3> d_r;
+      //! Matches x in GCAmorph
+      VolumeGPU<float> d_rx;
+      //! Matches y in GCAmorph
+      VolumeGPU<float> d_ry;
+      //! Matches z in GCAmorph
+      VolumeGPU<float> d_rz;
       //! Matches invalid flag in GCAmorph
       VolumeGPU<char> d_invalid;
       //! Matches orig_area field in GCAmorph
@@ -71,7 +75,9 @@ namespace GPU {
       // Constructors & Destructor
 
       //! Default constructor
-      GCAmorphGPU( void ) : d_r(),
+      GCAmorphGPU( void ) : d_rx(),
+			    d_ry(),
+			    d_rz(),
 			    d_invalid(),
 			    d_area(),
 			    d_origArea(),

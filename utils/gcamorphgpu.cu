@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 18:28:20 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/03/16 16:04:03 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,13 @@
 #include "gcamorphgpu.hpp"
 
 
+//! Texture reference for rx
+texture<float,3,cudaReadModeElementType> dt_rx;
+//! Texture reference for rx
+texture<float,3,cudaReadModeElementType> dt_ry;
+//! Texture reference for rx
+texture<float,3,cudaReadModeElementType> dt_rz;
+
 
 // ==============================================================
 
@@ -47,9 +54,11 @@ namespace GPU {
 	Aborts the program if the check fails
       */
 
-      const dim3 myDims = this->d_r.GetDims();
+      const dim3 myDims = this->d_rx.GetDims();
 
-      bool good = ( myDims == this->d_invalid.GetDims() );
+      bool good = ( myDims == this->d_ry.GetDims() );
+      good = ( myDims == this->d_rz.GetDims() );
+      good = ( myDims == this->d_invalid.GetDims() );
       good = ( good && ( myDims == this->d_area.GetDims() ) );
       good = ( good && ( myDims == this->d_origArea.GetDims() ) );
       good = ( good && ( myDims == this->d_area1.GetDims() ) );
@@ -80,7 +89,7 @@ namespace GPU {
       this->CheckIntegrity();
 
       // See if we can re-use existing allocation
-      if( dims == this->d_r.GetDims() ) {
+      if( dims == this->d_rx.GetDims() ) {
 	return;
       }
 
@@ -88,7 +97,9 @@ namespace GPU {
       this->ReleaseAll();
 
       // Allocate anew
-      this->d_r.Allocate( dims );
+      this->d_rx.Allocate( dims );
+      this->d_ry.Allocate( dims );
+      this->d_rz.Allocate( dims );
       this->d_invalid.Allocate( dims );
       this->d_area.Allocate( dims );
       this->d_origArea.Allocate( dims );
@@ -107,7 +118,9 @@ namespace GPU {
 	Recall that the VolumeGPU::Release method
 	will also release any CUDA arrays.
       */
-      this->d_r.Release();
+      this->d_rx.Release();
+      this->d_ry.Release();
+      this->d_rz.Release();
       this->d_invalid.Release();
       this->d_area.Release();
       this->d_origArea.Release();
@@ -146,7 +159,9 @@ namespace GPU {
       this->AllocateAll( dims );
 
       // Allocate some page-locked host buffers
-      float3* h_r = this->d_r.AllocateHostBuffer();
+      float* h_rx = this->d_rx.AllocateHostBuffer();
+      float* h_ry = this->d_ry.AllocateHostBuffer();
+      float* h_rz = this->d_rz.AllocateHostBuffer();
       char* h_invalid = this->d_invalid.AllocateHostBuffer();
       float* h_area = this->d_area.AllocateHostBuffer();
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
@@ -162,14 +177,14 @@ namespace GPU {
 	  for( unsigned int k=0; k<dims.z; k++ ) {
 
 	    // Get the 1d index (same for all arrays)
-	    const unsigned int i1d = this->d_r.Index1D( i, j, k );
+	    const unsigned int i1d = this->d_rx.Index1D( i, j, k );
 	    // Get the current node
 	    const GCA_MORPH_NODE& gcamn = src->nodes[i][j][k];
 	    
 	    // Pack the data
-	    h_r[i1d] = make_float3( gcamn.x,
-				    gcamn.y,
-				    gcamn.z );
+	    h_rx[i1d] = gcamn.x;
+	    h_ry[i1d] = gcamn.y;
+	    h_rz[i1d] = gcamn.z;
 
 	    h_invalid[i1d] = gcamn.invalid;
 	    h_area[i1d] = gcamn.area;
@@ -208,7 +223,9 @@ namespace GPU {
 
 
       // Send the data
-      this->d_r.SendBuffer( h_r );
+      this->d_rx.SendBuffer( h_rx );
+      this->d_ry.SendBuffer( h_ry );
+      this->d_rz.SendBuffer( h_rz );
       this->d_invalid.SendBuffer( h_invalid );
       this->d_area.SendBuffer( h_area );
       this->d_origArea.SendBuffer( h_origArea );
@@ -223,7 +240,9 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
       // Release page-locked host memory
-      CUDA_SAFE_CALL( cudaFreeHost( h_r ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_rx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_ry ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_rz ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
@@ -256,10 +275,12 @@ namespace GPU {
 
 
       // Extract the dimensions
-      const dim3 dims = this->d_r.GetDims();
+      const dim3 dims = this->d_rx.GetDims();
 
       // Allocate some page-locked host buffers
-      float3* h_r = this->d_r.AllocateHostBuffer();
+      float* h_rx = this->d_rx.AllocateHostBuffer();
+      float* h_ry = this->d_ry.AllocateHostBuffer();
+      float* h_rz = this->d_rz.AllocateHostBuffer();
       char* h_invalid = this->d_invalid.AllocateHostBuffer();
       float* h_area = this->d_area.AllocateHostBuffer();
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
@@ -271,7 +292,9 @@ namespace GPU {
       float* h_variance = this->d_variance.AllocateHostBuffer();
 
       // Fetch the data
-      this->d_r.RecvBuffer( h_r );
+      this->d_rx.RecvBuffer( h_rx );
+      this->d_ry.RecvBuffer( h_ry );
+      this->d_rz.RecvBuffer( h_rz );
       this->d_invalid.RecvBuffer( h_invalid );
       this->d_area.RecvBuffer( h_area );
       this->d_origArea.RecvBuffer( h_origArea );
@@ -288,13 +311,13 @@ namespace GPU {
 	  for( unsigned int k=0; k<dims.z; k++ ) {
 
 	    // Get the 1d index (same for all arrays)
-	    const unsigned int i1d = this->d_r.Index1D( i, j, k );
+	    const unsigned int i1d = this->d_rx.Index1D( i, j, k );
 	    // Get the current node
 	    GCA_MORPH_NODE* gcamn = &(dst->nodes[i][j][k]);
 
-	    gcamn->x = h_r[i1d].x;
-	    gcamn->y = h_r[i1d].y;
-	    gcamn->z = h_r[i1d].z;
+	    gcamn->x = h_rx[i1d];
+	    gcamn->y = h_ry[i1d];
+	    gcamn->z = h_rz[i1d];
 
 	    gcamn->invalid = h_invalid[i1d];
 	    gcamn->area = h_area[i1d];
@@ -324,7 +347,9 @@ namespace GPU {
 
 
       // Release page-locked host memory
-      CUDA_SAFE_CALL( cudaFreeHost( h_r ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_rx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_ry ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_rz ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
@@ -346,10 +371,22 @@ namespace GPU {
     const unsigned int iCMPGlobalsInvalid = 0;
     const unsigned int iCMPGlobalsNeg = 1;
 
+    //! Device function to look up displacement vectors
+    __device__ float3 FetchVector( const unsigned int ix,
+				   const unsigned int iy,
+				   const unsigned int iz ) {
+
+      float3 r;
+      r.x = tex3D( dt_rx, ix+0.5f, iy+0.5f, iz+0.5f );
+      r.y = tex3D( dt_ry, ix+0.5f, iy+0.5f, iz+0.5f );
+      r.z = tex3D( dt_rz, ix+0.5f, iy+0.5f, iz+0.5f );
+
+      return( r );
+    }
+
     //! Kernel to perform work of gcamComputeMetricProperties
     __global__
-    void CompMetPropKernel( const VolumeArgGPU<float3> r,
-			    const VolumeArgGPU<float> origArea,
+    void CompMetPropKernel( const VolumeArgGPU<float> origArea,
 			    VolumeArgGPU<char> invalid,
 			    VolumeArgGPU<float> area,
 			    VolumeArgGPU<float> area1,
@@ -365,12 +402,12 @@ namespace GPU {
       const unsigned int iy = threadIdx.y + ( blockIdx.y * blockDim.y );
 
       // Check if in volume
-      if( !r.InVolume( ix, iy, 0 ) ) {
+      if( !origArea.InVolume( ix, iy, 0 ) ) {
 	return;
       }
 
       // Loop over each z slice
-      for( unsigned int iz=0; iz< r.dims.z; iz++ ) {
+      for( unsigned int iz=0; iz< origArea.dims.z; iz++ ) {
 
 	int neg = 0;
 	int num = 0;
@@ -380,12 +417,18 @@ namespace GPU {
 	  atomicAdd( &(globals[iCMPGlobalsInvalid]), 1 );
 	  continue;
 	}
+
+	// Fetch the location of the current voxel
+	const float3 r = FetchVector( ix, iy, iz );
 	
 	// Zero the 'area'
 	area(ix,iy,iz) = 0;
 
 	// Compute Jacobean determinants on the 'right'
-	if( (ix<r.dims.x-1) && (iy<r.dims.y-1) && (iz<r.dims.z-1) ) {
+	if( (ix<origArea.dims.x-1) &&
+	    (iy<origArea.dims.y-1) &&
+	    (iz<origArea.dims.z-1) ) {
+
 
 	  // Check for validity
 	  if( (invalid(ix+1,iy,iz) != GCAM_POSITION_INVALID) &&
@@ -395,9 +438,9 @@ namespace GPU {
 	    num++;
 	    
 
-	    float3 vi = r(ix+1,iy  ,iz  ) - r(ix,iy,iz);
-	    float3 vj = r(ix  ,iy+1,iz  ) - r(ix,iy,iz);
-	    float3 vk = r(ix  ,iy  ,iz+1) - r(ix,iy,iz);
+	    float3 vi = FetchVector(ix+1,iy  ,iz  ) - r;
+	    float3 vj = FetchVector(ix  ,iy+1,iz  ) - r;
+	    float3 vk = FetchVector(ix  ,iy  ,iz+1) - r;
 
 	    float tmpArea = stp( vj, vk, vi );
 	    if( tmpArea <= 0 ) {
@@ -425,9 +468,9 @@ namespace GPU {
 
 	    // I think this ordering preserves handedness
 	    // It's different to that in gcamorph.c
-	    float3 vi = r(ix,iy,iz) - r(ix-1,iy  ,iz  );
-	    float3 vj = r(ix,iy,iz) - r(ix  ,iy-1,iz  );
-	    float3 vk = r(ix,iy,iz) - r(ix  ,iy  ,iz-1);
+	    float3 vi = r - FetchVector(ix-1,iy  ,iz  );
+	    float3 vj = r - FetchVector(ix  ,iy-1,iz  );
+	    float3 vk = r - FetchVector(ix  ,iy  ,iz-1);
 
 	    float tmpArea = stp( vj, vk, vi );
 
@@ -492,17 +535,48 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaMalloc( (void**)&d_globals, 2*sizeof(int) ) );
       CUDA_SAFE_CALL( cudaMemset( d_globals, 0, 2*sizeof(int) ) );
 
+      // Get the d_rx, d_ry and d_rz fields bound to textures
+      this->d_rx.AllocateArray();
+      this->d_ry.AllocateArray();
+      this->d_rz.AllocateArray();
+      this->d_rx.SendArray();
+      this->d_ry.SendArray();
+      this->d_rz.SendArray();
+
+      dt_rx.normalized = false;
+      dt_rx.addressMode[0] = cudaAddressModeClamp;
+      dt_rx.addressMode[1] = cudaAddressModeClamp;
+      dt_rx.addressMode[2] = cudaAddressModeClamp;
+      dt_rx.filterMode = cudaFilterModePoint;
+
+      dt_ry.normalized = false;
+      dt_ry.addressMode[0] = cudaAddressModeClamp;
+      dt_ry.addressMode[1] = cudaAddressModeClamp;
+      dt_ry.addressMode[2] = cudaAddressModeClamp;
+      dt_ry.filterMode = cudaFilterModePoint;
+
+      dt_rz.normalized = false;
+      dt_rz.addressMode[0] = cudaAddressModeClamp;
+      dt_rz.addressMode[1] = cudaAddressModeClamp;
+      dt_rz.addressMode[2] = cudaAddressModeClamp;
+      dt_rz.filterMode = cudaFilterModePoint;
+      
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_rx, this->d_rx.GetArray() ) );
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_ry, this->d_ry.GetArray() ) );
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_rz, this->d_rz.GetArray() ) );
+      
+
       // Run the kernel
       dim3 grid, threads;
 
       threads.x = threads.y = kCMPKernelSize;
       threads.z = 1;
 
-      grid = this->d_r.CoverBlocks( kCMPKernelSize );
+      grid = this->d_rx.CoverBlocks( kCMPKernelSize );
       grid.z = 1;
 
       CompMetPropKernel<<<grid,threads>>>
-	( this->d_r, this->d_origArea, this->d_invalid,
+	( this->d_origArea, this->d_invalid,
 	  this->d_area, this->d_area1, this->d_area2,
 	  d_globals );
       CUDA_CHECK_ERROR( "CompMetPropKernel failed!\n" );
@@ -517,6 +591,17 @@ namespace GPU {
 
       // Release device temporary
       CUDA_SAFE_CALL( cudaFree( d_globals ) );
+
+      // Unbind the textures
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_rx ) );
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_ry ) );
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_rz ) );
+
+      // Release CUDA arrays
+      this->d_rx.ReleaseArray();
+      this->d_ry.ReleaseArray();
+      this->d_rz.ReleaseArray();
+
 
       tTotal.Stop();
 
