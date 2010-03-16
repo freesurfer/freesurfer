@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/01/13 03:14:55 $
- *    $Revision: 1.54 $
+ *    $Date: 2010/03/16 19:55:19 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.54 2010/01/13 03:14:55 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.55 2010/03/16 19:55:19 greve Exp $";
 
 char *Progname = NULL;
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.54 2010/01/13 03:14:55 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.55 2010/03/16 19:55:19 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1086,7 +1086,7 @@ static void print_usage(void) {
   printf("   --ref reference volume name (default=orig.mgz\n");
   printf("   --reg source registration  \n");
   printf("   --regheader subject\n");
-  printf("   --mni152reg : assume mov is in MNI152 space\n");
+  printf("   --mni152reg : $FREESURFER_HOME/average/mni152.register.dat\n");
   printf("   --rot   Ax Ay Az : rotation angles (deg) to apply to reg matrix\n");
   printf("   --trans Tx Ty Tz : translation (mm) to apply to reg matrix\n");
   printf("   --float2int float-to-int conversion method "
