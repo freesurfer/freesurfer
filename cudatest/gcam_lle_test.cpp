@@ -104,10 +104,9 @@ int main( int argc, char *argv[] ) {
   
   // ============================================
   // Perform the calculation
-  
-  // =============================================
-  // Write the output
-  myUtils.Write( gcam, "output" );
+  double llenergy = gcamLogLikelihoodEnergy( gcam, mri );
+
+  cout << "lle = " << llenergy << endl;
 
   // ====================================
   // Release
