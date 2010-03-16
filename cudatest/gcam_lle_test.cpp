@@ -45,7 +45,7 @@ void ReadCommandLine( int ac, char* av[] ) {
     desc.add_options()
       ("help", "Produce help message" )
       ("gcam", bpo::value<string>(&gcamFilename)->default_value(gcamFileDefault), "Input gcam filename (.nc will be appended)" )
-      ("mri", bpo::value<string>(&mriFilename)->default_value(mriFileDefault), "Output filename" )
+      ("mri", bpo::value<string>(&mriFilename)->default_value(mriFileDefault), "Input MRI filename" )
       ;
 
     
