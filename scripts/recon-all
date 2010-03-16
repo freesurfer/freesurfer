@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/15 19:17:29 $
-#    $Revision: 1.294 $
+#    $Date: 2010/03/16 23:41:28 $
+#    $Revision: 1.295 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.294 2010/03/15 19:17:29 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.295 2010/03/16 23:41:28 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -55,6 +55,7 @@ set cmd = ();
 
 set Force = 0;
 set DoCleanCSDF  = 0;
+set DoCleanCW256 = 0;
 set DoCleanTal   = 0;
 set DoCleanLta   = 0;
 set DoCleanCP    = 0;
@@ -64,13 +65,14 @@ set DoCleanBM    = 0;
 set DoCleanBFSE  = 0;
 set DoCleanASeg  = 0;
 set DoCleanWM    = 0;
+set DoCleanXopts = 0;
 
 set InputList = ();
 
 # Expert preferences
 set XOptsFile = ();
 set XOptsClean = 0; # Delete a pre-existing xopts file
-set XOptsUse   = 0; # Use a pre-existing xopts file
+set XOptsUse   = 1; # Use a pre-existing xopts file (default '1': always use)
 set XOptsOverwrite = 0; # Overwrite a pre-existing xopts file
 set ControlPointsFile = ();
 set PonsSeedCRS = (); # SeedCRS center of pons for mri_fill #
@@ -126,7 +128,6 @@ set DoMultiStrip = 0 # if 1, then multiple instances of mri_watershed and
                      # skull-strip
 set IsMPRAGE = 0     # if 1, then -mprage added to mri_normalize/segment
 set IsWashuMPRAGE = 0 # if 1, then -washu_mprage added to mri_normalize/segment
-set DoCropsize256 = 0 # if 1, then crop to 256^3 during mri_convert -conform
 set DoConformWidth256 = 0 # if 1, then conform to 256^3 during 
                           # the mri_convert -conform step
 set NoNormMGZ = 0; # set to 1 when -nosubcortseg or -noaseg flag is used,
@@ -598,56 +599,66 @@ endif
 
 #------------ Clean -----------------------------#
 if($DoCleanSeed) then
-   set cmd = ("mv -f $subjdir/scripts/seed-*.crs.man.dat $subjdir/trash");
-   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = ("mv -f $subjdir/scripts/seed-*.crs.man.dat $subjdir/trash");
+  echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+endif
+if($DoCleanCW256) then
+  set cmd = (mv -f $subjdir/tmp/cw256 $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanTal) then
-   set cmd = (mv -f $subjdir/mri/transforms/talairach.xfm $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/transforms/talairach.xfm $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanLta) then
-   set cmd = ("mv -f $subjdir/mri/transforms/*.lta $subjdir/trash")
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = ("mv -f $subjdir/mri/transforms/*.lta $subjdir/trash")
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanPFH) then
-   set cmd = (mv -f $subjdir/mri/optimal_preflood_height $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
-   set cmd = (mv -f $subjdir/mri/optimal_skullstrip_invol $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/optimal_preflood_height $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/optimal_skullstrip_invol $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanBM) then
-   set cmd = (mv -f $subjdir/mri/brainmask.mgz $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/brainmask.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanASeg) then
-   set cmd = (mv -f $subjdir/mri/aseg.mgz $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/aseg.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanWM) then
-   set cmd = (mv -f $subjdir/mri/wm.mgz $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
-   set cmd = (mv -f $subjdir/mri/wm.seg.mgz $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/wm.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/wm.seg.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanCP) then
-   set cmd = (mv -f $subjdir/tmp/control.dat $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/tmp/control.dat $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
 if($DoCleanBFSE) then
-   set cmd = (mv -f $subjdir/mri/brain.finalsurfs.manedit.mgz $subjdir/trash)
-   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-   if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/brain.finalsurfs.manedit.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
 endif
+if($DoCleanXopts) then
+  set cmd = (mv -f $subjdir/scripts/expert-options $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+endif   
 
 #------------ Handle Seed Points for Fill/Cut ------------------#
 set seedfile = $subjdir/scripts/seed-pons.crs.man.dat
@@ -675,13 +686,95 @@ if($#RHSeedCRS) then
 endif
 if(-e $seedfile) set RHSeedCRS = `cat $seedfile | grep -v \#`
 
+#------------ Control Points for Intensity Normalization ------------------#
 set ControlPointsFile = $subjdir/tmp/control.dat
 if(-e $ControlPointsFile) then
   set UseControlPoints = 1;
-  set CPOpt = (-f $ControlPointsFile);
-else
-  set CPOpt = ();
 endif
+
+#---- Conform Width to 256 --------#
+if( $DoConformWidth256) then
+  echo "-cw256 option is now persistent (remove with -clean-cw256)" \
+    |& tee -a $LF
+  touch $subjdir/tmp/cw256
+endif
+
+#---------------- Show Edits ------------------#
+# discover which edits a user has made, list them, and if volume edits were
+# made, create a file which shows them (using mri_compile_edits)
+if($DoShowEdits) then
+  @ edit_count = 0;
+  echo "-----------------------------------------------" |& tee -a $LF
+  echo "Subject $subjid has the following edits..." |& tee -a $LF
+
+  # control points
+  if(-e $ControlPointsFile) then
+    @ edit_count = $edit_count + 1;    
+    echo "Control points declared in file $ControlPointsFile" |& tee -a $LF
+  endif
+
+  # seeds
+  set seedfile = $subjdir/scripts/seed-pons.crs.man.dat
+  if(-e $seedfile) then
+    @ edit_count = $edit_count + 1;    
+    echo "Manually specified seed CRS for Pons in file $seedfile" |& tee -a $LF
+  endif
+  set seedfile = $subjdir/scripts/seed-cc.crs.man.dat
+  if($#CCSeedCRS) then
+    @ edit_count = $edit_count + 1;    
+    echo "Manually specified seed CRS for CC in file $seedfile" |& tee -a $LF
+  endif
+  set seedfile = $subjdir/scripts/seed-lh.crs.man.dat
+  if($#LHSeedCRS) then
+    @ edit_count = $edit_count + 1;    
+    echo "Manually specified seed CRS for LH in file $seedfile" |& tee -a $LF
+  endif
+  set seedfile = $subjdir/scripts/seed-rh.crs.man.dat
+  if($#RHSeedCRS) then
+    @ edit_count = $edit_count + 1;    
+    echo "Manually specified seed CRS for RH in file $seedfile" |& tee -a $LF
+  endif
+
+  # expert opts
+  if($#XOptsFile != 0) then
+    if (-e $XOptsFile)) then
+      @ edit_count = $edit_count + 1;    
+      echo "Expert options declared in file $XOptsFile" |& tee -a $LF
+    endif
+  endif
+
+  # talairach.xfm
+  set xfm = $subjdir/mri/transforms/talairach.xfm
+  set xfma = $subjdir/mri/transforms/talairach.auto.xfm
+  if(-e $xfm && -e $xfma) then
+    diff $xfm $xfma >& /dev/null
+    if($status) then
+      @ edit_count = $edit_count + 1;    
+      echo "The talairach.xfm file appears to have been edited" |& tee -a $LF
+   endif
+  endif
+
+  # cw256
+  if(-e $subjdir/tmp/cw256) then
+    @ edit_count = $edit_count + 1;    
+    echo "Conform-width (reduce FOV) to 256 is enabled" |& tee -a $LF
+  endif
+
+  # volume edits, as determined by mri_compile_edits:
+  # brainmask.mgz, aseg.mgz, brain.finalsurfs.mgz, wm.mgz, brain.mgz
+  set compile_edits=($subjdir/tmp/compile_edits)
+  set cmd = (mri_compile_edits ${subjid} $subjdir/mri/edits.mgz)
+  if($RunIt) then
+    $cmd |& tee -a $LF |& tee -a $compile_edits
+    set vol_edits=(`grep mri_compile_edits_found $compile_edits | awk '{print $1}'`)
+    @ edit_count = $edit_count + $vol_edits;
+  endif
+
+  # summarize
+  echo "$edit_count edits were found for subject $subjid" |& tee -a $LF
+
+endif
+
 
 #----------- Longitudinal ------------------#
 if($longitudinal) then
@@ -951,7 +1044,7 @@ if($DoMotionCor) then
     set cmd = ($cmd --conform_min)
   else
     set cmd = ($cmd --conform)
-    if($DoConformWidth256) then
+    if($DoConformWidth256 || -e $subjdir/tmp/cw256) then
       # force conform width to 256
       set cmd = ($cmd --cw256)
       # see note just below on when -cw256 is necessary (ie, when FOV > 256)
@@ -963,31 +1056,6 @@ if($DoMotionCor) then
     $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/conform.touch
-  endif
-
-  # the cropsize256 option is used to process files having a FOV >256.
-  # the image is cropped, and the center ras is properly set.
-  # NJS note: this cropping option doesnt work in all cases where FOV > 256
-  # so its usage is deprecated.  instead, the check below for FOV > 256
-  # forces an error exit, and people must add the -cw256 flag, which is 
-  # added to mri_convert conform step (ie mri_convert -conform -cw256)
-  # which creates the 256^3 1mm^3 file
-  if($DoCropsize256) then
-    set cmd = (mri_convert $origvol $origvol)
-    set cmd1 = ($cmd --cropsize 256 256 256)
-    set CRAS = `mri_info --cras $origvol`
-    set cmd2 = ($cmd --out_center ${CRAS})
-    $PWD |& tee -a $LF
-    echo "\n $cmd1 \n"|& tee -a $LF |& tee -a $CF
-    echo "\n $cmd2 \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) then
-      $fs_time $cmd1 |& tee -a $LF
-      if($status) goto error_exit;
-      echo $cmd1 > $touchdir/crop.touch
-      $fs_time $cmd2 |& tee -a $LF
-      if($status) goto error_exit;
-      echo $cmd2 > $touchdir/cras.touch
-    endif
   endif
 
   # check if FOV > 256 and error exit if so
@@ -3082,11 +3150,12 @@ uname -a         >> $DoneFile
 echo $VERSION    >> $DoneFile
 echo $0          >> $DoneFile
 
-echo "recon-all $subjid finished without error at `date`" |& tee -a $LF |& tee -a $SF
+echo "recon-all -s $subjid finished without error at `date`" \
+    |& tee -a $LF |& tee -a $SF
 
 
 if($#mailuser != 0) then
-  echo "recon-all $subjid finished without error at `date`" | \
+  echo "recon-all -s $subjid finished without error at `date`" | \
     mail -s "$subjid DONE `date`" $mailuser
 endif
 
@@ -3101,13 +3170,14 @@ exit 0
 error_exit:
   uname -a | tee -a $LF | tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
-  echo "recon-all $subjid exited with ERRORS at `date`" |& tee -a $LF |& tee -a $SF
+  echo "recon-all -s $subjid exited with ERRORS at `date`" \
+    |& tee -a $LF |& tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
   # Handle IsRunningFile
   if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
   # Mail the user
   if($#mailuser != 0) then
-    echo "recon-all $subjid finished with errors at `date`" | \
+    echo "recon-all -s $subjid finished with errors at `date`" | \
       mail -s "$subjid ERROR `date`" $mailuser
   endif
   # Create an error file with date, cmd, etc of error
@@ -3242,10 +3312,18 @@ while( $#argv != 0 )
       breaksw
 
     case "-robust-motioncor":
+    case "-motioncor-robust":
       set DoMotionCor = 1;
       set DoRobustMotionCor = 1;
       breaksw
     case "-norobust-motioncor":
+    case "-nomotioncor-robust":
+      set DoRobustMotionCor = 0;
+      breaksw
+
+    case "-flirt-motioncor":
+    case "-motioncor-flirt":
+      set DoMotionCor = 1;
       set DoRobustMotionCor = 0;
       breaksw
 
@@ -3831,6 +3909,7 @@ while( $#argv != 0 )
 
     case "-clean":
       set DoCleanCSDF  = 1;
+      set DoCleanCW256 = 1;
       set DoCleanTal   = 1;
       set DoCleanLta   = 1;
       set DoCleanCP    = 1;
@@ -3840,6 +3919,15 @@ while( $#argv != 0 )
       set DoCleanASeg  = 1;
       set DoCleanWM    = 1;
       set DoCleanBFSE  = 1;
+      set DoCleanXopts = 1;
+      breaksw
+
+    case "-clean-xopts":
+      set DoCleanXopts = 1;
+      breaksw
+
+    case "-clean-cw256":
+      set DoCleanCW256 = 1;
       breaksw
 
     case "-clean-cp":
@@ -4305,10 +4393,6 @@ while( $#argv != 0 )
       set IsWashuMPRAGE = 1;
       breaksw;
 
-    case "-cropsize256":
-      set DoCropsize256 = 1;
-      breaksw;
-
     case "-cw256":
       set DoConformWidth256 = 1;
       breaksw;
@@ -4424,6 +4508,12 @@ while( $#argv != 0 )
 
     case "-use-concat-lta-tal":
       set UseConcatLtaTal = 1;
+      breaksw;
+
+    case "-show-edits":
+    case "-show_edits":
+    case "-showedits":
+      set DoShowEdits = 1;
       breaksw;
 
     default:
@@ -4696,7 +4786,8 @@ check_params:
         echo "ERROR: there is a pre-existing expert options file and"
         echo "you have specified an expert options file on the command-line."
         echo "If you want to use the file specified on the command-line,"
-        echo "you must run with -xopts-overwrite."
+        echo "you must run with -xopts-overwrite, or you may edit the "
+        echo "existing file $XOptsFile (and not use the -expert option)."
         exit(1);
       endif
       # If it gets here, then overwrite
@@ -4732,10 +4823,10 @@ check_params:
     popd > /dev/null;
   endif
 
-  if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput &&\
-     ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && \
-     ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv &&\
-     ! $DoMotionCor && ! $DoTalairach && ! $DoTalCheck && \
+  if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput && \
+     ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && ! $DoCleanCW256 && \
+     ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv && \
+     ! $DoMotionCor && ! $DoTalairach && ! $DoTalCheck && ! $DoCleanXopts && \
      ! $DoNormalization  && ! $#SurfRegToSubj &&\
      ! $DoNormalization2  && ! $DoParcStats && ! $DoParcStats2 && \
      ! $DoVersionsOnly && ! $DoDeface &&  ! $DoCleanPFH && \
@@ -4751,7 +4842,7 @@ check_params:
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
-     ! $DoCreateBaseSubj && ! $DoBaLabels) then
+     ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
