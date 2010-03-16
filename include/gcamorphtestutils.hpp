@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/12 15:38:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/16 17:11:25 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -87,5 +87,30 @@ private:
 };
 
 
+
+//! Class to hold utility routines for GCAMorph with one input
+
+class GCAMorphUtils {
+public:
+
+  //! Constructor fills in the type map
+  GCAMorphUtils( void );
+
+  //! Writes out a GCAM
+  void Write( const GCAM* src, std::string fName ) const;
+
+private:
+  
+  //! Map of variable names and types
+  std::map<std::string,nc_type> varTypeMap;
+
+  //! Indicies into small arrays defining the dimensions
+  enum dimIndices{ iX, iY, iZ };
+
+  //! Number of dimensions we will store
+  static const unsigned int nDims = 3;
+  //! Number of variables we will store
+  static const unsigned int nVars = 12;
+};
 
 #endif

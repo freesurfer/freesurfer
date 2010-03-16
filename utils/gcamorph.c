@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:42 $
- *    $Revision: 1.166 $
+ *    $Author: rge21 $
+ *    $Date: 2010/03/16 17:11:22 $
+ *    $Revision: 1.167 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1826,9 +1826,21 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 static float ***last_sse = NULL;
 #endif
 
+#define GCAM_LLENERGY_OUTPUT 1
+const unsigned int gcamLLEoutputFreq = 10;
+
 static double
 gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
 {
+#if GCAM_LLENERGY_OUTPUT
+  static unsigned int nCalls = 0;
+  if( (nCalls%gcamLLEoutputFreq)==0 ) {
+    char fname[STRLEN];
+    snprintf( fname, STRLEN-1, "gcamLLEinput%04u", nCalls/gcamLLEoutputFreq );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+  }
+#endif
 
 #ifdef FS_CUDA
   Chronometer tTotal;
@@ -1966,6 +1978,17 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
   StopChronometer( &tTotal );
   
   printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );
+#endif
+
+
+#if GCAM_LLENERGY_OUTPUT
+  if( (nCalls%gcamLLEoutputFreq)==0 ) {
+    char fname[STRLEN];
+    snprintf( fname, STRLEN-1, "gcamLLEoutput%04u", nCalls/gcamLLEoutputFreq );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+  }
+  nCalls++;
 #endif
 
   return(sse) ;

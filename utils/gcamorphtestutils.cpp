@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/12 15:37:09 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/03/16 17:11:22 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -327,7 +327,199 @@ void GCAMforCMPutils::Read( GCAM** dst, string fName ) const {
 
 
 
+
+// ======================================================================
+
+
+GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap() {
+    
+  // Sanity check
+  if( this->nVars != 12 ) {
+    cerr << __FUNCTION__ << ": Invalid nVars!" << endl;
+    exit( EXIT_FAILURE );
+  }
+  if( this->nDims != 3 ) {
+    cerr << __FUNCTION__ << ": Invalid nDims!" << endl;
+    exit( EXIT_FAILURE );
+  }
+  
+  varTypeMap[ "rx" ] = NC_DOUBLE;
+  varTypeMap[ "ry" ] = NC_DOUBLE;
+  varTypeMap[ "rz" ] = NC_DOUBLE;
+
+  varTypeMap[ "origArea" ] = NC_FLOAT;
+  varTypeMap[ "area" ] = NC_FLOAT;
+  varTypeMap[ "area1" ] = NC_FLOAT;
+  varTypeMap[ "area2" ] = NC_FLOAT;
+  
+  varTypeMap[ "invalid" ] = NC_CHAR;
+  varTypeMap[ "label" ] = NC_INT;
+  varTypeMap[ "status" ] = NC_INT;
+
+  varTypeMap[ "mean" ] = NC_FLOAT;
+  varTypeMap[ "variance" ] = NC_FLOAT;
+  
+  
+  // And another sanity check
+  if( varTypeMap.size() != this->nVars ) {
+    cerr << __FUNCTION__ << ": Incorrect entries in varTypeMap" << endl;
+    exit( EXIT_FAILURE );
+  }
+}
+
+
+
+
+void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
+  
+  // Construct the filename, using fName passed by value
+  fName += ".nc";
+  
+  std::cout << __FUNCTION__ << ": Writing file " << fName << " ... ";
+  std::cout.flush();
+  
+  // Sanity check the GCAM
+  if( src->ninputs != 1 ) {
+    std::cerr << __FUNCTION__
+	      << ": Must have ninputs=1" << std::endl;
+  }
+
+  // Reference for the file
+  int ncid;
+  
+  // Open the file
+  NC_SAFE_CALL( nc_create( fName.c_str(), NC_CLOBBER, &ncid ) );
+  
+  
+  // Set up the dimensions
+  int dimIDs[nDims];
+  NC_SAFE_CALL( nc_def_dim( ncid, "x", src->width, &dimIDs[this->iX] ) );
+  NC_SAFE_CALL( nc_def_dim( ncid, "y", src->height, &dimIDs[this->iY] ) );
+  NC_SAFE_CALL( nc_def_dim( ncid, "z", src->depth, &dimIDs[this->iZ] ) );
+  
+  // Set up the variable IDs
+  map<string,int> varIDmap;
+  map<string,nc_type>::const_iterator myIt;
+  
+  for( myIt = this->varTypeMap.begin();
+       myIt != this->varTypeMap.end();
+       myIt++ ) {
+    NC_SAFE_CALL( nc_def_var( ncid,
+			      myIt->first.c_str(), // Name of the variable
+			      myIt->second,        // Type of the variable
+			      nDims, dimIDs,
+			      &varIDmap[ myIt->first ] ) );
+  }
+  
+  // Sanity check
+  if( varTypeMap.size() != varIDmap.size() ) {
+    cerr << __FUNCTION__ << ": Failed to create varIDmap correctly" << endl;
+      exit( EXIT_FAILURE );
+  }
+  
+  // Make the end of the 'definition' region
+  NC_SAFE_CALL( nc_enddef( ncid ) );
+  
+  // Pack into contiguous arrays
+  const size_t nElems = src->width * src->height * src->depth;
+  
+  vector<double> x( nElems ), y( nElems ), z( nElems );
+  vector<float> area(nElems ), area1( nElems ), area2( nElems );
+  vector<float> origArea( nElems );
+  vector<char> invalid( nElems );
+  vector<int> label( nElems ), status( nElems );
+  vector<float> mean( nElems ), variance( nElems );
+
+  // Ugly loop to do the writing element by element
+  for( int i=0; i<src->width; i++ ) {
+    for( int j=0; j<src->height; j++ ) {
+      for( int k=0; k<src->depth; k++ ) {
+	const GCA_MORPH_NODE& gcamn = src->nodes[i][j][k];
+	
+	const size_t i1d = k + ( src->depth * ( j + ( src->height * i ) ) );
+
+	x.at(i1d) = gcamn.x;
+	y.at(i1d) = gcamn.y;
+	z.at(i1d) = gcamn.z;
+
+	area.at(i1d) = gcamn.area;
+	area1.at(i1d) = gcamn.area1;
+	area2.at(i1d) = gcamn.area2;
+	origArea.at(i1d) = gcamn.orig_area;
+
+	invalid.at(i1d) = gcamn.invalid;
+	label.at(i1d) = gcamn.label;
+	status.at(i1d) = gcamn.status;
+
+	if( gcamn.gc != NULL ) {
+	  mean.at(i1d) = gcamn.gc->means[0];
+	  variance.at(i1d) = gcamn.gc->covars[0];
+	} else {
+	  mean.at(i1d) = -1;
+	  variance.at(i1d) = -1;
+	}
+      }
+    }
+  }
+
+  // We use 'find' to get an exception if the name doesn't exist
+
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "rx" )->second,
+				   &x[0] ) );
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "ry" )->second,
+				   &y[0] ) );
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "rz" )->second,
+				   &z[0] ) );
+
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "origArea" )->second,
+				  &origArea[0] ) );
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "area" )->second,
+				  &area[0] ) );
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "area1" )->second,
+				  &area1[0] ) );
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "area2" )->second,
+				  &area2[0] ) );
+
+  NC_SAFE_CALL( nc_put_var_text( ncid,
+				 varIDmap.find( "invalid" )->second,
+				 &invalid[0] ) );
+
+  NC_SAFE_CALL( nc_put_var_int( ncid,
+				varIDmap.find( "label" )->second,
+				&label[0] ) );
+  NC_SAFE_CALL( nc_put_var_int( ncid,
+				varIDmap.find( "status" )->second,
+				&status[0] ) );
+
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "mean" )->second,
+				  &mean[0] ) );
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "variance" )->second,
+				  &variance[0] ) );
+
+  
+  
+  // Close the file
+  NC_SAFE_CALL( nc_close( ncid ) );
+
+  cout << "complete" << endl;
+}
+
+
+
+
+// #########################################################################
+
 static GCAMforCMPutils myCMPutils;
+static GCAMorphUtils myGCAMutils;
 
 // ======================================================================
 
@@ -352,4 +544,11 @@ void ReadGCAMforMetricProperties( GCAM** dst, const char* fName ) {
   */
 
   myCMPutils.Read( dst, fName );
+}
+
+
+// ======================================================================
+
+void WriteGCAMoneInput( const GCAM* src, const char* fName ) {
+  myGCAMutils.Write( src, fName );
 }
