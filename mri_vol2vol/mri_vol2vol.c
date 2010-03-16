@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/01/27 16:03:17 $
- *    $Revision: 1.61 $
+ *    $Author: greve $
+ *    $Date: 2010/03/16 19:54:41 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@ mri_vol2vol
   --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)
   --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)
   --regheader         : ScannerRAS-to-ScannerRAS matrix = identity
+  --mni152reg         : $FREESURFER_HOME/average/mni152.register.dat
   --s subject         : set matrix = identity and use subject for any templates
 
   --inv               : sample from targ to mov
@@ -463,7 +464,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.61 2010/01/27 16:03:17 rge21 Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.62 2010/03/16 19:54:41 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -575,12 +576,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.61 2010/01/27 16:03:17 rge21 Exp $",
+                          "$Id: mri_vol2vol.c,v 1.62 2010/03/16 19:54:41 greve Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.61 2010/01/27 16:03:17 rge21 Exp $",
+                                "$Id: mri_vol2vol.c,v 1.62 2010/03/16 19:54:41 greve Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1263,6 +1264,7 @@ printf("  --reg  register.dat : tkRAS-to-tkRAS matrix   (tkregister2 format)\n")
 printf("  --fsl  register.fsl : fslRAS-to-fslRAS matrix (FSL format)\n");
 printf("  --xfm  register.xfm : ScannerRAS-to-ScannerRAS matrix (MNI format)\n");
 printf("  --regheader         : ScannerRAS-to-ScannerRAS matrix = identity\n");
+printf("  --mni152reg         : $FREESURFER_HOME/average/mni152.register.dat\n");
 printf("  --s subject         : set matrix = identity and use subject for any templates\n");
 printf("\n");
 printf("  --inv               : sample from targ to mov\n");
