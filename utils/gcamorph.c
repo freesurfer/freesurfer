@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 17:11:22 $
- *    $Revision: 1.167 $
+ *    $Date: 2010/03/16 17:34:32 $
+ *    $Revision: 1.168 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -248,7 +248,7 @@ static int gcamAreaIntensityTerm(GCA_MORPH *gcam,
                                  NODE_LOOKUP_TABLE *nlt, float sigma) ;
 static int gcamClearGradient(GCA_MORPH *gcam) ;
 
-static double gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri );
+
 static double gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
 static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
@@ -1829,9 +1829,16 @@ static float ***last_sse = NULL;
 #define GCAM_LLENERGY_OUTPUT 1
 const unsigned int gcamLLEoutputFreq = 10;
 
-static double
-gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
+double
+gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
 {
+  /*
+    NOTE: The only reason *mri is not declared 'const' is because
+    I can't figure out how to make MRIwrite accept a const MRI
+    structure.
+    One might be perturbed that writing an MRI out to disc
+    changes it....
+  */
 #if GCAM_LLENERGY_OUTPUT
   static unsigned int nCalls = 0;
   if( (nCalls%gcamLLEoutputFreq)==0 ) {
@@ -1839,6 +1846,8 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
     snprintf( fname, STRLEN-1, "gcamLLEinput%04u", nCalls/gcamLLEoutputFreq );
     fname[STRLEN-1] = '\0';
     WriteGCAMoneInput( gcam, fname );
+    snprintf( fname, STRLEN-1, "mriLLEinput%04u.mgz", nCalls/gcamLLEoutputFreq );
+    MRIwrite( mri, fname );
   }
 #endif
 
@@ -1982,12 +1991,6 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, const MRI *mri)
 
 
 #if GCAM_LLENERGY_OUTPUT
-  if( (nCalls%gcamLLEoutputFreq)==0 ) {
-    char fname[STRLEN];
-    snprintf( fname, STRLEN-1, "gcamLLEoutput%04u", nCalls/gcamLLEoutputFreq );
-    fname[STRLEN-1] = '\0';
-    WriteGCAMoneInput( gcam, fname );
-  }
   nCalls++;
 #endif
 
