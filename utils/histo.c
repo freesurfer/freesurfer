@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/02/10 14:04:17 $
- *    $Revision: 1.66 $
+ *    $Date: 2010/03/16 22:33:48 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -661,15 +661,17 @@ HISTOsmooth(HISTOGRAM *histo_src, HISTOGRAM *histo_dst,float sigma)
 
   for (b = 0 ; b < nbins ; b++)
   {
-    for (total = 0.0f, x = 0 ; x < len ; x++)
+    for (norm = 0.0, total = 0.0f, x = 0 ; x < len ; x++)
     {
       kx = x - half ;
       b1 = b + kx ;
       if (b1 >= nbins || b1 < 0)
         continue ;
+
+      norm += kernel[x] ;
       total += kernel[x] * (float)histo_src->counts[b1] ;
     }
-    histo_dst->counts[b] = total ;
+    histo_dst->counts[b] = total/norm ;
     histo_dst->bins[b] = histo_src->bins[b] ;
   }
 
@@ -2191,3 +2193,38 @@ HISTOsoapBubbleZeros(HISTOGRAM *hsrc, HISTOGRAM *hdst, int niters)
   free(tmp) ; free(control) ;
   return(hdst) ;
 }
+int
+HISTOfindMaxDerivative(HISTOGRAM *h, double min_count, double max_count, int whalf,  int grad_dir)
+{
+  int    index, i0, peak_index, num=0 ;
+  double prev_val, next_val, max_d,d ;
+
+  max_d = 0 ; peak_index = -1 ;
+  for (index = 0 ; index < h->nbins ; index++)
+  {
+    for (prev_val = 0.0, num = 0, i0 = MAX(0, index-whalf) ; i0 < index ; i0++, num++)
+      prev_val += h->counts[i0] ;
+    if (num == 0)
+      continue ;
+    prev_val /= num ;
+    if (prev_val < min_count || prev_val > max_count)
+      continue ;
+    for (next_val = 0.0, num = 0, i0 = MIN(h->nbins-1,index+1) ; 
+         i0 < MIN(index+whalf,h->nbins-1) ; i0++, num++)
+      next_val += h->counts[i0] ;
+    if (num == 0)
+      continue ;
+    next_val /= num ;
+    if (next_val < min_count || next_val > max_count)
+      continue ;
+    d = (next_val - prev_val) ;
+    if (d > max_d)
+    {
+      max_d = d ;
+      peak_index = index ;
+    }
+  }
+  
+  return(peak_index) ;
+}
+
