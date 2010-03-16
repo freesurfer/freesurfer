@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/09 18:33:43 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/03/16 15:46:17 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -100,7 +100,7 @@ namespace GPU {
       
       return(res);
     }
-
+#if 0
     template<typename T>
     __global__
     void ComputeLLE( const GPU::Classes::VolumeArgGPU<float3> r,
@@ -214,6 +214,7 @@ namespace GPU {
       }
     }
 
+#endif
 
 
     //! Class to hold GCAMorph energy computations
@@ -240,7 +241,7 @@ namespace GPU {
 	// Get the MRI texture in place (must be in CUDA array already)
 	this->BindMRI( mri );
 
-	const dim3 gcamDims = gcam.d_r.GetDims();
+	const dim3 gcamDims = gcam.d_rx.GetDims();
 	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
 
 	// Allocate thrust arrays
@@ -256,15 +257,16 @@ namespace GPU {
 	threads.x = threads.y = kGCAmorphLLEkernelSize;
 	threads.z = 1;
 
-	grid = gcam.d_r.CoverBlocks( kGCAmorphLLEkernelSize );
+	grid = gcam.d_rx.CoverBlocks( kGCAmorphLLEkernelSize );
 	grid.z = 1;
 
+#if 0
 	ComputeLLE<T><<<grid,threads>>>
 	  ( gcam.d_r, gcam.d_invalid, gcam.d_status,
 	    gcam.d_label, gcam.d_mean, gcam.d_variance,
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeLLE kernel failed!\n" );
-
+#endif
 
 
 	// Release the MRI texture
