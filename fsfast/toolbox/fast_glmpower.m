@@ -35,9 +35,9 @@ function [tpr, tnc, dof] = fast_glmpower(beta,XtX,rvar,C,alpha,dof,nsides)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2010/03/16 21:24:36 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -71,6 +71,7 @@ if(isempty(nsides)) nsides = 1; end
 % This is the noncentraliity parameter for the noncentral t distribution
 iXtX = inv(XtX);
 tnc = (C*beta)./sqrt(rvar*(C*iXtX*C'));
+tnc = abs(tnc);
 
 % Compute the ideal TPR
 if(nsides == 1)
