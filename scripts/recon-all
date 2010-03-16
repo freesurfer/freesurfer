@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/16 23:41:28 $
-#    $Revision: 1.295 $
+#    $Date: 2010/03/16 23:54:14 $
+#    $Revision: 1.296 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.295 2010/03/16 23:41:28 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.296 2010/03/16 23:54:14 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -767,7 +767,7 @@ if($DoShowEdits) then
   if($RunIt) then
     $cmd |& tee -a $LF |& tee -a $compile_edits
     set vol_edits=(`grep mri_compile_edits_found $compile_edits | awk '{print $1}'`)
-    @ edit_count = $edit_count + $vol_edits;
+    if($#vol_edits != 0) @ edit_count = $edit_count + $vol_edits;
   endif
 
   # summarize
