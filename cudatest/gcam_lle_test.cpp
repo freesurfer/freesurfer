@@ -4,6 +4,7 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <fstream>
 using namespace std;
 
 #include <boost/program_options.hpp>
@@ -25,10 +26,16 @@ namespace bpo = boost::program_options;
 
 const string gcamFileDefault = "gcamInput";
 const string mriFileDefault = "mriInput.mgz";
+#ifdef FS_CUDA
+const string outFileDefault = "energy.gpu";
+#else
+const string outFileDefault = "energy.cpu";
+#endif
 
 
 string gcamFilename;
 string mriFilename;
+string outFilename;
 
 
 const char* Progname = "gcam_lle_test";
@@ -46,6 +53,7 @@ void ReadCommandLine( int ac, char* av[] ) {
       ("help", "Produce help message" )
       ("gcam", bpo::value<string>(&gcamFilename)->default_value(gcamFileDefault), "Input gcam filename (.nc will be appended)" )
       ("mri", bpo::value<string>(&mriFilename)->default_value(mriFileDefault), "Input MRI filename" )
+      ("output", bpo::value<string>(&outFilename)->default_value(outFileDefault), "Output filename" )
       ;
 
     
@@ -106,7 +114,18 @@ int main( int argc, char *argv[] ) {
   // Perform the calculation
   double llenergy = gcamLogLikelihoodEnergy( gcam, mri );
 
+
+  // ============================================
+  // Produce output
   cout << "lle = " << llenergy << endl;
+
+  cout << "Writing file " << outFilename << endl;
+
+  ofstream oFile;
+  oFile.open( outFilename.c_str(), ios::binary | ios::out | ios::trunc );
+
+  oFile.write( reinterpret_cast<const char*>(&llenergy), sizeof(llenergy) );
+  oFile.close();
 
   // ====================================
   // Release
