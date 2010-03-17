@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/17 16:58:12 $
-#    $Revision: 1.297 $
+#    $Date: 2010/03/17 17:15:22 $
+#    $Revision: 1.298 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.297 2010/03/17 16:58:12 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.298 2010/03/17 17:15:22 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -66,6 +66,8 @@ set DoCleanBFSE  = 0;
 set DoCleanASeg  = 0;
 set DoCleanWM    = 0;
 set DoCleanXopts = 0;
+
+set DoShowEdits  = 0;
 
 set InputList = ();
 
