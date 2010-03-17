@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/16 23:54:14 $
-#    $Revision: 1.296 $
+#    $Date: 2010/03/17 16:58:12 $
+#    $Revision: 1.297 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.296 2010/03/16 23:54:14 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.297 2010/03/17 16:58:12 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4564,11 +4564,6 @@ check_params:
     popd > /dev/null
 
     set subjdir = $SUBJECTS_DIR/$subjid
-    if( ! -e $subjdir) then
-      set cmd = (mkdir -p ${subjdir})
-      echo "\n $cmd \n"
-      $cmd
-    endif
 
     #------------ Longitudinal -----------------------------------#
     if($longitudinal) then
@@ -4686,6 +4681,7 @@ check_params:
 
     #----------------------------------------------------------------#
     if(($#InputList == 0) && (! $DoCreateBaseSubj)) then
+      if($longitudinal) mkdir -p ${subjdir}
       if(! -e $subjdir) then
         echo "ERROR: cannot find $subjdir"
         exit 1;
