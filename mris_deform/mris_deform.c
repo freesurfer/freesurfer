@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/17 12:37:37 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/03/17 15:07:24 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -286,7 +286,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.23 2010/03/17 12:37:37 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.24 2010/03/17 15:07:24 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -3746,6 +3746,7 @@ compute_best_neighborhood_profile(MRI_SURFACE *mris, MRI *mri,int vno, DP *dp)
                                double *errors);
   char   *fname, *fname2 ;
 
+  wm_val = dp->wm_val ;  // for compiler warning
   tsteps = (int)ceil(0.25/dp->step) ;
 
   if (vno == Gdiag_no || deform_debug)
