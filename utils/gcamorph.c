@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 18:20:11 $
- *    $Revision: 1.169 $
+ *    $Date: 2010/03/17 17:59:21 $
+ *    $Revision: 1.170 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1858,9 +1858,13 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
   StartChronometer( &tTotal );
 #endif
 
-  double          sse = 0.0, error ;
+  double          sse = 0.0;
+
+#ifndef FS_CUDA
+  double error ;
   int             x, y, z;
   float            vals[MAX_GCA_INPUTS] ;
+#endif
 
 #if DEBUG_LL_SSE
   int max_x, max_y, max_z ;
@@ -1890,6 +1894,9 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
+#ifdef FS_CUDA
+  sse = gcamLogLikelihoodEnergyGPU( gcam, mri );
+#else
   for (x = 0 ; x < gcam->width ; x++) {
     for (y = 0 ; y < gcam->height ; y++) {
       for (z = 0 ; z < gcam->depth ; z++) {
@@ -1977,6 +1984,8 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
       }
     }
   }
+#endif
+
 #if DEBUG_LL_SSE
   if (Gdiag & DIAG_SHOW)
     printf("max increase %2.2f at (%d, %d, %d)\n",

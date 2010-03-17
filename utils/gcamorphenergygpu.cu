@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 15:46:17 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/03/17 17:59:22 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -100,13 +100,82 @@ namespace GPU {
       
       return(res);
     }
-#if 0
+
+
+
+    __global__
+    void ComputeGood( const GPU::Classes::VolumeArgGPU<char> invalid,
+		      const GPU::Classes::VolumeArgGPU<int> label,
+		      const GPU::Classes::VolumeArgGPU<int> status,
+		      GPU::Classes::VolumeArgGPU<char> good ) {
+
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.x * blockDim.x );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+
+      // Loop over z slices
+      for( unsigned int iz = 0; iz< good.dims.z; iz++ ) {
+
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( good.InVolume(ix,iy,iz) ) {
+	  good(ix,iy,iz) = 0;
+
+	  // Is it valid?
+	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
+	    // If not, go to next z slice
+	    continue;
+	  }
+
+	  // What's the status?
+	  if( status(ix,iy,iz) &
+	      (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD) ) {
+	    // Go to next z slice
+	    continue;
+	  }
+
+	  // Don't use unknowns unless they border known
+	  if( IS_UNKNOWN(label(ix,iy,iz)) ) {
+	    unsigned int diffLabels = 0;
+	    const int myLabel = label(ix,iy,iz);
+
+	    for( unsigned int k=max(0,iz-1);
+		 k<=min(invalid.dims.z-1,iz+1);
+		 k++ ) {
+	      for( unsigned int j=max(0,iy-1);
+		   j<=min(invalid.dims.y-1,iy+1);
+		   j++ ) {
+		for( unsigned int i=max(0,ix-1);
+		     i<=min(invalid.dims.x-1,ix+1);
+		     i++ ) {
+		  if( label(i,j,k) != myLabel ) {
+		    diffLabels++;
+		  }
+		}
+	      }
+	    }
+
+	    if( diffLabels == 0 ) {
+	      // Go to next z slice
+	      continue;
+	    }
+	  }
+
+	  // If we get to here, it's OK
+	  good(ix,iy,iz) = 1;
+	}
+      }
+    }
+
+
+
     template<typename T>
     __global__
-    void ComputeLLE( const GPU::Classes::VolumeArgGPU<float3> r,
-		     const GPU::Classes::VolumeArgGPU<char> invalid,
-		     const GPU::Classes::VolumeArgGPU<int> status,
-		     const GPU::Classes::VolumeArgGPU<int> label,
+    void ComputeLLE( const GPU::Classes::VolumeArgGPU<float> rx,
+		     const GPU::Classes::VolumeArgGPU<float> ry,
+		     const GPU::Classes::VolumeArgGPU<float> rz,
+		     const GPU::Classes::VolumeArgGPU<char> good,
 		     const GPU::Classes::VolumeArgGPU<float> mean,
 		     const GPU::Classes::VolumeArgGPU<float> variance,
 		     float* energies ) {
@@ -116,85 +185,32 @@ namespace GPU {
       const unsigned int ix = threadIdx.x + bx;
       const unsigned int iy = threadIdx.y + by;
 
-      __shared__ int labelCache[3][kGCAmorphLLEkernelSize+2][kGCAmorphLLEkernelSize+2];
-
       float myEnergy;
 
-      // Begin loading up the labelCache
-      int myLabel;
-
-      if( label.InVolume(ix,iy,0) ) {
-	myLabel = label(ix,iy,0);
-      } else {
-	myLabel = Unknown;
-      }
-      labelCache[0][1+threadIdx.y][1+threadIdx.x] = myLabel;
-      labelCache[1][1+threadIdx.y][1+threadIdx.x] = myLabel;
 
       // Loop over z slices
-      for( unsigned int iz = 0; iz< r.dims.z; iz++ ) {
-
-	// We need to do all the other checks done by the CPU routine
-
-	// Fill in the 'above' slab of the label cache
-	if( label.InVolume(ix,iy,iz+1) ) {
-	  myLabel = label(ix,iy,iz+1);
-	} else {
-	  myLabel = Unknown;
-	}
-	labelCache[2][1+threadIdx.y][1+threadIdx.x] = myLabel;
-	// Fill in the edges
-	if( threadIdx.x < kGCAmorphLLEkernelSize ) {
-	  if( label.InVolume(bx-1,by+threadIdx.x,iz) ) {
-	    myLabel = label(bx-1,by+threadIdx.x,iz);
-	  } else {
-	    myLabel = Unknown;
-	  }
-	  labelCache[1][threadIdx.x][0] = myLabel;
-
-	  if( label.InVolume(bx+kGCAmorphLLEkernelSize,by+threadIdx.x,iz) ) {
-	    myLabel = label(bx+kGCAmorphLLEkernelSize,by+threadIdx.x,iz);
-	  } else {
-	    myLabel = Unknown;
-	  }
-	  labelCache[1][threadIdx.x][kGCAmorphLLEkernelSize+1] = myLabel;
-
-	  if( label.InVolume(ix,by-1,iz) ) {
-	    myLabel = label(ix,by-1,iz);
-	  } else {
-	    myLabel = Unknown;
-	  }
-	  labelCache[1][0][1+threadIdx.x] = myLabel;
-
-	  if( label.InVolume(ix,by+kGCAmorphLLEkernelSize,iz) ) {
-	    myLabel = label(ix,by+kGCAmorphLLEkernelSize,iz);
-	  } else {
-	    myLabel = Unknown;
-	  }
-	  labelCache[1][kGCAmorphLLEkernelSize+1][1+threadIdx.x] = myLabel;
-
-	  // Still need the corners (and above, too!)
-	}
-
-
-	__syncthreads();
+      for( unsigned int iz = 0; iz< rx.dims.z; iz++ ) {
 
 	// Only compute if ix, iy & iz are inside the bounding box
-	if( r.InVolume(ix,iy,iz) ) {
+	if( rx.InVolume(ix,iy,iz) ) {
 
-	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
+	  const unsigned int iLoc = rx.Index1D( ix, iy, iz );
+
+	  // See if we want to do this pixel
+	  if( good(ix,iy,iz) == 0 ) {
+	    energies[iLoc] = 0;
 	    continue;
 	  }
 
-	  if( status(ix,iy,iz) &
-	      (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD) ) {
-	    continue ;
-	  }
+	  float3 r = make_float3( rx( ix, iy, iz ),
+				  ry( ix, iy, iz ),
+				  rz( ix, iy, iz ) );
 
 	  // Get the MRI value, clamping exterior to 0
 	  float mriVal = 0;
-	  if( r.InFuzzyVolume( r(ix,iy,iz), 0.5f ) ) {
-	    mriVal = FetchMRIVoxel<T>( r(ix,iy,iz) );
+
+	  if( rx.InFuzzyVolume( r, 0.5f ) ) {
+	    mriVal = FetchMRIVoxel<T>( r );
 	  }
 	  
 	  // Compute contribution to the energy
@@ -208,13 +224,10 @@ namespace GPU {
 	    myEnergy = mriVal*mriVal / MIN_VAR;
 	  }
 
-	  const unsigned int iLoc = r.Index1D( ix, iy, iz );
 	  energies[iLoc] = myEnergy;
 	}
       }
     }
-
-#endif
 
 
     //! Class to hold GCAMorph energy computations
@@ -244,6 +257,10 @@ namespace GPU {
 	const dim3 gcamDims = gcam.d_rx.GetDims();
 	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
 
+	// Create a 'flag' array
+	GPU::Classes::VolumeGPU<char> d_good;
+	d_good.Allocate( gcamDims );
+
 	// Allocate thrust arrays
 	thrust::device_ptr<float> d_energies;
 	d_energies = thrust::device_new<float>( nVoxels );
@@ -260,13 +277,20 @@ namespace GPU {
 	grid = gcam.d_rx.CoverBlocks( kGCAmorphLLEkernelSize );
 	grid.z = 1;
 
-#if 0
+
+	ComputeGood<<<grid,threads>>>( gcam.d_invalid,
+				       gcam.d_label,
+				       gcam.d_status,
+				       d_good );
+	CUDA_CHECK_ERROR( "ComputeGood kernel failed!\n" );
+
 	ComputeLLE<T><<<grid,threads>>>
-	  ( gcam.d_r, gcam.d_invalid, gcam.d_status,
-	    gcam.d_label, gcam.d_mean, gcam.d_variance,
+	  ( gcam.d_rx, gcam.d_ry, gcam.d_rz,
+	    d_good,
+	    gcam.d_mean, gcam.d_variance,
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeLLE kernel failed!\n" );
-#endif
+
 
 
 	// Release the MRI texture
