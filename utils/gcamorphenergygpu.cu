@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/17 19:26:19 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/03/17 19:54:58 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -178,7 +178,7 @@ namespace GPU {
 		     const GPU::Classes::VolumeArgGPU<char> good,
 		     const GPU::Classes::VolumeArgGPU<float> mean,
 		     const GPU::Classes::VolumeArgGPU<float> variance,
-		     double* energies ) {
+		     float* energies ) {
       
       const unsigned int bx = ( blockIdx.x * blockDim.x );
       const unsigned int by = ( blockIdx.y * blockDim.y );
@@ -198,6 +198,7 @@ namespace GPU {
 	  
 	  // See if we want to do this pixel
 	  if( good(ix,iy,iz) == 0 ) {
+	    energies[iLoc] = 0;
 	    continue;
 	  }
 
@@ -205,12 +206,9 @@ namespace GPU {
 				  ry( ix, iy, iz ),
 				  rz( ix, iy, iz ) );
 
-	  // Get the MRI value, clamping exterior to 0
-	  float mriVal = 0;
-
-	  if( rx.InFuzzyVolume( r, 0.5f ) ) {
-	    mriVal = FetchMRIVoxel<T>( r );
-	  }
+	  // Get the MRI value
+	  // For some reason, bounds checking causes lots of zeros
+	  float mriVal = FetchMRIVoxel<T>( r );
 	  
 	  // Compute contribution to the energy
 	  if( variance(ix,iy,iz) >= 0 ) {
@@ -260,15 +258,8 @@ namespace GPU {
 	d_good.Allocate( gcamDims );
 
 	// Allocate thrust arrays
-	std::cout << "Make d_energies double for debug" << std::endl;
-	thrust::device_ptr<double> d_energies;
-	d_energies = thrust::device_new<double>( nVoxels );
-#if 0
-	std::cout << __FUNCTION__ << "Zero energies for debug" << std::endl;
-	CUDA_SAFE_CALL( cudaMemset( thrust::raw_pointer_cast( d_energies ),
-				    0,	
-				    nVoxels*sizeof(*thrust::raw_pointer_cast( d_energies )) ) );
-#endif
+	thrust::device_ptr<float> d_energies;
+	d_energies = thrust::device_new<float>( nVoxels );
 
 	// Get the MRI into a texture
 	this->BindMRI( mri );
@@ -295,21 +286,13 @@ namespace GPU {
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeLLE kernel failed!\n" );
 
-#if 0
-	for( unsigned int i=0; i<nVoxels; i++ ) {
-	  std::cout << i << " " << d_energies[i] << std::endl;
-	}
-#endif
+
 
 	// Release the MRI texture
 	this->UnbindMRI<T>();
 
 	// Get the sum of the energies
-	double energy = thrust::reduce( d_energies, d_energies+nVoxels );
-
-	std::cout << __FUNCTION__
-		  << " " << std::setprecision(20) << std::setw(40)
-		  << energy << std::endl;
+	float energy = thrust::reduce( d_energies, d_energies+nVoxels );
 
 	// Release thrust arrays
 	thrust::device_delete( d_energies );
