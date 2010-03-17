@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/16 14:43:05 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/03/17 12:37:37 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,6 +115,7 @@ typedef struct
   int    try_stria_model ;
   int    use_prior ;
   double max_stria_intensity_offset ;
+  int    search_multiple_angles ;
 } DEFORMATION_PARMS, DP ;
 
 #define WM_INTENSITY_OFFSET   100
@@ -199,7 +200,7 @@ double MRISnormalIntensityGradient(MRI_SURFACE *mris, MRI *mri,
                                    double xr, double yr, double zr, double nx, double ny, 
                                    double zn, double sigma) ;
 static double compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip);
-static double compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist, DP *dp);
+static int compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist, DP *dp);
 
 static INTEGRATION_PARMS parms ;
 int main(int argc, char *argv[]) ;
@@ -256,6 +257,8 @@ main(int argc, char *argv[]) {
   witer = piter = l4iter = 0 ;
   dp.max_dist = MAX_DIST ;
   dp.max_ig_intensity_offset = 50 ;
+  dp.search_multiple_angles = 0 ;
+
   dp.max_sg_intensity_offset = 50 ;
   dp.max_wm_intensity_offset = 30 ;
   dp.max_stria_intensity_offset = 20 ;
@@ -283,7 +286,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.22 2010/03/16 14:43:05 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.23 2010/03/17 12:37:37 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -440,7 +443,7 @@ main(int argc, char *argv[]) {
     }
     sprintf(fname, "%s.%s.marked", hemi, base_read_name);
     if (MRISreadMarked(mris, fname)!= NO_ERROR)
-      ErrorExit(Gerror, "") ;
+      ErrorPrintf(Gerror, "could not read marked from %s", fname) ;
     MRISaverageVals(mris, vavgs) ;
     vp_copy_found_from_marked(mris) ;
 
@@ -537,14 +540,17 @@ main(int argc, char *argv[]) {
     for (j = 0 ; j < MAX_ITERATIONS_PER_SCALE ; j++)
     {
       dp.max_dist = MIN(3*dp.sigma, dp.max_dist) ;  // no point going out that far
-      if (0)
+      if (dp.use_intensity != 0)
       {
         printf("computing distance transform\n") ;
         vp_copy_to_surface(mris, WHITE_VERTICES, CURRENT_VERTICES) ;
-        MRIScomputeDistanceToSurface(mris, mri_dist, mri_dist->xsize) ;
-        MRIscalarMul(mri_dist, mri_dist, -1) ; // make inside negative
         vp_set(mris, WM_INTENSITY_OFFSET, 0) ;
-        compute_intensity_offsets(mris, mri, mri_dist, &dp) ;
+        if (0)
+        {
+          MRIScomputeDistanceToSurface(mris, mri_dist, mri_dist->xsize) ;
+          MRIscalarMul(mri_dist, mri_dist, -1) ; // make inside negative
+          compute_intensity_offsets(mris, mri, mri_dist, &dp) ;
+        }
         vp_copy_to_surface_vals(mris, WM_INTENSITY_OFFSET, &dp) ;
         MRISsoapBubbleVals(mris, 100) ; 
         filter_vals(mris, filter_type) ;
@@ -780,7 +786,7 @@ main(int argc, char *argv[]) {
 
   sprintf(fname, "%s.marked", argv[4]) ;
   printf("writing vertex marks to %s\n", fname) ;
-  MRISwrite(mris, fname) ;
+  MRISwriteMarked(mris, fname) ;
 
   fprintf(stderr, "surface deformation took %d minutes"
           " and %d seconds.\n", minutes, seconds) ;
@@ -806,6 +812,9 @@ get_option(int argc, char *argv[]) {
     parms.l_location = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using location coefficient = %2.3f\n", parms.l_location) ;
+  } else if (!stricmp(option, "ico")) {
+    dp.search_multiple_angles = 1 ;
+    fprintf(stderr, "searching multiple surface normal angles in optimization\n") ;
   } else if (!stricmp(option, "max_offset") || !stricmp(option, "max_wm_offset")) {
     dp.max_wm_intensity_offset = atof(argv[2]) ;
     nargs = 1 ;
@@ -861,9 +870,10 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "intensity")) {
     dp.use_intensity = 1 ;
     dp.fix_intensities = 1 ;
-    printf("using intensity morphing with lambda = %2.3f\n", parms.l_intensity) ;
-    nargs = 1 ;
+    printf("using intensity histograms to nudge white matter surface\n") ;
 #if 0
+    nargs = 1 ;
+    printf("using intensity morphing with lambda = %2.3f\n", parms.l_intensity) ;
     parms.l_intensity = atof(argv[2]) ;
     parms.l_location = 0 ;
 #endif
@@ -994,19 +1004,14 @@ usage_exit(int code) {
 /* do optimal model fit just to find the intensity offsets so
    that spatial smoothness constraints can be imposed on them.
 */
-static double
+static int
 compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist, DP *dp)
 {
   VERTEX  *v ;
   VERTEX_PARMS *vp = NULL ;
-  int     vno, nfound, nmissed, peak, wsize ;
-  MRI     *mri_white = MRIclone(mri, NULL) ;
-  MRI     *mri_pial = MRIclone(mri, NULL) ;
+  int       vno, nfound, nmissed, peak, wsize ;
   HISTOGRAM *h, *hs ;
-  MRI     *mri_l4 = MRIclone(mri, NULL) ;
-  Real    xv, yv, zv, target_val, 
-    target_dist,mean_white_border, mean_pial_border, mean_l4_border,
-    mean_dist, inward_dist, outward_dist, mean_abs_dist ;
+  Real      xv, yv, zv, mean_white_border, inward_dist, outward_dist ;
 
 #define WSIZE_MM  5 // diameter of region to histogram within
   wsize = WSIZE_MM / mri->xsize ;  
@@ -1016,9 +1021,8 @@ compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist, DP *dp)
   MRIScomputeSurfaceNormals(mris, WHITE_VERTICES, 10) ;
   MRIScomputeSurfaceNormals(mris, PIAL_VERTICES, 10) ;
   MRISclearMarks(mris) ;
-  mean_abs_dist = 0.0 ;
-  mean_white_border = mean_l4_border = mean_pial_border = 0 ;
-  for (mean_dist=0.0, nfound = nmissed = vno = 0 ; vno < mris->nvertices ; vno++)
+  mean_white_border = 0 ;
+  for (nfound = nmissed = vno = 0 ; vno < mris->nvertices ; vno++)
   {
     if ((vno % 5000) == 0)
       printf("%d of %d vertices processed (%2.1f%%)\n",
@@ -1046,107 +1050,28 @@ compute_intensity_offsets(MRI_SURFACE *mris, MRI *mri, MRI *mri_dist, DP *dp)
     if (peak > 0 && fabs(vp->wm_val-dp->wm_val) < dp->max_wm_intensity_offset)
     {
       vp->wm_intensity_offset = vp->wm_val - dp->wm_val ;
-      continue ;
-    }
-    target_dist = 
-      find_optimal_locations(mris, mri, vno, inward_dist, outward_dist, dp, vp, 2) ;
-    if (vno == Gdiag_no)
-      DiagBreak() ; 
-    if (target_dist < -1000)
-    {
-      target_val = -1 ;
-      target_dist = 0 ;
+      mean_white_border += vp->wm_val ;
+      vp->found = 1;
+      nfound++ ;
     }
     else
     {
-      // make sure both targets are in volume
-      MRISsurfaceRASToVoxelCached(mris, mri, vp->wtx, vp->wty, vp->wtz, &xv, &yv, &zv);
-      if (MRIindexNotInVolume(mri, xv, yv, zv))
-        target_val = -1 ;
-      else
-      {
-        MRISsurfaceRASToVoxelCached(mris, mri, vp->ptx, vp->pty, vp->ptz, &xv, &yv, &zv);
-        if (MRIindexNotInVolume(mri, xv, yv, zv))
-          target_val = -1 ;
-        else
-          target_val = 0 ; // mark it as ok - will fill in later
-      }
+      vp->found = 0 ;
+      nmissed++ ;
     }
     HISTOfree(&h) ; HISTOfree(&hs) ;
-  
-    if (target_val < 0)  // couldn't find a reasonable guess at border
-    {
-      target_dist = 0.0 ;
-      nmissed++ ;
-      vp->found = 0 ;
-    }
-    else
-    {
-      mean_dist += target_dist ;
-      mean_abs_dist += fabs(target_dist) ;
-      nfound++ ;
-      v->marked = 1 ;
-      MRISsurfaceRASToVoxelCached(mris, mri, vp->wtx, vp->wty, vp->wtz, &xv, &yv, &zv);
-      MRIsampleVolume(mri, xv, yv, zv, &target_val) ;
-      MRIsetVoxVal(mri_white, nint(xv), nint(yv), nint(zv), 0, target_val) ;
-      vp->white_val = target_val ;
-      mean_white_border += target_val ;
-      if (nint(xv) == Gx && nint(yv) == Gy && nint(zv) == Gz)
-        DiagBreak() ;
-      
-      MRISsurfaceRASToVoxelCached(mris, mri, vp->l4tx, vp->l4ty, vp->l4tz, &xv, &yv, &zv);
-      MRIsampleVolume(mri, xv, yv, zv, &target_val) ;
-      MRIsetVoxVal(mri_l4, nint(xv), nint(yv), nint(zv), 0, target_val) ;
-      mean_l4_border += target_val ;
-      if (nint(xv) == Gx && nint(yv) == Gy && nint(zv) == Gz)
-        DiagBreak() ;
-      vp->l4_val = target_val ;
-      
-      MRISsurfaceRASToVoxelCached(mris, mri, vp->ptx, vp->pty, vp->ptz, &xv, &yv, &zv);
-      MRIsampleVolume(mri, xv, yv, zv, &target_val) ;
-      mean_pial_border += target_val ;
-      MRIsetVoxVal(mri_pial, nint(xv), nint(yv), nint(zv), 0, target_val) ;
-      if (nint(xv) == Gx && nint(yv) == Gy && nint(zv) == Gz)
-        DiagBreak() ;
-      vp->pial_val = target_val ;
-      vp->found = 1 ;
-    }
   }
   
   if (nfound > 0)
-  {
     mean_white_border /= (double)nfound ;
-    mean_pial_border /= (double)nfound ;
-    mean_l4_border /= (double)nfound ;
-    mean_dist /= (double)nfound ;
-    mean_abs_dist /= (double)nfound ;
-  }
 
   if (nmissed > 10000)
     DiagBreak() ;
-  printf("%d vertices found (%2.2f%%, %d missed), mean dist %2.2f (%2.3f), mean val %2.2f : %2.2f : %2.2f\n",
-         nfound, 100*nfound / (double)(nfound+nmissed), nmissed, mean_dist,
-         mean_abs_dist, mean_white_border, mean_l4_border, mean_pial_border) ;
+  printf("%d vertices found (%2.2f%%, %d missed), mean wm border %2.1f\n",
+         nfound, 100*nfound / (double)(nfound+nmissed), nmissed, mean_white_border) ;
   if (nfound == 0)
     DiagBreak() ;
-  if (Gdiag & DIAG_WRITE && 0)
-  {
-    char fname[STRLEN] ;
-    static int i = 0 ;
-    sprintf(fname, "%s.%s.wtvals.%3.3d.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", dp->base_name,i) ;
-    printf("writing white target vals to %s\n", fname) ;
-    MRIwrite(mri_white, fname) ;
-
-    sprintf(fname, "%s.%s.ptvals.%3.3d.mgz",
-            mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", dp->base_name,i) ;
-    printf("writing pial target vals to %s\n", fname) ;
-    MRIwrite(mri_pial, fname) ;
-
-    i++ ;
-  }
-  MRIfree(&mri_white) ; MRIfree(&mri_pial) ;
-  return(mean_abs_dist) ;
+  return(NO_ERROR) ;
 }
 
 
@@ -2244,14 +2169,14 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
     wm_index_okay[MAX_PROFILE_LEN], n, sg_indices[MAX_PROFILE_LEN],nsg,wm_skip = skip ;
   double errors[MAX_PROFILE_LEN], best_wm_dist, prior,
     kernel[MAX_PROFILE_LEN], nx, ny, nz, base_intensity_profile[MAX_PROFILE_LEN], wm_dist ;
-  double  wm_val, ig_val, sg_val, *intensity_profile, pdist ;
+  double  wm_val, ig_val, sg_val, *intensity_profile, pdist, wm_profile_val ;
   double  step, rms, min_rms, offset ;
   int     ig_len, sg_len, best_ig_len=0, best_sg_len=0, min_ig_len, max_ig_len, ico_vno,
     min_sg_len, max_sg_len, best_profile = PROFILE_GENERIC, tsteps, min_wm_index,
     min_start_index ;
   double  best_wm_intensity_offset=0.0,min_wm_intensity_offset,max_wm_intensity_offset,
     wm_intensity_offset, min_wm_intensity, max_wm_intensity, best_nx, best_ny, best_nz,
-    best_sg_intensity_offset, sg_intensity_offset, ig_intensity_offset,  best_ig_intensity_offset, 
+    best_sg_intensity_offset, sg_intensity_offset, ig_intensity_offset=0,  best_ig_intensity_offset, 
     min_wm_len ;
   VERTEX *vico ;
   
@@ -2327,8 +2252,10 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
   vico = &mris_ico->vertices[ico_vno] ;
   best_nx = vp->nx ; best_ny = vp->ny ; best_nz = vp->nz ;
   best_ig_intensity_offset = best_sg_intensity_offset = best_wm_intensity_offset = 0.0 ;
-  for (n = -1 ; n < 0 /*vico->vnum*/ ; n++)
+  for (n = -1 ; n < vico->vnum ; n++)
   {
+    if (n >= 0 && dp->search_multiple_angles == 0)
+      break ;
     if (n < 0)
     {
       nx = vp->nx ; ny = vp->ny ; nz = vp->nz ;
@@ -2343,6 +2270,8 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
     // just to make things run a bit faster
 
     pdist = sqrt(SQR(vp->px-vp->wx) + SQR(vp->py-vp->wy) + SQR(vp->pz-vp->wz)) ;
+    profile_len=max_profile_len = nint((max_inwards + max_outwards+pdist)/step) ;
+    current_index = nint(max_inwards/step) ;
     if (dp->use_max_grad)  // white matter location is already found
     {
       int index, max_in_offset, max_out_offset, sg_index ;
@@ -2397,16 +2326,14 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
         fclose(fp) ;
       }
     }
+#if 0
     else if (dp->fix_intensities)// mark a region around current locations
     {
       int index, max_in_offset, max_out_offset, sg_index ;
-      double pdist ;
-      pdist = sqrt(SQR(vp->px-vp->wx) + SQR(vp->py-vp->wy) + SQR(vp->pz-vp->wz)) ;
-      current_index = nint(2*max_inwards/step) ;
+
       max_in_offset = nint(max_inwards / step) ;
       max_out_offset = nint(max_outwards / step) ;
-      max_profile_len = max_in_offset + max_out_offset ;
-      extract_image_intensities(mris, mri, 2*max_inwards, 2*max_outwards+pdist, vp->wx, vp->wy, vp->wz, 
+      extract_image_intensities(mris, mri, max_inwards, max_outwards+pdist, vp->wx, vp->wy, vp->wz, 
                                 nx,ny,nz, step, tsteps, base_intensity_profile, fname2);
       memset(wm_index_okay, 0, max_profile_len*sizeof(int)) ;
       memset(sg_index_okay, 0, max_profile_len*sizeof(int)) ;
@@ -2438,10 +2365,9 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
         fclose(fp) ;
       }
     }
+#endif
     else
     {
-      current_index = nint(max_inwards/step) ;
-      max_profile_len = nint((max_inwards + max_outwards+pdist)/step) ;
       extract_image_intensities(mris, mri, max_inwards, max_outwards+pdist, vp->wx, vp->wy, vp->wz, 
                                 nx,ny,nz, step, tsteps, base_intensity_profile, fname2);
       min_wm_index = mark_wm_index_okay(base_intensity_profile, wm_index_okay, nint(.4/step), 
@@ -2470,19 +2396,25 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
           continue ;
         wm_dist = (start_index+wm_len-current_index)*step ;   
         if (dp->fix_intensities)
+        {
           wm_val = dp->wm_val + vp->wm_intensity_offset ;
+          wm_profile_val = compute_optimal_intensity(intensity_profile, 0, wm_len-2, filter_type) ;
+        }
         else
         {
           wm_val = compute_optimal_intensity(intensity_profile, 0, wm_len-2, filter_type) ;
           if (wm_val < min_wm_intensity || wm_val > max_wm_intensity)
             continue ; // not in feasible region
+          wm_profile_val = wm_val ;
         }
         wm_intensity_offset = wm_val - dp->wm_val ;
         for (ig_len = min_ig_len ; ig_len <= max_ig_len ; ig_len += skip)
         {
+#if 0
           if (dp->fix_intensities)
             ig_val = dp->infra_granular_val + vp->ig_intensity_offset ;
           else
+#endif
           {
             ig_val = compute_optimal_intensity(intensity_profile, wm_len+1, 
                                                wm_len+ig_len-2,filter_type);
@@ -2492,7 +2424,7 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
           }
           ig_intensity_offset = ig_val - dp->infra_granular_val ;
           
-          if (ig_val <= wm_val+MIN_INTENISTY_PCT_OFFSET*wm_val) // do some sanity checks
+          if (ig_val <= wm_profile_val+MIN_INTENISTY_PCT_OFFSET*wm_profile_val) // do some sanity checks
             continue ;
 
           for (index = 0 ; index < nsg ; index++)
@@ -2500,9 +2432,11 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
             sg_len = sg_indices[index]-(wm_len+ig_len+start_index) ;
             if (sg_len < min_sg_len || sg_len > max_sg_len)
               continue ;
+#if 0
             if (dp->fix_intensities)
               sg_val = dp->supra_granular_val + vp->sg_intensity_offset ;
             else
+#endif
             {
               sg_val = compute_optimal_intensity(intensity_profile, 
                                                  wm_len+ig_len+1,wm_len+ig_len+sg_len-2,
@@ -2601,15 +2535,10 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
           for (ig_len = min_ig_len ; ig_len <= max_ig_len ; ig_len += skip)
           {
             int i1 = MAX(wm_len+2, wm_len+ig_len-(stria_len+stria_offset_len)-2) ;
-            if (dp->fix_intensities)
-              ig_val = dp->infra_granular_val + vp->ig_intensity_offset ;
-            else
-            {
-              ig_val = compute_optimal_intensity(intensity_profile,wm_len+1, i1,filter_type);
-              if (ig_val < dp->infra_granular_val-dp->max_ig_intensity_offset ||
-                  ig_val > dp->infra_granular_val+dp->max_ig_intensity_offset)
-                continue ; // not in feasible region
-            }
+            ig_val = compute_optimal_intensity(intensity_profile,wm_len+1, i1,filter_type);
+            if (ig_val < dp->infra_granular_val-dp->max_ig_intensity_offset ||
+                ig_val > dp->infra_granular_val+dp->max_ig_intensity_offset)
+              continue ; // not in feasible region
             ig_intensity_offset = ig_val - dp->infra_granular_val ;
             
             if (ig_val <= wm_val+MIN_INTENISTY_PCT_OFFSET*wm_val) // do some sanity checks
@@ -2631,20 +2560,11 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
               sg_len = sg_indices[index]-(wm_len+ig_len+start_index) ;
               if (sg_len < min_sg_len || sg_len > max_sg_len)
                 continue ;
-#if 0
-              if (sg_len > 3*ig_len || ig_len > 3*sg_len)
-                continue ; // sanity check
-#endif
-              if (dp->fix_intensities)
-                sg_val = dp->supra_granular_val + vp->sg_intensity_offset ;
-              else
-              {
-                sg_val = compute_optimal_intensity(intensity_profile, 
-                                                   wm_len+ig_len+1,wm_len+ig_len+sg_len-2, filter_type);
-                if (sg_val < dp->supra_granular_val-dp->max_sg_intensity_offset ||
-                    sg_val > dp->supra_granular_val+dp->max_sg_intensity_offset)
-                  continue ; // not in feasible region
-              }
+              sg_val = compute_optimal_intensity(intensity_profile, 
+                                                 wm_len+ig_len+1,wm_len+ig_len+sg_len-2, filter_type);
+              if (sg_val < dp->supra_granular_val-dp->max_sg_intensity_offset ||
+                  sg_val > dp->supra_granular_val+dp->max_sg_intensity_offset)
+                continue ; // not in feasible region
               sg_intensity_offset = sg_val - dp->supra_granular_val ;
               
               if (sg_val <= 1.1*ig_val) // do some sanity checks
@@ -2714,7 +2634,7 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
   {
     nx = vp->nx ; ny = vp->ny ; nz = vp->nz ;
     ig_len = 0 ;
-    if (dp->fix_intensities == 0 && dp->use_max_grad == 0)
+    if (/*dp->fix_intensities == 0 && */dp->use_max_grad == 0)
     {
       min_wm_index = mark_wm_index_okay(base_intensity_profile, wm_index_okay, nint(.4/step), 
                                         min_wm_intensity, max_wm_intensity, current_index, 
@@ -2753,9 +2673,11 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
           sg_len = sg_indices[index]-(wm_len+ig_len+start_index) ;
           if (sg_len < min_sg_len || sg_len > max_sg_len)
             continue ;
+#if 0
           if (dp->fix_intensities)
             sg_val = dp->supra_granular_val + vp->sg_intensity_offset ;
           else
+#endif
           {
             sg_val = compute_optimal_intensity(intensity_profile, wm_len+1,wm_len+sg_len-2,filter_type);
             if (sg_val < dp->infra_granular_val-dp->max_ig_intensity_offset )
@@ -2835,7 +2757,7 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
     int   i0, i1, best_index ;
     double target_intensity, min_dif  ;
     i0 = MAX(0, best_start_index + best_wm_len + best_ig_len - (PV_LEN-1)) ;
-    i1 = MIN(profile_len-1, i0 + 2*(PV_LEN-1)) ;
+    i1 = MIN(max_profile_len-1, i0 + 2*(PV_LEN-1)) ;
     target_intensity = 
       ((dp->supra_granular_val+best_sg_intensity_offset) + 
        (dp->infra_granular_val+best_ig_intensity_offset))/2;
@@ -2872,7 +2794,7 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
   if ((deform_debug || vno == Gdiag_no) && best_wm_dist > -100)
   {
     double rms, wx, wy, wz, px, py, pz, lx, ly, lz ;
-    if (dp->fix_intensities || dp->use_max_grad)
+    if (/*dp->fix_intensities || */ dp->use_max_grad)
     {
       double pdist ;
       pdist = sqrt(SQR(vp->px-vp->wx) + SQR(vp->py-vp->wy) + SQR(vp->pz-vp->wz)) ;
