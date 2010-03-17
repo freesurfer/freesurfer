@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/17 18:45:52 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/03/17 19:03:33 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -110,7 +110,7 @@ namespace GPU {
 		      GPU::Classes::VolumeArgGPU<char> good ) {
 
       const unsigned int bx = ( blockIdx.x * blockDim.x );
-      const unsigned int by = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
       const unsigned int ix = threadIdx.x + bx;
       const unsigned int iy = threadIdx.y + by;
 
@@ -121,20 +121,20 @@ namespace GPU {
 	// Only compute if ix, iy & iz are inside the bounding box
 	if( good.InVolume(ix,iy,iz) ) {
 	  good(ix,iy,iz) = 0;
-
+	  
 	  // Is it valid?
 	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
 	    // If not, go to next z slice
 	    continue;
 	  }
-
+	  
 	  // What's the status?
 	  if( status(ix,iy,iz) &
 	      (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD) ) {
 	    // Go to next z slice
 	    continue;
 	  }
-
+	  
 	  // Don't use unknowns unless they border known
 	  if( IS_UNKNOWN(label(ix,iy,iz)) ) {
 	    unsigned int diffLabels = 0;
@@ -198,7 +198,6 @@ namespace GPU {
 	  
 	  // See if we want to do this pixel
 	  if( good(ix,iy,iz) == 0 ) {
-	    energies[iLoc] = 0;
 	    continue;
 	  }
 
@@ -256,10 +255,6 @@ namespace GPU {
 
 	const dim3 gcamDims = gcam.d_rx.GetDims();
 	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
-
-	std::cout << __FUNCTION__ << ": " << gcamDims << std::endl;
-	std::cout << __FUNCTION__ << ": nVoxels = " << nVoxels << std::endl;
-
 	// Create a 'flag' array
 	GPU::Classes::VolumeGPU<char> d_good;
 	d_good.Allocate( gcamDims );
@@ -287,8 +282,6 @@ namespace GPU {
 	grid = gcam.d_rx.CoverBlocks( kGCAmorphLLEkernelSize );
 	grid.z = 1;
 
-	std::cout << __FUNCTION__ << ": grid " << grid << std::endl;
-
 	ComputeGood<<<grid,threads>>>( gcam.d_invalid,
 				       gcam.d_label,
 				       gcam.d_status,
@@ -314,7 +307,9 @@ namespace GPU {
 	// Get the sum of the energies
 	double energy = thrust::reduce( d_energies, d_energies+nVoxels );
 
-	std::cout << __FUNCTION__ << " " << energy << std::endl;
+	std::cout << __FUNCTION__
+		  << " " << std::setprecision(20) << std::setw(40)
+		  << energy << std::endl;
 
 	// Release thrust arrays
 	thrust::device_delete( d_energies );
