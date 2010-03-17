@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/17 19:03:33 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/03/17 19:26:19 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,7 +86,7 @@ namespace GPU {
       v = v*v;
       v /= variance;
 
-      return( sqrtf( v ) );
+      return( v );
     }
 
     __device__
@@ -263,7 +263,7 @@ namespace GPU {
 	std::cout << "Make d_energies double for debug" << std::endl;
 	thrust::device_ptr<double> d_energies;
 	d_energies = thrust::device_new<double>( nVoxels );
-#if 1
+#if 0
 	std::cout << __FUNCTION__ << "Zero energies for debug" << std::endl;
 	CUDA_SAFE_CALL( cudaMemset( thrust::raw_pointer_cast( d_energies ),
 				    0,	
