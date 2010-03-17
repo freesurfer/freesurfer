@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/17 15:07:24 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/03/17 22:55:30 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -286,7 +286,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.24 2010/03/17 15:07:24 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.25 2010/03/17 22:55:30 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -2186,7 +2186,10 @@ find_optimal_locations(MRI_SURFACE *mris, MRI *mri, int vno,
   char   *fname1, *fname2, *fname3, *fname4 ;
   double  stria_val, stria_intensity_offset, best_stria_intensity_offset = 0.0 ; 
   static MRI_SURFACE   *mris_ico = NULL;
-  
+
+  max_profile_len = current_index = min_start_index = min_wm_index = 0 ;
+  pdist = 0.0 ;
+
   if (mris_ico == NULL)
   {
     mris_ico = ic642_make_surface(0, 0) ;
