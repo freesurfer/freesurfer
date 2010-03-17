@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/01 22:54:21 $
- *    $Revision: 1.177 $
+ *    $Date: 2010/03/17 03:47:53 $
+ *    $Revision: 1.178 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -561,7 +561,7 @@ MRI *fMRIdistance(MRI *mri, MRI *mask);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.177 2010/03/01 22:54:21 greve Exp $";
+"$Id: mri_glmfit.c,v 1.178 2010/03/17 03:47:53 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -669,7 +669,7 @@ DTI *dti;
 int usedti = 0;
 MRI *lowb, *tensor, *evals, *evec1, *evec2, *evec3;
 MRI  *fa, *ra, *vr, *adc, *dwi, *dwisynth,*dwires,*dwirvar;
-MRI  *ivc, *k;
+MRI  *ivc, *k, *pk;
 char *bvalfile=NULL, *bvecfile=NULL;
 
 int useasl = 0;
@@ -706,6 +706,8 @@ int DoKurtosis = 0;
 char *Gamma0File[GLMMAT_NCONTRASTS_MAX];
 MATRIX *Xtmp=NULL, *Xnorm=NULL;
 char *XOnlyFile = NULL;
+
+MRI *MRIpkurtosis(MRI *kvals, int dof, int nsamples);
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1836,6 +1838,11 @@ int main(int argc, char **argv) {
     k = fMRIkurtosis(mriglm->eres,NULL);
     sprintf(tmpstr,"%s/kurtosis.%s",GLMDir,format);
     MRIwrite(k,tmpstr);
+    pk = MRIpkurtosis(k, mriglm->glm->dof, 10000);
+    sprintf(tmpstr,"%s/pkurtosis.%s",GLMDir,format);
+    MRIwrite(pk,tmpstr);
+    MRIfree(&k);
+    MRIfree(&pk);
   }
 
   // Compute and save PCA
@@ -3152,3 +3159,35 @@ int PrintStatTable(FILE *fp, STAT_TABLE *st)
   return(0);
 }
 
+MRI *MRIpkurtosis(MRI *kvals, int dof, int nsamples)
+{
+  MRI *nmri, *kmri, *pkmri;
+  double *ksynth,pk,kvox;
+  int m,c,r,s,f,ind;
+
+  nmri = MRIrandn(nsamples,1,1,dof,0,1,NULL);
+  kmri = fMRIkurtosis(nmri,NULL);
+
+  ksynth = (double*) calloc(sizeof(double),nsamples);
+  for(m=0; m < nsamples; m++) ksynth[m] = MRIgetVoxVal(kmri,m,0,0,0);
+
+  qsort(ksynth,nsamples,sizeof(double),CompareDoubles);
+
+  pkmri = MRIclone(kvals,NULL);
+  for(c=0; c < pkmri->width; c++){
+    for(r=0; r < pkmri->height; r++){
+      for(s=0; s < pkmri->depth; s++){
+	for(f=0; f < pkmri->nframes; f++){
+	  kvox = MRIgetVoxVal(kvals,c,r,s,f);
+	  ind = PDFsearchOrderedTable(kvox,ksynth,nsamples);
+	  pk = 1.0 - (double)ind/nsamples;
+	  MRIsetVoxVal(pkmri,c,r,s,f,-log10(pk));
+	}
+      }
+    }
+  }
+  MRIfree(&nmri);
+  MRIfree(&kmri);
+  free(ksynth);
+  return(pkmri);
+}
