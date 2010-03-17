@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/17 17:59:22 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/03/17 18:45:52 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -178,10 +178,10 @@ namespace GPU {
 		     const GPU::Classes::VolumeArgGPU<char> good,
 		     const GPU::Classes::VolumeArgGPU<float> mean,
 		     const GPU::Classes::VolumeArgGPU<float> variance,
-		     float* energies ) {
+		     double* energies ) {
       
       const unsigned int bx = ( blockIdx.x * blockDim.x );
-      const unsigned int by = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
       const unsigned int ix = threadIdx.x + bx;
       const unsigned int iy = threadIdx.y + by;
 
@@ -189,13 +189,13 @@ namespace GPU {
 
 
       // Loop over z slices
-      for( unsigned int iz = 0; iz< rx.dims.z; iz++ ) {
+      for( unsigned int iz = 0; iz < rx.dims.z; iz++ ) {
 
 	// Only compute if ix, iy & iz are inside the bounding box
 	if( rx.InVolume(ix,iy,iz) ) {
 
 	  const unsigned int iLoc = rx.Index1D( ix, iy, iz );
-
+	  
 	  // See if we want to do this pixel
 	  if( good(ix,iy,iz) == 0 ) {
 	    energies[iLoc] = 0;
@@ -257,13 +257,23 @@ namespace GPU {
 	const dim3 gcamDims = gcam.d_rx.GetDims();
 	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
 
+	std::cout << __FUNCTION__ << ": " << gcamDims << std::endl;
+	std::cout << __FUNCTION__ << ": nVoxels = " << nVoxels << std::endl;
+
 	// Create a 'flag' array
 	GPU::Classes::VolumeGPU<char> d_good;
 	d_good.Allocate( gcamDims );
 
 	// Allocate thrust arrays
-	thrust::device_ptr<float> d_energies;
-	d_energies = thrust::device_new<float>( nVoxels );
+	std::cout << "Make d_energies double for debug" << std::endl;
+	thrust::device_ptr<double> d_energies;
+	d_energies = thrust::device_new<double>( nVoxels );
+#if 1
+	std::cout << __FUNCTION__ << "Zero energies for debug" << std::endl;
+	CUDA_SAFE_CALL( cudaMemset( thrust::raw_pointer_cast( d_energies ),
+				    0,	
+				    nVoxels*sizeof(*thrust::raw_pointer_cast( d_energies )) ) );
+#endif
 
 	// Get the MRI into a texture
 	this->BindMRI( mri );
@@ -277,6 +287,7 @@ namespace GPU {
 	grid = gcam.d_rx.CoverBlocks( kGCAmorphLLEkernelSize );
 	grid.z = 1;
 
+	std::cout << __FUNCTION__ << ": grid " << grid << std::endl;
 
 	ComputeGood<<<grid,threads>>>( gcam.d_invalid,
 				       gcam.d_label,
@@ -291,14 +302,19 @@ namespace GPU {
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeLLE kernel failed!\n" );
 
-
+#if 0
+	for( unsigned int i=0; i<nVoxels; i++ ) {
+	  std::cout << i << " " << d_energies[i] << std::endl;
+	}
+#endif
 
 	// Release the MRI texture
 	this->UnbindMRI<T>();
 
 	// Get the sum of the energies
-	float energy = thrust::reduce( d_energies, d_energies+nVoxels );
+	double energy = thrust::reduce( d_energies, d_energies+nVoxels );
 
+	std::cout << __FUNCTION__ << " " << energy << std::endl;
 
 	// Release thrust arrays
 	thrust::device_delete( d_energies );
@@ -318,6 +334,7 @@ namespace GPU {
 	myGCAM.SendAll( gcam );
 
 	GPU::Classes::MRIframeGPU<T> myMRI;
+	myMRI.Allocate( mri );
 	myMRI.Send( mri, 0 );
 	myMRI.AllocateArray();
 	myMRI.SendArray();
