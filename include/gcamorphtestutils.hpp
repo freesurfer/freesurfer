@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 15:09:44 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/03/18 18:48:26 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -103,17 +103,26 @@ public:
   void Read( GCAM** dst, std::string fName ) const;
 
 private:
-  
-  //! Map of variable names and types
-  std::map<std::string,nc_type> varTypeMap;
 
   //! Indicies into small arrays defining the dimensions
   enum dimIndices{ iX, iY, iZ };
+
+  //! Map of variable names and types
+  std::map<std::string,nc_type> varTypeMap;
+
+  //! Names of the double precision scalars
+  std::vector<std::string> doubleScalarNames;
+
 
   //! Number of dimensions we will store
   static const unsigned int nDims = 3;
   //! Number of variables we will store
   static const unsigned int nVars = 14;
+  //! Number of scalar doubles we will store
+  static const unsigned int nDoubleScalars = 1;
+
+  //! Total number of variables which will be in a NetCDF file
+  static const unsigned int totalVars = nVars+nDoubleScalars;
 };
 
 #endif

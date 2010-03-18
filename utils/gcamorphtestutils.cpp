@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 15:33:52 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/03/18 18:48:23 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,23 +52,25 @@ GCAMforCMPutils::GCAMforCMPutils( void ) : varTypeMap() {
     cerr << __FUNCTION__ << ": Invalid nDims!" << endl;
     exit( EXIT_FAILURE );
   }
-  
-  varTypeMap[ "rx" ] = NC_DOUBLE;
-  varTypeMap[ "ry" ] = NC_DOUBLE;
-  varTypeMap[ "rz" ] = NC_DOUBLE;
 
-  varTypeMap[ "origArea" ] = NC_FLOAT;
-  varTypeMap[ "area" ] = NC_FLOAT;
-  varTypeMap[ "area1" ] = NC_FLOAT;
-  varTypeMap[ "area2" ] = NC_FLOAT;
+  // Construct the variable type map
+  this->varTypeMap[ "rx" ] = NC_DOUBLE;
+  this->varTypeMap[ "ry" ] = NC_DOUBLE;
+  this->varTypeMap[ "rz" ] = NC_DOUBLE;
+
+  this->varTypeMap[ "origArea" ] = NC_FLOAT;
+  this->varTypeMap[ "area" ] = NC_FLOAT;
+  this->varTypeMap[ "area1" ] = NC_FLOAT;
+  this->varTypeMap[ "area2" ] = NC_FLOAT;
   
-  varTypeMap[ "invalid" ] = NC_CHAR;
+  this->varTypeMap[ "invalid" ] = NC_CHAR;
   
   // And another sanity check
-  if( varTypeMap.size() != this->nVars ) {
+  if( this->varTypeMap.size() != this->nVars ) {
     cerr << __FUNCTION__ << ": Incorrect entries in varTypeMap" << endl;
     exit( EXIT_FAILURE );
   }
+
 }
 
 
@@ -331,7 +333,8 @@ void GCAMforCMPutils::Read( GCAM** dst, string fName ) const {
 // ======================================================================
 
 
-GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap() {
+GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
+				       doubleScalarNames() {
     
   // Sanity check
   if( this->nVars != 14 ) {
@@ -342,29 +345,40 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap() {
     cerr << __FUNCTION__ << ": Invalid nDims!" << endl;
     exit( EXIT_FAILURE );
   }
+  if( this->nDoubleScalars != 1 ) {
+    cerr << __FUNCTION__ << ": Invalid nDoubleScalars!" << endl;
+  }
   
-  varTypeMap[ "rx" ] = NC_DOUBLE;
-  varTypeMap[ "ry" ] = NC_DOUBLE;
-  varTypeMap[ "rz" ] = NC_DOUBLE;
+  // Create the variable type map
+  this->varTypeMap[ "rx" ] = NC_DOUBLE;
+  this->varTypeMap[ "ry" ] = NC_DOUBLE;
+  this->varTypeMap[ "rz" ] = NC_DOUBLE;
 
-  varTypeMap[ "origArea" ] = NC_FLOAT;
-  varTypeMap[ "origArea1" ] = NC_FLOAT;
-  varTypeMap[ "origArea2" ] = NC_FLOAT;
-  varTypeMap[ "area" ] = NC_FLOAT;
-  varTypeMap[ "area1" ] = NC_FLOAT;
-  varTypeMap[ "area2" ] = NC_FLOAT;
+  this->varTypeMap[ "origArea" ] = NC_FLOAT;
+  this->varTypeMap[ "origArea1" ] = NC_FLOAT;
+  this->varTypeMap[ "origArea2" ] = NC_FLOAT;
+  this->varTypeMap[ "area" ] = NC_FLOAT;
+  this->varTypeMap[ "area1" ] = NC_FLOAT;
+  this->varTypeMap[ "area2" ] = NC_FLOAT;
   
-  varTypeMap[ "invalid" ] = NC_CHAR;
-  varTypeMap[ "label" ] = NC_INT;
-  varTypeMap[ "status" ] = NC_INT;
+  this->varTypeMap[ "invalid" ] = NC_CHAR;
+  this->varTypeMap[ "label" ] = NC_INT;
+  this->varTypeMap[ "status" ] = NC_INT;
 
-  varTypeMap[ "mean" ] = NC_FLOAT;
-  varTypeMap[ "variance" ] = NC_FLOAT;
-  
+  this->varTypeMap[ "mean" ] = NC_FLOAT;
+  this->varTypeMap[ "variance" ] = NC_FLOAT;
   
   // And another sanity check
-  if( varTypeMap.size() != this->nVars ) {
+  if( this->varTypeMap.size() != this->nVars ) {
     cerr << __FUNCTION__ << ": Incorrect entries in varTypeMap" << endl;
+    exit( EXIT_FAILURE );
+  }
+
+  // Create the list of names for the double precision scalars
+  this->doubleScalarNames.push_back( "exp_k" );
+
+  if( this->doubleScalarNames.size() != this->nDoubleScalars ) {
+    cerr << __FUNCTION__ << ": Incorrect entries in doubleScalarNames" << endl;
     exit( EXIT_FAILURE );
   }
 }
@@ -394,7 +408,7 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
   
   
   // Set up the dimensions
-  int dimIDs[nDims];
+  int dimIDs[this->nDims];
   NC_SAFE_CALL( nc_def_dim( ncid, "x", src->width, &dimIDs[this->iX] ) );
   NC_SAFE_CALL( nc_def_dim( ncid, "y", src->height, &dimIDs[this->iY] ) );
   NC_SAFE_CALL( nc_def_dim( ncid, "z", src->depth, &dimIDs[this->iZ] ) );
@@ -409,7 +423,7 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
     NC_SAFE_CALL( nc_def_var( ncid,
 			      myIt->first.c_str(), // Name of the variable
 			      myIt->second,        // Type of the variable
-			      nDims, dimIDs,
+			      this->nDims, dimIDs,
 			      &varIDmap[ myIt->first ] ) );
   }
   
@@ -418,6 +432,29 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
     cerr << __FUNCTION__ << ": Failed to create varIDmap correctly" << endl;
       exit( EXIT_FAILURE );
   }
+
+  // Set up the scalars
+  int scalarDimID;
+  NC_SAFE_CALL( nc_def_dim( ncid,
+			    "Dimension_for_scalars",
+			    1,
+			    &scalarDimID ) );
+
+  map<string,int> scalarDoubleIDmap;
+  vector<string>::const_iterator scalarVarIt;
+  
+  // Do the doubles
+  for( scalarVarIt = this->doubleScalarNames.begin();
+       scalarVarIt != this->doubleScalarNames.end();
+       scalarVarIt++ ) {
+    const string varName = *scalarVarIt;
+    NC_SAFE_CALL( nc_def_var( ncid,
+			      varName.c_str(), // Name of the variable
+			      NC_DOUBLE,
+			      1, &scalarDimID,
+			      &scalarDoubleIDmap[ varName ] ) );
+  }
+			    
   
   // Make the end of the 'definition' region
   NC_SAFE_CALL( nc_enddef( ncid ) );
@@ -517,7 +554,12 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
 				  varIDmap.find( "variance" )->second,
 				  &variance[0] ) );
 
-  
+  // Sort out the scalars
+
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   scalarDoubleIDmap.find( "exp_k" )->second,
+				   &(src->exp_k) ) );
+
   
   // Close the file
   NC_SAFE_CALL( nc_close( ncid ) );
@@ -557,12 +599,13 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   NC_SAFE_CALL( nc_inq_ndims( ncid, &nDimFile ) );
   NC_SAFE_CALL( nc_inq_nvars( ncid, &nVarFile ) );
   
-  if( nDimFile != static_cast<int>(this->nDims) ) {
+  if( nDimFile != (1+static_cast<int>(this->nDims)) ) {
+    // Why the +1? Because we have a special dimension for scalars
     cerr << "Invalid number of dimensions " << nDimFile << endl;
     exit( EXIT_FAILURE );
   }
   
-  if( nVarFile != static_cast<int>(this->nVars) ) {
+  if( nVarFile != static_cast<int>(this->totalVars) ) {
     std::cerr << "Invalid number of variables " << nVarFile << endl;
     exit( EXIT_FAILURE );
   }
@@ -578,6 +621,15 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[this->iY], &dimLen[this->iY] ) );
   NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[this->iZ], &dimLen[this->iZ] ) );
   
+  int scalarDimID;
+  size_t scalarDimLen;
+  NC_SAFE_CALL( nc_inq_dimid( ncid, "Dimension_for_scalars", &scalarDimID ) );
+  NC_SAFE_CALL( nc_inq_dimlen( ncid, scalarDimID, &scalarDimLen ) );
+  if( scalarDimLen != 1 ) {
+    cerr << "Length of scalar dimension must be 1!" << endl;
+    exit( EXIT_FAILURE );
+  }
+
   // Allocate the target
   *dst = GCAMalloc( dimLen[this->iX], dimLen[this->iY], dimLen[this->iZ] );
   if( *dst == NULL ) {
@@ -599,6 +651,19 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
     NC_SAFE_CALL( nc_inq_varid( ncid,
 				myIt->first.c_str(), // Name of the variable
 				&varIDmap[ myIt->first ] ) );
+  }
+
+  // Get hold of the variable IDs for the scalars
+  map<string,int> scalarDoubleIDmap;
+  vector<string>::const_iterator scalarVarIt;
+
+  for( scalarVarIt = this->doubleScalarNames.begin();
+       scalarVarIt != this->doubleScalarNames.end();
+       scalarVarIt++ ) {
+    const string varName = *scalarVarIt;
+    NC_SAFE_CALL( nc_inq_varid( ncid,
+				varName.c_str(),
+				&scalarDoubleIDmap[ varName ] ) );
   }
   
   // Read into contiguous arrays
@@ -698,7 +763,11 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
     }
   }
 
-   
+  // Fetch the scalars
+  NC_SAFE_CALL( nc_get_var_double( ncid,
+				   scalarDoubleIDmap.find( "exp_k" )->second,
+				   &((*dst)->exp_k) ) )
+
   NC_SAFE_CALL( nc_close( ncid ) );
   
   cout << "complete" << endl;
