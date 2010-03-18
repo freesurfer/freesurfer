@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 16:32:39 $
- *    $Revision: 1.172 $
+ *    $Date: 2010/03/18 17:02:50 $
+ *    $Revision: 1.173 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -279,8 +279,7 @@ static int gcamJacobianTerm(GCA_MORPH *gcam,
                             MRI *mri, 
                             double l_jacobian, 
                             double ratio_thresh) ;
-//! Compute Jacobian Energy (mri would be const if not for MRIwrite)
-static double gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri );
+
 static int gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms) ;
 static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
 static int gcamUndoGradient(GCA_MORPH *gcam) ;
@@ -3472,9 +3471,11 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   return(NO_ERROR) ;
 }
 #endif
+
+
 #define GCAM_JACOBENERGY_OUTPUT 1
 
-static double
+double
 gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
 {
   double          sse = 0.0, delta, ratio, exponent, thick ;
