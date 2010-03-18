@@ -27,9 +27,9 @@ namespace bpo = boost::program_options;
 const string gcamFileDefault = "gcamInput";
 const string mriFileDefault = "mriInput.mgz";
 #ifdef FS_CUDA
-const string outFileDefault = "energy.gpu";
+const string outFileDefault = "energyJacob.gpu";
 #else
-const string outFileDefault = "energy.cpu";
+const string outFileDefault = "energyJacob.cpu";
 #endif
 
 
