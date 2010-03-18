@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/17 21:46:21 $
-#    $Revision: 1.469 $
+#    $Date: 2010/03/18 19:07:41 $
+#    $Revision: 1.470 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -457,8 +457,8 @@ case "${target}" in
  DYNAMIC_LIB_EXT=".so"
  SHARED_CFLAGS="-fPIC"
  SHARED_LDFLAGS="-shared"
- CPPFLAGS="-g -O3 -msse -mfpmath=sse $WALL $WERROR"
- FFLAGS="-g -O3 -msse -mfpmath=sse"
+ CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
+ FFLAGS="-g -O3 -msse2 -mfpmath=sse"
  TEEM_32BIT=0
  ;;
  ia64-*)
