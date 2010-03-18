@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/17 22:55:30 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/03/18 11:25:33 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -286,7 +286,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.25 2010/03/17 22:55:30 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.26 2010/03/18 11:25:33 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1333,7 +1333,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
       {
         double        dx, dy, dz,d  ;
         VERTEX_PARMS  *vnp ;
-        FILE          *fp ;
+        FILE          *fp = NULL;
 
         vp = (VERTEX_PARMS *)(v->vp) ;
         if (vno == Gdiag_no)
@@ -1425,7 +1425,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
       {
         double        dx, dy, dz,d  ;
         VERTEX_PARMS  *vnp ;
-        FILE          *fp ;
+        FILE          *fp = NULL ;
 
         vp = (VERTEX_PARMS *)(v->vp) ;
         if (vno == Gdiag_no)
@@ -1518,7 +1518,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
       {
         double        dx, dy, dz,d  ;
         VERTEX_PARMS  *vnp ;
-        FILE          *fp ;
+        FILE          *fp = NULL ;
 
         vp = (VERTEX_PARMS *)(v->vp) ;
         if (vno == Gdiag_no)
