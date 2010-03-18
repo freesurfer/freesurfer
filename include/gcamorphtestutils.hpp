@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 17:49:51 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/03/18 15:09:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,7 +113,7 @@ private:
   //! Number of dimensions we will store
   static const unsigned int nDims = 3;
   //! Number of variables we will store
-  static const unsigned int nVars = 12;
+  static const unsigned int nVars = 14;
 };
 
 #endif

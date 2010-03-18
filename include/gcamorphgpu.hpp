@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 16:04:07 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/03/18 15:05:23 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,10 @@ namespace GPU {
       VolumeGPU<char> d_invalid;
       //! Matches orig_area field in GCAmorph
       VolumeGPU<float> d_origArea;
+      //! Matches orig_area1 field in GCAmorph
+      VolumeGPU<float> d_origArea1;
+      //! Matches orig_area2 field in GCAmorph
+      VolumeGPU<float> d_origArea2;
       //! Matches area field in GCAmorph
       VolumeGPU<float> d_area;
       //! Matches area1 field in GCAmorph
@@ -81,6 +85,8 @@ namespace GPU {
 			    d_invalid(),
 			    d_area(),
 			    d_origArea(),
+			    d_origArea1(),
+			    d_origArea2(),
 			    d_area1(),
 			    d_area2(),
 			    d_label(),

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 16:04:03 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/03/18 15:05:19 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,6 +61,8 @@ namespace GPU {
       good = ( myDims == this->d_invalid.GetDims() );
       good = ( good && ( myDims == this->d_area.GetDims() ) );
       good = ( good && ( myDims == this->d_origArea.GetDims() ) );
+      good = ( good && ( myDims == this->d_origArea1.GetDims() ) );
+      good = ( good && ( myDims == this->d_origArea2.GetDims() ) );
       good = ( good && ( myDims == this->d_area1.GetDims() ) );
       good = ( good && ( myDims == this->d_area2.GetDims() ) );
       good = ( good && ( myDims == this->d_label.GetDims() ) );
@@ -103,6 +105,8 @@ namespace GPU {
       this->d_invalid.Allocate( dims );
       this->d_area.Allocate( dims );
       this->d_origArea.Allocate( dims );
+      this->d_origArea1.Allocate( dims );
+      this->d_origArea2.Allocate( dims );
       this->d_area1.Allocate( dims );
       this->d_area2.Allocate( dims );
       this->d_label.Allocate( dims );
@@ -124,6 +128,8 @@ namespace GPU {
       this->d_invalid.Release();
       this->d_area.Release();
       this->d_origArea.Release();
+      this->d_origArea1.Release();
+      this->d_origArea2.Release();
       this->d_area1.Release();
       this->d_area2.Release();
       this->d_label.Release();
@@ -165,6 +171,8 @@ namespace GPU {
       char* h_invalid = this->d_invalid.AllocateHostBuffer();
       float* h_area = this->d_area.AllocateHostBuffer();
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
+      float* h_origArea1 = this->d_origArea1.AllocateHostBuffer();
+      float* h_origArea2 = this->d_origArea2.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
       int* h_status = this->d_status.AllocateHostBuffer();
@@ -189,6 +197,8 @@ namespace GPU {
 	    h_invalid[i1d] = gcamn.invalid;
 	    h_area[i1d] = gcamn.area;
 	    h_origArea[i1d] = gcamn.orig_area;
+	    h_origArea1[i1d] = gcamn.orig_area1;
+	    h_origArea2[i1d] = gcamn.orig_area2;
 	    h_area1[i1d] = gcamn.area1;
 	    h_area2[i1d] = gcamn.area2;
 	    h_status[i1d] = gcamn.status;
@@ -229,6 +239,8 @@ namespace GPU {
       this->d_invalid.SendBuffer( h_invalid );
       this->d_area.SendBuffer( h_area );
       this->d_origArea.SendBuffer( h_origArea );
+      this->d_origArea1.SendBuffer( h_origArea1 );
+      this->d_origArea2.SendBuffer( h_origArea2 );
       this->d_area1.SendBuffer( h_area1 );
       this->d_area2.SendBuffer( h_area2 );
       this->d_status.SendBuffer( h_status );
@@ -246,6 +258,8 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_origArea1 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_origArea2 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
@@ -284,6 +298,8 @@ namespace GPU {
       char* h_invalid = this->d_invalid.AllocateHostBuffer();
       float* h_area = this->d_area.AllocateHostBuffer();
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
+      float* h_origArea1 = this->d_origArea1.AllocateHostBuffer();
+      float* h_origArea2 = this->d_origArea2.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
       int* h_status = this->d_status.AllocateHostBuffer();
@@ -298,6 +314,8 @@ namespace GPU {
       this->d_invalid.RecvBuffer( h_invalid );
       this->d_area.RecvBuffer( h_area );
       this->d_origArea.RecvBuffer( h_origArea );
+      this->d_origArea1.RecvBuffer( h_origArea1 );
+      this->d_origArea2.RecvBuffer( h_origArea2 );
       this->d_area1.RecvBuffer( h_area1 );
       this->d_area2.RecvBuffer( h_area2 );
       this->d_status.RecvBuffer( h_status );
@@ -322,6 +340,8 @@ namespace GPU {
 	    gcamn->invalid = h_invalid[i1d];
 	    gcamn->area = h_area[i1d];
 	    gcamn->orig_area = h_origArea[i1d];
+	    gcamn->orig_area1 = h_origArea1[i1d];
+	    gcamn->orig_area2 = h_origArea2[i1d];
 	    gcamn->area1 = h_area1[i1d];
 	    gcamn->area2 = h_area2[i1d];
 	    gcamn->label = h_label[i1d];
@@ -353,6 +373,8 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_origArea1 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_origArea2 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
