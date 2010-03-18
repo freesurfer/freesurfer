@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/09 19:47:23 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/03/18 18:23:33 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -168,13 +168,10 @@ void RenderView2D::RefreshAllActors()
   {
     mri = (LayerMRI*)lc->GetLayer(0);
     mri->Remove2DProps( m_renderer, m_nViewPlane );
-  }
-  m_renderer->AddViewProp( m_contour2D->GetActor() );
   
-  if ( !lc->IsEmpty() )
-  {
-    if ( mri )
-      mri->Append2DProps( m_renderer, m_nViewPlane );
+    m_renderer->AddViewProp( m_contour2D->GetActor() );
+  
+    mri->Append2DProps( m_renderer, m_nViewPlane );
     
     // add annotation and cursor
     m_cursor2D->AppendActor( m_renderer );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/10 21:40:06 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/03/18 18:23:33 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -77,6 +77,8 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MAX" ),     PanelVolume::OnTextHeatScaleMaxChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_OFFSET" ),  PanelVolume::OnTextHeatScaleOffsetChanged )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_CLEAR_HIGH" ),  PanelVolume::OnCheckHeatScaleClearHigh )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_TRUNCATE" ),    PanelVolume::OnCheckHeatScaleTruncate )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_INVERT" ),      PanelVolume::OnCheckHeatScaleInvert )
   EVT_TEXT            ( XRCID( "ID_TEXT_JETSCALE_MIN" ),      PanelVolume::OnTextMinJetScaleChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_JETSCALE_MAX" ),      PanelVolume::OnTextMaxJetScaleChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_GRAYSCALE_MIN" ),     PanelVolume::OnTextGrayScaleMin )
@@ -169,6 +171,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_choiceRepresentation  = XRCCTRL( *this, "ID_CHOICE_REPRESENTATION", wxChoice );
   m_choiceMask          = XRCCTRL( *this, "ID_CHOICE_MASK", wxChoice );
   m_checkHeatScaleClearHigh = XRCCTRL( *this, "ID_CHECKBOX_HEATSCALE_CLEAR_HIGH", wxCheckBox );
+  m_checkHeatScaleTruncate  = XRCCTRL( *this, "ID_CHECKBOX_HEATSCALE_TRUNCATE", wxCheckBox );
+  m_checkHeatScaleInvert    = XRCCTRL( *this, "ID_CHECKBOX_HEATSCALE_INVERT", wxCheckBox );
   
   m_choiceUpSampleMethod  = XRCCTRL( *this, "ID_CHOICE_UPSAMPLE_METHOD", wxChoice );
 
@@ -220,6 +224,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistHeatScale.push_back( m_sliderHeatScaleMax );
   m_widgetlistHeatScale.push_back( m_sliderHeatScaleOffset );
   m_widgetlistHeatScale.push_back( m_checkHeatScaleClearHigh );
+  m_widgetlistHeatScale.push_back( m_checkHeatScaleTruncate );
+  m_widgetlistHeatScale.push_back( m_checkHeatScaleInvert );
   m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MIN",     wxStaticText ) );
   m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MID",     wxStaticText ) );
   m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MAX",     wxStaticText ) );
@@ -727,7 +733,10 @@ void PanelVolume::DoUpdateUI()
 			UpdateTextValue( m_textHeatScaleMin, layer->GetProperties()->GetHeatScaleMinThreshold() );
 			UpdateTextValue( m_textHeatScaleMid, layer->GetProperties()->GetHeatScaleMidThreshold() );
 			UpdateTextValue( m_textHeatScaleMax, layer->GetProperties()->GetHeatScaleMaxThreshold() );
-			UpdateTextValue( m_textHeatScaleOffset, layer->GetProperties()->GetHeatScaleOffset() );
+      UpdateTextValue( m_textHeatScaleOffset, layer->GetProperties()->GetHeatScaleOffset() );
+      m_checkHeatScaleClearHigh->SetValue( layer->GetProperties()->GetHeatScaleClearHigh() );
+      m_checkHeatScaleTruncate->SetValue( layer->GetProperties()->GetHeatScaleTruncate() );
+      m_checkHeatScaleInvert->SetValue( layer->GetProperties()->GetHeatScaleInvert() );
 			
 			double fJetMin = fMin - (fMax-fMin)/4;
 			double fJetMax = fMax + (fMax-fMin)/4;
@@ -1445,6 +1454,23 @@ void PanelVolume::OnCheckHeatScaleClearHigh( wxCommandEvent& event )
   }
 }
 
+void PanelVolume::OnCheckHeatScaleTruncate( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetHeatScaleTruncate( event.IsChecked() );
+  }
+}
+
+void PanelVolume::OnCheckHeatScaleInvert( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetHeatScaleInvert( event.IsChecked() );
+  }
+}
 
 void PanelVolume::OnCheckUseImageColorMap( wxCommandEvent& event )
 {

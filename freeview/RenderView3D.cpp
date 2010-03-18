@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/09 20:24:52 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/03/18 18:23:33 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -154,8 +154,11 @@ void RenderView3D::RefreshAllActors()
   if ( lcm->HasLayer( "MRI" ) || lcm->HasLayer( "Surface" ) )
   {
     m_renderer->AddViewProp( m_actorScalarBar ); 
-    for ( int i = 0; i < 3; i++ )
-      m_renderer->AddViewProp( m_actorSliceFrames[i] );  
+    if ( lcm->HasLayer( "MRI" ) )
+    {
+      for ( int i = 0; i < 3; i++ )
+        m_renderer->AddViewProp( m_actorSliceFrames[i] );  
+    }
   }
   
   MainWindow::GetMainWindowPointer()->GetConnectivityData()->AppendProps( m_renderer );
