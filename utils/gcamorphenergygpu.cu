@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 13:48:49 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/03/18 18:49:04 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,6 +51,7 @@ namespace GPU {
 
 
     const unsigned int kGCAmorphLLEkernelSize = 16;
+    const unsigned int kGCAmorphJacobEnergyKernelSize = 16;
 
     //! Templated texture fetch
     template<typename T>
@@ -102,12 +103,12 @@ namespace GPU {
     }
 
 
-    //! Kernel to compute whether a voxel should be included in energy calculation
+    //! Kernel to compute whether a voxel should be included in LLE calculation
     __global__
-    void ComputeGood( const GPU::Classes::VolumeArgGPU<char> invalid,
-		      const GPU::Classes::VolumeArgGPU<int> label,
-		      const GPU::Classes::VolumeArgGPU<int> status,
-		      GPU::Classes::VolumeArgGPU<char> good ) {
+    void ComputeGoodLLE( const GPU::Classes::VolumeArgGPU<char> invalid,
+			 const GPU::Classes::VolumeArgGPU<int> label,
+			 const GPU::Classes::VolumeArgGPU<int> status,
+			 GPU::Classes::VolumeArgGPU<char> good ) {
 
       const unsigned int bx = ( blockIdx.x * blockDim.x );
       const unsigned int by = ( blockIdx.y * blockDim.y );
@@ -233,6 +234,86 @@ namespace GPU {
       }
     }
 
+    // --------------------------------------------------
+    
+    //! Implements FZERO macro
+    __device__ bool NearZero( const float f ) {
+
+      bool res = false;
+      if( fabsf(f) < 0.0000001f ) {
+	res = true;
+      }
+
+      return( res );
+    }
+
+    //! Kernel to implement loops of gcamComputeJacobianEnergy
+    __global__
+    void ComputeJacobEnergy( const GPU::Classes::VolumeArgGPU<char> invalid,
+			     const GPU::Classes::VolumeArgGPU<float> origArea1,
+			     const GPU::Classes::VolumeArgGPU<float> origArea2,
+			     const GPU::Classes::VolumeArgGPU<float> area1,
+			     const GPU::Classes::VolumeArgGPU<float> area2,
+			     const float exp_k,
+			     const float thick,
+			     float *energies ) {
+      const float kMaxExp = 200;
+
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      float ratio, exponent, delta;
+
+      // Loop over z slices
+      for( unsigned int iz = 0; iz < invalid.dims.z; iz++ ) {
+
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( invalid.InVolume(ix,iy,iz) ) {
+
+	  const unsigned int iLoc = invalid.Index1D( ix, iy, iz );
+
+	  // Check for validity
+	  if( invalid(ix,iy,iz) != GCAM_VALID ) {
+	    energies[iLoc] = 0;
+	    continue;
+	  }
+
+	  float myEnergy = 0;
+
+	  // Look at area1
+	  if( !NearZero( origArea1(ix,iy,iz) ) ) {
+	    ratio = area1(ix,iy,iz) / origArea1(ix,iy,iz);
+	    exponent = -exp_k * ratio;
+	    if( exponent > kMaxExp ) {
+	      delta = 0;
+	    } else {
+	      delta = logf( 1 + expf(exponent) );
+	    }
+
+	    myEnergy += ( delta * thick );
+	  }
+
+	  if( !NearZero( origArea2(ix,iy,iz) ) ) {
+	    ratio = area2(ix,iy,iz) / origArea2(ix,iy,iz);
+	    exponent - -exp_k * ratio;
+	    if( exponent > kMaxExp ) {
+	      delta = 0;
+	    } else {
+	      delta = logf( 1 + expf(exponent) );
+	    }
+
+	    myEnergy += ( delta * thick );
+	  }
+
+	  energies[iLoc] = myEnergy;
+	}
+	  
+      }
+    }
+
+    // ##############################################################
 
     //! Class to hold GCAMorph energy computations
     class GCAmorphEnergy {
@@ -271,6 +352,7 @@ namespace GPU {
 #endif
       }
       
+      // --------------------------------------------------
 
       //! Implementation of gcamLogLikelihoodEnergy for the GPU
       template<typename T>
@@ -313,10 +395,10 @@ namespace GPU {
 	grid.z = 1;
 
 	tLLEgood.Start();
-	ComputeGood<<<grid,threads,0,this->stream>>>( gcam.d_invalid,
-						      gcam.d_label,
-						      gcam.d_status,
-						      d_good );
+	ComputeGoodLLE<<<grid,threads,0,this->stream>>>( gcam.d_invalid,
+							 gcam.d_label,
+							 gcam.d_status,
+							 d_good );
 	CUDA_CHECK_ERROR( "ComputeGood kernel failed!\n" );
 	tLLEgood.Stop();
 
@@ -372,6 +454,53 @@ namespace GPU {
 	return( energy );
 
       }
+
+      // --------------------------------------------------
+
+      //! Implementation of gcamComputeJacobianEnergy for the GPU
+      float ComputeJacobianEnergy( const GPU::Classes::GCAmorphGPU& gcam,
+				   const MRI* mri ) const {
+	
+	
+
+	const float thick = ( mri ? mri->thick : 1.0 );
+	
+	// Make sure the GCAM is sane
+	gcam.CheckIntegrity();
+
+	const dim3 gcamDims = gcam.d_rx.GetDims();
+	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
+
+	// Allocate thrust arrays
+	thrust::device_ptr<float> d_energies;
+	d_energies = thrust::device_new<float>( nVoxels );
+
+
+	// Run the computation
+	dim3 grid, threads;
+	threads.x = threads.y = kGCAmorphJacobEnergyKernelSize;
+	threads.z = 1;
+
+	grid = gcam.d_rx.CoverBlocks( kGCAmorphJacobEnergyKernelSize );
+	grid.z = 1;
+
+	ComputeJacobEnergy<<<grid,threads>>>
+	  ( gcam.d_invalid,
+	    gcam.d_origArea1, gcam.d_origArea2,
+	    gcam.d_area1, gcam.d_area2,
+	    gcam.exp_k, thick,
+	    thrust::raw_pointer_cast( d_energies ) );
+	CUDA_CHECK_ERROR( "ComputeJacobEnergy kernel failed!\n" );
+
+	// Get the sum of the energies
+	float jEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
+
+	// Release thrust arrays
+	thrust::device_delete( d_energies );
+
+	return( jEnergy );
+      }
+
 
       // ------------------------------------------------
     private:
