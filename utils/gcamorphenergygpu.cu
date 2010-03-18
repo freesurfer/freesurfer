@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 18:49:04 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/03/18 22:04:35 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -264,7 +264,7 @@ namespace GPU {
       const unsigned int ix = threadIdx.x + bx;
       const unsigned int iy = threadIdx.y + by;
 
-      float ratio, exponent, delta;
+      double ratio, exponent, delta;
 
       // Loop over z slices
       for( unsigned int iz = 0; iz < invalid.dims.z; iz++ ) {
@@ -289,7 +289,7 @@ namespace GPU {
 	    if( exponent > kMaxExp ) {
 	      delta = 0;
 	    } else {
-	      delta = logf( 1 + expf(exponent) );
+	      delta = log( 1 + exp(exponent) );
 	    }
 
 	    myEnergy += ( delta * thick );
@@ -297,17 +297,20 @@ namespace GPU {
 
 	  if( !NearZero( origArea2(ix,iy,iz) ) ) {
 	    ratio = area2(ix,iy,iz) / origArea2(ix,iy,iz);
-	    exponent - -exp_k * ratio;
+	    exponent = -exp_k * ratio;
 	    if( exponent > kMaxExp ) {
 	      delta = 0;
 	    } else {
-	      delta = logf( 1 + expf(exponent) );
+	      delta = log( 1 + exp(exponent) );
 	    }
 
+	    
+	    //energies[iLoc] = exponent;
 	    myEnergy += ( delta * thick );
 	  }
 
 	  energies[iLoc] = myEnergy;
+	  
 	}
 	  
       }
@@ -491,6 +494,16 @@ namespace GPU {
 	    gcam.exp_k, thick,
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeJacobEnergy kernel failed!\n" );
+#if 0
+	for( unsigned int i=0; i<nVoxels; i++ ) {
+	  if( d_energies[i] != 0 )
+	    {
+	    std::cout << i << " "
+		      << std::scientific
+		      << d_energies[i] << std::endl;
+	  }
+	}
+#endif
 
 	// Get the sum of the energies
 	float jEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
@@ -569,7 +582,7 @@ namespace GPU {
 static GPU::Algorithms::GCAmorphEnergy myEnergy;
 
 
-//! Wrapper around GPU class
+//! Wrapper around GPU class for LLE
 float gcamLogLikelihoodEnergyGPU( const GCA_MORPH *gcam,
 				  const MRI* mri ) {
   
@@ -590,4 +603,19 @@ float gcamLogLikelihoodEnergyGPU( const GCA_MORPH *gcam,
 
   return( energy );
 
+}
+
+
+//! Wrapper around GPU class for JacobianEnergy
+float gcamJacobianEnergyGPU( const GCA_MORPH *gcam,
+			     const MRI* mri ) {
+  
+  float energy;
+  
+  GPU::Classes::GCAmorphGPU myGCAM;
+  myGCAM.SendAll( gcam );
+
+  energy = myEnergy.ComputeJacobianEnergy( myGCAM, mri );
+
+  return( energy );
 }
