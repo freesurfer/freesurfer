@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 15:05:19 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/03/18 15:33:52 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,16 +57,21 @@ namespace GPU {
       const dim3 myDims = this->d_rx.GetDims();
 
       bool good = ( myDims == this->d_ry.GetDims() );
-      good = ( myDims == this->d_rz.GetDims() );
-      good = ( myDims == this->d_invalid.GetDims() );
-      good = ( good && ( myDims == this->d_area.GetDims() ) );
+      good = ( good && ( myDims == this->d_rz.GetDims() ) );
+
+      good = ( good && ( myDims == this->d_invalid.GetDims() ) );
+
       good = ( good && ( myDims == this->d_origArea.GetDims() ) );
       good = ( good && ( myDims == this->d_origArea1.GetDims() ) );
       good = ( good && ( myDims == this->d_origArea2.GetDims() ) );
+
+      good = ( good && ( myDims == this->d_area.GetDims() ) );
       good = ( good && ( myDims == this->d_area1.GetDims() ) );
       good = ( good && ( myDims == this->d_area2.GetDims() ) );
+
       good = ( good && ( myDims == this->d_label.GetDims() ) );
       good = ( good && ( myDims == this->d_status.GetDims() ) );
+
       good = ( good && ( myDims == this->d_mean.GetDims() ) );
       good = ( good && ( myDims == this->d_variance.GetDims() ) );
 

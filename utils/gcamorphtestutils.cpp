@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 15:09:41 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/03/18 15:33:52 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -564,6 +564,7 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   
   if( nVarFile != static_cast<int>(this->nVars) ) {
     std::cerr << "Invalid number of variables " << nVarFile << endl;
+    exit( EXIT_FAILURE );
   }
   
   int dimIDs[3];
