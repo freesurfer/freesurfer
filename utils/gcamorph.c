@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/17 17:59:21 $
- *    $Revision: 1.170 $
+ *    $Date: 2010/03/18 14:59:52 $
+ *    $Revision: 1.171 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -279,7 +279,7 @@ static int gcamJacobianTerm(GCA_MORPH *gcam,
                             MRI *mri, 
                             double l_jacobian, 
                             double ratio_thresh) ;
-static double gcamJacobianEnergy(GCA_MORPH *gcam, MRI *mri) ;
+static double gcamJacobianEnergy( const GCA_MORPH *gcam, const MRI *mri );
 static int gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms) ;
 static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
 static int gcamUndoGradient(GCA_MORPH *gcam) ;
@@ -3472,7 +3472,7 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 }
 #endif
 static double
-gcamJacobianEnergy(GCA_MORPH *gcam, MRI *mri)
+gcamJacobianEnergy( const GCA_MORPH *gcam, const MRI *mri)
 {
   double          sse = 0.0, delta, ratio, exponent, thick ;
   int             i, j, k, width, height, depth ;
@@ -3483,6 +3483,8 @@ gcamJacobianEnergy(GCA_MORPH *gcam, MRI *mri)
   width = gcam->width ;
   height = gcam->height ;
   depth = gcam->depth ;
+
+  // Note sse initialised to zero here
   for (sse = 0.0, i = 0 ; i < width ; i++)
   {
     for (j = 0 ; j < height ; j++)
@@ -3500,37 +3502,53 @@ gcamJacobianEnergy(GCA_MORPH *gcam, MRI *mri)
         {
           ratio = gcamn->area1 / gcamn->orig_area1 ;
           exponent = -gcam->exp_k*ratio ;
-          if (exponent > MAX_EXP)
+          if (exponent > MAX_EXP) {
             delta = 0.0 ;
-          else
+	  } else {
             delta = log(1+exp(exponent)) /*   / gcam->exp_k */ ;
+	  }
 
           sse += delta * thick ;
-          if (!finitep(delta) || !finitep(sse))
+
+          if (!finitep(delta) || !finitep(sse)) {
             DiagBreak() ;
-          if (i == Gx && j == Gy && k == Gz)
+	  }
+
+          if (i == Gx && j == Gy && k == Gz) {
             printf("E_jaco: node(%d,%d,%d): area1=%2.4f, error=%2.3f\n", 
                    i, j, k, gcamn->area1,delta);
-          if (!FZERO(delta))
+	  }
+
+          if (!FZERO(delta)) {
             DiagBreak() ;
+	  }
         }
+
         if (!FZERO(gcamn->orig_area2))
         {
           ratio = gcamn->area2 / gcamn->orig_area2 ;
           exponent = -gcam->exp_k*ratio ;
-          if (exponent > MAX_EXP)
+
+          if (exponent > MAX_EXP) {
             delta = MAX_EXP ;
-          else
+          } else {
             delta = log(1+exp(exponent)) /*   / gcam->exp_k */ ;
+	  }
 
           sse += delta * thick ;
-          if (!finitep(delta) || !finitep(sse))
+
+          if (!finitep(delta) || !finitep(sse)) {
             DiagBreak() ;
-          if (i == Gx && j == Gy && k == Gz)
+	  }
+
+          if (i == Gx && j == Gy && k == Gz) {
             printf("E_jaco: node(%d,%d,%d): area2=%2.4f, error=%2.3f\n", 
                    i, j, k, gcamn->area2,delta);
-          if (!FZERO(delta))
+	  }
+
+          if (!FZERO(delta)) {
             DiagBreak() ;
+	  }
         }
       }
     }
