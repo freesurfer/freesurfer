@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 19:02:15 $
- *    $Revision: 1.174 $
+ *    $Date: 2010/03/18 19:35:22 $
+ *    $Revision: 1.175 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1827,7 +1827,6 @@ static float ***last_sse = NULL;
 #endif
 
 #define GCAM_LLENERGY_OUTPUT 0
-const unsigned int gcamLLEoutputFreq = 10;
 
 double
 gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
@@ -1840,6 +1839,7 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
     changes it....
   */
 #if GCAM_LLENERGY_OUTPUT
+  const unsigned int gcamLLEoutputFreq = 10;
   static unsigned int nCalls = 0;
   if( (nCalls%gcamLLEoutputFreq)==0 ) {
     char fname[STRLEN];
@@ -3481,10 +3481,10 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
 
   double sse = 0;
 
-  #if GCAM_JACOBENERGY_OUTPUT
+#if GCAM_JACOBENERGY_OUTPUT
   const unsigned int gcamJacobEnergyOutputFreq = 10;
   static unsigned int nCalls = 0;
-  if( (nCalls%gcamLLEoutputFreq)==0 ) {
+  if( (nCalls%gcamJacobEnergyOutputFreq)==0 ) {
     char fname[STRLEN];
     snprintf( fname, STRLEN-1,
 	      "gcamJacobEnergyInput%04u", nCalls/gcamJacobEnergyOutputFreq );
