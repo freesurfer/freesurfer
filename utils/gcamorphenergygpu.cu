@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/17 19:54:58 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/03/18 13:44:05 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -231,11 +231,44 @@ namespace GPU {
     class GCAmorphEnergy {
     public:
 
+      //! Constructor
+      GCAmorphEnergy( const cudaStream_t s = 0 ) : stream(s),
+						   tLLEtot(),
+						   tLLEgood(),
+						   tLLEcompute() {}
+
+      //! Destructor
+      ~GCAmorphEnergy( void ) {
+#ifdef CUDA_SHOW_TIMINGS
+	std::cout << "==================================" << std::endl;
+	std::cout << "GPU GCAmorph energy timers" << std::endl;
+	std::cout << "--------------------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+	std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+	std::cout << "Timings may not be accurate" << std::endl;
+#endif
+	std::cout << std::endl;
+
+	std::cout << "LLEdispatch:" << std::endl;
+	std::cout << "Total         : " << this->tLLEdispatch << std::endl;
+	std::cout << std::endl;
+
+	std::cout << "LogLikelihoodEnergy:" << std::endl;
+	std::cout << "    Find good : " << this->tLLEgood << std::endl;
+	std::cout << "      Compute : " << this->tLLEcompute << std::endl;
+	std::cout << "Total         : " << this->tLLEtot << std::endl;
+	std::cout << std::endl;
+
+
+	std::cout << "==================================" << std::endl;
+#endif
+      }
+      
 
       //! Implementation of gcamLogLikelihoodEnergy for the GPU
       template<typename T>
       float LogLikelihoodEnergy( const GPU::Classes::GCAmorphGPU& gcam,
-				 const GPU::Classes::MRIframeGPU<T>& mri ) {
+				 const GPU::Classes::MRIframeGPU<T>& mri ) const {
 	/*!
 	  This the the host side function for
 	  gcamLogLikelihoodEnergy on the GPU.
@@ -245,11 +278,10 @@ namespace GPU {
 	  and negative values flag
 	*/
 
+	tLLEtot.Start();
+
 	// Make sure the GCAM is sane
 	gcam.CheckIntegrity();
-
-	// Get the MRI texture in place (must be in CUDA array already)
-	this->BindMRI( mri );
 
 	const dim3 gcamDims = gcam.d_rx.GetDims();
 	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
@@ -273,20 +305,25 @@ namespace GPU {
 	grid = gcam.d_rx.CoverBlocks( kGCAmorphLLEkernelSize );
 	grid.z = 1;
 
-	ComputeGood<<<grid,threads>>>( gcam.d_invalid,
-				       gcam.d_label,
-				       gcam.d_status,
-				       d_good );
+	tLLEgood.Start();
+	ComputeGood<<<grid,threads,0,this->stream>>>( gcam.d_invalid,
+						      gcam.d_label,
+						      gcam.d_status,
+						      d_good );
 	CUDA_CHECK_ERROR( "ComputeGood kernel failed!\n" );
+	tLLEgood.Stop();
 
-	ComputeLLE<T><<<grid,threads>>>
+
+	tLLEcompute.Start();
+	ComputeLLE<T><<<grid,threads,0,this->stream>>>
 	  ( gcam.d_rx, gcam.d_ry, gcam.d_rz,
 	    d_good,
 	    gcam.d_mean, gcam.d_variance,
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeLLE kernel failed!\n" );
+	tLLEcompute.Stop();
 
-
+	CUDA_SAFE_CALL( cudaStreamSynchronize( this->stream ) );
 
 	// Release the MRI texture
 	this->UnbindMRI<T>();
@@ -297,6 +334,8 @@ namespace GPU {
 	// Release thrust arrays
 	thrust::device_delete( d_energies );
 
+	tLLEtot.Stop();
+
 	return( energy );
       }
 
@@ -304,9 +343,11 @@ namespace GPU {
       //! Dispatch wrapper for LogLikelihoodEnergy
       template<typename T>
       float LLEdispatch( const GCA_MORPH *gcam,
-			 const MRI* mri ) {
+			 const MRI* mri ) const {
 	
 	float energy;
+
+	tLLEdispatch.Start();
 
 	GPU::Classes::GCAmorphGPU myGCAM;
 	myGCAM.SendAll( gcam );
@@ -315,16 +356,30 @@ namespace GPU {
 	myMRI.Allocate( mri );
 	myMRI.Send( mri, 0 );
 	myMRI.AllocateArray();
-	myMRI.SendArray();
+	myMRI.SendArray( this->stream );
 	
 	energy = this->LogLikelihoodEnergy( myGCAM, myMRI );
+
+	tLLEdispatch.Stop();
 
 	return( energy );
 
       }
 
-
+      // ------------------------------------------------
     private:
+      //! Stream to use for operations
+      cudaStream_t stream;
+
+      //! Timer for LLEdispatch
+      mutable SciGPU::Utilities::Chronometer tLLEdispatch;
+
+      //! Timer for log likelihood energy
+      mutable SciGPU::Utilities::Chronometer tLLEtot;
+      //! Timer for LLE 'good' assesments
+      mutable SciGPU::Utilities::Chronometer tLLEgood;
+      //! Timer for LLE calculation
+      mutable SciGPU::Utilities::Chronometer tLLEcompute;
 
 
       //! Templated texture binding wrapper
