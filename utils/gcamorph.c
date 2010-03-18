@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 17:02:50 $
- *    $Revision: 1.173 $
+ *    $Date: 2010/03/18 19:02:15 $
+ *    $Revision: 1.174 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -3473,14 +3473,13 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
 #endif
 
 
-#define GCAM_JACOBENERGY_OUTPUT 1
+#define GCAM_JACOBENERGY_OUTPUT 0
 
 double
 gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
 {
-  double          sse = 0.0, delta, ratio, exponent, thick ;
-  int             i, j, k, width, height, depth ;
-  GCA_MORPH_NODE *gcamn ;
+
+  double sse = 0;
 
   #if GCAM_JACOBENERGY_OUTPUT
   const unsigned int gcamJacobEnergyOutputFreq = 10;
@@ -3506,7 +3505,12 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
 
   InitChronometer( &tTotal );
   StartChronometer( &tTotal );
-#endif
+
+  sse = gcamJacobianEnergyGPU( gcam, mri );
+#else
+  double          delta, ratio, exponent, thick ;
+  int             i, j, k, width, height, depth ;
+  GCA_MORPH_NODE *gcamn ;
 
   thick = mri ? mri->thick : 1.0 ;
   width = gcam->width ;
@@ -3583,6 +3587,7 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
       }
     }
   }
+#endif
 
 #ifdef FS_CUDA
   StopChronometer( &tTotal );

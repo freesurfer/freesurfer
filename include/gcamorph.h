@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 17:02:54 $
- *    $Revision: 1.62 $
+ *    $Date: 2010/03/18 19:02:19 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -465,6 +465,9 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   float gcamLogLikelihoodEnergyGPU( const GCA_MORPH *gcam,
 				    const MRI* mri );
+
+  float gcamJacobianEnergyGPU( const GCA_MORPH *gcam,
+			       const MRI* mri );
 #endif
 
 #if defined(__cplusplus)
