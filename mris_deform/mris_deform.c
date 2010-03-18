@@ -9,11 +9,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/18 11:25:33 $
- *    $Revision: 1.26 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/18 14:56:24 $
+ *    $Revision: 1.27 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -286,7 +285,7 @@ main(int argc, char *argv[]) {
   dp.min_ig_width = .75 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.26 2010/03/18 11:25:33 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_deform.c,v 1.27 2010/03/18 14:56:24 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1401,7 +1400,7 @@ compute_targets(MRI_SURFACE *mris, MRI *mri, double sigma, DP *dp, int skip)
       mn /= num ;
       if (vno == Gdiag_no)
       {
-        FILE *fp  ;
+        FILE *fp = NULL  ;
         fp = fopen("pout.dat", "w") ;
         for (n = 0 ; n < v->vtotal ; n++)
         {
@@ -3486,7 +3485,7 @@ vp_copy_from_surface_vals(MRI_SURFACE *mris, int which, DP *dp)
 {
   int          vno ;
   VERTEX       *v ;
-  VERTEX_PARMS *vp ;
+  VERTEX_PARMS *vp = NULL;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
