@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 15:33:52 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/03/18 17:53:07 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -161,6 +161,10 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
+      // Copy scalars
+      this->exp_k = src->exp_k;
+
+
       // Extract the dimensions
       const dim3 dims = make_uint3( src->width,
 				    src->height,
@@ -292,6 +296,9 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
+
+      // Copy scalars
+      dst->exp_k = this->exp_k;
 
       // Extract the dimensions
       const dim3 dims = this->d_rx.GetDims();
