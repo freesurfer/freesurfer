@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 13:44:05 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/03/18 13:48:49 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -102,7 +102,7 @@ namespace GPU {
     }
 
 
-
+    //! Kernel to compute whether a voxel should be included in energy calculation
     __global__
     void ComputeGood( const GPU::Classes::VolumeArgGPU<char> invalid,
 		      const GPU::Classes::VolumeArgGPU<int> label,
@@ -113,7 +113,14 @@ namespace GPU {
       const unsigned int by = ( blockIdx.y * blockDim.y );
       const unsigned int ix = threadIdx.x + bx;
       const unsigned int iy = threadIdx.y + by;
-
+      /*!
+	Computes whether each voxel should be included in the LLE
+	calculation.
+	The 'border' loops should really use shared memory, but
+	right now, it's pointless worrying about this.
+	Getting data onto the GPU takes two orders of magnitude
+	more time
+      */
 
       // Loop over z slices
       for( unsigned int iz = 0; iz< good.dims.z; iz++ ) {
