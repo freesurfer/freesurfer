@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 14:59:52 $
- *    $Revision: 1.171 $
+ *    $Date: 2010/03/18 16:32:39 $
+ *    $Revision: 1.172 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -279,7 +279,8 @@ static int gcamJacobianTerm(GCA_MORPH *gcam,
                             MRI *mri, 
                             double l_jacobian, 
                             double ratio_thresh) ;
-static double gcamJacobianEnergy( const GCA_MORPH *gcam, const MRI *mri );
+//! Compute Jacobian Energy (mri would be const if not for MRIwrite)
+static double gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri );
 static int gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms) ;
 static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
 static int gcamUndoGradient(GCA_MORPH *gcam) ;
@@ -3471,13 +3472,40 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   return(NO_ERROR) ;
 }
 #endif
+#define GCAM_JACOBENERGY_OUTPUT 1
+
 static double
-gcamJacobianEnergy( const GCA_MORPH *gcam, const MRI *mri)
+gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
 {
   double          sse = 0.0, delta, ratio, exponent, thick ;
   int             i, j, k, width, height, depth ;
   GCA_MORPH_NODE *gcamn ;
 
+  #if GCAM_JACOBENERGY_OUTPUT
+  const unsigned int gcamJacobEnergyOutputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%gcamLLEoutputFreq)==0 ) {
+    char fname[STRLEN];
+    snprintf( fname, STRLEN-1,
+	      "gcamJacobEnergyInput%04u", nCalls/gcamJacobEnergyOutputFreq );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+    snprintf( fname, STRLEN-1,
+	      "mriJacobEnergyInput%04u.mgz", nCalls/gcamJacobEnergyOutputFreq );
+    MRIwrite( mri, fname ); // 'mri' is not const because of this call
+  }
+#endif
+
+#ifdef FS_CUDA
+  if( gcam->ninputs != 1 ) {
+    printf( "%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs );
+  }
+
+  Chronometer tTotal;
+
+  InitChronometer( &tTotal );
+  StartChronometer( &tTotal );
+#endif
 
   thick = mri ? mri->thick : 1.0 ;
   width = gcam->width ;
@@ -3493,8 +3521,9 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, const MRI *mri)
       {
         gcamn = &gcam->nodes[i][j][k] ;
 
-        if (gcamn->invalid)
+        if (gcamn->invalid) {
           continue;
+	}
 
         /* scale up the area coefficient if the area of the current node is
           close to 0 or already negative */
@@ -3553,6 +3582,17 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, const MRI *mri)
       }
     }
   }
+
+#ifdef FS_CUDA
+  StopChronometer( &tTotal );
+  
+  printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );
+#endif
+
+
+#if GCAM_JACOBENERGY_OUTPUT
+  nCalls++;
+#endif
 
   return(sse) ;
 }
