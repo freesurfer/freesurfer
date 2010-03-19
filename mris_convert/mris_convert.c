@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/19 00:46:38 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/03/19 17:22:30 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.35 2010/03/19 00:46:38 nicks Exp $";
+"$Id: mris_convert.c,v 1.36 2010/03/19 17:22:30 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -116,7 +116,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.35 2010/03/19 00:46:38 nicks Exp $",
+     "$Id: mris_convert.c,v 1.36 2010/03/19 17:22:30 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -132,9 +132,13 @@ main(int argc, char *argv[]) {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
+    //printf("argc:%d, argv[1]:%s, argv[2]:%s, argv[3]:%s\n",
+    //     argc,argv[1],argv[2],argv[3]);
   }
 
-  if (argc < 3) usage_exit() ;
+  // confirm that all options were eaten (this catches the case where options
+  // were included at the end of the command string)
+  if (argc != 3) usage_exit() ;
 
   in_fname = argv[1] ;
   out_fname = argv[2] ;
@@ -481,7 +485,7 @@ usage_exit(void) {
 static void
 print_usage(void) {
   fprintf(stderr,
-          "Usage: %s [options] <input surface file> <output surface file>\n",
+          "Usage: %s [options] <input file> <output file>\n",
           Progname) ;
 }
 
@@ -492,16 +496,16 @@ print_help(void) {
     "\nThis program will convert MRI-surface data formats.\n") ;
   printf( "\nValid options are:\n") ;
   printf( "  -p                input is a patch, not a full surface\n") ;
-  printf( "  -c <scalar file>  input is scalar overlay file (must still\n"
+  printf( "  -c <scalar file>  input is scalar curv overlay file (must still\n"
           "                    specify surface)\n") ;
   printf( "  -f <scalar file>  input is functional time-series or other\n"
           "                    multi-frame data (must specify surface)\n") ;
   printf( "  --annot <annot file> input is annotation or gifti label data\n") ;
   printf( "  --da_num <num>    if input is gifti, 'num' specifies which\n"
           "                    data array to use\n");
-  printf( "  --label <infile> <label>  input is .label file\n") ;
+  printf( "  --label <infile> <label>  infile is .label file\n") ;
   printf( "                    label is name of this label\n") ;
-  printf( "  --labelstats <outfile.gii>  outfile is name of gifti file\n") ;
+  printf( "  --labelstats <outfile>  outfile is name of gifti file\n") ;
   printf( "                    to which label stats will be written\n") ;
   printf( "  -o origname       read orig positions\n") ;
   printf( "  -s scale          scale vertex xyz by scale\n") ;
@@ -532,7 +536,7 @@ print_help(void) {
   printf( "Convert a surface file to ascii:\n");
   printf( "  mris_convert lh.white lh.white.asc\n") ;
   printf( "\n");
-  printf( "Write vertex neighbors  to ascii:\n");
+  printf( "Write vertex neighbors to ascii:\n");
   printf( "  mris_convert -v lh.white lh.white.neighbors.asc\n") ;
   printf( "\n");
   printf( "Convert a surface file to ascii (vertices are surface normals):\n");
@@ -548,7 +552,10 @@ print_help(void) {
   printf( "  mris_convert --annot lh.aparc.annot lh.white lh.aparc.gii\n") ;
   printf( "\n") ;
   printf( "Convert a Gifti label file to .annot:\n");
-  printf( "  mris_convert --annot lh.aparc.gii lh.white.gii lh.aparc.annot\n") ;
+  printf( "  mris_convert --annot lh.aparc.gii lh.white.gii lh.aparc.annot\n");
+  printf( "\n") ;
+  printf( "Convert a Freesurfer .label file to Gifti label format:\n");
+  printf( "  mris_convert --label lh.V1.label V1 lh.white lh.V1.label.gii\n") ;
   printf( "\n") ;
   printf( "See also mri_surf2surf\n") ;
   exit(1) ;
