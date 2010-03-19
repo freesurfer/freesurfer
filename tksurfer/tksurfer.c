@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/03/03 22:18:57 $
- *    $Revision: 1.338 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/19 18:08:01 $
+ *    $Revision: 1.339 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -21203,7 +21203,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.338 2010/03/03 22:18:57 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.339 2010/03/19 18:08:01 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -27108,6 +27108,13 @@ int labl_load (char* fname)
 
   if (NULL == fname)
     return (ERROR_BADPARM);
+
+  if (MRISfileNameType(fname) == MRIS_GIFTI_FILE)
+  {
+    printf("\n\n INFO: use File->Label->Import Annotation to load Gifti "
+           "format label files!\n\n");
+    return(ERROR_NO_FILE);
+  }
 
   /* load label file. */
   label = LabelRead (pname, fname);
