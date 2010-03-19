@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/19 00:41:15 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/03/19 17:23:39 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -1544,7 +1544,13 @@ int MRISwriteGIFTI(MRIS* mris,
       rgba[1] = mris->ct->entries[idx]->gf;
       rgba[2] = mris->ct->entries[idx]->bf;
       rgba[3] = 1.0f;
-      rgba += 4;
+      if ((0 == strcmp(labeltable.label[idx],"unknown")) ||
+          (0 == strcmp(labeltable.label[idx],"Unknown")))
+      {
+        // make certain unknown region is completely empty, invisible
+        rgba[0] = rgba[1] = rgba[2] = rgba[3] = 0.0f;
+      }
+      rgba += 4; // next color
       /*
         printf("RGBA: %d %d %d %d %f %f %f %f\n",
         mris->ct->entries[idx]->ri,
@@ -1591,6 +1597,13 @@ int MRISwriteGIFTI(MRIS* mris,
 
     /* include some metadata describing this as a label */
     gifti_add_to_meta( &labels->meta, "Name", "node label", 1 );
+    if (labeltable.length == 2)
+    {
+      // in the special case of a label table consisting of one label
+      // (assuming the first label is 'unknown') use this one label as name,
+      // for instance in the case of the V1 label
+      gifti_add_to_meta( &labels->meta, "Name", labeltable.label[1], 1 );
+    }
 
     /* Allocate the data array. */
     labels->data = NULL;
