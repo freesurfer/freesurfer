@@ -10,8 +10,8 @@
  * Original Author: Kevin Teich 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/11 03:57:35 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/03/19 00:41:17 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,11 +35,10 @@
 MRIS* mrisReadGIFTIfile(const char *fname, MRIS *mris);
 MRIS* mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum);
 MRI* MRISreadGiftiAsMRI(const char *fname, int read_volume);
-int MRISwriteGIFTI(MRIS* mris, const char *fname);
-int MRISwriteScalarGIFTI(MRIS* mris,
-                         const char *fname,
-                         const char *scalar_fname);
-int mriWriteGifti(MRI* mri, const char *fname);
-int MRISwriteLabelTableGIFTI(MRI_SURFACE *mris, const char *fname);
+int MRISwriteGIFTI(MRIS* mris,
+                   int intent_code,
+                   const char *out_fname,
+                   const char *curv_fname);
+int mriWriteGifti(MRI* mri, const char *out_fname);
 
 #endif

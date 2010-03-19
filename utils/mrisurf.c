@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:46 $
- *    $Revision: 1.667 $
+ *    $Date: 2010/03/19 00:41:15 $
+ *    $Revision: 1.668 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -715,7 +714,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.667 2010/03/13 01:32:46 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.668 2010/03/19 00:41:15 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1512,7 +1511,7 @@ MRISwrite(MRI_SURFACE *mris, const char *name)
   else if (type == MRIS_STL_FILE)
     return MRISwriteSTL(mris, fname);
   else if (type == MRIS_GIFTI_FILE)
-    return MRISwriteGIFTI(mris, fname);
+    return MRISwriteGIFTI(mris, NIFTI_INTENT_POINTSET, fname, NULL);
 
   if (mris->type == MRIS_TRIANGULAR_SURFACE)
     return(MRISwriteTriangularSurface(mris, fname)) ;
