@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/11 03:57:36 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/03/19 00:46:38 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,9 +46,18 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.34 2010/03/11 03:57:36 nicks Exp $";
+"$Id: mris_convert.c,v 1.35 2010/03/19 00:46:38 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
+// this mini colortable is used when .label file gets converted to gifti
+static const COLOR_TABLE_ENTRY unknown = 
+{"unknown", 0,0,0,0, 0,0,0,0};
+static COLOR_TABLE_ENTRY userLabel = 
+{ "user label name gets copied here                   ", 
+  220,20,20,255, 0.8,0.08,0.08,1};
+static const CTE *entries[2] = {&unknown, &userLabel};
+static const COLOR_TABLE miniColorTable = 
+{(CTE**)entries, 2, "miniColorTable", 2};
 
 /*-------------------------------- PROTOTYPES ----------------------------*/
 
@@ -80,6 +89,11 @@ static char *func_fname ;
 static int annot_file_flag = 0 ;
 static char *annot_fname ;
 static int gifti_da_num = -1;
+static int label_file_flag = 0 ;
+static char *label_fname ;
+static char *label_name ;
+static int labelstats_file_flag = 0 ;
+static char *labelstats_fname ;
 static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
@@ -102,7 +116,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.34 2010/03/11 03:57:36 nicks Exp $",
+     "$Id: mris_convert.c,v 1.35 2010/03/19 00:46:38 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -127,6 +141,11 @@ main(int argc, char *argv[]) {
 
   if (talxfmsubject && curv_file_flag) {
     printf("ERROR: cannot specify -t and -c\n");
+    exit(1);
+  }
+
+  if (labelstats_file_flag && ! label_file_flag) {
+    printf("ERROR: cannot specify --labelstats without --label\n");
     exit(1);
   }
 
@@ -216,12 +235,12 @@ main(int argc, char *argv[]) {
     if (type == MRIS_ASCII_FILE)
       writeAsciiCurvFile(mris, out_fname) ;
     else if (type == MRIS_GIFTI_FILE)
-      MRISwriteScalarGIFTI(mris, out_fname, curv_fname);
+      MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, curv_fname);
     else
       MRISwriteCurvature(mris, out_fname) ;
   } 
   else if (annot_file_flag) {
-    // first read the annotation/label data...
+    // first read the annotation/gifti label data...
     int type = MRISfileNameType(annot_fname);
     if (type == MRIS_ANNOT_FILE) {
       if (MRISreadAnnotation(mris, annot_fname) != NO_ERROR) exit(1);
@@ -237,13 +256,91 @@ main(int argc, char *argv[]) {
     if (type == MRIS_ANNOT_FILE) {
       if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR) exit(1);
     } else if (type == MRIS_GIFTI_FILE) {
-      if (MRISwriteLabelTableGIFTI(mris, out_fname) != NO_ERROR) exit(1);
+      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR) {
+        exit(1);
+      }
     } else {
       printf("ERROR: unknown file annot file type specified for output: "
              "%s\n",out_fname);
       exit(1);
     }
-  } 
+  }
+  else if (label_file_flag) {
+    // first read the freesurfer .label file...
+    LABEL* label = LabelRead(NULL, label_fname);
+    if (NULL == label) {
+      printf("ERROR: reading .label file specified for --label: "
+             "%s\n",label_fname);
+      exit(1);
+    }
+    // give this label its own colortable:
+    mris->ct = (CT*)&miniColorTable;
+    strcpy(userLabel.name,label_name);
+    // try to find this label in the FreeSurferColorLUT, so we have a unique
+    // color (annotation) for it (otherwise, just use default miniColorTable)
+    COLOR_TABLE *ct0;
+    char ctabfile[2000];
+    sprintf(ctabfile,"%s/FreeSurferColorLUT.txt",getenv("FREESURFER_HOME"));
+    ct0 = CTABreadASCII(ctabfile);
+    if (ct0) {
+      int cno;
+      for (cno=0; cno < ct0->nentries; cno++) {
+        if (ct0->entries[cno]) {
+          if (ct0->entries[cno]->name) {
+            if (0==strcmp(label_name,ct0->entries[cno]->name)) {
+              // we found this label! so update local colortable with info
+              memcpy(miniColorTable.entries[1],
+                     ct0->entries[cno],
+                     sizeof(COLOR_TABLE_ENTRY));
+              break;
+            }
+          }
+        }
+      }
+    }
+    // assign annotation to each label vertex (and while we're at it, stats)
+    int annotation = CTABrgb2Annotation(miniColorTable.entries[1]->ri,
+                                        miniColorTable.entries[1]->gi,
+                                        miniColorTable.entries[1]->bi);
+    int lno;
+    for (lno=0; lno < label->n_points; lno++) {
+      int vno = label->lv[lno].vno;
+      mris->vertices[vno].annotation = annotation;
+      mris->vertices[vno].stat = label->lv[lno].stat; // in case --labelstats
+    }
+
+    // now write the annot file (either in .annot format, or gifti LabelTable)
+    int type = MRISfileNameType(out_fname);
+    if (type == MRIS_ANNOT_FILE) {
+      if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR) exit(1);
+    } else if (type == MRIS_GIFTI_FILE) {
+      if (MRISwriteGIFTI(mris,NIFTI_INTENT_LABEL,out_fname,NULL) != NO_ERROR) {
+        exit(1);
+      }
+    } else {
+      printf("ERROR: unknown file annot file type specified for output: "
+             "%s\n",out_fname);
+      exit(1);
+    }
+
+    mris->ct = NULL; // to avoid calling CTABfree (our table is static memory)
+
+    // if --labelstats was given, then we want to write-out the stats values
+    // found in the .label file to a file
+    if (labelstats_file_flag) {
+      int type = MRISfileNameType(labelstats_fname);
+      if (type == MRIS_GIFTI_FILE) {
+        if (MRISwriteGIFTI(mris,NIFTI_INTENT_UNIFORM,labelstats_fname,NULL) 
+            != NO_ERROR) {
+          exit(1);
+        }
+      } else {
+        printf("ERROR: unknown file file type specified for --labelstats: "
+               "%s\n",labelstats_fname);
+        exit(1);
+      }
+    }
+  }
   else if (func_file_flag) {
     MRI* mri = MRIread( func_fname );
     if (NULL == mri) {
@@ -306,12 +403,19 @@ get_option(int argc, char *argv[]) {
     annot_fname = argv[2] ;
     annot_file_flag = 1;
     nargs = 1 ;
-  }
-  else if (!stricmp(option, "-da_num")) {
+  } else if (!stricmp(option, "-da_num")) {
     sscanf(argv[2],"%d",&gifti_da_num);
     nargs = 1 ;
-  }
-  else switch (toupper(*option)) {
+  } else if (!stricmp(option, "-label")) {
+    label_fname = argv[2] ;
+    label_name = argv[3] ;
+    label_file_flag = 1;
+    nargs = 2 ;
+  } else if (!stricmp(option, "-labelstats")) {
+    labelstats_fname = argv[2] ;
+    labelstats_file_flag = 1;
+    nargs = 1 ;
+  } else switch (toupper(*option)) {
   case 'A':
     PrintXYZOnly = 1;
     break ;
@@ -395,6 +499,10 @@ print_help(void) {
   printf( "  --annot <annot file> input is annotation or gifti label data\n") ;
   printf( "  --da_num <num>    if input is gifti, 'num' specifies which\n"
           "                    data array to use\n");
+  printf( "  --label <infile> <label>  input is .label file\n") ;
+  printf( "                    label is name of this label\n") ;
+  printf( "  --labelstats <outfile.gii>  outfile is name of gifti file\n") ;
+  printf( "                    to which label stats will be written\n") ;
   printf( "  -o origname       read orig positions\n") ;
   printf( "  -s scale          scale vertex xyz by scale\n") ;
   printf( "  -r                rescale vertex xyz so total area is\n"
