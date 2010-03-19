@@ -11,6 +11,11 @@ function err = MRIwrite(mri,fstring,datatype)
 % (ie, direction cosines, voxel resolution, and P0 are all recomputed
 % from mri.vox2ras0. So, if in the course of analysis, you changed
 % mri.x_r, this change will not be reflected in the output volume.
+%
+% The only thing you need to fill-in in the mri struct is the mri.vol.
+% All other fields will be filled in with defaulted values. 
+% Fields are: vol, tr, vox2ras0, te, ti, flip_angle.
+%
 % 
 % When writing in bhdr format, the default will be bfloat. If you want
 % bshort, then set mri.outbext = 'bshort'. When a bhdr file is read in
@@ -27,8 +32,8 @@ function err = MRIwrite(mri,fstring,datatype)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/11/18 20:49:52 $
-%    $Revision: 1.11 $
+%    $Date: 2010/03/19 17:37:50 $
+%    $Revision: 1.12 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -50,9 +55,30 @@ if(nargin < 2 | nargin > 3)
   fprintf('err = MRIwrite(mri,fstring,<datatype>)\n');
   return;
 end
-
 if(nargin == 2) datatype = 'float'; end
 
+if(~isfield(mri,'vol'))
+  fprintf('ERROR: MRIwrite: structure does not have a vol field\n');
+  return;
+end
+vsz = size(mri.vol);
+if(~isfield(mri,'volsize'))
+  mri.volsize = [vsz(1) vsz(2) vsz(3)];
+end
+if(~isfield(mri,'nframes'))
+  if(length(vsz) == 3) nf = 1;
+  else                 nf = vsz(4);
+  end
+  mri.nframes = nf;
+end
+if(~isfield(mri,'volres'))  mri.volres = [1 1 1];end
+if(~isfield(mri,'tr')) mri.tr = 0; end
+if(~isfield(mri,'te')) mri.te = 0; end
+if(~isfield(mri,'ti')) mri.ti = 0; end
+if(~isfield(mri,'flip_angle')) mri.flip_angle = 0;end
+if(~isfield(mri,'vox2ras0'))  mri.vox2ras0 = eye(4);end
+
+  
 [fspec fstem fmt] = MRIfspec(fstring,0); % 0 = turn off checkdisk
 if(isempty(fspec))
   fprintf('ERROR: could not determine format of %s\n',fstring);
@@ -78,7 +104,7 @@ switch(fmt)
   xsize = sqrt(sum(mri.vox2ras0(:,1).^2)); 
   ysize = sqrt(sum(mri.vox2ras0(:,2).^2));
   zsize = sqrt(sum(mri.vox2ras0(:,3).^2));
-  bmri.volres = [mri.xsize mri.ysize mri.zsize];
+  bmri.volres = [xsize ysize zsize];
   outbext = 'bfloat';
   if(isfield(mri,'outbext'))
     if(strcmp(mri.outbext,'bshort')) outbext = 'bshort'; end
@@ -156,7 +182,6 @@ switch(fmt)
   % Note that the order is 2 1 3 4
   hdr.vol = permute(mri.vol,[2 1 3 4]);
   err = save_nifti(hdr,fspec);
- 
  otherwise
   fprintf('ERROR: format %s not supported\n',fmt);
   return;
