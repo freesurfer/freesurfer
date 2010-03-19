@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 19:08:37 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/19 16:55:59 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,7 +81,7 @@ main(int argc, char *argv[]) {
   float         std ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_change_map.c,v 1.3 2009/11/19 19:08:37 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_change_map.c,v 1.4 2010/03/19 16:55:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -340,6 +340,9 @@ usage_exit(int code) {
   printf("usage: %s [options] <volume1> <volume2> <transform> <out volume>\n", Progname) ;
   printf("\twhere <transform> should take volume2 coords into volume1 space\n") ;
   printf("\tvalid options are:\n") ;
+  printf("\t-m                 : mean filter output before writing\n") ;
+  printf("\t-s <sigma>           smooth with Gaussian filter before writing\n") ;
+  printf("\tthe output map will be in register with <volume1>\n") ;
   exit(code) ;
 }
 
@@ -383,6 +386,7 @@ MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change,
   Real      val2, p, logp, mask2, sigma, mean ;
   MRI       *mri_dif, *mri_mean, *mri_used, *mri_mask1, *mri_mask2, *mri_big ;
   HISTOGRAM *h, *hs, *hg ;
+  MRI       *mri_xformed ;
 
   MRIvalRange(mri1, &min1, &max1) ;
   MRIvalRange(mri2, &min2, &max2) ;
@@ -397,6 +401,7 @@ MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change,
   mri_mask2 = MRIerodeZero(mri2, NULL) ;
   nvox = 0 ;
 
+  mri_xformed = MRIclone(mri1, NULL) ;
   // compute mode of distribution and use it for centering
   for (x1 = 0 ; x1 < mri1->width ; x1++)
     for (y1 = 0 ; y1 < mri1->height ; y1++)
@@ -409,6 +414,7 @@ MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change,
         MRIsampleVolume(mri2, x2, y2, z2, &val2) ;
         mask1 = MRIgetVoxVal(mri_mask1, x1, y1, z1, 0) ;
         MRIsampleVolume(mri_mask2, x2, y2, z2, &mask2) ;
+        MRIsetVoxVal(mri_xformed, x1, y1, z1, 0, val2) ;
         if (!FZERO(val1) && !FZERO(val2))
         {
           dif = val2-val1 ;
@@ -417,6 +423,13 @@ MRIcomputeChangeMap(MRI *mri1, MRI *mri2, TRANSFORM *transform, MRI *mri_change,
         }
       }
 
+  if (Gdiag & DIAG_WRITE)
+  {
+    char fname[STRLEN] = "xformed.mgz" ;
+    printf("writing xformed volume to %s\n",  fname) ;
+    MRIwrite(mri_xformed, fname) ;
+  }
+  MRIfree(&mri_xformed) ;
   MRIvalRange(mri_dif, &min_change, &max_change) ;
   if (max_change-min_change <= 0)
     ErrorExit(ERROR_BADPARM, "%s: input volumes are identical", Progname) ;
