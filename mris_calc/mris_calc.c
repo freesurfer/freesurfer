@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/02/27 02:00:06 $
- *    $Revision: 1.23 $
+ *    $Author: rudolph $
+ *    $Date: 2010/03/19 02:23:34 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -52,6 +52,7 @@
 #include "fio.h"
 #include "xDebug.h"
 #include "mri_identify.h"
+#include "label.h"
 
 #define  STRBUF   	65536
 #define  MAX_FILES    	1000
@@ -60,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.23 2010/02/27 02:00:06 greve Exp $";
+"$Id: mris_calc.c,v 1.24 2010/03/19 02:23:34 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -192,6 +193,8 @@ static FILE*    	G_FP                    = NULL;
 static int      	G_sizeCurv1             = 0;
 static char*    	G_pch_curvFile1         = NULL;
 static float*   	G_pf_arrayCurv1         = NULL;
+static float*           G_pf_arrayCurv1Copy     = NULL;
+static int              G_sizeCurv1Copy         = 0;
 static int      	G_nfaces                = 0;
 static int      	G_valsPerVertex         = 0;
 static e_FILETYPE	G_eFILETYPE1		= e_Unknown;
@@ -201,6 +204,8 @@ static int      	Gb_curvFile2            = 0;	//  The second input
 static char*    	G_pch_curvFile2         = NULL; //+ file is optional.
 static int      	G_sizeCurv2             = 0;
 static float*   	G_pf_arrayCurv2         = NULL;
+static float*           G_pf_arrayCurv2Copy     = NULL;
+static int              G_sizeCurv2Copy         = 0;
 static e_FILETYPE	G_eFILETYPE2		= e_Unknown;
 
 // "Helper" pointers
@@ -219,7 +224,18 @@ static e_operation      Ge_operation            = e_unknown;
 static int      	G_sizeCurv3             = 0;
 static char    		G_pch_curvFile3[STRBUF];
 static float*   	G_pf_arrayCurv3         = NULL;
+static float*           G_pf_arrayCurv3Copy     = NULL;
+static int              G_sizeCurv3Copy         = 0;
 static short		Gb_file3		= 0;
+static short            Gb_canWrite             = 0;
+
+// Label file and data
+static short            Gb_labelMask            = 0;
+static char             G_pch_labelFile[STRBUF];
+static LABEL*           G_plabel                = NULL;
+static float*           G_pf_labelMask          = NULL;
+static float*           G_pf_labelMaskIndex     = NULL;
+static int              G_sizeLabel             = 0;
 
 //----------------
 // "class" methods
@@ -247,7 +263,7 @@ double fn_sub(float af_A, float af_B)   {return (af_A - af_B);}
 double fn_sqd(float af_A, float af_B)   {return (af_A - af_B)*(af_A - af_B);}
 double fn_set(float af_A, float af_B)   {return (af_B);}
 double fn_atan2(float af_A, float af_B) {return (atan2(af_A,af_B));}
-double fn_mag(float af_A, float af_B) {return (sqrt(af_A*af_A + af_B*af_B));}
+double fn_mag(float af_A, float af_B)   {return (sqrt(af_A*af_A + af_B*af_B));}
 
 // Simple relational functions on two float arguments
 double  fn_lt(float af_A,  float af_B)  {return (af_A < af_B ? af_A : 0.0);}
@@ -468,20 +484,36 @@ synopsis_show(void) {
  \n\
         --output <outputCurvFile> \n\
         -o <outputCurvFile> \n\
- \n\
         By default, 'mris_calc' will save the output of the calculation to a \n\
         file in the current working directory with filestem 'out'. The file \n\
         extension is automatically set to the appropriate filetype based on \n\
         the input. For any volume type, the output defaults to '.mgz' and for \n\
         curvature inputs, the output defaults to '.crv'. \n\
  \n\
+        --label <FreeSurferLabelFile> \n\
+        -l <FreeSurferLabelFile> \n\
+        If specified, constraint the calculation to the vertices defined in \n\
+        the <FreeSurferLabelFile>. This is most useful for calculations \n\
+        relating to curvature and thickness files that are defined on a \n\
+        surface. \n\
+ \n\
+        Note that 'mris_calc' will apply a specified label filter to any \n\
+        inputs, i.e. surface related measures (thickness, curvatures) *and* \n\
+        volumes, if volumes are input. This means that if a surface label is \n\
+        applied to a volume, the corresponding volume indices will be tagged \n\
+        and used for calculations. Applying such a surface filter operation \n\
+        to volume indices might be somewhat meaningless. \n\
+ \n\
+        Also, if a label is specified, calculations outside of the label \n\
+        area are set to zero. That means if an addition operation is \n\
+        specified, only the input indices corresponding to the label will \n\
+        be operated on. The non-label indices in the output will be zero. \n\
+ \n\
         --version \n\
         -v \n\
- \n\
         Print out version number. \n\
  \n\
         --verbosity <value> \n\
- \n\
         Set the verbosity of the program. Any positive value will trigger \n\
         verbose output, displaying intermediate results. The <value> can be \n\
         set arbitrarily. Useful mostly for debugging. \n\
@@ -507,7 +539,7 @@ synopsis_show(void) {
           sqd      2      1     <outputFile> = (<file1> - <file2>)^2 \n\
           set      2      1     <file1>      = <file2> \n\
           atan2    2      1     <outputFile> = atan2(<file1>,<file2>) \n\
-          mag      2      1     <outputFile> = sqrt(<file1>^2 + <file2>^2) \n\
+          mag      2      1     <outputFile> = atan2(<file1>,<file2>) \n\
           sqr      1      1     <outputFile> = <file1> * <file1> \n\
           sqrt     1      1     <outputFile> = sqrt(<file1>) \n\
           abs      1      1     <outputFile> = abs(<file1>) \n\
@@ -545,20 +577,20 @@ synopsis_show(void) {
     NOTES ON ACTIONS \n\
  \n\
       MATHEMATICAL \n\
-        The add, sub, div, mul, atan2, and mag operations all function as one \n\
-        would expect. The 'norm' creates an output file such that all values are \n\
-        constrained (normalized) between 0.0 and 1.0. The 'sqd' stores the \n\
-        square difference between two inputs. \n\
+        The 'add', 'sub', 'div', 'mul', 'atan2', and 'mag' operations all \n\
+        function as one would expect. The 'norm' creates an output file such \n\
+        that all values are constrained (normalized) between 0.0 and 1.0. \n\
+        The 'sqd' stores the square difference between two inputs. \n\
  \n\
         The 'mod' operation is performed by a call to the C-function, fmod(), \n\
         and accepts either integer or floats -- in fact, ints are converted \n\
-        to floats for this operation.  Output sign convention and 0 handling \n\
+        to floats for this operation. Output sign convention and 0 handling \n\
         follows that of fmod(): \n\
  \n\
-        fmod ( ±0, y )   returns ±0 for y not zero. \n\
+        fmod ( Â±0, y )   returns Â±0 for y not zero. \n\
         fmod ( x, y )    returns a NaN and raises the invalid floating-point \n\
                          exception for x infinite or y zero. \n\
-        fmod ( x, ±inf ) returns x for x not infinite. \n\
+        fmod ( x, Â±inf ) returns x for x not infinite. \n\
  \n\
         The 'sqr' and 'sqrt' return the square and square-root of an input \n\
         file. \n\
@@ -719,7 +751,6 @@ synopsis_show(void) {
                 $>mris_calc rh.ICV set 100000 \n\
                 $>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
  \n\
- \n\
 \n");
 
   fprintf(stdout,"%s",pch_synopsis);
@@ -840,6 +871,27 @@ error_unknownFileType(char* apch_inputFile) {
   error_exit(   pch_action,
                 "I was unable to identify this file type. Does it exist?",
                 10);
+}
+
+void
+error_primaryCurvsBackup(void) {
+    error_exit( "making backup of internal data arrays",
+                "it seems that some of the backups already exist.",
+                11);
+}
+
+void
+error_primaryCurvsCompress(void) {
+    error_exit( "compressing primary internal data arrays about labels",
+                "an internal memory error occurred.",
+                11);
+}
+
+void
+error_expandCurv3(void) {
+    error_exit( "expanding output data array",
+                "an internal memory error occurred.",
+                11);
 }
 
 void
@@ -1018,6 +1070,241 @@ CURV_copy(
   return 1;
 }
 
+/*!
+  \fn array_compressUsingMask(float* apf_input, int a_sizeInput, float* apf_output[], int a_sizeOutput)
+  \brief Using the internal mask label, compress the input array to masked values
+  \param apf_input The input source array to compress.
+  \param a_sizeInput The size of the input source array.
+  \param apf_output The output array containing the compression. This array is destroyed and rebuilt
+  \param a_sizeOutput The size of the output source array.
+  \return TRUE -> OK; FALSE -> Error
+*/
+short
+array_compressUsingLabelMask(
+    float*      apf_input,
+    int         a_sizeInput,
+    float*      apf_output[],
+    int         a_sizeOutput
+) {
+    //
+    // PRECONDITIONS
+    // o Label mask array and size must be non-zero (i.e. defined)
+    // o apf_input and apf_output must be allocated and non-NULL!
+    //
+    // POSTCONDITIONS
+    // o apf_output is freed, and then re-allocated to mask size.
+    // o apf_output will only contain values that are masked by the
+    //   internal label array G_pf_labelMask.
+    //
+
+    short       ret             = 0;
+    int         n               = 0;
+    int         m               = 0;
+    float*      pf_array        = NULL;
+
+    if(!apf_input || !apf_output)
+        ret     = 0;
+    else {
+        free(*apf_output);
+        CURV_set(&pf_array, G_sizeLabel, 0.0);
+        for(n = 0; n < a_sizeInput; n++) {
+            if(G_pf_labelMask[n]) {
+                pf_array[m++] = apf_input[n];
+            }
+        }
+        *apf_output     = pf_array;
+        ret     = 1;
+    }
+    return ret;
+}
+
+/*!
+  \fn short primaryCurvs_backup(void)
+  \brief Make backup copies of the primary curvs
+  \return TRUE -> OK; FALSE -> Error
+*/
+short
+primaryCurvs_backup(void)
+{
+    //
+    // PRECONDITIONS
+    // o The data arrays pf_arrayCurvN (N in 1, 2, 3) exist.
+    // o The copy arrays MUST initially be NULL.
+    // o Gb_canWrite must have been evaluated!
+    //
+    // POSTCONDITIONS
+    // o The contents of the primary data arrays are copied
+    //   to pf_arrayCurvNCopy.
+    //
+
+    short ret   = 1;
+
+    if(!G_pf_arrayCurv1Copy) {
+        CURV_set(&G_pf_arrayCurv1Copy, G_sizeCurv1, 0.0);
+        CURV_copy(G_pf_arrayCurv1Copy, G_pf_arrayCurv1, G_sizeCurv1);
+        G_sizeCurv1Copy = G_sizeCurv1;
+    } else ret = 0;
+    if(Gb_curvFile2) {
+        if(!G_pf_arrayCurv2Copy) {
+            CURV_set(&G_pf_arrayCurv2Copy, G_sizeCurv2, 0.0);
+            CURV_copy(G_pf_arrayCurv2Copy, G_pf_arrayCurv2, G_sizeCurv2);
+            G_sizeCurv2Copy = G_sizeCurv2;
+        } else ret = 0;
+    }
+    if(Gb_canWrite) {
+        if(!G_pf_arrayCurv3Copy) {
+            CURV_set(&G_pf_arrayCurv3Copy, G_sizeCurv3, 0.0);
+            CURV_copy(G_pf_arrayCurv3Copy, G_pf_arrayCurv3, G_sizeCurv3);
+            G_sizeCurv3Copy = G_sizeCurv3;
+        } else ret = 0;
+    }
+    return ret;
+}
+
+/*!
+  \fn short primaryCurvs_compress(void)
+  \brief Compress the primary curvs
+  \return TRUE -> OK; FALSE -> Error
+*/
+short
+primaryCurvs_compress(void)
+{
+    //
+    // PRECONDITIONS
+    // o The data arrays pf_arrayCurvN (N in 1, 2, 3) exist.
+    // o The backup arrays must exist.
+    //
+    // POSTCONDITIONS
+    // o The contents of the primary data arrays are compressed about
+    //   the labels.
+    //
+
+    short ret   = 1;
+
+    if(!array_compressUsingLabelMask(G_pf_arrayCurv1Copy, G_sizeCurv1,
+                                     &G_pf_arrayCurv1, G_sizeLabel))
+        ret = 0;
+    G_sizeCurv1 = G_sizeLabel;
+    if(Gb_curvFile2) {
+        if(!array_compressUsingLabelMask(G_pf_arrayCurv2Copy, G_sizeCurv2,
+                                     &G_pf_arrayCurv2, G_sizeLabel))
+            ret = 0;
+        G_sizeCurv2 = G_sizeLabel;
+    }
+    if(Gb_canWrite) {
+        if(!array_compressUsingLabelMask(G_pf_arrayCurv3Copy, G_sizeCurv3,
+                                     &G_pf_arrayCurv3, G_sizeLabel))
+            ret = 0;
+        G_sizeCurv3 = G_sizeLabel;
+    }
+    return ret;
+}
+
+/*!
+  \fn label_initialize(void)
+  \brief Initializes internal label structure and label mask array.
+  \return TRUE -> OK; FALSE -> Error
+*/
+short
+label_initialize(void) {
+    //
+    // PRECONDITIONS
+    // o Gb_labelMask is true
+    // 
+    // POSTCONDITIONS
+    // o Reads the FreeSurfer label specified by G_pch_labelFile
+    // o Populates the G_plabel
+    // o Generates the G_pf_labelMask which has TRUE (1) values
+    //   at each index corresponding to the label.
+    // o Generates the G_pf_labelMaskIndex which contains the
+    //   offset indexes into the original array of each label element.
+    //
+
+    short       ret             = 0;
+    int         n               = 0;
+    int         i               = 0;
+
+    G_sizeLabel = 0;
+    if(!Gb_labelMask)
+        ret     = 0;
+    else {
+        if(G_verbosity) cprints("Reading label...", "");
+        G_plabel    = LabelRead(NULL, G_pch_labelFile) ;
+        if(G_verbosity) cprints("", "ok");
+        if (!G_plabel)
+        ErrorExit(ERROR_NOFILE, "%s: could not read label file %s",
+                    G_pch_progname, G_pch_labelFile) ;
+        CURV_set(&G_pf_labelMask, G_sizeCurv1, 0.0);
+        for(n = 0; n < G_plabel->n_points; n++) {
+            G_pf_labelMask[G_plabel->lv[n].vno] = 1.0;
+        }
+        for(n=0; n < G_sizeCurv1; n++) 
+            if(G_pf_labelMask[n]) {
+                G_sizeLabel++;
+            }
+        CURV_set(&G_pf_labelMaskIndex, G_sizeLabel, 0.0);
+        i=0;
+        for(n=0; n < G_sizeCurv1; n++)
+            if(G_pf_labelMask[n]) {
+                G_pf_labelMaskIndex[i++] = n;
+            }
+        ret = 1;
+    }
+    return ret;
+}
+
+/*!
+  \fn array_expandUsingLabelMask(float* apf_compressedIn, int a_sizeInput, float* apf_output[], int a_sizeOutput)
+  \brief Using the outputTemplate, expand the compressedInput array.
+  \param apf_compressedIn The input source array to compress.
+  \param a_sizeInput The size of the input source array.
+  \param apf_outputTemplate The output array containing the compression. This array is destroyed and rebuilt
+  \param a_sizeOutput The size of the output source array.
+  \return TRUE -> OK; FALSE -> Error
+*/
+short
+array_expandUsingLabelMask(
+    float*      apf_compressedIn[],
+    int         a_sizeInput,
+    float*      apf_outputTemplate,
+    int         a_sizeOutput
+) {
+    //
+    // PRECONDITIONS
+    // o Label mask array and size must be non-zero (i.e. defined)
+    // o apf_compressedIn and apf_outputTemplate must be allocated and non-NULL!
+    // o a_sizeInput corresponds to compressed size (i.e. labelSize)
+    // o a_sizeOutput corresponds to uncompressed size (i.e. original size)
+    //
+    // POSTCONDITIONS
+    // o apf_compressedIn is expanded to the same size as apf_outputTemplate
+    //   with the contents of compressedIn written to labelIndexed positions.
+    //
+
+    short       ret             = 0;
+    int         n               = 0;
+    int         m               = 0;
+    float*      pf_inputCopy    = NULL;
+    float*      pf_compressed   = NULL;
+
+    n = 1;
+    m = 2;
+    if(!apf_compressedIn || !apf_outputTemplate)
+        ret     = 0;
+    else {
+        CURV_set(&pf_inputCopy, a_sizeInput, 0.0);
+        CURV_copy(pf_inputCopy, *apf_compressedIn, a_sizeInput);
+        free(*apf_compressedIn);
+        CURV_set(&pf_compressed, a_sizeOutput, 0.0);
+        CURV_copy(pf_compressed, apf_outputTemplate, a_sizeOutput);
+        for(n=0; n<a_sizeInput; n++) {
+            pf_compressed[(int)G_pf_labelMaskIndex[n]] = pf_inputCopy[m++];
+        }
+        *apf_compressedIn       = pf_compressed;
+        ret     = 1;
+    }
+    return ret;
+}
 
 int
 main(
@@ -1033,7 +1320,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.23 2010/02/27 02:00:06 greve Exp $",
+     "$Id: mris_calc.c,v 1.24 2010/03/19 02:23:34 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1123,6 +1410,10 @@ options_parse(int argc, char *argv[]) {
   } else if (!stricmp(option, "-verbosity")) {
     G_verbosity		= atoi(argv[2]);
     nargs     		= 1;
+  } else if (!stricmp(option, "-label") || (toupper(*option) == 'L')) {
+    strcpy(G_pch_labelFile, argv[2]);
+    Gb_labelMask        = 1;
+    nargs               = 1;
   } else switch (toupper(*option)) {
   case 'T':
     pch_text  = "void";
@@ -1156,7 +1447,8 @@ version_print(void) {
   \brief Convert a string 'operation' to an enumerated e_operation
   \param apch_operation The mathematical operation to perform..
   \return The internal lookup enumerated e_operation type is returned.
-*/static e_operation
+*/
+static e_operation
 operation_lookup(
   char* apch_operation
 ) {
@@ -1523,14 +1815,23 @@ CURV_process(void)
   float f_range         = 0.;
   int   mini            = -1;
   int   maxi            = -1;
-  int   b_canWrite      = 0;
   float f_mean   	= 0.;
   float f_std   	= 0.;
   float f_dev   	= 0.;
   char	pch_text[STRBUF];
 
   Ge_operation  = operation_lookup(G_pch_operator);
-  b_canWrite    = b_outCurvFile_write(Ge_operation);
+  Gb_canWrite   = b_outCurvFile_write(Ge_operation);
+
+  if(Gb_labelMask) {
+    // Backup the primary curvs
+    if(!primaryCurvs_backup())          error_primaryCurvsBackup();
+    // Read in and initialize the labels
+    label_initialize();
+    // Compress/collapse the input arrays about the label indices
+    if(!primaryCurvs_compress())        error_primaryCurvsCompress();
+  }
+  
   switch(Ge_operation) {
     case  e_mul:        CURV_functionRunABC(fn_mul);    break;
     case  e_div:        CURV_functionRunABC(fn_div);    break;
@@ -1538,7 +1839,7 @@ CURV_process(void)
     case  e_add:        CURV_functionRunABC(fn_add);    break;
     case  e_sub:        CURV_functionRunABC(fn_sub);    break;
     case  e_set:        CURV_functionRunABC(fn_set);    break;
-    case  e_atan2:      CURV_functionRunABC(fn_atan2);    break;
+    case  e_atan2:      CURV_functionRunABC(fn_atan2);  break;
     case  e_mag:        CURV_functionRunABC(fn_mag);    break;
     case  e_sqd:        CURV_functionRunABC(fn_sqd);    break;
     case  e_abs:        CURV_functionRunAC( fn_abs);    break;
@@ -1590,14 +1891,6 @@ CURV_process(void)
 
   if(Ge_operation == e_set) strcpy(G_pch_curvFile3, G_pch_curvFile1);
 
-  if(Ge_operation == e_ascii) {
-    if(!Gb_file3) strcat(G_pch_curvFile3, ".ascii");
-	printf("Write : %s", G_pch_curvFile3);
-
-    if((ascii_fileWrite(G_pch_curvFile3, G_pf_arrayCurv1))==e_WRITEACCESSERROR)
-	printf("Write error: %s", G_pch_curvFile3);
-  }
-
   if(Ge_operation == e_size || Ge_operation == e_stats) {
     cprintd("Size", G_sizeCurv1);
   }
@@ -1633,8 +1926,23 @@ CURV_process(void)
     Gf_prod	= CURV_functionRunAC(Gfn_prod);
     cprintf("Prod", Gf_prod);
   }
+  
+  if(Ge_operation == e_ascii) {
+    if(!Gb_file3) strcat(G_pch_curvFile3, ".ascii");
+        printf("Write : %s", G_pch_curvFile3);
 
-  if(b_canWrite) fileWrite(G_pch_curvFile3, G_sizeCurv3, G_pf_arrayCurv3);
+    if((ascii_fileWrite(G_pch_curvFile3, G_pf_arrayCurv1))==e_WRITEACCESSERROR)
+        printf("Write error: %s", G_pch_curvFile3);
+  }
+  
+  if(Gb_labelMask) {
+    // Expand any output data in preparation for saving...
+    if(Gb_canWrite)
+        if(!array_expandUsingLabelMask( &G_pf_arrayCurv3, G_sizeLabel,
+                G_pf_arrayCurv3Copy, G_sizeCurv3Copy))  error_expandCurv3();
+        G_sizeCurv3     = G_sizeCurv3Copy;
+  }
+  if(Gb_canWrite) fileWrite(G_pch_curvFile3, G_sizeCurv3, G_pf_arrayCurv3);
 
   return 1;
 }

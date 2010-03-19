@@ -28,20 +28,36 @@
 
     	--output <outputCurvFile>
    	-o <outputCurvFile>
-
     	By default, 'mris_calc' will save the output of the calculation to a 
     	file in the current working directory with filestem 'out'. The file
     	extension is automatically set to the appropriate filetype based on
     	the input. For any volume type, the output defaults to '.mgz' and for
     	curvature inputs, the output defaults to '.crv'.
 
+        --label <FreeSurferLabelFile>
+        -l <FreeSurferLabelFile>
+        If specified, constraint the calculation to the vertices defined in
+        the <FreeSurferLabelFile>. This is most useful for calculations 
+        relating to curvature and thickness files that are defined on a
+        surface.
+
+        Note that 'mris_calc' will apply a specified label filter to any
+        inputs, i.e. surface related measures (thickness, curvatures) *and*
+        volumes, if volumes are input. This means that if a surface label is 
+        applied to a volume, the corresponding volume indices will be tagged
+        and used for calculations. Applying such a surface filter operation
+        to volume indices might be somewhat meaningless.
+
+        Also, if a label is specified, calculations outside of the label
+        area are set to zero. That means if an addition operation is
+        specified, only the input indices corresponding to the label will
+        be operated on. The non-label indices in the output will be zero.
+
     	--version
     	-v
-
 	Print out version number.     
 
     	--verbosity <value>
-
 	Set the verbosity of the program. Any positive value will trigger
 	verbose output, displaying intermediate results. The <value> can be
 	set arbitrarily. Useful mostly for debugging.
@@ -61,11 +77,13 @@
      MATHEMATICAL
 	  mul	   2      1     <outputFile> = <file1> * <file2>
 	  div	   2	  1     <outputFile> = <file1> / <file2>
-	  mod      2      1     <outputFile> = <file1> % <file2>
+	  mod      2      1     <outputFile> = mod(<file1>, <file2>)
 	  add      2	  1	<outputFile> = <file1> + <file2>
 	  sub	   2	  1     <outputFile> = <file1> - <file2>
 	  sqd	   2	  1     <outputFile> = (<file1> - <file2>)^2
 	  set	   2	  1     <file1>	     = <file2> 
+          atan2    2      1     <outputFile> = atan2(<file1>,<file2>)
+          mag      2      1     <outputFile> = atan2(<file1>,<file2>)
 	  sqr	   1      1	<outputFile> = <file1> * <file1>
 	  sqrt	   1      1     <outputFile> = sqrt(<file1>)
           abs      1      1     <outputFile> = abs(<file1>)
@@ -103,10 +121,10 @@
     NOTES ON ACTIONS
 
       MATHEMATICAL
-        The 'add', 'sub', 'div', 'mul' operations all function as one would
-        expect. The 'norm' creates an output file such that all values are
-        constrained (normalized) between 0.0 and 1.0. The 'sqd' stores the
-        square difference between two inputs.
+        The 'add', 'sub', 'div', 'mul', 'atan2', and 'mag' operations all 
+        function as one would expect. The 'norm' creates an output file such
+        that all values are constrained (normalized) between 0.0 and 1.0. 
+        The 'sqd' stores the square difference between two inputs.
         
         The 'mod' operation is performed by a call to the C-function, fmod(),
         and accepts either integer or floats -- in fact, ints are converted
