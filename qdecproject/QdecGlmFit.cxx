@@ -9,10 +9,10 @@
  * Original Authors: Nick Schmansky and Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/06/30 21:37:56 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/03/19 20:02:47 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2007-2009,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -76,21 +75,35 @@ int QdecGlmFit::Run ( QdecGlmDesign* iGlmDesign )
       ( "Running GLM..." );
   }
 
-  // check if the ?h.cortex.label file exists, if so, use it to mask-out
-  // non-cortical medial wall region
-  stringstream ssCortexLabelFile;
-  ssCortexLabelFile << iGlmDesign->GetSubjectsDir()
-                    << "/" << iGlmDesign->GetAverageSubject() << "/label/"
-                    << iGlmDesign->GetHemi() << ".cortex.label";
-  ifstream fInput( ssCortexLabelFile.str().c_str(), std::ios::in );
+  // check if the ?h.aparc.label file exists, if so, use it to mask-out
+  // non-cortical medial wall region. if not, check for existence of
+  // ?h.cortex.label
+  stringstream ssAparcLabelFile;
+  ssAparcLabelFile << iGlmDesign->GetSubjectsDir()
+                   << "/" << iGlmDesign->GetAverageSubject() << "/label/"
+                   << iGlmDesign->GetHemi() << ".aparc.label";
+  ifstream fInput( ssAparcLabelFile.str().c_str(), std::ios::in );
   stringstream ssCortexLabel;
   if( fInput && !fInput.bad() )
   {
-    ssCortexLabel << " --label " << ssCortexLabelFile.str();
+    ssCortexLabel << " --label " << ssAparcLabelFile.str();
   }
   else
   {
-    ssCortexLabel << "";
+    stringstream ssCortexLabelFile;
+    ssCortexLabelFile << iGlmDesign->GetSubjectsDir()
+                      << "/" << iGlmDesign->GetAverageSubject() << "/label/"
+                      << iGlmDesign->GetHemi() << ".cortex.label";
+    ifstream fInput( ssCortexLabelFile.str().c_str(), std::ios::in );
+    stringstream ssCortexLabel;
+    if( fInput && !fInput.bad() )
+    {
+      ssCortexLabel << " --label " << ssCortexLabelFile.str();
+    }
+    else
+    {
+      ssCortexLabel << "";
+    }
   }
 
   // We need to build a command line.
