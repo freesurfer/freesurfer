@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:42 $
- *    $Revision: 1.453 $
+ *    $Date: 2010/03/19 22:13:14 $
+ *    $Revision: 1.454 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.453 $";
+const char *MRI_C_VERSION = "$Revision: 1.454 $";
 
 
 /*-----------------------------------------------------
@@ -16356,3 +16356,25 @@ MRImaskZero(MRI *mri_src, MRI *mri_mask, MRI *mri_dst)
   return(mri_dst) ;
 }
 
+
+const char* MRItype2str(int type)
+{
+  switch (type)
+  {
+  case MRI_UCHAR:
+    return("uchar");
+  case MRI_SHORT:
+    return("short");
+  case MRI_INT:
+    return("int");
+  case MRI_LONG:
+    return("long");
+  case MRI_FLOAT:
+    return("float");
+  case MRI_BITMAP:
+    return("bitmap");
+  case MRI_TENSOR:
+    return("tensor");
+  }
+  return("unknown data type");
+}

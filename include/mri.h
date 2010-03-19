@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.396 $
+ *    $Date: 2010/03/19 22:13:14 $
+ *    $Revision: 1.397 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -836,8 +836,6 @@ HISTOGRAM  *MRIgetEqualizeHistoRegion(MRI *mri, HISTOGRAM *histo_eq, int low,
 int        MRIfileType(char *fname) ;
 int        MRIunpackFileName(const char *inFname, int *pframe, int *ptype,
                              char *outFname) ;
-Volume     MRItoVolume(MRI *mri) ;
-MRI        *MRIfromVolume(Volume volume, int start_frame, int end_frame) ;
 int        MRIisValid(MRI *mri) ;
 MRI        *MRIflipByteOrder(MRI *mri_src, MRI *mri_dst) ;
 
@@ -1309,6 +1307,7 @@ MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
                                            MRI *mri_ref_dist, 
                                            MRI *mri_dst_dist);
 
+const char* MRItype2str(int type);
 
 #if defined(__cplusplus)
 };

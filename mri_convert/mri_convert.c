@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/19 20:54:57 $
- *    $Revision: 1.164 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/19 22:13:14 $
+ *    $Revision: 1.165 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.164 2009/10/19 20:54:57 greve Exp $", 
+     "$Id: mri_convert.c,v 1.165 2010/03/19 22:13:14 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.164 2009/10/19 20:54:57 greve Exp $", 
+      "$Id: mri_convert.c,v 1.165 2010/03/19 22:13:14 nicks Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -1328,7 +1328,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.164 2009/10/19 20:54:57 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.165 2010/03/19 22:13:14 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2221,8 +2221,8 @@ int main(int argc, char *argv[]) {
 
   /* ----- change type if necessary ----- */
   if(mri->type != template->type && nochange_flag == FALSE) {
-    printf("changing data type from %d to %d (noscale = %d)...\n",
-           mri->type,template->type,no_scale_flag);
+    printf("changing data type from %s to %s (noscale = %d)...\n",
+           MRItype2str(mri->type),MRItype2str(template->type),no_scale_flag);
     mri2 =
       MRISeqchangeType(mri, template->type, 0.0, 0.999, no_scale_flag);
     if (mri2 == NULL) {
