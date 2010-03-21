@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/19 22:01:36 $
-#    $Revision: 1.299 $
+#    $Date: 2010/03/21 16:47:05 $
+#    $Revision: 1.300 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.299 2010/03/19 22:01:36 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.300 2010/03/21 16:47:05 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -463,6 +463,9 @@ mris_volmask --all-info >> $LF
 mris_anatomical_stats -all-info >> $LF
 mrisp_paint -all-info >> $LF
 mris_curvature_stats -all-info >> $LF
+if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
+mris_calc -all-info >> $LF
+if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
 mri_robust_register -all-info >> $LF
 mri_robust_template -all-info >> $LF
 mri_and -all-info >> $LF
@@ -2373,7 +2376,7 @@ foreach hemi ($hemilist)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    if($RunIt) rm -f .xdebug_mris_calc
+    if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
     echo $cmd > $touchdir/$hemi.surfvolume.touch
   endif
 
@@ -2437,6 +2440,7 @@ foreach hemi ($hemilist)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     #if($status) goto error_exit;
+    if(-e .xdebug_mris_curvature_stats) rm -f .xdebug_mris_curvature_stats
     echo $cmd > $touchdir/$hemi.curvstats.touch
   endif
 
