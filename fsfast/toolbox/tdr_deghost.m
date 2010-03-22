@@ -1,5 +1,5 @@
-function [kimg2, beta, phhat] = tdr_deghost(kimg,Rrow,perev,synth)
-% [kimg2 beta phhat] = tdr_deghost(kimg,Rrow,<perev>,<synth>)
+function [kimg2, beta, phhat] = tdr_deghost(kimg,Rrow,perev,synth,kpcn)
+% [kimg2 beta phhat] = tdr_deghost(kimg,Rrow,<perev>,<synth>,<kpcn>)
 %
 % Recons the rows of kimg with deghosting.
 %
@@ -27,8 +27,8 @@ function [kimg2, beta, phhat] = tdr_deghost(kimg,Rrow,perev,synth)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/11 06:42:16 $
-%    $Revision: 1.11 $
+%    $Date: 2010/03/22 17:41:56 $
+%    $Revision: 1.12 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -47,8 +47,8 @@ rsubdel = 3; % region around center
 rthresh = 1; % fraction of mean to use as segmentation thresh, not used
 
 kimg2 = [];
-if(nargin < 2 | nargin > 4)
-  fprintf('kimg2 = tdr_deghost(kimg,Rrow,<perev>,<synth>)\n');
+if(nargin < 2 | nargin > 5)
+  fprintf('kimg2 = tdr_deghost(kimg,Rrow,<perev>,<synth>,<kpcn>)\n');
   return;
 end
 
@@ -57,6 +57,8 @@ if(isempty(perev)) perev = 0; end
 
 if(exist('synth')==0) synth = []; end
 if(isempty(synth)) synth = 0; end
+
+if(exist('kpcn')==0) kpcn = []; end
 
 nrows = size(kimg,1);
 ncols = size(Rrow,2);
@@ -74,39 +76,44 @@ end
 nrefrows = length(refrows);
 nmovrows = length(movrows);
 
-% Recon separate images based on every-other kspace
-% line. Both will have wrap-around but neither will
-% have ghosting (may be hard to tell the difference).
-%img2ref = Rcol(:,refrows)*kimg(refrows,:)*Rrow;
-%img2mov = Rcol(:,movrows)*kimg(movrows,:)*Rrow;
-ktmp = kimg*Rrow;
-ktmpref = ktmp;
-ktmpref(movrows,:) = 0;
-img2ref = fftshift(ifft(fftshift(ktmpref,1),[],1),1);
-ktmpmov = ktmp;
-ktmpmov(refrows,:) = 0;
-img2mov = fftshift(ifft(fftshift(ktmpmov,1),[],1),1);
+if(isempty(kpcn))
+  % Recon separate images based on every-other kspace
+  % line. Both will have wrap-around but neither will
+  % have ghosting (may be hard to tell the difference).
+  %img2ref = Rcol(:,refrows)*kimg(refrows,:)*Rrow;
+  %img2mov = Rcol(:,movrows)*kimg(movrows,:)*Rrow;
+  ktmp = kimg*Rrow;
+  ktmpref = ktmp;
+  ktmpref(movrows,:) = 0;
+  img2ref = fftshift(ifft(fftshift(ktmpref,1),[],1),1);
+  ktmpmov = ktmp;
+  ktmpmov(refrows,:) = 0;
+  img2mov = fftshift(ifft(fftshift(ktmpmov,1),[],1),1);
+  
+  % Choose a range of rows around the center, away from 
+  % wrap-around.
+  rsub = (round(nrows/2) +1)+[-rsubdel:rsubdel];
+  
+  % Segment the images, choose columns that exceed thresh
+  img2mn    = (abs(img2ref)+abs(img2mov))/2;
+  imgrsubmn = mean(img2mn(rsub,:));
+  thresh    = rthresh*mean(imgrsubmn);
+  csub      = find(imgrsubmn > thresh);
+  csub = [round(ncols/2)-10:round(ncols/2)+10];
 
-% Choose a range of rows around the center, away from 
-% wrap-around.
-rsub = (round(nrows/2) +1)+[-rsubdel:rsubdel];
+  % Fit the phase difference at the segmented columns.
+  % Model is offset and slope.
+  ph = mean(angle(img2ref(rsub,csub)./img2mov(rsub,csub)))';
+  X = [ones(length(csub),1) csub'];
+  beta = (inv(X'*X)*X')*ph;
 
-% Segment the images, choose columns that exceed thresh
-img2mn    = (abs(img2ref)+abs(img2mov))/2;
-imgrsubmn = mean(img2mn(rsub,:));
-thresh    = rthresh*mean(imgrsubmn);
-csub      = find(imgrsubmn > thresh);
-csub = [round(ncols/2)-10:round(ncols/2)+10];
+  % Generate the estimate of the phase diff at all columns
+  X2 = [ones(ncols,1) [1:ncols]'];
+  phhat = (X2*beta)';
+else
+  [gcomp phhat thetahat Fsig beta Rrow] = tdr_ghostcomp(kpcn,Rrow);
+end
 
-% Fit the phase difference at the segmented columns.
-% Model is offset and slope.
-ph = mean(angle(img2ref(rsub,csub)./img2mov(rsub,csub)))';
-X = [ones(length(csub),1) csub'];
-beta = (inv(X'*X)*X')*ph;
-
-% Generate the estimate of the phase diff at all columns
-X2 = [ones(ncols,1) [1:ncols]'];
-phhat = (X2*beta)';
 
 % Split phase diff between ref and mov
 vref = exp(-i*phhat/2);

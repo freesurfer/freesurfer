@@ -1,20 +1,25 @@
-function [gcomp, theta, thetahat, Fsig, beta, Rrow] = tdr_ghostcomp(kpcn,epipar)
-% [gcomp theta thetahat Fsig] = tdr_ghostcomp(kpcn,epipar)
+function [gcomp, theta, thetahat, Fsig, beta, Rrow] = tdr_ghostcomp(kpcn,epipar,order)
+% [gcomp theta thetahat Fsig] = tdr_ghostcomp(kpcn,epipar,<order>)
 %
 % kpcn is (3,ncols,n1,n2,n3) with the rows NOT LR reversed
 % gcomp is (ncols n1 n2 n3) 
+% order is polynomial order (def is 2)
+%
 % revenfixed = reven .* gcomp (careful with transpose)
 %
-% $Id: tdr_ghostcomp.m,v 1.8 2007/05/19 06:11:15 greve Exp $
+% $Id: tdr_ghostcomp.m,v 1.9 2010/03/22 17:41:44 greve Exp $
 
-order = 2;   % poly order
+%order = 2;   % poly order
 rthresh = .2; % keep the top rthresh
 
 gcomp = [];
-if(nargin ~= 2)
-  fprintf('[gkcomp theta thetahat Fsig] = tdr_ghostcomp(kpcn,epipar)\n');
+if(nargin < 2 | nargin > 3)
+  fprintf('[gkcomp theta thetahat Fsig] = tdr_ghostcomp(kpcn,epipar,<order>)\n');
   return;
 end
+
+if(~exist('order','var')) order = []; end
+if(isempty(order)) order = 2; end
 
 [npcn ncols n1 n2 n3] = size(kpcn);
 if(npcn ~= 3) 
@@ -23,12 +28,17 @@ if(npcn ~= 3)
 end
 nsamples = n1*n2*n3;
 
-[kvec gvec] = kspacevector2(epipar);
+if(isstruct(epipar))
+  [kvec gvec] = kspacevector2(epipar);
+  % Compute the Ideal col and row DFT reconstruction matrices
+  Frow = fast_dftmtx(kvec);
+  Frow = fast_svdregpct(Frow,90);
+  Rrow = inv(Frow); % Dont do transpose, mult vects on right
+else
+  Rrow = epipar;
+  Frow = inv(Rrow'*Rrow)*Rrow';
+end
 
-% Compute the Ideal col and row DFT reconstruction matrices
-Frow = fast_dftmtx(kvec);
-Frow = fast_svdregpct(Frow,90);
-Rrow = inv(Frow); % Dont do transpose, mult vects on right
 
 % Flip even rows left-right
 kpcn(2,:,:,:) = flipdim(kpcn(2,:,:,:),2);
@@ -71,13 +81,11 @@ nn = 1:ncols;
 %plot(nn,abskpcnref(:,1),'+-',nn,abskpcnmov(:,1),nn,abs(kpcnmovcomp(:,1)));
 %legend('ref','mov','movcomp')
 
-
 gcomp = reshape(gcomp,[ncols n1 n2 n3]);
 
 gcompmov = exp(+i*thetahat/2);
 gcompref = exp(-i*thetahat/2);
 
-%keyboard
 
 return;
 
@@ -105,6 +113,7 @@ if(max(abs(size(Ref)-size(Mov))) ~= 0)
 end
 [nf nv] = size(Ref);
 
+% Average image space complex
 RefMn = mean(abs(Ref),2);
 MovMn = mean(abs(Mov),2);
 RefMovMn = (RefMn+MovMn)/2;
@@ -123,6 +132,7 @@ if(nover == 0)
   fprintf('ERROR: no voxels over threshold\n');
   return;
 end
+indunder = find(RefMovMn <= athresh);
 
 % Compute the phase distortion %
 %theta = unwrap(angle(Ref./Mov));
@@ -142,7 +152,7 @@ Xover = X(indover,:);
 thetahat = X*beta;
 
 % Make thetahat pass thru 0 at first sample
-thetahat = thetahat - repmat(thetahat(1,:),[nf 1]);
+% thetahat = thetahat - repmat(thetahat(1,:),[nf 1]);
 
 % Do a test to make sure things are ok
 C = zeros(1,order+1);

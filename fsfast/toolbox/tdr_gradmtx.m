@@ -12,9 +12,9 @@ function T = tdr_gradmtx(mask)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:35 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2010/03/22 17:41:44 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,7 @@ if(nm == 0)
   fprintf('ERROR: no voxels found in the mask\n');
   return
 end
-fprintf('%d voxels found in the mask\n',nm);
+%fprintf('%d voxels found in the mask\n',nm);
 
 % Size of the slice
 szm = size(mask);
@@ -68,7 +68,7 @@ for dr = [-1 0 1]
     % Dont process the center or diagonal neighbors
     if(abs(dr)+abs(dc) > 1) continue; end
     if(dr==0 & dc == 0) continue; end
-    fprintf('dr = %d, dc = %d\n',dr,dc);
+    %fprintf('dr = %d, dc = %d\n',dr,dc);
 
     % row and col of neighbors (rm,cm are the centers)
     rNbr = rm + dr; % Row of neighbor

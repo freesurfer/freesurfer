@@ -1,7 +1,12 @@
-function [F, rx1d, ry1d, kx1d, ky1d] = tdr_dftmtx2d(Nrr,Nrc,Nkr,Nkc)
-% F = tdr_dftmtx2d(Nrr,Nrc,<Nkr>,<Nkc>)
+function [F kA1d kB1d] = tdr_dftmtx2d(arg1,arg2,accel)
+% F = tdr_dftmtx2d(mask,<[kAaccel kBaccel]>);
+% F = tdr_dftmtx2d(Nrr,Nrc,<[kAaccel kBaccel]>);
 % 
-% F is Nv-by-Nv matrix
+% F is Nk-by-Nv matrix
+% A is the faster of the two k-space dim, which means
+% that if the k-space data should not be permuted when
+% read into matlab.
+%
 % See also ~/links/sg1/propeller2/reconpropss.m
 % 
 
@@ -11,9 +16,9 @@ function [F, rx1d, ry1d, kx1d, ky1d] = tdr_dftmtx2d(Nrr,Nrc,Nkr,Nkc)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:35 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2010/03/22 17:41:44 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -28,54 +33,98 @@ function [F, rx1d, ry1d, kx1d, ky1d] = tdr_dftmtx2d(Nrr,Nrc,Nkr,Nkc)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-if(nargin < 2 | nargin > 4)
-  fprrintf('F = tdr_dftmtx2d(Nrr,Nrc,<Nkr>,<Nkc>)\n');
+F = [];
+if(nargin < 1 | nargin > 3)
+  fprintf('F = tdr_dftmtx2d(mask,   <[kAaccel kBaccel]>)\n');
+  fprintf('F = tdr_dftmtx2d(Nrr,Nrc,<[kAaccel kBaccel]>)\n');
   return;
 end
 
-if(~exist('Nkr','var')) Nkr = []; end
-if(isempty(Nkr)) Nkr = Nrr; end
+if(length(size(arg1)) == 2)
+  % Arg1 is a matrix, interpret as a mask
+  if(nargin > 2)
+    fprintf('ERROR: only on other input arg with mask\n');
+    return;
+  end
+  mask = arg1;
+  accel = [1 1];
+  if(nargin == 2) accel = arg2; end
+  [Nrr Nrc] = size(mask);
+else
+  % Arg1 is a scalar, intpret as Nrr
+  if(nargin < 2)
+    fprintf('ERROR: need Nrc with Nrr\n');
+    return;
+  end
+  Nrr = arg1;
+  Nrc = arg2;
+  if(nargin == 3) accel = arg2; 
+  else accel = [1 1];
+  end
+  mask = ones(Nrr,Nrc);
+end
+indmask = find(mask);
 
-if(~exist('Nkc','var')) Nkc = []; end
-if(isempty(Nkc)) Nkc = Nrc; end
+if(length(accel) ~= 2)
+  fprintf('ERROR: accel must be a two component vector\n');
+  return;
+end
+kAaccel = accel(1);
+kBaccel = accel(2);
 
-% rx0 is the column number, centered at Nrc/2+1
-rx0 = [0:Nrc-1];
-rx0 = rx0 - rx0(round(Nrc/2) + 1);
+Nkr = Nrr;
+Nkc = Nrc; 
 
-% ry0 is the row number, centered at Nrc/2+1
-ry0 = [0:Nrr-1]';
-ry0 = ry0 - ry0(round(Nrr/2) + 1);
+% ColNo0 is the column number, centered at Nrc/2+1
+ColNo0 = [0:Nrc-1];
+ColNo0 = ColNo0 - ColNo0(round(Nrc/2) + 1);
 
-% rx and ry are images of the the col and row numbers at each voxel
-rx = repmat(rx0, [Nrr 1]);  
-ry = repmat(ry0, [1 Nrc]);
-nrv = Nrc*Nrr;
-rx1d = reshape(rx,[1 nrv]);
-ry1d = reshape(ry,[1 nrv]);
+% RowNo0 is the row number, centered at Nrr/2+1
+RowNo0 = [0:Nrr-1]';
+RowNo0 = RowNo0 - RowNo0(round(Nrr/2) + 1);
 
-% kx0 is the fractional column number at each kimage voxel
-% Why is this not centered at Nkc/2+1?
-kx0 = 2*pi*[0:Nkc-1]/Nkc;
-kx0 = kx0 - kx0(round(Nkc/2) + 1);
+% ColNo and RowNo are images of the the col and row numbers at each voxel
+ColNo = repmat(ColNo0, [Nrr 1]);  
+RowNo = repmat(RowNo0, [1 Nrc]);
+ColNo1d = ColNo(indmask)';
+RowNo1d = RowNo(indmask)';
 
-% ky0 is the fractional row number at each kimage voxel
+% Faster dimension
+% kA0 is the fractional row number at each kimage voxel
 % Why is this not centered at Nkr/2+1?
-ky0 = 2*pi*[0:Nkr-1]/Nkr;
-ky0 = ky0 - ky0(round(Nkr/2) + 1);
+kA0 = 2*pi*[0:Nkr-1]/Nkr;
+kA0 = kA0 - kA0(round(Nkr/2) + 1);
+kA0 = kA0(1:kAaccel:end);
+Nkr = length(kA0);
+kA0 = reshape(kA0,[Nkr 1]); % column vector
 
-% kx and ky are images of the the kcol and krow numbers at each voxel
-kx = repmat(kx0,[Nkr 1]);
-ky = repmat(ky0,[1 Nkc]);
-nkv = Nkc*Nkr;
-kx1d   = reshape(kx,[nkv 1]);
-ky1d   = reshape(ky,[nkv 1]);
- 
+% Slower dimension
+% kB0 is the fractional col number at each kimage voxel
+% Why is this not centered at Nkc/2+1?
+kB0 = 2*pi*[0:Nkc-1]/Nkc;
+kB0 = kB0 - kB0(round(Nkc/2) + 1);
+kB0 = kB0(1:kBaccel:end);
+Nkc = length(kB0);
+kB0 = reshape(kB0,[1 Nkc]); % row vector
+
+% kA and kB are images of the the kcol and krow numbers at each voxel
+kA = repmat(kA0,[1 Nkc]);
+kB = repmat(kB0,[Nkr 1]);
+nkv = prod(size(kA)); 
+kA1d = reshape(kA,[nkv 1]);
+kB1d = reshape(kB,[nkv 1]);
+
+%plot(kB1d,kA1d,'.',kB1d(1),kA1d(1),'r*',kB1d(2),kA1d(2),'g*')
+%keyboard
+
 % Compute the phase with an outer product
-phi = kx1d*rx1d + ky1d*ry1d;
-
+% kFastest with rFastest
+%phi = kA1d*RowNo1d + kB1d*ColNo1d;
 % Encoding matrix
-F = exp(-i*phi);
+%F = exp(-i*phi);
+
+% Do it in one step, may be faster
+F = exp(-i*(kA1d*RowNo1d + kB1d*ColNo1d));
  
 return;
 

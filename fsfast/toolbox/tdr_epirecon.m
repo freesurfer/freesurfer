@@ -1,6 +1,6 @@
-function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
-% [cimg Rrow epipar] = tdr_epirecon(kepi,measasc)
-% [cimg Rrow epipar] = tdr_epirecon(kepi,epipar)
+function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2,kpcn)
+% [cimg Rrow epipar] = tdr_epirecon(kepi,measasc,<kpcn>)
+% [cimg Rrow epipar] = tdr_epirecon(kepi,epipar,<kpcn>)
 %
 % Performs fouirer-based epi recon with ramp-sampling and 
 % ghost correction.
@@ -45,8 +45,8 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/05/11 03:53:32 $
-%    $Revision: 1.7 $
+%    $Date: 2010/03/22 17:41:44 $
+%    $Revision: 1.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -63,9 +63,9 @@ function [cimg, Rrow, epipar] = tdr_epirecon(kepi,arg2)
 
 cimg = [];
 Rrow = [];
-if(nargin ~= 2)
-  fprintf('[cimg Rrow epipar] = tdr_epirecon(kepi,measasc)\n');
-  fprintf('[cimg Rrow epipar] = tdr_epirecon(kepi,epipar)\n');
+if(nargin < 2 | nargin > 3)
+  fprintf('[cimg Rrow epipar] = tdr_epirecon(kepi,measasc,<kpcn>)\n');
+  fprintf('[cimg Rrow epipar] = tdr_epirecon(kepi,epipar,<kpcn>)\n');
   return;
 end
 
@@ -85,6 +85,8 @@ if(isstr(arg2))
 else
   epipar = arg2;
 end
+
+if(~exist('kpcn','var')) kpcn = []; end
 
 nrows   = size(kepi,1);
 nkcols  = size(kepi,2);
@@ -122,7 +124,7 @@ for nth1 = 1:n1
   for nth2 = 1:n2
     for nth3 = 1:n3
       kimg = kepi(:,:,nth1,nth2,nth3);
-      kepi_rrecon(:,:,nth1,nth2,nth3) = tdr_deghost(kimg,Rrow,0,simflag);
+      kepi_rrecon(:,:,nth1,nth2,nth3) = tdr_deghost(kimg,Rrow,0,simflag,kpcn);
     end
   end
 end
