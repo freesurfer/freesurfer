@@ -27,9 +27,9 @@ function [xlow, xhi, xmean, xstd] = binomialconf(n,theta,pct)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:29 $
-%    $Revision: 1.3 $
+%    $Author: greve $
+%    $Date: 2010/03/22 17:42:29 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,28 @@ end
 
 if(pct <= 0 | pct >= 100)
   fprintf('ERROR: pct = %g, must be 0 < pct < 100\n',pct);
+  return;
+end
+
+ntheta = length(theta);
+if(ntheta > 1)
+  fprintf('binomialconf: looping %d\n',ntheta);
+  xlow  = zeros(ntheta,1);
+  xhi   = zeros(ntheta,1);
+  xmean = zeros(ntheta,1);
+  xstd  = zeros(ntheta,1);
+  for nththeta = 1:ntheta
+    [xlow(nththeta) xhi(nththeta) xmean(nththeta) xstd(nththeta)] = ...
+	binomialconf(n,abs(theta(nththeta)),pct);
+  end
+  return;
+end
+
+if(theta <= 0)
+  xlow = 0;
+  xhi  = n;
+  xmean = 0;
+  xstd = 100;
   return;
 end
 
