@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/19 18:08:01 $
- *    $Revision: 1.339 $
+ *    $Date: 2010/03/22 21:02:54 $
+ *    $Revision: 1.340 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -21203,7 +21203,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.339 2010/03/19 18:08:01 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.340 2010/03/22 21:02:54 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -27470,6 +27470,8 @@ int labl_import_annotation (char *fname)
     printf ("No embedded color table found in annotation.\n");
   }
 
+  int vertices_wo_annotation = 0; // count vertices that dont have annotation
+
   /* check all annotations... */
   for (annotation_vno = 0; annotation_vno < mris->nvertices; annotation_vno++)
   {
@@ -27561,6 +27563,15 @@ int labl_import_annotation (char *fname)
         }
       }
     }
+    else
+    {
+      vertices_wo_annotation++;  // vertex does not have annotation
+    }
+  }
+
+  if (vertices_wo_annotation)
+  {
+    printf("%d vertices did not have an annotation!\n",vertices_wo_annotation);
   }
 
   /* any labels imported? */
