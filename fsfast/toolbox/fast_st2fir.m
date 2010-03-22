@@ -21,7 +21,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_fsv3)
 %     but it is a good idea.
 %  6. If two stimuli fall within the sam TR bin, the Xfir
 %     matrix will have a 2 instead of a 1.
-% $Id: fast_st2fir.m,v 1.18 2009/02/22 21:41:42 greve Exp $
+% $Id: fast_st2fir.m,v 1.19 2010/03/22 17:45:00 greve Exp $
 
 
 %
@@ -30,8 +30,8 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew,use_fsv3)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/02/22 21:41:42 $
-%    $Revision: 1.18 $
+%    $Date: 2010/03/22 17:45:00 $
+%    $Revision: 1.19 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -128,6 +128,7 @@ a = zeros(nrows,1);
 for nthstim = 1:nstim
   ionset = round((stimonset(nthstim)+psdmin)/dpsd) + 1; % start row
   ndur = round(stimdur(nthstim)/dpsd);
+  if(ndur == 0) ndur = 1; end
   ioffset = ionset+ndur-1; % end row
   % If ionset:ioffset are both out of range
   if(ioffset <= 0 | ionset > nrows ) continue; end
