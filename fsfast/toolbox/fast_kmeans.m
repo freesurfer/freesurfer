@@ -1,5 +1,5 @@
-function [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,kmeans0,nitersmax,nfix)
-% [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>)
+function [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,kmeans0,nitersmax,nfix,ndiffmax)
+% [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>,<ndiffmax>)
 %
 % nc is number of classes (a better name would have been nk)
 % If nitersmax is not specified, uses 100.
@@ -19,9 +19,9 @@ function [kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,kmeans0,nitersmax
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.7 $
+%    $Author: greve $
+%    $Date: 2010/03/22 17:43:08 $
+%    $Revision: 1.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -41,12 +41,13 @@ kmap = [];
 dmin = [];
 niters = 0;
 
-if(nargin < 2 | nargin > 5)
- fprintf('[kmeans, kmap, dmin, niters, yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>)\n');
+if(nargin < 2 | nargin > 6)
+ fprintf('[kmeans kmap dmin niters yhat] = fast_kmeans(y,nc,<kmeans0>,<nitersmax>,<nfix>,<ndiffmax>)\n');
  return;
 end
 
-if(~exist('nfix','var')) nfix = 0; end
+if(~exist('nfix','var')) nfix = []; end
+if(isempty(nfix)) nfix = 0; end
 if(isempty(kmeans0) & nfix > 0)
   fprintf('ERROR: must specify kmeans0 with nfix\n');
   return;
@@ -56,7 +57,12 @@ if(nfix >= nc)
   return;
 end
 
-if(~exist('nitersmax','var')) nitersmax = 100; end
+if(~exist('ndiffmax','var')) ndiffmax = []; end
+if(isempty(ndiffmax)) ndiffmax = 0; end
+
+if(~exist('nitersmax','var')) nitersmax = []; end
+if(isempty(nitersmax))        nitersmax = 100; end
+
 if(~exist('kmeans0','var'))   kmeans0 = []; end
 
 % If unspecified, init kmeans to first nc examples
@@ -68,12 +74,11 @@ if(nc ~= size(kmeans0,2))
 end
 
 [nf nv] = size(y);
-
 tic;
 niters = 0;
 ndiff = nv;
 kmeans = kmeans0;
-while(niters < nitersmax & ndiff ~= 0)
+while(niters < nitersmax & ndiff > ndiffmax)
 
   % Compute the distances between each input and each class
   % Use L1 distance.
@@ -107,13 +112,13 @@ while(niters < nitersmax & ndiff ~= 0)
   kmap0 = kmap;
   niters = niters + 1;
   if(1 | mod(niters,10)==0 | niters == 1)
-    %fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(dmin),toc);
+    fprintf('%3d %5d %14.13f %g\n',niters,ndiff,mean(dmin),toc);
   end
 
 end % iteration loop
 
-%fprintf('%3d %5d %14.13f %14.13f %g\n',niters,ndiff,...
-%	mean(dmin),sqrt(mean(dmin)),toc);
+fprintf('%3d %5d %14.13f %14.13f %g\n',niters,ndiff,...
+	mean(dmin),sqrt(mean(dmin)),toc);
 
 %------- Create estimate of the input ----------%
 if(nargout == 5)
