@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/22 21:21:14 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/03/22 21:38:35 $
+ *    $Revision: 1.65 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -43,7 +42,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.64 2010/03/22 21:21:14 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.65 2010/03/22 21:38:35 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -117,7 +116,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.64 2010/03/22 21:21:14 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.65 2010/03/22 21:38:35 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -631,6 +630,11 @@ main(int argc, char *argv[])
       if (0 == strcmp(names[i],"G_subcallosal")) // christophe label
         continue;
       if (0 == strcmp(names[i],"S_pericallosal")) // christophe label
+        continue;
+      // ditto for medial wall area: its not cortex
+      if (0 == strcmp(names[i],"unknown")) // desikan label
+        continue;
+      if (0 == strcmp(names[i],"Medial_wall")) // christophe label
         continue;
 
       MRISuseMeanCurvature(mris) ;
