@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/10 21:40:06 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/22 20:54:18 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -211,19 +211,19 @@ void Contour2D::UpdateSliceLocation( double dSliceLocation )
   vtkSmartPointer<vtkMatrix4x4> matrix =
       vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->Identity();
-  double* vsize = imagedata->GetSpacing();
-  double pos[3] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2, vsize[2]/IMAGE_RESAMPLE_FACTOR/2 };
+  double* vsize = imagedata->GetSpacing();    // 2D spacing!
+  double pos[2] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2 };
   switch ( m_nPlane )
   {
     case 0:
       m_actorContour->PokeMatrix( matrix );
-      m_actorContour->SetPosition( dSliceLocation, -pos[1], pos[2] );
+      m_actorContour->SetPosition( dSliceLocation, -pos[0], pos[1] );
       m_actorContour->RotateX( 90 );
       m_actorContour->RotateY( -90 );
       break;
     case 1:
       m_actorContour->PokeMatrix( matrix );
-      m_actorContour->SetPosition( pos[0], dSliceLocation, pos[2] );
+      m_actorContour->SetPosition( pos[0], dSliceLocation, pos[1] );
       m_actorContour->RotateX( 90 );
       break;
     case 2:
