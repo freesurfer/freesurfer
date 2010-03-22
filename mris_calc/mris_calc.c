@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2010/03/19 16:14:54 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/03/22 16:47:14 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.25 2010/03/19 16:14:54 rudolph Exp $";
+"$Id: mris_calc.c,v 1.26 2010/03/22 16:47:14 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -492,7 +492,7 @@ synopsis_show(void) {
  \n\
         --label <FreeSurferLabelFile> \n\
         -l <FreeSurferLabelFile> \n\
-        If specified, constraint the calculation to the vertices defined in \n\
+        If specified, constrain the calculation to the vertices defined in \n\
         the <FreeSurferLabelFile>. This is most useful for calculations \n\
         relating to curvature and thickness files that are defined on a \n\
         surface. \n\
@@ -1318,7 +1318,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.25 2010/03/19 16:14:54 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.26 2010/03/22 16:47:14 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
