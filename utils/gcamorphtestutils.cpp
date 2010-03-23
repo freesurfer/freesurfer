@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 18:48:23 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/03/23 16:48:33 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -334,7 +334,7 @@ void GCAMforCMPutils::Read( GCAM** dst, string fName ) const {
 
 
 GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
-				       doubleScalarNames() {
+				       scalarTypeMap() {
     
   // Sanity check
   if( this->nVars != 14 ) {
@@ -345,7 +345,7 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
     cerr << __FUNCTION__ << ": Invalid nDims!" << endl;
     exit( EXIT_FAILURE );
   }
-  if( this->nDoubleScalars != 1 ) {
+  if( this->nScalars != 1 ) {
     cerr << __FUNCTION__ << ": Invalid nDoubleScalars!" << endl;
   }
   
@@ -374,11 +374,11 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
     exit( EXIT_FAILURE );
   }
 
-  // Create the list of names for the double precision scalars
-  this->doubleScalarNames.push_back( "exp_k" );
+  // Create the scalar type map
+  this->scalarTypeMap[ "exp_k" ] = NC_DOUBLE;
 
-  if( this->doubleScalarNames.size() != this->nDoubleScalars ) {
-    cerr << __FUNCTION__ << ": Incorrect entries in doubleScalarNames" << endl;
+  if( this->scalarTypeMap.size() != this->nScalars ) {
+    cerr << __FUNCTION__ << ": Incorrect entries in scalarTypeMap" << endl;
     exit( EXIT_FAILURE );
   }
 }
@@ -440,19 +440,18 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
 			    1,
 			    &scalarDimID ) );
 
-  map<string,int> scalarDoubleIDmap;
-  vector<string>::const_iterator scalarVarIt;
+  map<string,int> scalarIDmap;
+  map<string,nc_type>::const_iterator scalarVarIt;
   
   // Do the doubles
-  for( scalarVarIt = this->doubleScalarNames.begin();
-       scalarVarIt != this->doubleScalarNames.end();
+  for( scalarVarIt = this->scalarTypeMap.begin();
+       scalarVarIt != this->scalarTypeMap.end();
        scalarVarIt++ ) {
-    const string varName = *scalarVarIt;
     NC_SAFE_CALL( nc_def_var( ncid,
-			      varName.c_str(), // Name of the variable
-			      NC_DOUBLE,
+			      scalarVarIt->first.c_str(), // Name of the variable
+			      scalarVarIt->second,        // Type of variable
 			      1, &scalarDimID,
-			      &scalarDoubleIDmap[ varName ] ) );
+			      &scalarIDmap[ scalarVarIt->first ] ) );
   }
 			    
   
@@ -557,7 +556,7 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
   // Sort out the scalars
 
   NC_SAFE_CALL( nc_put_var_double( ncid,
-				   scalarDoubleIDmap.find( "exp_k" )->second,
+				   scalarIDmap.find( "exp_k" )->second,
 				   &(src->exp_k) ) );
 
   
@@ -648,22 +647,45 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   for( myIt = this->varTypeMap.begin();
        myIt != this->varTypeMap.end();
 	 myIt++ ) {
+    // Get the variable ID
     NC_SAFE_CALL( nc_inq_varid( ncid,
 				myIt->first.c_str(), // Name of the variable
 				&varIDmap[ myIt->first ] ) );
+
+    // Do a simple sanity check
+    nc_type varType;
+    NC_SAFE_CALL( nc_inq_vartype( ncid,
+				  varIDmap.find( myIt->first )->second,
+				  &varType ) );
+    if( varType != myIt->second ) {
+      cerr << __FUNCTION__
+	   << ": Mismatched type for variable " << myIt->first << endl;
+      exit( EXIT_FAILURE );
+    }
   }
 
   // Get hold of the variable IDs for the scalars
-  map<string,int> scalarDoubleIDmap;
-  vector<string>::const_iterator scalarVarIt;
+  map<string,int> scalarIDmap;
+  map<string,nc_type>::const_iterator scalarVarIt;
 
-  for( scalarVarIt = this->doubleScalarNames.begin();
-       scalarVarIt != this->doubleScalarNames.end();
+  for( scalarVarIt = this->scalarTypeMap.begin();
+       scalarVarIt != this->scalarTypeMap.end();
        scalarVarIt++ ) {
-    const string varName = *scalarVarIt;
+    // Get the variable ID
     NC_SAFE_CALL( nc_inq_varid( ncid,
-				varName.c_str(),
-				&scalarDoubleIDmap[ varName ] ) );
+				scalarVarIt->first.c_str(), // Name of the variable
+				&scalarIDmap[ scalarVarIt->first ] ) );
+
+    // Do a simple sanity check
+    nc_type varType;
+    NC_SAFE_CALL( nc_inq_vartype( ncid,
+				  scalarIDmap.find( scalarVarIt->first )->second,
+				  &varType ) );
+    if( varType != scalarVarIt->second ) {
+      cerr << __FUNCTION__
+	   << ": Mismatched type for scalar " << scalarVarIt->first << endl;
+      exit( EXIT_FAILURE );
+    }
   }
   
   // Read into contiguous arrays
@@ -765,7 +787,7 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
 
   // Fetch the scalars
   NC_SAFE_CALL( nc_get_var_double( ncid,
-				   scalarDoubleIDmap.find( "exp_k" )->second,
+				   scalarIDmap.find( "exp_k" )->second,
 				   &((*dst)->exp_k) ) )
 
   NC_SAFE_CALL( nc_close( ncid ) );

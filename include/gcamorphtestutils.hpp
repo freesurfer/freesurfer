@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 18:48:26 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/03/23 16:48:38 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -110,19 +110,19 @@ private:
   //! Map of variable names and types
   std::map<std::string,nc_type> varTypeMap;
 
-  //! Names of the double precision scalars
-  std::vector<std::string> doubleScalarNames;
+  //! Map of the scalar names and types
+  std::map<std::string,nc_type> scalarTypeMap;
 
 
   //! Number of dimensions we will store
   static const unsigned int nDims = 3;
   //! Number of variables we will store
   static const unsigned int nVars = 14;
-  //! Number of scalar doubles we will store
-  static const unsigned int nDoubleScalars = 1;
+  //! Number of scalars we will store
+  static const unsigned int nScalars = 1;
 
   //! Total number of variables which will be in a NetCDF file
-  static const unsigned int totalVars = nVars+nDoubleScalars;
+  static const unsigned int totalVars = nVars+nScalars;
 };
 
 #endif
