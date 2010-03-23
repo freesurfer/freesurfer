@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 17:53:06 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/03/23 18:12:23 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -639,11 +639,14 @@ namespace GPU {
 	*/
 
 	float l_sse, j_sse;
+	float label_sse;
 
 	l_sse = j_sse = 0;
+	label_sse = 0;
 
 	if( !DZERO(parms->l_area_intensity) ) {
-	  std::cerr << "gcamCreateNodeLookupTable not on GPU yet!" << std::endl;
+	  std::cerr << "gcamCreateNodeLookupTable not on GPU yet!"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
@@ -659,19 +662,20 @@ namespace GPU {
 	}
 
 	if( !DZERO(parms->l_multiscale) ) {
-	  std::cerr << "gcamMultiscaleEnergy not on GPU yet!" << std::endl;
+	  std::cerr << "gcamMultiscaleEnergy not on GPU yet!"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
 	
 	if( !DZERO(parms->l_dtrans) ) {
-	  std::cerr << "gcamDistanceTransformEnergy not on GPU yet!" << std::endl;
+	  std::cerr << "gcamDistanceTransformEnergy not on GPU yet!"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
       
 
 	if( !DZERO(parms->l_label) ) {
-	  std::cerr << "gcamLabelEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
+	  label_sse = this->LabelEnergy( gcam );
 	}
     
 	if( !DZERO(parms->l_binary) ) {
@@ -680,7 +684,8 @@ namespace GPU {
 	}
 
 	if( !DZERO(parms->l_area_intensity) ) {
-	  std::cerr << "gcamAreaIntensityEnergy not on GPU yet!" << std::endl;
+	  std::cerr << "gcamAreaIntensityEnergy not on GPU yet!"
+		    << std::endl;
 	  exit( EXIT_FAILURE );
 	}
   
@@ -703,7 +708,8 @@ namespace GPU {
 	
 	// Compute the Jacobian energy
 	if( !DZERO(parms->l_jacobian) ) {
-	  j_sse = parms->l_jacobian * this->ComputeJacobianEnergy( gcam, mriThick );
+	  j_sse = parms->l_jacobian *
+	    this->ComputeJacobianEnergy( gcam, mriThick );
 	}
     
 	if( !DZERO(parms->l_area) ) {
@@ -735,6 +741,7 @@ namespace GPU {
 	float sse;
 
 	sse = l_sse + j_sse;
+	sse += label_energy;
 
 	return( sse );
       }
