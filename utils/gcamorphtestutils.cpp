@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 16:56:23 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/03/23 18:36:50 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -337,7 +337,7 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
 				       scalarTypeMap() {
     
   // Sanity check
-  if( this->nVars != 15 ) {
+  if( this->nVars != 18 ) {
     cerr << __FUNCTION__ << ": Invalid nVars!" << endl;
     exit( EXIT_FAILURE );
   }
@@ -353,6 +353,10 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
   this->varTypeMap[ "rx" ] = NC_DOUBLE;
   this->varTypeMap[ "ry" ] = NC_DOUBLE;
   this->varTypeMap[ "rz" ] = NC_DOUBLE;
+
+  this->varTypeMap[ "origx" ] = NC_DOUBLE;
+  this->varTypeMap[ "origy" ] = NC_DOUBLE;
+  this->varTypeMap[ "origz" ] = NC_DOUBLE;
 
   this->varTypeMap[ "origArea" ] = NC_FLOAT;
   this->varTypeMap[ "origArea1" ] = NC_FLOAT;
@@ -464,6 +468,7 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
   const size_t nElems = src->width * src->height * src->depth;
   
   vector<double> x( nElems ), y( nElems ), z( nElems );
+  vector<double> origx( nElems ), origy( nElems ), origz( nElems );
   vector<float> area(nElems ), area1( nElems ), area2( nElems );
   vector<float> origArea( nElems ), origArea1( nElems ), origArea2( nElems );
   vector<char> invalid( nElems );
@@ -482,6 +487,10 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
 	x.at(i1d) = gcamn.x;
 	y.at(i1d) = gcamn.y;
 	z.at(i1d) = gcamn.z;
+
+	origx.at(i1d) = gcamn.origx;
+	origy.at(i1d) = gcamn.origy;
+	origz.at(i1d) = gcamn.origz;
 
 	area.at(i1d) = gcamn.area;
 	area1.at(i1d) = gcamn.area1;
@@ -518,6 +527,16 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
   NC_SAFE_CALL( nc_put_var_double( ncid,
 				   varIDmap.find( "rz" )->second,
 				   &z[0] ) );
+
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "origx" )->second,
+				   &origx[0] ) );
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "origy" )->second,
+				   &origy[0] ) );
+  NC_SAFE_CALL( nc_put_var_double( ncid,
+				   varIDmap.find( "origz" )->second,
+				   &origz[0] ) );
 
   NC_SAFE_CALL( nc_put_var_float( ncid,
 				  varIDmap.find( "origArea" )->second,
@@ -699,6 +718,7 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   const size_t nElems = (*dst)->width * (*dst)->height * (*dst)->depth;
 
   vector<double> x( nElems ), y( nElems ), z( nElems );
+  vector<double> origx( nElems ), origy( nElems ), origz( nElems );
   vector<float> area(nElems ), area1( nElems ), area2( nElems );
   vector<float> origArea( nElems ), origArea1( nElems ), origArea2( nElems );
   vector<char> invalid( nElems );
@@ -717,6 +737,16 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   NC_SAFE_CALL( nc_get_var_double( ncid,
 				   varIDmap.find( "rz" )->second,
 				   &z[0] ) );
+
+  NC_SAFE_CALL( nc_get_var_double( ncid,
+				   varIDmap.find( "origx" )->second,
+				   &origx[0] ) );
+  NC_SAFE_CALL( nc_get_var_double( ncid,
+				   varIDmap.find( "origy" )->second,
+				   &origy[0] ) );
+  NC_SAFE_CALL( nc_get_var_double( ncid,
+				   varIDmap.find( "origz" )->second,
+				   &origz[0] ) );
 
   NC_SAFE_CALL( nc_get_var_float( ncid,
 				  varIDmap.find( "origArea" )->second,
@@ -771,6 +801,10 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
 	gcamn.x = x.at(i1d);
 	gcamn.y = y.at(i1d);
 	gcamn.z = z.at(i1d);
+
+	gcamn.origx = origx.at(i1d);
+	gcamn.origy = origy.at(i1d);
+	gcamn.origz = origz.at(i1d);
 
 	gcamn.orig_area = origArea.at(i1d);
 	gcamn.orig_area1 = origArea1.at(i1d);
