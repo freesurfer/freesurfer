@@ -21,6 +21,7 @@ NVCCFLAGS += -g -arch sm_13 --ptxas-options=-v
 
 
 bin_PROGRAMS = gcamCompare\
+               gcam_write_test\
                conv1d_test conv1d_test_cuda\
                convgaussian_test convgaussian_test_cuda\
                gcam_cmp_test gcam_cmp_test_cuda\
@@ -32,6 +33,10 @@ bin_PROGRAMS = gcamCompare\
 gcamCompare_SOURCES = gcamCompare.cpp
 gcamCompare_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LIB)
 gcamCompare_LDFLAGS=$(OS_LDFLAGS)
+
+gcam_write_test_SOURCES = gcam_write_test.cpp
+gcam_write_test_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LIB)
+gcam_write_test_LDFLAGS=$(OS_LDFLAGS)
 
 # --
 
