@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 15:53:34 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/03/23 17:33:11 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,7 @@ namespace GPU {
 
     const unsigned int kGCAmorphLLEkernelSize = 16;
     const unsigned int kGCAmorphJacobEnergyKernelSize = 16;
+    const unsigned int kGCAmorphLabelEnergyKernelSize = 16;
 
     //! Templated texture fetch
     template<typename T>
@@ -343,6 +344,39 @@ namespace GPU {
       }
     }
 
+
+    // --------------------------------------------------
+
+    //! Kernel to mirror gcamLabelEnergy
+    __global__
+    void ComputeLabelEnergy( const GPU::Classes::VolumeArgGPU<char> invalid,
+			     const GPU::Classes::VolumeArgGPU<int> status,
+			     const GPU::Classes::VolumeArgGPU<float> labelDist,
+			     float *energies ) {
+
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      for( unsigned int iz = 0; iz < invalid.dims.z; iz++ ) {
+
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( invalid.InVolume(ix,iy,iz) ) {
+	  
+	  const unsigned int iLoc = invalid.Index1D( ix, iy, iz );
+
+	  if( (invalid(ix,iy,iz) == GCAM_POSITION_INVALID) ||
+	      ( (status(ix,iy,iz) & GCAM_LABEL_NODE) == 0 ) ) {
+	    energies[iLoc] = 0;
+	  } else {
+	    energies[iLoc] = fabsf( labelDist(ix,iy,iz) );
+	  }
+	}
+      }
+    }
+
+
     // ##############################################################
 
     //! Class to hold GCAMorph energy computations
@@ -537,6 +571,47 @@ namespace GPU {
 
 	return( jEnergy );
       }
+
+      // --------------------------------------------------
+      
+      //! Implementation of gcamLabelEnergy for the GPU
+      float LabelEnergy( const GPU::Classes::GCAmorphGPU& gcam ) const {
+
+	// Make sure GCAM is sane
+	gcam.CheckIntegrity();
+
+	const dim3 gcamDims = gcam.d_rx.GetDims();
+	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
+
+	// Allocate thrust arrays
+	thrust::device_ptr<float> d_energies;
+	d_energies = thrust::device_new<float>( nVoxels );
+
+	// Run the computation
+	dim3 grid, threads;
+	threads.x = threads.y = kGCAmorphLabelEnergyKernelSize;
+	threads.z = 1;
+
+	grid = gcam.d_rx.CoverBlocks( kGCAmorphLabelEnergyKernelSize );
+	grid.z = 1;
+
+	ComputeLabelEnergy<<<grid,threads>>>
+	  ( gcam.d_invalid,
+	    gcam.d_status,
+	    gcam.d_labelDist,
+	    thrust::raw_pointer_cast( d_energies ) );
+	CUDA_CHECK_ERROR( "ComputeLabelEnergy kernel failed!\n" );
+	
+	// Get the sum
+	float lEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
+
+	// Release thrust arrays
+	thrust::device_delete( d_energies );
+
+	return( lEnergy );
+      }
+			 
+
 
       // --------------------------------------------------
       
