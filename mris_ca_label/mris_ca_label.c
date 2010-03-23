@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/23 19:34:37 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/03/23 20:22:08 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.27 2010/03/23 19:34:37 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.28 2010/03/23 20:22:08 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -232,7 +232,6 @@ main(int argc, char *argv[])
   }
 #endif
 
-
   if (novar)
     GCSAsetCovariancesToIdentity(gcsa) ;
 
@@ -273,7 +272,6 @@ main(int argc, char *argv[])
   }
   else
   {
-
     MRISreadAnnotation(mris, read_fname) ;
     if (refine != 0)
     {
@@ -294,7 +292,6 @@ main(int argc, char *argv[])
         printf("writing snapshot to %s...\n", fname) ;
         MRISwriteAnnotation(mris, fname) ;
       }
-
     }
   }
 
@@ -687,7 +684,7 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
                                    MRI_SURFACE *mris,
                                    LABEL *cortex_label)
 {
-  int     vno, n, unknown_index, unknown_annot, medial_wall_annot, nexcluded,
+  int vno, n, unknown_index, unknown_annot, medial_wall_annot, nexcluded,
   cc_annot, exclude_list[MAX_EXCLUDED], annot  ;
   VERTEX  *v ;
 
@@ -695,7 +692,7 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
   CTABfindEntryByName(mris->ct, "Unknown", &unknown_index);
   if (unknown_index < 0)
     ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM, "could not find unknown annotation")) ;
+                (ERROR_BADPARM, "could not find Unknown annotation")) ;
   medial_wall_annot = CTABentryNameToAnnotation("Medial_wall", mris->ct);
   cc_annot = CTABentryNameToAnnotation("corpus_callosum", mris->ct);
   if (cc_annot < 0)
@@ -707,9 +704,6 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
   exclude_list[nexcluded++] = unknown_annot ;
   exclude_list[nexcluded++] = cc_annot ;
   annot = CTABentryNameToAnnotation("corpuscallosum", mris->ct);
-  if (annot >= 0)
-    exclude_list[nexcluded++] = annot ;
-  annot = CTABentryNameToAnnotation("G_subcallosal", mris->ct);
   if (annot >= 0)
     exclude_list[nexcluded++] = annot ;
   annot = CTABentryNameToAnnotation("unknown", mris->ct);
