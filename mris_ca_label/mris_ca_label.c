@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/23 20:22:08 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/23 21:29:31 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.28 2010/03/23 20:22:08 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.29 2010/03/23 21:29:31 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -507,14 +507,14 @@ print_usage(void)
   printf("\n");
   printf("   subject    - freesurfer subject id\n");
   printf("   hemi       - lh or rh\n");
-  printf("   canonsurf  - cannoincal surface, usually ?h.sphere.reg\n");
+  printf("   canonsurf  - canonical surface, usually ?h.sphere.reg\n");
   printf("   classifier - $FREESURFER_HOME/average/?h.curvature."
          "buckner40.filled.desikan_killiany.gcs\n");
   printf("   outputfile - ?h.aparc.annot\n");
   printf("\n");
   printf(" Options:\n");
   printf("\n");
-  printf("  -ml-annot gcs icoorder annot : "
+  printf("  -ml-annot gcs icoorder annot - "
          "Compute most-likely annotation labeling on ico, save, and exit\n");
   printf("  -orig orig_name\n");
   printf("  -long\n");
@@ -525,8 +525,8 @@ print_usage(void)
   printf("  -t annottable\n");
   printf("  -v diagno\n");
   printf("  -w fname\n");
-  printf("  -r fname : precomputed parcellations\n");
-  printf("  -seed N  : set random number generator to seed N\n");
+  printf("  -r fname - precomputed parcellations\n");
+  printf("  -seed N  - set random number generator to seed N\n");
   printf("\n");
 }
 
