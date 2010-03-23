@@ -78,7 +78,7 @@ void ReadCommandLine( int ac, char* av[] ) {
 int main( int argc, char *argv[] ) {
 
   SciGPU::Utilities::Chronometer tTotal;
-  GCAMforCMPutils myUtils;
+  GCAMorphUtils myUtils;
 
   cout << "GCAM Metric Properties Tester" << endl;
   cout << "=============================" << endl << endl;
