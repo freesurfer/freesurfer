@@ -9,8 +9,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/02/15 18:40:19 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/03/23 16:32:25 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -137,5 +137,6 @@ VERTEX *GCSAsourceToClassifierVertex(GCSA *gcsa, VERTEX *v) ;
 int dump_gcsan(GCSA_NODE *gcsan, CP_NODE *cpn, FILE *fp, int verbose) ;
 int GCSAbuildMostLikelyLabels(GCSA *gcsa, MRI_SURFACE *mris) ;
 int GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg) ;
+int GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris,int mark, int *exclude_list, int nexcluded) ;
 
 #endif
