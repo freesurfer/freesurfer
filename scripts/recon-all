@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/21 16:47:05 $
-#    $Revision: 1.300 $
+#    $Date: 2010/03/23 20:49:15 $
+#    $Revision: 1.301 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.300 2010/03/21 16:47:05 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.301 2010/03/23 20:49:15 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2586,6 +2586,7 @@ foreach hemi ($hemilist)
     set CPAtlas = ${GCSDIR}/$hemi.$GCS
     set annot = ../label/$hemi.aparc.annot
     set cmd = (mris_ca_label)
+    set cmd = ($cmd -l ../label/$hemi.cortex.label)
     if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
@@ -2632,6 +2633,7 @@ foreach hemi ($hemilist)
     set CPAtlas = ${GCSDIR}/${hemi}.${DESTRIEUX_GCS}
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set cmd = (mris_ca_label)
+    set cmd = ($cmd -l ../label/$hemi.cortex.label)
     if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
