@@ -124,7 +124,8 @@ int main( int argc, char *argv[] ) {
   ofstream oFile;
   oFile.open( outFilename.c_str(), ios::binary | ios::out | ios::trunc );
 
-  oFile.write( reinterpret_cast<const char*>(&llenergy), sizeof(llenergy) );
+  oFile.write( reinterpret_cast<const char*>(&jacobenergy),
+	       sizeof(jacobenergy) );
   oFile.close();
 
   // ====================================
