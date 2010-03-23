@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/23 16:32:11 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/03/23 16:35:01 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.24 2010/03/23 16:32:11 fischl Exp $";
+  "$Id: mris_ca_label.c,v 1.25 2010/03/23 16:35:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -480,6 +480,7 @@ print_usage(void) {
   printf("  -orig orig_name\n");
   printf("  -long\n");
   printf("  -nbrs\n");
+  printf("  -l <label file> - specify cortex label file to use\n") ;
   printf("  -a navgs\n");
   printf("  -f filter\n");
   printf("  -t annottable\n");
@@ -541,6 +542,9 @@ print_help(void) {
   fprintf(stderr,
           "  -f <number>        applies mode filter <number> times before \n"
           "                     writing output (default=10)\n\n");
+  fprintf(stderr,
+          "  -l <label file>    specify a cortex label file \n"
+          "                     (typically ?h.cortex.label)\n\n");
   fprintf(stderr,
           "  -t <filename>      specify parcellation table input file \n"
           "                     (default: none)\n\n");
