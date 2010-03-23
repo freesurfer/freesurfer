@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 13:34:01 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/03/23 13:43:50 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -269,10 +269,13 @@ namespace GPU {
 	delta = 0;
       }
       else if( exponent > 9 ) {
+	// Can drop the 1 in the logarithm
 	delta = exponent;
       } else if ( exponent < -9 ) {
+	// Taylor expand ln( 1 + y )
 	delta = exp( exponent );
       } else {
+	// Do full calculation
 	delta = log( 1 + exp( exponent ) );
       }
 
@@ -329,7 +332,6 @@ namespace GPU {
 	    
 	    delta = JacobDelta( exponent );
 	    
-	    //energies[iLoc] = exponent;
 	    myEnergy += ( delta * thick );
 	  }
 
@@ -372,6 +374,11 @@ namespace GPU {
 	std::cout << "    Find good : " << this->tLLEgood << std::endl;
 	std::cout << "      Compute : " << this->tLLEcompute << std::endl;
 	std::cout << "Total         : " << this->tLLEtot << std::endl;
+	std::cout << std::endl;
+
+	std::cout << "JacobianEnergy:" << std::endl;
+	std::cout << "      Compute : " << this->tJacobCompute << std::endl;
+	std::cout << "Total         : " << this->tJacobTot << std::endl;
 	std::cout << std::endl;
 
 
@@ -488,7 +495,7 @@ namespace GPU {
       float ComputeJacobianEnergy( const GPU::Classes::GCAmorphGPU& gcam,
 				   const MRI* mri ) const {
 	
-	
+	tJacobTot.Start();
 
 	const float thick = ( mri ? mri->thick : 1.0 );
 	
@@ -511,6 +518,7 @@ namespace GPU {
 	grid = gcam.d_rx.CoverBlocks( kGCAmorphJacobEnergyKernelSize );
 	grid.z = 1;
 
+	tJacobCompute.Start();
 	ComputeJacobEnergy<<<grid,threads>>>
 	  ( gcam.d_invalid,
 	    gcam.d_origArea1, gcam.d_origArea2,
@@ -518,22 +526,15 @@ namespace GPU {
 	    gcam.exp_k, thick,
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeJacobEnergy kernel failed!\n" );
-#if 0
-	for( unsigned int i=0; i<nVoxels; i++ ) {
-	  if( d_energies[i] != 0 )
-	    {
-	    std::cout << i << " "
-		      << std::scientific
-		      << d_energies[i] << std::endl;
-	  }
-	}
-#endif
+	tJacobCompute.Stop();
 
 	// Get the sum of the energies
 	float jEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
 
 	// Release thrust arrays
 	thrust::device_delete( d_energies );
+
+	tJacobTot.Stop();
 
 	return( jEnergy );
       }
@@ -554,6 +555,10 @@ namespace GPU {
       //! Timer for LLE calculation
       mutable SciGPU::Utilities::Chronometer tLLEcompute;
 
+      //! Timer for Jacobian Energy
+      mutable SciGPU::Utilities::Chronometer tJacobTot;
+      //! Timer for Jacobian Energy kernel
+      mutable SciGPU::Utilities::Chronometer tJacobCompute;
 
       //! Templated texture binding wrapper
       template<typename T>
