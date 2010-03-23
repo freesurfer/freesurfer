@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 16:48:33 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/03/23 16:56:23 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -337,7 +337,7 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
 				       scalarTypeMap() {
     
   // Sanity check
-  if( this->nVars != 14 ) {
+  if( this->nVars != 15 ) {
     cerr << __FUNCTION__ << ": Invalid nVars!" << endl;
     exit( EXIT_FAILURE );
   }
@@ -364,6 +364,7 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
   this->varTypeMap[ "invalid" ] = NC_CHAR;
   this->varTypeMap[ "label" ] = NC_INT;
   this->varTypeMap[ "status" ] = NC_INT;
+  this->varTypeMap[ "labelDist" ] = NC_FLOAT;
 
   this->varTypeMap[ "mean" ] = NC_FLOAT;
   this->varTypeMap[ "variance" ] = NC_FLOAT;
@@ -377,6 +378,7 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
   // Create the scalar type map
   this->scalarTypeMap[ "exp_k" ] = NC_DOUBLE;
 
+  // Double check the size
   if( this->scalarTypeMap.size() != this->nScalars ) {
     cerr << __FUNCTION__ << ": Incorrect entries in scalarTypeMap" << endl;
     exit( EXIT_FAILURE );
@@ -466,6 +468,7 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
   vector<float> origArea( nElems ), origArea1( nElems ), origArea2( nElems );
   vector<char> invalid( nElems );
   vector<int> label( nElems ), status( nElems );
+  vector<float> labelDist( nElems );
   vector<float> mean( nElems ), variance( nElems );
 
   // Ugly loop to do the writing element by element
@@ -491,6 +494,7 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
 	invalid.at(i1d) = gcamn.invalid;
 	label.at(i1d) = gcamn.label;
 	status.at(i1d) = gcamn.status;
+	labelDist.at(i1d) = gcamn.label_dist;
 
 	if( gcamn.gc != NULL ) {
 	  mean.at(i1d) = gcamn.gc->means[0];
@@ -542,6 +546,9 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
   NC_SAFE_CALL( nc_put_var_int( ncid,
 				varIDmap.find( "label" )->second,
 				&label[0] ) );
+  NC_SAFE_CALL( nc_put_var_float( ncid,
+				  varIDmap.find( "labelDist" )->second,
+				  &labelDist[0] ) );
   NC_SAFE_CALL( nc_put_var_int( ncid,
 				varIDmap.find( "status" )->second,
 				&status[0] ) );
@@ -696,6 +703,7 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   vector<float> origArea( nElems ), origArea1( nElems ), origArea2( nElems );
   vector<char> invalid( nElems );
   vector<int> label( nElems ), status( nElems );
+  vector<float> labelDist( nElems );
   vector<float> mean( nElems ), variance( nElems );
 
   // We use 'find' to get an exception if the name doesn't exist
@@ -737,6 +745,9 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   NC_SAFE_CALL( nc_get_var_int( ncid,
 				varIDmap.find( "label" )->second,
 				&label[0] ) );
+  NC_SAFE_CALL( nc_get_var_float( ncid,
+				  varIDmap.find( "labelDist" )->second,
+				  &labelDist[0] ) );
   NC_SAFE_CALL( nc_get_var_int( ncid,
 				varIDmap.find( "status" )->second,
 				&status[0] ) );
@@ -772,6 +783,7 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
 	gcamn.invalid = invalid.at(i1d);
 	gcamn.label = label.at(i1d);
 	gcamn.status = status.at(i1d);
+	gcamn.label_dist = labelDist.at(i1d);
 	
 	// Mean and variance require special handling
 	if( variance.at(i1d) >= 0 ) {
