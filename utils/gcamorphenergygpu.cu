@@ -2,14 +2,15 @@
  * @file  gcamorphenergygpu.cu
  * @brief Holds routines to compute GCAmorph energies on the GPU
  *
- * 
+ * This file holds a variety of routines which compute energies for
+ * mri_ca_register
  */
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 22:04:35 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/03/23 13:34:01 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -247,6 +248,37 @@ namespace GPU {
       return( res );
     }
 
+
+    //! Calculates delta based on exponent
+    __device__ float JacobDelta( const float exponent ) {
+      /*!
+	Calculates the value of delta for ComputeJacobEnergy.
+	This states
+	\f[
+	\delta = \log \left ( 1 + e^{x} \right )
+	\f]
+	Uses Taylor expansions to avoid hideous accuracy losses.
+	Note \f$2^{12} \approx e^{8.3}\f$ is used to assess
+	changeover points for single precision.
+      */
+      float delta;
+
+      const float kMaxExp = 200;
+
+      if( exponent > kMaxExp ) {
+	delta = 0;
+      }
+      else if( exponent > 9 ) {
+	delta = exponent;
+      } else if ( exponent < -9 ) {
+	delta = exp( exponent );
+      } else {
+	delta = log( 1 + exp( exponent ) );
+      }
+
+      return( delta );
+    }
+
     //! Kernel to implement loops of gcamComputeJacobianEnergy
     __global__
     void ComputeJacobEnergy( const GPU::Classes::VolumeArgGPU<char> invalid,
@@ -257,14 +289,13 @@ namespace GPU {
 			     const float exp_k,
 			     const float thick,
 			     float *energies ) {
-      const float kMaxExp = 200;
 
       const unsigned int bx = ( blockIdx.x * blockDim.x );
       const unsigned int by = ( blockIdx.y * blockDim.y );
       const unsigned int ix = threadIdx.x + bx;
       const unsigned int iy = threadIdx.y + by;
 
-      double ratio, exponent, delta;
+      float ratio, exponent, delta;
 
       // Loop over z slices
       for( unsigned int iz = 0; iz < invalid.dims.z; iz++ ) {
@@ -286,11 +317,8 @@ namespace GPU {
 	  if( !NearZero( origArea1(ix,iy,iz) ) ) {
 	    ratio = area1(ix,iy,iz) / origArea1(ix,iy,iz);
 	    exponent = -exp_k * ratio;
-	    if( exponent > kMaxExp ) {
-	      delta = 0;
-	    } else {
-	      delta = log( 1 + exp(exponent) );
-	    }
+	    
+	    delta = JacobDelta( exponent );
 
 	    myEnergy += ( delta * thick );
 	  }
@@ -298,12 +326,8 @@ namespace GPU {
 	  if( !NearZero( origArea2(ix,iy,iz) ) ) {
 	    ratio = area2(ix,iy,iz) / origArea2(ix,iy,iz);
 	    exponent = -exp_k * ratio;
-	    if( exponent > kMaxExp ) {
-	      delta = 0;
-	    } else {
-	      delta = log( 1 + exp(exponent) );
-	    }
-
+	    
+	    delta = JacobDelta( exponent );
 	    
 	    //energies[iLoc] = exponent;
 	    myEnergy += ( delta * thick );
