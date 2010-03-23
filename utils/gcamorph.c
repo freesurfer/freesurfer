@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 17:53:05 $
- *    $Revision: 1.178 $
+ *    $Date: 2010/03/23 19:07:16 $
+ *    $Revision: 1.179 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -255,7 +255,7 @@ static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
 static double gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
 static int gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness) ;
-static double gcamSmoothnessEnergy(GCA_MORPH *gcam, MRI *mri) ;
+static double gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri );
 
 static int gcamLSmoothnessTerm(GCA_MORPH *gcam, 
                                MRI *mri, 
@@ -5665,53 +5665,75 @@ gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness)
       }
   return(NO_ERROR) ;
 }
+
+
 static double
-gcamSmoothnessEnergy(GCA_MORPH *gcam, MRI *mri)
+gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
 {
-  double sse = 0.0, vx, vy, vz, vnx, vny, vnz, error, node_sse, dx, dy, dz ;
+  /*!
+    Computes a load of derivatives (of some description).
+    I don't know the purpose of the MRI argument, since it's
+    not actually used by anything
+  */
+  double sse = 0.0;
+
+  double vx, vy, vz, vnx, vny, vnz, error, node_sse, dx, dy, dz ;
   int x, y, z, xk, yk, zk, xn, yn, zn, width, height, depth, num ;
-  GCA_MORPH_NODE  *gcamn, *gcamn_nbr ;
+  const GCA_MORPH_NODE  *gcamn, *gcamn_nbr ;
 
   width = gcam->width ;
   height = gcam->height ;
   depth = gcam->depth ;
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
+
+  // Loop over all voxels
+  for (x = 0 ; x < gcam->width ; x++ ) {
+    for (y = 0 ; y < gcam->height ; y++ ) {
+      for (z = 0 ; z < gcam->depth ; z++ ) {
+
+        if (x == Gx && y == Gy && z == Gz) {
           DiagBreak() ;
+	}
+
         gcamn = &gcam->nodes[x][y][z] ;
 
-        if (gcamn->invalid == GCAM_POSITION_INVALID)
+        if (gcamn->invalid == GCAM_POSITION_INVALID) {
           continue;
+	}
 
+	// Compute differences from original
         vx = gcamn->x - gcamn->origx ;
         vy = gcamn->y - gcamn->origy ;
         vz = gcamn->z - gcamn->origz ;
         num = 0 ;
         node_sse = 0.0 ;
-        for (xk = -1 ; xk <= 1 ; xk++)
-        {
+
+	// Loop over 3^3 voxels centred on current
+        for (xk = -1 ; xk <= 1 ; xk++) {
           xn = x+xk ;
           xn = MAX(0,xn) ;
           xn = MIN(width-1,xn) ;
-          for (yk = -1 ; yk <= 1 ; yk++)
-          {
+	  
+          for (yk = -1 ; yk <= 1 ; yk++) {
             yn = y+yk ;
             yn = MAX(0,yn) ;
             yn = MIN(height-1,yn) ;
-            for (zk = -1 ; zk <= 1 ; zk++)
-            {
-              if (!xk && !yk && !zk)
+            
+	    for (zk = -1 ; zk <= 1 ; zk++) {
+
+	      // Don't use self
+              if (!xk && !yk && !zk) {
                 continue ;
+	      }
+
               zn = z+zk ;
               zn = MAX(0,zn) ;
               zn = MIN(depth-1,zn) ;
+
               gcamn_nbr = &gcam->nodes[xn][yn][zn] ;
 
-              if (gcamn_nbr->invalid == GCAM_POSITION_INVALID)
+              if (gcamn_nbr->invalid == GCAM_POSITION_INVALID) {
                 continue;
+	      }
 #if 0
               if (gcamn_nbr->label != gcamn->label)
                 continue ;
@@ -5719,22 +5741,32 @@ gcamSmoothnessEnergy(GCA_MORPH *gcam, MRI *mri)
               vnx = gcamn_nbr->x - gcamn_nbr->origx ;
               vny = gcamn_nbr->y - gcamn_nbr->origy ;
               vnz = gcamn_nbr->z - gcamn_nbr->origz ;
+
               dx = vnx-vx ;
               dy = vny-vy ;
               dz = vnz - vz ;
+
               error = dx*dx + dy*dy + dz*dz ;
+
               num++ ;
               node_sse += error ;
             }
           }
         }
+
         /*        num = 1 ;*/
-        if (num > 0)
+        if (num > 0) {
           sse += node_sse/num ;
-        if (x == Gx && y == Gy && z == Gz)
+	}
+
+        if (x == Gx && y == Gy && z == Gz) {
           printf("E_smoo: node(%d,%d,%d) smoothness sse %2.3f (%d nbrs)\n",
                  x, y, z, node_sse/num, num) ;
+	}
       }
+    }
+  }
+
   return(sse) ;
 }
 static int
