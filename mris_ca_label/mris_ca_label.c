@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/23 16:35:01 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/03/23 18:04:18 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.25 2010/03/23 16:35:01 fischl Exp $";
+  "$Id: mris_ca_label.c,v 1.26 2010/03/23 18:04:18 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -634,23 +634,37 @@ static int
 relabel_unknowns_with_cortex_label(GCSA *gcsa, MRI_SURFACE *mris, LABEL *cortex_label)
 {
   int     vno, n, unknown_index, unknown_annot, medial_wall_annot, nexcluded,
-    cc_annot, exclude_list[MAX_EXCLUDED]  ;
+    cc_annot, exclude_list[MAX_EXCLUDED], annot  ;
   VERTEX  *v ;
 
   printf("rationalizing unknown annotations with cortex label\n") ;
-  medial_wall_annot = CTABentryNameToAnnotation("Medial_wall", mris->ct);
-  cc_annot = CTABentryNameToAnnotation("corpus_callosum", mris->ct);
   CTABfindEntryByName(mris->ct, "Unknown", &unknown_index);
   if (unknown_index < 0)
     ErrorReturn(ERROR_BADPARM, 
                 (ERROR_BADPARM, "could not find unknown annotation")) ;
+  medial_wall_annot = CTABentryNameToAnnotation("Medial_wall", mris->ct);
+  cc_annot = CTABentryNameToAnnotation("corpus_callosum", mris->ct);
+  if (cc_annot < 0)
+    cc_annot = CTABentryNameToAnnotation("corpuscallosum", mris->ct);
   CTABannotationAtIndex(mris->ct, unknown_index, &unknown_annot);
+
+  nexcluded = 0 ;
+  exclude_list[nexcluded++] = medial_wall_annot ;
+  exclude_list[nexcluded++] = unknown_annot ;
+  exclude_list[nexcluded++] = cc_annot ;
+  annot = CTABentryNameToAnnotation("corpuscallosum", mris->ct);
+  if (annot >= 0)
+    exclude_list[nexcluded++] = annot ;
+  annot = CTABentryNameToAnnotation("G_subcallosal", mris->ct);
+  if (annot >= 0)
+    exclude_list[nexcluded++] = annot ;
+  annot = CTABentryNameToAnnotation("unknown", mris->ct);
+  if (annot >= 0)
+    exclude_list[nexcluded++] = annot ;
+
+
   MRISclearMarks(mris) ;
   LabelMark(cortex_label, mris) ;
-  for (n = 0 ; n < cortex_label->n_points ; n++)
-  {
-    v = &mris->vertices[cortex_label->lv[n].vno] ;
-  }
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     if (vno == Gdiag_no)
@@ -660,17 +674,14 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa, MRI_SURFACE *mris, LABEL *cortex_
       v->annotation = unknown_annot ;
     else // cortex label says it is in cortex
     {
-      if (v->annotation == medial_wall_annot || v->annotation == unknown_annot
-          || v->annotation == cc_annot)
-      {
-        v->marked = MARK_RELABEL ;
-      }
+      for (n = 0 ; n < nexcluded ; n++)
+        if (v->annotation == exclude_list[n])
+        {
+          v->marked = MARK_RELABEL ;
+          break ;
+        }
     }
   }
-  nexcluded = 0 ;
-  exclude_list[nexcluded++] = medial_wall_annot ;
-  exclude_list[nexcluded++] = unknown_annot ;
-  exclude_list[nexcluded++] = cc_annot ;
   GCSAreclassifyMarked(gcsa, mris, MARK_RELABEL, exclude_list, nexcluded) ;
 
   return(NO_ERROR) ;
