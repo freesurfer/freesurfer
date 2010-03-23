@@ -22,7 +22,7 @@ set GCS = ${HEMI}.curvature.buckner40.filled.desikan_killiany.${DATE}.gcs
 set LOG = $SUBJECTS_DIR/average/mris_ca_train-${HEMI}-${DATE}.log
 source scripts/subjects.csh
 set cmd=(mris_ca_train \
-  -t $SUBJECTS_DIR/scripts/colortable_final.txt \
+  -t $FREESURFER_HOME/average/colortable_desikan_killiany.txt \
   ${HEMI} \
   sphere.reg \
   aparc_edited \
