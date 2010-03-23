@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 18:12:23 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/03/23 18:26:28 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -741,7 +741,7 @@ namespace GPU {
 	float sse;
 
 	sse = l_sse + j_sse;
-	sse += label_energy;
+	sse += label_sse;
 
 	return( sse );
       }
