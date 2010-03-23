@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 17:23:09 $
- *    $Revision: 1.177 $
+ *    $Date: 2010/03/23 17:53:05 $
+ *    $Revision: 1.178 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -224,9 +224,7 @@ static double gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_P
 static int gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                               double l_likelihood, GCA_MORPH_PARMS *parms) ;
 static double gcamMapEnergy(GCA_MORPH *gcam, MRI *mri) ;
-static double gcamLabelEnergy( const GCA_MORPH *gcam,
-			       const MRI *mri,
-			       const double label_dist );
+
 static double gcamBinaryEnergy(GCA_MORPH *gcam, MRI *mri) ;
 static double gcamAreaIntensityEnergy(GCA_MORPH *gcam, 
                                       MRI *mri, 
@@ -7395,9 +7393,9 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   return(min_dt) ;
 }
 
-#define GCAM_LABELENERGY_OUTPUT 1
+#define GCAM_LABELENERGY_OUTPUT 0
 
-static double
+double
 gcamLabelEnergy( const GCA_MORPH *gcam,
 		 const MRI *mri,
 		 const double label_dist)
@@ -7416,28 +7414,34 @@ gcamLabelEnergy( const GCA_MORPH *gcam,
   nCalls++;
 #endif
 
-  int             x, y, z ;
   float           sse ;
+
+#ifdef FS_CUDA
+  sse = gcamLabelEnergyGPU( gcam );
+#else
+  int             x, y, z ;
   GCA_MORPH_NODE  *gcamn ;
 
   sse = 0.0 ;
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-
-
-        gcamn = &gcam->nodes[x][y][z] ;
-
-        if ((gcamn->invalid == GCAM_POSITION_INVALID) ||
-            ((gcamn->status & GCAM_LABEL_NODE) == 0))
-          continue;
-
-        sse += fabs(gcamn->label_dist) ;
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
+	if (x == Gx && y == Gy && z == Gz)
+	  DiagBreak() ;
+	
+	
+	gcamn = &gcam->nodes[x][y][z] ;
+	
+	if ((gcamn->invalid == GCAM_POSITION_INVALID) ||
+	    ((gcamn->status & GCAM_LABEL_NODE) == 0))
+	  continue;
+	
+	sse += fabs(gcamn->label_dist) ;
       }
-
+    }
+  }
+  
+#endif
 
 
   return(sse) ;

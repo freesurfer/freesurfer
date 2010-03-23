@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 15:53:37 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/03/23 17:53:09 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -456,7 +456,11 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   double gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri );
   //! Compute Jacobian Energy (mri would be const if not for MRIwrite)
   double gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri );
-  
+
+  //! Compute the label energy
+  double gcamLabelEnergy( const GCA_MORPH *gcam,
+			  const MRI *mri,
+			  const double label_dist );
 
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties
@@ -468,6 +472,9 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   float gcamJacobianEnergyGPU( const GCA_MORPH *gcam,
 			       const MRI* mri );
+
+  //! Wrapper around the GPU version of gcamLabelEnergy
+  float gcamLabelEnergyGPU( const GCA_MORPH *gcam );
 
   float gcamComputeSSEonGPU( GCA_MORPH *gcam,
 			     const MRI* mri,

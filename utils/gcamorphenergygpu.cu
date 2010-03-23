@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 17:33:11 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/03/23 17:53:06 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -416,6 +416,10 @@ namespace GPU {
 	std::cout << "Total         : " << this->tJacobTot << std::endl;
 	std::cout << std::endl;
 
+	std::cout << "LabelEnergy:" << std::endl;
+	std::cout << "      Compute : " << this->tLabelCompute << std::endl;
+	std::cout << "Total         : " << this->tLabelTot << std::endl;
+	std::cout << std::endl;
 
 	std::cout << "==================================" << std::endl;
 #endif
@@ -577,6 +581,8 @@ namespace GPU {
       //! Implementation of gcamLabelEnergy for the GPU
       float LabelEnergy( const GPU::Classes::GCAmorphGPU& gcam ) const {
 
+	tLabelTot.Start();
+
 	// Make sure GCAM is sane
 	gcam.CheckIntegrity();
 
@@ -595,18 +601,22 @@ namespace GPU {
 	grid = gcam.d_rx.CoverBlocks( kGCAmorphLabelEnergyKernelSize );
 	grid.z = 1;
 
+	tLabelCompute.Start();
 	ComputeLabelEnergy<<<grid,threads>>>
 	  ( gcam.d_invalid,
 	    gcam.d_status,
 	    gcam.d_labelDist,
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeLabelEnergy kernel failed!\n" );
-	
+	tLabelCompute.Stop();
+
 	// Get the sum
 	float lEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
 
 	// Release thrust arrays
 	thrust::device_delete( d_energies );
+
+	tLabelTot.Stop();
 
 	return( lEnergy );
       }
@@ -768,6 +778,11 @@ namespace GPU {
       //! Timer for Jacobian Energy kernel
       mutable SciGPU::Utilities::Chronometer tJacobCompute;
 
+      //! Mutable for Label Energy
+      mutable SciGPU::Utilities::Chronometer tLabelTot;
+      //! Timer for Label Energy kernel
+      mutable SciGPU::Utilities::Chronometer tLabelCompute;
+
       //! Templated texture binding wrapper
       template<typename T>
       void BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const {
@@ -858,6 +873,21 @@ float gcamJacobianEnergyGPU( const GCA_MORPH *gcam,
 
   return( energy );
 }
+
+
+//! Wrapper around GPU class for the LabelEnergy
+float gcamLabelEnergyGPU( const GCA_MORPH *gcam ) {
+
+  float energy;
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+  myGCAM.SendAll( gcam );
+
+  energy = myEnergy.LabelEnergy( myGCAM );
+
+  return( energy );
+}
+
 
 
 //! Wrapper for gcamComputeSSE
