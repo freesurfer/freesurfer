@@ -27,7 +27,7 @@ function [hrf, tsamples] = fast_spmhrf_sampled(tsamples,nderiv)
 % hrf = hrf/sum(hrf(:,1));
 %
 % 
-% $Id: fast_spmhrf_sampled.m,v 1.1 2007/06/29 06:12:18 greve Exp $
+% $Id: fast_spmhrf_sampled.m,v 1.2 2010/03/23 17:00:21 greve Exp $
 
 hrf = [];
 if(nargin < 1 | nargin > 2)
@@ -43,7 +43,7 @@ dt = .001;
 
 tsamplesmax = dt*round(max(tsamples(:))/dt);
 tsamplesmin = dt*round(min(tsamples(:))/dt);
-twindow = [tsamplesmin:dt:tsamplesmax];
+twindow = [tsamplesmin:dt:tsamplesmax]';
 
 hrf0 = fast_spmhrf(twindow);
 hrf0 = hrf0/max(hrf0);
