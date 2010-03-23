@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 19:07:16 $
- *    $Revision: 1.179 $
+ *    $Date: 2010/03/23 19:29:24 $
+ *    $Revision: 1.180 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1826,7 +1826,7 @@ gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 static float ***last_sse = NULL;
 #endif
 
-#define GCAM_LLENERGY_OUTPUT 0
+#define GCAM_LLENERGY_OUTPUT 1
 
 double
 gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
@@ -3132,18 +3132,18 @@ gcamAreaTermAtNode(GCA_MORPH *gcam, double l_area,
   Description
   ------------------------------------------------------*/
 #define GCAM_CMP_OUTPUT 0
-const unsigned int gcamCMPoutputFreq=10;
 #if 1
 int
 gcamComputeMetricProperties(GCA_MORPH *gcam)
 {
 #if GCAM_CMP_OUTPUT
+  const unsigned int gcamCMPoutputFreq=10;
   static unsigned int nCalls = 0;
   if( (nCalls%gcamCMPoutputFreq)==0 ) {
     char fname[STRLEN];
     snprintf( fname, STRLEN-1, "gcamCMPinput%04u", nCalls/gcamCMPoutputFreq );
     fname[STRLEN-1] = '\0';
-    WriteGCAMforMetricProperties( gcam, fname );
+    WriteGCAMoneInput( gcam, fname );
   }
 #endif
 

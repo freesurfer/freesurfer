@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 18:36:52 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/03/23 19:29:28 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,35 +57,6 @@
   } while ( 0 );
 
 // ======================================================================
-
-
-//! Class to hold utility routines for gcamComputeMetricProperties
-class GCAMforCMPutils {
-public:
-
-  //! Constructor fills the type map
-  GCAMforCMPutils( void );
-
-  //! Writes out relevant portions of a GCAM
-  void Write( const GCAM* src, std::string fName ) const;
-
-  //! Reads relevant portions of a GCAM
-  void Read( GCAM** dst, string fName ) const;
-
-
-private:
-  //! Map of variable names and types
-  std::map<std::string,nc_type> varTypeMap;
-
-  //! Indicies into small arrays defining the dimensions
-  enum dimIndices{ iX, iY, iZ };
-
-  //! Number of dimensions we will store
-  static const unsigned int nDims = 3;
-  //! Number of variables we will store
-  static const unsigned int nVars = 8;
-};
-
 
 
 //! Class to hold utility routines for GCAMorph with one input

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/16 17:11:25 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/03/23 19:29:28 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,12 +34,6 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-
-
-  //! Writes the parts required by gcamComputeMetricProperties
-  void WriteGCAMforMetricProperties( const GCAM* src, const char* fName );
-  //! Reads the parts required by gcamComputeMetricProperties
-  void ReadGCAMforMetricProperties( GCAM** dst, const char* fName );
 
   //! Writes a GCAM with one input defined
   void WriteGCAMoneInput( const GCAM* src, const char* fName );
