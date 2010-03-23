@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 15:53:33 $
- *    $Revision: 1.176 $
+ *    $Date: 2010/03/23 17:23:09 $
+ *    $Revision: 1.177 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -224,7 +224,9 @@ static double gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_P
 static int gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                               double l_likelihood, GCA_MORPH_PARMS *parms) ;
 static double gcamMapEnergy(GCA_MORPH *gcam, MRI *mri) ;
-static double gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist) ;
+static double gcamLabelEnergy( const GCA_MORPH *gcam,
+			       const MRI *mri,
+			       const double label_dist );
 static double gcamBinaryEnergy(GCA_MORPH *gcam, MRI *mri) ;
 static double gcamAreaIntensityEnergy(GCA_MORPH *gcam, 
                                       MRI *mri, 
@@ -7393,9 +7395,27 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   return(min_dt) ;
 }
 
+#define GCAM_LABELENERGY_OUTPUT 1
+
 static double
-gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist)
+gcamLabelEnergy( const GCA_MORPH *gcam,
+		 const MRI *mri,
+		 const double label_dist)
 {
+
+#if GCAM_LABELENERGY_OUTPUT
+  const unsigned int gcamLabelEnergyOutputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%gcamLabelEnergyOutputFreq) == 0 ) {
+    char fname[STRLEN];
+    snprintf( fname, STRLEN-1,
+	      "gcamLabelEnergyinput%04u", nCalls / gcamLabelEnergyOutputFreq );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+  }
+  nCalls++;
+#endif
+
   int             x, y, z ;
   float           sse ;
   GCA_MORPH_NODE  *gcamn ;
@@ -7417,6 +7437,8 @@ gcamLabelEnergy(GCA_MORPH *gcam, MRI *mri, double label_dist)
 
         sse += fabs(gcamn->label_dist) ;
       }
+
+
 
   return(sse) ;
 }
