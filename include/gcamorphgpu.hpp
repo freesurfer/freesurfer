@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 17:53:09 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/03/23 16:28:35 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,6 +74,8 @@ namespace GPU {
       VolumeGPU<float> d_mean;
       //! Matches the 'covars' field of the GC1D (a variance with only one mean). A negative value indicates that no value is stored for this or corresponding d_mean
       VolumeGPU<float> d_variance;
+      //! Matches the 'label_dist' field of the GCAmorph
+      VolumeGPU<float> d_labelDist;
 
       //! Matches exp_k in GCAmorph
       double exp_k;
@@ -96,6 +98,7 @@ namespace GPU {
 			    d_status(),
 			    d_mean(),
 			    d_variance(),
+			    d_labelDist(),
 			    exp_k(0) {};
 
       //! Destructor

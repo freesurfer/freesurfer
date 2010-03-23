@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/18 17:53:07 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/03/23 16:28:33 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -75,6 +75,8 @@ namespace GPU {
       good = ( good && ( myDims == this->d_mean.GetDims() ) );
       good = ( good && ( myDims == this->d_variance.GetDims() ) );
 
+      good = ( good && ( myDims == this->d_labelDist.GetDims() ) );
+
       if( !good ) {
 	std::cerr << __FUNCTION__
 		  << ": Dimension mismatch"
@@ -118,6 +120,7 @@ namespace GPU {
       this->d_status.Allocate( dims );
       this->d_mean.Allocate( dims );
       this->d_variance.Allocate( dims );
+      this->d_labelDist.Allocate( dims );
     }
 
 
@@ -141,6 +144,7 @@ namespace GPU {
       this->d_status.Release();
       this->d_mean.Release();
       this->d_variance.Release();
+      this->d_labelDist.Release();
     }
 
     // --------------------------------------------
@@ -185,7 +189,8 @@ namespace GPU {
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
       int* h_status = this->d_status.AllocateHostBuffer();
-      int* h_label = this->d_status.AllocateHostBuffer();
+      int* h_label = this->d_label.AllocateHostBuffer();
+      float* h_labelDist = this->d_labelDist.AllocateHostBuffer();
       float* h_mean = this->d_mean.AllocateHostBuffer();
       float* h_variance = this->d_variance.AllocateHostBuffer();
 
@@ -212,7 +217,8 @@ namespace GPU {
 	    h_area2[i1d] = gcamn.area2;
 	    h_status[i1d] = gcamn.status;
 	    h_label[i1d] = gcamn.label;
-	    
+	    h_labelDist[i1d] = gcamn.label_dist;
+
 	    // Deal with the GC1D
 	    if( gcamn.gc != NULL ) {
 	      /*
@@ -254,6 +260,7 @@ namespace GPU {
       this->d_area2.SendBuffer( h_area2 );
       this->d_status.SendBuffer( h_status );
       this->d_label.SendBuffer( h_label );
+      this->d_labelDist.SendBuffer( h_labelDist );
       this->d_mean.SendBuffer( h_mean );
       this->d_variance.SendBuffer( h_variance );
 
@@ -273,6 +280,7 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_label ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_labelDist ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_mean ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_variance ) );
 
@@ -315,7 +323,8 @@ namespace GPU {
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
       int* h_status = this->d_status.AllocateHostBuffer();
-      int* h_label = this->d_status.AllocateHostBuffer();
+      int* h_label = this->d_label.AllocateHostBuffer();
+      float* h_labelDist = this->d_labelDist.AllocateHostBuffer();
       float* h_mean = this->d_mean.AllocateHostBuffer();
       float* h_variance = this->d_variance.AllocateHostBuffer();
 
@@ -332,6 +341,7 @@ namespace GPU {
       this->d_area2.RecvBuffer( h_area2 );
       this->d_status.RecvBuffer( h_status );
       this->d_label.RecvBuffer( h_label );
+      this->d_labelDist.RecvBuffer( h_labelDist );
       this->d_mean.RecvBuffer( h_mean );
       this->d_variance.RecvBuffer( h_variance );
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
@@ -357,6 +367,7 @@ namespace GPU {
 	    gcamn->area1 = h_area1[i1d];
 	    gcamn->area2 = h_area2[i1d];
 	    gcamn->label = h_label[i1d];
+	    gcamn->label_dist = h_labelDist[i1d];
 	    gcamn->status = h_status[i1d];
 
 	    // We now have a quandary... how to test for validity
@@ -391,6 +402,7 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_label ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_labelDist ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_mean ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_variance ) );
 
