@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 15:12:16 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/03/23 15:53:34 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,7 @@
 #include <thrust/device_ptr.h>
 #include <thrust/reduce.h>
 
+#include "macros.h"
 #include "cma.h"
 
 #include "chronometer.hpp"
@@ -537,6 +538,140 @@ namespace GPU {
 	return( jEnergy );
       }
 
+      // --------------------------------------------------
+      
+      //! Implementation of gcamComputeSSE for the GPU
+      template<typename T>
+      float ComputeSSE( GPU::Classes::GCAmorphGPU& gcam,
+			const GPU::Classes::MRIframeGPU<T>& mri,
+			const float mriThick,
+			GCA_MORPH_PARMS *parms ) {
+	/*!
+	  Calls all the necessary things on the GPU to match
+	  gcamComputeSSE.
+	  For now, just a bunch of tests, to see if we have
+	  all the required routines in place
+	*/
+
+	float l_sse, j_sse;
+
+	l_sse = j_sse = 0;
+
+	if( !DZERO(parms->l_area_intensity) ) {
+	  std::cerr << "gcamCreateNodeLookupTable not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	// Compute the metric properties
+	int invalid, neg;
+	gcam.ComputeMetricProperties( invalid, neg );
+
+
+	// Get the log likelihood energy
+	if( !DZERO(parms->l_log_likelihood) || !DZERO(parms->l_likelihood) ) {
+	  l_sse = MAX(parms->l_log_likelihood, parms->l_likelihood) * 
+	    this->LogLikelihoodEnergy( gcam, mri );
+	}
+
+	if( !DZERO(parms->l_multiscale) ) {
+	  std::cerr << "gcamMultiscaleEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	if( !DZERO(parms->l_dtrans) ) {
+	  std::cerr << "gcamDistanceTransformEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+      
+
+	if( !DZERO(parms->l_label) ) {
+	  std::cerr << "gcamLabelEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+    
+	if( !DZERO(parms->l_binary) ) {
+	  std::cerr << "gcamBinaryEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	if( !DZERO(parms->l_area_intensity) ) {
+	  std::cerr << "gcamAreaIntensityEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+  
+	if( !DZERO(parms->l_map) ) {
+	  std::cerr << "gcamMapEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	
+	if( !DZERO(parms->l_expansion) ) {
+	  std::cerr << "gcamExpansionEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	
+	if( !DZERO(parms->l_distance) ) {
+	  std::cerr << "gcamDistanceEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	// Compute the Jacobian energy
+	if( !DZERO(parms->l_jacobian) ) {
+	  j_sse = parms->l_jacobian * this->ComputeJacobianEnergy( gcam, mriThick );
+	}
+    
+	if( !DZERO(parms->l_area) ) {
+	  std::cerr << "gcamAreaEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	if( !DZERO(parms->l_area_smoothness) ) {
+	  std::cerr << "gcamAreaEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	if( !DZERO(parms->l_smoothness) ) {
+	  std::cerr << "gcamSmoothnessEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	// Note extra 'l'
+	if( !DZERO(parms->l_lsmoothness) ) {
+	  std::cerr << "gcamLSmoothnessEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+	
+	if( !DZERO(parms->l_spring) ) {
+	  std::cerr << "gcamSpringEnergy not on GPU yet!" << std::endl;
+	  exit( EXIT_FAILURE );
+	}
+
+	float sse;
+
+	sse = l_sse + j_sse;
+
+	return( sse );
+      }
+
+      template<typename T>
+      float SSEdispatch( GPU::Classes::GCAmorphGPU& gcam,
+			 const MRI *mri,
+			 const float mriThick,
+			 GCA_MORPH_PARMS *parms ) {
+	
+
+	GPU::Classes::MRIframeGPU<T> mriGPU;
+
+	mriGPU.Allocate( mri );
+	mriGPU.Send( mri, 0 );
+	mriGPU.AllocateArray();
+	mriGPU.SendArray();
+
+	float energy = this->ComputeSSE( gcam, mriGPU, mriThick, parms );
+
+	return( energy );
+      }
 
       // ------------------------------------------------
     private:
@@ -645,6 +780,38 @@ float gcamJacobianEnergyGPU( const GCA_MORPH *gcam,
   myGCAM.SendAll( gcam );
 
   energy = myEnergy.ComputeJacobianEnergy( myGCAM, thick );
+
+  return( energy );
+}
+
+
+//! Wrapper for gcamComputeSSE
+float gcamComputeSSEonGPU( GCA_MORPH *gcam,
+			   const MRI* mri,
+			   GCA_MORPH_PARMS *parms ) {
+
+  float energy;
+
+  const float thick = ( mri ? mri->thick : 1.0 );
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+  myGCAM.SendAll( gcam );
+
+
+  switch( mri->type ) {
+
+  case MRI_UCHAR:
+    energy = myEnergy.SSEdispatch<unsigned char>( myGCAM, mri, thick, parms );
+    break;
+
+  default:
+    std::cerr << __FUNCTION__
+	      << ": Unrecognised MRI type" << std::endl;
+    exit( EXIT_FAILURE );
+  }
+
+
+  myGCAM.RecvAll( gcam );
 
   return( energy );
 }
