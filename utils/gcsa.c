@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:42 $
- *    $Revision: 1.33 $
+ *    $Author: fischl $
+ *    $Date: 2010/03/23 16:32:21 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -980,7 +980,7 @@ GCSANclassify(GCSA_NODE *gcsan, CP_NODE *cpn, double *v_inputs, int ninputs,
 
   ptotal = 0.0 ;
   max_p = -10000 ;
-  best_label = 0 ;
+  best_label = -1 ;
   for (n = 0 ; n < cpn->nlabels ; n++)
   {
     for (skip = j = 0 ; j < nexcluded ; j++)
@@ -2470,5 +2470,78 @@ GCSArelabelWithAseg(GCSA *gcsa, MRI_SURFACE *mris, MRI *mri_aseg)
     }
   }
   printf("%d labels changed using aseg\n", changed) ;
+  return(NO_ERROR) ;
+}
+int
+GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris,int mark, int *exclude_list, int nexcluded)
+{
+  int        old_index, vno, vno_classifier, vno_prior, label, index,
+             changed, num,n;
+  VERTEX     *v, *v_classifier, *v_prior, *vn ;
+  GCSA_NODE  *gcsan ;
+  CP_NODE    *cpn ;
+  double     v_inputs[100], p ;
+
+  for (changed = vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag || v->marked != mark)
+      continue ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    
+    load_inputs(v, v_inputs, gcsa->ninputs) ;
+    v_prior = GCSAsourceToPriorVertex(gcsa, v) ;
+    vno_prior = v_prior - gcsa->mris_priors->vertices ;
+    if (vno_prior == Gdiag_no)
+      DiagBreak() ;
+    v_classifier = GCSAsourceToClassifierVertex(gcsa, v_prior) ;
+    vno_classifier = v_classifier - gcsa->mris_classifiers->vertices ;
+    if (vno_classifier == Gdiag_no)
+      DiagBreak() ;
+    gcsan = &gcsa->gc_nodes[vno_classifier] ;
+
+    CTABfindAnnotation(mris->ct, v->annotation, &old_index) ;
+
+    cpn = &gcsa->cp_nodes[vno_prior] ;
+    label= GCSANclassify(gcsan, cpn, v_inputs, gcsa->ninputs, &p,
+                         exclude_list, nexcluded) ;
+    if (label >= 0 && label != v->annotation)
+    {
+      changed++ ;
+      v->annotation = label ;
+      v->marked = 0 ;   // succesfully changed
+    }
+  }
+  /* find all vertices where the excluded labels were the only ones
+     that had nonzero priors and reclassify them based on nbrs. */
+  do
+  {
+    for (num = vno = 0 ; vno < mris->nvertices ; vno++)
+    {
+      v = &mris->vertices[vno] ;
+      if (v->ripflag || v->marked != mark)
+        continue ;
+      if (vno == Gdiag_no)
+        DiagBreak() ;
+      for (n = 0 ; n < v->vnum ; n++)
+      {
+        vn = &mris->vertices[v->v[n]] ;
+        if (vn->ripflag || vn->marked == mark)
+          continue ;
+        for (index = 0 ; index < nexcluded ; index++)
+          if (exclude_list[index] == vn->annotation)
+            break ;
+        if (index >= nexcluded)  // not in exclude list
+        {
+          v->marked = 0 ;
+          v->annotation = vn->annotation ;
+          num++ ;
+          break ;
+        }
+      }
+    }
+  } while (num > 0) ;
+  printf("%d labels changed in reclassification\n", changed) ;
   return(NO_ERROR) ;
 }
