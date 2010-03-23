@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 16:28:35 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/03/23 18:27:22 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,8 +52,14 @@ namespace GPU {
       VolumeGPU<float> d_ry;
       //! Matches z in GCAmorph
       VolumeGPU<float> d_rz;
-      //! Matches invalid flag in GCAmorph
-      VolumeGPU<char> d_invalid;
+
+      //! Matches origx in GCAmorph
+      VolumeGPU<float> d_origx;
+      //! Matches origy in GCAmorph
+      VolumeGPU<float> d_origy;
+      //! Matches origz in GCAmorph
+      VolumeGPU<float> d_origz;
+
       //! Matches orig_area field in GCAmorph
       VolumeGPU<float> d_origArea;
       //! Matches orig_area1 field in GCAmorph
@@ -66,16 +72,20 @@ namespace GPU {
       VolumeGPU<float> d_area1;
       //! Matches area2 field in GCAmorph
       VolumeGPU<float> d_area2;
+
+      //! Matches invalid flag in GCAmorph
+      VolumeGPU<char> d_invalid;
       //! Matches label field in GCAMorph
       VolumeGPU<int> d_label;
       //! Matches status field in GCAMorph
       VolumeGPU<int> d_status;
+      //! Matches the 'label_dist' field of the GCAmorph
+      VolumeGPU<float> d_labelDist;
+
       //! Matches the 'means' field of the GC1D
       VolumeGPU<float> d_mean;
       //! Matches the 'covars' field of the GC1D (a variance with only one mean). A negative value indicates that no value is stored for this or corresponding d_mean
       VolumeGPU<float> d_variance;
-      //! Matches the 'label_dist' field of the GCAmorph
-      VolumeGPU<float> d_labelDist;
 
       //! Matches exp_k in GCAmorph
       double exp_k;
@@ -87,18 +97,21 @@ namespace GPU {
       GCAmorphGPU( void ) : d_rx(),
 			    d_ry(),
 			    d_rz(),
-			    d_invalid(),
+			    d_origx(),
+			    d_origy(),
+			    d_origz(),
 			    d_area(),
 			    d_origArea(),
 			    d_origArea1(),
 			    d_origArea2(),
 			    d_area1(),
 			    d_area2(),
+			    d_invalid(),
 			    d_label(),
 			    d_status(),
+			    d_labelDist(),
 			    d_mean(),
 			    d_variance(),
-			    d_labelDist(),
 			    exp_k(0) {};
 
       //! Destructor
