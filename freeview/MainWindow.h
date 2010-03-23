@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/10 21:40:06 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/03/23 18:31:10 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -254,6 +254,7 @@ public:
   void LoadSurfaceCurvature();
   void LoadSurfaceOverlay();
   void LoadSurfaceAnnotation();
+  void LoadSurfaceLabel();
 
   void LoadVolumeFile ( const wxString& fn, 
 		       const wxString& reg_fn, 
@@ -274,6 +275,7 @@ public:
   void LoadSurfaceCurvatureFile ( const wxString& fn );
   void LoadSurfaceOverlayFile   ( const wxString& fn );
   void LoadSurfaceAnnotationFile( const wxString& fn );
+  void LoadSurfaceLabelFile     ( const wxString& fn );
   void LoadConnectivityDataFile ( const wxString& data_file, const wxString& lut );
 
 // bool IsSaving()

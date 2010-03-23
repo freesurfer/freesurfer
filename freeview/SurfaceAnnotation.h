@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:29 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/03/23 18:31:10 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,6 @@
 #ifndef SurfaceAnnotation_h
 #define SurfaceAnnotation_h
 
-#include "vtkSmartPointer.h"
 #include "Broadcaster.h"
 #include "Listener.h"
 #include <string>

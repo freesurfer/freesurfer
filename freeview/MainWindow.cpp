@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/10 21:40:06 $
- *    $Revision: 1.100 $
+ *    $Date: 2010/03/23 18:31:10 $
+ *    $Revision: 1.101 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -4293,6 +4293,7 @@ void MainWindow::LoadSurfaceAnnotation()
   }  
 }
 
+
 void MainWindow::LoadSurfaceAnnotationFile( const wxString& filename )
 {
   wxString fn = filename;
@@ -4302,6 +4303,30 @@ void MainWindow::LoadSurfaceAnnotationFile( const wxString& filename )
   if ( layer )
   {
     if ( layer->LoadAnnotationFromFile( fn.char_str() ) )
+      m_strLastDir = MyUtils::GetNormalizedPath( filename );
+  }
+}
+
+void MainWindow::LoadSurfaceLabel()
+{
+  wxFileDialog dlg( this, _("Open label file"), m_strLastDir, _(""),
+                    _("Label files (*.*)|*.*"),
+                    wxFD_OPEN );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    this->LoadSurfaceLabelFile( dlg.GetPath() );
+  }  
+}
+
+void MainWindow::LoadSurfaceLabelFile( const wxString& filename )
+{
+  wxString fn = filename;
+  if ( fn.Contains( _("/") ) )
+    fn = MyUtils::GetNormalizedFullPath( filename );
+  LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( layer )
+  {
+    if ( layer->LoadLabelFromFile( fn.char_str() ) )
       m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }

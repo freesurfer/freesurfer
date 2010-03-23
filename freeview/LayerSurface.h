@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:15 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/03/23 18:31:10 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,7 @@ class wxCommandEvent;
 class LayerMRI;
 class SurfaceOverlay;
 class SurfaceAnnotation;
+class SurfaceLabel;
 
 class LayerSurface : public Layer
 {
@@ -63,6 +64,7 @@ public:
   bool LoadCurvatureFromFile( const char* filename );
   bool LoadOverlayFromFile( const char* filename );
   bool LoadAnnotationFromFile( const char* filename );
+  bool LoadLabelFromFile( const char* filename );
 
   void Append2DProps( vtkRenderer* renderer, int nPlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
@@ -165,6 +167,23 @@ public:
   
   void UpdateAnnotation( bool bAskRedraw = false );
   
+  // label functions
+  int GetNumberOfLabels();
+  
+  SurfaceLabel* GetLabel( int n );
+  
+  SurfaceLabel* GetActiveLabel()
+  {
+    return ( m_nActiveLabel >= 0 ? m_labels[m_nActiveLabel] : NULL );
+  }
+  
+  int GetActiveLabelIndex()
+  {
+    return m_nActiveLabel;
+  }
+  
+  void SetActiveLabel( int n );
+  
   LayerMRI* GetRefVolume()
   {
     return m_volumeRef;
@@ -185,6 +204,7 @@ protected:
   void UpdateVertexRender();
   void UpdateMeshRender();
   void UpdateActorPositions();
+  void MapLabels( unsigned char* data, int nVertexCount );
 
   virtual void OnSlicePositionChanged( int nPlane );
 
@@ -216,6 +236,9 @@ protected:
   
   std::vector<SurfaceAnnotation*> m_annotations;
   int         m_nActiveAnnotation;
+  
+  std::vector<SurfaceLabel*>      m_labels;
+  int         m_nActiveLabel;
 };
 
 #endif

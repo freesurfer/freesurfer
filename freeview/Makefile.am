@@ -176,6 +176,8 @@ freeview_SOURCES=\
 	string_fixed.h \
 	SurfaceAnnotation.h \
 	SurfaceAnnotation.cpp \
+	SurfaceLabel.h \
+	SurfaceLabel.cpp \
 	SurfaceOverlay.cpp \
 	SurfaceOverlay.h \
 	SurfaceOverlayProperties.cpp \

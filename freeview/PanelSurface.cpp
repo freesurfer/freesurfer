@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:15 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/03/23 18:31:10 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,29 +37,32 @@
 #include "FSSurface.h"
 #include "SurfaceOverlay.h"
 #include "SurfaceAnnotation.h"
+#include "SurfaceLabel.h"
 #include "MyUtils.h"
 
 BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
-  EVT_MENU            ( XRCID( "ID_SURFACE_CLOSE" ),          PanelSurface::OnSurfaceClose )
-  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_CLOSE" ),          PanelSurface::OnSurfaceCloseUpdateUI )  
-  EVT_MENU            ( XRCID( "ID_SURFACE_LOCK" ),           PanelSurface::OnSurfaceLock )
-  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_LOCK" ),           PanelSurface::OnSurfaceLockUpdateUI )  
-  EVT_LISTBOX         ( XRCID( "ID_LISTBOX_SURFACE" ),        PanelSurface::OnLayerSelectionChanged )
-  EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_SURFACE" ),        PanelSurface::OnLayerVisibilityChanged )
+  EVT_MENU            ( XRCID( "ID_SURFACE_CLOSE" ),            PanelSurface::OnSurfaceClose )
+  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_CLOSE" ),            PanelSurface::OnSurfaceCloseUpdateUI )  
+  EVT_MENU            ( XRCID( "ID_SURFACE_LOCK" ),             PanelSurface::OnSurfaceLock )
+  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_LOCK" ),             PanelSurface::OnSurfaceLockUpdateUI )  
+  EVT_LISTBOX         ( XRCID( "ID_LISTBOX_SURFACE" ),          PanelSurface::OnLayerSelectionChanged )
+  EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_SURFACE" ),          PanelSurface::OnLayerVisibilityChanged )
 
-  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER" ),       PanelSurface::OnColorChanged )
-  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_EDGE" ),  PanelSurface::OnEdgeColorChanged )
-  EVT_SPINCTRL        ( XRCID( "ID_SPIN_EDGE_THICKNESS" ),     PanelSurface::OnSpinEdgeThickness )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_VECTORS" ),          PanelSurface::OnChoiceVector )
-  EVT_SPINCTRL        ( XRCID( "ID_SPIN_VECTOR_POINT_SIZE" ),  PanelSurface::OnSpinVectorPointSize )
-  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_VECTOR" ),PanelSurface::OnVectorColorChanged )
+  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER" ),        PanelSurface::OnColorChanged )
+  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_EDGE" ),   PanelSurface::OnEdgeColorChanged )
+  EVT_SPINCTRL        ( XRCID( "ID_SPIN_EDGE_THICKNESS" ),      PanelSurface::OnSpinEdgeThickness )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_VECTORS" ),           PanelSurface::OnChoiceVector )
+  EVT_SPINCTRL        ( XRCID( "ID_SPIN_VECTOR_POINT_SIZE" ),   PanelSurface::OnSpinVectorPointSize )
+  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_VECTOR" ), PanelSurface::OnVectorColorChanged )
   
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_OVERLAY" ),          PanelSurface::OnChoiceOverlay )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_OVERLAY" ),          PanelSurface::OnButtonConfigureOverlay )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_RENDER_MODE" ),      PanelSurface::OnChoiceRenderMode )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_MESH_COLORMAP" ),    PanelSurface::OnChoiceMeshColorMap )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_OVERLAY" ),           PanelSurface::OnChoiceOverlay )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_OVERLAY" ),           PanelSurface::OnButtonConfigureOverlay )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_RENDER_MODE" ),       PanelSurface::OnChoiceRenderMode )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_MESH_COLORMAP" ),     PanelSurface::OnChoiceMeshColorMap )
 
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_ANNOTATION" ),       PanelSurface::OnChoiceAnnotation )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_ANNOTATION" ),        PanelSurface::OnChoiceAnnotation )
+  EVT_CHOICE          ( XRCID( "ID_CHOICE_LABEL" ),             PanelSurface::OnChoiceLabel )
+  EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_LABEL_COLOR" ),  PanelSurface::OnLabelColorChanged )
   
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_SHOW_VERTICES" ),       PanelSurface::OnCheckShowVertices )
   EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_VERTEX" ),     PanelSurface::OnColorVertex )
@@ -140,6 +143,8 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
       = XRCCTRL( *this, "ID_BUTTON_OVERLAY",        wxButton );
   
   m_choiceAnnotation    = XRCCTRL( *this, "ID_CHOICE_ANNOTATION",     wxChoice );
+  m_choiceLabel         = XRCCTRL( *this, "ID_CHOICE_LABEL",          wxChoice );
+  m_colorPickerLabel    = XRCCTRL( *this, "ID_COLORPICKER_LABEL_COLOR", wxColourPickerCtrl );
   
   m_textPosition        = XRCCTRL( *this, "ID_TEXT_POSITION",         wxTextCtrl );
   
@@ -165,6 +170,9 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
 
   m_widgetsMesh.push_back( m_choiceMeshColorMap );
   m_widgetsMesh.push_back( XRCCTRL( *this, "ID_STATIC_MESH_COLORMAP", wxStaticText ) );
+  
+  m_widgetsLabel.push_back( m_colorPickerLabel );
+  m_widgetsLabel.push_back( XRCCTRL( *this, "ID_STATIC_LABEL_COLOR", wxStaticText ) );
   
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 
@@ -324,6 +332,31 @@ void PanelSurface::DoUpdateUI()
   }
   m_choiceAnnotation->Append( _("Load from file...") );
   m_choiceAnnotation->SetSelection( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
+  
+  // update label controls
+  m_choiceLabel->Clear();
+  if ( layer )
+  {
+    if ( layer->GetNumberOfLabels() > 0 )
+    {
+      for ( int i = 0; i < layer->GetNumberOfLabels(); i++ )
+      {
+        m_choiceLabel->Append( wxString::FromAscii( layer->GetLabel( i )->GetName() ) );
+      }
+    }
+    else
+      m_choiceLabel->Append( _("None") );
+  }
+  m_choiceLabel->Append( _("Load from file...") );
+  if ( layer && layer->GetActiveLabelIndex() >= 0 )
+    m_choiceLabel->SetSelection( layer->GetActiveLabelIndex() );
+  else
+    m_choiceLabel->SetSelection( 0 );  
+  if ( layer && layer->GetActiveLabel() )
+  {
+    double* rgb = layer->GetActiveLabel()->GetColor();
+    m_colorPickerLabel->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );  
+  }   
 
   int nCurvatureMap = layer ? layer->GetProperties()->GetCurvatureMap() : 0;
   for ( size_t i = 0; i < m_widgetsMidPoint.size(); i++ )
@@ -345,6 +378,10 @@ void PanelSurface::DoUpdateUI()
   for ( size_t i = 0; i < m_widgetsMesh.size(); i++ )
   {
     m_widgetsMesh[i]->Show( layer && layer->GetProperties()->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Surface );
+  }
+  for ( size_t i = 0; i < m_widgetsLabel.size(); i++ )
+  {
+    m_widgetsLabel[i]->Show( layer && layer->GetActiveLabelIndex() >= 0 );
   }
   m_colorPicker->Enable( layer ); // && nCurvatureMap != LayerPropertiesSurface::CM_Threshold );
 
@@ -741,6 +778,34 @@ void PanelSurface::OnChoiceAnnotation( wxCommandEvent& event )
     }
     UpdateUI();
   }  
+}
+
+void PanelSurface::OnChoiceLabel( wxCommandEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    int nSel = event.GetSelection();
+    if ( nSel >= surf->GetNumberOfLabels() )
+    {
+      MainWindow::GetMainWindowPointer()->LoadSurfaceLabel();
+    }
+    else
+    {
+      surf->SetActiveLabel( nSel );
+    }
+    UpdateUI();
+  }  
+}
+
+void PanelSurface::OnLabelColorChanged( wxColourPickerEvent& event )
+{
+  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  if ( surf )
+  {
+    wxColour c = event.GetColour();
+    surf->GetActiveLabel()->SetColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
+  }
 }
 
 void PanelSurface::OnTextPosition( wxCommandEvent& event )

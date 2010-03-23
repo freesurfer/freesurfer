@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/03/23 18:31:10 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -53,13 +53,15 @@
 #include "SurfaceOverlay.h"
 #include "SurfaceOverlayProperties.h"
 #include "SurfaceAnnotation.h"
+#include "SurfaceLabel.h"
 
 LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
     m_surfaceSource( NULL ),
     m_bResampleToRAS( true ),
     m_volumeRef( ref ),
     m_nActiveOverlay( -1 ),
-    m_nActiveAnnotation( -1 )
+    m_nActiveAnnotation( -1 ),
+    m_nActiveLabel( -1 )
 {
   m_strTypeNames.push_back( "Surface" );
 
@@ -106,6 +108,16 @@ LayerSurface::~LayerSurface()
   for ( size_t i = 0; i < m_overlays.size(); i++ )
   {
     delete m_overlays[i];
+  }
+  
+  for ( size_t i = 0; i < m_annotations.size(); i++ )
+  {
+    delete m_annotations[i];
+  }
+  
+  for ( size_t i = 0; i < m_labels.size(); i++ )
+  {
+    delete m_labels[i];
   }
 }
 
@@ -154,7 +166,7 @@ bool LayerSurface::LoadCurvatureFromFile( const char* filename )
     return false;
   
   this->SendBroadcast( "LayerModified", this );
-  this->SendBroadcast( "LayerCurvatureLoaded", this );
+  this->SendBroadcast( "SurfaceCurvatureLoaded", this );
   return true;
 }
 
@@ -172,7 +184,7 @@ bool LayerSurface::LoadOverlayFromFile( const char* filename )
   SetActiveOverlay( m_overlays.size() - 1 );
   
   this->SendBroadcast( "LayerModified", this );
-  this->SendBroadcast( "LayerOverlayAdded", this );
+  this->SendBroadcast( "SurfaceOverlayAdded", this );
   return true; 
 }
 
@@ -199,9 +211,39 @@ bool LayerSurface::LoadAnnotationFromFile( const char* filename )
   SetActiveAnnotation( m_annotations.size() - 1 );
   
   this->SendBroadcast( "LayerModified", this );
-  this->SendBroadcast( "LayerAnnotationAdded", this );
+  this->SendBroadcast( "SurfaceAnnotationAdded", this );
   return true; 
 }
+
+
+bool LayerSurface::LoadLabelFromFile( const char* filename )
+{
+  // create annotation
+  SurfaceLabel* label = new SurfaceLabel( this ); 
+  bool ret = label->LoadLabel( filename );
+  if ( !ret )
+  {
+    delete label;
+    return false;
+  }
+  
+  wxString fn = filename;
+  fn = fn.substr( fn.find_last_of("/\\")+1 ).c_str();
+  if ( fn.Right( 6 ) == ".label" )
+    fn = fn.Left( fn.Length()-6 );
+  label->SetName( fn.c_str() );
+  
+  m_labels.push_back( label );
+  
+  SetActiveLabel( m_labels.size() - 1 );
+  
+  UpdateOverlay();
+  
+  this->SendBroadcast( "LayerModified", this );
+  this->SendBroadcast( "SurfaceLabelAdded", this );
+  return true; 
+}
+
 
 void LayerSurface::InitializeSurface()
 {
@@ -455,7 +497,7 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
 
 void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
 {
-  if ( iMessage == "ColorMapChanged" )
+  if ( iMessage == "ColorMapChanged" || iMessage == "SurfaceLabelChanged" )
   {
     this->UpdateColorMap();
     this->SendBroadcast( "LayerActorUpdated", this );
@@ -724,10 +766,6 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
     if ( mapper )
     {
       int nCount = polydata->GetPoints()->GetNumberOfPoints();
-      this->BlockListen( true );
-//      if ( GetProperties()->GetCurvatureMap() == LayerPropertiesSurface::CM_Threshold )
-//        GetProperties()->SetCurvatureMap( LayerPropertiesSurface::CM_Binary );
-      this->BlockListen( false );
       vtkSmartPointer<vtkUnsignedCharArray> array = vtkUnsignedCharArray::SafeDownCast( polydata->GetPointData()->GetArray( "Overlay" ) );
       if ( array.GetPointer() == NULL )
       { 
@@ -741,6 +779,7 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
       unsigned char* data = new unsigned char[ nCount*4 ];
       GetProperties()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
       GetActiveOverlay()->MapOverlay( data );
+      MapLabels( data, nCount );
       for ( int i = 0; i < nCount; i++ )
       {
         array->SetTupleValue( i, data + i*4 );
@@ -757,9 +796,40 @@ void LayerSurface::UpdateOverlay( bool bAskRedraw )
   }
   else
   {
-    polydata->GetPointData()->SetActiveScalars( "Curvature" );
-    if ( GetProperties()->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
-      polydataWireframe->GetPointData()->SetActiveScalars( "Curvature" );
+    if ( m_labels.size() == 0 )   // no labels
+    {
+      polydata->GetPointData()->SetActiveScalars( "Curvature" );
+      if ( GetProperties()->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+        polydataWireframe->GetPointData()->SetActiveScalars( "Curvature" );
+    }
+    else
+    {
+      if ( mapper )
+      {
+        int nCount = polydata->GetPoints()->GetNumberOfPoints();
+        vtkSmartPointer<vtkUnsignedCharArray> array = vtkUnsignedCharArray::SafeDownCast( polydata->GetPointData()->GetArray( "Overlay" ) );
+        if ( array.GetPointer() == NULL )
+        { 
+          array = vtkSmartPointer<vtkUnsignedCharArray>::New(); 
+          array->SetNumberOfComponents( 4 );  
+          array->SetNumberOfTuples( nCount );   
+          array->SetName( "Overlay" );  
+          polydata->GetPointData()->AddArray( array );
+          polydataWireframe->GetPointData()->AddArray( array );
+        }
+        unsigned char* data = new unsigned char[ nCount*4 ];
+        GetProperties()->GetCurvatureLUT()->MapScalarsThroughTable( polydata->GetPointData()->GetScalars("Curvature"), data, VTK_RGBA );
+        MapLabels( data, nCount );
+        for ( int i = 0; i < nCount; i++ )
+        {
+          array->SetTupleValue( i, data + i*4 );
+        } 
+        delete[] data;
+        polydata->GetPointData()->SetActiveScalars( "Overlay" );
+        if ( GetProperties()->GetMeshColorMap() == LayerPropertiesSurface::MC_Surface )
+          polydataWireframe->GetPointData()->SetActiveScalars( "Overlay" );
+      }
+    }
   }
   if ( bAskRedraw )
     this->SendBroadcast( "LayerActorUpdated", this );
@@ -949,3 +1019,32 @@ int LayerSurface::GetHemisphere()
   return m_surfaceSource->GetMRIS()->hemisphere;
 }
 
+int LayerSurface::GetNumberOfLabels()
+{
+  return m_labels.size();
+}
+
+SurfaceLabel* LayerSurface::GetLabel( int n )
+{
+  if ( n >= 0 && n < (int)m_labels.size() )
+    return m_labels[n];
+  else
+    return NULL;
+}
+
+void LayerSurface::SetActiveLabel( int n )
+{
+  if ( n < (int)m_labels.size() && n != m_nActiveLabel )
+  {
+    m_nActiveLabel = n;
+    this->SendBroadcast( "ActiveLabelChanged", this );
+  }
+}
+
+void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
+{
+  for ( size_t i = 0; i < m_labels.size(); i++ )
+  {
+    m_labels[i]->MapLabel( data, nVertexCount );
+  }
+}

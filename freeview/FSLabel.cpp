@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/01 21:23:25 $
- *    $Revision: 1.13 $
+ *    $Author: rpwang $
+ *    $Date: 2010/03/23 18:31:10 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -287,33 +287,6 @@ void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
   }
 }
 
-/*
-void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
-{
- if ( !m_label )
- {
-  cerr << "Label is empty" << endl;
-  return;
- }
-
- int* dim = rasImage->GetDimensions();
- double* vs = rasImage->GetSpacing();
- double* orig = rasImage->GetOrigin();
- int n[3];
- for ( int i = 0; i < m_label->n_points; i++ )
- {
-  n[0] = ( int )( ( m_label->lv[i].x - orig[0] ) / vs[0] + 0.5 );
-  n[1] = ( int )( ( m_label->lv[i].y - orig[1] ) / vs[1] + 0.5 );
-  n[2] = ( int )( ( m_label->lv[i].z - orig[2] ) / vs[2] + 0.5 );
-  if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
-       n[2] >= 0 && n[2] < dim[2] )
-  {
-   rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, 1 );
-  }
- }
-}
-*/
-
 void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
 {
   if ( !m_label )
@@ -325,11 +298,9 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-// cout << "dim: " << dim[0] << " " <<  dim[1] << " " << dim[2] << endl;
   memset( rasImage->GetScalarPointer(), 
 	  0, 
 	  dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
-// cout << "to update ras image" << endl;
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     pos[0] = m_label->lv[i].x;
@@ -339,11 +310,9 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
       ref_vol->TkRegToNativeRAS( pos, pos );
     ref_vol->NativeRASToRAS( pos, pos );
     ref_vol->RASToTargetIndex( pos, n );
-    // cout << n[0] << " " << n[1] << " " << n[2] << endl;
     if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&
          n[2] >= 0 && n[2] < dim[2] )
     {
-//   cout << "update scalar component" << endl;
       rasImage->SetScalarComponentFromFloat( n[0], n[1], n[2], 0, 1 );
     }
   }
