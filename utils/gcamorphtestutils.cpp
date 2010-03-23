@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 18:36:50 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/03/23 19:26:12 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -440,11 +440,6 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
   }
 
   // Set up the scalars
-  int scalarDimID;
-  NC_SAFE_CALL( nc_def_dim( ncid,
-			    "Dimension_for_scalars",
-			    1,
-			    &scalarDimID ) );
 
   map<string,int> scalarIDmap;
   map<string,nc_type>::const_iterator scalarVarIt;
@@ -456,7 +451,8 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
     NC_SAFE_CALL( nc_def_var( ncid,
 			      scalarVarIt->first.c_str(), // Name of the variable
 			      scalarVarIt->second,        // Type of variable
-			      1, &scalarDimID,
+			      0,    // Zero dimensions implies scalar
+			      NULL, // No pointer to dimensions for scalar
 			      &scalarIDmap[ scalarVarIt->first ] ) );
   }
 			    
@@ -624,8 +620,7 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   NC_SAFE_CALL( nc_inq_ndims( ncid, &nDimFile ) );
   NC_SAFE_CALL( nc_inq_nvars( ncid, &nVarFile ) );
   
-  if( nDimFile != (1+static_cast<int>(this->nDims)) ) {
-    // Why the +1? Because we have a special dimension for scalars
+  if( nDimFile != static_cast<int>(this->nDims) ) {
     cerr << "Invalid number of dimensions " << nDimFile << endl;
     exit( EXIT_FAILURE );
   }
@@ -645,15 +640,6 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[this->iX], &dimLen[this->iX] ) );
   NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[this->iY], &dimLen[this->iY] ) );
   NC_SAFE_CALL( nc_inq_dimlen( ncid, dimIDs[this->iZ], &dimLen[this->iZ] ) );
-  
-  int scalarDimID;
-  size_t scalarDimLen;
-  NC_SAFE_CALL( nc_inq_dimid( ncid, "Dimension_for_scalars", &scalarDimID ) );
-  NC_SAFE_CALL( nc_inq_dimlen( ncid, scalarDimID, &scalarDimLen ) );
-  if( scalarDimLen != 1 ) {
-    cerr << "Length of scalar dimension must be 1!" << endl;
-    exit( EXIT_FAILURE );
-  }
 
   // Allocate the target
   *dst = GCAMalloc( dimLen[this->iX], dimLen[this->iY], dimLen[this->iZ] );
