@@ -112,12 +112,12 @@ int main( int argc, char *argv[] ) {
   
   // ============================================
   // Perform the calculation
-  double llenergy = gcamJacobianEnergy( gcam, mri );
+  double jacobenergy = gcamJacobianEnergy( gcam, mri );
 
 
   // ============================================
   // Produce output
-  cout << "lle = " << llenergy << endl;
+  cout << "Jacobian Energy = " << jacobenergy << endl;
 
   cout << "Writing file " << outFilename << endl;
 
