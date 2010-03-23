@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 13:43:50 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/03/23 15:12:16 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -493,11 +493,9 @@ namespace GPU {
 
       //! Implementation of gcamComputeJacobianEnergy for the GPU
       float ComputeJacobianEnergy( const GPU::Classes::GCAmorphGPU& gcam,
-				   const MRI* mri ) const {
+				   const float mriThick ) const {
 	
 	tJacobTot.Start();
-
-	const float thick = ( mri ? mri->thick : 1.0 );
 	
 	// Make sure the GCAM is sane
 	gcam.CheckIntegrity();
@@ -523,7 +521,7 @@ namespace GPU {
 	  ( gcam.d_invalid,
 	    gcam.d_origArea1, gcam.d_origArea2,
 	    gcam.d_area1, gcam.d_area2,
-	    gcam.exp_k, thick,
+	    gcam.exp_k, mriThick,
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "ComputeJacobEnergy kernel failed!\n" );
 	tJacobCompute.Stop();
@@ -641,10 +639,12 @@ float gcamJacobianEnergyGPU( const GCA_MORPH *gcam,
   
   float energy;
   
+  const float thick = ( mri ? mri->thick : 1.0 );
+  
   GPU::Classes::GCAmorphGPU myGCAM;
   myGCAM.SendAll( gcam );
 
-  energy = myEnergy.ComputeJacobianEnergy( myGCAM, mri );
+  energy = myEnergy.ComputeJacobianEnergy( myGCAM, thick );
 
   return( energy );
 }
