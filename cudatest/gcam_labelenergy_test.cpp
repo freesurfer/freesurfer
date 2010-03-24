@@ -82,8 +82,8 @@ int main( int argc, char *argv[] ) {
   SciGPU::Utilities::Chronometer tTotal;
   GCAMorphUtils myUtils;
 
-  cout << "GCAM Jacobian Energy Tester" << endl;
-  cout << "===========================" << endl << endl;
+  cout << "GCAM Label Energy Tester" << endl;
+  cout << "========================" << endl << endl;
 
 #ifdef FS_CUDA
   AcquireCUDADevice();
