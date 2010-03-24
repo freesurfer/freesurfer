@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 19:50:52 $
- *    $Revision: 1.181 $
+ *    $Date: 2010/03/24 14:50:00 $
+ *    $Revision: 1.182 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -255,7 +255,7 @@ static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
 static double gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
 static int gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness) ;
-static double gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri );
+
 
 static int gcamLSmoothnessTerm(GCA_MORPH *gcam, 
                                MRI *mri, 
@@ -5667,7 +5667,10 @@ gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness)
 }
 
 
-static double
+
+#define GCAM_SMOOTHNESS_OUTPUT 0
+
+double
 gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
 {
   /*!
@@ -5677,6 +5680,23 @@ gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
   */
   double sse = 0.0;
 
+#if GCAM_SMOOTHNESS_OUTPUT
+  const unsigned int gcamSmoothnessOutputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%gcamSmoothnessOutputFreq)==0 ) {
+    char fname[STRLEN];
+    snprintf( fname, STRLEN-1,
+	      "gcamSmoothInput%04u", nCalls/gcamSmoothnessOutputFreq );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+  }
+  nCalls++;
+#endif
+
+#ifdef FS_CUDA
+
+  sse = gcamSmoothnessEnergyGPU( gcam );
+#else
   double vx, vy, vz, vnx, vny, vnz, error, node_sse, dx, dy, dz ;
   int x, y, z, xk, yk, zk, xn, yn, zn, width, height, depth, num ;
   const GCA_MORPH_NODE  *gcamn, *gcamn_nbr ;
@@ -5766,6 +5786,7 @@ gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
       }
     }
   }
+#endif
 
   return(sse) ;
 }
