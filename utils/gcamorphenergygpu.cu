@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 18:26:28 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/03/24 14:22:20 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,15 @@
 //! Texture reference for an unsigned char mri
 texture<unsigned char, 3, cudaReadModeNormalizedFloat> dt_mri_uchar;
 
+//! Texture for vx in SmoothnessEnergy
+texture<float, 3, cudaReadModeElementType> dt_smooth_vx;
+//! Texture for vy in SmoothnessEnergy
+texture<float, 3, cudaReadModeElementType> dt_smooth_vy;
+//! Texture for vz in SmoothnessEnergy
+texture<float, 3, cudaReadModeElementType> dt_smooth_vz;
+//! Texure for 'invalid' in SmoothnessEnergy
+texture<char, 3, cudaReadModeElementType> dt_smooth_invalid;
+
 
 // ==============================================================
 
@@ -55,6 +64,7 @@ namespace GPU {
     const unsigned int kGCAmorphLLEkernelSize = 16;
     const unsigned int kGCAmorphJacobEnergyKernelSize = 16;
     const unsigned int kGCAmorphLabelEnergyKernelSize = 16;
+    const unsigned int kGCAmorphSmoothEnergyKernelSize = 16;
 
     //! Templated texture fetch
     template<typename T>
@@ -376,6 +386,129 @@ namespace GPU {
       }
     }
 
+    // --------------------------------------------------
+
+    //! Kernel to perform \f$c = a - b\f$ on volumes
+    template<typename T>
+    __global__
+    void SubtractVolumes( const GPU::Classes::VolumeArgGPU<T> a,
+			  const GPU::Classes::VolumeArgGPU<T> b,
+			  GPU::Classes::VolumeArgGPU<T> c ) {
+
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      for( unsigned int iz = 0; iz < a.dims.z; iz++ ) {
+	if( a.InVolume(ix,iy,iz) ) {
+
+	  c(ix,iy,iz) = a(ix,iy,iz) - b(ix,iy,iz);
+	}
+      }
+
+    }
+
+
+    __device__ float Fetchvx( const int ix,
+			      const int iy,
+			      const int iz ) {
+      return( tex3D( dt_smooth_vx, ix+0.5f, iy+0.5f, iz+0.5f ) );
+    }
+
+    __device__ float Fetchvy( const int ix,
+			      const int iy,
+			      const int iz ) {
+      return( tex3D( dt_smooth_vy, ix+0.5f, iy+0.5f, iz+0.5f ) );
+    }
+    
+    __device__ float Fetchvz( const int ix,
+			      const int iy,
+			      const int iz ) {
+      return( tex3D( dt_smooth_vz, ix+0.5f, iy+0.5f, iz+0.5f ) );
+    }
+
+
+    //! Kernel to compute the smoothness energy
+    __global__
+    void SmoothnessKernel( const GPU::Classes::VolumeArgGPU<char> invalid,
+			   float *energies ) {
+      /*!
+	The main computation of gcamSmoothnessEnergy.
+	Note that this kernel accesses 'invalid' through both
+	the argument and a texture.
+	The argument is there so we can use the 'InVolume' method.
+	The texture is used for boundary conditions which will
+	exactly match gcamSmoothnessEnergy.
+	It would be preferable to change these BC, and dump
+	the texture.
+	However, that means changing the CPU code.
+      */
+
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      for( unsigned int iz = 0; iz < invalid.dims.z; iz++ ) {
+	
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( invalid.InVolume(ix,iy,iz) ) {
+	  
+	  float node_sse = 0;
+	  unsigned int num = 0;
+
+	  // Bail if we have an invalid node
+	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
+	    continue;
+	  }
+
+	  // Re-order loop nest in gcamSmoothnessEnergy
+	  for( int zk=-1; zk<=1; zk++ ) {
+	    int zn = iz + zk;
+
+	    for( int yk=-1; yk<=1; yk++ ) {
+	      int yn = iy + yk;
+	      
+	      for( int xk=-1; xk<=1; xk++ ) {
+		int xn = ix + xk;
+
+		// Don't include self
+		if( (!xk) && (!yk) && (!zk) ) {
+		  continue;
+		}
+
+		// Don't include invalid neighbours
+
+		// Use texture to get boundary conditions
+		const char myInvalid = tex3D( dt_smooth_invalid,
+					      xn+0.5f, yn+0.5f, zn+0.5f );
+		if( myInvalid == GCAM_POSITION_INVALID ) {
+		  continue;
+		}
+
+		float dx = Fetchvx(xn,yn,zn) - Fetchvx(ix,iy,iz);
+		float dy = Fetchvy(xn,yn,zn) - Fetchvy(ix,iy,iz);
+		float dz = Fetchvz(xn,yn,zn) - Fetchvz(ix,iy,iz);
+
+		node_sse += (dx*dx) + (dy*dy) + (dz*dz);
+		num++;
+	      }
+	    }
+	  }
+
+	  if( num > 0 ) {
+	    node_sse /= num;
+	  }
+
+
+	  const unsigned int iLoc = invalid.Index1D( ix, iy, iz );
+	  energies[iLoc] = node_sse;
+	}
+      }
+
+    }
+
 
     // ##############################################################
 
@@ -620,7 +753,129 @@ namespace GPU {
 
 	return( lEnergy );
       }
-			 
+      
+
+      // --------------------------------------------------
+
+      //! Implementation of gcamSmoothnessEnergy for the GPU
+      float SmoothnessEnergy( GPU::Classes::GCAmorphGPU& gcam ) {
+	/*!
+	  Computes the smoothness energy of the given gcam.
+	  Mirrors the gcamSmoothnessEnergy routine in gcamorph.c.
+	  The only reason gcam is not declared 'const' is because
+	  we have to get the 'invalid' field into a texture,
+	  and hence needs its cudaArray.
+	  We use a texture for this field to get easy boundary
+	  conditions - although ideally the BC would be changed.
+	  However, that means changing the CPU code too.
+	*/
+
+	// Make sure GCAM is sane
+	gcam.CheckIntegrity();
+
+	const dim3 gcamDims = gcam.d_rx.GetDims();
+	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
+
+	// Allocate thrust arrays
+	thrust::device_ptr<float> d_energies;
+	d_energies = thrust::device_new<float>( nVoxels );
+
+	// Compute vx, vy, and vz (see gcamSmoothnessEnergy)
+	GPU::Classes::VolumeGPU<float> vx, vy, vz;
+
+	vx.Allocate( gcamDims );
+	vy.Allocate( gcamDims );
+	vz.Allocate( gcamDims );
+
+	dim3 grid, threads;
+	threads.x = threads.y = kGCAmorphSmoothEnergyKernelSize;
+	threads.z = 1;
+
+	grid = gcam.d_rx.CoverBlocks( kGCAmorphSmoothEnergyKernelSize );
+	grid.z = 1;
+
+	SubtractVolumes<float>
+	  <<<grid,threads>>>
+	  ( gcam.d_rx, gcam.d_origx, vx );
+	CUDA_CHECK_ERROR( "SubtractVolumes failed for x!" );
+
+	SubtractVolumes<float>
+	  <<<grid,threads>>>
+	  ( gcam.d_ry, gcam.d_origy, vy );
+	CUDA_CHECK_ERROR( "SubtractVolumes failed for y!" );
+	
+	SubtractVolumes<float>
+	  <<<grid,threads>>>
+	  ( gcam.d_rz, gcam.d_origz, vz );
+	CUDA_CHECK_ERROR( "SubtractVolumes failed for z!" );
+	
+	// Get vx, vy and vz into CUDA arrays
+	vx.AllocateArray();
+	vx.SendArray();
+	vy.AllocateArray();
+	vy.SendArray();
+	vz.AllocateArray();
+	vz.SendArray();
+
+	// Bind vx, vy and vz to their textures
+	dt_smooth_vx.normalized = false;
+	dt_smooth_vx.addressMode[0] = cudaAddressModeClamp;
+	dt_smooth_vx.addressMode[1] = cudaAddressModeClamp;
+	dt_smooth_vx.addressMode[2] = cudaAddressModeClamp;
+	dt_smooth_vx.filterMode = cudaFilterModePoint;
+
+	dt_smooth_vy.normalized = false;
+	dt_smooth_vy.addressMode[0] = cudaAddressModeClamp;
+	dt_smooth_vy.addressMode[1] = cudaAddressModeClamp;
+	dt_smooth_vy.addressMode[2] = cudaAddressModeClamp;
+	dt_smooth_vy.filterMode = cudaFilterModePoint;
+
+	dt_smooth_vz.normalized = false;
+	dt_smooth_vz.addressMode[0] = cudaAddressModeClamp;
+	dt_smooth_vz.addressMode[1] = cudaAddressModeClamp;
+	dt_smooth_vz.addressMode[2] = cudaAddressModeClamp;
+	dt_smooth_vz.filterMode = cudaFilterModePoint;
+
+	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vx, vx.GetArray() ) );
+	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy, vy.GetArray() ) );
+	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy, vy.GetArray() ) );
+
+	// Also have to get the 'invalid' field to its texture
+	dt_smooth_invalid.normalized = false;
+	dt_smooth_invalid.addressMode[0] = cudaAddressModeClamp;
+	dt_smooth_invalid.addressMode[1] = cudaAddressModeClamp;
+	dt_smooth_invalid.addressMode[2] = cudaAddressModeClamp;
+	dt_smooth_invalid.filterMode = cudaFilterModePoint;
+
+	gcam.d_invalid.AllocateArray();
+	gcam.d_invalid.SendArray();
+	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_invalid,
+						gcam.d_invalid.GetArray() ) );
+
+	// Run the main kernel
+	SmoothnessKernel<<<grid,threads>>>
+	  ( gcam.d_invalid,
+	    thrust::raw_pointer_cast( d_energies ) );
+	CUDA_CHECK_ERROR( "SmoothnessKernel failed!" );
+
+
+	// Get the total
+	float smoothEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
+
+	// Release thrust arrays
+	thrust::device_delete( d_energies );
+
+	// Unbind textures
+	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vx ) );
+	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vy ) );
+	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vz ) );
+	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_invalid ) );
+
+	// Release array
+	gcam.d_invalid.ReleaseArray();
+
+	return( smoothEnergy );
+      }
 
 
       // --------------------------------------------------
@@ -891,6 +1146,20 @@ float gcamLabelEnergyGPU( const GCA_MORPH *gcam ) {
   myGCAM.SendAll( gcam );
 
   energy = myEnergy.LabelEnergy( myGCAM );
+
+  return( energy );
+}
+
+
+//! Wrapper around GPU class for the SmoothnessEnergy
+float gcamSmoothnessEnergyGPU( const GCA_MORPH *gcam ) {
+
+  float energy;
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+  myGCAM.SendAll( gcam );
+
+  energy = myEnergy.SmoothnessEnergy( myGCAM );
 
   return( energy );
 }
