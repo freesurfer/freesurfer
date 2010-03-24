@@ -104,7 +104,11 @@ int main( int argc, char *argv[] ) {
 
   // ============================================
   // Perform the calculation
+  tTotal.Start();
   gcamComputeMetricProperties( gcam );
+  tTotal.Stop();
+
+  cout << "Computation took " << tTotal << endl;
 
   // =============================================
   // Write the output

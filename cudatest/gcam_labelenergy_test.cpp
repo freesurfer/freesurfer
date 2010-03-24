@@ -103,7 +103,11 @@ int main( int argc, char *argv[] ) {
   
   // ============================================
   // Perform the calculation
+  tTotal.Start();
   double labelenergy = gcamLabelEnergy( gcam, NULL, 0 );
+  tTotal.Stop();
+
+  cout << "Computation took " << tTotal << endl;
 
 
   // ============================================

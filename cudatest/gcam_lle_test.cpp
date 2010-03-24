@@ -112,7 +112,11 @@ int main( int argc, char *argv[] ) {
   
   // ============================================
   // Perform the calculation
+  tTotal.Start();
   double llenergy = gcamLogLikelihoodEnergy( gcam, mri );
+  tTotal.Stop();
+
+  cout << "Computation took " << tTotal << endl;
 
 
   // ============================================
