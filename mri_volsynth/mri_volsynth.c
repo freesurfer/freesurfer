@@ -6,11 +6,11 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/03/02 22:00:10 $
- *    $Revision: 1.41 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/24 17:45:34 $
+ *    $Revision: 1.42 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -64,7 +63,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.41 2010/03/02 22:00:10 greve Exp $";
+"$Id: mri_volsynth.c,v 1.42 2010/03/24 17:45:34 nicks Exp $";
 
 char *Progname = NULL;
 
@@ -658,7 +657,7 @@ static void print_usage(void) {
   printf("\n");
   printf(" Specify geometry explicitly\n");
   printf("   --dim nc nr ns nf  (required)\n");
-  printf("   --res dc dr ds df\n");
+  printf("   --res dc dr ds df  (df is TR)\n");
   printf("   --cdircos x y z\n");
   printf("   --rdircos x y z\n");
   printf("   --sdircos x y z\n");
