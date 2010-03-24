@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/22 20:54:18 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/03/24 21:10:15 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -125,15 +125,10 @@ void Contour2D::AddPatchLineOnMask( double* ras1, double* ras2 )
   if ( m_imageMask.GetPointer() == NULL )
     return;
   
-  int n1[3], n2[3];
-  double* origin = m_imageMask->GetOrigin();
+  int n1[2], n2[2];
+  double* origin = m_imageMask->GetOrigin();    // 2D image!
   double* vsize = m_imageMask->GetSpacing();
   int* dim = m_imageMask->GetDimensions();
-  for ( int i = 0; i < 3; i++ )
-  {
-    n1[i] = (int)( (ras1[i] - origin[i]) / vsize[i] + 0.5 );
-    n2[i] = (int)( (ras2[i] - origin[i]) / vsize[i] + 0.5 );
-  }
   
   int nx = 0, ny = 1;
   switch ( m_nPlane )
@@ -147,15 +142,21 @@ void Contour2D::AddPatchLineOnMask( double* ras1, double* ras2 )
       ny = 2;
       break;
   }
+  n1[0] = (int)( (ras1[nx] - origin[0]) / vsize[0] + 0.5 );
+  n1[1] = (int)( (ras1[ny] - origin[1]) / vsize[1] + 0.5 );
+  n2[0] = (int)( (ras2[nx] - origin[0]) / vsize[0] + 0.5 );
+  n2[1] = (int)( (ras2[ny] - origin[1]) / vsize[1] + 0.5 );
   
+  nx = 0; 
+  ny = 1;
   unsigned char* ptr = (unsigned char*)m_imageMask->GetScalarPointer();
   int x0 = n1[nx], y0 = n1[ny], x1 = n2[nx], y1 = n2[ny];
   int dx = x1 - x0;
   int dy = y1 - y0;
   double t = 0.5;
-  int n[3];
+  int n[2];
   if ( m_nPlane == 0 )
-    ptr[n1[ny]*dim[0]+dim[0]-n1[nx]-1] = 0;
+    ptr[(n1[ny]+1)*dim[0]+dim[0]-n1[nx]-2] = 0;
   else
     ptr[n1[ny]*dim[0]+n1[nx]] = 0;
   if ( abs( dx ) > abs( dy ) )
@@ -171,7 +172,7 @@ void Contour2D::AddPatchLineOnMask( double* ras1, double* ras2 )
       n[nx] = x0;
       n[ny] = (int) t;
       if ( m_nPlane == 0 )
-        ptr[n[ny]*dim[0]+dim[0]-n[nx]-1] = 0;
+        ptr[(n[ny]+1)*dim[0]+dim[0]-n[nx]-2] = 0;
       else
         ptr[n[ny]*dim[0]+n[nx]] = 0;
     }
@@ -189,7 +190,7 @@ void Contour2D::AddPatchLineOnMask( double* ras1, double* ras2 )
       n[nx] = (int) t;
       n[ny] = y0;
       if ( m_nPlane == 0 )
-        ptr[n[ny]*dim[0]+dim[0]-n[nx]-1] = 0;
+        ptr[(n[ny]+1)*dim[0]+dim[0]-n[nx]-2] = 0;
       else
         ptr[n[ny]*dim[0]+n[nx]] = 0;
     }
