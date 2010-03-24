@@ -103,8 +103,11 @@ int main( int argc, char *argv[] ) {
   
   // ============================================
   // Perform the calculation
+  tTotal.Start();
   double smoothenergy = gcamSmoothnessEnergy( gcam, NULL );
+  tTotal.Stop();
 
+  cout << "Computation took " << tTotal << endl;
 
   // ============================================
   // Produce output
