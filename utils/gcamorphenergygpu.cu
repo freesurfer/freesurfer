@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/24 15:00:14 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/03/24 15:12:39 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -556,6 +556,12 @@ namespace GPU {
 	std::cout << "Total         : " << this->tLabelTot << std::endl;
 	std::cout << std::endl;
 
+	std::cout << "SmoothnessEnergy:" << std::endl;
+	std::cout << "  Subtraction : " << this->tSmoothSubtract << std::endl;
+	std::cout << "      Compute : " << this->tSmoothCompute << std::endl;
+	std::cout << "Total         : " << this->tSmoothTot << std::endl;
+	std::cout << std::endl;
+
 	std::cout << "==================================" << std::endl;
 #endif
       }
@@ -772,6 +778,8 @@ namespace GPU {
 	  However, that means changing the CPU code too.
 	*/
 
+	tSmoothTot.Start();
+
 	// Make sure GCAM is sane
 	gcam.CheckIntegrity();
 
@@ -788,6 +796,9 @@ namespace GPU {
 	vx.Allocate( gcamDims );
 	vy.Allocate( gcamDims );
 	vz.Allocate( gcamDims );
+	vx.AllocateArray();
+	vy.AllocateArray();
+	vz.AllocateArray();
 
 	dim3 grid, threads;
 	threads.x = threads.y = kGCAmorphSmoothEnergyKernelSize;
@@ -796,6 +807,7 @@ namespace GPU {
 	grid = gcam.d_rx.CoverBlocks( kGCAmorphSmoothEnergyKernelSize );
 	grid.z = 1;
 
+	tSmoothSubtract.Start();
 	SubtractVolumes<float>
 	  <<<grid,threads>>>
 	  ( gcam.d_rx, gcam.d_origx, vx );
@@ -810,13 +822,11 @@ namespace GPU {
 	  <<<grid,threads>>>
 	  ( gcam.d_rz, gcam.d_origz, vz );
 	CUDA_CHECK_ERROR( "SubtractVolumes failed for z!" );
-	
+	tSmoothSubtract.Stop();
+
 	// Get vx, vy and vz into CUDA arrays
-	vx.AllocateArray();
 	vx.SendArray();
-	vy.AllocateArray();
 	vy.SendArray();
-	vz.AllocateArray();
 	vz.SendArray();
 
 	// Bind vx, vy and vz to their textures
@@ -855,10 +865,12 @@ namespace GPU {
 						gcam.d_invalid.GetArray() ) );
 
 	// Run the main kernel
+	tSmoothCompute.Start();
 	SmoothnessKernel<<<grid,threads>>>
 	  ( gcam.d_invalid,
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "SmoothnessKernel failed!" );
+	tSmoothCompute.Stop();
 
 
 	// Get the total
@@ -875,6 +887,8 @@ namespace GPU {
 
 	// Release array
 	gcam.d_invalid.ReleaseArray();
+
+	tSmoothTot.Stop();
 
 	return( smoothEnergy );
       }
@@ -1046,6 +1060,14 @@ namespace GPU {
       mutable SciGPU::Utilities::Chronometer tLabelTot;
       //! Timer for Label Energy kernel
       mutable SciGPU::Utilities::Chronometer tLabelCompute;
+
+      //! Timer for smoothness energy
+      mutable SciGPU::Utilities::Chronometer tSmoothTot;
+      //! Timer for subtractions in smoothness energy
+      mutable SciGPU::Utilities::Chronometer tSmoothSubtract;
+      //! Timer for smoothness computation itself
+      mutable SciGPU::Utilities::Chronometer tSmoothCompute;
+
 
       //! Templated texture binding wrapper
       template<typename T>
