@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/24 15:12:39 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/03/24 16:45:37 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -909,10 +909,10 @@ namespace GPU {
 	  all the required routines in place
 	*/
 
-	float l_sse, j_sse;
+	float l_sse, j_sse, s_sse;
 	float label_sse;
 
-	l_sse = j_sse = 0;
+	l_sse = j_sse = s_sse = 0;
 	label_sse = 0;
 
 	if( !DZERO(parms->l_area_intensity) ) {
@@ -994,8 +994,7 @@ namespace GPU {
 	}
 	
 	if( !DZERO(parms->l_smoothness) ) {
-	  std::cerr << "gcamSmoothnessEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
+	  s_sse = parms->l_smoothness * this->SmoothnessEnergy( gcam );
 	}
 	
 	// Note extra 'l'
@@ -1011,7 +1010,7 @@ namespace GPU {
 
 	float sse;
 
-	sse = l_sse + j_sse;
+	sse = l_sse + j_sse + s_sse;
 	sse += label_sse;
 
 	return( sse );
