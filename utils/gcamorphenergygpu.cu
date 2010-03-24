@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/24 14:45:44 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/03/24 15:00:14 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -840,7 +840,7 @@ namespace GPU {
 
 	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vx, vx.GetArray() ) );
 	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy, vy.GetArray() ) );
-	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vz, vy.GetArray() ) );
+	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vz, vz.GetArray() ) );
 
 	// Also have to get the 'invalid' field to its texture
 	dt_smooth_invalid.normalized = false;
