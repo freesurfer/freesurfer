@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/24 14:22:20 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/03/24 14:45:44 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -457,12 +457,13 @@ namespace GPU {
 	  
 	  float node_sse = 0;
 	  unsigned int num = 0;
-
+	  
 	  // Bail if we have an invalid node
 	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
 	    continue;
 	  }
 
+	  
 	  // Re-order loop nest in gcamSmoothnessEnergy
 	  for( int zk=-1; zk<=1; zk++ ) {
 	    int zn = iz + zk;
@@ -479,13 +480,14 @@ namespace GPU {
 		}
 
 		// Don't include invalid neighbours
-
+		
 		// Use texture to get boundary conditions
 		const char myInvalid = tex3D( dt_smooth_invalid,
 					      xn+0.5f, yn+0.5f, zn+0.5f );
 		if( myInvalid == GCAM_POSITION_INVALID ) {
 		  continue;
 		}
+		
 
 		float dx = Fetchvx(xn,yn,zn) - Fetchvx(ix,iy,iz);
 		float dy = Fetchvy(xn,yn,zn) - Fetchvy(ix,iy,iz);
@@ -500,7 +502,7 @@ namespace GPU {
 	  if( num > 0 ) {
 	    node_sse /= num;
 	  }
-
+	  
 
 	  const unsigned int iLoc = invalid.Index1D( ix, iy, iz );
 	  energies[iLoc] = node_sse;
@@ -838,7 +840,7 @@ namespace GPU {
 
 	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vx, vx.GetArray() ) );
 	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy, vy.GetArray() ) );
-	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy, vy.GetArray() ) );
+	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vz, vy.GetArray() ) );
 
 	// Also have to get the 'invalid' field to its texture
 	dt_smooth_invalid.normalized = false;
