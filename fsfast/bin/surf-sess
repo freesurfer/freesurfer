@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:19 $
-#    $Revision: 1.16 $
+#    $Author: greve $
+#    $Date: 2010/03/25 16:24:25 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: surf-sess,v 1.16 2007/01/09 22:41:19 nicks Exp $'
+set VERSION = '$Id: surf-sess,v 1.17 2010/03/25 16:24:25 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -62,6 +62,7 @@ set usenew = ".new";
 set usertcl = ();
 set truncphaseflag = ();
 set revphaseflag = ();
+set fmt = w
 
 set Medial  = 1;
 set Lateral = 1;
@@ -231,9 +232,9 @@ foreach sess ($SessList)
 
     if(! $rtopy ) then
       if($srcsubject == $subject) then
-        set wfile = $StatDir/$Stat-$hemi.w
+        set wfile = $StatDir/$Stat-$hemi.$fmt
       else
-        set wfile = $StatDir/$Stat-$subject-$hemi.w
+        set wfile = $StatDir/$Stat-$subject-$hemi.$fmt
       endif
       if(! -e $wfile ) then
         echo "ERROR: cannot find $wfile"|tee -a $LF
@@ -242,8 +243,8 @@ foreach sess ($SessList)
       echo "wfile is $wfile" |tee -a $LF
     else
       if("$rtopymode" == polar || "$rtopymode" == eccen) then
-        set wfile1 = $StatDir/$rtopymode/map-real-$hemi.w
-        set wfile2 = $StatDir/$rtopymode/map-imag-$hemi.w
+        set wfile1 = $StatDir/$rtopymode/map-real-$hemi.$fmt
+        set wfile2 = $StatDir/$rtopymode/map-imag-$hemi.$fmt
         foreach wfile ($wfile1 $wfile2)
           if(! -e $wfile) then
             echo "ERROR: cannot find $wfile"
