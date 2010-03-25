@@ -15,8 +15,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/04/02 22:26:31 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/03/25 15:29:01 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
   Author:  Douglas N. Greve
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    1/2/00
-  $Id: mri_vol2roi.c,v 1.29 2008/04/02 22:26:31 greve Exp $
+  $Id: mri_vol2roi.c,v 1.30 2010/03/25 15:29:01 greve Exp $
 */
 
 #include <stdio.h>
@@ -90,7 +90,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.29 2008/04/02 22:26:31 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.30 2010/03/25 15:29:01 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -151,25 +151,20 @@ int fixxfm = 0;
 int labeltal  = 0;
 char *talxfm = "talairach.xfm";
 
-int bfiletype;
 char *outext = NULL;
 char *ListFile = NULL;
 
 /*---------------------------------------------------------*/
 int main(int argc, char **argv) {
   int n,err, f, nhits, r,c,s;
-  int nrows_src, ncols_src, nslcs_src;
-  int nrows_msk, ncols_msk, nslcs_msk;
   float ipr, bpr, intensity;
-  float colres_src, rowres_src, slcres_src;
-  float colres_msk, rowres_msk, slcres_msk;
   float *framepower=NULL, val;
   LTA *lta;
   int nargs;
   //int endian,roitype;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.29 2008/04/02 22:26:31 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.30 2010/03/25 15:29:01 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -196,40 +191,29 @@ int main(int argc, char **argv) {
 
   dump_options(stdout);
 
-  /* ------------ get info about the source volume ------------------*/
-  //err = bf_getvoldim(srcvolid,&nrows_src,&ncols_src,
-  // &nslcs_src,&nfrms,&endian,&srctype);
-  // if (err) exit(1);
-  mritmp = MRIreadHeader(srcvolid,MRI_VOLUME_TYPE_UNKNOWN);
-  if(mritmp == NULL) exit(1);
-  nrows_src = mritmp->height;
-  ncols_src = mritmp->width;
-  nslcs_src = mritmp->depth;
+  /* --------- load in the (possibly 4-D) source volume --------------*/
+  printf("Loading volume %s ...",srcvolid);
+  mSrcVol = MRIread(srcvolid);
+  if(mSrcVol == NULL) exit(1);
+  printf("done\n");
 
   /* Dsrc: read the source registration file */
   if (srcregfile != NULL) {
     err = regio_read_register(srcregfile, &srcsubject, &ipr, &bpr,
                               &intensity, &Dsrc, &float2int_src);
     if (err) exit(1);
-    colres_src = ipr; /* in-plane resolution */
-    rowres_src = ipr; /* in-plane resolution */
-    slcres_src = bpr; /* between-plane resolution */
     printf("srcreg Dsrc -------------\n");
     MatrixPrint(stdout,Dsrc);
     printf("----------------------------------\n");
-  } else {
-    Dsrc = NULL;
-    colres_src = 1; /* in-plane resolution */
-    rowres_src = 1; /* in-plane resolution */
-    slcres_src = 1; /* between-plane resolution */
-  }
+  } else Dsrc = NULL;
+
   /* Wsrc: Get the source warping Transform */
   Wsrc = NULL;
   /* Fsrc: Get the source FOV registration matrix */
   Fsrc = NULL;
   /* Qsrc: Compute the quantization matrix for src volume */
-  Qsrc = FOVQuantMatrix(ncols_src,  nrows_src,  nslcs_src,
-                        colres_src, rowres_src, slcres_src);
+  Qsrc = FOVQuantMatrix(mSrcVol->width,  mSrcVol->height,  mSrcVol->depth,
+                        mSrcVol->xsize,  mSrcVol->ysize,  mSrcVol->zsize);
   printf("ras2vox src (tkreg) Qsrc -------------\n");
   MatrixPrint(stdout,Qsrc);
   printf("----------------------------------\n");
@@ -265,54 +249,8 @@ int main(int argc, char **argv) {
 
   /* -------------- load mask volume stuff -----------------------------*/
   if (mskvolid != NULL) {
-    /* get mask volume info */
-
-    printf("Reading %s\n",mskvolid);
-    mritmp = MRIreadHeader(mskvolid,MRI_VOLUME_TYPE_UNKNOWN);
-    if(mritmp == NULL) exit(1);
-    nrows_msk = mritmp->height;
-    ncols_msk = mritmp->width;
-    nslcs_msk = mritmp->depth;
-
-    //err = bf_getvoldim(mskvolid,&nrows_msk,&ncols_msk,
-    //                 &nslcs_msk,&nfrms,&endian,&msktype);
-    //if (err) exit(1);
-
-    /* get the mask registration info */
-    /* xyzFOV = Dmsk*xyzAnat (in mask space) */
-    if (mskregfile != NULL) {
-      err = regio_read_register(mskregfile, &msksubject, &ipr, &bpr,
-                                &intensity, &Dmsk, &float2int_msk);
-      if (err) exit(1);
-      colres_msk = ipr; /* in-plane resolution */
-      rowres_msk = ipr; /* in-plane resolution */
-      slcres_msk = bpr; /* between-plane resolution */
-    } else if (msksamesrc) {
-      Dmsk = MatrixCopy(Dsrc,NULL);
-      colres_msk = colres_src; /* in-plane resolution */
-      rowres_msk = rowres_src; /* in-plane resolution */
-      slcres_msk = slcres_src; /* between-plane resolution */
-    } else {
-      Dmsk = NULL;
-      colres_msk = 1; /* in-plane resolution */
-      rowres_msk = 1; /* in-plane resolution */
-      slcres_msk = 1; /* between-plane resolution */
-    }
-
-    /* Qmsk: Compute the quantization matrix for msk volume */
-    /* crsFOV = Qmsk*xyzFOV */
-    Qmsk = FOVQuantMatrix(ncols_msk,  nrows_msk,  nslcs_msk,
-                          colres_msk, rowres_msk, slcres_msk);
-
-    /* get the mask2source registration information */
-    /* xyzSrc = Mmsk2src * xyzMsk */
-    if (msk2srcregfile != NULL) {
-      err = regio_read_mincxfm(msk2srcregfile, &Mmsk2src, NULL);
-      if (err) exit(1);
-    } else Mmsk2src = NULL;
-
     /* load the mask volume (single frame) */
-    //mMskVol = mri_load_bvolume_frame(mskvolid, mskframe);
+    printf("Reading %s\n",mskvolid);
     mMskVol = MRIread(mskvolid);
     if(mMskVol == NULL) exit(1);
     if(mskframe > 0){
@@ -322,11 +260,23 @@ int main(int argc, char **argv) {
       mMskVol = mritmp;
     }
 
+    /* Qmsk: Compute the quantization matrix for msk volume */
+    /* crsFOV = Qmsk*xyzFOV */
+    Qmsk = FOVQuantMatrix(mMskVol->width, mMskVol->height, mMskVol->depth,
+                          mMskVol->xsize, mMskVol->ysize,  mMskVol->zsize);
+
+    /* get the mask2source registration information */
+    /* xyzSrc = Mmsk2src * xyzMsk */
+    if (msk2srcregfile != NULL) {
+      err = regio_read_mincxfm(msk2srcregfile, &Mmsk2src, NULL);
+      if (err) exit(1);
+    } else Mmsk2src = NULL;
+
     /* convert from Mask Anatomical to Src FOV */
     if (!msksamesrc) {
       mSrcMskVol = vol2vol_linear(mMskVol, Qmsk, NULL, NULL, Dmsk,
                                   Qsrc, Fsrc, Wsrc, Dsrc,
-                                  nrows_src, ncols_src, nslcs_src,
+                                  mSrcVol->height, mSrcVol->width, mSrcVol->depth,
                                   Mmsk2src, INTERP_NEAREST, float2int_msk);
       if (mSrcMskVol == NULL) exit(1);
     } else mSrcMskVol = mMskVol;
@@ -340,19 +290,6 @@ int main(int argc, char **argv) {
   }
   /*-------------- Done loading mask stuff -------------------------*/
 
-  /* --------- load in the (possibly 4-D) source volume --------------*/
-  printf("Loading volume %s ...",srcvolid);
-  fflush(stdout);
-  //mSrcVol = mri_load_bvolume(srcvolid);
-  //mSrcVol->xsize = colres_src;
-  //mSrcVol->ysize = rowres_src;
-  //mSrcVol->zsize = slcres_src;
-  //bfiletype = BTypeFromStem(srcvolid);
-  //mSrcVol = MRIreadType(srcvolid,bfiletype);
-  mSrcVol = MRIread(srcvolid);
-
-  if (mSrcVol == NULL) exit(1);
-  printf("done\n");
   /* If this is a statistical volume, raise each frame to it's appropriate
      power (eg, stddev needs to be squared)*/
   if (is_sxa_volume(srcvolid)) {
@@ -620,15 +557,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       mskfmt = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--mskreg")) {
-      if (nargc < 1) argnerr(option,1);
-      mskregfile = pargv[0];
-      nargsused = 1;
-      msksamesrc = 0;
-    } else if (!strcmp(option, "--msksamesrc")) {
-      msksamesrc = 1;
-      nargsused = 0;
-    } else if (!strcmp(option, "--msktail")) {
+    } 
+    else if (!strcmp(option, "--msktail")) {
       if (nargc < 1) argnerr(option,1);
       msktail = pargv[0];
       nargsused = 1;
