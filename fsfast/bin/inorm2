@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/02 21:56:21 $
-#    $Revision: 1.6 $
+#    $Date: 2010/03/25 16:23:33 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: inorm2,v 1.6 2008/04/02 21:56:21 greve Exp $';
+set VERSION = '$Id: inorm2,v 1.7 2010/03/25 16:23:33 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -127,6 +127,9 @@ end
 fprintf(fp,'%f\n',meanval);
 fclose(fp);
   
+if(~monly) 
+  quit; 
+end
 
 EOF
 #--------------------------#
