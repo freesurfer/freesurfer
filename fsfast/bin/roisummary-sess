@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/25 16:04:27 $
-#    $Revision: 1.5 $
+#    $Date: 2010/03/25 16:15:51 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: roisummary-sess,v 1.5 2010/03/25 16:04:27 greve Exp $';
+set VERSION = '$Id: roisummary-sess,v 1.6 2010/03/25 16:15:51 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -47,13 +47,15 @@ set runlistfile = ();
 set umaskarg = ();
 set nolog = 0;
 
-if($#argv == 0) then
-  goto usage_exit;
-  exit 1;
-endif
+set PrintHelp = 0;
 
-# look for version string #
-set n = `echo $argv | grep version | wc -l` 
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
@@ -62,6 +64,18 @@ endif
 ## Look for nolog option ##
 set n = `echo $argv | grep nolog | wc -l` 
 if($n != 0) set nolog = 1;
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo "ERROR: cannot find any sessions" 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
 
 ##### Create a log file ######
 if(! $nolog) then
@@ -89,18 +103,6 @@ echo "$0"     >> $LF
 echo $inputargs  >> $LF
 uname -a      >> $LF
 date          >> $LF
-
-set SessList = `getsesspath $argv`;
-if($status || $#SessList == 0) then
-  echo "ERROR: cannot find any sessions" | tee -a $LF
-  exit 1;
-endif
-
-goto parse_args;
-parse_args_return:
-
-goto check_params;
-check_params_return:
 
 set infofile = $analysis/analysis.info
 if(! -e $infofile) then
@@ -340,4 +342,28 @@ usage_exit:
   echo "   -umask umask   : set unix file permission mask"
   echo "   -scriptonly    : don't run, just generate a script"
   echo "   -version       : print version and exit"
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This will create a summary table of an ROI analysis created by
+func2roi-sess. There will be a row for each session listed. Each
+column will have the following interpretation:
+
+1. Session Id
+2. Number of voxels in the anatomical label
+3. Number of voxels in the anat-func label (maybe the same as 2)
+4. Baseline value (good for computing percent signal change)
+5. Average residual error standard deviation
+6. DOF
+7. TER  in seconds (mostly useful for FIR)
+8. Number of conditions
+9. Number of values/regressors per condition
+10+ Average values of each regression coefficient
+
