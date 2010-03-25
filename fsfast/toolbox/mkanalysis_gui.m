@@ -19,10 +19,6 @@ function varargout = mkanalysis_gui(varargin)
 %      instance to run (singleton)".
 %
 
-% A. M. Dale and R. L. Buckner. 
-% Selective averaging of rapidly presented individual trials using
-% fMRI. Human Brain Mapping, 5(5):329-340, 1997.
-
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
@@ -55,11 +51,16 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.19 2009/04/10 22:01:59 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.20 2010/03/25 18:50:00 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
 handles.hrfplot = [];
+
+% These two should agree with values in mkanalysis-sess
+handles.DefaultTER     = .050; % 50 ms
+handles.DefaultTWindow = 40; % 40 sec
+handles.DefaultACFBins = 10; 
 
 %handles = parse_args(handles,varargin);
 if(isempty(MkAnalysisName))
@@ -176,10 +177,11 @@ if(isempty(tmp))
   return;
 end
 handles.flac.TR = sscanf(tmp,'%f');
-if(handles.flac.ana.TER == -1) 
-  handles.flac.ana.TER = handles.flac.TR; 
-end
-handles.flac.ana.timewindow = handles.flac.TR * round(24/handles.flac.TR);
+handles.flac.ana.TER = handles.flac.TR;
+%if(handles.flac.ana.TER == -1) 
+%  %handles.flac.ana.TER = handles.flac.TR/round(handles.flac.TR/handles.DefaultTER);  
+%end
+handles.flac.ana.timewindow = handles.flac.TR * round(handles.DefaultTWindow/handles.flac.TR);
 handles.flac.ana.prestim = handles.flac.TR * round(4/handles.flac.TR);
 handles = setstate(handles);
 guidata(hObject, handles);
@@ -504,11 +506,11 @@ ok = OKToSave(handles);
 if(~ok) return; end
 if(handles.flac.ana.gammafit | handles.flac.ana.spmhrffit)
   % These match the default values for mkanalysis-sess cmd line
-  % Added on 4/9/09
+  % Added on 4/9/09. Modified on 3/23/10
   handles.flac.ana.prestim = 0;
-  TER = handles.flac.TR/20;
+  TER = handles.flac.TR/round(handles.flac.TR/handles.DefaultTER);  
   handles.flac.ana.TER = TER;
-  handles.flac.ana.timewindow = TER*floor(40/TER);
+  handles.flac.ana.timewindow = TER*floor(handles.DefaultTWindow/TER);
 end
 fprintf('Saving %s ... ',handles.flac.name);
 fast_svana(handles.flac.name,handles.flac);
@@ -559,7 +561,7 @@ return;
 % =======================================================
 function cbWhiten_Callback(hObject, eventdata, handles)
 val = get(handles.cbWhiten,'value');
-if(val) handles.flac.acfbins = 10;
+if(val) handles.flac.acfbins = handles.DefaultACFBins;
 else    handles.flac.acfbins = 0;
 end
 handles = setstate(handles);
@@ -569,7 +571,7 @@ return;
 % =======================================================
 function cbINorm_Callback(hObject, eventdata, handles)
 val = get(handles.cbINorm,'value');
-if(val) handles.flac.inorm = 100;
+if(val) handles.flac.inorm = 1000;
 else    handles.flac.inorm = 0;
 end
 handles = setstate(handles);
@@ -667,6 +669,7 @@ set(handles.txNConditions,'string',tmp);
 set(handles.ebFSD,'string',flac.fsd);
 set(handles.ebRLF,'string',flac.runlistfile);
 set(handles.ebTR,'string',flac.TR);
+set(handles.ebRED,'string',flac.RefEventDur);
 set(handles.ebTPExcludeFile,'string',flac.tpexcfile);
 if(flac.inorm ~= 0) set(handles.cbINorm,'value',1);
 else                set(handles.cbINorm,'value',0);
@@ -1288,5 +1291,27 @@ handles.flac.autostimdur = newval;
 handles = setstate(handles);
 guidata(hObject, handles);
 return;
+
+
+%========================================================
+function ebRED_Callback(hObject, eventdata, handles)
+tmp = get(handles.ebRED,'string');
+if(isempty(tmp))
+  errordlg('You cannot set RED to be empty');  
+  handles = setstate(handles);
+  guidata(hObject, handles);
+  return;
+end
+handles.flac.RefEventDur = sscanf(tmp,'%f');
+fprintf('RED %g\n',handles.flac.RefEventDur);
+handles = setstate(handles);
+guidata(hObject, handles);
+return;
+
+% --- Executes during object creation, after setting all properties.
+function ebRED_CreateFcn(hObject, eventdata, handles)
+set(hObject,'BackgroundColor','white');
+return;
+
 
 

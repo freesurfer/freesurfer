@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac,IRFOnly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/04 19:20:57 $
-%    $Revision: 1.17 $
+%    $Date: 2010/03/25 18:50:00 $
+%    $Revision: 1.18 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -53,7 +53,10 @@ for nthev = 1:nev
     st = ev.st; % Delay has already been added
     if(~isfield(ev,'Xfir')) ev.Xfir = []; end
     if(~IRFOnly | isempty(ev.Xfir))
-      flacnew.ev(nthev).Xfir = fast_st2fir(st,flac.ntp,flac.TR,ev.psdwin,1,flac.fsv3_st2fir);
+      TER = ev.psdwin(3);
+      ssr = round(flac.TR/TER);
+      ntpssr = flac.ntp * ssr;
+      flacnew.ev(nthev).Xfir = fast_st2fir(st,ntpssr,TER,ev.psdwin,1,flac.fsv3_st2fir);
       if(isempty(flacnew.ev(nthev).Xfir)) 
 	fprintf('ERROR: creating FIR design matrix for %s\n',...
 		flacnew.ev(nthev).name);
@@ -61,7 +64,7 @@ for nthev = 1:nev
 	return; 
       end
     end
-    [Xirf tirf scalef] = flac_ev2irf(flac,nthev);
+    [Xirf tirf] = flac_ev2irf(ev,TER,flac.RefEventDur);
     if(isempty(Xirf)) 
       fprintf('ERROR: creating IRF design matrix for %s\n',...
 	      flacnew.ev(nthev).name);
@@ -70,8 +73,8 @@ for nthev = 1:nev
     end
     flacnew.ev(nthev).Xirf = Xirf;
     flacnew.ev(nthev).tirf = tirf;
-    flacnew.ev(nthev).scalef = scalef;
-    flacnew.ev(nthev).X = flacnew.ev(nthev).Xfir * flacnew.ev(nthev).Xirf;
+    Xtmp = flacnew.ev(nthev).Xfir * flacnew.ev(nthev).Xirf;
+    flacnew.ev(nthev).X = Xtmp(1:ssr:end,:);
   else
     switch(ev.model)
      case {'baseline'}

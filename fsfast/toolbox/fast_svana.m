@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.9 2009/04/11 22:51:09 greve Exp $
+% $Id: fast_svana.m,v 1.10 2010/03/25 18:50:00 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -92,6 +92,7 @@ end
 
 fprintf(fp,'analysis %s\n',ana.analysis);
 fprintf(fp,'TR %f\n',flac.TR);
+fprintf(fp,'RefEventDur %f\n',flac.RefEventDur);
 fprintf(fp,'fsd %s\n',flac.fsd);
 fprintf(fp,'funcstem %s\n',flac.funcstem);
 fprintf(fp,'runlistfile %s\n',flac.runlistfile);

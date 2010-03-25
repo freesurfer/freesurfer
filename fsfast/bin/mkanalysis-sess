@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/04 19:24:03 $
-#    $Revision: 1.26 $
+#    $Date: 2010/03/25 18:49:59 $
+#    $Revision: 1.27 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,16 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.26 2010/03/04 19:24:03 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.27 2010/03/25 18:49:59 greve Exp $';
+
+# These two should agree with values in mkanalysis_gui.m
+set DefaultTER     = .050; # 50 ms
+set DefaultTWindow = 40 ; # 40 sec
+set RescaleTarget = 1000;
+set acfbins = 10;
+
+set inorm      = 1;
+set gAlpha = ();
 
 set scriptsdir = ();
 set fsd    = ();
@@ -36,7 +45,6 @@ set eventrelated = 0;
 set blocked    = 0;
 set abblocked  = 0;
 set retinotopy = 0;
-set inorm      = 1;
 set motioncor  = 0;
 set designtype = ()
 set tpexclude = ();
@@ -52,12 +60,10 @@ set TR  = ();
 set TER = ();
 set TauMax = 0;
 set WhitenFlag = 0;
-set acfbins = 10;
 set gammafit = 0;
 set spmhrf   = -1;
 set gDelta  = ();
 set gTau    = ();
-set gAlpha = ();
 set meanfit = 1;
 set trendfit = 1;
 set qtrendfit = 0;
@@ -80,7 +86,7 @@ set FSV3st2fir = 0;
 set FSV3whiten = 0;
 set mfile = ();
 set monly = 0;
-set RescaleTarget = 1000;
+set RefEventDur = 1;
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -145,7 +151,8 @@ cp $FREESURFER_HOME/build-stamp.txt $analysis/fs.build-stamp.txt
 
 if($#TER == 0) then
   if($gammafit || $spmhrf != -1) then
-    set TER = `echo $TR/20 | bc -l`
+    #set TER = `echo $TR/20 | bc -l` # was TER = TR/20
+    set TER = `perl -e "print sprintf('%f',$TR/int($TR/$DefaultTER+0.5))"`
   else
     set TER = $TR;
   endif
@@ -211,7 +218,9 @@ if($#extreg != 0) then
   if($extregorthog)   echo "-extregorthog " >> $sxacfg
 endif
 
-if($inorm) echo "-rescale $RescaleTarget" >> $sxacfg
+if($inorm) then 
+  echo "-rescale $RescaleTarget" >> $sxacfg
+endif
 
 if($#stimdur) echo "-stimdur $stimdur" >> $sxacfg
 echo $sveres >> $sxacfg
@@ -223,6 +232,7 @@ rm -f $infofile
 touch $infofile
 echo "analysis   $analysis"   >> $infofile
 echo "TR         $TR"         >> $infofile
+echo "RefEventDur $RefEventDur">> $infofile
 echo "fsd        $fsd"        >> $infofile
 echo "funcstem   $funcstem"   >> $infofile
 if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
@@ -399,6 +409,8 @@ while( $#argv != 0 )
       endif
 
   set TR = `cat $cainfo   | awk '{if($1 == "TR") print $2}'`;
+  set tmp = `cat $cainfo | awk '{if($1 == "RefEventDur") print $2}'`;
+  if($#tmp) set RefEventDur = $tmp
   set designtype = `cat $cainfo | awk '{if($1 == "designtype") print $2}'`;
   set fsd       = `cat $cainfo | awk '{if($1 == "fsd") print $2}'`;
   set funcstem  = `cat $cainfo | awk '{if($1 == "funcstem") print $2}'`;
@@ -640,6 +652,12 @@ while( $#argv != 0 )
       set sphhrf = -1;
       breaksw
 
+    case "-refeventdur":
+      # for use with -clone #
+      if ( $#argv < 1) goto arg1err;
+      set RefEventDur = $argv[1]; shift;
+      breaksw
+
     case "-fwhm-really":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
@@ -753,6 +771,11 @@ while( $#argv != 0 )
       set force = 1;
       breaksw
 
+    case "-noinorm":
+    case "-no-inorm":
+      set inorm = 0;
+      breaksw
+
     case "-inorm":
       set inorm = 1;
       breaksw
@@ -761,11 +784,6 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set RescaleTarget = $argv[1]; shift;
       set inorm = 1;
-      breaksw
-
-    case "-noinorm":
-    case "-no-inorm":
-      set inorm = 0;
       breaksw
 
     case "-stimdur":
@@ -927,13 +945,13 @@ check_params:
   if($#nskip == 0)   set nskip = 0;
 
   if($gammafit == 1 && $#IdealTW == 0) then
-    set IdealTW = 40;
+    set IdealTW = $DefaultTWindow;
     set PreStim = 0;
     echo "INFO: setting Gamma time window to $IdealTW sec"
   endif
 
   if($spmhrf >= 0 && $#IdealTW == 0) then
-    set IdealTW = 40;
+    set IdealTW = $DefaultTWindow;
     set PreStim = 0;
     echo "INFO: setting SPM time window to $IdealTW sec"
   endif
@@ -1004,7 +1022,7 @@ usage_exit:
   echo "   -funcstem stem         : stem of functional data (default = f or fmc)"
   echo "   -motioncor             : use motion corrected data (see mc-sess) "
   echo "   -runlistfile filename  : file with list of runs to include in analysis"
-  echo "   -inorm                 : intensity normalize data"
+  echo "   -no-inorm              : do not intensity normalize data"
   echo "   -rescale-target value  : inorm to value"
   echo "   -fwhm        FWHM      : Full-Width/Half-Max for in-plane smoothing (mm)"
   echo "   -nskip       N         : skip the first N time points in each run"

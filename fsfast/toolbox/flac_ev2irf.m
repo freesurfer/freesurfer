@@ -1,8 +1,13 @@
-function [Xirf tirf scalef] = flac_ev2irf(flac,nthev)
-% [Xirf tirf scalef] = flac_ev2irf(flac,nthev)
+function [Xirf tirf] = flac_ev2irf(ev,TR,RefEventDur)
+% [Xirf tirf] = flac_ev2irf(ev,TR,RefEventDur)
 %
+% ev - explanatory variable with params defined
+% TR - TR in seconds
+% RefEventDur - Duration of reference event in seconds. This 
+% sets the scaling factor. One can expect an event of this 
+% duration witha peak of 1% signal change to have a beta=1.
 %
-
+% $Id: flac_ev2irf.m,v 1.8 2010/03/25 18:50:00 greve Exp $
 
 %
 % flac_ev2irf.m
@@ -10,8 +15,8 @@ function [Xirf tirf scalef] = flac_ev2irf(flac,nthev)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/04 19:20:57 $
-%    $Revision: 1.7 $
+%    $Date: 2010/03/25 18:50:00 $
+%    $Revision: 1.8 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -27,12 +32,11 @@ function [Xirf tirf scalef] = flac_ev2irf(flac,nthev)
 %
 
 Xirf = [];
-if(nargin ~= 2)
-  fprintf('[Xirf tirf] = flac_ev2irf(flac,nthev)\n');
+if(nargin ~= 3)
+  fprintf('[Xirf tirf] = flac_ev2irf(ev,TR,RefEventDur)\n');
   return;
 end
 
-ev = flac.ev(nthev);
 if(~ev.ishrf)
   fprintf('ERROR: cannot get irf from non-HRF EV\n');
   return;
@@ -48,7 +52,13 @@ switch(ev.model)
   nderiv = ev.params(1);
   dpsd   = ev.params(2);
   tirf = dpsd*[0:ev.npsd-1]';
-  Xirf = fast_spmhrf(tirf);
+  Xirf = fast_spmhrf_sampled(tirf);
+  % Scale for reference event duration
+  Nref = round(RefEventDur/dpsd);
+  a = ones(Nref,1);
+  c = conv(Xirf,a);
+  scalef = max(c);
+  Xirf = Xirf/scalef;
   dhspmhrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
@@ -65,7 +75,13 @@ switch(ev.model)
   dpsd   = ev.params(5);
   tirf = dpsd*[0:ev.npsd-1]';
   Xirf = fmri_hemodyn(tirf,delay,tau,alpha);
-  Xirf = Xirf/max(Xirf); % consistent with selxavg
+  % Scale for reference event duration
+  Nref = round(RefEventDur/dpsd);
+  a = ones(Nref,1);
+  c = conv(Xirf,a);
+  scalef = max(c);
+  Xirf = Xirf/scalef;
+  %Xirf = Xirf/max(Xirf); % this is kinda what selxavg does
   dh_hrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
@@ -82,9 +98,15 @@ switch(ev.model)
   b = meanlag/(sigma^2);
   nderiv  = ev.params(4);
   dpsd    = ev.params(5);
-  tirf = dpsd*[0:ev.npsd-1]' + flac.TR/2;
+  tirf = dpsd*[0:ev.npsd-1]' + TR/2;
   Xirf = pdf_gamma(tirf,a,b);  
-  Xirf = Xirf/sum(Xirf);
+  % Scale for reference event duration
+  Nref = round(RefEventDur/dpsd);
+  a = ones(Nref,1);
+  c = conv(Xirf,a);
+  scalef = max(c);
+  Xirf = Xirf/scalef;
+  %Xirf = Xirf/sum(Xirf);
   dh_hrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
@@ -97,8 +119,6 @@ switch(ev.model)
   fprintf('ERROR: model %s unrecognized\n',ev.model);
   
 end
-
-scalef = sum(Xirf .* repmat(tirf,[1 size(Xirf,2)]));
 
 return;
 

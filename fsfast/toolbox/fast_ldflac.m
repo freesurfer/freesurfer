@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/04/09 05:20:17 $
-%    $Revision: 1.40 $
+%    $Date: 2010/03/25 18:50:00 $
+%    $Revision: 1.41 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -70,6 +70,7 @@ if(isempty(flac))
   flac.OverrideTR = 0; 
   flac.fsv3_st2fir = 0;
   flac.fsv3_whiten = 0;  
+  flac.RefEventDur = 1;
   inherit = 0;
   ana.analysis     = '';
   ana.designtype   = '';
@@ -159,6 +160,7 @@ while(1)
    case 'parfile',     flac.parfile     = sscanf(tline,'%*s %s',1);
    case 'schdir',      flac.schdir      = sscanf(tline,'%*s %s',1);
    case 'acfseg',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
+   case 'RefEventDur', flac.RefEventDur = sscanf(tline,'%*s %f',1);
    case 'INHERIT',     
     inheritflacname  = sscanf(tline,'%*s %s',1);
     flacdir = fast_dirname(flacfile);
