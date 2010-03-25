@@ -15,8 +15,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/25 15:29:01 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/03/25 16:00:50 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,7 +38,7 @@
   Author:  Douglas N. Greve
   email:   analysis-bugs@nmr.mgh.harvard.edu
   Date:    1/2/00
-  $Id: mri_vol2roi.c,v 1.30 2010/03/25 15:29:01 greve Exp $
+  $Id: mri_vol2roi.c,v 1.31 2010/03/25 16:00:50 greve Exp $
 */
 
 #include <stdio.h>
@@ -90,7 +90,7 @@ int BTypeFromStem(char *stem);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2roi.c,v 1.30 2010/03/25 15:29:01 greve Exp $";
+static char vcid[] = "$Id: mri_vol2roi.c,v 1.31 2010/03/25 16:00:50 greve Exp $";
 char *Progname = NULL;
 
 char *roifile    = NULL;
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
   //int endian,roitype;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.30 2010/03/25 15:29:01 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_vol2roi.c,v 1.31 2010/03/25 16:00:50 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -412,7 +412,7 @@ int main(int argc, char **argv) {
       fprintf(fp,"%d \n",nfinalhits);
     }
     for (f=0; f < mROI->nframes; f++)
-      fprintf(fp,"%9.4f\n",MRIgetVoxVal(mROI,0,0,0,f));
+      fprintf(fp,"%f\n",MRIgetVoxVal(mROI,0,0,0,f));
     fclose(fp);
   }
 
