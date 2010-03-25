@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 14:21:08 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/03/25 14:42:40 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -239,7 +239,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.20 2010/03/25 14:21:08 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.21 2010/03/25 14:42:40 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -289,6 +289,11 @@ namespace GPU {
 
       //! Allocates a pinned memory buffer on the host
       T* AllocateHostBuffer( void ) const;
+
+      
+      //! Zeros contents of the volume
+      void Zero( void );
+      
 
       // -------------------------------------------
       // Data transfer

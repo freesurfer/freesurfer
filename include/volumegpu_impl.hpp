@@ -10,8 +10,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 14:21:08 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/25 14:42:40 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -169,6 +169,21 @@ namespace GPU {
 				     cudaHostAllocDefault ) );
       
       return( h_buf );
+    }
+
+
+    // ---------------------------------
+
+    template<typename T>
+    void VolumeGPU<T>::Zero( void ) {
+      
+      // Have to set up an extent too
+      cudaExtent extent = ExtentFromDims( this->dims );
+      extent.width *= sizeof(T);
+
+      CUDA_SAFE_CALL( cudaMemset3D( this->d_data,
+				    0,
+				    extent ) );
     }
 
 
