@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/09 21:23:03 $
-#    $Revision: 1.8 $
+#    $Date: 2010/03/25 16:25:08 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.8 2009/04/09 21:23:03 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.9 2010/03/25 16:25:08 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -38,6 +38,9 @@ set fthresh = 2;
 set fmax    = 4;
 set DoAllContrasts = 0;
 set Delink = 0;
+set UseVol2Surf = 1;
+set ProjFrac = 0.5;
+set Interp = nearest
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -157,6 +160,49 @@ foreach sess ($SessList)
   $cmd
   if($status) exit 1;
 
+  if($UseVol2Surf) then
+    # Sample volume to the surface
+    set mov = $mapconcatfile
+    set out = $sess/$mapfsd/$mapanalysis/$hemi.tksconcat.mgh
+    set cmd = (mri_vol2surf --mov $mov --reg $reg\
+     --hemi $hemi --projfrac $ProjFrac --interp $Interp \
+     --o $out)
+    echo $cmd
+    $cmd
+    if($status) exit 1;
+    rm -f $mov
+    set mapconcatfile = $out
+
+    if($ShowHDR) then
+      set mov = $hpath
+      set out = $sess/$mapfsd/$mapanalysis/$hemi.h.mgh
+      set cmd = (mri_vol2surf --mov $mov --reg $reg\
+        --hemi $hemi --projfrac $ProjFrac --interp $Interp \
+        --o $out)
+      echo $cmd
+      $cmd
+      if($status) exit 1;
+      set hpath = $out
+
+      set mov = $hoffsetpath
+      set out = $sess/$mapfsd/$mapanalysis/$hemi.h-offset.mgh
+      set cmd = (mri_vol2surf --mov $mov --reg $reg\
+        --hemi $hemi --projfrac $ProjFrac --interp $Interp \
+        --o $out)
+      echo $cmd
+      $cmd
+      if($status) exit 1;
+      set hoffsetpath = $out
+    endif
+    set overlayregopt = ()
+    set hdrregopt = ()
+  else
+    set overlayregopt = (-overlay-reg $reg)
+    if($ShowHDR) then
+      set hdrregopt = (-timecourse-reg $reg -timecourse-offset-reg-file $reg)
+    endif
+  endif
+
   # tksurfer subject hemi surf 
   #   -annot aparc.annot
   #   -overlay overlay       -overlay-reg   reg
@@ -164,12 +210,11 @@ foreach sess ($SessList)
   #   -timecourse-offset tco -timecourse-offset-reg
 
   set cmd = (tksurfer $subject $hemi $surf)
-  set cmd = ($cmd -overlay $mapconcatfile -overlay-reg $reg)
+  set cmd = ($cmd -overlay $mapconcatfile $overlayregopt)
   set cmd = ($cmd -label-outline -colscalebarflag 1)
   if($ShowHDR) then
-    set cmd = ($cmd -timecourse $hpath -timecourse-reg $reg)
-    set cmd = ($cmd -timecourse-offset $hoffsetpath \
-                 -timecourse-offset-reg-file $reg)
+    set cmd = ($cmd -timecourse $hpath -timecourse-offset $hoffsetpath)
+    set cmd = ($cmd $hdrregopt)
   endif
   if($#annot) set cmd = ($cmd -annot $annot)
   set fmid   = `echo "($fmax+$fthresh)/2.0" | bc -l`
@@ -189,7 +234,10 @@ foreach sess ($SessList)
   echo ""
   $cmd
 
+  # delete tmp files
   rm -f $mapconcatfile
+  rm -f $sess/$mapfsd/$mapanalysis/$hemi.h.mgh
+  rm -f $sess/$mapfsd/$mapanalysis/$hemi.h-offset.mgh
 
 end # Loop over sessions
 
@@ -264,6 +312,20 @@ while( $#argv != 0 )
 
     case "-delink":
       set Delink = 1;
+      breaksw
+
+    case "-no-vol2surf":
+      set UseVol2Surf = 0;
+      breaksw
+
+    case "-projfrac":
+      if($#argv < 1) goto arg1err;
+      set ProjFrac = $argv[1]; shift
+      breaksw
+
+    case "-interp":
+      if($#argv < 1) goto arg1err;
+      set Interp = $argv[1]; shift
       breaksw
 
     case "-debug":
