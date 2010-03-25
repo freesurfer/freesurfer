@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/23 21:29:31 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/03/25 18:50:25 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.29 2010/03/23 21:29:31 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.30 2010/03/25 18:50:25 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -684,31 +684,37 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
                                    MRI_SURFACE *mris,
                                    LABEL *cortex_label)
 {
-  int vno, n, unknown_index, unknown_annot, medial_wall_annot, nexcluded,
-  cc_annot, exclude_list[MAX_EXCLUDED], annot  ;
+  int vno, n, annot;
+  int nexcluded, exclude_list[MAX_EXCLUDED];
   VERTEX  *v ;
 
   printf("rationalizing unknown annotations with cortex label\n") ;
-  CTABfindEntryByName(mris->ct, "Unknown", &unknown_index);
-  if (unknown_index < 0)
-    ErrorReturn(ERROR_BADPARM,
-                (ERROR_BADPARM, "could not find Unknown annotation")) ;
-  medial_wall_annot = CTABentryNameToAnnotation("Medial_wall", mris->ct);
-  cc_annot = CTABentryNameToAnnotation("corpus_callosum", mris->ct);
-  if (cc_annot < 0)
-    cc_annot = CTABentryNameToAnnotation("corpuscallosum", mris->ct);
-  CTABannotationAtIndex(mris->ct, unknown_index, &unknown_annot);
 
   nexcluded = 0 ;
-  exclude_list[nexcluded++] = medial_wall_annot ;
-  exclude_list[nexcluded++] = unknown_annot ;
-  exclude_list[nexcluded++] = cc_annot ;
-  annot = CTABentryNameToAnnotation("corpuscallosum", mris->ct);
+
+  // Medial_wall label is in Christophe atlas
+  annot = CTABentryNameToAnnotation("Medial_wall", mris->ct);
   if (annot >= 0)
+  {
     exclude_list[nexcluded++] = annot ;
+    printf("relabeling Medial_wall label...\n");
+  }
+
+  // 'unknown' label is essentially the medial wall in Desikan atlas
   annot = CTABentryNameToAnnotation("unknown", mris->ct);
   if (annot >= 0)
+  {
     exclude_list[nexcluded++] = annot ;
+    printf("relabeling unknown label...\n");
+  }
+
+  // corpus callosum labeled on medial wall in Desikan atlas
+  annot = CTABentryNameToAnnotation("corpuscallosum", mris->ct);
+  if (annot >= 0)
+  {
+    exclude_list[nexcluded++] = annot ;
+    printf("relabeling corpuscallosum label...\n");
+  }
 
   MRISclearMarks(mris) ;
   LabelMark(cortex_label, mris) ;
@@ -718,9 +724,10 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
       DiagBreak() ;
     v = &mris->vertices[vno] ;
     if (v->marked == 0)  // cortex label says it's not in cortex
-      v->annotation = unknown_annot ;
+      v->annotation = 0; // replace with empty (transparent) annotation
     else // cortex label says it is in cortex
     {
+      if (v->annotation == -1) v->marked = MARK_RELABEL;
       for (n = 0 ; n < nexcluded ; n++)
         if (v->annotation == exclude_list[n])
         {
