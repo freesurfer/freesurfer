@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.18 $
+#    $Author: greve $
+#    $Date: 2010/03/25 16:05:10 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg-sess,v 1.18 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: selxavg-sess,v 1.19 2010/03/25 16:05:10 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -152,7 +152,6 @@ echo $0        >> $LF
 echo $inputargs  >> $LF
 uname -a      >> $LF
 date          >> $LF
-which selxavg >> $LF
 
 set StartTime = `date`;
 
