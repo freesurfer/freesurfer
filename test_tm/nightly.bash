@@ -81,10 +81,13 @@ cd $NIGHTLYDIR/test_tm
 echo
 pwd
 echo
+echo "NIGHTLY: Cleaning up old tests" >> $LOGFILE
+testcleanup
 
-echo "Running tm"
+echo "NIGHTLY: Running tm" >> $LOGFILE
 echo
 tm .
 echo
 
 echo "NIGHTLY: Tests complete"
+echo "NIGHTLY: Tests complete" >> $LOGFILE
