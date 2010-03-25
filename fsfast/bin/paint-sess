@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/09/24 22:55:17 $
-#    $Revision: 1.20 $
+#    $Date: 2010/03/25 16:23:52 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: paint-sess,v 1.20 2007/09/24 22:55:17 greve Exp $';
+set VERSION = '$Id: paint-sess,v 1.21 2010/03/25 16:23:52 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -671,7 +671,7 @@ check_params:
   if($#subject == 0) set getsubjfromreg = 1;
 
   # I'm special
-  if($user == greve) set fmt = mgz;
+  #if($user == greve) set fmt = mgz;
 
 goto check_params_return;
 ############--------------##################
