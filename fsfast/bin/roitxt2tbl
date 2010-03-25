@@ -28,9 +28,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.2 $
+#    $Author: greve $
+#    $Date: 2010/03/25 16:04:27 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -90,6 +90,7 @@ set outdir = `dirname $tblfile`;
 mkdir -p $outdir
 rm -f $tblfile
 
+if(0) then
 echo $nlabel >> $tblfile
 echo $nroi >> $tblfile
 echo $offset >> $tblfile
@@ -99,11 +100,23 @@ echo $TER >> $tblfile
 echo $TPS >> $tblfile
 echo $Nc >> $tblfile
 echo $Nh >> $tblfile
+endif
+
+printf "%12s\n" $nlabel >> $tblfile
+printf "%12s\n" $nroi    >> $tblfile
+printf "%12s\n" $offset  >> $tblfile
+printf "%12s\n" $eresstd >> $tblfile
+printf "%12s\n" $DOF >> $tblfile
+printf "%12s\n" $TER  >> $tblfile
+printf "%12s\n" $TPS >> $tblfile
+printf "%12s\n" $Nc >> $tblfile
+printf "%12s\n" $Nh >> $tblfile
 
 @ n = 2 + 3 * $Nh
 @ c = 1;
 while($c <= $Nc)
-  head -n $n $htxt | tail -$Nh >> $tblfile
+  set v = `head -n $n $htxt | tail -$Nh`;
+  printf "%12s\n" $v >> $tblfile
   @ n = $n + $Nh * 2;
   @ c = $c + 1;
 end

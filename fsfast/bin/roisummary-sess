@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2010/03/25 16:04:27 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: roisummary-sess,v 1.4 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: roisummary-sess,v 1.5 2010/03/25 16:04:27 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -173,7 +173,11 @@ if($tbltranspose != 1) then
   if($includesessid) then
     set tmpsumfile = /tmp/sumfile_$$
     set tmpsessidfile = /tmp/sessidfile_$$
-    echo $sessidlist > $tmpsessidfile
+    foreach sid ($sessidlist)
+      printf "%12s    " $sessid >> $tmpsessidfile
+    end
+    printf "\n" >> $tmpsessidfile
+    #echo $sessidlist > $tmpsessidfile
     cat $tmpsessidfile $sumfile > $tmpsumfile
     cp $tmpsumfile $sumfile
     rm $tmpsumfile $tmpsessidfile
