@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 15:00:42 $
- *    $Revision: 1.67 $
+ *    $Date: 2010/03/25 19:31:50 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -468,6 +468,16 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   double gcamComputeSSE( GCA_MORPH *gcam, 
 			 MRI *mri, 
 			 GCA_MORPH_PARMS *parms );
+
+  
+  int gcamSuppressNegativeGradients( GCA_MORPH *gcam, float scale );
+
+  
+  int gcamApplyGradient( GCA_MORPH *gcam, GCA_MORPH_PARMS *parms );
+  int gcamUndoGradient( GCA_MORPH *gcam );
+
+  int gcamClearGradient( GCA_MORPH *gcam );
+  int gcamClearMomentum( GCA_MORPH *gcam ) ;
 
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties

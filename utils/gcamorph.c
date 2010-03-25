@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 15:00:38 $
- *    $Revision: 1.184 $
+ *    $Date: 2010/03/25 19:31:45 $
+ *    $Revision: 1.185 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -141,7 +141,6 @@ static int gcamComputePeriventricularWMDeformation(GCA_MORPH *gcam, MRI *mri) ;
 static double gcamMaxGradient(GCA_MORPH *gcam) ;
 static int gcamCheck(GCA_MORPH *gcam, MRI *mri) ;
 static int gcamWriteDiagnostics(GCA_MORPH *gcam) ;
-static int gcamSuppressNegativeGradients(GCA_MORPH *gcam, float scale) ;
 static int gcamShowCompressed(GCA_MORPH *gcam, FILE *fp) ;
 static MATRIX *gcamComputeOptimalTargetLinearTransform(GCA_MORPH *gcam, 
                                                        MATRIX *m_L, 
@@ -176,7 +175,7 @@ static int gcamMLElabelAtLocation(GCA_MORPH *gcam,
 #endif
 static int is_temporal_wm(GCA_MORPH *gcam, MRI *mri, GCA_NODE *gcan, \
                           float x, float y, float z, int ninputs) ;
-static int gcamClearMomentum(GCA_MORPH *gcam) ;
+
 static int gcamRemoveNegativeNodes(GCA_MORPH *gcam, 
                                    MRI *mri, 
                                    GCA_MORPH_PARMS *parms) ;
@@ -244,7 +243,7 @@ static int gcamAreaIntensityTerm(GCA_MORPH *gcam,
                                  MRI *mri, MRI *mri_smooth,
                                  double l_area_intensity, 
                                  NODE_LOOKUP_TABLE *nlt, float sigma) ;
-static int gcamClearGradient(GCA_MORPH *gcam) ;
+
 
 
 static double gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri) ;
@@ -278,9 +277,9 @@ static int gcamJacobianTerm(GCA_MORPH *gcam,
                             double l_jacobian, 
                             double ratio_thresh) ;
 
-static int gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms) ;
+
 static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
-static int gcamUndoGradient(GCA_MORPH *gcam) ;
+
 static int check_gcam( const GCAM *gcam ) ;
 static MATRIX *gcamComputeOptimalLinearTransformInRegion
 (GCA_MORPH *gcam, MRI *mri_mask, MATRIX *m_L,
@@ -6165,7 +6164,7 @@ gcamSpringEnergy(GCA_MORPH *gcam, double ratio_thresh)
   return(sse) ;
 }
 
-static int
+int
 gcamClearGradient(GCA_MORPH *gcam)
 {
   int   x, y, z ;
@@ -6177,7 +6176,9 @@ gcamClearGradient(GCA_MORPH *gcam)
           gcam->nodes[x][y][z].dy = gcam->nodes[x][y][z].dz = 0.0;
   return(NO_ERROR) ;
 }
-static int
+
+
+int
 gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms)
 {
   int            x, y, z ;
@@ -6218,7 +6219,9 @@ gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms)
     parms->nlt = gcamCreateNodeLookupTable(gcam, parms->mri, parms->nlt) ;
   return(NO_ERROR) ;
 }
-static int
+
+
+int
 gcamClearMomentum(GCA_MORPH *gcam)
 {
   int            x, y, z ;
@@ -6798,7 +6801,8 @@ GCAMfreeInverse(GCA_MORPH *gcam)
   return(NO_ERROR) ;
 }
 
-static int
+
+int
 gcamUndoGradient(GCA_MORPH *gcam)
 {
   int            x, y, z ;
@@ -7202,6 +7206,9 @@ GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status)
   return(NO_ERROR) ;
 }
 #define MAX_SAMPLES 100
+
+#define GCAM_FOTS_OUTPUT 0
+
 static double
 gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 {
@@ -7212,6 +7219,18 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   VECTOR   *vY ;
   int      N, i, Gxs, Gys, Gzs,bad, suppressed=0, prev_neg ;
   long     diag ;
+
+#if GCAM_FOTS_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+
+  if( (nCalls%outputFreq) == 0 ) {
+    char fname[STRLEN];
+    snprintf( fname, STRLEN-1, "gcam%05u", nCalls/outputFreq );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+  }
+#endif
 
   gcamClearMomentum(gcam) ;
   // disable diagnostics so we don't see every time step sampled
@@ -7444,6 +7463,10 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   Gy = Gys ;
   Gz = Gzs ;
   Gdiag = diag ;
+
+#if GCAM_FOTS_OUTPUT
+  nCalls++;
+#endif
 
   return(min_dt) ;
 }
@@ -12464,7 +12487,7 @@ gcamShowCompressed(GCA_MORPH *gcam, FILE *fp)
   return(n1+n2+n3+n4) ;
 }
 
-static int
+int
 gcamSuppressNegativeGradients(GCA_MORPH *gcam, float scale)
 {
   int            i, j, k /*, in, jn, kn, i1, j1, k1 */ ;
