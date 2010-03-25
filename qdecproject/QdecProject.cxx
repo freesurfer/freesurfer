@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/18 04:46:17 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/03/25 21:39:14 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -1154,7 +1154,6 @@ vector< string > QdecProject::CreateStatsDataTables ()
   hemi.push_back( "lh" );
   hemi.push_back( "rh" );
   parc.push_back( "aparc" );
-  parc.push_back( "aparc.a2005s" );
   parc.push_back( "aparc.a2009s" );
   meas.push_back( "area" );
   meas.push_back( "volume" );
