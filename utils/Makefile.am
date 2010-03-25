@@ -313,6 +313,7 @@ G++FLAGS = -Wall -Wextra -Weffc++
 #NVCCFLAGS += -Xopencc "-Wall"
 
 CUDA_DEPS = ../include/volumegpu.hpp\
+            ../include/volumegpu_impl.hpp\
             ../include/mriframegpu.hpp\
             ../include/gcamorphgpu.hpp
 

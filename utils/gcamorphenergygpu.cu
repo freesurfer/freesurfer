@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/24 16:45:37 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/25 15:00:38 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1016,8 +1016,30 @@ namespace GPU {
 	return( sse );
       }
 
+      
+
+      // --------------------------------------------------
+      
       template<typename T>
-      float SSEdispatch( GPU::Classes::GCAmorphGPU& gcam,
+      float ComputeRMS( GPU::Classes::GCAmorphGPU& gcam,
+			const GPU::Classes::MRIframeGPU<T>& mri,
+			const float mriThick,
+			GCA_MORPH_PARMS *parms ) {
+
+	float sse = this->ComputeSSE( gcam, mri, mriThick, parms );
+
+	const dim3 dims = gcam.d_rx.GetDims();
+	float nVoxels = dims.x;
+	nVoxels *= dims.y;
+	nVoxels *= dims.z;
+
+	float rms = sqrtf( sse/nVoxels );
+
+	return( rms );
+      }
+
+      template<typename T>
+      float RMSdispatch( GPU::Classes::GCAmorphGPU& gcam,
 			 const MRI *mri,
 			 const float mriThick,
 			 GCA_MORPH_PARMS *parms ) {
@@ -1030,10 +1052,11 @@ namespace GPU {
 	mriGPU.AllocateArray();
 	mriGPU.SendArray();
 
-	float energy = this->ComputeSSE( gcam, mriGPU, mriThick, parms );
+	float rms = this->ComputeRMS( gcam, mriGPU, mriThick, parms );
 
-	return( energy );
+	return( rms );
       }
+
 
       // ------------------------------------------------
     private:
@@ -1189,12 +1212,12 @@ float gcamSmoothnessEnergyGPU( const GCA_MORPH *gcam ) {
 
 
 
-//! Wrapper for gcamComputeSSE
-float gcamComputeSSEonGPU( GCA_MORPH *gcam,
+//! Wrapper for GCAMcomputeRMS
+float gcamComputeRMSonGPU( GCA_MORPH *gcam,
 			   const MRI* mri,
 			   GCA_MORPH_PARMS *parms ) {
 
-  float energy;
+  float rms;
 
   const float thick = ( mri ? mri->thick : 1.0 );
 
@@ -1205,7 +1228,7 @@ float gcamComputeSSEonGPU( GCA_MORPH *gcam,
   switch( mri->type ) {
 
   case MRI_UCHAR:
-    energy = myEnergy.SSEdispatch<unsigned char>( myGCAM, mri, thick, parms );
+    rms = myEnergy.RMSdispatch<unsigned char>( myGCAM, mri, thick, parms );
     break;
 
   default:
@@ -1217,5 +1240,5 @@ float gcamComputeSSEonGPU( GCA_MORPH *gcam,
 
   myGCAM.RecvAll( gcam );
 
-  return( energy );
+  return( rms );
 }

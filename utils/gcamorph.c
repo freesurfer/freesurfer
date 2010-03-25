@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/24 16:46:29 $
- *    $Revision: 1.183 $
+ *    $Date: 2010/03/25 15:00:38 $
+ *    $Revision: 1.184 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -202,9 +202,7 @@ static int  gcamJacobianTermAtNode(GCA_MORPH *gcam,
                                    double *pdx, double *pdy,
                                    double *pdz) ;
 static int   finitep(float f) ;
-static double gcamComputeSSE(GCA_MORPH *gcam, 
-                             MRI *mri, 
-                             GCA_MORPH_PARMS *parms) ;
+
 static int write_snapshot(GCA_MORPH *gcam, 
                           MRI *mri, 
                           GCA_MORPH_PARMS *parms, 
@@ -5218,33 +5216,30 @@ int GCAMmorphSurf(MRIS *mris, GCA_MORPH *gcam)
 double
 GCAMcomputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
+  double rms;
+  
+#ifdef FS_CUDA
+  rms = gcamComputeRMSonGPU( gcam, mri, parms );
+#else
   float   nvoxels ;
-  double  rms, sse ;
+  double  sse ;
 
   check_gcam(gcam) ;
   sse = gcamComputeSSE(gcam, mri, parms) ;
   check_gcam(gcam) ;
   nvoxels = gcam->width*gcam->height*gcam->depth ;
   rms = sqrt(sse/nvoxels) ;
+#endif
+
   return(rms) ;
 }
 
 #define BIN_SCALE 1
-static double
+double
 gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   double sse;
 
-#ifdef FS_CUDA
-  sse = gcamComputeSSEonGPU( gcam, mri, parms );
-
-  // What follows is an ugly hack to silence a whiny compiler
-  const int flagOff = 0;
-  
-  // It issues warnings for unused static functions, which become errors
-  if( flagOff ) {
-    // Hence, we put the functions inside a 'dead' if block
-#endif
   
   double ms_sse, l_sse, s_sse, ls_sse, j_sse, d_sse, a_sse;
   double nvox, label_sse, map_sse, dtrans_sse;
@@ -5332,10 +5327,6 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   sse =
     spring_sse+area_intensity_sse+binary_sse+l_sse + ms_sse + 
     s_sse + j_sse + d_sse + a_sse + label_sse + map_sse + exp_sse + dtrans_sse ;
-#ifdef FS_CUDA
-  // End of ugly hack to stop compiler whining about unused static functions
-  }
-#endif
   return(sse) ;
 }
 

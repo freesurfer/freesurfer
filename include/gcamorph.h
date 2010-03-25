@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/24 14:50:03 $
- *    $Revision: 1.66 $
+ *    $Date: 2010/03/25 15:00:42 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -465,6 +465,10 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   //! Compute the smoothness energy
   double gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri );
 
+  double gcamComputeSSE( GCA_MORPH *gcam, 
+			 MRI *mri, 
+			 GCA_MORPH_PARMS *parms );
+
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties
   void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
@@ -481,7 +485,7 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   float gcamSmoothnessEnergyGPU( const GCA_MORPH *gcam );
 
-  float gcamComputeSSEonGPU( GCA_MORPH *gcam,
+  float gcamComputeRMSonGPU( GCA_MORPH *gcam,
 			     const MRI* mri,
 			     GCA_MORPH_PARMS *parms );
 #endif
