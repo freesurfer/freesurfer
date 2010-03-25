@@ -69,6 +69,8 @@ freesurfer/average/RB_all_withskull_2006-02-15.gca
 freesurfer/average/RB_new.gca
 freesurfer/average/lh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
 freesurfer/average/rh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
+freesurfer/average/lh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
+freesurfer/average/rh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
 freesurfer/subjects/talairach
 freesurfer/subjects/mri
 freesurfer/matlab/read_meas_dat.m
