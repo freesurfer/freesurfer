@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/25 16:15:51 $
-#    $Revision: 1.6 $
+#    $Date: 2010/03/25 16:22:35 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: roisummary-sess,v 1.6 2010/03/25 16:15:51 greve Exp $';
+set VERSION = '$Id: roisummary-sess,v 1.7 2010/03/25 16:22:35 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -363,7 +363,8 @@ column will have the following interpretation:
 5. Average residual error standard deviation
 6. DOF
 7. TER  in seconds (mostly useful for FIR)
-8. Number of conditions
-9. Number of values/regressors per condition
-10+ Average values of each regression coefficient
+8. Prestimulus time of the window (only good for FIR)
+9. Number of conditions
+10. Number of values/regressors per condition
+11+ Average values of each regression coefficient
 
