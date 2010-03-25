@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 18:27:17 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/03/25 15:48:29 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -62,6 +62,14 @@ namespace GPU {
       good = ( good && ( myDims == this->d_origx.GetDims() ) );
       good = ( good && ( myDims == this->d_origy.GetDims() ) );
       good = ( good && ( myDims == this->d_origz.GetDims() ) );
+
+      good = ( good && ( myDims == this->d_dx.GetDims() ) );
+      good = ( good && ( myDims == this->d_dy.GetDims() ) );
+      good = ( good && ( myDims == this->d_dz.GetDims() ) );
+      
+      good = ( good && ( myDims == this->d_odx.GetDims() ) );
+      good = ( good && ( myDims == this->d_ody.GetDims() ) );
+      good = ( good && ( myDims == this->d_odz.GetDims() ) );
 
       good = ( good && ( myDims == this->d_invalid.GetDims() ) );
 
@@ -117,19 +125,30 @@ namespace GPU {
       this->d_origx.Allocate( dims );
       this->d_origy.Allocate( dims );
       this->d_origz.Allocate( dims );
+ 
+      this->d_dx.Allocate( dims );
+      this->d_dy.Allocate( dims );
+      this->d_dz.Allocate( dims );
+ 
+      this->d_odx.Allocate( dims );
+      this->d_ody.Allocate( dims );
+      this->d_odz.Allocate( dims );
 
-      this->d_invalid.Allocate( dims );
       this->d_area.Allocate( dims );
+      this->d_area1.Allocate( dims );
+      this->d_area2.Allocate( dims );
+
       this->d_origArea.Allocate( dims );
       this->d_origArea1.Allocate( dims );
       this->d_origArea2.Allocate( dims );
-      this->d_area1.Allocate( dims );
-      this->d_area2.Allocate( dims );
+
+      this->d_invalid.Allocate( dims );
       this->d_label.Allocate( dims );
       this->d_status.Allocate( dims );
+      this->d_labelDist.Allocate( dims );
+
       this->d_mean.Allocate( dims );
       this->d_variance.Allocate( dims );
-      this->d_labelDist.Allocate( dims );
     }
 
 
@@ -143,14 +162,23 @@ namespace GPU {
       this->d_ry.Release();
       this->d_rz.Release();
 
+      this->d_dx.Release();
+      this->d_dy.Release();
+      this->d_dz.Release();
+
+      this->d_odx.Release();
+      this->d_ody.Release();
+      this->d_odz.Release();
+
       this->d_origx.Release();
       this->d_origy.Release();
       this->d_origz.Release();
 
-      this->d_area.Release();
       this->d_origArea.Release();
       this->d_origArea1.Release();
       this->d_origArea2.Release();
+
+      this->d_area.Release();
       this->d_area1.Release();
       this->d_area2.Release();
 
@@ -203,6 +231,14 @@ namespace GPU {
       float* h_origy = this->d_origy.AllocateHostBuffer();
       float* h_origz = this->d_origz.AllocateHostBuffer();
 
+      float* h_dx = this->d_dx.AllocateHostBuffer();
+      float* h_dy = this->d_dy.AllocateHostBuffer();
+      float* h_dz = this->d_dz.AllocateHostBuffer();
+
+      float* h_odx = this->d_odx.AllocateHostBuffer();
+      float* h_ody = this->d_ody.AllocateHostBuffer();
+      float* h_odz = this->d_odz.AllocateHostBuffer();
+
       float* h_area = this->d_area.AllocateHostBuffer();
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
       float* h_origArea1 = this->d_origArea1.AllocateHostBuffer();
@@ -236,13 +272,23 @@ namespace GPU {
 	    h_origy[i1d] = gcamn.origy;
 	    h_origz[i1d] = gcamn.origz;
 
-	    h_invalid[i1d] = gcamn.invalid;
-	    h_area[i1d] = gcamn.area;
+	    h_dx[i1d] = gcamn.dx;
+	    h_dy[i1d] = gcamn.dy;
+	    h_dz[i1d] = gcamn.dz;
+
+	    h_odx[i1d] = gcamn.odx;
+	    h_ody[i1d] = gcamn.ody;
+	    h_odz[i1d] = gcamn.odz;
+
 	    h_origArea[i1d] = gcamn.orig_area;
 	    h_origArea1[i1d] = gcamn.orig_area1;
 	    h_origArea2[i1d] = gcamn.orig_area2;
+
+	    h_area[i1d] = gcamn.area;
 	    h_area1[i1d] = gcamn.area1;
 	    h_area2[i1d] = gcamn.area2;
+
+	    h_invalid[i1d] = gcamn.invalid;
 	    h_status[i1d] = gcamn.status;
 	    h_label[i1d] = gcamn.label;
 	    h_labelDist[i1d] = gcamn.label_dist;
@@ -284,10 +330,19 @@ namespace GPU {
       this->d_origy.SendBuffer( h_origy );
       this->d_origz.SendBuffer( h_origz );
 
-      this->d_area.SendBuffer( h_area );
+      this->d_dx.SendBuffer( h_dx );
+      this->d_dy.SendBuffer( h_dy );
+      this->d_dz.SendBuffer( h_dz );
+
+      this->d_odx.SendBuffer( h_odx );
+      this->d_ody.SendBuffer( h_ody );
+      this->d_odz.SendBuffer( h_odz );
+      
       this->d_origArea.SendBuffer( h_origArea );
       this->d_origArea1.SendBuffer( h_origArea1 );
       this->d_origArea2.SendBuffer( h_origArea2 );
+
+      this->d_area.SendBuffer( h_area );
       this->d_area1.SendBuffer( h_area1 );
       this->d_area2.SendBuffer( h_area2 );
 
@@ -311,10 +366,19 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_origy ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origz ) );
 
-      CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_dx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_dy ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_dz ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( h_odx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_ody ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_odz ) );
+
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea2 ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
 
@@ -361,10 +425,19 @@ namespace GPU {
       float* h_origy = this->d_origy.AllocateHostBuffer();
       float* h_origz = this->d_origz.AllocateHostBuffer();
 
-      float* h_area = this->d_area.AllocateHostBuffer();
+      float* h_dx = this->d_dx.AllocateHostBuffer();
+      float* h_dy = this->d_dy.AllocateHostBuffer();
+      float* h_dz = this->d_dz.AllocateHostBuffer();
+
+      float* h_odx = this->d_odx.AllocateHostBuffer();
+      float* h_ody = this->d_ody.AllocateHostBuffer();
+      float* h_odz = this->d_odz.AllocateHostBuffer();
+
       float* h_origArea = this->d_origArea.AllocateHostBuffer();
       float* h_origArea1 = this->d_origArea1.AllocateHostBuffer();
       float* h_origArea2 = this->d_origArea2.AllocateHostBuffer();
+
+      float* h_area = this->d_area.AllocateHostBuffer();
       float* h_area1 = this->d_area1.AllocateHostBuffer();
       float* h_area2 = this->d_area2.AllocateHostBuffer();
 
@@ -385,10 +458,19 @@ namespace GPU {
       this->d_origy.RecvBuffer( h_origy );
       this->d_origz.RecvBuffer( h_origz );
 
-      this->d_area.RecvBuffer( h_area );
+      this->d_dx.RecvBuffer( h_dx );
+      this->d_dy.RecvBuffer( h_dy );
+      this->d_dz.RecvBuffer( h_dz );
+
+      this->d_odx.RecvBuffer( h_odx );
+      this->d_ody.RecvBuffer( h_ody );
+      this->d_odz.RecvBuffer( h_odz );
+
       this->d_origArea.RecvBuffer( h_origArea );
       this->d_origArea1.RecvBuffer( h_origArea1 );
       this->d_origArea2.RecvBuffer( h_origArea2 );
+
+      this->d_area.RecvBuffer( h_area );
       this->d_area1.RecvBuffer( h_area1 );
       this->d_area2.RecvBuffer( h_area2 );
 
@@ -417,11 +499,20 @@ namespace GPU {
 	    gcamn->origx = h_origx[i1d];
 	    gcamn->origy = h_origy[i1d];
 	    gcamn->origz = h_origz[i1d];
+	    
+	    gcamn->dx = h_dx[i1d];
+	    gcamn->dy = h_dy[i1d];
+	    gcamn->dz = h_dz[i1d];
+	    
+	    gcamn->odx = h_odx[i1d];
+	    gcamn->ody = h_ody[i1d];
+	    gcamn->odz = h_odz[i1d];
 
-	    gcamn->area = h_area[i1d];
 	    gcamn->orig_area = h_origArea[i1d];
 	    gcamn->orig_area1 = h_origArea1[i1d];
 	    gcamn->orig_area2 = h_origArea2[i1d];
+
+	    gcamn->area = h_area[i1d];
 	    gcamn->area1 = h_area1[i1d];
 	    gcamn->area2 = h_area2[i1d];
 
@@ -458,10 +549,19 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_origy ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origz ) );
 
-      CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_dx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_dy ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_dz ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( h_odx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_ody ) );
+      CUDA_SAFE_CALL( cudaFreeHost( h_odz ) );
+
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_origArea2 ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
 

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/23 18:27:22 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/03/25 15:48:33 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,12 +60,27 @@ namespace GPU {
       //! Matches origz in GCAmorph
       VolumeGPU<float> d_origz;
 
+      //! Matches dx in GCAmorph
+      VolumeGPU<float> d_dx;
+      //! Matches dy in GCAmorph
+      VolumeGPU<float> d_dy;
+      //! Matches dz in GCAmorph
+      VolumeGPU<float> d_dz;
+
+      //! Matches odx in GCAmorph
+      VolumeGPU<float> d_odx;
+      //! Matches ody in GCAmorph
+      VolumeGPU<float> d_ody;
+      //! Matches odz in GCAmorph
+      VolumeGPU<float> d_odz;
+
       //! Matches orig_area field in GCAmorph
       VolumeGPU<float> d_origArea;
       //! Matches orig_area1 field in GCAmorph
       VolumeGPU<float> d_origArea1;
       //! Matches orig_area2 field in GCAmorph
       VolumeGPU<float> d_origArea2;
+
       //! Matches area field in GCAmorph
       VolumeGPU<float> d_area;
       //! Matches area1 field in GCAmorph
@@ -94,18 +109,12 @@ namespace GPU {
       // Constructors & Destructor
 
       //! Default constructor
-      GCAmorphGPU( void ) : d_rx(),
-			    d_ry(),
-			    d_rz(),
-			    d_origx(),
-			    d_origy(),
-			    d_origz(),
-			    d_area(),
-			    d_origArea(),
-			    d_origArea1(),
-			    d_origArea2(),
-			    d_area1(),
-			    d_area2(),
+      GCAmorphGPU( void ) : d_rx(), d_ry(), d_rz(),
+			    d_origx(), d_origy(), d_origz(),
+			    d_dx(), d_dy(), d_dz(),
+			    d_odx(), d_ody(), d_odz(),
+			    d_origArea(), d_origArea1(), d_origArea2(),
+			    d_area(), d_area1(), d_area2(),
 			    d_invalid(),
 			    d_label(),
 			    d_status(),
