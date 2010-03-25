@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/17 21:11:34 $
-#    $Revision: 1.36 $
+#    $Date: 2010/03/25 16:49:24 $
+#    $Revision: 1.37 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.36 2009/04/17 21:11:34 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.37 2010/03/25 16:49:24 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -144,8 +144,17 @@ foreach sess ($SessList)
   @ dofsess = `cat $doffile`;
   @ DOF = $DOF + $dofsess;
 
+  set bstampfile = $sess/$fsd/$analysis/fs.build-stamp.txt
+  if(-e $bstampfile) then
+    set bstamp = `cat $bstampfile`
+    set mdate = `stat -c %y $bstampfile | awk '{print $1}'`
+  else
+    set bstamp = ();
+    set mdate = ();
+  endif
+
   set srcsubject = `cat $reg | head -n 1`
-  echo "$sessid $srcsubject $dofsess" >> $sesslistfile
+  echo "$sessid $srcsubject $dofsess $mdate $bstamp" >> $sesslistfile
 end
 set ffxdofdat = $outdir/ffxdof.dat
 echo $DOF > $ffxdofdat
