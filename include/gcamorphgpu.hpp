@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 15:48:33 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/03/25 16:17:54 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -154,6 +154,12 @@ namespace GPU {
 
       //! Computes the properties of the metric
       void ComputeMetricProperties( int& invalid, int& neg );
+
+      //! Zeros out the dx, dy and dz fields
+      void ClearGradient( void );
+
+      //! Zeros out the odx, ody and odz fields
+      void ClearMomentum( void );
 
     private:
 

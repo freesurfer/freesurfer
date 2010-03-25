@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 15:48:29 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/03/25 16:17:41 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -820,6 +820,22 @@ namespace GPU {
 
       //std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
     }
+
+
+    // --------------------------------------------
+
+    void GCAmorphGPU::ClearGradient( void ) {
+      this->d_dx.Zero();
+      this->d_dy.Zero();
+      this->d_dz.Zero();
+    }
+
+    void GCAmorphGPU::ClearMomentum( void ) {
+      this->d_odx.Zero();
+      this->d_ody.Zero();
+      this->d_odz.Zero();
+    }
+
   }
 }
 
