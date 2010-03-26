@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/23 18:31:10 $
- *    $Revision: 1.65 $
+ *    $Date: 2010/03/26 19:04:05 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -213,6 +213,12 @@ public:
   
   void OnToolLabelStats             ( wxCommandEvent& event );
   void OnToolLabelStatsUpdateUI     ( wxUpdateUIEvent& event );
+  
+  void OnFilterMean                 ( wxCommandEvent& event );
+  void OnFilterMedian               ( wxCommandEvent& event );
+  void OnFilterConvolve             ( wxCommandEvent& event );
+  void OnFilterGradient             ( wxCommandEvent& event );
+  void OnFilterUpdateUI             ( wxUpdateUIEvent& event );
 
   void OnMouseEnterWindow           ( wxMouseEvent& event );
 
@@ -392,6 +398,7 @@ protected:
   void CommandLoadSurfaceCurvature  ( const wxArrayString& cmd );
   void CommandLoadSurfaceOverlay( const wxArrayString& cmd );
   void CommandLoadSurfaceAnnotation ( const wxArrayString& cmd );
+  void CommandLoadSurfaceLabel  ( const wxArrayString& cmd );
   void CommandLoadConnectivityData  ( const wxArrayString& cmd );
   void CommandLoadWayPoints     ( const wxArrayString& cmd );
   void CommandLoadControlPoints ( const wxArrayString& cmd );

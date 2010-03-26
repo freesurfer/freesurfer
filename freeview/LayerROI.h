@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:15 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/03/26 19:04:05 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,11 +76,11 @@ public:
 
   bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 
+  virtual void SetModified();
 protected:
   void InitializeActors();
   void UpdateOpacity();
   void UpdateColorMap();
-  virtual void SetModified();
 
   virtual void OnSlicePositionChanged( int nPlane );
 

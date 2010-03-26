@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/20 19:34:09 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/26 19:04:05 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,36 +31,145 @@
 
 VolumeFilter::VolumeFilter( LayerMRI* input, LayerMRI* output ) : 
     Listener( "VolumeFilter" ), 
-    Broadcaster( "VolumeFilter" )
+    Broadcaster( "VolumeFilter" ),
+    m_nKernelSize( 3 )
 {
-  SetVolumes( input, output );
+  SetInputOutputVolumes( input, output );
 }
 
 VolumeFilter::~VolumeFilter()
 {
 }
 
-void VolumeFilter::SetVolumes( LayerMRI* input, LayerMRI* output )
+void VolumeFilter::SetInputOutputVolumes( LayerMRI* input, LayerMRI* output )
 {
-  m_MRIInput = input;
-  m_MRIOutput = output;
-  m_MRIInput->AddListener( this );
-  m_MRIOutput->AddListener( this );
+  m_volumeInput = input;
+  m_volumeOutput = output;
+  if ( m_volumeInput )
+    m_volumeInput->AddListener( this );
+  if ( m_volumeOutput )
+    m_volumeOutput->AddListener( this );
 }
 
 void VolumeFilter::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "LayerObjectDeleted" )
   {
-    if ( sender == m_MRIInput || iData == m_MRIInput )
-      m_MRIInput = NULL;
-    else if ( sender == m_MRIOutput || iData == m_MRIOutput )
-      m_MRIOutput = NULL;
+    if ( sender == m_volumeInput || iData == m_volumeInput )
+      m_volumeInput = NULL;
+    else if ( sender == m_volumeOutput || iData == m_volumeOutput )
+      m_volumeOutput = NULL;
   }
 }
 
 bool VolumeFilter::ReadyToUpdate()
 {
-  return ( m_MRIInput && m_MRIOutput );
+  return ( m_volumeInput && m_volumeOutput );
 }
+
+bool VolumeFilter::Update()
+{
+  if ( !ReadyToUpdate() )
+  {
+    cerr << "Volume has been removed. Please start over." << endl;
+    return false;
+  }
+  
+  if ( Execute() )
+  {
+    m_volumeOutput->SetModified();
+    m_volumeOutput->SendBroadcast( "LayerActorUpdated", m_volumeOutput );
+    return true;
+  }
+  else
+    return false;
+}
+
+MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
+{
+  vtkImageData* image = layer->GetImageData();
+  int mri_type = MRI_FLOAT;
+  switch ( image->GetScalarType() )
+  {
+    case VTK_CHAR:
+    case VTK_SIGNED_CHAR:
+    case VTK_UNSIGNED_CHAR:
+      mri_type = MRI_UCHAR;
+      break;
+    case VTK_INT:
+    case VTK_UNSIGNED_INT:
+      mri_type = MRI_INT;
+      break;
+    case VTK_LONG:
+    case VTK_UNSIGNED_LONG:
+      mri_type = MRI_LONG;
+      break;
+    case VTK_SHORT:
+    case VTK_UNSIGNED_SHORT:
+      mri_type = MRI_SHORT;
+      break;
+    default:
+      break ;
+  }
+  
+  int* dim = image->GetDimensions();
+  int zFrames = image->GetNumberOfScalarComponents();
+  MRI* mri = MRIallocSequence( dim[0], dim[1], dim[2], mri_type, zFrames );
+  if ( !mri )
+  {
+    cerr << "Can not allocate memory for MRI" << endl;
+    return NULL;
+  }
+  
+  int zX = mri->width;
+  int zY = mri->height;
+  int zZ = mri->depth;
+  int nScalarSize = image->GetScalarSize();
+  for ( int nZ = 0; nZ < zZ; nZ++ )
+  {
+    for ( int nY = 0; nY < zY; nY++ )
+    {
+      for ( int nX = 0; nX < zX; nX++ )
+      {
+        for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
+        {
+          void* buf = (char*)&MRIseq_vox( mri, nX, nY, nZ, nFrame);
+          void* ptr = (char*)image->GetScalarPointer( nX, nY, nZ )
+              + nFrame * nScalarSize;
+          memcpy( buf, ptr, nScalarSize );
+        }
+      }
+    }
+  }
+  
+  return mri;
+}
+  
+// map mri data to image data, assuming same data type
+void VolumeFilter::MapMRIToVolume( MRI* mri, LayerMRI* layer )
+{
+  vtkImageData* image = layer->GetImageData();
+  int zX = mri->width;
+  int zY = mri->height;
+  int zZ = mri->depth;
+  int zFrames = mri->nframes;
+  int nScalarSize = image->GetScalarSize();
+  for ( int nZ = 0; nZ < zZ; nZ++ )
+  {
+    for ( int nY = 0; nY < zY; nY++ )
+    {
+      for ( int nX = 0; nX < zX; nX++ )
+      {
+        for ( int nFrame = 0; nFrame < zFrames; nFrame++ )
+        {
+          void* buf = (char*)&MRIseq_vox( mri, nX, nY, nZ, nFrame);
+          void* ptr = (char*)image->GetScalarPointer( nX, nY, nZ )
+              + nFrame * nScalarSize;
+          memcpy( ptr, buf, nScalarSize );
+        }
+      }
+    }
+  }
+}
+
 

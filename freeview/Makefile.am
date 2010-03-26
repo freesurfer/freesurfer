@@ -65,6 +65,8 @@ freeview_SOURCES=\
 	DialogSaveScreenshot.h \
 	DialogSaveVolumeAs.cpp \
 	DialogSaveVolumeAs.h \
+	DialogVolumeFilter.cpp \
+	DialogVolumeFilter.h \
 	DialogWriteMovieFrames.cpp \
 	DialogWriteMovieFrames.h \
 	FSLabel.cpp \
@@ -188,8 +190,14 @@ freeview_SOURCES=\
 	ToolWindowMeasure.h \
 	VolumeFilter.cpp \
 	VolumeFilter.h \
+	VolumeFilterConvolve.cpp \
+	VolumeFilterConvolve.h \
 	VolumeFilterGradient.cpp \
 	VolumeFilterGradient.h \
+	VolumeFilterMean.cpp \
+	VolumeFilterMean.h \
+	VolumeFilterMedian.cpp \
+	VolumeFilterMedian.h \
 	vtkDijkstraGraphGeodesicPath.cxx \
 	vtkDijkstraGraphGeodesicPath.h \
 	vtkDijkstraGraphInternals.h \

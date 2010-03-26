@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/20 19:34:09 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/26 19:04:05 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,13 +45,8 @@ VolumeFilterGradient::~VolumeFilterGradient()
 {
 }
 
-void VolumeFilterGradient::Update()
+bool VolumeFilterGradient::Execute()
 {
-  if ( !ReadyToUpdate() )
-  {
-    cerr << "Volume has been removed. Please start over." << endl;
-    return;
-  }
   
   /*
   vtkSmartPointer<vtkImageClip> clip = vtkSmartPointer<vtkImageClip>::New();
@@ -77,17 +72,17 @@ void VolumeFilterGradient::Update()
   if ( m_bSmoothing )
   {
     vtkSmartPointer<vtkImageGaussianSmooth> smooth = vtkSmartPointer<vtkImageGaussianSmooth>::New();
-    smooth->SetInput( m_MRIInput->GetImageData() );
+    smooth->SetInput( m_volumeInput->GetImageData() );
     smooth->SetStandardDeviations( m_dSD, m_dSD, m_dSD );
     smooth->SetRadiusFactors( 1, 1, 1 );
     grad->SetInput( smooth->GetOutput() );
   }
   else
-    grad->SetInput( m_MRIInput->GetImageData() );
+    grad->SetInput( m_volumeInput->GetImageData() );
   
   grad->Update();
-  m_MRIOutput->GetImageData()->DeepCopy( grad->GetOutput() );
+  m_volumeOutput->GetImageData()->DeepCopy( grad->GetOutput() );
   
-  m_MRIOutput->SendBroadcast( "LayerActorUpdated", this );
+  return true;
 }
 

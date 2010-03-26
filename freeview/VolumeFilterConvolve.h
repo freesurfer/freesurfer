@@ -1,6 +1,6 @@
 /**
- * @file  VolumeFilterGradient.h
- * @brief Base VolumeFilterGradient class. 
+ * @file  VolumeFilterConvolve.h
+ * @brief Base VolumeFilterConvolve class. 
  *
  */
 /*
@@ -8,7 +8,7 @@
  * CVS Revision Info:
  *    $Author: rpwang $
  *    $Date: 2010/03/26 19:04:05 $
- *    $Revision: 1.2 $
+ *    $Revision: 1.1 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -24,39 +24,38 @@
  *
  */
 
-#ifndef VolumeFilterGradient_h
-#define VolumeFilterGradient_h
+#ifndef VolumeFilterConvolve_h
+#define VolumeFilterConvolve_h
 
 #include "VolumeFilter.h"
 
 class LayerMRI;
 
-class VolumeFilterGradient : public VolumeFilter
+class VolumeFilterConvolve : public VolumeFilter
 {
 public:
-  VolumeFilterGradient( LayerMRI* input = 0, LayerMRI* output = 0 );
-  virtual ~VolumeFilterGradient();
-
-  void SetSmoothing( bool bSmooth )
+  VolumeFilterConvolve( LayerMRI* input = 0, LayerMRI* output = 0 );
+  virtual ~VolumeFilterConvolve();
+  
+  void SetSigma( double dvalue )
   {
-    m_bSmoothing = bSmooth;
+    m_dSigma = dvalue;
   }
   
-  void SetStandardDeviation( double sd )
+  double GetSigma()
   {
-    m_dSD = sd;
+    return m_dSigma;
   }
-
+  
   std::string GetName()
   {
-    return "Gradient";
+    return "Convolve";
   }
   
 protected:
   bool Execute();
   
-  bool    m_bSmoothing;
-  double  m_dSD;    
+  double m_dSigma;
 };
 
 #endif

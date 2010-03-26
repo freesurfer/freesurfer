@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/23 18:31:10 $
- *    $Revision: 1.101 $
+ *    $Date: 2010/03/26 19:04:05 $
+ *    $Revision: 1.102 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -94,6 +94,11 @@
 #include "DialogLoadPointSet.h"
 #include "DialogSavePoint.h"
 #include "DialogWriteMovieFrames.h"
+#include "VolumeFilterMean.h"
+#include "VolumeFilterMedian.h"
+#include "VolumeFilterConvolve.h"
+#include "chronometer.h"
+#include "DialogVolumeFilter.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -228,6 +233,15 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GOTO_POINT" ),        MainWindow::OnToolGotoPointUpdateUI )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GOTO_POINT_SUBMENU" ),        MainWindow::OnToolGotoPointUpdateUI )
   EVT_MENU_RANGE  ( ID_TOOL_GOTO_POINT_1, ID_TOOL_GOTO_POINT_1+1000,            MainWindow::OnToolMenuGotoPoint )
+  
+  EVT_MENU        ( XRCID( "ID_FILTER_MEAN" ),            MainWindow::OnFilterMean )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILTER_MEAN" ),            MainWindow::OnFilterUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILTER_MEDIAN" ),          MainWindow::OnFilterMedian )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILTER_MEDIAN" ),          MainWindow::OnFilterUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILTER_CONVOLVE" ),        MainWindow::OnFilterConvolve )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILTER_CONVOLVE" ),        MainWindow::OnFilterUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILTER_GRADIENT" ),        MainWindow::OnFilterGradient )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILTER_GRADIENT" ),        MainWindow::OnFilterUpdateUI )
   
   EVT_MENU        ( XRCID( "ID_TOOL_LABEL_STATS" ),       MainWindow::OnToolLabelStats )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_LABEL_STATS" ),       MainWindow::OnToolLabelStatsUpdateUI )
@@ -2533,6 +2547,10 @@ void MainWindow::RunScript()
   {
     CommandLoadSurfaceAnnotation( sa );
   }
+  else if ( sa[0] == _("loadsurfacelabel") )
+  {
+    CommandLoadSurfaceLabel( sa );
+  }
   else if ( sa[0] == _("loadconnectivity") )
   {
     CommandLoadConnectivityData( sa );
@@ -3313,6 +3331,18 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
           m_scripts.insert( m_scripts.begin(), script );
         }
       }
+      else if ( subOption == _("label") )
+      {
+        // add script to load surface label files
+        wxArrayString fns = MyUtils::SplitString( subArgu, _(",") );
+        for ( int i = fns.size()-1; i >= 0; i-- )
+        {
+          wxArrayString script;
+          script.Add( _("loadsurfacelabel") );
+          script.Add( fns[i] );
+          m_scripts.insert( m_scripts.begin(), script );
+        }
+      }
       else if ( subOption == _("vector") )
       {
         // add script to load surface vector files
@@ -3558,6 +3588,13 @@ void MainWindow::CommandLoadSurfaceOverlay( const wxArrayString& cmd )
 void MainWindow::CommandLoadSurfaceAnnotation( const wxArrayString& cmd )
 {
   LoadSurfaceAnnotationFile( cmd[1] );
+   
+  ContinueScripts();
+}
+
+void MainWindow::CommandLoadSurfaceLabel( const wxArrayString& cmd )
+{
+  LoadSurfaceLabelFile( cmd[1] );
    
   ContinueScripts();
 }
@@ -4584,4 +4621,89 @@ void MainWindow::StopWriteMovieFrames()
   m_timerWriteMovieFrames.Stop();
   m_settingsMovieFrames.StepCount = 0;
   m_statusBar->m_gaugeBar->Hide();
+}
+
+void MainWindow::OnFilterMean( wxCommandEvent& event )
+{  
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    VolumeFilterMean* filter = new VolumeFilterMean( mri, mri );
+    DialogVolumeFilter* dlg = new DialogVolumeFilter( this );
+    dlg->SetFilter( filter );
+    dlg->ShowSigma( false );
+    if ( dlg->ShowModal() == wxID_OK )
+    {
+      filter->SetKernelSize( dlg->GetKernelSize() );
+      filter->Update();
+    }
+    delete filter;
+  }
+}
+
+void MainWindow::OnFilterUpdateUI( wxUpdateUIEvent& event )
+{
+  Layer* layer = GetLayerCollection( "MRI" )->GetActiveLayer();
+  event.Enable( !m_bProcessing && layer && layer->IsVisible() ); 
+}
+
+void MainWindow::OnFilterMedian( wxCommandEvent& event )
+{  
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    /*
+    Chronometer tSample;
+    InitChronometer( &tSample );
+    StartChronometer( &tSample );
+    */
+    
+    VolumeFilterMedian* filter = new VolumeFilterMedian( mri, mri );
+    DialogVolumeFilter* dlg = new DialogVolumeFilter( this );
+    dlg->ShowSigma( false );
+    dlg->SetFilter( filter );
+    if ( dlg->ShowModal() == wxID_OK )
+    {
+      filter->SetKernelSize( dlg->GetKernelSize() );
+      filter->Update();
+    }
+    delete filter;
+    
+    /*
+    StopChronometer( &tSample );
+    printf( "  tSample : %9.3f ms\n", GetChronometerValue( &tSample ) );
+    fflush( 0 );
+    */
+  }  
+}
+
+void MainWindow::OnFilterConvolve( wxCommandEvent& event )
+{  
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    VolumeFilterConvolve* filter = new VolumeFilterConvolve( mri, mri );
+    DialogVolumeFilter* dlg = new DialogVolumeFilter( this );
+    dlg->SetFilter( filter );
+    dlg->SetSigma( filter->GetSigma() );
+    if ( dlg->ShowModal() == wxID_OK )
+    {
+      filter->SetKernelSize( dlg->GetKernelSize() );
+      filter->SetSigma( dlg->GetSigma() );
+      filter->Update();
+    }
+    delete filter;
+  }  
+}
+
+void MainWindow::OnFilterGradient( wxCommandEvent& event )
+{  
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    VolumeFilterGradient* filter = new VolumeFilterGradient( mri, mri );
+    filter->Update();
+    mri->ResetWindowLevel();
+    delete filter;
+  }  
 }

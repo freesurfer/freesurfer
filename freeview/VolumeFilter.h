@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/07/20 19:34:09 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/03/26 19:04:05 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -33,25 +33,49 @@
 #include <string>
 #include <vector>
 
+extern "C"
+{
+#include "mri.h"
+}
+
 class LayerMRI;
 
 class VolumeFilter : public Listener, public Broadcaster
 {
 public:
-  VolumeFilter( LayerMRI* input, LayerMRI* output );
+  VolumeFilter( LayerMRI* input = 0, LayerMRI* output = 0 );
   virtual ~VolumeFilter();
 
-  virtual void Update() = 0;
-
+  bool Update();
+  
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
   
   bool ReadyToUpdate();
   
-  void SetVolumes( LayerMRI* input, LayerMRI* output );
+  void SetInputOutputVolumes( LayerMRI* input, LayerMRI* output );
+  
+  MRI* CreateMRIFromVolume( LayerMRI* layer );
+  
+  void MapMRIToVolume( MRI* mri, LayerMRI* layer );
+  
+  int GetKernelSize()
+  {
+    return m_nKernelSize;
+  }
+  
+  void SetKernelSize( int nKernelSize )
+  {
+    m_nKernelSize = nKernelSize;
+  }
+  
+  virtual std::string GetName() = 0;
   
 protected:
-  LayerMRI*   m_MRIInput;
-  LayerMRI*   m_MRIOutput;
+  virtual bool Execute() = 0;
+
+  int         m_nKernelSize;
+  LayerMRI*   m_volumeInput;
+  LayerMRI*   m_volumeOutput;
 };
 
 #endif

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/12 18:26:07 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/03/26 19:04:05 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -182,8 +182,9 @@ public:
   
   bool FloodFillByContour2D( double* ras, Contour2D* c2d );
   
-protected:
   virtual void SetModified();
+  
+protected:
 
   void InitializeVolume();
   void InitializeActors();
