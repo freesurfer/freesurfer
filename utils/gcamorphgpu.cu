@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/26 16:11:44 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/26 16:15:56 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1016,6 +1016,16 @@ void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
   gcamGPU.ComputeMetricProperties( *invalid, gcam->neg );
   gcamGPU.RecvAll( gcam );
 
+}
+
+
+void gcamApplyGradientGPU( GCA_MORPH *gcam, GCA_MORPH_PARMS *parms ) {
+
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.ApplyGradient( parms );
+  gcamGPU.RecvAll( gcam );
 }
 
 /*

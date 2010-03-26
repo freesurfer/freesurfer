@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 19:31:50 $
- *    $Revision: 1.68 $
+ *    $Date: 2010/03/26 16:15:59 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -484,6 +484,8 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
 				       int *invalid );
 
+  void gcamApplyGradientGPU( GCA_MORPH *gcam, GCA_MORPH_PARMS *parms );
+
   float gcamLogLikelihoodEnergyGPU( const GCA_MORPH *gcam,
 				    const MRI* mri );
 
@@ -498,6 +500,9 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   float gcamComputeRMSonGPU( GCA_MORPH *gcam,
 			     const MRI* mri,
 			     GCA_MORPH_PARMS *parms );
+
+  void gcamClearGradientGPU( GCA_MORPH* gcam );
+  void gcamClearMomentumGPU( GCA_MORPH* gcam );
 #endif
 
 #if defined(__cplusplus)

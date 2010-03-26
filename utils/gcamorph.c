@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 19:31:45 $
- *    $Revision: 1.185 $
+ *    $Date: 2010/03/26 16:15:55 $
+ *    $Revision: 1.186 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -6215,8 +6215,9 @@ gcamApplyGradient(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms)
         if (x == Gx && y == Gy && z == Gz)
           printf("(%2.2f,%2.2f,%2.2f)\n", gcamn->x, gcamn->y, gcamn->z) ;
       }
-  if (!DZERO(parms->l_area_intensity))
+  if (!DZERO(parms->l_area_intensity)) {
     parms->nlt = gcamCreateNodeLookupTable(gcam, parms->mri, parms->nlt) ;
+  }
   return(NO_ERROR) ;
 }
 

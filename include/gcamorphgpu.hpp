@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 16:17:54 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/03/26 16:15:59 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -160,6 +160,9 @@ namespace GPU {
 
       //! Zeros out the odx, ody and odz fields
       void ClearMomentum( void );
+
+      //! Applies a gradient (gcamApplyGradient)
+      void ApplyGradient( GCA_MORPH_PARMS *parms );
 
     private:
 
