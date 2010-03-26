@@ -48,7 +48,7 @@ testdescript = {
 
    -- The script to run the test case
    runScript = [[
-	 export INPUT="/space/freesurfer/test/gcam_test_data/$(input)"
+	 export INPUT="$(SCRATCHDIR)/$(input)"
 	 export CPUOUT="$(outputDir)/$(id).cpu"
 	 export GPUOUT="$(outputDir)/$(id).gpu"
 
