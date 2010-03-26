@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 16:17:41 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/03/26 16:11:44 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,6 +24,8 @@
  *
  */
 
+#include "macros.h"
+
 #include "chronometer.hpp"
 
 #include "volumegpucompare.hpp"
@@ -34,10 +36,17 @@
 
 //! Texture reference for rx
 texture<float,3,cudaReadModeElementType> dt_rx;
-//! Texture reference for rx
+//! Texture reference for ry
 texture<float,3,cudaReadModeElementType> dt_ry;
-//! Texture reference for rx
+//! Texture reference for rz
 texture<float,3,cudaReadModeElementType> dt_rz;
+
+//! Texture reference for dx
+texture<float,3,cudaReadModeElementType> dt_dx;
+//! Texture reference for dy
+texture<float,3,cudaReadModeElementType> dt_dy;
+//! Texture reference for dz
+texture<float,3,cudaReadModeElementType> dt_dz;
 
 
 // ==============================================================
@@ -810,10 +819,6 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_ry ) );
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_rz ) );
 
-      // Release CUDA arrays
-      this->d_rx.ReleaseArray();
-      this->d_ry.ReleaseArray();
-      this->d_rz.ReleaseArray();
 
 
       tTotal.Stop();
@@ -823,6 +828,8 @@ namespace GPU {
 
 
     // --------------------------------------------
+
+
 
     void GCAmorphGPU::ClearGradient( void ) {
       this->d_dx.Zero();
@@ -836,9 +843,164 @@ namespace GPU {
       this->d_odz.Zero();
     }
 
+    
+    // --------------------------------------------
+
+    const unsigned int kApplyGradientKernelSize = 16;
+
+    __device__ void FetchDerivs( const unsigned int ix,
+				 const unsigned int iy,
+				 const unsigned int iz,
+				 float& dx, float& dy, float& dz ) {
+
+      const float xLoc = ix+0.5f;
+      const float yLoc = iy+0.5f;
+      const float zLoc = iz+0.5f;
+
+      dx = tex3D( dt_dx, xLoc, yLoc, zLoc );
+      dy = tex3D( dt_dy, xLoc, yLoc, zLoc );
+      dz = tex3D( dt_dz, xLoc, yLoc, zLoc );
+    }
+
+    __global__
+    void ApplyGradientKernel( const VolumeArgGPU<char> invalid,
+			      VolumeArgGPU<float> odx,
+			      VolumeArgGPU<float> ody,
+			      VolumeArgGPU<float> odz,
+			      VolumeArgGPU<float> rx,
+			      VolumeArgGPU<float> ry,
+			      VolumeArgGPU<float> rz,
+			      const float dt, const float momentum ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      for( unsigned int iz = 0; iz< invalid.dims.z; iz++ ) {
+	if( invalid.InVolume(ix,iy,iz) ) {
+
+	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
+	    continue;
+	  }
+
+	  // Fetch the dx, dy and dz values from textures
+	  float gcamdx, gcamdy, gcamdz;
+	  FetchDerivs( ix, iy, iz, gcamdx, gcamdy, gcamdz );
+
+	  float ldx, ldy, ldz;
+
+	  ldx = gcamdx*dt + odx(ix,iy,iz)*momentum;
+	  ldy = gcamdy*dt + ody(ix,iy,iz)*momentum;
+	  ldz = gcamdz*dt + odz(ix,iy,iz)*momentum;
+
+	  // Update odx, ody, odz
+	  odx(ix,iy,iz) = ldx;
+	  ody(ix,iy,iz) = ldy;
+	  odz(ix,iy,iz) = ldz;
+
+	  // Update x, y z
+	  rx(ix,iy,iz) += ldx;
+	  ry(ix,iy,iz) += ldy;
+	  rz(ix,iy,iz) += ldz;
+	}
+      }
+    }
+
+    void GCAmorphGPU::ApplyGradient( GCA_MORPH_PARMS *parms ) {
+      
+      // Start with a sanity check
+      this->CheckIntegrity();
+
+      // Put dx, dy and dz into textures
+      this->d_dx.AllocateArray();
+      this->d_dy.AllocateArray();
+      this->d_dz.AllocateArray();
+      this->d_dx.SendArray();
+      this->d_dy.SendArray();
+      this->d_dz.SendArray();
+
+      dt_dx.normalized = false;
+      dt_dx.addressMode[0] = cudaAddressModeClamp;
+      dt_dx.addressMode[1] = cudaAddressModeClamp;
+      dt_dx.addressMode[2] = cudaAddressModeClamp;
+      dt_dx.filterMode = cudaFilterModePoint;
+
+      dt_dy.normalized = false;
+      dt_dy.addressMode[0] = cudaAddressModeClamp;
+      dt_dy.addressMode[1] = cudaAddressModeClamp;
+      dt_dy.addressMode[2] = cudaAddressModeClamp;
+      dt_dy.filterMode = cudaFilterModePoint;
+
+      dt_dz.normalized = false;
+      dt_dz.addressMode[0] = cudaAddressModeClamp;
+      dt_dz.addressMode[1] = cudaAddressModeClamp;
+      dt_dz.addressMode[2] = cudaAddressModeClamp;
+      dt_dz.filterMode = cudaFilterModePoint;
+      
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_dx, this->d_dx.GetArray() ) );
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_dy, this->d_dy.GetArray() ) );
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_dz, this->d_dz.GetArray() ) );
+      
+      
+
+      // Run the computation
+      dim3 grid, threads;
+      
+      threads.x = threads.y = kApplyGradientKernelSize;
+      threads.z = 1;
+
+      grid = this->d_invalid.CoverBlocks( kApplyGradientKernelSize );
+      grid.z = 1;
+
+      ApplyGradientKernel<<<grid,threads>>>
+	( this->d_invalid,
+	  this->d_odx, this->d_ody, this->d_odz,
+	  this->d_rx, this->d_ry, this->d_rz,
+	  parms->dt, parms->momentum );
+      CUDA_CHECK_ERROR( "ApplyGradientKernel failed!\n" );
+
+
+      // Unbind the textures
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_dx ) );
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_dy ) );
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_dz ) );
+
+
+      // Something we can't do yet....
+      if (!DZERO(parms->l_area_intensity)) {
+	std::cerr << __FUNCTION__ 
+		  << ": gcamCreateNodeLookupTable not implemented!"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+
+
+      
+
+    }
+
   }
 }
 
+
+void gcamClearGradientGPU( GCA_MORPH* gcam ) {
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.ClearGradient();
+  gcamGPU.RecvAll( gcam );
+
+}
+
+void gcamClearMomentumGPU( GCA_MORPH* gcam ) {
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.ClearMomentum();
+  gcamGPU.RecvAll( gcam );
+
+}
 
 
 void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
