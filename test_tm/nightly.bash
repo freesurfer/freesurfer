@@ -6,7 +6,13 @@
 export LOGFILE="${HOME}/nightly.err"
 
 # Location of the nightly build directory
-export NIGHTLYDIR="${HOME}/avebury01nfs/dev/"
+export NIGHTLYDIR="${HOME}/avebury01nfs/nightly/"
+
+# Location of 'scratch' directory
+export SCRATCHDIR="/local_mount/space/avebury/1/users/rge21/scratch"
+
+# Location of GCAmorph samples
+export GCAM_SAMPLE_DIR="/space/freesurfer/test/gcam_test_data/"
 
 # 'touch' is to prevent complaints if file doesn't exist
 touch $LOGFILE
@@ -21,6 +27,15 @@ echo >> $LOGFILE
 echo >> $LOGFILE
 
 # ---------------------------
+
+# Get all the input files
+rsync -avt $GCAM_SAMPLE_DIR $SCRATCHDIR  >> $LOGFILE 2>&1
+if [ $? -ne 0 ]; then
+    echo "NIGHTLY: rsync failed"
+    exit
+fi
+echo "NIGHTLY: rsync complete" >> $LOGFILE
+
 
 # Go to the build directory
 cd $NIGHTLYDIR
