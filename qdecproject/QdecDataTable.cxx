@@ -9,10 +9,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/18 06:02:04 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/03/26 16:55:27 $
+ *    $Revision: 1.25 $
  *
- * Copyright (C) 2007-2009,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -748,10 +747,10 @@ void QdecDataTable::Dump (FILE* fp )
 
   fprintf(fp,"Input table: %s\n",this->GetFileName().c_str());
 
-  fprintf(fp,"Subject #, Subject ID, Factor Data...\n");
+  fprintf(fp,"Subj#, SubjID, Data...\n");
   for (int m=0; m < nInputs; m++)
   {
-    fprintf(fp,"%3d %s ",m,this->mSubjects[m]->GetId().c_str());
+    fprintf(fp,"%5d %s ",m+1,this->mSubjects[m]->GetId().c_str());
     vector < QdecFactor* > subjectFactors = this->mSubjects[m]->GetFactors();
     for (unsigned int n=0; n < subjectFactors.size(); n++)
     {
