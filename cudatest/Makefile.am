@@ -30,7 +30,8 @@ bin_PROGRAMS = gcamCompare\
                gcam_labelenergy_test gcam_labelenergy_test_cuda\
                gcam_smoothnessenergy_test gcam_smoothnessenergy_test_cuda\
                gcam_clear_test gcam_clear_test_cuda\
-               gcam_applygradient_test gcam_applygradient_test_cuda
+               gcam_applygradient_test gcam_applygradient_test_cuda\
+               gcam_undogradient_test gcam_undogradient_test_cuda
 
 
 gcamCompare_SOURCES = gcamCompare.cpp
@@ -187,6 +188,23 @@ gcam_applygradient_test_cuda_LDFLAGS = $(OS_LDFLAGS)
 gcam_applygradient_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(LIBTOOLFLAGS) --mode=link $(CCLD) $(gcam_applygradient_test_cuda_CFLAGS) \
         $(CFLAGS) $(gcam_applygradient_test_cuda_LDFLAGS) $(LDFLAGS) -o $@
+
+# --
+
+gcam_undogradient_test_SOURCES = gcam_undogradient_test.cpp
+gcam_undogradient_test_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LIB)
+gcam_undogradient_test_LDFLAGS=$(OS_LDFLAGS)
+
+
+gcam_undogradient_test_cuda_SOURCES = gcam_undogradient_test.cpp
+gcam_undogradient_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
+gcam_undogradient_test_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_undogradient_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
+gcam_undogradient_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
+gcam_undogradient_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(gcam_undogradient_test_cuda_CFLAGS) \
+        $(CFLAGS) $(gcam_undogradient_test_cuda_LDFLAGS) $(LDFLAGS) -o $@
+
 
 
 endif
