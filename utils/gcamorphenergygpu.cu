@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 15:00:38 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/03/26 16:03:58 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -885,8 +885,6 @@ namespace GPU {
 	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vz ) );
 	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_invalid ) );
 
-	// Release array
-	gcam.d_invalid.ReleaseArray();
 
 	tSmoothTot.Stop();
 
