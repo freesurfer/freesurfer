@@ -31,12 +31,18 @@ const string outFileDefault = "gpuOutput";
 const string outFileDefault = "cpuOutput";
 #endif
 
+const float dtDefault = 1;
+const float momentumDefault = 0.5;
+const float areaIntensityDefault = 0;
 
 string inFilename;
 string outFilename;
 
+float dt;
+float momentum;
+float areaIntensity;
 
-const char* Progname = "gcam_clear_test";
+const char* Progname = "gcam_applygradient_test";
 
 
 
@@ -51,6 +57,9 @@ void ReadCommandLine( int ac, char* av[] ) {
       ("help", "Produce help message" )
       ("input", bpo::value<string>(&inFilename)->default_value(inFileDefault), "Input gcam filename (.nc will be appended)" )
       ("output", bpo::value<string>(&outFilename)->default_value(outFileDefault), "Output filename (.nc will be appended)" )
+      ("dt", bpo::value<float>(&dt)->default_value(dtDefault), "Value of dt")
+      ("mom", bpo::value<float>(&momentum)->default_value(momentumDefault), "Valume of momentum")
+      ("areaIntensity", bpo::value<float>(&areaIntensity)->default_value(areaIntensityDefault), "Area Intensity" )
       ;
 
     
@@ -82,8 +91,8 @@ int main( int argc, char *argv[] ) {
   SciGPU::Utilities::Chronometer tTotal;
   GCAMorphUtils myUtils;
 
-  cout << "GCAM Clear Tester" << endl;
-  cout << "=================" << endl << endl;
+  cout << "GCAM Apply Gradient Tester" << endl;
+  cout << "==========================" << endl << endl;
 
 #ifdef FS_CUDA
   AcquireCUDADevice();
@@ -101,22 +110,29 @@ int main( int argc, char *argv[] ) {
   GCAM* gcam = NULL;
   myUtils.Read( &gcam, inFilename );
   
+
+  // Set up the GCA_MORPH_PARMS structure
+  GCA_MORPH_PARMS parms;
+  
+  parms.dt = dt;
+  parms.momentum = momentum;
+  parms.l_area_intensity = areaIntensity;
+
   // ============================================
   // Perform the calculation
   
+
 #ifdef FS_CUDA
-  gcamClearMomentumGPU( gcam );
-  gcamClearGradientGPU( gcam );
+  gcamApplyGradientGPU( gcam, &parms );
 #else
-  gcamClearMomentum( gcam );
-  gcamClearGradient( gcam );
+  gcamApplyGradient( gcam, &parms );
 #endif
 
   // ============================================
   // Produce output
 
-  // Fields to check are dx, dy, dz, odx, ody, odz
-  
+  // Fields to check are rx, ry, rz, odx, ody, odz
+
   myUtils.Write( gcam, outFilename );
 
   // ====================================
