@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/26 16:15:56 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/03/26 16:46:51 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -974,11 +974,72 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
-
-
-      
-
     }
+
+    // --------------------------------------------
+    
+    const unsigned int kUndoGradientKernelSize = 16;
+    
+    __global__
+    void UndoGradientKernel( const VolumeArgGPU<char> invalid,
+			     VolumeArgGPU<float> odx,
+			     VolumeArgGPU<float> ody,
+			     VolumeArgGPU<float> odz,
+			     VolumeArgGPU<float> rx,
+			     VolumeArgGPU<float> ry,
+			     VolumeArgGPU<float> rz ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+      
+      for( unsigned int iz = 0; iz< invalid.dims.z; iz++ ) {
+	if( invalid.InVolume(ix,iy,iz) ) {
+	  
+	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
+	    continue;
+	  }
+	  
+	  float ldx = odx(ix,iy,iz);
+	  float ldy = ody(ix,iy,iz);
+	  float ldz = odz(ix,iy,iz);
+	  
+	  // Update odx, ody, odz
+	  odx(ix,iy,iz) = 0;
+	  ody(ix,iy,iz) = 0;
+	  odz(ix,iy,iz) = 0;
+	  
+	  // Update x, y z
+	  rx(ix,iy,iz) -= ldx;
+	  ry(ix,iy,iz) -= ldy;
+	    rz(ix,iy,iz) -= ldz;
+	}
+      }
+    }
+
+
+    void GCAmorphGPU::UndoGradient( void ) {
+
+      this->CheckIntegrity();
+      
+      // Run the computation
+      dim3 grid, threads;
+      
+      threads.x = threads.y = kUndoGradientKernelSize;
+      threads.z = 1;
+
+      grid = this->d_invalid.CoverBlocks( kUndoGradientKernelSize );
+      grid.z = 1;
+
+      UndoGradientKernel<<<grid,threads>>>
+	( this->d_invalid,
+	  this->d_odx, this->d_ody, this->d_odz,
+	  this->d_rx, this->d_ry, this->d_rz );
+      CUDA_CHECK_ERROR( "UndoGradientKernel failed!\n" );
+    }
+
+
+
 
   }
 }
@@ -1027,6 +1088,18 @@ void gcamApplyGradientGPU( GCA_MORPH *gcam, GCA_MORPH_PARMS *parms ) {
   gcamGPU.ApplyGradient( parms );
   gcamGPU.RecvAll( gcam );
 }
+
+
+void gcamUndoGradientGPU( GCA_MORPH *gcam ) {
+
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.UndoGradient();
+  gcamGPU.RecvAll( gcam );
+}
+
+
 
 /*
   The following functions are a bunch of ugly hacks designed

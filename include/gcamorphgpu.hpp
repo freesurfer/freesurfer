@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/26 16:15:59 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/03/26 16:46:54 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -163,6 +163,9 @@ namespace GPU {
 
       //! Applies a gradient (gcamApplyGradient)
       void ApplyGradient( GCA_MORPH_PARMS *parms );
+
+      //! Undoes a gradien application (gcamUndoGradient)
+      void UndoGradient( void );
 
     private:
 
