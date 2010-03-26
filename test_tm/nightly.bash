@@ -28,6 +28,17 @@ echo >> $LOGFILE
 
 # ---------------------------
 
+mkdir -p $SCRATCHDIR
+if [ $? -ne 0 ]; then
+    echo "NIGHTLY: mkdir failed"
+    exit
+fi
+echo "NIGHTLY: mkdir complete" >> $LOGFILE
+
+echo >> $LOGFILE
+echo >> $LOGFILE
+echo >> $LOGFILE
+
 # Get all the input files
 rsync -avt $GCAM_SAMPLE_DIR $SCRATCHDIR  >> $LOGFILE 2>&1
 if [ $? -ne 0 ]; then
@@ -36,6 +47,9 @@ if [ $? -ne 0 ]; then
 fi
 echo "NIGHTLY: rsync complete" >> $LOGFILE
 
+echo >> $LOGFILE
+echo >> $LOGFILE
+echo >> $LOGFILE
 
 # Go to the build directory
 cd $NIGHTLYDIR
