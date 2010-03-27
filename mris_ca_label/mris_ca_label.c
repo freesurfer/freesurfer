@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/27 00:46:56 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/03/27 00:59:09 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.31 2010/03/27 00:46:56 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.32 2010/03/27 00:59:09 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -686,11 +686,13 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
 {
   int vno, n, annot;
   int nexcluded, exclude_list[MAX_EXCLUDED];
+  int num_marked_for_relabel;
   VERTEX  *v ;
 
   printf("rationalizing unknown annotations with cortex label\n") ;
 
   nexcluded = 0 ;
+  num_marked_for_relabel = 0;
 
   // Medial_wall label is in Christophe atlas
   annot = CTABentryNameToAnnotation("Medial_wall", mris->ct);
@@ -727,15 +729,21 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
       v->annotation = 0; // replace with empty (transparent) annotation
     else // cortex label says it is in cortex
     {
-      if (v->annotation <= 0) v->marked = MARK_RELABEL;
+      if (v->annotation <= 0) // annotation is Unknown or invalid
+      {
+        v->marked = MARK_RELABEL;
+        num_marked_for_relabel++;
+      }
       for (n = 0 ; n < nexcluded ; n++)
         if (v->annotation == exclude_list[n])
         {
           v->marked = MARK_RELABEL ;
+          num_marked_for_relabel++;
           break ;
         }
     }
   }
+  printf("%d vertices marked for relabeling...\n", num_marked_for_relabel);
   GCSAreclassifyMarked(gcsa, mris, MARK_RELABEL, exclude_list, nexcluded) ;
 
   return(NO_ERROR) ;
