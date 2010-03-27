@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/23 16:32:21 $
- *    $Revision: 1.34 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/27 18:56:00 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -2537,11 +2537,13 @@ GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris,int mark, int *exclude_list, 
           v->marked = 0 ;
           v->annotation = vn->annotation ;
           num++ ;
+          changed++ ;
           break ;
         }
       }
     }
   } while (num > 0) ;
-  printf("%d labels changed in reclassification\n", changed) ;
+
+  printf("%d labels changed in reclassification\n", changed);
   return(NO_ERROR) ;
 }
