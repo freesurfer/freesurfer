@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/25 18:50:25 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/03/27 00:46:56 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.30 2010/03/25 18:50:25 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.31 2010/03/27 00:46:56 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -727,7 +727,7 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
       v->annotation = 0; // replace with empty (transparent) annotation
     else // cortex label says it is in cortex
     {
-      if (v->annotation == -1) v->marked = MARK_RELABEL;
+      if (v->annotation <= 0) v->marked = MARK_RELABEL;
       for (n = 0 ; n < nexcluded ; n++)
         if (v->annotation == exclude_list[n])
         {
