@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/22 21:38:35 $
- *    $Revision: 1.65 $
+ *    $Date: 2010/03/27 01:01:55 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -42,7 +42,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.65 2010/03/22 21:38:35 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.66 2010/03/27 01:01:55 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -92,6 +92,7 @@ static FILE *fp=NULL;
 static int nsmooth = 0;
 static char *white_name = "white" ;
 static char *pial_name = "pial" ;
+static LABEL *cortex_label = NULL ; // limit surface area calc to cortex.label
 
 #define MAX_INDICES 50000
 static char *names[MAX_INDICES];
@@ -116,7 +117,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.65 2010/03/22 21:38:35 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.66 2010/03/27 01:01:55 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -440,10 +441,51 @@ main(int argc, char *argv[])
     fprintf(fp,"# TotalWhiteMatterVolume  %2.0f mm^3\n",wm_volume) ;
 #endif
 
-    fprintf(fp,"# Measure Cortex, NumVert, Number of Vertices, %d, unitless\n",
-            mris->nvertices);
-    fprintf(fp,"# Measure Cortex, SurfArea, Surface Area,  %g, mm^2\n",
-            mris->total_area);
+    int num_cortex_vertices = mris->nvertices;
+    float total_cortex_area = mris->total_area;
+    if (cortex_label)
+    {
+      /* calculate the "area" of the vertices labeled as cortex */
+      num_cortex_vertices = 0;
+      total_cortex_area = 0;
+      int vno;
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        VERTEX *v = &mris->vertices[vno] ;
+        if (v->ripflag) continue ;
+
+        // skip vertices that dont have an annotation so that the sum of
+        // annotated ROIs equals this cortex label sum
+        if (annotation_name && v->annotation <= 0) continue;
+
+        int lno;
+        for (lno = 0 ; lno < cortex_label->n_points ; lno++)
+        {
+          if (cortex_label->lv[lno].vno == vno)
+          {
+            float area = 0.0 ;
+            int fno;
+            for (fno = 0 ; fno < v->num ; fno++)
+            {
+              FACE *face = &mris->faces[v->f[fno]];
+              if (face->ripflag) continue;
+              area += face->area/VERTICES_PER_FACE;
+            }
+            total_cortex_area += area;
+        
+            num_cortex_vertices++;
+            
+            break;
+          }
+        }
+      }
+    }
+    fprintf(fp,
+            "# Measure Cortex, NumVert, Number of Vertices, %d, unitless\n",
+            num_cortex_vertices);
+    fprintf(fp,
+            "# Measure Cortex, SurfArea, Surface Area,  %g, mm^2\n",
+            total_cortex_area);
 
     fprintf(fp,"# NTableCols 10\n");
 
@@ -627,14 +669,12 @@ main(int argc, char *argv[])
       // don't bother printing Corpus Callosum stats: its not cortex
       if (0 == strcmp(names[i],"corpuscallosum")) // desikan label
         continue;
-      if (0 == strcmp(names[i],"G_subcallosal")) // christophe label
-        continue;
-      if (0 == strcmp(names[i],"S_pericallosal")) // christophe label
-        continue;
       // ditto for medial wall area: its not cortex
       if (0 == strcmp(names[i],"unknown")) // desikan label
         continue;
       if (0 == strcmp(names[i],"Medial_wall")) // christophe label
+        continue;
+      if (0 == strcmp(names[i],"Unknown")) // christophe label
         continue;
 
       MRISuseMeanCurvature(mris) ;
@@ -847,6 +887,15 @@ get_option(int argc, char *argv[])
   {
     MGZ = 0;
     printf("INFO: assuming COR format for volumes.\n");
+  }
+  else if (!stricmp(option, "cortex"))
+  {
+    cortex_label = LabelRead(NULL, argv[2]) ;
+    if (cortex_label == NULL)
+      ErrorExit(ERROR_NOFILE, "") ;
+    nargs = 1 ;
+    printf("INFO: using %s as mask to calc Cortex NumVert and SurfArea.\n",
+      argv[2]);
   }
   else switch (toupper(*option))
     {

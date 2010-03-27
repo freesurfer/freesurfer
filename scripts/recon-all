@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/25 18:44:03 $
-#    $Revision: 1.302 $
+#    $Date: 2010/03/27 01:01:55 $
+#    $Revision: 1.303 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.302 2010/03/25 18:44:03 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.303 2010/03/27 01:01:55 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2611,11 +2611,12 @@ foreach hemi ($hemilist)
     echo "#@# Parcellation Stats $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
+    set clabel = ../label/$hemi.cortex.label
     set annot = ../label/$hemi.aparc.annot
     set stats = ../stats/$hemi.aparc.stats
     set ctab  = ../label/aparc.annot.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz -f $stats \
+    set cmd = (mris_anatomical_stats -mgz -cortex $clabel -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi);
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2659,11 +2660,12 @@ foreach hemi ($hemilist)
     echo "#@# Parcellation Stats 2 $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
+    set clabel = ../label/$hemi.cortex.label
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set stats = ../stats/$hemi.aparc.${DESTRIEUX_NAME}.stats
     set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz -f $stats \
+    set cmd = (mris_anatomical_stats -mgz -cortex $clabel -f $stats \
             -b -a $annot -c $ctab $xopts $subjid $hemi);
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -4091,6 +4093,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2-perhemi":
+    case "-autorecon2-surfonly":
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
       set DoInflate1       = 1;
