@@ -20,8 +20,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/26 20:53:26 $
- *    $Revision: 1.63 $
+ *    $Date: 2010/03/27 19:34:07 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -108,7 +108,7 @@ static int sinchalfwindow = 3;
 
 static char *residual_name = NULL ;
 
-#define MAX_IMAGES 50
+#define MAX_IMAGES 500
 
 static double FLASHforwardModel(double flip_angle, double TR, double PD,
                                 double T1) ;
@@ -199,11 +199,11 @@ main(int argc, char *argv[]) {
   float TE=0;
   double FA=0;
   int    modified;
-  MRI    *mri_flash[MAX_IMAGES];
-  MRI    *mri_flash_synth[MAX_IMAGES];
-  MRI    *mri_all_flash[MAX_IMAGES];
-  MATRIX *M_reg[MAX_IMAGES];
-  MATRIX *M_reg_orig[MAX_IMAGES];
+  MRI    **mri_flash;
+  MRI    **mri_flash_synth;
+  MRI    **mri_all_flash;
+  MATRIX **M_reg;
+  MATRIX **M_reg_orig;
 
   /* The following variables are just for finding the brain mask */
   HISTOGRAM *histo;
@@ -216,20 +216,16 @@ main(int argc, char *argv[]) {
 
   FA = TE = TR = 0;
 
-  memset(mri_flash,0,sizeof(mri_flash));
-  memset(mri_flash_synth,0,sizeof(mri_flash_synth));
-  memset(mri_all_flash,0,sizeof(mri_all_flash));
-
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ms_fitparms.c,v 1.63 2010/03/26 20:53:26 nicks Exp $",
+     "$Id: mri_ms_fitparms.c,v 1.64 2010/03/27 19:34:07 nicks Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_ms_fitparms.c,v 1.63 2010/03/26 20:53:26 nicks Exp $",
+    "$Id: mri_ms_fitparms.c,v 1.64 2010/03/27 19:34:07 nicks Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -254,7 +250,16 @@ main(int argc, char *argv[]) {
 
   out_dir = argv[argc-1] ;
 
+  mri_flash = (MRI **)malloc(sizeof(mri_flash)*MAX_IMAGES);
+  mri_flash_synth = (MRI **)malloc(sizeof(mri_flash)*MAX_IMAGES);
+  mri_all_flash = (MRI **)malloc(sizeof(mri_flash)*MAX_IMAGES);
+  M_reg = (MATRIX **)malloc(sizeof(mri_flash)*MAX_IMAGES);
+  M_reg_orig = (MATRIX **)malloc(sizeof(mri_flash)*MAX_IMAGES);
+
   for (i = 0 ; i < MAX_IMAGES ; i++) {
+    mri_flash[i] = NULL;
+    mri_flash_synth[i] = NULL;
+    mri_all_flash[i] = NULL;
     M_reg[i] = NULL;
     M_reg_orig[i] = NULL;
   }
@@ -392,6 +397,13 @@ main(int argc, char *argv[]) {
                 Progname, nvolumes, in_fname) ;
 
     nvolumes++ ;
+
+    if (nvolumes >= MAX_IMAGES) {
+      ErrorExit(
+        ERROR_BADPARM, 
+        "ERROR: too many input images!  max of %d!\n",
+        MAX_IMAGES);
+    }
   }
   ///////////////////////////////////////////////////////////////////////////
   nvolumes_total = nvolumes ;   /* all volumes read in */
@@ -989,7 +1001,7 @@ get_option(int argc, char *argv[]) {
     faf_label = LabelRead(NULL, argv[3]) ;
     for (i = 0 ; i < 3 ; i++)
       for (j = 0 ; j < 2 ; j++) {
-        faf_coefs[i][j] = (float *)calloc(nfaf, sizeof(float)) ;
+        faf_coefs[i][j] = (float *)calloc(nfaf, sizeof(float*)) ;
         if (!faf_coefs[i][j])
           ErrorExit(ERROR_NOMEMORY, "%s: could not allocate FAF "
                     "array %d,%d\n", Progname, i, j) ;
@@ -1114,12 +1126,15 @@ FLASHforwardModel(double flip_angle, double TR, double PD, double T1) {
 
 
 static double SignalTableValues[MAX_NVALS][MAX_NVOLS]; // won't fit on stack
+static double SignalTableT1[MAX_NVALS], SignalTableNorm[MAX_NVALS];
+static double ImageValues[MAX_NVOLS];
+static MATRIX *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS];
+
 static double
 estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
                    MRI *mri_T1, MRI *mri_PD, MRI *mri_sse,
                    MATRIX **M_reg, LTA *lta) {
-  double   SignalTableT1[MAX_NVALS], SignalTableNorm[MAX_NVALS],
-    ImageValues[MAX_NVOLS], total_sse ;
+  double   total_sse ;
   double   se, best_se, ss, sse, err, val, norm, T1, PD, xf, yf, zf ;
   int      i, j, x, y, z, indx, min_indx, max_indx, best_indx, center_indx,
     stepindx;
@@ -1127,8 +1142,7 @@ estimate_ms_params(MRI **mri_flash, MRI **mri_flash_synth, int nvolumes,
     nvalues=MAX_NVALS, nevals;
   int      nstep=11, step[11]={1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
-  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], *voxvec1, *voxvec2,
-    *rasvec1, *rasvec2, *m_xform = NULL ;
+  MATRIX   *voxvec1, *voxvec2, *rasvec1, *rasvec2, *m_xform = NULL ;
 
   if (lta) {
     m_xform = MatrixInverse(lta->xforms[0].m_L, NULL) ;
@@ -1281,8 +1295,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
                             int nvolumes, MRI *mri_T1, MRI *mri_PD,
                             MRI *mri_sse, MATRIX **M_reg,
                             MRI *mri_faf) {
-  double   SignalTableValues[MAX_NVALS][MAX_NVOLS], SignalTableT1[MAX_NVALS], \
-    SignalTableNorm[MAX_NVALS], ImageValues[MAX_NVOLS], total_sse ;
+  double   total_sse ;
   double   se, best_se, ss, sse, err, val, norm, T1, PD, xf, yf, zf, inorm ;
   int      j, x, y, z, indx, min_indx, max_indx, best_indx, center_indx, \
     stepindx;
@@ -1290,8 +1303,7 @@ estimate_ms_params_with_faf(MRI **mri_flash, MRI **mri_flash_synth,
     nvalues=MAX_NVALS, nevals;
   int      nstep=11, step[11]={1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
-  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], *voxvec1, *voxvec2, \
-    *rasvec1, *rasvec2, *m_vox2vox;
+  MATRIX   *voxvec1, *voxvec2, *rasvec1, *rasvec2, *m_vox2vox;
   double   x0, y0,  z0, w0x, w0y, w0z, faf_scale ;
   VECTOR   *v1, *v2 ;
 
@@ -1440,8 +1452,7 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth,
                             int nvolumes, MRI *mri_T1, MRI *mri_PD,
                             MRI *mri_sse,
                             MATRIX **M_reg, MRI *mri_faf, LABEL *area) {
-  double   SignalTableValues[MAX_NVALS][MAX_NVOLS], SignalTableT1[MAX_NVALS], \
-    SignalTableNorm[MAX_NVALS], ImageValues[MAX_NVOLS], total_sse ;
+  double   total_sse ;
   double   se, best_se, ss, sse, err, val, norm, T1, PD, xf, yf, zf ;
   int      n, i, j, x, y, z, indx, min_indx, max_indx, best_indx, \
     center_indx, stepindx;
@@ -1449,8 +1460,7 @@ estimate_ms_params_in_label(MRI **mri_flash, MRI **mri_flash_synth,
     depth=mri_T1->depth, nvalues=MAX_NVALS, nevals;
   int      nstep=11, step[11]={1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
-  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], \
-    *voxvec1, *voxvec2, *rasvec1, *rasvec2;
+  MATRIX   *voxvec1, *voxvec2, *rasvec1, *rasvec2;
   double   x0, y0,  z0, w0x, w0y, w0z, faf_scale ;
 
   x0 = width/2 ;
@@ -1608,8 +1618,7 @@ static double
 estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth,
                                int nvolumes, MRI *mri_T1, MRI *mri_PD,
                                MRI *mri_fa, MRI *mri_sse, MATRIX **M_reg) {
-  double   ***SignalTableValues, SignalTableT1[MAX_NVALS], \
-    **SignalTableNorm, ImageValues[MAX_NVOLS], total_sse, \
+  double   total_sse, \
     SignalTableFAk[MAX_NVALS], FAk, last_sse, last_FAk ;
   double   se, best_se, ss, sse, err, val, norm, \
     T1, PD, xf, yf, zf, last_T1, last_PD ;
@@ -1622,8 +1631,7 @@ estimate_ms_params_with_kalpha(MRI **mri_flash, MRI **mri_flash_synth,
     nevals, niter;
   int      nstep=11, step[11]={1024,512,256,128,64,32,16,8,4,2,1};
   MRI      *mri ;
-  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS], \
-    *voxvec1, *voxvec2, *rasvec1, *rasvec2;
+  MATRIX   *voxvec1, *voxvec2, *rasvec1, *rasvec2;
 
   SignalTableValues = (double ***)calloc(nvalues, sizeof(double **)) ;
   SignalTableNorm = (double **)calloc(nvalues, sizeof(double *)) ;
@@ -1933,8 +1941,8 @@ estimate_rigid_regmatrix(MRI *mri_source, MRI *mri_target,
 
   voxmat1 = MatrixAlloc(4,nvalues,MATRIX_REAL);
   voxmat2 = MatrixCopy(voxmat1, NULL);
-  voxval1 = (double*)calloc(nvalues, sizeof(double)) ;
-  voxval2 = (double*)calloc(nvalues, sizeof(double)) ;
+  voxval1 = (double*)calloc(nvalues+1, sizeof(double*)) ;
+  voxval2 = (double*)calloc(nvalues+1, sizeof(double*)) ;
   if (!voxmat1 || !voxmat2 || !voxval1 || !voxval2)
     ErrorExit(ERROR_NOMEMORY,
               "%s: could not allocate %d value arrays", Progname, nvalues) ;
@@ -2446,7 +2454,6 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
   MRI    *mri_T2star ;
   float  T2star, cond ;
   Real   val, xf, yf, zf ;
-  MATRIX   *vox2ras[MAX_NVOLS], *ras2vox[MAX_NVOLS];
 
   if (lta) {
     m_xform = MatrixInverse(lta->xforms[0].m_L, NULL) ;
