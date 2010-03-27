@@ -1,18 +1,50 @@
 /**
  * @file  mri_label2label.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief map a label from one subject to another
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Purpose: Converts a label in one subject's space to a label
+ * in another subject's space using either talairach or spherical
+ * as an intermediate registration space.
+ *
+ *  Example 1: If you have a label from subject fred called
+ *   broca-fred.label defined on fred's left hemispherical
+ *   surface and you want to convert it to sally's surface, then
+ *
+ *    mri_label2label --srclabel broca-fred.label  --srcsubject fred
+ *                   --trglabel broca-sally.label --trgsubject sally
+ *                   --regmethod surface --hemi lh
+ *
+ *    This will map from fred to sally using sphere.reg. The registration
+ *   surface can be changed with --surfreg.
+ * 
+ *  Example 2: You could also do the same mapping using talairach
+ *   space as an intermediate:
+ *
+ *    mri_label2label --srclabel broca-fred.label  --srcsubject fred
+ *                   --trglabel broca-sally.label --trgsubject sally
+ *                   --regmethod volume
+ *
+ *    Note that no hemisphere is specified with -regmethod.
+ *
+ *  Example 3: You can specify the --usepathfiles flag to read and write
+ *   from a tksurfer path file.
+ * 
+ *    mri_label2label --usepathfiles ...
+ *
+ *   When mapping from lh to rh:
+ *    src reg: lh.sphere.reg
+ *    trg reg: rh.lh.sphere.reg
+ *
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/11/13 18:42:10 $
- *    $Revision: 1.38 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/27 21:24:31 $
+ *    $Revision: 1.39 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2010,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,49 +53,9 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-
-/*----------------------------------------------------------
-  Name: mri_label2label.c
-  $Id: mri_label2label.c,v 1.38 2009/11/13 18:42:10 greve Exp $
-  Author: Douglas Greve
-  Purpose: Converts a label in one subject's space to a label
-  in another subject's space using either talairach or spherical
-  as an intermediate registration space.
-
-  Example 1: If you have a label from subject fred called
-    broca-fred.label defined on fred's left hemispherical
-    surface and you want to convert it to sally's surface, then
-
-    mri_label2label --srclabel broca-fred.label  --srcsubject fred
-                    --trglabel broca-sally.label --trgsubject sally
-                    --regmethod surface --hemi lh
-
-    This will map from fred to sally using sphere.reg. The registration
-    surface can be changed with --surfreg.
-
-  Example 2: You could also do the same mapping using talairach
-    space as an intermediate:
-
-    mri_label2label --srclabel broca-fred.label  --srcsubject fred
-                    --trglabel broca-sally.label --trgsubject sally
-                    --regmethod volume
-
-    Note that no hemisphere is specified with -regmethod.
-
-  Example 3: You can specify the --usepathfiles flag to read and write
-    from a tksurfer path file.
-
-    mri_label2label --usepathfiles ...
-
-   When mapping from lh to rh:
-     src reg: lh.sphere.reg
-     trg reg: rh.lh.sphere.reg
-
-  -----------------------------------------------------------*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -98,7 +90,8 @@ static int  nth_is_arg(int nargc, char **argv, int nth);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2label.c,v 1.38 2009/11/13 18:42:10 greve Exp $";
+static char vcid[] = 
+  "$Id: mri_label2label.c,v 1.39 2010/03/27 21:24:31 nicks Exp $";
 char *Progname = NULL;
 
 char  *srclabelfile = NULL;
@@ -183,7 +176,10 @@ int main(int argc, char **argv) {
   PATH* path;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_label2label.c,v 1.38 2009/11/13 18:42:10 greve Exp $", "$Name:  $");
+  nargs = handle_version_option 
+    (argc, argv,
+     "$Id: mri_label2label.c,v 1.39 2010/03/27 21:24:31 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -267,23 +263,23 @@ int main(int argc, char **argv) {
 
     printf("Starting volumetric mapping\n");
 
-    if(RegFile == NULL){
-      if(XFMFile) {
-	printf("Reading in xmf file %s",XFMFile);
-	lta_transform = LTAreadEx(XFMFile);
-	Src2TrgVolReg = lta_transform->xforms[0].m_L;
+    if (RegFile == NULL) {
+      if (XFMFile) {
+        printf("Reading in xmf file %s",XFMFile);
+        lta_transform = LTAreadEx(XFMFile);
+        Src2TrgVolReg = lta_transform->xforms[0].m_L;
       } else {
-	/*** Load the Src2Tal registration ***/
-	SrcVolReg = DevolveXFM(srcsubject, NULL, NULL);
-	if (SrcVolReg == NULL) exit(1);
-	
-	/*** Load the Trg2Tal registration ***/
-	TrgVolReg = DevolveXFM(trgsubject, NULL, NULL);
-	if (TrgVolReg == NULL) exit(1);
-	
-	/* Compte the Src-to-Trg Registration */
-	InvTrgVolReg = MatrixInverse(TrgVolReg,NULL);
-	Src2TrgVolReg = MatrixMultiply(InvTrgVolReg,SrcVolReg,NULL);
+        /*** Load the Src2Tal registration ***/
+        SrcVolReg = DevolveXFM(srcsubject, NULL, NULL);
+        if (SrcVolReg == NULL) exit(1);
+
+        /*** Load the Trg2Tal registration ***/
+        TrgVolReg = DevolveXFM(trgsubject, NULL, NULL);
+        if (TrgVolReg == NULL) exit(1);
+
+        /* Compte the Src-to-Trg Registration */
+        InvTrgVolReg = MatrixInverse(TrgVolReg,NULL);
+        Src2TrgVolReg = MatrixMultiply(InvTrgVolReg,SrcVolReg,NULL);
       }
     } else {
       char *pc;
@@ -291,10 +287,10 @@ int main(int argc, char **argv) {
       int float2int;
       printf("Reading reg file %s\n",RegFile);
       err = regio_read_register(RegFile, &pc, &ipr, &bpr,
-				&fscale, &Src2TrgVolReg, &float2int);
-      if(err) {
-	printf("ERROR: reading registration %s\n",RegFile);
-	exit(1);
+                                &fscale, &Src2TrgVolReg, &float2int);
+      if (err) {
+        printf("ERROR: reading registration %s\n",RegFile);
+        exit(1);
       }
       printf("Inverting reg to make it Src2Trg\n");
       MatrixInverse(Src2TrgVolReg,Src2TrgVolReg);
@@ -303,7 +299,7 @@ int main(int argc, char **argv) {
     printf("Src2TrgVolReg: -----------------\n");
     MatrixPrint(stdout,Src2TrgVolReg);
 
-    if(InvertXFM) {
+    if (InvertXFM) {
       printf("Inverting \n");
       MatrixInverse(Src2TrgVolReg,Src2TrgVolReg);
       printf("Inverted Src2TrgVolReg: -----------------\n");
@@ -358,12 +354,12 @@ int main(int argc, char **argv) {
         fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
-      if(DoRescale){
-	printf("Rescaling ... ");
-	SubjRadius = MRISaverageRadius(SrcSurfReg) ;
-	Scale = IcoRadius / SubjRadius;
-	MRISscaleBrain(SrcSurfReg, SrcSurfReg, Scale);
-	printf(" original radius = %g\n",SubjRadius);
+      if (DoRescale) {
+        printf("Rescaling ... ");
+        SubjRadius = MRISaverageRadius(SrcSurfReg) ;
+        Scale = IcoRadius / SubjRadius;
+        MRISscaleBrain(SrcSurfReg, SrcSurfReg, Scale);
+        printf(" original radius = %g\n",SubjRadius);
       }
     } else {
       printf("Reading icosahedron, order = %d, radius = %g\n",
@@ -402,12 +398,12 @@ int main(int argc, char **argv) {
         fprintf(stderr,"ERROR: could not read %s\n",tmpstr);
         exit(1);
       }
-      if(DoRescale){
-	printf("Rescaling ... ");
-	SubjRadius = MRISaverageRadius(TrgSurfReg) ;
-	Scale = IcoRadius / SubjRadius;
-	MRISscaleBrain(TrgSurfReg, TrgSurfReg, Scale);
-	printf(" original radius = %g\n",SubjRadius);
+      if (DoRescale) {
+        printf("Rescaling ... ");
+        SubjRadius = MRISaverageRadius(TrgSurfReg) ;
+        Scale = IcoRadius / SubjRadius;
+        MRISscaleBrain(TrgSurfReg, TrgSurfReg, Scale);
+        printf(" original radius = %g\n",SubjRadius);
       }
     } else {
       printf("Reading icosahedron, order = %d, radius = %g\n",
@@ -426,7 +422,7 @@ int main(int argc, char **argv) {
                                       CURRENT_VERTICES,hashres);
       printf("Building source registration hash (res=%g).\n",hashres);
       SrcHash = MHTfillVertexTableRes(SrcSurfReg, NULL,
-				      CURRENT_VERTICES,hashres);
+                                      CURRENT_VERTICES,hashres);
     }
     if (useprojfrac) {
       sprintf(fname,"%s/%s/surf/%s.thickness",SUBJECTS_DIR,srcsubject,srchemi);
@@ -458,7 +454,7 @@ int main(int argc, char **argv) {
     }
 
     /* Invert Source Label */
-    if(SrcInv){
+    if (SrcInv) {
       printf("Inverting source label\n");
       tmplabel = MRISlabelInvert(SrcSurfReg,srclabel);
       LabelFree(&srclabel);
@@ -475,28 +471,30 @@ int main(int argc, char **argv) {
     for (n = 0; n < srclabel->n_points; n++) {
 
       /* vertex number of the source label */
-      if(DoPaint){
-	v.x = srclabel->lv[n].x;
-	v.y = srclabel->lv[n].y;
-	v.z = srclabel->lv[n].z;
-	if(usehash) srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,&v,&dmin);
-	else        srcvtxno = MRISfindClosestVertex(SrcSurfReg,v.x,v.y,v.z,&dmin);
-	if(dmin > PaintMax) continue;
+      if (DoPaint) {
+        v.x = srclabel->lv[n].x;
+        v.y = srclabel->lv[n].y;
+        v.z = srclabel->lv[n].z;
+        if (usehash)
+          srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,&v,&dmin);
+        else
+          srcvtxno = MRISfindClosestVertex(SrcSurfReg,v.x,v.y,v.z,&dmin);
+        if (dmin > PaintMax) continue;
       } else {
-	srcvtxno = srclabel->lv[n].vno;
-	if (srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices) {
-	  printf("ERROR: there is a vertex in the label that cannot be \n");
-	  printf("matched to the surface. This usually occurs when\n");
-	  printf("the label and surface are from different subjects or \n");
-	  printf("hemispheres or the surface has been changed since\n");
-	  printf("the label was created.\n");
-	  printf("Label point %d: vno = %d, max = %d\n",
-		 n,srcvtxno, SrcSurfReg->nvertices);
-	  exit(1);
-	}
+        srcvtxno = srclabel->lv[n].vno;
+        if (srcvtxno < 0 || srcvtxno >= SrcSurfReg->nvertices) {
+          printf("ERROR: there is a vertex in the label that cannot be \n");
+          printf("matched to the surface. This usually occurs when\n");
+          printf("the label and surface are from different subjects or \n");
+          printf("hemispheres or the surface has been changed since\n");
+          printf("the label was created.\n");
+          printf("Label point %d: vno = %d, max = %d\n",
+                 n,srcvtxno, SrcSurfReg->nvertices);
+          exit(1);
+        }
       }
 
-      if(srcvtxno != 0) allzero = 0;
+      if (srcvtxno != 0) allzero = 0;
 
       /* source vertex */
       srcvtx = &(SrcSurfReg->vertices[srcvtxno]);
@@ -557,7 +555,8 @@ int main(int argc, char **argv) {
 
         /* Find number of closest source vertex */
         if (usehash) {
-          srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,trgregvtx,&dmin);
+          srcvtxno = MHTfindClosestVertexNo(SrcHash,SrcSurfReg,
+                                            trgregvtx,&dmin);
           if (srcvtxno < 0) {
             printf("ERROR: srcvtxno = %d < 0\n",srcvtxno);
             printf("trgvtxno = %d, dmin = %g\n",trgvtxno,dmin);
@@ -626,21 +625,24 @@ int main(int argc, char **argv) {
     LabelRemoveDuplicates(trglabel);
 
     /* Invert Targ Label */
-    if(TrgInv){
+    if (TrgInv) {
       printf("Inverting target label\n");
       tmplabel = MRISlabelInvert(TrgSurfReg,trglabel);
       LabelFree(&trglabel);
       trglabel = tmplabel;
     }
 
-    if(OutMaskFile){
+    if (OutMaskFile) {
       printf("Creating output %s\n",OutMaskFile);
       outmask = MRISlabel2Mask(TrgSurfReg,trglabel,NULL);
-      if(DoOutMaskStat){
-	printf("Saving output statistic\n");
-	for (n = 0; n < trglabel->n_points; n++) {
-	  MRIsetVoxVal(outmask, trglabel->lv[n].vno,0,0,0, trglabel->lv[n].stat);
-	}
+      if (DoOutMaskStat) {
+        printf("Saving output statistic\n");
+        for (n = 0; n < trglabel->n_points; n++) {
+          MRIsetVoxVal(outmask, 
+                       trglabel->lv[n].vno,
+                       0,0,0,
+                       trglabel->lv[n].stat);
+        }
       }
       MRIwrite(outmask,OutMaskFile);
       MRIfree(&outmask);
@@ -671,8 +673,7 @@ int main(int argc, char **argv) {
       exit(1);
     }
   } else {
-    if (sample_surf_file)
-    {
+    if (sample_surf_file) {
       MRI_SURFACE *mris ;
       mris = MRISread(sample_surf_file) ;
       if (mris == NULL)
@@ -730,7 +731,7 @@ static int parse_commandline(int argc, char **argv) {
       srcsubject = pargv[0];
       trgsubject = pargv[0];
       nargsused = 1;
-    } 
+    }
     /* -------- source inputs ------ */
     else if (!strcmp(option, "--sd")) {
       if (nargc < 1) argnerr(option,1);
@@ -844,7 +845,7 @@ static int parse_commandline(int argc, char **argv) {
       if (!strcmp(regmethod,"surf")) regmethod = "surface";
       if (!strcmp(regmethod,"vol"))  regmethod = "volume";
       nargsused = 1;
-    } else if (!strcmp(option, "--paint")){
+    } else if (!strcmp(option, "--paint")) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&PaintMax);
       DoPaint = 1;
@@ -862,19 +863,16 @@ static int parse_commandline(int argc, char **argv) {
       RegFile = pargv[0];
       regmethod = "volume";
       nargsused = 1;
-    } 
-    else if (!strcmp(option, "--outmask")) {
+    } else if (!strcmp(option, "--outmask")) {
       if (nargc < 1) argnerr(option,1);
       OutMaskFile = pargv[0];
       nargsused = 1;
-    } 
-    else if (!strcmp(option, "--outstat")) {
+    } else if (!strcmp(option, "--outstat")) {
       if (nargc < 1) argnerr(option,1);
       OutMaskFile = pargv[0];
       DoOutMaskStat = 1;
       nargsused = 1;
-    } 
-    else {
+    } else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (singledash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -901,9 +899,12 @@ static void print_usage(void) {
   printf("   --s subject : use for both target and source\n");
   printf("\n");
   printf("   --trglabel     output label file \n");
-  printf("   --outmask      maskfile : save output label as a binary mask (surf only)\n");
-  printf("   --outstat      statfile : save output label stat as a mask (surf only)\n");
-  printf("   --sample       output subject surface : sample label onto surface \n");
+  printf("   --outmask      maskfile : save output label as a "
+         "binary mask (surf only)\n");
+  printf("   --outstat      statfile : save output label stat as a "
+         "mask (surf only)\n");
+  printf("   --sample       output subject surface : sample label "
+         "onto surface \n");
   printf("\n");
   printf("   --regmethod    registration method (surface, volume) \n");
   printf("   --usepathfiles read from and write to a path file\n");
@@ -926,7 +927,8 @@ static void print_usage(void) {
   printf("   --srcmaskframe 0-based frame number <0>\n");
   printf("\n");
   printf("   --xfm xfmfile : use xfm instead of computing tal xfm\n");
-  printf("   --reg regfile : use register.dat file instead of computing tal xfm\n");
+  printf("   --reg regfile : use register.dat file instead of computing "
+         "tal xfm\n");
   printf("   --xfm-invert : invert xfm, or reg \n");
   printf("\n");
   printf("   --projabs  dist project dist mm along surf normal\n");
@@ -998,23 +1000,25 @@ static void print_help(void) {
     "     from the target subject's white surface. This can be changed\n"
     "     using the --trgsurf option.\n"
     "  4. When the volume registration method is used, the xyz coordinates\n"
-    "     in the target label file are computed as xyzTrg = inv(Ttrg)*Tsrc*xyzSrc\n"
+    "     in the target label file are computed as xyzTrg = "
+    "inv(Ttrg)*Tsrc*xyzSrc\n"
     "     where Tsrc is the talairach transform in \n"
-    "     srcsubject/mri/transforms/talairach.xfm, and where Ttrg is the talairach \n"
+    "     srcsubject/mri/transforms/talairach.xfm, and where Ttrg "
+    "is the talairach \n"
     "     transform in trgsubject/mri/transforms/talairach.xfm.\n"
-    "  5. The registration surfaces are rescaled to a radius of 100 (including \n"
+    "  5. The registration surfaces are rescaled to a radius of 100 "
+    "(including \n"
     "     the ico)\n"
     "  6. Projections along the surface normal can be either negative or\n"
     "     positive, but can only be used with surface registration method.\n"
     "\n"
     "BUGS:\n"
     "\n"
-    "When using volume registration method, you cannot specify the SUBJECTS_DIR\n"
+    "When using volume registration method, you cannot specify the "
+    "SUBJECTS_DIR\n"
     "on the command-line.\n"
     "\n"
   );
-
-
 
   exit(1) ;
 }
@@ -1045,7 +1049,7 @@ static void dump_options(FILE *fp) {
   printf("Use ProjAbs  = %d, %g\n",useprojabs,projabs);
   printf("Use ProjFrac = %d, %g\n",useprojfrac,projfrac);
   printf("DoPaint %d\n",DoPaint);
-  if(DoPaint)  printf("PaintMax %lf\n",PaintMax);
+  if (DoPaint)  printf("PaintMax %lf\n",PaintMax);
 
   fprintf(fp,"\n");
 
@@ -1117,7 +1121,8 @@ static void check_options(void) {
     }
     if ((srchemi == NULL && trghemi != NULL) ||
         (srchemi != NULL && trghemi == NULL) ) {
-      fprintf(stderr,"ERROR: must specify either --hemi or both --srchemi and --trghemi\n");
+      fprintf(stderr,"ERROR: must specify either --hemi or "
+              "both --srchemi and --trghemi\n");
       exit(1);
     }
     if (srchemi == NULL) srchemi = hemi;
@@ -1132,15 +1137,15 @@ static void check_options(void) {
       fprintf(stderr,"ERROR: cannot specify hemisphere with vol reg method\n");
       exit(1);
     }
-    if(OutMaskFile){
+    if (OutMaskFile) {
       printf("ERROR: cannot specify outmask with vol reg method\n");
       exit(1);
     }
-    if(SrcInv){
+    if (SrcInv) {
       printf("ERROR: cannot specify src-invert with vol reg method\n");
       exit(1);
     }
-    if(TrgInv){
+    if (TrgInv) {
       printf("ERROR: cannot specify trg-invert with vol reg method\n");
       exit(1);
     }
@@ -1176,7 +1181,7 @@ static void check_options(void) {
   if (srcsurfreg == NULL) srcsurfreg = surfreg;
   if (trgsurfreg == NULL) trgsurfreg = surfreg;
 
-  if(XFMFile && RegFile){
+  if (XFMFile && RegFile) {
     printf("ERROR: cannot --xfm and --reg\n");
     exit(1);
   }
