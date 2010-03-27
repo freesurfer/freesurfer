@@ -8,10 +8,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/01/10 15:55:36 $
-#    $Revision: 1.8 $
+#    $Date: 2010/03/27 23:58:58 $
+#    $Revision: 1.9 $
 #
-# Copyright (C) 2007-2009,
+# Copyright (C) 2007-2010
 # The General Hospital Corporation (Boston, MA). 
 # All rights reserved.
 #
@@ -21,14 +21,15 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_anatomical_stats,v 1.8 2009/01/10 15:55:36 nicks Exp $'
+set VERSION='$Id: test_mris_anatomical_stats,v 1.9 2010/03/27 23:58:58 nicks Exp $'
 
 umask 002
 
 setenv SUBJECTS_DIR $PWD
+
+goto test6
 
 if ( $?SKIP_MRIS_ANAT_STATS_TEST ) then
   echo "skipping test_mris_anatomical_stats"
@@ -159,11 +160,86 @@ if ($status != 0) then
 endif
 
 
+# now use the testdata found in the mris_ca_label directory
+test6:
+echo "gunzip -c ../mris_ca_label/testdata.tar.gz | tar xvf -"
+gunzip -c ../mris_ca_label/testdata.tar.gz | tar xvf -
+cp -v testdata/label/reference-lh.aparc.annot testdata/label/lh.aparc.annot
+cp -v testdata/label/reference-lh.aparc.a2009s.annot \
+    testdata/label/lh.aparc.a2009s.annot
+
+#
+# test 6: check that the number of vertices and surface area calculated
+# for the whole cortex (as defined by ?h.cortex.label) equals the sum of
+# each of the parcellations (both Desikan and Destrieux), and that both
+# of those totals match each other
+#
+set cmd=( ./mris_anatomical_stats -cortex testdata/label/lh.cortex.label \
+    -l lh.cortex.label -f test6.table testdata lh )
+echo ""
+echo $cmd
+$cmd >& test6.out
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+grep "Measure Cortex" test6.table > test6.observed
+set cmd=(diff test6.expected test6.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+
+# test Desikan atlas
+# the -crosscheck option will add-up vertices and surf area of each label
+# and compare sum to that calcd for cortex.label (and error exits on mismatch)
+set cmd=( ./mris_anatomical_stats -cortex testdata/label/lh.cortex.label \
+    -crosscheck -a ./testdata/label/lh.aparc.annot \
+    -f test6.table testdata lh )
+echo ""
+echo $cmd
+$cmd >>& test6.out
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+grep "Measure Cortex" test6.table > test6.observed
+set cmd=(diff test6.expected test6.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+
+# test Destrieux atlas
+# the -crosscheck option will add-up vertices and surf area of each label
+# and compare sum to that calcd for cortex.label (and error exits on mismatch)
+set cmd=( ./mris_anatomical_stats -cortex testdata/label/lh.cortex.label \
+    -crosscheck -a ./testdata/label/lh.aparc.a2009s.annot \
+    -f test6.table testdata lh )
+echo ""
+echo $cmd
+$cmd >>& test6.out
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
+grep "Measure Cortex" test6.table > test6.observed
+set cmd=(diff test6.expected test6.observed)
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "test_mris_anatomical_stats FAILED"
+  exit 1
+endif
 
 #
 # cleanup
 #
-rm -Rf testdata2 *.observed *.out *.table
+rm -Rf testdata2 testdata *.observed *.out *.table
 
 echo ""
 echo "test_mris_anatomical_stats passed all tests"

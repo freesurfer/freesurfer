@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/27 01:01:55 $
- *    $Revision: 1.66 $
+ *    $Date: 2010/03/27 23:58:58 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -42,7 +42,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.66 2010/03/27 01:01:55 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.67 2010/03/27 23:58:58 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -93,6 +93,7 @@ static int nsmooth = 0;
 static char *white_name = "white" ;
 static char *pial_name = "pial" ;
 static LABEL *cortex_label = NULL ; // limit surface area calc to cortex.label
+static int crosscheck = 0;
 
 #define MAX_INDICES 50000
 static char *names[MAX_INDICES];
@@ -112,12 +113,14 @@ main(int argc, char *argv[])
   HISTOGRAM     *histo_gray ;
   MRI           *ThicknessMap = NULL;
   struct utsname uts;
-  char *cmdline, full_name[STRLEN] ;
+  char          *cmdline, full_name[STRLEN] ;
+  int           num_cortex_vertices = 0;
+  float         total_cortex_area = 0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.66 2010/03/27 01:01:55 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.67 2010/03/27 23:58:58 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -441,8 +444,9 @@ main(int argc, char *argv[])
     fprintf(fp,"# TotalWhiteMatterVolume  %2.0f mm^3\n",wm_volume) ;
 #endif
 
-    int num_cortex_vertices = mris->nvertices;
-    float total_cortex_area = mris->total_area;
+    num_cortex_vertices = mris->nvertices;
+    total_cortex_area = mris->total_area;
+    // if -cortex option selected, then count vertices and area only in cortex
     if (cortex_label)
     {
       /* calculate the "area" of the vertices labeled as cortex */
@@ -661,6 +665,9 @@ main(int argc, char *argv[])
       thickness_vars[v0->marked] += std*std ;
     }
 
+    int dofs_total = 0;
+    float areas_total = 0.0f;
+
     for (i = 0 ; i < MAX_INDICES ; i++)
     {
       if (dofs[i] == 0 || names[i] == NULL)
@@ -676,6 +683,9 @@ main(int argc, char *argv[])
         continue;
       if (0 == strcmp(names[i],"Unknown")) // christophe label
         continue;
+
+      dofs_total += dofs[i];
+      areas_total += areas[i];
 
       MRISuseMeanCurvature(mris) ;
       mean_abs_mean_curvature = MRIScomputeAbsoluteCurvatureMarked(mris,i) ;
@@ -802,7 +812,35 @@ main(int argc, char *argv[])
         fclose(log_fp) ;
       }
     }
+
     MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+
+    // check of the sum of vertices equals what was calculated for the
+    // whole cortex, ditto for surface area
+    if (crosscheck)
+    {
+      if (dofs_total != num_cortex_vertices)
+      {
+        printf("ERROR: cross-check failed! dofs_total=%d != "
+               "num_cortex_vertices=%d\n",dofs_total,num_cortex_vertices);
+        exit(1);
+      }
+      int areas_total_int = (int)areas_total;
+      if (areas_total_int != (int)total_cortex_area)
+      {
+        if ((areas_total_int+1) != (int)total_cortex_area)
+        {
+          if ((areas_total_int-1) != (int)total_cortex_area)
+          {
+            printf("ERROR: cross-check failed! areas_total=%d != "
+                   "total_cortex_area=%d\n",
+                   areas_total_int,(int)total_cortex_area);
+            exit(1);
+          }
+        }
+      }
+      printf("INFO: cross-check passed\n");
+    }
   }
 
   if (histo_flag)
@@ -894,8 +932,14 @@ get_option(int argc, char *argv[])
     if (cortex_label == NULL)
       ErrorExit(ERROR_NOFILE, "") ;
     nargs = 1 ;
-    printf("INFO: using %s as mask to calc Cortex NumVert and SurfArea.\n",
+    printf("INFO: using %s as mask to calc cortex NumVert and SurfArea.\n",
       argv[2]);
+  }
+  else if (!stricmp(option, "crosscheck"))
+  {
+    crosscheck = 1;
+    printf("INFO: will cross-check cortex NumVert and SurfArea with "
+           "sum of all annotation structures.\n");
   }
   else switch (toupper(*option))
     {
