@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/27 18:56:00 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/03/27 19:14:54 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -2527,7 +2527,7 @@ GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris,int mark, int *exclude_list, 
       for (n = 0 ; n < v->vnum ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
-        if (vn->ripflag || vn->marked == mark)
+        if (vn->ripflag || vn->marked == mark || vn->annotation <= 0)
           continue ;
         for (index = 0 ; index < nexcluded ; index++)
           if (exclude_list[index] == vn->annotation)
@@ -2544,6 +2544,6 @@ GCSAreclassifyMarked(GCSA *gcsa, MRI_SURFACE *mris,int mark, int *exclude_list, 
     }
   } while (num > 0) ;
 
-  printf("%d labels changed in reclassification\n", changed);
+  printf("%d labels changed in reclassification.\n", changed);
   return(NO_ERROR) ;
 }
