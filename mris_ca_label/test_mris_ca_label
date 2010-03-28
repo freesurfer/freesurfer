@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/27 22:27:06 $
-#    $Revision: 1.1 $
+#    $Date: 2010/03/28 16:16:37 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2010,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_ca_label,v 1.1 2010/03/27 22:27:06 nicks Exp $'
+set VERSION='$Id: test_mris_ca_label,v 1.2 2010/03/28 16:16:37 nicks Exp $'
 
 umask 002
 
@@ -35,6 +35,8 @@ endif
 
 setenv SUBJECTS_DIR $PWD
 
+set LOG=(test_mris_ca_label.log)
+
 if ( -e testdata) then
   echo "rm -Rf testdata"
   rm -Rf testdata
@@ -43,7 +45,10 @@ endif
 echo "gunzip -c testdata.tar.gz | tar xvf -"
 gunzip -c testdata.tar.gz | tar xvf -
 
-set cmd=(./mris_ca_label  -l testdata/label/lh.cortex.label \
+#
+# create Desikan parcellation
+#
+set cmd=(./mris_ca_label -l testdata/label/lh.cortex.label \
     -aseg testdata/mri/aseg.mgz \
     -seed 1234 \
     testdata \
@@ -53,14 +58,34 @@ set cmd=(./mris_ca_label  -l testdata/label/lh.cortex.label \
     testdata/label/lh.aparc.annot)
 echo ""
 echo $cmd
-echo "Output is directed to file 'test_mris_ca_label.log'..."
-$cmd >& test_mris_ca_label.log
+echo "Output is directed to file '$LOG'..."
+if (-e $LOG) rm -f $LOG
+$cmd |& tee -a $LOG
 if ($status != 0) then
   echo "test_mris_ca_label FAILED"
   exit 1
 endif
 
-set cmd=(./mris_ca_label  -l testdata/label/lh.cortex.label \
+#
+# compare it to reference
+#
+set cmd=(../mris_diff/mris_diff --maxerrs 1000 \
+    --s1 testdata --s2 testdata --hemi lh \
+    --aparc aparc --aparc2 aparc.reference)
+echo ""
+echo $cmd
+$cmd |& tee -a $LOG
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "test_mris_ca_label $cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+
+#
+# create Destrieux parcellation
+#
+set cmd=(./mris_ca_label -l testdata/label/lh.cortex.label \
     -aseg testdata/mri/aseg.mgz \
     -seed 1234 \
     testdata \
@@ -70,30 +95,28 @@ set cmd=(./mris_ca_label  -l testdata/label/lh.cortex.label \
     testdata/label/lh.aparc.a2009s.annot)
 echo ""
 echo $cmd
-echo "Output is directed to file 'test_mris_ca_label.log'..."
-$cmd >>& test_mris_ca_label.log
+echo "Output is directed to file '$LOG'..."
+$cmd |& tee -a $LOG
 if ($status != 0) then
   echo "test_mris_ca_label FAILED"
   exit 1
 endif
 
+#
+# compare it to reference
+#
+set cmd=(../mris_diff/mris_diff --maxerrs 1000 \
+    --s1 testdata --s2 testdata --hemi lh \
+    --aparc aparc.a2009s --aparc2 aparc.a2009s.reference)
+echo ""
+echo $cmd
+$cmd |& tee -a $LOG
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "test_mris_ca_label $cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
 
-
-set TEST_FILES=( lh.aparc.annot lh.aparc.a2009s.annot )
-foreach tst ($TEST_FILES)
-  # now compare expected with observed data
-  set REF  = testdata/label/reference-$tst
-  set TST  = testdata/label/$tst
-  set cmd=(diff $REF $TST);
-  echo ""
-  echo $cmd
-  $cmd
-  set diff_status=$status
-  if ($diff_status != 0) then
-    echo "test_mris_ca_label $cmd FAILED (exit status=$diff_status)"
-    exit 1
-  endif
-end
 
 #
 # cleanup

@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/28 00:01:32 $
-#    $Revision: 1.10 $
+#    $Date: 2010/03/28 16:16:36 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2007-2010
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_anatomical_stats,v 1.10 2010/03/28 00:01:32 nicks Exp $'
+set VERSION='$Id: test_mris_anatomical_stats,v 1.11 2010/03/28 16:16:36 nicks Exp $'
 
 umask 002
 
@@ -162,8 +162,8 @@ endif
 test6:
 echo "gunzip -c ../mris_ca_label/testdata.tar.gz | tar xvf -"
 gunzip -c ../mris_ca_label/testdata.tar.gz | tar xvf -
-cp -v testdata/label/reference-lh.aparc.annot testdata/label/lh.aparc.annot
-cp -v testdata/label/reference-lh.aparc.a2009s.annot \
+cp -v testdata/label/lh.aparc.reference.annot testdata/label/lh.aparc.annot
+cp -v testdata/label/lh.aparc.a2009s.reference.annot \
     testdata/label/lh.aparc.a2009s.annot
 
 #

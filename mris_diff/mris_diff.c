@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/07/31 07:52:39 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/03/28 16:16:45 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,7 +113,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.15 2007/07/31 07:52:39 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.16 2010/03/28 16:16:45 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -122,7 +122,7 @@ static struct utsname uts;
 
 static char *subject1=NULL, *subject2=NULL, *hemi=NULL;
 static char *SUBJECTS_DIR=NULL, *SUBJECTS_DIR1=NULL, *SUBJECTS_DIR2=NULL;
-static char *curvname=NULL, *aparcname=NULL,*surfname=NULL;
+static char *curvname=NULL, *aparcname=NULL,*aparc2name=NULL, *surfname=NULL;
 static char *surf1path=NULL, *surf2path=NULL;
 static char *out_fname ;
 static char tmpstr[2000];
@@ -443,13 +443,16 @@ int main(int argc, char *argv[]) {
     sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
             SUBJECTS_DIR1,subject1,hemi,aparcname);
     printf("Loading aparc file %s\n",tmpstr);
+    fflush(stdout);
     if (MRISreadAnnotation(surf1, tmpstr)) {
       printf("ERROR: MRISreadAnnotation() failed %s\n",tmpstr);
       exit(1);
     }
+    if (aparc2name) aparcname = aparc2name;
     sprintf(tmpstr,"%s/%s/label/%s.%s.annot",
             SUBJECTS_DIR2,subject2,hemi,aparcname);
     printf("Loading aparc file %s\n",tmpstr);
+    fflush(stdout);
     if (MRISreadAnnotation(surf2, tmpstr)) {
       printf("ERROR: MRISreadAnnotation() failed %s\n",tmpstr);
       exit(1);
@@ -459,7 +462,7 @@ int main(int argc, char *argv[]) {
       annot1 = surf1->vertices[nthvtx].annotation;
       annot2 = surf2->vertices[nthvtx].annotation;
       if (annot1 != annot2) {
-        printf("aparc files differ at vertex %d %d %d\n",
+        printf("aparc files differ at vertex %d: 0x%8.8X 0x%8.8X\n",
                nthvtx,annot1,annot2);
         if (++error_count>=MAX_NUM_ERRORS) break;
       }
@@ -471,7 +474,9 @@ int main(int argc, char *argv[]) {
       }
       exit(103);
     }
-    printf("AParc files are the same\n");
+    printf("\n"
+           "AParc files are the same\n"
+           "------------------------\n");
     exit(0);
   }
 
@@ -543,6 +548,11 @@ static int parse_commandline(int argc, char **argv) {
       aparcname = pargv[0];
       CheckAParc=1;
       nargsused = 1;
+    } else if (!strcasecmp(option, "--aparc2")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      aparc2name = pargv[0];
+      CheckAParc=1;
+      nargsused = 1;
     } else if (!strcasecmp(option, "--thresh")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&thresh);
@@ -586,6 +596,7 @@ static void print_usage(void) {
   printf("   --surf surf\n");
   printf("   --curv curv\n");
   printf("   --aparc aparc\n");
+  printf("   --aparc2 aparc2   optional different name to compare to aparc\n");
   printf("\n");
   printf("other options:\n");
   printf("   --thresh N    threshold (default=0)\n");
@@ -686,6 +697,7 @@ static void dump_options(FILE *fp) {
   if (surfname) fprintf(fp,"surfname  %s\n",surfname);
   if (curvname) fprintf(fp,"curvname  %s\n",curvname);
   if (aparcname)fprintf(fp,"aparcname %s\n",aparcname);
+  if (aparc2name)fprintf(fp,"aparc2name %s\n",aparc2name);
   fprintf(fp,"\n");
   fprintf(fp,"\n");
 
