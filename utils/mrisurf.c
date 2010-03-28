@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/19 00:41:15 $
- *    $Revision: 1.668 $
+ *    $Date: 2010/03/28 19:22:04 $
+ *    $Revision: 1.669 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -714,7 +714,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.668 2010/03/19 00:41:15 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.669 2010/03/28 19:22:04 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -33890,7 +33890,7 @@ MRISmodeFilterZeroVals(MRI_SURFACE *mris)
 
   Description
   ------------------------------------------------------*/
-#define MAX_ANNOTATION 1000
+#define MAX_ANNOTATION 20000
 int
 MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
 {
@@ -33914,16 +33914,29 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
         DiagBreak() ;
 
       memset(histo, 0, sizeof(histo)) ;
+      memset(annotations, 0, sizeof(annotations)) ;
       for (n = 0 ; n < v->vtotal ; n++)
       {
         vn = &mris->vertices[v->v[n]] ;
         index = annotation_to_index(vn->annotation) ;
-        if (index < 0 || index >= MAX_ANNOTATION)
+        if (index < 0)
           continue ;
+        if (index >= MAX_ANNOTATION)
+        {
+          fprintf(stderr,"\nERROR: index:%d >= MAX_ANNOTATION:%d in "
+                  "MRISmodeFilterAnnotations!\n",index,MAX_ANNOTATION);
+          exit(1);
+        }
         histo[index]++ ;
         annotations[index] = vn->annotation ;
       }
       index = annotation_to_index(v->annotation) ;
+      if (index >= MAX_ANNOTATION)
+      {
+        fprintf(stderr,"\nERROR: index:%d >= MAX_ANNOTATION:%d in "
+                "MRISmodeFilterAnnotations!\n",index,MAX_ANNOTATION);
+        exit(1);
+      }
       max_histo = histo[index] ;
       max_annotation = v->annotation ;
       for (i = 1 ; i < MAX_ANNOTATION ; i++)
@@ -33935,7 +33948,6 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
         }
       }
       v->undefval = max_annotation ;
-
     }
     for (vno = 0 ; vno < mris->nvertices ; vno++)
     {
@@ -33955,6 +33967,7 @@ MRISmodeFilterAnnotations(MRI_SURFACE *mris, int niter)
          ino, niter, nchanged) ;
   return(NO_ERROR) ;
 }
+
 /*-----------------------------------------------------
   Parameters:
 
