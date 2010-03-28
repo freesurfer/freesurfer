@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/01/06 22:22:57 $
- *    $Revision: 1.25 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/28 19:14:23 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -158,6 +158,9 @@ int CTABwriteFileASCII(COLOR_TABLE *ct,const char *fname);
 
 // Creates a new color table with name added
 COLOR_TABLE *CTABaddEntry(COLOR_TABLE *ctold,const char *name);
+
+// returns name of annotation (or "NOT_FOUND")
+const char* CTABgetAnnotationName(COLOR_TABLE *ct, int annotation);
 
 #define AnnotToRGB(annot,r,g,b)             \
   r = annot & 0xff ;                            \

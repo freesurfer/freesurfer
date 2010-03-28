@@ -11,9 +11,9 @@
 /*
  * Original Authors: Kevin Teich, Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/01/06 22:22:56 $
- *    $Revision: 1.37 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/28 19:14:24 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -1483,6 +1483,33 @@ int CTABfindAnnotation(COLOR_TABLE *ct, int annotation, int *index)
   result = CTABfindRGBi (ct, r, g, b, index);
 
   return (result);
+}
+
+
+/*------------------------------------------------------------------
+  CTABgetAnnotationName() - given the annotation of a structure, 
+  return the name of this annotation label.  returns "NOT_FOUND" if
+  annotation not found in colortable.
+  -----------------------------------------------------------------*/
+const char* CTABgetAnnotationName(COLOR_TABLE *ct, int annotation)
+{
+  int r, g, b;
+  int index = -1;
+
+  if (NULL==ct)
+    ErrorExit(ERROR_BADPARM, "CTABfindAnnotationName: ct was NULL");
+
+  /* Separate the annotation into colors and then find the color. */
+  r = annotation & 0x0000ff;
+  g = (annotation >> 8) & 0x0000ff;
+  b = (annotation >> 16) & 0x0000ff;
+
+  CTABfindRGBi (ct, r, g, b, &index);
+
+  if ((index < 0) || (index >= ct->nentries))
+    return "NOT_FOUND";
+
+  return ct->entries[index]->name;
 }
 
 

@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/28 16:16:45 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/03/28 19:14:24 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,7 +113,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_diff.c,v 1.16 2010/03/28 16:16:45 nicks Exp $";
+static char vcid[] = "$Id: mris_diff.c,v 1.17 2010/03/28 19:14:24 nicks Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 static int debug=0;
@@ -462,8 +462,10 @@ int main(int argc, char *argv[]) {
       annot1 = surf1->vertices[nthvtx].annotation;
       annot2 = surf2->vertices[nthvtx].annotation;
       if (annot1 != annot2) {
-        printf("aparc files differ at vertex %d: 0x%8.8X 0x%8.8X\n",
-               nthvtx,annot1,annot2);
+        printf("aparc files differ at vertex %d: 1:%s 2:%s\n",
+               nthvtx,
+               CTABgetAnnotationName(surf1->ct,annot1),
+               CTABgetAnnotationName(surf2->ct,annot2));
         if (++error_count>=MAX_NUM_ERRORS) break;
       }
     } // end loop over vertices
