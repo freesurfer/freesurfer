@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/29 20:30:42 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/03/29 20:35:29 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -131,15 +131,16 @@ in the report.
 Create an output color table (like FreeSurferColor.txt) with just
 the segmentations reported in the output. 
 
---id segid1 <--id segid2>
+--id segid1 <<segid2> <--id segid3>>
 
 Specify numeric segmentation ids. Multiple ids can be specified with
-multiple --id invocations. SPECIFYING SEGMENTATION IDS.
+multiple IDs after a single --id or with multiple --id invocations. 
+SPECIFYING SEGMENTATION IDS.
 
---excludeid segid
+--excludeid segid1 <segid2 ...>
 
-Exclude the given segmentation id from report. This can be convenient
-for removing id=0. Only one segid can be targeted for exclusion.
+Exclude the given segmentation id(s) from report. This can be convenient
+for removing id=0. 
 
 --excl-ctxgmwm
 
@@ -426,7 +427,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.64 2010/03/29 20:30:42 greve Exp $";
+"$Id: mri_segstats.c,v 1.65 2010/03/29 20:35:29 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1512,11 +1513,16 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       BrainMaskFile = pargv[0];
       nargsused = 1;
-    } else if ( !strcmp(option, "--id") ) {
-      if (nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%d",&UserSegIdList[nUserSegIdList]);
-      nUserSegIdList++;
-      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--id") ) {
+      if(nargc < 1) argnerr(option,1);
+      nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%d",&UserSegIdList[nUserSegIdList]);
+	nUserSegIdList++;
+	nth++;
+      }
+      nargsused = nth;
     } 
     else if ( !strcmp(option, "--excl-ctxgmwm") ) {
       DoExclSegId = 1;
@@ -1526,12 +1532,12 @@ static int parse_commandline(int argc, char **argv) {
       ExclSegIdList[nExcl] = 41; nExcl++;
       ExclSegIdList[nExcl] = 42; nExcl++;
     }
-    else if ( !strcmp(option, "--excludeid") ) {
+    else if( !strcmp(option, "--excludeid") ||
+	     !strcmp(option, "--exclude") ) {
       if(nargc < 1) argnerr(option,1);
       nth = 0;
       while(CMDnthIsArg(nargc, pargv, nth) ){
 	sscanf(pargv[nth],"%d",&ExclSegIdList[nExcl]);
-	printf("%d %d %d\n",nth,nExcl,ExclSegIdList[nExcl]);
 	nExcl ++;
 	nth ++;
       }
@@ -1680,7 +1686,7 @@ static void print_usage(void) {
   printf("   --ctab ctabfile : color table file with seg id names\n");
   printf("   --ctab-default: use $FREESURFER_HOME/FreeSurferColorLUT.txt\n");
   printf("   --ctab-gca gcafile: get color table from GCA (CMA)\n");
-  printf("   --id segid <--id segid> : manually specify seg ids\n");
+  printf("   --id segid <segid2 ...> : manually specify seg ids\n");
   printf("   --excludeid segid : exclude seg id from report\n");
   printf("   --excl-ctxgmwm : exclude cortical gray and white matter\n");
   printf("   --surf-wm-vol : compute cortical white volume from surf\n");
@@ -1823,17 +1829,18 @@ printf("\n");
 printf("--ctab-out\n");
 printf("\n");
 printf("Create an output color table (like FreeSurferColor.txt) with just\n");
-printf("the segmentations reported in the output.\n");
+printf("the segmentations reported in the output. \n");
 printf("\n");
-printf("--id segid1 <--id segid2>\n");
+printf("--id segid1 <<segid2> <--id segid3>>\n");
 printf("\n");
 printf("Specify numeric segmentation ids. Multiple ids can be specified with\n");
-printf("multiple --id invocations. SPECIFYING SEGMENTATION IDS.\n");
+printf("multiple IDs after a single --id or with multiple --id invocations. \n");
+printf("SPECIFYING SEGMENTATION IDS.\n");
 printf("\n");
-printf("--excludeid segid\n");
+printf("--excludeid segid1 <segid2 ...>\n");
 printf("\n");
-printf("Exclude the given segmentation id from report. This can be convenient\n");
-printf("for removing id=0. Only one segid can be targeted for exclusion.\n");
+printf("Exclude the given segmentation id(s) from report. This can be convenient\n");
+printf("for removing id=0. \n");
 printf("\n");
 printf("--excl-ctxgmwm\n");
 printf("\n");
@@ -1851,10 +1858,10 @@ printf("\n");
 printf("  # surface-based-volume mm3 lh-cerebral-white-matter 266579.428518\n");
 printf("  # surface-based-volume mm3 rh-cerebral-white-matter 265945.120671\n");
 printf("\n");
-printf("--nonempty\n");
+printf("--empty\n");
 printf("\n");
-printf("Only report on segmentations that have actual representations in the\n");
-printf("segmentation volume.\n");
+printf("Report on segmentations listed in the color table even if they \n");
+printf("are not found in the segmentation volume.\n");
 printf("\n");
 printf("--mask maskvol\n");
 printf("\n");
@@ -1933,7 +1940,7 @@ printf("     used to determine the name of the segmentation for reporint\n");
 printf("     purposes.\n");
 printf("  3. If the user does not specify either --id or a color table, then \n");
 printf("     all the ids from the segmentation volume are used.\n");
-printf("This list can be further reduced by specifying masks, --excludeid.\n");
+printf("This list can be further reduced by specifying masks and --excludeid.\n");
 printf("\n");
 printf("MEASURES OF BRAIN VOLUME\n");
 printf("\n");
