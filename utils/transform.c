@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:46 $
- *    $Revision: 1.142 $
+ *    $Author: greve $
+ *    $Date: 2010/03/29 19:57:54 $
+ *    $Revision: 1.143 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -3134,16 +3134,15 @@ LTAwriteEx(const LTA *lta, const char *fname)
   if (!stricmp(FileNameExtension((char *) fname, ext), "XFM"))
     // someone defined NO_ERROR to be 0 and thus I have to change it
     return(ltaMNIwrite((LTA *) lta, (char *)fname)) ;
-  else if (!stricmp(FileNameExtension((char *) fname, ext), "DAT"))
+  else if(!stricmp(FileNameExtension((char *) fname, ext), "DAT") ||
+	  !stricmp(FileNameExtension((char *) fname, ext), "REG"))
   {
     int err ;
     err =  regio_write_register((char*)fname, (char *)lta->subject, lta->xforms[0].src.xsize,
                                 lta->xforms[0].src.zsize, lta->fscale, lta->xforms[0].m_L,
-                                FLT2INT_TKREG);
-    if (err == 0)
-      return(NO_ERROR) ;
-    else
-      return(ERROR_NOFILE);
+                                FLT2INT_ROUND);
+    if (err == 0) return(NO_ERROR) ;
+    else          return(ERROR_NOFILE);
   }
 
   fp = fopen(fname,"w");
