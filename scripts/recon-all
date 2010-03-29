@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/27 01:01:55 $
-#    $Revision: 1.303 $
+#    $Date: 2010/03/29 21:33:14 $
+#    $Revision: 1.304 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.303 2010/03/27 01:01:55 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.304 2010/03/29 21:33:14 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -170,6 +170,7 @@ set BaseSubjInvol = (orig.mgz); # -base-invol allows using some other file
 set BaseSubjsList = (); # subject set grabbed from -base-tp args
 set BaseSubjsListFname = (base-tps); # file containing BaseSubjsList
 set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median 
+set DoNuIntensityCor3T = 0; # if 1, use Zheng, Chee, Zagorodnov params for 3T
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -1102,13 +1103,20 @@ if($DoNuIntensityCor) then
   cd $subjdir/mri > /dev/null
   if ($longitudinal) then
     # longitudinal processing:
-    # just copy from the cross-sectionaly processed data for this subject
+    # just copy from the cross-sectionally processed data for this subject
     set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/nu.mgz .)
   else
     # default processing:
     set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
-    set cmd = (mri_nu_correct.mni  --i orig.mgz \
-       --o nu.mgz --n $NuIterations $xopts)
+    set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz)
+    if ($DoNuIntensityCor3T) then
+      # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper 
+      # "Improvement of brain segmentation accuracy by optimizing 
+      # non-uniformity correction using N3"
+      set NuIterations = 1;
+      set cmd = ($cmd --proto-iters 1000 --distance 50)
+    endif
+    set cmd = ($cmd --n $NuIterations $xopts)
   endif
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3381,7 +3389,13 @@ while( $#argv != 0 )
     case "-nonuintensitycor":
       set DoNuIntensityCor = 0;
       breaksw
-    case "-nuinterations":
+
+    case "-nuintensitycor-3T":
+    case "-nuintensitycor-3t":
+      set DoNuIntensityCor = 1;
+      set DoNuIntensityCor3T = 1;
+      breaksw
+
     case "-nuiterations":
       if ( $#argv < 1) goto arg1err;
       set NuIterations = $argv[1]; shift;
