@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/12/03 00:15:48 $
- *    $Revision: 1.63 $
+ *    $Author: greve $
+ *    $Date: 2010/03/29 20:30:42 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -426,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.63 2009/12/03 00:15:48 nicks Exp $";
+"$Id: mri_segstats.c,v 1.64 2010/03/29 20:30:42 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -454,7 +454,7 @@ int nsegid, *segidlist;
 int NonEmptyOnly = 1;
 int UserSegIdList[1000];
 int nUserSegIdList = 0;
-int DoExclSegId = 0, ExclSegId = 0;
+int DoExclSegId = 0, nExcl = 0, ExclSegIdList[1000], ExclSegId;
 int DoExclCtxGMWM= 0;
 int DoSurfCtxVol = 0;
 int DoSurfWMVol = 0;
@@ -507,8 +507,8 @@ int DoSNR = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs, n, n0, skip, nhits, f, nsegidrep, id, ind, nthsegid;
-  int c,r,s,err;
+  int nargs, n, nx, n0, skip, nhits, f, nsegidrep, id, ind, nthsegid;
+  int c,r,s,err,DoContinue;
   float voxelvolume,vol;
   float min, max, range, mean, std, snr;
   FILE *fp;
@@ -992,12 +992,16 @@ int main(int argc, char **argv) {
   printf("Computing statistics for each segmentation\n");
   fflush(stdout);
   for (n=0; n < nsegid; n++) {
-    if(DoExclSegId && StatSumTable[n].id == ExclSegId) continue;
-    if(DoExclCtxGMWM &&
-       (StatSumTable[n].id ==  2 || StatSumTable[n].id == 3 ||
-        StatSumTable[n].id == 41 || StatSumTable[n].id == 42) )
-      continue; // excludes Cortical GM and WM
-
+    if(DoExclSegId){
+      DoContinue = 0;
+      for(nx=0; nx < nExcl; nx++) {
+	if(StatSumTable[n].id == ExclSegIdList[nx]) {
+	  DoContinue = 1;
+	  break;
+	}
+      }
+      if(DoContinue) continue;
+    }
     printf("%3d   %3d  %s ",n,StatSumTable[n].id,StatSumTable[n].name);
     fflush(stdout);
 
@@ -1068,23 +1072,35 @@ int main(int argc, char **argv) {
     // Count the number of nonempty segmentations
     nsegidrep = 0;
     for (n=0; n < nsegid; n++) {
-      if (NonEmptyOnly && StatSumTable[n].nhits==0) continue;
-      if (DoExclSegId && StatSumTable[n].id==ExclSegId) continue;
-      if(DoExclCtxGMWM &&
-         (StatSumTable[n].id ==  2 || StatSumTable[n].id == 3 ||
-          StatSumTable[n].id == 41 || StatSumTable[n].id == 42) )
-        continue; // excludes Cortical GM and WM
+      if(NonEmptyOnly && StatSumTable[n].nhits==0) continue;
+      if(DoExclSegId){
+	DoContinue = 0;
+	for(nx=0; nx < nExcl; nx++) {
+	  if(StatSumTable[n].id == ExclSegIdList[nx]) {
+	    DoContinue = 1;
+	    break;
+	  }
+	}
+	if(DoContinue) continue;
+      }
       nsegidrep ++;
     }
     StatSumTable2 = (STATSUMENTRY *) calloc(sizeof(STATSUMENTRY),nsegidrep);
     nthsegid = 0;
     for (n=0; n < nsegid; n++) {
       if(NonEmptyOnly && StatSumTable[n].nhits==0) continue;
-      if(DoExclSegId && StatSumTable[n].id==ExclSegId) continue;
-      if(DoExclCtxGMWM &&
-         (StatSumTable[n].id ==  2 || StatSumTable[n].id == 3 ||
-          StatSumTable[n].id == 41 || StatSumTable[n].id == 42) )
-        continue; // excludes Cortical GM and WM
+
+      if(DoExclSegId){
+	DoContinue = 0;
+	for(nx=0; nx < nExcl; nx++) {
+	  if(StatSumTable[n].id == ExclSegIdList[nx]) {
+	    DoContinue = 1;
+	    break;
+	  }
+	}
+	if(DoContinue) continue;
+      }
+
       StatSumTable2[nthsegid].id    = StatSumTable[n].id;
       StatSumTable2[nthsegid].nhits = StatSumTable[n].nhits;
       StatSumTable2[nthsegid].vol   = StatSumTable[n].vol;
@@ -1220,10 +1236,13 @@ int main(int argc, char **argv) {
       fprintf(fp,"# surface-based-volume mm3 rh-cerebral-white-matter %lf\n",rhwhitevol);
       fprintf(fp,"# surface-based-volume mm3 tot-cerebral-white-matter %lf\n",lhwhitevol+rhwhitevol);
     }
-    if(DoExclSegId)
-      fprintf(fp,"# ExcludeSegId %d \n",ExclSegId);
     if(DoExclCtxGMWM)
       fprintf(fp,"# Excluding Cortical Gray and White Matter\n");
+    if(DoExclSegId){
+      fprintf(fp,"# ExcludeSegId ");
+      for(nx=0; nx < nExcl; nx++) fprintf(fp,"%d ",ExclSegIdList[nx]);
+      fprintf(fp,"\n");
+    }
     if(NonEmptyOnly)
       fprintf(fp,"# Only reporting non-empty segmentations\n");
     if(!mris) fprintf(fp,"# VoxelVolume_mm3 %g \n",voxelvolume);
@@ -1398,7 +1417,7 @@ int main(int argc, char **argv) {
 
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused;
+  int  nargc , nargsused, nth;
   char **pargv, *option ;
 
   if (argc < 1) usage_exit();
@@ -1424,7 +1443,6 @@ static int parse_commandline(int argc, char **argv) {
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
     else if ( !strcmp(option, "--etiv-only") ) DoETIVonly = 1;
     else if ( !strcmp(option, "--old-etiv-only") ) DoOldETIVonly = 1;
-    else if ( !strcmp(option, "--excl-ctxgmwm") ) DoExclCtxGMWM = 1;
     else if ( !strcmp(option, "--surf-ctx-vol") ) DoSurfCtxVol = 1;
     else if ( !strcmp(option, "--surf-wm-vol") )  DoSurfWMVol = 1;
     else if ( !strcmp(option, "--sqr") )  DoSquare = 1;
@@ -1499,11 +1517,26 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&UserSegIdList[nUserSegIdList]);
       nUserSegIdList++;
       nargsused = 1;
-    } else if ( !strcmp(option, "--excludeid") ) {
-      if (nargc < 1) argnerr(option,1);
-      sscanf(pargv[0],"%d",&ExclSegId);
+    } 
+    else if ( !strcmp(option, "--excl-ctxgmwm") ) {
       DoExclSegId = 1;
-      nargsused = 1;
+      DoExclCtxGMWM = 1;
+      ExclSegIdList[nExcl] =  2; nExcl++;
+      ExclSegIdList[nExcl] =  3; nExcl++;
+      ExclSegIdList[nExcl] = 41; nExcl++;
+      ExclSegIdList[nExcl] = 42; nExcl++;
+    }
+    else if ( !strcmp(option, "--excludeid") ) {
+      if(nargc < 1) argnerr(option,1);
+      nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%d",&ExclSegIdList[nExcl]);
+	printf("%d %d %d\n",nth,nExcl,ExclSegIdList[nExcl]);
+	nExcl ++;
+	nth ++;
+      }
+      DoExclSegId = 1;
+      nargsused = nth;
     } else if ( !strcmp(option, "--mask") ) {
       if (nargc < 1) argnerr(option,1);
       MaskVolFile = pargv[0];
