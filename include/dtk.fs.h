@@ -69,6 +69,7 @@ DTK_TRACK_SET *DTKextractCC(DTK_TRACK_SET *trkset);
 MRI *DTKmapTrackNos(DTK_TRACK_SET *trkset);
 MRI *DTKsegROI(DTK_TRACK_SET *trkset, MRI *seg, int segid);
 DTK_TRACK_SET *DTKextractSeg(DTK_TRACK_SET *trkset, int segid);
+DTK_TRACK_SET *DTKextractSegEndPoints(DTK_TRACK_SET *trkset, int segid);
 
 //DTKwriteTrackSet(char *fname, DTK_TRACK_SET *dtkset)
 //DTKfree(DTK_TRACK_SET **pdtkset)
