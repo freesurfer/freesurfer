@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/29 20:35:29 $
- *    $Revision: 1.65 $
+ *    $Date: 2010/03/29 21:18:34 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -427,7 +427,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.65 2010/03/29 20:35:29 greve Exp $";
+"$Id: mri_segstats.c,v 1.66 2010/03/29 21:18:34 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -475,6 +475,9 @@ int   nmaskhits;
 int   nbrainsegvoxels = 0;
 double brainsegvolume = 0;
 double brainsegvolume2 = 0;
+int DoSubCortGrayVol = 1;
+double SubCortGrayVol = 0;
+int DoTotalGrayVol = 0;
 int   nbrainmaskvoxels = 0;
 double brainmaskvolume = 0;
 int   BrainVolFromSeg = 0;
@@ -1132,6 +1135,15 @@ int main(int argc, char **argv) {
       brainsegvolume2 += StatSumTable[n].vol;
     }
   }
+  if(DoSubCortGrayVol) {
+    SubCortGrayVol = 0.0;
+    for(n=0; n < nsegid; n++) {
+      id = StatSumTable[n].id;
+      if(! IsSubCorticalGray(id)) continue ;
+      SubCortGrayVol += StatSumTable[n].vol;
+    }
+    printf("SubCortGrayVol = %g\n",SubCortGrayVol);
+  }
 
   /* Dump the table to the screen */
   if (debug) {
@@ -1173,9 +1185,9 @@ int main(int argc, char **argv) {
       fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
       fprintf(fp,"# BrainMaskFileTimeStamp  %s \n",
               VERfileTimeStamp(BrainMaskFile));
-      fprintf(fp,"# Measure BrainMask, BrainMaskNVox, "
-              "Number of Brain Mask Voxels, %7d, unitless\n",
-              nbrainmaskvoxels);
+      //fprintf(fp,"# Measure BrainMask, BrainMaskNVox, "
+      //      "Number of Brain Mask Voxels, %7d, unitless\n",
+      //      nbrainmaskvoxels);
       fprintf(fp,"# Measure BrainMask, BrainMaskVol, "
               "Brain Mask Volume, %f, mm^3\n",brainmaskvolume);
     }
@@ -1183,13 +1195,24 @@ int main(int argc, char **argv) {
       fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
               "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
               brainsegvolume2);
-      fprintf(fp,"# Measure BrainSeg, BrainSegNVox, "
-              "Number of Brain Segmentation Voxels, %7d, unitless\n",
-              nbrainsegvoxels);
+      //fprintf(fp,"# Measure BrainSeg, BrainSegNVox, "
+      //      "Number of Brain Segmentation Voxels, %7d, unitless\n",
+      //      nbrainsegvoxels);
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, "
               "Brain Segmentation Volume, %f, mm^3\n",
               brainsegvolume);
     }
+    if(DoSubCortGrayVol) {
+      fprintf(fp,"# Measure SubCortGray, SubCortGrayVol, "
+              "Subcortical gray matter volume, %f, mm^3\n",
+              SubCortGrayVol);
+    }
+    if(DoTotalGrayVol) {
+      fprintf(fp,"# Measure TotalGray, TotalGrayVol, "
+              "Total gray matter volume, %f, mm^3\n",
+              SubCortGrayVol+lhctxvol+rhctxvol);
+    }
+
     if (DoETIV) {
       fprintf(fp,"# Measure IntraCranialVol, ICV, "
               "Intracranial Volume, %f, mm^3\n",atlas_icv);
@@ -1441,6 +1464,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nonempty")) NonEmptyOnly = 1;
     else if (!strcasecmp(option, "--empty"))    NonEmptyOnly = 0;
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
+    else if ( !strcmp(option, "--subcortgray") ) DoSubCortGrayVol = 1;
+    else if ( !strcmp(option, "--totalgray") ) DoTotalGrayVol = 1;
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
     else if ( !strcmp(option, "--etiv-only") ) DoETIVonly = 1;
     else if ( !strcmp(option, "--old-etiv-only") ) DoOldETIVonly = 1;
@@ -1707,6 +1732,8 @@ static void print_usage(void) {
          "get brain volume from brain segmentations\n");
   printf("   --brainmask brainmask: "
          "compute volume from non-zero vox in brain mask\n");
+  printf("   --subcortgray : compute volume of subcortical gray matter");
+  printf("   --totalgray : compute volume of total gray matter");
   printf("   --etiv : compute intracranial volume "
          "from subject/mri/transforms/talairach.xfm\n");
   printf("   --etiv-only : compute intracranial volume "
@@ -2079,6 +2106,10 @@ static void check_options(void) {
   }
   if(DoSurfCtxVol && subject == NULL){
     printf("ERROR: need --subject with --surf-ctx-vol\n");
+    exit(1);
+  }
+  if(DoTotalGrayVol && !DoSurfCtxVol){
+    printf("ERROR: need --surf-ctx-vol with --totalgray\n");
     exit(1);
   }
   if(ctabfileOut && !ctabfile){
