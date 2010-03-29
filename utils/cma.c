@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/03/12 19:49:28 $
- *    $Revision: 1.4 $
+ *    $Author: greve $
+ *    $Date: 2010/03/29 21:18:06 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -510,6 +510,39 @@ insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg,
   }
   MRIfree(&mri_ribbon) ; MRIfree(&mri_white) ;
   return(NO_ERROR) ;
+}
+
+/*!
+\fn int IsSubCorticalGray(int SegId)
+\brief Returns a 1 if the given seg is subcortical gray
+\param SegId - segmentation id number
+*/
+int IsSubCorticalGray(int SegId)
+{
+  if(SegId == Left_Thalamus) return(1);
+  if(SegId == Right_Thalamus) return(1);
+  if(SegId == Left_Thalamus_Proper) return(1);
+  if(SegId == Right_Thalamus_Proper) return(1);
+  if(SegId == Left_Caudate) return(1);
+  if(SegId == Right_Caudate) return(1);
+  if(SegId == Left_Putamen ) return(1);
+  if(SegId == Right_Putamen ) return(1);
+  if(SegId == Left_Pallidum) return(1);
+  if(SegId == Right_Pallidum) return(1);
+  if(SegId == Brain_Stem) return(1);
+  if(SegId == Left_Hippocampus) return(1);
+  if(SegId == Right_Hippocampus) return(1);
+  if(SegId == Left_Amygdala) return(1);
+  if(SegId == Right_Amygdala) return(1);
+  if(SegId == Left_Accumbens_area) return(1);
+  if(SegId == Right_Accumbens_area) return(1);
+  if(SegId == Left_VentralDC) return(1);
+  if(SegId == Right_VentralDC) return(1);
+  if(SegId == Left_Substancia_Nigra) return(1);
+  if(SegId == Right_Substancia_Nigra) return(1);
+  if(SegId == Left_Cerebellum_Cortex) return(1);
+  if(SegId == Right_Cerebellum_Cortex) return(1);
+  return(0);
 }
 
 /* eof */

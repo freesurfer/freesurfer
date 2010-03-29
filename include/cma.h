@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/03/05 20:48:50 $
- *    $Revision: 1.49 $
+ *    $Author: greve $
+ *    $Date: 2010/03/29 21:18:06 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -375,6 +375,7 @@ int CMAaddWeightedTotals(CMAoutlineClaim *claim,
 
 int CMAzeroOutlines(CMAoutlineField *field);
 char *cma_label_to_name(int label) ;
+int IsSubCorticalGray(int SegId);
 
 #define IS_FIMBRIA(l) ((l) == left_fimbria || (l) == right_fimbria || (l) == fimbria)
 #define CSF_CLASS        0
@@ -396,7 +397,6 @@ char *cma_label_to_name(int label) ;
 int insert_ribbon_into_aseg(MRI *mri_src_aseg, MRI *mri_aseg, 
                             MRI_SURFACE *mris_white, MRI_SURFACE *mris_pial, 
                             int hemi) ;
-
 
 
 #if defined(__cplusplus)
