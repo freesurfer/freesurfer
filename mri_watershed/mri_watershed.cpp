@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/27 01:11:28 $
- *    $Revision: 1.80 $
+ *    $Date: 2010/03/30 18:56:23 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.80 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.81 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -862,7 +862,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.80 2010/02/27 01:11:28 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.81 2010/03/30 18:56:23 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -875,7 +875,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.80 2010/02/27 01:11:28 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.81 2010/03/30 18:56:23 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -4985,6 +4985,13 @@ static void analyseCSF(unsigned long CSF_percent[6][256],
 
   tp=MRI_var->CSF_intensity;
 
+  if (i < 0 || i >= 6)
+  {
+    fprintf(stderr,
+            "ERROR1: mri_watershed::analyseCSF - i outside array bounds\n");
+    exit(1);
+  }
+
   lisse(CSF_percent[i], "CSF_percent");
 
   DebugCurve(CSF_percent[i], 3*MRI_var->CSF_intensity, "\nCSF_percent\n");
@@ -4993,6 +5000,12 @@ static void analyseCSF(unsigned long CSF_percent[6][256],
   tmp=0;
   for (k=0;k<3*MRI_var->CSF_intensity;k++)
   {
+    if (k < 0 || k >= 256)
+    {
+      fprintf(stderr,
+              "ERROR2: mri_watershed::analyseCSF - k outside array bounds\n");
+      exit(1);
+    }
     buff=CSF_percent[i][k];
     if (tmp<buff)
     {
@@ -5003,17 +5016,56 @@ static void analyseCSF(unsigned long CSF_percent[6][256],
 
   k=csf;
   for (n=k;n<3*MRI_var->CSF_intensity;n++)
+  {
+    if (n < 0 || n >= 256)
+    {
+      fprintf(stderr,
+              "ERROR3: mri_watershed::analyseCSF - n outside array bounds\n");
+      exit(1);
+    }
+    if (k < 0 || k >= 256)
+    {
+      fprintf(stderr,
+              "ERROR4: mri_watershed::analyseCSF - k outside array bounds\n");
+      exit(1);
+    }
     if (CSF_percent[i][n]>=CSF_percent[i][k]/2)
       MRI_var->CSF_HALF_MAX[i]=n;
     else
       break;
+  }
 
   k=MRI_var->CSF_HALF_MAX[i];
   for (n=k;n<3*MRI_var->CSF_intensity;n++)
+  {
+    if (n < 0 || n >= 256)
+    {
+      fprintf(stderr,
+              "ERROR5: mri_watershed::analyseCSF - n outside array bounds\n");
+      exit(1);
+    }
+    if (k < 0 || k >= 256)
+    {
+      fprintf(stderr,
+              "ERROR6: mri_watershed::analyseCSF - k outside array bounds\n");
+      exit(1);
+    }
     if (CSF_percent[i][n]>=CSF_percent[i][k]/2)
-      MRI_var->CSF_MAX[i]=n+2;
+    {
+      int new_max = n+2;
+      if (new_max < 0 || new_max >= 256)
+      {
+        fprintf(stdout, "\n Problem with CSF_MAX\n");
+        // don't change the value
+      }
+      else
+      {
+        MRI_var->CSF_MAX[i]= new_max;
+      }
+    }
     else
       break;
+  }
 
   MRI_var->CSF_intens[i]=csf;
 
@@ -5021,6 +5073,12 @@ static void analyseCSF(unsigned long CSF_percent[6][256],
   Sxy = Sx = Sy = Sxx = 0;
   for (k=MRI_var->CSF_intens[i];k<=MRI_var->CSF_MAX[i];k++)
   {
+    if (k < 0 || k >= 256)
+    {
+      fprintf(stderr,
+              "ERROR7: mri_watershed::analyseCSF - k outside array bounds\n");
+      exit(1);
+    }
     Sxy+=(float)k*CSF_percent[i][k];
     Sx+=k;
     Sy+=CSF_percent[i][k];
@@ -5046,23 +5104,54 @@ static void analyseCSF(unsigned long CSF_percent[6][256],
     fprintf(stdout, "\n Problem with the least square "
             "interpolation for CSF_MAX");
     // don't change the value
-
   }
   else
-    MRI_var->CSF_MAX[i]=int(-b/a);
+  {
+    int new_max = int(-b/a);
+    if (new_max < 0 || new_max >= 256)
+    {
+      fprintf(stdout, "\n Problem with the least square "
+              "interpolation for CSF_MAX");
+      // don't change the value
+    }
+    else
+    {
+      MRI_var->CSF_MAX[i]= new_max;
+    }
+  }
 
   k=MRI_var->CSF_intens[i];
   for (n=k;n>=0;n--)
+  {
+    if (n < 0 || n >= 256)
+    {
+      fprintf(stderr,
+              "ERROR8: mri_watershed::analyseCSF - n outside array bounds\n");
+      exit(1);
+    }
+    if (k < 0 || k >= 256)
+    {
+      fprintf(stderr,
+              "ERROR9: mri_watershed::analyseCSF - k outside array bounds\n");
+      exit(1);
+    }
     if (CSF_percent[i][n]>=CSF_percent[i][k]/10)
       MRI_var->CSF_MIN[i]=n-1;
     else
       break;
+  }
   MRI_var->CSF_MIN[i]=MAX(0,MRI_var->CSF_MIN[i]);
 
   n=MRI_var->CSF_intens[i]-MRI_var->CSF_MIN[i]+1;
   Sxy = Sx = Sy = Sxx = 0;
   for (k=MRI_var->CSF_MIN[i];k<=MRI_var->CSF_intens[i];k++)
   {
+    if (k < 0 || k >= 256)
+    {
+      fprintf(stderr,
+              "ERROR10: mri_watershed::analyseCSF - k outside array bounds\n");
+      exit(1);
+    }
     Sxy+=(float)k*CSF_percent[i][k];
     Sx+=k;
     Sy+=CSF_percent[i][k];
@@ -5083,10 +5172,28 @@ static void analyseCSF(unsigned long CSF_percent[6][256],
 
   a=1/((float)MRI_var->CSF_MAX[i] - 3*tp);
   b=(float)3*tp/(3*tp-MRI_var->CSF_MAX[i]);
+
   for (k=MRI_var->CSF_MAX[i];k<=3*tp;k++)
+  {
+    if (k < 0 || k >= 256)
+    {
+      fprintf(stderr,
+              "ERROR11: mri_watershed::analyseCSF - k outside array bounds "
+              "(k=%d)\n",k);
+      exit(1);
+    }
     CSF_percent[i][k]*= (long unsigned int) (a*k+b);
+  }
   for (;k<256;k++)
+  {
+    if (k < 0 || k >= 256)
+    {
+      fprintf(stderr,
+              "ERROR12: mri_watershed::analyseCSF - k outside array bounds\n");
+      exit(1);
+    }
     CSF_percent[i][k]=0;
+  }
 
   fflush(stdout);
 }
