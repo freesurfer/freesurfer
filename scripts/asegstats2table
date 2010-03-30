@@ -7,7 +7,7 @@ import fsutils
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.31 2010/02/20 18:56:43 nicks Exp $
+# $Id: asegstats2table,v 1.32 2010/03/30 16:30:51 greve Exp $
 
 # map of measures and their appropriate columns in .stats file
 seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
@@ -100,7 +100,7 @@ def options_parse():
     Command Line Options Parser for aparcstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.31 2010/02/20 18:56:43 nicks Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.32 2010/03/30 16:30:51 greve Exp $', usage=helptext)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -328,6 +328,38 @@ def build_table(options):
             for line in fp:
                 # if measure is volume, also output ICV and BSV
                 if not o.dodirect and o.meas == 'volume':
+                    if line.startswith('# Measure lhCortex, lhCortexVol,') :
+                        strlst = line.split(',')
+                        cols.append('lhCortexVol')
+                        table[statno+subname]['lhCortexVol'] = float(strlst[3])
+                    if line.startswith('# Measure rhCortex, rhCortexVol,') :
+                        strlst = line.split(',')
+                        cols.append('rhCortexVol')
+                        table[statno+subname]['rhCortexVol'] = float(strlst[3])
+                    if line.startswith('# Measure Cortex, CortexVol,') :
+                        strlst = line.split(',')
+                        cols.append('CortexVol')
+                        table[statno+subname]['CortexVol'] = float(strlst[3])
+                    if line.startswith('# Measure lhCorticalWhiteMatter, lhCorticalWhiteMatterVol,') :
+                        strlst = line.split(',')
+                        cols.append('lhCorticalWhiteMatterVol')
+                        table[statno+subname]['lhCorticalWhiteMatterVol'] = float(strlst[3])
+                    if line.startswith('# Measure rhCorticalWhiteMatter, rhCorticalWhiteMatterVol,') :
+                        strlst = line.split(',')
+                        cols.append('rhCorticalWhiteMatterVol')
+                        table[statno+subname]['rhCorticalWhiteMatterVol'] = float(strlst[3])
+                    if line.startswith('# Measure SubCortGray, SubCortGrayVol,') :
+                        strlst = line.split(',')
+                        cols.append('SubCortGrayVol')
+                        table[statno+subname]['SubCortGrayVol'] = float(strlst[3])
+                    if line.startswith('# Measure TotalGray, TotalGrayVol,') :
+                        strlst = line.split(',')
+                        cols.append('TotalGrayVol')
+                        table[statno+subname]['TotalGrayVol'] = float(strlst[3])
+                    if line.startswith('# Measure SuperTentorial, SuperTentorialVol,') :
+                        strlst = line.split(',')
+                        cols.append('SuperTentorialVol')
+                        table[statno+subname]['SuperTentorialVol'] = float(strlst[3])
                     if line.startswith('# Measure IntraCranialVol, ICV,') :
                         strlst = line.split(',')
                         cols.append('IntraCranialVol')
