@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2010/03/30 15:42:16 $
-#    $Revision: 1.305 $
+#    $Author: nicks $
+#    $Date: 2010/03/30 20:28:41 $
+#    $Revision: 1.306 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.305 2010/03/30 15:42:16 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.306 2010/03/30 20:28:41 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -262,6 +262,7 @@ set DoCurvStats      = 0;
 set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
 set DoBaLabels       = 0;
+set DoLabelExvivoEC  = 0;
 # ----------- Surface and Volume ------------------#
 set DoSegStats       = 0;
 set DoCortRibbonVolMask = 0;
@@ -3115,6 +3116,56 @@ if ($DoBaLabels) then
 endif # DoBaLabels
 
 
+# --------------------------------------------------------------------
+# Create entorhinal cortex labels by mapping from exvivo subjects,
+# then generate ?h.entorhinal_exvivo.stats files
+if ($DoLabelExvivoEC) then
+  cd $subjdir/label
+  $PWD |& tee -a $LF
+  foreach hemi ($hemilist)
+    echo "#--------------------------------------------" \
+        |& tee -a $LF |& tee -a $CF
+    echo "#@# Ex-vivo Entorhinal Cortex Label $hemi `date`" \
+        |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    if ( ! -e $SUBJECTS_DIR/${hemi}.EC_average) then
+      echo "INFO: ${hemi}.EC_average subject does not exist in SUBJECTS_DIR" \
+        |& tee -a $LF |& tee -a $CF
+      echo "INFO: Creating symlink to ${hemi}.EC_average subject..." \
+        |& tee -a $LF |& tee -a $CF
+      set cmd=(ln -s $FREESURFER_HOME/subjects/${hemi}.EC_average \
+        $SUBJECTS_DIR/${hemi}.EC_average)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+    endif
+
+    # generate label
+    set cmd = (mris_spherical_average \
+                 -erode 1 \
+                 -orig white \
+                 -t 0.4 \
+                 -o ${subjid} \
+                 label ${hemi}.entorhinal \
+                 $hemi sphere.reg \
+                 ${hemi}.EC_average \
+                 ${hemi}.entorhinal_exvivo.label)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+    # generate stats
+    set label = ./$hemi.entorhinal_exvivo.label
+    set stats = ../stats/$hemi.entorhinal_exvivo.stats
+    set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
+    set cmd = (mris_anatomical_stats -mgz -f $stats \
+            -b -l $label $xopts $subjid $hemi);
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+
+  end # hemi
+endif # DoLabelExvivoEC
+
+
 #-------------- AParc+ASeg Stats -----------------#
 # This is not something you want to do in general. The volumes
 # of cortical structures should be obtained from the aparc.stats,
@@ -4056,6 +4107,7 @@ while( $#argv != 0 )
       set DoWMParc         = 1;
       set DoCurvStats      = 1;
       set DoBaLabels       = 1;
+      set DoLabelExvivoEC  = 1;
       breaksw
 
     case "-autorecon1":
@@ -4195,6 +4247,7 @@ while( $#argv != 0 )
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
       set DoBaLabels       = 1;
+      set DoLabelExvivoEC  = 1;
       breaksw
 
     case "-autorecon-hemi":
@@ -4230,6 +4283,7 @@ while( $#argv != 0 )
       set DoSegStats       = 1;
       set DoCurvStats      = 1;
       set DoBaLabels       = 1;
+      set DoLabelExvivoEC  = 1;
       breaksw
 
     case "-waitfor":
@@ -4537,6 +4591,8 @@ while( $#argv != 0 )
     case "-balabels":
     case "-ba_labels":
     case "-ba-labels":
+    case "-label_ba":
+    case "-label_BA":
       set DoBaLabels = 1;
       breaksw;
 
@@ -4545,7 +4601,17 @@ while( $#argv != 0 )
       breaksw;
 
     case "-label_v1":
+    case "-label_V1":
+    case "-label-v1":
+    case "-label-V1":
       set DoLabelV1 = 1;
+      breaksw;
+
+    case "-label_exvivo_ec":
+    case "-label-exvivo-ec":
+    case "-label_exvivo_EC":
+    case "-label-exvivo-EC":
+      set DoLabelExvivoEC = 1;
       breaksw;
 
     case "-use-concat-lta-tal":
@@ -4880,7 +4946,8 @@ check_params:
      ! $DoMaskBFS && ! $DoAParcASegStats && ! $DoLocalGyriIndex && \
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
-     ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits) then
+     ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
+     ! $DoLabelExvivoEC ) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
