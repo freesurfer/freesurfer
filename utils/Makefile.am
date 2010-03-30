@@ -363,6 +363,16 @@ gifti_test_SOURCES=gifti_test.c gifti_test.h gifti_io.c gifti_xml.c \
 	nifti1_io.c znzlib.c
 gifti_test_LDADD=$(top_builddir)/expat/libexpat.a -lz $(LIBS_NIFTI)
 
+
+if USE_SSE_MATHFUN
+check_PROGRAMS = sse_mathfun_test
+sse_mathfun_test_SOURCES = sse_mathfun_test.c
+sse_mathfun_test_LDADD = -lm
+
+TESTS = sse_mathfun_test
+endif
+
+
 EXTRA_DIST=$(srcdir)/$(NrrdIO_dir)/copyright.NrrdIO
 
 # Our release target. Include files to be excluded here. They will be

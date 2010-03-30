@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/19 09:47:46 $
-#    $Revision: 1.471 $
+#    $Date: 2010/03/30 21:26:53 $
+#    $Revision: 1.472 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -537,6 +537,18 @@ AC_MSG_NOTICE(OS is $OS)
 AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 
 
+################################################################
+# SSE math functions (sin_ps, cos_ps, sincos_ps, exp_ps, log_ps)
+################################################################
+ac_have_sse_mathfun=no
+AC_ARG_ENABLE(sse_mathfun,
+ [  --enable-sse_mathfun    enable SSE math function support],
+ [ ac_have_sse_mathfun=yes
+   AC_MSG_NOTICE(Using SSE math functions)
+ ])
+AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
+
+
 ##############################################################
 # OpenMP
 ##############################################################
@@ -552,6 +564,7 @@ AC_ARG_ENABLE(openmp,
    fi  
  ])
 AM_CONDITIONAL(HAVE_OPENMP, test "x$ac_have_openmp" = "xyes")
+
 
 ##############################################################
 # OPENCL enabling - added by Dan Ginsburg
