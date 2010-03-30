@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/30 15:31:21 $
- *    $Revision: 1.179 $
+ *    $Date: 2010/03/30 15:38:11 $
+ *    $Revision: 1.180 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -556,12 +556,11 @@ static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
 static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
-MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.179 2010/03/30 15:31:21 greve Exp $";
+"$Id: mri_glmfit.c,v 1.180 2010/03/30 15:38:11 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2981,48 +2980,6 @@ int MRISmaskByLabel(MRI *y, MRIS *surf, LABEL *lb, int invflag) {
   free(lbmask);
   MRIScrsLUTFree(crslut);
   return(0);
-}
-// Treats each frame triple as an xyz to compute distance
-MRI *fMRIdistance(MRI *mri, MRI *mask)
-{
-  MRI *d;
-  double dx,dy,dz,v;
-  int c,r,s,f,fd;
-
-  d = MRIallocSequence(mri->width, mri->height, mri->depth,
-                       MRI_FLOAT, mri->nframes/3);
-  if(d==NULL) {
-    printf("ERROR: fMRIdistance: could not alloc\n");
-    return(NULL);
-  }
-  MRIcopyHeader(mri,d);
-
-  printf("Computing Distance\n");
-
-  for (c=0; c < mri->width; c++)  {
-    for (r=0; r < mri->height; r++) {
-      for (s=0; s < mri->depth; s++) {
-        if(mask){
-          if(MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
-            MRIFseq_vox(d,c,r,s,0) = 0;
-            continue;
-          }
-        }
-        fd = 0;
-        for(f = 0; f < mri->nframes; f+=3){
-          dx = MRIgetVoxVal(mri, c, r, s, f+0);
-          dy = MRIgetVoxVal(mri, c, r, s, f+1);
-          dz = MRIgetVoxVal(mri, c, r, s, f+2);
-          v = sqrt(dx*dx + dy*dy + dz*dz);
-          //printf("%5d %2d %2d %3d   %3d   %g %g %g  %g\n",c,r,s,f,fd,dx,dy,dz,v);
-          MRIsetVoxVal(d, c, r, s, fd, v);
-          fd++;
-        }
-      }
-    }
-  }
-  //MRIwrite(d,"dist.mgh");
-  return(d);
 }
 
 

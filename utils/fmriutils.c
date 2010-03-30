@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/30 15:31:21 $
- *    $Revision: 1.62 $
+ *    $Date: 2010/03/30 15:38:11 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.62 2010/03/30 15:31:21 greve Exp $
+  $Id: fmriutils.c,v 1.63 2010/03/30 15:38:11 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -61,7 +61,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.62 2010/03/30 15:31:21 greve Exp $");
+  return("$Id: fmriutils.c,v 1.63 2010/03/30 15:38:11 greve Exp $");
 }
 
 
@@ -2405,7 +2405,10 @@ MRI *fMRIkurtosis(MRI *y, MRI *mask)
       for (s=0; s < y->depth; s++){
 	if(mask){
 	  v = MRIgetVoxVal(mask,c,r,s,0);
-	  if(v < 0.5) continue;
+	  if(v < 0.0001) {
+	    MRIsetVoxVal(k,c,r,s,0,0.0);
+	    continue;
+	  }
 	}
 	mn = 0;
 	for(f=0; f < y->nframes; f++) mn += MRIgetVoxVal(y,c,r,s,f);
@@ -2424,7 +2427,6 @@ MRI *fMRIkurtosis(MRI *y, MRI *mask)
       }
     }
   }
-
   return(k);
 }
 
@@ -2439,7 +2441,7 @@ MRI *fMRIkurtosis(MRI *y, MRI *mask)
 MRI *MRIpkurtosis(MRI *kvals, int dof, MRI *mask, int nsamples)
 {
   MRI *nmri, *kmri, *pkmri;
-  double *ksynth,pk,kvox;
+  double *ksynth,pk,kvox,v;
   int m,c,r,s,f,ind;
 
   nmri = MRIrandn(nsamples,1,1,dof,0,1,NULL);
@@ -2454,7 +2456,13 @@ MRI *MRIpkurtosis(MRI *kvals, int dof, MRI *mask, int nsamples)
   for(c=0; c < pkmri->width; c++){
     for(r=0; r < pkmri->height; r++){
       for(s=0; s < pkmri->depth; s++){
-	if(MRIgetVoxVal(mask,c,r,s,0) < 0.0001) continue; 
+	if(mask){
+	  v = MRIgetVoxVal(mask,c,r,s,0);
+	  if(v < 0.0001) {
+	    for(f=0; f < pkmri->nframes; f++) MRIsetVoxVal(pkmri,c,r,s,f,0.0);
+	    continue;
+	  }
+	}
 	for(f=0; f < pkmri->nframes; f++){
 	  kvox = MRIgetVoxVal(kvals,c,r,s,f);
 	  ind = PDFsearchOrderedTable(kvox,ksynth,nsamples);
@@ -2633,4 +2641,50 @@ MRI *fMRIspatialCorMatrix(MRI *fmri)
 
 }
 
+/*!
+  \fn MRI *fMRIdistance(MRI *mri, MRI *mask)
+  \brief Treats each frame triple as an xyz to compute distance
+  \param mri - source volume with triples
+  \param mask - skip voxels where mask < 0.0001
+*/
+MRI *fMRIdistance(MRI *mri, MRI *mask)
+{
+  MRI *d;
+  double dx,dy,dz,v;
+  int c,r,s,f,fd;
 
+  // should check nframes/3
+  d = MRIallocSequence(mri->width, mri->height, mri->depth,
+                       MRI_FLOAT, mri->nframes/3);
+  if(d==NULL) {
+    printf("ERROR: fMRIdistance: could not alloc\n");
+    return(NULL);
+  }
+  MRIcopyHeader(mri,d);
+
+  printf("fMRIdistance(): Computing Distance\n");
+
+  for (c=0; c < mri->width; c++)  {
+    for (r=0; r < mri->height; r++) {
+      for (s=0; s < mri->depth; s++) {
+        if(mask){
+          if(MRIgetVoxVal(mask, c, r, s, 0) < 0.5){
+            MRIFseq_vox(d,c,r,s,0) = 0;
+            continue;
+          }
+        }
+        fd = 0;
+        for(f = 0; f < mri->nframes; f+=3){
+          dx = MRIgetVoxVal(mri, c, r, s, f+0);
+          dy = MRIgetVoxVal(mri, c, r, s, f+1);
+          dz = MRIgetVoxVal(mri, c, r, s, f+2);
+          v = sqrt(dx*dx + dy*dy + dz*dz);
+          //printf("%5d %2d %2d %3d   %3d   %g %g %g  %g\n",c,r,s,f,fd,dx,dy,dz,v);
+          MRIsetVoxVal(d, c, r, s, fd, v);
+          fd++;
+        }
+      }
+    }
+  }
+  return(d);
+}

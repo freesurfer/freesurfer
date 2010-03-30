@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/30 15:31:21 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/03/30 15:38:11 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -129,5 +129,6 @@ MATRIX *ASLinterpMatrix(int ntp);
 MATRIX *fMRItoMatrix(MRI *fmri, MATRIX *M);
 int fMRIfromMatrix(MATRIX *M, MRI *fmri);
 MRI *fMRIspatialCorMatrix(MRI *fmri);
+MRI *fMRIdistance(MRI *mri, MRI *mask);
 
 #endif
