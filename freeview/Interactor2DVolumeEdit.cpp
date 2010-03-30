@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/12 18:26:06 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/03/30 18:31:03 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -155,18 +155,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
         }
           
         Contour2D* c2d = view->GetContour2D();
-        if ( event.ControlDown() )
-        {
-          mri->SaveForUndo( view->GetViewPlane() );
-          ((LayerMRI*)mri)->FloodFillByContour2D( ras, c2d );
-        }
-        else if ( event.ShiftDown() )
-        {
-          m_bEditing = true;
-          c2d->AddPatchLineOnMask( ras, ras );
-          view->NeedRedraw();
-        }
-        else
+        if ( event.ControlDown() && event.AltDown() )
         {
           double dValue = mri_ref->GetVoxelValue( ras );
           if ( dValue != 0 )
@@ -181,6 +170,24 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
             m_bEditing = true;
           }
         }
+        else if ( event.ControlDown() && !event.AltDown() )
+        {
+          mri->SaveForUndo( view->GetViewPlane() );
+          ((LayerMRI*)mri)->FloodFillByContour2D( ras, c2d );
+        }
+        else if ( event.ShiftDown() )
+        {
+          m_bEditing = true;
+          c2d->RemoveLine( ras, ras );
+          view->NeedRedraw();
+        }
+        else
+        {
+          m_bEditing = true;
+          c2d->AddLine( ras, ras );
+          view->NeedRedraw();
+        }
+        
       }
       else
         return Interactor2D::ProcessMouseDownEvent( event, renderview );
@@ -299,9 +306,9 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderV
         double ras1[3], ras2[3];
         view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
         view->MousePositionToRAS( posX, posY, ras2 );
-        c2d->AddPatchLineOnMask( ras1, ras2 );
+        c2d->RemoveLine( ras1, ras2 );
       }
-      else
+      else if ( event.ControlDown() && event.AltDown() )
       {
         double scale = 0.2;
         if ( mri_ref )
@@ -312,6 +319,14 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderV
         }
         c2d->SetContourValue( c2d->GetContourValue() + scale * ( posY - m_nMousePosY ) ); 
       }
+      else 
+      {
+        double ras1[3], ras2[3];
+        view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
+        view->MousePositionToRAS( posX, posY, ras2 );
+        c2d->AddLine( ras1, ras2 );
+      }
+      
       view->NeedRedraw();
     }
 
@@ -372,14 +387,15 @@ void Interactor2DVolumeEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
       if ( event.IsKindOf( CLASSINFO( wxKeyEvent ) ) )
       {
         wxKeyEvent* e = ( wxKeyEvent* )&event;
-        if ( e->GetEventType() != wxEVT_KEY_UP && ( e->GetKeyCode() == WXK_CONTROL && !e->ShiftDown() ) )
+        if ( e->GetEventType() != wxEVT_KEY_UP && ( e->GetKeyCode() == WXK_CONTROL && !e->ShiftDown() && !e->AltDown() ) )
         {
           wnd->SetCursor( CursorFactory::CursorFill );
           return;
         }
       }
 
-      if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->ControlDown() )
+      if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->ControlDown()
+           && !(( wxMouseEvent* )&event)->ShiftDown() && !(( wxMouseEvent* )&event)->AltDown() )
       {
         wnd->SetCursor( CursorFactory::CursorFill );
       }

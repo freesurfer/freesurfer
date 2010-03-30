@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/10 21:40:06 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/03/30 18:31:03 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,6 +43,7 @@ class vtkSimpleLabelEdgeFilter;
 class vtkImageMapToColors;
 class vtkImageMask;
 class vtkImageGaussianSmooth;
+class vtkImageLogic;
 
 class Contour2D : public Broadcaster, public Listener
 {
@@ -81,7 +82,9 @@ public:
   
   bool IsVisible();
   
-  void AddPatchLineOnMask( double* ras1, double* ras2 );
+  void AddLine( double* ras1, double* ras2 );
+  
+  void RemoveLine( double* ras1, double* ras2 );
   
   bool GetSmooth()
   {
@@ -102,6 +105,8 @@ public:
   }
   
 protected:
+  void DrawPatchLineOnMask( vtkImageData* image, double* ras1, double* ras2, int nDrawValue );
+  
   RenderView2D*   m_view;
   int             m_nPlane;
   double          m_dSliceLocation;
@@ -112,12 +117,14 @@ protected:
   
   vtkSmartPointer<vtkImageActor>      m_actorContour;
   vtkSmartPointer<vtkImageThreshold>  m_filterThreshold;
-  vtkSmartPointer<vtkImageMask>       m_filterMask;
   vtkSmartPointer<vtkImageResample>   m_filterResample;
   vtkSmartPointer<vtkSimpleLabelEdgeFilter> m_filterEdge;
   vtkSmartPointer<vtkImageMapToColors>      m_colormap;
-  vtkSmartPointer<vtkImageData>       m_imageMask;
   vtkSmartPointer<vtkImageGaussianSmooth>   m_filterSmooth;
+  vtkSmartPointer<vtkImageMask>             m_filterMask;
+  vtkSmartPointer<vtkImageLogic>            m_filterLogic;
+  vtkSmartPointer<vtkImageData>             m_imageMaskAdd;     // to add pixels
+  vtkSmartPointer<vtkImageData>             m_imageMaskRemove;  // to remove pixels
 };
 
 #endif
