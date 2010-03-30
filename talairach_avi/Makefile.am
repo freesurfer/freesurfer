@@ -36,7 +36,8 @@ foo_DATA= \
 	3T18yoSchwartzReactN32_as_orig.4dfp.mat \
 	3T18yoSchwartzReactN32_as_orig.lst
 
-dist_bin_SCRIPTS = talairach_avi mpr2mni305 brec brec.awk t4img_4dfp
+dist_bin_SCRIPTS = talairach_avi mpr2mni305 brec brec.awk \
+	t4img_4dfp tal_QC_AZS
 
 bin_PROGRAMS= \
 	analyzeto4dfp \

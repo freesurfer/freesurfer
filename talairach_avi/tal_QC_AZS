@@ -1,0 +1,36 @@
+#!/bin/csh
+
+set mpr2atl_v0	= (95.44 73.38 50.72 12.0 8.32 13.26 8.77 16.51 6.90 10.52 4.67 4.78)
+set mpr2atl_sd	= (14.63  9.47  9.92 4.82 2.29 5.54  1.62  4.81 1.32  2.31 1.53 1.27)
+
+set program = $0; set program = $program:t
+if (${#argv} < 1) then
+        echo "usage:    "$program" <logfile>"
+        exit 1
+endif
+set logfile = $1
+echo "logfile="$logfile
+
+if (! -e $logfile) then
+        echo $program": "$logfile not found
+        exit -1
+endif
+@ debug = 0
+if ($debug) set echo
+
+#################
+# mpr2atl_4dfp QC
+#################
+set mpr2atl_v1	= `gawk -f extract_talairach_avi_QA.awk $logfile`
+set eta		= `echo $mpr2atl_v1 | awk '{printf("%s\n",$13)}'`
+set error	= 0
+@ k = 1
+while ($k <= 12)
+	set x = `echo "($mpr2atl_v0[$k] - $mpr2atl_v1[$k]) / $mpr2atl_sd[$k]" | bc -l`
+	@ pos = `echo $x | gawk '{if ($1 > 0) {print 1} else {print 0}}'`
+	set error = `echo $error + $x | bc -l`
+@ k++
+end
+set error = `echo $error | gawk '{printf ("%.4f", $1)}'`
+echo "eta = $eta  atlas_transform_error = $error"
+exit
