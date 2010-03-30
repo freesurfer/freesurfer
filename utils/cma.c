@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/29 21:18:06 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/03/30 15:09:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -544,5 +544,85 @@ int IsSubCorticalGray(int SegId)
   if(SegId == Right_Cerebellum_Cortex) return(1);
   return(0);
 }
+
+/*!
+\fn double SuperTentorialVolCorrection(MRI *aseg, MRI *ribbon)
+\brief Returns the volume of supertentorial structures that do not
+fall inside the pial surface or are cut by the pial surface.  The idea
+is that the volume of everything in the pial surface can be computed
+using the surface and that this function can be used to compute
+everything else. Note that there is no partial volume correction.
+\param aseg - aseg.mgz or aparc+aseg.mgz
+\param ribbon is the ribbon.mgz, which has non-zero values for
+everything inside the pial surf.
+*/
+double SuperTentorialVolCorrection(MRI *aseg, MRI *ribbon)
+{
+  int c,r,s,SegId;
+  double vol = 0;
+  int RibbonVal, VoxSize;
+
+  VoxSize = aseg->xsize * aseg->ysize * aseg->zsize;
+  for(c=0; c < aseg->width; c++){
+    for(r=0; r < aseg->height; r++){
+      for(s=0; s < aseg->depth; s++){
+
+	// If this voxel is inside the pial, then skip it because it
+	// will be part of the surface-based volume measure
+	RibbonVal = MRIgetVoxVal(ribbon,c,r,s,0);
+	if(RibbonVal == 0) continue;
+
+	// If it gets here, it means that the voxel was not within
+	// the pial surface. It could be in a structure that should
+	// be part of the supertentorium.
+
+	// These are midline, medial wall, or unknown structures
+	// that the pial could cut through.
+	SegId = MRIgetVoxVal(aseg,c,r,s,0);
+	if(SegId == Left_Lateral_Ventricles) vol += VoxSize;
+	if(SegId == Right_Lateral_Ventricles) vol += VoxSize;
+	if(SegId == Left_choroid_plexus) vol += VoxSize;
+	if(SegId == Right_choroid_plexus) vol += VoxSize;
+	if(SegId == Left_Inf_Lat_Vent) vol += VoxSize;
+	if(SegId == Right_Inf_Lat_Vent) vol += VoxSize;
+	if(SegId == WM_hypointensities) vol += VoxSize;
+	if(SegId == Left_WM_hypointensities) vol += VoxSize;
+	if(SegId == Right_WM_hypointensities) vol += VoxSize;
+	if(SegId == Left_Thalamus_Proper) vol += VoxSize;
+	if(SegId == Right_Thalamus_Proper) vol += VoxSize;
+	if(SegId == Left_Thalamus) vol += VoxSize;
+	if(SegId == Right_Thalamus) vol += VoxSize;
+	if(SegId == CC_Posterior) vol += VoxSize;
+	if(SegId == CC_Mid_Posterior) vol += VoxSize;
+	if(SegId == CC_Central) vol += VoxSize;
+	if(SegId == CC_Mid_Anterior) vol += VoxSize;
+	if(SegId == CC_Anterior) vol += VoxSize;
+	if(SegId == Left_VentralDC) vol += VoxSize;
+	if(SegId == Right_VentralDC) vol += VoxSize;
+
+	// These are unlikely to have the pial surface cut through
+	// them, but no harm to include them
+	if(SegId == Left_Caudate) vol += VoxSize;
+	if(SegId == Right_Caudate) vol += VoxSize;
+	if(SegId == Left_Putamen ) vol += VoxSize;
+	if(SegId == Right_Putamen ) vol += VoxSize;
+	if(SegId == Left_Pallidum) vol += VoxSize;
+	if(SegId == Right_Pallidum) vol += VoxSize;
+	if(SegId == Left_Hippocampus) vol += VoxSize;
+	if(SegId == Right_Hippocampus) vol += VoxSize;
+	if(SegId == Left_Amygdala) vol += VoxSize;
+	if(SegId == Right_Amygdala) vol += VoxSize;
+	if(SegId == Left_Accumbens_area) vol += VoxSize;
+	if(SegId == Right_Accumbens_area) vol += VoxSize;
+      }
+    }
+  }
+  return(vol);
+}
+
+
+
+
+
 
 /* eof */
