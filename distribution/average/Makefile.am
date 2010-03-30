@@ -76,7 +76,8 @@ endif
 
 EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
-        fsaverage5.tar.gz fsaverage6.tar.gz
+	fsaverage5.tar.gz fsaverage6.tar.gz \
+	EC_average.tar.gz
 
 install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
@@ -118,6 +119,12 @@ install: install-fooDATA
 	mv $(top_builddir)/distribution/average/fsaverage6 \
 		$(DESTDIR)$(prefix)/subjects
 	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage6
+	rm -Rf $(DESTDIR)$(prefix)/subjects/?h.EC_average
+	rm -Rf $(top_builddir)/distribution/average/?h.EC_average
+	gunzip -c $(top_srcdir)/distribution/average/EC_average.tar.gz | tar xvf -
+	mv $(top_builddir)/distribution/average/?h.EC_average \
+		$(DESTDIR)$(prefix)/subjects
+	chmod -R 775 $(DESTDIR)$(prefix)/subjects/?h.EC_average
 	cd surf; make install
 
 uninstall-hook:
@@ -126,6 +133,7 @@ uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage4
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage5
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage6
+	rm -Rf $(DESTDIR)$(prefix)/subjects/?h.EC_average
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -f $(DESTDIR)$(prefix)/bin/predict_v1.sh
 
