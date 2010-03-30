@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/01/13 20:25:55 $
- *    $Revision: 1.61 $
+ *    $Author: greve $
+ *    $Date: 2010/03/30 15:31:21 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.61 2010/01/13 20:25:55 mreuter Exp $
+  $Id: fmriutils.c,v 1.62 2010/03/30 15:31:21 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -51,6 +51,7 @@ double round(double x);
 #include "numerics.h"
 #include "diag.h"
 #include "utils.h"
+#include "pdf.h"
 
 #ifdef X
 #undef X
@@ -60,7 +61,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.61 2010/01/13 20:25:55 mreuter Exp $");
+  return("$Id: fmriutils.c,v 1.62 2010/03/30 15:31:21 greve Exp $");
 }
 
 
@@ -2425,6 +2426,48 @@ MRI *fMRIkurtosis(MRI *y, MRI *mask)
   }
 
   return(k);
+}
+
+/*!
+  \fn MRI *MRIpkurtosis(MRI *kvals, int dof, MRI *mask, int nsamples)
+  \brief Computes the p-value for a kurtosis map. Uses simulation.
+  \param kvals - source volume with kurtosis values.
+  \param dof - dof that the kurtosis was computed from
+  \param mask - skip voxels where mask < 0.0001
+  \param nsamples - samples to use in the simulation (eg, 10000)
+*/
+MRI *MRIpkurtosis(MRI *kvals, int dof, MRI *mask, int nsamples)
+{
+  MRI *nmri, *kmri, *pkmri;
+  double *ksynth,pk,kvox;
+  int m,c,r,s,f,ind;
+
+  nmri = MRIrandn(nsamples,1,1,dof,0,1,NULL);
+  kmri = fMRIkurtosis(nmri,NULL);
+
+  ksynth = (double*) calloc(sizeof(double),nsamples);
+  for(m=0; m < nsamples; m++) ksynth[m] = MRIgetVoxVal(kmri,m,0,0,0);
+
+  qsort(ksynth,nsamples,sizeof(double),CompareDoubles);
+
+  pkmri = MRIclone(kvals,NULL);
+  for(c=0; c < pkmri->width; c++){
+    for(r=0; r < pkmri->height; r++){
+      for(s=0; s < pkmri->depth; s++){
+	if(MRIgetVoxVal(mask,c,r,s,0) < 0.0001) continue; 
+	for(f=0; f < pkmri->nframes; f++){
+	  kvox = MRIgetVoxVal(kvals,c,r,s,f);
+	  ind = PDFsearchOrderedTable(kvox,ksynth,nsamples);
+	  pk = 1.0 - (double)ind/nsamples;
+	  MRIsetVoxVal(pkmri,c,r,s,f,-log10(pk));
+	}
+      }
+    }
+  }
+  MRIfree(&nmri);
+  MRIfree(&kmri);
+  free(ksynth);
+  return(pkmri);
 }
 
 

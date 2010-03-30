@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/01/13 20:26:24 $
- *    $Revision: 1.37 $
+ *    $Author: greve $
+ *    $Date: 2010/03/30 15:31:21 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -123,6 +123,7 @@ MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub);
 MRI *MRIframeSum(MRI *vol, MRI *volsum);
 MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ);
 MRI *fMRIkurtosis(MRI *y, MRI *mask);
+MRI *MRIpkurtosis(MRI *kvals, int dof, MRI *mask, int nsamples);
 
 MATRIX *ASLinterpMatrix(int ntp);
 MATRIX *fMRItoMatrix(MRI *fmri, MATRIX *M);
