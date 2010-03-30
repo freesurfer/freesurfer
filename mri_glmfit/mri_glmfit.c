@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/30 15:38:11 $
- *    $Revision: 1.180 $
+ *    $Date: 2010/03/30 20:31:14 $
+ *    $Revision: 1.181 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -76,6 +76,7 @@ USAGE: ./mri_glmfit
    --yhat-save : save signal estimate (yhat)
    --eres-save : save residual error (eres)
    --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!
+   --y-out y.out.mgh : save input after pre-processing
 
    --surf subject hemi <surfname> : needed for some flags (uses white by default)
 
@@ -560,7 +561,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.180 2010/03/30 15:38:11 greve Exp $";
+"$Id: mri_glmfit.c,v 1.181 2010/03/30 20:31:14 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -705,6 +706,7 @@ int DoKurtosis = 0;
 char *Gamma0File[GLMMAT_NCONTRASTS_MAX];
 MATRIX *Xtmp=NULL, *Xnorm=NULL;
 char *XOnlyFile = NULL;
+char *yOutFile = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1605,6 +1607,10 @@ int main(int argc, char **argv) {
     MRIwrite(mritmp,eresSCMFile);
     MRIfree(&mritmp);
   }
+  if(yOutFile){
+    err = MRIwrite(mriglm->y,yOutFile);
+    if(err) exit(1);
+  }
 
   sprintf(tmpstr,"%s/Xg.dat",GLMDir);
   MatrixWriteTxt(tmpstr, mriglm->Xg);
@@ -1812,7 +1818,8 @@ int main(int argc, char **argv) {
     {
       strcpy(fsgd->measname,"external");
     }
-    sprintf(fsgd->datafile,"%s",yFile);
+    if(yOutFile != NULL) sprintf(fsgd->datafile,"%s",yOutFile);
+    else                 sprintf(fsgd->datafile,"%s",yFile);
     if (surf) strcpy(fsgd->tessellation,"surface");
     else      strcpy(fsgd->tessellation,"volume");
 
@@ -2093,6 +2100,11 @@ static int parse_commandline(int argc, char **argv) {
       yFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--y-out")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      yOutFile = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--table")) {
       if (nargc < 1) CMDargNErr(option,1);
       yFile = fio_fullpath(pargv[0]);
@@ -2300,6 +2312,7 @@ printf("   --no-logy : compute natural log of y prior to analysis\n");
 printf("   --yhat-save : save signal estimate (yhat)\n");
 printf("   --eres-save : save residual error (eres)\n");
 printf("   --eres-scm : save residual error spatial correlation matrix (eres.scm). Big!\n");
+printf("   --y-out y.out.mgh : save input after pre-processing\n");
 printf("\n");
 printf("   --surf subject hemi <surfname> : needed for some flags (uses white by default)\n");
 printf("\n");
