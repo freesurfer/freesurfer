@@ -182,6 +182,7 @@ EXTRA_DIST=\
 	selxavgio.h \
 	sig.h \
 	signa.h \
+	sse_mathfun.h \
 	stats.h \
 	stc.h \
 	struct.h \
