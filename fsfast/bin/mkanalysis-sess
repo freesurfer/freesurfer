@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/25 18:49:59 $
-#    $Revision: 1.27 $
+#    $Date: 2010/03/30 16:03:43 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.27 2010/03/25 18:49:59 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.28 2010/03/30 16:03:43 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -86,7 +86,7 @@ set FSV3st2fir = 0;
 set FSV3whiten = 0;
 set mfile = ();
 set monly = 0;
-set RefEventDur = 1;
+set RefEventDur = ();
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -643,7 +643,6 @@ while( $#argv != 0 )
       breaksw
 
     case "-spmhrf":
-      # for use with -clone #
       if ( $#argv < 1) goto arg1err;
       set spmhrf = $argv[1]; shift;
       breaksw
@@ -653,7 +652,6 @@ while( $#argv != 0 )
       breaksw
 
     case "-refeventdur":
-      # for use with -clone #
       if ( $#argv < 1) goto arg1err;
       set RefEventDur = $argv[1]; shift;
       breaksw
@@ -891,7 +889,6 @@ check_params:
     echo "INFO:  analysis $analysis exists, but overwrite forced by user."
   endif
 
-
   if(! $UseGUI) then
   if($#TR == 0) then
     echo "ERROR: must specify TR"
@@ -987,6 +984,11 @@ check_params:
     exit 1;
   endif
 
+  if(($gammafit || $spmhrf != -1) && $#RefEventDur == 0) then
+    echo "ERROR: you must specify a reference event duration with an HRF"
+    exit 1;
+  endif
+
  endif # Dont use GUI
 
 
@@ -1037,6 +1039,7 @@ usage_exit:
   echo "   -timewindow  TW      : event time window (sec)"
   echo "   -prestim     PS      : event prestimulus window (sec)"
   echo "   -TER         TER     : temporal estimation resolution (sec)"
+  echo "   -refeventdur Duration : duration (sec) of reference event for scaling"
   echo "   -gammafit gfDelta gfTau : assume IRF is a gamma function"
   echo "   -gammaexp gfAlpha : gamma exponent (default is 2) "
   echo "   -spmhrf nderiv    : assume SPM HRF with nderiv derivatives"
@@ -1311,6 +1314,17 @@ will be estimated (in seconds) for FIR analyses. It must be an integer
 divisor of the TR. If TER < TR, then stimulus schedule (ie, paradigm
 file) must have been created with with the given TER in mind. If 
 -spmhrf or -gammafit are used, then it is automatically set to TR/20.
+
+-refeventdur Duration
+
+For assumed shapes to the HRF (ie, non-FIR designs), this is the
+Duration (sec) of your events. This is strictly used for scaling of
+the signal change values so that the percent change reported will be
+similar to the signal change you would see if you looked at the raw
+data. It will have NO effect on significance values. If you have a
+design with multiple durations, you should pick one as the reference.
+Note that this does not effect comparisons between long and short
+duration stimuli because it does not affect the p-value.
 
 -timeoffset toffset 
  
