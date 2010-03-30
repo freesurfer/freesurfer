@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/29 21:18:34 $
- *    $Revision: 1.66 $
+ *    $Date: 2010/03/30 15:10:12 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2006-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -427,7 +427,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.66 2010/03/29 21:18:34 greve Exp $";
+"$Id: mri_segstats.c,v 1.67 2010/03/30 15:10:12 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -449,7 +449,7 @@ int synth = 0;
 int debug = 0;
 int dontrun = 0;
 long seed = 0;
-MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol, *mri_aseg;
+MRI *seg, *invol, *famri, *maskvol, *pvvol, *brainvol, *mri_aseg, *mri_ribbon;
 int nsegid0, *segidlist0;
 int nsegid, *segidlist;
 int NonEmptyOnly = 1;
@@ -463,6 +463,8 @@ double lhwhitevol;
 double rhwhitevol;
 double lhwhitevolTot, lhpialvolTot, lhctxvol;
 double rhwhitevolTot, rhpialvolTot, rhctxvol;
+int DoSuperTent = 0;
+double SuperTentVol, SuperTentVolCor;
 
 char *gcafile = NULL;
 GCA *gca;
@@ -754,6 +756,22 @@ int main(int argc, char **argv) {
     printf("rh surface-based volumes (mm3): wTot = %lf,  pTot = %lf c = %lf \n",
            rhwhitevolTot,rhpialvolTot,rhctxvol);
     fflush(stdout);
+
+    if(DoSuperTent) {
+      printf("Computing SuperTentVolCor\n");
+      sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
+      mri_aseg = MRIread(tmpstr);
+      if(mri_aseg == NULL) exit(1);
+      sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
+      mri_ribbon = MRIread(tmpstr);
+      if(mri_ribbon == NULL) exit(1);
+      SuperTentVolCor = SuperTentorialVolCorrection(mri_aseg, mri_ribbon);
+      SuperTentVol = SuperTentVolCor + lhpialvolTot + rhpialvolTot;
+      printf("SuperTentVolCor = %8.3f\n",SuperTentVolCor);
+      printf("SuperTentVol = %8.3f\n",SuperTentVol);
+      MRIfree(&mri_aseg);
+      MRIfree(&mri_ribbon);
+    }
   }
 
 
@@ -1185,9 +1203,9 @@ int main(int argc, char **argv) {
       fprintf(fp,"# BrainMaskFile  %s \n",BrainMaskFile);
       fprintf(fp,"# BrainMaskFileTimeStamp  %s \n",
               VERfileTimeStamp(BrainMaskFile));
-      //fprintf(fp,"# Measure BrainMask, BrainMaskNVox, "
-      //      "Number of Brain Mask Voxels, %7d, unitless\n",
-      //      nbrainmaskvoxels);
+      fprintf(fp,"# Measure BrainMask, BrainMaskNVox, "
+            "Number of Brain Mask Voxels, %7d, unitless\n",
+            nbrainmaskvoxels);
       fprintf(fp,"# Measure BrainMask, BrainMaskVol, "
               "Brain Mask Volume, %f, mm^3\n",brainmaskvolume);
     }
@@ -1195,12 +1213,29 @@ int main(int argc, char **argv) {
       fprintf(fp,"# Measure BrainSegNotVent, BrainSegVolNotVent, "
               "Brain Segmentation Volume Without Ventricles, %f, mm^3\n",
               brainsegvolume2);
-      //fprintf(fp,"# Measure BrainSeg, BrainSegNVox, "
-      //      "Number of Brain Segmentation Voxels, %7d, unitless\n",
-      //      nbrainsegvoxels);
+      fprintf(fp,"# Measure BrainSeg, BrainSegNVox, "
+            "Number of Brain Segmentation Voxels, %7d, unitless\n",
+            nbrainsegvoxels);
       fprintf(fp,"# Measure BrainSeg, BrainSegVol, "
               "Brain Segmentation Volume, %f, mm^3\n",
               brainsegvolume);
+    }
+    if(DoSurfCtxVol){
+      // Does this include the non-cortical areas of the surface?
+      fprintf(fp,"# Measure lhCortex, lhCortexVol, "
+              "Left hemisphere cortical gray matter volume, %f, mm^3\n",lhctxvol);
+      fprintf(fp,"# Measure rhCortex, rhCortexVol, "
+              "Right hemisphere cortical gray matter volume, %f, mm^3\n",rhctxvol);
+      fprintf(fp,"# Measure Cortex, CortexVol, "
+              "Total cortical gray matter volume, %f, mm^3\n",lhctxvol+rhctxvol);
+    }
+    if(DoSurfWMVol){
+      fprintf(fp,"# Measure lhCorticalWhiteMatter, lhCorticalWhiteMatterVol, "
+              "Left hemisphere cortical white matter volume, %f, mm^3\n",lhwhitevol);
+      fprintf(fp,"# Measure rhCorticalWhiteMatter, rhCorticalWhiteMatterVol, "
+              "Right hemisphere cortical white matter volume, %f, mm^3\n",rhwhitevol);
+      fprintf(fp,"# Measure CorticalWhiteMatter, CorticalWhiteMatterVol, "
+              "Total cortical white matter volume, %f, mm^3\n",lhwhitevol+rhwhitevol);
     }
     if(DoSubCortGrayVol) {
       fprintf(fp,"# Measure SubCortGray, SubCortGrayVol, "
@@ -1211,6 +1246,11 @@ int main(int argc, char **argv) {
       fprintf(fp,"# Measure TotalGray, TotalGrayVol, "
               "Total gray matter volume, %f, mm^3\n",
               SubCortGrayVol+lhctxvol+rhctxvol);
+    }
+    if(DoSuperTent) {
+      fprintf(fp,"# Measure SuperTentorial, SuperTentorialVol, "
+              "Supertentorial volume, %f, mm^3\n",SuperTentVol);
+              
     }
 
     if (DoETIV) {
@@ -1248,17 +1288,6 @@ int main(int argc, char **argv) {
     if (PVVolFile) {
       fprintf(fp,"# PVVolFile  %s \n",PVVolFile);
       fprintf(fp,"# PVVolFileTimeStamp  %s \n",VERfileTimeStamp(PVVolFile));
-    }
-    if(DoSurfCtxVol){
-      // Does this include the non-cortical areas of the surface?
-      fprintf(fp,"# surface-based-volume mm3 lh-cerebral-cortex       %lf\n",lhctxvol);
-      fprintf(fp,"# surface-based-volume mm3 rh-cerebral-cortex       %lf\n",rhctxvol);
-      fprintf(fp,"# surface-based-volume mm3 tot-cerebral-cortex      %lf\n",lhctxvol+rhctxvol);
-    }
-    if(DoSurfWMVol){
-      fprintf(fp,"# surface-based-volume mm3 lh-cerebral-white-matter %lf\n",lhwhitevol);
-      fprintf(fp,"# surface-based-volume mm3 rh-cerebral-white-matter %lf\n",rhwhitevol);
-      fprintf(fp,"# surface-based-volume mm3 tot-cerebral-white-matter %lf\n",lhwhitevol+rhwhitevol);
     }
     if(DoExclCtxGMWM)
       fprintf(fp,"# Excluding Cortical Gray and White Matter\n");
@@ -1465,6 +1494,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--empty"))    NonEmptyOnly = 0;
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
     else if ( !strcmp(option, "--subcortgray") ) DoSubCortGrayVol = 1;
+    else if ( !strcmp(option, "--supertent") ) DoSuperTent = 1;
     else if ( !strcmp(option, "--totalgray") ) DoTotalGrayVol = 1;
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
     else if ( !strcmp(option, "--etiv-only") ) DoETIVonly = 1;
@@ -2100,6 +2130,10 @@ static void check_options(void) {
     printf("ERROR: need subject with --etiv\n");
     exit(1);
   }
+  if (DoSuperTent && !DoSurfCtxVol) {
+    printf("ERROR: need --surf-ctx-vol  with --supertent\n");
+    exit(1);
+  }
   if (ctabfile != NULL && gcafile != NULL) {
     printf("ERROR: cannot specify ctab and gca\n");
     exit(1);
@@ -2292,4 +2326,3 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid) {
   }
   return(0);
 }
-
