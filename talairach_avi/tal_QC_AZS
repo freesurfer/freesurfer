@@ -21,7 +21,8 @@ if ($debug) set echo
 #################
 # mpr2atl_4dfp QC
 #################
-set mpr2atl_v1	= `gawk -f extract_talairach_avi_QA.awk $logfile`
+set awkfile = $FREESURFER_HOME/bin/extract_talairach_avi_QA.awk
+set mpr2atl_v1	= `gawk -f $awkfile $logfile`
 set eta		= `echo $mpr2atl_v1 | awk '{printf("%s\n",$13)}'`
 set error	= 0
 @ k = 1
