@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/03/29 21:33:14 $
-#    $Revision: 1.304 $
+#    $Author: greve $
+#    $Date: 2010/03/30 15:42:16 $
+#    $Revision: 1.305 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.304 2010/03/29 21:33:14 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.305 2010/03/30 15:42:16 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2755,8 +2755,8 @@ if($DoSegStats) then
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
-  set cmd = ($cmd --excludeid 0)
-  set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
+  set cmd = ($cmd --excludeid 0 --excl-ctxgmwm --supertent --subcortgray --totalgray)
+  #set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
   if ( -e mri/transforms/talairach.xfm ) then
