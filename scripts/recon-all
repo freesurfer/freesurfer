@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/30 20:28:41 $
-#    $Revision: 1.306 $
+#    $Date: 2010/03/31 19:30:03 $
+#    $Revision: 1.307 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.306 2010/03/30 20:28:41 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.307 2010/03/31 19:30:03 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -642,6 +642,9 @@ if($DoCleanBM) then
 endif
 if($DoCleanASeg) then
   set cmd = (mv -f $subjdir/mri/aseg.mgz $subjdir/trash)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $cmd  |& tee -a $LF
+  set cmd = (mv -f $subjdir/mri/aseg.manedit.mgz $subjdir/trash)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $cmd  |& tee -a $LF
 endif
@@ -5474,6 +5477,7 @@ of -measure <meas> is supported.  The -measuredir option allows
 specifying a directory other than the default of surf. Another option is
 -fwhm <num> where <num> is a value in mm.  Also, -target <name> allows
 specifying a common-space target other than fsaverage (the default).
+qcache is also a target for make, eg. recon-all -make qcache
 See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
 
 -smooth-cortex-only
