@@ -1,8 +1,13 @@
 -- -*- lua -*-
 
-local inputFiles = { 'gcam00000', 'gcam00001', 'gcam00004',
-		     'gcam00008', 'gcam00011', 'gcam00012' }
+require "io"
+require "os"
+require( "tools.freesurfer" )
 
+-- Make access to the FreeSurfer module quicker
+local FS = tools.freesurfer
+
+local inputFiles = FS.AllGCAMfiles()
 
 
 -- Generate a table of subtests
@@ -26,7 +31,7 @@ testdescript = {
    ]],
 
    -- Keywords (for subtest selection)
-   keywords = { "gcam" },
+   keywords = { "gcam", "basic" },
 
    -- Designate the test as active
    active = 1,
@@ -48,10 +53,10 @@ testdescript = {
 	 gcam_clear_test \--input=$(outputDir)/nonzero \--output=$CPUOUT
 	 gcam_clear_test_cuda \--input=$(outputDir)/nonzero \--output=$GPUOUT
 
-	 $(projectDir)/bin/gcamMultiDiff.pl \--results=$(cmdResultFn) \
-	                                    \--gold="$CPUOUT.nc" \
-                                            \--cmp="$GPUOUT.nc" \
-                                            \--config=$(testDir)/clear.config
+	 $(projectDir)/tools/gcamMultiDiff.pl \--results=$(cmdResultFn) \
+	                                      \--gold="$CPUOUT.nc" \
+                                              \--cmp="$GPUOUT.nc" \
+                                              \--config=$(testDir)/clear.config
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
 

@@ -1,5 +1,15 @@
 -- -*- lua -*-
 
+
+require "io"
+require "os"
+require( "tools.freesurfer" )
+
+-- Make access to the FreeSurfer module quicker
+local FS = tools.freesurfer
+
+
+-- List of input MRI data
 local inputFiles = { 'uchar-256-256-256.mgz', 'uchar-37-71-137.mgz',
 		     'short-256-256-256.mgz', 'short-37-71-137.mgz',
 		     'float-256-256-256.mgz', 'float-37-71-137.mgz', }
@@ -8,31 +18,11 @@ local transformFiles = { "translation1.fsl", "translation2.fsl",
 local outputPrecisions = { "uchar", "short", "float", }
 local interpModes = { "trilin", "nearest", }
 
--- From lua-users wiki
-function split(str, pat)
-   local t = {}  -- NOTE: use {n = 0} in Lua-5.0
-   local fpat = "(.-)" .. pat
-   local last_end = 1
-   local s, e, cap = str:find(fpat, 1)
-   while s do
-      if s ~= 1 or cap ~= "" then
-	 table.insert(t,cap)
-      end
-      last_end = e+1
-      s, e, cap = str:find(fpat, last_end)
-   end
-   if last_end <= #str then
-      cap = str:sub(last_end)
-      table.insert(t, cap)
-   end
-   return t
-end
-
 
 -- Function to turn test parameters into a test name
 local function testName( input, transform, precision, mode )
-   local inputItems = split( input, "-" )
-   local transformItems = split( transform, "%." )
+   local inputItems = FS.split( input, "-" )
+   local transformItems = FS.split( transform, "%." )
 
    local myName = inputItems[1].."-"..inputItems[2]
    myName = myName.."-"..transformItems[1]
@@ -81,7 +71,7 @@ testdescript = {
    ]],
 
    -- Keywords (for subtest selection)
-   keywords = { "basic" },
+   keywords = { "basic", "mri" },
 
    -- Designate the test as active
    active = 1,
@@ -98,7 +88,10 @@ testdescript = {
 	 mri_vol2vol $MAINCMDS \--o $CPUOUT
 	 mri_vol2vol_cuda $MAINCMDS \--o $GPUOUT
 
-	 $(projectDir)/bin/mridiff.pl \--results=$(cmdResultFn) \--gold=$CPUOUT \--test=$GPUOUT \--threshold=1.0
+	 $(projectDir)/tools/mridiff.pl \--results=$(cmdResultFn) \
+                                        \--gold=$CPUOUT \
+                                        \--test=$GPUOUT \
+                                        \--threshold=1.0
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
 

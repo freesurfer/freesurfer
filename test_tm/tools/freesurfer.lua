@@ -26,6 +26,12 @@ function GetFiles( srcDir, pattern )
 end
 
 
+-- Returns all the GCAM files
+function AllGCAMfiles()
+   return GetFiles( GCAMdir(), "(gcam%d+).nc" )
+end
+
+
 -- From lua-users wiki
 -- Splits a string at the given pattern
 function split(str, pat)
