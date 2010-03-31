@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/26 16:15:55 $
- *    $Revision: 1.186 $
+ *    $Date: 2010/03/31 15:19:36 $
+ *    $Revision: 1.187 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7227,9 +7227,13 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 
   if( (nCalls%outputFreq) == 0 ) {
     char fname[STRLEN];
+
     snprintf( fname, STRLEN-1, "gcam%05u", nCalls/outputFreq );
     fname[STRLEN-1] = '\0';
     WriteGCAMoneInput( gcam, fname );
+
+    snprintf( fname, STRLEN-1, "mri%05u.mgz", nCalls/outputFreq );
+    MRIwrite( mri, fname );
   }
 #endif
 
