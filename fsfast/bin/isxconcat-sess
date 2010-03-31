@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/25 16:49:24 $
-#    $Revision: 1.37 $
+#    $Date: 2010/03/31 15:57:47 $
+#    $Revision: 1.38 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.37 2010/03/25 16:49:24 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.38 2010/03/31 15:57:47 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -47,6 +47,9 @@ set ToSurf = 0;
 set DoPercent = 0;
 set DoAllContrasts = 0;
 set DoOSGM = 0;
+set DoWRFX = 0;
+set DoRFX = 0;
+set DoFFX = 0;
 set SplitMVC = 1; # Split multivariate contrasts
 
 # for volume-based only
@@ -253,34 +256,42 @@ foreach hemi ($hemilist)
        set y       = $outcondir/$hemi.ces.$FSF_OUTPUT_FORMAT
        set yffxvar = $outcondir/$hemi.cesvar.$FSF_OUTPUT_FORMAT
 
-       set glmdir = $outcondir/osgm.rfx.$hemi.ces
-       set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
-       set cmd = ($cmd --mask $maskvol)
-       if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi)
-       if($ToVol)  set cmd = ($cmd --nii);
-       echo $cmd |& tee -a $LF
-       $cmd |& tee -a $LF
-       if($status) exit 1;
+       if($DoWRFX) then
+         set glmdir = $outcondir/osgm.wrfx.$hemi
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+         set cmd = ($cmd --mask $maskvol --wls $yffxvar)
+         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
+         if($ToVol)  set cmd = ($cmd --nii);
+         echo $cmd |& tee -a $LF
+         $cmd |& tee -a $LF
+         if($status) exit 1;
+       endif
 
-       set glmdir = $outcondir/osgm.wrfx.$hemi.ces
-       set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
-       set cmd = ($cmd --mask $maskvol --wls $yffxvar)
-       if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi)
-       if($ToVol)  set cmd = ($cmd --nii);
-       echo $cmd |& tee -a $LF
-       $cmd |& tee -a $LF
-       if($status) exit 1;
+       if($DoRFX) then
+         set glmdir = $outcondir/osgm.rfx.$hemi
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+         set cmd = ($cmd --mask $maskvol)
+         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
+         if($ToVol)  set cmd = ($cmd --nii);
+         echo $cmd |& tee -a $LF
+         $cmd |& tee -a $LF
+         if($status) exit 1;
+       endif
 
-       set glmdir = $outcondir/osgm.ffx.$hemi.ces
-       set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
-       set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
-       set cmd = ($cmd --ffxdofdat $ffxdofdat)
-       if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi)
-       if($ToVol)  set cmd = ($cmd --nii);
-       echo $cmd |& tee -a $LF
-       $cmd |& tee -a $LF
-       if($status) exit 1;
+       if($DoFFX) then
+         set glmdir = $outcondir/osgm.ffx.$hemi
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+         set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
+         set cmd = ($cmd --ffxdofdat $ffxdofdat)
+         if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
+         if($ToVol)  set cmd = ($cmd --nii);
+         echo $cmd |& tee -a $LF
+         $cmd |& tee -a $LF
+         if($status) exit 1;
+        endif
+
       endif # OSGM
+     
 
    end # Loop over contrasts
 
@@ -492,6 +503,24 @@ while( $#argv != 0 )
       breaksw
 
     case "-osgm"
+      set DoOSGM = 1;
+      set DoWRFX = 1;
+      set DoRFX = 1;
+      set DoFFX = 1;
+      breaksw
+
+    case "-wrfx"
+      set DoWRFX = 1;
+      set DoOSGM = 1;
+      breaksw
+
+    case "-rfx"
+      set DoRFX = 1;
+      set DoOSGM = 1;
+      breaksw
+
+    case "-ffx"
+      set DoFFX = 1;
       set DoOSGM = 1;
       breaksw
 
