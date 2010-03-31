@@ -16,6 +16,7 @@ function [r, rmean, wstd] = randr(rsize,rmean)
 %  rmean = rstd/sqrt(4/pi-1);
 %  wstd  = rmean/sqrt(pi/2);
 %  wstd  = rstd/sqrt(2-pi/2);
+%  fsnr  = rmean/rstd = 1/sqrt(4/pi-1) = 1.9137
 %
 
 
@@ -25,8 +26,8 @@ function [r, rmean, wstd] = randr(rsize,rmean)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/05/03 22:04:55 $
-%    $Revision: 1.3 $
+%    $Date: 2010/03/31 15:54:56 $
+%    $Revision: 1.4 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
