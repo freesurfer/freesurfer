@@ -32,7 +32,13 @@ $goldVal = &GetValue( $cmp1File );
 $cmpVal = &GetValue( $cmp2File );
 
 # Check for match
-my $diffVal = abs( 1.0 - ($cmpVal/$goldVal) );
+my $diffVal;
+if( $goldVal != 0 ) {
+    $diffVal = abs( 1.0 - ($cmpVal/$goldVal) );
+} else {
+    $diffVal = abs( $cmpVal );
+}
+
 my $resString;
 
 print "diffVal = $diffVal\n";
