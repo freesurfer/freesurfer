@@ -204,6 +204,7 @@ MFILES=\
 	fast_npernull.m \
 	fast_nswfflac_sess.m \
 	fast_omnibusmtx.m \
+	fast_outliermtx.m \
 	fast_overlay.m \
 	fast_p2z.m \
 	fast_par2nconds.m \
