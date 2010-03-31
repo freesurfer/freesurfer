@@ -163,5 +163,9 @@ int main( int argc, char *argv[] ) {
   cout << "Writing output file: " << outFilename << endl;
   MRIwrite( output, outFilename.c_str() );
 
+#ifdef FS_CUDA
+  PrintGPUtimers();
+#endif
+
   return( EXIT_SUCCESS );
 }
