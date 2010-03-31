@@ -1,0 +1,511 @@
+#! /bin/csh -f
+
+#
+# register-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2010/03/31 22:46:57 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: register-sess,v 1.1 2010/03/31 22:46:57 greve Exp $';
+set inputargs = ($argv);
+set DateString = "`date '+%y%m%d%H%M'`"
+
+set fsd          = bold;
+set PerRun       = 0;
+set regmethod = bbregister
+set fstargvol = "brainmask";
+set dof = 6;
+set regfilename  = register.dat
+set bbrinit = "--init-fsl";
+set BBRTolF = ()
+set BBRTol1D = ()
+set BBRXOpts = ();
+set FSLXOpts = ();
+set SPMXOpts = ();
+set IntermediateFSD = ();
+set IntermediateStem = ();
+set nolog        = 0;
+set LF = ();
+
+set UpdateOnly = 0;
+
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -nolog | wc -l` 
+if($n != 0) then
+  set nolog = 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  getsesspath $inputargs 
+  echo "ERROR: cannot find any sessions" 
+  exit 1;
+endif
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+if($#LF == 0) then
+if(! $nolog) then
+  set logdir = `pwd`/log;
+  mkdir -p $logdir
+  if(! -e $logdir) then
+    echo "WARNING: could not create $logdir"
+    set LF = /dev/null
+  else
+    if($#SessList > 1) then
+      set LF = $logdir/register-sess.$$.log
+    else
+      set sb = `basename $SessList`
+      set LF = $logdir/register-sess.$sb.log
+    endif
+    if(-e $LF) mv $LF $LF.old
+  endif
+else
+  set LF = /dev/null
+endif
+endif
+
+echo "--------------------------------------------------------------"
+echo "register-sess logfile is $LF"
+echo "--------------------------------------------------------------"
+
+echo "register-sess log file" >> $LF
+echo $VERSION   >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+uname -a  | tee -a $LF
+
+## Loop through each session ##
+foreach sess ($SessList)
+  set sessbase = `basename $sess`
+  set sessdir  = `dirname $sess`
+
+  echo " " |& tee -a $LF
+  echo "Session: $sess ----------------" |& tee -a $LF
+  date  |& tee -a $LF
+
+  if(! -e $sess/subjectname) then
+    echo "ERROR: file 'subjectname' does not exist in $sess" |& tee -a $LF
+    exit 1;
+  endif
+  set subject = `cat $sess/subjectname`;
+  if($#subject == 0) then
+    echo "ERROR: subjectname file is empty"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: $subject is not in SUBJECTS_DIR" |& tee -a $LF
+    echo "  SUBJECTS_DIR is $SUBJECTS_DIR" |& tee -a $LF
+    exit 1;
+  endif
+
+  ## Make sure the functional subdirectory exists ##
+  if(! -e $sess/$fsd) then
+    echo "ERROR: fsd does not exist in $sess" |& tee -a $LF
+    exit 1;
+  endif
+
+  # Makes sure the template exists (make it if it does not)
+  set cmd = (mktemplate-sess -s $sessbase -d $sessdir -fsd $fsd)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
+  pushd $sess > /dev/null
+
+  set RunList = `getrunlist $fsd`
+  if($status) then
+    echo "$RunList" |& tee -a $LF
+    exit 1;
+  endif
+
+  set Intermediate = ()
+  if($#IntermediateFSD) then
+    set IRunList = `getrunlist $IntermediateFSD`
+    if($status) then
+      echo "$IRunList" |& tee -a $LF
+      exit 1;
+    endif
+    set istem = $IntermediateFSD/$IRunList[1]/$IntermediateStem
+    set Intermediate = `stem2fname $istem`;
+    if($status) then
+      echo "$Intermediate" |& tee -a $LF
+      exit 1;
+    endif
+  endif
+
+  # Set up the cmd line to be used for all invocations
+  set cmd = ($regmethod --s $subject)
+  if($regmethod == bbregister) then
+    set cmd = ($cmd $bbrinit --$dof --bold)
+    if($#BBRTolF) set cmd = ($cmd --tolf $BBRTolF)
+    if($#BBRTol1D) set cmd = ($cmd --tol1d $BBRTol1D)
+    if($#IntermediateFSD) set cmd = ($cmd --int $Intermediate)
+    set XOpts = ($BBRXOpts)
+  else if($regmethod == fslregister) then
+    set cmd = ($cmd --dof $dof --fsvol $fstargvol)
+    set XOpts = ($FSLXOpts)
+  else # spmregister
+    set cmd = ($cmd --fsvol $fstargvol $SPMXOpts)
+    set XOpts = ($SPMXOpts)
+  endif
+
+  if(! $PerRun) then
+    # Do once for all runs
+    set template = `stem2fname $fsd/template`
+    set regfile = $fsd/$regfilename
+
+    set UpdateNeeded = 1;
+    if(-e $regfile && $UpdateOnly) then
+      test $template -nt $regfile
+      if($status) then
+        pwd | tee -a $LF
+        set UpdateNeeded = 0;
+      endif
+    endif
+
+    if($UpdateNeeded) then
+      set cmd = ($cmd --mov $template --reg $regfile)
+      if($regmethod == bbregister) then
+        set regfileinit = $fsd/init.$regfilename
+        set cmd = ($cmd --init-reg-out $regfileinit)
+      endif
+      set cmd = ($cmd $XOpts);
+      echo "--------------------------------------" | tee -a $LF
+      pwd | tee -a $LF
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+    endif
+  else
+    # Do separately for each run
+    foreach Run ($RunList)
+      echo "  Run: $Run ----------------" |& tee -a $LF
+      date  |& tee -a $LF
+      set funcdir = $fsd/$Run
+      set template = `stem2fname $funcdir/template`;
+      set regfile = $funcdir/$regfilename
+
+      set UpdateNeeded = 1;
+      if(-e $regfile && $UpdateOnly) then
+        test $template -nt $regfile
+        if($status) then
+          echo "Update not needed" | tee -a $LF
+          set UpdateNeeded = 0;
+        endif
+      endif
+
+      if($UpdateNeeded) then
+        set cmd = ($cmd --mov $template --reg $regfile)
+        if($regmethod == bbregister) then
+          set regfileinit = $funcdir/init.$regfilename
+          set cmd = ($cmd --init-reg-out $regfileinit)
+        endif
+        set cmd = ($cmd $XOpts);
+        echo "--------------------------------------" | tee -a $LF
+        pwd |& tee -a $LF
+        echo $cmd |& tee -a $LF
+        $cmd |& tee -a $LF
+        if($status) exit 1;
+      endif
+    end  # Loop over runs
+
+  endif
+
+  popd > /dev/null
+
+end  # foreach sess ($SessList)
+
+date |& tee -a $LF
+echo "register-sess completed " |& tee -a $LF
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-funcstem":
+      if($#argv < 1) goto arg1err;
+      set funcstem = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if($#argv < 1) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-bbr":
+      set regmethod = bbregister
+      breaksw
+
+    case "-bbr-init-fsl":
+      set bbrinit = "--init-fsl"
+      breaksw
+
+    case "-bbr-init-spm":
+      set bbrinit = "--init-spm"
+      breaksw
+
+    case "-bbr-init-header":
+      set bbrinit = "--init-header"
+      breaksw
+
+    case "-fsl":
+    case "-flirt":
+      set regmethod = fslregister
+      breaksw
+
+    case "-spm":
+      set regmethod = spmregister
+      breaksw
+
+    case "-fsvol":
+      if ($#argv < 1) goto arg1err;
+      set fstargvol = $argv[1]; shift;
+      breaksw
+
+    case "-dof":
+      if ($#argv < 1) goto arg1err;
+      set dof = $argv[1]; shift;
+      breaksw
+
+    case "-regfile":
+      if($#argv < 1) goto arg1err;
+      set regfilename = $argv[1]; shift;
+      breaksw
+
+    case "-bbr-xopts":
+      if($#argv < 1) goto arg1err;
+      set xoptsfile = $argv[1]; shift;
+      if(! -e $xoptsfile) then
+        echo "ERROR: cannot find $xoptsfile"
+        exit 1;
+      endif
+      set BBRXOpts = (`cat $xoptsfile`);
+      breaksw
+
+    case "-bbr-tolf":
+      if($#argv < 1) goto arg1err;
+      set BBRTolF = $argv[1]; shift;
+      breaksw
+
+    case "-bbr-tol1d":
+      if($#argv < 1) goto arg1err;
+      set BBRTol1D = $argv[1]; shift;
+      breaksw
+
+    case "-bbr-int":
+      if($#argv < 2) goto arg2err;
+      set IntermediateFSD = $argv[1]; shift;
+      set IntermediateStem = $argv[1]; shift;
+      breaksw
+
+    case "-fsl-xopts":
+      if($#argv < 1) goto arg1err;
+      set xoptsfile = $argv[1]; shift;
+      if(! -e $xoptsfile) then
+        echo "ERROR: cannot find $xoptsfile"
+        exit 1;
+      endif
+      set FSLXOpts = (`cat $xoptsfile`);
+      breaksw
+
+    case "-spm-xopts":
+      if($#argv < 1) goto arg1err;
+      set xoptsfile = $argv[1]; shift;
+      if(! -e $xoptsfile) then
+        echo "ERROR: cannot find $xoptsfile"
+        exit 1;
+      endif
+      set SPMXOpts = (`cat $xoptsfile`);
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-force":
+      set UpdateOnly = 0;
+      breaksw
+
+    case "-update":
+      set UpdateOnly = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#SessList == 0) then
+  echo "ERROR: no sessions specified" |& tee -a $LF
+  exit 1;
+endif
+
+if($#FSLXOpts && $regmethod != fslregister) then
+  echo "ERROR: must specify -fsl with -fsl-xopts"
+  exit 1;
+endif
+
+if($#SPMXOpts && $regmethod != spmregister) then
+  echo "ERROR: must specify -spm with -spm-xopts"
+  exit 1;
+endif
+
+if($#BBRXOpts && $regmethod != bbregister) then
+  echo "ERROR: must specify -bbr with -bbr-xopts"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: register-sess"
+  echo ""
+  echo " Session Arguments (required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo " Optional Arguments"
+  echo "   -bbr : use bbregister (default)"
+  echo "   -fsl : use fslregister"
+  echo "   -spm : use spmregister"
+  echo ""
+  echo "   -bbr-init-fsl : use flirt to init bbr (default)":
+  echo "   -bbr-init-spm : use spm to init bbr":
+  echo "   -bbr-init-header : use header registration to init bbr":
+  echo "   -bbr-tolf tolf   : set bbregiter tolf parameter":
+  echo "   -bbr-tol1d tol1d : set bbregiter tol1d parameter":
+  echo "   -bbr-int ifsd istem : use intermediate volume":
+  echo "   -dof DOF : registration degrees of freedome (default is $dof)"
+  echo "   -fsvol volid   : FreeSurfer vol id (default is $fstargvol)"
+  echo ""
+  echo "   -fsd dir     : functional subdirectory ($fsd)"
+  echo "   -perrun      : register each run separately"
+  echo "   -regfile file  : Save reg as file instead of register.dat"
+  echo ""
+  echo "   -bbr-xopts xopts : expert options for bbregister"
+  echo "   -fsl-xopts xopts : expert options for fslregister"
+  echo "   -spm-xopts xopts : expert options for spmregister"
+  echo ""
+  echo "   -update   : only run when files have changed"
+  echo "   -version  : print version and exit"
+  echo "   -debug "
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+Performs a functional-structural registration.
+
+By default you only need to supply the sessions and register-sess will
+perform the registration. The default is to use bbregister initialized
+with fsl (FLIRT) and to create a file called register.dat in the bold
+directory. Each session must have a subjectname file with the freesurfer
+subject name in it.
+
+Eg,
+
+register-sess -s yoursession 
+
+To check the registrations run
+
+tkregister-sess -s yoursession 
+
