@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/26 16:03:58 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/03/31 16:33:18 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -458,52 +458,52 @@ namespace GPU {
 	  float node_sse = 0;
 	  unsigned int num = 0;
 	  
-	  // Bail if we have an invalid node
-	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
-	    continue;
-	  }
+	  // Only calculate if we're not invalid
+	  if( invalid(ix,iy,iz) != GCAM_POSITION_INVALID ) {
 
 	  
-	  // Re-order loop nest in gcamSmoothnessEnergy
-	  for( int zk=-1; zk<=1; zk++ ) {
-	    int zn = iz + zk;
-
-	    for( int yk=-1; yk<=1; yk++ ) {
-	      int yn = iy + yk;
+	    // Re-order loop nest in gcamSmoothnessEnergy
+	    for( int zk=-1; zk<=1; zk++ ) {
+	      int zn = iz + zk;
 	      
-	      for( int xk=-1; xk<=1; xk++ ) {
-		int xn = ix + xk;
-
-		// Don't include self
-		if( (!xk) && (!yk) && (!zk) ) {
-		  continue;
-		}
-
-		// Don't include invalid neighbours
+	      for( int yk=-1; yk<=1; yk++ ) {
+		int yn = iy + yk;
 		
-		// Use texture to get boundary conditions
-		const char myInvalid = tex3D( dt_smooth_invalid,
-					      xn+0.5f, yn+0.5f, zn+0.5f );
-		if( myInvalid == GCAM_POSITION_INVALID ) {
-		  continue;
-		}
+		for( int xk=-1; xk<=1; xk++ ) {
+		  int xn = ix + xk;
+		  
+		  // Don't include self
+		  if( (!xk) && (!yk) && (!zk) ) {
+		    continue;
+		  }
+		  
+		  // Don't include invalid neighbours
 		
-
-		float dx = Fetchvx(xn,yn,zn) - Fetchvx(ix,iy,iz);
-		float dy = Fetchvy(xn,yn,zn) - Fetchvy(ix,iy,iz);
-		float dz = Fetchvz(xn,yn,zn) - Fetchvz(ix,iy,iz);
-
-		node_sse += (dx*dx) + (dy*dy) + (dz*dz);
-		num++;
+		  // Use texture to get boundary conditions
+		  const char myInvalid = tex3D( dt_smooth_invalid,
+						xn+0.5f, yn+0.5f, zn+0.5f );
+		  if( myInvalid == GCAM_POSITION_INVALID ) {
+		    continue;
+		  }
+		  
+		  
+		  float dx = Fetchvx(xn,yn,zn) - Fetchvx(ix,iy,iz);
+		  float dy = Fetchvy(xn,yn,zn) - Fetchvy(ix,iy,iz);
+		  float dz = Fetchvz(xn,yn,zn) - Fetchvz(ix,iy,iz);
+		  
+		  node_sse += (dx*dx) + (dy*dy) + (dz*dz);
+		  num++;
+		}
 	      }
 	    }
-	  }
-
-	  if( num > 0 ) {
-	    node_sse /= num;
+	    
+	    // Take average
+	    if( num > 0 ) {
+	      node_sse /= num;
+	    }
 	  }
 	  
-
+	  // Assign value
 	  const unsigned int iLoc = invalid.Index1D( ix, iy, iz );
 	  energies[iLoc] = node_sse;
 	}
@@ -871,7 +871,6 @@ namespace GPU {
 	    thrust::raw_pointer_cast( d_energies ) );
 	CUDA_CHECK_ERROR( "SmoothnessKernel failed!" );
 	tSmoothCompute.Stop();
-
 
 	// Get the total
 	float smoothEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
