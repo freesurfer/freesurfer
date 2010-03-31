@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.73 2010/03/31 16:27:35 greve Exp $
+% $Id: fast_selxavg3.m,v 1.74 2010/03/31 17:18:02 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/31 16:27:35 $
-%    $Revision: 1.73 $
+%    $Date: 2010/03/31 17:18:02 $
+%    $Revision: 1.74 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.73 2010/03/31 16:27:35 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.74 2010/03/31 17:18:02 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -90,7 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.73 2010/03/31 16:27:35 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.74 2010/03/31 17:18:02 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -1008,14 +1008,22 @@ if(DoContrasts)
       fprintf('Testing Motion Correction Parameters\n');
       [F Fsig ces] = fast_fratio(betamc,X,rvarmc,C);
       Fsig = -log10(Fsig);
+      minsig = max(Fsig);
       if(J==1) Fsig = sign(ces).*Fsig; end
       fprintf('%6.2f ',Fsig)
       fprintf('\n');
+      % ------- sig ---------
       fname = sprintf('%s/mc.sig.dat',outcondir);
       fpMC = fopen(fname,'w');
       fprintf(fpMC,'%6.2f ',Fsig);
       fprintf(fpMC,'\n');
       fclose(fpMC);
+      % ------- minsig ---------
+      fname = sprintf('%s/mc.minsig.dat',outcondir);
+      fpMC = fopen(fname,'w');
+      fprintf(fpMC,'%6.2f\n',minsig);
+      fclose(fpMC);
+      % ------- ces ---------
       fname = sprintf('%s/mc.ces.dat',outcondir);
       fpMC = fopen(fname,'w');
       for nthj = 1:J
