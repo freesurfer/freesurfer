@@ -190,6 +190,7 @@ FSF_FILES=\
 	rawfunc2tal \
 	rawfunc2tal-sess \
 	reg2subj \
+	register-sess \
 	rocview \
 	roiavg \
 	roiavgraw \
