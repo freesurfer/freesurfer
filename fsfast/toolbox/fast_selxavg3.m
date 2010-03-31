@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.71 2010/02/06 22:01:56 greve Exp $
+% $Id: fast_selxavg3.m,v 1.72 2010/03/31 15:56:21 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/02/06 22:01:56 $
-%    $Revision: 1.71 $
+%    $Date: 2010/03/31 15:56:21 $
+%    $Revision: 1.72 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.71 2010/02/06 22:01:56 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.72 2010/03/31 15:56:21 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -90,7 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.71 2010/02/06 22:01:56 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.72 2010/03/31 15:56:21 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -166,6 +166,8 @@ for nthouter = outer_runlist
   Xn = [];
   tpindrun = [];
   clear runflac;
+  DoMCFit = 1;
+  mcAll = [];
   tic;
   for nthrun = nthrunlist
     flac = flac0;
@@ -200,6 +202,14 @@ for nthouter = outer_runlist
     reg0run(1) = 1;
     reg0 = [reg0 reg0run];
 
+    % Fit design to motion correction regressors
+    if(isempty(flac.mc)) DoMCFit = 0; end
+    if(DoMCFit) 
+      if(size(flac.mc,1) ~= flac.ntp) DoMCFit = 0; 
+      else mcAll = [mcAll; flac.mc]; 
+      end
+    end
+    
     % This is for comparing cross-run FFX analysis vs this analysis 
     % in which the data and design matrices are concatenated.
     Xrun = flac.X;
@@ -214,7 +224,10 @@ for nthouter = outer_runlist
       conffx(nthcon).Msum = conffx(nthcon).Msum + M;
     end
 
-  end
+  end % loop over runs
+
+  fprintf('DoMCFit = %d\n',DoMCFit);
+  
   % These are the true indices of the mean regressors
   ind0 = find(reg0);
 
@@ -455,10 +468,14 @@ if(DoGLMFit)
     %rho2.vol(:,:,:,end+1) = fast_mat2vol(rho2run,rho2.volsize);
     if(flac0.acfbins == 0)
       %fprintf('WARNING: unwhitened residuals are not intensity norm\n');
-      fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
-      rrunmri = mri;
-      rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
-      MRIwrite(rrunmri,fname);
+      if(MatlabSaveRes)
+	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
+	rrunmri = mri;
+	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+	MRIwrite(rrunmri,fname);
+      else
+	fprintf('Not saving residual\n');
+      end
     end
 
     if(flac.fsv3_whiten)
@@ -717,10 +734,14 @@ if(DoGLMFit)
       clear yrun;
       %pack;
 
-      fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
-      rrunmri = mri;
-      rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
-      MRIwrite(rrunmri,fname);
+      if(MatlabSaveRes)
+	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
+	rrunmri = mri;
+	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
+	MRIwrite(rrunmri,fname);
+      else
+	fprintf('Not saving residual\n');
+      end
       
       clear rrun rrunmri;
       %pack;
@@ -734,9 +755,14 @@ if(DoGLMFit)
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
+  if(DoMCFit) [betamc rvarmc] = fast_glmfit(mcAll,X);
+  else betamc=[]; rvarmc=[];
+  end
+  
   save(xfile,'X','W','DOF','flac0','runflac','RescaleFactor',...
        'rfm','acfseg','nrho1segmn','acfsegmn','ErrCovMtx',...
-       'DoSynth','SynthSeed','UseFloat','yrun_randn');
+       'DoSynth','SynthSeed','UseFloat','yrun_randn',...
+       'DoMCFit','mcAll','betamc','rvarmc');
 
   % Save as ascii
   xascii = sprintf('%s/X.dat',outanadir);
@@ -865,11 +891,10 @@ if(DoContrasts)
     
     % Contrast output
     outcondir = sprintf('%s/%s',outanadir,flacC.con(nthcon).name);
-    try 
-      % Delete condir if it is there
-      fileattrib(outcondir);
+    if(exist(outcondir,'dir'))
+      % Delete it if it exists
+      fprintf('%s exists, deleting\n',outcondir);
       rmdir(outcondir,'s');
-    catch; 
     end
 
     err = mkdirp(outcondir);
@@ -977,9 +1002,24 @@ if(DoContrasts)
       fname = sprintf('%s/cesvarpct.%s',outcondir,ext);
       MRIwrite(cesvarpct,fname);
 
+    end % if(J>1)
+
+    if(DoMCFit)
+      fprintf('Testing Motion Correction Parameters\n');
+      [F Fsig ces] = fast_fratio(betamc,X,rvarmc,C);
+      Fsig = -log10(Fsig);
+      if(J==1) Fsig = sign(ces).*Fsig; end
+      fprintf('%6.2f ',Fsig)
+      fprintf('\n');
+      fname = sprintf('%s/mc.sig.dat',outcondir);
+      fpMC = fopen(fname,'w');
+      fprintf(fpMC,'%6.2f ',Fsig);
+      fprintf(fpMC,'\n');
+      fclose(fpMC);
     end
-  
-  end
+    
+    
+  end % contrast list
 end % DoContrasts
 
 %------------------------------------------------------%
