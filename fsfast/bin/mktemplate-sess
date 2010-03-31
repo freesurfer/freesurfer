@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/31 20:45:58 $
-#    $Revision: 1.4 $
+#    $Date: 2010/03/31 20:51:30 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mktemplate-sess,v 1.4 2010/03/31 20:45:58 greve Exp $';
+set VERSION = '$Id: mktemplate-sess,v 1.5 2010/03/31 20:51:30 greve Exp $';
 set inputargs = ($argv);
 
 set fsd          = bold;
@@ -57,8 +57,8 @@ parse_args_return:
 
 set SessList = `getsesspath $inputargs`;
 if($status || $#SessList == 0) then
-  getsesspath $inputargs |& tee -a $LF
-  echo "ERROR: cannot find any sessions" |& tee -a $LF
+  getsesspath $inputargs 
+  echo "ERROR: cannot find any sessions"
   exit 1;
 endif
 
@@ -73,7 +73,12 @@ if(! $nolog) then
     echo "WARNING: could not create $logdir"
     set LF = /dev/null
   else
-    set LF = $logdir/mktemplate-sess.$$.log
+    if($#SessList > 1) then
+      set LF = $logdir/mktemplate-sess.$$.log
+    else
+      set sb = `basename $SessList`
+      set LF = $logdir/mktemplate-sess.$sb.log
+    endif
     if(-e $LF) mv $LF $LF.old
   endif
 else
