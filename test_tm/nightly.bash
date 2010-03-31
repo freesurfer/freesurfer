@@ -55,6 +55,7 @@ echo >> $LOGFILE
 cd $NIGHTLYDIR
 pwd
 
+
 # Clean it
 make clean >> $LOGFILE 2>&1
 if [ $? -ne 0 ]; then
@@ -67,6 +68,8 @@ echo >> $LOGFILE
 echo >> $LOGFILE
 echo >> $LOGFILE
 
+
+
 # Update the directory
 cvs update -d . >> $LOGFILE 2>&1
 if [ $? -ne 0 ]; then
@@ -78,6 +81,36 @@ echo "NIGHTLY: cvs update complete" >> $LOGFILE
 echo >> $LOGFILE
 echo >> $LOGFILE
 echo >> $LOGFILE
+
+
+
+# Run setup_configure
+./setup_configure >> $LOGFILE 2>&1
+if [ $? -ne 0 ]; then
+    echo "NIGHTLY: setup_configure failed"
+    exit
+fi
+echo "NIGHTLY: setup_configure complete" >> $LOGFILE
+
+echo >> $LOGFILE
+echo >> $LOGFILE
+echo >> $LOGFILE
+
+
+
+# Run configure
+./configure  --with-boost-dir=/homes/11/rge21/avebury01nfs/boost-1.41.0/ >> $LOGFILE 2>&1
+if [ $? -ne 0 ]; then
+    echo "NIGHTLY: configure failed"
+    exit
+fi
+echo "NIGHTLY: configure complete" >> $LOGFILE
+
+echo >> $LOGFILE
+echo >> $LOGFILE
+echo >> $LOGFILE
+
+
 
 # Do the build
 make -j >> $LOGFILE 2>&1
