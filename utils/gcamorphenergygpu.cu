@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/31 16:33:18 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/03/31 19:25:16 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -141,6 +141,8 @@ namespace GPU {
 
 	// Only compute if ix, iy & iz are inside the bounding box
 	if( good.InVolume(ix,iy,iz) ) {
+
+	  // Start by flagging as 'bad'
 	  good(ix,iy,iz) = 0;
 	  
 	  // Is it valid?

@@ -15,11 +15,8 @@ extern "C" {
   //! Acquires device designated by FREESURFER_CUDA_DEVICE environment variable
   void AcquireCUDADevice( void );
   
-  //! Function to enable the GPU timing flag
-  void EnableGPUTiming( void );
-  
-  //! Function to disable the GPU timing flag
-  void DisableGPUTiming( void );
+  //! Prints out all the timers
+  void PrintGPUtimers( void );
 
 
 #if defined(__cplusplus)

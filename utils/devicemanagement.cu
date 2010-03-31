@@ -10,6 +10,8 @@ using namespace std;
 
 #include "devicemanagement.h"
 
+#include "mriconvolve_cuda.hpp"
+
 // ==============================================
 
 
@@ -47,4 +49,16 @@ void AcquireCUDADevice( void ) {
   CUDA_SAFE_CALL( cudaGetDeviceProperties( &devProp, iDevice ) );
   cout << "CUDA device: " << devProp.name << endl;
   
+}
+
+
+
+
+
+// ==============================================
+
+
+void PrintGPUtimers( void ) {
+
+  GPU::Algorithms::MRIconvolve::ShowTimings();
 }

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/04 18:37:50 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/03/31 19:25:16 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 
 #include "mriframegpu.hpp"
 
+#include "mriconvolve_cuda.hpp"
 
 #include "mriconvolve_cuda.h"
 
@@ -297,722 +298,664 @@ namespace GPU {
 
     
 
-
-    
-    //! Class to contain MRI convolution algorithms
-    /*!
-      This is a class designed to encapsulate all of
-      the GPU convolution algorithms.
-      It maintains internal timers for various
-      operations, and when the destructor is called
-      it can print these to stdout.
-      A static instance of this class is called
-      by the C routines in the Freesurfer suite.
-    */
-    class MRIconvolve {
-    public:
-      // ---------------------------------------
-      //! Constructor with stream (also default)
-      MRIconvolve( const cudaStream_t s = 0 ) : stream(s),
-						d_kernel(NULL),
-						kernelAllocSize(0),
-						h_workspace(NULL),
-						workSize(0),
-						tMem(), tHostMem(),
-						tSend(), tRecv(),
-						tTextureKernel(),
-						tCompute1d(), tTotal1d(),
-						tCompute3d(), tTotal3d() {}
-
-      //! Destructor
-      ~MRIconvolve( void ) {
-	this->ReleaseKernel();
-	this->ReleaseWorkspace();
-
+    MRIconvolve::~MRIconvolve( void ) {
+      this->ReleaseKernel();
+      this->ReleaseWorkspace();
+    }
+      
+      
+    void MRIconvolve::ShowTimings( void ) {
+	
 #ifdef CUDA_SHOW_TIMINGS
-	std::cout << "==================================" << std::endl;
-	std::cout << "GPU convolution timers" << std::endl;
-	std::cout << "----------------------" << std::endl;
+      std::cout << "==================================" << std::endl;
+      std::cout << "GPU convolution timers" << std::endl;
+      std::cout << "----------------------" << std::endl;
 #ifndef CUDA_FORCE_SYNC
-	std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
-	std::cout << "Timings may not be accurate" << std::endl;
+      std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+      std::cout << "Timings may not be accurate" << std::endl;
 #endif
-	std::cout << std::endl;
-
-	std::cout << "General:" << std::endl;
-	std::cout << "Host Memory   : " << this->tHostMem << std::endl;
-	std::cout << "GPU Memory    : " << this->tMem << std::endl;
-	std::cout << "Send          : " << this->tSend << std::endl;
-	std::cout << "Receive       : " << this->tRecv << std::endl;
-	std::cout << "Conv. kernel  : " << this->tTextureKernel << std::endl;
-	std::cout << std::endl;
-
-	std::cout << "Convolve 1D:" << std::endl;
-	std::cout << "      Compute : " << this->tCompute1d << std::endl;
-	std::cout << "Total         : " << this->tTotal1d << std::endl;
-	std::cout << std::endl;
-
-	std::cout << "Convolve 3D:" << std::endl;
-	std::cout << "      Compute : " << this->tCompute3d << std::endl;
-	std::cout << "Total         : " << this->tTotal3d << std::endl;
-	std::cout << std::endl;
-
-
-	std::cout << "==================================" << std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "General:" << std::endl;
+      std::cout << "Host Memory   : " << MRIconvolve::tHostMem << std::endl;
+      std::cout << "GPU Memory    : " << MRIconvolve::tMem << std::endl;
+      std::cout << "Send          : " << MRIconvolve::tSend << std::endl;
+      std::cout << "Receive       : " << MRIconvolve::tRecv << std::endl;
+      std::cout << "Conv. kernel  : " << MRIconvolve::tTextureKernel << std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "Convolve 1D:" << std::endl;
+      std::cout << "      Compute : " << MRIconvolve::tCompute1d << std::endl;
+      std::cout << "Total         : " << MRIconvolve::tTotal1d << std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "Convolve 3D:" << std::endl;
+      std::cout << "      Compute : " << MRIconvolve::tCompute3d << std::endl;
+      std::cout << "Total         : " << MRIconvolve::tTotal3d << std::endl;
+      std::cout << std::endl;
+      
+      
+      std::cout << "==================================" << std::endl;
 #endif
-      }
-
-
-      // ---------------------------------------
-
-      //! Dispatch for 1D convolution of unknown type
-      void Convolve1D( const MRI* src, MRI* dst,
-		       const int srcFrame, const int dstFrame,
-		       const float *kernel,
-		       const unsigned int kernelLength,
-		       const int axis ) {
-	/*!
-	  If the data types of the source and destination MRI
-	  structures is not known, then this dispatch routine
-	  should be used for 1D convolutions.
-	  It puts the convolution kernel on the device,
-	  and then handles the templated dispatching of the
-	  appropriate convolution call.
-	  Note that the destination MRI must already be allocated.
-	  If called from the main Freesurfer routine, this will
-	  be the case.
-	  @param[in] src The source MRI
-	  @param[out] dst The destination MRI
-	  @param[in] srcFrame The frame of the source to be convolved
-	  @param[in] dstFrame The frame of the destination in which the result should be stored
-	  @param[in] kernel The convolution kernel to use
-	  @param[in] kernelLength The size of the convolution kernel
-	  @param[in] axis The axis along which the convolution should be made
-	*/
-	this->tTotal1d.Start();
-
-	this->BindKernel( kernel, kernelLength );
-
-	switch( src->type ) {
-	case MRI_UCHAR:
-	  this->DispatchWrap1D<unsigned char>( src, dst,
-					       srcFrame, dstFrame,
-					       axis );
-	  break;
-	  
-	case MRI_SHORT:
-	  this->DispatchWrap1D<short>( src, dst,
-				       srcFrame, dstFrame,
-				       axis );
-	  break;
-	  
-	case MRI_FLOAT:
-	  this->DispatchWrap1D<float>( src, dst,
-				       srcFrame, dstFrame,
-				       axis );
-	  break;
-	  
-	default:
-	  std::cerr << __FUNCTION__
-		    <<": Unrecognised source MRI type " << src->type
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
-	this->UnbindKernel();
-
-	this->tTotal1d.Stop();
-      }
-
-      // --
-
-      //! Dispatch routine with transfers
-      template<typename T, typename U>
-      void Dispatch1D( const MRI* src, MRI* dst,
-		       const int srcFrame, const int dstFrame,
-		       const int axis ) const {
-	/*!
-	  This is a dispatch routine for the 1D convolution on
-	  the GPU.
-	  It transfers the data to the GPU, runs the convolution,
-	  and retrieves the results
-	  Things are written this way to avoid nastily nested
-	  switch statements.
-	  It assumes that the convolution kernel texture is already
-	  bound
-	*/
-
-	GPU::Classes::MRIframeGPU<T> srcGPU;
-	GPU::Classes::MRIframeGPU<U> dstGPU;
       
-	size_t srcWorkSize, dstWorkSize;
-      
-	// Allocate the GPU arrays
-	this->tMem.Start();
-	srcGPU.Allocate( src );
-	dstGPU.Allocate( dst );
-	this->tMem.Stop();
-	
-	// Put in some sanity checks
-	srcGPU.VerifyMRI( src );
-	dstGPU.VerifyMRI( dst );
-	
-	// Allocate the workspace array
-	srcWorkSize = srcGPU.BufferSize();
-	dstWorkSize = dstGPU.BufferSize();
-      
-	if( srcWorkSize > dstWorkSize ) {
-	  this->AllocateWorkspace( srcWorkSize );
-	} else {
-	  this->AllocateWorkspace( dstWorkSize );
-	}
+    }
 
-	// Send the source data
-	this->tSend.Start();
-	srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
-	this->tSend.Stop();
-
-	// Run the convolution
-	this->tCompute1d.Start();
-	this->RunGPU1D( srcGPU, dstGPU, axis );
-	this->tCompute1d.Stop();
-
-	// Retrieve the answers
-	this->tRecv.Start();
-	dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
-	this->tRecv.Stop();
-
-	CUDA_CHECK_ERROR_ASYNC( "1D Convolution failure" );
-	
-	// No need to release - destructor will do that automatically
-      }
-
-      // --
-      
-      //! Runs the 1D convolution kernel on the GPU
-      template<typename T, typename U>
-      void RunGPU1D( const GPU::Classes::MRIframeGPU<T> &src,
-		     GPU::Classes::MRIframeGPU<U> &dst,
-		     const int axis ) const {
-	
-	/*!
-	  Runs the 1D convolution kernel on the GPU.
-	  Prior to calling this routine, convolution
-	  kernel must be set up on the device, and
-	  the source MRI transferred to the GPU.
-	*/
-      
-
-	const dim3 srcDims = src.GetDims();
-	const dim3 dstDims = dst.GetDims();
-
-	// Check dimensions
-	if( srcDims != dstDims ) {
-	  std::cerr << __FUNCTION__
-		    << ": Dimension mismatch" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-      
-	
-	dim3 grid, threads;
-
-	
-	threads.x = threads.y = kConv1dBlockSize;
-	threads.z = 1;
-
-	const dim3 coverGrid = dst.CoverBlocks( kConv1dBlockSize );
-
-	switch( axis ) {
-	case MRI_WIDTH:
-	  grid.x = coverGrid.x * coverGrid.y;
-	  grid.y = srcDims.z;
-	  grid.z = 1;
-	  
-	  MRIConvolveKernelX
-	    <T,U>
-	    <<<grid,threads,0,this->stream>>>
-	    ( src, dst, coverGrid );
-	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelX failed!" );
-	  break;
-	  
-	case MRI_HEIGHT:
-	  grid.x = coverGrid.x * coverGrid.y;
-	  grid.y = srcDims.z;
-	  grid.z = 1;
-
-	  MRIConvolveKernelY
-	    <T,U>
-	    <<<grid,threads,0,this->stream>>>
-	    ( src, dst, coverGrid );
-	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelY failed!" );
-	  break;
-	  
-	case MRI_DEPTH:
-	  // Slight change, since we do (x,z) patches
-	  grid.x = coverGrid.x * coverGrid.z;
-	  grid.y = srcDims.y;
-	  
-	  MRIConvolveKernelZ
-	    <T,U>
-	    <<<grid,threads,0,this->stream>>>
-	    ( src, dst, coverGrid );
-	  CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelZ failed!" );
-	  break;
-	  
-	default:
-	  std::cerr << __FUNCTION__
-		    << ": Incompatible universe detected." << std::endl;
-	  std::cerr << "GPU functions are only tested ";
-	  std::cerr << "in a universe with three spatial dimensions" << std::endl;
-	  std::cerr << "Please adjust your reality accordingly, ";
-	  std::cerr << "and try again" << std::endl;
-	  std::cerr << "MRIframeGPU version was:\n" << src.VersionString() << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-      }
-
-
+    // ---------------------------------------
     
-    
-
-      // ---------------------------------------------------
-
-      //! Dispatch for 3D convolution of unknown MRI with single kernel
-      void Convolve3D( const MRI* src, MRI* dst,
-		       const int srcFrame, const int dstFrame,
-		       const float *kernel,
-		       const unsigned int kernelLength ) {
-	/*!
-	  Performs a 3D convolution with a single 1D kernel of
-	  \a srcFrame of the MRI \a src, storing the result in
-	  \a dstFrame of the MRI \a dst.
-	  The convolution kernel is stored in the array \a kernel.
-	  @param[in] src The source MRI
-	  @param[out] dst The destination MRI
-	  @param[in] srcFrame The frame of the source to be convolved
-	  @param[in] dstFrame The frame of the destination in which the result should be stored
-	  @param[in] kernel The convolution kernel to use
-	  @param[in] kernelLength The size of the convolution kernel
-	*/
-
-	this->tTotal3d.Start();
-
-	// Send the convolution kernel
-	this->BindKernel( kernel, kernelLength );
-
-	switch( src->type ) {
-	case MRI_UCHAR:
-	  this->Conv3DSingleKernelDispatch<unsigned char>( src,
-							   dst,
-							   srcFrame,
-							   dstFrame );
-	  break;
-	  
-	case MRI_SHORT:
-	  this->Conv3DSingleKernelDispatch<short>( src,
-						   dst,
-						   srcFrame,
-						   dstFrame );
-	  break;
-	  
-	case MRI_FLOAT:
-	  this->Conv3DSingleKernelDispatch<float>( src,
-						   dst,
-						   srcFrame,
-						   dstFrame );
-	  break;
-	  
-	default:
-	  std::cerr << __FUNCTION__
-		    << ": Unrecognised source MRI type " << src->type
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-
-	this->UnbindKernel();
-
-	this->tTotal3d.Stop();
-      }
-
-      // --
-
-
-      //! Wrapper for 3D convolution with single kernel
-      template<typename T>
-      void Conv3DSingleKernelDispatch( const MRI* src,
-				       MRI* dst,
-				       const int srcFrame,
-				       const int dstFrame ) const {
-	/*!
-	  Function to run the 3D convolution on the GPU when
-	  all three directions use the same convolution kernel.
-	  This routine does not pull intermediate results
-	  back to the host.
-	  Assumes that src and dst types are the same.
-	  Assumes that the texture is already set up on the GPU.
-	*/
-
-	GPU::Classes::MRIframeGPU<T> frame1, frame2;
-	size_t workSize;
-
-	// Do some allocation
-	this->tMem.Start();
-	frame1.Allocate( src );
-	frame2.Allocate( src );
-	this->tMem.Stop();
-
-	// Verify (note frame2 verified from dst)
-	frame1.VerifyMRI( src );
-	frame2.VerifyMRI( dst );
-
-	// Allocate workspace
-	workSize = frame1.BufferSize();
-	this->AllocateWorkspace( workSize );
-
-	this->tSend.Start();
-	frame1.Send( src, srcFrame, this->h_workspace, this->stream );
-	this->tSend.Stop();
-	
-	this->tCompute3d.Start();
-	this->RunGPU1D( frame1, frame2, MRI_WIDTH );
-	this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
-	this->RunGPU1D( frame1, frame2, MRI_DEPTH );
-	this->tCompute3d.Stop();
-	
-	this->tRecv.Start();
-	frame2.Recv( dst, dstFrame, this->h_workspace, this->stream );
-	this->tRecv.Stop();
-
-	CUDA_CHECK_ERROR_ASYNC( "3D convolution  with single kernel failure" );
-      }
-
-
-      //! Dispatch for 3D convolution of unknown MRI with separate kernels
-      void Convolve3D( const MRI* src,
-		       MRI* dst,
-		       const int srcFrame,
-		       const int dstFrame,
-		       const float* xKernel,
-		       const unsigned int xL,
-		       const float* yKernel,
-		       const unsigned int yL,
-		       const float* zKernel,
-		       const unsigned int zL ) {
-	/*!
-	  Performs a 3D convolution of
-	  \a srcFrame of the MRI \a src, storing the result in
-	  \a dstFrame of the MRI \a dst.
-	  A separate convolution kernel is used for each axis.
-	  
-	  @param[in] src The source MRI
-	  @param[out] dst The destination MRI
-	  @param[in] srcFrame The frame of the source to be convolved
-	  @param[in] dstFrame The frame of the destination in which the result should be stored
-	  @param[in] xKernel The convolution kernel to use in the x direction
-	  @param[in] xL The size of the x convolution kernel
-	  @param[in] yKernel The convolution kernel to use in the y direciton
-	  @param[in] yL The size of the y convolution kernel
-	  @param[in] zKernel The z convolution kernel
-	  @param[in] zL The size of the z convolution kernel
-	*/
-	switch( src->type ) {
-	case MRI_UCHAR:
-	  this->Convolve3DMultiKernelDispatch<unsigned char>( src,
-							      dst,
-							      srcFrame,
-							      dstFrame,
-							      xKernel,
-							      xL,
-							      yKernel,
-							      yL,
-							      zKernel,
-							      zL );
-	  break;
-
-	case MRI_SHORT:
-	  this->Convolve3DMultiKernelDispatch<short>( src, dst,
-						      srcFrame, dstFrame,
-						      xKernel, xL,
-						      yKernel, yL,
-						      zKernel, zL );
-	  break;
-
-	case MRI_FLOAT:
-	  this->Convolve3DMultiKernelDispatch<float>( src, dst,
-						      srcFrame, dstFrame,
-						      xKernel, xL,
-						      yKernel, yL,
-						      zKernel, zL );
-	  break;
-
-
-	default:
-	  std::cerr << __FUNCTION__
-		    << ": Unrecognised source MRI type " << src->type
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-      }
-
-      //! Wrapper for a 3D convolution with different kernels
-      template<typename T>
-      void Convolve3DMultiKernelDispatch( const MRI* src,
-					  MRI* dst,
-					  const int srcFrame,
-					  const int dstFrame,
-					  const float* xKernel,
-					  const unsigned int xL,
-					  const float* yKernel,
-					  const unsigned int yL,
-					  const float* zKernel,
-					  const unsigned int zL ) {
-
-	GPU::Classes::MRIframeGPU<T> frame1, frame2;
-	size_t workSize;
-
-	this->tTotal3d.Start();
-
-	// Do some allocation
-	this->tMem.Start();
-	frame1.Allocate( src );
-	frame2.Allocate( src );
-	this->tMem.Stop();
-
-	// Verify (note frame2 verified from dst)
-	frame1.VerifyMRI( src );
-	frame2.VerifyMRI( dst );
-
-	// Allocate workspace
-	workSize = frame1.BufferSize();
-	this->AllocateWorkspace( workSize );
-
-	// Send the data
-	this->tSend.Start();
-	frame1.Send( src, srcFrame, this->h_workspace, this->stream );
-	this->tSend.Stop();
-	
-	// Convolve along x
-	this->tCompute3d.Start();
-	this->BindKernel( xKernel, xL );
-	this->RunGPU1D( frame1, frame2, MRI_WIDTH );
-
-	// And y
-	this->BindKernel( yKernel, yL );
-	this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
-	
-	// And z
-	this->BindKernel( zKernel, zL );
-	this->RunGPU1D( frame1, frame2, MRI_DEPTH );
-	this->tCompute3d.Stop();
-
-	// Get the results
-	this->tRecv.Start();
-	frame2.Recv( dst, dstFrame, this->h_workspace, this->stream );
-	this->tRecv.Stop();
-
-	CUDA_CHECK_ERROR_ASYNC( "3D convolution  with multi-kernel failure" );
-	this->tTotal3d.Stop();
-      }
-
-      // ---------------------------------------
+    void MRIconvolve::Convolve1D( const MRI* src, MRI* dst,
+				  const int srcFrame, const int dstFrame,
+				  const float *kernel,
+				  const unsigned int kernelLength,
+				  const int axis ) {
+      /*!
+	If the data types of the source and destination MRI
+	structures is not known, then this dispatch routine
+	should be used for 1D convolutions.
+	It puts the convolution kernel on the device,
+	and then handles the templated dispatching of the
+	appropriate convolution call.
+	Note that the destination MRI must already be allocated.
+	If called from the main Freesurfer routine, this will
+	be the case.
+	@param[in] src The source MRI
+	@param[out] dst The destination MRI
+	@param[in] srcFrame The frame of the source to be convolved
+	@param[in] dstFrame The frame of the destination in which the result should be stored
+	@param[in] kernel The convolution kernel to use
+	@param[in] kernelLength The size of the convolution kernel
+	@param[in] axis The axis along which the convolution should be made
+      */
+      MRIconvolve::tTotal1d.Start();
       
-      //! Gets the given convolution kernel onto the GPU.
-      void BindKernel( const float *kernel, const unsigned int nVals ) {
-	/*!
-	  This routine is responsible for preparing the dtl_mriconv1d_kernel
-	  texture for use.
-	  The array on the device is padded with an extra zero on each end,
-	  to save us some explicit boundary condition checks (the texture
-	  units will handle them).
-	  There's no need for a matching release, since rebinding
-	  a texture implicitly unbinds the previous, and the destructor
-	  handles the memory release
-	  @param[in] kernel Array containing the kernel values
-	  @param[in] nVals The number of values in the kernel
-	*/
-	this->tTextureKernel.Start();
-
-	// Allocate and zero GPU memory
-	this->AllocateKernel( 2 + nVals );
-	CUDA_SAFE_CALL( cudaMemset( this->d_kernel,
-				    0,
-				    (2+nVals)*sizeof(float) ) );
-
-	// Copy the convolution kernel to the GPU
-	// Note the extra offset
-	CUDA_SAFE_CALL( cudaMemcpy( &(this->d_kernel[1]),
-				    kernel,
-				    nVals*sizeof(float),
-				    cudaMemcpyHostToDevice ) );
-	
-	// Copy the size of the texture to device constant memory
-	CUDA_SAFE_CALL( cudaMemcpyToSymbol( "dc_mriconv1d_kernel_nVals",
-					    &nVals,
-					    sizeof(unsigned int) ) );
-
-	// ------------------
-	// Set up the texture
-	
-	cudaChannelFormatDesc cd_kernel = cudaCreateChannelDesc<float>();
+      this->BindKernel( kernel, kernelLength );
       
-	// Describe the addressing modes
-	dtl_mriconv1d_kernel.normalized = false;
-	dtl_mriconv1d_kernel.addressMode[0] = cudaAddressModeClamp;
-	dtl_mriconv1d_kernel.filterMode = cudaFilterModePoint;
-      
-	// Bind the texture together
-	CUDA_SAFE_CALL( cudaBindTexture( 0,
-					 dtl_mriconv1d_kernel,
-					 this->d_kernel,
-					 cd_kernel,
-					 (2+nVals)*sizeof(float) ) );
-
-	this->tTextureKernel.Stop();
-      }
-
-      //! Unbinds the kernel texture
-      void UnbindKernel( void ) {
-	CUDA_SAFE_CALL( cudaUnbindTexture( dtl_mriconv1d_kernel ) );
-      }
-      
-      // ==============================================================
-    private:
-      //! Stream to use for operations
-      cudaStream_t stream;
-
-      //! Device memory to hold convolution kernel
-      float *d_kernel;
-      //! Currently allocated convolution kernel size in floats (may not be fully used)
-      unsigned int kernelAllocSize;
-
-      //! Private pinned memory workspace
-      mutable char* h_workspace;
-      //! Size of private workspace
-      mutable size_t workSize;
-
-      mutable SciGPU::Utilities::Chronometer tMem, tHostMem;
-      mutable SciGPU::Utilities::Chronometer tSend, tRecv;
-      mutable SciGPU::Utilities::Chronometer tTextureKernel;
-      mutable SciGPU::Utilities::Chronometer tCompute1d, tTotal1d;
-      mutable SciGPU::Utilities::Chronometer tCompute3d, tTotal3d;
-
-      // ----------------------------------------------
-      // Suppress copying
-      MRIconvolve( const MRIconvolve& src ) : stream(0),
-					      d_kernel(NULL),
-					      kernelAllocSize(0),
-					      h_workspace(NULL),
-					      workSize(0),
-					      tMem(), tHostMem(),
-					      tSend(), tRecv(),
-					      tTextureKernel(),
-					      tCompute1d(), tTotal1d(),
-					      tCompute3d(), tTotal3d() {
-	std::cerr << __FUNCTION__
-		  << ": Please do not copy"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
-
-      MRIconvolve& operator=( const MRIconvolve& src ) {
-	std::cerr << __FUNCTION__
-		  << ": Please do not copy"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
-
-      // ----------------------------------------------
-
-      //! Allocates convolution kernel array on the device
-      void AllocateKernel( const unsigned int nFloats ) {
-	/*!
-	  Allocates space on the device to hold the
-	  convolution kernel, in necessary.
-	  @param[in] nFloats Number of floats required
-	*/
-	if( this->kernelAllocSize < nFloats ) {
-	  this->ReleaseKernel();
-
-	  CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_kernel),
-				      nFloats * sizeof(float) ) );
-	  this->kernelAllocSize = nFloats;
-	}
-      }
-
-      //! Releases device array associated with convolution kernel
-      void ReleaseKernel( void ) {
-	if( this->d_kernel != NULL ) {
-	  CUDA_SAFE_CALL( cudaFree( this->d_kernel ) );
-	  this->kernelAllocSize = 0;
-	}
-      }
-      
-      // ----------------------------------------------
-
-      //! Ensures internal pinned memory buffer is at least of size nBytes
-      void AllocateWorkspace( const size_t nBytes ) const {
-	if( this->workSize < nBytes ) {
-	  this->ReleaseWorkspace();
-
-	  this->tHostMem.Start();
-	  CUDA_SAFE_CALL( cudaHostAlloc( (void**)&(this->h_workspace),
-					 nBytes,
-					 cudaHostAllocDefault ) );
-	  this->workSize = nBytes;
-	  this->tHostMem.Stop();
-	}
-      }
-	  
-
-      //! Releases internal pinned memory buffer
-      void ReleaseWorkspace( void ) const {
-	if( h_workspace != NULL ) {
-	  this->tHostMem.Start();
-	  CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
-	  h_workspace = NULL;
-	  workSize = 0;
-	  this->tHostMem.Stop();
-	}
-      }
-
-      // ----------------------------------------------
-      //! Dispatch wrapper for 1D convolutions based on dst type
-      template<typename T>
-      void DispatchWrap1D( const MRI* src, MRI* dst,
-			   const int srcFrame, const int dstFrame,
-			   const int axis ) const {
-	switch( dst->type ) {
-	case MRI_UCHAR:
-	  this->Dispatch1D<T,unsigned char>( src, dst,
+      switch( src->type ) {
+      case MRI_UCHAR:
+	this->DispatchWrap1D<unsigned char>( src, dst,
 					     srcFrame, dstFrame,
 					     axis );
-	  break;
-	  
-	case MRI_SHORT:
-	  this->Dispatch1D<T,short>( src, dst,
+	break;
+	
+      case MRI_SHORT:
+	this->DispatchWrap1D<short>( src, dst,
 				     srcFrame, dstFrame,
 				     axis );
-	  break;
-	  
-	case MRI_FLOAT:
-	  this->Dispatch1D<T,float>( src, dst,
+	break;
+	
+      case MRI_FLOAT:
+	this->DispatchWrap1D<float>( src, dst,
 				     srcFrame, dstFrame,
 				     axis );
-	  break;
-	  
-	default:
-	  std::cerr << __FUNCTION__
-		    << ": Unrecognised destination MRI type " << dst->type
-		    << std::endl;
+	break;
+	
+      default:
+	std::cerr << __FUNCTION__
+		  <<": Unrecognised source MRI type " << src->type
+		  << std::endl;
 	  exit( EXIT_FAILURE );
-	}
       }
+      
+      this->UnbindKernel();
+      
+      MRIconvolve::tTotal1d.Stop();
+    }
+    
+    // --
 
+    
+    template<typename T, typename U>
+    void MRIconvolve::Dispatch1D( const MRI* src, MRI* dst,
+				  const int srcFrame, const int dstFrame,
+				  const int axis ) const {
+      /*!
+	This is a dispatch routine for the 1D convolution on
+	the GPU.
+	It transfers the data to the GPU, runs the convolution,
+	and retrieves the results
+	Things are written this way to avoid nastily nested
+	switch statements.
+	It assumes that the convolution kernel texture is already
+	bound
+      */
+      
+      GPU::Classes::MRIframeGPU<T> srcGPU;
+      GPU::Classes::MRIframeGPU<U> dstGPU;
+	
+      size_t srcWorkSize, dstWorkSize;
+      
+      // Allocate the GPU arrays
+      MRIconvolve::tMem.Start();
+      srcGPU.Allocate( src );
+      dstGPU.Allocate( dst );
+      MRIconvolve::tMem.Stop();
+      
+      // Put in some sanity checks
+      srcGPU.VerifyMRI( src );
+      dstGPU.VerifyMRI( dst );
+      
+      // Allocate the workspace array
+      srcWorkSize = srcGPU.BufferSize();
+      dstWorkSize = dstGPU.BufferSize();
+      
+      if( srcWorkSize > dstWorkSize ) {
+	this->AllocateWorkspace( srcWorkSize );
+      } else {
+	this->AllocateWorkspace( dstWorkSize );
+      }
+      
+      // Send the source data
+      MRIconvolve::tSend.Start();
+      srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
+      MRIconvolve::tSend.Stop();
+      
+      // Run the convolution
+      MRIconvolve::tCompute1d.Start();
+      this->RunGPU1D( srcGPU, dstGPU, axis );
+      MRIconvolve::tCompute1d.Stop();
+      
+      // Retrieve the answers
+      MRIconvolve::tRecv.Start();
+      dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
+      MRIconvolve::tRecv.Stop();
 
-    };
+      CUDA_CHECK_ERROR_ASYNC( "1D Convolution failure" );
+      
+      // No need to release - destructor will do that automatically
+    }
+    
+    // --
+      
+    
+    template<typename T, typename U>
+    void MRIconvolve::RunGPU1D( const GPU::Classes::MRIframeGPU<T> &src,
+				GPU::Classes::MRIframeGPU<U> &dst,
+				const int axis ) const {
+      
+      /*!
+	Runs the 1D convolution kernel on the GPU.
+	Prior to calling this routine, convolution
+	kernel must be set up on the device, and
+	the source MRI transferred to the GPU.
+      */
+      
+      
+      const dim3 srcDims = src.GetDims();
+      const dim3 dstDims = dst.GetDims();
+      
+      // Check dimensions
+      if( srcDims != dstDims ) {
+	std::cerr << __FUNCTION__
+		  << ": Dimension mismatch" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      
+      dim3 grid, threads;
+      
+      
+      threads.x = threads.y = kConv1dBlockSize;
+      threads.z = 1;
+      
+      const dim3 coverGrid = dst.CoverBlocks( kConv1dBlockSize );
+      
+      switch( axis ) {
+      case MRI_WIDTH:
+	grid.x = coverGrid.x * coverGrid.y;
+	grid.y = srcDims.z;
+	grid.z = 1;
+	
+	MRIConvolveKernelX
+	  <T,U>
+	  <<<grid,threads,0,this->stream>>>
+	  ( src, dst, coverGrid );
+	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelX failed!" );
+	break;
+	
+      case MRI_HEIGHT:
+	grid.x = coverGrid.x * coverGrid.y;
+	grid.y = srcDims.z;
+	grid.z = 1;
+	
+	MRIConvolveKernelY
+	  <T,U>
+	  <<<grid,threads,0,this->stream>>>
+	  ( src, dst, coverGrid );
+	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelY failed!" );
+	break;
+	
+      case MRI_DEPTH:
+	// Slight change, since we do (x,z) patches
+	grid.x = coverGrid.x * coverGrid.z;
+	grid.y = srcDims.y;
+	
+	MRIConvolveKernelZ
+	  <T,U>
+	  <<<grid,threads,0,this->stream>>>
+	  ( src, dst, coverGrid );
+	CUDA_CHECK_ERROR_ASYNC( "MRIconvolveKernelZ failed!" );
+	break;
+	
+      default:
+	std::cerr << __FUNCTION__
+		  << ": Incompatible universe detected." << std::endl;
+	std::cerr << "GPU functions are only tested ";
+	std::cerr << "in a universe with three spatial dimensions" << std::endl;
+	std::cerr << "Please adjust your reality accordingly, ";
+	std::cerr << "and try again" << std::endl;
+	std::cerr << "MRIframeGPU version was:\n" << src.VersionString() << std::endl;
+	exit( EXIT_FAILURE );
+      }
+    }
+    
+    
+    
+    
+    
+    // ---------------------------------------------------
+
+    void MRIconvolve::Convolve3D( const MRI* src, MRI* dst,
+				  const int srcFrame, const int dstFrame,
+				  const float *kernel,
+				  const unsigned int kernelLength ) {
+      /*!
+	Performs a 3D convolution with a single 1D kernel of
+	\a srcFrame of the MRI \a src, storing the result in
+	\a dstFrame of the MRI \a dst.
+	The convolution kernel is stored in the array \a kernel.
+	@param[in] src The source MRI
+	@param[out] dst The destination MRI
+	@param[in] srcFrame The frame of the source to be convolved
+	@param[in] dstFrame The frame of the destination in which the result should be stored
+	  @param[in] kernel The convolution kernel to use
+	  @param[in] kernelLength The size of the convolution kernel
+      */
+      
+      MRIconvolve::tTotal3d.Start();
+      
+      // Send the convolution kernel
+      this->BindKernel( kernel, kernelLength );
+      
+      switch( src->type ) {
+      case MRI_UCHAR:
+	this->Conv3DSingleKernelDispatch<unsigned char>( src,
+							 dst,
+							 srcFrame,
+							 dstFrame );
+	break;
+	
+      case MRI_SHORT:
+	this->Conv3DSingleKernelDispatch<short>( src,
+						 dst,
+						 srcFrame,
+						 dstFrame );
+	break;
+	
+      case MRI_FLOAT:
+	this->Conv3DSingleKernelDispatch<float>( src,
+						 dst,
+						 srcFrame,
+						 dstFrame );
+	break;
+	
+      default:
+	std::cerr << __FUNCTION__
+		  << ": Unrecognised source MRI type " << src->type
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      this->UnbindKernel();
+      
+      MRIconvolve::tTotal3d.Stop();
+    }
+    
+    // --
+    
+
+    
+    template<typename T>
+    void MRIconvolve::Conv3DSingleKernelDispatch( const MRI* src,
+						  MRI* dst,
+						  const int srcFrame,
+						  const int dstFrame ) const {
+      /*!
+	Function to run the 3D convolution on the GPU when
+	all three directions use the same convolution kernel.
+	This routine does not pull intermediate results
+	back to the host.
+	Assumes that src and dst types are the same.
+	Assumes that the texture is already set up on the GPU.
+      */
+      
+      GPU::Classes::MRIframeGPU<T> frame1, frame2;
+      size_t workSize;
+      
+      // Do some allocation
+      MRIconvolve::tMem.Start();
+      frame1.Allocate( src );
+      frame2.Allocate( src );
+      MRIconvolve::tMem.Stop();
+      
+      // Verify (note frame2 verified from dst)
+      frame1.VerifyMRI( src );
+      frame2.VerifyMRI( dst );
+      
+      // Allocate workspace
+      workSize = frame1.BufferSize();
+      this->AllocateWorkspace( workSize );
+      
+      MRIconvolve::tSend.Start();
+      frame1.Send( src, srcFrame, this->h_workspace, this->stream );
+      MRIconvolve::tSend.Stop();
+      
+      MRIconvolve::tCompute3d.Start();
+      this->RunGPU1D( frame1, frame2, MRI_WIDTH );
+      this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
+      this->RunGPU1D( frame1, frame2, MRI_DEPTH );
+      MRIconvolve::tCompute3d.Stop();
+      
+      MRIconvolve::tRecv.Start();
+      frame2.Recv( dst, dstFrame, this->h_workspace, this->stream );
+      MRIconvolve::tRecv.Stop();
+      
+      CUDA_CHECK_ERROR_ASYNC( "3D convolution  with single kernel failure" );
+    }
+    
+    
+    //! Dispatch for 3D convolution of unknown MRI with separate kernels
+    void MRIconvolve::Convolve3D( const MRI* src,
+				  MRI* dst,
+				  const int srcFrame,
+				  const int dstFrame,
+				  const float* xKernel,
+				  const unsigned int xL,
+				  const float* yKernel,
+				  const unsigned int yL,
+				  const float* zKernel,
+				  const unsigned int zL ) {
+      /*!
+	Performs a 3D convolution of
+	\a srcFrame of the MRI \a src, storing the result in
+	\a dstFrame of the MRI \a dst.
+	A separate convolution kernel is used for each axis.
+	
+	@param[in] src The source MRI
+	@param[out] dst The destination MRI
+	@param[in] srcFrame The frame of the source to be convolved
+	@param[in] dstFrame The frame of the destination in which the result should be stored
+	@param[in] xKernel The convolution kernel to use in the x direction
+	@param[in] xL The size of the x convolution kernel
+	@param[in] yKernel The convolution kernel to use in the y direciton
+	@param[in] yL The size of the y convolution kernel
+	@param[in] zKernel The z convolution kernel
+	@param[in] zL The size of the z convolution kernel
+      */
+      switch( src->type ) {
+      case MRI_UCHAR:
+	this->Convolve3DMultiKernelDispatch<unsigned char>( src,
+							    dst,
+							    srcFrame,
+							    dstFrame,
+							    xKernel,
+							    xL,
+							    yKernel,
+							    yL,
+							    zKernel,
+							    zL );
+	break;
+	
+      case MRI_SHORT:
+	this->Convolve3DMultiKernelDispatch<short>( src, dst,
+						    srcFrame, dstFrame,
+						    xKernel, xL,
+						    yKernel, yL,
+						    zKernel, zL );
+	  break;
+	  
+      case MRI_FLOAT:
+	this->Convolve3DMultiKernelDispatch<float>( src, dst,
+						    srcFrame, dstFrame,
+						    xKernel, xL,
+						    yKernel, yL,
+						    zKernel, zL );
+	break;
+	
+
+      default:
+	std::cerr << __FUNCTION__
+		  << ": Unrecognised source MRI type " << src->type
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+    }
+    
+    
+
+    template<typename T>
+    void MRIconvolve::Convolve3DMultiKernelDispatch( const MRI* src,
+						     MRI* dst,
+						     const int srcFrame,
+						     const int dstFrame,
+						     const float* xKernel,
+						     const unsigned int xL,
+						     const float* yKernel,
+						     const unsigned int yL,
+						     const float* zKernel,
+						     const unsigned int zL ) {
+      
+      GPU::Classes::MRIframeGPU<T> frame1, frame2;
+      size_t workSize;
+      
+      MRIconvolve::tTotal3d.Start();
+      
+      // Do some allocation
+      MRIconvolve::tMem.Start();
+      frame1.Allocate( src );
+      frame2.Allocate( src );
+      MRIconvolve::tMem.Stop();
+      
+      // Verify (note frame2 verified from dst)
+      frame1.VerifyMRI( src );
+      frame2.VerifyMRI( dst );
+      
+      // Allocate workspace
+      workSize = frame1.BufferSize();
+      this->AllocateWorkspace( workSize );
+      
+      // Send the data
+      MRIconvolve::tSend.Start();
+      frame1.Send( src, srcFrame, this->h_workspace, this->stream );
+      MRIconvolve::tSend.Stop();
+      
+      // Convolve along x
+      MRIconvolve::tCompute3d.Start();
+      this->BindKernel( xKernel, xL );
+      this->RunGPU1D( frame1, frame2, MRI_WIDTH );
+      
+      // And y
+      this->BindKernel( yKernel, yL );
+      this->RunGPU1D( frame2, frame1, MRI_HEIGHT );
+      
+      // And z
+      this->BindKernel( zKernel, zL );
+      this->RunGPU1D( frame1, frame2, MRI_DEPTH );
+      MRIconvolve::tCompute3d.Stop();
+      
+      // Get the results
+      MRIconvolve::tRecv.Start();
+      frame2.Recv( dst, dstFrame, this->h_workspace, this->stream );
+      MRIconvolve::tRecv.Stop();
+      
+      CUDA_CHECK_ERROR_ASYNC( "3D convolution  with multi-kernel failure" );
+      MRIconvolve::tTotal3d.Stop();
+    }
+    
+    // ---------------------------------------
+    
+    void MRIconvolve::BindKernel( const float *kernel,
+				  const unsigned int nVals ) {
+      /*!
+	This routine is responsible for preparing the dtl_mriconv1d_kernel
+	texture for use.
+	The array on the device is padded with an extra zero on each end,
+	to save us some explicit boundary condition checks (the texture
+	units will handle them).
+	There's no need for a matching release, since rebinding
+	a texture implicitly unbinds the previous, and the destructor
+	handles the memory release
+	@param[in] kernel Array containing the kernel values
+	@param[in] nVals The number of values in the kernel
+      */
+      MRIconvolve::tTextureKernel.Start();
+      
+      // Allocate and zero GPU memory
+      this->AllocateKernel( 2 + nVals );
+      CUDA_SAFE_CALL( cudaMemset( this->d_kernel,
+				  0,
+				  (2+nVals)*sizeof(float) ) );
+      
+      // Copy the convolution kernel to the GPU
+      // Note the extra offset
+      CUDA_SAFE_CALL( cudaMemcpy( &(this->d_kernel[1]),
+				  kernel,
+				  nVals*sizeof(float),
+				  cudaMemcpyHostToDevice ) );
+      
+      // Copy the size of the texture to device constant memory
+      CUDA_SAFE_CALL( cudaMemcpyToSymbol( "dc_mriconv1d_kernel_nVals",
+					  &nVals,
+					  sizeof(unsigned int) ) );
+
+      // ------------------
+      // Set up the texture
+      
+      cudaChannelFormatDesc cd_kernel = cudaCreateChannelDesc<float>();
+      
+      // Describe the addressing modes
+      dtl_mriconv1d_kernel.normalized = false;
+      dtl_mriconv1d_kernel.addressMode[0] = cudaAddressModeClamp;
+      dtl_mriconv1d_kernel.filterMode = cudaFilterModePoint;
+      
+      // Bind the texture together
+      CUDA_SAFE_CALL( cudaBindTexture( 0,
+				       dtl_mriconv1d_kernel,
+				       this->d_kernel,
+				       cd_kernel,
+				       (2+nVals)*sizeof(float) ) );
+      
+	MRIconvolve::tTextureKernel.Stop();
+    }
+    
+    
+    void MRIconvolve::UnbindKernel( void ) {
+      CUDA_SAFE_CALL( cudaUnbindTexture( dtl_mriconv1d_kernel ) );
+    }
+    
+    // ==============================================================
+
+    
+    void MRIconvolve::AllocateKernel( const unsigned int nFloats ) {
+      /*!
+	Allocates space on the device to hold the
+	convolution kernel, in necessary.
+	@param[in] nFloats Number of floats required
+      */
+      if( this->kernelAllocSize < nFloats ) {
+	this->ReleaseKernel();
+	
+	CUDA_SAFE_CALL( cudaMalloc( (void**)&(this->d_kernel),
+				    nFloats * sizeof(float) ) );
+	this->kernelAllocSize = nFloats;
+      }
+    }
+    
+  
+    
+    void MRIconvolve::ReleaseKernel( void ) {
+      if( this->d_kernel != NULL ) {
+	CUDA_SAFE_CALL( cudaFree( this->d_kernel ) );
+	this->kernelAllocSize = 0;
+      }
+    }
+    
+    // ----------------------------------------------
+    
+    
+    
+    void MRIconvolve::AllocateWorkspace( const size_t nBytes ) const {
+      if( this->workSize < nBytes ) {
+	this->ReleaseWorkspace();
+	
+	MRIconvolve::tHostMem.Start();
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&(this->h_workspace),
+				       nBytes,
+				       cudaHostAllocDefault ) );
+	this->workSize = nBytes;
+	MRIconvolve::tHostMem.Stop();
+      }
+    }
+    
+    
+    
+    
+    void MRIconvolve::ReleaseWorkspace( void ) const {
+      if( h_workspace != NULL ) {
+	MRIconvolve::tHostMem.Start();
+	CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+	h_workspace = NULL;
+	workSize = 0;
+	MRIconvolve::tHostMem.Stop();
+      }
+    }
+    
+    // ----------------------------------------------
+    //! Dispatch wrapper for 1D convolutions based on dst type
+    template<typename T>
+    void MRIconvolve::DispatchWrap1D( const MRI* src, MRI* dst,
+				      const int srcFrame, const int dstFrame,
+				      const int axis ) const {
+      switch( dst->type ) {
+      case MRI_UCHAR:
+	this->Dispatch1D<T,unsigned char>( src, dst,
+					   srcFrame, dstFrame,
+					   axis );
+	  break;
+	  
+      case MRI_SHORT:
+	this->Dispatch1D<T,short>( src, dst,
+				   srcFrame, dstFrame,
+				   axis );
+	break;
+	
+      case MRI_FLOAT:
+	this->Dispatch1D<T,float>( src, dst,
+				   srcFrame, dstFrame,
+				   axis );
+	break;
+	
+      default:
+	std::cerr << __FUNCTION__
+		  << ": Unrecognised destination MRI type " << dst->type
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+    }
+    
+    
+    
+    
+    // Define all the static members
+    SciGPU::Utilities::Chronometer MRIconvolve::tMem;
+    SciGPU::Utilities::Chronometer MRIconvolve::tHostMem;
+    SciGPU::Utilities::Chronometer MRIconvolve::tSend, MRIconvolve::tRecv;
+    SciGPU::Utilities::Chronometer MRIconvolve::tTextureKernel;
+    SciGPU::Utilities::Chronometer MRIconvolve::tCompute1d, MRIconvolve::tTotal1d;
+    SciGPU::Utilities::Chronometer MRIconvolve::tCompute3d, MRIconvolve::tTotal3d;
     
   }
 }
+
+
 
 // =================================================
 
