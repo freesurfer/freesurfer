@@ -3,6 +3,11 @@
 module( ..., package.seeall )
 
 
+-- Returns the location of the directory holding GCAM files
+function GCAMdir()
+   return os.getenv( "SCRATCHDIR" )
+end
+
 -- Lists the files matching 'pattern' in the specified directory
 function GetFiles( srcDir, pattern )
    local lsPipe = io.popen( "ls "..srcDir )

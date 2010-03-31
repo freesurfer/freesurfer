@@ -2,25 +2,12 @@
 
 require "io"
 require "os"
+require( "tools.freesurfer" )
 
-local function GetFiles( srcDir, pattern )
-   local lsPipe = io.popen( "ls "..srcDir )
+-- Make access to the FreeSurfer module quicker
+local FS = tools.freesurfer
 
-   local fileList = {}
-
-   local currFile
-   for currFile in lsPipe:lines() do
-      local trimName
-      for trimName in currFile:gmatch( pattern ) do
-	 table.insert( fileList, trimName )
-      end
-   end
-
-   return fileList
-end
-
-
-local inputFiles = GetFiles( os.getenv( "SCRATCHDIR" ), "(gcam%d+).nc" )
+local inputFiles = FS.GetFiles( FS.GCAMdir(), "(gcam%d+).nc" )
 
 
 -- Generate a table of subtests
@@ -63,10 +50,10 @@ testdescript = {
 	 gcam_cmp_test \--input=$INPUT \--output=$CPUOUT
 	 gcam_cmp_test_cuda \--input=$INPUT \--output=$GPUOUT
 
-	 $(projectDir)/bin/gcamMultiDiff.pl \--results=$(cmdResultFn) \
-	                                    \--gold="$CPUOUT.nc" \
-                                            \--cmp="$GPUOUT.nc" \
-                                            \--config=$(testDir)/cmp.config
+	 $(projectDir)/tools/gcamMultiDiff.pl \--results=$(cmdResultFn) \
+	                                      \--gold="$CPUOUT.nc" \
+                                              \--cmp="$GPUOUT.nc" \
+                                              \--config=$(testDir)/cmp.config
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
 
