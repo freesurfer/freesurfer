@@ -2,16 +2,15 @@
  * @file  mri_label_volume.c
  * @brief program for computing the volume of a set of labeled voxels
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/05/22 14:07:09 $
- *    $Revision: 1.29 $
+ *    $Author: nicks $
+ *    $Date: 2010/03/31 17:44:35 $
+ *    $Revision: 1.30 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -80,7 +78,7 @@ main(int argc, char *argv[]) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_label_volume.c,v 1.29 2009/05/22 14:07:09 fischl Exp $",
+     "$Id: mri_label_volume.c,v 1.30 2010/03/31 17:44:35 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -188,6 +186,13 @@ main(int argc, char *argv[]) {
   // The rest of the args are label indices
   // (or "brain" means to use all labels in brain)
   for (i = 2 ; i < argc ; i++) {
+
+    // choke and die if this argument is an option...
+    // this prog doesnt support args at the end of the command
+    if (ISOPTION(*argv[i])) {
+      fprintf(stderr,"ERROR: options not allowed at end of command:\n");
+      usage_exit(1) ;
+    }
 
     // Compute the label volume
     if (stricmp(argv[i], "brain") == 0) {
