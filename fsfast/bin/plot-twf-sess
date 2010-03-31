@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/07/08 18:59:30 $
-#    $Revision: 1.10 $
+#    $Date: 2010/03/31 14:36:55 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: plot-twf-sess,v 1.10 2009/07/08 18:59:30 greve Exp $';
+set VERSION = '$Id: plot-twf-sess,v 1.11 2010/03/31 14:36:55 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -156,8 +156,12 @@ foreach sess ($SessList)
   #set gnpcmd = ($gnpcmd set term jpeg transparent large size 640,480; )
   set gnpcmd = ($gnpcmd set term png ;  )
   set gnpcmd = ($gnpcmd set title '"'$sessbase $title '"';)
-  set gnpcmd = ($gnpcmd set xlabel '"'$xlabel'"' ; )
-  set gnpcmd = ($gnpcmd plot [$xmin : $xmax] [$ymin : $ymax] )
+  set gnpcmd = ($gnpcmd set xlabel '"'$xlabel'"';  )
+  if($#xmin && $#xmax && $#ymin && $#ymax) then
+    set gnpcmd = ($gnpcmd plot [$xmin : $xmax] [$ymin : $ymax] )
+  else
+    set gnpcmd = ($gnpcmd plot )
+  endif
 
   set MCDatList = ();
   foreach Run ($RunListUse)
