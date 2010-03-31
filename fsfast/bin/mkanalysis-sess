@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/30 16:03:43 $
-#    $Revision: 1.28 $
+#    $Date: 2010/03/31 16:47:37 $
+#    $Revision: 1.29 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.28 2010/03/30 16:03:43 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.29 2010/03/31 16:47:37 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -1028,7 +1028,7 @@ usage_exit:
   echo "   -rescale-target value  : inorm to value"
   echo "   -fwhm        FWHM      : Full-Width/Half-Max for in-plane smoothing (mm)"
   echo "   -nskip       N         : skip the first N time points in each run"
-  echo "   -tpef      filename    : time-point exclude file name"
+  echo "   -tpef      filename    : time-point (in seconds) exclude file name"
   echo "   -polyfit N             : fit trend with polynomial of order N"
   echo "   -extreg extregstem     : external regressor"
   echo "   -nextreg N             : number of external regressor"
