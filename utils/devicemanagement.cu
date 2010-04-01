@@ -11,6 +11,7 @@ using namespace std;
 #include "devicemanagement.h"
 
 #include "mriconvolve_cuda.hpp"
+#include "mrimean_cuda.hpp"
 
 // ==============================================
 
@@ -61,4 +62,5 @@ void AcquireCUDADevice( void ) {
 void PrintGPUtimers( void ) {
 
   GPU::Algorithms::MRIconvolve::ShowTimings();
+  GPU::Algorithms::MRImean::ShowTimings();
 }

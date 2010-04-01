@@ -315,7 +315,9 @@ G++FLAGS = -Wall -Wextra -Weffc++
 CUDA_DEPS = ../include/volumegpu.hpp\
             ../include/volumegpu_impl.hpp\
             ../include/mriframegpu.hpp\
-            ../include/gcamorphgpu.hpp
+            ../include/gcamorphgpu.hpp\
+            ../include/mriconvolve_cuda.hpp\
+            ../include/mrimean_cuda.hpp
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS

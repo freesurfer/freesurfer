@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/17 20:49:34 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/04/01 14:09:15 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@
 
 #include "mriframegpu.hpp"
 
+#include "mrimean_cuda.hpp"
 
 #include "mrimean_cuda.h"
 
@@ -116,7 +117,9 @@ namespace GPU {
       const int xLast  = min( xDimRound - kMRImeanBlockSize,
 			      ixStart + patchSize );
 
-      for( int xBegin = xFirst; xBegin <= xLast; xBegin += kMRImeanBlockSize ) {
+      for( int xBegin = xFirst;
+	   xBegin <= xLast;
+	   xBegin += kMRImeanBlockSize ) {
 	// Load the patch
 	currPatch[ty][tx] = src( xBegin+tx, iy, iz );
 	__syncthreads();
@@ -188,7 +191,9 @@ namespace GPU {
       const int yLast  = min( yDimRound - kMRImeanBlockSize,
 			      iyStart + patchSize );
 
-      for( int yBegin = yFirst; yBegin <= yLast; yBegin += kMRImeanBlockSize ) {
+      for( int yBegin = yFirst;
+	   yBegin <= yLast;
+	   yBegin += kMRImeanBlockSize ) {
 	// Load the patch
 	currPatch[ty][tx] = src( ix, yBegin+ty, iz );
 	__syncthreads();
@@ -261,7 +266,9 @@ namespace GPU {
       const int zLast  = min( zDimRound - kMRImeanBlockSize,
 			      izStart + patchSize );
  
-      for( int zBegin = zFirst; zBegin <= zLast; zBegin += kMRImeanBlockSize ) {
+      for( int zBegin = zFirst;
+	   zBegin <= zLast;
+	   zBegin += kMRImeanBlockSize ) {
 	// Load the patch
 	currPatch[tz][tx] = src( ix, iy, zBegin+tz );
 	__syncthreads();
@@ -336,305 +343,267 @@ namespace GPU {
 
     // ######################################################
 
-    //! Wrapper class for the MRI mean algorithm
-    class MRImean {
-    private:
-      //! Stream which should be used for this instance
-      cudaStream_t stream;
-      //! Private pinned memory workspace
-      mutable char* h_workspace;
-      //! Size of private workspace
-      mutable size_t workSize;
-
-      mutable SciGPU::Utilities::Chronometer tMem, tHostMem;
-      mutable SciGPU::Utilities::Chronometer tSend, tRecv, tCompute;
-      mutable SciGPU::Utilities::Chronometer tTotal;
+    // Define the static timers
+    SciGPU::Utilities::Chronometer MRImean::tMem, MRImean::tHostMem;
+    SciGPU::Utilities::Chronometer MRImean::tSend, MRImean::tRecv;
+    SciGPU::Utilities::Chronometer MRImean::tCompute;
+    SciGPU::Utilities::Chronometer MRImean::tTotal;
       
-      // =======================
-      
-      // Wrapper function
-      template<typename T>
-      void DispatchWrap( const MRI* src, MRI* dst,
-			 const unsigned int wSize,
-			 const int srcFrame, const int dstFrame ) const {
-	switch( dst->type ) {
-	case MRI_UCHAR:
-	  this->MeanDispatch<T,unsigned char>( src, dst, wSize, srcFrame, dstFrame );
-	  break;
-
-	case MRI_SHORT:
-	  this->MeanDispatch<T,short>( src, dst, wSize, srcFrame, dstFrame );
-	  break;
-	  
-	case MRI_FLOAT:
-	  this->MeanDispatch<T,float>( src, dst, wSize, srcFrame, dstFrame );
-	  break;
-
-	default:
-	  std::cerr << __FUNCTION__
-		    << ": Unrecognised destination MRI type "
-		    << dst->type
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-      }
-      
-      // =========================
-
-      //! Ensures internal pinned memory buffer is at least of size nBytes
-      void Allocate( const size_t nBytes ) const {
-	if( this->workSize < nBytes ) {
-	  this->Release();
-
-	  this->tHostMem.Start();
-	  CUDA_SAFE_CALL( cudaHostAlloc( (void**)&(this->h_workspace),
-					 nBytes,
-					 cudaHostAllocDefault ) );
-	  this->workSize = nBytes;
-	  this->tHostMem.Stop();
-	}
-      }
-	  
-
-      //! Releases internal pinned memory buffer
-      void Release( void ) const {
-	if( h_workspace != NULL ) {
-	  this->tHostMem.Start();
-	  CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
-	  h_workspace = NULL;
-	  workSize = 0;
-	  this->tHostMem.Stop();
-	}
-      }
-
-      // =========================
-      // Prevent copying
-
-      MRImean( const MRImean& src ) : stream(0),
-				      h_workspace(NULL),
-				      workSize(0),
-				      tMem(), tHostMem(),
-				      tSend(), tRecv(),
-				      tCompute(), tTotal() {
+    // =======================
+    
+    template<typename T>
+    void MRImean::DispatchWrap( const MRI* src, MRI* dst,
+				const unsigned int wSize,
+				const int srcFrame,
+				const int dstFrame ) const {
+      switch( dst->type ) {
+      case MRI_UCHAR:
+	this->MeanDispatch<T,unsigned char>( src, dst, wSize,
+					     srcFrame, dstFrame );
+	break;
+	
+      case MRI_SHORT:
+	this->MeanDispatch<T,short>( src, dst, wSize, srcFrame, dstFrame );
+	break;
+	
+      case MRI_FLOAT:
+	this->MeanDispatch<T,float>( src, dst, wSize, srcFrame, dstFrame );
+	break;
+	
+      default:
 	std::cerr << __FUNCTION__
-		  << ": Please don't copy these objects"
+		  << ": Unrecognised destination MRI type "
+		  << dst->type
 		  << std::endl;
 	exit( EXIT_FAILURE );
       }
-
-      MRImean& operator=( const MRImean& src ) {
-	std::cerr << __FUNCTION__
-		  << ": Please don't copy these objects"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
-
-
-    public:
-      //! Constructor with stream (also default constructor)
-      MRImean( const cudaStream_t s = 0 ) : stream(s),
-					    h_workspace(NULL),
-					    workSize(0),
-					    tMem(), tHostMem(),
-					    tSend(), tRecv(),
-					    tCompute(), tTotal() {}
+    }
       
-      //! Destructor
-      ~MRImean( void ) {
+    // =========================
+
+    
+    void MRImean::Allocate( const size_t nBytes ) const {
+      if( this->workSize < nBytes ) {
 	this->Release();
-#ifdef CUDA_SHOW_TIMINGS
-	std::cout << "==================================" << std::endl;
-	std::cout << "GPU Mean timers" << std::endl;
-	std::cout << "---------------" << std::endl;
-#ifndef CUDA_FORCE_SYNC
-	std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
-	std::cout << "Timings may not be accurate" << std::endl;
-#endif
-	std::cout << std::endl;
-
-	std::cout << "Host Memory : " << this->tHostMem << std::endl;
-	std::cout << "GPU Memory  : " << this->tMem << std::endl;
-	std::cout << "Send        : " << this->tSend << std::endl;
-	std::cout << "Compute     : " << this->tCompute << std::endl;
-	std::cout << "Receive     : " << this->tRecv << std::endl;
-	std::cout << "--------------" << std::endl;
-	std::cout << "Total : " << this->tTotal << std::endl;
-	std::cout << "==================================" << std::endl;
-#endif
+	
+	MRImean::tHostMem.Start();
+	CUDA_SAFE_CALL( cudaHostAlloc( (void**)&(this->h_workspace),
+				       nBytes,
+				       cudaHostAllocDefault ) );
+	this->workSize = nBytes;
+	MRImean::tHostMem.Stop();
       }
-
-
-      //! Dispatch for data on the CPU of unknown type
-      void DoMean( const MRI* src, MRI* dst,
-		   const unsigned int wSize,
-		   const unsigned int srcFrame = 0,
-		   const unsigned int dstFrame = 0 ) const {
-	switch( src->type ) {
-	case MRI_UCHAR:
-	  this->DispatchWrap<unsigned char>( src, dst, wSize, srcFrame, dstFrame );
-	  break;
-  
-	case MRI_SHORT:
-	  this->DispatchWrap<short>( src, dst, wSize, srcFrame, dstFrame );
-	  break;
+    }
 	  
-	case MRI_FLOAT:
-	  this->DispatchWrap<float>( src, dst, wSize, srcFrame, dstFrame );
-	  break;
- 
-	default:
-	  std::cerr << __FUNCTION__
-		    << ": Unrecognised source MRI type "
-		    << src->type
-		    << std::endl;
-	  exit( EXIT_FAILURE );
+
+    //! Releases internal pinned memory buffer
+    void MRImean::Release( void ) const {
+      if( h_workspace != NULL ) {
+	MRImean::tHostMem.Start();
+	CUDA_SAFE_CALL( cudaFreeHost( h_workspace ) );
+	h_workspace = NULL;
+	workSize = 0;
+	MRImean::tHostMem.Stop();
 	}
-      }
+    }
+
+    
+    // ========================================================
+
+    
+    
+    MRImean::~MRImean( void ) {
+      this->Release();
+    }
+
+
+    void MRImean::ShowTimings( void ) {
+#ifdef CUDA_SHOW_TIMINGS
+      std::cout << "==================================" << std::endl;
+      std::cout << "GPU Mean timers" << std::endl;
+      std::cout << "---------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+      std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+      std::cout << "Timings may not be accurate" << std::endl;
+#endif
+      std::cout << std::endl;
       
+      std::cout << "Host Memory : " << MRImean::tHostMem << std::endl;
+      std::cout << "GPU Memory  : " << MRImean::tMem << std::endl;
+      std::cout << "Send        : " << MRImean::tSend << std::endl;
+      std::cout << "Compute     : " << MRImean::tCompute << std::endl;
+      std::cout << "Receive     : " << MRImean::tRecv << std::endl;
+      std::cout << "--------------" << std::endl;
+      std::cout << "Total : " << MRImean::tTotal << std::endl;
+      std::cout << "==================================" << std::endl;
+#endif
+    }
 
-      //! Templated dispatch for known data types
-      template<typename T, typename U>
-      void MeanDispatch( const MRI* src, MRI* dst,
-			 const unsigned int wSize,
-			 const int srcFrame, const int dstFrame ) const {
-	/*!
-	  Templated dispatch routine for MRI mean function on the
-	  GPU.
-	  Transfers data to the GPU, and retrieves the results
-	*/
-	this->tTotal.Start();
 
-	GPU::Classes::MRIframeGPU<T> srcGPU;
-	GPU::Classes::MRIframeGPU<U> dstGPU;
+    
 
-	size_t srcWorkSize, dstWorkSize;
+    void MRImean::DoMean( const MRI* src, MRI* dst,
+			  const unsigned int wSize,
+			  const unsigned int srcFrame,
+			  const unsigned int dstFrame ) const {
+      switch( src->type ) {
+      case MRI_UCHAR:
+	this->DispatchWrap<unsigned char>( src, dst, wSize,
+					   srcFrame, dstFrame );
+	break;
+	
+      case MRI_SHORT:
+	this->DispatchWrap<short>( src, dst, wSize, srcFrame, dstFrame );
+	break;
+	
+      case MRI_FLOAT:
+	this->DispatchWrap<float>( src, dst, wSize, srcFrame, dstFrame );
+	break;
+	
+      default:
+	std::cerr << __FUNCTION__
+		  << ": Unrecognised source MRI type "
+		  << src->type
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+    }
+    
+
+    //! Templated dispatch for known data types
+    template<typename T, typename U>
+    void MRImean::MeanDispatch( const MRI* src, MRI* dst,
+				const unsigned int wSize,
+				const int srcFrame,
+				const int dstFrame ) const {
+      /*!
+	Templated dispatch routine for MRI mean function on the
+	GPU.
+	Transfers data to the GPU, and retrieves the results
+      */
+      MRImean::tTotal.Start();
+      
+      GPU::Classes::MRIframeGPU<T> srcGPU;
+      GPU::Classes::MRIframeGPU<U> dstGPU;
+      
+      size_t srcWorkSize, dstWorkSize;
       
 	// Allocate the GPU arrays
-	this->tMem.Start();
-	srcGPU.Allocate( src );
-	dstGPU.Allocate( dst );
-	this->tMem.Stop();
-
-	// Put in some sanity checks
-	srcGPU.VerifyMRI( src );
-	dstGPU.VerifyMRI( dst );
+      MRImean::tMem.Start();
+      srcGPU.Allocate( src );
+      dstGPU.Allocate( dst );
+      MRImean::tMem.Stop();
+      
+      // Put in some sanity checks
+      srcGPU.VerifyMRI( src );
+      dstGPU.VerifyMRI( dst );
       
 	// Allocate the workspace array
-	srcWorkSize = srcGPU.BufferSize();
-	dstWorkSize = dstGPU.BufferSize();
+      srcWorkSize = srcGPU.BufferSize();
+      dstWorkSize = dstGPU.BufferSize();
       
-	if( srcWorkSize > dstWorkSize ) {
-	  this->Allocate( srcWorkSize );
-	} else {
-	  this->Allocate( dstWorkSize );
-	}
-
-	// Send the source data
-	this->tSend.Start();
-	srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
-	this->tSend.Stop();
-
-	// Run the filter
-	this->RunGPU( srcGPU, dstGPU, wSize );
-
-	// Get the results
-	this->tRecv.Start();
-	dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
-	this->tRecv.Stop();
-
-	CUDA_CHECK_ERROR( "Mean filtering failure" );
-
-	this->tTotal.Stop();
+      if( srcWorkSize > dstWorkSize ) {
+	this->Allocate( srcWorkSize );
+      } else {
+	this->Allocate( dstWorkSize );
       }
-
-
       
-      //! Runs the mean filtering kernel
-      template<typename T, typename U>
-      void RunGPU( const GPU::Classes::MRIframeGPU<T> &src,
-		   GPU::Classes::MRIframeGPU<U> &dst,
-		   const unsigned int wSize ) const {
-	/*!
-	  Runs the mean filtering kernel on the GPU.
-	  Assumes most things are properly set already
-	*/
-	const dim3 srcDims = src.GetDims();
-	const dim3 dstDims = dst.GetDims();
+      // Send the source data
+      MRImean::tSend.Start();
+      srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
+      MRImean::tSend.Stop();
+      
+      // Run the filter
+      this->RunGPU( srcGPU, dstGPU, wSize );
+      
+      // Get the results
+      MRImean::tRecv.Start();
+      dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
+      MRImean::tRecv.Stop();
+      
+      CUDA_CHECK_ERROR( "Mean filtering failure" );
+      
+      MRImean::tTotal.Stop();
+    }
+    
 
-	// Check dimensions
-	if( srcDims != dstDims ) {
-	  std::cerr << __FUNCTION__ << ": Dimension mismatch"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-
-
-	// We need intermediates which are floats
-	GPU::Classes::MRIframeGPU<float> f1, f2;
-
-	// Get correctly sized intermediates
-	this->tMem.Start();
-	f1.Allocate( src );
-	f2.Allocate( src );
-	this->tMem.Stop();
-
-	// Create the GPU kernel objects
-#if 0
-	GPU::Classes::MRIframeOnGPU<T> srcGPU(src);
-	GPU::Classes::MRIframeOnGPU<float> f1GPU( f1 );
-	GPU::Classes::MRIframeOnGPU<float> f2GPU( f2 );
-	GPU::Classes::MRIframeOnGPU<U> dstGPU(dst);
-#endif
-
-
-	// Do the three convolutions. Recall objects have same dims
-	dim3 grid, threads;
+    
+    //! Runs the mean filtering kernel
+    template<typename T, typename U>
+    void MRImean::RunGPU( const GPU::Classes::MRIframeGPU<T> &src,
+			  GPU::Classes::MRIframeGPU<U> &dst,
+			  const unsigned int wSize ) const {
+      /*!
+	Runs the mean filtering kernel on the GPU.
+	Assumes most things are properly set already
+      */
+      const dim3 srcDims = src.GetDims();
+      const dim3 dstDims = dst.GetDims();
+      
+      // Check dimensions
+      if( srcDims != dstDims ) {
+	std::cerr << __FUNCTION__ << ": Dimension mismatch"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      
+      // We need intermediates which are floats
+      GPU::Classes::MRIframeGPU<float> f1, f2;
+      
+      // Get correctly sized intermediates
+      MRImean::tMem.Start();
+      f1.Allocate( src );
+      f2.Allocate( src );
+      MRImean::tMem.Stop();
+      
+	
+      // Do the three convolutions. Recall objects have same dims
+      dim3 grid, threads;
 
 	
-	threads.x = threads.y = kMRImeanBlockSize;
-	threads.z = 1;
-
-	const dim3 coverGrid = dst.CoverBlocks( kMRImeanBlockSize );
-
-	grid.x = coverGrid.x * coverGrid.y;
-	grid.y = dstDims.z;
-	grid.z = 1;
-
-	this->tCompute.Start();
-
-	// Do the X direction
-	MRImeanX<T>
-	  <<<grid,threads,0,this->stream>>>
-	  ( src, f1, coverGrid, wSize );
-	CUDA_CHECK_ERROR_ASYNC( "MRImeanX kernel failed" );
-
-	// Do the Y direction
-	MRImeanY<float>
-	  <<<grid,threads,0,this->stream>>>
-	  ( f1, f2, coverGrid, wSize );
-	CUDA_CHECK_ERROR_ASYNC( "MRImeanY kernel failed" );
-
-	// Slight change for Z direction
-	grid.x = coverGrid.x * coverGrid.z;
-	grid.y = dstDims.y;
-	MRImeanZ<float>
-	  <<<grid,threads,0,this->stream>>>
-	  ( f2, f1, coverGrid, wSize );
-	CUDA_CHECK_ERROR_ASYNC( "MRImeanZ kernel failed" );
-
-	// Normalise
-	grid.x = coverGrid.x * coverGrid.y;
-	grid.y = dstDims.z;
-	MRImeanNormal<U>
-	  <<<grid,threads,0,this->stream>>>
-	  ( f1, dst, coverGrid, wSize );
-	CUDA_CHECK_ERROR_ASYNC( "MRImeanNormal failed!" );
-
-	this->tCompute.Stop();
-      }
-
-    };
-
+      threads.x = threads.y = kMRImeanBlockSize;
+      threads.z = 1;
+      
+      const dim3 coverGrid = dst.CoverBlocks( kMRImeanBlockSize );
+      
+      grid.x = coverGrid.x * coverGrid.y;
+      grid.y = dstDims.z;
+      grid.z = 1;
+      
+      MRImean::tCompute.Start();
+      
+      // Do the X direction
+      MRImeanX<T>
+	<<<grid,threads,0,this->stream>>>
+	( src, f1, coverGrid, wSize );
+      CUDA_CHECK_ERROR_ASYNC( "MRImeanX kernel failed" );
+      
+      // Do the Y direction
+      MRImeanY<float>
+	<<<grid,threads,0,this->stream>>>
+	( f1, f2, coverGrid, wSize );
+      CUDA_CHECK_ERROR_ASYNC( "MRImeanY kernel failed" );
+      
+      // Slight change for Z direction
+      grid.x = coverGrid.x * coverGrid.z;
+      grid.y = dstDims.y;
+      MRImeanZ<float>
+	<<<grid,threads,0,this->stream>>>
+	( f2, f1, coverGrid, wSize );
+      CUDA_CHECK_ERROR_ASYNC( "MRImeanZ kernel failed" );
+      
+      // Normalise
+      grid.x = coverGrid.x * coverGrid.y;
+      grid.y = dstDims.z;
+      MRImeanNormal<U>
+	<<<grid,threads,0,this->stream>>>
+	( f1, dst, coverGrid, wSize );
+      CUDA_CHECK_ERROR_ASYNC( "MRImeanNormal failed!" );
+      
+      MRImean::tCompute.Stop();
+    }
+    
   }
 }
 
