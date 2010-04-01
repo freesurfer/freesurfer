@@ -84,6 +84,7 @@ make-segvol-table \
 map_all_labels \
 map_all_labels-lh \
 map_central_sulcus \
+meanval \
 minc2seqinfo \
 misc.py \
 mkfsdist \
