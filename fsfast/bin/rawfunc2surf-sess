@@ -1,178 +1,234 @@
-#!/bin/csh -f
-# rawfunc2surf-sess 
+#! /bin/csh -f
+
 #
-set VERSION    = '$Id: rawfunc2surf-sess,v 1.5 2008/01/31 19:46:36 greve Exp $';
-set cmdargs = ($argv);
+# rawfunc2surf-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2010/04/01 22:52:07 $
+#    $Revision: 1.6 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
 
-set instem   = fmc; 
-set outstem  = (); 
-set hemilist  = (); 
-set subject  = (fsaverage);
-set projfrac = 0.5;
-set projfracavg = ();
-set fwhm = ();
+set VERSION = '$Id: rawfunc2surf-sess,v 1.6 2010/04/01 22:52:07 greve Exp $';
+
+set inputargs = ($argv);
+
+set fsd        = bold;
+set instem     = f;
+set outstem    = ();
+set regfile    = register.dat
+set trgsubject = fsaverage
+set hemilist = ()
+set ProjFrac = 0.5;
+set interp = trilin
+set PerRun = 1;
+set maskname = brain
+set maskdir = masks
 set RunListFile = ();
-set fsd = "bold";
-set interp = trilinear
-set PerRunReg = ();
-
+set fwhm = ();
+set UpdateOnly = 0;
 set nolog = 0;
-set infmt = ();
-set outfmt = mgh;
+set debug = 0;
+set DoSelf = 1;
+set PrintHelp = 0;
+set SurfReg = sphere.reg
+
+set outfmt = nii
 if($?FSF_OUTPUT_FORMAT) then
-  set outfmt = $FSF_OUTPUT_FORMAT;
+  set outfmt = $FSF_OUTPUT_FORMAT
 endif
 
-set PrintHelp = 0;
-if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | grep -e -help | wc -l` 
-if($n != 0) then
-  set PrintHelp = 1;
-  goto usage_exit;
-endif
-set n = `echo $argv | grep version | wc -l` 
+## If there are no options, just print the usage ##
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e  -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-
-set SessList = `getsesspath $argv`;
-if($status || $#SessList == 0) then
-  echo $SessList
-  exit 1;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
 endif
 
 goto parse_args;
 parse_args_return:
 
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  getsesspath $inputargs 
+  echo "ERROR: cannot find any sessions"
+  exit 1;
+endif
+
 goto check_params;
 check_params_return:
 
+# Create a string like lhrh
+set hemistr = ();
+foreach hemi ($hemilist)
+  set hemistr = $hemistr$hemi
+end
+
 set ProjectDir = `pwd`;
 
-# Create a log file #
-if(! $nolog ) then
-  mkdir -p log
-  set LF = $ProjectDir/log/rawfunc2surf-sess
-  # Below to help prevent collisions when parallel
-  if($#hemilist == 1) set LF = $LF.$hemilist
-  if($#SessList == 1) then
-    set sessid = `basename $SessList`;
-    set LF = $LF.$sessid
-  endif
-  rm -f $LF
-else
-  set LF = /dev/null
-endif
-echo Logfile is $LF
-
-date | tee -a $LF
-uname -a | tee -a $LF
-echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
-echo "cd `pwd`" | tee -a $LF
-echo $0 | tee -a $LF
-echo $cmdargs | tee -a $LF
-
-## go through each session ##
+## Loop through each session ##
+@ nthsess = 0;
 foreach sess ($SessList)
-  set sessid = `basename $sess`;
+  set sessid = `basename $sess`
+  @ nthsess = $nthsess + 1;
 
-  echo "-------------------------------------------" |& tee -a $LF
-  echo "$sess " |& tee -a $LF
+  ##### Create a log file ######
+  set LF = /dev/null
+  if(! $nolog) then
+    set logdir = $ProjectDir/log;
+    mkdir -p $logdir
+    set LF = $logdir/rawfunc2surf-sess.$sessid.$fsd.$outstem.$hemistr.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+  echo "rawfunc2surf-sess log file" >> $LF
+  echo $VERSION >> $LF
+  uname -a >> $LF
+  date >> $LF
+  pwd >> $LF
+  echo $0 $inputargs  >> $LF 
+  echo UpdateOnly $UpdateOnly >> $LF 
 
-  pushd $sess/$fsd > /dev/null
+  echo "------------------------------ " |& tee -a $LF
+  echo "$nthsess/$#SessList $sessid" |& tee -a $LF
 
-  set RunList = `getrunlist . $RunListFile`;
-  if($status || $#RunList == 0) then
-    echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
+  set subject = `cat $sess/subjectname`;
+  if($DoSelf) then
+    set trgsubject = $subject
+    set subjstr = self
+  else
+    set subjstr = $trgsubject
+  endif
+
+  foreach hemi ($hemilist)
+
+  if(! $PerRun) then
+    set reg = $sess/$fsd/$regfile
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg" | tee -a $LF
+      echo "Try running register-sess" | tee -a $LF
+      exit 1;
+    endif
+    set maskstem = $sess/$fsd/$maskdir/$maskname
+    set mask = `stem2fname $maskstem`
+    if($status) then
+      echo "$mask" | tee -a $LF
+      echo "Try running mkbrainmask-sess" | tee -a $LF
+      exit 1;
+    endif
+    set outmask = $sess/$fsd/$maskdir/$maskname.$subjstr.$hemi.$outfmt
+  endif
+
+  set RunList = `getrunlist $sess/$fsd $RunListFile`;
+  if($status) then
+    echo "$RunList" |& tee -a $LF
     exit 1;
   endif
-  echo "RunList: $RunList" |& tee -a $LF
 
-  foreach run ($RunList)  
-    echo "  $sessid Run $run -----------" |& tee -a $LF
+  foreach Run ($RunList)
+    echo "  $nthsess/$#SessList $sessid $Run $hemi ---------" |& tee -a $LF
+    echo "    `date`"  |& tee -a $LF
+    set funcdir = $sess/$fsd/$Run
 
-    if($#PerRunReg) then
-       set regfile = $run/$PerRunReg
-    else
-      set regfile = register.dat
-    endif
-    if(! -e $regfile) then
-      echo "ERROR: cannot find $regfile in `pwd`" |& tee -a $LF
+    set invol = `stem2fname $funcdir/$instem`
+    if($status) then
+      echo "$invol" |& tee -a $LF
       exit 1;
     endif
 
-    date |& tee -a $LF
-    set inbase = $run/$instem
-    set infmt = `getformat_from_stem $inbase`
-    set invol = $inbase.$infmt
-    foreach hemi ($hemilist)
-      set outbase = $run/$hemi.$outstem
-      set outsurf = $outbase.$outfmt
-      set cmd = (mri_vol2surf --reg $regfile --mov $invol --out $outsurf)
-      set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
-      set cmd = ($cmd --interp $interp)
-      if($#projfrac)    set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
-      if($#projfracavg) set cmd = ($cmd --hemi $hemi --projfrac-avg 0 1 .2)
-      if($#subject) set cmd = ($cmd --trgsubject $subject)
-      if($#fwhm)    set cmd = ($cmd --surf-fwhm $fwhm)
-      if($outfmt == "mgh") set cmd = ($cmd --no-reshape)
-      echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
-      echo "cd `pwd`" |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-
-      # Resample mask and possibly create meanval file
-      # Does not need to be done for each run, but easier
-      set maskstem = $sess/$fsd/masks/brain
-      echo "mask $maskstem" |& tee -a $LF
-      set maskfmt = `getformat_from_stem $maskstem`
-      if(! $status) then
-        set mask = $maskstem.$maskfmt
-        set masksurf = $sess/$fsd/masks/$hemi.brain.$outfmt
-        set cmd = (mri_vol2surf --reg $regfile --interp nearest \
-                   --mov $mask --out $masksurf)
-        if($#projfrac)    set cmd = ($cmd --hemi $hemi --projfrac $projfrac)
-        if($#subject)        set cmd = ($cmd --trgsubject $subject)
-        if($outfmt == "mgh") set cmd = ($cmd --no-reshape)
-        # Note: don't smooth mask
-        echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
-        echo "cd `pwd`" |& tee -a $LF
-        echo $cmd |& tee -a $LF
-        $cmd |& tee -a $LF
-        if($status) exit 1;
-
-        # Create a meanval file
-        if(-e $inbase.meanval) then
-          cp $inbase.meanval $outbase.meanval
-        else
-          set cmd = (mri_segstats --seg $mask --id 1 --sum /tmp/blah.$$ \
-                     --in $invol --sfavg $outbase.meanval )
-          echo "cd `pwd`" |& tee -a $LF
-          echo $cmd |& tee -a $LF
-          $cmd |& tee -a $LF
-          if($status) exit 1;
-        endif
-
+    if($PerRun) then
+      set reg = $sess/$fsd/$regfile
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg" | tee -a $LF
+        echo "Try running register-sess with -perrun" | tee -a $LF
+        exit 1;
       endif
+      set maskstem = $sess/$fsd/$maskdir/$maskname
+      set mask = `stem2fname $maskstem`
+      if($status) then
+        echo "$mask" | tee -a $LF
+        echo "Try running mkbrainmask-sess with -perrun" | tee -a $LF
+        exit 1;
+      endif
+      set outmask = $sess/$fsd/$Run/$maskdir/$maskname.$subjstr.$hemi.$outfmt
+    endif
 
+    set outvol = $funcdir/$outstem.$subjstr.$hemi.$outfmt
+    set UpdateNeeded = 0;
+    if(! $UpdateOnly) set UpdateNeeded = 1;
+    if(! -e $outvol || ! -e $mask) set UpdateNeeded = 1;
+    if($UpdateNeeded == 0) then    
+      if($debug) ls -lt $invol $reg $mask $outvol
+      test $invol -nt $outvol
+      if(! $status) set UpdateNeeded = 1;
+      test $reg -nt $outvol
+      if(! $status) set UpdateNeeded = 1;
+      test $mask -nt $outvol
+      if(! $status) set UpdateNeeded = 1;
+    endif
 
-      echo "" |& tee -a $LF
-      echo "" |& tee -a $LF
-    end # hemi
+    if($UpdateNeeded == 0) then
+      echo "    $sessid $Run Update not needed" | tee -a $LF
+      continue
+    endif
 
-  end # run
+    # Raw data
+    set cmd = (mri_vol2surf --mov $invol --reg $reg \
+      --trgsubject $trgsubject --interp $interp --projfrac $ProjFrac\
+      --hemi $hemi --o $outvol --noreshape --cortex)
+    if($trgsubject != $subject) set cmd = (--surfreg $SurfReg)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
 
-  popd > /dev/null
-end # sess
+    # Mask
+    set cmd = (mri_vol2surf --mov $mask --reg $reg \
+      --trgsubject $trgsubject --interp nearest --projfrac $ProjFrac\
+      --hemi $hemi --o $outmask --noreshape --cortex)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    set cmd = (mri_binarize --i $outmask --min .00001 --o $outmask)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
 
-date | tee -a $LF
-echo "rawfunc2surf-sess done" | tee -a $LF
+    # Smooth raw data within mask
+    if($#fwhm) then
+      set cmd = (mris_fwhm --s $trgsubject --hemi $hemi --no-detrend \
+        --i $outvol --fwhm $fwhm --o $outvol --mask $outmask )
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    endif
+
+  end  # Loop over runs
+end # Loop over hemis
+
+end  # foreach sess ($SessList)
+
+echo "" |& tee -a $LF
+date |& tee -a $LF
+echo "rawfunc2surf-sess completed " |& tee -a $LF
 
 exit 0;
-###############################################
-
 
 ############--------------##################
 parse_args:
@@ -184,52 +240,15 @@ while( $#argv != 0 )
   switch($flag)
 
     case "-i":
-      if ( $#argv < 1) goto arg1err;
+    case "-instem":
+      if ( $#argv == 0) goto arg1err;
       set instem = $argv[1]; shift;
       breaksw
 
     case "-o":
-      if ( $#argv < 1) goto arg1err;
+    case "-outstem":
+      if ( $#argv == 0) goto arg1err;
       set outstem = $argv[1]; shift;
-      breaksw
-
-    case "-h":
-      if ( $#argv < 1) goto arg1err;
-      set hemilist = ($hemilist $argv[1]); shift;
-      breaksw
-
-    case "-subject":
-      if ( $#argv == 0) goto arg1err;
-      set subject = $argv[1]; shift;
-      breaksw
-
-    case "-native":
-      set subject = ();
-      breaksw
-
-    case "-projfrac":
-      if ( $#argv == 0) goto arg1err;
-      set projfrac = $argv[1]; shift;
-      breaksw
-
-    case "-projfrac-avg":
-      set projfracavg = 1;
-      breaksw
-
-    case "-interp":
-      if ( $#argv == 0) goto arg1err;
-      set interp = $argv[1]; shift;
-      breaksw
-
-    case "-fwhm":
-      if ( $#argv == 0) goto arg1err;
-      set fwhm = $argv[1]; shift;
-      breaksw
-
-    case "-runlistfile":
-    case "-rlf":
-      if ( $#argv == 0) goto arg1err;
-      set RunListFile = $argv[1]; shift;
       breaksw
 
     case "-fsd":
@@ -237,9 +256,65 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
-    case "-perrun":
+    case "-rlf":
       if ( $#argv == 0) goto arg1err;
-      set PerRunReg = $argv[1]; shift;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-no-perrun":
+      set PerRun = 0;
+      breaksw
+
+    case "-surfreg":
+      if ( $#argv == 0) goto arg1err;
+      set SurfReg = $argv[1]; shift;
+      breaksw
+
+    case "-update":
+      set UpdateOnly = 1;
+      breaksw
+
+    case "-force":
+      set UpdateOnly = 0;
+      breaksw
+
+    case "-nearest":
+      set interp = "nearest"
+      breaksw
+
+    case "-trilin":
+      set interp = "trilin"
+      breaksw
+
+    case "-trgsubject":
+      if($#argv < 1) goto arg1err;
+      set trgsubject = $argv[1]; shift;
+      breaksw
+
+    case "-reg":
+      if($#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if($#argv < 1) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-lh":
+      set hemilist = ($hemilist lh);
+      breaksw
+
+    case "-rh":
+      set hemilist = ($hemilist rh);
+      breaksw
+
+    case "-self":
+      set DoSelf = 1;
       breaksw
 
     case "-nolog":
@@ -247,21 +322,20 @@ while( $#argv != 0 )
       breaksw
 
     case "-debug":
+      set debug = 1;
       set verbose = 1;
       set echo = 1;
       breaksw
 
-    case "-s":
-    case "-sf":
-    case "-d":
-    case "-df":
-    case "-g":
-      shift;
-      # ignore getsesspath arguments 
+    case "-cwd":
       breaksw
 
-    case "-cwd":
-      # ignore getsesspath arguments 
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      shift;
       breaksw
 
     default:
@@ -279,17 +353,18 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#instem == 0) then
-    echo "ERROR: no input stem specified"
-    exit 1
-  endif
+if($#SessList == 0) then
+  echo "ERROR: no sessions specified" |& tee -a $LF
+  exit 1;
+endif
 
-  if($#outstem == 0) then
-    echo "ERROR: no output stem specified"
-    exit 1
-  endif
+if($#instem == 0) then
+  echo "ERROR: must specify an input"
+  exit 1;
+endif
 
-  if($#hemilist == 0) set hemilist = (lh rh)
+if($#outstem == 0) set outstem = $instem
+if($#hemilist == 0) set hemilist = (lh rh);
 
 goto check_params_return;
 ############--------------##################
@@ -302,123 +377,44 @@ arg1err:
 
 ############--------------##################
 usage_exit:
+  echo "rawfunc2surf-sess"
   echo ""
-  echo "USAGE: rawfunc2surf-sess"
+  echo " Required"
+  echo "  -i instem : eg, fmc"
   echo ""
-  echo "  -i instem  : input volume"
-  echo "  -o outstem : out will be hemi.outstem"
+  echo " Session Arguments (some required)"
+  echo "  -sf sessidfile  ..."
+  echo "  -df srchdirfile ..."
+  echo "  -s  sessid      ..."
+  echo "  -d  srchdir     ..."
   echo ""
-  echo "  -h hemi          : default is both lh and rh"
-  echo "  -subject subject : default is fsaverage"
-  echo "  -native          : use each subject's native surface space"
-  echo "  -projfrac frac   : default is 0.5"
-  echo "  -projfrac-avg    : average along normal between 0 and 1, step = 0.2"
-  echo "  -interp method   : default is trilinear (alt nearest)"
-  echo "  -fwhm fwhm       : surface smoothing"
-  echo "  -rlf runlistfile : run list file"
-  echo "  -fsd dir         : functional subdir (default = bold)"
-  echo "  -perrun regfile  : use per-run registration"
+  echo " Optional Arguments"
+  echo "  -o outstem   : eg, fmc.ssm5 (default is instem.trgsubj.hemi)"
+  echo "  -fsd dir     : functional subdirectory ($fsd)"
+  echo "  -nearest     : use nearest neighbor interp (default is trilin)"
+  echo "  -reg regfile : default is register.dat"
+  echo "  -no-perrun   : do not use per-run registration and masks"
+  echo "  -self : map to native subject surface instead of fsaverage"
+  echo "  -surfreg SurfReg : change from $SurfReg"
   echo ""
-  echo "Session Arguments (Required)"
-  echo "   -sf sessidfile  "
-  echo "   -df srchdirfile "
-  echo "   -s  sessid      "
-  echo "   -d  srchdir     "
+  echo "  -update : only run if update is needed"
+  echo "  -force : force an update (default)"
   echo ""
-  echo "   -help      : as if"
-  echo "   -version   : print version and exit"
-  echo "   -debug"
+  echo "  -version       : print version and exit"
+  echo "  -debug"
   echo ""
+  if(! $PrintHelp ) exit 1;
 
-  if(! $PrintHelp) exit 1;
+  echo " "
+  echo "$VERSION "
+  echo " "
 
-  echo $VERSION
-
-  echo "------------------------------------------------------------"
   cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
-
 exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Resamples raw functional data to the surface of fsaverage (or some other
-subject), possibly including smoothing on the surface. The raw funtional
-data can then be used as input to FS-FAST analysis.
-
--i instem
-
-Usually the stem of the motion-correct (but not volume-smoothed) data.
-The format will automatically be detected. If the instem has an instem.meanval,
-then this is copied to hemi.outstem.meanval. If it does not have a meanval 
-file, then one is created based on the brain mask if that exists. If the
-brain mask does not exist, then no meanval file is created.
-
--o outstem
-
-Stem of the output file. The actual output stem will be hemi.outstem.
-By default, this will be in mgh format (ie, the output file will be
-hemi.outstem.mgh). If a different output format is desired, set the
-FSF_OUTPUT_FORMAT environment variable. Eg, 
-    setenv FSF_OUTPUT_FORMAT nii
-
--h hemi
-
-Hemisphere (lh or rh). By default, it does both.
-
--subject subject
-
-Sample onto the surface of subject instead of fsaverage.
-
--native
-
-Sample onto the individual subjects native surface.
-
--projfrac frac
-
-Sample surface frac way between the white/gray and the pial.  Default
-is 0.5 (ie, half way).
-
--projfrac-avg
-
-Average values along the surface normal between 0 and 100%
-of the distance between the white/gray and the pial.
-
--interp method
-
-Interpolation method. Uses trilinear by default. Can also specify
-nearest for nearest neighbor.
-
--fwhm fwhm
-
-Smooth on the surface by fwhm mm. Note: this can take a long time.
-Default is no smoothing.
-
--rlf runlistfile
-
-Only perform func2surf on the runs in the run list file.
-
--fsd functionalsubdir
-
-Specify the functional subdir (default is bold).
-
--perrun regfile
-
-Use data that has been motion corrected on a run-by-run basis to the
-middle time point of each run (instead of to the first TP of the first
-run). Eg, 
-
- mc-sess           -perrun -fmcstem fmc.perrun ... # motion corrects to middle TP
- spmregister-sess  -perrun ...            # registers to middle TP, creates RRR/fs.register.dat
- rawfunc2surf-sess -perrun fs.register.dat -i fmc.perrun
-
-EXAMPLE:
-
-rawfunc2surf-sess -i fmc -o fmc.fsaverage.sm5 -h lh -fwhm 5 -s tldata
-
-Resamples fmc volume to the surface of fsaverage and then smoothes on
-the surface by 5 mm FWHM. The output will be lh.fmc.fsaverage.sm5.mgh.
-Projfrac would be 0.5 (default) and it would use trilinear interpolation
-(default).
+Resamples raw functional data onto the cortical surface.
 
 
