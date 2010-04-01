@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 22:52:07 $
-#    $Revision: 1.6 $
+#    $Date: 2010/04/01 23:25:03 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.6 2010/04/01 22:52:07 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.7 2010/04/01 23:25:03 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -42,7 +42,7 @@ set fwhm = ();
 set UpdateOnly = 0;
 set nolog = 0;
 set debug = 0;
-set DoSelf = 1;
+set DoSelf = 0;
 set PrintHelp = 0;
 set SurfReg = sphere.reg
 
@@ -190,25 +190,26 @@ foreach sess ($SessList)
       continue
     endif
 
-    # Raw data
-    set cmd = (mri_vol2surf --mov $invol --reg $reg \
-      --trgsubject $trgsubject --interp $interp --projfrac $ProjFrac\
-      --hemi $hemi --o $outvol --noreshape --cortex)
-    if($trgsubject != $subject) set cmd = (--surfreg $SurfReg)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
-
     # Mask
     set cmd = (mri_vol2surf --mov $mask --reg $reg \
       --trgsubject $trgsubject --interp nearest --projfrac $ProjFrac\
       --hemi $hemi --o $outmask --noreshape --cortex)
+    if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
     set cmd = (mri_binarize --i $outmask --min .00001 --o $outmask)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
+
+    # Raw data
+    set cmd = (mri_vol2surf --mov $invol --reg $reg \
+      --trgsubject $trgsubject --interp $interp --projfrac $ProjFrac\
+      --hemi $hemi --o $outvol --noreshape --cortex)
+    if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
 
     # Smooth raw data within mask
     if($#fwhm) then
