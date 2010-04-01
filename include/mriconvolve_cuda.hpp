@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/31 19:25:22 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/04/01 13:22:50 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,9 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
+
+#ifndef MRI_CONVOLVE_CUDA_HPP
+#define MRI_CONVOLVE_CUDA_HPP
 
 #include <cstdlib>
 #include <cstdio>
@@ -208,3 +211,6 @@ namespace GPU {
 
   }
 }
+
+
+#endif
