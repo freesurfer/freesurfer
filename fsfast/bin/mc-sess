@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 00:29:31 $
-#    $Revision: 1.20 $
+#    $Date: 2010/04/01 22:35:27 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.20 2010/04/01 00:29:31 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.21 2010/04/01 22:35:27 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -316,7 +316,13 @@ if($#SessList == 0) then
   echo "ERROR: no sessions specified"
   exit 1
 endif
-if($#funcmcstem == 0) set funcmcstem = fmc;
+if($#funcmcstem == 0) then
+  if($PerRun) then
+    set funcmcstem = fmc.pr
+  else
+    set funcmcstem = fmc
+  end
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -366,7 +372,8 @@ with fmc.mcdat and mcextreg.bhdr).
 
 You must have run mktemplate-sess first.
 
-
+When running with -perrun and no explicit output, the oustem is
+set to fmc.pr
 
 Those using the AFNI motion correction should cite:
 
