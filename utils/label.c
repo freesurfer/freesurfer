@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:42 $
- *    $Revision: 1.97 $
+ *    $Author: greve $
+ *    $Date: 2010/04/01 05:54:52 $
+ *    $Revision: 1.98 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1510,26 +1510,22 @@ LabelFromMarkValue(MRI_SURFACE *mris, int mark)
   return(area) ;
 }
 /*-----------------------------------------------------
-        Parameters:
-
-        Returns value:
-
-        Description
 ------------------------------------------------------*/
-int
-LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
+int LabelMarkSurface(LABEL *area, MRI_SURFACE *mris)
 {
   int     n, vno ;
   VERTEX  *v ;
 
-  for (n = 0 ; n < area->n_points ; n++)
-  {
+  for (n = 0 ; n < area->n_points ; n++) {
     vno = area->lv[n].vno ;
-    if (vno < 0)
-      continue ;
+    if(vno < 0) continue ;
+    if(vno >= mris->nvertices){
+      printf("ERROR: LabelMarkSurface: label point %d exceeds nvertices %d\n",
+	     vno,mris->nvertices);
+      return(1);
+    }
     v = &mris->vertices[vno] ;
-    if (v->ripflag)
-      continue ;
+    if(v->ripflag) continue ;
     v->marked = 1 ;
   }
   return(NO_ERROR) ;
