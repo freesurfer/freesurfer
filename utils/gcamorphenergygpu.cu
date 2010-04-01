@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/01 19:07:44 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/04/01 20:12:15 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -279,17 +279,20 @@ namespace GPU {
       */
       float delta;
 
+      const float kExpLimit = 8;
       const float kMaxExp = 200;
 
       if( exponent > kMaxExp ) {
 	delta = 0;
       }
-      else if( exponent > 9 ) {
+      else if( exponent > kExpLimit ) {
 	// Can drop the 1 in the logarithm
 	delta = exponent;
-      } else if ( exponent < -9 ) {
+      } else if ( exponent < -kExpLimit ) {
 	// Taylor expand ln( 1 + y )
-	delta = exp( exponent );
+	float y = exp( exponent );
+
+	delta = y * ( 1 + ( y * ( -0.5f + (y/3) ) ) );
       } else {
 	// Do full calculation
 	delta = log( 1 + exp( exponent ) );
