@@ -317,7 +317,8 @@ CUDA_DEPS = ../include/volumegpu.hpp\
             ../include/mriframegpu.hpp\
             ../include/gcamorphgpu.hpp\
             ../include/mriconvolve_cuda.hpp\
-            ../include/mrimean_cuda.hpp
+            ../include/mrimean_cuda.hpp\
+            ../include/gcamorphenergy.hpp
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS

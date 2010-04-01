@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/31 19:25:16 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/04/01 15:33:32 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,8 @@
 
 #include "mriframegpu.hpp"
 #include "gcamorphgpu.hpp"
+
+#include "gcamorphenergy.hpp"
 
 // Stolen from gcamorph.c
 #define MIN_STD 2
@@ -516,598 +518,572 @@ namespace GPU {
 
     // ##############################################################
 
-    //! Class to hold GCAMorph energy computations
-    class GCAmorphEnergy {
-    public:
-
-      //! Constructor
-      GCAmorphEnergy( const cudaStream_t s = 0 ) : stream(s),
-						   tLLEtot(),
-						   tLLEgood(),
-						   tLLEcompute() {}
-
-      //! Destructor
-      ~GCAmorphEnergy( void ) {
+    void GCAmorphEnergy::ShowTimings( void ) {
 #ifdef CUDA_SHOW_TIMINGS
-	std::cout << "==================================" << std::endl;
-	std::cout << "GPU GCAmorph energy timers" << std::endl;
-	std::cout << "--------------------------" << std::endl;
+      std::cout << "==================================" << std::endl;
+      std::cout << "GPU GCAmorph energy timers" << std::endl;
+      std::cout << "--------------------------" << std::endl;
 #ifndef CUDA_FORCE_SYNC
-	std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
-	std::cout << "Timings may not be accurate" << std::endl;
+      std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+      std::cout << "Timings may not be accurate" << std::endl;
 #endif
-	std::cout << std::endl;
-
-	std::cout << "LLEdispatch:" << std::endl;
-	std::cout << "Total         : " << this->tLLEdispatch << std::endl;
-	std::cout << std::endl;
-
-	std::cout << "LogLikelihoodEnergy:" << std::endl;
-	std::cout << "    Find good : " << this->tLLEgood << std::endl;
-	std::cout << "      Compute : " << this->tLLEcompute << std::endl;
-	std::cout << "Total         : " << this->tLLEtot << std::endl;
-	std::cout << std::endl;
-
-	std::cout << "JacobianEnergy:" << std::endl;
-	std::cout << "      Compute : " << this->tJacobCompute << std::endl;
-	std::cout << "Total         : " << this->tJacobTot << std::endl;
-	std::cout << std::endl;
-
-	std::cout << "LabelEnergy:" << std::endl;
-	std::cout << "      Compute : " << this->tLabelCompute << std::endl;
-	std::cout << "Total         : " << this->tLabelTot << std::endl;
-	std::cout << std::endl;
-
-	std::cout << "SmoothnessEnergy:" << std::endl;
-	std::cout << "  Subtraction : " << this->tSmoothSubtract << std::endl;
-	std::cout << "      Compute : " << this->tSmoothCompute << std::endl;
-	std::cout << "Total         : " << this->tSmoothTot << std::endl;
-	std::cout << std::endl;
-
-	std::cout << "==================================" << std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "LLEdispatch:" << std::endl;
+      std::cout << "Total         : " << GCAmorphEnergy::tLLEdispatch
+		<< std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "LogLikelihoodEnergy:" << std::endl;
+      std::cout << "    Find good : " << GCAmorphEnergy::tLLEgood
+		<< std::endl;
+      std::cout << "      Compute : " << GCAmorphEnergy::tLLEcompute
+		<< std::endl;
+      std::cout << "Total         : " << GCAmorphEnergy::tLLEtot
+		<< std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "JacobianEnergy:" << std::endl;
+      std::cout << "      Compute : " << GCAmorphEnergy::tJacobCompute
+		<< std::endl;
+      std::cout << "Total         : " << GCAmorphEnergy::tJacobTot
+		<< std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "LabelEnergy:" << std::endl;
+      std::cout << "      Compute : " << GCAmorphEnergy::tLabelCompute
+		<< std::endl;
+      std::cout << "Total         : " << GCAmorphEnergy::tLabelTot
+		<< std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "SmoothnessEnergy:" << std::endl;
+      std::cout << "  Subtraction : " << GCAmorphEnergy::tSmoothSubtract
+		<< std::endl;
+      std::cout << "      Compute : " << GCAmorphEnergy::tSmoothCompute
+		<< std::endl;
+      std::cout << "Total         : " << GCAmorphEnergy::tSmoothTot
+		<< std::endl;
+      std::cout << std::endl;
+      
+      std::cout << "==================================" << std::endl;
 #endif
-      }
+    }
+    
+    // --------------------------------------------------
+
+    
+    template<typename T>
+    float GCAmorphEnergy::LogLikelihoodEnergy( const GPU::Classes::GCAmorphGPU& gcam,
+					       const GPU::Classes::MRIframeGPU<T>& mri ) const {
+      /*!
+	This the the host side function for
+	gcamLogLikelihoodEnergy on the GPU.
+	Note that a GCAmorphGPU implicitly only has one input for
+	each location.
+	This means that each covariance is just a variance,
+	and negative values flag
+      */
       
-      // --------------------------------------------------
+      GCAmorphEnergy::tLLEtot.Start();
 
-      //! Implementation of gcamLogLikelihoodEnergy for the GPU
-      template<typename T>
-      float LogLikelihoodEnergy( const GPU::Classes::GCAmorphGPU& gcam,
-				 const GPU::Classes::MRIframeGPU<T>& mri ) const {
-	/*!
-	  This the the host side function for
-	  gcamLogLikelihoodEnergy on the GPU.
-	  Note that a GCAmorphGPU implicitly only has one input for
-	  each location.
-	  This means that each covariance is just a variance,
-	  and negative values flag
-	*/
-
-	tLLEtot.Start();
-
-	// Make sure the GCAM is sane
-	gcam.CheckIntegrity();
-
-	const dim3 gcamDims = gcam.d_rx.GetDims();
-	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
-	// Create a 'flag' array
-	GPU::Classes::VolumeGPU<char> d_good;
-	d_good.Allocate( gcamDims );
-
-	// Allocate thrust arrays
-	thrust::device_ptr<float> d_energies;
-	d_energies = thrust::device_new<float>( nVoxels );
-
-	// Get the MRI into a texture
-	this->BindMRI( mri );
-
-
-	// Run the computation
-	dim3 grid, threads;
-	threads.x = threads.y = kGCAmorphLLEkernelSize;
-	threads.z = 1;
-
-	grid = gcam.d_rx.CoverBlocks( kGCAmorphLLEkernelSize );
-	grid.z = 1;
-
-	tLLEgood.Start();
-	ComputeGoodLLE<<<grid,threads,0,this->stream>>>( gcam.d_invalid,
-							 gcam.d_label,
-							 gcam.d_status,
-							 d_good );
-	CUDA_CHECK_ERROR( "ComputeGood kernel failed!\n" );
-	tLLEgood.Stop();
-
-
-	tLLEcompute.Start();
-	ComputeLLE<T><<<grid,threads,0,this->stream>>>
-	  ( gcam.d_rx, gcam.d_ry, gcam.d_rz,
-	    d_good,
-	    gcam.d_mean, gcam.d_variance,
-	    thrust::raw_pointer_cast( d_energies ) );
-	CUDA_CHECK_ERROR( "ComputeLLE kernel failed!\n" );
-	tLLEcompute.Stop();
-
-	CUDA_SAFE_CALL( cudaStreamSynchronize( this->stream ) );
-
-	// Release the MRI texture
-	this->UnbindMRI<T>();
-
-	// Get the sum of the energies
-	float energy = thrust::reduce( d_energies, d_energies+nVoxels );
-
-	// Release thrust arrays
-	thrust::device_delete( d_energies );
-
-	tLLEtot.Stop();
-
-	return( energy );
-      }
-
-
-      //! Dispatch wrapper for LogLikelihoodEnergy
-      template<typename T>
-      float LLEdispatch( const GCA_MORPH *gcam,
-			 const MRI* mri ) const {
-	
-	float energy;
-
-	tLLEdispatch.Start();
-
-	GPU::Classes::GCAmorphGPU myGCAM;
-	myGCAM.SendAll( gcam );
-
-	GPU::Classes::MRIframeGPU<T> myMRI;
-	myMRI.Allocate( mri );
-	myMRI.Send( mri, 0 );
-	myMRI.AllocateArray();
-	myMRI.SendArray( this->stream );
-	
-	energy = this->LogLikelihoodEnergy( myGCAM, myMRI );
-
-	tLLEdispatch.Stop();
-
-	return( energy );
-
-      }
-
-      // --------------------------------------------------
-
-      //! Implementation of gcamComputeJacobianEnergy for the GPU
-      float ComputeJacobianEnergy( const GPU::Classes::GCAmorphGPU& gcam,
-				   const float mriThick ) const {
-	
-	tJacobTot.Start();
-	
-	// Make sure the GCAM is sane
-	gcam.CheckIntegrity();
-
-	const dim3 gcamDims = gcam.d_rx.GetDims();
-	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
-
-	// Allocate thrust arrays
-	thrust::device_ptr<float> d_energies;
-	d_energies = thrust::device_new<float>( nVoxels );
-
-
-	// Run the computation
-	dim3 grid, threads;
-	threads.x = threads.y = kGCAmorphJacobEnergyKernelSize;
-	threads.z = 1;
-
-	grid = gcam.d_rx.CoverBlocks( kGCAmorphJacobEnergyKernelSize );
-	grid.z = 1;
-
-	tJacobCompute.Start();
-	ComputeJacobEnergy<<<grid,threads>>>
-	  ( gcam.d_invalid,
-	    gcam.d_origArea1, gcam.d_origArea2,
-	    gcam.d_area1, gcam.d_area2,
-	    gcam.exp_k, mriThick,
-	    thrust::raw_pointer_cast( d_energies ) );
-	CUDA_CHECK_ERROR( "ComputeJacobEnergy kernel failed!\n" );
-	tJacobCompute.Stop();
-
-	// Get the sum of the energies
-	float jEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
-
-	// Release thrust arrays
-	thrust::device_delete( d_energies );
-
-	tJacobTot.Stop();
-
-	return( jEnergy );
-      }
-
-      // --------------------------------------------------
+      // Make sure the GCAM is sane
+      gcam.CheckIntegrity();
       
-      //! Implementation of gcamLabelEnergy for the GPU
-      float LabelEnergy( const GPU::Classes::GCAmorphGPU& gcam ) const {
-
-	tLabelTot.Start();
-
-	// Make sure GCAM is sane
-	gcam.CheckIntegrity();
-
-	const dim3 gcamDims = gcam.d_rx.GetDims();
-	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
-
-	// Allocate thrust arrays
-	thrust::device_ptr<float> d_energies;
-	d_energies = thrust::device_new<float>( nVoxels );
-
-	// Run the computation
-	dim3 grid, threads;
-	threads.x = threads.y = kGCAmorphLabelEnergyKernelSize;
-	threads.z = 1;
-
-	grid = gcam.d_rx.CoverBlocks( kGCAmorphLabelEnergyKernelSize );
-	grid.z = 1;
-
-	tLabelCompute.Start();
-	ComputeLabelEnergy<<<grid,threads>>>
-	  ( gcam.d_invalid,
-	    gcam.d_status,
-	    gcam.d_labelDist,
-	    thrust::raw_pointer_cast( d_energies ) );
-	CUDA_CHECK_ERROR( "ComputeLabelEnergy kernel failed!\n" );
-	tLabelCompute.Stop();
-
-	// Get the sum
-	float lEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
-
-	// Release thrust arrays
-	thrust::device_delete( d_energies );
-
-	tLabelTot.Stop();
-
-	return( lEnergy );
-      }
+      const dim3 gcamDims = gcam.d_rx.GetDims();
+      const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
+      // Create a 'flag' array
+      GPU::Classes::VolumeGPU<char> d_good;
+      d_good.Allocate( gcamDims );
       
+      // Allocate thrust arrays
+      thrust::device_ptr<float> d_energies;
+      d_energies = thrust::device_new<float>( nVoxels );
+      
+      // Get the MRI into a texture
+      this->BindMRI( mri );
+      
+      
+      // Run the computation
+      dim3 grid, threads;
+      threads.x = threads.y = kGCAmorphLLEkernelSize;
+      threads.z = 1;
+      
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphLLEkernelSize );
+      grid.z = 1;
+      
+      GCAmorphEnergy::tLLEgood.Start();
+      ComputeGoodLLE<<<grid,threads,0,this->stream>>>( gcam.d_invalid,
+						       gcam.d_label,
+						       gcam.d_status,
+						       d_good );
+      CUDA_CHECK_ERROR( "ComputeGood kernel failed!\n" );
+      GCAmorphEnergy::tLLEgood.Stop();
 
-      // --------------------------------------------------
 
-      //! Implementation of gcamSmoothnessEnergy for the GPU
-      float SmoothnessEnergy( GPU::Classes::GCAmorphGPU& gcam ) {
-	/*!
-	  Computes the smoothness energy of the given gcam.
-	  Mirrors the gcamSmoothnessEnergy routine in gcamorph.c.
-	  The only reason gcam is not declared 'const' is because
-	  we have to get the 'invalid' field into a texture,
-	  and hence needs its cudaArray.
-	  We use a texture for this field to get easy boundary
-	  conditions - although ideally the BC would be changed.
-	  However, that means changing the CPU code too.
-	*/
+      GCAmorphEnergy::tLLEcompute.Start();
+      ComputeLLE<T><<<grid,threads,0,this->stream>>>
+	( gcam.d_rx, gcam.d_ry, gcam.d_rz,
+	  d_good,
+	  gcam.d_mean, gcam.d_variance,
+	  thrust::raw_pointer_cast( d_energies ) );
+      CUDA_CHECK_ERROR( "ComputeLLE kernel failed!\n" );
+      GCAmorphEnergy::tLLEcompute.Stop();
 
-	tSmoothTot.Start();
+      CUDA_SAFE_CALL( cudaStreamSynchronize( this->stream ) );
 
-	// Make sure GCAM is sane
-	gcam.CheckIntegrity();
+      // Release the MRI texture
+      this->UnbindMRI<T>();
+      
+      // Get the sum of the energies
+      float energy = thrust::reduce( d_energies, d_energies+nVoxels );
+      
+      // Release thrust arrays
+      thrust::device_delete( d_energies );
+      
+      GCAmorphEnergy::tLLEtot.Stop();
 
-	const dim3 gcamDims = gcam.d_rx.GetDims();
-	const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
+      return( energy );
+    }
+    
+    
+    
+    template<typename T>
+    float GCAmorphEnergy::LLEdispatch( const GCA_MORPH *gcam,
+				       const MRI* mri ) const {
+      
+      float energy;
+      
+      GCAmorphEnergy::tLLEdispatch.Start();
 
-	// Allocate thrust arrays
-	thrust::device_ptr<float> d_energies;
-	d_energies = thrust::device_new<float>( nVoxels );
+      GPU::Classes::GCAmorphGPU myGCAM;
+      myGCAM.SendAll( gcam );
 
-	// Compute vx, vy, and vz (see gcamSmoothnessEnergy)
-	GPU::Classes::VolumeGPU<float> vx, vy, vz;
+      GPU::Classes::MRIframeGPU<T> myMRI;
+      myMRI.Allocate( mri );
+      myMRI.Send( mri, 0 );
+      myMRI.AllocateArray();
+      myMRI.SendArray( this->stream );
+      
+      energy = this->LogLikelihoodEnergy( myGCAM, myMRI );
+      
+      GCAmorphEnergy::tLLEdispatch.Stop();
+      
+      return( energy );
+      
+    }
 
-	vx.Allocate( gcamDims );
-	vy.Allocate( gcamDims );
-	vz.Allocate( gcamDims );
-	vx.AllocateArray();
-	vy.AllocateArray();
-	vz.AllocateArray();
+    // --------------------------------------------------
 
-	dim3 grid, threads;
-	threads.x = threads.y = kGCAmorphSmoothEnergyKernelSize;
-	threads.z = 1;
+    
+    float GCAmorphEnergy::ComputeJacobianEnergy( const GPU::Classes::GCAmorphGPU& gcam,
+						 const float mriThick ) const {
+	
+      GCAmorphEnergy::tJacobTot.Start();
+	
+      // Make sure the GCAM is sane
+      gcam.CheckIntegrity();
 
-	grid = gcam.d_rx.CoverBlocks( kGCAmorphSmoothEnergyKernelSize );
-	grid.z = 1;
+      const dim3 gcamDims = gcam.d_rx.GetDims();
+      const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
 
-	tSmoothSubtract.Start();
-	SubtractVolumes<float>
-	  <<<grid,threads>>>
-	  ( gcam.d_rx, gcam.d_origx, vx );
-	CUDA_CHECK_ERROR( "SubtractVolumes failed for x!" );
+      // Allocate thrust arrays
+      thrust::device_ptr<float> d_energies;
+      d_energies = thrust::device_new<float>( nVoxels );
 
-	SubtractVolumes<float>
-	  <<<grid,threads>>>
+      
+      // Run the computation
+      dim3 grid, threads;
+      threads.x = threads.y = kGCAmorphJacobEnergyKernelSize;
+      threads.z = 1;
+      
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphJacobEnergyKernelSize );
+      grid.z = 1;
+      
+      GCAmorphEnergy::tJacobCompute.Start();
+      ComputeJacobEnergy<<<grid,threads>>>
+	( gcam.d_invalid,
+	  gcam.d_origArea1, gcam.d_origArea2,
+	  gcam.d_area1, gcam.d_area2,
+	  gcam.exp_k, mriThick,
+	  thrust::raw_pointer_cast( d_energies ) );
+      CUDA_CHECK_ERROR( "ComputeJacobEnergy kernel failed!\n" );
+      GCAmorphEnergy::tJacobCompute.Stop();
+
+      // Get the sum of the energies
+      float jEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
+      
+      // Release thrust arrays
+      thrust::device_delete( d_energies );
+
+      GCAmorphEnergy::tJacobTot.Stop();
+
+      return( jEnergy );
+    }
+
+    // --------------------------------------------------
+      
+    //! Implementation of gcamLabelEnergy for the GPU
+    float GCAmorphEnergy::LabelEnergy( const GPU::Classes::GCAmorphGPU& gcam ) const {
+
+      GCAmorphEnergy::tLabelTot.Start();
+
+      // Make sure GCAM is sane
+      gcam.CheckIntegrity();
+      
+      const dim3 gcamDims = gcam.d_rx.GetDims();
+      const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
+      
+      // Allocate thrust arrays
+      thrust::device_ptr<float> d_energies;
+      d_energies = thrust::device_new<float>( nVoxels );
+      
+      // Run the computation
+      dim3 grid, threads;
+      threads.x = threads.y = kGCAmorphLabelEnergyKernelSize;
+      threads.z = 1;
+      
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphLabelEnergyKernelSize );
+      grid.z = 1;
+      
+      GCAmorphEnergy::tLabelCompute.Start();
+      ComputeLabelEnergy<<<grid,threads>>>
+	( gcam.d_invalid,
+	  gcam.d_status,
+	  gcam.d_labelDist,
+	  thrust::raw_pointer_cast( d_energies ) );
+      CUDA_CHECK_ERROR( "ComputeLabelEnergy kernel failed!\n" );
+      GCAmorphEnergy::tLabelCompute.Stop();
+
+      // Get the sum
+      float lEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
+      
+      // Release thrust arrays
+      thrust::device_delete( d_energies );
+      
+      GCAmorphEnergy::tLabelTot.Stop();
+
+      return( lEnergy );
+    }
+    
+
+    // --------------------------------------------------
+    
+    //! Implementation of gcamSmoothnessEnergy for the GPU
+    float GCAmorphEnergy::SmoothnessEnergy( GPU::Classes::GCAmorphGPU& gcam ) const {
+      /*!
+	Computes the smoothness energy of the given gcam.
+	Mirrors the gcamSmoothnessEnergy routine in gcamorph.c.
+	The only reason gcam is not declared 'const' is because
+	we have to get the 'invalid' field into a texture,
+	and hence needs its cudaArray.
+	We use a texture for this field to get easy boundary
+	conditions - although ideally the BC would be changed.
+	However, that means changing the CPU code too.
+      */
+
+      GCAmorphEnergy::tSmoothTot.Start();
+      
+      // Make sure GCAM is sane
+      gcam.CheckIntegrity();
+      
+      const dim3 gcamDims = gcam.d_rx.GetDims();
+      const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
+      
+      // Allocate thrust arrays
+      thrust::device_ptr<float> d_energies;
+      d_energies = thrust::device_new<float>( nVoxels );
+
+      // Compute vx, vy, and vz (see gcamSmoothnessEnergy)
+      GPU::Classes::VolumeGPU<float> vx, vy, vz;
+      
+      vx.Allocate( gcamDims );
+      vy.Allocate( gcamDims );
+      vz.Allocate( gcamDims );
+      vx.AllocateArray();
+      vy.AllocateArray();
+      vz.AllocateArray();
+      
+      dim3 grid, threads;
+      threads.x = threads.y = kGCAmorphSmoothEnergyKernelSize;
+      threads.z = 1;
+      
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphSmoothEnergyKernelSize );
+      grid.z = 1;
+      
+      GCAmorphEnergy::tSmoothSubtract.Start();
+      SubtractVolumes<float>
+	<<<grid,threads>>>
+	( gcam.d_rx, gcam.d_origx, vx );
+      CUDA_CHECK_ERROR( "SubtractVolumes failed for x!" );
+      
+      SubtractVolumes<float>
+	<<<grid,threads>>>
 	  ( gcam.d_ry, gcam.d_origy, vy );
-	CUDA_CHECK_ERROR( "SubtractVolumes failed for y!" );
-	
-	SubtractVolumes<float>
-	  <<<grid,threads>>>
-	  ( gcam.d_rz, gcam.d_origz, vz );
-	CUDA_CHECK_ERROR( "SubtractVolumes failed for z!" );
-	tSmoothSubtract.Stop();
-
-	// Get vx, vy and vz into CUDA arrays
-	vx.SendArray();
-	vy.SendArray();
-	vz.SendArray();
-
-	// Bind vx, vy and vz to their textures
-	dt_smooth_vx.normalized = false;
-	dt_smooth_vx.addressMode[0] = cudaAddressModeClamp;
-	dt_smooth_vx.addressMode[1] = cudaAddressModeClamp;
-	dt_smooth_vx.addressMode[2] = cudaAddressModeClamp;
-	dt_smooth_vx.filterMode = cudaFilterModePoint;
-
-	dt_smooth_vy.normalized = false;
-	dt_smooth_vy.addressMode[0] = cudaAddressModeClamp;
-	dt_smooth_vy.addressMode[1] = cudaAddressModeClamp;
-	dt_smooth_vy.addressMode[2] = cudaAddressModeClamp;
-	dt_smooth_vy.filterMode = cudaFilterModePoint;
-
-	dt_smooth_vz.normalized = false;
-	dt_smooth_vz.addressMode[0] = cudaAddressModeClamp;
-	dt_smooth_vz.addressMode[1] = cudaAddressModeClamp;
-	dt_smooth_vz.addressMode[2] = cudaAddressModeClamp;
-	dt_smooth_vz.filterMode = cudaFilterModePoint;
-
-	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vx, vx.GetArray() ) );
-	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy, vy.GetArray() ) );
-	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vz, vz.GetArray() ) );
-
-	// Also have to get the 'invalid' field to its texture
-	dt_smooth_invalid.normalized = false;
-	dt_smooth_invalid.addressMode[0] = cudaAddressModeClamp;
-	dt_smooth_invalid.addressMode[1] = cudaAddressModeClamp;
-	dt_smooth_invalid.addressMode[2] = cudaAddressModeClamp;
-	dt_smooth_invalid.filterMode = cudaFilterModePoint;
-
-	gcam.d_invalid.AllocateArray();
-	gcam.d_invalid.SendArray();
-	CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_invalid,
-						gcam.d_invalid.GetArray() ) );
-
-	// Run the main kernel
-	tSmoothCompute.Start();
-	SmoothnessKernel<<<grid,threads>>>
-	  ( gcam.d_invalid,
-	    thrust::raw_pointer_cast( d_energies ) );
-	CUDA_CHECK_ERROR( "SmoothnessKernel failed!" );
-	tSmoothCompute.Stop();
-
-	// Get the total
-	float smoothEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
-
-	// Release thrust arrays
-	thrust::device_delete( d_energies );
-
-	// Unbind textures
-	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vx ) );
-	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vy ) );
-	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vz ) );
-	CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_invalid ) );
-
-
-	tSmoothTot.Stop();
-
-	return( smoothEnergy );
-      }
-
-
-      // --------------------------------------------------
+      CUDA_CHECK_ERROR( "SubtractVolumes failed for y!" );
       
-      //! Implementation of gcamComputeSSE for the GPU
-      template<typename T>
-      float ComputeSSE( GPU::Classes::GCAmorphGPU& gcam,
-			const GPU::Classes::MRIframeGPU<T>& mri,
-			const float mriThick,
-			GCA_MORPH_PARMS *parms ) {
-	/*!
-	  Calls all the necessary things on the GPU to match
-	  gcamComputeSSE.
-	  For now, just a bunch of tests, to see if we have
-	  all the required routines in place
-	*/
-
-	float l_sse, j_sse, s_sse;
-	float label_sse;
-
-	l_sse = j_sse = s_sse = 0;
-	label_sse = 0;
-
-	if( !DZERO(parms->l_area_intensity) ) {
-	  std::cerr << "gcamCreateNodeLookupTable not on GPU yet!"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
-	// Compute the metric properties
-	int invalid, neg;
-	gcam.ComputeMetricProperties( invalid, neg );
-
-
-	// Get the log likelihood energy
-	if( !DZERO(parms->l_log_likelihood) || !DZERO(parms->l_likelihood) ) {
-	  l_sse = MAX(parms->l_log_likelihood, parms->l_likelihood) * 
-	    this->LogLikelihoodEnergy( gcam, mri );
-	}
-
-	if( !DZERO(parms->l_multiscale) ) {
-	  std::cerr << "gcamMultiscaleEnergy not on GPU yet!"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
-	if( !DZERO(parms->l_dtrans) ) {
-	  std::cerr << "gcamDistanceTransformEnergy not on GPU yet!"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
+      SubtractVolumes<float>
+	<<<grid,threads>>>
+	( gcam.d_rz, gcam.d_origz, vz );
+      CUDA_CHECK_ERROR( "SubtractVolumes failed for z!" );
+      GCAmorphEnergy::tSmoothSubtract.Stop();
       
+      // Get vx, vy and vz into CUDA arrays
+      vx.SendArray();
+      vy.SendArray();
+      vz.SendArray();
+      
+      // Bind vx, vy and vz to their textures
+      dt_smooth_vx.normalized = false;
+      dt_smooth_vx.addressMode[0] = cudaAddressModeClamp;
+      dt_smooth_vx.addressMode[1] = cudaAddressModeClamp;
+      dt_smooth_vx.addressMode[2] = cudaAddressModeClamp;
+      dt_smooth_vx.filterMode = cudaFilterModePoint;
+      
+      dt_smooth_vy.normalized = false;
+      dt_smooth_vy.addressMode[0] = cudaAddressModeClamp;
+      dt_smooth_vy.addressMode[1] = cudaAddressModeClamp;
+      dt_smooth_vy.addressMode[2] = cudaAddressModeClamp;
+      dt_smooth_vy.filterMode = cudaFilterModePoint;
+      
+      dt_smooth_vz.normalized = false;
+      dt_smooth_vz.addressMode[0] = cudaAddressModeClamp;
+      dt_smooth_vz.addressMode[1] = cudaAddressModeClamp;
+      dt_smooth_vz.addressMode[2] = cudaAddressModeClamp;
+      dt_smooth_vz.filterMode = cudaFilterModePoint;
+      
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vx,
+					      vx.GetArray() ) );
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy,
+					      vy.GetArray() ) );
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vz,
+					      vz.GetArray() ) );
+      
+      // Also have to get the 'invalid' field to its texture
+      dt_smooth_invalid.normalized = false;
+      dt_smooth_invalid.addressMode[0] = cudaAddressModeClamp;
+      dt_smooth_invalid.addressMode[1] = cudaAddressModeClamp;
+      dt_smooth_invalid.addressMode[2] = cudaAddressModeClamp;
+      dt_smooth_invalid.filterMode = cudaFilterModePoint;
+      
+      gcam.d_invalid.AllocateArray();
+      gcam.d_invalid.SendArray();
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_invalid,
+					      gcam.d_invalid.GetArray() ) );
+      
+      // Run the main kernel
+      GCAmorphEnergy::tSmoothCompute.Start();
+      SmoothnessKernel<<<grid,threads>>>
+	( gcam.d_invalid,
+	  thrust::raw_pointer_cast( d_energies ) );
+      CUDA_CHECK_ERROR( "SmoothnessKernel failed!" );
+      GCAmorphEnergy::tSmoothCompute.Stop();
 
-	if( !DZERO(parms->l_label) ) {
-	  label_sse = this->LabelEnergy( gcam );
-	}
+      // Get the total
+      float smoothEnergy = thrust::reduce( d_energies, d_energies+nVoxels );
+      
+      // Release thrust arrays
+      thrust::device_delete( d_energies );
+      
+      // Unbind textures
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vx ) );
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vy ) );
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vz ) );
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_invalid ) );
+      
+      
+      GCAmorphEnergy::tSmoothTot.Stop();
+
+      return( smoothEnergy );
+    }
     
-	if( !DZERO(parms->l_binary) ) {
-	  std::cerr << "gcamBinaryEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-
-	if( !DZERO(parms->l_area_intensity) ) {
-	  std::cerr << "gcamAreaIntensityEnergy not on GPU yet!"
-		    << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-  
-	if( !DZERO(parms->l_map) ) {
-	  std::cerr << "gcamMapEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-
-	
-	if( !DZERO(parms->l_expansion) ) {
-	  std::cerr << "gcamExpansionEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-
-	
-	if( !DZERO(parms->l_distance) ) {
-	  std::cerr << "gcamDistanceEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
-	// Compute the Jacobian energy
-	if( !DZERO(parms->l_jacobian) ) {
-	  j_sse = parms->l_jacobian *
-	    this->ComputeJacobianEnergy( gcam, mriThick );
-	}
     
-	if( !DZERO(parms->l_area) ) {
-	  std::cerr << "gcamAreaEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
-	if( !DZERO(parms->l_area_smoothness) ) {
-	  std::cerr << "gcamAreaEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
-	if( !DZERO(parms->l_smoothness) ) {
-	  s_sse = parms->l_smoothness * this->SmoothnessEnergy( gcam );
-	}
-	
-	// Note extra 'l'
-	if( !DZERO(parms->l_lsmoothness) ) {
-	  std::cerr << "gcamLSmoothnessEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-	
-	if( !DZERO(parms->l_spring) ) {
-	  std::cerr << "gcamSpringEnergy not on GPU yet!" << std::endl;
-	  exit( EXIT_FAILURE );
-	}
-
-	float sse;
-
-	sse = l_sse + j_sse + s_sse;
-	sse += label_sse;
-
-	return( sse );
-      }
-
+    // --------------------------------------------------
+    
+    //! Implementation of gcamComputeSSE for the GPU
+    template<typename T>
+    float GCAmorphEnergy::ComputeSSE( GPU::Classes::GCAmorphGPU& gcam,
+				      const GPU::Classes::MRIframeGPU<T>& mri,
+				      const float mriThick,
+				      GCA_MORPH_PARMS *parms ) const {
+      /*!
+	Calls all the necessary things on the GPU to match
+	gcamComputeSSE.
+	For now, just a bunch of tests, to see if we have
+	all the required routines in place
+      */
       
-
-      // --------------------------------------------------
+      float l_sse, j_sse, s_sse;
+      float label_sse;
       
-      template<typename T>
-      float ComputeRMS( GPU::Classes::GCAmorphGPU& gcam,
-			const GPU::Classes::MRIframeGPU<T>& mri,
-			const float mriThick,
-			GCA_MORPH_PARMS *parms ) {
-
-	float sse = this->ComputeSSE( gcam, mri, mriThick, parms );
-
-	const dim3 dims = gcam.d_rx.GetDims();
-	float nVoxels = dims.x;
-	nVoxels *= dims.y;
-	nVoxels *= dims.z;
-
-	float rms = sqrtf( sse/nVoxels );
-
-	return( rms );
+      l_sse = j_sse = s_sse = 0;
+      label_sse = 0;
+      
+      if( !DZERO(parms->l_area_intensity) ) {
+	std::cerr << "gcamCreateNodeLookupTable not on GPU yet!"
+		  << std::endl;
+	  exit( EXIT_FAILURE );
       }
-
-      template<typename T>
-      float RMSdispatch( GPU::Classes::GCAmorphGPU& gcam,
-			 const MRI *mri,
-			 const float mriThick,
-			 GCA_MORPH_PARMS *parms ) {
-	
-
-	GPU::Classes::MRIframeGPU<T> mriGPU;
-
-	mriGPU.Allocate( mri );
-	mriGPU.Send( mri, 0 );
-	mriGPU.AllocateArray();
-	mriGPU.SendArray();
-
-	float rms = this->ComputeRMS( gcam, mriGPU, mriThick, parms );
-
-	return( rms );
+      
+      // Compute the metric properties
+      int invalid, neg;
+      gcam.ComputeMetricProperties( invalid, neg );
+      
+      
+      // Get the log likelihood energy
+      if( !DZERO(parms->l_log_likelihood) || !DZERO(parms->l_likelihood) ) {
+	l_sse = MAX(parms->l_log_likelihood, parms->l_likelihood) * 
+	  this->LogLikelihoodEnergy( gcam, mri );
       }
-
-
-      // ------------------------------------------------
-    private:
-      //! Stream to use for operations
-      cudaStream_t stream;
-
-      //! Timer for LLEdispatch
-      mutable SciGPU::Utilities::Chronometer tLLEdispatch;
-
-      //! Timer for log likelihood energy
-      mutable SciGPU::Utilities::Chronometer tLLEtot;
-      //! Timer for LLE 'good' assesments
-      mutable SciGPU::Utilities::Chronometer tLLEgood;
-      //! Timer for LLE calculation
-      mutable SciGPU::Utilities::Chronometer tLLEcompute;
-
-      //! Timer for Jacobian Energy
-      mutable SciGPU::Utilities::Chronometer tJacobTot;
-      //! Timer for Jacobian Energy kernel
-      mutable SciGPU::Utilities::Chronometer tJacobCompute;
-
-      //! Mutable for Label Energy
-      mutable SciGPU::Utilities::Chronometer tLabelTot;
-      //! Timer for Label Energy kernel
-      mutable SciGPU::Utilities::Chronometer tLabelCompute;
-
-      //! Timer for smoothness energy
-      mutable SciGPU::Utilities::Chronometer tSmoothTot;
-      //! Timer for subtractions in smoothness energy
-      mutable SciGPU::Utilities::Chronometer tSmoothSubtract;
-      //! Timer for smoothness computation itself
-      mutable SciGPU::Utilities::Chronometer tSmoothCompute;
-
-
-      //! Templated texture binding wrapper
-      template<typename T>
-      void BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const {
-	std::cerr << __PRETTY_FUNCTION__
-		  << ": Unrecognised MRI type" << std::endl;
+      
+      if( !DZERO(parms->l_multiscale) ) {
+	std::cerr << "gcamMultiscaleEnergy not on GPU yet!"
+		  << std::endl;
 	exit( EXIT_FAILURE );
       }
-
-      //! Templated texture unbinding
-      template<typename T>
-      void UnbindMRI( void ) const {
-	std::cerr << __PRETTY_FUNCTION__
-		  << ": Unrecognised MRI type" << std::endl;
+      
+      if( !DZERO(parms->l_dtrans) ) {
+	std::cerr << "gcamDistanceTransformEnergy not on GPU yet!"
+		  << std::endl;
 	exit( EXIT_FAILURE );
       }
-    };
+      
+      
+      if( !DZERO(parms->l_label) ) {
+	label_sse = this->LabelEnergy( gcam );
+      }
+      
+      if( !DZERO(parms->l_binary) ) {
+	std::cerr << "gcamBinaryEnergy not on GPU yet!" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( !DZERO(parms->l_area_intensity) ) {
+	std::cerr << "gcamAreaIntensityEnergy not on GPU yet!"
+		  << std::endl;
+	exit( EXIT_FAILURE );
+	}
+      
+      if( !DZERO(parms->l_map) ) {
+	std::cerr << "gcamMapEnergy not on GPU yet!" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      
+      if( !DZERO(parms->l_expansion) ) {
+	std::cerr << "gcamExpansionEnergy not on GPU yet!" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+	
+      if( !DZERO(parms->l_distance) ) {
+	std::cerr << "gcamDistanceEnergy not on GPU yet!" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      // Compute the Jacobian energy
+      if( !DZERO(parms->l_jacobian) ) {
+	j_sse = parms->l_jacobian *
+	  this->ComputeJacobianEnergy( gcam, mriThick );
+      }
+      
+      if( !DZERO(parms->l_area) ) {
+	std::cerr << "gcamAreaEnergy not on GPU yet!" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( !DZERO(parms->l_area_smoothness) ) {
+	std::cerr << "gcamAreaEnergy not on GPU yet!" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+	
+      if( !DZERO(parms->l_smoothness) ) {
+	s_sse = parms->l_smoothness * this->SmoothnessEnergy( gcam );
+      }
+      
+      // Note extra 'l'
+      if( !DZERO(parms->l_lsmoothness) ) {
+	std::cerr << "gcamLSmoothnessEnergy not on GPU yet!" << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( !DZERO(parms->l_spring) ) {
+	std::cerr << "gcamSpringEnergy not on GPU yet!" << std::endl;
+	exit( EXIT_FAILURE );
+	}
+      
+      float sse;
+      
+      sse = l_sse + j_sse + s_sse;
+      sse += label_sse;
+      
+      return( sse );
+    }
+    
+      
+
+    // --------------------------------------------------
+    
+    template<typename T>
+    float GCAmorphEnergy::ComputeRMS( GPU::Classes::GCAmorphGPU& gcam,
+				      const GPU::Classes::MRIframeGPU<T>& mri,
+				      const float mriThick,
+				      GCA_MORPH_PARMS *parms ) const {
+      
+      float sse = this->ComputeSSE( gcam, mri, mriThick, parms );
+      
+      const dim3 dims = gcam.d_rx.GetDims();
+      float nVoxels = dims.x;
+      nVoxels *= dims.y;
+      nVoxels *= dims.z;
+      
+      float rms = sqrtf( sse/nVoxels );
+      
+      return( rms );
+    }
+    
+    template<typename T>
+    float GCAmorphEnergy::RMSdispatch( GPU::Classes::GCAmorphGPU& gcam,
+				       const MRI *mri,
+				       const float mriThick,
+				       GCA_MORPH_PARMS *parms ) const {
+      
+      
+      GPU::Classes::MRIframeGPU<T> mriGPU;
+      
+      mriGPU.Allocate( mri );
+      mriGPU.Send( mri, 0 );
+      mriGPU.AllocateArray();
+      mriGPU.SendArray();
+      
+      float rms = this->ComputeRMS( gcam, mriGPU, mriThick, parms );
+      
+      return( rms );
+    }
 
 
+    // --------------------------------------------------------
+    
+
+    
+    template<typename T>
+    void GCAmorphEnergy::BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const {
+      std::cerr << __PRETTY_FUNCTION__
+		<< ": Unrecognised MRI type" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+    
+    //! Templated texture unbinding
+    template<typename T>
+    void GCAmorphEnergy::UnbindMRI( void ) const {
+      std::cerr << __PRETTY_FUNCTION__
+		<< ": Unrecognised MRI type" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+    
+    
+    // Texture binding specialisations
+    
     template<>
     void GCAmorphEnergy::BindMRI<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
 
@@ -1126,6 +1102,43 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_uchar ) );
     }
     
+
+
+    // --------------------------------------------------------
+
+    // Declare static members
+
+    //! Timer for LLEdispatch
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tLLEdispatch;
+    
+    //! Timer for log likelihood energy
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tLLEtot;
+    //! Timer for LLE 'good' assesments
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tLLEgood;
+    //! Timer for LLE calculation
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tLLEcompute;
+    
+    //! Timer for Jacobian Energy
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tJacobTot;
+    //! Timer for Jacobian Energy kernel
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tJacobCompute;
+    
+    //! Mutable for Label Energy
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tLabelTot;
+    //! Timer for Label Energy kernel
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tLabelCompute;
+
+    //! Timer for smoothness energy
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tSmoothTot;
+    //! Timer for subtractions in smoothness energy
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tSmoothSubtract;
+    //! Timer for smoothness computation itself
+    SciGPU::Utilities::Chronometer GCAmorphEnergy::tSmoothCompute;
+
+
+
+
+
   }
 }
 
