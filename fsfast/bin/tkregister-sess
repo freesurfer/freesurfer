@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/10/13 17:04:24 $
-#    $Revision: 1.28 $
+#    $Date: 2010/04/01 21:27:49 $
+#    $Revision: 1.29 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,35 +23,34 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.28 2009/10/13 17:04:24 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.29 2010/04/01 21:27:49 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
-set umaskarg     = ();
-set rsd          = ();
 set fsd          = bold;
-set asd          = 3danat;
-set samesessanat = 0;
-set nocopy       = 0;
 set nolog        = 0;
-set anatvol      = T1;
+set anatvol      = orig
 set UseNew       = 1;
 set Surf         = white;
-set Run          = ();
-set DoPerRun     = 0;
+set PerRun       = 0;
+
 set Plane        = "cor";
 set Slice        = ();
 set Inorm        = 0;
 set VolView      = mov;
 set regfilename  = register.dat
-set funcstem     = f;
 set FOV          = ();
 set fmov         = ();
 set movscale     = ();
 set movframe     = 0;
-set ForceRegHeader = 0;
-set fmt = ();
-set MGZ = ();
+set RegHeader    = 0;
+set BBRSumFile   = ();
+set SurfRGB = ();
+set DoAseg = 0;
+set DoAparcAseg = 0;
+set DoWMparc = 0;
+set DoTag = 0;
+set Size = ();
 
 set PrintHelp = 0;
 if($#argv == 0)  goto usage_exit;
@@ -60,16 +59,53 @@ if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
 endif
-set n = `echo $argv | grep version | wc -l` 
+set n = `echo $argv | grep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
 
-## Look for nolog option ##
-set n = `echo $argv | grep nolog | wc -l` 
-if($n != 0) then
-  set nolog = 1;
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "$SessList"
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+#-----------------------------------------------
+if($#BBRSumFile) then
+  # Print out a summary of BBR costs and exit
+  rm -f $BBRSumFile
+  foreach sess ($SessList)
+    set sessid = `basename $sess`
+    if(! $PerRun) then
+      set reg = $sess/$fsd/$regfilename
+      if(! -e $reg.mincost) then
+        echo "ERROR: cannot find costfile $reg.mincost"
+        echo "Make sure to run register-sess using -bbr"
+        exit 1;
+      endif
+      set mincost = `cat $reg.mincost | awk '{print $1}'`
+      printf "%-10s %6.4f\n" $sessid $mincost
+      continue
+    endif
+    set RunList = `getrunlist $sess/$fsd`;
+    foreach Run ($RunList)
+      set reg = $sess/$fsd/$Run/$regfilename
+      if(! -e $reg.mincost) then
+        echo "ERROR: cannot find costfile $reg.mincost"
+        echo "Make sure to run register-sess using -bbr"
+        exit 1;
+      endif
+      set mincost = `cat $reg.mincost | awk '{print $1}'`
+      printf "%-10s %s %6.4f\n" $sessid $Run $mincost | tee -a $BBRSumFile
+    end 
+  end
+  exit 0
 endif
 
 ##### Create a log file ######
@@ -95,275 +131,107 @@ echo "tkregister-sess log file" >> $LF
 echo $VERSION  >> $LF
 echo "" >> $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR " >> $LF
-pwd  >> $LF
+echo "cd `pwd` " >> $LF
 echo "$0 $inputargs" >> $LF
 echo "" >> $LF
 hostname  >> $LF
 which tkregister2 >> $LF
 
-goto parse_args;
-parse_args_return:
-
-set SessList = `getsesspath $inputargs`;
-if($status || $#SessList == 0) then
-  getsesspath $inputargs |& tee -a $LF
-  echo "ERROR: cannot find any sessions" |& tee -a $LF
-  exit 1;
-endif
-
-goto check_params;
-check_params_return:
-
 ## Loop through each session ##
 foreach sess ($SessList)
-
+  set sessid = `basename $sess`
   echo " " |& tee -a $LF
-  echo "Session: $sess ----------------" |& tee -a $LF
-  date  |& tee -a $LF
-  pushd $sess > /dev/null
-  set sessid = `basename $sess`;
+  echo "Session: $sessid ----------------" |& tee -a $LF
 
-  ## Get the anatomical directory ##
-  if($samesessanat) then
-    ## Anatomical directory is in the session ##
-    set anatdir = `getfirstrundir-sess $asd`;
-    if(-e subjectname) then
-      set subject = `cat subjectname`;
-    else
-      set subject = unknown
-    endif
-  else
-    ## Anatomical directory is in the database ##
-    if(! -e subjectname) then
-      echo "ERROR: file 'subjectname' does not exist in $sess"
-      exit 1;
-    endif
-    set subject = `cat subjectname`;
-    if(! -e $SUBJECTS_DIR/$subject) then
-      echo "ERROR: $subject is not in SUBJECTS_DIR" |& tee -a $LF
-      echo "  SUBJECTS_DIR is $SUBJECTS_DIR" |& tee -a $LF
-      exit 1;
-    endif
-    set anatdir = $SUBJECTS_DIR/$subject/mri/$anatvol.mgz;
-    if(! -e $anatdir)  set anatdir = $SUBJECTS_DIR/$subject/mri/$anatvol
-  endif
-
-  echo "INFO: anatdir set to $anatdir" |& tee -a $LF
-  if(! -e $anatdir ) then
-    echo "ERROR: $anatdir does not exist" |& tee -a $LF
+  set subject = `cat $sess/subjectname`;
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: $subject is not in SUBJECTS_DIR" |& tee -a $LF
+    echo "  SUBJECTS_DIR is $SUBJECTS_DIR" |& tee -a $LF
     exit 1;
   endif
 
-  ## Get absolute path for anatdir ##
-  #pushd $anatdir > /dev/null
-  #set anatdir = `pwd`;
-  #popd > /dev/null
-
-  ## Make sure the functional subdirectory exists ##
-  if($rsd != $fsd && ! $nocopy) then
-    if(! -e $fsd) then
-      echo "ERROR: $fsd does not exist"
-      exit 1;
-    endif
+  # Set up the basic cmd line
+  set cmd = (tkregister2 --plane $Plane --volview $VolView)
+  if($#Slice)    set cmd = ($cmd --slice $Slice)
+  if($Inorm)     set cmd = ($cmd --inorm)
+  if(! $Inorm)   set cmd = ($cmd --no-inorm)
+  if($FOV)       set cmd = ($cmd --fov $FOV)
+  if($#movscale) set cmd = ($cmd --movscale $movscale)
+  if($#fmov)     set cmd = ($cmd --fmov $fmov)
+  if($RegHeader) set cmd = ($cmd --regheader)
+  if($#SurfRGB)  set cmd = ($cmd --surf-rgb $SurfRGB)
+  if($DoTag)     set cmd = ($cmd --tag)
+  if($DoAseg)    set cmd = ($cmd --aseg)
+  if($DoAparcAseg)  set cmd = ($cmd --aparc+aseg)
+  if($DoWMparc)     set cmd = ($cmd --wmparc)
+  if($Size)     set cmd = ($cmd --$Size)
+  set cmd = ($cmd --fstarg --targ $anatvol)
+  if($#Surf) then
+    set lhsurfpath = $SUBJECTS_DIR/$subject/surf/lh.$Surf;
+    set rhsurfpath = $SUBJECTS_DIR/$subject/surf/rh.$Surf;
+    if(-e $lhsurfpath && -e $rhsurfpath ) set cmd = ($cmd --surf $Surf)
   endif
+  set title = $subject--$sessid;
 
-  ## Get the directory of the functional registration data ##
-  if(! -e $rsd ) then
-    echo "ERROR: $rsd does not exist"|& tee -a $LF
-    exit 1;
-  endif
-  if($#Run == 0) then
-    set funcdir = `getfirstrundir-sess $rsd`;
+  if(! $PerRun) then
+    # Session-Level
+    set template = `stem2fname $sess/$fsd/template`
     if($status) then
-      echo $funcdir
+      echo "ERROR: cannot find template in $sess/$fsd" | tee -a $LF
+      echo " Try running mktemplate-sess" | tee -a $LF
       exit 1;
     endif
-    set RunUse = `basename $funcdir`;
-  else
-    set funcdir = $rsd/$Run
-    if(! -e $funcdir) then
-      echo "ERROR: $Run does not exist in $rsd" |& tee -a $LF
+    set reg = $sess/$fsd/$regfilename
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg"  | tee -a $LF
+      echo "Try running register-sess"  | tee -a $LF
       exit 1;
     endif
-    set RunUse = $Run
+    # Set up the title
+    set ttl = $title
+    if(-e $reg.mincost) then
+      set mincost = `cat $reg.mincost | awk '{print $1}'`
+      set ttl = `printf "%s-%4.2f" $ttl $mincost`
+    endif
+    # Run the cmd
+    set cmd = ($cmd --reg $reg --mov $template --title $ttl)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    continue
   endif
 
-  cd $funcdir
-
-  if(! $DoPerRun) then
-    set regfile = ../$regfilename
-  else
-    set regfile = $regfilename
-  endif 
-  pwd
-  echo $regfile
-
-  if($UseNew) then
-    if(! -e $regfile) then
-      if(! $ForceRegHeader) then
-        echo "ERROR: $regfile not found. Create it or use -regheader"
-        exit 1;
-      endif
-      echo ""
-      echo "INFO: using default registration"
-      echo ""
-      sleep 2
-      set mkregopt = (--regheader)
-      if(! $samesessanat) set mkregopt = ($mkregopt --subject $subject)
-    else
-      if($ForceRegHeader) then
-        echo "INFO: $regfile found, but forcing header registration"
-        set mkregopt = (--regheader)
-        if(! $samesessanat) set mkregopt = ($mkregopt --subject $subject)
-      else
-        set mkregopt = ();
-      endif
-    endif
-
-    set fmtuse = `getformat_from_stem $funcstem $fmt`
+  # Per-Run ------------------------------------
+  set RunList = `getrunlist $sess/$fsd`;
+  foreach Run ($RunList)
+    set template = `stem2fname $sess/$fsd/$Run/template`
     if($status) then
-      echo "$fmtuse" |& tee -a $LF
+      echo "ERROR: cannot find template in $sess/$fsd/$Run" | tee -a $LF
+      echo " Try running mktemplate-sess" | tee -a $LF
       exit 1;
     endif
-    echo "Detected format as $fmtuse" |& tee -a $LF
-    set movfile = $funcstem.$fmtuse
-
-    set anatpath = $anatdir;
-    if(-e $anatdir.mgz) set anatpath = $anatdir.mgz;
-
-    set TKR2 = tkregister2
-    set cmd = ($TKR2 --targ $anatpath --mov $movfile)
-    set cmd = ($cmd $mkregopt --reg $regfile --plane $Plane)
-    set cmd = ($cmd --title $subject--$sessid--$RunUse)
-    set cmd = ($cmd --volview $VolView)
-    set cmd = ($cmd --movframe $movframe)
-    if($#Slice) set cmd = ($cmd --slice $Slice)
-    if($Inorm)  set cmd = ($cmd --inorm)
-    if(! $Inorm)  set cmd = ($cmd --no-inorm)
-    if($FOV)    set cmd = ($cmd --fov $FOV)
-    if($#movscale) set cmd = ($cmd --movscale $movscale)
-    if($#fmov)     set cmd = ($cmd --fmov $fmov)
-    if($#MGZ) set cmd = ($cmd --mgz)
-    if($#Surf != 0) then
-      set lhsurfpath = $SUBJECTS_DIR/$subject/surf/lh.$Surf;
-      set rhsurfpath = $SUBJECTS_DIR/$subject/surf/rh.$Surf;
-      if(! -e $lhsurfpath || ! -e $rhsurfpath ) then
-        echo ""
-        echo "----------------------------------------------------"
-        echo "INFO: surface $Surf does not exist for $subject, so it will"
-        echo "not be loaded into the display. This may be because"
-        echo "the subject's anatomical data has not been processed"
-        echo "with FreeSurfer in order to reconstruct the surface."
-        echo "You can change the surface from $Surf with the -surf"
-        echo "option (followed by the name of the surface."
-        echo "Continuing..."
-        echo "----------------------------------------------------"
-        echo ""
-      else
-       set cmd = ($cmd --surf $Surf);
-      endif
-    endif
-    echo "________________________________________________" |& tee -a $LF
-    pwd  |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    echo "________________________________________________" |& tee -a $LF
-
-    ## Run tkregister2 ##
-    $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: tkregister2 failed"
+    set reg = $sess/$fsd/$Run/$regfilename
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg"  | tee -a $LF
+      echo "Try running register-sess"  | tee -a $LF
       exit 1;
     endif
-  else
-    # Use the old tkregister #
-    ## Get the registration file ##
-    ##   First, look for $regfile, 
-    ##     Then, look for same-session-reg.dat,
-    ##       Then, create a default
-    if(! -e $regfile ) then
-      set regfile = ../same-session-reg.dat
-      if( -e $regfile ) then
-        echo "INFO: using same-session-reg.dat"
-        cp $regfile ../$regfile
-        set regfile = ../$regfile
-      else
-        echo ""
-        echo "INFO: no registration found, using default"
-        echo ""
-        sleep 1
-        set regfile = ();
-      endif
-    else
-      echo "INFO: using ../$regfile"
+    # Set up the title
+    set ttl = $title-$Run
+    if(-e $reg.mincost) then
+      set mincost = `cat $reg.mincost | awk '{print $1}'`
+      set ttl = `printf "%s-%4.2f" $ttl $mincost`
     endif
-
-    ## Create the register file option for tkregister ##
-    if($#regfile != 0) then
-      set regoption = "-regdat $regfile"
-      cp $regfile $regfile.$DateString
-    else
-      set regoption = "-mkdefault"
-    endif
-
-    ## Construct the command-line ##
-    echo "________________________________________________" |& tee -a $LF
-    set tkregister = tkregister
-    set cmd = "$tkregister local $anatdir $regoption" 
-    pwd  |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    echo "________________________________________________" |& tee -a $LF
-
-    ## Run tkregister ##
-    $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: tkregister failed"
-      exit 1;
-    endif
-
-    if($#regfile == 0) then
-      mv $regfile ..
-      set regfile = ../$regfile
-    endif
-  endif
-
-  ## Make sure the functional subdirectory exists ##
-  if($rsd != $fsd && ! $nocopy) then
-
-    ## Get voxel dimensions of bold run ##
-    set fsdseqfile = $sess/$fsd/seq.info
-    if(! -e $fsdseqfile ) then
-      echo "ERROR: cannot find $fsdseqfile"
-      exit 1;
-    endif
-    set inplaneres  = `cat $fsdseqfile|awk '{if($1=="rowpixelsize")print $2}'`;
-    set betplaneres = `cat $fsdseqfile|awk '{if($1=="slcpixelsize")print $2}'`;
-
-    if($#inplaneres == 0) then
-      echo "ERROR: seq.info file does not appear to be formated correctly"
-      echo "       Try running fixseqinfo-sess."
-      exit 1;
-    endif
-
-    set fsdreg = $sess/$fsd/$regfile
-    if(-e $fsdreg) mv $fsdreg $fsdreg.$DateString
-    head -n 1 $regfile >> $fsdreg  # subject name
-    echo $inplaneres   >> $fsdreg  # pixel size
-    echo $betplaneres  >> $fsdreg  # slice thick
-    echo 0.15          >> $fsdreg  # intensity
-    set tmp = `cat $fsdreg | tail -n 1`;
-    if($#tmp > 1) then
-      tail -n 4 $regfile >> $fsdreg  # matrix
-    else
-      tail -n 5 $regfile >> $fsdreg  # matrix+float2int
-    endif
-  endif
-
-  popd > /dev/null
+    # Run the cmd
+    set cmd = ($cmd --reg $reg --mov $template --title $ttl)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  end
 
 end  # foreach sess ($SessList)
 
-
-echo "tkregister-sess completed SUCCESSFULLY"
+echo "tkregister-sess completed"
 
 exit 0;
 
@@ -381,20 +249,8 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
-    case "-rsd":
-      if ( $#argv == 0) goto arg1err;
-      set rsd = $argv[1]; shift;
-      breaksw
-
-    case "-run":
-      if ( $#argv == 0) goto arg1err;
-      set Run = $argv[1]; shift;
-      breaksw
-
     case "-perrun":
-      set DoPerRun = 1;
-      set regfilename = fs.register.dat
-      set funcstem = template;
+      set PerRun = 1;
       breaksw
 
     case "-plane":
@@ -410,6 +266,23 @@ while( $#argv != 0 )
     case "-fov":
       if ( $#argv == 0) goto arg1err;
       set FOV = $argv[1]; shift;
+      breaksw
+
+    case "-size":
+      if ( $#argv == 0) goto arg1err;
+      set Size = $argv[1]; shift;
+      breaksw
+
+    case "-aseg":
+      set DoAseg = 1;
+      breaksw
+
+    case "-aparc+aseg":
+      set DoAparcAseg = 1;
+      breaksw
+
+    case "-wmparc":
+      set DoWMparc = 1;
       breaksw
 
     case "-movscale":
@@ -432,10 +305,6 @@ while( $#argv != 0 )
       set fmt = $argv[1]; shift;
       breaksw
 
-    case "-mgz":
-      set MGZ = .mgz;
-      breaksw
-
     case "-volview":
       if ( $#argv == 0) goto arg1err;
       set VolView = $argv[1]; shift;
@@ -454,11 +323,19 @@ while( $#argv != 0 )
       set Inorm = 0;
       breaksw
 
-    case "-regheader":
-      set ForceRegHeader = 1;
+    case "-bbr-sum":
+      if ( $#argv == 0) goto arg1err;
+      set BBRSumFile = $argv[1]; shift;
       breaksw
 
+    case "-regheader":
+      set RegHeader = 1;
+      breaksw
+
+    case "-fstarg":
+    case "-targ":
     case "-anatvol":
+    case "-anat":
       if ( $#argv == 0) goto arg1err;
       set anatvol = $argv[1]; shift;
       breaksw
@@ -468,47 +345,24 @@ while( $#argv != 0 )
       set Surf = $argv[1]; shift;
       breaksw
 
+    case "-surf-rgb":
+      if($#argv < 3) goto arg3err;
+      set SurfRGB = ($argv[1] $argv[2] $argv[3]);
+      shift;shift;shift;
+      breaksw
+
     case "-reg":
     case "-regfile":
       if ( $#argv == 0) goto arg1err;
       set regfilename = $argv[1]; shift;
       breaksw
 
-    case "-funcstem":
-      if ( $#argv == 0) goto arg1err;
-      set funcstem = $argv[1]; shift;
-      breaksw
-
-    case "-umask":
-      if ( $#argv == 0) goto arg1err;
-      set umaskarg = "-umask $argv[1]";
-      umask $argv[1]; shift;
-      breaksw
-
     case "-nosurf":
       set Surf = ();
       breaksw
 
-    case "-nocopy":
-      set nocopy = 1;
-      breaksw
-
-    case "-useold":
-      set UseNew = 0;
-      breaksw
-
-    case "-verbose":
-      set verbose = 1;
-      breaksw
-
-    case "-echo":
-      set echo = 1;
-      breaksw
-
-    case "-sessanat":
-    case "-samesessanat":
-      set samesessanat = 1;
-      set Surf = ();
+    case "-tag":
+      set DoTag = 1;
       breaksw
 
     case "-nolog":
@@ -545,48 +399,43 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
-
-  if ($#SessList == 0) then
-    echo "ERROR: no sessions specified" |& tee -a $LF
-    exit 1;
-  endif
-
-  if($#rsd == 0) set rsd = $fsd;
-
-  if($samesessanat && $#Surf != 0) then
-    echo "ERROR: cannot specify a surface when using same-session anat"
-    exit 1;
-  endif
-
-
+if($#SessList == 0) then
+  echo "ERROR: no sessions specified" |& tee -a $LF
+  exit 1;
+endif
 goto check_params_return;
-############--------------##################
-
 ############--------------##################
 arg1err:
   echo "ERROR: flag $flag requires one argument"
   exit 1
 ############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
 
 ############--------------##################
 usage_exit:
-  echo "USAGE: tkregister-sess"
-  echo "Options:";
+  echo "tkregister-sess"
+  echo ""
+  echo "Session Arguemnts (some combination required)";
   echo "   -sf sessidfile  ..."
   echo "   -df srchdirfile ..."
   echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
-  echo "   -funcstem funcstem : default is f"
+  echo ""
+  echo "Optional Arguments"
+  echo "   -bbr-sum sumfile : only print summary of BBR cost (for quality assurance)"
+  echo "   -fsd dir       : functional subdirectory (default $fsd)"
+  echo "   -perrun        : register each run separately"
+  echo "   -reg file      : use file instead of register.dat"
+  echo "   -regheader     : force init based on header"
+  echo "   -anat anat  : specify anatomy (default $anatvol)"
   echo "   -surf surfacename : display surfacename as an overlay (white)"
+  echo "   -surf-rgb R G B : surface color 0-255"
   echo "   -nosurf        : don't display a surface"
-  echo "   -rsd dir       : subdirectory with data to register ($rsd)"
-  echo "   -fsd dir       : functional subdirectory ($fsd)"
-  echo "   -asd dir       : anatomical subdirectory ($asd)"
-  echo "   -run runid     : register to runid (eg, 003). Def is 1st run."
-  echo "   -perrun        : register each run separately (one per invokation)"
-  echo "   -nocopy        : do not copy registration to fsd"
-  echo "   -sessanat      : register to same-session anatomical"
-  echo "   -anatvol dir   : specify subdirectory of subjid/mri"
+  echo ""
+  echo "These control the presentation"
   echo "   -volview volid : starup with either mov (def) or targ"
   echo "   -fov FOV       : set window FOV in mm (default is 256)"
   echo "   -fmov fmov     : set mov brightness"
@@ -594,12 +443,10 @@ usage_exit:
   echo "   -movframe frame: 0-based frame number"
   echo "   -plane orient  : starup with orient. <cor>, sag, or ax"
   echo "   -slice sliceno : starup with slice. Default is 128."
-  echo "   -reg file      : use file instead of register.dat"
-  echo "   -regheader     : force init based on header"
-  echo "   -umask umask   : set unix file permission mask"
+  echo ""
   echo "   -version       : print version and exit"
-  echo "   -useold        : use tkregister instead of tkregister2"
-  echo "   -fmt format    : format of functional: <auto>, nii.gz, bhdr, mgh, etc"
+  echo "   -debug "
+  echo "   -help "
 
   echo "Also see tkregister2 --help"
 
@@ -616,15 +463,5 @@ exit 1;
 BEGINHELP
 
 tkregister-sess allows users to visually inspect the registration 
-computed from spmregister-sess, fslregister-sess, or autoreg-sess.
-
-
-
-
--perrun 
-
-Matches spmregier-sess -perrun, ie, runs registration on a run-by-run
-basis, uses "template" as the funcstem and fs.register.dat as the
-registration file.
-
+computed from register-sess.
 
