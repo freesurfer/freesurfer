@@ -28,9 +28,7 @@ if BUILDCUDA
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
 
-bin_PROGRAMS += mri_em_register_cuda \
-               meanfilter_test \
-               meanfilter_test_cuda
+bin_PROGRAMS += mri_em_register_cuda
 
 
 mri_em_register_cuda_SOURCES = mri_em_register.c \
@@ -43,20 +41,6 @@ mri_em_register_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mri_em_register_cuda_CFLAGS) \
         $(CFLAGS) $(mri_em_register_cuda_LDFLAGS) $(LDFLAGS) -o $@
 
-
-
-meanfilter_test_SOURCES=meanfilter_test.cpp
-meanfilter_test_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LIB)
-meanfilter_test_LDFLAGS=$(OS_LDFLAGS)
-
-meanfilter_test_cuda_SOURCES = meanfilter_test.cpp
-meanfilter_test_cuda_CFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
-meanfilter_test_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
-meanfilter_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
-meanfilter_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
-meanfilter_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(meanfilter_test_cuda_CFLAGS) \
-        $(CFLAGS) $(meanfilter_test_cuda_LDFLAGS) $(LDFLAGS) -o $@
 
 
 endif
