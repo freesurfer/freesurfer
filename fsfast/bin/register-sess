@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 21:23:52 $
-#    $Revision: 1.3 $
+#    $Date: 2010/04/01 22:40:54 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.3 2010/04/01 21:23:52 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.4 2010/04/01 22:40:54 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -43,6 +43,8 @@ set IntermediateFSD = ();
 set IntermediateStem = ();
 set nolog        = 0;
 set LF = ();
+set DoPBSub = 0;
+set DoBackground = 0;
 
 set UpdateOnly = 0;
 
@@ -247,8 +249,16 @@ foreach sess ($SessList)
         echo "--------------------------------------" | tee -a $LF
         pwd |& tee -a $LF
         echo $cmd |& tee -a $LF
-        $cmd |& tee -a $LF
-        if($status) exit 1;
+        if($DoPBSub) then
+          pbsubmit -c "$cmd"
+          sleep 10;
+        else if($DoBackground) then
+          $cmd &
+          sleep 10;
+        else
+          $cmd |& tee -a $LF
+          if($status) exit 1;
+        endif
       endif
     end  # Loop over runs
 
@@ -290,14 +300,17 @@ while( $#argv != 0 )
       set regmethod = bbregister
       breaksw
 
+    case "-init-fsl":
     case "-bbr-init-fsl":
       set bbrinit = "--init-fsl"
       breaksw
 
+    case "-init-spm":
     case "-bbr-init-spm":
       set bbrinit = "--init-spm"
       breaksw
 
+    case "-init-header":
     case "-bbr-init-header":
       set bbrinit = "--init-header"
       breaksw
@@ -389,6 +402,15 @@ while( $#argv != 0 )
       set UpdateOnly = 1;
       breaksw
 
+    case "-pbsubmit":
+    case "-pbsub":
+      set DoPBSub = 1;
+      breaksw
+
+    case "-bg":
+      set DoBackground = 1;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -440,6 +462,16 @@ if($#BBRXOpts && $regmethod != bbregister) then
   exit 1;
 endif
 
+if($DoPBSub && $regmethod == spmregister) then
+  echo "ERROR: cannot pbsubmit with spmregister"
+  exit 1;
+endif
+
+if($DoBackground && $DoPBSub) then
+  echo "ERROR: cannot -bg and -pbsubmit"
+  exit 1
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -469,9 +501,9 @@ usage_exit:
   echo "   -fsl : use fslregister"
   echo "   -spm : use spmregister"
   echo ""
-  echo "   -bbr-init-fsl : use flirt to init bbr (default)":
-  echo "   -bbr-init-spm : use spm to init bbr":
-  echo "   -bbr-init-header : use header registration to init bbr":
+  echo "   -init-fsl : use flirt to init bbr (default)":
+  echo "   -init-spm : use spm to init bbr":
+  echo "   -init-header : use header registration to init bbr":
   echo "   -bbr-tolf tolf   : set bbregiter tolf parameter":
   echo "   -bbr-tol1d tol1d : set bbregiter tol1d parameter":
   echo "   -bbr-int ifsd istem : use intermediate volume":
