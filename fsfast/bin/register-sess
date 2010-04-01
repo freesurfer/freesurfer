@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/31 22:46:57 $
-#    $Revision: 1.1 $
+#    $Date: 2010/04/01 00:45:51 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.1 2010/03/31 22:46:57 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.2 2010/04/01 00:45:51 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -143,12 +143,6 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  # Makes sure the template exists (make it if it does not)
-  set cmd = (mktemplate-sess -s $sessbase -d $sessdir -fsd $fsd)
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
-
   pushd $sess > /dev/null
 
   set RunList = `getrunlist $fsd`
@@ -191,6 +185,11 @@ foreach sess ($SessList)
   if(! $PerRun) then
     # Do once for all runs
     set template = `stem2fname $fsd/template`
+    if($status) then
+      echo "ERROR: cannot find template in $sess/$fsd"
+      echo " Try running mktemplate-sess"
+      exit 1;
+    endif
     set regfile = $fsd/$regfilename
 
     set UpdateNeeded = 1;
@@ -222,6 +221,11 @@ foreach sess ($SessList)
       date  |& tee -a $LF
       set funcdir = $fsd/$Run
       set template = `stem2fname $funcdir/template`;
+      if($status) then
+        echo "ERROR: cannot find template in $sess/$fsd"
+        echo " Try running mktemplate-sess"
+        exit 1;
+      endif
       set regfile = $funcdir/$regfilename
 
       set UpdateNeeded = 1;
