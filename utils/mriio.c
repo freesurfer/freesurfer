@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:45 $
- *    $Revision: 1.364 $
+ *    $Author: greve $
+ *    $Date: 2010/04/01 23:14:03 $
+ *    $Revision: 1.365 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -9710,7 +9710,7 @@ static int nifti1Write(MRI *mri, const char *fname)
   int shortmax;
 
   shortmax = (int)(pow(2.0,15.0));
-  if(mri->width > shortmax) {
+  if(0 && mri->width > shortmax) {
     printf("NIFTI FORMAT WARNING: ncols %d in input exceeds %d.\n",
            mri->width,shortmax);
     printf("So I'm going to put the true ncols in glmin and set dim[1]=-1.\n");
@@ -10482,7 +10482,7 @@ static int niiWrite(MRI *mri, const char *fname)
   if (Gdiag_no > 0) printf("niiWrite: use_compression = %d\n",use_compression);
 
   shortmax = (int)(pow(2.0,15.0));
-  if (mri->width > shortmax) {
+  if(0 && mri->width > shortmax) {
     printf("NIFTI FORMAT WARNING: ncols %d in input exceeds %d.\n",
            mri->width,shortmax);
     printf("So I'm going to put the true ncols in glmin and set dim[1]=-1.\n");
