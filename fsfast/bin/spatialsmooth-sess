@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/06/29 18:41:27 $
-#    $Revision: 1.19 $
+#    $Date: 2010/04/01 04:03:32 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.19 2009/06/29 18:41:27 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.20 2010/04/01 04:03:32 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -32,38 +32,31 @@ set instem  = ();
 set outstem = (); 
 set fwhm = ();
 set fwhm2d = ();
-set RunList0 = ();
 set RunListFile = ();
+set UseMask = 0;
+set maskdir = masks
+set maskfile = brain
+set PerRun = 0; # only applies to mask
+
 set PrintHelp = 0;
-set HPF = ();
-set inorm = 1;
-set use_new_inorm = 1;
 set UpdateOnly = 0;
-set UseFSL = 0;
 
 set infmt   = ();
-set outfmt  = bhdr;
+set outfmt  = nii
 if($?FSF_OUTPUT_FORMAT) then
   set outfmt = $FSF_OUTPUT_FORMAT;
 endif
 
 set nolog = 0;
-set tmpdir = ();
 set cleanup = 1;
 
-if($#argv == 0) then
-  goto usage_exit;
-  exit 1;
-endif
-
+if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
   exit 1;
 endif
-
-set PWDCMD = `getpwdcmd`;
 
 set SessList = `getsesspath $argv`;
 if($status || $#SessList == 0) then
@@ -73,7 +66,6 @@ endif
 
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
 
@@ -81,8 +73,10 @@ set ProjectDir = `pwd`;
 
 #------------------------------------------------------------------#
 set StartTime = `date`;
+@ nthsess = 0;
 foreach sess ($SessList)
   set sessid = `basename $sess`;
+  @ nthsess = $nthsess + 1;
 
   # Create a log file #
   if(-w . && ! $nolog) then
@@ -99,7 +93,7 @@ foreach sess ($SessList)
   uname -a        >> $LF
   date            >> $LF
   pwd             >> $LF
-  echo $cmdargs   >> $LF
+  echo $0 $cmdargs >> $LF
   echo "ProjectDir $ProjectDir" >> $LF
 
   echo "------------------------------------------------" |& tee -a $LF
@@ -112,15 +106,18 @@ foreach sess ($SessList)
     echo "ERROR: $sess/$fsd does not exist"   |& tee -a $LF
     exit 1;
   endif
-
-  ### Check that the target directory is writable ###
-  if(! -w $sess/$fsd) then
-    echo "ERROR: $sess/$fsd is not writable"   |& tee -a $LF
-    exit 1;
-  endif
-
-  ### Goto the functional subdirectory ###
   pushd $sess/$fsd
+
+  set mask = ();
+  if(! $PerRun && $UseMask) then
+    set maskstem = $maskdir/$maskfile
+    set mask = `stem2fname $maskstem`      
+    if($status) then
+      echo "$mask"
+      echo "Try running mkbrainmask-sess"
+      exit 1;
+    endif
+  endif
 
   if($#RunListFile == 0) then
     set RunList = `getrunlist .`;
@@ -137,91 +134,53 @@ foreach sess ($SessList)
   endif
   echo "RunList $RunList" |& tee -a $LF
 
-  if($inorm && $use_new_inorm == 0) then
-    set seqinfo = seq.info
-    if(! -e $seqinfo) then
-      echo "ERROR: cannot find $seqinfo"
-      exit 1;
-    endif
-    set TR  = `cat $seqinfo | awk '{if($1=="TR") print $2}'`;
-    set IPR = `cat $seqinfo | awk '{if($1=="rowpixelsize") print $2}'`;
-    set BPR = `cat $seqinfo | awk '{if($1=="slcpixelsize") print $2}'`;
-  endif
-
-  ## Go through each run ##
+  ## ---------- Go through each run ----------- ##
+  @ nthrun = 0;
   foreach run ($RunList)
-    set infmt = `getformat_from_stem $run/$instem`
+    @ nthrun = $nthrun + 1;
+    echo "-------------------------------------------------"
+    echo "$nthsess/$#nthsess $sessid $nthrun/$#RunList $run `date`"
+    set infunc = `stem2fname $run/$instem`
     if($status) then
-      echo "ERROR: cannot find $run/$instem"
+      echo "$infunc"
       exit 1;
     endif
-    set infunc  = $run/$instem.$infmt
+    if($UseMask && $PerRun) then
+      set maskstem = $run/$maskdir/$maskfile
+      set mask = `stem2fname $maskstem`      
+      if($status) then
+        echo "$mask" | tee -a $LF
+        echo "Try running mkbrainmask-sess with -perrun"
+        exit 1;
+      endif
+    endif
     set outfunc = $run/$outstem.$outfmt
 
+    set UpdateNeeded = 0;
     if(-e $outfunc && $UpdateOnly) then
       test $infunc -nt $outfunc
-      if($status) then
-        pwd
-        ls -lt $outfunc $infunc | tee -a $LF
-        echo "Update not needed" | tee -a $LF
-        continue
+      if(! $status) set UpdateNeeded = 1;
+      if($UseMask) then
+        test $mask -nt $outfunc
+        if(! $status) set UpdateNeeded = 1;
       endif
-    endif
-
-    if($UseFSL) then
-      # Construct and run the command for this run #
-      set cmd = (ipfsl -i $run/$instem -o $run/$outstem -pct .1)
-      set cmd = ($cmd -fwhm $fwhm -outfmt $outfmt)
-      if($#infmt != 0)  set cmd = ($cmd -infmt $infmt)
-      if($#tmpdir == 0) set cmd = ($cmd -scratch tmp.ipfsl)
-      if($#tmpdir != 0) set cmd = ($cmd -scratch $tmpdir)
-      if($#HPF != 0)  set cmd = ($cmd -t $HPF -1)
-      echo ---------------------------------------------- |& tee -a $LF
-      $PWDCMD   |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      echo ---------------------------------------------- |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) then
-        echo "ERROR: ipfsl failed"
-        exit 1
-      endif
-      if(! -e $run/$outstem.$outfmt) then
-        echo "ERROR: ipfsl failed to create output"
-        exit 1
-      endif
-      if($#tmpdir == 0) rm -r tmp.ipfsl
     else
-      set cmd = (mri_fwhm --i $infunc --o $outfunc --smooth-only) 
-      if($#fwhm)   set cmd = ($cmd --fwhm $fwhm); # 3D smoothing
-      if($#fwhm2d) set cmd = ($cmd --fwhmc $fwhm2d --fwhmr $fwhm2d); # 2D smoothing
-      echo ---------------------------------------------- |& tee -a $LF
-      $PWDCMD   |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      echo ---------------------------------------------- |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) then
-        echo "ERROR: mri_fwhm failed"
-        exit 1
-      endif
+      set UpdateNeeded = 1;
     endif
 
-    if($inorm) then
-      echo "INFO: intensity normalizing smoothed volume"
-      if(! $use_new_inorm) then
-        set cmd = (inorm -i $run/$outstem -TR $TR -ipr $IPR -bpr $BPR)    
-      else
-        set cmd = (inorm2 -i $run/$outstem);
-      endif
-      echo ---------------------------------------------- |& tee -a $LF
-      $PWDCMD   |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      echo ---------------------------------------------- |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) then
-        echo "ERROR: inorm failed"
-        exit 1
-      endif
+    if($UpdateNeeded == 0) then
+      echo "$sessid $run Update not needed" | tee -a $LF
+      continue
     endif
+
+    set cmd = (mri_fwhm --i $infunc --o $outfunc --smooth-only) 
+    if($#fwhm)   set cmd = ($cmd --fwhm $fwhm); # 3D smoothing
+    if($#fwhm2d) set cmd = ($cmd --fwhmc $fwhm2d --fwhmr $fwhm2d);
+    if($UseMask) set cmd = ($cmd --mask $mask)
+    pwd   |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
 
   end # Loop over runs
 
@@ -267,21 +226,9 @@ while( $#argv != 0 )
       set fwhm2d = $argv[1]; shift;
       breaksw
 
-    case "-hpf":
-    case "-HPF":
-      if ( $#argv == 0) goto arg1err;
-      set HPF = $argv[1]; shift;
-      breaksw
-
     case "-fsd":
       if ( $#argv == 0) goto arg1err;
       set fsd = $argv[1]; shift;
-      breaksw
-
-    case "-run":
-      if ( $#argv == 0) goto arg1err;
-      set run = $argv[1]; shift;
-      set RunList0 = ($RunList0 $run);
       breaksw
 
     case "-rlf":
@@ -289,47 +236,22 @@ while( $#argv != 0 )
       set RunListFile = $argv[1]; shift;
       breaksw
 
-    case "-noinorm":
-    case "-no-inorm":
-      set inorm = 0;
-      breaksw
-
-    case "-inorm":
-      set inorm = 1;
-      breaksw
-
-    case "-inorm-old":
-      set use_new_inorm = 0;
-      breaksw
-
     case "-fmt":
-      if($#argv < 0) goto arg1err;
-      set infmt  = $argv[1]; shift;
-      set outfmt = $argv[1]; shift;
-      breaksw
-
-    case "-infmt":
-      if($#argv < 0) goto arg1err;
-      set infmt  = $argv[1]; shift;
-      breaksw
-
     case "-outfmt":
       if($#argv < 0) goto arg1err;
       set outfmt = $argv[1]; shift;
       breaksw
 
-    case "-tmp":
-      if ( $#argv == 0) goto arg1err;
-      set tmpdir = $argv[1]; shift;
-      set cleanup = 0;
+    case "-mask":
+      set UseMask = 1;
       breaksw
 
-    case "-cleanup":
-      set cleanup = 1;
+    case "-no-mask":
+      set UseMask = 0;
       breaksw
 
-    case "-no-cleanup":
-      set cleanup = 0;
+    case "-perrun":
+      set PerRun = 1;
       breaksw
 
     case "-update":
@@ -338,18 +260,6 @@ while( $#argv != 0 )
 
     case "-nolog":
       set nolog = 1;
-      breaksw
-
-    case "-fsl":
-      set UseFSL = 1;
-      breaksw
-
-    case "-verbose":
-      set verbose = 1;
-      breaksw
-
-    case "-echo":
-      set echo = 1;
       breaksw
 
     case "-debug":
@@ -412,12 +322,9 @@ check_params:
     exit 1
   endif
 
-  if($UseFSL) then
-    set ip = $FSLDIR/bin/ip
-    if(! -e $ip) then
-      echo "ERROR: cannot find $ip"
-      exit 1;
-    endif
+  if($PerRun && ! $UseMask) then
+    echo "ERROR: -perrun only needed with -mask"
+    exit 1;
   endif
 
 goto check_params_return;
@@ -448,37 +355,40 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo ""
   echo "Other Arguments"
+  echo "   -mask : smooth only within mask"
   echo "   -update         : only run if input is newer than output"
-  echo "   -no-inorm       : do not intensity norm smoothed volume"
-  echo "   -inorm-old      : use old inorm"
-  echo "   -infmt format   : <autodetect>, bhdr, mgh, nii.gz, etc"
-  echo "   -outfmt format  : <bhdr>, mgh, nii.gz, etc"
+  echo "   -outfmt format  : nii, mgh, nii.gz, etc. Default nii."
   echo ""
-  echo "   -fsl : use FSL version 3.3 ip command"
   echo "   -version        : print version and exit"
   echo "   -nolog          : do create a log file"
   echo "   -help           : print help and exit"
   echo ""
 
   if(! $PrintHelp ) exit 1;
+  echo " "
+  echo "$VERSION "
+  echo " "
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
 
-  echo "This program performs 3D gaussian spatial smoothing. It will"
-  echo "operate on the input volume in each run. The output volume will be "
-  echo "placed in the same directory. FWHM is the full-width, half-"
-  echo "maximum of the spatial filter."
-  echo ""
-  echo " Example:"
-  echo ""
-  echo "spatialsmooth-sess -s sessid -d sessdir -i fmc -o fmcsm5 -fwhm 5"
-  echo ""
-  echo "This will smooth the motion corrected volume with a gaussian "
-  echo "kernel with FWHM of 5 mm. The result will be placed in the volume"
-  echo "fmcsm5. This is the stem that should be referenced when creating"
-  echo "the anlysis. It will also automatically run intensity normalization"
-  echo "(ie, inorm-sess) for the smoothed volume unless -noinorm is "
-  echo "specified."
-  echo ""
-  echo "$VERSION"
-  echo ""
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program performs 3D gaussian spatial smoothing. It will operate
+on the input volume in each run. The output volume will be placed in
+the same directory. FWHM is the full-width, half-maximum of the
+spatial filter.
+
+Example:
+
+spatialsmooth-sess -s sessid -d sessdir -i fmc -o fmcsm5 -fwhm 5
+
+This will smooth the motion corrected volume with a gaussian kernel
+with FWHM of 5 mm. The result will be placed in the volume
+fmcsm5. This is the stem that should be referenced when creating the
+anlysis. It will also automatically run intensity normalization (ie,
+inorm-sess) for the smoothed volume unless -noinorm is specified.
+
+
 
 exit 1;
