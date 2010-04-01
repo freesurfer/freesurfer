@@ -183,6 +183,7 @@ unpack_ima.tcl \
 unpackmincdir \
 unpack_mnc.tcl \
 unpacksdcmdir \
+UpdateNeeded \
 usbtree \
 vno_match_check \
 vtk_setup \
