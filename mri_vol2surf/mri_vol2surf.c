@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/16 19:55:19 $
- *    $Revision: 1.55 $
+ *    $Date: 2010/04/01 05:13:16 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.55 2010/03/16 19:55:19 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.56 2010/04/01 05:13:16 greve Exp $";
 
 char *Progname = NULL;
 
@@ -116,7 +116,6 @@ static char *surfreg = "sphere.reg";
 static char *thicknessname = "thickness";
 static float ProjFrac = 0;
 static int   ProjOpt = 0 ;
-static char  *mask_label_name = NULL ;
 static char  *volume_fraction_fname = NULL ;
 static int   ProjDistFlag = 0;
 static float ProjFracMin=0.0,ProjFracMax=0.0,ProjFracDelta=1.0;
@@ -186,6 +185,9 @@ static char *seedfile = NULL;
 
 static double scale = 0;
 static int GetProjMax = 0;
+int UseCortexLabel = 0;
+static char  *mask_label_name = NULL ;
+LABEL *area ;
 
 double angles[3] = {0,0,0};
 MATRIX *Mrot = NULL;
@@ -218,7 +220,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.55 2010/03/16 19:55:19 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.56 2010/04/01 05:13:16 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -240,6 +242,18 @@ int main(int argc, char **argv) {
   if (SUBJECTS_DIR==NULL) {
     fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
+  }
+
+  if(UseCortexLabel) {
+    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,trgsubject,hemi);
+    mask_label_name = strcpyalloc(tmpstr);
+  }
+
+  if(mask_label_name){
+    area = LabelRead(NULL, mask_label_name) ;
+    if(area == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label file %s", 
+		Progname, mask_label_name);
   }
 
   /* voxel indices conversion from float to integer */
@@ -682,12 +696,7 @@ int main(int argc, char **argv) {
     /*-------------- paint or .w --------------*/
     for (vtx = 0; vtx < SurfVals2->width; vtx++)
       SurfOut->vertices[vtx].val = MRIFseq_vox(SurfVals2,vtx,0,0,0) ;
-    if (mask_label_name)
-    {
-      LABEL *area ;
-      area = LabelRead(NULL, mask_label_name) ;
-      if (area == NULL)
-        ErrorExit(ERROR_NOFILE, "%s: could not load label file %s", Progname, mask_label_name);
+    if (mask_label_name){
       LabelMaskSurface(area, Surf) ;
       LabelFree(&area) ;
     }
@@ -720,15 +729,14 @@ int main(int argc, char **argv) {
     }
     else if (mask_label_name)
     {
-      LABEL *area ;
-      area = LabelRead(NULL, mask_label_name) ;
-      if (area == NULL)
-        ErrorExit(ERROR_NOFILE, "%s: could not load label file %s", Progname, mask_label_name);
       MRISclearMarks(Surf) ;
       LabelMarkSurface(area, Surf) ;
-      for (vtx = 0; vtx < SurfVals2->width; vtx++)
-        if (SurfOut->vertices[vtx].marked == 0)
-          MRIsetVoxVal(SurfVals2, vtx, 0, 0, 0, 0) ;
+      for (vtx = 0; vtx < SurfVals2->width; vtx++){
+        if (SurfOut->vertices[vtx].marked == 0){
+	  for(f=0; f < SurfVals2->nframes; f++)
+	    MRIsetVoxVal(SurfVals2, vtx, 0, 0, f, 0.0) ;
+	}
+      }
       LabelFree(&area) ;
     }
     printf("Writing to %s\n",outfile);
@@ -949,12 +957,15 @@ static int parse_commandline(int argc, char **argv) {
       ProjFracDelta=1.0;
       ProjDistFlag = 1;
       nargsused = 1;
-    } else if (!strcmp(option, "--mask")) {
+    } 
+    else if (!strcmp(option, "--cortex")) UseCortexLabel = 1;
+    else if (!strcmp(option, "--mask")) {
       if (nargc < 1) argnerr(option,1);
       mask_label_name = argv[1] ;
       printf("masking output with label %s\n", mask_label_name) ;
       nargsused = 1;
-    } else if (!strcmp(option, "--projdist-int") ||
+    } 
+    else if (!strcmp(option, "--projdist-int") ||
                !strcmp(option, "--projdist-avg")) {
       if (nargc < 3) argnerr(option,3);
       sscanf(pargv[0],"%f",&ProjFracMin);
@@ -1115,6 +1126,7 @@ static void print_usage(void) {
          "computed volume fractions (see mri_compute_volume_fractions)\n");
   printf("   --projdist-max min max del : max along normal\n");
   printf("   --mask label : mask the output with the given label file (usually cortex)\n");
+  printf("   --cortex : use hemi.cortex.label from trgsubject\n");
   
   //printf("   --thickness thickness file (thickness)\n");
   printf("\n");
