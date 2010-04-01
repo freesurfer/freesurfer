@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/02 18:59:07 $
-#    $Revision: 1.19 $
+#    $Date: 2010/04/01 00:29:31 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.19 2009/04/02 18:59:07 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.20 2010/04/01 00:29:31 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -39,36 +39,31 @@ set targrun = ();    # use explicit run as target
 set RunListFile = ();
 set targstem = ();
 set targstem0 = ();
-set DoInorm = 0;
 set UpdateOnly = 0;
 set mask = brain;
 
 set nolog = 0;
-set usenew = 1;
+set PrintHelp = 0;
 
-set infmt = ();
-set outfmt = bhdr;
+set outfmt = nii;
 if($?FSF_OUTPUT_FORMAT) then
   set outfmt = $FSF_OUTPUT_FORMAT;
 endif
 
-if($#argv == 0) then
-  goto usage_exit;
-  exit 1;
-endif
-
-set n = `echo $argv | grep version | wc -l` 
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e  -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
 
 set n = `echo $argv | grep citation | wc -l` 
 if($n != 0) then
-  echo "Those using the AFNI motion correction should cite:"
-  echo "  RW Cox and A Jesmanowicz."
-  echo "  Real-time 3D image registration for functional MRI."
-  echo "  Magnetic Resonance in Medicine, 42: 1014-1018, 1999."
   exit 0;
 endif
 
@@ -80,8 +75,6 @@ endif
 
 goto parse_args;
 parse_args_return:
-
-if($#funcmcstem == 0) set funcmcstem = fmc;
 
 goto check_params;
 check_params_return:
@@ -99,15 +92,6 @@ foreach sess ($SessList)
     echo "ERROR: $sess/$fsd does not exist"  
     exit 1;
   endif
-  if($DoInorm) then
-    set maskpath = $sess/$fsd/masks/$mask
-    set tmp = `getformat_from_stem $maskpath`;
-    if($status) then
-      echo "$tmp"
-      echo "ERROR: cannot find $maskpath, needed for inorm"
-      exit 1;
-    endif
-  endif
 end
 
 ## Now analyze each session ##
@@ -115,13 +99,12 @@ foreach sess ($SessList)
   set sessid = `basename $sess`;
 
   # Create a log file #
+  set LF = /dev/null
   if(! $nolog ) then
-    mkdir -p log
+    mkdir -p $ProjectDir/log
     set LF = $ProjectDir/log/mc-$sessid-$fsd.log
     rm -f $LF
     touch $LF
-  else
-    set LF = /dev/null
   endif
   echo Logfile is $LF
 
@@ -145,106 +128,73 @@ foreach sess ($SessList)
 
   pushd $sess/$fsd > /dev/null
 
-  if(! $usenew) then
-    ## get resolutions #
-    set inplaneres  = `cat seq.info | awk '{if($1 == "rowpixelsize") print $2}'`;
-    set betplaneres = `cat seq.info | awk '{if($1 == "slcpixelsize") print $2}'`;
-    set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
-
-    if($#inplaneres == 0) then
-      echo "ERROR: seq.info file does not appear to be formated correctly"
-      echo "       Try running fixseqinfo-sess."
-      exit 1;
-    endif
-  endif # dont use new
-
-  if($#RunListFile == 0) then
-    set RunList = `getrunlist .`;
-    if($status || $#RunList == 0) then
-      echo "ERROR: $sess/$fsd has no runs"  |& tee -a $LF
-      exit 1;
-    endif
-  else
-    if(! -e $RunListFile) then
-      echo "ERROR: cannot find runlistfile $RunListFile"
-      exit 1;
-    endif
-    set RunList = `cat $RunListFile`;
+  set RunList = `getrunlist . $RunListFile`;
+  if($status) then
+    echo "$RunList"  |& tee -a $LF
+    exit 1;
   endif
   echo "RunList: $RunList" |& tee -a $LF
 
-  if($#targrun == 0) then
-    if($#RunList < $targnthrun) then
-      echo "ERROR: $sessid target run ($targnthrun) exceeds "
-      echo "   number of runs ($#RunList)."
+  if(! $PerRun) then
+    set template = `stem2fname template`
+    if($status) then
+      echo "ERROR: cannot find $template for $sess/$fsd"  |& tee -a $LF
+      echo "       run mktemplate-sess"  |& tee -a $LF
       exit 1;
     endif
-    if(! $PerRun) set targstem = $RunList[$targnthrun]/$targstem0
-  else
-    if(! $PerRun) set targstem = $targrun/$targstem0
-  endif
-  if($#targstem) echo "Targ Stem is $targstem"
+  endif    
 
   foreach run ($RunList)  
-    set instem = $run/$funcstem
-    set infmtuse = `getformat_from_stem $instem $infmt`
+    set invol = `stem2fname $run/$funcstem`;
     if($status) then
-      echo "$infmtuse" 
+      echo "$invol" 
       exit 1;
     endif
     set outstem = $run/$funcmcstem
-    if($PerRun) set targstem = $run/$targstem0
-    if($targoffmid) then
-      set nframes = `getnframes $instem`;
-      set targoff = `echo $nframes/2 | bc`;
-    endif
-    if(! $usenew) then
-      set cmd = (mc-$mcmethod -i $instem -o $outstem \
-                 -t $targstem -toff $targoff);
-      set cmd = ($cmd -ipr $inplaneres -bpr $betplaneres -TR $TR)
-    else
-      test $outstem.$outfmt -nt $instem.$infmtuse
-      if($status || ! $UpdateOnly || ! -e $outstem.$outfmt) then
-        set cmd = (mc-afni2 --i $instem.$infmtuse --t $targstem.$infmtuse \
-           --frame $targoff --o $outstem.$outfmt  --mcdat $outstem.mcdat)
-      else
-        set cmd = ();
+    set outvol = $outstem.$outfmt
+    set mcdat = $outstem.mcdat
+
+    if($PerRun) then
+      set template = `stem2fname $run/template`
+      if($status) then
+        echo "ERROR: cannot find $template for $sess/$fsd/$run"  |& tee -a $LF
+        echo "       run mktemplate-sess"  |& tee -a $LF
+        exit 1;
       endif
+    endif    
+
+    set UpdateNeeded = 0;
+    if(-e $outvol && -e $mcdat && $UpdateOnly) then
+      test $invol -nt $outvol
+      if(! $status) set UpdateNeeded = 1;
+      test $template -nt $outvol
+      if(! $status) set UpdateNeeded = 1;
+    else
+      set UpdateNeeded = 1
     endif
 
-    if($#cmd == 0 ) then
-      echo "Update not needed " | tee -a $LF
-      ls -lt $instem.$infmtuse $outstem.$outfmt | tee -a $LF
-    else
-      echo "  ------- ************************** -----------" |& tee -a $LF
-      echo "  ------- Motion Correcting Run $run -----------" |& tee -a $LF
-      echo "  ------- ************************** -----------" |& tee -a $LF
-      echo "sess = $sessid" |& tee -a $LF
-      date |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-
-      # Inorm = compute mean in mask (creates $outstem.meanval)
-      if($DoInorm) then
-        set maskpath = $sess/$fsd/masks/$mask
-        set fmt = `getformat_from_stem $maskpath`;
-        set cmd = (mri_segstats --seg $maskpath.$fmt --id 1 --sum /tmp/blah.$$ \
-                     --in $outstem.$outfmt --sfavg $outstem.meanval )
-        echo "cd `pwd`" |& tee -a $LF
-        echo $cmd |& tee -a $LF
-        $cmd |& tee -a $LF
-        if($status) exit 1;
-      endif
-    
-      # Create the external regresssor file -- this requires matlab
-      echo "INFO: Making external regressor from mc params" |& tee -a $LF
-      set cmd = (mcparams2extreg -mcfile $outstem.mcdat -northog 6)
-      set cmd = ($cmd -extreg $run/mcextreg)
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
+    if(! $UpdateNeeded) then
+      echo "$sessid $run Update not needed"
+      continue;
     endif
+
+    set cmd = (mc-afni2 --i $invol --t $template --o $outvol  --mcdat $mcdat)
+    echo "  ------- ************************** -----------" |& tee -a $LF
+    echo "  ------- Motion Correcting Run $run -----------" |& tee -a $LF
+    echo "  ------- ************************** -----------" |& tee -a $LF
+    echo "sess = $sessid" |& tee -a $LF
+    date |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
+    # Create the external regresssor file -- this requires matlab
+    echo "INFO: Making external regressor from mc params" |& tee -a $LF
+    set cmd = (mcparams2extreg -mcfile $outstem.mcdat -northog 6)
+    set cmd = ($cmd -extreg $run/mcextreg)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
 
   end # Loop over sessions 
 
@@ -270,20 +220,9 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "-ssd":
     case "-fsd":
       if ( $#argv == 0) goto arg1err;
       set fsd = $argv[1]; shift;
-      breaksw
-
-    case "-toff":
-      if ( $#argv == 0) goto arg1err;
-      set targoff = $argv[1]; shift;
-      breaksw
-
-    case "-targstem":
-      if ( $#argv == 0) goto arg1err;
-      set targstem0 = $argv[1]; shift;
       breaksw
 
     case "-fstem":
@@ -296,14 +235,10 @@ while( $#argv != 0 )
       set funcmcstem = $argv[1]; shift;
       breaksw
 
-    case "-targnthrun":
+    case "-outfmt":
+    case "-fmt":
       if ( $#argv == 0) goto arg1err;
-      set targnthrun = $argv[1]; shift;
-      breaksw
-
-    case "-targrun":
-      if ( $#argv == 0) goto arg1err;
-      set targrun = $argv[1]; shift;
+      set outfmt = $fmt;
       breaksw
 
     case "-runlistfile":
@@ -323,48 +258,15 @@ while( $#argv != 0 )
 
     case "-perrun":
       set PerRun = 1;
-      set targoffmid = 1;
       breaksw
 
     case "-nolog":
       set nolog = 1;
       breaksw
 
-    case "-verbose":
-      set verbose = 1;
-      breaksw
-
-    case "-echo":
-      set echo = 1;
-      breaksw
-
-    case "-new":
-      set usenew = 1;
-      breaksw
-
-    case "-fmt":
-      if ( $#argv == 0) goto arg1err;
-      set fmt = $argv[1]; shift;
-      set infmt = $fmt;
-      set outfmt = $fmt;
-      breaksw
-
-    case "-infmt":
-      if ( $#argv == 0) goto arg1err;
-      set infmt = $argv[1]; shift;
-      breaksw
-
-    case "-outfmt":
-      if ( $#argv == 0) goto arg1err;
-      set outfmt = $argv[1]; shift;
-      breaksw
-
     case "-inorm":
-      set DoInorm = 1;
-      breaksw
-
-    case "-no-inorm":
-      set DoInorm = 0;
+      echo "ERROR: cannot perform inorm here anymore"
+      exit 1;
       breaksw
 
     case "-update":
@@ -410,12 +312,11 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if ($#SessList == 0) then
-     echo "ERROR: no sessions specified"
-     exit 1
-  endif
-
-  if($#targstem0 == 0) set targstem0 = $funcstem;
+if($#SessList == 0) then
+  echo "ERROR: no sessions specified"
+  exit 1
+endif
+if($#funcmcstem == 0) set funcmcstem = fmc;
 
 goto check_params_return;
 ############--------------##################
@@ -431,30 +332,44 @@ usage_exit:
   echo ""
   echo "USAGE: mc-sess"
   echo ""
-  echo "Optional Arguments:";
-  echo "   -method  mcmethod  : afni"
-  echo "   -targnthrun n      : use nth run as target (default=1)"
-  echo "   -targrun RRR       : use run RRR as target"
-  echo "   -toff m            : target image offset ($targoff)"
-  echo "   -fstem fstem       : stem of input volume <f>"
-  echo "   -fmcstem fmcstem   : stem of output motion-corrected volume (fmc)"
-  echo "   -targstem tstem    : use tstem as the target (default is fstem)"
-  echo ""
-  echo "   -rlf  runlistfile  : only process those in the runlist file"
-  echo "   -perrun            : MC each run separately (targ=mid)"
-  echo "   -infmt  format     : <auto>, bhdr, mgh, mgz, nii, nii.gz"
-  echo "   -outfmt format     : <bhdr>, mgh, mgz, nii, nii.gz"
-  echo "   -inorm             : perform intensity normalization"
-  echo "   -no-inorm          : do not intensity normalize (default)"
-  echo "   -update            : only mc if input is newer than output"
-  echo ""
-  echo "   -version           : print version and exit"
-  echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
   echo "   -df srchdirfile "
   echo "   -s  sessid      "
   echo "   -d  srchdir     "
-  echo "   -fsd dir        (optional - default = bold)"
   echo ""
+  echo "Optional Arguments:";
+  echo "   -fsd dir        (optional - default = bold)"
+  echo "   -fstem fstem       : stem of input volume <f>"
+  echo "   -fmcstem fmcstem   : stem of output motion-corrected volume (fmc)"
+  echo ""
+  echo "   -perrun            : MC each run separately (targ=mid)"
+  echo "   -outfmt format     : nii, nii.gz, mgh, or mgz (default is $outfmt)"
+  echo "   -update            : only mc if input is newer than output"
+  echo "   -version           : print version and exit"
+  echo "   -debug"
+  echo ""
+  if(! $PrintHelp ) exit 1;
+  echo " "
+  echo "$VERSION "
+  echo " "
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Motion correction using AFNI. By default, you only need to pass
+the session parameters and it will look for f.nii as an input
+in each bold run and will create fmc.nii as an output (along
+with fmc.mcdat and mcextreg.bhdr).
+
+You must have run mktemplate-sess first.
+
+
+
+Those using the AFNI motion correction should cite:
+
+RW Cox and A Jesmanowicz.  Real-time 3D image registration for
+functional MRI.  Magnetic Resonance in Medicine, 42: 1014-1018, 1999.
+
