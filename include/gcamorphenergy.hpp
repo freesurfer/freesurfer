@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/01 15:33:38 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/04/01 19:07:49 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,7 +85,6 @@ namespace GPU {
       template<typename T>
       float ComputeSSE( GPU::Classes::GCAmorphGPU& gcam,
 			const GPU::Classes::MRIframeGPU<T>& mri,
-			const float mriThick,
 			GCA_MORPH_PARMS *parms ) const;
 
       // --------------------------------------------------
@@ -93,13 +92,11 @@ namespace GPU {
       template<typename T>
       float ComputeRMS( GPU::Classes::GCAmorphGPU& gcam,
 			const GPU::Classes::MRIframeGPU<T>& mri,
-			const float mriThick,
 			GCA_MORPH_PARMS *parms ) const;
 
       template<typename T>
       float RMSdispatch( GPU::Classes::GCAmorphGPU& gcam,
 			 const MRI *mri,
-			 const float mriThick,
 			 GCA_MORPH_PARMS *parms ) const;
 
 

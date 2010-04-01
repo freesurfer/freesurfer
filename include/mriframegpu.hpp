@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/19 17:59:10 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/04/01 19:07:49 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -197,7 +197,8 @@ namespace GPU {
       // Constructors & destructors
 
       //! Default constructor does nothing
-      MRIframeGPU<T>( void ) : VolumeGPU<T>() {};
+      MRIframeGPU<T>( void ) : VolumeGPU<T>(),
+			       thick(0) {};
 
       //! Conversion operator to MRIframeOnGPU
       operator MRIframeOnGPU<T>( void ) const {
@@ -211,9 +212,14 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.39 2010/02/19 17:59:10 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.40 2010/04/01 19:07:49 rge21 Exp $";
       }
       
+      //! Return the 'thick' field
+      float GetThickness( void ) const {
+	return( this->thick );
+      }
+
       // --------------------------------------------------------
       // Memory manipulation
       
@@ -295,7 +301,12 @@ namespace GPU {
 		     << std::endl;
 	  exit( EXIT_FAILURE );
 	}
+
+	// Copy the scalars over
+	this->thick = src->thick;
+
 	
+	// See if we need to allocate workspace
 	const size_t bSize = this->BufferSize();
 	// See if we were supplied with workspace
 	if( h_work != NULL ) {
@@ -349,7 +360,11 @@ namespace GPU {
 		     << std::endl;
 	  exit( EXIT_FAILURE );
 	}
+
+	// Retrieve the scalars
+	dst->thick = this->thick;
 	
+	// See about buffers
 	const size_t bSize = this->BufferSize();
 	
 	// Allocate contiguous host memory if needed
@@ -416,6 +431,9 @@ namespace GPU {
     private:
       // --------------------------------------------------------------------
     
+      //! Mirror of the 'thick' field of an MRI
+      float thick;
+
       //! Function to sanity check dimensions
       bool CheckDims( const MRI* mri ) const {
 

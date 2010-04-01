@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/01 15:33:32 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/04/01 19:07:44 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -904,7 +904,6 @@ namespace GPU {
     template<typename T>
     float GCAmorphEnergy::ComputeSSE( GPU::Classes::GCAmorphGPU& gcam,
 				      const GPU::Classes::MRIframeGPU<T>& mri,
-				      const float mriThick,
 				      GCA_MORPH_PARMS *parms ) const {
       /*!
 	Calls all the necessary things on the GPU to match
@@ -984,7 +983,7 @@ namespace GPU {
       // Compute the Jacobian energy
       if( !DZERO(parms->l_jacobian) ) {
 	j_sse = parms->l_jacobian *
-	  this->ComputeJacobianEnergy( gcam, mriThick );
+	  this->ComputeJacobianEnergy( gcam, mri.GetThickness() );
       }
       
       if( !DZERO(parms->l_area) ) {
@@ -1027,10 +1026,9 @@ namespace GPU {
     template<typename T>
     float GCAmorphEnergy::ComputeRMS( GPU::Classes::GCAmorphGPU& gcam,
 				      const GPU::Classes::MRIframeGPU<T>& mri,
-				      const float mriThick,
 				      GCA_MORPH_PARMS *parms ) const {
       
-      float sse = this->ComputeSSE( gcam, mri, mriThick, parms );
+      float sse = this->ComputeSSE( gcam, mri, parms );
       
       const dim3 dims = gcam.d_rx.GetDims();
       float nVoxels = dims.x;
@@ -1045,7 +1043,6 @@ namespace GPU {
     template<typename T>
     float GCAmorphEnergy::RMSdispatch( GPU::Classes::GCAmorphGPU& gcam,
 				       const MRI *mri,
-				       const float mriThick,
 				       GCA_MORPH_PARMS *parms ) const {
       
       
@@ -1056,7 +1053,7 @@ namespace GPU {
       mriGPU.AllocateArray();
       mriGPU.SendArray();
       
-      float rms = this->ComputeRMS( gcam, mriGPU, mriThick, parms );
+      float rms = this->ComputeRMS( gcam, mriGPU, parms );
       
       return( rms );
     }
@@ -1231,8 +1228,6 @@ float gcamComputeRMSonGPU( GCA_MORPH *gcam,
 
   float rms;
 
-  const float thick = ( mri ? mri->thick : 1.0 );
-
   GPU::Classes::GCAmorphGPU myGCAM;
   myGCAM.SendAll( gcam );
 
@@ -1240,7 +1235,7 @@ float gcamComputeRMSonGPU( GCA_MORPH *gcam,
   switch( mri->type ) {
 
   case MRI_UCHAR:
-    rms = myEnergy.RMSdispatch<unsigned char>( myGCAM, mri, thick, parms );
+    rms = myEnergy.RMSdispatch<unsigned char>( myGCAM, mri, parms );
     break;
 
   default:
