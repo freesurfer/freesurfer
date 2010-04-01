@@ -40,9 +40,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:46 $
- *    $Revision: 1.33 $
+ *    $Author: greve $
+ *    $Date: 2010/04/01 23:12:24 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -926,23 +926,28 @@ MRI *surf2surf_nnfr(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
   /* allocate a "volume" to hold the output */
   TrgSurfVals = MRIallocSequence(TrgSurfReg->nvertices,1,1,
                                  MRI_FLOAT,SrcSurfVals->nframes);
-  if (TrgSurfVals == NULL) return(NULL);
+  if(TrgSurfVals == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,TrgSurfVals);
 
   /* number of source vertices mapped to each target vertex */
   *TrgHits = MRIallocSequence(TrgSurfReg->nvertices,1,1,MRI_FLOAT,1);
-  if (*TrgHits == NULL) return(NULL);
+  if(*TrgHits == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,*TrgHits);
 
   /* Average distance of a target vertex from its source vertices  */
   *TrgDist = MRIallocSequence(TrgSurfReg->nvertices,1,1,MRI_FLOAT,1);
   if (*TrgDist == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,*TrgDist);
 
   /* number of target vertices mapped to by each source vertex */
   *SrcHits = MRIallocSequence(SrcSurfReg->nvertices,1,1,MRI_FLOAT,1);
   if (*SrcHits == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,*SrcHits);
 
   /* Average distance of a source vertex from its target vertices  */
   *SrcDist = MRIallocSequence(SrcSurfReg->nvertices,1,1,MRI_FLOAT,1);
   if (*SrcDist == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,*SrcDist);
 
   /* build hash tables */
   if (UseHash)
@@ -1119,6 +1124,7 @@ MRI *surf2surf_nnfr_jac(MRI *SrcSurfVals, MRI_SURFACE *SrcSurfReg,
   TrgSurfVals = MRIallocSequence(TrgSurfReg->nvertices,1,1,
                                  MRI_FLOAT,SrcSurfVals->nframes);
   if (TrgSurfVals == NULL) return(NULL);
+  MRIcopyHeader(SrcSurfVals,TrgSurfVals);
 
   /* number of source vertices mapped to each target vertex */
   *TrgHits = MRIallocSequence(TrgSurfReg->nvertices,1,1,MRI_FLOAT,1);
