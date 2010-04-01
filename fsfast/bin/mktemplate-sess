@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 00:28:30 $
-#    $Revision: 1.7 $
+#    $Date: 2010/04/01 21:24:09 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mktemplate-sess,v 1.7 2010/04/01 00:28:30 greve Exp $';
+set VERSION = '$Id: mktemplate-sess,v 1.8 2010/04/01 21:24:09 greve Exp $';
 set inputargs = ($argv);
 
 set fsd          = bold;
@@ -156,13 +156,6 @@ foreach sess ($SessList)
 
   # --------------------------------------------------
   # Now do separately for each run
-  set st = $status;
-  if($st) then
-    echo "ERROR: getting run list"
-    echo "  $RunList"
-    exit 1;
-  endif
-   
   foreach Run ($RunList)
     echo "  Run: $Run ----------------" |& tee -a $LF
     echo "  `date`"  |& tee -a $LF
@@ -192,6 +185,12 @@ foreach sess ($SessList)
       echo $cmd |& tee -a $LF
       $cmd  |& tee -a $LF
       if($status) exit 1;
+      # Create a local log
+      set llog = $sess/$fsd/$Run/template.log
+      rm -f $llog
+      echo "FUNCSTEM $funcstem" >> $llog
+      if($DoMidFrame) echo "FRAME mid" >> $llog
+      if($#NthFrame)  echo "FRAME $NthFrame" >> $llog
     endif
 
     if($DoView)  tkmedit -f $templatevol
