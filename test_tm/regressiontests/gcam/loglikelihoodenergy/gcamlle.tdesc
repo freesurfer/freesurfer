@@ -31,7 +31,7 @@ testdescript = {
    ]],
 
    -- Keywords (for subtest selection)
-   keywords = { "gcam", "basic", "mri" },
+   keywords = { "gcam", "basic", "mri", "query" },
 
    -- Designate the test as active
    active = 1,
