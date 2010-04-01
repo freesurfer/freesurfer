@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/31 16:47:37 $
-#    $Revision: 1.29 $
+#    $Date: 2010/04/01 21:28:13 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.29 2010/03/31 16:47:37 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.30 2010/04/01 21:28:13 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -605,6 +605,10 @@ while( $#argv != 0 )
       set extreg = $argv[1]; shift;
       breaksw
 
+    case "-no-extreg": 
+      set extreg = ();
+      breaksw
+
     case "-mcextreg": # MotionCor External regressor file
       if($#extreg != 0) then
         echo "ERROR: can only spec one -extreg or -mcextreg"
@@ -1030,8 +1034,9 @@ usage_exit:
   echo "   -nskip       N         : skip the first N time points in each run"
   echo "   -tpef      filename    : time-point (in seconds) exclude file name"
   echo "   -polyfit N             : fit trend with polynomial of order N"
-  echo "   -extreg extregstem     : external regressor"
-  echo "   -nextreg N             : number of external regressor"
+  echo "   -extreg extregstem     : external regressors"
+  echo "   -nextreg N             : number of external regressors"
+  echo "   -no-extreg             : turn off external regressors"
   echo "   -mcextreg              : use motion parameters as external regressors (sets n=3)"
   echo ""
   echo "Event-Related and Blocked Arguments "
