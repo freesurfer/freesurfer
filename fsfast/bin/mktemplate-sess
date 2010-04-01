@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/31 20:55:46 $
-#    $Revision: 1.6 $
+#    $Date: 2010/04/01 00:28:30 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,8 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-
-set VERSION = '$Id: mktemplate-sess,v 1.6 2010/03/31 20:55:46 greve Exp $';
+set VERSION = '$Id: mktemplate-sess,v 1.7 2010/04/01 00:28:30 greve Exp $';
 set inputargs = ($argv);
 
 set fsd          = bold;
@@ -34,10 +33,14 @@ set DoMidFrame   = 0;
 set RunListFile  = ();
 set funcstem     = f;
 set tempstem     = template;
-set UpdateOnly = 1;
+set UpdateOnly = 0;
 set DoView = 0;
 set DoConcat = 0;
 set PrintHelp = 0;
+
+if($?FSF_OUTPUT_FORMAT) then
+  setenv FSF_OUTPUT_FORMAT nii
+endif
 
 ## If there are no options, just print the usage ##
 if($#argv == 0) goto usage_exit;
@@ -65,42 +68,28 @@ endif
 goto check_params;
 check_params_return:
 
-##### Create a log file ######
-if(! $nolog) then
-  set logdir = `pwd`/log;
-  mkdir -p $logdir
-  if(! -e $logdir) then
-    echo "WARNING: could not create $logdir"
-    set LF = /dev/null
-  else
-    if($#SessList > 1) then
-      set LF = $logdir/mktemplate-sess.$$.log
-    else
-      set sb = `basename $SessList`
-      set LF = $logdir/mktemplate-sess.$sb.log
-    endif
-    if(-e $LF) mv $LF $LF.old
-  endif
-else
-  set LF = /dev/null
-endif
-
-echo "--------------------------------------------------------------"
-echo "mktemplate-sess logfile is $LF"
-echo "--------------------------------------------------------------"
-
-echo "mktemplate-sess log file" >> $LF
-echo $VERSION >> $LF
-uname -a >> $LF
-date >> $LF
-pwd >> $LF
-echo UpdateOnly $UpdateOnly >> $LF 
-echo $inputargs       >> $LF 
-which mktemplate-sess >> $LF 
+set ProjectDir = `pwd`;
 
 ## Loop through each session ##
 set concatlist = ();
 foreach sess ($SessList)
+  set sessid = `basename $sess`
+
+  ##### Create a log file ######
+  set LF = /dev/null
+  if(! $nolog) then
+    set logdir = $ProjectDir/log;
+    mkdir -p $logdir
+    set LF = $logdir/mktemplate-sess.$sessid.$fsd.$funcstem.log
+    if(-e $LF) mv $LF $LF.old
+  endif
+  echo "mktemplate-sess log file" >> $LF
+  echo $VERSION >> $LF
+  uname -a >> $LF
+  date >> $LF
+  pwd >> $LF
+  echo UpdateOnly $UpdateOnly >> $LF 
+  echo $0 $inputargs  >> $LF 
 
   echo " " |& tee -a $LF
   echo "Session: $sess ----------------" |& tee -a $LF
@@ -140,9 +129,7 @@ foreach sess ($SessList)
   if(-e $templatevol && $UpdateOnly) then
     test $srcvol -nt $templatevol
     if($status) then
-      pwd | tee -a $LF
-      ls -lt $srcvol $templatevol | tee -a $LF
-      echo "Update not needed" | tee -a $LF
+      echo "$sessid Update not needed" | tee -a $LF
       set UpdateNeeded = 0;
     endif
   endif
@@ -178,7 +165,7 @@ foreach sess ($SessList)
    
   foreach Run ($RunList)
     echo "  Run: $Run ----------------" |& tee -a $LF
-    date  |& tee -a $LF
+    echo "  `date`"  |& tee -a $LF
     set funcdir = $sess/$fsd/$Run
 
     set ext = `stem2fmt $funcdir/$funcstem`
@@ -186,7 +173,6 @@ foreach sess ($SessList)
       echo "$ext" |& tee -a $LF
       exit 1;
     endif
-    echo "Detected input format at $ext" |& tee -a $LF
     set srcvol = $funcdir/$funcstem.$ext
     set templatevol = $funcdir/template.$FSF_OUTPUT_FORMAT;
 
@@ -194,9 +180,7 @@ foreach sess ($SessList)
     if(-e $templatevol && $UpdateOnly) then
       test $srcvol -nt $templatevol
       if($status) then
-        pwd | tee -a $LF
-        ls -lt $srcvol $templatevol | tee -a $LF
-        echo "Update not needed" | tee -a $LF
+        echo "  $sessid $Run Update not needed" | tee -a $LF
         set UpdateNeeded = 0;
       endif
     endif
@@ -278,6 +262,10 @@ while( $#argv != 0 )
       if ( $#argv < 1) goto arg1err;
       set ConcatFile = $argv[1]; shift
       set DoConcat = 1;
+      breaksw
+
+    case "-update":
+      set UpdateOnly = 1;
       breaksw
 
     case "-force":
@@ -365,7 +353,8 @@ usage_exit:
   echo "  -funcstem stem : default is f"
   echo "  -rlf RLF       : run-list file"
   echo ""
-  echo "  -force : force an update"
+  echo "  -update : only run if update is needed"
+  echo "  -force : force an update (default)"
   #echo "  -view : dont create template, just view it"
   #echo "  -concat concatfile : concatenate all templates into one file"
   echo ""
@@ -399,8 +388,7 @@ f.nii.gz). This can be changed with -funcstem.
 
 By default, it uses "bold". This can be changed with -fsd.
 
-If the template already exists, it looks to see if it is more recent
-than its source. If it is, no action is taken. This can be changed
-by adding -force. 
-
+By default, the template is created regardless of whether it needs to
+be or not.  To create it only if the source files have changed, add
+-update.
 
