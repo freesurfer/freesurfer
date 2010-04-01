@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/01 05:13:16 $
- *    $Revision: 1.56 $
+ *    $Date: 2010/04/01 05:59:05 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.56 2010/04/01 05:13:16 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.57 2010/04/01 05:59:05 greve Exp $";
 
 char *Progname = NULL;
 
@@ -220,7 +220,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.56 2010/04/01 05:13:16 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.57 2010/04/01 05:59:05 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -242,18 +242,6 @@ int main(int argc, char **argv) {
   if (SUBJECTS_DIR==NULL) {
     fprintf(stderr,"ERROR: SUBJECTS_DIR not defined in environment\n");
     exit(1);
-  }
-
-  if(UseCortexLabel) {
-    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,trgsubject,hemi);
-    mask_label_name = strcpyalloc(tmpstr);
-  }
-
-  if(mask_label_name){
-    area = LabelRead(NULL, mask_label_name) ;
-    if(area == NULL)
-      ErrorExit(ERROR_NOFILE, "%s: could not load label file %s", 
-		Progname, mask_label_name);
   }
 
   /* voxel indices conversion from float to integer */
@@ -319,6 +307,7 @@ int main(int argc, char **argv) {
     MRIfree(&TargVol);
   }
 
+
   if(Mrot){
     printf("Applying rotation matrix (R=M*R)\n");
     printf("Current Reg Matrix is:\n");
@@ -339,8 +328,6 @@ int main(int argc, char **argv) {
     MatrixPrint(stdout,Mtrans);
     Dsrc = MatrixMultiply(Mtrans,Dsrc,Dsrc);
   }
-
-  if(trgsubject == NULL) trgsubject = srcsubject;
 
   ncols_src = SrcVol->width;
   nrows_src = SrcVol->height;
@@ -426,6 +413,19 @@ int main(int argc, char **argv) {
   if (fwhm > 0) {
     printf("INFO: smoothing volume at fwhm = %g mm (std = %g)\n",fwhm,gstd);
     MRIgaussianSmooth(SrcVol, gstd, 1, SrcVol); /* 1 = normalize */
+  }
+
+  if(trgsubject == NULL) trgsubject = srcsubject;
+  if(UseCortexLabel) {
+    sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,trgsubject,hemi);
+    mask_label_name = strcpyalloc(tmpstr);
+  }
+  if(mask_label_name){
+    printf("Loading label %s\n",mask_label_name) ;
+    area = LabelRead(NULL, mask_label_name) ;
+    if(area == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label file %s", 
+		Progname, mask_label_name);
   }
 
   /* Load the surface for subject indicated by registration file*/
@@ -599,7 +599,7 @@ int main(int argc, char **argv) {
     SurfVals2 = surf2surf_nnfr(SurfVals, SrcSurfReg,TrgSurfReg,
                                &SrcHits,&SrcDist,&TrgHits,&TrgDist,
                                ReverseMapFlag,UseHash);
-    if (SurfVals2 == NULL) {
+    if(SurfVals2 == NULL) {
       printf("ERROR: mapping surfaces\n");
       exit(1);
     }
@@ -694,12 +694,9 @@ int main(int argc, char **argv) {
   if (outtypestring != NULL &&
       (!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))) {
     /*-------------- paint or .w --------------*/
-    for (vtx = 0; vtx < SurfVals2->width; vtx++)
+    for(vtx = 0; vtx < SurfVals2->width; vtx++)
       SurfOut->vertices[vtx].val = MRIFseq_vox(SurfVals2,vtx,0,0,0) ;
-    if (mask_label_name){
-      LabelMaskSurface(area, Surf) ;
-      LabelFree(&area) ;
-    }
+    if(mask_label_name) LabelMaskSurface(area, Surf) ;
     MRISwriteValues(SurfOut, outfile) ;
   } else {
     if (reshape) {
@@ -727,17 +724,16 @@ int main(int argc, char **argv) {
         printf("INFO: nvertices is prime, cannot reshape\n");
       }
     }
-    else if (mask_label_name)
-    {
-      MRISclearMarks(Surf) ;
-      LabelMarkSurface(area, Surf) ;
+    else if (mask_label_name) {
+      printf("Masking with %s\n",mask_label_name);
+      MRISclearMarks(SurfOut) ;
+      LabelMarkSurface(area, SurfOut) ;
       for (vtx = 0; vtx < SurfVals2->width; vtx++){
         if (SurfOut->vertices[vtx].marked == 0){
 	  for(f=0; f < SurfVals2->nframes; f++)
 	    MRIsetVoxVal(SurfVals2, vtx, 0, 0, f, 0.0) ;
 	}
       }
-      LabelFree(&area) ;
     }
     printf("Writing to %s\n",outfile);
     printf("Dim: %d %d %d\n",
