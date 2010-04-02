@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 21:28:13 $
-#    $Revision: 1.30 $
+#    $Date: 2010/04/02 23:18:21 $
+#    $Revision: 1.31 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.30 2010/04/01 21:28:13 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.31 2010/04/02 23:18:21 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -39,6 +39,7 @@ set fsd    = ();
 set parname    = ();
 set analysis   = ();
 set cloneanalysis = ();
+set CopyCloneCons = 0;
 set funcstem   = f;
 set designtype = ();
 set eventrelated = 0;
@@ -76,7 +77,7 @@ set timeoffset = ();
 set extreg = ();
 set nextreg = ();
 set extregorthog = 0;
-set maskstem = ();
+set maskstem = brain;
 set autostimdur = ();
 set stimdur = ();
 set PrintHelp = 0;
@@ -87,6 +88,9 @@ set FSV3whiten = 0;
 set mfile = ();
 set monly = 0;
 set RefEventDur = ();
+set subject = ();
+set hemi = ();
+set UseTalairach = ()
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -116,11 +120,6 @@ parse_args_return:
 
 goto check_params;
 check_params_return:
-
-## File permission masking ###
-if(! $?MRI_UMASK ) set MRI_UMASK = `umask`;
-umask $MRI_UMASK;
-set umaskarg = "-umask $MRI_UMASK"
 
 #-----------------------------------------
 if($UseGUI) then
@@ -239,6 +238,9 @@ if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
 echo "tpexclude  $tpexclude"  >> $infofile
 if($#parname)  echo "parname    $parname"    >> $infofile
 echo "designtype $designtype" >> $infofile
+if($#maskstem != 0) echo "maskstem $maskstem" >> $infofile
+if($#subject) echo "surface $subject $hemi" >> $infofile
+if($UseTalairach) echo "UseTalairach" >> $infofile
 if($eventrelated || $blocked) then
   echo "nconditions $nconditions"  >> $infofile 
   @ nthc = 1
@@ -247,122 +249,11 @@ if($eventrelated || $blocked) then
     @ nthc = $nthc + 1
   end
 endif
-if($#maskstem != 0) echo "maskstem $maskstem" >> $infofile
 
-if($#SessList == 0) then
-  echo "Completed successfully"
-  exit 0;
-endif
+if($CopyCloneCons && $#cloneanalysis) cp $cloneanalysis/*.mat $analysis
 
-#----- Set up session-level scripts -------#
-echo $SessList
+echo "mkanalysis-sess done"
 
-set TRAnalysis = $TR;
-
-# Go through each session, make sure it exists, and check consistency #
-set n = 1;
-foreach sess ($SessList)
-  set sessbase = `basename $sess`;
-
-  ## check that the runlistfile exists ##
-  if($#runlistfile != 0) then
-    set rlf = $sess/$fsd/$runlistfile
-    if(! -e $rlf) then
-      echo "ERROR: cannot find $rlf"
-      exit 1;
-    endif
-  endif
-
-  @ n = $n + 1;
-end # Loop over sessions #
-
-mkdir -p scripts
-set scriptsdir = $analysis/scripts
-mkdir -p $scriptsdir
-
-##---- Create default motion correction script ------#
-set scr = scripts/run-mc-sess
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "# Motion-Correction " >> $scr
-echo "cd .."                >> $scr
-echo "mc-sess -method afni -toff 0 $GSPArgs $umaskarg" >> $scr
-echo ""                     >> $scr
-
-if($designtype == "event-related" || $designtype == "blocked") then
-##---- Create default selxavg script ------##
-set scr = $scriptsdir/run-selxavg-sess
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "# Within-Session Averaging of Raw (ie, Not Motion-Corrected) Data" >> $scr
-echo "cd ../.."                >> $scr
-echo "selxavg-sess -analysis $analysis $GSPArgs " >> $scr
-echo ""                     >> $scr
-
-##---- Create default stxgrinder subject script ------#
-set scr = $scriptsdir/run-stxgrinder-subj
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "# Session-Level Statistical Grinding " >> $scr
-echo "cd ../.."                >> $scr
-echo "stxgrinder-sess -contrast allvfix -analysis $analysis -umask 0 $GSPArgs " >> $scr
-echo ""                     >> $scr
-
-##---- Create default tal script ------#
-set scr = $scriptsdir/run-func2tal-sess
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "# Resampling of functional averages into Talariach Space" >> $scr
-echo "cd ../.."                >> $scr
-echo "func2tal-sess -res 4 -analysis $analysis $GSPArgs -umask 0" >> $scr
-echo ""                     >> $scr
-
-##---- Create default func2sph script ------#
-set scr = $scriptsdir/run-func2sph-sess
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "# Resampling of functional averages into Spherical Space" >> $scr
-echo "cd ../.."                >> $scr
-echo "func2sph-sess -analysis $analysis $GSPArgs -umask 0">> $scr
-echo ""                     >> $scr
-
-##---- Create default isxavg-fe script ------#
-set scr = $scriptsdir/run-isxavg-fe-sess
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "# Intersubject Averaging (Fixed-Effects) in  Talariach Space" >> $scr
-echo "cd ../.."                >> $scr
-echo "isxavg-fe-sess -grpname all -analysis $analysis -resamp tal $GSPArgs -umask 0">> $scr
-echo ""                     >> $scr
-
-##---- Create default stxgrinder group script ------#
-set scr = $scriptsdir/run-stxgrinder-grp
-rm -f $scr
-touch $scr
-chmod a+x $scr
-echo "#\!/bin/csh -f "      >> $scr
-echo "# Group-Level Statistical Grinding " >> $scr
-echo "cd ../.."                >> $scr
-echo "stxgrinder-sess -contrast allvfix -analysis $analysis -umask 0 -grpname all -resamp tal" >> $scr
-echo ""                     >> $scr
-endif
-
-# Delete the h.dat file if it exists
-rm -f  $analysis/h.dat
-
-echo "Completed successfully"
 exit 0;
 ###############################################
 
@@ -390,6 +281,12 @@ while( $#argv != 0 )
       set GSPArgs = ($GSPArgs -cwd);
       breaksw
 
+    case "-copy-clone-contrasts":
+    case "-copy-clone-con":
+    case "-ccc":
+      set CopyCloneCons = 1;
+      breaksw
+
     case "-clone":
       if ( $#argv == 0) goto arg1err;
       set cloneanalysis = $argv[1]; shift;
@@ -411,6 +308,14 @@ while( $#argv != 0 )
   set TR = `cat $cainfo   | awk '{if($1 == "TR") print $2}'`;
   set tmp = `cat $cainfo | awk '{if($1 == "RefEventDur") print $2}'`;
   if($#tmp) set RefEventDur = $tmp
+  set tmp = `cat $cainfo | awk '{if($1 == "surface") print $2" "$3}'`;
+  if($#tmp) then
+    set subject = $tmp[1];
+    set hemi = $tmp[2];
+  endif
+  set tmp = `cat $cainfo | awk '{if($1 == "hemi") print $2}'`;
+  if($#tmp) set hemi = $tmp
+  set UseTalairach = `cat $cainfo | awk '{if($1 == "UseTalairach") print $2}'`;
   set designtype = `cat $cainfo | awk '{if($1 == "designtype") print $2}'`;
   set fsd       = `cat $cainfo | awk '{if($1 == "fsd") print $2}'`;
   set funcstem  = `cat $cainfo | awk '{if($1 == "funcstem") print $2}'`;
@@ -418,7 +323,8 @@ while( $#argv != 0 )
   set tpexclude = `cat $cainfo | awk '{if($1 == "tpexclude") print $2}'`;
   set runlistfile = `cat $cainfo | awk '{if($1 == "runlistfile") print $2}'`;
   set nconditions = `cat $cainfo | awk '{if($1 == "nconditions") print $2}'`;
-  set maskstem = `cat $cainfo | awk '{if($1 == "maskstem") print $2}'`;
+  set tmp = `cat $cainfo | awk '{if($1 == "maskstem") print $2}'`;
+  if($#tmp) set maskstem = $tmp;
 
   set gDelta = `cat $cacfg | awk '{if($1 == "-gammafit") print $2}'`;
   set gTau   = `cat $cacfg | awk '{if($1 == "-gammafit") print $3}'`;
@@ -683,6 +589,36 @@ while( $#argv != 0 )
       set ncycles = $argv[1]; shift;
       breaksw
 
+    case "-surface":
+    case "-surf":
+      if($#argv < 2) goto arg2err;
+      set subject = $argv[1]; shift;
+      set hemi = $argv[1]; shift;
+      breaksw
+    case "-no-surf":
+    case "-no-surface":
+      set subject = ();
+      set hemi = ();
+      breaksw
+
+    case "-tal":
+    case "-talairach":
+      set UseTalairach = 1;
+      breaksw
+
+    case "-no-tal":
+    case "-no-talairach":
+      set UseTalairach = 0;
+      breaksw
+
+    case "-perrun":
+      set PerRun = 1;
+      breaksw
+
+    case "-synth":
+      set DoSynth = 1;
+      breaksw
+
     case "-designtype":
     case "-design":
     case "-dt":
@@ -902,27 +838,17 @@ check_params:
   if($#fsd == 0)  set fsd = bold
 
   if($#funcstem == 0) then
-    if($motioncor) then
-      set funcstem = fmc;
-    else
-      set funcstem = f;
-    endif
-  endif
-
-  if($#designtype == 0) then
-    echo "ERROR: must specify a design type"
+    echo "ERROR: must specify a funcstem"
     exit 1;
   endif
 
+  if($#designtype == 0) set designtype = "event-related"
   if("$designtype" == "event-related") set eventrelated = 1;
   if("$designtype" == "blocked")       set blocked      = 1;
   if("$designtype" == "abblocked")     set abblocked    = 1;
   if("$designtype" == "retinotopy")    set retinotopy   = 1;
 
-  if($#parname == 0 && $abblocked) then
-    set parname = NONE;
-  endif
-
+  if($#parname == 0 && $abblocked)  set parname = NONE;
   if($#parname == 0) then
     echo "ERROR: must specify a paradigm file name"
     exit 1;
@@ -990,6 +916,11 @@ check_params:
 
   if(($gammafit || $spmhrf != -1) && $#RefEventDur == 0) then
     echo "ERROR: you must specify a reference event duration with an HRF"
+    exit 1;
+  endif
+
+  if($#subject && $UseTalairach) then
+    echo "ERROR: cannot use -surface and -talairach"
     exit 1;
   endif
 

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/10/24 20:59:23 $
-#    $Revision: 1.29 $
+#    $Date: 2010/04/02 23:18:21 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,240 +23,182 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.29 2008/10/24 20:59:23 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.30 2010/04/02 23:18:21 greve Exp $';
 set inputargs = ($argv);
 
-set PWDCMD = pwd
-
-set analysis      = ();
-set anapend       = ();
-set sessid        = ();
-set isxavgmethod  = ();
-set hsurf = ();
-
-set mapanalysis   = ();
-set mapsessid     = ();
-set mapisxavgmethod  = ();
-
-set contrastlist = ();
-set space      = ();
-set subject    = ();
-set mrivolid   = orig;
-set auxvolid   = brainmask.mgz;
-
-set hdrdir = ();
+set sessid  = ();
 set sessdir = ();
+set sessdirfile = ();
+set analysis      = ();
+set flac = ();
+set mapanalysis   = ();
+set contrastlist = ();
+set map    = sig;
+set ShowHdr = 1;
+set ShowOverlay = 1;
+set ShowSurfs = 0;
+set ToSelf = 0; # show tal on subjects anatomy
 
-set mapmeanimg = 0;
-set map    = ();
-set sessanat = 0;
-set asd = ();
-set ScriptOnly = 0;
-set umaskarg = ();
-set underlay = ();
-set thmin = 2;
-set thmax = 7;
-set nohdr = 0;
-set nosig = 0;
-set rawrun = ();
-set motioncor = 0;
-set mc = "";
-set fsd = ();
+set subject  = ();
+set mainvol   = orig.mgz;
+set auxvol   = brainmask.mgz;
+
+set segvol = ();
+set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
+set segopacity = .3;
+
 set fthresh = 2;
 set fmax    = 4;
-set group = ();
-set SessIsGroup = 0;
-set spacedir = ();
-set segmentation = ();
-set segcolor = ();
-set segopacity = .3;
-set ext = ();
-set usestatic = 0;
-set hdrtmpdir = ()
-set talreg = 0; # show on tal using register.tal
-set MGZ = .mgz;
 set DoAllContrasts = 0;
-set flac = ();
 
-set nolog = 0;
+set TCL = ();
+
+set IsFIR = 0;
+set UseTalairach = 0;
+
 set tmpdir = ();
-if($?FREESURFER_TMP_DIR) then
-  if(-e $FREESURFER_TMP_DIR) set tmpdir = $FREESURFER_TMP_DIR;
-endif
+set cleanup = 1;
 
-set n = `echo $argv | grep version | wc -l` 
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-
-if($#argv == 0) goto usage_exit;
-
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
 
-##### Create a log file ######
-if(! $nolog) then
-  set logdir = `$PWDCMD`/log;
-  mkdir -p $logdir
-  if(! -e $logdir || ! -w $logdir) then
-    echo "WARNING: could not create $logdir"
-    set LF = /dev/null
-  else
-    set LF = $logdir/tkmedit-sess.log
-    if(-e $LF) mv $LF $LF.old
-  endif
-else
-  set LF = /dev/null
-endif
-
-echo "--------------------------------------------------------------"
-echo "tkmedit-sess logfile is $LF"
-echo "--------------------------------------------------------------"
-
-echo "tkmedit-sess log file" >> $LF
-echo $VERSION   >> $LF
-id            >> $LF
-echo "$0"     >> $LF
-echo "$argv"  >> $LF
-$PWDCMD           >> $LF
-echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"  | tee -a $LF
-uname -a      >> $LF
-date          >> $LF
-which tkmedit >> $LF
-
-set StudyDir = `pwd`;
-
-## Get functional subdirectory from the info file ##
+## Parse the analysis
 if($#analysis != 0) then
   if(! -e $analysis ) then
     echo "ERROR: $analysis does not exist. Try running mkanalysis-sess" |& tee -a $LF
     exit 1;
   endif
   set infofile = $analysis/analysis.info
+  set cfg = $analysis/analysis.cfg
   set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
   set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
   if($#designtype == 0) then
     set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
   endif
+  set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
+  if($#tmp) then
+    echo "ERROR: This is a surface-based analysis. Try using tksurfer-sess"
+    exit 1;
+  endif
+  set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
+  set UseTalairach = $#tmp;
+  set IsFIR = 1;
+  set tmp = `grep -e -gammafit $cfg`;
+  if($#tmp) set IsFIR = 0;
+  set tmp = `grep -e -spmhrf $cfg`;
+  if($#tmp) set IsFIR = 0;
 else if($#flac) then
   set fsd = `cat $flac | awk '{if($1 == "fsd") print $2}'`
   set designtype = "event-related"
   set analysis = `basename $flac .flac`
   echo $analysis $fsd
-  set nohdr = 1;
-else
-  if($#fsd == 0) set fsd = bold;
-  set nohdr = 1;
-  set nosig = 1;
+  set ShowHdr = 0;
 endif
 
-if("$designtype" != "event-related") set nohdr = 1;
-
-## Get map functional subdirectory from the info file ##
+## Parse the map analysis
 if($#mapanalysis != 0) then
-  if(! -e $mapanalysis ) then
-    echo "ERROR: $mapanalysis does not exist. Try running mkanalysis-sess" |& tee -a $LF
+  set infofile = $mapanalysis/analysis.info
+  set mapfsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
+  if($#tmp) then
+    echo "ERROR: $mapanalysis surface-based analysis. Try using tksurfer-sess"
     exit 1;
   endif
-  set mapfsd = `cat $mapanalysis/analysis.info | awk '{if($1 == "fsd") print $2}'`;
+  set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
+  set MapUseTalairach = $#tmp;
+  if($UseTalairach != $MapUseTalairach) then
+    if($MapUseTalairach) then
+      echo "ERROR: map analysis $mapanalysis is talairach-based."
+      echo "This does not match the analysis $analysis"
+    else
+      echo "ERROR: map analysis $mapanalysis is NOT talairach-based."
+      echo "This does not match the analysis $analysis"
+    endif      
+    exit 1;
+  endif
 else if($#flac) then
   set mapfsd = $fsd
   set mapanalysis = $analysis
-else
-  if($#mapfsd == 0) set mapfsd = bold;
-  set nohdr = 1;
-  set nosig = 1;
 endif
 
-if($#isxavgmethod == 0) then
-  if($space == native) then
-    set spacesubdir = ();
-  else
-    set spacesubdir = $spacedir
-  endif
-else
-  if($isxavgmethod == fixed) then
-    set spacesubdir = $spacedir-ffx
-  else
-    set spacesubdir = $spacedir-rfx
-  endif
+set anadir = $sess/$fsd/$analysis
+if($#tmpdir == 0) then
+  set tmpdir = $anadir/tmp.tkmedit-sess
+  mkdir -p $tmpdir
 endif
 
-set hdrdir = $sess/$fsd/$analysis$anapend/$spacesubdir
-if($#ext == 0) then
-  set hstem = $hdrdir/h-offset
-  set ext = `fast_getext $hstem`
-  if($status) then
-    echo $ext
-    exit 1;
-  endif
-endif
-
-#----------------------------------------------------#
-if(! $nohdr) then
-
-  if(! -e $hdrdir) then
-    echo "ERROR: cannot find $hdrdir"
-    exit 1;
-  endif
-  set hdrstem = $hdrdir/h
-
-  if($space == native) then
-    if(! $talreg) then
-      #set regfile = $StudyDir/$sess/$fsd/register.dat;
-      set regfile = $sess/$fsd/register.dat;
-    else
-      #set regfile = $StudyDir/$sess/$fsd/register.tal;
-      set regfile = $sess/$fsd/register.tal;
-    endif
-  else
-    set regfile = $hdrdir/register.dat;
-  endif
-
+# Get subject name (and maybe reg)
+if(! $UseTalairach) then 
+  set regfile = $sess/$fsd/register.dat;
   if(! -e $regfile ) then
     echo "ERROR: cannot find $regfile"
     exit 1;
   endif
-
   # get the full path the regfile
   set d = `dirname $regfile`;
   pushd $d > /dev/null
   set d = `pwd`;
   popd > /dev/null
   set regfile = $d/`basename $regfile`;
-
-  #cp $regfile $hdrdir
-  set hdrregfile = $regfile
-
+  set subject = `cat $regfile | head -n 1`;
+else
+  set regfile = ();
+  set subject = fsaverage
+endif
+echo "subject is $subject"
+if(! -e $SUBJECTS_DIR/$subject) then
+  echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+  exit 1;
 endif
 
-#----------------------------------------------------#
-set mapconcatfile = ();
-if(! $nosig) then
-
-  if($#mapisxavgmethod == 0) then
-    if($space == native) then
-      set spacesubdir = ();
-    else
-      set spacesubdir = $spacedir
-    endif
-  else
-    if($mapisxavgmethod == fixed) then
-      set spacesubdir = $spacedir-ffx
-    else
-      set spacesubdir = $spacedir-rfx
-    endif
+if($ToSelf && $UseTalairach) then
+  set self = `cat $sess/subjectname`
+  if(! -e $SUBJECTS_DIR/$self) then
+    echo "ERROR: cannot find $self in $SUBJECTS_DIR"
+    exit 1;
   endif
+  set mf = `stem2fname $anadir/meanfunc`
+  set reg1 = $tmpdir/reg1.dat
+  set cmd = ( tkregister2_cmdl --reg $reg1 --mov $mf \
+    --s fsaverage --regheader --noedit)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+  set reg2 = $tmpdir/reg2.dat
+  set cmd = (tkregister2_cmdl --s $self --fstal --reg $reg2)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+  set regfile = $tmpdir/register.dat
+  set cmd = (mri_matrix_multiply -im $reg1 -im $reg2 -om $regfile)
+  echo $cmd
+  $cmd
+  if($status) exit 1;
+  set subject = $self  
+endif
 
-  set maphdrdir = $mapsess/$mapfsd/$mapanalysis$anapend/$spacesubdir
-
+# Construct the overlay options
+set mapconcatfile = ();
+set mapoption = ()
+if($ShowOverlay) then
+  set mapanadir = $sess/$mapfsd/$mapanalysis
   set maplist = ()
   foreach contrast ($contrastlist)
-    set condir = $maphdrdir/$contrast
+    set condir = $mapanadir/$contrast
     if(! -e $condir) then
       echo "ERROR: cannot find $condir"
       exit 1;
@@ -269,210 +211,63 @@ if(! $nosig) then
     endif
     set maplist = ($maplist $mapfile)
   end
-  set ddir = $mapsess/$mapfsd/$mapanalysis$anapend/
-  if(! -w $ddir) then
-    if($#tmpdir == 0) then
-      echo "ERROR: you do not have write permission to $ddir"
-      echo "try using -tmp or setting FREESURFER_TMP_DIR"
-      exit 1;
-    endif
-    set ddir = $tmpdir
-  endif
-  set mapconcatfile = $ddir/tkmconcat.nii
+  set mapconcatfile = $tmpdir/tkmconcat.nii
   set cmd = (mri_concat $maplist --o $mapconcatfile);
   echo $cmd
   $cmd
   if($status) exit 1;
-
-  if($space == native) then
-    if(! $talreg) then
-      #set regfile = $StudyDir/$sess/$fsd/register.dat;
-      set regfile = $sess/$fsd/register.dat;
-    else
-      #set regfile = $StudyDir/$sess/$fsd/register.tal;
-      set regfile = $sess/$fsd/register.tal;
-    endif
-  else
-    set regfile = $maphdrdir/register.dat;
-  endif
-  if(! -e $regfile ) then
-    echo "ERROR: cannot find $regfile"
-    exit 1;
-  endif
-
-  set d = `dirname $regfile`;
-  pushd $d > /dev/null
-  set d = `pwd`;
-  popd > /dev/null
-  set regfile = $d/`basename $regfile`;
-
-  set mapregfile = $regfile
-
   set mapoption = (-overlay $mapconcatfile)
-  set mapoption = ($mapoption -overlay-reg $mapregfile)
-  
 endif
 
-if($#subject == 0) then
-  if($#regfile == 0) then
-    echo "ERROR: need reg file"
-    exit 1;
-  endif
-  if(! -e $regfile ) then
-    echo "ERROR: cannot find $regfile"
-    exit 1;
-  endif
-  set subject = `cat $regfile | head -n 1`;
-endif
-echo "INFO: subject is $subject"
-if(! -e $SUBJECTS_DIR/$subject) then
-  echo "cannot find $subject in $SUBJECTS_DIR"
-  exit  1;
-endif
-
-if($subject != talairach && $space == tal) set mrivolid = talairach
-
-set tmp = $SUBJECTS_DIR/$subject/mri/$mrivolid.mgz
-if(-e $tmp) then
-  set MGZ = ".mgz";
-else
-  echo "Cannot find $tmp, assuming COR"
-  set MGZ = ();
-endif
-
-if(! -e $SUBJECTS_DIR/$subject) then
-  echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
-  exit 1;
-endif
-
-if($#auxvolid) then
-  if(! -e $SUBJECTS_DIR/$subject/mri/$auxvolid) then
-    echo "ERROR: $auxvolid does not exist for subject $subject"
-    exit 1;
-  endif
-else
-  set auxvolid = brain$MGZ;
-  if(! -e $SUBJECTS_DIR/$subject/mri/$auxvolid) set auxvolid = ();
-endif
-
+# Construct the time course options
 set hdroption  = ""
-set offsetoption = ""
-
-## Get the full path to the hdr dir ##
-pushd $hdrdir > /dev/null
-set hdrdir = `$PWDCMD`;
-popd  > /dev/null
-
-if(! $nohdr ) then
-  ## make sure that dat file exists
-  set hdrdat = $analysis$anapend/h.dat
-  if(! -e $hdrdat ) then
-    echo "ERROR: could not find $hdrdat" |& tee -a $LF
-    pwd
+if(! $IsFIR) set ShowHdr = 0;
+if($ShowHdr) then
+  set anapath = $sess/$fsd/$analysis
+  set hdrfile = `stem2fname $sess/$fsd/$analysis/h`;
+  if($status) then
+    echo "$hdrfile"
     exit 1;
   endif
-
-  ## Check whether an IRF was used ##
-  set tmp = `grep Nh $hdrdat`;
-  @ Nh = $tmp[2];
-  if($Nh != 1 && ! $nohdr) then
-    set hdroption  = (-timecourse $hdrdir/h.$ext )
-    set hdroption  = ($hdroption -timecourse-reg $hdrregfile)
-    set offsetoption = (-timecourse-offset $hdrdir/h-offset.$ext)
-  endif
-endif
-
-## Get the directory for the anatomicals ##
-if(! $sessanat ) then
-  if($subject != talairach || $SessIsGroup) then
-    echo "INFO: subject is $subject" |& tee -a $LF
-    if(! -e $SUBJECTS_DIR/$subject ) then
-      echo "ERROR: subject $subject does not exist in data base" |& tee -a $LF
-      echo "SUBJECTS_DIR: $SUBJECTS_DIR" |& tee -a $LF
-      exit 1;
-    endif
-    set anatoption = "$subject $mrivolid$MGZ";
-    echo "mrivolid $mrivolid$MGZ "
-  else
-    set tmpreg = $sess/$fsd/register.dat
-    set tmpsubject = `head -n 1 $tmpreg`;
-    set anatdir = $SUBJECTS_DIR/$tmpsubject/mri/talairach
-    if(-e $anatdir) then
-      set subject    = $tmpsubject;
-      set anatoption = "$subject talairach";
-    else
-      set anatdir = $SUBJECTS_DIR/$subject/mri/$mrivolid
-      set anatoption = "$subject $mrivolid$MGZ";
-    endif
-  endif
-else
-  set tmp = `ls -d $sess/$asd/???`;
-  if($#tmp == 0) then
-    echo "ERROR: cannot find a run in $sess/$asd" |& tee -a $LF
+  set hofffile = `stem2fname $sess/$fsd/$analysis/h-offset`;
+  if($status) then
+    echo "$hofffile"
     exit 1;
   endif
-  set anatdir = $tmp[1];
-  set anatoption = "-f $anatdir";
-endif
-
-#--------- Prep the segmentation ---------------------------#
-if($#segmentation != 0) then
-
-  if(-e $segmentation) then
-     set segdir = $segmentation
-  else
-    set segdir = $SUBJECTS_DIR/$subject/mri/$segmentation$MGZ
-    if(! -e $segdir ) then
-      echo "ERROR: cannot find either $segmentation or $segdir"
-      exit 1;
-    endif
-  endif
-
-  if(! -e $segcolor) then
-    set tmp = $segdir/$segcolor
-    if(-e $tmp) then
-      set segcolor = $tmp;
-    else
-      echo "ERROR: cannot find either $tmp or $segcolor"
-      exit 1;
-    endif
-  endif
-  set segoption = (-segmentation $segdir $segcolor )
-  set segoption = ($segoption -segmentation-opacity $segopacity)
-else
-  set segoption = ();
+  set hdroption  = (-timecourse $hdrfile -timecourse-offset $hofffile);
 endif
 
 #------- Create and run the cmd line -----------------------#
 set TKMEDIT = tkmedit
-if($usestatic) set TKMEDIT = $TKMEDIT.static
-set cmd = ($TKMEDIT $anatoption $hsurf $mapoption $hdroption $offsetoption)
+set cmd = ($TKMEDIT $subject $mainvol)
+if($#auxvol)   set cmd = ($cmd -aux $auxvol)
+if($ShowSurfs) set cmd = ($cmd -surfs)
+if($#segvol)   set cmd = ($cmd -seg $segvol $segcolor -opacity $segopacity)
+if($#regfile)  set cmd = ($cmd -reg $regfile)
+set cmd = ($cmd $hdroption $mapoption)
 set cmd = ($cmd -fthresh $fthresh -fmax $fmax)
-set cmd = ($cmd $segoption);
-if($#auxvolid) set cmd = ($cmd -aux $auxvolid);
-if($subject == talairach || $subject == fsaverage) then
-  set set cmd = ($cmd -bc-main .65 11);
-endif
-echo "------------------------"|& tee -a $LF
-echo "SUBJECTS_DIR $SUBJECTS_DIR"|& tee -a $LF
-$PWDCMD|& tee -a $LF
-echo $cmd|& tee -a $LF
-echo "------------------------"|& tee -a $LF
+if($#TCL) set cmd = ($cmd -tcl $TCL)
+echo "------------------------"
+echo "SUBJECTS_DIR $SUBJECTS_DIR"
+pwd 
+echo $cmd
+echo "------------------------"
 
+# Print out list of contrasts and their frame number
 @ nth = 0;
 foreach c ($contrastlist)
   echo $nth $c
   @ nth = $nth + 1;
 end
 
-$cmd|& tee -a $LF
+# Run the cmd
+$cmd
 if($status) then
-  echo "tkmedit failed"|& tee -a $LF
+  echo "tkmedit failed"
   exit 1;
 endif
 
-if($#mapconcatfile) rm -f $mapconcatfile
-if($#hdrtmpdir) rm -f $hdrtmpdir/*
+if($cleanup) rm -rf $tmpdir
 
 exit 0;
 ###--------------------------------------------###
@@ -496,38 +291,17 @@ while( $#argv != 0 )
       set DoAllContrasts = 1;
       breaksw
 
-    case "-space":
+    case "-main":
       if ( $#argv == 0) goto arg1err;
-      set space = $argv[1]; shift;
+      set mainvol = $argv[1]; shift;
       breaksw
 
-    case "-spacedir":
-      if ( $#argv == 0) goto arg1err;
-      set spacedir = $argv[1]; shift;
-      breaksw
-
-    case "-subject":
-      if ( $#argv == 0) goto arg1err;
-      set subject = $argv[1]; shift;
-      breaksw
-
-    case "-volid":
-      if ( $#argv == 0) goto arg1err;
-      set mrivolid = $argv[1]; shift;
-      breaksw
-
-    case "-auxid":
     case "-aux":
       if ( $#argv == 0) goto arg1err;
-      set auxvolid = $argv[1]; shift;
+      set auxvol = $argv[1]; shift;
       breaksw
-
     case "-no-aux":
-      set auxvolid = ();
-      breaksw
-
-    case "-mapmeanimg":
-      set mapmeanimg = 1;
+      set auxvol = ();
       breaksw
 
     case "-map":
@@ -543,38 +317,13 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set sessid = $argv[1]; shift;
       breaksw
-
-    case "-sf":
-      if ( $#argv == 0) goto arg1err;
-      set sessfile = $argv[1]; shift;            
-      if( ! -e $sessfile ) then
-        echo "ERROR: $sessfile does not exist"
-        exit 1;
-      endif
-      set tmp = `cat $sessfile`;
-      if($#tmp == 0) then
-        echo "ERROR: $sessfile is empty"
-        exit 1;
-      endif
-      set sessid = $tmp[1];
-      if($#tmp > 1) then
-        echo "WARNING: $sessfile has more than one session, using $sessid"
-      endif
-      breaksw
-
     case "-d":
       if ( $#argv == 0) goto arg1err;
-      set sessdir = ($sessdir $argv[1]); shift;
+      set sessdir = $argv[1]; shift;
       breaksw
-
     case "-df":
       if ( $#argv == 0) goto arg1err;
-      set df = $argv[1]; shift;
-      if(! -e $df) then
-        echo "ERROR: cannot find $df"
-        exit 1;
-      endif
-      set sessdir = ($sessdir `cat $df`);
+      set sessdirfile = $argv[1]; shift;
       breaksw
 
     case "-a":
@@ -588,72 +337,10 @@ while( $#argv != 0 )
       set flac = $argv[1]; shift;
       breaksw
 
-    case "-anapend":
-      if ( $#argv == 0) goto arg1err;
-      set anapend = $argv[1]; shift;
-      breaksw
-
-    case "-isxavg":
-      if ( $#argv == 0) goto arg1err;
-      set isxavgmethod = $argv[1]; shift;
-      if($isxavgmethod != "fixed" && $isxavgmethod != "random") then
-        echo "ERROR: -isxavg must be either fixed or random" 
-        exit 1;
-      endif
-      breaksw
-
-    case "-mapgroup":
-    case "-group":
-      echo "ERROR: $flag flag is no longer valid. Specify the group "
-      echo "       using the  -s or -sf flag."
-      exit 1;
-      breaksw
-
-    case "-maps":
-    case "-mapsess":
-    case "-mapsessid":
-    case "-mapsession":
-      if ( $#argv == 0) goto arg1err;
-      set mapsessid = $argv[1]; shift;
-      breaksw
-
     case "-mapanalysis":
     case "-ma":
       if ( $#argv == 0) goto arg1err;
       set mapanalysis = $argv[1]; shift;
-      breaksw
-
-    case "-mapisxavg":
-      if ( $#argv == 0) goto arg1err;
-      set mapisxavgmethod = $argv[1]; shift;
-      if($mapisxavgmethod != "fixed" && $mapisxavgmethod != "random") then
-        echo "ERROR: -mapisxavg must be either fixed or random"  
-        exit 1;
-      endif
-      breaksw
-
-    case "-subjdir":
-      if ( $#argv == 0) goto arg1err;
-      set subjdir = $argv[1]; shift;
-      if(! -e $subjdir) then
-        echo "ERROR: $subjdir does not exist"
-        exit 1;
-      endif
-      pushd $subjdir > /dev/null
-      set subjdir = `$PWDCMD`;
-      popd > /dev/null
-      setenv SUBJECTS_DIR $subjdir
-      echo "INFO: setting SUBJECTS_DIR to $SUBJECTS_DIR"
-      breaksw
-
-    case "-thmin":
-      if ( $#argv == 0) goto arg1err;
-      set fthresh = $argv[1]; shift;
-      breaksw
-
-    case "-thmax":
-      if ( $#argv == 0) goto arg1err;
-      set fthresh = $argv[1]; shift;
       breaksw
 
     case "-fthresh":
@@ -667,33 +354,12 @@ while( $#argv != 0 )
       set fmax = $argv[1]; shift;
       breaksw
 
-    case "-thmask":
-      set fthresh = .5;
-      set fmax    =  1;
-      breaksw
-
-    case "-raw":
-      if ( $#argv == 0) goto arg1err;
-      set rawrun = $argv[1]; shift;
-      breaksw
-
-    case "-fsd":
-      if ( $#argv == 0) goto arg1err;
-      set fsd = $argv[1]; shift;
-      breaksw
-
-    case "-asd":
-      if ( $#argv == 0) goto arg1err;
-      set asd = $argv[1]; shift;
-      set sessanat = 1;
-      breaksw
-
     case "-seg":
       if ( $#argv < 2) then
         echo "ERROR: -seg needs to arguments"
         exit 1;
       endif
-      set segmentation = $argv[1]; shift;
+      set segvol = $argv[1]; shift;
       set segcolor = $argv[1]; shift;
       breaksw
 
@@ -703,75 +369,46 @@ while( $#argv != 0 )
       breaksw
 
     case "-aseg":
-      set segmentation = aseg;
-      set segcolor = $FREESURFER_HOME/tkmeditColorsCMA
+      set segvol = aseg.mgz;
       breaksw
 
     case "-aparc+aseg":
-      set segmentation = aparc+aseg;
-      set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
+      set segvol = aparc+aseg.mgz;
       breaksw
 
-    case "-hsurf":
-      if($#argv < 1) goto arg1err;
-      set hsurf = $argv[1]; shift;
+    case "-surfs":
+      set ShowSurfs = 1;
       breaksw
 
     case "-tmp":
       if($#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+    case "-no-cleanup":
+    case "-nocleanup":
+      set cleanup = 0;
+      breaksw
+    case "-cleanup":
+      set cleanup = 1;
       breaksw
 
-    case "-sessanat":
-    case "-samesess":
-      set sessanat = 1;
-      breaksw
-
+    case "-no-show-hdr":
     case "-nohdr":
-      set nohdr = 1;
+      set ShowHdr = 0;
       breaksw
 
-    case "-nosig":
-      set nosig = 1;
-      breaksw
-
-    case "-talreg":
-      set talreg = 1;
-      breaksw
-
-    case "-nolog":
-      set nolog = 1;
-      breaksw
-
-    case "-motioncor":
-      set motioncor = 1;
-      set mc = "mc";
-      breaksw
-
-    case "-mgz":
-      set MGZ = ".mgz";
-      breaksw
-
-    case "-cor":
-      set MGZ = "";
-      breaksw
-
-    case "-umask":
+    case "-tcl":
       if ( $#argv == 0) goto arg1err;
-      set umaskarg = "-umask $argv[1]";
-      umask $argv[1]; shift;
+      set TCL = $argv[1]; shift;
+      if(! -e $TCL) then
+        echo "ERROR: cannot find $TCL"
+        exit 1
+      endif
       breaksw
 
-    case "-static":
-      set usestatic = 1;
-      breaksw
-
-    case "-verbose":
-      set verbose = 1;
-      breaksw
-
-    case "-echo":
-      set echo = 1;
+    case "-self":
+      set ToSelf = 1;
       breaksw
 
     case "-debug":
@@ -780,12 +417,8 @@ while( $#argv != 0 )
       setenv XDEBUG 1
       breaksw
 
-    case "-scriptonly":
-      set ScriptOnly = 1;
-      breaksw
-
     case "-cwd":
-      set cwd = `$PWDCMD`;
+      set cwd = `pwd`;
       set sessdir = `dirname $cwd`;
       set sessid  = `basename $cwd`;
       breaksw
@@ -805,7 +438,6 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#mapsessid == 0)   set mapsessid   = $sessid;
   if($#flac == 0) then
     if($#analysis == 0) then
       echo "ERROR: no analysis specified" 
@@ -832,142 +464,25 @@ check_params:
       end
     endif
     if($#contrastlist == 0) then
-      echo "ERROR: no contrast specified" 
-      exit 1;
+      echo "INFO: no contrast specified" 
+      sleep 2
+      set ShowOverlay = 0;
     endif
-    if($#contrastlist == 0)  set nosig = 1;
-    if($#analysis == 0)  set nohdr = 1;
-    if($#contrastlist != 0 && $#analysis == 0 ) then
-       echo "ERROR: must specify an analysis with contrast" 
-       exit 1
-    endif
-  endif #flac
+  endif # flac == 0
 
+  # Get session path
   if($#sessid == 0) then
     echo "ERROR: no sessions specified" 
     exit 1;
   endif
-
-  if($mapmeanimg == 1 && $#contrastlist != 0) then
-    echo "ERROR: cannot map mean image and contrast" 
+  set cmd = (getsesspath -s $sessid)
+  if($#sessdir)     set cmd = ($cmd -d $sessdir)
+  if($#sessdirfile) set cmd = ($cmd -df $sessdirfile)
+  set sess = `$cmd`;
+  if($status) then
+    echo "$sess"
     exit 1;
   endif
-
-  # Make sure that everything has a value # 
-  if($#space == 0) set space = native;
-  if($#asd == 0)   set asd   = 3danat;
-  if($#map == 0) then
-    set map = sig;
-    if($#contrastlist == 1) then
-      if($contrastlist == omnibus) set map = fsig;
-    endif
-  endif
-
-
-  if($mapmeanimg == 1) then
-    set map = h-offset;
-    set thmin =  500
-    set thmax = 1000
-  endif
-
-  if($mapmeanimg == 1 && $#analysis == 0) then
-    echo "ERROR: must specify analysis when mapping mean image" 
-    exit 1;
-  endif
-
-  if($space != "native" && $space != "tal") then
-    echo "ERROR: space must be either native or tal " 
-    exit 1;
-  endif
-
-  #--------------------------------------------------------------------#
-  if($#sessdir == 0) set sessdir = ".";
-  set sess = ();
-  foreach d ($sessdir)
-    set tmp = "$d/$sessid"
-    if(-e $tmp) then
-      set sess = ($sess $tmp);
-      echo "INFO: Found session in: $sess" 
-    endif
-  end
-  if($#sess == 0) then
-    echo "ERROR: could not find $sessid" 
-    exit 1;
-  endif
-  if($#sess > 1) then
-    echo "ERROR: found multiple sessions for $sessid" 
-    exit 1;
-  endif
-
-  set sessinfo = $sess/session.info
-  if(-e $sessinfo) then
-    set SessIsGroup = `grep GroupAverage $sessinfo | wc -l`;
-    if($SessIsGroup) then
-      echo "INFO: $sessid is a group average"  
-      if($space != tal) then
-        echo "ERROR: no support for tkmedit of $space space for group" 
-        exit 1;
-      endif
-      if($#isxavgmethod == 0) then
-        echo "ERROR: must specify -isxavg with group" 
-        exit 1;
-      endif
-      if($isxavgmethod == random) set nohdr = 1;
-    endif
-  endif
-
-  #--------------------------------------------------------------------#
-  set mapsess = ();
-  foreach d ($sessdir)
-    set tmp = $d/$mapsessid
-    if(-e $tmp) then
-      set mapsess = ($mapsess $tmp);
-      echo "INFO: Found session in: $mapsess" 
-    endif
-  end
-  if($#mapsess == 0) then
-    echo "ERROR: could not find $mapsessid" 
-    exit 1;
-  endif
-  if($#mapsess > 1) then
-    echo "ERROR: found multiple sessions for $mapsessid" 
-    exit 1;
-  endif
-
-  set sessinfo = $mapsess/session.info
-  if(-e $sessinfo) then
-  set MapSessIsGroup = `grep GroupAverage $sessinfo | wc -l`;
-  if($MapSessIsGroup) then
-    echo "INFO: $sessid is a group average"  
-    if($#mapisxavgmethod == 0) set mapisxavgmethod = $isxavgmethod;
-    if($space != tal) then
-      echo "ERROR: no support for tkmedit of $space space for group" 
-      exit 1;
-    endif
-    if($#mapisxavgmethod == 0) then
-      echo "ERROR: must specify -mapisxavg with group" 
-      exit 1;
-    endif
-  endif
-  endif
-
-  if($#rawrun != 0 && $space != native ) then
-    echo "ERROR: cannot view raw with space $space" 
-    exit 1;
-  endif
-
-  if($space != native && $sessanat ) then
-    echo "ERROR: cannot use -sessanat with space $space" 
-    exit 1;
-  endif
-
-  if($#spacedir == 0) set spacedir = $space;
-
-  if($talreg && $space != native) then
-    echo "ERROR: space must be native with -talreg. Rerun without -space."
-    exit 1
-  endif
-
 
 goto check_params_return;
 ############--------------##################
@@ -981,44 +496,36 @@ arg1err:
 ############--------------##################
 usage_exit:
   echo "USAGE: tkmedit-sess"
-  echo "Options:";
-  echo "   -volid  FSVolId : name of volume under subject/mri"
-  echo "   -mgz            : assume anatomicals are in mgz format"
-  echo "   -analysis  analysisname : name of session-level functional analysis";
-  echo "   -s         sessid   (only one allowed)"
-  echo "   -isxavg    method (fixed or random)"
-  echo "   -contrast  contrastname : contrast name"
-  echo "   -call      : do all contrasts"
-  echo "   -map       mapname      : <sig>, minsig, iminsig, t"
-  echo "   -mapanalysis analysisname : name of session-level functional analysis";
-  echo "   -mapsess     sessid from which to get the map";
-  echo "   -mapisxavg   method "
-
-  echo "   -space       spacename : <native> or tal"
-  echo "   -d           sessdir     ..."
-
-  echo "   -sessanat      : use session 3d anatomical instead of recon"
-  echo "   -fsd dir       : functional subdirectory (bold)"
-  echo "   -asd dir       : anatomical subdirectory (3danat)"
-  echo "   -seg segvol segcolor : segmentation vol and color"
-  echo "   -aseg : show automatic segmentation (must alreay exist)"
-  echo "   -aparc+aseg : show aparc+aseg segmentation (must alreay exist)"
+  echo ""
+  echo "   -s sessid <-d sessdir, -df sessdirfile>"
+  echo "   -analysis    analysis"
+  echo "   -c contrast <-c contrast>"
+  echo "   -call      : show all contrasts"
+  echo ""
+  echo "   -map  map"
+  echo "   -mapanalysis mapanalysis"
+  echo "   -no-show-hdr : for FIR analyses"
+  echo "   -self : show talairach on subject's own anatomy"
+  echo ""
+  echo "   -main mainvol : default is ($mainvol)"
+  echo "   -aux auxvol : default is ($auxvol)"
+  echo "   -surfs"
+  echo "   -aparc+aseg"
+  echo "   -aseg"
+  echo "   -seg seg ctab"
   echo "   -segopacity opacity : between 0 and 1 (def .3)"
-  echo "   -hsurf hemi.surf : load hemi.surf with volume"
   echo "   -fthresh fthresh : threshold for color overlay"
   echo "   -fmax    fmax    : saturation threshold for color overlay"
+  echo "   -tcl script.tcl  : run tkmedit with tcl script"
   echo ""
-  echo "   -scriptonly    : don't run, just generate a script"
-  echo "   -umask umask   : set unix file permission mask"
-  echo "   -version       : print version and exit"
-  echo "   -fthresh thresh : minimum threshold for display ($thmin)"
-  echo "   -fsat    thresh : saturation threshold for display "
-  echo "   -static : use statically linked version"
-  echo "   -oldread : for use with old version of tkmedit"
-#  echo "   -thmax     thresh : maximum threshold for display ($thmax)"
-#  echo "   -nohdr            : do not load/show hemodynamic response"
-#  echo "   -nosig            : do not load/show significance map"
-#  echo "   -raw       run    : display raw MR from run"
-#  echo "   -motioncor        : display motion corrected raw data (with -raw)"
-  echo ""
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+tkmedit frontend
+
+

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/31 15:56:49 $
-#    $Revision: 1.41 $
+#    $Date: 2010/04/02 23:18:21 $
+#    $Revision: 1.42 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.41 2010/03/31 15:56:49 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.42 2010/04/02 23:18:21 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -95,6 +95,13 @@ if($#analysis) then
   endif
   set fsd  = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
   set analysisname = $analysis
+  set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
+  if($#tmp) then
+    set subject = $tmp[1];
+    set hemi = $tmp[2];
+    set geometry = $hemi;
+    echo "Surface data $subject $hemi"
+  endif
 else
   #set analysisname = `cat $flacfile | awk '{if($1 == "flacname") print $2}'`
   set analysisname = `basename $flacfile .flac`
@@ -327,13 +334,14 @@ if($DoFWHM && ! $monly) then
       else
         # Surface-based cmd line
         set reg = $sess/$fsd/register.dat
-        if($#subject == 0) then
+        if($subject == self) then
           set subjectuse = `reg2subj $reg`
         else
           set subjectuse = $subject
         endif
         set cmd = (mris_fwhm --i $all --s $subjectuse \
-                   --hemi $geometry --sum $sumfile)
+                   --hemi $geometry --sum $sumfile \
+                   --mask $anadir/mask.nii)
       endif
       pwd |& tee -a $LF
       echo $cmd |& tee -a $LF
@@ -424,18 +432,6 @@ while( $#argv != 0 )
     case "-op":
       if ( $#argv == 0) goto arg1err;
       set OutParent = $1; shift;
-      breaksw
-
-    case "-hemi":
-    case "-surf":
-      if( $#argv < 1) goto arg1err;
-      set geometry =  $1; shift;
-      breaksw
-
-    case "-subject":
-      # For surfaced-based estimation of fwhm
-      if( $#argv < 1) goto arg1err;
-      set subject =  $1; shift;
       breaksw
 
     case "-log":
