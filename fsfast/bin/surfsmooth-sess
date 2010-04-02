@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/02 19:01:19 $
-#    $Revision: 1.2 $
+#    $Date: 2010/04/02 00:07:03 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: surfsmooth-sess,v 1.2 2009/04/02 19:01:19 greve Exp $';
+set VERSION    = '$Id: surfsmooth-sess,v 1.3 2010/04/02 00:07:03 greve Exp $';
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -44,7 +44,7 @@ set UpdateOnly = 0;
 set nolog = 0;
 #set mask = brain;
 
-set outfmt = bhdr;
+set outfmt = nii;
 if($?FSF_OUTPUT_FORMAT) then
   set outfmt = $FSF_OUTPUT_FORMAT;
 endif
