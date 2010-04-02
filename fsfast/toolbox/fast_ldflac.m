@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/31 15:55:55 $
-%    $Revision: 1.42 $
+%    $Date: 2010/04/02 23:17:12 $
+%    $Revision: 1.43 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@ end
 
 if(~exist('flac','var')) flac = []; end
 if(isempty(flac))
+  flac.creator = 'unknown';
   flac.name = '';
   flac.fsd = '';
   flac.runlistfile = '';
@@ -71,7 +72,11 @@ if(isempty(flac))
   flac.fsv3_st2fir = 0;
   flac.fsv3_whiten = 0;  
   flac.RefEventDur = 1;
+  flac.subject = '';
+  flac.hemi = '';
+  flac.UseTalairach = 0;
   flac.mc = []; % For motion correction regressors
+  flac.globalmean = [];
   inherit = 0;
   ana.analysis     = '';
   ana.designtype   = '';
@@ -162,6 +167,10 @@ while(1)
    case 'schdir',      flac.schdir      = sscanf(tline,'%*s %s',1);
    case 'acfseg',      flac.acfsegstem  = sscanf(tline,'%*s %s',1);
    case 'RefEventDur', flac.RefEventDur = sscanf(tline,'%*s %f',1);
+   case 'surface', 
+    flac.subject = sscanf(tline,'%*s %s',1);
+    flac.hemi = sscanf(tline,'%*s %*s %s',1);
+   case 'UseTalairach',flac.UseTalairach = 1;
    case 'INHERIT',     
     inheritflacname  = sscanf(tline,'%*s %s',1);
     flacdir = fast_dirname(flacfile);

@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.74 2010/03/31 17:18:02 greve Exp $
+% $Id: fast_selxavg3.m,v 1.75 2010/04/02 23:17:12 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/31 17:18:02 $
-%    $Revision: 1.74 $
+%    $Date: 2010/04/02 23:17:12 $
+%    $Revision: 1.75 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.74 2010/03/31 17:18:02 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.75 2010/04/02 23:17:12 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -90,7 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.74 2010/03/31 17:18:02 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.75 2010/04/02 23:17:12 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -130,45 +130,11 @@ for nthouter = outer_runlist
   fprintf('outanadir = %s\n',outanadir);
   err = mkdirp(outanadir);
   if(err) return; end
-
   xfile   = sprintf('%s/X.mat',outanadir);
   outresdir = sprintf('%s/res',outanadir);
 
-  % Load the brain mask
-  if(~isempty(flac0.maskfspec))
-    mask = MRIread(flac0.maskfspec);
-    if(isempty(mask))
-      fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
-      return;
-    end
-  else
-    tmp = MRIread(flac0.funcfspec,1);
-    mask = tmp;
-    mask.vol = ones(tmp.volsize);
-    clear tmp;
-  end
-
-  indmask = find(mask.vol);
-  nmask = length(indmask);
-  nslices = mask.volsize(3);
-  nvox = prod(mask.volsize);
-  fprintf('Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
-  mri = mask; % save as template
-  mri.vol = []; % blank
-
-  % Create a volume with vox val = the slice 
-  svol = zeros(mri.volsize);
-  for s = 1:nslices,  svol(:,:,s) = s; end
-
-  %---------------------------------------------%
-  fprintf('Creating Design Matrix\n');
-  Xt = [];
-  Xn = [];
-  tpindrun = [];
+  % Load and customize all the flacs
   clear runflac;
-  DoMCFit = 1;
-  mcAll = [];
-  tic;
   for nthrun = nthrunlist
     flac = flac0;
     flac.nthrun = nthrun;
@@ -178,6 +144,68 @@ for nthouter = outer_runlist
       return; 
     end
     runflac(nthrun).flac = flac;
+  end
+  
+  % Load the brain mask
+  if(isempty(flac0.subject) && ~flac0.UseTalairach)
+    % Native space
+    if(~isempty(flac0.maskfspec))
+      mask = MRIread(flac0.maskfspec);
+      if(isempty(mask))
+	fprintf('ERROR: cannot load %s\n',flac0.maskfspec);
+	return;
+      end
+    else
+      tmp = MRIread(flac0.funcfspec,1);
+      mask = tmp;
+      mask.vol = ones(tmp.volsize);
+      clear tmp;
+    end
+  else
+    % Non-native space, load per-run mask
+    mask = flac0.mri;
+    mask.vol = 0;
+    for nthrun = nthrunlist
+      flac = runflac(nthrun).flac;
+      fsdpath = sprintf('%s/%s',flac.sess,flac.fsd);
+      runid = flac.runlist(flac.nthrun,:);
+      if(isempty(flac0.subject)) geo = 'tal';
+      else geo = sprintf('%s.%s',flac0.subject,flac0.hemi);
+      end
+      maskstem = sprintf('%s/%s/masks/brain.%s',fsdpath,runid,geo);
+      runmask = MRIread(maskstem);
+      if(isempty(runmask)) 
+	fprintf('ERROR: cannot load %s\n',maskstem);
+	return;
+      end
+      mask.vol = mask.vol + runmask.vol;
+    end
+    mask.vol = (mask.vol == nruns); % Take intersection
+  end
+
+  % Save mask
+  fname = sprintf('%s/mask.%s',outanadir,ext);
+  MRIwrite(mask,fname);
+
+  indmask = find(mask.vol);
+  nmask = length(indmask);
+  indmaskout = find(~mask.vol);
+  nslices = mask.volsize(3);
+  nvox = prod(mask.volsize);
+  fprintf('Found %d/%d (%4.1f) voxels in mask\n',nmask,nvox,100*nmask/nvox);
+  mri = mask; % save as template
+  mri.vol = []; % blank
+
+  %---------------------------------------------%
+  fprintf('Creating Design Matrix\n');
+  Xt = [];
+  Xn = [];
+  tpindrun = [];
+  DoMCFit = 1;
+  mcAll = [];
+  tic;
+  for nthrun = nthrunlist
+    flac = runflac(nthrun).flac;
     
     indtask = flac_taskregind(flac);
     Xtr = flac.X(:,indtask);
@@ -225,7 +253,8 @@ for nthouter = outer_runlist
     end
 
   end % loop over runs
-
+  fprintf(' ... creation time = %6.3f sec\n',toc);
+  
   fprintf('DoMCFit = %d\n',DoMCFit);
   
   % These are the true indices of the mean regressors
@@ -293,9 +322,10 @@ for nthouter = outer_runlist
     C = flacC.con(nthcon).C;
     C = C(:,indtask);
     for nthrun = nthrunlist
-      flac = flac0;
-      flac.nthrun = nthrun;
-      flac = flac_customize(flac);
+      flac = runflac(nthrun).flac;
+      %flac = flac0;
+      %flac.nthrun = nthrun;
+      %flac = flac_customize(flac);
       Crun = flac.con(nthcon).C;
       indnuis = flac_nuisregind(flac);    
       Cnuis = Crun(:,indnuis);
@@ -329,12 +359,14 @@ if(DoGLMFit)
   fprintf('OLS Beta Pass \n');
   tic;
   betamat0 = zeros(nX,nvox);
+  gmean = 0;
   yrun_randn = [];
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
-    flac = flac0;
-    flac.nthrun = nthrun;
-    flac = flac_customize(flac);
+    flac = runflac(nthrun).flac;          
+    %flac = flac0;
+    %flac.nthrun = nthrun;
+    %flac = flac_customize(flac);
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
@@ -377,12 +409,17 @@ if(DoGLMFit)
       fprintf('ERROR: loading %s\n',funcfspec);
       return;
     end
+    
     Brun = B0(:,indrun);
     betamat0 = betamat0 + Brun*yrun;
 
+    fprintf('    Global Mean %8.2f\n',flac.globalmean);
+    gmean = gmean + flac.globalmean;
+    
     clear yrun;
     %pack; % not good with matlab 7.4
   end % loop over run
+  gmean = gmean/nruns;
   
   % Compute baseline
   betamn0 = mean(betamat0(ind0,:),1);
@@ -390,9 +427,9 @@ if(DoGLMFit)
   % baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
   % Compute Rescale Factor
   if(flac0.inorm ~= 0)
-    gmean = mean(betamn0(indmask));
+    gmean2 = mean(betamn0(indmask));
     RescaleFactor = flac0.inorm/gmean;
-    fprintf('Global In-Mask Mean = %g\n',gmean);
+    fprintf('Global In-Mask Mean = %g (%g)\n',gmean,gmean2);
     fprintf('Rescale Target = %g\n',flac0.inorm);
   else
     RescaleFactor = 1;
@@ -412,9 +449,10 @@ if(DoGLMFit)
   ErrCovMtx = 0;
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
-    flac = flac0;
-    flac.nthrun = nthrun;
-    flac = flac_customize(flac);
+    flac = runflac(nthrun).flac;
+    %flac = flac0;
+    %flac.nthrun = nthrun;
+    %flac = flac_customize(flac);
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
@@ -513,10 +551,6 @@ if(DoGLMFit)
   rho1mn = mri;
   rho1mn.vol = mean(rho1.vol,4);
 
-  % Save input mask
-  fname = sprintf('%s/mask.%s',outanadir,ext);
-  MRIwrite(mask,fname);
-  
   % Apply bias correction
   nrho1mn = mri;
   nrho1mn.vol = rfm.M(1) + rfm.M(2)*rho1mn.vol;
@@ -541,19 +575,7 @@ if(DoGLMFit)
   MRIwrite(nrho1mn,fname);
 
   clear rho1 rho1mn;
-  % Save AR2 maps
-  %fname = sprintf('%s/rho2.%s',outanadir,ext);
-  %MRIwrite(rho2,fname);
-  %rho2mn = mri;
-  %rho2mn.vol = mean(rho2.vol,4);
-  %fname = sprintf('%s/rho2mn.%s',outanadir,ext);
-  %MRIwrite(rho2mn,fname);
-  %nrho = rho2mn.vol./rho1mn.vol;
-  %nalpha = rho1mn.vol./nrho;
-  %indtmp = find(nrho > 1);
-  %nrho(indtmp) = 0;
-  %nalpha(indtmp) = 0;
-  
+
   % ---------------------------------------------------
   % Segment based on autocorrelation AR1
   acfseg = [];
@@ -565,22 +587,8 @@ if(DoGLMFit)
 
     acfseg = mri;
     acfseg.vol = zeros(acfseg.volsize);
-    if(0)
-      fprintf('WARNING: using untested whitening\n');
-      a = betamn0(indmask);
-      a = a/std(a);
-      b = rvarmat0(indmask);
-      b = b/std(b);
-      c = nrho1mn.vol(indmask)';
-      ykm = [a; b; c];
-      kmeans0 = rand(3,flac0.acfbins);
-      [kmeans kmap] = fast_kmeans(ykm,flac0.acfbins,kmeans0);
-      acfseg.vol(indmask) = kmap;
-    else
-      [edge bincenter binmap] = fast_histeq(nrho1mn.vol(indmask), flac0.acfbins);
-      %[edge bincenter binmap] = fast_histeq(betamn0(indmask), flac0.acfbins);
-      acfseg.vol(indmask) = binmap;
-    end
+    [edge bincenter binmap] = fast_histeq(nrho1mn.vol(indmask), flac0.acfbins);
+    acfseg.vol(indmask) = binmap;
     fname = sprintf('%s/acfseg.%s',outanadir,ext);
     MRIwrite(acfseg,fname);
     clear rvarmat0 betamat0;
@@ -637,9 +645,10 @@ if(DoGLMFit)
     betamat = zeros(nX,nvox);
     for nthrun = nthrunlist
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
-      flac = flac0;
-      flac.nthrun = nthrun;
-      flac = flac_customize(flac);
+      flac = runflac(nthrun).flac;
+      %flac = flac0;
+      %flac.nthrun = nthrun;
+      %flac = flac_customize(flac);
       indrun = find(tpindrun == nthrun);
       if(~DoSynth)
 	yrun = MRIread(flac.funcfspec);
@@ -686,9 +695,10 @@ if(DoGLMFit)
     rsse = 0;
     for nthrun = nthrunlist
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
-      flac = flac0;
-      flac.nthrun = nthrun;
-      flac = flac_customize(flac);
+      flac = runflac(nthrun).flac;
+      %flac = flac0;
+      %flac.nthrun = nthrun;
+      %flac = flac_customize(flac);
       indrun = find(tpindrun == nthrun);
 
       if(~DoSynth)
@@ -755,6 +765,10 @@ if(DoGLMFit)
     clear rvarmat0 betamat0;
   end % acfbins > 0
 
+  % Mask betas and rvars
+  betamat(:,indmaskout) = 0;
+  rvarmat(:,indmaskout) = 0;
+  
   if(DoMCFit) [betamc rvarmc] = fast_glmfit(mcAll,X);
   else betamc=[]; rvarmc=[];
   end
@@ -764,6 +778,7 @@ if(DoGLMFit)
        'DoSynth','SynthSeed','UseFloat','yrun_randn',...
        'DoMCFit','mcAll','betamc','rvarmc');
 
+  
   % Save as ascii
   xascii = sprintf('%s/X.dat',outanadir);
   fmt = [repmat('%f ',[1 size(X,2)]) '\n'];
@@ -798,12 +813,18 @@ if(DoGLMFit)
   rstd.vol = sqrt(rvar.vol);
   fname = sprintf('%s/rstd.%s',outanadir,ext);
   MRIwrite(rstd,fname);
-  
+
   fsnr = mri;
   fsnr.vol = zeros(fsnr.volsize);
   fsnr.vol(indnz) = baseline.vol(indnz)./rstd.vol(indnz);
   fname = sprintf('%s/fsnr.%s',outanadir,ext);
   MRIwrite(fsnr,fname);
+  % Save mean with-in mask fsnr
+  fsnrmn = mean(fsnr.vol(indnz));
+  fname = sprintf('%s/fsnr.dat',outanadir);
+  fp = fopen(fname,'w');
+  fprintf(fp,'%f\n',fsnrmn);
+  fclose(fp)
   
   fsnr2 = fsnr;
   fsnr2.vol = fsnr.vol.^2;

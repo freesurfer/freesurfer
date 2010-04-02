@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/31 16:27:02 $
-%    $Revision: 1.41 $
+%    $Date: 2010/04/02 23:17:12 $
+%    $Revision: 1.42 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -59,7 +59,27 @@ end
 runid = flacnew.runlist(flac.nthrun,:);
 
 runpath = sprintf('%s/%s',fsdpath,runid);
-fstem = sprintf('%s/%s',runpath,flac.funcstem);
+
+% Load global mean for this run
+fname = sprintf('%s/global.meanval.dat',runpath);
+if(~exist(fname,'file'))
+  fprintf('ERROR: cannot find %s\n',fname);
+  fprintf('Run mkbrainmask-sess\n',fname);
+  flacnew = [];
+  return;
+end
+flacnew.globalmean = load(fname);
+%fprintf('Global mean = %f\n',flacnew.globalmean);
+
+% Determine what anatomy this is in and specify the string to add to
+% stems.
+AnatStr = '';
+if(flac.UseTalairach)
+  AnatStr = '.tal';
+elseif(~isempty(flac.subject))
+  AnatStr = sprintf('.%s.%s',flac.subject,flac.hemi);
+end
+fstem = sprintf('%s/%s%s',runpath,flac.funcstem,AnatStr);
 
 % Get the number of time points
 mri = MRIread(fstem,1);
@@ -320,8 +340,8 @@ flacnew.resfspec = sprintf('%s/%s/%s/%s/res',flacnew.sess,...
 			    flacnew.runlist(flacnew.nthrun,:));
 
 if(~isempty(flacnew.mask))
-  flacnew.maskfspec = sprintf('%s/%s/masks/%s%s',flacnew.sess,...
-			      flacnew.fsd,flacnew.mask);
+  flacnew.maskfspec = sprintf('%s/%s/masks/%s%s%s',flacnew.sess,...
+			      flacnew.fsd,flacnew.mask,AnatStr);
 else
   flacnew.maskfspec = '';
 end

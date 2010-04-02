@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.10 2010/03/25 18:50:00 greve Exp $
+% $Id: fast_svana.m,v 1.11 2010/04/02 23:17:12 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -104,6 +104,17 @@ fprintf(fp,'designtype %s\n',ana.designtype);
 if(~isempty(ana.nconditions))
   fprintf(fp,'nconditions %d\n',ana.nconditions);
 end
+
+if(~isempty(flac.mask))
+  fprintf(fp,'maskstem %s\n',flac.mask);
+end
+if(~isempty(flac.subject))
+  fprintf(fp,'surface %s %s\n',flac.subject,flac.hemi);
+end
+if(flac.UseTalairach)
+  fprintf(fp,'UseTalairach');
+end
+
 
 if(IsERBlock)
   % Write out the condition names

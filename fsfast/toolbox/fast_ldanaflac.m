@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/25 18:50:00 $
-%    $Revision: 1.43 $
+%    $Date: 2010/04/02 23:17:12 $
+%    $Revision: 1.44 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -86,6 +86,10 @@ while(1)
    case 'parname',     flac.parfile     = sscanf(tline,'%*s %s',1);
    case 'designtype',  designtype       = sscanf(tline,'%*s %s',1);
    case 'nconditions', nconditions      = sscanf(tline,'%*s %d',1);
+   case 'surface',     
+    flac.subject = sscanf(tline,'%*s %s',1);
+    flac.hemi = sscanf(tline,'%*s %*s %s',1);
+   case 'UseTalairach',flac.UseTalairach = 1;
    case 'Condition', 
     conditionid   = sscanf(tline,'%*s %d',1);
     ConditionName = sscanfitem(tline,3);
