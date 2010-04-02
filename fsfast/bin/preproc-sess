@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/01/21 19:45:27 $
-#    $Revision: 1.23 $
+#    $Date: 2010/04/02 00:09:27 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.23 2010/01/21 19:45:27 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.24 2010/04/02 00:09:27 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -38,6 +38,7 @@ set smoutstem  = ();
 set inormstem  = ();
 set maskdir    = masks
 set maskstem   = brain;
+set UseSmoothMask = 0;
 set fwhm     = ();
 set surffwhm = ();
 set SliceOrder = ();
@@ -51,9 +52,10 @@ set MCPerRun = 0;
 set MaskPerRun = 0;
 
 set UpdateOnly = 1;
-set DoMask   = 1;
+set DoTemplate = 1;
 set DoMC     = 1;
 set DoSTC    = 0;
+set DoMask   = 1;
 set DoVolSmooth = 1;
 set DoSurfSmooth = 0;
 set DoSmooth = 1; # any smoothing
@@ -93,8 +95,6 @@ parse_args_return:
 
 goto check_params;
 check_params_return:
-
-set umask = `umask`;
 
 ##### Create a log file ######
 if($nolog) then 
@@ -157,27 +157,40 @@ foreach sess ($SessList)
   echo $inputargs   >> $LF
   echo "ProjectDir $ProjectDir" >> $LF
 
+  if($DoTemplate) then
+    set cmd = (mktemplate-sess -s $sessid -d $sessparent -fsd $fsd)
+    if($nolog)      set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
+    echo "$sessid Template -----------------------------" |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+  if($DoMask) then
+    set cmd = (mkbrainmask-sess -maskstem $maskstem)
+    set cmd = ($cmd -fsd $fsd)
+    set cmd = ($cmd -s $sessid -d $sessparent)
+    if($nolog) set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
+    if($MaskPerRun) set cmd = ($cmd -perrun);
+    echo "$sessid Mask ------------------------" |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
   if($DoMC) then
     set cmd = (mc-sess -fstem $mcinstem -fmcstem $mcoutstem)
-    set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd -new)
+    set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     if($MCPerRun)   set cmd = ($cmd -perrun)
-    if($#mcnthrun)  set cmd = ($cmd -targnthrun $mcnthrun)
-    if($#mcrun)     set cmd = ($cmd -targrun    $mcrun)
-    if($#mctargstem) set cmd = ($cmd -targstem  $mctargstem)
-    if($#mctargframe) set cmd = ($cmd -toff  $mctargframe)
     if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid MC -----------------------------" |& tee -a $LF
-    date      |& tee -a $LF
-    pwd       |& tee -a $LF
     echo $cmd |& tee -a $LF
-    echo "----------------------------------------" |& tee -a $LF
     $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: mc-sess failed" |& tee -a $LF
-      exit 1;
-    endif
+    if($status) exit 1;
   endif
 
   if($DoSTC) then
@@ -188,33 +201,22 @@ foreach sess ($SessList)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid STC -----------------------------" |& tee -a $LF
-    date      |& tee -a $LF
-    pwd       |& tee -a $LF
     echo $cmd |& tee -a $LF
-    echo "----------------------------------------" |& tee -a $LF
     $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: stc-sess failed" |& tee -a $LF
-      exit 1;
-    endif
+    if($status) exit 1;
   endif
 
   if($DoVolSmooth) then
     set cmd = (spatialsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
     set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent)
+    if($#UseSmoothMask)  set cmd = ($cmd -mask);
     if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid Volume Smoothing ---------------------" |& tee -a $LF
-    date      |& tee -a $LF
-    pwd       |& tee -a $LF
     echo $cmd |& tee -a $LF
-    echo "----------------------------------------" |& tee -a $LF
     $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: spatialsmooth-sess failed" |& tee -a $LF
-      exit 1;
-    endif
+    if($status) exit 1;
   endif
 
   if($DoSurfSmooth) then
@@ -227,53 +229,22 @@ foreach sess ($SessList)
     if($UpdateOnly) set cmd = ($cmd -update);
     if($MCPerRun)   set cmd = ($cmd -perrun)
     echo "$sessid Surface Smoothing ---------------------" |& tee -a $LF
-    date      |& tee -a $LF
-    pwd       |& tee -a $LF
     echo $cmd |& tee -a $LF
-    echo "----------------------------------------" |& tee -a $LF
     $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: surfsmooth-sess failed" |& tee -a $LF
-      exit 1;
-    endif
+    if($status) exit 1;
   endif
 
   if($DoInorm) then
+    # Should probably remove this
     set cmd = (inorm-sess -funcstem $inormstem )
-    set cmd = ($cmd  -fsd $fsd)
+    set cmd = ($cmd  -fsd $fsd -nskip $nskip)
     set cmd = ($cmd -s $sessid -d $sessparent)
-    set cmd = ($cmd -nskip $nskip)
     if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
     if($nolog)     set cmd = ($cmd -nolog);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
-    date      |& tee -a $LF
-    pwd       |& tee -a $LF
     echo $cmd |& tee -a $LF
-    echo "----------------------------------------" |& tee -a $LF
     $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: inorm-sess failed" |& tee -a $LF
-      exit 1;
-    endif
-  endif
-
-  if($DoMask) then
-    set cmd = (mkbrainmask-sess -maskstem $maskstem)
-    set cmd = ($cmd -fsd $fsd)
-    set cmd = ($cmd -s $sessid -d $sessparent)
-    if($nolog) set cmd = ($cmd -nolog);
-    if($UpdateOnly) set cmd = ($cmd -update);
-    if($MaskPerRun) set cmd = ($cmd -perrun);
-    echo "$sessid Mask ------------------------" |& tee -a $LF
-    date      |& tee -a $LF
-    pwd       |& tee -a $LF
-    echo $cmd |& tee -a $LF
-    echo "----------------------------------------" |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) then
-      echo "ERROR: mkbrainmask-sess failed" |& tee -a $LF
-      exit 1;
-    endif
+    if($status) exit 1;
   endif
 
 end
@@ -283,7 +254,6 @@ echo "Started at $StartTime" |& tee -a $LF
 echo "Ended   at `date`"     |& tee -a $LF
 
 echo "preproc-sess done"
-
 
 exit 0
 
@@ -368,17 +338,29 @@ while( $#argv != 0 )
     case "-fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
-      set DoVolSmooth = 1;
-      set DoSurfSmooth = 0;
-      set DoSmooth = 1;
+      if($fwhm != 0) then
+        set DoVolSmooth = 1;
+        set DoSurfSmooth = 0;
+        set DoSmooth = 1;
+      endif
+      breaksw
+
+    case "-smooth-mask":
+      set UseSmoothMask = 1;
+      breaksw
+
+    case "-no-smooth-mask":
+      set UseSmoothMask = 0;
       breaksw
 
     case "-surf-fwhm":
       if ( $#argv == 0) goto arg1err;
       set fwhm = $argv[1]; shift;
-      set DoVolSmooth = 0;
-      set DoSurfSmooth = 1;
-      set DoSmooth = 1;
+      if($fwhm != 0) then
+        set DoVolSmooth = 0;
+        set DoSurfSmooth = 1;
+        set DoSmooth = 1;
+      endif
       breaksw
 
     case "-reg":
@@ -455,6 +437,10 @@ while( $#argv != 0 )
       set DoInorm = 1;
       breaksw
 
+    case "-no-template":
+      set DoTemplate = 0;
+      breaksw
+
     case "-no-mask":
     case "-nomask":
       set DoMask = 0;
@@ -500,20 +486,6 @@ while( $#argv != 0 )
       # ignore getsesspath arguments 
       breaksw
 
-    case "-umask":
-      if ( $#argv == 0) goto arg1err;
-      umask $1; shift;
-      breaksw
-
-    case "-gperm":
-      umask 02;
-      breaksw
-
-    case "-ugroup":
-      if ( $#argv == 0) goto arg1err;
-      set targgrp = $1; shift;
-      breaksw
-
     default:
       echo ERROR: Flag $flag unrecognized. 
       echo $cmdline
@@ -528,21 +500,17 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
-  if($#targgrp) then
-    set curgrp = `id -gn`
-    if($targgrp != $curgrp) then
-      echo "ERROR: your current unix group is $curgrp, but your desired "
-      echo "       target group is $targgrp. Change to the new group"
-      echo "       with 'newgrp $targgrp' then re-run"
-      exit 1;
-    endif
-  endif
-
   if($#instem == 0) set instem = "f";
 
   if($DoMC) then
     if($#mcinstem  == 0) set mcinstem  = $instem
-    if($#mcoutstem == 0) set mcoutstem = $mcinstem"mc"
+    if($#mcoutstem == 0) then
+      if($MCPerRun) then
+        set mcoutstem = $mcinstem"mc.pr"
+      else
+        set mcoutstem = $mcinstem"mc"
+      endif    
+    endif    
   else
     set mcoutstem = $instem;
   endif
@@ -623,11 +591,14 @@ usage_exit:
   echo "  -update        : only run a stage if input is newer than output (default)"
   echo "  -force         : force reprocessing of all stages (turns off -update)"
   echo "  -no-update     : same as -force"
+  echo "  -smooth-mask   : use mask when volume smoothing"
+  echo "  -no-smooth-mask: do not use mask when volume smoothing"
   echo ""
   echo "  -nomc     : don't do motion correction"
   echo "  -nostc    : don't do slice-timing correction"
   echo "  -nosmooth : don't do smoothing"
   echo "  -nomask   : don't make brain mask"
+  echo "  -noinorm  : don't do inorm"
   echo "  -noinorm  : don't do inorm"
   echo ""
   echo "  -mcin   mcinstem    : stem to use as input  to MC"
@@ -654,17 +625,13 @@ usage_exit:
   echo "  -projfrac frac : projection fraction for use with -surf-fwhm (0.5)"
   echo "  -projfrac-avg  : average over ribbon (not with -projfrac)"
   echo ""
-  echo "Session Arguments (Required)"
+  echo "Session Arguments (some combination required)"
   echo "  -sf sessidfile  ..."
   echo "  -df srchdirfile ..."
   echo "  -s  sessid      ..."
   echo "  -d  srchdir     ..."
   echo "  -fsd    fsd <bold>"
   echo "  -rlf    rlf  : run list file (default all runs)"
-  echo ""
-  echo "Other options"
-  echo "  -gperm : use group-writable unix permissions"
-  echo "  -ugroup group : desired unix group"
   echo ""
   echo ""
 
@@ -745,8 +712,8 @@ done. This is the default behavior. See also -force.
 
 -inorm
 
-Turn on computing of intensity normalization factor (creates 
-stem.meanval). This was necssary for the old selxavg.
+Not needed anymore. Turn on computing of intensity normalization
+factor (creates stem.meanval). This was necssary for the old selxavg.
 
 
 INPUTS AND OUTPUTS
@@ -756,8 +723,9 @@ and output stems of the other stages are automatically determined as
 follows:
 
 Input  to MC is instem (default is f)
-Output of MC is mcinstem"mc"  (ie, the MC input stem with "mc" 
-appended to the end)
+Output of MC is instem"mc"  (ie, the MC input stem with "mc" 
+appended to the end). When per-run is used, the MC default 
+stem will be instem"mc.pr".
 
 Input  to STC is outstem of MC  
 Output of STC is stcinstem"stc" (ie, the STC input stem with "stc" 
