@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/09/14 18:27:41 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/04/02 18:37:53 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.22 2009/09/14 18:27:41 greve Exp $
+// $Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
 
 /*
   BEGINHELP
@@ -81,6 +81,16 @@ values. binvalnot only applies when a merge volume is NOT specified.
 --frame frameno
 
 Use give frame of the input. 0-based. Default is 0.
+
+--frame-sum
+
+Sum the frames together before applying threshold.
+
+--frame-and
+
+Treat the multi-frame volume as binary 'AND' the frames together. This
+takes an intersection of the individual frames. You do not need to 
+specify a --min (the min will be set to nframes-0.5).
 
 --merge mergevol
 
@@ -164,7 +174,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.22 2009/09/14 18:27:41 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -203,6 +213,8 @@ int nDilate3d = 0;
 int DoBinCol = 0;
 
 int mriTypeUchar = 0;
+int DoFrameSum = 0;
+int DoFrameAnd = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -236,6 +248,12 @@ int main(int argc, char *argv[]) {
            frame,InVol->nframes);
     exit(1);
   }
+
+  if(DoFrameSum || DoFrameAnd) {
+    printf("Summing over %d frames\n",InVol->nframes);
+    InVol = MRIframeSum(InVol,InVol);
+  }
+  if(DoFrameAnd) MinThresh = InVol->nframes - 0.5;
 
   if(DoAbs) {
     printf("Removing sign from input\n");
@@ -551,11 +569,20 @@ static int parse_commandline(int argc, char **argv) {
       nMatch ++;
       DoMatch = 1;
       nargsused = 1;
-    } else if (!strcasecmp(option, "--frame")) {
+    } 
+    else if (!strcasecmp(option, "--frame")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&frame);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--dilate")) {
+    } 
+    else if (!strcasecmp(option, "--frame-sum")) {
+      DoFrameSum = 1;
+    } 
+    else if (!strcasecmp(option, "--frame-and")) {
+      DoFrameAnd = 1;
+      MinThreshSet = 1;
+    } 
+    else if (!strcasecmp(option, "--dilate")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nDilate3d);
       nargsused = 1;
@@ -609,6 +636,8 @@ static void print_usage(void) {
   printf("   --binvalnot notval : set vox outside range to notval (default is 0) \n");
   printf("   --inv              : set binval=0, binvalnot=1\n");
   printf("   --frame frameno    : use 0-based frame of input (default is 0) \n");
+  printf("   --frame-sum : sum frames together before binarizing\n");
+  printf("   --frame-and : take intersection (AND) of frames. No --min needed.\n");
   printf("   --merge mergevol   : merge with mergevolume \n");
   printf("   --mask maskvol       : must be within mask \n");
   printf("   --mask-thresh thresh : set thresh for mask (def is 0.5) \n");
@@ -680,6 +709,16 @@ printf("\n");
 printf("--frame frameno\n");
 printf("\n");
 printf("Use give frame of the input. 0-based. Default is 0.\n");
+printf("\n");
+printf("--frame-sum\n");
+printf("\n");
+printf("Sum the frames together before applying threshold.\n");
+printf("\n");
+printf("--frame-and\n");
+printf("\n");
+printf("Treat the multi-frame volume as binary 'AND' the frames together. This\n");
+printf("takes an intersection of the individual frames. You do not need to \n");
+printf("specify a --min (the min will be set to nframes-0.5).\n");
 printf("\n");
 printf("--merge mergevol\n");
 printf("\n");
