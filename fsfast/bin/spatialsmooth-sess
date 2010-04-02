@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 04:03:32 $
-#    $Revision: 1.20 $
+#    $Date: 2010/04/02 00:06:28 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.20 2010/04/01 04:03:32 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.21 2010/04/02 00:06:28 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -355,7 +355,7 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo ""
   echo "Other Arguments"
-  echo "   -mask : smooth only within mask"
+  echo "   -mask : smooth only within brain mask"
   echo "   -update         : only run if input is newer than output"
   echo "   -outfmt format  : nii, mgh, nii.gz, etc. Default nii."
   echo ""
