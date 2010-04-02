@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 22:35:27 $
-#    $Revision: 1.21 $
+#    $Date: 2010/04/02 00:06:43 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.21 2010/04/01 22:35:27 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.22 2010/04/02 00:06:43 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -321,7 +321,7 @@ if($#funcmcstem == 0) then
     set funcmcstem = fmc.pr
   else
     set funcmcstem = fmc
-  end
+  endif
 endif
 
 goto check_params_return;
