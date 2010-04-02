@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 21:27:03 $
-#    $Revision: 1.15 $
+#    $Date: 2010/04/02 23:18:45 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.15 2010/04/01 21:27:03 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.16 2010/04/02 23:18:45 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -36,7 +36,6 @@ set maskstem = brain;
 set maskdir = masks;
 set nolog     = 0;
 set nthrun = ();
-set PerRun = 0;
 set debug = 0;
 set scratchdir = ();
 set PrintHelp = 0;
@@ -248,10 +247,6 @@ while( $#argv != 0 )
       set UpdateOnly = 1;
       breaksw
 
-    case "-perrun":
-      set PerRun = 1;
-      breaksw
-
     case "-nolog":
       set nolog = 1;
       breaksw
@@ -330,7 +325,6 @@ usage_exit:
   echo "                        default is brain"
   echo "   -head : flag to set parameters to cover the whole head instead"
   echo "           of just the brain. thresh=0.05, ndil=3, stem=head"
-  echo "   -perrun : perform on a run-by-run basis"
   echo ""
   echo ""
   echo "Other Options"
