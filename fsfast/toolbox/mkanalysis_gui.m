@@ -51,7 +51,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.20 2010/03/25 18:50:00 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.21 2010/04/03 00:09:34 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -852,6 +852,19 @@ else
   set(handles.pbRestore,'enable','off');
 end
 
+subject = handles.flac.subject;
+hemi = handles.flac.hemi;
+UseTal = handles.flac.UseTalairach;
+if(UseTal == 0 & isempty(subject)) v = 1; end
+if(~isempty(subject))
+  if(strcmp(subject,'fsaverage') & strcmp(hemi,'lh')) v = 2; end
+  if(strcmp(subject,'fsaverage') & strcmp(hemi,'rh')) v = 3; end
+  if(strcmp(subject,'self') & strcmp(hemi,'lh')) v = 5; end
+  if(strcmp(subject,'self') & strcmp(hemi,'rh')) v = 6; end
+end
+if(UseTal == 1) v = 4; end
+set(handles.menuAnatomy,'value',v);
+
 return;
 
 %------------------------------------------------------
@@ -1313,5 +1326,51 @@ function ebRED_CreateFcn(hObject, eventdata, handles)
 set(hObject,'BackgroundColor','white');
 return;
 
+
+% --- Executes on selection change in menuAnatomy.
+function menuAnatomy_Callback(hObject, eventdata, handles)
+fprintf('menuAnatomy\n');
+item = get(handles.menuAnatomy,'Value');
+fprintf('menuAnatomy %d\n',item);
+switch (item)
+  case 1,
+   handles.flac.subject = '';
+   handles.flac.hemi = '';
+   handles.flac.UseTalairach = 0;
+  case 2,
+   handles.flac.subject = 'fsaverage';
+   handles.flac.hemi = 'lh';
+   handles.flac.UseTalairach = 0;
+  case 3,
+   handles.flac.subject = 'fsaverage';
+   handles.flac.hemi = 'rh';
+   handles.flac.UseTalairach = 0;
+  case 4,
+   handles.flac.subject = '';
+   handles.flac.hemi = '';
+   handles.flac.UseTalairach = 1;
+  case 5,
+   handles.flac.subject = 'self';
+   handles.flac.hemi = 'lh';
+   handles.flac.UseTalairach = 0;
+  case 6,
+   handles.flac.subject = 'self';
+   handles.flac.hemi = 'rh';
+   handles.flac.UseTalairach = 0;
+end  
+handles = setstate(handles);
+guidata(hObject, handles);
+
+% --- Executes during object creation, after setting all properties.
+function menuAnatomy_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to menuAnatomy (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
 
 
