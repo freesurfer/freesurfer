@@ -1,6 +1,6 @@
 function [err,msg] = fast_svana(ananame,flac)
 % [err,msg] = fast_svana(ananame,ana)
-% $Id: fast_svana.m,v 1.11 2010/04/02 23:17:12 greve Exp $
+% $Id: fast_svana.m,v 1.12 2010/04/03 00:09:17 greve Exp $
 
 err = 1;
 if(nargin ~= 2)
@@ -112,9 +112,8 @@ if(~isempty(flac.subject))
   fprintf(fp,'surface %s %s\n',flac.subject,flac.hemi);
 end
 if(flac.UseTalairach)
-  fprintf(fp,'UseTalairach');
+  fprintf(fp,'UseTalairach\n');
 end
-
 
 if(IsERBlock)
   % Write out the condition names
