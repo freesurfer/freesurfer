@@ -6,10 +6,7 @@
 # (1) without runlistfile - finds all the subdirectories 
 #     of dir with name of the form %03d and echos them 
 #     to stdout. If dir does not exist or there are no
-#     runs, exits with status 1. Algorithm: starts at
-#     run=1 and increments run, checking each time whether
-#     the run exists. Stops checking when 100 runs consecutive
-#     runs have been checked without a hit.
+#     runs, exits with status 1. 
 #
 # (2) with runlistfile - opens the run list file, reads
 #     the runs, and checks that all runs exist in dir.
@@ -18,9 +15,9 @@
 # 
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:17 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2010/04/03 22:56:06 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -47,7 +44,21 @@ if(! -d $dir) then
   exit 1;
 endif
 
+
 if($#argv != 2) then
+  # This is the new, fast way to do it
+  pushd $dir > /dev/null
+  set RunList = (`find -maxdepth 1 -name "[0-9][0-9][0-9]"`);
+  if($#RunList == 0) then
+    echo "ERROR: no run directories found"
+    exit 1;
+  endif
+  echo $RunList | sed 's/.\///g'
+  exit 0;
+endif
+
+if(0 && $#argv != 2) then
+  # This is the old, slow way to do it
   set RunList = ();
   set run = 1;
   @ nohit = 0;
