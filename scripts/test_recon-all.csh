@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/13 18:12:37 $
-#    $Revision: 1.34 $
+#    $Date: 2010/04/04 16:16:31 $
+#    $Revision: 1.35 $
 #
 # Copyright (C) 2007-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -48,7 +48,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.34 2010/03/13 18:12:37 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.35 2010/04/04 16:16:31 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -263,13 +263,13 @@ if ($#INVOL == "0") then
     exit 1
 endif
 
-set cmd=(recon-all)
-#if ("`uname -n`" == "hades") then
-#  set cmd=(nice +19 recon-all)
-#endif
-#if ("`uname -n`" == "mist") then
-#  set cmd=(nice +19 recon-all)
-#endif
+# run a copy of recon-all, since the nightly build can clobber recon-all
+# if it changed
+cp `which recon-all` /tmp
+if ($status) exit 1
+
+# set recon-all command and run...
+set cmd=(/tmp/recon-all)
 set cmd=($cmd -s $TEST_SUBJ $INVOL)
 set cmd=($cmd -all -debug -clean -norandomness -allowcoredump -time);
 echo $cmd
