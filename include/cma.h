@@ -8,11 +8,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/03/30 15:09:45 $
- *    $Revision: 1.51 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/05 21:01:35 $
+ *    $Revision: 1.52 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -377,7 +376,7 @@ int CMAzeroOutlines(CMAoutlineField *field);
 char *cma_label_to_name(int label) ;
 int IsSubCorticalGray(int SegId);
 #include "mri.h"
-double SuperTentorialVolCorrection(MRI *aseg, MRI *ribbon);
+double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
 
 #define IS_FIMBRIA(l) ((l) == left_fimbria || (l) == right_fimbria || (l) == fimbria)
 #define CSF_CLASS        0

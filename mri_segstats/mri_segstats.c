@@ -11,11 +11,11 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/03/30 15:10:12 $
- *    $Revision: 1.67 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/05 21:01:34 $
+ *    $Revision: 1.68 $
  *
- * Copyright (C) 2006-2009,
+ * Copyright (C) 2006-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -25,7 +25,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -427,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.67 2010/03/30 15:10:12 greve Exp $";
+"$Id: mri_segstats.c,v 1.68 2010/04/05 21:01:34 nicks Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -463,8 +462,8 @@ double lhwhitevol;
 double rhwhitevol;
 double lhwhitevolTot, lhpialvolTot, lhctxvol;
 double rhwhitevolTot, rhpialvolTot, rhctxvol;
-int DoSuperTent = 0;
-double SuperTentVol, SuperTentVolCor;
+int DoSupraTent = 0;
+double SupraTentVol, SupraTentVolCor;
 
 char *gcafile = NULL;
 GCA *gca;
@@ -757,18 +756,18 @@ int main(int argc, char **argv) {
            rhwhitevolTot,rhpialvolTot,rhctxvol);
     fflush(stdout);
 
-    if(DoSuperTent) {
-      printf("Computing SuperTentVolCor\n");
+    if(DoSupraTent) {
+      printf("Computing SupraTentVolCor\n");
       sprintf(tmpstr,"%s/%s/mri/aseg.mgz",SUBJECTS_DIR,subject);
       mri_aseg = MRIread(tmpstr);
       if(mri_aseg == NULL) exit(1);
       sprintf(tmpstr,"%s/%s/mri/ribbon.mgz",SUBJECTS_DIR,subject);
       mri_ribbon = MRIread(tmpstr);
       if(mri_ribbon == NULL) exit(1);
-      SuperTentVolCor = SuperTentorialVolCorrection(mri_aseg, mri_ribbon);
-      SuperTentVol = SuperTentVolCor + lhpialvolTot + rhpialvolTot;
-      printf("SuperTentVolCor = %8.3f\n",SuperTentVolCor);
-      printf("SuperTentVol = %8.3f\n",SuperTentVol);
+      SupraTentVolCor = SupraTentorialVolCorrection(mri_aseg, mri_ribbon);
+      SupraTentVol = SupraTentVolCor + lhpialvolTot + rhpialvolTot;
+      printf("SupraTentVolCor = %8.3f\n",SupraTentVolCor);
+      printf("SupraTentVol = %8.3f\n",SupraTentVol);
       MRIfree(&mri_aseg);
       MRIfree(&mri_ribbon);
     }
@@ -1247,9 +1246,9 @@ int main(int argc, char **argv) {
               "Total gray matter volume, %f, mm^3\n",
               SubCortGrayVol+lhctxvol+rhctxvol);
     }
-    if(DoSuperTent) {
-      fprintf(fp,"# Measure SuperTentorial, SuperTentorialVol, "
-              "Supertentorial volume, %f, mm^3\n",SuperTentVol);
+    if(DoSupraTent) {
+      fprintf(fp,"# Measure SupraTentorial, SupraTentorialVol, "
+              "Supratentorial volume, %f, mm^3\n",SupraTentVol);
               
     }
 
@@ -1494,7 +1493,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--empty"))    NonEmptyOnly = 0;
     else if ( !strcmp(option, "--brain-vol-from-seg") ) BrainVolFromSeg = 1;
     else if ( !strcmp(option, "--subcortgray") ) DoSubCortGrayVol = 1;
-    else if ( !strcmp(option, "--supertent") ) DoSuperTent = 1;
+    else if ( !strcmp(option, "--supratent") ) DoSupraTent = 1;
     else if ( !strcmp(option, "--totalgray") ) DoTotalGrayVol = 1;
     else if ( !strcmp(option, "--etiv") ) DoETIV = 1;
     else if ( !strcmp(option, "--etiv-only") ) DoETIVonly = 1;
@@ -2130,8 +2129,8 @@ static void check_options(void) {
     printf("ERROR: need subject with --etiv\n");
     exit(1);
   }
-  if (DoSuperTent && !DoSurfCtxVol) {
-    printf("ERROR: need --surf-ctx-vol  with --supertent\n");
+  if (DoSupraTent && !DoSurfCtxVol) {
+    printf("ERROR: need --surf-ctx-vol  with --supratent\n");
     exit(1);
   }
   if (ctabfile != NULL && gcafile != NULL) {

@@ -1,17 +1,18 @@
 /**
  * @file  cma.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief constants for neuroanatomical structures.
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * constants and macros for neuroanatomical and some vascular structures.
+ * Originally it was just cma labels, but it has been generalized.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/03/30 15:09:44 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/05 21:01:35 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -546,8 +546,8 @@ int IsSubCorticalGray(int SegId)
 }
 
 /*!
-\fn double SuperTentorialVolCorrection(MRI *aseg, MRI *ribbon)
-\brief Returns the volume of supertentorial structures that do not
+\fn double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
+\brief Returns the volume of supratentorial structures that do not
 fall inside the pial surface or are cut by the pial surface.  The idea
 is that the volume of everything in the pial surface can be computed
 using the surface and that this function can be used to compute
@@ -556,7 +556,7 @@ everything else. Note that there is no partial volume correction.
 \param ribbon is the ribbon.mgz, which has non-zero values for
 everything inside the pial surf.
 */
-double SuperTentorialVolCorrection(MRI *aseg, MRI *ribbon)
+double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 {
   int c,r,s,SegId;
   double vol = 0;
@@ -574,7 +574,7 @@ double SuperTentorialVolCorrection(MRI *aseg, MRI *ribbon)
 
 	// If it gets here, it means that the voxel was not within
 	// the pial surface. It could be in a structure that should
-	// be part of the supertentorium.
+	// be part of the supratentorium.
 
 	// These are midline, medial wall, or unknown structures
 	// that the pial could cut through.
