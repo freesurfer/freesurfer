@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.75 2010/04/02 23:17:12 greve Exp $
+% $Id: fast_selxavg3.m,v 1.76 2010/04/05 18:10:51 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/02 23:17:12 $
-%    $Revision: 1.75 $
+%    $Date: 2010/04/05 18:10:51 $
+%    $Revision: 1.76 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.75 2010/04/02 23:17:12 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.76 2010/04/05 18:10:51 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -90,7 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.75 2010/04/02 23:17:12 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.76 2010/04/05 18:10:51 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -297,12 +297,13 @@ for nthouter = outer_runlist
   B0 = inv(X'*X)*X';
   Ctask = [eye(nTask) zeros(nTask,nNuis)];
   nn = [1:ntptot]';
-  R = eye(ntptot) - X*inv(X'*X)*X';
   
   if(flac0.fixacf & flac0.acfbins > 0 )
     fprintf('Computing compensation for resdual AR1 bias\n');
+    R = eye(ntptot) - X*inv(X'*X)*X';
     [rfm.M rfm.rrho1 rfm.nrho1 rfm.nrho1hat] = fast_rfm2nrho1(R);
     fprintf('AR1 Correction M: %g %g\n',rfm.M(1),rfm.M(2));
+    clear R;
   else
     rfm.M(1) = 0;
     rfm.M(2) = 1;
@@ -427,9 +428,10 @@ if(DoGLMFit)
   % baseline0.vol = fast_mat2vol(betamn0,mri.volsize);
   % Compute Rescale Factor
   if(flac0.inorm ~= 0)
-    gmean2 = mean(betamn0(indmask));
+    gmean0 = mean(betamn0(indmask));
+    fprintf('Global In-Mask Mean = %g (%g)\n',gmean,gmean0);
+    %gmean = gmean0; % This will use old method
     RescaleFactor = flac0.inorm/gmean;
-    fprintf('Global In-Mask Mean = %g (%g)\n',gmean,gmean2);
     fprintf('Rescale Target = %g\n',flac0.inorm);
   else
     RescaleFactor = 1;
@@ -445,7 +447,7 @@ if(DoGLMFit)
   tic;
   rsse = 0;
   rho1 = mri; 
-  rho2 = mri; % not really rho2e
+  rho1.vol = zeros([mri.volsize nruns]);
   ErrCovMtx = 0;
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
@@ -502,8 +504,6 @@ if(DoGLMFit)
       fname = sprintf('%s/acf-uw-%03d.%s',outresdir,nthrun,ext);      
       MRIwrite(acf,fname);
     end
-    %rho2run = sum(rrun(1:end-2,:).*rrun(3:end,:))./rsserun;
-    %rho2.vol(:,:,:,end+1) = fast_mat2vol(rho2run,rho2.volsize);
     if(flac0.acfbins == 0)
       %fprintf('WARNING: unwhitened residuals are not intensity norm\n');
       if(MatlabSaveRes)
@@ -550,6 +550,7 @@ if(DoGLMFit)
   
   rho1mn = mri;
   rho1mn.vol = mean(rho1.vol,4);
+  rho1mn.vol(indmaskout) = 0; % mask out
 
   % Apply bias correction
   nrho1mn = mri;
@@ -567,14 +568,13 @@ if(DoGLMFit)
   end
   
   % Save AR1 maps
+  fprintf('Saving rho1\n');
   fname = sprintf('%s/rho1.%s',outanadir,ext);
   MRIwrite(rho1,fname);
   fname = sprintf('%s/rho1mn.%s',outanadir,ext);
   MRIwrite(rho1mn,fname);
   fname = sprintf('%s/nrho1mn.%s',outanadir,ext);
   MRIwrite(nrho1mn,fname);
-
-  clear rho1 rho1mn;
 
   % ---------------------------------------------------
   % Segment based on autocorrelation AR1
@@ -596,7 +596,7 @@ if(DoGLMFit)
     % Compute average ar1 in each seg and corresponding acf
     fprintf('Computing whitening matrices\n');
     tic;
-    clear rho1segmn nrho2segmn nalphasegmn acfsegmn S Sinv W;
+    clear rho1segmn nalphasegmn acfsegmn S Sinv W;
     S    = zeros(ntptot,ntptot,flac0.acfbins);
     Sinv = zeros(ntptot,ntptot,flac0.acfbins);
     W    = zeros(ntptot,ntptot,flac0.acfbins);
@@ -951,7 +951,6 @@ if(DoContrasts)
       cesvar.vol = fast_mat2vol(cesvarmat,mri.volsize);
       fname = sprintf('%s/cesvar.%s',outcondir,ext);
       MRIwrite(cesvar,fname);
-
       cesvarpct = mri;
       cesvarpct.vol = (100.^2)*cesvar.vol./(baseline.vol.^2);
       fname = sprintf('%s/cesvarpct.%s',outcondir,ext);
