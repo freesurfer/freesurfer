@@ -26,8 +26,8 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/03/05 23:00:35 $
-%    $Revision: 1.10 $
+%    $Date: 2010/04/05 18:09:21 $
+%    $Revision: 1.11 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@ if(nargin < 4 | nargin > 6)
 end
 
 [nf nbeta] = size(X);
-nv = size(beta,2);
+nvox = size(beta,2);
 
 if(~exist('nacf','var'))      nacf = []; end
 if(~exist('nacfmap','var'))   nacfmap = []; end
@@ -68,14 +68,13 @@ dof1 = size(C,1); % J %
 dof2 = nf-nbeta;
 
 % Handle case where some voxels are zero
-nvox = size(rvar,2);
 indz  = find(rvar == 0);
 indnz = find(rvar ~= 0);
+nnz = length(indnz);
 if(~isempty(indz))
   beta = beta(:,indnz);
   rvar = rvar(:,indnz);
 end
-nnz = length(indnz);
 
 % Contast Effect Size
 ces = C*beta;
@@ -102,7 +101,7 @@ else
   end
   nbins = size(nacf,2);
   F = zeros(1,nnz);
-  cescvm = zeros(dof1,nvox);
+  cescvm = zeros(dof1,nnz); % bug was here (nvox instead of nnz)
   for nthbin = 0:nbins
     indbin = find(nacfmap==nthbin);
     nbin = length(indbin);
@@ -140,12 +139,15 @@ end
 
 % If there were voxels with rvar==0, fix them
 if(~isempty(indz))
-  F0 = zeros(1,nv);
+  F0 = zeros(1,nvox);
   F0(indnz) = F;
   F = F0;
-  ces0 = zeros(dof1,nv);
+  ces0 = zeros(dof1,nvox);
   ces0(:,indnz) = ces;
   ces = ces0;
+  cescvm0 = zeros(dof1,nvox);
+  cescvm0(:,indnz) = cescvm;
+  cescvm = cescvm0;
 end
 
 return;
