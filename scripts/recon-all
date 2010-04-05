@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/31 19:30:03 $
-#    $Revision: 1.307 $
+#    $Date: 2010/04/05 20:50:04 $
+#    $Revision: 1.308 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.307 2010/03/31 19:30:03 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.308 2010/04/05 20:50:04 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -264,8 +264,8 @@ set DoLocalGyriIndex = 0;
 set DoBaLabels       = 0;
 set DoLabelExvivoEC  = 0;
 # ----------- Surface and Volume ------------------#
-set DoSegStats       = 0;
 set DoCortRibbonVolMask = 0;
+set DoSegStats       = 0;
 set DoAParc2ASeg = 0;
 set DoWMParc = 0;
 set DoAParcASegStats = 0;
@@ -475,6 +475,7 @@ mri_robust_template -all-info >> $LF
 mri_and -all-info >> $LF
 mri_or -all-info >> $LF
 mri_fuse_segmentations -all-info >> $LF
+mri_segstats -all-info >> $LF
 
 echo "#######################################" >> $LF
 echo "GCADIR $GCADIR" >> $LF
@@ -2429,7 +2430,7 @@ foreach hemi ($hemilist)
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     # create curvature files ?h.inflated.H and ?h.inflated.K
-    set xopts = `fsr-getxopts mris_curvature $XOptsFile`;
+    set xopts = `fsr-getxopts mris_curatvure $XOptsFile`;
     set cmd = (mris_curvature -thresh .999 -n -a 5 -w -distances 10 10)
     set cmd = ($cmd $xopts ../surf/$hemi.inflated)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2749,6 +2750,25 @@ foreach hemi ($hemilist)
 
 end # Loop over hemilist
 
+#---------------- Cortical Ribbon -------------------------#
+if($DoCortRibbonVolMask) then
+  echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+  echo "#@# Cortical ribbon mask `date`" \
+      |& tee -a $SF|& tee -a $LF|& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
+  set cmd = (mris_volmask \
+    --label_left_white   2 --label_left_ribbon   3 \
+    --label_right_white 41 --label_right_ribbon 42 \
+    --save_ribbon --save_distance $subjid)
+  $PWD |& tee -a $LF
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  echo $cmd > $touchdir/cortical_ribbon.touch
+endif
+
 #-------------- ASeg Stats --------------#
 if($DoSegStats) then
   # Stats on the automatic segmentation
@@ -2759,14 +2779,20 @@ if($DoSegStats) then
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
-  set cmd = ($cmd --excludeid 0 --excl-ctxgmwm --supertent --subcortgray --totalgray)
-  #set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
+  set cmd = ($cmd --excludeid 0 --excl-ctxgmwm)
+  if ( -e mri/ribbon.mgz ) then
+    set cmd = ($cmd --supratent)
+  else
+    echo "\nINFO: mri_segstats will not calculate Supratentorial" |& tee -a $LF
+    echo "      due to missing ribbon.mgz file" |& tee -a $LF
+  endif
+  set cmd = ($cmd --subcortgray --totalgray)
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
   if ( -e mri/transforms/talairach.xfm ) then
     set cmd = ($cmd --etiv);
   else
-    echo "INFO: mri_segstats will not calculate eTIV" |& tee -a $LF
+    echo "\nINFO: mri_segstats will not calculate eTIV" |& tee -a $LF
     echo "      due to missing talairach.xfm file" |& tee -a $LF
   endif
   if ( ( -e surf/lh.white ) && ( -e surf/rh.white ) ) then
@@ -2810,25 +2836,6 @@ if ($DoAsegStatsDiff) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if (-e ${diffsubj}_tmp) rm ${diffsubj}_tmp
   echo $cmd > $touchdir/asegstatsdiff.touch
-endif
-
-#---------------- Cortical Ribbon -------------------------#
-if($DoCortRibbonVolMask) then
-  echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-  echo "#@# Cortical ribbon mask `date`" \
-      |& tee -a $SF|& tee -a $LF|& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mris_volmask $XOptsFile`;
-  set cmd = (mris_volmask \
-    --label_left_white   2 --label_left_ribbon   3 \
-    --label_right_white 41 --label_right_ribbon 42 \
-    --save_ribbon --save_distance $subjid)
-  $PWD |& tee -a $LF
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  echo $cmd > $touchdir/cortical_ribbon.touch
 endif
 
 # ----------------- AParc2ASeg ---------------------------------------- #
@@ -4104,8 +4111,8 @@ while( $#argv != 0 )
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
-      set DoSegStats       = 1;
       set DoCortRibbonVolMask = 1;
+      set DoSegStats       = 1;
       set DoAParc2ASeg     = 1;
       set DoWMParc         = 1;
       set DoCurvStats      = 1;
