@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 16:33:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/04/06 18:23:09 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,6 +34,7 @@
 #include "LayerMRI.h"
 #include "CursorFactory.h"
 #include "Region2DLine.h"
+#include "Region2DPolyline.h"
 #include "Region2DRectangle.h"
 #include "ToolWindowMeasure.h"
 #include <vtkRenderer.h>
@@ -55,7 +56,7 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
   RenderView2D* view = ( RenderView2D* )renderview;
 // UpdateCursor( event, view );
 
-  if ( m_region )
+  if ( m_region && !m_bDrawing && !m_bEditing )
     m_region->Highlight( false );
   
   if ( event.LeftDown() )
@@ -71,7 +72,11 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
       m_nMousePosY = event.GetY();
       
       Region2D* reg = view->GetRegion( m_nMousePosX, m_nMousePosY, &m_nPointIndex );
-      if ( !reg )   // drawing
+      if ( m_region && m_bDrawing )
+      {       
+        ((Region2DPolyline*)m_region)->AddPoint( m_nMousePosX, m_nMousePosY );
+      }
+      else if ( !reg )   // drawing
       {
         if ( m_nAction == MM_Line )
         {
@@ -79,6 +84,14 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
           reg_line->SetLine( m_nMousePosX, m_nMousePosY, m_nMousePosX, m_nMousePosY ); 
           view->AddRegion( reg_line );
           m_region = reg_line;
+        }
+        else if ( m_nAction == MM_Spline || m_nAction == MM_Polyline )
+        {
+          Region2DPolyline* reg_polyline = new Region2DPolyline( view, m_nAction == MM_Spline );
+          reg_polyline->AddPoint( m_nMousePosX, m_nMousePosY ); 
+          reg_polyline->AddPoint( m_nMousePosX, m_nMousePosY ); // add second point
+          view->AddRegion( reg_polyline );
+          m_region = reg_polyline;
         }
         else if ( m_nAction == MM_Rectangle )
         {
@@ -100,6 +113,18 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
       return false;
     }
   }
+  else if ( event.RightDown() )
+  {
+    if ( m_bDrawing && m_region )
+    {
+      m_bDrawing = false;
+      m_bEditing = false;
+      if ( m_nAction == MM_Spline || m_nAction == MM_Polyline )
+        ((Region2DPolyline*)m_region)->RemoveLastPoint();
+      view->NeedRedraw();
+      return false;
+    }
+  }
   
   return Interactor2D::ProcessMouseDownEvent( event, renderview ); // pass down the event
 }
@@ -111,6 +136,9 @@ bool Interactor2DMeasure::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* 
 
   if ( m_bDrawing )
   {
+    if ( ( m_nAction == MM_Spline || m_nAction == MM_Polyline ) && m_region )
+      return false;
+    
     if ( m_nMousePosX != event.GetX() || m_nMousePosY != event.GetY() )
     {
       m_nMousePosX = event.GetX();
@@ -126,7 +154,7 @@ bool Interactor2DMeasure::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* 
         if ( m_nAction == MM_Line )
         {
           ((Region2DLine*)m_region)->SetPoint2( m_nMousePosX, m_nMousePosY );
-        }
+        }       
         else if ( m_nAction == MM_Rectangle )
         {
           ((Region2DRectangle*)m_region)->SetBottomRight( m_nMousePosX, m_nMousePosY );
@@ -135,7 +163,7 @@ bool Interactor2DMeasure::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* 
     }
     else
     {
-      if ( m_region )
+      if ( m_region && m_nAction != MM_Polyline && m_nAction != MM_Spline )
       {
         view->DeleteRegion( m_region );
         m_region = NULL;
@@ -176,6 +204,10 @@ bool Interactor2DMeasure::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView
       if ( m_nAction == MM_Line )
       {
         ((Region2DLine*)m_region)->SetPoint2( posX, posY );
+      }
+      else if ( m_nAction == MM_Spline || m_nAction == MM_Polyline )
+      {
+        ((Region2DPolyline*)m_region)->UpdatePoint( -1, posX, posY );
       }
       else if ( m_nAction == MM_Rectangle )
       {
@@ -260,6 +292,8 @@ void Interactor2DMeasure::UpdateCursor( wxEvent& event, wxWindow* wnd )
           wnd->SetCursor( CursorFactory::CursorMeasureLine );
         else if ( m_nAction == MM_Rectangle )
           wnd->SetCursor( CursorFactory::CursorMeasureRectangle );
+        else if ( m_nAction == MM_Polyline || m_nAction == MM_Spline )
+          wnd->SetCursor( CursorFactory::CursorMeasurePolyline );
       }
     }   
   }

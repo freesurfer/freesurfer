@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/12 18:26:07 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/04/06 18:23:09 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -790,4 +790,15 @@ int LayerVolumeBase::GetBrushRadius()
 void LayerVolumeBase::SetBrushRadius( int nRadius )
 {
   m_nBrushRadius = nRadius;
+}
+
+double LayerVolumeBase::GetMinimumVoxelSize()
+{
+  double* vs = m_imageData->GetSpacing();
+  if ( vs[0] < vs[1] && vs[0] < vs[2] )
+    return vs[0];
+  else if ( vs[1] < vs[2] )
+    return vs[1];
+  else
+    return vs[2];
 }

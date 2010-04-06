@@ -165,6 +165,8 @@ freeview_SOURCES=\
 	Region2D.h \
 	Region2DLine.cpp \
 	Region2DLine.h \
+	Region2DPolyline.cpp \
+	Region2DPolyline.h \
 	Region2DRectangle.cpp \
 	Region2DRectangle.h \
 	RenderView2D.cpp \

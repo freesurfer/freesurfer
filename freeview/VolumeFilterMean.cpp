@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/30 18:31:03 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/04/06 18:23:10 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,7 +45,7 @@ bool VolumeFilterMean::Execute()
   if ( !mri_src ) 
     return false;
   
-  // clone the src first because MRImean does not keep the src data type if let it does it!
+  // clone the src first because MRImean does not keep the src data type if let it do it!
   MRI* mri_dest = MRIclone( mri_src, NULL ) ;
   if ( !mri_dest )
     return false;

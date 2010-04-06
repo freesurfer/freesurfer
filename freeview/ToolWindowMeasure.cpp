@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 16:33:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/04/06 18:23:10 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,13 +47,17 @@
 #include "Region2D.h"
 
 BEGIN_EVENT_TABLE( ToolWindowMeasure, wxFrame )
-  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_LINE" ),    ToolWindowMeasure::OnActionMeasureLine )
-  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_LINE" ),    ToolWindowMeasure::OnActionMeasureLineUpdateUI )
-  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_RECT" ),    ToolWindowMeasure::OnActionMeasureRectangle )
-  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_RECT" ),    ToolWindowMeasure::OnActionMeasureRectangleUpdateUI )
+  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_LINE" ),      ToolWindowMeasure::OnActionMeasureLine )
+  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_LINE" ),      ToolWindowMeasure::OnActionMeasureLineUpdateUI )
+  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_RECT" ),      ToolWindowMeasure::OnActionMeasureRectangle )
+  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_RECT" ),      ToolWindowMeasure::OnActionMeasureRectangleUpdateUI )
+  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_POLYLINE" ),  ToolWindowMeasure::OnActionMeasurePolyline )
+  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_POLYLINE" ),  ToolWindowMeasure::OnActionMeasurePolylineUpdateUI )
+  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_SPLINE" ),    ToolWindowMeasure::OnActionMeasureSpline )
+  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_SPLINE" ),    ToolWindowMeasure::OnActionMeasureSplineUpdateUI )
 
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_COPY" ),            ToolWindowMeasure::OnButtonCopy )
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_EXPORT" ),          ToolWindowMeasure::OnButtonExport )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_COPY" ),              ToolWindowMeasure::OnButtonCopy )
+  EVT_BUTTON    ( XRCID( "ID_BUTTON_EXPORT" ),            ToolWindowMeasure::OnButtonExport )
   
   EVT_SHOW      ( ToolWindowMeasure::OnShow )
 
@@ -186,6 +190,34 @@ void ToolWindowMeasure::OnActionMeasureRectangleUpdateUI( wxUpdateUIEvent& event
   RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
   event.Check( view->GetInteractionMode() == RenderView2D::IM_Measure
       && view->GetAction() == Interactor2DMeasure::MM_Rectangle );
+  event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
+      && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
+}
+
+void ToolWindowMeasure::OnActionMeasurePolyline( wxCommandEvent& event )
+{
+  MainWindow::GetMainWindowPointer()->SetAction( Interactor2DMeasure::MM_Polyline );
+}
+
+void ToolWindowMeasure::OnActionMeasurePolylineUpdateUI( wxUpdateUIEvent& event)
+{
+  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
+  event.Check( view->GetInteractionMode() == RenderView2D::IM_Measure
+      && view->GetAction() == Interactor2DMeasure::MM_Polyline );
+  event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
+      && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
+}
+
+void ToolWindowMeasure::OnActionMeasureSpline( wxCommandEvent& event )
+{
+  MainWindow::GetMainWindowPointer()->SetAction( Interactor2DMeasure::MM_Spline );
+}
+
+void ToolWindowMeasure::OnActionMeasureSplineUpdateUI( wxUpdateUIEvent& event)
+{
+  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
+  event.Check( view->GetInteractionMode() == RenderView2D::IM_Measure
+      && view->GetAction() == Interactor2DMeasure::MM_Spline );
   event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
       && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
 }

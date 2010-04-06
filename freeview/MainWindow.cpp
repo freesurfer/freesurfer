@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/26 19:04:05 $
- *    $Revision: 1.102 $
+ *    $Date: 2010/04/06 18:23:09 $
+ *    $Revision: 1.103 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1219,7 +1219,7 @@ void MainWindow::DoUpdateToolbars()
 {
   if ( !m_toolWindowEdit )
     m_toolWindowEdit = new ToolWindowEdit( this );
-  
+
   if ( !m_toolWindowMeasure )
     m_toolWindowMeasure = new ToolWindowMeasure( this );
     

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/11/03 22:51:28 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/04/06 18:23:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@ public:
   Interactor2DMeasure();
   virtual ~Interactor2DMeasure();
   
-  enum MeasureMode { MM_Line = 0, MM_Rectangle };
+  enum MeasureMode { MM_Line = 0, MM_Polyline, MM_Spline, MM_Rectangle };
 
   // return true if to have parent Interactor2D continue processing the event
   // return false to stop event from further processing

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/12 18:26:07 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/04/06 18:23:09 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -107,6 +107,8 @@ public:
 
   bool IsValidToPaste( int nPlane );
 
+  double GetMinimumVoxelSize();
+  
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
   bool SetVoxelByIndex( int* n1, int* n2, int nPlane, bool bAdd = true );

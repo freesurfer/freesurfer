@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/19 16:33:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/04/06 18:23:10 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,10 +42,14 @@ public:
 
   void OnShow( wxShowEvent& event );
 
-  void OnActionMeasureLine              ( wxCommandEvent& event );
-  void OnActionMeasureLineUpdateUI      ( wxUpdateUIEvent& event );
-  void OnActionMeasureRectangle         ( wxCommandEvent& event );
-  void OnActionMeasureRectangleUpdateUI ( wxUpdateUIEvent& event );
+  void OnActionMeasureLine                ( wxCommandEvent& event );
+  void OnActionMeasureLineUpdateUI        ( wxUpdateUIEvent& event );
+  void OnActionMeasureRectangle           ( wxCommandEvent& event );
+  void OnActionMeasureRectangleUpdateUI   ( wxUpdateUIEvent& event );
+  void OnActionMeasurePolyline            ( wxCommandEvent& event );
+  void OnActionMeasurePolylineUpdateUI    ( wxUpdateUIEvent& event );
+  void OnActionMeasureSpline              ( wxCommandEvent& event );
+  void OnActionMeasureSplineUpdateUI      ( wxUpdateUIEvent& event );
   
   void OnButtonCopy         ( wxCommandEvent& event );
   void OnButtonExport       ( wxCommandEvent& event );
