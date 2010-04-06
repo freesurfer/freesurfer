@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.77 2010/04/06 23:07:56 greve Exp $
+% $Id: fast_selxavg3.m,v 1.78 2010/04/06 23:24:43 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/06 23:07:56 $
-%    $Revision: 1.77 $
+%    $Date: 2010/04/06 23:24:43 $
+%    $Revision: 1.78 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.77 2010/04/06 23:07:56 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.78 2010/04/06 23:24:43 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -90,7 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.77 2010/04/06 23:07:56 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.78 2010/04/06 23:24:43 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -324,9 +324,6 @@ for nthouter = outer_runlist
     C = C(:,indtask);
     for nthrun = nthrunlist
       flac = runflac(nthrun).flac;
-      %flac = flac0;
-      %flac.nthrun = nthrun;
-      %flac = flac_customize(flac);
       Crun = flac.con(nthcon).C;
       indnuis = flac_nuisregind(flac);    
       Cnuis = Crun(:,indnuis);
@@ -362,12 +359,11 @@ if(DoGLMFit)
   betamat0 = zeros(nX,nvox);
   gmean = 0;
   yrun_randn = [];
+  rawbeta = 0;
+  rawrvar = 0;
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;          
-    %flac = flac0;
-    %flac.nthrun = nthrun;
-    %flac = flac_customize(flac);
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
@@ -387,6 +383,11 @@ if(DoGLMFit)
 	return;
       end
       yrun = fast_vol2mat(yrun);
+      % Compute mean and rvar of raw data
+      Xdt = fast_polytrendmtx(1,size(yrun,1),1,2);
+      [rawbetarun rawrvarrun] = fast_glmfit(yrun,Xdt);
+      rawbeta = rawbeta + rawbetarun;
+      rawrvar = rawrvar + rawrvarrun;
     else
       yrun_randn(:,nthrun) = randn('state'); % save state
       ynoise  = 0;
@@ -422,6 +423,21 @@ if(DoGLMFit)
   end % loop over run
   gmean = gmean/nruns;
   
+  % Compute raw sfnr
+  rawbeta = rawbeta/nruns;
+  rawrvar = rawrvar/nruns;
+  rawsfnr = rawbeta(1,:)./sqrt(rawrvar);
+  tmpmri = mri;
+  tmpmri.vol = fast_mat2vol(rawsfnr,mri.volsize);
+  fname = sprintf('%s/raw.fsnr.%s',outanadir,ext);
+  MRIwrite(tmpmri,fname);
+  % Save mean with-in mask raw fsnr
+  rawfsnrmn = mean(tmpmri.vol(indmask));
+  fname = sprintf('%s/raw.fsnr.dat',outanadir);
+  fp = fopen(fname,'w');
+  fprintf(fp,'%f\n',rawfsnrmn);
+  fclose(fp);
+  
   % Compute baseline
   betamn0 = mean(betamat0(ind0,:),1);
   % baseline0 = mri;
@@ -452,9 +468,6 @@ if(DoGLMFit)
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;
-    %flac = flac0;
-    %flac.nthrun = nthrun;
-    %flac = flac_customize(flac);
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
@@ -646,9 +659,6 @@ if(DoGLMFit)
     for nthrun = nthrunlist
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
       flac = runflac(nthrun).flac;
-      %flac = flac0;
-      %flac.nthrun = nthrun;
-      %flac = flac_customize(flac);
       indrun = find(tpindrun == nthrun);
       if(~DoSynth)
 	yrun = MRIread(flac.funcfspec);
@@ -696,9 +706,6 @@ if(DoGLMFit)
     for nthrun = nthrunlist
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
       flac = runflac(nthrun).flac;
-      %flac = flac0;
-      %flac.nthrun = nthrun;
-      %flac = flac_customize(flac);
       indrun = find(tpindrun == nthrun);
 
       if(~DoSynth)
