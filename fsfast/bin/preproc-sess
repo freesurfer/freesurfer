@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/02 00:09:27 $
-#    $Revision: 1.24 $
+#    $Date: 2010/04/06 18:33:07 $
+#    $Revision: 1.25 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.24 2010/04/02 00:09:27 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.25 2010/04/06 18:33:07 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -44,12 +44,10 @@ set surffwhm = ();
 set SliceOrder = ();
 set fsd     = bold;
 set rlf     = ();
-set mcnthrun = ();
 set mcrun    = ();
 set mctargstem = ();
 set mctargframe = ();
 set MCPerRun = 0;
-set MaskPerRun = 0;
 
 set UpdateOnly = 1;
 set DoTemplate = 1;
@@ -173,7 +171,6 @@ foreach sess ($SessList)
     set cmd = ($cmd -s $sessid -d $sessparent)
     if($nolog) set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
-    if($MaskPerRun) set cmd = ($cmd -perrun);
     echo "$sessid Mask ------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -284,26 +281,6 @@ while( $#argv != 0 )
       set mcoutstem = $argv[1]; shift;
       breaksw
 
-    case "-mcnthrun":
-      if ( $#argv == 0) goto arg1err;
-      set mcnthrun = $argv[1]; shift;
-      breaksw
-
-    case "-mcrun":
-      if ( $#argv == 0) goto arg1err;
-      set mcrun = $argv[1]; shift;
-      breaksw
-
-    case "-mctargstem":
-      if ( $#argv == 0) goto arg1err;
-      set mctargstem = $argv[1]; shift;
-      breaksw
-
-    case "-mctargframe":
-      if($#argv < 1) goto arg1err;
-      set mctargframe = $argv[1]; shift;
-      breaksw
-
     case "-stcin":
       if ( $#argv == 0) goto arg1err;
       set stcinstem = $argv[1]; shift;
@@ -400,13 +377,16 @@ while( $#argv != 0 )
       set MCPerRun = 1;
       breaksw
 
-    case "-maskperrun":
-      set MaskPerRun = 1;
-      breaksw
-
+    case "-per-run":
     case "-perrun":
       set MCPerRun = 1;
       set MaskPerRun = 1;
+      breaksw
+
+    case "-per-session":
+    case "-persession":
+      set MCPerRun = 0;
+      set MaskPerRun = 0;
       breaksw
 
     case "-no-stc":
@@ -506,7 +486,7 @@ check_params:
     if($#mcinstem  == 0) set mcinstem  = $instem
     if($#mcoutstem == 0) then
       if($MCPerRun) then
-        set mcoutstem = $mcinstem"mc.pr"
+        set mcoutstem = $mcinstem"mc.pr."
       else
         set mcoutstem = $mcinstem"mc"
       endif    
@@ -543,21 +523,6 @@ check_params:
     else
       set inormstem = $mcinstem;
     endif
-  endif
-
-  if($MCPerRun && $#mcnthrun ) then
-    echo "ERROR: cannot specify both -mcperrun and -mcnthrun"
-    exit 1;
-  endif
-
-  if($MCPerRun && $#mcrun ) then
-    echo "ERROR: cannot specify both -mcperrun and -mcrun"
-    exit 1;
-  endif
-
-  if($#rlf != 0 && $MCPerRun) then
-    echo "ERROR: cannot specify both -rlf and -mcperrun"
-    exit 1;
   endif
 
   if(! $DoMC && ! $DoSTC  && ! $DoSmooth && ! $DoMask) then
