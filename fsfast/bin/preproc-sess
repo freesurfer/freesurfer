@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 18:33:07 $
-#    $Revision: 1.25 $
+#    $Date: 2010/04/06 23:07:00 $
+#    $Revision: 1.26 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.25 2010/04/06 18:33:07 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.26 2010/04/06 23:07:00 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -486,7 +486,7 @@ check_params:
     if($#mcinstem  == 0) set mcinstem  = $instem
     if($#mcoutstem == 0) then
       if($MCPerRun) then
-        set mcoutstem = $mcinstem"mc.pr."
+        set mcoutstem = $mcinstem"mcpr"
       else
         set mcoutstem = $mcinstem"mc"
       endif    

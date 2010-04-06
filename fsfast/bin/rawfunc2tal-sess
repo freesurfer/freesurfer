@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 18:35:24 $
-#    $Revision: 1.7 $
+#    $Date: 2010/04/06 23:07:00 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.7 2010/04/06 18:35:24 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.8 2010/04/06 23:07:00 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -310,12 +310,11 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#SessList == 0) then
-    echo "ERROR: no sessions specified" |& tee -a $LF
-    exit 1;
-  endif
-  if($#instem == 0) set instem = fmc.pr
-  if($#outstem == 0) set outstem = $instem.tal
+if($#instem == 0) then
+  if($PerRun)   set instem = fmcpr
+  if(! $PerRun) set instem = fmc
+endif
+if($#outstem == 0) set outstem = $instem.tal
 
 goto check_params_return;
 ############--------------##################
