@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/02 23:18:21 $
-#    $Revision: 1.42 $
+#    $Date: 2010/04/06 18:34:45 $
+#    $Revision: 1.43 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.42 2010/04/02 23:18:21 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.43 2010/04/06 18:34:45 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -333,9 +333,8 @@ if($DoFWHM && ! $monly) then
         set cmd = ($cmd --sum $sumfile --dat $datfile)
       else
         # Surface-based cmd line
-        set reg = $sess/$fsd/register.dat
         if($subject == self) then
-          set subjectuse = `reg2subj $reg`
+          set subjectuse = `cat $sess/subjectname`
         else
           set subjectuse = $subject
         endif
