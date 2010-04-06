@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/02 23:18:21 $
-#    $Revision: 1.10 $
+#    $Date: 2010/04/06 23:07:28 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.10 2010/04/02 23:18:21 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.11 2010/04/06 23:07:28 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -41,12 +41,13 @@ set Delink = 0;
 set UseVol2Surf = 1;
 set ProjFrac = 0.5;
 set Interp = nearest
-set ToSelf = 0;
 
-set SurfAna = 0;
+set RawSpace = native;
+set RawSpaceType = volume
+set trgsubject = ();
+set SurfReg = ();
+
 set UseTalairach = 0;
-set subject = ();
-
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -70,70 +71,6 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-## Parse the analysis
-if($#analysis != 0) then
-  if(! -e $analysis ) then
-    echo "ERROR: $analysis does not exist." |& tee -a $LF
-    exit 1;
-  endif
-  set infofile = $analysis/analysis.info
-  set cfg = $analysis/analysis.cfg
-  set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
-  set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
-  if($#designtype == 0) then
-    set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
-  endif
-  set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
-  if($#tmp != 0) then
-    set SurfAna = 1;
-    set subject = $tmp[1];
-    set hemi    = $tmp[2]; # may overwrite -hemi
-    echo "Surface $subject $hemi"
-    set UseVol2Surf = 0;
-  endif
-  set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
-  set UseTalairach = $#tmp;
-  if($UseTalairach) set subject = fsaverage
-  set IsFIR = 1;
-  set tmp = `grep -e -gammafit $cfg`;
-  if($#tmp) set IsFIR = 0;
-  set tmp = `grep -e -spmhrf $cfg`;
-  if($#tmp) set IsFIR = 0;
-endif
-if(! $IsFIR) set ShowHDR = 0;
-if($#hemi == 0) then
-  echo "ERROR: no hemisphere specified" 
-  exit 1;
-endif
-
-## Parse the map analysis
-if($#mapanalysis != 0) then
-  set infofile = $mapanalysis/analysis.info
-  set mapfsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
-  set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
-  if($#tmp != 0) then
-    set mapsubject = $tmp[1];
-    set maphemi    = $tmp[2];
-    echo "Map Surface $mapsubject $maphemi"
-    if($subject != $mapsubject || $hemi != $maphemi) then
-      echo "ERROR: map analysis $mapanalysis uses a different surface."
-      exit 1;
-    endif      
-  endif
-  set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
-  set MapUseTalairach = $#tmp;
-  if($UseTalairach != $MapUseTalairach) then
-    if($MapUseTalairach) then
-      echo "ERROR: map analysis $mapanalysis is talairach-based."
-      echo "This does not match the analysis $analysis"
-    else
-      echo "ERROR: map analysis $mapanalysis is NOT talairach-based."
-      echo "This does not match the analysis $analysis"
-    endif      
-    exit 1;
-  endif
-endif
-
 echo $VERSION
 uname -a      
 date          
@@ -142,21 +79,37 @@ which tksurfer
 # ---------------------------------------------
 foreach sess ($SessList)
   echo ""
-
   set self = `cat $sess/subjectname`;
 
-  set reg = ();
-  if($#subject == 0) then
-    set reg = $sess/$fsd/register.dat
-    if(! -e $reg) then
-      echo "ERROR: cannot find $reg"
-      exit 1
+  # Determine the source subject
+  if($RawSpace == self || $RawSpace == native) then
+    set srcsubject = $self
+  else if($RawSpaceType == surface) then
+    # Non-self surface space
+    set srcsubject = $RawSpace
+  else
+    # Talairach Space
+    set srcsubject = fsaverage
+  endif
+    
+  # Determine target subject
+  if($#trgsubject == 0) then
+    if($RawSpaceType == surface) then
+      if($RawSpace == self) then
+        set trgsubjectuse = $self
+      else
+        set trgsubjectuse = $RawSpace
+      endif
+    else
+      # Talairach Space
+      set trgsubjectuse = fsaverage
     endif
-    set subject = `head -n 1 $reg`;
-    echo "subject is $subject"
-    if(! -e $SUBJECTS_DIR/$subject) then
-      echo "ERROR: cannot find $SUBJECTS_DIR/$subject"
-      exit 1;
+  else
+    # Target subject specified
+    if($trgsubject == self) then
+      set trgsubjectuse = $self
+    else
+      set trgsubjectuse = $trgsubject
     endif
   endif
 
@@ -166,24 +119,10 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  if($ShowHDR) then
-    set hstem = $anapath/h
-    set hpath = `stem2fname $hstem`;
-    if($status) then
-      echo "$hpath"
-      exit 1;
-    endif
-    set hoffsetstem = $anapath/h-offset
-    set hoffsetpath = `stem2fname $hoffsetstem`;
-    if($status) then
-      echo "$hoffsetpath"
-      exit 1;
-    endif
-  endif
-
+  # concatenate contrast files
   set mapanapath = $sess/$fsd/$mapanalysis
   set maplist = ()
-  echo list $contrastlist
+  echo "list $contrastlist"
   foreach contrast ($contrastlist)
     set conpath = $mapanapath/$contrast
     if(! -e $conpath) then
@@ -206,16 +145,46 @@ foreach sess ($SessList)
   $cmd
   if($status) exit 1;
 
-  set overlayregopt = ()
-  set hdrregopt = ()
-  if($UseVol2Surf) then
+  # handle FIR
+  if($ShowHDR) then
+    set hstem = $anapath/h
+    set hpath = `stem2fname $hstem`;
+    if($status) then
+      echo "$hpath"
+      exit 1;
+    endif
+    set hoffsetstem = $anapath/h-offset
+    set hoffsetpath = `stem2fname $hoffsetstem`;
+    if($status) then
+      echo "$hoffsetpath"
+      exit 1;
+    endif
+  endif
+
+  if($RawSpace == native) then 
+    set reg = $sess/$fsd/register.dat
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg"
+      exit 1
+    endif
+  endif
+
+  if($RawSpaceType == volume) then
     # Sample volume to the surface
+    set reg = ();
+    if($RawSpace == native) then 
+      set reg = $sess/$fsd/register.dat
+      if(! -e $reg) then
+        echo "ERROR: cannot find $reg"
+        exit 1
+      endif
+    endif
     # Set up vol2surf basic cmd
     set cmd0 = (mri_vol2surf --hemi $hemi --projfrac $ProjFrac \
       --interp $Interp --cortex)
-    if(! $UseTalairach) set cmd0 = ($cmd0 --reg $reg)
-    if($UseTalairach)   set cmd0 = ($cmd0 --regheader $subject)
-
+    if($RawSpace == native)    set cmd0 = ($cmd0 --reg $reg)
+    if($RawSpace == talairach) set cmd0 = ($cmd0 --regheader $srcsubject)
+    # run vol2surf on the maps
     set mov = $mapconcatfile
     set out = $sess/$mapfsd/$mapanalysis/$hemi.tksconcat.mgh
     set cmd = ($cmd0 --mov $mov --o $out)
@@ -224,7 +193,6 @@ foreach sess ($SessList)
     if($status) exit 1;
     rm -f $mov
     set mapconcatfile = $out
-
     if($ShowHDR) then
       # HRF
       set mov = $hpath
@@ -238,30 +206,28 @@ foreach sess ($SessList)
       set mov = $hoffsetpath
       set out = $sess/$mapfsd/$mapanalysis/$hemi.h-offset.mgh
       set cmd = ($cmd0 --mov $mov --o $out)
-      if(! $UseTalairach) set cmd = ($cmd --reg $reg)
-      if($UseTalairach) set cmd = ($cmd --regheader $subject)
+      if($RawSpace == native)    set cmd0 = ($cmd0 --reg $reg)
+      if($RawSpace == talairach) set cmd0 = ($cmd0 --regheader $srcsubject)
       echo $cmd
       $cmd
       if($status) exit 1;
       set hoffsetpath = $out
-    endif
-  else
-    if(! $SurfAna) then
-      set overlayregopt = (-overlay-reg $reg)
-      if($ShowHDR) then
-        set hdrregopt = (-timecourse-reg $reg -timecourse-offset-reg-file $reg)
-      endif
+      cp $sess/$mapfsd/$mapanalysis/h.dat $sess/$mapfsd/$mapanalysis/$hemi.h.dat
     endif
   endif
 
-  if($ToSelf && $subject != $self) then
-    set cmd0 = (mri_surf2surf --srcsubject $subject \
-     --trgsubject $self --hemi $hemi)
+  if($srcsubject != $trgsubjectuse) then
+    # Basic cmd line
+    set cmd0 = (mri_surf2surf --srcsubject $srcsubject \
+     --trgsubject $trgsubjectuse --hemi $hemi)
+    if($#SurfReg) set cmd0 = ($cmd0 --surfreg $SurfReg)
+    # Convert the maps
     set cmd = ($cmd0 --sval $mapconcatfile --tval $mapconcatfile)
     echo $cmd
     $cmd
     if($status) exit 1;
     if($ShowHDR) then
+      # Convert the hrfs
       set cmd = ($cmd0 --sval $hpath --tval $hpath)
       echo $cmd
       $cmd
@@ -274,12 +240,10 @@ foreach sess ($SessList)
     set subject = $self
   endif
 
-  set cmd = (tksurfer $subject $hemi $surf)
-  set cmd = ($cmd -overlay $mapconcatfile $overlayregopt)
+  set cmd = (tksurfer $trgsubjectuse $hemi $surf -overlay $mapconcatfile)
   set cmd = ($cmd -label-outline -colscalebarflag 1)
   if($ShowHDR) then
     set cmd = ($cmd -timecourse $hpath -timecourse-offset $hoffsetpath)
-    set cmd = ($cmd $hdrregopt)
   endif
   if($#annot) set cmd = ($cmd -annot $annot)
   set fmid   = `echo "($fmax+$fthresh)/2.0" | bc -l`
@@ -400,7 +364,12 @@ while( $#argv != 0 )
       breaksw
 
     case "-self":
-      set ToSelf = 1;
+      set trgsubject = self
+      breaksw
+
+    case "-trgsubject"
+      if($#argv < 1) goto arg1err;
+      set trgsubject = $argv[1]; shift
       breaksw
 
     case "-debug":
@@ -450,6 +419,74 @@ check_params:
     echo "ERROR: analysis $mapanalysis does not exist" 
     exit 1;
   endif
+
+  ## Parse the analysis
+  if($#analysis != 0) then
+    if(! -e $analysis ) then
+      echo "ERROR: $analysis does not exist." |& tee -a $LF
+      exit 1;
+    endif
+    set infofile = $analysis/analysis.info
+    set cfg = $analysis/analysis.cfg
+    set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+    set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
+    if($#tmp != 0) then
+      set RawSpaceType = surface
+      set srcsubject = $tmp[1]; # sets srcsubject = fsaverage or "self"
+      set RawSpace = $srcsubject;
+      set hemi    = $tmp[2]; # may overwrite -hemi
+      echo "Surface $srcsubject $hemi"
+    endif
+    set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
+    set UseTalairach = $#tmp;
+    if($UseTalairach) then
+      set RawSpaceType = volume
+      set srcsubject = fsaverage
+      set RawSpace = talairach
+    endif
+    set IsFIR = 1;
+    set tmp = `grep -e -gammafit $cfg`;
+    if($#tmp) set IsFIR = 0;
+    set tmp = `grep -e -spmhrf $cfg`;
+    if($#tmp) set IsFIR = 0;
+  endif
+  if(! $IsFIR) set ShowHDR = 0;
+  if($#hemi == 0) then
+    echo "ERROR: no hemisphere specified" 
+    exit 1;
+  endif
+
+  ## Parse the map analysis
+  if($#mapanalysis != 0) then
+    set infofile = $mapanalysis/analysis.info
+    set mapfsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+    set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
+    if($#tmp != 0) then
+      set MapRawSpaceType = surface
+      set mapsrcsubject = $tmp[1]; # sets srcsubject = fsaverage or "self"
+      set mapRawSpace = $srcsubject;
+      set maphemi    = $tmp[2]; # may overwrite -hemi
+      echo "Map Surface $mapsrcsubject $maphemi"
+      if($srcsubject != $mapsrcsubject || $hemi != $maphemi) then
+        echo "ERROR: map analysis $mapanalysis uses a different surface."
+        exit 1;
+      endif      
+    endif
+    set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
+    set MapUseTalairach = $#tmp;
+    if($UseTalairach != $MapUseTalairach) then
+      if($MapUseTalairach) then
+        echo "ERROR: map analysis $mapanalysis is talairach-based."
+        echo "This does not match the analysis $analysis"
+      else
+        echo "ERROR: map analysis $mapanalysis is NOT talairach-based."
+        echo "This does not match the analysis $analysis"
+      endif      
+      exit 1;
+    endif
+  endif
+
+
   if($DoAllContrasts) then
     set matlist = (`ls $analysis/*.mat`);
     if($status) then
