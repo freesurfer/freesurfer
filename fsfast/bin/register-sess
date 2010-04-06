@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 22:40:54 $
-#    $Revision: 1.4 $
+#    $Date: 2010/04/06 18:34:26 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.4 2010/04/01 22:40:54 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.5 2010/04/06 18:34:26 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -292,8 +292,14 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
+    case "-per-run":
     case "-perrun":
       set PerRun = 1;
+      breaksw
+
+    case "-per-session":
+    case "-persession":
+      set PerRun = 0;
       breaksw
 
     case "-bbr":
@@ -512,6 +518,7 @@ usage_exit:
   echo ""
   echo "   -fsd dir     : functional subdirectory ($fsd)"
   echo "   -perrun      : register each run separately"
+  echo "   -per-session : register once for each session"
   echo "   -regfile file  : Save reg as file instead of register.dat"
   echo ""
   echo "   -bbr-xopts xopts : expert options for bbregister"
