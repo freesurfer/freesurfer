@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/24 17:45:34 $
- *    $Revision: 1.42 $
+ *    $Author: greve $
+ *    $Date: 2010/04/06 21:48:52 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -63,7 +63,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.42 2010/03/24 17:45:34 nicks Exp $";
+"$Id: mri_volsynth.c,v 1.43 2010/04/06 21:48:52 greve Exp $";
 
 char *Progname = NULL;
 
@@ -473,7 +473,7 @@ static int parse_commandline(int argc, char **argv) {
       nframes  = 1;
       nargsused = 1;
     }
-    else if (!strcmp(option, "--vol")) {
+    else if (!strcmp(option, "--vol") || !strcmp(option, "--o")) {
       if (nargc < 1) argnerr(option,1);
       volid = pargv[0];
       nargsused = 1;
@@ -483,7 +483,7 @@ static int parse_commandline(int argc, char **argv) {
         volfmtid = checkfmt(volfmt);
       } 
     }
-    else if (!strcmp(option, "--temp")) {
+    else if (!strcmp(option, "--temp") || !strcmp(option, "--template")) {
       if(DoCurv){
 	printf("ERROR: cannot use --temp and --curv\n");
 	exit(1);
@@ -646,10 +646,10 @@ static void usage_exit(void) {
 static void print_usage(void) {
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
-  printf("   --vol volid <fmt> : output volume path id and format\n");
+  printf("   --o volid <fmt> : output volume path id and format\n");
   printf("\n");
   printf(" Get geometry from template\n");
-  printf("   --temp templateid : see also --curv\n");
+  printf("   --template templateid : see also --curv\n");
   printf("   --nframes nframes : override template\n");
   printf("   --offset : use template as intensity offset\n");
   printf("   --offset-mid : use middle frame of template as intensity offset\n");
