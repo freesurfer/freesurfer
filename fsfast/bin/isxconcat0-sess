@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/17 21:11:34 $
-#    $Revision: 1.14 $
+#    $Date: 2010/04/06 18:38:46 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.14 2009/04/17 21:11:34 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.15 2010/04/06 18:38:46 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -45,6 +45,7 @@ set DoLogFile = 0;
 set DoSplit = 0;
 set fsgd = ();
 set regfile = register.dat
+set DoResample = 1;
 
 # for volume-based only
 set talres = 2;
@@ -72,18 +73,14 @@ if($n != 0) then
   set PrintHelp = 1;  
   goto usage_exit;
 endif
-
 set SessList = `getsesspath $inputargs`;
 if($status || $#SessList == 0) then
-  echo "ERROR: finding sessions"
   echo "       $SessList" 
   exit 1;
 endif
 set nSessions = $#SessList;
-
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
 
@@ -122,24 +119,7 @@ set nframes0 = -1;
 foreach sess ($SessList)
   @ nthsess = $nthsess + 1;
   set sessid = `basename $sess`;
-  set sessinfo = $sess/session.info
-  if(-e $sessinfo) then
-    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
-  else
-    set IsGroup = 0;
-  endif
-  if($IsGroup) then
-    echo "ERROR: session `basename $sess` is a group analysis."|& tee -a $LF
-    echo "This is not allowed with isxconcat0-sess."|& tee -a $LF
-    exit 1;
-  endif
-
-  set reg = $sess/$fsd/$regfile
-  if(! -e $reg) then
-    echo "ERROR: cannot find $reg"|& tee -a $LF
-    exit 1;
-  endif
-  set subject = `head -n 1 $reg`
+  set subject = `cat $sess/subjectname`
 
   if($#fsgd) then
     if("$subject" != "$subjlist[$nthsess]") then
@@ -174,26 +154,35 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  if($#hemi != 0) then
-    set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-$hemi.mgh
-    set cmd = (mri_vol2surf --mov $map --reg $reg --trgsubject $trgsubject)
-    set cmd = ($cmd --hemi $hemi --interp $interp --noreshape)
-    if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
-    if($DoProjFracAvg) set cmd = ($cmd --projfrac-avg 0 1 .2)
-    set cmd = ($cmd --o $mapout)
+  if($DoResample) then
+    set reg = $sess/$fsd/$regfile
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg"|& tee -a $LF
+      exit 1;
+    endif
+    if($#hemi != 0) then
+      set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-$hemi.mgh
+      set cmd = (mri_vol2surf --mov $map --reg $reg --trgsubject $trgsubject)
+      set cmd = ($cmd --hemi $hemi --interp $interp --noreshape)
+      if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+      if($DoProjFracAvg) set cmd = ($cmd --projfrac-avg 0 1 .2)
+      set cmd = ($cmd --o $mapout)
+    else
+      set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-tal.mgh
+      set cmd = (mri_vol2vol --mov $map --reg $reg)
+      set cmd = ($cmd --o $mapout --no-save-reg --interp $interp)
+      if(! $DoMorph) set cmd = ($cmd --tal --talres $talres)
+      if($DoMorph)   set cmd = ($cmd --morph)
+      if($#talxfm)   set cmd = ($cmd --talxfm $talxfm)
+    endif
+    echo "------------------------------------" |& tee -a $LF
+    pwd |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
   else
-    set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-tal.mgh
-    set cmd = (mri_vol2vol --mov $map --reg $reg)
-    set cmd = ($cmd --o $mapout --no-save-reg --interp $interp)
-    if(! $DoMorph) set cmd = ($cmd --tal --talres $talres)
-    if($DoMorph)   set cmd = ($cmd --morph)
-    if($#talxfm)   set cmd = ($cmd --talxfm $talxfm)
+    set mapout = $map
   endif
-  echo "------------------------------------" |& tee -a $LF
-  pwd |& tee -a $LF
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
   set maplist = ($maplist $mapout);
 
 end # Loop over sessions
@@ -212,7 +201,7 @@ if($status) exit 1;
 if($cleanup) rm -r $tmpdir
 
 # Smooth
-if($#fwhm) then
+if($#fwhm && ! $DoResample) then
   if($ToVol) then
     set cmd = (mri_fwhm --i $outvol --o $outvol --fwhm $fwhm --smooth-only)
   endif
@@ -449,21 +438,21 @@ check_params:
     exit 1;
   endif
 
-  if($#flac) set analysis = `basename $flac .flac`
-
-  ## Get functional subdirectory from the info file ##
-  if($#fsd == 0) then
+  if($#analysis) then
     set infofile = $analysis/analysis.info
-    if(! -e $infofile) then
-      echo "ERROR: cannot find $infofile, needed for fsd" 
-      exit 1;
-    endif
+    set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
+    if($#tmp) set DoResample = 0;
+    set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
+    if($#tmp) set DoResample = 0;
     set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
   endif
 
-  if(0 & $#contrast == 0) then
-    echo "ERROR: no contrast specified"
-    exit 1;
+  if($#flac) then
+    set analysis = `basename $flac .flac`
+    if($#fsd == 0) then
+      echo "ERROR: need fsd with flac" 
+      exit 1;
+    endif
   endif
 
   if($#outvol == 0) then
@@ -476,31 +465,6 @@ check_params:
       exit 1;
     endif
   endif
-
-  if($ToSurf == 0 && $ToVol == 0) set ToVol = 1;
-
-  if($ToSurf && $ToVol) then
-    echo "ERROR: cannot convert to surface and volume"
-    exit 1;
-  endif
-
-  if("$interp" != "trilin" && "$interp" != "nearest") then
-    echo "ERROR: interp is $interp, must be trilinear or nearest"
-    exit 1;
-  endif
-
-  if($talres != 1 && $talres != 2) then
-    echo "ERROR: talres = $talres, must be 1 or 2"
-    exit 1;
-  endif
-
-  if($#hemi) then
-    if($hemi != lh && $hemi != rh) then
-      echo "ERROR: hemi = $hemi, must be rh or lh"
-      exit 1;
-    endif
-  endif
-
   set outdir = `dirname $outvol`;
   mkdir -p $outdir
   if($status) then
@@ -517,12 +481,31 @@ check_params:
     exit 1;
   endif
 
+  # This stuff is irrelevant unless resampling
+  if($ToSurf == 0 && $ToVol == 0) set ToVol = 1;
+  if($ToSurf && $ToVol) then
+    echo "ERROR: cannot convert to surface and volume"
+    exit 1;
+  endif
+  if("$interp" != "trilin" && "$interp" != "nearest") then
+    echo "ERROR: interp is $interp, must be trilinear or nearest"
+    exit 1;
+  endif
+  if($talres != 1 && $talres != 2) then
+    echo "ERROR: talres = $talres, must be 1 or 2"
+    exit 1;
+  endif
+  if($#hemi) then
+    if($hemi != lh && $hemi != rh) then
+      echo "ERROR: hemi = $hemi, must be rh or lh"
+      exit 1;
+    endif
+  endif
   if($#projfrac && $DoProjFracAvg) then
     echo "ERROR: cannot --projfrac and --projfrac-avg"
     exit 1
   endif
   if($#projfrac == 0 && $DoProjFracAvg == 0) set projfrac = 0.5;
-
 
 goto check_params_return;
 ############--------------##################

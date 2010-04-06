@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/31 15:57:47 $
-#    $Revision: 1.38 $
+#    $Date: 2010/04/06 18:38:46 $
+#    $Revision: 1.39 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.38 2010/03/31 15:57:47 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.39 2010/04/06 18:38:46 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -51,6 +51,7 @@ set DoWRFX = 0;
 set DoRFX = 0;
 set DoFFX = 0;
 set SplitMVC = 1; # Split multivariate contrasts
+set DoResample = 1;
 
 # for volume-based only
 set talres = 2;
@@ -121,23 +122,6 @@ rm -f $sesslistfile
 @ DOF = 0;
 foreach sess ($SessList)
   set sessid = `basename $sess`;
-  set sessinfo = $sess/session.info
-  if(-e $sessinfo) then
-    set IsGroup = `grep GroupAverage $sessinfo | wc -l`;
-  else
-    set IsGroup = 0;
-  endif
-  if($IsGroup) then
-    echo "ERROR: session `basename $sess` is a group analysis."|& tee -a $LF
-    echo "This is not allowed with isxconcat-sess."|& tee -a $LF
-    exit 1;
-  endif
-
-  set reg = $sess/$fsd/$regfile
-  if(! -e $reg) then
-    echo "ERROR: cannot find $reg"|& tee -a $LF
-    exit 1;
-  endif
 
   set doffile = $sess/$fsd/$analysis/dof
   if(! -e $doffile) then
@@ -156,7 +140,7 @@ foreach sess ($SessList)
     set mdate = ();
   endif
 
-  set srcsubject = `cat $reg | head -n 1`
+  set srcsubject = `cat $sess/subjectname`
   echo "$sessid $srcsubject $dofsess $mdate $bstamp" >> $sesslistfile
 end
 set ffxdofdat = $outdir/ffxdof.dat
@@ -167,23 +151,24 @@ foreach hemi ($hemilist)
 
   # Concat the masks
   set masksvol = $outdir/$hemi.masks.$FSF_OUTPUT_FORMAT
-  set cmd = (isxconcat0-sess -reg $regfile)
+  set cmd = (isxconcat0-sess $sessargs -m mask -o $masksvol)
   if($#flac == 0) set cmd = ($cmd -a $analysis)
-  if($#flac)      set cmd = ($cmd -flac $flac)
-  set cmd = ($cmd -m mask -o $masksvol -interp nearest -fsd $fsd)
-  if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
-  if($hemi == tal) then
-    if(! $DoMorph) set cmd = ($cmd -talres $talres)
-    if($DoMorph)   set cmd = ($cmd -morph)
-    if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
-  else
-    set cmd = ($cmd -subject $trgsubject)
-    set cmd = ($cmd -hemi $hemi)
-    if($#projfrac)     set cmd = ($cmd -projfrac $projfrac)
-    if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
-  endif
+  if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
+  if($#tmpdir)    set cmd = ($cmd -tmp $tmpdir);
   if($#fsgd) set cmd = ($cmd -fsgd $fsgd) # only need to do this once
-  set cmd = ($cmd $sessargs);
+  if($DoResample) then
+    set cmd = ($cmd -interp nearest  -reg $regfile)
+    if($hemi == tal) then
+      if(! $DoMorph) set cmd = ($cmd -talres $talres)
+      if($DoMorph)   set cmd = ($cmd -morph)
+      if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
+    else
+      set cmd = ($cmd -subject $trgsubject)
+      set cmd = ($cmd -hemi $hemi)
+      if($#projfrac)     set cmd = ($cmd -projfrac $projfrac)
+      if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
+    endif
+  endif
   echo "cd `pwd`" |& tee -a $LF
   echo $cmd       |& tee -a $LF
   $cmd            |& tee -a $LF
@@ -191,14 +176,7 @@ foreach hemi ($hemilist)
 
   # Make a single mask = 0 unless all input masks are != 0
   set maskvol = $outdir/$hemi.mask.$FSF_OUTPUT_FORMAT
-  set cmd = (mri_concat $masksvol --o $maskvol --mean)
-  echo $cmd       |& tee -a $LF
-  $cmd            |& tee -a $LF
-  if($status) exit 1;
-  # Binarize
-  set thresh = `echo \($#SessList-.5\)/$#SessList | bc -l`
-  echo $thresh
-  set cmd = (mri_binarize --i $maskvol --min $thresh --o $maskvol)
+  set cmd = (mri_binarize --i $masksvol --frame-and --o $maskvol)
   echo $cmd       |& tee -a $LF
   $cmd            |& tee -a $LF
   if($status) exit 1;
@@ -218,14 +196,11 @@ foreach hemi ($hemilist)
     foreach mapname ($conmaplist)
 
       set outvol = $outcondir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
-      set cmd = (isxconcat0-sess -reg $regfile)
+      set cmd = (isxconcat0-sess -m $mapname -o $outvol $sessargs -c $contrast)
       if($#flac == 0) set cmd = ($cmd -a $analysis)
-      if($#flac)      set cmd = ($cmd -flac $flac)
-      set cmd = ($cmd -m $mapname -o $outvol -interp $interp);
-      set cmd = ($cmd -fsd $fsd -c $contrast)
+      if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
       if($SplitMVC) set cmd = ($cmd -split $tmpdir);
       if($#tmpdir)  set cmd = ($cmd -tmp $tmpdir);
-      if($#fwhm)    set cmd = ($cmd -fwhm $fwhm);
       if($paireddiff) then
         if($mapname == cesvar || $mapname == cesvarpct) then
           set cmd = ($cmd -paired-sum)
@@ -234,17 +209,20 @@ foreach hemi ($hemilist)
         endif
       endif
       if($pairedavg)  set cmd = ($cmd -paired-avg) # Prob not right for var
-      if($hemi == tal) then
-        if(! $DoMorph) set cmd = ($cmd -talres $talres)
-        if($DoMorph)   set cmd = ($cmd --morph)
-        if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
-      else
-        set cmd = ($cmd -hemi $hemi)
-        set cmd = ($cmd -subject $trgsubject)
-        if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-        if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
+      if($DoResample) then
+        set cmd = ($cmd -interp $interp -reg $regfile)
+        if($#fwhm)    set cmd = ($cmd -fwhm $fwhm);
+        if($hemi == tal) then
+          if(! $DoMorph) set cmd = ($cmd -talres $talres)
+          if($DoMorph)   set cmd = ($cmd --morph)
+          if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
+        else
+          set cmd = ($cmd -hemi $hemi)
+          set cmd = ($cmd -subject $trgsubject)
+          if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
+          if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
+        endif
       endif
-      set cmd = ($cmd $sessargs);
       echo "cd `pwd`" |& tee -a $LF
       echo $cmd       |& tee -a $LF
       $cmd            |& tee -a $LF
@@ -253,11 +231,17 @@ foreach hemi ($hemilist)
      end # Loop over maps
 
      if($DoOSGM) then
-       set y       = $outcondir/$hemi.ces.$FSF_OUTPUT_FORMAT
-       set yffxvar = $outcondir/$hemi.cesvar.$FSF_OUTPUT_FORMAT
+       if(! $DoPercent ) then
+         set y       = $outcondir/$hemi.ces.$FSF_OUTPUT_FORMAT
+         set yffxvar = $outcondir/$hemi.cesvar.$FSF_OUTPUT_FORMAT
+       else
+         set y       = $outcondir/$hemi.cespct.$FSF_OUTPUT_FORMAT
+         set yffxvar = $outcondir/$hemi.cesvarpct.$FSF_OUTPUT_FORMAT
+       endif
 
        if($DoWRFX) then
-         set glmdir = $outcondir/osgm.wrfx.$hemi
+         if(! $DoPercent) set glmdir = $outcondir/osgm.wrfx.$hemi
+         if($DoPercent) set glmdir = $outcondir/osgm.wrfx.pct.$hemi
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
          set cmd = ($cmd --mask $maskvol --wls $yffxvar)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
@@ -268,7 +252,8 @@ foreach hemi ($hemilist)
        endif
 
        if($DoRFX) then
-         set glmdir = $outcondir/osgm.rfx.$hemi
+         if(! $DoPercent) set glmdir = $outcondir/osgm.rfx.$hemi
+         if($DoPercent) set glmdir = $outcondir/osgm.rfx.pct.$hemi
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
          set cmd = ($cmd --mask $maskvol)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
@@ -279,7 +264,8 @@ foreach hemi ($hemilist)
        endif
 
        if($DoFFX) then
-         set glmdir = $outcondir/osgm.ffx.$hemi
+         if(! $DoPercent) set glmdir = $outcondir/osgm.ffx.$hemi
+         if($DoPercent) set glmdir = $outcondir/osgm.ffx.pct.$hemi
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
          set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
          set cmd = ($cmd --ffxdofdat $ffxdofdat)
@@ -291,19 +277,16 @@ foreach hemi ($hemilist)
         endif
 
       endif # OSGM
-     
 
    end # Loop over contrasts
 
   # Analysis-level maps
   foreach mapname ($anamaplist)
     set outvol = $outdir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
-    set cmd = (isxconcat0-sess -reg $regfile)
+    set cmd = (isxconcat0-sess -m $mapname -o $outvol $sessargs);
     if($#flac == 0) set cmd = ($cmd -a $analysis)
-    if($#flac)      set cmd = ($cmd -flac $flac)
-    set cmd = ($cmd -m $mapname -o $outvol -interp $interp -fsd $fsd)
+    if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
     if($#tmpdir) set cmd = ($cmd -tmp $tmpdir);
-    if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
     # What about paired diff for these?
     if($paireddiff && $mapname != h) then
       if($mapname == rvar) then
@@ -312,17 +295,20 @@ foreach hemi ($hemilist)
         set cmd = ($cmd -paired-diff)
       endif
     endif
-    if($hemi == tal) then
-      if(! $DoMorph) set cmd = ($cmd -talres $talres)
-      if($DoMorph)   set cmd = ($cmd --morph)
-      if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
-    else
-      set cmd = ($cmd -hemi $hemi)
-      set cmd = ($cmd -subject $trgsubject)
-      if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
-      if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
+    if($DoResample) then
+      set cmd = ($cmd -interp $interp -reg $regfile )
+      if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
+      if($hemi == tal) then
+        if(! $DoMorph) set cmd = ($cmd -talres $talres)
+        if($DoMorph)   set cmd = ($cmd --morph)
+        if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
+      else
+        set cmd = ($cmd -hemi $hemi)
+        set cmd = ($cmd -subject $trgsubject)
+        if($#projfrac)      set cmd = ($cmd -projfrac $projfrac)
+        if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
+      endif
     endif
-    set cmd = ($cmd $sessargs);
     echo "cd `pwd`" |& tee -a $LF
     echo $cmd       |& tee -a $LF
     $cmd            |& tee -a $LF
@@ -536,7 +522,6 @@ while( $#argv != 0 )
     case "-cwd":
       breaksw
 
-    case "-g":
     case "-s":
     case "-sf":
     case "-df":
@@ -569,16 +554,37 @@ check_params:
     exit 1;
   endif
 
-  if($#flac) set analysis = `basename $flac .flac`
-
-  ## Get functional subdirectory from the info file ##
-  if($#fsd == 0) then
+  if($#analysis) then
     set infofile = $analysis/analysis.info
-    if(! -e $infofile) then
-      echo "ERROR: cannot find $infofile, needed for fsd" 
-      exit 1;
+    set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
+    if($#tmp) then
+      set ToSurf = 1;
+      set ToVol = 0;
+      set trgsubject = $tmp[1];
+      if($trgsubject == self) then 
+        echo "ERROR: analysis space is self surface, not supported"
+        exit 1;
+      endif
+      set hemilist = $tmp[2];
+      set DoResample = 0;
+    endif
+    set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
+    if($#tmp) then
+      set ToSurf = 0;
+      set ToVol = 1;
+      set hemilist = (tal)
+      set DoResample = 0;
     endif
     set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+  endif
+  echo "DoResample $DoResample"
+
+  if($#flac) then
+    set analysis = `basename $flac .flac`
+    if($#fsd == 0) then
+      echo "ERROR: need fsd with flac" 
+      exit 1;
+    endif
   endif
 
   if($DoAllContrasts) then
@@ -594,44 +600,22 @@ check_params:
       set contrastlist = ($contrastlist $b);
     end
   endif
-
   if($#contrastlist == 0) then
     echo "ERROR: no contrast specified"
     exit 1;
+  endif
+  if($#conmaplist == 0) then
+    if(! $DoPercent ) then
+      set conmaplist = (ces cesvar)
+    else
+      set conmaplist = (cespct cesvarpct)
+    endif
   endif
 
   if($#outtop == 0) then
     echo "ERROR: no output directory specified"
     exit 1;
   endif
-
-  if($ToSurf == 0 && $ToVol == 0) set ToVol = 1;
-  if($ToSurf && $ToVol) then
-    echo "ERROR: cannot convert to surface and volume"
-    exit 1;
-  endif
-
-  if("$interp" != "trilin" && "$interp" != "nearest") then
-    echo "ERROR: interp is $interp, must be trilinear or nearest"
-    exit 1;
-  endif
-
-  if($talres != 1 && $talres != 2) then
-    echo "ERROR: talres = $talres, must be 1 or 2"
-    exit 1;
-  endif
-
-  if($#hemilist) then
-    foreach hemi ($hemilist)
-      if($hemi != lh && $hemi != rh) then
-        echo "ERROR: hemi = $hemi, must be rh or lh"
-        exit 1;
-      endif
-    end
-  else
-    set hemilist = tal;
-  endif
-
   mkdir -p $outtop
   if($status) then
     echo "ERROR: making $outtop";
@@ -643,24 +627,40 @@ check_params:
     exit 1;
   endif
 
-  if($#conmaplist == 0) then
-    if(! $DoPercent ) then
-      set conmaplist = (ces cesvar)
-    else
-      set conmaplist = (cespct cesvarpct)
-    endif
-  endif
-
   if($?FSF_OUTPUT_FORMAT == 0) setenv FSF_OUTPUT_FORMAT mgh
 
-  if($#projfrac && $DoProjFracAvg) then
-    echo "ERROR: cannot --projfrac and --projfrac-avg"
-    exit 1
-  endif
-
-  # default proj frac
-  if($#projfrac == 0 && $DoProjFracAvg == 0) then
-    set projfrac = 0.5;
+  if($DoResample) then
+    if($ToSurf == 0 && $ToVol == 0) set ToVol = 1;
+    if($ToSurf && $ToVol) then
+      echo "ERROR: cannot convert to surface and volume"
+      exit 1;
+    endif
+    if("$interp" != "trilin" && "$interp" != "nearest") then
+      echo "ERROR: interp is $interp, must be trilinear or nearest"
+      exit 1;
+    endif
+    if($talres != 1 && $talres != 2) then
+      echo "ERROR: talres = $talres, must be 1 or 2"
+      exit 1;
+    endif
+    if($#hemilist) then
+      foreach hemi ($hemilist)
+        if($hemi != lh && $hemi != rh) then
+          echo "ERROR: hemi = $hemi, must be rh or lh"
+          exit 1;
+        endif
+      end
+    else
+      set hemilist = tal;
+    endif
+    if($#projfrac && $DoProjFracAvg) then
+      echo "ERROR: cannot --projfrac and --projfrac-avg"
+      exit 1
+    endif
+    # default proj frac
+    if($#projfrac == 0 && $DoProjFracAvg == 0) then
+      set projfrac = 0.5;
+    endif
   endif
 
 goto check_params_return;
