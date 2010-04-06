@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 18:34:45 $
-#    $Revision: 1.43 $
+#    $Date: 2010/04/06 23:06:04 $
+#    $Revision: 1.44 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.43 2010/04/06 18:34:45 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.44 2010/04/06 23:06:04 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -45,7 +45,7 @@ set LF = ();
 set DoGLMFit = 1;
 set DoContrasts = 1;
 set ConList = ();
-set DoFWHM = 1;
+set DoFWHM = 0;
 set SaveRes = 0;
 set MatlabSaveRes = 0;
 set SaveResUnwhitened = 0;
@@ -477,6 +477,10 @@ while( $#argv != 0 )
       set DoFWHM = 0;
       breaksw
 
+    case "-fwhm":
+      set DoFWHM = 1;
+      breaksw
+
     case "-skip":
       set Skip = 1;
       breaksw
@@ -610,7 +614,7 @@ usage_exit:
   echo "   -subject subject : override subject name"
   echo "   -perrun        : analyze each run separately"
   echo "   -jkrun         : jackknife runs"
-  echo "   -no-fwhm       : do not compute FWHM"
+  echo "   -fwhm          : compute FWHM of residual"
   echo "   -float         : use single-precision float instead of double"
   echo ""
   echo "Session Arguments (Required)"
