@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/06 14:53:41 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/04/06 15:49:15 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -241,7 +241,7 @@ namespace GPU {
 	    myEnergy = GCAmorphDist( mean(ix,iy,iz),
 				     variance(ix,iy,iz),
 				     mriVal );
-	    myEnergy += logf( variance(ix,iy,iz) );
+	    myEnergy += log( variance(ix,iy,iz) );
 	  } else {
 	    myEnergy = mriVal*mriVal / MIN_VAR;
 	  }
