@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/01 20:12:15 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/04/06 14:53:41 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -292,7 +292,7 @@ namespace GPU {
 	// Taylor expand ln( 1 + y )
 	float y = exp( exponent );
 
-	delta = y * ( 1 + ( y * ( -0.5f + (y/3) ) ) );
+	delta = y * ( 1 + ( y * ( -0.5f ) ) );
       } else {
 	// Do full calculation
 	delta = log( 1 + exp( exponent ) );
