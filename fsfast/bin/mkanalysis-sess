@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 18:37:17 $
-#    $Revision: 1.32 $
+#    $Date: 2010/04/06 23:08:34 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,12 +23,12 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.32 2010/04/06 18:37:17 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.33 2010/04/06 23:08:34 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
 set DefaultTWindow = 40 ; # 40 sec
-set RescaleTarget = 1000;
+set RescaleTarget = 100;
 set acfbins = 10;
 
 set inorm      = 1;

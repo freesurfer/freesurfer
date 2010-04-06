@@ -51,7 +51,7 @@ global MkAnalysisClone;
 
 % Choose default command line output for mkanalysis_gui
 handles.output = hObject;
-handles.version = '$Id: mkanalysis_gui.m,v 1.21 2010/04/03 00:09:34 greve Exp $';
+handles.version = '$Id: mkanalysis_gui.m,v 1.22 2010/04/06 23:08:34 greve Exp $';
 handles.saveneeded = 1;
 handles.flac = [];
 handles.clone = '';
@@ -113,11 +113,7 @@ if(~isempty(AnaLoaded))
     % cmd-line call to mkanalysis-sess
     if(~isempty(handles.flac.con))
       if(isfield(handles.flac.ana.con(1).cspec,'CondState'))
-	if(handles.flac.inorm == 100)
-	  fprintf(['This analysis from an old GUI, setting rescale' ...
-		   ' target to 1000\n']);
-	  handles.flac.inorm = 1000;
-	end
+	handles.flac.inorm = 100;
       end
     end
   end
@@ -571,7 +567,7 @@ return;
 % =======================================================
 function cbINorm_Callback(hObject, eventdata, handles)
 val = get(handles.cbINorm,'value');
-if(val) handles.flac.inorm = 1000;
+if(val) handles.flac.inorm = 100;
 else    handles.flac.inorm = 0;
 end
 handles = setstate(handles);
@@ -883,7 +879,7 @@ function flac = flacinit
 flac = fast_ldflac;
 flac.fsd = 'bold';
 flac.runlistfile = '';
-flac.inorm = 1000; % Changed from 100 to 1000 4/9/09
+flac.inorm = 100; % Changed from 100 to 1000 4/9/09, back to 100 4/6/10
 flac.TR = '';
 flac.parfile = '';
 flac.acfbins = 10; % set to 0 to turn off whitening
