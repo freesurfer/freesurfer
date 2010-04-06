@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/03/30 21:26:53 $
-#    $Revision: 1.472 $
+#    $Author: rge21 $
+#    $Date: 2010/04/06 13:55:47 $
+#    $Revision: 1.473 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -659,7 +659,7 @@ if  test x$DEBUG = xtrue
 then
    NVCCFLAGS="-g -arch sm_13 --ptxas-options=-v"
 else
-   NVCCFLAGS="-use_fast_math -arch sm_13 --ptxas-options=-v -g"
+   NVCCFLAGS="-arch sm_13 --ptxas-options=-v -g"
 fi
 if test x$EMULATION = xtrue
 then
