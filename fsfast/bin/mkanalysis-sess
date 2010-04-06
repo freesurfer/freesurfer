@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/02 23:18:21 $
-#    $Revision: 1.31 $
+#    $Date: 2010/04/06 18:37:17 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.31 2010/04/02 23:18:21 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.32 2010/04/06 18:37:17 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -594,6 +594,7 @@ while( $#argv != 0 )
       if($#argv < 2) goto arg2err;
       set subject = $argv[1]; shift;
       set hemi = $argv[1]; shift;
+      set UseTalairach = 0;
       breaksw
     case "-no-surf":
     case "-no-surface":
@@ -604,11 +605,19 @@ while( $#argv != 0 )
     case "-tal":
     case "-talairach":
       set UseTalairach = 1;
+      set subject = ();
+      set hemi = ();
       breaksw
 
     case "-no-tal":
     case "-no-talairach":
       set UseTalairach = 0;
+      breaksw
+
+    case "-native":
+      set UseTalairach = 0;
+      set subject = ();
+      set hemi = ();
       breaksw
 
     case "-perrun":
@@ -952,42 +961,40 @@ usage_exit:
   echo "  -TR   TR                : TR value in seconds"
   echo "  -paradigm  parname      : name of paradigm file 2, 3, or 4 col"
   echo "  -designtype  type       : type of design. Legal values are: event-related,"
+  echo "  -funcstem stem          : stem of functional data (default = f or fmc)"
   echo "                            blocked, abblocked, retinotopy"
   echo ""
   echo "Optional Arguments"
+  echo "   -polyfit N             : fit trend with polynomial of order N"
+  echo "   -tpexclude filename    : time-point (in seconds) exclude file name"
+  echo "   -mcextreg              : use motion parameters as external regressors (sets n=3)"
   echo "   -fsd FSD               : functional subdirectory"
-  echo "   -funcstem stem         : stem of functional data (default = f or fmc)"
-  echo "   -motioncor             : use motion corrected data (see mc-sess) "
   echo "   -runlistfile filename  : file with list of runs to include in analysis"
   echo "   -no-inorm              : do not intensity normalize data"
   echo "   -rescale-target value  : inorm to value"
-  echo "   -fwhm        FWHM      : Full-Width/Half-Max for in-plane smoothing (mm)"
   echo "   -nskip       N         : skip the first N time points in each run"
-  echo "   -tpef      filename    : time-point (in seconds) exclude file name"
-  echo "   -polyfit N             : fit trend with polynomial of order N"
   echo "   -extreg extregstem     : external regressors"
   echo "   -nextreg N             : number of external regressors"
   echo "   -no-extreg             : turn off external regressors"
-  echo "   -mcextreg              : use motion parameters as external regressors (sets n=3)"
   echo ""
   echo "Event-Related and Blocked Arguments "
+  echo "   -refeventdur Duration : duration (sec) of reference event for scaling"
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"
   echo "   -timewindow  TW      : event time window (sec)"
   echo "   -prestim     PS      : event prestimulus window (sec)"
   echo "   -TER         TER     : temporal estimation resolution (sec)"
-  echo "   -refeventdur Duration : duration (sec) of reference event for scaling"
   echo "   -gammafit gfDelta gfTau : assume IRF is a gamma function"
   echo "   -gammaexp gfAlpha : gamma exponent (default is 2) "
   echo "   -spmhrf nderiv    : assume SPM HRF with nderiv derivatives"
-  echo "   -taumax      TauMax  : maximum lag for noise autocor and whitening (sec)"
+#  echo "   -taumax      TauMax  : maximum lag for noise autocor and whitening (sec)"
   echo "   -timeoffset  toffset : time offset (sec) to add to each paradigm file"
   echo "   -mask  maskid : use masks/maskid to compute autocor and whitening"
+  echo "   -nowhiten : turn off temporal whitening"
   echo "   -acfbins nbins : spatially segment autocorrelation into nbins"
   echo "   -no-fix-acf    : do NOT compensate for resdualized ACF"
   echo "   -fix-acf       : DO compensate for resdualized ACF (default)"
   echo "   -autostimdur    : automatically compute stimulus duration"
   echo "   -noautostimdur  : do not automatically compute stimulus duration (default)"
-  echo "   -nowhiten : turn off temporal whitening"
   echo "   -fsv3-st2fir : generate design matrix like FreeSurfer Version 3 (and -no-)"
   echo "   -fsv3-whiten : perform whitening like FreeSurfer Version 3 (and -no-)"
   echo "   -fsv3 : set all fsv3 flags (FreeSurfer Version 3) (and -no-)"
