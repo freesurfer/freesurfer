@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/02 23:19:15 $
-#    $Revision: 1.6 $
+#    $Date: 2010/04/06 18:35:24 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.6 2010/04/02 23:19:15 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.7 2010/04/06 18:35:24 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -314,6 +314,7 @@ check_params:
     echo "ERROR: no sessions specified" |& tee -a $LF
     exit 1;
   endif
+  if($#instem == 0) set instem = fmc.pr
   if($#outstem == 0) set outstem = $instem.tal
 
 goto check_params_return;
@@ -330,8 +331,6 @@ usage_exit:
   echo "rawfunc2tal-sess"
   echo ""
   echo " Required"
-  echo "  -i instem : eg, fmc or fmcsm5"
-  echo ""
   echo " Session Arguments (some required)"
   echo "  -sf sessidfile  ..."
   echo "  -df srchdirfile ..."
@@ -339,7 +338,8 @@ usage_exit:
   echo "  -d  srchdir     ..."
   echo ""
   echo " Optional Arguments"
-  echo "  -o outstem : eg, fmc.tal or fmcsm5.tal (default is instem.tal)"
+  echo "  -i instem  : default is fmc.pr"
+  echo "  -o outstem : default is instem.tal"
   echo "  -fsd dir     : functional subdirectory ($fsd)"
   echo "  -rlf RLF     : run-list file"
   echo "  -nearest     : use nearest neighbor interp (default is trilin)"
