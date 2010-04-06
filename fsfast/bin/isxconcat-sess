@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 18:42:57 $
-#    $Revision: 1.40 $
+#    $Date: 2010/04/06 23:05:38 $
+#    $Revision: 1.41 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.40 2010/04/06 18:42:57 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.41 2010/04/06 23:05:38 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -145,6 +145,7 @@ foreach sess ($SessList)
 end
 set ffxdofdat = $outdir/ffxdof.dat
 echo $DOF > $ffxdofdat
+set sess0 = $sess[1];
 
 #-------------------------------------------------
 foreach hemi ($hemilist)
@@ -193,6 +194,14 @@ foreach hemi ($hemilist)
       if(-e $cmat)  cp $cmat $outcondir/$contrast.lowerlevel.mat
     endif
 
+    # Get number of variates
+    set ces = $sess0/$fsd/$analysis/$contrast/ces.nii
+    set tmpfile = /tmp/tmp.isxconcat-sess.$$.nframes
+    mri_info --o $tmpfile --nframes $ces
+    set J = (`cat $tmpfile`);
+    rm $tmpfile
+    echo $contrast J = $J |& tee -a $LF
+
     foreach mapname ($conmaplist)
 
       set outvol = $outcondir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
@@ -230,7 +239,7 @@ foreach hemi ($hemilist)
 
      end # Loop over maps
 
-     if($DoOSGM) then
+     if($DoOSGM && $J == 1) then
        if(! $DoPercent ) then
          set y       = $outcondir/$hemi.ces.$FSF_OUTPUT_FORMAT
          set yffxvar = $outcondir/$hemi.cesvar.$FSF_OUTPUT_FORMAT
