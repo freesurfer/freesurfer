@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/06 18:23:09 $
- *    $Revision: 1.103 $
+ *    $Date: 2010/04/06 21:25:46 $
+ *    $Revision: 1.104 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -41,7 +41,7 @@
 #include <wx/textdlg.h>
 #include <wx/filename.h>
 #include <wx/spinctrl.h>
-
+#include <wx/ffile.h>
 #include "MainWindow.h"
 #include "ControlPanel.h"
 #include "PixelInfoPanel.h"
@@ -461,7 +461,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   }
   SetViewLayout( m_nViewLayout );
   
-  UpdateGotoPoints();
+//  UpdateGotoPoints();
   
   m_timerWriteMovieFrames.SetOwner( this, ID_TIMER_WRITE_MOVIE_FRAMES );
 }
@@ -628,6 +628,47 @@ void MainWindow::NewVolume()
 // m_viewSagittal->SetInteractionMode( RenderView2D::IM_ROIEdit );
 }
 
+wxString MainWindow::AutoSelectLastDir( wxString lastDir, wxString subdirectory )
+{
+  wxFileName fn = wxFileName::FileName( lastDir );
+  fn.Normalize();
+  wxArrayString dirs = fn.GetDirs();
+  if ( dirs.GetCount() < 2 )
+    return lastDir;
+  
+  wxArrayString stock;
+  stock.Add( _("mri") );
+  stock.Add( _("label") );
+  stock.Add( _("scripts") );
+  stock.Add( _("surf") );
+  stock.Add( _("stats") );
+  int nStop = 0;
+  for ( size_t i = dirs.GetCount() - 2; i < dirs.GetCount(); i++ )
+  {
+    for ( size_t j = 0; j < stock.GetCount(); j++ )
+    {
+      if ( stock[j] == dirs[i] )
+      {
+        nStop = i;
+        break;
+      }
+    }
+  }
+  if ( nStop == 0 )
+    nStop = dirs.GetCount();
+  
+  wxString outDir;
+  for ( int i = 0; i < nStop; i++ )
+  {
+    outDir += wxFileName::GetPathSeparator() + dirs[i];
+  } 
+  outDir += wxFileName::GetPathSeparator() + subdirectory;
+  if ( wxFileName::DirExists( outDir ) )
+    return outDir;
+  else
+    return lastDir;
+}
+
 void MainWindow::SaveVolume()
 {
   // first check if there is any volume/MRI layer and if the current one is visible
@@ -647,7 +688,9 @@ void MainWindow::SaveVolume()
   wxString fn = wxString::FromAscii( layer_mri->GetFileName() );
   if ( fn.IsEmpty() )
   {
-    wxFileDialog dlg( this, _("Save volume file"), m_strLastDir, _(""),
+    wxFileDialog dlg( this, _("Save volume file"), 
+                      AutoSelectLastDir( m_strLastDir, _("mri") ),
+                      _(""),
                       _("Volume files (*.mgz;*.mgh;*.nii;*.nii.gz;*.img)|*.mgz;*.mgh;*.nii;*.nii.gz;*.img|All files (*.*)|*.*"),
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
     if ( dlg.ShowModal() == wxID_OK )
@@ -703,7 +746,7 @@ void MainWindow::SaveVolumeAs()
 void MainWindow::LoadVolume()
 {
   DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
-  dlg.SetLastDir( m_strLastDir );
+  dlg.SetLastDir( AutoSelectLastDir( m_strLastDir, _("mri") ) );
   wxArrayString list;
   for ( int i = 0; i < m_fileHistory->GetMaxFiles(); i++ )
     list.Add( m_fileHistory->GetHistoryFile( i ) );
@@ -841,12 +884,23 @@ void MainWindow::LoadROI()
   {
     return;
   }
-  wxFileDialog dlg( this, _("Open ROI file"), m_strLastDir, _(""),
+  wxFileDialog dlg( this, _("Open ROI file"), 
+                    AutoSelectLastDir( m_strLastDir, _("label") ),
+                    _(""),
                     _("Label files (*.label)|*.label|All files (*.*)|*.*"),
-                    wxFD_OPEN );
+                    wxFD_OPEN | wxFD_MULTIPLE );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    this->LoadROIFile( dlg.GetPath() );
+    wxArrayString fns;
+    dlg.GetPaths( fns );
+    for ( size_t i = 0; i < fns.GetCount(); i++ )
+    {
+      wxArrayString script;
+      script.Add( _("loadroi") );
+      script.Add( fns[i] );
+      this->AddScript( script );
+    }
+    ContinueScripts();
   }
 }
 
@@ -935,7 +989,9 @@ void MainWindow::SaveROI()
   wxString fn = wxString::FromAscii( layer_roi->GetFileName() );
   if ( fn.IsEmpty() )
   {
-    wxFileDialog dlg( this, _("Save ROI file"), m_strLastDir, _(""),
+    wxFileDialog dlg( this, _("Save ROI file"), 
+                      AutoSelectLastDir( m_strLastDir, _("label") ),
+                      _(""),
                       _("Label files (*.label)|*.label|All files (*.*)|*.*"),
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
     if ( dlg.ShowModal() == wxID_OK )
@@ -975,7 +1031,9 @@ void MainWindow::SaveROIAs()
   }
 
   wxString fn = wxString::FromAscii( layer_roi->GetFileName() );
-  wxFileDialog dlg( this, _("Save ROI file as"), m_strLastDir, fn,
+  wxFileDialog dlg( this, _("Save ROI file as"), 
+                    AutoSelectLastDir( m_strLastDir, _("label") ),
+                    fn,
                     _("Label files (*.label)|*.label|All files (*.*)|*.*"),
                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
   if ( dlg.ShowModal() == wxID_OK )
@@ -4027,13 +4085,51 @@ void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
 
 void MainWindow::OnToolSaveGotoPoint( wxCommandEvent& event )
 {
+  /*
   if ( !m_dlgSavePoint )
   {
     m_dlgSavePoint = new DialogSavePoint( this );
     m_dlgSavePoint->SetGotoPoints( m_strGotoPoints );
   }
   
-  m_dlgSavePoint->Show();
+  m_dlgSavePoint->Show();*/
+  
+ 
+  wxString fn;
+  LayerCollection* lc = GetLayerCollection( "MRI" );
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  {
+    fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
+    if ( !fn.IsEmpty() )
+      break;
+  }
+  if ( fn.IsEmpty() )
+  {
+    lc = GetLayerCollection( "Surface" );
+    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+    {
+      fn = ( (LayerSurface*)lc->GetLayer( i ) )->GetFileName();
+      if ( !fn.IsEmpty() )
+        break;
+    }
+  }
+  
+  if ( !fn.IsEmpty() )
+  {
+    wxFileName wfn( fn );
+    wfn.Normalize();
+    wxString dir = AutoSelectLastDir( wfn.GetFullPath(), _("tmp") );
+    if ( wxFileName::DirExists( dir ) )
+    { 
+      double ras[3];
+      GetCursorRAS( ras );
+      wxFFile file( dir + wxFileName::GetPathSeparator() + _("edit.dat"), "w" );
+      wxString strg;
+      strg << ras[0] << " " << ras[1] << " " << ras[2] << "\n";
+      file.Write( strg );
+      file.Close();
+    }
+  }
 }
 
 void MainWindow::OnToolSaveGotoPointUpdateUI( wxUpdateUIEvent& event )
@@ -4094,6 +4190,7 @@ void MainWindow::BuildGotoPointMenu( wxMenu* menu )
 
 void MainWindow::OnToolGotoPoint( wxCommandEvent& event )
 {
+  /*
   if( !m_menuGotoPoints )
     m_menuGotoPoints = new wxMenu;
 
@@ -4101,13 +4198,45 @@ void MainWindow::OnToolGotoPoint( wxCommandEvent& event )
   PopupMenu( m_menuGotoPoints, 800, 0 );
   delete m_menuGotoPoints;
   m_menuGotoPoints = NULL;
+  */
+  LayerCollection* lc = GetLayerCollection( "MRI" );
+  wxString fn;
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  {
+    fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
+    wxFileName wfn( fn );
+    wfn.Normalize();
+    fn = AutoSelectLastDir( wfn.GetFullPath(), _("tmp") ) + wxFileName::GetPathSeparator() + _("edit.dat");
+    if ( wxFileName::FileExists( fn ) )
+      break;
+    else  
+      fn = _("");
+  }
+  
+  if ( !fn.IsEmpty() )
+  {
+    wxFFile file( fn );
+    wxString strg;
+    file.ReadAll( &strg );
+    wxArrayString ar = MyUtils::SplitString( strg, " " );
+    ar.insert( ar.begin(), _("setras") );
+    CommandSetRAS( ar ); 
+  }
+  else
+  {
+    wxMessageDialog dlg( this, _("Could not find saved point."), 
+                         _("Error"), wxOK );
+    dlg.ShowModal();
+  }
 }
 
 void MainWindow::OnToolGotoPointUpdateUI( wxUpdateUIEvent& event )
 {
+  /*
   event.Enable( ( !GetLayerCollection("MRI")->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() ) &&
       !m_strGotoPoints.IsEmpty() );
-  event.Check( m_menuGotoPoints );
+  event.Check( m_menuGotoPoints );*/
+  event.Enable( !GetLayerCollection("MRI")->IsEmpty() || !GetLayerCollection( "Surface" )->IsEmpty() );
 }
 
 void MainWindow::OnToolMenuGotoPoint( wxCommandEvent& event )
@@ -4120,7 +4249,6 @@ void MainWindow::OnToolMenuGotoPoint( wxCommandEvent& event )
   ar.RemoveAt( 0 );
   CommandSetRAS( ar );  
 }
-
 
 void MainWindow::OnToolLabelStats( wxCommandEvent& event )
 {
@@ -4213,12 +4341,23 @@ void MainWindow::OnFileLoadSurface( wxCommandEvent& event )
 void MainWindow::LoadSurface()
 {
   {
-    wxFileDialog dlg( this, _("Open surface file"), m_strLastDir, _(""),
+    wxFileDialog dlg( this, _("Open surface file"), 
+                      AutoSelectLastDir( m_strLastDir, _("surf") ),
+                      _(""),
                       _("Surface files (*.*)|*.*"),
-                      wxFD_OPEN );
+                      wxFD_OPEN | wxFD_MULTIPLE );
     if ( dlg.ShowModal() == wxID_OK )
     {
-      this->LoadSurfaceFile( dlg.GetPath() );
+      wxArrayString fns;
+      dlg.GetPaths( fns );
+      for ( size_t i = 0; i < fns.GetCount(); i++ )
+      {
+        wxArrayString script;
+        script.Add( _("loadsurface") );
+        script.Add( fns[i] );
+        this->AddScript( script );
+      }
+      ContinueScripts();
     }
   }
 }
@@ -4243,7 +4382,9 @@ void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_p
 
 void MainWindow::LoadSurfaceVector()
 {
-  wxFileDialog dlg( this, _("Open surface file as vector"), m_strLastDir, _(""),
+  wxFileDialog dlg( this, _("Open surface file as vector"), 
+                    AutoSelectLastDir( m_strLastDir, _("surf") ),
+                    _(""),
                     _("Surface files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
@@ -4272,7 +4413,9 @@ void MainWindow::LoadSurfaceVectorFile( const wxString& filename )
 
 void MainWindow::LoadSurfaceCurvature()
 {
-  wxFileDialog dlg( this, _("Open curvature file"), m_strLastDir, _(""),
+  wxFileDialog dlg( this, _("Open curvature file"), 
+                    AutoSelectLastDir( m_strLastDir, _("surf") ), 
+                    _(""),
                     _("Curvature files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
@@ -4297,7 +4440,9 @@ void MainWindow::LoadSurfaceCurvatureFile( const wxString& filename )
 
 void MainWindow::LoadSurfaceOverlay()
 {
-  wxFileDialog dlg( this, _("Open overlay file"), m_strLastDir, _(""),
+  wxFileDialog dlg( this, _("Open overlay file"), 
+                    AutoSelectLastDir( m_strLastDir, _("surf") ), 
+                    _(""),
                     _("Overlay files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
@@ -4321,7 +4466,9 @@ void MainWindow::LoadSurfaceOverlayFile( const wxString& filename )
 
 void MainWindow::LoadSurfaceAnnotation()
 {
-  wxFileDialog dlg( this, _("Open annotation file"), m_strLastDir, _(""),
+  wxFileDialog dlg( this, _("Open annotation file"), 
+                    AutoSelectLastDir( m_strLastDir, _("label") ), 
+                    _(""),
                     _("Annotation files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
@@ -4346,7 +4493,9 @@ void MainWindow::LoadSurfaceAnnotationFile( const wxString& filename )
 
 void MainWindow::LoadSurfaceLabel()
 {
-  wxFileDialog dlg( this, _("Open label file"), m_strLastDir, _(""),
+  wxFileDialog dlg( this, _("Open label file"), 
+                    AutoSelectLastDir( m_strLastDir, _("label") ), 
+                    _(""),
                     _("Label files (*.*)|*.*"),
                     wxFD_OPEN );
   if ( dlg.ShowModal() == wxID_OK )
@@ -4707,3 +4856,4 @@ void MainWindow::OnFilterGradient( wxCommandEvent& event )
     delete filter;
   }  
 }
+
