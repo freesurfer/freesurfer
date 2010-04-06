@@ -121,7 +121,8 @@ int main( int argc, char *argv[] ) {
 
   // ============================================
   // Produce output
-  cout << "Jacobian Energy = " << jacobenergy << endl;
+  cout << "Jacobian Energy = "
+       << setprecision(20) << jacobenergy << endl;
 
   cout << "Writing file " << outFilename << endl;
 
