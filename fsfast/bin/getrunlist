@@ -16,8 +16,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/03 22:56:06 $
-#    $Revision: 1.5 $
+#    $Date: 2010/04/06 18:33:23 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,7 @@ if($#argv != 2) then
     echo "ERROR: no run directories found"
     exit 1;
   endif
+  set RunList = (`ls -d $RunList`); # sort by run number
   echo $RunList | sed 's/.\///g'
   exit 0;
 endif
