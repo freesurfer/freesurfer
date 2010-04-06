@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/26 16:46:54 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/04/06 20:10:00 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,6 +105,9 @@ namespace GPU {
       //! Matches exp_k in GCAmorph
       double exp_k;
 
+      //! Matches neg in GCAmorph
+      int neg;
+
       // -----------------------------------------
       // Constructors & Destructor
 
@@ -121,7 +124,8 @@ namespace GPU {
 			    d_labelDist(),
 			    d_mean(),
 			    d_variance(),
-			    exp_k(0) {};
+			    exp_k(0),
+			    neg(0) {};
 
       //! Destructor
       ~GCAmorphGPU( void ) {};
@@ -153,7 +157,7 @@ namespace GPU {
       // Computations
 
       //! Computes the properties of the metric
-      void ComputeMetricProperties( int& invalid, int& neg );
+      void ComputeMetricProperties( int& invalid );
 
       //! Zeros out the dx, dy and dz fields
       void ClearGradient( void );

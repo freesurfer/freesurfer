@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 15:48:29 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/04/06 20:09:57 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,7 +56,7 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
     cerr << __FUNCTION__ << ": Invalid nDims!" << endl;
     exit( EXIT_FAILURE );
   }
-  if( this->nScalars != 1 ) {
+  if( this->nScalars != 2 ) {
     cerr << __FUNCTION__ << ": Invalid nDoubleScalars!" << endl;
   }
   
@@ -100,6 +100,7 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
 
   // Create the scalar type map
   this->scalarTypeMap[ "exp_k" ] = NC_DOUBLE;
+  this->scalarTypeMap[ "neg" ] = NC_INT;
 
   // Double check the size
   if( this->scalarTypeMap.size() != this->nScalars ) {
@@ -329,6 +330,9 @@ void GCAMorphUtils::Write( const GCAM* src, string fName ) const {
   NC_SAFE_CALL( nc_put_var_double( ncid,
 				   scalarIDmap.find( "exp_k" )->second,
 				   &(src->exp_k) ) );
+  NC_SAFE_CALL( nc_put_var_int( ncid,
+				scalarIDmap.find( "neg" )->second,
+				&(src->neg) ) );
 
   
   // Close the file
@@ -599,8 +603,11 @@ void GCAMorphUtils::Read( GCAM** dst, string fName ) const {
   // Fetch the scalars
   NC_SAFE_CALL( nc_get_var_double( ncid,
 				   scalarIDmap.find( "exp_k" )->second,
-				   &((*dst)->exp_k) ) )
-
+				   &((*dst)->exp_k) ) );
+  NC_SAFE_CALL( nc_get_var_int( ncid,
+				scalarIDmap.find( "neg" )->second,
+				&((*dst)->neg) ) );
+  
   NC_SAFE_CALL( nc_close( ncid ) );
   
   cout << "complete" << endl;

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/06 15:49:15 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/04/06 20:09:57 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -928,8 +928,8 @@ namespace GPU {
       }
       
       // Compute the metric properties
-      int invalid, neg;
-      gcam.ComputeMetricProperties( invalid, neg );
+      int invalid;
+      gcam.ComputeMetricProperties( invalid );
       
       
       // Get the log likelihood energy

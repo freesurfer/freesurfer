@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/26 16:46:51 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/04/06 20:09:57 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -221,6 +221,7 @@ namespace GPU {
 
       // Copy scalars
       this->exp_k = src->exp_k;
+      this->neg = src->neg;
 
 
       // Extract the dimensions
@@ -421,6 +422,7 @@ namespace GPU {
 
       // Copy scalars
       dst->exp_k = this->exp_k;
+      dst->neg = this->neg;
 
       // Extract the dimensions
       const dim3 dims = this->d_rx.GetDims();
@@ -731,7 +733,7 @@ namespace GPU {
       }
     }
     
-    void GCAmorphGPU::ComputeMetricProperties( int& invalid, int& neg ) {
+    void GCAmorphGPU::ComputeMetricProperties( int& invalid ) {
       /*!
 	Routine to duplicate gcamComputeMetricProperties
 	from the file gcamorph.c.
@@ -740,9 +742,6 @@ namespace GPU {
 	The argument \a invalid is used to return the number of
 	invalid locations found, a task performed by the
 	global variable \c Ginvalid in gcamorph.c.
-	The argument \a neg is used to keep track of the negative
-	determinants, and should be returned to \c gcam->neg
-	when called.
       */
 
       SciGPU::Utilities::Chronometer tTotal;
@@ -809,7 +808,7 @@ namespace GPU {
 				  2*sizeof(int),
 				  cudaMemcpyDeviceToHost ) );
       invalid = globals[iCMPGlobalsInvalid];
-      neg = globals[iCMPGlobalsNeg];
+      this->neg = globals[iCMPGlobalsNeg];
 
       // Release device temporary
       CUDA_SAFE_CALL( cudaFree( d_globals ) );
@@ -1074,7 +1073,7 @@ void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
   GPU::Classes::GCAmorphGPU gcamGPU;
   
   gcamGPU.SendAll( gcam );
-  gcamGPU.ComputeMetricProperties( *invalid, gcam->neg );
+  gcamGPU.ComputeMetricProperties( *invalid );
   gcamGPU.RecvAll( gcam );
 
 }
@@ -1100,68 +1099,3 @@ void gcamUndoGradientGPU( GCA_MORPH *gcam ) {
 }
 
 
-
-/*
-  The following functions are a bunch of ugly hacks designed
-  to permit testing deep within mri_ca_register.
-  They should never be included in a release.
-  Indeed, if you are reading this in a release version of the
-  code, please report it as a bug.
-*/
-
-#include "testgpu.h"
-
-static GPU::Classes::GCAmorphGPU compGPU, compCPU;
-
-
-void GCAMorphSendBefore( const GCAM* src ) {
-  int invalid, neg;
-
-  compGPU.SendAll( src );
-  compGPU.ComputeMetricProperties( invalid, neg );
-
-  std::cout << __FUNCTION__ << ": invalid = " << invalid << std::endl;
-  std::cout << __FUNCTION__ << ": neg = " << neg << std::endl;
-}
-
-void GCAMorphSendAfter( const GCAM* src ) {
-  compCPU.SendAll( src );
-}
-
-
-void GCAMorphCompareBeforeAfter( GCAM* dst ) {
-
-  GPU::Algorithms::VolumeGPUCompare myComp;
-  float areaDiff;
-  dim3 loc;
-
-  myComp.MaxDiff( compGPU.d_area, compCPU.d_area, areaDiff, loc );
-  
-  std::cout << __FUNCTION__
-	    << ": area " << areaDiff << " at " << loc << std::endl;
-
-  myComp.MaxDiff( compGPU.d_area1, compCPU.d_area1, areaDiff, loc );
-  std::cout << __FUNCTION__
-	    << ": area1 " << areaDiff << " at " << loc << std::endl;
-
-  myComp.MaxDiff( compGPU.d_area2, compCPU.d_area2, areaDiff, loc );
-  std::cout << __FUNCTION__
-	    << ": area2 " << areaDiff << " at " << loc << std::endl;
-
-  char invalidDiff;
-  myComp.MaxDiff( compGPU.d_invalid, compCPU.d_invalid, invalidDiff, loc );
-  std::cout << __FUNCTION__
-	    << ": invalid " << static_cast<int>(invalidDiff)
-	    << " at " << loc << std::endl;
-
-  double errL2;
-
-  errL2 = myComp.ErrL2Norm( compGPU.d_area, compCPU.d_area );
-  std::cout << __FUNCTION__ << ": Area L2 = " << errL2 << std::endl;
-  errL2 = myComp.ErrL2Norm( compGPU.d_area1, compCPU.d_area1 );
-  std::cout << __FUNCTION__ << ": Area1 L2 = " << errL2 << std::endl;
-  errL2 = myComp.ErrL2Norm( compGPU.d_area2, compCPU.d_area2 );
-  std::cout << __FUNCTION__ << ": Area2 L2 = " << errL2 << std::endl;
-
-  compGPU.RecvAll( dst );
-}

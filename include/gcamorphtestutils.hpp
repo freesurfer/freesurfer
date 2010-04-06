@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 15:48:33 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/04/06 20:10:00 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,7 +90,7 @@ private:
   //! Number of variables we will store
   static const unsigned int nVars = 24;
   //! Number of scalars we will store
-  static const unsigned int nScalars = 1;
+  static const unsigned int nScalars = 2;
 
   //! Total number of variables which will be in a NetCDF file
   static const unsigned int totalVars = nVars+nScalars;
