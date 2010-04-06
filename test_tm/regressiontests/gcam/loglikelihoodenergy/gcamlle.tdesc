@@ -27,7 +27,19 @@ testdescript = {
 
    -- Lengthier description of the test
    description = [[
-	 Testing of gcamLogLikelihoodEnergy
+	 Testing of gcamLogLikelihoodEnergy.
+	 
+	 The 'match' and 'difference' criteria are fairly
+	 relaxed, hence the 'query' keyword.
+	 I have traced the discrepancy to the fetching of
+	 the MRI value.
+	 The hardware texture interpolation provided by the
+	 GPU is giving slightly different results to the
+	 interpolation on the CPU side, probably due to the
+	 slightly reduced accuracy on the GPU side.
+	 There are only 256 discrete locations in the GPU
+	 interpolation, although the interpoland itself
+	 is calculate to full accuracy at these locations.
    ]],
 
    -- Keywords (for subtest selection)
@@ -56,8 +68,8 @@ testdescript = {
 	 $(projectDir)/tools/doubleFileDiff.pl \--results=$(cmdResultFn) \
 	                                       \--gold="$CPUOUT" \
                                                \--test="$GPUOUT" \
-	                                       \--match=1e-4 \
-                                               \--diff=1e-3
+	                                       \--match=3e-5 \
+                                               \--diff=1e-4
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
 
