@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/01 05:59:05 $
- *    $Revision: 1.57 $
+ *    $Date: 2010/04/06 17:43:10 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.57 2010/04/01 05:59:05 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.58 2010/04/06 17:43:10 greve Exp $";
 
 char *Progname = NULL;
 
@@ -153,7 +153,6 @@ static int reshapefactor = 0;
 static int reshapetarget = 20;
 
 static MATRIX *Dsrc, *Dsrctmp, *Wsrc, *Fsrc, *Qsrc, *vox2ras;
-static SXADAT *sxa;
 
 static char *SUBJECTS_DIR = NULL;
 static MRI *SrcVol, *SurfVals, *SurfVals2, *SurfValsP;
@@ -209,7 +208,6 @@ int main(int argc, char **argv) {
   int nrows_src, ncols_src, nslcs_src, nfrms;
   float ipr, bpr, intensity;
   float colres_src=0, rowres_src=0, slcres_src=0;
-  float *framepower = NULL;
   char fname[2000];
   int nTrg121,nSrc121,nSrcLost;
   int nTrgMulti,nSrcMulti;
@@ -220,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.57 2010/04/01 05:59:05 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.58 2010/04/06 17:43:10 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -391,24 +389,6 @@ int main(int argc, char **argv) {
   vox2ras = MRIxfmCRS2XYZtkreg(SrcVol);
   // Compute ras2vox (Qsrc: the quantization matrix)
   Qsrc = MatrixInverse(vox2ras,NULL);
-
-  /* If this is a statistical volume, raise each frame to it's appropriate
-     power (eg, stddev needs to be squared)*/
-  if (is_sxa_volume(srcvolid)) {
-    printf("INFO: Source volume detected as selxavg format\n");
-    sxa = ld_sxadat_from_stem(srcvolid);
-    if (sxa == NULL) exit(1);
-    framepower = sxa_framepower(sxa,&f);
-    if (f != SrcVol->nframes) {
-      fprintf(stderr," number of frames is incorrect (%d,%d)\n",
-              f,SrcVol->nframes);
-      exit(1);
-    }
-    printf("INFO: Adjusting Frame Power\n");
-    fflush(stdout);
-    mri_framepower(SrcVol,framepower);
-  }
-  fflush(stdout);
 
   if (fwhm > 0) {
     printf("INFO: smoothing volume at fwhm = %g mm (std = %g)\n",fwhm,gstd);
@@ -670,18 +650,6 @@ int main(int argc, char **argv) {
   if(scale != 0) {
     printf("Rescaling output by %g\n",scale);
     MRImultiplyConst(SurfVals2,scale,SurfVals2);
-  }
-
-  /* If this is a statistical volume, lower each frame to it's appropriate
-     power (eg, variance needs to be sqrt'ed) */
-  if (is_sxa_volume(srcvolid)) {
-    printf("INFO: Readjusting Frame Power\n");
-    fflush(stdout);
-    for (f=0; f < SurfVals2->nframes; f++) framepower[f] = 1.0/framepower[f];
-    mri_framepower(SurfVals2,framepower);
-    sxa->nrows = 1;
-    sxa->ncols = SurfVals2->width;
-    sv_sxadat_by_stem(sxa,outfile);
   }
 
   if(framesave > 0){
