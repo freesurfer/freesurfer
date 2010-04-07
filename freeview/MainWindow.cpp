@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/06 21:25:46 $
- *    $Revision: 1.104 $
+ *    $Date: 2010/04/07 19:27:41 $
+ *    $Revision: 1.105 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -92,6 +92,7 @@
 #include "DialogSaveScreenshot.h"
 #include "DialogSavePointSetAs.h"
 #include "DialogLoadPointSet.h"
+#include "DialogLoadROI.h"
 #include "DialogSavePoint.h"
 #include "DialogWriteMovieFrames.h"
 #include "VolumeFilterMean.h"
@@ -884,33 +885,57 @@ void MainWindow::LoadROI()
   {
     return;
   }
-  wxFileDialog dlg( this, _("Open ROI file"), 
-                    AutoSelectLastDir( m_strLastDir, _("label") ),
-                    _(""),
-                    _("Label files (*.label)|*.label|All files (*.*)|*.*"),
-                    wxFD_OPEN | wxFD_MULTIPLE );
+  DialogLoadROI dlg( this );
+  dlg.SetLastDir( AutoSelectLastDir( m_strLastDir, _("label") ) );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    wxArrayString fns;
-    dlg.GetPaths( fns );
+    wxArrayString fns = dlg.GetFileNames();
     for ( size_t i = 0; i < fns.GetCount(); i++ )
     {
       wxArrayString script;
       script.Add( _("loadroi") );
-      script.Add( fns[i] );
+      script.Add( fns[i] + _(":ref=") + dlg.GetTemplate()  );
       this->AddScript( script );
     }
     ContinueScripts();
   }
 }
 
-void MainWindow::LoadROIFile( const wxString& fn )
+void MainWindow::LoadROIFile( const wxString& fn, const wxString& ref_vol )
 {
   m_strLastDir = MyUtils::GetNormalizedPath( fn );
 
+  LayerMRI* ref = NULL;
   LayerCollection* col_mri = GetLayerCollection( "MRI" );
-  LayerMRI* mri = ( LayerMRI* )col_mri->GetActiveLayer();
-  LayerROI* roi = new LayerROI( mri );
+  if ( ref_vol.IsEmpty() )
+  {
+    cout << "No template volume given, using current volume as template for ROI " << fn.c_str() << endl;
+    ref = (LayerMRI*)col_mri->GetActiveLayer();
+  }
+  else
+  {
+    for ( int i = 0; i < col_mri->GetNumberOfLayers(); i++ )
+    {
+      LayerMRI* mri = ( LayerMRI* )col_mri->GetLayer( i );
+      if ( ref_vol == mri->GetName() )
+      {
+        ref = mri;
+        break;
+      }
+      else if ( wxFileName( mri->GetFileName() ).GetFullName() == ref_vol )
+      {
+        ref = mri;
+        break;
+      }
+    }
+    if ( ref == NULL )
+    {
+      cerr << "Can not find given template volume: " << ref_vol.c_str() 
+          << ". Using current volume as template for ROI " << fn.c_str() << endl;
+      ref = (LayerMRI*)col_mri->GetActiveLayer();
+    }
+  }
+  LayerROI* roi = new LayerROI( ref );
   roi->SetName( wxFileName( fn ).GetName().char_str() );
   if ( roi->LoadROIFromFile( (const char*)fn.char_str() ) )
   {
@@ -3270,7 +3295,29 @@ void MainWindow::CommandLoadConnectivityData( const wxArrayString& cmd )
 
 void MainWindow::CommandLoadROI( const wxArrayString& cmd )
 {
-  LoadROIFile( cmd[1] );
+  wxArrayString options = MyUtils::SplitString( cmd[1], _(":") );
+  wxString fn = options[0];
+  wxString ref;
+  for ( size_t i = 1; i < options.GetCount(); i++ )
+  {
+    wxString strg = options[i];
+    int n = strg.Find( _("=") );
+    if ( n != wxNOT_FOUND )
+    {
+      wxString option = strg.Left( n ).Lower();
+      wxString argu = strg.Mid( n+1 );
+      if ( option == _("ref") || option == _("template") )
+      {
+        ref = argu;
+      }
+      else
+      {
+        cerr << "Unrecognized sub-option flag '" << strg << "'." << endl;
+      }
+    }
+  }
+  
+  LoadROIFile( fn, ref );
 
   ContinueScripts();
 }
@@ -3939,7 +3986,11 @@ void MainWindow::CommandSetRAS( const wxArrayString& cmd )
     LayerCollection* lc = GetLayerCollection( "MRI" );
     LayerMRI* layer = (LayerMRI*)lc->GetLayer( 0 );
     if ( layer )
+    {
+      if ( cmd.GetCount() > 4 && cmd[4] == "tkreg" )
+        layer->TkRegToNativeRAS( ras, ras );
       layer->RASToTarget( ras, ras );
+    }
     lc->SetCursorRASPosition( ras );
     m_layerCollectionManager->SetSlicePosition( ras );
   }
@@ -4048,41 +4099,6 @@ RenderView* MainWindow::GetPreviousActiveView()
     return m_viewRender[ m_nPrevActiveViewId ];
 }
 
-/*
-void MainWindow::OnFileSaveScreenshot( wxCommandEvent& event )
-{
-  int nId = GetActiveViewId();
-  if ( nId < 0 )
-    nId = m_nPrevActiveViewId;
-
-  if ( nId < 0 )
-    return;
-
-  wxString fn;
-  wxFileDialog dlg( this, _("Save screenshot as"), m_strLastDir, _(""),
-                    _("PNG files (*.png)|*.png|JPEG files (*.jpg;*.jpeg)|*.jpg;*.jpeg|TIFF files (*.tif;*.tiff)|*.tif;*.tiff|Bitmap files (*.bmp)|*.bmp|PostScript files (*.ps)|*.ps|VRML files (*.wrl)|*.wrl|All files (*.*)|*.*"),
-                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
-  dlg.SetFilterIndex( m_nScreenshotFilterIndex );
-  if ( dlg.ShowModal() == wxID_OK )
-  {
-    fn = dlg.GetPath();
-  }
-
-  if ( !fn.IsEmpty() )
-  {
-    m_strLastDir = MyUtils::GetNormalizedPath( fn );
-    m_nScreenshotFilterIndex = dlg.GetFilterIndex();
-    if ( !m_viewRender[nId]->SaveScreenshot( fn, 
-                                       m_settingsScreenshot.Magnification,
-                                       m_settingsScreenshot.AntiAliasing ) )
-    {
-      wxMessageDialog dlg( this, _("Error occured writing to file. Please make sure you have right permission and the disk is not full."), _("Error"), wxOK );
-      dlg.ShowModal();
-    }
-  }
-}
-*/
-
 void MainWindow::OnToolSaveGotoPoint( wxCommandEvent& event )
 {
   /*
@@ -4122,7 +4138,7 @@ void MainWindow::OnToolSaveGotoPoint( wxCommandEvent& event )
     if ( wxFileName::DirExists( dir ) )
     { 
       double ras[3];
-      GetCursorRAS( ras );
+      GetCursorRAS( ras, true );  // in tkReg coordinate
       wxFFile file( dir + wxFileName::GetPathSeparator() + _("edit.dat"), "w" );
       wxString strg;
       strg << ras[0] << " " << ras[1] << " " << ras[2] << "\n";
@@ -4220,6 +4236,7 @@ void MainWindow::OnToolGotoPoint( wxCommandEvent& event )
     file.ReadAll( &strg );
     wxArrayString ar = MyUtils::SplitString( strg, " " );
     ar.insert( ar.begin(), _("setras") );
+    ar.push_back( _("tkreg") );
     CommandSetRAS( ar ); 
   }
   else
@@ -4686,7 +4703,7 @@ void MainWindow::LoadLUT()
   }
 }
 
-bool MainWindow::GetCursorRAS( double* ras_out )
+bool MainWindow::GetCursorRAS( double* ras_out, bool tkReg )
 {
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   LayerCollection* lc_surf = GetLayerCollection( "Surface" );
@@ -4695,7 +4712,8 @@ bool MainWindow::GetCursorRAS( double* ras_out )
   {
     LayerMRI* mri = ( LayerMRI* )lc_mri->GetLayer( 0 );
     mri->RemapPositionToRealRAS( lc_mri->GetCursorRASPosition(), ras_out );
-    
+    if ( tkReg )
+      mri->NativeRASToTkReg( ras_out, ras_out );
     return true;
   }
   else if ( !lc_surf->IsEmpty() )

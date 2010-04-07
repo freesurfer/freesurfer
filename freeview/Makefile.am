@@ -39,6 +39,8 @@ freeview_SOURCES=\
 	DialogGradientVolume.h \
 	DialogLoadDTI.cpp \
 	DialogLoadDTI.h \
+	DialogLoadROI.cpp \
+	DialogLoadROI.h \
 	DialogLoadPointSet.cpp \
 	DialogLoadPointSet.h \
 	DialogLoadPVolumes.cpp \

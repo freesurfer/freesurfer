@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/26 19:04:05 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/04/07 19:27:41 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -131,11 +131,15 @@ public:
   {
     RemapPositionToRealRAS( pos_in, pos_out );
   }
-
+  
   void RemapPositionToRealRAS( double x_in, double y_in, double z_in,
                                double& x_out, double& y_out, double& z_out );
   void RASToTarget( const double* pos_in, double* pos_out );
 
+  void NativeRASToTkReg( const double* pos_in, double* pos_out );
+  
+  void TkRegToNativeRAS( const double* pos_in, double* pos_out );
+  
   int GetNumberOfFrames();
 
   void SetActiveFrame( int nFrame );

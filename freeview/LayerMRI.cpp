@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/15 03:06:43 $
- *    $Revision: 1.61 $
+ *    $Date: 2010/04/07 19:27:41 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -838,6 +838,17 @@ void LayerMRI::RASToTarget( const double* pos_in, double* pos_out )
 {
   m_volumeSource->RASToTarget( pos_in, pos_out );
 }
+
+void LayerMRI::NativeRASToTkReg( const double* pos_in, double* pos_out )
+{
+  m_volumeSource->NativeRASToTkReg( pos_in, pos_out );
+}
+
+void LayerMRI::TkRegToNativeRAS( const double* pos_in, double* pos_out )
+{
+  m_volumeSource->TkRegToNativeRAS( pos_in, pos_out );
+}
+
 
 int LayerMRI::GetNumberOfFrames()
 {
