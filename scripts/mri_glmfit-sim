@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.23 2010/04/07 16:57:29 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.24 2010/04/07 17:13:59 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -432,6 +432,14 @@ foreach conname ($conlist)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
+    # Create an average "waveform" for each cluster
+    set avgwf = $glmdir/$conname/$csdbase.y.ocn.dat
+    set cmd = (mri_segstats --seg $ocn --exclude 0 --i $y \
+     --avgwf $avgwf --sum /tmp/mri_glmfit-sim.junk.$$)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+    rm -f /tmp/mri_glmfit-sim.junk.$$
   endif
 
   if($anattype == volume) then
@@ -731,6 +739,7 @@ following files in each contrast directory:
 csdbase.sig.voxel.mgh 
 csdbase.sig.cluster.mgh 
 csdbase.sig.cluster.summary
+csdbase.y.ocn.dat
 csdbase.sig.ocn.mgh
 csdbase.sig.ocn.annot (for surfaces only)
 
@@ -747,6 +756,11 @@ value will be 0.
 
 csdbase.sig.cluster.summary - this is the cluster summary table 
 (a simple text file).
+
+csdbase.y.ocn.dat - this is a summary of the input (y) over each
+cluster. It has a column for each cluster. Each row is a subject. The
+value is the average of the input (y) in each cluster. This is a
+simple text file.
 
 csdbase.sig.ocn.mgh - output cluster number volume. The value of the
 voxel is the integer cluster number that that voxel belongs to. This
