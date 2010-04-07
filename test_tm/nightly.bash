@@ -40,7 +40,7 @@ echo >> $LOGFILE
 echo >> $LOGFILE
 
 # Get all the input files
-rsync -avt $GCAM_SAMPLE_DIR $SCRATCHDIR  >> $LOGFILE 2>&1
+rsync -avt --delete $GCAM_SAMPLE_DIR $SCRATCHDIR  >> $LOGFILE 2>&1
 if [ $? -ne 0 ]; then
     echo "NIGHTLY: rsync failed"
     exit
