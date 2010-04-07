@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/27 22:10:36 $
- *    $Revision: 1.54 $
+ *    $Date: 2010/04/07 20:09:52 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -103,7 +103,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.54 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.55 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -696,6 +696,13 @@ vtkKWQdecWindow::CreateWidget () {
                                        "ValueCallback" );
   mEntryAverageSubject->SetCommand ( this, "SetAverageSubject" );
   this->Script( "pack %s -fill x", labeledEntry->GetWidgetName() );
+
+  // check .Qdecrc file for an alternate average subject
+  const char* sAvgSubj = QdecUtilities::GetQdecrcResourceString("AVERAGE");
+  if( sAvgSubj && this->mQdecProject )
+  {
+    mEntryAverageSubject->SetValue( sAvgSubj );
+  }
 
   // Create the subject data scatter-plot exploration frame.
   vtkSmartPointer<vtkKWFrameWithLabel> exploreFrame = 
@@ -1321,7 +1328,7 @@ vtkKWQdecWindow::SetCurrentSurfaceMeasure( const char* isMeasure ) {
     {
       char cBuf[100];
       sprintf( cBuf, "MEASURE%d", i );
-      const char* sUserMeasure = QdecUtilities::GetQdecrcResourceString( cBuf );
+      const char* sUserMeasure = QdecUtilities::GetQdecrcResourceString(cBuf);
       if (sUserMeasure)
       {
         mMenuMorphMeasure->GetMenu()->AddRadioButton( sUserMeasure );

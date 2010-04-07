@@ -7,11 +7,11 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: ginsburg $
- *    $Date: 2010/02/05 15:33:39 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/07 20:09:52 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +21,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 

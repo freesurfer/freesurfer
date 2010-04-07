@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/12 22:36:49 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/04/07 20:09:52 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2007-2009,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -49,7 +48,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecApp );
-vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.9 $" );
+vtkCxxRevisionMacro( vtkKWQdecApp, "$Revision: 1.10 $" );
 
 vtkKWQdecApp::vtkKWQdecApp () :
   vtkKWApplication() {
@@ -82,8 +81,8 @@ vtkKWQdecApp::vtkKWQdecApp () :
 
   // Set some application stuff.
   this->SetName( "Qdec" );
-  this->SetMajorVersion( 1 ); // v1.3
-  this->SetMinorVersion( 3 );
+  this->SetMajorVersion( 1 ); // v1.4
+  this->SetMinorVersion( 4 );
   this->SetHelpDialogStartingPage
     ("https://surfer.nmr.mgh.harvard.edu/fswiki/Qdec");
   this->SupportSplashScreenOn ( );
@@ -173,6 +172,10 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
   args.AddArgument( "--label", args.SPACE_ARGUMENT, &fnLabel,
                     "Label file to load" );
 
+  string sAverageSubject;
+  args.AddArgument( "--average", args.SPACE_ARGUMENT, &sAverageSubject,
+                    "Name of average (common-space) subject" );
+
   // Try and parse the arguments. If there was an error, print our
   // help message and quit.
   if( !args.Parse() ) {
@@ -256,6 +259,9 @@ vtkKWQdecApp::Start ( int argc, char* argv[] ) {
     if( !fnLabel.empty() )
       this->LoadLabel( fnLabel.c_str() );
 
+    if( !sAverageSubject.empty() )
+      this->SetAverageSubject( sAverageSubject.c_str() );
+
   }
   catch( exception& e ) {
     this->ErrorMessage( e.what() );
@@ -279,7 +285,7 @@ vtkKWQdecApp::AddAboutText( ostream &os) {
   buildStamp += __DATE__ ;
   buildStamp += " " ;
   buildStamp += __TIME__ ;
-  buildStamp += "\n  - Copyright (c) 2007-2009\n";
+  buildStamp += "\n  - Copyright (c) 2007-2010\n";
   buildStamp += "    The General Hospital Corporation (Boston, MA),\n";
   buildStamp += "    Martinos Center for Biomedical Imaging,\n";
   buildStamp += "    http://www.nmr.mgh.harvard.edu\n";
@@ -345,6 +351,12 @@ void
 vtkKWQdecApp::LoadLabel ( const char* ifnLabel ) {
   if ( mWindow.GetPointer() )
     mWindow->LoadLabel( ifnLabel );
+}
+
+void
+vtkKWQdecApp::SetAverageSubject ( const char* isAvgSubj ) {
+  if ( mWindow.GetPointer() )
+    mWindow->SetAverageSubject( isAvgSubj );
 }
 
 void

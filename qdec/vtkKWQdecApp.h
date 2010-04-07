@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/13 22:22:16 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/04/07 20:09:52 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -66,6 +65,7 @@ public:
   void LoadSurfaceOverlayScalars ( const char* ifnScalars,
 				   const char* ifnColors );
   void LoadLabel ( const char* ifnLabel );
+  void SetAverageSubject ( const char* isAvgSubj );
 
   // Display an error message dialog and log the message.
   virtual void ErrorMessage ( const char* isMessage );
