@@ -32,8 +32,8 @@ function err = MRIwrite(mri,fstring,datatype)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/19 17:37:50 $
-%    $Revision: 1.12 $
+%    $Date: 2010/04/07 17:20:08 $
+%    $Revision: 1.13 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -62,15 +62,12 @@ if(~isfield(mri,'vol'))
   return;
 end
 vsz = size(mri.vol);
+nvsz = length(vsz);
+if(nvsz ~= 4) vsz = [vsz ones(1,4-nvsz)]; end
 if(~isfield(mri,'volsize'))
   mri.volsize = [vsz(1) vsz(2) vsz(3)];
 end
-if(~isfield(mri,'nframes'))
-  if(length(vsz) == 3) nf = 1;
-  else                 nf = vsz(4);
-  end
-  mri.nframes = nf;
-end
+if(~isfield(mri,'nframes'))  mri.nframes = vsz(4); end
 if(~isfield(mri,'volres'))  mri.volres = [1 1 1];end
 if(~isfield(mri,'tr')) mri.tr = 0; end
 if(~isfield(mri,'te')) mri.te = 0; end
