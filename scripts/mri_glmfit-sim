@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.22 2009/09/16 22:28:27 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.23 2010/04/07 16:57:29 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -9,6 +9,7 @@ set nsim = ()
 set thresh = ()
 set csdbase = ()
 set simsign = ()
+set cwpvalthresh = .05
 set Overwrite = 0;
 set DoSim = 1;
 set LF = ();
@@ -311,14 +312,14 @@ if($DoSim) then
 
         if($anattype == surface) then
           set cmd = (mri_surfcluster --subject $subject \
-            --hemi $hemi --surf $surf)
+            --hemi $hemi --surf $surf --cwpvalthresh $cwpvalthresh)
           set c = 4;
         endif
         if($anattype == volume) then
           set cmd = (mri_volcluster)
           set c = 3;
         endif
-        set cmd = ($cmd --in $sig --mask $mask \
+        set cmd = ($cmd --in $sig --mask $mask --cwpvalthresh $cwpvalthresh \
          --sum $sum --thmin $thresh --sign $simsign)
         echo $cmd | tee -a $LF
         $cmd | tee -a $LF
@@ -425,7 +426,8 @@ foreach conname ($conlist)
   if($anattype == surface) then
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --oannot $annot --annot aparc --csdpdf $csdpdf)
+      --oannot $annot --annot aparc --csdpdf $csdpdf \
+      --cwpvalthresh $cwpvalthresh)
     set cmd = ($cmd --surf $surf); # bug to have to do this
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -435,7 +437,7 @@ foreach conname ($conlist)
   if($anattype == volume) then
     set cmd = (mri_volcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --csdpdf $csdpdf)
+      --csdpdf $csdpdf --cwpvalthresh $cwpvalthresh)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -543,6 +545,12 @@ while( $#argv != 0 )
       set tmpdir = $argv[1]; shift;
       breaksw
 
+
+    case "--cwpvalthresh":
+      if($#argv < 1) goto arg1err;
+      set cwpvalthresh = $argv[1]; shift;
+      breaksw
+
     case "--uniform":
       if($#argv < 2) goto arg2err;
       set UniformPDFMin = $argv[1]; shift;
@@ -636,6 +644,7 @@ usage_exit:
   echo " --glmdir glmdir"
   echo " --sim nulltype nsim threshhold csdbase"
   echo " --sim-sign sign : <abs>,pos,neg"
+  echo " --cwpvalthresh thresh : cluster p-value thresh ($cwpvalthresh)"
   echo ""
   echo " --overwrite : delete previous CSDs"
   echo ""
@@ -768,11 +777,18 @@ running on a computer with multiple nodes, then this will not make it
 run any faster (in fact, it will run slower). You can stop backgrounded
 jobs creating a file called glmdir/csd/poll/StopSim.
 
+--cwpvalthresh cwpvalthresh
+
+Only report clusters that have p < cwpvalthresh. Default is .05. If you
+want to change this after running a simulation, you do not need to 
+re-run the entire simulation. Just run mri_glmfit with the --no-sim
+option.
+
 --no-sim csdbase
 
 Run this if you have already run the stimulation but just want to 
-run the correction for multiple comparisons again. This is mostly
-used for debugging.
+run the correction for multiple comparisons again. "csdbase" is 
+the same that was used in the orignial invocation to mri_glmfit.
 
 --seed seed
 
@@ -783,4 +799,5 @@ used for debugging.
 
 Override fwhm in glmdir with given value. This is mostly
 used for debugging.
+
 
