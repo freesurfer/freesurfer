@@ -11,11 +11,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/08 17:52:29 $
- *    $Revision: 1.112 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/08 19:42:02 $
+ *    $Revision: 1.113 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -25,7 +25,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -55,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.112 2010/04/08 17:52:29 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.113 2010/04/08 19:42:02 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -242,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.112 2010/04/08 17:52:29 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.113 2010/04/08 19:42:02 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.112 2010/04/08 17:52:29 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.113 2010/04/08 19:42:02 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2149,6 +2148,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     CTABannotationAtIndex(mris->ct, index, &annotation) ;
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
       v = &mris->vertices[vno] ;
+      if (v->ripflag)
         continue ;
 
       if (vno == Gdiag_no )
