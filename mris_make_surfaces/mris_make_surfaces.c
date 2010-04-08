@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 18:35:00 $
- *    $Revision: 1.111 $
+ *    $Date: 2010/04/08 17:52:29 $
+ *    $Revision: 1.112 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.111 2009/11/19 18:35:00 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.112 2010/04/08 17:52:29 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -242,13 +242,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.111 2009/11/19 18:35:00 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.112 2010/04/08 17:52:29 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.111 2009/11/19 18:35:00 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.112 2010/04/08 17:52:29 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2149,8 +2149,8 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     CTABannotationAtIndex(mris->ct, index, &annotation) ;
     for (vno = 0 ; vno < mris->nvertices ; vno++) {
       v = &mris->vertices[vno] ;
-      if (v->ripflag)
         continue ;
+
       if (vno == Gdiag_no )
         DiagBreak() ;
       if (v->annotation == annotation)
@@ -2164,7 +2164,10 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->marked2 > 0)
+    {
+      v->marked = 1 ; // it was ripped previously - it should still be excluded
       continue ;
+    }
     if (vno == Gdiag_no )
       DiagBreak() ;
 
@@ -2358,9 +2361,16 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
     }
   }
 
-  if (Gdiag_no > 0)
+  if (Gdiag_no >= 0)
+  {
+    v = &mris->vertices[Gdiag_no] ;
     printf("v %d: ripflag = %d before connected components\n", 
            Gdiag_no, mris->vertices[Gdiag_no].marked) ;
+    if (v->marked == 0)
+      DiagBreak() ;
+    else
+      DiagBreak() ;
+  }
   MRISdilateMarked(mris, 3) ;
   MRISerodeMarked(mris, 3) ;
   MRISsegmentMarked(mris, &labels, &nlabels, 1) ;
