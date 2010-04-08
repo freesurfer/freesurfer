@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/04/05 20:50:04 $
-#    $Revision: 1.308 $
+#    $Date: 2010/04/08 15:51:57 $
+#    $Revision: 1.309 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.308 2010/04/05 20:50:04 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.309 2010/04/08 15:51:57 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2786,7 +2786,7 @@ if($DoSegStats) then
     echo "\nINFO: mri_segstats will not calculate Supratentorial" |& tee -a $LF
     echo "      due to missing ribbon.mgz file" |& tee -a $LF
   endif
-  set cmd = ($cmd --subcortgray --totalgray)
+  set cmd = ($cmd --subcortgray)
   set cmd = ($cmd --in mri/norm.mgz --in-intensity-name norm)
   set cmd = ($cmd --in-intensity-units MR)
   if ( -e mri/transforms/talairach.xfm ) then
@@ -2798,7 +2798,7 @@ if($DoSegStats) then
   if ( ( -e surf/lh.white ) && ( -e surf/rh.white ) ) then
     set cmd = ($cmd --surf-wm-vol)
     if ( ( -e surf/lh.pial ) && ( -e surf/rh.pial ) ) then
-      set cmd = ($cmd --surf-ctx-vol)
+      set cmd = ($cmd --surf-ctx-vol --totalgray)
     else
       echo "\nINFO: ?h.pial surfaces not available to mri_segstats.\n"\
        |& tee -a $SF |& tee -a $LF |& tee -a $CF
@@ -2807,7 +2807,6 @@ if($DoSegStats) then
     echo "\nINFO: ?h.white surfaces not available to mri_segstats.\n"\
      |& tee -a $SF |& tee -a $LF |& tee -a $CF
   endif
-  #set cmd = ($cmd --ctab-gca ${GCADIR}/$GCA)
   set cmd = ($cmd --ctab $FREESURFER_HOME/ASegStatsLUT.txt)
   set cmd = ($cmd --subject $subjid $xopts);
   $PWD |& tee -a $LF
