@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/30 20:31:14 $
- *    $Revision: 1.181 $
+ *    $Date: 2010/04/08 00:03:36 $
+ *    $Revision: 1.182 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -561,7 +561,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.181 2010/03/30 20:31:14 greve Exp $";
+"$Id: mri_glmfit.c,v 1.182 2010/04/08 00:03:36 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -708,6 +708,13 @@ MATRIX *Xtmp=NULL, *Xnorm=NULL;
 char *XOnlyFile = NULL;
 char *yOutFile = NULL;
 
+int DoSimThreshLoop = 0;
+int  nThreshList = 4, nthThresh;
+float ThreshList[4] = {1.3,  2.0,  2.3,  3.0};
+int  nSignList = 3, nthSign;
+int SignList[3] = {-1,0,1};
+CSD *csdList[4][3];
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs,n, m;
@@ -716,6 +723,7 @@ int main(int argc, char **argv) {
   MATRIX *Ct, *CCt;
   FILE *fp;
   double Ccond, dtmp, threshadj;
+  char *tmpstr2=NULL;
 
   eresfwhm = -1;
   csd = CSDalloc();
@@ -1347,6 +1355,17 @@ int main(int argc, char **argv) {
     }
     printf("thresh = %g, threshadj = %g \n",csd->thresh,csd->thresh-log10(2.0));
 
+    if(DoSimThreshLoop){
+      for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+	for(nthSign = 0; nthSign < nSignList; nthSign++){
+	  csdList[nthThresh][nthSign] = CSDcopy(csd,NULL);
+	  csdList[nthThresh][nthSign]->thresh = ThreshList[nthThresh];
+	  csdList[nthThresh][nthSign]->threshsign = SignList[nthSign];
+	  csdList[nthThresh][nthSign]->seed = csd->seed;
+	}
+      }
+    }
+
     printf("\n\nStarting simulation sim over %d trials\n",nsim);
     TimerStart(&mytimer) ;
     for (nthsim=0; nthsim < nsim; nthsim++) {
@@ -1393,131 +1412,158 @@ int main(int argc, char **argv) {
         }
       }
 
-      // Go through each contrast
-      for (n=0; n < mriglm->glm->ncontrasts; n++) {
-	// Change sign to abs for F-tests
-	csd->threshsign = tSimSign;
-	if(mriglm->glm->C[n]->rows > 1) csd->threshsign = 0;
-
-	// Adjust threshold for one- or two-sided
-	if(csd->threshsign == 0) threshadj = csd->thresh;
-	else threshadj = csd->thresh - log10(2.0); // one-sided test
-
-        if (!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")) {
-          sig = MRIlog10(mriglm->p[n],NULL,sig,1);
-          // If test is not ABS then apply the sign
-          if(csd->threshsign != 0) MRIsetSign(sig,mriglm->gamma[n],0);
-          sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
-                               &cmax,&rmax,&smax);
-	  // Get Fmax at sig max 
-          Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
-	  if(csd->threshsign != 0) Fmax = Fmax*SIGN(sigmax);
-        } else {
-          // mc-z or mc-t: synth z-field, smooth, rescale,
-          // compute p, compute sig
-          // This should do the same thing as AFNI's AlphaSim
-          // Synth and rescale without the mask, otherwise smoothing
-          // smears the 0s into the mask area. Also, the stuff outisde
-          // the mask area wont get zeroed.
-          RFsynth(z,rfs,mriglm->mask); // z or t, as needed
-          if (SmoothLevel > 0) {
-            SmoothSurfOrVol(surf, z, mriglm->mask, SmoothLevel);
-	    if(DiagCluster) {
-	      sprintf(tmpstr,"./%s-zsm0.%s",mriglm->glm->Cname[n],format);
-	      printf("Saving z into %s\n",tmpstr);
-	      MRIwrite(z,tmpstr);
-	      // Exits below
-	    }
-            RFrescale(z,rfs,mriglm->mask,z);
-          }
-	  if(DiagCluster) {
-	    sprintf(tmpstr,"./%s-zsm1.%s",mriglm->glm->Cname[n],format);
-	    printf("Saving z into %s\n",tmpstr);
-	    MRIwrite(z,tmpstr);
-	    // Exits below
-	  }
-          // Slightly tortured way to get the right p-values because
-          //   RFstat2P() computes one-sided, but I handle sidedness
-          //   during thresholding.
-          // First, use zabs to get a two-sided pval bet 0 and 0.5
-          zabs = MRIabs(z,zabs);
-          mriglm->p[n] = RFstat2P(zabs,rfs,mriglm->mask,0,mriglm->p[n]);
-          // Next, mult pvals by 2 to get two-sided bet 0 and 1
-          MRIscalarMul(mriglm->p[n],mriglm->p[n],2);
-          // sig = -log10(p)
-          sig = MRIlog10(mriglm->p[n],NULL,sig,1);
-          // If test is not ABS then apply the sign
-          if(csd->threshsign != 0) MRIsetSign(sig,z,0);
-
-          sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
-                               &cmax,&rmax,&smax);
-          Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
-	  if(csd->threshsign == 0) Fmax = fabs(Fmax);
-        }
-        if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
-
-        if(surf) {
-          // surface clustering -------------
-          MRIScopyMRI(surf, sig, 0, "val");
-          if(debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",
-					   TimerStop(&mytimer)/1000.0);
-          SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
-						0,&nClusters,NULL);
-          csize = sclustMaxClusterArea(SurfClustList, nClusters);
-        } else {
-          // volume clustering -------------
-          if (debug) printf("Clustering on volume\n");
-          VolClustList = clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
-					  mriglm->mask, &nClusters, NULL);
-          csize = voxelsize*clustMaxClusterCount(VolClustList,nClusters);
-          if (Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
-          clustFreeClusterList(&VolClustList,nClusters);
-        }
-        if(debug) printf("%s %d nc=%d  maxcsize=%g  sigmax=%g  Fmax=%g\n",
-               mriglm->glm->Cname[n],nthsim,nClusters,csize,sigmax,Fmax);
-
-        // Re-write the full CSD file each time. Should not take that
-        // long and assures output can be used immediately regardless
-        // of whether the job terminated properly or not
-        strcpy(csd->contrast,mriglm->glm->Cname[n]);
-        sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
-        //printf("csd %s \n",tmpstr);
-        fflush(stdout);
-        fp = fopen(tmpstr,"w");
-        if (fp == NULL) {
-          printf("ERROR: opening %s\n",tmpstr);
-          exit(1);
-        }
-        fprintf(fp,"# ClusterSimulationData 2\n");
-        fprintf(fp,"# mri_glmfit simulation sim\n");
-        fprintf(fp,"# hostname %s\n",uts.nodename);
-        fprintf(fp,"# machine  %s\n",uts.machine);
-        fprintf(fp,"# runtime_min %g\n",msecFitTime/(1000*60.0));
-        fprintf(fp,"# FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
-        if (mriglm->mask) fprintf(fp,"# masking 1\n");
-        else             fprintf(fp,"# masking 0\n");
-        fprintf(fp,"# num_dof %d\n",mriglm->glm->C[n]->rows);
-        fprintf(fp,"# den_dof %g\n",mriglm->glm->dof);
-        fprintf(fp,"# SmoothLevel %g\n",SmoothLevel);
-        csd->nreps = nthsim+1;
-        csd->nClusters[nthsim] = nClusters;
-        csd->MaxClusterSize[nthsim] = csize;
-        csd->MaxSig[nthsim] = sigmax;
-        csd->MaxStat[nthsim] = Fmax;
-        CSDprint(fp, csd);
-
-        fclose(fp);
-
-        if(DiagCluster) {
-          sprintf(tmpstr,"./%s-sig.%s",mriglm->glm->Cname[n],format);
-          printf("Saving sig into %s and exiting ... \n",tmpstr);
-          MRIwrite(sig,tmpstr);
-          exit(1);
-        }
-
-        MRIfree(&sig);
-        free(SurfClustList);
+      //--------------------------------------------------
+      if(DoSimThreshLoop == 0){
+	nThreshList = 1;
+	nSignList = 1;
       }
+
+      for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+	for(nthSign = 0; nthSign < nSignList; nthSign++){
+	  if(DoSimThreshLoop) {
+	    csd = csdList[nthThresh][nthSign];
+	    tSimSign = SignList[nthSign];
+	  }
+
+	  if(debug) printf("%2d %d %5.1f  %d %2d %5.1f\n",nthsim,nthThresh,
+		 csd->thresh,nthSign,tSimSign,TimerStop(&mytimer)/1000.0);
+
+	  // Go through each contrast
+	  for (n=0; n < mriglm->glm->ncontrasts; n++) {
+	    // Change sign to abs for F-tests
+	    csd->threshsign = tSimSign;
+	    if(mriglm->glm->C[n]->rows > 1) csd->threshsign = 0;
+	    
+	    // Adjust threshold for one- or two-sided
+	    if(csd->threshsign == 0) threshadj = csd->thresh;
+	    else threshadj = csd->thresh - log10(2.0); // one-sided test
+
+	    if (!strcmp(csd->simtype,"mc-full") || !strcmp(csd->simtype,"perm")) {
+	      sig = MRIlog10(mriglm->p[n],NULL,sig,1);
+	      // If test is not ABS then apply the sign
+	      if(csd->threshsign != 0) MRIsetSign(sig,mriglm->gamma[n],0);
+	      sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
+				   &cmax,&rmax,&smax);
+	      // Get Fmax at sig max 
+	      Fmax = MRIgetVoxVal(mriglm->F[n],cmax,rmax,smax,0);
+	      if(csd->threshsign != 0) Fmax = Fmax*SIGN(sigmax);
+	    } else {
+	      // mc-z or mc-t: synth z-field, smooth, rescale,
+	      // compute p, compute sig
+	      // This should do the same thing as AFNI's AlphaSim
+	      // Synth and rescale without the mask, otherwise smoothing
+	      // smears the 0s into the mask area. Also, the stuff outisde
+	      // the mask area wont get zeroed.
+	      if(nthThresh == 0 && nthSign == 0) {
+		RFsynth(z,rfs,mriglm->mask); // z or t, as needed
+		if (SmoothLevel > 0) {
+		  SmoothSurfOrVol(surf, z, mriglm->mask, SmoothLevel);
+		  if(DiagCluster) {
+		    sprintf(tmpstr,"./%s-zsm0.%s",mriglm->glm->Cname[n],format);
+		    printf("Saving z into %s\n",tmpstr);
+		    MRIwrite(z,tmpstr);
+		    // Exits below
+		  }
+		  RFrescale(z,rfs,mriglm->mask,z);
+		}
+	      }
+	      if(DiagCluster) {
+		sprintf(tmpstr,"./%s-zsm1.%s",mriglm->glm->Cname[n],format);
+		printf("Saving z into %s\n",tmpstr);
+		MRIwrite(z,tmpstr);
+		// Exits below
+	      }
+	      // Slightly tortured way to get the right p-values because
+	      //   RFstat2P() computes one-sided, but I handle sidedness
+	      //   during thresholding.
+	      // First, use zabs to get a two-sided pval bet 0 and 0.5
+	      zabs = MRIabs(z,zabs);
+	      mriglm->p[n] = RFstat2P(zabs,rfs,mriglm->mask,0,mriglm->p[n]);
+	      // Next, mult pvals by 2 to get two-sided bet 0 and 1
+	      MRIscalarMul(mriglm->p[n],mriglm->p[n],2);
+	      // sig = -log10(p)
+	      sig = MRIlog10(mriglm->p[n],NULL,sig,1);
+	      // If test is not ABS then apply the sign
+	      if(csd->threshsign != 0) MRIsetSign(sig,z,0);
+
+	      sigmax = MRIframeMax(sig,0,mriglm->mask,csd->threshsign,
+				   &cmax,&rmax,&smax);
+	      Fmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
+	      if(csd->threshsign == 0) Fmax = fabs(Fmax);
+	    }
+	    if(mriglm->mask) MRImask(sig,mriglm->mask,sig,0.0,0.0);
+
+	    if(surf) {
+	      // surface clustering -------------
+	      MRIScopyMRI(surf, sig, 0, "val");
+	      if(debug || Gdiag_no > 0) printf("Clustering on surface %lf\n",
+					       TimerStop(&mytimer)/1000.0);
+	      SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
+						    0,&nClusters,NULL);
+	      csize = sclustMaxClusterArea(SurfClustList, nClusters);
+	    } else {
+	      // volume clustering -------------
+	      if (debug) printf("Clustering on volume\n");
+	      VolClustList = clustGetClusters(sig, 0, threshadj,-1,csd->threshsign,0,
+					      mriglm->mask, &nClusters, NULL);
+	      csize = voxelsize*clustMaxClusterCount(VolClustList,nClusters);
+	      if (Gdiag_no > 0) clustDumpSummary(stdout,VolClustList,nClusters);
+	      clustFreeClusterList(&VolClustList,nClusters);
+	    }
+	    if(debug) printf("%s %d nc=%d  maxcsize=%g  sigmax=%g  Fmax=%g\n",
+			     mriglm->glm->Cname[n],nthsim,nClusters,csize,sigmax,Fmax);
+
+	    // Re-write the full CSD file each time. Should not take that
+	    // long and assures output can be used immediately regardless
+	    // of whether the job terminated properly or not
+	    strcpy(csd->contrast,mriglm->glm->Cname[n]);
+	    if(DoSimThreshLoop){
+	      if(round(csd->threshsign) ==  0) tmpstr2 = "abs"; 
+	      if(round(csd->threshsign) == +1) tmpstr2 = "pos"; 
+	      if(round(csd->threshsign) == -1) tmpstr2 = "neg"; 
+	      sprintf(tmpstr,"%s-%s.th%04d.%s.csd",
+		      simbase,mriglm->glm->Cname[n],
+		      (int)round(csd->thresh*100),tmpstr2);
+	    }
+	    else
+	      sprintf(tmpstr,"%s-%s.csd",simbase,mriglm->glm->Cname[n]);
+	    //printf("csd %s \n",tmpstr);
+	    fflush(stdout);
+	    fp = fopen(tmpstr,"w");
+	    if (fp == NULL) {
+	      printf("ERROR: opening %s\n",tmpstr);
+	      exit(1);
+	    }
+	    fprintf(fp,"# ClusterSimulationData 2\n");
+	    fprintf(fp,"# mri_glmfit simulation sim\n");
+	    fprintf(fp,"# hostname %s\n",uts.nodename);
+	    fprintf(fp,"# machine  %s\n",uts.machine);
+	    fprintf(fp,"# runtime_min %g\n",msecFitTime/(1000*60.0));
+	    fprintf(fp,"# FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
+	    if (mriglm->mask) fprintf(fp,"# masking 1\n");
+	    else             fprintf(fp,"# masking 0\n");
+	    fprintf(fp,"# num_dof %d\n",mriglm->glm->C[n]->rows);
+	    fprintf(fp,"# den_dof %g\n",mriglm->glm->dof);
+	    fprintf(fp,"# SmoothLevel %g\n",SmoothLevel);
+	    csd->nreps = nthsim+1;
+	    csd->nClusters[nthsim] = nClusters;
+	    csd->MaxClusterSize[nthsim] = csize;
+	    csd->MaxSig[nthsim] = sigmax;
+	    csd->MaxStat[nthsim] = Fmax;
+	    CSDprint(fp, csd);
+	    fclose(fp);
+
+	    if(DiagCluster) {
+	      sprintf(tmpstr,"./%s-sig.%s",mriglm->glm->Cname[n],format);
+	      printf("Saving sig into %s and exiting ... \n",tmpstr);
+	      MRIwrite(sig,tmpstr);
+	      exit(1);
+	    }
+	    free(SurfClustList);
+	  } // contrasts
+	} // sign list
+      } // thresh list
+      //MRIfree(&sig);
     }// simulation loop
     if(SimDoneFile){
       fp = fopen(SimDoneFile,"w");
@@ -1962,7 +2008,8 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&Gdiag_no);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--sim")) {
+    } 
+    else if (!strcasecmp(option, "--sim")) {
       if (nargc < 4) CMDargNErr(option,4);
       if (CSDcheckSimType(pargv[0])) {
         printf("ERROR: simulation type %s unrecognized, supported values are\n"
@@ -1978,7 +2025,9 @@ static int parse_commandline(int argc, char **argv) {
       DontSave = 1;
       prunemask = 0;
       nargsused = 4;
-    } else if (!strcasecmp(option, "--uniform")) {
+    } 
+    else if (!strcasecmp(option, "--sim-thresh-loop")) DoSimThreshLoop = 1;
+    else if (!strcasecmp(option, "--uniform")) {
       if(nargc < 2) CMDargNErr(option,2);
       sscanf(pargv[0],"%lf",&UniformMin);
       sscanf(pargv[1],"%lf",&UniformMax);
@@ -2800,8 +2849,6 @@ static void check_options(void) {
       condFile = strcpyalloc(tmpstr);
     }
   }
-
-
   if (SUBJECTS_DIR == NULL) {
     SUBJECTS_DIR = getenv("SUBJECTS_DIR");
     if (SUBJECTS_DIR==NULL) {
@@ -2809,7 +2856,6 @@ static void check_options(void) {
       exit(1);
     }
   }
-
   if(UseCortexLabel && labelFile != NULL){
     printf("ERROR: cannot use --label and --cortex\n");
     exit(1);
@@ -2818,17 +2864,14 @@ static void check_options(void) {
     sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemi);
     labelFile = strcpyalloc(tmpstr);
   }
-
   if(labelFile != NULL && surf==NULL) {
     printf("ERROR: need --surf with --label\n");
     exit(1);
   }
-
   if (prunemask && DoSim) {
     printf("ERROR: do not use --prune with --sim\n");
     exit(1);
   }
-
   if(DoSim && VarFWHM > 0 &&
       (!strcmp(csd->simtype,"mc-z") || !strcmp(csd->simtype,"mc-t"))) {
     printf("ERROR: cannot use variance smoothing with mc-z or "
@@ -2859,9 +2902,12 @@ static void check_options(void) {
       exit(1);
     }
   }
-
   if(DoSim && FWHMSet == 0){
     printf("ERROR: you must supply --fwhm with --sim, even if it is 0\n");
+    exit(1);
+  }
+  if(DoSimThreshLoop && strcmp(csd->simtype,"mc-z")){
+    printf("ERROR: you can only use --sim-thresh-loop with mc-z\n");
     exit(1);
   }
 
