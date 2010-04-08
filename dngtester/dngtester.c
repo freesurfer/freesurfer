@@ -7,8 +7,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/06/24 01:52:19 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/04/08 04:31:58 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,8 @@
 #include "macros.h"
 #include "diag.h"
 #include "volume_io.h"
+#include "volcluster.h"
+#include "surfcluster.h"
 #include "region.h"
 #include "machine.h"
 #include "fio.h"
@@ -142,8 +144,22 @@ int main(int argc, char **argv)
   int nsegs, *segidlist,vtxno1,vtxno2;
   double *area1, *area2, *area12, *dice;
   double f,radius,radius2,DotProd,theta,d2,d3,d3Sqr;
-  double fwhm,fwhmSqr;
+  double fwhm,fwhmSqr,p,z;
   COLOR_TABLE *ctab = NULL;
+  RFS *rfs;
+
+  rfs = RFspecInit(53,NULL);
+  rfs->name = strcpyalloc("gaussian");
+  rfs->params[0] = 0;
+  rfs->params[1] = 1;
+  for(z=0; z < 10.0; z+=.1){
+    //p = sc_cdf_flat_Q(z,0,1);
+    p = RFstat2PVal(rfs, z);
+    printf("%7.4f %8.4f\n",z,-log10(p));
+  }
+  exit(1);
+
+
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
   subject = argv[1];
@@ -1214,3 +1230,100 @@ MRI *MRIaddB(MRI *mri1, MRI *mri2, MRI *mriadd)
   }
   return(mriadd);
 }
+
+int RunSurfMCZ(MRIS *surf, MRI *mask, int nRepetitions,
+	       double *ThreshList, int nThreshList,
+	       double *FWHMList, int nFWHMList,
+	       int SynthSeed, char *csdbase)
+{
+  RFS *rfs;
+  int *nSmoothsList, nSmoothsPrev, nSmoothsDelta, nthRep;
+  MRI *z, *zabs, *sig=NULL, *p=NULL;
+  int SignList[3] = {-1,0,1}, nthSign, nthFWHM, nthThresh;
+  CSD *csdList[22][20][3], *csd;
+  double sigmax, zmax, threshadj, csize;
+  int nClusters, cmax,rmax,smax;
+  SURFCLUSTERSUM *SurfClustList;
+
+  rfs = RFspecInit(SynthSeed,NULL);
+  rfs->name = strcpyalloc("gaussian");
+  rfs->params[0] = 0;
+  rfs->params[1] = 1;
+
+  nSmoothsList = (int *) calloc(sizeof(int),nFWHMList);
+  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+    nSmoothsList[nthFWHM] = MRISfwhm2niters(FWHMList[nthFWHM], surf);
+    printf("%2d %5.1f  %4d\n",nFWHMList,FWHMList[nthFWHM],nSmoothsList[nthFWHM]);
+  }
+
+  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+    for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+      for(nthSign = 0; nthSign < 3; nthSign++){
+	csd = CSDalloc();
+	sprintf(csd->simtype,"%s","null-z");
+	sprintf(csd->anattype,"%s","surface");
+	sprintf(csd->subject,"%s","??");
+	sprintf(csd->hemi,"%s","??");
+	sprintf(csd->contrast,"%s","N/A");
+	csd->seed = SynthSeed;
+	csd->nreps = nRepetitions;
+	csd->thresh = ThreshList[nthThresh];
+	csd->threshsign = SignList[nthSign];
+	csd->nullfwhm = FWHMList[nthFWHM];
+	csd->varfwhm = -1;
+	csd->searchspace = -1;
+	CSDallocData(csd);
+	csdList[nthFWHM][nthThresh][nthSign] = csd;
+      }
+    }
+  }
+
+  z = MRIcloneBySpace(mask,MRI_FLOAT,1);
+
+  for(nthRep = 0; nthRep < nRepetitions; nthRep++){
+    RFsynth(z,rfs,mask); // synth unsmoothed z
+    nSmoothsPrev = 0;
+    for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+      nSmoothsDelta = nSmoothsList[nthFWHM] - nSmoothsPrev;
+      nSmoothsPrev = nSmoothsList[nthFWHM];
+      MRISsmoothMRI(surf, z, nSmoothsDelta, mask, z); // smooth z
+      RFrescale(z,rfs,mask,z);
+      zabs = MRIabs(z,NULL);
+      // Slightly tortured way to get the right p-values because
+      //   RFstat2P() computes one-sided, but I handle sidedness
+      //   during thresholding.
+      // First, use zabs to get a two-sided pval bet 0 and 0.5
+      zabs = MRIabs(z,zabs);
+      p = RFstat2P(zabs,rfs,mask,0,p);
+      // Next, mult pvals by 2 to get two-sided bet 0 and 1
+      MRIscalarMul(p,p,2.0);
+      sig = MRIlog10(p,NULL,sig,1); // sig = -log10(p)
+      for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+	for(nthSign = 0; nthSign < 3; nthSign++){
+	  csd = csdList[nthFWHM][nthThresh][nthSign];
+	  // If test is not ABS then apply the sign
+	  if(csd->threshsign != 0) MRIsetSign(sig,z,0);
+	  sigmax = MRIframeMax(sig,0,mask,csd->threshsign,
+			       &cmax,&rmax,&smax);
+	  zmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
+	  if(csd->threshsign == 0) zmax = fabs(zmax);
+	  if(mask) MRImask(sig,mask,sig,0.0,0.0);
+	  MRIScopyMRI(surf, sig, 0, "val");
+	  if(csd->threshsign == 0) threshadj = csd->thresh;
+	  else threshadj = csd->thresh - log10(2.0); // one-sided test
+	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
+						0,&nClusters,NULL);
+	  csize = sclustMaxClusterArea(SurfClustList, nClusters);
+	  csd->nClusters[nthRep] = nClusters;
+	  csd->MaxClusterSize[nthRep] = csize;
+	  csd->MaxSig[nthRep] = sigmax;
+	  csd->MaxStat[nthRep] = zmax;
+	  
+	} // Sign
+      } // Thresh
+    } // FWHM
+  } // Iteration
+
+  return(0);
+}
+
