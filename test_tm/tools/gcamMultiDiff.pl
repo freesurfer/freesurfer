@@ -15,8 +15,8 @@ my( $goldFile, $cmpFile );
 
 my( $rcs, $rev, $rcsdate );
 $rcs = '$RCSfile: gcamMultiDiff.pl,v $';
-$rev = '$Revision: 1.1 $';
-$rcsdate = '$Date: 2010/03/31 13:30:43 $';
+$rev = '$Revision: 1.2 $';
+$rcsdate = '$Date: 2010/04/08 19:13:22 $';
 
 print "GCAM Multi-Diff\n";
 print "===============\n\n";
@@ -46,12 +46,6 @@ my( @testVars );
 
 @testVars = &LoadConfigFile( $configFile );
 
-
-foreach my $line ( @testVars ) {
-    my $field = $line->{"field"};
-    print "$field\n\n";
-    
-}
 
 
 # --------------------------------
