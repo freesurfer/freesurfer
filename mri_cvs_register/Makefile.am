@@ -4,7 +4,7 @@
 
 dist_bin_SCRIPTS = mri_cvs_register
 
-foodir=$(prefix)/bin
+foodir=$(bindir)
 foo_DATA= \
 	elastic_registration_CVS.pl \
 	getConfig.pm \
