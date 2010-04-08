@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/08 14:02:55 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/04/08 14:09:28 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,8 @@
 #include "mriframegpu.hpp"
 #include "gcamorphgpu.hpp"
 #include "gcamorphenergy.hpp"
+
+#include "gcamfots_cuda.h"
 
 // ========================================================================
 

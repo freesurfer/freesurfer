@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/31 15:19:36 $
- *    $Revision: 1.187 $
+ *    $Date: 2010/04/08 14:09:28 $
+ *    $Revision: 1.188 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 
 #ifdef FS_CUDA
 #include "chronometer.h"
-#include "testgpu.h"
+#include "gcamfots_cuda.h"
 #endif
 
 #include "gcamorphtestutils.h"
@@ -7213,13 +7213,18 @@ GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status)
 static double
 gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 {
+
+  double min_dt;
+
+#ifndef FS_CUDA
   MATRIX   *mX, *m_xTx, *m_xTx_inv, *m_xTy, *mP, *m_xT ;
-  double   min_dt, rms, min_rms, dt_in[MAX_SAMPLES], 
+  double   rms, min_rms, dt_in[MAX_SAMPLES], 
     rms_out[MAX_SAMPLES],orig_dt,
     a, b, c, max_dt, start_dt, start_rms, pct_change ;
   VECTOR   *vY ;
   int      N, i, Gxs, Gys, Gzs,bad, suppressed=0, prev_neg ;
   long     diag ;
+#endif
 
 #if GCAM_FOTS_OUTPUT
   const unsigned int outputFreq = 10;
@@ -7237,6 +7242,9 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   }
 #endif
 
+#ifdef FS_CUDA
+  min_dt = gcamFindOptimalTimestepGPU( gcam, parms, mri );
+#else
   gcamClearMomentum(gcam) ;
   // disable diagnostics so we don't see every time step sampled
   Gxs = Gx ;
@@ -7468,6 +7476,8 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   Gy = Gys ;
   Gz = Gzs ;
   Gdiag = diag ;
+
+#endif
 
 #if GCAM_FOTS_OUTPUT
   nCalls++;
