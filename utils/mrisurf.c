@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/28 19:22:04 $
- *    $Revision: 1.669 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/08 17:52:38 $
+ *    $Revision: 1.670 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -714,7 +714,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.669 2010/03/28 19:22:04 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.670 2010/04/08 17:52:38 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -27304,6 +27304,15 @@ MRISpositionSurface(MRI_SURFACE *mris, MRI *mri_brain, MRI *mri_smooth,
 
     if ((Gdiag & DIAG_SHOW) && !((n+1)%5) && DIAG_VERBOSE_ON)
       MRISprintTessellationStats(mris, stderr) ;
+    if (Gdiag_no >= 0)
+    {
+      Real xv, yv, zv ;
+      VERTEX *v ;
+      v = &mris->vertices[Gdiag_no] ;
+      MRISvertexToVoxel(mris, v, mri_brain, &xv, &yv, &zv) ;
+      printf("v %d: (%2.1f, %2.1f, %2.1f), vox = (%2.0f, %2.0f %2.0f)\n",
+             Gdiag_no, v->x, v->y, v->z, xv, yv, zv) ;
+    }
     if (nreductions > MAX_REDUCTIONS)
     {
       n++ ;  /* count this step */
