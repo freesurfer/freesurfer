@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/08 13:35:33 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/04/08 14:02:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,22 @@
 #include "gcamorphgpu.hpp"
 #include "gcamorphenergy.hpp"
 
+// ========================================================================
+
+// Stolen from gcamorph.c
+const unsigned int MAX_SAMPLES = 100;
+
+
+static int finitep( const float f ) {
+  if( !finite(f) ) {
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+
+// ========================================================================
 
 template<typename T>
 float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
@@ -42,14 +58,14 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
   GPU::Algorithms::GCAmorphEnergy gcamEnergy;
 
   float min_dt = 0;
-  float start_rms, min_rms, rms;
+  float min_rms, rms;
   float orig_dt, start_dt, max_dt;
-  int bad, prev_neg;
-  int suppressed = 0;
+  float dt_in[MAX_SAMPLES], rms_out[MAX_SAMPLES];
+
 
   gcam.ClearMomentum();
 
-  start_rms = min_rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
+  min_rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
 
   // Find right order of magnitude for time step
   orig_dt = parms->dt;
@@ -74,9 +90,6 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
       break;
     }
 
-    bad = 0;
-    prev_neg = 0;
-
     for( parms->dt = start_dt; parms->dt <= max_dt; parms->dt *= 4 ) {
       
       gcam.ApplyGradient( parms );
@@ -89,7 +102,7 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
 	std::cerr << "Exiting on line " << __LINE__ << std::endl;
 	exit( EXIT_FAILURE );
       } else {
-	prev_neg = suppressed = 0;
+	//prev_neg = suppressed = 0;
       }
 
 
@@ -123,6 +136,115 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
   } while( DEQUAL( min_dt, start_dt ) );
 
 
+  // I believe that we now have a start point to do something more advanced
+
+  // The next few blocks of code look very similar.....
+  dt_in[0] = min_dt ;
+  rms_out[0] = min_rms ;
+  parms->dt = dt_in[1] = dt_in[0] - dt_in[0]*.2 ;
+  gcam.ApplyGradient( parms ) ;
+  rms = rms_out[1] = gcamEnergy.ComputeRMS( gcam, mri, parms );
+  gcam.UndoGradient() ;
+
+  if( (rms < min_rms) &&
+      ( (gcam.neg==0) || (parms->noneg==False) ) ) {
+    min_rms = rms;
+    min_dt = parms->dt;
+  }
+
+
+  parms->dt = dt_in[2] = dt_in[0] - dt_in[0]*.4 ;
+  gcam.ApplyGradient( parms );
+  rms = rms_out[2] = gcamEnergy.ComputeRMS( gcam, mri, parms );
+  gcam.UndoGradient();
+
+  if( (rms < min_rms) &&
+      ( (gcam.neg==0) || (parms->noneg==False) ) ) {
+    min_rms = rms;
+    min_dt = parms->dt;
+  }
+
+  
+  parms->dt = dt_in[3] = dt_in[0] + dt_in[0]*.2 ;
+  gcam.ApplyGradient( parms );
+  rms = rms_out[3] = gcamEnergy.ComputeRMS( gcam, mri, parms );
+  gcam.UndoGradient() ;
+
+  if( (rms < min_rms) &&
+      ( (gcam.neg==0) || (parms->noneg==False) ) ) {
+    min_rms = rms;
+    min_dt = parms->dt;
+  }
+
+
+  parms->dt = dt_in[4] = dt_in[0] + dt_in[0]*.4 ;
+  gcam.ApplyGradient( parms );
+  rms = rms_out[4] = gcamEnergy.ComputeRMS( gcam, mri, parms );
+  gcam.UndoGradient() ;
+
+  if( (rms < min_rms) &&
+      ( (gcam.neg==0) || (parms->noneg==False) ) ) {
+    min_rms = rms;
+    min_dt = parms->dt;
+  }
+
+  
+  /* now compute location of minimum of best quadratic fit */
+  MATRIX   *mX, *m_xTx, *m_xTx_inv, *m_xTy, *mP, *m_xT;
+  VECTOR   *vY;
+  int N = 5 ;  /* min_dt +- .1*min_dt and .2*min_dt */
+  mX = MatrixAlloc(N, 3, MATRIX_REAL) ;
+  vY = VectorAlloc(N, MATRIX_REAL) ;
+
+  for( i=1; i<=N; i++ ) {
+    *MATRIX_RELT(mX, i, 1) = dt_in[i-1] * dt_in[i-1] ;
+    *MATRIX_RELT(mX, i, 2) = 2*dt_in[i-1] ;
+    *MATRIX_RELT(mX, i, 3) = 1.0f ;
+
+    VECTOR_ELT(vY, i) = rms_out[i-1] ;
+  }
+
+  m_xT = MatrixTranspose(mX, NULL) ;
+  m_xTx = MatrixMultiply(m_xT, mX, NULL) ;
+  m_xTx_inv = MatrixInverse(m_xTx, NULL) ;
+
+  if (m_xTx_inv) {
+    float a, b;
+
+    m_xTy = MatrixMultiply(m_xT, vY, NULL) ;
+    mP = MatrixMultiply(m_xTx_inv, m_xTy, NULL) ;
+    a = RVECTOR_ELT(mP, 1) ;
+    b = RVECTOR_ELT(mP, 2) ;
+    //c = RVECTOR_ELT(mP, 3);
+    
+    MatrixFree(&mP) ;
+    MatrixFree(&m_xTx_inv) ;
+    MatrixFree(&m_xTy) ;
+
+    if (finitep(a) && !FZERO(a)) {
+      parms->dt = -b/a ;
+      gcam.ApplyGradient( parms );
+      rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
+      gcam.UndoGradient();
+      
+      if( (rms<min_rms) &&
+	  ( (gcam.neg==0) || (parms->noneg == False) ) ) {
+        min_rms = rms ;
+        min_dt = parms->dt ;
+      }
+    }
+  }
+
+  MatrixFree(&m_xT) ;
+  MatrixFree(&m_xTx) ;
+  MatrixFree(&mX) ;
+  VectorFree(&vY) ;
+
+  int invalid;
+  gcam.ComputeMetricProperties( invalid );
+
+  parms->dt = orig_dt ;
+  
   return( min_dt );
 }
 
