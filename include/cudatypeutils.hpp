@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/03 17:28:21 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/04/08 20:04:09 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -126,7 +126,7 @@ void operator+=( float3& a, const float3 b ) {
 //! Addition for float3
 static inline
 __device__ __host__
-float3 operator+( const float3& a, const float3& b ) {
+const float3 operator+( const float3& a, const float3& b ) {
   float3 res = a;
 
   res += b;
@@ -148,7 +148,7 @@ void operator-=( float3& a, const float3 b ) {
 //! Subtraction for float3
 static inline
 __device__ __host__
-float3 operator-( const float3& a, const float3& b ) {
+const float3 operator-( const float3& a, const float3& b ) {
   float3 res = a;
 
   res -= b;
@@ -170,7 +170,7 @@ void operator*=( float3& a, const float b ) {
 //! Scalar multiplication for float3 (on right)
 static inline
 __device__ __host__
-float3 operator*( const float3& a, const float b ) {
+const float3 operator*( const float3& a, const float b ) {
   float3 res = a;
   
   res *= b;
@@ -181,7 +181,7 @@ float3 operator*( const float3& a, const float b ) {
 //! Scalar multiplication for float3 (on left)
 static inline
 __device__ __host__
-float3 operator*( const float b, const float3& a ) {
+const float3 operator*( const float b, const float3& a ) {
  
   return( a * b );
 }
@@ -199,7 +199,7 @@ void operator/=( float3& a, const float b ) {
 //! Scalar division for float3
 static inline
 __device__ __host__
-float3 operator/( const float3& a, const float b ) {
+const float3 operator/( const float3& a, const float b ) {
   float3 res = a;
 
   res /= b;
@@ -239,7 +239,7 @@ float mod( const float3& a ) {
 //! Cross product for float3
 static inline
 __device__ __host__
-float3 cross( const float3& a, const float3& b ) {
+const float3 cross( const float3& a, const float3& b ) {
   float3 res;
 
   res.x = (a.y*b.z) - (a.z*b.y);

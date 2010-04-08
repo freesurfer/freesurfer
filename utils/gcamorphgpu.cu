@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/06 20:09:57 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/04/08 20:04:06 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,7 @@
 #include "macros.h"
 
 #include "chronometer.hpp"
+#include "double3.hpp"
 
 #include "volumegpucompare.hpp"
 
