@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/12/11 02:32:35 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/04/08 02:16:38 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@
 // Return the CVS version of this file.
 const char *RFSrcVersion(void)
 {
-  return("$Id: randomfields.c,v 1.12 2008/12/11 02:32:35 greve Exp $");
+  return("$Id: randomfields.c,v 1.13 2010/04/08 02:16:38 greve Exp $");
 }
 
 /*-------------------------------------------------------------------*/
@@ -433,47 +433,46 @@ double RFdrawVal(RFS *rfs)
 }
 
 /*-------------------------------------------------------------------
-  RFtestVal() - returns the probability of getting a value of v or
-  greater from a random draw from the given distribution. Note:
+  RFstat2PVal() - returns the probability of getting a value of stat
+  or greater from a random draw from the given distribution. Note:
   this is a one-sided test (where sidedness makes sense).
   -------------------------------------------------------------------*/
 double RFstat2PVal(RFS *rfs, double stat)
 {
-  if (!strcmp(rfs->name,"uniform"))
-  {
+  double p = -1;
+  if (!strcmp(rfs->name,"uniform")){
     //params[0] = min
     //params[1] = max
-    return(sc_cdf_flat_Q(stat, rfs->params[0], rfs->params[1]));
+    p = sc_cdf_flat_Q(stat, rfs->params[0], rfs->params[1]);
   }
-  if (!strcmp(rfs->name,"gaussian"))
-  {
+  if (!strcmp(rfs->name,"gaussian")){
     //params[0] = mean
     //params[1] = std
-    return(sc_cdf_gaussian_Q(stat-rfs->params[0],rfs->params[1]));
+    p = sc_cdf_gaussian_Q(stat-rfs->params[0],rfs->params[1]);
   }
-  if (!strcmp(rfs->name,"z"))
-  {
+  if (!strcmp(rfs->name,"z")){
     //nparams=0, gaussian with mean=0, std=1
-    return(sc_cdf_gaussian_Q(stat,1));
+    p = sc_cdf_gaussian_Q(stat,1);
   }
-  if (!strcmp(rfs->name,"t"))
-  {
+  if (!strcmp(rfs->name,"t")) {
     //params[0] = dof
-    return(sc_cdf_tdist_Q(stat,rfs->params[0]));
+    p = sc_cdf_tdist_Q(stat,rfs->params[0]);
   }
-  if (!strcmp(rfs->name,"F"))
-  {
+  if (!strcmp(rfs->name,"F"))  {
     //params[0] = numerator dof (rows in C)
     //params[1] = denominator dof
-    return(sc_cdf_fdist_Q(stat,rfs->params[0],rfs->params[1]));
+    p = sc_cdf_fdist_Q(stat,rfs->params[0],rfs->params[1]);
   }
-  if (!strcmp(rfs->name,"chi2"))
-  {
+  if (!strcmp(rfs->name,"chi2")){
     //params[0] = dof
-    return(sc_cdf_chisq_Q(stat,rfs->params[0]));
+    p = sc_cdf_chisq_Q(stat,rfs->params[0]);
   }
-  printf("ERROR: RFstat2PVal(): field type %s unknown\n",rfs->name);
-  return(10000000000.0);
+  if(p == -1){
+    printf("ERROR: RFstat2PVal(): field type %s unknown\n",rfs->name);
+    return(10000000000.0);
+  }
+  if(isinf(p) || p < FLT_MIN) p = FLT_MIN;
+  return(p);
 }
 
 /*-------------------------------------------------------------------
