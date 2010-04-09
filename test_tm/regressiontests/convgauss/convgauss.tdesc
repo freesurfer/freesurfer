@@ -13,7 +13,7 @@ local inputFiles = { 'uchar-256-256-256.mgz', 'uchar-37-71-137.mgz',
 		     'short-256-256-256.mgz', 'short-37-71-137.mgz',
 		     'float-256-256-256.mgz', 'float-37-71-137.mgz', }
 -- Kernel sizes to use
-local sigmaVals = { 4, 15, 21 }
+local sigmaVals = { 0.5, 2, 6.383, 12.766, 4, 15, 21 }
 
 
 
