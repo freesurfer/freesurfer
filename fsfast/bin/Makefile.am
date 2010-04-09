@@ -145,6 +145,7 @@ FSF_FILES=\
 	lrst-blk-sess \
 	mc-afni \
 	mc-afni2 \
+	mcdat2mcextreg \
 	mcparams2extreg \
 	mc-sess \
 	meanimg \
