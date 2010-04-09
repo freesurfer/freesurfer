@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/25 15:13:02 $
- *    $Revision: 1.116 $
+ *    $Date: 2010/04/09 23:51:25 $
+ *    $Revision: 1.117 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -34,7 +34,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.116 2010/03/25 15:13:02 greve Exp $";
+"$Id: tkregister2.c,v 1.117 2010/04/09 23:51:25 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -120,6 +120,7 @@ static char vcid[] =
 #include "pdf.h"
 #include "resample.h"
 #include "pdf.h"
+#include "fmriutils.h"
 
 /* Prototypes */
 
@@ -452,7 +453,7 @@ int SurfRGB[3] = {0,255,0};
 int Register(ClientData clientData,
              Tcl_Interp *interp,
              int argc, char *argv[]) {
-  int i,j;
+  int i,j,err;
   FILE *fp;
 #ifdef HAVE_TCL_TK_GL
   int n,c,r,s;
@@ -627,11 +628,19 @@ int Register(ClientData clientData,
 
   /*------------------------------------------------------*/
   printf("INFO: loading target %s\n",targ_vol_path);
-  if(LoadVol)  targ_vol = MRIreadType(targ_vol_path,targ_vol_fmt);
-  else         targ_vol = MRIreadHeader(targ_vol_path,targ_vol_fmt);
-  if(targ_vol == NULL) {
-    printf("ERROR: could not read %s\n",targ_vol_path);
-    exit(1);
+  if(LoadVol)  {
+    targ_vol = MRIreadType(targ_vol_path,targ_vol_fmt);
+    if(targ_vol == NULL) exit(1);
+    if(targ_vol->nframes > 1){
+      // extract the first frame if necessary
+      mritmp = fMRIframe(targ_vol, 0, NULL);
+      MRIfree(&targ_vol);
+      targ_vol = mritmp;
+    }
+  }
+  else {
+    targ_vol = MRIreadHeader(targ_vol_path,targ_vol_fmt);
+    if(targ_vol == NULL) exit(1);
   }
   if(fstal && ZeroCRAS){
     printf("Zeroing CRAS of target\n");
@@ -702,8 +711,9 @@ int Register(ClientData clientData,
     MatrixMultiply(Mtc,Dtarg,Mtc);
     MatrixMultiply(Mtc,invTtarg,Mtc);
 
-    if (LoadVol) {
-      MRIvol2Vol(targ_vol, mritmp, Vt2s, SAMPLE_TRILINEAR, 0);
+    if(LoadVol) {
+      err = MRIvol2Vol(targ_vol, mritmp, Vt2s, SAMPLE_TRILINEAR, 0);
+      if(err) exit(1);
       MRIfree(&targ_vol);
     }
     targ_vol = mritmp;
@@ -2241,6 +2251,7 @@ void draw_image2(int imc,int ic,int jc) {
   float f=0;
   int NcFunc, NrFunc, NsFunc;
   Real rVoxVal;
+  double dVoxVal;
   float targimgmax, movimgmax;
   float targimgmin, movimgmin;
   float targimgrange, movimgrange;
@@ -2371,7 +2382,9 @@ void draw_image2(int imc,int ic,int jc) {
 	  /* This implements the trilinear interp - makes it so that
 	     when the same volume is loaded as targ and mov, the
 	     registration is perfect */
-	  MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
+	  //MRIsampleVolume(targ_vol,fcTarg,frTarg,fsTarg,&rVoxVal);
+	  MRIsampleVolumeFrame(targ_vol,fcTarg,frTarg,fsTarg,0,&dVoxVal);
+	  rVoxVal = dVoxVal;
 	  targimg[r][c] = rVoxVal;
 	}
 	else {
@@ -4890,7 +4903,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.116 2010/03/25 15:13:02 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.117 2010/04/09 23:51:25 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
