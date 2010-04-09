@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 14:45:36 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/04/09 17:32:12 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.7 2010/04/09 14:45:36 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.8 2010/04/09 17:32:12 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -90,6 +90,7 @@ int nFWHMList;
 double FWHMList[100];
 int SignList[3] = {-1,0,1}, nSignList=3;
 char *DoneFile = NULL;
+char *LogFile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -110,7 +111,7 @@ int main(int argc, char *argv[]) {
   struct timeb  mytimer;
   double searchspace,searchspaceGlmFit;
   LABEL *clabel;
-  FILE *fp;
+  FILE *fp, *fpLog=NULL;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -130,13 +131,19 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
+  if(LogFile){
+    fpLog = fopen(LogFile,"w");
+    if(fpLog == NULL){
+      printf("ERROR: opening %s\n",LogFile);
+      exit(1);
+    }
+    dump_options(fpLog);
+  } 
+
   if(SynthSeed < 0) SynthSeed = PDFtodSeed();
   srand48(SynthSeed);
 
   SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-
-  //sprintf(tmpstr,"%s/%s/%s/%s",OutTop,subject,hemi,MaskId);
-  //OutDir = strcpyalloc(tmpstr);
 
   // Create output directory
   printf("Creating %s\n",OutTop);
@@ -154,6 +161,7 @@ int main(int argc, char *argv[]) {
 	sprintf(fname,"%s/%s.csd",tmpstr,csdbase);
 	if(fio_FileExistsReadable(fname)){
 	  printf("ERROR: output file %s exists\n",fname);
+	  if(fpLog) fprintf(fpLog,"ERROR: output file %s exists\n",fname);
           exit(1);
 	}
 	err = fio_mkdirp(tmpstr,0777);
@@ -210,6 +218,7 @@ int main(int argc, char *argv[]) {
   for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
     nSmoothsList[nthFWHM] = MRISfwhm2niters(FWHMList[nthFWHM], surf);
     printf("%2d %5.1f  %4d\n",nthFWHM,FWHMList[nthFWHM],nSmoothsList[nthFWHM]);
+    if(fpLog) fprintf(fpLog,"%2d %5.1f  %4d\n",nthFWHM,FWHMList[nthFWHM],nSmoothsList[nthFWHM]);
   }
   printf("\n");
 
@@ -257,11 +266,15 @@ int main(int argc, char *argv[]) {
 
   // Start the simulation loop
   printf("\n\nStarting Simulation over %d Repetitions\n",nRepetitions);
+  if(fpLog) fprintf(fpLog,"\n\nStarting Simulation over %d Repetitions\n",nRepetitions);
   TimerStart(&mytimer) ;
   for(nthRep = 0; nthRep < nRepetitions; nthRep++){
     msecTime = TimerStop(&mytimer) ;
     printf("%5d %7.1f ",nthRep,(msecTime/1000.0)/60);
-
+    if(fpLog) {
+      fprintf(fpLog,"%5d %7.1f ",nthRep,(msecTime/1000.0)/60);
+      fflush(fpLog);
+    }
     // Synthesize an unsmoothed z map
     RFsynth(z,rfs,mask); 
     nSmoothsPrev = 0;
@@ -269,6 +282,10 @@ int main(int argc, char *argv[]) {
     // Loop through FWHMs
     for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
       printf("%d ",nthFWHM);
+      if(fpLog) {
+	fprintf(fpLog,"%d ",nthFWHM);
+	fflush(fpLog);
+      }
       nSmoothsDelta = nSmoothsList[nthFWHM] - nSmoothsPrev;
       nSmoothsPrev = nSmoothsList[nthFWHM];
       // Incrementally smooth z
@@ -317,11 +334,14 @@ int main(int argc, char *argv[]) {
       } // Thresh
     } // FWHM
     printf("\n");
+    if(fpLog) fprintf(fpLog,"\n");
   } // Simulation Repetition
 
   msecTime = TimerStop(&mytimer) ;
   printf("Total Sim Time %g min (%g per rep)\n",
 	 msecTime/(1000*60.0),(msecTime/(1000*60.0))/nRepetitions);
+  if(fpLog) fprintf(fpLog,"Total Sim Time %g min (%g per rep)\n",
+		    msecTime/(1000*60.0),(msecTime/(1000*60.0))/nRepetitions);
 
   // Save output
   printf("Saving results\n");
@@ -359,6 +379,7 @@ int main(int argc, char *argv[]) {
     fclose(fp);
   }
   printf("mri_mcsim done\n");
+  if(fpLog) fprintf(fpLog,"mri_mcsim done\n");
   exit(0);
 }
 /* --------------------------------------------- */
@@ -395,6 +416,11 @@ static int parse_commandline(int argc, char **argv) {
       ThreshList[0] = 2.0;
       ThreshList[1] = 3.0; 
       nSignList = 2;
+      subject = "fsaverage5";
+      hemi = "lh";
+      nRepetitions = 2;
+      csdbase = "junk";
+      SynthSeed = 53;
     }
     else if (!strcasecmp(option, "--o")) {
       if(nargc < 1) CMDargNErr(option,1);
@@ -404,6 +430,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--done")) {
       if(nargc < 1) CMDargNErr(option,1);
       DoneFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--log")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      LogFile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--base")) {
@@ -476,6 +507,7 @@ static void print_usage(void) {
   printf("   --mask maskfile : instead of label\n");
   printf("   --no-label : do not use a label to mask\n");
   printf("\n");
+  printf("   --log  LogFile \n");
   printf("   --done DoneFile : will create DoneFile when finished\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
@@ -554,5 +586,6 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"subject  %s\n",subject);
   fprintf(fp,"hemi     %s\n",hemi);
   if(MaskFile) fprintf(fp,"mask     %s\n",MaskFile);
+  fflush(fp);
   return;
 }
