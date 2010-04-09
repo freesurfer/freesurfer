@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.5 $
+ *    $Author: greve $
+ *    $Date: 2010/04/09 03:13:20 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,23 +24,6 @@
  * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-// Random field simulator
-//
-// Things to do:
-// 1. how to do two-sided tests --one-tailed --two-tailed
-// 2. surf
-// 3. smooth
-// 4. cluster
-// 5. glm
-// 6. smooth with ubermask
-// 7. label as ubermask
-// 8. binarize mask
-// 9. merge masks
-// 10. invert mask
-// 11. permute?
-// 12. power?
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,44 +67,50 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.5 2006/12/29 02:09:07 nicks Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.6 2010/04/09 03:13:20 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
 int checkoptsonly=0;
 struct utsname uts;
 
-MRI  *TempVol=NULL;
-char *TempVolFile=NULL;
+char *OutTop = NULL;
+char *csdbase = NULL;
+char *subject = NULL;
+char *hemi = NULL;
+char *MaskFile = NULL;
+char *LabelFile = "cortex";
+char *MaskId = "cortex";
+int nRepetitions = -1;
+int SynthSeed = -1;
 
-char *subject=NULL, *hemi=NULL, *SUBJECTS_DIR=NULL;
-MRIS *surf=NULL;
-
-double VWPThresh = -1; // voxel-wise p-threshold
-char  *VWSign = "abs";
-
-char  *UberMaskFile=NULL;
-MRI   *UberMask=NULL;
-
-MRI   *Mask=NULL;
-char  *MaskFile=NULL;
-double MaskThresh=0;
-char  *MaskSign = "abs";
-int    MaskInvertFlag=0;
-
-double fwhm =-1, gstd;
-int nreps=0;
-
-char *OutFile = NULL;
-
-RFS *rfs = NULL;
-int SynthSeed = 0;
+int nThreshList;
+double ThreshList[100];
+int nFWHMList;
+double FWHMList[100];
+int SignList[3] = {-1,0,1}, nSignList=3;
+char *DoneFile = NULL;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, nthrep;
-  double gmean, gstddev, gmax;
-  MRI *mritmp;
+  int nargs, n, msecTime, err;
+  char *cmdline, tmpstr[2000], *signstr=NULL,*SUBJECTS_DIR, fname[2000];
+  //char *OutDir = NULL;
+  struct utsname uts;
+  MRIS *surf;
+  RFS *rfs;
+  int *nSmoothsList, nSmoothsPrev, nSmoothsDelta, nthRep;
+  MRI *z, *zabs=NULL, *sig=NULL, *p=NULL, *mask=NULL;
+  int FreeMask = 0;
+  int nthSign, nthFWHM, nthThresh;
+  CSD *csdList[100][100][3], *csd;
+  double sigmax, zmax, threshadj, csize;
+  int nClusters, cmax,rmax,smax, nmask;
+  SURFCLUSTERSUM *SurfClustList;
+  struct timeb  mytimer;
+  double searchspace;
+  LABEL *clabel;
+  FILE *fp;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
@@ -141,47 +130,241 @@ int main(int argc, char *argv[]) {
   if (checkoptsonly) return(0);
   dump_options(stdout);
 
-  if (SynthSeed > 0) RFspecSetSeed(rfs,SynthSeed);
+  if(SynthSeed < 0) SynthSeed = PDFtodSeed();
+  srand48(SynthSeed);
 
-  TempVol = MRIread(TempVolFile);
-  if (TempVol == NULL) {
-    printf("ERROR: reading %s\n",TempVolFile);
-    exit(1);
-  }
+  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
 
-  if (UberMaskFile) {
-    UberMask = MRIread(UberMaskFile);
-    if (UberMask == NULL) {
-      printf("ERROR: reading %s\n",UberMaskFile);
-      exit(1);
+  //sprintf(tmpstr,"%s/%s/%s/%s",OutTop,subject,hemi,MaskId);
+  //OutDir = strcpyalloc(tmpstr);
+
+  // Create output directory
+  printf("Creating %s\n",OutTop);
+  err = fio_mkdirp(OutTop,0777);
+  if(err) exit(1);
+  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+    for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+      for(nthSign = 0; nthSign < nSignList; nthSign++){
+	if(SignList[nthSign] ==  0) signstr = "abs"; 
+	if(SignList[nthSign] == +1) signstr = "pos"; 
+	if(SignList[nthSign] == -1) signstr = "neg"; 
+	sprintf(tmpstr,"%s/fwhm%02d/%s/th%02d",
+		OutTop,(int)round(FWHMList[nthFWHM]),
+		signstr,(int)round(10*ThreshList[nthThresh]));
+	sprintf(fname,"%s/%s.csd",tmpstr,csdbase);
+	if(fio_FileExistsReadable(fname)){
+	  printf("ERROR: output file %s exists\n",fname);
+          exit(1);
+	}
+	err = fio_mkdirp(tmpstr,0777);
+	if(err) exit(1);
+      }
     }
   }
 
-  if (TempVol->type != MRI_FLOAT) {
-    printf("INFO: changing template type to float\n");
-    mritmp = MRIchangeType(TempVol,MRI_FLOAT,0,0,0);
-    if (mritmp == NULL) {
-      printf("ERROR: could change type\n");
-      exit(1);
+  // Load the target surface
+  sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+  printf("Loading %s\n",tmpstr);
+  surf = MRISread(tmpstr);
+  if(!surf) return(1);
+
+  // Handle masking
+  if(LabelFile){
+    sprintf(tmpstr,"%s/%s/label/%s.%s.label",SUBJECTS_DIR,subject,hemi,LabelFile);
+    if(!fio_FileExistsReadable(tmpstr)){
+      sprintf(tmpstr,"%s",LabelFile);
+      if(!fio_FileExistsReadable(tmpstr)){
+	printf("ERROR: cannot find label file %s\n",LabelFile);
+	exit(1);
+      }
     }
-    MRIfree(&TempVol);
-    TempVol = mritmp;
+    printf("Loading %s\n",tmpstr);
+    clabel = LabelRead(NULL, tmpstr);
+    mask = MRISlabel2Mask(surf, clabel, NULL);
+    FreeMask = 1;
+  }
+  if(MaskFile){
+    printf("Loading %s\n",MaskFile);
+    mask = MRIread(MaskFile);
+    if(mask == NULL) exit(1);
   }
 
-  for (nthrep = 0; nthrep < nreps; nthrep++) {
-    RFsynth(TempVol,rfs,UberMask);
-    RFglobalStats(TempVol, UberMask, &gmean, &gstddev, &gmax);
-    printf("%3d %lf %lf %lf\n",nthrep,gmean,gstddev,gmax);
-    MRIwrite(TempVol,"rf.mgh");
+
+  // Compute search space
+  searchspace = 0;
+  nmask = 0;
+  for(n=0; n < surf->nvertices; n++){
+    if(mask && MRIgetVoxVal(mask,n,0,0,0) < 0.5) continue;
+    searchspace += surf->vertices[n].area;
+    nmask++;
+  }
+  printf("Found %d voxels in mask\n",nmask);
+  if(surf->group_avg_surface_area > 0)
+    searchspace *= (surf->group_avg_surface_area/surf->total_area);
+  printf("true search space %g mm2\n",searchspace);
+  searchspace = surf->group_avg_surface_area*nmask/surf->nvertices;
+  printf("glmfit search space %g mm2\n",searchspace);
+
+  // Determine how many iterations are needed for each FWHM
+  nSmoothsList = (int *) calloc(sizeof(int),nFWHMList);
+  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+    nSmoothsList[nthFWHM] = MRISfwhm2niters(FWHMList[nthFWHM], surf);
+    printf("%2d %5.1f  %4d\n",nthFWHM,FWHMList[nthFWHM],nSmoothsList[nthFWHM]);
+  }
+  printf("\n");
+
+  // Allocate the CSDs
+  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+    for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+      for(nthSign = 0; nthSign < nSignList; nthSign++){
+	csd = CSDalloc();
+	sprintf(csd->simtype,"%s","null-z");
+	sprintf(csd->anattype,"%s","surface");
+	sprintf(csd->subject,"%s","fsaverage");
+	sprintf(csd->hemi,"%s","lh");
+	sprintf(csd->contrast,"%s","NA");
+	csd->seed = SynthSeed;
+	csd->nreps = nRepetitions;
+	csd->thresh = ThreshList[nthThresh];
+	csd->threshsign = SignList[nthSign];
+	csd->nullfwhm = FWHMList[nthFWHM];
+	csd->varfwhm = -1;
+	csd->searchspace = searchspace;
+	CSDallocData(csd);
+	csdList[nthFWHM][nthThresh][nthSign] = csd;
+      }
+    }
   }
 
-  return 0;
+  // Alloc the z map
+  z = MRIallocSequence(surf->nvertices, 1,1, MRI_FLOAT, 1);
+
+  // Set up the random field specification
+  rfs = RFspecInit(SynthSeed,NULL);
+  rfs->name = strcpyalloc("gaussian");
+  rfs->params[0] = 0;
+  rfs->params[1] = 1;
+
+  printf("Thresholds (%d): ",nThreshList);
+  for(n=0; n < nThreshList; n++) printf("%5.2f ",ThreshList[n]);
+  printf("\n");
+  printf("Signs (%d): ",nSignList);
+  for(n=0; n < nSignList; n++)  printf("%2d ",SignList[n]);
+  printf("\n");
+  printf("FWHM (%d): ",nFWHMList);
+  for(n=0; n < nFWHMList; n++) printf("%5.2f ",FWHMList[n]);
+  printf("\n");
+
+  // Start the simulation loop
+  printf("\n\nStarting Simulation over %d Repetitions\n",nRepetitions);
+  TimerStart(&mytimer) ;
+  for(nthRep = 0; nthRep < nRepetitions; nthRep++){
+    msecTime = TimerStop(&mytimer) ;
+    printf("%5d %7.1f ",nthRep,(msecTime/1000.0)/60);
+
+    // Synthesize an unsmoothed z map
+    RFsynth(z,rfs,mask); 
+    nSmoothsPrev = 0;
+    
+    // Loop through FWHMs
+    for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+      printf("%d ",nthFWHM);
+      nSmoothsDelta = nSmoothsList[nthFWHM] - nSmoothsPrev;
+      nSmoothsPrev = nSmoothsList[nthFWHM];
+      // Incrementally smooth z
+      MRISsmoothMRI(surf, z, nSmoothsDelta, mask, z); // smooth z
+      // Rescale
+      RFrescale(z,rfs,mask,z);
+      // Slightly tortured way to get the right p-values because
+      //   RFstat2P() computes one-sided, but I handle sidedness
+      //   during thresholding.
+      // First, use zabs to get a two-sided pval bet 0 and 0.5
+      zabs = MRIabs(z,zabs);
+      p = RFstat2P(zabs,rfs,mask,0,p);
+      // Next, mult pvals by 2 to get two-sided bet 0 and 1
+      MRIscalarMul(p,p,2.0);
+      sig = MRIlog10(p,NULL,sig,1); // sig = -log10(p)
+      for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+	for(nthSign = 0; nthSign < nSignList; nthSign++){
+	  csd = csdList[nthFWHM][nthThresh][nthSign];
+
+	  // If test is not ABS then apply the sign
+	  if(csd->threshsign != 0) MRIsetSign(sig,z,0);
+	  // Get the max stats
+	  sigmax = MRIframeMax(sig,0,mask,csd->threshsign,
+			       &cmax,&rmax,&smax);
+	  zmax = MRIgetVoxVal(z,cmax,rmax,smax,0);
+	  if(csd->threshsign == 0){
+	    zmax = fabs(zmax);
+	    sigmax = fabs(sigmax);
+	  }
+	  // Mask
+	  if(mask) MRImask(sig,mask,sig,0.0,0.0);
+
+	  // Surface clustering
+	  MRIScopyMRI(surf, sig, 0, "val");
+	  if(csd->threshsign == 0) threshadj = csd->thresh;
+	  else threshadj = csd->thresh - log10(2.0); // one-sided test
+	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
+						0,&nClusters,NULL);
+	  csize = sclustMaxClusterArea(SurfClustList, nClusters);
+	  // Store results
+	  csd->nClusters[nthRep] = nClusters;
+	  csd->MaxClusterSize[nthRep] = csize;
+	  csd->MaxSig[nthRep] = sigmax;
+	  csd->MaxStat[nthRep] = zmax;
+	} // Sign
+      } // Thresh
+    } // FWHM
+    printf("\n");
+  } // Simulation Repetition
+
+  msecTime = TimerStop(&mytimer) ;
+  printf("Total Sim Time %g min (%g per rep)\n",
+	 msecTime/(1000*60.0),(msecTime/(1000*60.0))/nRepetitions);
+
+  // Save output
+  printf("Saving results\n");
+  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+    for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+      for(nthSign = 0; nthSign < nSignList; nthSign++){
+	csd = csdList[nthFWHM][nthThresh][nthSign];
+	if(csd->threshsign ==  0) signstr = "abs"; 
+	if(csd->threshsign == +1) signstr = "pos"; 
+	if(csd->threshsign == -1) signstr = "neg"; 
+	sprintf(tmpstr,"%s/fwhm%02d/%s/th%02d/%s.csd",
+		OutTop,(int)round(FWHMList[nthFWHM]),
+		signstr,(int)round(10*ThreshList[nthThresh]),
+		csdbase);
+	fp = fopen(tmpstr,"w");
+	fprintf(fp,"# ClusterSimulationData 2\n");
+	fprintf(fp,"# mri_mcsim\n");
+	fprintf(fp,"# %s\n",cmdline);
+	fprintf(fp,"# %s\n",vcid);
+	fprintf(fp,"# hostname %s\n",uts.nodename);
+	fprintf(fp,"# machine  %s\n",uts.machine);
+	fprintf(fp,"# runtime_min %g\n",msecTime/(1000*60.0));
+	//fprintf(fp,"# FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
+	if(mask) fprintf(fp,"# masking 1\n");
+	else     fprintf(fp,"# masking 0\n");
+	fprintf(fp,"# SmoothLevel %d\n",nSmoothsList[nthFWHM]);
+	CSDprint(fp, csd);
+	fclose(fp);
+      }
+    }
+  }
+  if(DoneFile){
+    fp = fopen(DoneFile,"w");
+    fprintf(fp,"%g\n",msecTime/(1000*60.0));
+    fclose(fp);
+  }
+  printf("mri_mcsim done\n");
+  exit(0);
 }
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
-  int n;
 
   if (argc < 1) usage_exit();
 
@@ -201,77 +384,69 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
-    else if (!strcasecmp(option, "--mask-invert")) MaskInvertFlag = 1;
-
-    else if (!strcasecmp(option, "--temp-vol")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      TempVolFile = pargv[0];
+    else if (!strcasecmp(option, "--test")){
+      double fwhm;
+      nFWHMList = 0;
+      for(fwhm = 3; fwhm <= 6; fwhm++){
+	FWHMList[nFWHMList] = fwhm;
+	nFWHMList++;
+      }
+      nThreshList = 2;
+      ThreshList[0] = 2.0;
+      ThreshList[1] = 3.0; 
+      nSignList = 2;
+    }
+    else if (!strcasecmp(option, "--o")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      OutTop = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--temp-surf")) {
-      if (nargc < 2) CMDargNErr(option,2);
+    } 
+    else if (!strcasecmp(option, "--done")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      DoneFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--base")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      csdbase = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--surf") || 
+	     !strcasecmp(option, "--surface")) {
+      if(nargc < 2) CMDargNErr(option,1);
       subject = pargv[0];
-      hemi    = pargv[1];
-      SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-      if (SUBJECTS_DIR == NULL) {
-        printf("ERROR: SUBJECTS_DIR not defined in environment\n");
-        exit(1);
-      }
+      hemi = pargv[1];
       nargsused = 2;
-    } else if (!strcasecmp(option, "--vw-pthresh")) {
+    } 
+    else if (!strcasecmp(option, "--seed")) {
       if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&VWPThresh);
+      sscanf(pargv[0],"%d",&SynthSeed);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--vw-sign")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      VWSign = pargv[0];
-      nargsused = 1;
-    } else if (!strcasecmp(option, "--ubermask")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      UberMaskFile = pargv[0];
-      nargsused = 1;
-    } else if (!strcasecmp(option, "--mask")) {
-      if (nargc < 1) CMDargNErr(option,1);
+    } 
+    else if (!strcasecmp(option, "--mask")) {
+      if(nargc < 2) CMDargNErr(option,2);
       MaskFile = pargv[0];
-      nargsused = 1;
-    } else if (!strcasecmp(option, "--mask-thresh")) {
+      MaskId =  pargv[1];
+      LabelFile = NULL;
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--label")) {
+      if(nargc < 2) CMDargNErr(option,2);
+      LabelFile = pargv[0];
+      MaskId =  pargv[1];
+      MaskFile = NULL;
+      nargsused = 2;
+    } 
+    else if (!strcasecmp(option, "--no-label")) {
+      MaskId = "nomask";
+      LabelFile = NULL;
+    }
+    else if (!strcasecmp(option, "--nreps")) {
       if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&MaskThresh);
+      sscanf(pargv[0],"%d",&nRepetitions);
       nargsused = 1;
-    } else if (!strcasecmp(option, "--mask-sign")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      MaskSign = pargv[0];
-      nargsused = 1;
-    } else if (!strcasecmp(option, "--fwhm")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%lf",&fwhm);
-      nargsused = 1;
-    } else if (!strcasecmp(option, "--nreps")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&nreps);
-      nargsused = 1;
-    } else if (!strcasecmp(option, "--field")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      rfs = RFspecInit(0,NULL);
-      rfs->name = strcpyalloc(pargv[0]);
-      if (RFname2Code(rfs)==-1) {
-        printf("ERROR: field %s not supported\n",rfs->name);
-        exit(1);
-      }
-      printf("code = %d\n",rfs->code);
-      RFnparams(rfs);
-      if (nargc < rfs->nparams + 1) {
-        printf("ERROR: field %s requires %d parameters\n",rfs->name,rfs->nparams);
-        exit(1);
-      }
-      for (n=0; n < rfs->nparams; n++)
-        sscanf(pargv[n+1],"%lf",&(rfs->params[n]));
-      RFexpectedMeanStddev(rfs);
-      nargsused = rfs->nparams+1;
-    } else if (!strcasecmp(option, "--o")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      OutFile = pargv[0];
-      nargsused = 1;
-    } else {
+    } 
+    else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
         fprintf(stderr,"       Did you really mean -%s ?\n",option);
@@ -289,10 +464,19 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
-  printf("USAGE: %s \n",Progname) ;
+  printf("%s \n",Progname) ;
   printf("\n");
-  printf("   --temp-vol volfile : template volume \n");
+  printf("   --o top-output-dir\n");
+  printf("   --base csdbase\n");
+  printf("   --surface subjectname hemi\n");
+  printf("   --nreps nrepetitions\n");
+  printf("   \n");
+  printf("   --seed randomseed : default is to choose based on ToD\n");
+  printf("   --label labelfile : default is ?h.cortex.label \n");
+  printf("   --mask maskfile : instead of label\n");
+  printf("   --no-label : do not use a label to mask\n");
   printf("\n");
+  printf("   --done DoneFile : will create DoneFile when finished\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -314,29 +498,42 @@ static void print_version(void) {
 }
 /* --------------------------------------------- */
 static void check_options(void) {
-  if (TempVolFile == NULL && subject == NULL) {
-    printf("ERROR: need template volume or surface\n");
+  if(subject == NULL) {
+    printf("ERROR: must specify a surface\n");
     exit(1);
   }
-  if (VWPThresh < 0) {
-    printf("ERROR: --vw-pthresh needs to be set\n");
+  if(OutTop == NULL){
+    printf("ERROR: need to spec an output directory\n");
     exit(1);
   }
-  if (rfs==NULL) {
-    printf("ERROR: need to specify a random field\n");
+  if(csdbase==NULL) {
+    printf("ERROR: need to specify a csd base\n");
     exit(1);
   }
-  if (OutFile==NULL) {
-    printf("ERROR: need to specify an output file\n");
+  if(MaskFile && LabelFile) {
+    printf("ERROR: cannot specify both a mask and a label\n");
     exit(1);
   }
-  if (nreps < 1) {
+  if(nRepetitions < 1) {
     printf("ERROR: need to specify number of simulation repitions\n");
     exit(1);
   }
-  if (fwhm < 0) {
-    printf("ERROR: need to specify FWHM\n");
-    exit(1);
+  if(nFWHMList == 0){
+    double fwhm;
+    nFWHMList = 0;
+    for(fwhm = 1; fwhm <= 30; fwhm++){
+      FWHMList[nFWHMList] = fwhm;
+      nFWHMList++;
+    }
+  }
+  if(nThreshList == 0){
+    nThreshList = 6;
+    ThreshList[0] = 1.3; 
+    ThreshList[1] = 2.0;
+    ThreshList[2] = 2.3; 
+    ThreshList[3] = 3.0; 
+    ThreshList[4] = 3.3; 
+    ThreshList[5] = 4.0;
   }
   return;
 }
@@ -351,31 +548,11 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hostname %s\n",uts.nodename);
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
-
-  if (TempVolFile != NULL)
-    fprintf(fp,"tempvol     %s\n",TempVolFile);
-  if (subject != NULL)
-    fprintf(fp,"subject     %s\n",subject);
-  if (hemi != NULL)
-    fprintf(fp,"hemi     %s\n",hemi);
-  if (UberMaskFile != NULL)
-    fprintf(fp,"ubermask     %s\n",UberMaskFile);
-  if (Mask != NULL) {
-    fprintf(fp,"mask     %s\n",MaskFile);
-    fprintf(fp,"maskthresh  %lf\n",MaskThresh);
-    fprintf(fp,"masksign    %s\n",MaskSign);
-    fprintf(fp,"maskinvert  %d\n",MaskInvertFlag);
-  }
-  fprintf(fp,"vwpthresh  %lf\n",VWPThresh);
-  fprintf(fp,"vwsign     %s\n",VWSign);
-  fprintf(fp,"fwhm     %lf\n",fwhm);
-  fprintf(fp,"nreps    %d\n",nreps);
-  fprintf(fp,"OutFile  %s\n",OutFile);
-  RFprint(stdout, rfs);
-
+  fprintf(fp,"OutTop  %s\n",OutTop);
+  fprintf(fp,"CSDBase  %s\n",csdbase);
+  fprintf(fp,"nreps    %d\n",nRepetitions);
+  fprintf(fp,"subject  %s\n",subject);
+  fprintf(fp,"hemi     %s\n",hemi);
+  if(MaskFile) fprintf(fp,"mask     %s\n",MaskFile);
   return;
 }
-#if 0
-/*-------------------------------------------------------------------*/
-MRI *RFsynth(MRI *temp, RFS *rfs, MRI *rf, int nframes) {}
-#endif
