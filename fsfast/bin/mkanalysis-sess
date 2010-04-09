@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 23:08:34 $
-#    $Revision: 1.33 $
+#    $Date: 2010/04/09 14:46:35 $
+#    $Revision: 1.34 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.33 2010/04/06 23:08:34 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.34 2010/04/09 14:46:35 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -54,8 +54,6 @@ set runlistfile = ();
 set ncycles = ();
 set IdealTW = ();
 set PreStim = 0;
-set hanrad = 0;
-set fwhm   = 0;
 set nskip = 0;
 set TR  = ();
 set TER = ();
@@ -203,13 +201,7 @@ else if($designtype == "retinotopy" || $designtype == "abblocked") then
   echo "-delay   0" >> $sxacfg
 endif
 
-
 echo "-nskip $nskip" >> $sxacfg
-if($hanrad != 0) then
-  echo "-hanrad $hanrad" >> $sxacfg
-else
-  echo "-fwhm $fwhm" >> $sxacfg
-endif
 
 if($#extreg != 0) then
   echo "-extreg $extreg" >> $sxacfg
@@ -218,7 +210,10 @@ if($#extreg != 0) then
 endif
 
 if($inorm) then 
+  # flac.inorm = RescaleTarget
   echo "-rescale $RescaleTarget" >> $sxacfg
+else
+  echo "-rescale 0" >> $sxacfg
 endif
 
 if($#stimdur) echo "-stimdur $stimdur" >> $sxacfg
@@ -356,8 +351,6 @@ while( $#argv != 0 )
   if($#WhitenFlag == 0) set WhitenFlag = 0;
   set acfbins = `cat $cacfg | awk '{if($1 == "-acfbins") print $2}'`;
   set nskip  = `cat $cacfg | awk '{if($1 == "-nskip") print $2}'`;
-  set fwhm  = `cat $cacfg | awk '{if($1 == "-fwhm") print $2}'`;
-  if($#fwhm == 0) set fwhm = 0;
   set extreg  = `cat $cacfg | awk '{if($1 == "-extreg") print $2}'`;
   set nextreg  = `cat $cacfg | awk '{if($1 == "-nextreg") print $2}'`;
   set extregorthog = `cat $cacfg | awk '{if($1 == "-extregorthog") print 1}'`;
@@ -489,19 +482,6 @@ while( $#argv != 0 )
       set TR = $argv[1]; shift;
       breaksw
 
-    case "-hanrad":
-      echo "INFO: HanRad is obsolete, though you can still use it."
-      echo "If you really want to use HanRad, run mkanalysis-sess"
-      echo "with -hanrad-really. Otherwise, consider using spatialsmooth-sess."
-      echo "Do not use both."
-      exit 1;
-      breaksw
-
-    case "-hanrad-really":
-      if ( $#argv == 0) goto arg1err;
-      set hanrad = $argv[1]; shift;
-      breaksw
-
     case "-extreg": # External regressor file
       if ( $#argv == 0) goto arg1err;
       if($#extreg != 0) then
@@ -566,16 +546,8 @@ while( $#argv != 0 )
       set RefEventDur = $argv[1]; shift;
       breaksw
 
-    case "-fwhm-really":
-      if ( $#argv == 0) goto arg1err;
-      set fwhm = $argv[1]; shift;
-      breaksw
-
     case "-fwhm":
-      echo "INFO: FWHM is obsolete, though you can still use it."
-      echo "If you really want to use FWHM, run mkanalysis-sess"
-      echo "with -fwhm-really. Otherwise, consider using spatialsmooth-sess."
-      echo "Do not use both."
+      echo "ERROR: -fwhm is no longer supported in  mkanalysis-sess"
       exit 1;
       breaksw
 
@@ -664,34 +636,6 @@ while( $#argv != 0 )
       set designtype    = "retinotopy"
       breaksw
 
-    case "-notrendfit":
-      echo "ERROR: -notrendfit is no longer supported"
-      echo "  specify the polynomial order you want with -polyfit."
-      echo "  See -help."
-      exit 1;
-      breaksw
-
-    case "-qtrendfit":
-      echo "ERROR: -qtrendfit is no longer supported"
-      echo "  specify the polynomial order you want with -polyfit."
-      echo "  See -help."
-      exit 1;
-      breaksw
-
-    case "-noqtrendfit":
-      echo "ERROR: -noqtrendfit is no longer supported"
-      echo "  specify the polynomial order you want with -polyfit."
-      echo "  See -help."
-      exit 1;
-      breaksw
-
-    case "-nomeanfit":
-      echo "ERROR: -nomeanfit is no longer supported"
-      echo "  specify the polynomial order you want with -polyfit."
-      echo "  See -help."
-      exit 1;
-      breaksw
-
     case "-polyfit":
     case "-pf":
       if ( $#argv < 1) goto arg1err;
@@ -710,10 +654,7 @@ while( $#argv != 0 )
       set svsignal = "-svsignal";
       breaksw
 
-    case "-motioncor":
-      set motioncor = 1;
-      breaksw
-
+    case "-overwrite":
     case "-force":
       set force = 1;
       breaksw
@@ -764,11 +705,6 @@ while( $#argv != 0 )
       set monly = 1;
       set UseGUI = 1;
       set force = 1;
-      breaksw
-
-    case "-umask":
-      if ( $#argv == 0) goto arg1err;
-      setenv MRI_UMASK $1; shift;
       breaksw
 
     case "-no-fix-acf":
@@ -890,11 +826,6 @@ check_params:
     set IdealTW = $DefaultTWindow;
     set PreStim = 0;
     echo "INFO: setting SPM time window to $IdealTW sec"
-  endif
-
-  if("$hanrad" != "0" && "$fwhm" != "0") then
-    echo "ERROR: cannot specify hanrad and fwhm"
-    exit 1;
   endif
 
   if($eventrelated || $blocked) then
@@ -1087,8 +1018,6 @@ volume must exist in each functional run. By default, the stem is f.
 If the -motioncor flag is included, then the stem fmc is used (this is 
 the default output of mc-sess). 
  
--motioncor (see -funcstem stem).
- 
 -runlistfile filename (Shortcut: -rlf) 
 
 This is a file that should exist in each FSD that lists the runs to be 
@@ -1098,9 +1027,10 @@ all runs found in the FSD will be processed.
  
 -no-inorm 
 
-Do not perform intensity normalization (default, as of 6/3/08, is to
-apply it). Intensity normalization will force the grand within-tissue
-mean of the functional data to be 1000 for each run.
+Do not perform intensity normalization default is to
+apply it. Intensity normalization will force the grand within-tissue
+mean of the functional data to be 100 for each run (note that
+prior to version 5 the rescale factor was 1000).
 
 -fwhm Full-Width-Half-Max  
  
