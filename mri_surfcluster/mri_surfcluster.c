@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/17 01:12:32 $
- *    $Revision: 1.44 $
+ *    $Author: greve $
+ *    $Date: 2010/04/09 14:45:07 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,7 +69,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.44 2009/10/17 01:12:32 nicks Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.45 2010/04/09 14:45:07 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.44 2009/10/17 01:12:32 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.45 2010/04/09 14:45:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -935,6 +935,7 @@ static void print_usage(void) {
   printf("   --csdpdf csdpdffile\n");
   printf("   --csdpdf-only : write csd pdf file and exit.\n");
   printf("   --csd-out out.csd : write out merged csd files as one.\n");
+  printf("   --cwpvalthresh cwpvalthresh : clusterwise threshold\n");
   printf("\n");
   printf("   --fwhm    fwhm     :  fwhm in mm2 for GRF\n");
   printf("   --fwhmdat fwhm.dat :  text file with fwhm in mm2 for GRF\n");
@@ -1160,7 +1161,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.44 2009/10/17 01:12:32 nicks Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.45 2010/04/09 14:45:07 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
