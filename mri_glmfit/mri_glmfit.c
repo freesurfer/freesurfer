@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 17:13:48 $
- *    $Revision: 1.185 $
+ *    $Date: 2010/04/09 23:04:46 $
+ *    $Revision: 1.186 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -369,7 +369,7 @@ specifying surfname.
 --pca
 
 Flag to perform PCA/SVD analysis on the residual. The result is stored
-in glmdir/pca-eres as v.mgh (spatial eigenvectors), u.mat (frame
+in glmdir/pca-eres as v.mgh (spatial eigenvectors), u.mtx (frame
 eigenvectors), sdiag.mat (singular values). eres = u*s*v'. The matfiles
 are just ASCII text. The spatial EVs can be loaded as overlays in
 tkmedit or tksurfer. In addition, there is stats.dat with 5 columns:
@@ -561,7 +561,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.185 2010/04/09 17:13:48 greve Exp $";
+"$Id: mri_glmfit.c,v 1.186 2010/04/09 23:04:46 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1909,7 +1909,7 @@ int main(int argc, char **argv) {
     if (err) exit(1);
     sprintf(tmpstr,"%s/pca-eres/v.%s",GLMDir,format);
     MRIwrite(Vpca,tmpstr);
-    sprintf(tmpstr,"%s/pca-eres/u.mat",GLMDir);
+    sprintf(tmpstr,"%s/pca-eres/u.mtx",GLMDir);
     MatrixWriteTxt(tmpstr, Upca);
     sprintf(tmpstr,"%s/pca-eres/sdiag.mat",GLMDir);
     MatrixWriteTxt(tmpstr, Spca);
@@ -2668,7 +2668,7 @@ printf("\n");
 printf("--pca\n");
 printf("\n");
 printf("Flag to perform PCA/SVD analysis on the residual. The result is stored\n");
-printf("in glmdir/pca-eres as v.mgh (spatial eigenvectors), u.mat (frame\n");
+printf("in glmdir/pca-eres as v.mgh (spatial eigenvectors), u.mtx (frame\n");
 printf("eigenvectors), sdiag.mat (singular values). eres = u*s*v'. The matfiles\n");
 printf("are just ASCII text. The spatial EVs can be loaded as overlays in\n");
 printf("tkmedit or tksurfer. In addition, there is stats.dat with 5 columns:\n");
