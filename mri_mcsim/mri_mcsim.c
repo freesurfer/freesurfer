@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 03:13:20 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/04/09 14:45:36 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.6 2010/04/09 03:13:20 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.7 2010/04/09 14:45:36 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -108,7 +108,7 @@ int main(int argc, char *argv[]) {
   int nClusters, cmax,rmax,smax, nmask;
   SURFCLUSTERSUM *SurfClustList;
   struct timeb  mytimer;
-  double searchspace;
+  double searchspace,searchspaceGlmFit;
   LABEL *clabel;
   FILE *fp;
 
@@ -201,8 +201,8 @@ int main(int argc, char *argv[]) {
   printf("Found %d voxels in mask\n",nmask);
   if(surf->group_avg_surface_area > 0)
     searchspace *= (surf->group_avg_surface_area/surf->total_area);
-  printf("true search space %g mm2\n",searchspace);
-  searchspace = surf->group_avg_surface_area*nmask/surf->nvertices;
+  printf("search space %g mm2\n",searchspace);
+  searchspaceGlmFit = surf->group_avg_surface_area*nmask/surf->nvertices;
   printf("glmfit search space %g mm2\n",searchspace);
 
   // Determine how many iterations are needed for each FWHM
