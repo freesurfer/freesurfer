@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/04/09 21:54:49 $
- *    $Revision: 1.52 $
+ *    $Date: 2010/04/09 22:01:16 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@
 #endif // FS_CUDA
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.52 2010/04/09 21:54:49 nicks Exp $";
+  "$Id: mris_sphere.c,v 1.53 2010/04/09 22:01:16 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -122,13 +122,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.52 2010/04/09 21:54:49 nicks Exp $",
+   "$Id: mris_sphere.c,v 1.53 2010/04/09 22:01:16 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.52 2010/04/09 21:54:49 nicks Exp $",
+           "$Id: mris_sphere.c,v 1.53 2010/04/09 22:01:16 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -182,7 +182,7 @@ main(int argc, char *argv[]) {
 
   parms.scale = scale ;
 
-  if (argc < 3)
+  if (argc != 3) // catches args beyond the expected two
     usage_exit() ;
 
   parms.base_dt = base_dt_scale * parms.dt ;
