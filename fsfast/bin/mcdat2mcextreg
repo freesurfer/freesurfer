@@ -1,0 +1,199 @@
+#!/bin/tcsh -f
+# mcdat2extreg
+
+set VERSION = '$Id: mcdat2mcextreg,v 1.1 2010/04/09 23:06:38 greve Exp $';
+
+set mcdat = ();
+set extreg = ();
+set Demean = 0;
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set PrintHelp = 0;
+
+set inputargs = ($argv);
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set outdir = `dirname $extreg`;
+
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.mcdat2extreg.$$
+mkdir -p $tmpdir
+
+if($#LF == 0) set LF = $outdir/mcdat2extreg.log
+if($LF != /dev/null) rm -f $LF
+
+echo "Log file for mcdat2extreg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+uname -a  | tee -a $LF
+
+# OK, this is convoluted
+# First create a table like those created by asegstats2table
+# This can be read by mri_glmfit, which is then used to
+# convert it to an image "volume". 
+
+set tblfile = $tmpdir/table.dat
+rm -f $tblfile
+echo "Measure:MC Tx Ty Tz Rx Ry Rz" >> $tblfile
+cat $mcdat | awk '{print $1" "$2" "$3" "$4" "$5" "$6" "$7}' >> $tblfile
+
+set glmdir = $tmpdir/glm
+set cmd = (mri_glmfit --table $tblfile --glmdir $glmdir --osgm)
+set cmd = ($cmd --y-out $tmpdir/y.out.mgh --pca)
+echo $cmd
+$cmd
+if($status) exit 1;
+
+if($Demean == 0) then
+  mri_concat $tmpdir/y.out.mgh --pca --o $tmpdir/pca.mgh
+  if($status) exit 1;
+  set u = $tmpdir/pca.u.mtx
+else
+  set u = $glmdir/pca-eres/u.mtx
+endif
+rm -f $extreg
+cat $u | awk '{print $1" "$2" "$3" "$4" "$5" "$6}' > $extreg
+if($status) exit 1;
+
+if($cleanup) rm -rf $tmpdir
+
+echo "mcdat2mcextreg done"
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--i":
+    case "--mcdat":
+      if($#argv < 1) goto arg1err;
+      set mcdat = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+    case "--extreg":
+      if($#argv < 1) goto arg1err;
+      set extreg = $argv[1]; shift;
+      breaksw
+
+    case "--demean":
+      set Demean = 1;
+      breaksw
+
+    case "--no-demean":
+      set Demean = 0;
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#mcdat == 0) then
+  echo "ERROR: must spec mcdat"
+  exit 1;
+endif
+if($#extreg == 0) then
+  echo "ERROR: must spec extreg"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "mcdat2extreg --i mcdat --o extreg"
+  echo "  --demean : remove mean"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes an FSFAST external regressor file from the motion correction
+parameters. It runs an SVD and takes the first 6 components.
+Basically the same as mcparams2extreg, but does not require matlab.
+
+
