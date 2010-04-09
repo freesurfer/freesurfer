@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/01/20 23:59:47 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/04/09 14:43:09 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.23 2010/01/20 23:59:47 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.24 2010/04/09 14:43:09 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -244,8 +244,8 @@ int main(int argc, char *argv[]) {
     printf("GroupSurface %f\n",surf->group_avg_surface_area);
   else                                 
     printf("GroupSurface 0\n");
-  if(getenv("FIX_VERTEX_AREA") != NULL) printf("FIX_VERTEX_AREA 1\n");
-  else                                  printf("FIX_VERTEX_AREA 0\n");
+  //if(getenv("FIX_VERTEX_AREA") != NULL) printf("FIX_VERTEX_AREA 1\n");
+  //else                                  printf("FIX_VERTEX_AREA 0\n");
   printf("AvgVtxArea       %lf\n",avgvtxarea);
   printf("AvgVtxDist       %lf\n",InterVertexDistAvg);
   printf("StdVtxDist       %lf\n",InterVertexDistStdDev);
@@ -358,8 +358,8 @@ int main(int argc, char *argv[]) {
     fprintf(fp,"Total area         %lf\n",surf->total_area);
     if (surf->group_avg_surface_area > 0) fprintf(fp,"GroupSurface %f\n",surf->group_avg_surface_area);
     else                                 fprintf(fp,"GroupSurface 0\n");
-    if (getenv("FIX_VERTEX_AREA") != NULL) fprintf(fp,"FIX_VERTEX_AREA 1\n");
-    else                                  fprintf(fp,"FIX_VERTEX_AREA 0\n");
+    //if (getenv("FIX_VERTEX_AREA") != NULL) fprintf(fp,"FIX_VERTEX_AREA 1\n");
+    //else                                  fprintf(fp,"FIX_VERTEX_AREA 0\n");
     fprintf(fp,"AvgVtxArea       %lf\n",avgvtxarea);
     fprintf(fp,"AvgVtxDist       %lf\n",InterVertexDistAvg);
     fprintf(fp,"StdVtxDist       %lf\n",InterVertexDistStdDev);
@@ -687,6 +687,7 @@ static void dump_options(FILE *fp) {
   of group subjects (such as fsaverage). The output file will
   have 3 columns: (1) niterations, (2) corresponding fwhm 
   when not fixing, (3) corresponding fwhm  when fixing.
+  This should have no effect any more (4/9/10)
   -------------------------------------------------------------*/
 int FixGroupAreaTest(MRIS *surf, char *outfile)
 {

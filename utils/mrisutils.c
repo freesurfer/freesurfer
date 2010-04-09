@@ -6,9 +6,9 @@
 /*
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:46 $
- *    $Revision: 1.35 $
+ *    $Author: greve $
+ *    $Date: 2010/04/09 14:43:09 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1554,11 +1554,13 @@ int MRISfwhm2niters(double fwhm, MRIS *surf)
 
   if (surf->group_avg_surface_area > 0)  {
     // This should be ok even if metric properties have been scaled ??
-    if (getenv("FIX_VERTEX_AREA") != NULL)    {
-      printf("INFO: fwhm2niters: Fixing group surface area\n");
-      avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
-    }
-    else printf("INFO: fwhm2niters: NOT fixing group surface area\n");
+    // Always do this now (4/9/10)
+    avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
+    //if(getenv("FIX_VERTEX_AREA") != NULL)    {
+    //printf("INFO: fwhm2niters: Fixing group surface area\n");
+    // avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
+    //}
+    //else printf("INFO: fwhm2niters: NOT fixing group surface area\n");
   }
 
   gstd = fwhm/sqrt(log(256.0));
@@ -1578,11 +1580,13 @@ double MRISniters2fwhm(int niters, MRIS *surf)
 
   if (surf->group_avg_surface_area > 0)  {
     // This should be ok even if metric properties have been scaled ??
-    if (getenv("FIX_VERTEX_AREA") != NULL)    {
-      printf("INFO: niters2fwhm: Fixing group surface area\n");
-      avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
-    }
-    else printf("INFO: fwhm2niters: NOT fixing group surface area\n");
+    // Always do this now (4/9/10)
+    avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
+    //if (getenv("FIX_VERTEX_AREA") != NULL)    {
+    //printf("INFO: niters2fwhm: Fixing group surface area\n");
+    // avgvtxarea *= (surf->group_avg_surface_area/surf->total_area);
+    //}
+    //else printf("INFO: fwhm2niters: NOT fixing group surface area\n");
   }
 
   gstd = sqrt(7*avgvtxarea*niters/(1.14*4*PI));
@@ -1629,12 +1633,15 @@ double MRISfwhmFromAR1(MRIS *surf, double ar1)
   InterVertexDistAvg = surf->avg_vertex_dist;
   if (surf->group_avg_surface_area > 0)  {
     // This should be ok even if metric properties have been scaled ??
-    if (getenv("FIX_VERTEX_AREA") != NULL)    {
-      printf("INFO: fwhmFromAR1: Fixing group surface area\n");
-      InterVertexDistAvg *= 
-        sqrt(surf->group_avg_surface_area/surf->total_area);
-    }
-    else printf("INFO: fwhmFromAR1: NOT fixing group surface area\n");
+    // Always do this now (4/9/10)
+    InterVertexDistAvg *= 
+      sqrt(surf->group_avg_surface_area/surf->total_area);
+    //if (getenv("FIX_VERTEX_AREA") != NULL)    {
+    //printf("INFO: fwhmFromAR1: Fixing group surface area\n");
+    //InterVertexDistAvg *= 
+    //  sqrt(surf->group_avg_surface_area/surf->total_area);
+    //}
+    //else printf("INFO: fwhmFromAR1: NOT fixing group surface area\n");
   }
 
   if (ar1 > 0.0)  {

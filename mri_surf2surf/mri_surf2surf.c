@@ -10,9 +10,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/04 19:52:05 $
- *    $Revision: 1.86 $
+ *    $Author: greve $
+ *    $Date: 2010/04/09 14:43:09 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -346,7 +346,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.86 2010/01/04 19:52:05 fischl Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.87 2010/04/09 14:43:09 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -466,7 +466,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.86 2010/01/04 19:52:05 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.87 2010/04/09 14:43:09 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -657,11 +657,14 @@ int main(int argc, char **argv) {
       // this uses area and not group_avg_area.
       SrcVals = MRIcopyMRIS(NULL, SurfSrc, 0, "area");
       if (SurfSrc->group_avg_surface_area > 0) {
-        if (getenv("FIX_VERTEX_AREA") != NULL) {
-          printf("INFO: Fixing group surface area\n");
-          val = SurfSrc->group_avg_surface_area / SurfSrc->total_area;
-          MRIscalarMul(SrcVals,SrcVals,val);
-        }
+	val = SurfSrc->group_avg_surface_area / SurfSrc->total_area;
+	MRIscalarMul(SrcVals,SrcVals,val);
+	// Always fix now (4/9/10)
+        //if (getenv("FIX_VERTEX_AREA") != NULL) {
+	//printf("INFO: Fixing group surface area\n");
+	//val = SurfSrc->group_avg_surface_area / SurfSrc->total_area;
+	//MRIscalarMul(SrcVals,SrcVals,val);
+        //}
       }
     }
     if (UseSurfSrc == SURF_SRC_ANNOT) {

@@ -8,8 +8,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/07/10 18:02:49 $
- *    $Revision: 1.48 $
+ *    $Date: 2010/04/09 14:43:09 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@
   ---------------------------------------------------------------*/
 const char *vclustSrcVersion(void)
 {
-  return("$Id: volcluster.c,v 1.48 2009/07/10 18:02:49 greve Exp $");
+  return("$Id: volcluster.c,v 1.49 2010/04/09 14:43:09 greve Exp $");
 }
 
 static int ConvertCRS2XYZ(int col, int row, int slc, MATRIX *CRS2XYZ,
@@ -1424,8 +1424,10 @@ CLUSTER_SIM_DATA *CSDalloc(void)
   csd->varfwhm = -1;
   csd->searchspace = -1;
   csd->nreps = -1;
-  if(getenv("FIX_VERTEX_AREA") == NULL) csd->FixGroupSubjectArea = 0; 
-  else                                  csd->FixGroupSubjectArea = 1; 
+  // Always do this now (4/9/10)
+  csd->FixGroupSubjectArea = 1; 
+  //if(getenv("FIX_VERTEX_AREA") == NULL) csd->FixGroupSubjectArea = 0; 
+  //else                                  csd->FixGroupSubjectArea = 1; 
 
   return(csd);
 }

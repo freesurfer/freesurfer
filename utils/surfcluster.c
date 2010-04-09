@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/03/09 21:32:33 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/04/09 14:43:09 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,7 +53,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.23 2009/03/09 21:32:33 greve Exp $");
+  return("$Id: surfcluster.c,v 1.24 2010/04/09 14:43:09 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -217,8 +217,10 @@ float sclustSurfaceArea(int ClusterNo, MRI_SURFACE *Surf, int *nvtxs)
     // version of mri_surfcluster. However, the CSD format was also
     // changed to be incompatible with the old CSD reader.
 
-    if (getenv("FIX_VERTEX_AREA") != NULL)
-      ClusterArea *= (Surf->group_avg_surface_area/Surf->total_area);
+    // Always do this now (4/9/10)
+    ClusterArea *= (Surf->group_avg_surface_area/Surf->total_area);
+    //if (getenv("FIX_VERTEX_AREA") != NULL)
+    //ClusterArea *= (Surf->group_avg_surface_area/Surf->total_area);
   }
 
   return(ClusterArea);
