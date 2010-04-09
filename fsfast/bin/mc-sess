@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/02 00:06:43 $
-#    $Revision: 1.22 $
+#    $Date: 2010/04/09 23:07:38 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.22 2010/04/02 00:06:43 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.23 2010/04/09 23:07:38 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -190,8 +190,9 @@ foreach sess ($SessList)
 
     # Create the external regresssor file -- this requires matlab
     echo "INFO: Making external regressor from mc params" |& tee -a $LF
-    set cmd = (mcparams2extreg -mcfile $outstem.mcdat -northog 6)
-    set cmd = ($cmd -extreg $run/mcextreg)
+    #set cmd = (mcparams2extreg -mcfile $outstem.mcdat -northog 6)
+    #set cmd = ($cmd -extreg $run/mcextreg)
+    set cmd = (mcdat2mcextreg --i $outstem.mcdat --o $run/mcextreg)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -256,8 +257,13 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "-per-run":
     case "-perrun":
       set PerRun = 1;
+      breaksw
+
+    case "-per-session":
+      set PerRun = 0;
       breaksw
 
     case "-nolog":
@@ -318,7 +324,7 @@ if($#SessList == 0) then
 endif
 if($#funcmcstem == 0) then
   if($PerRun) then
-    set funcmcstem = fmc.pr
+    set funcmcstem = fmcpr
   else
     set funcmcstem = fmc
   endif
@@ -347,9 +353,10 @@ usage_exit:
   echo "Optional Arguments:";
   echo "   -fsd dir        (optional - default = bold)"
   echo "   -fstem fstem       : stem of input volume <f>"
-  echo "   -fmcstem fmcstem   : stem of output motion-corrected volume (fmc)"
+  echo "   -fmcstem fmcstem   : stem of output motion-corrected volume (fmc or fmcpr)"
   echo ""
-  echo "   -perrun            : MC each run separately (targ=mid)"
+  echo "   -per-run           : MC each run to run-level template"
+  echo "   -per-session       : MC each run to session-level template"
   echo "   -outfmt format     : nii, nii.gz, mgh, or mgz (default is $outfmt)"
   echo "   -update            : only mc if input is newer than output"
   echo "   -version           : print version and exit"
@@ -373,7 +380,7 @@ with fmc.mcdat and mcextreg.bhdr).
 You must have run mktemplate-sess first.
 
 When running with -perrun and no explicit output, the oustem is
-set to fmc.pr
+set to fmcpr
 
 Those using the AFNI motion correction should cite:
 
