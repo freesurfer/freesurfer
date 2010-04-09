@@ -118,7 +118,8 @@ int main( int argc, char *argv[] ) {
 
   // ======================================
 
-  MRI* kernel = MRIgaussian1d( sigma, static_cast<int>( ceilf( sigma ) ) );
+  // The zero prevents the kernel size being limited
+  MRI* kernel = MRIgaussian1d( sigma, 0 );
 
   tTotal.Start();
   for( unsigned int i=0; i<repeats; i++ ) {
