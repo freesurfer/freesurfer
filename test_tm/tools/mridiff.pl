@@ -41,7 +41,7 @@ EOT
 # ----------------------------------
 # Run mri_diff
 
-my $cmdline = "mri_diff $cmp1File $cmp2File --thresh $threshold";
+my $cmdline = "mri_diff --verbose $cmp1File $cmp2File --thresh $threshold --diff diff.mgz";
 #print "$cmdline\n";
 
 system( $cmdline );
