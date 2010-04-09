@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/08 02:40:09 $
- *    $Revision: 1.184 $
+ *    $Date: 2010/04/09 17:13:48 $
+ *    $Revision: 1.185 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -67,7 +67,8 @@ USAGE: ./mri_glmfit
 
    --mask maskfile : binary mask
    --label labelfile : use label as mask, surfaces only
-   --cortex : use subjects ?h.cortex.label as --label
+   --no-mask : do NOT use a mask (same as --no-cortex)
+   --no-cortex : do NOT use subjects ?h.cortex.label as --label
    --mask-inv : invert mask
    --prune : remove voxels that do not have a non-zero value at each frame (def)
    --no-prune : do not prune
@@ -324,17 +325,16 @@ assumes that the input is a volume and will perform volume smoothing.
 --mask maskfile
 --label labelfile
 --mask-inv
+--cortex 
 
 Only perform analysis where mask=1. All other voxels will be set to 0.
 If using surface, then labelfile will be converted to a binary mask
-(requires --surf). If --mask-inv is flagged, then performs analysis
+(requires --surf). By default, the label file for surfaces is 
+?h.cortex.label. To force a no-mask with surfaces, use --no-mask or 
+--no-cortex. If --mask-inv is flagged, then performs analysis
 only where mask=0. If performing a simulation (--sim), map maximums
 and clusters will only be searched for in the mask. The final binary
 mask will automatically be saved in glmdir/mask.mgh
-
---cortex 
-
-use subjects ?h.cortex.label as --label
 
 --prune
 --no-prune
@@ -561,7 +561,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.184 2010/04/08 02:40:09 greve Exp $";
+"$Id: mri_glmfit.c,v 1.185 2010/04/09 17:13:48 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -696,7 +696,7 @@ int ComputeFWHM = 1;
 
 int UseStatTable = 0;
 STAT_TABLE *StatTable=NULL, *OutStatTable=NULL;
-int  UseCortexLabel = 0;
+int  UseCortexLabel = 1;
 
 char *SimDoneFile = NULL;
 int tSimSign = 0;
@@ -1003,9 +1003,9 @@ int main(int argc, char **argv) {
 
   mriglm->mask = NULL;
   // Load the mask file ----------------------------------
-  if (maskFile != NULL) {
+  if(maskFile != NULL) {
     mriglm->mask = MRIread(maskFile);
-    if (mriglm->mask  == NULL) {
+    if(mriglm->mask  == NULL) {
       printf("ERROR: reading mask file %s\n",maskFile);
       exit(1);
     }
@@ -1058,15 +1058,20 @@ int main(int argc, char **argv) {
   } else nmask = nvoxels;
   maskfraction = (double)nmask/nvoxels;
 
-  if (surf != NULL)  {
-    searchspace = surf->total_area * maskfraction;
+  if(surf != NULL)  {
+    searchspace = 0;
+    for(n=0; n < surf->nvertices; n++){
+      if(mriglm->mask && MRIgetVoxVal(mriglm->mask,n,0,0,0) < 0.5) continue;
+      searchspace += surf->vertices[n].area;
+    }
     if (surf->group_avg_surface_area > 0)
       searchspace *= (surf->group_avg_surface_area/surf->total_area);
-  } else  {
+  } 
+  else{
     voxelsize = mriglm->y->xsize * mriglm->y->ysize * mriglm->y->zsize;
     searchspace = nmask * voxelsize;
   }
-  printf("search space = %g\n",searchspace);
+  printf("search space = %lf\n",searchspace);
 
   // Check number of frames ----------------------------------
   if (mriglm->y->nframes != mriglm->Xg->rows) {
@@ -2186,16 +2191,23 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcmp(option, "--mask")) {
       if (nargc < 1) CMDargNErr(option,1);
       maskFile = pargv[0];
+      labelFile = NULL;
+      UseCortexLabel = 0;      
       nargsused = 1;
     } 
     else if (!strcmp(option, "--label")) {
       if (nargc < 1) CMDargNErr(option,1);
       labelFile = pargv[0];
+      maskFile = NULL;
+      UseCortexLabel = 0;      
       nargsused = 1;
     } 
-    else if (!strcmp(option, "--cortex")) {
-      UseCortexLabel = 1;
-    } 
+    else if (!strcmp(option, "--cortex"))   UseCortexLabel = 1;
+    else if (!strcmp(option, "--no-mask") || !strcmp(option, "--no-cortex")) {
+      labelFile = NULL;
+      maskFile = NULL;
+      UseCortexLabel = 0;
+    }
     else if (!strcmp(option, "--w")) {
       if (nargc < 1) CMDargNErr(option,1);
       wFile = pargv[0];
@@ -2612,17 +2624,16 @@ printf("\n");
 printf("--mask maskfile\n");
 printf("--label labelfile\n");
 printf("--mask-inv\n");
+printf("--cortex \n");
 printf("\n");
 printf("Only perform analysis where mask=1. All other voxels will be set to 0.\n");
 printf("If using surface, then labelfile will be converted to a binary mask\n");
-printf("(requires --surf). If --mask-inv is flagged, then performs analysis\n");
+printf("(requires --surf). By default, the label file for surfaces is \n");
+printf("?h.cortex.label. To force a no-mask with surfaces, use --no-mask or \n");
+printf("--no-cortex. If --mask-inv is flagged, then performs analysis\n");
 printf("only where mask=0. If performing a simulation (--sim), map maximums\n");
 printf("and clusters will only be searched for in the mask. The final binary\n");
 printf("mask will automatically be saved in glmdir/mask.mgh\n");
-printf("\n");
-printf("--cortex \n");
-printf("\n");
-printf("use subjects ?h.cortex.label as --label\n");
 printf("\n");
 printf("--prune\n");
 printf("--no-prune\n");
@@ -2856,11 +2867,7 @@ static void check_options(void) {
       exit(1);
     }
   }
-  if(UseCortexLabel && labelFile != NULL){
-    printf("ERROR: cannot use --label and --cortex\n");
-    exit(1);
-  }
-  if(UseCortexLabel){
+  if(UseCortexLabel && surf){
     sprintf(tmpstr,"%s/%s/label/%s.cortex.label",SUBJECTS_DIR,subject,hemi);
     labelFile = strcpyalloc(tmpstr);
   }
@@ -2868,7 +2875,7 @@ static void check_options(void) {
     printf("ERROR: need --surf with --label\n");
     exit(1);
   }
-  if (prunemask && DoSim) {
+  if(prunemask && DoSim) {
     printf("ERROR: do not use --prune with --sim\n");
     exit(1);
   }
