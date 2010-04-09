@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/01/06 22:22:56 $
- *    $Revision: 1.35 $
+ *    $Author: greve $
+ *    $Date: 2010/04/09 03:08:15 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 #include "bfileio.h"
 #include "fio.h"
 #include "machine.h"
@@ -938,4 +939,36 @@ char *fio_fullpath(const char *fname)
   return(fullpath);
 }
 
+// Replicates mkdir -p
+int fio_mkdirp(const char *path, mode_t mode)
+{
+  int l,n,m,nthseg,err;
+  char seg[2000], path2[2000];
+  memset(path2,'\0',2000);
 
+  l = strlen(path);
+
+  n = 0;
+  nthseg = 0;
+  while(n < l){
+    m = 0;
+    while(n < l && path[n] != '/'){
+      seg[m] = path[n];
+      m++;
+      n++;
+    }
+    seg[m] = '\0';
+    if(nthseg == 0 && path[0] != '/') sprintf(path2,"%s",seg);
+    else        sprintf(path2,"%s/%s",path2,seg);
+    err = mkdir(path2,mode);
+    if(err != 0 && errno != EEXIST) {
+      printf("ERROR: creating directory %s\n",path2);
+      perror(NULL);
+      return(err);
+    }
+    while(n < l && path[n] == '/') n++;
+    nthseg ++;
+  }
+
+  return(0);
+}

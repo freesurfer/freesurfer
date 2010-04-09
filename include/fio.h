@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/01/06 22:22:56 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2010/04/09 03:08:15 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -99,6 +99,7 @@ int fio_NLines(const char *fname);
 int fio_pushd(const char *dir);
 int fio_popd(void);
 char *fio_fullpath(const char *fname);
+int fio_mkdirp(const char *path, mode_t mode);
 
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
 
