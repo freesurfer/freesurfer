@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 23:07:00 $
-#    $Revision: 1.8 $
+#    $Date: 2010/04/10 00:11:28 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.8 2010/04/06 23:07:00 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.9 2010/04/10 00:11:28 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -36,6 +36,8 @@ set interp = trilin
 set PerRun = 1;
 set maskname = brain
 set maskdir = masks
+set fwhm = 0;
+set MaskedSmoothing = 1;
 set RunListFile = ();
 set UpdateOnly = 0;
 set nolog = 0;
@@ -144,14 +146,14 @@ foreach sess ($SessList)
       set reg = $sess/$fsd/$Run/$regfile
       if(! -e $reg) then
         echo "ERROR: cannot find $reg" | tee -a $LF
-        echo "Try running register-sess with -perrun" | tee -a $LF
+        echo "Try running register-sess with -per-run" | tee -a $LF
         exit 1;
       endif
       set maskstem = $sess/$fsd/$maskdir/$maskname
       set mask = `stem2fname $maskstem`
       if($status) then
         echo "$mask" | tee -a $LF
-        echo "Try running mkbrainmask-sess with -perrun" | tee -a $LF
+        echo "Try running mkbrainmask-sess with -per-run" | tee -a $LF
         exit 1;
       endif
       set outmask = $sess/$fsd/$Run/$maskdir/$maskname.tal.$outfmt
@@ -176,6 +178,15 @@ foreach sess ($SessList)
       continue
     endif
 
+    # Create the mask
+    set cmd = (mri_vol2vol --mov $mask --reg $reg \
+      --tal --talres $talres --talxfm $talxfm --nearest \
+      --no-save-reg --o $outmask)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+
+    # Convert the native functional space data
     set cmd = (mri_vol2vol --mov $invol --reg $reg \
       --tal --talres $talres --talxfm $talxfm --interp $interp \
       --no-save-reg --o $outvol)
@@ -183,12 +194,15 @@ foreach sess ($SessList)
     $cmd | tee -a $LF
     if($status) exit 1;
 
-    set cmd = (mri_vol2vol --mov $mask --reg $reg \
-      --tal --talres $talres --talxfm $talxfm --nearest \
-      --no-save-reg --o $outmask)
-    echo $cmd | tee -a $LF
-    $cmd | tee -a $LF
-    if($status) exit 1;
+    # Smooth if desired
+    if($fwhm > 0) then
+      set cmd = (mri_fwhm --i $invol --o $invol --smooth-only) 
+      if($#fwhm)   set cmd = ($cmd --fwhm $fwhm); # 3D smoothing
+      if($MaskedSmoothing) set cmd = ($cmd --mask $outmask)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+    endif
 
   end  # Loop over runs
 
@@ -226,15 +240,28 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
+    case "-runlistfile":
     case "-rlf":
       if ( $#argv == 0) goto arg1err;
       set RunListFile = $argv[1]; shift;
       breaksw
 
+    case "-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-no-masked-smooth":
+      set MaskedSmooth = 0;
+      breaksw
+
+    case "-per-run":
     case "-perrun":
       set PerRun = 1;
       breaksw
 
+    case "-per-session":
+    case "-no-per-run":
     case "-no-perrun":
       set PerRun = 0;
       breaksw
@@ -314,7 +341,9 @@ if($#instem == 0) then
   if($PerRun)   set instem = fmcpr
   if(! $PerRun) set instem = fmc
 endif
-if($#outstem == 0) set outstem = $instem.tal
+if($#outstem == 0) then
+  set outstem = $instem.sm$fwhm.tal
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -329,7 +358,6 @@ arg1err:
 usage_exit:
   echo "rawfunc2tal-sess"
   echo ""
-  echo " Required"
   echo " Session Arguments (some required)"
   echo "  -sf sessidfile  ..."
   echo "  -df srchdirfile ..."
@@ -337,6 +365,8 @@ usage_exit:
   echo "  -d  srchdir     ..."
   echo ""
   echo " Optional Arguments"
+  echo "  -fwhm FWHM : smooth by FWHM mm"
+  echo "  -no-masked-smooth : do not mask when smoothing"
   echo "  -i instem  : default is fmc.pr"
   echo "  -o outstem : default is instem.tal"
   echo "  -fsd dir     : functional subdirectory ($fsd)"
@@ -345,7 +375,7 @@ usage_exit:
   echo "  -1mm         : set output resolution to 1mm (default is 2mm)"
   echo "  -xfm tal.xfm : xfm file found in subject/mri/transforms (default is $talxfm)"
   echo "  -reg regfile : default is register.dat"
-  echo "  -no-perrun   : do not use per-run registration and masks"
+  echo "  -per-session : use session-level registration and mask instead of -per-run"
   echo ""
   echo "  -update : only run if update is needed"
   echo "  -force : force an update (default)"
