@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/02 00:06:28 $
-#    $Revision: 1.21 $
+#    $Date: 2010/04/10 00:12:20 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spatialsmooth-sess,v 1.21 2010/04/02 00:06:28 greve Exp $';
+set VERSION = '$Id: spatialsmooth-sess,v 1.22 2010/04/10 00:12:20 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -33,7 +33,7 @@ set outstem = ();
 set fwhm = ();
 set fwhm2d = ();
 set RunListFile = ();
-set UseMask = 0;
+set UseMask = 1;
 set maskdir = masks
 set maskfile = brain
 set PerRun = 0; # only applies to mask
@@ -150,7 +150,7 @@ foreach sess ($SessList)
       set mask = `stem2fname $maskstem`      
       if($status) then
         echo "$mask" | tee -a $LF
-        echo "Try running mkbrainmask-sess with -perrun"
+        echo "Try running mkbrainmask-sess with -per-run"
         exit 1;
       endif
     endif
@@ -250,8 +250,16 @@ while( $#argv != 0 )
       set UseMask = 0;
       breaksw
 
+    case "-per-run":
     case "-perrun":
       set PerRun = 1;
+      breaksw
+
+    case "-per-sess":
+    case "-per-session":
+    case "-no-per-run":
+    case "-noperrun":
+      set PerRun = 0;
       breaksw
 
     case "-update":
@@ -323,7 +331,7 @@ check_params:
   endif
 
   if($PerRun && ! $UseMask) then
-    echo "ERROR: -perrun only needed with -mask"
+    echo "ERROR: -per-run only needed with -mask"
     exit 1;
   endif
 
@@ -355,8 +363,9 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo ""
   echo "Other Arguments"
-  echo "   -mask : smooth only within brain mask"
   echo "   -update         : only run if input is newer than output"
+  echo "   -no-mask        : do not mask smoothing"
+  echo "   -per-run        : use per-run mask (default is session-level)"
   echo "   -outfmt format  : nii, mgh, nii.gz, etc. Default nii."
   echo ""
   echo "   -version        : print version and exit"
