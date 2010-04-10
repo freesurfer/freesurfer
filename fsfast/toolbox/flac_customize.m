@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/06 18:40:19 $
-%    $Revision: 1.43 $
+%    $Date: 2010/04/10 00:10:52 $
+%    $Revision: 1.44 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -94,7 +94,7 @@ flacnew.funcfspec = fstem;
 
 % MC parameters
 if(~isempty(flac.subject) | flac.UseTalairach)
-  fname = sprintf('%s/fmc.pr.mcdat',runpath);
+  fname = sprintf('%s/fmcpr.mcdat',runpath);
 else
   fname = sprintf('%s/fmc.mcdat',runpath);
 end
