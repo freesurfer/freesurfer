@@ -8,10 +8,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2007/12/14 18:45:08 $
-#    $Revision: 1.8 $
+#    $Date: 2010/04/10 17:32:08 $
+#    $Revision: 1.9 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA). 
 # All rights reserved.
 #
@@ -21,10 +21,9 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_glmfit,v 1.8 2007/12/14 18:45:08 nicks Exp $'
+set VERSION='$Id: test_mri_glmfit,v 1.9 2010/04/10 17:32:08 nicks Exp $'
 
 umask 002
 
@@ -41,7 +40,8 @@ gunzip -c teststats.tar.gz | tar xvf -
 cd teststats
 setenv SUBJECTS_DIR $PWD
 set cmd=(../mri_glmfit --seed 1234 --y lh.gender_age.thickness.10.mgh \
-  --fsgd gender_age.txt doss\
+  --fsgd gender_age.txt doss \
+  --no-cortex \
   --glmdir lh.gender_age.glmdir \
   --surf average lh \
   --C age.mat)
