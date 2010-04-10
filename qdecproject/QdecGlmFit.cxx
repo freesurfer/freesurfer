@@ -9,8 +9,8 @@
  * Original Authors: Nick Schmansky and Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/19 20:02:47 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/04/10 17:37:40 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -102,7 +102,7 @@ int QdecGlmFit::Run ( QdecGlmDesign* iGlmDesign )
     }
     else
     {
-      ssCortexLabel << "";
+      ssCortexLabel << " --no-mask ";
     }
   }
 
