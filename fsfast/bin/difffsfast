@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/10 20:16:56 $
-#    $Revision: 1.4 $
+#    $Date: 2010/04/10 00:13:10 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
-
+set ShowNoExist = 1;
 
 if($#argv != 2 && $#argv != 3) then
   echo "USAGE: difffsfast fs1 fs2 <showdiff>"
@@ -43,8 +43,10 @@ foreach m1 ($fs1/toolbox/*.m)
   set b = `basename $m1`;
   set m2 = $fs2/toolbox/$b
   if(! -e $m2) then
-    echo "----------------------------------------"
-    echo "$b exists in $fs1 but not in $fs2"
+    if($ShowNoExist) then
+      echo "----------------------------------------"
+      echo "$b exists in $fs1 but not in $fs2"
+    endif
   else
     # Can't use $ before Id because cvs substitutes it
     set cmd = (diff -b -B -I 'Id: ' -I 'Date:' -I 'Author:' \
@@ -63,7 +65,7 @@ end
 foreach m2 ($fs2/toolbox/*.m)
   set b = `basename $m2`;
   set m1 = $fs1/toolbox/$b
-  if(! -e $m1) then
+  if(! -e $m1 && $ShowNoExist) then
     echo "----------------------------------------"
     echo "$b exists in $fs2 but not in $fs1"
   endif
@@ -75,8 +77,10 @@ foreach m1 ($fs1/bin/*)
   set b = `basename $m1`;
   set m2 = $fs2/bin/$b
   if(! -e $m2) then
-    echo "----------------------------------------"
-    echo "$b exists in $fs1 but not in $fs2"
+    if($ShowNoExist) then
+      echo "----------------------------------------"
+      echo "$b exists in $fs1 but not in $fs2"
+    endif
   else
     set cmd = (diff -b -B -I 'Id: ' -I 'Date:' -I 'Author:' \
       -I 'Revision:' -I '^#' -I '^%' $m1 $m2)

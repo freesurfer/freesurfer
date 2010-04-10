@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 23:07:00 $
-#    $Revision: 1.26 $
+#    $Date: 2010/04/10 00:13:10 $
+#    $Revision: 1.27 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.26 2010/04/06 23:07:00 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.27 2010/04/10 00:13:10 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -43,11 +43,11 @@ set fwhm     = ();
 set surffwhm = ();
 set SliceOrder = ();
 set fsd     = bold;
-set rlf     = ();
 set mcrun    = ();
 set mctargstem = ();
 set mctargframe = ();
 set MCPerRun = 0;
+set RunListFile = ();
 
 set UpdateOnly = 1;
 set DoTemplate = 1;
@@ -157,6 +157,7 @@ foreach sess ($SessList)
 
   if($DoTemplate) then
     set cmd = (mktemplate-sess -s $sessid -d $sessparent -fsd $fsd)
+    if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid Template -----------------------------" |& tee -a $LF
@@ -169,6 +170,7 @@ foreach sess ($SessList)
     set cmd = (mkbrainmask-sess -maskstem $maskstem)
     set cmd = ($cmd -fsd $fsd)
     set cmd = ($cmd -s $sessid -d $sessparent)
+    if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
     if($nolog) set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid Mask ------------------------" |& tee -a $LF
@@ -180,8 +182,9 @@ foreach sess ($SessList)
   if($DoMC) then
     set cmd = (mc-sess -fstem $mcinstem -fmcstem $mcoutstem)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
+    if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
     if($MCPerRun)   set cmd = ($cmd -perrun)
-    if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
+    if($#rlf != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid MC -----------------------------" |& tee -a $LF
@@ -194,7 +197,7 @@ foreach sess ($SessList)
     set cmd = (stc-sess -i $stcinstem -o $stcoutstem)
     if($#SliceOrder) set cmd = ($cmd -so $SliceOrder)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
-    if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
+    if($#rlf != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid STC -----------------------------" |& tee -a $LF
@@ -207,7 +210,7 @@ foreach sess ($SessList)
     set cmd = (spatialsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
     set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent)
     if($#UseSmoothMask)  set cmd = ($cmd -mask);
-    if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
+    if($#rlf != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid Volume Smoothing ---------------------" |& tee -a $LF
@@ -221,7 +224,7 @@ foreach sess ($SessList)
     set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent -reg $regfile)
     if($#ProjFrac)  set cmd = ($cmd -projfrac $ProjFrac)
     if($DoProjAvg)  set cmd = ($cmd -projfrac-avg)
-    if($#rlf != 0)  set cmd = ($cmd -rlf $rlf);
+    if($#rlf != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($MCPerRun)   set cmd = ($cmd -perrun)
@@ -236,7 +239,7 @@ foreach sess ($SessList)
     set cmd = (inorm-sess -funcstem $inormstem )
     set cmd = ($cmd  -fsd $fsd -nskip $nskip)
     set cmd = ($cmd -s $sessid -d $sessparent)
-    if($#rlf != 0) set cmd = ($cmd -rlf $rlf);
+    if($#rlf != 0) set cmd = ($cmd -rlf $RunListFile);
     if($nolog)     set cmd = ($cmd -nolog);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
@@ -271,11 +274,13 @@ while( $#argv != 0 )
       set instem = $argv[1]; shift;
       breaksw
 
+    case "-mc-in":
     case "-mcin":
       if ( $#argv == 0) goto arg1err;
       set mcinstem = $argv[1]; shift;
       breaksw
 
+    case "-mc-out":
     case "-mcout":
       if ( $#argv == 0) goto arg1err;
       set mcoutstem = $argv[1]; shift;
@@ -364,15 +369,18 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
+    case "-runlistfile":
     case "-rlf":
       if ( $#argv == 0) goto arg1err;
-      set rlf = $argv[1]; shift;
+      set RunListFile = $argv[1]; shift;
       breaksw
 
     case "-nomc":
       set DoMC = 0;
       breaksw
 
+    case "-mc-per-run":
+    case "-mc-perrun":
     case "-mcperrun":
       set MCPerRun = 1;
       breaksw
@@ -380,13 +388,13 @@ while( $#argv != 0 )
     case "-per-run":
     case "-perrun":
       set MCPerRun = 1;
-      set MaskPerRun = 1;
       breaksw
 
     case "-per-session":
+    case "-no-per-run":
+    case "-no-perrun":
     case "-persession":
       set MCPerRun = 0;
-      set MaskPerRun = 0;
       breaksw
 
     case "-no-stc":
@@ -577,12 +585,7 @@ usage_exit:
   echo "  -inorm        : perform intensity normalization (off by default)"
   echo "  -nskip N      : do not use first N TRs when inorming"
   echo ""
-  echo "  -mcperrun : perform motion correction on all runs separately"
-  echo "  -mcnthrun nthrun : use nthrun as reference"
-  echo "  -mcrun    RRR    : use run RRR as reference"
-  echo "  -mctargstem stem : use stem as target instead of mcin"
-  echo "  -mctargframe frame : 0-based frame to use as MC target/reference (def 0)"
-  echo "  -maskperrun : perform masking on all runs separately"
+  echo "  -mc-per-run : perform motion correction on all runs separately"
   echo ""
   echo "  -perrun : perform masking and MC on all runs separately"
   echo ""

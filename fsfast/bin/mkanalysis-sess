@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/09 14:46:35 $
-#    $Revision: 1.34 $
+#    $Date: 2010/04/10 00:13:10 $
+#    $Revision: 1.35 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.34 2010/04/09 14:46:35 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.35 2010/04/10 00:13:10 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -491,8 +491,12 @@ while( $#argv != 0 )
       set extreg = $argv[1]; shift;
       breaksw
 
+    case "-no-mcextreg": 
+    case "-nomcextreg": 
     case "-no-extreg": 
+    case "-noextreg": 
       set extreg = ();
+      set nextreg = ();
       breaksw
 
     case "-mcextreg": # MotionCor External regressor file

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 18:34:26 $
-#    $Revision: 1.5 $
+#    $Date: 2010/04/10 00:13:10 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.5 2010/04/06 18:34:26 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.6 2010/04/10 00:13:10 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -45,6 +45,7 @@ set nolog        = 0;
 set LF = ();
 set DoPBSub = 0;
 set DoBackground = 0;
+set RunListFile = ();
 
 set UpdateOnly = 0;
 
@@ -147,7 +148,7 @@ foreach sess ($SessList)
 
   pushd $sess > /dev/null
 
-  set RunList = `getrunlist $fsd`
+  set RunList = `getrunlist $fsd $RunListFile`
   if($status) then
     echo "$RunList" |& tee -a $LF
     exit 1;
@@ -400,6 +401,12 @@ while( $#argv != 0 )
       set LF = $argv[1]; shift;
       breaksw
 
+    case "-runlistfile":
+    case "-rlf":
+      if($#argv < 1) goto arg1err;
+      set RunListFile = $argv[1]; shift;
+      breaksw
+
     case "-force":
       set UpdateOnly = 0;
       breaksw
@@ -516,10 +523,10 @@ usage_exit:
   echo "   -dof DOF : registration degrees of freedome (default is $dof)"
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fstargvol)"
   echo ""
-  echo "   -fsd dir     : functional subdirectory ($fsd)"
-  echo "   -perrun      : register each run separately"
-  echo "   -per-session : register once for each session"
+  echo "   -per-run      : register to template in each run separately"
+  echo "   -per-session  : register to session-level template"
   echo "   -regfile file  : Save reg as file instead of register.dat"
+  echo "   -fsd dir      : functional subdirectory ($fsd)"
   echo ""
   echo "   -bbr-xopts xopts : expert options for bbregister"
   echo "   -fsl-xopts xopts : expert options for fslregister"
