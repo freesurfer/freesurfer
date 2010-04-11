@@ -91,6 +91,7 @@
           norm     1      1     <outputFile> = norm(<file1>)
 
       RELATIONAL
+          eq       2      1     <outputFile> = <file1> == <file2>
           lt       2      1     <outputFile> = <file1> <  <file2>
           lte      2      1     <outputFile> = <file1> <= <file2>
           gt       2      1     <outputFile> = <file1> >  <file2>
@@ -187,6 +188,7 @@
         The relational operations apply the relevant evaluation at each
         index in the input data sets.
 
+              'eq'      -- equal to
               'lt'      -- less than
               'gt'      -- greater than
               'lte'     -- less than or equal to

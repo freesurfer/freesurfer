@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2010/03/22 16:47:14 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/04/11 21:00:33 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.26 2010/03/22 16:47:14 rudolph Exp $";
+"$Id: mris_calc.c,v 1.27 2010/04/11 21:00:33 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -113,6 +113,7 @@ typedef enum _operation {
   e_mag,
   e_abs,
   e_sign,
+  e_eq,
   e_lt,
   e_lte,
   e_gt,
@@ -266,6 +267,7 @@ double fn_atan2(float af_A, float af_B) {return (atan2(af_A,af_B));}
 double fn_mag(float af_A, float af_B)   {return (sqrt(af_A*af_A + af_B*af_B));}
 
 // Simple relational functions on two float arguments
+double  fn_eq(float af_A,  float af_B)  {return (af_A == af_B ? af_A : 0.0);}
 double  fn_lt(float af_A,  float af_B)  {return (af_A < af_B ? af_A : 0.0);}
 double  fn_lte(float af_A, float af_B)  {return (af_A <= af_B? af_A : 0.0);}
 double  fn_gt(float af_A,  float af_B)  {return (af_A > af_B ? af_A : 0.0);}
@@ -492,7 +494,7 @@ synopsis_show(void) {
  \n\
         --label <FreeSurferLabelFile> \n\
         -l <FreeSurferLabelFile> \n\
-        If specified, constrain the calculation to the vertices defined in \n\
+        If specified, constraint the calculation to the vertices defined in \n\
         the <FreeSurferLabelFile>. This is most useful for calculations \n\
         relating to curvature and thickness files that are defined on a \n\
         surface. \n\
@@ -547,6 +549,7 @@ synopsis_show(void) {
           norm     1      1     <outputFile> = norm(<file1>) \n\
  \n\
       RELATIONAL \n\
+          eq       2      1     <outputFile> = <file1> == <file2> \n\
           lt       2      1     <outputFile> = <file1> <  <file2> \n\
           lte      2      1     <outputFile> = <file1> <= <file2> \n\
           gt       2      1     <outputFile> = <file1> >  <file2> \n\
@@ -587,10 +590,10 @@ synopsis_show(void) {
         to floats for this operation. Output sign convention and 0 handling \n\
         follows that of fmod(): \n\
  \n\
-        fmod ( Â±0, y )   returns Â±0 for y not zero. \n\
+        fmod ( ±0, y )   returns ±0 for y not zero. \n\
         fmod ( x, y )    returns a NaN and raises the invalid floating-point \n\
                          exception for x infinite or y zero. \n\
-        fmod ( x, Â±inf ) returns x for x not infinite. \n\
+        fmod ( x, ±inf ) returns x for x not infinite. \n\
  \n\
         The 'sqr' and 'sqrt' return the square and square-root of an input \n\
         file. \n\
@@ -643,6 +646,7 @@ synopsis_show(void) {
         The relational operations apply the relevant evaluation at each \n\
         index in the input data sets. \n\
  \n\
+              'eq'      -- equal to \n\
               'lt'      -- less than \n\
               'gt'      -- greater than \n\
               'lte'     -- less than or equal to \n\
@@ -750,6 +754,8 @@ synopsis_show(void) {
                 $>cp rh.area rh.ICV \n\
                 $>mris_calc rh.ICV set 100000 \n\
                 $>mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV \n\
+ \n\
+ \n\
  \n\
 \n");
 
@@ -1318,7 +1324,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.26 2010/03/22 16:47:14 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.27 2010/04/11 21:00:33 rudolph Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1467,6 +1473,7 @@ operation_lookup(
   else if(!strcmp(apch_operation, "abs"))       e_op    = e_abs;
   else if(!strcmp(apch_operation, "sign"))      e_op    = e_sign;
 
+  else if(!strcmp(apch_operation, "eq"))        e_op    = e_eq;
   else if(!strcmp(apch_operation, "lt"))        e_op    = e_lt;
   else if(!strcmp(apch_operation, "lte"))       e_op    = e_lte;
   else if(!strcmp(apch_operation, "gt"))        e_op    = e_gt;
@@ -1768,6 +1775,7 @@ b_outCurvFile_write(e_operation e_op)
         e_op == e_mag           ||
         e_op == e_abs           ||
         e_op == e_sign		||
+        e_op == e_eq            ||
         e_op == e_lt            ||
         e_op == e_lte           ||
         e_op == e_gt            ||
@@ -1844,6 +1852,7 @@ CURV_process(void)
     case  e_sign:	CURV_functionRunAC( fn_sign);	break;
     case  e_sqr:        CURV_functionRunAC( fn_sqr);    break;
     case  e_sqrt:       CURV_functionRunAC( fn_sqrt);   break;
+    case  e_eq:         CURV_functionRunABC(fn_eq);     break;
     case  e_lt:         CURV_functionRunABC(fn_lt);     break;
     case  e_lte:        CURV_functionRunABC(fn_lte);    break;
     case  e_gt:         CURV_functionRunABC(fn_gt);     break;
