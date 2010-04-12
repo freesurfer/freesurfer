@@ -77,10 +77,9 @@ endif
 EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
 	fsaverage5.tar.gz fsaverage6.tar.gz \
-	EC_average.tar.gz
+	EC_average.tar.gz mult-comp-cor.tar.gz
 
 install: install-fooDATA
-	mkdir -p $(DESTDIR)$(prefix)/subjects
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(top_builddir)/distribution/average/fsaverage
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
@@ -125,6 +124,14 @@ install: install-fooDATA
 	mv $(top_builddir)/distribution/average/?h.EC_average \
 		$(DESTDIR)$(prefix)/subjects
 	chmod -R 775 $(DESTDIR)$(prefix)/subjects/?h.EC_average
+	mkdir -p $(DESTDIR)$(prefix)/subjects
+	rm -Rf $(DESTDIR)$(prefix)/mult-comp-cor
+	rm -Rf $(top_builddir)/distribution/average/mult-comp-cor
+	gunzip -c $(top_srcdir)/distribution/average/mult-comp-cor.tar.gz | tar xvf -
+	pwd
+	mv $(top_builddir)/distribution/average/mult-comp-cor \
+		$(DESTDIR)$(prefix)/average
+	chmod -R 775 $(DESTDIR)$(prefix)/average/mult-comp-cor
 	cd surf; make install
 
 uninstall-hook:
