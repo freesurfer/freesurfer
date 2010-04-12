@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/02 23:17:12 $
-%    $Revision: 1.44 $
+%    $Date: 2010/04/12 04:09:47 $
+%    $Revision: 1.45 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -106,8 +106,8 @@ fprintf('RED %g\n',flac.RefEventDur);
 %----------- Read in the analysis.cfg -------------------
 TER = flac.TR;
 PolyOrder = 0;
-extreg = '';
-nextreg = 0;
+extregList = '';
+nextregList = [];
 nskip = 0;
 ncycles = [];
 delay = 0;
@@ -154,7 +154,11 @@ while(1)
    case '-acfbins',    flac.acfbins = sscanf(tline,'%*s %d',1);
    case '-autostimdur',flac.autostimdur = 1;
    case '-noautostimdur',flac.autostimdur = 0;
-   case '-extreg',     extreg      = sscanf(tline,'%*s %s',1);
+   case '-extreg',     
+    extreg      = sscanf(tline,'%*s %s',1);
+    extregList = strvcat(extregList,extreg);
+    nextreg     = sscanf(tline,'%*s %*s %d',1);
+    nextregList = [nextregList nextreg];
    case '-nextreg',    nextreg     = sscanf(tline,'%*s %d',1);
    case '-rescale',    flac.inorm  = sscanf(tline,'%*s %f',1);
    case '-nskip',      nskip       = sscanf(tline,'%*s %d',1);
@@ -200,8 +204,8 @@ if(delay ~= 0)      flac.stimulusdelay = delay; end
 ana.analysis     = analysis;
 ana.designtype   = designtype;
 ana.PolyOrder    = PolyOrder;
-ana.extreg       = extreg;
-ana.nextreg      = nextreg;
+ana.extregList   = extregList;
+ana.nextregList  = nextregList;
 ana.ncycles      = ncycles ;
 ana.nconditions  = nconditions;
 if(~isempty(ConditionNames))
@@ -354,12 +358,17 @@ if(PolyOrder > 0)
   nthev = nthev+1;
 end
 
-if(~isempty(extreg))
-  tline = sprintf('EV %s nonpar nuis %s %d',extreg,extreg,nextreg);
-  flac.ev(nthev) = flac_ev_parse(tline);
-  nthev = nthev+1;
+if(~isempty(extregList))
+  nlist = size(extregList,1);
+  for n = 1:nlist
+    extreg = deblank(extregList(n,:));
+    nextreg = nextregList(n);
+    extregevname = basename(extreg,'dat'); % remove .dat
+    tline = sprintf('EV %s nonpar nuis %s %d',extregevname,extreg,nextreg);
+    flac.ev(nthev) = flac_ev_parse(tline);
+    nthev = nthev+1;
+  end
 end
-
 
 if(~isempty(flac.tpexcfile))
   tline = sprintf('EV TExclude texclude nuis %s',flac.tpexcfile);
@@ -427,38 +436,29 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
       flac.con(nthcon).ev(con_nthev).evw  = cspec.WCond(nthcondition);
       flac.con(nthcon).ev(con_nthev).evrw = cspec.WDelay;
     end
-  end
-end
-
-if(0 & ncontrasts == 0)
-  % No contrasts specified, so use omnibus and allvres
-  if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
-    nthcon = 1;
-    flac.con(nthcon).name = 'omnibus';
-    flac.con(nthcon).sumev    = 0;
-    flac.con(nthcon).sumevreg = 0;
-    flac.con(nthcon).evrw     = [];
-    flac.con(nthcon).varsm    = 0;
-    flac.con(nthcon).rmprestim = 0;
-    for n=1:nconditions
-      flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
-      flac.con(nthcon).ev(n).evw  = 1;
-      flac.con(nthcon).ev(n).evrw = [];
+  end % contrasts
+  
+  if(~isempty(extregList))
+    nlist = size(extregList,1);
+    for n = 1:nlist
+      extreg = deblank(extregList(n,:));
+      nextreg = nextregList(n);
+      extregevname = basename(extreg,'dat'); % remove .dat
+      if(strcmp(extregevname,'mcextreg')) continue; end
+      nthcon = nthcon + 1;
+      flac.con(nthcon).name     = extregevname;
+      flac.con(nthcon).varsm    = 0;
+      flac.con(nthcon).sumev    = 0;
+      flac.con(nthcon).sumevreg = 0;
+      flac.con(nthcon).sumevrw  = [];
+      flac.con(nthcon).rmprestim = 0;
+      flac.con(nthcon).ContrastMtx_0 = [];
+      flac.con(nthcon).ev(1).name = extregevname;
+      flac.con(nthcon).ev(1).evw  = 1;
+      flac.con(nthcon).ev(1).evrw = ones(1,nextreg);
     end
-    nthcon = nthcon+1;
-    flac.con(nthcon).name = 'allvfix';
-    flac.con(nthcon).sumev    = 1;
-    flac.con(nthcon).sumevreg = 1;
-    flac.con(nthcon).evrw     = [];
-    flac.con(nthcon).varsm    = 0;
-    flac.con(nthcon).rmprestim = 0;
-    for n=1:nconditions
-      flac.con(nthcon).ev(n).name = sprintf('Condition%02d',n);
-      flac.con(nthcon).ev(n).evw  = 1;
-      flac.con(nthcon).ev(n).evrw = [];
-    end
-    ncontrasts = nthcon;
   end
+  
 end
 
 % Check each contrast

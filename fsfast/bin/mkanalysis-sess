@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/10 00:13:10 $
-#    $Revision: 1.35 $
+#    $Date: 2010/04/12 04:09:47 $
+#    $Revision: 1.36 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.35 2010/04/10 00:13:10 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.36 2010/04/12 04:09:47 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -72,9 +72,8 @@ set sveres = ();
 set svsignal = ();
 set nconditions = ();
 set timeoffset = ();
-set extreg = ();
-set nextreg = ();
-set extregorthog = 0;
+set extregList = ();
+set nextregList = ();
 set maskstem = brain;
 set autostimdur = ();
 set stimdur = ();
@@ -203,10 +202,13 @@ endif
 
 echo "-nskip $nskip" >> $sxacfg
 
-if($#extreg != 0) then
-  echo "-extreg $extreg" >> $sxacfg
-  if($#nextreg != 0)  echo "-nextreg $nextreg" >> $sxacfg
-  if($extregorthog)   echo "-extregorthog " >> $sxacfg
+if($#extregList != 0) then
+  @ nth = 0;
+  foreach extreg ($extregList)
+    @ nth = $nth + 1;
+    set nextreg = $nextregList[$nth];
+    echo "-extreg $extreg $nextreg" >> $sxacfg
+  end
 endif
 
 if($inorm) then 
@@ -351,9 +353,12 @@ while( $#argv != 0 )
   if($#WhitenFlag == 0) set WhitenFlag = 0;
   set acfbins = `cat $cacfg | awk '{if($1 == "-acfbins") print $2}'`;
   set nskip  = `cat $cacfg | awk '{if($1 == "-nskip") print $2}'`;
-  set extreg  = `cat $cacfg | awk '{if($1 == "-extreg") print $2}'`;
-  set nextreg  = `cat $cacfg | awk '{if($1 == "-nextreg") print $2}'`;
-  set extregorthog = `cat $cacfg | awk '{if($1 == "-extregorthog") print 1}'`;
+
+  set tmp  = `cat $cacfg | awk '{if($1 == "-extreg") print $2" "$3}'`;
+  if($#tmp) then
+    set extregList  = `cat $cacfg | awk '{if($1 == "-extreg") print $2}'`;
+    set nextregList = `cat $cacfg | awk '{if($1 == "-extreg") print $3}'`;
+  endif
   set timeoffset  = `cat $cacfg | awk '{if($1 == "-timeoffset") print $2}'`;
   set ncycles  = `cat $cacfg | awk '{if($1 == "-ncycles") print $2}'`;
 
@@ -483,12 +488,9 @@ while( $#argv != 0 )
       breaksw
 
     case "-extreg": # External regressor file
-      if ( $#argv == 0) goto arg1err;
-      if($#extreg != 0) then
-        echo "ERROR: can only spec one -extreg or -mcextreg"
-        exit 1;
-      endif
-      set extreg = $argv[1]; shift;
+      if($#argv < 2) goto arg2err;
+      set extregList  = ($extregList $argv[1]); shift;
+      set nextregList = ($nextregList $argv[1]); shift;
       breaksw
 
     case "-no-mcextreg": 
@@ -500,21 +502,14 @@ while( $#argv != 0 )
       breaksw
 
     case "-mcextreg": # MotionCor External regressor file
-      if($#extreg != 0) then
-        echo "ERROR: can only spec one -extreg or -mcextreg"
-        exit 1;
-      endif
-      set extreg = mcextreg;
-      set nextreg = 3;
+      set extregList  = ($extregList mcextreg);
+      set nextregList = ($nextregList 3);
       breaksw
 
     case "-nextreg": # No. of External regressors to use
-      if ( $#argv == 0) goto arg1err;
-      set nextreg = $argv[1]; shift;
-      breaksw
-
-    case "-extregorthog": # Orthogonalize External regressors wrt Par
-      set extregorthog = 1;
+      echo "ERROR: option -nextreg is no longer valid. The number"
+      echo "of external regressors is now the second argument to "
+      echo "the -extreg option."
       breaksw
 
     case "-gammafit":
@@ -853,11 +848,6 @@ check_params:
     exit 1;
   endif
 
-  if($#extreg != 0 && $#nextreg == 0) then
-    echo "ERROR: you must spec -nextreg with -extreg"
-    exit 1;
-  endif
-
   if(($gammafit || $spmhrf != -1) && $#RefEventDur == 0) then
     echo "ERROR: you must specify a reference event duration with an HRF"
     exit 1;
@@ -908,8 +898,7 @@ usage_exit:
   echo "   -no-inorm              : do not intensity normalize data"
   echo "   -rescale-target value  : inorm to value"
   echo "   -nskip       N         : skip the first N time points in each run"
-  echo "   -extreg extregstem     : external regressors"
-  echo "   -nextreg N             : number of external regressors"
+  echo "   -extreg extreg nextreg : external regressor file and number of regressors to include"
   echo "   -no-extreg             : turn off external regressors"
   echo ""
   echo "Event-Related and Blocked Arguments "
@@ -1102,30 +1091,20 @@ the time window should be long enough to capture the gamma
 function. In this case, there is no penalty for a long time window. If
 no time window is selected with -gammafit or -spmhrf, 40 sec is used.
 
--extreg extregstem
+-extreg extreg nextreg
 
 Use external regressors when doing estimation. The external regressors
-should be stored in the bfloat "volume" with stem extregstem. There
-should actually be only one file there (extregstem_000.bfloat). It
-should have one row, and the number of columns should be equal to 
-the number of external regressors. The number of frames must be
-equal to the number time points. There should be an external regressor
-file in each run directory. By default, all the regressors will be
-used, but this can be changed with -nextreg. See also -mcextreg.
-
--nextreg N
-
-Use only N external regressors. See -extreg.
+can be stored as a simple text file with a row for each time point
+in the functional. There can be any number of columns. "nextreg" 
+indicates how many columns to use. To use all the columns, set 
+nextreg to -1. Multiple external regressor files can be specified.
 
 -mcextreg
 
 Use motion parameters as external regressors. This is the same as
-setting "-extreg mcextreg -nextreg 3". mcextreg is created when
+setting "-extreg mcextreg 3". mcextreg is created when
 running mc-sess by orthognalizing the motion parameters. Only the top
-three components are used (unless changed with -nextreg).  Note: this
-feature was incorporated into mc-sess on 7/1/02.  If motion correction
-was run before this date, it will need to be re-run in order to create
-the mcextreg file.
+three components are used.
 
 -prestim PreStimTimeWindow (Shortcut: -ps) 
 
