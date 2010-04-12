@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 17:32:12 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/04/12 19:31:50 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.8 2010/04/09 17:32:12 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.9 2010/04/12 19:31:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -91,6 +91,7 @@ double FWHMList[100];
 int SignList[3] = {-1,0,1}, nSignList=3;
 char *DoneFile = NULL;
 char *LogFile = NULL;
+int SaveMask = 1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -105,11 +106,10 @@ int main(int argc, char *argv[]) {
   int FreeMask = 0;
   int nthSign, nthFWHM, nthThresh;
   CSD *csdList[100][100][3], *csd;
-  double sigmax, zmax, threshadj, csize;
+  double sigmax, zmax, threshadj, csize, searchspace;
   int nClusters, cmax,rmax,smax, nmask;
   SURFCLUSTERSUM *SurfClustList;
   struct timeb  mytimer;
-  double searchspace,searchspaceGlmFit;
   LABEL *clabel;
   FILE *fp, *fpLog=NULL;
 
@@ -196,7 +196,12 @@ int main(int argc, char *argv[]) {
     mask = MRIread(MaskFile);
     if(mask == NULL) exit(1);
   }
-
+  if(mask && SaveMask){
+    sprintf(tmpstr,"%s/mask.mgh",OutTop);
+    printf("Saving mask to %s\n",tmpstr);
+    err = MRIwrite(mask,tmpstr);
+    if(err) exit(1);
+  }
 
   // Compute search space
   searchspace = 0;
@@ -210,8 +215,6 @@ int main(int argc, char *argv[]) {
   if(surf->group_avg_surface_area > 0)
     searchspace *= (surf->group_avg_surface_area/surf->total_area);
   printf("search space %g mm2\n",searchspace);
-  searchspaceGlmFit = surf->group_avg_surface_area*nmask/surf->nvertices;
-  printf("glmfit search space %g mm2\n",searchspace);
 
   // Determine how many iterations are needed for each FWHM
   nSmoothsList = (int *) calloc(sizeof(int),nFWHMList);
@@ -364,7 +367,8 @@ int main(int argc, char *argv[]) {
 	fprintf(fp,"# hostname %s\n",uts.nodename);
 	fprintf(fp,"# machine  %s\n",uts.machine);
 	fprintf(fp,"# runtime_min %g\n",msecTime/(1000*60.0));
-	//fprintf(fp,"# FixVertexAreaFlag %d\n",MRISgetFixVertexAreaValue());
+	fprintf(fp,"# nvertices-total %d\n",surf->nvertices);
+	fprintf(fp,"# nvertices-search %d\n",nmask);
 	if(mask) fprintf(fp,"# masking 1\n");
 	else     fprintf(fp,"# masking 0\n");
 	fprintf(fp,"# SmoothLevel %d\n",nSmoothsList[nthFWHM]);
@@ -472,6 +476,7 @@ static int parse_commandline(int argc, char **argv) {
       MaskId = "nomask";
       LabelFile = NULL;
     }
+    else if (!strcasecmp(option, "--no-save-mask")) SaveMask = 0;
     else if (!strcasecmp(option, "--nreps")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&nRepetitions);
@@ -506,6 +511,7 @@ static void print_usage(void) {
   printf("   --label labelfile : default is ?h.cortex.label \n");
   printf("   --mask maskfile : instead of label\n");
   printf("   --no-label : do not use a label to mask\n");
+  printf("   --no-save-mask : do not save mask to output (good for mult jobs)\n");
   printf("\n");
   printf("   --log  LogFile \n");
   printf("   --done DoneFile : will create DoneFile when finished\n");
@@ -520,7 +526,6 @@ static void print_usage(void) {
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
-  printf("WARNING: this program is not yet tested!\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
