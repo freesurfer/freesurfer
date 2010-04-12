@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 14:45:07 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/04/12 17:33:51 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,7 +69,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.45 2010/04/09 14:45:07 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.46 2010/04/12 17:33:51 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.45 2010/04/09 14:45:07 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.46 2010/04/12 17:33:51 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1161,7 +1161,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.45 2010/04/09 14:45:07 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.46 2010/04/12 17:33:51 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
@@ -1191,13 +1191,16 @@ static void print_help(void) {
 /* --------------------------------------------- */
 static void check_options(void) {
   char tmpstr[2000];
+  int err;
 
   if(csdoutfile){
     if(csd == NULL){
       printf("ERROR: need --csd with --csd-out \n");
       exit(1);
     }
-    CSDwrite(csdoutfile, csd);
+    printf("Merging CSD files, then exiting\n");
+    err = CSDwrite(csdoutfile, csd);
+    exit(err);
   }
 
   if(csdpdffile) {
