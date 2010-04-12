@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2010/04/11 21:00:33 $
- *    $Revision: 1.27 $
+ *    $Author: greve $
+ *    $Date: 2010/04/12 21:05:24 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.27 2010/04/11 21:00:33 rudolph Exp $";
+"$Id: mris_calc.c,v 1.28 2010/04/12 21:05:24 greve Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -444,6 +444,7 @@ short   b_outCurvFile_write(e_operation e_op);
 short   CURV_process(void);
 short   CURV_functionRunABC( double (*F)(float f_A, float f_B) );
 double  CURV_functionRunAC( double (*F)(float f_A) );
+int PrintStatToFile(char *fname, double stat);
 
 int main(int argc, char *argv[]) ;
 
@@ -684,7 +685,8 @@ synopsis_show(void) {
  \n\
     STATISTICAL \n\
         Note also that the standard deviation can suffer from float rounding \n\
-        errors and is only accurate to 4 digits of precision. \n\
+        errors and is only accurate to 4 digits of precision. If an output \n\
+        file is supplied, it will write the value to that file in ASCII format. \n\
  \n\
     ARBITRARY FLOATS AS SECOND INPUT ARGUMENT \n\
  \n\
@@ -1324,7 +1326,7 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.27 2010/04/11 21:00:33 rudolph Exp $",
+     "$Id: mris_calc.c,v 1.28 2010/04/12 21:05:24 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1424,6 +1426,7 @@ options_parse(int argc, char *argv[]) {
     break ;
   case '?':
   case 'U':
+  case 'H':
     synopsis_show() ;
     exit(1) ;
     break ;
@@ -1907,31 +1910,37 @@ CURV_process(void)
     mini        = (int) CURV_functionRunAC(fn_mini);
     sprintf(pch_text, "%f (%d)", f_min, mini);    
     cprints("Min@(index)", pch_text);
+    if(Gb_file3) PrintStatToFile(G_pch_curvFile3,f_min);
   }
   if(Ge_operation == e_max || Ge_operation == e_stats) {
     f_max       = CURV_functionRunAC(fn_max);
     maxi        = (int) CURV_functionRunAC(fn_maxi);
     sprintf(pch_text, "%f (%d)", f_max, maxi);    
     cprints("Max@(index)", pch_text);
+    if(Gb_file3) PrintStatToFile(G_pch_curvFile3,f_max);
   }
   if(Ge_operation == e_mean || Ge_operation == e_stats) {
     f_mean      = CURV_functionRunAC(fn_mean);
     cprintf("Mean", f_mean);
+    if(Gb_file3) PrintStatToFile(G_pch_curvFile3,f_mean);
   }
   if(Ge_operation == e_std || Ge_operation == e_stats) {
     f_dev       = CURV_functionRunAC(fn_dev);
     f_std       = sqrt(f_dev/(G_sizeCurv1-1));
     cprintf("Std", f_std);
+    if(Gb_file3) PrintStatToFile(G_pch_curvFile3,f_std);
   }
   if(Ge_operation == e_sum || Ge_operation == e_stats) {
     Gf_sum	= 0.0;
     Gf_sum	= CURV_functionRunAC(Gfn_sum);
     cprintf("Sum", Gf_sum);
+    if(Gb_file3) PrintStatToFile(G_pch_curvFile3,Gf_sum);
   }
   if(Ge_operation == e_prod || Ge_operation == e_stats) {
     Gf_prod	= 1.0;
     Gf_prod	= CURV_functionRunAC(Gfn_prod);
     cprintf("Prod", Gf_prod);
+    if(Gb_file3) PrintStatToFile(G_pch_curvFile3,Gf_prod);
   }
   
   if(Ge_operation == e_ascii) {
@@ -1952,6 +1961,26 @@ CURV_process(void)
   if(Gb_canWrite) fileWrite(G_pch_curvFile3, G_sizeCurv3, G_pf_arrayCurv3);
 
   return 1;
+}
+
+/*!
+  \fn int PrintStatToFile(char *fname, double stat)
+  \brief Simply prints a number to a file.
+  \param fname - file name
+  \param stat - value to print
+  \return 0 if successful, 1 if failed
+*/
+int PrintStatToFile(char *fname, double stat)
+{
+  FILE *fp;
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: opening %s\n",fname);
+    return(1);
+  }
+  fprintf(fp,"%lf\n",stat);
+  fclose(fp);
+  return(0);
 }
 
 /*!
