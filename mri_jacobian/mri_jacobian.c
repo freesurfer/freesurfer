@@ -1,15 +1,13 @@
 /**
  * @file  mri_jacobian.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief Computes the (determinant of the) jacobian of the input non-linear morph.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Fischl, B.
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2010/04/12 21:58:58 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/04/12 22:01:37 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -73,7 +71,7 @@ main(int argc, char *argv[])
   MRI       *mri, *mri_jacobian, *mri_area, *mri_orig_area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.7 2010/04/12 21:58:58 lzollei Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.8 2010/04/12 22:01:37 lzollei Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
