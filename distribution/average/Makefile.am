@@ -125,7 +125,7 @@ install: install-fooDATA
 		$(DESTDIR)$(prefix)/subjects
 	chmod -R 775 $(DESTDIR)$(prefix)/subjects/?h.EC_average
 	mkdir -p $(DESTDIR)$(prefix)/subjects
-	rm -Rf $(DESTDIR)$(prefix)/mult-comp-cor
+	rm -Rf $(DESTDIR)$(prefix)/average/mult-comp-cor
 	rm -Rf $(top_builddir)/distribution/average/mult-comp-cor
 	gunzip -c $(top_srcdir)/distribution/average/mult-comp-cor.tar.gz | tar xvf -
 	pwd
