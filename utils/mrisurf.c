@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/08 17:52:38 $
- *    $Revision: 1.670 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/12 19:03:21 $
+ *    $Revision: 1.671 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -714,7 +714,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.670 2010/04/08 17:52:38 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.671 2010/04/12 19:03:21 nicks Exp $");
 }
 
 /*-----------------------------------------------------
@@ -63278,14 +63278,18 @@ MRISremoveOverlapWithSmoothing(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   while (negative > 0)
   {
     old_neg = negative ;
+
     if (Gdiag & DIAG_SHOW)
-      printf("%03d: dt=%2.4f, %d negative triangles\n", parms->t++, parms->dt,
-             negative) ;
+      printf("%03d: dt=%2.4f, %d negative triangles\n",
+             parms->t, parms->dt, negative) ;
     if (parms->fp)
-      fprintf(parms->fp, "%03d: dt=%2.4f, %d negative triangles\n", parms->t++, parms->dt,
-              negative) ;
+      fprintf(parms->fp, "%03d: dt=%2.4f, %d negative triangles\n",
+              parms->t, parms->dt, negative) ;
 
     mrisSmoothingTimeStep(mris, parms) ;
+
+    parms->t++; // advance time-step counter
+
     mrisProjectSurface(mris) ;
     MRIScomputeMetricProperties(mris) ;
     negative = MRIScountNegativeTriangles(mris) ;
