@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/10 00:13:10 $
-#    $Revision: 1.27 $
+#    $Date: 2010/04/13 19:58:33 $
+#    $Revision: 1.28 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.27 2010/04/10 00:13:10 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.28 2010/04/13 19:58:33 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -184,7 +184,7 @@ foreach sess ($SessList)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
     if($MCPerRun)   set cmd = ($cmd -perrun)
-    if($#rlf != 0)  set cmd = ($cmd -rlf $RunListFile);
+    if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid MC -----------------------------" |& tee -a $LF
@@ -197,7 +197,7 @@ foreach sess ($SessList)
     set cmd = (stc-sess -i $stcinstem -o $stcoutstem)
     if($#SliceOrder) set cmd = ($cmd -so $SliceOrder)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
-    if($#rlf != 0)  set cmd = ($cmd -rlf $RunListFile);
+    if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid STC -----------------------------" |& tee -a $LF
@@ -210,7 +210,7 @@ foreach sess ($SessList)
     set cmd = (spatialsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
     set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent)
     if($#UseSmoothMask)  set cmd = ($cmd -mask);
-    if($#rlf != 0)  set cmd = ($cmd -rlf $RunListFile);
+    if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid Volume Smoothing ---------------------" |& tee -a $LF
@@ -224,7 +224,7 @@ foreach sess ($SessList)
     set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent -reg $regfile)
     if($#ProjFrac)  set cmd = ($cmd -projfrac $ProjFrac)
     if($DoProjAvg)  set cmd = ($cmd -projfrac-avg)
-    if($#rlf != 0)  set cmd = ($cmd -rlf $RunListFile);
+    if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($MCPerRun)   set cmd = ($cmd -perrun)
@@ -239,7 +239,7 @@ foreach sess ($SessList)
     set cmd = (inorm-sess -funcstem $inormstem )
     set cmd = ($cmd  -fsd $fsd -nskip $nskip)
     set cmd = ($cmd -s $sessid -d $sessparent)
-    if($#rlf != 0) set cmd = ($cmd -rlf $RunListFile);
+    if($#RunListFile != 0) set cmd = ($cmd -rlf $RunListFile);
     if($nolog)     set cmd = ($cmd -nolog);
     echo "$sessid Inorm ------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
@@ -324,6 +324,10 @@ while( $#argv != 0 )
         set DoVolSmooth = 1;
         set DoSurfSmooth = 0;
         set DoSmooth = 1;
+      else
+        set DoVolSmooth = 0;
+        set DoSurfSmooth = 0;
+        set DoSmooth = 0;
       endif
       breaksw
 
