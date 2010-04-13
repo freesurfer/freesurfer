@@ -9,24 +9,15 @@
 template<int n>
 class TNode
 {
-public:
+ public:
   TNode();
   TNode(const TNode& tn);
   typedef TCoords<double, n> tCoords;
-
-  inline void set_coords(tCoords c)
-  {
-    m_coords = c;
-  }
-  inline void set_id(int id)
-  {
-    m_id = id;
-  }
+  
+  inline void set_coords(tCoords c) { m_coords = c; }
+  inline void set_id(int id) { m_id = id; }
   void set_dof_val(size_t i, double val);
-  inline void set_delta(const tCoords& d)
-  {
-    m_delta = d;
-  }
+  inline void set_delta(const tCoords& d) { m_delta = d; }
   void set_active(size_t i, bool flag);
 
   void invert();
@@ -37,65 +28,37 @@ public:
   void clear_elts();
   void remove_elt(int elt_id);
   // get const iterators to the indices of the elements that contain this node
-  typedef typename std::set<int>::const_iterator tElt_citer;
+  typedef typename std::set<unsigned int>::const_iterator tElt_citer;
   void get_elt_citer( tElt_citer& cit_begin, tElt_citer& cit_end) const;
   int  get_nelts() const;
 
-  int     get_id() const
-  {
-    return m_id;
-  }
-  int     id() const
-  {
-    return m_id;
-  }
+  int     get_id() const { return m_id; }
+  int     id() const { return m_id; }
   int     get_no_dofs() const;
-  bool    is_dof_active(int no) const
-  {
-    return m_bdof_active[no];
-  }
-  const bool* is_active() const
-  {
-    return &m_bdof_active[0];
-  }
-  double  get_dof(int no) const
-  {
-    return m_delta(no);
-  }
+  bool    is_dof_active(int no) const { return m_bdof_active[no]; }
+  const bool* is_active() const { return &m_bdof_active[0]; }
+  double  get_dof(int no) const { return m_delta(no); }
   double& dof(int no);
 
-  const tCoords& coords() const
-  {
-    return m_coords;
-  }
-  const tCoords& delta() const
-  {
-    return m_delta;
-  }
-  void setDst(const tCoords& dst)
-  {
-    m_delta = dst - m_coords;
-  }
-  tCoords dst_coords() const
-  {
-    return m_coords+m_delta;
-  }
-
+  const tCoords& coords() const { return m_coords; }
+  const tCoords& delta() const { return m_delta; }
+  void setDst(const tCoords& dst) { m_delta = dst - m_coords; }
+  tCoords dst_coords() const { return m_coords+m_delta; }
+  
   void set_bc(const tCoords& c); // activates constraints on all directions
-  void set_bc(int no, double val); // activates a constraint in 
-  // one direction -> DISPLACEMENT
+  void set_bc(int no, double val); // activates a constraint in one direction -> DISPLACEMENT
 
   void print(std::ostream& os) const;
 
-protected:
+ protected:
 
-private:
+ private:
   int m_id;
   tCoords m_coords;
-  tCoords m_delta;
+  tCoords m_delta; 
   bool    m_bdof_active[n]; // TRUE if value prescribed
 
-  std::set<int> m_elts; // set of elements which contain the node
+  std::set<unsigned int> m_elts; // set of elements which contain the node
 
   void clone(const TNode& tn);
 };
@@ -110,7 +73,7 @@ std::ostream& operator<<(std::ostream& os, const TNode<n>& node);
 
 template<int n>
 TNode<n>::TNode()
-    : m_coords(),
+  : m_coords(),
     m_delta(),
     m_elts()
 {
@@ -120,7 +83,7 @@ TNode<n>::TNode()
 
 template<int n>
 TNode<n>::TNode(const TNode<n>& tn)
-    : m_coords(),
+  : m_coords(),
     m_delta()
 {
   clone();
@@ -134,14 +97,14 @@ TNode<n>::clone(const TNode<n>& tn)
   m_delta  = tn.m_delta;
   m_id     = tn.m_id;
   std::copy( (tn.m_bdof_active), (tn.m_bdof_active)+n,
-             m_bdof_active );
+	     m_bdof_active );
   m_elts   = tn.m_elts;
 }
 
 template<int n>
 void
 TNode<n>::set_dof_val(size_t i,
-                      double val)
+		      double val)
 {
   m_delta(i) = val;
 }
@@ -149,7 +112,7 @@ TNode<n>::set_dof_val(size_t i,
 template<int n>
 void
 TNode<n>::set_active(size_t i,
-                     bool flag)
+		     bool flag)
 {
   m_bdof_active[i] = flag;
 }
@@ -177,8 +140,8 @@ TNode<n>::clear_elts()
 
 template<int n>
 void
-TNode<n>::get_elt_citer( tElt_citer& cit_begin,
-                         tElt_citer& cit_end) const
+TNode<n>::get_elt_citer( tElt_citer& cit_begin, 
+			 tElt_citer& cit_end) const
 {
   cit_begin = m_elts.begin();
   cit_end   = m_elts.end();
@@ -209,21 +172,21 @@ TNode<n>::set_bc(const tCoords& c)
 template<int n>
 void
 TNode<n>::set_bc(int no,
-                 double val)
+		 double val)
 {
   if ( no<0 || no>n )
-  {
-    std::cerr << " TNode::set_bc -> trying to access invalid entry "
-    << no << std::endl;
-    return;
-  }
+    {
+      std::cerr << " TNode::set_bc -> trying to access invalid entry " 
+		<< no << std::endl;
+      return;
+    }
 #if 0
   if ( m_bdof_active[no] )
-  {
-    std::cerr << " TNode::set_bc WARNING!!! -> BC already set for "
-    << no << "\n\t imposing value " << val
-    << " over " << m_delta[no] << std::endl;
-  }
+    {
+      std::cerr << " TNode::set_bc WARNING!!! -> BC already set for " 
+		<< no << "\n\t imposing value " << val
+		<< " over " << m_delta[no] << std::endl;
+    }
 #endif
   m_bdof_active[no] = true;
   m_delta[no] = val;
@@ -233,13 +196,12 @@ template<int n>
 void
 TNode<n>::print(std::ostream& os) const
 {
-  os << " node [[ id=" << m_id << " coords=" << m_coords 
-     << " delta=" << m_delta << " ]]";
+  os << " node [[ id=" << m_id << " coords=" << m_coords << " delta=" << m_delta << " ]]";
 }
 
 template<int n>
 std::ostream& operator<<(std::ostream& os,
-                         const TNode<n>& node)
+			 const TNode<n>& node)
 {
   node.print(os);
   return os;
