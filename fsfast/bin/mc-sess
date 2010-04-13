@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/09 23:07:38 $
-#    $Revision: 1.23 $
+#    $Date: 2010/04/13 19:56:48 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION    = '$Id: mc-sess,v 1.23 2010/04/09 23:07:38 greve Exp $'
+set VERSION    = '$Id: mc-sess,v 1.24 2010/04/13 19:56:48 greve Exp $'
 set cmdargs = ($argv);
 
 set fsd = "bold";
@@ -192,7 +192,10 @@ foreach sess ($SessList)
     echo "INFO: Making external regressor from mc params" |& tee -a $LF
     #set cmd = (mcparams2extreg -mcfile $outstem.mcdat -northog 6)
     #set cmd = ($cmd -extreg $run/mcextreg)
-    set cmd = (mcdat2mcextreg --i $outstem.mcdat --o $run/mcextreg)
+    
+    if(! $PerRun) set mcextreg = $run/mcextreg
+    if($PerRun)   set mcextreg = $run/mcprextreg
+    set cmd = (mcdat2mcextreg --i $outstem.mcdat --o $mcextreg)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
