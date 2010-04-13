@@ -346,6 +346,8 @@ public:
 
   TransformContainerType m_transforms;
 
+  MRI* convert_transforms() const;
+
   // if true, the following option will cache a volume with 
   // the VF of the images
   MRI* apply_transforms(MRI*,
