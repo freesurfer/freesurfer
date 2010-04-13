@@ -7,8 +7,8 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/10 22:32:20 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/04/13 20:12:10 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2004-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,7 +64,7 @@ static void print_version(void);
 #define NEW_QUAD_FILE_MAGIC_NUMBER  (-3 & 0x00ffffff)
 
 static char vcid[] = 
-"$Id: mris_info.cpp,v 1.30 2010/03/10 22:32:20 nicks Exp $";
+"$Id: mris_info.cpp,v 1.31 2010/04/13 20:12:10 nicks Exp $";
 using namespace std;
 char *surffile=NULL, *outfile=NULL, *curvfile=NULL, *annotfile=NULL;
 char *SUBJECTS_DIR=NULL, *subject=NULL, *hemi=NULL, *surfname=NULL;
@@ -107,8 +107,21 @@ int main(int argc, char *argv[]) {
     }
     printf("GCSA file %s opened\n", surffile) ;
     if (gcsa->ct != NULL) {
-      printf("color table:\n") ;
       CTABprintASCII(gcsa->ct,stdout) ;
+    }
+    return(0) ;
+  }
+
+  // Check whether it's a .annot file. If so, just print ctab
+  if (!stricmp(FileNameExtension(surffile, ext), (char*)"annot")) {
+    COLOR_TABLE* ctab =  NULL;
+    int return_code = MRISreadCTABFromAnnotationIfPresent(surffile, &ctab);
+    if (NO_ERROR != return_code) {
+      fprintf(stderr,"ERROR: could not open %s\n", surffile);
+      return -1;
+    }
+    if (ctab != NULL) {
+      CTABprintASCII(ctab,stdout) ;
     }
     return(0) ;
   }
@@ -188,6 +201,17 @@ int main(int argc, char *argv[]) {
     }
     print((char*)"%s has the same number of vertices as %s\n",
           annotfile,surffile);
+
+    // also dump the colortable
+    COLOR_TABLE* ctab =  NULL;
+    int return_code = MRISreadCTABFromAnnotationIfPresent(annotfile, &ctab);
+    if (NO_ERROR != return_code) {
+      fprintf(stderr,"ERROR: could not open %s\n", annotfile);
+      return -1;
+    }
+    if (ctab != NULL) {
+      CTABprintASCII(ctab,stdout) ;
+    }
   }
 
   if (rescale) {
@@ -396,6 +420,7 @@ static void print_usage(void) {
   printf("  --a annotfile : check if the specified annotation file has the\n");
   printf("                  same number of vertices as the surface, and\n");
   printf("                  exit with error if not. This is a QA check.\n");
+  printf("                  Also, the colortable is dumped.\n");
   printf("\n");
   printf("  --version   : print version and exits\n");
   printf("  --help      : no clue what this does\n");
