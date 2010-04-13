@@ -148,7 +148,8 @@ Element3d::get_matrix() const
 
       SmallMatrix m(3,3);
 
-      dbuf = dfactor * (dalpha * m_cb(i)*m_cb(j) + dbeta * m_cc(i)*m_cc(j) + dbeta * m_cd(i)*m_cd(j) );
+      dbuf = dfactor * (dalpha * m_cb(i)*m_cb(j) + 
+                        dbeta * m_cc(i)*m_cc(j) + dbeta * m_cd(i)*m_cd(j) );
       m(0,0) = dbuf;
 
       dbuf = dfactor * ( dnu * m_cb(i)*m_cc(j) + dbeta * m_cc(i)*m_cb(j) );
@@ -160,7 +161,8 @@ Element3d::get_matrix() const
       dbuf = dfactor * ( dnu* m_cb(j)*m_cc(i) + dbeta * m_cb(i)*m_cc(j) );
       m(1,0) = dbuf;
 
-      dbuf = dfactor * ( dalpha * m_cc(i)*m_cc(j) + dbeta * m_cb(i)*m_cb(j) + dbeta * m_cd(i)*m_cd(j) );
+      dbuf = dfactor * ( dalpha * m_cc(i)*m_cc(j) + 
+                         dbeta * m_cb(i)*m_cb(j) + dbeta * m_cd(i)*m_cd(j) );
       m(1,1) = dbuf;
 
       dbuf = dfactor * ( dnu *m_cc(i)*m_cd(j) + dbeta * m_cd(i)*m_cc(j) );
@@ -172,7 +174,8 @@ Element3d::get_matrix() const
       dbuf = dfactor * ( dnu * m_cd(i)*m_cc(j) + dbeta * m_cc(i)*m_cd(j) );
       m(2,1) = dbuf;
 
-      dbuf = dfactor * ( dalpha * m_cd(i)*m_cd(j) + dbeta * m_cc(i)*m_cc(j) + dbeta * m_cb(i)*m_cb(j) );
+      dbuf = dfactor * ( dalpha * m_cd(i)*m_cd(j) + dbeta * m_cc(i)*m_cc(j) + 
+                         dbeta * m_cb(i)*m_cb(j) );
       m(2,2) = dbuf;
 
       mret.set_block( m,
@@ -272,10 +275,18 @@ Element3d::update_coefs() const
 {
   assert(m_vpNodes.size()==size_t(4));
 
-  double dvol = det( m_vpNodes[1]->coords(), m_vpNodes[2]->coords(), m_vpNodes[3]->coords() )
-                - det( m_vpNodes[0]->coords(), m_vpNodes[2]->coords(), m_vpNodes[3]->coords() )
-                + det( m_vpNodes[0]->coords(), m_vpNodes[1]->coords(), m_vpNodes[3]->coords() )
-                - det( m_vpNodes[0]->coords(), m_vpNodes[1]->coords(), m_vpNodes[2]->coords() );
+  double dvol = det( m_vpNodes[1]->coords(),
+                     m_vpNodes[2]->coords(),
+                     m_vpNodes[3]->coords() )
+                - det( m_vpNodes[0]->coords(),
+                       m_vpNodes[2]->coords(),
+                       m_vpNodes[3]->coords() )
+                + det( m_vpNodes[0]->coords(),
+                       m_vpNodes[1]->coords(),
+                       m_vpNodes[3]->coords() )
+                - det( m_vpNodes[0]->coords(),
+                       m_vpNodes[1]->coords(),
+                       m_vpNodes[2]->coords() );
 
   int alpha = -1;
   int arg_1, arg_2, arg_3;
@@ -285,22 +296,40 @@ Element3d::update_coefs() const
     arg_2 = i>1?1:2;
     arg_3 = i>2?2:3;
 
-    m_cb(i) = alpha * det( 1, m_vpNodes[arg_1]->coords()(1),  m_vpNodes[arg_1]->coords()(2),
-                           1, m_vpNodes[arg_2]->coords()(1),  m_vpNodes[arg_2]->coords()(2),
-                           1, m_vpNodes[arg_3]->coords()(1),  m_vpNodes[arg_3]->coords()(2) )
-              / dvol;
+    m_cb(i) = alpha * det( 1,
+                           m_vpNodes[arg_1]->coords()(1),
+                           m_vpNodes[arg_1]->coords()(2),
+                           1,
+                           m_vpNodes[arg_2]->coords()(1),
+                           m_vpNodes[arg_2]->coords()(2),
+                           1,
+                           m_vpNodes[arg_3]->coords()(1),
+                           m_vpNodes[arg_3]->coords()(2) )
+      / dvol;
     alpha *= -1;
 
-    m_cc(i) = alpha * det( 1, m_vpNodes[arg_1]->coords()(0), m_vpNodes[arg_1]->coords()(2),
-                           1, m_vpNodes[arg_2]->coords()(0), m_vpNodes[arg_2]->coords()(2),
-                           1, m_vpNodes[arg_3]->coords()(0), m_vpNodes[arg_3]->coords()(2) )
-              / dvol;
+    m_cc(i) = alpha * det( 1,
+                           m_vpNodes[arg_1]->coords()(0),
+                           m_vpNodes[arg_1]->coords()(2),
+                           1,
+                           m_vpNodes[arg_2]->coords()(0),
+                           m_vpNodes[arg_2]->coords()(2),
+                           1,
+                           m_vpNodes[arg_3]->coords()(0),
+                           m_vpNodes[arg_3]->coords()(2) )
+      / dvol;
     alpha *= -1;
 
-    m_cd(i) = alpha * det( 1, m_vpNodes[arg_1]->coords()(0), m_vpNodes[arg_1]->coords()(1),
-                           1, m_vpNodes[arg_2]->coords()(0), m_vpNodes[arg_2]->coords()(1),
-                           1, m_vpNodes[arg_3]->coords()(0), m_vpNodes[arg_3]->coords()(1) )
-              / dvol;
+    m_cd(i) = alpha * det( 1,
+                           m_vpNodes[arg_1]->coords()(0),
+                           m_vpNodes[arg_1]->coords()(1),
+                           1,
+                           m_vpNodes[arg_2]->coords()(0),
+                           m_vpNodes[arg_2]->coords()(1),
+                           1,
+                           m_vpNodes[arg_3]->coords()(0),
+                           m_vpNodes[arg_3]->coords()(1) )
+      / dvol;
     alpha *= -1;
 
     m_ca(i) = alpha * det( m_vpNodes[arg_1]->coords(),
@@ -534,11 +563,12 @@ Element3d::orientation_test(double dalpha) const
                          m_vpNodes[2]->coords(),
                          m_vpNodes[3]->coords()
                        );
-  double dvol_def = vol( m_vpNodes[0]->coords() + m_vpNodes[0]->delta() * dalpha,
-                         m_vpNodes[1]->coords() + m_vpNodes[1]->delta() * dalpha,
-                         m_vpNodes[2]->coords() + m_vpNodes[2]->delta() * dalpha,
-                         m_vpNodes[3]->coords() + m_vpNodes[3]->delta() * dalpha
-                       );
+  double dvol_def =
+    vol( m_vpNodes[0]->coords() + m_vpNodes[0]->delta() * dalpha,
+         m_vpNodes[1]->coords() + m_vpNodes[1]->delta() * dalpha,
+         m_vpNodes[2]->coords() + m_vpNodes[2]->delta() * dalpha,
+         m_vpNodes[3]->coords() + m_vpNodes[3]->delta() * dalpha
+      );
   if ( sign(dvol_def) != sign(dvol_ref) )
     return true;
 

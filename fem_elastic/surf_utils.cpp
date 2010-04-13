@@ -12,7 +12,8 @@ SurfacePointer::GetTypeFromName(const std::string& name)
   else
     this->type = other;
 
-  std::cout << " surface name = " << name << " type = " << this->type << std::endl;
+  std::cout << " surface name = " << name << " type = "
+            << this->type << std::endl;
 }
 
 void

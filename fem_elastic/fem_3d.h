@@ -195,7 +195,8 @@ public:
                tDblCoords cmax,
                double dEltVol,
                double de, double dnu);
-  virtual ~DelaunayMesh() {};
+  virtual ~DelaunayMesh()
+  {};
   CMesh3d* get();
 
 protected:
@@ -261,7 +262,7 @@ private:
   bool m_is_active[3];
   tDblCoords m_d3_zero;
 
-  double m_de, m_dnu; // material constants -> to be set after 
+  double m_de, m_dnu; // material constants -> to be set after
   //elements are created
 
   void add_node(int id, int x, int y, int z); // %2==1 => centroid

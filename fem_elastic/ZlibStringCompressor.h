@@ -16,8 +16,8 @@ public:
   Bytef* setBufferSize(unsigned long size);
   unsigned int m_bufferAllocationMultiplier;
 private:
-  static void checkZlibResult(const int result, 
-                              const char* file, 
+  static void checkZlibResult(const int result,
+                              const char* file,
                               const int line);
   long unsigned m_bufferSize;
   /*
@@ -26,7 +26,7 @@ private:
   Bytef* m_buffer;
   static unsigned long findSizeInBytes(const string& s);
   static unsigned long findRequiredBufferSize
-    (const unsigned long uncompressedSize);
+  (const unsigned long uncompressedSize);
   int m_debugLevel;
 };
 

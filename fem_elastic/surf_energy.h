@@ -2,7 +2,7 @@
 
 Gheorghe Postelnicu, 2006
 
-Computes the euclidian distance between two surfaces with 
+Computes the euclidian distance between two surfaces with
 1-2-1 vertex correspondance
 
 used by Powell

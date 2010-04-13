@@ -96,7 +96,7 @@ The indices of the resulting elements are then stored in a list as
 smart pointers.
 
 
-!!!! Each vector of element indices is sorted - this is important 
+!!!! Each vector of element indices is sorted - this is important
 for the set operations to follow
 
 */
@@ -112,23 +112,23 @@ TopologySolver::BuildClusters()
   }
   catch (const std::exception& e)
   {
-    std::cout 
-      << " Exception caught while gathering info on topology problems\n"
-      << e.what() << std::endl;
+    std::cout
+    << " Exception caught while gathering info on topology problems\n"
+    << e.what() << std::endl;
   }
 
   // build container of topology problem indices
   for ( IndexVectorType::const_iterator cit = vecOrigProblems.begin();
         cit != vecOrigProblems.end(); ++cit)
   {
-    m_clusterContainer.push_back( 
+    m_clusterContainer.push_back(
       boost::shared_ptr<IndexVectorType>(new IndexVectorType ) );
     bfs.Visit( *cit,
                m_radius,
-               std::back_inserter<IndexVectorType>( 
+               std::back_inserter<IndexVectorType>(
                  *(m_clusterContainer.back()) )
              );
-    std::sort( m_clusterContainer.back()->begin(), 
+    std::sort( m_clusterContainer.back()->begin(),
                m_clusterContainer.back()->end() );
   } // next cit
 }
@@ -206,10 +206,10 @@ TopologySolver::MergeIntersectingClusters()
       ClusterContainerType tmpContainer;
 
       listFilter.Execute
-        ( ++it2, m_clusterContainer.end(),
-          std::back_inserter<ClusterContainerType>(tmpContainer),
-          IntersectsWith(*it)
-          );
+      ( ++it2, m_clusterContainer.end(),
+        std::back_inserter<ClusterContainerType>(tmpContainer),
+        IntersectsWith(*it)
+      );
 
       if ( !tmpContainer.empty() )
       {
@@ -224,8 +224,8 @@ TopologySolver::MergeIntersectingClusters()
     } // end while bAgain
   } // next it
 
-  std::cout << " TopologyClusters = " 
-            << m_clusterContainer.size() << std::endl;
+  std::cout << " TopologyClusters = "
+  << m_clusterContainer.size() << std::endl;
 }
 
 void
@@ -251,7 +251,7 @@ TopologySolver::DoLocalSmoothing()
 
     mesh_crop.Crop( &cropped,
                     **cit,
-                    nodeMap, 
+                    nodeMap,
                     elementMap,
                     boundary );
 
@@ -308,7 +308,7 @@ TMeshCrop<Cstr,n>::Crop(MeshType* outMesh,
   NodeType* pnodeIn;
   NodeType* pnodeOut;
 
-  IndexContainerType vnodes; // indices of the concerned nodes in 
+  IndexContainerType vnodes; // indices of the concerned nodes in
   // the master mesh
 
   this->PopulateNodes( i_vidxElements,
@@ -398,7 +398,7 @@ TMeshCrop<Cstr,n>::Crop(MeshType* outMesh,
     outMesh->m_cmax = bbox.second;
   }
 
-  for ( typename IndexContainerType::const_iterator cit = 
+  for ( typename IndexContainerType::const_iterator cit =
           origBoundaryNodes.begin();
         cit != origBoundaryNodes.end(); ++cit )
   {

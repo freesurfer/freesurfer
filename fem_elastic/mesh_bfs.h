@@ -38,7 +38,7 @@ public:
   //
   // what is the best way of constraining it?
   // 1. set S (template argument) = std::output_iterator<Container,e.g. list>
-  // 2. set S (template argument) = Container and 
+  // 2. set S (template argument) = Container and
   //force std::output_iterator<Container>
   //
   // will choose 1. for now

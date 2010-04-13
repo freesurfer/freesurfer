@@ -12,7 +12,11 @@ Mainly intended to hold general usage functors
 struct FunctorDeletePointer
 {
   template<class T>
-  T* operator()(T* p) const { delete p; return 0; }
+  T* operator()(T* p) const
+  {
+    delete p;
+    return 0;
+  }
 };
 
 

@@ -11,8 +11,6 @@
 #include <stack>
 #include <vector>
 
-//#include "small_matrix.h"
-
 typedef enum
 {
   cValid,
@@ -25,10 +23,10 @@ CoordsStatusType;
 //
 // generic Coords class
 // although the first type is declared as a parameter,
-// this class is mainly intended for usage with scalar types, 
+// this class is mainly intended for usage with scalar types,
 // such as int, float or double.
 //
-// The implementation should be checked before other instanciations are used!
+// The implementation should be checked before other instantiations are used!
 template<class T, int n>
 class TCoords
 {
@@ -131,7 +129,7 @@ std::istream& operator>>( std::istream& is, TCoords<T,n>& c);
 //
 
 template<int n>
-double dot(const TCoords<double,n>& a, 
+double dot(const TCoords<double,n>& a,
            const TCoords<double,n>& b); // dot product
 template<int n>
 TCoords<double,n> operator*(double val, const TCoords<double,n>& c);
@@ -154,7 +152,7 @@ struct cless : std::binary_function< TCoords<T,n>, TCoords<T,n>, bool>
       else if ( a(i) == b(i) ) bEq = true;
       else if ( a(i) < b(i) ) return true;
 
-    return (!bEq); // less is a strict relationship -> if here, 
+    return (!bEq); // less is a strict relationship -> if here,
     // then all the components are equal.
   }
 };
@@ -478,8 +476,6 @@ neighbors(const TCoords<int,n>& c)
   return pstack;
 }
 
-
-
 template<class T, int n>
 TCoords<T,n>& operator+=(TCoords<T,n>& a, const TCoords<T,n>& b)
 {
@@ -505,6 +501,5 @@ TCoords<T,n> operator*(const T& a, const TCoords<T,n>& b)
 
   return retVal;
 }
-
 
 #endif // H_COORDS_H

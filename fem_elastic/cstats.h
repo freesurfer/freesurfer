@@ -44,5 +44,4 @@ coords_statistics( const std::vector<TCoords<double, n> >& vcoords,
   return varcova.norm();
 }
 
-
 #endif

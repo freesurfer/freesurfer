@@ -349,7 +349,8 @@ main(int argc,
   }
   else
   {
-    std::cout << " trying to read transform from " << params.strTransform <<std::endl;
+    std::cout << " trying to read transform from "
+              << params.strTransform <<std::endl;
     transform = read_transform( params.strTransform.c_str() );
     if (!transform)
     {
@@ -379,7 +380,8 @@ main(int argc,
   // working space = ATLAS
   tDblCoords cmin, cmax;
   compute_bbox(vmris_fixed, cmin, cmax);
-  std::cout << " direct min = " << cmin << " direct max = " << cmax << std::endl;
+  std::cout << " direct min = " << cmin << " direct max = "
+            << cmax << std::endl;
   cmin = cmin - tDblCoords(10.0);
   //cmin = max( cmin - tDblCoords(10.0), tDblCoords(0.0) );
   cmax = cmax + tDblCoords(10.0);
@@ -449,7 +451,8 @@ main(int argc,
     // allow to do some extra steps to finish converging
     for ( int step = noSteps; step > params.iEndStep; --step )
     {
-      std::cout << " ======================\n step = " << step << "\n===============\n";
+      std::cout << " ======================\n step = " << step
+                << "\n===============\n";
       TSolver<Constructor,3> solver;
 
       // linearly vary the element volume in the given range
@@ -634,7 +637,8 @@ main(int argc,
     {
       std::ostringstream os;
       os << params.strOutputMesh << ".tm3d";
-      std::cout << " will write volume morph in file " << os.str() << std::endl;
+      std::cout << " will write volume morph in file "
+                << os.str() << std::endl;
       try
       {
         gmp::VolumeMorph morph;
@@ -677,11 +681,11 @@ main(int argc,
   return 0;
 }
 
-//////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 //
 // END MAIN FUNCTION
 //
-//////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////
 
 
 //------------------------------------------------------------------

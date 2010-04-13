@@ -91,9 +91,9 @@ TPbMeshCrop<Cstr,n>::Crop(MeshType* outMesh,
   m_leafElements.clear();
 
   // get elements
-  IndexSetType eltVisited; // will contain all the elements 
+  IndexSetType eltVisited; // will contain all the elements
   // used to populate the mesh
-  IndexSetType nodeVisited; // will contain all 
+  IndexSetType nodeVisited; // will contain all
   // INTERNAL nodes -> used to determine boundary nodes
   this->bfs( seed,
              radius,

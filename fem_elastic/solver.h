@@ -34,7 +34,8 @@ struct BC
   BC(const tCoords& _pt, const tCoords& _delta) : pt(_pt), delta(_delta),
       isActive(false)
   {}
-  virtual ~BC() {};
+  virtual ~BC()
+  {};
   virtual bool find_candidate(tMesh* pmesh)
   {
     return false;
@@ -53,7 +54,8 @@ struct BCNatural : public BC<Cstr,n>
   {}
   BCNatural(const tCoords& _pt, const tCoords& _delta) : BC<Cstr,n>(_pt, _delta), pnode(NULL)
   {}
-  virtual ~BCNatural() {};
+  virtual ~BCNatural()
+  {};
   virtual bool find_candidate(tMesh* pmesh)
   {
     pnode = pmesh->closest_node(this->pt);
@@ -71,7 +73,8 @@ struct BCMfc : public BC<Cstr, n>
   tElement* pelt;
   BCMfc(const tCoords& _pt, const tCoords& _delta) : BC<Cstr,n>(_pt, _delta), pelt(NULL)
   {}
-  virtual ~BCMfc() {};
+  virtual ~BCMfc()
+  {};
   virtual bool find_candidate(tMesh* pmesh)
   {
     pelt = pmesh->element_at_point(this->pt);
@@ -147,7 +150,7 @@ public:
   int check_bc_error(double& dRemainingRatio);
 
   // mainly for debugging purposes
-  // when assigning BC MFC - keep the information about 
+  // when assigning BC MFC - keep the information about
   // the element available for later probing
   typedef typename
   std::map<unsigned int, std::pair<tCoords, double> > BcMfcInfoType;
@@ -167,7 +170,7 @@ protected:
   int  done_bc_mfc();
   int  setup_matrix(bool showInfo=false); // assembly the stiffness matrix
   int  setup_load(); // assembly force load by reduction of the LHS
-  int  setup_load_sym(); // assembly force load by 
+  int  setup_load_sym(); // assembly force load by
   // conditioning both rows and cols
   int  setup_load_mfc();
   int  comm_solution(); // set sol values in respective nodes
@@ -179,7 +182,7 @@ protected:
 
   int  m_displayLevel; // 0=critical, 1=important, 2=detailed
 
-  bool m_useThreshold; // sets whether a threshold should 
+  bool m_useThreshold; // sets whether a threshold should
   // be used or not when setting the BC
   double m_bcThreshold;
 };
@@ -313,7 +316,7 @@ TSolver<Cstr,n>::solve()
     {
       femPrint = true;
       PetscViewer viewer;
-      PetscViewerBinaryOpen( PETSC_COMM_SELF, buffer, 
+      PetscViewerBinaryOpen( PETSC_COMM_SELF, buffer,
                              FILE_MODE_WRITE, &viewer);
       MatView(m_stiffness, viewer);
       PetscViewerDestroy(viewer);
@@ -326,7 +329,7 @@ TSolver<Cstr,n>::solve()
   if ( femPrint )
   {
     PetscViewer viewer;
-    PetscViewerBinaryOpen( PETSC_COMM_SELF, "final_stif.bin", 
+    PetscViewerBinaryOpen( PETSC_COMM_SELF, "final_stif.bin",
                            FILE_MODE_WRITE, &viewer);
     MatView(m_stiffness, viewer);
     PetscViewerDestroy(viewer);
@@ -494,7 +497,7 @@ TSolver<Cstr,n>::done_bc_natural()
 
       if ( pnode )
       {
-        if ( !m_useThreshold || 
+        if ( !m_useThreshold ||
              (pnode->coords()- bc->pt).norm() < m_bcThreshold )
         {
           pnode->set_bc(bc->delta);
@@ -511,28 +514,28 @@ TSolver<Cstr,n>::done_bc_natural()
       }
       else
       {
-        std::cerr 
-          << "TSolver::done_bc_natural -> failed to find node close to "
-          << bc->pt << std::endl;
+        std::cerr
+        << "TSolver::done_bc_natural -> failed to find node close to "
+        << bc->pt << std::endl;
         bFailed = true;
       }
     }
   }
 
-  if ( m_displayLevel && 
+  if ( m_displayLevel &&
        bFailed ) std::cout << " !!!!! There were FAILED BCs\n";
   if ( m_displayLevel )
   {
-    std::cout 
-      <<  " computing statistics for the displacement application error\n";
+    std::cout
+    <<  " computing statistics for the displacement application error\n";
     double dAvgNorm = 0.0;
     for ( typename std::vector< tCoords>::const_iterator cit = vdelta.begin();
           cit != vdelta.end();
           ++cit )
       dAvgNorm += cit->norm();
     dAvgNorm /= (double)vdelta.size();
-    std::cout 
-      << " average norm of error in placement = " << dAvgNorm << std::endl;
+    std::cout
+    << " average norm of error in placement = " << dAvgNorm << std::endl;
   }
 
   return 0;
@@ -616,7 +619,7 @@ TSolver<Cstr,n>::done_bc_mfc()
           cit != mapIter->second.end();
           ++cit)
     {
-      // need to write a routine to invert the covariance 
+      // need to write a routine to invert the covariance
       // matrix 3x3 - should be direct
       // use determinants, i guess
       dCrtDist = ( m_vBc[*cit]->delta - mean).norm();
@@ -630,7 +633,7 @@ TSolver<Cstr,n>::done_bc_mfc()
     // assign BC
     ++active;
     m_vBc[*citArgmin]->isActive = true;
-    dynamic_cast<tBCMfc*>(m_vBc[*citArgmin])->pelt = 
+    dynamic_cast<tBCMfc*>(m_vBc[*citArgmin])->pelt =
       m_pmesh->fetch_elt(mapIter->first);
   } // next mapIter
 
@@ -1112,7 +1115,7 @@ TSolver<Cstr,n>::setup_load_sym()
   CHKERRQ(ierr);
   ierr = VecDestroy(vecBcs);
   CHKERRQ(ierr);
-  ierr = VecSetValues( m_load, (int)mrhs.size(), 
+  ierr = VecSetValues( m_load, (int)mrhs.size(),
                        indices, values, INSERT_VALUES);
   CHKERRQ(ierr);
 
@@ -1174,8 +1177,8 @@ TSolver<Cstr,n>::check_bc_error(double& dRemainingRatio)
 
   if ( count )
   {
-    std::cout << " Average of the error norm = " 
-              << dSum /(double)count << std::endl
+    std::cout << " Average of the error norm = "
+    << dSum /(double)count << std::endl
     << " Initial error = " << dSumInitial / (double)count << std::endl;
   }
   else
@@ -1276,21 +1279,21 @@ TDirectSolver<Cstr,n>::solve()
     kspConvergenceReason[KSP_CONVERGED_RTOL] = "ksp-converged-rtol";
     kspConvergenceReason[KSP_CONVERGED_ATOL] = "ksp-converged-atol";
     kspConvergenceReason[KSP_CONVERGED_ITS]  = "ksp-converged-its";
-    kspConvergenceReason[KSP_CONVERGED_CG_NEG_CURVE] = 
+    kspConvergenceReason[KSP_CONVERGED_CG_NEG_CURVE] =
       "ksp-converged-stcg-neg-curve";
-    kspConvergenceReason[KSP_CONVERGED_CG_CONSTRAINED] = 
+    kspConvergenceReason[KSP_CONVERGED_CG_CONSTRAINED] =
       "ksp-converged-stcg-constrained";
-    kspConvergenceReason[KSP_CONVERGED_STEP_LENGTH] = 
+    kspConvergenceReason[KSP_CONVERGED_STEP_LENGTH] =
       "ksp-converged-step-length";
-    kspConvergenceReason[KSP_CONVERGED_HAPPY_BREAKDOWN] = 
+    kspConvergenceReason[KSP_CONVERGED_HAPPY_BREAKDOWN] =
       "ksp-converged-happy-breakdown";
     kspConvergenceReason[KSP_DIVERGED_NULL] = "ksp-diverged-null";
     kspConvergenceReason[KSP_DIVERGED_ITS] = "ksp-diverged-its";
     kspConvergenceReason[KSP_DIVERGED_DTOL] = "ksp-diverged-dtol";
     kspConvergenceReason[KSP_DIVERGED_BREAKDOWN] = "ksp-diverged-breakdown";
-    kspConvergenceReason[KSP_DIVERGED_BREAKDOWN_BICG]= 
+    kspConvergenceReason[KSP_DIVERGED_BREAKDOWN_BICG]=
       "ksp-diverged-breakdown-bicg";
-    kspConvergenceReason[KSP_DIVERGED_NONSYMMETRIC] = 
+    kspConvergenceReason[KSP_DIVERGED_NONSYMMETRIC] =
       "ksp-diverged-nonsymmetric";
     kspConvergenceReason[KSP_DIVERGED_INDEFINITE_PC]=
       "ksp-diverged-indefinite-pc";
