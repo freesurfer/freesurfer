@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/04/09 22:01:16 $
- *    $Revision: 1.53 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/14 15:16:23 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@
 #endif // FS_CUDA
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.53 2010/04/09 22:01:16 nicks Exp $";
+  "$Id: mris_sphere.c,v 1.54 2010/04/14 15:16:23 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -122,13 +122,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.53 2010/04/09 22:01:16 nicks Exp $",
+   "$Id: mris_sphere.c,v 1.54 2010/04/14 15:16:23 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.53 2010/04/09 22:01:16 nicks Exp $",
+           "$Id: mris_sphere.c,v 1.54 2010/04/14 15:16:23 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -307,7 +307,7 @@ main(int argc, char *argv[]) {
     MRISsaveVertexPositions(mris, CANONICAL_VERTICES) ;
     if (l_expand > 0)
     {
-      MRISexpandSurface(mris, target_radius/2, &inflation_parms, 0) ;
+      MRISexpandSurface(mris, target_radius/2, &inflation_parms, 0, 1) ;
       l_expand = parms.l_expand = 0 ;
     }
     MRIScenter(mris, mris) ;
