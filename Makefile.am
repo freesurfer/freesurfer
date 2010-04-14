@@ -77,6 +77,7 @@ MRISUBDIRS=\
 	mri_fwhm \
 	mri_gca_ambiguous \
 	mri_head \
+	histo_segment \
 	histo_fix_topology \
 	mri_histo_eq \
 	mri_compute_structure_transforms \
