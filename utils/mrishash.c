@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/01/26 19:15:39 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/04/14 14:42:37 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -2957,3 +2957,65 @@ checkFace(MRIS_HASH_TABLE *mht, MRI_SURFACE *mris, int fno1)
 #endif
   return(NO_ERROR) ;
 }
+
+VERTEX * MHTfindClosestVertexSetInDirection(MRIS_HASH_TABLE *mht, 
+                                            MRI_SURFACE *mris, 
+                                            VERTEX *v, 
+                                            int which,
+                                            double nx, double ny, double nz)
+{
+  VERTEX  *v_closest, *vn ;
+  double  dx, dy, dz, dot, dist, min_dist ;
+  int     vno ;
+
+  v_closest = MHTfindClosestVertexSet(mht, mris,  v, which) ;
+
+  if (v_closest)
+  {
+    switch (which)
+    {
+    case PIAL_VERTICES: 
+      dx = v_closest->pialx - v->x ; dy = v_closest->pialy - v->y ; dz = v_closest->pialz - v->z ;
+      break ;
+    case WHITE_VERTICES: 
+      dx = v_closest->whitex - v->x ; dy = v_closest->whitey - v->y ; dz = v_closest->whitez - v->z ;
+      break ;
+    default:
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MHTfindClosestVertexSet: unsupported which %d",which));
+    }
+    dot = dx * nx + dy*ny + dz*nz ;
+    if (dot > 0)
+      return(v_closest) ;
+  }
+
+  min_dist = 1e10 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    vn = &mris->vertices[vno] ;
+    if (vn->ripflag)
+      continue ;
+    switch (which)
+    {
+    case PIAL_VERTICES: 
+      dx = vn->pialx - v->x ; dy = vn->pialy - v->y ; dx = vn->pialz - v->z ;
+      break ;
+    case WHITE_VERTICES: 
+      dx = vn->whitex - v->x ; dy = vn->whitey - v->y ; dx = vn->whitez - v->z ;
+      break ;
+    default:
+      ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MHTfindClosestVertexSet: unsupported which %d",which));
+    }
+    dot = dx * nx + dy*ny + dz*nz ;
+    if (dot < 0)
+      continue ;
+    dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (dist < min_dist)
+    {
+      min_dist = dist ;
+      v_closest = vn ;
+    }
+  }
+
+  return(v_closest) ;
+}
+
