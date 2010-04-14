@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2009/10/06 23:12:09 $
- *    $Revision: 1.10 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/14 14:41:06 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -48,8 +48,8 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 static void usage_exit(int code) ;
 static INTEGRATION_PARMS parms ;
-static int navgs = 0 ;
 static int use_thickness = 0 ;
+static int nsurfaces = 0 ;
 
 int
 main(int argc, char *argv[])
@@ -62,16 +62,18 @@ main(int argc, char *argv[])
   float        mm_out ;
   MRI_SURFACE  *mris ;
 
-  parms.l_spring = .1;
+  parms.l_spring = .05;
+  parms.l_location = 1 ;
   // parms.l_curv = 1.0 ;
-  parms.n_averages = 4 ;
-  // parms.l_surf_repulse = .1 ;
-  parms.dt = 0.5 ;
+  parms.n_averages = 16 ;
+  parms.min_averages = 0 ;
+  parms.l_surf_repulse = .0 ;
+  parms.dt = 0.25 ;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_expand.c,v 1.10 2009/10/06 23:12:09 greve Exp $",
+     "$Id: mris_expand.c,v 1.11 2010/04/14 14:41:06 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -109,6 +111,7 @@ main(int argc, char *argv[])
   mris = MRISread(in_fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: MRISread(%s) failed", Progname, in_fname);
+  
   if (use_thickness)
   {
     printf("reading thickness...\n") ;
@@ -119,16 +122,21 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE,
                 "%s: could not read pial vertex positions\n",
                 Progname) ;
+    if (MRISreadCanonicalCoordinates(mris, "sphere") != NO_ERROR)
+      ErrorExit(ERROR_NOFILE, "") ;
     MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, WHITE_VERTICES) ;
+    MRISripZeroThicknessRegions(mris) ;
   }
   MRIScomputeMetricProperties(mris) ;
   MRISstoreMetricProperties(mris) ;
-  MRISexpandSurface(mris, mm_out, &parms, use_thickness) ;
+  MRISexpandSurface(mris, mm_out, &parms, use_thickness, nsurfaces);
+#if 0
   if (navgs > 0)
     MRISaverageVertexPositions(mris, navgs) ;
   printf("writing expanded surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
+#endif
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -187,9 +195,14 @@ get_option(int argc, char *argv[])
       Gdiag |= DIAG_WRITE ;
       break ;
     case 'A':
-      navgs = atoi(argv[2]) ;
+      parms.smooth_averages = atoi(argv[2]) ;
       nargs = 1 ;
-      printf("smoothing surface with %d iterations after expansion\n", navgs) ;
+      printf("smoothing surface with %d iterations after expansion\n", parms.smooth_averages) ;
+      break ;
+    case 'N':   // how many surfaces to write out
+      nsurfaces = atoi(argv[2]) ;
+      nargs = 1 ;
+      printf("writing %d surfaces during expansion\n", nsurfaces) ;
       break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
