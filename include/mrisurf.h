@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.341 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/14 14:41:59 $
+ *    $Revision: 1.342 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -542,6 +542,7 @@ typedef struct
   MRI_SURFACE **mris_array ;
   MRI_SURFACE *mris_ico ;     // for sampling from a spherical template
   void         *mht_ico ;      // hash table for previous surface
+  int          smooth_averages ;
 }
 INTEGRATION_PARMS ;
 
@@ -1391,7 +1392,8 @@ float  MRISdistanceToSurface(MRI_SURFACE *mris, MHT *mht,
                              float nx, float ny, float nz) ;
 int    MRISexpandSurface(MRI_SURFACE *mris,
                          float distance,
-                         INTEGRATION_PARMS *parms, int use_thickness) ;
+                         INTEGRATION_PARMS *parms, int use_thickness, int nsurfaces) ;
+int MRISripZeroThicknessRegions(MRI_SURFACE *mris) ;
 
 #endif
 

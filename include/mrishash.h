@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/01/22 02:44:43 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/04/14 14:42:00 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -181,6 +181,11 @@ VERTEX *MHTfindClosestVertexSet(MRIS_HASH_TABLE *mht,
                                 MRI_SURFACE *mris, 
                                 VERTEX *v, 
                                 int which) ;
+VERTEX * MHTfindClosestVertexSetInDirection(MRIS_HASH_TABLE *mht, 
+                                            MRI_SURFACE *mris, 
+                                            VERTEX *v, 
+                                            int which,
+                                            double nx, double ny, double nz);
 int    *MHTgetAllVerticesWithinDistance(MRIS_HASH_TABLE *mht, 
                                         MRI_SURFACE *mris,
                                         int vno, 
