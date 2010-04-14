@@ -9,9 +9,9 @@ function [n, F] = fast_synthnoise(nf,nc,acf)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:32 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2010/04/14 16:47:04 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -55,7 +55,7 @@ if(mineig < 0)
   return;
 end
 
-F = chol(S);
+F = chol(S)';
 
 
 n = F * randn(nf,nc);
