@@ -6,8 +6,8 @@
  * Original Author: Fischl, B.
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2010/04/12 22:01:37 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/04/14 16:31:54 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,6 +60,8 @@ static int find_debug_node(GCA_MORPH *gcam, int origx, int origy, int origz) ;
 static int init_gcam_areas(GCA_MORPH *gcam) ;
 static int 	mask_invalid(GCA_MORPH *gcam,  MRI *mri) ;
 
+int tm3dfile = 0;
+
 int
 main(int argc, char *argv[])
 {
@@ -71,7 +73,7 @@ main(int argc, char *argv[])
   MRI       *mri, *mri_jacobian, *mri_area, *mri_orig_area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.8 2010/04/12 22:01:37 lzollei Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.9 2010/04/14 16:31:54 lzollei Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -107,13 +109,12 @@ main(int argc, char *argv[])
     ErrorExit(ERROR_BADPARM, "%s: could not read template volume %s\n", Progname,argv[2]);
 
   GCAMrasToVox(gcam, mri) ;
-  if (init)
+  if (init || tm3dfile)
     init_gcam_areas(gcam) ;
   if (atlas)
     {
       mri_area = GCAMwriteMRI(gcam, NULL, GCAM_AREA);
       mri_orig_area = GCAMwriteMRI(gcam, NULL, GCAM_ORIG_AREA);
-		
     }
   else
     {
@@ -227,6 +228,11 @@ get_option(int argc, char *argv[])
       printf("removing determinant of transform %s\n", argv[2]) ;
       nargs = 1 ;
     }
+  else if (!stricmp(option, "tm3d"))
+    {
+      tm3dfile = 1;
+      printf("The input morph originated from a tm3d (mri_cvs_register file).\n") ;
+    }
   else switch (toupper(*option))
     {
     case 'A':
@@ -283,6 +289,7 @@ usage_exit(int code)
   printf("  -l taking log of jacoian values before saving\n");
   printf("  -s <sigma>: smoothing jacobian volume with sigma\n");
   printf("  -z making log jacobian zero mean\n");
+  printf("  -tm3d: the input morph (m3z) originated from tm3d (mri_cvs_register)\n");
   printf("  -? / -u: writing out help \n");
 
   exit(code) ;
