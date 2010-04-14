@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/04/14 14:42:37 $
- *    $Revision: 1.48 $
+ *    $Date: 2010/04/14 19:50:46 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -2981,6 +2981,7 @@ VERTEX * MHTfindClosestVertexSetInDirection(MRIS_HASH_TABLE *mht,
       dx = v_closest->whitex - v->x ; dy = v_closest->whitey - v->y ; dz = v_closest->whitez - v->z ;
       break ;
     default:
+      dx = dy = dz = 0 ;
       ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MHTfindClosestVertexSet: unsupported which %d",which));
     }
     dot = dx * nx + dy*ny + dz*nz ;
@@ -2997,10 +2998,10 @@ VERTEX * MHTfindClosestVertexSetInDirection(MRIS_HASH_TABLE *mht,
     switch (which)
     {
     case PIAL_VERTICES: 
-      dx = vn->pialx - v->x ; dy = vn->pialy - v->y ; dx = vn->pialz - v->z ;
+      dx = vn->pialx - v->x ; dy = vn->pialy - v->y ; dz = vn->pialz - v->z ;
       break ;
     case WHITE_VERTICES: 
-      dx = vn->whitex - v->x ; dy = vn->whitey - v->y ; dx = vn->whitez - v->z ;
+      dx = vn->whitex - v->x ; dy = vn->whitey - v->y ; dz = vn->whitez - v->z ;
       break ;
     default:
       ErrorReturn(NULL, (ERROR_UNSUPPORTED, "MHTfindClosestVertexSet: unsupported which %d",which));
