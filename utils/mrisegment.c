@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:45 $
- *    $Revision: 1.21 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/14 14:43:09 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -800,23 +800,35 @@ mriSegmentReallocateSegments(MRI_SEGMENTATION *mriseg, int max_segments)
 MRI *
 MRIsegmentToImage(MRI *mri_src, MRI *mri_dst, MRI_SEGMENTATION *mriseg, int s)
 {
-  int          v, x, y, z ;
+  int          v, x, y, z, smin, smax ;
   MRI_SEGMENT  *mseg ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri_src, NULL) ;
 
-  if (s < 0 || s >= mriseg->nsegments)
+  if (s >= mriseg->nsegments)
     ErrorReturn(mri_dst,
                 (ERROR_BADPARM, "MRIsegmentToImage: invalid segment #%d",s));
-  mseg = &mriseg->segments[s] ;
 
-  for (v = 0 ; v < mseg->nvoxels ; v++)
+  if (s < 0)  // do all segments
   {
-    x = mseg->voxels[v].x ;
-    y = mseg->voxels[v].y ;
-    z = mseg->voxels[v].z ;
-    MRIsetVoxVal(mri_dst, x, y, z,0, MRIgetVoxVal(mri_src, x, y, z, 0)) ;
+    smin = 0 ;
+    smax = mriseg->nsegments-1 ;
+  }
+  else  // just do one segment
+    smin = smax = s ;
+
+  for (s = smin ; s <= smax ; s++)
+  {
+    mseg = &mriseg->segments[s] ;
+    
+    for (v = 0 ; v < mseg->nvoxels ; v++)
+    {
+      x = mseg->voxels[v].x ;
+      y = mseg->voxels[v].y ;
+      z = mseg->voxels[v].z ;
+      MRIsetVoxVal(mri_dst, x, y, z,0, MRIgetVoxVal(mri_src, x, y, z, 0)) ;
+    }
   }
 
   return(mri_dst) ;
