@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:45 $
- *    $Revision: 1.72 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/14 14:43:52 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -6113,7 +6113,7 @@ MRISshrinkWrapSkull(MRI *mri, MORPH_PARMS *parms)
   MRISpositionSurface(mris, mri, mri_smooth, &lparms) ;  /* outer skin */
   if (ncalls == 1 && (Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
     MRISwrite(mris, "outer_skin3.geo") ;
-  MRISexpandSurface(mris, -5, NULL, 0) ;
+  MRISexpandSurface(mris, -5, NULL, 0, 1) ;
   if (ncalls == 1 && (Gdiag & DIAG_WRITE) && DIAG_VERBOSE_ON)
     MRISwrite(mris, "outer_skin_expanded.geo") ;
   MRISsetVals(mris, 0) ;

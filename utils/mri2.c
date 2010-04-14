@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:42 $
- *    $Revision: 1.57 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/14 14:43:52 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -52,6 +52,7 @@
 #define nint(f)  (f<0?((int)(f-0.5)):((int)(f+0.5)))
 
 #define VERBOSE_MODE
+#undef VERBOSE_MODE
 
 /*-------------------------------------------------------------
   mri_load_bvolume() -- same as bf_ldvolume() but returns an
