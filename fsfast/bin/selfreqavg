@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/17 18:43:49 $
-#    $Revision: 1.14 $
+#    $Date: 2010/04/15 16:59:08 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: selfreqavg,v 1.14 2009/04/17 18:43:49 greve Exp $';
+set VERSION = '$Id: selfreqavg,v 1.15 2010/04/15 16:59:08 greve Exp $';
 set cmdargv = "$argv";
 
 set n = `echo $argv | grep version | wc -l` 
@@ -215,6 +215,7 @@ $TARGET <<EOF
     for n = 1:nruns,
       instem = deblank(instems(n,:));
       if(nslices == 1) fprintf('  Input Volume %s\n',instem); end
+      instemdir = fast_dirname(instem);
 
       mri = MRIread(instem);
       if(isempty(mri))
@@ -227,10 +228,11 @@ $TARGET <<EOF
 
       %%% Global Rescaling %%%
       if(sfa.rescale_target ~= 0) 
-        fname = sprintf('%s.meanval',instem);
+        %fname = sprintf('%s.meanval',instem);
+        fname = sprintf('%s/global.meanval.dat',instemdir);
         fid = fopen(fname,'r');
         if(fid == -1) 
-          msg = sprintf('Could not open %s',fname);
+          msg = sprintf('Could not open %s. Make sure to run mkbrainmask-sess',fname);
           qoe(msg); error(msg);
         end
         sfa.meanval = fscanf(fid,'%f');
@@ -390,7 +392,7 @@ $TARGET <<EOF
   
 EOF
 
-echo "selfreqavg COMPLETED"
+echo "selfreqavg done"
 
 exit 0;
 

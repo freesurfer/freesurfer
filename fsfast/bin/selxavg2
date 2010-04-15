@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/10 22:40:56 $
-#    $Revision: 1.16 $
+#    $Date: 2010/04/15 16:58:45 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 
 
 set inputargs = ($argv);
-set VERSION = '$Id: selxavg2,v 1.16 2010/03/10 22:40:56 greve Exp $'
+set VERSION = '$Id: selxavg2,v 1.17 2010/04/15 16:58:45 greve Exp $'
 
 ## If there are no arguments, just print useage and exit ##
 if ( $#argv == 0  )  goto usage_exit;
@@ -280,8 +280,9 @@ while( $#argv != 0 )
       breaksw
 
     case "-extreg":
-      if ( $#argv == 0) goto arg1err;
+      if($#argv < 2) goto arg2err;
       set extregfile = $argv[1]; shift;
+      set nextreg = $argv[1]; shift;
       breaksw
 
     case "-nextreg":
@@ -666,9 +667,12 @@ check_params:
 
   if($rescale > 0) then
     foreach stem ($instems)
-      set mvfile = $stem.meanval
+      set stemdir = `dirname $stem`
+      #set mvfile = $stem.meanval
+      set mvfile = $stemdir/global.meanval.dat
       if(! -e $mvfile) then
-        echo "ERROR: $stem does not have a .meanval file, run inorm"
+        echo "ERROR: $stem does not have a global.meanval.dat file"
+        echo "Make sure to run mkbrainmask-sess"
         exit 1;
       endif
     end
@@ -723,8 +727,11 @@ check_params:
       set idir = `dirname $i`;
       set tmp = $idir/$extregfile"_000.hdr"
       if(! -e $tmp) then
-        echo "ERROR: cannot find $tmp"
-        exit 1;
+        set tmp = $idir/$extregfile
+        if(! -e $tmp) then
+          echo "ERROR: cannot find $tmp"
+          exit 1;
+        endif
       endif
     end
   endif
@@ -773,6 +780,10 @@ goto check_params_return;
 ############--------------##################
 arg1err:
   echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
   exit 1
 ############--------------##################
 
