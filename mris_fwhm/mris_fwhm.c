@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/15 16:52:46 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/04/15 20:40:14 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.25 2010/04/15 16:52:46 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.26 2010/04/15 20:40:14 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -180,6 +180,7 @@ char *Xfile=NULL;
 MATRIX *X=NULL;
 int DetrendOrder = -1;
 int DoDetrend = 1;
+int SmoothOnly = 0;
 
 char *ar1fname = NULL;
 
@@ -190,9 +191,10 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile);
 int DHvtxno=0, DHniters=0;
 char *DHfile = NULL;
 
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, niters=0, Ntp, n;
+  int nargs, niters=0, Ntp, n, err;
   double fwhm = 0, ar1mn, ar1std, ar1max, avgvtxarea,ftmp;
   double InterVertexDistAvg, InterVertexDistStdDev;
   MRI *ar1=NULL;
@@ -330,6 +332,11 @@ int main(int argc, char *argv[]) {
     printf("Smoothing input by fwhm=%lf, gstd=%lf, niters=%d \n",
            infwhm,ingstd,niters);
     MRISsmoothMRI(surf, InVals, niters, mask,InVals);
+    if(SmoothOnly) {
+      printf("Only smoothing, so saving and exiting now\n");
+      err = MRIwrite(InVals,outpath);
+      exit(err);
+    }
   }
 
   printf("Computing spatial AR1 \n");
@@ -380,10 +387,12 @@ int main(int argc, char *argv[]) {
     fclose(fp);
   }
 
-  if(outpath) MRIwrite(InVals,outpath);
+  if(outpath) {
+    err = MRIwrite(InVals,outpath);
+    if(err) exit(1);
+  }
 
-
-  return 0;
+  exit(0);
 }
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
@@ -411,6 +420,10 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--synth")) synth = 1;
     else if (!strcasecmp(option, "--nosynth")) synth = 0;
     else if (!strcasecmp(option, "--no-detrend")) DoDetrend = 0;
+    else if (!strcasecmp(option, "--smooth-only")) {
+      DoDetrend = 0;
+      SmoothOnly = 1;
+    }
     else if (!strcasecmp(option, "--mask-inv")) maskinv = 1;
     else if (!strcasecmp(option, "--niters-only")){
       nitersonly = 1; synth = 1;
@@ -531,6 +544,7 @@ static void print_usage(void) {
   printf("   --mask maskfile\n");
   printf("   --X x.mat : matlab4 detrending matrix\n");
   printf("   --detrend order : polynomial detrending (default 0)\n");
+  printf("   --smooth-only : only smooth (implies --no-detrend)\n");
   printf("   --no-detrend : turn of poly detrending \n");
   printf("   --sum sumfile\n");
   printf("   --dat datfile (only contains fwhm)\n");
@@ -663,6 +677,10 @@ static void check_options(void) {
     exit(1);
   }
   if(X == NULL && DetrendOrder < 0 && DoDetrend) DetrendOrder = 0;
+  if(SmoothOnly && outpath == 0){
+    printf("ERROR: must spec output with --smooth-only\n");
+    exit(1);
+  }
 
   return;
 }
