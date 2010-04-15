@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/13 19:58:33 $
-#    $Revision: 1.28 $
+#    $Date: 2010/04/15 18:50:20 $
+#    $Revision: 1.29 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.28 2010/04/13 19:58:33 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.29 2010/04/15 18:50:20 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -183,7 +183,8 @@ foreach sess ($SessList)
     set cmd = (mc-sess -fstem $mcinstem -fmcstem $mcoutstem)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
-    if($MCPerRun)   set cmd = ($cmd -perrun)
+    if($MCPerRun)   set cmd = ($cmd -per-run)
+    if(! $MCPerRun) set cmd = ($cmd -per-session)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
@@ -209,7 +210,7 @@ foreach sess ($SessList)
   if($DoVolSmooth) then
     set cmd = (spatialsmooth-sess -i $sminstem -o $smoutstem -fwhm $fwhm)
     set cmd = ($cmd -fsd $fsd -s $sessid -d $sessparent)
-    if($#UseSmoothMask)  set cmd = ($cmd -mask);
+    if($UseSmoothMask)  set cmd = ($cmd -mask);
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
