@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/15 17:00:06 $
-#    $Revision: 1.37 $
+#    $Date: 2010/04/15 21:06:17 $
+#    $Revision: 1.38 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.37 2010/04/15 17:00:06 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.38 2010/04/15 21:06:17 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -78,7 +78,6 @@ set autostimdur = ();
 set stimdur = ();
 set PrintHelp = 0;
 set UseGUI = 0;
-set FixACF = 1;
 set FSV3st2fir = 0;
 set FSV3whiten = 0;
 set mfile = ();
@@ -87,6 +86,8 @@ set RefEventDur = ();
 set subject = ();
 set hemi = ();
 set UseTalairach = ()
+set FixACF = 1;
+set acffwhm = 0;
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -158,11 +159,9 @@ echo "Setting TER to $TER"
 set sxacfg = $analysis/$sxacfg
 rm -f $sxacfg
 touch $sxacfg
-
 if($designtype == "event-related" || $designtype == "blocked") then
   set Nh  = `echo "($IdealTW/$TER)" | bc`;
   set TW  = `echo "$TER*$Nh" | bc -l`;
-  #if($#PreStim == 0) set PreStim = `echo "2*$TR"   | bc -l`;
   if($gammafit) then
     @ nth = 1;
     while($nth <= $#gDelta)
@@ -172,9 +171,9 @@ if($designtype == "event-related" || $designtype == "blocked") then
     if($#gAlpha != 0) echo "-gammaexp $gAlpha" >> $sxacfg
   endif
   if($spmhrf > -1) echo "-spmhrf $spmhrf" >> $sxacfg
-
   echo "-timewindow $TW" >> $sxacfg
   echo "-prestim $PreStim" >> $sxacfg
+  echo "-TER $TER" >> $sxacfg
 
   if($FSV3whiten) set acfbins = 1; # Explicitly set to 1
   if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
@@ -190,11 +189,9 @@ if($designtype == "event-related" || $designtype == "blocked") then
 
   if($PolyFitOrder >= 0) echo "-polyfit $PolyFitOrder" >> $sxacfg
   if($nyqreg) echo "-nyqreg" >> $sxacfg
-  echo "-TER $TER" >> $sxacfg
   if($#timeoffset != 0) echo "-timeoffset $timeoffset" >> $sxacfg
-  else if($designtype == "retinotopy" || $designtype == "abblocked") then
+else if($designtype == "retinotopy" || $designtype == "abblocked") then
   if($#ncycles) echo "-ncycles $ncycles" >> $sxacfg
-  echo "-delay   0" >> $sxacfg
 endif
 
 echo "-nskip $nskip" >> $sxacfg
@@ -232,6 +229,7 @@ if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
 echo "tpexclude  $tpexclude"  >> $infofile
 if($#parname)  echo "parname    $parname"    >> $infofile
 echo "designtype $designtype" >> $infofile
+echo "acffwhm $acffwhm" >> $infofile
 if($#maskstem != 0) echo "maskstem $maskstem" >> $infofile
 if($#subject) echo "surface $subject $hemi" >> $infofile
 if($UseTalairach) echo "UseTalairach" >> $infofile
@@ -387,6 +385,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-p":
+    case "-par":
     case "-paradigm":
       if ( $#argv == 0) goto arg1err;
       set parname = $1; shift;
@@ -448,6 +447,11 @@ while( $#argv != 0 )
     case "-acfbins":
       if ( $#argv == 0) goto arg1err;
       set acfbins = $argv[1]; shift;
+      breaksw
+
+    case "-acffwhm":
+      if($#argv < 1) goto arg1err;
+      set acffwhm = $argv[1]; shift;
       breaksw
 
     case "-whiten":
@@ -612,7 +616,8 @@ while( $#argv != 0 )
 
     case "-abblocked":
       set abblocked = 1;
-      set designtype    = "abblocked"
+      set designtype = "abblocked"
+      set RefEventDur = -1;
       breaksw
 
     case "-retinotopy":
@@ -1006,15 +1011,8 @@ all runs found in the FSD will be processed.
 Do not perform intensity normalization default is to
 apply it. Intensity normalization will force the grand within-tissue
 mean of the functional data to be 100 for each run (note that
-prior to version 5 the rescale factor was 1000).
-
--fwhm Full-Width-Half-Max  
- 
-This functionality is somewhat obsolete. Consider using spatialsmooth-sess 
-for 3D smoothing. -fwhm Specifies that within-plane (ie, 2D) spatial 
-smoothing using a Hanning kernel should be performed. The 
-Full-Width-Half-Max (FWHM) indicates the extent of the smoothing and 
-is specified in mm. 
+prior to version 5 the rescale factor was 1000). This uses the
+global.meanval.dat produced by mkbrainmask-sess
 
 -nskip N 
  

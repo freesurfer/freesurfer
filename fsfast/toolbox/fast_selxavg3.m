@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.79 2010/04/15 16:56:44 greve Exp $
+% $Id: fast_selxavg3.m,v 1.80 2010/04/15 21:06:17 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/15 16:56:44 $
-%    $Revision: 1.79 $
+%    $Date: 2010/04/15 21:06:17 $
+%    $Revision: 1.80 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.79 2010/04/15 16:56:44 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.80 2010/04/15 21:06:17 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -79,8 +79,6 @@ ext = getenv('FSF_OUTPUT_FORMAT');
 if(isempty(ext)) ext = 'bhdr'; end
 fprintf('Extension format = %s\n',ext);
 
-fprintf('UseFloat = %d\n',UseFloat);
-
 if(~isempty(analysis))
   flac0 = fast_ldanaflac(analysis);
 else
@@ -90,7 +88,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.79 2010/04/15 16:56:44 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.80 2010/04/15 21:06:17 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -375,7 +373,6 @@ if(DoGLMFit)
 	fprintf('BUT you have specified to continue anyway with TR = %g.\n',flac.TR);
 	fprintf('\n\n');
       end
-      if(UseFloat) yrun.vol = single(yrun.vol); end
       if(yrun.volsize(1) ~= mask.volsize(1) | ...
 	 yrun.volsize(2) ~= mask.volsize(2) | ...
 	 yrun.volsize(3) ~= mask.volsize(3))
@@ -471,7 +468,6 @@ if(DoGLMFit)
     indrun = find(tpindrun == nthrun);
     if(~DoSynth)
       yrun = MRIread(flac.funcfspec);
-      if(UseFloat) yrun.vol = single(yrun.vol); end
       yrun = fast_vol2mat(yrun);
     else
       randn('state',yrun_randn(:,nthrun))
@@ -561,10 +557,38 @@ if(DoGLMFit)
     fsv3AutoCor(end:ntptot) = 0; % pad
   end
   
+  % Save AR1 mean
   rho1mn = mri;
   rho1mn.vol = mean(rho1.vol,4);
   rho1mn.vol(indmaskout) = 0; % mask out
+  fprintf('Saving rho1\n');
+  fname = sprintf('%s/rho1.%s',outanadir,ext);
+  MRIwrite(rho1,fname);
+  rho1mnfile = sprintf('%s/rho1mn.%s',outanadir,ext);
+  MRIwrite(rho1mn,rho1mnfile);
 
+  % Apply spatial smoothing if desired
+  if(flac.acffwhm > 0)
+    fprintf('Smoothing ACF\n');
+    rho1mnsmfile = sprintf('%s/rho1mn.sm.%s',outanadir,ext);
+    opts = sprintf('--mask %s --i %s --o %s --fwhm %f --smooth-only',...
+		   outmaskfile,rho1mnfile,rho1mnsmfile,flac.acffwhm);
+    if(isempty(flac0.subject)) 
+      cmd = sprintf('mri_fwhm %s',opts);
+    else 
+      cmd = sprintf('mris_fwhm %s --s %s --hemi %s',opts,flac0.subject,flac0.hemi);
+    end
+    fprintf('%s\n',cmd);
+    [err rescmd] = system(cmd);
+    fprintf('%s\n',rescmd);
+    if(err)
+      fprintf('ERROR: %s\n',cmd);
+      return;
+    end
+    % Reload smoothed acf
+    rho1mn = MRIread(rho1mnsmfile);
+  end
+  
   % Apply bias correction
   nrho1mn = mri;
   nrho1mn.vol = rfm.M(1) + rfm.M(2)*rho1mn.vol;
@@ -580,12 +604,7 @@ if(DoGLMFit)
     nrho1mn.vol(ind) = (.9 + .1*abs(tmp)/max(abs(tmp))).*sign(tmp);
   end
   
-  % Save AR1 maps
-  fprintf('Saving rho1\n');
-  fname = sprintf('%s/rho1.%s',outanadir,ext);
-  MRIwrite(rho1,fname);
-  fname = sprintf('%s/rho1mn.%s',outanadir,ext);
-  MRIwrite(rho1mn,fname);
+  % Save Correct AR1 mean
   fname = sprintf('%s/nrho1mn.%s',outanadir,ext);
   MRIwrite(nrho1mn,fname);
 
@@ -662,7 +681,6 @@ if(DoGLMFit)
       indrun = find(tpindrun == nthrun);
       if(~DoSynth)
 	yrun = MRIread(flac.funcfspec);
-	if(UseFloat) yrun.vol = single(yrun.vol); end
 	yrun = fast_vol2mat(yrun);
       else
 	randn('state',yrun_randn(:,nthrun))
@@ -782,7 +800,7 @@ if(DoGLMFit)
   
   save(xfile,'X','W','DOF','flac0','runflac','RescaleFactor',...
        'rfm','acfseg','nrho1segmn','acfsegmn','ErrCovMtx',...
-       'DoSynth','SynthSeed','UseFloat','yrun_randn',...
+       'DoSynth','SynthSeed','yrun_randn',...
        'DoMCFit','mcAll','betamc','rvarmc');
 
   if(DoFWHM)

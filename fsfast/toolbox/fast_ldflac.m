@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/15 16:56:17 $
-%    $Revision: 1.44 $
+%    $Date: 2010/04/15 21:06:17 $
+%    $Revision: 1.45 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,7 @@ if(isempty(flac))
   %flac.con = []; % Leave commented for inherit
   flac.inheritlevel = 0;
   flac.acfbins = 10; % Set to 0 for no whitening
+  flac.acffwhm = 0; % Set to 0 for no smoothing
   % Allows flac TR and data TR to be different (will use flac TR).
   flac.OverrideTR = 0; 
   flac.fsv3_st2fir = 0;
