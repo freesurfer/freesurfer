@@ -21,9 +21,9 @@ function [f, mristruct] = fast_ldbslice(bstem,sliceno)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:31 $
-%    $Revision: 1.6 $
+%    $Author: greve $
+%    $Date: 2010/04/15 16:53:55 $
+%    $Revision: 1.7 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -75,7 +75,8 @@ elseif(sliceno < 0)
 end
 
 if(nargout == 2)
-  mristruct = fast_ldbhdr(bstem);
+  bhdr = sprintf('%s.bhdr',bstem);
+  mristruct = fast_ldbhdr(bhdr);
 end
 
 return;

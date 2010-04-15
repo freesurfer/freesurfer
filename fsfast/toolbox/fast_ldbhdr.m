@@ -25,8 +25,8 @@ function m = fast_ldbhdr(bhdrfile);
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/06/21 00:13:22 $
-%    $Revision: 1.8 $
+%    $Date: 2010/04/15 16:53:55 $
+%    $Revision: 1.9 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,8 @@ if(fid == -1)
 end
 
 m = fast_mri_struct;
+
+ncols = [];
 
 %------- Loop through all the lines -----------%
 nthrow = 1;
@@ -102,6 +104,11 @@ end % while (1)
 fclose(fid);
 %---------------------------------------------%
 
+if(isempty(ncols))
+  fprintf('ERROR: fast_ldbhdr: reading %s\n',bhdrfile);
+  m = [];
+  return;
+end
 m.voldim = [ncols nrows nslices]'; %'
 
 TL = [tlr tla tls]';
