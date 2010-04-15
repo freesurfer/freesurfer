@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/15 18:50:20 $
-#    $Revision: 1.29 $
+#    $Date: 2010/04/15 21:03:11 $
+#    $Revision: 1.30 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.29 2010/04/15 18:50:20 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.30 2010/04/15 21:03:11 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -46,7 +46,8 @@ set fsd     = bold;
 set mcrun    = ();
 set mctargstem = ();
 set mctargframe = ();
-set MCPerRun = 0;
+set PerRun = 0;
+set PerSess = 0;
 set RunListFile = ();
 
 set UpdateOnly = 1;
@@ -61,6 +62,7 @@ set DoInorm  = 0;
 set regfile = register.dat
 set ProjFrac = (); # default will be 0.5
 set DoProjAvg = 0;
+set DoReg = 0;
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -179,13 +181,25 @@ foreach sess ($SessList)
     if($status) exit 1;
   endif
 
+  if($DoReg) then
+    set cmd = (register-sess -s $sessid -d $sessparent -fsd $fsd)
+    if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
+    if($PerRun)     set cmd = ($cmd -per-run)
+    if($PerSess) set cmd = ($cmd -per-session)
+    if($nolog)      set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
+    echo "$sessid Registration -----------------------------" |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
   if($DoMC) then
     set cmd = (mc-sess -fstem $mcinstem -fmcstem $mcoutstem)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
-    if($MCPerRun)   set cmd = ($cmd -per-run)
-    if(! $MCPerRun) set cmd = ($cmd -per-session)
-    if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
+    if($PerRun)   set cmd = ($cmd -per-run)
+    if($PerSess) set cmd = ($cmd -per-session)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid MC -----------------------------" |& tee -a $LF
@@ -228,7 +242,7 @@ foreach sess ($SessList)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
-    if($MCPerRun)   set cmd = ($cmd -perrun)
+    if($PerRun)   set cmd = ($cmd -perrun)
     echo "$sessid Surface Smoothing ---------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -273,6 +287,10 @@ while( $#argv != 0 )
     case "-in":
       if ( $#argv == 0) goto arg1err;
       set instem = $argv[1]; shift;
+      breaksw
+
+    case "-reg":
+      set DoReg = 1;
       breaksw
 
     case "-mc-in":
@@ -350,7 +368,7 @@ while( $#argv != 0 )
       endif
       breaksw
 
-    case "-reg":
+    case "-regfile":
       if ( $#argv == 0) goto arg1err;
       set regfile = $argv[1]; shift;
       breaksw
@@ -381,25 +399,20 @@ while( $#argv != 0 )
       breaksw
 
     case "-nomc":
+    case "-no-mc":
       set DoMC = 0;
-      breaksw
-
-    case "-mc-per-run":
-    case "-mc-perrun":
-    case "-mcperrun":
-      set MCPerRun = 1;
       breaksw
 
     case "-per-run":
     case "-perrun":
-      set MCPerRun = 1;
+      set PerRun = 1;
+      set PerSess = 0;
       breaksw
 
     case "-per-session":
-    case "-no-per-run":
-    case "-no-perrun":
     case "-persession":
-      set MCPerRun = 0;
+      set PerSess = 1;
+      set PerRun = 0;
       breaksw
 
     case "-no-stc":
@@ -495,10 +508,17 @@ goto parse_args_return;
 check_params:
   if($#instem == 0) set instem = "f";
 
+  if($DoMC || $DoReg) then
+    if($PerRun == 0 && $PerSess == 0) then
+      echo "ERROR: You must specify -per-run or -per-session"
+      exit 1;
+    endif
+  endif
+
   if($DoMC) then
     if($#mcinstem  == 0) set mcinstem  = $instem
     if($#mcoutstem == 0) then
-      if($MCPerRun) then
+      if($PerRun) then
         set mcoutstem = $mcinstem"mcpr"
       else
         set mcoutstem = $mcinstem"mc"
@@ -563,14 +583,16 @@ usage_exit:
   echo "USAGE: preproc-sess"
   echo ""
   echo "  -i    instem    : stem to use as overal input <f>"
-  echo "  -vol-fwhm  fwhm : 3D fwhm (mm) (not with -surf-fwhm)"
-  echo "  -surf-fwhm fwhm : 2D fwhm (mm) (not with -vol-fwhm)"
-  echo "  -sliceorder so : turn on slice timing correction with the given slice order"
+  echo ""
+  echo "  -per-run : motion cor and reg to middle TP of each run"
+  echo "  -per-session : motion cor and reg to 1st TP of 1st run"
+  echo ""
   echo "  -update        : only run a stage if input is newer than output (default)"
   echo "  -force         : force reprocessing of all stages (turns off -update)"
   echo "  -no-update     : same as -force"
   echo "  -smooth-mask   : use mask when volume smoothing"
   echo "  -no-smooth-mask: do not use mask when volume smoothing"
+  echo "  -sliceorder so : turn on slice timing correction with the given slice order"
   echo ""
   echo "  -nomc     : don't do motion correction"
   echo "  -nostc    : don't do slice-timing correction"
@@ -587,14 +609,13 @@ usage_exit:
   echo "  -smout  sminstem    : stem to use as output of smoothing "
   echo "  -mask   maskstem    : <brain>"
   echo ""
+  echo "  -vol-fwhm  fwhm : 3D fwhm (mm) (not with -surf-fwhm)"
+  echo "  -surf-fwhm fwhm : 2D fwhm (mm) (not with -vol-fwhm)"
   echo "  -inorm        : perform intensity normalization (off by default)"
   echo "  -nskip N      : do not use first N TRs when inorming"
   echo ""
-  echo "  -mc-per-run : perform motion correction on all runs separately"
   echo ""
-  echo "  -perrun : perform masking and MC on all runs separately"
-  echo ""
-  echo "  -reg regfile   : registration file for use with -surf-fwhm (register.dat)"
+  echo "  -regfile regfile   : registration file for use with -surf-fwhm (register.dat)"
   echo "  -projfrac frac : projection fraction for use with -surf-fwhm (0.5)"
   echo "  -projfrac-avg  : average over ribbon (not with -projfrac)"
   echo ""
