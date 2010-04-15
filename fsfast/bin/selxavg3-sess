@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 23:06:04 $
-#    $Revision: 1.44 $
+#    $Date: 2010/04/15 16:57:32 $
+#    $Revision: 1.45 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.44 2010/04/06 23:06:04 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.45 2010/04/15 16:57:32 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -153,7 +153,7 @@ date          >> $LF
 
 set StartTime = `date`;
 
-if($SaveRes || $DoFWHM || $SaveResUnwhitened) set MatlabSaveRes = 1;
+if($SaveRes || $SaveResUnwhitened) set MatlabSaveRes = 1;
 
 if($#MLF == 0) set MLF = /tmp/selxavg3-sess-$$.m
 rm -f $MLF
@@ -236,6 +236,7 @@ foreach sess ($SessList)
   echo "analysis = '$analysis';" >> $MLF
   echo "flacname = '$flacfile';" >> $MLF
   echo "outtop = '$OutParent';" >> $MLF
+  echo "DoFWHM = $DoFWHM;" >> $MLF
   echo "MatlabSaveRes = $MatlabSaveRes;" >> $MLF
   echo "SaveResUnwhitened = $SaveResUnwhitened;" >> $MLF
   echo "fast_selxavg3;" >> $MLF
@@ -288,99 +289,7 @@ if(! $monly) then
 endif
 
 # Compute FWHM
-if($DoFWHM && ! $monly) then
-  echo "-------------------------------------------" |& tee -a $LF
-  echo "Computing FWHM" |& tee -a $LF
-  foreach sess ($SessList)
-    set sessbase = `basename $sess`;
-    set sessdir  = `dirname  $sess`;
-    echo "-------------------------------------------" |& tee -a $LF
-    echo "$sess " |& tee -a $LF
-    date |& tee -a $LF
-    if($#OutParent == 0) then
-      set anadir0 = $sess/$fsd/$analysisname
-    else
-      set anadir0 = $OutParent/$sessbase/$fsd/$analysisname
-    endif
-
-    if($perrun) then
-      set anadirlist = (`ls -d $anadir0/pr[0-9][0-9][0-9]`)
-    else if ($jkrun) then
-      set anadirlist = (`ls -d $anadir0/jk[0-9][0-9][0-9]`)
-    else
-      set anadirlist = ($anadir0);
-    endif
-
-    foreach anadir ($anadirlist)
-
-      set resdir = $anadir/res
-      if(! -e $resdir) continue
-
-      # concat the residuals together
-      set all = $resdir/all.nii
-      set cmd = (mri_concat $resdir/res-???.* --o $all)
-      pwd |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-
-      # Compute FWHM
-      set sumfile = $anadir/fwhm.sum
-      set datfile = $anadir/fwhm.dat
-      if($geometry == volume) then
-        # Volume-based cmd line
-        set cmd = (mri_fwhm --mask $anadir/mask.nii --i $all)
-        set cmd = ($cmd --sum $sumfile --dat $datfile)
-      else
-        # Surface-based cmd line
-        if($subject == self) then
-          set subjectuse = `cat $sess/subjectname`
-        else
-          set subjectuse = $subject
-        endif
-        set cmd = (mris_fwhm --i $all --s $subjectuse \
-                   --hemi $geometry --sum $sumfile \
-                   --mask $anadir/mask.nii)
-      endif
-      pwd |& tee -a $LF
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-
-    end # loop over anadir
-
-  end # End Loop over session
-
-endif
-
-
-# Delete Res
-if(! $SaveRes && ! $monly) then
-  foreach sess ($SessList)
-    set sessbase = `basename $sess`;
-    set sessdir  = `dirname  $sess`;
-    if($#OutParent == 0) then
-      set anadir0 = $sess/$fsd/$analysisname
-    else
-      set anadir0 = $OutParent/$sessbase/$fsd/$analysisname
-    endif
-    if($perrun) then
-      set anadirlist = (`ls -d $anadir0/pr[0-9][0-9][0-9]`)
-    else if ($jkrun) then
-      set anadirlist = (`ls -d $anadir0/jk[0-9][0-9][0-9]`)
-    else
-      set anadirlist = ($anadir0);
-    endif
-
-    foreach anadir ($anadirlist)
-      set resdir = $anadir/res
-      if(! -e $resdir) continue
-      echo "Deleting Residual $resdir"
-      rm -r $resdir
-    end # loop over anadir
-  end # End Loop over session
-
-endif
+# Now done in fast_selxavg3
 
 if($#flacfile == 0) then
   echo "Copying h.dat" | tee -a $LF
@@ -456,6 +365,8 @@ while( $#argv != 0 )
       set ConList = ($ConList $argv[1]); shift
       breaksw
 
+    case "-run-wise":
+    case "-per-run":
     case "-perrun":
       set perrun = 1;
       breaksw
@@ -483,14 +394,6 @@ while( $#argv != 0 )
 
     case "-skip":
       set Skip = 1;
-      breaksw
-
-    case "-float":
-      set UseFloat = 1;
-      breaksw
-
-    case "-double":
-      set UseFloat = 0;
       breaksw
 
     case "-overwrite":
@@ -560,28 +463,24 @@ check_params:
     echo "ERROR: no sessions specified"
     exit 1
   endif
-
   if($#analysis == 0 && $flacfile == 0) then
     echo "ERROR: no analysis name or flac file specified"
     exit 1
   endif
-
   if($#analysis != 0) then 
     if(! -d $analysis ) then
       echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
       exit 1;
     endif
   endif
-
   if($#flacfile != 0) then
     if(! -e $flacfile ) then
       echo "ERROR: flac file $flacfile does not exist"
       exit 1;
     endif
   endif
-
   if($perrun && $jkrun) then
-    echo "ERROR: cannot -perrun AND -jkrun"
+    echo "ERROR: cannot -run-wise AND -jkrun"
     exit 1
   endif
 
@@ -610,12 +509,8 @@ usage_exit:
   echo "   -c c1 <-c c2 ...> : compute contrasts c1, c2, ... (default is to compute all)"
   echo "   -svres          : save residuals (usually not needed)"
   echo "   -svres-unwhitened : save unwhitened residuals (usually not needed)"
-  echo "   -hemi hemi      : assume raw data is on a the surface of the given hemi"
-  echo "   -subject subject : override subject name"
-  echo "   -perrun        : analyze each run separately"
-  echo "   -jkrun         : jackknife runs"
+  echo "   -run-wise        : analyze each run separately"
   echo "   -fwhm          : compute FWHM of residual"
-  echo "   -float         : use single-precision float instead of double"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."
