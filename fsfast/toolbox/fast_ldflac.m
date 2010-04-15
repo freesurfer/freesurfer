@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/02 23:17:12 $
-%    $Revision: 1.43 $
+%    $Date: 2010/04/15 16:56:17 $
+%    $Revision: 1.44 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,6 @@ if(isempty(flac))
   flac.mask = '';
   flac.inorm = 0;
   flac.stimulusdelay = 0;
-  flac.whiten = 0;
   flac.fixacf = 1;
   flac.acfsegstem = '';
   flac.format = '';
@@ -66,7 +65,7 @@ if(isempty(flac))
   %flac.ev  = []; % Leave commented for inherit
   %flac.con = []; % Leave commented for inherit
   flac.inheritlevel = 0;
-  flac.acfbins = 0;  
+  flac.acfbins = 10; % Set to 0 for no whitening
   % Allows flac TR and data TR to be different (will use flac TR).
   flac.OverrideTR = 0; 
   flac.fsv3_st2fir = 0;
@@ -158,7 +157,6 @@ while(1)
    case 'mask',        flac.mask        = sscanf(tline,'%*s %s',1);
    case 'inorm',       flac.inorm       = sscanf(tline,'%*s %f',1);
    case 'runlistfile', flac.runlistfile = sscanf(tline,'%*s %s',1);
-   case 'whiten',      flac.whiten      = sscanf(tline,'%*s %d',1);
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'stimulusdelay', flac.stimulusdelay  = sscanf(tline,'%*s %f',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);

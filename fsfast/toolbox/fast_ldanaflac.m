@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/12 04:09:47 $
-%    $Revision: 1.45 $
+%    $Date: 2010/04/15 16:56:16 $
+%    $Revision: 1.46 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -36,7 +36,7 @@ flac = fast_ldflac; % creates empty struct
 flac.name = basename(anadir);
 flac.AllowMissingCond = 1;
 flac.autostimdur = [];
-flac.acfbins = [];  
+flac.acfbins = 10;
 % Default in mkanalysis is to fix
 flac.fixacf = 1; 
   
@@ -150,7 +150,6 @@ while(1)
     spmhrffit = 1;
    case '-polyfit',    PolyOrder   = sscanf(tline,'%*s %f',1);
    case '-TER',        TER         = sscanf(tline,'%*s %f',1);
-   case '-autowhiten', flac.whiten = 1;
    case '-acfbins',    flac.acfbins = sscanf(tline,'%*s %d',1);
    case '-autostimdur',flac.autostimdur = 1;
    case '-noautostimdur',flac.autostimdur = 0;
@@ -187,10 +186,6 @@ if(isempty(flac.funcstem))
   return;
 end
 
-if(isempty(flac.acfbins)) 
-  flac.acfbins = 10;
-  fprintf('INFO: acfbins is not set, setting to 10\n');
-end
 if(isempty(flac.mask)) 
   flac.mask = 'brain';
   fprintf('INFO: mask is not set, setting to brain\n');
@@ -439,12 +434,14 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   end % contrasts
   
   if(~isempty(extregList))
+    if(isempty(nthcon)) nthcon = 0; end
     nlist = size(extregList,1);
     for n = 1:nlist
       extreg = deblank(extregList(n,:));
       nextreg = nextregList(n);
       extregevname = basename(extreg,'dat'); % remove .dat
       if(strcmp(extregevname,'mcextreg')) continue; end
+      if(strcmp(extregevname,'mcprextreg')) continue; end
       nthcon = nthcon + 1;
       flac.con(nthcon).name     = extregevname;
       flac.con(nthcon).varsm    = 0;
