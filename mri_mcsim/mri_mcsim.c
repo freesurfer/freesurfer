@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/12 19:31:50 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/04/15 18:46:56 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.9 2010/04/12 19:31:50 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.10 2010/04/15 18:46:56 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -232,8 +232,8 @@ int main(int argc, char *argv[]) {
 	csd = CSDalloc();
 	sprintf(csd->simtype,"%s","null-z");
 	sprintf(csd->anattype,"%s","surface");
-	sprintf(csd->subject,"%s","fsaverage");
-	sprintf(csd->hemi,"%s","lh");
+	sprintf(csd->subject,"%s",subject);
+	sprintf(csd->hemi,"%s",hemi);
 	sprintf(csd->contrast,"%s","NA");
 	csd->seed = SynthSeed;
 	csd->nreps = nRepetitions;
