@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.78 2010/04/06 23:24:43 greve Exp $
+% $Id: fast_selxavg3.m,v 1.79 2010/04/15 16:56:44 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/06 23:24:43 $
-%    $Revision: 1.78 $
+%    $Date: 2010/04/15 16:56:44 $
+%    $Revision: 1.79 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.78 2010/04/06 23:24:43 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.79 2010/04/15 16:56:44 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -90,7 +90,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.78 2010/04/06 23:24:43 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.79 2010/04/15 16:56:44 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -184,8 +184,8 @@ for nthouter = outer_runlist
   end
 
   % Save mask
-  fname = sprintf('%s/mask.%s',outanadir,ext);
-  MRIwrite(mask,fname);
+  outmaskfile = sprintf('%s/mask.%s',outanadir,ext);
+  MRIwrite(mask,outmaskfile);
 
   indmask = find(mask.vol);
   nmask = length(indmask);
@@ -519,7 +519,7 @@ if(DoGLMFit)
     end
     if(flac0.acfbins == 0)
       %fprintf('WARNING: unwhitened residuals are not intensity norm\n');
-      if(MatlabSaveRes)
+      if(MatlabSaveRes | DoFWHM)
 	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
 	rrunmri = mri;
 	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
@@ -751,7 +751,7 @@ if(DoGLMFit)
       clear yrun;
       %pack;
 
-      if(MatlabSaveRes)
+      if(MatlabSaveRes | DoFWHM)
 	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
 	rrunmri = mri;
 	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
@@ -785,6 +785,43 @@ if(DoGLMFit)
        'DoSynth','SynthSeed','UseFloat','yrun_randn',...
        'DoMCFit','mcAll','betamc','rvarmc');
 
+  if(DoFWHM)
+    fprintf('Concatenating residuals\n');
+    cmd = sprintf('mri_concat %s/res-???.%s --o %s/all.%s',outresdir,ext,outresdir,ext);    
+    fprintf('%s\n',cmd);
+    [err rescmd] = system(cmd);
+    fprintf('%s\n',rescmd);
+    if(err)
+      printf('ERROR: %s\n',cmd);
+      return;
+    end
+    fprintf('Computing FWHM\n');
+    opts = sprintf('--mask %s --i %s/all.%s --sum %s/fwhm.sum --dat %s/fwhm.dat',...
+		   outmaskfile,outresdir,ext,outanadir,outanadir);
+    if(isempty(flac0.subject)) 
+      cmd = sprintf('mri_fwhm %s',opts);
+    else 
+      cmd = sprintf('mris_fwhm %s --s %s --hemi %s',opts,flac0.subject,flac0.hemi);
+    end
+    fprintf('%s\n',cmd);
+    [err rescmd] = system(cmd);
+    fprintf('%s\n',rescmd);
+    if(err)
+      fprintf('ERROR: %s\n',cmd);
+      return;
+    end
+    if(MatlabSaveRes == 0)
+      fprintf('Deleting residuals\n');
+      cmd = sprintf('rm -f %s/res-???.%s %s/all.%s',outresdir,ext,outresdir,ext);    
+      fprintf('%s\n',cmd);
+      [err rescmd] = system(cmd);
+      fprintf('%s\n',rescmd);
+      if(err)
+	fprintf('ERROR: %s\n',cmd);
+	return;
+      end
+    end
+  end
   
   % Save as ascii
   xascii = sprintf('%s/X.dat',outanadir);
