@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/10 00:13:10 $
-#    $Revision: 1.31 $
+#    $Date: 2010/04/15 21:02:48 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.31 2010/04/10 00:13:10 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.32 2010/04/15 21:02:48 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -33,6 +33,7 @@ set anatvol      = orig
 set UseNew       = 1;
 set Surf         = white;
 set PerRun       = 0;
+set PerSess      = 0;
 
 set Plane        = "cor";
 set Slice        = ();
@@ -83,7 +84,7 @@ if($#BBRSumFile) then
   rm -f $BBRSumFile
   foreach sess ($SessList)
     set sessid = `basename $sess`
-    if(! $PerRun) then
+    if($PerSess) then
       set reg = $sess/$fsd/$regfilename
       if(! -e $reg.mincost) then
         echo "ERROR: cannot find costfile $reg.mincost"
@@ -175,7 +176,7 @@ foreach sess ($SessList)
   endif
   set title = $subject--$sessid;
 
-  if(! $PerRun) then
+  if($PerSess) then
     # Session-Level
     set template = `stem2fname $sess/$fsd/template`
     if($status) then
@@ -251,7 +252,16 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
+    case "-per-run":
     case "-perrun":
+      set PerRun = 1;
+      set PerSess = 0;
+      breaksw
+
+    case "-per-sess":
+    case "-per-session":
+    case "-persession":
+      set PerSess = 1;
       set PerRun = 1;
       breaksw
 
@@ -406,8 +416,8 @@ goto parse_args_return;
 
 ############--------------##################
 check_params:
-if($#SessList == 0) then
-  echo "ERROR: no sessions specified" |& tee -a $LF
+if($PerRun == 0 && $PerSess == 0) then
+  echo "ERROR: You must specify -per-run or -per-session"
   exit 1;
 endif
 goto check_params_return;
@@ -431,10 +441,12 @@ usage_exit:
   echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
   echo ""
+  echo "   -per-run     : register each run separately"
+  echo "   -per-session : register each run separately"
+  echo ""
   echo "Optional Arguments"
   echo "   -bbr-sum sumfile : only print summary of BBR cost (for quality assurance)"
   echo "   -fsd dir       : functional subdirectory (default $fsd)"
-  echo "   -perrun        : register each run separately"
   echo "   -reg file      : use file instead of register.dat"
   echo "   -regheader     : force init based on header"
   echo "   -anat anat  : specify anatomy (default $anatvol)"
