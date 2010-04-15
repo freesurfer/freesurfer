@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/01/13 20:27:10 $
- *    $Revision: 1.43 $
+ *    $Author: greve $
+ *    $Date: 2010/04/15 03:34:51 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.43 2010/01/13 20:27:10 mreuter Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.44 2010/04/15 03:34:51 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -79,6 +79,7 @@ int DoStd=0;
 int DoMax=0;
 int DoMaxIndex=0;
 int DoMin=0;
+int DoConjunction=0;
 int DoPaired=0;
 int DoPairedAvg=0;
 int DoPairedSum=0;
@@ -384,6 +385,13 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
+  if(DoConjunction) {
+    printf("Computing conjunction across all frames \n");
+    mritmp = MRIconjunct(mriout,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
   if(DoMin) {
     printf("Computing min across all frames \n");
     mritmp = MRIvolMin(mriout,NULL);
@@ -488,6 +496,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--max"))    DoMax = 1;
     else if (!strcasecmp(option, "--max-index")) DoMaxIndex = 1;
     else if (!strcasecmp(option, "--min"))    DoMin = 1;
+    else if (!strcasecmp(option, "--conjunct")) DoConjunction = 1;
     else if (!strcasecmp(option, "--vote"))   DoVote = 1;
     else if (!strcasecmp(option, "--sort"))   DoSort = 1;
     else if (!strcasecmp(option, "--max-bonfcor")){

@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/30 15:38:11 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/04/15 03:34:51 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -106,6 +106,7 @@ int MRIsetSign(MRI *invol, MRI *signvol, int frame);
 MRI *MRIvolMax(MRI *invol, MRI *out);
 MRI *MRIvolMaxIndex(MRI *invol, int base, MRI *mask, MRI *out);
 MRI *MRIvolMin(MRI *invol, MRI *out);
+MRI *MRIconjunct(MRI *invol, MRI *out);
 double MRIframeMax(MRI *vol, int frame, MRI *mask, int absflag,
                    int *cmax, int *rmax, int *smax);
 MRI *MRIframeMean(MRI *vol, MRI *volmn);

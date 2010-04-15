@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/03/30 15:38:11 $
- *    $Revision: 1.63 $
+ *    $Date: 2010/04/15 03:34:51 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.63 2010/03/30 15:38:11 greve Exp $
+  $Id: fmriutils.c,v 1.64 2010/04/15 03:34:51 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -41,6 +41,7 @@
 #include <math.h>
 
 double round(double x);
+#include "volcluster.h"
 #include "matrix.h"
 #include "mri.h"
 #include "mri2.h"
@@ -61,7 +62,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.63 2010/03/30 15:38:11 greve Exp $");
+  return("$Id: fmriutils.c,v 1.64 2010/04/15 03:34:51 greve Exp $");
 }
 
 
@@ -1547,6 +1548,54 @@ MRI *MRIvolMin(MRI *invol, MRI *out)
           if (min > v) min = v;
         }
         MRIsetVoxVal(out,c,r,s,0,min);
+      }
+    }
+  }
+  return(out);
+}
+
+/*!
+\fn MRI *MRIconjunct(MRI *invol, MRI *out)
+\brief Performs "conjunction" by taking the min of the abs across frames
+at each voxel. The value at the voxel is the min, including the true
+sign of the min. Eg, if the two frames are:
+   +2.1 and +3.4 --> +2.1
+   -2.1 and -3.4 --> -2.1
+   +2.1 and -3.4 --> +2.1
+   -2.1 and +3.4 --> -2.1
+\param multi-frame input vol
+\param out - can be NULL
+*/
+MRI *MRIconjunct(MRI *invol, MRI *out)
+{
+  int c, r, s, f;
+  double v, min, minsign;
+
+  if(out==NULL){
+    out = MRIalloc(invol->width,invol->height,invol->depth,MRI_FLOAT);
+    if(out == NULL) return(NULL);
+    MRIcopyHeader(invol,out);
+  }
+  if (out->width != invol->width || out->height != invol->height ||
+      out->depth != invol->depth){
+    printf("ERROR: MRIconjunct: dimension mismatch\n");
+    return(NULL);
+  }
+
+  for(c=0; c < invol->width; c++)  {
+    for(r=0; r < invol->height; r++) {
+      for(s=0; s < invol->depth; s++) {
+        v = MRIgetVoxVal(invol,c,r,s,0);
+        min = fabs(v);
+	minsign = SIGN(v);
+        for(f=0; f < invol->nframes; f++) {
+          v = MRIgetVoxVal(invol,c,r,s,f);
+          if(min > fabs(v)) {
+	    min = fabs(v);
+	    minsign = SIGN(v);
+	  }
+        }
+        MRIsetVoxVal(out,c,r,s,0,minsign*min);
       }
     }
   }
