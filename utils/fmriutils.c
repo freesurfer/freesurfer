@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/15 03:34:51 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/04/15 15:36:41 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.64 2010/04/15 03:34:51 greve Exp $
+  $Id: fmriutils.c,v 1.65 2010/04/15 15:36:41 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -62,7 +62,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.64 2010/04/15 03:34:51 greve Exp $");
+  return("$Id: fmriutils.c,v 1.65 2010/04/15 15:36:41 greve Exp $");
 }
 
 
@@ -1563,6 +1563,9 @@ sign of the min. Eg, if the two frames are:
    -2.1 and -3.4 --> -2.1
    +2.1 and -3.4 --> +2.1
    -2.1 and +3.4 --> -2.1
+See: Thomas Nichols, Matthew Brett, Jesper Andersson, Tor Wager &
+Jean-Baptiste Poline.  NeuroImage, Volume 25, Issue 3, 15 April 2005,
+Pages 653-660.
 \param multi-frame input vol
 \param out - can be NULL
 */
