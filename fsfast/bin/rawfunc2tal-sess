@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/10 00:11:28 $
-#    $Revision: 1.9 $
+#    $Date: 2010/04/15 18:51:13 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,12 +22,12 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.9 2010/04/10 00:11:28 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.10 2010/04/15 18:51:13 greve Exp $'
 
 set inputargs = ($argv);
 
 set fsd        = bold;
-set instem     = f;
+set instem     = ();
 set outstem    = ();
 set regfile    = register.dat
 set talres = 2;
