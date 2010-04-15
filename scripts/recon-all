@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/04/14 20:09:19 $
-#    $Revision: 1.310 $
+#    $Date: 2010/04/15 15:34:44 $
+#    $Revision: 1.311 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.310 2010/04/14 20:09:19 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.311 2010/04/15 15:34:44 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1327,7 +1327,7 @@ if($DoNormalization) then
         if($IsMPRAGE)      set cmd = ($cmd -mprage)
         if($IsWashuMPRAGE) set cmd = ($cmd -washu_mprage)
         set cmd = ($cmd \
-          -mask $longbasedir/mri/brain.mgz
+          -mask $longbasedir/mri/brain.mgz \
           -W $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
           $longbasedir/mri/nu.mgz \
           $longbasedir/mri/T1_tmp.mgz)
