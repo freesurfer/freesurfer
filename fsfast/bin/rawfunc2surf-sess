@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/10 00:13:10 $
-#    $Revision: 1.11 $
+#    $Date: 2010/04/15 18:51:45 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.11 2010/04/10 00:13:10 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.12 2010/04/15 18:51:45 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -369,8 +369,8 @@ if($DoSelf) then
 else
   set subjstr = $trgsubject
 endif
-if($#outstem == 0) set outstem = $instem
-set outstem = $outstem.sm$fwhm.$subjstr
+if($#outstem == 0) set outstem = $instem.sm$fwhm
+set outstem = $outstem.$subjstr
 if($#hemilist == 0) set hemilist = (lh rh);
 echo "instem $instem"
 echo "outstem $outstem.hemi"
