@@ -11,8 +11,10 @@ local FS = tools.freesurfer
 
 local inputFiles = FS.AllGCAMfiles()
 
-local times = { 0.1, 1, 10 }
-local momenta = { 0.1, 1, 10 }
+--local times = { 0.1, 1, 10 }
+--local momenta = { 0.1, 1, 10 }
+local times = { 1 }
+local momenta = { 1 }
 
 
 -- Generate a test name
@@ -20,6 +22,7 @@ local function testName( input, dt, mom )
    
    return input.."-"..dt.."-"..mom
 end
+
 
 -- Generate a table of subtests
 local function testGen( inputs, times, momenta )
@@ -29,7 +32,7 @@ local function testGen( inputs, times, momenta )
       for j,dt in ipairs(times) do
 	 for k,mom in ipairs(momenta) do
 	    local tName = testName( input, dt, mom )
-	    table.insert( testTable, { id=tName, input=input, dt=dt, mom=mom } )
+	    table.insert( testTable, { id=tName, input=FS.GCAMdir()..input, dt=dt, mom=mom } )
 	 end
       end
    end
@@ -57,20 +60,25 @@ testdescript = {
 
    -- The script to run the test case
    runScript = [[
-	 export INPUT="$(SCRATCHDIR)/$(input)"
+	 export INPUT="$(input)"
 	 export CPUOUT="$(outputDir)/$(id).cpu"
 	 export GPUOUT="$(outputDir)/$(id).gpu"
 
 	 echo $INPUT
+	 echo " ---------- "
 
 	 gcam_applygradient_test \--input=$INPUT \--output=$CPUOUT \
 	                         \--dt=$(dt) \
 				 \--mom=$(mom)
 	
+	 echo " ---------- "
+
          gcam_applygradient_test_cuda \--input=$INPUT \--output=$GPUOUT \
 	                              \--dt=$(dt) \
 				      \--mom=$(mom)
 
+
+	 echo " ---------- "
 
 	 $(projectDir)/tools/gcamMultiDiff.pl \--results=$(cmdResultFn) \
 	                                      \--gold="$CPUOUT.nc" \

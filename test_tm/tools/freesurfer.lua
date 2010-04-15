@@ -5,7 +5,7 @@ module( ..., package.seeall )
 
 -- Returns the location of the directory holding GCAM files
 function GCAMdir()
-   return os.getenv( "SCRATCHDIR" )
+   return os.getenv( "SCRATCHDIR" ).."/gcam/"
 end
 
 -- Lists the files matching 'pattern' in the specified directory

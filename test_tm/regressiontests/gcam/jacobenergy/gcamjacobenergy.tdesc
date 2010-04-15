@@ -15,7 +15,7 @@ local function testGen( inputs )
    local testTable = {}
 
    for i,input in ipairs(inputs) do
-      table.insert( testTable, { id=input, input=input } )
+      table.insert( testTable, { id=input, input=GCAMdir()..input } )
    end
 
    return testTable
@@ -41,8 +41,8 @@ testdescript = {
 
    -- The script to run the test case
    runScript = [[
-	 export GCAMINPUT="${SCRATCHDIR}/$(input)"
-	 export MRIINPUT="${SCRATCHDIR}/mri00000.mgz"
+	 export GCAMINPUT="$(input)"
+	 export MRIINPUT="${SCRATCHDIR}/gcam/mri00000.mgz"
 	 export CPUOUT="$(outputDir)/$(id).cpu"
 	 export GPUOUT="$(outputDir)/$(id).gpu"
 
