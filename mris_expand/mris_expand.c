@@ -1,17 +1,18 @@
 /**
  * @file  mris_expand.c
  * @brief expand a surface outwards by a specified amount
+ *
  * Expands a surface (typically ?h.white) outwards while maintaining smoothness
  * and self-intersection constraints.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/14 14:41:06 $
- *    $Revision: 1.11 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/15 21:14:19 $
+ *    $Revision: 1.12 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -21,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -73,7 +73,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_expand.c,v 1.11 2010/04/14 14:41:06 fischl Exp $",
+     "$Id: mris_expand.c,v 1.12 2010/04/15 21:14:19 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
     argv += nargs ;
   }
 
-  if (argc < 4)
+  if (argc != 4)
     usage_exit(1) ;
 
   in_fname = argv[1] ;
@@ -103,7 +103,8 @@ main(int argc, char *argv[])
   FileNameExtension(out_fname,parms.base_name) ;  // remove hemi (e.g. lh.)
 
   if (use_thickness)
-    printf("expanding surface %s by %2.1f%% of thickness and writing it to %s\n",
+    printf("expanding surface %s by %2.1f%% of thickness "
+           "and writing it to %s\n",
            in_fname, 100.0*mm_out, out_fname) ;
   else
     printf("expanding surface %s by %2.1f mm and writing it to %s\n",
@@ -134,9 +135,10 @@ main(int argc, char *argv[])
 #if 0
   if (navgs > 0)
     MRISaverageVertexPositions(mris, navgs) ;
+#endif
   printf("writing expanded surface to %s...\n", out_fname) ;
   MRISwrite(mris, out_fname) ;
-#endif
+
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -197,7 +199,8 @@ get_option(int argc, char *argv[])
     case 'A':
       parms.smooth_averages = atoi(argv[2]) ;
       nargs = 1 ;
-      printf("smoothing surface with %d iterations after expansion\n", parms.smooth_averages) ;
+      printf("smoothing surface with %d iterations after expansion\n",
+             parms.smooth_averages) ;
       break ;
     case 'N':   // how many surfaces to write out
       nsurfaces = atoi(argv[2]) ;

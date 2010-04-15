@@ -8,10 +8,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/26 16:01:48 $
-#    $Revision: 1.5 $
+#    $Date: 2010/04/15 21:14:19 $
+#    $Revision: 1.6 $
 #
-# Copyright (C) 2007-2008,
+# Copyright (C) 2007-2010,
 # The General Hospital Corporation (Boston, MA). 
 # All rights reserved.
 #
@@ -21,10 +21,9 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_expand,v 1.5 2008/02/26 16:01:48 nicks Exp $'
+set VERSION='$Id: test_mris_expand,v 1.6 2010/04/15 21:14:19 nicks Exp $'
 
 umask 002
 
@@ -36,6 +35,7 @@ endif
 
 #
 # extract testing data
+# subject is bert
 #
 gunzip -c testdata.tar.gz | tar xvf -
 
