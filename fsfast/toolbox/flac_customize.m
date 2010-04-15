@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/10 00:10:52 $
-%    $Revision: 1.44 $
+%    $Date: 2010/04/15 21:05:31 $
+%    $Revision: 1.45 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -109,7 +109,7 @@ else
 end
 
 % Parfile
-if(~isempty(flac.parfile))
+if(~isempty(flac.parfile) & ~strcmp(flac.parfile,'NONE'))
   if(isempty(flac.schdir)) % Local
     parpath = sprintf('%s/%s',runpath,flac.parfile);
   else % Global
