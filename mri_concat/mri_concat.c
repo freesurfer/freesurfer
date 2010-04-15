@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/15 03:34:51 $
- *    $Revision: 1.44 $
+ *    $Date: 2010/04/15 21:19:25 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.44 2010/04/15 03:34:51 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.45 2010/04/15 21:19:25 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -644,6 +644,7 @@ static void print_usage(void) {
   printf("   --max  : compute max  of concatenated volumes\n");
   printf("   --max-index  : compute index of max of concatenated volumes (1-based)\n");
   printf("   --min  : compute min of concatenated volumes\n");
+  printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("   --pca  : output is pca. U is output.u.mtx and S is output.stats.dat\n");
@@ -675,7 +676,16 @@ static void print_help(void) {
   printf("  mri_concat f*.mgh --o coutdiff.mgh --paired-diff\n");
   printf("  mri_concat f*.mgh --o coutdiff.mgh --paired-diff-norm\n");
   printf("  mri_concat f*.mgh --o coutdiff.mgh --paired-diff-norm1\n");
-
+  printf("\n");
+  printf("Conjunction takes the min of the abs across frames\n");
+  printf("at each voxel. The output value at the voxel is the min, \n");
+  printf("including the true sign of the min. Eg, if the two frames are:\n");
+  printf("   +2.1 and +3.4 --> +2.1\n");
+  printf("   -2.1 and -3.4 --> -2.1\n");
+  printf("   +2.1 and -3.4 --> +2.1\n");
+  printf("   -2.1 and +3.4 --> -2.1\n");
+  printf("See: Nichols, Brett,Andersson, Wager, and Poline\n");
+  printf("NeuroImage, Volume 25, Issue 3, 15 April 2005, 653-660.\n");
   exit(1) ;
 }
 /* --------------------------------------------- */
