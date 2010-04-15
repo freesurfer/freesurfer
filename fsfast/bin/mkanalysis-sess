@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/12 04:09:47 $
-#    $Revision: 1.36 $
+#    $Date: 2010/04/15 17:00:06 $
+#    $Revision: 1.37 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.36 2010/04/12 04:09:47 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.37 2010/04/15 17:00:06 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -57,7 +57,6 @@ set PreStim = 0;
 set nskip = 0;
 set TR  = ();
 set TER = ();
-set TauMax = 0;
 set WhitenFlag = 0;
 set gammafit = 0;
 set spmhrf   = -1;
@@ -192,10 +191,8 @@ if($designtype == "event-related" || $designtype == "blocked") then
   if($PolyFitOrder >= 0) echo "-polyfit $PolyFitOrder" >> $sxacfg
   if($nyqreg) echo "-nyqreg" >> $sxacfg
   echo "-TER $TER" >> $sxacfg
-  if($TauMax > 0)  echo "-autowhiten $TauMax" >> $sxacfg
   if($#timeoffset != 0) echo "-timeoffset $timeoffset" >> $sxacfg
-  if($WhitenFlag != 0)  echo "-whiten" >> $sxacfg
-else if($designtype == "retinotopy" || $designtype == "abblocked") then
+  else if($designtype == "retinotopy" || $designtype == "abblocked") then
   if($#ncycles) echo "-ncycles $ncycles" >> $sxacfg
   echo "-delay   0" >> $sxacfg
 endif
@@ -347,10 +344,6 @@ while( $#argv != 0 )
   set IdealTW = `cat $cacfg | awk '{if($1 == "-timewindow") print $2}'`;
   set PreStim = `cat $cacfg | awk '{if($1 == "-prestim") print $2}'`;
   set TER = `cat $cacfg | awk '{if($1 == "-TER") print $2}'`;
-  set TauMax = `cat $cacfg | awk '{if($1 == "-autowhiten") print $2}'`;
-  if($#TauMax == 0) set TauMax = 0;
-  set WhitenFlag = `cat $cacfg | awk '{if($1 == "-whiten") print $1}'`;
-  if($#WhitenFlag == 0) set WhitenFlag = 0;
   set acfbins = `cat $cacfg | awk '{if($1 == "-acfbins") print $2}'`;
   set nskip  = `cat $cacfg | awk '{if($1 == "-nskip") print $2}'`;
 
@@ -452,23 +445,17 @@ while( $#argv != 0 )
       set PreStim = $argv[1]; shift;
       breaksw
 
-    case "-taumax":
-      if ( $#argv == 0) goto arg1err;
-      set TauMax = $argv[1]; shift;
-      breaksw
-
     case "-acfbins":
       if ( $#argv == 0) goto arg1err;
       set acfbins = $argv[1]; shift;
       breaksw
 
     case "-whiten":
-      set WhitenFlag = 1;
+      set acfbins = 10;
       breaksw
 
     case "-no-whiten":
     case "-nowhiten":
-      set WhitenFlag = 0;
       set acfbins = 0;
       breaksw
 
@@ -717,11 +704,13 @@ while( $#argv != 0 )
     case "-fsv3":
       set FSV3st2fir = 1;
       set FSV3whiten = 1;
+      set RescaleTarget = 1000;
       breaksw
 
     case "-no-fsv3":
       set FSV3st2fir = 0;
       set FSV3whiten = 0;
+      set RescaleTarget = 100;
       breaksw
 
     case "-fsv3-st2fir":
@@ -842,12 +831,6 @@ check_params:
     endif
   endif
 
-  if($TauMax > 0 && $WhitenFlag) then
-    echo "ERROR: cannot use both -taumax and -whiten"
-    echo $TauMax
-    exit 1;
-  endif
-
   if(($gammafit || $spmhrf != -1) && $#RefEventDur == 0) then
     echo "ERROR: you must specify a reference event duration with an HRF"
     exit 1;
@@ -886,8 +869,8 @@ usage_exit:
   echo "  -TR   TR                : TR value in seconds"
   echo "  -paradigm  parname      : name of paradigm file 2, 3, or 4 col"
   echo "  -designtype  type       : type of design. Legal values are: event-related,"
-  echo "  -funcstem stem          : stem of functional data (default = f or fmc)"
   echo "                            blocked, abblocked, retinotopy"
+  echo "  -funcstem stem          : stem of functional data (default = f or fmc)"
   echo ""
   echo "Optional Arguments"
   echo "   -polyfit N             : fit trend with polynomial of order N"
