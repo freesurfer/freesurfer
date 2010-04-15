@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 14:43:09 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/04/15 16:52:46 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.24 2010/04/09 14:43:09 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.25 2010/04/15 16:52:46 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -158,6 +158,7 @@ char *surfpath=NULL;
 char *inpath=NULL;
 char *outpath=NULL;
 char *sumfile=NULL;
+char *datfile=NULL;
 char tmpstr[2000];
 MRI *InVals=NULL, *mritmp;
 
@@ -369,7 +370,17 @@ int main(int argc, char *argv[]) {
     fclose(fp);
   }
 
-  if (outpath) MRIwrite(InVals,outpath);
+  if(datfile) {
+    fp = fopen(datfile,"w");
+    if (fp == NULL) {
+      printf("ERROR: opening %s\n",datfile);
+      exit(1);
+    }
+    fprintf(fp,"%lf\n",fwhm);
+    fclose(fp);
+  }
+
+  if(outpath) MRIwrite(InVals,outpath);
 
 
   return 0;
@@ -442,11 +453,18 @@ static int parse_commandline(int argc, char **argv) {
 	labelpath = fio_fullpath(pargv[0]); // defeat LabelRead()
       else labelpath = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--sum")) {
+    } 
+    else if (!strcasecmp(option, "--sum")) {
       if (nargc < 1) CMDargNErr(option,1);
       sumfile = pargv[0];
       nargsused = 1;
-    } else if (!strcasecmp(option, "--ar1")) {
+    } 
+    else if (!strcasecmp(option, "--dat")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      datfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--ar1")) {
       if (nargc < 1) CMDargNErr(option,1);
       ar1fname = pargv[0];
       nargsused = 1;
@@ -515,6 +533,7 @@ static void print_usage(void) {
   printf("   --detrend order : polynomial detrending (default 0)\n");
   printf("   --no-detrend : turn of poly detrending \n");
   printf("   --sum sumfile\n");
+  printf("   --dat datfile (only contains fwhm)\n");
   printf("   --ar1 ar1vol : save spatial ar1 as an overlay\n");
   printf("   \n");
   printf("   --fwhm fwhm : apply before measuring\n");
