@@ -1,6 +1,6 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.43 2010/03/11 21:05:06 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.44 2010/04/15 16:54:39 greve Exp $'
 
 
 %
@@ -9,8 +9,8 @@ function r = fast_selxavg(varargin)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/11 21:05:06 $
-%    $Revision: 1.43 $
+%    $Date: 2010/04/15 16:54:39 $
+%    $Revision: 1.44 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@ function r = fast_selxavg(varargin)
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_selxavg.m,v 1.43 2010/03/11 21:05:06 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.44 2010/04/15 16:54:39 greve Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 
@@ -296,6 +296,7 @@ for slice = firstslice:lastslice
       end
 
       instem = deblank(instemlist(run,:));
+      instemdir = fast_dirname(instem);
 
       % Get number of TRs in this run %
       if(~s.UseMRIread)
@@ -420,10 +421,14 @@ for slice = firstslice:lastslice
 
       if(~isempty(s.extreglist))
         extregstem = deblank(s.extreglist(run,:));
-        extreg = fmri_ldbvolume(extregstem);
-        if(isempty(extreg))
-          fprintf('ERROR: could not load %s\n',extregstem);
-          return;
+	if(exist(extregstem,'file'))
+	  extreg = load(extregstem);
+	else
+	  extreg = fmri_ldbvolume(extregstem);
+	  if(isempty(extreg))
+	    fprintf('ERROR: could not load %s\n',extregstem);
+	    return;
+	  end
         end
         if(size(extreg,3)~=1) extreg = squeeze(extreg)'; %'
         else                  extreg = squeeze(extreg);
@@ -509,7 +514,8 @@ for slice = firstslice:lastslice
 
       % Global rescale of functional data %
       if(RescaleTarget > 0)
-        MeanValFile = sprintf('%s.meanval',instem);
+        %MeanValFile = sprintf('%s.meanval',instem);
+        MeanValFile = sprintf('%s/global.meanval.dat',instemdir);
         [RescaleFactor MeanVal]=fast_rescalefactor(MeanValFile, RescaleTarget);
         %fprintf(1,'       Rescaling Global Mean %g,%g,%g\n',...
      	%        MeanVal,RescaleTarget,RescaleFactor);
@@ -1210,11 +1216,15 @@ function s = parse_args(varargin)
         narg = narg + 1;
 
       case '-extreg',
-        arg1check(flag,narg,ninputargs);
+       % Version5: this now has two args
+       %arg1check(flag,narg,ninputargs);
+        arg2check(flag,narg,ninputargs);
         s.extregfile = inputargs{narg};
         narg = narg + 1;
-
-      case '-extregorthog',
+        s.nextreg = sscanf(inputargs{narg},'%d',1);
+        narg = narg + 1;
+     
+     case '-extregorthog',
         s.extregorthog = 1;
 
       case '-nextreg',
