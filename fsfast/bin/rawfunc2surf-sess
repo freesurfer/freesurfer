@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/15 18:51:45 $
-#    $Revision: 1.12 $
+#    $Date: 2010/04/15 21:04:10 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.12 2010/04/15 18:51:45 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.13 2010/04/15 21:04:10 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -208,7 +208,7 @@ foreach sess ($SessList)
 
     # Smooth raw data within mask
     if($#fwhm) then
-      set cmd = (mris_fwhm --s $trgsubject --hemi $hemi --no-detrend \
+      set cmd = (mris_fwhm --s $trgsubject --hemi $hemi --smooth-only \
         --i $outvol --fwhm $fwhm --o $outvol --mask $outmask )
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
