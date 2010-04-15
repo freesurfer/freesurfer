@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/25 16:05:10 $
-#    $Revision: 1.19 $
+#    $Date: 2010/04/15 16:58:13 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg-sess,v 1.19 2010/03/25 16:05:10 greve Exp $';
+set VERSION = '$Id: selxavg-sess,v 1.20 2010/04/15 16:58:13 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -203,25 +203,16 @@ foreach sess ($SessList)
     end
   endif
 
-  set seqinfo = seq.info
-  if(! -e $seqinfo) then
-    echo "ERROR: cannot find `pwd`/$seqinfo"
-    exit 1;
-  endif
-  set inplaneres  = `cat $seqinfo | awk '{if($1 == "rowpixelsize") print $2}'`;
-  set TR = `cat seq.info | awk '{if($1 == "TR") print $2}'`;
-
-  set d = `echo $TR-$TRAnalysis | bc -l`;
-  set a = `echo "sqrt($d*$d)" | bc -l`;
-  set TRSame = `echo "if($a > .001) 0; if($a < .001) 1" | bc -l` ;
-
-  # This does not work on Sun
-  #set TRSame = `echo "tmp=sqrt(($TR-$TRAnalysis)^2); if (tmp < .001)  print 1 else print 0 " | bc -l`;
-
-  if(! $TRSame) then
-    echo "ERROR: TR for $sessbase = $TR, Analysis TR = $TRAnalysis"
-    exit 1;
-  endif
+  set f = `stem2fname $RunList[1]/$funcstem`
+  set tmp = /tmp/tmp.selxavg-sess.$$
+  mri_info --o $tmp --tr $f
+  set TR = `cat $tmp`
+  set TR = `echo "$TR/1000" | bc -l`
+  mri_info --o $tmp --cres $f
+  set inplaneres = `cat $tmp`
+  rm -f $tmp
+  echo inplaneres $inplaneres | tee -a $LF
+  echo TR $TR | tee -a $LF
 
   echo "INFO ($sessbase): RunList = $RunList"
 
@@ -285,7 +276,7 @@ foreach sess ($SessList)
 
   set cmd = ($cmd -TR $TR -parname $parname -o $OutDir/h )
   set cmd = ($cmd $instems $tpexcludes -cfg $cfgfile $synthflag)
-  set cmd = ($cmd -ipr $inplaneres)
+  #set cmd = ($cmd -ipr $inplaneres)
   if($omnibus) then
     set cmd = ($cmd -pomnibus  $OutDir/omnibus/fsig)
     set cmd = ($cmd -fomnibus  $OutDir/omnibus/f)
