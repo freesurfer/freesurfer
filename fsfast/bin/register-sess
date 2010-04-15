@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/10 00:13:10 $
-#    $Revision: 1.6 $
+#    $Date: 2010/04/15 19:07:19 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,12 +23,13 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.6 2010/04/10 00:13:10 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.7 2010/04/15 19:07:19 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
 set fsd          = bold;
 set PerRun       = 0;
+set PerSess     = 0;
 set regmethod = bbregister
 set fstargvol = "brainmask";
 set dof = 6;
@@ -185,7 +186,7 @@ foreach sess ($SessList)
     set XOpts = ($SPMXOpts)
   endif
 
-  if(! $PerRun) then
+  if($PerSess) then
     # Do once for all runs
     set template = `stem2fname $fsd/template`
     if($status) then
@@ -296,10 +297,12 @@ while( $#argv != 0 )
     case "-per-run":
     case "-perrun":
       set PerRun = 1;
+      set PerSess = 0;
       breaksw
 
     case "-per-session":
     case "-persession":
+      set PerSess = 1;
       set PerRun = 0;
       breaksw
 
@@ -459,31 +462,31 @@ if($#SessList == 0) then
   echo "ERROR: no sessions specified" |& tee -a $LF
   exit 1;
 endif
-
 if($#FSLXOpts && $regmethod != fslregister) then
   echo "ERROR: must specify -fsl with -fsl-xopts"
   exit 1;
 endif
-
 if($#SPMXOpts && $regmethod != spmregister) then
   echo "ERROR: must specify -spm with -spm-xopts"
   exit 1;
 endif
-
 if($#BBRXOpts && $regmethod != bbregister) then
   echo "ERROR: must specify -bbr with -bbr-xopts"
   exit 1;
 endif
-
 if($DoPBSub && $regmethod == spmregister) then
   echo "ERROR: cannot pbsubmit with spmregister"
   exit 1;
 endif
-
 if($DoBackground && $DoPBSub) then
   echo "ERROR: cannot -bg and -pbsubmit"
   exit 1
 endif
+if($PerRun == 0 && $PerSess == 0) then
+  echo "ERROR: You must specify -per-run or -per-session"
+  exit 1;
+endif
+
 
 goto check_params_return;
 ############--------------##################
@@ -509,6 +512,10 @@ usage_exit:
   echo "   -s  sessid      ..."
   echo "   -d  srchdir     ..."
   echo ""
+  echo " One of these is necessary"
+  echo "   -per-run      : register to template in each run separately"
+  echo "   -per-session  : register to session-level template"
+  echo ""
   echo " Optional Arguments"
   echo "   -bbr : use bbregister (default)"
   echo "   -fsl : use fslregister"
@@ -523,8 +530,6 @@ usage_exit:
   echo "   -dof DOF : registration degrees of freedome (default is $dof)"
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fstargvol)"
   echo ""
-  echo "   -per-run      : register to template in each run separately"
-  echo "   -per-session  : register to session-level template"
   echo "   -regfile file  : Save reg as file instead of register.dat"
   echo "   -fsd dir      : functional subdirectory ($fsd)"
   echo ""
