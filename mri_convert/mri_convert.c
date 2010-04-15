@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/19 22:13:14 $
- *    $Revision: 1.165 $
+ *    $Date: 2010/04/15 19:03:33 $
+ *    $Revision: 1.166 $
  *
- * Copyright (C) 2002-2009,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -195,7 +194,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.165 2010/03/19 22:13:14 nicks Exp $", 
+     "$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -302,7 +301,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.165 2010/03/19 22:13:14 nicks Exp $", 
+      "$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -426,6 +425,10 @@ int main(int argc, char *argv[]) {
       slice_crop_flag = TRUE ;
       get_ints(argc, argv, &i, &slice_crop_start , 1);
       get_ints(argc, argv, &i, &slice_crop_stop , 1);
+      if (slice_crop_start > slice_crop_stop) {
+        fprintf(stderr,"ERROR: s_start > s_end\n");
+        exit(1);
+      }
     }
     else if (strcmp(argv[i], "--cropsize")==0) {
       crop_flag = TRUE ;
@@ -1328,7 +1331,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.165 2010/03/19 22:13:14 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
