@@ -48,7 +48,7 @@ pwd
 
 source $SCRIPTSDIR/cvsupdate.bash
 
-#source $SCRIPTSDIR/build.bash
+source $SCRIPTSDIR/build.bash
 
 # ---------------------------
 
