@@ -8,6 +8,9 @@ export LOGFILE="${HOME}/nightly.err"
 # Location of the nightly build directory
 export NIGHTLYDIR="${HOME}/avebury01nfs/nightly/"
 
+# Location of the scripts
+export SCRIPTSDIR="${NIGHTLYDIR}/test_tm/scripts/"
+
 # Location of 'scratch' directory
 export SCRATCHDIR="/local_mount/space/avebury/1/users/rge21/tm_test_data"
 
@@ -28,28 +31,10 @@ echo >> $LOGFILE
 
 # ---------------------------
 
-mkdir -p $SCRATCHDIR
-if [ $? -ne 0 ]; then
-    echo "NIGHTLY: mkdir failed"
-    exit
-fi
-echo "NIGHTLY: mkdir complete" >> $LOGFILE
+source $SCRIPTSDIR/inputs.bash
 
-echo >> $LOGFILE
-echo >> $LOGFILE
-echo >> $LOGFILE
+# ---------------------------
 
-# Get all the input files
-rsync -avt --delete $SAMPLE_DIR $SCRATCHDIR  >> $LOGFILE 2>&1
-if [ $? -ne 0 ]; then
-    echo "NIGHTLY: rsync failed"
-    exit
-fi
-echo "NIGHTLY: rsync complete" >> $LOGFILE
-
-echo >> $LOGFILE
-echo >> $LOGFILE
-echo >> $LOGFILE
 
 # Go to the build directory
 cd $NIGHTLYDIR
@@ -83,59 +68,11 @@ echo >> $LOGFILE
 echo >> $LOGFILE
 
 
+# ---------------------------
 
-# Run setup_configure
-./setup_configure >> $LOGFILE 2>&1
-if [ $? -ne 0 ]; then
-    echo "NIGHTLY: setup_configure failed"
-    exit
-fi
-echo "NIGHTLY: setup_configure complete" >> $LOGFILE
+#source $SCRIPTSDIR/build.bash
 
-echo >> $LOGFILE
-echo >> $LOGFILE
-echo >> $LOGFILE
-
-
-
-# Run configure
-./configure  --with-boost-dir=/homes/11/rge21/avebury01nfs/boost-1.41.0/ >> $LOGFILE 2>&1
-if [ $? -ne 0 ]; then
-    echo "NIGHTLY: configure failed"
-    exit
-fi
-echo "NIGHTLY: configure complete" >> $LOGFILE
-
-echo >> $LOGFILE
-echo >> $LOGFILE
-echo >> $LOGFILE
-
-
-
-# Do the build
-make -j >> $LOGFILE 2>&1
-if [ $? -ne 0 ]; then
-    echo "NIGHTLY: Build failed"
-    exit
-fi
-echo "NIGHTLY: Build complete" >> $LOGFILE
-
-echo >> $LOGFILE
-echo >> $LOGFILE
-echo >> $LOGFILE
-
-# Do the install
-make install >> $LOGFILE 2>&1
-if [ $? -ne 0 ]; then
-    echo "NIGHTLY: Install failed"
-    exit
-fi
-echo "NIGHTLY: Installation complete" >> $LOGFILE
-
-echo >> $LOGFILE
-echo >> $LOGFILE
-echo >> $LOGFILE
-
+# ---------------------------
 
 # Run the tests
 
