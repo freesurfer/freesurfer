@@ -8,6 +8,12 @@ function GCAMdir()
    return os.getenv( "SCRATCHDIR" ).."/gcam/"
 end
 
+-- Returns the location of the directory holding MRI files
+function MRIdir()
+   return os.getenv( "SCRATCHDIR" ).."/mri/"
+end
+
+
 -- Lists the files matching 'pattern' in the specified directory
 function GetFiles( srcDir, pattern )
    local lsPipe = io.popen( "ls "..srcDir )

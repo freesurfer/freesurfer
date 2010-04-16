@@ -56,7 +56,7 @@ testdescript = {
    keywords = { "convolution", "basic", "mri" },
 
    -- Designate the test as active
-   active = 1,
+   active = 0,
 
    -- The test name
    testName = "1D_Convolution_Test",

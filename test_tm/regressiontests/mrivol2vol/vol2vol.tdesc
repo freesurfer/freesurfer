@@ -74,7 +74,7 @@ testdescript = {
    keywords = { "basic", "mri" },
 
    -- Designate the test as active
-   active = 1,
+   active = 0,
 
    -- The test name
    testName = "MRI_vol2vol_Test",
