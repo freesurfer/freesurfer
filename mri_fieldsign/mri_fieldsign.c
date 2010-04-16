@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/01/17 17:57:05 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/04/16 22:01:43 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.10 2008/01/17 17:57:05 greve Exp $
+// $Id: mri_fieldsign.c,v 1.11 2010/04/16 22:01:43 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.10 2008/01/17 17:57:05 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.11 2010/04/16 22:01:43 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -124,9 +124,10 @@ int RETcompute_fieldsign2(MRIS *mris);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, err, reshapefactor;
+  int nargs, err, reshapefactor, r, c, s;
+  double v;
   MRIS *surf;
-  MRI *eccensfa, *polarsfa, *mri, *mritmp, *mritmp2;
+  MRI *eccensfa, *polarsfa, *mri, *mritmp;
   MRI *eccenreal,*eccenimag,*polarreal,*polarimag;
 
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -198,16 +199,26 @@ int main(int argc, char *argv[]) {
     polarimag = MRIread(PolarImagFile);
     if(polarimag == NULL) exit(1);
 
-    mritmp  = MRIconcatenateFrames(eccenreal, eccenimag, NULL);
-    mritmp2 = MRIconcatenateFrames(polarreal, polarimag, NULL);
-    mri = MRIconcatenateFrames(mritmp,mritmp2,NULL);
-
+    mri = MRIallocSequence(eccenreal->width, eccenreal->height, 
+			   eccenreal->depth, MRI_FLOAT, 4);
+    for(c=0; c < mri->width; c++){
+      for(r=0; r < mri->height; r++){
+	for(s=0; s < mri->depth; s++){
+	  v = MRIgetVoxVal(eccenreal,c,r,s,0);
+	  MRIsetVoxVal(mri,c,r,s,0, v);
+	  v = MRIgetVoxVal(eccenimag,c,r,s,0);
+	  MRIsetVoxVal(mri,c,r,s,1, v);
+	  v = MRIgetVoxVal(polarreal,c,r,s,0);
+	  MRIsetVoxVal(mri,c,r,s,2, v);
+	  v = MRIgetVoxVal(polarimag,c,r,s,0);
+	  MRIsetVoxVal(mri,c,r,s,3, v);
+	}
+      }
+    }
     MRIfree(&eccenreal);
     MRIfree(&eccenimag);
     MRIfree(&polarreal);
     MRIfree(&polarimag);
-    MRIfree(&mritmp);
-    MRIfree(&mritmp2);
   }
 
   if (mri->height != 1 || mri->depth != 1) {
@@ -361,7 +372,8 @@ static int parse_commandline(int argc, char **argv) {
 	exit(1);
       }
       DoComplex = 1;
-      nargsused = 1;
+      DoSFA = 0;
+      nargsused = 2;
     } else if (!strcasecmp(option, "--polar")) {
       if (nargc < 2) CMDargNErr(option,2);
       PolarRealFile = pargv[0];
@@ -371,7 +383,8 @@ static int parse_commandline(int argc, char **argv) {
 	exit(1);
       }
       DoComplex = 1;
-      nargsused = 1;
+      DoSFA = 0;
+      nargsused = 2;
     } else if (!strcasecmp(option, "--eccen-out")) {
       if(nargc < 1) CMDargNErr(option,1);
       EccenOut = pargv[0];
@@ -497,10 +510,6 @@ static void print_version(void) {
 /*--------------------------------------------------*/
 static void check_options(void) 
 {
-  if(!DoSFA){
-    printf("Need SFA files\n");
-    exit(1);
-  }
   if(FieldSignFile == NULL){
     printf("Need output field sign file\n");
     exit(1);
