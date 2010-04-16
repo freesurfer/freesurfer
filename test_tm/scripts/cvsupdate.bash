@@ -22,7 +22,7 @@ echo >> $LOGFILE
 
 
 # Update the directory
-cvs update -d . >> $LOGFILE 2>&1
+cvs update -d -P . >> $LOGFILE 2>&1
 if [ $? -ne 0 ]; then
     echo "NIGHTLY: cvs update failed"
     exit
