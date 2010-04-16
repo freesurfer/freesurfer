@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/07 19:27:41 $
- *    $Revision: 1.105 $
+ *    $Date: 2010/04/16 20:42:41 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2118,6 +2118,7 @@ void MainWindow::OnInternalIdle()
         m_splitterSub->UpdateSize();
       }
     }
+    
     run_once = true;
   }
   
@@ -2666,6 +2667,10 @@ void MainWindow::RunScript()
   {
     CommandSetViewport( sa );
   }
+  else if ( sa[0] == _("setviewsize") )
+  {
+    CommandSetViewSize( sa );
+  }
   else if ( sa[0] == _("zoom") )
   {
     CommandZoom( sa );
@@ -2681,6 +2686,10 @@ void MainWindow::RunScript()
   else if ( sa[0] == _("setcolormap") )
   {
     CommandSetColorMap( sa );
+  }
+  else if ( sa[0] == _("setheatscaleoptions") )
+  {
+    CommandSetHeadScaleOptions( sa );
   }
   else if ( sa[0] == _("setlut") )
   {
@@ -2777,6 +2786,17 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
       {
         colormap_scale = subOption;    // colormap scale might be different from colormap!
         scales = MyUtils::SplitString( subArgu, _(",") );
+      }
+      else if ( subOption == _("heatscaleoption") || 
+                subOption == _("heatscaleoptions") )
+      {
+        wxArrayString script;
+        script.Add( _("setheatscaleoptions") );
+        wxArrayString opts = MyUtils::SplitString( subArgu, _(",") );
+        for ( size_t i = 0; i < opts.size(); i++ )
+          script.Add( opts[i] );
+    
+        m_scripts.insert( m_scripts.begin(), script );
       }
       else if ( subOption == _("lut") )
       {
@@ -2978,6 +2998,23 @@ void MainWindow::CommandSetColorMap( const wxArrayString& sa )
   }
   
   SetVolumeColorMap( nColorMap, nColorMapScale, pars );
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetHeadScaleOptions( const wxArrayString& sa )
+{
+  if ( GetLayerCollection( "MRI" )->GetActiveLayer() )
+  {
+    LayerPropertiesMRI* p = ( (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer() )->GetProperties();
+    for ( size_t i = 1; i < sa.size(); i++ )
+    {
+      if ( sa[i] == _("invert") )
+        p->SetHeatScaleInvert( true );
+      else if ( sa[i] == _("truncate") )
+        p->SetHeatScaleTruncate( true );
+    }
+  }
   
   ContinueScripts();
 }
@@ -3963,6 +4000,69 @@ void MainWindow::CommandSetViewport( const wxArrayString& cmd )
 
   ContinueScripts();
 }
+
+void MainWindow::CommandSetViewSize( const wxArrayString& cmd )
+{
+  long x, y;
+  if ( !cmd[1].ToLong( &x ) || !cmd[2].ToLong( &y ) )
+  {
+    cerr << "Invalid view size." << endl;
+  }
+  
+  int vx, vy;
+  ((wxWindow*)m_viewRender[m_nMainView])->GetSize( &vx, &vy );
+  wxConfigBase* config = wxConfigBase::Get();
+  if ( config )
+  {
+    if ( config->Exists( _("/MainWindow/SplitterPositionSub") ) )
+    {
+      vy = config->Read( _("/MainWindow/SplitterPositionSub"), 80L );
+      switch( m_nViewLayout )
+      {
+        case VL_2X2:
+          vy = vy/2;
+          break;
+        case VL_1N3:
+          vy = vy/3*2;
+          break;
+      }
+    }
+  }
+  
+  int offsetx = x - vx, offsety = y - vy;
+  switch( m_nViewLayout )
+  {
+    case VL_2X2:
+      offsetx *= 2;
+      offsety *= 2;
+      break;
+    case VL_1N3:
+      offsety += offsety/2;
+      break;
+    case VL_1N3_H:
+      offsetx += offsetx/2;
+      break;
+    default:
+      break;
+  }
+  int mx, my;
+  this->GetSize( &mx, &my );
+  this->SetSize( mx + offsetx, my + offsety ); 
+  if ( config )
+  {
+    if ( config->Exists( _("/MainWindow/SplitterPositionSub") ) )
+    {
+      int npos = config->Read( _("/MainWindow/SplitterPositionSub"), 80L );
+      npos += offsety;
+      m_splitterSub->SetSashPosition( npos );
+      m_splitterSub->UpdateSize();      
+      config->Write( _("/MainWindow/SplitterPositionSub"), npos );
+    }
+  }
+  
+  ContinueScripts();
+}
+
 
 void MainWindow::CommandZoom( const wxArrayString& cmd )
 {

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/09 20:24:51 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/04/16 20:42:41 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -803,7 +803,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
   {
     m[i] = (double) *MATRIX_RELT((mat),(i/4)+1,(i%4)+1);
   }
-  double pixelSize[3] = { 1, 1, 1 };
+  double pixelSize[3] = { src->xsize, src->ysize, src->zsize };
   if ( fabs( m[0] ) > fabs( m[4] ) && fabs( m[0] ) > fabs( m[8] ) )
     pixelSize[0] = src->xsize;
   else if ( fabs( m[4] ) > fabs( m[8] ) )
@@ -1496,14 +1496,14 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   // change the field of view of the new target to full coverage of the image data
   if ( rotations[0].Plane != -1 )
   {
-    MRI* mri = rasMRI;
+    MRI* mri = rasMRI;    
     rasMRI = CreateTargetMRI( m_MRIOrigTarget, mri );
     ::MRIfree( &mri );
   }
     
   if ( nSampleMethod < 0 )
     nSampleMethod = rotations[0].SampleMethod;
-  if ( rotations[0].Plane == -1 )
+  if ( rotations[0].Plane == -1 ) // restore
     MRIvol2Vol( m_MRITemp, rasMRI, NULL, m_nInterpolationMethod, 0 );
   else
     MRIvol2Vol( m_MRITemp, rasMRI, NULL, nSampleMethod, 0 );
@@ -1877,7 +1877,9 @@ void FSVolume::GetPixelSize( double* pixelSize )
   }
 
   double* m = GetVoxelToRASMatrix();
-
+  pixelSize[0] = m_MRI->xsize;
+  pixelSize[1] = m_MRI->ysize;
+  pixelSize[2] = m_MRI->zsize;
   if ( fabs( m[0] ) > fabs( m[4] ) && fabs( m[0] ) > fabs( m[8] ) )
     pixelSize[0] = m_MRI->xsize;
   else if ( fabs( m[4] ) > fabs( m[8] ) )
