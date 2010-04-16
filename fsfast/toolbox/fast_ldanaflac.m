@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/15 21:06:17 $
-%    $Revision: 1.47 $
+%    $Date: 2010/04/16 23:51:23 $
+%    $Revision: 1.48 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -111,6 +111,7 @@ extregList = '';
 nextregList = [];
 nskip = 0;
 ncycles = [];
+period = [];
 delay = 0;
 timeoffset = 0;
 gammafit = 0;
@@ -165,6 +166,7 @@ while(1)
    case '-prestim',    prestim     = sscanf(tline,'%*s %f',1);
    case '-timewindow', timewindow  = sscanf(tline,'%*s %f',1);
    case '-ncycles',    ncycles     = sscanf(tline,'%*s %f',1);
+   case '-period',     period      = sscanf(tline,'%*s %f',1);
    case '-delay',      delay       = sscanf(tline,'%*s %f',1);
    case '-timeoffset', timeoffset  = sscanf(tline,'%*s %f',1);
    case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
@@ -241,7 +243,7 @@ if(ana.firfit)
 end
 
 flac.ana = ana;
-flac.ana.con = [];
+%flac.ana.con = [];
 
 nthev = 1;
 tline = sprintf('EV Baseline baseline nuis');
@@ -266,14 +268,82 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   end
 end
 
-if(strcmp(designtype,'abblocked') | strcmp(designtype,'retinotopy'))
+if(strcmp(designtype,'retinotopy')) 
+  flac.IsRetinotopy = 1; 
   % par file will have:
   %   stimtype  eccen (retinotopy)
   %   direction neg
   % rtopy output will go in ananame/{eccen,polar}
   % Need to add nuis on either side of fund and harm to be
   % compatible with selfreqavg
-  period = ncycles * flac.TR;
+  if(isempty(period))
+    fprintf('ERROR: Must specify -period in mkanalysis-sess');
+    flac = [];
+    return;
+  end
+  
+  nharmonics = 1;
+  tline = sprintf('EV eccen fourier task %g %g %g',...
+		  period,nharmonics,delay);
+  flac.ev(nthev) = flac_ev_parse(tline);
+  nthev = nthev+1;
+  tline = sprintf('EV polar fourier task %g %g %g',...
+		  period,nharmonics,delay);
+  flac.ev(nthev) = flac_ev_parse(tline);
+  nthev = nthev+1;
+
+  nthcon = 1;
+  for nthstimtype = 1:2
+    if(nthstimtype == 1) stimtype = 'eccen'; end
+    if(nthstimtype == 2) stimtype = 'polar'; end
+    flac.con(nthcon).name     = stimtype;
+    flac.con(nthcon).varsm    = 0;
+    flac.con(nthcon).sumev    = 0;
+    flac.con(nthcon).sumevreg = 0;
+    flac.con(nthcon).sumevrw  = [];
+    flac.con(nthcon).ev(1).name = stimtype;
+    flac.con(nthcon).ev(1).evw  = 1;
+    flac.con(nthcon).ev(1).evrw = [1 1 0 0];
+    flac.con(nthcon).rmprestim = 0;
+    flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+    flac.ana.con(nthcon) = flac.con(nthcon);
+    
+    nthcon = nthcon + 1;
+    flac.con(nthcon).name     = sprintf('%s-imag',stimtype);
+    flac.con(nthcon).varsm    = 0;
+    flac.con(nthcon).sumev    = 0;
+    flac.con(nthcon).sumevreg = 0;
+    flac.con(nthcon).sumevrw  = [];
+    flac.con(nthcon).ev(1).name = stimtype;
+    flac.con(nthcon).ev(1).evw  = 1;
+    flac.con(nthcon).ev(1).evrw = [1 0 0 0];
+    flac.con(nthcon).rmprestim = 0;
+    flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+    flac.ana.con(nthcon) = flac.con(nthcon);
+    
+    nthcon = nthcon + 1;
+    flac.con(nthcon).name     = sprintf('%s-real',stimtype);
+    flac.con(nthcon).varsm    = 0;
+    flac.con(nthcon).sumev    = 0;
+    flac.con(nthcon).sumevreg = 0;
+    flac.con(nthcon).sumevrw  = [];
+    flac.con(nthcon).ev(1).name = stimtype;
+    flac.con(nthcon).ev(1).evw  = 1;
+    flac.con(nthcon).ev(1).evrw = [0 1 0 0];
+    flac.con(nthcon).rmprestim = 0;
+    flac.con(nthcon).cspec.name = flac.con(nthcon).name;
+    flac.ana.con(nthcon) = flac.con(nthcon);
+  end
+  ncontrasts = length(flac.con);
+end
+
+if(strcmp(designtype,'abblocked'))
+  if(isempty(period))
+    fprintf('ERROR: Must specify -period in mkanalysis-sess');
+    flac = [];
+    return;
+  end
+  
   nharmonics = 1;
   tline = sprintf('EV Fourier fourier task %g %g %g',...
 		  period,nharmonics,delay);
@@ -458,6 +528,8 @@ if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   end
   
 end
+
+if(ncontrasts == 0) flac.ana.con = []; end
 
 % Check each contrast
 for nthcon = 1:ncontrasts
