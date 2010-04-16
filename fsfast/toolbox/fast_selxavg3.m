@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.80 2010/04/15 21:06:17 greve Exp $
+% $Id: fast_selxavg3.m,v 1.81 2010/04/16 23:52:48 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/15 21:06:17 $
-%    $Revision: 1.80 $
+%    $Date: 2010/04/16 23:52:48 $
+%    $Revision: 1.81 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.80 2010/04/15 21:06:17 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.81 2010/04/16 23:52:48 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -88,7 +88,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.80 2010/04/15 21:06:17 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.81 2010/04/16 23:52:48 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -239,16 +239,16 @@ for nthouter = outer_runlist
     % This is for comparing cross-run FFX analysis vs this analysis 
     % in which the data and design matrices are concatenated.
     Xrun = flac.X;
-    for nthcon = 1:ncontrasts
-      if(~isempty(ConList))
-	ind = strmatch(flac0.con(nthcon).name,ConList);
-	if(isempty(ind)) continue; end
-      end
-      C = flac.con(nthcon).C;
-      M = C*inv(Xrun'*Xrun)*C';
-      if(nthrun == 1) conffx(nthcon).Msum = 0; end
-      conffx(nthcon).Msum = conffx(nthcon).Msum + M;
-    end
+    %for nthcon = 1:ncontrasts
+    %  if(~isempty(ConList))
+    %	ind = strmatch(flac0.con(nthcon).name,ConList);
+    %if(isempty(ind)) continue; end
+    %  end
+    %  C = flac.con(nthcon).C;
+    %  M = C*inv(Xrun'*Xrun)*C';
+    %  if(nthrun == 1) conffx(nthcon).Msum = 0; end
+    %  conffx(nthcon).Msum = conffx(nthcon).Msum + M;
+    %end
 
   end % loop over runs
   fprintf(' ... creation time = %6.3f sec\n',toc);
@@ -337,11 +337,11 @@ for nthouter = outer_runlist
     flacC.con(nthcon).vrf = vrf;
 
     % For FFX-vs-Concat Comparison (see above)
-    Mffx = conffx(nthcon).Msum/(flac0.nruns.^2);
-    vrfffx = 1/mean(diag(Mffx));
-
-    fprintf('%2d %-10s J=%2d  eff = %6.1f   vrf = %8.4f vrfffx = %8.4f r = %4.2f\n',...
-	    nthcon,flac0.con(nthcon).name,J,eff,vrf,vrfffx,vrf/vrfffx);
+    %Mffx = conffx(nthcon).Msum/(flac0.nruns.^2);
+    %vrfffx = 1/mean(diag(Mffx));
+    %fprintf('%2d %-10s J=%2d  eff = %6.1f   vrf = %8.4f vrfffx = %8.4f r = %4.2f\n',...
+    %nthcon,flac0.con(nthcon).name,J,eff,vrf,vrfffx,vrf/vrfffx);
+    fprintf('%2d %-10s J=%2d  eff = %6.1f   vrf = %8.4f\n');
   end
 
 if(DoGLMFit)
@@ -940,9 +940,10 @@ if(DoContrasts)
       ind = strmatch(flac0.con(nthcon).name,ConList);
       if(isempty(ind)) continue; end
     end
+    conname = flacC.con(nthcon).name;
     C = flacC.con(nthcon).C;
     [J K] = size(C);
-    fprintf('%s J=%d -------------\n',flacC.con(nthcon).name,J);
+    fprintf('%s J=%d -------------\n',conname,J);
     if(J==1)
       [Fmat dof1 dof2 cesmat cesvarmat] = ...
 	  fast_fratiow(betamat,X,rvarmat,C,acfsegmn,acfseg.vol(:));
@@ -973,7 +974,7 @@ if(DoContrasts)
     end
     
     % Contrast output
-    outcondir = sprintf('%s/%s',outanadir,flacC.con(nthcon).name);
+    outcondir = sprintf('%s/%s',outanadir,conname);
     if(exist(outcondir,'dir'))
       % Delete it if it exists
       fprintf('%s exists, deleting\n',outcondir);
@@ -1026,6 +1027,44 @@ if(DoContrasts)
     
     end
 
+    if(flac.IsRetinotopy)
+      if(strcmp(conname,'eccen') | strcmp(conname,'polar'))
+	cesimag = ces;
+	cesimag.vol = ces.vol(:,:,:,1);
+	cesreal = ces;
+	cesreal.vol = ces.vol(:,:,:,2);
+	mag = ces;
+	mag.vol = sqrt(cesreal.vol.^2 + cesimag.vol.^2);
+	phz = ces;
+	phz.vol = atan2(cesimag.vol,cesreal.vol);
+	if(strcmp(conname,'eccen'))
+	  % Force eccen angle to be 0-2pi
+	  ind = find(phz.vol < 0);
+	  phz.vol(ind) = phz.vol(ind) + 2*pi;
+	end
+	fname = sprintf('%s/imag.%s',outcondir,ext);
+	MRIwrite(cesimag,fname);
+	fname = sprintf('%s/real.%s',outcondir,ext);
+	MRIwrite(cesreal,fname);
+	fname = sprintf('%s/angle.%s',outcondir,ext);
+	MRIwrite(phz,fname);
+	fname = sprintf('%s/mag.%s',outcondir,ext);
+	MRIwrite(mag,fname);
+	% Mask angle by fsig
+	indz = find(abs(fsig.vol)<2);
+	phz.vol(indz) = 0;
+	fname = sprintf('%s/angle.masked.%s',outcondir,ext);
+	MRIwrite(phz,fname);
+	% For compatibility with tksurfer color wheel
+	cesimag.vol = cesimag.vol.*fsig.vol;
+	fname = sprintf('%s/cwmap-imag.%s',outcondir,ext);
+	MRIwrite(cesimag,fname);
+	cesreal.vol = cesreal.vol.*fsig.vol;
+	fname = sprintf('%s/cwmap-real.%s',outcondir,ext);
+	MRIwrite(cesreal,fname);
+      end
+    end
+    
     if(J > 1)
       % Compute CES amplitude as the sqrt of sum of the squares
       if(J < 20) % 20 to prevent it from going crazy
