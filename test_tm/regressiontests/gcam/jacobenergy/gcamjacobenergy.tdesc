@@ -15,7 +15,7 @@ local function testGen( inputs )
    local testTable = {}
 
    for i,input in ipairs(inputs) do
-      table.insert( testTable, { id=input, input=GCAMdir()..input } )
+      table.insert( testTable, { id=input, input=FS.GCAMdir()..input } )
    end
 
    return testTable
