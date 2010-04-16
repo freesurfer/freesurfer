@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/25 16:23:52 $
-#    $Revision: 1.21 $
+#    $Date: 2010/04/16 22:02:40 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: paint-sess,v 1.21 2010/03/25 16:23:52 greve Exp $';
+set VERSION = '$Id: paint-sess,v 1.22 2010/04/16 22:02:40 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -135,12 +135,12 @@ if($designtype == "retinotopy" && $#outmap == 0) then
     if($status) exit 1;
 
     echo "-----VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV--------"|& tee -a $LF
-    paint-sess $inputargs -contrast $stimtype -outmap map-real -offset 1 \
+    paint-sess $inputargs -contrast $stimtype -outmap map-imag -offset 1 \
              -map h -nolog |& tee -a $LF
     if($status) exit 1;
 
     echo "-----VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV--------"|& tee -a $LF
-    paint-sess $inputargs -contrast $stimtype -outmap map-imag -offset 2 \
+    paint-sess $inputargs -contrast $stimtype -outmap map-real -offset 2 \
              -map h -nolog |& tee -a $LF
     if($status) exit 1;
 
