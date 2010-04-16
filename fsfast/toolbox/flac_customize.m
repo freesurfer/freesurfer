@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/15 21:05:31 $
-%    $Revision: 1.45 $
+%    $Date: 2010/04/16 23:52:16 $
+%    $Revision: 1.46 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -110,29 +110,38 @@ end
 
 % Parfile
 if(~isempty(flac.parfile) & ~strcmp(flac.parfile,'NONE'))
-  if(isempty(flac.schdir)) % Local
-    parpath = sprintf('%s/%s',runpath,flac.parfile);
-  else % Global
-    parpath = sprintf('%s/r%03d/%s',flac.schdir,flac.nthrun,flac.parfile);
-  end
-  par = fast_ldpar4(parpath);
-  if(isempty(par))
-    fprintf('ERROR: loading %s \n',flac.parfile);
-    flacnew = []; return; 
-  end
-  % This is an error check
-  if(size(par,2) == 2 & flac.autostimdur)
-    % Old-style Two-column par file with autostimdur, check for 0s
-    indz = find(par(:,2) == 0);
-    if(isempty(indz))
-      fprintf('WARNING: %s is a two-column par file. You have specified\n');
-      fprintf('that the duration of each stimulus of each presentation\n');
-      fprintf('be determined from the par file itself. However, \n');
-      fprintf('there are no 0s in this file, so this might not work. \n');
-      fprintf('To suppress this msg, consider using a 3 or 4-col par.\n');
+  if(~flac.IsRetinotopy)
+    if(isempty(flac.schdir)) % Local
+      parpath = sprintf('%s/%s',runpath,flac.parfile);
+    else % Global
+      parpath = sprintf('%s/r%03d/%s',flac.schdir,flac.nthrun,flac.parfile);
     end
+    par = fast_ldpar4(parpath);
+    if(isempty(par))
+      fprintf('ERROR: loading %s \n',flac.parfile);
+      flacnew = []; return; 
+    end
+    % This is an error check
+    if(size(par,2) == 2 & flac.autostimdur)
+      % Old-style Two-column par file with autostimdur, check for 0s
+      indz = find(par(:,2) == 0);
+      if(isempty(indz))
+	fprintf('WARNING: %s is a two-column par file. You have specified\n');
+	fprintf('that the duration of each stimulus of each presentation\n');
+	fprintf('be determined from the par file itself. However, \n');
+	fprintf('there are no 0s in this file, so this might not work. \n');
+	fprintf('To suppress this msg, consider using a 3 or 4-col par.\n');
+      end
+    end
+  else
+    parpath = sprintf('%s/%s',runpath,flac.parfile);
+    fp = fopen(parpath,'r');
+    flacnew.stimtype  = fscanf(fp,'%*s %s',1);
+    flacnew.direction = fscanf(fp,'%*s %s',1);
+    fclose(fp);
   end
 end
+
 
 nev = length(flac.ev);
 for nthev = 1:nev
