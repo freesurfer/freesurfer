@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/15 21:06:17 $
-#    $Revision: 1.38 $
+#    $Date: 2010/04/16 23:54:12 $
+#    $Revision: 1.39 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.38 2010/04/15 21:06:17 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.39 2010/04/16 23:54:12 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -52,6 +52,7 @@ set tpexclude = ();
 set force = 0;
 set runlistfile = ();
 set ncycles = ();
+set period = ();
 set IdealTW = ();
 set PreStim = 0;
 set nskip = 0;
@@ -174,36 +175,37 @@ if($designtype == "event-related" || $designtype == "blocked") then
   echo "-timewindow $TW" >> $sxacfg
   echo "-prestim $PreStim" >> $sxacfg
   echo "-TER $TER" >> $sxacfg
-
-  if($FSV3whiten) set acfbins = 1; # Explicitly set to 1
-  if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
-  if($FSV3whiten) set FixACF = 0; # Explicitly set to 0
-  if($FixACF) echo "-fix-acf" >> $sxacfg
-  if(! $FixACF) echo "-no-fix-acf" >> $sxacfg
   if($autostimdur)   echo "-autostimdur" >> $sxacfg
   if(! $autostimdur) echo "-noautostimdur" >> $sxacfg
-  if($FSV3st2fir) echo "-fsv3-st2fir" >> $sxacfg
-  if(! $FSV3st2fir) echo "-no-fsv3-st2fir" >> $sxacfg
-  if($FSV3whiten)   echo "-fsv3-whiten" >> $sxacfg
-  if(! $FSV3whiten) echo "-no-fsv3-whiten" >> $sxacfg
-
-  if($PolyFitOrder >= 0) echo "-polyfit $PolyFitOrder" >> $sxacfg
-  if($nyqreg) echo "-nyqreg" >> $sxacfg
   if($#timeoffset != 0) echo "-timeoffset $timeoffset" >> $sxacfg
 else if($designtype == "retinotopy" || $designtype == "abblocked") then
   if($#ncycles) echo "-ncycles $ncycles" >> $sxacfg
+  if($#period)  echo "-period $period" >> $sxacfg
+endif
+
+if($FSV3whiten) set acfbins = 1; # Explicitly set to 1
+if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
+if($FSV3whiten) set FixACF = 0; # Explicitly set to 0
+if($FixACF) echo "-fix-acf" >> $sxacfg
+if(! $FixACF) echo "-no-fix-acf" >> $sxacfg
+if($FSV3st2fir) echo "-fsv3-st2fir" >> $sxacfg
+if(! $FSV3st2fir) echo "-no-fsv3-st2fir" >> $sxacfg
+if($FSV3whiten)   echo "-fsv3-whiten" >> $sxacfg
+if(! $FSV3whiten) echo "-no-fsv3-whiten" >> $sxacfg
+if($PolyFitOrder >= 0) echo "-polyfit $PolyFitOrder" >> $sxacfg
+if($nyqreg) echo "-nyqreg" >> $sxacfg
+if($#extregList != 0) then
+    @ nth = 0;
+    foreach extreg ($extregList)
+      @ nth = $nth + 1;
+      set nextreg = $nextregList[$nth];
+      echo "-extreg $extreg $nextreg" >> $sxacfg
+    end
+  endif
 endif
 
 echo "-nskip $nskip" >> $sxacfg
 
-if($#extregList != 0) then
-  @ nth = 0;
-  foreach extreg ($extregList)
-    @ nth = $nth + 1;
-    set nextreg = $nextregList[$nth];
-    echo "-extreg $extreg $nextreg" >> $sxacfg
-  end
-endif
 
 if($inorm) then 
   # flac.inorm = RescaleTarget
@@ -222,11 +224,11 @@ rm -f $infofile
 touch $infofile
 echo "analysis   $analysis"   >> $infofile
 echo "TR         $TR"         >> $infofile
-echo "RefEventDur $RefEventDur">> $infofile
+if($#RefEventDur) echo "RefEventDur $RefEventDur">> $infofile
 echo "fsd        $fsd"        >> $infofile
 echo "funcstem   $funcstem"   >> $infofile
 if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
-echo "tpexclude  $tpexclude"  >> $infofile
+if($#tpexclude) echo "tpexclude  $tpexclude"  >> $infofile
 if($#parname)  echo "parname    $parname"    >> $infofile
 echo "designtype $designtype" >> $infofile
 echo "acffwhm $acffwhm" >> $infofile
@@ -352,6 +354,7 @@ while( $#argv != 0 )
   endif
   set timeoffset  = `cat $cacfg | awk '{if($1 == "-timeoffset") print $2}'`;
   set ncycles  = `cat $cacfg | awk '{if($1 == "-ncycles") print $2}'`;
+  set period  = `cat $cacfg | awk '{if($1 == "-period") print $2}'`;
 
   set trendfit = `cat $cacfg | awk '{if($1 == "-detrend") print 1}'`;
   set qtrendfit = `cat $cacfg | awk '{if($1 == "-qtrendfit") print 1}'`;
@@ -551,6 +554,11 @@ while( $#argv != 0 )
       set ncycles = $argv[1]; shift;
       breaksw
 
+    case "-period":
+      if ( $#argv == 0) goto arg1err;
+      set period = $argv[1]; shift;
+      breaksw
+
     case "-surface":
     case "-surf":
       if($#argv < 2) goto arg2err;
@@ -624,7 +632,8 @@ while( $#argv != 0 )
     case "-rtopy":
     case "-ret":
       set retinotopy = 1;
-      set designtype    = "retinotopy"
+      set designtype  = "retinotopy"
+      set acfbins = 0;
       breaksw
 
     case "-polyfit":
@@ -797,8 +806,8 @@ check_params:
     exit 1;
   endif
 
-  if($abblocked && ! $#ncycles && $parname == NONE) then
-    echo "ERROR: must specify either ncycles or parname with -abblocked"
+  if($abblocked && ! $#ncycles && ! $#period && $parname == NONE) then
+    echo "ERROR: must specify either ncycles, period, or parname with -abblocked"
     exit 1;
   endif
 
