@@ -31,6 +31,8 @@ echo >> $LOGFILE
 
 # ---------------------------
 
+# Make sure the inputs are on a local disc
+
 source $SCRIPTSDIR/inputs.bash
 
 # ---------------------------
@@ -40,35 +42,11 @@ source $SCRIPTSDIR/inputs.bash
 cd $NIGHTLYDIR
 pwd
 
-
-# Clean it
-make clean >> $LOGFILE 2>&1
-if [ $? -ne 0 ]; then
-    echo "NIGHTLY: make clean failed"
-    exit
-fi
-echo "NIGHTLY: make clean complete" >> $LOGFILE
-
-echo >> $LOGFILE
-echo >> $LOGFILE
-echo >> $LOGFILE
-
-
-
-# Update the directory
-cvs update -d . >> $LOGFILE 2>&1
-if [ $? -ne 0 ]; then
-    echo "NIGHTLY: cvs update failed"
-    exit
-fi
-echo "NIGHTLY: cvs update complete" >> $LOGFILE
-
-echo >> $LOGFILE
-echo >> $LOGFILE
-echo >> $LOGFILE
-
-
 # ---------------------------
+
+# Update and build Freesurfer
+
+source $SCRIPTSDIR/cvsupdate.bash
 
 #source $SCRIPTSDIR/build.bash
 
