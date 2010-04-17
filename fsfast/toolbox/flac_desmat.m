@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac,IRFOnly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 01:05:16 $
-%    $Revision: 1.20 $
+%    $Date: 2010/04/17 18:52:56 $
+%    $Revision: 1.21 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -89,7 +89,7 @@ for nthev = 1:nev
       tdelay     = ev.params(3); % Need to add
       X = fast_fourier_reg(period,flac.ntp,flac.TR,nharmonics);
       if(strcmp(flacnew.direction,'neg')) 
-	X(:,[1:2:end]) = -X(:,[1:2:end]); % negate imaginary part
+	X(:,[2:2:end]) = -X(:,[2:2:end]); % negate imaginary part
       end
       if(flac.IsRetinotopy & ~strcmp(flac.stimtype,ev.name)) 
 	X = zeros(size(X));
