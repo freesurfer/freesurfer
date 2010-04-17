@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/17 01:05:16 $
-#    $Revision: 1.40 $
+#    $Date: 2010/04/17 22:50:35 $
+#    $Revision: 1.41 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.40 2010/04/17 01:05:16 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.41 2010/04/17 22:50:35 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -180,7 +180,6 @@ if($designtype == "event-related" || $designtype == "blocked") then
   if(! $autostimdur) echo "-noautostimdur" >> $sxacfg
   if($#timeoffset != 0) echo "-timeoffset $timeoffset" >> $sxacfg
 else if($designtype == "retinotopy" || $designtype == "abblocked") then
-  if($#ncycles) echo "-ncycles $ncycles" >> $sxacfg
   if($#period)  echo "-period $period" >> $sxacfg
 endif
 
@@ -603,39 +602,45 @@ while( $#argv != 0 )
     case "-designtype":
     case "-design":
     case "-dt":
-      if ( $#argv == 0) goto arg1err;
-      set designtype = $argv[1]; shift;
-      if("$designtype" == "er") set designtype = event-related;
-      if("$designtype" != "blocked" && "$designtype" != "abblocked" && \
-         "$designtype" != "event-related" && "$designtype" != "retinotopy")then
-         echo "ERROR: design type must be one of the following:"
-         echo "       event-related, blocked, abblocked, or retinotopy"
-         exit 1;
-      endif
+      echo "ERROR: do not use -designtype anymore."
+      echo "  Instead, specify -event-related, -retinotopy, or -abblocked"
+      exit 1;
       breaksw
 
     case "-event-related":
-      set eventrelated = 1;
+    case "-er":
       set designtype = "event-related"
-      breaksw
-
-    case "-blocked":
-      set blocked = 1;
-      set designtype    = "blocked"
+      set eventrelated = 1;
+      set abblocked = 0;
+      set retinotopy = 0;
       breaksw
 
     case "-abblocked":
-      set abblocked = 1;
+      if ( $#argv < 1) goto arg1err;
+      set period = $argv[1]; shift;
       set designtype = "abblocked"
+      set abblocked = 1;
+      set PolyFitOrder = 1;
+      set HPFCutoffHz = `echo ".5/$period" | bc -l`
+      set acfbins = 0;
       set RefEventDur = -1;
+      set eventrelated = 0;
+      set retinotopy = 0;
       breaksw
 
     case "-retinotopy":
     case "-rtopy":
     case "-ret":
-      set retinotopy = 1;
+      if ( $#argv < 1) goto arg1err;
+      set period = $argv[1]; shift;
       set designtype  = "retinotopy"
+      set retinotopy = 1;
+      set PolyFitOrder = 1;
+      set HPFCutoffHz = `echo ".5/$period" | bc -l`
       set acfbins = 0;
+      set RefEventDur = -1;
+      set eventrelated = 0;
+      set abblocked = 0;
       breaksw
 
     case "-polyfit":
@@ -647,7 +652,6 @@ while( $#argv != 0 )
     case "-hpf":
       if ( $#argv < 1) goto arg1err;
       set HPFCutoffHz = $argv[1]; shift;
-      set PolyFitOrder = 0;
       breaksw
 
     case "-nyqreg":
@@ -797,12 +801,6 @@ check_params:
     exit 1;
   endif
 
-  if($#designtype == 0) set designtype = "event-related"
-  if("$designtype" == "event-related") set eventrelated = 1;
-  if("$designtype" == "blocked")       set blocked      = 1;
-  if("$designtype" == "abblocked")     set abblocked    = 1;
-  if("$designtype" == "retinotopy")    set retinotopy   = 1;
-
   if($#parname == 0 && $abblocked)  set parname = NONE;
   if($#parname == 0) then
     echo "ERROR: must specify a paradigm file name"
@@ -811,16 +809,6 @@ check_params:
 
   if($abblocked && $retinotopy) then
     echo "ERROR: cannot specify both -abblocked and -retinotopy"
-    exit 1;
-  endif
-
-  if($abblocked && ! $#ncycles && ! $#period && $parname == NONE) then
-    echo "ERROR: must specify either ncycles, period, or parname with -abblocked"
-    exit 1;
-  endif
-
-  if($retinotopy && ! $#ncycles && $#parname == 0) then
-    echo "ERROR: must specify either ncycles or parname with -retinotopy"
     exit 1;
   endif
 
@@ -884,60 +872,55 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "USAGE: mkanalysis-sess (and mkanalysis-sess.new)"
+  echo "mkanalysis-sess"
   echo ""
-  echo "Required Arguments"
+  echo "Basic Design Arguments"
   echo "  -analysis  analysisname : name of session-level functional analysis";
   echo "  -TR   TR                : TR value in seconds"
-  echo "  -paradigm  parname      : name of paradigm file 2, 3, or 4 col"
-  echo "  -designtype  type       : type of design. Legal values are: event-related,"
-  echo "                            blocked, abblocked, retinotopy"
+  echo "  -event-related          : event-related or blocked design"
+  echo "  -retinotopy periodSec   : retinotopy design with period (sec)"
+  echo "  -abblocked  periodSec   : abblocked design with period (sec)"
   echo "  -funcstem stem          : stem of functional data (default = f or fmc)"
-  echo ""
-  echo "Optional Arguments"
-  echo "   -polyfit N             : fit trend with polynomial of order N"
-  echo "   -tpexclude filename    : time-point (in seconds) exclude file name"
-  echo "   -mcextreg              : use motion parameters as external regressors (sets n=3)"
-  echo "   -fsd FSD               : functional subdirectory"
-  echo "   -runlistfile filename  : file with list of runs to include in analysis"
-  echo "   -no-inorm              : do not intensity normalize data"
-  echo "   -rescale-target value  : inorm to value"
-  echo "   -nskip       N         : skip the first N time points in each run"
-  echo "   -extreg extreg nextreg : external regressor file and number of regressors to include"
-  echo "   -no-extreg             : turn off external regressors"
+  echo "  -paradigm  parname      : name of paradigm file (needed for ER and ret)"
   echo ""
   echo "Event-Related and Blocked Arguments "
   echo "   -refeventdur Duration : duration (sec) of reference event for scaling"
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"
-  echo "   -timewindow  TW      : event time window (sec)"
-  echo "   -prestim     PS      : event prestimulus window (sec)"
+  echo "   -timewindow  TW      : event time window (sec) for FIR designs"
+  echo "   -prestim     PS      : event prestimulus window (sec) for FIR designs"
   echo "   -TER         TER     : temporal estimation resolution (sec)"
   echo "   -gammafit gfDelta gfTau : assume IRF is a gamma function"
   echo "   -gammaexp gfAlpha : gamma exponent (default is 2) "
   echo "   -spmhrf nderiv    : assume SPM HRF with nderiv derivatives"
-#  echo "   -taumax      TauMax  : maximum lag for noise autocor and whitening (sec)"
   echo "   -timeoffset  toffset : time offset (sec) to add to each paradigm file"
-  echo "   -mask  maskid : use masks/maskid to compute autocor and whitening"
-  echo "   -nowhiten : turn off temporal whitening"
-  echo "   -acfbins nbins : spatially segment autocorrelation into nbins"
-  echo "   -no-fix-acf    : do NOT compensate for resdualized ACF"
-  echo "   -fix-acf       : DO compensate for resdualized ACF (default)"
   echo "   -autostimdur    : automatically compute stimulus duration"
   echo "   -noautostimdur  : do not automatically compute stimulus duration (default)"
-  echo "   -fsv3-st2fir : generate design matrix like FreeSurfer Version 3 (and -no-)"
-  echo "   -fsv3-whiten : perform whitening like FreeSurfer Version 3 (and -no-)"
-  echo "   -fsv3 : set all fsv3 flags (FreeSurfer Version 3) (and -no-)"
   echo ""
-  echo "Retinotopy and AB Blocked Arguments (Required)"
-  echo "   -ncycles     N       : number of cycles in each run"
+  echo "Noise, drift, and frequency options"
+  echo "   -polyfit N             : fit trend with polynomial of order N"
+  echo "   -hpf CutoffHz          : High-pass filtering with Cuttoff in Hz"
+  echo "   -tpexclude filename    : time-point (in seconds) exclude file name"
+  echo "   -nskip       N         : skip the first N time points in each run"
+  echo "   -extreg extreg nextreg : external regressor file and number of regressors to include"
+  echo "   -mcextreg              : use motion parameters as external regressors (sets n=3)"
+  echo "   -nowhiten : turn off temporal whitening"
+  echo "   -acfbins nbins : spatially segment autocorrelation into nbins (def 10)"
+  echo "   -acffwhm fwhm : spatially smooth ACF before binning (def 0)"
+  echo "   -no-fix-acf    : do NOT compensate for resdualized ACF"
+  echo "   -fsv3-whiten : perform whitening like FreeSurfer Version 3 (and -no-)"
   echo ""
   echo "Other Optional Arguments"
-  echo "   -umask umask    : set unix file permission mask"
-  echo "   -version        : print version and exit"
-  echo "   -help           : my analysis has fallen, and it can't get up!"
+  echo "  -fsd FSD               : functional subdirectory"
+  echo "  -runlistfile filename  : file with list of runs to include in analysis"
+  echo "  -mask  maskid : use masks/maskid to compute autocor and whitening"
+  echo "  -no-inorm              : do not intensity normalize data"
+  echo "  -no-extreg             : turn off external regressors"
+  echo "  -rescale-target value  : inorm to value"
+  echo "  -version        : print version and exit"
+  echo "  -help           : some help, the first place to check"
   echo ""
-  echo "See also mkanalysis-sess.old"
-  echo ""
+#  echo "   -fsv3 : set all fsv3 flags (FreeSurfer Version 3) (and -no-)"
+#  echo "   -fsv3-st2fir : generate design matrix like FreeSurfer Version 3 (and -no-)"
 
   if( ! $PrintHelp) exit 1;
 
