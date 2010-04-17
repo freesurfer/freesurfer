@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.81 2010/04/16 23:52:48 greve Exp $
+% $Id: fast_selxavg3.m,v 1.82 2010/04/17 18:53:51 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/16 23:52:48 $
-%    $Revision: 1.81 $
+%    $Date: 2010/04/17 18:53:51 $
+%    $Revision: 1.82 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.81 2010/04/16 23:52:48 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.82 2010/04/17 18:53:51 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -88,7 +88,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.81 2010/04/16 23:52:48 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.82 2010/04/17 18:53:51 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -1029,12 +1029,9 @@ if(DoContrasts)
 
     if(flac.IsRetinotopy)
       if(strcmp(conname,'eccen') | strcmp(conname,'polar'))
-	cesimag = ces;
-	cesimag.vol = ces.vol(:,:,:,1);
-	cesreal = ces;
-	cesreal.vol = ces.vol(:,:,:,2);
-	mag = ces;
-	mag.vol = sqrt(cesreal.vol.^2 + cesimag.vol.^2);
+	cesreal = ces;	cesreal.vol = ces.vol(:,:,:,1);
+	cesimag = ces;	cesimag.vol = ces.vol(:,:,:,2);
+	mag = ces; mag.vol = sqrt(cesreal.vol.^2 + cesimag.vol.^2);
 	phz = ces;
 	phz.vol = atan2(cesimag.vol,cesreal.vol);
 	if(strcmp(conname,'eccen'))
@@ -1050,18 +1047,18 @@ if(DoContrasts)
 	MRIwrite(phz,fname);
 	fname = sprintf('%s/mag.%s',outcondir,ext);
 	MRIwrite(mag,fname);
+	% For compatibility with tksurfer color wheel
+	cesimag.vol = sin(phz.vol).*fsig.vol;
+	fname = sprintf('%s/cwmap-imag.%s',outcondir,ext);
+	MRIwrite(cesimag,fname);
+	cesreal.vol = cos(phz.vol).*fsig.vol;
+	fname = sprintf('%s/cwmap-real.%s',outcondir,ext);
+	MRIwrite(cesreal,fname);
 	% Mask angle by fsig
 	indz = find(abs(fsig.vol)<2);
 	phz.vol(indz) = 0;
 	fname = sprintf('%s/angle.masked.%s',outcondir,ext);
 	MRIwrite(phz,fname);
-	% For compatibility with tksurfer color wheel
-	cesimag.vol = cesimag.vol.*fsig.vol;
-	fname = sprintf('%s/cwmap-imag.%s',outcondir,ext);
-	MRIwrite(cesimag,fname);
-	cesreal.vol = cesreal.vol.*fsig.vol;
-	fname = sprintf('%s/cwmap-real.%s',outcondir,ext);
-	MRIwrite(cesreal,fname);
       end
     end
     
