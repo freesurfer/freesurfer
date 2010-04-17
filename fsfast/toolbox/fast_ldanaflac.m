@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 01:05:16 $
-%    $Revision: 1.49 $
+%    $Date: 2010/04/17 18:53:23 $
+%    $Revision: 1.50 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -103,7 +103,7 @@ while(1)
 end % while (1)
 fclose(fp);
 
-fprintf('RED %g\n',flac.RefEventDur);
+%fprintf('RED %g\n',flac.RefEventDur);
 
 %----------- Read in the analysis.cfg -------------------
 TER = flac.TR;
@@ -308,6 +308,7 @@ if(strcmp(designtype,'retinotopy'))
     flac.con(nthcon).rmprestim = 0;
     flac.con(nthcon).cspec.name = flac.con(nthcon).name;
     flac.ana.con(nthcon) = flac.con(nthcon);
+    nthcon = nthcon + 1;
   end
   ncontrasts = length(flac.con);
 end
