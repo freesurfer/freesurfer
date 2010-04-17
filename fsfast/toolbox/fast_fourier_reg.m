@@ -10,13 +10,11 @@ function X = fast_fourier_reg(period,nf,TR,nharmonics)
 %   or empty, nharmonics=0.
 %
 % X - matrix with nf rows and 2*(1+nharmonics) columns.
-%  The first  column is the sine   at the fundamental.
-%  The second column is the cosine at the fundamental.
+%  The first  column is the cosine (real) at the fundamental.
+%  The second column is the sine   (imag) at the fundamental.
 %
 % Note: this really has nothing to do with the fast fourier
 % transform.
-%
-%
 %
 
 
@@ -25,9 +23,9 @@ function X = fast_fourier_reg(period,nf,TR,nharmonics)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:02:30 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2010/04/17 18:52:22 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -59,7 +57,7 @@ X = [];
 for n = 0:nharmonics
   f = (n+1)/period;
   ph = 2*pi*t*f;
-  X = [X sin(ph) cos(ph)];
+  X = [X cos(ph) sin(ph)]; % Real then Imag
 end
 
 return;
