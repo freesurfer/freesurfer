@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac,IRFOnly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 18:52:56 $
-%    $Revision: 1.21 $
+%    $Date: 2010/04/17 20:10:31 $
+%    $Revision: 1.22 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -95,17 +95,57 @@ for nthev = 1:nev
 	X = zeros(size(X));
       end
       flacnew.ev(nthev).X = X;
+     case {'abret'}  
+      % Impelemnts old ABBlocked and retinotopy
+      % 12 Regressors: fundR fundI harmR harmI 
+      % fundR- fundI- fundR+ fundI+ harmR- harmI- harmR+ harmI+
+      period  = ev.params(1);
+      fund = 1/period;
+      [fftaxis delta] = fast_fftaxis(flac.ntp,flac.TR);
+      freqs = [fund 2*fund fund-delta fund+delta 2*fund-delta 2*fund+delta];
+      t = flac.TR*[0:flac.ntp-1]';
+      ph = 2*pi*t*freqs;
+      X = zeros(flac.ntp,12);
+      X(:,1:2:end) = cos(ph); % real
+      X(:,2:2:end) = sin(ph); % imag
+      if(strcmp(flacnew.direction,'neg')) 
+	X(:,[2:2:end]) = -X(:,[2:2:end]); % negate imaginary part
+      end
+      X = X - repmat(mean(X),[flac.ntp 1]); % remove mean
+      if(flac.IsRetinotopy & ~strcmp(flac.stimtype,ev.name)) 
+	X = zeros(size(X));
+      end
+      flacnew.ev(nthev).X = X;
      case {'hpf'}  
       CutoffHz  = ev.params(1);
       fftaxis = fast_fftaxis(flac.ntp,flac.TR);
       ind = find(fftaxis > 0 & fftaxis <= CutoffHz);
       t = flac.TR*[0:flac.ntp-1]';
-      ph = t*fftaxis(ind);
-      X = [sin(ph) cos(ph)];
+      ph = 2*pi*t*fftaxis(ind);
+      X = [cos(ph) sin(ph)];
       X = X - repmat(mean(X),[flac.ntp 1]);
       [u s] = fast_svd(X);
-      cpvs = 100*cumsum(diag(s))/sum(diag(s));
-      indkeep = find(cpvs < 99);
+      pvs = 100*(diag(s))/sum(diag(s));
+      %cpvs = 100*cumsum(diag(s))/sum(diag(s));
+      indkeep = find(pvs > 1);
+      X = u(:,indkeep);
+      flacnew.ev(nthev).X = X;
+      flacnew.ev(nthev).nreg = length(indkeep); % Needed!
+     case {'hpf+poly'}  
+      CutoffHz  = ev.params(1);
+      polyorder = ev.params(2);
+      fftaxis = fast_fftaxis(flac.ntp,flac.TR);
+      ind = find(fftaxis > 0 & fftaxis <= CutoffHz);
+      t = flac.TR*[0:flac.ntp-1]';
+      ph = 2*pi*t*fftaxis(ind);
+      X = [cos(ph) sin(ph)];
+      X = X - repmat(mean(X),[flac.ntp 1]);
+      Xp = fast_polytrendmtx(1,flac.ntp,1,polyorder);
+      X = [X Xp(:,2:end)];
+      [u s] = fast_svd(X);
+      pvs = 100*(diag(s))/sum(diag(s));
+      %cpvs = 100*cumsum(diag(s))/sum(diag(s));
+      indkeep = find(pvs > 1);
       X = u(:,indkeep);
       flacnew.ev(nthev).X = X;
       flacnew.ev(nthev).nreg = length(indkeep); % Needed!

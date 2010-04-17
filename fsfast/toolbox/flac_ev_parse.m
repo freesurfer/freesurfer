@@ -15,8 +15,8 @@ function ev = flac_ev_parse(tline)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 01:05:16 $
-%    $Revision: 1.17 $
+%    $Date: 2010/04/17 20:10:31 $
+%    $Revision: 1.18 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -270,13 +270,37 @@ switch (ev.model)
   ev.ishrf = 0;  
   
  %--------------------------------------------
+ case {'abret'} % Impelemnts old ABBlocked and retinotopy
+  % 1 parameter: period 
+  % EV Eccen abret task 64
+  [item c] = sscanfitem(tline,5);
+  if(c ~= 1) fprintf('Format error: %s: period\n',ev.model); ev=[]; return; end
+  ev.params(1) = sscanf(item,'%f',1); % period (sec)
+  ev.nreg = 12; % RI fund, RI harm, RI +/- fund, RI +/- harm
+  ev.ishrf = 0;  
+  
+ %--------------------------------------------
  case {'hpf'} % Highpass filter 
   % EV HPF hpf nuis hpfCutoffHz
   % Implemented as lowpass fourier pairs in the design matrix
   % Note: Dont know number of regressors until know TR and Ntp
   [item c] = sscanfitem(tline,5);
   if(c ~= 1) fprintf('Format error: %s: hpcCutoffHz\n',ev.model); ev=[]; return; end
-  ev.params(1) = sscanf(item,'%f',1); % period (sec)
+  ev.params(1) = sscanf(item,'%f',1); % Cuttoff Hz
+  ev.nreg = -1; % Dont know until know TR and Ntp
+  ev.ishrf = 0;  
+  
+ %--------------------------------------------
+ case {'hpf+poly'} % Highpass filter + Poly detrending
+  % EV HPFP hpf+poly nuis hpfCutoffHz Order
+  % Implemented as lowpass fourier pairs and polys in the design matrix
+  % Note: Dont know number of regressors until know TR and Ntp
+  [item c] = sscanfitem(tline,5);
+  if(c ~= 1) fprintf('Format error: %s: hpcCutoffHz\n',ev.model); ev=[]; return; end
+  ev.params(1) = sscanf(item,'%f',1); % Cuttoff Hz
+  [item c] = sscanfitem(tline,6);
+  if(c ~= 1) fprintf('Format error: %s: PolyOrder\n',ev.model); ev=[]; return; end
+  ev.params(2) = sscanf(item,'%f',1); % order
   ev.nreg = -1; % Dont know until know TR and Ntp
   ev.ishrf = 0;  
   
