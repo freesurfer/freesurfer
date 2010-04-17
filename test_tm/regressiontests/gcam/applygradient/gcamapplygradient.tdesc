@@ -11,10 +11,8 @@ local FS = tools.freesurfer
 
 local inputFiles = FS.AllGCAMfiles()
 
---local times = { 0.1, 1, 10 }
---local momenta = { 0.1, 1, 10 }
-local times = { 1 }
-local momenta = { 1 }
+local times = { 0.1, 1, 10 }
+local momenta = { 0.1, 1, 10 }
 
 
 -- Generate a test name
