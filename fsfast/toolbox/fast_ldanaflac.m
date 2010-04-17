@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 18:53:23 $
-%    $Revision: 1.50 $
+%    $Date: 2010/04/17 20:11:01 $
+%    $Revision: 1.51 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -282,14 +282,22 @@ if(strcmp(designtype,'retinotopy'))
     flac = [];
     return;
   end
-  
-  nharmonics = 1;
-  tline = sprintf('EV eccen fourier task %g %g %g',...
-		  period,nharmonics,delay);
+
+  if(0) 
+    nharmonics = 1;
+    tline = sprintf('EV eccen fourier task %g %g %g',...
+		    period,nharmonics,delay);
+    flac.ev(nthev) = flac_ev_parse(tline);
+    nthev = nthev+1;
+    tline = sprintf('EV polar fourier task %g %g %g',...
+		    period,nharmonics,delay);
+    flac.ev(nthev) = flac_ev_parse(tline);
+    nthev = nthev+1;
+  end
+  tline = sprintf('EV eccen abret task %g',period);
   flac.ev(nthev) = flac_ev_parse(tline);
   nthev = nthev+1;
-  tline = sprintf('EV polar fourier task %g %g %g',...
-		  period,nharmonics,delay);
+  tline = sprintf('EV polar abret task %g',period);
   flac.ev(nthev) = flac_ev_parse(tline);
   nthev = nthev+1;
 
@@ -304,7 +312,7 @@ if(strcmp(designtype,'retinotopy'))
     flac.con(nthcon).sumevrw  = [];
     flac.con(nthcon).ev(1).name = stimtype;
     flac.con(nthcon).ev(1).evw  = 1;
-    flac.con(nthcon).ev(1).evrw = [1 1 0 0];
+    flac.con(nthcon).ev(1).evrw = [1 1 zeros(1,10)];
     flac.con(nthcon).rmprestim = 0;
     flac.con(nthcon).cspec.name = flac.con(nthcon).name;
     flac.ana.con(nthcon) = flac.con(nthcon);
@@ -394,8 +402,18 @@ if(strcmp(designtype,'abblocked'))
   ncontrasts = length(flac.con);
 end
 
-if(PolyOrder > 0)
+if(PolyOrder > 0 & isempty(flac.hpfCutoffHz))
   tline = sprintf('EV Poly polynomial nuis %d',PolyOrder);
+  flac.ev(nthev) = flac_ev_parse(tline);
+  nthev = nthev+1;
+end
+if(PolyOrder == 0 & ~isempty(flac.hpfCutoffHz))
+  tline = sprintf('EV HPF hpf nuis %f',flac.hpfCutoffHz);
+  flac.ev(nthev) = flac_ev_parse(tline);
+  nthev = nthev+1;
+end
+if(PolyOrder > 0 & ~isempty(flac.hpfCutoffHz))
+  tline = sprintf('EV HPFPoly hpf+poly nuis %f %d',flac.hpfCutoffHz,PolyOrder);
   flac.ev(nthev) = flac_ev_parse(tline);
   nthev = nthev+1;
 end
@@ -414,12 +432,6 @@ end
 
 if(~isempty(flac.tpexcfile))
   tline = sprintf('EV TExclude texclude nuis %s',flac.tpexcfile);
-  flac.ev(nthev) = flac_ev_parse(tline);
-  nthev = nthev+1;
-end
-
-if(~isempty(flac.hpfCutoffHz))
-  tline = sprintf('EV HPF hpf nuis %f',flac.hpfCutoffHz);
   flac.ev(nthev) = flac_ev_parse(tline);
   nthev = nthev+1;
 end
