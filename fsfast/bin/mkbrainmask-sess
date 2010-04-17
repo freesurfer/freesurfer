@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/10 00:13:10 $
-#    $Revision: 1.17 $
+#    $Date: 2010/04/17 22:47:29 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.17 2010/04/10 00:13:10 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.18 2010/04/17 22:47:29 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -83,7 +83,8 @@ foreach sess ($SessList)
 
   # Create a log file #
   set LF = /dev/null
-  if(-w .) then
+  if(! $nolog) then
+    mkdir -p $ProjectDir/log
     set LF = $ProjectDir/log/mkbrainmask-$sessid-$fsd.log
     rm -f $LF
   endif
