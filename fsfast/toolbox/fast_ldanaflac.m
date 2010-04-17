@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/16 23:51:23 $
-%    $Revision: 1.48 $
+%    $Date: 2010/04/17 01:05:16 $
+%    $Revision: 1.49 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -87,6 +87,7 @@ while(1)
    case 'designtype',  designtype       = sscanf(tline,'%*s %s',1);
    case 'nconditions', nconditions      = sscanf(tline,'%*s %d',1);
    case 'acffwhm',     flac.acffwhm     = sscanf(tline,'%*s %f',1);
+   case 'HPFCutoffHz', flac.hpfCutoffHz = sscanf(tline,'%*s %f',1);
    case 'surface',     
     flac.subject = sscanf(tline,'%*s %s',1);
     flac.hemi = sscanf(tline,'%*s %*s %s',1);
@@ -307,32 +308,6 @@ if(strcmp(designtype,'retinotopy'))
     flac.con(nthcon).rmprestim = 0;
     flac.con(nthcon).cspec.name = flac.con(nthcon).name;
     flac.ana.con(nthcon) = flac.con(nthcon);
-    
-    nthcon = nthcon + 1;
-    flac.con(nthcon).name     = sprintf('%s-imag',stimtype);
-    flac.con(nthcon).varsm    = 0;
-    flac.con(nthcon).sumev    = 0;
-    flac.con(nthcon).sumevreg = 0;
-    flac.con(nthcon).sumevrw  = [];
-    flac.con(nthcon).ev(1).name = stimtype;
-    flac.con(nthcon).ev(1).evw  = 1;
-    flac.con(nthcon).ev(1).evrw = [1 0 0 0];
-    flac.con(nthcon).rmprestim = 0;
-    flac.con(nthcon).cspec.name = flac.con(nthcon).name;
-    flac.ana.con(nthcon) = flac.con(nthcon);
-    
-    nthcon = nthcon + 1;
-    flac.con(nthcon).name     = sprintf('%s-real',stimtype);
-    flac.con(nthcon).varsm    = 0;
-    flac.con(nthcon).sumev    = 0;
-    flac.con(nthcon).sumevreg = 0;
-    flac.con(nthcon).sumevrw  = [];
-    flac.con(nthcon).ev(1).name = stimtype;
-    flac.con(nthcon).ev(1).evw  = 1;
-    flac.con(nthcon).ev(1).evrw = [0 1 0 0];
-    flac.con(nthcon).rmprestim = 0;
-    flac.con(nthcon).cspec.name = flac.con(nthcon).name;
-    flac.ana.con(nthcon) = flac.con(nthcon);
   end
   ncontrasts = length(flac.con);
 end
@@ -442,6 +417,11 @@ if(~isempty(flac.tpexcfile))
   nthev = nthev+1;
 end
 
+if(~isempty(flac.hpfCutoffHz))
+  tline = sprintf('EV HPF hpf nuis %f',flac.hpfCutoffHz);
+  flac.ev(nthev) = flac_ev_parse(tline);
+  nthev = nthev+1;
+end
 
 if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   %-------------- contrasts --------------------------
@@ -548,6 +528,7 @@ for nthcon = 1:ncontrasts
   % Compute the contrast matrices
   % May want to defer this until customize to account for EVs with
   % a variable number of regressors
+  if(0)
   flactmp = flac_conmat(flac,nthcon);
   if(isempty(flactmp))
     fprintf('ERROR: with contrast %s in anadir %s\n',...
@@ -556,6 +537,7 @@ for nthcon = 1:ncontrasts
     return;
   end
   flac = flactmp;
+  end
 end
 
 return;

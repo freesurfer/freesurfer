@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac,IRFOnly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/16 23:53:15 $
-%    $Revision: 1.19 $
+%    $Date: 2010/04/17 01:05:16 $
+%    $Revision: 1.20 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -95,6 +95,20 @@ for nthev = 1:nev
 	X = zeros(size(X));
       end
       flacnew.ev(nthev).X = X;
+     case {'hpf'}  
+      CutoffHz  = ev.params(1);
+      fftaxis = fast_fftaxis(flac.ntp,flac.TR);
+      ind = find(fftaxis > 0 & fftaxis <= CutoffHz);
+      t = flac.TR*[0:flac.ntp-1]';
+      ph = t*fftaxis(ind);
+      X = [sin(ph) cos(ph)];
+      X = X - repmat(mean(X),[flac.ntp 1]);
+      [u s] = fast_svd(X);
+      cpvs = 100*cumsum(diag(s))/sum(diag(s));
+      indkeep = find(cpvs < 99);
+      X = u(:,indkeep);
+      flacnew.ev(nthev).X = X;
+      flacnew.ev(nthev).nreg = length(indkeep); % Needed!
      case {'nyquist'}  
       X = 2*(rem([1:flac.ntp]',2)-.5);
       flacnew.ev(nthev).X = X;

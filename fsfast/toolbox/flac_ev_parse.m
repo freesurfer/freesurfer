@@ -15,8 +15,8 @@ function ev = flac_ev_parse(tline)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/04/09 04:25:00 $
-%    $Revision: 1.16 $
+%    $Date: 2010/04/17 01:05:16 $
+%    $Revision: 1.17 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -267,6 +267,17 @@ switch (ev.model)
   ev.params(3) = sscanf(item,'%f',1); % tdelay (sec)
 
   ev.nreg = 2*(ev.params(2)+1); % 2*(nharm+1)
+  ev.ishrf = 0;  
+  
+ %--------------------------------------------
+ case {'hpf'} % Highpass filter 
+  % EV HPF hpf nuis hpfCutoffHz
+  % Implemented as lowpass fourier pairs in the design matrix
+  % Note: Dont know number of regressors until know TR and Ntp
+  [item c] = sscanfitem(tline,5);
+  if(c ~= 1) fprintf('Format error: %s: hpcCutoffHz\n',ev.model); ev=[]; return; end
+  ev.params(1) = sscanf(item,'%f',1); % period (sec)
+  ev.nreg = -1; % Dont know until know TR and Ntp
   ev.ishrf = 0;  
   
  %--------------------------------------------
