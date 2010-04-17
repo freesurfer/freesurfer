@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.82 2010/04/17 18:53:51 greve Exp $
+% $Id: fast_selxavg3.m,v 1.83 2010/04/17 21:32:41 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 18:53:51 $
-%    $Revision: 1.82 $
+%    $Date: 2010/04/17 21:32:41 $
+%    $Revision: 1.83 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.82 2010/04/17 18:53:51 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.83 2010/04/17 21:32:41 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -88,7 +88,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.82 2010/04/17 18:53:51 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.83 2010/04/17 21:32:41 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -520,8 +520,6 @@ if(DoGLMFit)
 	rrunmri = mri;
 	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
 	MRIwrite(rrunmri,fname);
-      else
-	fprintf('Not saving residual\n');
       end
     end
 
@@ -774,8 +772,6 @@ if(DoGLMFit)
 	rrunmri = mri;
 	rrunmri.vol = fast_mat2vol(rrun,mri.volsize);
 	MRIwrite(rrunmri,fname);
-      else
-	fprintf('Not saving residual\n');
       end
       
       clear rrun rrunmri;
@@ -1031,6 +1027,11 @@ if(DoContrasts)
       if(strcmp(conname,'eccen') | strcmp(conname,'polar'))
 	cesreal = ces;	cesreal.vol = ces.vol(:,:,:,1);
 	cesimag = ces;	cesimag.vol = ces.vol(:,:,:,2);
+	if(~isempty(flac0.subject) & strcmp(flac0.hemi,'rh') & ...
+	  strcmp(conname,'polar'))
+	  % Make Left Hor Meridian have angle 0
+	  cesreal.vol = -cesreal.vol;
+	end
 	mag = ces; mag.vol = sqrt(cesreal.vol.^2 + cesimag.vol.^2);
 	phz = ces;
 	phz.vol = atan2(cesimag.vol,cesreal.vol);
