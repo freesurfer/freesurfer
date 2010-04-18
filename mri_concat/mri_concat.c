@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/15 21:19:25 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/04/18 21:48:38 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.45 2010/04/15 21:19:25 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.46 2010/04/18 21:48:38 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -114,6 +114,7 @@ MRI *PCAMask = NULL;
 char *PCAMaskFile = NULL;
 int DoSCM = 0; // spat cor matrix
 int DoCheck = 1;
+int DoTAR1 = 0, TAR1DOFAdjust = 1;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -357,6 +358,12 @@ int main(int argc, char **argv) {
     MRIfree(&mriout);
     mriout = mritmp;
   }
+  if(DoTAR1){
+    printf("Computing temoral AR1 %d\n",mriout->nframes-TAR1DOFAdjust);
+    mritmp = fMRItemporalAR1(mriout,TAR1DOFAdjust,NULL,NULL);
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
 
   if(DoStd || DoVar) {
     printf("Computing std/var across frames\n");
@@ -589,7 +596,14 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%lf",&AddVal);
       DoAdd = 1;
       nargsused = 1;
-    } else {
+    } 
+    else if (!strcasecmp(option, "--tar1")){
+      if(nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&TAR1DOFAdjust);
+      DoTAR1 = 1;
+      nargsused = 1;
+    }
+    else {
       inlist[ninputs] = option;
       ninputs ++;
       if(ninputs > NInMAX){
@@ -647,6 +661,7 @@ static void print_usage(void) {
   printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
+  printf("   --tar1 dofadjust : compute temporal ar1\n");
   printf("   --pca  : output is pca. U is output.u.mtx and S is output.stats.dat\n");
   printf("   --pca-mask mask  : Only use voxels whose mask > 0.5\n");
   printf("   --scm  : compute spatial covariance matrix (can be huge!)\n");
