@@ -13,11 +13,11 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/04/09 23:04:46 $
- *    $Revision: 1.186 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/19 20:40:17 $
+ *    $Revision: 1.187 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -27,7 +27,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -561,7 +560,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.186 2010/04/09 23:04:46 greve Exp $";
+"$Id: mri_glmfit.c,v 1.187 2010/04/19 20:40:17 nicks Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -1042,6 +1041,7 @@ int main(int argc, char **argv) {
       mriglm->mask = MRIframeBinarize(mriglm->y,FLT_MIN,mriglm->mask);
     }
   }
+
   if (mriglm->mask && maskinv)
     MRImaskInvert(mriglm->mask,mriglm->mask);
   if (surf && mriglm->mask)
@@ -1060,10 +1060,18 @@ int main(int argc, char **argv) {
 
   if(surf != NULL)  {
     searchspace = 0;
+    MRI *mritmp = NULL;
+    if (mriglm->mask && mriglm->mask->height != surf->nvertices) {
+        printf("Reshaping mriglm->mask...\n");
+        mritmp = mri_reshape(mriglm->mask, 
+                             surf->nvertices,
+                             1, 1, mriglm->mask->nframes);
+    }
     for(n=0; n < surf->nvertices; n++){
-      if(mriglm->mask && MRIgetVoxVal(mriglm->mask,n,0,0,0) < 0.5) continue;
+      if(mritmp && MRIgetVoxVal(mritmp,n,0,0,0) < 0.5) continue;
       searchspace += surf->vertices[n].area;
     }
+    if (mritmp) MRIfree(&mritmp);
     if (surf->group_avg_surface_area > 0)
       searchspace *= (surf->group_avg_surface_area/surf->total_area);
   } 
@@ -1187,10 +1195,14 @@ int main(int argc, char **argv) {
     for(n=0; n < nContrasts; n++) {
       if (! useasl && ! useqa) {
         // Get its name
-        mriglm->glm->Cname[n] = fio_basename(CFile[n],".mat"); //strip .mat
-        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".mtx"); //strip .mtx
-        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".dat"); //strip .dat
-        mriglm->glm->Cname[n] = fio_basename(mriglm->glm->Cname[n],".con"); //strip .con
+        mriglm->glm->Cname[n] =
+          fio_basename(CFile[n],".mat"); //strip .mat
+        mriglm->glm->Cname[n] =
+          fio_basename(mriglm->glm->Cname[n],".mtx"); //strip .mtx
+        mriglm->glm->Cname[n] =
+          fio_basename(mriglm->glm->Cname[n],".dat"); //strip .dat
+        mriglm->glm->Cname[n] =
+          fio_basename(mriglm->glm->Cname[n],".con"); //strip .con
         // Read it in
         mriglm->glm->C[n] = MatrixReadTxt(CFile[n], NULL);
         if (mriglm->glm->C[n] == NULL) {
