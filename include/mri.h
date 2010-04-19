@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/19 22:13:14 $
- *    $Revision: 1.397 $
+ *    $Author: lzollei $
+ *    $Date: 2010/04/19 18:04:33 $
+ *    $Revision: 1.398 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -438,6 +438,10 @@ MRI   *MRIcloneDifferentType(MRI *mri_src, int type) ;
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcloneBySpace(MRI *mri_src, int type, int nframes);
 MRI   *MRIthreshold(MRI *mri_src, MRI *mri_dst, float threshold) ;
+MRI   *MRIthresholdAllFrames(MRI *mri_src, MRI *mri_dst, float threshold) ;
+MRI   *MRIupperthresholdAllFrames(MRI *mri_src, MRI *mri_dst, float threshold) ;
+MRI   *MRIthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame) ;
+MRI   *MRIupperthresholdFrame(MRI *mri_src, MRI *mri_dst, float threshold, int frame) ;
 MRI   *MRIinvert(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIinvertContrast(MRI *mri_src, MRI *mri_dst, float threshold) ;
 MRI   *MRIbinarize(MRI *mri_src, MRI *mri_dst, float threshold,
@@ -644,6 +648,10 @@ int   MRIsampleSeqVolume(MRI *mri,
                          double x, double y, double z,
                          float *valvect,
                          int firstframe, int lastframe);
+int   MRIsampleSeqVolumeType(MRI *mri,
+			     double x, double y, double z,
+			     float *valvect,
+			     int firstframe, int lastframe, int type);
 int   MRIsampleVolumeType(MRI *mri,
                           double x, double y, double z,
                           double *pval,
@@ -870,6 +878,8 @@ int   MRIlabelsInPlanarNbhd(MRI *mri,
 
 int MRIvol2Vol(MRI *src, MRI *targ, MATRIX *Vt2s,
                int InterpCode, float param);
+int MRIvol2VolR(MRI *src, MRI *targ, MATRIX *Vt2s,
+               int InterpCode, float param, MATRIX* RRot);
 
 MRI *MRIresampleFill(MRI *src, MRI *template_vol,
                      int resample_type, float fill_val) ;

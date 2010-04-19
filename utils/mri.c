@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/19 22:13:14 $
- *    $Revision: 1.454 $
+ *    $Author: lzollei $
+ *    $Date: 2010/04/19 18:04:46 $
+ *    $Revision: 1.455 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.454 $";
+const char *MRI_C_VERSION = "$Revision: 1.455 $";
 
 
 /*-----------------------------------------------------
@@ -5409,6 +5409,7 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
 
   if (mri1->type != MRI_UCHAR || mri2->type != MRI_UCHAR)
   {
+    //printf("MRIdivide: Not both volumes are UCHAR\n");
     double val1, val2, dst ;
 
     for (z = 0 ; z < depth ; z++)
@@ -5422,12 +5423,14 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
             DiagBreak() ;
           val1 = MRIgetVoxVal(mri1, x, y, z, 0) ;
           val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
+	  val2 = 1.0;
           if  (FZERO(val2))
           {
             dst = FZERO(val1) ? 0 : 255 ;
           }
           else
             dst = val1 / val2 ;
+	  //          printf("%f / %f = %f\n", val1, val2, dst);
           if (abs(dst) > 1000)
             DiagBreak() ;
           MRIsetVoxVal(mri_dst, x, y, z, 0, dst) ;
@@ -5437,6 +5440,7 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
   }
   else   /* both UCHAR volumes */
   {
+    // printf("MRIdivide: Both volumes are UCHAR\n");
     for (z = 0 ; z < depth ; z++)
     {
       for (y = 0 ; y < height ; y++)
@@ -5451,8 +5455,10 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
             *pdst = FZERO(*p1) ? 0 : 255 ;
             p2++ ;
           }
-          else
+          else {
             *pdst++ = *p1++ / *p2++ ;
+	    //printf("%d / %d = %d\n", *pdst, *p1, *p2);
+	  }
         }
       }
     }
@@ -9832,6 +9838,159 @@ int MRIsampleSeqVolume(MRI *mri, double x, double y, double z, float *valvect,
 
   return(NO_ERROR) ;
 }
+
+//testing - LZ
+int MRIsampleSeqVolumeType(MRI *mri, double x, double y, double z, float *valvect,
+			   int firstframe, int lastframe, int type)
+{
+  int  OutOfBounds;
+  int  /*f,xm, xp, ym, yp, zm, zp, */ f, width, height, depth ;
+  //double xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
+  int   xv, yv, zv ;
+
+  switch (type)
+    {
+    default:
+    case SAMPLE_NEAREST:
+      break ;
+    case SAMPLE_TRILINEAR:
+      return(MRIsampleSeqVolume(mri, x, y, z, valvect, firstframe, lastframe)) ;
+    case SAMPLE_CUBIC:
+      {
+	printf("Cubic interpolation is not implemented yet on multi-frame data. Going ahead with tri-linear") ;
+	return(MRIsampleSeqVolume(mri, x, y, z, valvect, firstframe, lastframe)) ;
+      }
+    case SAMPLE_SINC:
+      {
+	printf("Sinc interpolation is not implemented yet on multi-frame data. Going ahead with tri-linear") ;
+	return(MRIsampleSeqVolume(mri, x, y, z, valvect, firstframe, lastframe)) ;
+      }
+    }
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if (OutOfBounds == 1)
+  {
+    /* unambiguously out of bounds */
+    for (f=firstframe; f <= lastframe; f++) 
+      valvect[f] = mri->outside_val;
+    return(NO_ERROR) ;
+  }
+
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  //
+  xv = nint(x) ;
+  yv = nint(y) ;
+  zv = nint(z) ;
+  if (xv < 0)
+    xv = 0 ;
+  if (xv >= width)
+    xv = width-1 ;
+  if (yv < 0)
+    yv = 0 ;
+  if (yv >= height)
+    yv = height-1 ;
+  if (zv < 0)
+    zv = 0 ;
+  if (zv >= depth)
+    zv = depth-1 ;
+  //
+
+  //if (x >= width)    x = width - 1.0 ;
+  //if (y >= height)   y = height - 1.0 ;
+  //if (z >= depth)    z = depth - 1.0 ;
+  //if (x < 0.0)       x = 0.0 ;
+  //if (y < 0.0)       y = 0.0 ;
+  //if (z < 0.0)       z = 0.0 ;
+
+  /*  xm = MAX((int)x, 0) ;
+  xp = MIN(width-1, xm+1) ;
+  ym = MAX((int)y, 0) ;
+  yp = MIN(height-1, ym+1) ;
+  zm = MAX((int)z, 0) ;
+  zp = MIN(depth-1, zm+1) ;
+
+  xmd = x - (float)xm ;
+  ymd = y - (float)ym ;
+  zmd = z - (float)zm ;
+  xpd = (1.0f - xmd) ;
+  ypd = (1.0f - ymd) ;
+  zpd = (1.0f - zmd) ;*/
+
+  for (f = firstframe; f <= lastframe; f++)
+  {
+    switch (mri->type)
+    {
+    case MRI_UCHAR:
+      valvect[f] = (double)MRIseq_vox(mri, xv, yv, zv, f) ;
+      /*        xpd * ypd * zpd * (double)MRIseq_vox(mri, xm, ym, zm, f) +
+		xpd * ypd * zmd * (double)MRIseq_vox(mri, xm, ym, zp, f) +
+		xpd * ymd * zpd * (double)MRIseq_vox(mri, xm, yp, zm, f) +
+		xpd * ymd * zmd * (double)MRIseq_vox(mri, xm, yp, zp, f) +
+		xmd * ypd * zpd * (double)MRIseq_vox(mri, xp, ym, zm, f) +
+		xmd * ypd * zmd * (double)MRIseq_vox(mri, xp, ym, zp, f) +
+		xmd * ymd * zpd * (double)MRIseq_vox(mri, xp, yp, zm, f) +
+		xmd * ymd * zmd * (double)MRIseq_vox(mri, xp, yp, zp, f) ;*/
+      break ;
+    case MRI_FLOAT:
+      valvect[f] = (double)MRIFseq_vox(mri, xv, yv, zv, f);
+      /*xpd * ypd * zpd * (double)MRIFseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRIFseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRIFseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRIFseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRIFseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRIFseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRIFseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRIFseq_vox(mri, xp, yp, zp, f) ;*/
+      break ;
+    case MRI_SHORT:
+      valvect[f] = (double)MRISseq_vox(mri, xv, yv, zv, f);
+      /*xpd * ypd * zpd * (double)MRISseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRISseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRISseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRISseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRISseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRISseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRISseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRISseq_vox(mri, xp, yp, zp, f) ;*/
+      break ;
+    case MRI_INT:
+      valvect[f] = (double)MRIIseq_vox(mri, xv, yv, zv, f);
+      /*xpd * ypd * zpd * (double)MRIIseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRIIseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRIIseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRIIseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRIIseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRIIseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRIIseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRIIseq_vox(mri, xp, yp, zp, f) ;*/
+      break ;
+    case MRI_LONG:
+      valvect[f] = (double)MRILseq_vox(mri, xv, yv, zv, f);
+      /*xpd * ypd * zpd * (double)MRILseq_vox(mri, xm, ym, zm, f) +
+        xpd * ypd * zmd * (double)MRILseq_vox(mri, xm, ym, zp, f) +
+        xpd * ymd * zpd * (double)MRILseq_vox(mri, xm, yp, zm, f) +
+        xpd * ymd * zmd * (double)MRILseq_vox(mri, xm, yp, zp, f) +
+        xmd * ypd * zpd * (double)MRILseq_vox(mri, xp, ym, zm, f) +
+        xmd * ypd * zmd * (double)MRILseq_vox(mri, xp, ym, zp, f) +
+        xmd * ymd * zpd * (double)MRILseq_vox(mri, xp, yp, zm, f) +
+        xmd * ymd * zmd * (double)MRILseq_vox(mri, xp, yp, zp, f) ;*/
+      break ;
+    default:
+      valvect[f] = 0;
+      ErrorReturn(ERROR_UNSUPPORTED,
+                  (ERROR_UNSUPPORTED,
+                   "MRIsampleSeqVolumeType: unsupported type %d", mri->type)) ;
+      break ;
+    }
+  }/* end loop over frames */
+
+  return(NO_ERROR) ;
+}
+
+
 /*---------------------------------------------------------------------*/
 /*!
   \fn double *MRItrilinKernel(MRI *mri, double c, double r, double s, double *kernel)
