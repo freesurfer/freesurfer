@@ -762,9 +762,9 @@ VolumeMorph::apply_transforms(MRI* input,
     unsigned int voxInvalid(0), voxValid(0);
     tCoords pt, img;
     TransformContainerType::const_iterator cit;
-    //Real val;
-    float val[nframes];
-
+    double val;
+    float valvect[nframes];
+    
     if ( cacheField )
       for (int z=0; z<mriOut->depth; ++z)
         for (int y=0; y<mriOut->height; ++y)
@@ -834,18 +834,18 @@ VolumeMorph::apply_transforms(MRI* input,
                img(1)<0 || img(1)>input->height-1 ||
                img(2)<0 || img(2)>input->depth-1 ) continue;
 
-          //std::cout << "Before vox valid ";
           ++voxValid;
-          // MRIsampleVolumeType( input, img(0), img(1), img(2), &val, m_interpolationType);
-          //std::cout << "Before seq sampling: ";
-          MRIsampleSeqVolume(  input, img(0), img(1), img(2), val, 0, nframes-1);
-          //std::cout << "After seq sampling: ";
-          for (int ii = 0; ii < nframes; ii++)
-          {
-            //std::cout << val[ii];
-            MRIsetVoxVal( mriOut, x,y,z,ii, val[ii]);
-          }
-          //std::cout<<"\n";
+	  if (nframes == 1)
+	    {
+	      MRIsampleVolumeType( input, img(0), img(1), img(2), &val, m_interpolationType);
+	      MRIsetVoxVal( mriOut, x,y,z, 0, val);
+	    }
+	  else
+	    {
+	      MRIsampleSeqVolumeType(  input, img(0), img(1), img(2), valvect, 0, nframes-1, m_interpolationType);
+	      for (int ii = 0; ii < nframes; ii++)
+		MRIsetVoxVal( mriOut, x,y,z,ii, valvect[ii]);
+	    }
 
           if ( cacheField )
           {
