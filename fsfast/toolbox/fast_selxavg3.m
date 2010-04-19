@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.83 2010/04/17 21:32:41 greve Exp $
+% $Id: fast_selxavg3.m,v 1.84 2010/04/19 22:19:19 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 21:32:41 $
-%    $Revision: 1.83 $
+%    $Date: 2010/04/19 22:19:19 $
+%    $Revision: 1.84 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(0)
   %outtop = '/space/greve/1/users/greve/kd';
 end
 
-fprintf('$Id: fast_selxavg3.m,v 1.83 2010/04/17 21:32:41 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.84 2010/04/19 22:19:19 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -88,7 +88,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.83 2010/04/17 21:32:41 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.84 2010/04/19 22:19:19 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -496,8 +496,28 @@ if(DoGLMFit)
     indz = find(rsserun == 0); % keep zeros from screwing stuff up
     rsserun(indz) = max(rsserun);
     rsse = rsse + rsserun;
-    rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
-    rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize); %bug was here
+    
+    if(flac0.acfsvd > 0)
+      % For rho1/ar1 calculation, remove 1st two principle components
+      % from residual. This is only for the calculation of rho1/ar1
+      % so that non-stationary components do not mess up the 
+      % calculation of the rho1 value
+      nk = flac0.acfsvd;
+      fprintf('Removing %d components prior to rho1 calc\n',nk);
+      [uu ss vv] = fast_svd(rrun);
+      rrunpca = uu(:,nk:end)*ss(nk:end,nk:end)*vv(:,nk:end)';
+      rsserunpca = sum(rrunpca.^2);
+      indz = find(rsserunpca == 0); % keep zeros from screwing stuff up
+      rsserunpca(indz) = max(rsserunpca);
+      rho1run = sum(rrunpca(1:end-1,:).*rrunpca(2:end,:))./rsserunpca;
+    else
+      rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
+    end
+    rho1.vol(:,:,:,nthrun) = fast_mat2vol(rho1run,rho1.volsize); 
+    fprintf('Saving rho1\n');
+    fname = sprintf('%s/rho1.%s',outanadir,ext);
+    MRIwrite(rho1,fname);
+    
     if(SaveResUnwhitened)
       fprintf('Saving unwhitened residuals\n');
       fname = sprintf('%s/res-uw-%03d.%s',outresdir,nthrun,ext);
@@ -559,9 +579,6 @@ if(DoGLMFit)
   rho1mn = mri;
   rho1mn.vol = mean(rho1.vol,4);
   rho1mn.vol(indmaskout) = 0; % mask out
-  fprintf('Saving rho1\n');
-  fname = sprintf('%s/rho1.%s',outanadir,ext);
-  MRIwrite(rho1,fname);
   rho1mnfile = sprintf('%s/rho1mn.%s',outanadir,ext);
   MRIwrite(rho1mn,rho1mnfile);
 
@@ -648,8 +665,8 @@ if(DoGLMFit)
 	acfsegmn(:,nthseg) = fsv3AutoCor;
       end
       
-      fprintf('  seg  %2d  %5d  nrho1 = %5.3f (t=%4.1f)\n',....
-	      nthseg,nsegvox,nrho1segmn(nthseg),toc);
+      fprintf('  seg  %2d  %5d  nrho1 = %5.3f\n',....
+	      nthseg,nsegvox,nrho1segmn(nthseg));
       for nthrun = nthrunlist
 	indrun = find(tpindrun == nthrun);
 	nnrun = 1:runflac(nthrun).flac.ntp;

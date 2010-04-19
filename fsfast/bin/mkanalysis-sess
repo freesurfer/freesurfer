@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/17 22:50:35 $
-#    $Revision: 1.41 $
+#    $Date: 2010/04/19 22:19:19 $
+#    $Revision: 1.42 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,13 +23,13 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.41 2010/04/17 22:50:35 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.42 2010/04/19 22:19:19 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
 set DefaultTWindow = 40 ; # 40 sec
 set RescaleTarget = 100;
-set acfbins = 10;
+set acfbins = 30;
 
 set inorm      = 1;
 set gAlpha = ();
@@ -88,8 +88,9 @@ set subject = ();
 set hemi = ();
 set UseTalairach = ()
 set FixACF = 1;
-set acffwhm = 0;
-set HPFCutoffHz = ();
+set acffwhm = 20;
+set acfsvd = 2;
+set HPFCutoffHz = .01; 
 
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
@@ -229,10 +230,11 @@ echo "fsd        $fsd"        >> $infofile
 echo "funcstem   $funcstem"   >> $infofile
 if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
 if($#tpexclude) echo "tpexclude  $tpexclude"  >> $infofile
-if($#HPFCutoffHz) echo "HPFCutoffHz  $HPFCutoffHz"  >> $infofile
+if($HPFCutoffHz != 0) echo "HPFCutoffHz  $HPFCutoffHz"  >> $infofile
 if($#parname)  echo "parname    $parname"    >> $infofile
 echo "designtype $designtype" >> $infofile
 echo "acffwhm $acffwhm" >> $infofile
+echo "acfsvd $acfsvd" >> $infofile
 if($#maskstem != 0) echo "maskstem $maskstem" >> $infofile
 if($#subject) echo "surface $subject $hemi" >> $infofile
 if($UseTalairach) echo "UseTalairach" >> $infofile
@@ -458,8 +460,13 @@ while( $#argv != 0 )
       set acffwhm = $argv[1]; shift;
       breaksw
 
+    case "-acfsvd":
+      if($#argv < 1) goto arg1err;
+      set acfsvd = $argv[1]; shift;
+      breaksw
+
     case "-whiten":
-      set acfbins = 10;
+      set acfbins = 30;
       breaksw
 
     case "-no-whiten":
@@ -652,6 +659,10 @@ while( $#argv != 0 )
     case "-hpf":
       if ( $#argv < 1) goto arg1err;
       set HPFCutoffHz = $argv[1]; shift;
+      breaksw
+
+    case "-no-hpf":
+      set HPFCutoffHz = 0;
       breaksw
 
     case "-nyqreg":

@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/19 16:47:40 $
-%    $Revision: 1.52 $
+%    $Date: 2010/04/19 22:19:19 $
+%    $Revision: 1.53 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -87,6 +87,7 @@ while(1)
    case 'designtype',  designtype       = sscanf(tline,'%*s %s',1);
    case 'nconditions', nconditions      = sscanf(tline,'%*s %d',1);
    case 'acffwhm',     flac.acffwhm     = sscanf(tline,'%*s %f',1);
+   case 'acfsvd',      flac.acfsvd      = sscanf(tline,'%*s %d',1);
    case 'HPFCutoffHz', flac.hpfCutoffHz = sscanf(tline,'%*s %f',1);
    case 'surface',     
     flac.subject = sscanf(tline,'%*s %s',1);
@@ -153,7 +154,6 @@ while(1)
     spmhrffit = 1;
    case '-polyfit',    PolyOrder   = sscanf(tline,'%*s %f',1);
    case '-TER',        TER         = sscanf(tline,'%*s %f',1);
-   case '-acfbins',    flac.acfbins = sscanf(tline,'%*s %d',1);
    case '-autostimdur',flac.autostimdur = 1;
    case '-noautostimdur',flac.autostimdur = 0;
    case '-extreg',     
@@ -171,6 +171,7 @@ while(1)
    case '-delay',      delay       = sscanf(tline,'%*s %f',1);
    case '-timeoffset', timeoffset  = sscanf(tline,'%*s %f',1);
    case '-fwhm',       sscanf(tline,'%*s %f',1); % dont worry about it
+   case '-acfbins',    flac.acfbins = sscanf(tline,'%*s %d',1);
    case '-fix-acf',    flac.fixacf = 1; 
    case '-no-fix-acf', flac.fixacf = 0;
    case '-fsv3-st2fir',    flac.fsv3_st2fir = 1;

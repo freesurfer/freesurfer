@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac,IRFOnly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/19 16:48:08 $
-%    $Revision: 1.23 $
+%    $Date: 2010/04/19 22:19:19 $
+%    $Revision: 1.24 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -119,11 +119,11 @@ for nthev = 1:nev
      case {'hpf'}  
       CutoffHz  = ev.params(1);
       fftaxis = fast_fftaxis(flac.ntp,flac.TR);
-      ind = find(fftaxis > 0 & fftaxis <= CutoffHz);
+      ind = find(fftaxis > 0 & fftaxis <= .75*CutoffHz);
       t = flac.TR*[0:flac.ntp-1]';
       ph = 2*pi*t*fftaxis(ind);
-      X = [cos(ph) sin(ph)];
-      %X = [cos(ph)]; % DCT
+      %X = [cos(ph) sin(ph)]; % DFT
+      X = [cos(ph)]; % DCT
       X = X - repmat(mean(X),[flac.ntp 1]);
       [u s] = fast_svd(X);
       pvs = 100*(diag(s))/sum(diag(s)); % percent var explained
@@ -135,11 +135,11 @@ for nthev = 1:nev
       CutoffHz  = ev.params(1);
       polyorder = ev.params(2);
       fftaxis = fast_fftaxis(flac.ntp,flac.TR);
-      ind = find(fftaxis > 0 & fftaxis <= CutoffHz);
+      ind = find(fftaxis > 0 & fftaxis <= .75*CutoffHz);
       t = flac.TR*[0:flac.ntp-1]';
       ph = 2*pi*t*fftaxis(ind);
-      X = [cos(ph) sin(ph)];
-      %X = [cos(ph)]; %DCT
+      %X = [cos(ph) sin(ph)]; % DFT
+      X = [cos(ph)]; %DCT
       X = X - repmat(mean(X),[flac.ntp 1]);
       Xp = fast_polytrendmtx(1,flac.ntp,1,polyorder);
       X = [X Xp(:,2:end)];
