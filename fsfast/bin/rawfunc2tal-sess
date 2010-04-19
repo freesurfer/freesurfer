@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/15 18:51:13 $
-#    $Revision: 1.10 $
+#    $Date: 2010/04/19 22:17:21 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.10 2010/04/15 18:51:13 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.11 2010/04/19 22:17:21 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -196,7 +196,7 @@ foreach sess ($SessList)
 
     # Smooth if desired
     if($fwhm > 0) then
-      set cmd = (mri_fwhm --i $invol --o $invol --smooth-only) 
+      set cmd = (mri_fwhm --i $outvol --o $outvol --smooth-only) 
       if($#fwhm)   set cmd = ($cmd --fwhm $fwhm); # 3D smoothing
       if($MaskedSmoothing) set cmd = ($cmd --mask $outmask)
       echo $cmd |& tee -a $LF
