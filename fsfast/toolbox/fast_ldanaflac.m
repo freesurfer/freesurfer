@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 20:11:01 $
-%    $Revision: 1.51 $
+%    $Date: 2010/04/19 16:47:40 $
+%    $Revision: 1.52 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -322,15 +322,8 @@ if(strcmp(designtype,'retinotopy'))
 end
 
 if(strcmp(designtype,'abblocked'))
-  if(isempty(period))
-    fprintf('ERROR: Must specify -period in mkanalysis-sess');
-    flac = [];
-    return;
-  end
-  
   nharmonics = 1;
-  tline = sprintf('EV Fourier fourier task %g %g %g',...
-		  period,nharmonics,delay);
+  tline = sprintf('EV Fourier abret task %g',period);
   flac.ev(nthev) = flac_ev_parse(tline);
   nthev = nthev+1;
 
@@ -342,7 +335,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).sumevrw  = [];
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
-  flac.con(nthcon).ev(1).evrw = [1 1 1 1];
+  flac.con(nthcon).ev(1).evrw = [1 1 1 1 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
   flac.ana.con = flac.con(nthcon);
@@ -355,7 +348,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).sumevrw  = [];
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
-  flac.con(nthcon).ev(1).evrw = [1 1 0 0];
+  flac.con(nthcon).ev(1).evrw = [1 1 0 0 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
   flac.ana.con(nthcon) = flac.con(nthcon);
@@ -368,7 +361,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).sumevrw  = [];
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
-  flac.con(nthcon).ev(1).evrw = [1 0 0 0];
+  flac.con(nthcon).ev(1).evrw = [1 0 0 0 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
   flac.ana.con(nthcon) = flac.con(nthcon);
@@ -381,7 +374,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).sumevrw  = [];
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
-  flac.con(nthcon).ev(1).evrw = [0 1 0 0];
+  flac.con(nthcon).ev(1).evrw = [0 1 0 0 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
   flac.ana.con(nthcon) = flac.con(nthcon);
@@ -394,7 +387,7 @@ if(strcmp(designtype,'abblocked'))
   flac.con(nthcon).sumevrw  = [];
   flac.con(nthcon).ev(1).name = 'Fourier';
   flac.con(nthcon).ev(1).evw  = 1;
-  flac.con(nthcon).ev(1).evrw = [0 0 1 1];
+  flac.con(nthcon).ev(1).evrw = [0 0 1 1 zeros(1,8)];
   flac.con(nthcon).rmprestim = 0;
   flac.con(nthcon).cspec.name = flac.con(nthcon).name;
   flac.ana.con(nthcon) = flac.con(nthcon);
