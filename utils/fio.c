@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/04/09 03:08:15 $
- *    $Revision: 1.36 $
+ *    $Author: nicks $
+ *    $Date: 2010/04/19 20:41:16 $
+ *    $Revision: 1.37 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -702,7 +701,7 @@ char *fio_basename(const char *pathname, const char *ext)
   if (ext != NULL)
   {
     lext = strlen(ext);
-    if (lext < (l + 2))
+    if (lext < l)
     {
       if ( strcmp(ext,&(tmp[l-lext]) ) == 0)
       {
