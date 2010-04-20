@@ -46,6 +46,7 @@ struct IoParams
   bool useBoundingBox;
   int  threshold;
   unsigned int zlibBuffer;
+  int doTest;
 
   void parse(int ac, char* av[]);
 };
@@ -67,8 +68,6 @@ void initOctree2( gmp::VolumeMorph& morph)
     (*it)->performInit();
   } // next it
 }
-
-int doTest = 0;
 
 int
 main(int ac, char* av[])
@@ -129,8 +128,9 @@ main(int ac, char* av[])
     pmorph->m_interpolationType = SAMPLE_NEAREST;
   else pmorph->m_interpolationType = SAMPLE_TRILINEAR;
 
-  if (doTest)
+  if (params.doTest)
   {
+    std::cout << " Writing out some tests.\n";
     SimpleTimer t1;
     VOL_GEOM vgLike;
     initVolGeom(&vgLike);
@@ -155,7 +155,7 @@ main(int ac, char* av[])
   // test the presence of the gc structures -- LZ: WHAT DOES THAT DO???
   GCAMnormalizeIntensities(gcam, mriFixed);
 
-  if ( doTest && (!params.useBoundingBox || 1) )
+  if ( params.doTest && (!params.useBoundingBox || 1) )
   {
     std::cout << " applying morph\n"
     << " width = " << gcam->width << std::endl;
@@ -196,7 +196,7 @@ IoParams::parse(int ac,
 
   desc.add_options()
   ("help", " produce help message ")
-  ("test", " write out test files to verify the equivalence of tm3d and gcam morphs")
+  ("test",  po::value(&doTest), " write out test files to verify the equivalence of tm3d and gcam morphs")
   ("fixed", po::value(&strFixed), " fixed volume ")
   ("moving", po::value(&strMoving), " moving volume ")
   ("morph", po::value(&strMorph), " morph ")
@@ -215,9 +215,6 @@ IoParams::parse(int ac,
     std::cout << desc << std::endl;
     exit(0);
   }
-
-  if ( vm.count("test") )
-    doTest = 1;
 
   if ( strFixed.empty() )
     throw std::logic_error(" No fixed volume");
