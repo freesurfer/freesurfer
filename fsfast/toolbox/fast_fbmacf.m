@@ -13,9 +13,9 @@ function acf = fast_fbmacf(H,nmax)
 %
 % nmax - max number of lags
 %
-% $Id: fast_fbmacf.m,v 1.1 2010/04/19 00:20:32 greve Exp $
+% $Id: fast_fbmacf.m,v 1.2 2010/04/20 04:31:18 greve Exp $
 
-lag = [0:nmax-1];
+lag = [0:nmax-1]';
 
 acf = ((lag+1).^(2*H) - 2*lag.^(2*H) + (lag-1).^(2*H))/2;
 ind0 = find(lag == 0);
