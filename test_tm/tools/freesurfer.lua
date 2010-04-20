@@ -2,15 +2,20 @@
 
 module( ..., package.seeall )
 
+-- Returns the path to the scratch directory
+function ScratchDir()
+   return os.getenv( "SCRATCHDIR" )
+end
+
 
 -- Returns the location of the directory holding GCAM files
 function GCAMdir()
-   return os.getenv( "SCRATCHDIR" ).."/gcam/"
+   return ScratchDir().."/gcam/"
 end
 
 -- Returns the location of the directory holding MRI files
 function MRIdir()
-   return os.getenv( "SCRATCHDIR" ).."/mri/"
+   return ScratchDir().."/mri/"
 end
 
 
