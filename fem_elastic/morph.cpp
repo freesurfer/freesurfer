@@ -1486,16 +1486,21 @@ VolumeMorph::exportGcam(MRI* mriMoving,
   if ( !mriCache )
   {
     std::cerr << "VolumeMorph::exportGcam -> no mriCache - this will take some time\n";
-    MRI* mriTmp = this->apply_transforms(m_template,true); // start by caching the data
+    VOL_GEOM vgLike;
+    initVolGeom(&vgLike);
+    getVolGeom(this->m_template, &vgLike);
+    MRI* mriTmp = this->apply_transforms(mriMoving,true, &vgLike); // start by caching the data
     if ( !mriTmp ) return NULL;
     MRIfree(&mriTmp);
   }
+  else
+    std::cout << "exortGcam: mriCache exists\n";
 
   //allocate the Gcam
   MRI_REGION box;
   if ( useTemplateBoundingBox )
   {
-    std::cout << " using bounding box\n";
+    std::cout << "Using template bounding box\n";
     MRIboundingBox( m_template, thresh, &box);
     if ( box.x - padding < 0 ||
          box.y - padding < 0 ||
@@ -1515,6 +1520,7 @@ VolumeMorph::exportGcam(MRI* mriMoving,
   }
   else
   {
+    std::cout << "Not using bounding box\n";
     box.x = 0;
     box.y = 0;
     box.z = 0;
