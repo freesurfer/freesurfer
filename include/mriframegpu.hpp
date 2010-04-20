@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/01 19:07:49 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/04/20 15:56:36 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -212,7 +212,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.40 2010/04/01 19:07:49 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.41 2010/04/20 15:56:36 rge21 Exp $";
       }
       
       //! Return the 'thick' field
@@ -631,12 +631,14 @@ namespace GPU {
 
     template<> __device__
     unsigned char MRIframeOnGPU<unsigned char>::ConvertFloat( const float in ) const {
-      return( static_cast<unsigned char>( rintf( in ) ) );
+      // Copy 'nint' from utils.c
+      return( static_cast<unsigned char>( in+0.5f ) );
     }
 
     template<> __device__
     short MRIframeOnGPU<short>::ConvertFloat( const float in ) const {
-      return( static_cast<short>( rintf( in ) ) );
+      // Copy 'nint' from utils.c
+      return( static_cast<short>( in+0.5f ) );
     }
 
     template<> __device__
