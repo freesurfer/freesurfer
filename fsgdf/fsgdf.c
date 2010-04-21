@@ -44,9 +44,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/12/23 01:29:53 $
- *    $Revision: 1.48 $
+ *    $Author: greve $
+ *    $Date: 2010/04/21 16:50:14 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -951,7 +951,7 @@ int gdfClassVarMeans(FSGD *gd) {
   if (gd->nvariables > 0) {
     printf("Class Means of each Continuous Variable\n");
     for (cno = 0; cno < gd->nclasses; cno++) {
-      printf("%d %s",cno+1,gd->classlabel[cno]);
+      printf("%d %s ",cno+1,gd->classlabel[cno]);
       for (vno = 0; vno < gd->nvariables; vno++)
         printf("%8.4f ",gd->ClassVarMeans[cno][vno]);
       printf("\n");
@@ -1680,7 +1680,7 @@ char *gdfGetSDataFromTable(char *tablefile, char *field,
                            int fieldcol, int datacol) {
   FILE *fp;
   int ncols;
-  char *pc, line[2000];
+  char *pc, line[2000], tmpstr[2000];
   char *sfield, *sdata;
 
   fp = fopen(tablefile,"r");
@@ -1697,7 +1697,17 @@ char *gdfGetSDataFromTable(char *tablefile, char *field,
       fclose(fp);
       return(NULL);
     }
-    if (line[0] == '#') continue;
+    if(line[0] == '#') {
+      if(strcmp(field,"IntraCranialVol") != 0) continue;
+      sscanf(line,"%*s %*s %s",tmpstr);
+      if(strcmp(tmpstr,"IntraCranialVol,") == 0){
+	sscanf(line,"%*s %*s %*s %*s %*s %*s %s",tmpstr);
+	sdata = strcpyalloc(tmpstr);
+	//printf("%s %s\n",field,sdata);
+	return(sdata);
+      }
+      continue;
+    }
     ncols = gdfCountItemsInString(line);
     if (fieldcol > ncols) {
       printf("ERROR: table %s has %d cols, but field col %d reqested\n",
