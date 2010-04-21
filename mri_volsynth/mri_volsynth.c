@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/06 21:48:52 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/04/21 06:51:32 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -63,7 +63,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.43 2010/04/06 21:48:52 greve Exp $";
+"$Id: mri_volsynth.c,v 1.44 2010/04/21 06:51:32 greve Exp $";
 
 char *Progname = NULL;
 
@@ -115,10 +115,6 @@ int SpikeTP = -1;
 int DoCurv = 0;
 char *subject=NULL, *hemi=NULL;
 MRIS *surf;
-
-MRI *MRIsliceNo(MRI *in, MRI *out);
-MRI *MRIindexNo(MRI *in, MRI *out);
-MRI *MRIcrs(MRI *in, MRI *out);
 
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv)
@@ -866,67 +862,4 @@ MRI *fMRIsqrt(MRI *mri, MRI *mrisqrt) {
     }
   }
   return(mrisqrt);
-}
-
-MRI *MRIsliceNo(MRI *in, MRI *out)
-{
-  int c,r,s;
-  if(out == NULL){
-    out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
-    MRIcopyHeader(in,out);
-  }
-
-  for(c=0; c < in->width; c++){
-    for(r=0; r < in->height; r++){
-      for(s=0; s < in->depth; s++){
-	MRIsetVoxVal(out,c,r,s,0, s);
-      }
-    }
-  }
-
-  return(out);
-}
-
-
-MRI *MRIindexNo(MRI *in, MRI *out)
-{
-  int c,r,s, index;
-  if(out == NULL){
-    out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
-    MRIcopyHeader(in,out);
-  }
-
-  index = 0;
-  for(s=0; s < in->depth; s++){
-    for(r=0; r < in->height; r++){
-      for(c=0; c < in->width; c++){
-	MRIsetVoxVal(out,c,r,s,0, index);
-	index ++;
-      }
-    }
-  }
-
-  return(out);
-}
-
-MRI *MRIcrs(MRI *in, MRI *out)
-{
-  int c,r,s;
-
-  if(out == NULL){
-    out = MRIallocSequence(in->width,in->height,in->depth,MRI_FLOAT,3);
-    MRIcopyHeader(in,out);
-  }
-
-  for(s=0; s < in->depth; s++){
-    for(r=0; r < in->height; r++){
-      for(c=0; c < in->width; c++){
-	MRIsetVoxVal(out,c,r,s,0, c);
-	MRIsetVoxVal(out,c,r,s,1, r);
-	MRIsetVoxVal(out,c,r,s,2, s);
-      }
-    }
-  }
-
-  return(out);
 }

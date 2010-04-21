@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/14 14:43:52 $
- *    $Revision: 1.58 $
+ *    $Author: greve $
+ *    $Date: 2010/04/21 06:51:32 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -3136,5 +3136,85 @@ MRI *MRIsegBoundary(MRI *seg)
   }
 
   return(boundary);
+}
+
+/*!
+  \fn MRI *MRIcrs(MRI *in, MRI *out)
+  \brief Creates a 1-frame volume with the value
+  at frame 0 equal to the slice number.
+*/
+MRI *MRIsliceNo(MRI *in, MRI *out)
+{
+  int c,r,s;
+  if(out == NULL){
+    out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
+    MRIcopyHeader(in,out);
+  }
+
+  for(c=0; c < in->width; c++){
+    for(r=0; r < in->height; r++){
+      for(s=0; s < in->depth; s++){
+	MRIsetVoxVal(out,c,r,s,0, s);
+      }
+    }
+  }
+
+  return(out);
+}
+
+/*!
+  \fn MRI *MRIcrs(MRI *in, MRI *out)
+  \brief Creates a 1-frame volume with the value
+  at frame 0 equal to the voxel index, eg, 
+  sliceno*nrows*ncols + rowno*ncols + col.
+*/
+MRI *MRIindexNo(MRI *in, MRI *out)
+{
+  int c,r,s, index;
+  if(out == NULL){
+    out = MRIalloc(in->width,in->height,in->depth,MRI_FLOAT);
+    MRIcopyHeader(in,out);
+  }
+
+  index = 0;
+  for(s=0; s < in->depth; s++){
+    for(r=0; r < in->height; r++){
+      for(c=0; c < in->width; c++){
+	MRIsetVoxVal(out,c,r,s,0, index);
+	index ++;
+      }
+    }
+  }
+
+  return(out);
+}
+
+/* ----------------------------------------------------------*/
+/*!
+  \fn MRI *MRIcrs(MRI *in, MRI *out)
+  \brief Creates a 3-frame volume with the value
+  at frame 0 equal to the column number, frame 1
+  the row, and frame 2 the slice.
+*/
+MRI *MRIcrs(MRI *in, MRI *out)
+{
+  int c,r,s;
+
+  if(out == NULL){
+    out = MRIallocSequence(in->width,in->height,in->depth,MRI_FLOAT,3);
+    MRIcopyHeader(in,out);
+  }
+
+  for(s=0; s < in->depth; s++){
+    for(r=0; r < in->height; r++){
+      for(c=0; c < in->width; c++){
+	MRIsetVoxVal(out,c,r,s,0, c);
+	MRIsetVoxVal(out,c,r,s,1, r);
+	MRIsetVoxVal(out,c,r,s,2, s);
+      }
+    }
+  }
+
+  return(out);
 }
 
