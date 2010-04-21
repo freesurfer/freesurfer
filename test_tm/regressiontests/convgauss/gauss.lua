@@ -11,7 +11,7 @@ local FS = tools.freesurfer
 
 
 -- List of gaussian widths to use
-sigmaVals = { 0.5, 2, 6.383, 12.766, 4, 15, 21, 29.2 }
+sigmaVals = { 0.5, 0.79788, 1.59597, 2, 6.383, 12.766, 29.2 }
 
 -- Function to return the list of files to use
 function GetFiles( pattern )
