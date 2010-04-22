@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/08 20:04:06 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/04/22 15:39:22 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,6 @@
 #include "macros.h"
 
 #include "chronometer.hpp"
-#include "double3.hpp"
 
 #include "volumegpucompare.hpp"
 
@@ -211,6 +210,13 @@ namespace GPU {
 	This involves a lot of packing data, and hence
 	is going to be painfully slow
       */
+
+#if 0
+      std::cerr << __FUNCTION__
+		<< ": Catching gcamorph usage"
+		<< std::endl;
+      exit( EXIT_FAILURE );
+#endif
 
       // Check for number of inputs
       if( src->ninputs != 1 ) {
