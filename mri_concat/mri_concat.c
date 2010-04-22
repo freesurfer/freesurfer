@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/18 21:48:38 $
- *    $Revision: 1.46 $
+ *    $Date: 2010/04/22 21:36:50 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.46 2010/04/18 21:48:38 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.47 2010/04/22 21:36:50 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -115,11 +115,12 @@ char *PCAMaskFile = NULL;
 int DoSCM = 0; // spat cor matrix
 int DoCheck = 1;
 int DoTAR1 = 0, TAR1DOFAdjust = 1;
+int NReplications = 0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, nthin, nframestot=0, nr=0,nc=0,ns=0, fout;
-  int r,c,s,f,nframes,err;
+  int r,c,s,f,outf,nframes,err,nthrep;
   double v, v1, v2, vavg;
   int inputDatatype=MRI_UCHAR;
   MATRIX *Upca=NULL,*Spca=NULL;
@@ -457,6 +458,31 @@ int main(int argc, char **argv) {
     mriout = Vpca;
   }
 
+  if(NReplications > 0){
+    printf("NReplications %d\n",NReplications);
+    mritmp = MRIallocSequence(mriout->width, mriout->height, 
+	      mriout->depth, mriout->type, mriout->nframes*NReplications);
+    if(mritmp == NULL) exit(1);
+    printf("Done allocing\n");
+    MRIcopyHeader(mriout,mritmp);
+    for(c=0; c < mriout->width; c++){
+      for(r=0; r < mriout->height; r++){
+	for(s=0; s < mriout->depth; s++){
+	  outf = 0;
+	  for(nthrep = 0; nthrep < NReplications; nthrep++){
+	    for(f=0; f < mriout->nframes; f++){
+	      v = MRIgetVoxVal(mriout,c,r,s,f);
+	      MRIsetVoxVal(mritmp,c,r,s,outf,v);
+	      outf ++;
+	    }
+	  }
+	}
+      }
+    }
+    MRIfree(&mriout);
+    mriout = mritmp;
+  }
+
   printf("Writing to %s\n",out);
   err = MRIwrite(mriout,out);
   if(err) exit(err);
@@ -577,6 +603,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&ngroups);
       nargsused = 1;
     } 
+    else if ( !strcmp(option, "--rep") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%d",&NReplications);
+      nargsused = 1;
+    } 
     else if ( !strcmp(option, "--o") ) {
       if (nargc < 1) argnerr(option,1);
       out = pargv[0];
@@ -650,7 +681,7 @@ static void print_usage(void) {
   printf("   --pos  : set input negatives to 0\n");
   printf("   --neg  : set input postives to 0\n");
   printf("   --mean : compute mean of concatenated volumes\n");
-	printf("   --median : compute median of concatenated volumes\n");
+  printf("   --median : compute median of concatenated volumes\n");
   printf("   --mean-div-n : compute mean/nframes (good for var) \n");
   printf("   --sum  : compute sum of concatenated volumes\n");
   printf("   --var  : compute var  of concatenated volumes\n");
@@ -658,6 +689,7 @@ static void print_usage(void) {
   printf("   --max  : compute max  of concatenated volumes\n");
   printf("   --max-index  : compute index of max of concatenated volumes (1-based)\n");
   printf("   --min  : compute min of concatenated volumes\n");
+  printf("   --rep N : replicate N times (over frame)\n");
   printf("   --conjunct  : compute voxel-wise conjunction concatenated volumes\n");
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
