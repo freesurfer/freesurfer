@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:41 $
- *    $Revision: 1.273 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/23 18:15:32 $
+ *    $Revision: 1.274 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -9685,12 +9685,13 @@ GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
                                    GCA_SAMPLE *gcas, int nsamples,
                                    TRANSFORM *transform,
-                                   char *ctl_point_fname, int input_index)
+                                   char *ctl_point_fname, int input_index,
+                                   double bias_sigma)
 /* This function is added by xhan, trying to normalize a single channel */
 {
 
   MRI    *mri_dst, *mri_ctrl, *mri_bias ;
-  int    xv, yv, zv, n, x, y, z, width, height, depth, xn, yn, zn, num, total;
+  int    xv, yv, zv, n, x, y, z, width, height, depth, xn, yn, zn, num, total,nctrl;
   float   bias ;
   double  mean, sigma ;
   double    val ;
@@ -9716,8 +9717,10 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
   if (ctl_point_fname)
   {
     MRI3dUseFileControlPoints(mri_ctrl, ctl_point_fname) ;
-    MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
+    nctrl = MRInormAddFileControlPoints(mri_ctrl, CONTROL_MARKED) ;
   }
+  else
+    nctrl = 0 ;
 
   /* add control points from file */
   for (z = 0 ; z < depth ; z++)
@@ -9906,7 +9909,7 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
 
   MRIbuildVoronoiDiagram(mri_bias, mri_ctrl, mri_bias) ;
   /*  MRIwrite(mri_bias, "bias.mgz") ;*/
-#if 1
+  if (nctrl == 0)   // smooth it quite a bit
   {
     MRI *mri_kernel, *mri_smooth, *mri_down ;
     float sigma = 16.0f ;
@@ -9926,11 +9929,17 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
     mri_bias = mri_smooth ;
     MRIfree(&mri_kernel) ;
   }
-#else
-  MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 10) ;
-#endif
-  /*  MRIwrite(mri_bias, "smooth_bias.mgz") ;*/
-
+  else  // if manually specified control points, don't let them be overwhelmed
+  {
+    MRI *mri_kernel, *mri_smooth ;
+    mri_smooth = MRIsoapBubble(mri_bias, mri_ctrl, NULL, 10) ;
+    mri_kernel = MRIgaussian1d(bias_sigma, 100) ;
+    MRIconvolveGaussian(mri_smooth, mri_bias, mri_kernel) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_bias, "smooth_bias.mgz") ;
+    MRIfree(&mri_smooth) ;
+    MRIfree(&mri_kernel) ;
+  }
 
   width = mri_in->width ;
   height = mri_in->height ;
@@ -9941,6 +9950,8 @@ void GCAnormalizeSamplesOneChannel(MRI *mri_in, GCA *gca,
     {
       for (x = 0 ; x < width ; x++)
       {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
         bias = (float)MRISvox(mri_bias, x, y, z)/NO_BIAS ;
         if (bias < 0)
           DiagBreak() ;
@@ -9986,7 +9997,8 @@ GCAnormalizeSamplesAllChannels(MRI *mri_in,
                                GCA_SAMPLE *gcas,
                                int nsamples,
                                TRANSFORM *transform,
-                               char *ctl_point_fname)
+                               char *ctl_point_fname,
+                               double bias_sigma)
 {
   MRI    *mri_dst;
   int input;
@@ -9996,7 +10008,8 @@ GCAnormalizeSamplesAllChannels(MRI *mri_in,
   for (input = 0; input < gca->ninputs; input++)
   {
     GCAnormalizeSamplesOneChannel(mri_dst, gca, gcas, nsamples,
-                                  transform, ctl_point_fname, input);
+                                  transform, ctl_point_fname, input,
+                                  bias_sigma);
   }
 
   return (mri_dst);
