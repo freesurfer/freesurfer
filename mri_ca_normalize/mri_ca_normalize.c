@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/04/23 18:16:50 $
- *    $Revision: 1.48 $
+ *    $Date: 2010/04/23 18:17:44 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -148,13 +148,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.48 2010/04/23 18:16:50 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.49 2010/04/23 18:17:44 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.48 2010/04/23 18:16:50 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.49 2010/04/23 18:17:44 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1285,6 +1285,7 @@ usage_exit(int code)
          "(or 'noxform') \n");
   printf("\noptions:\n");
   printf("\t-seg <filename>              aseg file, to help normalization\n");
+  printf("\t-sigma <bias sigma>          smoothing sigma for bias field if control points specified (def=4)\n");
   printf("\t-fsamples <filename>         write control points to filename\n");
   printf("\t-nsamples <filename>         write transformed "
          "normalization control points to filename\n");
