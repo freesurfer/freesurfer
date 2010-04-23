@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/19 22:19:19 $
-#    $Revision: 1.42 $
+#    $Date: 2010/04/23 19:46:41 $
+#    $Revision: 1.43 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.42 2010/04/19 22:19:19 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.43 2010/04/23 19:46:41 greve Exp $';
 
 # These two should agree with values in mkanalysis_gui.m
 set DefaultTER     = .050; # 50 ms
@@ -815,6 +815,12 @@ check_params:
   if($#parname == 0 && $abblocked)  set parname = NONE;
   if($#parname == 0) then
     echo "ERROR: must specify a paradigm file name"
+    exit 1;
+  endif
+
+  if(! $eventrelated && ! $abblocked && ! $retinotopy) then
+    echo "ERROR: must choose a design type:"
+    echo " either -event-related, -abblocked, or -retinotopy" 
     exit 1;
   endif
 
