@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/04/19 18:04:33 $
- *    $Revision: 1.398 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/23 18:12:16 $
+ *    $Revision: 1.399 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -565,6 +565,7 @@ double MRImeanInLabelInRegion(MRI *mri_src, MRI *mri_labeled,
                               int label, int x0, int y0, int z0, int whalf);
 MRI   *MRImeanByte(MRI *mri_src, MRI *mri_dst, int wsize) ;
 MRI   *MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
+MRI   *MRIstdNonzero(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize) ;
 MRI   *MRIzScore(MRI *mri_src, MRI *mri_dst, MRI *mri_mean, MRI *mri_std) ;
 
 MRI   *MRIdirectionMapRegion(MRI *mri_grad, MRI *mri_direction, int wsize,
