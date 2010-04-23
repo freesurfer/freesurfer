@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.105 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/23 18:15:57 $
+ *    $Revision: 1.106 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -334,7 +334,8 @@ MRI   *GCAnormalizeSamples(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas,
                            int nsamples, TRANSFORM *transform,const  char *ctl_point_fname) ;
 MRI *
 GCAnormalizeSamplesAllChannels(MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas, int nsamples,
-                               TRANSFORM *transform, char *ctl_point_fname);
+                               TRANSFORM *transform, char *ctl_point_fname,
+                               double bias_sigma);
 float GCAlabelProbability(MRI *mri_src, GCA *gca, TRANSFORM *transform,
                           float x, float y, float z, int label) ;
 MRI   *GCAmaxLikelihoodBorders(GCA *gca, MRI *mri_inputs, MRI *mri_src,
