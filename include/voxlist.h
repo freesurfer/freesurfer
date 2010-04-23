@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/02/15 18:19:42 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/04/23 18:11:07 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -66,6 +66,7 @@ MRI         *VLSTcreateMri(VOXEL_LIST *vl, int val) ;
 MRI         *VLSTaddToMri(VOXEL_LIST *vl, MRI *mri, int val) ;
 VOXEL_LIST  *VLSTdilate(VOXEL_LIST *vl, int mode, MRI *mri_exclude) ;
 void VLSTcomputeStats(VOXEL_LIST *vl);
+VOXEL_LIST *VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst) ;
 
 #define VL_DILATE_ADD      0
 #define VL_DILATE_REPLACE  1
