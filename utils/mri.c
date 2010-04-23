@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2010/04/19 18:04:46 $
- *    $Revision: 1.455 $
+ *    $Date: 2010/04/23 19:06:25 $
+ *    $Revision: 1.456 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.455 $";
+const char *MRI_C_VERSION = "$Revision: 1.456 $";
 
 
 /*-----------------------------------------------------
@@ -11845,7 +11845,8 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
       n_passed += hist_bins[bin];
     src_max = (float)bin * bin_size + src_min;
 
-    if (src_min >= src_max)
+    //if (src_min >= src_max)
+    if (src_min > src_max)
     {
       ErrorReturn
       (NULL,
@@ -11878,7 +11879,10 @@ MRI *MRIchangeType(MRI *src, int dest_type, float f_low,
       dest_max = LONG_MAX;
     }
 
-    scale = (dest_max - dest_min) / (src_max - src_min);
+    if (src_max == src_min)
+      scale = 1.0;
+    else
+      scale = (dest_max - dest_min) / (src_max - src_min);
 
     dest = MRIalloc(src->width, src->height, src->depth, dest_type);
     MRIcopyHeader(src, dest);
