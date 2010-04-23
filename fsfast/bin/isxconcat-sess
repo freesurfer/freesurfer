@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/10 00:11:54 $
-#    $Revision: 1.42 $
+#    $Date: 2010/04/23 19:47:25 $
+#    $Revision: 1.43 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.42 2010/04/10 00:11:54 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.43 2010/04/23 19:47:25 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -386,6 +386,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-all-contrasts":
+    case "-call":
       set DoAllContrasts = 1;
       breaksw
 
