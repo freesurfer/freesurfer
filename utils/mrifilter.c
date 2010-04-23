@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:44 $
- *    $Revision: 1.84 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/23 18:12:11 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2403,8 +2403,6 @@ MRIgaussian1d(float sigma, int max_len)
 
   return(mri) ;
 }
-
-
 /*-----------------------------------------------------
         Parameters:
 
@@ -2462,6 +2460,81 @@ MRIstd(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
                 continue ;
               wcubed++ ;
               f = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+              f -= mean ;
+              variance += (f * f) ;
+            }
+          }
+        }
+        if (wcubed == 0)
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
+        else
+          MRIsetVoxVal(mri_dst, x, y, z, 0, sqrt(variance/wcubed)) ;
+      }
+    }
+  }
+  return(mri_dst) ;
+}
+/*-----------------------------------------------------
+        Parameters:
+
+        Returns value:
+
+        Description
+           calculate the standard deviation of the MRI
+           in a wsize window around each point
+------------------------------------------------------*/
+MRI *
+MRIstdNonzero(MRI *mri_src, MRI*mri_dst, MRI *mri_mean, int wsize)
+{
+  int     width, height, depth, x, y, z, whalf, x0, y0, z0, xi, yi, zi ;
+  float   wcubed, mean, variance, f ;
+
+  width = mri_src->width ;
+  height = mri_src->height ;
+  depth = mri_src->depth ;
+  if (!mri_dst)
+  {
+    mri_dst = MRIalloc(width, height, depth, MRI_FLOAT) ;
+    MRIcopyHeader(mri_src, mri_dst) ;
+  }
+
+  if (mri_dst->type != MRI_FLOAT)
+    ErrorReturn(mri_dst,
+                (ERROR_UNSUPPORTED, "MRIstd: dst must be MRI_FLOAT")) ;
+
+  whalf = wsize/2 ;
+
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        mean = MRIgetVoxVal(mri_mean, x, y, z, 0) ;
+        if (FZERO(mean))
+          continue ;
+        wcubed = 0 ;
+        for (variance = 0.0f, z0 = -whalf ; z0 <= whalf ; z0++)
+        {
+          zi = z+z0 ;
+          if (zi < 0 || zi >= depth)
+            continue ;
+          for (y0 = -whalf ; y0 <= whalf ; y0++)
+          {
+            yi = y + y0 ;
+            if (yi < 0 || yi >= height)
+              continue ;
+            for (x0 = -whalf ; x0 <= whalf ; x0++)
+            {
+              xi = x + x0 ;
+              if (xi < 0 || xi >= width)
+                continue ;
+              f = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+              if (FZERO(f))
+                continue ;
+              wcubed++ ;
               f -= mean ;
               variance += (f * f) ;
             }
