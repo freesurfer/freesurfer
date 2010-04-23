@@ -1478,6 +1478,8 @@ VolumeMorph::exportGcam(MRI* mriMoving,
                         int padding) const
 {
   double dval, dmean(0), dnum(0);
+  
+  std::cout << "exportGcam: padding is = " << padding <<   "\n";
 
   if ( !m_template )
   {
@@ -1564,7 +1566,6 @@ VolumeMorph::exportGcam(MRI* mriMoving,
       {
         GMN* pnode = &gcam->nodes[x][y][z];
 
-#if 0
         if ( MRIgetVoxVal(mriCache, xbox,ybox,zbox, 3) < 1 )
         {
           pnode->invalid = GCAM_POSITION_INVALID;
@@ -1575,7 +1576,6 @@ VolumeMorph::exportGcam(MRI* mriMoving,
           ++gcamInvalidVoxels;
           continue;
         }
-#endif
 
         pnode->invalid = GCAM_VALID;
         pnode->x = pnode->origx = MRIgetVoxVal( mriCache, xbox,ybox,zbox, 0) +x;
