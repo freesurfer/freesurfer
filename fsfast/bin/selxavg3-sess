@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/16 22:03:13 $
-#    $Revision: 1.47 $
+#    $Date: 2010/04/23 19:46:24 $
+#    $Revision: 1.48 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.47 2010/04/16 22:03:13 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.48 2010/04/23 19:46:24 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -101,9 +101,9 @@ if($#analysis) then
     set geometry = $hemi;
     echo "Surface data $subject $hemi"
   endif
-  ls $analysis/*.mat >& /dev/null
   set dt = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
   if($dt == "abblocked") set RequireContrasts = 0;
+  ls $analysis/*.mat >& /dev/null
   if($status && $RequireContrasts) then
     echo "ERORR: no contrasts in $analysis."
     echo "  Create contrasts with mkcontrast-sess or run with -no-con-ok."
@@ -406,6 +406,7 @@ while( $#argv != 0 )
       set Skip = 1;
       breaksw
 
+    case "-force":
     case "-overwrite":
       set Overwrite = 1;
       breaksw
