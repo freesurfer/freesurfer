@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/07/24 19:51:58 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/04/23 18:16:50 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -66,6 +66,7 @@ static char *sample_fname = NULL ;
 static char *ctl_point_fname = NULL ;
 static int novar = 0 ;
 
+static double bias_sigma = 4.0 ;
 static float min_prior = 0.6 ;
 static FILE *diag_fp = NULL ;
 
@@ -147,13 +148,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.47 2009/07/24 19:51:58 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.48 2010/04/23 18:16:50 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.47 2009/07/24 19:51:58 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.48 2010/04/23 18:16:50 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -506,7 +507,7 @@ main(int argc, char *argv[])
                                       transform) ;
         mri_norm = GCAnormalizeSamplesAllChannels
           (mri_in, gca, gcas_norm, file_only ? 0 :norm_samples,
-           transform, ctl_point_fname) ;
+           transform, ctl_point_fname, bias_sigma) ;
         if (Gdiag & DIAG_WRITE)
         {
           char fname[STRLEN] ;
@@ -610,6 +611,12 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     file_only = 1 ;
     printf("only using control points from file %s\n", ctl_point_fname) ;
+  }
+  else if (!strcmp(option, "SIGMA"))
+  {
+    bias_sigma = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("smoothing bias field with sigma = %2.1f\n", bias_sigma) ;
   }
   else if (!strcmp(option, "DIAG"))
   {
