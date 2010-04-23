@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/04/08 14:09:28 $
- *    $Revision: 1.188 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/23 18:10:57 $
+ *    $Revision: 1.189 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7540,18 +7540,182 @@ gcamLabelEnergy( const GCA_MORPH *gcam,
   return(sse) ;
 }
 
+#include "voxlist.h"
+static int
+remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh) 
+{
+  int         nremoved, nremoved_total, n, i, vox_to_examine, niters ;
+  MRI         *mri_std, *mri_ctrl, *mri_tmp ;
+  VOXEL_LIST  *vl ;
+  float       diff, val0, oval ;
+  int         delete, xv, yv, zv, xo, yo, zo, x, y, z ;
+  GCA_MORPH_NODE  *gcamn, *gcamn_sup, *gcamn_inf ;
+  double      max_change ;
+
+  mri_ctrl = MRIcloneDifferentType(mri_dist, MRI_UCHAR) ;
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+        gcamn = &gcam->nodes[x][y][z] ;
+        if (gcamn->status & GCAM_LABEL_NODE)
+          MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_MARKED) ;
+      }
+  
+  niters = 100 ;
+  for (nremoved_total = i = 0 ; i < niters ; i++)
+  {
+    mri_std = MRIstdNonzero(mri_dist, NULL, mri_dist, whalf*2+1) ;
+    vl = VLSTcreate(mri_std, .001, 1e10, NULL, 0, 0) ;
+    VLSTsort(vl, vl) ;
+    
+    vox_to_examine = ceil(vl->nvox*.05) ;
+    for (nremoved = n = 0 ; n < vox_to_examine ; n++)
+    {
+      x = vl->xi[n] ; y = vl->yi[n] ; z = vl->zi[n] ; 
+      gcamn = &gcam->nodes[x][y][z] ;
+      
+      if (x == Gx && y == Gy && z == Gz)
+        DiagBreak() ;
+      if ((gcamn->status & GCAM_LABEL_NODE) == 0)
+        continue ;
+      val0 = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+      delete = 0 ;
+      for (xo = -whalf ; xo <= whalf && !delete ; xo++)
+      {
+        xv = mri_dist->xi[x+xo] ;
+        for (yo = -whalf ; yo <= whalf && !delete ; yo++)
+        {
+          yv = mri_dist->yi[y+yo] ;
+          for (zo = -whalf ; zo <= whalf && !delete ; zo++)
+          {
+            zv = mri_dist->zi[z+zo] ;
+            oval = MRIgetVoxVal(mri_dist, xv, yv, zv, 0) ;
+            if (!FZERO(oval))
+            {
+              diff = fabs(oval - val0) ;
+              if (diff > thresh)   /* shouldn't ever be this big */
+              {
+                if (fabs(val0) > fabs(oval) && (val0*oval < 0))
+                  /*if their signs are different and difference is big */
+                  delete = 1 ;
+              }
+            }
+          }
+        }
+      }
+      if (delete)
+      {
+        nremoved++ ;
+        MRIFvox(mri_dist, x, y, z) = 0 ;
+        MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_NONE) ;
+        gcamn->dy = 0 ;
+        //        gcamn->status = GCAM_USE_LIKELIHOOD ;
+        gcamn_inf = &gcam->nodes[x][y+1][z] ;
+        if (gcamn_inf->status & GCAM_LABEL_NODE)
+        {
+          nremoved++ ;
+          //          gcamn_inf->status = GCAM_USE_LIKELIHOOD ;
+          MRIsetVoxVal(mri_dist, x, y+1, z, 0, 0) ;
+          MRIsetVoxVal(mri_ctrl, x, y+1, z, 0, CONTROL_NONE) ;
+          gcamn_inf->dy = 0 ;
+        }
+        gcamn_sup = &gcam->nodes[x][y-1][z] ;
+        if (gcamn_sup->status & GCAM_LABEL_NODE)
+        {
+          nremoved++ ;
+          //          gcamn_sup->status = GCAM_USE_LIKELIHOOD ;
+          gcamn_sup->dy = 0 ;
+          MRIsetVoxVal(mri_dist, x, y-1, z, 0, 0) ;
+          MRIsetVoxVal(mri_ctrl, x, y-1, z, 0, CONTROL_NONE) ;
+        }
+      }
+    }
+
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "dist_after%d.mgz",i) ;
+      MRIwrite(mri_dist, fname) ;
+    }
+    nremoved_total += nremoved ;
+    MRIfree(&mri_std) ;
+    if (nremoved == 0)   // nothing happened
+      break ;
+    VLSTfree(&vl) ; // keep it for last iteration
+  }
+
+  // now use soap bubble smoothing to estimate label offset of deleted locations
+  mri_tmp = NULL ;
+  for (i = 0 ; i < 100 ; i++)
+  {
+    max_change = 0.0 ;
+    mri_tmp = MRIcopy(mri_dist, mri_tmp) ;
+    for (x = 0 ; x < gcam->width ; x++)
+      for (y = 0 ; y < gcam->height ; y++)
+        for (z = 0 ; z < gcam->depth ; z++)
+        {
+          int    xi, yi, zi, xk, yk, zk, num ;
+          double mean ;
+          if (x == Gx && y == Gy && z == Gz)
+            DiagBreak() ;
+          gcamn = &gcam->nodes[x][y][z] ;
+          if (MRIgetVoxVal(mri_ctrl, x, y, z, 0) == CONTROL_MARKED ||
+              (gcamn->status & GCAM_LABEL_NODE) == 0)
+            continue ;
+          for (xk = -1, num = 0, mean = 0.0 ; xk <= 1 ; xk++)
+          {
+            xi = mri_ctrl->xi[x+xk] ;
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              yi = mri_ctrl->yi[y+yk] ;
+              for (zk = -1 ; zk <= 1 ; zk++)
+              {
+                zi = mri_ctrl->zi[z+zk] ;
+                if (MRIgetVoxVal(mri_ctrl, xi, yi, zi, 0) == CONTROL_MARKED ||
+                    MRIgetVoxVal(mri_ctrl, xi, yi, zi, 0) == CONTROL_NBR)
+                {
+                  mean += MRIgetVoxVal(mri_dist, xi, yi, zi, 0) ;
+                  num++ ;
+                }
+              }
+            }
+          }
+          if (num > 0)
+          {
+            float val ;
+            val = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
+            mean /= num ;
+            if (fabs(val-mean) > max_change)
+              max_change = fabs(val-mean) ;
+            MRIsetVoxVal(mri_tmp, x, y, z, 0, mean) ;
+            MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_TMP) ;
+            gcamn->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
+          }
+        }
+      
+    MRIcopy(mri_tmp, mri_dist) ;
+    MRIreplaceValuesOnly(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NBR) ;
+    if (max_change < 0.05)
+      break ;
+  }
+
+  MRIfree(&mri_ctrl) ; MRIfree(&mri_tmp) ;
+  return(nremoved) ;
+}
+
 static int
 gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 {
-  int x, y, z, wm_label, num, xn, yn, zn, best_label, sup_wm, sup_ven ;
+  int x, y, z, wm_label, num, xn, yn, zn, best_label, sup_wm, sup_ven, n ;
   double            dy;
   GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup, 
     *gcamn_medial, *gcamn_lateral, *gcamn_ant, *gcamn_post ;
   float           vals[MAX_GCA_INPUTS], yi, yk, min_dist ;
   GC1D            *wm_gc ;
   GCA_NODE        *gcan ;
-  MRI             *mri_dist, *mri_dist_after ;
-  int             xo, yo, zo, xv, yv, zv, nremoved ;
+  MRI             *mri_dist ;
+  int             nremoved ;
 
   if (DZERO(l_label))
     return(NO_ERROR) ;
@@ -7565,7 +7729,6 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
     for (y = 0 ; y < gcam->height ; y++)
       for (z = 0 ; z < gcam->depth ; z++)
       {
-
         gcamn = &gcam->nodes[x][y][z] ;
 
         if (gcamn->invalid == GCAM_POSITION_INVALID)
@@ -7626,6 +7789,13 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
         if (wm_gc == NULL)
           continue ;
         gcan = GCAbuildRegionalGCAN(gcam->gca, xn, yn, zn, 3) ;
+        // ventral DC is indistinguishible from temporal wm pretty much
+        for (n = 0 ; n < gcan->nlabels; n++)
+          if ((gcan->labels[n] == Left_VentralDC ||
+               gcan->labels[n] == Right_VentralDC ||
+               gcan->labels[n] == Brain_Stem) &&
+              gcan->gcs[n].means[0] > 90)
+            gcan->labels[n] = wm_label ;
 
         dy = 0 ;
         min_dist = label_dist+1 ;
@@ -7723,6 +7893,13 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
           }
         }
 
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (x == Gx && y == (Gy-1) && z == Gz)
+          DiagBreak() ;
+        if (x == Gx && y == (Gy+1) && z == Gz)
+          DiagBreak() ;
+
         gcamn->label_dist = MRIFvox(mri_dist, x, y, z) = min_dist ;
 #if 1
 #define MAX_MLE_DIST 1
@@ -7756,88 +7933,38 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
                      x, y-1, z, gcamn_sup->dy)  ;
           }
         }
-        gcamn->dy += (l_label)*dy ;
-        if (x == Gx && y == Gy && z == Gz)
-          printf("l_label: node(%d,%d,%d): dy = %2.2f\n", 
-                 x, y, z, gcamn->dy)  ;
         GCAfreeRegionalGCAN(&gcan) ;
       }
 
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist, "dist_before.mgz") ;
-  mri_dist_after = MRIcopy(mri_dist, NULL) ;
 
   /* do neighborhood consistency check */
-  nremoved = 0 ;
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
-        float diff, val0, oval ;
-        int   delete ;
-
-        gcamn = &gcam->nodes[x][y][z] ;
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if ((gcamn->status & GCAM_LABEL_NODE) == 0)
-          continue ;
-        val0 = MRIFvox(mri_dist, x, y, z) ;
-        delete = 0 ;
-        for (xo = -2 ; xo <= 2 && !delete ; xo++)
-        {
-          xv = mri_dist->xi[x+xo] ;
-          for (yo = -2 ; yo <= 2 && !delete ; yo++)
-          {
-            yv = mri_dist->yi[y+yo] ;
-            for (zo = -2 ; zo <= 2 && !delete ; zo++)
-            {
-              zv = mri_dist->zi[z+zo] ;
-              oval = MRIFvox(mri_dist, xv, yv, zv) ;
-              if (!FZERO(oval))
-              {
-                diff = fabs(oval - val0) ;
-                if (diff > 3)   /* shouldn't ever be this big */
-                {
-                  if (fabs(val0) > fabs(oval) && (val0*oval < 0))
-                    /*if their signs are different and difference is big */
-                    delete = 1 ;
-                }
-              }
-            }
-          }
-        }
-        if (delete)
-        {
-          nremoved++ ;
-          MRIFvox(mri_dist_after, x, y, z) = 0 ;
-          gcamn->dy = 0 ;
-          gcamn->status = GCAM_USE_LIKELIHOOD ;
-          gcamn_inf = &gcam->nodes[x][y+1][z] ;
-          if (gcamn_inf->status & GCAM_LABEL_NODE)
-          {
-            nremoved++ ;
-            gcamn_inf->status = GCAM_USE_LIKELIHOOD ;
-            MRIFvox(mri_dist_after, x, y+1, z) = 0 ;
-            gcamn_inf->dy = 0 ;
-          }
-          gcamn_sup = &gcam->nodes[x][y-1][z] ;
-          if (gcamn_sup->status & GCAM_LABEL_NODE)
-          {
-            nremoved++ ;
-            gcamn_sup->status = GCAM_USE_LIKELIHOOD ;
-            gcamn_sup->dy = 0 ;
-            MRIFvox(mri_dist_after, x, y-1, z) = 0 ;
-          }
-        }
-      }
-
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
-    MRIwrite(mri_dist_after, "dist_after.mgz") ;
+  nremoved = remove_label_outliers(gcam, mri_dist, 2, 3) ;
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("%d inconsistent label nodes removed...\n", nremoved) ;
   inconsistentLabelNodes=nremoved;
+
+  // copy deltas from mri_dist into gcam struct
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+      for (z = 0 ; z < gcam->depth ; z++)
+      {
+        double dy ;
+
+        gcamn = &gcam->nodes[x][y][z] ;
+
+        if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
+            ((gcamn->status & GCAM_LABEL_NODE) == 0))
+          continue;
+        dy = MRIgetVoxVal(mri_dist, x, y,z, 0) ;
+        gcamn->label_dist = dy ;   /* for use in label energy */
+        if (fabs(dy) > MAX_MLE_DIST)
+          dy = dy * MAX_MLE_DIST / fabs(dy) ;
+        gcamn->dy += l_label * dy ;
+      }
 
   /* do posterior/anterior consistency check */
   for (x = 0 ; x < gcam->width ; x++)
@@ -7874,7 +8001,8 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
               (gcamn_medial->dy*gcamn->dy < 0))
           {
             gcamn->status = GCAM_USE_LIKELIHOOD ;
-            gcamn->dy = 0 ;
+            MRIsetVoxVal(mri_dist, x, y, z, 0, 0) ;
+            nremoved++ ;
             continue ;
           }
         }
@@ -7890,7 +8018,8 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
               (gcamn_ant->dy*gcamn->dy < 0))
           {
             gcamn->status = GCAM_USE_LIKELIHOOD ;
-            gcamn->dy = 0 ;
+            MRIsetVoxVal(mri_dist, x, y, z, 0, 0) ;
+            nremoved++ ;
             continue ;
           }
         }
@@ -7908,14 +8037,16 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
         if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
             ((gcamn->status & GCAM_LABEL_NODE) == 0))
           continue;
+        gcamn->dy = l_label * MRIgetVoxVal(mri_dist, x, y,z, 0) ;
         if (fabs(gcamn->dy)/l_label >= 1)
           num++ ;
         gcamn->label_dist = gcamn->dy ;   /* for use in label energy */
       }
 
 
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    MRIwrite(mri_dist, "dist_after.mgz") ;
   MRIfree(&mri_dist) ;
-  MRIfree(&mri_dist_after) ;
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("\t%d nodes for which label term applies\n", num) ;
   return(NO_ERROR) ;

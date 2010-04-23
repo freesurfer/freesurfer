@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:46 $
- *    $Revision: 1.18 $
+ *    $Author: fischl $
+ *    $Date: 2010/04/23 18:10:58 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -217,6 +217,70 @@ VLSTcreate(MRI *mri,
   }
   vl->mri = mri ;
   return(vl) ;
+}
+
+typedef struct
+{
+  float vsrc, vdst, xd, yd, zd ;
+  int   xi, yi, zi ;
+} SORT_VOXEL ;
+static int
+compare_sort(const void *psv1, const void *psv2)
+{
+  SORT_VOXEL  *sv1, *sv2 ;
+
+  sv1 = (SORT_VOXEL *)psv1 ;
+  sv2 = (SORT_VOXEL *)psv2 ;
+
+  if (sv1->vsrc < sv2->vsrc)
+    return(1) ;
+  else if (sv1->vsrc > sv2->vsrc)
+    return(-1) ;
+
+  return(0) ;
+}
+
+VOXEL_LIST *
+VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst)
+{
+  SORT_VOXEL  *sort_voxels ;
+  int         n ;
+
+  if (vl_dst == NULL)
+    vl_dst = VLSTcopy(vl_src, NULL, 0, vl_src->nvox) ;
+
+  sort_voxels = (SORT_VOXEL *)calloc(vl_src->nvox, sizeof(SORT_VOXEL)) ;
+  if (!sort_voxels)
+    ErrorExit(ERROR_NOMEMORY,"MRIorderIndices: could not allocate sort table");
+
+  
+  for (n = 0 ; n < vl_dst->nvox ; n++)
+  {
+    sort_voxels[n].xi = vl_dst->xi[n] ;
+    sort_voxels[n].yi = vl_dst->yi[n] ;
+    sort_voxels[n].zi = vl_dst->zi[n] ;
+    sort_voxels[n].vsrc = vl_dst->vsrc[n] ;
+    sort_voxels[n].vdst = vl_dst->vdst[n] ;
+    sort_voxels[n].xd = vl_dst->xd[n] ;
+    sort_voxels[n].yd = vl_dst->yd[n] ;
+    sort_voxels[n].zd = vl_dst->zd[n] ;
+  }
+  qsort(sort_voxels, vl_dst->nvox, sizeof(SORT_VOXEL), compare_sort) ;
+
+  for (n = 0 ; n < vl_dst->nvox ; n++)
+  {
+    vl_dst->xi[n] = sort_voxels[n].xi  ;
+    vl_dst->yi[n] = sort_voxels[n].yi  ;
+    vl_dst->zi[n] = sort_voxels[n].zi  ;
+    vl_dst->vsrc[n] = sort_voxels[n].vsrc  ;
+    vl_dst->vdst[n] = sort_voxels[n].vdst  ;
+    vl_dst->xd[n] = sort_voxels[n].xd  ;
+    vl_dst->yd[n] = sort_voxels[n].yd  ;
+    vl_dst->zd[n] = sort_voxels[n].zd  ;
+  }
+
+  free(sort_voxels) ;
+  return(vl_dst) ;
 }
 
 int
