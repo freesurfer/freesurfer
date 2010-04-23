@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/19 22:19:19 $
-%    $Revision: 1.53 $
+%    $Date: 2010/04/23 19:48:45 $
+%    $Revision: 1.54 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -111,7 +111,6 @@ TER = flac.TR;
 PolyOrder = 0;
 extregList = '';
 nextregList = [];
-nskip = 0;
 ncycles = [];
 period = [];
 delay = 0;
@@ -163,7 +162,7 @@ while(1)
     nextregList = [nextregList nextreg];
    case '-nextreg',    nextreg     = sscanf(tline,'%*s %d',1);
    case '-rescale',    flac.inorm  = sscanf(tline,'%*s %f',1);
-   case '-nskip',      nskip       = sscanf(tline,'%*s %d',1);
+   case '-nskip',      flac.nskip  = sscanf(tline,'%*s %d',1);
    case '-prestim',    prestim     = sscanf(tline,'%*s %f',1);
    case '-timewindow', timewindow  = sscanf(tline,'%*s %f',1);
    case '-ncycles',    ncycles     = sscanf(tline,'%*s %f',1);
@@ -424,12 +423,16 @@ if(~isempty(extregList))
   end
 end
 
-if(~isempty(flac.tpexcfile))
-  tline = sprintf('EV TExclude texclude nuis %s',flac.tpexcfile);
+if(~isempty(flac.tpexcfile) | flac.nskip > 0)
+  if(flac.nskip > 0 & isempty(flac.tpexcfile)) tpexcfile = 'junk.nskip.junk';
+  else tpexcfile = flac.tpexcfile;
+  end
+  tline = sprintf('EV TPExclude texclude nuis %s',tpexcfile);
   flac.ev(nthev) = flac_ev_parse(tline);
   nthev = nthev+1;
 end
 
+ncontrasts = 0;
 if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   %-------------- contrasts --------------------------
   tmpstr = sprintf('%s/*.mat',anadir);

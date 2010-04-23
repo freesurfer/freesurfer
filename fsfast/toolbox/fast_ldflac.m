@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/19 22:19:19 $
-%    $Revision: 1.48 $
+%    $Date: 2010/04/23 19:48:45 $
+%    $Revision: 1.49 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,7 @@ if(isempty(flac))
   flac.format = '';
   flac.formatext = '';
   flac.tpexcfile = '';
+  flac.nskip = 0;
   flac.parfile  = '';
   flac.schdir = ''; % dir where schedules or pars can be found
   flac.par = [];

@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/16 23:52:16 $
-%    $Revision: 1.46 $
+%    $Date: 2010/04/23 19:48:45 $
+%    $Revision: 1.47 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -255,10 +255,15 @@ for nthev = 1:nev
   if(strcmp(ev.model,'texclude'))
     fname = sprintf('%s/%s',runpath,ev.stf);
     fp = fopen(fname,'r'); % ok if it does not exist
-    if(fp ~= -1)
-      texcl = fscanf(fp,'%lf'); 
-      fclose(fp);
-      tpexcl = round(texcl/flacnew.TR) + 1; % change to 1-based index
+    if(fp ~= -1 | flac.nskip > 0)
+      tpexcl = [];
+      if(fp ~= -1)
+	texcl = fscanf(fp,'%lf'); 
+	fclose(fp);
+	tpexcl = round(texcl/flacnew.TR) + 1; % change to 1-based index
+      end
+      if(flac.nskip > 0) tpexcl = [[1:flac.nskip]'; tpexcl]; end
+      tpexcl = unique(tpexcl);
       indtmp = find(tpexcl > flacnew.ntp);
       if(~isempty(indtmp))
 	fprintf('ERROR: time points in %s exceed nframes (%d)\n',...
@@ -276,6 +281,7 @@ for nthev = 1:nev
       flacnew.ev(nthev).nreg = nexclude;
       flacnew.tpexc = tpexcl;
     else
+      % No file there, set to be empty
       flacnew.ev(nthev).X = [];
       flacnew.ev(nthev).nreg = 0;
       flacnew.tpexc = [];
