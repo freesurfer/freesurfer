@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/16 20:42:41 $
- *    $Revision: 1.106 $
+ *    $Date: 2010/04/26 17:30:57 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2970,6 +2970,10 @@ void MainWindow::CommandSetColorMap( const wxArrayString& sa )
     nColorMap = LayerPropertiesMRI::Jet;
   else if ( strg == _("lut") )
     nColorMap = LayerPropertiesMRI::LUT;
+  else if ( strg == _("gecolor" ) || strg == _("ge_color" ) )
+    nColorMap = LayerPropertiesMRI::GEColor;
+  else if ( strg == _("nih") )
+    nColorMap = LayerPropertiesMRI::NIH;
   else if ( strg != _("grayscale") )
     cerr << "Unrecognized colormap name '" << strg << "'." << endl;
   
@@ -4769,20 +4773,20 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, std::vect
         else if ( !scales.empty() )
           cerr << "Need 3 values for heatscale." << endl;
         break;
-      case LayerPropertiesMRI::Jet:
-        if ( scales.size() >= 2 )
-        {
-          p->SetMinMaxJetScaleWindow( scales[0], scales[1] );
-        }
-        else if ( !scales.empty() )
-          cerr << "Need 2 values for jetscale." << endl;
-        break;
       case LayerPropertiesMRI::LUT:
         if ( scales.size() >= 1 )
         {
         }
         else if ( !scales.empty() )
           cerr << "Need a value for lut." << endl;
+        break;    
+      default:
+        if ( scales.size() >= 2 )
+        {
+          p->SetMinMaxGenericThreshold( scales[0], scales[1] );
+        }
+        else if ( !scales.empty() )
+          cerr << "Need 2 values for jetscale." << endl;
         break;
     }
   }

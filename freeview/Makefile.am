@@ -7,7 +7,9 @@ AM_CXXFLAGS=\
 	$(VTK_CXXFLAGS) \
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
-	$(WXWIDGETS_CXXFLAGS)
+	$(WXWIDGETS_CXXFLAGS) \
+	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
+	$(VXL_CFLAGS)
 
 if ENABLE_WXWIDGETS_APPS
 bin_PROGRAMS = freeview
@@ -233,7 +235,15 @@ freeview_SOURCES=\
 	wxVTKRenderWindowInteractor.h \
 	res/resource.cpp \
 	res/resource.h \
-	res/QuickRef.h 
+	res/QuickRef.h
+#	scout/laplace2.cpp \
+#	scout/laplace2.h \
+#	scout/locator.cpp \
+#	scout/locator.h \
+#	scout/preprocessor.cpp \
+#	scout/preprocessor.h \
+#	scout/tracer.cpp \
+#	scout/tracer.h
 
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
@@ -305,51 +315,6 @@ all:
 
 endif
 
-EXTRA_DIST=\
-	res/DialogEditLookupTable.xrc \
-	res/DialogLoadDTI.xrc \
-	res/DialogLoadVolume.xrc \
-	res/DialogNewROI.xrc \
-	res/DialogNewVolume.xrc \
-	res/DialogPreferences.xrc \
-	res/MainWindow.xrc \
-	res/PanelROI.xrc \
-	res/PanelVolume.xrc \
-	res/WindowQuickReference.xrc \
-  res/QuickRef.html \
-	res/images/edit_redo_16.png \
-	res/images/edit_redo.png \
-	res/images/edit_undo_16.png \
-	res/images/edit_undo.png \
-	res/images/file_open_16.png \
-	res/images/file_open.png \
-	res/images/layout_1n3.png \
-	res/images/layout_1x1.png \
-	res/images/layout_2x2.png \
-	res/images/move_down.png \
-	res/images/move_up.png \
-	res/images/navigate.png \
-	res/images/roi_delete.png \
-	res/images/roi_draw_fill.png \
-	res/images/roi_draw_freehand.png \
-	res/images/roi_draw_polyline.png \
-	res/images/roi_edit.png \
-	res/images/roi_load.png \
-	res/images/roi_new.png \
-	res/images/roi_save.png \
-	res/images/view_3d.png \
-	res/images/view_axial.png \
-	res/images/view_coronal.png \
-	res/images/view_sagittal.png \
-	res/images/volume_delete.png \
-	res/images/volume_load_16.png \
-	res/images/volume_load.png \
-	res/images/volume_new.png \
-	res/images/volume_save.png \
-	res/images/voxel_draw_fill.png \
-	res/images/voxel_draw_freehand.png \
-	res/images/voxel_draw_polyline.png \
-	res/images/voxel_edit.png
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

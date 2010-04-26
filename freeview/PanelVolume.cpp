@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/18 18:23:33 $
- *    $Revision: 1.44 $
+ *    $Date: 2010/04/26 17:30:57 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -72,28 +72,20 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_TEXT            ( XRCID( "ID_TEXT_DRAW_VALUE" ),        PanelVolume::OnTextFillValueChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_WINDOW" ),            PanelVolume::OnTextWindowChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_LEVEL" ),             PanelVolume::OnTextLevelChanged )
-  EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MIN" ),     PanelVolume::OnTextHeatScaleMinChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_COLORMAP_MIN" ),      PanelVolume::OnTextColorMapMinChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_COLORMAP_MAX" ),      PanelVolume::OnTextColorMapMaxChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MID" ),     PanelVolume::OnTextHeatScaleMidChanged )
-  EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_MAX" ),     PanelVolume::OnTextHeatScaleMaxChanged )
   EVT_TEXT            ( XRCID( "ID_TEXT_HEATSCALE_OFFSET" ),  PanelVolume::OnTextHeatScaleOffsetChanged )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_CLEAR_HIGH" ),  PanelVolume::OnCheckHeatScaleClearHigh )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_TRUNCATE" ),    PanelVolume::OnCheckHeatScaleTruncate )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_INVERT" ),      PanelVolume::OnCheckHeatScaleInvert )
-  EVT_TEXT            ( XRCID( "ID_TEXT_JETSCALE_MIN" ),      PanelVolume::OnTextMinJetScaleChanged )
-  EVT_TEXT            ( XRCID( "ID_TEXT_JETSCALE_MAX" ),      PanelVolume::OnTextMaxJetScaleChanged )
-  EVT_TEXT            ( XRCID( "ID_TEXT_GRAYSCALE_MIN" ),     PanelVolume::OnTextGrayScaleMin )
-  EVT_TEXT            ( XRCID( "ID_TEXT_GRAYSCALE_MAX" ),     PanelVolume::OnTextGrayScaleMax )
   EVT_TEXT            ( XRCID( "ID_TEXT_OPACITY" ),           PanelVolume::OnTextOpacityChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_WINDOW" ),          PanelVolume::OnSliderWindowChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_LEVEL" ),           PanelVolume::OnSliderLevelChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_MIN" ),   PanelVolume::OnSliderHeatScaleMinChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_COLORMAP_MIN" ),    PanelVolume::OnSliderColorMapMinChanged )
+  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_COLORMAP_MAX" ),    PanelVolume::OnSliderColorMapMaxChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_MID" ),   PanelVolume::OnSliderHeatScaleMidChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_MAX" ),   PanelVolume::OnSliderHeatScaleMaxChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_OFFSET" ),  PanelVolume::OnSliderHeatScaleOffsetChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_JETSCALE_MIN" ),    PanelVolume::OnSliderMinJetScaleChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_JETSCALE_MAX" ),    PanelVolume::OnSliderMaxJetScaleChanged )
-  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_GRAYSCALE_MIN" ),   PanelVolume::OnSliderGrayScaleMin )
-  EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_GRAYSCALE_MAX" ),   PanelVolume::OnSliderGrayScaleMax )
   EVT_TEXT            ( XRCID( "ID_TEXT_FRAME" ),             PanelVolume::OnTextFrameChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_FRAME" ),           PanelVolume::OnSliderFrameChanged )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_DISPLAY_VECTOR" ), PanelVolume::OnCheckDisplayVector )
@@ -145,18 +137,14 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_textWindow          = XRCCTRL( *this, "ID_TEXT_WINDOW", wxTextCtrl );
   m_textLevel           = XRCCTRL( *this, "ID_TEXT_LEVEL", wxTextCtrl );
   m_textFileName        = XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
-  m_textHeatScaleMin    = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MIN", wxTextCtrl );
+  m_textColorMapMin     = XRCCTRL( *this, "ID_TEXT_COLORMAP_MIN", wxTextCtrl );
+  m_textColorMapMax     = XRCCTRL( *this, "ID_TEXT_COLORMAP_MAX", wxTextCtrl );
   m_textHeatScaleMid    = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MID", wxTextCtrl );
-  m_textHeatScaleMax    = XRCCTRL( *this, "ID_TEXT_HEATSCALE_MAX", wxTextCtrl );
   m_textHeatScaleOffset = XRCCTRL( *this, "ID_TEXT_HEATSCALE_OFFSET", wxTextCtrl );
-  m_sliderHeatScaleMin  = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MIN", wxSlider );
+  m_sliderColorMapMin   = XRCCTRL( *this, "ID_SLIDER_COLORMAP_MIN", wxSlider );
+  m_sliderColorMapMax   = XRCCTRL( *this, "ID_SLIDER_COLORMAP_MAX", wxSlider );
   m_sliderHeatScaleMid  = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MID", wxSlider );
-  m_sliderHeatScaleMax  = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MAX", wxSlider );
   m_sliderHeatScaleOffset = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_OFFSET", wxSlider );
-  m_textJetScaleMin     = XRCCTRL( *this, "ID_TEXT_JETSCALE_MIN", wxTextCtrl );
-  m_textJetScaleMax     = XRCCTRL( *this, "ID_TEXT_JETSCALE_MAX", wxTextCtrl );
-  m_sliderJetScaleMin   = XRCCTRL( *this, "ID_SLIDER_JETSCALE_MIN", wxSlider );
-  m_sliderJetScaleMax   = XRCCTRL( *this, "ID_SLIDER_JETSCALE_MAX", wxSlider );
   m_choiceDirectionCode = XRCCTRL( *this, "ID_CHOICE_DIRECTION_CODE", wxChoice );
   m_colorIndicator      = XRCCTRL( *this, "ID_COLOR_INDICATOR", wxColorIndicator );
   m_textFrame           = XRCCTRL( *this, "ID_TEXT_FRAME", wxTextCtrl );
@@ -164,10 +152,6 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_checkDisplayVector  = XRCCTRL( *this, "ID_CHECKBOX_DISPLAY_VECTOR", wxCheckBox );
   m_checkDisplayTensor  = XRCCTRL( *this, "ID_CHECKBOX_DISPLAY_TENSOR", wxCheckBox );
   m_choiceInversion     = XRCCTRL( *this, "ID_CHOICE_INVERSION", wxChoice );
-  m_sliderGrayScaleMin  = XRCCTRL( *this, "ID_SLIDER_GRAYSCALE_MIN", wxSlider );
-  m_sliderGrayScaleMax  = XRCCTRL( *this, "ID_SLIDER_GRAYSCALE_MAX", wxSlider );
-  m_textGrayScaleMin    = XRCCTRL( *this, "ID_TEXT_GRAYSCALE_MIN", wxTextCtrl );
-  m_textGrayScaleMax    = XRCCTRL( *this, "ID_TEXT_GRAYSCALE_MAX", wxTextCtrl );
   m_choiceRepresentation  = XRCCTRL( *this, "ID_CHOICE_REPRESENTATION", wxChoice );
   m_choiceMask          = XRCCTRL( *this, "ID_CHOICE_MASK", wxChoice );
   m_checkHeatScaleClearHigh = XRCCTRL( *this, "ID_CHECKBOX_HEATSCALE_CLEAR_HIGH", wxCheckBox );
@@ -204,39 +188,27 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistGrayScale.push_back( m_checkClearBackground );
   m_widgetlistGrayScale.push_back( XRCCTRL( *this, "ID_STATIC_WINDOW",        wxStaticText ) );
   m_widgetlistGrayScale.push_back( XRCCTRL( *this, "ID_STATIC_LEVEL",         wxStaticText ) );
-  m_widgetlistGrayScale.push_back( XRCCTRL( *this, "ID_STATIC_GRAYSCALE_MIN", wxStaticText ) );
-  m_widgetlistGrayScale.push_back( XRCCTRL( *this, "ID_STATIC_GRAYSCALE_MAX", wxStaticText ) );
   m_widgetlistGrayScale.push_back( m_textWindow );
   m_widgetlistGrayScale.push_back( m_textLevel );
-  m_widgetlistGrayScale.push_back( m_textGrayScaleMin );
-  m_widgetlistGrayScale.push_back( m_textGrayScaleMax );
   m_widgetlistGrayScale.push_back( m_sliderWindow );
   m_widgetlistGrayScale.push_back( m_sliderLevel );
-  m_widgetlistGrayScale.push_back( m_sliderGrayScaleMin );
-  m_widgetlistGrayScale.push_back( m_sliderGrayScaleMax );
 
-  m_widgetlistHeatScale.push_back( m_textHeatScaleMin );
   m_widgetlistHeatScale.push_back( m_textHeatScaleMid );
-  m_widgetlistHeatScale.push_back( m_textHeatScaleMax );
   m_widgetlistHeatScale.push_back( m_textHeatScaleOffset );
-  m_widgetlistHeatScale.push_back( m_sliderHeatScaleMin );
   m_widgetlistHeatScale.push_back( m_sliderHeatScaleMid );
-  m_widgetlistHeatScale.push_back( m_sliderHeatScaleMax );
   m_widgetlistHeatScale.push_back( m_sliderHeatScaleOffset );
   m_widgetlistHeatScale.push_back( m_checkHeatScaleClearHigh );
   m_widgetlistHeatScale.push_back( m_checkHeatScaleTruncate );
   m_widgetlistHeatScale.push_back( m_checkHeatScaleInvert );
-  m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MIN",     wxStaticText ) );
   m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MID",     wxStaticText ) );
-  m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_MAX",     wxStaticText ) );
   m_widgetlistHeatScale.push_back( XRCCTRL( *this, "ID_STATIC_HEATSCALE_OFFSET",  wxStaticText ) );
 
-  m_widgetlistJetScale.push_back( m_textJetScaleMin );
-  m_widgetlistJetScale.push_back( m_textJetScaleMax );
-  m_widgetlistJetScale.push_back( m_sliderJetScaleMin );
-  m_widgetlistJetScale.push_back( m_sliderJetScaleMax );
-  m_widgetlistJetScale.push_back( XRCCTRL( *this, "ID_STATIC_JETSCALE_MIN", wxStaticText ) );
-  m_widgetlistJetScale.push_back( XRCCTRL( *this, "ID_STATIC_JETSCALE_MAX", wxStaticText ) );
+  m_widgetlistGenericColorMap.push_back( m_textColorMapMin );
+  m_widgetlistGenericColorMap.push_back( m_textColorMapMax );
+  m_widgetlistGenericColorMap.push_back( m_sliderColorMapMin );
+  m_widgetlistGenericColorMap.push_back( m_sliderColorMapMax );
+  m_widgetlistGenericColorMap.push_back( XRCCTRL( *this, "ID_STATIC_COLORMAP_MIN", wxStaticText ) );
+  m_widgetlistGenericColorMap.push_back( XRCCTRL( *this, "ID_STATIC_COLORMAP_MAX", wxStaticText ) );
 
   m_widgetlistLUT.push_back( m_listColorTable );
   m_widgetlistLUT.push_back( m_colorIndicator );
@@ -282,8 +254,8 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
     m_widgetlistNormalDisplay.push_back( m_widgetlistGrayScale[i] ); 
   for ( size_t i = 0; i < m_widgetlistHeatScale.size(); i++ )
     m_widgetlistNormalDisplay.push_back( m_widgetlistHeatScale[i] );
-  for ( size_t i = 0; i < m_widgetlistJetScale.size(); i++ )
-    m_widgetlistNormalDisplay.push_back( m_widgetlistJetScale[i] );
+  for ( size_t i = 0; i < m_widgetlistGenericColorMap.size(); i++ )
+    m_widgetlistNormalDisplay.push_back( m_widgetlistGenericColorMap[i] );
   for ( size_t i = 0; i < m_widgetlistLUT.size(); i++ )
     m_widgetlistNormalDisplay.push_back( m_widgetlistLUT[i] );
   for ( size_t i = 0; i < m_widgetlistContour.size(); i++ )
@@ -531,7 +503,7 @@ void PanelVolume::OnChoiceColorMap( wxCommandEvent& event )
         COLOR_TABLE* ct = m_luts->GetColorTable( 0 );
         layer->GetProperties()->SetLUTCTAB( ct );
       }
-      layer->GetProperties()->SetColorMap( (LayerPropertiesMRI::ColorMapType)nColorMap );
+      layer->GetProperties()->SetColorMap( nColorMap );
     }
   }
   UpdateUI();
@@ -569,7 +541,6 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
     m_listColorTable->FitInside();
     int nTotalCount = 0;
     CTABgetNumberOfTotalEntries( ct, &nTotalCount );
-//    cout << nTotalCount << endl;
     int nValid = 0;
     char name[1000];
     int nSel = -1;
@@ -669,7 +640,7 @@ void PanelVolume::DoUpdateUI()
 	} 
 	
 	LayerMRI* layer = NULL;
-	LayerPropertiesMRI::ColorMapType nColorMap = LayerPropertiesMRI::NoColorMap;
+	int nColorMap = LayerPropertiesMRI::NoColorMap;
 	if ( bHasVolume )
 	{
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
@@ -678,6 +649,7 @@ void PanelVolume::DoUpdateUI()
 		layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
 		if ( layer )
 		{
+      nColorMap = layer->GetProperties()->GetColorMap();
 			m_listBoxLayers->Check( m_listBoxLayers->GetSelection(), layer->IsVisible() );
 			m_sliderOpacity->SetValue( (int)( layer->GetProperties()->GetOpacity() * 100 ) );
 			UpdateTextValue( m_textOpacity, layer->GetProperties()->GetOpacity() );
@@ -704,18 +676,33 @@ void PanelVolume::DoUpdateUI()
       double dlevel  = layer->GetProperties()->GetLevel();	
 			UpdateTextValue( m_textWindow, dwindow );
       UpdateTextValue( m_textLevel,  dlevel );
-      UpdateTextValue( m_textGrayScaleMin, dlevel - dwindow/2 );
-      UpdateTextValue( m_textGrayScaleMax, dlevel + dwindow/2 );
-			double* windowrange = layer->GetProperties()->GetWindowRange();
-			double* levelrange = layer->GetProperties()->GetLevelRange();
-			m_sliderWindow->SetValue( (int)( ( layer->GetProperties()->GetWindow() - windowrange[0] ) / ( windowrange[1] - windowrange[0] ) * 100 ) );
-			m_sliderLevel->SetValue( (int)( ( layer->GetProperties()->GetLevel() - levelrange[0] ) / ( levelrange[1] - levelrange[0] ) * 100 ) );
+      double dMinTh = dlevel - dwindow/2;
+      double dMaxTh = dlevel + dwindow/2;
       double dminvalue = layer->GetProperties()->GetMinValue();
       double dmaxvalue = layer->GetProperties()->GetMaxValue();
       double range_min = dminvalue - (dmaxvalue-dminvalue)/4;
       double range_max = dmaxvalue + (dmaxvalue-dminvalue)/4;
-      m_sliderGrayScaleMin->SetValue( (int)( ( dlevel - dwindow/2 - range_min ) / ( range_max - range_min ) * 100 ) );
-      m_sliderGrayScaleMax->SetValue( (int)( ( dlevel + dwindow/2 - range_min ) / ( range_max - range_min ) * 100 ) );
+      if ( nColorMap == LayerPropertiesMRI::Heat )
+      {
+        dMinTh = layer->GetProperties()->GetHeatScaleMinThreshold();
+        dMaxTh = layer->GetProperties()->GetHeatScaleMaxThreshold();
+        range_min = dminvalue;
+        range_max = dmaxvalue;
+      }
+      else if ( nColorMap != LayerPropertiesMRI::Grayscale && nColorMap != LayerPropertiesMRI::LUT)
+      {
+        dMinTh = layer->GetProperties()->GetMinGenericThreshold();
+        dMaxTh = layer->GetProperties()->GetMaxGenericThreshold();
+      }
+			double* windowrange = layer->GetProperties()->GetWindowRange();
+			double* levelrange = layer->GetProperties()->GetLevelRange();
+			m_sliderWindow->SetValue( (int)( ( dwindow - windowrange[0] ) / ( windowrange[1] - windowrange[0] ) * 100 ) );
+			m_sliderLevel->SetValue( (int)( ( dlevel - levelrange[0] ) / ( levelrange[1] - levelrange[0] ) * 100 ) );
+             
+      UpdateTextValue( m_textColorMapMin, dMinTh );
+      UpdateTextValue( m_textColorMapMax, dMaxTh );
+      m_sliderColorMapMin->SetValue( (int)( ( dMinTh - range_min ) / ( range_max - range_min ) * 100 ) );
+      m_sliderColorMapMax->SetValue( (int)( ( dMaxTh - range_min ) / ( range_max - range_min ) * 100 ) );
       
 			if ( layer->IsTypeOf( "DTI" ) )
         m_textFileName->ChangeValue( wxString::FromAscii( ((LayerDTI*)layer)->GetVectorFileName() ) );
@@ -724,31 +711,18 @@ void PanelVolume::DoUpdateUI()
 			m_textFileName->SetInsertionPointEnd();
 			m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
 			
-			double fMin = layer->GetProperties()->GetMinValue();
-			double fMax = layer->GetProperties()->GetMaxValue();
-			m_sliderHeatScaleMin->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleMinThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
-			m_sliderHeatScaleMid->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleMidThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
-			m_sliderHeatScaleMax->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleMaxThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
-			m_sliderHeatScaleOffset->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleOffset() + fMax ) / ( fMax + fMax ) * 100 ) );
-			UpdateTextValue( m_textHeatScaleMin, layer->GetProperties()->GetHeatScaleMinThreshold() );
+      m_sliderHeatScaleMid->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleMidThreshold() - range_min ) / 
+          ( range_max - range_min ) * 100 ) );
+      m_sliderHeatScaleOffset->SetValue( (int)( ( layer->GetProperties()->GetHeatScaleOffset() + range_max ) / 
+          ( range_max + range_max ) * 100 ) );
 			UpdateTextValue( m_textHeatScaleMid, layer->GetProperties()->GetHeatScaleMidThreshold() );
-			UpdateTextValue( m_textHeatScaleMax, layer->GetProperties()->GetHeatScaleMaxThreshold() );
       UpdateTextValue( m_textHeatScaleOffset, layer->GetProperties()->GetHeatScaleOffset() );
       m_checkHeatScaleClearHigh->SetValue( layer->GetProperties()->GetHeatScaleClearHigh() );
       m_checkHeatScaleTruncate->SetValue( layer->GetProperties()->GetHeatScaleTruncate() );
       m_checkHeatScaleInvert->SetValue( layer->GetProperties()->GetHeatScaleInvert() );
-			
-			double fJetMin = fMin - (fMax-fMin)/4;
-			double fJetMax = fMax + (fMax-fMin)/4;
-			m_sliderJetScaleMin->SetValue( (int)( ( layer->GetProperties()->GetMinJetScaleWindow() - fJetMin ) / ( fJetMax - fJetMin ) * 100 ) );
-			m_sliderJetScaleMax->SetValue( (int)( ( layer->GetProperties()->GetMaxJetScaleWindow() - fJetMin ) / ( fJetMax - fJetMin ) * 100 ) );
-			UpdateTextValue( m_textJetScaleMin, layer->GetProperties()->GetMinJetScaleWindow() );
-			UpdateTextValue( m_textJetScaleMax, layer->GetProperties()->GetMaxJetScaleWindow() );
-					
+						
 			m_choiceColorMap->Clear();
       m_choiceColorMap->Append( _("Grayscale"), (void*)LayerPropertiesMRI::Grayscale );
-      m_choiceColorMap->Append( _("Heat"), (void*)LayerPropertiesMRI::Heat );
-      m_choiceColorMap->Append( _("Jet"), (void*)LayerPropertiesMRI::Jet );
 			if ( layer->IsTypeOf( "DTI" ) )
 			{
         m_choiceColorMap->Append( _("Direction-coded"), (void*)LayerPropertiesMRI::DirectionCoded );
@@ -759,7 +733,10 @@ void PanelVolume::DoUpdateUI()
         m_choiceColorMap->Append( _("Lookup Table"), (void*)LayerPropertiesMRI::LUT );		
 			}
 
-			nColorMap = layer->GetProperties()->GetColorMap();
+      m_choiceColorMap->Append( _("Heat"), (void*)LayerPropertiesMRI::Heat );
+      m_choiceColorMap->Append( _("Jet"), (void*)LayerPropertiesMRI::Jet );
+      m_choiceColorMap->Append( _("GE Color"), (void*)LayerPropertiesMRI::GEColor );
+      m_choiceColorMap->Append( _("NIH"), (void*)LayerPropertiesMRI::NIH );
 			for ( int i = 0; i < (int)m_choiceColorMap->GetCount(); i++ )
 			{
 				if ( (void*)m_choiceColorMap->GetClientData( i ) == (void*)nColorMap )
@@ -776,8 +753,8 @@ void PanelVolume::DoUpdateUI()
 			UpdateTextValue( m_textFrame, layer->GetActiveFrame() + 1 );
 			
 			m_checkContour->SetValue( layer->GetProperties()->GetShowAsContour() );
-			m_sliderContourMin->SetValue( (int)( ( layer->GetProperties()->GetContourMinThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
-			m_sliderContourMax->SetValue( (int)( ( layer->GetProperties()->GetContourMaxThreshold() - fMin ) / ( fMax - fMin ) * 100 ) );
+      m_sliderContourMin->SetValue( (int)( ( layer->GetProperties()->GetContourMinThreshold() - dminvalue ) / ( dmaxvalue - dminvalue ) * 100 ) );
+      m_sliderContourMax->SetValue( (int)( ( layer->GetProperties()->GetContourMaxThreshold() - dminvalue ) / ( dmaxvalue - dminvalue ) * 100 ) );
 			UpdateTextValue( m_textContourMin, layer->GetProperties()->GetContourMinThreshold() );
 			UpdateTextValue( m_textContourMax, layer->GetProperties()->GetContourMaxThreshold() );
       m_checkUseImageColorMap->SetValue( layer->GetProperties()->GetContourUseImageColorMap() );
@@ -818,7 +795,8 @@ void PanelVolume::DoUpdateUI()
   {
     ShowWidgets( m_widgetlistGrayScale, layer && nColorMap == LayerPropertiesMRI::Grayscale );
     ShowWidgets( m_widgetlistHeatScale, layer && nColorMap == LayerPropertiesMRI::Heat );
-    ShowWidgets( m_widgetlistJetScale, layer && nColorMap == LayerPropertiesMRI::Jet );
+    ShowWidgets( m_widgetlistGenericColorMap, layer && nColorMap != LayerPropertiesMRI::LUT && 
+                                              nColorMap != LayerPropertiesMRI::DirectionCoded );
     ShowWidgets( m_widgetlistLUT, layer && nColorMap == LayerPropertiesMRI::LUT );
     ShowWidgets( m_widgetlistDirectionCode, layer && nColorMap == LayerPropertiesMRI::DirectionCoded );
     ShowWidgets( m_widgetlistEditable, layer && layer->IsEditable() );
@@ -1010,15 +988,50 @@ void PanelVolume::OnInternalIdle()
 }
 
 
-void PanelVolume::OnTextHeatScaleMinChanged( wxCommandEvent& event )
+void PanelVolume::OnTextColorMapMinChanged( wxCommandEvent& event )
 {
   double dvalue;
-  if ( m_textHeatScaleMin->GetValue().ToDouble( &dvalue ) )
+  if ( m_textColorMapMin->GetValue().ToDouble( &dvalue ) )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer && layer->GetProperties()->GetHeatScaleMinThreshold() != dvalue )
+    if ( layer )
     {
-      layer->GetProperties()->SetHeatScaleMinThreshold( dvalue );
+      switch ( layer->GetProperties()->GetColorMap() )
+      {
+        case LayerPropertiesMRI::Grayscale:
+          layer->GetProperties()->SetMinGrayscaleWindow( dvalue );
+          break;
+        case LayerPropertiesMRI::Heat:
+          layer->GetProperties()->SetHeatScaleMinThreshold( dvalue );
+          break;
+        default:
+          layer->GetProperties()->SetMinGenericThreshold( dvalue );
+          break;
+      }
+    }
+  }
+}
+
+void PanelVolume::OnTextColorMapMaxChanged( wxCommandEvent& event )
+{
+  double dvalue;
+  if ( m_textColorMapMax->GetValue().ToDouble( &dvalue ) )
+  {
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      switch ( layer->GetProperties()->GetColorMap() )
+      {
+        case LayerPropertiesMRI::Grayscale:
+          layer->GetProperties()->SetMaxGrayscaleWindow( dvalue );
+          break;
+        case LayerPropertiesMRI::Heat:
+          layer->GetProperties()->SetHeatScaleMaxThreshold( dvalue );
+          break;
+        default:
+          layer->GetProperties()->SetMaxGenericThreshold( dvalue );
+          break;
+      }
     }
   }
 }
@@ -1036,19 +1049,6 @@ void PanelVolume::OnTextHeatScaleMidChanged( wxCommandEvent& event )
   }
 }
 
-void PanelVolume::OnTextHeatScaleMaxChanged( wxCommandEvent& event )
-{
-  double dvalue;
-  if ( m_textHeatScaleMax->GetValue().ToDouble( &dvalue ) )
-  {
-    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer && layer->GetProperties()->GetHeatScaleMaxThreshold() != dvalue )
-    {
-      layer->GetProperties()->SetHeatScaleMaxThreshold( dvalue );
-    }
-  }
-}
-
 void PanelVolume::OnTextHeatScaleOffsetChanged( wxCommandEvent& event )
 {
   double dvalue;
@@ -1062,14 +1062,58 @@ void PanelVolume::OnTextHeatScaleOffsetChanged( wxCommandEvent& event )
   }
 }
 
-void PanelVolume::OnSliderHeatScaleMinChanged( wxScrollEvent& event )
+void PanelVolume::OnSliderColorMapMinChanged( wxScrollEvent& event )
 {
   LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
   if ( layer )
   {
     double fMin = layer->GetProperties()->GetMinValue();
     double fMax = layer->GetProperties()->GetMaxValue();
-    layer->GetProperties()->SetHeatScaleMinThreshold( (double)m_sliderHeatScaleMin->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    double fScaleMin = fMin - (fMax-fMin)/4;
+    double fScaleMax = fMax + (fMax-fMin)/4;
+    switch ( layer->GetProperties()->GetColorMap() )
+    {
+      case LayerPropertiesMRI::Grayscale:
+        layer->GetProperties()->SetMinGrayscaleWindow( (double)m_sliderColorMapMin->GetValue() / 
+            100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
+        break;
+      case LayerPropertiesMRI::Heat:       
+        layer->GetProperties()->SetHeatScaleMinThreshold( (double)m_sliderColorMapMin->GetValue() / 
+            100.0 * ( fMax - fMin ) + fMin );
+        break;
+      default:
+        layer->GetProperties()->SetMinGenericThreshold( (double)m_sliderColorMapMin->GetValue() / 
+            100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
+        break;
+    }
+  }
+}
+
+
+void PanelVolume::OnSliderColorMapMaxChanged( wxScrollEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    double fMin = layer->GetProperties()->GetMinValue();
+    double fMax = layer->GetProperties()->GetMaxValue();
+    double fScaleMin = fMin - (fMax-fMin)/4;
+    double fScaleMax = fMax + (fMax-fMin)/4;
+    switch ( layer->GetProperties()->GetColorMap() )
+    {
+      case LayerPropertiesMRI::Grayscale:
+        layer->GetProperties()->SetMaxGrayscaleWindow( (double)m_sliderColorMapMax->GetValue() / 
+            100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
+        break;
+      case LayerPropertiesMRI::Heat:       
+        layer->GetProperties()->SetHeatScaleMaxThreshold( (double)m_sliderColorMapMax->GetValue() / 
+            100.0 * ( fMax - fMin ) + fMin );
+        break;
+      default:
+        layer->GetProperties()->SetMaxGenericThreshold( (double)m_sliderColorMapMax->GetValue() / 
+            100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
+        break;
+    }
   }
 }
 
@@ -1084,16 +1128,6 @@ void PanelVolume::OnSliderHeatScaleMidChanged( wxScrollEvent& event )
   }
 }
 
-void PanelVolume::OnSliderHeatScaleMaxChanged( wxScrollEvent& event )
-{
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
-  {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    layer->GetProperties()->SetHeatScaleMaxThreshold( (double)m_sliderHeatScaleMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
-  }
-}
 
 void PanelVolume::OnSliderHeatScaleOffsetChanged( wxScrollEvent& event )
 {
@@ -1103,58 +1137,6 @@ void PanelVolume::OnSliderHeatScaleOffsetChanged( wxScrollEvent& event )
     // double fMin = layer->GetProperties()->GetMinValue();
     double fMax = layer->GetProperties()->GetMaxValue();
     layer->GetProperties()->SetHeatScaleOffset( (double)m_sliderHeatScaleOffset->GetValue() / 100.0 * ( fMax + fMax ) - fMax );
-  }
-}
-
-void PanelVolume::OnTextMinJetScaleChanged( wxCommandEvent& event )
-{
-  double dvalue;
-  if ( m_textJetScaleMin->GetValue().ToDouble( &dvalue ) )
-  {
-    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer && layer->GetProperties()->GetMinJetScaleWindow() != dvalue )
-    {
-      layer->GetProperties()->SetMinJetScaleWindow( dvalue );
-    }
-  }
-}
-
-void PanelVolume::OnTextMaxJetScaleChanged( wxCommandEvent& event )
-{
-  double dvalue;
-  if ( m_textJetScaleMax->GetValue().ToDouble( &dvalue ) )
-  {
-    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer && layer->GetProperties()->GetMaxJetScaleWindow() != dvalue )
-    {
-      layer->GetProperties()->SetMaxJetScaleWindow( dvalue );
-    }
-  }
-}
-
-void PanelVolume::OnSliderMinJetScaleChanged( wxScrollEvent& event )
-{
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
-  {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    double fJetMin = fMin - (fMax-fMin)/4;
-    double fJetMax = fMax + (fMax-fMin)/4;
-    layer->GetProperties()->SetMinJetScaleWindow( (double)m_sliderJetScaleMin->GetValue() / 100.0 * ( fJetMax - fJetMin ) + fJetMin );
-  }
-}
-
-void PanelVolume::OnSliderMaxJetScaleChanged( wxScrollEvent& event )
-{
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
-  {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    double fJetMin = fMin - (fMax-fMin)/4;
-    double fJetMax = fMax + (fMax-fMin)/4;
-    layer->GetProperties()->SetMaxJetScaleWindow( (double)m_sliderJetScaleMax->GetValue() / 100.0 * ( fJetMax - fJetMin ) + fJetMin );
   }
 }
 
@@ -1343,59 +1325,6 @@ void PanelVolume::OnSliderContourMaxChanging( wxScrollEvent& event )
     double fMin = layer->GetProperties()->GetMinValue();
     double fMax = layer->GetProperties()->GetMaxValue();
     UpdateTextValue( m_textContourMax, (double)m_sliderContourMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
-  }
-}
-
-void PanelVolume::OnSliderGrayScaleMin( wxScrollEvent& event )
-{
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
-  {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    double fGrayScaleMin = fMin - (fMax-fMin)/4;
-    double fGrayScaleMax = fMax + (fMax-fMin)/4;
-    layer->GetProperties()->SetMinGrayscaleWindow( (double)m_sliderGrayScaleMin->GetValue() / 100.0 * ( fGrayScaleMax - fGrayScaleMin ) + fGrayScaleMin );
-  }
-}
-
-void PanelVolume::OnSliderGrayScaleMax( wxScrollEvent& event )
-{
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
-  {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    double fGrayScaleMin = fMin - (fMax-fMin)/4;
-    double fGrayScaleMax = fMax + (fMax-fMin)/4;
-    layer->GetProperties()->SetMaxGrayscaleWindow( (double)m_sliderGrayScaleMax->GetValue() / 100.0 * ( fGrayScaleMax - fGrayScaleMin ) + fGrayScaleMin );
-  }
-}
-
-void PanelVolume::OnTextGrayScaleMin( wxCommandEvent& event )
-{
-  double dvalue;
-  if ( m_textGrayScaleMin->GetValue().ToDouble( &dvalue ) )
-  {
-    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer )
-    {
-      layer->GetProperties()->SetMinGrayscaleWindow( dvalue );
-    }
-  }
-}
-
-
-void PanelVolume::OnTextGrayScaleMax( wxCommandEvent& event )
-{
-  double dvalue;
-  if ( m_textGrayScaleMax->GetValue().ToDouble( &dvalue ) )
-  {
-    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer )
-    {
-      layer->GetProperties()->SetMaxGrayscaleWindow( dvalue );
-    }
   }
 }
 

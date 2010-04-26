@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/18 18:23:33 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/04/26 17:30:57 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -544,14 +544,14 @@ void RenderView2D::StopSelection()
     {
       switch ( layer->GetProperties()->GetColorMap() )
       {
+        case LayerPropertiesMRI::Grayscale:   
+          layer->GetProperties()->SetMinMaxGrayscaleWindow( range[0], range[1] );
+          break;
         case LayerPropertiesMRI::Heat:
           layer->GetProperties()->SetHeatScale( range[0], (range[1]-range[0])/2, range[1] );
           break;
-        case LayerPropertiesMRI::Jet:
-          layer->GetProperties()->SetMinMaxJetScaleWindow( range[0], range[1] );
-          break;
-        default:   
-          layer->GetProperties()->SetMinMaxGrayscaleWindow( range[0], range[1] );
+        default:
+          layer->GetProperties()->SetMinMaxGenericThreshold( range[0], range[1] );
           break;
       }
     }

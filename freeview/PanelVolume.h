@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/18 18:23:33 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/04/26 17:30:57 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -89,18 +89,14 @@ private:
   void OnTextLevelChanged       ( wxCommandEvent& event );
   void OnSliderWindowChanged    ( wxScrollEvent& event );
   void OnSliderLevelChanged     ( wxScrollEvent& event );
-  void OnTextHeatScaleMinChanged      ( wxCommandEvent& event );
+  void OnTextColorMapMinChanged       ( wxCommandEvent& event );
+  void OnTextColorMapMaxChanged       ( wxCommandEvent& event );
   void OnTextHeatScaleMidChanged      ( wxCommandEvent& event );
-  void OnTextHeatScaleMaxChanged      ( wxCommandEvent& event );
   void OnTextHeatScaleOffsetChanged   ( wxCommandEvent& event );
-  void OnSliderHeatScaleMinChanged    ( wxScrollEvent& event );
+  void OnSliderColorMapMinChanged     ( wxScrollEvent& event );
+  void OnSliderColorMapMaxChanged     ( wxScrollEvent& event );
   void OnSliderHeatScaleMidChanged    ( wxScrollEvent& event );
-  void OnSliderHeatScaleMaxChanged    ( wxScrollEvent& event );
   void OnSliderHeatScaleOffsetChanged ( wxScrollEvent& event );
-  void OnTextMinJetScaleChanged       ( wxCommandEvent& event );
-  void OnTextMaxJetScaleChanged       ( wxCommandEvent& event );
-  void OnSliderMinJetScaleChanged     ( wxScrollEvent& event );
-  void OnSliderMaxJetScaleChanged     ( wxScrollEvent& event );
   void OnCheckUpsample                ( wxCommandEvent& event );
   void OnCheckSmooth                  ( wxCommandEvent& event );
   void OnChoiceDirectionCode          ( wxCommandEvent& event );
@@ -114,11 +110,6 @@ private:
   void OnCheckDisplayTensor           ( wxCommandEvent& event );
   void OnChoiceInversion              ( wxCommandEvent& event );
   void OnChoiceRepresentation         ( wxCommandEvent& event );
-
-  void OnTextGrayScaleMin       ( wxCommandEvent& event );
-  void OnTextGrayScaleMax       ( wxCommandEvent& event );
-  void OnSliderGrayScaleMin     ( wxScrollEvent& event );
-  void OnSliderGrayScaleMax     ( wxScrollEvent& event );
   
   void OnCheckShowLabelOutline  ( wxCommandEvent& event );
   void OnChoiceUpSampleMethod   ( wxCommandEvent& event );
@@ -159,26 +150,18 @@ private:
   wxTextCtrl*     m_textLevel;
   wxSlider*       m_sliderWindow;
   wxSlider*       m_sliderLevel;
-  wxTextCtrl*     m_textGrayScaleMin;
-  wxTextCtrl*     m_textGrayScaleMax;
-  wxSlider*       m_sliderGrayScaleMin;
-  wxSlider*       m_sliderGrayScaleMax;
   wxTextCtrl*     m_textFileName;
-  wxSlider*       m_sliderHeatScaleMin;
+  wxSlider*       m_sliderColorMapMin;
+  wxSlider*       m_sliderColorMapMax;
   wxSlider*       m_sliderHeatScaleMid;
-  wxSlider*       m_sliderHeatScaleMax;
   wxSlider*       m_sliderHeatScaleOffset;
   wxCheckBox*     m_checkHeatScaleClearHigh;
   wxCheckBox*     m_checkHeatScaleTruncate;
   wxCheckBox*     m_checkHeatScaleInvert;
-  wxTextCtrl*     m_textHeatScaleMin;
+  wxTextCtrl*     m_textColorMapMin;
+  wxTextCtrl*     m_textColorMapMax;
   wxTextCtrl*     m_textHeatScaleMid;
-  wxTextCtrl*     m_textHeatScaleMax;
   wxTextCtrl*     m_textHeatScaleOffset;
-  wxSlider*       m_sliderJetScaleMin;
-  wxSlider*       m_sliderJetScaleMax;
-  wxTextCtrl*     m_textJetScaleMin;
-  wxTextCtrl*     m_textJetScaleMax;
   wxCheckBox*     m_checkSmooth;
   wxCheckBox*     m_checkUpsample;
   wxChoice*       m_choiceDirectionCode;
@@ -207,7 +190,7 @@ private:
 
   std::vector<wxWindow*> m_widgetlistGrayScale;
   std::vector<wxWindow*> m_widgetlistHeatScale;
-  std::vector<wxWindow*> m_widgetlistJetScale;
+  std::vector<wxWindow*> m_widgetlistGenericColorMap;
   std::vector<wxWindow*> m_widgetlistLUT;
   std::vector<wxWindow*> m_widgetlistDirectionCode;
   std::vector<wxWindow*> m_widgetlistFrame;

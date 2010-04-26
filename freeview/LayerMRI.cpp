@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/07 19:27:41 $
- *    $Revision: 1.62 $
+ *    $Date: 2010/04/26 17:30:56 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -397,35 +397,10 @@ void LayerMRI::UpdateColorMap ()
   for ( int i = 0; i < 3; i++ )
     mColorMap[i]->SetActiveComponent( m_nActiveFrame );
 
-  switch ( GetProperties()->GetColorMap() )
-  {
-  case LayerPropertiesMRI::NoColorMap:
-    for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( NULL );
-    break;
-  case LayerPropertiesMRI::Grayscale:
-    for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( GetProperties()->GetGrayScaleTable() );
-    m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetGrayScaleTable() );
-    break;
-  case LayerPropertiesMRI::Heat:
-    for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( GetProperties()->GetHeatScaleTable() );
-    m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetHeatScaleTable() );
-    break;
-  case LayerPropertiesMRI::Jet:
-    for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( GetProperties()->GetJetScaleTable() );
-    m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetJetScaleTable() );
-    break;
-  case LayerPropertiesMRI::LUT:
-    for ( int i = 0; i < 3; i++ )
-      mColorMap[i]->SetLookupTable( GetProperties()->GetLUTTable() );
-    m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetLUTTable() );
-    break;
-  default:
-    break;
-  }
+  for ( int i = 0; i < 3; i++ )
+    mColorMap[i]->SetLookupTable( GetProperties()->GetActiveLookupTable() );
+  
+  m_actorContour->GetMapper()->SetLookupTable( GetProperties()->GetActiveLookupTable() );
 }
 
 void LayerMRI::UpdateResliceInterpolation ()
@@ -1512,7 +1487,7 @@ void LayerMRI::ResetWindowLevel()
   double range[2];
   m_imageData->GetScalarRange( range );
   GetProperties()->SetMinMaxGrayscaleWindow( range[0], range[1] ); 
-  GetProperties()->SetMinMaxJetScaleWindow( range[0], range[1] );
+  GetProperties()->SetMinMaxGenericThreshold( range[0], range[1] );
   GetProperties()->SetHeatScale( range[0], (range[0]+range[1])/2, range[1] );
 }
 
