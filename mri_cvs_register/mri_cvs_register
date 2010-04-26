@@ -10,7 +10,7 @@
 # Edited : 12-11-2009
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.2 2010/02/24 20:39:37 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.3 2010/04/26 16:02:27 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -66,8 +66,7 @@ setenv PATH {$PATH}:/usr/pubsw/packages/petsc/current/bin
 
 set voltype = norm
 set annotfile = aparc.annot
-#set cvsdir =  $FREESURFER_HOME/bin
-set cvsdir =  /autofs/space/erdos_001/users/lzollei/dev/mri_cvs_register
+set cvsdir =  $FREESURFER_HOME/bin
 set settingsfile = $cvsdir/set-mpi17-3.txt
 
 ### Creating outputdir
@@ -297,7 +296,7 @@ echo "mri_cvs_register Done" |& tee -a $LF
 echo " "
 
 echo "To check results, run:"
-echo "freeview -v $outdir/${nl_regresult:r}.mgz $tmri/norm.mgz $outdir/${combined:r}-${voltype}.mgz:colormap=lut $tmri/aseg.mgz:colormap=lut"
+echo "freeview -v $outdir/${nl_regresult:r}.mgz $tmri/norm.mgz $outdir/${combined:r}_${voltype}.mgz:colormap=lut $tmri/aseg.mgz:colormap=lut"
 echo " "
 
 exit 0;
