@@ -10,7 +10,7 @@
 # Edited : 12-11-2009
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.3 2010/04/26 16:02:27 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.4 2010/04/26 16:19:44 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -165,9 +165,14 @@ setenv OUTDIR $outdir
 set mmri = $SUBJECTS_DIR/$movingid/mri/
 set tmri = $SUBJECTS_DIR/$templateid/mri/
 
+grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
+source tmp.txt
+rm -f tmp.txt
+set elasticmorph = ${out_root}_to$templateid.tm3d
+
 ## Run the elastic registration
 # pushd $cvsdir
-if ! (-e $outdir/el_reg_to$templateid.tm3d) then
+if ! (-e $outdir/$elasticmorph) then
   set cmd = (perl $cvsdir/elastic_registration_CVS.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
@@ -176,12 +181,6 @@ endif
 # popd
 
 ## Apply results of elastic registration to aseg 
-
-grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
-source tmp.txt
-rm -f tmp.txt
-
-set elasticmorph = ${out_root}_to$templateid.tm3d
 
 if ($UseAseg) then 
   set voltype = aseg
