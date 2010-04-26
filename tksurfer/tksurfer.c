@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/22 21:02:54 $
- *    $Revision: 1.340 $
+ *    $Author: krish $
+ *    $Date: 2010/04/26 22:55:30 $
+ *    $Revision: 1.341 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1090,6 +1090,7 @@ void read_ellipsoid_vertex_coordinates(char *fname,float a,float b,float c) ;
 void find_orig_vertex_coordinates(int vindex) ;
 void select_talairach_point(int *vindex,float x_tal,float y_tal,float z_tal);
 void select_orig_vertex_coordinates(int *vindex) ;
+void print_nearest_vertex_to_talairach_point(float x_tal, float y_tal, float z_tal);
 void read_curvim_at_vertex(int vindex) ;
 int  write_binary_surface(char *fname) ;
 void write_binary_patch(char *fname) ;
@@ -8721,6 +8722,52 @@ select_orig_vertex_coordinates(int *vindex)
 
   print_vertex_data(*vindex, stdout, sqrt(mind)) ;
 }
+
+void
+print_nearest_vertex_to_talairach_point(float x_tal, float y_tal, float z_tal)
+{
+  float x,y,z;
+  int   k, vindex=-1;
+  float d=0;
+  float px=0.0,py=0.0,pz=0.0,mind;
+
+  if (!transform_loaded)
+  {
+    printf("surfer: ### select_talairach_point failed: transform not "
+           "loaded\n");
+    PR return;
+  }
+
+  conv_tal_to_ras(x_tal, y_tal, z_tal, &px, &py, &pz) ;
+
+  mind = 1e10;
+  if (origsurfloaded == FALSE)
+  {
+    printf("surfer: ### print_nearest_vertex_to_talairach_point failed: orig surf is not loaded\n");
+    PR return;
+  }
+  else
+  {
+    for (k=0;k<mris->nvertices;k++)
+    {
+      x = mris->vertices[k].origx ;
+      y = mris->vertices[k].origy ;
+      z = mris->vertices[k].origz ;
+      d = SQR(x-px)+SQR(y-py)+SQR(z-pz);
+      if (d<mind)
+      {
+        mind=d;
+        vindex=k ;
+      }
+    }
+  }
+
+  printf("surfer: vertex %d\n", vindex);
+  PR;
+}
+
+
+
 
 /* print curv,icurv,icurvnei,=>cfact */
 void
@@ -20248,6 +20295,12 @@ select_talairach_point(&selection,
                        atof(argv[1]),atof(argv[2]),atof(argv[3]));
 WEND
 
+int                  W_print_nearest_vertex_to_talairach_point  WBEGIN
+ERR(4,"Wrong # args: print_nearest_vertex_to_talairach_point <xtal> <ytal> <ztal>")
+print_nearest_vertex_to_talairach_point(
+                       atof(argv[1]),atof(argv[2]),atof(argv[3]));
+WEND
+
 int                  W_read_orig_vertex_coordinates  WBEGIN
 ERR(1,"Wrong # args: read_orig_vertex_coordinates")
 read_orig_vertex_coordinates(orfname);
@@ -21203,7 +21256,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.340 2010/03/22 21:02:54 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.341 2010/04/26 22:55:30 krish Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21756,6 +21809,8 @@ int main(int argc, char *argv[])   /* new main */
                     (Tcl_CmdProc*) W_select_orig_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "select_talairach_point",
                     (Tcl_CmdProc*) W_select_talairach_point, REND);
+  Tcl_CreateCommand(interp, "print_nearest_vertex_to_talairach_point",
+                    (Tcl_CmdProc*) W_print_nearest_vertex_to_talairach_point, REND);
   Tcl_CreateCommand(interp, "read_white_vertex_coordinates",
                     (Tcl_CmdProc*) W_read_white_vertex_coordinates, REND);
   Tcl_CreateCommand(interp, "read_pial_vertex_coordinates",
