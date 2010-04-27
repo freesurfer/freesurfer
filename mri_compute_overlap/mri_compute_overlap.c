@@ -1,15 +1,15 @@
 /**
  * @file  mri_compute_overlap.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief computing label overlap measures
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * Computing three label overlap measures: volume difference, Dice and Jaccard.
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Nick S.?
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2010/04/27 21:37:15 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/04/27 21:42:24 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -75,7 +75,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_compute_overlap.c,v 1.14 2010/04/27 21:37:15 lzollei Exp $",
+           "$Id: mri_compute_overlap.c,v 1.15 2010/04/27 21:42:24 lzollei Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
