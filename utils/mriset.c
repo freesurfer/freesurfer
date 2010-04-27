@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:45 $
- *    $Revision: 1.73 $
+ *    $Author: lzollei $
+ *    $Date: 2010/04/27 21:35:44 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -3024,7 +3024,7 @@ MRIcopyLabel(MRI *mri_src, MRI *mri_dst, int label)
   }
   return(nvox) ;
 }
-int
+/*int
 MRIlabelOverlap(MRI *mri1, MRI *mri2, int label)
 {
   int     width, height, depth, x, y, z, nvox ;
@@ -3044,9 +3044,65 @@ MRIlabelOverlap(MRI *mri1, MRI *mri2, int label)
       pbuf2 = &MRIvox(mri2, 0, y, z) ;
       for (x = 0 ; x < width ; x++, pbuf1++, pbuf2++)
       {
-        if (*pbuf1 == label && *pbuf2 == label)
-          nvox++ ;
+        if (nint(*pbuf1) == label && nint(*pbuf2) == label)
+          {
+	    nvox++ ;
+	  }
       }
+    }
+  }
+  return(nvox) ;
+}*/
+int
+MRIlabelOverlap(MRI *mri1, MRI *mri2, int label)
+{
+  int     width, height, depth, x, y, z, nvox ;
+  int val1, val2;
+
+  MRIcheckVolDims(mri1, mri2);
+
+  width = mri1->width ;
+  height = mri1->height ;
+  depth = mri1->depth ;
+
+  for (nvox = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+	{ 
+	  val1 = nint(MRIgetVoxVal(mri1, x, y, z, 0)) ;
+	  val2 = nint(MRIgetVoxVal(mri2, x, y, z, 0)) ;
+	  if ((val1 == label) && (val2 == label))
+	    nvox++ ;
+	}
+    }
+  }
+  return(nvox) ;
+}
+int
+MRIlabelUnion(MRI *mri1, MRI *mri2, int label)
+{
+  int     width, height, depth, x, y, z, nvox ;
+  int val1, val2;
+
+  MRIcheckVolDims(mri1, mri2);
+
+  width = mri1->width ;
+  height = mri1->height ;
+  depth = mri1->depth ;
+
+  for (nvox = z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+	{ 
+	  val1 = nint(MRIgetVoxVal(mri1, x, y, z, 0)) ;
+	  val2 = nint(MRIgetVoxVal(mri2, x, y, z, 0)) ;
+	  if ((val1 == label) || (val2 == label))
+	    nvox++ ;
+	}
     }
   }
   return(nvox) ;
