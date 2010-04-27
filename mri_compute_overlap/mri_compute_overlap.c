@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:06 $
- *    $Revision: 1.13 $
+ *    $Author: lzollei $
+ *    $Date: 2010/04/27 21:37:15 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,6 +50,7 @@ static int get_option(int argc, char *argv[]) ;
 char *Progname ;
 static char *log_fname = NULL ;
 static void usage_exit(int code) ;
+static void print_help(void) ;
 
 static int quiet = 0 ;
 static int all_flag = 0 ;
@@ -63,17 +64,18 @@ int
 main(int argc, char *argv[]) {
   char   **av ;
   int    ac, nargs, lno, nshared, nvox1, nvox2, total_nvox1, total_nvox2,
-  total_nshared, nlabels, i ;
+    total_nshared, nlabels, i ;
   int          msec, minutes, seconds/*, wrong, total, correct*/ ;
   struct timeb start ;
   MRI    *mri1, *mri2 ;
   FILE   *log_fp ;
-  float  nvox_mean ;
+  float  nvox_mean, nunion, total_nunion ;
+  float tmp = 0.0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_compute_overlap.c,v 1.13 2006/12/29 02:09:06 nicks Exp $",
+           "$Id: mri_compute_overlap.c,v 1.14 2010/04/27 21:37:15 lzollei Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -111,7 +113,8 @@ main(int argc, char *argv[]) {
   }
 
   if (log_fname) {
-    log_fp = fopen(log_fname, "a+") ;
+    //log_fp = fopen(log_fname, "a+") ;
+    log_fp = fopen(log_fname, "w+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
                 Progname, log_fname) ;
@@ -136,30 +139,41 @@ main(int argc, char *argv[]) {
         continue ;
       nvox_mean = (float)(nvox1+nvox2)/2.0f ;
       nshared = MRIlabelOverlap(mri1, mri2, lno) ;
+      nunion  = (float)MRIlabelUnion(mri1, mri2, lno) ;
+      if (nunion > 0.0) tmp = (float)nshared/nunion;
+      else tmp = 0.0;
 
       if (isSeg) {
         printf
         ("label = %d (%s), volume diff = |(%d - %d)|"
-         " / %2.1f = %2.2f\n",
+         " / %2.1f (%%)= %2.2f%%\n",
          lno, cma_label_to_name(lno),
          nvox1, nvox2, nvox_mean,
          100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
         printf
-        ("label = %d (%s), volume overlap = "
-         "%d / %2.1f = %2.2f\n",
+        ("label = %d (%s), volume overlap (Dice) = "
+         "%d / %2.1f (%%)= %2.2f %%\n",
          lno, cma_label_to_name(lno), nshared, nvox_mean,
          100.0f*(float)nshared/nvox_mean) ;
+	printf
+	  ("label = %d (%s), volume overlap (Jaccard) = "
+	   "%d / %2.1f (%%)= %2.2f%%\n",
+	   lno, cma_label_to_name(lno), nshared, nunion,
+	   100.0f*tmp) ;
       } else {
-        printf("volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
+        printf("volume diff = |(%d - %d)| / %2.1f (%%)= %2.2f %%\n",
                nvox1, nvox2, nvox_mean,
                100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
-        printf("volume overlap = %d / %2.1f = %2.2f\n",
+        printf("volume overlap (Dice) = %d / %2.1f (%%)= %2.2f%%\n",
                nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
+	printf("volume overlap (Jaccard) = %d / %2.2f (%%)= %2.2f%%\n",
+	       nshared, nunion, 100.0f*tmp) ;
       }
       if (log_fp) {
-        fprintf(log_fp, "%d  %2.2f  %2.2f\n", lno,
+        fprintf(log_fp, "%d  %2.2f  %2.2f %2.2f\n", lno,
                 100.0f*(float)abs(nvox1-nvox2)/nvox_mean,
-                100.0f*(float)nshared/nvox_mean) ;
+                100.0f*(float)nshared/nvox_mean,
+		100.0f*(float)nshared/nunion) ;
       }
 #else
       nvox1 = MRIcopyLabel(mri1, mri1_label, lno) ;
@@ -181,9 +195,10 @@ main(int argc, char *argv[]) {
     if (log_fp)
       fclose(log_fp) ;
   } else {
-    nlabels = total_nvox1 = total_nvox2 = total_nshared = 0 ;
+    nlabels = total_nvox1 = total_nvox2 = total_nshared = 0;
+    total_nunion = 0 ;
     for (i = 3 ; i < argc ; i++) {
-      float volume_overlap, volume_diff ;
+      float volume_overlap, volume_diff, volume_overlap_jacc ;
 
       lno = atoi(argv[i]) ;
       // only counts number of lno label
@@ -192,32 +207,44 @@ main(int argc, char *argv[]) {
       nvox_mean = (float)(nvox1+nvox2)/2 ;
       // if both mri1 and mri2 has the same label, count it.
       nshared = MRIlabelOverlap(mri1, mri2, lno) ;
+      nunion  = MRIlabelUnion(mri1, mri2, lno) ;
       volume_diff = 100.0f*(float)abs(nvox1-nvox2)/nvox_mean ;
       volume_overlap = 100.0f*(float)nshared/nvox_mean ;
+      if(nunion>0.)
+	volume_overlap_jacc = 100.0f*(float)nshared/nunion ;
+      else
+	volume_overlap_jacc = 0.0 ;
       if (!quiet) {
-        printf("label %d: volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
-               lno,nvox1,nvox2,nvox_mean,
-               volume_diff);
-        printf("label %d: volume overlap = %d / %2.1f = %2.2f\n",
+        printf("label %d: volume diff = |(%d - %d)| / %2.1f (%%)= %2.2f%%\n",
+               lno,nvox1,nvox2,nvox_mean, volume_diff);
+        printf("label %d: volume overlap (Dice) = %d / %2.1f (%%)= %2.2f%%\n",
                lno, nshared, nvox_mean, volume_overlap) ;
+        printf("label %d: volume overlap (Jaccard) = %d / %2.1f (%%)= %2.2f%%\n",
+               lno, nshared, nunion, volume_overlap_jacc) ;
       }
       if (log_fp) {
-        fprintf(log_fp, "%2.2f  %2.2f\n", volume_diff, volume_overlap) ;
+        fprintf(log_fp, "%2.2f  %2.2f %2.2f\n", volume_diff, volume_overlap, volume_overlap_jacc) ;
         fclose(log_fp) ;
       }
       total_nvox1 += nvox1 ;
       total_nvox2 += nvox2 ;
       total_nshared += nshared ;
+      total_nunion += nunion ;
       nlabels++ ;
     }
     if (nlabels > 1) {
       nvox_mean = (total_nvox1 + total_nvox2) / 2 ;
-      printf("total: volume diff = |(%d - %d)| / %2.1f = %2.2f\n",
+      printf("total: volume diff = |(%d - %d)| / %2.1f (%%)= %2.2f%%\n",
              total_nvox1,total_nvox2,nvox_mean,
              100.0f*(float)abs(total_nvox1-total_nvox2)/nvox_mean);
-      printf("total: volume overlap = %d / %2.1f = %2.2f\n",
+      printf("total: volume overlap (Dice) = %d / %2.1f (%%) = %2.2f%%\n",
              total_nshared, nvox_mean,
              100.0f*(float)total_nshared/nvox_mean) ;
+      if (total_nunion>0.0)
+	tmp = (float)total_nshared/total_nunion;
+      else tmp = 0.0;
+      printf("total: volume overlap (Jaccard) = %d / %2.1f (%%)= %2.2f%%\n",
+             total_nshared, total_nunion, 100.0f*tmp) ;
     }
   }
 
@@ -269,6 +296,9 @@ get_option(int argc, char *argv[]) {
     isSeg = 1;
     fprintf(stderr, "show segmentation label names\n");
     break;
+  case 'H':
+    print_help();
+    break;
   case '?':
   case 'U':
     usage_exit(0) ;
@@ -292,12 +322,28 @@ static void
 usage_exit(int code) {
   printf("usage: %s [options] <volume 1> <volume 2> [label numbers]\n",
          Progname) ;
-  printf(
-    "\t-a           - compute overlap of all lables\n"
-    "\t             if -a is not specified, then the label numbers\n"
-    "\t             to check should be listed at the end of cmd line\n"
-    "\t-s           - show label name for segmentation \n"
-    "\t-l <file>    - filename to write results\n"
-  );
+  
+  printf("\n") ;
+  printf("Options:\n") ;
+  printf("  -a compute overlap of all labels (if missing, labels of interest should be listed)\n");
+  printf("  -s show label name for segmentation\n");
+  printf("  -l <fname> filename to write results to\n");
+  printf("  -h print help\n");
+
   exit(code) ;
+}
+
+static void print_help(void) {
+  printf("\n");
+  printf("mri_compute_overlap\n");
+  printf("\n");
+  printf("Computes three different types of overlap measures either for all the existing labels\n");
+  printf("in the input volumes or a subset of them that the users lists in the command line. The\n");
+  printf("three overlap measures are the following: \n");
+  printf("(1) `volume difference` = 2*|A|-|B|/|A|+|B|\n");
+  printf("(2) `volume overlap (Dice)`    = 2*|AB|/|A|+|B|; the intersection over the mean of the segmentation volumes\n");
+  printf("(3) `volume overlap (Jaccard)` = |AB|/|A+B|; the intersection over the union of the segmentation volumes\n");
+  printf("\n");
+  printf("\n");
+  usage_exit(1) ;
 }
