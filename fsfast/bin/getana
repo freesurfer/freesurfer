@@ -1,0 +1,478 @@
+#! /bin/csh -f
+#
+# getana - get parameters from analysis created by mkanalysis-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2010/04/27 19:31:45 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: getana,v 1.1 2010/04/27 19:31:45 greve Exp $';
+
+set analysis = ();
+set tag = ();
+set tmpdir = ();
+set cleanup = 1;
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+switch ($tag)
+
+  case "mcstem":
+    set result = `cat $info | awk '{if($1 == "mcstem") print $2}'`
+    # should this include "none" when no stc is used?
+    breaksw;
+
+  case "stcstem":
+    set mcstem = `getana -a $analysis -t mcstem`
+    set stc = `getana -a $analysis -t stc`
+    if($stc == none) set result = $mcstem
+    if($stc != none) set result = $mcstem.$stc
+    
+    breaksw;
+
+  case "smstem":
+    set stcstem = `getana -a $analysis -t stcstem`
+    set fwhm   = `getana -a $analysis -t RawFWHM`
+    set result = $stcstem.sm$fwhm
+    breaksw;
+
+  case "funcstem":
+    set result = `cat $info | awk '{if($1 == "funcstem") print $2}'`
+    if($#result != 0) breaksw;
+    set smstem = `getana -a $analysis -t smstem`
+    set expkey  = `getana -a $analysis -t expkey`
+    if($#expkey) set expkey = ".$expkey"
+    set RawSpace  = `getana -a $analysis -t RawSpace`
+    if($RawSpace[1] == "surface") then
+      set subject = $RawSpace[2];
+      set hemi    = $RawSpace[3];
+      set funcstem = $smstem.$subject.$hemi$expkey
+    else if($RawSpace[2] == "mni305") then 
+      set res = $RawSpace[3];
+      set funcstem = $smstem.mni305.$res"mm"$expkey
+    else
+      set funcstem = $smstem
+    endif
+    set result = $funcstem;
+    breaksw;
+
+  case "fsd":
+    set result = `cat $info | awk '{if($1 == "fsd") print $2}'`
+    breaksw;
+
+  case "mask":
+    set result = `cat $info | awk '{if($1 == "mask") print $2}'`
+    breaksw;
+
+  case "rlf":
+  case "runlistfile":
+    set result = `cat $info | awk '{if($1 == "runlistfile") print $2}'`
+    breaksw;
+
+  case "TR":
+    set result = `cat $info | awk '{if($1 == "TR") print $2}'`
+    breaksw;
+
+  case "RawFWHM":
+    set result = `cat $info | awk '{if($1 == "RawFWHM") print $2}'`
+    breaksw;
+
+  case "RawSpace":
+    set result = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    breaksw;
+
+  case "issurface":
+  case "IsSurface":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    if($tmp[1] == surface) set result = 1;
+    if($tmp[1] != surface) set result = 0;
+    breaksw;
+
+  case "subject":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    if($tmp[1] != surface) then
+      echo "ERROR: $analysis is not surface-based"
+      exit 1;
+    endif
+    set result = $tmp[2];
+    breaksw;
+
+  case "hemi":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    if($tmp[1] != surface) then
+      echo "ERROR: $analysis is not surface-based"
+      exit 1;
+    endif
+    set result = $tmp[3];
+    breaksw;
+
+  case "res":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    if($tmp[2] != mni305) then
+      echo "ERROR: $analysis is not mni305-based"
+      exit 1;
+    endif
+    set result = $tmp[4];
+    breaksw;
+
+  case "IsMNI305":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    set result = 0;
+    if($tmp[2] == mni305) set result = 1;
+    breaksw;
+
+  case "IsPerRun":
+  case "IsNative":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    set result = 0;
+    if($tmp[2] == native) set result = 1;
+    breaksw;
+
+  case "IsPerSess":
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    set result = 0;
+    if($tmp[2] != native) set result = 1;
+    breaksw;
+
+  case "stc":
+  case "RawSTC":
+    set result = `cat $info | awk '{if($1 == "RawSTC") print $2}'`
+    breaksw;
+
+  case "expkey":
+  case "ExpKey":
+    set result = `cat $info | awk '{if($1 == "ExpKey") print $2}'`
+    breaksw;
+
+  case "inorm":
+    set result = `cat $info | awk '{if($1 == "inorm") print $2}'`
+    breaksw;
+
+  case "acfbins":
+    set result = `cat $info | awk '{if($1 == "acfbins") print $2}'`
+    breaksw;
+
+  case "fixacf":
+    set result = `cat $info | awk '{if($1 == "fixacf") print $2}'`
+    breaksw;
+
+  case "acffwhm":
+    set result = `cat $info | awk '{if($1 == "acffwhm") print $2}'`
+    breaksw;
+
+  case "acfsvd":
+    set result = `cat $info | awk '{if($1 == "acfsvd") print $2}'`
+    breaksw;
+
+  case "nskip":
+    set result = `cat $info | awk '{if($1 == "nskip") print $2}'`
+    breaksw;
+
+  case "hpf":
+  case "HPFCutoffHz":
+    set result = `cat $info | awk '{if($1 == "HPFCutoffHz") print $2}'`
+    breaksw;
+
+  case "dt":
+  case "designtype":
+    set result = `cat $info | awk '{if($1 == "designtype") print $2}'`
+    breaksw;
+
+  case "iser":
+  case "iseventrelated":
+  case "IsEventRelated":
+    set tmp = `cat $info | awk '{if($1 == "designtype") print $2}'`
+    if($tmp == event-related) set result = 1;
+    if($tmp != event-related) set result = 0;
+    breaksw;
+
+  case "nc"
+  case "nconditions"
+    set result = `cat $info | awk '{if($1 == "nconditions") print $2}'`
+    breaksw;
+
+  case "npercond"
+    set iser = `getana -a $analysis -t IsEventRelated`
+    if(! $iser) then
+      echo "Cannot get npercond for non-event-related/blocked analyses"
+      exit 1;
+    endif
+    set isfir = `getana -a $analysis -t IsFIR`
+    if($isfir) then
+      set TER = `getana -a $analysis -t TER`;
+      set TW  = `getana -a $analysis -t timewindow`;
+      set npercond = `echo $TW/$TER | bc `
+    else
+      set isgamma = `getana -a $analysis -t IsGamma`
+      if($isgamma) set npercond = 1
+      if(! $isgamma) then
+        set nspmhrf = `getana -a $analysis -t spmhrf`
+        @ npercond = $nspmhrf + 1
+      endif
+    endif
+    set result = $npercond
+    breaksw;
+
+  case "gamma"
+    set result = `cat $info | awk '{if($1 == "gamma") print $2" "$3" "$4}'`
+    breaksw;
+
+  case "spmhrf"
+    set result = `cat $info | awk '{if($1 == "spmhrf") print $2}'`
+    breaksw;
+
+  case "IsFIR"
+  case "isfir"
+    set result = 0;
+    set iser = `getana -a $analysis -t IsEventRelated`
+    if(! $iser) breaksw;
+    set isgamma  = `getana -a $analysis -t IsGamma`
+    set isspmhrf = `getana -a $analysis -t IsSPMHRF`
+    if(! $isgamma && ! $isspmhrf) set result = 1;
+    breaksw;
+
+  case "IsGamma"
+    set result = 0;
+    set tmp = `cat $info | awk '{if($1 == "designtype") print $2}'`
+    if($tmp != event-related) breaksw;
+    set gamma  = `cat $info | awk '{if($1 == "gamma") print $2}'`
+    if($#gamma) set result = 1;
+    breaksw;
+
+  case "IsSPMHRF"
+    set result = 0;
+    set tmp = `cat $info | awk '{if($1 == "designtype") print $2}'`
+    if($tmp != event-related) breaksw;
+    set spmhrf = `cat $info | awk '{if($1 == "spmhrf") print $2}'`
+    if($#spmhrf) set result = 1;
+    breaksw;
+
+  case "timewindow"
+    set result = `cat $info | awk '{if($1 == "timewindow") print $2}'`
+    breaksw;
+
+  case "prestim"
+    set result = `cat $info | awk '{if($1 == "prestim") print $2}'`
+    breaksw;
+
+  case "ter"
+  case "TER"
+    set result = `cat $info | awk '{if($1 == "TER") print $2}'`
+    breaksw;
+
+  case "red"
+  case "refeventdur"
+  case "RefEventDur"
+    set result = `cat $info | awk '{if($1 == "RefEventDur") print $2}'`
+    breaksw;
+
+  case "isret":
+  case "isretinotopy":
+  case "IsRetinotopy":
+    set tmp = `cat $info | awk '{if($1 == "designtype") print $2}'`
+    if($tmp == retinotopy) set result = 1;
+    if($tmp != retinotopy) set result = 0;
+    breaksw;
+
+  case "isab":
+  case "isabblocked":
+  case "IsABBlocked":
+    set tmp = `cat $info | awk '{if($1 == "designtype") print $2}'`
+    if($tmp == abblocked) set result = 1;
+    if($tmp != abblocked) set result = 0;
+    breaksw;
+
+  case "period":
+    set result = `cat $info | awk '{if($1 == "period") print $2}'`
+    breaksw;
+
+  case "taskreg":
+    set result = (`cat $info | awk '{if($1 == "taskreg") print $2}'`)
+    breaksw;
+
+  case "nuisreg":
+    set result = (`cat $info | awk '{if($1 == "nuisreg") print $2}'`)
+    breaksw;
+
+  case "contrasts":
+    set contrasts = ();
+    set matfiles = (`find $analysis -name "*.mat"`);
+    foreach matfile ($matfiles)
+      set contrasts = ($contrasts `basename $matfile .mat`); # strip .mat
+    end
+    set taskregList = (`cat $info | awk '{if($1 == "taskreg") print $2}'`)
+    foreach taskreg ($taskregList)
+      set contrasts = ($contrasts `basename $taskreg .dat`); # strip any .dat
+    end
+    set dt = `getana -a $analysis -t designtype`
+    if($dt == retinotopy) set contrasts = (eccen polar $contrasts)
+    if($dt == abblocked)  set contrasts = (fund $contrasts)
+    set result = ($contrasts);
+    breaksw;
+
+  default:
+    echo "ERROR: tag $tag not recognized"
+    exit 1;
+    breaksw;
+
+endsw
+
+echo $result
+
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+      if($#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-t":
+      if($#argv < 1) goto arg1err;
+      set tag = $argv[1]; shift;
+      breaksw
+
+    case "-tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "-nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "-cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#tag == 0) then
+  echo "ERROR: must spec tag"
+  exit 1;
+endif
+if($#analysis == 0) then
+  echo "ERROR: must spec analysis"
+  exit 1;
+endif
+if(! -e $analysis) then
+  echo "ERROR: cannot find $analysis"
+  exit 1;
+endif
+set info = $analysis/analysis.info
+if(! -e $info) then
+  echo "ERROR: cannot find $info"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "getana -a analysis -t tag"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+# grep case getana | sed 's/case//g' | sed 's/"//g' | sed 's/://g'
+
+tags:
+   funcstem
+   fsd
+   rlf
+   runlistfile
+   TR
+   RawSpace
+   IsSurface
+   subject
+   hemi
+   res
+   RawFWHM
+   inorm
+   acfbins
+   dt
+   designtype
+   IsRetinotopy
+   IsABBlocked
+   nskip
+   period
+   taskreg
+   contrasts
+
