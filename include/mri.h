@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/23 18:12:16 $
- *    $Revision: 1.399 $
+ *    $Author: lzollei $
+ *    $Date: 2010/04/27 21:36:17 $
+ *    $Revision: 1.400 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1160,6 +1160,7 @@ int MRIcubicSampleVolume(MRI *mri,
                          double *pval); /*E*/
 MRI *MRIsincTransform(MRI *mri_src, MRI *mri_dst, MATRIX *mA, int hw);
 int MRIlabelOverlap(MRI *mri1, MRI *mri2, int label) ;
+int MRIlabelUnion(MRI *mri1, MRI *mri2, int label) ;
 int MRIeraseBorderPlanes(MRI *mri, int mask_size) ;
 
 MRI *MRIzeroMeanTimecourse(MRI *mri_src, MRI *mri_dst);
