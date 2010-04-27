@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/16 22:01:43 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/04/27 19:31:12 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.11 2010/04/16 22:01:43 greve Exp $
+// $Id: mri_fieldsign.c,v 1.12 2010/04/27 19:31:12 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.11 2010/04/16 22:01:43 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.12 2010/04/27 19:31:12 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -296,8 +296,8 @@ int main(int argc, char *argv[]) {
     MRIfree(&mritmp);
   }
 
-
-  return 0;
+  printf("mri_fieldsign done\n");
+  exit(0);
 }
 /*---------------------------------------------------------*/
 static int parse_commandline(int argc, char **argv) {
@@ -462,8 +462,22 @@ print_usage() ;
 /*------------------------------------------------*/
 static void print_usage(void) {
   printf("%s \n",Progname) ;
-  printf("   --fs fieldsignfile : output\n");
+  printf("   --fs fieldsignfile : output file\n");
+  printf("   --eccen real imag\n");
+  printf("   --polar real imag\n");
   printf("\n");
+  printf("   --s subject \n");
+  printf("   --hemi hemi \n");
+  printf("   --patch patchfile : without hemi \n");
+  printf("   --occip : patchfile = occip.patch.flat\n");
+  printf("   --sphere : use spherical surface instead of patch\n");
+  printf("   --fwhm fwhm_mm\n");
+  printf("   --nsmooth nsmoothsteps\n");
+  printf("   --rev : reverse sign\n");
+  printf("   --old : use old FS estimation code (default is new)\n");
+  printf("\n");
+  printf("   --eccen-rot rotangle : rotate eccen by rotangle (degrees)\n");
+  printf("   --polar-rot rotangle : rotate polar by rotangle (degrees)\n");
   printf("   --eccen-out eccenangle : output\n");
   printf("   --polar-out polarangle : output\n");
   printf("\n");
@@ -471,22 +485,6 @@ static void print_usage(void) {
   printf("   --polar-sfa sfafile : polar selfreqavg file \n");
   printf("   --sfa sfadir :  \n");
   printf("   --sfa-true          : use true real and imag (only affects when smoothing)\n");
-  printf("\n");
-  printf("   --eccen-rot rotangle : rotate eccen by rotangle (degrees)\n");
-  printf("   --polar-rot rotangle : rotate polar by rotangle (degrees)\n");
-  printf("\n");
-  printf("   --s subject \n");
-  printf("   --hemi hemi \n");
-  printf("   --patch patchfile : without hemi \n");
-  printf("   --occip : patchfile = occip.patch.flat\n");
-  printf("   --sphere : use spherical surface instead of patch\n");
-  printf("\n");
-  printf("   --old : use old FS estimation code (default is new)\n");
-  printf("\n");
-  printf("   --fwhm fwhm_mm\n");
-  printf("   --nsmooth nsmoothsteps\n");
-  printf("\n");
-  printf("   --rev : reverse sign\n");
   printf("\n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
