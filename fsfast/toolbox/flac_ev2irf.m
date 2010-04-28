@@ -7,7 +7,7 @@ function [Xirf tirf] = flac_ev2irf(ev,TR,RefEventDur)
 % sets the scaling factor. One can expect an event of this 
 % duration witha peak of 1% signal change to have a beta=1.
 %
-% $Id: flac_ev2irf.m,v 1.8 2010/03/25 18:50:00 greve Exp $
+% $Id: flac_ev2irf.m,v 1.9 2010/04/28 20:18:54 greve Exp $
 
 %
 % flac_ev2irf.m
@@ -15,8 +15,8 @@ function [Xirf tirf] = flac_ev2irf(ev,TR,RefEventDur)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/03/25 18:50:00 $
-%    $Revision: 1.8 $
+%    $Date: 2010/04/28 20:18:54 $
+%    $Revision: 1.9 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -62,8 +62,7 @@ switch(ev.model)
   dhspmhrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
-    % Multiply by 2.6 to bring 1st deriv to amp of 1
-    dhspmhrf = 2.6*gradient(dhspmhrf)/dpsd;
+    dhspmhrf = gradient(dhspmhrf)/dpsd;
     Xirf = [Xirf dhspmhrf];
   end  
 
@@ -85,8 +84,7 @@ switch(ev.model)
   dh_hrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
-    % Multiply by 2.6 to bring 1st deriv to amp of 1
-    dh_hrf = 2.6*gradient(dh_hrf)/dpsd;
+    dh_hrf = gradient(dh_hrf)/dpsd;
     Xirf = [Xirf dh_hrf];
   end  
 
@@ -110,8 +108,7 @@ switch(ev.model)
   dh_hrf = Xirf;
   for n = 1:nderiv
     % Divide by TER for gradient.
-    % Multiply by 2.6 to bring 1st deriv to amp of 1
-    dh_hrf = 2.6*gradient(dh_hrf)/dpsd;
+    dh_hrf = gradient(dh_hrf)/dpsd;
     Xirf = [Xirf dh_hrf];
   end  
 
