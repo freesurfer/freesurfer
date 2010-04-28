@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2009/09/16 00:26:11 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/04/28 20:18:14 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.11 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.12 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which);
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.11 2009/09/16 00:26:11 lzollei Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.12 2010/04/28 20:18:14 lzollei Exp $";
 static int fromFile = 0;
 
 char *Progname ;
@@ -119,12 +119,9 @@ int main(int argc, char *argv[])
 	    ErrorExit(Gerror, "Volumelist file cannot be opened\n") ;
 	  
 	  filecount = 0;
-          //in_fname[filecount] = (char *) calloc(1024,sizeof(char));
 	  while (fscanf(fp,"%s",in_fname) != EOF)
 	    {
-	      //fprintf(stderr, "%d of list: %s...\n", filecount+1, in_fname) ;
 	      filecount ++;
-	      //in_fname[filecount] = (char *) calloc(STRLEN,sizeof(char));
 	    }
           fclose(fp);
 	  nvolumes = filecount;
@@ -136,7 +133,7 @@ int main(int argc, char *argv[])
 
 	  fprintf(stderr, "processing %d volumes and writing output to %s\n", nvolumes, out_fname) ;
 	  fflush(stderr) ;
-	  /*Similar to original loop below (LZ)*/
+	  /*Similar to original loop below*/
 	  fp = fopen(list_fname, "r") ;
 	  for (n = 0 ; n < nvolumes ; n++)
 	    {
@@ -354,6 +351,7 @@ compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which)
                 xf = x + dx * fabs(d2)/dist ;
                 yf = y + dy * fabs(d2)/dist ;
                 zf = z + dz * fabs(d2)/dist ;
+		printf("mri_hausdorff: dist = %f\n", dist);
                 MRIsampleVolume(mri[n], xf, yf, zf, &zval) ;
                 if (zval < 0)
                   DiagBreak() ;
@@ -372,8 +370,11 @@ compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which)
         }
     if (which == MAX_HDIST)
       hdists[n] = max_hdists[n] ;
-    else
-      hdists[n] /= (double)nvox ;
+    else {
+      if (nvox > 0)
+	hdists[n] /= (double)nvox ;
+      else hdists[n] = 0;
+    }
     hdists_sigma[n] = sqrt(hdists_sigma[n]/(double)nvox - hdists[n]*hdists[n]);
     hdist += hdists[n] ;
   }
@@ -430,7 +431,10 @@ compute_hdist(MRI **mri, int nvolumes, int index)
       hdists[n] += min_dist ;
       hdists_sigma[n] += min_dist*min_dist ;
     }
-    hdists[n] /= (double)vl1->nvox ;
+    if (vl1->nvox>0)
+      hdists[n] /= (double)vl1->nvox ;
+    else
+      hdists[n] = 0 ;
     hdists_sigma[n] = sqrt(hdists_sigma[n]/(double)vl1->nvox - hdists[n]*hdists[n]);
     hdist += hdists[n] ;
   }
