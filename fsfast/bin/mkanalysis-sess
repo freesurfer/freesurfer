@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 20:16:25 $
-#    $Revision: 1.45 $
+#    $Date: 2010/04/28 22:22:00 $
+#    $Revision: 1.46 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.45 2010/04/28 20:16:25 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.46 2010/04/28 22:22:00 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -59,7 +59,6 @@ set nGammaDeriv = 0;
 set nSPMHRF = ();
 set TaskRegList = ();
 set nTaskRegList = ();
-set AutoStimDur = ();
 set PolyFit = 2;
 set HPFCutoffHz = .01;
 set TPExcludeFile = ();
@@ -76,7 +75,6 @@ set eventrelated = 0;
 set abblocked = 0;
 set retinotopy = 0;
 set PrintHelp = 0;
-set autostimdur = 0;
 set RegDOF = 6;
 
 set force = 0;
@@ -506,13 +504,6 @@ while( $#argv != 0 )
       set DoInorm = 1;
       breaksw
 
-    case "-autostimdur":
-      set autostimdur = 1;
-      breaksw
-    case "-noautostimdur":
-      set autostimdur = 0;
-      breaksw
-
     case "-no-fix-acf":
       set FixACF = 0;
       breaksw
@@ -622,10 +613,6 @@ check_params:
     echo "Setting TimeWindow to $TimeWindow"
     echo "Setting PreStim    to $PreStim"
     echo "Setting PostStim   to $PostStim"
-    if($#autostimdur == 0) then
-      echo "ERROR: autostimdur flag not set. See -help for -autostimdur"
-      exit 1;
-    endif
   endif
 
   if($retinotopy && $#ParName == 0) then
@@ -688,8 +675,6 @@ usage_exit:
   echo "   -taskreg extreg n : external task regressor file and number of regressors to include"
   echo "   -delay Delay : delay (add) Delay sec to time in each paradigm file"
   echo "   -TER TER             : temporal estimation resolution (sec)"
-  echo "   -autostimdur    : automatically compute stimulus duration from parfile"
-  echo "   -noautostimdur  : do not automatically compute stimulus duration (default)"
   echo ""
   echo "Noise, drift, and temporal filtering options"
   echo "   -polyfit N          : fit trend with polynomial of order N"
@@ -834,19 +819,6 @@ if no TPEF is found, no time points are excluded.
 
 Drift removal. Fit and remove polynomial of order N. Default is 1
 (ie, 0=mean, 1=linear, and 2=quadradic). 
-
--autostimdur (-noautostimdur)
-
-Automatically compute the duration of each stimulus based on the time
-between stimuli in the paradigm file. This allows for stimuli to be of
-different lengths. It requires that all stimuli be accounted for in
-the paradigm file (eg, fixation). It also requires that no stimuli
-overlap.  -noautostimdur tells the program NOT to compute the
-stimulus duration from the paradigm file, in which case it assumes
-that the stimuli duration has a length equal to the TR (or TER). This
-used to be the default (pre 12/4/06). Now you must specify what you
-are going to use. This only applies to event-related and abblocked
-paradigms.
 
 -nconditions Nc (Shortcut: -nc) 
  
