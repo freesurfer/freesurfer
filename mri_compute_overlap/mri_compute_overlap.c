@@ -8,8 +8,8 @@
  * Original Author: Nick S.?
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2010/04/27 21:42:24 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/04/28 20:17:16 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,7 +58,7 @@ static int all_flag = 0 ;
 static int in_label = -1 ;
 static int out_label = -1 ;
 
-static int isSeg = 0;
+static int isSeg  = 0;
 
 int
 main(int argc, char *argv[]) {
@@ -75,7 +75,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_compute_overlap.c,v 1.15 2010/04/27 21:42:24 lzollei Exp $",
+           "$Id: mri_compute_overlap.c,v 1.16 2010/04/28 20:17:16 lzollei Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -120,7 +120,9 @@ main(int argc, char *argv[]) {
                 Progname, log_fname) ;
   } else
     log_fp = NULL ;
-
+  
+  nlabels = total_nvox1 = total_nvox2 = total_nshared = 0;
+  total_nunion = 0 ;
   if (all_flag) {
     MRI *mri1_label = NULL, *mri2_label = NULL ;
     int lnoLimit = 1000;
@@ -143,34 +145,36 @@ main(int argc, char *argv[]) {
       if (nunion > 0.0) tmp = (float)nshared/nunion;
       else tmp = 0.0;
 
-      if (isSeg) {
-        printf
-        ("label = %d (%s), volume diff = |(%d - %d)|"
-         " / %2.1f (%%)= %2.2f%%\n",
-         lno, cma_label_to_name(lno),
-         nvox1, nvox2, nvox_mean,
-         100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
-        printf
-        ("label = %d (%s), volume overlap (Dice) = "
-         "%d / %2.1f (%%)= %2.2f %%\n",
-         lno, cma_label_to_name(lno), nshared, nvox_mean,
-         100.0f*(float)nshared/nvox_mean) ;
-	printf
-	  ("label = %d (%s), volume overlap (Jaccard) = "
-	   "%d / %2.1f (%%)= %2.2f%%\n",
-	   lno, cma_label_to_name(lno), nshared, nunion,
-	   100.0f*tmp) ;
-      } else {
-        printf("volume diff = |(%d - %d)| / %2.1f (%%)= %2.2f %%\n",
-               nvox1, nvox2, nvox_mean,
-               100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
-        printf("volume overlap (Dice) = %d / %2.1f (%%)= %2.2f%%\n",
-               nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
-	printf("volume overlap (Jaccard) = %d / %2.2f (%%)= %2.2f%%\n",
-	       nshared, nunion, 100.0f*tmp) ;
+      if (!quiet) {
+	if (isSeg) {
+	  printf
+	    ("label = %d (%s), volume diff = |(%d - %d)|"
+	     " / %2.1f (%%)= %2.2f%%\n",
+	     lno, cma_label_to_name(lno),
+	     nvox1, nvox2, nvox_mean,
+	     100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
+	  printf
+	    ("label = %d (%s), volume overlap (Dice) = "
+	     "%d / %2.1f (%%)= %2.2f %%\n",
+	     lno, cma_label_to_name(lno), nshared, nvox_mean,
+	     100.0f*(float)nshared/nvox_mean) ;
+	  printf
+	    ("label = %d (%s), volume overlap (Jaccard) = "
+	     "%d / %2.1f (%%)= %2.2f%%\n",
+	     lno, cma_label_to_name(lno), nshared, nunion,
+	     100.0f*tmp) ;
+	} else {
+	  printf("volume diff = |(%d - %d)| / %2.1f (%%)= %2.2f %%\n",
+		 nvox1, nvox2, nvox_mean,
+		 100.0f*(float)abs(nvox1-nvox2)/nvox_mean);
+	  printf("volume overlap (Dice) = %d / %2.1f (%%)= %2.2f%%\n",
+		 nshared, nvox_mean, 100.0f*(float)nshared/nvox_mean) ;
+	  printf("volume overlap (Jaccard) = %d / %2.2f (%%)= %2.2f%%\n",
+		 nshared, nunion, 100.0f*tmp) ;
+	}
       }
       if (log_fp) {
-        fprintf(log_fp, "%d  %2.2f  %2.2f %2.2f\n", lno,
+        fprintf(log_fp, "%d\t%2.2f\t%2.2f\t%2.2f\n", lno,
                 100.0f*(float)abs(nvox1-nvox2)/nvox_mean,
                 100.0f*(float)nshared/nvox_mean,
 		100.0f*(float)nshared/nunion) ;
@@ -186,17 +190,21 @@ main(int argc, char *argv[]) {
       printf("label %03d: %d of %d voxels correctly labeled - %2.2f%%\n",
              lno, correct, total, 100.0f*(float)correct/(float)total) ;
       if (log_fp) {
-        fprintf(log_fp,"%d  %d  %d  %2.4f\n", lno, correct, total,
+        fprintf(log_fp,"%d\t%d\t%d\t%2.4f\n", lno, correct, total,
                 100.0f*(float)correct/(float)total) ;
         fclose(log_fp) ;
       }
 #endif
+      total_nvox1 += nvox1 ;
+      total_nvox2 += nvox2 ;
+      total_nshared += nshared ;
+      total_nunion += nunion ;
+      nlabels++ ;
     }
     if (log_fp)
       fclose(log_fp) ;
   } else {
-    nlabels = total_nvox1 = total_nvox2 = total_nshared = 0;
-    total_nunion = 0 ;
+    
     for (i = 3 ; i < argc ; i++) {
       float volume_overlap, volume_diff, volume_overlap_jacc ;
 
@@ -223,7 +231,7 @@ main(int argc, char *argv[]) {
                lno, nshared, nunion, volume_overlap_jacc) ;
       }
       if (log_fp) {
-        fprintf(log_fp, "%2.2f  %2.2f %2.2f\n", volume_diff, volume_overlap, volume_overlap_jacc) ;
+        fprintf(log_fp, "%2.2f\t%2.2f\t%2.2f\n", volume_diff, volume_overlap, volume_overlap_jacc) ;
         fclose(log_fp) ;
       }
       total_nvox1 += nvox1 ;
@@ -232,22 +240,23 @@ main(int argc, char *argv[]) {
       total_nunion += nunion ;
       nlabels++ ;
     }
-    if (nlabels > 1) {
-      nvox_mean = (total_nvox1 + total_nvox2) / 2 ;
-      printf("total: volume diff = |(%d - %d)| / %2.1f (%%)= %2.2f%%\n",
-             total_nvox1,total_nvox2,nvox_mean,
-             100.0f*(float)abs(total_nvox1-total_nvox2)/nvox_mean);
-      printf("total: volume overlap (Dice) = %d / %2.1f (%%) = %2.2f%%\n",
-             total_nshared, nvox_mean,
-             100.0f*(float)total_nshared/nvox_mean) ;
-      if (total_nunion>0.0)
-	tmp = (float)total_nshared/total_nunion;
-      else tmp = 0.0;
-      printf("total: volume overlap (Jaccard) = %d / %2.1f (%%)= %2.2f%%\n",
-             total_nshared, total_nunion, 100.0f*tmp) ;
-    }
   }
 
+  if (nlabels > 1) {
+    nvox_mean = (total_nvox1 + total_nvox2) / 2 ;
+    printf("total: volume diff = |(%d - %d)| / %2.1f (%%)= %2.2f%%\n",
+	   total_nvox1,total_nvox2,nvox_mean,
+	   100.0f*(float)abs(total_nvox1-total_nvox2)/nvox_mean);
+    printf("total: volume overlap (Dice) = %d / %2.1f (%%) = %2.2f%%\n",
+	   total_nshared, nvox_mean,
+	   100.0f*(float)total_nshared/nvox_mean) ;
+    if (total_nunion>0.0)
+      tmp = (float)total_nshared/total_nunion;
+    else tmp = 0.0;
+    printf("total: volume overlap (Jaccard) = %d / %2.1f (%%)= %2.2f%%\n",
+	   total_nshared, total_nunion, 100.0f*tmp) ;
+    }
+  
   msec = TimerStop(&start) ;
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
@@ -291,6 +300,7 @@ get_option(int argc, char *argv[]) {
     log_fname = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "logging results to %s\n", log_fname) ;
+    quiet = 1;
     break ;
   case 'S':
     isSeg = 1;
@@ -328,6 +338,8 @@ usage_exit(int code) {
   printf("  -a compute overlap of all labels (if missing, labels of interest should be listed)\n");
   printf("  -s show label name for segmentation\n");
   printf("  -l <fname> filename to write results to\n");
+  printf("  -q do not display results on std display (default is false; if -l is used, this option is set)\n");
+  printf("  -t <l1>  <l2> translating label l1 to label l2\n");
   printf("  -h print help\n");
 
   exit(code) ;
