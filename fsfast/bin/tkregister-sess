@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/15 21:02:48 $
-#    $Revision: 1.32 $
+#    $Date: 2010/04/28 22:20:59 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.32 2010/04/15 21:02:48 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.33 2010/04/28 22:20:59 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -39,7 +39,8 @@ set Plane        = "cor";
 set Slice        = ();
 set Inorm        = 0;
 set VolView      = mov;
-set regfilename  = register.dat
+set RegDOF = 6;
+set regfilename  = ();
 set FOV          = ();
 set fmov         = ();
 set movscale     = ();
@@ -420,6 +421,7 @@ if($PerRun == 0 && $PerSess == 0) then
   echo "ERROR: You must specify -per-run or -per-session"
   exit 1;
 endif
+if($#regfilename == 0) set regfilename = register.dof$RegDOF.dat
 goto check_params_return;
 ############--------------##################
 arg1err:
