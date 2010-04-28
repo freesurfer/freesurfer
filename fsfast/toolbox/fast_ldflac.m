@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 20:13:51 $
-%    $Revision: 1.51 $
+%    $Date: 2010/04/28 22:23:13 $
+%    $Revision: 1.52 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ if(isempty(flac))
   flac.par = [];
   flac.tpexc = [];
   flac.AllowMissingCond = 0;
-  flac.autostimdur = 1; % Compute stim duration from par, TR otherwise
+  flac.autostimdur = 0; % Compute stim duration from par, TR otherwise
   % flag indicating the presence of a variable regressor EV
   flac.varregev = 0; % Does not actually do anything yet
   % VarRegEVs must be nuissance!

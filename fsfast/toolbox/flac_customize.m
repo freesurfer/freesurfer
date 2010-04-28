@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 20:13:31 $
-%    $Revision: 1.49 $
+%    $Date: 2010/04/28 22:23:13 $
+%    $Revision: 1.50 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -111,17 +111,23 @@ end
 % Parfile
 if(~isempty(flac.parfile) & ~strcmp(flac.parfile,'NONE'))
   if(~flac.IsRetinotopy)
-    if(isempty(flac.schdir)) % Local
+    if(isempty(flac.schdir)) % Global
       parpath = sprintf('%s/%s',runpath,flac.parfile);
-    else % Global
+    else % Local
       parpath = sprintf('%s/r%03d/%s',flac.schdir,flac.nthrun,flac.parfile);
     end
-    par = fast_ldpar4(parpath);
+    [par partype] = fast_ldpar4(parpath);
     if(isempty(par))
       fprintf('ERROR: loading %s \n',flac.parfile);
       flacnew = []; return; 
     end
-    % This is an error check
+    if(partype < 3)
+      fprintf('ERROR: paradigm file %s is a two-column par file.\n',parpath);
+      fprintf('These are no longer allowed in FSFAST. Re-write the \n');
+      fprintf('paradigm file to be 3-column or 4-column.\n');
+      flacnew = []; return; 
+    end
+    % This is an error check (should not be needed)
     if(size(par,2) == 2 & flac.autostimdur)
       % Old-style Two-column par file with autostimdur, check for 0s
       indz = find(par(:,2) == 0);
