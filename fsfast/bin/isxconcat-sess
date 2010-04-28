@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.44 $
+#    $Date: 2010/04/28 22:58:01 $
+#    $Revision: 1.45 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.44 2010/04/28 19:42:50 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.45 2010/04/28 22:58:01 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -35,9 +35,8 @@ set contrastlist = ();
 
 set conmaplist = ();
 set anamaplist = (meanfunc raw.fsnr fsnr rho1)
-set regdof = 6;
-set regfile = register.dof$dof.dat 
-
+set RegDOF = 6;
+set regfile = ()
 set interp = trilin
 set fwhm = ();
 set paireddiff = 0;
@@ -663,6 +662,7 @@ check_params:
       set projfrac = 0.5;
     endif
   endif
+  if($#regfile == 0) set regfile register.dof$RegDOF.dat 
 
 goto check_params_return;
 ############--------------##################

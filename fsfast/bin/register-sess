@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.8 $
+#    $Date: 2010/04/28 22:58:01 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.8 2010/04/28 19:42:50 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.9 2010/04/28 22:58:01 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -31,9 +31,9 @@ set fsd          = bold;
 set PerRun       = 0;
 set PerSess     = 0;
 set regmethod = bbregister
+set RegDOF = 6;
 set regfilename = ();
 set fstargvol = "brainmask";
-set dof = 6;
 set bbrinit = "--init-fsl";
 set BBRTolF = ()
 set BBRTol1D = ()
@@ -173,13 +173,13 @@ foreach sess ($SessList)
   # Set up the cmd line to be used for all invocations
   set cmd = ($regmethod --s $subject)
   if($regmethod == bbregister) then
-    set cmd = ($cmd $bbrinit --$dof --bold)
+    set cmd = ($cmd $bbrinit --$RegDOF --bold)
     if($#BBRTolF) set cmd = ($cmd --tolf $BBRTolF)
     if($#BBRTol1D) set cmd = ($cmd --tol1d $BBRTol1D)
     if($#IntermediateFSD) set cmd = ($cmd --int $Intermediate)
     set XOpts = ($BBRXOpts)
   else if($regmethod == fslregister) then
-    set cmd = ($cmd --dof $dof --fsvol $fstargvol)
+    set cmd = ($cmd --dof $RegDOF --fsvol $fstargvol)
     set XOpts = ($FSLXOpts)
   else # spmregister
     set cmd = ($cmd --fsvol $fstargvol $SPMXOpts)
@@ -487,7 +487,7 @@ if($PerRun == 0 && $PerSess == 0) then
   exit 1;
 endif
 
-if($#regfilename == 0) set regfilename  = register.dof$dof.dat
+if($#regfilename == 0) set regfilename  = register.dof$RegDOF.dat
 
 goto check_params_return;
 ############--------------##################
@@ -528,7 +528,7 @@ usage_exit:
   echo "   -bbr-tolf tolf   : set bbregiter tolf parameter"
   echo "   -bbr-tol1d tol1d : set bbregiter tol1d parameter"
   echo "   -bbr-int ifsd istem : use intermediate volume"
-  echo "   -dof DOF : registration degrees of freedom (default is $dof)"
+  echo "   -dof DOF : registration degrees of freedom (default is $RegDOF)"
   echo "   -fsvol volid   : FreeSurfer vol id (default is $fstargvol)"
   echo ""
   echo "   -regfile file  : Save reg as file instead of register.dat"

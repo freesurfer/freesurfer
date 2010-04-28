@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.12 $
+#    $Date: 2010/04/28 22:58:01 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.12 2010/04/28 19:42:50 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.13 2010/04/28 22:58:01 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -30,7 +30,7 @@ set fsd        = bold;
 set instem     = ();
 set outstem    = ();
 set regfile    = ();
-set regdof     = 6;
+set RegDOF     = 6;
 set target = mni305
 set res = 2;
 set talxfm = talairach.xfm
