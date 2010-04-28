@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.44 $
+#    $Date: 2010/04/28 20:16:25 $
+#    $Revision: 1.45 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.44 2010/04/28 19:42:50 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.45 2010/04/28 20:16:25 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -55,6 +55,7 @@ set RefEventDur = ();
 set GammaDelta = ();
 set GammaTau = ();
 set GammaAlpha = 2;
+set nGammaDeriv = 0;
 set nSPMHRF = ();
 set TaskRegList = ();
 set nTaskRegList = ();
@@ -177,7 +178,7 @@ if($eventrelated) then
   echo "timewindow $TimeWindow"| tee -a $flac
   echo "prestim $PreStim"| tee -a $flac
   echo "TER $TER" | tee -a $flac
-  if($HRFModel == "gamma")  echo "gamma $GammaDelta $GammaTau $GammaAlpha"| tee -a $flac
+  if($HRFModel == "gamma")  echo "gamma $GammaDelta $GammaTau $GammaAlpha $nGammaDeriv"| tee -a $flac
   if($HRFModel == "spmhrf") echo "spmhrf $nSPMHRF" | tee -a $flac
   echo "stimulusdelay $StimulusDelay" | tee -a $flac
   @ nthc = 1
@@ -356,6 +357,11 @@ while( $#argv != 0 )
     case "-gammaexp":
       if ( $#argv < 1) goto arg1err;
       set GammaAlpha = $argv[1]; shift;
+      breaksw
+
+    case "-ngammaderiv":
+      if ( $#argv < 1) goto arg1err;
+      set nGammaDeriv = $argv[1]; shift;
       breaksw
 
     case "-spmhrf":

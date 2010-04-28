@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.2 $
+#    $Date: 2010/04/28 20:16:25 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.2 2010/04/28 19:42:50 greve Exp $';
+set VERSION = '$Id: getana,v 1.3 2010/04/28 20:16:25 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -244,7 +244,11 @@ switch ($tag)
       set npercond = `echo $TW/$TER | bc `
     else
       set isgamma = `getana -a $analysis -t IsGamma`
-      if($isgamma) set npercond = 1
+      if($isgamma) then
+        set gampar = `getana -a $analysis -t gamma`
+        set ngamderiv = $gampar[4];
+        @ npercond = $ngamderiv + 1
+      endif
       if(! $isgamma) then
         set nspmhrf = `getana -a $analysis -t spmhrf`
         @ npercond = $nspmhrf + 1
@@ -254,7 +258,7 @@ switch ($tag)
     breaksw;
 
   case "gamma"
-    set result = `cat $info | awk '{if($1 == "gamma") print $2" "$3" "$4}'`
+    set result = `cat $info | awk '{if($1 == "gamma") print $2" "$3" "$4" "$5}'`
     breaksw;
 
   case "spmhrf"
