@@ -1,0 +1,379 @@
+#! /bin/csh -f
+
+#
+# fieldsign-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2010/04/28 22:20:32 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: fieldsign-sess,v 1.1 2010/04/28 22:20:32 greve Exp $';
+set inputargs = ($argv);
+
+set analysis = ();
+set hemilist  = ();
+set patch  = ();
+set UseSphere = 0;
+set RegDOF = 6;
+set regfile = ()
+set fwhm = ();
+
+set UseLog = 1;
+set tmpdir = ();
+set cleanup = 1;
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions"
+  echo "       $SessList" 
+  exit 1;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+
+  if($UseLog) then
+    ##### Create a log file ######
+    mkdir -p $sess/log
+    set LF = $sess/log/fieldsign-sess.log
+    if(-e $LF) mv $LF $LF.old
+    echo $LF
+    echo "fieldsign-sess log file" >> $LF
+    echo $VERSION >> $LF
+    date          >> $LF
+    uname -a      >> $LF
+    pwd           >> $LF
+    echo $0       >> $LF
+    echo $inputargs  >> $LF
+    id            >> $LF
+  endif
+
+  set srcsubject = `cat $sess/subjectname`
+  set sd = $SUBJECTS_DIR/$srcsubject
+  if(! -e $sd) then
+    echo "ERROR: cannot find $subject in $SUBJECTS_DIR" | tee -a $LF
+    exit 1;
+  endif
+
+  set anadir = $sess/$fsd/$analysis
+  if(! -e $anadir) then
+    echo "ERROR: cannot find $anadir" | tee -a $LF
+    exit 1;
+  endif
+
+  set eccenreal = `stem2fname $anadir/eccen/real`;
+  set eccenimag = `stem2fname $anadir/eccen/imag`;
+  set polarreal = `stem2fname $anadir/polar/real`;
+  set polarimag = `stem2fname $anadir/polar/imag`;
+
+  if($IsNativeAna) then
+    set trgsubject = $srcsubject;
+    set reg = $sess/$fsd/$regfile
+    if(! -e $reg) then
+      echo "ERROR: cannot find $reg" | tee -a $LF
+      exit 1;
+    endif
+  endif
+  if($IsSurfAna) then
+    if($anasubject == self) set trgsubject = $srcsubject;
+    if($anasubject != self) set trgsubject = $anasubject;
+  endif
+
+  set outdir = $anadir/fieldsign
+  mkdir -p $outdir
+
+  foreach hemi ($hemilist)
+    if($IsNativeAna) then
+      # Resample to surface
+      set cmd0 = (mri_vol2surf --reg $reg --projfrac 0.5 --interp nearest \
+        --cortex --hemi $hemi)
+      # Eccen real
+      set cmd = ($cmd0 --mov $eccenreal --o $outdir/$hemi.eccen.real.nii)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set eccenreal = $outdir/$hemi.eccen.real.nii
+      # Eccen imag
+      set cmd = ($cmd0 --mov $eccenimag --o $outdir/$hemi.eccen.imag.nii)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set eccenimag = $outdir/$hemi.eccen.imag.nii
+      # Polar real
+      set cmd = ($cmd0 --mov $polarreal --o $outdir/$hemi.polar.real.nii)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set polarreal = $outdir/$hemi.polar.real.nii
+      # Polar imag
+      set cmd = ($cmd0 --mov $polarimag --o $outdir/$hemi.polar.imag.nii)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set polarimag = $outdir/$hemi.polar.imag.nii
+      # Fsig
+      set fsig = `stem2fname $anadir/fieldsign/fsig`;
+      set cmd = ($cmd0 --mov $fsig --o $outdir/$hemi.fsig.nii)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set polarimag = $outdir/$hemi.polar.imag.nii
+    endif
+
+    if($IsNativeAna) then
+      set fieldsign = $outdir/$hemi.fieldsign.nii
+    else
+      set fieldsign = $outdir/fieldsign.nii
+    endif
+
+    set cmd = (mri_fieldsign --s $trgsubject --hemi $hemi --old \
+      --eccen $eccenreal $eccenimag \
+      --polar $polarreal $polarimag \
+      --fs $fieldsign)
+    if($#fwhm) set cmd = ($cmd --fwhm $fwhm);
+    if($#patch) set cmd = ($cmd --patch occip.patch.flat)
+    if($UseSphere) set cmd = ($cmd --sphere);
+    echo $cmd   | tee -a $LF
+    $cmd  
+  end # hemi
+
+end # sess
+
+echo "-------------------" | tee -a $LF
+date    | tee -a $LF
+echo "mkfieldsign-sess completed" | tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+    case "-analysis":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-hemi":
+    case "-h":
+      if ( $#argv == 0) goto arg1err;
+      set hemi = $argv[1]; shift;
+      breaksw
+
+    case "-patch":
+      if ( $#argv == 0) goto arg1err;
+      set patch = $argv[1]; shift;
+      breaksw
+
+    case "-occip":
+      set patch = occip.patch.flat
+      breaksw
+
+    case "-sphere":
+      set UseSphere = 1;
+      breaksw
+
+    case "-reg":
+      if ( $#argv == 0) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "-fwhm":
+      if ( $#argv == 0) goto arg1err;
+      set fwhm = $argv[1]; shift;
+      breaksw
+
+    case "-hemis":
+      set hemilist = (lh rh); 
+      set ToSurf = 1;
+      breaksw
+
+    case "-projfrac":
+      if ( $#argv == 0) goto arg1err;
+      set projfrac = $argv[1]; shift;
+      breaksw
+
+    case "-trgsubject":
+    case "-subject":
+      if( $#argv == 0) goto arg1err;
+      set trgsubject = $argv[1]; shift;
+      set ToSurf = 1;
+      breaksw
+
+    case "-tmpdir":
+      if ( $#argv == 0) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "-nolog":
+      set UseLog = 0;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#analysis == 0) then
+    echo "ERROR: no analysis specified"
+    exit 1;
+  endif
+  if($#patch == 0 && $UseSphere == 0) then
+    echo "ERROR: need to spec a patch or --sphere"
+    exit 1;
+  endif
+  if($#patch && $UseSphere) then
+    echo "ERROR: cannot spec both a patch and --sphere"
+    exit 1;
+  endif
+
+  set IsRet = `getana -a $analysis -t IsRetinotopy`
+  if(! $IsRet) then
+    echo "ERROR: $analysis is not retinotopy"
+    exit 1;
+  endif
+
+  set IsMNI305Ana = `getana -a $analysis -t IsMNI305`
+  if($IsMNI305Ana) then
+    echo "ERROR: no support for mni305 analyses"
+    exit 1;
+  endif
+
+  set IsSurfAna = `getana -a $analysis -t IsSurface`
+  if($IsSurfAna) then
+    set anasubject = `getana -a $analysis -t subject`
+    set hemilist   = `getana -a $analysis -t hemi`
+  endif
+
+  set IsNativeAna = `getana -a $analysis -t IsNative`
+  if($IsNativeAna) then
+    if($#hemilist == 0) set hemilist = (lh rh)
+    if($#fwhm == 0) then
+      echo "ERROR: for native analyses, you must spec a fwhm."
+      echo "       If you want 0, then use -fwhm 0"
+      exit 1;
+    endif
+  endif
+
+  if($#regfile == 0) set regfile = register.dof$RegDOF.dat    
+
+  set fsd = `getana -a $analysis -t fsd`;
+  if(! $UseLog) set LF = /dev/null
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo " "
+  echo "fieldsign-sess"
+  echo ""
+  echo "  -a analysis"
+  echo ""
+  echo "  -hemi hemi : if not specified in analysis"
+  echo "  -patch patchname : file should be called ?h.patchname: "
+  echo "  -occip : same as -patch occip.patch.flat"
+  echo "  -sphere : use sphere instead of flat patch"
+  echo "  -fwhm FWHMmm : smooth FWHM mm when making eccen"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -help"
+  echo "   -debug"
+  echo "   -tmpdir dir : use dir for temporary storage (implies -nocleanup)"
+  echo "   -nocleanup  : do not delete tmpdir"
+  echo "   -version    : print version and exit"
+  echo " "
+
+  if(! $PrintHelp ) exit 1;
+
+  echo " "
+  echo "$VERSION "
+  echo " "
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the field sign from a retinotopy analysis. You must
+specify whether the surface used to compute the fieldsign is 
+a flattend surface or the sphere. The sphere is only an 
+approximation to the flattened surface.
+
