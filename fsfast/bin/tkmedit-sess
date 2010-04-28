@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/02 23:18:21 $
-#    $Revision: 1.30 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.31 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.30 2010/04/02 23:18:21 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.31 2010/04/28 19:42:50 greve Exp $';
 set inputargs = ($argv);
 
 set sessid  = ();
@@ -82,28 +82,16 @@ if($#analysis != 0) then
     echo "ERROR: $analysis does not exist. Try running mkanalysis-sess" |& tee -a $LF
     exit 1;
   endif
-  set infofile = $analysis/analysis.info
-  set cfg = $analysis/analysis.cfg
-  set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
-  set designtype = `cat $infofile | awk '{if($1 == "designtype") print $2}'`;
-  if($#designtype == 0) then
-    set designtype = `cat $infofile | awk '{if($1 == "avgtype") print $2}'`;
-  endif
-  set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
-  if($#tmp) then
+  set IsSurface = `getana -a $analysis -t IsSurface`
+  if($IsSurface) then
     echo "ERROR: This is a surface-based analysis. Try using tksurfer-sess"
     exit 1;
   endif
-  set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
-  set UseTalairach = $#tmp;
-  set IsFIR = 1;
-  set tmp = `grep -e -gammafit $cfg`;
-  if($#tmp) set IsFIR = 0;
-  set tmp = `grep -e -spmhrf $cfg`;
-  if($#tmp) set IsFIR = 0;
+  set fsd = `getana -a $analysis -t fsd`;
+  set UseTalairach = `getana -a $analysis -t IsMNI305`;
+  set IsFIR = `getana -a $analysis -t IsFIR`;
 else if($#flac) then
   set fsd = `cat $flac | awk '{if($1 == "fsd") print $2}'`
-  set designtype = "event-related"
   set analysis = `basename $flac .flac`
   echo $analysis $fsd
   set ShowHdr = 0;
@@ -111,15 +99,13 @@ endif
 
 ## Parse the map analysis
 if($#mapanalysis != 0) then
-  set infofile = $mapanalysis/analysis.info
-  set mapfsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
-  set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
-  if($#tmp) then
-    echo "ERROR: $mapanalysis surface-based analysis. Try using tksurfer-sess"
+  set mapfsd = `getana -a $mapanalysis -t fsd`;
+  set IsSurface = `getana -a $mapanalysis -t IsSurface`
+  if($IsSurface) then
+    echo "ERROR: $mapanalysis is a surface-based analysis. Try using tksurfer-sess"
     exit 1;
   endif
-  set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
-  set MapUseTalairach = $#tmp;
+  set MapUseTalairach = `getana -a $mapanalysis -t IsMNI305`;
   if($UseTalairach != $MapUseTalairach) then
     if($MapUseTalairach) then
       echo "ERROR: map analysis $mapanalysis is talairach-based."
@@ -452,17 +438,7 @@ check_params:
       echo "ERROR: $mapanalysis does not exist"
       exit 1;
     endif
-    if($DoAllContrasts) then
-      set matlist = (`ls $mapanalysis/*.mat`);
-      if($status) then
-        echo "ERROR: cannot find any contrasts in $analysis"
-        exit 1;
-      endif
-      foreach m ($matlist)
-        set c = `basename $m .mat`;
-        set contrastlist = ($contrastlist $c);
-      end
-    endif
+    if($DoAllContrasts) set contrastlist = `getana -a $mapanalysis -t contrasts`
     if($#contrastlist == 0) then
       echo "INFO: no contrast specified" 
       sleep 2

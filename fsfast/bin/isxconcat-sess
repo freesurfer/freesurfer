@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/23 19:47:25 $
-#    $Revision: 1.43 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.44 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.43 2010/04/23 19:47:25 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.44 2010/04/28 19:42:50 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -35,7 +35,8 @@ set contrastlist = ();
 
 set conmaplist = ();
 set anamaplist = (meanfunc raw.fsnr fsnr rho1)
-set regfile = register.dat 
+set regdof = 6;
+set regfile = register.dof$dof.dat 
 
 set interp = trilin
 set fwhm = ();
@@ -159,7 +160,7 @@ foreach hemi ($hemilist)
   if($#fsgd) set cmd = ($cmd -fsgd $fsgd) # only need to do this once
   if($DoResample) then
     set cmd = ($cmd -interp nearest  -reg $regfile)
-    if($hemi == tal) then
+    if($hemi == mni305) then
       if(! $DoMorph) set cmd = ($cmd -talres $talres)
       if($DoMorph)   set cmd = ($cmd -morph)
       if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
@@ -221,7 +222,7 @@ foreach hemi ($hemilist)
       if($DoResample) then
         set cmd = ($cmd -interp $interp -reg $regfile)
         if($#fwhm)    set cmd = ($cmd -fwhm $fwhm);
-        if($hemi == tal) then
+        if($hemi == mni305) then
           if(! $DoMorph) set cmd = ($cmd -talres $talres)
           if($DoMorph)   set cmd = ($cmd --morph)
           if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
@@ -307,7 +308,7 @@ foreach hemi ($hemilist)
     if($DoResample) then
       set cmd = ($cmd -interp $interp -reg $regfile )
       if($#fwhm) set cmd = ($cmd -fwhm $fwhm);
-      if($hemi == tal) then
+      if($hemi == mni305) then
         if(! $DoMorph) set cmd = ($cmd -talres $talres)
         if($DoMorph)   set cmd = ($cmd --morph)
         if($#talxfm)   set cmd = ($cmd -talxfm $talxfm)
@@ -329,7 +330,7 @@ foreach hemi ($hemilist)
       echo $cmd       |& tee -a $LF
       $cmd            |& tee -a $LF
       if($status) exit 1;
-      if($ToVol)  cp $analysis/h.dat $outdir/tal.h.dat
+      if($ToVol)  cp $analysis/h.dat $outdir/mni305.h.dat
       if($ToSurf) cp $analysis/h.dat $outdir/$hemi.h.dat
     endif
 
@@ -565,27 +566,26 @@ check_params:
   endif
 
   if($#analysis) then
-    set infofile = $analysis/analysis.info
-    set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
-    if($#tmp) then
+    set fsd = `getana -a $analysis -t fsd`;
+    set IsSurface = `getana -a $analysis -t IsSurface`
+    if($IsSurface) then
       set ToSurf = 1;
       set ToVol = 0;
-      set trgsubject = $tmp[1];
+      set trgsubject = `getana -a $analysis -t subject`
       if($trgsubject == self) then 
         echo "ERROR: analysis space is self surface, not supported"
         exit 1;
       endif
-      set hemilist = $tmp[2];
+      set hemilist  = `getana -a $analysis -t hemi`
       set DoResample = 0;
     endif
-    set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
-    if($#tmp) then
+    set UseTalairach = `getana -a $analysis -t IsMNI305`;
+    if($UseTalairach) then
       set ToSurf = 0;
       set ToVol = 1;
-      set hemilist = (tal)
+      set hemilist = (mni305)
       set DoResample = 0;
     endif
-    set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
   endif
   echo "DoResample $DoResample"
 
@@ -599,16 +599,7 @@ check_params:
 
   if($DoAllContrasts) then
     # Wont include merged (ie, conjunction) contrasts
-    set matlist = ($analysis/*.mat)
-    if($#matlist == 0) then
-      echo "ERROR: not contrasts found in $analysis"
-      exit 1;
-    endif
-    set contrastlist = ();
-    foreach m ($matlist)
-      set b = `basename $m | sed 's/.mat//'`
-      set contrastlist = ($contrastlist $b);
-    end
+    set contrastlist = `getana -a $analysis -t contrasts`
   endif
   if($#contrastlist == 0) then
     echo "ERROR: no contrast specified"
@@ -661,7 +652,7 @@ check_params:
         endif
       end
     else
-      set hemilist = tal;
+      set hemilist = mni305;
     endif
     if($#projfrac && $DoProjFracAvg) then
       echo "ERROR: cannot --projfrac and --projfrac-avg"

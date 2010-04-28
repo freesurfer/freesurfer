@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 18:38:46 $
-#    $Revision: 1.15 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.15 2010/04/06 18:38:46 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.16 2010/04/28 19:42:50 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -44,7 +44,8 @@ set ToSurf = 0;
 set DoLogFile = 0;
 set DoSplit = 0;
 set fsgd = ();
-set regfile = register.dat
+set regdof = 6;
+set regfile = register.reg$regdof.dat
 set DoResample = 1;
 
 # for volume-based only
@@ -168,7 +169,7 @@ foreach sess ($SessList)
       if($DoProjFracAvg) set cmd = ($cmd --projfrac-avg 0 1 .2)
       set cmd = ($cmd --o $mapout)
     else
-      set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-tal.mgh
+      set mapout = $tmpdir/$sessid-$analysis-$contrast-$mapname-mni305.mgh
       set cmd = (mri_vol2vol --mov $map --reg $reg)
       set cmd = ($cmd --o $mapout --no-save-reg --interp $interp)
       if(! $DoMorph) set cmd = ($cmd --tal --talres $talres)
@@ -330,6 +331,7 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set space = $argv[1]; shift;
       if($space == tal) set ToVol = 1;
+      if($space == mni305) set ToVol = 1;
       if($space == lh || $space == rh) then
         set ToSurf = 1;
         set hemi = $space;
@@ -439,12 +441,9 @@ check_params:
   endif
 
   if($#analysis) then
-    set infofile = $analysis/analysis.info
-    set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
-    if($#tmp) set DoResample = 0;
-    set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
-    if($#tmp) set DoResample = 0;
-    set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
+    set IsNative = `getana -a $analysis -t IsNative`    
+    if($IsNative) set DoResample = 0;
+    set fsd = `getana -a $analysis -t fsd`;
   endif
 
   if($#flac) then

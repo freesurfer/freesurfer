@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/23 19:46:41 $
-#    $Revision: 1.43 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.44 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,75 +23,65 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.43 2010/04/23 19:46:41 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.44 2010/04/28 19:42:50 greve Exp $';
 
-# These two should agree with values in mkanalysis_gui.m
-set DefaultTER     = .050; # 50 ms
-set DefaultTWindow = 40 ; # 40 sec
-set RescaleTarget = 100;
-set acfbins = 30;
-
-set inorm      = 1;
-set gAlpha = ();
-
-set scriptsdir = ();
-set fsd    = ();
-set parname    = ();
-set analysis   = ();
-set cloneanalysis = ();
-set CopyCloneCons = 0;
-set funcstem   = f;
-set designtype = ();
-set eventrelated = 0;
-set blocked    = 0;
-set abblocked  = 0;
-set retinotopy = 0;
-set motioncor  = 0;
-set designtype = ()
-set tpexclude = ();
-set force = 0;
-set runlistfile = ();
-set ncycles = ();
-set period = ();
-set IdealTW = ();
-set PreStim = 0;
-set nskip = 0;
-set TR  = ();
-set TER = ();
-set WhitenFlag = 0;
-set gammafit = 0;
-set spmhrf   = -1;
-set gDelta  = ();
-set gTau    = ();
-set meanfit = 1;
-set trendfit = 1;
-set qtrendfit = 0;
-set PolyFitOrder = 1;
-set nyqreg = 0;
-set sveres = ();
-set svsignal = ();
-set nconditions = ();
-set timeoffset = ();
-set extregList = ();
-set nextregList = ();
+set analysis = ();
+set TR = ();
+set DesignType = ();
+set Period = ();
+set ParName = ();
+set StimulusDelay = 0;
+set RawSpaceType = ();
+set RawSpace = ();
+set RawHemi = ();
+set RawRes = ();
+set RawFWHM = ();
+set RawSTC = none;
+set ExpKey = ();
+set mcstem = ();
+set funcstem = ();
 set maskstem = brain;
-set autostimdur = ();
-set stimdur = ();
-set PrintHelp = 0;
-set UseGUI = 0;
-set FSV3st2fir = 0;
-set FSV3whiten = 0;
-set mfile = ();
-set monly = 0;
+set fsd = bold;
+set RunListFile = ();
+set NConditions = ();
+set PreStim = ();
+set PostStim = ();
+set IdealTimeWindow = 40;
+set TimeWindow = ();
+set IdealTER = .050;
+set TER = ();
+set HRFModel = ();
 set RefEventDur = ();
-set subject = ();
-set hemi = ();
-set UseTalairach = ()
+set GammaDelta = ();
+set GammaTau = ();
+set GammaAlpha = 2;
+set nSPMHRF = ();
+set TaskRegList = ();
+set nTaskRegList = ();
+set AutoStimDur = ();
+set PolyFit = 2;
+set HPFCutoffHz = .01;
+set TPExcludeFile = ();
+set NSkip = 0;
+set NuisRegList = ();
+set nNuisRegList = ();
+set ACFBins = 30;
+set ACFFWHM = 20;
 set FixACF = 1;
-set acffwhm = 20;
-set acfsvd = 2;
-set HPFCutoffHz = .01; 
+set ACFSVD = 2;
+set DoInorm = 1;
+set RescaleTarget = 100;
+set eventrelated = 0;
+set abblocked = 0;
+set retinotopy = 0;
+set PrintHelp = 0;
+set autostimdur = 0;
+set RegDOF = 6;
 
+set force = 0;
+set UseGUI = 0;
+
+set cmdargs = ($argv);
 #### If no arguments, print usage and exit ####
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -144,110 +134,83 @@ endif
 #-----------------------------------------
 
 mkdir -p $analysis
+set flac = $analysis/analysis.info
+rm -f $flac
 
-echo "CMD-01" > $analysis/creator.txt
-cp $FREESURFER_HOME/build-stamp.txt $analysis/fs.build-stamp.txt
-
-if($#TER == 0) then
-  if($gammafit || $spmhrf != -1) then
-    #set TER = `echo $TR/20 | bc -l` # was TER = TR/20
-    set TER = `perl -e "print sprintf('%f',$TR/int($TR/$DefaultTER+0.5))"`
-  else
-    set TER = $TR;
-  endif
-endif
-echo "Setting TER to $TER"
-
-##---- Create the analysis config file ------#
-set sxacfg = $analysis/$sxacfg
-rm -f $sxacfg
-touch $sxacfg
-if($designtype == "event-related" || $designtype == "blocked") then
-  set Nh  = `echo "($IdealTW/$TER)" | bc`;
-  set TW  = `echo "$TER*$Nh" | bc -l`;
-  if($gammafit) then
-    @ nth = 1;
-    while($nth <= $#gDelta)
-      echo "-gammafit $gDelta[$nth] $gTau[$nth]" >> $sxacfg
-      @ nth = $nth + 1;
-    end
-    if($#gAlpha != 0) echo "-gammaexp $gAlpha" >> $sxacfg
-  endif
-  if($spmhrf > -1) echo "-spmhrf $spmhrf" >> $sxacfg
-  echo "-timewindow $TW" >> $sxacfg
-  echo "-prestim $PreStim" >> $sxacfg
-  echo "-TER $TER" >> $sxacfg
-  if($autostimdur)   echo "-autostimdur" >> $sxacfg
-  if(! $autostimdur) echo "-noautostimdur" >> $sxacfg
-  if($#timeoffset != 0) echo "-timeoffset $timeoffset" >> $sxacfg
-else if($designtype == "retinotopy" || $designtype == "abblocked") then
-  if($#period)  echo "-period $period" >> $sxacfg
-endif
-
-if($FSV3whiten) set acfbins = 1; # Explicitly set to 1
-if($#acfbins) echo "-acfbins $acfbins" >> $sxacfg
-if($FSV3whiten) set FixACF = 0; # Explicitly set to 0
-if($FixACF) echo "-fix-acf" >> $sxacfg
-if(! $FixACF) echo "-no-fix-acf" >> $sxacfg
-if($FSV3st2fir) echo "-fsv3-st2fir" >> $sxacfg
-if(! $FSV3st2fir) echo "-no-fsv3-st2fir" >> $sxacfg
-if($FSV3whiten)   echo "-fsv3-whiten" >> $sxacfg
-if(! $FSV3whiten) echo "-no-fsv3-whiten" >> $sxacfg
-if($PolyFitOrder >= 0) echo "-polyfit $PolyFitOrder" >> $sxacfg
-if($nyqreg) echo "-nyqreg" >> $sxacfg
-if($#extregList != 0) then
-    @ nth = 0;
-    foreach extreg ($extregList)
-      @ nth = $nth + 1;
-      set nextreg = $nextregList[$nth];
-      echo "-extreg $extreg $nextreg" >> $sxacfg
-    end
-  endif
-endif
-
-echo "-nskip $nskip" >> $sxacfg
-
-
-if($inorm) then 
-  # flac.inorm = RescaleTarget
-  echo "-rescale $RescaleTarget" >> $sxacfg
-else
-  echo "-rescale 0" >> $sxacfg
-endif
-
-if($#stimdur) echo "-stimdur $stimdur" >> $sxacfg
-echo $sveres >> $sxacfg
-echo $svsignal >> $sxacfg
-
-##---- Create the analysis info file ------#
-set infofile = $analysis/analysis.info
-rm -f $infofile
-touch $infofile
-echo "analysis   $analysis"   >> $infofile
-echo "TR         $TR"         >> $infofile
-if($#RefEventDur) echo "RefEventDur $RefEventDur">> $infofile
-echo "fsd        $fsd"        >> $infofile
-echo "funcstem   $funcstem"   >> $infofile
-if($#runlistfile != 0) echo "runlistfile $runlistfile" >> $infofile
-if($#tpexclude) echo "tpexclude  $tpexclude"  >> $infofile
-if($HPFCutoffHz != 0) echo "HPFCutoffHz  $HPFCutoffHz"  >> $infofile
-if($#parname)  echo "parname    $parname"    >> $infofile
-echo "designtype $designtype" >> $infofile
-echo "acffwhm $acffwhm" >> $infofile
-echo "acfsvd $acfsvd" >> $infofile
-if($#maskstem != 0) echo "maskstem $maskstem" >> $infofile
-if($#subject) echo "surface $subject $hemi" >> $infofile
-if($UseTalairach) echo "UseTalairach" >> $infofile
-if($eventrelated || $blocked) then
-  echo "nconditions $nconditions"  >> $infofile 
+# -------- Bookkeeping -------------
+echo "# FSBUILD `cat $FREESURFER_HOME/build-stamp.txt`" | tee -a $flac
+echo "# MKAVERSION $VERSION" | tee -a $flac
+echo "# MKACMD $0 $cmdargs"| tee -a $flac
+echo "# DATE `date`"| tee -a $flac
+echo "" | tee -a $flac
+# -------- Raw data info -------------
+echo "analysis $analysis" | tee -a $flac
+echo "mcstem $mcstem" | tee -a $flac
+if($#funcstem) echo "funcstem $funcstem" | tee -a $flac
+echo "fsd $fsd" | tee -a $flac
+if($#RunListFile) echo "runlistfile $RunListFile" | tee -a $flac
+echo "TR $TR" | tee -a $flac
+echo "RegDOF $RegDOF" | tee -a $flac
+if($RawSpace == native)      echo "RawSpace volume native" | tee -a $flac
+if($RawSpace == mni305)      echo "RawSpace volume mni305 $RawRes" | tee -a $flac
+if($RawSpaceType == surface) echo "RawSpace surface $RawSpace $RawHemi" | tee -a $flac
+echo "mask $maskstem" | tee -a $flac
+echo "RawFWHM $RawFWHM" | tee -a $flac
+if($#RawSTC) echo "RawSTC $RawSTC" | tee -a $flac
+if($#ExpKey) echo "ExpKey $ExpKey" | tee -a $flac
+echo "inorm $RescaleTarget" | tee -a $flac
+# -- Noise and drift modeling, temporal filtering ------
+echo "acfbins $ACFBins" | tee -a $flac
+echo "fixacf  $FixACF" | tee -a $flac
+echo "acffwhm $ACFFWHM" | tee -a $flac
+echo "acfsvd  $ACFSVD" | tee -a $flac
+echo "designtype $DesignType" | tee -a $flac
+if($#TPExcludeFile) echo "tpexclude $TPExcludeFile" | tee -a $flac
+echo "nskip $NSkip" | tee -a $flac
+if($#PolyFit) echo "polyfit $PolyFit" | tee -a $flac
+echo "HPFCutoffHz $HPFCutoffHz" | tee -a $flac
+# ------------ Event Task Modeling -----------
+if($eventrelated) then
+  echo "nconditions $NConditions"  | tee -a $flac
+  echo "parname $ParName" | tee -a $flac
+  if($#RefEventDur) echo "RefEventDur $RefEventDur" | tee -a $flac
+  echo "timewindow $TimeWindow"| tee -a $flac
+  echo "prestim $PreStim"| tee -a $flac
+  echo "TER $TER" | tee -a $flac
+  if($HRFModel == "gamma")  echo "gamma $GammaDelta $GammaTau $GammaAlpha"| tee -a $flac
+  if($HRFModel == "spmhrf") echo "spmhrf $nSPMHRF" | tee -a $flac
+  echo "stimulusdelay $StimulusDelay" | tee -a $flac
   @ nthc = 1
-  while($nthc <= $nconditions)
-    printf "Condition $nthc Condition%02d\n" $nthc >> $infofile 
+  while($nthc <= $NConditions)
+    printf "Condition $nthc Condition%02d\n" $nthc | tee -a $flac
     @ nthc = $nthc + 1
   end
 endif
-
-if($CopyCloneCons && $#cloneanalysis) cp $cloneanalysis/*.mat $analysis
+# ------------ Retinotopy -----------------
+if($retinotopy) then
+  echo "parname $ParName" | tee -a $flac
+  echo "period $Period" | tee -a $flac
+endif
+# ------------ AB Blocked -----------------
+if($abblocked) then
+  echo "period $Period" | tee -a $flac
+endif
+# ------------ Task External Regressors -----------------
+if($#TaskRegList) then
+  @ nth = 1;
+  foreach reg ($TaskRegList)
+    echo "taskreg $reg $nTaskRegList[$nth]" | tee -a $flac
+    @ nth = $nth + 1;
+  end
+endif
+# ------------ Nuisance External Regressors -----------------
+if($#NuisRegList) then
+  @ nth = 1;
+  foreach reg ($NuisRegList)
+    echo "nuisreg $reg $nNuisRegList[$nth]" | tee -a $flac
+    @ nth = $nth + 1;
+  end
+endif
 
 echo "mkanalysis-sess done"
 
@@ -265,213 +228,78 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "-g":
-    case "-s":
-    case "-sf":
-    case "-d":
-    case "-df":
-      if ( $#argv == 0) goto arg1err;
-      set GSPArgs = ($GSPArgs $flag $argv[1]); shift;
-      breaksw
-
-    case "-cwd":
-      set GSPArgs = ($GSPArgs -cwd);
-      breaksw
-
-    case "-copy-clone-contrasts":
-    case "-copy-clone-con":
-    case "-ccc":
-      set CopyCloneCons = 1;
-      breaksw
-
-    case "-clone":
-      if ( $#argv == 0) goto arg1err;
-      set cloneanalysis = $argv[1]; shift;
-      if(! -e $cloneanalysis ) then
-        echo "ERROR: $cloneanalysis does not exist"
-        exit 1;
-      endif
-      set cainfo = $cloneanalysis/analysis.info
-      set cacfg  = $cloneanalysis/analysis.cfg
-      if(! -e $cainfo ) then
-        echo "ERROR: $cloneanalysis does have analysis.info"
-        exit 1;
-      endif
-      if(! -e $cacfg ) then
-        echo "ERROR: $cloneanalysis does have analysis.cfg"
-        exit 1;
-      endif
-
-  set TR = `cat $cainfo   | awk '{if($1 == "TR") print $2}'`;
-  set tmp = `cat $cainfo | awk '{if($1 == "RefEventDur") print $2}'`;
-  if($#tmp) set RefEventDur = $tmp
-  set tmp = `cat $cainfo | awk '{if($1 == "surface") print $2" "$3}'`;
-  if($#tmp) then
-    set subject = $tmp[1];
-    set hemi = $tmp[2];
-  endif
-  set tmp = `cat $cainfo | awk '{if($1 == "hemi") print $2}'`;
-  if($#tmp) set hemi = $tmp
-  set UseTalairach = `cat $cainfo | awk '{if($1 == "UseTalairach") print $2}'`;
-  set designtype = `cat $cainfo | awk '{if($1 == "designtype") print $2}'`;
-  set fsd       = `cat $cainfo | awk '{if($1 == "fsd") print $2}'`;
-  set funcstem  = `cat $cainfo | awk '{if($1 == "funcstem") print $2}'`;
-  set parname   = `cat $cainfo | awk '{if($1 == "parname") print $2}'`;
-  set tpexclude = `cat $cainfo | awk '{if($1 == "tpexclude") print $2}'`;
-  set runlistfile = `cat $cainfo | awk '{if($1 == "runlistfile") print $2}'`;
-  set nconditions = `cat $cainfo | awk '{if($1 == "nconditions") print $2}'`;
-  set tmp = `cat $cainfo | awk '{if($1 == "maskstem") print $2}'`;
-  if($#tmp) set maskstem = $tmp;
-
-  set gDelta = `cat $cacfg | awk '{if($1 == "-gammafit") print $2}'`;
-  set gTau   = `cat $cacfg | awk '{if($1 == "-gammafit") print $3}'`;
-  set gAlpha = `cat $cacfg | awk '{if($1 == "-gammaexp") print $2}'`;
-  if($#gDelta != 0) set gammafit = 1;
-  set spmhrf = `cat $cacfg | awk '{if($1 == "-spmhrf") print $2}'`;
-  if($#spmhrf == 0) set spmhrf = -1;
-  set FixACF = `cat $cacfg | awk '{if($1 == "-fix-acf") print $2}'`;
-  if($#FixACF == 0) set FixACF = 1; # default is to fix
-  set tmpNoFixACF = `cat $cacfg | awk '{if($1 == "-no-fix-acf") print 1}'`;
-  if($#tmpNoFixACF) set FixACF = 0;
-
-  set FSV3st2fir = `cat $cacfg | awk '{if($1 == "-fsv3-st2fir") print $2}'`;
-  if($#FSV3st2fir) set FSV3st2fir = 1; # default is not to use FSV3
-  set FSV3st2fir = `cat $cacfg | awk '{if($1 == "-no-fsv3-st2fir") print $2}'`;
-  if($#FSV3st2fir == 0) set FSV3st2fir = 0; 
-
-  set FSV3whiten = `cat $cacfg | awk '{if($1 == "-fsv3-whiten") print $2}'`;
-  if($#FSV3whiten) set FSV3whiten = 1; # default is not to use FSV3
-  set FSV3whiten = `cat $cacfg | awk '{if($1 == "-no-fsv3-whiten") print $2}'`;
-  if($#FSV3whiten == 0) set FSV3whiten = 0; 
-
-  set IdealTW = `cat $cacfg | awk '{if($1 == "-timewindow") print $2}'`;
-  set PreStim = `cat $cacfg | awk '{if($1 == "-prestim") print $2}'`;
-  set TER = `cat $cacfg | awk '{if($1 == "-TER") print $2}'`;
-  set acfbins = `cat $cacfg | awk '{if($1 == "-acfbins") print $2}'`;
-  set nskip  = `cat $cacfg | awk '{if($1 == "-nskip") print $2}'`;
-
-  set tmp  = `cat $cacfg | awk '{if($1 == "-extreg") print $2" "$3}'`;
-  if($#tmp) then
-    set extregList  = `cat $cacfg | awk '{if($1 == "-extreg") print $2}'`;
-    set nextregList = `cat $cacfg | awk '{if($1 == "-extreg") print $3}'`;
-  endif
-  set timeoffset  = `cat $cacfg | awk '{if($1 == "-timeoffset") print $2}'`;
-  set ncycles  = `cat $cacfg | awk '{if($1 == "-ncycles") print $2}'`;
-  set period  = `cat $cacfg | awk '{if($1 == "-period") print $2}'`;
-
-  set trendfit = `cat $cacfg | awk '{if($1 == "-detrend") print 1}'`;
-  set qtrendfit = `cat $cacfg | awk '{if($1 == "-qtrendfit") print 1}'`;
-  set tmp = `cat $cacfg | awk '{if($1 == "-rescale") print 1}'`;
-  if($#tmp != 0) set inorm = 1;
-  set PolyFitOrder = `cat $cacfg | awk '{if($1 == "-polyfit") print $2}'`;
-  set nyqreg = `cat $cacfg | awk '{if($1 == "-nyqreg") print $1}'|wc -l`;
-
-  set sveres = `cat $cacfg | awk '{if($1 == "-sveres") print $1}'`;
-  set svsignal = `cat $cacfg | awk '{if($1 == "-svsignal") print $1}'`;
-
-  set tmp  = `cat $cacfg | awk '{if($1 == "-autostimdur") print 1}'`;
-  if($#tmp != 0) set autostimdur = 1;
-  set tmp  = `cat $cacfg | awk '{if($1 == "-noautostimdur") print 1}'`;
-  if($#tmp != 0) set autostimdur = 0;
-  set stimdur = `cat $cacfg | awk '{if($1 == "-stimdur") print $1}'`;
-
-      #goto getclone;
-      #getclone_return:
-      breaksw
-
-    case "-sxacfg": # not advertised #
-      if ( $#argv == 0) goto arg1err;
-      set sxacfg = $1; shift;
-      breaksw
-
     case "-a":
     case "-analysis":
-      if ( $#argv == 0) goto arg1err;
+      if($#argv < 1) goto arg1err;
       set analysis = $1; shift;
       breaksw
 
     case "-p":
     case "-par":
     case "-paradigm":
-      if ( $#argv == 0) goto arg1err;
-      set parname = $1; shift;
+      if($#argv < 1) goto arg1err;
+      set ParName = $1; shift;
       breaksw
 
-    case "-ssd":
     case "-fsd":
-      if ( $#argv == 0) goto arg1err;
+      if($#argv < 1) goto arg1err;
       set fsd = $1; shift;
       breaksw
 
     case "-funcstem":
-    case "-fmcstem":
-      if ( $#argv == 0) goto arg1err;
+      if($#argv < 1) goto arg1err;
       set funcstem = $1; shift;
       breaksw
 
     case "-runlistfile":
     case "-rlf":
-      if ( $#argv == 0) goto arg1err;
-      set runlistfile = $1; shift;
-      breaksw
-
-    case "-norlf":
-      set runlistfile = ();
+      if($#argv < 1) goto arg1err;
+      set RunListFile = $1; shift;
       breaksw
 
     case "-nconditions":
     case "-nc":
-      if ( $#argv == 0) goto arg1err;
-      set nconditions = $argv[1]; shift;
+      if($#argv < 1) goto arg1err;
+      set NConditions = $argv[1]; shift;
       breaksw
 
     case "-tpexclude":
     case "-tpef":
-      if ( $#argv == 0) goto arg1err;
-      set tpexclude = $argv[1]; shift;
+    case "-tpex":
+      if($#argv < 1) goto arg1err;
+      set TPExcludeFile = $argv[1]; shift;
       breaksw
 
     case "-timewindow":
     case "-tw":
-      if ( $#argv == 0) goto arg1err;
-      set IdealTW = $argv[1]; shift;
+      if($#argv < 1) goto arg1err;
+      set IdealFIRTimeWindow = $argv[1]; shift;
       breaksw
 
+    case "-delay":
     case "-timeoffset":
-      if ( $#argv == 0) goto arg1err;
-      set  timeoffset = $argv[1]; shift;
-      breaksw
-
-    case "-prestim":
-    case "-tprestim":
-    case "-tps":
-    case "-ps":
-      if ( $#argv == 0) goto arg1err;
-      set PreStim = $argv[1]; shift;
+      if($#argv < 1) goto arg1err;
+      set StimulusDelay = $argv[1]; shift;
       breaksw
 
     case "-acfbins":
-      if ( $#argv == 0) goto arg1err;
-      set acfbins = $argv[1]; shift;
+      if($#argv < 1) goto arg1err;
+      set ACFBins = $argv[1]; shift;
       breaksw
 
     case "-acffwhm":
       if($#argv < 1) goto arg1err;
-      set acffwhm = $argv[1]; shift;
+      set ACFFWHM = $argv[1]; shift;
       breaksw
 
     case "-acfsvd":
       if($#argv < 1) goto arg1err;
-      set acfsvd = $argv[1]; shift;
-      breaksw
-
-    case "-whiten":
-      set acfbins = 30;
+      set ACFSVD = $argv[1]; shift;
       breaksw
 
     case "-no-whiten":
     case "-nowhiten":
-      set acfbins = 0;
+      set ACFBins = 0;
       breaksw
 
     case "-mask":
@@ -479,158 +307,146 @@ while( $#argv != 0 )
       set maskstem = $argv[1]; shift;
       breaksw
 
+    case "-ter":
     case "-TER":
-      if ( $#argv == 0) goto arg1err;
+      if($#argv < 1) goto arg1err;
       set TER = $argv[1]; shift;
       breaksw
 
+    case "-tr":
     case "-TR":
-      if ( $#argv == 0) goto arg1err;
+      if($#argv < 1) goto arg1err;
       set TR = $argv[1]; shift;
       breaksw
 
-    case "-extreg": # External regressor file
+    case "-nuisreg": # External regressor file
       if($#argv < 2) goto arg2err;
-      set extregList  = ($extregList $argv[1]); shift;
-      set nextregList = ($nextregList $argv[1]); shift;
-      breaksw
-
-    case "-no-mcextreg": 
-    case "-nomcextreg": 
-    case "-no-extreg": 
-    case "-noextreg": 
-      set extreg = ();
-      set nextreg = ();
+      set NuisRegList  = ($NuisRegList $argv[1]); shift;
+      set nNuisRegList = ($nNuisRegList $argv[1]); shift;
       breaksw
 
     case "-mcextreg": # MotionCor External regressor file
-      set extregList  = ($extregList mcextreg);
-      set nextregList = ($nextregList 3);
+      set NuisRegList  = ($NuisRegList mcextreg);
+      set nNuisRegList = ($nNuisRegList 3);
       breaksw
 
-    case "-nextreg": # No. of External regressors to use
-      echo "ERROR: option -nextreg is no longer valid. The number"
-      echo "of external regressors is now the second argument to "
-      echo "the -extreg option."
+    case "-taskreg": # External regressor file
+      if($#argv < 2) goto arg2err;
+      set TaskRegList  = ($TaskRegList $argv[1]); shift;
+      set nTaskRegList = ($nTaskRegList $argv[1]); shift;
       breaksw
 
+    case "-fir":
+      if($#argv < 2) goto arg2err;
+      set TimeWindow = $argv[1]; shift;
+      set PreStim = $argv[1]; shift;
+      set HRFModel = "fir";
+      breaksw
+
+    case "-gamma":
     case "-gammafit":
       if ( $#argv < 2) goto arg2err;
-      set gDelta = ($gDelta $argv[1]); shift;
-      set gTau   = ($gTau   $argv[1]); shift;
-      set gammafit = 1;
+      set GammaDelta = $argv[1]; shift;
+      set GammaTau   = $argv[1]; shift;
+      set TimeWindow = $IdealTimeWindow;
+      set PreStim = 0;
+      set HRFModel = "gamma";
       breaksw
 
     case "-gammaexp":
       if ( $#argv < 1) goto arg1err;
-      set gAlpha = $argv[1]; shift;
-      breaksw
-
-    case "-nogammafit":
-      # for use with -clone #
-      set gDelta = ();
-      set gTau   = ();
-      set gammafit = 0;
+      set GammaAlpha = $argv[1]; shift;
       breaksw
 
     case "-spmhrf":
       if ( $#argv < 1) goto arg1err;
-      set spmhrf = $argv[1]; shift;
+      set nSPMHRF = $argv[1]; shift;
+      set TimeWindow = $IdealTimeWindow;
+      set PreStim = 0;
+      set HRFModel = "spmhrf";
       breaksw
 
-    case "-nospmhrf":
-      set sphhrf = -1;
-      breaksw
-
+    case "-red":
     case "-refeventdur":
-      if ( $#argv < 1) goto arg1err;
+      if($#argv < 1) goto arg1err;
       set RefEventDur = $argv[1]; shift;
       breaksw
 
     case "-fwhm":
-      echo "ERROR: -fwhm is no longer supported in  mkanalysis-sess"
-      exit 1;
+      if($#argv < 1) goto arg1err;
+      set RawFWHM = $argv[1]; shift;
+      breaksw
+
+    case "-reg-dof":
+      if($#argv < 1) goto arg1err;
+      set RegDOF = $argv[1]; shift;
+      breaksw
+
+    case "-slice-time-cor":
+    case "-stc":
+      if($#argv < 1) goto arg1err;
+      set RawSTC = $argv[1]; shift;
+      if($RawSTC != siemens && $RawSTC != up && $RawSTC != down && \
+         $RawSTC != odd && $RawSTC != even && $RawSTC != none) then
+         echo "ERROR: -stc is $RawSTC, must be siemens, up, down, odd, even, or none"
+         exit 1;
+      endif
       breaksw
 
     case "-nskip":
-      if ( $#argv == 0) goto arg1err;
-      set nskip = $argv[1]; shift;
-      breaksw
-
-    case "-ncycles":
-      if ( $#argv == 0) goto arg1err;
-      set ncycles = $argv[1]; shift;
+      if($#argv < 1) goto arg1err;
+      set NSkip = $argv[1]; shift;
       breaksw
 
     case "-period":
-      if ( $#argv == 0) goto arg1err;
-      set period = $argv[1]; shift;
+      if($#argv < 1) goto arg1err;
+      set Period = $argv[1]; shift;
       breaksw
 
     case "-surface":
     case "-surf":
       if($#argv < 2) goto arg2err;
-      set subject = $argv[1]; shift;
-      set hemi = $argv[1]; shift;
-      set UseTalairach = 0;
-      breaksw
-    case "-no-surf":
-    case "-no-surface":
-      set subject = ();
-      set hemi = ();
+      set RawSpace = $argv[1]; shift; # subjectname
+      set RawHemi = $argv[1]; shift;
+      set RawSpaceType = surface
+      set mcstem = fmcpr
       breaksw
 
-    case "-tal":
-    case "-talairach":
-      set UseTalairach = 1;
-      set subject = ();
-      set hemi = ();
-      breaksw
-
-    case "-no-tal":
-    case "-no-talairach":
-      set UseTalairach = 0;
+    case "-mni305":
+      if($#argv < 1) goto arg1err;
+      set RawRes = $argv[1]; shift;
+      set RawSpaceType = volume;
+      set RawSpace = mni305;
+      set mcstem = fmcpr
       breaksw
 
     case "-native":
-      set UseTalairach = 0;
-      set subject = ();
-      set hemi = ();
+      set RawSpaceType = volume
+      set RawSpace = native
+      set mcstem = fmc
       breaksw
 
-    case "-perrun":
-      set PerRun = 1;
-      breaksw
-
-    case "-synth":
-      set DoSynth = 1;
-      breaksw
-
-    case "-designtype":
-    case "-design":
-    case "-dt":
-      echo "ERROR: do not use -designtype anymore."
-      echo "  Instead, specify -event-related, -retinotopy, or -abblocked"
-      exit 1;
+    case "-expkey":
+      if($#argv < 1) goto arg1err;
+      set ExpKey = $argv[1]; shift; # prepend a dot later
       breaksw
 
     case "-event-related":
     case "-er":
-      set designtype = "event-related"
+      set DesignType = "event-related"
       set eventrelated = 1;
       set abblocked = 0;
       set retinotopy = 0;
       breaksw
 
     case "-abblocked":
-      if ( $#argv < 1) goto arg1err;
-      set period = $argv[1]; shift;
-      set designtype = "abblocked"
+      if($#argv < 1) goto arg1err;
+      set Period = $argv[1]; shift;
+      set DesignType = "abblocked"
       set abblocked = 1;
       set PolyFitOrder = 1;
-      set HPFCutoffHz = `echo ".5/$period" | bc -l`
+      set HPFCutoffHz = `echo ".5/$Period" | bc -l`
       set acfbins = 0;
-      set RefEventDur = -1;
       set eventrelated = 0;
       set retinotopy = 0;
       breaksw
@@ -638,14 +454,13 @@ while( $#argv != 0 )
     case "-retinotopy":
     case "-rtopy":
     case "-ret":
-      if ( $#argv < 1) goto arg1err;
-      set period = $argv[1]; shift;
-      set designtype  = "retinotopy"
+      if($#argv < 1) goto arg1err;
+      set Period = $argv[1]; shift;
+      set DesignType  = "retinotopy"
       set retinotopy = 1;
       set PolyFitOrder = 1;
-      set HPFCutoffHz = `echo ".5/$period" | bc -l`
+      set HPFCutoffHz = `echo ".5/$Period" | bc -l`
       set acfbins = 0;
-      set RefEventDur = -1;
       set eventrelated = 0;
       set abblocked = 0;
       breaksw
@@ -653,7 +468,7 @@ while( $#argv != 0 )
     case "-polyfit":
     case "-pf":
       if ( $#argv < 1) goto arg1err;
-      set PolyFitOrder = $argv[1]; shift;
+      set PolyFit = $argv[1]; shift;
       breaksw
 
     case "-hpf":
@@ -665,18 +480,6 @@ while( $#argv != 0 )
       set HPFCutoffHz = 0;
       breaksw
 
-    case "-nyqreg":
-      set nyqreg = -1;
-      breaksw
-
-    case "-sveres":
-      set sveres = "-sveres";
-      breaksw
-
-    case "-svsignal":
-      set svsignal = "-svsignal";
-      breaksw
-
     case "-overwrite":
     case "-force":
       set force = 1;
@@ -684,87 +487,47 @@ while( $#argv != 0 )
 
     case "-noinorm":
     case "-no-inorm":
-      set inorm = 0;
+      set DoInorm = 0;
       breaksw
 
     case "-inorm":
-      set inorm = 1;
+      set DoInorm = 1;
       breaksw
 
     case "-rescale-target":
       if($#argv < 1) goto arg1err;
       set RescaleTarget = $argv[1]; shift;
-      set inorm = 1;
-      breaksw
-
-    case "-stimdur":
-      if ( $#argv == 0) goto arg1err;
-      set stimdur = $argv[1]; shift;
-      breaksw
-
-    case "-nostimdur":
-      set stimdur = ();
+      set DoInorm = 1;
       breaksw
 
     case "-autostimdur":
       set autostimdur = 1;
       breaksw
-
     case "-noautostimdur":
       set autostimdur = 0;
-      breaksw
-
-    case "-newmka": #ignore
-      breaksw
-
-    case "-gui": 
-      set UseGUI = 1;
-      set force = 1;
-      breaksw
-
-    case "-monly":
-      if($#argv < 1) goto arg1err;
-      set mfile = $argv[1]; shift
-      set monly = 1;
-      set UseGUI = 1;
-      set force = 1;
       breaksw
 
     case "-no-fix-acf":
       set FixACF = 0;
       breaksw
 
-    case "-fix-acf":
-      set FixACF = 1;
-      breaksw
-
     case "-fsv3":
-      set FSV3st2fir = 1;
       set FSV3whiten = 1;
       set RescaleTarget = 1000;
-      breaksw
-
-    case "-no-fsv3":
-      set FSV3st2fir = 0;
-      set FSV3whiten = 0;
-      set RescaleTarget = 100;
-      breaksw
-
-    case "-fsv3-st2fir":
-      set FSV3st2fir = 1;
       breaksw
 
     case "-fsv3-whiten":
       set FSV3whiten = 1;
       breaksw
 
-    case "-no-fsv3-st2fir":
-      set FSV3st2fir = 0;
-      breaksw
-
     case "-debug":
       set verbose = 1;
       set echo = 1;
+      breaksw
+
+    case "-gui": 
+      set UseGUI = 1;
+      set force = 1;
       breaksw
 
     default:
@@ -781,8 +544,6 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#analysis == 0 && $UseGUI) set analysis = "NewAnalysis";
-
   if($#analysis == 0) then
     echo "ERROR: must specify an analysis name"
     exit 1;
@@ -794,82 +555,82 @@ check_params:
     echo "  3. Re-run mkanalysis-sess with a -force option to overwrite"
     exit 1;
   endif
-
   if(-e $analysis && $force) then
     echo "INFO:  analysis $analysis exists, but overwrite forced by user."
   endif
 
-  if(! $UseGUI) then
   if($#TR == 0) then
     echo "ERROR: must specify TR"
     exit 1;
   endif
-
-  if($#fsd == 0)  set fsd = bold
-
-  if($#funcstem == 0) then
-    echo "ERROR: must specify a funcstem"
+  if($#DesignType == 0) then
+    echo "ERROR: must specify design type"
     exit 1;
   endif
-
-  if($#parname == 0 && $abblocked)  set parname = NONE;
-  if($#parname == 0) then
-    echo "ERROR: must specify a paradigm file name"
+  if($#RawSpaceType == 0) then
+    echo "ERROR: must specify -native, -surface, or -mni305"
     exit 1;
   endif
-
   if(! $eventrelated && ! $abblocked && ! $retinotopy) then
     echo "ERROR: must choose a design type:"
     echo " either -event-related, -abblocked, or -retinotopy" 
     exit 1;
   endif
-
-  if($abblocked && $retinotopy) then
-    echo "ERROR: cannot specify both -abblocked and -retinotopy"
+  if($#RawFWHM == 0) then
+    echo "ERROR: you must set a FWHM with -fwhm. If you do not want"
+    echo "to smooth, use -fwhm 0"
     exit 1;
   endif
 
-  if($#nskip == 0)   set nskip = 0;
-
-  if($gammafit == 1 && $#IdealTW == 0) then
-    set IdealTW = $DefaultTWindow;
-    set PreStim = 0;
-    echo "INFO: setting Gamma time window to $IdealTW sec"
-  endif
-
-  if($spmhrf >= 0 && $#IdealTW == 0) then
-    set IdealTW = $DefaultTWindow;
-    set PreStim = 0;
-    echo "INFO: setting SPM time window to $IdealTW sec"
-  endif
-
-  if($eventrelated || $blocked) then
+  if($eventrelated) then
+    if($#ParName == 0) then
+      echo "ERROR: must specify a paradigm file name with event-related "
+      echo "  and blocked designs. Use the -paradigm option."
+      exit 1;
+    endif
+    if($#NConditions == 0) then
+      echo "ERROR: you must specify number of conditions with event-related "
+      echo "  and blocked designs. Use the -nc option."
+      exit 1;
+    endif
+    if($#HRFModel == 0) then
+      echo "ERROR: you must specify an HRF model with event-related and blocked designs."
+      echo " Choose one of the following models: -fir, -gamma, -spmhrf."
+      exit 1;
+    endif
+    if($#RefEventDur == 0) then
+      echo "ERROR: you must specify a reference event duration with event-related "
+      echo "  and blocked designs. Use the -refeventdur flag."
+      exit 1;
+    endif
+    if($#TER == 0 && $HRFModel == "fir") set TER = $TR;
+    if($#TER == 0 && $HRFModel != "fir") then
+      set TER = `perl -e "print sprintf('%f',$TR/int($TR/$IdealTER+0.5))"`
+    endif
+    echo "Setting TER to $TER"
+    set Nh  = `echo "($TimeWindow/$TER)" | bc`;
+    set TimeWindow  = `echo "$TER*$Nh" | bc -l`;
+    set Nps  = `echo "($PreStim/$TER)" | bc`;
+    set PreStim  = `echo "$TER*$Nps" | bc -l`;
+    set PostStim = `echo "$TimeWindow - $PreStim" | bc -l`
+    echo "Setting TimeWindow to $TimeWindow"
+    echo "Setting PreStim    to $PreStim"
+    echo "Setting PostStim   to $PostStim"
     if($#autostimdur == 0) then
       echo "ERROR: autostimdur flag not set. See -help for -autostimdur"
       exit 1;
     endif
-    if($gammafit == 0 && $#IdealTW == 0) then
-      echo "ERROR: must set a timewindow if not fitting a gamma function"
-      exit 1;
-    endif
-    if($#nconditions == 0) then
-      echo "ERROR: must specify number of conditions"
-      exit 1;
-    endif
   endif
 
-  if(($gammafit || $spmhrf != -1) && $#RefEventDur == 0) then
-    echo "ERROR: you must specify a reference event duration with an HRF"
+  if($retinotopy && $#ParName == 0) then
+    echo "ERROR: must specify a paradigm file name with retinotopy designs"
+    echo "  and blocked designs. Use the -paradigm option."
     exit 1;
   endif
-
-  if($#subject && $UseTalairach) then
-    echo "ERROR: cannot use -surface and -talairach"
+  if($abblocked && $#ParName != 0) then
+    echo "ERROR: cannot specify a paradigm file with abblocked designs"
     exit 1;
   endif
-
- endif # Dont use GUI
-
 
 goto check_params_return;
 ############--------------##################
@@ -889,50 +650,61 @@ arg2err:
 ############--------------##################
 usage_exit:
   echo ""
-  echo "mkanalysis-sess"
+  echo "mkanalysis-sess : configure a first-level FSFAST analysis"
+  echo ""
+  echo "  -analysis  analysisname : name of analysis configuration";
+  echo ""
+  echo "Preprocessing"
+  echo "  -surface subject hemi : sample raw data onto the hemi.subject surface"
+  echo "  -mni305 <resMM>       : sample raw in mni305 with resolution resMM (1 or 2)"
+  echo "  -native               : leave raw data in native functional space"
+  echo "  -fwhm FWHMmm : spatially smooth input by FWHM (in mm) in proper space"
+  echo "  -stc SliceOrder : slice-time correct using the name of the SliceOrder (default none)"
+  echo "  -reg-dof DOF : use given DOF when performing registration (default is $RegDOF)"
   echo ""
   echo "Basic Design Arguments"
-  echo "  -analysis  analysisname : name of session-level functional analysis";
   echo "  -TR   TR                : TR value in seconds"
   echo "  -event-related          : event-related or blocked design"
   echo "  -retinotopy periodSec   : retinotopy design with period (sec)"
   echo "  -abblocked  periodSec   : abblocked design with period (sec)"
-  echo "  -funcstem stem          : stem of functional data (default = f or fmc)"
-  echo "  -paradigm  parname      : name of paradigm file (needed for ER and ret)"
+  echo "  -paradigm  ParName      : name of paradigm file (needed for ER and ret)"
   echo ""
-  echo "Event-Related and Blocked Arguments "
-  echo "   -refeventdur Duration : duration (sec) of reference event for scaling"
+  echo "Event-Related and Blocked Design Arguments "
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"
-  echo "   -timewindow  TW      : event time window (sec) for FIR designs"
-  echo "   -prestim     PS      : event prestimulus window (sec) for FIR designs"
-  echo "   -TER         TER     : temporal estimation resolution (sec)"
+  echo "        ------------- FIR - do not assume a shape ----------------"
+  echo "   -fir PreStim TimeWindow : event prestimulus and total time window (sec) for FIR designs"
+  echo "        ------------- Assume a shape ----------------"
+  echo "   -refeventdur Duration : duration (sec) of reference event for scaling"
+  echo "   -spmhrf nderiv    : assume SPM HRF with nderiv derivatives"
   echo "   -gammafit gfDelta gfTau : assume IRF is a gamma function"
   echo "   -gammaexp gfAlpha : gamma exponent (default is 2) "
-  echo "   -spmhrf nderiv    : assume SPM HRF with nderiv derivatives"
-  echo "   -timeoffset  toffset : time offset (sec) to add to each paradigm file"
-  echo "   -autostimdur    : automatically compute stimulus duration"
+  echo "        ------------- Other Options ----------------"
+  echo "   -taskreg extreg n : external task regressor file and number of regressors to include"
+  echo "   -delay Delay : delay (add) Delay sec to time in each paradigm file"
+  echo "   -TER TER             : temporal estimation resolution (sec)"
+  echo "   -autostimdur    : automatically compute stimulus duration from parfile"
   echo "   -noautostimdur  : do not automatically compute stimulus duration (default)"
   echo ""
-  echo "Noise, drift, and frequency options"
-  echo "   -polyfit N             : fit trend with polynomial of order N"
-  echo "   -hpf CutoffHz          : High-pass filtering with Cuttoff in Hz"
-  echo "   -tpexclude filename    : time-point (in seconds) exclude file name"
-  echo "   -nskip       N         : skip the first N time points in each run"
-  echo "   -extreg extreg nextreg : external regressor file and number of regressors to include"
-  echo "   -mcextreg              : use motion parameters as external regressors (sets n=3)"
-  echo "   -nowhiten : turn off temporal whitening"
+  echo "Noise, drift, and temporal filtering options"
+  echo "   -polyfit N          : fit trend with polynomial of order N"
+  echo "   -hpf CutoffHz       : High-pass filtering with Cuttoff in Hz"
+  echo "   -tpexclude filename : time-point (in seconds) exclude file name"
+  echo "   -nskip  N           : skip the first N time points in each run"
+  echo "   -nuisreg extreg n : external nuissance regressor file and number of regressors to include"
+  echo "   -mcextreg      : use motion parameters as external nuissance regressors (sets n=3)"
+  echo "   -nowhiten      : turn off temporal whitening (same as -acfbins 0)"
   echo "   -acfbins nbins : spatially segment autocorrelation into nbins (def 10)"
-  echo "   -acffwhm fwhm : spatially smooth ACF before binning (def 0)"
+  echo "   -acffwhm fwhm  : spatially smooth ACF before binning (def 0)"
   echo "   -no-fix-acf    : do NOT compensate for resdualized ACF"
-  echo "   -fsv3-whiten : perform whitening like FreeSurfer Version 3 (and -no-)"
+  echo "   -fsv3-whiten   : perform whitening like FreeSurfer Version 3 (and -no-)"
   echo ""
   echo "Other Optional Arguments"
-  echo "  -fsd FSD               : functional subdirectory"
-  echo "  -runlistfile filename  : file with list of runs to include in analysis"
+  echo "  -fsd FSD              : functional subdirectory (default is bold)"
+  echo "  -runlistfile filename : file with list of runs to include in analysis"
+  echo "  -funcstem stem  : override default"
   echo "  -mask  maskid : use masks/maskid to compute autocor and whitening"
   echo "  -no-inorm              : do not intensity normalize data"
-  echo "  -no-extreg             : turn off external regressors"
-  echo "  -rescale-target value  : inorm to value"
+  echo "  -rescale-target value  : intensity normalize to value"
   echo "  -version        : print version and exit"
   echo "  -help           : some help, the first place to check"
   echo ""
@@ -979,7 +751,7 @@ called analysisname will be created in the functional subdirectory
 This is the TR in seconds. It will be checked against the TR in each 
 session when selxavg-sess is run. See also -TER. 
  
--paradigm parname (Shortcut: -p) 
+-paradigm ParName (Shortcut: -p) 
  
 This is the name of the paradigm file as found in each functional run 
 directory. For blocked and event-related designs, the paradigm file 

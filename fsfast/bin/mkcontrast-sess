@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/10 01:55:35 $
-#    $Revision: 1.12 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.12 2009/04/10 01:55:35 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.13 2010/04/28 19:42:50 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -85,45 +85,16 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-## Get the number of delays (ie, estimates) ##
-if(! $UseSXADat) then
-   set cfg = $analname/analysis.cfg
-   if(! -e $cfg) then
-      echo "ERROR: $cfg does not exist"
-      exit 1;
-   endif
-   set info = $analname/analysis.info
-   if(! -e $info) then
-     echo "ERROR: $info does not exist"
-     exit 1;
-   endif
-   set TER = `cat $cfg | awk '{if($1 == "-TER") print $2}'`;
-   set TW = `cat $cfg | awk '{if($1 == "-timewindow") print $2}'`;
-   set gDelta = `cat $cfg | awk '{if($1 == "-gammafit") print $2}'`;
-   set GammaFit = 0;
-   if($#gDelta != 0) set GammaFit = 1;
-   set spmhrf = `cat $cfg | awk '{if($1 == "-spmhrf") print $2}'`;
-   if($#spmhrf == 0) set spmhrf = -1;
-   if($GammaFit) then
-     set Nh = 1;
-   else if($spmhrf != -1) then
-     @ Nh = 1 + $spmhrf;
-   else
-     set Nh = `echo $TW/$TER | bc `
-   endif
-   if($#Nh == 0) exit 1;
-   set Nc = `cat $info | awk '{if($1 == "nconditions") print $2}'`;
-else
-  set tmp = `grep Nh $datfile`;
-  @ Nh = $tmp[2];
-  set tmp = `grep nCond $datfile`;
-  @ Nc = $tmp[2] - 1;
+set iser = `getana -a $analname -t IsEventRelated`;
+if(! $iser) then
+  echo "ERROR: analysis $analname is not event-related or blocked"
+  exit 1;
 endif
 
-
-## Get the number of conditions ##
-echo "INFO: Found $Nh Delays"
+set Nc  = `getana -a $analname -t nconditions`;
+set Nh  = `getana -a $analname -t npercond`;
 echo "INFO: Found $Nc Non-Null Conditions"
+echo "INFO: Found $Nh Delays"
 
 if($#ncond != 0) then
   if($ncond != $Nc) then
@@ -132,7 +103,6 @@ if($#ncond != 0) then
     exit 1;
   endif
 endif
-
 
 ## Check that the conditions are within range ##
 foreach c ($actcond $ctrlcond)
@@ -198,11 +168,7 @@ set tmp = `basename $contrast .mat`
 if($tmp == $contrast) set cmtxfile = $cmtxfile.mat
 
 set cmd = (mkcontrast)
-if($UseSXADat) then
-  set cmd = ($cmd -sxadat $datfile)
-else
-  set cmd = ($cmd -anadir $analname)
-endif
+set cmd = ($cmd -anadir $analname)
 set cmd = ($cmd -wcond $wcond $sumconds -o $cmtxfile)
 
 set cmd = ($cmd  $sumdelays $showcmtx $rmprestim)
@@ -373,10 +339,6 @@ while( $#argv != 0 )
       set mfile = $argv[1]; shift;
       breaksw
 
-    case "-sxadat":
-      set UseSXADat = 1;
-      breaksw
-
     case "-verbose":
       set verbose = 1;
       breaksw
@@ -435,14 +397,6 @@ check_params:
   if(! -d $analname ) then
     echo "ERROR: analysis $analname does not exist"
     exit 1;
-  endif
-
-  if($UseSXADat) then
-    set datfile = $analname/h.dat
-    if(! -e $datfile) then
-      echo "ERROR: cannot find $datfile"
-      exit 1;
-    endif
   endif
 
   if($#wcond == 0) then
@@ -505,7 +459,6 @@ usage_exit:
   echo "   -ircorr nircorr   : correlate with gamma function"
   echo "   -deltarange dmin dmax : range of delta for gamma function"
   echo "   -taurange   tmin tmax : range of tau for gamma function"
-  echo "   -sxadat           : use sxadat file"
   echo "   -umask umask      : set unix file permission mask"
   echo "   -scriptonly       : don't run, just generate a script"
   echo "   -version          : print version and exit"

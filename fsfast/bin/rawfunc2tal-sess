@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/19 22:17:21 $
-#    $Revision: 1.11 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,24 +22,31 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.11 2010/04/19 22:17:21 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.12 2010/04/28 19:42:50 greve Exp $'
 
 set inputargs = ($argv);
 
 set fsd        = bold;
 set instem     = ();
 set outstem    = ();
-set regfile    = register.dat
-set talres = 2;
+set regfile    = ();
+set regdof     = 6;
+set target = mni305
+set res = 2;
 set talxfm = talairach.xfm
 set interp = trilin
 set PerRun = 1;
 set maskname = brain
 set maskdir = masks
-set fwhm = 0;
+set maskstem = ();
+set fwhm = ();
 set MaskedSmoothing = 1;
 set RunListFile = ();
 set UpdateOnly = 0;
+set ExpKey = ();
+set ExpKeyNeeded = 0;
+set SliceOrder = ();
+
 set nolog = 0;
 set debug = 0;
 set PrintHelp = 0;
@@ -88,7 +95,7 @@ foreach sess ($SessList)
   if(! $nolog) then
     set logdir = $ProjectDir/log;
     mkdir -p $logdir
-    set LF = $logdir/rawfunc2tal-sess.$sessid.$fsd.$outstem.log
+    set LF = $logdir/rawfunc2tal-sess.$sessid.$fsd.$outstem$ExpKey.log
     if(-e $LF) mv $LF $LF.old
   endif
   echo "rawfunc2tal-sess log file" >> $LF
@@ -115,14 +122,14 @@ foreach sess ($SessList)
       echo "Try running register-sess" | tee -a $LF
       exit 1;
     endif
-    set maskstem = $sess/$fsd/$maskdir/$maskname
-    set mask = `stem2fname $maskstem`
+    set maskstempath = $sess/$fsd/$maskdir/$maskname
+    set mask = `stem2fname $maskstempath`
     if($status) then
       echo "$mask" | tee -a $LF
       echo "Try running mkbrainmask-sess" | tee -a $LF
       exit 1;
     endif
-    set outmask = $sess/$fsd/$maskdir/$maskname.tal.$outfmt
+    set outmask = $sess/$fsd/$maskdir/$maskstem$ExpKey.$outfmt
   endif
 
   set RunList = `getrunlist $sess/$fsd $RunListFile`;
@@ -149,17 +156,17 @@ foreach sess ($SessList)
         echo "Try running register-sess with -per-run" | tee -a $LF
         exit 1;
       endif
-      set maskstem = $sess/$fsd/$maskdir/$maskname
-      set mask = `stem2fname $maskstem`
+      set maskstempath = $sess/$fsd/$maskdir/$maskname
+      set mask = `stem2fname $maskstempath`
       if($status) then
         echo "$mask" | tee -a $LF
         echo "Try running mkbrainmask-sess with -per-run" | tee -a $LF
         exit 1;
       endif
-      set outmask = $sess/$fsd/$Run/$maskdir/$maskname.tal.$outfmt
+      set outmask = $sess/$fsd/$Run/$maskdir/$maskstem$ExpKey.$outfmt
     endif
 
-    set outvol = $funcdir/$outstem.$outfmt
+    set outvol = $funcdir/$outstem$ExpKey.$outfmt
     set UpdateNeeded = 0;
     if(! $UpdateOnly) set UpdateNeeded = 1;
     if(! -e $outvol || ! -e $mask) set UpdateNeeded = 1;
@@ -180,7 +187,7 @@ foreach sess ($SessList)
 
     # Create the mask
     set cmd = (mri_vol2vol --mov $mask --reg $reg \
-      --tal --talres $talres --talxfm $talxfm --nearest \
+      --tal --talres $res --talxfm $talxfm --nearest \
       --no-save-reg --o $outmask)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -188,7 +195,7 @@ foreach sess ($SessList)
 
     # Convert the native functional space data
     set cmd = (mri_vol2vol --mov $invol --reg $reg \
-      --tal --talres $talres --talxfm $talxfm --interp $interp \
+      --tal --talres $res --talxfm $talxfm --interp $interp \
       --no-save-reg --o $outvol)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -229,12 +236,6 @@ while( $#argv != 0 )
       set instem = $argv[1]; shift;
       breaksw
 
-    case "-o":
-    case "-outstem":
-      if ( $#argv == 0) goto arg1err;
-      set outstem = $argv[1]; shift;
-      breaksw
-
     case "-fsd":
       if ( $#argv == 0) goto arg1err;
       set fsd = $argv[1]; shift;
@@ -253,6 +254,7 @@ while( $#argv != 0 )
 
     case "-no-masked-smooth":
       set MaskedSmooth = 0;
+      set ExpKeyNeeded = 1;
       breaksw
 
     case "-per-run":
@@ -264,6 +266,7 @@ while( $#argv != 0 )
     case "-no-per-run":
     case "-no-perrun":
       set PerRun = 0;
+      set ExpKeyNeeded = 1;
       breaksw
 
     case "-update":
@@ -276,6 +279,7 @@ while( $#argv != 0 )
 
     case "-nearest":
       set interp = "nearest"
+      set ExpKeyNeeded = 1;
       breaksw
 
     case "-trilin":
@@ -283,22 +287,49 @@ while( $#argv != 0 )
       breaksw
 
     case "-1mm":
-      set talres = 1;
+      set res = 1;
       breaksw
 
     case "-xfm":
       if($#argv < 1) goto arg1err;
       set talxfm = $argv[1]; shift;
+      set ExpKeyNeeded = 1;
+      breaksw
+
+    case "-stc":
+    case "-sliceorder":
+    case "-so":
+      if ( $#argv == 0) goto arg1err;
+      set SliceOrder = $argv[1]; shift;
+      if($SliceOrder != siemens && $SliceOrder != up && $SliceOrder != down && \
+         $SliceOrder != odd && $SliceOrder != even && $SliceOrder != none) then
+         echo "ERROR: -stc is $SliceOrder, must be siemens, up, down, odd, even, or none"
+         exit 1;
+      endif
       breaksw
 
     case "-reg":
       if($#argv < 1) goto arg1err;
       set regfile = $argv[1]; shift;
+      set ExpKeyNeeded = 1;
       breaksw
 
-    case "-umask":
+    case "-expkey":
+      if($#argv < 1) goto arg1err;
+      set ExpKey = $argv[1]; shift;
+      set ExpKey = (.$ExpKey); # prepend a dot
+      breaksw
+
+    # these should not be used
+    case "-o":
+    case "-outstem":
       if ( $#argv == 0) goto arg1err;
-      umask $argv[1]; shift;
+      set outstem = $argv[1]; shift;
+      breaksw
+    case "-mask":
+      # output mask stem
+      if ( $#argv == 0) goto arg1err;
+      set maskstem = $argv[1]; shift;
       breaksw
 
     case "-nolog":
@@ -337,13 +368,29 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+if($#fwhm == 0) then
+  echo "ERROR: you must enter a FWHM. Use 0 for no smoothing."
+  exit 1;
+endif
+if($ExpKeyNeeded && $#ExpKey == 0) then
+  echo "ERROR: experts key needed (-expkey)"
+  exit 1;
+endif
+if($#SliceOrder == 0) set SliceOrder = "none";
+
 if($#instem == 0) then
   if($PerRun)   set instem = fmcpr
   if(! $PerRun) set instem = fmc
+  if($SliceOrder != none) set instem = $instem.$SliceOrder
 endif
-if($#outstem == 0) then
-  set outstem = $instem.sm$fwhm.tal
-endif
+
+if($#outstem == 0) set outstem = $instem
+set outstem = $outstem.sm$fwhm.$target.$res"mm"
+
+if($#maskstem == 0) set maskstem = $maskname
+set maskstem = $maskstem.$target.$res"mm"
+
+if($#regfile == 0) set regfile  = register.dof$regdof.dat
 
 goto check_params_return;
 ############--------------##################
@@ -364,22 +411,24 @@ usage_exit:
   echo "  -s  sessid      ..."
   echo "  -d  srchdir     ..."
   echo ""
+  echo "  -fwhm FWHMmm : smooth by FWHM mm  (enter 0 for no smoothing)"
+  echo ""
   echo " Optional Arguments"
-  echo "  -fwhm FWHM : smooth by FWHM mm"
-  echo "  -no-masked-smooth : do not mask when smoothing"
-  echo "  -i instem  : default is fmc.pr"
-  echo "  -o outstem : default is instem.tal"
+  echo "  -1mm         : set output resolution to 1mm (default is 2mm)"
+  echo "  -i instem  : default is fmcpr"
   echo "  -fsd dir     : functional subdirectory ($fsd)"
   echo "  -rlf RLF     : run-list file"
+  echo ""
+  echo "Expert Options"
+  echo "  -no-masked-smooth : do not mask when smoothing"
   echo "  -nearest     : use nearest neighbor interp (default is trilin)"
-  echo "  -1mm         : set output resolution to 1mm (default is 2mm)"
   echo "  -xfm tal.xfm : xfm file found in subject/mri/transforms (default is $talxfm)"
-  echo "  -reg regfile : default is register.dat"
+  echo "  -reg regfile : default is register.dof$regdof.dat"
   echo "  -per-session : use session-level registration and mask instead of -per-run"
   echo ""
+  echo "Other options"
   echo "  -update : only run if update is needed"
   echo "  -force : force an update (default)"
-  echo ""
   echo "  -version       : print version and exit"
   echo "  -debug"
   echo ""

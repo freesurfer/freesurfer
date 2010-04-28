@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/27 19:31:45 $
-#    $Revision: 1.1 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.1 2010/04/27 19:31:45 greve Exp $';
+set VERSION = '$Id: getana,v 1.2 2010/04/28 19:42:50 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -66,7 +66,8 @@ switch ($tag)
   case "smstem":
     set stcstem = `getana -a $analysis -t stcstem`
     set fwhm   = `getana -a $analysis -t RawFWHM`
-    set result = $stcstem.sm$fwhm
+    if($fwhm != 0) set result = $stcstem.sm$fwhm
+    if($fwhm == 0) set result = $stcstem
     breaksw;
 
   case "funcstem":
@@ -95,6 +96,10 @@ switch ($tag)
 
   case "mask":
     set result = `cat $info | awk '{if($1 == "mask") print $2}'`
+    breaksw;
+
+  case "RegDOF":
+    set result = `cat $info | awk '{if($1 == "RegDOF") print $2}'`
     breaksw;
 
   case "rlf":
@@ -139,13 +144,15 @@ switch ($tag)
     set result = $tmp[3];
     breaksw;
 
+  case "RawRes":
   case "res":
-    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
-    if($tmp[2] != mni305) then
+    set IsMNI305 = `getana -a $analysis -t IsMNI305`
+    if(! $IsMNI305) then
       echo "ERROR: $analysis is not mni305-based"
       exit 1;
     endif
-    set result = $tmp[4];
+    set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
+    set result = $tmp[3];
     breaksw;
 
   case "IsMNI305":
@@ -154,14 +161,14 @@ switch ($tag)
     if($tmp[2] == mni305) set result = 1;
     breaksw;
 
-  case "IsPerRun":
+  case "IsPerSession":
   case "IsNative":
     set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
     set result = 0;
     if($tmp[2] == native) set result = 1;
     breaksw;
 
-  case "IsPerSess":
+  case "IsPerRun":
     set tmp = (`cat $info | awk '{if($1 == "RawSpace") print $2" "$3" "$4}'`)
     set result = 0;
     if($tmp[2] != native) set result = 1;
@@ -321,6 +328,10 @@ switch ($tag)
 
   case "taskreg":
     set result = (`cat $info | awk '{if($1 == "taskreg") print $2}'`)
+    breaksw;
+
+  case "parname":
+    set result = (`cat $info | awk '{if($1 == "parname") print $2}'`)
     breaksw;
 
   case "nuisreg":

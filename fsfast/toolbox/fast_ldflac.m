@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/23 19:48:45 $
-%    $Revision: 1.49 $
+%    $Date: 2010/04/28 19:42:50 $
+%    $Revision: 1.50 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@ if(isempty(flac))
   flac.name = '';
   flac.fsd = '';
   flac.runlistfile = '';
+  flac.basestem = '';
   flac.funcstem = '';
   flac.runlistfile = '';
   flac.TR = [];
@@ -75,9 +76,18 @@ if(isempty(flac))
   flac.fsv3_st2fir = 0;
   flac.fsv3_whiten = 0;  
   flac.RefEventDur = 1;
-  flac.subject = '';
+  flac.rawfwhm = 0;
+  flac.rawstc = '';
+  flac.RawSpaceType = '';
+  flac.RawSpaceRes = [];
+  flac.RawSpace = '';
+  flac.ExpKey = '';
+  % subject surface analysis is being performed on. Can be 'self'.
+  flac.subject = ''; 
   flac.hemi = '';
-  flac.UseTalairach = 0;
+  % Actual subject name of subject being analyzed. This is the name
+  % of the subject even if 'self' or fsaverage
+  flacnew.sourcesubject = '';
   flac.mc = []; % For motion correction regressors
   flac.globalmean = [];
   flac.IsRetinotopy = 0;
@@ -164,8 +174,12 @@ while(1)
    case 'mask',        flac.mask        = sscanf(tline,'%*s %s',1);
    case 'inorm',       flac.inorm       = sscanf(tline,'%*s %f',1);
    case 'runlistfile', flac.runlistfile = sscanf(tline,'%*s %s',1);
-   case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
    case 'stimulusdelay', flac.stimulusdelay  = sscanf(tline,'%*s %f',1);
+   case 'StimulusDelay', flac.stimulusdelay  = sscanf(tline,'%*s %f',1);
+   case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
+   case 'acffwhm',     flac.acffwhm     = sscanf(tline,'%*s %f',1);
+   case 'acfsvd',      flac.acfsvd      = sscanf(tline,'%*s %d',1);
+   case 'acffix',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'tpexclude',   flac.tpexcfile   = sscanf(tline,'%*s %s',1);
    case 'parfile',     flac.parfile     = sscanf(tline,'%*s %s',1);

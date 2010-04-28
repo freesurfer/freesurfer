@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2007/07/10 17:19:25 $
-#    $Revision: 1.8 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set MKCONTRAST_VER = '$Id: mkcontrast,v 1.8 2007/07/10 17:19:25 greve Exp $';
+set MKCONTRAST_VER = '$Id: mkcontrast,v 1.9 2010/04/28 19:42:50 greve Exp $';
 
 set CorrIdeal = 0;
 set monly = 0;
@@ -38,7 +38,7 @@ set sumdelays = 0;
 set TER = ();
 set TPreStim = 0;
 set TimeWindow = 0;
-set GammaFit = 0;
+set IsFIR = 0;
 set ShowCMtx = 0;
 set datfile = ();
 set wpsa = (); # weights for pre-stim avg
@@ -232,32 +232,12 @@ while( $#argv != 0 )
          echo "ERROR: cannot find $anadir"
          exit 1;
       endif
-      set cfg = $anadir/analysis.cfg
-      if(! -e $cfg) then
-        echo "ERROR: $cfg does not exist"
-        exit 1;
-      endif
-      set info = $anadir/analysis.info
-      if(! -e $info) then
-        echo "ERROR: $info does not exist"
-        exit 1;
-      endif
-      set TER = `cat $cfg | awk '{if($1 == "-TER") print $2}'`;
-      set TimeWindow = `cat $cfg | awk '{if($1 == "-timewindow") print $2}'`;
-      set gDelta = `cat $cfg | awk '{if($1 == "-gammafit") print $2}'`;
-      set GammaFit = 0;
-      if($#gDelta != 0) set GammaFit = 1;
-      set spmhrf = `cat $cfg | awk '{if($1 == "-spmhrf") print $2}'`;
-      if($#spmhrf == 0) set spmhrf = -1;
-      if($GammaFit) then
-        set ndelays = 1;
-      else if($spmhrf != -1) then
-        @ ndelays = 1 + $spmhrf;
-      else
-        set ndelays = `echo $TimeWindow/$TER | bc `
-      endif
-      set nconds = `cat $info | awk '{if($1 == "nconditions") print $2}'`;
-      set TPreStim = `cat $cfg | awk '{if($1 == "-prestim") print $2}'`;
+      set TER  = `getana -a $anadir -t TER`;
+      set TimeWindow  = `getana -a $anadir -t timewindow`;
+      set ndelays  = `getana -a $anadir -t npercond`;
+      set nconds   = `getana -a $anadir -t nconditions`;
+      set PreStim  = `getana -a $anadir -t prestim`;
+      set IsFIR    = `getana -a $anadir -t IsFIR`;
       breaksw
 
     case "-sxadat":
@@ -424,22 +404,18 @@ check_params:
      echo "ERROR: must specify an output file";
      exit 1
   endif
-
   if($nconds < 1) then
      echo "ERROR: must specify the number of conditions"
      exit 1;
   endif
-
   if($ndelays < 1) then
      echo "ERROR: must specify the number of delays"
      exit 1;
   endif
-
   if( ( $#rdelta != 0 || $#rtau != 0) && $nircorr == 0) then
     echo "ERROR: must use -ircorr with -deltarange and -taurange";
     exit 1;
   endif
-
   if( $nircorr != 0) then
     if( $#rdelta != 2 ) then
       echo "ERROR: must specify -deltarange with ircorr";
@@ -464,8 +440,8 @@ check_params:
     exit 1;
   endif
 
-  if($RmPreStim != 0 && $GammaFit != 0) then
-    echo "ERROR: cannot remove prestim baseline with gamma fit"
+  if($RmPreStim != 0 && ! $IsFIR) then
+    echo "ERROR: need an FIR model to remove prestim baseline"
     exit 1;
   endif
 

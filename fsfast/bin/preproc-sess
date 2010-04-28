@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/15 21:03:11 $
-#    $Revision: 1.30 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.31 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.30 2010/04/15 21:03:11 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.31 2010/04/28 19:42:50 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -59,10 +59,16 @@ set DoVolSmooth = 1;
 set DoSurfSmooth = 0;
 set DoSmooth = 1; # any smoothing
 set DoInorm  = 0;
-set regfile = register.dat
 set ProjFrac = (); # default will be 0.5
 set DoProjAvg = 0;
-set DoReg = 0;
+set DoReg = 1;
+set ToSurf = 0;
+set subject = ();
+set hemi = ();
+set ToMNI305 = 0;
+set RawRes = 2;
+set RegDOF = 6;
+set regfile = ();
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -183,6 +189,7 @@ foreach sess ($SessList)
 
   if($DoReg) then
     set cmd = (register-sess -s $sessid -d $sessparent -fsd $fsd)
+    set cmd = ($cmd -dof $RegDOF)
     if($#RunListFile) set cmd = ($cmd -rlf $RunListFile);
     if($PerRun)     set cmd = ($cmd -per-run)
     if($PerSess) set cmd = ($cmd -per-session)
@@ -216,6 +223,36 @@ foreach sess ($SessList)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     echo "$sessid STC -----------------------------" |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+  if($ToSurf) then
+    set cmd = (rawfunc2surf-sess -fwhm $fwhm)
+    set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
+    # By default it will do both, so set -hemi to anything
+    if($hemi == lh || $hemi == rh) set cmd = ($cmd -hemi $hemi)
+    if($subject == self) set cmd = ($cmd -self)
+    if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
+    if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
+    if($nolog)      set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
+    echo "$sessid To Surface -----------------------------" |& tee -a $LF
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
+  if($ToMNI305) then
+    set cmd = (rawfunc2tal-sess -fwhm $fwhm )
+    set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
+    if($RawRes == 1) set cmd = ($cmd -1mm)
+    if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
+    if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
+    if($nolog)      set cmd = ($cmd -nolog);
+    if($UpdateOnly) set cmd = ($cmd -update);
+    echo "$sessid To Surface -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -291,6 +328,15 @@ while( $#argv != 0 )
 
     case "-reg":
       set DoReg = 1;
+      breaksw
+
+    case "-no-reg":
+      set DoReg = 0;
+      breaksw
+
+    case "-reg-dof":
+      if ( $#argv == 0) goto arg1err;
+      set RegDOF = $argv[1]; shift;
       breaksw
 
     case "-mc-in":
@@ -407,6 +453,9 @@ while( $#argv != 0 )
     case "-perrun":
       set PerRun = 1;
       set PerSess = 0;
+      set DoSmooth = 0;
+      set DoVolSmooth = 0;
+      set DoSurfSmooth = 0;
       breaksw
 
     case "-per-session":
@@ -420,6 +469,7 @@ while( $#argv != 0 )
       set DoSTC = 0;
       breaksw
 
+    case "-stc":
     case "-sliceorder":
     case "-so":
       if ( $#argv == 0) goto arg1err;
@@ -432,6 +482,59 @@ while( $#argv != 0 )
       set DoVolSmooth = 0;
       set DoSurfSmooth = 0;
       set DoSmooth = 0;
+      breaksw
+
+    case "-surf":
+    case "-surface":
+      if($#argv< 2) goto arg2err;
+      set subject = $argv[1]; shift;
+      set hemi = $argv[1]; shift;
+      set ToSurf = 1;
+      set PerRun = 1;
+      set PerSess = 0;
+      breaksw
+
+    case "-mni305":
+      set RawRes = 2;
+      set ToMNI305 = 1;
+      set PerRun = 1;
+      set PerSess = 0;
+      breaksw
+
+    case "-mni305-1mm":
+      set RawRes = 1;
+      set ToMNI305 = 1;
+      set PerRun = 1;
+      set PerSess = 0;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if($#argv< 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      if(! -e $analysis) then
+        echo "ERROR: cannot find $analysis"
+        exit 1;
+      endif
+      set fsd = `getana -a $analysis -t fsd`;
+      set RunListFile = `getana -a $analysis -t runlistfile`;
+      set RegDOF = `getana -a $analysis -t RegDOF`;
+      set PerRun = `getana -a $analysis -t IsPerRun`;
+      set PerSess = `getana -a $analysis -t IsPerSession`;
+      set fwhm = `getana -a $analysis -t RawFWHM`;
+      if($fwhm == 0 || $PerRun) set DoVolSmooth = 0;
+      set SliceOrder = `getana -a $analysis -t stc`;
+      if($SliceOrder != none) set DoSTC = 1;
+      if($SliceOrder == none) set SliceOrder = ();
+      set ToSurf = `getana -a $analysis -t IsSurface`;
+      if($ToSurf) then
+        set subject = `getana -a $analysis -t subject`;
+        set hemi    = `getana -a $analysis -t hemi`;
+      endif
+      set ToMNI305 = `getana -a $analysis -t IsMNI305`;
+      if($ToMNI305) then
+        set RawRes = `getana -a $analysis -t RawRes`;
+      endif
       breaksw
 
     case "-no-inorm":
@@ -530,9 +633,20 @@ check_params:
 
   if($DoSTC) then
     if($#stcinstem  == 0) set stcinstem  = $mcoutstem
-    if($#stcoutstem == 0) set stcoutstem = $stcinstem"stc"
+    if($#stcoutstem == 0) set stcoutstem = $stcinstem.$SliceOrder
   else
     set stcoutstem = $mcoutstem
+  endif
+
+  if($ToSurf || $ToMNI305) then
+    if($#fwhm == 0) then
+      echo "ERROR: must specify -fwhm with -surface or -mni305."
+      echo "       Set it to 0 for no smoothing"
+      exit 1;
+    endif
+    set DoVolSmooth = 0;
+    set DoSurfSmooth = 0;
+    set DoSmooth = 0;  
   endif
 
   if($DoSmooth) then
@@ -543,8 +657,8 @@ check_params:
     endif
     if($#sminstem  == 0) set sminstem  = $stcoutstem
     if($#smoutstem == 0) then
-      if($DoVolSmooth) set smoutstem = $sminstem"sm"$fwhm
-      if($DoSurfSmooth) set smoutstem = $sminstem"sm"$fwhm"s"
+      if($DoVolSmooth) set smoutstem = $sminstem."sm"$fwhm
+      if($DoSurfSmooth) set smoutstem = $sminstem."sm"$fwhm
     endif
   endif
 
@@ -558,7 +672,7 @@ check_params:
     endif
   endif
 
-  if(! $DoMC && ! $DoSTC  && ! $DoSmooth && ! $DoMask) then
+  if(! $DoMC && ! $DoSTC  && ! $DoSmooth && ! $DoMask && ! $DoTemplate) then
     echo "ERROR: nothing to do"
     exit 1;
   endif
@@ -567,6 +681,8 @@ check_params:
     echo "ERROR: cannot -projfrac and -projfrac-avg"
     exit 1;
   endif
+
+  if($#regfile == 0) set regfile = register.dof$RegDOF.dat
 
 goto check_params_return;
 ############--------------##################
@@ -582,8 +698,6 @@ usage_exit:
   echo ""
   echo "USAGE: preproc-sess"
   echo ""
-  echo "  -i    instem    : stem to use as overal input <f>"
-  echo ""
   echo "  -per-run : motion cor and reg to middle TP of each run"
   echo "  -per-session : motion cor and reg to 1st TP of 1st run"
   echo ""
@@ -593,6 +707,9 @@ usage_exit:
   echo "  -smooth-mask   : use mask when volume smoothing"
   echo "  -no-smooth-mask: do not use mask when volume smoothing"
   echo "  -sliceorder so : turn on slice timing correction with the given slice order"
+  echo "  -surface subject hemi : set hemi to lhrh to do both"
+  echo "  -mni305        : sample raw data to mni305 at 2mm"
+  echo "  -mni305-1mm    : sample raw data to mni305 at 1mm"
   echo ""
   echo "  -nomc     : don't do motion correction"
   echo "  -nostc    : don't do slice-timing correction"
@@ -609,6 +726,7 @@ usage_exit:
   echo "  -smout  sminstem    : stem to use as output of smoothing "
   echo "  -mask   maskstem    : <brain>"
   echo ""
+  echo "  -i    instem    : stem to use as overal input <f>"
   echo "  -vol-fwhm  fwhm : 3D fwhm (mm) (not with -surf-fwhm)"
   echo "  -surf-fwhm fwhm : 2D fwhm (mm) (not with -vol-fwhm)"
   echo "  -inorm        : perform intensity normalization (off by default)"

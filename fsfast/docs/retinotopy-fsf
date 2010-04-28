@@ -29,7 +29,7 @@ If needed, create a run-list file with the all retinotopy runs
 
 Create the analysis:
 
-mkanalysis-sess.new \
+mkanalysis-sess \
  -a rtopy   \
  -TR 2   \
  -designtype retinotopy  \
@@ -37,6 +37,9 @@ mkanalysis-sess.new \
  -funcstem fmcsm5  \
  -ncycles 8
 
+
+Preprocess
+  preproc-sess -s avdk -fwhm 8
 
 Run the analysis:
   sfa-sess -s avdk -a rtopy

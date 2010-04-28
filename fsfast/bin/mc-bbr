@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/02/17 16:39:56 $
-#    $Revision: 1.2 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 # Sample to anat
 # Sample to tal
 
-set VERSION = '$Id: mc-bbr,v 1.2 2010/02/17 16:39:56 greve Exp $';
+set VERSION = '$Id: mc-bbr,v 1.3 2010/04/28 19:42:50 greve Exp $';
 
 set invol = ();
 set outvol = ();
@@ -34,6 +34,7 @@ set template = ();
 set frame = 0;
 set mcdat = ();
 set subject = ();
+set DoPVF = 0;
 
 set nolog = 0;
 set tmpdir = ();
@@ -77,12 +78,22 @@ else
 endif
 echo "log file is $LF"
 pwd >> $LF
-which mc-afni2 >> $LF
 echo $cmdargs >> $LF
 date     >> $LF
 id       >> $LF
 hostname >> $LF
 uname -a >> $LF
+
+if($DoPVF) then
+  set ctxgm = $SUBJECTS_DIR/$subject/mri/ctxgm.mgz
+  if(! -e $ctxgm) then
+    set ribbon = $SUBJECTS_DIR/$subject/mri/ribbon.mgz
+    set cmd = (mri_binarize --i $ribbon --match 3 --match 42 --o $ctxgm)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+endif
 
 # Tmp Dir
 if($#tmpdir == 0) set tmpdir = $outdir/tmp.mc-afni2.$$
@@ -150,10 +161,19 @@ while ($nthframe < $nframes)
   # Resample to template
   set ft = $tmpdir/f.$zp.temp.nii
   set cmd = (mri_vol2vol --mov $f --targ $template \
-    --reg $regframetemp --o $ft)
+    --reg $regframetemp --o $ft --no-save-reg)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+
+  if($DoPVF) then
+    set cmd = (mri_label2vol --seg $ctxgm --temp $template --reg $regframe \
+      --o $tmpdir/ribbon.junk.nii --hits $tmpdir/ribbon.hits.$zp.nii \
+      --pvf $tmpdir/ribbon.pvf.$zp.nii)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
 
   @ nthframe = $nthframe + 1
 end
@@ -167,6 +187,13 @@ cat $tmpdir/f.????.rms > $mcdat
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
 if($status) exit 1;
+
+if($DoPVF) then
+  set cmd = (mri_concat $tmpdir/ribbon.pvf.????.nii --o pvf.nii);
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+endif
 
 ## Clean up 
 if($cleanup) then
@@ -221,6 +248,10 @@ while( $#argv != 0 )
     case "--frame":
       if ( $#argv == 0) goto arg1err;
       set frame = $argv[1]; shift;
+      breaksw
+
+    case "--pvf":
+      set DoPVF = 1;
       breaksw
 
     case "--tmpdir":

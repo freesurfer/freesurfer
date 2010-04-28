@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.84 2010/04/19 22:19:19 greve Exp $
+% $Id: fast_selxavg3.m,v 1.85 2010/04/28 19:42:50 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/19 22:19:19 $
-%    $Revision: 1.84 $
+%    $Date: 2010/04/28 19:42:50 $
+%    $Revision: 1.85 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -25,43 +25,10 @@
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
 
-% Automatically create mask?
 
-% Force choice on whitening or not
-% Force choice of mask
-% How to check that analyses are not being mixed?
-% RFx, FFx, MFx 2nd level analysis
-% Func2ROI
-
-if(0)
-  monly       = 1;
-  DoGLMFit    = 1;
-  DoContrasts = 1;
-  DoSynth     = 1;
-  SynthNoiseAmp  = 1;
-  SynthSignalAmp = 1;
-  SynthNoiseAR1 = 0.3;
-  SynthSeed   = -1;
-  analysis = '';
-  flacname = '';
-  outtop = '';
-  
-  %sess  = 'tl20000621';
-  %flacname = 'flac/edp.flac';
-  %analysis = 'edp';
-  %analysis = 'main3-fir';
-  % outtop = '/space/greve/1/users/greve/workmem-ana';
-  
-  %sess  = 'dng';
-  %flacname = 'flac/rest.flac';
-  
-  %sess = '/autofs/space/annecy_014/users/kdevaney/subj27/color_orientation_20060403';
-  %analysis = 'subj27_color';
-  %outtop = '/space/greve/1/users/greve/kd';
-end
-
-fprintf('$Id: fast_selxavg3.m,v 1.84 2010/04/19 22:19:19 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.85 2010/04/28 19:42:50 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
+
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
   fprintf('SynthSeed     = %10d\n',SynthSeed);
@@ -71,12 +38,11 @@ if(DoSynth)
 end
 
 sessname = basename(sess);
-%outtop = dirname(sess);
 if(isempty(outtop)) outtop = fast_dirname(sess); end
 fprintf('outtop = %s\n',outtop);
 
 ext = getenv('FSF_OUTPUT_FORMAT');
-if(isempty(ext)) ext = 'bhdr'; end
+if(isempty(ext)) ext = 'nii'; end
 fprintf('Extension format = %s\n',ext);
 
 if(~isempty(analysis))
@@ -88,7 +54,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.84 2010/04/19 22:19:19 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.85 2010/04/28 19:42:50 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -145,7 +111,7 @@ for nthouter = outer_runlist
   end
   
   % Load the brain mask
-  if(isempty(flac0.subject) && ~flac0.UseTalairach)
+  if(strcmp(flac0.RawSpace,'native'))
     % Native space
     if(~isempty(flac0.maskfspec))
       mask = MRIread(flac0.maskfspec);
@@ -165,15 +131,9 @@ for nthouter = outer_runlist
     mask.vol = 0;
     for nthrun = nthrunlist
       flac = runflac(nthrun).flac;
-      fsdpath = sprintf('%s/%s',flac.sess,flac.fsd);
-      runid = flac.runlist(flac.nthrun,:);
-      if(isempty(flac0.subject)) geo = 'tal';
-      else geo = sprintf('%s.%s',flac0.subject,flac0.hemi);
-      end
-      maskstem = sprintf('%s/%s/masks/brain.%s',fsdpath,runid,geo);
-      runmask = MRIread(maskstem);
+      runmask = MRIread(flac.maskfspec);
       if(isempty(runmask)) 
-	fprintf('ERROR: cannot load %s\n',maskstem);
+	fprintf('ERROR: cannot load %s\n',flac.maskfspec);
 	return;
       end
       mask.vol = mask.vol + runmask.vol;
@@ -591,7 +551,7 @@ if(DoGLMFit)
     if(isempty(flac0.subject)) 
       cmd = sprintf('mri_fwhm %s',opts);
     else 
-      cmd = sprintf('mris_fwhm %s --s %s --hemi %s',opts,flac0.subject,flac0.hemi);
+      cmd = sprintf('mris_fwhm %s --s %s --hemi %s',opts,flac0.sourcesubject,flac0.hemi);
     end
     fprintf('%s\n',cmd);
     [err rescmd] = system(cmd);
@@ -832,7 +792,7 @@ if(DoGLMFit)
     if(isempty(flac0.subject)) 
       cmd = sprintf('mri_fwhm %s',opts);
     else 
-      cmd = sprintf('mris_fwhm %s --s %s --hemi %s',opts,flac0.subject,flac0.hemi);
+      cmd = sprintf('mris_fwhm %s --s %s --hemi %s',opts,flac0.sourcesubject,flac0.hemi);
     end
     fprintf('%s\n',cmd);
     [err rescmd] = system(cmd);
@@ -921,7 +881,9 @@ if(DoContrasts)
   
   if(~DoGLMFit)
     fprintf('Loading previous GLM fit\n');
+    flac0tmp = flac0; % keep copy
     load(xfile);
+    flac0 = flac0tmp; % So that it has all the contrasts
   
     fname = sprintf('%s/h-offset',outanadir);
     baseline = MRIread(fname);
@@ -1174,7 +1136,7 @@ if(DoContrasts)
 end % DoContrasts
 
 %------------------------------------------------------%
-if(~isempty(analysis) & DoGLMFit)
+if(~isempty(analysis) & DoGLMFit & strcmp(flac.designtype,'event-related'))
 
   % Construct selxavg-style h.dat strucutre for backwards compat
   SumXtX = Ctask*X'*X*Ctask';

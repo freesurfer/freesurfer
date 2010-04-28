@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/23 19:48:45 $
-%    $Revision: 1.47 $
+%    $Date: 2010/04/28 19:42:50 $
+%    $Revision: 1.48 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,14 @@ if(nargin ~= 1)
  return;
 end
 flacnew = flac;
+
+% Read in source subject name for 'self' subjects
+if(strcmp(flacnew.subject,'self'))
+  fname = sprintf('%s/subjectname',flac.sess);
+  flacnew.sourcesubject = char(textread(fname,'%s'));
+else
+  flacnew.sourcesubject = flacnew.subject;
+end
 
 % Construct path names
 fsdpath = sprintf('%s/%s',flac.sess,flac.fsd);
@@ -71,15 +79,7 @@ end
 flacnew.globalmean = load(fname);
 %fprintf('Global mean = %f\n',flacnew.globalmean);
 
-% Determine what anatomy this is in and specify the string to add to
-% stems.
-AnatStr = '';
-if(flac.UseTalairach)
-  AnatStr = '.tal';
-elseif(~isempty(flac.subject))
-  AnatStr = sprintf('.%s.%s',flac.subject,flac.hemi);
-end
-fstem = sprintf('%s/%s%s',runpath,flac.funcstem,AnatStr);
+fstem = sprintf('%s/%s',runpath,flac.funcstem);
 
 % Get the number of time points
 mri = MRIread(fstem,1);
@@ -93,10 +93,10 @@ flacnew.ntp = mri.nframes;
 flacnew.funcfspec = fstem;
 
 % MC parameters
-if(~isempty(flac.subject) | flac.UseTalairach)
-  fname = sprintf('%s/fmcpr.mcdat',runpath);
-else
+if(strcmp(flac.RawSpace,'native'))
   fname = sprintf('%s/fmc.mcdat',runpath);
+else
+  fname = sprintf('%s/fmcpr.mcdat',runpath);
 end
 if(exist(fname,'file'))
   mcdat = load(fname);
@@ -358,13 +358,14 @@ flacnew.resfspec = sprintf('%s/%s/%s/%s/res',flacnew.sess,...
 			    flacnew.fsd,flacnew.name,...
 			    flacnew.runlist(flacnew.nthrun,:));
 
-if(~isempty(flacnew.mask))
-  flacnew.maskfspec = sprintf('%s/%s/masks/%s%s%s',flacnew.sess,...
-			      flacnew.fsd,flacnew.mask,AnatStr);
+if(strcmp(flac.RawSpace,'native'))
+  flacnew.maskfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
+		      flacnew.fsd,flacnew.mask);
 else
-  flacnew.maskfspec = '';
+  maskstem = flac_funcstem(flac,1);
+  flacnew.maskfspec = sprintf('%s/masks/%s',runpath,maskstem);
 end
-  
+
 flacnew.acfsegfspec = sprintf('%s/%s/masks/%s',flacnew.sess,...
 		      flacnew.fsd,flacnew.acfsegstem);
 

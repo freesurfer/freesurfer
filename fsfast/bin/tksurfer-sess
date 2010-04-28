@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 23:07:28 $
-#    $Revision: 1.11 $
+#    $Date: 2010/04/28 19:42:50 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.11 2010/04/06 23:07:28 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.12 2010/04/28 19:42:50 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -183,7 +183,7 @@ foreach sess ($SessList)
     set cmd0 = (mri_vol2surf --hemi $hemi --projfrac $ProjFrac \
       --interp $Interp --cortex)
     if($RawSpace == native)    set cmd0 = ($cmd0 --reg $reg)
-    if($RawSpace == talairach) set cmd0 = ($cmd0 --regheader $srcsubject)
+    if($RawSpace == mni305) set cmd0 = ($cmd0 --regheader $srcsubject)
     # run vol2surf on the maps
     set mov = $mapconcatfile
     set out = $sess/$mapfsd/$mapanalysis/$hemi.tksconcat.mgh
@@ -207,7 +207,7 @@ foreach sess ($SessList)
       set out = $sess/$mapfsd/$mapanalysis/$hemi.h-offset.mgh
       set cmd = ($cmd0 --mov $mov --o $out)
       if($RawSpace == native)    set cmd0 = ($cmd0 --reg $reg)
-      if($RawSpace == talairach) set cmd0 = ($cmd0 --regheader $srcsubject)
+      if($RawSpace == mni305) set cmd0 = ($cmd0 --regheader $srcsubject)
       echo $cmd
       $cmd
       if($status) exit 1;
@@ -428,27 +428,22 @@ check_params:
     endif
     set infofile = $analysis/analysis.info
     set cfg = $analysis/analysis.cfg
-    set fsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
-    set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
-    if($#tmp != 0) then
+    set fsd = `getana -a $analysis -t fsd`;
+    set IsSurface = `getana -a $analysis -t IsSurface`
+    if($IsSurface) then
       set RawSpaceType = surface
-      set srcsubject = $tmp[1]; # sets srcsubject = fsaverage or "self"
+      set srcsubject = `getana -a $analysis -t subject`
       set RawSpace = $srcsubject;
-      set hemi    = $tmp[2]; # may overwrite -hemi
+      set hemi    = `getana -a $analysis -t hemi`
       echo "Surface $srcsubject $hemi"
     endif
-    set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
-    set UseTalairach = $#tmp;
+    set UseTalairach = `getana -a $analysis -t IsMNI305`;
     if($UseTalairach) then
       set RawSpaceType = volume
       set srcsubject = fsaverage
-      set RawSpace = talairach
+      set RawSpace = mni305
     endif
-    set IsFIR = 1;
-    set tmp = `grep -e -gammafit $cfg`;
-    if($#tmp) set IsFIR = 0;
-    set tmp = `grep -e -spmhrf $cfg`;
-    if($#tmp) set IsFIR = 0;
+    set IsFIR = `getana -a $analysis -t IsFIR`;
   endif
   if(! $IsFIR) set ShowHDR = 0;
   if($#hemi == 0) then
@@ -458,57 +453,37 @@ check_params:
 
   ## Parse the map analysis
   if($#mapanalysis != 0) then
-    set infofile = $mapanalysis/analysis.info
-    set mapfsd = `cat $infofile | awk '{if($1 == "fsd") print $2}'`;
-    set tmp = `cat $infofile | awk '{if($1 == "surface") print $2" "$3}'`;
-    if($#tmp != 0) then
+    set mapfsd = `getana -a $mapanalysis -t fsd`;
+    set IsSurface = `getana -a $mapanalysis -t IsSurface`
+    if($IsSurface) then
       set MapRawSpaceType = surface
-      set mapsrcsubject = $tmp[1]; # sets srcsubject = fsaverage or "self"
+      set mapsrcsubject = `getana -a $mapanalysis -t subject`
       set mapRawSpace = $srcsubject;
-      set maphemi    = $tmp[2]; # may overwrite -hemi
+      set maphemi    = `getana -a $mapanalysis -t hemi`
       echo "Map Surface $mapsrcsubject $maphemi"
       if($srcsubject != $mapsrcsubject || $hemi != $maphemi) then
         echo "ERROR: map analysis $mapanalysis uses a different surface."
         exit 1;
       endif      
     endif
-    set tmp = `cat $infofile | awk '{if($1 == "UseTalairach") print 1}'`;
-    set MapUseTalairach = $#tmp;
+    set MapUseTalairach = `getana -a $mapanalysis -t IsMNI305`;
     if($UseTalairach != $MapUseTalairach) then
       if($MapUseTalairach) then
-        echo "ERROR: map analysis $mapanalysis is talairach-based."
+        echo "ERROR: map analysis $mapanalysis is mni305-based."
         echo "This does not match the analysis $analysis"
       else
-        echo "ERROR: map analysis $mapanalysis is NOT talairach-based."
+        echo "ERROR: map analysis $mapanalysis is NOT mni305-based."
         echo "This does not match the analysis $analysis"
       endif      
       exit 1;
     endif
   endif
 
-
-  if($DoAllContrasts) then
-    set matlist = (`ls $analysis/*.mat`);
-    if($status) then
-      echo "ERROR: cannot find any contrasts in $analysis"
-      exit 1;
-    endif
-    foreach m ($matlist)
-      set c = `basename $m .mat`;
-      set contrastlist = ($contrastlist $c);
-    end
-  endif
+  if($DoAllContrasts) set contrastlist = `getana -a $mapanalysis -t contrast`s
   if($#contrastlist == 0) then
     echo "ERROR: no contrast specified" 
     exit 1;
   endif
-#  foreach contrast ($contrastlist)
-#    set cmat = $mapanalysis/$contrast.mat
-#    if(! -e $cmat) then
-#      echo "ERROR: cannot find $cmat"
-#      exit 1;
-#    endif
-#  end
 
 goto check_params_return;
 ############--------------##################
