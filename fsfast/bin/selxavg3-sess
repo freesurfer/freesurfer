@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.49 $
+#    $Date: 2010/04/28 23:58:56 $
+#    $Revision: 1.50 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.49 2010/04/28 19:42:50 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.50 2010/04/28 23:58:56 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -84,6 +84,7 @@ if($#analysis) then
   # analysis, not flac file
   set analysisname = $analysis
   set fsd = `getana -a $analysis -t fsd`;
+  set IsNative = `getana -a $analysis -t IsNative`
   set IsSurface = `getana -a $analysis -t IsSurface`
   if($IsSurface) then
     set subject = `getana -a $analysis -t subject`
@@ -143,7 +144,8 @@ if($DoPreProc) then
   foreach sess ($SessList)
     set sessbase = `basename $sess`;
     set sessdir  = `dirname  $sess`;
-    set cmd = (preproc-sess -s $sessbase -d $sessdir -a $analysis -nolog -no-reg)
+    set cmd = (preproc-sess -s $sessbase -d $sessdir -a $analysis -nolog);
+    if($IsNative) set cmd = ($cmd -no-reg)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
