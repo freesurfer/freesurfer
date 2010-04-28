@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/01 23:14:03 $
- *    $Revision: 1.365 $
+ *    $Date: 2010/04/28 19:11:38 $
+ *    $Revision: 1.366 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -10659,64 +10659,24 @@ static int niiWrite(MRI *mri, const char *fname)
 
 static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr)
 {
-  double xsize, ysize, zsize;
+  int err;
+  MATRIX *sform;
+  sform = MatrixConstVal(0,4,4,NULL);
   /*
-  x = srow_x[0] * i + srow_x[1] * j + srow_x[2] * k + srow_x[3]
-  y = srow_y[0] * i + srow_y[1] * j + srow_y[2] * k + srow_y[3]
-  z = srow_z[0] * i + srow_z[1] * j + srow_z[2] * k + srow_z[3]
+  R = srow_x[0] * c + srow_x[1] * r + srow_x[2] * s + srow_x[3]
+  A = srow_y[0] * c + srow_y[1] * r + srow_y[2] * s + srow_y[3]
+  S = srow_z[0] * c + srow_z[1] * r + srow_z[2] * s + srow_z[3]
   */
-
-  // Note: this function used to re-compute the {xyz}size in
-  // the mri struct. This was unneccessary and caused problems
-  // when the sform was not really valid. It still computes 
-  // {xyz}size, but does not replace the value already in mri.
-
-  xsize = sqrt(hdr->srow_x[0]*hdr->srow_x[0] \
-                    + hdr->srow_y[0]*hdr->srow_y[0] \
-                    + hdr->srow_z[0]*hdr->srow_z[0]);
-  mri->x_r = hdr->srow_x[0] / xsize;
-  mri->x_a = hdr->srow_y[0] / xsize;
-  mri->x_s = hdr->srow_z[0] / xsize;
-
-  ysize = sqrt(hdr->srow_x[1]*hdr->srow_x[1] \
-                    + hdr->srow_y[1]*hdr->srow_y[1] \
-                    + hdr->srow_z[1]*hdr->srow_z[1]);
-  mri->y_r = hdr->srow_x[1] / ysize;
-  mri->y_a = hdr->srow_y[1] / ysize;
-  mri->y_s = hdr->srow_z[1] / ysize;
-
-  zsize = sqrt(hdr->srow_x[2]*hdr->srow_x[2] \
-                    + hdr->srow_y[2]*hdr->srow_y[2] \
-                    + hdr->srow_z[2]*hdr->srow_z[2]);
-  mri->z_r = hdr->srow_x[2] / zsize;
-  mri->z_a = hdr->srow_y[2] / zsize;
-  mri->z_s = hdr->srow_z[2] / zsize;
-
-  if(fabs(xsize-mri->xsize) > .01 ||
-     fabs(zsize-mri->zsize) > .01 || 
-     fabs(ysize-mri->ysize) > .01)  
-    printf("WARNING: nifti sform may be wrong\n");
-
-  mri->c_r =
-    hdr->srow_x[0] * (mri->width/2.0)  +
-    hdr->srow_x[1] * (mri->height/2.0) +
-    hdr->srow_x[2] * (mri->depth/2.0)  +
-    hdr->srow_x[3];
-
-  mri->c_a =
-    hdr->srow_y[0] * (mri->width/2.0)  +
-    hdr->srow_y[1] * (mri->height/2.0) +
-    hdr->srow_y[2] * (mri->depth/2.0)  +
-    hdr->srow_y[3];
-
-  mri->c_s =
-    hdr->srow_z[0] * (mri->width/2.0)  +
-    hdr->srow_z[1] * (mri->height/2.0) +
-    hdr->srow_z[2] * (mri->depth/2.0)  +
-    hdr->srow_z[3];
-
-  return(NO_ERROR);
-
+  sform->rptr[1][1] = hdr->srow_x[0];  sform->rptr[1][2] = hdr->srow_x[1];  sform->rptr[1][3] = hdr->srow_x[2];
+  sform->rptr[2][1] = hdr->srow_y[0];  sform->rptr[2][2] = hdr->srow_y[1];  sform->rptr[2][3] = hdr->srow_y[2];
+  sform->rptr[3][1] = hdr->srow_z[0];  sform->rptr[3][2] = hdr->srow_z[1];  sform->rptr[3][3] = hdr->srow_z[2];
+  sform->rptr[1][4] = hdr->srow_x[3];  
+  sform->rptr[2][4] = hdr->srow_y[3];  
+  sform->rptr[3][4] = hdr->srow_z[3];  
+  MatrixPrint(stdout,sform);
+  err = MRIsetVox2RASFromMatrix(mri, sform);
+  MatrixFree(&sform);
+  return(err);
 } /* end niftiSformToMri() */
 
 static int niftiQformToMri(MRI *mri, struct nifti_1_header *hdr)
