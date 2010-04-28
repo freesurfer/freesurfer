@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.85 2010/04/28 19:42:50 greve Exp $
+% $Id: fast_selxavg3.m,v 1.86 2010/04/28 22:22:49 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 19:42:50 $
-%    $Revision: 1.85 $
+%    $Date: 2010/04/28 22:22:49 $
+%    $Revision: 1.86 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 %
 
 
-fprintf('$Id: fast_selxavg3.m,v 1.85 2010/04/28 19:42:50 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.86 2010/04/28 22:22:49 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 
 if(DoSynth)
@@ -54,7 +54,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.85 2010/04/28 19:42:50 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.86 2010/04/28 22:22:49 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -1130,9 +1130,22 @@ if(DoContrasts)
       end
       fclose(fpMC);
     end
-    
-    
+
   end % contrast list
+
+  if(flac.IsRetinotopy)    
+    fname = sprintf('%s/eccen/fsig',outanadir);
+    eccen = MRIread(fname);
+    fname = sprintf('%s/polar/fsig',outanadir);
+    polar = MRIread(fname);
+    conj = eccen;
+    conjvol = min(eccen.vol,polar.vol);
+    fsdir = sprintf('%s/fieldsign',outanadir);
+    err = mkdirp(fsdir);
+    fname = sprintf('%s/fsig.%s',fsdir,ext);
+    MRIwrite(conj,fname);
+  end
+    
 end % DoContrasts
 
 %------------------------------------------------------%
