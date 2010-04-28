@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 19:42:50 $
-%    $Revision: 1.48 $
+%    $Date: 2010/04/28 20:13:31 $
+%    $Revision: 1.49 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -134,11 +134,15 @@ if(~isempty(flac.parfile) & ~strcmp(flac.parfile,'NONE'))
       end
     end
   else
+    % Retinotopy paradigm file
     parpath = sprintf('%s/%s',runpath,flac.parfile);
-    fp = fopen(parpath,'r');
-    flacnew.stimtype  = fscanf(fp,'%*s %s',1);
-    flacnew.direction = fscanf(fp,'%*s %s',1);
-    fclose(fp);
+    retpar = fast_ldretpar(parpath);
+    if(isempty(retpar))
+      flacnew = [];
+      return;
+    end
+    flacnew.stimtype  = retpar.stimtype;
+    flacnew.direction = retpar.direction;
   end
 end
 
