@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 22:21:32 $
-#    $Revision: 1.13 $
+#    $Date: 2010/04/28 23:58:30 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.13 2010/04/28 22:21:32 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.14 2010/04/28 23:58:30 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -513,7 +513,7 @@ check_params:
     endif
   endif
 
-  if($DoAllContrasts) set contrastlist = `getana -a $mapanalysis -t contrast`s
+  if($DoAllContrasts) set contrastlist = `getana -a $mapanalysis -t contrasts`
   if($#contrastlist == 0) then
     echo "ERROR: no contrast specified" 
     exit 1;
