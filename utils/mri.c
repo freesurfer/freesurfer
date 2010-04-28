@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/04/23 19:06:25 $
- *    $Revision: 1.456 $
+ *    $Author: greve $
+ *    $Date: 2010/04/28 17:51:53 $
+ *    $Revision: 1.457 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.456 $";
+const char *MRI_C_VERSION = "$Revision: 1.457 $";
 
 
 /*-----------------------------------------------------
@@ -193,49 +193,12 @@ MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base)
   non-zero voxels base correctly (eg, SPM expects vox2ras to be 1-based).
   Note: MRIgetVoxelToRasXform is #defined to be extract_i_to_r().
   ---------------------------------------------------------------------------*/
-#if 1 /*----=========++++++000000++++++==========-----------*/
 MATRIX *extract_i_to_r(MRI *mri)
 {
   MATRIX *m;
   m = MRIxfmCRS2XYZ(mri, 0);
   return(m);
 }
-#else
-// Code prior to 2/27/06
-MATRIX *extract_i_to_r(MRI *mri)
-{
-  MATRIX *m;
-  float m11, m12, m13, m14;
-  float m21, m22, m23, m24;
-  float m31, m32, m33, m34;
-  float ci, cj, ck;
-  // allocate memory and the user must free it.
-  m = MatrixAlloc(4, 4, MATRIX_REAL);
-  if (m == NULL)
-    ErrorReturn
-    (NULL,(ERROR_BADPARM,"extract_i_to_r(): error allocating matrix"));
-  m11 = mri->xsize * mri->x_r;
-  m12 = mri->ysize * mri->y_r;
-  m13 = mri->zsize * mri->z_r;
-  m21 = mri->xsize * mri->x_a;
-  m22 = mri->ysize * mri->y_a;
-  m23 = mri->zsize * mri->z_a;
-  m31 = mri->xsize * mri->x_s;
-  m32 = mri->ysize * mri->y_s;
-  m33 = mri->zsize * mri->z_s;
-  ci = (mri->width) / 2.0;
-  cj = (mri->height) / 2.0;
-  ck = (mri->depth) / 2.0;
-  m14 = mri->c_r - (m11 * ci + m12 * cj + m13 * ck);
-  m24 = mri->c_a - (m21 * ci + m22 * cj + m23 * ck);
-  m34 = mri->c_s - (m31 * ci + m32 * cj + m33 * ck);
-  stuff_four_by_four(m, m11, m12, m13, m14,
-                     m21, m22, m23, m24,
-                     m31, m32, m33, m34,
-                     0.0, 0.0, 0.0, 1.0);
-  return(m);
-}
-#endif/*----=========++++++000000++++++==========-----------*/
 /*---------------------------------------------------------------------
   extract_r_to_i() - computes scanner ras2vox. See also extract_i_to_r()
   and MRIxfmCRS2XYZ()
@@ -248,6 +211,89 @@ MATRIX *extract_r_to_i(MRI *mri)
   MatrixFree(&m_voxel_to_ras) ;
   return(m_ras_to_voxel) ;
 }
+
+/*!
+  \fn int MRIsetVox2RASFromMatrix(MRI *mri, MATRIX *m_vox2ras)
+  \brief Takes a vox2ras matrix and assigns the MRI structure
+  geometry fields such that it will realize this matrix. WARNING:
+  this matrix can only be 9 DOF. It cannot have shear because
+  shear is not represented in the MRI struct. See also 
+  MRIsetVox2RASFromMatrixUnitTest(). See also niftiSformToMri()
+  int mriio.c.
+*/
+int MRIsetVox2RASFromMatrix(MRI *mri, MATRIX *m_vox2ras)
+{
+  double rx,ax,sx,ry,ay,sy,rz,az,sz;
+  double P0r, P0a, P0s;
+  double xsize, ysize, zsize;
+
+  rx = m_vox2ras->rptr[1][1];  ry = m_vox2ras->rptr[1][2];  rz = m_vox2ras->rptr[1][3];
+  ax = m_vox2ras->rptr[2][1];  ay = m_vox2ras->rptr[2][2];  az = m_vox2ras->rptr[2][3];
+  sx = m_vox2ras->rptr[3][1];  sy = m_vox2ras->rptr[3][2];  sz = m_vox2ras->rptr[3][3];
+  P0r = m_vox2ras->rptr[1][4];  
+  P0a = m_vox2ras->rptr[2][4];  
+  P0s = m_vox2ras->rptr[3][4];
+
+  xsize = sqrt(rx*rx + ax*ax + sx*sx);
+  ysize = sqrt(ry*ry + ay*ay + sy*sy);
+  zsize = sqrt(rz*rz + az*az + sz*sz);
+  if(fabs(xsize-mri->xsize) > .001 ||
+     fabs(ysize-mri->ysize) > .001 || 
+     fabs(zsize-mri->zsize) > .001){
+    printf("WARNING: MRIsetRas2VoxFromMatrix(): voxels sizes are inconsistent\n");
+    printf("   (%g,%g) (%g,%g) (%g,%g) \n",mri->xsize,xsize, mri->ysize,ysize,
+	   mri->zsize,zsize);
+    printf("This is probably due to shear in the vox2ras matrix\n");
+    printf("Input Vox2RAS ------\n");
+    MatrixPrint(stdout,m_vox2ras);
+  }
+  mri->x_r = rx/xsize;
+  mri->x_a = ax/xsize;
+  mri->x_s = sx/xsize;
+
+  mri->y_r = ry/ysize;
+  mri->y_a = ay/ysize;
+  mri->y_s = sy/ysize;
+
+  mri->z_r = rz/zsize;
+  mri->z_a = az/zsize;
+  mri->z_s = sz/zsize;
+
+  MRIp0ToCRAS(mri, P0r, P0a, P0s);
+  return(NO_ERROR);
+} 
+/*!
+  \fn int MRIsetVox2RASFromMatrixUnitTest(MRI *mri)
+  \brief Unit test for MRIsetVox2RASFromMatrix(). Note
+  the geometry params of the mri struct might be changed.
+*/
+int MRIsetVox2RASFromMatrixUnitTest(MRI *mri)
+{
+  MATRIX *Vox2RAS, *Vox2RASb;
+  int c,r;
+  double err;
+
+  Vox2RAS = MRIxfmCRS2XYZ(mri,0);
+  MRIsetVox2RASFromMatrix(mri,Vox2RAS);
+  Vox2RASb = MRIxfmCRS2XYZ(mri,0);
+
+  for(r=0; r<4; r++){
+    for(c=0; c<4; c++){
+      err = fabs(Vox2RAS->rptr[r+1][c+1]-Vox2RASb->rptr[r+1][c+1]);
+      if(err > .00001){
+	printf("MRIsetRas2VoxFromMatrixUnitTest() failed on element r=%d c=%d\n",r+1,c+1);
+	printf("%g %g\n",Vox2RAS->rptr[r+1][c+1],Vox2RASb->rptr[r+1][c+1]);
+	printf("Original Vox2RAS ------\n");
+	MatrixPrint(stdout,Vox2RAS);
+	printf("New Vox2RAS ------\n");
+	MatrixPrint(stdout,Vox2RASb);
+	return(1);
+      }
+    }
+  }
+  return(0);
+}
+
 /*-------------------------------------------------------------
   MRIxfmCRS2XYZtkreg() - computes the TkReg vox2ras, ie, linear
   transform between the column, row, and slice of a voxel and the x,

@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/04/27 21:36:17 $
- *    $Revision: 1.400 $
+ *    $Author: greve $
+ *    $Date: 2010/04/28 17:51:53 $
+ *    $Revision: 1.401 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -162,6 +162,8 @@ MRI_IMAGE, MRI ;
 
 MATRIX *MRIxfmCRS2XYZ(MRI *mri, int base); /* Native Vox2RAS Matrix
                                               (scanner and xfm too) */
+int MRIsetVox2RASFromMatrix(MRI *mri, MATRIX *m_vox2ras);
+int MRIsetVox2RASFromMatrixUnitTest(MRI *mri);
 MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri);      // TkReg  Vox2RAS Matrix
 MATRIX *MRIxfmCRS2XYZfsl(MRI *mri);        // FSL/FLIRT  Vox2RAS Matrix
 MATRIX *MRItkRegMtxFromVox2Vox(MRI *ref,
