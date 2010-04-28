@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.31 $
+#    $Date: 2010/04/28 22:21:32 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.31 2010/04/28 19:42:50 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.32 2010/04/28 22:21:32 greve Exp $';
 set inputargs = ($argv);
 
 set sessid  = ();
@@ -33,11 +33,13 @@ set analysis      = ();
 set flac = ();
 set mapanalysis   = ();
 set contrastlist = ();
-set map    = sig;
+set map    = ();
 set ShowHdr = 1;
 set ShowOverlay = 1;
 set ShowSurfs = 0;
 set ToSelf = 0; # show tal on subjects anatomy
+set RegDOF = 6;
+set regfile = ();
 
 set subject  = ();
 set mainvol   = orig.mgz;
@@ -129,7 +131,7 @@ endif
 
 # Get subject name (and maybe reg)
 if(! $UseTalairach) then 
-  set regfile = $sess/$fsd/register.dat;
+  set regfile = $sess/$fsd/$regfile
   if(! -e $regfile ) then
     echo "ERROR: cannot find $regfile"
     exit 1;
@@ -366,6 +368,16 @@ while( $#argv != 0 )
       set ShowSurfs = 1;
       breaksw
 
+    case "-reg":
+      if($#argv == 0) goto arg1err;
+      set regfile = $argv[1];shift;
+      breaksw
+
+    case "-reg-dof":
+      if($#argv == 0) goto arg1err;
+      set RegDOF = $argv[1];shift;
+      breaksw
+
     case "-tmp":
       if($#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
@@ -438,12 +450,18 @@ check_params:
       echo "ERROR: $mapanalysis does not exist"
       exit 1;
     endif
+    set IsRet = `getana -a $analysis -t IsRetinotopy`
+    if($IsRet && $#contrastlist == 0) then
+      set contrastlist = (eccen polar)
+      if($#map == 0) set map = fsig;
+    endif
     if($DoAllContrasts) set contrastlist = `getana -a $mapanalysis -t contrasts`
     if($#contrastlist == 0) then
       echo "INFO: no contrast specified" 
       sleep 2
       set ShowOverlay = 0;
     endif
+    if($#map == 0) set map = sig;
   endif # flac == 0
 
   # Get session path
@@ -459,6 +477,8 @@ check_params:
     echo "$sess"
     exit 1;
   endif
+
+  if($#regfile == 0) set regfile = register.dof$RegDOF.dat
 
 goto check_params_return;
 ############--------------##################

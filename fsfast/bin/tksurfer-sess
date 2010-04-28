@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.12 $
+#    $Date: 2010/04/28 22:21:32 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,12 +23,12 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.12 2010/04/28 19:42:50 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.13 2010/04/28 22:21:32 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
 set mapanalysis   = ();
-set map = sig;
+set map = ();
 set annot = ();
 set hemi = ();
 set surf = inflated
@@ -46,8 +46,10 @@ set RawSpace = native;
 set RawSpaceType = volume
 set trgsubject = ();
 set SurfReg = ();
-
+set DoFieldSign = 0;
 set UseTalairach = 0;
+set RegDOF = 6;
+set regfile = ();
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -129,7 +131,11 @@ foreach sess ($SessList)
       echo "ERROR: cannot find $conpath"
       exit 1;
     endif
-    set mapstem = $conpath/$map
+    if($DoFieldSign && $RawSpace == native) then
+      set mapstem = $conpath/$hemi.fieldsign
+    else
+      set mapstem = $conpath/$map
+    endif
     set mappath = `stem2fname $mapstem`;
     if($status) then
       echo "$mappath"
@@ -162,18 +168,18 @@ foreach sess ($SessList)
   endif
 
   if($RawSpace == native) then 
-    set reg = $sess/$fsd/register.dat
+    set reg = $sess/$fsd/$regfile
     if(! -e $reg) then
       echo "ERROR: cannot find $reg"
       exit 1
     endif
   endif
 
-  if($RawSpaceType == volume) then
+  if($RawSpaceType == volume && ! $DoFieldSign) then
     # Sample volume to the surface
     set reg = ();
     if($RawSpace == native) then 
-      set reg = $sess/$fsd/register.dat
+      set reg = $sess/$fsd/$regfile
       if(! -e $reg) then
         echo "ERROR: cannot find $reg"
         exit 1
@@ -316,6 +322,13 @@ while( $#argv != 0 )
       set DoAllContrasts = 1;
       breaksw
 
+    case "-fieldsign":
+      set contrastlist = fieldsign;
+      set map = fieldsign;
+      set DoFieldSign = 1;
+      set fthresh = 0.5
+      breaksw
+
     case "-map":
       if($#argv == 0) goto arg1err;
       set map = $argv[1]; shift;
@@ -339,6 +352,16 @@ while( $#argv != 0 )
     case "-annot":
       if($#argv < 1) goto arg1err;
       set annot = $argv[1]; shift
+      breaksw
+
+    case "-reg":
+      if($#argv == 0) goto arg1err;
+      set regfile = $argv[1];shift;
+      breaksw
+
+    case "-reg-dof":
+      if($#argv == 0) goto arg1err;
+      set RegDOF = $argv[1];shift;
       breaksw
 
     case "-nohdr":
@@ -444,12 +467,23 @@ check_params:
       set RawSpace = mni305
     endif
     set IsFIR = `getana -a $analysis -t IsFIR`;
+
+    set IsRet = `getana -a $analysis -t IsRetinotopy`
+    if($DoFieldSign && ! $IsRet) then
+      echo "ERROR: $analysis is not retinotopy, cannot use -fieldsign"
+      exit 1;
+    endif
+    if($IsRet && ! $DoFieldSign && $#contrastlist == 0) then
+      set contrastlist = (eccen polar)
+      if($#map == 0) set map = fsig;
+    endif
   endif
   if(! $IsFIR) set ShowHDR = 0;
   if($#hemi == 0) then
     echo "ERROR: no hemisphere specified" 
     exit 1;
   endif
+  if($#map == 0) set map = sig;
 
   ## Parse the map analysis
   if($#mapanalysis != 0) then
@@ -484,6 +518,8 @@ check_params:
     echo "ERROR: no contrast specified" 
     exit 1;
   endif
+
+  if($#regfile == 0) set regfile = register.dof$RegDOF.dat
 
 goto check_params_return;
 ############--------------##################
