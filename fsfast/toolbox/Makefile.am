@@ -176,6 +176,7 @@ MFILES=\
 	fast_ldlabel.m \
 	fast_ldmri.m \
 	fast_ldpar4.m \
+	fast_ldretpar.m \
 	fast_ldroisum.m \
 	fast_ldslice.m \
 	fast_ldstf.m \
@@ -316,6 +317,7 @@ MFILES=\
 	flac_ev_parse.m \
 	flac_evregind.m \
 	flac_evtaskind.m \
+	flac_funcstem.m \
 	flacffx.m \
 	flac_nuisregind.m \
 	flac_resynth.m \
