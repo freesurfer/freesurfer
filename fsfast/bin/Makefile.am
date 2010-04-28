@@ -59,6 +59,7 @@ FSF_FILES=\
 	feat.fsfast-patch \
 	feat.fsfast-patch.tcl \
 	fftfunc-sess \
+	fieldsign-sess \
 	fixseqinfo-sess \
 	flacproc-sess \
 	fmreigen \
@@ -87,6 +88,7 @@ FSF_FILES=\
 	functwf-sess \
 	fwhmest \
 	fwhmest-sess \
+	getana \
 	getbext \
 	getbfvdim \
 	getendian \
