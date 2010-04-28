@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 19:42:50 $
-%    $Revision: 1.55 $
+%    $Date: 2010/04/28 20:13:51 $
+%    $Revision: 1.56 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -59,6 +59,7 @@ gammafit = 0;
 gamdelay = 0;
 gamtau = 0;
 gamexp = 2;
+ngamderiv = 0;
 spmhrffit = 0;
 nspmhrfderiv = 0;
 timewindow = 0;
@@ -96,6 +97,7 @@ while(1)
    case 'inorm',       flac.inorm       = sscanf(tline,'%*s %f',1);
    case 'TR',          flac.TR          = sscanf(tline,'%*s %f',1);
    case 'OverrideTR',  flac.OverrideTR  = sscanf(tline,'%*s %d',1);
+   case 'RegDOF',      flac.RegDOF      = sscanf(tline,'%*s %d',1);
    case 'RawFWHM',     flac.rawfwhm     = sscanf(tline,'%*s %f',1);
    case 'RawSTC',      flac.stc         = sscanf(tline,'%*s %s',1);
    case 'acfbins',     flac.acfbins     = sscanf(tline,'%*s %d',1);
@@ -120,6 +122,7 @@ while(1)
     gamdelay = sscanf(tline,'%*s %f',1);
     gamtau   = sscanf(tline,'%*s %*f %f',1);
     gamexp   = sscanf(tline,'%*s %*f %*f %f',1);
+    ngamderiv = sscanf(tline,'%*s %*f %*f %*f %d',1);
    case 'spmhrf', 
     spmhrffit = 1; 
     nspmhrfderiv = sscanf(tline,'%*s %d',1);
@@ -206,6 +209,7 @@ ana.gammafit     = gammafit;
 ana.gamdelay     = gamdelay;
 ana.gamtau       = gamtau;
 ana.gamexp       = gamexp;
+ana.ngamderiv    = ngamderiv;
 
 ana.spmhrffit    = spmhrffit;
 ana.nspmhrfderiv = nspmhrfderiv;
@@ -233,8 +237,8 @@ nthev = nthev+1;
 if(strcmp(designtype,'event-related') | strcmp(designtype,'blocked'))
   for n=1:nconditions
     if(gammafit)
-      tline = sprintf('EV Condition%02d gamma task %d %g %g %g 0 %g',...
-		      n,n,gamdelay,gamtau,gamexp,TER);
+      tline = sprintf('EV Condition%02d gamma task %d %g %g %g %d %g',...
+		      n,n,gamdelay,gamtau,gamexp,ngamderiv,TER);
     elseif(spmhrffit)
       tline = sprintf('EV Condition%02d spmhrf task %d %d %g',...
 		      n,n,nspmhrfderiv,TER);

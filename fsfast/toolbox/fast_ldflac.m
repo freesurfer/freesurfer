@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 19:42:50 $
-%    $Revision: 1.50 $
+%    $Date: 2010/04/28 20:13:51 $
+%    $Revision: 1.51 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -78,6 +78,7 @@ if(isempty(flac))
   flac.RefEventDur = 1;
   flac.rawfwhm = 0;
   flac.rawstc = '';
+  flac.RegDOF = 0;
   flac.RawSpaceType = '';
   flac.RawSpaceRes = [];
   flac.RawSpace = '';
