@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 23:58:30 $
-#    $Revision: 1.14 $
+#    $Date: 2010/04/29 17:27:05 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.14 2010/04/28 23:58:30 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.15 2010/04/29 17:27:05 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
@@ -252,9 +252,24 @@ foreach sess ($SessList)
     set cmd = ($cmd -timecourse $hpath -timecourse-offset $hoffsetpath)
   endif
   if($#annot) set cmd = ($cmd -annot $annot)
+  set maskopt = ()
+  if($IsRet && ($map == angle || $map == fieldsign)) then
+    set mapanadir = $sess/$mapfsd/$mapanalysis
+    if($IsSurface) set maskstem = $mapanadir/fieldsign/fsig
+    if(! $IsSurface) then
+      set maskstem = $mapanadir/fieldsign/$hemi.fsig
+      if($status) then
+        echo "ERROR: cannot find $mapanadir/fieldsign/$hemi.fsig."
+        echo "       Run fieldsign-sess."
+        exit 1;
+      endif
+    endif
+    set mask = `stem2fname $maskstem`
+    set maskopt = (-mask $mask -mask-thresh $fthresh -fthresh .01)
+  endif
   set fmid   = `echo "($fmax+$fthresh)/2.0" | bc -l`
   set fslope = `echo "1.0/($fmax-$fthresh)" | bc -l`
-  set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope)
+  set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope $maskopt)
   if($Delink) set cmd = ($cmd -delink);
 
   echo " cd `pwd`"
@@ -475,6 +490,12 @@ check_params:
     endif
     if($IsRet && ! $DoFieldSign && $#contrastlist == 0) then
       set contrastlist = (eccen polar)
+      if($#map == 0) set map = fsig;
+    endif
+
+    set IsABB = `getana -a $analysis -t IsABBlocked`
+    if($IsABB && $#contrastlist == 0) then
+      set contrastlist = (fund);
       if($#map == 0) set map = fsig;
     endif
   endif
