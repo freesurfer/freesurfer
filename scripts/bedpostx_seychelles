@@ -79,13 +79,13 @@ fi
 
 Usage() {
     echo ""
-    echo "Usage: bedpostx_seychelles <subject directory> [options]"
+    echo "Usage: bedpostx_seychelles <subject directory> [options] ..."
     echo ""
     echo "expects to find bvals and bvecs in subject directory"
     echo "expects to find data and nodif_brain_mask in subject directory"
     echo "options:"
     echo "-n (number of fibres per voxel, default 2)"
-    echo "-w (ARD weight, more weight means less fibres killed per voxel, default 1)"
+    echo "-w (ARD weight, more weight means less secondary fibres per voxel, default 1)"
     echo "-b (burnin period, default 1000)"
     echo "-j (number of jumps, default 1250)"
     echo "-s (sample every, default 25)"
@@ -127,7 +127,10 @@ make_absolute(){
 
 [ "$1" = "" ] && Usage
 
-subjdir=`make_absolute $1`
+# Go through multiple subjects
+for subjdir ; do
+
+subjdir=`make_absolute $subjdir`
 subjdir=`echo $subjdir | sed 's/\/$/$/g'`
 
 echo subjectdir is $subjdir
@@ -138,6 +141,7 @@ fudge=1
 burnin=1000
 njumps=1250
 sampleevery=25
+model=1
 while [ ! -z "$2" ]
 do
   case "$2" in
@@ -146,6 +150,7 @@ do
       -b) burnin=$3;shift;;
       -j) njumps=$3;shift;;
       -s) sampleevery=$3;shift;;
+      -model) model=$3;shift;;
       *) break;;
   esac
   shift
@@ -188,12 +193,13 @@ mkdir -p ${subjdir}.bedpostX/xfms
 
 mailto=`whoami`@fmrib.ox.ac.uk
 echo Queuing preprocessing stages
-preprocid=`${BPDIR}/fsl_sub_seychelles -l ${subjdir}.bedpostX/logs -m a -N bedpostx_pre ${FSLDIR}/bin/bedpostx_preproc.sh $subjdir`
+preprocid=`${BPDIR}/fsl_sub_seychelles -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
 
 echo Queuing parallel processing stage
 nslices=`${FSLDIR}/bin/fslval ${subjdir}/data dim3`
 [ -f ${subjdir}.bedpostX/commands.txt ] && rm ${subjdir}.bedpostX/commands.txt
 if [ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ]; then
+
 # 
 # Need to set off a backgrounded monitoring task
 # 
@@ -201,33 +207,74 @@ if [ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ]; then
 #!/bin/sh
 finished=0
 logdir=${subjdir}.bedpostX/logs
-while [ \$finished -eq 0 ] ; do
-    nfin=0
-    if [ -f \$logdir/bedpostx.o*.1 ] ; then
-      nfin=\`cat \$logdir/bedpostx.o* |\
-        grep Done | wc -w | awk '{print \$1}'\` 
-    fi
-    if [ \$nfin -eq $nslices ] ; then
-        finished=1
-    fi
 
-    echo "\$nfin slices processed"
-    sleep 600;
+check() {
+    if [ \$finished -eq 1 ];then
+        echo "\$nfin slices processed"
+    else
+        nfin=0
+        slice=0
+        while [ "\$slice" -le $nslices ];do
+            slicezp=\`\$FSLDIR/bin/zeropad \$slice 4\`
+            isimg=\`\$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_\$slicezp/dyads1\`
+            if [ \$isimg -eq 1 ];then
+                nfin=\$((\$nfin + 1))
+            fi
+                slice=\$((\$slice + 1))
+        done
+        if [ \$nfin -eq $nslices ] ; then
+            finished=1
+        fi
+        echo "\$nfin slices processed"
+    fi
+}
+exit_test() {
+    isimg=\`\$FSLDIR/bin/imtest ${subjdir}.bedpostX/dyads1\`
+    if [ \$isimg -eq 0 ] ; then
+	echo For some reason the bedpostX process DOES NOT appear
+	echo to have successfully completed. Please examine your
+	echo results carefully.
+    else
+	echo All slices processed
+    fi
+}
+
+check
+n=0
+while [ \$finished -eq 0 ] ; do
+    sleep 10
+    if [ \$n -eq 60 ] ; then
+        check
+        n=0
+    else
+        n=\$((\$n + 1))
+    fi
 done
+exit_test
 EOM
     chmod +x ${subjdir}.bedpostX/monitor
     ${subjdir}.bedpostX/monitor&
     monitorpid=$!
 fi
-for ((slice=0; slice < $nslices; slice++)) ; do
-    echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $slice" \
-	>> ${subjdir}.bedpostX/commands.txt
+slice=0
+while [ $slice -lt $nslices ]
+do
+    slicezp=`$FSLDIR/bin/zeropad $slice 4`
+    if [ `$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_$slicezp/dyads1` -eq 1 ];then
+	echo "slice $slice has already been processed"
+    else
+	echo "${FSLDIR}/bin/bedpostx_single_slice.sh $subjdir $nfibres $fudge $burnin $njumps $sampleevery $model $slice" \
+	    >> ${subjdir}.bedpostX/commands.txt
+    fi
+    slice=$(($slice + 1))
 done
+
 bedpostid=`${BPDIR}/fsl_sub_seychelles -j $preprocid -l ${subjdir}.bedpostX/logs -m a -N bedpostx -t ${subjdir}.bedpostX/commands.txt`
-[ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ] && kill $monitorpid
 
 echo Queuing post processing stage
-mergeid=`${BPDIR}/fsl_sub_seychelles -j $bedpostid -l ${subjdir}.bedpostX/logs -m ae -N bedpostx_post ${FSLDIR}/bin/bedpostx_postproc.sh $subjdir`
+mergeid=`${BPDIR}/fsl_sub_seychelles -j $bedpostid -T 60 -m ae -N bedpostx_post -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_postproc.sh $subjdir`
+
+[ "x$SGE_ROOT" = "x" ] && [ ! -d /pbs ] && kill $monitorpid
 
 if [ "x$SGE_ROOT" != "x" ]; then
     echo
@@ -238,15 +285,22 @@ finished=0
 logdir=${subjdir}.bedpostX/logs
 while [ \$finished -eq 0 ] ; do
     nfin=0
-    if [ -f \$logdir/bedpostx.o$bedpostid.1 ] ; then
-      nfin=\`cat \$logdir/bedpostx.o$bedpostid.* |\
-        grep Done | wc -w | awk '{print \$1}'\` 
-    fi
-    if [ \$nfin -eq $nslices ] ; then
+    slice=0
+    while [ "\$slice" -le $nslices ];do
+        slicezp=\`\$FSLDIR/bin/zeropad \$slice 4\`
+        isimg=\`\$FSLDIR/bin/imtest ${subjdir}.bedpostX/diff_slices/data_slice_\$slicezp/dyads1\`
+        if [ \$isimg -eq 1 ];then
+          nfin=\$((\$nfin + 1))
+        fi
+        slice=\$((\$slice + 1))
+    done
+    echo "\$nfin slices processed"
+
+    if [ -f ${subjdir}.bedpostX/xfms/eye.mat ] ; then
         finished=1
+        echo "All slices processed"
     fi
 
-    echo "\$nfin slices processed"
     sleep 600;
 done
 EOM
@@ -293,7 +347,7 @@ for jobname in \`cat \$logdir/joblist | awk '{print \$1}' | sort\` ; do
     jobid=\`grep \$jobname \$logdir/joblist | awk '{print \$2}'\`
     jobtime=\`jobinfo \$jobid | grep Cputime | awk '{print \$2}'\`
     if [ "\${jobtime}x" != "x" ]; then
-	echo "\$jobname \$jobtime"
+        echo "\$jobname \$jobtime"
     fi
 done
 EOT
@@ -311,3 +365,7 @@ EOC
     echo You will get an email at the end of the post-processing stage.
     echo
 fi
+
+# Go through multiple subjects
+done
+
