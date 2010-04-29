@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/26 17:30:57 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/04/29 02:10:29 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -739,7 +739,7 @@ void PanelVolume::DoUpdateUI()
       m_choiceColorMap->Append( _("NIH"), (void*)LayerPropertiesMRI::NIH );
 			for ( int i = 0; i < (int)m_choiceColorMap->GetCount(); i++ )
 			{
-				if ( (void*)m_choiceColorMap->GetClientData( i ) == (void*)nColorMap )
+        if ( ((long)(void*)m_choiceColorMap->GetClientData( i )) == ((long)nColorMap) )
 				{
 					m_choiceColorMap->SetSelection( i );
 					break;
@@ -1420,6 +1420,17 @@ void PanelVolume::OnColorContour( wxColourPickerEvent& event )
   }
 }
 
+/*
+void PanelVolume::OnColorSurface( wxColourPickerEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    wxColour c = event.GetColour();
+    layer->GetSurfaceProperties()->SetColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
+  }
+}
+*/
 void PanelVolume::OnCheckHideInfo( wxCommandEvent& event )
 {
   Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
