@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 23:58:56 $
-#    $Revision: 1.50 $
+#    $Date: 2010/04/29 00:16:17 $
+#    $Revision: 1.51 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.50 2010/04/28 23:58:56 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.51 2010/04/29 00:16:17 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -145,7 +145,7 @@ if($DoPreProc) then
     set sessbase = `basename $sess`;
     set sessdir  = `dirname  $sess`;
     set cmd = (preproc-sess -s $sessbase -d $sessdir -a $analysis -nolog);
-    if($IsNative) set cmd = ($cmd -no-reg)
+    #if($IsNative) set cmd = ($cmd -no-reg); # they can run with -no-preproc
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
