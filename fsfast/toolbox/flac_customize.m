@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 22:23:13 $
-%    $Revision: 1.50 $
+%    $Date: 2010/04/29 00:32:17 $
+%    $Revision: 1.51 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -247,17 +247,20 @@ for nthev = 1:nev
       flacnew = [];
       return;
     end
-    if(size(X,2) < ev.params(1))
+    nuse = ev.params(1);
+    if(ev.params(1) < 1) nuse = size(X,2); end
+    if(size(X,2) < nuse)
       fprintf('ERROR: not enough columns %s\n',nonparpath);
       size(X)
       flacnew = [];
       return;
     end
     % Demean
-    X = X(:,1:ev.params(1));
+    X = X(:,1:nuse);
     Xmn = mean(X,1);
     X = X - repmat(Xmn,[flacnew.ntp 1]);
     flacnew.ev(nthev).X = X;
+    flacnew.ev(nthev).nreg = nuse;
     continue;
   end
 
