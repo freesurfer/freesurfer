@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/29 05:05:21 $
-#    $Revision: 1.47 $
+#    $Date: 2010/04/29 17:27:50 $
+#    $Revision: 1.48 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.47 2010/04/29 05:05:21 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.48 2010/04/29 17:27:50 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -74,6 +74,7 @@ set RescaleTarget = 100;
 set eventrelated = 0;
 set abblocked = 0;
 set retinotopy = 0;
+set notask = 0;
 set PrintHelp = 0;
 set RegDOF = 6;
 
@@ -435,6 +436,14 @@ while( $#argv != 0 )
       set ExpKey = $argv[1]; shift; # prepend a dot later
       breaksw
 
+    case "-notask":
+      set DesignType = "notask"
+      set notask = 1;
+      set eventrelated = 0;
+      set abblocked = 0;
+      set retinotopy = 0;
+      breaksw
+
     case "-event-related":
     case "-er":
       set DesignType = "event-related"
@@ -450,7 +459,7 @@ while( $#argv != 0 )
       set abblocked = 1;
       set PolyFitOrder = 1;
       set HPFCutoffHz = `echo ".5/$Period" | bc -l`
-      set acfbins = 0;
+      set ACFBins = 0;
       set eventrelated = 0;
       set retinotopy = 0;
       breaksw
@@ -464,7 +473,7 @@ while( $#argv != 0 )
       set retinotopy = 1;
       set PolyFitOrder = 1;
       set HPFCutoffHz = `echo ".5/$Period" | bc -l`
-      set acfbins = 0;
+      set ACFBins = 0;
       set eventrelated = 0;
       set abblocked = 0;
       breaksw
@@ -561,16 +570,12 @@ check_params:
     exit 1;
   endif
   if($#DesignType == 0) then
-    echo "ERROR: must specify design type"
+    echo "ERROR: must specify design type. Choose "
+    echo " either -event-related, -abblocked, or -retinotopy" 
     exit 1;
   endif
   if($#RawSpaceType == 0) then
     echo "ERROR: must specify -native, -surface, or -mni305"
-    exit 1;
-  endif
-  if(! $eventrelated && ! $abblocked && ! $retinotopy) then
-    echo "ERROR: must choose a design type:"
-    echo " either -event-related, -abblocked, or -retinotopy" 
     exit 1;
   endif
   if($#RawFWHM == 0) then
@@ -661,6 +666,7 @@ usage_exit:
   echo "  -retinotopy periodSec   : retinotopy design with period (sec)"
   echo "  -abblocked  periodSec   : abblocked design with period (sec)"
   echo "  -paradigm  ParName      : name of paradigm file (needed for ER and ret)"
+  echo "  -notask : use external and/or nuisance regressors only"
   echo ""
   echo "Event-Related and Blocked Design Arguments "
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"
