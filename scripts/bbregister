@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/29 21:00:10 $
-#    $Revision: 1.34 $
+#    $Date: 2010/04/29 21:22:12 $
+#    $Revision: 1.35 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.34 2010/04/29 21:00:10 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.35 2010/04/29 21:22:12 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -212,11 +212,12 @@ endif
 
 # Pass 2
 set MinCostFile = $outreg.mincost; # This will be the final cost
+set ParamFile = $outreg.param; # This will be the final parameters
 set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --wm-proj-abs $WMProjAbs --tol $TolF --tol1d $Tol1D\
   --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
-  --nmax $nPowellMax)
+  --nmax $nPowellMax --param $ParamFile)
 if($SaveCurReg) set cmd = ($cmd --cur-reg $tmpdir/reg.curopt.dat)
 if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
 if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
