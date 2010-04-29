@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 22:22:00 $
-#    $Revision: 1.46 $
+#    $Date: 2010/04/29 05:05:21 $
+#    $Revision: 1.47 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.46 2010/04/28 22:22:00 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.47 2010/04/29 05:05:21 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -337,8 +337,8 @@ while( $#argv != 0 )
 
     case "-fir":
       if($#argv < 2) goto arg2err;
-      set TimeWindow = $argv[1]; shift;
       set PreStim = $argv[1]; shift;
+      set TimeWindow = $argv[1]; shift;
       set HRFModel = "fir";
       breaksw
 
@@ -595,9 +595,9 @@ check_params:
       echo " Choose one of the following models: -fir, -gamma, -spmhrf."
       exit 1;
     endif
-    if($#RefEventDur == 0) then
-      echo "ERROR: you must specify a reference event duration with event-related "
-      echo "  and blocked designs. Use the -refeventdur flag."
+    if($#RefEventDur == 0 && $HRFModel != fir) then
+      echo "ERROR: you must specify a reference event duration with non-fir"
+      echo "  event-related and blocked designs. Use the -refeventdur flag."
       exit 1;
     endif
     if($#TER == 0 && $HRFModel == "fir") set TER = $TR;
