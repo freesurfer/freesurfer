@@ -15,8 +15,8 @@ function ev = flac_ev_parse(tline)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/17 20:10:31 $
-%    $Revision: 1.18 $
+%    $Date: 2010/04/29 00:33:45 $
+%    $Revision: 1.19 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -313,7 +313,7 @@ switch (ev.model)
 
   [item c] = sscanfitem(tline,6);
   if(c ~= 1) fprintf('Format error\n'); ev=[]; return; end
-  ev.params(1) = sscanf(item,'%d',1); % ncols
+  ev.params(1) = sscanf(item,'%d',1); % ncols, 0 or -1 for all
   ev.nreg = ev.params(1);
   ev.ishrf = 0;  
 
