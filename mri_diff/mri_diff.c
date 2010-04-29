@@ -19,9 +19,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/27 16:56:04 $
- *    $Revision: 1.28 $
+ *    $Author: rge21 $
+ *    $Date: 2010/04/29 16:08:06 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2005-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -173,7 +173,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.28 2010/02/27 16:56:04 nicks Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.29 2010/04/29 16:08:06 rge21 Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -437,7 +437,7 @@ int main(int argc, char *argv[]) {
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
             diff = val1-val2;
             if (diff && verbose) {
-              printf("diff %f at %d %d %d %d\n",diff,c,r,s,f);
+              printf("diff %12.8f at %d %d %d %d\n",diff,c,r,s,f);
             }
             SumSqDiff += (diff*diff);
             SumSqErr  += (diff*diff);
@@ -484,7 +484,7 @@ int main(int argc, char *argv[]) {
 
     if(maxdiff > pixthresh) {
       printf("Volumes differ in pixel data\n");
-      printf("maxdiff %f at %d %d %d %d\n",
+      printf("maxdiff %12.8f at %d %d %d %d\n",
              maxdiff,cmax,rmax,smax,fmax);
       if (DiffFile) {
         fp = fopen(DiffFile,"w");
@@ -493,7 +493,7 @@ int main(int argc, char *argv[]) {
           exit(1);
         }
         dump_options(fp);
-        fprintf(fp,"maxdiff %f at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
+        fprintf(fp,"maxdiff %12.8f at %d %d %d %d\n",maxdiff,cmax,rmax,smax,fmax);
         fprintf(fp,"Volumes differ in pixel value\n");
         fclose(fp);
       }
