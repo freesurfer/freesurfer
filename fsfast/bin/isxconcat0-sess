@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 22:58:01 $
-#    $Revision: 1.17 $
+#    $Date: 2010/04/29 05:05:00 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.17 2010/04/28 22:58:01 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.18 2010/04/29 05:05:00 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -443,7 +443,7 @@ check_params:
 
   if($#analysis) then
     set IsNative = `getana -a $analysis -t IsNative`    
-    if($IsNative) set DoResample = 0;
+    if(! $IsNative) set DoResample = 0;
     set fsd = `getana -a $analysis -t fsd`;
   endif
 
@@ -507,7 +507,7 @@ check_params:
   endif
   if($#projfrac == 0 && $DoProjFracAvg == 0) set projfrac = 0.5;
 
-  if($#regfile == 0) set regfile register.dof$RegDOF.dat 
+  if($#regfile == 0) set regfile = register.dof$RegDOF.dat 
 
 goto check_params_return;
 ############--------------##################
