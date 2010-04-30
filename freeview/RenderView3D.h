@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -33,6 +33,7 @@
 class Cursor3D;
 class vtkActor;
 class vtkCubeSource;
+class vtkProp;
 
 class VTK_RENDERING_EXPORT RenderView3D : public RenderView
 {
@@ -82,6 +83,10 @@ public:
   
   void SetShowSliceFrames( bool bShow );
   
+  bool InitializeSelectRegion( int posX, int posY );
+  
+  void AddSelectRegionLoopPoint( int posX, int posY );
+  
 protected:
   void OnInternalIdle();
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
@@ -97,6 +102,7 @@ protected:
 
 private:
   void InitializeRenderView3D();
+  vtkProp* PickProp( int posX, int posY, double* pos_out = NULL );
 
   int  m_nPickCoord[2];
   int  m_nCursorCoord[2];

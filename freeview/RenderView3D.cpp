@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/18 18:23:33 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -29,6 +29,7 @@
 #include "ConnectivityData.h"
 #include "LayerCollection.h"
 #include "LayerMRI.h"
+#include "LayerPropertiesMRI.h"
 #include <vtkRenderer.h>
 #include "vtkConeSource.h"
 #include "vtkPolyDataMapper.h"
@@ -110,7 +111,7 @@ void RenderView3D::InitializeRenderView3D()
     m_actorSliceBoundingBox[i] = vtkSmartPointer<vtkActor>::New();
     m_cubeSliceBoundingBox[i] = vtkSmartPointer<vtkCubeSource>::New();
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInput( m_cubeSliceBoundingBox[i]->GetOutput() );
+    mapper->SetInputConnection( m_cubeSliceBoundingBox[i]->GetOutputPort() );
     m_actorSliceBoundingBox[i]->SetMapper( mapper );
     mapper->Update();
     m_actorSliceBoundingBox[i]->GetProperty()->SetRepresentationToWireframe();
@@ -287,9 +288,13 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         prop = props->GetNextProp();
       }
     }
-    for ( int i = 0; i < 3; i++ )
+    
+    if ( lc_surface->IsEmpty() )
     {
-      picker->AddPickList( m_actorSliceBoundingBox[i] );
+      for ( int i = 0; i < 3; i++ )
+      {
+        picker->AddPickList( m_actorSliceBoundingBox[i] );
+      }
     }
     
     double pos[3];
@@ -297,6 +302,17 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
     picker->GetPickPosition( pos );
 
     vtkProp* prop = picker->GetViewProp();
+    if ( !lc_surface->IsEmpty() && !lc_surface->HasProp( prop ) )
+    {
+      for ( int i = 0; i < 3; i++ )
+      {
+        picker->AddPickList( m_actorSliceBoundingBox[i] );
+      }
+      
+      picker->Pick( posX, GetClientSize().GetHeight() - posY, 0, GetRenderer() );
+      picker->GetPickPosition( pos );
+      prop = picker->GetViewProp();
+    }     
     if ( !prop )
     {
       HighlightSliceFrame( -1 );
@@ -369,12 +385,75 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         }
       }
       
-      // did not hit any thing, try one more time with customized hit test
-      
-      
       // no frame was picked
       HighlightSliceFrame( -1 );
     }
+  }
+}
+
+vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
+{
+  vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetPicker() );
+  if ( !picker )
+    return NULL;
+  
+  picker->InitializePickList();
+  vtkPropCollection* props = GetRenderer()->GetViewProps();
+  if ( props )
+  {
+    props->InitTraversal();
+    vtkProp* prop = props->GetNextProp();
+    while ( prop )
+    {
+      if ( vtkActor::SafeDownCast( prop ) )
+        picker->AddPickList( prop );
+      prop = props->GetNextProp();
+    }
+  }
+  picker->Pick( posX, GetClientSize().GetHeight() - posY, 0, GetRenderer() );
+  if ( pos_out )
+    picker->GetPickPosition( pos_out );
+  return picker->GetViewProp();
+}
+
+bool RenderView3D::InitializeSelectRegion( int posX, int posY )
+{
+  double pos[3];
+  vtkProp* prop = this->PickProp( posX, posY, pos );  
+  if ( !prop )
+    return false;
+  
+  LayerCollection* lc_mri = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+  LayerMRI* mri = NULL;
+  for ( int i = 0; i < lc_mri->GetNumberOfLayers(); i++ )
+  {
+    LayerMRI* mri_temp = (LayerMRI*)lc_mri->GetLayer(i);
+    if ( mri_temp->HasProp( prop ) && mri_temp->GetProperties()->GetShowAsContour() )
+    {
+      mri = mri_temp;
+      break;
+    }
+  }
+  
+  if ( !mri )
+    return false;
+  
+  lc_mri->SetActiveLayer( mri );
+  mri->CreateNewSurfaceRegion( pos );
+  return true;
+}
+  
+void RenderView3D::AddSelectRegionLoopPoint( int posX, int posY )
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    double pos[3];
+    vtkProp* prop = this->PickProp( posX, posY, pos );  
+    if ( !prop || !mri->HasProp( prop ) )
+      return;
+    
+    mri->AddSurfaceRegionLoopPoint( pos );
   }
 }
 
@@ -443,6 +522,14 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void
   else if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" )
   {
     UpdateBounds();
+  }
+  else if ( iMsg == "SurfaceRegionAdded" )
+  {
+    RefreshAllActors();
+  }
+  else if ( iMsg == "SurfaceRegionUpdated" )
+  {
+    NeedRedraw();
   }
 
   RenderView::DoListenToMessage( iMsg, iData, sender );
@@ -621,7 +708,10 @@ bool RenderView3D::GetShowSliceFrames()
 void RenderView3D::SetShowSliceFrames( bool bShow )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_actorSliceFrames[i]->SetVisibility( bShow?1:0 );
+    m_actorSliceBoundingBox[i]->SetPickable( bShow?1:0 );
+  }
   
   NeedRedraw();
 }

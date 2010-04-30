@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/20 21:41:39 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -152,6 +152,8 @@ public:
     return m_polydataVertices;
   }
   
+  void GetVectorAtVertex( int nVertex, double* vec_out, int nVector = -1 );
+  
   vtkPolyData* GetWireframePolyData()
   {
     return m_polydataWireframes;
@@ -161,6 +163,8 @@ public:
   {
     return m_MRIS;
   }
+  
+  void GetNormalAtVertex( int nVertex, double* vec_out );
 
 protected:
   void UpdatePolyData();

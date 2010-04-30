@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/26 19:04:05 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -75,7 +75,7 @@ bool VolumeFilterGradient::Execute()
     smooth->SetInput( m_volumeInput->GetImageData() );
     smooth->SetStandardDeviations( m_dSD, m_dSD, m_dSD );
     smooth->SetRadiusFactors( 1, 1, 1 );
-    grad->SetInput( smooth->GetOutput() );
+    grad->SetInputConnection( smooth->GetOutputPort() );
   }
   else
     grad->SetInput( m_volumeInput->GetImageData() );

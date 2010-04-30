@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/06 02:07:19 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,6 +44,7 @@
 #include "vtkPolyData.h"
 #include "vtkTubeFilter.h"
 #include "FSVolume.h"
+#include "MyUtils.h"
 
 using namespace std;
 
@@ -333,6 +334,10 @@ bool FSSurface::LoadVectors( const char* filename )
     {
       m_vertexVectors.push_back( vector );
       m_nActiveVector = m_vertexVectors.size() - 1;
+      
+      // restore original vertices in m_MRIS because MRISreadVertexPositions changed it!
+      RestoreVertices( m_MRIS, m_nActiveSurface );
+      
       UpdateVectors();
 
       cout << "vector data loaded for surface from " << filename << endl;
@@ -435,6 +440,12 @@ void FSSurface::RestoreNormals( MRIS* mris, int nSet )
   }
 }
 
+void FSSurface::GetNormalAtVertex( int nVertex, double* vec_out )
+{
+  vec_out[0] = m_fNormalSets[m_nActiveSurface][nVertex].x;
+  vec_out[1] = m_fNormalSets[m_nActiveSurface][nVertex].y;
+  vec_out[2] = m_fNormalSets[m_nActiveSurface][nVertex].z;
+}
 
 void FSSurface::UpdatePolyData()
 {
@@ -592,7 +603,22 @@ void FSSurface::UpdateVectors()
   }
 }
 
-
+void FSSurface::GetVectorAtVertex( int nVertex, double* vec_out, int nVector )
+{
+  int nv = nVector;
+  if ( nv < 0 )
+    nv = m_nActiveVector;
+  
+  VertexItem* vectors = m_vertexVectors[nv].data;
+  double p1[3], p2[3];
+  p1[0] = m_MRIS->vertices[nVertex].x;
+  p1[1] = m_MRIS->vertices[nVertex].y;
+  p1[2] = m_MRIS->vertices[nVertex].z;
+  p2[0] = vectors[nVertex].x;
+  p2[1] = vectors[nVertex].y;
+  p2[2] = vectors[nVertex].z;
+  MyUtils::GetVector( p1, p2, vec_out );
+}
 
 bool FSSurface::SetActiveSurface( int nIndex )
 {

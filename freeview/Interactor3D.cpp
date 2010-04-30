@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/09 03:45:03 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,7 +38,9 @@ Interactor3D::Interactor3D() :
     Interactor(),
     m_nMousePosX( -1 ),
     m_nMousePosY( -1 ),
-    m_bWindowLevel( false )
+    m_bWindowLevel( false ),
+    m_bMoveSlice( false ),
+    m_bSelectRegion( false )
 {}
 
 Interactor3D::~Interactor3D()
@@ -57,6 +59,11 @@ bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
   {
     m_bWindowLevel = true;
   }
+  else if ( event.ControlDown() && event.LeftDown() )
+  {
+    if ( view->InitializeSelectRegion( event.GetX(), event.GetY() ) )
+      m_bSelectRegion = true;
+  }
   else if ( view->GetHighlightedSlice() >= 0 )
   {
     m_bMoveSlice = true;
@@ -73,9 +80,7 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  m_bWindowLevel = false;
-  m_bMoveSlice = false;
-  if ( event.GetX() == m_nMousePosX && event.GetY() == m_nMousePosY )
+  if ( event.GetX() == m_nMousePosX && event.GetY() == m_nMousePosY && !m_bSelectRegion )
   {
     if ( event.LeftUp() )
     {
@@ -88,6 +93,10 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
     m_nMousePosX = event.GetX();
     m_nMousePosY = event.GetY();
   }
+  
+  m_bWindowLevel = false;
+  m_bMoveSlice = false;
+  m_bSelectRegion = false;
 
   return Interactor::ProcessMouseUpEvent( event, renderview );
 }
@@ -124,14 +133,14 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
         w = 0;
       layer->GetProperties()->SetWindowLevel( w, l );
     }
-    m_nMousePosX = posX;
-    m_nMousePosY = posY;
+  }
+  else if ( m_bSelectRegion )
+  {
+    view->AddSelectRegionLoopPoint( posX, posY );
   }
   else if ( m_bMoveSlice )
   {
     view->MoveSliceToScreenCoord( posX, posY );
-    m_nMousePosX = posX;
-    m_nMousePosY = posY;
   }
   else
   {
@@ -144,6 +153,9 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
 
     return Interactor::ProcessMouseMoveEvent( event, view );
   }
+  
+  m_nMousePosX = posX;
+  m_nMousePosY = posY;
 
   UpdateCursor( event, view );
   return false;
@@ -176,7 +188,7 @@ bool Interactor3D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
   {
     view->MoveRight();
   }
-  else if ( nKeyCode == 'R' || nKeyCode == 'F' || nKeyCode == 'S' || nKeyCode == 'W' )
+  else if ( nKeyCode == 'R' || nKeyCode == 'F' )// || nKeyCode == 'S' || nKeyCode == 'W' )
   {
     // do nothing, just intercept these keycodes
   }

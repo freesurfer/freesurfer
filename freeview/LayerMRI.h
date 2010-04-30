@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/07 19:27:41 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,6 +59,7 @@ class wxWindow;
 class wxCommandEvent;
 class BuildContourThread;
 class Contour2D;
+class SurfaceRegion;
 
 class LayerMRI : public LayerVolumeBase
 {
@@ -188,6 +189,10 @@ public:
   
   virtual void SetModified();
   
+  SurfaceRegion* CreateNewSurfaceRegion( double* pt );
+  
+  void AddSurfaceRegionLoopPoint( double* pt );
+  
 protected:
 
   void InitializeVolume();
@@ -247,13 +252,16 @@ protected:
     vtkActor* actor;
   };
         
-  std::vector<SegmentationActor>   m_segActors;              
+  std::vector<SegmentationActor>  m_segActors;              
   
   vtkActor*   m_actorContour;
   vtkVolume*  m_propVolume;
   
   int         m_nThreadID;
-  vtkSmartPointer<vtkActor> m_actorContourTemp;
+  vtkSmartPointer<vtkActor>       m_actorContourTemp;
+  
+  std::vector<SurfaceRegion*>     m_surfaceRegions;
+  SurfaceRegion*                  m_currentSurfaceRegion;
   
 private:
   double**    private_buf1_3x3;

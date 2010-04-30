@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/26 17:30:56 $
- *    $Revision: 1.63 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -64,6 +64,7 @@
 #include "vtkMath.h"
 #include "BuildContourThread.h"
 #include "Contour2D.h"
+#include "SurfaceRegion.h"
 
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
@@ -79,7 +80,8 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
     m_volumeRef( ref ? ref->GetSourceVolume() : NULL ),
     m_bResampleToRAS( false ),
     m_bReorient( false ),
-    m_nSampleMethod( SAMPLE_NEAREST )
+    m_nSampleMethod( SAMPLE_NEAREST ),
+    m_currentSurfaceRegion( NULL )
 {
   m_strTypeNames.push_back( "MRI" );
 
@@ -145,6 +147,11 @@ LayerMRI::~LayerMRI()
   for ( size_t i = 0; i < m_segActors.size(); i++ )
   {
     m_segActors[i].actor->Delete();
+  }
+  
+  for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
+  {
+    delete m_surfaceRegions[i];
   }
   
   for ( int i = 0; i < 3; i++ )
@@ -353,7 +360,7 @@ void LayerMRI::InitializeActors()
     //
     mColorMap[i] = vtkSmartPointer<vtkImageMapToColors>::New();
     mColorMap[i]->SetLookupTable( GetProperties()->GetGrayScaleTable() );
-    mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
+    mColorMap[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
     mColorMap[i]->SetOutputFormatToRGBA();
     mColorMap[i]->PassAlphaToOutputOn();
 
@@ -535,6 +542,8 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
    // for ( size_t i = 0; i < m_segActors.size(); i ++ )
 	 // renderer->AddViewProp( m_segActors[i].actor );
     renderer->AddViewProp( m_actorContour );
+    for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
+      m_surfaceRegions[i]->AppendActor( renderer );
 	}
 }
 
@@ -845,12 +854,19 @@ void LayerMRI::SetActiveFrame( int nFrame )
 
 bool LayerMRI::HasProp( vtkProp* prop )
 {
-  for ( int i = 0; i < 3; i++ )
+  if ( GetProperties()->GetShowAsContour() )
   {
-    if ( m_sliceActor3D[i] == prop )
-      return true;
+    return (m_actorContour == prop);
   }
-  return false;
+  else
+  {
+    for ( int i = 0; i < 3; i++ )
+    {
+      if ( m_sliceActor3D[i] == prop )
+        return true;
+    }
+    return false;
+  }
 }
 
 void LayerMRI::RASToOriginalIndex( const double* pos, int* n )
@@ -1529,9 +1545,9 @@ void LayerMRI::UpdateLabelOutline()
       mResample[i]->SetAxisMagnificationFactor( 2, IMAGE_RESAMPLE_FACTOR );
       mResample[i]->SetInterpolationModeToNearestNeighbor();
       double pos[3] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2, vsize[2]/IMAGE_RESAMPLE_FACTOR/2 };
-      mResample[i]->SetInput( mReslice[i]->GetOutput() );
-      mEdgeFilter[i]->SetInput( mResample[i]->GetOutput() );
-      mColorMap[i]->SetInput( mEdgeFilter[i]->GetOutput() );
+      mResample[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
+      mEdgeFilter[i]->SetInputConnection( mResample[i]->GetOutputPort() );
+      mColorMap[i]->SetInputConnection( mEdgeFilter[i]->GetOutputPort() );
       pos[i] = m_dSlicePosition[i];
       m_sliceActor2D[i]->SetPosition( pos[0], (i==0?-pos[1]:pos[1]), pos[2] );
       m_sliceActor3D[i]->SetPosition( pos[0], (i==0?-pos[1]:pos[1]), pos[2] );
@@ -1542,7 +1558,7 @@ void LayerMRI::UpdateLabelOutline()
     for ( int i = 0; i < 3; i++ )
     {
       double pos[3] = { 0, 0, 0};
-      mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
+      mColorMap[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
       pos[i] = m_dSlicePosition[i]; 
       m_sliceActor2D[i]->SetPosition( pos );
       m_sliceActor3D[i]->SetPosition( pos );
@@ -1569,15 +1585,15 @@ void LayerMRI::UpdateUpSampleMethod()
   {
     for ( int i = 0; i < 3; i++ )
     {
-      mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
+      mColorMap[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
     }
   }
   else
   {
     for ( int i = 0; i < 3; i++ )
     {
-      mResample[i]->SetInput( mReslice[i]->GetOutput() );
-      mColorMap[i]->SetInput( mResample[i]->GetOutput() );
+      mResample[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
+      mColorMap[i]->SetInputConnection( mResample[i]->GetOutputPort() );
       if ( !GetProperties()->GetShowLabelOutline() )
       {
         mResample[i]->SetAxisMagnificationFactor( 0, IMAGE_RESAMPLE_FACTOR/2 );
@@ -1730,3 +1746,22 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
   return true;
 }
 
+SurfaceRegion* LayerMRI::CreateNewSurfaceRegion( double* pt )
+{
+  SurfaceRegion* r = new SurfaceRegion();
+  r->SetInput( vtkPolyData::SafeDownCast( m_actorContour->GetMapper()->GetInput() ) );
+  r->AddPoint( pt );
+  m_surfaceRegions.push_back( r );
+  m_currentSurfaceRegion = r;
+  this->SendBroadcast( "SurfaceRegionAdded", this );
+  return r;
+}
+  
+void LayerMRI::AddSurfaceRegionLoopPoint( double* pt )
+{
+  if ( m_currentSurfaceRegion )
+  {
+    m_currentSurfaceRegion->AddPoint( pt );
+    this->SendBroadcast( "SurfaceRegionUpdated", this );
+  }
+}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/30 18:31:03 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -117,11 +117,11 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   
   m_filterLogic->SetInput1( m_filterThreshold->GetOutput() );
   m_filterLogic->SetInput2( m_imageMaskAdd );
-  m_filterMask->SetInput( m_filterLogic->GetOutput() );
+  m_filterMask->SetInputConnection( m_filterLogic->GetOutputPort() );
   m_filterMask->SetMaskInput( m_imageMaskRemove );
-  m_filterResample->SetInput( m_filterMask->GetOutput() );
-  m_filterEdge->SetInput( m_filterResample->GetOutput() );
-  m_colormap->SetInput( m_filterEdge->GetOutput() );
+  m_filterResample->SetInputConnection( m_filterMask->GetOutputPort() );
+  m_filterEdge->SetInputConnection( m_filterResample->GetOutputPort() );
+  m_colormap->SetInputConnection( m_filterEdge->GetOutputPort() );
   m_actorContour->SetInput( m_colormap->GetOutput() ); 
   
   SetSmooth( m_bSmooth );

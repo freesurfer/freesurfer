@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/23 18:31:10 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -85,6 +85,7 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
   m_vectorActor = vtkSmartPointer<vtkActor>::New();
   m_vectorActor->GetProperty()->SetColor( GetProperties()->GetVectorColor() );
   m_vectorActor->GetProperty()->SetPointSize( GetProperties()->GetVectorPointSize() );
+  m_vectorActor->PickableOff();
   
   m_vertexActor = vtkSmartPointer<vtkActor>::New();
   m_vertexActor->GetProperty()->SetRepresentationToPoints();
@@ -309,9 +310,9 @@ void LayerSurface::InitializeActors()
     // Mappers for the lines.
     //
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInput( cutter->GetOutput() );
+    mapper->SetInputConnection( cutter->GetOutputPort() );
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper2->SetInput( cutter->GetOutput() );
+    mapper2->SetInputConnection( cutter->GetOutputPort() );
     //
     // Actors in the scene, drawing the mapped lines.
     //
@@ -663,6 +664,18 @@ int LayerSurface::GetActiveVector()
 int LayerSurface::GetNumberOfVectorSets()
 {
   return ( m_surfaceSource ? m_surfaceSource->GetNumberOfVectorSets() : 0 );
+}
+
+void LayerSurface::GetVectorAtVertex( int nVertex, double* vec_out )
+{
+  if ( m_surfaceSource )
+    m_surfaceSource->GetVectorAtVertex( nVertex, vec_out );
+}
+
+void LayerSurface::GetNormalAtVertex( int nVertex, double* vec_out )
+{
+  if ( m_surfaceSource )
+    m_surfaceSource->GetNormalAtVertex( nVertex, vec_out );
 }
 
 void LayerSurface::GetCurvatureRange( double* range )

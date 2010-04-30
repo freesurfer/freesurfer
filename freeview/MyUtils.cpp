@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -657,19 +657,19 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   
   // dilate/erode is not used for now
   vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
-  dilate->SetInput(threshold->GetOutput());
+  dilate->SetInputConnection(threshold->GetOutputPort());
   dilate->SetKernelSize(nSwell, nSwell, nSwell);
   dilate->SetDilateValue(nValue);
   dilate->SetErodeValue(0);
   vtkSmartPointer<vtkImageDilateErode3D> erode = vtkSmartPointer<vtkImageDilateErode3D>::New();
-  erode->SetInput(dilate->GetOutput());
+  erode->SetInputConnection(dilate->GetOutputPort());
   erode->SetKernelSize(1, 1, 1);
   erode->SetDilateValue(0);
   erode->SetErodeValue(nValue);
   // end of dilate/erode
 
   vtkSmartPointer<vtkMarchingContourFilter> contour = vtkSmartPointer<vtkMarchingContourFilter>::New();
-  contour->SetInput(threshold->GetOutput());
+  contour->SetInputConnection(threshold->GetOutputPort());
   contour->SetValue(0, dTh1-0.00000001);
   contour->Update();
   vtkPolyData* polydata = contour->GetOutput();
@@ -686,14 +686,17 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   {
     vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
     smoother->SetInput(polydata);
-    smoother->SetNumberOfIterations(30);
+    smoother->SetNumberOfIterations( 20 );
+//    smoother->FeatureEdgeSmoothingOn();
+//    smoother->SetEdgeAngle( 90 );
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
-    normals->SetInput(smoother->GetOutput());
-    normals->SetFeatureAngle( 90 );
     vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
-    stripper->SetInput(normals->GetOutput());
+    normals->SetInputConnection( stripper->GetOutputPort() );
+//    normals->SetInput( polydata );
+    normals->SetFeatureAngle( 90 );
+    stripper->SetInputConnection( smoother->GetOutputPort() );
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
-    mapper->SetInput(stripper->GetOutput());
+    mapper->SetInputConnection(normals->GetOutputPort());
     mapper->ScalarVisibilityOn();
   }
 
@@ -734,7 +737,7 @@ bool MyUtils::BuildVolume( vtkImageData* data_in,
   cast->SetOutputScalarTypeToUnsignedShort();
 
 // qDebug() << volumeMapper->GetIntermixIntersectingGeometry();
-  volumeMapper->SetInput( cast->GetOutput() );
+  volumeMapper->SetInputConnection( cast->GetOutputPort() );
   volumeMapper->SetSampleDistance(0.25);
   volumeMapper->SetMaximumImageSampleDistance(5);
 // volumeMapper->SetCroppingRegionPlanes(0, dim[0]*2, 0, dim[1]*2, 0, dim[2]*2-16*2);
@@ -804,14 +807,14 @@ void MyUtils::GetLivewirePoints( vtkImageData* image_in,
   scale->SetInputConnection( grad->GetOutputPort() );
   scale->ReleaseDataFlagOff();
 
-  m_info->SetInput( scale->GetOutput() );
+  m_info->SetInputConnection( scale->GetOutputPort() );
   int n[3] = { 0, 0, 0 };
   n[m_nPlane] = -1*m_nSlice;
   m_info->SetExtentTranslation( n );
   m_info->Update();
 
   vtkImageData* m_imageSlice = scale->GetOutput();
-  m_path->SetInput( m_info->GetOutput() );
+  m_path->SetInputConnection( m_info->GetOutputPort() );
   // m_path->Update();
 
   double pt1[3], pt2[3];
@@ -857,97 +860,6 @@ void MyUtils::GetLivewirePoints( vtkImageData* image_in,
   }
 
 }
-
-/*
-void MyUtils::GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSlice_in,
-         int* pt1_in, int* pt2_in, vtkPoints* pts_out )
-{
- vtkSmartPointer<vtkImageClip> clip = vtkSmartPointer<vtkImageClip>::New();
- clip->SetInput( image_in );
- int ext[6] = { 0, 255, 0, 255, 0, 255 };
- image_in->GetExtent( ext );
- ext[nPlane_in*2] = ext[nPlane_in*2 + 1] = nSlice_in;
- clip->SetOutputWholeExtent( ext );
- clip->ClipDataOn();
- clip->ReleaseDataFlagOff();
- vtkSmartPointer<vtkImageLiveWire> lw = vtkSmartPointer<vtkImageLiveWire>::New();
- for ( int i = 0; i < 4; i++ )
- {
- // vtkSmartPointer<vtkImageLiveWireEdgeWeights> edge = vtkSmartPointer<vtkImageLiveWireEdgeWeights>::New();
- // edge->SetOriginalImage( clip->GetOutput() );
- // edge->SetEdgeDirection( i );
- // edge->Update();
-  vtkSmartPointer<vtkImageGradientMagnitude> edge = 
-  vtkSmartPointer<vtkImageGradientMagnitude>::New();
-  edge->SetDimensionality( 2 );
-  edge->HandleBoundariesOn();
-  edge->SetInputConnection( clip->GetOutputPort() );
-  edge->Update();
-  double* range = edge->GetOutput()->GetScalarRange();
-  cout << range[0] << "  " << range[1] << endl;
- // vtkSmartPointer<vtkImageLiveWireScale> scale = vtkSmartPointer<vtkImageLiveWireScale>::New();
- // scale->SetInput( edge->GetOutput() );
- // scale->Update();
-  vtkSmartPointer<vtkImageShiftScale> scale = vtkSmartPointer<vtkImageShiftScale>::New();
-  scale->SetShift( -1.0*range[1] );
-  scale->SetScale( 255.0 /( range[0] - range[1] ) );
-  scale->SetOutputScalarTypeToShort();
-  scale->SetInputConnection( edge->GetOutputPort() );
-  scale->ReleaseDataFlagOff();
-  scale->Update();
-
-  if ( i == 0 )
-  {
-   int* dim = clip->GetOutput()->GetDimensions();
-   FILE* fp = fopen( "/homes/5/rpwang/temp2/input.img", "wb" );
-   fwrite( clip->GetOutput()->GetScalarPointer(), clip->GetOutput()->GetScalarSize() * dim[0]*dim[1]*dim[2], 1, fp );
-   fclose( fp );
-   vtkSmartPointer<vtkImageGradientMagnitude> grad = 
-   vtkSmartPointer<vtkImageGradientMagnitude>::New();
-   grad->SetDimensionality( 2 );
-   grad->HandleBoundariesOn();
-   grad->SetInputConnection( clip->GetOutputPort() );
-   grad->Update();
-   fp = fopen( "/homes/5/rpwang/temp2/edge.img", "wb" );
-   fwrite( scale->GetOutput()->GetScalarPointer(), scale->GetOutput()->GetScalarSize() * dim[0]*dim[1]*dim[2], 1, fp );
-   fclose( fp );
-  }
-  lw->SetInput( i+1, scale->GetOutput() );
- }
- lw->SetOriginalImage( clip->GetOutput() );
- lw->SetVerbose( 1 );
-
- int x1, y1, x2, y2;
- switch ( nPlane_in )
- {
-  case 0:
-   x1 = pt1_in[1];
-   y1 = pt1_in[2];
-   x2 = pt2_in[1];
-   y2 = pt2_in[2];
-   break;
-  case 1:
-   x1 = pt1_in[0];
-   y1 = pt1_in[2];
-   x2 = pt2_in[0];
-   y2 = pt2_in[2];
-   break;
-  default:
-   x1 = pt1_in[0];
-   y1 = pt1_in[1];
-   x2 = pt2_in[0];
-   y2 = pt2_in[1];
-   break;
- }
- cout << x1 << " " << y1 << " ,  " << x2 << " " << y2 << ", " << nSlice_in << endl;
- lw->SetStartPoint( x1, y1 );
- lw->SetEndPoint( x2, y2 );
- lw->Update();
- pts_out->DeepCopy( lw->GetContourPixels() );
-
- cout << lw->GetContourPixels()->GetNumberOfPoints() << endl;
-}
-*/
 
 double MyUtils::RoundToGrid(double x)
 {

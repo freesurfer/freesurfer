@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/04/14 20:03:30 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -96,14 +96,14 @@ void LivewireTool::UpdateImageDataInfo( vtkImageData* image_in, int nPlane, int 
     scale->ReleaseDataFlagOff();
 
     vtkSmartPointer<vtkImageChangeInformation> info = vtkSmartPointer<vtkImageChangeInformation>::New();
-    info->SetInput( scale->GetOutput() );
+    info->SetInputConnection( scale->GetOutputPort() );
     int n[3] = { 0, 0, 0 };
     n[m_nPlane] = -1*m_nSlice;
     info->SetExtentTranslation( n );
     info->Update();
 
     m_imageSlice = scale->GetOutput();
-    m_path->SetInput( info->GetOutput() );
+    m_path->SetInputConnection( info->GetOutputPort() );
   }
 }
 

@@ -190,6 +190,8 @@ freeview_SOURCES=\
 	SurfaceOverlay.h \
 	SurfaceOverlayProperties.cpp \
 	SurfaceOverlayProperties.h \
+	SurfaceRegion.cpp \
+	SurfaceRegion.h \
 	ToolWindowEdit.cpp \
 	ToolWindowEdit.h \
 	ToolWindowMeasure.cpp \

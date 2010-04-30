@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:15 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -152,7 +152,7 @@ void LayerROI::InitializeActors()
     //
     mColorMap[i] = vtkSmartPointer<vtkImageMapToColors>::New();
     mColorMap[i]->SetLookupTable( GetProperties()->GetLookupTable() );
-    mColorMap[i]->SetInput( mReslice[i]->GetOutput() );
+    mColorMap[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
     mColorMap[i]->SetOutputFormatToRGBA();
     mColorMap[i]->PassAlphaToOutputOn();
 

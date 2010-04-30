@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/06 18:23:10 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -135,7 +135,7 @@ void Region2DPolyline::Update()
       spline->SetLength( 3*layer->GetMinimumVoxelSize() );
     }
     spline->Update();
-    mapper->SetInput( spline->GetOutput() );
+    mapper->SetInputConnection( spline->GetOutputPort() );
   }
     
   vtkSmartPointer<vtkCoordinate> coords = vtkSmartPointer<vtkCoordinate>::New();

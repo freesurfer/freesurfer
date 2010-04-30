@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -92,7 +92,7 @@ void Cursor3D::RebuildActor()
   tube->CappingOn();
 
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapper->SetInput( tube->GetOutput() );
+  mapper->SetInputConnection( tube->GetOutputPort() );
 
   m_actorCursor->SetMapper( mapper );
 }

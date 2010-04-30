@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/23 18:31:10 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -124,6 +124,10 @@ public:
   int GetActiveVector();
 
   void SetActiveVector( int nVector );
+  
+  void GetVectorAtVertex( int nVertex, double* vec_out );
+  
+  void GetNormalAtVertex( int nVertex, double* vec_out );
   
   bool HasCurvature();
   

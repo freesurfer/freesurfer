@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/26 17:30:57 $
- *    $Revision: 1.107 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -4511,6 +4511,7 @@ void MainWindow::LoadSurfaceVector()
   if ( dlg.ShowModal() == wxID_OK )
   {
     this->LoadSurfaceVectorFile( dlg.GetPath() );
+//    m_strLastDir = MyUtils::GetNormalizedFullPath( dlg.GetPath() );
   }
 }
 
@@ -4526,9 +4527,7 @@ void MainWindow::LoadSurfaceVectorFile( const wxString& filename )
     layer->SetVectorFileName( fn.char_str() );
 
     WorkerThread* thread = new WorkerThread( this );
-    thread->LoadSurfaceVector( layer );
-    
-    m_strLastDir = MyUtils::GetNormalizedPath( filename );
+    thread->LoadSurfaceVector( layer );   
   }
 }
 
@@ -4553,8 +4552,8 @@ void MainWindow::LoadSurfaceCurvatureFile( const wxString& filename )
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
   {
-    if ( layer->LoadCurvatureFromFile( fn.char_str() ) )
-      m_strLastDir = MyUtils::GetNormalizedPath( filename );
+    layer->LoadCurvatureFromFile( fn.char_str() );
+//    m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
 
@@ -4580,8 +4579,8 @@ void MainWindow::LoadSurfaceOverlayFile( const wxString& filename )
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
   {
-    if ( layer->LoadOverlayFromFile( fn.char_str() ) )
-       m_strLastDir = MyUtils::GetNormalizedPath( filename );
+    layer->LoadOverlayFromFile( fn.char_str() );
+//    m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
 
@@ -4607,8 +4606,8 @@ void MainWindow::LoadSurfaceAnnotationFile( const wxString& filename )
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
   {
-    if ( layer->LoadAnnotationFromFile( fn.char_str() ) )
-      m_strLastDir = MyUtils::GetNormalizedPath( filename );
+    layer->LoadAnnotationFromFile( fn.char_str() );
+//  m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
 
@@ -4633,8 +4632,8 @@ void MainWindow::LoadSurfaceLabelFile( const wxString& filename )
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
   {
-    if ( layer->LoadLabelFromFile( fn.char_str() ) )
-      m_strLastDir = MyUtils::GetNormalizedPath( filename );
+    layer->LoadLabelFromFile( fn.char_str() );
+    //m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
 

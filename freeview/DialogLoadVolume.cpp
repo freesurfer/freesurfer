@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/03 01:18:33 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/04/30 21:21:19 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -226,7 +226,7 @@ void DialogLoadVolume::OnChoiceLUT( wxCommandEvent& event )
 
 wxString DialogLoadVolume::GetColorMap()
 {
-  const char* names[] = { "grayscale", "heat", "jet", "lut" };
+  const char* names[] = { "grayscale", "lut", "heat", "jet", "gecolor", "nih" };
   return names[m_choiceColorMap->GetSelection()];
 }
 
