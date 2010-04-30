@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.86 2010/04/28 22:22:49 greve Exp $
+% $Id: fast_selxavg3.m,v 1.87 2010/04/30 22:04:08 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 22:22:49 $
-%    $Revision: 1.86 $
+%    $Date: 2010/04/30 22:04:08 $
+%    $Revision: 1.87 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 %
 
 
-fprintf('$Id: fast_selxavg3.m,v 1.86 2010/04/28 22:22:49 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.87 2010/04/30 22:04:08 greve Exp $\n');
 dof2 = 0; % in case there are no contrasts
 
 if(DoSynth)
@@ -54,7 +54,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.86 2010/04/28 22:22:49 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.87 2010/04/30 22:04:08 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -383,7 +383,9 @@ if(DoGLMFit)
   % Compute raw sfnr
   rawbeta = rawbeta/nruns;
   rawrvar = rawrvar/nruns;
+  indtmp = find(rawrvar == 0);
   rawsfnr = rawbeta(1,:)./sqrt(rawrvar);
+  rawsfnr(indtmp) = 0;
   tmpmri = mri;
   tmpmri.vol = fast_mat2vol(rawsfnr,mri.volsize);
   fname = sprintf('%s/raw.fsnr.%s',outanadir,ext);
