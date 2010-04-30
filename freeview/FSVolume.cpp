@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/16 20:42:41 $
- *    $Revision: 1.44 $
+ *    $Date: 2010/04/30 18:28:30 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -830,7 +830,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
   dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) * refTarget->xsize / pixelSize[0] + 0.5 );
   dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) * refTarget->ysize / pixelSize[1] + 0.5 );
   dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) * refTarget->zsize / pixelSize[2] + 0.5 );
-  
+//  cout << "dim: " << dim[0] << " " << dim[1] << " " << dim[2] << endl;
 //  cout << "indexBounds: " << indexBounds[0] << " " << indexBounds[2] << " " << indexBounds[4] << endl;
   
   MRI* mri;
@@ -846,9 +846,9 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel )
   MRIsetResolution( mri, pixelSize[0], pixelSize[1], pixelSize[2] );
   Real p0[3];
   ::MRIvoxelToWorld( refTarget, 
-                     indexBounds[0]+0.5, 
-                     indexBounds[2]+0.5, 
-                     indexBounds[4]+0.5,
+                     indexBounds[0]+0.5*pixelSize[0]/refTarget->xsize, 
+                     indexBounds[2]+0.5*pixelSize[1]/refTarget->ysize, 
+                     indexBounds[4]+0.5*pixelSize[2]/refTarget->zsize,
                      &p0[0], &p0[1], &p0[2] );
   MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
 
@@ -1144,6 +1144,7 @@ bool FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
   }
   else if ( m_volumeRef )
   {
+    /*
     Real ras[3], cindex[3];       
    
     ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
@@ -1161,6 +1162,13 @@ bool FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
     origin[0] += cindex[0] * m_volumeRef->m_MRITarget->xsize;
     origin[1] += cindex[1] * m_volumeRef->m_MRITarget->ysize;
     origin[2] += cindex[2] * m_volumeRef->m_MRITarget->zsize;
+    */
+    Real ras[3], ras2[3];
+    ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
+    ::MRIvoxelToWorld( m_volumeRef->m_MRITarget, 0., 0., 0., &ras2[0], &ras2[1], &ras2[2] );
+    m_volumeRef->GetImageOutput()->GetOrigin( origin );
+    for ( int i = 0; i < 3; i++ )
+      origin[i] += ( ras[i] - ras2[i] );
   }
 
 //  cout << "origin: " << origin[0] << "  " << origin[1] << "  " << origin[2] << endl; fflush(0);
@@ -1169,7 +1177,7 @@ bool FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
     imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize );
     imageData->SetOrigin( origin[0], origin[1], origin[2] );
   }
-
+  
   imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
   imageData->SetNumberOfScalarComponents( zFrames );
 
