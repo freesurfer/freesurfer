@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/05/03 19:40:29 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -268,6 +268,9 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
   LayerCollection* lc_roi = MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" );
   LayerCollection* lc_surface = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
 
+  if ( lc_mri->IsEmpty() && lc_roi->IsEmpty() && lc_surface->IsEmpty() )
+    return;
+  
 // MousePositionToRAS( posX, posY, pos );
 // vtkPointPicker* picker = vtkPointPicker::SafeDownCast( this->GetPicker() );
   vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetPicker() );
