@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/21 06:51:32 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/05/03 21:37:02 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -90,9 +90,10 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
 		  int InterpCode, float param, MRI *vsm);
 int MRIvol2VolTkRegVSM(MRI *mov, MRI *targ, MATRIX *Rtkreg,
 		       int InterpCode, float param, MRI *vsm);
-MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf, 
-		 MRI *vsm, int InterpMethod, MRI *SrcHitVol, 
-		    float ProjFrac, int ProjType, int nskip);
+MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
+                    MRI *vsm, int InterpMethod, MRI *SrcHitVol,
+                    float ProjFrac, int ProjType, int nskip, 
+		    MRI *TrgVol);
 MRI *MRIsegBoundary(MRI *seg);
 MRI *MRIsliceNo(MRI *in, MRI *out);
 MRI *MRIindexNo(MRI *in, MRI *out);

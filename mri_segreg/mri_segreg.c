@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/05/03 20:51:36 $
- *    $Revision: 1.93 $
+ *    $Author: greve $
+ *    $Date: 2010/05/03 21:35:52 $
+ *    $Revision: 1.94 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.93 2010/05/03 20:51:36 fischl Exp $";
+"$Id: mri_segreg.c,v 1.94 2010/05/03 21:35:52 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -361,13 +361,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.93 2010/05/03 20:51:36 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.94 2010/05/03 21:35:52 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.93 2010/05/03 20:51:36 fischl Exp $",
+     "$Id: mri_segreg.c,v 1.94 2010/05/03 21:35:52 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -2015,6 +2015,7 @@ double VertexCost(double vctx, double vwm, double slope,
 double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
 		     double *p, int dof, double *costs)
 {
+  static MRI *vlhwm=NULL, *vlhctx=NULL, *vrhwm=NULL, *vrhctx=NULL;
   extern MRI *lhcost, *rhcost;
   extern MRI *lhcon, *rhcon;
   extern char *lhcostfile, *rhcostfile;
@@ -2029,7 +2030,6 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern int interpcode;
   double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean;
   MATRIX *Mrot=NULL, *Mtrans=NULL, *Mscale=NULL, *Mshear=NULL;
-  MRI *vlhwm = NULL, *vlhctx = NULL, *vrhwm = NULL, *vrhctx = NULL;
   int nhits,n;
   //FILE *fp;
 
@@ -2078,14 +2078,14 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //printf("Scale: %g %g %g\n",p[6],p[7],p[8]);
 
   if(UseLH){
-    vlhwm  = MRIvol2surfVSM(mov,R,lhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp);
-    vlhctx = MRIvol2surfVSM(mov,R,lhctx, vsm, interpcode, NULL, 0, 0, nsubsamp);
+    vlhwm  = MRIvol2surfVSM(mov,R,lhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp, vlhwm);
+    vlhctx = MRIvol2surfVSM(mov,R,lhctx, vsm, interpcode, NULL, 0, 0, nsubsamp, vlhctx);
     if(lhcost == NULL) lhcost = MRIclone(vlhctx,NULL);
     if(lhcon == NULL)  lhcon  = MRIclone(vlhctx,NULL);
   }
   if(UseRH){
-    vrhwm  = MRIvol2surfVSM(mov,R,rhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp);
-    vrhctx = MRIvol2surfVSM(mov,R,rhctx, vsm, interpcode, NULL, 0, 0, nsubsamp);
+    vrhwm  = MRIvol2surfVSM(mov,R,rhwm,  vsm, interpcode, NULL, 0, 0, nsubsamp, vrhwm);
+    vrhctx = MRIvol2surfVSM(mov,R,rhctx, vsm, interpcode, NULL, 0, 0, nsubsamp, vrhctx);
     if(rhcost == NULL) rhcost = MRIclone(vrhctx,NULL);
     if(rhcon == NULL)  rhcon  = MRIclone(vrhctx,NULL);
   }
@@ -2179,8 +2179,8 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   MatrixFree(&Mshear);
 
   if(UseLH){
-    MRIfree(&vlhwm);
-    MRIfree(&vlhctx);
+    //MRIfree(&vlhwm);
+    //MRIfree(&vlhctx);
     if(lhcost0file){
       printf("Writing lh init cost to %s\n",lhcost0file);
       MRIwrite(lhcost,lhcost0file);
@@ -2196,8 +2196,8 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   }
 
   if(UseRH){
-    MRIfree(&vrhwm);
-    MRIfree(&vrhctx);
+    //MRIfree(&vrhwm);
+    //MRIfree(&vrhctx);
     if(rhcost0file){
       printf("Writing rh init cost to %s\n",rhcost0file);
       MRIwrite(rhcost,rhcost0file);

@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/21 06:51:32 $
- *    $Revision: 1.59 $
+ *    $Date: 2010/05/03 21:37:03 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2916,10 +2916,10 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
 /*---------------------------------------------------------------*/
 MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
                     MRI *vsm, int InterpMethod, MRI *SrcHitVol,
-                    float ProjFrac, int ProjType, int nskip)
+                    float ProjFrac, int ProjType, int nskip, 
+		    MRI *TrgVol)
 {
   MATRIX *ras2vox, *vox2ras, *Scrs, *Txyz;
-  MRI *TrgVol;
   int   irow, icol, islc; /* integer row, col, slc in source */
   float frow, fcol, fslc; /* float row, col, slc in source */
   float srcval, *valvect, rshift;
@@ -2927,12 +2927,10 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   double rval;
   float Tx, Ty, Tz;
 
-  if (vsm)
-  {
+  if (vsm)  {
     err = MRIdimMismatch(vsm,SrcVol,0);
-    if (err)
-    {
-      printf("ERROR: MRIvol2surf: vsm dimension mismatch %d\n",err);
+    if (err)    {
+      printf("ERROR: MRIvol2surfVSM: vsm dimension mismatch %d\n",err);
       exit(1);
     }
   }
@@ -2949,16 +2947,22 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   Txyz->rptr[3+1][0+1] = 1.0;
 
   /* allocate a "volume" to hold the output */
-  TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
-  if (TrgVol == NULL) return(NULL);
-  MRIcopyHeader(SrcVol,TrgVol);
+  if(TrgVol == NULL){
+    TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
+    if(TrgVol == NULL) return(NULL);
+    MRIcopyHeader(SrcVol,TrgVol);
+  } else {
+    if(TrgVol->width != TrgSurf->nvertices || TrgVol->nframes != SrcVol->nframes){
+      printf("ERROR: MRIvol2surfVSM: dimension mismatch (%d,%d), or (%d,%d)\n",
+	     TrgVol->width,TrgSurf->nvertices,TrgVol->nframes,SrcVol->nframes);
+      return(NULL);
+    }
+  }
 
   /* Zero the source hit volume */
   if (SrcHitVol != NULL)
-  {
     MRIconst(SrcHitVol->width,SrcHitVol->height,SrcHitVol->depth,
              1,0,SrcHitVol);
-  }
 
   srcval = 0;
   valvect = (float *) calloc(sizeof(float),SrcVol->nframes);

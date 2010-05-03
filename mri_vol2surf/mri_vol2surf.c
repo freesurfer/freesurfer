@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/06 17:43:10 $
- *    $Revision: 1.58 $
+ *    $Date: 2010/05/03 21:37:03 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.58 2010/04/06 17:43:10 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.59 2010/05/03 21:37:03 greve Exp $";
 
 char *Progname = NULL;
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.58 2010/04/06 17:43:10 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.59 2010/05/03 21:37:03 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -488,7 +488,7 @@ int main(int argc, char **argv) {
         printf("using new\n");
         SurfValsP = 
           MRIvol2surfVSM(SrcVol, Dsrc, Surf, vsm, interpmethod, SrcHitVol, 
-                         ProjFrac, ProjDistFlag,1);
+                         ProjFrac, ProjDistFlag,1,NULL);
       }
       fflush(stdout);
       if (SurfValsP == NULL) {
