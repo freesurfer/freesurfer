@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/26 21:44:21 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/05/03 16:57:06 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,8 +31,8 @@
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
 // Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2007/04/26 21:44:21 $
-// Revision       : $Revision: 1.32 $
+// Revision Date  : $Date: 2010/05/03 16:57:06 $
+// Revision       : $Revision: 1.33 $
 //
 //
 // How it works.
@@ -74,7 +74,7 @@
 //
 
 
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.32 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.33 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +98,7 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.32 $";
 #include "mrisurf.h"
 
 static char vcid[] =
-  "$Id: mri_tessellate.c,v 1.32 2007/04/26 21:44:21 fischl Exp $";
+  "$Id: mri_tessellate.c,v 1.33 2010/05/03 16:57:06 fischl Exp $";
 
 #define SQR(x) ((x)*(x))
 
@@ -164,13 +164,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_tessellate.c,v 1.32 2007/04/26 21:44:21 fischl Exp $",
+   "$Id: mri_tessellate.c,v 1.33 2010/05/03 16:57:06 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_tessellate.c,v 1.32 2007/04/26 21:44:21 fischl Exp $",
+           "$Id: mri_tessellate.c,v 1.33 2010/05/03 16:57:06 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -186,15 +186,35 @@ main(int argc, char *argv[]) {
     argv += nargs ;
   }
   // we removed the option
-  if (argc<4) {
+  if (argc<3) {
     printf
     ("Usage: %s <option> <input volume> <label-value> <output surface>\n",
      Progname);
     exit(1);
   }
-  sscanf(argv[2],"%d",&value);  // this assumes that argv[2]
-  // can be changed to int
-  sprintf(ofpref,"%s",argv[3]); // this assumes argv[3] is the file
+  if (argc == 3)   // value not specified on cmdline - figure it out from hemi in output surf
+  {
+    char *cp, fname[STRLEN]  ;
+    
+    sprintf(ofpref,"%s",argv[2]);
+    FileNameOnly(ofpref, fname) ;
+    cp = strstr(fname, "h.") ;
+    if (cp == NULL)
+      ErrorExit(ERROR_UNSUPPORTED, "%s: if no fillval is specified, then output hemi must be", Progname) ;
+    if (*(cp-1) == 'r')
+      value = MRI_RIGHT_HEMISPHERE ;
+    else if (*(cp-1) == 'l')
+      value = MRI_LEFT_HEMISPHERE ;
+    else
+      ErrorExit(ERROR_UNSUPPORTED, "%s: if no fillval is specified, then output hemi must be", Progname) ;
+    printf("input fill value assumed to be %d based on output name\n", value) ;
+  }
+  else  // fill value specified explicitly
+  {
+    sscanf(argv[2],"%d",&value);  // this assumes that argv[2]
+    // can be changed to int
+    sprintf(ofpref,"%s",argv[3]); // this assumes argv[3] is the file
+  }
 
   // passing dir/COR-
   mri = read_images(argv[1]);
