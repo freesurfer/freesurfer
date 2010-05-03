@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/05/03 19:13:29 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -325,11 +325,31 @@ bool FSSurface::LoadOverlay( const char* filename )
 
 bool FSSurface::LoadVectors( const char* filename )
 {
-  if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename ) == 0 )
+  char* ch = strdup( filename );
+  MRI* mri = ::MRIread( ch );  
+  free( ch );
+    
+  VertexVectorItem vector;
+  std::string fn = filename;
+  vector.name = fn.substr( fn.find_last_of("/\\")+1);
+  if ( mri )
   {
-    VertexVectorItem vector;
-    std::string fn = filename;
-    vector.name = fn.substr( fn.find_last_of("/\\")+1);
+    if ( mri->type != MRI_FLOAT )
+    {
+      cerr << "Vector volume must be in type of MRI_FLOAT." << endl;
+    }
+    else if ( SaveVertices( mri, vector.data ) )
+    {
+      m_vertexVectors.push_back( vector );
+      m_nActiveVector = m_vertexVectors.size() - 1;
+      UpdateVectors();
+      ::MRIfree( &mri );
+      cout << "vector data loaded for surface from " << filename << endl;
+      return true;
+    }
+  }
+  else if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename ) == 0 )
+  {
     if ( SaveVertices( m_MRIS, vector.data ) )
     {
       m_vertexVectors.push_back( vector );
@@ -345,6 +365,8 @@ bool FSSurface::LoadVectors( const char* filename )
     }
   }
 
+  if ( mri )
+    ::MRIfree( &mri );
   return false;
 }
 
@@ -376,6 +398,29 @@ bool FSSurface::SaveVertices( MRIS* mris, VertexItem*& buffer )
     buffer[vno].x = v->x;
     buffer[vno].y = v->y;
     buffer[vno].z = v->z;
+  }
+  return true;
+}
+
+
+bool FSSurface::SaveVertices( MRI* mri, VertexItem*& buffer )
+{
+  int nvertices = mri->width;
+
+  if ( buffer == NULL )
+  {
+    buffer = new VertexItem[nvertices];
+    if ( !buffer )
+    {
+      cerr << "Can not allocate memory for vertex sets." << endl;
+      return false;
+    }
+  }
+  for ( int vno = 0; vno < nvertices; vno++ )
+  {
+    buffer[vno].x = MRIFseq_vox( mri, vno, 0, 0, 0 );
+    buffer[vno].y = MRIFseq_vox( mri, vno, 0, 0, 1 );
+    buffer[vno].z = MRIFseq_vox( mri, vno, 0, 0, 2 );
   }
   return true;
 }
@@ -581,21 +626,24 @@ void FSSurface::UpdateVectors()
     vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
     for ( int vno = 0; vno < cVertices; vno++ )
     {
-      surfaceRAS[0] = vectors[vno].x;
-      surfaceRAS[1] = vectors[vno].y;
-      surfaceRAS[2] = vectors[vno].z;
-      this->ConvertSurfaceToRAS( surfaceRAS, point );
-      if ( m_volumeRef )
-        m_volumeRef->RASToTarget( point, point );
-
-      points->InsertNextPoint( oldPoints->GetPoint( vno ) );
-      points->InsertNextPoint( point );
-
-      verts->InsertNextCell( 1, &n );
-
-      lines->InsertNextCell( 2 );
-      lines->InsertCellPoint( n++ );
-      lines->InsertCellPoint( n++ );
+      if ( vectors[vno].x != 0 || vectors[vno].y != 0 || vectors[vno].z != 0 )
+      {
+        surfaceRAS[0] = m_fVertexSets[m_nActiveSurface][vno].x + vectors[vno].x;
+        surfaceRAS[1] = m_fVertexSets[m_nActiveSurface][vno].y + vectors[vno].y;
+        surfaceRAS[2] = m_fVertexSets[m_nActiveSurface][vno].z + vectors[vno].z;
+        this->ConvertSurfaceToRAS( surfaceRAS, point );
+        if ( m_volumeRef )
+          m_volumeRef->RASToTarget( point, point );
+  
+        points->InsertNextPoint( oldPoints->GetPoint( vno ) );
+        points->InsertNextPoint( point );
+  
+        verts->InsertNextCell( 1, &n );
+  
+        lines->InsertNextCell( 2 );
+        lines->InsertCellPoint( n++ );
+        lines->InsertCellPoint( n++ );
+      }
     }
     m_polydataVector->SetPoints( points );
     m_polydataVector->SetLines( lines );
@@ -610,6 +658,7 @@ void FSSurface::GetVectorAtVertex( int nVertex, double* vec_out, int nVector )
     nv = m_nActiveVector;
   
   VertexItem* vectors = m_vertexVectors[nv].data;
+  /*
   double p1[3], p2[3];
   p1[0] = m_MRIS->vertices[nVertex].x;
   p1[1] = m_MRIS->vertices[nVertex].y;
@@ -618,6 +667,10 @@ void FSSurface::GetVectorAtVertex( int nVertex, double* vec_out, int nVector )
   p2[1] = vectors[nVertex].y;
   p2[2] = vectors[nVertex].z;
   MyUtils::GetVector( p1, p2, vec_out );
+  */
+  vec_out[0] = vectors[nVertex].x;
+  vec_out[1] = vectors[nVertex].y;
+  vec_out[2] = vectors[nVertex].z;
 }
 
 bool FSSurface::SetActiveSurface( int nIndex )

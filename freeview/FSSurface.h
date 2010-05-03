@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/05/03 19:13:29 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,6 +38,7 @@
 extern "C"
 {
 #include "mrisurf.h"
+#include "mri.h"
 }
 
 #define NUM_OF_VSETS 5
@@ -216,6 +217,7 @@ protected:
   };
 
   bool SaveVertices( MRIS* mris, VertexItem*& pVertex );
+  bool SaveVertices( MRI* mri,   VertexItem*& pVertex );
 
   VertexItem*  m_fVertexSets[NUM_OF_VSETS];
   VertexItem*  m_fNormalSets[NUM_OF_VSETS];
