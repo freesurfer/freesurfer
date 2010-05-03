@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/05/03 17:16:40 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -658,7 +658,7 @@ void LayerSurface::SetActiveVector( int nVector )
 
 int LayerSurface::GetActiveVector()
 {
-  return ( m_surfaceSource ? m_surfaceSource->GetActiveSurface() : -1 );
+  return ( m_surfaceSource ? m_surfaceSource->GetActiveVector() : -1 );
 }
 
 int LayerSurface::GetNumberOfVectorSets()
