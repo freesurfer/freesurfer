@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/04/29 21:21:51 $
- *    $Revision: 1.92 $
+ *    $Author: fischl $
+ *    $Date: 2010/05/03 20:51:36 $
+ *    $Revision: 1.93 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -41,6 +41,9 @@
 
   --o out : save final output
 
+  --label labelfile : limit calculation to specified label
+
+  --brute_trans min max delta : brute force translation in all directions
   --brute min max delta : brute force in all directions
   --1dpreopt min max delta : brute force in PE direction
 
@@ -174,6 +177,7 @@
 #include "numerics.h"
 #include "annotation.h"
 #include "transform.h"
+#include "label.h"
 
 #ifdef X
 #undef X
@@ -212,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.92 2010/04/29 21:21:51 greve Exp $";
+"$Id: mri_segreg.c,v 1.93 2010/05/03 20:51:36 fischl Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -267,9 +271,13 @@ double axlist[NMAX],aylist[NMAX],azlist[NMAX];
 
 MRIS *lhwm, *rhwm, *lhctx, *rhctx;
 MRI *lhsegmask, *rhsegmask;
+MRI *lhlabel, *rhlabel;
 int UseMask = 0;
 char *cmdline2;
 struct utsname uts;
+
+static int UseLabel = 0 ;
+static LABEL *mask_label = NULL ;
 
 int PenaltySign  = -1;
 double PenaltySlope = .5;
@@ -278,6 +286,7 @@ int DoMidFrame = 0;
 
 int Do1DPreOpt = 0;
 double PreOptMin, PreOptMax, PreOptDelta, PreOpt, PreOptAtMin;
+double PreOptMinTrans, PreOptMaxTrans, PreOptDeltaTrans=-1 ;
 int PreOptDim = 2;
 char *PreOptFile = NULL;
 int PreOptOnly = 0;
@@ -352,13 +361,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.92 2010/04/29 21:21:51 greve Exp $",
+     "$Id: mri_segreg.c,v 1.93 2010/05/03 20:51:36 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.92 2010/04/29 21:21:51 greve Exp $",
+     "$Id: mri_segreg.c,v 1.93 2010/05/03 20:51:36 fischl Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -637,48 +646,56 @@ int main(int argc, char **argv) {
     PreOptAtMin = 0;
     TimerStart(&mytimer) ;
     nth = 0;
+    if (PreOptDeltaTrans < 0)  // no separate range specified for translations
+    {
+      PreOptMinTrans = PreOptMin ; PreOptMaxTrans = PreOptMax ; PreOptDeltaTrans = PreOptDelta ;
+    }
+    if (UseLH && mask_label)
+      LabelRipRestOfSurface(mask_label, lhwm) ;
+    else if (UseRH && mask_label)
+      LabelRipRestOfSurface(mask_label, rhwm) ;
     if(PreOptFile) fpPreOpt = fopen(PreOptFile,"w");
-    for(tx = PreOptMin; tx <= PreOptMax; tx += PreOptDelta){
-      for(ty = PreOptMin; ty <= PreOptMax; ty += PreOptDelta){
-	for(tz = PreOptMin; tz <= PreOptMax; tz += PreOptDelta){
-	  for(ax = PreOptMin; ax <= PreOptMax; ax += PreOptDelta){
-	    for(ay = PreOptMin; ay <= PreOptMax; ay += PreOptDelta){
-	      for(az = PreOptMin; az <= PreOptMax; az += PreOptDelta){
-		p[0] = tx;
-		p[1] = ty;
-		p[2] = tz;
-		p[3] = ax;
-		p[4] = ay;
-		p[5] = az;
-		GetSurfCosts(mov, NULL, R0, R, p, dof, costs);
-		if(costs[7] < mincost) {
-		  mincost = costs[7];
-		  for(n=0; n < 6; n++) pmin[n] = p[n];
-		  secCostTime = TimerStop(&mytimer)/1000.0 ;
-		  printf("%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
-			 nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
-		  fprintf(fp,"%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
-			  nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
-		  fflush(stdout); fflush(fp);
-
-		} else {
-		  if(nth == 0 || nth%1000 == 0){
-		    secCostTime = TimerStop(&mytimer)/1000.0 ;
-		    printf("%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
-			   nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
-		    fprintf(fp,"%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
-			    nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
-		    fflush(stdout); fflush(fp);
-		  }
-		}
-		if(PreOptFile) 
-		  fprintf(fpPreOpt,"%8.8lf %8.8lf %8.8lf %8.8lf %8.8lf %8.8lf    %8.8lf\n",
-			  tx,ty,tz,ax,ay,az,costs[7]);
-		nth ++;
-	      }
-	    }
-	  }
-	}
+    for(tx = PreOptMinTrans; tx <= PreOptMaxTrans; tx += PreOptDeltaTrans){
+      for(ty = PreOptMinTrans; ty <= PreOptMaxTrans; ty += PreOptDeltaTrans){
+        for(tz = PreOptMinTrans; tz <= PreOptMaxTrans; tz += PreOptDeltaTrans){
+          for(ax = PreOptMin; ax <= PreOptMax; ax += PreOptDelta){
+            for(ay = PreOptMin; ay <= PreOptMax; ay += PreOptDelta){
+              for(az = PreOptMin; az <= PreOptMax; az += PreOptDelta){
+                p[0] = tx;
+                p[1] = ty;
+                p[2] = tz;
+                p[3] = ax;
+                p[4] = ay;
+                p[5] = az;
+                GetSurfCosts(mov, NULL, R0, R, p, dof, costs);
+                if(costs[7] < mincost) {
+                  mincost = costs[7];
+                  for(n=0; n < 6; n++) pmin[n] = p[n];
+                  secCostTime = TimerStop(&mytimer)/1000.0 ;
+                  printf("%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
+                         nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
+                  fprintf(fp,"%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
+                          nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
+                  fflush(stdout); fflush(fp);
+                  
+                } else {
+                  if(nth == 0 || nth%1000 == 0){
+                    secCostTime = TimerStop(&mytimer)/1000.0 ;
+                    printf("%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
+                           nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
+                    fprintf(fp,"%6d %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf %8.4lf    %8.4lf %8.4lf %4.1f\n",
+                            nth,tx,ty,tz,ax,ay,az,costs[7],mincost,secCostTime/60);
+                    fflush(stdout); fflush(fp);
+                  }
+                }
+                if(PreOptFile) 
+                  fprintf(fpPreOpt,"%8.8lf %8.8lf %8.8lf %8.8lf %8.8lf %8.8lf    %8.8lf\n",
+                          tx,ty,tz,ax,ay,az,costs[7]);
+                nth ++;
+              }
+            }
+          }
+        }
       }
     }
     // Assign min found above to p vector
@@ -992,6 +1009,14 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
     else if (!strcasecmp(option, "--abs"))       DoAbs = 1;
     else if (!strcasecmp(option, "--no-abs"))    DoAbs = 0;
+    else if (!strcasecmp(option, "--brute_trans")){
+      if (nargc < 3) argnerr(option,3);
+      nargsused = 3;
+      sscanf(pargv[0],"%lf",&PreOptMinTrans);
+      sscanf(pargv[1],"%lf",&PreOptMaxTrans);
+      sscanf(pargv[2],"%lf",&PreOptDeltaTrans);
+      BruteForce = 1;
+    }
     else if (!strcasecmp(option, "--brute")){
       if (nargc < 3) argnerr(option,3);
       nargsused = 3;
@@ -1031,6 +1056,17 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--mid-frame")) DoMidFrame = 1;
     else if (!strcasecmp(option, "--no-mask")) UseMask = 0;
     else if (!strcasecmp(option, "--mask"))    UseMask = 1;
+    else if (!strcasecmp(option, "--sd")) {
+      SUBJECTS_DIR = pargv[0] ;
+      nargsused = 1;
+      printf("using %s as SUBJECTS_DIR\n", SUBJECTS_DIR) ;
+    }
+    else if (!strcasecmp(option, "--label")) {
+      mask_label = LabelRead(NULL, pargv[0]) ;
+      if (mask_label == NULL)
+        ErrorExit(ERROR_NOFILE, "%s: could not read label %s", Progname, pargv[0]) ;
+      nargsused = 1;
+    }
     else if (!strcasecmp(option, "--lh-only")){ UseLH = 1; UseRH = 0;}
     else if (!strcasecmp(option, "--rh-only")){ UseLH = 0; UseRH = 1;}
     else if (istringnmatch(option, "--surf",0)) {
@@ -1452,6 +1488,7 @@ printf("  --sum sumfile : default is outreg.sum\n");
 printf("    --cur-reg curregfile : reg at current optimum\n");
 printf("  --o out : save final output\n");
 printf("\n");
+printf("  --brute_trans min max delta : brute force translation in all directions\n");
 printf("  --brute min max delta : brute force in all directions\n");
 printf("  --1dpreopt min max delta : brute force in PE direction\n");
 printf("\n");
@@ -1472,6 +1509,8 @@ printf("  --wm-gt-gm slope : set cost slope, spec WM brighter than gray matter\n
 printf("  --penalty-abs : remove sign from contrast\n");
 printf("  --c0 offset : cost offset (pct)\n");
 printf("  --cf cfile  : save cost function values (pct,cost)\n");
+printf("\n");
+printf("  --label <label file> : only use the portion of the surface in the label (only for --?h-only\n");
 printf("\n");
 printf("  --mask : mask out expected B0 regions\n");
 printf("  --no-mask : do not mask out (default)\n");
@@ -1532,10 +1571,13 @@ static void print_help(void) {
 /* --------------------------------------------- */
 static void check_options(void) 
 {
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
-  if (SUBJECTS_DIR==NULL) {
-    printf("ERROR: SUBJECTS_DIR undefined.\n");
-    exit(1);
+  if (SUBJECTS_DIR == NULL)
+  {
+    SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+    if (SUBJECTS_DIR==NULL) {
+      printf("ERROR: SUBJECTS_DIR undefined.\n");
+      exit(1);
+    }
   }
 
   if (movvolfile == NULL) {
@@ -1785,13 +1827,13 @@ int MRISbbrSurfs(char *subject)
   extern int DoGMProjAbs;
   extern double GMProjAbs;
 
-  char *SUBJECTS_DIR;
+  //  char *SUBJECTS_DIR;
   char tmpstr[2000];
   int c,n,v;
   float  fx, fy, fz;
   int annot,B0Annots[10], nB0Annots=10;
 
-  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
+  //  SUBJECTS_DIR = getenv("SUBJECTS_DIR");
 
   if(UseLH){
     printf("Projecting LH Surfs\n");
@@ -1829,6 +1871,33 @@ int MRISbbrSurfs(char *subject)
       lhctx->vertices[n].y = fy;
       lhctx->vertices[n].z = fz;
     }
+    if (UseLabel)
+    {
+      int         vno ;
+      MRI_SURFACE *mris ;
+      VERTEX      *v ;
+      MRI         *mri ;
+
+      if (UseRH)
+      {
+        mris = rhwm ;
+        mri = rhlabel = MRIalloc(rhwm->nvertices,1,1,MRI_INT);
+      }
+      else
+      {
+        mris = lhwm ;
+        mri = rhlabel = MRIalloc(rhwm->nvertices,1,1,MRI_INT);
+      }
+      
+      MRISclearMarks(mris) ;
+      LabelMark(mask_label, mris) ;
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        MRIsetVoxVal(mri,n,0,0,0, v->marked);
+      }
+    }
+
     if(UseMask){
       sprintf(tmpstr,"%s/%s/label/lh.aparc.annot",SUBJECTS_DIR,subject);
       printf("Reading %s\n",tmpstr);
@@ -1846,15 +1915,15 @@ int MRISbbrSurfs(char *subject)
       B0Annots[9] = CTABentryNameToAnnotation("corpuscallosum",lhwm->ct);
       lhsegmask = MRIalloc(lhwm->nvertices,1,1,MRI_INT);
       for(n = 0; n < lhwm->nvertices; n++){
-	annot = lhwm->vertices[n].annotation;
-	v = 1;
-	for(c=0; c < nB0Annots; c++){
-	  if(annot == B0Annots[c]){
-	    v = 0; 
-	    break;
-	  }
-	}
-	MRIsetVoxVal(lhsegmask,n,0,0,0, v);
+        annot = lhwm->vertices[n].annotation;
+        v = 1;
+        for(c=0; c < nB0Annots; c++){
+          if(annot == B0Annots[c]){
+            v = 0; 
+            break;
+          }
+        }
+        MRIsetVoxVal(lhsegmask,n,0,0,0, v);
       }
       //MRIwrite(lhsegmask,"lh.segmask.mgh");
     }
@@ -1960,7 +2029,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern int interpcode;
   double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean;
   MATRIX *Mrot=NULL, *Mtrans=NULL, *Mscale=NULL, *Mshear=NULL;
-  MRI *vlhwm, *vlhctx, *vrhwm, *vrhctx;
+  MRI *vlhwm = NULL, *vlhctx = NULL, *vrhwm = NULL, *vrhctx = NULL;
   int nhits,n;
   //FILE *fp;
 
@@ -2032,10 +2101,13 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //fp = fopen("tmp.dat","w");
   if(UseLH){
     for(n = 0; n < lhwm->nvertices; n += nsubsamp){
+      if (lhwm->vertices[n].ripflag != 0)
+        continue ;
       if(lhcostfile || lhcost0file) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
       if(lhconfile)  MRIsetVoxVal(lhcon,n,0,0,0,0.0);
       if(lhCortexLabel && MRIgetVoxVal(lhCortexLabel,n,0,0,0) < 0.5) continue;
       if(UseMask && MRIgetVoxVal(lhsegmask,n,0,0,0) < 0.5) continue;
+      if(UseLabel && MRIgetVoxVal(lhlabel,n,0,0,0) < 0.5) continue;
       vwm = MRIgetVoxVal(vlhwm,n,0,0,0);
       if(vwm == 0.0) continue;
       vctx = MRIgetVoxVal(vlhctx,n,0,0,0);
@@ -2057,10 +2129,13 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   }
   if(UseRH){
     for(n = 0; n < rhwm->nvertices; n += nsubsamp){
+      if (rhwm->vertices[n].ripflag != 0)
+        continue ;
       if(rhcostfile || rhcost0file) MRIsetVoxVal(rhcost,n,0,0,0,0.0);
       if(rhconfile)  MRIsetVoxVal(rhcon,n,0,0,0,0.0);
       if(rhCortexLabel && MRIgetVoxVal(rhCortexLabel,n,0,0,0) < 0.5) continue;
       if(UseMask && MRIgetVoxVal(rhsegmask,n,0,0,0) < 0.5) continue;
+      if(UseLabel && MRIgetVoxVal(rhlabel,n,0,0,0) < 0.5) continue;
       vwm = MRIgetVoxVal(vrhwm,n,0,0,0);
       if(vwm == 0.0) continue;
       vctx = MRIgetVoxVal(vrhctx,n,0,0,0);
