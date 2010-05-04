@@ -19,9 +19,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/04/29 16:08:06 $
- *    $Revision: 1.29 $
+ *    $Author: mreuter $
+ *    $Date: 2010/05/04 21:07:18 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2005-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -173,7 +173,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_diff.c,v 1.29 2010/04/29 16:08:06 rge21 Exp $";
+static char vcid[] = "$Id: mri_diff.c,v 1.30 2010/05/04 21:07:18 mreuter Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -208,11 +208,12 @@ int ExitOnDiff = 1;
 int ExitStatus = 0;
 int DoRSS = 0; // Compute sqrt of sum squares
 int PrintSSD = 0; // Print sum of squared differences over all voxel
+int PrintRMS = 0; // Print root mean squared differences over all voxel
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, r, c, s, f;
-  int rmax, cmax, smax, fmax,navg;
+  int rmax, cmax, smax, fmax,navg,notzero;
   double diff,maxdiff;
   double val1, val2, SumSqErr;
   double AvgDiff=0.0,SumDiff=0.0,SumSqDiff=0.0;
@@ -423,6 +424,7 @@ int main(int argc, char *argv[]) {
     }
     SumDiff=0.0;
     c=r=s=f=0;
+		notzero=0;
     val1 = MRIgetVoxVal(InVol1,c,r,s,f);
     val2 = MRIgetVoxVal(InVol2,c,r,s,f);
     maxdiff = fabs(val1-val2);
@@ -435,6 +437,7 @@ int main(int argc, char *argv[]) {
           for (f=0; f < InVol1->nframes; f++) {
             val1 = MRIgetVoxVal(InVol1,c,r,s,f);
             val2 = MRIgetVoxVal(InVol2,c,r,s,f);
+						if (val1 != 0 && val2 != 0) notzero++;
             diff = val1-val2;
             if (diff && verbose) {
               printf("diff %12.8f at %d %d %d %d\n",diff,c,r,s,f);
@@ -469,6 +472,7 @@ int main(int argc, char *argv[]) {
 		     maxdiff,cmax,rmax,smax,fmax);
 		     
     if(PrintSSD) printf("%f sum of squared differences\n",SumSqDiff);
+    if(PrintRMS) printf("%f root mean squared differences\n",sqrt(SumSqDiff/notzero));
 
     if(DiffVolFile) MRIwrite(DiffVol,DiffVolFile);      
     if(DiffLabelVolFile) MRIwrite(DiffLabelVol,DiffLabelVolFile);
@@ -659,6 +663,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--diffpct"))  DiffPct = 1;
     else if (!strcasecmp(option, "--rss"))  DoRSS = 1;
     else if (!strcasecmp(option, "--ssd"))  PrintSSD = 1;
+    else if (!strcasecmp(option, "--rms"))  PrintRMS = 1;
     else if (!strcasecmp(option, "--qa")) {
       CheckPixVals = 0;
       CheckGeo     = 0;
@@ -783,6 +788,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"diffpct   %d\n",DiffPct);
   fprintf(fp,"rss       %d\n",DoRSS);
   fprintf(fp,"ssd       %d\n",PrintSSD);
+  fprintf(fp,"rms       %d\n",PrintRMS);
   fprintf(fp,"logfile   %s\n",DiffFile);
   return;
 }
@@ -811,6 +817,7 @@ static void print_usage(void) {
   printf("   --diffpct    : 100*(v1-v2)/((v1+v2)/2)\n");
   printf("   --rss        : save sqrt sum squares with --diff\n");
   printf("   --ssd        : print sum squared differences over all voxel\n");
+  printf("   --rms        : print root mean squared diff. over all non-zero voxel\n");
   printf("\n");
   printf("   --thresh thresh : pix diffs must be greater than this \n");
   printf("   --log DiffFile : store diff info in this file. \n");
