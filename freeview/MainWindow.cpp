@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.108 $
+ *    $Date: 2010/05/04 21:05:11 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2500,6 +2500,48 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   else if ( iMsg == "SurfacePositionChanged" )
   {
     m_view3D->UpdateConnectivityDisplay();
+  }
+  
+  // Update world geometry
+  LayerCollection* mri_col = GetLayerCollection( "MRI" );
+  Layer* mri = mri_col->GetActiveLayer();
+  double new_origin[3], new_ext[3];
+  if ( mri )
+  {
+    mri->GetWorldOrigin( new_origin);
+    double* ws = mri->GetWorldSize();
+    new_ext[0] = new_origin[0] + ws[0];
+    new_ext[1] = new_origin[1] + ws[1];
+    new_ext[2] = new_origin[2] + ws[2];
+  }
+  for ( int i = 0; i < mri_col->GetNumberOfLayers(); i++ )
+  {
+    Layer* layer = mri_col->GetLayer( i );
+    double* orig = layer->GetWorldOrigin();
+    double ext[3];
+    double* ws = layer->GetWorldSize(); 
+    for ( int i = 0; i < 3; i++ )
+    {   
+      ext[i] = orig[i] + ws[i];
+      if ( orig[i] < new_origin[i] )
+        new_origin[i] = orig[i];
+      if ( ext[i] > new_ext[i] )
+        new_ext[i] = ext[i];
+    }
+  }
+  if ( mri )
+  {
+    double new_ws[3];
+    double* voxel_size = mri->GetWorldVoxelSize();
+    double* origin = mri->GetWorldOrigin();
+    for ( int i = 0; i < 3; i++ )
+    {
+      new_origin[i] = origin[i] - ( (int) ( (origin[i] - new_origin[i])/voxel_size[i] + 0.5 ) ) * voxel_size[i];
+      new_ws[i] = ((int)((new_ext[i]-new_origin[i])/voxel_size[i]+0.5)) * voxel_size[i];
+    }
+    mri_col->SetWorldOrigin( new_origin );
+    mri_col->SetWorldSize( new_ws );
+    mri_col->SetWorldVoxelSize( voxel_size );
   }
 }
 

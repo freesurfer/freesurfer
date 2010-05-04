@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/03 19:40:29 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/05/04 21:05:11 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -522,7 +522,7 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void
   {  
     UpdateSliceFrames();
   }
-  else if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" )
+  else if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerRotated" )
   {
     UpdateBounds();
   }
@@ -616,6 +616,7 @@ bool RenderView3D::UpdateBounds()
   }
   
   m_dBoundingTolerance = dMaxLength * 0.02;
+  UpdateSliceFrames();
   
   return true;
 }

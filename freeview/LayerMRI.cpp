@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/05/04 21:05:11 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -307,6 +307,16 @@ bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
   {
     mReslice[i]->SetInput( m_imageData );
   }
+  
+  // update new world geometry
+  m_imageData->GetOrigin( m_dWorldOrigin );
+  m_imageData->GetSpacing( m_dWorldVoxelSize );
+  int* dim = m_imageData->GetDimensions();
+  for ( int i = 0; i < 3; i++ )
+    m_dWorldSize[i] = dim[i]*m_dWorldVoxelSize[i];
+  
+  if ( ret )
+    this->SendBroadcast( "LayerRotated", this, this );
   
   return ret;
 }
