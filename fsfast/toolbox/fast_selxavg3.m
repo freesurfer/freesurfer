@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.87 2010/04/30 22:04:08 greve Exp $
+% $Id: fast_selxavg3.m,v 1.88 2010/05/04 21:53:32 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/30 22:04:08 $
-%    $Revision: 1.87 $
+%    $Date: 2010/05/04 21:53:32 $
+%    $Revision: 1.88 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -26,8 +26,13 @@
 %
 
 
-fprintf('$Id: fast_selxavg3.m,v 1.87 2010/04/30 22:04:08 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.88 2010/05/04 21:53:32 greve Exp $\n');
+
+SUBJECTS_DIR = getenv('SUBJECTS_DIR');
+FSHOME = getenv('FREESURFER_HOME');
+
 dof2 = 0; % in case there are no contrasts
+
 
 if(DoSynth)
   if(SynthSeed < 0) SynthSeed = sum(100*clock); end
@@ -54,7 +59,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.87 2010/04/30 22:04:08 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.88 2010/05/04 21:53:32 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -551,9 +556,10 @@ if(DoGLMFit)
     opts = sprintf('--mask %s --i %s --o %s --fwhm %f --smooth-only',...
 		   outmaskfile,rho1mnfile,rho1mnsmfile,flac.acffwhm);
     if(isempty(flac0.subject)) 
-      cmd = sprintf('mri_fwhm %s',opts);
+      cmd = sprintf('%s/bin/mri_fwhm %s',FSHOME,opts);
     else 
-      cmd = sprintf('mris_fwhm %s --s %s --hemi %s',opts,flac0.sourcesubject,flac0.hemi);
+      cmd = sprintf('%s/bin/mris_fwhm %s --s %s --hemi %s --sd %s',...
+		    FSHOME,opts,flac0.sourcesubject,flac0.hemi,SUBJECTS_DIR);
     end
     fprintf('%s\n',cmd);
     [err rescmd] = system(cmd);
@@ -780,7 +786,8 @@ if(DoGLMFit)
 
   if(DoFWHM)
     fprintf('Concatenating residuals\n');
-    cmd = sprintf('mri_concat %s/res-???.%s --o %s/all.%s',outresdir,ext,outresdir,ext);    
+    cmd = sprintf('%s/bin/mri_concat %s/res-???.%s --o %s/all.%s',...
+		  FSHOME,outresdir,ext,outresdir,ext);    
     fprintf('%s\n',cmd);
     [err rescmd] = system(cmd);
     fprintf('%s\n',rescmd);
@@ -792,9 +799,10 @@ if(DoGLMFit)
     opts = sprintf('--mask %s --i %s/all.%s --sum %s/fwhm.sum --dat %s/fwhm.dat',...
 		   outmaskfile,outresdir,ext,outanadir,outanadir);
     if(isempty(flac0.subject)) 
-      cmd = sprintf('mri_fwhm %s',opts);
+      cmd = sprintf('%s/bin/mri_fwhm %s',FSHOME,opts);
     else 
-      cmd = sprintf('mris_fwhm %s --s %s --hemi %s',opts,flac0.sourcesubject,flac0.hemi);
+      cmd = sprintf('%s/bin/mris_fwhm %s --s %s --hemi %s --sd %s',...
+		    FSHOME,opts,flac0.sourcesubject,flac0.hemi,SUBJECTS_DIR);
     end
     fprintf('%s\n',cmd);
     [err rescmd] = system(cmd);
