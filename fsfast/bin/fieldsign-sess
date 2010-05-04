@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 22:20:32 $
-#    $Revision: 1.1 $
+#    $Date: 2010/05/04 22:00:18 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: fieldsign-sess,v 1.1 2010/04/28 22:20:32 greve Exp $';
+set VERSION = '$Id: fieldsign-sess,v 1.2 2010/05/04 22:00:18 greve Exp $';
 set inputargs = ($argv);
 
 set analysis = ();
@@ -32,6 +32,7 @@ set UseSphere = 0;
 set RegDOF = 6;
 set regfile = ()
 set fwhm = ();
+set DoReverse = 0;
 
 set UseLog = 1;
 set tmpdir = ();
@@ -165,6 +166,7 @@ foreach sess ($SessList)
     if($#fwhm) set cmd = ($cmd --fwhm $fwhm);
     if($#patch) set cmd = ($cmd --patch occip.patch.flat)
     if($UseSphere) set cmd = ($cmd --sphere);
+    if($DoReverse) set cmd = ($cmd --rev);
     echo $cmd   | tee -a $LF
     $cmd  
   end # hemi
@@ -238,6 +240,10 @@ while( $#argv != 0 )
       if( $#argv == 0) goto arg1err;
       set trgsubject = $argv[1]; shift;
       set ToSurf = 1;
+      breaksw
+
+    case "-reverse":
+      set DoReverse = 1;
       breaksw
 
     case "-tmpdir":
@@ -347,6 +353,7 @@ usage_exit:
   echo "  -occip : same as -patch occip.patch.flat"
   echo "  -sphere : use sphere instead of flat patch"
   echo "  -fwhm FWHMmm : smooth FWHM mm when making eccen"
+  echo "  -reverse : reverse field sign"
   echo ""
   echo "   -sf sessidfile  ..."
   echo "   -df srchdirfile ..."
