@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/15 20:40:14 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/05/04 21:44:47 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -135,6 +135,7 @@ double round(double x);
 #include "icosahedron.h"
 #include "pdf.h"
 #include "matfile.h"
+#include "fsenv.h"
 
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
@@ -145,7 +146,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.26 2010/04/15 20:40:14 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.27 2010/05/04 21:44:47 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -437,6 +438,11 @@ static int parse_commandline(int argc, char **argv) {
       subject = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--sd")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      FSENVsetSUBJECTS_DIR(pargv[0]);
+      nargsused = 1;
+    } 
     else if (!strcasecmp(option, "--dh")){
       if(nargc < 3) CMDargNErr(option,3);
       sscanf(pargv[0],"%d",&DHvtxno);
@@ -554,6 +560,7 @@ static void print_usage(void) {
   printf("   --niters-only <niters> : only report on niters for fwhm\n");
   printf("   --o output\n");
   printf("\n");
+  printf("   --sd SUBJECTS_DIR \n");
   printf("   --synth \n");
   printf("   --synth-frames nframes : default is 10 \n");
   printf("\n");
