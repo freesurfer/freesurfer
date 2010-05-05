@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/03 21:35:52 $
- *    $Revision: 1.94 $
+ *    $Date: 2010/05/05 17:47:38 $
+ *    $Revision: 1.95 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -216,7 +216,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.94 2010/05/03 21:35:52 greve Exp $";
+"$Id: mri_segreg.c,v 1.95 2010/05/05 17:47:38 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -361,13 +361,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.94 2010/05/03 21:35:52 greve Exp $",
+     "$Id: mri_segreg.c,v 1.95 2010/05/05 17:47:38 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.94 2010/05/03 21:35:52 greve Exp $",
+     "$Id: mri_segreg.c,v 1.95 2010/05/05 17:47:38 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -2045,13 +2045,12 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
     Mtrans->rptr[3][4] = p[2];
   }
 
-  Mrot = MatrixIdentity(4,NULL);
   if(dof > 3){
     angles[0] = p[3]*(M_PI/180);
     angles[1] = p[4]*(M_PI/180);
     angles[2] = p[5]*(M_PI/180);
     Mrot = MRIangles2RotMat(angles);
-  }
+  } else Mrot = MatrixIdentity(4,NULL);
 
   Mscale = MatrixIdentity(4,NULL);
   if(dof > 6){
@@ -2072,6 +2071,10 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   R = MatrixMultiply(Mtrans,R,R);
   R = MatrixMultiply(Mscale,R,R);
   R = MatrixMultiply(Mshear,R,R);
+  MatrixFree(&Mrot);
+  MatrixFree(&Mtrans);
+  MatrixFree(&Mscale);
+  MatrixFree(&Mshear);
 
   //printf("Trans: %g %g %g\n",p[0],p[1],p[2]);
   //printf("Rot:   %g %g %g\n",p[3],p[4],p[5]);
@@ -2172,11 +2175,6 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   costs[4] = costs[4]/nhits; // ctx mean
   costs[6] = dmean; // percent contrast
   costs[7] = cmean;
-
-  MatrixFree(&Mrot);
-  MatrixFree(&Mtrans);
-  MatrixFree(&Mscale);
-  MatrixFree(&Mshear);
 
   if(UseLH){
     //MRIfree(&vlhwm);
