@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/05/03 21:37:03 $
- *    $Revision: 1.60 $
+ *    $Author: fischl $
+ *    $Date: 2010/05/05 17:12:33 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2805,7 +2805,8 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
   MATRIX *crsT=NULL,*crsS=NULL;
   int FreeMats=0;
 
-  printf("Using MRIvol2VolVSM\n");
+  if (DIAG_VERBOSE_ON)
+    printf("Using MRIvol2VolVSM\n");
 
   if (src->nframes != targ->nframes)
   {
@@ -2937,7 +2938,7 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
 
   vox2ras = MRIxfmCRS2XYZtkreg(SrcVol);
   ras2vox = MatrixInverse(vox2ras,NULL);
-  if (Rtk != NULL) ras2vox = MatrixMultiply(ras2vox,Rtk,NULL);
+  if (Rtk != NULL) MatrixMultiply(ras2vox,Rtk,ras2vox);
   MatrixFree(&vox2ras);
   // ras2vox now converts surfacs RAS to SrcVol vox
 
