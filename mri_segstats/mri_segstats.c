@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/04/05 21:01:34 $
- *    $Revision: 1.68 $
+ *    $Author: greve $
+ *    $Date: 2010/05/06 20:06:27 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2006-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -426,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.68 2010/04/05 21:01:34 nicks Exp $";
+"$Id: mri_segstats.c,v 1.69 2010/05/06 20:06:27 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -476,7 +476,7 @@ int   nmaskhits;
 int   nbrainsegvoxels = 0;
 double brainsegvolume = 0;
 double brainsegvolume2 = 0;
-int DoSubCortGrayVol = 1;
+int DoSubCortGrayVol = 0;
 double SubCortGrayVol = 0;
 int DoTotalGrayVol = 0;
 int   nbrainmaskvoxels = 0;
@@ -509,6 +509,8 @@ int DoMultiply = 0;
 double MultVal = 0;
 
 int DoSNR = 0;
+struct utsname uts;
+char *cmdline, cwd[2000];
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -518,8 +520,6 @@ int main(int argc, char **argv) {
   float min, max, range, mean, std, snr;
   FILE *fp;
   double  **favg, *favgmn;
-  struct utsname uts;
-  char *cmdline;
   char tmpstr[1000];
   double atlas_icv=0;
   int ntotalsegid=0;
@@ -549,6 +549,7 @@ int main(int argc, char **argv) {
 
   parse_commandline(argc, argv);
   check_options();
+  
   dump_options(stdout);
 
   if (subject != NULL) {
@@ -894,9 +895,10 @@ int main(int argc, char **argv) {
     mri_binarize(maskvol, maskthresh, masksign, maskinvert,
                  maskvol, &nmaskhits);
     if (nmaskhits == 0) {
-      printf("ERROR: no voxels in mask meet thresholding criteria\n");
+      printf("WARNING: no voxels in mask meet thresholding criteria.\n");
+      printf("The output table will be empty.\n");
       printf("thresh = %g, sign = %s, inv = %d\n",maskthresh,masksign,maskinvert);
-      exit(1);
+      //exit(1);
     }
     printf("There were %d voxels in the orginal mask\n",nmaskhits);
     if(maskerode > 0){
@@ -2161,6 +2163,14 @@ static void check_options(void) {
 
 /* --------------------------------------------- */
 static void dump_options(FILE *fp) {
+  fprintf(fp,"\n");
+  fprintf(fp,"%s\n",vcid);
+  fprintf(fp,"cwd %s\n",cwd);
+  fprintf(fp,"cmdline %s\n",cmdline);
+  fprintf(fp,"sysname  %s\n",uts.sysname);
+  fprintf(fp,"hostname %s\n",uts.nodename);
+  fprintf(fp,"machine  %s\n",uts.machine);
+  fprintf(fp,"user     %s\n",VERuser());
   return;
 }
 /*---------------------------------------------------------------*/
