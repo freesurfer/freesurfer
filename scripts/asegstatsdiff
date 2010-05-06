@@ -37,7 +37,7 @@ else
     set outfile=./asegstats.txt
 endif
 
-set cmd=(asegstats2table -s ${subject1} -s ${subject2} -t ${outfile})
+set cmd=(asegstats2table --common-segs -s ${subject1} -s ${subject2} -t ${outfile})
 set tmpfile=(/tmp/asegstats2table-$$.txt)
 $cmd >& $tmpfile
 if ($status) then
