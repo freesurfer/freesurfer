@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/05/06 21:17:13 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,6 +45,7 @@
 #include <vtkImageDilateErode3D.h>
 #include <vtkContourFilter.h>
 #include <vtkMarchingContourFilter.h>
+#include <vtkPolyDataConnectivityFilter.h>
 #include <vtkPolyData.h>
 #include <vtkCellArray.h>
 #include <vtkSmoothPolyDataFilter.h>
@@ -684,8 +685,11 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   }
   else
   {
+    vtkSmartPointer<vtkPolyDataConnectivityFilter> conn = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
+    conn->SetInput( polydata );
+    conn->SetExtractionModeToLargestRegion();
     vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
-    smoother->SetInput(polydata);
+    smoother->SetInputConnection( conn->GetOutputPort() );
     smoother->SetNumberOfIterations( 20 );
 //    smoother->FeatureEdgeSmoothingOn();
 //    smoother->SetEdgeAngle( 90 );

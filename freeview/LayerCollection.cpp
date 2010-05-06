@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2009/12/03 23:09:31 $
- *    $Revision: 1.19 $
+ *    $Author: rpwang $
+ *    $Date: 2010/05/06 21:17:12 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -249,19 +249,21 @@ bool LayerCollection::MoveToTop( Layer* layer )
   return false;
 }
 
-bool LayerCollection::CycleLayer()
+bool LayerCollection::CycleLayer( bool bMoveUp )
 {
   if ( (int)m_layers.size() > 1 )
   {
     int nActive = GetLayerIndex( m_layerActive );
+    
+    // first get unlocked layers only
     std::vector<Layer*> unlocked_layers;
-    unlocked_layers.clear();
     for ( size_t i = 0; i < m_layers.size(); i++ )
     {
       if ( !m_layers[i]->IsLocked() )
         unlocked_layers.push_back( m_layers[i] );
     }
 
+    // record the visibilities of each layer before cycling
     bool* bVisibility = new bool[m_layers.size()];
     for ( size_t i = 0; i < m_layers.size(); i++ )
     {
@@ -274,13 +276,27 @@ bool LayerCollection::CycleLayer()
       return false;
     }
 
-    Layer* layer0 = unlocked_layers[0];
-    for ( size_t i = 1; i < unlocked_layers.size(); i++ )
+    Layer* layer_buf = NULL;
+    if ( bMoveUp )
     {
-      unlocked_layers[i-1] = unlocked_layers[i];
+      layer_buf = unlocked_layers[0];
+      for ( size_t i = 1; i < unlocked_layers.size(); i++ )
+      {
+        unlocked_layers[i-1] = unlocked_layers[i];
+      }
+      unlocked_layers[unlocked_layers.size()-1] = layer_buf;
     }
-    unlocked_layers[unlocked_layers.size()-1] = layer0;
+    else
+    {
+      layer_buf = unlocked_layers[unlocked_layers.size()-1];
+      for ( size_t i = unlocked_layers.size()-1; i >= 1; i-- )
+      {
+        unlocked_layers[i] = unlocked_layers[i-1];
+      }
+      unlocked_layers[0] = layer_buf;
+    }
 
+    // put cycled unlocked layers back
     for ( size_t i = 0; i < m_layers.size(); i++ )
     {
       if ( m_layers[i]->IsLocked() )
@@ -293,6 +309,7 @@ bool LayerCollection::CycleLayer()
     }
     m_layers = unlocked_layers;
 
+    // restore visibility
     for ( size_t i = 0; i < m_layers.size(); i++ )
     {
       m_layers[i]->SetVisible( bVisibility[i] );
@@ -303,8 +320,8 @@ bool LayerCollection::CycleLayer()
     if ( nActive >= 0 )
       SetActiveLayer( m_layers[nActive] );
 
-    this->SendBroadcast( "LayerCycled", layer0 );
-    this->SendBroadcast( "LayerMoved", layer0 );
+    this->SendBroadcast( "LayerCycled", layer_buf );
+    this->SendBroadcast( "LayerMoved", layer_buf );
 
     return true;
   }

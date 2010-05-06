@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/04 21:05:11 $
- *    $Revision: 1.109 $
+ *    $Date: 2010/05/06 21:17:13 $
+ *    $Revision: 1.110 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -193,6 +193,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_COORDINATE" ),        MainWindow::OnViewCoordinateUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_CYCLE_LAYER" ),       MainWindow::OnViewCycleLayer )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_CYCLE_LAYER" ),       MainWindow::OnViewCycleLayerUpdateUI )
+  EVT_MENU        ( XRCID( "ID_VIEW_REVERSE_CYCLE_LAYER" ),   MainWindow::OnViewReverseCycleLayer )
+  EVT_UPDATE_UI   ( XRCID( "ID_VIEW_REVERSE_CYCLE_LAYER" ),   MainWindow::OnViewCycleLayerUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),     MainWindow::OnViewToggleVolumeVisibility )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_TOGGLE_VOLUME" ),     MainWindow::OnViewToggleVolumeVisibilityUpdateUI )
   EVT_MENU        ( XRCID( "ID_VIEW_TOGGLE_ROI" ),        MainWindow::OnViewToggleROIVisibility )
@@ -689,9 +691,11 @@ void MainWindow::SaveVolume()
   wxString fn = wxString::FromAscii( layer_mri->GetFileName() );
   if ( fn.IsEmpty() )
   {
+    wxString name = layer_mri->GetName(); 
+    name.Trim( true ).Trim( false ).Replace( _(" "), _("_") );
     wxFileDialog dlg( this, _("Save volume file"), 
                       AutoSelectLastDir( m_strLastDir, _("mri") ),
-                      _(""),
+                      name + _(".mgz"),
                       _("Volume files (*.mgz;*.mgh;*.nii;*.nii.gz;*.img)|*.mgz;*.mgh;*.nii;*.nii.gz;*.img|All files (*.*)|*.*"),
                       wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
     if ( dlg.ShowModal() == wxID_OK )
@@ -1300,6 +1304,9 @@ void MainWindow::UpdateToolbars()
 
 void MainWindow::DoUpdateToolbars()
 {
+  if ( !IsShown() )
+    return;
+  
   if ( !m_toolWindowEdit )
     m_toolWindowEdit = new ToolWindowEdit( this );
 
@@ -1910,6 +1917,27 @@ void MainWindow::OnViewCycleLayer( wxCommandEvent& event )
   }
 }
 
+void MainWindow::OnViewReverseCycleLayer( wxCommandEvent& event )
+{
+  LayerCollection* lc = NULL;
+  switch ( m_controlPanel->GetCurrentLayerCollectionIndex() )
+  {
+    case 0:   // Volume
+      lc = GetLayerCollection( "MRI" );
+      break;
+      case 1:   // ROI
+        lc = GetLayerCollection( "ROI" );
+        break;
+    case 2:
+      lc = GetLayerCollection( "Surface" );
+  }
+
+  if ( lc )
+  {
+    lc->CycleLayer( false );
+  }
+}
+
 void MainWindow::OnViewCycleLayerUpdateUI( wxUpdateUIEvent& event )
 {
   LayerCollection* lc = NULL;
@@ -2504,6 +2532,8 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   
   // Update world geometry
   LayerCollection* mri_col = GetLayerCollection( "MRI" );
+  if ( !mri_col )
+    return;
   Layer* mri = mri_col->GetActiveLayer();
   double new_origin[3], new_ext[3];
   if ( mri )

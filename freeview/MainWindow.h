@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/16 20:42:41 $
- *    $Revision: 1.69 $
+ *    $Date: 2010/05/06 21:17:13 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -150,6 +150,7 @@ public:
 
   void OnViewCycleLayer                     ( wxCommandEvent& event );
   void OnViewCycleLayerUpdateUI             ( wxUpdateUIEvent& event );
+  void OnViewReverseCycleLayer              ( wxCommandEvent& event );
   void OnViewToggleVoxelCoordinates         ( wxCommandEvent& event );
   void OnViewToggleVolumeVisibility         ( wxCommandEvent& event );
   void OnViewToggleVolumeVisibilityUpdateUI ( wxUpdateUIEvent& event );

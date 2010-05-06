@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/03 19:13:29 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/05/06 21:17:12 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -147,6 +147,11 @@ public:
   {
     return m_polydataVector;
   }
+  
+  vtkPolyData* GetVector2DPolyData( int n )
+  {
+    return m_polydataVector2D[n];
+  }
 
   vtkPolyData* GetVertexPolyData()
   {
@@ -166,6 +171,8 @@ public:
   }
   
   void GetNormalAtVertex( int nVertex, double* vec_out );
+  
+  void UpdateVector2D( int nPlane, double slice_pos );
 
 protected:
   void UpdatePolyData();
@@ -198,6 +205,7 @@ protected:
   vtkSmartPointer<vtkPolyData> m_polydataVector;
   vtkSmartPointer<vtkPolyData> m_polydataVertices;
   vtkSmartPointer<vtkPolyData> m_polydataWireframes;
+  vtkSmartPointer<vtkPolyData> m_polydataVector2D[3];
 
   // Hash table so we can look up vertices. Uses v->x,y,z.
   MRIS_HASH_TABLE* m_HashTable[5];

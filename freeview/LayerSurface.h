@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/05/06 21:17:13 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -208,6 +208,7 @@ protected:
   void UpdateVertexRender();
   void UpdateMeshRender();
   void UpdateActorPositions();
+  void UpdateVectorActor2D();
   void MapLabels( unsigned char* data, int nVertexCount );
 
   virtual void OnSlicePositionChanged( int nPlane );
@@ -229,6 +230,8 @@ protected:
 
   vtkActor*   m_sliceActor2D[3];
   vtkActor*   m_sliceActor3D[3];
+  vtkActor*   m_vectorActor2D[3];
+
   // vtkLODActor*  m_mainActor;
   vtkSmartPointer<vtkActor>   m_mainActor;
   vtkSmartPointer<vtkActor>   m_vectorActor;

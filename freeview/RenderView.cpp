@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/05/06 21:17:13 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -319,7 +319,6 @@ void RenderView::DoListenToMessage ( std::string const iMsg, void* iData, void* 
     UpdateScalarBar();
     NeedRedraw();
   }
-
   else if ( iMsg == "LayerAdded" || iMsg == "LayerMoved" || iMsg == "LayerRemoved" || iMsg == "LayerRotated" ||
             iMsg == "LayerContourShown" || iMsg == "DisplayModeChanged" )
   {

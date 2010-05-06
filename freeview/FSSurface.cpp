@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/03 19:13:29 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/05/06 21:17:12 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,6 +61,9 @@ FSSurface::FSSurface( FSVolume* ref ) :
   m_polydataVertices = vtkSmartPointer<vtkPolyData>::New();
   m_polydataWireframes = vtkSmartPointer<vtkPolyData>::New();
 
+  for ( int i = 0; i < 3; i++ )
+    m_polydataVector2D[i] = vtkSmartPointer<vtkPolyData>::New();
+  
   for ( int i = 0; i < NUM_OF_VSETS; i++ )
   {
     m_fVertexSets[i] = NULL;
@@ -649,6 +652,48 @@ void FSSurface::UpdateVectors()
     m_polydataVector->SetLines( lines );
     m_polydataVector->SetVerts( verts );
   }
+}
+
+void FSSurface::UpdateVector2D( int nPlane, double slice_pos )
+{
+  double tolerance = 0.1;
+  if ( HasVectorSet() && m_nActiveVector >= 0 )
+  {
+    VertexItem* vectors = m_vertexVectors[m_nActiveVector].data;
+    int cVertices = m_MRIS->nvertices;
+    vtkPoints* oldPoints = m_polydata->GetPoints();
+    float point[3], surfaceRAS[3];
+    vtkIdType n = 0;
+    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
+    for ( int vno = 0; vno < cVertices; vno++ )
+    {
+      double* old_pt = oldPoints->GetPoint( vno );
+      if ( fabs( old_pt[nPlane] - slice_pos ) <= tolerance &&
+           ( vectors[vno].x != 0 || vectors[vno].y != 0 || vectors[vno].z != 0 ) )
+      {
+        surfaceRAS[0] = m_fVertexSets[m_nActiveSurface][vno].x + vectors[vno].x;
+        surfaceRAS[1] = m_fVertexSets[m_nActiveSurface][vno].y + vectors[vno].y;
+        surfaceRAS[2] = m_fVertexSets[m_nActiveSurface][vno].z + vectors[vno].z;
+        this->ConvertSurfaceToRAS( surfaceRAS, point );
+        if ( m_volumeRef )
+          m_volumeRef->RASToTarget( point, point );
+  
+        points->InsertNextPoint( old_pt );
+        points->InsertNextPoint( point );
+  
+        verts->InsertNextCell( 1, &n );
+  
+        lines->InsertNextCell( 2 );
+        lines->InsertCellPoint( n++ );
+        lines->InsertCellPoint( n++ );
+      }
+    }
+    m_polydataVector2D[nPlane]->SetPoints( points );
+    m_polydataVector2D[nPlane]->SetLines( lines );
+    m_polydataVector2D[nPlane]->SetVerts( verts );
+  }  
 }
 
 void FSSurface::GetVectorAtVertex( int nVertex, double* vec_out, int nVector )

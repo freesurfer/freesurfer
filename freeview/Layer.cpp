@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/04 22:41:46 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/05/06 21:17:12 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -48,6 +48,7 @@ Layer::~Layer()
 {
   if ( mProperties )
     delete mProperties;
+  
   SendBroadcast( "LayerObjectDeleted", this );
 }
 
