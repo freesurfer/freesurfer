@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/19 17:22:30 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/05/06 22:12:58 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 
 //------------------------------------------------------------------------
 static char vcid[] =
-"$Id: mris_convert.c,v 1.36 2010/03/19 17:22:30 nicks Exp $";
+"$Id: mris_convert.c,v 1.37 2010/05/06 22:12:58 nicks Exp $";
 
 /*-------------------------------- CONSTANTS -----------------------------*/
 // this mini colortable is used when .label file gets converted to gifti
@@ -94,6 +94,8 @@ static char *label_fname ;
 static char *label_name ;
 static int labelstats_file_flag = 0 ;
 static char *labelstats_fname ;
+static int parcstats_file_flag = 0 ;
+static char *parcstats_fname ;
 static char *orig_surf_name = NULL ;
 static double scale=0;
 static int rescale=0;  // for rescaling group average surfaces
@@ -116,7 +118,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_convert.c,v 1.36 2010/03/19 17:22:30 nicks Exp $",
+     "$Id: mris_convert.c,v 1.37 2010/05/06 22:12:58 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -150,6 +152,11 @@ main(int argc, char *argv[]) {
 
   if (labelstats_file_flag && ! label_file_flag) {
     printf("ERROR: cannot specify --labelstats without --label\n");
+    exit(1);
+  }
+
+  if (parcstats_file_flag && ! annot_file_flag) {
+    printf("ERROR: cannot specify --parcstats without --annot\n");
     exit(1);
   }
 
@@ -255,7 +262,50 @@ main(int argc, char *argv[]) {
              "%s\n",annot_fname);
       exit(1);
     }
-    // now write it
+    // read parcstats text file (pairs of parc labels and stat values) and
+    // save value associated with that parc label into the vertex with that
+    // parc (annot) label
+    if (parcstats_file_flag) {
+      FILE* fp;
+      if ((fp = fopen(parcstats_fname, "r")) == NULL)
+      {
+        errno = 0;
+        ErrorExit(ERROR_BADFILE, "ERROR: can't open file %s", parcstats_fname);
+      }
+      char line[STRLEN];
+      while (fgets(line, STRLEN, fp) != NULL) {
+        char label[STRLEN];
+        float val;
+        sscanf(line,"%s %f",label,&val);
+        // get the annotation value for this label from the colortable
+        int annot = CTABentryNameToAnnotation(label, mris->ct);
+        int vno;
+        int doprint=1;
+        for (vno=0; vno < mris->nvertices; vno++) {
+          if (annot == mris->vertices[vno].annotation) {
+            mris->vertices[vno].curv = val;
+            if (doprint) {
+              printf("label: %s, val: %9.9f\n",label,val);
+              doprint = 0;
+            }
+          }
+        }
+      }
+      // now write the 'curv' data (the parc stats we just assigned) to file
+      type = MRISfileNameType(out_fname) ;
+      if (type == MRIS_ASCII_FILE) {
+        writeAsciiCurvFile(mris, out_fname) ;
+      }
+      else if (type == MRIS_GIFTI_FILE) {
+        MRISwriteGIFTI(mris, NIFTI_INTENT_SHAPE, out_fname, curv_fname);
+      }
+      else {
+        MRISwriteCurvature(mris, out_fname) ;
+      }
+      exit(0);
+    }
+
+    // if fall through, then write annot file
     type = MRISfileNameType(out_fname);
     if (type == MRIS_ANNOT_FILE) {
       if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR) exit(1);
@@ -419,6 +469,10 @@ get_option(int argc, char *argv[]) {
     labelstats_fname = argv[2] ;
     labelstats_file_flag = 1;
     nargs = 1 ;
+  } else if (!stricmp(option, "-parcstats")) {
+    parcstats_fname = argv[2] ;
+    parcstats_file_flag = 1;
+    nargs = 1 ;
   } else switch (toupper(*option)) {
   case 'A':
     PrintXYZOnly = 1;
@@ -501,6 +555,10 @@ print_help(void) {
   printf( "  -f <scalar file>  input is functional time-series or other\n"
           "                    multi-frame data (must specify surface)\n") ;
   printf( "  --annot <annot file> input is annotation or gifti label data\n") ;
+  printf( "  --parcstats <infile>  infile is name of text file containing\n") ;
+  printf( "                    label/val pairs, where label is an annot name\n") ;
+  printf( "                    and val is a value associated with that label.\n") ;
+  printf( "                    The output file will be a scalar file.\n") ;
   printf( "  --da_num <num>    if input is gifti, 'num' specifies which\n"
           "                    data array to use\n");
   printf( "  --label <infile> <label>  infile is .label file\n") ;
@@ -556,6 +614,11 @@ print_help(void) {
   printf( "\n") ;
   printf( "Convert a Freesurfer .label file to Gifti label format:\n");
   printf( "  mris_convert --label lh.V1.label V1 lh.white lh.V1.label.gii\n") ;
+  printf( "\n") ;
+  printf( "Create a scalar overlay file where each parcellation region\n") ;
+  printf( "contains a single value:\n") ;
+  printf( "  mris_convert --annot lh.aparc.annot --parcstats lh.parcstats.txt\\ \n") ;
+  printf( "               lh.white lh.parcstats\n") ;
   printf( "\n") ;
   printf( "See also mri_surf2surf\n") ;
   exit(1) ;
