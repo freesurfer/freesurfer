@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/05 18:11:30 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/05/06 19:48:34 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -866,7 +866,7 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
 		if (r == 2)
 		{
        counter++;
-		   if (verbose >0 ) cout << " Iteration: " << counter << endl;
+		   if (verbose >1 ) cout << " Iteration: " << counter << endl;
 			 if (debug)
 			 {
          // write out wcheck
@@ -880,19 +880,18 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
          f2.close();  
 			 }
 			 
-			 cout << "   - Checking " << wcheck << " > "<< wlimit << " ?? " << endl;
 			 if (wcheck > wlimit)
 			 {
 			    sat = sat+0.5;
-			    cout << "       larger than limit, increasing sat to " << sat << endl;
+			    if (verbose > 1) cout << "   - Weight check " << wcheck << " > "<< wlimit  << " increasing sat: " << sat << endl;
 					//MatrixFree(&md.first);
 					//md.first = MatrixCopy(firstbackup,NULL);
 					md.first = firstbackup;
 					md.second = scaleinit;
 					r = resolution-rstart+1;
 					continue;
-			}
-			cout << "       not larger than limit, so we are done!" << endl;
+			  }
+			  //if (verbose > 0) cout << "   - Weight check " << wcheck << " <= "<< wlimit  << " done (it: " << counter << " , sat: " << sat << " )"<< endl;
 		}
 
     if (r !=0) // adjust matrix to higher resolution level
@@ -928,7 +927,7 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
       cout << "   - current iscale: " << md.second << endl;
     }
     
-		if (verbose >0 )  cout << "   - final SAT: " << sat << endl;
+		if (verbose > 0 )  cout << "   - final SAT: " << sat << " ( it: " << counter << " , weight check " << wcheck << " <= "<< wlimit << " )" <<  endl;
 	
 	
   // cleanup
