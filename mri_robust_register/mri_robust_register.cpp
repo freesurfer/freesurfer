@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/05 17:51:11 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/05/06 19:55:14 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -128,7 +128,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.29 2010/03/05 17:51:11 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.30 2010/05/06 19:55:14 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -356,19 +356,21 @@ int main(int argc, char *argv[])
   if (P.weightsout!="")
   {
 
-    MRI * mri_weights = R.getWeights(); // in original half way space
+    MRI * mri_weights = R.getWeights(); // in target space
     if (mri_weights != NULL)
     {
-      // map to target and use target geometry 
-      std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > map2weights = R.getHalfWayMaps();
-      vnl_matrix_fixed < double, 4, 4> hinv = vnl_inverse(map2weights.second);
-      MRI * wtarg = MRIalloc(P.mri_dst->width,P.mri_dst->height,P.mri_dst->depth,MRI_FLOAT);
-      MRIcopyHeader(P.mri_dst,wtarg);
-      wtarg->type = MRI_FLOAT;
-      wtarg = MyMRI::MRIlinearTransform(mri_weights,wtarg, hinv);
-      MRIwrite(wtarg, P.weightsout.c_str()) ;
-      MRIfree(&wtarg);
-      //MatrixFree(&hinv);
+		  MRIwrite(mri_weights,P.weightsout.c_str()) ;
+		
+//       // map to target and use target geometry 
+//       std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > map2weights = R.getHalfWayMaps();
+//       vnl_matrix_fixed < double, 4, 4> hinv = vnl_inverse(map2weights.second);
+//       MRI * wtarg = MRIalloc(P.mri_dst->width,P.mri_dst->height,P.mri_dst->depth,MRI_FLOAT);
+//       MRIcopyHeader(P.mri_dst,wtarg);
+//       wtarg->type = MRI_FLOAT;
+//       wtarg = MyMRI::MRIlinearTransform(mri_weights,wtarg, hinv);
+//       MRIwrite(wtarg, P.weightsout.c_str()) ;
+//       MRIfree(&wtarg);
+//       //MatrixFree(&hinv);
       cout << "or even overlay the weights:" <<endl;
       cout << "  tkmedit -f "<< P.dst <<" -aux "<< P.warpout << " -overlay " << P.weightsout <<endl;
     }
@@ -504,7 +506,10 @@ int main(int argc, char *argv[])
       if (mri_weights != NULL)
       {
         cout << " saving half-way weights ..." << endl;
-        MRIwrite(mri_weights,P.halfweights.c_str());
+        MRI* mri_wtemp = LTAtransform(mri_weights,NULL, d2hwlta);
+        MRIwrite(mri_wtemp,P.halfweights.c_str());
+				MRIfree(&mri_wtemp);
+        //MRIwrite(mri_weights,P.halfweights.c_str());
       }
       else
         cout << "Warning: no weights have been computed! Maybe you ran with --leastsquares??" << endl;
