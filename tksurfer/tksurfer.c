@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2010/04/26 22:55:30 $
- *    $Revision: 1.341 $
+ *    $Author: nicks $
+ *    $Date: 2010/05/07 20:47:57 $
+ *    $Revision: 1.342 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -1041,6 +1041,7 @@ void sample_annotated_image(void) ;
 void restore_zero_position(void) ;
 void restore_initial_position(void) ;
 void make_lateral_view(char *stem) ;
+void make_medial_view(char *stem) ;
 void make_lateral_view_second(char *stem) ;
 void write_val_histogram(float min, float max, int nbins) ;
 void write_view_matrix(char *dir) ;
@@ -2208,6 +2209,9 @@ int  main(int argc,char *argv[])
   char annotation_fname[NAME_LENGTH] = "";
   char label_fname[NAME_LENGTH] = "";
 
+  int setlateralview = FALSE;
+  int setmedialview = FALSE;
+
   int take_snapshot = FALSE;
   char snap_fname[NAME_LENGTH] = "";
 
@@ -2540,6 +2544,16 @@ int  main(int argc,char *argv[])
       strcpy (snap_fname, argv[i+1]) ;
       take_snapshot = TRUE;
       nargs = 2 ;
+    }
+    else if (!stricmp(argv[i], "-lateral"))
+    {
+      setlateralview = TRUE;
+      nargs = 1 ;
+    }
+    else if (!stricmp(argv[i], "-medial"))
+    {
+      setmedialview = TRUE;
+      nargs = 1 ;
     }
     else if (!stricmp(argv[i], "-lrrev"))
     {
@@ -2988,6 +3002,20 @@ int  main(int argc,char *argv[])
     read_binary_patch(patch_name) ;
     restore_zero_position() ;
     rotate_brain(-90.0, 'x') ;
+    redraw() ;
+  }
+
+  if (setlateralview)
+  {
+    printf("setting view to lateral...\n") ;
+    make_lateral_view(stem);
+    redraw() ;
+  }
+
+  if (setmedialview)
+  {
+    printf("setting view to medial...\n") ;
+    make_medial_view(stem);
     redraw() ;
   }
 
@@ -6665,6 +6693,25 @@ make_lateral_view(char *stem)
     rotate_brain(-90.0,'y');
   else
     rotate_brain(90.0,'y');
+  zf = 1.0;
+}
+
+void
+make_medial_view(char *stem)
+{
+  if (!openglwindowflag)
+  {
+    printf("surfer: ### redraw failed: no gl window open\n");
+    PR
+    return;
+  }
+
+  loadmatrix(idmat);
+  translate(mris->xctr,-mris->zctr,-mris->yctr);
+  if (stem[0]=='r'&&stem[1]=='h')
+    rotate_brain(90.0,'y');
+  else
+    rotate_brain(-90.0,'y');
   zf = 1.0;
 }
 
@@ -21256,7 +21303,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.341 2010/04/26 22:55:30 krish Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.342 2010/05/07 20:47:57 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
