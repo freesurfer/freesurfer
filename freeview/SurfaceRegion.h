@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/05/07 20:06:30 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -48,6 +48,8 @@ public:
 
   void AddPoint( double* pt );
   
+  void Close();
+  
   wxColour GetColor();
   void SetColor( const wxColour& color );
 
@@ -58,9 +60,10 @@ public:
   void Show( bool bShow = true );
 
 private:
-  void RebuildActor();
+  void RebuildOutline( bool bClose );
 
   vtkSmartPointer<vtkActor> m_actorMesh;
+  vtkSmartPointer<vtkActor> m_actorOutline;
   vtkSmartPointer<vtkPoints>  m_points;
   
   vtkSmartPointer<vtkSelectPolyData>  m_selector;

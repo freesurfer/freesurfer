@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/04 21:05:11 $
- *    $Revision: 1.65 $
+ *    $Date: 2010/05/07 20:06:30 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1773,5 +1773,15 @@ void LayerMRI::AddSurfaceRegionLoopPoint( double* pt )
   {
     m_currentSurfaceRegion->AddPoint( pt );
     this->SendBroadcast( "SurfaceRegionUpdated", this );
+  }
+}
+
+void LayerMRI::CloseSurfaceRegion()
+{
+  if ( m_currentSurfaceRegion )
+  {
+    m_currentSurfaceRegion->Close();
+    this->SendBroadcast( "SurfaceRegionUpdated", this );
+    
   }
 }

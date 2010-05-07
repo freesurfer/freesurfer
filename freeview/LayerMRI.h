@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/05/07 20:06:30 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -192,6 +192,8 @@ public:
   SurfaceRegion* CreateNewSurfaceRegion( double* pt );
   
   void AddSurfaceRegionLoopPoint( double* pt );
+  
+  void CloseSurfaceRegion();
   
 protected:
 

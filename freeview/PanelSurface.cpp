@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/23 18:31:10 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/05/07 20:06:30 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -232,6 +232,9 @@ void PanelSurface::UpdateUI( bool bForce )
 
 void PanelSurface::DoUpdateUI()
 {
+  if ( !IsShown() )
+    return;
+  
   bool bHasSurface = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
   wxWindowList children = GetChildren();
   wxWindowList::iterator it = children.begin(), end = children.end();

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 17:07:43 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/05/07 20:06:30 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -352,8 +352,7 @@ void RenderView::OnSize( wxSizeEvent& event )
   wxVTKRenderWindowInteractor::OnSize( event );
 
 #ifdef __WXGTK__
-  if ( MainWindow::GetMainWindowPointer() )
-    MainWindow::GetMainWindowPointer()->NeedRedraw();
+  MainWindow::GetMainWindowPointer()->NeedRedraw();
 #endif
 }
 

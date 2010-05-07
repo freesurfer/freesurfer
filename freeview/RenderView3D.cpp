@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/04 21:05:11 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/05/07 20:06:30 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -457,6 +457,15 @@ void RenderView3D::AddSelectRegionLoopPoint( int posX, int posY )
       return;
     
     mri->AddSurfaceRegionLoopPoint( pos );
+  }
+}
+
+void RenderView3D::CloseSelectRegion()
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    mri->CloseSurfaceRegion();
   }
 }
 

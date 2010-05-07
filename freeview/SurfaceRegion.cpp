@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 21:21:19 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/05/07 20:06:30 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,24 +46,35 @@ SurfaceRegion::SurfaceRegion()
   m_actorMesh = vtkSmartPointer<vtkActor>::New();
   m_actorMesh->GetProperty()->SetColor( 0, 0, 1 );
   m_actorMesh->GetProperty()->SetRepresentationToWireframe();
+  m_actorMesh->GetProperty()->SetLineWidth( 2 );
 
+  m_actorOutline = vtkSmartPointer<vtkActor>::New();
+  m_actorOutline->GetProperty()->SetColor( 0, 0, 1 );
+  m_actorOutline->GetProperty()->SetLineWidth( 3 );
+  
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_selector = vtkSmartPointer<vtkSelectPolyData>::New();
   m_selector->SetSelectionModeToSmallestRegion();
-  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  m_actorMesh->SetMapper( mapper );
-  m_selector->SetLoop( m_points );
-  vtkSmartPointer<vtkClipPolyData> clipper = vtkSmartPointer<vtkClipPolyData>::New();
-  clipper->SetInputConnection( m_selector->GetOutputPort() );
-  mapper->SetInputConnection( m_selector->GetOutputPort() );
-  RebuildActor();
 }
 
 SurfaceRegion::~SurfaceRegion()
 {}
 
-void SurfaceRegion::RebuildActor()
-{}
+void SurfaceRegion::RebuildOutline( bool bClose )
+{
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
+  lines->InsertNextCell( m_points->GetNumberOfPoints() + (bClose?1:0) );
+  for ( int i = 0; i < m_points->GetNumberOfPoints(); i++ )
+    lines->InsertCellPoint( i );
+  if ( bClose )
+    lines->InsertCellPoint( 0 );
+  polydata->SetPoints( m_points );
+  polydata->SetLines( lines );
+  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInput( polydata );
+  m_actorOutline->SetMapper( mapper );
+}
 
 void SurfaceRegion::SetInput( vtkPolyData* polydata )
 {
@@ -72,11 +83,21 @@ void SurfaceRegion::SetInput( vtkPolyData* polydata )
 
 void SurfaceRegion::AddPoint( double* pt )
 {
-  if ( m_points->GetNumberOfPoints() == 3 )
-    m_selector->SetLoop( m_points );
-  
   m_points->InsertNextPoint( pt );
-  m_points->Modified();
+  RebuildOutline( false );
+}
+
+void SurfaceRegion::Close()
+{
+  RebuildOutline( true );
+  if ( m_points->GetNumberOfPoints() > 3 )
+  {
+    m_selector->SetLoop( m_points );
+    vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInputConnection( m_selector->GetOutputPort() );
+    m_actorMesh->SetMapper( mapper );
+    m_points->Modified();
+  }
 }
 
 void SurfaceRegion::Update()
@@ -85,6 +106,7 @@ void SurfaceRegion::Update()
 void SurfaceRegion::AppendActor( vtkRenderer* renderer )
 {
   renderer->AddViewProp( m_actorMesh );
+  renderer->AddViewProp( m_actorOutline );
 }
 
 void SurfaceRegion::SetColor( const wxColour& color )
