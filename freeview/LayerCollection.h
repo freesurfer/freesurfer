@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:12 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/05/07 17:07:43 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,6 +59,8 @@ public:
 
   bool Contains( Layer* layer );
   bool IsEmpty();
+  
+  void ClearAll();
 
   void SetActiveLayer( Layer* layer );
   Layer* GetActiveLayer();

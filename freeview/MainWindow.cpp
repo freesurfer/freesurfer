@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:13 $
- *    $Revision: 1.110 $
+ *    $Date: 2010/05/07 17:07:43 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -472,12 +472,9 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 // frame destructor
 MainWindow::~MainWindow()
 {
-  m_viewAxial->Delete();
-  m_viewSagittal->Delete();
-  m_viewCoronal->Delete();
-  m_view3D->Delete();
-
-  delete m_layerCollectionManager;
+  for ( int i = 0; i < 4; i++ )
+    m_viewRender[i]->Delete();
+  
   delete m_luts;
   delete m_propertyBrush;
   if ( m_connectivity )
@@ -485,6 +482,8 @@ MainWindow::~MainWindow()
   
   if ( m_menuGotoPoints )
     delete m_menuGotoPoints;
+  
+  delete m_layerCollectionManager;
 }
 
 MainWindow* MainWindow::GetMainWindowPointer()

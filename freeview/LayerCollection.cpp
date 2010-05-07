@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:12 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/05/07 17:07:43 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,8 +45,7 @@ LayerCollection::LayerCollection( std::string strType) :
 
 LayerCollection::~LayerCollection()
 {
-  for ( size_t i = 0; i < m_layers.size(); i++ )
-    delete m_layers[i];
+  ClearAll();
 
   m_layers.clear();
 }
@@ -54,6 +53,14 @@ LayerCollection::~LayerCollection()
 bool LayerCollection::IsEmpty()
 {
   return m_layers.size() == 0;
+}
+
+void LayerCollection::ClearAll()
+{
+  while ( !IsEmpty() )
+  {
+    RemoveLayer( m_layers[0] );
+  }
 }
 
 int LayerCollection::GetLayerIndex( Layer* layer )
