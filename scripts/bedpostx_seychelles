@@ -193,7 +193,11 @@ mkdir -p ${subjdir}.bedpostX/xfms
 
 mailto=`whoami`@fmrib.ox.ac.uk
 echo Queuing preprocessing stages
-preprocid=`${BPDIR}/fsl_sub_seychelles -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
+if [ "x$mergeid" = "x" ] ; then
+    preprocid=`${BPDIR}/fsl_sub_seychelles -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
+else
+    preprocid=`${BPDIR}/fsl_sub_seychelles -j $mergeid -T 60 -m a -N bedpostx_pre -l ${subjdir}.bedpostX/logs ${FSLDIR}/bin/bedpostx_preproc.sh ${subjdir}`
+fi
 
 echo Queuing parallel processing stage
 nslices=`${FSLDIR}/bin/fslval ${subjdir}/data dim3`
