@@ -9,6 +9,7 @@ asegstats2table \
 aparcstatsdiff \
 asegstatsdiff \
 batchjobs \
+beta2sxa \
 bblabel \
 bbregister \
 biasfield \
