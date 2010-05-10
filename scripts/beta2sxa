@@ -1,10 +1,10 @@
 #!/bin/tcsh -f
 # thalseg
 
-set VERSION = '$Id: beta2sxa,v 1.1 2010/05/10 21:33:59 greve Exp $';
+set VERSION = '$Id: beta2sxa,v 1.2 2010/05/10 22:51:10 greve Exp $';
 
 set sxa = ();
-set beta = ();
+set betalist = ();
 set Nc = ();
 set Nper = ();
 set tmpdir = ();
@@ -50,6 +50,14 @@ echo $0 $inputargs | tee -a $LF
 echo "" | tee -a $LF
 cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
 uname -a  | tee -a $LF
+
+# ---------------------------------
+if($#betalist == 1) then
+  set beta = $betalist
+else
+  set beta = $tmpdir/beta.nii
+  mri_concat $betalist --o $beta
+endif
 
 # Number of expected frames
 set nbexp = `echo "$Nc*$Nper" | bc`
@@ -101,11 +109,29 @@ while ($r < $nbeta)
 end
 
 # ---------------------------------
+# This creates the "selavg" format used by Anders 
+# a billion years ago. z z b1 z b2 z b3 z ...
 rm -f $sxa
 set z = $tmpdir/z.nii
 mri_volsynth --template $beta --nframes $Nper \
   --pdf const --val-a 0 --o $z | tee -a $LF
 if($status) exit 1;
+
+set cclist = ($z $z)
+@ nthc = 0;
+while($nthc < $Nc)
+  @ nthc = $nthc + 1;
+  set n1 = `echo "($nthc-1)*$Nper" | bc`
+  set n2 = `echo "($nthc)*$Nper" | bc`
+  echo $nthc $n1 $n2
+  set betasub = $tmpdir/beta.sub.$nthc.nii
+  mri_convert $beta --fsubsample $n1 1 $n2 $betasub | tee -a $LF
+  set cclist = ($cclist $betasub $z)
+end
+mri_concat $cclist --o $sxa
+
+# old way ##############################################
+if(0) then
 mri_concat $z $z --o $sxa | tee -a $LF
 if($status) exit 1;
 @ nthc = 0;
@@ -122,6 +148,8 @@ while($nthc < $Nc)
   mri_concat $sxa $z --o $sxa | tee -a $LF
   if($status) exit 1;
 end
+endif
+###############################################
 
 if($cleanup) rm -rf $tmpdir
 
@@ -156,6 +184,7 @@ while( $#argv != 0 )
         echo "ERROR: cannot find $beta"
         exit 1;
       endif
+      set betalist = ($betalist $beta);
       breaksw
 
     case "--nc":
@@ -213,13 +242,13 @@ goto parse_args_return;
 check_params:
 
 if($#beta == 0) then
-  echo "ERROR: must spec sxa"
+  echo "ERROR: must spec input"
   exit 1;
 endif
 if($#sxa == 0) then
-  set betabase = `basename $beta`;
-  set betadir  = `dirname $beta`;
-  set betastem = `fname2stem $beta`;
+  set betabase = `basename $beta[1]`;
+  set betadir  = `dirname $beta[1]`;
+  set betastem = `fname2stem $beta[1]`;
   set betafmt  = `stem2fmt $betastem`;
   set sxa = $betadir/h.$betastem.$betafmt
   echo "Setting output to $sxa"
@@ -265,7 +294,9 @@ BEGINHELP
 
 This is a little script to create files that can be plotted in
 tkmedit or tksurfer by passing it as the -t option. This is
-convenient whenever your data is a table. 
+convenient whenever your data is a table. The output format
+is the the "selavg" format used by Anders a billion years ago. 
+z z b1 z b2 z b3 z ...
 
 Eg, 4 groups with 18 subjects per group are stored in a single file
 called data.nii. You would then run
@@ -278,4 +309,9 @@ then run
 tkmedit subject orig.mgz -reg register.dat -t h.data.nii
 tksurfer subject lh inflated -reg register.dat -t h.data.nii
 
+If the 4 groups with 18 subjects per group are stored in a different
+files the,
+
+beta2sxa --b data1.nii --b data2.nii --b data3.nii --b data4.nii \
+  --nc 4 --nper 18 --o h.data.nii
 
