@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 17:07:43 $
- *    $Revision: 1.111 $
+ *    $Date: 2010/05/10 21:11:36 $
+ *    $Revision: 1.112 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -3299,6 +3299,9 @@ void MainWindow::CommandSetDisplayIsoSurface( const wxArrayString& sa )
 
 void MainWindow::ContinueScripts()
 {
+  if ( m_bProcessing )
+    return;
+  
   // create a fake worker event to notify end of operation 
   // so scripts in queue will continue on
   wxCommandEvent event( wxEVT_COMMAND_MENU_SELECTED, ID_WORKER_THREAD );
@@ -3785,7 +3788,7 @@ void MainWindow::CommandLoadSurfaceVector( const wxArrayString& cmd )
 {
   LoadSurfaceVectorFile( cmd[1] );
   
-  ContinueScripts();
+  // do not run ContinueScripts() here because LoadSurfaceVectorFile calls worker thread.
 }
 
 void MainWindow::CommandLoadSurfaceCurvature( const wxArrayString& cmd )
