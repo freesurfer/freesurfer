@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:13 $
- *    $Revision: 1.70 $
+ *    $Date: 2010/05/10 21:45:09 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -445,6 +445,7 @@ private:
   void DoUpdateToolbars();
   void DoSaveScreenshot(); 
   void BuildGotoPointMenu( wxMenu* menu );
+  LayerCollection* GetCurrentLayerCollection();
 
   ControlPanel*       m_controlPanel;
   PixelInfoPanel*     m_pixelInfoPanel;

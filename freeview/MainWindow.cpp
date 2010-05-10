@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/10 21:11:36 $
- *    $Revision: 1.112 $
+ *    $Date: 2010/05/10 21:45:09 $
+ *    $Revision: 1.113 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1895,21 +1895,23 @@ void MainWindow::OnViewCoordinateUpdateUI( wxUpdateUIEvent& event )
   event.Check( m_viewAxial->GetShowCoordinateAnnotation() );
 }
 
-void MainWindow::OnViewCycleLayer( wxCommandEvent& event )
+LayerCollection* MainWindow::GetCurrentLayerCollection()
 {
   LayerCollection* lc = NULL;
-  switch ( m_controlPanel->GetCurrentLayerCollectionIndex() )
-  {
-  case 0:   // Volume
+  wxString name = m_controlPanel->GetCurrentLayerCollectionName();
+  if ( name == _("Volumes") )
     lc = GetLayerCollection( "MRI" );
-    break;
-  case 1:   // ROI
+  else if ( name == _("ROIs") )
     lc = GetLayerCollection( "ROI" );
-    break;
-  case 2:
+  else if ( name == _("Surfaces") )
     lc = GetLayerCollection( "Surface" );
-  }
+  
+  return lc;
+}
 
+void MainWindow::OnViewCycleLayer( wxCommandEvent& event )
+{
+  LayerCollection* lc = GetCurrentLayerCollection();
   if ( lc )
   {
     lc->CycleLayer();
@@ -1918,18 +1920,7 @@ void MainWindow::OnViewCycleLayer( wxCommandEvent& event )
 
 void MainWindow::OnViewReverseCycleLayer( wxCommandEvent& event )
 {
-  LayerCollection* lc = NULL;
-  switch ( m_controlPanel->GetCurrentLayerCollectionIndex() )
-  {
-    case 0:   // Volume
-      lc = GetLayerCollection( "MRI" );
-      break;
-      case 1:   // ROI
-        lc = GetLayerCollection( "ROI" );
-        break;
-    case 2:
-      lc = GetLayerCollection( "Surface" );
-  }
+  LayerCollection* lc = GetCurrentLayerCollection();
 
   if ( lc )
   {
@@ -1939,20 +1930,7 @@ void MainWindow::OnViewReverseCycleLayer( wxCommandEvent& event )
 
 void MainWindow::OnViewCycleLayerUpdateUI( wxUpdateUIEvent& event )
 {
-  LayerCollection* lc = NULL;
-  switch ( m_controlPanel->GetCurrentLayerCollectionIndex() )
-  {
-  case 0:   // Volume
-    lc = GetLayerCollection( "MRI" );
-    break;
-  case 1:   // ROI
-    lc = GetLayerCollection( "ROI" );
-    break;
-  case 2:   // surface
-    lc = GetLayerCollection( "Surface" );
-    break;
-  }
-
+  LayerCollection* lc = GetCurrentLayerCollection();
   event.Enable( lc && lc->GetNumberOfLayers() > 1 );
 }
 
