@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/28 19:11:38 $
- *    $Revision: 1.366 $
+ *    $Date: 2010/05/10 19:14:52 $
+ *    $Revision: 1.367 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -10673,7 +10673,7 @@ static int niftiSformToMri(MRI *mri, struct nifti_1_header *hdr)
   sform->rptr[1][4] = hdr->srow_x[3];  
   sform->rptr[2][4] = hdr->srow_y[3];  
   sform->rptr[3][4] = hdr->srow_z[3];  
-  MatrixPrint(stdout,sform);
+  //MatrixPrint(stdout,sform);
   err = MRIsetVox2RASFromMatrix(mri, sform);
   MatrixFree(&sform);
   return(err);
