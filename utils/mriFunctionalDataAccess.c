@@ -6,9 +6,9 @@
 /*
  * Original Author: inverse
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:42 $
- *    $Revision: 1.52 $
+ *    $Author: greve $
+ *    $Date: 2010/05/10 21:05:38 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,7 @@
 #include "macros.h"
 #include "error.h"
 #include "mri2.h"
+#include "mri_identify.h"
 
 #ifndef min
 #define min(x,y) (x<y?x:y)
@@ -341,11 +342,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
 
   FunD_tErr eResult        = FunD_tErr_NoError;
   tBoolean  bFoundFile = FALSE;
-  char      sFileName[FunD_knPathLen] = "";
-  char      sMRIFileName[FunD_knPathLen] = "";
-  char*     pBaseEnd = NULL;
-  char*     pCurChar = NULL;
-
+  char      sFileName[FunD_knPathLen] = "",*ptmp;
   float     fPreStimSecs   = 0;
   FILE*     pHeader        = NULL;
   tBoolean  bGood          = FALSE;
@@ -377,74 +374,18 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
   DebugNote( ("Checking parameters") );
   DebugAssertThrowX( (NULL != this), eResult, FunD_tErr_InvalidParameter );
 
-  /* Try to guess one from the file name. Try to guess the name --
-     take everything up to the last underscore and then add the
-     suffix. */
-
-  /* Copy the name into a new buffer. Start at the beginning and go
-     through the chars, looking for the last _ */
-  xUtil_strncpy( sMRIFileName, this->msFileName, sizeof(sMRIFileName) );
-  pCurChar = sMRIFileName;
-  pBaseEnd = pCurChar;
-  while ( NULL != pCurChar && *pCurChar != '\0' )
-  {
-    if ( '_' == *pCurChar )
-    {
-      pBaseEnd = pCurChar;
-    }
-    pCurChar++;
-  }
-
-  /* Set this to null char, terminating the string. Then use this
-     string and the header suffix to build the header file name. */
-  *pBaseEnd = '\0';
-  xUtil_snprintf( sFileName, FunD_knPathLen,
-                  "%s.%s", sMRIFileName, FunD_ksStemHeaderSuffix );
-
+  // Get the name of any .dat file
+  ptmp = IDstemFromName(this->msFileName);
+  sprintf(sFileName,"%s.dat",ptmp);
+  free(ptmp);
   /* Try to open it. */
+  printf("tkmedit: Trying to open %s\n", sFileName);
   DebugNote( ("Trying to open %s", sFileName) );
   pHeader = fopen( sFileName, "r" );
-  if ( NULL != pHeader )
-  {
+  if ( NULL != pHeader ){
     fclose( pHeader );
     bFoundFile = TRUE;
   }
-
-  /* One more guess. Take everything up to the last dot and then add
-     the suffix. */
-  if ( !bFoundFile )
-  {
-
-    /* Copy the name into a new buffer. Start at the beginning and go
-       through the chars, looking for the last . */
-    xUtil_strncpy( sMRIFileName, this->msFileName, sizeof(sMRIFileName) );
-    pCurChar = sMRIFileName;
-    pBaseEnd = pCurChar;
-    while ( NULL != pCurChar && *pCurChar != '\0' )
-    {
-      if ( '.' == *pCurChar )
-      {
-        pBaseEnd = pCurChar;
-      }
-      pCurChar++;
-    }
-
-    /* Set this to null char, terminating the string. Then use this
-       string and the header suffix to build the header file name. */
-    *pBaseEnd = '\0';
-    xUtil_snprintf( sFileName, FunD_knPathLen,
-                    "%s.%s", sMRIFileName, FunD_ksStemHeaderSuffix );
-
-    /* Try to open it. */
-    DebugNote( ("Trying to open %s", sFileName) );
-    pHeader = fopen( sFileName, "r" );
-    if ( NULL != pHeader )
-    {
-      fclose( pHeader );
-      bFoundFile = TRUE;
-    }
-  }
-
   /* Bail if no file. */
   DebugAssertQuietThrowX( (bFoundFile), eResult, FunD_tErr_HeaderNotFound );
 
@@ -502,14 +443,6 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
       bGood = (1 == nValuesRead);
       bSomethingRead = TRUE;
     }
-    else if ( strcmp( sKeyword, "Npercond" ) == 0 )
-    {
-      DebugNote( ("Reading Npercond") );
-      nNumValues = this->mNumConditions;
-      for ( nValue = 0; nValue < nNumValues; nValue++ )
-        fscanf( pHeader, "%*d" );
-      bSomethingRead = TRUE;
-    }
     else if ( strcmp( sKeyword, "SumXtX" ) == 0 )
     {
       DebugNote( ("Reading SumXtX") );
@@ -520,7 +453,6 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
     }
     else if ( strcmp( sKeyword, "hCovMtx" ) == 0 )
     {
-
       /* Allocate the covariance matrix. It's the size of the number
          of time points times conditions (minus null condition) on both
          sides. */
