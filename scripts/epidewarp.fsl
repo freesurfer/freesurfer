@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/02/26 23:50:32 $
-#    $Revision: 1.39 $
+#    $Date: 2010/05/10 03:49:56 $
+#    $Revision: 1.40 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.39 2010/02/26 23:50:32 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.40 2010/05/10 03:49:56 greve Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -166,25 +166,36 @@ if(! -e $exf) then
 endif
 
 if($UseComplex) then
+  mri_convert $real1 $tmpdir/real1.nii
+  mri_convert $imag1 $tmpdir/imag1.nii
+  mri_convert $real2 $tmpdir/real2.nii
+  mri_convert $imag2 $tmpdir/imag2.nii
+
+  if(0) then
   # construct complex of 1st echo
   set complex1 = $tmpdir/complex1
   set cmd = ("$FSLPre"complex -complex $real1 $imag1 $complex1);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-
   # construct complex of 2nd echo
   set complex2 = $tmpdir/complex2
   set cmd = ("$FSLPre"complex -complex $real2 $imag2 $complex2);
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
-
   # construct mag from 1st echo
   set mag = $tmpdir/mag.$ext
   set cmd = ("$FSLPre"complex -realabs $complex1 $mag)
   $cmd |& tee -a $LF
   if($status) exit 1;
+  endif
+
+  set mag = $tmpdir/mag.$ext
+  set cmd = (mris_calc -o $mag $real1 mag $imag1)
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
 else
   # Keep only the first frame from mag
   set cmd = ("$FSLPre"roi $mag $tmpdir/mag 0 1)
