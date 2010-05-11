@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/04/15 15:34:44 $
-#    $Revision: 1.311 $
+#    $Date: 2010/05/11 20:43:42 $
+#    $Revision: 1.312 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.311 2010/04/15 15:34:44 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.312 2010/05/11 20:43:42 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -673,7 +673,7 @@ if($DoCleanXopts) then
   if($RunIt) $cmd  |& tee -a $LF
 endif   
 
-#------------ Handle Seed Points for Fill/Cut ------------------#
+#------------ Handle Seed Points for Fill/Cut, and Watershed ---------------#
 set seedfile = $subjdir/scripts/seed-pons.crs.man.dat
 if($#PonsSeedCRS) then
   echo "# Manually specified seed CRS for Pons" > $seedfile
@@ -698,6 +698,13 @@ if($#RHSeedCRS) then
   echo $RHSeedCRS >>  $seedfile
 endif
 if(-e $seedfile) set RHSeedCRS = `cat $seedfile | grep -v \#`
+
+set seedfile = $subjdir/scripts/seed-ws.crs.man.dat
+if($#WSSeedPoint) then
+  echo "# Manually specified seed CRS for watershed" > $seedfile
+  echo $WSSeedPoint >>  $seedfile
+endif
+if(-e $seedfile) set WSSeedPoint = `cat $seedfile | grep -v \#`
 
 #------------ Control Points for Intensity Normalization ------------------#
 set ControlPointsFile = $subjdir/tmp/control.dat
@@ -746,6 +753,13 @@ if($DoShowEdits) then
   if($#RHSeedCRS) then
     @ edit_count = $edit_count + 1;    
     echo "Manually specified seed CRS for RH in file $seedfile" |& tee -a $LF
+  endif
+
+  set seedfile = $subjdir/scripts/seed-ws.crs.man.dat
+  if($#WSSeedPoint) then
+    @ edit_count = $edit_count + 1;    
+    echo "Manually specified seed CRS for watershed in file $seedfile" \
+        |& tee -a $LF
   endif
 
   # expert opts
