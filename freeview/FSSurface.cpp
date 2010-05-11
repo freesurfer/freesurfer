@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:12 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/05/11 21:10:47 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -656,23 +656,58 @@ void FSSurface::UpdateVectors()
 
 void FSSurface::UpdateVector2D( int nPlane, double slice_pos )
 {
-  double tolerance = 0.1;
   if ( HasVectorSet() && m_nActiveVector >= 0 )
   {
     VertexItem* vectors = m_vertexVectors[m_nActiveVector].data;
     int cVertices = m_MRIS->nvertices;
+    int cFaces = m_MRIS->nfaces;
+    // first figure out what vertices crossing the plane
+    unsigned char* mask = new unsigned char[cVertices];
+    memset( mask, 0, cVertices );
+    float pt_a[3], pt_b[3];
+    for ( int fno = 0; fno < cFaces; fno++ )
+    {
+      if ( m_MRIS->faces[fno].ripflag == 0 )
+      {
+        int* np = m_MRIS->faces[fno].v;
+        int lines[3][2] = { {np[0], np[1]}, {np[1], np[2]}, {np[2], np[0]} };
+        for ( int i = 0; i < 3; i++ )
+        {
+          pt_a[0] = m_fVertexSets[m_nActiveSurface][lines[i][0]].x;
+          pt_a[1] = m_fVertexSets[m_nActiveSurface][lines[i][0]].y;
+          pt_a[2] = m_fVertexSets[m_nActiveSurface][lines[i][0]].z;
+          pt_b[0] = m_fVertexSets[m_nActiveSurface][lines[i][1]].x;
+          pt_b[1] = m_fVertexSets[m_nActiveSurface][lines[i][1]].y;
+          pt_b[2] = m_fVertexSets[m_nActiveSurface][lines[i][1]].z;
+          this->ConvertSurfaceToRAS( pt_a, pt_a );
+          this->ConvertSurfaceToRAS( pt_b, pt_b );
+          if ( m_volumeRef )
+          {
+            m_volumeRef->RASToTarget( pt_a, pt_a );
+            m_volumeRef->RASToTarget( pt_b, pt_b );
+          }
+          if ( (pt_a[nPlane] >= slice_pos && pt_b[nPlane] <= slice_pos) ||
+                (pt_a[nPlane] <= slice_pos && pt_b[nPlane] >= slice_pos) )
+          {
+            mask[lines[i][0]] = 1;
+            mask[lines[i][1]] = 1;
+          }
+        }
+      }  
+    }
+    
+    // build vector actor
     vtkPoints* oldPoints = m_polydata->GetPoints();
-    float point[3], surfaceRAS[3];
     vtkIdType n = 0;
+    float point[3], surfaceRAS[3];
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
     for ( int vno = 0; vno < cVertices; vno++ )
     {
-      double* old_pt = oldPoints->GetPoint( vno );
-      if ( fabs( old_pt[nPlane] - slice_pos ) <= tolerance &&
-           ( vectors[vno].x != 0 || vectors[vno].y != 0 || vectors[vno].z != 0 ) )
+      if ( mask[vno] )
       {
+        double* old_pt = oldPoints->GetPoint( vno );
         surfaceRAS[0] = m_fVertexSets[m_nActiveSurface][vno].x + vectors[vno].x;
         surfaceRAS[1] = m_fVertexSets[m_nActiveSurface][vno].y + vectors[vno].y;
         surfaceRAS[2] = m_fVertexSets[m_nActiveSurface][vno].z + vectors[vno].z;
@@ -693,6 +728,7 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos )
     m_polydataVector2D[nPlane]->SetPoints( points );
     m_polydataVector2D[nPlane]->SetLines( lines );
     m_polydataVector2D[nPlane]->SetVerts( verts );
+    delete[] mask;
   }  
 }
 
@@ -774,10 +810,6 @@ void FSSurface::NormalFace(int fac, int n, float *norm)
   norm[0] = -v1[1]*v0[2] + v0[1]*v1[2];
   norm[1] = v1[0]*v0[2] - v0[0]*v1[2];
   norm[2] = -v1[0]*v0[1] + v0[0]*v1[1];
-  /*
-  printf("[%5.2f,%5.2f,%5.2f] x [%5.2f,%5.2f,%5.2f] = [%5.2f,%5.2f,%5.2f]\n",
-  v0[0],v0[1],v0[2],v1[0],v1[1],v1[2],norm[0],norm[1],norm[2]);
-  */
 }
 
 float FSSurface::TriangleArea(int fac, int n)
