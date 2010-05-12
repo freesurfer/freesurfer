@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:12 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/05/12 17:27:04 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -690,6 +690,7 @@ void LayerSurface::SetActiveVector( int nVector )
 {
   if ( m_surfaceSource && m_surfaceSource->SetActiveVector( nVector ) )
   {
+    UpdateVectorActor2D();
     SetVisible( IsVisible() );  // refresh visibility
   }
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/11 21:10:47 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/05/12 17:27:04 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -610,6 +610,7 @@ void FSSurface::UpdateVerticesAndNormals()
   m_polydata->GetPointData()->SetNormals( newNormals );
   m_polydataVertices->SetPoints( newPoints );
   m_polydataWireframes->SetPoints( newPoints );
+  m_polydata->Update();
 
   // if vector data exist
   UpdateVectors();
@@ -661,31 +662,22 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos )
     VertexItem* vectors = m_vertexVectors[m_nActiveVector].data;
     int cVertices = m_MRIS->nvertices;
     int cFaces = m_MRIS->nfaces;
+    
     // first figure out what vertices crossing the plane
     unsigned char* mask = new unsigned char[cVertices];
-    memset( mask, 0, cVertices );
-    float pt_a[3], pt_b[3];
+    memset( mask, 0, cVertices ); 
+    vtkPoints* oldPoints = m_polydata->GetPoints();
+    double pt_a[3], pt_b[3];
     for ( int fno = 0; fno < cFaces; fno++ )
     {
       if ( m_MRIS->faces[fno].ripflag == 0 )
       {
         int* np = m_MRIS->faces[fno].v;
-        int lines[3][2] = { {np[0], np[1]}, {np[1], np[2]}, {np[2], np[0]} };
+        vtkIdType lines[3][2] = { {np[0], np[1]}, {np[1], np[2]}, {np[2], np[0]} };
         for ( int i = 0; i < 3; i++ )
         {
-          pt_a[0] = m_fVertexSets[m_nActiveSurface][lines[i][0]].x;
-          pt_a[1] = m_fVertexSets[m_nActiveSurface][lines[i][0]].y;
-          pt_a[2] = m_fVertexSets[m_nActiveSurface][lines[i][0]].z;
-          pt_b[0] = m_fVertexSets[m_nActiveSurface][lines[i][1]].x;
-          pt_b[1] = m_fVertexSets[m_nActiveSurface][lines[i][1]].y;
-          pt_b[2] = m_fVertexSets[m_nActiveSurface][lines[i][1]].z;
-          this->ConvertSurfaceToRAS( pt_a, pt_a );
-          this->ConvertSurfaceToRAS( pt_b, pt_b );
-          if ( m_volumeRef )
-          {
-            m_volumeRef->RASToTarget( pt_a, pt_a );
-            m_volumeRef->RASToTarget( pt_b, pt_b );
-          }
+          oldPoints->GetPoint( lines[i][0], pt_a );
+          oldPoints->GetPoint( lines[i][1], pt_b );
           if ( (pt_a[nPlane] >= slice_pos && pt_b[nPlane] <= slice_pos) ||
                 (pt_a[nPlane] <= slice_pos && pt_b[nPlane] >= slice_pos) )
           {
@@ -697,7 +689,6 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos )
     }
     
     // build vector actor
-    vtkPoints* oldPoints = m_polydata->GetPoints();
     vtkIdType n = 0;
     float point[3], surfaceRAS[3];
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
