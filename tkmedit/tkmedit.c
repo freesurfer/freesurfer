@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/27 01:00:40 $
- *    $Revision: 1.340 $
+ *    $Author: greve $
+ *    $Date: 2010/05/13 19:34:35 $
+ *    $Revision: 1.341 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -34,7 +34,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.340 $";
+char *VERSION = "$Revision: 1.341 $";
 
 #define TCL
 #define TKMEDIT
@@ -1190,7 +1190,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.340 2010/02/27 01:00:40 nicks Exp $",
+     "$Id: tkmedit.c,v 1.341 2010/05/13 19:34:35 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -2577,7 +2577,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
 	      //	    printf("Setting subject to %s\n",sSubject);
 	      sprintf(tmpstr,"%s/%s",getenv("SUBJECTS_DIR"),sSubject);
 	      if(!fio_FileExistsReadable(tmpstr)){
-		printf("ERROR: cannot find subject %s in %s\n",sSubject,getenv("SUBJECTS_DIR"));
+		printf("ERROR: cannot find subject %s in %s or it is not readable by you\n",
+		       sSubject,getenv("SUBJECTS_DIR"));
 		exit(1);
 	      }
             } else {
@@ -5912,7 +5913,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.340 2010/02/27 01:00:40 nicks Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.341 2010/05/13 19:34:35 greve Exp $ $Name:  $\n"
         )
       );
 
