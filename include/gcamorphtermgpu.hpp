@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/05/14 16:37:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/05/14 17:50:11 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,12 +51,23 @@ namespace GPU {
       //! Routine to print timing information to std.out
       static void ShowTimings( void );
 
+
+      //! Computes the smoothness term
+      void Smoothness( GPU::Classes::GCAmorphGPU& gcam,
+		       const float l_smoothness ) const;
+
       // ######################################################
     private:
 
       //! Stream to use for operations
       cudaStream_t stream;
 
+      //! Timer for smoothness term
+      static SciGPU::Utilities::Chronometer tSmoothTot;
+      //! Timer for smoothness term subtraction
+      static SciGPU::Utilities::Chronometer tSmoothSubtract;
+      //! Timer for smoothness computation itself
+      static SciGPU::Utilities::Chronometer tSmoothCompute;
     };
 
   }
