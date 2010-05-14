@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 20:06:30 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/05/14 18:04:58 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,6 +39,7 @@
 #include "vtkSelectPolyData.h"
 #include "vtkProperty.h"
 #include "vtkClipPolyData.h"
+#include "vtkBox.h"
 #include "MyUtils.h"
 
 SurfaceRegion::SurfaceRegion()
@@ -55,6 +56,13 @@ SurfaceRegion::SurfaceRegion()
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_selector = vtkSmartPointer<vtkSelectPolyData>::New();
   m_selector->SetSelectionModeToSmallestRegion();
+  
+  m_clipbox = vtkSmartPointer<vtkBox>::New();
+  m_clipper = vtkSmartPointer<vtkClipPolyData>::New();
+  m_clipper->SetClipFunction( m_clipbox );
+//  m_clipper->GenerateClippedOutputOn();
+  m_clipper->InsideOutOn();
+  m_selector->SetInputConnection( m_clipper->GetOutputPort() );
 }
 
 SurfaceRegion::~SurfaceRegion()
@@ -74,11 +82,13 @@ void SurfaceRegion::RebuildOutline( bool bClose )
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   mapper->SetInput( polydata );
   m_actorOutline->SetMapper( mapper );
+  m_actorOutline->SetVisibility( bClose ? 0 : 1 );
 }
 
 void SurfaceRegion::SetInput( vtkPolyData* polydata )
 {
-  m_selector->SetInput( polydata );
+  m_clipper->SetInput( polydata );
+  m_clipbox->SetBounds( polydata->GetBounds() );
 }
 
 void SurfaceRegion::AddPoint( double* pt )
@@ -92,6 +102,19 @@ void SurfaceRegion::Close()
   RebuildOutline( true );
   if ( m_points->GetNumberOfPoints() > 3 )
   {
+    double bounds[6], cpt[3], len = 0;
+    vtkPolyDataMapper::SafeDownCast( m_actorOutline->GetMapper() )->GetInput()->GetBounds( bounds );
+    for ( int i = 0; i < 3; i++ )
+    {
+      cpt[i] = (bounds[i*2+1] + bounds[i*2]) / 2.0;
+      len += (bounds[i*2+1] - bounds[i*2]);
+    }
+    for ( int i = 0; i < 3; i++ )
+    {
+      bounds[i*2] = cpt[i] - len/2.0;
+      bounds[i*2+1] = cpt[i] + len/2.0;
+    }
+    m_clipbox->SetBounds( bounds );
     m_selector->SetLoop( m_points );
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputConnection( m_selector->GetOutputPort() );

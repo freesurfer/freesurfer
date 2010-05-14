@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 20:06:30 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/05/14 18:04:58 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,14 +59,14 @@ bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
   {
     m_bWindowLevel = true;
   }
+  else if ( view->GetHighlightedSlice() >= 0 )
+  {
+    m_bMoveSlice = true;
+  }
   else if ( event.ControlDown() && event.LeftDown() )
   {
     if ( view->InitializeSelectRegion( event.GetX(), event.GetY() ) )
       m_bSelectRegion = true;
-  }
-  else if ( view->GetHighlightedSlice() >= 0 )
-  {
-    m_bMoveSlice = true;
   }
   else
   {
@@ -192,7 +192,7 @@ bool Interactor3D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
   {
     view->MoveRight();
   }
-  else if ( nKeyCode == 'R' || nKeyCode == 'F' )// || nKeyCode == 'S' || nKeyCode == 'W' )
+  else if ( nKeyCode == 'R' || nKeyCode == 'F' || nKeyCode == 'S' || nKeyCode == 'W' )
   {
     // do nothing, just intercept these keycodes
   }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:13 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/05/14 18:04:58 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -80,6 +80,7 @@
 #include <vtkImageChangeInformation.h>
 #include <vtkImageAnisotropicDiffusion2D.h>
 #include <vtkImageGaussianSmooth.h>
+#include <vtkImageClip.h>
 #include "vtkDijkstraImageGeodesicPath.h"
 
 extern "C"
@@ -646,12 +647,21 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
 */
 bool MyUtils::BuildContourActor( vtkImageData* data_in, 
                                  double dTh1, double dTh2, 
-                                 vtkActor* actor_out )
+                                 vtkActor* actor_out, int* ext )
 {
   double nValue = 1;
   int nSwell = 2;
   vtkSmartPointer<vtkImageThreshold> threshold = vtkSmartPointer<vtkImageThreshold>::New();
-  threshold->SetInput( data_in );
+  
+  if ( ext )
+  {
+    vtkSmartPointer<vtkImageClip> clipper = vtkSmartPointer<vtkImageClip>::New();
+    clipper->SetInput( data_in );
+    clipper->SetOutputWholeExtent( ext );
+    threshold->SetInputConnection( clipper->GetOutputPort() );
+  }
+  else
+    threshold->SetInput( data_in );
   threshold->ThresholdBetween( dTh1, dTh2 );
   threshold->ReplaceOutOn();
   threshold->SetOutValue( 0 );
@@ -668,10 +678,20 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   erode->SetDilateValue(0);
   erode->SetErodeValue(nValue);
   // end of dilate/erode
-
-  vtkSmartPointer<vtkMarchingContourFilter> contour = vtkSmartPointer<vtkMarchingContourFilter>::New();
-  contour->SetInputConnection(threshold->GetOutputPort());
-  contour->SetValue(0, dTh1-0.00000001);
+ 
+  vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
+//  contour->SetInputConnection( threshold->GetOutputPort());
+  if ( ext )
+  {
+    vtkSmartPointer<vtkImageClip> clipper = vtkSmartPointer<vtkImageClip>::New();
+    clipper->SetInput( data_in );
+    clipper->SetOutputWholeExtent( ext );
+    contour->SetInputConnection( clipper->GetOutputPort() );
+  }
+  else
+    contour->SetInput( data_in );
+  contour->SetValue(0, dTh1);
+  /*
   contour->Update();
   vtkPolyData* polydata = contour->GetOutput();
   polydata->Update();
@@ -683,10 +703,10 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
     mapper->SetInput( polydata );
     ret = false;
   }
-  else
+  else*/
   {
     vtkSmartPointer<vtkPolyDataConnectivityFilter> conn = vtkSmartPointer<vtkPolyDataConnectivityFilter>::New();
-    conn->SetInput( polydata );
+    conn->SetInputConnection( contour->GetOutputPort() );
     conn->SetExtractionModeToLargestRegion();
     vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
     smoother->SetInputConnection( conn->GetOutputPort() );
@@ -695,16 +715,16 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
 //    smoother->SetEdgeAngle( 90 );
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
     vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
-    normals->SetInputConnection( stripper->GetOutputPort() );
+    stripper->SetInputConnection( normals->GetOutputPort() );
+    normals->SetInputConnection( conn->GetOutputPort() );
 //    normals->SetInput( polydata );
-    normals->SetFeatureAngle( 90 );
-    stripper->SetInputConnection( smoother->GetOutputPort() );
+    normals->SetFeatureAngle( 60 );
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
-    mapper->SetInputConnection(normals->GetOutputPort());
+    mapper->SetInputConnection( stripper->GetOutputPort() );
     mapper->ScalarVisibilityOn();
   }
 
-  return ret;
+  return true;
 }
 
 bool MyUtils::BuildVolume( vtkImageData* data_in, 

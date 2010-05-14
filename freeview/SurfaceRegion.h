@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 20:06:30 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/05/14 18:04:58 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -36,6 +36,8 @@ class vtkActor;
 class vtkPolyData;
 class vtkPoints;
 class vtkSelectPolyData;
+class vtkBox;
+class vtkClipPolyData;
 class RenderView3D;
 
 class SurfaceRegion
@@ -62,10 +64,12 @@ public:
 private:
   void RebuildOutline( bool bClose );
 
-  vtkSmartPointer<vtkActor> m_actorMesh;
-  vtkSmartPointer<vtkActor> m_actorOutline;
+  vtkSmartPointer<vtkActor>   m_actorMesh;
+  vtkSmartPointer<vtkActor>   m_actorOutline;
   vtkSmartPointer<vtkPoints>  m_points;
   
+  vtkSmartPointer<vtkBox>     m_clipbox;
+  vtkSmartPointer<vtkClipPolyData>    m_clipper;
   vtkSmartPointer<vtkSelectPolyData>  m_selector;
 };
 

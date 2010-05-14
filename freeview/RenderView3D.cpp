@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 20:06:30 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/05/14 18:04:58 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -291,13 +291,10 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         prop = props->GetNextProp();
       }
     }
-    
-    if ( lc_surface->IsEmpty() )
+    // add bounding box for slice frame picking
+    for ( int i = 0; i < 3; i++ )
     {
-      for ( int i = 0; i < 3; i++ )
-      {
-        picker->AddPickList( m_actorSliceBoundingBox[i] );
-      }
+      picker->AddPickList( m_actorSliceBoundingBox[i] );
     }
     
     double pos[3];
@@ -305,90 +302,90 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
     picker->GetPickPosition( pos );
 
     vtkProp* prop = picker->GetViewProp();
-    if ( !lc_surface->IsEmpty() && !lc_surface->HasProp( prop ) )
-    {
-      for ( int i = 0; i < 3; i++ )
-      {
-        picker->AddPickList( m_actorSliceBoundingBox[i] );
-      }
-      
-      picker->Pick( posX, GetClientSize().GetHeight() - posY, 0, GetRenderer() );
-      picker->GetPickPosition( pos );
-      prop = picker->GetViewProp();
-    }     
     if ( !prop )
     {
       HighlightSliceFrame( -1 );
       return;
     }
     
-    // cout << pos[0] << " " << pos[1] << " " << pos[2] << ",   " << prop << endl;
-    if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) || lc_surface->HasProp( prop ) )
+    // check slice frame selection first
+    bool bFramePicked = false;
+    double tolerance = m_dBoundingTolerance * 1.414;
+    for ( int i = 0; i < 3; i++ )
     {
-      if ( bCursor )
+      if ( m_actorSliceBoundingBox[i].GetPointer() == prop )
       {
-        lc_mri->SetCursorRASPosition( pos );
-        MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->SetSlicePosition( pos );
-      }
-      else
-        lc_mri->SetCurrentRASPosition( pos );
-      
-      HighlightSliceFrame( -1 );
-    }
-    else
-    {
-      // check slice frame selection
-      double tolerance = m_dBoundingTolerance * 1.414;
-      for ( int i = 0; i < 3; i++ )
-      {
-        if ( m_actorSliceBoundingBox[i].GetPointer() == prop )
+        if ( fabs( pos[0] - m_dBounds[0] ) < tolerance ||
+             fabs( pos[0] - m_dBounds[1] ) < tolerance ||
+             fabs( pos[1] - m_dBounds[2] ) < tolerance ||
+             fabs( pos[1] - m_dBounds[3] ) < tolerance ||
+             fabs( pos[2] - m_dBounds[4] ) < tolerance ||
+             fabs( pos[2] - m_dBounds[5] ) < tolerance 
+           )
         {
-          if ( fabs( pos[0] - m_dBounds[0] ) < tolerance ||
-               fabs( pos[0] - m_dBounds[1] ) < tolerance ||
-               fabs( pos[1] - m_dBounds[2] ) < tolerance ||
-               fabs( pos[1] - m_dBounds[3] ) < tolerance ||
-               fabs( pos[2] - m_dBounds[4] ) < tolerance ||
-               fabs( pos[2] - m_dBounds[5] ) < tolerance 
-             )
+          // 3D hit test passed, now we check screen distance
+          double screen_pt[3];
+          double screen_pts[4][3];
+          int x, y;
+          this->WorldToScreen( pos[0], pos[1], pos[2], x, y );
+          screen_pt[0] = x;
+          screen_pt[1] = y;
+          screen_pt[2] = 0;
+          vtkPoints* pts = vtkPolyDataMapper::SafeDownCast( m_actorSliceFrames[i]->GetMapper() )->GetInput()->GetPoints();
+          for ( int j = 0; j < 4; j++ )
           {
-            // 3D hit test passed, now we check screen distance
-            double screen_pt[3];
-            double screen_pts[4][3];
-            int x, y;
-            this->WorldToScreen( pos[0], pos[1], pos[2], x, y );
-            screen_pt[0] = x;
-            screen_pt[1] = y;
-            screen_pt[2] = 0;
-            vtkPoints* pts = vtkPolyDataMapper::SafeDownCast( m_actorSliceFrames[i]->GetMapper() )->GetInput()->GetPoints();
-            for ( int j = 0; j < 4; j++ )
-            {
-              double* p = pts->GetPoint( j );
-              this->WorldToScreen( p[0], p[1], p[2], x, y );
-              screen_pts[j][0] = x;
-              screen_pts[j][1] = y;
-              screen_pts[j][2] = 0;
-            }
-            int ids[4][2] = { {0, 1}, {1, 2}, {2, 3}, {3, 0} };
-            double dMinDist = 1000000000;
-            for ( int j = 0; j < 4; j++ )
-            {
-              double dist = vtkLine::DistanceToLine( screen_pt, screen_pts[ids[j][0]], screen_pts[ids[j][1]]);
-              if ( dist < dMinDist )
-                dMinDist = dist;
-            }
-            if ( dMinDist < SLICE_PICKER_PIXEL_TOLERANCE )
-            {          
-              HighlightSliceFrame( i );
-              m_dIntersectPoint[0] = pos[0];
-              m_dIntersectPoint[1] = pos[1];            
-              m_dIntersectPoint[2] = pos[2];
-              return;
-            }
+            double* p = pts->GetPoint( j );
+            this->WorldToScreen( p[0], p[1], p[2], x, y );
+            screen_pts[j][0] = x;
+            screen_pts[j][1] = y;
+            screen_pts[j][2] = 0;
+          }
+          int ids[4][2] = { {0, 1}, {1, 2}, {2, 3}, {3, 0} };
+          double dMinDist = 1000000000;
+          for ( int j = 0; j < 4; j++ )
+          {
+            double dist = vtkLine::DistanceToLine( screen_pt, screen_pts[ids[j][0]], screen_pts[ids[j][1]]);
+            if ( dist < dMinDist )
+              dMinDist = dist;
+          }
+          if ( dMinDist < SLICE_PICKER_PIXEL_TOLERANCE )
+          {          
+            HighlightSliceFrame( i );
+            m_dIntersectPoint[0] = pos[0];
+            m_dIntersectPoint[1] = pos[1];            
+            m_dIntersectPoint[2] = pos[2];
+            bFramePicked = true;
+            break;
           }
         }
       }
-      
-      // no frame was picked
+    }
+  
+    if ( !bFramePicked )
+    {
+      if ( !lc_surface->IsEmpty() && !lc_surface->HasProp( prop ) )
+      {
+        for ( int i = 0; i < 3; i++ )
+        {
+          picker->DeletePickList( m_actorSliceBoundingBox[i] );
+        }
+        
+        picker->Pick( posX, GetClientSize().GetHeight() - posY, 0, GetRenderer() );
+        picker->GetPickPosition( pos );
+        prop = picker->GetViewProp();
+      }    
+        
+      if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) || lc_surface->HasProp( prop ) )
+      {
+        if ( bCursor )
+        {
+          lc_mri->SetCursorRASPosition( pos );
+          MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->SetSlicePosition( pos );
+        }
+        else
+          lc_mri->SetCurrentRASPosition( pos );
+      }
+        
       HighlightSliceFrame( -1 );
     }
   }
@@ -652,7 +649,7 @@ void RenderView3D::UpdateSliceFrames()
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
-  polydata->SetPolys( polys );
+//  polydata->SetPolys( polys );
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[0]->GetMapper())->SetInput( polydata );
   
   points = vtkSmartPointer<vtkPoints>::New();
@@ -663,7 +660,7 @@ void RenderView3D::UpdateSliceFrames()
   polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
-  polydata->SetPolys( polys );
+//  polydata->SetPolys( polys );
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[1]->GetMapper())->SetInput( polydata );
   
   points = vtkSmartPointer<vtkPoints>::New();
@@ -674,7 +671,7 @@ void RenderView3D::UpdateSliceFrames()
   polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetLines( lines );
-  polydata->SetPolys( polys );
+//  polydata->SetPolys( polys );
   vtkPolyDataMapper::SafeDownCast(m_actorSliceFrames[2]->GetMapper())->SetInput( polydata );
 
   for ( int i = 0; i < 3; i++ )
