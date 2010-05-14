@@ -23,18 +23,20 @@ namespace bpo = boost::program_options;
 
 // ==========================================================
 
-const string inFileDefault = "gcamCMPinput";
+const string inFileDefault = "gcamSmoothTerminput";
 #ifdef FS_CUDA
-const string outFileDefault = "gcamCMPoutputGPU";
+const string outFileDefault = "gcamSmoothTermoutputGPU";
 #else
-const string outFileDefault = "gcamCMPoutputCPU";
+const string outFileDefault = "gcamSmoothTermoutputCPU";
 #endif
+
+const float lambdaDefault = 1;
 
 string inFilename;
 string outFilename;
+float lambda;
 
-
-const char* Progname = "gcam_cmp_test";
+const char* Progname = "gcam_smoothterm_test";
 
 
 
@@ -49,6 +51,7 @@ void ReadCommandLine( int ac, char* av[] ) {
       ("help", "Produce help message" )
       ("input", bpo::value<string>(&inFilename)->default_value(inFileDefault), "Input filename (.nc will be appended)" )
       ("output", bpo::value<string>(&outFilename)->default_value(outFileDefault), "Output filename (.nc will be appended)" )
+      ("lambda", bpo::value<float>(&lambda)->default_value(lambdaDefault), "Value of l_smoothness" );
       ;
 
     
@@ -80,7 +83,7 @@ int main( int argc, char *argv[] ) {
   SciGPU::Utilities::Chronometer tTotal;
   GCAMorphUtils myUtils;
 
-  cout << "GCAM Metric Properties Tester" << endl;
+  cout << "GCAM Smoothness Term Tester" << endl;
   cout << "=============================" << endl << endl;
 
 #ifdef FS_CUDA
@@ -105,7 +108,7 @@ int main( int argc, char *argv[] ) {
   // ============================================
   // Perform the calculation
   tTotal.Start();
-  gcamComputeMetricProperties( gcam );
+  gcamSmoothnessTerm( gcam, NULL, lambda );
   tTotal.Stop();
 
   cout << "Computation took " << tTotal << endl;
