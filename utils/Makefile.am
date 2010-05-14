@@ -340,7 +340,8 @@ libutils_cuda_a_SOURCES=\
         cudatypeutils.cu\
         gcamorphgpu.cu\
         gcamorphenergygpu.cu\
-        gcamfots_cuda.cu
+        gcamfots_cuda.cu\
+        gcamorphtermgpu.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
 
@@ -354,6 +355,7 @@ gcasgpu.o: $(CUDA_DEPS)
 gcamorphgpu.o: $(CUDA_DEPS) ../include/volumegpucompare.hpp
 cudatypeutils.o: ../include/cudatypeutils.hpp
 gcamorphenergygpu.o: $(CUDA_DEPS)
+gcamorphtermgpu.o: $(CUDA_DEPS)
 
 endif
 
