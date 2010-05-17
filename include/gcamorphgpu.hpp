@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/05/17 13:50:18 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/05/17 13:57:57 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,8 @@
 #define GCA_MORPH_GPU_H
 
 #include "gcamorph.h"
+
+#include "chronometer.hpp"
 
 #include "volumegpu.hpp"
 
