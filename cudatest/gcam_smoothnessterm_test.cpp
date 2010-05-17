@@ -108,7 +108,9 @@ int main( int argc, char *argv[] ) {
   // ============================================
   // Perform the calculation
   tTotal.Start();
-  gcamSmoothnessTerm( gcam, NULL, lambda );
+  cerr <<"Not ready for CVS yet!" << endl;
+  exit( EXIT_FAILURE );
+  //gcamSmoothnessTerm( gcam, NULL, lambda );
   tTotal.Stop();
 
   cout << "Computation took " << tTotal << endl;
