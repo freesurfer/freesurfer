@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 20:06:30 $
- *    $Revision: 1.66 $
+ *    $Date: 2010/05/17 20:06:22 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -866,7 +866,17 @@ bool LayerMRI::HasProp( vtkProp* prop )
 {
   if ( GetProperties()->GetShowAsContour() )
   {
-    return (m_actorContour == prop);
+    if ( m_actorContour == prop )
+      return true;
+    else
+    {
+      for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
+      {
+        if ( m_surfaceRegions[i]->GetMeshActor() == prop )
+          return true;
+      }
+      return false;
+    }
   }
   else
   {
@@ -1762,6 +1772,8 @@ SurfaceRegion* LayerMRI::CreateNewSurfaceRegion( double* pt )
   r->SetInput( vtkPolyData::SafeDownCast( m_actorContour->GetMapper()->GetInput() ) );
   r->AddPoint( pt );
   m_surfaceRegions.push_back( r );
+  if ( m_currentSurfaceRegion )
+    m_currentSurfaceRegion->Highlight( false );
   m_currentSurfaceRegion = r;
   this->SendBroadcast( "SurfaceRegionAdded", this );
   return r;
@@ -1781,7 +1793,42 @@ void LayerMRI::CloseSurfaceRegion()
   if ( m_currentSurfaceRegion )
   {
     m_currentSurfaceRegion->Close();
-    this->SendBroadcast( "SurfaceRegionUpdated", this );
-    
+    this->SendBroadcast( "SurfaceRegionUpdated", this );    
   }
+}
+
+bool LayerMRI::SelectSurfaceRegion( double* pos )
+{
+  for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
+  {
+    if ( m_surfaceRegions[i]->HasPoint( pos ) )
+    {
+      if ( m_currentSurfaceRegion )
+        m_currentSurfaceRegion->Highlight( false );
+      m_currentSurfaceRegion = m_surfaceRegions[i];
+      m_currentSurfaceRegion->Highlight( true );
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+bool LayerMRI::DeleteCurrentSurfaceRegion()
+{
+  if ( m_currentSurfaceRegion )
+  {
+    for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
+    {
+      if ( m_surfaceRegions[i] == m_currentSurfaceRegion )
+      {
+        m_surfaceRegions.erase( m_surfaceRegions.begin() + i );
+        delete m_currentSurfaceRegion;
+        m_currentSurfaceRegion = NULL;
+        this->SendBroadcast( "SurfaceRegionRemoved", this );  
+        return true;
+      }
+    }
+  }
+  return false;
 }

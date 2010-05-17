@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/14 18:04:58 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/05/17 20:06:22 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -662,9 +662,9 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   }
   else
     threshold->SetInput( data_in );
-  threshold->ThresholdBetween( dTh1, dTh2 );
+  threshold->ThresholdByLower( dTh2 );
   threshold->ReplaceOutOn();
-  threshold->SetOutValue( 0 );
+  threshold->SetOutValue( dTh1-0.00001 );
   
   // dilate/erode is not used for now
   vtkSmartPointer<vtkImageDilateErode3D> dilate = vtkSmartPointer<vtkImageDilateErode3D>::New();
@@ -680,8 +680,8 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   // end of dilate/erode
  
   vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
-//  contour->SetInputConnection( threshold->GetOutputPort());
-  if ( ext )
+  contour->SetInputConnection( threshold->GetOutputPort());
+/*  if ( ext )
   {
     vtkSmartPointer<vtkImageClip> clipper = vtkSmartPointer<vtkImageClip>::New();
     clipper->SetInput( data_in );
@@ -690,6 +690,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
   }
   else
     contour->SetInput( data_in );
+  */
   contour->SetValue(0, dTh1);
   /*
   contour->Update();
@@ -718,7 +719,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
     stripper->SetInputConnection( normals->GetOutputPort() );
     normals->SetInputConnection( conn->GetOutputPort() );
 //    normals->SetInput( polydata );
-    normals->SetFeatureAngle( 60 );
+    normals->SetFeatureAngle( 90 );
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
     mapper->SetInputConnection( stripper->GetOutputPort() );
     mapper->ScalarVisibilityOn();

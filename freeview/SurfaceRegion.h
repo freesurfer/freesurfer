@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/14 18:04:58 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/05/17 20:06:22 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,7 @@ class vtkPolyData;
 class vtkPoints;
 class vtkSelectPolyData;
 class vtkBox;
+class vtkProp;
 class vtkClipPolyData;
 class RenderView3D;
 
@@ -60,6 +61,12 @@ public:
   void AppendActor( vtkRenderer* renderer );
 
   void Show( bool bShow = true );
+  
+  bool HasPoint( double* pos );
+  
+  void Highlight( bool bHighlight = true );
+  
+  vtkActor* GetMeshActor();
 
 private:
   void RebuildOutline( bool bClose );

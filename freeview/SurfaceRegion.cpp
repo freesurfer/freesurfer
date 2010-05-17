@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/14 18:04:58 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/05/17 20:06:22 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,17 +40,18 @@
 #include "vtkProperty.h"
 #include "vtkClipPolyData.h"
 #include "vtkBox.h"
+#include "vtkMath.h"
 #include "MyUtils.h"
 
 SurfaceRegion::SurfaceRegion()
 {
   m_actorMesh = vtkSmartPointer<vtkActor>::New();
-  m_actorMesh->GetProperty()->SetColor( 0, 0, 1 );
+  m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
   m_actorMesh->GetProperty()->SetRepresentationToWireframe();
   m_actorMesh->GetProperty()->SetLineWidth( 2 );
 
   m_actorOutline = vtkSmartPointer<vtkActor>::New();
-  m_actorOutline->GetProperty()->SetColor( 0, 0, 1 );
+  m_actorOutline->GetProperty()->SetColor( 0, 1, 0 );
   m_actorOutline->GetProperty()->SetLineWidth( 3 );
   
   m_points = vtkSmartPointer<vtkPoints>::New();
@@ -67,6 +68,11 @@ SurfaceRegion::SurfaceRegion()
 
 SurfaceRegion::~SurfaceRegion()
 {}
+
+vtkActor* SurfaceRegion::GetMeshActor()
+{
+  return m_actorMesh;
+}
 
 void SurfaceRegion::RebuildOutline( bool bClose )
 {
@@ -118,6 +124,7 @@ void SurfaceRegion::Close()
     m_selector->SetLoop( m_points );
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputConnection( m_selector->GetOutputPort() );
+    mapper->ScalarVisibilityOff();
     m_actorMesh->SetMapper( mapper );
     m_points->Modified();
   }
@@ -146,5 +153,19 @@ wxColour SurfaceRegion::GetColor()
 void SurfaceRegion::Show( bool bShow )
 {
   m_actorMesh->SetVisibility( bShow?1:0 );
+}
+
+bool SurfaceRegion::HasPoint( double* pos )
+{
+  double delta[3] = { 0, 0, 0 };
+  return vtkMath::PointIsWithinBounds( pos, m_actorMesh->GetBounds(), delta );
+}
+  
+void SurfaceRegion::Highlight( bool bHighlight )
+{
+  if ( bHighlight )
+    m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
+  else 
+    m_actorMesh->GetProperty()->SetColor( 0, 0, 1 );
 }
 

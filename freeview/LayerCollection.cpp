@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 17:07:43 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/05/17 20:06:22 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -569,12 +569,12 @@ void LayerCollection::GetWorldCenter( double* pos )
     pos[i] = ( m_dWorldSize[i] + m_dWorldOrigin[i] ) / 2;
 }
 
-bool LayerCollection::HasProp( vtkProp* prop )
+Layer* LayerCollection::HasProp( vtkProp* prop )
 {
   for ( size_t i = 0; i < m_layers.size(); i++ )
   {
     if ( m_layers[i]->HasProp( prop ) )
-      return true;
+      return m_layers[i];
   }
-  return false;
+  return NULL;
 }

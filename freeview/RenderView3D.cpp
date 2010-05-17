@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/14 18:04:58 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/05/17 20:06:22 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -363,7 +363,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
   
     if ( !bFramePicked )
     {
-      if ( !lc_surface->IsEmpty() && !lc_surface->HasProp( prop ) )
+    //  if ( !lc_surface->IsEmpty() && !lc_surface->HasProp( prop ) )
       {
         for ( int i = 0; i < 3; i++ )
         {
@@ -375,8 +375,17 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         prop = picker->GetViewProp();
       }    
         
-      if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) || lc_surface->HasProp( prop ) )
+      if ( lc_mri->HasProp( prop ) || lc_roi->HasProp( prop ) )
       {
+        if ( bCursor )
+        {
+          LayerMRI* mri = (LayerMRI*)lc_mri->HasProp( prop );
+          if ( mri && mri->SelectSurfaceRegion( pos ) )
+            NeedRedraw( true ); // force redraw
+        }
+      }
+      else if ( lc_surface->HasProp( prop ) )
+      {  
         if ( bCursor )
         {
           lc_mri->SetCursorRASPosition( pos );
@@ -466,6 +475,13 @@ void RenderView3D::CloseSelectRegion()
   }
 }
 
+void RenderView3D::DeleteCurrentSelectRegion()
+{
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+    mri->DeleteCurrentSurfaceRegion();
+}
+
 void RenderView3D::DoUpdateConnectivityDisplay()
 {
   ConnectivityData* conn = MainWindow::GetMainWindowPointer()->GetConnectivityData();
@@ -532,13 +548,13 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void
   {
     UpdateBounds();
   }
-  else if ( iMsg == "SurfaceRegionAdded" )
+  else if ( iMsg == "SurfaceRegionAdded" || iMsg == "SurfaceRegionRemoved" )
   {
     RefreshAllActors();
   }
   else if ( iMsg == "SurfaceRegionUpdated" )
   {
-    NeedRedraw();
+    NeedRedraw( true );
   }
 
   RenderView::DoListenToMessage( iMsg, iData, sender );
@@ -694,6 +710,9 @@ void RenderView3D::UpdateSliceFrames()
 
 void RenderView3D::HighlightSliceFrame( int n )
 {
+  if ( m_nSliceHighlighted == n )
+    return;
+  
   double colors[][3] = { { 1, 0.1, 0.1}, { 0.1, 1, 0.1 }, { 0.1, 0.1, 1 } };
   for ( int i = 0; i < 3; i++ )
   {

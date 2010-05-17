@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 20:06:30 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/05/17 20:06:22 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -88,6 +88,8 @@ public:
   void AddSelectRegionLoopPoint( int posX, int posY );
   
   void CloseSelectRegion();
+  
+  void DeleteCurrentSelectRegion();
   
 protected:
   void OnInternalIdle();
