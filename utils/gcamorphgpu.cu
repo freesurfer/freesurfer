@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/22 15:39:22 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/05/17 13:50:13 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -211,6 +211,8 @@ namespace GPU {
 	is going to be painfully slow
       */
 
+      GCAmorphGPU::tSendTot.Start();
+
 #if 0
       std::cerr << __FUNCTION__
 		<< ": Catching gcamorph usage"
@@ -239,6 +241,7 @@ namespace GPU {
       // Allocate device memory
       this->AllocateAll( dims );
 
+      GCAmorphGPU::tSendMem.Start();
       // Allocate some page-locked host buffers
       float* h_rx = this->d_rx.AllocateHostBuffer();
       float* h_ry = this->d_ry.AllocateHostBuffer();
@@ -270,7 +273,10 @@ namespace GPU {
 
       float* h_mean = this->d_mean.AllocateHostBuffer();
       float* h_variance = this->d_variance.AllocateHostBuffer();
+      GCAmorphGPU::tSendMem.Stop();
 
+
+      GCAmorphGPU::tSendPack.Start();
       for( unsigned int i=0; i<dims.x; i++ ) {
 	for( unsigned int j=0; j<dims.y; j++ ) {
 	  for( unsigned int k=0; k<dims.z; k++ ) {
@@ -336,8 +342,10 @@ namespace GPU {
 	  }
 	}
       }
+      GCAmorphGPU::tSendPack.Stop();
 
 
+      GCAmorphGPU::tSendTransfer.Start();
       // Send the data
       this->d_rx.SendBuffer( h_rx );
       this->d_ry.SendBuffer( h_ry );
@@ -373,7 +381,10 @@ namespace GPU {
 
       // Wait for the copies to complete
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
+      GCAmorphGPU::tSendTransfer.Stop();
 
+
+      GCAmorphGPU::tSendMem.Start();
       // Release page-locked host memory
       CUDA_SAFE_CALL( cudaFreeHost( h_rx ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_ry ) );
@@ -405,6 +416,9 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaFreeHost( h_labelDist ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_mean ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_variance ) );
+      GCAmorphGPU::tSendMem.Stop();
+
+      GCAmorphGPU::tSendTot.Stop();
 
     }
 
@@ -417,6 +431,8 @@ namespace GPU {
 	This involves a lot of packing data, and hence
 	is going to be painfully slow
       */
+
+      GCAmorphGPU::tRecvTot.Start();
 
       // Check for number of inputs
       if( dst->ninputs != 1 ) {
@@ -434,6 +450,7 @@ namespace GPU {
       // Extract the dimensions
       const dim3 dims = this->d_rx.GetDims();
 
+      GCAmorphGPU::tRecvMem.Start();
       // Allocate some page-locked host buffers
       float* h_rx = this->d_rx.AllocateHostBuffer();
       float* h_ry = this->d_ry.AllocateHostBuffer();
@@ -466,7 +483,10 @@ namespace GPU {
 
       float* h_mean = this->d_mean.AllocateHostBuffer();
       float* h_variance = this->d_variance.AllocateHostBuffer();
+      GCAmorphGPU::tRecvMem.Stop();
 
+
+      GCAmorphGPU::tRecvTransfer.Start();
       // Fetch the data
       this->d_rx.RecvBuffer( h_rx );
       this->d_ry.RecvBuffer( h_ry );
@@ -500,7 +520,9 @@ namespace GPU {
       this->d_mean.RecvBuffer( h_mean );
       this->d_variance.RecvBuffer( h_variance );
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
+      GCAmorphGPU::tRecvTransfer.Stop();
 
+      GCAmorphGPU::tRecvPack.Start();
       for( unsigned int i=0; i<dims.x; i++ ) {
 	for( unsigned int j=0; j<dims.y; j++ ) {
 	  for( unsigned int k=0; k<dims.z; k++ ) {
@@ -556,8 +578,10 @@ namespace GPU {
 	  }
 	}
       }
+      GCAmorphGPU::tRecvPack.Stop();
 
 
+      GCAmorphGPU::tRecvMem.Start();
       // Release page-locked host memory
       CUDA_SAFE_CALL( cudaFreeHost( h_rx ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_ry ) );
@@ -590,6 +614,9 @@ namespace GPU {
 
       CUDA_SAFE_CALL( cudaFreeHost( h_mean ) );
       CUDA_SAFE_CALL( cudaFreeHost( h_variance ) );
+      GCAmorphGPU::tRecvMem.Stop();
+
+      GCAmorphGPU::tRecvTot.Stop();
 
     }
 
@@ -1045,6 +1072,45 @@ namespace GPU {
     }
 
 
+    // ----------------------------------------------------
+    void GCAmorphGPU::ShowTimings( void ) {
+#ifdef CUDA_SHOW_TIMINGS
+      std::cout << "==================================" << std::endl;
+      std::cout << "GCAmorphGPU timers" << std::endl;
+      std::cout << "------------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+      std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+      std::cout << "Timings may not be accurate" << std::endl;
+#endif
+      std::cout << std::endl;
+
+      std::cout << "Send:" << std::endl;
+      std::cout << "    Memory : " << GCAmorphGPU::tSendMem << std::endl;
+      std::cout << "      Pack : " << GCAmorphGPU::tSendPack << std::endl;
+      std::cout << "  Transfer : " << GCAmorphGPU::tSendTransfer << std::endl;
+      std::cout << "Total      : " << GCAmorphGPU::tSendTot << std::endl;
+
+      std::cout << "Recv:" << std::endl;
+      std::cout << "    Memory : " << GCAmorphGPU::tRecvMem << std::endl;
+      std::cout << "      Pack : " << GCAmorphGPU::tRecvPack << std::endl;
+      std::cout << "  Transfer : " << GCAmorphGPU::tRecvTransfer << std::endl;
+      std::cout << "Total      : " << GCAmorphGPU::tRecvTot << std::endl;
+
+      std::cout << "==================================" << std::endl;
+#endif
+    }
+    
+
+    
+    // Define static members
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tSendTot;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tSendMem;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tSendPack;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tSendTransfer;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvTot;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvMem;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvPack;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvTransfer;
 
 
   }

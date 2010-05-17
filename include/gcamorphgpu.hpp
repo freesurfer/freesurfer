@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/06 20:10:00 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/05/17 13:50:18 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,8 +171,17 @@ namespace GPU {
       //! Undoes a gradien application (gcamUndoGradient)
       void UndoGradient( void );
 
+
+      // -------------------------------------------
+      static void ShowTimings( void );
+
     private:
 
+
+      static SciGPU::Utilities::Chronometer tSendTot;
+      static SciGPU::Utilities::Chronometer tSendMem, tSendPack, tSendTransfer;
+      static SciGPU::Utilities::Chronometer tRecvTot;
+      static SciGPU::Utilities::Chronometer tRecvMem, tRecvPack, tRecvTransfer;
     };
 
   }
