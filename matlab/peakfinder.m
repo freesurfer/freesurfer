@@ -1,21 +1,25 @@
-function [indpeak twfPer indtrough] = peakfinder(twf)
-% [indpeak twfPer indtrough] = peakfinder(twf)
+function [indpeak twfPer indtrough] = peakfinder(twf,fmin,fmax)
+% [indpeak twfPer indtrough] = peakfinder(twf,<fmin>,<fmax>)
 %
 % Finds local peaks in a near-periodic waveform. This fails if the
 % peaks are closer than 1/2 period. twfPer is the period of twf in
 % samples. If the 1st or last peak are less than 90% of the mean of
-% the rest of the peaks, they are exluded.
+% the rest of the peaks, they are exluded. 
 %
-% $Id: peakfinder.m,v 1.8 2010/03/04 18:20:30 greve Exp $
+% fmin,fmax are constraints on the fundamental frequency and are
+% given in units of items per time point (NOT IN Hz!).
+%
+% $Id: peakfinder.m,v 1.9 2010/05/18 19:31:44 greve Exp $
 
 indpeak = [];
 
-if(nargin ~= 1)
-  fprintf('indpeak = peakfinder(twf)\n');
+if(nargin < 1 | nargin > 3)
+  fprintf('[indpeak twfPer indtrough] = peakfinder(twf,<fmin>,<fmax>)\n');
   return;
 end
 
 Ntp = length(twf);
+nn = 1:Ntp;
 
 % detrend - necessary?
 X = fast_polytrendmtx(1,Ntp,1,3);
@@ -26,8 +30,13 @@ X = fast_polytrendmtx(1,Ntp,1,3);
 nfft = length(fftaxis);
 nnfft = 1:nfft;
 twffft = abs(fft(twf-mean(twf)));
-[tmp k] = max(twffft);
-twfFreq = fftaxis(k);
+if(exist('fmin','var'))
+  indok = find(fftaxis >= fmin & fftaxis <= fmax);
+else
+  indok = [1:length(fftaxis)];
+end
+[tmp k] = max(twffft(indok));
+twfFreq = fftaxis(indok(k));
 twfPer = 1/twfFreq;
 twfPerSamp      = round(twfPer);
 twfHalfPerSamp  = round(twfPerSamp/2);
@@ -61,7 +70,7 @@ end
 
 % Look behind (reverse and look ahead)
 twfrev = flipud(twf(:));
-[tmp k0rev] = max(twfrev);
+k0rev = Ntp - k0 + 1; % DONT = max(twfrev);
 indpeakrev = []; % dont include k0rev here
 kprev = k0rev;
 while(1)
@@ -75,11 +84,11 @@ while(1)
   indpeakrev = [indpeakrev kmax];
   kprev = kmax;
 end
-npeaks = length(indpeak);
 
 % Convert reversed indices to forard indices
 indpeakrevfor = Ntp - indpeakrev + 1;
 indpeak = sort([indpeak indpeakrevfor]);
+npeaks = length(indpeak);
 
 % Decide whether to eliminate the first peak
 % Compute mean of closest 3 peaks
