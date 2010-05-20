@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/04/14 14:41:59 $
- *    $Revision: 1.342 $
+ *    $Date: 2010/05/20 23:24:52 $
+ *    $Revision: 1.343 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -411,6 +411,7 @@ typedef struct
   float   l_parea ;           /* coefficient of (all) area term */
   float   l_nlarea ;          /* coefficient of nonlinear area term */
   float   l_nldist ;          /* coefficient of nonlinear distance term */
+  float   l_thick_normal ;    // coefficient to keep vector field close to surface normal
   float   l_corr ;            /* coefficient of correlation term */
   float   l_ocorr ;           // overlay correlation weight
   float   l_pcorr ;           /* polar correlation for rigid body */
@@ -636,6 +637,7 @@ int          MRISreadInflatedCoordinates(MRI_SURFACE *mris,
                                          const  char *sname) ;
 int          MRISreadFlattenedCoordinates(MRI_SURFACE *mris,
                                           const  char *sname) ;
+int          MRISreadPialCoordinates(MRI_SURFACE *mris, const char *sname);
 int          MRISreadWhiteCoordinates(MRI_SURFACE *mris,const  char *sname) ;
 int          MRIScomputeCanonicalCoordinates(MRI_SURFACE *mris) ;
 int          MRIScanonicalToWorld(MRI_SURFACE *mris, double phi, double theta,
@@ -693,6 +695,8 @@ int          MRISmulVal(MRI_SURFACE *mris, float mul) ;
 int          MRISwrite(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteAscii(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteNormalsAscii(MRI_SURFACE *mris,const  char *fname) ;
+int          MRISreadNormals(MRI_SURFACE *mris, const char *fname) ;
+int          MRISwriteNormals(MRI_SURFACE *mris,const  char *fname) ;
 int          MRISwriteVTK(MRI_SURFACE *mris,const  char *fname);
 int          MRISwriteCurvVTK(MRI_SURFACE *mris, const char *fname);
 int          MRISwriteGeo(MRI_SURFACE *mris,const  char *fname) ;
@@ -1938,6 +1942,8 @@ int MRISwriteCoordsToIco(MRI_SURFACE *mris,
 int MRISvertexCoord2XYZ_float (VERTEX * v,
                                int which,
                                float  *x, float  *y, float  *z);
+int MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, 
+                         float *px, float *py, float *pz) ;
 int MRISsampleFaceCoords(MRI_SURFACE *mris,
                          int fno,
                          double x, double y, double z,
