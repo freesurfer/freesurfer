@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/05 17:12:33 $
- *    $Revision: 1.61 $
+ *    $Date: 2010/05/20 23:26:18 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2927,6 +2927,7 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   int frm, vtx,nhits, err;
   double rval;
   float Tx, Ty, Tz;
+  VERTEX *v ;
 
   if (vsm)  {
     err = MRIdimMismatch(vsm,SrcVol,0);
@@ -2971,7 +2972,9 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
   /*--- loop through each vertex ---*/
   for (vtx = 0; vtx < TrgSurf->nvertices; vtx+=nskip)
   {
-
+    v = &TrgSurf->vertices[vtx] ;
+    if (v->ripflag)
+      continue ;
     if (ProjFrac != 0.0)
     {
       if (ProjType == 0)
@@ -2981,9 +2984,9 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
     }
     else
     {
-      Tx = TrgSurf->vertices[vtx].x;
-      Ty = TrgSurf->vertices[vtx].y;
-      Tz = TrgSurf->vertices[vtx].z;
+      Tx = v->x;
+      Ty = v->y;
+      Tz = v->z;
     }
 
     /* Load the Target xyz vector */
