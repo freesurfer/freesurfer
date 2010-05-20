@@ -1,15 +1,15 @@
 /**
  * @file  mri_edit_segmentation_with_surfaces.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief relabel voxels interior to the ribbon or white matter
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/07/10 20:40:36 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/05/20 14:34:01 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 #include "colortab.h"
 #include "gca.h"
 
-static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.16 2009/07/10 20:40:36 fischl Exp $";
+static char vcid[] = "$Id: mri_edit_segmentation_with_surfaces.c,v 1.17 2010/05/20 14:34:01 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -59,6 +59,7 @@ static void print_help(void) ;
 static void print_version(void) ;
 static int relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right,
                                    GCA *gca, TRANSFORM *transform) ;
+static int relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) ;
 /*static int relabel_hypointensities_neighboring_gray(MRI *mri) ;*/
 #if 0
 static int  edit_unknowns(MRI *mri_aseg, MRI *mri) ;
@@ -68,6 +69,12 @@ static int edit_calcarine(MRI *mri, MRI_SURFACE *mris, int right) ;
 #endif
 
 static char *annot_name = "aparc.annot" ;
+
+#define HYPO_EDITS       0x0001
+#define CEREBELLUM_EDITS 0x0002
+#define CORTEX_EDITS     0x0004
+
+static int which_edits = HYPO_EDITS | CEREBELLUM_EDITS | CORTEX_EDITS ;
 
 char *Progname ;
 
@@ -149,6 +156,8 @@ main(int argc, char *argv[]) {
       if (!mris)
         ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                   Progname, fname) ;
+      if (MRISreadPialCoordinates(mris, "pial") != NO_ERROR)
+        ErrorExit(Gerror, "") ;
       MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
       MRISsmoothSurfaceNormals(mris, 10) ;   /* remove kinks in surface */
@@ -178,8 +187,16 @@ main(int argc, char *argv[]) {
       printf("%s: editing hippocampal complex...\n", hemi) ;
       edit_hippocampal_complex(mri_aseg, mris, h, annot_name, thickness) ;
 #endif
-      printf("%s: relabeling hypointensities...\n", hemi) ;
-      relabel_hypointensities(mri_aseg, mris, h, gca, transform) ;
+      if (which_edits & HYPO_EDITS)
+      {
+        printf("%s: relabeling hypointensities...\n", hemi) ;
+        relabel_hypointensities(mri_aseg, mris, h, gca, transform) ;
+      }
+      if (which_edits & (CORTEX_EDITS | CEREBELLUM_EDITS))
+      {
+        printf("%s: relabeling gray matter voxels.\n", hemi) ;
+        relabel_gray_matter(mri_aseg, mris, which_edits) ;
+      }
       MRISfree(&mris) ;
       free(thickness) ;
     }
@@ -210,6 +227,7 @@ main(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static int
 get_option(int argc, char *argv[]) {
+  int  on  ;
   int  nargs = 0 ;
   char *option ;
 
@@ -222,6 +240,30 @@ get_option(int argc, char *argv[]) {
     annot_name = argv[2] ;
     nargs = 2 ;
     printf("using annotation file %s...\n", annot_name) ;
+  } else if (!stricmp(option, "hypo")) {
+    on = atof(argv[2]) ;
+    nargs = 1 ;
+    if (on)
+      which_edits |= HYPO_EDITS ;
+    else
+      which_edits &= ~HYPO_EDITS ;
+    printf("turning %s hypointensity editing\n", on ? "on" : "off") ;
+  } else if (!stricmp(option, "cortex")) {
+    on = atof(argv[2]) ;
+    nargs = 1 ;
+    if (on)
+      which_edits |= CORTEX_EDITS ;
+    else
+      which_edits &= ~CORTEX_EDITS ;
+    printf("turning %s cortex editing\n", on ? "on" : "off") ;
+  } else if (!stricmp(option, "cerebellum")) {
+    on = atof(argv[2]) ;
+    nargs = 1 ;
+    if (on)
+      which_edits |= CEREBELLUM_EDITS ;
+    else
+      which_edits &= ~CEREBELLUM_EDITS ;
+    printf("turning %s cerebellum editing\n", on ? "on" : "off") ;
   } else if (!stricmp(option, "debug_voxel")) {
     Ggca_x = Gx = atoi(argv[2]) ;
     Ggca_y = Gy = atoi(argv[3]) ;
@@ -289,11 +331,17 @@ static void
 print_help(void) {
   print_usage() ;
   fprintf(stderr,
-          "\nThis program measures a variety of anatomical properties\n") ;
+          "\nThis program edits an aseg with the surface\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
   fprintf(stderr,
           "-l <label file>              - limit calculations to specified "
           "label\n") ;
+  fprintf(stderr,
+          "-hypo <1|0>                  - turn hypointensity editing on/off\n") ;
+  fprintf(stderr,
+          "-cerebellum <1|0>            - turn cerebellum editing on/off\n") ;
+  fprintf(stderr,
+          "-cortex <1|0>                - turn cortex editing on/off\n") ;
   fprintf(stderr,
           "-a <annotation file>         - compute properties for each label\n"
           "                               in the annotation file separately"
@@ -465,6 +513,71 @@ relabel_hypointensities(MRI *mri, MRI_SURFACE *mris, int right, GCA *gca, TRANSF
   MRIfree(&mri_inside) ;
   MRIfree(&mri_inside_eroded) ;
   MRIfree(&mri_inside_dilated) ;
+  return(NO_ERROR) ;
+}
+
+static int
+relabel_gray_matter(MRI *mri, MRI_SURFACE *mris, int which_edits) {
+  int              x, y, z, label, changed, out_label, xi, yi, zi, left ;
+  VECTOR           *v1, *v2 ;
+  MRI              *mri_dist ;
+  MATRIX           *m_vox2vox ;
+
+  left = mris->hemisphere == LEFT_HEMISPHERE ;
+  v1 = VectorAlloc(4, MATRIX_REAL) ;
+  v2 = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v1, 4) = 1.0 ; VECTOR_ELT(v2, 4) = 1.0 ;
+
+  MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;
+  MRIScomputeMetricProperties(mris) ;
+  mri_dist = MRIcloneDifferentType(mri, MRI_FLOAT) ;
+  mri_dist = MRIScomputeDistanceToSurface(mris, mri_dist, 1) ;
+  m_vox2vox = MRIgetVoxelToVoxelXform(mri, mri_dist) ;
+  for (changed = x = 0 ; x < mri->width ; x++) {
+    for (y = 0 ; y < mri->height ; y++) {
+      for (z = 0 ; z < mri->depth ; z++) {
+        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = z ;
+        MatrixMultiply(m_vox2vox, v1, v2) ;
+        xi = nint(V3_X(v2)) ; yi = nint(V3_Y(v2)) ; zi = nint(V3_Z(v2)) ; 
+        if (xi < 0 || yi < 0 || zi < 0 || 
+            xi >= mri_dist->width ||
+            yi >= mri_dist->height ||
+            zi >= mri_dist->depth)
+          continue ;
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        label = nint(MRIgetVoxVal(mri, x, y, z, 0)) ;
+        out_label = label ;
+        if (MRIgetVoxVal(mri_dist, xi, yi, zi, 0) < -0.5) // clearly inside ribbon
+        {
+          if (which_edits & CEREBELLUM_EDITS) switch (label)
+          {
+          case Left_Cerebellum_Cortex:  out_label = Left_Cerebral_Cortex ;  break ;
+          case Right_Cerebellum_Cortex: out_label = Right_Cerebral_Cortex ; break ;
+          default: break ;
+          }
+        }
+        else if (MRIgetVoxVal(mri_dist, xi, yi, zi, 0) > 0.5) // clearly outside ribbon
+        {
+          if (which_edits & CORTEX_EDITS) switch (label)
+          {
+          case Left_Cerebral_Cortex:  if (left) out_label = Unknown ;  break ;
+          case Right_Cerebral_Cortex: if (left == 0) out_label = Unknown ; break ;
+          default: break ;
+          }
+        }
+
+        if (label != out_label)
+        {
+          MRIsetVoxVal(mri, x, y, z, 0, out_label) ;
+          changed++ ;
+        }
+      }
+    }
+  }
+  printf("%d voxels gray matter voxels changed\n", changed) ;
+  MRIfree(&mri_dist) ;
+  MatrixFree(&m_vox2vox) ; VectorFree(&v1) ; VectorFree(&v2) ;
   return(NO_ERROR) ;
 }
 #if 0
