@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/04/01 05:54:52 $
- *    $Revision: 1.98 $
+ *    $Author: fischl $
+ *    $Date: 2010/05/20 23:26:54 $
+ *    $Revision: 1.99 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -2691,3 +2691,24 @@ LabelMaskSurface(LABEL *area, MRI_SURFACE *mris)
   MRISclearMarks(mris) ;
   return(NO_ERROR) ;
 }
+int
+LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz)
+{
+  int    vno, num, n  ;
+  VERTEX *v ;
+  double xc, yc, zc ;
+
+  xc = yc = zc = 0.0 ;
+  for (num = n = 0 ; n < area->n_points ; n++)
+  {
+    vno = area->lv[n].vno ;
+    v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
+    num++ ;
+    xc += v->x ; yc += v->y ; zc += v->z ;
+  }
+  *px = xc / num ; *py = yc / num ; *pz = zc / num ;
+  return(NO_ERROR) ;
+}
+

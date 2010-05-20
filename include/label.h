@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.46 $
+ *    $Author: fischl $
+ *    $Date: 2010/05/20 23:27:00 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -141,5 +141,6 @@ LABEL   *LabelSphericalCombine(MRI_SURFACE *mris, LABEL *area,
 #define LabelClone(a)  LabelAlloc(a->max_points,a->subject_name,a->name)
 int LabelCropPosterior(LABEL *area, float anterior_dist) ;
 int LabelCropAnterior(LABEL *area, float anterior_dist) ;
+int LabelCentroid(LABEL *area, MRI_SURFACE *mris, double *px, double *py, double *pz) ;
 
 #endif
