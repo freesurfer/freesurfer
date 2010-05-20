@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:07 $
- *    $Revision: 1.9 $
+ *    $Author: greve $
+ *    $Date: 2010/05/20 14:54:17 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
   double v;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.9 2006/12/29 02:09:07 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.10 2010/05/20 14:54:17 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -313,7 +313,7 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat) {
     fprintf(fout, "%f %f %f %f\n", *MATRIX_RELT(out_mat, 2, 1), *MATRIX_RELT(out_mat, 2, 2), *MATRIX_RELT(out_mat, 2, 3), *MATRIX_RELT(out_mat, 2, 4));
     fprintf(fout, "%f %f %f %f\n", *MATRIX_RELT(out_mat, 3, 1), *MATRIX_RELT(out_mat, 3, 2), *MATRIX_RELT(out_mat, 3, 3), *MATRIX_RELT(out_mat, 3, 4));
     fprintf(fout, "%f %f %f %f\n", *MATRIX_RELT(out_mat, 4, 1), *MATRIX_RELT(out_mat, 4, 2), *MATRIX_RELT(out_mat, 4, 3), *MATRIX_RELT(out_mat, 4, 4));
-
+    fprintf(fout,"round\n");
     fclose(fout);
 
   } else if ((strcmp(&argv[i][strlen(argv[i])-4], ".xfm") == 0) && !fsl_flag) {
