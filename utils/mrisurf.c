@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/04/14 14:42:36 $
- *    $Revision: 1.672 $
+ *    $Date: 2010/05/20 22:46:27 $
+ *    $Revision: 1.673 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -344,6 +344,8 @@ static double mrisComputeThicknessSmoothnessEnergy(MRI_SURFACE *mris,
     double l_repulse) ;
 static double mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris,
     double l_thick_min, INTEGRATION_PARMS *parms) ;
+static double mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris,
+                                               double l_thick_normal, INTEGRATION_PARMS *parms) ;
 static double mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris,
     double l_thick_parallel, INTEGRATION_PARMS *parms) ;
 static double mrisComputeRepulsiveEnergy(MRI_SURFACE *mris,
@@ -364,6 +366,8 @@ static int    mrisComputeThicknessSmoothnessTerm(MRI_SURFACE *mris,
     double l_tsmooth) ;
 static int    mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris,
     double l_thick_min, INTEGRATION_PARMS *parms) ;
+static int    mrisComputeThicknessNormalTerm(MRI_SURFACE *mris,
+    double l_thick_normal, INTEGRATION_PARMS *parms) ;
 static int    mrisComputeThicknessParallelTerm(MRI_SURFACE *mris,
     double l_thick_parallel, INTEGRATION_PARMS *parms) ;
 static double mrisComputeNonlinearSpringEnergy(MRI_SURFACE *mris,
@@ -508,7 +512,7 @@ static int  mrisNeighborAtVoxel(MRI_SURFACE *mris, MRI *mri, int vno,
                                 int xv,int yv,int zv) ;
 static int   mrisAverageDs(MRI_SURFACE *mris, int num_avgs) ;
 static int mrisComputeAverageNormalTerm(MRI_SURFACE *mris, int navgs,
-                                        double l_normal) ;
+                                        double l_thick_normal) ;
 static int  mrisFindNormalDistanceLimits(MRI_SURFACE *mris, MRI *mri_filled,
     int vno, float max_dist,
     float *pmax_outward_distance,
@@ -713,7 +717,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.672 2010/04/14 14:42:36 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.673 2010/05/20 22:46:27 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -7532,6 +7536,7 @@ MRISintegrate(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     mrisComputeSpringTerm(mris, parms->l_spring) ;
     mrisComputeThicknessMinimizationTerm(mris, parms->l_thick_min, parms) ;
     mrisComputeThicknessParallelTerm(mris, parms->l_thick_parallel, parms) ;
+    mrisComputeThicknessNormalTerm(mris, parms->l_thick_normal, parms) ;
 
     mrisComputeTangentialSpringTerm(mris, parms->l_tspring) ;
     mrisComputeNonlinearSpringTerm(mris, parms->l_nlspring, parms) ;
@@ -7918,6 +7923,7 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
     gettimeofday(&tv1,NULL);
 #endif // FS_CUDA_TIMINGS
     mrisComputeThicknessParallelTerm(mris, parms->l_thick_parallel, parms) ;
+    mrisComputeThicknessNormalTerm(mris, parms->l_thick_normal, parms) ;
 #ifdef FS_CUDA_TIMINGS
     gettimeofday(&tv2,NULL);
     timeval_subtract(&result,&tv2,&tv1);
@@ -8264,7 +8270,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     sse_grad, sse_nl_area, sse_nl_dist, sse_tspring, 
     sse_repulse, sse_tsmooth, sse_loc,
     sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, 
-    sse_lap, sse_dura, sse_nlspring;
+    sse_lap, sse_dura, sse_nlspring, sse_thick_normal;
   int     ano, fno ;
   FACE    *face ;
   MHT     *mht_v_current = NULL ;
@@ -8283,6 +8289,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
   sse_repulse =
     sse_repulsive_ratio =
     sse_tsmooth =
+    sse_thick_parallel =
+    sse_thick_normal =
     sse_nl_area =
     sse_nl_dist =
     sse_corr =
@@ -8347,6 +8355,8 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     mrisComputeThicknessMinimizationEnergy(mris, parms->l_thick_min, parms) ;
   sse_thick_parallel = 
     mrisComputeThicknessParallelEnergy(mris, parms->l_thick_parallel, parms) ;
+  sse_thick_normal = 
+    mrisComputeThicknessNormalEnergy(mris, parms->l_thick_normal, parms) ;
   if (!FZERO(parms->l_nlarea))
     sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
   if (!DZERO(parms->l_nldist))
@@ -8393,6 +8403,7 @@ MRIScomputeSSE(MRI_SURFACE *mris, INTEGRATION_PARMS *parms)
     (double)parms->l_tsmooth   * sse_tsmooth +
     (double)parms->l_thick_min * sse_thick_min +
     (double)parms->l_thick_parallel * sse_thick_parallel +
+    (double)parms->l_thick_normal * sse_thick_normal +
     (double)parms->l_sphere    * sse_sphere + sse_repulsive_ratio +
     (double)parms->l_intensity * sse_val +
     (double)parms->l_location  * sse_loc +
@@ -8437,7 +8448,7 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     sse_grad, sse_nl_area, sse_nl_dist, sse_tspring, sse_repulse,
     sse_tsmooth, sse_loc,
     sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap,
-    sse_dura, sse_nlspring;
+    sse_dura, sse_nlspring, sse_thick_normal ;
   int     ano, fno ;
   FACE    *face ;
   MHT     *mht_v_current = NULL ;
@@ -8473,6 +8484,9 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     sse_tspring =
     sse_loc =
     sse_nlspring =
+    sse_thick_normal =
+    sse_thick_min = 
+    sse_thick_normal =
     sse_grad = 0.0;
 
   if (!FZERO(parms->l_repulse))
@@ -8519,6 +8533,8 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     mrisComputeThicknessMinimizationEnergy(mris, parms->l_thick_min, parms) ;
   sse_thick_parallel =
     mrisComputeThicknessParallelEnergy(mris, parms->l_thick_parallel, parms) ;
+  sse_thick_normal =
+    mrisComputeThicknessNormalEnergy(mris, parms->l_thick_normal, parms) ;
   if (!FZERO(parms->l_nlarea))
     sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
   if (!DZERO(parms->l_nldist))
@@ -8565,6 +8581,7 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     (double)parms->l_tsmooth   * sse_tsmooth +
     (double)parms->l_thick_min * sse_thick_min +
     (double)parms->l_thick_parallel * sse_thick_parallel +
+    (double)parms->l_thick_normal * sse_thick_normal +
     (double)parms->l_sphere    * sse_sphere + sse_repulsive_ratio +
     (double)parms->l_intensity * sse_val +
     (double)parms->l_location  * sse_loc +
@@ -12524,6 +12541,25 @@ MRISreadWhiteCoordinates(MRI_SURFACE *mris, const char *sname)
   if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
     return(Gerror) ;
   MRISsaveVertexPositions(mris, WHITE_VERTICES) ;
+  MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+int
+MRISreadPialCoordinates(MRI_SURFACE *mris, const char *sname)
+{
+  if (!sname)
+    sname = "pial" ;
+  MRISsaveVertexPositions(mris, TMP_VERTICES) ;
+  if (MRISreadVertexPositions(mris, sname) != NO_ERROR)
+    return(Gerror) ;
+  MRISsaveVertexPositions(mris, PIAL_VERTICES) ;
   MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
   return(NO_ERROR) ;
 }
@@ -18931,6 +18967,8 @@ mrisLogIntegrationParms(FILE *fp, MRI_SURFACE *mris,INTEGRATION_PARMS *parms)
     fprintf(fp, ", l_thick_min=%2.3f", parms->l_thick_min) ;
   if (!FZERO(parms->l_thick_parallel))
     fprintf(fp, ", l_thick_parallel=%2.3f", parms->l_thick_parallel) ;
+  if (!FZERO(parms->l_thick_normal))
+    fprintf(fp, ", l_thick_normal=%2.3f", parms->l_thick_normal) ;
   fprintf(fp, "\n") ;
   switch (parms->integration_type)
   {
@@ -19372,6 +19410,30 @@ mrisSampleParallelEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms,
     sse += sqrt(len*len);
   }
 
+  if (n > 0)
+    sse /= n ;
+  return(sse) ;
+}
+static float
+mrisSampleNormalEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
+{
+  float   dx, dy, dz, len, xw, yw, zw, xp, yp, zp ;
+  FACE    *face ;
+  int     fno ;
+  double  fdist, sse ;
+
+  MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
+  MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, cx, cy, cz, 1000, -1, &face, &fno, &fdist) ;
+  MRISsampleFaceCoords(parms->mris_ico, fno, cx, cy, cz, PIAL_VERTICES, &xp, &yp, &zp) ;
+  dx = xp-xw ;  dy = yp-yw ;  dz = zp-zw ; 
+  len = sqrt(dx*dx + dy*dy + dz*dz) ;
+  if (FZERO(len))
+    return(0.0) ;
+  dx /= len ; dy /= len ; dz /= len ;
+  len = dx*v->wnx + dy*v->wny + dz*v->wnz;  // dot product
+  len = 1 - len;
+  sse = sqrt(len*len);
+
   return(sse) ;
 }
 /*-----------------------------------------------------
@@ -19414,22 +19476,67 @@ mrisComputeThicknessMinimizationEnergy(MRI_SURFACE *mris, double l_thick_min, IN
 
   Description
   ------------------------------------------------------*/
+static double big_sse = 10.0 ;
+static double
+mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms)
+{
+  int     vno, max_vno ;
+  double  sse_tnormal, sse, max_sse ;
+  VERTEX  *v ;
+
+  if (FZERO(l_thick_normal))
+    return(0.0) ;
+
+  max_sse = 0.0 ;
+  for (sse_tnormal = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    sse = mrisSampleNormalEnergy(mris, v, parms, v->x, v->y, v->z);
+    if (sse > big_sse)
+      DiagBreak() ;
+    if (sse > max_sse)
+    {
+      max_sse = sse ;
+      max_vno = vno ;
+    }
+    sse_tnormal += sse ;
+  }
+  sse_tnormal /= 2 ;
+  return(sse_tnormal) ;
+}
+/*-----------------------------------------------------
+  Parameters:
+
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
 static double
 mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms)
 {
-  int     vno ;
-  double  sse_tparallel, sse ;
+  int     vno, max_vno ;
+  double  sse_tparallel, sse, max_sse ;
   VERTEX  *v ;
 
   if (FZERO(l_thick_parallel))
     return(0.0) ;
 
+  max_sse = 0.0 ;
   for (sse_tparallel = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
       continue ;
     sse = mrisSampleParallelEnergy(mris, v, parms, v->x, v->y, v->z);
+    if (sse > big_sse)
+      DiagBreak() ;
+    if (sse > max_sse)
+    {
+      max_sse = sse ;
+      max_vno = vno ;
+    }
     sse_tparallel += sse ;
   }
   sse_tparallel /= 2 ;
@@ -19445,14 +19552,15 @@ mrisComputeThicknessParallelEnergy(MRI_SURFACE *mris, double l_thick_parallel, I
 static int
 mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, INTEGRATION_PARMS *parms)
 {
-  int     vno ;
+  int     vno, max_vno ;
   float   dE_de1, dE_de2, e1p, e1m, e2p, e2m  ;
-  float   e1x, e1y, e1z, e2x, e2y, e2z ;
+  float   e1x, e1y, e1z, e2x, e2y, e2z, max_DE, norm ;
   VERTEX  *v ;
 
   if (FZERO(l_thick_min))
     return(0.0) ;
 
+  max_DE = 0 ; max_vno = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -19472,6 +19580,18 @@ mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, INTE
     dE_de1 = (e1p - e1m) / (2 * D_DIST) ;
     dE_de2 = (e2p - e2m) / (2 * D_DIST) ;
 
+    norm = sqrt(dE_de1*dE_de1 + dE_de2*dE_de2) ;
+    if (norm > max_DE)
+    {
+      max_vno = vno ;
+      max_DE = norm ;
+    }
+    if (norm > 1)
+    {
+      dE_de1 /= norm ;
+      dE_de2 /= norm ;
+    }
+
     v->dx -= l_thick_min * (dE_de1 * e1x + dE_de2 * e2x) ;
     v->dy -= l_thick_min * (dE_de1 * e1y + dE_de2 * e2y) ;
     v->dz -= l_thick_min * (dE_de1 * e1z + dE_de2 * e2z) ;
@@ -19487,6 +19607,8 @@ mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, INTE
     }
   }
 
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Thick Min: max dE = %2.2f at vno %d\n", max_DE, max_vno) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -19499,14 +19621,16 @@ mrisComputeThicknessMinimizationTerm(MRI_SURFACE *mris, double l_thick_min, INTE
 static int
 mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_parallel, INTEGRATION_PARMS *parms)
 {
-  int     vno ;
+  int     vno, max_vno ;
   float   dE_de1, dE_de2, e1p, e1m, e2p, e2m  ;
-  float   e1x, e1y, e1z, e2x, e2y, e2z ;
+  float   e1x, e1y, e1z, e2x, e2y, e2z, max_DE, norm ;
   VERTEX  *v ;
+
 
   if (FZERO(l_thick_parallel))
     return(0.0) ;
 
+  max_DE = 0 ; max_vno = 0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
@@ -19525,6 +19649,17 @@ mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_parallel, INT
     e2m = mrisSampleParallelEnergy(mris, v, parms, v->x-D_DIST*e2x,  v->y-D_DIST*e2y,  v->z-D_DIST*e2z) ;
     dE_de1 = (e1p - e1m) / (2 * D_DIST) ;
     dE_de2 = (e2p - e2m) / (2 * D_DIST) ;
+    norm = sqrt(dE_de1*dE_de1 + dE_de2*dE_de2) ;
+    if (norm > max_DE)
+    {
+      max_vno = vno ;
+      max_DE = norm ;
+    }
+    if (norm > 1)
+    {
+      dE_de1 /= norm ;
+      dE_de2 /= norm ;
+    }
 
     v->dx -= l_thick_parallel * (dE_de1 * e1x + dE_de2 * e2x) ;
     v->dy -= l_thick_parallel * (dE_de1 * e1y + dE_de2 * e2y) ;
@@ -19540,7 +19675,76 @@ mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_parallel, INT
 
     }
   }
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Parallel: max dE = %2.2f at vno %d\n", max_DE, max_vno) ;
+  return(NO_ERROR) ;
+}
+/*-----------------------------------------------------
+  Parameters:
 
+  Returns value:
+
+  Description
+  ------------------------------------------------------*/
+static int
+mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms)
+{
+  int     vno, max_vno ;
+  float   dE_de1, dE_de2, e1p, e1m, e2p, e2m  ;
+  float   e1x, e1y, e1z, e2x, e2y, e2z, max_DE, norm ;
+  VERTEX  *v ;
+
+
+  if (FZERO(l_thick_normal))
+    return(0.0) ;
+
+  max_DE = 0 ; max_vno = 0 ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    e1x = v->e1x ; e1y = v->e1y ; e1z = v->e1z ;
+    e2x = v->e2x ; e2y = v->e2y ; e2z = v->e2z ;
+    /*
+      sample the coordinate functions along the tangent plane axes and
+      compute the derivates using them.
+    */
+    e1p = mrisSampleNormalEnergy(mris, v, parms, v->x+D_DIST*e1x,  v->y+D_DIST*e1y,  v->z+D_DIST*e1z) ;
+    e1m = mrisSampleNormalEnergy(mris, v, parms, v->x-D_DIST*e1x,  v->y-D_DIST*e1y,  v->z-D_DIST*e1z) ;
+    e2p = mrisSampleNormalEnergy(mris, v, parms, v->x+D_DIST*e2x,  v->y+D_DIST*e2y,  v->z+D_DIST*e2z) ;
+    e2m = mrisSampleNormalEnergy(mris, v, parms, v->x-D_DIST*e2x,  v->y-D_DIST*e2y,  v->z-D_DIST*e2z) ;
+    dE_de1 = (e1p - e1m) / (2 * D_DIST) ;
+    dE_de2 = (e2p - e2m) / (2 * D_DIST) ;
+    norm = sqrt(dE_de1*dE_de1 + dE_de2*dE_de2) ;
+    if (norm > max_DE)
+    {
+      max_vno = vno ;
+      max_DE = norm ;
+    }
+    if (norm > 1)
+    {
+      dE_de1 /= norm ;
+      dE_de2 /= norm ;
+    }
+
+    v->dx -= l_thick_normal * (dE_de1 * e1x + dE_de2 * e2x) ;
+    v->dy -= l_thick_normal * (dE_de1 * e1y + dE_de2 * e2y) ;
+    v->dz -= l_thick_normal * (dE_de1 * e1z + dE_de2 * e2z) ;
+    if (Gdiag_no == vno)
+    {
+      printf("l_thick_normal: v %d: dE = (%2.2f, %2.2f), e1 = (%2.1f, %2.1f, %2.1f), e2 = (%2.1f, %2.1f, %2.1f), DX = (%2.2f, %2.2f, %2.2f)\n",
+
+             vno, dE_de1, dE_de2, e1x, e1y, e1z, e2x, e2y, e2z,
+             l_thick_normal * (dE_de1 * e1x + dE_de2 * e2x),
+             l_thick_normal * (dE_de1 * e1y + dE_de2 * e2y),
+             l_thick_normal * (dE_de1 * e1z + dE_de2 * e2z)) ;
+
+    }
+  }
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    printf("Parallel: max dE = %2.2f at vno %d\n", max_DE, max_vno) ;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -21745,6 +21949,10 @@ MRISsaveNormals(MRI_SURFACE *mris, int which)
       v->pnz = v->nz ;
       break ;
     case WHITE_VERTICES:
+      v->wnx = v->nx ;
+      v->wny = v->ny ;
+      v->wnz = v->nz ;
+      break ;
     case INFLATED_VERTICES:
     case FLATTENED_VERTICES:
     case CANONICAL_VERTICES:
@@ -22173,6 +22381,52 @@ MRISwriteNormalsAscii(MRI_SURFACE *mris, const char *fname)
   return(NO_ERROR) ;
 }
 
+/*-----------------------------------------------------
+  Description: Same write the surface normals into a .mgz volume
+  ------------------------------------------------------*/
+int
+MRISwriteNormals(MRI_SURFACE *mris, const char *fname)
+{
+  int     vno ;
+  VERTEX  *v ;
+  MRI     *mri ;
+
+  mri = MRIallocSequence(mris->nvertices, 1, 1, MRI_FLOAT, 3) ;
+  if (mri == NULL)
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISwriteNormals(%s): could not allocate volume", fname)) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    MRIsetVoxVal(mri, vno, 0, 0, 0, v->nx) ;
+    MRIsetVoxVal(mri, vno, 0, 0, 1, v->ny) ;
+    MRIsetVoxVal(mri, vno, 0, 0, 2, v->nz) ;
+  }
+  MRIwrite(mri, fname) ;
+  MRIfree(&mri) ;
+  return(NO_ERROR) ;
+}
+int
+MRISreadNormals(MRI_SURFACE *mris, const char *fname)
+{
+  int     vno ;
+  VERTEX  *v ;
+  MRI     *mri ;
+
+  mri = MRIread(fname) ;
+  if (mri == NULL)
+    ErrorReturn(ERROR_NOFILE, (ERROR_NOFILE, "MRISreadNormals(%s): could not open volume", fname)) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    v->nx = MRIgetVoxVal(mri, vno, 0, 0, 0) ;
+    v->ny = MRIgetVoxVal(mri, vno, 0, 0, 1) ;
+    v->nz = MRIgetVoxVal(mri, vno, 0, 0, 2) ;
+  }
+  MRIfree(&mri) ;
+  return(NO_ERROR) ;
+}
 /*-----------------------------------------------------
   Parameters:
 
@@ -35238,8 +35492,9 @@ MRISexpandSurface(MRI_SURFACE *mris,
     printf("writing expanded surface to %s...\n", fname) ;
     MRISwrite(mris, fname) ;
   }
-    
-  MRISripZeroThicknessRegions(mris) ;
+
+  if (use_thick)
+    MRISripZeroThicknessRegions(mris) ;
   if (parms == NULL)
   {
     for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -35297,8 +35552,11 @@ MRISexpandSurface(MRI_SURFACE *mris,
     if (Gdiag_no >= 0)
     {
       v = &mris->vertices[Gdiag_no] ;
-      printf("v %d: thickness=%2.2f, moving outwards %2.2fmm\n",
-             Gdiag_no, v->curv, v->curv*distance) ;
+      if (use_thick)
+        printf("v %d: thickness=%2.2f, moving outwards %2.2fmm\n",
+               Gdiag_no, v->curv, v->curv*distance) ;
+      else
+        printf("v %d: moving outwards %2.2fmm\n", Gdiag_no, distance) ;
     }
 
     for (surf_no = 0 ; surf_no < nsurfaces ; surf_no++)
@@ -35371,8 +35629,11 @@ MRISexpandSurface(MRI_SURFACE *mris,
       else
         printf("\n") ;
       sprintf(fname, "%s.%s%3.3d", hemi,parms->base_name, surf_no+1);
-      printf("writing expanded surface to %s...\n", fname) ;
-      MRISwrite(mris, fname) ;
+      if (nsurfaces > 1)
+      {
+        printf("writing expanded surface to %s...\n", fname) ;
+        MRISwrite(mris, fname) ;
+      }
     }
   }
 
@@ -66890,6 +67151,41 @@ MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, i
 
   return(NO_ERROR) ;
 }
+int
+MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, float *px, float *py, float *pz)
+{
+  float    d, dtotal, dx, dy, dz, xc, yc, zc ;
+  int      n ;
+  FACE     *face ;
+  VERTEX   *v ;
+
+  face = &mris->faces[fno] ;
+
+  xc = yc = zc = 0.0 ; // to get rid of mac warnings
+  for (dtotal = 0.0, n = 0  ; n < VERTICES_PER_FACE ; n++)
+  {
+    v = &mris->vertices[face->v[n]] ;
+    MRISvertexCoord2XYZ_float(v, CANONICAL_VERTICES, &dx, &dy, &dz) ;
+    dx -= x ; dy -= y ; dz -= z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    dtotal += d ;
+  }
+
+  *px = *py = *pz = 0 ;
+  for (n = 0  ; n < VERTICES_PER_FACE ; n++)
+  {
+    v = &mris->vertices[face->v[n]] ;
+    MRISvertexCoord2XYZ_float(v, CANONICAL_VERTICES, &dx, &dy, &dz) ;
+    dx -= x ; dy -= y ; dz -= z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    d = 1-(2*d)/dtotal;
+
+    *px += d*v->nx ; *py += d*v->ny ; *pz += d*v->nz ;
+  }
+
+
+  return(NO_ERROR) ;
+}
 
 int
 MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float max_thick, MRI_SURFACE *mris_ico)
@@ -66904,6 +67200,8 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
   parms->projection = PROJECT_SPHERE ;
   parms->niterations = 100 ;
 
+  MRIScomputeSurfaceNormals(mris, WHITE_VERTICES, 0) ;
+  MRISstoreMetricProperties(mris) ;
   MRISwriteCoordsToIco(mris, mris_ico, PIAL_VERTICES) ;
   mht_pial = MHTfillTableAtResolution(mris_ico, NULL, CANONICAL_VERTICES, 1.0);
   parms->mris_ico = mris_ico ; parms->mht_ico = (void *)mht_pial ;
@@ -66931,6 +67229,8 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
 
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;  // for diagnostic purposes
   MRIScomputeSecondFundamentalForm(mris) ;
+  MRISrestoreRipFlags(mris) ;
+  mrisClearMomentum(mris) ;
   mrisIntegrationEpoch(mris, parms, 0) ;
 
   // compute thickness and put it in v->curv field
@@ -66943,7 +67243,10 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
 
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
+      v->tx = v->whitex ; v->ty = v->whitey ; v->tz = v->whitez ;
       continue ;
+    }
     MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
     MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, 
                               v->x, v->y, v->z, 1000, -1, &face, &fno, &fdist) ;
