@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/28 17:51:53 $
- *    $Revision: 1.457 $
+ *    $Date: 2010/05/22 01:12:24 $
+ *    $Revision: 1.458 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.457 $";
+const char *MRI_C_VERSION = "$Revision: 1.458 $";
 
 
 /*-----------------------------------------------------
@@ -5430,15 +5430,8 @@ MRIscaleAndMultiply(MRI *mri1, float scale, MRI *mri2, MRI *mri_dst)
   return(mri_dst) ;
 }
 /*-----------------------------------------------------
-  Parameters:
-
-  Returns value:
-
-  Description
-
   ------------------------------------------------------*/
-MRI *
-MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
+MRI *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
   BUFTYPE *p1, *p2, *pdst ;
@@ -5447,37 +5440,25 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
   height = mri1->height ;
   depth = mri1->depth ;
 
-  if (!mri_dst)
-  {
+  if (!mri_dst) {
     mri_dst = MRIalloc(width, height, depth, mri1->type) ;
     MRIcopyHeader(mri1, mri_dst) ;
   }
 
   if (mri1->type != MRI_UCHAR || mri2->type != MRI_UCHAR)
   {
-    //printf("MRIdivide: Not both volumes are UCHAR\n");
     double val1, val2, dst ;
 
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
-        pdst = mri_dst->slices[z][y] ;
-        for (x = 0 ; x < width ; x++)
-        {
+    for (z = 0 ; z < depth ; z++)    {
+      for (y = 0 ; y < height ; y++)      {
+        for (x = 0 ; x < width ; x++)        {
           if (x == Gx && y == Gy && z==Gz)
             DiagBreak() ;
           val1 = MRIgetVoxVal(mri1, x, y, z, 0) ;
           val2 = MRIgetVoxVal(mri2, x, y, z, 0) ;
-	  val2 = 1.0;
-          if  (FZERO(val2))
-          {
-            dst = FZERO(val1) ? 0 : 255 ;
-          }
-          else
-            dst = val1 / val2 ;
-	  //          printf("%f / %f = %f\n", val1, val2, dst);
-          if (abs(dst) > 1000)
+          if(FZERO(val2)) dst = 0.0;
+          else            dst = val1 / val2 ;
+          if(abs(dst) > 1000)
             DiagBreak() ;
           MRIsetVoxVal(mri_dst, x, y, z, 0, dst) ;
         }
@@ -5486,18 +5467,13 @@ MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
   }
   else   /* both UCHAR volumes */
   {
-    // printf("MRIdivide: Both volumes are UCHAR\n");
-    for (z = 0 ; z < depth ; z++)
-    {
-      for (y = 0 ; y < height ; y++)
-      {
+    for (z = 0 ; z < depth ; z++)    {
+      for (y = 0 ; y < height ; y++)      {
         p1 = mri1->slices[z][y] ;
         p2 = mri2->slices[z][y] ;
         pdst = mri_dst->slices[z][y] ;
-        for (x = 0 ; x < width ; x++)
-        {
-          if  (!*p2)
-          {
+        for (x = 0 ; x < width ; x++)        {
+          if  (!*p2)          {
             *pdst = FZERO(*p1) ? 0 : 255 ;
             p2++ ;
           }
