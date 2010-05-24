@@ -27,6 +27,7 @@ EXTRA_DIST=\
 	connect.h \
 	const.h \
 	corio.h \
+	cpputils.h \
 	ctrpoints.h \
 	cvector.h \
 	dct.h \
