@@ -78,6 +78,7 @@ libutils_main_SOURCES=\
 	cmdargs.c \
 	colortab.c \
 	corio.c \
+	cpputils.cpp \
 	ctrpoints.c \
 	cvector.c \
 	dcdflib.c \
