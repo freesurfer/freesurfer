@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/10 21:40:06 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -313,7 +313,7 @@ void ToolWindowEdit::DoUpdateTools()
   panel->Layout();
   panel->Fit();
   Fit();
-  Refresh();
+  Layout();
   MainWindow::GetMainWindowPointer()->NeedRedraw( 1 );
 }
 

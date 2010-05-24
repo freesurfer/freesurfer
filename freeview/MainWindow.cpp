@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/10 21:45:09 $
- *    $Revision: 1.113 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.114 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -624,10 +624,6 @@ void MainWindow::NewVolume()
   col_mri->AddLayer( layer_new );
 
   m_controlPanel->RaisePage( _("Volumes") );
-
-// m_viewAxial->SetInteractionMode( RenderView2D::IM_ROIEdit );
-// m_viewCoronal->SetInteractionMode( RenderView2D::IM_ROIEdit );
-// m_viewSagittal->SetInteractionMode( RenderView2D::IM_ROIEdit );
 }
 
 wxString MainWindow::AutoSelectLastDir( wxString lastDir, wxString subdirectory )
@@ -995,9 +991,7 @@ void MainWindow::NewROI()
 
   m_controlPanel->RaisePage( _("ROIs") );
 
-  m_viewAxial->SetInteractionMode( RenderView2D::IM_ROIEdit );
-  m_viewCoronal->SetInteractionMode( RenderView2D::IM_ROIEdit );
-  m_viewSagittal->SetInteractionMode( RenderView2D::IM_ROIEdit );
+  SetMode( RenderView2D::IM_ROIEdit );
 }
 
 void MainWindow::SaveROI()
@@ -1207,9 +1201,7 @@ void MainWindow::NewWayPoints()
 
   m_controlPanel->RaisePage( _("Point Sets") );
 
-  m_viewAxial->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
-  m_viewCoronal->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
-  m_viewSagittal->SetInteractionMode( RenderView2D::IM_WayPointsEdit );
+  SetMode( RenderView2D::IM_WayPointsEdit );
 }
 
 void MainWindow::SaveWayPoints()
@@ -1310,7 +1302,11 @@ void MainWindow::DoUpdateToolbars()
     m_toolWindowEdit = new ToolWindowEdit( this );
 
   if ( !m_toolWindowMeasure )
+  {
     m_toolWindowMeasure = new ToolWindowMeasure( this );
+    for ( int i = 0; i < 4; i++ )
+      m_viewRender[i]->AddListener( m_toolWindowMeasure );
+  }
     
   m_toolWindowEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
       m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
@@ -1327,6 +1323,7 @@ void MainWindow::SetMode( int nMode )
   m_viewAxial->SetInteractionMode( nMode );
   m_viewCoronal->SetInteractionMode( nMode );
   m_viewSagittal->SetInteractionMode( nMode );
+  m_view3D->SetInteractionMode( nMode );
 
   UpdateToolbars();
 }
@@ -1390,6 +1387,7 @@ void MainWindow::SetAction( int nAction )
   m_viewAxial->SetAction( nAction );
   m_viewCoronal->SetAction( nAction );
   m_viewSagittal->SetAction( nAction );
+  m_view3D->SetAction( nAction );
   UpdateToolbars();
 }
 
@@ -2389,9 +2387,7 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
         m_controlPanel->RaisePage( _("Surfaces") );
       }
 
-      m_viewAxial->SetInteractionMode( RenderView2D::IM_Navigate );
-      m_viewCoronal->SetInteractionMode( RenderView2D::IM_Navigate );
-      m_viewSagittal->SetInteractionMode( RenderView2D::IM_Navigate );
+      SetMode( RenderView2D::IM_Navigate );
     }
 
     // Saving operation finished

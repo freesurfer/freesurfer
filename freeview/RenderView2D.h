@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -54,8 +54,6 @@ public:
   virtual ~RenderView2D();
 
   void OnSize( wxSizeEvent& event );
-
-  enum InteractionMode { IM_Navigate = 0, IM_Measure, IM_VoxelEdit, IM_ROIEdit, IM_WayPointsEdit };
 
   static RenderView2D * New();
   void PrintSelf(ostream& os, vtkIndent indent);

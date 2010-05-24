@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/17 20:06:22 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -195,12 +195,26 @@ public:
   
   void CloseSurfaceRegion();
   
-  bool SelectSurfaceRegion( double* pos );
+  SurfaceRegion* SelectSurfaceRegion( double* pos );
+  SurfaceRegion* SelectSurfaceRegion( int nId );
+  
+  SurfaceRegion* GetCurrentSurfaceRegion()
+  {
+    return m_currentSurfaceRegion;
+  }
   
   bool DeleteCurrentSurfaceRegion();
   
+  int GetNumberOfSurfaceRegions()
+  {
+    return m_surfaceRegions.size();
+  }
+  
+  bool SaveAllSurfaceRegions( wxString& fn );
+  
+  bool LoadRegionSurfaces( wxString& fn );
+  
 protected:
-
   void InitializeVolume();
   void InitializeActors();
   void UpdateOpacity();
@@ -214,6 +228,8 @@ protected:
   void UpdateVectorActor();
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
   virtual void UpdateVectorActor( int nPlane );
+  
+  void ResetSurfaceRegionIds();
   
   std::vector<int> GetVoxelIndicesBetweenPoints( int* n0, int* n1 );
   

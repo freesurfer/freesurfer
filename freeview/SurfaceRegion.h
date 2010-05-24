@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/17 20:06:22 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -29,6 +29,8 @@
 
 #include "RenderView.h"
 #include "vtkSmartPointer.h"
+#include "Broadcaster.h"
+#include "Listener.h"
 #include <wx/colour.h>
 
 class vtkRenderer;
@@ -40,11 +42,12 @@ class vtkBox;
 class vtkProp;
 class vtkClipPolyData;
 class RenderView3D;
+class LayerMRI;
 
-class SurfaceRegion
+class SurfaceRegion : public Broadcaster, public Listener
 {
 public:
-  SurfaceRegion( );
+  SurfaceRegion( LayerMRI* owner );
   virtual ~SurfaceRegion();
 
   void SetInput( vtkPolyData* polydata );
@@ -67,7 +70,23 @@ public:
   void Highlight( bool bHighlight = true );
   
   vtkActor* GetMeshActor();
+  
+  int GetId()
+  {
+    return m_nId;
+  }
+  
+  void SetId( int nId )
+  {
+    m_nId = nId;
+  }
 
+  bool Save( wxString& fn );
+  
+  bool Save( FILE* fp );
+  
+  bool Load( FILE* fp );
+  
 private:
   void RebuildOutline( bool bClose );
 
@@ -78,6 +97,10 @@ private:
   vtkSmartPointer<vtkBox>     m_clipbox;
   vtkSmartPointer<vtkClipPolyData>    m_clipper;
   vtkSmartPointer<vtkSelectPolyData>  m_selector;
+  
+  LayerMRI*     m_mri;
+  
+  int   m_nId;
 };
 
 #endif

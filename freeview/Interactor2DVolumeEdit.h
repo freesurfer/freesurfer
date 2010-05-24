@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/04 17:17:27 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,11 +39,6 @@ class Interactor2DVolumeEdit : public Interactor2D
 public:
   Interactor2DVolumeEdit( const char* layerTypeName );
   virtual ~Interactor2DVolumeEdit();
-
-  enum EditMode
-  {
-    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire, EM_ColorPicker, EM_Contour
-  };
 
   // return true if to have parent Interactor2D continue processing the event
   // return false to stop event from further processing

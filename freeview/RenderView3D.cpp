@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/17 20:06:22 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,11 +51,13 @@
 #include "vtkCubeSource.h"
 #include "vtkLine.h"
 #include "Interactor3DNavigate.h"
+#include "Interactor3DMeasure.h"
 #include "LayerSurface.h"
 #include "SurfaceOverlayProperties.h"
 #include "SurfaceOverlay.h"
 #include "vtkRGBAColorTransferFunction.h"
 #include "vtkBoundingBox.h"
+#include "SurfaceRegion.h"
 #include "Cursor3D.h"
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
@@ -84,7 +86,11 @@ void RenderView3D::InitializeRenderView3D()
   if ( m_interactor )
     delete m_interactor;
 
-  m_interactor = new Interactor3DNavigate();
+  m_interactor = NULL;
+  m_interactorNavigate = new Interactor3DNavigate();
+  m_interactorMeasure = new Interactor3DMeasure();  
+  m_interactorNavigate->AddListener( MainWindow::GetMainWindowPointer() );
+  m_interactorMeasure->AddListener( MainWindow::GetMainWindowPointer() );
 
   m_bToUpdateRASPosition = false;
   m_bToUpdateCursorPosition = false;
@@ -121,6 +127,8 @@ void RenderView3D::InitializeRenderView3D()
   m_cursor3D = new Cursor3D( this );
   
   m_actorScalarBar->SetNumberOfLabels( 4 );
+  
+  SetInteractionMode( IM_Navigate );
 }
 
 RenderView3D* RenderView3D::New()
@@ -137,6 +145,21 @@ RenderView3D::~RenderView3D()
 void RenderView3D::PrintSelf(ostream& os, vtkIndent indent)
 {
   this->Superclass::PrintSelf(os, indent);
+}
+
+void RenderView3D::SetInteractionMode( int nMode )
+{
+  RenderView::SetInteractionMode( nMode );
+
+  switch ( nMode )
+  {
+    case IM_Measure:
+      m_interactor = m_interactorMeasure;
+      break;
+    default:
+      m_interactor = m_interactorNavigate;
+      break;
+  }
 }
 
 void RenderView3D::RefreshAllActors()
@@ -380,8 +403,14 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         if ( bCursor )
         {
           LayerMRI* mri = (LayerMRI*)lc_mri->HasProp( prop );
-          if ( mri && mri->SelectSurfaceRegion( pos ) )
+          SurfaceRegion* reg = NULL;
+          if ( mri )
+            reg = mri->SelectSurfaceRegion( pos );
+          if ( reg )
+          {
             NeedRedraw( true ); // force redraw
+            this->SendBroadcast( "SurfaceRegionSelected", reg );
+          }
         }
       }
       else if ( lc_surface->HasProp( prop ) )
@@ -448,7 +477,32 @@ bool RenderView3D::InitializeSelectRegion( int posX, int posY )
     return false;
   
   lc_mri->SetActiveLayer( mri );
-  mri->CreateNewSurfaceRegion( pos );
+  SurfaceRegion* reg = mri->CreateNewSurfaceRegion( pos );
+  if ( reg )
+    this->SendBroadcast( "SurfaceRegionSelected", reg );
+  return true;
+}
+  
+bool RenderView3D::PickSelectRegion( int nId )
+{
+  LayerCollection* lc_mri = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+  LayerMRI* mri = NULL;
+  for ( int i = 0; i < lc_mri->GetNumberOfLayers(); i++ )
+  {
+    LayerMRI* mri_temp = (LayerMRI*)lc_mri->GetLayer(i);
+    if ( mri_temp->GetProperties()->GetShowAsContour() )
+    {
+      mri = mri_temp;
+      break;
+    }
+  }
+  
+  if ( !mri )
+    return false;
+  
+  SurfaceRegion* reg = mri->SelectSurfaceRegion( nId );
+  if ( reg )
+    this->SendBroadcast( "SurfaceRegionSelected", reg );
   return true;
 }
   
@@ -479,7 +533,11 @@ void RenderView3D::DeleteCurrentSelectRegion()
 {
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->GetActiveLayer();
   if ( mri )
-    mri->DeleteCurrentSurfaceRegion();
+  {
+    SurfaceRegion* reg = mri->GetCurrentSurfaceRegion();
+    if ( mri->DeleteCurrentSurfaceRegion() )
+      this->SendBroadcast( "SurfaceRegionRemoved", reg );
+  }
 }
 
 void RenderView3D::DoUpdateConnectivityDisplay()

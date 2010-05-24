@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/17 20:06:22 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,8 +39,7 @@ Interactor3D::Interactor3D() :
     m_nMousePosX( -1 ),
     m_nMousePosY( -1 ),
     m_bWindowLevel( false ),
-    m_bMoveSlice( false ),
-    m_bSelectRegion( false )
+    m_bMoveSlice( false )
 {}
 
 Interactor3D::~Interactor3D()
@@ -63,11 +62,6 @@ bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
   {
     m_bMoveSlice = true;
   }
-  else if ( event.ControlDown() && event.LeftDown() )
-  {
-    if ( view->InitializeSelectRegion( event.GetX(), event.GetY() ) )
-      m_bSelectRegion = true;
-  }
   else
   {
     return Interactor::ProcessMouseDownEvent( event, renderview ); // pass down the event
@@ -80,17 +74,13 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  if ( event.GetX() == m_nMousePosX && event.GetY() == m_nMousePosY && !m_bSelectRegion )
+  if ( event.GetX() == m_nMousePosX && event.GetY() == m_nMousePosY )
   {
     if ( event.LeftUp() )
     {
       view->UpdateCursorRASPosition( event.GetX(), event.GetY() );
       view->UpdateConnectivityDisplay();
     }
-  }
-  else if ( m_bSelectRegion )
-  {
-    view->CloseSelectRegion();
   }
   else
   {
@@ -100,7 +90,6 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
   
   m_bWindowLevel = false;
   m_bMoveSlice = false;
-  m_bSelectRegion = false;
 
   return Interactor::ProcessMouseUpEvent( event, renderview );
 }
@@ -137,10 +126,6 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
         w = 0;
       layer->GetProperties()->SetWindowLevel( w, l );
     }
-  }
-  else if ( m_bSelectRegion )
-  {
-    view->AddSelectRegionLoopPoint( posX, posY );
   }
   else if ( m_bMoveSlice )
   {

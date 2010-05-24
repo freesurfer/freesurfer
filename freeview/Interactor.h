@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,7 +38,17 @@ class Interactor : public Broadcaster
 public:
   Interactor();
   virtual ~Interactor();
+  
+  enum MeasureMode 
+  { 
+    MM_Line = 0, MM_Polyline, MM_Spline, MM_Rectangle, MM_SurfaceRegion
+  };
 
+  enum EditMode
+  {
+    EM_Freehand = 0, EM_Fill, EM_Polyline, EM_Livewire, EM_ColorPicker, EM_Contour
+  };
+  
   int GetAction();
   void SetAction( int nAction );
 

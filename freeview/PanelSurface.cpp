@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 20:06:30 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -284,13 +284,13 @@ void PanelSurface::DoUpdateUI()
       m_checkShowVertices->SetValue( layer->GetProperties()->GetShowVertices() );
       rgb = layer->GetProperties()->GetVertexColor();
       m_colorPickerVertex->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );     
-      m_spinVectorPointSize->SetValue( layer->GetProperties()->GetVertexPointSize() );
+      m_spinVertexPointSize->SetValue( layer->GetProperties()->GetVertexPointSize() );
       
       double* dPos = layer->GetProperties()->GetPosition();
       wxString value_strg = ( (wxString)_("") << dPos [0] << _(" ") << dPos[1] << _(" ") << dPos[2] );
       m_textPosition->ChangeValue( value_strg );
       
-  //    m_checkHideInfo->SetValue( !layer->GetProperties()->GetShowInfo() );
+      m_checkHideInfo->SetValue( !layer->GetProperties()->GetShowInfo() );
     }
 
     lc->SetActiveLayer( ( Layer* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() ) );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/17 20:06:22 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -30,6 +30,8 @@
 #include "vtkProperty.h"
 #include "vtkPolyDataMapper.h"
 #include "vtkPolyData.h"
+#include "vtkPolyDataWriter.h"
+#include "vtkXMLPolyDataWriter.h"
 #include "MainWindow.h"
 #include "RenderView3D.h"
 #include "vtkPolyData.h"
@@ -42,8 +44,12 @@
 #include "vtkBox.h"
 #include "vtkMath.h"
 #include "MyUtils.h"
+#include "LayerMRI.h"
+#include <wx/ffile.h>
 
-SurfaceRegion::SurfaceRegion()
+SurfaceRegion::SurfaceRegion( LayerMRI* owner ) : 
+    Broadcaster( "SurfaceRegion" ),
+    Listener( "SurfaceRegion" )
 {
   m_actorMesh = vtkSmartPointer<vtkActor>::New();
   m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
@@ -64,6 +70,8 @@ SurfaceRegion::SurfaceRegion()
 //  m_clipper->GenerateClippedOutputOn();
   m_clipper->InsideOutOn();
   m_selector->SetInputConnection( m_clipper->GetOutputPort() );
+  
+  m_mri = owner;
 }
 
 SurfaceRegion::~SurfaceRegion()
@@ -167,5 +175,115 @@ void SurfaceRegion::Highlight( bool bHighlight )
     m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
   else 
     m_actorMesh->GetProperty()->SetColor( 0, 0, 1 );
+}
+
+bool SurfaceRegion::Save( wxString& fn )
+{
+  /*
+  vtkXMLPolyDataWriter* writer = vtkXMLPolyDataWriter::New();
+  writer->SetInput( vtkPolyDataMapper::SafeDownCast( m_actorMesh->GetMapper() )->GetInput() );
+  writer->SetFileName( fn.c_str() );
+  writer->SetDataModeToAscii();
+  bool ret = writer->Write();
+  writer->Delete();
+  return ret;
+  */
+  FILE* fp = fopen( fn.c_str(), "w" );
+  if ( !fp )
+    return false;
+  
+  bool ret = Save( fp );
+  fclose( fp );
+  
+  return ret;
+}
+
+bool SurfaceRegion::Save( FILE* fp )
+{
+  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_actorMesh->GetMapper() )->GetInput();
+  vtkPoints* points = polydata->GetPoints();
+  vtkCellArray* polys = polydata->GetPolys();
+  wxString strg = _("SURFACE_REGION\n");
+  strg << _( "ID " ) << m_nId << _("\n") 
+      << _("VOLUME_PATH ") << m_mri->GetFileName() << _("\n")
+      << _( "POINTS " ) << points->GetNumberOfPoints() << _("\n");
+  double pt[3];
+  for ( vtkIdType i = 0; i < points->GetNumberOfPoints(); i++ )
+  {
+    points->GetPoint( i, pt );
+    m_mri->TargetToRAS( pt, pt );
+    strg << pt[0] << " " << pt[1] << " " << pt[2] << _("\n");
+  }
+  strg << _( "POLYGONS " ) << polys->GetNumberOfCells() << _("\n");
+  vtkIdType nPts;
+  vtkIdType* pts = NULL;
+  polys->InitTraversal();
+  while ( polys->GetNextCell( nPts, pts ) )
+  {
+    strg << nPts << " ";
+    for ( vtkIdType j = 0; j < nPts; j++ )
+      strg << pts[j] << " ";
+    strg << _("\n");
+  }
+  strg << _("\n");
+  wxFFile file( fp );
+  file.SeekEnd();
+  bool ret = file.Write( strg );
+  file.Flush();
+  file.Detach();
+  
+  return ret;
+}
+
+bool SurfaceRegion::Load( FILE* fp )
+{
+  char tmp_strg[1000];
+  wxString id_strg = _("SURFACE_REGION");
+  while ( fscanf( fp, "%s\n", tmp_strg ) != EOF && id_strg != tmp_strg );
+  if ( id_strg != tmp_strg )
+    return false;
+  
+  int nId, nPts = 0;
+  float x, y, z;
+  if ( fscanf( fp, "ID %d\nVOLUME_PATH %s\nPOINTS %d", &nId, tmp_strg, &nPts ) == EOF || nPts == 0 )
+    return false;
+  
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  double pt[3];
+  for ( int i = 0; i < nPts; i++ )
+  {
+    fscanf( fp, "%f %f %f", &x, &y, &z );
+    pt[0] = x;
+    pt[1] = y;
+    pt[2] = z;
+    m_mri->RASToTarget( pt, pt );
+    points->InsertNextPoint( pt );
+  }
+  
+  int nPolys = 0;
+  if ( fscanf( fp, "\nPOLYGONS %d", &nPolys ) == EOF || nPolys == 0 )
+    return false;
+  
+  vtkSmartPointer<vtkCellArray> polys = vtkSmartPointer<vtkCellArray>::New();
+  vtkIdType n[3];
+  int nInts[3], nIds = 0;
+  for ( int i = 0; i < nPolys; i++ )
+  {
+    fscanf( fp, "%d %d %d %d", &nIds, nInts, nInts+1, nInts+2 );
+    n[0] = nInts[0];
+    n[1] = nInts[1];
+    n[2] = nInts[2];
+    polys->InsertNextCell( nIds, n );
+  }
+  
+  vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
+  polydata->SetPoints( points );
+  polydata->SetPolys( polys );
+  vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+  mapper->SetInput( polydata );
+  mapper->ScalarVisibilityOff();
+  m_actorMesh->SetMapper( mapper );
+  
+  return true;
 }
 

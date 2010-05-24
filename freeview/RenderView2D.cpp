@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/26 17:30:57 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -130,9 +130,6 @@ void RenderView2D::PrintSelf(ostream& os, vtkIndent indent)
 void RenderView2D::SetInteractionMode( int nMode )
 {
   RenderView::SetInteractionMode( nMode );
-
-// if ( m_interactor )
-//  delete m_interactor;
 
   switch ( nMode )
   {
@@ -589,6 +586,7 @@ void RenderView2D::AddRegion( Region2D* region )
   }
   
   m_regions.push_back( region );
+  this->SendBroadcast( "RegionSelected", region );
   RefreshAllActors();
 }
 
@@ -599,6 +597,7 @@ void RenderView2D::DeleteRegion( Region2D* region )
     if ( m_regions[i] == region )
     {
       m_regions.erase( m_regions.begin() + i );
+      this->SendBroadcast( "RegionRemoved", region );
       delete region;
       RefreshAllActors();
       return;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/17 20:06:22 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -721,7 +721,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
 //    normals->SetInput( polydata );
     normals->SetFeatureAngle( 90 );
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );
-    mapper->SetInputConnection( stripper->GetOutputPort() );
+    mapper->SetInputConnection( normals->GetOutputPort() );
     mapper->ScalarVisibilityOn();
   }
 

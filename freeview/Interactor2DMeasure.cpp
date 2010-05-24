@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/06 18:23:09 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -107,9 +107,9 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
         m_region = reg;
         m_bEditing = true;
         m_region->Highlight();
+        view->SendBroadcast( "RegionSelected", m_region );
         view->NeedRedraw();
       }
-      MainWindow::GetMainWindowPointer()->GetToolWindowMeasure()->SetRegion( m_region );
       return false;
     }
   }
@@ -251,7 +251,6 @@ bool Interactor2DMeasure::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* re
   {
     view->DeleteRegion( m_region );
     m_region = NULL;
-    MainWindow::GetMainWindowPointer()->GetToolWindowMeasure()->SetRegion( m_region );
     return false;
   }
   else

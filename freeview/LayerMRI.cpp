@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/17 20:06:22 $
- *    $Revision: 1.67 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1768,9 +1768,10 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
 
 SurfaceRegion* LayerMRI::CreateNewSurfaceRegion( double* pt )
 {
-  SurfaceRegion* r = new SurfaceRegion();
+  SurfaceRegion* r = new SurfaceRegion( this );
   r->SetInput( vtkPolyData::SafeDownCast( m_actorContour->GetMapper()->GetInput() ) );
   r->AddPoint( pt );
+  r->SetId( m_surfaceRegions.size() + 1 );
   m_surfaceRegions.push_back( r );
   if ( m_currentSurfaceRegion )
     m_currentSurfaceRegion->Highlight( false );
@@ -1797,7 +1798,7 @@ void LayerMRI::CloseSurfaceRegion()
   }
 }
 
-bool LayerMRI::SelectSurfaceRegion( double* pos )
+SurfaceRegion* LayerMRI::SelectSurfaceRegion( double* pos )
 {
   for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
   {
@@ -1807,11 +1808,27 @@ bool LayerMRI::SelectSurfaceRegion( double* pos )
         m_currentSurfaceRegion->Highlight( false );
       m_currentSurfaceRegion = m_surfaceRegions[i];
       m_currentSurfaceRegion->Highlight( true );
-      return true;
+      return m_currentSurfaceRegion;
     }
   }
   
-  return false;
+  return NULL;
+}
+
+SurfaceRegion* LayerMRI::SelectSurfaceRegion( int nId )
+{
+  for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
+  {
+    if ( m_surfaceRegions[i]->GetId() == nId )
+    {
+      if ( m_currentSurfaceRegion )
+        m_currentSurfaceRegion->Highlight( false );
+      m_currentSurfaceRegion = m_surfaceRegions[i];
+      m_currentSurfaceRegion->Highlight( true );
+      return m_currentSurfaceRegion;
+    }
+  }
+  return NULL;
 }
 
 bool LayerMRI::DeleteCurrentSurfaceRegion()
@@ -1825,10 +1842,60 @@ bool LayerMRI::DeleteCurrentSurfaceRegion()
         m_surfaceRegions.erase( m_surfaceRegions.begin() + i );
         delete m_currentSurfaceRegion;
         m_currentSurfaceRegion = NULL;
+        ResetSurfaceRegionIds();
         this->SendBroadcast( "SurfaceRegionRemoved", this );  
         return true;
       }
     }
   }
   return false;
+}
+
+void LayerMRI::ResetSurfaceRegionIds()
+{
+  for ( int i = 0; i < (int)m_surfaceRegions.size(); i++ )
+  {
+    m_surfaceRegions[i]->SetId( i+1 );
+  }
+}
+
+bool LayerMRI::SaveAllSurfaceRegions( wxString& fn )
+{
+  FILE* fp = fopen( fn.c_str(), "w" );
+  if ( !fp )
+    return false;
+  
+  bool ret = true;
+  for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
+  {
+    if ( !m_surfaceRegions[i]->Save( fp ) )
+      ret = false;
+  }
+  
+  fclose( fp ); 
+  return ret;
+}
+
+bool LayerMRI::LoadRegionSurfaces( wxString& fn )
+{
+  FILE* fp = fopen( fn.c_str(), "r" );
+  if ( !fp )
+  {
+    cerr << "Can not open file " << fn.c_str() << endl;
+    return false;
+  }
+  
+  SurfaceRegion* r = new SurfaceRegion( this );
+  while ( r->Load( fp ) )
+  {
+    m_surfaceRegions.push_back( r );
+    r->Highlight( false );
+    r = new SurfaceRegion( this );
+  }
+  delete r;
+  
+  ResetSurfaceRegionIds();
+  
+  this->SendBroadcast( "SurfaceRegionAdded", this );
+  return true;
 }

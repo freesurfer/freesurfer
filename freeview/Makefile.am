@@ -89,8 +89,6 @@ freeview_SOURCES=\
 	Interactor2DNavigate.h \
 	Interactor2DMeasure.cpp \
 	Interactor2DMeasure.h \
-	Interactor2DRegionEdit.cpp \
-	Interactor2DRegionEdit.h \
 	Interactor2DROIEdit.cpp \
 	Interactor2DROIEdit.h \
 	Interactor2DVolumeEdit.cpp \
@@ -101,6 +99,8 @@ freeview_SOURCES=\
 	Interactor2DWayPointsEdit.h \
 	Interactor3D.cpp \
 	Interactor3D.h \
+	Interactor3DMeasure.cpp \
+	Interactor3DMeasure.h \
 	Interactor3DNavigate.cpp \
 	Interactor3DNavigate.h \
 	LayerCollection.cpp \

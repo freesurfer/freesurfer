@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/06 18:23:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/05/24 21:42:53 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -41,8 +41,6 @@ public:
   Interactor2DMeasure();
   virtual ~Interactor2DMeasure();
   
-  enum MeasureMode { MM_Line = 0, MM_Polyline, MM_Spline, MM_Rectangle };
-
   // return true if to have parent Interactor2D continue processing the event
   // return false to stop event from further processing
   virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
