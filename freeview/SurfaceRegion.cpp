@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 18:27:34 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/05/25 19:58:23 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,6 +45,7 @@
 #include "vtkMath.h"
 #include "MyUtils.h"
 #include "LayerMRI.h"
+#include "LayerPropertiesMRI.h"
 #include <wx/ffile.h>
 
 SurfaceRegion::SurfaceRegion( LayerMRI* owner ) : 
@@ -111,7 +112,7 @@ void SurfaceRegion::AddPoint( double* pt )
   RebuildOutline( false );
 }
 
-void SurfaceRegion::Close()
+bool SurfaceRegion::Close()
 {
   RebuildOutline( true );
   if ( m_points->GetNumberOfPoints() > 3 )
@@ -134,8 +135,12 @@ void SurfaceRegion::Close()
     mapper->SetInputConnection( m_selector->GetOutputPort() );
     mapper->ScalarVisibilityOff();
     m_actorMesh->SetMapper( mapper );
-    m_points->Modified();
+    m_selector->Update();
+    vtkPolyData* polydata = m_selector->GetOutput();
+    return ( polydata && polydata->GetPoints() && polydata->GetPoints()->GetNumberOfPoints() > 0 );
   }
+  else
+    return false;
 }
 
 void SurfaceRegion::Update()
@@ -177,19 +182,6 @@ void SurfaceRegion::Highlight( bool bHighlight )
     m_actorMesh->GetProperty()->SetColor( 0, 0, 1 );
 }
 
-bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
-{
-  wxString strg = _("VOLUME_PATH ");
-  strg << mri_ref->GetFileName() << _("\n")
-      << _( "SURFACE_REGIONS " ) << nNum << _("\n");
-  wxFFile file( fp );
-  file.SeekEnd();
-  bool ret = file.Write( strg );
-  file.Flush();
-  file.Detach();
-  return ret;
-}
-
 bool SurfaceRegion::Write( wxString& fn )
 {
   FILE* fp = fopen( fn.c_str(), "w" );
@@ -199,6 +191,21 @@ bool SurfaceRegion::Write( wxString& fn )
   bool ret = WriteHeader( fp, m_mri ) && WriteBody( fp );
   fclose( fp );
   
+  return ret;
+}
+
+bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
+{
+  wxString strg = _("VOLUME_PATH ");
+  strg << mri_ref->GetFileName() << _("\n")
+      << _("VOLUME_THRESHOLD ") << mri_ref->GetProperties()->GetContourMinThreshold() << _(" ") 
+      << mri_ref->GetProperties()->GetContourMaxThreshold() << _("\n") 
+      << _( "SURFACE_REGIONS " ) << nNum << _("\n");
+  wxFFile file( fp );
+  file.SeekEnd();
+  bool ret = file.Write( strg );
+  file.Flush();
+  file.Detach();
   return ret;
 }
 

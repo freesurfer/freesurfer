@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 18:27:34 $
- *    $Revision: 1.69 $
+ *    $Date: 2010/05/25 19:58:23 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1793,7 +1793,8 @@ void LayerMRI::CloseSurfaceRegion()
 {
   if ( m_currentSurfaceRegion )
   {
-    m_currentSurfaceRegion->Close();
+    if ( !m_currentSurfaceRegion->Close() )
+      DeleteCurrentSurfaceRegion();
     this->SendBroadcast( "SurfaceRegionUpdated", this );    
   }
 }
@@ -1885,7 +1886,8 @@ bool LayerMRI::LoadRegionSurfaces( wxString& fn )
   }
   int nNum = 0;
   char ch[1000];
-  fscanf( fp, "VOLUME_PATH %s\nSURFACE_REGIONS %d", ch, &nNum );
+  float dTh_low, dTh_high;
+  fscanf( fp, "VOLUME_PATH %s\nVOLUME_THRESHOLD %f %f\nSURFACE_REGIONS %d", ch, &dTh_low, &dTh_high, &nNum );
   if ( nNum == 0 )
     return false;
   
@@ -1907,6 +1909,11 @@ bool LayerMRI::LoadRegionSurfaces( wxString& fn )
   }
   
   ResetSurfaceRegionIds();
+  if ( bSuccess )
+  {
+    GetProperties()->SetContourThreshold( dTh_low, dTh_high );
+    GetProperties()->SetShowAsContour( true );
+  }
   
   this->SendBroadcast( "SurfaceRegionAdded", this );
   return bSuccess;

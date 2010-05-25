@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/10 21:45:09 $
- *    $Revision: 1.71 $
+ *    $Date: 2010/05/25 19:58:23 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -425,7 +425,8 @@ protected:
   void CommandSetWayPointsRadius( const wxArrayString& cmd );
   void CommandSetDisplayVector  ( const wxArrayString& cmd );
   void CommandSetDisplayTensor  ( const wxArrayString& cmd );
-  void CommandSetDisplayIsoSurface  ( const wxArrayString& cmd );
+  void CommandSetDisplayIsoSurface  ( const wxArrayString& cmd );  
+  void CommandLoadIsoSurfaceRegion  ( const wxArrayString& cmd );
   void CommandLockLayer         ( const wxArrayString& cmd );
   void CommandShowLayer         ( const wxArrayString& cmd );
   

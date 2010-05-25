@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 18:27:34 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/05/25 19:58:23 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -200,8 +200,8 @@ void ToolWindowMeasure::DoUpdateWidgets()
     m_spinId->SetRange( 1, mri->GetNumberOfSurfaceRegions() );
   
   m_btnSave->Enable( m_surfaceRegion && bSurfaceRegionValid );
-  m_btnSaveAll->Enable( bSurfaceRegionValid );
   m_spinId->Enable( m_surfaceRegion && bSurfaceRegionValid );
+  m_btnSaveAll->Enable( bSurfaceRegionValid );
   
   XRCCTRL( *this, "ID_PANEL_HOLDER",  wxPanel )->Layout();
   Layout();

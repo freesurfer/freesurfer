@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 18:27:34 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/05/25 19:58:23 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -54,7 +54,7 @@ public:
 
   void AddPoint( double* pt );
   
-  void Close();
+  bool Close();
   
   wxColour GetColor();
   void SetColor( const wxColour& color );
@@ -88,7 +88,6 @@ public:
   bool WriteBody( FILE* fp );
   
   bool Load( FILE* fp );
-  
   
 private:
   void RebuildOutline( bool bClose );

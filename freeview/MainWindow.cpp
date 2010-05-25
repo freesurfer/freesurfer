@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.114 $
+ *    $Date: 2010/05/25 19:58:23 $
+ *    $Revision: 1.115 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2748,6 +2748,10 @@ void MainWindow::RunScript()
   {
     CommandSetDisplayIsoSurface( sa );
   }
+  else if ( sa[0] == _("loadisosurfaceregion") )
+  {
+    CommandLoadIsoSurfaceRegion( sa );
+  }
   else if ( sa[0] == _("setsurfaceoverlaymethod") )
   {
     CommandSetSurfaceOverlayMethod( sa );
@@ -2918,6 +2922,15 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
         {
           script.Add( argus[1] );
         }
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if ( subOption == _("surface_region") || subOption == _("surface_regions") )
+      {
+        wxArrayString script;
+        script.Add( _("loadisosurfaceregion") );
+        wxFileName fn( subArgu );
+        fn.Normalize();
+        script.Add( fn.GetFullPath() );       
         m_scripts.insert( m_scripts.begin(), script );
       }
       else if ( subOption == _("name") )
@@ -3249,7 +3262,7 @@ void MainWindow::CommandSetDisplayIsoSurface( const wxArrayString& sa )
       {
         mri->GetProperties()->SetContourMinThreshold( dValue );
       }
-      else
+      else if ( sa[1].Lower() != "on" )
       {
         cerr << "Isosurface threshold value is not valid." << endl;
       }
@@ -3266,6 +3279,23 @@ void MainWindow::CommandSetDisplayIsoSurface( const wxArrayString& sa )
       }
     }
     mri->GetProperties()->SetShowAsContour( true );
+  }
+  
+  ContinueScripts();
+}
+
+void MainWindow::CommandLoadIsoSurfaceRegion( const wxArrayString& sa )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {  
+    if ( sa.size() > 1 )
+    {
+      if ( !mri->LoadRegionSurfaces( sa[1] ) )
+      {
+        cerr << "Can not load surfacer region(s) from " << sa[1].c_str() << endl;
+      }
+    }
   }
   
   ContinueScripts();
