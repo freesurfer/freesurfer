@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/05/25 18:27:34 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -360,7 +360,7 @@ void ToolWindowMeasure::OnButtonSave( wxCommandEvent& event )
   if ( m_surfaceRegion && dlg.ShowModal() == wxID_OK )
   {
     wxString fn = dlg.GetPath();
-    if ( !m_surfaceRegion->Save( fn ) )
+    if ( !m_surfaceRegion->Write( fn ) )
     {
       wxMessageDialog msg_dlg( this, wxString("Can not write to file ") + fn, 
                                _("Error"), wxOK );

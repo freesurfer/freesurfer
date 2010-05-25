@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/05/25 18:27:34 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -81,11 +81,14 @@ public:
     m_nId = nId;
   }
 
-  bool Save( wxString& fn );
+  bool Write( wxString& fn );
   
-  bool Save( FILE* fp );
+  static bool WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum = 1 );
+  
+  bool WriteBody( FILE* fp );
   
   bool Load( FILE* fp );
+  
   
 private:
   void RebuildOutline( bool bClose );

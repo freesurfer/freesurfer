@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.68 $
+ *    $Date: 2010/05/25 18:27:34 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1865,13 +1865,12 @@ bool LayerMRI::SaveAllSurfaceRegions( wxString& fn )
   if ( !fp )
     return false;
   
-  bool ret = true;
+  bool ret = SurfaceRegion::WriteHeader( fp, this, m_surfaceRegions.size() );
   for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
   {
-    if ( !m_surfaceRegions[i]->Save( fp ) )
+    if ( !m_surfaceRegions[i]->WriteBody( fp ) )
       ret = false;
-  }
-  
+  } 
   fclose( fp ); 
   return ret;
 }
@@ -1884,18 +1883,31 @@ bool LayerMRI::LoadRegionSurfaces( wxString& fn )
     cerr << "Can not open file " << fn.c_str() << endl;
     return false;
   }
+  int nNum = 0;
+  char ch[1000];
+  fscanf( fp, "VOLUME_PATH %s\nSURFACE_REGIONS %d", ch, &nNum );
+  if ( nNum == 0 )
+    return false;
   
-  SurfaceRegion* r = new SurfaceRegion( this );
-  while ( r->Load( fp ) )
+  bool bSuccess = true;
+  for ( int i = 0; i < nNum; i++ )
   {
-    m_surfaceRegions.push_back( r );
-    r->Highlight( false );
-    r = new SurfaceRegion( this );
+    SurfaceRegion* r = new SurfaceRegion( this );
+    if ( r->Load( fp ) )
+    {
+      m_surfaceRegions.push_back( r );
+      r->Highlight( false );
+    }
+    else
+    {
+      fclose( fp );
+      bSuccess = false;
+      break;
+    }
   }
-  delete r;
   
   ResetSurfaceRegionIds();
   
   this->SendBroadcast( "SurfaceRegionAdded", this );
-  return true;
+  return bSuccess;
 }

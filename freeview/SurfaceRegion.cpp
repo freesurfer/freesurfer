@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/05/25 18:27:34 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -177,35 +177,38 @@ void SurfaceRegion::Highlight( bool bHighlight )
     m_actorMesh->GetProperty()->SetColor( 0, 0, 1 );
 }
 
-bool SurfaceRegion::Save( wxString& fn )
+bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
 {
-  /*
-  vtkXMLPolyDataWriter* writer = vtkXMLPolyDataWriter::New();
-  writer->SetInput( vtkPolyDataMapper::SafeDownCast( m_actorMesh->GetMapper() )->GetInput() );
-  writer->SetFileName( fn.c_str() );
-  writer->SetDataModeToAscii();
-  bool ret = writer->Write();
-  writer->Delete();
+  wxString strg = _("VOLUME_PATH ");
+  strg << mri_ref->GetFileName() << _("\n")
+      << _( "SURFACE_REGIONS " ) << nNum << _("\n");
+  wxFFile file( fp );
+  file.SeekEnd();
+  bool ret = file.Write( strg );
+  file.Flush();
+  file.Detach();
   return ret;
-  */
+}
+
+bool SurfaceRegion::Write( wxString& fn )
+{
   FILE* fp = fopen( fn.c_str(), "w" );
   if ( !fp )
     return false;
   
-  bool ret = Save( fp );
+  bool ret = WriteHeader( fp, m_mri ) && WriteBody( fp );
   fclose( fp );
   
   return ret;
 }
 
-bool SurfaceRegion::Save( FILE* fp )
+bool SurfaceRegion::WriteBody( FILE* fp )
 {
   vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_actorMesh->GetMapper() )->GetInput();
   vtkPoints* points = polydata->GetPoints();
   vtkCellArray* polys = polydata->GetPolys();
   wxString strg = _("SURFACE_REGION\n");
-  strg << _( "ID " ) << m_nId << _("\n") 
-      << _("VOLUME_PATH ") << m_mri->GetFileName() << _("\n")
+  strg << _( "ID " ) << m_nId << _("\n")
       << _( "POINTS " ) << points->GetNumberOfPoints() << _("\n");
   double pt[3];
   for ( vtkIdType i = 0; i < points->GetNumberOfPoints(); i++ )
@@ -225,7 +228,6 @@ bool SurfaceRegion::Save( FILE* fp )
       strg << pts[j] << " ";
     strg << _("\n");
   }
-  strg << _("\n");
   wxFFile file( fp );
   file.SeekEnd();
   bool ret = file.Write( strg );
@@ -245,7 +247,7 @@ bool SurfaceRegion::Load( FILE* fp )
   
   int nId, nPts = 0;
   float x, y, z;
-  if ( fscanf( fp, "ID %d\nVOLUME_PATH %s\nPOINTS %d", &nId, tmp_strg, &nPts ) == EOF || nPts == 0 )
+  if ( fscanf( fp, "ID %d\nPOINTS %d", &nId, &nPts ) == EOF || nPts == 0 )
     return false;
   
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
