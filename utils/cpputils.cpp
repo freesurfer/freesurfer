@@ -7,8 +7,8 @@
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2010/05/24 15:36:11 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/05/25 01:51:18 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010
  * The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
  *
  */
 
-char *CPPUTILS_VERSION = "$Revision: 1.1 $";
+const char *CPPUTILS_VERSION = "$Revision: 1.2 $";
 
 extern "C"
 {
