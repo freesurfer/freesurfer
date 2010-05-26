@@ -78,8 +78,8 @@ script = [[
       export CPUOUT="$(outputDir)/$(id).cpu.mgz"
       export GPUOUT="$(outputDir)/$(id).gpu.mgz"
 
-      mri_vol2vol $MAINCMDS \--o $CPUOUT
-      mri_vol2vol_cuda $MAINCMDS \--o $GPUOUT
+      ${TM_BIN_DIR}/mri_vol2vol $MAINCMDS \--o $CPUOUT
+      ${TM_BIN_DIR}/mri_vol2vol_cuda $MAINCMDS \--o $GPUOUT
 
       $(projectDir)/tools/mridiff.pl \--results=$(cmdResultFn) \
                                      \--gold=$CPUOUT \

@@ -55,7 +55,7 @@ testdescript = {
    -- Keywords (for subtest selection)
    keywords = { "convolution", "basic", "mri" },
 
-   -- Designate the test as active
+   -- Designate the test as inactive
    active = 0,
 
    -- The test name

@@ -55,8 +55,8 @@ script = [[
 
       echo $MAINCMDS
 
-      conv1d_test $MAINCMDS \--output=$CPUOUT
-      conv1d_test_cuda $MAINCMDS \--output=$GPUOUT
+      ${TM_BIN_DIR}/conv1d_test $MAINCMDS \--output=$CPUOUT
+      ${TM_BIN_DIR}/conv1d_test_cuda $MAINCMDS \--output=$GPUOUT
 
       $(projectDir)/tools/mridiff.pl \--results=$(cmdResultFn) \
 	                             \--gold=$CPUOUT \

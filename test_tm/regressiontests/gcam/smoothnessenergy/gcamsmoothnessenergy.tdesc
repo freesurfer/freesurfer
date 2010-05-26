@@ -45,8 +45,10 @@ testdescript = {
 	 export CPUOUT="$(outputDir)/$(id).cpu"
 	 export GPUOUT="$(outputDir)/$(id).gpu"
 
-	 gcam_smoothnessenergy_test      \--gcam=$INPUT \--output=$CPUOUT
-	 gcam_smoothnessenergy_test_cuda \--gcam=$INPUT \--output=$GPUOUT
+	 ${TM_BIN_DIR}/gcam_smoothnessenergy_test      \--gcam=$INPUT \
+                                                       \--output=$CPUOUT
+	 ${TM_BIN_DIR}/gcam_smoothnessenergy_test_cuda \--gcam=$INPUT \
+                                                       \--output=$GPUOUT
 
 	 $(projectDir)/tools/doubleFileDiff.pl \--results=$(cmdResultFn) \
 	                                       \--gold="$CPUOUT" \

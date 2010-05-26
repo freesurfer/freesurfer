@@ -65,15 +65,17 @@ testdescript = {
 	 echo $INPUT
 	 echo " ---------- "
 
-	 gcam_applygradient_test \--input=$INPUT \--output=$CPUOUT \
-	                         \--dt=$(dt) \
-				 \--mom=$(mom)
+	 ${TM_BIN_DIR}/gcam_applygradient_test \--input=$INPUT \
+                                               \--output=$CPUOUT \
+	                                       \--dt=$(dt) \
+				               \--mom=$(mom)
 	
 	 echo " ---------- "
 
-         gcam_applygradient_test_cuda \--input=$INPUT \--output=$GPUOUT \
-	                              \--dt=$(dt) \
-				      \--mom=$(mom)
+         ${TM_BIN_DIR}/gcam_applygradient_test_cuda \--input=$INPUT \
+                                                    \--output=$GPUOUT \
+	                                            \--dt=$(dt) \
+				                    \--mom=$(mom)
 
 
 	 echo " ---------- "

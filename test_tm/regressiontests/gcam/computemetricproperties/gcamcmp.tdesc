@@ -47,8 +47,10 @@ testdescript = {
 
 	 echo $INPUT
 
-	 gcam_cmp_test \--input=$INPUT \--output=$CPUOUT
-	 gcam_cmp_test_cuda \--input=$INPUT \--output=$GPUOUT
+	 ${TM_BIN_DIR}/gcam_cmp_test \--input=$INPUT \
+                                     \--output=$CPUOUT
+	 ${TM_BIN_DIR}/gcam_cmp_test_cuda \--input=$INPUT \
+                                          \--output=$GPUOUT
 
 	 $(projectDir)/tools/gcamMultiDiff.pl \--results=$(cmdResultFn) \
 	                                      \--gold="$CPUOUT.nc" \

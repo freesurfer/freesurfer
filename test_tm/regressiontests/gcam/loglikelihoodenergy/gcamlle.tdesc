@@ -39,7 +39,7 @@ testdescript = {
 	 slightly reduced accuracy on the GPU side.
 	 There are only 256 discrete locations in the GPU
 	 interpolation, although the interpoland itself
-	 is calculate to full accuracy at these locations.
+	 is calculated to full accuracy at these locations.
    ]],
 
    -- Keywords (for subtest selection)
@@ -58,12 +58,12 @@ testdescript = {
 	 export CPUOUT="$(outputDir)/$(id).cpu"
 	 export GPUOUT="$(outputDir)/$(id).gpu"
 
-	 gcam_lle_test      \--gcam=$GCAMINPUT \
-	                    \--mri=$MRIINPUT \
-	                    \--output=$CPUOUT
-	 gcam_lle_test_cuda \--gcam=$GCAMINPUT \
-	                    \--mri=$MRIINPUT \
-	                    \--output=$GPUOUT
+	 ${TM_BIN_DIR}/gcam_lle_test      \--gcam=$GCAMINPUT \
+	                                  \--mri=$MRIINPUT \
+	                                  \--output=$CPUOUT
+	${TM_BIN_DIR}/ gcam_lle_test_cuda \--gcam=$GCAMINPUT \
+	                                  \--mri=$MRIINPUT \
+	                                  \--output=$GPUOUT
 
 	 $(projectDir)/tools/doubleFileDiff.pl \--results=$(cmdResultFn) \
 	                                       \--gold="$CPUOUT" \

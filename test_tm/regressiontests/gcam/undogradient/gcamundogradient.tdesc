@@ -48,12 +48,13 @@ testdescript = {
 	 echo $INPUT
 
 	 # -- Have to generate some non-zero inputs in odx etc.
-	 gcam_applygradient_test \--input=$INPUT \--output=$(outputDir)/nonzero
+	 ${TM_BIN_DIR}/gcam_applygradient_test \--input=$INPUT \
+                                               \--output=$(outputDir)/nonzero
 
-	 gcam_undogradient_test      \--input=$(outputDir)/nonzero \
-                                     \--output=$CPUOUT
-	 gcam_undogradient_test_cuda \--input=$(outputDir)/nonzero \
-                                     \--output=$GPUOUT
+	 ${TM_BIN_DIR}/gcam_undogradient_test      \--input=$(outputDir)/nonzero \
+                                                   \--output=$CPUOUT
+	 ${TM_BIN_DIR}/gcam_undogradient_test_cuda \--input=$(outputDir)/nonzero \
+                                                   \--output=$GPUOUT
 
 	 $(projectDir)/tools/gcamMultiDiff.pl \--results=$(cmdResultFn) \
 	                                      \--gold="$CPUOUT.nc" \

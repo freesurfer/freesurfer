@@ -41,7 +41,9 @@ EOT
 # ----------------------------------
 # Run mri_diff
 
-my $cmdline = "mri_diff --verbose $cmp1File $cmp2File --thresh $threshold --diff diff.mgz";
+
+my $binPath = $ENV{'TM_BIN_DIR'};
+my $cmdline = "$binPath/mri_diff --verbose $cmp1File $cmp2File --thresh $threshold --diff diff.mgz";
 #print "$cmdline\n";
 
 system( $cmdline );

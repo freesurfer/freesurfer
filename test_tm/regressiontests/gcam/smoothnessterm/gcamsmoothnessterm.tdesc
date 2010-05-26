@@ -62,13 +62,15 @@ testdescript = {
 	 echo $INPUT
 	 echo " ---------- "
 
-	 gcam_smoothnessterm_test \--input=$INPUT \--output=$CPUOUT \
-	                          \--lambda=$(lambda)
+	 ${TM_BIN_DIR}/gcam_smoothnessterm_test \--input=$INPUT \
+                                                \--output=$CPUOUT \
+	                                        \--lambda=$(lambda)
 	
 	 echo " ---------- "
 
-         gcam_smoothnessterm_test_cuda \--input=$INPUT \--output=$GPUOUT \
-	                               \--lambda=$(lambda)
+         ${TM_BIN_DIR}/gcam_smoothnessterm_test_cuda \--input=$INPUT \
+                                                     \--output=$GPUOUT \
+	                                             \--lambda=$(lambda)
 
 
 	 echo " ---------- "

@@ -15,8 +15,8 @@ my( $goldFile, $cmpFile );
 
 my( $rcs, $rev, $rcsdate );
 $rcs = '$RCSfile: gcamMultiDiff.pl,v $';
-$rev = '$Revision: 1.2 $';
-$rcsdate = '$Date: 2010/04/08 19:13:22 $';
+$rev = '$Revision: 1.3 $';
+$rcsdate = '$Date: 2010/05/26 19:20:00 $';
 
 print "GCAM Multi-Diff\n";
 print "===============\n\n";
@@ -131,7 +131,9 @@ sub LoadConfigFile{
 sub RunCompare{
     my( $varName, $mode, $matchTol, $diffTol ) = @_;
 
-    my $cmdline = "gcamCompare $varName $goldFile $cmpFile --$mode -m $matchTol -d $diffTol";
+    my $binPath = $ENV{'TM_BIN_DIR'};
+
+    my $cmdline = "$binPath/gcamCompare $varName $goldFile $cmpFile --$mode -m $matchTol -d $diffTol";
 
     print "$cmdline\n";
 

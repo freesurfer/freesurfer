@@ -46,12 +46,12 @@ testdescript = {
 	 export CPUOUT="$(outputDir)/$(id).cpu"
 	 export GPUOUT="$(outputDir)/$(id).gpu"
 
-	 gcam_jacobenergy_test      \--gcam=$GCAMINPUT \
-	                            \--mri=$MRIINPUT \
-	                            \--output=$CPUOUT
-	 gcam_jacobenergy_test_cuda \--gcam=$GCAMINPUT \
-	                            \--mri=$MRIINPUT \
-	                            \--output=$GPUOUT
+	 g${TM_BIN_DIR}/cam_jacobenergy_test      \--gcam=$GCAMINPUT \
+	                                          \--mri=$MRIINPUT \
+	                                          \--output=$CPUOUT
+	 ${TM_BIN_DIR}/gcam_jacobenergy_test_cuda \--gcam=$GCAMINPUT \
+	                                          \--mri=$MRIINPUT \
+	                                          \--output=$GPUOUT
 
 	 $(projectDir)/tools/doubleFileDiff.pl \--results=$(cmdResultFn) \
 	                                       \--gold="$CPUOUT" \

@@ -56,8 +56,8 @@ script = [[
       export CPUOUT="$(outputDir)/$(id).cpu.mgz"
       export GPUOUT="$(outputDir)/$(id).gpu.mgz"
 
-      convgaussian_test $MAINCMDS \--output=$CPUOUT
-      convgaussian_test_cuda $MAINCMDS \--output=$GPUOUT
+      ${TM_BIN_DIR}/convgaussian_test $MAINCMDS \--output=$CPUOUT
+      ${TM_BIN_DIR}/convgaussian_test_cuda $MAINCMDS \--output=$GPUOUT
 
       $(projectDir)/tools/mridiff.pl \--results=$(cmdResultFn) \
                                      \--gold=$CPUOUT \
