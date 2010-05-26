@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.5 $
+ *    $Author: fischl $
+ *    $Date: 2010/05/26 17:26:08 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // date: 12/09/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:11 $
-// Revision       : $Revision: 1.5 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2010/05/26 17:26:08 $
+// Revision       : $Revision: 1.6 $
 ////////////////////////////////////////////
 #include "ANN.h"
 
@@ -63,7 +63,7 @@ extern "C" {
 #include "matrix.h"
 }
 
-//static char vcid[] = "$Id: mris_spharm.c,v 1.5 2006/12/29 02:09:11 nicks Exp $";
+//static char vcid[] = "$Id: mris_spharm.c,v 1.6 2010/05/26 17:26:08 fischl Exp $";
 
 
 int             main(int argc, char *argv[]) ;
@@ -129,7 +129,7 @@ main(int argc, char *argv[]) {
     mris_out->vertices[i].nsize=1;
   //mrisp = MRISPalloc(1, 3);
 #if 1
-  //MRIScoordsToParameterization(mris_in, mrisp, 1) ;
+  //MRIScoordsToParameterization(mris_in, mrisp, 1, ORIGINAL_VERTICES) ;
   //MRISPblur(mrisp, mrisp, 0.5, 0);
   //MRISPblur(mrisp, mrisp, 0.5, 1);
   //MRISPblur(mrisp, mrisp, 0.5, 2);
@@ -198,7 +198,7 @@ main(int argc, char *argv[]) {
       mris_out->vertices[i].nsize=1;
     //mrisp = MRISPalloc(1, 3);
 #if 1
-    //MRIScoordsToParameterization(mris_in, mrisp, 1) ;
+    //MRIScoordsToParameterization(mris_in, mrisp, 1, ORIGINAL_VERTICES) ;
     //MRISPblur(mrisp, mrisp, 0.5, 0);
     //MRISPblur(mrisp, mrisp, 0.5, 1);
     //MRISPblur(mrisp, mrisp, 0.5, 2);
