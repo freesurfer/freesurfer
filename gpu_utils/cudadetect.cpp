@@ -10,7 +10,7 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- * $Id: cudadetect.cpp,v 1.5 2010/03/09 15:23:20 nicks Exp $
+ * $Id: cudadetect.cpp,v 1.6 2010/05/26 17:02:46 nicks Exp $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -50,6 +50,11 @@ const char* cudalibname = "libcudart.so";
 #ifdef __APPLE__
 const char* cudalibname = "libcudart.dylib";
 #endif
+
+// Defines for GPU Architecture types 
+// (using the SM version to determine the # of cores per SM
+static int nGpuArchCoresPerSM[] = { -1, 8, 32 };
+// end of GPU Architecture definitions
 
 /* we make use of dlopen and dlclose calls of Linux and MacOSX to check whether
  * the libraries exist. Then we make sure one of the basic calls in that
@@ -163,7 +168,8 @@ static int dump()
     printf("  Number of multiprocessors:                     %d\n",
            deviceProp.multiProcessorCount);
     printf("  Number of cores:                               %d\n",
-           8 * deviceProp.multiProcessorCount);
+           nGpuArchCoresPerSM[deviceProp.major] *
+           deviceProp.multiProcessorCount);
 
     printf("  Total amount of constant memory:               %u bytes\n",
            (unsigned int)deviceProp.totalConstMem);
