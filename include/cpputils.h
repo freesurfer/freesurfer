@@ -7,8 +7,8 @@
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2010/05/24 15:36:53 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/05/26 20:09:35 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,7 @@ extern "C"
 
 
 // The following is usable from C
+MRI* MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dist, double distance);
 MRI* MRISfillInterior2(MRI_SURFACE *mris, MRI* mri_interior);
 
 #ifdef __cplusplus
