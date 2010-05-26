@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/12 17:27:04 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/05/26 16:28:01 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -730,16 +730,6 @@ void FSSurface::GetVectorAtVertex( int nVertex, double* vec_out, int nVector )
     nv = m_nActiveVector;
   
   VertexItem* vectors = m_vertexVectors[nv].data;
-  /*
-  double p1[3], p2[3];
-  p1[0] = m_MRIS->vertices[nVertex].x;
-  p1[1] = m_MRIS->vertices[nVertex].y;
-  p1[2] = m_MRIS->vertices[nVertex].z;
-  p2[0] = vectors[nVertex].x;
-  p2[1] = vectors[nVertex].y;
-  p2[2] = vectors[nVertex].z;
-  MyUtils::GetVector( p1, p2, vec_out );
-  */
   vec_out[0] = vectors[nVertex].x;
   vec_out[1] = vectors[nVertex].y;
   vec_out[2] = vectors[nVertex].z;
