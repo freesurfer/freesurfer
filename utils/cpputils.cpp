@@ -7,8 +7,8 @@
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
  *    $Author: krish $
- *    $Date: 2010/05/25 01:51:18 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/05/26 20:08:48 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010
  * The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
  *
  */
 
-const char *CPPUTILS_VERSION = "$Revision: 1.2 $";
+const char *CPPUTILS_VERSION = "$Revision: 1.3 $";
 
 extern "C"
 {
@@ -48,18 +48,12 @@ typedef Math::Point<int> Pointd;
 typedef Math::Point<float> Point_f;
 using namespace std;
 
-/* This version of fill interior uses the surface distance transform and an inside outside check using OBBTree datastructure to accurately fill. hence this is generally a more accurate algorithm than the old MRISfillInterior but the downside is it takes more time ( around 5 minutes ) . 
- *  returned MRI structure (mri_out) is an MRI_INT MRI volume
- */ 
-extern "C" MRI *
-MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
+/* This function finds the closest distance of voxels with the distance d of volume mri_dist to the surface mris.
+ */
+extern "C" MRI*
+MRISsignedFixedDistanceTransform(MRI_SURFACE *mris, MRI *mri_dist, double distance)
 {
   int res;
-  MRI *mri_visited, *_mridist, *mri_out; 
-
-  _mridist = MRIcloneDifferentType(mri_interior, MRI_FLOAT);
-  mri_visited  = MRIcloneDifferentType(_mridist, MRI_INT);
-  mri_out  = MRIclone(mri_interior, NULL);
 
   // Save the MRIS surface verts
   Point_f *surfverts = new Point_f[mris->nvertices];
@@ -71,12 +65,15 @@ MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
     surfverts[vc].v[2] = v->z;
   }
 
+  // this volume is used to track visited voxels 
+  MRI* mri_visited  = MRIcloneDifferentType(mri_dist, MRI_INT);
+
   // Convert surface vertices to vox space
-  Math::ConvertSurfaceRASToVoxel(mris, _mridist);
+  Math::ConvertSurfaceRASToVoxel(mris, mri_dist);
   
   // Find the distance field 
-  MRISDistanceField *distfield = new MRISDistanceField(mris, _mridist);
-  distfield->SetMaxDistance(3.0);
+  MRISDistanceField *distfield = new MRISDistanceField(mris, mri_dist);
+  distfield->SetMaxDistance(distance);
   distfield->Generate(); //mri_dist now has the distancefield 
 
   // Construct the OBB Tree
@@ -86,12 +83,12 @@ MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
   std::queue<Pointd* > ptsqueue;
   // iterate through all the volume points 
   // and apply sign 
-  for(int i=0; i< _mridist->width; i++)
+  for(int i=0; i< mri_dist->width; i++)
   {
     //std::cerr << i <<" ";
-    for(int j=0; j< _mridist->height; j++)
+    for(int j=0; j< mri_dist->height; j++)
     {
-      for(int k=0; k< _mridist->depth; k++)
+      for(int k=0; k< mri_dist->depth; k++)
       {
         if ( MRIIvox(mri_visited, i, j, k )) continue; 
         res = OBBTree->PointInclusionTest(i, j, k);
@@ -112,8 +109,8 @@ MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
 
           if ( MRIIvox(mri_visited, x, y, z) ) continue; 
           MRIIvox(mri_visited, x, y, z) =  res;
-          const float dist = MRIFvox(_mridist, x, y, z);
-          MRIFvox(_mridist, x, y, z) =  dist*res;
+          const float dist = MRIFvox(mri_dist, x, y, z);
+          MRIFvox(mri_dist, x, y, z) =  dist*res;
 
           // mark its 6 neighbors if distance > 1 ( triangle inequality )
           if ( dist > 1 )
@@ -177,20 +174,6 @@ MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
       }
     }
   }
-  for(int i=0; i< _mridist->width; i++)
-  {
-    for(int j=0; j< _mridist->height; j++)
-    {
-      for(int k=0; k< _mridist->depth; k++)
-      {
-        if ( MRIFvox(_mridist, i, j, k) > 0)
-          MRIsetVoxVal(mri_out, i, j, k, 0, 1);
-        else
-          MRIsetVoxVal(mri_out, i, j, k, 0, 0);
-      }
-    }
-  }
-
   // Restore the saved MRIS surface verts
   for (int vc=0; vc<mris->nvertices; vc++)
   {
@@ -201,10 +184,41 @@ MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
   }
 
   delete [] surfverts;  //no longer need
-  MRIfree(&mri_visited);
-  MRIfree(&_mridist);
   delete OBBTree;
   delete distfield;
+  MRIfree(&mri_visited);
+  return(mri_dist);
+
+}
+
+/* This uses the more accurate signed distance transform from a surface ( uses OBB Trees in turn ). It takes more time ( around 4 to 5 minutes ) but it's very accurate.
+ * returned MRI structure (mri_out) is an MRI_INT MRI volume with voxels inside having the value 1 and voxels outside with value 0.
+ */ 
+extern "C" MRI *
+MRISfillInterior2(MRI_SURFACE *mris, MRI *mri_interior)
+{
+  MRI *_mridist, *mri_out; 
+
+  _mridist = MRIcloneDifferentType(mri_interior, MRI_FLOAT);
+  mri_out  = MRIclone(mri_interior, NULL);
+
+  MRISsignedFixedDistanceTransform(mris, _mridist, 3.0);
+
+  for(int i=0; i< _mridist->width; i++)
+  {
+    for(int j=0; j< _mridist->height; j++)
+    {
+      for(int k=0; k< _mridist->depth; k++)
+      {
+        if ( MRIFvox(_mridist, i, j, k) > 0.0)
+          MRIsetVoxVal(mri_out, i, j, k, 0, 1);
+        else
+          MRIsetVoxVal(mri_out, i, j, k, 0, 0);
+      }
+    }
+  }
+
+  MRIfree(&_mridist);
   return(mri_out);
 
 }
