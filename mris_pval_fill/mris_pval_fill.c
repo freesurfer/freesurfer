@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:11 $
- *    $Revision: 1.2 $
+ *    $Author: fischl $
+ *    $Date: 2010/05/26 17:27:55 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,9 +33,9 @@
 // date: 11/11/04
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: nicks $
-// Revision Date  : $Date: 2006/12/29 02:09:11 $
-// Revision       : $Revision: 1.2 $
+// Revision Author: $Author: fischl $
+// Revision Date  : $Date: 2010/05/26 17:27:55 $
+// Revision       : $Revision: 1.3 $
 ////////////////////////////////////////////
 
 
@@ -67,7 +67,7 @@
 #include "icosahedron.h"
 
 
-//static char vcid[] = "$Id: mris_pval_fill.c,v 1.2 2006/12/29 02:09:11 nicks Exp $";
+//static char vcid[] = "$Id: mris_pval_fill.c,v 1.3 2010/05/26 17:27:55 fischl Exp $";
 
 int             main(int argc, char *argv[]) ;
 static int      get_option(int argc, char *argv[]) ;
@@ -110,11 +110,11 @@ main(int argc, char *argv[]) {
   //for (m = 0; m<mris_out->nvertices; m++)
   // mris_out->vertices[m].nsize=1;
   mrisp = MRISPalloc(1, 3);
-  MRIScoordsToParameterization(mris_in, mrisp, 1) ;
+  MRIScoordsToParameterization(mris_in, mrisp, 1, ORIGINAL_VERTICES) ;
   //MRISPblur(mrisp, mrisp, 1, 0);
   //MRISPblur(mrisp, mrisp, 1, 1);
   //MRISPblur(mrisp, mrisp, 1, 2);
-  MRIScoordsFromParameterization(mrisp, mris_out) ;
+  MRIScoordsFromParameterization(mrisp, mris_out, ORIGINAL_VERTICES) ;
 
   if ((fp_p = fopen(argv[3], "r")) == NULL) {
     ErrorReturn(ERROR_BADFILE, (ERROR_BADFILE, "p value input: file %s does not exist!", argv[3]));
