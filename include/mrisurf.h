@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/20 23:24:52 $
- *    $Revision: 1.343 $
+ *    $Date: 2010/05/26 17:25:16 $
+ *    $Revision: 1.344 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -77,6 +77,7 @@ typedef struct face_type_
   float  angle[ANGLES_PER_TRIANGLE] ;
   float  orig_angle[ANGLES_PER_TRIANGLE]  ;
   char   ripflag;                        /* ripped face */
+  char   oripflag;                       /* stored version */
   int    marked;                         /* marked face */
 #if 0
   float logshear,shearx,sheary;  /* compute_shear */
@@ -379,6 +380,7 @@ typedef struct
   int          vertices[X_DIM][Y_DIM] ;   /* vertex numbers */
 #endif
   float        sigma ;                    /* blurring scale */
+  float        radius ;
 }
 MRI_SURFACE_PARAMETERIZATION, MRI_SP ;
 
@@ -945,10 +947,11 @@ MRI_SP       *MRISgradientToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
 MRI_SURFACE  *MRISgradientFromParameterization(MRI_SP*mrisp,MRI_SURFACE *mris);
 
 MRI_SP       *MRIScoordsToParameterization(MRI_SURFACE *mris, MRI_SP *mrisp,
-                                           float scale) ;
-MRI_SURFACE  *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris);
+                                           float scale, int which_vertices) ;
+MRI_SURFACE  *MRIScoordsFromParameterization(MRI_SP *mrisp, MRI_SURFACE *mris, int which_vertices);
 
 
+float         MRISPsample(MRI_SP *mrisp, float x, float y, float z, int fno) ;
 MRI_SP       *MRISPblur(MRI_SP *mrisp_src, MRI_SP *mrisp_dst, float sigma,
                         int fno) ;
 MRI_SP       *MRISPconvolveGaussian(MRI_SP *mrisp_src, MRI_SP *mrisp_dst,
@@ -1944,6 +1947,9 @@ int MRISvertexCoord2XYZ_float (VERTEX * v,
                                float  *x, float  *y, float  *z);
 int MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, 
                          float *px, float *py, float *pz) ;
+int
+MRISsampleFaceCoordsCanonical(MHT *mht, MRI_SURFACE *mris, double x, double y, double z, int which, 
+                              float *px, float *py, float *pz) ;
 int MRISsampleFaceCoords(MRI_SURFACE *mris,
                          int fno,
                          double x, double y, double z,
