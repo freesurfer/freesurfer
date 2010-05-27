@@ -14,10 +14,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/05 16:57:16 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/05/27 23:37:16 $
+ *    $Revision: 1.44 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -27,7 +27,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -50,8 +49,12 @@
 #include "mrishash.h"
 #include "version.h"
 
+#ifdef FS_CUDA
+#include "devicemanagement.h"
+#endif // FS_CUDA
+
 static char vcid[] =
-  "$Id: mris_fix_topology.c,v 1.43 2007/01/05 16:57:16 nicks Exp $";
+  "$Id: mris_fix_topology.c,v 1.44 2010/05/27 23:37:16 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -99,10 +102,15 @@ main(int argc, char *argv[]) {
 
   char cmdline[CMD_LINE_LEN] ;
 
+#ifdef FS_CUDA
+  // Force CUDA initialisation
+  AcquireCUDADevice();
+#endif // FS_CUDA
+
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_fix_topology.c,v 1.43 2007/01/05 16:57:16 nicks Exp $",
+   "$Id: mris_fix_topology.c,v 1.44 2010/05/27 23:37:16 nicks Exp $",
    "$Name:  $",
    cmdline);
 
@@ -111,7 +119,7 @@ main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.43 2007/01/05 16:57:16 nicks Exp $",
+     "$Id: mris_fix_topology.c,v 1.44 2010/05/27 23:37:16 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
