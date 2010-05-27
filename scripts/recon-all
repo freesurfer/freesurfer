@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/05/11 20:43:42 $
-#    $Revision: 1.312 $
+#    $Date: 2010/05/27 23:57:29 $
+#    $Revision: 1.313 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.312 2010/05/11 20:43:42 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.313 2010/05/27 23:57:29 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -155,6 +155,9 @@ set DoLabelV1 = 0; # if 1, create V1 label from O.Hinds V1 prediction atlas
 set DoRobustMotionCor = 1; # if 1, then use mri_robust_template for motion cor
 set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
                      # correction, construct template from: 0 Mean, 1 Median 
+set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
+                 # mri_em_register_cuda, mri_ca_register_cuda,
+                 # mris_inflate_cuda, mris_sphere_cuda
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -1466,6 +1469,7 @@ skullstrip:
       if ( ! -e transforms/talairach_with_skull.lta || $DoCleanLta ) then
         set xopts2 = `fsr-getxopts mri_em_register $XOptsFile`;
         set cmd2 = (mri_em_register)
+        if($UseCuda) set cmd2 = (mri_em_register_cuda)
         set cmd2 = ($cmd2 -skull)
         set cmd2 = ($cmd2 $xopts2 nu.mgz ${GCADIR}/$GCASkull)
         set cmd2 = ($cmd2 transforms/talairach_with_skull.lta)
@@ -1687,14 +1691,16 @@ if($DoGCAReg) then
                 $longbasedir/mri/transforms/talairach.lta \
                 transforms/talairach.lta)
   else
+    set cmd = (mri_em_register)
+    if($UseCuda) set cmd = (mri_em_register_cuda)
     if($DoCreateBaseSubj) then
       # base subj processing (norm_template instead of nu, and no mask needed):
-      set cmd = (mri_em_register -mask brainmask.mgz $xopts \
+      set cmd = ($cmd -mask brainmask.mgz $xopts \
                   norm_template.mgz ${GCADIR}/$GCA \
                   transforms/talairach.lta)
     else
       # default processing:
-      set cmd = (mri_em_register -mask brainmask.mgz $xopts \
+      set cmd = ($cmd -mask brainmask.mgz $xopts \
                   nu.mgz ${GCADIR}/$GCA \
                   transforms/talairach.lta)
     endif
@@ -1763,6 +1769,7 @@ if($DoCAReg) then
 
   set xopts = `fsr-getxopts mri_ca_register $XOptsFile`;
   set cmd = (mri_ca_register)
+  if($UseCuda) set cmd = (mri_ca_register_cuda)
   if($UnCompress) set cmd = ($cmd -uncompress)
   if($BigVentricles) set cmd = ($cmd -bigventricles)
   if( ! $BigVentricles) set cmd = ($cmd -nobigventricles)
@@ -1798,7 +1805,9 @@ if($DoCARegInv) then
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
   # set xopts = `fsr-getxopts mri_ca_register $XOptsFile`; # careful here
-  set cmd = (mri_ca_register -invert-and-save transforms/talairach.m3z)
+  set cmd = (mri_ca_register)
+  if($UseCuda) set cmd = (mri_ca_register_cuda)
+  set cmd = ($cmd -invert-and-save transforms/talairach.m3z)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) then
@@ -1835,7 +1844,9 @@ if($DoSkullLTA) then
   echo "#@# SkullLTA `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
-  set cmd = (mri_em_register -skull -t transforms/talairach.lta \
+  set cmd = (mri_em_register)
+  if ($UseCuda) set cmd = (mri_em_register_cuda)
+  set cmd = ($cmd -skull -t transforms/talairach.lta \
      $xopts nu_noneck.mgz ${GCADIR}/$GCASkull \
      transforms/talairach_with_skull.lta)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2226,7 +2237,9 @@ foreach hemi ($hemilist)
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_inflate $XOptsFile`;
-    set cmd = (mris_inflate  -no-save-sulc $xopts \
+    set cmd = (mris_inflate)
+    if($UseCuda) set cmd = (mris_inflate_cuda)
+    set cmd = ($cmd  -no-save-sulc $xopts \
       ../surf/$hemi.smoothwm.nofix ../surf/$hemi.inflated.nofix)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     $PWD |& tee -a $LF
@@ -2243,6 +2256,7 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
     set cmd = (mris_sphere -q)
+    if($UseCuda) set cmd = (mris_sphere_cuda -q)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
     set cmd = ($cmd ../surf/$hemi.inflated.nofix ../surf/$hemi.qsphere.nofix)
@@ -2272,7 +2286,8 @@ foreach hemi ($hemilist)
     # Now can run fixer
     if($UseOldTopoFix) then
       set xopts = `fsr-getxopts mris_fix_topology $XOptsFile`;
-      set cmd = (mris_fix_topology -mgz -sphere qsphere.nofix)
+      set cmd = (mris_fix_topology)
+      set cmd = ($cmd -mgz -sphere qsphere.nofix)
       if($FixWithGA) set cmd = ($cmd -ga)
       if($FixDiagOnly) set cmd = ($cmd -diagonly)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
@@ -2464,7 +2479,9 @@ foreach hemi ($hemilist)
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
     set xopts = `fsr-getxopts mris_inflate $XOptsFile`;
-    set cmd = (mris_inflate $xopts ../surf/$hemi.smoothwm \
+    set cmd = (mris_inflate)
+    if($UseCuda) set cmd = (mris_inflate_cuda)
+    set cmd = ($cmd $xopts ../surf/$hemi.smoothwm \
                ../surf/$hemi.inflated)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
@@ -2515,6 +2532,7 @@ foreach hemi ($hemilist)
       # default stream:
       set xopts = `fsr-getxopts mris_sphere $XOptsFile`;
       set cmd = (mris_sphere)
+      if($UseCuda) set cmd = (mris_sphere_cuda)
       if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
       if($UseNoNeg) set cmd = ($cmd -remove_negative 1)
       set cmd = ($cmd $xopts)
@@ -4674,6 +4692,13 @@ while( $#argv != 0 )
       set DoShowEdits = 1;
       breaksw;
 
+    case "-use-cuda":
+    case "-use_cuda":
+    case "-use-gpu":
+    case "-use_gpu":
+      set UseCuda = 1;
+      breaksw;
+
     default:
       echo ERROR: Flag $flag unrecognized.
       echo $cmdline
@@ -5188,6 +5213,9 @@ usage_exit:
   echo "                  both mprage flags affect mri_normalize and mri_segment,"
   echo "                  and assumes a darker gm."
 #  echo "  -schwartzya3t-atlas : for tal reg, use special young adult 3T atlas"
+  echo ""
+  echo "  -use-gpu : use GPU versions of mri_em_register, mri_ca_register,"
+  echo "             mris_inflate and mris_sphere"
   echo ""
   echo " Notification Files (Optional)"
   echo "  -waitfor file : wait for file to appear before beginning"
@@ -6015,6 +6043,11 @@ Example:
 The output subject is named <tpNsubjid>.long.<longbasesubjid>.
 
 Notice that the -all flag is included. A work directive flag is required.
+
+-use-gpu
+
+Use the GPU versions of the binaries mri_em_register, mri_ca_register, 
+mris_inflate, and mris_sphere.
 
 
 MANUAL CHECKING AND EDITING OF SURFACES
