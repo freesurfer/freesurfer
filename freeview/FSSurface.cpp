@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/26 16:28:01 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/05/27 14:09:38 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -419,11 +419,19 @@ bool FSSurface::SaveVertices( MRI* mri, VertexItem*& buffer )
       return false;
     }
   }
+  double len = 1.0;
   for ( int vno = 0; vno < nvertices; vno++ )
   {
     buffer[vno].x = MRIFseq_vox( mri, vno, 0, 0, 0 );
     buffer[vno].y = MRIFseq_vox( mri, vno, 0, 0, 1 );
     buffer[vno].z = MRIFseq_vox( mri, vno, 0, 0, 2 );
+    len = sqrt( buffer[vno].x*buffer[vno].x + buffer[vno].y*buffer[vno].y + buffer[vno].z*buffer[vno].z );
+    if ( len > 0 )
+    {
+      buffer[vno].x /= len;
+      buffer[vno].y /= len;
+      buffer[vno].z /= len;
+    }
   }
   return true;
 }
