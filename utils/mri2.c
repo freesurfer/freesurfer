@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/05/20 23:26:18 $
- *    $Revision: 1.62 $
+ *    $Author: greve $
+ *    $Date: 2010/05/27 22:44:36 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <float.h>
 #include "error.h"
 #include "diag.h"
 #include "mri.h"
@@ -2796,20 +2797,19 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
                   int InterpCode, float param, MRI *vsm)
 {
   int   ct,  rt,  st,  f;
-  int   ics, irs, iss;
+  int   ics, irs, iss, cvsm,rvsm;
   float fcs, frs, fss;
   float *valvect,drvsm;
   int sinchw;
-  double rval;
+  double rval,v;
   MATRIX *V2Rsrc=NULL, *invV2Rsrc=NULL, *V2Rtarg=NULL;
   MATRIX *crsT=NULL,*crsS=NULL;
   int FreeMats=0;
 
-  if (DIAG_VERBOSE_ON)
+  if(DIAG_VERBOSE_ON)
     printf("Using MRIvol2VolVSM\n");
 
-  if (src->nframes != targ->nframes)
-  {
+  if(src->nframes != targ->nframes){
     printf("ERROR: MRIvol2vol: source and target have different number "
            "of frames\n");
     return(1);
@@ -2837,12 +2837,9 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
   crsT = MatrixAlloc(4,1,MATRIX_REAL);
   crsT->rptr[4][1] = 1;
   crsS = MatrixAlloc(4,1,MATRIX_REAL);
-  for (ct=0; ct < targ->width; ct++)
-  {
-    for (rt=0; rt < targ->height; rt++)
-    {
-      for (st=0; st < targ->depth; st++)
-      {
+  for (ct=0; ct < targ->width; ct++)  {
+    for (rt=0; rt < targ->height; rt++) {
+      for (st=0; st < targ->depth; st++) {
 
         // Compute CRS in VSM space
         crsT->rptr[1][1] = ct;
@@ -2857,16 +2854,29 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
         irs = nint(frs);
         iss = nint(fss);
 
-        if (ics < 0 || ics >= src->width) continue;
-        if (irs < 0 || irs >= src->height) continue;
-        if (iss < 0 || iss >= src->depth) continue;
+        if(ics < 0 || ics >= src->width)  continue;
+        if(irs < 0 || irs >= src->height) continue;
+        if(iss < 0 || iss >= src->depth)  continue;
 
-        if (vsm)
-        {
+        if(vsm){
           /* Compute the voxel shift (converts from vsm
              space to mov space). This does a 3d interp to
              get vsm, not sure if really want a 2d*/
+	  // Dont sample outside the BO mask
+	  cvsm = floor(fcs);
+	  rvsm = floor(frs);
+	  if(cvsm < 0 || cvsm+1 >= src->width)  continue;
+	  if(rvsm < 0 || rvsm+1 >= src->height) continue;
+	  v = MRIgetVoxVal(vsm,cvsm,rvsm,iss,0);
+	  if(fabs(v) < FLT_MIN) continue;
+	  v = MRIgetVoxVal(vsm,cvsm+1,rvsm,iss,0);
+	  if(fabs(v) < FLT_MIN) continue;
+	  v = MRIgetVoxVal(vsm,cvsm,rvsm+1,iss,0);
+	  if(fabs(v) < FLT_MIN) continue;
+	  v = MRIgetVoxVal(vsm,cvsm+1,rvsm+1,iss,0);
+	  if(fabs(v) < FLT_MIN) continue;
           MRIsampleSeqVolume(vsm, fcs, frs, fss, &drvsm, 0, 0);
+	  if(drvsm == 0) continue;
           frs += drvsm;
           irs = nint(frs);
           if (irs < 0 || irs >= src->height) continue;
@@ -2876,12 +2886,9 @@ int MRIvol2VolVSM(MRI *src, MRI *targ, MATRIX *Vt2s,
         if (InterpCode == SAMPLE_TRILINEAR)
           MRIsampleSeqVolume(src, fcs, frs, fss, valvect,
                              0, src->nframes-1) ;
-        else
-        {
-          for (f=0; f < src->nframes ; f++)
-          {
-            switch (InterpCode)
-            {
+        else{
+          for (f=0; f < src->nframes ; f++){
+            switch (InterpCode){
             case SAMPLE_NEAREST:
               valvect[f] = MRIgetVoxVal(src,ics,irs,iss,f);
               break ;
@@ -2922,10 +2929,11 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
 {
   MATRIX *ras2vox, *vox2ras, *Scrs, *Txyz;
   int   irow, icol, islc; /* integer row, col, slc in source */
+  int cvsm,rvsm;
   float frow, fcol, fslc; /* float row, col, slc in source */
   float srcval, *valvect, rshift;
   int frm, vtx,nhits, err;
-  double rval;
+  double rval,val;
   float Tx, Ty, Tz;
   VERTEX *v ;
 
@@ -3009,9 +3017,25 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
         icol < 0 || icol >= SrcVol->width  ||
         islc < 0 || islc >= SrcVol->depth ) continue;
 
-    if (vsm)
-    {
-      MRIsampleSeqVolume(vsm, fcol, frow, fslc, &rshift, 0,0);
+    if (vsm){
+      /* Compute the voxel shift (converts from vsm
+	 space to mov space). This does a 3d interp to
+	 get vsm, not sure if really want a 2d*/
+      // Dont sample outside the BO mask
+      cvsm = floor(fcol);
+      rvsm = floor(frow);
+      if(cvsm < 0 || cvsm+1 >= vsm->width)  continue;
+      if(rvsm < 0 || rvsm+1 >= vsm->height) continue;
+      val = MRIgetVoxVal(vsm,cvsm,rvsm,islc,0);
+      if(fabs(val) < FLT_MIN) continue;
+      val = MRIgetVoxVal(vsm,cvsm+1,rvsm,islc,0);
+      if(fabs(val) < FLT_MIN) continue;
+      val = MRIgetVoxVal(vsm,cvsm,rvsm+1,islc,0);
+      if(fabs(val) < FLT_MIN) continue;
+      val = MRIgetVoxVal(vsm,cvsm+1,rvsm+1,islc,0);
+      if(fabs(val) < FLT_MIN) continue;
+      MRIsampleSeqVolume(vsm, fcol, frow, fslc, &rshift, 0, 0);
+      if(rshift == 0) continue;
       frow += rshift;
       irow = nint(frow);
       if (irow < 0 || irow >= SrcVol->height) continue;
