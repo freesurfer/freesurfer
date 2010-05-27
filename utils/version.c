@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/27 13:15:55 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/05/27 13:44:44 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -159,7 +159,7 @@ make_cmd_version_string (int argc, char** argv,  const char* id_string,
   strcpy (arguments, "");
   if (argc > 1)
   {
-    strcpy (arguments, argv[1]);
+    strncpy (arguments, argv[1], 1023);
     for (nnarg = 2; nnarg < argc; nnarg++)
     {
       // on Slackware Linux, libc does not support having the same source and 
@@ -167,6 +167,8 @@ make_cmd_version_string (int argc, char** argv,  const char* id_string,
       //sprintf (arguments, "%s %s", arguments, argv[nnarg]);
       // the correct way to do this is:
       strcat (arguments, " ");
+      if (strlen(arguments) + strlen(argv[nnarg]) >= 1023)
+        break ;
       strcat (arguments, argv[nnarg]);
     }
   }
