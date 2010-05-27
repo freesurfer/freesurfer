@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/27 00:49:26 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/05/27 11:29:19 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,7 +115,7 @@ ENDHELP
 #include "gcamorph.h"
 
 static char vcid[] = 
-"$Id: mris_make_average_surface.c,v 1.27 2010/05/27 00:49:26 fischl Exp $";
+"$Id: mris_make_average_surface.c,v 1.28 2010/05/27 11:29:19 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -154,7 +154,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_make_average_surface.c,v 1.27 2010/05/27 00:49:26 fischl Exp $",
+     "$Id: mris_make_average_surface.c,v 1.28 2010/05/27 11:29:19 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -321,7 +321,7 @@ main(int argc, char *argv[]) {
   MRISsaveVertexPositions(mris_ico, CANONICAL_VERTICES) ;
   // using mrisp_total to calculate position into ->origx, origy, origz 
   // (orig is the "pial" vertices)
-  MRIScoordsFromParameterization(mrisp_total, mris_ico) ;
+  MRIScoordsFromParameterization(mrisp_total, mris_ico, ORIGINAL_VERTICES) ;
   // copy geometry info
   memcpy((void *) &mris_ico->vg, (void *) &vg, sizeof (VOL_GEOM));
 
