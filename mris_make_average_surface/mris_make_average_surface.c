@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/23 19:55:36 $
- *    $Revision: 1.26 $
+ *    $Author: fischl $
+ *    $Date: 2010/05/27 00:49:26 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,7 +115,7 @@ ENDHELP
 #include "gcamorph.h"
 
 static char vcid[] = 
-"$Id: mris_make_average_surface.c,v 1.26 2009/07/23 19:55:36 nicks Exp $";
+"$Id: mris_make_average_surface.c,v 1.27 2010/05/27 00:49:26 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -154,7 +154,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_make_average_surface.c,v 1.26 2009/07/23 19:55:36 nicks Exp $",
+     "$Id: mris_make_average_surface.c,v 1.27 2010/05/27 00:49:26 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -292,7 +292,7 @@ main(int argc, char *argv[]) {
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
     // mris contains sphere.reg in vertex and pial vertices in orig
     // map to a theta-phi space and accumulate values
-    mrisp = MRIScoordsToParameterization(mris, NULL, SCALE) ;
+    mrisp = MRIScoordsToParameterization(mris, NULL, SCALE, ORIGINAL_VERTICES) ;
     MRISPaccumulate(mrisp, mrisp_total, 0) ;
     MRISPaccumulate(mrisp, mrisp_total, 1) ;
     MRISPaccumulate(mrisp, mrisp_total, 2) ;
