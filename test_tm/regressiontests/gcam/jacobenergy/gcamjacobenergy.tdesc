@@ -46,7 +46,7 @@ testdescript = {
 	 export CPUOUT="$(outputDir)/$(id).cpu"
 	 export GPUOUT="$(outputDir)/$(id).gpu"
 
-	 g${TM_BIN_DIR}/cam_jacobenergy_test      \--gcam=$GCAMINPUT \
+	 ${TM_BIN_DIR}/gcam_jacobenergy_test      \--gcam=$GCAMINPUT \
 	                                          \--mri=$MRIINPUT \
 	                                          \--output=$CPUOUT
 	 ${TM_BIN_DIR}/gcam_jacobenergy_test_cuda \--gcam=$GCAMINPUT \
