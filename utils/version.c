@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/29 23:18:05 $
- *    $Revision: 1.33 $
+ *    $Author: fischl $
+ *    $Date: 2010/05/27 13:15:55 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@
 #include "version.h"
 #include "utils.h"
 #include "error.h"
+#include "const.h"
 
 /* Set our compiler name */
 #if defined(__INTEL_COMPILER)
@@ -209,6 +210,13 @@ make_cmd_version_string (int argc, char** argv,  const char* id_string,
   // from the calling binary, to get a more accurate build time, but for
   // now, the build time of this version.c (libutils) is better than nothing
   char build_timestamp[] = __DATE__" "__TIME__;
+  char argstr[CMD_LINE_LEN] ;
+
+  if (strlen(arguments) > CMD_LINE_LEN/2)
+    strncpy(argstr, arguments, CMD_LINE_LEN/2) ;
+  else
+    strcpy(argstr, arguments) ;
+
 
   /* Build the info string. */
   sprintf (return_string, "%s %s "
@@ -217,7 +225,7 @@ make_cmd_version_string (int argc, char** argv,  const char* id_string,
            "Machine: %s  Platform: %s  PlatformVersion: %s  "
            "CompilerName: %s  CompilerVersion: %d  ",
            program_name,
-           arguments,
+           argstr,
            version_string,
            current_time_stamp,
            build_timestamp,
