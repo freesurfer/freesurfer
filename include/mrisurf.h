@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/05/28 18:41:05 $
- *    $Revision: 1.346 $
+ *    $Author: rpwang $
+ *    $Date: 2010/05/28 21:22:22 $
+ *    $Revision: 1.347 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -1973,6 +1973,7 @@ int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices) ;
 double MRISsampleFace(MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2);
 int MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, 
                           int nv, int nsize, double sigma)  ;
-
+int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vno, double x, double y, double z, 
+                          int nsize, double sigma);
 
 #endif // MRISURF_H

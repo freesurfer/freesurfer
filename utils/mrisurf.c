@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/05/28 18:45:10 $
- *    $Revision: 1.677 $
+ *    $Author: rpwang $
+ *    $Date: 2010/05/28 21:22:21 $
+ *    $Revision: 1.678 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -720,7 +720,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.677 2010/05/28 18:45:10 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.678 2010/05/28 21:22:21 rpwang Exp $");
 }
 
 /*-----------------------------------------------------
@@ -67475,7 +67475,7 @@ MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, i
 double
 MRISsampleFace(MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2)
 {
-  float    d, dtotal, dx, dy, dz, xc, yc, zc ;
+  float    d, dtotal, dx=0, dy=0, dz=0, xc, yc, zc ;
   int      n ;
   FACE     *face ;
   VERTEX   *v ;
@@ -67903,5 +67903,11 @@ MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *targ
   }
 
   MRISpositionSurface(mris, mri, mri, &parms) ;
+  return(NO_ERROR) ;
+}
+
+int MRISrepositionSurfaceToCoordinate(MRI_SURFACE *mris, MRI *mri, int target_vno, double x, double y, double z, 
+                          int nsize, double sigma)
+{
   return(NO_ERROR) ;
 }
