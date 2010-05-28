@@ -61,7 +61,7 @@ testdescript = {
 	 ${TM_BIN_DIR}/gcam_lle_test      \--gcam=$GCAMINPUT \
 	                                  \--mri=$MRIINPUT \
 	                                  \--output=$CPUOUT
-	${TM_BIN_DIR}/ gcam_lle_test_cuda \--gcam=$GCAMINPUT \
+	${TM_BIN_DIR}/gcam_lle_test_cuda  \--gcam=$GCAMINPUT \
 	                                  \--mri=$MRIINPUT \
 	                                  \--output=$GPUOUT
 
