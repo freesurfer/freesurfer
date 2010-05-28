@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/05/22 01:12:24 $
- *    $Revision: 1.458 $
+ *    $Author: mreuter $
+ *    $Date: 2010/05/28 20:18:31 $
+ *    $Revision: 1.459 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.458 $";
+const char *MRI_C_VERSION = "$Revision: 1.459 $";
 
 
 /*-----------------------------------------------------
@@ -15907,6 +15907,72 @@ int MRInormalizeFrames(MRI *mri)
 
   return(ERROR_NONE);
 }
+
+// divides by mean (per voxel across frames)
+int MRInormalizeFramesMean(MRI *mri)
+{
+  int    c,r,s,f;
+  double mean, val ;
+
+  if (NULL==mri)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"MRInormalize: no MRI\n"));
+
+  for (c=0; c < mri->width; c++)
+  {
+    for (r=0; r < mri->height; r++)
+    {
+      for (s=0; s < mri->depth; s++)
+      {
+        for (mean = 0.0, f = 0 ; f < mri->nframes ; f++)
+        {
+          val = MRIgetVoxVal(mri, c, r, s, f);
+          mean += val;
+        }
+        mean /= mri->nframes ;
+        for (f = 0 ; f < mri->nframes ; f++)
+        {
+          val = MRIgetVoxVal(mri, c, r, s, f);
+          val = val / mean ;
+          MRIsetVoxVal(mri, c, r, s, f, val);
+        }
+      }
+    }
+  }
+
+  return(ERROR_NONE);
+}
+
+// divides by all frames by first
+int MRInormalizeFramesFirst(MRI *mri)
+{
+  int    c,r,s,f;
+  double  val,val1 ;
+
+  if (NULL==mri)
+    ErrorReturn(ERROR_BADPARM,(ERROR_BADPARM,"MRInormalize: no MRI\n"));
+
+  for (c=0; c < mri->width; c++)
+  {
+    for (r=0; r < mri->height; r++)
+    {
+      for (s=0; s < mri->depth; s++)
+      {
+
+        val1 = MRIgetVoxVal(mri, c, r, s, 0);
+
+        for (f = 0 ; f < mri->nframes ; f++)
+        {
+          val = MRIgetVoxVal(mri, c, r, s, f);
+          val = val / val1 ;
+          MRIsetVoxVal(mri, c, r, s, f, val);
+        }
+      }
+    }
+  }
+
+  return(ERROR_NONE);
+}
+
 MRI *
 MRIzeroMean(MRI *mri_src, MRI *mri_dst)
 {

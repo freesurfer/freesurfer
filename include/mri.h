@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/04/28 17:51:53 $
- *    $Revision: 1.401 $
+ *    $Author: mreuter $
+ *    $Date: 2010/05/28 20:17:45 $
+ *    $Revision: 1.402 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1266,6 +1266,8 @@ double MRIestimateTIV(char* theLtaFile,
                       double* theAtlasDet);
 
 int MRInormalizeFrames(MRI *mri);
+int MRInormalizeFramesMean(MRI *mri);
+int MRInormalizeFramesFirst(MRI *mri);
 MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
 int CompareDoubles(const void *a, const void *b);
 int MRIlabelInVolume(MRI *mri_src, int label) ;

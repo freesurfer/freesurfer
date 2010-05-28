@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/04/22 21:36:50 $
- *    $Revision: 1.47 $
+ *    $Author: mreuter $
+ *    $Date: 2010/05/28 20:18:37 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.47 2010/04/22 21:36:50 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.48 2010/05/28 20:18:37 mreuter Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -71,6 +71,8 @@ char *out = NULL;
 MRI *mritmp, *mritmp0, *mriout, *mask=NULL;
 char *maskfile = NULL;
 int DoMean=0;
+int DoNormMean=0;
+int DoNorm1=0;
 int DoMeanDivN=0;
 int DoMedian=0;
 int DoSum=0;
@@ -274,7 +276,16 @@ int main(int argc, char **argv) {
     }
     MRIfree(&mritmp);
   }
-
+	
+	if(DoNormMean){
+    printf("Normalizing by mean across frames\n");
+	  MRInormalizeFramesMean(mriout);
+  }
+	if(DoNorm1){
+    printf("Normalizing by first across frames\n");
+	  MRInormalizeFramesFirst(mriout);
+  }
+	
   if(DoASL){
     printf("Computing ASL matrix matrix\n");
     M = ASLinterpMatrix(mriout->nframes);
@@ -532,6 +543,8 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--conjunct")) DoConjunction = 1;
     else if (!strcasecmp(option, "--vote"))   DoVote = 1;
     else if (!strcasecmp(option, "--sort"))   DoSort = 1;
+    else if (!strcasecmp(option, "--norm-mean"))   DoNormMean = 1;
+    else if (!strcasecmp(option, "--norm1"))   DoNorm1 = 1;
     else if (!strcasecmp(option, "--max-bonfcor")){
       DoMax = 1;
       DoBonfCor = 1;
@@ -669,6 +682,8 @@ static void print_usage(void) {
   printf("   --paired-diff-norm : same as paired-diff but scale by TP1,2 average \n");
   printf("   --paired-diff-norm1 : same as paired-diff but scale by TP1 \n");
   printf("   --paired-diff-norm2 : same as paired-diff but scale by TP2 \n");
+  printf("   --norm-mean         : normalize frames by mean of all TP\n");
+  printf("   --norm1             : normalize frames by TP1 \n");
   printf("   --mtx matrix.asc    : multiply by matrix in ascii file\n");
   printf("   --gmean Ng          : create matrix to average Ng groups, Nper=Ntot/Ng\n");
   printf("\n");
