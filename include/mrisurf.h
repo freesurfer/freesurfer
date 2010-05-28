@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/28 17:36:53 $
- *    $Revision: 1.345 $
+ *    $Date: 2010/05/28 18:41:05 $
+ *    $Revision: 1.346 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -1971,8 +1971,8 @@ int MRIScurvToMarked(MRI_SURFACE *mris) ;
 int MRISreadMarked(MRI_SURFACE *mris, const char *sname) ;
 int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices) ;
 double MRISsampleFace(MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2);
-int MRISrepositionSuface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, 
-                         int nv, int nsize, double sigma)  ;
+int MRISrepositionSurface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, 
+                          int nv, int nsize, double sigma)  ;
 
 
 #endif // MRISURF_H
