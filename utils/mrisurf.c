@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/28 18:40:55 $
- *    $Revision: 1.676 $
+ *    $Date: 2010/05/28 18:45:10 $
+ *    $Revision: 1.677 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -720,7 +720,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.676 2010/05/28 18:40:55 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.677 2010/05/28 18:45:10 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -67535,6 +67535,8 @@ MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, f
     MRISvertexCoord2XYZ_float(v, CANONICAL_VERTICES, &dx, &dy, &dz) ;
     dx -= x ; dy -= y ; dz -= z ;
     d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    if (d < 0)
+      continue ;
     dtotal += d ;
   }
 
@@ -67547,7 +67549,8 @@ MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, f
     d = sqrt(dx*dx + dy*dy + dz*dz) ;
     d = 1-(2*d)/dtotal;
 
-  void SetVolumes( LayerMRI* input, LayerMRI* output );
+    if (d < 0)
+      continue ;
     *px += d*v->nx ; *py += d*v->ny ; *pz += d*v->nz ;
   }
 
@@ -67589,7 +67592,6 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
     {
       if (!parms->start_t)
         parms->fp = fopen(fname, "w") ;
-  void SetVolumes( LayerMRI* input, LayerMRI* output );
       else
         parms->fp = fopen(fname, "a") ;
 
@@ -67631,7 +67633,6 @@ MRISlaplacian(MRI_SURFACE *mris, MRI *mri_cmatrix, double inner_width, double ou
 {
   int    vno, vno2, i, num, n ;
   VERTEX *v, *vn ;
-  void SetVolumes( LayerMRI* input, LayerMRI* output );
   MRI    *mri_laplacian ;
   double val0, val1, rms ;
 
