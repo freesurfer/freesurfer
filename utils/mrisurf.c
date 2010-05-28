@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/21 11:17:42 $
- *    $Revision: 1.674 $
+ *    $Date: 2010/05/28 17:36:46 $
+ *    $Revision: 1.675 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -79,7 +79,7 @@ extern const char* Progname;
 
 /*---------------------------- CONSTANTS -------------------------*/
 
-#define D_DIST  0.25   // sampling distance along tangent plane for computing derivatives
+#define D_DIST  0.05   // sampling distance along tangent plane for computing derivatives
 #define MAX_NBRS 10000
 #define REPULSE_K   1.0
 // if (dist+REPULSE_E) < 1 it will have a big effect
@@ -164,6 +164,9 @@ retessellation (was
 
 #define WHICH_OUTPUT stderr
 
+static int mrisSamplePialCoordsInTangentPlane(MRI_SURFACE *mris, VERTEX *v, 
+                                              float x, float y, float z, float *pxp, 
+                                              float *pyp, float *pzp);
 //static int mrisSoapBubbleIntersectingDefects(MRI_SURFACE *mris);
 static int compare_sort_vals(const void *pc1, const void *pc2) ;
 int MRISaverageMarkedVertexPositions(MRI_SURFACE *mris, int navgs) ;
@@ -717,7 +720,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.674 2010/05/21 11:17:42 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.675 2010/05/28 17:36:46 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -19362,13 +19365,21 @@ static float
 mrisSampleMinimizationEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
 {
   float   xw, yw, zw, xp, yp, zp, dx, dy, dz, thick_sq ;
-  FACE    *face ;
-  int     fno ;
-  double  fdist ;
+  int     rslt ;
+  VERTEX  *vn ;
 
   MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
-  MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, cx, cy, cz, 1000, -1, &face, &fno, &fdist) ;
-  MRISsampleFaceCoords(parms->mris_ico, fno, cx, cy, cz, PIAL_VERTICES, &xp, &yp, &zp) ;
+  rslt = MHTfindClosestVertexGeneric((MHT *)parms->mht_ico, mris,
+                                     cx, cy, cz,
+                                     1000,
+                                     1,  // max_mhts: search out to 3 x 3 x 3
+                                     &vn, NULL, NULL);
+  if (vn == NULL)
+  {
+    DiagBreak() ;
+    return(1e8) ;
+  }
+  mrisSamplePialCoordsInTangentPlane(mris, vn, cx, cy, cz, &xp, &yp, &zp) ;
 
   dx = xp-xw ; dy = yp - yw ; dz = zp - zw ;
   thick_sq = dx*dx + dy*dy + dz*dz ;
@@ -19379,14 +19390,24 @@ static float
 mrisSampleParallelEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
 {
   float   xw, yw, zw, xp, yp, zp, dx, dy, dz, dxn, dyn, dzn, len ;
-  FACE    *face ;
-  int     fno, n ;
-  double  fdist, sse ;
+  int     n ;
+  double  sse ;
   VERTEX  *vn ;
+  int     rslt ;
 
   MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
-  MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, cx, cy, cz, 1000, -1, &face, &fno, &fdist) ;
-  MRISsampleFaceCoords(parms->mris_ico, fno, cx, cy, cz, PIAL_VERTICES, &xp, &yp, &zp) ;
+
+  rslt = MHTfindClosestVertexGeneric((MHT *)parms->mht_ico, mris,
+                                     cx, cy, cz,
+                                     1000,
+                                     1,  // max_mhts: search out to 3 x 3 x 3
+                                     &vn, NULL, NULL);
+  if (vn == NULL)
+  {
+    DiagBreak() ;
+    return(1e8) ;
+  }
+  mrisSamplePialCoordsInTangentPlane(mris, vn, cx, cy, cz, &xp, &yp, &zp) ;
   dx = xp-xw ; dy = yp - yw ; dz = zp - zw ;
   len = sqrt(dx*dx + dy*dy + dz*dz) ;
   if (FZERO(len))
@@ -19397,8 +19418,8 @@ mrisSampleParallelEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms,
   {
     vn = &mris->vertices[v->v[n]];
     MRISvertexCoord2XYZ_float(vn, WHITE_VERTICES, &xw, &yw, &zw) ;
-    MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, vn->x, vn->y, vn->z, 1000, -1, &face, &fno, &fdist) ;
-    MRISsampleFaceCoords(parms->mris_ico, fno, vn->x, vn->y, vn->z, PIAL_VERTICES, &xp, &yp, &zp) ;
+    MRISvertexCoord2XYZ_float(vn, CURRENT_VERTICES, &xp, &yp, &zp) ;
+
     dxn = xp-xw ; dyn = yp - yw ; dzn = zp - zw ;
     len = sqrt(dxn*dxn + dyn*dyn + dzn*dzn) ;
     if (FZERO(len))
@@ -19414,17 +19435,69 @@ mrisSampleParallelEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms,
     sse /= n ;
   return(sse) ;
 }
+static int
+mrisSamplePialCoordsInTangentPlane(MRI_SURFACE *mris, VERTEX *v, float x, float y, float z, float *pxp, float *pyp, float *pzp)
+{
+  double  d, xi, yi, zi, u0, v0, u1, v1, wt, wt_total ;
+  int     n ;
+  VERTEX  *vn ;
+
+  u0 = v->pe1x * x + v->pe1y*y + v->pe1z * z ;  // project point onto tangent plane
+  v0 = v->pe2x * x + v->pe2y*y + v->pe2z * z ;
+  for (wt_total = 0.0, n = -1 ; n < v->vnum ; n++)
+  {
+    if (n < 0)
+      vn = v ;
+    else
+      vn = &mris->vertices[v->v[n]] ;
+    u1 = v->pe1x * vn->pialx + v->pe1y*vn->pialy + v->pe1z * vn->pialz ;  // project nbr onto tangent plane
+    v1 = v->pe2x * vn->pialx + v->pe2y*vn->pialy + v->pe2z * vn->pialz ;
+    d = sqrt(SQR(u1-u0) + SQR(v1-v0)) ;
+#define WT_VAR (0.1*0.1)
+    wt = exp(-d*d/(2*WT_VAR)) ;
+    wt_total += wt ;
+  }
+  xi = yi = zi = 0 ;
+  for (n = -1 ; n < v->vnum ; n++)
+  {
+    if (n < 0)
+      vn = v ;
+    else
+      vn = &mris->vertices[v->v[n]] ;
+    u1 = v->pe1x * vn->pialx + v->pe1y*vn->pialy + v->pe1z * vn->pialz ;  // project nbr onto tangent plane
+    v1 = v->pe2x * vn->pialx + v->pe2y*vn->pialy + v->pe2z * vn->pialz ;
+    d = sqrt(SQR(u1-u0) + SQR(v1-v0));
+    wt = exp(-d*d/(2*WT_VAR)) ;
+    xi += wt * vn->pialx ;
+    yi += wt * vn->pialy ;
+    zi += wt * vn->pialz ;
+  }
+  *pxp = xi/wt_total  ; *pyp = yi/wt_total ; *pzp = zi/wt_total ;
+  return(NO_ERROR) ;
+}
 static float
 mrisSampleNormalEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, float cx, float cy, float cz)
 {
   float   dx, dy, dz, len, xw, yw, zw, xp, yp, zp ;
-  FACE    *face ;
-  int     fno ;
-  double  fdist, sse ;
+  int     rslt ;
+  double  sse ;
+  VERTEX  *vn ;
 
+  if (v-mris->vertices == Gdiag_no)
+    DiagBreak();
   MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
-  MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, cx, cy, cz, 1000, -1, &face, &fno, &fdist) ;
-  MRISsampleFaceCoords(parms->mris_ico, fno, cx, cy, cz, PIAL_VERTICES, &xp, &yp, &zp) ;
+  rslt = MHTfindClosestVertexGeneric((MHT *)parms->mht_ico, mris,
+                                     cx, cy, cz,
+                                     1000,
+                                     1,  // max_mhts: search out to 3 x 3 x 3
+                                     &vn, NULL, NULL);
+  if (vn == NULL)
+  {
+    DiagBreak() ;
+    return(1e8) ;
+  }
+  mrisSamplePialCoordsInTangentPlane(mris, vn, cx, cy, cz, &xp, &yp, &zp) ;
+
   dx = xp-xw ;  dy = yp-yw ;  dz = zp-zw ; 
   len = sqrt(dx*dx + dy*dy + dz*dz) ;
   if (FZERO(len))
@@ -19433,6 +19506,7 @@ mrisSampleNormalEnergy(MRI_SURFACE *mris, VERTEX *v, INTEGRATION_PARMS *parms, f
   len = dx*v->wnx + dy*v->wny + dz*v->wnz;  // dot product
   len = 1 - len;
   sse = sqrt(len*len);
+  sse = SQR(dx-v->wnx) + SQR(dy-v->wny) + SQR(dz-v->wnz) ;
 
   return(sse) ;
 }
@@ -19483,25 +19557,40 @@ mrisComputeThicknessNormalEnergy(MRI_SURFACE *mris, double l_thick_normal, INTEG
   int     vno, max_vno ;
   double  sse_tnormal, sse, max_sse ;
   VERTEX  *v ;
+  static  int cno = 0 ;
+  static double last_sse[200000] ;
+
 
   if (FZERO(l_thick_normal))
     return(0.0) ;
+
+  if (cno == 0)
+    memset(last_sse, 0, sizeof(last_sse)) ;
+  cno++ ;
 
   max_sse = 0.0 ;
   for (sse_tnormal = 0.0, vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     if (v->ripflag)
       continue ;
     sse = mrisSampleNormalEnergy(mris, v, parms, v->x, v->y, v->z);
     if (sse > big_sse)
       DiagBreak() ;
-    if (sse > max_sse)
+    
+    if (sse-last_sse[vno] > max_sse)
     {
-      max_sse = sse ;
+      max_sse = sse-last_sse[vno] ;
       max_vno = vno ;
     }
+    if (sse > last_sse[vno] && cno > 1 && vno == Gdiag_no)
+      DiagBreak() ;
+    if (sse > last_sse[vno] && cno > 1)
+      DiagBreak() ;
     sse_tnormal += sse ;
+    last_sse[vno] = sse ;
   }
   sse_tnormal /= 2 ;
   return(sse_tnormal) ;
@@ -19686,6 +19775,124 @@ mrisComputeThicknessParallelTerm(MRI_SURFACE *mris, double l_thick_parallel, INT
 
   Description
   ------------------------------------------------------*/
+#define MAX_NORM 0.1
+#if 0
+static int
+mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms)
+{
+  int     vno, fno ;
+  FACE    *face ;
+  double  dxc, dyc, dzc, fdist ;
+  float   dx, dy, dz, xw, yw, zw, dxn, dyn, dzn ;
+  float   dxp_dxc, dyp_dxc, dzp_dxc, 
+          dxp_dyc, dyp_dyc, dzp_dyc,
+          dxp_dzc, dyp_dzc, dzp_dzc ;
+  float   e1x, e1y, e1z, e2x, e2y, e2z, norm, e1dot, e2dot ;
+  float   xp, yp, zp, xpP, xpM, ypP, ypM, zpP, zpM ;
+  VERTEX  *v ;
+
+  if (FZERO(l_thick_normal))
+    return(0.0) ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
+    MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
+    MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,v->x,v->y,v->z, PIAL_VERTICES, &xp, &yp, &zp);
+    dxn = xp-xw ;  dyn = yp-yw ;  dzn = zp-zw ; 
+    norm = sqrt(dxn*dxn + dyn*dyn + dzn*dzn) ;
+    if (!FZERO(norm))
+    { dxn /= norm ; dyn /= norm ; dzn /= norm ; }
+    dx = dxn-v->wnx ; dy = dyn-v->wny ; dz = dzn-v->wnz ;
+    dx *= -1 ; dy *= -1 ; dz *= -1 ; // move in -gradient direction
+
+    e1x = v->e1x ; e1y = v->e1y ; e1z = v->e1z ;
+    e2x = v->e2x ; e2y = v->e2y ; e2z = v->e2z ;
+
+#define NSAMPLE_DIST   .1
+    // d / dxc
+    MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,
+                         v->x+NSAMPLE_DIST,v->y,v->z, PIAL_VERTICES, &xpP, &ypP, &zpP);
+    MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,
+                         v->x-NSAMPLE_DIST,v->y,v->z, PIAL_VERTICES, &xpM, &ypM, &zpM);
+    MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, v->x,v->y,v->z, 1000, -1, &face, &fno, &fdist) ;
+    MRISsampleFaceCoords(parms->mris_ico, fno,
+                         v->x+NSAMPLE_DIST,v->y,v->z, WHITE_VERTICES, &xpP, &ypP, &zpP);
+    MRISsampleFaceCoords(parms->mris_ico, fno,
+                         v->x-NSAMPLE_DIST,v->y,v->z, WHITE_VERTICES, &xpM, &ypM, &zpM);
+    dxp_dxc = (xpP - xpM) / (2*NSAMPLE_DIST) ;
+    dyp_dxc = (ypP - ypM) / (2*NSAMPLE_DIST) ;
+    dzp_dxc = (zpP - zpM) / (2*NSAMPLE_DIST) ;
+
+
+    // d / dyc
+    MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,
+                         v->x,v->y+NSAMPLE_DIST,v->z, PIAL_VERTICES, &xpP, &ypP, &zpP);
+    MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,
+                         v->x,v->y-NSAMPLE_DIST,v->z, PIAL_VERTICES, &xpM, &ypM, &zpM);
+    MRISsampleFaceCoords(parms->mris_ico, fno,
+                         v->x,v->y+NSAMPLE_DIST,v->z, WHITE_VERTICES, &xpP, &ypP, &zpP);
+    MRISsampleFaceCoords(parms->mris_ico, fno,
+                         v->x,v->y-NSAMPLE_DIST,v->z, WHITE_VERTICES, &xpM, &ypM, &zpM);
+    dxp_dyc = (xpP - xpM) / (2*NSAMPLE_DIST) ;
+    dyp_dyc = (ypP - ypM) / (2*NSAMPLE_DIST) ;
+    dzp_dyc = (zpP - zpM) / (2*NSAMPLE_DIST) ;
+
+    // d / dzc
+    MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,
+                         v->x,v->y,v->z+NSAMPLE_DIST, PIAL_VERTICES, &xpP, &ypP, &zpP);
+    MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,
+                         v->x,v->y,v->z-NSAMPLE_DIST, PIAL_VERTICES, &xpM, &ypM, &zpM);
+    MRISsampleFaceCoords(parms->mris_ico, fno,
+                         v->x,v->y,v->z+NSAMPLE_DIST, WHITE_VERTICES, &xpP, &ypP, &zpP);
+    MRISsampleFaceCoords(parms->mris_ico, fno,
+                         v->x,v->y,v->z-NSAMPLE_DIST, WHITE_VERTICES, &xpM, &ypM, &zpM);
+    dxp_dzc = (xpP - xpM) / (2*NSAMPLE_DIST) ;
+    dyp_dzc = (ypP - ypM) / (2*NSAMPLE_DIST) ;
+    dzp_dzc = (zpP - zpM) / (2*NSAMPLE_DIST) ;
+
+    dxc = l_thick_normal * ((dx * dxp_dxc) + (dy * dyp_dxc) + (dz * dzp_dxc)) ;
+    dyc = l_thick_normal * ((dx * dxp_dyc) + (dy * dyp_dyc) + (dz * dzp_dyc)) ;
+    dzc = l_thick_normal * ((dx * dxp_dzc) + (dy * dyp_dzc) + (dz * dzp_dzc)) ;
+    norm = sqrt(dxc*dxc + dyc*dyc + dzc*dzc) ;
+    if (norm > MAX_NORM)
+    {
+      dxc = MAX_NORM * dxc / norm ;
+      dyc = MAX_NORM * dyc / norm ;
+      dzc = MAX_NORM * dzc / norm ;
+    }
+    // project onto tangent direction
+    e1dot = e1x*dxc + e1y*dyc + e1z*e1z ; e2dot = e2x*dxc + e2y*dyc + e2z*e2z ;
+    //    dxc = e1x*e1dot + e2x*e2dot ; dyc = e1y*e1dot + e2y*e2dot ; dzc = e1z*e1dot + e2z*e2dot ;
+    v->dx += dxc ; v->dy += dyc ; v->dz += dzc ;
+    if (Gdiag_no == vno)
+    {
+      double d=NSAMPLE_DIST ;
+
+      MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,
+                           v->x+d*v->dx,v->y+d*v->dy,v->z+d*v->dz, PIAL_VERTICES, 
+                           &xpP,&ypP,&zpP);
+      MRISsampleFaceCoordsCanonical((MHT *)(parms->mht_ico), parms->mris_ico,
+                           v->x-d*v->dx,v->y-d*v->dy,v->z-d*v->dz, PIAL_VERTICES, 
+                           &xpM,&ypM,&zpM);
+
+      if (((xpP-xpM) * dx < 0) ||
+          ((ypP-ypM) * dy < 0) ||
+          ((zpP-zpM) * dz < 0))
+        DiagBreak() ;
+      printf("l_thick_normal: v %d: fno = %d, DX = (%2.2f, %2.2f, %2.2f)\n", vno, fno, dxc, dyc, dzc) ;
+      printf("    N = (%2.2f, %2.2f, %2.2f), D = (%2.2f, %2.2f, %2.2f), dot= %f\n",
+             v->wnx, v->wny, v->wnz, dxn, dyn, dzn,
+             v->wnx*dxn + v->wny*dyn + v->wnz*dzn);
+      DiagBreak() ;
+    }
+  }
+  return(NO_ERROR) ;
+}
+#else
 static int
 mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRATION_PARMS *parms)
 {
@@ -19705,8 +19912,8 @@ mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRA
     if (v->ripflag)
       continue ;
 
-    e1x = v->e1x ; e1y = v->e1y ; e1z = v->e1z ;
-    e2x = v->e2x ; e2y = v->e2y ; e2z = v->e2z ;
+    e1x = v->pe1x ; e1y = v->pe1y ; e1z = v->pe1z ;
+    e2x = v->pe2x ; e2y = v->pe2y ; e2z = v->pe2z ;
     /*
       sample the coordinate functions along the tangent plane axes and
       compute the derivates using them.
@@ -19723,10 +19930,10 @@ mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRA
       max_vno = vno ;
       max_DE = norm ;
     }
-    if (norm > 1)
+    if (norm > MAX_NORM)
     {
-      dE_de1 /= norm ;
-      dE_de2 /= norm ;
+      dE_de1 = MAX_NORM * dE_de1 / norm ;
+      dE_de2 = MAX_NORM * dE_de2 / norm ;
     }
 
     v->dx -= l_thick_normal * (dE_de1 * e1x + dE_de2 * e2x) ;
@@ -19734,12 +19941,32 @@ mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRA
     v->dz -= l_thick_normal * (dE_de1 * e1z + dE_de2 * e2z) ;
     if (Gdiag_no == vno)
     {
+      float  xw, yw, zw, xp, yp, zp, dx, dy, dz, len ;
+      VERTEX *vn ;
+      MHTfindClosestVertexGeneric((MHT *)parms->mht_ico, mris,
+                                  v->x, v->y, v->z,
+                                  1000,
+                                  1,  // max_mhts: search out to 3 x 3 x 3
+                                  &vn, NULL, NULL);
+      if (vn == NULL)
+      {
+        DiagBreak() ;
+        continue ;
+      }
+      mrisSamplePialCoordsInTangentPlane(mris, vn, v->x, v->y, v->z, &xp, &yp, &zp) ;
+      MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
+      dx = xp-xw ;  dy = yp-yw ;  dz = zp-zw ; 
+      len = sqrt(dx*dx + dy*dy + dz*dz) ;
+      dx /= len ; dy /= len ; dz /= len ;
       printf("l_thick_normal: v %d: dE = (%2.2f, %2.2f), e1 = (%2.1f, %2.1f, %2.1f), e2 = (%2.1f, %2.1f, %2.1f), DX = (%2.2f, %2.2f, %2.2f)\n",
 
              vno, dE_de1, dE_de2, e1x, e1y, e1z, e2x, e2y, e2z,
              l_thick_normal * (dE_de1 * e1x + dE_de2 * e2x),
              l_thick_normal * (dE_de1 * e1y + dE_de2 * e2y),
              l_thick_normal * (dE_de1 * e1z + dE_de2 * e2z)) ;
+      printf("    N = (%2.2f, %2.2f, %2.2f), D = (%2.2f, %2.2f, %2.2f), dot= %f\n",
+             v->wnx, v->wny, v->wnz, dx, dy, dz,
+             v->wnx*dx + v->wny*dy + v->wnz*dz);
 
     }
   }
@@ -19747,6 +19974,7 @@ mrisComputeThicknessNormalTerm(MRI_SURFACE *mris, double l_thick_normal, INTEGRA
     printf("Parallel: max dE = %2.2f at vno %d\n", max_DE, max_vno) ;
   return(NO_ERROR) ;
 }
+#endif
 /*-----------------------------------------------------
   Parameters:
 
@@ -20451,7 +20679,7 @@ mrisComputeTangentialSpringEnergy(MRI_SURFACE *mris)
   if (mris->patch)
     area_scale = 1.0 ;
   else
-    area_scale = mris->orig_area / mris->total_area ;
+    area_scale = FZERO(mris->total_area) ? 1.0 : mris->orig_area / mris->total_area ;
 #else
   area_scale = 1.0 ;
 #endif
@@ -33669,6 +33897,10 @@ mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
   int         nvertices, nfaces, magic, vno ;
   char        line[STRLEN] ;
   FILE        *fp ;
+#if 0
+  FACE        *f ;
+  int         fno, n ;
+#endif
 
   fp = fopen(fname, "rb") ;
   if (!fp)
@@ -33700,6 +33932,20 @@ mrisReadTriangleFilePositions(MRI_SURFACE *mris, const char *fname)
     v->y = freadFloat(fp);
     v->z = freadFloat(fp);
   }
+
+#if 0
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    for (n = 0 ; n < VERTICES_PER_FACE ; n++)
+    {
+      f->v[n] = freadInt(fp);
+      if (f->v[n] >= mris->nvertices || f->v[n] < 0)
+        ErrorExit(ERROR_BADFILE, "f[%d]->v[%d] = %d - out of range!\n",
+                  fno, n, f->v[n]) ;
+    }
+  }
+#endif
 
   fclose(fp);
   return(NO_ERROR) ;
@@ -35525,7 +35771,7 @@ MRISexpandSurface(MRI_SURFACE *mris,
       MRISscaleBrain(mris_ico, mris_ico, mris->radius/mris_ico->radius) ;
       MRISsaveVertexPositions(mris_ico, CANONICAL_VERTICES) ;
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
-      MRISminimizeThicknessFunctional(mris, &thick_parms, 10.0, mris_ico) ;
+      MRISminimizeThicknessFunctional(mris, &thick_parms, 10.0) ;
 
       // compute locations of pial surface vertices nearest to each orig one
       for (vno = 0 ; vno < mris->nvertices ; vno++)
@@ -64279,13 +64525,19 @@ MRISrasToVoxel(MRI_SURFACE *mris,
 int
 MRISstoreRipFlags(MRI_SURFACE *mris)
 {
-  int    vno ;
+  int    vno, fno ;
   VERTEX *v ;
+  FACE   *f ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     v->oripflag = v->ripflag ;
+  }
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    f->oripflag = f->ripflag ;
   }
   return(NO_ERROR) ;
 }
@@ -64293,14 +64545,23 @@ MRISstoreRipFlags(MRI_SURFACE *mris)
 int
 MRISrestoreRipFlags(MRI_SURFACE *mris)
 {
-  int    vno ;
+  int    vno, fno ;
   VERTEX *v ;
+  FACE   *f ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     v->ripflag = v->oripflag ;
   }
+
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    f = &mris->faces[fno] ;
+    f->ripflag = f->oripflag ;
+  }
+  
+
   return(NO_ERROR) ;
 }
 
@@ -67022,7 +67283,7 @@ int
 MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertices)
 {
   MHT    *mht ;
-  int    vno, fno, n ;
+  int    vno, fno, n, debug ;
   VERTEX *v, *vn ;
   FACE   *face ;
   double  fdist, x, y, z;
@@ -67043,10 +67304,15 @@ MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertice
       DiagBreak() ;
       continue ;
     }
-    x = y = z = 0 ;
+    x = y = z = 0 ; debug = 0 ;
     for (n = 0 ; n < VERTICES_PER_FACE ; n++)
     {
       vn = &mris->vertices[face->v[n]] ;
+      if (face->v[n] == Gdiag_no)
+      {
+        debug = 1 ;
+        DiagBreak() ;
+      }
       switch (which_vertices)
       {
       case PIAL_VERTICES:
@@ -67058,6 +67324,8 @@ MRISwriteCoordsToIco(MRI_SURFACE *mris, MRI_SURFACE *mris_ico, int which_vertice
       }
     }
     x /= VERTICES_PER_FACE ; y /= VERTICES_PER_FACE ; z /= VERTICES_PER_FACE ;
+    if (debug)
+      printf("ico vertex %d, coords = (%2.2f, %2.2f, %2.2f)\n", vno, x, y, z) ;
     switch (which_vertices)
     {
     case PIAL_VERTICES:
@@ -67098,8 +67366,6 @@ MRISvertexCoord2XYZ_float (VERTEX * v, int which, float  *x, float  *y, float  *
     break;
   case INFLATED_VERTICES  :
     break;
-  case FLATTENED_VERTICES :
-    break;
   case PIAL_VERTICES      :
     *x = v->pialx;
     *y = v->pialy;
@@ -67107,6 +67373,11 @@ MRISvertexCoord2XYZ_float (VERTEX * v, int which, float  *x, float  *y, float  *
     break;
   case TMP2_VERTICES      :
     break;
+  case FLATTENED_VERTICES     :
+    *x = v->fx;
+    *y = v->fy;
+    *z = v->fz;
+    break ;
   case WHITE_VERTICES     :
     *x = v->whitex;
     *y = v->whitey;
@@ -67115,6 +67386,51 @@ MRISvertexCoord2XYZ_float (VERTEX * v, int which, float  *x, float  *y, float  *
   }
 return(NO_ERROR) ;
 }
+int
+MRISsampleFaceCoordsCanonical(MHT *mht, MRI_SURFACE *mris, double x, double y, double z, int which, 
+                              float *px, float *py, float *pz)
+{
+  float    d, dtotal, dx, dy, dz, xc, yc, zc ;
+  int      n, fno ;
+  double   fdist ;
+  FACE     *face ;
+  VERTEX   *v ;
+
+  MHTfindClosestFaceGeneric(mht, mris, x, y, z, 1000, -1, &face, &fno, &fdist) ;
+  face = &mris->faces[fno] ;
+
+  xc = yc = zc = 0.0 ; // to get rid of mac warnings
+  for (dtotal = 0.0, n = 0  ; n < VERTICES_PER_FACE ; n++)
+  {
+    v = &mris->vertices[face->v[n]] ;
+    MRISvertexCoord2XYZ_float(v, CANONICAL_VERTICES, &dx, &dy, &dz) ;
+    dx -= x ; dy -= y ; dz -= z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    dtotal += d ;
+  }
+
+  *px = *py = *pz = 0 ;
+  for (n = 0  ; n < VERTICES_PER_FACE ; n++)
+  {
+    v = &mris->vertices[face->v[n]] ;
+    MRISvertexCoord2XYZ_float(v, CANONICAL_VERTICES, &dx, &dy, &dz) ;
+    dx -= x ; dy -= y ; dz -= z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    d = 1-(2*d)/dtotal;
+    if (d < 0)
+    {
+      DiagBreak() ;
+      continue ;
+    }
+
+    MRISvertexCoord2XYZ_float(v, which, &xc, &yc, &zc) ;
+    *px += d*xc ; *py += d*yc ; *pz += d*zc ;
+  }
+
+
+  return(NO_ERROR) ;
+}
+
 int
 MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, int which, float *px, float *py, float *pz)
 {
@@ -67143,6 +67459,11 @@ MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, i
     dx -= x ; dy -= y ; dz -= z ;
     d = sqrt(dx*dx + dy*dy + dz*dz) ;
     d = 1-(2*d)/dtotal;
+    if (d < 0)
+    {
+      DiagBreak() ;
+      continue ;
+    }
 
     MRISvertexCoord2XYZ_float(v, which, &xc, &yc, &zc) ;
     *px += d*xc ; *py += d*yc ; *pz += d*zc ;
@@ -67150,6 +67471,52 @@ MRISsampleFaceCoords(MRI_SURFACE *mris, int fno, double x, double y, double z, i
 
 
   return(NO_ERROR) ;
+}
+double
+MRISsampleFace(MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2)
+{
+  float    d, dtotal, dx, dy, dz, xc, yc, zc ;
+  int      n ;
+  FACE     *face ;
+  VERTEX   *v ;
+  double   val ;
+
+  face = &mris->faces[fno] ;
+
+  xc = yc = zc = 0.0 ; // to get rid of mac warnings
+  for (dtotal = 0.0, n = 0  ; n < VERTICES_PER_FACE ; n++)
+  {
+    v = &mris->vertices[face->v[n]] ;
+    MRISvertexCoord2XYZ_float(v, which, &dx, &dy, &dz) ;
+    dx -= x ; dy -= y ; dz -= z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    dtotal += d ;
+  }
+
+  val = 0.0 ;
+  for (n = 0  ; n < VERTICES_PER_FACE ; n++)
+  {
+    v = &mris->vertices[face->v[n]] ;
+    MRISvertexCoord2XYZ_float(v, which, &dx, &dy, &dz) ;
+    dx -= x ; dy -= y ; dz -= z ;
+    d = sqrt(dx*dx + dy*dy + dz*dz) ;
+    d = 1-(2*d)/dtotal;
+    if (d < 0)
+    {
+      DiagBreak() ;
+      return(0.0) ; // outside the face
+    }
+
+    MRISvertexCoord2XYZ_float(v, which, &xc, &yc, &zc) ;
+    switch (n)
+    {
+    case 0: val += d * val0 ; break ;
+    case 1: val += d * val1 ; break ;
+    case 2: val += d * val2 ; break ;
+    }
+  }
+
+  return(val) ;
 }
 int
 MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, float *px, float *py, float *pz)
@@ -67188,23 +67555,27 @@ MRISsampleFaceNormal(MRI_SURFACE *mris, int fno, double x, double y, double z, f
 }
 
 int
-MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float max_thick, MRI_SURFACE *mris_ico)
+MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, float max_thick)
 {
   int     vno ;
   VERTEX  *v ;
   MHT     *mht_pial ;
 
   parms->integration_type = INTEGRATE_MOMENTUM ;
-  parms->b = parms->c = parms->a = DEFAULT_RADIUS ;
   parms->flags |= IPFLAG_NOSCALE_TOL ;  // don't scale tol down with decreasing # of averages
-  parms->projection = PROJECT_SPHERE ;
-  parms->niterations = 100 ;
+  parms->niterations = 10000 ;
 
   MRIScomputeSurfaceNormals(mris, WHITE_VERTICES, 0) ;
   MRISstoreMetricProperties(mris) ;
-  MRISwriteCoordsToIco(mris, mris_ico, PIAL_VERTICES) ;
-  mht_pial = MHTfillTableAtResolution(mris_ico, NULL, CANONICAL_VERTICES, 1.0);
-  parms->mris_ico = mris_ico ; parms->mht_ico = (void *)mht_pial ;
+
+  // compute pial tangent planes
+  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
+  MRISrestoreVertexPositions(mris, PIAL_VERTICES) ;   // initialize with location on pial surface
+  MRIScomputeSecondFundamentalForm(mris) ;
+  MRISstoreTangentPlanes(mris, PIAL_VERTICES) ;
+
+  mht_pial = MHTfillVertexTableRes(mris, NULL, PIAL_VERTICES, 2.0);
+  parms->mht_ico = (void *)mht_pial ;
 
   if (Gdiag & DIAG_WRITE)
   {
@@ -67227,33 +67598,26 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
     mrisLogIntegrationParms(parms->fp, mris,parms) ;
   }
 
-  MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;  // for diagnostic purposes
-  MRIScomputeSecondFundamentalForm(mris) ;
   MRISrestoreRipFlags(mris) ;
   mrisClearMomentum(mris) ;
   mrisIntegrationEpoch(mris, parms, 0) ;
-
   // compute thickness and put it in v->curv field
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
-    float   xw, yw, zw, xp, yp, zp, thick_sq ;
-    FACE    *face ;
-    int     fno ;
-    double  fdist ;
+    float   xw, yw, zw, xp, yp, zp, thick ;
 
     v = &mris->vertices[vno] ;
+    if (vno == Gdiag_no)
+      DiagBreak() ;
     if (v->ripflag)
     {
       v->tx = v->whitex ; v->ty = v->whitey ; v->tz = v->whitez ;
       continue ;
     }
     MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
-    MHTfindClosestFaceGeneric((MHT *)(parms->mht_ico), parms->mris_ico, 
-                              v->x, v->y, v->z, 1000, -1, &face, &fno, &fdist) ;
-    MRISsampleFaceCoords(mris_ico, fno, v->x, v->y, v->z, PIAL_VERTICES, &xp, &yp, &zp) ;
-    thick_sq = mrisSampleMinimizationEnergy(mris, v, parms, v->x, v->y, v->z) ;
-    v->curv = sqrt(thick_sq) ;
-    v->tx = xp ; v->ty = yp ; v->tz = zp ;
+    MRISvertexCoord2XYZ_float(v, CURRENT_VERTICES, &xp, &yp, &zp) ;
+    thick = sqrt(SQR(xp-xw) + SQR(yp-yw) + SQR(zp-zw)) ;
+    v->curv = thick ; v->tx = xp ; v->ty = yp ; v->tz = zp ;
   }
 
   MHTfree(&mht_pial) ;
@@ -67466,5 +67830,74 @@ MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale)
       continue ;
     v->x *= scale ; v->y *= scale ; v->z *= scale ;
   }
+  return(NO_ERROR) ;
+}
+int
+MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices)
+{
+  VERTEX  *v ;
+  int     vno ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->pe1x = v->e1x ;  v->pe1y = v->e1y ;  v->pe1z = v->e1z ; 
+    v->pe2x = v->e2x ;  v->pe2y = v->e2y ;  v->pe2z = v->e2z ; 
+  }
+  return(NO_ERROR) ;
+}
+int
+MRISrepositionSuface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, int nv, int nsize, double sigma) 
+{
+  int               vno, n ;
+  INTEGRATION_PARMS parms ;
+  VERTEX            *v ;
+
+  memset(&parms, 0, sizeof(parms)) ;
+  parms.fill_interior = 0 ; 
+  parms.projection = NO_PROJECTION ;
+  parms.tol = 1e-4 ;
+  parms.dt = 0.5f ;
+  parms.base_dt = .1 ;
+  parms.l_spring = 1.0f ;
+  parms.l_curv = 1.0 ;
+  parms.l_intensity = 0.2 ;
+  parms.l_spring = 0.0f ;
+  parms.l_curv = 1.0 ;
+  parms.l_intensity = 0.2 ;
+  parms.l_tspring = 1.0f ;
+  parms.l_nspring = 0.5f ;
+
+  parms.niterations = 0 ;
+  parms.write_iterations = 0 /*WRITE_ITERATIONS */;
+  parms.integration_type = INTEGRATE_MOMENTUM ;
+  parms.momentum = 0.0 /*0.8*/ ;
+  parms.dt_increase = 1.0 /* DT_INCREASE */;
+  parms.dt_decrease = 0.50 /* DT_DECREASE*/ ;
+  parms.error_ratio = 50.0 /*ERROR_RATIO */;
+  /*  parms.integration_type = INTEGRATE_LINE_MINIMIZE ;*/
+  parms.l_surf_repulse = 0.0 ;
+  parms.l_repulse = 5 ;
+  parms.niterations = 100 ;
+  sprintf(parms.base_name, "nudge") ;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+    mris->vertices[vno].ripflag = 1 ;
+  for (n = 0 ; n < nv ; n++)
+    mris->vertices[target_vnos[n]].ripflag = 0 ;
+  MRISerodeRipped(mris, nsize) ;
+  for (vno = 0 ; vno < mris->nvertices ; vno++)
+  {
+    v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+    v->val = target_vals[0] ;
+    v->val2 = sigma ;
+    v->marked = 1 ;
+  }
+
+  MRISpositionSurface(mris, mri, mri, &parms) ;
   return(NO_ERROR) ;
 }
