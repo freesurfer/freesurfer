@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2009/10/01 17:57:09 $
-#    $Revision: 1.9 $
+#    $Author: nicks $
+#    $Date: 2010/05/28 17:30:02 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2005-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.9 2009/10/01 17:57:09 mreuter Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.10 2010/05/28 17:30:02 nicks Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -222,8 +222,11 @@ if($RunIt) then
 endif
 
 echo "-----------------------------------------" |& tee -a $LF
-goto cleanup;
-cleanup_return:
+# do not clean up temporary files if the user specified -nocleanup or -tmpdir
+if (${CleanUp} == 1) then
+  goto cleanup;
+  cleanup_return:
+endif
 
 #---------------- end processing--------------------#
 echo "Started at: $StartTime"    |& tee -a $LF
