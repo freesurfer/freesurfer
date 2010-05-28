@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/27 23:58:58 $
- *    $Revision: 1.67 $
+ *    $Date: 2010/05/28 20:36:45 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -42,7 +42,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.67 2010/03/27 23:58:58 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.68 2010/05/28 20:36:45 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -116,11 +116,12 @@ main(int argc, char *argv[])
   char          *cmdline, full_name[STRLEN] ;
   int           num_cortex_vertices = 0;
   float         total_cortex_area = 0;
+  float         mean_cortex_thickness = 0;
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.67 2010/03/27 23:58:58 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.68 2010/05/28 20:36:45 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -449,9 +450,10 @@ main(int argc, char *argv[])
     // if -cortex option selected, then count vertices and area only in cortex
     if (cortex_label)
     {
-      /* calculate the "area" of the vertices labeled as cortex */
+      /* calculate "area" and thickness of the vertices labeled as cortex */
       num_cortex_vertices = 0;
       total_cortex_area = 0;
+      mean_cortex_thickness = 0;
       int vno;
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
@@ -478,18 +480,32 @@ main(int argc, char *argv[])
             total_cortex_area += area;
         
             num_cortex_vertices++;
+
+            // thickness measures were saved to v->imag_val earlier by the
+            // call to MRIScopyCurvatureToImagValues(mris)
+            mean_cortex_thickness += v->imag_val;
             
             break;
           }
         }
+      }
+      if (mean_cortex_thickness && num_cortex_vertices )
+      {
+        mean_cortex_thickness /= num_cortex_vertices;
       }
     }
     fprintf(fp,
             "# Measure Cortex, NumVert, Number of Vertices, %d, unitless\n",
             num_cortex_vertices);
     fprintf(fp,
-            "# Measure Cortex, SurfArea, Surface Area,  %g, mm^2\n",
+            "# Measure Cortex, SurfArea, Surface Area, %g, mm^2\n",
             total_cortex_area);
+    if (cortex_label)
+    {
+      fprintf(fp,
+            "# Measure Cortex, MeanThickness, Mean Thickness, %g, mm\n",
+              mean_cortex_thickness);
+    }
 
     fprintf(fp,"# NTableCols 10\n");
 
@@ -932,7 +948,8 @@ get_option(int argc, char *argv[])
     if (cortex_label == NULL)
       ErrorExit(ERROR_NOFILE, "") ;
     nargs = 1 ;
-    printf("INFO: using %s as mask to calc cortex NumVert and SurfArea.\n",
+    printf("INFO: using %s as mask to calc cortex "
+           "NumVert, SurfArea and MeanThickness.\n",
       argv[2]);
   }
   else if (!stricmp(option, "crosscheck"))
