@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:12 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -173,6 +173,10 @@ public:
   void GetNormalAtVertex( int nVertex, double* vec_out );
   
   void UpdateVector2D( int nPlane, double slice_pos );
+  
+  void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma );
+  
+  void UndoReposition();
 
 protected:
   void UpdatePolyData();

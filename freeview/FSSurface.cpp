@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/27 14:09:38 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -208,6 +208,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   }
   
   RestoreVertices( m_MRIS, SurfaceMain );
+  RestoreNormals( m_MRIS, SurfaceMain );
 
   if ( vector_filename != NULL )
     LoadVectors ( vector_filename );
@@ -217,7 +218,6 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 
   return true;
 }
-
 
 bool FSSurface::MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event )
 {
@@ -419,19 +419,11 @@ bool FSSurface::SaveVertices( MRI* mri, VertexItem*& buffer )
       return false;
     }
   }
-  double len = 1.0;
   for ( int vno = 0; vno < nvertices; vno++ )
   {
     buffer[vno].x = MRIFseq_vox( mri, vno, 0, 0, 0 );
     buffer[vno].y = MRIFseq_vox( mri, vno, 0, 0, 1 );
     buffer[vno].z = MRIFseq_vox( mri, vno, 0, 0, 2 );
-    len = sqrt( buffer[vno].x*buffer[vno].x + buffer[vno].y*buffer[vno].y + buffer[vno].z*buffer[vno].z );
-    if ( len > 0 )
-    {
-      buffer[vno].x /= len;
-      buffer[vno].y /= len;
-      buffer[vno].z /= len;
-    }
   }
   return true;
 }
@@ -599,7 +591,6 @@ void FSSurface::UpdateVerticesAndNormals()
   float point[3], normal[3], surfaceRAS[3];
   for ( int vno = 0; vno < cVertices; vno++ )
   {
-
     surfaceRAS[0] = m_MRIS->vertices[vno].x;
     surfaceRAS[1] = m_MRIS->vertices[vno].y;
     surfaceRAS[2] = m_MRIS->vertices[vno].z;
@@ -1176,3 +1167,22 @@ double FSSurface::GetCurvatureValue( int nVertex )
   return m_MRIS->vertices[nVertex].curv;
 }
 
+void FSSurface::Reposition( FSVolume *volume, int target_vno, double target_val, int nsize, double sigma ) 
+{
+  MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES ); 
+  float fval = (float)target_val;
+  MRISrepositionSurface( m_MRIS, volume->GetMRI(), &target_vno, &fval, 1, nsize, sigma );
+  SaveVertices( m_MRIS, m_nActiveSurface );
+  ComputeNormals();
+  SaveNormals( m_MRIS, m_nActiveSurface );
+  UpdateVerticesAndNormals();
+}
+
+void FSSurface::UndoReposition()
+{
+  MRISrestoreVertexPositions( m_MRIS, INFLATED_VERTICES );
+  SaveVertices( m_MRIS, m_nActiveSurface );
+  ComputeNormals();
+  SaveNormals( m_MRIS, m_nActiveSurface );
+  UpdateVerticesAndNormals();
+}

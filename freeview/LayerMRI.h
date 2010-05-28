@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -214,6 +214,8 @@ public:
   
   bool LoadRegionSurfaces( wxString& fn );
   
+  const char* GetOrientationString();
+  
 protected:
   void InitializeVolume();
   void InitializeActors();
@@ -284,6 +286,8 @@ protected:
   
   std::vector<SurfaceRegion*>     m_surfaceRegions;
   SurfaceRegion*                  m_currentSurfaceRegion;
+  
+  int         m_nOrientationIndex[3];
   
 private:
   double**    private_buf1_3x3;

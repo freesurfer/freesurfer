@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/05/28 20:32:30 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -112,23 +112,21 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
   lc->GetSlicePosition( slicePos );
   bool bHasLayer = ( lc->GetNumberOfLayers() > 0 );
-// for ( int i = 0; i < NUMBER_OF_ANNOTATIONS; i++ )
-//  m_actorCoordinates[i]->SetVisibility( bHasLayer ? 1 : 0 );
 
   if ( !bHasLayer )
   {
     return;
   }
 
-  LayerMRI* mri = ( LayerMRI* )lc->GetLayer( 0 );
+  LayerMRI* mri = ( LayerMRI* )lc->GetActiveLayer();
   int nSliceNumber[3];
-  /* double ras[3];
-   if ( mri )
-   {
-    mri->RemapPositionToRealRAS( slicePos, ras );
-    mri->RASToOriginalIndex( ras, nSliceNumber );
-   }
-  */
+  double ras[3];
+  if ( mri )
+  {
+   mri->RemapPositionToRealRAS( slicePos, ras );
+   mri->RASToOriginalIndex( ras, nSliceNumber );
+  }
+  
   double centPos[3];
   double* worigin = mri->GetWorldOrigin();
   double* wsize = mri->GetWorldSize();
@@ -136,7 +134,8 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
   for ( int i = 0; i < 3; i++ )
   {
     centPos[i] = worigin[i] + wsize[i]/2;
-    nSliceNumber[i] = (int)( ( slicePos[i] - worigin[i] ) / wvoxel[i] );
+    if ( !mri )
+      nSliceNumber[i] = (int)( ( slicePos[i] - worigin[i] ) / wvoxel[i] );
   }
 
   double pos[4] = { 0, 1, 1, 0 }, tpos = 0;
@@ -333,9 +332,20 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
   }
 
   // update slice number
+  int nOrigPlane = nPlane;
+  if ( mri )
+  {
+    const char* ostr = mri->GetOrientationString();
+    if ( ostr[nPlane] == 'R' || ostr[nPlane] == 'L' )
+      nOrigPlane = 0;
+    else if ( ostr[nPlane] == 'A' || ostr[nPlane] == 'P' )
+      nOrigPlane = 1;
+    else if ( ostr[nPlane] == 'I' || ostr[nPlane] == 'S' )
+      nOrigPlane = 2;
+  }
   m_actorCoordinates[5]->SetInput
     ( mri ? wxString::Format
-      ( _("%d"), nSliceNumber[nPlane] ).char_str() : "" );
+      ( _("%d"), nSliceNumber[nOrigPlane] ).char_str() : "" );
 
   // update scale line
   double* xy_pos = m_actorScaleLine->GetPosition();

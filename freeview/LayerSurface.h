@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:13 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -84,11 +84,14 @@ public:
 
   int GetVertexIndexAtTarget( double* ras, double* distance );
 
-  bool GetRASAtVertex       ( int nVertex, double* ras );
-  bool GetSurfaceRASAtVertex( int nVertex, double* ras );
+  bool GetRASAtVertex       ( int nVertex, double* ras_out );
+  bool GetSurfaceRASAtVertex( int nVertex, double* ras_out );
 
   bool GetTargetAtVertex( int nVertex, double* ras );
   
+  void GetSurfaceRASAtTarget( double* pos_in, double* ras_out );
+  
+  void GetTargetAtSurfaceRAS( double* ras_in, double* pos_out );
 
   FSSurface* GetSourceSurface()
   {
@@ -194,6 +197,10 @@ public:
   }
   
   int GetHemisphere();
+  
+  void RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma );
+  
+  void UndoRepositionSurface();
 
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );

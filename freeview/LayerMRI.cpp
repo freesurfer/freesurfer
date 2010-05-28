@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 19:58:23 $
- *    $Revision: 1.70 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -166,6 +166,14 @@ LayerMRI::~LayerMRI()
 void LayerMRI::SetResampleToRAS( bool bResample )
 {
   m_bResampleToRAS = bResample;
+}
+
+const char* LayerMRI::GetOrientationString()
+{
+  if ( m_volumeSource )
+    return m_volumeSource->GetOrientationString();
+  else
+    return "RAS";
 }
 
 bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/30 18:28:30 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -72,13 +72,9 @@ FSVolume::FSVolume( FSVolume* ref ) :
   if ( ref )
   {
     SetMRI( m_MRIRef, ref->m_MRI );
-//    SetMRI( m_MRIOrigTarget, ref->m_MRIOrigTarget );
-
     m_bResampleToRAS = ref->m_bResampleToRAS;
-
-//    if ( !m_bResampleToRAS )
-//      SetMRI( m_MRITarget, ref->m_MRITarget );
   }
+  strcpy( m_strOrientation, "RAS" );
 }
 
 FSVolume::~FSVolume()
@@ -132,6 +128,9 @@ bool FSVolume::LoadMRI( const char* filename, const char* reg_filename, wxWindow
   if ( m_MRI->ct != NULL )
     m_ctabEmbedded = CTABdeepCopy( m_MRI->ct );
   
+  // update orientation index
+  MRIdircosToOrientationString( m_MRI, m_strOrientation );
+  
   /*
   if ( m_MRI->AutoAlign != NULL )
   {
@@ -176,6 +175,7 @@ bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow
     } 
   
     // free MRI pixel space
+    /*
     MRI* mri = MRIallocHeader( m_MRI->width, 
                               m_MRI->height, 
                               m_MRI->depth, 
@@ -183,6 +183,7 @@ bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow
     MRIcopyHeader( m_MRI, mri );
     MRIfree( &m_MRI );
     m_MRI = mri;
+    */
   
     return true;
   }
@@ -417,6 +418,10 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
 	       m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
     }
   }
+  
+  for ( int i = 0; i < 3; i++ )
+    m_strOrientation[i] = src_vol->m_strOrientation[i];
+  
   return true;
 }
 
@@ -633,7 +638,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
           }
         }
       }
-      if ( m_MRI->height >= 5 && j%(m_MRI->height/5) == 0 )
+      if ( wnd && m_MRI->height >= 5 && j%(m_MRI->height/5) == 0 )
       {
         event.SetInt( event.GetInt() + nProgressStep );
         wxPostEvent( wnd, event );
@@ -648,7 +653,7 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage,
       BUFTYPE* buf = &MRIseq_vox( mri, 0, 0, k, 0);
       memcpy( buf, ptr, mri->bytes_per_slice );
 
-      if ( mri->depth >= 5 && k%(mri->depth/5) == 0 )
+      if ( wnd && mri->depth >= 5 && k%(mri->depth/5) == 0 )
       {
         event.SetInt( event.GetInt() + nProgressStep );
         wxPostEvent( wnd, event );

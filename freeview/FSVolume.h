@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/02/01 19:13:19 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -168,6 +168,11 @@ public:
     return m_ctabEmbedded;
   }
   
+  const char* GetOrientationString()
+  {
+    return m_strOrientation;
+  }
+  
 protected:
   bool LoadMRI( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
   bool LoadRegistrationMatrix( const char* filename );
@@ -211,6 +216,7 @@ protected:
   float     m_RASBounds[6];
   
   int       m_nInterpolationMethod;
+  char      m_strOrientation[4];
 };
 
 #endif

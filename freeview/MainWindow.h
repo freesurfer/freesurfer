@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 19:58:23 $
- *    $Revision: 1.72 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -68,6 +68,7 @@ class DialogGradientVolume;
 class DialogSaveScreenshot;
 class DialogSavePoint;
 class DialogWriteMovieFrames;
+class DialogRepositionSurface;
 class ConnectivityData;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
@@ -211,6 +212,8 @@ public:
   void OnToolGotoPoint              ( wxCommandEvent& event );
   void OnToolGotoPointUpdateUI      ( wxUpdateUIEvent& event );
   void OnToolMenuGotoPoint          ( wxCommandEvent& event );
+  void OnToolRepositionSurface      ( wxCommandEvent& event );
+  void OnToolRepositionSurfaceUpdateUI  ( wxUpdateUIEvent& event );
   
   void OnToolLabelStats             ( wxCommandEvent& event );
   void OnToolLabelStatsUpdateUI     ( wxUpdateUIEvent& event );
@@ -470,6 +473,7 @@ private:
   DialogSaveScreenshot*       m_dlgSaveScreenshot;
   DialogWriteMovieFrames*     m_dlgWriteMovieFrames;
   DialogSavePoint*            m_dlgSavePoint;
+  DialogRepositionSurface*    m_dlgRepositionSurface;
   wxMenu*           m_menuGotoPoints;
 
   RenderView2D*   m_viewAxial;

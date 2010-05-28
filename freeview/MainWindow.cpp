@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 19:58:23 $
- *    $Revision: 1.115 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.116 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -100,6 +100,7 @@
 #include "VolumeFilterConvolve.h"
 #include "chronometer.h"
 #include "DialogVolumeFilter.h"
+#include "DialogRepositionSurface.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -236,6 +237,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GOTO_POINT" ),        MainWindow::OnToolGotoPointUpdateUI )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_GOTO_POINT_SUBMENU" ),        MainWindow::OnToolGotoPointUpdateUI )
   EVT_MENU_RANGE  ( ID_TOOL_GOTO_POINT_1, ID_TOOL_GOTO_POINT_1+1000,            MainWindow::OnToolMenuGotoPoint )
+  EVT_MENU        ( XRCID( "ID_TOOL_REPOSITION_SURFACE" ),   MainWindow::OnToolRepositionSurface )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_REPOSITION_SURFACE" ),   MainWindow::OnToolRepositionSurfaceUpdateUI )
   
   EVT_MENU        ( XRCID( "ID_FILTER_MEAN" ),            MainWindow::OnFilterMean )
   EVT_UPDATE_UI   ( XRCID( "ID_FILTER_MEAN" ),            MainWindow::OnFilterUpdateUI )
@@ -380,6 +383,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_dlgSaveScreenshot = NULL;
   m_dlgSavePoint = NULL;
   m_dlgWriteMovieFrames = NULL;
+  m_dlgRepositionSurface = NULL;
   
   m_menuGotoPoints = NULL;
 
@@ -394,6 +398,9 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   
   m_dlgWriteMovieFrames = new DialogWriteMovieFrames( this );
   m_dlgWriteMovieFrames->Hide();
+  
+  m_dlgRepositionSurface = new DialogRepositionSurface( this );
+  m_dlgRepositionSurface->Hide();
   
   UpdateToolbars();
   
@@ -5054,5 +5061,15 @@ void MainWindow::OnFilterGradient( wxCommandEvent& event )
     mri->ResetWindowLevel();
     delete filter;
   }  
+}
+
+void MainWindow::OnToolRepositionSurface( wxCommandEvent& event )
+{  
+  m_dlgRepositionSurface->Show();
+}
+
+void MainWindow::OnToolRepositionSurfaceUpdateUI( wxUpdateUIEvent& event )
+{
+  event.Enable( !m_bProcessing && GetLayerCollection( "Surface" )->GetActiveLayer() && GetLayerCollection( "MRI" )->GetActiveLayer() ); 
 }
 

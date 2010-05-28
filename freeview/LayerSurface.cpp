@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/12 17:27:04 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/05/28 20:32:31 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -618,25 +618,24 @@ int LayerSurface::GetVertexIndexAtRAS( double* ras, double* distance )
   return m_surfaceSource->FindVertexAtRAS( ras, distance );
 }
 
-int LayerSurface::GetVertexIndexAtTarget( double* ras, double* distance )
+int LayerSurface::GetVertexIndexAtTarget( double* pos, double* distance )
 {
   if ( m_surfaceSource == NULL )
     return -1;
     
-  double ras_o[3];
+  double pos_o[3];
   double* offset = GetProperties()->GetPosition();
   for ( int i = 0; i < 3; i++ )
-    ras_o[i] = ras[i] - offset[i];
+    pos_o[i] = pos[i] - offset[i];
   if ( m_volumeRef )
   {
     double realRas[3];
-    m_volumeRef->TargetToRAS( ras_o, realRas );
+    m_volumeRef->TargetToRAS( pos_o, realRas );
     return m_surfaceSource->FindVertexAtRAS( realRas, distance );
   }
   else
-    return m_surfaceSource->FindVertexAtRAS( ras_o, distance );
+    return m_surfaceSource->FindVertexAtRAS( pos_o, distance );
 }
-
 
 bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
 {
@@ -644,6 +643,34 @@ bool LayerSurface::GetRASAtVertex( int nVertex, double* ras )
     return false;
 
   return m_surfaceSource->GetRASAtVertex( nVertex, ras );
+}
+
+void LayerSurface::GetSurfaceRASAtTarget( double* pos_in, double* ras_out )
+{
+  if ( m_surfaceSource == NULL )
+    return;
+  
+  double pos_o[3];
+  double* offset = GetProperties()->GetPosition();
+  for ( int i = 0; i < 3; i++ )
+    pos_o[i] = pos_in[i] - offset[i];
+  if ( m_volumeRef )
+  {
+    m_volumeRef->TargetToRAS( pos_o, pos_o );
+  }
+  m_surfaceSource->ConvertRASToSurface( pos_o, ras_out );
+}
+
+void LayerSurface::GetTargetAtSurfaceRAS( double* ras_in, double* pos_out )
+{
+  if ( m_surfaceSource == NULL )
+    return;
+    
+  m_surfaceSource->ConvertSurfaceToRAS( ras_in, pos_out );
+  if ( m_volumeRef )
+  {
+    m_volumeRef->RASToTarget( pos_out, pos_out );
+  }
 }
 
 bool LayerSurface::GetSurfaceRASAtVertex( int nVertex, double* ras )
@@ -1099,4 +1126,16 @@ void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
   {
     m_labels[i]->MapLabel( data, nVertexCount );
   }
+}
+
+void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma )
+{
+  m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, value, size, sigma );
+  this->SendBroadcast( "LayerActorUpdated", this );
+}
+  
+void LayerSurface::UndoRepositionSurface()
+{
+  m_surfaceSource->UndoReposition();
+  this->SendBroadcast( "LayerActorUpdated", this );
 }
