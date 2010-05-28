@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/05/28 21:23:35 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1172,6 +1172,16 @@ void FSSurface::Reposition( FSVolume *volume, int target_vno, double target_val,
   MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES ); 
   float fval = (float)target_val;
   MRISrepositionSurface( m_MRIS, volume->GetMRI(), &target_vno, &fval, 1, nsize, sigma );
+  SaveVertices( m_MRIS, m_nActiveSurface );
+  ComputeNormals();
+  SaveNormals( m_MRIS, m_nActiveSurface );
+  UpdateVerticesAndNormals();
+}
+
+void FSSurface::Reposition( FSVolume *volume, int target_vno, double* coord, int nsize, double sigma ) 
+{
+  MRISsaveVertexPositions( m_MRIS, INFLATED_VERTICES ); 
+  MRISrepositionSurfaceToCoordinate( m_MRIS, volume->GetMRI(), target_vno, coord[0], coord[1], coord[2], nsize, sigma );
   SaveVertices( m_MRIS, m_nActiveSurface );
   ComputeNormals();
   SaveNormals( m_MRIS, m_nActiveSurface );

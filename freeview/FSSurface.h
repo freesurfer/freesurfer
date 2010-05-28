@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/05/28 21:23:35 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -175,6 +175,8 @@ public:
   void UpdateVector2D( int nPlane, double slice_pos );
   
   void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma );
+  
+  void Reposition( FSVolume* volume, int target_vnos, double* coord, int nsize, double sigma );
   
   void UndoReposition();
 

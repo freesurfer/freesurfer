@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/05/28 21:23:35 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1131,6 +1131,12 @@ void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
 void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma )
 {
   m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, value, size, sigma );
+  this->SendBroadcast( "LayerActorUpdated", this );
+}
+  
+void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma )
+{
+  m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, pos, size, sigma );
   this->SendBroadcast( "LayerActorUpdated", this );
 }
   
