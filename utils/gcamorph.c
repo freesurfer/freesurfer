@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/23 18:10:57 $
- *    $Revision: 1.189 $
+ *    $Author: rge21 $
+ *    $Date: 2010/05/28 19:22:35 $
+ *    $Revision: 1.190 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,6 +26,22 @@
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+// Control which portions are done on the GPU
+#define SHOW_EXEC_LOC 0
+#ifdef FS_CUDA
+#define GCAM_CMP_GPU
+
+#define GCAM_LABEL_ENERGY_GPU
+#define GCAM_LLENERGY_GPU
+#define GCAM_JACOBENERGY_GPU
+#define GCAM_COMPUTE_RMS_GPU
+#define GCAM_SMOOTHNESS_ENERGY_GPU
+#define GCAM_FIND_OPTIMAL_TIMESTEP_GPU
+
+//#define GCAM_SMOOTH_TERM_GPU
+#endif
+
 
 #define MALLOC_CHECK_ 2
 
@@ -52,8 +68,9 @@
 #include "fio.h"
 #include "mri_circulars.h"
 
-#ifdef FS_CUDA
 #include "chronometer.h"
+
+#ifdef FS_CUDA
 #include "gcamfots_cuda.h"
 #endif
 
@@ -251,7 +268,6 @@ static double gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri) ;
 static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
 static double gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
-static int gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness) ;
 
 
 static int gcamLSmoothnessTerm(GCA_MORPH *gcam, 
@@ -1848,16 +1864,9 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
-#ifdef FS_CUDA
-  Chronometer tTotal;
-
-  InitChronometer( &tTotal );
-  StartChronometer( &tTotal );
-#endif
-
   double          sse = 0.0;
 
-#ifndef FS_CUDA
+#ifndef GCAM_LLENERGY_GPU
   double error ;
   int             x, y, z;
   float            vals[MAX_GCA_INPUTS] ;
@@ -1885,15 +1894,21 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
-#ifdef FS_CUDA
+#ifdef GCAM_LLENERGY_GPU
   if( gcam->ninputs != 0 ) {
     printf( "%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs );
   }
 #endif
 
-#ifdef FS_CUDA
+#ifdef GCAM_LLENERGY_GPU
+#if SHOW_EXEC_LOC
+  printf( "%s: CUDA call\n", __FUNCTION__ );
+#endif
   sse = gcamLogLikelihoodEnergyGPU( gcam, mri );
 #else
+#if SHOW_EXEC_LOC
+  printf( "%s: CPU call\n", __FUNCTION__ );
+#endif
   for (x = 0 ; x < gcam->width ; x++) {
     for (y = 0 ; y < gcam->height ; y++) {
       for (z = 0 ; z < gcam->depth ; z++) {
@@ -1987,12 +2002,6 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
   if (Gdiag & DIAG_SHOW)
     printf("max increase %2.2f at (%d, %d, %d)\n",
            max_increase, max_x, max_y, max_z) ;
-#endif
-
-#ifdef FS_CUDA
-  StopChronometer( &tTotal );
-  
-  printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );
 #endif
 
 
@@ -3144,9 +3153,12 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
   }
 #endif
 
-#ifdef FS_CUDA
+#ifdef GCAM_CMP_GPU
   gcamComputeMetricPropertiesGPU( gcam, &Ginvalid );
 #else
+#if SHOW_EXEC_LOC
+  printf( "%s: CPU call\n", __FUNCTION__ );
+#endif
   double         area1, area2 ;
   int            i, j, k, width, height, depth, num, neg ;
   GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
@@ -3493,18 +3505,19 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
   }
 #endif
 
-#ifdef FS_CUDA
+#ifdef GCAM_JACOBENERGY_GPU
+#if SHOW_EXEC_LOC
+  printf( "%s: CUDA call\n", __FUNCTION__ );
+#endif
   if( gcam->ninputs != 1 ) {
     printf( "%s: ninputs = %i\n", __FUNCTION__, gcam->ninputs );
   }
 
-  Chronometer tTotal;
-
-  InitChronometer( &tTotal );
-  StartChronometer( &tTotal );
-
   sse = gcamJacobianEnergyGPU( gcam, mri );
 #else
+#if SHOW_EXEC_LOC
+  printf( "%s: CPU call\n", __FUNCTION__ );
+#endif
   double          delta, ratio, exponent, thick ;
   int             i, j, k, width, height, depth ;
   GCA_MORPH_NODE *gcamn ;
@@ -3584,12 +3597,6 @@ gcamJacobianEnergy( const GCA_MORPH *gcam, MRI *mri)
       }
     }
   }
-#endif
-
-#ifdef FS_CUDA
-  StopChronometer( &tTotal );
-  
-  printf( "%s: Complete in %9.3f ms\n", __FUNCTION__, GetChronometerValue( &tTotal ) );
 #endif
 
 
@@ -5217,7 +5224,7 @@ GCAMcomputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
   double rms;
   
-#ifdef FS_CUDA
+#ifdef GCAM_COMPUTE_RMS_GPU
   rms = gcamComputeRMSonGPU( gcam, mri, parms );
 #else
   float   nvoxels ;
@@ -5578,9 +5585,16 @@ gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   return(NO_ERROR) ;
 }
 
-static int
-gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness)
+
+int
+gcamSmoothnessTerm( GCA_MORPH *gcam,
+		    const MRI *mri,
+		    const double l_smoothness)
 {
+
+#ifdef GCAM_SMOOTH_TERM_GPU
+  gcamSmoothnessTermGPU( gcam, l_smoothness );
+#else
   double          vx, vy, vz, vnx, vny, vnz, dx, dy, dz ;
   int             x, y, z, xk, yk, zk, xn, yn, zn, width, height, depth, num ;
   GCA_MORPH_NODE  *gcamn, *gcamn_nbr ;
@@ -5590,10 +5604,9 @@ gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness)
   width = gcam->width ;
   height = gcam->height ;
   depth = gcam->depth ;
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
         if (x == Gx && y == Gy && z == Gz)
           DiagBreak() ;
         gcamn = &gcam->nodes[x][y][z] ;
@@ -5609,23 +5622,26 @@ gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness)
           printf("l_smoo: node(%d,%d,%d): V=(%2.2f,%2.2f,%2.2f)\n",
                  x, y, z, vx, vy, vz) ;
         num = 0 ;
-        for (xk = -1 ; xk <= 1 ; xk++)
-        {
+
+        for (xk = -1 ; xk <= 1 ; xk++) {
           xn = x+xk ;
           xn = MAX(0,xn) ;
           xn = MIN(width-1,xn) ;
-          for (yk = -1 ; yk <= 1 ; yk++)
-          {
+
+          for (yk = -1 ; yk <= 1 ; yk++) {
             yn = y+yk ;
             yn = MAX(0,yn) ;
             yn = MIN(height-1,yn) ;
-            for (zk = -1 ; zk <= 1 ; zk++)
-            {
+
+            for (zk = -1 ; zk <= 1 ; zk++) {
+
               if (!zk && !yk && !xk)
                 continue ;
+
               zn = z+zk ;
               zn = MAX(0,zn) ;
               zn = MIN(depth-1,zn) ;
+
               gcamn_nbr = &gcam->nodes[xn][yn][zn] ;
 
               if (gcamn_nbr->invalid == GCAM_POSITION_INVALID)
@@ -5635,35 +5651,46 @@ gcamSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness)
               if (gcamn_nbr->label != gcamn->label)
                 continue ;
 #endif
+
               vnx = gcamn_nbr->x - gcamn_nbr->origx ;
               vny = gcamn_nbr->y - gcamn_nbr->origy ;
               vnz = gcamn_nbr->z - gcamn_nbr->origz ;
+
               dx += (vnx-vx) ;
               dy += (vny-vy) ;
               dz += (vnz-vz) ;
+
               if ((x == Gx && y == Gy && z == Gz) &&
-                  (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON)
+                  (Gdiag & DIAG_SHOW) && DIAG_VERBOSE_ON) {
                 printf("\tnode(%d,%d,%d): V=(%2.2f,%2.2f,%2.2f), "
                        "DX=(%2.2f,%2.2f,%2.2f)\n",
                        xn, yn, zn, vnx, vny, vnz, vnx-vx, vny-vy, vnz-vz) ;
+	      }
+
               num++ ;
             }
           }
         }
         /*        num = 1 ;*/
-        if (num)
-        {
+        if (num) {
           dx = dx * l_smoothness / num ;
           dy = dy * l_smoothness / num ;
           dz = dz * l_smoothness / num ;
         }
-        if (x == Gx && y == Gy && z == Gz)
+
+        if (x == Gx && y == Gy && z == Gz) {
           printf("l_smoo: node(%d,%d,%d): DX=(%2.2f,%2.2f,%2.2f)\n",
                  x, y, z, dx, dy, dz) ;
+	}
+
         gcamn->dx += dx ;
         gcamn->dy += dy ;
         gcamn->dz += dz ;
+
       }
+    }
+  }
+#endif
   return(NO_ERROR) ;
 }
 
@@ -5694,10 +5721,16 @@ gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
   nCalls++;
 #endif
 
-#ifdef FS_CUDA
+#ifdef GCAM_SMOOTHNESS_ENERGY_GPU
+#if SHOW_EXEC_LOC
+  printf( "%s: CUDA call\n", __FUNCTION__ );
+#endif
 
   sse = gcamSmoothnessEnergyGPU( gcam );
 #else
+#if SHOW_EXEC_LOC
+  printf( "%s: CPU call\n", __FUNCTION__ );
+#endif
   double vx, vy, vz, vnx, vny, vnz, error, node_sse, dx, dy, dz ;
   int x, y, z, xk, yk, zk, xn, yn, zn, width, height, depth, num ;
   const GCA_MORPH_NODE  *gcamn, *gcamn_nbr ;
@@ -7209,14 +7242,21 @@ GCAMsetLabelStatus(GCA_MORPH *gcam, int label, int status)
 #define MAX_SAMPLES 100
 
 #define GCAM_FOTS_OUTPUT 0
+#define GCAM_FOTS_TIMERS 1
 
 static double
 gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 {
+#if GCAM_FOTS_TIMERS
+  Chronometer tFOTS;
+
+  InitChronometer( &tFOTS );
+  StartChronometer( &tFOTS );
+#endif
 
   double min_dt;
 
-#ifndef FS_CUDA
+#ifndef GCAM_FIND_OPTIMAL_TIMESTEP_GPU
   MATRIX   *mX, *m_xTx, *m_xTx_inv, *m_xTy, *mP, *m_xT ;
   double   rms, min_rms, dt_in[MAX_SAMPLES], 
     rms_out[MAX_SAMPLES],orig_dt,
@@ -7242,9 +7282,15 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   }
 #endif
 
-#ifdef FS_CUDA
+#ifdef GCAM_FIND_OPTIMAL_TIMESTEP_GPU
+#if SHOW_EXEC_LOC
+  printf( "%s: CUDA call\n", __FUNCTION__ );
+#endif
   min_dt = gcamFindOptimalTimestepGPU( gcam, parms, mri );
 #else
+#if SHOW_EXEC_LOC
+  printf( "%s: CPU call\n", __FUNCTION__ );
+#endif
   gcamClearMomentum(gcam) ;
   // disable diagnostics so we don't see every time step sampled
   Gxs = Gx ;
@@ -7483,6 +7529,12 @@ gcamFindOptimalTimeStep(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
   nCalls++;
 #endif
 
+#if GCAM_FOTS_TIMERS
+  StopChronometer( &tFOTS );
+  printf( "%s: Complete in %9.3f ms\n",
+	  __FUNCTION__, GetChronometerValue( &tFOTS ) );
+#endif
+
   return(min_dt) ;
 }
 
@@ -7509,9 +7561,15 @@ gcamLabelEnergy( const GCA_MORPH *gcam,
 
   float           sse ;
 
-#ifdef FS_CUDA
+#ifdef GCAM_LABEL_ENERGY_GPU
+#if SHOW_EXEC_LOC
+  printf( "%s: CUDA call\n", __FUNCTION__ );
+#endif
   sse = gcamLabelEnergyGPU( gcam );
 #else
+#if SHOW_EXEC_LOC
+  printf( "%s: CPU call\n", __FUNCTION__ );
+#endif
   int             x, y, z ;
   GCA_MORPH_NODE  *gcamn ;
 
