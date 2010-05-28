@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/26 17:25:16 $
- *    $Revision: 1.344 $
+ *    $Date: 2010/05/28 17:36:53 $
+ *    $Revision: 1.345 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -117,6 +117,8 @@ typedef struct vertex_type_
   int   px,qx, py,qy, pz,qz; /* rational coordinates for exact calculations */
   float e1x, e1y, e1z ;  /* 1st basis vector for the local tangent plane */
   float e2x, e2y, e2z ;  /* 2nd basis vector for the local tangent plane */
+  float pe1x, pe1y, pe1z ;  /* 1st basis vector for the local tangent plane */
+  float pe2x, pe2y, pe2z ;  /* 2nd basis vector for the local tangent plane */
 #if 0
   float dipx,dipy,dipz;  /* dipole position */
   float dipnx,dipny,dipnz; /* dipole orientation */
@@ -1934,8 +1936,7 @@ LABEL *MRISannotation_to_label(MRI_SURFACE *mris, int annot_index) ;
 // thickness stuff
 int MRISminimizeThicknessFunctional(MRI_SURFACE *mris,
                                     INTEGRATION_PARMS *parms,
-                                    float max_thick,
-                                    MRI_SURFACE *mris_ico);
+                                    float max_thick) ;
 int MRISmeasureDistanceBetweenSurfaces(MRI_SURFACE *mris,
                                        MRI_SURFACE *mris2,
                                        int signed_dist) ;
@@ -1968,6 +1969,10 @@ int MRISmaxMarked(MRI_SURFACE *mris) ;
 int MRISscaleVertexCoordinates(MRI_SURFACE *mris, double scale) ;
 int MRIScurvToMarked(MRI_SURFACE *mris) ;
 int MRISreadMarked(MRI_SURFACE *mris, const char *sname) ;
+int MRISstoreTangentPlanes(MRI_SURFACE *mris, int which_vertices) ;
+double MRISsampleFace(MRI_SURFACE *mris, int fno, int which, double x, double y, double z, double val0, double val1, double val2);
+int MRISrepositionSuface(MRI_SURFACE *mris, MRI *mri, int *target_vnos, float *target_vals, 
+                         int nv, int nsize, double sigma)  ;
 
 
 #endif // MRISURF_H
