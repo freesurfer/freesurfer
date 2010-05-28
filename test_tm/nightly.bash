@@ -14,9 +14,6 @@ export SCRIPTSDIR="${NIGHTLYDIR}/test_tm/scripts/"
 # Location of 'scratch' directory
 export SCRATCHDIR="/local_mount/space/avebury/1/users/rge21/tm_test_data"
 
-# Location of the binaries
-export TM_BIN_DIR="$FREESURFER_HOME/bin"
-
 # Location of samples
 export SAMPLE_DIR="/space/freesurfer/test/tm_test_data/"
 
@@ -27,6 +24,10 @@ rm $LOGFILE
 # Make sure environment is set up
 export PS1="--"
 source $HOME/.bashrc >> $LOGFILE 2>&1
+
+# Location of the binaries
+export TM_BIN_DIR="$FREESURFER_HOME/bin"
+
 
 echo >> $LOGFILE
 echo >> $LOGFILE
