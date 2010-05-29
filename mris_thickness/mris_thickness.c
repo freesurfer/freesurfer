@@ -9,8 +9,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/01/22 02:47:49 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/05/29 12:25:59 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 #include "version.h"
 #include "icosahedron.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.15 2009/01/22 02:47:49 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.16 2010/05/29 12:25:59 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -76,7 +76,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE   *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.15 2009/01/22 02:47:49 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.16 2010/05/29 12:25:59 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -86,11 +86,12 @@ main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
 
   // for variational thickness estimation
-  parms.dt = 0.2 ;
+  parms.dt = 0.1 ;
   parms.momentum = .5;
   parms.l_nlarea = 1 ;
-  parms.l_thick_min = 1 ;
+  parms.l_thick_min = .01 ;
   parms.l_thick_parallel = 1;
+  parms.l_thick_normal = 1;
   parms.tol = 1e-1 ;
 
   ac = argc ;
@@ -197,18 +198,34 @@ main(int argc, char *argv[]) {
       MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
       MRIScomputeMetricProperties(mris) ;
     }
-    MRISminimizeThicknessFunctional(mris, &parms, max_thick, mris_ico) ;
+    MRISminimizeThicknessFunctional(mris, &parms, max_thick) ;
 
     if (Gdiag & DIAG_WRITE)
     {
       char tmp[STRLEN] ;
+      int  vno ;
+      VERTEX *v ;
       FileNameRemoveExtension(out_fname, tmp) ;
       
-      sprintf(fname, "%s.correspondence.final", tmp) ;
-      printf("writing final correspondences to %s\n", fname) ;
+      sprintf(fname, "%s.normals.init.mgz", tmp) ;
+      printf("writing initial surface normals to %s\n", fname) ;
+      MRISwriteNormals(mris, fname) ;
+      sprintf(fname, "%s.normals.mgz", tmp) ;
+      printf("writing final surface normals to %s\n", fname) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
-      MRIScomputeMetricProperties(mris) ;
-      MRISwrite(mris, fname) ;
+      for (vno = 0 ; vno < mris->nvertices ; vno++)
+      {
+        v = &mris->vertices[vno] ;
+        if (v->ripflag)
+        {
+          v->nx = v->ny = v->nz = 0 ;
+          continue ;
+        }
+        v->nx = v->tx - v->whitex ; 
+        v->ny = v->ty - v->whitey ; 
+        v->nz = v->tz - v->whitez ; 
+      }
+      MRISwriteNormals(mris, fname) ;
     }
       
   }
@@ -260,6 +277,10 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "THICK_MIN")) {
     parms.l_thick_min = atof(argv[2]) ;
     printf("using min length thickness coefficient %2.3f\n", parms.l_thick_min);
+    nargs = 1 ;
+  } else if (!stricmp(option, "THICK_NORMAL")) {
+    parms.l_thick_normal = atof(argv[2]) ;
+    printf("using normal thickness coefficient %2.3f\n", parms.l_thick_normal);
     nargs = 1 ;
   } else if (!stricmp(option, "DT")) {
     parms.dt = atof(argv[2]) ;
