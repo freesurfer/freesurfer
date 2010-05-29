@@ -78,6 +78,7 @@ MRISUBDIRS=\
 	mri_gca_ambiguous \
 	mri_head \
 	histo_segment \
+	histo_synthesize \
 	histo_fix_topology \
 	mri_histo_eq \
 	mri_compute_structure_transforms \
@@ -115,6 +116,7 @@ MRISUBDIRS=\
 	mri_probe_ima \
 	mri_reduce \
 	mri_register \
+	mri_register_hires_to_lowres \
 	mri_relabel_hypointensities \
 	mri_remove_neck \
 	mri_ribbon \

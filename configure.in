@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: fischl $
-#    $Date: 2010/04/14 14:44:38 $
-#    $Revision: 1.474 $
+#    $Date: 2010/05/29 23:28:48 $
+#    $Revision: 1.475 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2932,6 +2932,7 @@ AC_OUTPUT([Makefile
            hiam_make_template/Makefile
            hipsstubs/Makefile
            histo_segment/Makefile
+           histo_synthesize/Makefile
            histo_compute_joint_density/Makefile
            histo_register_block/Makefile
            images/Makefile
@@ -3058,6 +3059,7 @@ AC_OUTPUT([Makefile
            mri_probedicom/Makefile
            mri_reduce/Makefile
            mri_register/Makefile
+           mri_register_hires_to_lowres/Makefile
            mri_relabel_hypointensities/Makefile
            mri_remove_neck/Makefile
            mri_ribbon/Makefile
