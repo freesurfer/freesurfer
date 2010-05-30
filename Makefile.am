@@ -116,7 +116,6 @@ MRISUBDIRS=\
 	mri_probe_ima \
 	mri_reduce \
 	mri_register \
-	mri_register_hires_to_lowres \
 	mri_relabel_hypointensities \
 	mri_remove_neck \
 	mri_ribbon \
