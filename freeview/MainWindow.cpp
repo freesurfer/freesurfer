@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.116 $
+ *    $Date: 2010/06/01 17:38:08 $
+ *    $Revision: 1.117 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -145,6 +145,10 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU        ( XRCID( "ID_FILE_SAVE_MOVIE_FRAMES" ), MainWindow::OnFileSaveMovieFrames )
   EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_MOVIE_FRAMES" ), MainWindow::OnFileSaveMovieFramesUpdateUI )
   EVT_MENU        ( XRCID( "ID_FILE_LOAD_SURFACE" ),      MainWindow::OnFileLoadSurface )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE_SURFACE" ),      MainWindow::OnFileSaveSurface )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_SURFACE" ),      MainWindow::OnFileSaveSurfaceUpdateUI )
+  EVT_MENU        ( XRCID( "ID_FILE_SAVE_SURFACE_AS" ),   MainWindow::OnFileSaveSurfaceAs )
+  EVT_UPDATE_UI   ( XRCID( "ID_FILE_SAVE_SURFACE_AS" ),   MainWindow::OnFileSaveSurfaceAsUpdateUI )
   EVT_MENU        ( XRCID( "ID_MODE_NAVIGATE" ),          MainWindow::OnModeNavigate )
   EVT_UPDATE_UI   ( XRCID( "ID_MODE_NAVIGATE" ),          MainWindow::OnModeNavigateUpdateUI )
   EVT_MENU        ( XRCID( "ID_MODE_MEASURE" ),           MainWindow::OnModeMeasure )
@@ -165,6 +169,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_UPDATE_UI   ( XRCID( "ID_EDIT_UNDO" ),              MainWindow::OnEditUndoUpdateUI )
   EVT_MENU        ( XRCID( "ID_EDIT_REDO" ),              MainWindow::OnEditRedo )
   EVT_UPDATE_UI   ( XRCID( "ID_EDIT_REDO" ),              MainWindow::OnEditRedoUpdateUI )
+  EVT_MENU        ( XRCID( "ID_EDIT_RENAME" ),            MainWindow::OnEditRename )
+  EVT_UPDATE_UI   ( XRCID( "ID_EDIT_RENAME" ),            MainWindow::OnEditRenameUpdateUI )
   EVT_MENU        ( XRCID( "ID_EDIT_PREFERENCES" ),       MainWindow::OnEditPreferences )
   EVT_MENU        ( XRCID( "ID_VIEW_LAYOUT_1X1" ),        MainWindow::OnViewLayout1X1 )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_LAYOUT_1X1" ),        MainWindow::OnViewLayout1X1UpdateUI )
@@ -400,7 +406,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_dlgWriteMovieFrames->Hide();
   
   m_dlgRepositionSurface = new DialogRepositionSurface( this );
-  m_dlgRepositionSurface->Hide();
+  m_dlgRepositionSurface->Hide();  
+  m_view3D->AddListener( m_dlgRepositionSurface );
   
   UpdateToolbars();
   
@@ -511,6 +518,7 @@ void MainWindow::OnClose( wxCloseEvent &event )
   LayerCollection* lc_mri = GetLayerCollection( "MRI" );
   LayerCollection* lc_roi = GetLayerCollection( "ROI" );
   LayerCollection* lc_wp = GetLayerCollection( "WayPoints" );
+  LayerCollection* lc_surf = GetLayerCollection( "Surface" );
   wxString text = _( "" );
   for ( int i = 0; i < lc_mri->GetNumberOfLayers(); i++ )
   {
@@ -526,6 +534,13 @@ void MainWindow::OnClose( wxCloseEvent &event )
       text += wxString::FromAscii( layer->GetName() ) + _( "\t(" ) + 
           wxFileName( wxString::FromAscii( layer->GetFileName() ) ).GetShortPath() + _(")\n");
   }
+  for ( int i = 0; i < lc_surf->GetNumberOfLayers(); i++ )
+  {
+    LayerEditable* layer = ( LayerEditable* )lc_surf->GetLayer( i );
+    if ( layer->IsModified() )
+      text += wxString::FromAscii( layer->GetName() ) + _( "\t(" ) + 
+          wxFileName( wxString::FromAscii( layer->GetFileName() ) ).GetShortPath() + _(")\n");
+  }
   for ( int i = 0; i < lc_wp->GetNumberOfLayers(); i++ )
   {
     LayerEditable* layer = ( LayerEditable* )lc_wp->GetLayer( i );
@@ -536,7 +551,7 @@ void MainWindow::OnClose( wxCloseEvent &event )
 
   if ( !text.IsEmpty() )
   {
-    wxString msg = _("The following volume(s) and/or label(s) have been modified but not saved. \n\n");
+    wxString msg = _("The following layer(s) have been modified but not saved. \n\n");
     msg += text + _("\nDo you still want to quit the program?");
     wxMessageDialog dlg( this, msg, _("Quit"), wxYES_NO | wxICON_QUESTION | wxNO_DEFAULT );
     if ( dlg.ShowModal() != wxID_YES )
@@ -1910,6 +1925,8 @@ LayerCollection* MainWindow::GetCurrentLayerCollection()
     lc = GetLayerCollection( "ROI" );
   else if ( name == _("Surfaces") )
     lc = GetLayerCollection( "Surface" );
+  else if ( name == _("Point Sets") )
+    lc = GetLayerCollection( "WayPoints" );
   
   return lc;
 }
@@ -4568,6 +4585,29 @@ void MainWindow::LoadSurface()
   }
 }
 
+void MainWindow::OnFileSaveSurface( wxCommandEvent& event )
+{
+  SaveSurface();
+}
+
+void MainWindow::OnFileSaveSurfaceUpdateUI( wxUpdateUIEvent& event )
+{
+  LayerSurface* layer = ( LayerSurface* )GetActiveLayer( "Surface" );
+  event.Enable( layer && layer->IsModified() && !IsProcessing() && !IsWritingMovieFrames() );
+}
+
+
+void MainWindow::OnFileSaveSurfaceAs( wxCommandEvent& event )
+{
+  SaveSurfaceAs();
+}
+
+void MainWindow::OnFileSaveSurfaceAsUpdateUI( wxUpdateUIEvent& event )
+{
+  LayerSurface* layer = ( LayerSurface* )GetActiveLayer( "Surface" );
+  event.Enable( layer && layer->IsEditable() && !IsProcessing() && !IsWritingMovieFrames() );
+}
+
 void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_patch )
 {
   m_strLastDir = MyUtils::GetNormalizedPath( filename );
@@ -4585,6 +4625,72 @@ void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_p
   thread->LoadSurface( layer );
 }
 
+void MainWindow::SaveSurface()
+{
+  // first check if there is any volume/MRI layer and if the current one is visible
+  LayerSurface* layer_surf = ( LayerSurface* )GetActiveLayer( "Surface" );
+  if ( !layer_surf)
+  {
+    return;
+  }
+  else if ( !layer_surf->IsVisible() )
+  {
+    wxMessageDialog dlg( this, _("Current surface layer is not visible. Please turn it on before saving."), 
+                         _("Error"), wxOK );
+    dlg.ShowModal();
+    return;
+  }
+  wxString fn = wxString::FromAscii( layer_surf->GetFileName() );
+  if ( fn.IsEmpty() )
+  {
+    wxString name = layer_surf->GetName(); 
+    name.Trim( true ).Trim( false ).Replace( _(" "), _("_") );
+    wxFileDialog dlg( this, _("Save surface file"), 
+                      AutoSelectLastDir( m_strLastDir, _("surf") ),
+                      name,
+                      _("Surface files (*.*)|*.*"),
+                      wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+    if ( dlg.ShowModal() == wxID_OK )
+    {
+      fn = dlg.GetPath();
+    }
+  }
+
+  if ( !fn.IsEmpty() )
+  {
+    layer_surf->SetFileName( fn.char_str() );
+    WorkerThread* thread = new WorkerThread( this );
+    thread->SaveSurface( layer_surf );
+  }
+}
+
+void MainWindow::SaveSurfaceAs()
+{
+  LayerSurface* layer_surf = ( LayerSurface* )GetActiveLayer( "Surface" );
+  if ( !layer_surf)
+  {
+    return;
+  }
+  else if ( !layer_surf->IsVisible() )
+  {
+    wxMessageDialog dlg( this, _( "Current surface layer is not visible. Please turn it on before saving." ), 
+                         _( "Error" ), wxOK );
+    dlg.ShowModal();
+    return;
+  }
+
+  wxFileDialog dlg( this, _("Save surface file"), 
+                    AutoSelectLastDir( m_strLastDir, _("surf") ),
+                    layer_surf->GetFileName(),
+                    _("Surface files (*.*)|*.*"),
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    layer_surf->SetFileName( dlg.GetPath().char_str() );
+    SaveSurface();
+    m_controlPanel->UpdateUI();
+  }
+}  
 
 void MainWindow::LoadSurfaceVector()
 {
@@ -5073,3 +5179,20 @@ void MainWindow::OnToolRepositionSurfaceUpdateUI( wxUpdateUIEvent& event )
   event.Enable( !m_bProcessing && GetLayerCollection( "Surface" )->GetActiveLayer() && GetLayerCollection( "MRI" )->GetActiveLayer() ); 
 }
 
+void MainWindow::OnEditRename( wxCommandEvent& event )
+{
+  LayerCollection* lc = GetCurrentLayerCollection();
+  if ( lc && lc->GetActiveLayer() )
+  {
+    Layer* layer = lc->GetActiveLayer();
+    wxString new_name = ::wxGetTextFromUser( _("Enter new layer name"), _("Rename Layer"), layer->GetName() );
+    if ( !new_name.IsEmpty() )
+      layer->SetName( new_name.c_str() );
+  }  
+}
+
+void MainWindow::OnEditRenameUpdateUI( wxUpdateUIEvent& event )
+{
+  LayerCollection* lc = GetCurrentLayerCollection();
+  event.Enable( lc && lc->GetActiveLayer() );
+}

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.73 $
+ *    $Date: 2010/06/01 17:38:08 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -105,7 +105,10 @@ public:
   void OnFileSaveMovieFrames  ( wxCommandEvent& event );
   void OnFileSaveMovieFramesUpdateUI  ( wxUpdateUIEvent& event );
   void OnFileLoadSurface      ( wxCommandEvent& event );
-
+  void OnFileSaveSurface      ( wxCommandEvent& event );
+  void OnFileSaveSurfaceUpdateUI   ( wxUpdateUIEvent& event );
+  void OnFileSaveSurfaceAs    ( wxCommandEvent& event );
+  void OnFileSaveSurfaceAsUpdateUI   ( wxUpdateUIEvent& event );
   void OnFileNewWayPoints     ( wxCommandEvent& event );
   void OnFileNewWayPointsUpdateUI ( wxUpdateUIEvent& event );
   void OnFileLoadWayPoints    ( wxCommandEvent& event );
@@ -196,6 +199,8 @@ public:
   void OnEditUndoUpdateUI           ( wxUpdateUIEvent& event );
   void OnEditRedo                   ( wxCommandEvent& event );
   void OnEditRedoUpdateUI           ( wxUpdateUIEvent& event );
+  void OnEditRename                 ( wxCommandEvent& event );
+  void OnEditRenameUpdateUI         ( wxUpdateUIEvent& event );
   void OnEditPreferences            ( wxCommandEvent& event );
 
   void OnHelpQuickReference         ( wxCommandEvent& event );
@@ -260,6 +265,8 @@ public:
   void SaveWayPointsAs();
 
   void LoadSurface();
+  void SaveSurface();
+  void SaveSurfaceAs();
   void LoadSurfaceVector();
   void LoadSurfaceCurvature();
   void LoadSurfaceOverlay();

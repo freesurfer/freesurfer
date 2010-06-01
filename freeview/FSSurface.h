@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 21:23:35 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/06/01 17:38:08 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -60,6 +60,8 @@ public:
                  const char* vector_filename = NULL,
                  const char* patch_filename = NULL );
 
+  bool MRISWrite( const char* filename, wxWindow* wnd, wxCommandEvent& event );
+  
   bool MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event );
 
   void GetBounds ( float oRASBounds[6] );

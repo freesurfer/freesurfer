@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/06/01 17:38:08 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -419,6 +419,7 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
         {
           lc_mri->SetCursorRASPosition( pos );
           MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->SetSlicePosition( pos );
+          this->SendBroadcast( "SurfaceVertexClicked", this );
         }
         else
           lc_mri->SetCurrentRASPosition( pos );

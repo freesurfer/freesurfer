@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 21:23:35 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/06/01 17:38:08 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +55,7 @@
 #include "SurfaceAnnotation.h"
 #include "SurfaceLabel.h"
 
-LayerSurface::LayerSurface( LayerMRI* ref ) : Layer(),
+LayerSurface::LayerSurface( LayerMRI* ref ) : LayerEditable(),
     m_surfaceSource( NULL ),
     m_bResampleToRAS( true ),
     m_volumeRef( ref ),
@@ -155,6 +155,30 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
   return true;
 }
 
+bool LayerSurface::SaveSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event )
+{
+  if ( !m_surfaceSource->MRISWrite( filename, wnd, event ) )
+  {
+    cerr << "MRISWrite failed." << endl;
+    return false;
+  }
+  else
+  {
+    ResetModified();
+    return true;
+  }
+}
+
+bool LayerSurface::SaveSurface( wxWindow* wnd, wxCommandEvent& event )
+{
+  if ( m_sFilename.size() == 0 )
+  {
+    cerr << "No filename provided to save surface." << endl;
+    return false;
+  }
+  
+  return SaveSurface( m_sFilename.c_str(), wnd, event );
+}
 
 bool LayerSurface::LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event )
 {
@@ -1131,17 +1155,20 @@ void LayerSurface::MapLabels( unsigned char* data, int nVertexCount )
 void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma )
 {
   m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, value, size, sigma );
+  SetModified();
   this->SendBroadcast( "LayerActorUpdated", this );
 }
   
 void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma )
 {
   m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, pos, size, sigma );
+  SetModified();
   this->SendBroadcast( "LayerActorUpdated", this );
 }
   
-void LayerSurface::UndoRepositionSurface()
+void LayerSurface::Undo()
 {
   m_surfaceSource->UndoReposition();
+  SetModified();
   this->SendBroadcast( "LayerActorUpdated", this );
 }

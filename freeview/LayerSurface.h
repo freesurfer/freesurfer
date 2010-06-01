@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 21:23:35 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/06/01 17:38:08 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,7 @@
 #ifndef LayerSurface_h
 #define LayerSurface_h
 
-#include "Layer.h"
+#include "LayerEditable.h"
 #include "vtkSmartPointer.h"
 #include <string>
 #include <vector>
@@ -53,7 +53,7 @@ class SurfaceOverlay;
 class SurfaceAnnotation;
 class SurfaceLabel;
 
-class LayerSurface : public Layer
+class LayerSurface : public LayerEditable
 {
 public:
   LayerSurface( LayerMRI* mri = NULL );
@@ -69,6 +69,9 @@ public:
   void Append2DProps( vtkRenderer* renderer, int nPlane );
   void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
   bool HasProp( vtkProp* prop );
+  
+  bool SaveSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event );
+  bool SaveSurface( wxWindow* wnd, wxCommandEvent& event );
 
   void SetSlicePositionToWorldCenter();
 
@@ -96,16 +99,6 @@ public:
   FSSurface* GetSourceSurface()
   {
     return m_surfaceSource;
-  }
-
-  const char* GetFileName()
-  {
-    return m_sFilename.c_str();
-  }
-
-  void SetFileName( const char* fn )
-  {
-    m_sFilename = fn;
   }
 
   void SetPatchFileName( const char* fn )
@@ -201,7 +194,7 @@ public:
   void RepositionSurface( LayerMRI* mri, int nVertex, double value, int size, double sigma );
   void RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma );
   
-  void UndoRepositionSurface();
+  void Undo();
 
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
@@ -232,7 +225,6 @@ protected:
   bool    m_bResampleToRAS;
   LayerMRI*   m_volumeRef;
 
-  std::string   m_sFilename;
   std::string   m_sPatchFilename;
   std::string   m_sVectorFilename;
 

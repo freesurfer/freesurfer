@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 21:23:35 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/06/01 17:38:08 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -217,6 +217,17 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 // cout << "MRISread finished" << endl;
 
   return true;
+}
+
+bool FSSurface::MRISWrite( const char* filename, wxWindow* wnd, wxCommandEvent& event )
+{
+  if ( m_MRIS == NULL )
+  {
+    cerr << "No MRIS to write." << endl;
+    return false;
+  }  
+   
+  return ( ::MRISwrite( m_MRIS, filename ) == 0 );
 }
 
 bool FSSurface::MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event )
