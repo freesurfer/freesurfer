@@ -10,7 +10,7 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- * $Id: cudadetect.cpp,v 1.6 2010/05/26 17:02:46 nicks Exp $
+ * $Id: cudadetect.cpp,v 1.7 2010/06/01 15:11:31 nicks Exp $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -41,6 +41,11 @@
 #include <cuda.h>
 #include <cuda_runtime_api.h>
 static int dump();
+// Defines for GPU Architecture types 
+// (using the SM version to determine the # of cores per SM
+static int nGpuArchCoresPerSM[] = { -1, 8, 32 };
+// end of GPU Architecture definitions
+
 #endif /* FS_CUDA */
 
 #ifdef __linux
@@ -50,11 +55,6 @@ const char* cudalibname = "libcudart.so";
 #ifdef __APPLE__
 const char* cudalibname = "libcudart.dylib";
 #endif
-
-// Defines for GPU Architecture types 
-// (using the SM version to determine the # of cores per SM
-static int nGpuArchCoresPerSM[] = { -1, 8, 32 };
-// end of GPU Architecture definitions
 
 /* we make use of dlopen and dlclose calls of Linux and MacOSX to check whether
  * the libraries exist. Then we make sure one of the basic calls in that
