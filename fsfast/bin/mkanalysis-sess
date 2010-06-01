@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/29 17:27:50 $
-#    $Revision: 1.48 $
+#    $Date: 2010/06/01 07:36:23 $
+#    $Revision: 1.49 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.48 2010/04/29 17:27:50 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.49 2010/06/01 07:36:23 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -661,33 +661,33 @@ usage_exit:
   echo "  -reg-dof DOF : use given DOF when performing registration (default is $RegDOF)"
   echo ""
   echo "Basic Design Arguments"
-  echo "  -TR   TR                : TR value in seconds"
   echo "  -event-related          : event-related or blocked design"
   echo "  -retinotopy periodSec   : retinotopy design with period (sec)"
   echo "  -abblocked  periodSec   : abblocked design with period (sec)"
-  echo "  -paradigm  ParName      : name of paradigm file (needed for ER and ret)"
   echo "  -notask : use external and/or nuisance regressors only"
+  echo "  -paradigm  ParName      : name of paradigm file (needed for ER and ret)"
+  echo "  -TR   TR                : TR value in seconds"
   echo ""
   echo "Event-Related and Blocked Design Arguments "
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"
+  echo "   -delay Delay : delay (add) Delay sec to time in each paradigm file"
   echo "        ------------- FIR - do not assume a shape ----------------"
   echo "   -fir PreStim TimeWindow : event prestimulus and total time window (sec) for FIR designs"
+  echo "   -TER TER             : temporal estimation resolution (sec)"
   echo "        ------------- Assume a shape ----------------"
-  echo "   -refeventdur Duration : duration (sec) of reference event for scaling"
   echo "   -spmhrf nderiv    : assume SPM HRF with nderiv derivatives"
   echo "   -gammafit gfDelta gfTau : assume IRF is a gamma function"
   echo "   -gammaexp gfAlpha : gamma exponent (default is 2) "
+  echo "   -refeventdur Duration : duration (sec) of reference event for scaling"
   echo "        ------------- Other Options ----------------"
-  echo "   -taskreg extreg n : external task regressor file and number of regressors to include"
-  echo "   -delay Delay : delay (add) Delay sec to time in each paradigm file"
-  echo "   -TER TER             : temporal estimation resolution (sec)"
+  echo "   -taskreg extreg N : external task regressor file and number of regressors to include"
   echo ""
   echo "Noise, drift, and temporal filtering options"
   echo "   -polyfit N          : fit trend with polynomial of order N"
   echo "   -hpf CutoffHz       : High-pass filtering with Cuttoff in Hz"
   echo "   -tpexclude filename : time-point (in seconds) exclude file name"
   echo "   -nskip  N           : skip the first N time points in each run"
-  echo "   -nuisreg extreg n : external nuissance regressor file and number of regressors to include"
+  echo "   -nuisreg extreg n : external nuisance regressor file and number of regressors to include"
   echo "   -mcextreg      : use motion parameters as external nuissance regressors (sets n=3)"
   echo "   -nowhiten      : turn off temporal whitening (same as -acfbins 0)"
   echo "   -acfbins nbins : spatially segment autocorrelation into nbins (def 10)"
@@ -727,27 +727,92 @@ the parameters apply to ALL sessions (ie, it does not need to be run
 separately for each session), and does not depend upon the data in any 
 one session. This program should be run from your FS-FAST Study 
 Directory. This program only configures the analysis; it does not 
-analyze the data (see selxavg-sess or sfa-sess). 
+analyze the data (see selxavg3-sess). 
 
  
 ARGUMENTS AND FLAGS: 
 
 -analysis analysisname (Shortcut: -a) 
 
-This is the name given to the analysis. A folder called analysisname 
-will be created in the Study Directory. Two files (analysis.info and 
-analysis.cfg) will be created in this directory. The analysis 
-parameters will be stored in these files. Contrast matrices (created 
-by mkcontrast-sess) will also be stored in this directory. When the 
-session data are analyzed with selxavg-sess or sfa-sess data, a folder 
-called analysisname will be created in the functional subdirectory 
-(FSD), and the results of the analysis will be placed there.  
+This is the name given to the analysis. A folder called analysisname
+will be created in the Study Directory. A file called analysis.info
+will be created in this directory. The analysis parameters will be
+stored in this file. Contrast matrices (created by mkcontrast-sess)
+will also be stored in this directory. When the session data are
+analyzed with selxavg3-sess, a folder called analysisname will be
+created in the functional subdirectory (FSD), and the results of the
+analysis will be placed there.
 
--TR TR 
- 
-This is the TR in seconds. It will be checked against the TR in each 
-session when selxavg-sess is run. See also -TER. 
- 
+PREPROCESSING PARAMETERS
+
+Note: by default, motion correction is assumed to be on. In this
+section, you will set the space in which the analysis will be
+performed, slice timing correction (if desired), and spatial smoothing
+if desired. 
+
+The space can be either surface, mni305, or native.
+
+-surface subject hemi
+
+When performing surface-based analyses, this will cause the raw 4D
+data to be resampled onto the surface of the given subject. Usually
+this is the surface-based atlas defined by fsaverage. You can also
+specify 'self' to map to each individuals surface. Any smoothing will
+be performed on the surface after resampling.
+
+-mni305 resolutionMM
+
+When performing volume-based analysis, this will cause the raw 4D data
+to be resampled onto the MNI305 space with the given resolution. You
+can only choose 1 (1mm) or 2 (2mm). WARNING: if you choose 1mm, it
+will take a very long time and use lots of disk space. Any smoothing will
+be performed in the volume after resampling.
+
+-native
+
+Perform analysis in the native functional space. This also means that
+motion correction and registration will use the first time point
+of the first run as the target. Any smoothing will be performed 
+in this space.
+
+-fwhm FWHMmm
+
+Smooth in the target space by the given full-width/half-max (FWHM). 
+If you do not want smoothing, you must still specify 0.
+
+-stc SliceOrder
+
+Perform slice-timing correction using FSLs slicetimer. Options for 
+Slice Order are siemens, up, down, odd, even. By default, no
+slice timing correction is done.
+
+BASIC DESIGN ARGUMENTS
+
+There are four types of design supported: event-related/blocked, 
+retinotopy, abblocked, and notask. 
+
+-event-related
+
+Design is event-related or blocked. You will be required to specify
+a paradigm file.
+
+-retinotopy PeriodSec
+
+Design is retinotopy. Specify the period  of stimuluation in seconds 
+(NOTE: in previous versions you had to specify the number of
+cycles). You will be required to specify a paradigm file.
+
+-abblocked PeriodSec
+
+Design is AB-Blocked (ie, periodic, two condition). Specify the period
+of stimuluation in seconds (NOTE: in previous versions you had to
+specify the number of cycles). No paradigm file is required.
+
+-notask
+
+Uses only external regressors (either nuisance or task). This can also 
+be used to perform seed-based functional connectivity.
+
 -paradigm ParName (Shortcut: -p) 
  
 This is the name of the paradigm file as found in each functional run 
@@ -761,17 +826,128 @@ new paradigm file (with a different name) should be created followed
 by creating a new analysis. For event and blocked designs, time=0 
 is relative to the time of acquisition of the first stored image. 
  
--designtype type (Shortcut: -dt) 
+-TR TR 
  
-This specifies the type of design for which the analysis is being 
-created. Legal values are event-related, blocked, abblocked, and 
-retinotopy. Event-related and blocked must be analyzed with 
-selxavg-sess. abblocked and retinotopy must be analyzed with 
-sfa-sess. abblocked is a block design in which only two conditions (or 
-one condition and one null condition) are presented in a periodic 
-fashion. Ie, each condition is presented for for the same duration in 
-an alternating fashion. 
+This is the TR in seconds. It will be checked against the TR in each 
+session when selxavg3-sess is run. 
+
+Event-related and Blocked Design Options
+
+-nconditions Nc (Shortcut: -nc) 
  
+(For blocked and event-related designs). This is the number of 
+conditions as found in the paradigm files. When selxavg-sess runs, it 
+checks the number of conditions found the paradigm files against Nc 
+and returns an error if they differ. 
+ 
+-delay DelaySec
+
+Value to add to stimulus onset times in the paradigm file. 
+
+-fir PreStim TimeWindow 
+
+Use a Finit Impulse Response (FIR) model to model the hemodynamic
+response. PreStim is the amount of time (sec) prior to stimulus
+onset to start estimation (eg, 4 for 4 sec prior). TimeWindow is
+the total time window including any PreStim.
+
+-TER TER
+
+Set the Temporal Estimation Resolution (TER, sec). For FIR, this is
+the TR by default. For non-FIR, this is approximately 50ms. It is 
+best to know what you are doing if you are going to change this.
+
+-spmhrf nderiv
+
+Assume that the hemodynamic response takes the shape of a the SPM HRF
+function (see www.fil.ion.ucl.ac.uk/spm). This is a difference of two
+gamma functions which includes an post-stimulus undershoot.
+
+-gammafit gfDelta gfTau 
+
+(For blocked and event-related designs). Assume that the hemodynamic 
+response takes the shape of a gamma function. gfDelta is the hemodynamic 
+delay (ie, the time until the onset of the response), and gfTau is the 
+dispersion, which controls the rise and fall times. Both are specified 
+in seconds. gfAlpha is the exponent for the gamma function (see
+-gammaexp); for BOLD, alpha=2. The gamma function takes the form:  
+
+         f(t) = ((t-delta)/tau)^alpha * exp(-(t-delta)/tau) 
+
+-gammaexp gfAlpha
+
+Exponent for the gamma function. Default is 2, which tends to fit the 
+BOLD hemodynamic response better.
+
+-refeventdur RefEvDuration
+
+Duration of the "reference event" in sec. This is used only for
+scaling of the hemodynamic response output. The scale is defined as
+the amplitude that results when the assumed shape is convolved with a
+boxcar of the duration of the reference event. If you have events of
+fixed duration, you should set this to the duration of your event.
+
+-taskreg extregname N
+
+Load N "external regressors" from a file by the name of
+extregname. This should be a text file with a row for each time point
+and at least N columns.  Use N = -1 to load all. All external task
+regressors will be concatenated across run in the design matrix and
+will be tested using a t or an F, which ever is appopriate. The
+contrast will be named extregname.
+
+NOISE MODELING OPTIONS
+
+-polyfit PolyOrder
+
+Add a set of polynomial regressors upto the given order (default is 2).
+
+-hpf CutoffHz
+
+Use high-pass filtering with the given cutoff in Hz. Implemented as 
+a discrete cosine transform.
+
+-tpexclude tpxfilename 
+
+This is the name of a time point exclude file (TPEF) used for removing
+outliers in the time series. The TPEF stores a list of times (in
+seconds) of time points to exclude from the analysis. The TPEF must be
+found in the run directory with the functional data to which it
+applies. Like paradigm files, the TPEFs must have the same name across
+subjects and runs though their contents can differ.  Unlike paradigm
+files, it is not necessary to have a TPEF in each run; if no TPEF is
+found, no time points are excluded.
+
+-nskip N 
+
+Skip the first N time points in each functional run. It may be
+necessary to eliminate the first 4 or 5 time points in a functional
+run because the sample has not reached magnetic equilibrium. This is
+usually not necessary if the sample was scanned with discarded
+acquisitions (DISTACQS or DDAs). Note: the nskip does not affect the
+definition of time=0 in the paradigm file (see -paradigm). This
+functionality can also be implemented using a time-point exclude file.
+
+-nuisreg extregname N
+
+Load N external nuisance regressors from a file by the name of
+extregname. This should be a text file with a row for each time point
+and at least N columns.  Use N = -1 to load all. All external nuisance
+regressors will have separate elements across run and are not tesed.
+
+-mcextreg 
+
+Use motion correction parameters of nuisance regressors. Same as
+-nuisreg mcextreg 3. Note that 3 is used because they are
+orthogonalized when created.
+
+-nowhiten 
+
+Turn off temporal whitening.
+
+OTHER OPTIONS
+
+
 -fsd FSD 
  
 Functional subdirectory (FSD). This is the folder under the sessions 
@@ -792,111 +968,6 @@ processed in that session. The name must be the same across sessions
 but the contents of each file can vary. If an RLF is not specified, 
 all runs found in the FSD will be processed. 
  
--no-inorm 
-
-Do not perform intensity normalization default is to
-apply it. Intensity normalization will force the grand within-tissue
-mean of the functional data to be 100 for each run (note that
-prior to version 5 the rescale factor was 1000). This uses the
-global.meanval.dat produced by mkbrainmask-sess
-
--nskip N 
- 
-Skip the first N time points in each functional run. It may be 
-necessary to eliminate the first 4 or 5 time points in a functional 
-run because the sample has not reached magnetic equilibrium. This is 
-usually not necessary if the sample was scanned with discarded 
-acquisitions (DISTACQS or DDAs). Note: the nskip does not affect the 
-definition of time=0 in the paradigm file (see -paradigm). This  
-functionality can also be implemented using a time-point exclude file  
-(see -tpef). 
- 
--tpef filename 
- 
-This is the name of a time point exclude file (TPEF). The TPEF stores 
-a list of times (in seconds) of time points to exclude from the 
-analysis. The TPEF must be found in the run directory with the functional 
-data to which it applies. Like paradigm files, the TPEFs must have the  
-same name across subjects and runs though their contents can differ.  
-Unlike paradigm files, it is not necessary to have a TPEF in each run; 
-if no TPEF is found, no time points are excluded. 
- 
--polyfit N
-
-Drift removal. Fit and remove polynomial of order N. Default is 1
-(ie, 0=mean, 1=linear, and 2=quadradic). 
-
--nconditions Nc (Shortcut: -nc) 
- 
-(For blocked and event-related designs). This is the number of 
-conditions as found in the paradigm files. When selxavg-sess runs, it 
-checks the number of conditions found the paradigm files against Nc 
-and returns an error if they differ. 
- 
--timewindow TimeWindow (Shortcut: -tw) 
-
-(For blocked and event-related designs). If no shape to the
-hemodynamic response is to be assumed (ie, -gammafit and -spmhrf are
-not used), then this is the amount of time needed to capture the
-entire event and response, including a prestimulus window. Here, for
-blocked designs, the event refers to the entire block. If a shape to
-the hemodynamic response will be assumed (ie, -gammafit is used), then
-the time window should be long enough to capture the gamma
-function. In this case, there is no penalty for a long time window. If
-no time window is selected with -gammafit or -spmhrf, 40 sec is used.
-
--extreg extreg nextreg
-
-Use external regressors when doing estimation. The external regressors
-can be stored as a simple text file with a row for each time point
-in the functional. There can be any number of columns. "nextreg" 
-indicates how many columns to use. To use all the columns, set 
-nextreg to -1. Multiple external regressor files can be specified.
-
--mcextreg
-
-Use motion parameters as external regressors. This is the same as
-setting "-extreg mcextreg 3". mcextreg is created when
-running mc-sess by orthognalizing the motion parameters. Only the top
-three components are used.
-
--prestim PreStimTimeWindow (Shortcut: -ps) 
-
-(For blocked and event-related designs). Start averaging
-PreStimTimeWindow seconds before the onset of the stimulus. This only
-applies to analyses in which the no shape to the hemodynamic response
-is to be assumed (ie, -gammafit and -spmhrf are not used).
-
--gammafit gfDelta gfTau 
-
-(For blocked and event-related designs). Assume that the hemodynamic 
-response takes the shape of a gamma function. gfDelta is the hemodynamic 
-delay (ie, the time until the onset of the response), and gfTau is the 
-dispersion, which controls the rise and fall times. Both are specified 
-in seconds. gfAlpha is the exponent for the gamma function (see
--gammaexp); for BOLD, alpha=2. The gamma function takes the form:  
-
-         f(t) = ((t-delta)/tau)^alpha * exp(-(t-delta)/tau) 
-
--gammaexp gfAlpha
-
-Exponent for the gamma function. Default is 2, which tends to fit the 
-BOLD hemodynamic response better.
-
--spmhrf nderiv
-
-Assume that the hemodynamic response takes the shape of a the SPM HRF
-function (see www.fil.ion.ucl.ac.uk/spm). This is a difference of two
-gamma functions which includes an post-stimulus undershoot. For
-blocked and event-related designs.
-
--taumax TauMax 
- 
-(For blocked and event-related designs). This instructs selxavg-sess  
-to estimate and correct for global autocorrelation in the noise. It 
-will assume that the autocorrelation function is zero beyond a delay 
-of TauMax seconds. 
-
 -acfbins nbins 
 
 Spatially segment the brain into nbins within the mask for the
@@ -908,44 +979,3 @@ turn off whitening (or use -no-whiten).
 
 Do not correct the autocorrelation function because of the estimation 
 from residuals.
-
--mask maskid
-
-This only applies when using -taumax. This is a mask (as found in
-bold/masks) that is used to limit the voxels used in the computation
-of the whitening fillter. Usually, one would run  mkbrainmask-sess
-to create masks/brain, and then specify brain as maskid.
- 
--TER TemporalEstimationResolution 
-
-(For event-related designs). The TER is the Temporal Estimation
-Resolution. This is the resolution to which the hemodynamic response
-will be estimated (in seconds) for FIR analyses. It must be an integer
-divisor of the TR. If TER < TR, then stimulus schedule (ie, paradigm
-file) must have been created with with the given TER in mind. If 
--spmhrf or -gammafit are used, then it is automatically set to TR/20.
-
--refeventdur Duration
-
-For assumed shapes to the HRF (ie, non-FIR designs), this is the
-Duration (sec) of your events. This is strictly used for scaling of
-the signal change values so that the percent change reported will be
-similar to the signal change you would see if you looked at the raw
-data. It will have NO effect on significance values. If you have a
-design with multiple durations, you should pick one as the reference.
-Note that this does not effect comparisons between long and short
-duration stimuli because it does not affect the p-value.
-
--timeoffset toffset 
- 
-(For blocked and event-related designs). The time to add to the times 
-listed in each paradigm file. This is only useful if, for some 
-reason, each paradigm file if off by the same amount. This may happen 
-if there was a systematic delay between the beginning of the stimulus 
-stream and the beginning of scanning. 
- 
--ncycles N 
- 
-(For retinotopy and AB blocked designs). For designs in which the 
-stimuli are presented periodically, this is the number of cycles 
-of stimulation presented in each run. 
