@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 17:38:08 $
- *    $Revision: 1.44 $
+ *    $Date: 2010/06/01 18:51:13 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,8 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : LayerEditable(),
     m_volumeRef( ref ),
     m_nActiveOverlay( -1 ),
     m_nActiveAnnotation( -1 ),
-    m_nActiveLabel( -1 )
+    m_nActiveLabel( -1 ),
+    m_bUndoable( false )
 {
   m_strTypeNames.push_back( "Surface" );
 
@@ -157,14 +158,20 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
 
 bool LayerSurface::SaveSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event )
 {
+  event.SetInt( 50 );
+  wxPostEvent( wnd, event );
   if ( !m_surfaceSource->MRISWrite( filename, wnd, event ) )
   {
     cerr << "MRISWrite failed." << endl;
+    event.SetInt( 100 );
+    wxPostEvent( wnd, event );
     return false;
   }
   else
-  {
+  { 
     ResetModified();
+    event.SetInt( 100 );
+    wxPostEvent( wnd, event );
     return true;
   }
 }
@@ -1156,6 +1163,7 @@ void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double value, 
 {
   m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, value, size, sigma );
   SetModified();
+  m_bUndoable = true;
   this->SendBroadcast( "LayerActorUpdated", this );
 }
   
@@ -1163,6 +1171,7 @@ void LayerSurface::RepositionSurface( LayerMRI* mri, int nVertex, double* pos, i
 {
   m_surfaceSource->Reposition( mri->GetSourceVolume(), nVertex, pos, size, sigma );
   SetModified();
+  m_bUndoable = true;
   this->SendBroadcast( "LayerActorUpdated", this );
 }
   
@@ -1170,5 +1179,11 @@ void LayerSurface::Undo()
 {
   m_surfaceSource->UndoReposition();
   SetModified();
+  m_bUndoable = false;
   this->SendBroadcast( "LayerActorUpdated", this );
+}
+
+bool LayerSurface::HasUndo()
+{
+  return m_bUndoable;
 }

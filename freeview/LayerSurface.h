@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 17:38:08 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/06/01 18:51:13 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -195,6 +195,7 @@ public:
   void RepositionSurface( LayerMRI* mri, int nVertex, double* pos, int size, double sigma );
   
   void Undo();
+  bool HasUndo();
 
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
@@ -246,6 +247,8 @@ protected:
   
   std::vector<SurfaceLabel*>      m_labels;
   int         m_nActiveLabel;
+  
+  bool        m_bUndoable;
 };
 
 #endif

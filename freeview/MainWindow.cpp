@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 17:38:08 $
- *    $Revision: 1.117 $
+ *    $Date: 2010/06/01 18:51:13 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -369,9 +369,9 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_layerCollectionManager->AddListener( m_viewSagittal );
   m_layerCollectionManager->AddListener( m_viewCoronal );
   m_layerCollectionManager->AddListener( m_view3D );
-  m_layerCollectionManager->GetLayerCollection( "MRI" )->AddListener( m_pixelInfoPanel );
-  m_layerCollectionManager->GetLayerCollection( "Surface" )->AddListener( m_pixelInfoPanel );
   m_layerCollectionManager->AddListener( this );
+  GetLayerCollection( "MRI" )->AddListener( m_pixelInfoPanel );
+  GetLayerCollection( "Surface" )->AddListener( m_pixelInfoPanel );
 
   m_connectivity->AddListener( m_view3D );
   
@@ -408,6 +408,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_dlgRepositionSurface = new DialogRepositionSurface( this );
   m_dlgRepositionSurface->Hide();  
   m_view3D->AddListener( m_dlgRepositionSurface );
+  GetLayerCollection( "Surface" )->AddListener( m_dlgRepositionSurface );
   
   UpdateToolbars();
   
@@ -2418,6 +2419,8 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
     else if ( strg == _("Save") )
     {
       cout << ( (LayerEditable*)layer )->GetFileName() << " saved successfully." << endl;
+      if ( layer->IsTypeOf( "Surface" ) )
+          m_dlgRepositionSurface->UpdateUI();
     }
 
     else if ( strg == _("Rotate") )

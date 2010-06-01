@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 17:38:08 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/06/01 18:51:13 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -237,7 +237,6 @@ bool FSSurface::MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandE
 
   return LoadVectors( filename );
 }
-
 
 bool FSSurface::LoadSurface( const char* filename, int nSet )
 {
