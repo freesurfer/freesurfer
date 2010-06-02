@@ -135,4 +135,8 @@ int main( int argc, char *argv[] ) {
   // Release
   GCAMfree( &gcam );
   MRIfree( &mri );
+
+#ifdef FS_CUDA
+  PrintGPUtimers();
+#endif
 }
