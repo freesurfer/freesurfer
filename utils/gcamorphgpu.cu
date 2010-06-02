@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/05/17 13:50:13 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/06/02 16:30:29 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -241,39 +241,8 @@ namespace GPU {
       // Allocate device memory
       this->AllocateAll( dims );
 
-      GCAmorphGPU::tSendMem.Start();
       // Allocate some page-locked host buffers
-      float* h_rx = this->d_rx.AllocateHostBuffer();
-      float* h_ry = this->d_ry.AllocateHostBuffer();
-      float* h_rz = this->d_rz.AllocateHostBuffer();
-      
-      float* h_origx = this->d_origx.AllocateHostBuffer();
-      float* h_origy = this->d_origy.AllocateHostBuffer();
-      float* h_origz = this->d_origz.AllocateHostBuffer();
-
-      float* h_dx = this->d_dx.AllocateHostBuffer();
-      float* h_dy = this->d_dy.AllocateHostBuffer();
-      float* h_dz = this->d_dz.AllocateHostBuffer();
-
-      float* h_odx = this->d_odx.AllocateHostBuffer();
-      float* h_ody = this->d_ody.AllocateHostBuffer();
-      float* h_odz = this->d_odz.AllocateHostBuffer();
-
-      float* h_area = this->d_area.AllocateHostBuffer();
-      float* h_origArea = this->d_origArea.AllocateHostBuffer();
-      float* h_origArea1 = this->d_origArea1.AllocateHostBuffer();
-      float* h_origArea2 = this->d_origArea2.AllocateHostBuffer();
-      float* h_area1 = this->d_area1.AllocateHostBuffer();
-      float* h_area2 = this->d_area2.AllocateHostBuffer();
-
-      char* h_invalid = this->d_invalid.AllocateHostBuffer();
-      int* h_status = this->d_status.AllocateHostBuffer();
-      int* h_label = this->d_label.AllocateHostBuffer();
-      float* h_labelDist = this->d_labelDist.AllocateHostBuffer();
-
-      float* h_mean = this->d_mean.AllocateHostBuffer();
-      float* h_variance = this->d_variance.AllocateHostBuffer();
-      GCAmorphGPU::tSendMem.Stop();
+      GCAmorphGPU::AllocateHost( *this );
 
 
       GCAmorphGPU::tSendPack.Start();
@@ -287,34 +256,34 @@ namespace GPU {
 	    const GCA_MORPH_NODE& gcamn = src->nodes[i][j][k];
 	    
 	    // Pack the data
-	    h_rx[i1d] = gcamn.x;
-	    h_ry[i1d] = gcamn.y;
-	    h_rz[i1d] = gcamn.z;
+	    GCAmorphGPU::h_rx[i1d] = gcamn.x;
+	    GCAmorphGPU::h_ry[i1d] = gcamn.y;
+	    GCAmorphGPU::h_rz[i1d] = gcamn.z;
 
-	    h_origx[i1d] = gcamn.origx;
-	    h_origy[i1d] = gcamn.origy;
-	    h_origz[i1d] = gcamn.origz;
+	    GCAmorphGPU::h_origx[i1d] = gcamn.origx;
+	    GCAmorphGPU::h_origy[i1d] = gcamn.origy;
+	    GCAmorphGPU::h_origz[i1d] = gcamn.origz;
 
-	    h_dx[i1d] = gcamn.dx;
-	    h_dy[i1d] = gcamn.dy;
-	    h_dz[i1d] = gcamn.dz;
+	    GCAmorphGPU::h_dx[i1d] = gcamn.dx;
+	    GCAmorphGPU::h_dy[i1d] = gcamn.dy;
+	    GCAmorphGPU::h_dz[i1d] = gcamn.dz;
 
-	    h_odx[i1d] = gcamn.odx;
-	    h_ody[i1d] = gcamn.ody;
-	    h_odz[i1d] = gcamn.odz;
+	    GCAmorphGPU::h_odx[i1d] = gcamn.odx;
+	    GCAmorphGPU::h_ody[i1d] = gcamn.ody;
+	    GCAmorphGPU::h_odz[i1d] = gcamn.odz;
 
-	    h_origArea[i1d] = gcamn.orig_area;
-	    h_origArea1[i1d] = gcamn.orig_area1;
-	    h_origArea2[i1d] = gcamn.orig_area2;
+	    GCAmorphGPU::h_origArea[i1d] = gcamn.orig_area;
+	    GCAmorphGPU::h_origArea1[i1d] = gcamn.orig_area1;
+	    GCAmorphGPU::h_origArea2[i1d] = gcamn.orig_area2;
 
-	    h_area[i1d] = gcamn.area;
-	    h_area1[i1d] = gcamn.area1;
-	    h_area2[i1d] = gcamn.area2;
+	    GCAmorphGPU::h_area[i1d] = gcamn.area;
+	    GCAmorphGPU::h_area1[i1d] = gcamn.area1;
+	    GCAmorphGPU::h_area2[i1d] = gcamn.area2;
 
-	    h_invalid[i1d] = gcamn.invalid;
-	    h_status[i1d] = gcamn.status;
-	    h_label[i1d] = gcamn.label;
-	    h_labelDist[i1d] = gcamn.label_dist;
+	    GCAmorphGPU::h_invalid[i1d] = gcamn.invalid;
+	    GCAmorphGPU::h_status[i1d] = gcamn.status;
+	    GCAmorphGPU::h_label[i1d] = gcamn.label;
+	    GCAmorphGPU::h_labelDist[i1d] = gcamn.label_dist;
 
 	    // Deal with the GC1D
 	    if( gcamn.gc != NULL ) {
@@ -325,8 +294,8 @@ namespace GPU {
 		This means that the covariance is really
 		a variance
 	      */
-	      h_mean[i1d] = gcamn.gc->means[0];
-	      h_variance[i1d] = gcamn.gc->covars[0];
+	      GCAmorphGPU::h_mean[i1d] = gcamn.gc->means[0];
+	      GCAmorphGPU::h_variance[i1d] = gcamn.gc->covars[0];
 	    } else {
 	      /*
 		Store negative numbers to indicate that
@@ -334,8 +303,8 @@ namespace GPU {
 		Since a variance must be >=0, this is
 		a reliable test
 	      */
-	      h_mean[i1d] = -1;
-	      h_variance[i1d] = -1;
+	      GCAmorphGPU::h_mean[i1d] = -1;
+	      GCAmorphGPU::h_variance[i1d] = -1;
 	    }
 
 
@@ -347,76 +316,42 @@ namespace GPU {
 
       GCAmorphGPU::tSendTransfer.Start();
       // Send the data
-      this->d_rx.SendBuffer( h_rx );
-      this->d_ry.SendBuffer( h_ry );
-      this->d_rz.SendBuffer( h_rz );
+      this->d_rx.SendBuffer( GCAmorphGPU::h_rx );
+      this->d_ry.SendBuffer( GCAmorphGPU::h_ry );
+      this->d_rz.SendBuffer( GCAmorphGPU::h_rz );
 
-      this->d_origx.SendBuffer( h_origx );
-      this->d_origy.SendBuffer( h_origy );
-      this->d_origz.SendBuffer( h_origz );
+      this->d_origx.SendBuffer( GCAmorphGPU::h_origx );
+      this->d_origy.SendBuffer( GCAmorphGPU::h_origy );
+      this->d_origz.SendBuffer( GCAmorphGPU::h_origz );
 
-      this->d_dx.SendBuffer( h_dx );
-      this->d_dy.SendBuffer( h_dy );
-      this->d_dz.SendBuffer( h_dz );
+      this->d_dx.SendBuffer( GCAmorphGPU::h_dx );
+      this->d_dy.SendBuffer( GCAmorphGPU::h_dy );
+      this->d_dz.SendBuffer( GCAmorphGPU::h_dz );
 
-      this->d_odx.SendBuffer( h_odx );
-      this->d_ody.SendBuffer( h_ody );
-      this->d_odz.SendBuffer( h_odz );
+      this->d_odx.SendBuffer( GCAmorphGPU::h_odx );
+      this->d_ody.SendBuffer( GCAmorphGPU::h_ody );
+      this->d_odz.SendBuffer( GCAmorphGPU::h_odz );
       
-      this->d_origArea.SendBuffer( h_origArea );
-      this->d_origArea1.SendBuffer( h_origArea1 );
-      this->d_origArea2.SendBuffer( h_origArea2 );
+      this->d_origArea.SendBuffer( GCAmorphGPU::h_origArea );
+      this->d_origArea1.SendBuffer( GCAmorphGPU::h_origArea1 );
+      this->d_origArea2.SendBuffer( GCAmorphGPU::h_origArea2 );
 
-      this->d_area.SendBuffer( h_area );
-      this->d_area1.SendBuffer( h_area1 );
-      this->d_area2.SendBuffer( h_area2 );
+      this->d_area.SendBuffer( GCAmorphGPU::h_area );
+      this->d_area1.SendBuffer( GCAmorphGPU::h_area1 );
+      this->d_area2.SendBuffer( GCAmorphGPU::h_area2 );
 
-      this->d_invalid.SendBuffer( h_invalid );
-      this->d_status.SendBuffer( h_status );
-      this->d_label.SendBuffer( h_label );
-      this->d_labelDist.SendBuffer( h_labelDist );
+      this->d_invalid.SendBuffer( GCAmorphGPU::h_invalid );
+      this->d_status.SendBuffer( GCAmorphGPU::h_status );
+      this->d_label.SendBuffer( GCAmorphGPU::h_label );
+      this->d_labelDist.SendBuffer( GCAmorphGPU::h_labelDist );
 
-      this->d_mean.SendBuffer( h_mean );
-      this->d_variance.SendBuffer( h_variance );
+      this->d_mean.SendBuffer( GCAmorphGPU::h_mean );
+      this->d_variance.SendBuffer( GCAmorphGPU::h_variance );
 
       // Wait for the copies to complete
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
       GCAmorphGPU::tSendTransfer.Stop();
 
-
-      GCAmorphGPU::tSendMem.Start();
-      // Release page-locked host memory
-      CUDA_SAFE_CALL( cudaFreeHost( h_rx ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_ry ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_rz ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_origx ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_origy ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_origz ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_dx ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_dy ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_dz ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_odx ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_ody ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_odz ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_origArea1 ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_origArea2 ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_label ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_labelDist ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_mean ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_variance ) );
-      GCAmorphGPU::tSendMem.Stop();
 
       GCAmorphGPU::tSendTot.Stop();
 
@@ -450,75 +385,42 @@ namespace GPU {
       // Extract the dimensions
       const dim3 dims = this->d_rx.GetDims();
 
-      GCAmorphGPU::tRecvMem.Start();
-      // Allocate some page-locked host buffers
-      float* h_rx = this->d_rx.AllocateHostBuffer();
-      float* h_ry = this->d_ry.AllocateHostBuffer();
-      float* h_rz = this->d_rz.AllocateHostBuffer();
-     
-      float* h_origx = this->d_origx.AllocateHostBuffer();
-      float* h_origy = this->d_origy.AllocateHostBuffer();
-      float* h_origz = this->d_origz.AllocateHostBuffer();
-
-      float* h_dx = this->d_dx.AllocateHostBuffer();
-      float* h_dy = this->d_dy.AllocateHostBuffer();
-      float* h_dz = this->d_dz.AllocateHostBuffer();
-
-      float* h_odx = this->d_odx.AllocateHostBuffer();
-      float* h_ody = this->d_ody.AllocateHostBuffer();
-      float* h_odz = this->d_odz.AllocateHostBuffer();
-
-      float* h_origArea = this->d_origArea.AllocateHostBuffer();
-      float* h_origArea1 = this->d_origArea1.AllocateHostBuffer();
-      float* h_origArea2 = this->d_origArea2.AllocateHostBuffer();
-
-      float* h_area = this->d_area.AllocateHostBuffer();
-      float* h_area1 = this->d_area1.AllocateHostBuffer();
-      float* h_area2 = this->d_area2.AllocateHostBuffer();
-
-      char* h_invalid = this->d_invalid.AllocateHostBuffer();
-      int* h_status = this->d_status.AllocateHostBuffer();
-      int* h_label = this->d_label.AllocateHostBuffer();
-      float* h_labelDist = this->d_labelDist.AllocateHostBuffer();
-
-      float* h_mean = this->d_mean.AllocateHostBuffer();
-      float* h_variance = this->d_variance.AllocateHostBuffer();
-      GCAmorphGPU::tRecvMem.Stop();
-
+      // Allocate page-locked host memory
+      GCAmorphGPU::AllocateHost( *this );
 
       GCAmorphGPU::tRecvTransfer.Start();
       // Fetch the data
-      this->d_rx.RecvBuffer( h_rx );
-      this->d_ry.RecvBuffer( h_ry );
-      this->d_rz.RecvBuffer( h_rz );
+      this->d_rx.RecvBuffer( GCAmorphGPU::h_rx );
+      this->d_ry.RecvBuffer( GCAmorphGPU::h_ry );
+      this->d_rz.RecvBuffer( GCAmorphGPU::h_rz );
 
-      this->d_origx.RecvBuffer( h_origx );
-      this->d_origy.RecvBuffer( h_origy );
-      this->d_origz.RecvBuffer( h_origz );
+      this->d_origx.RecvBuffer( GCAmorphGPU::h_origx );
+      this->d_origy.RecvBuffer( GCAmorphGPU::h_origy );
+      this->d_origz.RecvBuffer( GCAmorphGPU::h_origz );
 
-      this->d_dx.RecvBuffer( h_dx );
-      this->d_dy.RecvBuffer( h_dy );
-      this->d_dz.RecvBuffer( h_dz );
+      this->d_dx.RecvBuffer( GCAmorphGPU::h_dx );
+      this->d_dy.RecvBuffer( GCAmorphGPU::h_dy );
+      this->d_dz.RecvBuffer( GCAmorphGPU::h_dz );
 
-      this->d_odx.RecvBuffer( h_odx );
-      this->d_ody.RecvBuffer( h_ody );
-      this->d_odz.RecvBuffer( h_odz );
+      this->d_odx.RecvBuffer( GCAmorphGPU::h_odx );
+      this->d_ody.RecvBuffer( GCAmorphGPU::h_ody );
+      this->d_odz.RecvBuffer( GCAmorphGPU::h_odz );
 
-      this->d_origArea.RecvBuffer( h_origArea );
-      this->d_origArea1.RecvBuffer( h_origArea1 );
-      this->d_origArea2.RecvBuffer( h_origArea2 );
+      this->d_origArea.RecvBuffer( GCAmorphGPU::h_origArea );
+      this->d_origArea1.RecvBuffer( GCAmorphGPU::h_origArea1 );
+      this->d_origArea2.RecvBuffer( GCAmorphGPU::h_origArea2 );
 
-      this->d_area.RecvBuffer( h_area );
-      this->d_area1.RecvBuffer( h_area1 );
-      this->d_area2.RecvBuffer( h_area2 );
+      this->d_area.RecvBuffer( GCAmorphGPU::h_area );
+      this->d_area1.RecvBuffer( GCAmorphGPU::h_area1 );
+      this->d_area2.RecvBuffer( GCAmorphGPU::h_area2 );
 
-      this->d_invalid.RecvBuffer( h_invalid );
-      this->d_status.RecvBuffer( h_status );
-      this->d_label.RecvBuffer( h_label );
-      this->d_labelDist.RecvBuffer( h_labelDist );
+      this->d_invalid.RecvBuffer( GCAmorphGPU::h_invalid );
+      this->d_status.RecvBuffer( GCAmorphGPU::h_status );
+      this->d_label.RecvBuffer( GCAmorphGPU::h_label );
+      this->d_labelDist.RecvBuffer( GCAmorphGPU::h_labelDist );
 
-      this->d_mean.RecvBuffer( h_mean );
-      this->d_variance.RecvBuffer( h_variance );
+      this->d_mean.RecvBuffer( GCAmorphGPU::h_mean );
+      this->d_variance.RecvBuffer(GCAmorphGPU:: h_variance );
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
       GCAmorphGPU::tRecvTransfer.Stop();
 
@@ -532,42 +434,42 @@ namespace GPU {
 	    // Get the current node
 	    GCA_MORPH_NODE* gcamn = &(dst->nodes[i][j][k]);
 
-	    gcamn->x = h_rx[i1d];
-	    gcamn->y = h_ry[i1d];
-	    gcamn->z = h_rz[i1d];
+	    gcamn->x = GCAmorphGPU::h_rx[i1d];
+	    gcamn->y = GCAmorphGPU::h_ry[i1d];
+	    gcamn->z = GCAmorphGPU::h_rz[i1d];
 
-	    gcamn->origx = h_origx[i1d];
-	    gcamn->origy = h_origy[i1d];
-	    gcamn->origz = h_origz[i1d];
+	    gcamn->origx = GCAmorphGPU::h_origx[i1d];
+	    gcamn->origy = GCAmorphGPU::h_origy[i1d];
+	    gcamn->origz = GCAmorphGPU::h_origz[i1d];
 	    
-	    gcamn->dx = h_dx[i1d];
-	    gcamn->dy = h_dy[i1d];
-	    gcamn->dz = h_dz[i1d];
+	    gcamn->dx = GCAmorphGPU::h_dx[i1d];
+	    gcamn->dy = GCAmorphGPU::h_dy[i1d];
+	    gcamn->dz = GCAmorphGPU::h_dz[i1d];
 	    
-	    gcamn->odx = h_odx[i1d];
-	    gcamn->ody = h_ody[i1d];
-	    gcamn->odz = h_odz[i1d];
+	    gcamn->odx = GCAmorphGPU::h_odx[i1d];
+	    gcamn->ody = GCAmorphGPU::h_ody[i1d];
+	    gcamn->odz = GCAmorphGPU::h_odz[i1d];
 
-	    gcamn->orig_area = h_origArea[i1d];
-	    gcamn->orig_area1 = h_origArea1[i1d];
-	    gcamn->orig_area2 = h_origArea2[i1d];
+	    gcamn->orig_area = GCAmorphGPU::h_origArea[i1d];
+	    gcamn->orig_area1 = GCAmorphGPU::h_origArea1[i1d];
+	    gcamn->orig_area2 = GCAmorphGPU::h_origArea2[i1d];
 
-	    gcamn->area = h_area[i1d];
-	    gcamn->area1 = h_area1[i1d];
-	    gcamn->area2 = h_area2[i1d];
+	    gcamn->area = GCAmorphGPU::h_area[i1d];
+	    gcamn->area1 = GCAmorphGPU::h_area1[i1d];
+	    gcamn->area2 = GCAmorphGPU::h_area2[i1d];
 
-	    gcamn->invalid = h_invalid[i1d];
-	    gcamn->label = h_label[i1d];
-	    gcamn->label_dist = h_labelDist[i1d];
-	    gcamn->status = h_status[i1d];
+	    gcamn->invalid = GCAmorphGPU::h_invalid[i1d];
+	    gcamn->label = GCAmorphGPU::h_label[i1d];
+	    gcamn->label_dist = GCAmorphGPU::h_labelDist[i1d];
+	    gcamn->status = GCAmorphGPU::h_status[i1d];
 
 	    // We now have a quandary... how to test for validity
 	    if( gcamn->gc != NULL ) {
 	      // We know there's only one input from test at the top
-	      gcamn->gc->means[0] = h_mean[i1d];
-	      gcamn->gc->covars[0] = h_variance[i1d];
+	      gcamn->gc->means[0] = GCAmorphGPU::h_mean[i1d];
+	      gcamn->gc->covars[0] = GCAmorphGPU::h_variance[i1d];
 	    } else {
-	      if( h_variance[i1d] >= 0 ) {
+	      if( GCAmorphGPU::h_variance[i1d] >= 0 ) {
 		std::cerr << __FUNCTION__
 			  << ": Host has no GC1D but GPU has valid variance"
 			  << std::endl;
@@ -579,42 +481,6 @@ namespace GPU {
 	}
       }
       GCAmorphGPU::tRecvPack.Stop();
-
-
-      GCAmorphGPU::tRecvMem.Start();
-      // Release page-locked host memory
-      CUDA_SAFE_CALL( cudaFreeHost( h_rx ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_ry ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_rz ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_origx ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_origy ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_origz ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_dx ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_dy ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_dz ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_odx ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_ody ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_odz ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_origArea ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_origArea1 ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_origArea2 ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_area ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_area1 ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_area2 ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_invalid ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_status ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_label ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_labelDist ) );
-
-      CUDA_SAFE_CALL( cudaFreeHost( h_mean ) );
-      CUDA_SAFE_CALL( cudaFreeHost( h_variance ) );
-      GCAmorphGPU::tRecvMem.Stop();
 
       GCAmorphGPU::tRecvTot.Stop();
 
@@ -1085,16 +951,18 @@ namespace GPU {
       std::cout << std::endl;
 
       std::cout << "Send:" << std::endl;
-      std::cout << "    Memory : " << GCAmorphGPU::tSendMem << std::endl;
       std::cout << "      Pack : " << GCAmorphGPU::tSendPack << std::endl;
       std::cout << "  Transfer : " << GCAmorphGPU::tSendTransfer << std::endl;
       std::cout << "Total      : " << GCAmorphGPU::tSendTot << std::endl;
 
       std::cout << "Recv:" << std::endl;
-      std::cout << "    Memory : " << GCAmorphGPU::tRecvMem << std::endl;
       std::cout << "      Pack : " << GCAmorphGPU::tRecvPack << std::endl;
       std::cout << "  Transfer : " << GCAmorphGPU::tRecvTransfer << std::endl;
       std::cout << "Total      : " << GCAmorphGPU::tRecvTot << std::endl;
+
+      std::cout << "Host Memory:" << std::endl;
+      std::cout << "     Alloc : " << GCAmorphGPU::tHostAlloc<< std::endl;
+      std::cout << " Release   : " << GCAmorphGPU::tHostRelease<< std::endl;
 
       std::cout << "==================================" << std::endl;
 #endif
@@ -1104,13 +972,140 @@ namespace GPU {
     
     // Define static members
     SciGPU::Utilities::Chronometer GCAmorphGPU::tSendTot;
-    SciGPU::Utilities::Chronometer GCAmorphGPU::tSendMem;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tSendPack;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tSendTransfer;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvTot;
-    SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvMem;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvPack;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvTransfer;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tHostAlloc;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tHostRelease;
+
+
+
+    dim3 GCAmorphGPU::hostDims = make_uint3(0,0,0);
+    float *GCAmorphGPU::h_rx, *GCAmorphGPU::h_ry, *GCAmorphGPU::h_rz;
+    float *GCAmorphGPU::h_origx, *GCAmorphGPU::h_origy, *GCAmorphGPU::h_origz;
+    float *GCAmorphGPU::h_dx, *GCAmorphGPU::h_dy, *GCAmorphGPU::h_dz;
+    float *GCAmorphGPU::h_odx, *GCAmorphGPU::h_ody, *GCAmorphGPU::h_odz;
+    float *GCAmorphGPU::h_origArea, *GCAmorphGPU::h_origArea1, *GCAmorphGPU::h_origArea2;
+    float *GCAmorphGPU::h_area, *GCAmorphGPU::h_area1, *GCAmorphGPU::h_area2;
+    char *GCAmorphGPU::h_invalid;
+    int *GCAmorphGPU::h_label, *GCAmorphGPU::h_status;
+    float *GCAmorphGPU::h_labelDist;
+    float *GCAmorphGPU::h_mean;
+    float *GCAmorphGPU::h_variance;
+
+
+
+    void GCAmorphGPU::AllocateHost( const GCAmorphGPU& gcam ) {
+      
+      // Check integrity
+      gcam.CheckIntegrity();
+
+      // Check if current allocation OK
+      const dim3 gcamDims = gcam.d_rx.GetDims();
+      const size_t reqSize = gcamDims.x * gcamDims.y * gcamDims.z;
+      size_t currSize = GCAmorphGPU::hostDims.x * GCAmorphGPU::hostDims.y * GCAmorphGPU::hostDims.z;
+
+      if( reqSize <= currSize ) {
+	return;
+      }
+
+      std::cerr << __FUNCTION__ << ": Warning - not thread safe!" << std::endl;
+
+      // Get rid of the old allocation
+      GCAmorphGPU::ReleaseHost();
+
+      GCAmorphGPU::tHostAlloc.Start();
+      // Set dimensions
+      GCAmorphGPU::hostDims = gcam.d_rx.GetDims();
+
+      // Do the allocations
+      GCAmorphGPU::h_rx = gcam.d_rx.AllocateHostBuffer();
+      GCAmorphGPU::h_ry = gcam.d_ry.AllocateHostBuffer();
+      GCAmorphGPU::h_rz = gcam.d_rz.AllocateHostBuffer();
+     
+      GCAmorphGPU::h_origx = gcam.d_origx.AllocateHostBuffer();
+      GCAmorphGPU::h_origy = gcam.d_origy.AllocateHostBuffer();
+      GCAmorphGPU::h_origz = gcam.d_origz.AllocateHostBuffer();
+
+      GCAmorphGPU::h_dx = gcam.d_dx.AllocateHostBuffer();
+      GCAmorphGPU::h_dy = gcam.d_dy.AllocateHostBuffer();
+      GCAmorphGPU::h_dz = gcam.d_dz.AllocateHostBuffer();
+
+      GCAmorphGPU::h_odx = gcam.d_odx.AllocateHostBuffer();
+      GCAmorphGPU::h_ody = gcam.d_ody.AllocateHostBuffer();
+      GCAmorphGPU::h_odz = gcam.d_odz.AllocateHostBuffer();
+
+      GCAmorphGPU::h_origArea = gcam.d_origArea.AllocateHostBuffer();
+      GCAmorphGPU::h_origArea1 = gcam.d_origArea1.AllocateHostBuffer();
+      GCAmorphGPU::h_origArea2 = gcam.d_origArea2.AllocateHostBuffer();
+
+      GCAmorphGPU::h_area = gcam.d_area.AllocateHostBuffer();
+      GCAmorphGPU::h_area1 = gcam.d_area1.AllocateHostBuffer();
+      GCAmorphGPU::h_area2 = gcam.d_area2.AllocateHostBuffer();
+
+      GCAmorphGPU::h_invalid = gcam.d_invalid.AllocateHostBuffer();
+      GCAmorphGPU::h_status = gcam.d_status.AllocateHostBuffer();
+      GCAmorphGPU::h_label = gcam.d_label.AllocateHostBuffer();
+      GCAmorphGPU::h_labelDist = gcam.d_labelDist.AllocateHostBuffer();
+
+      GCAmorphGPU::h_mean = gcam.d_mean.AllocateHostBuffer();
+      GCAmorphGPU::h_variance = gcam.d_variance.AllocateHostBuffer();
+
+      GCAmorphGPU::tHostAlloc.Stop();
+
+    }
+
+    
+    void GCAmorphGPU::ReleaseHost( void ) {
+
+      // Sanity check
+      if( GCAmorphGPU::hostDims == make_uint3(0,0,0) ) {
+	return;
+      }
+
+      std::cerr << __FUNCTION__ << ": Warning - not thread safe!" << std::endl;
+
+      GCAmorphGPU::tHostRelease.Start();
+
+      GCAmorphGPU::hostDims = make_uint3(0,0,0);
+
+      // Release page-locked host memory
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_rx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_ry ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_rz ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_origx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_origy ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_origz ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_dx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_dy ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_dz ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_odx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_ody ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_odz ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_origArea ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_origArea1 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_origArea2 ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_area ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_area1 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_area2 ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_invalid ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_status ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_label ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_labelDist ) );
+
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_mean ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_variance ) );
+
+      GCAmorphGPU::tHostRelease.Stop();
+    }
 
 
   }

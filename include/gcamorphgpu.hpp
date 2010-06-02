@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/05/17 13:57:57 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/06/02 16:30:26 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -110,6 +110,25 @@ namespace GPU {
       //! Matches neg in GCAmorph
       int neg;
 
+      // -----------------------------------------------
+      // Static host arrays for transfers
+      static dim3 hostDims;
+      static float *h_rx, *h_ry, *h_rz;
+      static float *h_origx, *h_origy, *h_origz;
+      static float *h_dx, *h_dy, *h_dz;
+      static float *h_odx, *h_ody, *h_odz;
+      static float *h_origArea, *h_origArea1, *h_origArea2;
+      static float *h_area, *h_area1, *h_area2;
+      static char *h_invalid;
+      static int *h_label, *h_status;
+      static float *h_labelDist;
+      static float *h_mean;
+      static float *h_variance;
+
+      static void AllocateHost( const GCAmorphGPU& gcam );
+      static void ReleaseHost( void );
+      
+
       // -----------------------------------------
       // Constructors & Destructor
 
@@ -181,9 +200,10 @@ namespace GPU {
 
 
       static SciGPU::Utilities::Chronometer tSendTot;
-      static SciGPU::Utilities::Chronometer tSendMem, tSendPack, tSendTransfer;
+      static SciGPU::Utilities::Chronometer tSendPack, tSendTransfer;
       static SciGPU::Utilities::Chronometer tRecvTot;
-      static SciGPU::Utilities::Chronometer tRecvMem, tRecvPack, tRecvTransfer;
+      static SciGPU::Utilities::Chronometer tRecvPack, tRecvTransfer;
+      static SciGPU::Utilities::Chronometer tHostAlloc, tHostRelease;
     };
 
   }
