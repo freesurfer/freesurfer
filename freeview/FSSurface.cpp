@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/02 19:37:26 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/06/02 20:19:51 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -806,37 +806,7 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
               << "cpt1: " << cpt1[0] << ", " << cpt1[1] << ", " << cpt1[2] << endl 
               << "cpt2: " << cpt2[0] << ", " << cpt2[1] << ", " << cpt2[2] << endl; fflush(0);
           }
-          /*
-          if ( t1 >= 0 && t1 <= 1 )
-          {
-            if ( t2 >= 0 && t2 <= 1 && d2 > d1 )
-            {
-              pt0[0] = cpt2[0];
-              pt0[1] = cpt2[1];
-              pt0[2] = cpt2[2];
-            }
-            else
-            {
-              pt0[0] = cpt1[0];
-              pt0[1] = cpt1[1];
-              pt0[2] = cpt1[2];
-            }
-          }
-          else
-          {
-            if ( t2 >= 0 && t2 <= 1 || d2 < d1 )
-            {
-              pt0[0] = cpt2[0];
-              pt0[1] = cpt2[1];
-              pt0[2] = cpt2[2];
-            }
-            else
-            {
-              pt0[0] = cpt1[0];
-              pt0[1] = cpt1[1];
-              pt0[2] = cpt1[2];
-            }
-        }*/
+
           if ( d1 < d2 )
           {
             pt0[0] = cpt1[0];

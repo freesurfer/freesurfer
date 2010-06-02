@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/02 19:37:27 $
- *    $Revision: 1.46 $
+ *    $Date: 2010/06/02 20:19:51 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -62,7 +62,8 @@ LayerSurface::LayerSurface( LayerMRI* ref ) : LayerEditable(),
     m_nActiveOverlay( -1 ),
     m_nActiveAnnotation( -1 ),
     m_nActiveLabel( -1 ),
-    m_bUndoable( false )
+    m_bUndoable( false ),
+    m_bVector2DPendingUpdate( true )
 {
   m_strTypeNames.push_back( "Surface" );
 
@@ -568,6 +569,10 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
       mapper->Update();
     m_surfaceSource->UpdateVector2D( nPlane, m_dSlicePosition[nPlane], ( mapper ? mapper->GetInput() : NULL ) );
   }
+  else
+  {
+    m_bVector2DPendingUpdate = true;
+  }
 }
 
 void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
@@ -632,6 +637,11 @@ void LayerSurface::SetVisible( bool bVisible )
   
   int nVectorVisibility = ( ( bVisible && m_surfaceSource && m_surfaceSource->GetActiveVector() >= 0 )? 1 : 0 );
   m_vectorActor->SetVisibility( nVectorVisibility );
+  if ( nVectorVisibility && m_bVector2DPendingUpdate )
+  {
+    UpdateVectorActor2D();
+    m_bVector2DPendingUpdate = false;
+  }
   for ( int i = 0; i < 3; i++ )
     m_vectorActor2D[i]->SetVisibility( nVectorVisibility );
   
@@ -724,7 +734,6 @@ bool LayerSurface::GetSurfaceRASAtVertex( int nVertex, double* ras )
   return m_surfaceSource->GetSurfaceRASAtVertex( nVertex, ras );
 }
 
-
 bool LayerSurface::GetTargetAtVertex( int nVertex, double* ras )
 {
   if ( m_surfaceSource == NULL )
@@ -745,7 +754,7 @@ void LayerSurface::SetActiveSurface( int nSurface )
 {
   if ( m_surfaceSource && m_surfaceSource->SetActiveSurface( nSurface ) )
   {
-    if ( IsVisible() && GetActiveVector() >= 0 )
+    if ( GetActiveVector() >= 0 )
       UpdateVectorActor2D();
     
     this->SendBroadcast( "LayerActorUpdated", this );
