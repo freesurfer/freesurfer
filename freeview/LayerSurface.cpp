@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 18:51:13 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/06/02 19:37:27 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -208,7 +208,12 @@ void LayerSurface::UpdateVectorActor2D()
   if ( m_surfaceSource )
   {
     for ( int i = 0; i < 3; i++ )
-      m_surfaceSource->UpdateVector2D( i, m_dSlicePosition[i] );
+    { 
+      vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_sliceActor2D[i]->GetMapper() );
+      if ( mapper )
+        mapper->Update();
+      m_surfaceSource->UpdateVector2D( i, m_dSlicePosition[i], ( mapper ? mapper->GetInput() : NULL ) );
+    }
   }
 }
 
@@ -555,7 +560,14 @@ void LayerSurface::OnSlicePositionChanged( int nPlane )
     break;
   }
   
-  m_surfaceSource->UpdateVector2D( nPlane, m_dSlicePosition[nPlane] );
+  // update mapper so the polydata is current
+  if ( IsVisible() && GetActiveVector() >= 0 )
+  {
+    vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_sliceActor2D[nPlane]->GetMapper() );
+    if ( mapper )
+      mapper->Update();
+    m_surfaceSource->UpdateVector2D( nPlane, m_dSlicePosition[nPlane], ( mapper ? mapper->GetInput() : NULL ) );
+  }
 }
 
 void LayerSurface::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
@@ -733,7 +745,8 @@ void LayerSurface::SetActiveSurface( int nSurface )
 {
   if ( m_surfaceSource && m_surfaceSource->SetActiveSurface( nSurface ) )
   {
-    UpdateVectorActor2D();
+    if ( IsVisible() && GetActiveVector() >= 0 )
+      UpdateVectorActor2D();
     
     this->SendBroadcast( "LayerActorUpdated", this );
   }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 17:38:08 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/06/02 19:37:26 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -174,7 +174,7 @@ public:
   
   void GetNormalAtVertex( int nVertex, double* vec_out );
   
-  void UpdateVector2D( int nPlane, double slice_pos );
+  void UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* contour_polydata = NULL );
   
   void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma );
   
@@ -234,6 +234,7 @@ protected:
 
   bool SaveVertices( MRIS* mris, VertexItem*& pVertex );
   bool SaveVertices( MRI* mri,   VertexItem*& pVertex );
+  bool ComputeVectors( MRIS* mris, VertexItem*& buffer );
 
   VertexItem*  m_fVertexSets[NUM_OF_VSETS];
   VertexItem*  m_fNormalSets[NUM_OF_VSETS];

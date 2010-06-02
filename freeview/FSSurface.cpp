@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 18:51:13 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/06/02 19:37:26 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,6 +43,8 @@
 #include "vtkImageChangeInformation.h"
 #include "vtkPolyData.h"
 #include "vtkTubeFilter.h"
+#include "vtkMath.h"
+#include "vtkLine.h"
 #include "FSVolume.h"
 #include "MyUtils.h"
 
@@ -363,7 +365,8 @@ bool FSSurface::LoadVectors( const char* filename )
   }
   else if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename ) == 0 )
   {
-    if ( SaveVertices( m_MRIS, vector.data ) )
+    // compute vectors
+    if ( ComputeVectors( m_MRIS, vector.data ) )
     {
       m_vertexVectors.push_back( vector );
       m_nActiveVector = m_vertexVectors.size() - 1;
@@ -381,6 +384,20 @@ bool FSSurface::LoadVectors( const char* filename )
   if ( mri )
     ::MRIfree( &mri );
   return false;
+}
+
+bool FSSurface::ComputeVectors( MRIS* mris, VertexItem*& buffer )
+{
+  int nvertices = mris->nvertices;
+  VERTEX *v;
+  for ( int vno = 0; vno < nvertices; vno++ )
+  {
+    v = &mris->vertices[vno];
+    v->x -= m_fVertexSets[m_nActiveSurface][vno].x;
+    v->y -= m_fVertexSets[m_nActiveSurface][vno].y;
+    v->z -= m_fVertexSets[m_nActiveSurface][vno].z;
+  }
+  return SaveVertices( mris, buffer );
 }
 
 void FSSurface::SaveVertices( MRIS* mris, int nSet )
@@ -664,7 +681,7 @@ void FSSurface::UpdateVectors()
   }
 }
 
-void FSSurface::UpdateVector2D( int nPlane, double slice_pos )
+void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* contour_polydata )
 {
   if ( HasVectorSet() && m_nActiveVector >= 0 )
   {
@@ -703,11 +720,19 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos )
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
+    double old_pt[3];
+    vtkPoints* contour_pts = NULL;
+    vtkCellArray* contour_lines = NULL;
+    if ( contour_polydata )
+    {
+      contour_pts = contour_polydata->GetPoints();
+      contour_lines = contour_polydata->GetLines();
+    }
     for ( int vno = 0; vno < cVertices; vno++ )
     {
       if ( mask[vno] )
       {
-        double* old_pt = oldPoints->GetPoint( vno );
+        oldPoints->GetPoint( vno, old_pt );
         surfaceRAS[0] = m_fVertexSets[m_nActiveSurface][vno].x + vectors[vno].x;
         surfaceRAS[1] = m_fVertexSets[m_nActiveSurface][vno].y + vectors[vno].y;
         surfaceRAS[2] = m_fVertexSets[m_nActiveSurface][vno].z + vectors[vno].z;
@@ -715,8 +740,128 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos )
         if ( m_volumeRef )
           m_volumeRef->RASToTarget( point, point );
   
-        points->InsertNextPoint( old_pt );
-        points->InsertNextPoint( point );
+        if ( contour_pts )
+        { 
+          // first find the closest point on the contour
+          double pt0[3];
+          double dist2 = 1e10;
+          int n0 = 0;
+          for ( int i = 0; i < contour_pts->GetNumberOfPoints(); i++ )
+          {
+            contour_pts->GetPoint( i, pt0 );
+            double d = vtkMath::Distance2BetweenPoints( old_pt, pt0 );
+            if ( d < dist2 )
+            {
+              dist2 = d;
+              n0 = i;
+            }
+          }
+          
+          // find the closest projection on the contour
+          double cpt1[3], cpt2[3], t1, t2, p0[3], p1[3], p2[3];
+          int n1 = -1, n2 = -1;
+          contour_lines->InitTraversal();
+          vtkIdType npts = 0, *cellpts;
+          while ( contour_lines->GetNextCell( npts, cellpts ) )
+          {
+            if ( cellpts[0] == n0 )
+            {
+              if ( n1 < 0 )
+                n1 = cellpts[1];
+              else
+                n2 = cellpts[1];
+            }
+            else if ( cellpts[1] == n0 )
+            {
+              if ( n1 < 0 )
+                n1 = cellpts[0];
+              else
+                n2 = cellpts[0];
+            }
+            if ( n1 >= 0 && n2 >= 0 )
+              break;
+          }
+          
+          contour_pts->GetPoint( n0, p0 );
+          contour_pts->GetPoint( n1, p1 );
+          contour_pts->GetPoint( n2, p2 );
+          double d1 = vtkLine::DistanceToLine( old_pt, 
+                                   p0, 
+                                   p1,
+                                   t1,
+                                   cpt1 );
+          double d2 = vtkLine::DistanceToLine( old_pt, 
+                                   p0, 
+                                   p2, 
+                                   t2,
+                                   cpt2 );
+          if ( false )//vno == 75580 && nPlane == 2 )
+          {
+          cout << t1 << " " << t2 << endl 
+              << d1 << " " << d2 << endl
+              << "n: " << n0 <<  " " << n1 << " " << n2 << endl
+              << "p0: " << p0[0] << ", " << p0[1] << ", " << p0[2] << endl 
+              << "p1: " << p1[0] << ", " << p1[1] << ", " << p1[2] << endl 
+              << "p2: " << p2[0] << ", " << p2[1] << ", " << p2[2] << endl 
+              << "cpt1: " << cpt1[0] << ", " << cpt1[1] << ", " << cpt1[2] << endl 
+              << "cpt2: " << cpt2[0] << ", " << cpt2[1] << ", " << cpt2[2] << endl; fflush(0);
+          }
+          /*
+          if ( t1 >= 0 && t1 <= 1 )
+          {
+            if ( t2 >= 0 && t2 <= 1 && d2 > d1 )
+            {
+              pt0[0] = cpt2[0];
+              pt0[1] = cpt2[1];
+              pt0[2] = cpt2[2];
+            }
+            else
+            {
+              pt0[0] = cpt1[0];
+              pt0[1] = cpt1[1];
+              pt0[2] = cpt1[2];
+            }
+          }
+          else
+          {
+            if ( t2 >= 0 && t2 <= 1 || d2 < d1 )
+            {
+              pt0[0] = cpt2[0];
+              pt0[1] = cpt2[1];
+              pt0[2] = cpt2[2];
+            }
+            else
+            {
+              pt0[0] = cpt1[0];
+              pt0[1] = cpt1[1];
+              pt0[2] = cpt1[2];
+            }
+        }*/
+          if ( d1 < d2 )
+          {
+            pt0[0] = cpt1[0];
+            pt0[1] = cpt1[1];
+            pt0[2] = cpt1[2];
+          }
+          else
+          {
+            pt0[0] = cpt2[0];
+            pt0[1] = cpt2[1];
+            pt0[2] = cpt2[2]; 
+          }
+          
+          for ( int i = 0; i < 3; i++ )
+          {
+            point[i] += (pt0[i] - old_pt[i] );
+          }
+          points->InsertNextPoint( pt0 );
+          points->InsertNextPoint( point );
+        }
+        else
+        {
+          points->InsertNextPoint( old_pt );
+          points->InsertNextPoint( point );
+        }
   
         verts->InsertNextCell( 1, &n );
   
