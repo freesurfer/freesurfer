@@ -12,6 +12,7 @@ using namespace std;
 
 #include "mriconvolve_cuda.hpp"
 #include "mrimean_cuda.hpp"
+#include "mrivol2vol_cuda.hpp"
 #include "gcamorphenergy.hpp"
 #include "gcamorphgpu.hpp"
 #include "gcamorphtermgpu.hpp"
@@ -66,6 +67,7 @@ void PrintGPUtimers( void ) {
 
   GPU::Algorithms::MRIconvolve::ShowTimings();
   GPU::Algorithms::MRImean::ShowTimings();
+  GPU::Algorithms::MRIvol2vol::ShowTimings();
   GPU::Classes::GCAmorphGPU::ShowTimings();
   GPU::Algorithms::GCAmorphEnergy::ShowTimings();
   GPU::Algorithms::GCAmorphTerm::ShowTimings();

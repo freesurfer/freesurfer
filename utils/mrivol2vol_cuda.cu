@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/25 20:28:14 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/06/02 14:45:25 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@
 #include "affinegpu.hpp"
 
 #include "mrivol2vol_cuda.h"
+#include "mrivol2vol_cuda.hpp"
 
 // ==============================================================
 
@@ -58,29 +59,11 @@ namespace GPU {
 
     const unsigned int kVol2VolBlockSize = 16;
 
-    // Some timers
-    SciGPU::Utilities::Chronometer tVol2VolMem, tVol2VolMemHost;
-    SciGPU::Utilities::Chronometer tVol2VolMRISendFrame, tVol2VolMRIRecvFrame;
-    SciGPU::Utilities::Chronometer tVol2VolMRISendArray, tVol2VolCompute;
-    SciGPU::Utilities::Chronometer tVol2VolTotal;
-
     // ---------------------------------------
-
-    //! Templated texture binding wrapper
-    template<typename T>
-    void BindSourceTexture( const GPU::Classes::MRIframeGPU<T>& src,
-			    const int InterpMode ) {
-      /*!
-	Will bind the CUDA array of the source frame to the appropriate
-	texture, with correct filtering set
-	Unspecialised version aborts
-      */
-      std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
-    }
 
 
     template<>
-    void BindSourceTexture<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& src,
+    void MRIvol2vol::BindSourceTexture<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& src,
 					   const int InterpMode ) {
       /*!
 	Binds the unsigned char texture
@@ -113,7 +96,7 @@ namespace GPU {
 
     
     template<>
-    void BindSourceTexture<float>( const GPU::Classes::MRIframeGPU<float>& src,
+    void MRIvol2vol::BindSourceTexture<float>( const GPU::Classes::MRIframeGPU<float>& src,
 				   const int InterpMode ) {
       /*!
 	Binds the float texture
@@ -145,7 +128,7 @@ namespace GPU {
     }
 
     template<>
-    void BindSourceTexture<short>( const GPU::Classes::MRIframeGPU<short>& src,
+    void MRIvol2vol::BindSourceTexture<short>( const GPU::Classes::MRIframeGPU<short>& src,
 				   const int InterpMode ) {
       /*!
 	Binds the short texture
@@ -179,25 +162,17 @@ namespace GPU {
 
     // ---------------------------------------
 
-    //! Templated texture unbinding
-    template<typename T>
-    void UnbindSourceTexture( void ) {
-      /*!
-	Will unbind the appropriate texture from the source frame.
-	Unspecialised version aborts
-      */
-      std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
-    }
+    
 
-    template<> void UnbindSourceTexture<unsigned char>( void ) {
+    template<> void MRIvol2vol::UnbindSourceTexture<unsigned char>( void ) {
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_src_uchar ) );
     }
 
-    template<> void UnbindSourceTexture<float>( void ) {
+    template<> void MRIvol2vol::UnbindSourceTexture<float>( void ) {
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_src_float ) );
     }
 
-    template<> void UnbindSourceTexture<short>( void ) {
+    template<> void MRIvol2vol::UnbindSourceTexture<short>( void ) {
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_src_short ) );
     }
 
@@ -309,13 +284,12 @@ namespace GPU {
     }
 
 
-    //! Dispatch function for the transformation kernel
     template<typename T, typename U>
-    void MRIVol2VolGPU( const GPU::Classes::MRIframeGPU<T> &src,
-			GPU::Classes::MRIframeGPU<U> &dst,
-			const GPU::Classes::AffineTransformation& transform,
-			const int InterpMode,
-			const cudaStream_t myStream = 0 ){
+    void MRIvol2vol::transformGPU( const GPU::Classes::MRIframeGPU<T> &src,
+				   GPU::Classes::MRIframeGPU<U> &dst,
+				   const GPU::Classes::AffineTransformation& transform,
+				   const int InterpMode,
+				   const cudaStream_t myStream ) {
       /*!
 	This is the dispatch function for the vol2vol kernel.
 	The src MRI must already be in its CUDA array, and the
@@ -331,7 +305,7 @@ namespace GPU {
 
       
       // Bind the texture and array
-      BindSourceTexture( src, InterpMode );
+      this->BindSourceTexture( src, InterpMode );
 
 
       const dim3 dstDims = dst.GetDims();
@@ -351,7 +325,8 @@ namespace GPU {
 
       case SAMPLE_NEAREST:
       case SAMPLE_TRILINEAR:
-	MRIVol2VolKernel<T,U><<<grid,threads>>>( dst, transform, coverGrid );
+	MRIVol2VolKernel<T,U>
+	  <<<grid,threads>>>( dst, transform, coverGrid );
 	CUDA_CHECK_ERROR_ASYNC( "MRIVol2VolKernel call failed!\n" );
 	break;
 
@@ -363,16 +338,16 @@ namespace GPU {
 
 
       // Unbind the texture
-      UnbindSourceTexture<T>();
+      this->UnbindSourceTexture<T>();
     }  
 
 
     //! Routine to use GPU for vol2vol on all MRI frames
     template<typename T, typename U>
-    void MRIVol2VolAllFramesGPU( const MRI* src, MRI* targ,
-				 const MATRIX* transformMatrix,
-				 const int InterpMode,
-				 const float param ) {
+    void MRIvol2vol::AllFramesGPU( const MRI* src, MRI* targ,
+				   const MATRIX* transformMatrix,
+				   const int InterpMode,
+				   const float param ) {
       
       tVol2VolTotal.Start();
 
@@ -426,7 +401,7 @@ namespace GPU {
 
 	// Run the convolution
 	tVol2VolCompute.Start();
-	MRIVol2VolGPU( srcGPU, dstGPU, myTransform, InterpMode );
+	this->transformGPU( srcGPU, dstGPU, myTransform, InterpMode );
 	tVol2VolCompute.Stop();
 
 	// Get the results back
@@ -446,12 +421,13 @@ namespace GPU {
       tVol2VolTotal.Stop();
     }
 
+
     //! Dispatch routine to add templating
     template<typename T>
-    void MRIVol2VolAllFramesDstDispatch( const MRI* src, MRI* targ,
-					 const MATRIX* transformMatrix,
-					 const int InterpMode,
-					 const float param ) {
+    void MRIvol2vol::AllFramesDstDispatch( const MRI* src, MRI* targ,
+					   const MATRIX* transformMatrix,
+					   const int InterpMode,
+					   const float param ) {
       /*!
 	A thin wrapper to produce the correct template
 	based on the type of the target MRI
@@ -459,24 +435,24 @@ namespace GPU {
 
       switch( targ->type ) {
       case MRI_UCHAR:
-	MRIVol2VolAllFramesGPU<T,unsigned char>( src, targ,
-						 transformMatrix,
-						 InterpMode,
-						 param );
+	this->AllFramesGPU<T,unsigned char>( src, targ,
+					     transformMatrix,
+					     InterpMode,
+					     param );
 	break;
 
       case MRI_FLOAT:
-	MRIVol2VolAllFramesGPU<T,float>( src, targ,
-					 transformMatrix,
-					 InterpMode,
-					 param );
+	this->AllFramesGPU<T,float>( src, targ,
+				     transformMatrix,
+				     InterpMode,
+				     param );
 	break;
 
       case MRI_SHORT:
-	MRIVol2VolAllFramesGPU<T,short>( src, targ,
-					 transformMatrix,
-					 InterpMode,
-					 param );
+	this->AllFramesGPU<T,short>( src, targ,
+				     transformMatrix,
+				     InterpMode,
+				     param );
 	break;
 
       default:
@@ -486,11 +462,85 @@ namespace GPU {
       }
     }
 
+    //! Dispatch routine on src MRI
+    void MRIvol2vol::transform( const MRI* src, MRI* targ,
+				const MATRIX* transformMatrix,
+				const int InterpMode,
+				const float param ) {
+      
+      switch( src->type ) {
+      case MRI_UCHAR:
+	this->AllFramesDstDispatch<unsigned char>( src, targ,
+						   transformMatrix,
+						   InterpMode,
+						   param );
+	break;
+
+      case MRI_FLOAT:
+	this->AllFramesDstDispatch<float>( src, targ,
+					   transformMatrix,
+					   InterpMode,
+					   param );
+	break;
+
+      case MRI_SHORT:
+	this->AllFramesDstDispatch<short>( src, targ,
+					   transformMatrix,
+					   InterpMode,
+					   param );
+	break;
+	
+	
+      default:
+	std::cerr << __FUNCTION__ << ": Unrecognised src data type "
+		  << src->type << std::endl;
+	exit( EXIT_FAILURE );
+      }
+    }
+
+
+    // ===================================================================
+
+    // Define the static members
+    SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMem;
+    SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMemHost;
+    SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMRISendFrame;
+    SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMRIRecvFrame;
+    SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMRISendArray;
+    SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolCompute;
+    SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolTotal;
+
+
+    void MRIvol2vol::ShowTimings( void ) {
+      std::cout << "=============================================" << std::endl;
+      std::cout << "GPU Vol2Vol timers" << std::endl;
+      std::cout << "------------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+      std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+      std::cout << "Timings may not be accurate" << std::endl;
+#endif
+      std::cout << std::endl;
+      
+      std::cout << "MRIVol2VolAllFramesGPU" << std::endl;
+      std::cout << "Host Memory : " << MRIvol2vol::tVol2VolMemHost << std::endl;
+      std::cout << "GPU Memory  : " << MRIvol2vol::tVol2VolMem << std::endl;
+      std::cout << "Send Frame  : " << MRIvol2vol::tVol2VolMRISendFrame << std::endl;
+      std::cout << "Send Array  : " << MRIvol2vol::tVol2VolMRISendArray << std::endl;
+      std::cout << "Compute     : " << MRIvol2vol::tVol2VolCompute << std::endl;
+      std::cout << "Recv Frame  : " << MRIvol2vol::tVol2VolMRIRecvFrame << std::endl;
+      std::cout << "---------------------" << std::endl;
+      std::cout << "Total : " << MRIvol2vol::tVol2VolTotal << std::endl;
+      
+      std::cout << "=============================================" << std::endl;
+    }
   }
 }
 
 
 // ======================================================
+
+static GPU::Algorithms::MRIvol2vol myvol2vol;
+
 
 int MRIvol2vol_cuda( const MRI* src, MRI* targ, 
 		     const MATRIX* transformMatrix,
@@ -502,34 +552,7 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
     once that routine has performed necessary checks
   */
 
-  switch( src->type ) {
-  case MRI_UCHAR:
-    GPU::Algorithms::MRIVol2VolAllFramesDstDispatch<unsigned char>( src, targ,
-								    transformMatrix,
-								    InterpMode,
-								    param );
-    break;
-
-  case MRI_FLOAT:
-    GPU::Algorithms::MRIVol2VolAllFramesDstDispatch<float>( src, targ,
-							    transformMatrix,
-							    InterpMode,
-							    param );
-    break;
-
-  case MRI_SHORT:
-    GPU::Algorithms::MRIVol2VolAllFramesDstDispatch<short>( src, targ,
-							    transformMatrix,
-							    InterpMode,
-							    param );
-    break;
-
-  default:
-    std::cerr << __FUNCTION__ << ": Unrecognised data type "
-	      << src->type << std::endl;
-    exit( EXIT_FAILURE );
-  }
-  
+  myvol2vol.transform( src, targ, transformMatrix, InterpMode, param );
 
 
   return( 0 );
@@ -537,38 +560,3 @@ int MRIvol2vol_cuda( const MRI* src, MRI* targ,
     
 
 
-
-// ======================================================
-
-
-// ======================================================
-
-
-
-void MRIvol2volShowTimers( void ) {
-  /*!
-    Pretty prints timers to std.out
-  */
-  
-
-  std::cout << "=============================================" << std::endl;
-  std::cout << "GPU Vol2Vol timers" << std::endl;
-  std::cout << "------------------" << std::endl;
-#ifndef CUDA_FORCE_SYNC
-  std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
-  std::cout << "Timings may not be accurate" << std::endl;
-#endif
-  std::cout << std::endl;
-
-  std::cout << "MRIVol2VolAllFramesGPU" << std::endl;
-  std::cout << "Host Memory : " << GPU::Algorithms::tVol2VolMemHost << std::endl;
-  std::cout << "GPU Memory  : " << GPU::Algorithms::tVol2VolMem << std::endl;
-  std::cout << "Send Frame  : " << GPU::Algorithms::tVol2VolMRISendFrame << std::endl;
-  std::cout << "Send Array  : " << GPU::Algorithms::tVol2VolMRISendArray << std::endl;
-  std::cout << "Compute     : " << GPU::Algorithms::tVol2VolCompute << std::endl;
-  std::cout << "Recv Frame  : " << GPU::Algorithms::tVol2VolMRIRecvFrame << std::endl;
-  std::cout << "---------------------" << std::endl;
-  std::cout << "Total : " << GPU::Algorithms::tVol2VolTotal << std::endl;
-
-  std::cout << "=============================================" << std::endl;
-}

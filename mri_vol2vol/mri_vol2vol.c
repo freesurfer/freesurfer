@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/03/16 19:54:41 $
- *    $Revision: 1.62 $
+ *    $Author: rge21 $
+ *    $Date: 2010/06/02 14:45:27 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -464,7 +464,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.62 2010/03/16 19:54:41 greve Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -576,12 +576,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.62 2010/03/16 19:54:41 greve Exp $",
+                          "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.62 2010/03/16 19:54:41 greve Exp $",
+                                "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -991,7 +991,7 @@ int main(int argc, char **argv) {
   printf("mri_vol2vol done\n");
 
 #ifdef FS_CUDA
-  MRIvol2volShowTimers();
+  PrintGPUtimers();
 #endif
 
   return(0);
