@@ -1,5 +1,5 @@
 /**
- * @file  gcamorphenergygpu.hpp
+ * @file  gcamorphenergy.hpp
  * @brief Holds routines to compute GCAmorph energies on the GPU (header)
  *
  * This file holds a variety of routines which compute energies for
@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/01 19:07:49 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/06/04 13:53:44 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
