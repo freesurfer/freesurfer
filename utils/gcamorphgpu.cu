@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/02 16:30:29 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/06/04 13:54:19 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -644,9 +644,8 @@ namespace GPU {
 	global variable \c Ginvalid in gcamorph.c.
       */
 
-      SciGPU::Utilities::Chronometer tTotal;
 
-      tTotal.Start();
+      GCAmorphGPU::tCMPtot.Start();
 
       // Sanity check
       this->CheckIntegrity();
@@ -696,11 +695,13 @@ namespace GPU {
       grid = this->d_rx.CoverBlocks( kCMPKernelSize );
       grid.z = 1;
 
+      GCAmorphGPU::tCMPcompute.Start();
       CompMetPropKernel<<<grid,threads>>>
 	( this->d_origArea, this->d_invalid,
 	  this->d_area, this->d_area1, this->d_area2,
 	  d_globals );
       CUDA_CHECK_ERROR( "CompMetPropKernel failed!\n" );
+      GCAmorphGPU::tCMPcompute.Stop();
 
       // Retrieve global statistics
       int globals[2];
@@ -720,9 +721,7 @@ namespace GPU {
 
 
 
-      tTotal.Stop();
-
-      //std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+      GCAmorphGPU::tCMPtot.Stop();
     }
 
 
@@ -961,8 +960,12 @@ namespace GPU {
       std::cout << "Total      : " << GCAmorphGPU::tRecvTot << std::endl;
 
       std::cout << "Host Memory:" << std::endl;
-      std::cout << "     Alloc : " << GCAmorphGPU::tHostAlloc<< std::endl;
-      std::cout << " Release   : " << GCAmorphGPU::tHostRelease<< std::endl;
+      std::cout << "     Alloc : " << GCAmorphGPU::tHostAlloc << std::endl;
+      std::cout << " Release   : " << GCAmorphGPU::tHostRelease << std::endl;
+
+      std::cout << "Compute Metric Properties:" << std::endl;
+      std::cout << "   Compute : " << GCAmorphGPU::tCMPcompute << std::endl;
+      std::cout << "Total      : " << GCAmorphGPU::tCMPtot << std::endl;
 
       std::cout << "==================================" << std::endl;
 #endif
@@ -979,7 +982,8 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvTransfer;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tHostAlloc;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tHostRelease;
-
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tCMPtot;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tCMPcompute;
 
 
     dim3 GCAmorphGPU::hostDims = make_uint3(0,0,0);

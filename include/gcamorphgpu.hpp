@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/02 16:30:26 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/06/04 13:54:17 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -204,6 +204,9 @@ namespace GPU {
       static SciGPU::Utilities::Chronometer tRecvTot;
       static SciGPU::Utilities::Chronometer tRecvPack, tRecvTransfer;
       static SciGPU::Utilities::Chronometer tHostAlloc, tHostRelease;
+
+      static SciGPU::Utilities::Chronometer tCMPtot;
+      static SciGPU::Utilities::Chronometer tCMPcompute;
     };
 
   }
