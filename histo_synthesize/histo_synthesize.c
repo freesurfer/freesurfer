@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/05/29 23:30:21 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/06/04 18:34:38 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,18 +54,23 @@ typedef struct
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
-MRI *HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsynth, int wsize, int flags) ;
+MRI *HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsynth, int wsize, int flags, char *fname) ;
 static int extract_feature_vector(MRI *mri, int x, int y, int z, FEATURE *feature) ;
-static int find_most_similar_location(MRI *mri, FEATURE *fsrc, int z, int *pxd, int *pyd, int *pzd, MRI *mri_mask,
-                                      MRI_REGION *box, int flags) ;
+static int find_most_similar_location(MRI *mri, FEATURE *fsrc, int z, int *pxd, int *pyd,int *pzd,
+                                      MRI *mri_mask, MRI_REGION *box, int flags,
+                                      short *xind, short *yind, short *zind, double tol,
+                                      int num_notfound) ;
 static double feature_distance(FEATURE *f1, FEATURE *f2, int which) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
 
 static int test_slice = 20 ;  // in histo coords
-static int train_slice = 51 ; // in MRI coords
-static int wsize = 5 ;
+static int train_slice = 30 ; // in MRI coords
+static int wsize = 3 ;
+static int downsample = 0 ;
+static double tol = 0 ;
+static int num_notfound = 1000 ;  // # of search voxels to terminate after
 
 
 #define SUBTRACT_CENTER  0x00001
@@ -87,7 +92,7 @@ main(int argc, char *argv[]) {
   MRI          *mri, *histo, *hsynth ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: histo_synthesize.c,v 1.1 2010/05/29 23:30:21 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: histo_synthesize.c,v 1.2 2010/06/04 18:34:38 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -110,8 +115,27 @@ main(int argc, char *argv[]) {
     usage_exit(1) ;
 
   mri = MRIread(argv[1]) ;
+  if (mri == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not read MRI volume %s", Progname, argv[1]) ;
+  if (downsample > 0)
+  {
+    MRI *mri_tmp ;
+    int n ;
+
+    for (n = 0 ; n < downsample ; n++)
+    {
+      mri_tmp = MRIdownsample2(mri, NULL) ;
+      MRIfree(&mri) ; mri = mri_tmp ;
+      train_slice /= 2 ;
+      if (flags & MRI_SPACE)
+        test_slice /= 2 ;
+
+    }
+  }
   histo = MRIread(argv[2]) ;
-  hsynth = HISTOsynthesize(mri, histo, test_slice, train_slice, NULL, wsize, flags) ;
+  if (histo == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not read histological volume %s", Progname, argv[2]) ;
+  hsynth = HISTOsynthesize(mri, histo, test_slice, train_slice, NULL, wsize, flags, argv[3]) ;
   printf("writing output to %s\n", argv[3]) ;
   MRIwrite(hsynth, argv[3]) ;
   msec = TimerStop(&start) ;
@@ -148,6 +172,18 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
     printf("testing on slice %d\n", test_slice) ;
   }
+  else if (!stricmp(option, "tol"))
+  {
+    tol = atof(argv[2]) ;
+    nargs = 1 ;
+    printf("setting search termination tol = %f\n", tol) ;
+  }
+  else if (!stricmp(option, "num"))
+  {
+    num_notfound = atoi(argv[2]) ;
+    nargs = 1 ;
+    printf("setting search termination num = %d\n", num_notfound) ;
+  }
   else if (!stricmp(option, "train_slice"))
   {
     train_slice = atoi(argv[2]) ;
@@ -165,6 +201,11 @@ get_option(int argc, char *argv[]) {
     printf("synthesizing data in MRI coords\n") ;
   }
   else switch (toupper(*option)) {
+  case 'D':
+    downsample = atoi(argv[2]) ;
+    printf("downsampling %d times\n", downsample) ;
+    nargs = 1 ;
+    break ;
   case 'W':
     wsize = atoi(argv[2]) ;
     nargs = 1 ;
@@ -203,15 +244,16 @@ usage_exit(int code) {
 
 
 MRI *
-HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsynth, int wsize, int flags)
+HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsynth, int wsize, int flags, char *fname)
 {
   int     x, y, z, xd, yd, zd, xm, ym, zm, x1, y1, z1 ;
+  short   *xind, *yind, *zind ;
   double  val, xh, yh, zh ;
   FEATURE f ;
   MATRIX  *m_histo2mri, *m_mri2histo ;
   VECTOR  *v1, *v2 ;
   MRI     *mri_mask ;
-  MRI_REGION box ;
+  MRI_REGION box_train, box_test ;
 
   f.len = wsize*wsize*wsize ;
   f.whalf = (wsize-1)/2 ;
@@ -235,8 +277,8 @@ HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsyn
   VECTOR_ELT(v1, 4) = VECTOR_ELT(v2, 4) = 1.0 ;
 
   // compute region of MRI that maps to valid histo
-  box.x = mri->width; box.y = mri->height ; box.z = mri->depth ;
-  box.dx = 0 ; box.dy = 0 ; box.dz = 0 ;
+  box_train.x = mri->width; box_train.y = mri->height ; box_train.z = mri->depth ;
+  box_train.dx = 0 ; box_train.dy = 0 ; box_train.dz = 0 ;
 
   mri_mask = MRIclone(mri, NULL) ;
   for (x = 0 ; x < mri->width ; x++)
@@ -253,53 +295,106 @@ HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsyn
         MRIsampleVolume(histo, xh, yh, zh, &val) ;
         if ((val != 4080) && MRIindexNotInVolume(histo, xh, yh, zh) == 0)
         {
-          x1 = box.x + box.dx-1 ;
-          y1 = box.y + box.dy-1 ;
-          z1 = box.z + box.dz-1 ;
-          if (x < box.x)
-            box.x = x ;
-          if (y < box.y)
-            box.y = y ;
-          if (z < box.z)
-            box.z = z ;
+          x1 = box_train.x + box_train.dx-1 ;
+          y1 = box_train.y + box_train.dy-1 ;
+          z1 = box_train.z + box_train.dz-1 ;
+          if (x < box_train.x)
+            box_train.x = x ;
+          if (y < box_train.y)
+            box_train.y = y ;
+          if (z < box_train.z)
+            box_train.z = z ;
           if (x > x1)
             x1 = x ;
           if (y > y1)
             y1 = y ;
           if (z > z1)
             z1 = z ;
-          box.dx = x1 - box.x + 1 ;
-          box.dy = y1 - box.y + 1 ;
-          box.dz = z1 - box.z + 1 ;
+          box_train.dx = x1 - box_train.x + 1 ;
+          box_train.dy = y1 - box_train.y + 1 ;
+          box_train.dz = z1 - box_train.z + 1 ;
           MRIsetVoxVal(mri_mask, x, y, z, 0, 1) ;
         }
       }
     }
   }
-  if (flags & MRI_SPACE) for (x = 0 ; x < hsynth->width ; x++)
+  xind = (short *)calloc(hsynth->width*hsynth->height*hsynth->depth, sizeof(short)) ;
+  yind = (short *)calloc(hsynth->width*hsynth->height*hsynth->depth, sizeof(short)) ;
+  zind = (short *)calloc(hsynth->width*hsynth->height*hsynth->depth, sizeof(short)) ;
+  MRIcomputeVoxelPermutation(hsynth, xind, yind,zind) ;
+  if (flags & MRI_SPACE) 
   {
-    if ((x % 10 == 0))
+    MRIsetValues(hsynth, 4080) ;
+    box_test.x = mri->width; box_test.y = mri->height ; box_test.z = mri->depth ;
+    box_test.dx = 0 ; box_test.dy = 0 ; box_test.dz = 0 ;
+    for (x = 0 ; x < mri->width ; x++)
     {
-      printf("%03d of %03d\n", x, hsynth->width) ;
-      fflush(stdout) ;
+      for (y = 0 ; y < mri->height ; y++)
+      {
+        if (x == Gx && y == Gy)
+          DiagBreak() ;
+        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = test_slice ;
+        MatrixMultiply(m_mri2histo, v1, v2) ;
+        xh = nint(V3_X(v2)) ; yh = nint(V3_Y(v2)) ; zh = nint(V3_Z(v2)) ;  // MRI coord
+        MRIsampleVolume(histo, xh, yh, zh, &val) ;
+        if ((val != 4080) && MRIindexNotInVolume(histo, xh, yh, zh) == 0)
+        {
+          x1 = box_test.x + box_test.dx-1 ;
+          y1 = box_test.y + box_test.dy-1 ;
+          z1 = box_test.z + box_test.dz-1 ;
+          if (x < box_test.x)
+            box_test.x = x ;
+          if (y < box_test.y)
+            box_test.y = y ;
+          if (z < box_test.z)
+            box_test.z = z ;
+          if (x > x1)
+            x1 = x ;
+          if (y > y1)
+            y1 = y ;
+          if (z > z1)
+            z1 = z ;
+          box_test.dx = x1 - box_test.x + 1 ;
+          box_test.dy = y1 - box_test.y + 1 ;
+          box_test.dz = z1 - box_test.z + 1 ;
+        }
+      }
     }
-    for (y = 0 ; y < hsynth->height ; y++)
+  
+    for (x = box_test.x ; x < box_test.x+box_test.dx ; x++)
     {
-      if ( x == Gx && y == Gy && test_slice == Gz)
-        DiagBreak() ;
-      if (MRIgetVoxVal(mri_mask, x, y, test_slice,0) == 0)
-        continue ;
-      V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = test_slice ;
-      extract_feature_vector(mri, x, y, test_slice, &f) ;
-      find_most_similar_location(mri, &f, train_slice, &xd, &yd, &zd, mri_mask, &box, flags) ;
-      V3_X(v1) = xd ; V3_Y(v1) = yd ; V3_Z(v1) = zd ;
-      MatrixMultiply(m_mri2histo, v1, v2) ;
-      xh = V3_X(v2) ;  yh = V3_Y(v2) ;  zh = V3_Z(v2) ; 
-      MRIsampleVolume(histo, xh, yh, zh, &val) ;
-      if (val == 4080)
-        val = 0 ;  // make background black
-      MRIsetVoxVal(hsynth, x, y, test_slice, 0, val) ;
-    }
+      if ((x % 10 == 0))
+      {
+        if (fname && (x-box_test.x) > 0)
+        {
+          printf("%03d of %03d - writing file %s\n", x-box_test.x, box_test.dx, fname) ;
+          MRIwrite(hsynth, fname) ;
+        }
+        else
+          printf("%03d of %03d\n", x-box_test.x, box_test.dx) ;
+        fflush(stdout) ;
+      }
+      for (y = box_test.y ; y < box_test.y+box_test.dy ; y++)
+      {
+        if ( x == Gx && y == Gy && test_slice == Gz)
+          DiagBreak() ;
+        if (MRIgetVoxVal(mri_mask, x, y, test_slice,0) == 0)
+          continue ;
+        V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = test_slice ;
+        extract_feature_vector(mri, x, y, test_slice, &f) ;
+        find_most_similar_location(mri, &f, train_slice, &xd, &yd, &zd, mri_mask, &box_train, flags,
+                                   xind, yind, zind, tol, num_notfound) ;
+        V3_X(v1) = xd ; V3_Y(v1) = yd ; V3_Z(v1) = zd ;
+        MatrixMultiply(m_mri2histo, v1, v2) ;
+        xh = V3_X(v2) ;  yh = V3_Y(v2) ;  zh = V3_Z(v2) ; 
+        MRIsampleVolume(histo, xh, yh, zh, &val) ;
+#if 0
+        if (val == 4080)
+          val = 0 ;  // make background black
+#endif
+        MRIsetVoxVal(hsynth, x, y, test_slice, 0, val) ;
+      }
+    }  
   }
   else for (x = 0 ; x < hsynth->width ; x++)   // synth is in histo coords
   {
@@ -321,9 +416,10 @@ HISTOsynthesize(MRI *mri, MRI *histo, int test_slice, int train_slice, MRI *hsyn
       V3_X(v1) = x ; V3_Y(v1) = y ; V3_Z(v1) = test_slice ;
       MatrixMultiply(m_histo2mri, v1, v2) ;
       xm = nint(V3_X(v2)) ; ym = nint(V3_Y(v2)) ; zm = nint(V3_Z(v2)) ;  // MRI coord
-
+      
       extract_feature_vector(mri, xm, ym, zm, &f) ;
-      find_most_similar_location(mri, &f, train_slice, &xd, &yd, &zd, mri_mask, &box, flags) ;
+      find_most_similar_location(mri, &f, train_slice, &xd, &yd, &zd, mri_mask, &box_train, flags,
+                                 xind, yind, zind, tol, num_notfound) ;
       V3_X(v1) = xd ; V3_Y(v1) = yd ; V3_Z(v1) = zd ;
       MatrixMultiply(m_mri2histo, v1, v2) ;
       xh = V3_X(v2) ;  yh = V3_Y(v2) ;  zh = V3_Z(v2) ; 
@@ -369,11 +465,13 @@ extract_feature_vector(MRI *mri, int x, int y, int z, FEATURE *f)
 
 
 static int
-find_most_similar_location(MRI *mri, FEATURE *fsrc, int z, int *pxd, int *pyd, int *pzd, MRI *mri_mask, MRI_REGION *box, int flags)
+find_most_similar_location(MRI *mri, FEATURE *fsrc, int z, int *pxd, int *pyd, int *pzd, 
+                           MRI *mri_mask, MRI_REGION *box, int flags,
+                           short *xind, short *yind, short *zind, double tol, int num_notfound)
 {
   FEATURE f ;
   double  dist, min_dist ;
-  int     x, y, x1, y1 ;
+  int     x, y, x1, y1, num, ind, nind ;
 
   f.len = fsrc->len ;
   f.whalf = fsrc->whalf ; ;
@@ -384,22 +482,31 @@ find_most_similar_location(MRI *mri, FEATURE *fsrc, int z, int *pxd, int *pyd, i
 
   min_dist = 1e12 ;
 
+  nind = mri->width*mri->height*mri->depth ;
   x1 = box->x + box->dx - 1 ; y1 = box->y + box->dy - 1 ;
-  for (x = box->x ; x <= x1 ; x++)
-    for (y = box->y ; y <= y1 ; y++)
+  for (num = ind = 0 ; ind < nind ; ind++)
+  {
+    ind = randomNumber(0, nind-.1) ;
+    x = xind[ind] ;
+    y = yind[ind] ;
+    if (x < box->x || x > x1 || y < box->y || y > y1)
+      continue ;
+    if ( x == Gx && y == Gy && z == Gz)
+      DiagBreak() ;
+    if (MRIgetVoxVal(mri_mask, x, y, z, 0) == 0)
+      continue ;
+    extract_feature_vector(mri, x, y, z, &f) ;
+    dist = feature_distance(fsrc, &f, flags & L1_NORM ? L1_NORM_DIST : L2_NORM_DIST) ;
+    if (dist < min_dist)
     {
-      if ( x == Gx && y == Gy && z == Gz)
-        DiagBreak() ;
-      if (MRIgetVoxVal(mri_mask, x, y, z, 0) == 0)
-        continue ;
-      extract_feature_vector(mri, x, y, z, &f) ;
-      dist = feature_distance(fsrc, &f, flags & L1_NORM ? L1_NORM_DIST : L2_NORM_DIST) ;
-      if (dist < min_dist)
-      {
-        min_dist = dist ;
-        *pxd = x ; *pyd = y ; *pzd = z ;
-      }
+      num = 0 ;
+      min_dist = dist ;
+      *pxd = x ; *pyd = y ; *pzd = z ;
     }
+    else
+      if (num++ > num_notfound)
+        break;
+  }
 
   free(f.vals) ;
   return(NO_ERROR) ;
