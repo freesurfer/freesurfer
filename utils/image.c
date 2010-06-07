@@ -7,10 +7,10 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/09/23 18:25:04 $
- *    $Revision: 1.109 $
+ *    $Date: 2010/06/07 18:27:51 $
+ *    $Revision: 1.110 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -130,6 +129,8 @@ ImageAllocBuffer(IMAGE *I)
     return(NO_ERROR);
   }
   npix = (long)I->sizeimage*(long)I->num_frame ;
+  if (I->image) free(I->image); // init_header might have calloc'd already,
+                                // so this free prevents memory leakage
   if ((I->image = hcalloc(npix, sizeof(byte))) == (byte *)NULL)
     return(ERROR_NO_MEMORY);
   if (I->pixel_format == PFMSBF || I->pixel_format == PFLSBF)
