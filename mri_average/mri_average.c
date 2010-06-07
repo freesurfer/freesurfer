@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/06/07 19:23:06 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/06/07 19:29:53 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -148,7 +148,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_average.c,v 1.40 2010/06/07 19:23:06 nicks Exp $",
+           "$Id: mri_average.c,v 1.41 2010/06/07 19:29:53 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -202,6 +202,8 @@ main(int argc, char *argv[])
       filecount = 0;
       while (fscanf(fp,"%s",fname) != EOF)
       {
+        MRI *mri_src_old = NULL;
+
         fprintf(stderr, "%d of list: reading %s...\n", filecount+1, fname) ;
 
         /*Pretty ugly but just pasted asthe one below ... (LZ)*/
@@ -229,6 +231,7 @@ main(int argc, char *argv[])
           fprintf(stderr, "embedding and interpolating volume\n") ;
           mri_tmp = MRIconform(mri_src) ;
           /*      MRIfree(&mri_src) ;*/
+          mri_src_old = mri_src; // free it later...
           mri_src = mri_tmp ;
         }
 
@@ -317,6 +320,7 @@ main(int argc, char *argv[])
         else
           MRIaverage(mri_src, filecount-skipped, mri_avg) ;
         MRIfree(&mri_src) ;
+        if (mri_src_old) MRIfree(&mri_src_old) ;
 
         filecount ++;
         /* End of reading all the files in */
