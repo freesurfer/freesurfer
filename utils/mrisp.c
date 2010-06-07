@@ -3,18 +3,18 @@
  * @brief utilities for spherical parameterization of an MRI_SURFACE
  *
  * mrisp = MRI_SURFACE parameterization contains utilities for writing various
- * fields over the surface (e.g. curvature, coordinate functions) into a spherical
- * (longitude/colatitude) parameterization in the form of a 2D image. Also for
- * Gaussian blurring and other utilities.
+ * fields over the surface (e.g. curvature, coordinate functions) into a 
+ * spherical (longitude/colatitude) parameterization in the form of a 2D 
+ * image. Also for Gaussian blurring and other utilities.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/05/26 17:25:31 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2010/06/07 18:27:08 $
+ *    $Revision: 1.22 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,7 +24,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 

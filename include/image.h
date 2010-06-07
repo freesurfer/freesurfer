@@ -1,17 +1,16 @@
 /**
  * @file  image.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief image processing prototypes
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:35 $
- *    $Revision: 1.14 $
+ *    $Author: nicks $
+ *    $Date: 2010/06/07 18:26:34 $
+ *    $Revision: 1.15 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,20 +20,9 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-
-/*
- *       FILE NAME:   image.h
- *
- *       DESCRIPTION: image processing prototypes
- *
- *       AUTHOR:      Bruce Fischl
- *       DATE:        2/5/96
- *
-*/
 #ifndef OPEN_GL_CODE
 
 #ifndef IMAGE_H
