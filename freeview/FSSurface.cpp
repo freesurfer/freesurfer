@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/02 20:19:51 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/06/08 17:43:26 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -45,6 +45,8 @@
 #include "vtkTubeFilter.h"
 #include "vtkMath.h"
 #include "vtkLine.h"
+#include "vtkPlane.h"
+#include "vtkCutter.h"
 #include "FSVolume.h"
 #include "MyUtils.h"
 
@@ -52,6 +54,7 @@ using namespace std;
 
 FSSurface::FSSurface( FSVolume* ref ) :
     m_MRIS( NULL ),
+    m_MRISTarget( NULL ),
     m_bBoundsCacheDirty( true ),
     m_bCurvatureLoaded( false ),
     m_nActiveSurface( SurfaceMain ),
@@ -62,6 +65,7 @@ FSSurface::FSSurface( FSVolume* ref ) :
   m_polydataVector = vtkSmartPointer<vtkPolyData>::New();
   m_polydataVertices = vtkSmartPointer<vtkPolyData>::New();
   m_polydataWireframes = vtkSmartPointer<vtkPolyData>::New();
+  m_polydataTarget = vtkSmartPointer<vtkPolyData>::New();
 
   for ( int i = 0; i < 3; i++ )
     m_polydataVector2D[i] = vtkSmartPointer<vtkPolyData>::New();
@@ -79,6 +83,9 @@ FSSurface::~FSSurface()
 {
   if ( m_MRIS )
     ::MRISfree( &m_MRIS );
+
+  if ( m_MRISTarget )
+    ::MRISfree( &m_MRISTarget );
 
   for ( int i = 0; i < NUM_OF_VSETS; i++ )
   {
@@ -101,7 +108,8 @@ FSSurface::~FSSurface()
 
 bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, 
                           const char* vector_filename,
-                          const char* patch_filename )
+                          const char* patch_filename,
+                          const char* target_filename )
 {
   if ( m_MRIS )
     ::MRISfree( &m_MRIS );
@@ -212,6 +220,9 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   RestoreVertices( m_MRIS, SurfaceMain );
   RestoreNormals( m_MRIS, SurfaceMain );
 
+  if ( target_filename != NULL )
+    LoadTargetSurface( target_filename, wnd, event );
+  
   if ( vector_filename != NULL )
     LoadVectors ( vector_filename );
 
@@ -219,6 +230,27 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
 // cout << "MRISread finished" << endl;
 
   return true;
+}
+
+void FSSurface::LoadTargetSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event )
+{
+  event.SetInt( event.GetInt() + 1 );
+  wxPostEvent( wnd, event );
+
+  if ( m_MRISTarget )
+    ::MRISfree( &m_MRISTarget );
+  
+  char* fn = strdup( filename );
+  m_MRISTarget = ::MRISread( fn );
+  free( fn );
+
+  if ( m_MRISTarget == NULL )
+  {
+    cerr << "MRISread failed. Can not load target surface." << endl;
+    return;
+  }
+  
+  UpdatePolyData( m_MRISTarget, m_polydataTarget );
 }
 
 bool FSSurface::MRISWrite( const char* filename, wxWindow* wnd, wxCommandEvent& event )
@@ -260,7 +292,6 @@ bool FSSurface::LoadSurface( const char* filename, int nSet )
     return true;
   }
 }
-
 
 bool FSSurface::LoadCurvature( const char* filename )
 {
@@ -524,77 +555,105 @@ void FSSurface::GetNormalAtVertex( int nVertex, double* vec_out )
 
 void FSSurface::UpdatePolyData()
 {
+  UpdatePolyData( m_MRIS, m_polydata, m_polydataVertices, m_polydataWireframes );
+}
+
+void FSSurface::UpdatePolyData( MRIS* mris, 
+                                vtkPolyData* polydata, 
+                                vtkPolyData* polydata_verts, 
+                                vtkPolyData* polydata_wireframe )
+{
   // Allocate all our arrays.
-  int cVertices = m_MRIS->nvertices;
-  int cFaces = m_MRIS->nfaces;
+  int cVertices = mris->nvertices;
+  int cFaces = mris->nfaces;
 
   vtkSmartPointer<vtkPoints> newPoints =
-    vtkSmartPointer<vtkPoints>::New();
+      vtkSmartPointer<vtkPoints>::New();
   newPoints->Allocate( cVertices );
 
   vtkSmartPointer<vtkCellArray> newPolys =
-    vtkSmartPointer<vtkCellArray>::New();
+      vtkSmartPointer<vtkCellArray>::New();
   newPolys->Allocate( newPolys->EstimateSize(cFaces,VERTICES_PER_FACE) );
 
-  vtkSmartPointer<vtkFloatArray> newNormals =
-    vtkSmartPointer<vtkFloatArray>::New();
+  vtkSmartPointer<vtkFloatArray> newNormals = 
+      vtkSmartPointer<vtkFloatArray>::New();
   newNormals->Allocate( cVertices );
   newNormals->SetNumberOfComponents( 3 );
-  newNormals->SetName( "Normals" );
+  newNormals->SetName( "Normals" );;
+  
+  vtkSmartPointer<vtkCellArray> verts;
+  if ( polydata_verts )
+  {
+    verts = vtkSmartPointer<vtkCellArray>::New();
+    verts->Allocate( cVertices );
+  }
 
   // Go through the surface and copy the vertex and normal for each
   // vertex. We need to transform them from surface RAS into standard
   // RAS.
   float point[3], normal[3], surfaceRAS[3];
-  vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
-  verts->Allocate( cVertices );
   for ( int vno = 0; vno < cVertices; vno++ )
   {
-    surfaceRAS[0] = m_MRIS->vertices[vno].x;
-    surfaceRAS[1] = m_MRIS->vertices[vno].y;
-    surfaceRAS[2] = m_MRIS->vertices[vno].z;
+    surfaceRAS[0] = mris->vertices[vno].x;
+    surfaceRAS[1] = mris->vertices[vno].y;
+    surfaceRAS[2] = mris->vertices[vno].z;
     this->ConvertSurfaceToRAS( surfaceRAS, point );
     if ( m_volumeRef )
       m_volumeRef->RASToTarget( point, point );
     newPoints->InsertNextPoint( point );
 
-    normal[0] = m_MRIS->vertices[vno].nx;
-    normal[1] = m_MRIS->vertices[vno].ny;
-    normal[2] = m_MRIS->vertices[vno].nz;
+    normal[0] = mris->vertices[vno].nx;
+    normal[1] = mris->vertices[vno].ny;
+    normal[2] = mris->vertices[vno].nz;
     newNormals->InsertNextTuple( normal );
     
-    vtkIdType n = vno;
-    verts->InsertNextCell( 1, &n );
+    if ( polydata_verts )
+    {  
+      vtkIdType n = vno;
+      verts->InsertNextCell( 1, &n );
+    }
   }
 
   // Go through and add the face indices. 
-  vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-  lines->Allocate( cFaces * 6 );
+  vtkSmartPointer<vtkCellArray> lines;
+  if ( polydata_wireframe )
+  {
+    lines = vtkSmartPointer<vtkCellArray>::New();
+    lines->Allocate( cFaces * 6 );
+  }
   vtkIdType face[VERTICES_PER_FACE];
   for ( int fno = 0; fno < cFaces; fno++ )
   {
-    if ( m_MRIS->faces[fno].ripflag == 0 )
+    if ( mris->faces[fno].ripflag == 0 )
     {
-      face[0] = m_MRIS->faces[fno].v[0];
-      face[1] = m_MRIS->faces[fno].v[1];
-      face[2] = m_MRIS->faces[fno].v[2];
+      face[0] = mris->faces[fno].v[0];
+      face[1] = mris->faces[fno].v[1];
+      face[2] = mris->faces[fno].v[2];
       newPolys->InsertNextCell( 3, face );
-      lines->InsertNextCell( 2, face );
-      lines->InsertNextCell( 2, face+1 );
-      vtkIdType t[2] = { face[0], face[2] };
-      lines->InsertNextCell( 2, t );
+      if ( polydata_wireframe )
+      {
+        lines->InsertNextCell( 2, face );
+        lines->InsertNextCell( 2, face+1 );
+        vtkIdType t[2] = { face[0], face[2] };
+        lines->InsertNextCell( 2, t );
+      }
     }  
   }
 
-  m_polydata->SetPoints( newPoints );
-  m_polydata->GetPointData()->SetNormals( newNormals );
+  polydata->SetPoints( newPoints );
+  polydata->GetPointData()->SetNormals( newNormals );
   newPolys->Squeeze(); // since we've estimated size; reclaim some space
-  m_polydata->SetPolys( newPolys ); 
-  m_polydataVertices->SetPoints( newPoints );
-  m_polydataVertices->SetVerts( verts );
-  m_polydataWireframes->SetPoints( newPoints );
-  m_polydataWireframes->SetLines( lines ); 
-// m_polydata->Update();
+  polydata->SetPolys( newPolys ); 
+  if ( polydata_verts )
+  {
+    polydata_verts->SetPoints( newPoints );
+    polydata_verts->SetVerts( verts );
+  }
+  if ( polydata_wireframe )
+  {
+    polydata_wireframe->SetPoints( newPoints );
+    polydata_wireframe->SetLines( lines ); 
+  }
 }
 
 void FSSurface::UpdateVerticesAndNormals()
@@ -716,7 +775,7 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
     
     // build vector actor
     vtkIdType n = 0;
-    float point[3], surfaceRAS[3];
+    double point[3], surfaceRAS[3];
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
@@ -728,6 +787,22 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
       contour_pts = contour_polydata->GetPoints();
       contour_lines = contour_polydata->GetLines();
     }
+    
+    vtkPolyData* target_polydata = NULL;
+    vtkSmartPointer<vtkCutter> cutter = vtkSmartPointer<vtkCutter>::New();
+    if ( m_polydataTarget->GetPoints() && m_polydataTarget->GetPoints()->GetNumberOfPoints() > 0 )
+    {        
+      vtkSmartPointer<vtkPlane> slicer = vtkSmartPointer<vtkPlane>::New();
+      double pos[3] = { 0, 0, 0 };
+      pos[nPlane] = slice_pos;
+      slicer->SetOrigin( pos );
+      slicer->SetNormal( (nPlane==0), (nPlane==1), (nPlane==2) );
+      cutter->SetInput( m_polydataTarget );
+      cutter->SetCutFunction( slicer );
+      cutter->Update();
+      target_polydata = cutter->GetOutput();
+    }
+
     for ( int vno = 0; vno < cVertices; vno++ )
     {
       if ( mask[vno] )
@@ -742,89 +817,19 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
   
         if ( contour_pts )
         { 
-          // first find the closest point on the contour
-          double pt0[3];
-          double dist2 = 1e10;
-          int n0 = 0;
-          for ( int i = 0; i < contour_pts->GetNumberOfPoints(); i++ )
-          {
-            contour_pts->GetPoint( i, pt0 );
-            double d = vtkMath::Distance2BetweenPoints( old_pt, pt0 );
-            if ( d < dist2 )
-            {
-              dist2 = d;
-              n0 = i;
-            }
-          }
-          
-          // find the closest projection on the contour
-          double cpt1[3], cpt2[3], t1, t2, p0[3], p1[3], p2[3];
-          int n1 = -1, n2 = -1;
-          contour_lines->InitTraversal();
-          vtkIdType npts = 0, *cellpts;
-          while ( contour_lines->GetNextCell( npts, cellpts ) )
-          {
-            if ( cellpts[0] == n0 )
-            {
-              if ( n1 < 0 )
-                n1 = cellpts[1];
-              else
-                n2 = cellpts[1];
-            }
-            else if ( cellpts[1] == n0 )
-            {
-              if ( n1 < 0 )
-                n1 = cellpts[0];
-              else
-                n2 = cellpts[0];
-            }
-            if ( n1 >= 0 && n2 >= 0 )
-              break;
-          }
-          
-          contour_pts->GetPoint( n0, p0 );
-          contour_pts->GetPoint( n1, p1 );
-          contour_pts->GetPoint( n2, p2 );
-          double d1 = vtkLine::DistanceToLine( old_pt, 
-                                   p0, 
-                                   p1,
-                                   t1,
-                                   cpt1 );
-          double d2 = vtkLine::DistanceToLine( old_pt, 
-                                   p0, 
-                                   p2, 
-                                   t2,
-                                   cpt2 );
-          if ( false )//vno == 75580 && nPlane == 2 )
-          {
-          cout << t1 << " " << t2 << endl 
-              << d1 << " " << d2 << endl
-              << "n: " << n0 <<  " " << n1 << " " << n2 << endl
-              << "p0: " << p0[0] << ", " << p0[1] << ", " << p0[2] << endl 
-              << "p1: " << p1[0] << ", " << p1[1] << ", " << p1[2] << endl 
-              << "p2: " << p2[0] << ", " << p2[1] << ", " << p2[2] << endl 
-              << "cpt1: " << cpt1[0] << ", " << cpt1[1] << ", " << cpt1[2] << endl 
-              << "cpt2: " << cpt2[0] << ", " << cpt2[1] << ", " << cpt2[2] << endl; fflush(0);
-          }
-
-          if ( d1 < d2 )
-          {
-            pt0[0] = cpt1[0];
-            pt0[1] = cpt1[1];
-            pt0[2] = cpt1[2];
-          }
-          else
-          {
-            pt0[0] = cpt2[0];
-            pt0[1] = cpt2[1];
-            pt0[2] = cpt2[2]; 
-          }
+          double new_pt[3];
+          ProjectVectorPoint2D( old_pt, contour_pts, contour_lines, new_pt );
           
           for ( int i = 0; i < 3; i++ )
           {
-            point[i] += (pt0[i] - old_pt[i] );
+            point[i] += (new_pt[i] - old_pt[i] );
           }
-          points->InsertNextPoint( pt0 );
+          points->InsertNextPoint( new_pt );
+          
+          if ( target_polydata && target_polydata->GetPoints() )
+          {
+            ProjectVectorPoint2D( point, target_polydata->GetPoints(), target_polydata->GetLines(), point );
+          }          
           points->InsertNextPoint( point );
         }
         else
@@ -834,7 +839,6 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
         }
   
         verts->InsertNextCell( 1, &n );
-  
         lines->InsertNextCell( 2 );
         lines->InsertCellPoint( n++ );
         lines->InsertCellPoint( n++ );
@@ -845,6 +849,81 @@ void FSSurface::UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* conto
     m_polydataVector2D[nPlane]->SetVerts( verts );
     delete[] mask;
   }  
+}
+
+bool FSSurface::ProjectVectorPoint2D( double* pt_in, 
+                                      vtkPoints* contour_pts, 
+                                      vtkCellArray* contour_lines, 
+                                      double* pt_out )
+{
+  // first find the closest point on the contour
+  double pt0[3];
+  double dist2 = 1e10;
+  int n0 = 0;
+  double* old_pt = pt_in;
+  
+//  cout << contour_pts << " " << contour_lines << endl; fflush(0); 
+//  cout << contour_pts->GetNumberOfPoints() << " " << 
+//      contour_lines->GetNumberOfCells() << endl;
+  for ( int i = 0; i < contour_pts->GetNumberOfPoints(); i++ )
+  {
+    contour_pts->GetPoint( i, pt0 );
+    double d = vtkMath::Distance2BetweenPoints( old_pt, pt0 );
+    if ( d < dist2 )
+    {
+      dist2 = d;
+      n0 = i;
+    }
+  }
+
+  // find the closest projection on the contour
+  double cpt1[3], cpt2[3], t1, t2, p0[3], p1[3], p2[3];
+  int n1 = -1, n2 = -1;
+  contour_lines->InitTraversal();
+  vtkIdType npts = 0, *cellpts;
+  while ( contour_lines->GetNextCell( npts, cellpts ) )
+  {
+    if ( cellpts[0] == n0 )
+    {
+      if ( n1 < 0 )
+        n1 = cellpts[1];
+      else
+        n2 = cellpts[1];
+    }
+    else if ( cellpts[1] == n0 )
+    {
+      if ( n1 < 0 )
+        n1 = cellpts[0];
+      else
+        n2 = cellpts[0];
+    }
+    if ( n1 >= 0 && n2 >= 0 )
+      break;
+  }
+  
+  if ( n1 >= 0 && n2 >= 0 )
+  {        
+    contour_pts->GetPoint( n0, p0 );
+    contour_pts->GetPoint( n1, p1 );
+    contour_pts->GetPoint( n2, p2 );
+    double d1 = vtkLine::DistanceToLine( old_pt, p0, p1, t1, cpt1 );
+    double d2 = vtkLine::DistanceToLine( old_pt, p0, p2, t2, cpt2 );
+    if ( d1 < d2 )
+    {
+      pt_out[0] = cpt1[0];
+      pt_out[1] = cpt1[1];
+      pt_out[2] = cpt1[2];
+    }
+    else
+    {
+      pt_out[0] = cpt2[0];
+      pt_out[1] = cpt2[1];
+      pt_out[2] = cpt2[2]; 
+    }
+    return true;
+  }
+  else
+    return false;
 }
 
 void FSSurface::GetVectorAtVertex( int nVertex, double* vec_out, int nVector )

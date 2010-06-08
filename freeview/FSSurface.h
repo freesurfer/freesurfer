@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/02 19:37:26 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/06/08 17:43:26 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -58,7 +58,8 @@ public:
 
   bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, 
                  const char* vector_filename = NULL,
-                 const char* patch_filename = NULL );
+                 const char* patch_filename = NULL,
+                 const char* target_filename = NULL );
 
   bool MRISWrite( const char* filename, wxWindow* wnd, wxCommandEvent& event );
   
@@ -145,6 +146,11 @@ public:
     return m_polydata;
   }
 
+  vtkPolyData* GetTargetPolyData()
+  {
+    return m_polydataTarget;
+  }
+  
   vtkPolyData* GetVectorPolyData()
   {
     return m_polydataVector;
@@ -174,7 +180,8 @@ public:
   
   void GetNormalAtVertex( int nVertex, double* vec_out );
   
-  void UpdateVector2D( int nPlane, double slice_pos, vtkPolyData* contour_polydata = NULL );
+  void UpdateVector2D( int nPlane, double slice_pos, 
+                       vtkPolyData* contour_polydata = NULL );
   
   void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma );
   
@@ -184,6 +191,9 @@ public:
 
 protected:
   void UpdatePolyData();
+  void UpdatePolyData( MRIS* mris, vtkPolyData* polydata, 
+                       vtkPolyData* polydata_verts = NULL, 
+                       vtkPolyData* polydata_wireframe = NULL );
   void UpdateVerticesAndNormals();
   void ComputeNormals();
   void NormalFace(int fac, int n, float *norm );
@@ -191,6 +201,7 @@ protected:
   void Normalize( float v[3] );
 
   bool LoadVectors( const char* filename );
+  void LoadTargetSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event );
   void UpdateVectors();
   void UpdateVertices();
 
@@ -198,8 +209,14 @@ protected:
   void RestoreNormals ( MRIS* mris, int nSet );
   void SaveVertices ( MRIS* mris, int nSet );
   void RestoreVertices( MRIS* mris, int nSet );
+  
+  bool ProjectVectorPoint2D( double* pt_in, 
+                             vtkPoints* contour_pts, 
+                             vtkCellArray* contour_lines, 
+                             double* pt_out );
 
   MRIS*   m_MRIS;
+  MRIS*   m_MRISTarget;
 
   double  m_SurfaceToRASMatrix[16];
   vtkSmartPointer<vtkTransform> m_SurfaceToRASTransform;
@@ -214,6 +231,7 @@ protected:
   vtkSmartPointer<vtkPolyData> m_polydataVertices;
   vtkSmartPointer<vtkPolyData> m_polydataWireframes;
   vtkSmartPointer<vtkPolyData> m_polydataVector2D[3];
+  vtkSmartPointer<vtkPolyData> m_polydataTarget;
 
   // Hash table so we can look up vertices. Uses v->x,y,z.
   MRIS_HASH_TABLE* m_HashTable[5];

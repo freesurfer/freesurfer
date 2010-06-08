@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 18:51:13 $
- *    $Revision: 1.118 $
+ *    $Date: 2010/06/08 17:43:26 $
+ *    $Revision: 1.119 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -3476,6 +3476,7 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
   wxArrayString sa_fn = MyUtils::SplitString( fullfn, _(":"), nIgnoreStart, nIgnoreEnd - nIgnoreStart + 1 );
   wxString fn = sa_fn[0];
   wxString fn_patch = _("");
+  wxString fn_target = _("");
   for ( size_t k = 1; k < sa_fn.size(); k++ )
   {
     int n = sa_fn[k].Find( _("=") );
@@ -3608,8 +3609,16 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
       }    
       else if ( subOption == _("patch") )
       {
+        if ( subArgu.Contains( _("/") ) )
+          subArgu = MyUtils::GetNormalizedFullPath( subArgu );
         fn_patch = subArgu;
       }  
+      else if ( subOption == _("target") || subOption == _("target_surf"))
+      {
+        if ( subArgu.Contains( _("/") ) )
+          subArgu = MyUtils::GetNormalizedFullPath( subArgu );
+        fn_target = subArgu;
+      }
       else if ( subOption == _("name") )
       {
         wxArrayString script;
@@ -3650,7 +3659,7 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
       }
     }
   }
-  LoadSurfaceFile( fn, fn_patch );
+  LoadSurfaceFile( fn, fn_patch, fn_target );
 }
 
 void MainWindow::CommandSetSurfaceOverlayMethod( const wxArrayString& cmd )
@@ -4611,7 +4620,7 @@ void MainWindow::OnFileSaveSurfaceAsUpdateUI( wxUpdateUIEvent& event )
   event.Enable( layer && layer->IsEditable() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
-void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_patch )
+void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_patch, const wxString& fn_target )
 {
   m_strLastDir = MyUtils::GetNormalizedPath( filename );
 
@@ -4623,6 +4632,7 @@ void MainWindow::LoadSurfaceFile( const wxString& filename, const wxString& fn_p
   layer->SetName( layerName.char_str() );
   layer->SetFileName( fn.GetFullPath().char_str() );
   layer->SetPatchFileName( fn_patch.char_str() );
+  layer->SetTargetFileName( fn_target.char_str() );
 
   WorkerThread* thread = new WorkerThread( this );
   thread->LoadSurface( layer );

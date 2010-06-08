@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/02 20:19:51 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/06/08 17:43:26 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -111,6 +111,11 @@ public:
     m_sVectorFilename = fn;
   }
 
+  void SetTargetFileName( const char* fn )
+  {
+    m_sTargetFilename = fn;
+  }
+  
   int GetActiveSurface();
 
   void SetActiveSurface( int nSurfaceType );
@@ -228,6 +233,7 @@ protected:
 
   std::string   m_sPatchFilename;
   std::string   m_sVectorFilename;
+  std::string   m_sTargetFilename;
 
   vtkActor*   m_sliceActor2D[3];
   vtkActor*   m_sliceActor3D[3];

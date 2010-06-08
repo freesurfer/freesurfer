@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 17:38:08 $
- *    $Revision: 1.74 $
+ *    $Date: 2010/06/08 17:43:26 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -284,7 +284,8 @@ public:
   void LoadPVolumeFiles( const wxArrayString& filenames, const wxString& prefix, const wxString& lut );
   void LoadROIFile    ( const wxString& fn, const wxString& ref_vol = "" );
   void LoadSurfaceFile( const wxString& fn, 
-			const wxString& fn_patch = _("")
+			const wxString& fn_patch = _(""),
+      const wxString& fn_target = _("")
       );
   void LoadSurfaceVectorFile    ( const wxString& fn );
   void LoadWayPointsFile        ( const wxString& fn );  

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/02 20:19:51 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/06/08 17:43:26 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -139,13 +139,13 @@ bool LayerSurface::LoadSurfaceFromFile( wxWindow* wnd, wxCommandEvent& event )
     delete m_surfaceSource;
 
   m_surfaceSource = new FSSurface( m_volumeRef ? m_volumeRef->GetSourceVolume() : NULL );
-// m_surfaceSource->SetResampleToRAS( m_bResampleToRAS );
   if ( !m_surfaceSource->MRISRead( m_sFilename.c_str(), wnd, event,
                                     m_sVectorFilename.size() > 0 ? m_sVectorFilename.c_str() : NULL,
-                                    m_sPatchFilename.size() > 0 ? m_sPatchFilename.c_str() : NULL )
+                                    m_sPatchFilename.size() > 0 ? m_sPatchFilename.c_str() : NULL,
+                                    m_sTargetFilename.size() > 0 ? m_sTargetFilename.c_str() : NULL )
                                     )
       return false;
-
+  
   InitializeSurface();
   InitializeActors();
 
@@ -196,10 +196,10 @@ bool LayerSurface::LoadVectorFromFile( wxWindow* wnd, wxCommandEvent& event )
   event.SetInt( 100 );
   wxPostEvent( wnd, event );
 
-  UpdateVectorActor2D();
-  
   this->SendBroadcast( "LayerModified", this );
   this->SendBroadcast( "LayerActorUpdated", this );
+  
+  UpdateVectorActor2D();
 
   return true;
 }
@@ -213,7 +213,11 @@ void LayerSurface::UpdateVectorActor2D()
       vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( m_sliceActor2D[i]->GetMapper() );
       if ( mapper )
         mapper->Update();
-      m_surfaceSource->UpdateVector2D( i, m_dSlicePosition[i], ( mapper ? mapper->GetInput() : NULL ) );
+      
+      m_surfaceSource->UpdateVector2D( i, 
+                                       m_dSlicePosition[i], 
+                                       ( mapper ? mapper->GetInput() : NULL )    
+                                       );
     }
   }
 }
@@ -375,6 +379,7 @@ void LayerSurface::InitializeActors()
     //
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper->SetInputConnection( cutter->GetOutputPort() );
+ //   mapper->SetInputConnection( 1, cutter->GetOutputPort( 1 ) );
     vtkSmartPointer<vtkPolyDataMapper> mapper2 = vtkSmartPointer<vtkPolyDataMapper>::New();
     mapper2->SetInputConnection( cutter->GetOutputPort() );
     //
