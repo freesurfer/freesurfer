@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/06/08 20:12:36 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -176,7 +176,7 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 
-  UpdateUI();
+  UpdateUI( true );
 }
 
 PanelSurface::~PanelSurface()
