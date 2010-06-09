@@ -121,6 +121,7 @@ TIF=\
 	icon_camera.tif \
 	icon_colormap_grayscale.tif \
 	icon_colormap_lut.tif \
+	icon_curv_bw.tif \
 	icon_disk_new_name.tif \
 	icon_disk.tif \
 	icon_disk_multiview.tif \
