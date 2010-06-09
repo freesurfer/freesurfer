@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/27 00:21:38 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/06/09 15:48:13 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -810,6 +810,8 @@ MLFC *ReadMatlabFileContents(const char *fname)
   double   **real_matrix, **imag_matrix ;
   int      file_type, nrows, ncols, row, col, len ;
   float    *fptr = NULL ;
+
+  memset(&mf, 0, sizeof(MATFILE));
 
   fp = fopen(fname, "rb") ;
   if (fp == NULL)
