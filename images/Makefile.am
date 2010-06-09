@@ -36,6 +36,7 @@ GIF=\
 	icon_cursor_goto.gif \
 	icon_cursor_save.gif \
 	icon_curv.gif \
+	icon_curv_bw.gif \
 	icon_cut_area.gif \
 	icon_cut_clear.gif \
 	icon_cut_closed_line.gif \
