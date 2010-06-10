@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/09 06:56:19 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/06/10 22:27:42 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -375,7 +375,20 @@ public:
 			     const char* isWorkingDir,
 			     const char* isFormat,
 			     string& iosCommand ) const;
-			     
+
+
+  /**
+   * Run mri_surfcluster using supplied sig.mgh (for a contrast)
+   * and supplied Monte Carlo threshold and sign to generate 
+   * cluster-wise correction for multiple comparisons results
+   * @return int
+   * @param  isThreshold - one of: th13, th20, th23, th30, th33, th40
+   * @param  isSign - one of: abs, pos, neg
+   * @param  isContrast - name of contrast from which to use sig.mgh
+   */
+  int RunMonteCarloSimulation ( const char* isThreshold,
+                                const char* isSign,
+                                const char* isContrast );
 
 private:
 

@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/25 21:39:14 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/06/10 22:27:42 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2007-2008,
  * The General Hospital Corporation (Boston, MA).
@@ -1211,4 +1211,99 @@ vector< string > QdecProject::CreateStatsDataTables ()
   cout << "Completed creation of aseg and aparc stats data tables." << endl;
 
   return statsDataNames;
+}
+
+
+/**
+ * Run mri_surfcluster using supplied sig.mgh (taken from contrast dir)
+ * and supplied Monte Carlo threshold and sign to generate 
+ * cluster-wise correction for multiple comparisons results
+ * making use of pre-calculated simulation data for fsaverage.
+ * @return int
+ * @param  isThreshold - one of: th13, th20, th23, th30, th33, th40
+ * @param  isSign - one of: abs, pos, neg
+ * @param  isContrast - name of contrast from which to use sig.mgh
+ */
+int 
+QdecProject::RunMonteCarloSimulation ( const char* isThreshold,
+                                       const char* isSign,
+                                       const char* isContrast )
+{
+  cout << isThreshold << endl;
+  cout << isSign << endl;
+  cout << isContrast << endl;
+
+  stringstream ssWorkDir;
+  ssWorkDir << this->GetDefaultWorkingDir() 
+            << "/" 
+            << this->GetGlmDesign()->GetName().c_str();
+  char* sWorkDir = strdup( ssWorkDir.str().c_str() );
+
+
+
+
+
+
+
+
+
+
+
+//   H  A  C  K     must get correct fwhm value !!!!!!!!!!!!!!!!1
+
+
+
+
+
+
+
+
+  // build a command line
+  stringstream ssCommand;
+  ssCommand << "mri_surfcluster"
+            << " --in " << sWorkDir << "/" << isContrast << "/sig.mgh"
+            << " --csd " << getenv("FREESURFER_HOME") 
+            << "/average/mult-comp-cor/fsaverage/" << this->GetHemi()
+            << "/cortex/fwhm15/" << isSign << "/" << isThreshold << "/mc-z.csd"
+            << " --mask " << sWorkDir << "/mask.mgh"
+            << " --cwsig " << sWorkDir << "/" << isContrast
+            << "/mc-z." << isSign << "." << isThreshold << ".sig.cluster.mgh"
+            << " --vwsig " << sWorkDir << "/" << isContrast
+            << "/mc-z." << isSign << "." << isThreshold << ".sig.vertex.mgh"
+            << " --sum " << sWorkDir << "/" << isContrast
+            << "/mc-z."<<isSign << "." << isThreshold << ".sig.cluster.summary"
+            << " --ocn " << sWorkDir << "/" << isContrast
+            << "/mc-z." << isSign << "." << isThreshold << ".sig.ocn.mgh"
+            << " --oannot " <<sWorkDir << "/" << isContrast
+            << "/mc-z." << isSign << "." << isThreshold << ".sig.ocn.annot"
+            << " --csdpdf "<< sWorkDir << "/" << isContrast
+            << "/mc-z." << isSign << "." << isThreshold << ".pdf.dat"
+            << " --annot aparc"
+            << " --cwpvalthresh 0.05 --surf white";
+
+  
+  // and run the command...
+  char* sCommand = strdup( ssCommand.str().c_str() );
+  printf( "\n------------------------------------------------------\n" );
+  printf( "%s\n", sCommand );
+  fflush(stdout);fflush(stderr);
+  int rRun = system( sCommand );
+  free( sCommand );
+
+  if( rRun )
+  {
+    cout << "\nERROR!\n" << endl;
+  }
+  else
+  {
+    // print cluster summary
+    stringstream ssCat;
+    ssCat << "cat " << sWorkDir << "/" << isContrast
+          << "/mc-z." <<isSign << "." << isThreshold << ".sig.cluster.summary";
+    system( ssCat.str().c_str() );
+
+    cout << "\nSimulation complete.\n" << endl;
+  }
+
+  return rRun;
 }
