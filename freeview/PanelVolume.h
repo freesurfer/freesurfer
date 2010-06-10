@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/26 17:30:57 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/06/10 21:04:07 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -198,6 +198,8 @@ private:
   std::vector<wxWindow*> m_widgetlistContour;
   std::vector<wxWindow*> m_widgetlistNormalDisplay;
   std::vector<wxWindow*> m_widgetlistEditable;
+  
+  std::vector<wxWindow*> m_widgetlistResize;
 
   LUTDataHolder* m_luts;
 

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/23 18:31:10 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/06/10 21:04:06 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -149,6 +149,8 @@ private:
   std::vector<wxWindow*>  m_widgetsVertex;
   std::vector<wxWindow*>  m_widgetsMesh;
   std::vector<wxWindow*>  m_widgetsLabel;
+  
+  std::vector<wxWindow*>  m_widgetsResize;
 
   bool   m_bUINeedUpdate;
 

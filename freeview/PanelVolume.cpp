@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/07 20:06:30 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/06/10 21:04:07 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -211,9 +211,9 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistGenericColorMap.push_back( XRCCTRL( *this, "ID_STATIC_COLORMAP_MAX", wxStaticText ) );
 
   m_widgetlistLUT.push_back( m_listColorTable );
-  m_widgetlistLUT.push_back( m_colorIndicator );
   m_widgetlistLUT.push_back( XRCCTRL( *this, "ID_STATIC_LUT", wxStaticText ) );
   m_widgetlistLUT.push_back( m_choiceLUT );
+  m_widgetlistLUT.push_back( m_colorIndicator );
 
   m_widgetlistDirectionCode.push_back( m_choiceDirectionCode );
   m_widgetlistDirectionCode.push_back( XRCCTRL( *this, "ID_STATIC_DIRECTION_CODE", wxStaticText ) );
@@ -265,8 +265,22 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   for ( size_t i = 0; i < m_widgetlistEditable.size(); i++ )
     m_widgetlistNormalDisplay.push_back( m_widgetlistEditable[i] );
 
+  wxScrolledWindow* sw = XRCCTRL( *this, "ID_SCROLL_WINDOW", wxScrolledWindow );
+  sw->SetScrollRate( 5, 5 );
+  sw->SetMaxSize( wxSize( -1, 10000 ) );
+  
+  m_widgetlistResize.push_back( m_choiceColorMap );
+  m_widgetlistResize.push_back( m_choiceLUT );
+  m_widgetlistResize.push_back( m_choiceDirectionCode );
+  m_widgetlistResize.push_back( m_choiceInversion );
+  m_widgetlistResize.push_back( m_choiceRepresentation );
+  m_widgetlistResize.push_back( m_choiceMask );
+  m_widgetlistResize.push_back( m_listBoxLayers );
+  m_widgetlistResize.push_back( m_listColorTable );
+  
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->AddListener( this );
-  UpdateUI();
+  
+  UpdateUI( true );
 }
 
 PanelVolume::~PanelVolume()
@@ -822,8 +836,7 @@ void PanelVolume::DoUpdateUI()
 	ShowWidgets( m_widgetlistContour, m_checkContour->IsChecked() );
 //  ShowWidgets( m_widgetlistContour, false );
 //  m_checkContour->Show( false /*nColorMap == LayerPropertiesMRI::LUT*/ );
-	
-	Layout();
+
 	if ( layer && layer->GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
 	{
     if ( m_curCTAB != layer->GetProperties()->GetLUTCTAB() )
@@ -842,7 +855,16 @@ void PanelVolume::DoUpdateUI()
         break;
       }
     }
-	}
+	} 
+  
+  // hack to force resize of these controls in scrolled window
+  for ( size_t i = 0; i < m_widgetlistResize.size(); i++ )
+  {
+    wxSize sz = m_widgetlistResize[i]->GetMinSize();
+    m_widgetlistResize[i]->SetMinSize( wxSize( 100, sz.GetHeight() ) );
+  }
+ 
+  Layout();
 }
 
 void PanelVolume::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )

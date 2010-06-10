@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/08 20:12:36 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/06/10 21:04:06 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -173,6 +173,10 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   
   m_widgetsLabel.push_back( m_colorPickerLabel );
   m_widgetsLabel.push_back( XRCCTRL( *this, "ID_STATIC_LABEL_COLOR", wxStaticText ) );
+  
+  wxScrolledWindow* sw = XRCCTRL( *this, "ID_SCROLL_WINDOW", wxScrolledWindow );
+  sw->SetScrollRate( 5, 5 );
+  sw->SetMaxSize( wxSize( -1, 10000 ) );
   
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
 
@@ -388,6 +392,13 @@ void PanelSurface::DoUpdateUI()
   }
   m_colorPicker->Enable( layer ); // && nCurvatureMap != LayerPropertiesSurface::CM_Threshold );
 
+  // hack to force resize of these controls in scrolled window
+  for ( size_t i = 0; i < m_widgetsResize.size(); i++ )
+  {
+    wxSize sz = m_widgetsResize[i]->GetMinSize();
+    m_widgetsResize[i]->SetMinSize( wxSize( 100, sz.GetHeight() ) );
+  }
+ 
   Layout();
 }
 
