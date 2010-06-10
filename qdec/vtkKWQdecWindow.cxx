@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/04/07 20:09:52 $
- *    $Revision: 1.55 $
+ *    $Date: 2010/06/10 22:30:34 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -103,7 +103,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.55 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.56 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -135,16 +135,16 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mMenuZoomOut( NULL ),
   mMenuZoomIn( NULL ),
   mMenuShowCursor( NULL ),
+  mMenuShowCurvature( NULL ),
   mMenuAddSelectionToROI( NULL ),
   mMenuRemoveSelectionFromROI( NULL ),
   mMenuClearROI( NULL ),
   mMenuSmoothCurvatureScalars( NULL ),
   mMenuSmoothSurfaceScalars( NULL ),
   mMenuGraphAverageROI( NULL ),
-  mMenuButtonSimulationType( NULL ),
+  mMenuButtonSimulationThresh( NULL ),
   mMenuButtonSimulationSign( NULL ),
   mbFrameSurfaceInited( false ),
-  mbFrameCurvatureInited( false ),
   mbFrameOverlayInited( false ),
   mbFrameSurfaceScalarsInited( false ),
   mScatterPlotSelection( -1 ),
@@ -169,8 +169,6 @@ vtkKWQdecWindow::vtkKWQdecWindow () :
   mCurrentCluster( 0 ),
   mbDrawCurvatureGreenRedIfNoScalars( false ),
   mSurfaceScalarsColorsFDRRate( 0.05 ),
-  mSimulationIterations( 10000 ),
-  mSimulationThreshold( 2 ), 
   msOverlayDescription( "" ) {
 
   maDiscreteFactorSelection[0] = -1;
@@ -198,6 +196,7 @@ vtkKWQdecWindow::~vtkKWQdecWindow () {
   delete mMenuZoomOut;
   delete mMenuZoomIn;
   delete mMenuShowCursor;
+  delete mMenuShowCurvature;
   delete mMenuAddSelectionToROI;
   delete mMenuRemoveSelectionFromROI;
   delete mMenuClearROI;
@@ -363,24 +362,13 @@ vtkKWQdecWindow::CreateWidget () {
 
   this->AddSpacerToToolbar( toolbar );
 
-  // Goto vertex entry.
-  vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryVertex =
-    vtkSmartPointer<vtkKWEntryWithLabel>::New();
-  labeledEntryVertex->SetParent( toolbar->GetFrame() );
-  labeledEntryVertex->Create();
-  labeledEntryVertex->SetLabelText( "Jump to vertex number: " );
-  toolbar->AddWidget( labeledEntryVertex );
+  // Show curvature
+  mBtnShowCurvature.TakeReference(
+    this->MakeToolbarCheckButton( toolbar, "Show curvature",
+                                  this, "ShowCurvature", "ShowCurvature" )
+    );
 
-  mEntrySelectVertex = labeledEntryVertex->GetWidget();
-  mEntrySelectVertex->SetWidth( 6 );
-  mEntrySelectVertex->SetRestrictValueToInteger();
-  mEntrySelectVertex->SetValueAsInt( 0 );
-  mEntrySelectVertex->SetCommandTrigger( vtkKWEntry::TriggerOnReturnKey );
-  // I don't think this mapping is useful here, and it triggers it
-  // when we switch window spaces, so undo it here.
-  mEntrySelectVertex->
-    RemoveBinding( "<Unmap>", mEntrySelectVertex, "ValueCallback" );
-
+  this->AddSpacerToToolbar( toolbar );
   this->AddSpacerToToolbar( toolbar );
 
   // Selection buttons.
@@ -395,6 +383,28 @@ vtkKWQdecWindow::CreateWidget () {
                              this, "RemoveSelectionFromROI",
                              "RemoveSelectionFromROI" )
     );
+
+  this->AddSpacerToToolbar( toolbar );
+  this->AddSpacerToToolbar( toolbar );
+
+  // Goto vertex entry.
+  vtkSmartPointer<vtkKWEntryWithLabel> labeledEntryVertex =
+    vtkSmartPointer<vtkKWEntryWithLabel>::New();
+  labeledEntryVertex->SetParent( toolbar->GetFrame() );
+  labeledEntryVertex->Create();
+  labeledEntryVertex->SetLabelText( "Goto vertex number: " );
+  toolbar->AddWidget( labeledEntryVertex );
+
+  mEntrySelectVertex = labeledEntryVertex->GetWidget();
+  mEntrySelectVertex->SetWidth( 6 );
+  mEntrySelectVertex->SetRestrictValueToInteger();
+  mEntrySelectVertex->SetValueAsInt( 0 );
+  mEntrySelectVertex->SetCommandTrigger( vtkKWEntry::TriggerOnReturnKey );
+  // I don't think this mapping is useful here, and it triggers it
+  // when we switch window spaces, so undo it here.
+  mEntrySelectVertex->
+    RemoveBinding( "<Unmap>", mEntrySelectVertex, "ValueCallback" );
+
 
   // ---------------------------------------------------------------------
   // Build the menus. File menu.
@@ -591,6 +601,13 @@ vtkKWQdecWindow::CreateWidget () {
     MakeCheckButton( this->GetViewMenu(), nItem++,
                      "Show Cursor",
                      this, "SetShowCursorFromMenu", NULL, "ShowCursor" );
+
+  // Show Curvature
+  mMenuShowCurvature = new MenuItem();
+  mMenuShowCurvature->
+    MakeCheckButton( this->GetViewMenu(), nItem++,
+                     "Show Curvature",
+                     this, "SetShowCurvatureFromMenu", NULL, "ShowCurvature" );
 
   this->GetViewMenu()->InsertSeparator( nItem++ );
 
@@ -1102,14 +1119,6 @@ vtkKWQdecWindow::CreateWidget () {
   mFrameSurface->Create();
   mbFrameSurfaceInited = false;
 
-  // Curvature frame. This is a placeholder frame in which we'll stuff
-  // a checkbox for controlling curvature visibility if we load
-  // curvature. Leave it empty for now.
-  mFrameCurvature = vtkSmartPointer<vtkKWFrame>::New();
-  mFrameCurvature->SetParent( panelFrame );
-  mFrameCurvature->Create();
-  mbFrameCurvatureInited = false;
-
   //
   // Overlay frame. This is a placeholder frame in which we'll stuff a
   // slider for controlling the overlay opacity if we load
@@ -1127,9 +1136,8 @@ vtkKWQdecWindow::CreateWidget () {
   mFrameSurfaceScalars->Create();
   mbFrameSurfaceScalarsInited = false;
 
-  this->Script( "pack %s %s %s %s -side top -fill x -pady 5",
+  this->Script( "pack %s %s %s -side top -fill x -pady 5",
                 mFrameSurface->GetWidgetName(),
-                mFrameCurvature->GetWidgetName(),
                 mFrameOverlay->GetWidgetName(),
                 mFrameSurfaceScalars->GetWidgetName() );
 
@@ -2847,6 +2855,26 @@ vtkKWQdecWindow::SetShowCursorFromMenu () {
 }
 
 void
+vtkKWQdecWindow::ShowCurvature ( int ibShow ) {
+
+  assert( mView.GetPointer() );
+
+  this->mbShowCurvature = ibShow;
+
+  this->UpdateCommandStatus();
+
+  this->ComposeSurfaceScalarsAndShow();
+}
+
+void
+vtkKWQdecWindow::SetShowCurvatureFromMenu () {
+
+  assert( mMenuShowCurvature );
+
+  this->ShowCurvature( mMenuShowCurvature->GetSelectedState() );
+}
+
+void
 vtkKWQdecWindow::SetCurrentSurface ( const char* isLabel ) {
 
   assert( isLabel );
@@ -3256,7 +3284,6 @@ void
 vtkKWQdecWindow::UpdateDisplayPage () {
 
   assert( mFrameSurface.GetPointer() );
-  assert( mFrameCurvature.GetPointer() );
   assert( mFrameOverlay.GetPointer() );
   assert( mFrameSurfaceScalars.GetPointer() );
 
@@ -3331,58 +3358,6 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mRadBtnSetSurface = NULL;
     mbFrameSurfaceInited = false;
   }
-
-
-  // If we have curvature, create a labeled frame for it and put a
-  // checkbox in it controlling the visibility.
-  if( mCurvatureScalars.GetPointer() && !mbFrameCurvatureInited ) {
-
-    vtkSmartPointer<vtkKWFrameWithLabel> curvatureFrame =
-      vtkSmartPointer<vtkKWFrameWithLabel>::New();
-    curvatureFrame->SetParent( mFrameCurvature );
-    curvatureFrame->Create();
-    curvatureFrame->SetLabelText( "Curvature" );
-    this->Script( "pack %s -side top -fill both",
-                  curvatureFrame->GetWidgetName() );
-
-    vtkSmartPointer<vtkKWCheckButtonWithLabel> labeledCheck =
-      vtkSmartPointer<vtkKWCheckButtonWithLabel>::New();
-    labeledCheck->SetParent( curvatureFrame->GetFrame() );
-    labeledCheck->Create();
-    labeledCheck->SetLabelText( "Show Curvature" );
-    labeledCheck->SetLabelPositionToRight();
-    this->Script( "pack %s -side left",
-                  labeledCheck->GetWidgetName() );
-
-    mCheckShowCurvature = labeledCheck->GetWidget();
-    mCheckShowCurvature->SetSelectedState( mbShowCurvature );
-    mCheckShowCurvature->SetCommand( this, "SetShowCurvature" );
-
-    labeledCheck = vtkSmartPointer<vtkKWCheckButtonWithLabel>::New();
-    labeledCheck->SetParent( curvatureFrame->GetFrame() );
-    labeledCheck->Create();
-    labeledCheck->
-      SetLabelText( "Draw Curvature in green/red\nif no scalars loaded" );
-    labeledCheck->SetLabelPositionToRight();
-    this->Script( "pack %s -side left",
-                  labeledCheck->GetWidgetName() );
-
-    mCheckDrawCurvatureGreenRed = labeledCheck->GetWidget();
-    mCheckDrawCurvatureGreenRed->
-      SetSelectedState( mbDrawCurvatureGreenRedIfNoScalars );
-    mCheckDrawCurvatureGreenRed->
-      SetCommand( this, "SetDrawCurvatureGreenRed" );
-
-    mbFrameCurvatureInited = true;
-  }
-  if( NULL == mCurvatureScalars.GetPointer() && mbFrameCurvatureInited ) {
-    mFrameCurvature->UnpackChildren();
-    mFrameCurvature->SetHeight( 1 );
-    mCheckShowCurvature = NULL;
-    mCheckDrawCurvatureGreenRed = NULL;
-    mbFrameCurvatureInited = false;
-  }
-
 
   // If we have an overlay, create a scale for controlling the
   // opacity. We'll put it in a labeled frame and set the label to the
@@ -3774,12 +3749,12 @@ vtkKWQdecWindow::UpdateDisplayPage () {
 
     //
     //
-    // Now a frame for simulation script generator
+    // Now a frame for Monte Carlo Null-Z simulation 
     //
     vtkSmartPointer<vtkKWFrameWithLabel> frameSimulation =
       vtkSmartPointer<vtkKWFrameWithLabel>::New();
     frameSimulation->SetParent( cmcFrame->GetFrame() );
-    frameSimulation->SetLabelText( "Simulation" );
+    frameSimulation->SetLabelText( "Monte Carlo Null-Z Simulation" );
     frameSimulation->Create();
     this->Script( "pack %s -side top -fill x",
                   frameSimulation->GetWidgetName() );
@@ -3797,49 +3772,22 @@ vtkKWQdecWindow::UpdateDisplayPage () {
                   frameSim1->GetWidgetName(),
                   frameSim2->GetWidgetName() );
 
-    // simulation type menu selection
+    // simulation threshold menu selection
     vtkSmartPointer<vtkKWLabel> label1 = vtkSmartPointer<vtkKWLabel>::New();
     label1->SetParent( frameSim1 );
     label1->Create();
-    label1->SetText( "Type: " );
+    label1->SetText( "Threshold: " );
     label1->SetJustificationToRight();
-    mMenuButtonSimulationType = vtkSmartPointer<vtkKWMenuButton>::New();
-    mMenuButtonSimulationType->SetParent( frameSim1 );
-    mMenuButtonSimulationType->Create();
-    mMenuButtonSimulationType->GetMenu()->AddRadioButton( "mc-z" );
-    mMenuButtonSimulationType->GetMenu()->AddRadioButton( "mc-t" );
-    mMenuButtonSimulationType->GetMenu()->AddRadioButton( "mc-full" );
-    mMenuButtonSimulationType->GetMenu()->AddRadioButton( "perm" );
-    mMenuButtonSimulationType->SetValue( "mc-z" );
-
-    // simulation iterations entry
-    vtkSmartPointer<vtkKWEntryWithLabel> labeledEntrySimIter =
-      vtkSmartPointer<vtkKWEntryWithLabel>::New();
-    labeledEntrySimIter->SetParent( frameSim1 );
-    labeledEntrySimIter->SetLabelText( "Iterations: " );
-    labeledEntrySimIter->Create();
-    labeledEntrySimIter->GetWidget()->SetWidth( 5 );
-    labeledEntrySimIter->GetWidget()->
-      SetCommand( this, "SetSimulationIterations" );
-    labeledEntrySimIter->GetWidget()->
-      SetValueAsDouble( mSimulationIterations );
-    this->Script( "pack %s %s %s -side left -expand y -fill x -padx 5",
-                  label1->GetWidgetName(),
-                  mMenuButtonSimulationType->GetWidgetName(),
-                  labeledEntrySimIter->GetWidgetName() );
-
-    // simulation threshold entry
-    vtkSmartPointer<vtkKWEntryWithLabel> labeledEntrySimThresh =
-      vtkSmartPointer<vtkKWEntryWithLabel>::New();
-    labeledEntrySimThresh->SetParent( frameSim2 );
-    labeledEntrySimThresh->SetLabelText( "Threshold: " );
-    labeledEntrySimThresh->Create();
-    labeledEntrySimThresh->GetWidget()->SetWidth( 5 );
-    labeledEntrySimThresh->GetWidget()->SetRestrictValueToDouble();
-    labeledEntrySimThresh->GetWidget()->
-      SetCommand( this, "SetSimulationThreshold" );
-    labeledEntrySimThresh->GetWidget()->
-      SetValueAsDouble( mSimulationThreshold );
+    mMenuButtonSimulationThresh = vtkSmartPointer<vtkKWMenuButton>::New();
+    mMenuButtonSimulationThresh->SetParent( frameSim1 );
+    mMenuButtonSimulationThresh->Create();
+    mMenuButtonSimulationThresh->GetMenu()->AddRadioButton( "1.3 (0.05)" );
+    mMenuButtonSimulationThresh->GetMenu()->AddRadioButton( "2.0 (0.01)" );
+    mMenuButtonSimulationThresh->GetMenu()->AddRadioButton( "2.3 (0.005)" );
+    mMenuButtonSimulationThresh->GetMenu()->AddRadioButton( "3.0 (0.001)" );
+    mMenuButtonSimulationThresh->GetMenu()->AddRadioButton( "3.3 (0.0005)" );
+    mMenuButtonSimulationThresh->GetMenu()->AddRadioButton( "4.0 (0.0001)" );
+    mMenuButtonSimulationThresh->SetValue( "2.0 (0.01)" );
 
      // simulation sign menu selection
     vtkSmartPointer<vtkKWLabel> label2 = vtkSmartPointer<vtkKWLabel>::New();
@@ -3854,18 +3802,20 @@ vtkKWQdecWindow::UpdateDisplayPage () {
     mMenuButtonSimulationSign->GetMenu()->AddRadioButton( "pos" );
     mMenuButtonSimulationSign->GetMenu()->AddRadioButton( "neg" );
     mMenuButtonSimulationSign->SetValue( "abs" );
-    this->Script( "pack %s %s %s -side left -expand y -fill x -padx 5",
+    this->Script( "pack %s %s %s %s -side left -expand y -fill x -padx 5",
+                  label1->GetWidgetName(),
+                  mMenuButtonSimulationThresh->GetWidgetName(),
                   label2->GetWidgetName(),
-                  mMenuButtonSimulationSign->GetWidgetName(),
-                  labeledEntrySimThresh->GetWidgetName() );
+                  mMenuButtonSimulationSign->GetWidgetName() );
 
-    // button to generate script (using parameters appearing to its right)
+    // button to run the simulation
     vtkSmartPointer<vtkKWPushButton> buttonSimulation = 
       vtkSmartPointer<vtkKWPushButton>::New();
     buttonSimulation->SetParent( frameSimulation->GetFrame() );
     buttonSimulation->Create();
-    buttonSimulation->SetText( "Generate Script" );
-    buttonSimulation->SetCommand( this, "GenerateSimulationScript" );
+    buttonSimulation->SetText( "Run" );
+    buttonSimulation->SetWidth( 20 );
+    buttonSimulation->SetCommand( this, "RunSimulation" );
     this->Script( "pack %s",
                   buttonSimulation->GetWidgetName() );
 
@@ -4422,7 +4372,7 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsUsingFDR () {
         maSurfaceSource.end() ||
         maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
         maSurfaceScalars.end() ) {
-      throw runtime_error( "Must have a surface loaded and scalar selected.");
+      throw runtime_error( "\nMust have a surface loaded and overlay selected.");
     }
 
     // If they are only looking at positive or negative values, set the
@@ -4491,102 +4441,67 @@ vtkKWQdecWindow::SetSurfaceScalarsColorsFDRRate ( const char* isValue ) {
 }
 
 
-void
-vtkKWQdecWindow::SetSimulationIterations ( const char* isValue ) {
-
-  stringstream ssValue( isValue );
-  ssValue >> mSimulationIterations;
-}
-void
-vtkKWQdecWindow::SetSimulationThreshold( const char* isValue ) {
-
-  stringstream ssValue( isValue );
-  ssValue >> mSimulationThreshold;
-}
-
-
 // Creates a script to run mri_glmfit/mris_surfcluster for multiple-
 // comparisons correction
 void
-vtkKWQdecWindow::GenerateSimulationScript () {
+vtkKWQdecWindow::RunSimulation () {
 
-  this->SetStatusText( "Generating Simulation Script..." );
+  this->SetStatusText( "Running Monte Carlo Simulation..." );
   try {
-    stringstream ssCsdBaseName;
-    ssCsdBaseName << 
-      mMenuButtonSimulationType->GetValue() << "." <<
-      mMenuButtonSimulationSign->GetValue() << "." <<
-      mSimulationThreshold;
-   
-    stringstream ssScriptName;
-    ssScriptName << this->mQdecProject->GetWorkingDir() << "/" <<
-      "mri_glmfit-sim-" << ssCsdBaseName.str();
-    FILE *fp = fopen(ssScriptName.str().c_str(),"w");
-    if (fp == NULL)
-    {
-      fprintf( stderr, "ERROR: vtkKWQdecWindow::GenerateSimulationScript: "
-               "could not open %s for writing\n",
-               ssScriptName.str().c_str() );
-      this->SetStatusText( "Error during simulation script generation" );
-      return;
+
+    if( maSurfaceSource.find( msCurrentSurfaceSource ) ==
+        maSurfaceSource.end() ||
+        maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
+        maSurfaceScalars.end() ) {
+      throw runtime_error( "\nMust have a surface loaded and overlay selected.");
     }
 
-    assert( this->mQdecProject );
-    stringstream ssCommand;
-    ssCommand << "mri_glmfit-sim \\" << endl <<
-      " --glmdir " << 
-      this->mQdecProject->GetWorkingDir() << " \\" << endl <<
-      " --sim " << mMenuButtonSimulationType->GetValue() << " " << 
-      mSimulationIterations << " " <<
-      mSimulationThreshold << " " <<
-      ssCsdBaseName.str() << " \\" << endl <<
-      " --sim-sign " << mMenuButtonSimulationSign->GetValue() <<
-      " \\" << endl << " --overwrite" << endl;
+    if( 0 != strcmp( this->mQdecProject->GetAverageSubject().c_str(),
+                     "fsaverage") ) {
+      throw runtime_error( "\nThis function only works when using fsaverage "
+                           "as the common-space subject");
+    }
 
-    // write the command to the file
-    fprintf(fp,"%s",ssCommand.str().c_str());
-    fclose(fp);
+    string threshold;
+    if( 0 == strcmp( mMenuButtonSimulationThresh->GetValue(),
+                     "1.3 (0.05)" ) ) {
+      threshold = "th13";
+    }
+    else if( 0 == strcmp( mMenuButtonSimulationThresh->GetValue(),
+                          "2.0 (0.01)" ) ) {
+      threshold = "th20";
+    }
+    else if( 0 == strcmp( mMenuButtonSimulationThresh->GetValue(),
+                          "2.3 (0.005)" ) ) {
+      threshold = "th23";
+    }
+    else if( 0 == strcmp( mMenuButtonSimulationThresh->GetValue(),
+                          "3.0 (0.001)" ) ) {
+      threshold = "th30";
+    }
+    else if( 0 == strcmp( mMenuButtonSimulationThresh->GetValue(),
+                          "3.3 (0.0005)" ) ) {
+      threshold = "th33";
+    }
+    else if( 0 == strcmp( mMenuButtonSimulationThresh->GetValue(),
+                          "4.0 (0.0001)" ) ) {
+      threshold = "th40";
+    }
 
-    // set the executable bit
-    stringstream ssCommand2;
-    ssCommand2 << "chmod u+x " << ssScriptName.str();
-    int rRun = system( ssCommand2.str().c_str() );
-    if ( -1 == rRun )
-      throw runtime_error( "system call failed: " + ssCommand2.str() );
-    if ( rRun > 0 )
-      throw runtime_error( "command failed: " + ssCommand2.str() );
+    if( this->mQdecProject->RunMonteCarloSimulation
+        ( threshold.c_str(),
+          mMenuButtonSimulationSign->GetValue(),
+          maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2.c_str() ) ) {
+      throw runtime_error( "Error running mri_surfcluster!" );
+    }
 
-    cout << 
-      "\n\n============================================================\n" <<
-      "A script to execute correction for multiple comparisons\n" <<
-      "by simulation with the parameters you selected is here:\n\n" <<
-      ssScriptName.str() << "\n\n" <<
-      "This script may be run from any directory.\n" <<
-      "Be aware that it may take several hours to complete.\n" <<
-      "Upon completion, the 'sig.clusters.mgh' file is the one\n" <<
-      "to load as an overlay in either qdec or tksurfer.\n" <<
-      "The 'sig.cluster.mgh' file will be found in the contrast\n"
-      "results directories under this directory:\n\n" <<
-      this->mQdecProject->GetWorkingDir() << "\n\n" <<
-      "Note: you should rename this directory, to prevent qdec from\n" <<
-      "deleting or overwriting it if the Design name is unchanged and\n" <<
-      "another analysis is performed.\n"
-      "============================================================\n";
-      
-    // pop-up box stating the same
-    string sPopUpMsg = "A script to execute correction\n" 
-      "for multiple comparisons by simulation\n" 
-      "has been generated.  See the terminal for details.";
-    vtkKWMessageDialog::PopupMessage ( this->GetApplication(),
-                                       this, "", sPopUpMsg.c_str() );
-      
-    this->SetStatusText( "Generated Simulation Script" );
-    
+    this->SetStatusText( "Completed Monte Carlo simulation" );
+
   } catch (exception& e) {
     stringstream ssError;
-    ssError << "Error in simulation script generation " << e.what();
+    ssError << "Error in Monte Carlo simulation " << e.what();
     this->GetApplication()->ErrorMessage( ssError.str().c_str() );
-    this->SetStatusText( "Error during simulation script generation" );
+    this->SetStatusText( "Error during Monte Carlo simulation" );
   }
 }
 
@@ -5919,6 +5834,8 @@ vtkKWQdecWindow::UpdateCommandStatus () {
 
   assert( mBtnShowCursor.GetPointer() );
   assert( mMenuShowCursor );
+  assert( mBtnShowCurvature.GetPointer() );
+  assert( mMenuShowCurvature );
   assert( mEntrySelectVertex.GetPointer() );
 
   if( maSurfaceSource.size() > 0 ) {
@@ -5926,11 +5843,17 @@ vtkKWQdecWindow::UpdateCommandStatus () {
     mBtnShowCursor->SetSelectedState( mView->GetShowCursor() );
     mMenuShowCursor->SetStateToNormal();
     mMenuShowCursor->SetSelectedState( mView->GetShowCursor() );
+    mBtnShowCurvature->SetStateToNormal();
+    mBtnShowCurvature->SetSelectedState( mbShowCurvature );
+    mMenuShowCurvature->SetStateToNormal();
+    mMenuShowCurvature->SetSelectedState( mbShowCurvature );
     mEntrySelectVertex->SetStateToNormal();
     mEntrySelectVertex->SetCommand( this, "SelectSurfaceVertex" );
   } else {
     mBtnShowCursor->SetStateToDisabled();
     mMenuShowCursor->SetStateToDisabled();
+    mBtnShowCurvature->SetStateToDisabled();
+    mMenuShowCurvature->SetStateToDisabled();
     mEntrySelectVertex->SetStateToDisabled();
     mEntrySelectVertex->SetCommand( NULL, NULL );
   }
@@ -6129,8 +6052,14 @@ vtkKWQdecWindow::SetDesignName ( const char* isDesignName ) {
   design->SetName( isDesignName );
 }
 
+bool
+vtkKWQdecWindow::GetShowCurvature ( ) {
+
+  return mbShowCurvature;
+}
+
 void
-vtkKWQdecWindow::SetShowCurvature ( int ibShow ) {
+vtkKWQdecWindow::SetShowCurvature ( bool ibShow ) {
 
   mbShowCurvature = ibShow;
   this->ComposeSurfaceScalarsAndShow();

@@ -11,10 +11,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/11/12 22:36:49 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/06/10 22:30:34 $
+ *    $Revision: 1.23 $
  *
- * Copyright (C) 2007-2009,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -24,7 +24,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -216,6 +215,8 @@ class vtkKWQdecWindow : public vtkKWWindow
   void ZoomOut ();
   void ShowCursor ( int ibShow );
   void SetShowCursorFromMenu ();
+  void ShowCurvature ( int ibShow );
+  void SetShowCurvatureFromMenu ();
 
   // Look up the surface associated with this label and if present,
   // set it in the view.
@@ -256,7 +257,8 @@ class vtkKWQdecWindow : public vtkKWWindow
   void SetSubjectsDir ( const char* isSubjectsDir );
   void SetAverageSubject ( const char* isAverageSubject );
   void SetDesignName ( const char* isDesignName );
-  void SetShowCurvature ( int ibShow );
+  bool GetShowCurvature ();
+  void SetShowCurvature ( bool ibShow );
   void SetDrawCurvatureGreenRed ( int ibDraw );
   void SetSurfaceScalarsColorMin ( const char* isMin );
   void SetSurfaceScalarsColorMid ( const char* isMid );
@@ -294,11 +296,8 @@ class vtkKWQdecWindow : public vtkKWWindow
   // Callback from the FDR rate entry, just sets our value.
   void SetSurfaceScalarsColorsFDRRate ( const char* isValue );
 
-  // Creates a script to run mri_glmfit/mris_surfcluster for multiple-
-  // comparisons correction
-  void GenerateSimulationScript ();
-  void SetSimulationIterations ( const char* isValue );
-  void SetSimulationThreshold( const char* isValue );
+  // Runs Monte Carlo Null-Z simulation multiple-comparisons correction
+  void RunSimulation ();
 
   // Calls the view's function.
   void SelectSurfaceVertex ( int inVertex );
@@ -515,6 +514,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   MenuItem* mMenuZoomOut;
   MenuItem* mMenuZoomIn;
   MenuItem* mMenuShowCursor;
+  MenuItem* mMenuShowCurvature;
   MenuItem* mMenuAddSelectionToROI;
   MenuItem* mMenuRemoveSelectionFromROI;
   MenuItem* mMenuClearROI;
@@ -538,6 +538,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWPushButton>  mBtnCameraRollPositive;
   vtkSmartPointer<vtkKWPushButton>  mBtnCameraRollNegative;
   vtkSmartPointer<vtkKWCheckButton> mBtnShowCursor;
+  vtkSmartPointer<vtkKWCheckButton> mBtnShowCurvature;
   vtkSmartPointer<vtkKWEntry>       mEntrySelectVertex;
   vtkSmartPointer<vtkKWPushButton>  mBtnAddSelectionToROI;
   vtkSmartPointer<vtkKWPushButton>  mBtnRemoveSelectionFromROI;
@@ -609,7 +610,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   vtkSmartPointer<vtkKWEntry>           mEntrySurfaceScalarsColorMax;
   vtkSmartPointer<vtkKWEntry>           mEntrySurfaceScalarsColorOffset;
 
-  vtkSmartPointer<vtkKWMenuButton>      mMenuButtonSimulationType;
+  vtkSmartPointer<vtkKWMenuButton>      mMenuButtonSimulationThresh;
   vtkSmartPointer<vtkKWMenuButton>      mMenuButtonSimulationSign;
 
   // Use these variables to see if we've packed the mFrame*
@@ -683,10 +684,6 @@ class vtkKWQdecWindow : public vtkKWWindow
 
   // For calculating the FDR rate.
   double mSurfaceScalarsColorsFDRRate;
-
-  // simulation iterations and threshold
-  int    mSimulationIterations;
-  double mSimulationThreshold;
 
   // A label for the overlay scale bar.
   std::string msOverlayDescription;

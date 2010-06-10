@@ -621,6 +621,26 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_ResetResult(interp);
     return TCL_OK;
     }
+  if ((!strcmp("ShowCurvature",argv[1]))&&(argc == 3))
+    {
+    int      temp0;
+    error = 0;
+
+    if (Tcl_GetInt(interp,argv[2],&tempi) != TCL_OK) error = 1;
+    temp0 = tempi;
+    if (!error)
+    {
+    op->ShowCurvature(temp0);
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
+    }
+  if ((!strcmp("SetShowCurvatureFromMenu",argv[1]))&&(argc == 2))
+    {
+    op->SetShowCurvatureFromMenu();
+    Tcl_ResetResult(interp);
+    return TCL_OK;
+    }
   if ((!strcmp("SetCurrentSurface",argv[1]))&&(argc == 3))
     {
     char    *temp0;
@@ -729,13 +749,22 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
+  if ((!strcmp("GetShowCurvature",argv[1]))&&(argc == 2))
+    {
+    bool   temp20;
+    temp20 = (op)->GetShowCurvature();
+    char tempResult[1024];
+    sprintf(tempResult,"%i",(int)temp20);
+    Tcl_SetResult(interp, tempResult, TCL_VOLATILE);
+    return TCL_OK;
+    }
   if ((!strcmp("SetShowCurvature",argv[1]))&&(argc == 3))
     {
-    int      temp0;
+    bool   temp0;
     error = 0;
 
     if (Tcl_GetInt(interp,argv[2],&tempi) != TCL_OK) error = 1;
-    temp0 = tempi;
+    temp0 = tempi ? true : false;
     if (!error)
     {
     op->SetShowCurvature(temp0);
@@ -992,37 +1021,11 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     return TCL_OK;
     }
     }
-  if ((!strcmp("GenerateSimulationScript",argv[1]))&&(argc == 2))
+  if ((!strcmp("RunSimulation",argv[1]))&&(argc == 2))
     {
-    op->GenerateSimulationScript();
+    op->RunSimulation();
     Tcl_ResetResult(interp);
     return TCL_OK;
-    }
-  if ((!strcmp("SetSimulationIterations",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->SetSimulationIterations(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
-    }
-  if ((!strcmp("SetSimulationThreshold",argv[1]))&&(argc == 3))
-    {
-    char    *temp0;
-    error = 0;
-
-    temp0 = argv[2];
-    if (!error)
-    {
-    op->SetSimulationThreshold(temp0);
-    Tcl_ResetResult(interp);
-    return TCL_OK;
-    }
     }
   if ((!strcmp("SelectSurfaceVertex",argv[1]))&&(argc == 3))
     {
@@ -1373,6 +1376,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  ZoomOut\n",NULL);
     Tcl_AppendResult(interp,"  ShowCursor\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetShowCursorFromMenu\n",NULL);
+    Tcl_AppendResult(interp,"  ShowCurvature\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  SetShowCurvatureFromMenu\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentSurface\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceOverlayOpacity\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetCurrentSurfaceScalarsFromTableSelection\n",NULL);
@@ -1385,6 +1390,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetSubjectsDir\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetAverageSubject\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetDesignName\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  GetShowCurvature\n",NULL);
     Tcl_AppendResult(interp,"  SetShowCurvature\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetDrawCurvatureGreenRed\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorMin\t with 1 arg\n",NULL);
@@ -1406,9 +1412,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorOffset\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorsUsingFDR\n",NULL);
     Tcl_AppendResult(interp,"  SetSurfaceScalarsColorsFDRRate\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  GenerateSimulationScript\n",NULL);
-    Tcl_AppendResult(interp,"  SetSimulationIterations\t with 1 arg\n",NULL);
-    Tcl_AppendResult(interp,"  SetSimulationThreshold\t with 1 arg\n",NULL);
+    Tcl_AppendResult(interp,"  RunSimulation\n",NULL);
     Tcl_AppendResult(interp,"  SelectSurfaceVertex\t with 1 arg\n",NULL);
     Tcl_AppendResult(interp,"  AddSelectionToROI\n",NULL);
     Tcl_AppendResult(interp,"  RemoveSelectionFromROI\n",NULL);
@@ -1510,6 +1514,8 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "ZoomOut" );
     Tcl_DStringAppendElement ( &dString, "ShowCursor" );
     Tcl_DStringAppendElement ( &dString, "SetShowCursorFromMenu" );
+    Tcl_DStringAppendElement ( &dString, "ShowCurvature" );
+    Tcl_DStringAppendElement ( &dString, "SetShowCurvatureFromMenu" );
     Tcl_DStringAppendElement ( &dString, "SetCurrentSurface" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceOverlayOpacity" );
     Tcl_DStringAppendElement ( &dString, "SetCurrentSurfaceScalarsFromTableSelection" );
@@ -1522,6 +1528,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "SetSubjectsDir" );
     Tcl_DStringAppendElement ( &dString, "SetAverageSubject" );
     Tcl_DStringAppendElement ( &dString, "SetDesignName" );
+    Tcl_DStringAppendElement ( &dString, "GetShowCurvature" );
     Tcl_DStringAppendElement ( &dString, "SetShowCurvature" );
     Tcl_DStringAppendElement ( &dString, "SetDrawCurvatureGreenRed" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorMin" );
@@ -1543,9 +1550,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorOffset" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorsUsingFDR" );
     Tcl_DStringAppendElement ( &dString, "SetSurfaceScalarsColorsFDRRate" );
-    Tcl_DStringAppendElement ( &dString, "GenerateSimulationScript" );
-    Tcl_DStringAppendElement ( &dString, "SetSimulationIterations" );
-    Tcl_DStringAppendElement ( &dString, "SetSimulationThreshold" );
+    Tcl_DStringAppendElement ( &dString, "RunSimulation" );
     Tcl_DStringAppendElement ( &dString, "SelectSurfaceVertex" );
     Tcl_DStringAppendElement ( &dString, "AddSelectionToROI" );
     Tcl_DStringAppendElement ( &dString, "RemoveSelectionFromROI" );
@@ -2565,6 +2570,41 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringFree ( &dString );
     return TCL_OK;
     }
+    /* Starting function: ShowCurvature */
+    if ( strcmp ( argv[2], "ShowCurvature" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "ShowCurvature" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringAppendElement ( &dString, "int" );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for ShowCurvature */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void ShowCurvature (int ibShow);" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for ShowCurvature */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
+    /* Starting function: SetShowCurvatureFromMenu */
+    if ( strcmp ( argv[2], "SetShowCurvatureFromMenu" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "SetShowCurvatureFromMenu" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for SetShowCurvatureFromMenu */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "void SetShowCurvatureFromMenu ();" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for SetShowCurvatureFromMenu */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
     /* Starting function: SetCurrentSurface */
     if ( strcmp ( argv[2], "SetCurrentSurface" ) == 0 ) {
     Tcl_DStringInit ( &dString );
@@ -2774,17 +2814,34 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringFree ( &dString );
     return TCL_OK;
     }
+    /* Starting function: GetShowCurvature */
+    if ( strcmp ( argv[2], "GetShowCurvature" ) == 0 ) {
+    Tcl_DStringInit ( &dString );
+    Tcl_DStringAppendElement ( &dString, "GetShowCurvature" );
+    /* Arguments */
+    Tcl_DStringStartSublist ( &dString );
+    Tcl_DStringEndSublist ( &dString );
+    /* Documentation for GetShowCurvature */
+    Tcl_DStringAppendElement ( &dString, "" );
+    Tcl_DStringAppendElement ( &dString, "bool GetShowCurvature ();" );
+    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
+    /* Closing for GetShowCurvature */
+
+    Tcl_DStringResult ( interp, &dString );
+    Tcl_DStringFree ( &dString );
+    return TCL_OK;
+    }
     /* Starting function: SetShowCurvature */
     if ( strcmp ( argv[2], "SetShowCurvature" ) == 0 ) {
     Tcl_DStringInit ( &dString );
     Tcl_DStringAppendElement ( &dString, "SetShowCurvature" );
     /* Arguments */
     Tcl_DStringStartSublist ( &dString );
-    Tcl_DStringAppendElement ( &dString, "int" );
+    Tcl_DStringAppendElement ( &dString, "bool" );
     Tcl_DStringEndSublist ( &dString );
     /* Documentation for SetShowCurvature */
     Tcl_DStringAppendElement ( &dString, "" );
-    Tcl_DStringAppendElement ( &dString, "void SetShowCurvature (int ibShow);" );
+    Tcl_DStringAppendElement ( &dString, "void SetShowCurvature (bool ibShow);" );
     Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
     /* Closing for SetShowCurvature */
 
@@ -3152,54 +3209,18 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringFree ( &dString );
     return TCL_OK;
     }
-    /* Starting function: GenerateSimulationScript */
-    if ( strcmp ( argv[2], "GenerateSimulationScript" ) == 0 ) {
+    /* Starting function: RunSimulation */
+    if ( strcmp ( argv[2], "RunSimulation" ) == 0 ) {
     Tcl_DStringInit ( &dString );
-    Tcl_DStringAppendElement ( &dString, "GenerateSimulationScript" );
+    Tcl_DStringAppendElement ( &dString, "RunSimulation" );
     /* Arguments */
     Tcl_DStringStartSublist ( &dString );
     Tcl_DStringEndSublist ( &dString );
-    /* Documentation for GenerateSimulationScript */
+    /* Documentation for RunSimulation */
     Tcl_DStringAppendElement ( &dString, "" );
-    Tcl_DStringAppendElement ( &dString, "void GenerateSimulationScript ();" );
+    Tcl_DStringAppendElement ( &dString, "void RunSimulation ();" );
     Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
-    /* Closing for GenerateSimulationScript */
-
-    Tcl_DStringResult ( interp, &dString );
-    Tcl_DStringFree ( &dString );
-    return TCL_OK;
-    }
-    /* Starting function: SetSimulationIterations */
-    if ( strcmp ( argv[2], "SetSimulationIterations" ) == 0 ) {
-    Tcl_DStringInit ( &dString );
-    Tcl_DStringAppendElement ( &dString, "SetSimulationIterations" );
-    /* Arguments */
-    Tcl_DStringStartSublist ( &dString );
-    Tcl_DStringAppendElement ( &dString, "string" );
-    Tcl_DStringEndSublist ( &dString );
-    /* Documentation for SetSimulationIterations */
-    Tcl_DStringAppendElement ( &dString, "" );
-    Tcl_DStringAppendElement ( &dString, "void SetSimulationIterations (const char *isValue);" );
-    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
-    /* Closing for SetSimulationIterations */
-
-    Tcl_DStringResult ( interp, &dString );
-    Tcl_DStringFree ( &dString );
-    return TCL_OK;
-    }
-    /* Starting function: SetSimulationThreshold */
-    if ( strcmp ( argv[2], "SetSimulationThreshold" ) == 0 ) {
-    Tcl_DStringInit ( &dString );
-    Tcl_DStringAppendElement ( &dString, "SetSimulationThreshold" );
-    /* Arguments */
-    Tcl_DStringStartSublist ( &dString );
-    Tcl_DStringAppendElement ( &dString, "string" );
-    Tcl_DStringEndSublist ( &dString );
-    /* Documentation for SetSimulationThreshold */
-    Tcl_DStringAppendElement ( &dString, "" );
-    Tcl_DStringAppendElement ( &dString, "void SetSimulationThreshold (const char *isValue);" );
-    Tcl_DStringAppendElement ( &dString, "vtkKWQdecWindow" );
-    /* Closing for SetSimulationThreshold */
+    /* Closing for RunSimulation */
 
     Tcl_DStringResult ( interp, &dString );
     Tcl_DStringFree ( &dString );
