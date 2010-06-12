@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/06/10 22:30:34 $
- *    $Revision: 1.56 $
+ *    $Date: 2010/06/12 00:09:01 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -103,7 +103,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.56 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.57 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -2170,8 +2170,8 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
         this->LoadAnnotation( fnAnnot.c_str() );
       }
 
-      // There are three scalars to load. The first is the "Contrasts"
-      // and it is fnWorkingDir/<contrast>/sig.mgh. We also need to get the
+      // There are three scalars to load. The first are the "Contrasts"
+      // and are fnWorkingDir/<contrast>/sig.mgh. We also need to get the
       // contrast question and make it the label.
       this->SetStatusText( "Loading contrasts..." );
       this->GetProgressGauge()->SetValue( (float)nStep++ * stepIncrement );
@@ -2718,6 +2718,7 @@ vtkKWQdecWindow::SetCurrentSurfaceScalars ( int inEntry ) {
 
       // Save the new current index.
       mnCurrentSurfaceScalars = inEntry;
+      mTableSurfaceScalars->SelectRow( inEntry );
 
       // Call this to display these scalars.
       this->ComposeSurfaceScalarsAndShow();
@@ -4453,13 +4454,22 @@ vtkKWQdecWindow::RunSimulation () {
         maSurfaceSource.end() ||
         maSurfaceScalars.find( mnCurrentSurfaceScalars ) ==
         maSurfaceScalars.end() ) {
-      throw runtime_error( "\nMust have a surface loaded and overlay selected.");
+      throw runtime_error( "\nMust have a surface loaded and "
+                           "overlay selected.");
     }
 
     if( 0 != strcmp( this->mQdecProject->GetAverageSubject().c_str(),
                      "fsaverage") ) {
       throw runtime_error( "\nThis function only works when using fsaverage "
                            "as the common-space subject");
+    }
+
+    const char* contrast = 
+      maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2.c_str();
+
+    if( 0 == strlen( contrast ) ) {
+      throw runtime_error( "Select an Analysis Result corresponding to a "
+                           "contrast" );
     }
 
     string threshold;
@@ -4488,18 +4498,29 @@ vtkKWQdecWindow::RunSimulation () {
       threshold = "th40";
     }
 
+    const char* fnClusterSigFile = NULL;
     if( this->mQdecProject->RunMonteCarloSimulation
         ( threshold.c_str(),
           mMenuButtonSimulationSign->GetValue(),
-          maSurfaceScalars[mnCurrentSurfaceScalars].msLabel2.c_str() ) ) {
+          contrast,
+          &fnClusterSigFile ) ) {
       throw runtime_error( "Error running mri_surfcluster!" );
     }
+    int nScalar = this->LoadSurfaceScalars( fnClusterSigFile,
+                                            NULL, // will show filename
+                                            contrast);
+    if( nScalar < 0 ) {
+      throw runtime_error( string("Could not load results file ") +
+                           fnClusterSigFile );
+    }
+
+    this->SetCurrentSurfaceScalars( nScalar );
 
     this->SetStatusText( "Completed Monte Carlo simulation" );
 
   } catch (exception& e) {
     stringstream ssError;
-    ssError << "Error in Monte Carlo simulation " << e.what();
+    ssError << "Error in Monte Carlo simulation: " << e.what();
     this->GetApplication()->ErrorMessage( ssError.str().c_str() );
     this->SetStatusText( "Error during Monte Carlo simulation" );
   }

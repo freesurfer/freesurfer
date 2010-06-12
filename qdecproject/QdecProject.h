@@ -10,8 +10,8 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/06/10 22:27:42 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/06/12 00:09:00 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -388,7 +388,8 @@ public:
    */
   int RunMonteCarloSimulation ( const char* isThreshold,
                                 const char* isSign,
-                                const char* isContrast );
+                                const char* isContrast,
+                                const char** osClusterSigFileName );
 
 private:
 

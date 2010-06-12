@@ -10,10 +10,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/06/10 22:27:42 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/06/12 00:09:00 $
+ *    $Revision: 1.32 $
  *
- * Copyright (C) 2007-2008,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -31,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <math.h>
 
 #include <stdexcept>
 #include <sstream>
@@ -46,7 +46,7 @@
 QdecProject::QdecProject ( ) :
   mDataTable( new QdecDataTable() ),
   mGlmDesign( new QdecGlmDesign( this->mDataTable ) ),
-  mGlmFitter( new QdecGlmFit() ), 
+  mGlmFitter( new QdecGlmFit() ),
   msZipCommandFormat( "cd %3; zip -r %1 %2 > /dev/null" ),
   msUnzipCommandFormat( "unzip -o -d %3 %1 > /dev/null" )
 {
@@ -74,32 +74,36 @@ QdecProject::~QdecProject ( )
  * @param  isDataDir
  */
 int QdecProject::LoadProjectFile ( const char* ifnProject,
-				   const char* ifnDataDir )
+                                   const char* ifnDataDir )
 {
 
   // If the project file name doesn't have a path, give it one.
   string fnProject( ifnProject );
-  if( fnProject.find( '/' ) == string::npos ) {
+  if ( fnProject.find( '/' ) == string::npos )
+  {
     char sCWD[1024];
-    if( getcwd( sCWD, sizeof(sCWD) ) ) {
+    if ( getcwd( sCWD, sizeof(sCWD) ) )
+    {
       string fnProjectFull = string(sCWD) + "/" + fnProject;
       fnProject = fnProjectFull;
-    } else {
+    }
+    else
+    {
       fprintf(stderr, "WARNING: QdecProject::LoadProjectFile: Can't add "
-	      "full path  to project file name; please specify full path." );
+              "full path  to project file name; please specify full path." );
     }
   }
 
   // Find the base name of the project file.
   string fnProjectBase( fnProject );
   string::size_type nPreLastSlash = fnProject.rfind( '/' );
-  if( string::npos != nPreLastSlash )
+  if ( string::npos != nPreLastSlash )
     fnProjectBase = fnProject.substr( nPreLastSlash+1, fnProject.size() );
-  
+
   // Make a target dir for the expanded file in the data dir, with a
   // directory name of the project file.
   string fnExpandedProjectBase = "qdec_project_archive";
-  string fnExpandedProjectDir = string(ifnDataDir) + "/" + 
+  string fnExpandedProjectDir = string(ifnDataDir) + "/" +
     fnExpandedProjectBase;
 
   string sSubject;
@@ -112,130 +116,145 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   string sContinuousFactor2 = "none";
   string sMeasure;
   int smoothness = -1;
-  
+
   // Check the file.
   ifstream fInput( fnProject.c_str(), std::ios::in );
-  if( !fInput || fInput.bad() )
+  if ( !fInput || fInput.bad() )
     throw runtime_error( string("Couldn't open file " ) + fnProject );
   fInput.close();
 
   // Erase old working directory if present.
   string sCommand = "rm -rf " + fnExpandedProjectDir;
   int rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Couldn't "
-	     "remove existing temp directory (cmd=%s)\n", sCommand.c_str() );
+             "remove existing temp directory (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
   // Get out command string and expand the .qdec file into the
   // destination directory.
   this->FormatCommandString( fnProject.c_str(),
-			     fnExpandedProjectBase.c_str(),
-			     ifnDataDir,
-			     msUnzipCommandFormat.c_str(),
-			     sCommand );
+                             fnExpandedProjectBase.c_str(),
+                             ifnDataDir,
+                             msUnzipCommandFormat.c_str(),
+                             sCommand );
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Couldn't "
-	     "expand project file (cmd=%s)\n", sCommand.c_str() );
+             "expand project file (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
   // Look for and check the version file.
   string fnVersion = fnExpandedProjectDir + "/Version.txt";
   ifstream fVersion( fnVersion.c_str(), ios::out );
-  if( !fVersion || fVersion.bad() ) {
+  if ( !fVersion || fVersion.bad() )
+  {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Couldn't "
-	     "find Version file %s\n", fnVersion.c_str() );
+             "find Version file %s\n", fnVersion.c_str() );
     return -1;
   }
   int version;
   fVersion >> version;
   fVersion.close();
-  if( 1 != version ) {
+  if ( 1 != version )
+  {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Version "
-	     "file had wrong value (%d)\n", version );
+             "file had wrong value (%d)\n", version );
     return -1;
   }
-  
+
   // Parse the meta data file.
   string fnMetadata = fnExpandedProjectDir + "/" + this->GetMetadataFileName();
   ifstream fMetadata( fnMetadata.c_str(), ios::in );
-  if( !fMetadata || fMetadata.bad() ) {
+  if ( !fMetadata || fMetadata.bad() )
+  {
     fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Couldn't "
-	     "open metadata file %s\n", fnMetadata.c_str() );
+             "open metadata file %s\n", fnMetadata.c_str() );
     return -1;
   }
   // Make sure the first token is QdecProjectMetadata, and then the
   // next line is Version 1.
   string sToken;
   string asCorrectTokens[] = { "QdecProjectMetadata", "Version", "1" };
-  for( int nToken = 0; nToken < 3; nToken++ ) {
+  for ( int nToken = 0; nToken < 3; nToken++ )
+  {
     fMetadata >> sToken;
-    if( sToken != asCorrectTokens[nToken] ) {
+    if ( sToken != asCorrectTokens[nToken] )
+    {
       fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
-	       "metadata file %s, %s token not found\n", 
-	       fnMetadata.c_str(), asCorrectTokens[nToken].c_str() );
+               "metadata file %s, %s token not found\n",
+               fnMetadata.c_str(), asCorrectTokens[nToken].c_str() );
       return -1;
     }
   }
   // Now we parse the file and look for names and values.
-  while( fMetadata >> sToken && !fMetadata.eof() ) {
-    if( sToken == "Subject" ) fMetadata >> sSubject;
-    else if( sToken == "Hemisphere" ) fMetadata >> sHemisphere;
-    else if( sToken == "AnalysisName" ) fMetadata >> sAnalysisName;
-    else if( sToken == "DataTable" ) fMetadata >> fnDataTableBase;
-    else if( sToken == "Measure" ) fMetadata >> sMeasure;
-    else if( sToken == "Smoothness" ) fMetadata >> smoothness;
-    else if( sToken == "DiscreteFactor1" ) fMetadata >> sDiscreteFactor1;
-    else if( sToken == "DiscreteFactor2" ) fMetadata >> sDiscreteFactor2;
-    else if( sToken == "ContinuousFactor1" )fMetadata >> sContinuousFactor1;
-    else if( sToken == "ContinuousFactor2" )fMetadata >> sContinuousFactor2;
-    else {
+  while ( fMetadata >> sToken && !fMetadata.eof() )
+  {
+    if ( sToken == "Subject" ) fMetadata >> sSubject;
+    else if ( sToken == "Hemisphere" ) fMetadata >> sHemisphere;
+    else if ( sToken == "AnalysisName" ) fMetadata >> sAnalysisName;
+    else if ( sToken == "DataTable" ) fMetadata >> fnDataTableBase;
+    else if ( sToken == "Measure" ) fMetadata >> sMeasure;
+    else if ( sToken == "Smoothness" ) fMetadata >> smoothness;
+    else if ( sToken == "DiscreteFactor1" ) fMetadata >> sDiscreteFactor1;
+    else if ( sToken == "DiscreteFactor2" ) fMetadata >> sDiscreteFactor2;
+    else if ( sToken == "ContinuousFactor1" )fMetadata >> sContinuousFactor1;
+    else if ( sToken == "ContinuousFactor2" )fMetadata >> sContinuousFactor2;
+    else
+    {
       fprintf( stderr, "WARNING: QdecProject::LoadProjectFile: Unrecognized "
-	       "token in QdecProjectMetadata: %s\n", sToken.c_str() );
+               "token in QdecProjectMetadata: %s\n", sToken.c_str() );
     }
   }
 
   // Make sure we got some decent results.
-  if( sSubject == "" ) {
-      fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
-	       "project metadata file, Subject value not found\n" );
-      return -1;
+  if ( sSubject == "" )
+  {
+    fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
+             "project metadata file, Subject value not found\n" );
+    return -1;
   }
-  if( sHemisphere == "" ) {
-      fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
-	       "project metadata file, Hemisphere value not found\n" );
-      return -1;
+  if ( sHemisphere == "" )
+  {
+    fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
+             "project metadata file, Hemisphere value not found\n" );
+    return -1;
   }
-  if( sAnalysisName == "" ) {
-      fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
-	       "project metadata file, AnalysisName value not found\n" );
-      return -1;
+  if ( sAnalysisName == "" )
+  {
+    fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
+             "project metadata file, AnalysisName value not found\n" );
+    return -1;
   }
-  if( fnDataTableBase == "" ) {
-      fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
-	       "project metadata file, DataTable value not found\n" );
-      return -1;
+  if ( fnDataTableBase == "" )
+  {
+    fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
+             "project metadata file, DataTable value not found\n" );
+    return -1;
   }
-  if( sMeasure == "" ) {
-      fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
-	       "project metadata file, Measure value not found\n" );
-      return -1;
+  if ( sMeasure == "" )
+  {
+    fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
+             "project metadata file, Measure value not found\n" );
+    return -1;
   }
-  if( -1 == smoothness ) {
-      fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
-	       "project metadata file, Smoothness value not found\n" );
-      return -1;
+  if ( -1 == smoothness )
+  {
+    fprintf( stderr, "ERROR: QdecProject::LoadProjectFile: Invalid "
+             "project metadata file, Smoothness value not found\n" );
+    return -1;
   }
-  
+
   // Load our data table. Note that this might set the subjects dir,
   // but we'll set it later to our data dir.
   string fnDataTable = fnExpandedProjectDir + "/" + fnDataTableBase;
   int errorCode;
   errorCode = this->LoadDataTable( fnDataTable.c_str() );
-  if( errorCode )
+  if ( errorCode )
     return errorCode;
 
   // Set the subjects dir to the data dir, so that we can find the
@@ -251,7 +270,7 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
   // those all exist in our data dir.
 
   // Create the design. This will be used in the results.
-  errorCode = 
+  errorCode =
     this->mGlmDesign->Create ( this->mDataTable,
                                sAnalysisName.c_str(),
                                sDiscreteFactor1.c_str(),
@@ -263,15 +282,15 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
                                sHemisphere.c_str(),
                                smoothness,
                                NULL );
-  if( errorCode )
+  if ( errorCode )
     return errorCode;
-  
+
   // Create fit results data.
   delete this->mGlmFitter;
   this->mGlmFitter = new QdecGlmFit();
-  errorCode = 
+  errorCode =
     mGlmFitter->CreateResultsFromCachedData ( this->mGlmDesign );
-  if( errorCode )
+  if ( errorCode )
     return errorCode;
 
   return 0;
@@ -285,40 +304,45 @@ int QdecProject::LoadProjectFile ( const char* ifnProject,
  * @param  isFileName
  */
 int QdecProject::SaveProjectFile ( const char* ifnProject,
-				   const char* ifnDataDir )
+                                   const char* ifnDataDir )
 {
 
   cout << "Saving project file...\n";
 
   // If the project file name doesn't have a path, give it one.
   string fnProject( ifnProject );
-  if( fnProject.find( '/' ) == string::npos ) {
+  if ( fnProject.find( '/' ) == string::npos )
+  {
     char sCWD[1024];
-    if( getcwd( sCWD, sizeof(sCWD) ) ) {
+    if ( getcwd( sCWD, sizeof(sCWD) ) )
+    {
       string fnProjectFull = string(sCWD) + "/" + fnProject;
       fnProject = fnProjectFull;
-    } else {
+    }
+    else
+    {
       fprintf(stderr, "WARNING: QdecProject::LoadProjectFile: Can't add "
-	      "full path  to project file name; please specify full path." );
+              "full path  to project file name; please specify full path." );
     }
   }
 
   // If the file name doesn't end in qdec, append it now.
-  if( fnProject.find( ".qdec" ) != fnProject.size() - 5 ) {
+  if ( fnProject.find( ".qdec" ) != fnProject.size() - 5 )
+  {
     fnProject += ".qdec";
   }
-  
+
   /* To make our file, we create a temp directory, link in our files,
      and then compress into the destination .qdec file. This is the
      structure we want.
 
-    $ifnWorkingDir/qdec_project_archive/
-                               $Subject/surf/{r,l}h.{curv,inflatd,pial,white}
-                                        label/{r,l}h.aparc.annot
-                               $AnalysisName/ *
-                               qdec.table.dat
-                               QdecProjectMetadata.txt
-			       Version.txt
+     $ifnWorkingDir/qdec_project_archive/
+     $Subject/surf/{r,l}h.{curv,inflatd,pial,white}
+     label/{r,l}h.aparc.annot
+     $AnalysisName/ *
+     qdec.table.dat
+     QdecProjectMetadata.txt
+     Version.txt
   */
 
   string fnSubjectsDir = this->GetSubjectsDir();
@@ -329,22 +353,23 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   // Find the base name of the project file.
   string fnProjectBase( fnProject );
   string::size_type nPreLastSlash = fnProject.rfind( '/' );
-  if( string::npos != nPreLastSlash )
+  if ( string::npos != nPreLastSlash )
     fnProjectBase = fnProject.substr( nPreLastSlash+1, fnProject.size() );
 
   // Make a target dir for the expanded file in the data dir, with a
   // directory name of the project file.
   string fnExpandedProjectBase = "qdec_project_archive";
-  string fnExpandedProjectDir = string(ifnDataDir) + "/" + 
+  string fnExpandedProjectDir = string(ifnDataDir) + "/" +
     fnExpandedProjectBase;
 
   // Erase old working directory if present.
   string sCommand = "rm -rf " + fnExpandedProjectDir;
   cout << sCommand << endl;
   int rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "remove existing temp directory (cmd=%s)\n", sCommand.c_str() );
+             "remove existing temp directory (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -352,9 +377,10 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   sCommand = "mkdir " + fnExpandedProjectDir;
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "make temp directory (cmd=%s)\n", sCommand.c_str() );
+             "make temp directory (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -365,27 +391,30 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   fVersion.close();
 
   // Make the average subject dir structure.
-  sCommand = "mkdir -p " + 
-    fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms " + 
-    fnExpandedProjectDir + "/" + sSubjectName + "/surf " + 
+  sCommand = "mkdir -p " +
+    fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms " +
+    fnExpandedProjectDir + "/" + sSubjectName + "/surf " +
     fnExpandedProjectDir + "/" + sSubjectName + "/label";
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "make subject dir structure (cmd=%s)\n", sCommand.c_str() );
+             "make subject dir structure (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
-  
+
   // Link the necessary files. Start with mri/transforms/talairach.xfm file
   sCommand = "ln -s " +
-    fnSubjectsDir + "/" + sSubjectName + "/mri/transforms/talairach.xfm " +
+    fnSubjectsDir + "/" + sSubjectName + 
+    "/mri/transforms/talairach.xfm " +
     fnExpandedProjectDir + "/" + sSubjectName + "/mri/transforms";
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "link talairach.xfm file (cmd=%s)\n", sCommand.c_str() );
+             "link talairach.xfm file (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -395,9 +424,10 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     fnExpandedProjectDir + "/" + sSubjectName + "/mri";
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "link orig.mgz file (cmd=%s)\n", sCommand.c_str() );
+             "link orig.mgz file (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -410,21 +440,23 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
     fnExpandedProjectDir + "/" + sSubjectName + "/surf";
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "link surface files (cmd=%s)\n", sCommand.c_str() );
+             "link surface files (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
-  
+
   // Annotations.
   sCommand = "ln -s " +
     fnSubjectsDir + "/" + sSubjectName + "/label/*.aparc.annot " +
     fnExpandedProjectDir + "/" + sSubjectName + "/label";
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "link annotation files (cmd=%s)\n", sCommand.c_str() );
+             "link annotation files (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -432,9 +464,10 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   sCommand = "ln -s " + fnWorkingDir + " " + fnExpandedProjectDir;
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "link working dir (cmd=%s)\n", sCommand.c_str() );
+             "link working dir (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -443,42 +476,45 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   string fnDataTablePath( fnDataTable );
   string fnDataTableBase( fnDataTable );
   nPreLastSlash = fnDataTable.rfind( '/' );
-  if( string::npos != nPreLastSlash ) {
+  if ( string::npos != nPreLastSlash )
+  {
     fnDataTableBase = fnDataTable.substr( nPreLastSlash+1, fnDataTable.size());
     fnDataTablePath = fnDataTable.substr( 0, nPreLastSlash+1);
   }
 
   // NOTE: Older versions of ln don't handle multiple files specified
-  // in a symbolic link command properly. For example, on kani, with ln 
+  // in a symbolic link command properly. For example, on kani, with ln
   // version 4.5.3, this will create a dead qdec.table.dat link in /tmp:
   // ln -s $PWD/qdec.table.dat *.levels /tmp
   // so the files are linked/copied singly
-  sCommand = "ln -s " + fnDefaultWorkingDir + "/" + fnDataTableBase + 
+  sCommand = "ln -s " + fnDefaultWorkingDir + "/" + fnDataTableBase +
     " " + fnExpandedProjectDir;
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "link data table (cmd=%s)\n", sCommand.c_str() );
+             "link data table (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
   sCommand = "cp " + fnDefaultWorkingDir + "/*.levels " + fnExpandedProjectDir;
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
   /* .levels files may not exist, so don't check for copy error:
-  if( 0 != rSystem ) {
-    fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "copy *.levels (cmd=%s)\n", sCommand.c_str() );
-    return -1;
-  }
+     if( 0 != rSystem ) {
+     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
+     "copy *.levels (cmd=%s)\n", sCommand.c_str() );
+     return -1;
+     }
   */
 
   // Generate the meta data file.
   string fnMetadata = fnExpandedProjectDir + "/" + this->GetMetadataFileName();
   ofstream fMetadata( fnMetadata.c_str(), ios::out );
-  if( !fMetadata || fMetadata.bad() ) {
+  if ( !fMetadata || fMetadata.bad() )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "make metadata file %s\n", fnMetadata.c_str() );
+             "make metadata file %s\n", fnMetadata.c_str() );
     return -1;
   }
   fMetadata << "QdecProjectMetadata" << endl;
@@ -489,41 +525,42 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   fMetadata << "DataTable " << fnDataTableBase << endl;
   fMetadata << "Measure " << this->GetGlmDesign()->GetMeasure() << endl;
   fMetadata << "Smoothness " << this->GetGlmDesign()->GetSmoothness() << endl;
-  
+
   // We only support the two factors of each kind, so get the vectors
   // and just write the first and second ones if they are present.
   vector<QdecFactor*> const& lDiscreteFactors =
     this->GetGlmDesign()->GetDiscreteFactors();
-  if( lDiscreteFactors.size() > 0 )
-    fMetadata << "DiscreteFactor1 " 
-	      << lDiscreteFactors[0]->GetFactorName() << endl;
-  if( lDiscreteFactors.size() > 1 )
+  if ( lDiscreteFactors.size() > 0 )
+    fMetadata << "DiscreteFactor1 "
+              << lDiscreteFactors[0]->GetFactorName() << endl;
+  if ( lDiscreteFactors.size() > 1 )
     fMetadata << "DiscreteFactor2 "
-	      << lDiscreteFactors[1]->GetFactorName() << endl;
+              << lDiscreteFactors[1]->GetFactorName() << endl;
 
   vector<QdecFactor*> const& lContinuousFactors =
     this->GetGlmDesign()->GetContinuousFactors();
-  if( lContinuousFactors.size() > 0 )
-    fMetadata << "ContinuousFactor1 " 
-	      << lContinuousFactors[0]->GetFactorName() << endl;
-  if( lContinuousFactors.size() > 1 )
-    fMetadata << "ContinuousFactor2 " 
-	      << lContinuousFactors[1]->GetFactorName() << endl;
+  if ( lContinuousFactors.size() > 0 )
+    fMetadata << "ContinuousFactor1 "
+              << lContinuousFactors[0]->GetFactorName() << endl;
+  if ( lContinuousFactors.size() > 1 )
+    fMetadata << "ContinuousFactor2 "
+              << lContinuousFactors[1]->GetFactorName() << endl;
 
   fMetadata.close();
 
   // Get our command string and compress the directory to the
   // destination location with the .qdec filename.
   this->FormatCommandString( fnProject.c_str(),
-			     fnExpandedProjectBase.c_str(),
-			     ifnDataDir,
-			     msZipCommandFormat.c_str(),
-			     sCommand );
+                             fnExpandedProjectBase.c_str(),
+                             ifnDataDir,
+                             msZipCommandFormat.c_str(),
+                             sCommand );
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "compress project table (cmd=%s)\n", sCommand.c_str() );
+             "compress project table (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -531,9 +568,10 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   sCommand = "rm -rf " + fnExpandedProjectDir;
   cout << sCommand << endl;
   rSystem = system( sCommand.c_str() );
-  if( 0 != rSystem ) {
+  if ( 0 != rSystem )
+  {
     fprintf( stderr, "ERROR: QdecProject::SaveProjectFile: Couldn't "
-	     "remove temp directory (cmd=%s)\n", sCommand.c_str() );
+             "remove temp directory (cmd=%s)\n", sCommand.c_str() );
     return -1;
   }
 
@@ -542,21 +580,23 @@ int QdecProject::SaveProjectFile ( const char* ifnProject,
   return 0;
 }
 
-int QdecProject::SetZipCommandFormat ( const char* isFormat ) {
+int QdecProject::SetZipCommandFormat ( const char* isFormat )
+{
 
-  if( NULL == isFormat ) 
+  if ( NULL == isFormat )
     return -1;
-  
+
   msZipCommandFormat = isFormat;
 
   return 0;
 }
 
-int QdecProject::SetUnzipCommandFormat ( const char* isFormat ) {
+int QdecProject::SetUnzipCommandFormat ( const char* isFormat )
+{
 
-  if( NULL == isFormat ) 
+  if ( NULL == isFormat )
     return -1;
-  
+
   msUnzipCommandFormat = isFormat;
 
   return 0;
@@ -577,7 +617,7 @@ int QdecProject::LoadDataTable ( const char* isFileName )
   {
     ret = this->mDataTable->Load ( isFileName, subjectsDir );
   }
-  catch ( exception& e ) 
+  catch ( exception& e )
   {
     cerr << e.what() << endl;
     exit(1); // shutdown the whole shootin' match
@@ -588,7 +628,7 @@ int QdecProject::LoadDataTable ( const char* isFileName )
   delete this->mGlmDesign;
   this->mGlmDesign = new QdecGlmDesign( this->mDataTable );
   this->VerifySubjects();
-  //if ( ret ) 
+  //if ( ret )
   //{
   //  delete this->mDataTable;
   //  this->mDataTable = new QdecDataTable(); // on err, return empty table
@@ -611,21 +651,30 @@ int QdecProject::VerifySubjects ( )
   fprintf(stdout,"Verifying subject data");
   int errs=0;
   vector< QdecSubject* > theSubjects = this->mDataTable->GetSubjects();
-  for (unsigned int i=0; i < theSubjects.size(); i++) 
+  for (unsigned int i=0; i < theSubjects.size(); i++)
   {
     fprintf(stdout,".");
     fflush(stdout);
     string id = theSubjects[i]->GetId();
-    string sCommand = "ls " + 
+    string sCommand = "ls " +
       this->GetSubjectsDir() + "/" + id + " >& /dev/null";
     int rSystem = system( sCommand.c_str() );
-    if( 0 != rSystem ) {
+    if ( 0 != rSystem )
+    {
       fprintf( stderr, "ERROR: QdecProject::VerifySubjects: Couldn't "
                "find subject '%s' in SUBJECTS_DIR\n", id.c_str() );
       errs++;
+      if ( errs > 30 )
+      {
+        fprintf( stderr, "Too many subjects not found!\n" );
+        break;
+      }
     }
   }
-  fprintf(stdout,"Subject verification complete.\n");
+  if ( 0 == errs )
+  {
+    fprintf(stdout,"Subject verification complete.\n");
+  }
 
   return errs;
 }
@@ -817,37 +866,37 @@ int QdecProject::CreateGlmDesign ( const char* isName,
                                          isHemi,
                                          iSmoothnessLevel,
                                          iProgressUpdateGUI );
-  if( errorCode )
+  if ( errorCode )
     return errorCode;
 
-  if( iProgressUpdateGUI )
+  if ( iProgressUpdateGUI )
   {
     iProgressUpdateGUI->BeginActionWithProgress("Writing input files..." );
   }
 
 
-  if( mGlmDesign->WriteFsgdFile() )
+  if ( mGlmDesign->WriteFsgdFile() )
   {
     fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: "
-	     "could not create fsgd file\n");
+             "could not create fsgd file\n");
     return(-3);
   }
 
-  if( mGlmDesign->WriteContrastMatrices() )
+  if ( mGlmDesign->WriteContrastMatrices() )
   {
     fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
-	     "generate contrasts\n");
+             "generate contrasts\n");
     return(-4);
   }
 
-  if( mGlmDesign->WriteYdataFile() )
+  if ( mGlmDesign->WriteYdataFile() )
   {
     fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
-	     "create y.mgh file\n");
+             "create y.mgh file\n");
     return(-4);
   }
 
-  if( iProgressUpdateGUI )
+  if ( iProgressUpdateGUI )
   {
     iProgressUpdateGUI->EndActionWithProgress();
   }
@@ -898,37 +947,37 @@ int QdecProject::CreateGlmDesign ( const char* isName,
                                          NULL,
                                          0,
                                          iProgressUpdateGUI );
-  if( errorCode )
+  if ( errorCode )
     return errorCode;
 
-  if( iProgressUpdateGUI )
+  if ( iProgressUpdateGUI )
   {
     iProgressUpdateGUI->BeginActionWithProgress("Writing input files..." );
   }
 
 
-  if( mGlmDesign->WriteFsgdFile() )
+  if ( mGlmDesign->WriteFsgdFile() )
   {
     fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: "
-	     "could not create fsgd file\n");
+             "could not create fsgd file\n");
     return(-3);
   }
 
-  if( mGlmDesign->WriteContrastMatrices() )
+  if ( mGlmDesign->WriteContrastMatrices() )
   {
     fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
-	     "generate contrasts\n");
+             "generate contrasts\n");
     return(-4);
   }
 
-  if( mGlmDesign->WriteYdataFile( isMeasure ) )
+  if ( mGlmDesign->WriteYdataFile( isMeasure ) )
   {
     fprintf( stderr, "ERROR: QdecProject::CreateGlmDesign: could not "
-	     "create y.mgh file\n");
+             "create y.mgh file\n");
     return(-4);
   }
 
-  if( iProgressUpdateGUI )
+  if ( iProgressUpdateGUI )
   {
     iProgressUpdateGUI->EndActionWithProgress();
   }
@@ -956,14 +1005,14 @@ QdecGlmFitResults* QdecProject::GetGlmFitResults ( )
 
 
 /**
- * Run mri_label2label on each subject, mapping the label that was drawn on 
+ * Run mri_label2label on each subject, mapping the label that was drawn on
  * the average surface onto each subject. Optionally supply a GUI manager
  * to allow posting progress info.
  * @return int
  * @param  ifnLabel
  * @param  iProgressUpdateGUI
  */
-int QdecProject::GenerateMappedLabelForAllSubjects 
+int QdecProject::GenerateMappedLabelForAllSubjects
 ( const char* ifnLabel,
   ProgressUpdateGUI* iProgressUpdateGUI )
 {
@@ -975,13 +1024,13 @@ int QdecProject::GenerateMappedLabelForAllSubjects
   if ( 0 == numSubjects )
     throw runtime_error( "Zero subjects! Cannot run mri_label2label\n" );
 
-  if( iProgressUpdateGUI )
+  if ( iProgressUpdateGUI )
   {
     iProgressUpdateGUI->BeginActionWithProgress
       ( "Running mri_label2label..." );
   }
-      
-  for( int i=0; i < numSubjects; i++ )
+
+  for ( int i=0; i < numSubjects; i++ )
   {
     // build a command line for this subject
     stringstream ssCommand;
@@ -993,8 +1042,8 @@ int QdecProject::GenerateMappedLabelForAllSubjects
               << " --regmethod surface"
               << " --hemi " << this->GetHemi();
 
-     // Now run the command.
-    if( iProgressUpdateGUI )
+    // Now run the command.
+    if ( iProgressUpdateGUI )
     {
       string status = "Running mri_label2label on subject '";
       status += subjects[i];
@@ -1006,7 +1055,8 @@ int QdecProject::GenerateMappedLabelForAllSubjects
     char* sCommand = strdup( ssCommand.str().c_str() );
     printf( "\n----------------------------------------------------------\n" );
     printf( "%s\n", sCommand );
-    fflush(stdout);fflush(stderr);
+    fflush(stdout);
+    fflush(stderr);
     int rRun = system( sCommand );
     if ( -1 == rRun )
       throw runtime_error( "system call failed: " + ssCommand.str() );
@@ -1015,7 +1065,7 @@ int QdecProject::GenerateMappedLabelForAllSubjects
     free( sCommand );
   }
 
-  if( iProgressUpdateGUI )
+  if ( iProgressUpdateGUI )
   {
     iProgressUpdateGUI->UpdateProgressMessage( "Completed mri_label2label." );
     iProgressUpdateGUI->UpdateProgressPercent( 100 );
@@ -1029,13 +1079,14 @@ int QdecProject::GenerateMappedLabelForAllSubjects
 /**
  * @return QdecGlmDesign
  */
-QdecGlmDesign* QdecProject::GetGlmDesign ( ) 
+QdecGlmDesign* QdecProject::GetGlmDesign ( )
 {
   return this->mGlmDesign;
 }
 
 const char*
-QdecProject::GetMetadataFileName () const {
+QdecProject::GetMetadataFileName () const
+{
 
   static char fnMetadata[] = "QdecProjectMetadata.txt";
   return fnMetadata;
@@ -1043,10 +1094,11 @@ QdecProject::GetMetadataFileName () const {
 
 void
 QdecProject::FormatCommandString ( const char* ifnProject,
-				   const char* isExpandedProjectBaseName,
-				   const char* isWorkingDir,
-				   const char* isFormat,
-				   string& iosCommand ) const {
+                                   const char* isExpandedProjectBaseName,
+                                   const char* isWorkingDir,
+                                   const char* isFormat,
+                                   string& iosCommand ) const
+{
   assert( ifnProject );
   assert( isExpandedProjectBaseName );
   assert( isWorkingDir );
@@ -1057,11 +1109,11 @@ QdecProject::FormatCommandString ( const char* ifnProject,
 
   // Make our substitutions.
   string::size_type n;
-  while( string::npos != (n = iosCommand.find( "%1" )) )
+  while ( string::npos != (n = iosCommand.find( "%1" )) )
     iosCommand.replace( n, 2, ifnProject );
-  while( string::npos != (n = iosCommand.find( "%2" )) )
+  while ( string::npos != (n = iosCommand.find( "%2" )) )
     iosCommand.replace( n, 2, isExpandedProjectBaseName );
-  while( string::npos != (n = iosCommand.find( "%3" )) )
+  while ( string::npos != (n = iosCommand.find( "%3" )) )
     iosCommand.replace( n, 2, isWorkingDir );
 }
 
@@ -1072,7 +1124,7 @@ QdecProject::FormatCommandString ( const char* ifnProject,
  * on each subject, for later optional inclusion into the main mDataTable.
  * creates files aseg_volume.dat, lh_aparc_thickness.dat...
  *
- * returns the names of the data that were created (aseg_volume, 
+ * returns the names of the data that were created (aseg_volume,
  * lh_aparc_thickness...)
  *
  * @return vector< string >
@@ -1119,11 +1171,11 @@ vector< string > QdecProject::CreateStatsDataTables ()
     name << segs[s] << ".volume";
     stringstream ssCommand;
     ssCommand << "asegstats2table --common-segs --meas volume --tablefile "
-              << this->msStatsDataTablesDir 
+              << this->msStatsDataTablesDir
               << name.str() << ".stats.dat "
               << "--statsfile=" << segs[s] << ".stats "
-              << "--subjects"; 
-    for( int i=0; i < numSubjects; i++ )
+              << "--subjects";
+    for ( int i=0; i < numSubjects; i++ )
     {
       ssCommand << " " << subjects[i];
     }
@@ -1132,7 +1184,8 @@ vector< string > QdecProject::CreateStatsDataTables ()
     char* sCommand = strdup( ssCommand.str().c_str() );
     printf( "\n----------------------------------------------------------\n" );
     printf( "%s\n", sCommand );
-    fflush(stdout);fflush(stderr);
+    fflush(stdout);
+    fflush(stderr);
     int rRun = system( sCommand );
     if ( -1 == rRun )
       throw runtime_error( "system call failed: " + ssCommand.str() );
@@ -1143,7 +1196,7 @@ vector< string > QdecProject::CreateStatsDataTables ()
     // save the name of this file
     statsDataNames.push_back( name.str() );
   }
-  
+
   /*
    * now the variants of aparctats2table
    */
@@ -1160,16 +1213,16 @@ vector< string > QdecProject::CreateStatsDataTables ()
   meas.push_back( "thickness" );
   meas.push_back( "meancurv" );
   unsigned int h,p,m;
-  for( h=0; h < hemi.size(); h++ ) // for each hemi...
+  for ( h=0; h < hemi.size(); h++ ) // for each hemi...
   {
-    for( p=0; p < parc.size(); p++ ) // for each parcellation type
+    for ( p=0; p < parc.size(); p++ ) // for each parcellation type
     {
-      for( m=0; m < meas.size(); m++ ) // for each measure
+      for ( m=0; m < meas.size(); m++ ) // for each measure
       {
         // construct name of output file
         stringstream ssFname;
         ssFname <<  hemi[h]
-                << "." << parc[p] 
+                << "." << parc[p]
                 << "." << meas[m];
 
         // build a command line
@@ -1178,10 +1231,10 @@ vector< string > QdecProject::CreateStatsDataTables ()
                   << " --hemi " << hemi[h]
                   << " --parc " << parc[p]
                   << " --meas " << meas[m]
-                  << " --tablefile " << this->msStatsDataTablesDir 
+                  << " --tablefile " << this->msStatsDataTablesDir
                   << "/" << ssFname.str() << ".stats.dat"
-                  << " --subjects"; 
-        for( int i=0; i < numSubjects; i++ )
+                  << " --subjects";
+        for ( int i=0; i < numSubjects; i++ )
         {
           ssCommand << " " << subjects[i];
         }
@@ -1190,7 +1243,8 @@ vector< string > QdecProject::CreateStatsDataTables ()
         char* sCommand = strdup( ssCommand.str().c_str() );
         printf( "\n------------------------------------------------------\n" );
         printf( "%s\n", sCommand );
-        fflush(stdout);fflush(stderr);
+        fflush(stdout);
+        fflush(stderr);
         int rRun = system( sCommand );
         free( sCommand );
 
@@ -1198,7 +1252,7 @@ vector< string > QdecProject::CreateStatsDataTables ()
         // aseg/aparcstats2table can fail if it is missing the raw data, in
         // which case the user needs to create that data.  error messages
         // will appear in the terminal showing the failures
-        if ( 0 == rRun ) 
+        if ( 0 == rRun )
         {
           // save the name of this data (now that we know it was successfully
           // created
@@ -1216,7 +1270,7 @@ vector< string > QdecProject::CreateStatsDataTables ()
 
 /**
  * Run mri_surfcluster using supplied sig.mgh (taken from contrast dir)
- * and supplied Monte Carlo threshold and sign to generate 
+ * and supplied Monte Carlo threshold and sign to generate
  * cluster-wise correction for multiple comparisons results
  * making use of pre-calculated simulation data for fsaverage.
  * @return int
@@ -1224,50 +1278,57 @@ vector< string > QdecProject::CreateStatsDataTables ()
  * @param  isSign - one of: abs, pos, neg
  * @param  isContrast - name of contrast from which to use sig.mgh
  */
-int 
+int
 QdecProject::RunMonteCarloSimulation ( const char* isThreshold,
                                        const char* isSign,
-                                       const char* isContrast )
+                                       const char* isContrast,
+                                       const char** osClusterSigFileName )
 {
-  cout << isThreshold << endl;
-  cout << isSign << endl;
-  cout << isContrast << endl;
-
   stringstream ssWorkDir;
-  ssWorkDir << this->GetDefaultWorkingDir() 
-            << "/" 
+  ssWorkDir << this->GetDefaultWorkingDir()
+            << "/"
             << this->GetGlmDesign()->GetName().c_str();
   char* sWorkDir = strdup( ssWorkDir.str().c_str() );
 
-
-
-
-
-
-
-
-
-
-
-//   H  A  C  K     must get correct fwhm value !!!!!!!!!!!!!!!!1
-
-
-
-
-
-
-
-
-  // build a command line
+  // read fwhm.dat file, extract the value from it, and round up
+  float fwhm = 0;
+  stringstream fnFwhm;
+  fnFwhm << sWorkDir << "/fwhm.dat";
+  ifstream ifsFwhmFile( fnFwhm.str().c_str(), ios::in );
+  if (ifsFwhmFile.good())
+  {
+    char tmpstr[1000];
+    ifsFwhmFile.getline(tmpstr,1000);
+    cout << "fwhm.dat: " << tmpstr;
+    sscanf( tmpstr, "%f", &fwhm );
+    fwhm = ceil( fwhm );
+    cout << ", rounded to " << fwhm << endl;
+  }
+  else
+  {
+    cout << "ERROR: could not open " << fnFwhm.str().c_str() << endl;
+    return 1;
+  }
+  if( (fwhm < 1) || (fwhm > 30) )
+  {
+    cout << "ERROR: fwhm out-of-range (< 1 or > 30)!" << endl;
+    return 1;
+  }
+  
+  // build mri_surfcluster command line
   stringstream ssCommand;
+  stringstream ssClusterSigFileName;
+  ssClusterSigFileName << sWorkDir << "/" << isContrast
+                       << "/mc-z." << isSign << "." << isThreshold
+                       << ".sig.cluster.mgh";
   ssCommand << "mri_surfcluster"
             << " --in " << sWorkDir << "/" << isContrast << "/sig.mgh"
-            << " --csd " << getenv("FREESURFER_HOME") 
+            << " --csd " << getenv("FREESURFER_HOME")
             << "/average/mult-comp-cor/fsaverage/" << this->GetHemi()
-            << "/cortex/fwhm15/" << isSign << "/" << isThreshold << "/mc-z.csd"
+            << "/cortex/fwhm" << (int)fwhm << "/" << isSign
+            << "/" << isThreshold << "/mc-z.csd"
             << " --mask " << sWorkDir << "/mask.mgh"
-            << " --cwsig " << sWorkDir << "/" << isContrast
-            << "/mc-z." << isSign << "." << isThreshold << ".sig.cluster.mgh"
+            << " --cwsig " << ssClusterSigFileName.str().c_str()
             << " --vwsig " << sWorkDir << "/" << isContrast
             << "/mc-z." << isSign << "." << isThreshold << ".sig.vertex.mgh"
             << " --sum " << sWorkDir << "/" << isContrast
@@ -1281,16 +1342,17 @@ QdecProject::RunMonteCarloSimulation ( const char* isThreshold,
             << " --annot aparc"
             << " --cwpvalthresh 0.05 --surf white";
 
-  
+
   // and run the command...
   char* sCommand = strdup( ssCommand.str().c_str() );
   printf( "\n------------------------------------------------------\n" );
   printf( "%s\n", sCommand );
-  fflush(stdout);fflush(stderr);
+  fflush(stdout);
+  fflush(stderr);
   int rRun = system( sCommand );
   free( sCommand );
 
-  if( rRun )
+  if ( rRun )
   {
     cout << "\nERROR!\n" << endl;
   }
@@ -1303,6 +1365,12 @@ QdecProject::RunMonteCarloSimulation ( const char* isThreshold,
     system( ssCat.str().c_str() );
 
     cout << "\nSimulation complete.\n" << endl;
+
+    // save path to results sig file
+    if ( osClusterSigFileName )
+    {
+      *osClusterSigFileName = strdup( ssClusterSigFileName.str().c_str() );
+    }
   }
 
   return rRun;
