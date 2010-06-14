@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/11 01:20:26 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/06/14 21:17:19 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +55,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.10 2010/02/11 01:20:26 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.11 2010/06/14 21:17:19 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)
@@ -67,6 +67,9 @@ double cornerdiff(LTA* lta1, LTA* lta2)
   VECTOR * v_X  = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   VECTOR * v_Y1 = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
   VECTOR * v_Y2 = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+   VECTOR_ELT(v_X,4) = 1;	
+   VECTOR_ELT(v_Y1,4) = 1;	
+   VECTOR_ELT(v_Y2,4) = 1;	
 
   assert (lta1->xforms[0].src.depth  == lta2->xforms[0].src.depth);
   assert (lta1->xforms[0].src.height == lta2->xforms[0].src.height);
@@ -97,6 +100,146 @@ double cornerdiff(LTA* lta1, LTA* lta2)
   }
 
   return d/8.0;
+}
+
+double cornerdiff(LTA* lta1)
+{
+  // get vox2vox using lta geometry info
+  LTAchangeType(lta1,LINEAR_VOX_TO_VOX);
+
+  VECTOR * v_X  = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+  VECTOR * v_Y1 = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+   VECTOR_ELT(v_X,4) = 1;	
+   VECTOR_ELT(v_Y1,4) = 1;	
+
+  int y3,y2,y1;
+  double d = 0;
+	double dmax = 0;
+  for (y3 = 0 ; y3 < 2 ; y3++)
+  {
+    V3_Z(v_X) = y3 * (lta1->xforms[0].src.depth-1) ;
+    for (y2 = 0 ; y2 < 2 ; y2++)
+    {
+      V3_Y(v_X) = y2 * (lta1->xforms[0].src.height-1);
+      for (y1 = 0 ; y1 < 2 ; y1++)
+      {
+        V3_X(v_X) = y1* (lta1->xforms[0].src.width-1) ;
+        MatrixMultiply(lta1->xforms[0].m_L, v_X, v_Y1) ;
+        double d1 = V3_X(v_Y1) - V3_X(v_X);
+        double d2 = V3_Y(v_Y1) - V3_Y(v_X);
+        double d3 = V3_Z(v_Y1) - V3_Z(v_X);
+				double dd = sqrt(d1*d1 + d2*d2 + d3*d3);
+				//cout << " dd: " << dd << endl;
+				if ( dd > dmax) dmax = dd;
+        d += dd;
+        //cout << " corner : " << V3_X(v_X) << " , " <<  V3_Y(v_X) << " , " <<  V3_Z(v_X) << endl;
+        //cout << "   mapped to "<< V3_X(v_Y1) << " , " <<  V3_Y(v_Y1) << " , " <<  V3_Z(v_Y1) << endl;
+        //cout << "   mapped to "<< V3_X(v_Y2) << " , " <<  V3_Y(v_Y2) << " , " <<  V3_Z(v_Y2) << endl;
+      }
+    }
+  }
+  cout << " dmax: " << dmax << endl;
+  return d/8.0;
+}
+
+double sphereDiff(MATRIX * M1, MATRIX* M2, double r)
+{
+
+   MATRIX* M = MatrixAlloc(4,4,MATRIX_REAL);
+	 if (M2 == NULL) M = MatrixCopy(M1,M);
+	 else
+	 {
+	    M = MatrixInverse(M1,M);
+			M = MatrixMultiply(M2,M,M);
+	 }
+
+ // MatrixPrintFmt(stdout,"% 2.8f",M);
+
+
+   double dmax = 0;
+	 double dmin = 100000000000;
+	 double davg = 0;
+	 int counter = 0;
+
+   VECTOR * v_A = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
+   VECTOR * v_B = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
+   VECTOR_ELT(v_A,4) = 1;	
+   VECTOR_ELT(v_B,4) = 1;	
+	 
+	 // poles
+   V3_X(v_A) = 0;   V3_Y(v_A) = 0;   V3_Z(v_A) = r;
+   MatrixMultiply(M, v_A, v_B) ;
+ // MatrixPrintFmt(stdout,"% 2.8f",v_A);
+ // MatrixPrintFmt(stdout,"% 2.8f",v_B);
+	 
+   double d1 = V3_X(v_B) - V3_X(v_A);
+   double d2 = V3_Y(v_B) - V3_Y(v_A);
+   double d3 = V3_Z(v_B) - V3_Z(v_A);
+	 double dd = sqrt(d1*d1 + d2*d2 + d3*d3);
+	 dmax = dd; dmin = dd; davg = dd;
+	 counter++;
+   V3_X(v_A) = 0;   V3_Y(v_A) = 0;   V3_Z(v_A) = -r;
+   MatrixMultiply(M, v_A, v_B) ;
+   d1 = V3_X(v_B) - V3_X(v_A);
+   d2 = V3_Y(v_B) - V3_Y(v_A);
+   d3 = V3_Z(v_B) - V3_Z(v_A);
+	 dd = sqrt(d1*d1 + d2*d2 + d3*d3);
+	 if (dd> dmax) dmax = dd; 
+	 if (dd< dmin) dmin = dd; 
+	 davg += dd;
+	 counter++;
+	 
+	 
+   // sample sphere with radius 1
+	 int max = 10;
+	 for (int i = -max+1; i<max ; i++)
+	 {
+	   double angle1 = (i*M_PI*0.5)/max; // from -pi/2 to +pi/2
+	   // radius:
+	   double r1 = cos(angle1);
+		 double h  = sin(angle1);
+		 // circumference is 2pi *r1, we want 4*max samples at aequator (where r=1 and cc 2pi)
+		 int max2 = int(4.0*max*r1);
+	   for (int j = 0; j< max2 ; j++)
+		 {
+		   double angle2 = (2.0*M_PI*j)/ max2; // from 0 to 2pi
+       V3_X(v_A) = r*r1*cos(angle2);
+			 V3_Y(v_A) = r*r1*sin(angle2);
+			 V3_Z(v_A) = r*h;
+       MatrixMultiply(M, v_A, v_B) ;
+       d1 = V3_X(v_B) - V3_X(v_A);
+       d2 = V3_Y(v_B) - V3_Y(v_A);
+       d3 = V3_Z(v_B) - V3_Z(v_A);
+	     dd = sqrt(d1*d1 + d2*d2 + d3*d3);
+	     if (dd> dmax) dmax = dd; 
+	     if (dd< dmin) dmin = dd; 
+	     davg += dd;
+	     counter++;
+		 }
+   }
+	 davg = davg/counter;
+//	 cout << " max: " << dmax << " min: " << dmin << " avg: " << davg << endl;
+	 MatrixFree(&M);
+	 return dmax;
+}
+
+void testSphereDiff()
+{
+
+  MATRIX* T = MatrixIdentity(4,NULL);
+  T->rptr[1][4] = 10.0;
+  cout << sphereDiff(T,NULL,100) << endl;
+
+  // rotation 90degree around z axis
+  MATRIX* R = MatrixIdentity(4,NULL);
+  R->rptr[1][1] = 0;
+  R->rptr[1][2] = -1;
+  R->rptr[2][1] = 1;
+  R->rptr[2][2] = 0;
+  cout << sphereDiff(R,NULL,100) << endl;
+
+
+  exit(1);
 }
 
 double interpolationError2D(double angle)
@@ -230,6 +373,9 @@ double interpolationError(LTA* lta)
 int main(int argc, char *argv[])
 {
 
+//testSphereDiff();
+
+
 //   // Default initialization
 //   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
 //   if (nargs && argc - nargs == 1) exit (0);
@@ -249,9 +395,13 @@ int main(int argc, char *argv[])
     cout << "       1            Rigid Transform Distance (||log(R)|| + ||T||)" << endl;
     cout << "       2  (default) Affine Transform Distance (RMS) " << endl;
     cout << "       3            8-corners mean distance after transform " << endl;
+    cout << "       4            Max Displacement on Sphere " << endl;
     cout << "    norm-div  (=1)  divide final distance by this (e.g. step adjustment)" << endl;
 		cout << "    invert1         invert first LTA: 1 true, 0 false (default)" << endl;
     cout << endl;
+		cout << " For the RMS and Sphere we use a ball with radius 10cm at the RAS center." << endl;
+		cout << " Instead of 'file2.lta' you can specify 'identity.nofile'." << endl;
+		cout << endl;
     exit(1);
   }
   string lta1f = argv[1];
@@ -338,23 +488,36 @@ int main(int argc, char *argv[])
 
 
 
-  LTAchangeType(lta1,LINEAR_RAS_TO_RAS);
-  LTAchangeType(lta2,LINEAR_RAS_TO_RAS);
-
   double dist = -1;
   Registration R;
+	
+  LTAchangeType(lta1,LINEAR_RAS_TO_RAS);
+	MATRIX* RAS1 = lta1->xforms[0].m_L;
+	MATRIX* RAS2 = NULL;
+	if (lta2f != "identity.nofile")
+	{
+    LTAchangeType(lta2,LINEAR_RAS_TO_RAS);
+	  RAS2 = lta2->xforms[0].m_L;
+	}
+	
 
   switch (disttype)
   {
   case 1 :
-    dist = sqrt(MyMatrix::RigidTransDistSq(lta1->xforms[0].m_L, lta2->xforms[0].m_L))/d;
+    dist = sqrt(MyMatrix::RigidTransDistSq(RAS1, RAS2))/d;
     break;
   case 2 :
-    dist = sqrt(MyMatrix::AffineTransDistSq(lta1->xforms[0].m_L, lta2->xforms[0].m_L))/d;
+    dist = sqrt(MyMatrix::AffineTransDistSq(RAS1, RAS2))/d;
     break;
   case 3 :
-    dist =  cornerdiff(lta1,lta2)/d;
+	  if (lta2f == "identity.nofile")
+		   dist = cornerdiff(lta1)/d;
+		else
+      dist =  cornerdiff(lta1,lta2)/d;
     break;
+  case 4 :
+    dist =  sphereDiff(RAS1,RAS2,100)/d; 
+		break;
     assert(1==2);
   }
   cout << dist << endl;
