@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/01/13 17:46:54 $
- *    $Revision: 1.70 $
+ *    $Author: mreuter $
+ *    $Date: 2010/06/14 21:28:03 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -215,7 +215,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.70 2010/01/13 17:46:54 rge21 Exp $", 
+     "$Id: mri_ca_register.c,v 1.71 2010/06/14 21:28:03 mreuter Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -572,7 +572,7 @@ main(int argc, char *argv[]) {
     if (!gcam)
       ErrorExit(ERROR_NOFILE,
                 "%s: could not read transform from %s", Progname, xform_name) ;
-    if (long_reg_fname) {
+    if (long_reg_fname && strcmp(long_reg_fname,"identity.nofile") != 0) {
       TRANSFORM *transform_long ;
 
       transform_long = TransformRead(long_reg_fname) ;
