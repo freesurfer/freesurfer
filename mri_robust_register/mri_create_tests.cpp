@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 22:55:17 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/06/14 21:20:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -95,7 +95,7 @@ static struct Parameters P =
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
-static char vcid[] = "$Id: mri_create_tests.cpp,v 1.1 2010/01/14 22:55:17 mreuter Exp $";
+static char vcid[] = "$Id: mri_create_tests.cpp,v 1.2 2010/06/14 21:20:57 mreuter Exp $";
 char *Progname = NULL;
 
 
@@ -194,25 +194,43 @@ int main(int argc, char *argv[])
 	
 	if (P.translation)
 	{
-	  vector < int > t = get_random(-5,5,3);
+	  vector < int > t = get_random(-100,100,3);
 //		vector < int > t(3,4);
+    //cout << " T: " << t[0] << " " << t[1] << " " << t[2] << endl;
+		//cout << " length: " << sqrt(t[0]*t[0] + t[1] * t[1] + t[2] * t[2]) << endl;
+		
 		assert(t.size() == 3);
-		//double length = sqrt(t[0]*t[0] + t[1] * t[1] + t[2] * t[2]);
-		//t[0] \= length; t[1] \= length; t[2] \= length;
-		cout << " Random Translation: ( " << 2*t[0] << " , " << 2*t[1] << " , " << 2*t[2] << " )" << endl;
-    *MATRIX_RELT(lta->xforms[0].m_L, 1, 4) = t[0] ;
-    *MATRIX_RELT(lta->xforms[0].m_L, 2, 4) = t[1] ;
-    *MATRIX_RELT(lta->xforms[0].m_L, 3, 4) = t[2] ;
+///		double transdist = 100 ; // large 100mm=10 cm
+//		double transdist = 50 ;
+		double transdist =0.05;
+		double ff = 0.5 * transdist / sqrt(t[0]*t[0] + t[1] * t[1] + t[2] * t[2]);
+		//cout << " ff: " << ff << endl;
+		float t0 = (float) (ff *t[0]); 
+		float t1 = (float) (ff*t[1]); 
+		float t2 = (float) (ff* t[2]);
+		//cout << " New length: " << sqrt(t[0]*t[0] + t[1] * t[1] + t[2] * t[2]) << endl;
+		cout << " Random Translation: ( " << 2*t[0] << " , " << 2*t[1] << " , " << 2*t[2] << " )  length: "<<2*sqrt(t[0]*t[0] + t[1] * t[1] + t[2] * t[2]) << endl;
+    *MATRIX_RELT(lta->xforms[0].m_L, 1, 4) = t0 ;
+    *MATRIX_RELT(lta->xforms[0].m_L, 2, 4) = t1 ;
+    *MATRIX_RELT(lta->xforms[0].m_L, 3, 4) = t2 ;
+    *MATRIX_RELT(lta->xforms[0].m_L, 1, 4) = transdist/2.0 ;
+    *MATRIX_RELT(lta->xforms[0].m_L, 2, 4) = 0 ;
+    *MATRIX_RELT(lta->xforms[0].m_L, 3, 4) = 0 ;
   }
 
 MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
 	
-	if (P.rotation)
+	if (P.rotation) // create half the rotation 
 	{
 	  vector < int > t = get_random(-100,100,4);
 		double length = sqrt(t[1]*t[1] + t[2] * t[2] + t[3] * t[3]);
 	  Quaternion Q;
-		Q.importRotVec((5.0*M_PI/360.0)*t[0]/100.0,t[1]/length,t[2]/length,t[3]/length);
+		//double maxdeg = 40.0; // large 40 degree
+		double maxdeg = 25.0;
+		double maxrad = 2.0*M_PI*maxdeg/360;
+		//double rot    = 0.5 * maxrad * t[0]/100.0;
+		double rot = 0.5 * maxrad;
+		Q.importRotVec(rot,t[1]/length,t[2]/length,t[3]/length);
 		vector < double > R = Q.getRotMatrix3d();
 		cout << " Random Rotation: " << endl;
 		for (int r = 0 ; r<3;r++)
@@ -291,28 +309,55 @@ MatrixPrintFmt(stdout,"% 2.8f",lta->xforms[0].m_L); cout << endl <<endl;
 // 		vector <int> t = get_random(0,255,P.outlier);
 // 		for (int i = 0;i<P.outlier;i++)
 // 		   MRIvox(mriT,p[i*3],p[i*3+1],p[i*3+2]) = t[i];
- 	  cout << " Setting " << P.outlier << " random voxel boxes 20^3" << endl;
- 	  vector <int> p = get_random(10,245,P.outlier*3);
- 		vector <int> t = get_random(0,255,P.outlier);
+// 	  cout << " Setting " << P.outlier << " random voxel boxes 20^3" << endl;
+    int bsize = 30; // should be even number
+		int bsizeh = bsize/2;
+ 	  cout << " Creating " << P.outlier << " outlier boxes "<<bsize<<"^3 (image copies)" << endl;
+ 	  vector <int> p  = get_random(bsizeh+1,254-bsizeh,P.outlier*3);
+ 	  vector <int> ps = get_random(bsizeh+50,200-bsizeh,P.outlier*3);
+ 		//vector <int> t = get_random(0,255,P.outlier);
  		for (int i = 0;i<P.outlier;i++)
-		for (int x = 0;x<20;x++)
-		for (int y = 0;y<20;y++)
-		for (int z = 0;z<20;z++)
+		for (int x = 0;x<bsize;x++)
+		for (int y = 0;y<bsize;y++)
+		for (int z = 0;z<bsize;z++)
 		{
-		   int xx = p[i*3]+x-10;
-			 int yy = p[i*3+1]+y-10;
-			 int zz = p[i*3+2]+z-10;
-			 if (xx < 0 || yy < 0 || zz<0 || xx >= mriT->width || yy>= mriT->height || yy>= mriT->depth) 
-			   continue;
-			 if (i < P.outlier/2)  MRIvox(mriT,xx,yy,zz) = t[i];
-			 else MRIvox(mriS,xx,yy,zz) = t[i];
+		   int xxs = ps[i*3]+x-(bsizeh);
+			 int yys = ps[i*3+1]+y-(bsizeh);
+			 int zzs = ps[i*3+2]+z-(bsizeh);
+		   int xx = p[i*3]+x-(bsizeh);
+			 int yy = p[i*3+1]+y-(bsizeh);
+			 int zz = p[i*3+2]+z-(bsizeh);
+			 float val;
+			 
+			 if (i < P.outlier/2)
+			 {
+			   if (xx < 0 || yy < 0 || zz<0 || xx >= mriT->width || yy>= mriT->height || yy>= mriT->depth) 
+			     continue;
+			   if (xxs < 0 || yys < 0 || zzs<0 || xxs >= mriT->width || yys>= mriT->height || yys>= mriT->depth) 
+			     val = 0;
+			   else val = MRIgetVoxVal(mriT,xxs,yys,zzs,0);
+			 
+				MRIsetVoxVal(mriT,xx,yy,zz,0,val);		 
+			   //MRIvox(mriT,xx,yy,zz) = val;
+			 }
+			 else
+			 {
+  			 if (xx < 0 || yy < 0 || zz<0 || xx >= mriS->width || yy>= mriS->height || yy>= mriS->depth) 
+	  		   continue;
+			   if (xxs < 0 || yys < 0 || zzs<0 || xxs >= mriS->width || yys>= mriS->height || yys>= mriS->depth) 
+			     val = 0;
+			   else val = MRIgetVoxVal(mriS,xxs,yys,zzs,0);
+			 			 
+				MRIsetVoxVal(mriS,xx,yy,zz,0,val);		 
+//			  MRIvox(mriS,xx,yy,zz) = val;
+			 }
 	  }
 	}
 
   if (P.outlierbox > 0)
 	{	   
 	   int offset = 128;
-		 cout << " Creating Outlier Box [ " << offset << " , " << P.outlierbox+offset << " ]^3 with values [200..255]" << endl;
+		 cout << " Creating Single Outlier Box [ " << offset << " , " << P.outlierbox+offset << " ]^3 with values [200..255]" << endl;
 		 vector < int > t = get_random(200,255,P.outlierbox*P.outlierbox*P.outlierbox);
 		 int count = 0;
 	   for (int x = 0;x<P.outlierbox;x++)
