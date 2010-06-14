@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/05/06 19:55:14 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/06/14 21:15:12 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -128,7 +128,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.30 2010/05/06 19:55:14 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.31 2010/06/14 21:15:12 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -331,6 +331,10 @@ int main(int argc, char *argv[])
     MRI *mri_aligned = MRIclone(P.mri_dst,NULL);
     mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);
     P.mri_mov->nframes = nframes ;
+		
+		// keep acquisition params:
+		MRIcopyPulseParameters(P.mri_mov,mri_aligned);
+		
 //    sprintf(fname, "%s_after_final_alignment", parms.base_name) ;
 //    MRIwriteImageViews(mri_aligned, fname, IMAGE_SIZE) ;
 //    sprintf(fname, "%s_target", parms.base_name) ;
@@ -420,8 +424,9 @@ int main(int argc, char *argv[])
     if (P.halfmov != "")
     {
       cout << " creating half-way movable ..." << endl;
-      // take dst info from lta:
+      // take dst geometry info from lta:
       MRI* mri_Swarp = LTAtransform(P.mri_mov,NULL, m2hwlta);
+		  MRIcopyPulseParameters(P.mri_mov,mri_Swarp);
       MRIwrite(mri_Swarp,P.halfmov.c_str());
 
       MRIiterator mw(mri_weights);
@@ -469,6 +474,7 @@ int main(int argc, char *argv[])
     {
       cout << " creating half-way destination ..." << endl;
       MRI* mri_Twarp = LTAtransform(P.mri_dst,NULL, d2hwlta);
+		  MRIcopyPulseParameters(P.mri_dst,mri_Twarp);
       MRIwrite(mri_Twarp,P.halfdst.c_str());
       MRI * mri_weights = R.getWeights();
       MRIiterator mw(mri_weights);

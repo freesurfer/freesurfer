@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/01 23:51:39 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/06/14 21:15:12 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -197,6 +197,7 @@ bool MultiRegistration::averageSet(int itdebug)
 			// use geometry from ltas
 			// (if initXforms was called, this is the center of mass of all tps)
       mri_warps[i] = LTAtransform(mri_mov[i],NULL, ltas[i]);
+		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
 			if (iscale)
 			{
 			   mri_warps[i] = MyMRI::MRIvalscale(mri_warps[i],mri_warps[i], intensities[i]);
@@ -449,6 +450,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
       if (mri_warps[i]) MRIfree(&mri_warps[i]);
       mri_warps[i] = MRIclone(mri_mean,mri_warps[i]);
       mri_warps[i] = LTAtransform(mri_mov[i],mri_warps[i], ltas[i]);
+		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
 
       // here do scaling of intensity values
       if (Rv[i].isIscale() && Md.second > 0)
@@ -657,7 +659,9 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
   if (mri_warps[0]) MRIfree(&mri_warps[0]);
   if (mri_warps[1]) MRIfree(&mri_warps[1]);
   mri_warps[0] = LTAtransform(mri_mov[0],NULL, m2hwlta);
+	MRIcopyPulseParameters(mri_mov[0],mri_warps[0]);
   mri_warps[1] = LTAtransform(mri_mov[1],NULL, d2hwlta);
+	MRIcopyPulseParameters(mri_mov[1],mri_warps[1]);
   // here do scaling of intensity values
   if (R.isIscale() && Md.second > 0)
   {
