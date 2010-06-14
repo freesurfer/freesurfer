@@ -14,8 +14,8 @@
  * Original Author: Xaio Han
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/23 00:52:15 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/06/14 21:33:11 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -70,7 +70,7 @@ static char *log_fname = NULL ;
 static  char  *subject_name = NULL ;
 
 static char vcid[] =
-  "$Id: mris_thickness_diff.c,v 1.14 2010/02/23 00:52:15 mreuter Exp $";
+  "$Id: mris_thickness_diff.c,v 1.15 2010/06/14 21:33:11 mreuter Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -102,6 +102,8 @@ static int register_flag = 0;
 static int annotation_flag = 0;
 static char *annotation_fname = NULL;
 static char *annotation_name = NULL;
+
+static char *label_name = NULL ;
 
 static int compute_distance = 0;
 
@@ -172,7 +174,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_thickness_diff.c,v 1.14 2010/02/23 00:52:15 mreuter Exp $",
+           "$Id: mris_thickness_diff.c,v 1.15 2010/06/14 21:33:11 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -487,6 +489,18 @@ int main(int argc, char *argv[])
         vertex->border = 1;
     }
   }
+	
+  if (label_name)
+  {
+    LABEL  *area ;
+    area = LabelRead(NULL, label_name) ;
+    if (!area)
+      ErrorExit(ERROR_NOFILE, "%s: could not read label file %s\n", label_name) ;
+    MRISsetMarks(Surf1, -1) ;
+    LabelMark(area, Surf1) ;  // set the vertices in the label to marked=1
+    LabelFree(&area) ;
+  }
+	else MRISsetMarks(Surf1, 1);
 
   resVal = ComputeDifferenceNew(Surf1, SrcVal1, Surf2, SrcVal2, NULL);
 
@@ -500,6 +514,7 @@ int main(int argc, char *argv[])
   {
     vertex = &Surf1->vertices[index];
     if (vertex->border == 1) continue;
+    if (vertex->marked != 1) continue;
 
     total++;
     scalar = MRIgetVoxVal(resVal,index,0,0,0);
@@ -539,6 +554,7 @@ int main(int argc, char *argv[])
   for (index = 0; index < Surf1->nvertices; index++)
   {
     if (Surf1->vertices[index].border == 1) continue;
+    if (Surf1->vertices[index].marked != 1) continue;
     tmpval = MRIgetVoxVal(resVal,index,0,0,0);
     if (abs_flag)
     { //compute stat of absolute-value-thickness-differences
@@ -754,6 +770,9 @@ static void print_help(void)
     "    Limit thickness comparison to region with\n"
     "    annotation = annotation_name.\n"
     "\n"
+    "  -label labelfile\n"
+    "    Limit thickness comparison to region inside label.\n"
+    "\n"
     "  -s subject_name (to be recorded in logfile).\n"
     "\n"
     "  -register\n"
@@ -889,6 +908,12 @@ static int get_option(int argc, char *argv[])
     nargs = 2;
     printf("only compute thickness stats for region with label %s\n",
            annotation_name);
+  }
+  else if (!stricmp(option, "label") )
+  {
+      label_name = argv[2] ;
+      nargs = 1 ;
+      printf("limiting computations to label %s.\n", label_name) ;
   }
   else if (!stricmp(option, "distance"))
   {
@@ -1145,6 +1170,7 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
   for (index = 0; index < Mesh1->nvertices; index++)
   {
     if (Mesh1->vertices[index].border == 1) continue;
+    if (Mesh1->vertices[index].marked != 1) continue;
     vertex = &Mesh1->vertices[index];
     nnindex = MHTfindClosestVertexNo(SrcHash,Mesh2,vertex,&dmin);
 
@@ -1154,14 +1180,14 @@ MRI *ComputeDifferenceNew(MRI_SURFACE *Mesh1,
     if (nnindex >= Mesh2->nvertices)
     {
       printf("\nERROR: ComputeDifferenceNew: MHTfindClosestVertexNo "
-             "returned nnindex=%d, which is >= nvertices=%d\n", 
-             nnindex, Mesh2->nvertices);
+             "vidx %d returned nnindex=%d, which is >= nvertices=%d\n", 
+             index,nnindex, Mesh2->nvertices);
       exit(1);
     }
     if (nnindex < 0)
     {
       printf("\nERROR: ComputeDifferenceNew: MHTfindClosestVertexNo "
-             "returned nnindex=%d, which is invalid\n", nnindex);
+             "vidx %d returned nnindex=%d, which is invalid\n", index, nnindex);
       exit(1);
     }
 
