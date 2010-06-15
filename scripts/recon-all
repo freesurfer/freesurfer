@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/05/27 23:57:29 $
-#    $Revision: 1.313 $
+#    $Date: 2010/06/15 16:36:19 $
+#    $Revision: 1.314 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.313 2010/05/27 23:57:29 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.314 2010/06/15 16:36:19 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3435,6 +3435,15 @@ while( $#argv != 0 )
       set basetpid = $argv[1]; shift;
       set basetpid = `basename $basetpid`; # removes trailing /
       set BaseSubjsList = ($BaseSubjsList $basetpid);
+      if($DoCreateBaseSubj) then
+        if ("$basetpid" == "$subjid") then
+          echo "ERROR: you need to specify a new ID for the base/template. "
+          echo "It cannot be one of the time points."
+          echo "Find more info at:"
+          echo "http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalProcessing"
+          exit 1;
+        endif
+      endif
       breaksw
 
     case "-base-invol":
@@ -4766,6 +4775,15 @@ check_params:
         grep $tpNid ${longbasedir}/${BaseSubjsListFname} >& /dev/null
         if ($status) then
           echo "ERROR: $tpNid is not in ${longbasedir}/${BaseSubjsListFname}"
+          exit 1
+        endif
+        # check that baseid is not the same as any of the timepoint subj IDs
+        grep $longbaseid ${longbasedir}/${BaseSubjsListFname} >& /dev/null
+        if ( ! $status) then
+          echo "ERROR: longitudinal base ID cannot be the same as a timepoint"
+          echo "subject ID (in ${longbasedir}/${BaseSubjsListFname})"
+          echo "Find more info at:"
+          echo "http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalProcessing"
           exit 1
         endif
       endif
