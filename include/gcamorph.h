@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/05/29 00:40:32 $
- *    $Revision: 1.71 $
+ *    $Date: 2010/06/15 15:39:51 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -483,6 +483,11 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 			  const MRI *mri,
 			  const double l_smoothness );
   
+  int gcamJacobianTerm( GCA_MORPH *gcam, 
+			const MRI *mri, 
+			double l_jacobian, 
+			double ratio_thresh );
+
 
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties

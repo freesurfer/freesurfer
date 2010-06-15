@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 13:38:22 $
- *    $Revision: 1.191 $
+ *    $Date: 2010/06/15 15:39:53 $
+ *    $Revision: 1.192 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -211,12 +211,12 @@ static int  gcamVolumeChangeTermAtNode(GCA_MORPH *gcam,
                                        int i, int j, int k, 
                                        double *pdx, double *pdy, double *pdz) ;
 
-static int  gcamJacobianTermAtNode(GCA_MORPH *gcam, 
-                                   MRI *mri, 
-                                   double l_jacobian,
-                                   int i, int j, int k, 
-                                   double *pdx, double *pdy,
-                                   double *pdz) ;
+static int  gcamJacobianTermAtNode( GCA_MORPH *gcam, 
+				    const MRI *mri, 
+				    double l_jacobian,
+				    int i, int j, int k, 
+				    double *pdx, double *pdy,
+				    double *pdz );
 static int   finitep(float f) ;
 
 static int write_snapshot(GCA_MORPH *gcam, 
@@ -287,11 +287,6 @@ static int gcamAreaSmoothnessTerm(GCA_MORPH *gcam,
                                   double l_jacobian) ;
 static int gcamAreaTerm(GCA_MORPH *gcam, double l_jacobian) ;
 static double gcamAreaEnergy(GCA_MORPH *gcam) ;
-
-static int gcamJacobianTerm(GCA_MORPH *gcam, 
-                            MRI *mri, 
-                            double l_jacobian, 
-                            double ratio_thresh) ;
 
 
 static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
@@ -2179,8 +2174,8 @@ gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri)
 #define AREA_NEIGHBORS 8
 static float jac_scale = 10 ;
 #if 1
-static int
-gcamJacobianTerm(GCA_MORPH *gcam, MRI *mri, 
+int
+gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, 
                  double l_jacobian, double ratio_thresh)
 {
   int            i, j, k, num /*, xi, yi, zi, xk, yk, zk = 0*/ ;
@@ -2190,6 +2185,8 @@ gcamJacobianTerm(GCA_MORPH *gcam, MRI *mri,
 
   if (DZERO(l_jacobian))
     return(NO_ERROR) ;
+
+
   for (num = i = 0 ; i < gcam->width ; i++)
   {
     for (j = 0 ; j < gcam->height ; j++)
@@ -2238,8 +2235,9 @@ gcamJacobianTerm(GCA_MORPH *gcam, MRI *mri,
     }
   }
 
-  if (DIAG_VERBOSE_ON)
+  if (DIAG_VERBOSE_ON) {
     printf("  %d nodes compressed more than %2.2f\n", num, ratio_thresh) ;
+  }
 
   max_norm = 0.0 ;
   for (i = 0 ; i < gcam->width ; i++)
@@ -2519,10 +2517,10 @@ gcamAreaSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_area_smoothness)
 }
 
 static int
-gcamJacobianTermAtNode(GCA_MORPH *gcam, MRI *mri, 
-                       double l_jacobian,
-                       int i, int j, int k, 
-                       double *pdx, double *pdy, double *pdz)
+gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri, 
+			double l_jacobian,
+			int i, int j, int k, 
+			double *pdx, double *pdy, double *pdz )
 {
   GCA_MORPH_NODE *gcamn, *gcamni, *gcamnj, *gcamnk ;
   float          delta, ratio ;
