@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/05/14 17:50:13 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/06/15 13:38:23 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,14 +35,6 @@
 #include "gcamorphtermgpu.hpp"
 
 
-
-
-//! Texture for vx in Smoothness
-texture<float, 3, cudaReadModeElementType> dt_smooth_vx;
-//! Texture for vy in Smoothness
-texture<float, 3, cudaReadModeElementType> dt_smooth_vy;
-//! Texture for vz in Smoothness
-texture<float, 3, cudaReadModeElementType> dt_smooth_vz;
 //! Texure for 'invalid' in Smoothness
 texture<char, 3, cudaReadModeElementType> dt_smooth_invalid;
 
@@ -80,29 +72,13 @@ namespace GPU {
     }
 
 
-    __device__ float Fetchvx( const int ix,
-			      const int iy,
-			      const int iz ) {
-      return( tex3D( dt_smooth_vx, ix+0.5f, iy+0.5f, iz+0.5f ) );
-    }
-
-    __device__ float Fetchvy( const int ix,
-			      const int iy,
-			      const int iz ) {
-      return( tex3D( dt_smooth_vy, ix+0.5f, iy+0.5f, iz+0.5f ) );
-    }
-    
-    __device__ float Fetchvz( const int ix,
-			      const int iy,
-			      const int iz ) {
-      return( tex3D( dt_smooth_vz, ix+0.5f, iy+0.5f, iz+0.5f ) );
-    }
-
-
 
     //! Kernel to compute the smoothness term
     __global__
-    void SmoothnessTermKernel( GPU::Classes::VolumeArgGPU<float> dx,
+    void SmoothnessTermKernel( const GPU::Classes::VolumeArgGPU<float> vx,
+			       const GPU::Classes::VolumeArgGPU<float> vy,
+			       const GPU::Classes::VolumeArgGPU<float> vz,
+			       GPU::Classes::VolumeArgGPU<float> dx,
 			       GPU::Classes::VolumeArgGPU<float> dy,
 			       GPU::Classes::VolumeArgGPU<float> dz,
 			       const float l_smoothness ) {
@@ -124,9 +100,9 @@ namespace GPU {
 				      ix+0.5f, iy+0.5f, iz+0.5f );
 	  if( myValid != GCAM_POSITION_INVALID ) {
 	    
-	    float vx = Fetchvx(ix,iy,iz);
-	    float vy = Fetchvy(ix,iy,iz);
-	    float vz = Fetchvz(ix,iy,iz);
+	    const float myvx = vx(ix,iy,iz);
+	    const float myvy = vy(ix,iy,iz);
+	    const float myvz = vz(ix,iy,iz);
 
 	    float ddx, ddy, ddz;
 	    ddx = ddy = ddz = 0;
@@ -136,12 +112,18 @@ namespace GPU {
 	    // Re-order loop nest in gcamSmoothnessEnergy
 	    for( int zk=-1; zk<=1; zk++ ) {
 	      int zn = iz + zk;
+	      zn = min( static_cast<int>(dx.dims.z-1), zn );
+	      zn = max( 0, zn );
 	      
 	      for( int yk=-1; yk<=1; yk++ ) {
 		int yn = iy + yk;
+		yn = min( static_cast<int>(dx.dims.y-1), yn );
+		yn = max( 0, yn );
 		
 		for( int xk=-1; xk<=1; xk++ ) {
 		  int xn = ix + xk;
+		  xn = min( static_cast<int>(dx.dims.x-1), xn );
+		  xn = max( 0, xn );
 		
 		  // Don't include self
 		  if( (!xk) && (!yk) && (!zk) ) {
@@ -160,9 +142,9 @@ namespace GPU {
 		  }
 
 
-		  ddx += Fetchvx(xn,yn,zn) - vx;
-		  ddy += Fetchvy(xn,yn,zn) - vy;
-		  ddz += Fetchvz(xn,yn,zn) - vz;
+		  ddx += ( vx(xn,yn,zn) - myvx );
+		  ddy += ( vy(xn,yn,zn) - myvy );
+		  ddz += ( vz(xn,yn,zn) - myvz );
 
 		  num++;
 
@@ -216,9 +198,6 @@ namespace GPU {
       vx.Allocate( gcamDims );
       vy.Allocate( gcamDims );
       vz.Allocate( gcamDims );
-      vx.AllocateArray();
-      vy.AllocateArray();
-      vz.AllocateArray();
       
       dim3 grid, threads;
       threads.x = threads.y = kGCAmorphSmoothTermKernelSize;
@@ -243,38 +222,8 @@ namespace GPU {
 	( gcam.d_rz, gcam.d_origz, vz );
       CUDA_CHECK_ERROR( "SubtractVolumes failed for z!" );
       GCAmorphTerm::tSmoothSubtract.Stop();
-      
-      // Get vx, vy and vz into CUDA arrays
-      vx.SendArray();
-      vy.SendArray();
-      vz.SendArray();
-      
-      // Bind vx, vy and vz to their textures
-      dt_smooth_vx.normalized = false;
-      dt_smooth_vx.addressMode[0] = cudaAddressModeClamp;
-      dt_smooth_vx.addressMode[1] = cudaAddressModeClamp;
-      dt_smooth_vx.addressMode[2] = cudaAddressModeClamp;
-      dt_smooth_vx.filterMode = cudaFilterModePoint;
-      
-      dt_smooth_vy.normalized = false;
-      dt_smooth_vy.addressMode[0] = cudaAddressModeClamp;
-      dt_smooth_vy.addressMode[1] = cudaAddressModeClamp;
-      dt_smooth_vy.addressMode[2] = cudaAddressModeClamp;
-      dt_smooth_vy.filterMode = cudaFilterModePoint;
-      
-      dt_smooth_vz.normalized = false;
-      dt_smooth_vz.addressMode[0] = cudaAddressModeClamp;
-      dt_smooth_vz.addressMode[1] = cudaAddressModeClamp;
-      dt_smooth_vz.addressMode[2] = cudaAddressModeClamp;
-      dt_smooth_vz.filterMode = cudaFilterModePoint;
-      
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vx,
-					      vx.GetArray() ) );
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy,
-					      vy.GetArray() ) );
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vz,
-					      vz.GetArray() ) );
-      
+
+     
       // Also have to get the 'invalid' field to its texture
       dt_smooth_invalid.normalized = false;
       dt_smooth_invalid.addressMode[0] = cudaAddressModeClamp;
@@ -291,16 +240,13 @@ namespace GPU {
       // Run the main kernel
       GCAmorphTerm::tSmoothCompute.Start();
       SmoothnessTermKernel<<<grid,threads>>>
-	( gcam.d_dx, gcam.d_dy, gcam.d_dz, l_smoothness );
+	( vx, vy, vz, gcam.d_dx, gcam.d_dy, gcam.d_dz, l_smoothness );
       CUDA_CHECK_ERROR( "SmoothnessTermKernelFailed!" );
       GCAmorphTerm::tSmoothCompute.Stop();
 
 
 
       // Unbind textures
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vx ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vy ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vz ) );
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_invalid ) );
 
 

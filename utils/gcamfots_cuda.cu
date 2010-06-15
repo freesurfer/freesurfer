@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/08 14:09:28 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/06/15 13:38:22 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,11 +29,15 @@
 
 #include "macros.h"
 
+#include "chronometer.hpp"
+
 #include "mriframegpu.hpp"
 #include "gcamorphgpu.hpp"
 #include "gcamorphenergy.hpp"
 
 #include "gcamfots_cuda.h"
+
+#define SHOW_TIMERS 1
 
 // ========================================================================
 
@@ -58,6 +62,11 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
 			   const GPU::Classes::MRIframeGPU<T>& mri ) {
 
   GPU::Algorithms::GCAmorphEnergy gcamEnergy;
+#if SHOW_TIMERS
+  SciGPU::Utilities::Chronometer tFOTS;
+
+  tFOTS.Start();
+#endif
 
   float min_dt = 0;
   float min_rms, rms;
@@ -247,6 +256,13 @@ float FindOptimalTimestep( GPU::Classes::GCAmorphGPU& gcam,
 
   parms->dt = orig_dt ;
   
+#if SHOW_TIMERS
+  tFOTS.Stop();
+  std::cout << __FUNCTION__
+	    << ": Complete in "
+	    << tFOTS << std::endl;
+#endif
+
   return( min_dt );
 }
 
@@ -260,7 +276,13 @@ template<typename T>
 float FindOptimalTimestepDispatch( GCA_MORPH *gcam,
 				   GCA_MORPH_PARMS *parms,
 				   MRI *mri ) {
-  
+
+#if SHOW_TIMERS
+  SciGPU::Utilities::Chronometer tFOTSd;
+
+  tFOTSd.Start();
+#endif
+
   GPU::Classes::GCAmorphGPU myGCAM;
   myGCAM.SendAll( gcam );
 
@@ -274,6 +296,13 @@ float FindOptimalTimestepDispatch( GCA_MORPH *gcam,
   float dt = FindOptimalTimestep( myGCAM, parms, myMRI );
 
   myGCAM.RecvAll( gcam );
+
+#if SHOW_TIMERS
+  tFOTSd.Stop();
+  std::cout << __FUNCTION__
+	    << ": Complete in "
+	    << tFOTSd << std::endl;
+#endif
 
   return( dt );
 }

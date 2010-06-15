@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/23 18:12:11 $
- *    $Revision: 1.85 $
+ *    $Author: rge21 $
+ *    $Date: 2010/06/15 13:38:23 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2363,6 +2363,8 @@ MRIgaussian1d(float sigma, int max_len)
   float     norm, two_sigma, fx, k ;
   int       x, half, len ;
 
+  //printf( "%s: sigma=%30.10f\n", __FUNCTION__, sigma );
+
   /* build the kernel in k */
   len = (int)nint(8.0f * sigma)+1 ;
   if (ISEVEN(len))   /* ensure it's even */
@@ -2563,6 +2565,17 @@ MRIconvolveGaussian(MRI *mri_src, MRI *mri_dst, MRI *mri_gaussian)
   MRI  *mtmp1, *mri_tmp;
 #endif
   float *kernel ;
+
+#if 0
+  static unsigned int nCalls = 0;
+  char fname[STRLEN];
+
+  snprintf( fname, STRLEN-1, "mrigauss%05u.mgz", nCalls );
+  fname[STRLEN-1] = '\0';
+  MRIwrite( mri_src, fname );
+
+  nCalls++;
+#endif
 
   kernel = &MRIFvox(mri_gaussian, 0, 0, 0) ;
   klen = mri_gaussian->width ;

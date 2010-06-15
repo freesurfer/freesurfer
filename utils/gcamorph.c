@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/05/28 19:22:35 $
- *    $Revision: 1.190 $
+ *    $Date: 2010/06/15 13:38:22 $
+ *    $Revision: 1.191 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,7 +39,7 @@
 #define GCAM_SMOOTHNESS_ENERGY_GPU
 #define GCAM_FIND_OPTIMAL_TIMESTEP_GPU
 
-//#define GCAM_SMOOTH_TERM_GPU
+#define GCAM_SMOOTH_TERM_GPU
 #endif
 
 
@@ -5593,6 +5593,7 @@ gcamSmoothnessTerm( GCA_MORPH *gcam,
 {
 
 #ifdef GCAM_SMOOTH_TERM_GPU
+  printf( "%s: On GPU\n", __FUNCTION__ );
   gcamSmoothnessTermGPU( gcam, l_smoothness );
 #else
   double          vx, vy, vz, vnx, vny, vnz, dx, dy, dz ;

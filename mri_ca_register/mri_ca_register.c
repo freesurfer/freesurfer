@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/06/14 21:28:03 $
- *    $Revision: 1.71 $
+ *    $Author: rge21 $
+ *    $Date: 2010/06/15 13:38:18 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,6 +67,7 @@
 #ifdef FS_CUDA
 #include "devicemanagement.h"
 #endif
+#include "gcamorphtestutils.h"
 
 static int remove_bright =0 ;
 static int map_to_flash = 0 ;
@@ -215,7 +216,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.71 2010/06/14 21:28:03 mreuter Exp $", 
+     "$Id: mri_ca_register.c,v 1.72 2010/06/15 13:38:18 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1105,6 +1106,13 @@ main(int argc, char *argv[]) {
   if (GCAMwrite(gcam, out_fname) != NO_ERROR)
     ErrorExit(Gerror, "%s: GCAMwrite(%s) failed", Progname, out_fname) ;
 
+  // Write out the gcam as NetCDF too
+#ifdef FS_CUDA
+  WriteGCAMoneInput( gcam, "gpuTransform" );
+#else
+  WriteGCAMoneInput( gcam, "cpuTransform" );
+#endif
+
 #if 0
   if (gca)
     GCAfree(&gca) ;
@@ -1122,6 +1130,11 @@ main(int argc, char *argv[]) {
   seconds = seconds % 60 ;
   printf("registration took %d hours, %d minutes and %d seconds.\n",
          hours, minutes, seconds) ;
+
+#ifdef FS_CUDA
+  PrintGPUtimers();
+#endif
+
   exit(0) ;
   return(0) ;
 }
