@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/05 18:19:33 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/06/15 16:44:29 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -154,7 +154,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.18 2010/03/05 18:19:33 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.19 2010/06/15 16:44:29 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -350,12 +350,12 @@ static void printUsage(void)
   cout << "  --leastsquares             use least squares instead of robust M-estimator" << endl;
   cout << "  --noit                     do not iterate, just create first template" << endl;
   cout << "  --maxit <#>                iterate max # times (if #tp>2 default 6, else 5 for 2tp reg.)"  << endl;
-  cout << "  --epsit <real>            stop iterations when all tp changes below <float> "<< endl;
-	cout << "                               (if #tp>2 default 0.03, else 0.01 for 2tp reg.)" << endl;
+  cout << "  --epsit <real>             stop iterations when all tp changes below <float> "<< endl;
+	cout << "                                (if #tp>2 default 0.03, else 0.01 for 2tp reg.)" << endl;
 //  cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "  --sat <real>           set outlier sensitivity manually (e.g. '--sat 4.685' )" << endl;
-	cout << "                                 higher values mean less sensitivity" << endl;
-  cout << "  --satit                auto-detect good sensitivity (for head scans)" << endl;
+  cout << "  --sat <real>               set outlier sensitivity manually (e.g. '--sat 4.685' )" << endl;
+	cout << "                                higher values mean less sensitivity" << endl;
+  cout << "  --satit                    auto-detect good sensitivity (for head scans)" << endl;
   cout << "  --doublesvd                double svd (instead of float) ~1Gig more memory" << endl;
   cout << "  --subsample <#>            subsample if dim > # on all axes (default no subs.)" << endl;
 //  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
