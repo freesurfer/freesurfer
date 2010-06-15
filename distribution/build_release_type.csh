@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.134 2009/12/16 18:07:10 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.135 2010/06/15 18:00:06 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v4.5.0"
-set STABLE_PUB_VER_NUM="v4.5.0"
+set STABLE_VER_NUM="v5.0.0"
+set STABLE_PUB_VER_NUM="v5.0.0"
 
 set HOSTNAME=`hostname -s`
 
@@ -25,16 +25,17 @@ set FAILURE_MAIL_LIST=(\
     fischl@nmr.mgh.harvard.edu \
     greve@nmr.mgh.harvard.edu \
     krish@nmr.mgh.harvard.edu \
-    rpwang@nmr.mgh.harvard.edu)
+    rpwang@nmr.mgh.harvard.edu \
+    rge21@nmr.mgh.harvard.edu)
 #set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-if ("$HOSTNAME" == "blade") then
-  set FAILURE_MAIL_LIST=(nicks)
-endif
 if ("$HOSTNAME" == "hima") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "sleet") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+endif
+if ("$HOSTNAME" == "mist") then
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 endif
 
 setenv OSTYPE `uname -s`
@@ -84,11 +85,11 @@ if ("$RELEASE_TYPE" == "dev") then
 else if ("$RELEASE_TYPE" == "stable") then
   set SRC_DIR=${BUILD_HOSTNAME_DIR}/stable/dev
   set BUILD_DIR=${SRC_DIR}
-  set INSTALL_DIR=${LOCAL_FS}/stable4
+  set INSTALL_DIR=${LOCAL_FS}/stable5
 else if ("$RELEASE_TYPE" == "stable-pub") then
   set SRC_DIR=${BUILD_HOSTNAME_DIR}/stable/dev
   set BUILD_DIR=${SRC_DIR}
-  set INSTALL_DIR=${LOCAL_FS}/stable4-pub
+  set INSTALL_DIR=${LOCAL_FS}/stable5-pub
 else
   echo "ERROR: release_type must be either dev, stable or stable-pub"
   echo ""
@@ -105,7 +106,7 @@ set LOG_DIR=${SPACE_FS}/build/logs
 # stable build use explicit package versions (for stability)
 if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set MNIDIR=/usr/pubsw/packages/mni/1.4
-  set VXLDIR=/usr/pubsw/packages/vxl/1.8.0
+  set VXLDIR=/usr/pubsw/packages/vxl/1.13.0
   set TCLDIR=/usr/pubsw/packages/tcltktixblt/8.4.6
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
