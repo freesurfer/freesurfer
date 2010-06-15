@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 15:39:51 $
- *    $Revision: 1.72 $
+ *    $Date: 2010/06/15 18:34:08 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -483,6 +483,13 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 			  const MRI *mri,
 			  const double l_smoothness );
   
+  int  gcamJacobianTermAtNode( GCA_MORPH *gcam, 
+			       const MRI *mri, 
+			       double l_jacobian,
+			       int i, int j, int k, 
+			       double *pdx, double *pdy,
+			       double *pdz );
+
   int gcamJacobianTerm( GCA_MORPH *gcam, 
 			const MRI *mri, 
 			double l_jacobian, 
@@ -517,6 +524,11 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   void gcamSmoothnessTermGPU( GCA_MORPH* gcam,
 			      const float l_smoothness );
+
+  void gcamJacobianTermGPU( GCA_MORPH *gcam,
+			    const float l_jacobian,
+			    const float ratio_thresh,
+			    const float jac_scale );
 #endif
 
 #if defined(__cplusplus)

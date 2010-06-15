@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 16:02:38 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/06/15 18:34:08 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,8 +58,9 @@ namespace GPU {
 
       //! Computes the Jacobian term
       void Jacobian( GPU::Classes::GCAmorphGPU& gcam,
-		     const double l_jacobian,
-		     const double ratio_thresh ) const;
+		     const float l_jacobian,
+		     const float ratio_thresh,
+		     const float jac_scale ) const;
 
       // ######################################################
     private:
