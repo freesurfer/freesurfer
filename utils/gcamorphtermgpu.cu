@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 13:38:23 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/06/15 16:02:42 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,6 +24,10 @@
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#include <thrust/device_new_allocator.h>
+#include <thrust/device_ptr.h>
+#include <thrust/reduce.h>
 
 #include "macros.h"
 
@@ -46,6 +50,8 @@ namespace GPU {
   namespace Algorithms {
 
     const unsigned int kGCAmorphSmoothTermKernelSize = 16;
+
+    const unsigned int kGCAmorphJacobTermNormKernelSize = 16;
 
 
     // ##############################################################
@@ -254,7 +260,85 @@ namespace GPU {
 
     }
 
+    // ##############################################################
 
+    __global__
+    void NormKernel( const GPU::Classes::VolumeArgGPU<float> dx,
+		     const GPU::Classes::VolumeArgGPU<float> dy,
+		     const GPU::Classes::VolumeArgGPU<float> dz,
+		     float* norms ) {
+
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      float myNorm;
+
+      // Loop over z slices
+      for( unsigned int iz = 0; iz < dx.dims.z; iz++ ) {
+
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( dx.InVolume(ix,iy,iz) ) {
+
+	  const unsigned int iLoc = dx.Index1D( ix, iy, iz );
+
+	  myNorm = ( dx(ix,iy,iz) * dx(ix,iy,iz) )
+	    + ( dy(ix,iy,iz) * dy(ix,iy,iz) )
+	    + ( dz(ix,iy,iz) * dz(ix,iy,iz) );
+
+	  myNorm = sqrtf( myNorm );
+
+	  norms[iLoc] = myNorm;
+	}
+      }
+    }
+
+
+    void GCAmorphTerm::Jacobian( GPU::Classes::GCAmorphGPU& gcam,
+				 const double l_jacobian,
+				 const double ratio_thresh ) const {
+
+      GCAmorphTerm::tJacobTot.Start();
+
+      if( DZERO(l_jacobian) ) {
+	return;
+      }
+
+      const dim3 gcamDims = gcam.d_rx.GetDims();
+      const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
+
+      dim3 grid, threads;
+      
+
+      // Allocate Thrust arrays
+      thrust::device_ptr<float> d_norms;
+      d_norms = thrust::device_new<float>( nVoxels );
+
+      // Compute the norms
+      GCAmorphTerm::tJacobMaxNorm.Start();
+      threads.x = threads.y = kGCAmorphJacobTermNormKernelSize;
+      threads.z = 1;
+
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphJacobTermNormKernelSize );
+      grid.z = 1;
+
+      NormKernel<<<grid,threads>>>( gcam.d_dx,
+				    gcam.d_dy,
+				    gcam.d_dz,
+				    thrust::raw_pointer_cast( d_norms ) );
+      CUDA_CHECK_ERROR( "NormKernel failed!\n" );
+
+      float maxNorm = *thrust::max_element( d_norms, d_norms+nVoxels );
+      GCAmorphTerm::tJacobMaxNorm.Stop();
+
+
+      // Release Thrust arrays
+      thrust::device_delete( d_norms );
+
+
+      GCAmorphTerm::tJacobTot.Stop();
+    }
 
 
     // ##############################################################
@@ -294,6 +378,9 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tSmoothSubtract;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tSmoothCompute;
     
+
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobTot;
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobMaxNorm;
 
   }
 }

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/05/14 17:50:11 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/06/15 16:02:38 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,11 @@ namespace GPU {
       void Smoothness( GPU::Classes::GCAmorphGPU& gcam,
 		       const float l_smoothness ) const;
 
+      //! Computes the Jacobian term
+      void Jacobian( GPU::Classes::GCAmorphGPU& gcam,
+		     const double l_jacobian,
+		     const double ratio_thresh ) const;
+
       // ######################################################
     private:
 
@@ -68,6 +73,11 @@ namespace GPU {
       static SciGPU::Utilities::Chronometer tSmoothSubtract;
       //! Timer for smoothness computation itself
       static SciGPU::Utilities::Chronometer tSmoothCompute;
+
+      //! Timer for the Jacobian term
+      static SciGPU::Utilities::Chronometer tJacobTot;
+      //! Timer for norm calculation of Jacobian term
+      static SciGPU::Utilities::Chronometer tJacobMaxNorm;
     };
 
   }
