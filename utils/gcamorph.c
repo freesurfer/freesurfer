@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 18:34:28 $
- *    $Revision: 1.193 $
+ *    $Date: 2010/06/15 19:31:00 $
+ *    $Revision: 1.194 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,7 @@
 #define GCAM_FIND_OPTIMAL_TIMESTEP_GPU
 
 #define GCAM_SMOOTH_TERM_GPU
+#define GCAM_JACOB_TERM_GPU
 #endif
 
 
@@ -2173,8 +2174,8 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
                  double l_jacobian, double ratio_thresh)
 {
 
-#if FS_CUDA
-  gcamJacobianTermGPU( gcam, l_jacobian, ratio_thresh, jac_scale );
+#ifdef GCAM_JACOB_TERM_GPU
+  gcamJacobianTermGPU( gcam, l_jacobian, jac_scale );
 #else
   int            i, j, k, num /*, xi, yi, zi, xk, yk, zk = 0*/ ;
   double         dx, dy, dz, norm, orig_area, ratio, max_norm ;

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 18:34:29 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/06/15 19:31:01 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,7 +53,7 @@ namespace GPU {
 
     const unsigned int kGCAmorphSmoothTermKernelSize = 16;
 
-    const unsigned int kGCAmorphJacobTermNormKernelSize = 16;
+    const unsigned int kGCAmorphJacobTermKernelSize = 16;
 
 
     // ##############################################################
@@ -508,10 +508,68 @@ namespace GPU {
     }
 
 
+    __global__
+    void JacobianTermKernel( const GPU::Classes::VolumeArgGPU<float> x,
+			     const GPU::Classes::VolumeArgGPU<float> y,
+			     const GPU::Classes::VolumeArgGPU<float> z,
+			     const GPU::Classes::VolumeArgGPU<float> area1,
+			     const GPU::Classes::VolumeArgGPU<float> area2,
+			     const GPU::Classes::VolumeArgGPU<float> origArea1,
+			     const GPU::Classes::VolumeArgGPU<float> origArea2,
+			     const GPU::Classes::VolumeArgGPU<char> invalid,
+			     const float l_jacobian, const float exp_k,
+			     const float maxNorm, const float jacScale,
+			     GPU::Classes::VolumeArgGPU<float> dx,
+			     GPU::Classes::VolumeArgGPU<float> dy,
+			     GPU::Classes::VolumeArgGPU<float> dz ) {
+      /*!
+	Does the main work of gcamJacobianTerm
+      */
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      for( unsigned int iz = 0; iz < dx.dims.z; iz++ ) {
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( dx.InVolume(ix,iy,iz) ) {
+	  
+	  // Check for validity
+	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
+	    continue;
+	  }
+
+	  float ndx, ndy, ndz;
+
+	  JacobianTermAtNode( x, y, z,
+			      area1, area2,
+			      origArea1, origArea2,
+			      invalid,
+			      ix, iy, iz,
+			      l_jacobian, exp_k,
+			      ndx, ndy, ndz );
+
+	  float norm = (ndx*ndx) + (ndy*ndy) + (ndz*ndz);
+	  norm = sqrtf( norm );
+	  if( norm > maxNorm*jacScale && maxNorm > 0 && norm > 1 ) {
+	    ndx *= maxNorm / norm;
+	    ndy *= maxNorm / norm;
+	    ndz *= maxNorm / norm;
+	  }
+
+	  dx(ix,iy,iz) += ndx;
+	  dy(ix,iy,iz) += ndy;
+	  dz(ix,iy,iz) += ndz;
+	}
+      }
+    }
+
+
+
+
 
     void GCAmorphTerm::Jacobian( GPU::Classes::GCAmorphGPU& gcam,
 				 const float l_jacobian,
-				 const float ratio_thresh,
 				 const float jac_scale ) const {
 
       GCAmorphTerm::tJacobTot.Start();
@@ -532,10 +590,10 @@ namespace GPU {
 
       // Compute the norms
       GCAmorphTerm::tJacobMaxNorm.Start();
-      threads.x = threads.y = kGCAmorphJacobTermNormKernelSize;
+      threads.x = threads.y = kGCAmorphJacobTermKernelSize;
       threads.z = 1;
 
-      grid = gcam.d_rx.CoverBlocks( kGCAmorphJacobTermNormKernelSize );
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphJacobTermKernelSize );
       grid.z = 1;
 
       NormKernel<<<grid,threads>>>( gcam.d_dx,
@@ -546,6 +604,19 @@ namespace GPU {
 
       float maxNorm = *thrust::max_element( d_norms, d_norms+nVoxels );
       GCAmorphTerm::tJacobMaxNorm.Stop();
+
+      // Main computation
+      GCAmorphTerm::tJacobCompute.Start();
+      JacobianTermKernel<<<grid,threads>>>( gcam.d_rx, gcam.d_ry, gcam.d_rz,
+					    gcam.d_area1, gcam.d_area2,
+					    gcam.d_origArea1, gcam.d_origArea2,
+					    gcam.d_invalid,
+					    l_jacobian, gcam.exp_k,
+					    maxNorm, jac_scale,
+					    gcam.d_dx, gcam.d_dy, gcam.d_dz );
+      CUDA_CHECK_ERROR( "JacobianTermKernel failed!" );
+      GCAmorphTerm::tJacobCompute.Stop();
+
 
       // Release Thrust arrays
       thrust::device_delete( d_norms );
@@ -582,6 +653,8 @@ namespace GPU {
       std::cout << "Jacobian:" << std::endl;
       std::cout << "    Max. Norm : " << GCAmorphTerm::tJacobMaxNorm
 		<< std::endl;
+      std::cout << "      Compute : " << GCAmorphTerm::tJacobCompute
+		<< std::endl;
       std::cout << "Total         : " << GCAmorphTerm::tJacobTot
 		<< std::endl;
       std::cout << std::endl;
@@ -602,6 +675,7 @@ namespace GPU {
 
     SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobTot;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobMaxNorm;
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobCompute;
 
   }
 }
@@ -631,13 +705,12 @@ void gcamSmoothnessTermGPU( GCA_MORPH *gcam,
 //! Wrapper around GPU class for jacobian term
 void gcamJacobianTermGPU( GCA_MORPH *gcam,
 			  const float l_jacobian,
-			  const float ratio_thresh,
 			  const float jac_scale ) {
   GPU::Classes::GCAmorphGPU myGCAM;
   
   myGCAM.SendAll( gcam );
   
-  myTerms.Jacobian( myGCAM, l_jacobian, ratio_thresh, jac_scale );
+  myTerms.Jacobian( myGCAM, l_jacobian, jac_scale );
   
   myGCAM.RecvAll( gcam );
 }

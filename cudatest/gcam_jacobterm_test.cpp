@@ -31,12 +31,10 @@ const string outFileDefault = "gcamJacobTermoutputCPU";
 #endif
 
 const float lambdaDefault = 1;
-const float thresholdDefault = 1;
 
 string inFilename;
 string outFilename;
 float lambda;
-float threshold;
 
 const char* Progname = "gcam_jacobterm_test";
 
@@ -54,7 +52,6 @@ void ReadCommandLine( int ac, char* av[] ) {
       ("input", bpo::value<string>(&inFilename)->default_value(inFileDefault), "Input filename (.nc will be appended)" )
       ("output", bpo::value<string>(&outFilename)->default_value(outFileDefault), "Output filename (.nc will be appended)" )
       ("lambda", bpo::value<float>(&lambda)->default_value(lambdaDefault), "Value of l_jacob" )
-      ("thres", bpo::value<float>(&threshold)->default_value(thresholdDefault), "Value of ratio_thresh" )
       ;
 
     
@@ -111,7 +108,7 @@ int main( int argc, char *argv[] ) {
   // ============================================
   // Perform the calculation
   tTotal.Start();
-  gcamJacobianTerm( gcam, NULL, lambda, threshold );
+  gcamJacobianTerm( gcam, NULL, lambda, 0 );
   tTotal.Stop();
 
   cout << "Computation took " << tTotal << endl;

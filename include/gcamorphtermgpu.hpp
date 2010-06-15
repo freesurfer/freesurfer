@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 18:34:08 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/06/15 19:30:54 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,7 +59,6 @@ namespace GPU {
       //! Computes the Jacobian term
       void Jacobian( GPU::Classes::GCAmorphGPU& gcam,
 		     const float l_jacobian,
-		     const float ratio_thresh,
 		     const float jac_scale ) const;
 
       // ######################################################
@@ -79,6 +78,8 @@ namespace GPU {
       static SciGPU::Utilities::Chronometer tJacobTot;
       //! Timer for norm calculation of Jacobian term
       static SciGPU::Utilities::Chronometer tJacobMaxNorm;
+      //! Timer for jacobian computation itself
+      static SciGPU::Utilities::Chronometer tJacobCompute;
     };
 
   }
