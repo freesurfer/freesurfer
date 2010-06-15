@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/04 13:54:19 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/06/15 18:34:29 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -953,19 +953,23 @@ namespace GPU {
       std::cout << "      Pack : " << GCAmorphGPU::tSendPack << std::endl;
       std::cout << "  Transfer : " << GCAmorphGPU::tSendTransfer << std::endl;
       std::cout << "Total      : " << GCAmorphGPU::tSendTot << std::endl;
+      std::cout << std::endl;
 
       std::cout << "Recv:" << std::endl;
       std::cout << "      Pack : " << GCAmorphGPU::tRecvPack << std::endl;
       std::cout << "  Transfer : " << GCAmorphGPU::tRecvTransfer << std::endl;
       std::cout << "Total      : " << GCAmorphGPU::tRecvTot << std::endl;
+      std::cout << std::endl;
 
       std::cout << "Host Memory:" << std::endl;
       std::cout << "     Alloc : " << GCAmorphGPU::tHostAlloc << std::endl;
       std::cout << " Release   : " << GCAmorphGPU::tHostRelease << std::endl;
+      std::cout << std::endl;
 
       std::cout << "Compute Metric Properties:" << std::endl;
       std::cout << "   Compute : " << GCAmorphGPU::tCMPcompute << std::endl;
       std::cout << "Total      : " << GCAmorphGPU::tCMPtot << std::endl;
+      std::cout << std::endl;
 
       std::cout << "==================================" << std::endl;
 #endif

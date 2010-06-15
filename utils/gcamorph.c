@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 15:39:53 $
- *    $Revision: 1.192 $
+ *    $Date: 2010/06/15 18:34:28 $
+ *    $Revision: 1.193 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -211,12 +211,6 @@ static int  gcamVolumeChangeTermAtNode(GCA_MORPH *gcam,
                                        int i, int j, int k, 
                                        double *pdx, double *pdy, double *pdz) ;
 
-static int  gcamJacobianTermAtNode( GCA_MORPH *gcam, 
-				    const MRI *mri, 
-				    double l_jacobian,
-				    int i, int j, int k, 
-				    double *pdx, double *pdy,
-				    double *pdz );
 static int   finitep(float f) ;
 
 static int write_snapshot(GCA_MORPH *gcam, 
@@ -2172,12 +2166,16 @@ gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri)
 }
 
 #define AREA_NEIGHBORS 8
-static float jac_scale = 10 ;
+const float jac_scale = 10 ;
 #if 1
 int
 gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri, 
                  double l_jacobian, double ratio_thresh)
 {
+
+#if FS_CUDA
+  gcamJacobianTermGPU( gcam, l_jacobian, ratio_thresh, jac_scale );
+#else
   int            i, j, k, num /*, xi, yi, zi, xk, yk, zk = 0*/ ;
   double         dx, dy, dz, norm, orig_area, ratio, max_norm ;
   GCA_MORPH_NODE *gcamn ;
@@ -2288,6 +2286,9 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
       }
     }
   }
+
+#endif
+
   return(NO_ERROR) ;
 }
 
@@ -2516,7 +2517,7 @@ gcamAreaSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_area_smoothness)
   return(NO_ERROR) ;
 }
 
-static int
+int
 gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri, 
 			double l_jacobian,
 			int i, int j, int k, 

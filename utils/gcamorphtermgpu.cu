@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 16:02:42 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/06/15 18:34:29 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,6 +35,8 @@
 
 #include "mriframegpu.hpp"
 #include "gcamorphgpu.hpp"
+
+#include "cudatypeutils.hpp"
 
 #include "gcamorphtermgpu.hpp"
 
@@ -295,9 +297,222 @@ namespace GPU {
     }
 
 
+
+    __device__
+    void JacobianTermAtNode( const GPU::Classes::VolumeArgGPU<float>& x,
+			     const GPU::Classes::VolumeArgGPU<float>& y,
+			     const GPU::Classes::VolumeArgGPU<float>& z,
+			     const GPU::Classes::VolumeArgGPU<float>& area1,
+			     const GPU::Classes::VolumeArgGPU<float>& area2,
+			     const GPU::Classes::VolumeArgGPU<float>& origArea1,
+			     const GPU::Classes::VolumeArgGPU<float>& origArea2,
+			     const GPU::Classes::VolumeArgGPU<char>& invalid,
+			     const int i, const int j, const int k,
+			     const float l_jacobian, const float exp_k,
+			     float& pdx, float& pdy, float& pdz ) {
+      /*!
+	This is a direct copy of the corresponding CPU routine
+	gcamJacobianTermAtNode.
+	It's almost certain that lots of data could be re-used in
+	shared memory
+      */
+      const unsigned int kAreaNeighbours = 8;
+      const float kMaxExp = 200;
+
+      const dim3 dims = x.dims;
+           
+      // Zero results
+      pdx = pdy = pdz = 0;
+
+      float3 vgrad = make_float3( 0, 0, 0 );
+
+      int invert;
+      dim3 nLoc, niLoc, njLoc, nkLoc;
+      float orig_area, area;
+
+      for( unsigned int n=0; n<kAreaNeighbours; n++ ) {
+	invert = 1;
+	
+	switch( n ) {
+	default:
+	case 0: // Central node
+	  if( (i+1 >= dims.x) || (j+1 >= dims.y) || (k+1 >= dims.z) ) {
+	    continue; // Go to next iteration of for loop
+	  }
+	  nLoc = make_uint3(i,j,k);
+	  niLoc = make_uint3(i+1,j,k);
+	  njLoc = make_uint3(i,j+1,k);
+	  nkLoc = make_uint3(i,j,k+1);
+	  break;
+
+	case 1: // i-1 node
+	  if( (i == 0) || (j+1 >= dims.y) || (k+1 >= dims.z) ) {
+	    continue;
+	  }
+	  nLoc = make_uint3(i-1,j,k);
+	  niLoc = make_uint3(i,j,k);
+	  njLoc = make_uint3(i-1,j+1,k);
+	  nkLoc = make_uint3(i-1,j,k+1);
+	  break;
+
+	case 2: // j-1 node
+	  if( (i+1 >= dims.x) || (j == 0) || (k+1 >= dims.z) ) {
+	    continue;
+	  }
+	  nLoc = make_uint3(i,j-1,k);
+	  niLoc = make_uint3(i+1,j-1,k);
+	  njLoc = make_uint3(i,j,k);
+	  nkLoc = make_uint3(i,j-1,k+1);
+	  break;
+
+	case 3: // k-1 node
+	  if( (i+1 >= dims.x) || (j+1 >= dims.y) || (k == 0) ) {
+	    continue;
+	  }
+	  nLoc = make_uint3(i,j,k-1);
+	  niLoc = make_uint3(i+1,j,k-1);
+	  njLoc = make_uint3(i,j+1,k-1);
+	  nkLoc = make_uint3(i,j,k);
+	  break;
+
+	case 4: // Left-handed central node
+	  if( (i==0) || (j==0) || (k==0) ) {
+	    continue; // Go to next iteration of for loop
+	  }
+	  invert = -1;
+	  nLoc = make_uint3(i,j,k);
+	  niLoc = make_uint3(i-1,j,k);
+	  njLoc = make_uint3(i,j-1,k);
+	  nkLoc = make_uint3(i,j,k-1);
+	  break;
+
+	case 5: // i+1 node
+	  if( (i+1>= dims.x) || (j==0) || (k==0) ) {
+	    continue;
+	  }
+	  invert = -1;
+	  nLoc = make_uint3(i+1,j,k);
+	  niLoc = make_uint3(i,j,k);
+	  njLoc = make_uint3(i+1,j-1,k);
+	  nkLoc = make_uint3(i+1,j,k-1);
+	  break;
+
+	case 6: // j+1 node
+	  if( (i==0) || (j+1>=dims.y) || (k==0) ) {
+	    continue;
+	  }
+	  invert = -1;
+	  nLoc = make_uint3(i,j+1,k);
+	  niLoc = make_uint3(i-1,j+1,k);
+	  njLoc = make_uint3(i,j,k);
+	  nkLoc = make_uint3(i,j+1,k-1);
+	  break;
+
+	case 7: // k+1 node
+	  if( (i==0) || (j==0) || (k+1>=dims.z) ) {
+	    continue;
+	  }
+	  invert = -1;
+	  nLoc = make_uint3(i,j,k+1);
+	  niLoc = make_uint3(i-1,j,k+1);
+	  njLoc = make_uint3(i,j-1,k+1);
+	  nkLoc = make_uint3(i,j,k);
+	  break;
+	}
+
+	if( invert > 0 ) {
+	  // Right handed co-ordinate system
+	  orig_area = origArea1( nLoc.x, nLoc.y, nLoc.z );
+	  area = area1( nLoc.x, nLoc.y, nLoc.z );
+	} else {
+	  // Left handed co-ordinate system
+	  orig_area = origArea2( nLoc.x, nLoc.y, nLoc.z );
+	  area = area2( nLoc.x, nLoc.y, nLoc.z );
+	}
+
+	// Check for area (volume...?) close to zero
+	if( fabs(orig_area) < 1e-6f ) {
+	  continue;
+	}
+
+	// Check for validity
+	if( (invalid(nLoc.x,nLoc.y,nLoc.z) == GCAM_POSITION_INVALID) ||
+	    (invalid(niLoc.x,niLoc.y,niLoc.z) == GCAM_POSITION_INVALID) ||
+	    (invalid(njLoc.x,njLoc.y,njLoc.z) == GCAM_POSITION_INVALID) ||
+	    (invalid(nkLoc.x,nkLoc.y,nkLoc.z) == GCAM_POSITION_INVALID) ) {
+	  continue;
+	}
+
+	// We've got somewhere
+	const float3 vi = make_float3( x(niLoc.x,niLoc.y,niLoc.z) - x(nLoc.x,nLoc.y,nLoc.z),
+				       y(niLoc.x,niLoc.y,niLoc.z) - y(nLoc.x,nLoc.y,nLoc.z),
+				       z(niLoc.x,niLoc.y,niLoc.z) - z(nLoc.x,nLoc.y,nLoc.z) );
+	
+	const float3 vj = make_float3( x(njLoc.x,njLoc.y,njLoc.z) - x(nLoc.x,nLoc.y,nLoc.z),
+				       y(njLoc.x,njLoc.y,njLoc.z) - y(nLoc.x,nLoc.y,nLoc.z),
+				       z(njLoc.x,njLoc.y,njLoc.z) - z(nLoc.x,nLoc.y,nLoc.z) );
+
+	const float3 vk = make_float3( x(nkLoc.x,nkLoc.y,nkLoc.z) - x(nLoc.x,nLoc.y,nLoc.z),
+				       y(nkLoc.x,nkLoc.y,nkLoc.z) - y(nLoc.x,nLoc.y,nLoc.z),
+				       z(nkLoc.x,nkLoc.y,nkLoc.z) - z(nLoc.x,nLoc.y,nLoc.z) );
+	
+	float ratio = area / orig_area;
+
+	float exponent = exp_k * ratio;
+	if( exponent > kMaxExp ) {
+	  exponent = kMaxExp;
+	}
+
+	// Might want to consider taylor series here....
+	float delta = ( invert * exp_k / orig_area ) * ( 1 / ( 1 + exp(exponent) ) );
+
+	// Compute and accumulate cross products
+	float3 vjxk, vkxi, vixj, vtmp;
+	switch( n ) {
+	default:
+	case 4:
+	case 0: // Central node
+	  vjxk = cross( vj, vk );
+	  vkxi = cross( vk, vi );
+	  vixj = cross( vi, vj );
+	  vtmp = vixj + vjxk + vkxi;
+	  vtmp *= -delta;
+	  break;
+	  
+	case 5: // i+1
+	case 1: // i-1
+	  vjxk = cross( vj, vk );
+	  vtmp = vjxk * delta;
+	  break;
+
+	case 6: // j+1
+	case 2: // j-1
+	  vkxi = cross( vk, vi );
+	  vtmp = delta * vkxi;
+	  break;
+
+	case 7: // k+1
+	case 3: // k-1
+	  vixj = cross( vi, vj );
+	  vtmp = delta * vixj;
+	  break;
+	}
+	
+	vgrad += vtmp;
+      } // End of for loop
+
+      // Set the results
+      pdx = l_jacobian * vgrad.x;
+      pdy = l_jacobian * vgrad.y;
+      pdz = l_jacobian * vgrad.z;
+    }
+
+
+
     void GCAmorphTerm::Jacobian( GPU::Classes::GCAmorphGPU& gcam,
-				 const double l_jacobian,
-				 const double ratio_thresh ) const {
+				 const float l_jacobian,
+				 const float ratio_thresh,
+				 const float jac_scale ) const {
 
       GCAmorphTerm::tJacobTot.Start();
 
@@ -332,7 +547,6 @@ namespace GPU {
       float maxNorm = *thrust::max_element( d_norms, d_norms+nVoxels );
       GCAmorphTerm::tJacobMaxNorm.Stop();
 
-
       // Release Thrust arrays
       thrust::device_delete( d_norms );
 
@@ -365,6 +579,13 @@ namespace GPU {
       std::cout << std::endl;
 
 
+      std::cout << "Jacobian:" << std::endl;
+      std::cout << "    Max. Norm : " << GCAmorphTerm::tJacobMaxNorm
+		<< std::endl;
+      std::cout << "Total         : " << GCAmorphTerm::tJacobTot
+		<< std::endl;
+      std::cout << std::endl;
+
      std::cout << "==================================" << std::endl;
 #endif
     }
@@ -394,7 +615,6 @@ static GPU::Algorithms::GCAmorphTerm myTerms;
 
 
 //! Wrapper around GPU class for smoothness term
-
 void gcamSmoothnessTermGPU( GCA_MORPH *gcam,
 			    const float l_smoothness ) {
   
@@ -406,4 +626,18 @@ void gcamSmoothnessTermGPU( GCA_MORPH *gcam,
   
   myGCAM.RecvAll( gcam );
   
+}
+
+//! Wrapper around GPU class for jacobian term
+void gcamJacobianTermGPU( GCA_MORPH *gcam,
+			  const float l_jacobian,
+			  const float ratio_thresh,
+			  const float jac_scale ) {
+  GPU::Classes::GCAmorphGPU myGCAM;
+  
+  myGCAM.SendAll( gcam );
+  
+  myTerms.Jacobian( myGCAM, l_jacobian, ratio_thresh, jac_scale );
+  
+  myGCAM.RecvAll( gcam );
 }
