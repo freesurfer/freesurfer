@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: rge21 $
-#    $Date: 2010/06/15 13:38:11 $
-#    $Revision: 1.477 $
+#    $Author: nicks $
+#    $Date: 2010/06/15 17:50:26 $
+#    $Revision: 1.478 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -92,6 +92,18 @@ AC_SUBST(LIBS_OPEN64)AM_CONDITIONAL(HAVE_OPEN64_COMPILER, ! test "x$ac_open64_bi
 # perform our own vendor string customizations...
 #####################################################################
 if test -e /etc/redhat-release ; then
+  # Centos5
+  cat /etc/redhat-release | grep CentOS | grep 5 >& /dev/null
+  if test "$?" = "0"; then
+    build_vendor="centos5"
+    host_vendor="centos5"
+    if test "x$host" = "xi686-redhat-linux-gnu"; then
+      host="Linux-centos5"
+    fi
+    if test "x$host" = "xx86_64-redhat-linux-gnu"; then
+      host="Linux-centos5_x86_64"
+    fi
+  fi
   # Centos4
   cat /etc/redhat-release | grep CentOS | grep 4 >& /dev/null
   if test "$?" = "0"; then
