@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/06/15 16:40:05 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/06/16 16:01:18 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +55,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.12 2010/06/15 16:40:05 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.13 2010/06/16 16:01:18 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)
@@ -157,7 +157,7 @@ double sphereDiff(MATRIX * M1, MATRIX* M2, double r)
 
 
    double dmax = 0;
-	 double dmin = numeric_limits<double>::infinity();
+	 double dmin = std::numeric_limits<double>::infinity();
 	 double davg = 0;
 	 int counter = 0;
 
