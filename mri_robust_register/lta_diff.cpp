@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/06/16 16:01:18 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/06/16 20:01:53 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -30,6 +30,7 @@
 #include <sstream>
 #include <vector>
 #include <cassert>
+#include <limits>
 
 #include "Registration.h"
 #include "MyMatrix.h"
@@ -55,7 +56,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.13 2010/06/16 16:01:18 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.14 2010/06/16 20:01:53 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)
