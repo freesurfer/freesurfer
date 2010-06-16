@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 19:31:00 $
- *    $Revision: 1.194 $
+ *    $Date: 2010/06/16 13:55:22 $
+ *    $Revision: 1.195 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -2175,6 +2175,7 @@ gcamJacobianTerm(GCA_MORPH *gcam, const MRI *mri,
 {
 
 #ifdef GCAM_JACOB_TERM_GPU
+  printf( "%s: On GPU\n", __FUNCTION__ );
   gcamJacobianTermGPU( gcam, l_jacobian, jac_scale );
 #else
   int            i, j, k, num /*, xi, yi, zi, xk, yk, zk = 0*/ ;
@@ -2539,7 +2540,12 @@ gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri,
   height = gcam->height ;
   depth = gcam->depth ;
   if (!v_i)   /* initialize */
-  {
+    {
+      /*
+	Note that, while the positions are all stored as
+	double in the GCA_MORPH_NODE, matrices always
+	hold float (or complex float) data.
+      */
     v_i = VectorAlloc(3, MATRIX_REAL) ;
     v_j = VectorAlloc(3, MATRIX_REAL) ;
     v_k = VectorAlloc(3, MATRIX_REAL) ;
@@ -2659,6 +2665,12 @@ gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri,
     num++ ;
 
     /* compute cross products and area delta */
+    /*
+      Continuing the note about the matrices above,
+      I believe that the subtraction (of double data)
+      will be performed in double, but the result
+      then stored in single precision
+    */
     GCAMN_SUB(gcamni, gcamn, v_i) ;
     GCAMN_SUB(gcamnj, gcamn, v_j) ;
     GCAMN_SUB(gcamnk, gcamn, v_k) ;
@@ -2681,6 +2693,11 @@ gcamJacobianTermAtNode( GCA_MORPH *gcam, const MRI *mri,
 
     /* compute cross-products and add the appropriate
       (i.e. scaled by area difference) cross-products to the gradient */
+    /*
+      Note that by this point, all the data have been downgraded to
+      single precision.
+      But there are still a lot of subtractions going on.
+    */
     switch (n)
     {
     default:
