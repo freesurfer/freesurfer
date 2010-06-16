@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 18:34:29 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/06/16 19:57:47 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -936,6 +936,79 @@ namespace GPU {
       CUDA_CHECK_ERROR( "UndoGradientKernel failed!\n" );
     }
 
+    // --------------------------------------------
+
+    const unsigned int kAddStatusKernelSize = 16;
+
+    __global__
+    void AddStatusKernel( VolumeArgGPU<int> status, const int addState ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+      
+      for( unsigned int iz = 0; iz< status.dims.z; iz++ ) {
+	if( status.InVolume(ix,iy,iz) ) {
+	  status(ix,iy,iz) |= addState;
+	}
+      }
+    }
+
+    void GCAmorphGPU::AddStatus( const int addState ) {
+
+      this->CheckIntegrity();
+
+      // Run the computation
+      dim3 grid, threads;
+      
+      threads.x = threads.y = kAddStatusKernelSize;
+      threads.z = 1;
+
+      grid = this->d_status.CoverBlocks( kAddStatusKernelSize );
+      grid.z = 1;
+      
+      AddStatusKernel<<<grid,threads>>>( this->d_status, addState );
+      CUDA_CHECK_ERROR( "AddStatusKernel failed!" );
+    }
+
+
+    // --------------------------------------------
+
+    const unsigned int kRemoveStatusKernelSize = 16;
+
+    __global__
+    void RemoveStatusKernel( VolumeArgGPU<int> status, const int subtractState ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+      
+      const int invState = ~subtractState;
+
+      for( unsigned int iz = 0; iz< status.dims.z; iz++ ) {
+	if( status.InVolume(ix,iy,iz) ) {
+	  status(ix,iy,iz) &= invState;
+	}
+      }
+    }
+
+    void GCAmorphGPU::RemoveStatus( const int subtractState ) {
+
+      this->CheckIntegrity();
+
+      // Run the computation
+      dim3 grid, threads;
+      
+      threads.x = threads.y = kRemoveStatusKernelSize;
+      threads.z = 1;
+
+      grid = this->d_status.CoverBlocks( kRemoveStatusKernelSize );
+      grid.z = 1;
+      
+      RemoveStatusKernel<<<grid,threads>>>( this->d_status, subtractState );
+      CUDA_CHECK_ERROR( "AddStatusKernel failed!" );
+    }
+    
 
     // ----------------------------------------------------
     void GCAmorphGPU::ShowTimings( void ) {
@@ -1175,3 +1248,11 @@ void gcamUndoGradientGPU( GCA_MORPH *gcam ) {
 }
 
 
+void gcamAddStatusGPU( GCA_MORPH *gcam, const int statusFlags ) {
+
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.AddStatus( statusFlags );
+  gcamGPU.RecvAll( gcam );
+}

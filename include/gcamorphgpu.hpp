@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/04 13:54:17 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/06/16 19:57:46 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -192,6 +192,11 @@ namespace GPU {
       //! Undoes a gradien application (gcamUndoGradient)
       void UndoGradient( void );
 
+      //! Adds a status flag to all nodes
+      void AddStatus( const int addState );
+
+      //! Removes a status flag from all nodes
+      void RemoveStatus( const int subtractState );
 
       // -------------------------------------------
       static void ShowTimings( void );

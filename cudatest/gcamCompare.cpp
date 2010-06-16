@@ -108,8 +108,8 @@ void ReadCommandLine( int ac, char* av[] ) {
     if( vm.count( "version" ) ) {
       cout << __FILE__ << endl
 	   << "$Author: rge21 $\n"
-	   << "$Date: 2010/03/12 19:59:04 $\n"
-	   << "$Revision: 1.1 $\n" 
+	   << "$Date: 2010/06/16 19:57:40 $\n"
+	   << "$Revision: 1.2 $\n" 
 	   << endl;
       exit( EXIT_SUCCESS );
     }
@@ -231,6 +231,12 @@ void ReadArray<char>( const int ncid, const int vid,
   NC_SAFE_CALL( nc_get_var_text( ncid, vid, &var[0] ) );
 }
 
+template<>
+void ReadArray<int>( const int ncid, const int vid,
+		     vector<int>& var ) {
+  NC_SAFE_CALL( nc_get_var_int( ncid, vid, &var[0] ) );
+}
+
 
 //! Read a variable from the file
 template<typename T>
@@ -315,6 +321,18 @@ char ComputeL2err( const vector<char>& v1, const vector<char>& v2 ) {
   exit( EXIT_FAILURE );
 }
 
+
+
+template<>
+int ComputeL2err( const vector<int>& v1, const vector<int>& v2 ) {
+  // Check sizes
+  if( v1.size() != v2.size() ) {
+    cerr << __FUNCTION__ << ": Sizes not equal!" << endl;
+    exit( EXIT_FAILURE );
+  }
+  cerr << __FUNCTION__ << ": L2 error not supported for int" << endl;
+  exit( EXIT_FAILURE );
+}
 
 
 //! Compute maximum absolute difference
@@ -433,6 +451,10 @@ int main( int argc, char *argv[] ) {
 
   case NC_CHAR:
     retVal = CompareArrays<char>( f1Name, f2Name, varName );
+    break;
+
+  case NC_INT:
+    retVal = CompareArrays<int>( f1Name, f2Name, varName );
     break;
 
   default:

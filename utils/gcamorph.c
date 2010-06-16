@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/16 13:55:22 $
- *    $Revision: 1.195 $
+ *    $Date: 2010/06/16 19:57:46 $
+ *    $Revision: 1.196 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7801,10 +7801,9 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
 
 
   GCAMresetLabelNodeStatus(gcam) ;
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
         gcamn = &gcam->nodes[x][y][z] ;
 
         if (gcamn->invalid == GCAM_POSITION_INVALID)
@@ -8011,6 +8010,10 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
         }
         GCAfreeRegionalGCAN(&gcan) ;
       }
+    }
+  }
+
+
 
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
@@ -8023,30 +8026,39 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
     printf("%d inconsistent label nodes removed...\n", nremoved) ;
   inconsistentLabelNodes=nremoved;
 
+
+
   // copy deltas from mri_dist into gcam struct
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
         double dy ;
 
         gcamn = &gcam->nodes[x][y][z] ;
 
         if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
-            ((gcamn->status & GCAM_LABEL_NODE) == 0))
+            ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
           continue;
+	}
+
         dy = MRIgetVoxVal(mri_dist, x, y,z, 0) ;
         gcamn->label_dist = dy ;   /* for use in label energy */
-        if (fabs(dy) > MAX_MLE_DIST)
+
+        if (fabs(dy) > MAX_MLE_DIST) {
           dy = dy * MAX_MLE_DIST / fabs(dy) ;
+	}
+
         gcamn->dy += l_label * dy ;
       }
+    }
+  }
+
+
 
   /* do posterior/anterior consistency check */
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
 
         gcamn = &gcam->nodes[x][y][z] ;
 
@@ -8099,32 +8111,46 @@ gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
             continue ;
           }
         }
+
       }
+    }
+  }
 
 
   num = 0 ;
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
 
         gcamn = &gcam->nodes[x][y][z] ;
 
         if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
-            ((gcamn->status & GCAM_LABEL_NODE) == 0))
+            ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
           continue;
+	}
+
         gcamn->dy = l_label * MRIgetVoxVal(mri_dist, x, y,z, 0) ;
-        if (fabs(gcamn->dy)/l_label >= 1)
+
+        if (fabs(gcamn->dy)/l_label >= 1) {
           num++ ;
+	}
+
         gcamn->label_dist = gcamn->dy ;   /* for use in label energy */
+	
       }
+    }
+  }
 
-
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     MRIwrite(mri_dist, "dist_after.mgz") ;
+  }
   MRIfree(&mri_dist) ;
-  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+
+  if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     printf("\t%d nodes for which label term applies\n", num) ;
+  }
+
+
   return(NO_ERROR) ;
 }
 static int
