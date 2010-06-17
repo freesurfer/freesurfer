@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/16 19:57:47 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/06/17 15:42:23 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1254,5 +1254,15 @@ void gcamAddStatusGPU( GCA_MORPH *gcam, const int statusFlags ) {
   
   gcamGPU.SendAll( gcam );
   gcamGPU.AddStatus( statusFlags );
+  gcamGPU.RecvAll( gcam );
+}
+
+
+void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags ) {
+
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.RemoveStatus( statusFlags );
   gcamGPU.RecvAll( gcam );
 }

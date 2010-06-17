@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/16 19:57:46 $
- *    $Revision: 1.75 $
+ *    $Date: 2010/06/17 15:42:22 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -530,6 +530,7 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 			    const float jac_scale );
 
   void gcamAddStatusGPU( GCA_MORPH *gcam, const int statusFlags );
+  void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags );
 #endif
 
 #if defined(__cplusplus)
