@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/30 18:56:23 $
- *    $Revision: 1.81 $
+ *    $Date: 2010/06/17 21:41:04 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.81 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.82 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -678,11 +678,11 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   }
   else if (!strcmp(option, "no_ta"))
   {
-    parms->Tregion=1;
+    parms->Tregion=0;
     fprintf(stdout,"Mode:          no (Template deformation region params)\n");
     nargs = 0 ;
   } else if (!strcmp(option, "no_wta")) {
-    parms->preweightemp=1;
+    parms->preweightemp=0;
     fprintf(stdout,"Mode:          preweight in template deformation\n") ;
     nargs = 0 ;
   } else if (!strcmp(option, "atlas")) {
@@ -692,7 +692,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   }
   else if (!strcmp(option, "no_seedpt"))
   {
-    parms->seedprior=1;
+    parms->seedprior=0;
     fprintf(stdout,"Mode:          no (Seed points with atlas (2 in cbm))\n") ;
     nargs = 0 ;
   }
@@ -862,7 +862,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.81 2010/03/30 18:56:23 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.82 2010/06/17 21:41:04 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -875,7 +875,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.81 2010/03/30 18:56:23 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.82 2010/06/17 21:41:04 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -911,7 +911,7 @@ int main(int argc, char *argv[])
         parms->preweight || 
         parms->preweightemp) && 
       !parms->transform)
-    Error("One of the flag you're using need a registration file "
+    Error("One of the flags you're using needs a registration file "
           "to be effective\n");
 
 
@@ -1162,6 +1162,8 @@ int main(int argc, char *argv[])
 static STRIP_PARMS* init_parms(void)
 {
   STRIP_PARMS* sp=(STRIP_PARMS*)calloc(1,sizeof(STRIP_PARMS));
+
+  memset(sp, 0, sizeof(STRIP_PARMS));
 
   /*preflooding height used in the watershed segmentation*/
   sp->hpf=25;
