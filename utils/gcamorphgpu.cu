@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/17 15:42:23 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/06/17 17:24:42 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1007,6 +1007,13 @@ namespace GPU {
       
       RemoveStatusKernel<<<grid,threads>>>( this->d_status, subtractState );
       CUDA_CHECK_ERROR( "AddStatusKernel failed!" );
+    }
+    
+    // --------------------------------------------
+
+    void GCAmorphGPU::ResetLabelNodeStatus( void ) {
+      this->RemoveStatus( GCAM_LABEL_NODE );
+      this->RemoveStatus( GCAM_IGNORE_LIKELIHOOD );
     }
     
 

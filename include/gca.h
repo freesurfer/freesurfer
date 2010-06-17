@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/23 18:15:57 $
- *    $Revision: 1.106 $
+ *    $Author: rge21 $
+ *    $Date: 2010/06/17 17:24:45 $
+ *    $Revision: 1.107 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -447,7 +447,8 @@ float GCAcomputeLabelPosterior(GCA *gca, TRANSFORM *transform, MRI *mri, float x
 GCA_NODE *GCAbuildRegionalGCAN(GCA *gca, int x, int y, int z, int wsize) ;
 int set_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
 int set_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
-int GCAmaxLikelihoodLabel(GCA_NODE *gcan, float *vals, int ninputs, float *plikelihood) ;
+int GCAmaxLikelihoodLabel( const GCA_NODE *gcan,
+			   float *vals, int ninputs, float *plikelihood );
 int GCAfreeRegionalGCAN(GCA_NODE **pgcan) ;
 GCA *GCAcompactify(GCA *gca);
 MRI *GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca, MRI *mri_in_labels, MRI *mri_out_labels, TRANSFORM *transform) ;

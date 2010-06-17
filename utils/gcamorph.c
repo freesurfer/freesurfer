@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/16 19:57:46 $
- *    $Revision: 1.196 $
+ *    $Date: 2010/06/17 17:24:41 $
+ *    $Revision: 1.197 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -191,8 +191,9 @@ static int zero_vals(float *vals, int nvals) ;
 static int gcamMLElabelAtLocation(GCA_MORPH *gcam, 
                                   int x, int y, int z, float *vals) ;
 #endif
-static int is_temporal_wm(GCA_MORPH *gcam, MRI *mri, GCA_NODE *gcan, \
-                          float x, float y, float z, int ninputs) ;
+static int is_temporal_wm( const GCA_MORPH *gcam, const MRI *mri,
+			   const GCA_NODE *gcan,
+			   float x, float y, float z, int ninputs) ;
 
 static int gcamRemoveNegativeNodes(GCA_MORPH *gcam, 
                                    MRI *mri, 
@@ -242,10 +243,7 @@ static int gcamMapTerm(GCA_MORPH *gcam,
                        MRI *mri, 
                        MRI *mri_smooth, 
                        double l_map) ;
-static int gcamLabelTerm(GCA_MORPH *gcam, 
-                         MRI *mri, 
-                         double l_label, 
-                         double label_dist) ;
+
 static int gcamBinaryTerm(GCA_MORPH *gcam, 
                           MRI *mri, 
                           MRI *mri_smooth, 
@@ -7780,9 +7778,9 @@ remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh)
   return(nremoved) ;
 }
 
-static int
-gcamLabelTerm(GCA_MORPH *gcam, MRI *mri, double l_label, double label_dist)
-{
+int
+gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
+	       double l_label, double label_dist ) {
   int x, y, z, wm_label, num, xn, yn, zn, best_label, sup_wm, sup_ven, n ;
   double            dy;
   GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup, 
@@ -8741,7 +8739,9 @@ check_gcam( const GCAM *gcam )
 #define MAX_TEMPORAL_WM 3
 
 static int
-is_temporal_wm(GCA_MORPH *gcam, MRI *mri, GCA_NODE *gcan, float xf, float yf, float zf, int ninputs)
+is_temporal_wm( const GCA_MORPH *gcam, const MRI *mri,
+		const GCA_NODE *gcan,
+		float xf, float yf, float zf, int ninputs )
 {
   int  yk, label, nwhite ;
   float vals[MAX_GCA_INPUTS], yi ;

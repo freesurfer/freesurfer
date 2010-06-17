@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/16 19:57:46 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/06/17 17:24:46 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -197,6 +197,9 @@ namespace GPU {
 
       //! Removes a status flag from all nodes
       void RemoveStatus( const int subtractState );
+
+      //! Removes two labels
+      void ResetLabelNodeStatus( void );
 
       // -------------------------------------------
       static void ShowTimings( void );
