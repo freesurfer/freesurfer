@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/04/08 19:42:02 $
- *    $Revision: 1.113 $
+ *    $Author: fischl $
+ *    $Date: 2010/06/18 12:35:20 $
+ *    $Revision: 1.114 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.113 2010/04/08 19:42:02 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.114 2010/06/18 12:35:20 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -241,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.113 2010/04/08 19:42:02 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.114 2010/06/18 12:35:20 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.113 2010/04/08 19:42:02 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.114 2010/06/18 12:35:20 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2191,6 +2191,13 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
           ((label == Left_Accumbens_area ||
             label == Right_Accumbens_area) &&  // only for gray/white
            which == GRAY_WHITE) ||
+          label == Left_Lesion ||
+          label == Right_Lesion ||
+          label == WM_hypointensities ||
+          label == Left_WM_hypointensities ||
+          label == Right_non_WM_hypointensities ||
+          label == Left_non_WM_hypointensities ||
+          label == Right_WM_hypointensities ||
           label == Left_Caudate ||
           label == Right_Caudate ||
           label == Left_Pallidum ||
