@@ -90,8 +90,9 @@ install: install-fooDATA
 	rm -Rf $(DESTDIR)$(prefix)/subjects/V1_average
 	rm -Rf $(top_builddir)/distribution/average/V1_average
 	gunzip -c $(top_srcdir)/distribution/average/V1_average.tar.gz | tar xvf -
+	mkdir -p $(DESTDIR)$(prefix)/bin
 	cp -f $(top_builddir)/distribution/average/V1_average/scripts/predict_v1.sh \
-		$(DESTDIR)$(prefix)/bin
+		$(DESTDIR)$(prefix)/bin/
 	mv $(top_builddir)/distribution/average/V1_average \
 		$(DESTDIR)$(prefix)/subjects
 	chmod -R 775 $(DESTDIR)$(prefix)/subjects/V1_average
