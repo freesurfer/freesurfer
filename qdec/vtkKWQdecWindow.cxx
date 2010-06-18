@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/06/12 00:09:01 $
- *    $Revision: 1.57 $
+ *    $Date: 2010/06/18 22:46:41 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -103,7 +103,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.57 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.58 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -4221,8 +4221,13 @@ vtkKWQdecWindow::GenerateClusterStats () {
       throw runtime_error( "Must have a surface loaded and results selected.");
     }
 
-    // get surface struct, and insert current scalars into its val slots
-    MRIS* mris = maSurfaceSource[msCurrentSurfaceSource]->GetMRIS();
+    // get white surface struct, and insert current scalars into its val slots
+    // but first make sure it exists.
+    if( maSurfaceSource.find( "white" ) == maSurfaceSource.end() ) {
+      throw runtime_error( 
+        "GenerateClusterStats: white surface was not found");
+    }
+    MRIS* mris = maSurfaceSource["white"]->GetMRIS();
     vtkFloatArray* scalars = maSurfaceScalars[mnCurrentSurfaceScalars].mValues;
     for( int nVertex = 0; nVertex < mris->nvertices; nVertex++ ) {
       mris->vertices[nVertex].val = scalars->GetTuple1( nVertex );
