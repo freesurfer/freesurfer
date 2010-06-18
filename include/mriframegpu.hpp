@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/20 15:56:36 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/06/18 18:01:41 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -198,7 +198,8 @@ namespace GPU {
 
       //! Default constructor does nothing
       MRIframeGPU<T>( void ) : VolumeGPU<T>(),
-			       thick(0) {};
+			       thick(0),
+			       sizes(make_float3(0,0,0)) {};
 
       //! Conversion operator to MRIframeOnGPU
       operator MRIframeOnGPU<T>( void ) const {
@@ -212,12 +213,17 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.41 2010/04/20 15:56:36 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.42 2010/06/18 18:01:41 rge21 Exp $";
       }
       
       //! Return the 'thick' field
       float GetThickness( void ) const {
 	return( this->thick );
+      }
+
+      //! Return hte 'sizes' field
+      float3 GetSizes( void ) const {
+	return( this->sizes );
       }
 
       // --------------------------------------------------------
@@ -305,6 +311,10 @@ namespace GPU {
 	// Copy the scalars over
 	this->thick = src->thick;
 
+	this->sizes = make_float3( src->xsize,
+				   src->ysize,
+				   src->zsize );
+
 	
 	// See if we need to allocate workspace
 	const size_t bSize = this->BufferSize();
@@ -363,6 +373,10 @@ namespace GPU {
 
 	// Retrieve the scalars
 	dst->thick = this->thick;
+	dst->xsize = this->sizes.x;
+	dst->ysize = this->sizes.y;
+	dst->zsize = this->sizes.z;
+	
 	
 	// See about buffers
 	const size_t bSize = this->BufferSize();
@@ -433,6 +447,9 @@ namespace GPU {
     
       //! Mirror of the 'thick' field of an MRI
       float thick;
+
+      //! Mirror of the {x|y|z}size fields (the voxel sizes)
+      float3 sizes;
 
       //! Function to sanity check dimensions
       bool CheckDims( const MRI* mri ) const {
