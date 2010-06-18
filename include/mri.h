@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/05/28 20:17:45 $
- *    $Revision: 1.402 $
+ *    $Author: rge21 $
+ *    $Date: 2010/06/18 16:36:39 $
+ *    $Revision: 1.403 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -674,9 +674,10 @@ int   MRIsampleVolumeFrameType( const MRI *mri,
 				double *pval );
 int   MRIsampleVolumeGradient(MRI *mri, double x, double y, double z,
                               double *pdx, double *pdy, double *pdz) ;
-int   MRIsampleVolumeGradientFrame(MRI *mri, double x, double y, double z,
-                                   double *pdx, double *pdy, double *pdz,
-                                   int frame) ;
+int   MRIsampleVolumeGradientFrame( const MRI *mri,
+				    double x, double y, double z,
+				    double *pdx, double *pdy, double *pdz,
+				    int frame ) ;
 int   MRIsampleVolumeDerivative(MRI *mri,
                                 double x, double y, double z,
                                 double dx, double dy, double dz,

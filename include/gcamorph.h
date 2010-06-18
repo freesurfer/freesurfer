@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/17 17:24:46 $
- *    $Revision: 1.77 $
+ *    $Date: 2010/06/18 16:36:39 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -498,6 +498,11 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   int gcamLabelTerm( GCA_MORPH *gcam,
 		     const MRI *mri,
 		     double l_label, double label_dist );
+
+  int gcamLogLikelihoodTerm( GCA_MORPH *gcam,
+			     const MRI *mri,
+			     const MRI *mri_smooth,
+			     double l_log_likelihood );
 
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties

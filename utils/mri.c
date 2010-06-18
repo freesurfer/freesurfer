@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/05/28 20:18:31 $
- *    $Revision: 1.459 $
+ *    $Author: rge21 $
+ *    $Date: 2010/06/18 16:36:42 $
+ *    $Revision: 1.460 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.459 $";
+const char *MRI_C_VERSION = "$Revision: 1.460 $";
 
 
 /*-----------------------------------------------------
@@ -10815,8 +10815,10 @@ MRIsampleVolumeGradient(MRI *mri, double x, double y, double z,
   Interpolate the volume gradient to cubic voxels.
   ------------------------------------------------------*/
 int
-MRIsampleVolumeGradientFrame(MRI *mri, double x, double y, double z,
-                             double *pdx, double *pdy, double *pdz, int frame)
+MRIsampleVolumeGradientFrame( const MRI *mri,
+			      double x, double y, double z,
+			      double *pdx, double *pdy, double *pdz,
+			      int frame )
 {
   int  width, height, depth ;
   double xp1, xm1, yp1, ym1, zp1, zm1 ;

@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/17 17:24:41 $
- *    $Revision: 1.197 $
+ *    $Date: 2010/06/18 16:36:42 $
+ *    $Revision: 1.198 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -225,8 +225,7 @@ static int gcamLimitGradientMagnitude(GCA_MORPH *gcam,
                                       MRI *mri) ;
 static int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                                GCA_MORPH_PARMS *parms) ;
-static int gcamLogLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
-                                 double l_log_likelihood) ;
+
 static int gcamMultiscaleTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                               double l_multiscale) ;
 static int gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri,double l_dtrans, GCA_MORPH_PARMS *mp) ;
@@ -1586,11 +1585,11 @@ GCAMfreeContents(GCA_MORPH *gcam)
   Note:  d [ I(r)' C I(r), r] = delI * C * I(r)
   where delI(r) = 3xn, C=nxn, and I(r)=nx1
 */
-static int
-gcamLogLikelihoodTerm(GCA_MORPH *gcam, 
-                      MRI *mri, 
-                      MRI *mri_smooth, 
-                      double l_log_likelihood)
+int
+gcamLogLikelihoodTerm( GCA_MORPH *gcam, 
+		       const MRI *mri, 
+		       const MRI *mri_smooth, 
+		       double l_log_likelihood )
 {
   int             x, y, z, n /*,label*/ ;
   double            dx, dy, dz, norm;
@@ -7799,6 +7798,8 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 
 
   GCAMresetLabelNodeStatus(gcam) ;
+
+
   for (x = 0 ; x < gcam->width ; x++) {
     for (y = 0 ; y < gcam->height ; y++) {
       for (z = 0 ; z < gcam->depth ; z++) {
@@ -7831,14 +7832,17 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
           continue ;
         if (!IS_WM(gcamn->label))   /* only do white matter for now */
           continue ;
+
         if (fabs(2*x-107) <= 2 && fabs(2*y-162)<=2 && fabs(2*z-133)<=2)
           DiagBreak() ;
+
         gcamn_inf = &gcam->nodes[x][y+1][z] ;
         gcamn_sup = &gcam->nodes[x][y-1][z] ;
         if (
           ((IS_HIPPO(gcamn->label) && IS_WM(gcamn_inf->label)) ||
            (IS_WM(gcamn->label) && IS_HIPPO(gcamn_sup->label))) == 0)
           continue ;  /* only hippo above wm, or wm below hippo */
+
         if (IS_HIPPO(gcamn->label))
           load_vals(mri, gcamn->x, gcamn->y+1, gcamn->z, vals, gcam->ninputs) ;
         else
@@ -7858,10 +7862,14 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
           wm_label = Left_Cerebral_White_Matter ;
         else
           wm_label = Right_Cerebral_White_Matter ;
+
         wm_gc = GCAfindPriorGC(gcam->gca, x, y, z, wm_label) ;
+
         if (wm_gc == NULL)
           continue ;
+
         gcan = GCAbuildRegionalGCAN(gcam->gca, xn, yn, zn, 3) ;
+
         // ventral DC is indistinguishible from temporal wm pretty much
         for (n = 0 ; n < gcan->nlabels; n++)
           if ((gcan->labels[n] == Left_VentralDC ||
