@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.44 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -64,6 +64,7 @@ class SurfaceRegion;
 class LayerMRI : public LayerVolumeBase
 {
   friend class BuildContourThread;
+  friend class VolumeCropper;
   
 public:
   LayerMRI( LayerMRI* ref );
@@ -215,6 +216,8 @@ public:
   bool LoadRegionSurfaces( wxString& fn );
   
   const char* GetOrientationString();
+  
+  void SetCroppingBounds( double* bounds );
   
 protected:
   void InitializeVolume();

@@ -35,6 +35,8 @@ freeview_SOURCES=\
 	Cursor3D.h \
 	CursorFactory.cpp \
 	CursorFactory.h \
+	DialogCropVolume.cpp \
+	DialogCropVolume.h \
 	DialogEditLookupTable.cpp \
 	DialogEditLookupTable.h \
 	DialogGradientVolume.cpp \
@@ -101,6 +103,8 @@ freeview_SOURCES=\
 	Interactor2DWayPointsEdit.h \
 	Interactor3D.cpp \
 	Interactor3D.h \
+	Interactor3DCropVolume.cpp \
+	Interactor3DCropVolume.h \
 	Interactor3DMeasure.cpp \
 	Interactor3DMeasure.h \
 	Interactor3DNavigate.cpp \
@@ -198,6 +202,8 @@ freeview_SOURCES=\
 	ToolWindowEdit.h \
 	ToolWindowMeasure.cpp \
 	ToolWindowMeasure.h \
+	VolumeCropper.cpp \
+	VolumeCropper.h \
 	VolumeFilter.cpp \
 	VolumeFilter.h \
 	VolumeFilterConvolve.cpp \

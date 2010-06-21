@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/06 21:17:12 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -205,4 +205,9 @@ void Layer::GetBounds( double* bounds )
     bounds[i*2] = origin[i];
     bounds[i*2+1] = origin[i] + size[i];
   }
+}
+
+void Layer::GetDisplayBounds( double* bounds )
+{
+  this->GetBounds( bounds );
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,7 @@
 #include "Region2DRectangle.h"
 #include "ToolWindowMeasure.h"
 #include "Contour2D.h"
+#include "VolumeCropper.h"
 
 #define max(a,b)  (((a) > (b)) ? (a) : (b))
 #define min(a,b)  (((a) < (b)) ? (a) : (b))
@@ -182,6 +183,8 @@ void RenderView2D::RefreshAllActors()
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "ROI" )->Append2DProps( m_renderer, m_nViewPlane );
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->Append2DProps( m_renderer, m_nViewPlane );
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "WayPoints" )->Append2DProps( m_renderer, m_nViewPlane );
+  
+  MainWindow::GetMainWindowPointer()->GetVolumeCropper()->Append2DProps( m_renderer );
   
   // add regions
   for ( size_t i = 0; i < m_regions.size(); i++ )

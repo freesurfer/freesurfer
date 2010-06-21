@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -98,6 +98,10 @@ public:
   void SetInteractionMode( int nMode );
   
   bool SaveAllSurfaceRegions( wxString& fn );
+  
+  bool PickCroppingBound( int nX, int nY );
+  
+  void MoveCroppingBound( int nX, int nY );
   
 protected:
   void OnInternalIdle();

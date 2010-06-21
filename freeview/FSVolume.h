@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -173,6 +173,8 @@ public:
     return m_strOrientation;
   }
   
+  void SetCroppingBounds( double* bound );
+  
 protected:
   bool LoadMRI( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
   bool LoadRegistrationMatrix( const char* filename );
@@ -217,6 +219,9 @@ protected:
   
   int       m_nInterpolationMethod;
   char      m_strOrientation[4];
+  
+  double    m_dBounds[6];
+  bool      m_bCrop;
 };
 
 #endif

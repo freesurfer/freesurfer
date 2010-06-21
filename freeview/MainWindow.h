@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/08 17:43:26 $
- *    $Revision: 1.75 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -69,7 +69,9 @@ class DialogSaveScreenshot;
 class DialogSavePoint;
 class DialogWriteMovieFrames;
 class DialogRepositionSurface;
+class DialogCropVolume;
 class ConnectivityData;
+class VolumeCropper;
 
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
@@ -208,6 +210,8 @@ public:
 
   void OnToolRotateVolume           ( wxCommandEvent& event );
   void OnToolRotateVolumeUpdateUI   ( wxUpdateUIEvent& event );
+  void OnToolCropVolume             ( wxCommandEvent& event );
+  void OnToolCropVolumeUpdateUI     ( wxUpdateUIEvent& event );
   void OnToolOptimalVolume          ( wxCommandEvent& event );
   void OnToolOptimalVolumeUpdateUI  ( wxUpdateUIEvent& event );
   void OnToolGradientVolume         ( wxCommandEvent& event );
@@ -320,7 +324,9 @@ public:
 
   static MainWindow* GetMainWindowPointer();
 
-  void NeedRedraw( int nCount = 2 );
+  void NeedRedraw( int nCount = 1 );
+  
+  void ForceRedraw();
 
   void AddScript( const wxArrayString& script );
   void RunScript();
@@ -394,6 +400,11 @@ public:
   ToolWindowMeasure* GetToolWindowMeasure()
   {
     return m_toolWindowMeasure;
+  }
+  
+  VolumeCropper* GetVolumeCropper()
+  {
+    return m_volumeCropper;
   }
   
   int GetMainViewId()
@@ -482,6 +493,7 @@ private:
   DialogWriteMovieFrames*     m_dlgWriteMovieFrames;
   DialogSavePoint*            m_dlgSavePoint;
   DialogRepositionSurface*    m_dlgRepositionSurface;
+  DialogCropVolume*           m_dlgCropVolume;
   wxMenu*           m_menuGotoPoints;
 
   RenderView2D*   m_viewAxial;
@@ -495,6 +507,8 @@ private:
 
   LayerCollectionManager* m_layerCollectionManager;
   LayerMRI*       m_layerVolumeRef;
+  
+  VolumeCropper*  m_volumeCropper;
   
   ConnectivityData*   m_connectivity;
 

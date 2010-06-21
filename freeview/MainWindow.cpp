@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/08 17:43:26 $
- *    $Revision: 1.119 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.120 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -101,6 +101,8 @@
 #include "chronometer.h"
 #include "DialogVolumeFilter.h"
 #include "DialogRepositionSurface.h"
+#include "DialogCropVolume.h"
+#include "VolumeCropper.h"
 
 #define CTRL_PANEL_WIDTH 240
 
@@ -233,6 +235,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   
   EVT_MENU        ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolume )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolumeUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_CROP_VOLUME" ),       MainWindow::OnToolCropVolume )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_CROP_VOLUME" ),       MainWindow::OnToolCropVolumeUpdateUI )
   EVT_MENU        ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolOptimalVolume )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolOptimalVolumeUpdateUI )
   EVT_MENU        ( XRCID( "ID_TOOL_GRADIENT_VOLUME" ),   MainWindow::OnToolGradientVolume )
@@ -302,6 +306,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
   m_connectivity = new ConnectivityData();
+  m_volumeCropper = new VolumeCropper();
 
   wxXmlResource::Get()->LoadFrame( this, NULL, wxT("ID_MAIN_WINDOW") );
 
@@ -372,7 +377,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_layerCollectionManager->AddListener( this );
   GetLayerCollection( "MRI" )->AddListener( m_pixelInfoPanel );
   GetLayerCollection( "Surface" )->AddListener( m_pixelInfoPanel );
-
+  
   m_connectivity->AddListener( m_view3D );
   
   m_wndQuickReference = new WindowQuickReference( this );
@@ -389,7 +394,6 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_dlgSaveScreenshot = NULL;
   m_dlgSavePoint = NULL;
   m_dlgWriteMovieFrames = NULL;
-  m_dlgRepositionSurface = NULL;
   
   m_menuGotoPoints = NULL;
 
@@ -409,6 +413,13 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_dlgRepositionSurface->Hide();  
   m_view3D->AddListener( m_dlgRepositionSurface );
   GetLayerCollection( "Surface" )->AddListener( m_dlgRepositionSurface );
+  
+  m_dlgCropVolume = new DialogCropVolume( this );
+  m_dlgCropVolume->Hide();
+  GetLayerCollection( "MRI" )->AddListener( m_dlgCropVolume );
+  
+  m_volumeCropper->AddListener( this );
+  m_volumeCropper->AddListener( m_dlgCropVolume );
   
   UpdateToolbars();
   
@@ -494,6 +505,10 @@ MainWindow::~MainWindow()
   delete m_propertyBrush;
   if ( m_connectivity )
     delete m_connectivity;
+  
+  if ( m_volumeCropper )
+    delete m_volumeCropper;
+  m_volumeCropper = NULL;
   
   if ( m_menuGotoPoints )
     delete m_menuGotoPoints;
@@ -2116,6 +2131,15 @@ void MainWindow::NeedRedraw( int nCount )
   m_nRedrawCount = nCount;
 }
 
+void MainWindow::ForceRedraw()
+{
+  for ( int i = 0; i < 4; i++ )
+  {
+    if ( m_viewRender[i]->IsShown() )
+      m_viewRender[i]->Render();
+  }
+}
+
 void MainWindow::OnInternalIdle()
 {
   wxFrame::OnInternalIdle();
@@ -2463,6 +2487,11 @@ void MainWindow::OnBuildContourThreadResponse( wxCommandEvent& event )
     return;
   
   mri->RealizeContourActor();
+  if ( m_volumeCropper->GetEnabled() )
+  {
+    m_volumeCropper->UpdateProps();
+    m_volumeCropper->Apply();
+  }
   
   if ( mri->GetProperties()->GetShowAsContour() )
     NeedRedraw();
@@ -2528,6 +2557,10 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   else if ( iMsg == "SurfacePositionChanged" )
   {
     m_view3D->UpdateConnectivityDisplay();
+  }
+  else if ( iMsg == "CropBoundChanged" )
+  {
+    NeedRedraw();
   }
   
   // Update world geometry
@@ -5209,3 +5242,20 @@ void MainWindow::OnEditRenameUpdateUI( wxUpdateUIEvent& event )
   LayerCollection* lc = GetCurrentLayerCollection();
   event.Enable( lc && lc->GetActiveLayer() );
 }
+
+void MainWindow::OnToolCropVolume( wxCommandEvent& event )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  m_dlgCropVolume->SetVolume( mri );
+  m_dlgCropVolume->Show();
+  m_volumeCropper->SetEnabled( true );
+  m_volumeCropper->SetVolume( mri );
+  m_volumeCropper->Show();
+}
+
+void MainWindow::OnToolCropVolumeUpdateUI( wxUpdateUIEvent& event )
+{
+  Layer* layer = GetLayerCollection( "MRI" )->GetActiveLayer();
+  event.Enable( layer && layer->IsVisible() );
+}
+

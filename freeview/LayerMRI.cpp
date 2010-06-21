@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.71 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1926,3 +1926,9 @@ bool LayerMRI::LoadRegionSurfaces( wxString& fn )
   this->SendBroadcast( "SurfaceRegionAdded", this );
   return bSuccess;
 }
+
+void LayerMRI::SetCroppingBounds( double* bounds )
+{
+  m_volumeSource->SetCroppingBounds( bounds );
+}
+

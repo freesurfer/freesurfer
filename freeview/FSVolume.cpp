@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:31 $
- *    $Revision: 1.46 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -66,7 +66,8 @@ FSVolume::FSVolume( FSVolume* ref ) :
     m_fMaxValue( 1 ),
     m_bResampleToRAS( false ),
     m_bBoundsCacheDirty( true ),
-    m_nInterpolationMethod( SAMPLE_NEAREST )
+    m_nInterpolationMethod( SAMPLE_NEAREST ),
+    m_bCrop( false )
 {
   m_imageData = NULL;
   if ( ref )
@@ -460,45 +461,6 @@ void FSVolume::SetMRITarget( MRI* mri )
   }
 }
 
-/*
-bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
-{
-  char* fn = strdup( filename );
-  int err;
-  if ( bSaveToOriginalSpace )
-    err = ::MRIwrite( m_MRI, fn );
-  else
-  {
-    // save MRITarget temporarily
-    MRI* mri = MRIallocHeader( m_MRITarget->width, 
-                               m_MRITarget->height, 
-                               m_MRITarget->depth, 
-                               m_MRITarget->type );
-    MRIcopyHeader( m_MRITarget, mri );
-    
-    // if rotated save data in original target space 
-    if ( m_MRIOrigTarget) 
-      MRIcopyHeader( m_MRIOrigTarget, m_MRITarget );
-    
-    err = ::MRIwrite( m_MRITarget, fn );
-    // free pixel space
-    MRIfreeFrames( m_MRITarget, 0 );
-    
-    // restore MRITarget saved at the beginning
-    MRIcopyHeader( mri, m_MRITarget );
-    MRIfree( &mri );
-  }
-  free( fn );
-
-  if ( err != 0 )
-  {
-    cerr << "MRIwrite failed" << endl;
-  }
-
-  return err == 0;
-}
-*/
-
 bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
 {
   if ( !m_MRITemp )
@@ -507,6 +469,58 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
     return false;
   }
     
+  // check if cropping is enabled
+  // if so, calculate the extent to crop
+  if ( m_bCrop )
+  {
+    int nmin[3] = { 10000000, 10000000, 1000000 };
+    int nmax[3] = { -10000000, -10000000, -1000000 };
+    int x = 0, y = 0, z = 0;
+    double rx = 0, ry = 0, rz = 0;
+    for ( int i = 0; i < 2; i++ )
+    {
+      for ( int j = 2; j < 4; j++ )
+      {
+        for ( int k = 4; k < 6; k++ )
+        {
+          this->TargetToRAS( m_dBounds[i], m_dBounds[j], m_dBounds[k], rx, ry, rz );
+          this->RASToOriginalIndex( rx, ry, rz, x, y, z );
+          if ( nmin[0] > x ) nmin[0] = x;
+          if ( nmin[1] > y ) nmin[1] = y;
+          if ( nmin[2] > z ) nmin[2] = z;
+          if ( nmax[0] < x ) nmax[0] = x;
+          if ( nmax[1] < y ) nmax[1] = y;
+          if ( nmax[2] < z ) nmax[2] = z;
+        }
+      }
+    }
+    if ( nmin[0] < 0 ) nmin[0] = 0;
+    if ( nmin[1] < 0 ) nmin[1] = 0;
+    if ( nmin[2] < 0 ) nmin[2] = 0;
+    if ( nmax[0] >= m_MRITemp->width ) nmax[0] = m_MRITemp->width - 1;
+    if ( nmax[1] >= m_MRITemp->height ) nmax[1] = m_MRITemp->height - 1;
+    if ( nmax[2] >= m_MRITemp->depth ) nmax[2] = m_MRITemp->depth - 1;
+    
+    int dx = nmax[0]-nmin[0]+1;
+    int dy = nmax[1]-nmin[1]+1;
+    int dz = nmax[2]-nmin[2]+1;
+    if ( dx < 1 || dy < 1 || dz < 1 )
+    {
+      cerr << "Bad cropping range. " << endl;
+      return false;
+    }
+    
+    MRI* mri = MRIextract( m_MRITemp, NULL, nmin[0], nmin[1], nmin[2], 
+                           dx, dy, dz );
+    if ( !mri )
+    {
+      cerr << "MRIextract failed." << endl;
+      return false;
+    }
+    MRIfree( &m_MRITemp );
+    m_MRITemp = mri;
+  }
+  
   LTA* lta = NULL;
   if ( !bSaveToOriginalSpace && m_MRIOrigTarget) 
   {
@@ -2071,3 +2085,13 @@ int FSVolume::GetDataType()
   else
     return -1;
 }
+
+void FSVolume::SetCroppingBounds( double* bounds )
+{
+  for ( int i = 0; i < 6; i++ )
+    m_dBounds[i] = bounds[i];
+  
+  m_bCrop = true;
+}
+
+  

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/01 17:38:08 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/06/21 18:37:50 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,6 +59,7 @@
 #include "vtkBoundingBox.h"
 #include "SurfaceRegion.h"
 #include "Cursor3D.h"
+#include "VolumeCropper.h"
 
 #define SLICE_PICKER_PIXEL_TOLERANCE  15
 
@@ -81,7 +82,6 @@ RenderView3D::RenderView3D( wxWindow* parent, int id ) : RenderView( parent, id 
 void RenderView3D::InitializeRenderView3D()
 {
   this->SetDesiredUpdateRate( 5000 );
-// this->SetStillUpdateRate( 0.5 );
 
   if ( m_interactor )
     delete m_interactor;
@@ -186,6 +186,7 @@ void RenderView3D::RefreshAllActors()
   }
   
   MainWindow::GetMainWindowPointer()->GetConnectivityData()->AppendProps( m_renderer );
+  MainWindow::GetMainWindowPointer()->GetVolumeCropper()->Append3DProps( m_renderer );
   
   m_renderer->ResetCameraClippingRange();
 
@@ -676,7 +677,7 @@ bool RenderView3D::UpdateBounds()
     for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
     {
       double bd[6];
-      lc->GetLayer( i )->GetBounds( bd );
+      lc->GetLayer( i )->GetDisplayBounds( bd );
       for ( int j = 0; j < 3; j++ )
       {
         if ( bounds[j*2] > bd[j*2] )
@@ -901,3 +902,22 @@ void RenderView3D::MoveSliceToScreenCoord( int x, int y )
   slicepos[m_nSliceHighlighted] = new_pt[m_nSliceHighlighted];
   lc->SetCursorRASPosition( slicepos );
 }
+
+bool RenderView3D::PickCroppingBound( int nX, int nY )
+{
+  vtkProp* prop = PickProp( nX, nY );
+  if ( prop && MainWindow::GetMainWindowPointer()->GetVolumeCropper()->PickActiveBound( prop ) )
+  {
+    NeedRedraw( true );
+    return true;
+  }
+  else
+    return false;
+}
+
+void RenderView3D::MoveCroppingBound( int nX, int nY )
+{
+  MainWindow::GetMainWindowPointer()->GetVolumeCropper()
+      ->MoveActiveBound( this, nX, nY );
+}
+
