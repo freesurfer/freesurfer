@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:57:09 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/06/21 22:06:18 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -186,8 +186,8 @@ void VolumeCropper::UpdateProps()
   m_sphereSource[1]->SetCenter( m_bounds[1]+offset, c[1], c[2] );
   m_sphereSource[2]->SetCenter( c[0], m_bounds[2]-offset, c[2] );
   m_sphereSource[3]->SetCenter( c[0], m_bounds[3]+offset, c[2] );
-  m_sphereSource[4]->SetCenter( c[0], c[1]-offset, m_bounds[4] );
-  m_sphereSource[5]->SetCenter( c[0], c[1]+offset, m_bounds[5] );
+  m_sphereSource[4]->SetCenter( c[0], c[1], m_bounds[4]-offset );
+  m_sphereSource[5]->SetCenter( c[0], c[1], m_bounds[5]+offset );
   
   m_boxSource->SetBounds( m_bounds );
   
