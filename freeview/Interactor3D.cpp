@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/06/21 21:57:09 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,8 +40,7 @@ Interactor3D::Interactor3D() :
     m_nMousePosX( -1 ),
     m_nMousePosY( -1 ),
     m_bWindowLevel( false ),
-    m_bMoveSlice( false ),
-    m_bCrop( false )
+    m_bMoveSlice( false )
 {}
 
 Interactor3D::~Interactor3D()
@@ -59,11 +58,6 @@ bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
   if ( event.MiddleDown() && event.ControlDown() )
   {
     m_bWindowLevel = true;
-  }
-  else if ( MainWindow::GetMainWindowPointer()->GetVolumeCropper()->IsShown() && 
-            view->PickCroppingBound( m_nMousePosX, m_nMousePosY ) )
-  {
-    m_bCrop = true;
   }
   else if ( view->GetHighlightedSlice() >= 0 )
   {
@@ -95,15 +89,8 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
     m_nMousePosY = event.GetY();
   }
   
-  if ( m_bCrop )
-  {
-    MainWindow::GetMainWindowPointer()->GetVolumeCropper()->ReleaseActiveBound();
-    view->NeedRedraw();
-  }
-  
   m_bWindowLevel = false;
   m_bMoveSlice = false;
-  m_bCrop = false;
 
   return Interactor::ProcessMouseUpEvent( event, renderview );
 }
@@ -144,10 +131,6 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
   else if ( m_bMoveSlice )
   {
     view->MoveSliceToScreenCoord( posX, posY );
-  }
-  else if ( m_bCrop )
-  {
-    view->MoveCroppingBound( posX - m_nMousePosX, posY - m_nMousePosY );
   }
   else
   {

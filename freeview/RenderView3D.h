@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/06/21 21:57:09 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -36,6 +36,7 @@ class vtkCubeSource;
 class vtkProp;
 class Interactor3DNavigate;
 class Interactor3DMeasure;
+class Interactor3DCropVolume;
 
 class VTK_RENDERING_EXPORT RenderView3D : public RenderView
 {
@@ -140,6 +141,7 @@ private:
   
   Interactor3DNavigate*       m_interactorNavigate;
   Interactor3DMeasure*        m_interactorMeasure;
+  Interactor3DCropVolume*     m_interactorCropVolume;
   
   // any class wishing to process wxWindows events must use this macro
   DECLARE_EVENT_TABLE()

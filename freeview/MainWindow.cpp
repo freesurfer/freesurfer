@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:08:54 $
- *    $Revision: 1.122 $
+ *    $Date: 2010/06/21 21:57:09 $
+ *    $Revision: 1.123 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -5255,6 +5255,7 @@ void MainWindow::OnToolCropVolume( wxCommandEvent& event )
   m_volumeCropper->SetEnabled( true );
   m_volumeCropper->SetVolume( mri );
   m_volumeCropper->Show();
+  SetMode( RenderView::IM_VolumeCrop );
 }
 
 void MainWindow::OnToolCropVolumeUpdateUI( wxUpdateUIEvent& event )

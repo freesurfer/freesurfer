@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/06/21 21:57:09 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -52,6 +52,7 @@
 #include "vtkLine.h"
 #include "Interactor3DNavigate.h"
 #include "Interactor3DMeasure.h"
+#include "Interactor3DCropVolume.h"
 #include "LayerSurface.h"
 #include "SurfaceOverlayProperties.h"
 #include "SurfaceOverlay.h"
@@ -89,8 +90,10 @@ void RenderView3D::InitializeRenderView3D()
   m_interactor = NULL;
   m_interactorNavigate = new Interactor3DNavigate();
   m_interactorMeasure = new Interactor3DMeasure();  
+  m_interactorCropVolume = new Interactor3DCropVolume();
   m_interactorNavigate->AddListener( MainWindow::GetMainWindowPointer() );
   m_interactorMeasure->AddListener( MainWindow::GetMainWindowPointer() );
+  m_interactorCropVolume->AddListener( MainWindow::GetMainWindowPointer() );
 
   m_bToUpdateRASPosition = false;
   m_bToUpdateCursorPosition = false;
@@ -155,6 +158,9 @@ void RenderView3D::SetInteractionMode( int nMode )
   {
     case IM_Measure:
       m_interactor = m_interactorMeasure;
+      break;
+    case IM_VolumeCrop:
+      m_interactor = m_interactorCropVolume;
       break;
     default:
       m_interactor = m_interactorNavigate;

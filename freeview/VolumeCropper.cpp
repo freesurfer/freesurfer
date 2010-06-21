@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:08:54 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/06/21 21:57:09 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -343,6 +343,9 @@ void VolumeCropper::DoListenToMessage( std::string const iMsg, void* iData, void
 
 void VolumeCropper::UpdateSliceActorVisibility()
 {
+  if ( !m_mri || !IsShown() )
+    return;
+  
   double* pos = m_mri->GetSlicePosition();
   for ( int i = 0; i < 3; i++ )
   {
