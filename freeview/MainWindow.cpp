@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:57:09 $
- *    $Revision: 1.123 $
+ *    $Date: 2010/06/21 22:30:20 $
+ *    $Revision: 1.124 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1350,12 +1350,14 @@ void MainWindow::DoUpdateToolbars()
       m_viewRender[i]->AddListener( m_toolWindowMeasure );
   }
     
-  m_toolWindowEdit->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
-      m_viewAxial->GetInteractionMode() == RenderView2D::IM_ROIEdit );
+  m_toolWindowEdit->Show( m_viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit ||
+      m_viewAxial->GetInteractionMode() == RenderView::IM_ROIEdit );
   
-  m_toolWindowMeasure->Show( m_viewAxial->GetInteractionMode() == RenderView2D::IM_Measure );
+  m_toolWindowMeasure->Show( m_viewAxial->GetInteractionMode() == RenderView::IM_Measure );
 
   m_toolWindowEdit->UpdateTools();
+  
+  m_dlgCropVolume->Show( m_viewAxial->GetInteractionMode() == RenderView::IM_VolumeCrop );
 
   m_bToUpdateToolbars = false;
 }
