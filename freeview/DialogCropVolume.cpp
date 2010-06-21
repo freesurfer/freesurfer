@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/06/21 18:56:56 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -92,12 +92,16 @@ void DialogCropVolume::OnShow( wxShowEvent& event )
   RenderView3D* view = (RenderView3D*)mainwnd->GetRenderView( 3 );
   if ( event.GetShow() )
   {
-    bShowFrames = view->GetShowSliceFrames();
-    view->SetShowSliceFrames( false );
+    if ( view )
+    {
+      bShowFrames = view->GetShowSliceFrames();
+      view->SetShowSliceFrames( false );
+    }
   }
   else
   {
-    view->SetShowSliceFrames( bShowFrames );
+    if ( view )
+      view->SetShowSliceFrames( bShowFrames );
     if ( mainwnd->GetVolumeCropper() )
       mainwnd->GetVolumeCropper()->Show( false );
   }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.120 $
+ *    $Date: 2010/06/21 18:56:56 $
+ *    $Revision: 1.121 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -499,7 +499,10 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 MainWindow::~MainWindow()
 {
   for ( int i = 0; i < 4; i++ )
+  {
     m_viewRender[i]->Delete();
+    m_viewRender[i] = NULL;
+  }
   
   delete m_luts;
   delete m_propertyBrush;
