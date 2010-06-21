@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/06/21 21:08:54 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@
 class vtkBox;
 class vtkCubeSource;
 class vtkSphereSource;
+class vtkPlaneSource;
 class vtkActor;
 class vtkProp;
 class vtkRenderer;
@@ -42,7 +43,7 @@ class vtkClipPolyData;
 class LayerMRI;
 class RenderView;
 
-class VolumeCropper : public Broadcaster, Listener
+class VolumeCropper : public Broadcaster, public Listener
 {
 public:
   VolumeCropper();
@@ -67,7 +68,7 @@ public:
   vtkActor* GetProp();
   
   void Append3DProps( vtkRenderer* renderer );
-  void Append2DProps( vtkRenderer* renderer );
+  void Append2DProps( vtkRenderer* renderer, int n );
   
   bool IsShown();
   
@@ -97,11 +98,16 @@ public:
   
 protected: 
   void UpdateExtent();
+  void UpdateSliceActorVisibility();
+  void UpdateActivePlane();
+  void DoListenToMessage( std::string const iMsg, void* iData, void* sender );
   
-  vtkSmartPointer<vtkBox>       m_box;
-  vtkSmartPointer<vtkCubeSource> m_boxSource;
+  vtkSmartPointer<vtkBox>         m_box;
+  vtkSmartPointer<vtkCubeSource>  m_boxSource;
+  vtkSmartPointer<vtkPlaneSource> m_planeSource;
   vtkSmartPointer<vtkActor>     m_actorBox;
   vtkSmartPointer<vtkActor>     m_actorFrame;
+  vtkSmartPointer<vtkActor>     m_actorActivePlane;
   vtkSmartPointer<vtkActor>     m_actorBox2D;
   vtkSmartPointer<vtkActor>     m_actorFrame2D;
   vtkSmartPointer<vtkActor>     m_actorSphere[6];
@@ -113,7 +119,7 @@ protected:
   int               m_extent[6];
   bool              m_bEnabled;
   
-  int               m_nSelectedSphere;
+  int               m_nActivePlane;
 };
 
 #endif

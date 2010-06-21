@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:56:56 $
- *    $Revision: 1.121 $
+ *    $Date: 2010/06/21 21:08:54 $
+ *    $Revision: 1.122 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -420,6 +420,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   
   m_volumeCropper->AddListener( this );
   m_volumeCropper->AddListener( m_dlgCropVolume );
+  m_layerCollectionManager->AddListener( m_volumeCropper );
   
   UpdateToolbars();
   
