@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:08:54 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/06/22 19:33:57 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,6 +47,7 @@
 #include "Interactor2DVoxelEdit.h"
 #include "Interactor2DWayPointsEdit.h"
 #include "Interactor2DMeasure.h"
+#include "Interactor2DCropVolume.h"
 #include "MyUtils.h"
 #include "Region2DRectangle.h"
 #include "ToolWindowMeasure.h"
@@ -87,12 +88,14 @@ void RenderView2D::Initialize2D()
   m_interactorVoxelEdit  = new Interactor2DVoxelEdit();
   m_interactorROIEdit  = new Interactor2DROIEdit();
   m_interactorWayPointsEdit = new Interactor2DWayPointsEdit();
+  m_interactorCropVolume = new Interactor2DCropVolume();
 
   m_interactorNavigate->AddListener( MainWindow::GetMainWindowPointer() );
   m_interactorMeasure->AddListener( MainWindow::GetMainWindowPointer() );
   m_interactorVoxelEdit->AddListener( MainWindow::GetMainWindowPointer() );
   m_interactorROIEdit->AddListener( MainWindow::GetMainWindowPointer() );
   m_interactorWayPointsEdit->AddListener( MainWindow::GetMainWindowPointer() );
+  m_interactorCropVolume->AddListener( MainWindow::GetMainWindowPointer() );
 
   SetInteractionMode( IM_Navigate );
 }
@@ -115,6 +118,7 @@ RenderView2D::~RenderView2D()
   delete m_interactorVoxelEdit;
   delete m_interactorROIEdit;
   delete m_interactorWayPointsEdit;
+  delete m_interactorCropVolume;
   
   for ( size_t i = 0; i < m_regions.size(); i++ )
   {
@@ -146,6 +150,9 @@ void RenderView2D::SetInteractionMode( int nMode )
   case IM_WayPointsEdit:
     m_interactor = m_interactorWayPointsEdit;
     break;
+  case IM_VolumeCrop:    
+    m_interactor = m_interactorCropVolume;
+    break;     
   default:
     m_interactor = m_interactorNavigate;
     break;

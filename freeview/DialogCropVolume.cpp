@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:56:56 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/06/22 19:33:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -104,6 +104,7 @@ void DialogCropVolume::OnShow( wxShowEvent& event )
       view->SetShowSliceFrames( bShowFrames );
     if ( mainwnd->GetVolumeCropper() )
       mainwnd->GetVolumeCropper()->Show( false );
+    mainwnd->SetMode( 0 );
   }
   
   event.Skip();

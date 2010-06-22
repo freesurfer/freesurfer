@@ -89,6 +89,8 @@ freeview_SOURCES=\
 	Interactor.h \
 	Interactor2D.cpp \
 	Interactor2D.h \
+	Interactor2DCropVolume.cpp \
+	Interactor2DCropVolume.h \
 	Interactor2DNavigate.cpp \
 	Interactor2DNavigate.h \
 	Interactor2DMeasure.cpp \

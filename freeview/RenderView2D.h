@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/06/22 19:33:58 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,7 @@ class Interactor2DMeasure;
 class Interactor2DVoxelEdit;
 class Interactor2DROIEdit;
 class Interactor2DWayPointsEdit;
+class Interactor2DCropVolume;
 class Region2DRectangle;
 class Region2D;
 class Contour2D;
@@ -131,6 +132,7 @@ protected:
   Interactor2DVoxelEdit*      m_interactorVoxelEdit;
   Interactor2DROIEdit*        m_interactorROIEdit;
   Interactor2DWayPointsEdit*  m_interactorWayPointsEdit;
+  Interactor2DCropVolume*     m_interactorCropVolume;
 
   std::vector<Region2D*>      m_regions;
   

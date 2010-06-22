@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 22:06:18 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/06/22 19:33:58 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 
 #include "VolumeCropper.h"
 #include "LayerMRI.h"
-#include "RenderView.h"
+#include "RenderView2D.h"
 #include <vtkBox.h>
 #include <vtkCubeSource.h>
 #include <vtkActor.h>
@@ -90,6 +90,20 @@ VolumeCropper::VolumeCropper() :
   m_actorFrame2D->VisibilityOff();
   m_actorFrame2D->SetProperty( m_actorFrame->GetProperty() );
   
+  for ( int i = 0; i < 3; i++ )
+  {
+    m_actorActivePlane2D[i] = vtkSmartPointer<vtkActor>::New();
+    m_actorActivePlane2D[i]->VisibilityOff();
+    m_actorActivePlane2D[i]->GetProperty()->SetColor( 1, 0, 0 );
+    m_actorActivePlane2D[i]->GetProperty()->SetLineWidth( 2 );    
+    m_actorActivePlane2D[i]->GetProperty()->SetRepresentationToWireframe();
+    m_actorActivePlane2D[i]->GetProperty()->SetDiffuse( 0.0 );
+    m_actorActivePlane2D[i]->GetProperty()->SetAmbient( 1.0 );
+    mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
+    mapper->SetInput( m_planeSource->GetOutput() );
+    m_actorActivePlane2D[i]->SetMapper( mapper );
+  }
+  
   m_boxSource = vtkSmartPointer<vtkCubeSource>::New();
   mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
   mapper->SetInput( m_boxSource->GetOutput() );
@@ -130,7 +144,8 @@ void VolumeCropper::Append3DProps( vtkRenderer* renderer )
 void VolumeCropper::Append2DProps( vtkRenderer* renderer, int n )
 {
   renderer->AddViewProp( m_actorBox2D );  
-  renderer->AddViewProp( m_actorFrame2D ); 
+  renderer->AddViewProp( m_actorFrame2D );  
+  renderer->AddViewProp( m_actorActivePlane2D[n] );
   /*
   for ( int i = 0; i < 6; i++ )
   {
@@ -259,6 +274,63 @@ bool VolumeCropper::PickActiveBound( vtkProp* prop )
   return false;
 }
 
+bool VolumeCropper::PickActiveBound2D( RenderView2D* view, int x, int y )
+{
+  int nPlane = view->GetViewPlane();
+  if ( !IsShown() )
+  {
+    m_actorActivePlane2D[nPlane]->VisibilityOff();
+    return false;
+  }
+  
+  double pt[3];
+  view->ScreenToWorld( x, y, 0, pt[0], pt[1], pt[2] );
+  pt[nPlane] = ( m_bounds[nPlane*2] + m_bounds[nPlane*2+1] ) / 2;
+  double dist = 1e10;
+  int n = -1;
+  for ( int i = 0; i < 6; i++ )
+  {
+    if ( i/2 != nPlane && fabs( m_bounds[i] - pt[i/2] ) < dist )
+    {
+      int m = 0;
+      for ( m = 0; m < 3; m++ )
+      {
+        if ( m != nPlane && m != i/2 )
+          break;
+      }
+      if ( pt[m] <= m_bounds[m*2+1] && pt[m] >= m_bounds[m*2] )
+      {
+        dist = fabs( m_bounds[i] - pt[i/2] );
+        n = i;
+      }
+    }
+  }
+  
+  int nOldActivePlane = m_nActivePlane;
+  int nTolerance = 5; // in pixels
+  if ( n >= 0 )
+  {
+    for ( int i = 0; i < 3; i++ )
+      pt[i] = m_bounds[i*2];
+    pt[n/2] = m_bounds[n];
+    int x2, y2;
+    view->WorldToScreen( pt[0], pt[1], pt[2], x2, y2 );
+    if ( fabs( x - x2 ) <= nTolerance || fabs( y - y2 ) <= nTolerance )
+    {
+      m_nActivePlane = n;
+      UpdateActivePlane();
+      m_actorActivePlane2D[nPlane]->VisibilityOn();
+      view->NeedRedraw();
+      return true;
+    }
+  }
+  m_nActivePlane = -1;
+  m_actorActivePlane2D[nPlane]->VisibilityOff();
+  if ( m_nActivePlane != nOldActivePlane )
+    view->NeedRedraw();
+  return false;
+}
+
 void VolumeCropper::ReleaseActiveBound()
 {
   if ( m_nActivePlane >= 0 )
@@ -300,6 +372,36 @@ void VolumeCropper::MoveActiveBound( RenderView* view, int nx, int ny )
 
   m_bounds[m_nActivePlane] += ratio * (pt2[n] - pt1[n]);
   
+  ValidateActiveBound();
+  UpdateActivePlane();
+  UpdateExtent();
+  UpdateProps();
+}
+
+void VolumeCropper::MoveActiveBound2D( RenderView2D* view, int x, int y )
+{
+  if ( m_nActivePlane < 0 )
+    return;
+  
+  double pos[3];
+  view->ScreenToWorld( x, y, 0, pos[0], pos[1], pos[2] );
+  m_bounds[m_nActivePlane] = pos[m_nActivePlane/2];
+   
+  ValidateActiveBound();
+  UpdateActivePlane();
+  UpdateExtent();
+  UpdateProps();
+}
+
+void VolumeCropper::ValidateActiveBound()
+{
+  if ( m_nActivePlane < 0 || !m_mri )
+    return;
+    
+  double dMaxBounds[6];
+  m_mri->GetDisplayBounds( dMaxBounds );
+  
+  int n = m_nActivePlane/2;
   if ( m_bounds[m_nActivePlane] < dMaxBounds[n*2] )
     m_bounds[m_nActivePlane] = dMaxBounds[n*2];
   else if ( m_bounds[m_nActivePlane] > dMaxBounds[n*2+1] )
@@ -309,11 +411,7 @@ void VolumeCropper::MoveActiveBound( RenderView* view, int nx, int ny )
   if ( m_nActivePlane%2 == 0 && m_bounds[m_nActivePlane] >= m_bounds[m_nActivePlane+1] )
     m_bounds[m_nActivePlane] = m_bounds[m_nActivePlane+1] - voxelsize[n]/2;
   else if ( m_nActivePlane%2 == 1 && m_bounds[m_nActivePlane] < m_bounds[m_nActivePlane-1] )
-    m_bounds[m_nActivePlane] = m_bounds[m_nActivePlane-1] + voxelsize[n]/2;
-  
-  UpdateActivePlane();
-  UpdateExtent();
-  UpdateProps();
+    m_bounds[m_nActivePlane] = m_bounds[m_nActivePlane-1] + voxelsize[n]/2;   
 }
 
 void VolumeCropper::SetExtent( int nComp, int nValue )

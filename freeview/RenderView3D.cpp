@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:57:09 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/06/22 19:33:58 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -142,6 +142,12 @@ RenderView3D* RenderView3D::New()
 
 RenderView3D::~RenderView3D()
 {
+  m_interactor = NULL;
+  
+  delete m_interactorNavigate;
+  delete m_interactorMeasure;
+  delete m_interactorCropVolume;
+  
   delete m_cursor3D;
 }
 
