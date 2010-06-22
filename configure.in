@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/06/15 17:50:26 $
-#    $Revision: 1.478 $
+#    $Date: 2010/06/22 21:37:17 $
+#    $Revision: 1.479 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -653,8 +653,15 @@ AC_SUBST(CUDA_CFLAGS)
 AC_SUBST(CUDA_LIBS)
 AC_SUBST(NVCC)
 
-AC_PATH_PROG([NVCC],[nvcc],[no],[$PATH:$with_cuda/bin])
-AM_CONDITIONAL(BUILDCUDA, test ! x$NVCC = xno)
+# if --without-cuda was specified, disable cuda build
+if test "x$with_cuda" = "xno"; then
+  AM_CONDITIONAL(BUILDCUDA, false)
+  NVCC=no
+  AC_SUBST(NVCC)
+else # else enable if nvcc is found
+  AC_PATH_PROG([NVCC],[nvcc],[no],[$PATH:$with_cuda/bin])
+  AM_CONDITIONAL(BUILDCUDA, test ! x$NVCC = xno)
+fi
 
 AC_ARG_ENABLE([emu],
    [  --enable-emu            enable device emulation for CUDA],
@@ -681,10 +688,10 @@ AC_SUBST(NVCCFLAGS)
 
 # warn the user about missing functionality
 if( test x$NVCC = xno ) then
-    echo "Nvidia CUDA nvcc compiler not found."
-    echo "CUDA support will not be built."
-    echo "If you have CUDA and need CUDA support,"
-    echo "check the path to CUDA and specify --with-cuda=/path/to/cuda"
+  AC_MSG_NOTICE(Nvidia CUDA nvcc compiler not found or --without-cuda used.)
+  AC_MSG_NOTICE(CUDA support will not be built.)
+  AC_MSG_NOTICE(If you have CUDA and need CUDA support,)
+  AC_MSG_NOTICE(check the path to CUDA and specify --with-cuda=/path/to/cuda)
 fi
 
 ##############################################################
