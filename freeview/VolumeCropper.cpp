@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 19:33:58 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/06/22 20:48:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -250,6 +250,12 @@ void VolumeCropper::Show( bool bShow )
   m_actorFrame2D->SetVisibility( bShow );
   for ( int i = 0; i < 6; i++ )
     m_actorSphere[i]->SetVisibility( bShow );
+  if ( !bShow )
+  {
+    m_actorActivePlane->SetVisibility( false );
+    for ( int i = 0; i < 3; i++ )
+      m_actorActivePlane2D[i]->SetVisibility( false );
+  }
 }
 
 bool VolumeCropper::IsShown()

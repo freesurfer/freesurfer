@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/06/22 20:48:31 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,7 +34,7 @@ class wxSpinCtrl;
 class LayerMRI;
 class wxSpinEvent;
 
-class DialogCropVolume : public wxDialog, public Listener
+class DialogCropVolume : public wxFrame, public Listener
 {
 public:
   DialogCropVolume( wxWindow* parent, LayerMRI* layer = NULL );
@@ -50,6 +50,7 @@ protected:
   void OnSpinBound      ( wxSpinEvent& event );
   void OnSpinBoundText  ( wxCommandEvent& event );
   void OnShow           ( wxShowEvent& event );
+  void OnClose          ( wxCloseEvent& event );
   
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
   

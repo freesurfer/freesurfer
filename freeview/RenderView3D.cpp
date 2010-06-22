@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 19:33:58 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/06/22 20:48:31 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -910,6 +910,10 @@ void RenderView3D::MoveSliceToScreenCoord( int x, int y )
     new_pt[1] = pt[1];
     new_pt[2] = pt[2];
   }
+  if ( new_pt[m_nSliceHighlighted] < bounds[m_nSliceHighlighted*2] )
+    new_pt[m_nSliceHighlighted] = bounds[m_nSliceHighlighted*2];
+  else if ( new_pt[m_nSliceHighlighted] > bounds[m_nSliceHighlighted*2+1] )
+    new_pt[m_nSliceHighlighted] = bounds[m_nSliceHighlighted*2+1];
   lcm->OffsetSlicePosition( m_nSliceHighlighted, new_pt[m_nSliceHighlighted] - slicepos[m_nSliceHighlighted], false );
   slicepos[m_nSliceHighlighted] = new_pt[m_nSliceHighlighted];
   lc->SetCursorRASPosition( slicepos );

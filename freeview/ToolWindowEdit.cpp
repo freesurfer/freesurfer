@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/06/22 20:48:31 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -170,9 +170,12 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
     wxConfigBase* config = wxConfigBase::Get();
     if ( config )
     {
-      int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
-      int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
-      Move( x, y );
+      int x = config->Read( _T("/ToolWindowEdit/PosX"), 0L );
+      int y = config->Read( _T("/ToolWindowEdit/PosY"), 0L );
+      if ( x == 0 && y == 0 )
+        Center();
+      else
+        Move( x, y );
     }
     for ( int i = 0; i < 3; i++ )
     {
@@ -192,20 +195,6 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
     }
   }
   MainWindow::GetMainWindowPointer()->SetFocus();
-}
-
-void ToolWindowEdit::ResetPosition()
-{
-  if ( IsShown() )
-  {
-    wxConfigBase* config = wxConfigBase::Get();
-    if ( config )
-    {
-      int x = config->Read( _T("/ToolWindowEdit/PosX"), 50L );
-      int y = config->Read( _T("/ToolWindowEdit/PosY"), 50L );
-      Move( x, y );
-    }
-  }
 }
 
 void ToolWindowEdit::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )

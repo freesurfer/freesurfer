@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 19:33:57 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/06/22 20:48:31 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,7 @@
 
 #include "DialogCropVolume.h"
 #include <wx/xrc/xmlres.h>
+#include <wx/config.h>
 #include <wx/filedlg.h>
 #include <wx/filename.h>
 #include <wx/file.h>
@@ -37,7 +38,7 @@
 #include "vtkImageData.h"
 #include "RenderView3D.h"
 
-BEGIN_EVENT_TABLE( DialogCropVolume, wxDialog )
+BEGIN_EVENT_TABLE( DialogCropVolume, wxFrame )
   EVT_BUTTON    ( XRCID( "ID_BUTTON_CLOSE" ),     DialogCropVolume::OnButtonClose )
   EVT_BUTTON    ( XRCID( "ID_BUTTON_RESET" ),     DialogCropVolume::OnButtonReset )  
   EVT_BUTTON    ( XRCID( "ID_BUTTON_APPLY" ),     DialogCropVolume::OnButtonApply )
@@ -55,12 +56,13 @@ BEGIN_EVENT_TABLE( DialogCropVolume, wxDialog )
   EVT_TEXT_ENTER      ( XRCID( "ID_SPIN_Z_MIN" ),       DialogCropVolume::OnSpinBoundText ) 
   EVT_TEXT_ENTER      ( XRCID( "ID_SPIN_Z_MAX" ),       DialogCropVolume::OnSpinBoundText )
   EVT_SHOW     ( DialogCropVolume::OnShow )
+  EVT_CLOSE    ( DialogCropVolume::OnClose )
 END_EVENT_TABLE()
 
 
 DialogCropVolume::DialogCropVolume( wxWindow* parent, LayerMRI* mri ) : Listener( "DialogCropVolume" )
 {
-  wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_CROP_VOLUME") );
+  wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_TOOLWINDOW_CROP_VOLUME") );
   m_spinRange[0]  = XRCCTRL( *this, "ID_SPIN_X_MIN", wxSpinCtrl );
   m_spinRange[1]  = XRCCTRL( *this, "ID_SPIN_X_MAX", wxSpinCtrl );
   m_spinRange[2]  = XRCCTRL( *this, "ID_SPIN_Y_MIN", wxSpinCtrl );
@@ -85,6 +87,11 @@ void DialogCropVolume::SetVolume( LayerMRI* mri )
   }
 }
 
+void DialogCropVolume::OnClose( wxCloseEvent& event )
+{
+  Hide();
+}
+
 void DialogCropVolume::OnShow( wxShowEvent& event )
 {
   static bool bShowFrames = true;
@@ -97,6 +104,17 @@ void DialogCropVolume::OnShow( wxShowEvent& event )
       bShowFrames = view->GetShowSliceFrames();
       view->SetShowSliceFrames( false );
     }
+    
+    wxConfigBase* config = wxConfigBase::Get();
+    if ( config )
+    {
+      int x = config->Read( _T("/ToolWindowCropVolume/PosX"), 0L );
+      int y = config->Read( _T("/ToolWindowCropVolume/PosY"), 0L );
+      if ( x == 0 && y == 0 )
+        Center();
+      else
+        Move( x, y );
+    }
   }
   else
   {
@@ -104,7 +122,17 @@ void DialogCropVolume::OnShow( wxShowEvent& event )
       view->SetShowSliceFrames( bShowFrames );
     if ( mainwnd->GetVolumeCropper() )
       mainwnd->GetVolumeCropper()->Show( false );
-    mainwnd->SetMode( 0 );
+    if ( mainwnd->IsShown() )
+      mainwnd->SetMode( 0 );
+    
+    wxConfigBase* config = wxConfigBase::Get();
+    if ( config )
+    {
+      int x, y;
+      GetPosition( &x, &y );
+      config->Write( _T("/ToolWindowCropVolume/PosX"), (long) x );
+      config->Write( _T("/ToolWindowCropVolume/PosY"), (long) y );
+    }
   }
   
   event.Skip();
@@ -112,7 +140,7 @@ void DialogCropVolume::OnShow( wxShowEvent& event )
 
 void DialogCropVolume::OnButtonClose( wxCommandEvent& event )
 {
-  Close();
+  Hide();
 }
 
 void DialogCropVolume::OnButtonReset( wxCommandEvent& event )
