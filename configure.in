@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/06/22 21:37:17 $
-#    $Revision: 1.479 $
+#    $Date: 2010/06/23 16:39:03 $
+#    $Revision: 1.480 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2590,10 +2590,17 @@ AC_SUBST(LIBS_NIFTI)
 
 # test for vtk versions of system libs, and if not found (ie, not
 # built when vtk was built), then use the system lib
-AC_CHECK_LIB([vtkexpat], [main],
-             [VTK_EXPAT_LIB="-lvtkexpat"],
-             [AC_CHECK_LIB([expat],[main],[VTK_EXPAT_LIB="-lexpat"],
-             [AC_MSG_ERROR([FATAL: libvtkexpat or libexpat not found.])])])
+
+# use local libexpat if --with-expat-dir not used:
+if test "$ac_expat_libraries" = "NO"; then
+  VTK_EXPAT_LIB=../expat/libexpat.a
+else
+# else use whatever we can find
+  AC_CHECK_LIB([vtkexpat], [main],
+               [VTK_EXPAT_LIB="-lvtkexpat"],
+               [AC_CHECK_LIB([expat],[main],[VTK_EXPAT_LIB="-lexpat"],
+               [AC_MSG_ERROR([FATAL: libvtkexpat or libexpat not found.])])])
+fi
 AC_SUBST(VTK_EXPAT_LIB)
 
 AC_CHECK_LIB([vtkfreetype], [FTC_Manager_LookupSize],
@@ -2609,14 +2616,26 @@ AC_CHECK_LIB([vtkzlib], [gzopen],
              [AC_MSG_ERROR([FATAL: libvtkzlib or libz not found.])])])
 AC_SUBST(VTK_Z_LIB)
 
-AC_CHECK_LIB([vtkjpeg], [vtk_jpeg_start_compress], 
-             [VTK_JPEG_LIB="-lvtkjpeg"],
-             [VTK_JPEG_LIB="-ljpeg"])
+# use local libjpeg if --with-jpeg-dir not used:
+if test "$ac_jpeg_libraries" = "NO"; then
+  VTK_JPEG_LIB=../jpeg/libjpeg.a
+else
+# else use whatever we can find
+  AC_CHECK_LIB([vtkjpeg], [vtk_jpeg_start_compress], 
+               [VTK_JPEG_LIB="-lvtkjpeg"],
+               [VTK_JPEG_LIB="-ljpeg"])
+fi
 AC_SUBST(VTK_JPEG_LIB)
 
-AC_CHECK_LIB([vtktiff $VTK_JPEG_LIB $VTK_Z_LIB], [vtk_TIFFGetVersion],
-             [VTK_TIFF_LIB="-lvtktiff"],
-             [VTK_TIFF_LIB="-ltiff"])
+# use local libtiff if --with-tiff-dir not used:
+if test "$ac_tiff_libraries" = "NO"; then
+  VTK_TIFF_LIB=../tiff/libtiff.a
+else
+# else use whatever we can find
+  AC_CHECK_LIB([vtktiff $VTK_JPEG_LIB $VTK_Z_LIB], [vtk_TIFFGetVersion],
+               [VTK_TIFF_LIB="-lvtktiff"],
+               [VTK_TIFF_LIB="-ltiff"])
+fi
 AC_SUBST(VTK_TIFF_LIB)
 
 AC_CHECK_LIB([vtkpng $VTK_Z_LIB], [main],
