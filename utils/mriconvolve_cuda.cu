@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/31 19:25:16 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/06/23 17:31:58 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -445,7 +445,7 @@ namespace GPU {
       
       // Send the source data
       MRIconvolve::tSend.Start();
-      srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
+      srcGPU.SendFrame( src, srcFrame, this->h_workspace, this->stream );
       MRIconvolve::tSend.Stop();
       
       // Run the convolution
@@ -455,7 +455,7 @@ namespace GPU {
       
       // Retrieve the answers
       MRIconvolve::tRecv.Start();
-      dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
+      dstGPU.RecvFrame( dst, dstFrame, this->h_workspace, this->stream );
       MRIconvolve::tRecv.Stop();
 
       CUDA_CHECK_ERROR_ASYNC( "1D Convolution failure" );
@@ -645,7 +645,7 @@ namespace GPU {
       this->AllocateWorkspace( workSize );
       
       MRIconvolve::tSend.Start();
-      frame1.Send( src, srcFrame, this->h_workspace, this->stream );
+      frame1.SendFrame( src, srcFrame, this->h_workspace, this->stream );
       MRIconvolve::tSend.Stop();
       
       MRIconvolve::tCompute3d.Start();
@@ -655,7 +655,7 @@ namespace GPU {
       MRIconvolve::tCompute3d.Stop();
       
       MRIconvolve::tRecv.Start();
-      frame2.Recv( dst, dstFrame, this->h_workspace, this->stream );
+      frame2.RecvFrame( dst, dstFrame, this->h_workspace, this->stream );
       MRIconvolve::tRecv.Stop();
       
       CUDA_CHECK_ERROR_ASYNC( "3D convolution  with single kernel failure" );

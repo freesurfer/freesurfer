@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/18 18:01:41 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/06/23 17:31:56 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -213,7 +213,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.42 2010/06/18 18:01:41 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.43 2010/06/23 17:31:56 rge21 Exp $";
       }
       
       //! Return the 'thick' field
@@ -276,11 +276,27 @@ namespace GPU {
       // --------------------------------------------------------
       // Data transfer
       
-      //! Send the given MRI frame to the GPU
+      //! Sends the given MRI frame and the scalar data
       void Send( const MRI* src,
 		 const unsigned int iFrame,
 		 void* const h_work = NULL,
 		 const cudaStream_t stream = 0 ) {
+	
+	// Copy the scalars over
+	this->thick = src->thick;
+	
+	this->sizes = make_float3( src->xsize,
+				   src->ysize,
+				   src->zsize );
+	
+	this->SendFrame( src, iFrame, h_work, stream );
+      }
+
+      //! Send the given MRI frame to the GPU
+      void SendFrame( const MRI* src,
+		      const unsigned int iFrame,
+		      void* const h_work = NULL,
+		      const cudaStream_t stream = 0 ) {
 	/*!
 	  Sends the given MRI frame to the GPU.
 	  Optional arguments can be used to supply page-locked
@@ -308,14 +324,6 @@ namespace GPU {
 	  exit( EXIT_FAILURE );
 	}
 
-	// Copy the scalars over
-	this->thick = src->thick;
-
-	this->sizes = make_float3( src->xsize,
-				   src->ysize,
-				   src->zsize );
-
-	
 	// See if we need to allocate workspace
 	const size_t bSize = this->BufferSize();
 	// See if we were supplied with workspace
@@ -344,12 +352,26 @@ namespace GPU {
       
       // -----
       
-      
-      //! Receives the given MRI frame from the GPU
+      //! Receives the given MRI frame and the scalar data
       void Recv( MRI* dst,
 		 const unsigned int iFrame,
 		 void* const h_work = NULL,
 		 const cudaStream_t stream = 0 ) const {
+
+	// Retrieve the scalars
+	dst->thick = this->thick;
+	dst->xsize = this->sizes.x;
+	dst->ysize = this->sizes.y;
+	dst->zsize = this->sizes.z;
+
+	this->RecvFrame( dst, iFrame, h_work, stream );
+      }
+
+      //! Receives the given MRI frame from the GPU
+      void RecvFrame( MRI* dst,
+		      const unsigned int iFrame,
+		      void* const h_work = NULL,
+		      const cudaStream_t stream = 0 ) const {
 	/*!
 	  Retrieves the given MRI frame from the GPU.
 	  Optional arguments can be used to supply page-locked
@@ -371,11 +393,6 @@ namespace GPU {
 	  exit( EXIT_FAILURE );
 	}
 
-	// Retrieve the scalars
-	dst->thick = this->thick;
-	dst->xsize = this->sizes.x;
-	dst->ysize = this->sizes.y;
-	dst->zsize = this->sizes.z;
 	
 	
 	// See about buffers

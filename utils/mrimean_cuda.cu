@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/01 14:09:15 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/06/23 17:31:58 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -510,7 +510,7 @@ namespace GPU {
       
       // Send the source data
       MRImean::tSend.Start();
-      srcGPU.Send( src, srcFrame, this->h_workspace, this->stream );
+      srcGPU.SendFrame( src, srcFrame, this->h_workspace, this->stream );
       MRImean::tSend.Stop();
       
       // Run the filter
@@ -518,7 +518,7 @@ namespace GPU {
       
       // Get the results
       MRImean::tRecv.Start();
-      dstGPU.Recv( dst, dstFrame, this->h_workspace, this->stream );
+      dstGPU.RecvFrame( dst, dstFrame, this->h_workspace, this->stream );
       MRImean::tRecv.Stop();
       
       CUDA_CHECK_ERROR( "Mean filtering failure" );
