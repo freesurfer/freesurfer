@@ -150,7 +150,10 @@ int main( int argc, char *argv[] ) {
 
   tTotal.Start();
   for( unsigned int i=0; i<repeats; i++ ) {
-    MRIconvolve1d( input, output, &convKernel[0], convKernel.size(), direction, 0, 0 );
+    MRIconvolve1d( input, output,
+		   &convKernel[0], convKernel.size(),
+		   direction,
+		   0, 0 );
   }
   tTotal.Stop();
 
