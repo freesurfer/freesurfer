@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.72 $
+ *    $Date: 2010/06/24 18:15:18 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -610,15 +610,15 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
       m_sliceActor2D[0]->PokeMatrix( matrix );
       m_sliceActor2D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
       m_sliceActor2D[0]->RotateX( 90 );
-      m_sliceActor2D[0]->RotateY( -90 );
+      m_sliceActor2D[0]->RotateY( 90 );
       m_sliceActor3D[0]->PokeMatrix( matrix );
       m_sliceActor3D[0]->SetPosition( m_dSlicePosition[0], 0, 0 );
       m_sliceActor3D[0]->RotateX( 90 );
-      m_sliceActor3D[0]->RotateY( -90 );
+      m_sliceActor3D[0]->RotateY( 90 );
   
       // Putting negatives in the reslice axes cosines will flip the
       // image on that axis.
-      mReslice[0]->SetResliceAxesDirectionCosines( 0, -1, 0,
+      mReslice[0]->SetResliceAxesDirectionCosines( 0, 1, 0,
           0, 0, 1,
           1, 0, 0 );
       mReslice[0]->SetResliceAxesOrigin( m_dSlicePosition[0], 0, 0  );
@@ -628,11 +628,9 @@ void LayerMRI::OnSlicePositionChanged( int nPlane )
       m_sliceActor2D[1]->PokeMatrix( matrix );
       m_sliceActor2D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
       m_sliceActor2D[1]->RotateX( 90 );
-      // m_sliceActor2D[1]->RotateY( 180 );
       m_sliceActor3D[1]->PokeMatrix( matrix );
       m_sliceActor3D[1]->SetPosition( 0, m_dSlicePosition[1], 0 );
       m_sliceActor3D[1]->RotateX( 90 );
-      // m_sliceActor3D[1]->RotateY( 180 );
   
       // Putting negatives in the reslice axes cosines will flip the
       // image on that axis.
@@ -1577,8 +1575,8 @@ void LayerMRI::UpdateLabelOutline()
       mEdgeFilter[i]->SetInputConnection( mResample[i]->GetOutputPort() );
       mColorMap[i]->SetInputConnection( mEdgeFilter[i]->GetOutputPort() );
       pos[i] = m_dSlicePosition[i];
-      m_sliceActor2D[i]->SetPosition( pos[0], (i==0?-pos[1]:pos[1]), pos[2] );
-      m_sliceActor3D[i]->SetPosition( pos[0], (i==0?-pos[1]:pos[1]), pos[2] );
+      m_sliceActor2D[i]->SetPosition( pos );
+      m_sliceActor3D[i]->SetPosition( pos );
     }
   }
   else
@@ -1592,6 +1590,7 @@ void LayerMRI::UpdateLabelOutline()
       m_sliceActor3D[i]->SetPosition( pos );
     }
   }
+  this->SendBroadcast( "LabelOutlineChanged", this );
 }
 
 void LayerMRI::UpdateUpSampleMethod()
@@ -1695,7 +1694,7 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
   switch ( nPlane )
   {
     case 0:
-      x = nx-n[1]-1;
+      x = n[1];
       y = n[2];
       break;
     case 1:
@@ -1736,7 +1735,7 @@ bool LayerMRI::FloodFillByContour2D( double* ras, Contour2D* c2d )
         {
           if ( mask[j*nx+i] == nFillValue )
           {
-            m_imageData->SetScalarComponentFromFloat( n[nPlane], nx-i-1, j, nActiveComp, m_fFillValue );
+            m_imageData->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, m_fFillValue );
             cnt++;
           }
         }

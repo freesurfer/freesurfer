@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 20:48:31 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/06/24 18:15:18 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,7 @@
 
 #include "VolumeCropper.h"
 #include "LayerMRI.h"
+#include "LayerPropertiesMRI.h"
 #include "RenderView2D.h"
 #include <vtkBox.h>
 #include <vtkCubeSource.h>
@@ -160,6 +161,7 @@ void VolumeCropper::SetVolume( LayerMRI* mri)
   if ( m_mri != mri )
   {
     m_mri = mri;
+    m_mri->AddListener( this );
     Reset();
   }
 }
@@ -206,9 +208,11 @@ void VolumeCropper::UpdateProps()
   
   m_boxSource->SetBounds( m_bounds );
   
-  int* ext = m_extent;
-  int* dim = m_mri->GetImageData()->GetDimensions();
-  m_mri->m_sliceActor2D[0]->SetDisplayExtent( dim[1]-ext[3]-1, dim[1]-ext[2]-1, ext[4], ext[5], 0, 0 );
+  int nScale = m_mri->GetProperties()->GetShowLabelOutline() ? 4 : 1;
+  int ext[6];
+  for ( int i = 0; i < 6; i++ )
+    ext[i] = nScale * m_extent[i];
+  m_mri->m_sliceActor2D[0]->SetDisplayExtent( ext[2], ext[3], ext[4], ext[5], 0, 0 );
   m_mri->m_sliceActor2D[1]->SetDisplayExtent( ext[0], ext[1], ext[4], ext[5], 0, 0 );
   m_mri->m_sliceActor2D[2]->SetDisplayExtent( ext[0], ext[1], ext[2], ext[3], 0, 0 );
   for ( int i = 0; i < 3; i++ )
@@ -442,6 +446,13 @@ void VolumeCropper::DoListenToMessage( std::string const iMsg, void* iData, void
   if ( iMsg == "SlicePositionChanged" )
   {
     UpdateSliceActorVisibility();
+  }
+  else if ( iMsg == "LabelOutlineChanged" )
+  {
+    if ( iData == m_mri )
+    {
+      UpdateProps();
+    }
   }
 }
 
