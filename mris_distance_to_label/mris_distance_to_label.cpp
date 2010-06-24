@@ -1,17 +1,18 @@
 /**
  * @file  mris_distance_to_label.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief computes distance maps for subcortical structures
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * compute distance maps for amygdala, hippocampus, pallidum, putamen,
+ * caudate, lateral ventricle, and layer IV gray
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/26 16:09:55 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2010/06/24 20:32:45 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -21,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -47,27 +47,28 @@ extern "C" {
 #include "fastmarching.h"
 
 static const char vcid[] = 
-  "$Id: mris_distance_to_label.cpp,v 1.6 2008/08/26 16:09:55 fischl Exp $";
+  "$Id: mris_distance_to_label.cpp,v 1.7 2010/06/24 20:32:45 nicks Exp $";
 
 static char *aseg_fname=NULL;
 
-static const char *FRAME_FIELD_NAMES[]=  /* order correspond to maccros defined in mrisurf.h */
-  {
-    NULL,
-    "sulc",
-    NULL, /* curvature directly computed */
-    GRAYMID_NAME,
-    T1MID_NAME,
-    T2MID_NAME,
-    PDMID_NAME,
-    AMYGDALA_DIST_NAME,
-    HIPPOCAMPUS_DIST_NAME,
-    PALLIDUM_DIST_NAME,
-    PUTAMEN_DIST_NAME,
-    CAUDATE_DIST_NAME,
-    LAT_VENTRICLE_DIST_NAME,
-    INF_LAT_VENTRICLE_DIST_NAME,
-  };
+static const char *FRAME_FIELD_NAMES[]=  /* order correspond to 
+                                            macros defined in mrisurf.h */
+{
+  NULL,
+  "sulc",
+  NULL, /* curvature directly computed */
+  GRAYMID_NAME,
+  T1MID_NAME,
+  T2MID_NAME,
+  PDMID_NAME,
+  AMYGDALA_DIST_NAME,
+  HIPPOCAMPUS_DIST_NAME,
+  PALLIDUM_DIST_NAME,
+  PUTAMEN_DIST_NAME,
+  CAUDATE_DIST_NAME,
+  LAT_VENTRICLE_DIST_NAME,
+  INF_LAT_VENTRICLE_DIST_NAME,
+};
 
 int main(int argc, char *argv[]) ;
 
@@ -122,7 +123,8 @@ static void mrisProcessDistanceValues(MRIS *mris) {
   for (n=0;n<mris->nvertices;n++) {
     v = &mris->vertices[n] ;
 
-    v->curv=MIN(MAXIMUM_DISTANCE,MAX(0,(MAXIMUM_DISTANCE-v->curv)))/MAXIMUM_DISTANCE;
+    v->curv=MIN(MAXIMUM_DISTANCE,
+                MAX(0,(MAXIMUM_DISTANCE-v->curv)))/MAXIMUM_DISTANCE;
   }
 }
 
@@ -189,16 +191,19 @@ static int findSurfaceReference(int label) {
 }
 
 int main(int argc, char *argv[]) {
-  char         **av,*subject_fname,*subjects_fname[STRLEN],fname[STRLEN],*cp,*hemi;
-  int          ac, nargs,n , m,surface_reference,nsubjects;
+  char **av,*subject_fname,*subjects_fname[STRLEN],fname[STRLEN],*cp,*hemi;
+  int ac, nargs,n , m,surface_reference,nsubjects;
   MRI_SURFACE  *mris;
   MRI *mri,*mri_distance, *mri_orig;
 
-  int          msec, minutes, seconds ;
+  int msec, minutes, seconds ;
   struct timeb start;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_distance_to_label.cpp,v 1.6 2008/08/26 16:09:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mris_distance_to_label.cpp,v 1.7 2010/06/24 20:32:45 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -279,7 +284,7 @@ int main(int argc, char *argv[]) {
     if (aseg_fname)
       sprintf(fname,"%s/%s/mri/%s", subjects_dir,subject_fname,aseg_fname);
     else
-      sprintf(fname,"%s/%s/mri/aseg", subjects_dir,subject_fname);
+      sprintf(fname,"%s/%s/mri/aseg.mgz", subjects_dir,subject_fname);
 
     fprintf(stderr, "reading mri segmentation from %s...\n", fname) ;
     mri=MRIread(fname);
@@ -293,34 +298,45 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "generating distance map for label %d\n", labels[n]) ;
         MRIextractDistanceMap(mri,mri_distance,labels[n],fdistance,mode,NULL);
 
-        fprintf(stderr, "extracting distance values for label %d\n", labels[n]) ;
+        fprintf(stderr,
+                "extracting distance values for label %d\n", labels[n]) ;
         mrisExtractMRIvalues(mris,mri,mri_distance,fdistance,mode);
 
         mrisProcessDistanceValues(mris);
 
         surface_reference=findSurfaceReference(labels[n]);
         if (surface_reference>=3 and surface_reference<=14)
-          sprintf(fname,"%s/%s/surf/%s.%s", subjects_dir,subject_fname,hemi,FRAME_FIELD_NAMES[surface_reference]);
+          sprintf(fname,"%s/%s/surf/%s.%s",
+                  subjects_dir,subject_fname,hemi,
+                  FRAME_FIELD_NAMES[surface_reference]);
         else
-          sprintf(fname,"%s/%s/surf/%s.dist_%d", subjects_dir,subject_fname,hemi,labels[n]);
+          sprintf(fname,"%s/%s/surf/%s.dist_%d",
+                  subjects_dir,subject_fname,hemi,labels[n]);
 
-        fprintf(stderr, "writting out surface distance file for label %d in %s...\n", labels[n],fname) ;
+        fprintf(stderr,
+                "writing out surface distance file for label %d in %s...\n",
+                labels[n],fname) ;
         MRISaverageCurvatures(mris,navgs);
         MRISwriteCurvature(mris,fname);
       } else { /* extract layer IV */
-        sprintf(fname,"%s/%s/surf/%s.thickness", subjects_dir,subject_fname,hemi);
+        sprintf(fname,"%s/%s/surf/%s.thickness",
+                subjects_dir,subject_fname,hemi);
         fprintf(stderr, "reading curvature from %s...\n", fname) ;
         MRISreadCurvature(mris,fname);
 
-        sprintf(fname,"%s/%s/mri/T1", subjects_dir,subject_fname);
+        sprintf(fname,"%s/%s/mri/T1.mgz", subjects_dir,subject_fname);
         fprintf(stderr, "reading orig mri segmentation from %s...\n", fname) ;
         mri_orig=MRIread(fname);
         mrisExtractMidGrayValues(mris,mri_orig);
         MRIfree(&mri_orig);
 
         surface_reference=3;
-        sprintf(fname,"%s/%s/surf/%s.%s", subjects_dir,subject_fname,hemi,FRAME_FIELD_NAMES[surface_reference]);
-        fprintf(stderr, "writting out surface distance file for label %d in %s...\n", labels[n],fname) ;
+        sprintf(fname,"%s/%s/surf/%s.%s",
+                subjects_dir,subject_fname,hemi,
+                FRAME_FIELD_NAMES[surface_reference]);
+        fprintf(stderr,
+                "writing out surface distance file for label %d in %s...\n",
+                labels[n],fname) ;
         MRISaverageCurvatures(mris,navgs);
         MRISwriteCurvature(mris,fname);
       }
@@ -335,10 +351,12 @@ int main(int argc, char *argv[]) {
   seconds = (int)((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  printf("mris_distance_to_label took %d minutes and %d seconds.\n", minutes, seconds) ;
+  printf("mris_distance_to_label took %d minutes and %d seconds.\n",
+         minutes, seconds) ;
   exit(0) ;
   return(0) ;  /* for ansi */
 }
+
 
 /*----------------------------------------------------------------------
   Parameters:
@@ -361,11 +379,13 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
   } else if (!stricmp(option,(char*) "mode")) {
     mode=atoi(argv[2]);
-    fprintf(stderr,"mode %d : (1 == outside ; 2 == inside ; 3 == both) \n",mode);
+    fprintf(stderr,"mode %d : (1 == outside ; 2 == inside ; 3 == both) \n",
+            mode);
     nargs = 1 ;
   } else if (!stricmp(option, (char*)"distance")) {
     fdistance=atof(argv[2]);
-    fprintf(stderr,"computing distance map for distances smaller than %f\n",fdistance);
+    fprintf(stderr,"computing distance map for distances smaller than %f\n",
+            fdistance);
     nargs = 1 ;
     printf("using %s as subjects directory\n", subjects_dir) ;
   } else if (!stricmp(option,(char*) "-help"))
@@ -377,21 +397,21 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr,"smoothing curv for %d iterations\n",navgs);
     nargs=1;
   } else switch (toupper(*option)) {
-    case 'L':
-      labels[nlabels++]=atoi(argv[2]);
-      fprintf(stderr,"computing distance map for label %d\n",labels[nlabels-1]);
-      nargs=1;
-      break;
-    case '?':
-    case 'U':
-      print_usage() ;
-      exit(1) ;
-      break ;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
+  case 'L':
+    labels[nlabels++]=atoi(argv[2]);
+    fprintf(stderr,"computing distance map for label %d\n",labels[nlabels-1]);
+    nargs=1;
+    break;
+  case '?':
+  case 'U':
+    print_usage() ;
+    exit(1) ;
+    break ;
+  default:
+    fprintf(stderr, "unknown option %s\n", argv[1]) ;
+    exit(1) ;
+    break ;
+  }
 
   return(nargs) ;
 }
