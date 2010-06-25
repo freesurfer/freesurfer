@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/06/18 16:36:42 $
- *    $Revision: 1.460 $
+ *    $Author: mreuter $
+ *    $Date: 2010/06/25 20:52:29 $
+ *    $Revision: 1.461 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.460 $";
+const char *MRI_C_VERSION = "$Revision: 1.461 $";
 
 
 /*-----------------------------------------------------
@@ -15931,6 +15931,7 @@ int MRInormalizeFramesMean(MRI *mri)
           mean += val;
         }
         mean /= mri->nframes ;
+				if (fabs(mean) < 0.000001) mean = 1;
         for (f = 0 ; f < mri->nframes ; f++)
         {
           val = MRIgetVoxVal(mri, c, r, s, f);
