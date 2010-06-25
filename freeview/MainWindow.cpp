@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 22:30:20 $
- *    $Revision: 1.124 $
+ *    $Date: 2010/06/25 21:18:52 $
+ *    $Revision: 1.125 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -42,6 +42,7 @@
 #include <wx/filename.h>
 #include <wx/spinctrl.h>
 #include <wx/ffile.h>
+#include <wx/dir.h>
 #include "MainWindow.h"
 #include "ControlPanel.h"
 #include "PixelInfoPanel.h"
@@ -5093,17 +5094,37 @@ void MainWindow::OnTimerWriteMovieFrames( wxTimerEvent& event )
              m_settingsMovieFrames.OutputLocation.c_str(),
              m_settingsMovieFrames.StepCount,
              m_settingsMovieFrames.OutputExtension.c_str() );
-  m_view3D->SaveScreenshot( fn, 
-                            m_settingsScreenshot.Magnification,
-                            m_settingsScreenshot.AntiAliasing );
-  m_view3D->Azimuth( angle_step );
-  NeedRedraw( true );
-  m_settingsMovieFrames.StepCount ++;
-  double angle = m_settingsMovieFrames.StepCount * fabs(angle_step);
-  m_statusBar->m_gaugeBar->SetValue( (int)(100*angle/360) );
-  if ( angle > 360 )
+  if ( m_nMainView == 3 ) // 3D view
   {
-    StopWriteMovieFrames();
+    m_view3D->SaveScreenshot( fn, 
+                              m_settingsScreenshot.Magnification,
+                              m_settingsScreenshot.AntiAliasing );
+    m_view3D->Azimuth( angle_step );
+    ForceRedraw( );
+    m_settingsMovieFrames.StepCount ++;
+    double angle = m_settingsMovieFrames.StepCount * fabs(angle_step);
+    m_statusBar->m_gaugeBar->SetValue( (int)(100*angle/360) );
+    if ( angle > 360 )
+      StopWriteMovieFrames();
+  }
+  else
+  {
+    m_viewRender[m_nMainView]->SaveScreenshot( fn, 
+                                               m_settingsScreenshot.Magnification,
+                                               m_settingsScreenshot.AntiAliasing );
+    m_settingsMovieFrames.StepCount ++;
+    if ( ((RenderView2D*)m_viewRender[m_nMainView])->SetSliceNumber( m_settingsMovieFrames.StepCount ) )
+    {
+      ForceRedraw();
+      LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+      if ( mri )
+      {
+        double nMaxSlice = (mri->GetWorldSize())[m_nMainView] / (mri->GetWorldVoxelSize())[m_nMainView];
+        m_statusBar->m_gaugeBar->SetValue( (int)(100*m_settingsMovieFrames.StepCount / nMaxSlice) );
+      }
+    }
+    else
+      StopWriteMovieFrames();
   }
 }
 
@@ -5111,6 +5132,11 @@ void MainWindow::StartWriteMovieFrames()
 {
   m_statusBar->m_gaugeBar->Show();
   m_settingsMovieFrames.StepCount = 0;
+  if ( m_nMainView != 3 )
+  {
+    ((RenderView2D*)m_viewRender[m_nMainView])->SetSliceNumber( 0 );
+    ForceRedraw();
+  }
   if ( !m_dlgWriteMovieFrames->GetOutputLocation().IsEmpty() )
   {
     m_settingsMovieFrames.OutputLocation = m_dlgWriteMovieFrames->GetOutputLocation(); 
@@ -5121,9 +5147,12 @@ void MainWindow::StartWriteMovieFrames()
   {
     m_settingsMovieFrames.AngleStep = m_dlgWriteMovieFrames->GetAngleStep();
   }
-  wxString cmd = "mkdir ";
-  cmd += m_settingsMovieFrames.OutputLocation;
-  system( cmd.c_str() );
+  if ( !wxDir::Exists( m_settingsMovieFrames.OutputLocation ) )
+  {
+    wxString cmd = "mkdir ";
+    cmd += m_settingsMovieFrames.OutputLocation;
+    system( cmd.c_str() );
+  }
   m_settingsMovieFrames.OutputExtension = m_dlgWriteMovieFrames->GetOutputExtension();
   m_statusBar->m_gaugeBar->SetValue( 0 );
   m_timerWriteMovieFrames.Start( 1000 ); 
@@ -5134,6 +5163,7 @@ void MainWindow::StopWriteMovieFrames()
   m_timerWriteMovieFrames.Stop();
   m_settingsMovieFrames.StepCount = 0;
   m_statusBar->m_gaugeBar->Hide();
+  m_dlgWriteMovieFrames->UpdateUI();
 }
 
 void MainWindow::OnFilterMean( wxCommandEvent& event )

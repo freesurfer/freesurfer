@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 19:58:23 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/06/25 21:18:52 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -114,11 +114,11 @@ void SurfaceRegion::AddPoint( double* pt )
 
 bool SurfaceRegion::Close()
 {
-  RebuildOutline( true );
+  m_actorOutline->VisibilityOff();
   if ( m_points->GetNumberOfPoints() > 3 )
   {
     double bounds[6], cpt[3], len = 0;
-    vtkPolyDataMapper::SafeDownCast( m_actorOutline->GetMapper() )->GetInput()->GetBounds( bounds );
+    m_points->GetBounds( bounds );
     for ( int i = 0; i < 3; i++ )
     {
       cpt[i] = (bounds[i*2+1] + bounds[i*2]) / 2.0;
@@ -146,7 +146,7 @@ bool SurfaceRegion::Close()
 void SurfaceRegion::Update()
 {}
 
-void SurfaceRegion::AppendActor( vtkRenderer* renderer )
+void SurfaceRegion::AppendProps( vtkRenderer* renderer )
 {
   renderer->AddViewProp( m_actorMesh );
   renderer->AddViewProp( m_actorOutline );

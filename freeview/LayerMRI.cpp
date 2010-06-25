@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/24 18:15:18 $
- *    $Revision: 1.73 $
+ *    $Date: 2010/06/25 21:18:52 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -561,24 +561,9 @@ void LayerMRI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
 	 // renderer->AddViewProp( m_segActors[i].actor );
     renderer->AddViewProp( m_actorContour );
     for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
-      m_surfaceRegions[i]->AppendActor( renderer );
+      m_surfaceRegions[i]->AppendProps( renderer );
 	}
 }
-
-/*
-void LayerMRI::SetSliceNumber( int* sliceNumber )
-{
- if ( sliceNumber[0] != m_nSliceNumber[0] || sliceNumber[1] != m_nSliceNumber[1] ||
-   sliceNumber[2] != m_nSliceNumber[2] )
- {
-  m_nSliceNumber[0] = sliceNumber[0];
-  m_nSliceNumber[1] = sliceNumber[1];
-  m_nSliceNumber[2] = sliceNumber[2];
-
-
- }
-}
-*/
 
 void LayerMRI::SetSlicePositionToWorldCenter()
 {

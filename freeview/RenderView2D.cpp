@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 19:33:57 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/06/25 21:18:52 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -524,6 +524,31 @@ void RenderView2D::MoveSlice( int nStep )
   int nPlane = GetViewPlane();
   lcm->OffsetSlicePosition( nPlane, voxelSize[nPlane]*nStep );
   lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
+}
+
+bool RenderView2D::SetSliceNumber( int nNum )
+{
+  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
+  LayerCollection* lc_mri = lcm->GetLayerCollection( "MRI" );
+  
+  LayerMRI* mri = (LayerMRI*)lc_mri->GetActiveLayer();
+  if ( !mri )
+    return false;
+  
+  vtkImageData* imagedata = mri->GetImageData();
+  int nPlane = GetViewPlane();
+  int* dim = imagedata->GetDimensions();
+  double* voxelsize = imagedata->GetSpacing();
+  double* orig = imagedata->GetOrigin();
+  if ( nNum < 0 || nNum >= dim[nPlane] )
+    return false;
+  
+  double pos[3];
+  lc_mri->GetSlicePosition( pos );
+  pos[nPlane] = orig[nPlane] + nNum * voxelsize[nPlane];
+  lcm->SetSlicePosition( pos );
+  lc_mri->SetCursorRASPosition( pos );
+  return true;
 }
 
 void RenderView2D::StartSelection( int nX, int nY )

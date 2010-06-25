@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 19:33:58 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/06/25 21:18:52 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -91,6 +91,8 @@ public:
   void PanToWorld( double* pos );
   void SyncZoomTo( RenderView2D* view );
 
+  bool SetSliceNumber( int nSliceNumber );
+  
   void PreScreenshot();
   void PostScreenshot();
 
