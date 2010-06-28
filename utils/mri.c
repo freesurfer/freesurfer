@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/06/25 20:52:29 $
- *    $Revision: 1.461 $
+ *    $Author: fischl $
+ *    $Date: 2010/06/28 15:09:51 $
+ *    $Revision: 1.462 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.461 $";
+const char *MRI_C_VERSION = "$Revision: 1.462 $";
 
 
 /*-----------------------------------------------------
@@ -3616,6 +3616,9 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
   bytes = dx ;
   switch (mri_src->type)
   {
+  default:
+    ErrorExit(ERROR_UNSUPPORTED, "MRIextractInto: unsupported source type %d", mri_src->type) ;
+    break ;
   case MRI_FLOAT:
     bytes *= sizeof(float) ;
     break ;
@@ -3628,8 +3631,7 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
   case MRI_SHORT:
     bytes *= sizeof(short) ;
     break ;
-  default:
-    break ;
+  case MRI_UCHAR: break ;
   }
 
   for (frame = 0 ; frame < mri_src->nframes ; frame++)
@@ -3640,6 +3642,9 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
       {
         switch (mri_src->type)
         {
+        default:
+          ErrorExit(ERROR_UNSUPPORTED, "MRIextractInto: unsupported source type %d", mri_src->type) ;
+          break ;
         case MRI_UCHAR:
           memmove(&MRIseq_vox(mri_dst, x1, yd, zd,frame),
                  &MRIseq_vox(mri_src,x0,ys,zs,frame), bytes);
@@ -3655,6 +3660,10 @@ MRIextractInto(MRI *mri_src, MRI *mri_dst, int x0, int y0, int z0,
         case MRI_LONG:
           memmove(&MRILseq_vox(mri_dst, x1, yd, zd,frame),
                  &MRILseq_vox(mri_src,x0,ys,zs,frame), bytes);
+          break ;
+        case MRI_INT:
+          memmove(&MRIIseq_vox(mri_dst, x1, yd, zd,frame),
+                 &MRIIseq_vox(mri_src,x0,ys,zs,frame), bytes);
           break ;
         }
       }
