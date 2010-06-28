@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/28 04:55:42 $
- *    $Revision: 1.126 $
+ *    $Date: 2010/06/28 16:45:13 $
+ *    $Revision: 1.127 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -5292,8 +5292,7 @@ void MainWindow::OnToolCropVolume( wxCommandEvent& event )
 
 void MainWindow::OnToolCropVolumeUpdateUI( wxUpdateUIEvent& event )
 {
-//  Layer* layer = GetLayerCollection( "MRI" )->GetActiveLayer();
-//  event.Enable( layer && layer->IsVisible() );
-  event.Enable( false );
+  Layer* layer = GetLayerCollection( "MRI" )->GetActiveLayer();
+  event.Enable( layer && layer->IsVisible() );
 }
 

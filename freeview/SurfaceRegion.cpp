@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/25 21:18:52 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/06/28 16:45:14 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -46,6 +46,7 @@
 #include "MyUtils.h"
 #include "LayerMRI.h"
 #include "LayerPropertiesMRI.h"
+#include "vtkCleanPolyData.h"
 #include <wx/ffile.h>
 
 SurfaceRegion::SurfaceRegion( LayerMRI* owner ) : 
@@ -64,14 +65,18 @@ SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_selector = vtkSmartPointer<vtkSelectPolyData>::New();
   m_selector->SetSelectionModeToSmallestRegion();
+  m_selector->GenerateSelectionScalarsOn();
   
+  // use a clipper to pre-clip the big surface for faster selecting
   m_clipbox = vtkSmartPointer<vtkBox>::New();
-  m_clipper = vtkSmartPointer<vtkClipPolyData>::New();
-  m_clipper->SetClipFunction( m_clipbox );
+  m_clipperPre = vtkSmartPointer<vtkClipPolyData>::New();
+  m_clipperPre->SetClipFunction( m_clipbox );
 //  m_clipper->GenerateClippedOutputOn();
-  m_clipper->InsideOutOn();
-  m_selector->SetInputConnection( m_clipper->GetOutputPort() );
-  
+  m_clipperPre->InsideOutOn();
+  m_selector->SetInputConnection( m_clipperPre->GetOutputPort() );
+  m_clipperPost = vtkSmartPointer<vtkClipPolyData>::New();
+  m_clipperPost->SetInputConnection( m_selector->GetOutputPort() );
+  m_clipperPost->InsideOutOn();
   m_mri = owner;
 }
 
@@ -102,7 +107,7 @@ void SurfaceRegion::RebuildOutline( bool bClose )
 
 void SurfaceRegion::SetInput( vtkPolyData* polydata )
 {
-  m_clipper->SetInput( polydata );
+  m_clipperPre->SetInput( polydata );
   m_clipbox->SetBounds( polydata->GetBounds() );
 }
 
@@ -132,7 +137,7 @@ bool SurfaceRegion::Close()
     m_clipbox->SetBounds( bounds );
     m_selector->SetLoop( m_points );
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputConnection( m_selector->GetOutputPort() );
+    mapper->SetInputConnection( m_clipperPost->GetOutputPort() );
     mapper->ScalarVisibilityOff();
     m_actorMesh->SetMapper( mapper );
     m_selector->Update();
@@ -288,8 +293,10 @@ bool SurfaceRegion::Load( FILE* fp )
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetPolys( polys );
+  vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
+  cleaner->SetInput( polydata );
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-  mapper->SetInput( polydata );
+  mapper->SetInputConnection( cleaner->GetOutputPort() );
   mapper->ScalarVisibilityOff();
   m_actorMesh->SetMapper( mapper );
   

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/25 21:18:52 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/06/28 16:45:14 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -97,7 +97,8 @@ private:
   vtkSmartPointer<vtkPoints>  m_points;
   
   vtkSmartPointer<vtkBox>     m_clipbox;
-  vtkSmartPointer<vtkClipPolyData>    m_clipper;
+  vtkSmartPointer<vtkClipPolyData>    m_clipperPre;
+  vtkSmartPointer<vtkClipPolyData>    m_clipperPost;
   vtkSmartPointer<vtkSelectPolyData>  m_selector;
   
   LayerMRI*     m_mri;
