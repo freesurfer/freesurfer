@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/05/28 20:18:37 $
- *    $Revision: 1.48 $
+ *    $Author: greve $
+ *    $Date: 2010/06/28 17:14:04 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <float.h>
 #include "macros.h"
 #include "mrisurf.h"
 #include "mrisutils.h"
@@ -61,7 +62,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.48 2010/05/28 20:18:37 mreuter Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.49 2010/06/28 17:14:04 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -118,6 +119,9 @@ int DoSCM = 0; // spat cor matrix
 int DoCheck = 1;
 int DoTAR1 = 0, TAR1DOFAdjust = 1;
 int NReplications = 0;
+
+int DoPrune = 0;
+MRI *PruneMask = NULL;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -276,14 +280,21 @@ int main(int argc, char **argv) {
     }
     MRIfree(&mritmp);
   }
-	
-	if(DoNormMean){
-    printf("Normalizing by mean across frames\n");
-	  MRInormalizeFramesMean(mriout);
+
+  if(DoPrune){
+    // This computes the prune mask, applied below
+    printf("Computing prune mask \n");
+    PruneMask = MRIframeBinarize(mriout,FLT_MIN,NULL);
+    printf("Found %d voxels in prune mask\n",MRInMask(PruneMask));
   }
-	if(DoNorm1){
+	
+  if(DoNormMean){
+    printf("Normalizing by mean across frames\n");
+    MRInormalizeFramesMean(mriout);
+  }
+  if(DoNorm1){
     printf("Normalizing by first across frames\n");
-	  MRInormalizeFramesFirst(mriout);
+    MRInormalizeFramesFirst(mriout);
   }
 	
   if(DoASL){
@@ -494,6 +505,12 @@ int main(int argc, char **argv) {
     mriout = mritmp;
   }
 
+  if(DoPrune){
+    // Apply prune mask that was computed above
+    printf("Applying prune mask \n");
+    MRImask(mriout, PruneMask, mriout, 0, 0);
+  }
+
   printf("Writing to %s\n",out);
   err = MRIwrite(mriout,out);
   if(err) exit(err);
@@ -545,6 +562,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--sort"))   DoSort = 1;
     else if (!strcasecmp(option, "--norm-mean"))   DoNormMean = 1;
     else if (!strcasecmp(option, "--norm1"))   DoNorm1 = 1;
+    else if (!strcasecmp(option, "--prune"))   DoPrune = 1;
     else if (!strcasecmp(option, "--max-bonfcor")){
       DoMax = 1;
       DoBonfCor = 1;
@@ -709,6 +727,7 @@ static void print_usage(void) {
   printf("   --vote : most frequent value at each voxel and fraction of occurances\n");
   printf("   --sort : sort each voxel by ascending frame value\n");
   printf("   --tar1 dofadjust : compute temporal ar1\n");
+  printf("   --prune : set vox to 0 unless all frames are non-zero\n");
   printf("   --pca  : output is pca. U is output.u.mtx and S is output.stats.dat\n");
   printf("   --pca-mask mask  : Only use voxels whose mask > 0.5\n");
   printf("   --scm  : compute spatial covariance matrix (can be huge!)\n");
