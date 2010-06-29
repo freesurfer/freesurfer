@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.88 2010/05/04 21:53:32 greve Exp $
+% $Id: fast_selxavg3.m,v 1.89 2010/06/29 21:53:49 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/05/04 21:53:32 $
-%    $Revision: 1.88 $
+%    $Date: 2010/06/29 21:53:49 $
+%    $Revision: 1.89 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -26,21 +26,12 @@
 %
 
 
-fprintf('$Id: fast_selxavg3.m,v 1.88 2010/05/04 21:53:32 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.89 2010/06/29 21:53:49 greve Exp $\n');
 
 SUBJECTS_DIR = getenv('SUBJECTS_DIR');
 FSHOME = getenv('FREESURFER_HOME');
 
 dof2 = 0; % in case there are no contrasts
-
-
-if(DoSynth)
-  if(SynthSeed < 0) SynthSeed = sum(100*clock); end
-  fprintf('SynthSeed     = %10d\n',SynthSeed);
-  fprintf('SynthNoiseAmp    = %d\n',SynthNoiseAmp);
-  fprintf('SynthNoiseAR1   = %g\n',SynthNoiseAR1);
-  fprintf('SynthSignalAmp   = %d\n',SynthSignalAmp);
-end
 
 sessname = basename(sess);
 if(isempty(outtop)) outtop = fast_dirname(sess); end
@@ -59,7 +50,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.88 2010/05/04 21:53:32 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.89 2010/06/29 21:53:49 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -143,7 +134,10 @@ for nthouter = outer_runlist
       end
       mask.vol = mask.vol + runmask.vol;
     end
-    mask.vol = (mask.vol == nruns); % Take intersection
+    if(perrun) nmv = 1;
+    else       nmv = nruns;
+    end
+    mask.vol = (mask.vol == nmv); % Take intersection
   end
 
   % Save mask
@@ -252,7 +246,7 @@ for nthouter = outer_runlist
 
   XCond = cond(XtX);
   fprintf('XCond = %g (normalized)\n',XCond);
-  if(XCond > 1e4)
+  if(XCond > 1e6)
     fprintf('ERROR: design is ill-conditioned\n');
     return;
   end
@@ -306,7 +300,7 @@ for nthouter = outer_runlist
     %vrfffx = 1/mean(diag(Mffx));
     %fprintf('%2d %-10s J=%2d  eff = %6.1f   vrf = %8.4f vrfffx = %8.4f r = %4.2f\n',...
     %nthcon,flac0.con(nthcon).name,J,eff,vrf,vrfffx,vrf/vrfffx);
-    fprintf('%2d %-10s J=%2d  eff = %6.1f   vrf = %8.4f\n');
+    %fprintf('%2d %-10s J=%2d  eff = %6.1f   vrf = %8.4f\n');
   end
 
 if(DoGLMFit)
@@ -328,47 +322,27 @@ if(DoGLMFit)
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;          
     indrun = find(tpindrun == nthrun);
-    if(~DoSynth)
-      yrun = MRIread(flac.funcfspec);
-      if(abs(yrun.tr/1000 - flac.TR) > .01)
-	fprintf('\n\n');
-	fprintf('ERROR: TR mismatch between analysis and data\n');
-	fprintf('analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
-	if(flac.OverrideTR == 0) return; end
-	fprintf('BUT you have specified to continue anyway with TR = %g.\n',flac.TR);
-	fprintf('\n\n');
-      end
-      if(yrun.volsize(1) ~= mask.volsize(1) | ...
-	 yrun.volsize(2) ~= mask.volsize(2) | ...
-	 yrun.volsize(3) ~= mask.volsize(3))
-	fprintf('ERROR: dimension mismatch between mask and %dth run\n',nthrun);
-	return;
-      end
-      yrun = fast_vol2mat(yrun);
-      % Compute mean and rvar of raw data
-      Xdt = fast_polytrendmtx(1,size(yrun,1),1,2);
-      [rawbetarun rawrvarrun] = fast_glmfit(yrun,Xdt);
-      rawbeta = rawbeta + rawbetarun;
-      rawrvar = rawrvar + rawrvarrun;
-    else
-      yrun_randn(:,nthrun) = randn('state'); % save state
-      ynoise  = 0;
-      ysignal = 0;
-      if(SynthNoiseAmp > 0)
-	ynoise = randn(flac.ntp,nvox);
-	if(SynthNoiseAR1 ~= 0)
-	  acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
-	  Ssynth = toeplitz(acfsynth);
-	  Fsynth = chol(Ssynth)';
-	  ynoise = Fsynth*ynoise;
-	end % AR1
-      end % Synth Noise
-      if(SynthSignalAmp ~= 0)
-	Xrun = X(indrun,:);
-	ysignal = Xrun*ones(nX,nvox); % betasynth = 1
-      end
-      yrun = ynoise + ysignal;
+    yrun = MRIread(flac.funcfspec);
+    if(abs(yrun.tr/1000 - flac.TR) > .01)
+      fprintf('\n\n');
+      fprintf('ERROR: TR mismatch between analysis and data\n');
+      fprintf('analysis TR = %g, data TR = %g\n',flac.TR,yrun.tr/1000);
+      if(flac.OverrideTR == 0) return; end
+      fprintf('BUT you have specified to continue anyway with TR = %g.\n',flac.TR);
+      fprintf('\n\n');
     end
+    if(yrun.volsize(1) ~= mask.volsize(1) | ...
+       yrun.volsize(2) ~= mask.volsize(2) | ...
+       yrun.volsize(3) ~= mask.volsize(3))
+      fprintf('ERROR: dimension mismatch between mask and %dth run\n',nthrun);
+      return;
+    end
+    yrun = fast_vol2mat(yrun);
+    % Compute mean and rvar of raw data for raw SFNR
+    Xdt = fast_polytrendmtx(1,size(yrun,1),1,2);
+    [rawbetarun rawrvarrun] = fast_glmfit(yrun,Xdt);
+    rawbeta = rawbeta + rawbetarun;
+    rawrvar = rawrvar + rawrvarrun;
     if(isempty(yrun))
       fprintf('ERROR: loading %s\n',funcfspec);
       return;
@@ -416,7 +390,6 @@ if(DoGLMFit)
   else
     RescaleFactor = 1;
   end
-  if(DoSynth) RescaleFactor = 1; end
   fprintf('RescaleFactor = %g\n',RescaleFactor);
 
   betamn0  = RescaleFactor*betamn0;
@@ -433,38 +406,19 @@ if(DoGLMFit)
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;
     indrun = find(tpindrun == nthrun);
-    if(~DoSynth)
-      yrun = MRIread(flac.funcfspec);
-      yrun = fast_vol2mat(yrun);
-    else
-      randn('state',yrun_randn(:,nthrun))
-      ynoise  = 0;
-      ysignal = 0;
-      if(SynthNoiseAmp > 0)
-	ynoise = randn(flac.ntp,nvox);
-	if(SynthNoiseAR1 ~= 0)
-	  acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
-	  Ssynth = toeplitz(acfsynth);
-	  Fsynth = chol(Ssynth)';
-	  ynoise = Fsynth*ynoise;
-	end % AR1
-      end % Synth Noise
-      if(SynthSignalAmp ~= 0)
-	Xrun = X(indrun,:);
-	ysignal = Xrun*ones(nX,nvox); % betasynth = 1
-      end
-      yrun = ynoise + ysignal;
-    end
+    yrun = MRIread(flac.funcfspec);
+    yrun = fast_vol2mat(yrun);
     yrun = RescaleFactor*yrun;
     Xrun = X(indrun,:);
     yhatrun = Xrun*betamat0;
     rrun = yrun - yhatrun;
+    clear yhatrun;
     rsserun = sum(rrun.^2);
     indz = find(rsserun == 0); % keep zeros from screwing stuff up
     rsserun(indz) = max(rsserun);
     rsse = rsse + rsserun;
     
-    if(flac0.acfsvd > 0)
+    if(flac0.acfsvd > 0 & flac0.acfbins > 0)
       % For rho1/ar1 calculation, remove 1st two principle components
       % from residual. This is only for the calculation of rho1/ar1
       % so that non-stationary components do not mess up the 
@@ -477,6 +431,7 @@ if(DoGLMFit)
       indz = find(rsserunpca == 0); % keep zeros from screwing stuff up
       rsserunpca(indz) = max(rsserunpca);
       rho1run = sum(rrunpca(1:end-1,:).*rrunpca(2:end,:))./rsserunpca;
+      clear uu ss vv rrunpca;
     else
       rho1run = sum(rrun(1:end-1,:).*rrun(2:end,:))./rsserun;
     end
@@ -550,7 +505,7 @@ if(DoGLMFit)
   MRIwrite(rho1mn,rho1mnfile);
 
   % Apply spatial smoothing if desired
-  if(flac.acffwhm > 0)
+  if(flac.acffwhm > 0 & flac0.acfbins > 0)
     fprintf('Smoothing ACF\n');
     rho1mnsmfile = sprintf('%s/rho1mn.sm.%s',outanadir,ext);
     opts = sprintf('--mask %s --i %s --o %s --fwhm %f --smooth-only',...
@@ -612,9 +567,9 @@ if(DoGLMFit)
     fprintf('Computing whitening matrices\n');
     tic;
     clear rho1segmn nalphasegmn acfsegmn S Sinv W;
-    S    = zeros(ntptot,ntptot,flac0.acfbins);
     Sinv = zeros(ntptot,ntptot,flac0.acfbins);
-    W    = zeros(ntptot,ntptot,flac0.acfbins);
+    %S    = zeros(ntptot,ntptot,flac0.acfbins);
+    %W    = zeros(ntptot,ntptot,flac0.acfbins);
     fname = sprintf('%s/acfsegLUT.txt',outanadir);
     fp = fopen(fname,'w');
     for nthseg = 1:flac0.acfbins
@@ -646,10 +601,10 @@ if(DoGLMFit)
 	end
 	Srun = toeplitz(acfsegrun);
 	Sruninv = inv(Srun);
-	Wrun = inv(chol(Srun)');
-	S(indrun,indrun,nthseg) = Srun;
 	Sinv(indrun,indrun,nthseg) = Sruninv;
-	W(indrun,indrun,nthseg) = Wrun;
+	%Wrun = inv(chol(Srun)');
+	%S(indrun,indrun,nthseg) = Srun;
+	%W(indrun,indrun,nthseg) = Wrun;
       end % run
     end % if acfbins > 1
     fclose(fp);
@@ -662,34 +617,14 @@ if(DoGLMFit)
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
       flac = runflac(nthrun).flac;
       indrun = find(tpindrun == nthrun);
-      if(~DoSynth)
-	yrun = MRIread(flac.funcfspec);
-	yrun = fast_vol2mat(yrun);
-      else
-	randn('state',yrun_randn(:,nthrun))
-	ynoise  = 0;
-	ysignal = 0;
-	if(SynthNoiseAmp > 0)
-	  ynoise = randn(flac.ntp,nvox);
-	  if(SynthNoiseAR1 ~= 0)
-	    acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
-	    Ssynth = toeplitz(acfsynth);
-	    Fsynth = chol(Ssynth)';
-	    ynoise = Fsynth*ynoise;
-	  end % AR1
-	end % Synth Noise
-	if(SynthSignalAmp ~= 0)
-	  Xrun = X(indrun,:);
-	  ysignal = Xrun*ones(nX,nvox); % betasynth = 1
-	end
-	yrun = ynoise + ysignal;
-      end
+      yrun = MRIread(flac.funcfspec);
+      yrun = fast_vol2mat(yrun);
       yrun = RescaleFactor*yrun;  
       for nthseg = 0:flac0.acfbins
 	%fprintf('     seg  %d    %g    ---------\n',nthseg,toc);
 	indseg = find(acfseg.vol==nthseg);
 	if(nthseg == 0)  B = B0;
-	else   B = inv(X'*Sinv(:,:,nthseg)*X)*X'*Sinv(:,:,nthseg);
+	else   B = inv(X'*Sinv(:,:,nthseg)*X)*(X'*Sinv(:,:,nthseg));
 	end
 	Brun = B(:,indrun);
 	betamat(:,indseg) = betamat(:,indseg) + Brun*yrun(:,indseg);
@@ -697,6 +632,7 @@ if(DoGLMFit)
       clear yrun;
       %pack;
     end
+    clear Sinv;
     
     % Second pass thru the data to compute beta
     fprintf('GLS Residual Pass \n');
@@ -708,34 +644,13 @@ if(DoGLMFit)
       fprintf('  run %d    t=%4.1f\n',nthrun,toc);
       flac = runflac(nthrun).flac;
       indrun = find(tpindrun == nthrun);
-
-      if(~DoSynth)
-	yrun = MRIread(flac.funcfspec);
-	yrun = fast_vol2mat(yrun);
-      else
-	randn('state',yrun_randn(:,nthrun))
-	ynoise  = 0;
-	ysignal = 0;
-	if(SynthNoiseAmp > 0)
-	  ynoise = randn(flac.ntp,nvox);
-	  if(SynthNoiseAR1 ~= 0)
-	    acfsynth = SynthNoiseAR1.^[0:flac.ntp-1];
-	    Ssynth = toeplitz(acfsynth);
-	    Fsynth = chol(Ssynth)';
-	    ynoise = Fsynth*ynoise;
-	  end % AR1
-	end % Synth Noise
-	if(SynthSignalAmp ~= 0)
-	  Xrun = X(indrun,:);
-	  ysignal = Xrun*ones(nX,nvox); % betasynth = 1
-	end
-	yrun = ynoise + ysignal;
-      end
-
+      yrun = MRIread(flac.funcfspec);
+      yrun = fast_vol2mat(yrun);
       yrun = RescaleFactor*yrun;
       Xrun = X(indrun,:);
       yhatrun = Xrun*betamat;
       rrun = yrun - yhatrun;
+      clear yhatrun;
       for nthseg = 1:flac0.acfbins % ok to skip 0
 	indseg = find(acfseg.vol==nthseg);
 	if(~flac.fsv3_whiten)
@@ -779,10 +694,9 @@ if(DoGLMFit)
   else betamc=[]; rvarmc=[];
   end
   
-  save(xfile,'X','W','DOF','flac0','runflac','RescaleFactor',...
+  save(xfile,'X','DOF','flac0','runflac','RescaleFactor',...
        'rfm','acfseg','nrho1segmn','acfsegmn','ErrCovMtx',...
-       'DoSynth','SynthSeed','yrun_randn',...
-       'DoMCFit','mcAll','betamc','rvarmc');
+       'yrun_randn','DoMCFit','mcAll','betamc','rvarmc');
 
   if(DoFWHM)
     fprintf('Concatenating residuals\n');
@@ -876,14 +790,6 @@ if(DoGLMFit)
   fname = sprintf('%s/fsnr2.%s',outanadir,ext);
   MRIwrite(fsnr2,fname);
   
-  if(DoSynth)
-    bmn  = mean(betamat(1:nTask,indmask),2);
-    bstd = std(betamat(1:nTask,indmask),[],2);
-    bvar = bstd.^2;
-    fprintf('  Beta Mean Std Var\n');
-    fprintf('  %7.4f  %7.4f  %7.4f\n',[bmn bstd bvar]');
-  end
-    
 end % DoGLMFit
 
 if(DoContrasts)
@@ -940,24 +846,6 @@ if(DoContrasts)
     ind = find(pmat == 0); pmat(ind) = 1;
     fsigmat = -log10(pmat);
 
-    if(DoSynth)
-      cmn  = mean(cesmat(:,indmask),2);
-      cstd = std(cesmat(:,indmask),[],2);
-      cvar = cstd.^2;
-      fprintf('  CES Mean Std Var (%g)\n',1/flacC.con(nthcon).vrf);
-      fprintf('  %7.4f  %7.4f  %7.4f\n',[cmn cstd cvar]');
-      if(SynthSignalAmp == 0)
-	nover = length(find(pmat(indmask) < .01));
-	pover = nover/nmask;
-	[noverlow noverhi] = binomialconf(nmask,.01,90);
-	fprintf('  Prob(p < .01) = %g\n',pover);
-	fprintf('  nover = %d, conf %d %d  ',nover,noverlow,noverhi);
-	if(nover > noverlow & nover < noverhi) fprintf('PASS\n');
-	else	                             fprintf('FAIL\n');
-	end
-      end
-    end
-    
     % Contrast output
     outcondir = sprintf('%s/%s',outanadir,conname);
     if(exist(outcondir,'dir'))

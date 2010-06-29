@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/29 17:27:23 $
-#    $Revision: 1.52 $
+#    $Date: 2010/06/29 21:53:49 $
+#    $Revision: 1.53 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.52 2010/04/29 17:27:23 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.53 2010/06/29 21:53:49 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -195,7 +195,7 @@ foreach sess ($SessList)
   echo anadir = $anadir | tee -a $LF
 
   set DoGLMFit = 0;
-  if($Overwrite) set DoGLMFit = 1;
+  if($Overwrite || $perrun) set DoGLMFit = 1;
   set beta = `stem2fname $anadir/beta`
   if($status) set DoGLMFit = 1;  # Beta file does not exist
   if($DoGLMFit == 0) then

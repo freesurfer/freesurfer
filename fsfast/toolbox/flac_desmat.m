@@ -16,8 +16,8 @@ function flacnew = flac_desmat(flac,IRFOnly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/19 22:19:19 $
-%    $Revision: 1.24 $
+%    $Date: 2010/06/29 21:53:49 $
+%    $Revision: 1.25 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -75,6 +75,7 @@ for nthev = 1:nev
     flacnew.ev(nthev).tirf = tirf;
     Xtmp = flacnew.ev(nthev).Xfir * flacnew.ev(nthev).Xirf;
     flacnew.ev(nthev).X = Xtmp(1:ssr:end,:);
+    flacnew.ev(nthev).Xfir = []; % To save memory
   else
     switch(ev.model)
      case {'baseline'}

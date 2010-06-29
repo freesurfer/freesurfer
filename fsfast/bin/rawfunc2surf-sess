@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 22:58:01 $
-#    $Revision: 1.15 $
+#    $Date: 2010/06/29 21:53:49 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.15 2010/04/28 22:58:01 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.16 2010/06/29 21:53:49 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -460,7 +460,7 @@ usage_exit:
   echo "  -self : map to native subject surface instead of fsaverage"
   echo ""
   echo "Expert Options"
-  echo "  -reg regfile : default is register.dof$regdof.dat"
+  echo "  -reg regfile : default is register.dof$RegDOF.dat"
   echo "  -nearest     : use nearest neighbor interp (default is trilin)"
   echo "  -surfreg SurfReg : change from $SurfReg"
   echo "  -per-session : use session-level registration and mask instead of -per-run"

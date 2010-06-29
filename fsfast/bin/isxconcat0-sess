@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/29 05:05:00 $
-#    $Revision: 1.18 $
+#    $Date: 2010/06/29 21:53:49 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.18 2010/04/29 05:05:00 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.19 2010/06/29 21:53:49 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -191,10 +191,10 @@ end # Loop over sessions
 
 echo "------------------------------------" |& tee -a $LF
 set cmd = (mri_concat $maplist --o $outvol)
-if($paireddiff) set cmd = ($cmd --paired-diff)
-if($pairedavg)  set cmd = ($cmd --paired-avg)
-if($pairedsum)  set cmd = ($cmd --paired-sum)
-if($mean)       set cmd = ($cmd --mean)
+if($paireddiff) set cmd = ($cmd --paired-diff --prune)
+if($pairedavg)  set cmd = ($cmd --paired-avg --prune)
+if($pairedsum)  set cmd = ($cmd --paired-sum --prune)
+if($mean)       set cmd = ($cmd --mean --prune)
 pwd |& tee -a $LF
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
