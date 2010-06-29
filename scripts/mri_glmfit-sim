@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.24 2010/04/07 17:13:59 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.25 2010/06/29 19:50:04 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -21,6 +21,7 @@ set UniformPDFMin = ();
 set UniformPDFMax = ();
 set DiagCluster = 0;
 set PBNodeType = ();
+set UseCache = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -91,6 +92,8 @@ set hemi = ();
 set surf = "white";
 set y = ();
 
+set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
+
 # Go through the original mri_glmfit command-line
 set glmfitcmd = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
 echo $glmfitcmd
@@ -120,7 +123,7 @@ while($#glmfitcmd)
     set label = $glmfitcmd[1]; shift glmfitcmd;
     breaksw
   case "--y"
-    set y = $glmfitcmd[1]; shift glmfitcmd;
+    set y = $glmfitcwd/$glmfitcmd[1]; shift glmfitcmd;
     if(! -e $y) then
       set y = $glmdir/`basename $y`
       if(! -e $y) then
@@ -236,6 +239,8 @@ uname -a | tee -a $LF
 echo $user | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
+echo "DoSim = $DoSim" | tee -a $LF
+echo "UseCache = $UseCache" | tee -a $LF
 echo "DoPoll = $DoPoll" | tee -a $LF
 echo "DoPBSubmit = $DoPBSubmit" | tee -a $LF
 echo "DoBackground = $DoBackground" | tee -a $LF
@@ -247,6 +252,19 @@ if($#fwhmOverride) then
   # Change fwhm from value in glmdir to override value
   echo "fwhmOverride = $fwhmOverride" | tee -a $LF
   set fwhm = $fwhmOverride
+endif
+
+if($UseCache) then
+  set fwhm = `cat $glmdir/fwhm.dat`;
+  set fwhmStr = `perl -e "printf('"'%02d'"',int ( $fwhm+.5 ) ) "`
+  set threshStr = `perl -e "print 10*$thresh"`;
+  set csdCache = $FREESURFER_HOME/average/mult-comp-cor/$subject/$hemi/cortex/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
+  if(! -e $csdCache) then
+    echo "ERROR: cannot find $csdCache" | tee -a $LF
+    exit 1;
+  endif
+  echo CSD $csdCache | tee -a $LF
+  set csdbase = cache.th$threshStr.$simsign
 endif
 
 if($DoSim) then
@@ -403,13 +421,17 @@ endif
 # -------------- now run clustering -------------------- #
 foreach conname ($conlist)
 
-  ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
-  if($status) then
-    echo "ERROR: cannot find any csd files"| tee -a $LF
-    exit 1; 
+  if($UseCache) then
+    set csdfiles = ($csdCache)
+  else
+    ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
+    if($status) then
+      echo "ERROR: cannot find any csd files"| tee -a $LF
+      exit 1; 
+    endif
+    set csdfiles = ($glmdir/csd/$csdbase.j???-$conname.csd)
   endif
 
-  set csdfiles = ($glmdir/csd/$csdbase.j???-$conname.csd)
   set csdlist = ();
   foreach csd ($csdfiles)
     set csdlist = ($csdlist --csd $csd);
@@ -482,6 +504,19 @@ while( $#argv != 0 )
     case "--glmdir":
       if( $#argv < 0) goto arg1err;
       set glmdir = $argv[1]; shift;
+      breaksw
+
+    case "--cache":
+      if( $#argv < 2) goto arg2err;
+      set thresh = $argv[1]; shift;
+      set simsign = $argv[1]; shift;
+      set UseCache = 1;
+      set DoSim = 0;
+      if($thresh != 1.3 && $thresh != 2.0 && $thresh != 2.3 && \
+         $thresh != 3.0 && $thresh != 3.3 && $thresh != 4.0) then
+         echo "ERROR: thresh = $thresh, must be 1.3, 2.0, 2.3, 3.0, 3.3, 4.0"
+         exit 1;
+      endif
       breaksw
 
     case "--sim":
@@ -650,9 +685,12 @@ usage_exit:
   echo "mri_glmfit-sim"
   echo ""
   echo " --glmdir glmdir"
+  echo " --cwpvalthresh thresh : cluster p-value thresh ($cwpvalthresh)"
+  echo ""
+  echo " --cache threshold sign"
+  echo ""
   echo " --sim nulltype nsim threshhold csdbase"
   echo " --sim-sign sign : <abs>,pos,neg"
-  echo " --cwpvalthresh thresh : cluster p-value thresh ($cwpvalthresh)"
   echo ""
   echo " --overwrite : delete previous CSDs"
   echo ""
@@ -682,19 +720,32 @@ BEGINHELP
 
 This program is a script to run GLM-based simulations for corrections
 for multiple comparisons on the volume or the surface. It is a
-front-end for both the mri_glmfit and mri_surfcluster programs.
+front-end for the mri_glmfit, mri_surfcluster, and mri_volcluster programs.
 
 To use this program:
 
 1. Run mri_glmfit on your data, giving it the glm directory
    (--glmdir), and all the other arguments.
 
-2. Choose the type of simulation (nulltype) you want to run. The
-   choices are:
+2. Choose whether you want to use a pre-cached simulation or whether
+   you want to run a new simulation. You should use a pre-cached
+   simulation if: this is a surface-based analysis, you are using
+   fsaverage (or equivalent), you have whole-brain data, you want to
+   use a voxel-wise threshold of 1.3, 2.0, 2.3, 3.0, 3.3, or 4.0, and
+   you are going to use an mc-z simulation.  Pre-cached will finish
+   after a few seconds, your own simulation will take hours or days.
 
-mc-z - synthesized, smoothed z-field (fast)
-mc-full - fully synthesized, smoothed gaussian field (slowest)
-perm - permutation on original data (probably fasted one)
+2.a If you want to use a pre-cached, then specify "--cache threshold sign"
+    where threshold is the vertex-wise threshhold and sign is abs, pos,
+    or neg. Note: the csdbase will be set to cache.thresh.simsign (eg,
+    if the threshold was set to 1.3 and sign to pos, then cache.th13.pos.
+    Skip the remaining steps below.
+
+2.b If you want to run your own simulation, then choose the type of
+    simulation (nulltype) you want to run. The choices are:
+    mc-z - synthesized, smoothed z-field (fast)
+    mc-full - fully synthesized, smoothed gaussian field (slowest)
+    perm - permutation on original data (probably fasted one)
 
 3. Choose the voxel/vertex-wise threshhold used to define clusters. This
    will be -log10(p), where p is the p-value. Eg, to use all voxels/vertices
@@ -719,10 +770,20 @@ perm - permutation on original data (probably fasted one)
 Now run the command:
 
 mri_glmfit-sim --glmdir glmdir \
+  --cache threshold sign
+
+or
+
+mri_glmfit-sim --glmdir glmdir \
   --sim nulltype nsim threshold csdbase \
   --sim-sign sign
 
 Example,
+
+mri_glmfit-sim --glmdir lh.thickness.sm05 \
+  --cache 3  --sim-sign pos
+
+or
 
 mri_glmfit-sim --glmdir lh.thickness.sm05 \
   --sim mc-z 10000 3 mc-z.pos.3 --sim-sign pos
