@@ -21,7 +21,7 @@ echo >> $LOGFILE
 
 
 # Run configure
-./configure  --with-boost-dir=/homes/11/rge21/avebury01nfs/boost-1.41.0/ >> $LOGFILE 2>&1
+./configure  --with-boost-dir=/homes/11/rge21/avebury01nfs/boost-1.41.0/ --with-cuda=/usr/loca/cuda/3.0/cuda/ >> $LOGFILE 2>&1
 if [ $? -ne 0 ]; then
     echo "NIGHTLY: configure failed"
     exit
