@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/06/23 16:39:03 $
-#    $Revision: 1.480 $
+#    $Date: 2010/06/29 21:40:56 $
+#    $Revision: 1.481 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2593,13 +2593,15 @@ AC_SUBST(LIBS_NIFTI)
 
 # use local libexpat if --with-expat-dir not used:
 if test "$ac_expat_libraries" = "NO"; then
-  VTK_EXPAT_LIB=../expat/libexpat.a
-else
-# else use whatever we can find
-  AC_CHECK_LIB([vtkexpat], [main],
-               [VTK_EXPAT_LIB="-lvtkexpat"],
-               [AC_CHECK_LIB([expat],[main],[VTK_EXPAT_LIB="-lexpat"],
-               [AC_MSG_ERROR([FATAL: libvtkexpat or libexpat not found.])])])
+  if test ! "$OS" = "Darwin"; then
+    VTK_EXPAT_LIB=../expat/libexpat.a
+  else
+  # else use whatever we can find
+    AC_CHECK_LIB([vtkexpat], [main],
+                 [VTK_EXPAT_LIB="-lvtkexpat"],
+                 [AC_CHECK_LIB([expat],[main],[VTK_EXPAT_LIB="-lexpat"],
+                 [AC_MSG_ERROR([FATAL: libvtkexpat or libexpat not found.])])])
+  fi
 fi
 AC_SUBST(VTK_EXPAT_LIB)
 
@@ -2618,23 +2620,27 @@ AC_SUBST(VTK_Z_LIB)
 
 # use local libjpeg if --with-jpeg-dir not used:
 if test "$ac_jpeg_libraries" = "NO"; then
-  VTK_JPEG_LIB=../jpeg/libjpeg.a
-else
-# else use whatever we can find
-  AC_CHECK_LIB([vtkjpeg], [vtk_jpeg_start_compress], 
-               [VTK_JPEG_LIB="-lvtkjpeg"],
-               [VTK_JPEG_LIB="-ljpeg"])
+  if test ! "$OS" = "Darwin"; then
+    VTK_JPEG_LIB=../jpeg/libjpeg.a
+  else
+  # else use whatever we can find
+    AC_CHECK_LIB([vtkjpeg], [vtk_jpeg_start_compress], 
+                 [VTK_JPEG_LIB="-lvtkjpeg"],
+                 [VTK_JPEG_LIB="-ljpeg"])
+  fi
 fi
 AC_SUBST(VTK_JPEG_LIB)
 
 # use local libtiff if --with-tiff-dir not used:
 if test "$ac_tiff_libraries" = "NO"; then
-  VTK_TIFF_LIB=../tiff/libtiff.a
-else
-# else use whatever we can find
-  AC_CHECK_LIB([vtktiff $VTK_JPEG_LIB $VTK_Z_LIB], [vtk_TIFFGetVersion],
-               [VTK_TIFF_LIB="-lvtktiff"],
-               [VTK_TIFF_LIB="-ltiff"])
+  if test ! "$OS" = "Darwin"; then
+    VTK_TIFF_LIB=../tiff/libtiff.a
+  else
+  # else use whatever we can find
+    AC_CHECK_LIB([vtktiff $VTK_JPEG_LIB $VTK_Z_LIB], [vtk_TIFFGetVersion],
+                 [VTK_TIFF_LIB="-lvtktiff"],
+                 [VTK_TIFF_LIB="-ltiff"])
+  fi
 fi
 AC_SUBST(VTK_TIFF_LIB)
 
