@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 20:48:31 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/06/29 20:41:50 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -466,6 +466,20 @@ vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
   if ( pos_out )
     picker->GetPickPosition( pos_out );
   return picker->GetViewProp();
+}
+
+int RenderView3D::PickCell( vtkProp* prop, int posX, int posY, double* pos_out )
+{
+  vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetPicker() );
+  if ( !picker )
+    return -1; 
+  
+  picker->InitializePickList();
+  picker->AddPickList( prop );
+  picker->Pick( posX, GetClientSize().GetHeight() - posY, 0, GetRenderer() );
+  if ( pos_out )
+    picker->GetPickPosition( pos_out );
+  return picker->GetCellId();
 }
 
 bool RenderView3D::InitializeSelectRegion( int posX, int posY )

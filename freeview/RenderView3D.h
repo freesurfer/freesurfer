@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:57:09 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/06/29 20:41:50 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -103,6 +103,8 @@ public:
   bool PickCroppingBound( int nX, int nY );
   
   void MoveCroppingBound( int nX, int nY );
+  
+  int PickCell( vtkProp* prop, int posX, int posY, double* pos_out = NULL );
   
 protected:
   void OnInternalIdle();

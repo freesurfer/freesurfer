@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/06/29 20:41:50 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -381,6 +381,12 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
       cerr << "Can not copy voxel data with different data type." << endl;
     else
       m_imageData->DeepCopy( src_vol->m_imageData );
+    
+    if ( !m_imageData->GetScalarPointer() )
+    {
+      cerr << "Unable to allocate voxel data." << endl;
+      return false;
+    }
   }
   else
   {
@@ -412,6 +418,11 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     m_imageData->AllocateScalars();
     char* ptr = ( char* )m_imageData->GetScalarPointer();
     int* nDim = m_imageData->GetDimensions();
+    if ( !ptr )
+    {
+      cerr << "Unable to allocate voxel data." << endl;
+      return false;
+    }
     if ( !bCopyVoxelData )
     {
       memset( ptr, 

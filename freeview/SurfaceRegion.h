@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/28 16:45:14 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/06/29 20:41:50 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -68,6 +68,8 @@ public:
   bool HasPoint( double* pos );
   
   void Highlight( bool bHighlight = true );
+  
+  bool DeleteCell( RenderView3D* view, int pos_x, int pos_y );
   
   vtkActor* GetMeshActor();
   

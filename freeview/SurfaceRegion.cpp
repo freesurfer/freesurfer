@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/28 16:45:14 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/06/29 20:41:50 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -217,6 +217,11 @@ bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
 bool SurfaceRegion::WriteBody( FILE* fp )
 {
   vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_actorMesh->GetMapper() )->GetInput();
+  // clean the polydata before writing
+  vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
+  cleaner->SetInput( polydata );
+  cleaner->Update();
+  polydata = cleaner->GetOutput();
   vtkPoints* points = polydata->GetPoints();
   vtkCellArray* polys = polydata->GetPolys();
   wxString strg = _("SURFACE_REGION\n");
@@ -290,6 +295,7 @@ bool SurfaceRegion::Load( FILE* fp )
     polys->InsertNextCell( nIds, n );
   }
   
+  // clean the polydata after loading
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
   polydata->SetPolys( polys );
@@ -303,3 +309,29 @@ bool SurfaceRegion::Load( FILE* fp )
   return true;
 }
 
+bool SurfaceRegion::DeleteCell( RenderView3D* view, int pos_x, int pos_y )
+{
+  int nIdPicked = view->PickCell( m_actorMesh, pos_x, pos_y );
+  if ( nIdPicked >= 0 )
+  {
+    vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_actorMesh->GetMapper() )->GetInput();
+    vtkSmartPointer<vtkCellArray> new_polys = vtkSmartPointer<vtkCellArray>::New();
+    vtkCellArray* polys = polydata->GetPolys();
+    polys->InitTraversal();
+    vtkIdType npts;
+    vtkIdType* pts;
+    int nId = 0;
+    while ( polys->GetNextCell( npts, pts ) )
+    {
+      if ( nId != nIdPicked )
+      {
+        new_polys->InsertNextCell( npts, pts );
+      }
+      nId++;
+    }
+    polydata->SetPolys( new_polys );
+    return true;
+  }
+  else
+    return false;
+}

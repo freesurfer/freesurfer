@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/04/06 18:23:09 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/06/29 20:41:50 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,8 @@
 #include "res/CursorMeasurePolyline_png.h"
 #include "res/CursorGrab_png.h"
 #include "res/CursorContour_png.h"
+#include "res/CursorAdd_png.h"
+#include "res/CursorRemove_png.h"
 
 wxCursor CursorFactory::CursorPencil    = wxCursor();
 wxCursor CursorFactory::CursorFill      = wxCursor();
@@ -49,9 +51,11 @@ wxCursor CursorFactory::CursorZoom      = wxCursor();
 wxCursor CursorFactory::CursorGrab      = wxCursor();
 wxCursor CursorFactory::CursorColorPicker  = wxCursor();
 wxCursor CursorFactory::CursorMeasureLine  = wxCursor();
-wxCursor CursorFactory::CursorMeasureRectangle  = wxCursor();
+wxCursor CursorFactory::CursorMeasureRectangle = wxCursor();
 wxCursor CursorFactory::CursorMeasurePolyline  = wxCursor();
-wxCursor CursorFactory::CursorContour  = wxCursor();
+wxCursor CursorFactory::CursorContour   = wxCursor();
+wxCursor CursorFactory::CursorAdd       = wxCursor();
+wxCursor CursorFactory::CursorRemove    = wxCursor();
 
 CursorFactory::CursorFactory()
 {
@@ -125,4 +129,16 @@ void CursorFactory::Initialize()
   img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
   img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
   CursorMeasurePolyline = wxCursor( img );
+  
+  wxMemoryInputStream s12( CursorAdd_png, CursorAdd_png_LEN );
+  img = wxImage( s12, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
+  CursorAdd = wxCursor( img );
+  
+  wxMemoryInputStream s13( CursorRemove_png, CursorRemove_png_LEN );
+  img = wxImage( s13, wxBITMAP_TYPE_PNG );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
+  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
+  CursorRemove = wxCursor( img );
 }
