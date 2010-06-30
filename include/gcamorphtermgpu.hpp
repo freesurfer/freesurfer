@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 19:30:54 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/06/30 16:14:10 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,6 +61,39 @@ namespace GPU {
 		     const float l_jacobian,
 		     const float jac_scale ) const;
 
+      //! Computes the Log Likelihood term
+      template<typename T, typename U>
+      void LogLikelihood( GPU::Classes::GCAmorphGPU& gcam,
+			  const GPU::Classes::MRIframeGPU<T>& mri,
+			  const GPU::Classes::MRIframeGPU<U>& mri_smooth,
+			  double l_log_likelihood ) const;
+
+      //! Dispatch routine for the Log Likelihood term
+      template<typename T, typename U>
+      void LLtermDispatch( GCA_MORPH *gcam,
+			   const MRI*  mri,
+			   const MRI* mri_smooth,
+			   double l_log_likelihood ) const;
+      
+      //! Basic Dispatch routine for LLT
+      void LLTDispatch( GCA_MORPH *gcam,
+			const MRI*  mri,
+			const MRI* mri_smooth,
+			double l_log_likelihood ) const;
+
+
+      template<typename T>
+      void BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const;
+
+      template<typename T>
+      void UnbindMRI( void ) const;
+
+      template<typename T>
+      void BindMRIsmooth( const GPU::Classes::MRIframeGPU<T>& mri ) const;
+
+      template<typename T>
+      void UnbindMRIsmooth( void ) const;
+
       // ######################################################
     private:
 
@@ -80,6 +113,19 @@ namespace GPU {
       static SciGPU::Utilities::Chronometer tJacobMaxNorm;
       //! Timer for jacobian computation itself
       static SciGPU::Utilities::Chronometer tJacobCompute;
+
+      //! Timer for Log likelihood term
+      static SciGPU::Utilities::Chronometer tLogLikelihoodTot;
+
+      // ---------------------
+
+      template<typename T>
+      void LLTmrismoothDispatch( GCA_MORPH *gcam,
+				 const MRI*  mri,
+				 const MRI* mri_smooth,
+				 double l_log_likelihood ) const;
+
+      
     };
 
   }

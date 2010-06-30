@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/18 16:36:42 $
- *    $Revision: 1.198 $
+ *    $Date: 2010/06/30 16:14:06 $
+ *    $Revision: 1.199 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1606,30 +1606,42 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
   v_means = VectorAlloc(gcam->ninputs, 1) ;
   v_grad = VectorAlloc(3, MATRIX_REAL) ;
 
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
+  printf( "%s: %i %i\n", __FUNCTION__, mri->type, mri_smooth->type );
+
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
+      
+        if (x == Gx && y == Gy && z == Gz) {
           DiagBreak() ;
+	}
+
         gcamn = &gcam->nodes[x][y][z] ;
 
-        if (gcamn->invalid == GCAM_POSITION_INVALID)
+        if (gcamn->invalid == GCAM_POSITION_INVALID) {
           continue;
+	}
+
         if (fabs(gcamn->x-Gvx)<1 && 
             fabs(gcamn->y-Gvy)<1  && 
-            fabs(gcamn->z-Gvz)<1)
+            fabs(gcamn->z-Gvz)<1) {
           DiagBreak() ;
-        if (gcamn->status & (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD))
-          continue ;
+	}
+
+        if( gcamn->status &
+	    (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD) ) {
+          continue;
+	}
 
         /* don't use unkown nodes unless they border 
            something that's not unknown */
-        if (IS_UNKNOWN(gcamn->label) && 
-            different_neighbor_labels(gcam, x,y,z,1) == 0)
-          continue ;
+        if( IS_UNKNOWN(gcamn->label) && 
+            different_neighbor_labels(gcam, x,y,z,1) == 0 ) {
+          continue;
+	}
 
-        load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs) ;
+        load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs);
+	
         if (!gcamn->gc)
         {
           MatrixClear(v_means) ;
@@ -1676,6 +1688,7 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
         }
 
         MatrixMultiply(m_inv_cov, v_means, v_means) ;
+
         if (IS_UNKNOWN(gcamn->label))
         {
           if (zero_vals(vals, gcam->ninputs))
@@ -1702,7 +1715,8 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
         gcamn->dx += l_log_likelihood*V3_X(v_grad) ;
         gcamn->dy += l_log_likelihood*V3_Y(v_grad) ;
         gcamn->dz += l_log_likelihood*V3_Z(v_grad) ;
-        if (x == Gx && y == Gy && z == Gz)
+
+        if (x == Gx && y == Gy && z == Gz) {
           printf
             ("ll_like: node(%d,%d,%d): dI=(%2.1f,%2.1f,%2.1f), "
              "grad=(%2.2f,%2.2f,%2.2f), "
@@ -1712,7 +1726,10 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
              gcamn->gc ? sqrt(covariance_determinant
                               (gcamn->gc, 
                                gcam->ninputs)) : 0.0, vals[0]) ;
+	}
       }
+    }
+  }
 
   MatrixFree(&m_delI) ;
   MatrixFree(&m_inv_cov) ;

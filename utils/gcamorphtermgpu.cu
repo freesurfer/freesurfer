@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 19:31:01 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/06/30 16:14:07 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,11 @@
 
 //! Texure for 'invalid' in Smoothness
 texture<char, 3, cudaReadModeElementType> dt_smooth_invalid;
+
+//! Texture reference for unsigned char mri
+texture<unsigned char, 3, cudaReadModeNormalizedFloat> dt_mri_uchar;
+//! Texture reference for unsigned char smoothed mri
+texture<unsigned char, 3, cudaReadModeNormalizedFloat> dt_mri_smooth_uchar;
 
 
 // ==============================================================
@@ -572,11 +577,12 @@ namespace GPU {
 				 const float l_jacobian,
 				 const float jac_scale ) const {
 
-      GCAmorphTerm::tJacobTot.Start();
 
       if( DZERO(l_jacobian) ) {
 	return;
       }
+
+      GCAmorphTerm::tJacobTot.Start();
 
       const dim3 gcamDims = gcam.d_rx.GetDims();
       const unsigned int nVoxels = gcamDims.x * gcamDims.y * gcamDims.z;
@@ -625,6 +631,230 @@ namespace GPU {
       GCAmorphTerm::tJacobTot.Stop();
     }
 
+    
+    // ##############################################################
+
+    template<typename T>
+    __device__ float FetchMRIvoxel( const float x,
+				    const float y,
+				    const float z ) {
+      return( 10000 );
+    }
+
+    template<>
+    __device__ float FetchMRIvoxel<unsigned char>( const float x,
+						   const float y,
+						   const float z ) {
+      float texVal;
+      texVal = tex3D( dt_mri_uchar, x+0.5f, y+0.5f, z+0.5f );
+      texVal *= UCHAR_MAX;
+
+      return( texVal );
+    }
+
+    // ---
+
+    template<typename T>
+    __device__ float FetchMRIsmoothVoxel( const float x,
+					  const float y,
+					  const float z ) {
+      return( 50000 );
+    }
+
+    template<>
+    __device__ float FetchMRIsmoothVoxel<unsigned char>( const float x,
+							 const float y,
+							 const float z ) {
+      float texVal;
+      texVal = tex3D( dt_mri_smooth_uchar, x+0.5f, y+0.5f, z+0.5f );
+      texVal *= UCHAR_MAX;
+
+      return( texVal );
+    }
+
+    // ---
+    
+    template<typename T>
+    void GCAmorphTerm::BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const {
+      std::cerr << __PRETTY_FUNCTION__
+		<< ": Unrecognised MRI type" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    template<>
+    void GCAmorphTerm::BindMRI<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
+      dt_mri_uchar.normalized = false;
+      dt_mri_uchar.addressMode[0] = cudaAddressModeClamp;
+      dt_mri_uchar.addressMode[1] = cudaAddressModeClamp;
+      dt_mri_uchar.addressMode[2] = cudaAddressModeClamp;
+      dt_mri_uchar.filterMode = cudaFilterModeLinear;
+      
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri_uchar,
+					      mri.GetArray() ) );
+    }
+
+    // ---
+
+    template<typename T>
+    void GCAmorphTerm::UnbindMRI( void ) const {
+      std::cerr << __PRETTY_FUNCTION__
+		<< ": Unrecognised MRI type" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    template<>
+    void GCAmorphTerm::UnbindMRI<unsigned char>( void ) const {
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_uchar ) );
+    }
+
+    // ---
+    
+    template<typename T>
+    void GCAmorphTerm::BindMRIsmooth( const GPU::Classes::MRIframeGPU<T>& mri ) const {
+      std::cerr << __PRETTY_FUNCTION__
+		<< ": Unrecognised MRI type" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    template<>
+    void GCAmorphTerm::BindMRIsmooth<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
+      dt_mri_smooth_uchar.normalized = false;
+      dt_mri_smooth_uchar.addressMode[0] = cudaAddressModeClamp;
+      dt_mri_smooth_uchar.addressMode[1] = cudaAddressModeClamp;
+      dt_mri_smooth_uchar.addressMode[2] = cudaAddressModeClamp;
+      dt_mri_smooth_uchar.filterMode = cudaFilterModeLinear;
+      
+      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri_smooth_uchar,
+					      mri.GetArray() ) );
+    }
+
+
+    // ---
+
+    template<typename T>
+    void GCAmorphTerm::UnbindMRIsmooth( void ) const {
+      std::cerr << __PRETTY_FUNCTION__
+		<< ": Unrecognised MRI type" << std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    template<>
+    void GCAmorphTerm::UnbindMRIsmooth<unsigned char>( void ) const {
+      CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_smooth_uchar ) );
+    }
+
+
+    // ---
+
+    template<typename T, typename U>
+    void GCAmorphTerm::LogLikelihood( GPU::Classes::GCAmorphGPU& gcam,
+				      const GPU::Classes::MRIframeGPU<T>& mri,
+				      const GPU::Classes::MRIframeGPU<U>& mri_smooth,
+				      double l_log_likelihood ) const {
+      /*!
+	Computes the Log Likelihood term on the GPU.
+	Assumes that both MRI data structures are already in their
+	cudaArrays.
+      */
+      if( DZERO(l_log_likelihood) ) {
+	return;
+      }
+
+      GCAmorphTerm::tLogLikelihoodTot.Start();
+
+      // Get the MRI textures set up (assumes MRIs already in cudaArrays)
+      this->BindMRI( mri );
+      this->BindMRIsmooth( mri_smooth );
+
+
+
+      // Release the MRI textures
+      this->UnbindMRI<T>();
+      this->UnbindMRIsmooth<U>();
+
+      GCAmorphTerm::tLogLikelihoodTot.Stop();
+    }
+
+    // --
+
+    template<typename T, typename U>
+    void GCAmorphTerm::LLtermDispatch( GCA_MORPH *gcam,
+				       const MRI*  mri,
+				       const MRI* mri_smooth,
+				       double l_log_likelihood ) const {
+      GPU::Classes::GCAmorphGPU myGCAM;
+      GPU::Classes::MRIframeGPU<T> myMRI;
+      GPU::Classes::MRIframeGPU<U> myMRIsmooth;
+
+      // Set up the GCAmorph
+      myGCAM.SendAll( gcam );
+
+      // Handle the MRIs
+      myMRI.Allocate( mri );
+      myMRI.Send( mri, 0 );
+      myMRI.AllocateArray();
+      myMRI.SendArray();
+      
+      myMRIsmooth.Allocate( mri_smooth );
+      myMRIsmooth.Send( mri_smooth, 0 );
+      myMRIsmooth.AllocateArray();
+      myMRIsmooth.SendArray();
+
+
+      // Run the computation
+      this->LogLikelihood( myGCAM, myMRI, myMRIsmooth, l_log_likelihood );
+      
+      // Retrieve results
+      myGCAM.RecvAll( gcam );
+    }
+
+    // --
+
+    template<typename T>
+    void GCAmorphTerm::LLTmrismoothDispatch( GCA_MORPH *gcam,
+					     const MRI*  mri,
+					     const MRI* mri_smooth,
+					     double l_log_likelihood ) const {
+      
+      switch( mri_smooth->type ) {
+
+      case MRI_UCHAR:
+	this->LLtermDispatch<T,unsigned char>( gcam, mri, mri_smooth,
+					       l_log_likelihood );
+	break;
+
+      default:
+	std::cerr << __FUNCTION__
+		  << ": Unrecognised type for mri_smooth "
+		  << mri_smooth->type << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+    }
+
+    // --
+
+    void GCAmorphTerm::LLTDispatch( GCA_MORPH *gcam,
+				    const MRI*  mri,
+				    const MRI* mri_smooth,
+				    double l_log_likelihood ) const {
+
+      switch( mri->type ) {
+
+      case MRI_UCHAR:
+	this->LLTmrismoothDispatch<unsigned char>( gcam, mri, mri_smooth,
+						   l_log_likelihood );
+	break;
+
+      default:
+	std::cerr << __FUNCTION__
+		  << ": Unrecognised type for mri "
+		  << mri->type << std::endl;
+	exit( EXIT_FAILURE );
+      }
+
+    }
+
 
     // ##############################################################
     
@@ -659,6 +889,12 @@ namespace GPU {
 		<< std::endl;
       std::cout << std::endl;
 
+
+      std::cout << "Log Likelihood:" << std::endl;
+      std::cout << "Total         : " << GCAmorphTerm::tLogLikelihoodTot
+		<< std::endl;
+      std::cout << std::endl;
+
      std::cout << "==================================" << std::endl;
 #endif
     }
@@ -676,6 +912,8 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobTot;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobMaxNorm;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobCompute;
+
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodTot;
 
   }
 }
