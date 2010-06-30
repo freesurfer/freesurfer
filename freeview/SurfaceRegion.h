@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/29 20:41:50 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/06/30 21:36:34 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -41,6 +41,7 @@ class vtkSelectPolyData;
 class vtkBox;
 class vtkProp;
 class vtkClipPolyData;
+class vtkCleanPolyData;
 class RenderView3D;
 class LayerMRI;
 
@@ -49,12 +50,14 @@ class SurfaceRegion : public Broadcaster, public Listener
 public:
   SurfaceRegion( LayerMRI* owner );
   virtual ~SurfaceRegion();
-
+  
   void SetInput( vtkPolyData* polydata );
 
   void AddPoint( double* pt );
   
   bool Close();
+  
+  void ResetOutline();
   
   wxColour GetColor();
   void SetColor( const wxColour& color );
@@ -100,8 +103,10 @@ private:
   
   vtkSmartPointer<vtkBox>     m_clipbox;
   vtkSmartPointer<vtkClipPolyData>    m_clipperPre;
-  vtkSmartPointer<vtkClipPolyData>    m_clipperPost;
   vtkSmartPointer<vtkSelectPolyData>  m_selector;
+  vtkSmartPointer<vtkCleanPolyData>   m_cleanerPost;
+  
+  vtkSmartPointer<vtkPolyData>        m_polydataHolder;
   
   LayerMRI*     m_mri;
   

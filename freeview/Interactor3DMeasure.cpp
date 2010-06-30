@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/29 20:41:50 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/06/30 21:36:34 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -57,6 +57,16 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
       {
         m_bSelectRegion = true;
         return false;   // do not pass down the event
+      }
+    }
+    else if ( event.ControlDown() && event.ShiftDown() )
+    {
+      LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
+      if ( mri && mri->GetCurrentSurfaceRegion() )
+      {
+        mri->GetCurrentSurfaceRegion()->ResetOutline();
+        m_bSelectRegion = true;
+        return false;
       }
     }
     else if ( !event.ControlDown() && event.ShiftDown() )
@@ -128,6 +138,11 @@ void Interactor3DMeasure::UpdateCursor( wxEvent& event, wxWindow* wnd )
         wnd->SetCursor( CursorFactory::CursorContour );
         return;
       }
+      else if ( e->ControlDown() && e->ShiftDown() )
+      {
+        wnd->SetCursor( CursorFactory::CursorAdd );
+        return;
+      }
       else if ( !e->ControlDown() && e->ShiftDown() )
       {
         wnd->SetCursor( CursorFactory::CursorRemove );
@@ -143,6 +158,12 @@ void Interactor3DMeasure::UpdateCursor( wxEvent& event, wxWindow* wnd )
       if ( e->GetKeyCode() == WXK_CONTROL && !e->ShiftDown() )
       {
         wnd->SetCursor( CursorFactory::CursorContour );
+        return;
+      }
+      else if ( ( e->GetKeyCode() == WXK_CONTROL && e->ShiftDown() ) ||
+                  ( e->GetKeyCode() == WXK_SHIFT && e->ControlDown() ) )
+      {
+        wnd->SetCursor( CursorFactory::CursorAdd );
         return;
       }
       else if ( e->GetKeyCode() == WXK_SHIFT && !e->ControlDown() )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/29 20:41:50 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/06/30 21:36:34 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,6 +47,7 @@
 #include "LayerMRI.h"
 #include "LayerPropertiesMRI.h"
 #include "vtkCleanPolyData.h"
+#include "vtkAppendPolyData.h"
 #include <wx/ffile.h>
 
 SurfaceRegion::SurfaceRegion( LayerMRI* owner ) : 
@@ -65,7 +66,6 @@ SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_selector = vtkSmartPointer<vtkSelectPolyData>::New();
   m_selector->SetSelectionModeToSmallestRegion();
-  m_selector->GenerateSelectionScalarsOn();
   
   // use a clipper to pre-clip the big surface for faster selecting
   m_clipbox = vtkSmartPointer<vtkBox>::New();
@@ -73,10 +73,9 @@ SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   m_clipperPre->SetClipFunction( m_clipbox );
 //  m_clipper->GenerateClippedOutputOn();
   m_clipperPre->InsideOutOn();
-  m_selector->SetInputConnection( m_clipperPre->GetOutputPort() );
-  m_clipperPost = vtkSmartPointer<vtkClipPolyData>::New();
-  m_clipperPost->SetInputConnection( m_selector->GetOutputPort() );
-  m_clipperPost->InsideOutOn();
+  m_selector->SetInput( m_clipperPre->GetOutput() );
+  m_cleanerPost = vtkSmartPointer<vtkCleanPolyData>::New();
+  m_cleanerPost->SetInputConnection( m_selector->GetOutputPort() );
   m_mri = owner;
 }
 
@@ -88,15 +87,24 @@ vtkActor* SurfaceRegion::GetMeshActor()
   return m_actorMesh;
 }
 
+void SurfaceRegion::ResetOutline()
+{
+  if ( !m_polydataHolder.GetPointer() )
+    m_polydataHolder = vtkSmartPointer<vtkPolyData>::New();
+  m_polydataHolder->DeepCopy( m_actorMesh->GetMapper()->GetInput() );
+  m_actorOutline->VisibilityOn();
+  m_points->Reset();
+}
+
 void SurfaceRegion::RebuildOutline( bool bClose )
 {
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
-  lines->InsertNextCell( m_points->GetNumberOfPoints() + (bClose?1:0) );
+  if ( bClose && m_points->GetNumberOfPoints() > 0 )
+    m_points->InsertNextPoint( m_points->GetPoint( 0 ) );
+  lines->InsertNextCell( m_points->GetNumberOfPoints() );
   for ( int i = 0; i < m_points->GetNumberOfPoints(); i++ )
     lines->InsertCellPoint( i );
-  if ( bClose )
-    lines->InsertCellPoint( 0 );
   polydata->SetPoints( m_points );
   polydata->SetLines( lines );
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -119,7 +127,7 @@ void SurfaceRegion::AddPoint( double* pt )
 
 bool SurfaceRegion::Close()
 {
-  m_actorOutline->VisibilityOff();
+  RebuildOutline( true );
   if ( m_points->GetNumberOfPoints() > 3 )
   {
     double bounds[6], cpt[3], len = 0;
@@ -134,15 +142,60 @@ bool SurfaceRegion::Close()
       bounds[i*2] = cpt[i] - len/2.0;
       bounds[i*2+1] = cpt[i] + len/2.0;
     }
+    m_points->Modified();
     m_clipbox->SetBounds( bounds );
     m_selector->SetLoop( m_points );
+    m_cleanerPost->Update();
     vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-    mapper->SetInputConnection( m_clipperPost->GetOutputPort() );
     mapper->ScalarVisibilityOff();
     m_actorMesh->SetMapper( mapper );
-    m_selector->Update();
-    vtkPolyData* polydata = m_selector->GetOutput();
-    return ( polydata && polydata->GetPoints() && polydata->GetPoints()->GetNumberOfPoints() > 0 );
+    if ( m_polydataHolder.GetPointer() )
+    {
+      vtkSmartPointer<vtkAppendPolyData> append = vtkSmartPointer<vtkAppendPolyData>::New();
+      append->AddInput( m_polydataHolder );
+      append->AddInput( m_cleanerPost->GetOutput() );
+      vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
+      cleaner->SetInputConnection( append->GetOutputPort() );
+      cleaner->PointMergingOn();
+      cleaner->ToleranceIsAbsoluteOn();
+      cleaner->SetAbsoluteTolerance( 0.0001 );
+      cleaner->Update();
+      
+      // merge duplicate cells
+      vtkPolyData* polydata = cleaner->GetOutput();
+      std::vector<vtkIdType> idList;
+      vtkCellArray* polys = polydata->GetPolys();
+      vtkSmartPointer<vtkCellArray> new_polys = vtkSmartPointer<vtkCellArray>::New();
+      polys->InitTraversal();
+      vtkIdType npts;
+      vtkIdType* pts;
+      while ( polys->GetNextCell( npts, pts ) )
+      {
+        bool bFound = false;
+        for ( size_t i = 0; i < idList.size() && !bFound; i+=3 )
+        {
+          if ( pts[0] == idList[i] && pts[1] == idList[i+1] && pts[2] == idList[i+2] )
+            bFound = true;
+        }
+        if ( !bFound )
+        {
+          new_polys->InsertNextCell( npts, pts );
+          idList.push_back( pts[0] );
+          idList.push_back( pts[1] );
+          idList.push_back( pts[2] );
+        }
+      }
+      polydata->SetPolys( new_polys );
+          
+      mapper->SetInput( polydata );
+      return true;
+    }
+    else
+    {
+      mapper->SetInput( m_cleanerPost->GetOutput() );
+      vtkPolyData* polydata = m_selector->GetOutput();
+      return ( polydata && polydata->GetPoints() && polydata->GetPoints()->GetNumberOfPoints() > 0 );
+    }
   }
   else
     return false;
@@ -216,12 +269,11 @@ bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
 
 bool SurfaceRegion::WriteBody( FILE* fp )
 {
-  vtkPolyData* polydata = vtkPolyDataMapper::SafeDownCast( m_actorMesh->GetMapper() )->GetInput();
   // clean the polydata before writing
   vtkSmartPointer<vtkCleanPolyData> cleaner = vtkSmartPointer<vtkCleanPolyData>::New();
-  cleaner->SetInput( polydata );
+  cleaner->SetInput( m_actorMesh->GetMapper()->GetInput() );
   cleaner->Update();
-  polydata = cleaner->GetOutput();
+  vtkPolyData* polydata = cleaner->GetOutput();
   vtkPoints* points = polydata->GetPoints();
   vtkCellArray* polys = polydata->GetPolys();
   wxString strg = _("SURFACE_REGION\n");

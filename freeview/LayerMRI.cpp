@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/25 21:18:52 $
- *    $Revision: 1.74 $
+ *    $Date: 2010/06/30 21:36:34 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1889,6 +1889,7 @@ bool LayerMRI::LoadRegionSurfaces( wxString& fn )
     SurfaceRegion* r = new SurfaceRegion( this );
     if ( r->Load( fp ) )
     {
+      r->SetInput( vtkPolyData::SafeDownCast( m_actorContour->GetMapper()->GetInput() ) );
       m_surfaceRegions.push_back( r );
       r->Highlight( false );
     }
