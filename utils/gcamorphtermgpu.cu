@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/30 16:14:07 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/06/30 19:45:11 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,7 @@
 #include <thrust/reduce.h>
 
 #include "macros.h"
+#include "cma.h"
 
 #include "chronometer.hpp"
 
@@ -39,6 +40,10 @@
 #include "cudatypeutils.hpp"
 
 #include "gcamorphtermgpu.hpp"
+
+// Stolen from gcamorph.c
+#define MIN_STD 2
+#define MIN_VAR (MIN_STD*MIN_STD)
 
 
 //! Texure for 'invalid' in Smoothness
@@ -745,6 +750,138 @@ namespace GPU {
 
 
     // ---
+
+    template<typename U>
+    __device__
+    void SmoothGradient( const float x, const float y, const float z,
+			 const float3 sizes,
+			 float& dx, float& dy, float& dz ) {
+
+      float xp1, xm1, yp1, ym1, zp1, zm1;
+
+      xp1 = FetchMRIsmoothVoxel<U>( x+1, y, z );
+      xm1 = FetchMRIsmoothVoxel<U>( x-1, y, z );
+
+      yp1 = FetchMRIsmoothVoxel<U>( x, y+1, z );
+      ym1 = FetchMRIsmoothVoxel<U>( x, y-1, z );
+
+      zp1 = FetchMRIsmoothVoxel<U>( x, y, z+1 );
+      zm1 = FetchMRIsmoothVoxel<U>( x, y, z-1 );
+
+      dx = (xp1-xm1) / ( 2 * sizes.x );
+      dy = (yp1-ym1) / ( 2 * sizes.y );
+      dz = (zp1-zm1) / ( 2 * sizes.z );
+    }
+
+
+    template<typename T, typename U>
+    __global__
+    void LogLikelihoodKernel( const GPU::Classes::VolumeArgGPU<char> invalid,
+			      const GPU::Classes::VolumeArgGPU<int> label,
+			      const GPU::Classes::VolumeArgGPU<int> status,
+			      const GPU::Classes::VolumeArgGPU<float> rx,
+			      const GPU::Classes::VolumeArgGPU<float> ry,
+			      const GPU::Classes::VolumeArgGPU<float> rz,
+			      const GPU::Classes::VolumeArgGPU<float> mean,
+			      const GPU::Classes::VolumeArgGPU<float> variance,
+			      const float3 mriSizes,
+			      GPU::Classes::VolumeArgGPU<float> dx,
+			      GPU::Classes::VolumeArgGPU<float> dy,
+			      GPU::Classes::VolumeArgGPU<float> dz ) {
+      
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      // Loop over z slices
+      for( unsigned int iz = 0; iz < rx.dims.z; iz++ ) {
+	
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( rx.InVolume(ix,iy,iz) ) {
+      
+	  // Check validity
+	  if( invalid(ix,iy,iz) == GCAM_POSITION_INVALID ) {
+	    continue;
+	  }
+
+	  // Check status
+	  if( status(ix,iy,iz) &
+	      (GCAM_IGNORE_LIKELIHOOD|GCAM_NEVER_USE_LIKELIHOOD) ) {
+	    continue;
+	  }
+
+	  // Only use unknowns if they border knowns
+	  if( IS_UNKNOWN(label(ix,iy,iz)) ) {
+	    unsigned int diffLabels = 0;
+	    const int myLabel = label(ix,iy,iz);
+	    
+	    for( unsigned int k=max(0,iz-1);
+		 k<=min(invalid.dims.z-1,iz+1);
+		 k++ ) {
+	      for( unsigned int j=max(0,iy-1);
+		   j<=min(invalid.dims.y-1,iy+1);
+		   j++ ) {
+		for( unsigned int i=max(0,ix-1);
+		     i<=min(invalid.dims.x-1,ix+1);
+		     i++ ) {
+		  if( label(i,j,k) != myLabel ) {
+		    diffLabels++;
+		  }
+		}
+	      }
+	    }
+
+	    if( diffLabels == 0 ) {
+	      // Go to next z slice
+	      continue;
+	    }
+	  }
+
+	  // This ends the checks
+
+	  float mriVal = FetchMRIvoxel<T>( rx(ix,iy,iz),
+					   ry(ix,iy,iz),
+					   rz(ix,iy,iz) );
+
+	  float vMean, invVariance;
+
+	  // This check is equivalent to "if( gcamn->gc )"
+	  if( variance(ix,iy,iz) >= 0 ) {
+	    vMean = mean(ix,iy,iz);
+	    invVariance = 1/variance(ix,iy,iz);
+	  } else {
+	    vMean = 0;
+	    invVariance = 1.0f/MIN_VAR;
+	  }
+
+	  float mydx, mydy, mydz;
+
+	  SmoothGradient<U>( rx(ix,iy,iz), ry(ix,iy,iz), rz(ix,iy,iz),
+			     mriSizes,
+			     mydx, mydy, mydz );
+
+	  float norm = sqrtf( mydx*mydx + mydy*mydy + mydz*mydz );
+	  if( !FZERO(norm) ) {
+	    mydx /= norm;
+	    mydy /= norm;
+	    mydz /= norm;
+	  }
+
+	  vMean -= mriVal;
+#define MAX_ERROR 1000.0f
+	  if( fabs( vMean ) > MAX_ERROR ) {
+	    vMean = copysign( MAX_ERROR, vMean );
+	  }
+
+	  vMean *= invVariance;
+	}
+      }
+    }
+
+
+
+
 
     template<typename T, typename U>
     void GCAmorphTerm::LogLikelihood( GPU::Classes::GCAmorphGPU& gcam,
