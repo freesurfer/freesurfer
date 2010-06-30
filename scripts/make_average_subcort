@@ -1,0 +1,297 @@
+#!/bin/tcsh -f
+# thalseg
+
+set VERSION = '$Id: make_average_subcort,v 1.1 2010/06/30 20:33:10 greve Exp $';
+
+set outvol = ();
+set subjlist = ();
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+set transform_fname = talairach.xfm
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set outdir = `dirname $outvol`;
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.make_average_subcort
+mkdir -p $tmpdir
+
+set outstem = `fname2stem $outvol`
+if($#LF == 0) set LF = $outstem.log
+if($LF != /dev/null) rm -f $LF
+
+echo "Log file for make_average_subcort" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+uname -a  | tee -a $LF
+
+set invollist = ()
+@ nth = 0
+foreach subject ($subjlist)
+  @ nth = $nth + 1
+  echo "#@# $nth/$#subjlist $subject `date`" | tee -a $LF
+
+  set xfm   = $SUBJECTS_DIR/$subject/mri/transforms/$transform_fname
+  if(! -e $xfm) then
+    echo "ERROR: cannot find $xfm" | tee -a $LF
+    exit 1;
+  endif
+
+  set aseg = $SUBJECTS_DIR/$subject/mri/aseg.mgz
+  set junk = $tmpdir/junk.mgh
+  mri_binarize --i $aseg --inv --o $junk \
+    --match 0 --match 3 \
+    --match 42 --match 4 --match 14 --match 15 --match 43 \
+    --match 44 --match 72 --match 75 --match 76 --match 2 \
+    --match 41 --match 7 --match 46 --match 251 --match 252 \
+    --match 253 --match 254 --match 255 \
+    --match 24 --match 31 --match 63  \
+    --match 77 --match 78 --match 79 --match 80 \
+    --match 81 --match 82 | tee -a $LF
+  if($status) exit 1;
+
+  #mri_fwhm --i $junk --o $junk --fwhm 5 --smooth-only
+
+  set scm = $tmpdir/subcort.mask.$subject.mgh
+  mri_binarize --i $junk --min .0001 --o $scm | tee -a $LF
+  if($status) exit 1;
+
+  # clean up
+  rm $junk
+
+  # Use mgh to keep from having to compress and decompress
+  set xfmvol = $tmpdir/subcort.mask.$subject.tal.mgh
+
+  set cmd = (mri_convert $scm $xfmvol --apply_transform $xfm \
+    --resample_type nearest)
+  set cmd = ($cmd -oc 0 0 0 ); # sets output c_ras=0
+  echo $cmd | tee -a $LF
+  $cmd  |& tee -a $LF
+  if($status) then
+    pwd |& tee -a $LF
+    echo "ERROR: mri_convert failed." |& tee -a $LF
+    exit 1;
+  endif
+
+  set invollist = ($invollist $xfmvol);
+end
+
+# Average the volumes together
+set cmd = (mri_concat $invollist --mean --o $outvol)
+echo $cmd | tee -a $LF
+$cmd  | tee -a $LF
+if($status) exit 1;
+
+if($cleanup) rm -r $tmpdir
+
+
+date | tee -a $LF
+echo "make_average_subcort done" | tee -a $LF
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+set getting_subjects = 0;
+while( $#argv != 0 )
+
+  set flag = $argv[1];
+  if (! $getting_subjects) then
+    shift;
+  endif
+
+  switch($flag)
+
+    case "--help":
+      set PrintHelp = 1;
+      goto usage_exit;
+      exit 0;
+
+    case "--version":
+      echo $VERSION
+      exit 0;
+
+    case "--subjects":
+      if ( $#argv == 0) goto arg1moreerr;
+      set subjlist = $argv[1]; shift;
+      # loop on getting variable number of subject names
+      set getting_subjects = 1; # see 'default:' case
+      breaksw
+
+    case "--fsgd":
+      if ( $#argv == 0) goto arg1err;
+      set fsgdf = $argv[1]; shift;
+      if(! -e $fsgdf) then
+        echo "ERROR: cannot find $fsgdf";
+        exit 1;
+      endif
+      set sl = `cat $fsgdf | awk '{if($1 == "Input") print $2}'`;
+      set subjlist = ($sl);
+      breaksw
+
+    case "--o":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set outvol = $argv[1]; shift;
+      breaksw
+
+    case "--xform":
+      if ( $getting_subjects ) then
+        # got em all, from --subjects variable arg loop
+        set getting_subjects = 0;
+        shift;
+      endif
+      if ( $#argv == 0) goto arg1err;
+      set transform_fname = $argv[1]; shift;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    case "--debug":
+    case "--echo":
+      set echo = 1;
+      set verbose = 1
+      if ( $getting_subjects ) then
+        set getting_subjects = 0;
+        # got em all, from --subjects variable arg loop
+      endif
+      breaksw
+
+    default:
+      if ( $getting_subjects ) then
+        # loop on getting variable number of subjects,
+        # until a new flag is found, or no more args
+        set subjlist = ( $subjlist $argv[1] ); shift;
+        set getting_subjects = 1;
+      else
+        echo ERROR: Flag $flag unrecognized.
+        echo $cmdline
+        exit 1
+      endif
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outvol == 0) then
+  echo "ERROR: no output specified"
+  exit 1;
+endif
+if($#subjlist == 0) then
+  echo "ERROR: no subjects specified"
+  exit 1;
+endif
+foreach s ($subjlist)
+  if(! -e $SUBJECTS_DIR/$s) then
+    echo "ERROR: cannot find $s in $SUBJECTS_DIR"
+    exit 1;
+  endif
+end
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "make_average_subcort"
+  echo "  --subjects s1 s2 ..."
+  echo "  --o outvol"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This creates an average subcortical mask for the given inputs
+subjects. For each subject, we first create a binary mask from the
+aseg by removing the following structures:
+
+Background 0
+Cerebral Cortex 3 42
+Cerebral White Matter 2 41
+CC 251 252 253 254 255
+Cerebellar White Matter 7 46
+Ventricles 4 14 15 43 44 72 75 76 24
+Choroid Plexus 31 63
+
+This mask is then converted to "talairach" space (meaning, conformed
+MNI305 like fsaverage) using the talairach.xfm.  All the subjects are
+averaged together, so each voxel contains a number between 0 and 1,
+with 1 indicating that it is highly likely that there is a subcortical
+gray matter structure at that location. 
+
+The purpose of this is to create a mask for doing volume-based
+fMRI analysis of subcortical structure (assuming that the 
+cortical analysis is going to be done on the surface).
+
+Example Usage:
+
+make_average_subcort --o subcort.prob.mgz \ 
+  --subjects 004 008 017 021 032 039 040 045 049 067 073 074 \
+   080 084 091 092 093 095 097 099 102 103 106 108 111 114 123 \
+   124 128 129 130 131 133 136 138 140 141 144 145 149
