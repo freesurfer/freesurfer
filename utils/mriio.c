@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/01 16:25:19 $
- *    $Revision: 1.368 $
+ *    $Date: 2010/07/01 17:35:36 $
+ *    $Revision: 1.369 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -9729,7 +9729,7 @@ static int nifti1Write(MRI *mri0, const char *fname)
   // Check for ico7 surface
   if(mri0->width == 163842 && mri0->height == 1 && mri0->depth == 1){
     printf("nifit1Write: reshaping\n");
-    mri = mri_reshape(mri0,23406,1,7,mri0->nframes);
+    mri = mri_reshape(mri0,27307,1,6,mri0->nframes);
     FreeMRI=1;
   } else mri = mri0;
 
