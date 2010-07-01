@@ -11,8 +11,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 14:43:09 $
- *    $Revision: 1.87 $
+ *    $Date: 2010/07/01 16:29:20 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -346,7 +346,7 @@ MATRIX *MRIleftRightRevMatrix(MRI *mri);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surf2surf.c,v 1.87 2010/04/09 14:43:09 greve Exp $";
+static char vcid[] = "$Id: mri_surf2surf.c,v 1.88 2010/07/01 16:29:20 greve Exp $";
 char *Progname = NULL;
 
 char *srcsurfregfile = NULL;
@@ -466,7 +466,7 @@ int main(int argc, char **argv) {
   char *stem, *ext;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.87 2010/04/09 14:43:09 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surf2surf.c,v 1.88 2010/07/01 16:29:20 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -966,10 +966,10 @@ int main(int argc, char **argv) {
     MRISwriteAnnotation(TrgSurfReg, trgvalfile);
   } else {
     if (reshape) {
-      if (reshapefactor == 0)
-        reshapefactor = 
-          GetClosestPrimeFactor(TrgVals->width,reshapefactortarget);
-
+      if(reshapefactor == 0){
+	if(TrgSurfReg->nvertices == 163842) reshapefactor = 6;
+	else reshapefactor = GetClosestPrimeFactor(TrgVals->width,reshapefactortarget);
+      }
       printf("Reshaping %d (nvertices = %d)\n",reshapefactor,TrgVals->width);
       mritmp = mri_reshape(TrgVals, TrgVals->width / reshapefactor,
                            1, reshapefactor,TrgVals->nframes);
