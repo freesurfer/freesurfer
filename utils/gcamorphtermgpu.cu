@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/01 15:32:31 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/07/01 16:04:28 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1134,4 +1134,12 @@ void gcamJacobianTermGPU( GCA_MORPH *gcam,
   myTerms.Jacobian( myGCAM, l_jacobian, jac_scale );
   
   myGCAM.RecvAll( gcam );
+}
+
+//! Wrapper around GPU class for LogLikelihood term
+void gcamLogLikelihoodTermGPU( GCA_MORPH *gcam, 
+			       const MRI *mri, 
+			       const MRI *mri_smooth, 
+			       double l_log_likelihood ) {
+  myTerms.LLTDispatch( gcam, mri, mri_smooth, l_log_likelihood );
 }

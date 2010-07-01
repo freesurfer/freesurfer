@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/30 16:14:06 $
- *    $Revision: 1.199 $
+ *    $Date: 2010/07/01 16:04:27 $
+ *    $Revision: 1.200 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,6 +41,7 @@
 
 #define GCAM_SMOOTH_TERM_GPU
 #define GCAM_JACOB_TERM_GPU
+#define GCAM_LL_TERM_GPU
 #endif
 
 
@@ -183,10 +184,7 @@ static NODE_LOOKUP_TABLE *gcamCreateNodeLookupTable(GCA_MORPH *gcam,
 //static int gcamSetGradientToNbrAverage(GCA_MORPH *gcam, int x, int y, int z);
 static int gcamFreeNodeLookupTable(NODE_LOOKUP_TABLE **pnlt) ;
 static MRI *gcamCreateJacobianImage(GCA_MORPH *gcam) ;
-static int different_neighbor_labels( const GCA_MORPH *gcam, 
-				      const int x, const int y, const int z,
-				      const int whalf);
-static int zero_vals(float *vals, int nvals) ;
+
 #if 0
 static int gcamMLElabelAtLocation(GCA_MORPH *gcam, 
                                   int x, int y, int z, float *vals) ;
@@ -1585,12 +1583,20 @@ GCAMfreeContents(GCA_MORPH *gcam)
   Note:  d [ I(r)' C I(r), r] = delI * C * I(r)
   where delI(r) = 3xn, C=nxn, and I(r)=nx1
 */
+
+#define GCAM_LLT_OUTPUT 1
+
 int
 gcamLogLikelihoodTerm( GCA_MORPH *gcam, 
 		       const MRI *mri, 
 		       const MRI *mri_smooth, 
 		       double l_log_likelihood )
 {
+#ifdef GCAM_LL_TERM_GPU
+  if( DZERO(l_log_likelihood) ) {
+    return( NO_ERROR );
+  }
+#else
   int             x, y, z, n /*,label*/ ;
   double            dx, dy, dz, norm;
   float           vals[MAX_GCA_INPUTS] ;
@@ -1600,6 +1606,28 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
 
   if (DZERO(l_log_likelihood))
     return(NO_ERROR) ;
+
+#if GCAM_LLT_OUTPUT
+  const unsigned int gcamLLToutputFreq = 10;
+  static unsigned int nCalls = 0;
+
+  if( (nCalls%gcamLLToutputFreq)==0 ) {
+    char fname[STRLEN];
+    const unsigned int nOut = nCalls/gcamLLToutputFreq;
+    
+    snprintf( fname, STRLEN-1, "gcamLLTinput%04u", nOut );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+
+    snprintf( fname, STRLEN-1, "mriLLTinput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri, fname );
+
+    snprintf( fname, STRLEN-1, "mrismoothLLTinput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri_smooth, fname );
+
+  }
+#endif
+
 
   m_delI = MatrixAlloc(3, gcam->ninputs, MATRIX_REAL) ;
   m_inv_cov = MatrixAlloc(gcam->ninputs, gcam->ninputs, MATRIX_REAL) ;
@@ -1735,6 +1763,7 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
   MatrixFree(&m_inv_cov) ;
   VectorFree(&v_means) ;
   VectorFree(&v_grad) ;
+#endif
   return(NO_ERROR) ;
 }
 
@@ -8851,7 +8880,7 @@ GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam)
   return(NO_ERROR) ;
 }
 
-static int
+int
 zero_vals(float *vals, int nvals)
 {
   int n, z ;
@@ -8866,7 +8895,7 @@ zero_vals(float *vals, int nvals)
   return(z) ;
 }
 
-static int
+int
 different_neighbor_labels( const GCA_MORPH *gcam,
 			   const int x, const int y, const int z,
 			   const int whalf )

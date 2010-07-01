@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/18 16:36:39 $
- *    $Revision: 1.78 $
+ *    $Date: 2010/07/01 16:04:30 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -504,6 +504,13 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 			     const MRI *mri_smooth,
 			     double l_log_likelihood );
 
+
+  int zero_vals(float *vals, int nvals) ;
+
+  int different_neighbor_labels( const GCA_MORPH *gcam, 
+				 const int x, const int y, const int z,
+				 const int whalf);
+
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties
   void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
@@ -536,6 +543,11 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   void gcamJacobianTermGPU( GCA_MORPH *gcam,
 			    const float l_jacobian,
 			    const float jac_scale );
+
+  void gcamLogLikelihoodTermGPU( GCA_MORPH *gcam, 
+				 const MRI *mri, 
+				 const MRI *mri_smooth, 
+				 double l_log_likelihood );
 
   void gcamAddStatusGPU( GCA_MORPH *gcam, const int statusFlags );
   void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags );
