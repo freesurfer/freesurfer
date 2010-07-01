@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/30 19:45:11 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/07/01 15:32:31 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,6 +65,7 @@ namespace GPU {
 
     const unsigned int kGCAmorphJacobTermKernelSize = 16;
 
+    const unsigned int kGCAmorphLLTermKernelSize = 16;
 
     // ##############################################################
 
@@ -785,6 +786,7 @@ namespace GPU {
 			      const GPU::Classes::VolumeArgGPU<float> mean,
 			      const GPU::Classes::VolumeArgGPU<float> variance,
 			      const float3 mriSizes,
+			      const float l_log_likelihood,
 			      GPU::Classes::VolumeArgGPU<float> dx,
 			      GPU::Classes::VolumeArgGPU<float> dy,
 			      GPU::Classes::VolumeArgGPU<float> dz ) {
@@ -875,6 +877,24 @@ namespace GPU {
 	  }
 
 	  vMean *= invVariance;
+
+	  if( IS_UNKNOWN( label(ix,iy,iz) ) ) {
+	    if( FZERO(mriVal) ) {
+	      if( vMean >= 0.5f ) {
+		vMean = 0.5f;
+	      }
+	    } else {
+	      if( vMean > 2 ) {
+		vMean = 2;
+	      }
+	    }
+	  }
+
+
+	  dx(ix,iy,iz) += l_log_likelihood * mydx * vMean;
+	  dy(ix,iy,iz) += l_log_likelihood * mydy * vMean;
+	  dz(ix,iy,iz) += l_log_likelihood * mydz * vMean;
+	  
 	}
       }
     }
@@ -903,7 +923,30 @@ namespace GPU {
       this->BindMRI( mri );
       this->BindMRIsmooth( mri_smooth );
 
+      // Run the computation
+      dim3 threads, grid;
+      threads.x = threads.y = kGCAmorphLLTermKernelSize;
+      threads.z = 1;
 
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphLLTermKernelSize );
+      grid.z = 1;
+
+      GCAmorphTerm::tLogLikelihoodCompute.Start();
+      LogLikelihoodKernel<T,U><<<grid,threads>>>( gcam.d_invalid,
+						  gcam.d_label,
+						  gcam.d_status,
+						  gcam.d_rx,
+						  gcam.d_ry,
+						  gcam.d_rz,
+						  gcam.d_mean,
+						  gcam.d_variance,
+						  mri_smooth.GetSizes(),
+						  l_log_likelihood,
+						  gcam.d_dx,
+						  gcam.d_dy,
+						  gcam.d_dz );
+      CUDA_CHECK_ERROR( "LogLikelihoodKernel failed!" );
+      GCAmorphTerm::tLogLikelihoodCompute.Stop();
 
       // Release the MRI textures
       this->UnbindMRI<T>();
@@ -1028,6 +1071,8 @@ namespace GPU {
 
 
       std::cout << "Log Likelihood:" << std::endl;
+      std::cout << "      Compute : " << GCAmorphTerm::tLogLikelihoodCompute
+		<< std::endl;
       std::cout << "Total         : " << GCAmorphTerm::tLogLikelihoodTot
 		<< std::endl;
       std::cout << std::endl;
@@ -1051,6 +1096,7 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tJacobCompute;
 
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodTot;
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodCompute;
 
   }
 }
