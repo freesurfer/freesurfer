@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/01 17:35:36 $
- *    $Revision: 1.369 $
+ *    $Date: 2010/07/01 19:56:45 $
+ *    $Revision: 1.370 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -9896,7 +9896,7 @@ static int nifti1Write(MRI *mri0, const char *fname)
       }
 
   fclose(fp);
-  if(FreeMRI==0) MRIfree(&mri);
+  if(FreeMRI) MRIfree(&mri);
 
   return(NO_ERROR);
 
@@ -10699,7 +10699,7 @@ static int niiWrite(MRI *mri0, const char *fname)
 
   znzclose(fp);
 
-  if(FreeMRI==0) MRIfree(&mri);
+  if(FreeMRI) MRIfree(&mri);
 
   return(NO_ERROR);
 
