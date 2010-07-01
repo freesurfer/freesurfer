@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/24 18:15:18 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/07/01 17:06:25 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -208,7 +208,11 @@ void VolumeCropper::UpdateProps()
   
   m_boxSource->SetBounds( m_bounds );
   
-  int nScale = m_mri->GetProperties()->GetShowLabelOutline() ? 4 : 1;
+  int nScale = 1;
+  if ( m_mri->GetProperties()->GetShowLabelOutline() )
+    nScale = 4;
+  else if ( m_mri->GetProperties()->GetUpSampleMethod() )
+    nScale = 2;
   int ext[6];
   for ( int i = 0; i < 6; i++ )
     ext[i] = nScale * m_extent[i];
@@ -447,7 +451,7 @@ void VolumeCropper::DoListenToMessage( std::string const iMsg, void* iData, void
   {
     UpdateSliceActorVisibility();
   }
-  else if ( iMsg == "LabelOutlineChanged" )
+  else if ( iMsg == "ResampleFactorChanged" )
   {
     if ( iData == m_mri )
     {

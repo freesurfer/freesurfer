@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/30 21:36:34 $
- *    $Revision: 1.75 $
+ *    $Date: 2010/07/01 17:06:25 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1575,7 +1575,7 @@ void LayerMRI::UpdateLabelOutline()
       m_sliceActor3D[i]->SetPosition( pos );
     }
   }
-  this->SendBroadcast( "LabelOutlineChanged", this );
+  this->SendBroadcast( "ResampleFactorChanged", this );
 }
 
 void LayerMRI::UpdateUpSampleMethod()
@@ -1614,6 +1614,8 @@ void LayerMRI::UpdateUpSampleMethod()
       }
     }
   }
+  
+  this->SendBroadcast( "ResampleFactorChanged", this );
 }
 
 

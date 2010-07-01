@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/28 16:45:13 $
- *    $Revision: 1.127 $
+ *    $Date: 2010/07/01 17:06:25 $
+ *    $Revision: 1.128 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -884,7 +884,7 @@ void MainWindow::OnFileExit( wxCommandEvent& event )
 void MainWindow::OnActivate( wxActivateEvent& event )
 {
 #ifdef __WXGTK__
-  NeedRedraw();
+  NeedRedraw( 2 );
 #endif
   event.Skip();
 }
@@ -893,7 +893,7 @@ void MainWindow::OnIconize( wxIconizeEvent& event )
 {
 #ifdef __WXGTK__
   if ( !event.Iconized() )
-    NeedRedraw();
+    NeedRedraw( 2 );
 #endif
   event.Skip();
 }
@@ -1724,7 +1724,7 @@ void MainWindow::SetViewLayout( int nLayout )
   m_renderViewHolder->Layout();
   view[0]->SetFocus();
 
-  NeedRedraw();
+  NeedRedraw( 2 );
 }
 
 void MainWindow::SetMainView( int nView )
