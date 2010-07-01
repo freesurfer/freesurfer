@@ -23,11 +23,11 @@ namespace bpo = boost::program_options;
 
 // ==========================================================
 
-const string inFileDefault = "gcamSmoothTerminput";
+const string inFileDefault = "gcamLLTermInput";
 #ifdef FS_CUDA
-const string outFileDefault = "gcamSmoothTermoutputGPU";
+const string outFileDefault = "gcamLLTermOutputGPU";
 #else
-const string outFileDefault = "gcamSmoothTermoutputCPU";
+const string outFileDefault = "gcamLLTermOutputCPU";
 #endif
 
 const string mriFileDefault = "mri.mgz";
