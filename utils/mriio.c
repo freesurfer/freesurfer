@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/10 19:14:52 $
- *    $Revision: 1.367 $
+ *    $Date: 2010/07/01 16:25:19 $
+ *    $Revision: 1.368 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,6 +51,7 @@
 #include "error.h"
 #include "proto.h"
 #include "mri.h"
+#include "mri2.h"
 #include "macros.h"
 #include "diag.h"
 #include "minc_volume_io.h"
@@ -9100,10 +9101,12 @@ static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
 }
 
 /*------------------------------------------------------------------
-  nifti1Read() - note: there is also an niiRead(). Make sure to
-  edit both. NIFTI1 is defined to be the two-file NIFTI standard, ie,
-  there must be a .img and .hdr file. (see is_nifti1(char *fname))
-  -----------------------------------------------------------------*/
+  nifti1Read() - note: there is also an niiRead(). Make sure to edit
+  both. NIFTI1 is defined to be the two-file NIFTI standard, ie, there
+  must be a .img and .hdr file. (see is_nifti1(char *fname))
+  Automatically detects whether an input is Ico7 and
+  reshapes.
+   -----------------------------------------------------------------*/
 static MRI *nifti1Read(const char *fname, int read_volume)
 {
 
@@ -9112,7 +9115,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   char fname_stem[STRLEN];
   char *dot;
   FILE *fp;
-  MRI *mri;
+  MRI *mri, *mritmp;
   struct nifti_1_header hdr;
   int nslices;
   int fs_type;
@@ -9120,7 +9123,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   int swapped_flag;
   int n_read, i, j, k, t;
   int bytes_per_voxel, time_units, space_units;
-  int ncols;
+  int ncols, IsIco7=0;
 
   strcpy(fname_stem, fname);
   dot = strrchr(fname_stem, '.');
@@ -9308,15 +9311,18 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if(hdr.dim[1] > 0) ncols = hdr.dim[1];
   else ncols = hdr.glmin;
 
-  if(read_volume)
-    mri = MRIallocSequence
-          (ncols, hdr.dim[2], hdr.dim[3], fs_type, nslices);
-  else{
-    mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type);
-    mri->nframes = nslices;
-  }
+  if(ncols*hdr.dim[2]*hdr.dim[3] == 163842) IsIco7 = 1;
 
-  if (mri == NULL) return(NULL);
+  if(read_volume)
+    mri = MRIallocSequence(ncols, hdr.dim[2], hdr.dim[3], fs_type, nslices);
+  else{
+    if(! IsIco7)
+      mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type);
+    else
+      mri = MRIallocHeader(163842, 1, 1, fs_type);
+      mri->nframes = nslices;
+  }
+  if(mri == NULL) return(NULL);
 
   mri->xsize = hdr.pixdim[1];
   mri->ysize = hdr.pixdim[2];
@@ -9325,13 +9331,11 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if (hdr.dim[0] == 4) mri->tr = hdr.pixdim[4];
 
   // Set the vox2ras matrix
-  if (hdr.sform_code != 0)
-  {
+  if (hdr.sform_code != 0){
     // First, use the sform, if that is ok. Using the sform
     // first makes it more compatible with FSL.
     // fprintf(stderr, "INFO: using NIfTI-1 sform \n");
-    if (niftiSformToMri(mri, &hdr) != NO_ERROR)
-    {
+    if (niftiSformToMri(mri, &hdr) != NO_ERROR){
       MRIfree(&mri);
       return(NULL);
     }
@@ -9377,8 +9381,10 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if (hdr.dim[0] == 4)
     mri->tr = mri->tr * time_units_factor;
 
-  if (!read_volume)
+  if(!read_volume){
+    free(&hdr);
     return(mri);
+  }
 
   fp = fopen(img_fname, "r");
   if (fp == NULL)
@@ -9686,6 +9692,14 @@ static MRI *nifti1Read(const char *fname, int read_volume)
 
   fclose(fp);
 
+  // Check for ico7 surface
+  if(IsIco7){
+    printf("niiRead: reshaping\n");
+    mritmp = mri_reshape(mri,163842,1,1,mri->nframes);
+    MRIfree(&mri);
+    mri = mritmp;
+  }
+
   return(mri);
 
 } /* end nifti1Read() */
@@ -9693,9 +9707,10 @@ static MRI *nifti1Read(const char *fname, int read_volume)
 
 /*------------------------------------------------------------------
   nifti1Write() - note: there is also an niiWrite(). Make sure to
-  edit both.
+  edit both. Automatically detects whether an input is Ico7
+  and reshapes.
   -----------------------------------------------------------------*/
-static int nifti1Write(MRI *mri, const char *fname)
+static int nifti1Write(MRI *mri0, const char *fname)
 {
 
   FILE *fp;
@@ -9708,6 +9723,15 @@ static int nifti1Write(MRI *mri, const char *fname)
   char *dot;
   int error;
   int shortmax;
+  MRI *mri;
+  int FreeMRI = 0;
+
+  // Check for ico7 surface
+  if(mri0->width == 163842 && mri0->height == 1 && mri0->depth == 1){
+    printf("nifit1Write: reshaping\n");
+    mri = mri_reshape(mri0,23406,1,7,mri0->nframes);
+    FreeMRI=1;
+  } else mri = mri0;
 
   shortmax = (int)(pow(2.0,15.0));
   if(0 && mri->width > shortmax) {
@@ -9872,6 +9896,7 @@ static int nifti1Write(MRI *mri, const char *fname)
       }
 
   fclose(fp);
+  if(FreeMRI==0) MRIfree(&mri);
 
   return(NO_ERROR);
 
@@ -9879,13 +9904,14 @@ static int nifti1Write(MRI *mri, const char *fname)
 
 /*------------------------------------------------------------------
   niiRead() - note: there is also an nifti1Read(). Make sure to
-  edit both.
+  edit both. Automatically detects whether an input is Ico7
+  and reshapes.
   -----------------------------------------------------------------*/
 static MRI *niiRead(const char *fname, int read_volume)
 {
 
   znzFile fp;
-  MRI *mri;
+  MRI *mri,*mritmp;
   struct nifti_1_header hdr;
   int nslices;
   int fs_type;
@@ -9894,7 +9920,7 @@ static MRI *niiRead(const char *fname, int read_volume)
   int n_read, i, j, k, t;
   int bytes_per_voxel,time_units,space_units ;
   int use_compression, fnamelen;
-  int ncols;
+  int ncols, IsIco7=0;
 
   use_compression = 0;
   fnamelen = strlen(fname);
@@ -10075,14 +10101,17 @@ static MRI *niiRead(const char *fname, int read_volume)
   if(hdr.dim[1] > 0) ncols = hdr.dim[1];
   else ncols = hdr.glmin;
 
+  if(ncols*hdr.dim[2]*hdr.dim[3] == 163842) IsIco7 = 1;
+
   if (read_volume)
     mri = MRIallocSequence(ncols,hdr.dim[2],hdr.dim[3],fs_type,nslices);
-  else
-  {
-    mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type);
-    mri->nframes = nslices;
+  else{
+    if(! IsIco7)
+      mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type);
+    else
+      mri = MRIallocHeader(163842, 1, 1, fs_type);
+      mri->nframes = nslices;
   }
-
   if (mri == NULL) return(NULL);
 
   mri->xsize = hdr.pixdim[1];
@@ -10458,15 +10487,24 @@ static MRI *niiRead(const char *fname, int read_volume)
   }
   znzclose(fp);
 
+  // Check for ico7 surface
+  if(IsIco7){
+    printf("niiRead: reshaping\n");
+    mritmp = mri_reshape(mri,163842,1,1,mri->nframes);
+    MRIfree(&mri);
+    mri = mritmp;
+  }
+
   return(mri);
 
 } /* end niiRead() */
 
 /*------------------------------------------------------------------
   niiWrite() - note: there is also an nifti1Write(). Make sure to
-  edit both.
+  edit both. Automatically detects whether an input is Ico7
+  and reshapes.
   -----------------------------------------------------------------*/
-static int niiWrite(MRI *mri, const char *fname)
+static int niiWrite(MRI *mri0, const char *fname)
 {
 
   znzFile fp;
@@ -10475,11 +10513,20 @@ static int niiWrite(MRI *mri, const char *fname)
   char *chbuf;
   struct nifti_1_header hdr;
   int error, shortmax, use_compression, fnamelen, nfill;
+  MRI *mri=NULL;
+  int FreeMRI=0;
 
   use_compression = 0;
   fnamelen = strlen(fname);
   if (fname[fnamelen-1] == 'z') use_compression = 1;
   if (Gdiag_no > 0) printf("niiWrite: use_compression = %d\n",use_compression);
+
+  // Check for ico7 surface
+  if(mri0->width == 163842 && mri0->height == 1 && mri0->depth == 1){
+    printf("niiWrite: reshaping\n");
+    mri = mri_reshape(mri0,27307,1,6,mri0->nframes);
+    FreeMRI=1;
+  } else mri = mri0;
 
   shortmax = (int)(pow(2.0,15.0));
   if(0 && mri->width > shortmax) {
@@ -10651,6 +10698,8 @@ static int niiWrite(MRI *mri, const char *fname)
       }
 
   znzclose(fp);
+
+  if(FreeMRI==0) MRIfree(&mri);
 
   return(NO_ERROR);
 
