@@ -16,6 +16,13 @@ function hdr = load_nifti(niftifile,hdronly)
 % hdr.vox2ras is the vox2ras matrix based on sform (if valid), then
 % qform.
 %
+% Handles data structures with more than 32k cols by looking for
+% hdr.dim(2) = -1 in which case ncols = hdr.glmin. This is FreeSurfer
+% specific, for handling surfaces. When the total number of spatial
+% voxels equals 163842, then the volume is reshaped to
+% 163842x1x1xnframes. This is for handling the 7th order icosahedron
+% used by FS group analysis.
+%
 % See also: load_nifti_hdr.m
 %
 
@@ -26,8 +33,8 @@ function hdr = load_nifti(niftifile,hdronly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2009/07/01 17:12:55 $
-%    $Revision: 1.15 $
+%    $Date: 2010/07/01 17:31:19 $
+%    $Revision: 1.16 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -78,11 +85,28 @@ if(isempty(hdr))
   return; 
 end
 
+% Check for ico7
+nspatial = prod(hdr.dim(2:4));
+IsIco7 = 0;
+if(nspatial == 163842) IsIco7 = 1; end
+
 % If only header is desired, return now
 if(hdronly) 
   if(gzipped >=0) unix(sprintf('rm %s', niftifile)); end
+  if(IsIco7)
+    % Reshape
+    hdr.dim(2) = 163842;
+    hdr.dim(3) = 1;
+    hdr.dim(4) = 1;
+  end
   return; 
 end
+
+% Get total number of voxels
+dim = hdr.dim(2:end);
+ind0 = find(dim==0);
+dim(ind0) = 1;
+nvoxels = prod(dim);
 
 % Open to read the pixel data
 fp = fopen(niftifile,'r',hdr.endian);
@@ -112,18 +136,20 @@ if(gzipped >=0)
   unix(sprintf('rm %s', niftifile)); 
 end
 
-% Get total number of voxels
-dim = hdr.dim(2:end);
-ind0 = find(dim==0);
-dim(ind0) = 1;
-nvoxels = prod(dim);
-
 % Check that that many voxels were read in
 if(nitemsread ~= nvoxels) 
   fprintf('ERROR: %s, read in %d voxels, expected %d\n',...
 	  niftifile,nitemsread,nvoxels);
   hdr = [];
   return;
+end
+
+if(IsIco7)
+  fprintf('load_nifti: ico7 reshaping\n');
+  hdr.dim(2) = 163842;
+  hdr.dim(3) = 1;
+  hdr.dim(4) = 1;
+  dim = hdr.dim(2:end);  
 end
 
 hdr.vol = reshape(hdr.vol, dim');

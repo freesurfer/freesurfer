@@ -3,11 +3,14 @@ function err = save_nifti(hdr,niftifile)
 %
 % Pixel data should be in hdr.vol
 %
-% Handles data structures with more than 32k cols by
-% setting hdr.dim(2) = -1 and hdr.glmin = ncols. This
-% is FreeSurfer specific, for handling surfaces.
+% Handles data structures with more than 32k cols by setting
+% hdr.dim(2) = -1 and hdr.glmin = ncols. This is FreeSurfer specific,
+% for handling surfaces. The exception to this is when the total
+% number of spatial voxels equals 163842, then the volume is 
+% reshaped to 27307x1x6xnframes. This is for handling the 7th
+% order icosahedron used by FS group analysis.
 %
-% $Id: save_nifti.m,v 1.9 2008/11/18 20:50:03 greve Exp $
+% $Id: save_nifti.m,v 1.10 2010/07/01 17:31:19 greve Exp $
 
 %
 % save_nifti.m
@@ -15,8 +18,8 @@ function err = save_nifti(hdr,niftifile)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2008/11/18 20:50:03 $
-%    $Revision: 1.9 $
+%    $Date: 2010/07/01 17:31:19 $
+%    $Revision: 1.10 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -46,6 +49,14 @@ else
   gzip_needed = 0;
 end
 
+% Check for ico7
+sz = size(hdr.vol);
+nspatial = prod(sz(1:3));
+if(nspatial == 163842)
+  fprintf('save_nifti: ico7 reshaping\n');
+  dim = [27307 1 6 hdr.dim(4)];
+  hdr.vol = reshape(hdr.vol, dim);
+end
 
 fp = fopen(niftifile,'w');
 if(fp == -1)
