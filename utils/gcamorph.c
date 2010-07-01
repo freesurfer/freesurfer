@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/01 16:04:27 $
- *    $Revision: 1.200 $
+ *    $Date: 2010/07/01 16:56:34 $
+ *    $Revision: 1.201 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1584,7 +1584,7 @@ GCAMfreeContents(GCA_MORPH *gcam)
   where delI(r) = 3xn, C=nxn, and I(r)=nx1
 */
 
-#define GCAM_LLT_OUTPUT 1
+#define GCAM_LLT_OUTPUT 0
 
 int
 gcamLogLikelihoodTerm( GCA_MORPH *gcam, 
@@ -1596,6 +1596,8 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
   if( DZERO(l_log_likelihood) ) {
     return( NO_ERROR );
   }
+
+  gcamLogLikelihoodTermGPU( gcam, mri, mri_smooth, l_log_likelihood );
 #else
   int             x, y, z, n /*,label*/ ;
   double            dx, dy, dz, norm;
@@ -1624,8 +1626,9 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
 
     snprintf( fname, STRLEN-1, "mrismoothLLTinput%04u.mgz", nOut );
     MRIwrite( (MRI*)mri_smooth, fname );
-
   }
+
+  nCalls++;
 #endif
 
 

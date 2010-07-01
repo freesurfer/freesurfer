@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/01 16:04:28 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/07/01 16:56:35 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1141,5 +1141,6 @@ void gcamLogLikelihoodTermGPU( GCA_MORPH *gcam,
 			       const MRI *mri, 
 			       const MRI *mri_smooth, 
 			       double l_log_likelihood ) {
+
   myTerms.LLTDispatch( gcam, mri, mri_smooth, l_log_likelihood );
 }
