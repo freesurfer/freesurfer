@@ -9,10 +9,10 @@
  * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/18 20:23:47 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/07/02 17:31:52 $
+ *    $Revision: 1.17 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -864,12 +863,14 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_pretess.c,v 1.16 2007/01/18 20:23:47 nicks Exp $", 
+     "$Id: mri_pretess.c,v 1.17 2010/07/02 17:31:52 nicks Exp $", 
      "$Name:  $");
+  if (nargs && argc - nargs == 1)
+    exit (0);
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mri_pretess.c,v 1.16 2007/01/18 20:23:47 nicks Exp $", 
+     "$Id: mri_pretess.c,v 1.17 2010/07/02 17:31:52 nicks Exp $", 
      "$Name:  $", 
      cmdline);
 
