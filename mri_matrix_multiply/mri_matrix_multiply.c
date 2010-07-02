@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/20 14:54:17 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/07/02 17:11:29 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,6 +47,7 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat);
 int write_mat(int argc, char *argv[], int i, MATRIX *in_mat);
 
 char subject_name[STR_LEN];
+char *subjnameuse=NULL;
 float ipr, st, brightness;
 int register_stuff_defined = 0;
 int fsl_flag = 0;
@@ -59,6 +60,7 @@ static void usage(int exit_val) {
   fprintf(stderr, "  -v verbose\n");
   fprintf(stderr, "  -fsl : assume input/output are FSL-style matrix files\n");
   fprintf(stderr, "  -bin : 'binarize' output matrix.\n");
+  fprintf(stderr, "  -s subject : use subject for subjectname in output reg.dat files\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "'-im file' specifies input matrix files\n");
   fprintf(stderr, "'-iim file' specifies input matrix files to be inverted before multiplication\n");
@@ -83,7 +85,7 @@ int main(int argc, char *argv[]) {
   double v;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.10 2010/05/20 14:54:17 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.11 2010/07/02 17:11:29 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -107,6 +109,9 @@ int main(int argc, char *argv[]) {
     } else if (strcmp(argv[i], "-iim") == 0) {
       in_names[n_in] = -(i+1);
       n_in++;
+      i++;
+    } else if (strcmp(argv[i], "-s") == 0) {
+      subjnameuse = argv[i+1];
       i++;
     } else if (strcmp(argv[i], "-om") == 0) {
       out_names[n_out] = i+1;
@@ -305,7 +310,9 @@ int write_mat(int argc, char *argv[], int i, MATRIX *out_mat) {
       return(-1);
     }
 
-    fprintf(fout, "%s\n", subject_name);
+    if(subjnameuse == NULL) subjnameuse = subject_name;
+
+    fprintf(fout, "%s\n", subjnameuse);
     fprintf(fout, "%f\n", ipr);
     fprintf(fout, "%f\n", st);
     fprintf(fout, "%f\n", brightness);
