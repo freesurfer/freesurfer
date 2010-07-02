@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/01 16:56:34 $
- *    $Revision: 1.201 $
+ *    $Date: 2010/07/02 15:04:00 $
+ *    $Revision: 1.202 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1597,6 +1597,7 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
     return( NO_ERROR );
   }
 
+  printf( "%s: On GPU\n", __FUNCTION__ );
   gcamLogLikelihoodTermGPU( gcam, mri, mri_smooth, l_log_likelihood );
 #else
   int             x, y, z, n /*,label*/ ;
