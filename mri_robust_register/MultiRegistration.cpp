@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/06/14 21:15:12 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/07/02 14:17:27 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -172,8 +172,8 @@ void MultiRegistration::initRegistration(Registration & R)
 //  // if (P.subsamplesize > 0) R.setSubsamplesize(P.subsamplesize);
 //
 //
-//   R.setSource(P.mri_mov[n],P.fixvoxel,P.fixtype);
-//   R.setTarget(P.mri_mean,P.fixvoxel,P.fixtype);
+//   R.setSource(P.mri_mov[n],P.fixvoxel,P.keeptype);
+//   R.setTarget(P.mri_mean,P.fixvoxel,P.keeptype);
 }
 
 bool MultiRegistration::averageSet(int itdebug)
@@ -329,7 +329,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
   }
   
   vector < Registration > Rv(mri_mov.size());
-  for (int i = 0;i<nin;i++) Rv[i].setSource(mri_mov[i],fixvoxel,fixtype);
+  for (int i = 0;i<nin;i++) Rv[i].setSource(mri_mov[i],fixvoxel,keeptype);
 
   LTA * lastlta = NULL;
   while (itcount < itmax && maxchange > eps)
@@ -357,7 +357,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
       initRegistration(Rv[i]); //set parameter
       Rv[i].setTarget(mri_mean,
                       fixvoxel,
-                      fixtype); // gaussian pyramid will be constructed for
+                      keeptype); // gaussian pyramid will be constructed for
                                   // each Rv[i], could be optimized
       ostringstream oss;
       oss << outdir << "tp" << i+1 << "_to_template-it" << itcount;
@@ -575,7 +575,7 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
 
   Registration R;
   initRegistration(R); //set parameter
-  R.setSourceAndTarget(mri_mov[0],mri_mov[1],fixvoxel,fixtype);
+  R.setSourceAndTarget(mri_mov[0],mri_mov[1],keeptype);
 
   ostringstream oss;
   oss << outdir << "halfway_template.mgz";
@@ -726,7 +726,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     
     Registration R;
     initRegistration(R); //set parameter
-    R.setSourceAndTarget(mri_mov[j],mri_mov[tpi],fixvoxel,fixtype);
+    R.setSourceAndTarget(mri_mov[j],mri_mov[tpi],keeptype);
     R.setName(oss.str());
 		
     // compute Alignment (maxres,iterate,epsit) are passed above

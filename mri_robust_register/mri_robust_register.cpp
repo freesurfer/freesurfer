@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/06/14 21:15:12 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/07/02 14:17:28 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -94,8 +94,8 @@ struct Parameters
   bool   satit;
   bool   satest;
   bool   nomulti;
-  bool   fixvoxel;
-  bool   fixtype;
+  bool   conform;
+  bool   keeptype;
   bool   lta_vox2vox;
   bool   affine;
   bool   iscale;
@@ -128,7 +128,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.31 2010/06/14 21:15:12 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.32 2010/07/02 14:17:28 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -196,6 +196,7 @@ int main(int argc, char *argv[])
 {
   { // for valgrind, so that everything is freed
   cout << vcid << endl << endl;
+//  setenv("SURFER_FRONTDOOR","",1) ;
   // set the environment variable
   // to store mri as chunk in memory:
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
@@ -776,13 +777,13 @@ static void printUsage(void)
 
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
   cout << "  --iscale               estimate intensity scale factor (default no)" << endl;
-  cout << "                                !!Highly recommended for unnormalized images!!" << endl;
+  cout << "                            !!Highly recommended for unnormalized images!!" << endl;
   cout << "  --transonly            find 3 parameter translation only" << endl;
   cout << "  --transform lta        use initial transform lta on source ('id'=identity)" << endl;
-  cout << "                                default is align center (using moments)" << endl;
+  cout << "                            default is align center (using moments)" << endl;
   cout << "  --initorient           use moments for orientation init. (default false)" << endl;
-  cout << "                                (recommended for stripped brains, but not with" << endl;
-  cout << "                                 with full head images with different cropping)"<<endl;
+  cout << "                            (recommended for stripped brains, but not with" << endl;
+  cout << "                             with full head images with different cropping)"<<endl;
 	cout << "  --noinit               skip transform init, default: transl. of centers" << endl;
   cout << "  --vox2vox              output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  --leastsquares         use least squares instead of robust M-estimator" << endl;
@@ -790,16 +791,17 @@ static void printUsage(void)
   cout << "  --highit <#>           iterate max # times on highest resol. (default "<<P.iterate<<")"  << endl;
   cout << "  --epsit <real>         stop iterations when below <real> (default "<<P.epsit <<")" << endl;
   cout << "  --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "  --sat <real>           set outlier sensitivity manually (e.g. '--sat 4.685' )" << endl;
-	cout << "                                 higher values mean less sensitivity" << endl;
+  cout << "  --sat <real>           set outlier sensitivity explicitly (e.g. '--sat 4.685' )" << endl;
+	cout << "                             higher values mean less sensitivity" << endl;
+//	cout << "                             default: automatically determine sat for head scans" << endl;
   cout << "  --satit                auto-detect good sensitivity (for head scans)" << endl;
 	cout << "  --wlimit <real>        sets maximal outlier limit in satit (default "<<P.wlimit<<")" << endl;
   cout << "  --subsample <#>        subsample if dim > # on all axes (default no subs.)" << endl;
   cout << "  --doublesvd            double svd (instead of float) ~1Gig more memory" << endl;
   cout << "  --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
   cout << "  --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
-  //cout << "  --uchar                set volumes type to UCHAR (with intens. scaling)" << endl;
-  cout << "  --conform              conform volumes to 1mm vox (256^3)" << endl;
+//  cout << "  --conform              conform output volumes 1mm uchar vox (256^3)" << endl; // not implemented
+//  cout << "  --keeptype             keep input image type in algorithm (default float)" << endl; // implemented, but expert only
   cout << "  --debug                create debug hw-images (default: no debug files)" << endl;
   cout << "  --verbose              0 quiet, 1 normal (default), 2 detail" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
@@ -1025,8 +1027,7 @@ static void initRegistration(Registration & R, Parameters & P)
     MRIfree(&mri_mask) ;
   }
 
-	
-  R.setSourceAndTarget(mri_mov,mri_dst,P.fixvoxel,P.fixtype);
+  R.setSourceAndTarget(mri_mov,mri_dst,P.keeptype);
   MRIfree(&mri_mov);
   MRIfree(&mri_dst);
 
@@ -1249,15 +1250,15 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "CONFORM") )
   {
-    P.fixvoxel = true;
+    P.conform = true;
     nargs = 0 ;
     cout << "Will conform images to 256^3 and voxels to 1mm!" << endl;
   }
-  else if (!strcmp(option, "UCHAR") )
+  else if (!strcmp(option, "KEEPTYPE") )
   {
-    P.fixtype = true;
+    P.keeptype = true;
     nargs = 0 ;
-    cout << "Changing type to UCHAR (with intesity scaling)!" << endl;
+    cout << "Keeping image type as input!" << endl;
   }
   else if (!strcmp(option, "SATEST") )
   {

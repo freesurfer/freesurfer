@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/06/14 21:20:57 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/07/02 14:17:28 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -95,7 +95,7 @@ static struct Parameters P =
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
-static char vcid[] = "$Id: mri_create_tests.cpp,v 1.2 2010/06/14 21:20:57 mreuter Exp $";
+static char vcid[] = "$Id: mri_create_tests.cpp,v 1.3 2010/07/02 14:17:28 mreuter Exp $";
 char *Progname = NULL;
 
 
@@ -531,7 +531,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.outlierbox = atoi(argv[1]);
     nargs = 1 ;
-    cout << "Inserting outlier box at 0 .. " << P.outlierbox << " ." << endl;
+    cout << "Inserting outlier box at 128 .. " << P.outlierbox << " ." << endl;
   }
   else if (!strcmp(option, "TRANSLATION")  )
   {

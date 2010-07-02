@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/01 23:51:39 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/07/02 14:17:28 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -117,9 +117,9 @@ public:
   {
     Minit =m;
   };
-  void setSource (MRI * s, bool fixvoxel = false, bool fixtype = false);
-  void setTarget (MRI * t, bool fixvoxel = false, bool fixtype = false);
-	void setSourceAndTarget(MRI * s, MRI * t, bool fixvoxel = false, bool fixtype = false);
+  void setSource (MRI * s, bool conform = false, bool keeptype = false);
+  void setTarget (MRI * t, bool conform = false, bool keeptype = false);
+	void setSourceAndTarget(MRI * s, MRI * t, bool keeptype = false);
   void setSubsamplesize (int sss)
   {
     subsamplesize = sss;

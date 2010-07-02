@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/06/15 16:44:29 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/07/02 14:17:28 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -96,7 +96,7 @@ struct Parameters
   vector <string> nltas;
   vector <string> nweights;
   bool   fixvoxel;
-  bool   fixtype;
+  bool   keeptype;
   bool   lta_vox2vox;
   bool   affine;
   bool   iscale;
@@ -154,7 +154,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.19 2010/06/15 16:44:29 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.20 2010/07/02 14:17:28 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -165,6 +165,7 @@ int main(int argc, char *argv[])
 {
   cout << vcid << endl << endl;
   // set the environment variable
+//  setenv("SURFER_FRONTDOOR","",1) ;
   // to store mri as chunk in memory:
 //  setenv("FS_USE_MRI_CHUNK","",1) ;
   if (getenv("FS_USE_MRI_CHUNK") != NULL)
@@ -213,7 +214,7 @@ int main(int argc, char *argv[])
   MR.setSaturation(P.sat);
   MR.setSatit(P.satit);
 	MR.setFixVoxel(P.fixvoxel);
-	MR.setFixType(P.fixtype);
+	MR.setKeepType(P.keeptype);
 	MR.setAverage(P.average);
 	MR.setFloatSVD(!P.doublesvd);
 	MR.setSubsamplesize(P.subsamplesize);
@@ -361,7 +362,7 @@ static void printUsage(void)
 //  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
 //  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
 //  cout << "  --uchar                    set input type to UCHAR (with intensity scaling)" << endl;
-  cout << "  --conform conform.mgz      output conform template, 1mm vox (256^3)" << endl;
+//  cout << "  --conform conform.mgz      output conform template, 1mm vox (256^3)" << endl;
   cout << "  --debug                    show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
@@ -604,12 +605,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 //     nargs = 0 ;
 //     cout << "Will conform images to 256^3 and voxels to 1mm!" << endl;
 //   }
-//   else if (!strcmp(option, "UCHAR") )
-//   {
-//     P.fixtype = true;
-//     nargs = 0 ;
-//     cout << "Changing type to UCHAR (with intesity scaling)!" << endl;
-//   }
+  else if (!strcmp(option, "KEEPTYPE") )
+  {
+     P.keeptype = true;
+     nargs = 0 ;
+     cout << "Keeping image type as input!" << endl;
+ 	}
   else if (!strcmp(option, "INITTP") )
   {
     P.inittp = atoi(argv[1]);

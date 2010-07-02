@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/03/01 23:51:39 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/07/02 14:17:27 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -57,11 +57,11 @@ class MultiRegistration
 public:
    MultiRegistration():outdir("./"),transonly(false),rigid(true),robust(true),sat(4.685),satit(false),
 	                     debug(0),iscale(false),subsamplesize(-1),fixvoxel(false),
-											 fixtype(false),average(1),floatsvd(true),mri_mean(NULL)
+											 keeptype(false),average(1),floatsvd(true),mri_mean(NULL)
 		{};
 	 MultiRegistration(const std::vector < std::string > mov):outdir("./"),transonly(false),
 	                     rigid(true),robust(true),sat(4.685),satit(false),debug(0),iscale(false),
-											 subsamplesize(-1),fixvoxel(false),fixtype(false),average(1),floatsvd(true),
+											 subsamplesize(-1),fixvoxel(false),keeptype(false),average(1),floatsvd(true),
 											 mri_mean(NULL)
 	  { loadMovables(mov);};
 		
@@ -121,9 +121,9 @@ public:
   {
     fixvoxel = i;
   };
-  void setFixType(bool i)
+  void setKeepType(bool i)
   {
-    fixtype = i;
+    keeptype = i;
   };
   void setAverage(int i)
   {
@@ -173,7 +173,7 @@ private:
 	int    subsamplesize;
 	
   bool   fixvoxel;
-  bool   fixtype;
+  bool   keeptype;
   int    average;
 	bool floatsvd;
 	

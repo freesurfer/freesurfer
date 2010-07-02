@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/05/06 19:48:34 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/07/02 14:17:27 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -3386,7 +3386,7 @@ int Registration::init_scaling(MRI *mri_in, MRI *mri_ref, MATRIX *m_L)
   return(NO_ERROR) ;
 }
 
-void Registration::setSourceAndTarget (MRI * s,MRI * t, bool fixvoxel, bool fixtype)
+void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 // both need to be in the same voxel space
 {
   cout << "Registration::setSourceAndTarget ..." << endl;
@@ -3407,7 +3407,7 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool fixvoxel, bool fixt
   cout << "   Asserting " << minsize <<"mm isotropic and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
 
   // source
-	pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,minsize,s_dim[0],s_dim[1],s_dim[2],fixtype);
+	pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,minsize,s_dim[0],s_dim[1],s_dim[2],keeptype);
 	if (mri_source) MRIfree(&mri_source);
 	mri_source = mm.first;
 	Rsrc = mm.second;
@@ -3418,7 +3418,7 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool fixvoxel, bool fixt
   }
 	   
 	// target
-	mm = makeIsotropic(t,NULL,minsize,s_dim[0],s_dim[1],s_dim[2],fixtype);
+	mm = makeIsotropic(t,NULL,minsize,s_dim[0],s_dim[1],s_dim[2],keeptype);
 	if (mri_target) MRIfree(&mri_target);
 	mri_target = mm.first;
 	Rtrg = mm.second;
@@ -3436,79 +3436,49 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool fixvoxel, bool fixt
 }
 
 
-void Registration::setSource (MRI * s, bool fixvoxel, bool fixtype)
+void Registration::setSource (MRI * s, bool conform, bool keeptype)
 //local copy
 {
-  if (! (fixvoxel || fixtype))
+  double vsize = -1.0;
+  if (conform)
 	{
+	  vsize = 1.0;
+	}
 	
-   // if (s->xsize != 1 || s->ysize != 1 || s->zsize != 1)
-    if (s->xsize != s->ysize || s->ysize != s->zsize )
-	  {
-// 		  cerr << "Cannot deal naturally with non-uniform voxels! " << endl;
-// 		  cerr << "Source voxel sizes: " << s->xsize << " , " << s->ysize  << " , " <<  s->zsize << endl;
-// 		  cerr << "  --> Try the option '--conform' ..." << endl;
-// 		  exit(1);
-        fixvoxel = true;
-	  }
-	  else
-		{
-		   mri_source = MRIcopy(s,mri_source);
-			 Rsrc.set_identity();
-		}
-	}
-  
-	if (fixvoxel || fixtype)
+	pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,vsize,-1,-1,-1,keeptype);
+  if (mri_source) MRIfree(&mri_source);
+	mri_source = mm.first;
+	Rsrc = mm.second;
+	if (debug)
 	{
-	   pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,-1,-1,-1,-1,fixtype);
-		 if (mri_source) MRIfree(&mri_source);
-		 mri_source = mm.first;
-		 Rsrc = mm.second;
-		 if (debug)
-		 {
-		   string n = name+string("-mriS-resample.mgz");
-       MRIwrite(mri_source,n.c_str());
-     }
-	}
+		string n = name+string("-mriS-resample.mgz");
+    MRIwrite(mri_source,n.c_str());
+  }
+	
   if (gpS.size() > 0) freeGaussianPyramid(gpS);
 	centroidS.clear();
   //cout << "mri_source" << mri_source << endl;
 }
 
-void Registration::setTarget (MRI * t, bool fixvoxel, bool fixtype)
+void Registration::setTarget (MRI * t, bool conform, bool keeptype)
 //local copy
 {
-  if (! (fixvoxel || fixtype))
+  double vsize = -1.0;
+  if (conform)
 	{
-	
-    if (t->xsize != t->ysize || t->ysize != t->zsize )
-	  {
-// 		  cerr << "Cannot deal naturally with non-uniform voxels! " << endl;
-// 		  cerr << "Target voxel sizes: " << t->xsize << " , " << t->ysize  << " , " <<  t->zsize << endl;
-// 		  cerr << "  --> Try the option '--conform' ..." << endl;
-// 		  exit(1);
-        fixvoxel = true;
-	  }
-		else
-		{
-		   mri_target = MRIcopy(t,mri_target);
-			 Rtrg.set_identity();
-		}
-  }
-	
-  
-  if ( (fixvoxel || fixtype))
-	{
-	   pair < MRI*, vnl_matrix_fixed <double, 4, 4> > mm = makeIsotropic(t,NULL,-1,-1,-1,-1,fixtype);
-		 if (mri_target) MRIfree(&mri_target);
-		 mri_target = mm.first;
-		 Rtrg = mm.second;
-		 if (debug)
-		 {
-		   string n = name+string("-mriT-resample.mgz");
-       MRIwrite(mri_target,n.c_str());
-     }
+	  vsize = 1.0;
 	}
+	
+  pair < MRI*, vnl_matrix_fixed <double, 4, 4> > mm = makeIsotropic(t,NULL,vsize,-1,-1,-1,keeptype);
+  if (mri_target) MRIfree(&mri_target);
+	mri_target = mm.first;
+	Rtrg = mm.second;
+	if (debug)
+	{
+		 string n = name+string("-mriT-resample.mgz");
+     MRIwrite(mri_target,n.c_str());
+  }
+
   if (gpT.size() > 0) freeGaussianPyramid(gpT);
 	centroidT.clear();
   //cout << "mri_target" << mri_target << endl;
@@ -3528,13 +3498,27 @@ void Registration::setName(const std::string &n)
 
 
 std::pair < MRI* , vnl_matrix_fixed <double, 4, 4> >
-Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim, int zdim, bool fixtype)
+Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim, int zdim, bool keeptype)
 // makes the voxel size isotropic (and vox2ras map standard)
 {
+  // don't change type if keeptype or if already float:
+  bool notypeconvert = (keeptype || mri->type == MRI_FLOAT);
+	// dont change voxel size if 
+	// if already conform and no vsize specified
+	bool novoxconvert  = (vsize < 0 && mri->xsize == mri->ysize && mri->ysize == mri->zsize );
+	// if conform like vsize and no dims specified:
+	bool conformvsize = (mri->xsize == vsize && mri->ysize == vsize && mri->zsize== vsize);
+	novoxconvert = novoxconvert || (xdim < 0 && ydim < 0 && zdim < 0  && conformvsize);
+	// or if all values are specified and agree:
+	bool dimagree = (xdim == mri->width && ydim== mri->height && zdim ==mri->width);
+	novoxconvert = novoxconvert || (conformvsize && dimagree);
+	
 
   out = MRIcopy(mri,out);
-	
 	vnl_matrix_fixed < double , 4, 4> Rm;Rm.set_identity();
+	
+	if (novoxconvert && notypeconvert )
+	   return std::pair < MRI *,vnl_matrix_fixed < double, 4, 4> >(out,Rm);
 	
 	// determine conform size
   double conform_size = vsize;
@@ -3575,12 +3559,14 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
 	}
 
 	
-  MRI * temp = MRIallocHeader(conform_dimensions[0], conform_dimensions[1], conform_dimensions[2], MRI_UCHAR);
+ // MRI * temp = MRIallocHeader(conform_dimensions[0], conform_dimensions[1], conform_dimensions[2], MRI_UCHAR);
+  MRI * temp = MRIallocHeader(conform_dimensions[0], conform_dimensions[1], conform_dimensions[2], MRI_FLOAT);
   MRIcopyHeader(mri, temp);
   temp->width  = conform_dimensions[0];
 	temp->height = conform_dimensions[1];
 	temp->depth  = conform_dimensions[2];
-  temp->type   = MRI_UCHAR;
+//  temp->type   = MRI_UCHAR;
+  temp->type   = MRI_FLOAT;
   temp->imnr0  = 1;
   temp->imnr1  = temp->depth;
   temp->thick  = conform_size;
@@ -3605,9 +3591,9 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
 //   temp->z_s =  0.0;
 
   /* ----- change type if necessary ----- */
-  int no_scale_flag = FALSE;
-  if (mri->type != temp->type && fixtype)
+  if (mri->type != temp->type && !keeptype)
   {
+    int no_scale_flag = FALSE;
     printf("changing data type from %d to %d (noscale = %d)...\n",
            mri->type,temp->type,no_scale_flag);
     MRI * mri2  = MRISeqchangeType(out, temp->type, 0.0, 0.999, no_scale_flag);
