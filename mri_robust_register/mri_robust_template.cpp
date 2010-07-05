@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/02 14:17:28 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/07/05 15:55:46 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -116,6 +116,7 @@ struct Parameters
 	bool   satit;
 	string conform;
 	bool   doublesvd;
+	bool   oneminusweights;
 };
 
 // Initializations:
@@ -154,7 +155,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.20 2010/07/02 14:17:28 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.21 2010/07/05 15:55:46 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -303,7 +304,7 @@ int main(int argc, char *argv[])
       }
 	  }
   }
-  if (!P.leastsquares && P.nweights.size() > 0) MR.writeWeights(P.nweights);
+  if (!P.leastsquares && P.nweights.size() > 0) MR.writeWeights(P.nweights,P.oneminusweights);
 
   ///////////////////////////////////////////////////////////////
   msec = TimerStop(&start) ;
@@ -617,6 +618,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1 ;
     if (P.inittp ==0 ) cout<< " No initialization, construct first mean from original TPs" << endl;
     else cout << "Using TP " <<P.inittp <<" as target for initialization" << endl;
+  }
+  else if (!strcmp(option, "ONEMINUSW") )
+  {
+    P.oneminusweights = true;
+    nargs = 0 ;
+    cout << "Will output 1-weights!" << endl;
   }
   else
   {

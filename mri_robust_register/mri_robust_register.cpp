@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/02 14:17:28 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/07/05 15:55:44 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -118,9 +118,10 @@ struct Parameters
 	int    highit;
 	bool   doublesvd;
 	double wlimit;
+	bool   oneminusweights;
 };
 static struct Parameters P =
-  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16
+  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false
   };
 
 
@@ -128,7 +129,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.32 2010/07/02 14:17:28 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.33 2010/07/05 15:55:44 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -191,6 +192,7 @@ void testRegression()
   exit(0);
 
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -364,7 +366,10 @@ int main(int argc, char *argv[])
     MRI * mri_weights = R.getWeights(); // in target space
     if (mri_weights != NULL)
     {
+		
+		  if (P.oneminusweights) mri_weights = MRIlinearScale(mri_weights,NULL,-1,1,0);
 		  MRIwrite(mri_weights,P.weightsout.c_str()) ;
+			if (P.oneminusweights) mri_weights = R.getWeights();
 		
 //       // map to target and use target geometry 
 //       std::pair < vnl_matrix_fixed < double, 4, 4>, vnl_matrix_fixed < double, 4, 4> > map2weights = R.getHalfWayMaps();
@@ -514,6 +519,7 @@ int main(int argc, char *argv[])
       {
         cout << " saving half-way weights ..." << endl;
         MRI* mri_wtemp = LTAtransform(mri_weights,NULL, d2hwlta);
+		    if (P.oneminusweights) mri_wtemp = MRIlinearScale(mri_wtemp,mri_wtemp,-1,1,0);
         MRIwrite(mri_wtemp,P.halfweights.c_str());
 				MRIfree(&mri_wtemp);
         //MRIwrite(mri_weights,P.halfweights.c_str());
@@ -1265,6 +1271,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.dosatest = true;
     nargs = 0 ;
     cout << "Trying to estimate SAT value!" << endl;
+  }
+  else if (!strcmp(option, "ONEMINUSW") )
+  {
+    P.oneminusweights = true;
+    nargs = 0 ;
+    cout << "Will output 1-weights!" << endl;
   }
   else
   {

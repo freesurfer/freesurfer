@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/02 14:17:27 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/07/05 15:55:44 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -77,7 +77,7 @@ public:
 	 bool writeLTAs(const std::vector < std::string > & nltas, bool vox2vox, const std::string & mean);
 	 bool writeWarps(const std::vector <  std::string >& nwarps);
 	 bool writeIntensities(const std::vector < std::string >& nintens);
-	 bool writeWeights(const std::vector < std::string >& nweights);
+	 bool writeWeights(const std::vector < std::string >& nweights, bool oneminusweights);
 
 
    int loadMovables(const std::vector < std::string > mov);

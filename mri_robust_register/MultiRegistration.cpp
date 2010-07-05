@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/02 14:17:27 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/07/05 15:55:43 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -1107,7 +1107,7 @@ bool MultiRegistration::writeIntensities(const std::vector < std::string >& nint
 	 return (error == 0);
 }
 
-bool MultiRegistration::writeWeights(const std::vector < std::string >& nweights)
+bool MultiRegistration::writeWeights(const std::vector < std::string >& nweights, bool oneminusweights)
 {
    assert (nweights.size() == mri_weights.size());
 	 int error = 0;
@@ -1118,7 +1118,10 @@ bool MultiRegistration::writeWeights(const std::vector < std::string >& nweights
 			   cout << " No weights constructed, skipping output of weights" << endl;
 				 return false;
 			}
-		  error += MRIwrite(mri_weights[i], nweights[i].c_str()) ;
+			MRI * wtmp = mri_weights[i];
+			if (oneminusweights) wtmp = MRIlinearScale(wtmp,NULL,-1,1,0);
+		  error += MRIwrite(wtmp, nweights[i].c_str()) ;
+			if (oneminusweights) MRIfree(&wtmp);
 	 }
 	 return (error == 0);
 }
