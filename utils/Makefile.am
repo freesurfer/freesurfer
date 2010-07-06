@@ -322,7 +322,7 @@ CUDA_DEPS = ../include/volumegpu.hpp\
             ../include/gcamorphenergy.hpp
 
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS -DGCAMORPH_ON_GPU
 
 noinst_LIBRARIES += libutils_cuda.a
 
@@ -344,7 +344,7 @@ libutils_cuda_a_SOURCES=\
         gcamfots_cuda.cu\
         gcamorphtermgpu.cu
 
-libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS)
+libutils_cuda_a_CFLAGS=-DFS_CUDA -DGCAMORPH_ON_GPU $(CUDA_CFLAGS)
 
 # We have some templating dependencies
 mriframegpu_cuda.o: $(CUDA_DEPS)

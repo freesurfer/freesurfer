@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/01 16:56:35 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/07/06 17:08:06 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,6 +24,8 @@
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#ifdef GCAMORPH_ON_GPU
 
 #include <thrust/device_new_allocator.h>
 #include <thrust/device_ptr.h>
@@ -1144,3 +1146,6 @@ void gcamLogLikelihoodTermGPU( GCA_MORPH *gcam,
 
   myTerms.LLTDispatch( gcam, mri, mri_smooth, l_log_likelihood );
 }
+
+
+#endif

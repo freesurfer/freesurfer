@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/17 17:24:42 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/07/06 17:08:06 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -23,6 +23,8 @@
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#ifdef GCAMORPH_ON_GPU
 
 #include "macros.h"
 
@@ -1273,3 +1275,5 @@ void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags ) {
   gcamGPU.RemoveStatus( statusFlags );
   gcamGPU.RecvAll( gcam );
 }
+
+#endif

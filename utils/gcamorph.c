@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/02 15:04:00 $
- *    $Revision: 1.202 $
+ *    $Date: 2010/07/06 17:08:05 $
+ *    $Revision: 1.203 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,7 +29,10 @@
 
 // Control which portions are done on the GPU
 #define SHOW_EXEC_LOC 0
+
 #ifdef FS_CUDA
+// GCAmorphGPU requires Fermi
+#ifdef GCAMORPH_ON_GPU
 #define GCAM_CMP_GPU
 
 #define GCAM_LABEL_ENERGY_GPU
@@ -42,6 +45,9 @@
 #define GCAM_SMOOTH_TERM_GPU
 #define GCAM_JACOB_TERM_GPU
 #define GCAM_LL_TERM_GPU
+#else
+// Have to turn everything off
+#endif
 #endif
 
 

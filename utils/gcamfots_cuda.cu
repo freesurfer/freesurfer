@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 13:38:22 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/07/06 17:08:05 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,6 +26,8 @@
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#ifdef GCAMORPH_ON_GPU
 
 #include "macros.h"
 
@@ -332,3 +334,5 @@ float gcamFindOptimalTimestepGPU( GCA_MORPH *gcam,
   
 }
   
+
+#endif
