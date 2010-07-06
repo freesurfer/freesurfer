@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/29 20:41:50 $
- *    $Revision: 1.48 $
+ *    $Date: 2010/07/06 21:41:51 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1583,47 +1583,6 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
 
   return true;
 }
-
-/*
-MATRIX* FSVolume::GetRotationMatrix( int nPlane, double angle, double* origin )
-{
-  // calculate rotation matrix
-  MATRIX* m_r;
-  switch ( nPlane )
-  {
-  case 0:
-    m_r = MatrixAllocRotation( 4, angle/180 * vtkMath::Pi(), X_ROTATION );
-    break;
-  case 1:
-    m_r = MatrixAllocRotation( 4, angle/180 * vtkMath::Pi(), Y_ROTATION );
-    break;
-  default:
-    m_r = MatrixAllocRotation( 4, angle/180 * vtkMath::Pi(), Z_ROTATION );
-    break;
-  }
-
-  MATRIX* m_t = MatrixZero( 4, 4, NULL );
-  *MATRIX_RELT( m_t, 1, 1 ) = 1;
-  *MATRIX_RELT( m_t, 2, 2 ) = 1;
-  *MATRIX_RELT( m_t, 3, 3 ) = 1;
-  *MATRIX_RELT( m_t, 4, 4 ) = 1;
-  *MATRIX_RELT( m_t, 1, 4 ) = origin[0];
-  *MATRIX_RELT( m_t, 2, 4 ) = origin[1];
-  *MATRIX_RELT( m_t, 3, 4 ) = origin[2];
-
-  MATRIX* m_t_inv = MatrixInverse( m_t, NULL );
-
-  MATRIX* m1 = MatrixMultiply( m_r, m_t_inv, NULL );
-  MATRIX* m = MatrixMultiply( m_t, m1, NULL );
-
-  MatrixFree( &m1 );
-  MatrixFree( &m_r );
-  MatrixFree( &m_t );
-  MatrixFree( &m_t_inv );
-
-  return m;
-}
-*/
 
 MATRIX* FSVolume::GetRotationMatrix( int nPlane, double angle, double* origin )
 {

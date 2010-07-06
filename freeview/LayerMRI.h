@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/07/06 21:41:51 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -267,6 +267,8 @@ protected:
   bool    m_bReorient;
   int     m_nSampleMethod;
 
+  vtkSmartPointer<vtkTransform>     m_transformRAS;
+  
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
   

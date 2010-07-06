@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/10 21:04:07 $
- *    $Revision: 1.48 $
+ *    $Date: 2010/07/06 21:41:51 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -100,6 +100,7 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_TEXT_ENTER            ( XRCID( "ID_TEXT_CONTOUR_MAX" ),     PanelVolume::OnTextContourMax )
   EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_CONTOUR" ),  PanelVolume::OnColorContour )
   EVT_CHECKBOX        ( XRCID( "ID_CHECK_USE_IMAGE_COLORMAP" ),   PanelVolume::OnCheckUseImageColorMap )
+  EVT_CHECKBOX        ( XRCID( "ID_CHECK_CONTOUR_EXTRACT_ALL" ),   PanelVolume::OnCheckContourExtractAll )
   
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HIDE_INFO" ),         PanelVolume::OnCheckHideInfo )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_UPSAMPLE_METHOD" ),     PanelVolume::OnChoiceUpSampleMethod )
@@ -170,8 +171,9 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_sliderContourMax =  XRCCTRL( *this, "ID_SLIDER_CONTOUR_MAX", wxSlider );
   m_textContourMin =    XRCCTRL( *this, "ID_TEXT_CONTOUR_MIN", wxTextCtrl );
   m_textContourMax =    XRCCTRL( *this, "ID_TEXT_CONTOUR_MAX", wxTextCtrl );
-  m_checkUseImageColorMap = XRCCTRL( *this, "ID_CHECK_USE_IMAGE_COLORMAP", wxCheckBox );
-  m_colorpickerContour    = XRCCTRL( *this, "ID_COLORPICKER_CONTOUR", wxColourPickerCtrl );
+  m_checkUseImageColorMap   = XRCCTRL( *this, "ID_CHECK_USE_IMAGE_COLORMAP", wxCheckBox );
+  m_checkContourExtractAll  = XRCCTRL( *this, "ID_CHECK_CONTOUR_EXTRACT_ALL", wxCheckBox );
+  m_colorpickerContour      = XRCCTRL( *this, "ID_COLORPICKER_CONTOUR", wxColourPickerCtrl );
 //  m_checkContour->Hide();
 
   m_checkHideInfo = XRCCTRL( *this, "ID_CHECKBOX_HIDE_INFO", wxCheckBox );
@@ -235,6 +237,7 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistContour.push_back( m_textContourMin );
   m_widgetlistContour.push_back( m_textContourMax );
   m_widgetlistContour.push_back( m_checkUseImageColorMap );
+  m_widgetlistContour.push_back( m_checkContourExtractAll );
   m_widgetlistContour.push_back( m_colorpickerContour );
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MIN", wxStaticText ) );
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MAX", wxStaticText ) );
@@ -775,6 +778,7 @@ void PanelVolume::DoUpdateUI()
 			UpdateTextValue( m_textContourMin, layer->GetProperties()->GetContourMinThreshold() );
 			UpdateTextValue( m_textContourMax, layer->GetProperties()->GetContourMaxThreshold() );
       m_checkUseImageColorMap->SetValue( layer->GetProperties()->GetContourUseImageColorMap() );
+      m_checkContourExtractAll->SetValue( layer->GetProperties()->GetContourExtractAllRegions() );
       m_colorpickerContour->Enable( !layer->GetProperties()->GetContourUseImageColorMap() );
       double rgb[3];
       layer->GetProperties()->GetContourColor( rgb );
@@ -1432,6 +1436,15 @@ void PanelVolume::OnCheckUseImageColorMap( wxCommandEvent& event )
   if ( layer )
   {
     layer->GetProperties()->SetContourUseImageColorMap( event.IsChecked() );
+  }
+}
+
+void PanelVolume::OnCheckContourExtractAll( wxCommandEvent& event )
+{
+  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( layer )
+  {
+    layer->GetProperties()->SetContourExtractAllRegions( event.IsChecked() );
   }
 }
 

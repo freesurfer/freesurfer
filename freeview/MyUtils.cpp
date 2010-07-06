@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/25 19:58:23 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/07/06 21:41:51 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -647,7 +647,7 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
 */
 bool MyUtils::BuildContourActor( vtkImageData* data_in, 
                                  double dTh1, double dTh2, 
-                                 vtkActor* actor_out, int* ext )
+                                 vtkActor* actor_out, int* ext, bool bAllRegions )
 {
   double nValue = 1;
   int nSwell = 2;
@@ -681,16 +681,6 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
  
   vtkSmartPointer<vtkContourFilter> contour = vtkSmartPointer<vtkContourFilter>::New();
   contour->SetInputConnection( threshold->GetOutputPort());
-/*  if ( ext )
-  {
-    vtkSmartPointer<vtkImageClip> clipper = vtkSmartPointer<vtkImageClip>::New();
-    clipper->SetInput( data_in );
-    clipper->SetOutputWholeExtent( ext );
-    contour->SetInputConnection( clipper->GetOutputPort() );
-  }
-  else
-    contour->SetInput( data_in );
-  */
   contour->SetValue(0, dTh1);
   /*
   contour->Update();
@@ -717,7 +707,10 @@ bool MyUtils::BuildContourActor( vtkImageData* data_in,
     vtkSmartPointer<vtkPolyDataNormals> normals = vtkSmartPointer<vtkPolyDataNormals>::New();
     vtkSmartPointer<vtkStripper> stripper = vtkSmartPointer<vtkStripper>::New();
     stripper->SetInputConnection( normals->GetOutputPort() );
-    normals->SetInputConnection( conn->GetOutputPort() );
+    if ( bAllRegions )
+      normals->SetInputConnection( contour->GetOutputPort() );
+    else
+      normals->SetInputConnection( conn->GetOutputPort() );
 //    normals->SetInput( polydata );
     normals->SetFeatureAngle( 90 );
     vtkPolyDataMapper* mapper = vtkPolyDataMapper::SafeDownCast( actor_out->GetMapper() );

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/01 17:06:25 $
- *    $Revision: 1.76 $
+ *    $Date: 2010/07/06 21:41:51 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -284,7 +284,7 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 
   return bSaved;
 }
-
+ 
 bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {
   m_bResampleToRAS = false;
@@ -328,6 +328,65 @@ bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
   
   return ret;
 }
+
+/*
+bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+{
+  vtkSmartPointer<vtkTransform> tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
+  if ( !tr.GetPointer() )
+  {
+    tr = vtkSmartPointer<vtkTransform>::New();
+    tr->Identity();
+    for ( int i = 0; i < 3; i++ )
+    {
+      mReslice[i]->SetResliceTransform( tr );
+      mReslice[i]->SetInterpolationModeToCubic();
+    }
+  }
+  
+  // also record transformation in RAS space
+  if ( !m_transformRAS.GetPointer() ) 
+    m_transformRAS = vtkSmartPointer<vtkTransform>::New();
+  m_transformRAS->Identity();
+  
+  if ( rotations[0].Plane == -1 )     // restore
+  {
+    for ( int j = 0; j < 3; j++ )
+    {
+      tr = vtkTransform::SafeDownCast( mReslice[j]->GetResliceTransform() );
+      tr->Identity();
+    }
+    m_transformRAS->Identity();
+  }
+  else
+  {
+    for ( size_t i = 0; i < rotations.size(); i++ )
+    {
+      double v[3] = { 0, 0, 0 };
+      v[rotations[i].Plane] = 1;
+      double dTargetPoint[3];
+      RASToTarget( rotations[i].Point, dTargetPoint );
+      tr->Translate( dTargetPoint[0], dTargetPoint[1], dTargetPoint[2] );
+      tr->RotateWXYZ( -rotations[i].Angle, v );
+      tr->Translate( -dTargetPoint[0], -dTargetPoint[1], -dTargetPoint[2] );
+      
+      // record transformation in RAS space
+      m_transformRAS->Translate( rotations[i].Point[0], rotations[i].Point[1], rotations[i].Point[2] );
+      m_transformRAS->RotateWXYZ( -rotations[i].Angle, v );
+      m_transformRAS->Translate( -rotations[i].Point[0], -rotations[i].Point[1], -rotations[i].Point[2] );
+    }
+  }
+
+  for ( int i = 0; i < 3; i++ )
+  {
+    mReslice[i]->Modified();
+  }
+ 
+  this->SendBroadcast( "LayerRotated", this, this );
+  
+  return true;
+}
+*/
 
 void LayerMRI::InitializeVolume()
 {
@@ -459,17 +518,6 @@ void LayerMRI::UpdateContour( int nSegValue )
 
 void LayerMRI::UpdateContourActor( int nSegValue )
 {
-  /*
-  double dTh1 = GetProperties()->GetContourMinThreshold();
-  double dTh2 = GetProperties()->GetContourMaxThreshold();
-  if ( nSegValue >= 0 )
-  {
-    dTh1 = nSegValue - 0.5;
-    dTh2 = nSegValue + 0.5;
-  }
-  MyUtils::BuildContourActor( GetImageData(), dTh1, dTh2, m_actorContour );
-  */
-  
   // Generate a new thread id before creating the thread. so that mainwindow will be able to determine 
   // if a build contour result is already expired, by comparing the returned id and current id. If they
   // are different, it means a new thread is rebuilding the contour
