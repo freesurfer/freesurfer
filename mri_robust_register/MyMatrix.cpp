@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/02/22 16:55:12 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/07/07 01:15:07 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -85,6 +85,121 @@ vnl_matrix <double > MyMatrix::convertMATRIX2VNL(MATRIX* m)
 
 ////// VNL stuff
 
+
+std::pair < vnl_matrix < double >, vnl_matrix < double > > 
+   MyMatrix::MatrixSqrtAndInv(const vnl_matrix < double >& m)
+{
+  assert(m.rows() == 4 && m.cols() == 4);
+	
+	// extract R and T from M:
+	vnl_matrix_fixed < double,3,3 > R;// = m.extract(3,3,0,0);
+  for (int rr = 0; rr<3; rr++)
+    for (int cc = 0; cc<3; cc++)
+    {
+      R[rr][cc] = m[rr][cc];
+    }
+  vnl_vector_fixed < double,3 > T;
+	T[0] = m[0][3]; T[1] = m[1][3]; T[2] = m[2][3];
+	// compute rotation and translation of M^{-1}:
+	vnl_matrix_fixed < double,3,3 > Ri=vnl_inverse(R);
+  vnl_vector_fixed < double,3 > Ti=- Ri * T;
+	// T, Ri and Ti are needed later 
+
+  //Compute sqrt(R) with
+  //Denman and Beavers square root iteration
+
+  int imax = 100;
+  double eps = 0.00001;  // important to be small to guarantee symmetry,
+	                       // but even adding two zeros did not show any 
+												 // differences in tests
+	double err = 1000;
+  //cout << "using square root iteartion (" << imax << ")"<< endl;
+	vnl_matrix_fixed < double,3,3 > Yn(R);
+	vnl_matrix_fixed < double,3,3 > Zn; Zn.set_identity();
+	vnl_matrix_fixed < double,3,3 > Yni,Zni;
+	vnl_matrix_fixed < double,3,3 > Ysq;	
+
+  int count = 0;
+  while (count<imax && err > eps)
+  {
+    count++;
+
+    //store invrse here (we change Yn below)
+    Yni = vnl_inverse(Yn);
+		Zni = vnl_inverse(Zn);
+
+    // add inverse:
+    Yn += Zni;
+    Zn += Yni;
+
+    Yn *= 0.5;
+    Zn *= 0.5;
+
+    Ysq = Yn * Yn;
+    Ysq -= R;
+    err = Ysq.absolute_value_max();
+		//cout << " iteration " << count << "  err: "<< err << endl;
+  }
+  // now Yn is sqrt(R) AND Zn is sqrt(R)^-1
+	
+  if (count > imax)
+  {
+    cerr << "Matrix Sqrt did not converge in " << imax << " steps!" << endl;
+    cerr << "   ERROR: " << err << endl;
+    assert(err <= eps);
+  }
+
+  // construct sqrt(M) = sqrt(R) x + Th (affine)
+  // compute new Th
+	// Rh1 = R + I
+	vnl_matrix_fixed < double,3,3 > Rh1(Yn);
+	Rh1[0][0] += 1; Rh1[1][1] +=1; Rh1[2][2] += 1;
+  // solve T = Rh1 * Th   <=>   Th = Rh1^-1 * T
+  vnl_vector_fixed < double,3 > Th = vnl_inverse(Rh1) * T; //vnl_svd<double>(Rh1).solve(T);
+  // put everything together:
+  vnl_matrix < double > msqrt(4,4);
+  msqrt[0][3] = Th[0];
+	msqrt[1][3] = Th[1];
+	msqrt[2][3] = Th[2];
+	msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
+  for (int c=0; c<3; c++)
+    for (int r=0; r<3; r++)
+		  msqrt[r][c] = Yn[r][c];
+
+  // construct sqrt(M)^-1 = sqrt(R)-1 x + Thm (affine)
+  // compute new Thm
+	// Rh1 = R + I
+	vnl_matrix_fixed < double,3,3 > Rhi1(Zn);
+	Rhi1[0][0] += 1; Rhi1[1][1] +=1; Rhi1[2][2] += 1;
+  // solve T = Rh1 * Th   <=>   Th = Rh1^-1 * T
+  vnl_vector_fixed < double,3 > Thi = vnl_inverse(Rhi1) * Ti; //vnl_svd<double>(Rh1).solve(T);
+  // put everything together:
+  vnl_matrix < double > msqrti(4,4);
+  msqrti[0][3] = Thi[0];
+	msqrti[1][3] = Thi[1];
+	msqrti[2][3] = Thi[2];
+	msqrti[3][0] = 0.0; msqrti[3][1] = 0.0; msqrti[3][2] = 0.0; msqrti[3][3] = 1.0;
+  for (int c=0; c<3; c++)
+    for (int r=0; r<3; r++)
+		  msqrti[r][c] = Zn[r][c];
+
+//    bool test = true;
+//    if (test)
+//    {
+//       vnl_matrix < double > ms2 = msqrt * msqrt;
+//       ms2 -= m;
+//       double sum = ms2.absolute_value_max();
+//       if (sum > eps)
+//       {
+//          cerr << " Error : " << sum << endl;
+// 				 cerr << " sqrt(M): " << endl << msqrt << endl;
+//          cerr << endl;
+//          assert(1==2);
+//       }
+//    }
+
+  return std::pair < vnl_matrix < double >, vnl_matrix < double > > (msqrt,msqrti);
+}
 
 vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& m)
 {
