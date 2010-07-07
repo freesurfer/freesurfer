@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.25 2010/06/29 19:50:04 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.26 2010/07/07 03:52:32 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -91,6 +91,7 @@ set subject = ();
 set hemi = ();
 set surf = "white";
 set y = ();
+set wls = ();
 
 set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
 
@@ -132,6 +133,16 @@ while($#glmfitcmd)
       endif
     endif
     breaksw
+  case "--wls"
+    set wls = $glmfitcwd/$glmfitcmd[1]; shift glmfitcmd;
+    if(! -e $wls) then
+      set wls = $glmdir/`basename $wls`
+      if(! -e $wls) then
+        echo "ERROR: cannot find $wls"
+        exit 1;
+      endif
+    endif
+    breaksw
   # Ignore these options that have no args
   case "cmdline"
   case "mri_glmfit"
@@ -152,7 +163,6 @@ while($#glmfitcmd)
   case "--glmdir"
   case "--C"
   case "--X"
-  case "--wls"
   case "--w"
   case "--fwhm"
   case "--mask"
@@ -303,6 +313,7 @@ if($DoSim) then
     set cmd = ($cmd --sim-sign $simsign --fwhm $fwhm)
     if($#fsgd) set cmd = ($cmd --fsgd $fsgd $gd2mtx)
     if($#X)    set cmd = ($cmd --X $X)
+    if($#wls)  set cmd = ($cmd --wls $wls)
     if($#label) set cmd = ($cmd --label $label)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi $surf);
     if($#Seed) set cmd = ($cmd --seed $Seed);
