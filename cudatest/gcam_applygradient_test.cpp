@@ -123,7 +123,13 @@ int main( int argc, char *argv[] ) {
   
 
 #ifdef FS_CUDA
+#ifdef GCAMORPH_ON_GPU
   gcamApplyGradientGPU( gcam, &parms );
+#else
+  cerr << "GCAMORPH_ON_GPU is not defined." << endl;
+  cerr << "Test meaningless" << endl;
+  exit( EXIT_FAILURE );
+#endif
 #else
   gcamApplyGradient( gcam, &parms );
 #endif

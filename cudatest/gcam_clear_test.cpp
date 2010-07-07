@@ -105,8 +105,14 @@ int main( int argc, char *argv[] ) {
   // Perform the calculation
   
 #ifdef FS_CUDA
+#if GCAMORPH_ON_GPU
   gcamClearMomentumGPU( gcam );
   gcamClearGradientGPU( gcam );
+#else
+  cerr << "GCAMORPH_ON_GPU is not defined." << endl;
+  cerr << "Test meaningless" << endl;
+  exit( EXIT_FAILURE );
+#endif
 #else
   gcamClearMomentum( gcam );
   gcamClearGradient( gcam );

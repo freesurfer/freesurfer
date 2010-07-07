@@ -105,7 +105,13 @@ int main( int argc, char *argv[] ) {
   // Perform the calculation
   
 #ifdef FS_CUDA
+#ifdef GCAMORPH_ON_GPU
   gcamUndoGradientGPU( gcam );
+#else
+  cerr << "GCAMORPH_ON_GPU is not defined." << endl;
+  cerr << "Test meaningless" << endl;
+  exit( EXIT_FAILURE );
+#endif
 #else
   gcamUndoGradient( gcam );
 #endif

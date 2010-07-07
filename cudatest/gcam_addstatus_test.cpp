@@ -86,6 +86,16 @@ int main( int argc, char *argv[] ) {
   cout << "GCAM Add Status Tester" << endl;
   cout << "======================" << endl << endl;
 
+  
+#ifdef FS_CUDA
+#ifndef GCAMORPH_ON_GPU
+  cerr << "GCAMORPH_ON_GPU is not defined." << endl;
+  cerr << "Test meaningless" << endl;
+  exit( EXIT_FAILURE );
+#endif
+#endif
+
+
 #ifdef FS_CUDA
   AcquireCUDADevice();
 #else
