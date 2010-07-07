@@ -344,7 +344,7 @@ libutils_cuda_a_SOURCES=\
         gcamfots_cuda.cu\
         gcamorphtermgpu.cu
 
-libutils_cuda_a_CFLAGS=-DFS_CUDA -DGCAMORPH_ON_GPU $(CUDA_CFLAGS)
+libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) -DGCAMORPH_ON_GPU
 
 # We have some templating dependencies
 mriframegpu_cuda.o: $(CUDA_DEPS)
