@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/17 17:24:40 $
- *    $Revision: 1.275 $
+ *    $Date: 2010/07/08 19:11:46 $
+ *    $Revision: 1.276 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -265,13 +265,13 @@ GCA_NODE *getGCAN(GCA *gca,
                   MRI *mri,
                   TRANSFORM *transform,
                   int xv, int yv, int zv) ;
-static int gcaNodeToPrior(GCA *gca,
-                          int xn, int yn, int zn,
-                          int *pxp, int *pyp, int *pzp) ;
+static int gcaNodeToPrior( const GCA *gca,
+			   int xn, int yn, int zn,
+			   int *pxp, int *pyp, int *pzp) ;
 static HISTOGRAM *gcaHistogramSamples(GCA *gca, GCA_SAMPLE *gcas, MRI *mri,
                                       TRANSFORM *transform, int nsamples,
                                       HISTOGRAM *histo, int frame) ;
-int GCApriorToNode(GCA *gca,
+int GCApriorToNode( const GCA *gca,
                    int xp, int yp, int zp,
                    int *pxn, int *pyn, int *pzn) ;
 
@@ -794,7 +794,9 @@ static int boundsCheck(int *pix, int *piy, int *piz, MRI *mri)
 }
 
 static int
-gcaNodeToPrior(GCA *gca, int xn, int yn, int zn, int *pxp, int *pyp, int *pzp)
+gcaNodeToPrior( const GCA *gca,
+		int xn, int yn, int zn,
+		int *pxp, int *pyp, int *pzp)
 {
   // initialize errCode
   int errCode = NO_ERROR;
@@ -810,7 +812,9 @@ gcaNodeToPrior(GCA *gca, int xn, int yn, int zn, int *pxp, int *pyp, int *pzp)
 }
 
 int
-GCApriorToNode(GCA *gca, int xp, int yp, int zp, int *pxn, int *pyn, int *pzn)
+GCApriorToNode( const GCA *gca,
+		int xp, int yp, int zp,
+		int *pxn, int *pyn, int *pzn)
 {
   int errCode = NO_ERROR;
   /////////////////////////////////////////////////////////////////////
@@ -1577,6 +1581,12 @@ gcaAllocMax(int ninputs,
   gca->prior_height = (int)((float)height/prior_spacing+.99) ;
   gca->prior_depth = (int)(((float)depth/prior_spacing)+.99) ;
   gca->flags = flags ;
+
+  printf( "%s: node dims %i %i %i\n",
+	  __FUNCTION__, gca->node_width, gca->node_height, gca->node_depth );
+  printf( "%s: prior dims %i %i %i\n",
+	  __FUNCTION__, gca->prior_width, gca->prior_height, gca->prior_depth );
+  printf( "%s: max_labels %i\n", __FUNCTION__, max_labels );
 
   if (max_labels >= 0)
   {
@@ -8305,7 +8315,8 @@ GCAbuildMostLikelyVolumeFrame(GCA *gca, MRI *mri, int frame)
 }
 
 GC1D *
-GCAfindPriorGC(GCA *gca, int xp, int yp, int zp,int label)
+GCAfindPriorGC( const GCA *gca,
+		int xp, int yp, int zp,int label )
 {
   int xn, yn, zn ;
 
@@ -8317,7 +8328,8 @@ GCAfindPriorGC(GCA *gca, int xp, int yp, int zp,int label)
 
 #if 1
 GC1D *
-GCAfindGC(GCA *gca, int xn, int yn, int zn,int label)
+GCAfindGC( const GCA *gca,
+	   int xn, int yn, int zn,int label )
 {
   int        n ;
   GCA_NODE   *gcan  ;
@@ -13929,6 +13941,9 @@ alloc_gcs(int nlabels, int flags, int ninputs)
   GC1D  *gcs ;
   int   i ;
 
+  printf( "%s: nlabels=%i ninputs=%i\n",
+	  __FUNCTION__, nlabels, ninputs );
+
   gcs = (GC1D *)calloc(nlabels, sizeof(GC1D)) ;
   if (gcs == NULL)
     ErrorExit(ERROR_NOMEMORY, "alloc_gcs(%d, %x): could not allocated %d gcs",
@@ -19477,7 +19492,8 @@ GCAreplaceRightWithLeft(GCA *gca)
 
 
 GCA_NODE *
-GCAbuildRegionalGCAN(GCA *gca, int xn, int yn, int zn, int wsize)
+GCAbuildRegionalGCAN( const GCA *gca,
+		      int xn, int yn, int zn, int wsize )
 {
   GCA_NODE *gcan, *gcan_nbr ;
   GCA_PRIOR *gcap ;

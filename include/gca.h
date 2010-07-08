@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/17 17:24:45 $
- *    $Revision: 1.107 $
+ *    $Date: 2010/07/08 19:11:50 $
+ *    $Revision: 1.108 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -381,9 +381,11 @@ int     GCAcomputeVoxelLikelihoods(GCA *gca, MRI *mri_in, int x, int y, int z,
                                    TRANSFORM *transform, int *labels, double *likelihoods);
 GCA_PRIOR *getGCAP(GCA *gca, MRI *mri, TRANSFORM *transform, int xv, int yv, int zv) ;
 float getPrior(GCA_PRIOR *gcap, int label) ;
-int   GCApriorToNode(GCA *gca, int xp, int yp, int zp, int *pxn, int *pyn, int *pzn) ;
+int   GCApriorToNode( const GCA *gca,
+		      int xp, int yp, int zp,
+		      int *pxn, int *pyn, int *pzn);
 int   GCAfreeGibbs(GCA *gca) ;
-GC1D *GCAfindPriorGC(GCA *gca, int xp, int yp, int zp,int label) ;
+GC1D *GCAfindPriorGC( const GCA *gca, int xp, int yp, int zp,int label) ;
 int  GCApriorToSourceVoxel( GCA *gca,
 			    const MRI *mri, TRANSFORM *transform,
 			    const int xp, const int yp, const int zp,
@@ -397,7 +399,7 @@ int GCAcheck(GCA *gca) ;
 GC1D *GCAfindClosestValidGC(GCA *gca,
                             int x, int y, int z,
                             int label, int check_var) ;
-GC1D *GCAfindGC(GCA *gca, int x, int y, int z,int label) ;
+GC1D *GCAfindGC( const GCA *gca, int x, int y, int z,int label) ;
 GC1D *GCAfindSourceGC(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
 int GCAlabelExists(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z, int label) ;
 
@@ -444,7 +446,8 @@ int GCAcomputeLabelStats(GCA *gca, int target_label, float *pvar, float *means);
 float GCAcomputeLabelLikelihood(GCA *gca, TRANSFORM *transform, MRI *mri, 
                                 float x, float y, float z, int label) ;
 float GCAcomputeLabelPosterior(GCA *gca, TRANSFORM *transform, MRI *mri, float x, float y, float z, int label) ;
-GCA_NODE *GCAbuildRegionalGCAN(GCA *gca, int x, int y, int z, int wsize) ;
+GCA_NODE *GCAbuildRegionalGCAN( const GCA *gca,
+				int x, int y, int z, int wsize );
 int set_mean_vector(GC1D *gc, VECTOR *v_means, int ninputs) ;
 int set_covariance_matrix(GC1D *gc, MATRIX *m_cov, int ninputs) ;
 int GCAmaxLikelihoodLabel( const GCA_NODE *gcan,
