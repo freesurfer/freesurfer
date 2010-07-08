@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/08 19:11:50 $
- *    $Revision: 1.108 $
+ *    $Date: 2010/07/08 19:16:51 $
+ *    $Revision: 1.109 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -428,7 +428,7 @@ GCA *GCAcreateFlashGCAfromFlashGCA(GCA *gca_parms, double *TR, double *fa, doubl
 int GCAfixSingularCovarianceMatrices(GCA *gca) ;
 int GCAregularizeCovariance(GCA *gca, float regularize) ;
 int GCAnormalizeMeans(GCA *gca, float target) ;
-double GCAcomputeConditionalLogDensity(GC1D *gc, float *vals, int ninputs, int label) ;
+double GCAcomputeConditionalLogDensity( const GC1D *gc, float *vals, int ninputs, int label) ;
 double GCAcomputeNormalizedConditionalDensity(GCA *gca, int xp, int yp, int zp, float *vals, int label);
 MRI    *GCArelabelNonbrain(GCA *gca, MRI *mri_inputs, MRI *mri_src, MRI *mri_dst, TRANSFORM *transform) ;
 int    GCAreplaceLabels(GCA *gca, int in_label, int out_label) ;

@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/08 13:19:55 $
- *    $Revision: 1.204 $
+ *    $Date: 2010/07/08 19:16:48 $
+ *    $Revision: 1.205 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7853,7 +7853,7 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
   MRIsetResolution(mri_dist, gcam->spacing, gcam->spacing, gcam->spacing) ;
 
 
-  GCAMresetLabelNodeStatus(gcam) ;
+  GCAMresetLabelNodeStatus( gcam ) ;
 
 
   for (x = 0 ; x < gcam->width ; x++) {

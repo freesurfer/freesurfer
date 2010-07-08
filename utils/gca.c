@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/08 19:11:46 $
- *    $Revision: 1.276 $
+ *    $Date: 2010/07/08 19:16:48 $
+ *    $Revision: 1.277 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -13618,7 +13618,8 @@ gcaComputeLogDensity(GC1D *gc, float *vals, int ninputs,
 }
 
 double
-GCAcomputeConditionalLogDensity(GC1D *gc, float *vals, int ninputs, int label)
+GCAcomputeConditionalLogDensity( const GC1D *gc,
+				 float *vals, int ninputs, int label)
 {
   double  log_p, det ;
 
