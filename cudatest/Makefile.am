@@ -13,7 +13,9 @@ AM_LDFLAGS=
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
 
-NVCCFLAGS += -g -arch sm_13 --ptxas-options=-v
+NVCCFLAGS += -g -arch sm_20 --ptxas-options=-v
+
+CUDA_CFLAGS += -DGCAMORPH_ON_GPU
 
 # rules for building cuda files
 .cu.o:
