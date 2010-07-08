@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/03/31 14:36:55 $
-#    $Revision: 1.11 $
+#    $Date: 2010/07/08 18:04:04 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,13 +23,13 @@
 #
 
 
-set VERSION = '$Id: plot-twf-sess,v 1.11 2010/03/31 14:36:55 greve Exp $';
+set VERSION = '$Id: plot-twf-sess,v 1.12 2010/07/08 18:04:04 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
 
 set debug = 0;
-set funcstem = fmc;
+set funcstem = fmcpr;
 set datfile = ();
 set datcolx = ();
 set xlabel  = ();
@@ -287,8 +287,17 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
+    case "-mc-per-run":
     case "-mc":
       set datfile = ($funcstem.mcdat);
+      set datcolx =  1;
+      set xlabel = "Time Point"
+      set datcoly = 10;
+      set title = "Vector Translation (mm)"
+      breaksw
+
+    case "-mc-per-sess":
+      set datfile = (fmc.mcdat);
       set datcolx =  1;
       set xlabel = "Time Point"
       set datcoly = 10;
@@ -415,7 +424,7 @@ usage_exit:
   echo "Arguments for Preset Stuff:";
   echo "   -funcstem stem : put before -mc and -meantwf (default: fmc)"
   echo "   -mc : set args to mc defaults"
-  echo "   -meantwf : set args to mean twf defaults"
+#  echo "   -meantwf : set args to mean twf defaults"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  ..."
@@ -448,26 +457,20 @@ exit 1;
 BEGINHELP
 
 This program will display temporal waveforms associated with various
-levels of analysis, including motion correction parameters and mean
-in-brain temporal waveforms. The program goes to each run directory
-and looks for the datfile, which is an ASCII file with columns of
-data. It plots ycol vs xcol. The plot will have the xlabel as the
-label and title across the top. Note: the xlabel and title must be a 
-single string -- no spaces are allowed. The title will automatically
-have the session id prepended to it.
+levels of analysis, usually motion correction parameters.  The program
+goes to each run directory and looks for the datfile, which is an
+ASCII file with columns of data. It plots ycol vs xcol. The plot will
+have the xlabel as the label and title across the top. Note: the
+xlabel and title must be a single string -- no spaces are allowed. The
+title will automatically have the session id prepended to it.
 
-Two preset configurations have been supplied, one for motion
-correction and one for mean temporal waveform. In both cases, the
-functional stem is assumed to be fmc, so that it will look for
-fmc.mcdat (which is created by mc-sess) or fmc.twf-over (which is
-created by inorm-sess).  The functional stem can be changed with
--funcstem, which must appear BEFORE -mc or -meantwf.  For motion
-correction, the vector translation in mm is plotted (ie, the square
-root of the sum of the squares of the x, y, and z components of the
-translation); this is the 10th column of the mcdat file. For the
-mean in-brain temporal waveform, the mean waveform has been scaled
-so that the stdev is 1. This corresponds to the 2nd column of
-the twf-over file.
+One predifined configurations has been supplied, for motion
+correction, which requires the -mc option. The dat file is assumed to
+be fmcpr.mcdat. If you have used the -per-session option to
+preproc-sess, then use the -mc-per-session option with plot-twf-sess
+instead of -mc.  The vector translation in mm is plotted (ie, the
+square root of the sum of the squares of the x, y, and z components of
+the translation); this is the 10th column of the mcdat file.
 
 This program uses gnuplot to create a jpeg image of the waveforms, then
 uses xv to display the image. As such, you must have both of these
