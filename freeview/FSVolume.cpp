@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/06 21:41:51 $
- *    $Revision: 1.49 $
+ *    $Date: 2010/07/08 20:50:46 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,6 +76,9 @@ FSVolume::FSVolume( FSVolume* ref ) :
     m_bResampleToRAS = ref->m_bResampleToRAS;
   }
   strcpy( m_strOrientation, "RAS" );
+  m_transform = vtkSmartPointer<vtkTransform>::New();
+  m_transform->Identity();
+  m_transform->PostMultiply();
 }
 
 FSVolume::~FSVolume()
@@ -434,6 +437,8 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
   for ( int i = 0; i < 3; i++ )
     m_strOrientation[i] = src_vol->m_strOrientation[i];
   
+  m_transform->DeepCopy( src_vol->m_transform );
+  
   return true;
 }
 
@@ -472,7 +477,12 @@ void FSVolume::SetMRITarget( MRI* mri )
   }
 }
 
-bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
+vtkTransform* FSVolume::GetTransform()
+{
+  return m_transform;
+}
+
+bool FSVolume::MRIWrite( const char* filename, int nSampleMethod )
 {
   if ( !m_MRITemp )
   {
@@ -480,6 +490,31 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
     return false;
   }
     
+  // check if transformation needed
+  vtkMatrix4x4* mat = m_transform->GetMatrix();
+  bool bTransformed = false;
+  MATRIX* voxel_xform = NULL;
+  if ( !MyUtils::IsIdentity( mat->Element ) )
+  {    
+    MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
+    for ( int i = 0; i < 16; i++ )
+    {
+      *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
+    }
+    MRI* mri = MRIapplyRASlinearTransformInterp( m_MRITemp, NULL, m, nSampleMethod );
+    if ( !mri )
+    {
+      MatrixFree( &m );
+      cerr << "MRIapplyRASlinearTransformInterp failed." << endl;
+      return false;
+    }
+    voxel_xform = MRIrasXformToVoxelXform( m_MRITemp, NULL, m, NULL);
+    MRIfree( &m_MRITemp );
+    m_MRITemp = mri;
+    MatrixFree( &m );
+    bTransformed = true;
+  }
+  
   // check if cropping is enabled
   // if so, calculate the extent to crop
   if ( m_bCrop )
@@ -533,7 +568,7 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
   }
   
   LTA* lta = NULL;
-  if ( !bSaveToOriginalSpace && m_MRIOrigTarget) 
+  if ( bTransformed ) // !bSaveToOriginalSpace && m_MRIOrigTarget) 
   {
     // prepare lta to be saved later
     LINEAR_TRANSFORM *lt ;
@@ -544,10 +579,9 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
     lt->sigma = 1.0f ;
     lt->x0 = lt->y0 = lt->z0 = 0 ;
     lta->type = LINEAR_VOX_TO_VOX;
-    lt->m_L = MRIgetVoxelToVoxelXform( m_MRI, m_MRITemp );
+    lt->m_L = voxel_xform; // MRIgetVoxelToVoxelXform( m_MRI, m_MRITemp );
 
-    MRIcopyHeader( m_MRIOrigTarget, m_MRITemp );
-    
+//    MRIcopyHeader( m_MRIOrigTarget, m_MRITemp );    
     getVolGeom(m_MRI,     &srcG);
     getVolGeom(m_MRITemp, &dstG);
     
@@ -602,6 +636,7 @@ bool FSVolume::MRIWrite( const char* filename, bool bSaveToOriginalSpace )
 
 bool FSVolume::MRIWrite()
 {
+  /*
   if ( !m_MRITemp )
   {
     cerr << "Volume not ready for save." << endl;
@@ -616,7 +651,8 @@ bool FSVolume::MRIWrite()
   MRIfree( &m_MRITemp );
   m_MRITemp = NULL;
    
-  return err == 0;
+  return err == 0;*/
+  return MRIWrite( m_MRI->fname );
 }
 
 bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, 
@@ -1911,23 +1947,20 @@ void FSVolume::TargetToRAS( double x_in, double y_in, double z_in,
 
 void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
 {
-  // if already resampled to standard RAS, no need to remap
-  {
-    double pos[4] = { 0 };
-    double* vs = m_imageData->GetSpacing();
-    double* origin = m_imageData->GetOrigin();
-    for ( int i = 0; i < 3; i++ )
-      pos[i] = ( pos_in[i] - origin[i] ) / vs[i];
+  double pos[4] = { 0 };
+  double* vs = m_imageData->GetSpacing();
+  double* origin = m_imageData->GetOrigin();
+  for ( int i = 0; i < 3; i++ )
+    pos[i] = ( pos_in[i] - origin[i] ) / vs[i];
 
-    Real fpos[3];
-    ::MRIvoxelToWorld( m_MRITarget, 
+  Real fpos[3];
+  ::MRIvoxelToWorld( m_MRITarget, 
 		       (float)pos[0], (float)pos[1], (float)pos[2], 
 		       &fpos[0], &fpos[1], &fpos[2] );
 //  cout << "out: " << fpos[0] << " " << fpos[1] << " " << fpos[2] << endl;
-    for ( int i = 0; i < 3; i++ )
-    {
-      pos_out[i] = fpos[i];
-    }
+  for ( int i = 0; i < 3; i++ )
+  {
+    pos_out[i] = fpos[i];
   }
 }
 

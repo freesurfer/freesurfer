@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/06 21:41:51 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/07/08 20:50:47 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -102,6 +102,8 @@ public:
 
   static void GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSlice_in,
                                  double* pt1_in, double* pt2_in, vtkPoints* pts_out );
+  
+  static bool IsIdentity( double m[4][4] );
 };
 
 template <class T>
@@ -187,5 +189,12 @@ void MyUtils::FreeMatrix(T** p, int ny)
   p = 0;
 }
 
+inline bool MyUtils::IsIdentity( double m[4][4] )
+{
+  return ( m[0][0] == 1 && m[0][1] == 0 && m[0][2] == 0 && m[0][3] == 0 &&
+      m[1][0] == 0 && m[1][1] == 1 && m[1][2] == 0 && m[1][3] == 0 &&
+      m[2][0] == 0 && m[2][1] == 0 && m[2][2] == 1 && m[2][3] == 0 &&
+      m[3][0] == 0 && m[3][1] == 0 && m[3][2] == 0 && m[3][3] == 1 );
+}
 
 #endif

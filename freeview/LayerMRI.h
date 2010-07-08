@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/06 21:41:51 $
- *    $Revision: 1.46 $
+ *    $Date: 2010/07/08 20:50:46 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -151,6 +151,7 @@ public:
   virtual bool Rotate( std::vector<RotationElement>& rotations, 
                        wxWindow* wnd, 
                        wxCommandEvent& event );
+  bool IsRotated();
   
   void SetReorient( bool bReorient );
   
@@ -266,8 +267,6 @@ protected:
   bool    m_bResampleToRAS;
   bool    m_bReorient;
   int     m_nSampleMethod;
-
-  vtkSmartPointer<vtkTransform>     m_transformRAS;
   
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
@@ -283,8 +282,8 @@ protected:
         
   std::vector<SegmentationActor>  m_segActors;              
   
-  vtkActor*   m_actorContour;
-  vtkVolume*  m_propVolume;
+  vtkSmartPointer<vtkActor>   m_actorContour;
+  vtkSmartPointer<vtkVolume>  m_propVolume;
   
   int         m_nThreadID;
   vtkSmartPointer<vtkActor>       m_actorContourTemp;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/01 17:06:25 $
- *    $Revision: 1.128 $
+ *    $Date: 2010/07/08 20:50:47 $
+ *    $Revision: 1.129 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -775,12 +775,16 @@ void MainWindow::SaveVolumeAs()
     return;
   }
 
-  DialogSaveVolumeAs dlg( this );
-  dlg.SetFileName( layer_mri->GetFileName() );
+//  DialogSaveVolumeAs dlg( this );
+//  dlg.SetFileName( layer_mri->GetFileName() );
+  wxFileDialog dlg( this, _("Select file to save"), 
+                    wxFileName( layer_mri->GetFileName() ).GetPath(), 
+                    _(""),
+                    _("Volume files (*.mgz;*.mgh;*.nii;*.nii.gz;*.img)|*.mgz;*.mgh;*.nii;*.nii.gz;*.img|All files (*.*)|*.*"),
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
   if ( dlg.ShowModal() == wxID_OK )
   {
-    layer_mri->SetFileName( dlg.GetFileName().char_str() );
-    layer_mri->SetReorient( dlg.GetReorient() );
+    layer_mri->SetFileName( dlg.GetPath().char_str() );
     SaveVolume();
     m_controlPanel->UpdateUI();
   }
@@ -871,8 +875,62 @@ void MainWindow::LoadVolumeFile( const wxString& filename,
 
 void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes )
 {
-  WorkerThread* thread = new WorkerThread( this );
-  thread->RotateVolume( rotations, bAllVolumes );
+//  WorkerThread* thread = new WorkerThread( this );
+//  thread->RotateVolume( rotations, bAllVolumes );
+  
+  // rotation is much faster now so no need to do it in a separate thread 
+  wxCommandEvent event( 0, 0 ); // fake event, just a place holder to call the functions
+  std::vector<Layer*> layers = GetLayerCollectionManager()->GetAllLayers();
+      
+  // first update ROI and waypoints before their reference volume is rotated
+  bool bSuccess = true;
+  for ( size_t i = 0; i < layers.size(); i++ )
+  {
+    if ( layers[i]->IsTypeOf( "ROI" ) )
+    {
+      ( (LayerROI*)layers[i] )->UpdateLabelData( this, event );
+    }
+    else if ( layers[i]->IsTypeOf( "WayPoints" ) )
+    {
+      ( (LayerWayPoints*)layers[i] )->UpdateLabelData();
+    }  
+  }
+      
+  if ( bAllVolumes )
+  {
+    // then rotate MRI volumes
+    for ( size_t i = 0; i < layers.size(); i++ )
+    {
+      if ( layers[i]->IsTypeOf( "MRI" ) && !layers[i]->Rotate( rotations, this, event ) )
+      {
+        bSuccess = false;
+        break;
+      }
+    }
+        // at last rotate others
+    for ( size_t i = 0; i < layers.size() && bSuccess; i++ )
+    {
+      if ( !layers[i]->IsTypeOf( "MRI" ) && !layers[i]->Rotate( rotations, this, event ) )
+      {
+        bSuccess = false;
+        break;
+      }
+    }
+  }
+  else
+  {
+    LayerMRI* layer = (LayerMRI*) GetActiveLayer( "MRI" );
+    if ( !layer->Rotate( rotations, this, event ) )
+    {
+      bSuccess = false;
+    }
+  }
+  if ( !bSuccess )
+  {
+    wxMessageDialog dlg( this, _("Error occured while rotating volumes."), 
+                         _("Error"), wxOK );
+    dlg.ShowModal(); 
+  }
 }
 
 
@@ -2548,6 +2606,11 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   else if ( iMsg == "MRINotEditable" )
   {
     wxMessageDialog dlg( this, _("Active volume is not editable."), _("Error"), wxOK | wxICON_ERROR );
+    dlg.ShowModal();
+  }
+  else if ( iMsg == "MRINotEditableForRotation" )
+  {
+    wxMessageDialog dlg( this, _("Active volume has been rotated. It is not a good idea to directly edit on rotated volume. Because partial volume effect may cause \"what you see is NOT what you get\". Please save, close and reload the volume to edit. This is a temporary and safe solution."), _("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
   }
   else if ( iMsg == "MRIReferenceNotSet" )

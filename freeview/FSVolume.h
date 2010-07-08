@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/07/08 20:50:46 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -40,6 +40,7 @@ extern "C"
 
 class wxWindow;
 class wxCommandEvent;
+class vtkTransform;
 
 class FSVolume
 {
@@ -50,7 +51,7 @@ public:
   bool Create( FSVolume* src, bool bCopyVoxelData, int data_type );
 
   bool MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
-  bool MRIWrite( const char* filename, bool bSaveToOriginal = true );
+  bool MRIWrite( const char* filename, int nSampleMethod = SAMPLE_NEAREST );
   bool MRIWrite();
   bool Restore( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
 
@@ -175,6 +176,8 @@ public:
   
   void SetCroppingBounds( double* bound );
   
+  vtkTransform* GetTransform();
+  
 protected:
   bool LoadMRI( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
   bool LoadRegistrationMatrix( const char* filename );
@@ -190,6 +193,7 @@ protected:
   MATRIX* GetRotationMatrix( int nPlane, double angle, double* origin );
 
   vtkSmartPointer<vtkImageData> m_imageData;
+  vtkSmartPointer<vtkTransform> m_transform;
 
   MRI*      m_MRI;
   MRI*      m_MRITarget;      // target space. header only

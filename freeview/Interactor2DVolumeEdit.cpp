@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/30 18:31:03 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/07/08 20:50:46 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -67,6 +67,10 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
     else if ( !mri->IsEditable() ) //&& ( event.ControlDown() || m_nAction == EM_Polyline ) )
     {
       SendBroadcast( m_strLayerTypeName + "NotEditable", this );
+    }
+    else if ( m_strLayerTypeName == "MRI" && ((LayerMRI*)mri)->IsRotated() )
+    {
+      SendBroadcast( m_strLayerTypeName + "NotEditableForRotation", this );
     }
     else
     {
