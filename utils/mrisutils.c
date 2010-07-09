@@ -7,8 +7,8 @@
  * Original Authors: Segonne and Greve 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 14:43:09 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/07/09 18:31:20 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1480,7 +1480,6 @@ int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
     p[np] = val;
     np++;
   }
-  printf("MRISfdr2vwth(): np = %d, nv = %d\n",np,surf->nvertices);
 
   // Check that something met the match criteria,
   // otherwise return an error
@@ -1535,6 +1534,9 @@ int MRISfdr2vwth(MRIS *surf, double fdr, int signid,
   // Change the vwth to log10 if needed
   if (log10flag) *vwth = -log10(*vwth);
   free(p);
+
+  printf("MRISfdr2vwth(): np = %d, nv = %d, fdr = %g, vwth=%g\n",
+	 np,surf->nvertices,fdr,*vwth);
 
   return(0);
 }
