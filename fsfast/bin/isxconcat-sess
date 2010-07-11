@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/06/30 18:54:23 $
-#    $Revision: 1.49 $
+#    $Date: 2010/07/11 22:50:40 $
+#    $Revision: 1.50 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.49 2010/06/30 18:54:23 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.50 2010/07/11 22:50:40 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -52,6 +52,7 @@ set DoRFX = 0;
 set DoFFX = 0;
 set SplitMVC = 1; # Split multivariate contrasts
 set DoResample = 1;
+set GetHRF = ();
 
 # for volume-based only
 set talres = 2;
@@ -111,6 +112,7 @@ pwd           >> $LF
 echo $0       >> $LF
 echo $inputargs  >> $LF
 id            >> $LF
+echo GetHRF = $GetHRF >> $LF
 
 set StartTime = `date`;
 
@@ -125,7 +127,7 @@ foreach sess ($SessList)
 
   set doffile = $sess/$fsd/$analysis/dof
   if(! -e $doffile) then
-    echo "ERROR: cannot find $doffile" |& tee -a $LF
+    echo "ERROR: cannot find $doffile" 
     exit 1;
   endif
   @ dofsess = `cat $doffile`;
@@ -150,8 +152,16 @@ set sess0 = $sess[1];
 #-------------------------------------------------
 foreach hemi ($hemilist)
 
+  if($IsNative) then
+    set SpStr  = $hemi.
+    set SpStr2 = .$hemi
+  else
+    set SpStr = ()
+    set SpStr2 = ()
+  endif
+
   # Concat the masks
-  set masksvol = $outdir/$hemi.masks.$FSF_OUTPUT_FORMAT
+  set masksvol = $outdir/"$SpStr"masks.$FSF_OUTPUT_FORMAT
   set cmd = (isxconcat0-sess $sessargs -m mask -o $masksvol)
   if($#flac == 0) set cmd = ($cmd -a $analysis)
   if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
@@ -176,11 +186,20 @@ foreach hemi ($hemilist)
   if($status) exit 1;
 
   # Make a single mask = 0 unless all input masks are != 0
-  set maskvol = $outdir/$hemi.mask.$FSF_OUTPUT_FORMAT
+  set maskvol = $outdir/"$SpStr"mask.$FSF_OUTPUT_FORMAT
   set cmd = (mri_binarize --i $masksvol --frame-and --o $maskvol)
   echo $cmd       |& tee -a $LF
   $cmd            |& tee -a $LF
   if($status) exit 1;
+
+  if($hemi == mni305) then
+    # Take intersection of single mask and subcort mask
+    set maskvol2 = $outdir/"$SpStr"subcort.mask.$FSF_OUTPUT_FORMAT
+    set cmd = (mri_mask $maskvol $subcortmask $maskvol2)
+    echo $cmd       |& tee -a $LF
+    $cmd            |& tee -a $LF
+    if($status) exit 1;
+  endif
 
   # Go thru the maps in the contrasts
   foreach contrast ($contrastlist)
@@ -204,7 +223,7 @@ foreach hemi ($hemilist)
 
     foreach mapname ($conmaplist)
 
-      set outvol = $outcondir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
+      set outvol = $outcondir/"$SpStr"$mapname.$FSF_OUTPUT_FORMAT
       set cmd = (isxconcat0-sess -m $mapname -o $outvol $sessargs -c $contrast)
       if($#flac == 0) set cmd = ($cmd -a $analysis)
       if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
@@ -239,18 +258,20 @@ foreach hemi ($hemilist)
 
      end # Loop over maps
 
-     if($DoOSGM && $J == 1) then
+     if($DoOSGM) then
+       set zp = ()
+       if($J > 1) set zp = .000
        if(! $DoPercent ) then
-         set y       = $outcondir/$hemi.ces.$FSF_OUTPUT_FORMAT
-         set yffxvar = $outcondir/$hemi.cesvar.$FSF_OUTPUT_FORMAT
+         set y       = $outcondir/"$SpStr"ces$zp.$FSF_OUTPUT_FORMAT
+         set yffxvar = $outcondir/"$SpStr"cesvar$zp.$FSF_OUTPUT_FORMAT
        else
-         set y       = $outcondir/$hemi.cespct.$FSF_OUTPUT_FORMAT
-         set yffxvar = $outcondir/$hemi.cesvarpct.$FSF_OUTPUT_FORMAT
+         set y       = $outcondir/"$SpStr"cespct.$FSF_OUTPUT_FORMAT
+         set yffxvar = $outcondir/"$SpStr"cesvarpct.$FSF_OUTPUT_FORMAT
        endif
 
        if($DoWRFX) then
-         if(! $DoPercent) set glmdir = $outcondir/osgm.wrfx.$hemi
-         if($DoPercent) set glmdir = $outcondir/osgm.wrfx.pct.$hemi
+         if(! $DoPercent) set glmdir = $outcondir/osgm.wrfx"$SpStr2"
+         if($DoPercent) set glmdir = $outcondir/osgm.wrfx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
          set cmd = ($cmd --mask $maskvol --wls $yffxvar)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
@@ -261,8 +282,8 @@ foreach hemi ($hemilist)
        endif
 
        if($DoRFX) then
-         if(! $DoPercent) set glmdir = $outcondir/osgm.rfx.$hemi
-         if($DoPercent) set glmdir = $outcondir/osgm.rfx.pct.$hemi
+         if(! $DoPercent) set glmdir = $outcondir/osgm.rfx"$SpStr2"
+         if($DoPercent) set glmdir = $outcondir/osgm.rfx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
          set cmd = ($cmd --mask $maskvol)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
@@ -273,8 +294,8 @@ foreach hemi ($hemilist)
        endif
 
        if($DoFFX) then
-         if(! $DoPercent) set glmdir = $outcondir/osgm.ffx.$hemi
-         if($DoPercent) set glmdir = $outcondir/osgm.ffx.pct.$hemi
+         if(! $DoPercent) set glmdir = $outcondir/osgm.ffx"$SpStr2"
+         if($DoPercent) set glmdir = $outcondir/osgm.ffx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
          set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
          set cmd = ($cmd --ffxdofdat $ffxdofdat)
@@ -291,7 +312,7 @@ foreach hemi ($hemilist)
 
   # Analysis-level maps
   foreach mapname ($anamaplist)
-    set outvol = $outdir/$hemi.$mapname.$FSF_OUTPUT_FORMAT
+    set outvol = $outdir/"$SpStr"$mapname.$FSF_OUTPUT_FORMAT
     set cmd = (isxconcat0-sess -m $mapname -o $outvol $sessargs);
     if($#flac == 0) set cmd = ($cmd -a $analysis)
     if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
@@ -330,8 +351,8 @@ foreach hemi ($hemilist)
       $cmd            |& tee -a $LF
       if($status) exit 1;
       # It would be better to set the XtX to something like the identity
-      if($ToVol)  cp $SessList[1]/$fsd/$analysis/h.dat $outdir/mni305.h.dat
-      if($ToSurf) cp $SessList[1]/$fsd/$analysis/h.dat $outdir/$hemi.h.dat
+      if($ToVol)  cp $SessList[1]/$fsd/$analysis/h.dat $outdir/"$SpStr"h.dat
+      if($ToSurf) cp $SessList[1]/$fsd/$analysis/h.dat $outdir/"$SpStr"h.dat
     endif
 
   end # mapname
@@ -492,13 +513,20 @@ while( $#argv != 0 )
       breaksw
 
     case "-no-anamaps"
+      set GetHRF = 0;
       set anamaplist = ();
+      breaksw
+
+    case "-no-hdr"
+    case "-no-hrf"
+    case "-no-fir"
+      set GetHRF = 0;
       breaksw
 
     case "-fir"
     case "-hdr"
     case "-hrf"
-      set anamaplist = (h $anamaplist);
+      set GetHRF = 1;
       breaksw
 
     case "-osgm"
@@ -572,6 +600,11 @@ check_params:
   endif
 
   if($#analysis) then
+    if(! -e $analysis) then
+      echo "ERROR: cannot find $analysis"
+      exit 1;
+    endif
+    set IsNative = `getana -a $analysis -t IsNative`
     set fsd = `getana -a $analysis -t fsd`;
     set IsSurface = `getana -a $analysis -t IsSurface`
     if($IsSurface) then
@@ -592,6 +625,9 @@ check_params:
       set hemilist = (mni305)
       set DoResample = 0;
     endif
+    # Get the h-file, usually for FIRs
+    if($#GetHRF == 0) set GetHRF = `getana -a $analysis -t IsFIR`;
+    if($GetHRF) set anamaplist = ($anamaplist h);
   endif
   echo "DoResample $DoResample"
 
@@ -670,6 +706,13 @@ check_params:
     endif
   endif
   if($#regfile == 0) set regfile = register.dof$RegDOF.dat 
+
+  set subcortmask = $SUBJECTS_DIR/fsaverage/mri.2mm/subcort.mask.mgz
+  if(! -e $subcortmask) then
+    echo "ERROR: cannot find $subcortmask"
+    exit 1;
+  endif
+
 
 goto check_params_return;
 ############--------------##################
