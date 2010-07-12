@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/06/29 21:40:56 $
-#    $Revision: 1.481 $
+#    $Author: ginsburg $
+#    $Date: 2010/07/12 19:36:54 $
+#    $Revision: 1.482 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -684,6 +684,7 @@ if test x$EMULATION = xtrue
 then
    NVCCFLAGS+=" -deviceemu"
 fi
+NVCCFLAGS+=" --compiler-bindir=/usr/bin/gcc-4.3"
 AC_SUBST(NVCCFLAGS)
 
 # warn the user about missing functionality
@@ -2545,9 +2546,9 @@ BOOST_PO_LIB=""
 # if --with-boost-dir was used, make sure necessary lib(s) exist,
 # namely, boost_program_options, used by fem_elastic build dir
 if test ! "x$ac_boost_dir" = "xNO"; then
-  BOOST_PO_LIB="${BOOST_LIBS} -lboost_program_options"
-  if test -e ${BOOST_LIB}/libboost_program_options.a ; then
-    BOOST_PO_LIB=${BOOST_LIB}/libboost_program_options.a
+  BOOST_PO_LIB="${BOOST_LIBS} -lboost_program_options-mt"
+  if test -e ${BOOST_LIB}/libboost_program_options-mt.a ; then
+    BOOST_PO_LIB=${BOOST_LIB}/libboost_program_options-mt.a
     AC_MSG_RESULT([found '$BOOST_PO_LIB'])
   fi
 else
@@ -3173,6 +3174,7 @@ AC_OUTPUT([Makefile
            mris_distance_map/Makefile
            mris_curvature/Makefile
            mris_curvature_stats/Makefile
+           mris_decimate/Makefile
            mris_diff/Makefile
            mris_distance_to_label/Makefile
            mris_entropy/Makefile
