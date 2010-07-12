@@ -2,7 +2,7 @@
 # dcmunpack
 # 
 
-set VERSION = '$Id: dcmunpack,v 1.10 2009/06/04 19:07:27 greve Exp $';
+set VERSION = '$Id: dcmunpack,v 1.11 2010/07/12 14:24:37 greve Exp $';
 
 set SeriesInfo = ();
 
@@ -674,12 +674,13 @@ and will take most of its command-line arguments.
 
 Dicom source directory. You can specify more than one. If you just specify
 a source directory, it will give a summary of what it finds (like -scanonly 
-did for unpacksdcmdir). You should still give it -one-per-dir or -bourget
+did for unpacksdcmdir). You should still give it -one-per-dir or -martinos
 if applicable.
 
 -targ targetdir
 
-Output directory.
+Output directory. Do not need to include when just getting information
+about what is in the directory.
 
 -run run subdir format stemname <<nskip> ndrop>
 
@@ -701,11 +702,13 @@ Assume that the source directory (or subdirectory) contains only one
 series.  This is usually the case for GE, and this can speed things up
 tremendously.
 
+-martinos
+-mgh
 -bourget
 
-Assume that the DICOM file names have the form produced at MGH when
-you "push something to bourget" from the scanner, namely that each
-series will have one file that ends in "1.dcm", eg
+Assume that the DICOM file names have the form produced at the MGH
+Martinos Center when you "push something to bourget" from the scanner,
+namely that each series will have one file that ends in "1.dcm", eg
 397000-000007-000001.dcm.  This can speed things up considerably.
 
 -no-infodump
@@ -723,6 +726,40 @@ Do not actually run mri_convert
 -copy-only
 
 Only copy dicom files to output directory (implies -no-convert)
+
+
+EXAMPLE 
+
+# CD into the dicom directory
+cd Avanto-25096-20100325-162822-229000
+
+# See what's there
+dcmunpack -src . -martinos
+---------------------------------------
+Searching for matching files
+Mon Jul 12 10:21:10 EDT 2010
+Mon Jul 12 10:21:10 EDT 2010
+Found 6 total files.
+Found 6 unique series: 1 2 3 4 5 6
+Subject Subj5
+Date 20100325
+Time 162822.229000
+Institution Martinos Center Bay 2
+1 Localizer 2.95 7 20 0.546875 ROW 285 ./229000-000001-000001.dcm
+2 AAScout 1.23 2.6 0 2.5\2.5 ROW 1085 ./229000-000002-000001.dcm
+3 ge_functionals 40 2000 90 3.125\3.125 COL 2300 ./229000-000003-000001.dcm
+4 ge_functionals 40 2000 90 3.125\3.125 COL 2300 ./229000-000004-000001.dcm
+5 ge_functionals 40 2000 90 3.125\3.125 COL 2300 ./229000-000005-000001.dcm
+6 ge_functionals 40 2000 90 3.125\3.125 COL
+---------------------------------------
+
+# Now unpack it 
+dcmunpack -src . -martinos -targ /space/ProjectDir/subj5 \
+  -run 3 bold nii f.nii \
+  -run 4 bold nii f.nii \
+  -run 5 bold nii f.nii \
+  -run 6 bold nii f.nii 
+
 
 RELATIONSHIP TO UNPACKSDCMDIR
 
