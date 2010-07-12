@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/06/23 19:31:46 $
-#    $Revision: 1.315 $
+#    $Date: 2010/07/12 17:52:31 $
+#    $Revision: 1.316 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.315 2010/06/23 19:31:46 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.316 2010/07/12 17:52:31 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -267,6 +267,9 @@ set DoLocalGyriIndex = 0;
 set DoBaLabels       = 0;
 set DoLabelExvivoEC  = 0;
 # ----------- Surface and Volume ------------------#
+set DoSurfSegEdit    = 0; # if 1, run mri_edit_segmentation_with_surfaces to
+                          # fixup aseg.mgz with info from surfaces
+                          # (this is the -surfsegedit flag)
 set DoCortRibbonVolMask = 0;
 set DoSegStats       = 0;
 set DoAParc2ASeg = 0;
@@ -2812,6 +2815,43 @@ foreach hemi ($hemilist)
 
 end # Loop over hemilist
 
+
+#-------Edit Aseg with Surfaces -------------#
+if($DoSurfSegEdit) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# SurfSegEdit `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mri_edit_segmentation_with_surfaces $XOptsFile`;
+  set cmd = (mri_edit_segmentation_with_surfaces $xopts)
+  set cmd = ($cmd aseg.auto.mgz ../surf norm.mgz aseg.surfedit.mgz)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  $PWD |& tee -a $LF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  # now merge any manual edits that user might have made
+  if(-e aseg.manedit.mgz ) then
+    set cmd = (mri_seg_diff --seg aseg.surfedit.mgz \
+      --diff-in aseg.manedit.mgz --merged aseg.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if( ! $RunIt) then
+      echo "INFO: mri_seg_diff was not actually executed," |& tee -a $LF
+      echo "so subsequent commands (shown with -dontrun)" |& tee -a $LF
+      echo "may not have accurate arguments!" |& tee -a $LF
+    endif
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  # if no manual edits, then copy to aseg.mgz
+  else
+    set cmd = (cp aseg.surfedit.mgz aseg.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+  echo $cmd > $touchdir/surfsegedit.touch
+endif
+
 #---------------- Cortical Ribbon -------------------------#
 if($DoCortRibbonVolMask) then
   echo "#--------------------------------------------" \
@@ -4017,6 +4057,13 @@ while( $#argv != 0 )
       set DoParcStats2 = 0;
       breaksw
 
+    case "-surfsegedit":
+      set DoSurfSegEdit = 1;
+      breaksw
+    case "-nosurfsegedit":
+      set DoSurfSegEdit = 0;
+      breaksw
+
     case "-segstats":
       set DoSegStats = 1;
       breaksw
@@ -5043,7 +5090,7 @@ check_params:
      ! $DoMakefile && ! $DoAsegStatsDiff && ! $DoAparcStatsDiff && \
      ! $DoSurfVolume && ! $DoASegMerge && ! $DoCurvStats && ! $DoLabelV1 && \
      ! $DoCreateBaseSubj && ! $DoBaLabels && ! $DoShowEdits && \
-     ! $DoLabelExvivoEC ) then
+     ! $DoLabelExvivoEC && ! $DoSurfSegEdit ) then
      echo "ERROR: nothing to do"
      exit 1;
   endif
