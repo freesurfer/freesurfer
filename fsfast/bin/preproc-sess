@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/06/29 21:53:49 $
-#    $Revision: 1.32 $
+#    $Date: 2010/07/12 17:16:40 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.32 2010/06/29 21:53:49 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.33 2010/07/12 17:16:40 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -701,16 +701,25 @@ usage_exit:
   echo ""
   echo "  -per-run : motion cor and reg to middle TP of each run"
   echo "  -per-session : motion cor and reg to 1st TP of 1st run"
+  echo "  -fwhm FWHM : smoothing level (mm)"
   echo ""
   echo "  -update        : only run a stage if input is newer than output (default)"
   echo "  -force         : force reprocessing of all stages (turns off -update)"
   echo "  -no-update     : same as -force"
-  echo "  -smooth-mask   : use mask when volume smoothing"
-  echo "  -no-smooth-mask: do not use mask when volume smoothing"
   echo "  -sliceorder so : turn on slice timing correction with the given slice order"
   echo "  -surface subject hemi : set hemi to lhrh to do both"
   echo "  -mni305        : sample raw data to mni305 at 2mm"
   echo "  -mni305-1mm    : sample raw data to mni305 at 1mm"
+  echo ""
+  echo "Session Arguments (some combination required)"
+  echo "  -sf sessidfile  ..."
+  echo "  -df srchdirfile ..."
+  echo "  -s  sessid      ..."
+  echo "  -d  srchdir     ..."
+  echo "  -fsd    fsd <bold>"
+  echo "  -rlf    rlf  : run list file (default all runs)"
+  echo ""
+  echo "Other options (probably not too useful)"
   echo ""
   echo "  -nomc     : don't do motion correction"
   echo "  -nostc    : don't do slice-timing correction"
@@ -728,24 +737,17 @@ usage_exit:
   echo "  -mask   maskstem    : <brain>"
   echo ""
   echo "  -i    instem    : stem to use as overal input <f>"
-  echo "  -vol-fwhm  fwhm : 3D fwhm (mm) (not with -surf-fwhm)"
-  echo "  -surf-fwhm fwhm : 2D fwhm (mm) (not with -vol-fwhm)"
-  echo "  -inorm        : perform intensity normalization (off by default)"
-  echo "  -nskip N      : do not use first N TRs when inorming"
+#  echo "  -vol-fwhm  fwhm : 3D fwhm (mm) (not with -surf-fwhm)"
+#  echo "  -surf-fwhm fwhm : 2D fwhm (mm) (not with -vol-fwhm)"
+#  echo "  -smooth-mask   : use mask when volume smoothing"
+#  echo "  -no-smooth-mask: do not use mask when volume smoothing"
+#  echo "  -inorm        : perform intensity normalization (off by default)"
+#  echo "  -nskip N      : do not use first N TRs when inorming"
   echo ""
   echo ""
   echo "  -regfile regfile   : registration file for use with -surf-fwhm (register.dat)"
   echo "  -projfrac frac : projection fraction for use with -surf-fwhm (0.5)"
   echo "  -projfrac-avg  : average over ribbon (not with -projfrac)"
-  echo ""
-  echo "Session Arguments (some combination required)"
-  echo "  -sf sessidfile  ..."
-  echo "  -df srchdirfile ..."
-  echo "  -s  sessid      ..."
-  echo "  -d  srchdir     ..."
-  echo "  -fsd    fsd <bold>"
-  echo "  -rlf    rlf  : run list file (default all runs)"
-  echo ""
   echo ""
 
   if(! $PrintHelp) exit 1;
@@ -761,13 +763,60 @@ exit 1;
 BEGINHELP
 
 This will run preprocessing steps: motion correction (MC),
-slice-timing correction (STC), smoothing, intensity normalization
-(INorm), and brain mask creation. By default, it will perform MC,
-smoothing, and masking, but not STC or INorm. All stages producde a
-new volume that can be used as input to mkanalysis-sess. Note: MC and
-INorm require matlab but none of the other stages does.  By default,
-motion correction uses the first volume of the first run as the
-reference for all runs.
+slice-timing correction (STC), functional-anatomical registration,
+mask creation, intensity normalization, resampling to common space,
+and spatial smoothing. 
+
+-per-run 
+
+Motion correct and register using the middle time point.
+
+-per-session
+
+Motion correct and register using the first time point of the first run.
+
+-fwhm FWHM
+
+Specify a full-width/half-max (in mm) when smoothing. If you do not
+want to smooth, specify 0 (but you must specify something).
+
+-update
+
+Only perform a stage if the output is newer than the input or if the
+output does not exist. This can be very convient as you do not have to
+keep track of what has been done. Just specify all the sessions and
+and it will figure out what needs to be done. This is the default
+behavior. See also -force.
+
+-force
+-noupdate
+
+Force processing of all stages regardless of what has been done
+before. This turns off -update
+
+-sliceorder so
+
+Perform slice-timing correction with the given slice order. Legal
+values are siemens, up, down, odd, and even. Siemens slice order is
+interleaved starting on the first slice for an odd number of slices or
+the second slice for an even number. "up" is 1st, 2nd, 3rd,
+etc. "down" is last, next to last, etc. odd is 1st, 3rd, 5th, , etc,
+then 2nd, 4th, 6th, etc. "even" is 2nd, 4th, 6th, etc, then 1st, 3rd,
+5th, etc.  See also stc-sess.
+
+-surface subject hemi
+
+Sample raw data onto the surface of the hemisphere of the given
+subject.  Hemi should be lh, rh, or lhrh (for both). Both -surface and
+-mni305can be specified (in which case it will do both).
+
+-mni305
+
+Sample raw data into the mni305 2mm space. Both -mni305 and -surface can be
+specified (in which case it will do both).
+
+
+
 
 -i instem 
 
@@ -798,30 +847,6 @@ be changed with -reg. By default, samples midway between the white and
 pial surfaces (ie, projection fraction of 0.5), but this can be
 changed with -projfrac. Or the average over the ribbon can be computed
 with -projfrac-avg (but this will be slow).
-
--sliceorder so
-
-Perform slice-timing correction with the given slice order. Legal
-values are siemens, up, down, odd, and even. Siemens slice order is
-interleaved starting on the first slice for an odd number of slices or
-the second slice for an even number. "up" is 1st, 2nd, 3rd,
-etc. "down" is last, next to last, etc. odd is 1st, 3rd, 5th, , etc,
-then 2nd, 4th, 6th, etc. "even" is 2nd, 4th, 6th, etc, then 1st, 3rd,
-5th, etc.  See also stc-sess.
-
--force
--noupdate
-
-Force processing of all stages regardless of what has been done
-before. This turns off -update
-
--update
-
-Only perform a stage if the output is newer than the input or if 
-the output does not exist. This can be very convient as you
-do not have to keep track of what has been done. Just specify
-all the sessions and and it will figure out what needs to be 
-done. This is the default behavior. See also -force.
 
 -inorm
 
