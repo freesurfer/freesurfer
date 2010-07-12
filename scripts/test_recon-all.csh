@@ -32,8 +32,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/04/04 16:16:31 $
-#    $Revision: 1.35 $
+#    $Date: 2010/07/12 16:00:32 $
+#    $Revision: 1.36 $
 #
 # Copyright (C) 2007-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -48,7 +48,7 @@
 #
 
 
-set VERSION='$Id: test_recon-all.csh,v 1.35 2010/04/04 16:16:31 nicks Exp $'
+set VERSION='$Id: test_recon-all.csh,v 1.36 2010/07/12 16:00:32 nicks Exp $'
 
 set MAIL_LIST=(krish@nmr.mgh.harvard.edu nicks@nmr.mgh.harvard.edu)
 # failure mailing list:
@@ -226,7 +226,7 @@ grep pubsw `which nu_correct`
 if ( ! $status ) then
     echo "***FAILED :: MNI tools built using /usr/pubsw/perl!"  >>& $OUTPUTF
     mail -s "test_recon-all -all FAILED: MNI tools build using /usr/pubsw/perl!" $FMAIL_LIST < $RECON_LOG
-    cp $RECON_LOG $LOG_DIR/
+    cp -f $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
@@ -257,7 +257,7 @@ end
 if ($#INVOL == "0") then
     echo "***FAILED :: no input volumes found"  >>& $OUTPUTF
     mail -s "test_recon-all -all FAILED: no input volumes found" $FMAIL_LIST < $RECON_LOG
-    cp $RECON_LOG $LOG_DIR/
+    cp -f $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     exit 1
@@ -265,7 +265,7 @@ endif
 
 # run a copy of recon-all, since the nightly build can clobber recon-all
 # if it changed
-cp `which recon-all` /tmp
+cp -f `which recon-all` /tmp
 if ($status) exit 1
 
 # set recon-all command and run...
@@ -280,7 +280,7 @@ if ($RunIt) then
   if ($status != 0) then
     echo "***FAILED :: $PROC recon-all -all"  >>& $OUTPUTF
     mail -s "test_recon-all -all FAILED on $PROC" $FMAIL_LIST < $RECON_LOG
-    cp $RECON_LOG $LOG_DIR/
+    cp -f $RECON_LOG $LOG_DIR/
     touch $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/test_recon-all_FAILED
     chmod a+w $SUBJECTS_DIR/recon-all.log.txt
@@ -289,7 +289,7 @@ if ($RunIt) then
     set CURRENT_TIME=`date`
     set ELAPSED=`grep elapsed $SUBJECTS_DIR/recon-all.log.txt | grep CPU | awk '{print $3}'`
     echo "   pass :: recon-all -all (Finish: $CURRENT_TIME, ${ELAPSED})" >>& $OUTPUTF
-    cp $RECON_LOG $LOG_DIR/
+    cp -f $RECON_LOG $LOG_DIR/
     chmod a+w $SUBJECTS_DIR/recon-all.log.txt
   endif
 endif # ($RunIt)
