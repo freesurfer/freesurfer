@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/08 19:16:48 $
- *    $Revision: 1.277 $
+ *    $Author: nicks $
+ *    $Date: 2010/07/12 12:33:07 $
+ *    $Revision: 1.278 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -13942,8 +13942,8 @@ alloc_gcs(int nlabels, int flags, int ninputs)
   GC1D  *gcs ;
   int   i ;
 
-  printf( "%s: nlabels=%i ninputs=%i\n",
-	  __FUNCTION__, nlabels, ninputs );
+//  printf( "%s: nlabels=%i ninputs=%i\n",
+//	  __FUNCTION__, nlabels, ninputs );
 
   gcs = (GC1D *)calloc(nlabels, sizeof(GC1D)) ;
   if (gcs == NULL)
