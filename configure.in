@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: ginsburg $
-#    $Date: 2010/07/12 19:36:54 $
-#    $Revision: 1.482 $
+#    $Author: nicks $
+#    $Date: 2010/07/12 21:19:22 $
+#    $Revision: 1.483 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -684,7 +684,7 @@ if test x$EMULATION = xtrue
 then
    NVCCFLAGS+=" -deviceemu"
 fi
-NVCCFLAGS+=" --compiler-bindir=/usr/bin/gcc-4.3"
+# Ubuntu hack: NVCCFLAGS+=" --compiler-bindir=/usr/bin/gcc-4.3"
 AC_SUBST(NVCCFLAGS)
 
 # warn the user about missing functionality
