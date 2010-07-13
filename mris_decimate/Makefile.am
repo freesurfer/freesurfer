@@ -8,7 +8,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
 if HAVE_VTK_LIBS
     bin_PROGRAMS = mris_decimate mris_decimate_gui
     mris_decimate_SOURCES=mris_decimate.cpp mris_decimate.h
-    mris_decimate_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(VTK_LIBS) -lvtkHybrid -lvtkWidgets \
+    mris_decimate_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkHybrid -lvtkWidgets \
         -lvtkGraphics \
         -lvtkCommon  \
         -lvtkImaging \
@@ -16,7 +16,7 @@ if HAVE_VTK_LIBS
     mris_decimate_LDFLAGS=$(OS_LDFLAGS)
 
     mris_decimate_gui_SOURCES=mris_decimate.cpp mris_decimate.h
-    mris_decimate_gui_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(VTK_LIBS) -lvtkHybrid -lvtkWidgets \
+    mris_decimate_gui_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkHybrid -lvtkWidgets \
         -lvtkGraphics \
         -lvtkCommon  \
         -lvtkImaging \
