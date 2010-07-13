@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/07/12 21:19:22 $
-#    $Revision: 1.483 $
+#    $Date: 2010/07/13 21:21:55 $
+#    $Revision: 1.484 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -287,8 +287,8 @@ AC_CHECK_FUNCS([\
   strtol \
   uname])
 
-# many systems dont have libg2c.so, the shared lib supporting g77, so 
-# build using the static lib if available, so that distro is more 
+# many linux systems dont have libg2c.so, the shared lib supporting g77,
+# so build using the static lib if available, so that distro is more 
 # widely compatible. the talairach_avi/Makefile.am file uses LIB_G2C_A
 LIB_G2C_A=""
 if test -e /usr/local/lib/libg2c.a ; then
@@ -3175,6 +3175,7 @@ AC_OUTPUT([Makefile
            mris_curvature/Makefile
            mris_curvature_stats/Makefile
            mris_decimate/Makefile
+           mris_decimate/gui/Makefile
            mris_diff/Makefile
            mris_distance_to_label/Makefile
            mris_entropy/Makefile
