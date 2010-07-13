@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/06/28 15:09:51 $
- *    $Revision: 1.462 $
+ *    $Author: rge21 $
+ *    $Date: 2010/07/13 18:35:29 $
+ *    $Revision: 1.463 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.462 $";
+const char *MRI_C_VERSION = "$Revision: 1.463 $";
 
 
 /*-----------------------------------------------------
@@ -1115,7 +1115,7 @@ MRIgetVoxDz(MRI *mri, int c, int r, int s, int f)
   \return float value at the given col, row, slice, frame
   This function is general but slow. See also MRIptr2dbl().
 */
-inline float MRIgetVoxVal(MRI *mri, int c, int r, int s, int f)
+inline float MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f)
 {
   static void *p=NULL;
 

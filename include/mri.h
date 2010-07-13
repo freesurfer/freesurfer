@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/18 16:36:39 $
- *    $Revision: 1.403 $
+ *    $Date: 2010/07/13 18:35:32 $
+ *    $Revision: 1.404 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,12 +190,12 @@ float  MRIgetVoxDy(MRI *mri, int c, int r, int s, int f);
 float  MRIgetVoxDz(MRI *mri, int c, int r, int s, int f);
 
 #ifdef __cplusplus
-float  MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
+float  MRIgetVoxVal( const MRI *mri, int c, int r, int s, int f);
 int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
 void   MRIdbl2ptr(double v, void *pmric, int mritype);
 double MRIptr2dbl(void *pmric, int mritype);
 #else
-inline float  MRIgetVoxVal(MRI *mri, int c, int r, int s, int f);
+inline float  MRIgetVoxVal(const MRI *mri, int c, int r, int s, int f);
 inline int    MRIsetVoxVal(MRI *mri, int c, int r, int s, int f, float voxval);
 inline void   MRIdbl2ptr(double v, void *pmric, int mritype);
 inline double MRIptr2dbl(void *pmric, int mritype);
