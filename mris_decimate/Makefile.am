@@ -19,7 +19,7 @@ if HAVE_VTK_LIBS
     mris_decimate_LDFLAGS=$(OS_LDFLAGS)
 
 # put a wrapper around the bin, used to setup vtk enviro vars
-install-exec-hook:mris_decimate mris_decimate_gui
+install-exec-hook:mris_decimate
 	cp $(top_builddir)/mris_decimate/mris_decimate $(DESTDIR)$(bindir)/mris_decimate.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_decimate
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
