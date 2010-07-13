@@ -358,6 +358,25 @@ cudatypeutils.o: ../include/cudatypeutils.hpp
 gcamorphenergygpu.o: $(CUDA_DEPS)
 gcamorphtermgpu.o: $(CUDA_DEPS)
 
+
+
+
+CALLDEPTH ?= -1
+
+%.calltree : %.dot
+	dot -Grankdir=LR -Tpdf < $< > $*.pdf
+
+%.dot : %.cflow
+	cflow2dot < $< > $@
+
+%.cflow : 
+	cflow -d ${CALLDEPTH} \
+              --format=posix --omit-arguments \
+              --level-indent='0=\t' --level-indent='1=\t' \
+              --level-indent=start='\t' --main=$* \
+              *.c > $@
+
+
 endif
 
 
