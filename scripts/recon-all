@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/07/12 17:52:31 $
-#    $Revision: 1.316 $
+#    $Date: 2010/07/13 19:49:06 $
+#    $Revision: 1.317 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.316 2010/07/12 17:52:31 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.317 2010/07/13 19:49:06 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2695,7 +2695,7 @@ foreach hemi ($hemilist)
     set ctab  = ../label/aparc.annot.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -cortex $clabel -f $stats \
-            -b -a $annot -c $ctab $xopts $subjid $hemi);
+            -b -a $annot -c $ctab $xopts $subjid $hemi white);
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -2744,7 +2744,7 @@ foreach hemi ($hemilist)
     set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -cortex $clabel -f $stats \
-            -b -a $annot -c $ctab $xopts $subjid $hemi);
+            -b -a $annot -c $ctab $xopts $subjid $hemi white);
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3218,7 +3218,7 @@ if ($DoBaLabels) then
     set ctab  = ./BA.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -f $stats \
-            -b -a $annot -c $ctab $xopts $subjid $hemi);
+            -b -a $annot -c $ctab $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -3268,7 +3268,7 @@ if ($DoLabelExvivoEC) then
     set stats = ../stats/$hemi.entorhinal_exvivo.stats
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
     set cmd = (mris_anatomical_stats -mgz -f $stats \
-            -b -l $label $xopts $subjid $hemi);
+            -b -l $label $xopts $subjid $hemi white);
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -6035,10 +6035,10 @@ Parcellation Statistics (-<no>parcstats, -<no>parcstats2)
 
 Runs mris_anatomical_stats to create a summary table of cortical
 parcellation statistics for each structure, including 1. structure
-name 2. number of vertices 3. total surface area (mm^2) 4. total gray
+name 2. number of vertices 3. total wm surface area (mm^2) 4. total gray
 matter volume (mm^3) 5. average cortical thickness (mm) 6. standard
-error of cortical thicknessr (mm) 7. integrated rectified mean
-curvature 8. integrated rectified Gaussian curvature 9. folding index
+error of cortical thickness (mm) 7. integrated rectified mean wm
+curvature 8. integrated rectified Gaussian wm curvature 9. folding index
 10. intrinsic curvature index.
 For -parcstats, the file is saved in stats/?h.aparc.stats.
 For -parcstats2, the file is saved in stats/?h.aparc.${DESTRIEUX_NAME}.stats.
