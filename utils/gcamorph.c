@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/08 19:16:48 $
- *    $Revision: 1.205 $
+ *    $Date: 2010/07/13 18:36:27 $
+ *    $Revision: 1.206 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -227,8 +227,7 @@ static int  log_integration_parms(FILE *fp, GCA_MORPH_PARMS *parms) ;
 static int gcamLimitGradientMagnitude(GCA_MORPH *gcam, 
                                       GCA_MORPH_PARMS *parms, 
                                       MRI *mri) ;
-static int gcamComputeGradient(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
-                               GCA_MORPH_PARMS *parms) ;
+
 
 static int gcamMultiscaleTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                               double l_multiscale) ;
@@ -1643,8 +1642,6 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
   m_inv_cov = MatrixAlloc(gcam->ninputs, gcam->ninputs, MATRIX_REAL) ;
   v_means = VectorAlloc(gcam->ninputs, 1) ;
   v_grad = VectorAlloc(3, MATRIX_REAL) ;
-
-  printf( "%s: %i %i\n", __FUNCTION__, mri->type, mri_smooth->type );
 
   for (x = 0 ; x < gcam->width ; x++) {
     for (y = 0 ; y < gcam->height ; y++) {
@@ -5406,7 +5403,7 @@ gcamComputeSSE(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   return(sse) ;
 }
 
-static int
+int
 gcamComputeGradient
 (GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
 {
@@ -7833,6 +7830,68 @@ remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh)
   return(nremoved) ;
 }
 
+
+
+// ====================================================
+// Separate out some operations from gcamLabelTerm
+
+
+#define GCAM_LABELFINAL_OUTPUT 0
+
+int gcamLabelTermFinalUpdate( GCA_MORPH *gcam,
+			      const MRI* mri_dist,
+			      const double l_label ) {
+
+  int num, x, y, z;
+  GCA_MORPH_NODE *gcamn;
+
+#if GCAM_LABELFINAL_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%outputFreq) == 0 ) {
+    unsigned int nOut = nCalls/outputFreq;
+    
+    char fname[STRLEN];
+
+    snprintf( fname, STRLEN-1, "gcamLabelFinalInput%04u", nOut );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+
+    snprintf( fname, STRLEN-1, "mriLabelFinalInput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri_dist, fname );
+  }
+  nCalls++;
+#endif
+
+  num = 0;
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
+	
+        gcamn = &gcam->nodes[x][y][z] ;
+	
+        if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
+            ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
+          continue;
+	}
+	
+        gcamn->dy = l_label * MRIgetVoxVal(mri_dist, x, y,z, 0) ;
+	
+        if (fabs(gcamn->dy)/l_label >= 1) {
+          num++ ;
+	}
+	
+        gcamn->label_dist = gcamn->dy ;   /* for use in label energy */
+	
+      }
+    }
+  }
+  
+  return( num );
+}
+
+// ----------------------
+
 int
 gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 	       double l_label, double label_dist ) {
@@ -8179,29 +8238,8 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
   }
 
 
-  num = 0 ;
-  for (x = 0 ; x < gcam->width ; x++) {
-    for (y = 0 ; y < gcam->height ; y++) {
-      for (z = 0 ; z < gcam->depth ; z++) {
-
-        gcamn = &gcam->nodes[x][y][z] ;
-
-        if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
-            ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
-          continue;
-	}
-
-        gcamn->dy = l_label * MRIgetVoxVal(mri_dist, x, y,z, 0) ;
-
-        if (fabs(gcamn->dy)/l_label >= 1) {
-          num++ ;
-	}
-
-        gcamn->label_dist = gcamn->dy ;   /* for use in label energy */
-	
-      }
-    }
-  }
+  num = gcamLabelTermFinalUpdate( gcam, mri_dist, l_label );
+  
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
     MRIwrite(mri_dist, "dist_after.mgz") ;

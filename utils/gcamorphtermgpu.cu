@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/06 17:08:06 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/07/13 18:36:27 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,8 @@ namespace GPU {
     const unsigned int kGCAmorphJacobTermKernelSize = 16;
 
     const unsigned int kGCAmorphLLTermKernelSize = 16;
+
+    const unsigned int kGCAmorphLabelTermFinalKernelSize = 16;
 
     // ##############################################################
 
@@ -1039,6 +1041,90 @@ namespace GPU {
 
 
     // ##############################################################
+
+    __global__
+    void LabelFinalKernel( const GPU::Classes::VolumeArgGPU<char> invalid,
+			   const GPU::Classes::VolumeArgGPU<int> status,
+			   const GPU::Classes::MRIframeOnGPU<float> mriDist,
+			   GPU::Classes::VolumeArgGPU<float> dy,
+			   GPU::Classes::VolumeArgGPU<float> labelDist,
+			   const float l_label,
+			   int *num ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      // Loop over z slices
+      for( unsigned int iz = 0; iz < invalid.dims.z; iz++ ) {
+	
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( invalid.InVolume(ix,iy,iz) ) {
+
+	  if( invalid(ix,iy,iz) ||
+	      ( (status(ix,iy,iz) & GCAM_LABEL_NODE) == 0 ) ) {
+	    continue;
+	  }
+
+	  dy(ix,iy,iz) = l_label * mriDist(ix,iy,iz);
+
+	  if( fabs( dy(ix,iy,iz)/l_label ) >= 1 ) {
+	    atomicAdd( num, 1 );
+	  }
+
+	  labelDist(ix,iy,iz) = dy(ix,iy,iz);
+	}
+      }
+    }
+
+
+    int GCAmorphTerm::LabelFinalUpdate( GPU::Classes::GCAmorphGPU& gcam,
+					const GPU::Classes::MRIframeGPU<float>& mri_dist,
+					const float l_label ) const {
+      
+      int num;
+      int *d_num;
+
+      // Allocate memory for d_num
+      CUDA_SAFE_CALL( cudaMalloc( (void**)&d_num, sizeof(int) ) );
+
+      // Zero it
+      num = 0;
+      CUDA_SAFE_CALL( cudaMemcpy( d_num, &num, sizeof(int),
+				  cudaMemcpyHostToDevice ) );
+
+
+      // Run the kernel
+      dim3 threads, grid;
+      threads.x = threads.y = kGCAmorphLabelTermFinalKernelSize;
+      threads.z = 1;
+
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphLabelTermFinalKernelSize );
+      grid.z = 1;
+
+      LabelFinalKernel<<<grid,threads>>>( gcam.d_invalid,
+					  gcam.d_status,
+					  mri_dist,
+					  gcam.d_dy,
+					  gcam.d_labelDist,
+					  l_label,
+					  d_num );
+      CUDA_CHECK_ERROR( "LabelFinalKernel failed!\n" );
+
+
+
+      // Retrieve d_num
+      CUDA_SAFE_CALL( cudaMemcpy( &num, d_num, sizeof(int),
+				  cudaMemcpyDeviceToHost ) );
+
+      // Release d_num
+      CUDA_SAFE_CALL( cudaFree( d_num ) );
+
+      return( num );
+    }
+
+
+    // ##############################################################
     
     void GCAmorphTerm::ShowTimings( void ) {
 
@@ -1148,4 +1234,23 @@ void gcamLogLikelihoodTermGPU( GCA_MORPH *gcam,
 }
 
 
+
+//! Wrapper around GPU class for LabelTermFinal
+void gcamLabelTermFinalUpdateGPU( GCA_MORPH *gcam,
+				  const MRI* mri_dist,
+				  const double l_label ) {
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+  GPU::Classes::MRIframeGPU<float> mriDist;
+
+  myGCAM.SendAll( gcam );
+
+  mriDist.Allocate( mri_dist );
+  mriDist.Send( mri_dist, 0 );
+
+  myTerms.LabelFinalUpdate( myGCAM, mriDist, l_label );
+
+  myGCAM.RecvAll( gcam );
+
+}
 #endif

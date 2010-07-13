@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/01 16:04:30 $
- *    $Revision: 1.79 $
+ *    $Date: 2010/07/13 18:36:31 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -495,9 +495,15 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 			double l_jacobian, 
 			double ratio_thresh );
 
+
   int gcamLabelTerm( GCA_MORPH *gcam,
 		     const MRI *mri,
 		     double l_label, double label_dist );
+
+  int gcamLabelTermFinalUpdate( GCA_MORPH *gcam,
+				const MRI* mri_dist,
+				const double l_label );
+
 
   int gcamLogLikelihoodTerm( GCA_MORPH *gcam,
 			     const MRI *mri,
@@ -510,6 +516,10 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   int different_neighbor_labels( const GCA_MORPH *gcam, 
 				 const int x, const int y, const int z,
 				 const int whalf);
+
+
+  int gcamComputeGradient( GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
+			   GCA_MORPH_PARMS *parms );
 
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties
@@ -551,6 +561,10 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   void gcamAddStatusGPU( GCA_MORPH *gcam, const int statusFlags );
   void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags );
+
+  void gcamLabelTermFinalUpdateGPU( GCA_MORPH *gcam,
+				    const MRI* mri_dist,
+				    const double l_label );
 #endif
 
 #if defined(__cplusplus)

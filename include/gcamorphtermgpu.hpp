@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/01 15:32:28 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/07/13 18:36:31 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -93,6 +93,13 @@ namespace GPU {
 
       template<typename T>
       void UnbindMRIsmooth( void ) const;
+
+
+      //! Final update stage for Label term
+      int LabelFinalUpdate( GPU::Classes::GCAmorphGPU& gcam,
+			    const GPU::Classes::MRIframeGPU<float>& mri_dist,
+			    const float l_label ) const;
+
 
       // ######################################################
     private:
