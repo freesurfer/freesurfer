@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,6 +39,7 @@ Layer::Layer() : Listener( "Layer" ), Broadcaster( "Layer" )
     m_dWorldOrigin[i] = 0;
     m_dWorldVoxelSize[i] = 1;
     m_dWorldSize[i] = 0;
+    m_dPositionTranslate[i] = 0;
   }
   m_bLocked = false;
   mProperties = NULL;
@@ -210,4 +211,48 @@ void Layer::GetBounds( double* bounds )
 void Layer::GetDisplayBounds( double* bounds )
 {
   this->GetBounds( bounds );
+}
+
+bool Layer::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+{
+  bool ret = DoRotate( rotations, wnd, event ); 
+  if ( ret )
+  {
+    ResetTranslatePosition();   
+    this->SendBroadcast( "LayerTransformed", this, this );
+  }
+  return ret;
+}
+
+bool Layer::Translate( double x, double y, double z )
+{
+  double pos[3] = { x, y, z };
+  return Translate( pos );
+}
+  
+bool Layer::Translate( double* dPos )
+{
+  double offset[3];
+  for ( int i = 0; i < 3; i++ )
+    offset[i] = dPos[i] - m_dPositionTranslate[i];
+  
+  DoTranslate( offset );
+  
+  for ( int i = 0; i < 3; i++ )
+    m_dPositionTranslate[i] = dPos[i];
+  
+  this->SendBroadcast( "LayerTransformed", this, this );
+  
+  return true;
+}
+
+// reset transformations
+void Layer::Restore()
+{
+  DoRestore();
+  
+  for ( int i = 0; i < 3; i++ )
+    m_dPositionTranslate[i] = 0;
+  
+  this->SendBroadcast( "LayerTransformed", this, this );
 }

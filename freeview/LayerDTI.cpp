@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/01/11 21:30:14 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -131,7 +131,7 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
     int z = i/(dim[0]*dim[1]);
     m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
     m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
-    if ( nSize >= 5 && i%(nSize/5) == 0 )
+    if ( wnd && nSize >= 5 && i%(nSize/5) == 0 )
     {
       event.SetInt( event.GetInt() + nProgressStep );
       wxPostEvent( wnd, event );
@@ -184,16 +184,25 @@ bool LayerDTI::GetVectorValue( double* pos, double* v_out )
   }
 }
 
-bool LayerDTI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+bool LayerDTI::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {
   m_bResampleToRAS = false;
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
   m_vectorSource->SetResampleToRAS( m_bResampleToRAS );
 
-  bool ret = LayerMRI::Rotate( rotations, wnd, event ) && m_vectorSource->Rotate( rotations, wnd, event );
+  bool ret = LayerMRI::DoRotate( rotations, wnd, event ) && m_vectorSource->Rotate( rotations, wnd, event );
 
   InitializeDTIColorMap( wnd, event );
   return ret;
+}
+
+void LayerDTI::DoRestore()
+{
+  std::vector<RotationElement> rotations;
+  
+  LayerMRI::DoRestore();
+  wxCommandEvent e;
+  m_vectorSource->Rotate( rotations, NULL, e );
 }
 
 void LayerDTI::UpdateVectorActor( int nPlane )

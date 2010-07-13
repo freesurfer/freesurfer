@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/03 01:18:34 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -57,10 +57,9 @@ public:
   {
     m_sLUT = lut;
   }
-  
-  bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
 
 protected:
+  bool DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
   void UpdateColorMap();
 
   FSVolume*       m_volumeTemp;

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/08 20:50:46 $
- *    $Revision: 1.78 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -269,60 +269,24 @@ bool LayerMRI::SaveVolume( wxWindow* wnd, wxCommandEvent& event )
 
   return bSaved;
 }
- 
-/*
-bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
-{
-  m_bResampleToRAS = false;
-  m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
-  if ( IsModified() )
-  {
-    if ( !m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event ) )
-      return false;
-  }
-  else
-  {
-    if ( !m_volumeSource->Restore( m_sFilename.c_str(), 
-          m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL, 
-          wnd, 
-          event ) )
-    {
-      cerr << "Failed to load original volume. Restore from converted volume (not good)." << endl;
-      m_volumeSource->UpdateMRIFromImage( m_imageData, wnd, event, !m_bReorient );
-    }
-  }
 
-  int nSampleMethod = rotations[0].SampleMethod;
-  if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT )
-    nSampleMethod = SAMPLE_NEAREST;
-  bool ret = m_volumeSource->Rotate( rotations, wnd, event, nSampleMethod );
-  m_imageData = m_volumeSource->GetImageOutput();
-  for ( int i = 0; i < 3; i++ )
-  {
-    mReslice[i]->SetInput( m_imageData );
-  }
-  
-  // update new world geometry
-  m_imageData->GetOrigin( m_dWorldOrigin );
-  m_imageData->GetSpacing( m_dWorldVoxelSize );
-  int* dim = m_imageData->GetDimensions();
-  for ( int i = 0; i < 3; i++ )
-    m_dWorldSize[i] = dim[i]*m_dWorldVoxelSize[i];
-  
-  if ( ret )
-    this->SendBroadcast( "LayerRotated", this, this );
-  
-  return ret;
-}
-*/
-
-bool LayerMRI::IsRotated()
+bool LayerMRI::IsTransformed()
 {
   vtkMatrix4x4* mat = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() )->GetMatrix();
   return !MyUtils::IsIdentity( mat->Element );
 }
 
-bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+void LayerMRI::DoRestore()
+{
+  vtkSmartPointer<vtkTransform> slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
+  vtkTransform* ras_tr = m_volumeSource->GetTransform(); 
+  slice_tr->Identity();
+  ras_tr->Identity();
+  for ( int i = 0; i < 3; i++ )
+    mReslice[i]->Modified();
+}
+
+bool LayerMRI::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {
   for ( int i = 0; i < 3; i++ )
   {
@@ -336,39 +300,40 @@ bool LayerMRI::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, w
   // also record transformation in RAS space
   vtkTransform* ras_tr = m_volumeSource->GetTransform();
   
-  if ( rotations[0].Plane == -1 )     // restore
+  for ( size_t i = 0; i < rotations.size(); i++ )
   {
-    slice_tr->Identity();
-    ras_tr->Identity();
-  }
-  else
-  {
-    for ( size_t i = 0; i < rotations.size(); i++ )
-    {
-      double v[3] = { 0, 0, 0 };
-      v[rotations[i].Plane] = 1;
-      double dTargetPoint[3];
-      RASToTarget( rotations[i].Point, dTargetPoint );
-      
-      slice_tr->Translate( dTargetPoint[0], dTargetPoint[1], dTargetPoint[2] );
-      slice_tr->RotateWXYZ( -rotations[i].Angle, v );
-      slice_tr->Translate( -dTargetPoint[0], -dTargetPoint[1], -dTargetPoint[2] );
-      
-      // record transformation in RAS space
-      ras_tr->Translate( -rotations[i].Point[0], -rotations[i].Point[1], -rotations[i].Point[2] );
-      ras_tr->RotateWXYZ( rotations[i].Angle, v );
-      ras_tr->Translate( rotations[i].Point[0], rotations[i].Point[1], rotations[i].Point[2] );
-    }
+    double v[3] = { 0, 0, 0 };
+    v[rotations[i].Plane] = 1;
+    double dTargetPoint[3];
+    RASToTarget( rotations[i].Point, dTargetPoint );
+    
+    slice_tr->Translate( dTargetPoint[0], dTargetPoint[1], dTargetPoint[2] );
+    slice_tr->RotateWXYZ( -rotations[i].Angle, v );
+    slice_tr->Translate( -dTargetPoint[0], -dTargetPoint[1], -dTargetPoint[2] );
+    
+    // record transformation in RAS space
+    ras_tr->Translate( -rotations[i].Point[0], -rotations[i].Point[1], -rotations[i].Point[2] );
+    ras_tr->RotateWXYZ( rotations[i].Angle, v );
+    ras_tr->Translate( rotations[i].Point[0], rotations[i].Point[1], rotations[i].Point[2] );
   }
 
   for ( int i = 0; i < 3; i++ )
   {
     mReslice[i]->Modified();
   }
- 
-  this->SendBroadcast( "LayerRotated", this, this );
   
   return true;
+}
+
+void LayerMRI::DoTranslate( double* offset )
+{
+  vtkSmartPointer<vtkTransform> slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
+  // also record transformation in RAS space
+  vtkTransform* ras_tr = m_volumeSource->GetTransform();
+  slice_tr->Translate( -offset[0], -offset[1], -offset[2] );
+  ras_tr->Translate( offset );
+  for ( int i = 0; i < 3; i++ )
+    mReslice[i]->Modified();
 }
 
 void LayerMRI::InitializeVolume()
@@ -404,9 +369,9 @@ void LayerMRI::InitializeActors()
     //
     mReslice[i] = vtkSmartPointer<vtkImageReslice>::New();
     mReslice[i]->SetInput( m_imageData );
-//  mReslice[i]->SetOutputSpacing( sizeX, sizeY, sizeZ );
     mReslice[i]->BorderOff();
     mReslice[i]->SetResliceTransform( tr );
+//    mReslice[i]->AutoCropOutputOn();
 
     // This sets us to extract slices.
     mReslice[i]->SetOutputDimensionality( 2 );
@@ -1957,5 +1922,37 @@ bool LayerMRI::LoadRegionSurfaces( wxString& fn )
 void LayerMRI::SetCroppingBounds( double* bounds )
 {
   m_volumeSource->SetCroppingBounds( bounds );
+}
+
+void LayerMRI::GetDisplayBounds( double* bounds )
+{
+  m_imageData->GetBounds( bounds );
+  if ( mReslice[0].GetPointer() && mReslice[0]->GetAutoCropOutput() )
+  {
+    double d[6];
+    m_imageData->GetBounds( d );
+    vtkTransform* tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
+    double pt[3];
+    for ( int i = 0; i < 2; i++ )
+    {
+      for ( int j = 0; j < 2; j++ )
+      {
+        for ( int k = 0; k < 2; k++ )
+        {
+          pt[0] = d[i];
+          pt[1] = d[2+j];
+          pt[2] = d[4+k];
+          tr->GetLinearInverse()->TransformPoint( pt, pt );
+          if ( pt[0] < bounds[0] ) bounds[0] = pt[0];
+          if ( pt[0] > bounds[1] ) bounds[1] = pt[0];
+          if ( pt[1] < bounds[2] ) bounds[2] = pt[1];
+          if ( pt[1] > bounds[3] ) bounds[3] = pt[1];
+          if ( pt[2] < bounds[4] ) bounds[4] = pt[2];
+          if ( pt[2] > bounds[5] ) bounds[5] = pt[2];
+        }
+      }
+    }
+
+  }
 }
 

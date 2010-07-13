@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/08 20:50:46 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -148,10 +148,7 @@ public:
 
   void GetRASCenter( double* pt );
   
-  virtual bool Rotate( std::vector<RotationElement>& rotations, 
-                       wxWindow* wnd, 
-                       wxCommandEvent& event );
-  bool IsRotated();
+  bool IsTransformed();
   
   void SetReorient( bool bReorient );
   
@@ -220,7 +217,15 @@ public:
   
   void SetCroppingBounds( double* bounds );
   
+  virtual void GetDisplayBounds( double* bounds );
+  
 protected:
+  virtual bool DoRotate( std::vector<RotationElement>& rotations, 
+                       wxWindow* wnd, 
+                       wxCommandEvent& event );
+  virtual void DoTranslate( double* offset );
+  virtual void DoRestore();
+  
   void InitializeVolume();
   void InitializeActors();
   void UpdateOpacity();

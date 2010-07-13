@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/10/03 01:18:34 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -158,68 +158,13 @@ bool LayerPLabel::LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event )
   return true;
 }
 
-/*
-void LayerPLabel::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
-{
-  vtkImageData* rasDTI = m_vectorSource->GetImageOutput();
-  int* dim = rasDTI->GetDimensions();
-  int nSize = dim[0]*dim[1]*dim[2];
-  double v[4] = { 0, 0, 0, 1 };
-  int c[3];
-  vtkDataArray* vectors = rasDTI->GetPointData()->GetScalars();
-  vtkFloatArray* fas = vtkFloatArray::New();
-  fas->DeepCopy( m_imageData->GetPointData()->GetScalars() );
-  m_imageData->SetNumberOfScalarComponents( 2 );
-  m_imageData->AllocateScalars();
-  int nProgressStep = ( 99-event.GetInt() ) / 5;
-  vtkMatrix4x4* rotation_mat = vtkMatrix4x4::New();
-  rotation_mat->Identity();
-  MATRIX* reg = m_vectorSource->GetRegMatrix();
-  if ( reg )
-  {
-    for ( int i = 0; i < 3; i++ )
-    {
-      for ( int j = 0; j < 3; j++ )
-      {
-        rotation_mat->SetElement( j, i, *MATRIX_RELT( reg, i+1, j+1 ) );
-      }
-    }
-  }
-  for ( int i = 0; i < nSize; i++ )
-  {
-    vectors->GetTuple( i, v );
-    rotation_mat->MultiplyPoint( v, v );
-    vtkMath::Normalize( v );
-    double fa = fas->GetComponent( i, 0 );
-    for ( int j = 0; j < 3; j++ )
-    {
-      c[j] = (int)(fabs(v[j]) * fa * 64);
-      if ( c[j] > 63 )
-        c[j] = 63;
-    }
-    float scalar = c[0]*64*64 + c[1]*64 + c[2];
-    int x = i%dim[0];
-    int y = (i/dim[0])%dim[1];
-    int z = i/(dim[0]*dim[1]);
-    m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
-    m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
-    if ( nSize >= 5 && i%(nSize/5) == 0 )
-    {
-      event.SetInt( event.GetInt() + nProgressStep );
-      wxPostEvent( wnd, event );
-    }
-  }
-  rotation_mat->Delete();
-  fas->Delete();
-}
-*/
 void LayerPLabel::UpdateColorMap()
 {
   // over-ride parent class, do nothing
 }
 
 
-bool LayerPLabel::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+bool LayerPLabel::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {
   /* 
   m_bResampleToRAS = false;

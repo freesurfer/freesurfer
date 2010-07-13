@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -60,9 +60,25 @@ public:
   virtual void SetVisible( bool bVisible = true ) = 0;
   virtual bool IsVisible() = 0;
 
-  virtual bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+  bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
+  
+  bool Translate( double x, double y, double z );  
+  bool Translate( double* dPos );
+  
+  void Restore();
+  
+  void ResetTranslatePosition()
   {
-    return true;
+    m_dPositionTranslate[0] = 0;
+    m_dPositionTranslate[1] = 0;
+    m_dPositionTranslate[2] = 0;
+  }
+  
+  void GetTranslatePosition( double* pos )
+  {
+    pos[0] = m_dPositionTranslate[0];
+    pos[1] = m_dPositionTranslate[1];
+    pos[2] = m_dPositionTranslate[2];
   }
 
   double* GetWorldOrigin();
@@ -119,12 +135,22 @@ public:
 
 protected:
   virtual void DoListenToMessage( std::string const iMessage, void* iData, void* sender );
+  virtual bool DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event ) 
+  { 
+    return true; 
+  }
+  virtual void DoRestore() {}
+  
+  virtual void DoTranslate( double* offset ) {}
+  
   std::string  m_strName;
   double    m_dSlicePosition[3];
   double    m_dWorldOrigin[3];
   double    m_dWorldVoxelSize[3];
   double    m_dWorldSize[3];
 
+  double    m_dPositionTranslate[3];
+  
   bool   m_bLocked;
 
   LayerProperties*  mProperties;  

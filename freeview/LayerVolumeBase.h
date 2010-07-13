@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -109,7 +109,7 @@ public:
 
   double GetMinimumVoxelSize();
   
-  void GetDisplayBounds( double* bounds );
+  virtual void GetDisplayBounds( double* bounds );
   
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove

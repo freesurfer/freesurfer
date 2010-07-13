@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/08 20:50:46 $
- *    $Revision: 1.50 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1489,7 +1489,7 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   }
 
   MRI* rasMRI;
-  if ( rotations[0].Plane == -1 )   // restore
+  if ( rotations.size() == 0 || rotations[0].Plane == -1 )   // restore
   {
     if ( !m_MRIOrigTarget )  // try to restore but no where to restore
     {

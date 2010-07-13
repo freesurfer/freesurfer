@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/08 20:50:47 $
- *    $Revision: 1.129 $
+ *    $Date: 2010/07/13 20:43:41 $
+ *    $Revision: 1.130 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2610,7 +2610,7 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   }
   else if ( iMsg == "MRINotEditableForRotation" )
   {
-    wxMessageDialog dlg( this, _("Active volume has been rotated. It is not a good idea to directly edit on rotated volume. Because partial volume effect may cause \"what you see is NOT what you get\". Please save, close and reload the volume to edit. This is a temporary and safe solution."), _("Error"), wxOK | wxICON_ERROR );
+    wxMessageDialog dlg( this, _("Active volume has been transformed. It is not a good idea to directly edit on transformed volume. Because partial volume effect may cause \"what you see is NOT what you get\". Please save, close and reload the volume to edit. This is a temporary and safe solution."), _("Error"), wxOK | wxICON_ERROR );
     dlg.ShowModal();
   }
   else if ( iMsg == "MRIReferenceNotSet" )
@@ -4947,13 +4947,17 @@ void MainWindow::LoadSurfaceLabelFile( const wxString& filename )
 void MainWindow::OnToolRotateVolume( wxCommandEvent& event )
 {
   if ( !m_dlgRotateVolume )
+  {
     m_dlgRotateVolume = new DialogRotateVolume( this );
+    GetLayerCollection( "MRI" )->AddListener( m_dlgRotateVolume );
+  }
 
   if ( !m_dlgRotateVolume->IsVisible() )
   {
-    wxMessageDialog dlg( this, _("Rotation can only apply to volume for now. If you data includes ROI/Surface/Way Points, please do not use this feature yet."), _("Warning"), wxOK );
+    wxMessageDialog dlg( this, _("Transformation can only apply to volumes for now. If you data includes ROI/Surface/Way Points, please do not use this feature yet."), _("Warning"), wxOK );
     dlg.ShowModal();
     m_dlgRotateVolume->Show();
+    m_dlgRotateVolume->UpdateUI();
   }
 }
 
