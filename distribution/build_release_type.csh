@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.135 2010/06/15 18:00:06 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.136 2010/07/14 17:10:32 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v5.0.0"
-set STABLE_PUB_VER_NUM="v5.0.0"
+set STABLE_VER_NUM="v5.0.0beta"
+set STABLE_PUB_VER_NUM="v5.0.0beta"
 
 set HOSTNAME=`hostname -s`
 
@@ -111,7 +111,6 @@ if (("${RELEASE_TYPE}" == "stable") || ("${RELEASE_TYPE}" == "stable-pub")) then
   set TIXWISH=${TCLDIR}/bin/tixwish8.1.8.4
   set VTKDIR=/usr/pubsw/packages/vtk/current
   set KWWDIR=/usr/pubsw/packages/KWWidgets/current
-  set EXPATDIR=/usr/pubsw/packages/expat/2.0.1
   setenv FSLDIR /usr/pubsw/packages/fsl/current
   set CPPUNITDIR=/usr/pubsw/packages/cppunit/current
   if ( ! -d ${CPPUNITDIR} ) unset CPPUNITDIR
@@ -278,6 +277,10 @@ endif
 # supposed to be used for development, and it means the real file (the
 # one in CVS) will not be used.  Also check for removed files, added
 # files, and files with conflicts, all these being a big no-no.
+# this stupid cd is to try to get Mac NFS to see CVSROOT:
+cd /autofs/space/repo_001/dev
+ls >& /dev/null
+cd -
 echo "##########################################################" >>& $OUTPUTF
 echo "Updating $SRC_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
@@ -501,9 +504,17 @@ echo "Making $BUILD_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
 echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
 cd ${BUILD_DIR} >>& $OUTPUTF
-echo "CMD: make -j 9 -s" >>& $OUTPUTF
-make -j 9 -s >>& $OUTPUTF
-if ($status != 0) then
+if ("$OSTYPE" == "Darwin") then
+  # parallel make (-j 9) seems to cause NFS problems on Mac
+  echo "CMD: make -s" >>& $OUTPUTF
+  make -s >>& $OUTPUTF
+  set mstat = $status
+else
+  echo "CMD: make -j 9 -s" >>& $OUTPUTF
+  make -j 9 -s >>& $OUTPUTF
+  set mstat = $status
+endif
+if ($mstat != 0) then
   # note: /usr/local/freesurfer/dev/bin/ dirs have not 
   # been modified (bin/ gets written after make install)
   set msg="$HOSTNAME $RELEASE_TYPE build (make) FAILED"
@@ -599,7 +610,7 @@ if ("${RELEASE_TYPE}" == "stable-pub") then
 endif
 # compress binaries using 'upx', greatly reducing their size even more (3x)
 if ("${RELEASE_TYPE}" == "stable-pub") then
-  if ( -e /usr/pubsw/bin/upx )
+  if ( -e /usr/pubsw/bin/upx ) then
     echo "CMD: /usr/pubsw/bin/upx ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
     /usr/pubsw/bin/upx ${INSTALL_DIR}/bin-new/* >& /dev/null
   endif
@@ -633,26 +644,28 @@ else
 	    mv ${INSTALL_DIR}/bin.deleteme ${INSTALL_DIR}/bin.deleteme.${DATESTAMP}
     endif
   endif
-  echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin.deleteme " >>& $OUTPUTF
-  mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin.deleteme
-  if ($status != 0) then
-    set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
-    tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
-    rm -f ${FAILED_FILE}
-    touch ${FAILED_FILE}
-    # set group write bit on files changed by make tools:
-    echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
-    chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
-    echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
-    chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
-    chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
-    chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
-    # and the fsaverage in the subjects dir...
-    echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage" \
-      >>& $OUTPUTF
-    chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
-    chgrp ${change_flags} fsdev ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
-    exit 1  
+  if ( -d ${INSTALL_DIR}/bin ) then
+    echo "CMD: mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin.deleteme " >>& $OUTPUTF
+    mv ${INSTALL_DIR}/bin ${INSTALL_DIR}/bin.deleteme
+    if ($status != 0) then
+      set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
+      tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
+      rm -f ${FAILED_FILE}
+      touch ${FAILED_FILE}
+      # set group write bit on files changed by make tools:
+      echo "CMD: chgrp ${change_flags} fsdev ${BUILD_DIR}" >>& $OUTPUTF
+      chgrp ${change_flags} fsdev ${BUILD_DIR} >>& $OUTPUTF
+      echo "CMD: chmod ${change_flags} g+rw ${BUILD_DIR}" >>& $OUTPUTF
+      chmod ${change_flags} g+rw ${BUILD_DIR} >>& $OUTPUTF
+      chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
+      chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
+      # and the fsaverage in the subjects dir...
+      echo "CMD: chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage" \
+        >>& $OUTPUTF
+      chmod ${change_flags} g+rw ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
+      chgrp ${change_flags} fsdev ${INSTALL_DIR}/subjects/fsaverage >>& $OUTPUTF
+      exit 1
+    endif  
   endif
 endif
 echo "CMD: mv ${INSTALL_DIR}/bin-new ${INSTALL_DIR}/bin" >>& $OUTPUTF
