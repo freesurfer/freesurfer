@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.10 2010/07/14 18:04:42 rudolph Exp $
+// $Id: c_surface.cpp,v 1.11 2010/07/14 21:04:52 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -350,7 +350,7 @@ surface_ripMark(
     // o Added cumulative cost value to result channel and stdout.
     //
 
-    s_iterInfo  st_iterInfo;
+//    s_iterInfo  st_iterInfo;
     string      str_costFile            = st_env.str_workingDir +
                                           st_env.str_costFileName;
     int         i;
@@ -374,11 +374,11 @@ surface_ripMark(
         if(st_env.b_costPathSave) {
             ofs << ii << "\t" << jj;
             ofs << "\t"  << f_cost;
-            ofs << "\t"  << st_iterInfo.iter;
-            ofs << "\t"  << st_iterInfo.f_distance;
-            ofs << "\t"  << st_iterInfo.f_curvature;
-            ofs << "\t"  << st_iterInfo.f_sulcalHeight;
-            ofs << "\t"  << st_iterInfo.f_dir;
+            ofs << "\t"  << st_env.st_iterInfo.iter;
+            ofs << "\t"  << st_env.st_iterInfo.f_distance;
+            ofs << "\t"  << st_env.st_iterInfo.f_curvature;
+            ofs << "\t"  << st_env.st_iterInfo.f_sulcalHeight;
+            ofs << "\t"  << st_env.st_iterInfo.f_dir;
             ofs << endl;
         }
     }
