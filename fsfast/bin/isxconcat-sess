@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/11 22:50:40 $
-#    $Revision: 1.50 $
+#    $Date: 2010/07/14 16:04:54 $
+#    $Revision: 1.51 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.50 2010/07/11 22:50:40 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.51 2010/07/14 16:04:54 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -339,12 +339,22 @@ foreach hemi ($hemilist)
         if($DoProjFracAvg) set cmd = ($cmd -projfrac-avg)
       endif
     endif
+    if($mapname == h) then
+      echo ""
+      echo "Constructing the group HRF. This may take a while. If "
+      echo "you do not want the HRF, re-run with -no-hrf"
+      echo ""
+    endif
     echo "cd `pwd`" |& tee -a $LF
     echo $cmd       |& tee -a $LF
     $cmd            |& tee -a $LF
     if($status) exit 1;
 
     if($mapname == h) then
+      echo ""
+      echo "Constructing the group HRF. This may take a while. If "
+      echo "you do not want the HRF, re-run with -no-hrf"
+      echo ""
       set cmd = (mri_concat $outvol --gmean $#SessList --o $outvol)
       echo "cd `pwd`" |& tee -a $LF
       echo $cmd       |& tee -a $LF
