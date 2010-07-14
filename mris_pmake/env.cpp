@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.23 2010/07/14 17:56:46 rudolph Exp $
+// $Id: env.cpp,v 1.24 2010/07/14 20:53:41 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -546,7 +546,7 @@ s_env_mpmPrint(
     vector<string>*	p_vstr;
     string		str_moduleType;
     string		str_moduleName;
-    void*		p_moduleAddress;
+    void*		p_moduleAddress	= NULL;
 
     p_vstr 		= &ast_env.vstr_mpmProgName;
     str_moduleType	= ast_env.vstr_mpm[ae_module];
