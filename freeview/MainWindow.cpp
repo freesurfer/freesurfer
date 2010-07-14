@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.130 $
+ *    $Date: 2010/07/14 19:03:17 $
+ *    $Revision: 1.131 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -77,7 +77,7 @@
 #include "Cursor3D.h"
 #include "ToolWindowEdit.h"
 #include "ToolWindowMeasure.h"
-#include "DialogRotateVolume.h"
+#include "DialogTransformVolume.h"
 #include "DialogOptimalVolume.h"
 #include "WindowHistogram.h"
 #include "WindowOverlayConfiguration.h"
@@ -234,8 +234,8 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   EVT_MENU        ( XRCID( "ID_VIEW_HISTOGRAM" ),         MainWindow::OnViewHistogram )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_HISTOGRAM" ),         MainWindow::OnViewHistogramUpdateUI )
   
-  EVT_MENU        ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolume )
-  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolRotateVolumeUpdateUI )
+  EVT_MENU        ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolTransformVolume )
+  EVT_UPDATE_UI   ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolTransformVolumeUpdateUI )
   EVT_MENU        ( XRCID( "ID_TOOL_CROP_VOLUME" ),       MainWindow::OnToolCropVolume )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_CROP_VOLUME" ),       MainWindow::OnToolCropVolumeUpdateUI )
   EVT_MENU        ( XRCID( "ID_TOOL_OPTIMAL_VOLUME" ),    MainWindow::OnToolOptimalVolume )
@@ -390,7 +390,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
 
   m_toolWindowEdit = NULL;
   m_toolWindowMeasure = NULL;
-  m_dlgRotateVolume = NULL;
+  m_dlgTransformVolume = NULL;
   m_dlgGradientVolume = NULL;
   m_dlgSaveScreenshot = NULL;
   m_dlgSavePoint = NULL;
@@ -4944,26 +4944,26 @@ void MainWindow::LoadSurfaceLabelFile( const wxString& filename )
   }
 }
 
-void MainWindow::OnToolRotateVolume( wxCommandEvent& event )
+void MainWindow::OnToolTransformVolume( wxCommandEvent& event )
 {
-  if ( !m_dlgRotateVolume )
+  if ( !m_dlgTransformVolume )
   {
-    m_dlgRotateVolume = new DialogRotateVolume( this );
-    GetLayerCollection( "MRI" )->AddListener( m_dlgRotateVolume );
+    m_dlgTransformVolume = new DialogTransformVolume( this );
+    GetLayerCollection( "MRI" )->AddListener( m_dlgTransformVolume );
   }
 
-  if ( !m_dlgRotateVolume->IsVisible() )
+  if ( !m_dlgTransformVolume->IsVisible() )
   {
     wxMessageDialog dlg( this, _("Transformation can only apply to volumes for now. If you data includes ROI/Surface/Way Points, please do not use this feature yet."), _("Warning"), wxOK );
     dlg.ShowModal();
-    m_dlgRotateVolume->Show();
-    m_dlgRotateVolume->UpdateUI();
+    m_dlgTransformVolume->Show();
+    m_dlgTransformVolume->UpdateUI();
   }
 }
 
-void MainWindow::OnToolRotateVolumeUpdateUI( wxUpdateUIEvent& event )
+void MainWindow::OnToolTransformVolumeUpdateUI( wxUpdateUIEvent& event )
 {
-// event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
+// event.Check( m_dlgTransformVolume && m_dlgTransformVolume->IsShown() );
   event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
@@ -4985,7 +4985,7 @@ void MainWindow::OnToolOptimalVolume( wxCommandEvent& event )
 
 void MainWindow::OnToolOptimalVolumeUpdateUI( wxUpdateUIEvent& event )
 {
-// event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
+// event.Check( m_dlgTransformVolume && m_dlgTransformVolume->IsShown() );
   event.Enable( GetLayerCollection( "MRI" )->GetNumberOfLayers() > 1 && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
@@ -5017,7 +5017,7 @@ void MainWindow::OnToolGradientVolume( wxCommandEvent& event )
 
 void MainWindow::OnToolGradientVolumeUpdateUI( wxUpdateUIEvent& event )
 {
-// event.Check( m_dlgRotateVolume && m_dlgRotateVolume->IsShown() );
+// event.Check( m_dlgTransformVolume && m_dlgTransformVolume->IsShown() );
   event.Enable( !GetLayerCollection( "MRI" )->IsEmpty() && !IsProcessing() && !IsWritingMovieFrames() );
 }
 
@@ -5025,8 +5025,8 @@ void MainWindow::OnToolGradientVolumeUpdateUI( wxUpdateUIEvent& event )
 void MainWindow::EnableControls( bool bEnable )
 {
   m_controlPanel->Enable( bEnable );
-  if ( m_dlgRotateVolume )
-    m_dlgRotateVolume->Enable( bEnable );
+  if ( m_dlgTransformVolume )
+    m_dlgTransformVolume->Enable( bEnable );
 }
 
 void MainWindow::OnMouseEnterWindow( wxMouseEvent& event )
@@ -5360,6 +5360,6 @@ void MainWindow::OnToolCropVolume( wxCommandEvent& event )
 void MainWindow::OnToolCropVolumeUpdateUI( wxUpdateUIEvent& event )
 {
   Layer* layer = GetLayerCollection( "MRI" )->GetActiveLayer();
-  event.Enable( layer && layer->IsVisible() );
+  event.Enable( !IsProcessing() && layer && layer->IsVisible() );
 }
 

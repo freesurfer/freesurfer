@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.79 $
+ *    $Date: 2010/07/14 19:03:17 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -328,10 +328,36 @@ bool LayerMRI::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd,
 void LayerMRI::DoTranslate( double* offset )
 {
   vtkSmartPointer<vtkTransform> slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
-  // also record transformation in RAS space
   vtkTransform* ras_tr = m_volumeSource->GetTransform();
   slice_tr->Translate( -offset[0], -offset[1], -offset[2] );
   ras_tr->Translate( offset );
+  for ( int i = 0; i < 3; i++ )
+    mReslice[i]->Modified();
+}
+
+
+void LayerMRI::DoScale( double* scale, int nSampleMethod )
+{
+  for ( int i = 0; i < 3; i++ )
+  {
+    if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::LUT || nSampleMethod == SAMPLE_NEAREST )
+      mReslice[i]->SetInterpolationModeToNearestNeighbor();
+    else
+      mReslice[i]->SetInterpolationModeToLinear();
+  }
+  vtkSmartPointer<vtkTransform> slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
+  vtkTransform* ras_tr = m_volumeSource->GetTransform();
+  double cpt[3], target_cpt[3];
+  GetRASCenter( cpt );
+  RASToTarget( cpt, target_cpt );
+  slice_tr->Translate( target_cpt[0], target_cpt[1], target_cpt[2] );
+  slice_tr->Scale( 1.0/scale[0], 1.0/scale[1], 1.0/scale[2] );
+  slice_tr->Translate( -target_cpt[0], -target_cpt[1], -target_cpt[2] );
+  
+  ras_tr->Translate( -cpt[0], -cpt[1], -cpt[2] );
+  ras_tr->Scale( scale );
+  ras_tr->Translate( cpt[0], cpt[1], cpt[2] );
+  
   for ( int i = 0; i < 3; i++ )
     mReslice[i]->Modified();
 }

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/07/14 19:03:16 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -65,22 +65,38 @@ public:
   bool Translate( double x, double y, double z );  
   bool Translate( double* dPos );
   
+  void Scale( double* scale, int nSampleMethod = 1 /* SAMPLE_TRILINEAR */ );
+  
   void Restore();
   
-  void ResetTranslatePosition()
+  void ResetTranslate()
   {
-    m_dPositionTranslate[0] = 0;
-    m_dPositionTranslate[1] = 0;
-    m_dPositionTranslate[2] = 0;
+    m_dTranslate[0] = 0;
+    m_dTranslate[1] = 0;
+    m_dTranslate[2] = 0;
   }
   
-  void GetTranslatePosition( double* pos )
+  void GetTranslate( double* pos )
   {
-    pos[0] = m_dPositionTranslate[0];
-    pos[1] = m_dPositionTranslate[1];
-    pos[2] = m_dPositionTranslate[2];
+    pos[0] = m_dTranslate[0];
+    pos[1] = m_dTranslate[1];
+    pos[2] = m_dTranslate[2];
   }
 
+  void ResetScale()
+  {
+    m_dScale[0] = 1;
+    m_dScale[1] = 1;
+    m_dScale[2] = 1;
+  }
+  
+  void GetScale( double* scale )
+  {
+    scale[0] = m_dScale[0];
+    scale[1] = m_dScale[1];
+    scale[2] = m_dScale[2];
+  }
+  
   double* GetWorldOrigin();
   void GetWorldOrigin( double* origin );
   void SetWorldOrigin( double* origin );
@@ -142,6 +158,7 @@ protected:
   virtual void DoRestore() {}
   
   virtual void DoTranslate( double* offset ) {}
+  virtual void DoScale( double* scale, int nSampleMethod ) {}
   
   std::string  m_strName;
   double    m_dSlicePosition[3];
@@ -149,7 +166,9 @@ protected:
   double    m_dWorldVoxelSize[3];
   double    m_dWorldSize[3];
 
-  double    m_dPositionTranslate[3];
+  // translate and scale are for volume transformation
+  double    m_dTranslate[3];
+  double    m_dScale[3];
   
   bool   m_bLocked;
 

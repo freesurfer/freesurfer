@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 18:37:50 $
- *    $Revision: 1.76 $
+ *    $Date: 2010/07/14 19:03:17 $
+ *    $Revision: 1.77 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -59,7 +59,7 @@ class wxToolBar;
 class BrushProperty;
 class ToolWindowEdit;
 class ToolWindowMeasure;
-class DialogRotateVolume;
+class DialogTransformVolume;
 class LayerMRI;
 class WindowHistogram;
 class WindowOverlayConfiguration;
@@ -208,8 +208,8 @@ public:
   void OnHelpQuickReference         ( wxCommandEvent& event );
   void OnHelpAbout                  ( wxCommandEvent& event );
 
-  void OnToolRotateVolume           ( wxCommandEvent& event );
-  void OnToolRotateVolumeUpdateUI   ( wxUpdateUIEvent& event );
+  void OnToolTransformVolume           ( wxCommandEvent& event );
+  void OnToolTransformVolumeUpdateUI   ( wxUpdateUIEvent& event );
   void OnToolCropVolume             ( wxCommandEvent& event );
   void OnToolCropVolumeUpdateUI     ( wxUpdateUIEvent& event );
   void OnToolOptimalVolume          ( wxCommandEvent& event );
@@ -484,7 +484,7 @@ private:
   wxPanel*            m_panelToolbarHolder;
   ToolWindowEdit*     m_toolWindowEdit;
   ToolWindowMeasure*  m_toolWindowMeasure;
-  DialogRotateVolume* m_dlgRotateVolume;
+  DialogTransformVolume* m_dlgTransformVolume;
   WindowHistogram*    m_wndHistogram;
   WindowOverlayConfiguration*       m_wndOverlayConfiguration;
   WindowConnectivityConfiguration*  m_wndConnectivityConfiguration; 

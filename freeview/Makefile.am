@@ -63,8 +63,6 @@ freeview_SOURCES=\
 	DialogPreferences.h \
 	DialogRepositionSurface.cpp \
 	DialogRepositionSurface.h \
-	DialogRotateVolume.cpp \
-	DialogRotateVolume.h \
 	DialogSavePoint.cpp \
 	DialogSavePoint.h \
 	DialogSavePointSetAs.cpp \
@@ -73,6 +71,8 @@ freeview_SOURCES=\
 	DialogSaveScreenshot.h \
 	DialogSaveVolumeAs.cpp \
 	DialogSaveVolumeAs.h \
+	DialogTransformVolume.cpp \
+	DialogTransformVolume.h \
 	DialogVolumeFilter.cpp \
 	DialogVolumeFilter.h \
 	DialogWriteMovieFrames.cpp \
