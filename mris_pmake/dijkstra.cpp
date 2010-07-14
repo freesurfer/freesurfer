@@ -116,9 +116,9 @@ int dijkstra(
     float           cost, f_pathCost;
     struct d_node   *dn, *dn_next;
     int             rv;
-    s_iterInfo      st_iterInfo;
+//    s_iterInfo      st_iterInfo;
     MRIS*           surf                = st_env.pMS_active;
-    bool            b_relNextReference  = true;
+//    bool            b_relNextReference  = true;
 
   // If we aren't going to preserve cost history in the environment, then we
   // will by default always be able to write path costs

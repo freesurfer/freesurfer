@@ -18,7 +18,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.13 2010/07/14 17:56:46 rudolph Exp $
+// $Id: C_mpmProg.cpp,v 1.14 2010/07/14 18:04:42 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
@@ -654,8 +654,8 @@ C_mpmProg_autodijk_fast::~C_mpmProg_autodijk_fast()
 void C_mpmProg_autodijk_fast::genOpenCLGraphRepresentation(GraphData *graph)
 {
     MRIS*           surf = mps_env->pMS_active;
-    s_iterInfo      st_iterInfo;
-    bool            b_relNextReference  = true;
+//    s_iterInfo      st_iterInfo;
+//    bool            b_relNextReference  = true;
 
     cout << "Converting graph to fast representation... " << endl;
     // Allocate memory for each of the vertices

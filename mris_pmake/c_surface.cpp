@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.9 2010/07/14 17:56:46 rudolph Exp $
+// $Id: c_surface.cpp,v 1.10 2010/07/14 18:04:42 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -357,7 +357,7 @@ surface_ripMark(
     int         ii, jj;
     float       f_cost                  = 0.;
     float       f_costSum               = 0.;
-    bool        b_relNextReference    = false;
+//    bool        b_relNextReference    = false;
 
     ofstream    ofs(str_costFile.c_str(), ios::out);
     ofs.flags(ios::fixed );
