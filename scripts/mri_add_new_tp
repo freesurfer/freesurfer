@@ -1,0 +1,156 @@
+#! /bin/tcsh -f
+
+if ($#argv < 2) then
+   echo
+   echo ' add_new_tp.csh "base-id" "newtp-id"';
+   echo    
+	 echo "  Adds a new time point to the base/template without"
+	 echo "  re-creating the base. Therefore only the new time point"
+	 echo "  needs to be run longitudinally ( recon-all -long .. )"
+	 echo "  instead of re-running the base and all longitudinals."
+	 echo 
+	 echo "  Note: "
+   echo "  1. The new time points needs to be fully processed with the "
+	 echo "     standard recon-all stream before (newtp-id is the subj-dir)"
+	 echo "  2. Adding a new time point to the base this way is only"
+	 echo "     recommended if:"
+	 echo "  a) enough time points are already in the base (maybe 3 or 4)"
+	 echo "  b) the new time point is not too different from the old ones"
+	 echo "  c) not too many other time points have been added this way"
+	 echo 
+	 echo "  In fact, we are currently not sure what influence this has"
+	 echo "  on your analysis. The good news: your results from earlier"
+	 echo "  longitudinal processing will stay the same. The bad news:"
+	 echo "  you introduce a bias towards the earlier time points."
+	 echo 
+	 echo "  More info on longitudinal processing at:"
+	 echo "  http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalProcessing"
+	 echo
+	 echo
+   exit 1;   
+endif
+
+
+    if(! $?SUBJECTS_DIR ) then
+      echo "ERROR: environment variable SUBJECTS_DIR not set"
+      echo "  this can be done by setting it in the shell before executing"
+      exit 1;
+    endif
+
+    if(! -e $SUBJECTS_DIR ) then
+      echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+      exit 1;
+    endif
+echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
+
+
+set baseid   = $1
+set newtpid  = $2
+
+set basedir = $SUBJECTS_DIR/$baseid
+if(! -e $basedir) then
+  echo "ERROR: cannot find $basedir"
+  exit 1;
+endif
+			
+set newtpdir = $SUBJECTS_DIR/$newtpid
+if(! -e $newtpdir) then
+   echo "ERROR: cannot find $newtpdir"
+	 echo "       Make sure, this time point is processed with recon-all"
+	 echo "       before adding it to the base/template."
+   exit 1;
+endif
+
+set BaseSubjsListFname = (base-tps)
+set BaseSubjsList = (`cat ${basedir}/${BaseSubjsListFname}`)
+
+set voltype = norm
+set newtpvol    = $newtpdir/mri/${voltype}.mgz
+      if(! -e $newtpvol) then
+        echo "ERROR: cannot find $newtpvol"
+        exit 1;
+      endif
+			
+set basevol  = ${basedir}/mri/${voltype}.mgz
+      if(! -e $newtpvol) then
+        echo "ERROR: cannot find $basevol"
+        exit 1;
+      endif
+
+foreach s ($BaseSubjsList)
+     if ($s == $newtpid) then
+        echo "ERROR: $newtpid allready contained in base $baseid"
+        exit 1
+     endif
+end
+			
+set newmean  = ${baseid}_with_${newtpid}_${voltype}.mgz
+set newtplta = ${newtpid}_to_${baseid}.lta
+
+# register new tp to current base
+mri_robust_register --mov $newtpvol --dst $basevol --lta $newtplta --sat 4.685
+
+# collect volumes and init xforms from base
+  set subjInVols = ""
+  set ltaXforms  = ""
+  foreach s ($BaseSubjsList)
+
+	  set invol = ${SUBJECTS_DIR}/${s}/mri/${voltype}.mgz
+      if(! -e $invol) then
+        echo "ERROR: cannot find $invol"
+        exit 1;
+      endif
+		
+    set subjInVols=($subjInVols $invol)
+    set ltaname = ${s}_to_${baseid}.lta
+    set ltaXforms=($ltaXforms ${basedir}/mri/transforms/${ltaname})
+  end
+
+#only recreate template including new TP at same location (without iterating)
+mri_robust_template --mov $subjInVols $newtpvol --template $newmean --ixforms $ltaXforms $newtplta --noit
+
+# checking differences in intensities
+set cmd  = ( mri_diff --pix-only --ssd $basevol $newmean )
+set diff = (`$cmd | grep "sum of squared differences" | awk '{print $1}' `)
+
+echo $diff
+
+set small = 1
+
+# if diff small:
+if ($small) then
+  #   do not rerun base, only add ltas and update insubject list
+  #   maybe update bruces stuff
+
+  #echo "Base can be patched.
+
+  # add tpid to base list file:
+  echo $newtpid >> ${basedir}/${BaseSubjsListFname}
+
+  # move lta to transforms in base
+  set tptobase = ${basedir}/mri/transforms/${newtpid}_to_${baseid}.lta
+  mv $newtplta $tptobase
+
+  #invert lta
+  set basetotp = ${basedir}/mri/transforms/${baseid}_to_${newtpid}.lta
+  mri_concatenate_lta -invert1 $tptobase identity.nofile $basetotp
+
+  # update more ? brainmask?...
+
+  echo "Base patched to include new TP $newtpid"
+  echo "You only need to rerun new TP long:"
+  echo "recon-all -long $newtpid $baseid -all"
+
+else  # if diff large:
+  echo 
+  echo "Base cannot be patched. Changes are too large, please rerun base with:"
+  echo
+  echo "recon-all -base $baseid -base-insubj .... -all -force "
+  echo "   (maybe additional flags, if you used them)"
+  echo
+  echo "Then rerun ALL longitudinals with the new base:"
+  echo "recon-all -long tpN $baseid -all -force"
+  echo
+endif
+
+echo difference was $diff
