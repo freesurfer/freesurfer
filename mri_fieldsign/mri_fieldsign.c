@@ -8,8 +8,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/27 19:31:12 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/07/14 14:51:26 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,7 +35,7 @@
 */
 
 
-// $Id: mri_fieldsign.c,v 1.12 2010/04/27 19:31:12 greve Exp $
+// $Id: mri_fieldsign.c,v 1.13 2010/07/14 14:51:26 greve Exp $
 
 /*
   BEGINHELP
@@ -88,7 +88,7 @@ MRI *SFA2MRI(MRI *eccen, MRI *polar, int SFATrue);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_fieldsign.c,v 1.12 2010/04/27 19:31:12 greve Exp $";
+static char vcid[] = "$Id: mri_fieldsign.c,v 1.13 2010/07/14 14:51:26 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -786,7 +786,7 @@ int RETcompute_fieldsign2(MRIS *mris)
       det = MatrixDeterminant(J);
       v->stat = 1000*fabs(det); // 1000 to make range a little easier
       if(det < 0) v->fieldsign = -1.0;
-      else        v->fieldsign = +2.0;
+      else        v->fieldsign = +1.0;
       v->fsmask = sqrt(v->val2*v->val2bak);  /* geom mean of r,th power */
     }
 
