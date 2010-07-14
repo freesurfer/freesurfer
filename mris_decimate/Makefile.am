@@ -11,11 +11,19 @@ if HAVE_VTK_LIBS
     bin_PROGRAMS = mris_decimate
     mris_decimate_SOURCES=mris_decimate.cpp mris_decimate.h
     mris_decimate_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-				$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkHybrid -lvtkWidgets \
+				$(VTK_LIBS) $(VTK_VERDICT_LIB) \
+				$(VTK_LIBS) $(VTK_VERDICT_LIB) \
+				$(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) \
+				$(VTK_SQLITE_LIB) \
+				-lvtkexoIIc -lvtkNetCDF \
+				-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+				-lvtkHybrid -lvtkWidgets \
         -lvtkGraphics \
         -lvtkCommon  \
+				-lvtksys \
         -lvtkImaging \
-        -lvtkFiltering
+        -lvtkFiltering \
+        -lvtkIO -lvtkDICOMParser 
     mris_decimate_LDFLAGS=$(OS_LDFLAGS)
 
 # put a wrapper around the bin, used to setup vtk enviro vars
