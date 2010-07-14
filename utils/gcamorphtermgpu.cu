@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/13 18:36:27 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/07/14 19:37:04 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1085,6 +1085,8 @@ namespace GPU {
       int num;
       int *d_num;
 
+      GCAmorphTerm::tLabelFinal.Start();
+
       // Allocate memory for d_num
       CUDA_SAFE_CALL( cudaMalloc( (void**)&d_num, sizeof(int) ) );
 
@@ -1119,6 +1121,8 @@ namespace GPU {
 
       // Release d_num
       CUDA_SAFE_CALL( cudaFree( d_num ) );
+
+      GCAmorphTerm::tLabelFinal.Stop();
 
       return( num );
     }
@@ -1165,6 +1169,10 @@ namespace GPU {
 		<< std::endl;
       std::cout << std::endl;
 
+       std::cout << "Log Likelihood:" << std::endl;
+       std::cout << " Final Update : " << GCAmorphTerm::tLabelFinal
+		 << std::endl;
+
      std::cout << "==================================" << std::endl;
 #endif
     }
@@ -1186,6 +1194,7 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodTot;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodCompute;
 
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelFinal;
   }
 }
 
@@ -1236,21 +1245,24 @@ void gcamLogLikelihoodTermGPU( GCA_MORPH *gcam,
 
 
 //! Wrapper around GPU class for LabelTermFinal
-void gcamLabelTermFinalUpdateGPU( GCA_MORPH *gcam,
-				  const MRI* mri_dist,
-				  const double l_label ) {
+int gcamLabelTermFinalUpdateGPU( GCA_MORPH *gcam,
+				 const MRI* mri_dist,
+				 const double l_label ) {
 
   GPU::Classes::GCAmorphGPU myGCAM;
   GPU::Classes::MRIframeGPU<float> mriDist;
+
+  int num;
 
   myGCAM.SendAll( gcam );
 
   mriDist.Allocate( mri_dist );
   mriDist.Send( mri_dist, 0 );
 
-  myTerms.LabelFinalUpdate( myGCAM, mriDist, l_label );
+  num = myTerms.LabelFinalUpdate( myGCAM, mriDist, l_label );
 
   myGCAM.RecvAll( gcam );
 
+  return( num );
 }
 #endif

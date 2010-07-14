@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/13 18:36:27 $
- *    $Revision: 1.206 $
+ *    $Date: 2010/07/14 19:37:04 $
+ *    $Revision: 1.207 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,6 +45,9 @@
 #define GCAM_SMOOTH_TERM_GPU
 #define GCAM_JACOB_TERM_GPU
 #define GCAM_LL_TERM_GPU
+
+#define GCAM_LABEL_TERM_FINAL_GPU
+
 #else
 // Have to turn everything off
 #endif
@@ -7841,7 +7844,15 @@ remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh)
 int gcamLabelTermFinalUpdate( GCA_MORPH *gcam,
 			      const MRI* mri_dist,
 			      const double l_label ) {
+#ifdef GCAM_LABEL_TERM_FINAL_GPU
+  int num;
 
+  printf( "%s: On GPU\n", __FUNCTION__ );
+
+  num = gcamLabelTermFinalUpdateGPU( gcam, mri_dist, l_label );
+
+  return( num );
+#else
   int num, x, y, z;
   GCA_MORPH_NODE *gcamn;
 
@@ -7888,6 +7899,7 @@ int gcamLabelTermFinalUpdate( GCA_MORPH *gcam,
   }
   
   return( num );
+#endif
 }
 
 // ----------------------

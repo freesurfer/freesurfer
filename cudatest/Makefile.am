@@ -40,7 +40,8 @@ bin_PROGRAMS = gcamCompare\
                gcam_jacobterm_test gcam_jacobterm_test_cuda\
                gcam_llterm_test gcam_llterm_test_cuda\
                gcam_addstatus_test gcam_addstatus_test_cuda\
-               gcam_removestatus_test gcam_removestatus_test_cuda
+               gcam_removestatus_test gcam_removestatus_test_cuda\
+               gcam_labelterm_final_test gcam_labelterm_final_test_cuda
 
 
 gcamCompare_SOURCES = gcamCompare.cpp
@@ -286,6 +287,22 @@ gcam_llterm_test_cuda_LDFLAGS = $(OS_LDFLAGS)
 gcam_llterm_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(LIBTOOLFLAGS) --mode=link $(CCLD) $(gcam_llterm_test_cuda_CFLAGS) \
         $(CFLAGS) $(gcam_llterm_test_cuda_LDFLAGS) $(LDFLAGS) -o $@
+
+# --
+
+gcam_labelterm_final_test_SOURCES = gcam_labelterm_final_test.cpp
+gcam_labelterm_final_test_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LIB)
+gcam_labelterm_final_test_LDFLAGS=$(OS_LDFLAGS)
+
+
+gcam_labelterm_final_test_cuda_SOURCES = gcam_labelterm_final_test.cpp
+gcam_labelterm_final_test_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelterm_final_test_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+gcam_labelterm_final_test_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS) $(BOOST_PO_LIB)
+gcam_labelterm_final_test_cuda_LDFLAGS = $(OS_LDFLAGS) 
+gcam_labelterm_final_test_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(gcam_labelterm_final_test_cuda_CFLAGS) \
+        $(CFLAGS) $(gcam_labelterm_final_test_cuda_LDFLAGS) $(LDFLAGS) -o $@
 
 
 

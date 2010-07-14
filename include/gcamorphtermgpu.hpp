@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/13 18:36:31 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/07/14 19:37:06 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -125,6 +125,10 @@ namespace GPU {
       static SciGPU::Utilities::Chronometer tLogLikelihoodTot;
       //! Timer for Log likelihood term computation
       static SciGPU::Utilities::Chronometer tLogLikelihoodCompute;
+
+
+      //! Timer for final update of Label term
+      static SciGPU::Utilities::Chronometer tLabelFinal;
 
       // ---------------------
 
