@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/29 17:27:05 $
-#    $Revision: 1.15 $
+#    $Date: 2010/07/14 16:04:21 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,13 +23,13 @@
 #
 
 
-set VERSION = '$Id: tksurfer-sess,v 1.15 2010/04/29 17:27:05 greve Exp $'
+set VERSION = '$Id: tksurfer-sess,v 1.16 2010/07/14 16:04:21 greve Exp $'
 set inputargs = ($argv);
 set analysis      = ();
 set contrastlist   = ();
 set mapanalysis   = ();
 set map = ();
-set annot = ();
+set annot = aparc;
 set hemi = ();
 set surf = inflated
 set ShowHDR = 1;
@@ -37,6 +37,8 @@ set PrintHelp = 0;
 set fthresh = 2;
 set fmax    = 4;
 set DoAllContrasts = 0;
+set TCL = ();
+
 set Delink = 0;
 set UseVol2Surf = 1;
 set ProjFrac = 0.5;
@@ -271,6 +273,7 @@ foreach sess ($SessList)
   set fslope = `echo "1.0/($fmax-$fthresh)" | bc -l`
   set cmd = ($cmd -fthresh $fthresh -fmid $fmid -fslope $fslope $maskopt)
   if($Delink) set cmd = ($cmd -delink);
+  if($#TCL) set cmd = ($cmd -tcl $TCL)
 
   echo " cd `pwd`"
   echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"
@@ -360,6 +363,11 @@ while( $#argv != 0 )
       set fmax = $argv[1]; shift;
       breaksw
 
+    case "-no-annot":
+    case "-no-aparc":
+      set annot = ();
+      breaksw
+
     case "-aparc":
       set annot = aparc
       breaksw
@@ -377,6 +385,15 @@ while( $#argv != 0 )
     case "-reg-dof":
       if($#argv == 0) goto arg1err;
       set RegDOF = $argv[1];shift;
+      breaksw
+
+    case "-tcl":
+      if ( $#argv == 0) goto arg1err;
+      set TCL = $argv[1]; shift;
+      if(! -e $TCL) then
+        echo "ERROR: cannot find $TCL"
+        exit 1
+      endif
       breaksw
 
     case "-nohdr":
@@ -564,9 +581,10 @@ usage_exit:
   echo "   -mapanalysis analysisname : name of session-level functional analysis";
   echo "   -surf surface : default is inflated"
   echo ""
-  echo "   -aparc : show automatic parcellation (must alreay exist)"
+  echo "   -no-aparc : do not show automatic parcellation"
   echo "   -fthresh fthresh : threshold for color overlay"
   echo "   -fmax    fmax    : saturation threshold for color overlay"
+  echo "   -tcl script.tcl  : run tksurfer with tcl script"
   echo ""
   echo "   -d  sessdir  ..."
   echo ""
