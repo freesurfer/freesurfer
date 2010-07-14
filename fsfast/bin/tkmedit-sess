@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 22:21:32 $
-#    $Revision: 1.32 $
+#    $Date: 2010/07/14 16:07:24 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkmedit-sess,v 1.32 2010/04/28 22:21:32 greve Exp $';
+set VERSION = '$Id: tkmedit-sess,v 1.33 2010/07/14 16:07:24 greve Exp $';
 set inputargs = ($argv);
 
 set sessid  = ();
@@ -45,7 +45,7 @@ set subject  = ();
 set mainvol   = orig.mgz;
 set auxvol   = brainmask.mgz;
 
-set segvol = ();
+set segvol = aparc+aseg;
 set segcolor = $FREESURFER_HOME/FreeSurferColorLUT.txt
 set segopacity = .3;
 
@@ -351,6 +351,10 @@ while( $#argv != 0 )
       set segcolor = $argv[1]; shift;
       breaksw
 
+    case "-no-seg":
+      set segvol = ();
+      breaksw
+
     case "-segopacity":
       if ( $#argv == 0) goto arg1err;
       set segopacity = $argv[1]; shift;
@@ -505,10 +509,10 @@ usage_exit:
   echo ""
   echo "   -main mainvol : default is ($mainvol)"
   echo "   -aux auxvol : default is ($auxvol)"
-  echo "   -surfs"
-  echo "   -aparc+aseg"
-  echo "   -aseg"
-  echo "   -seg seg ctab"
+  echo "   -surfs : display surfaces"
+  echo "   -no-seg : do not display segmentation (default is aparc+aseg)"
+  echo "   -aseg : display aseg instead of aparc+aseg"
+  echo "   -seg segmentation colortable : specify segmentation"
   echo "   -segopacity opacity : between 0 and 1 (def .3)"
   echo "   -fthresh fthresh : threshold for color overlay"
   echo "   -fmax    fmax    : saturation threshold for color overlay"
