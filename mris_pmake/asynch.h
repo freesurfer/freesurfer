@@ -172,6 +172,12 @@ pC_autodijk_cast(
     C_mpmProg_autodijk*&        pC_mpmProg_autodijk
 );
 
+C_mpmProg_pathFind*
+pC_pathFind_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_pathFind*&        pC_mpmProg_pathFind
+);
+
 #endif //__ASYNCH_H__
 
 

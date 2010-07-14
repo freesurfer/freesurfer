@@ -198,7 +198,9 @@ int dijkstra(
 
       if (v_n->marked == DIJK_DONE) continue; // for "circular" path searches
 
-      cost = st_env.costFunc_do(st_env, &st_iterInfo, vno_c, j, b_relNextReference);
+//      cost = st_env.costFunc_do(st_env, &st_iterInfo, vno_c, j, 
+//          			b_relNextReference);
+      cost = s_env_edgeCostFind(st_env, vno_c, vno_n);
       f_pathCost = v_c->val + cost;
 
       // Break out of while if af_maxAllowedCost is violated.

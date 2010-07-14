@@ -44,12 +44,19 @@ using namespace std;
 
 #define PENV  str_env.
 
-#define ULOUT( msg )  if(st_env.pcsm_userlog) st_env.pcsm_userlog->dump(st_env.b_syslogPrepend, ( msg ) );
-#define nULOUT( msg ) if(st_env.pcsm_userlog) st_env.pcsm_userlog->dump(false, ( msg ) );
-#define SLOUT( msg )  if(st_env.pcsm_syslog)  st_env.pcsm_syslog->dump(st_env.b_syslogPrepend, ( msg ) );
-#define nSLOUT( msg ) if(st_env.pcsm_syslog)  st_env.pcsm_syslog->dump(false, ( msg ) );
-#define RLOUT( msg )  if(st_env.pcsm_resultlog)  st_env.pcsm_resultlog->dump(st_env.b_syslogPrepend, ( msg ) );
-#define nRLOUT( msg ) if(st_env.pcsm_resultlog)  st_env.pcsm_resultlog->dump(false, ( msg ) );
+#define ULOUT( msg )  if(st_env.pcsm_userlog)        st_env.pcsm_userlog->dump(st_env.b_syslogPrepend, ( msg ) );
+#define nULOUT( msg ) if(st_env.pcsm_userlog)        st_env.pcsm_userlog->dump(false, ( msg ) );
+#define SLOUT( msg )  if(st_env.pcsm_syslog)         st_env.pcsm_syslog->dump(st_env.b_syslogPrepend, ( msg ) );
+#define nSLOUT( msg ) if(st_env.pcsm_syslog)         st_env.pcsm_syslog->dump(false, ( msg ) );
+#define RLOUT( msg )  if(st_env.pcsm_resultlog)	     st_env.pcsm_resultlog->dump(st_env.b_syslogPrepend, ( msg ) );
+#define nRLOUT( msg ) if(st_env.pcsm_resultlog)      st_env.pcsm_resultlog->dump(false, ( msg ) );
+
+#define pULOUT( msg )  if(mps_env->pcsm_userlog)   mps_env->pcsm_userlog->dump(mps_env->b_syslogPrepend, ( msg ) );
+#define pnULOUT( msg ) if(mps_env->pcsm_userlog)   mps_env->pcsm_userlog->dump(false, ( msg ) );
+#define pSLOUT( msg )  if(mps_env->pcsm_syslog)    mps_env->pcsm_syslog->dump(mps_env->b_syslogPrepend, ( msg ) );
+#define pnSLOUT( msg ) if(mps_env->pcsm_syslog)    mps_env->pcsm_syslog->dump(false, ( msg ) );
+#define pRLOUT( msg )  if(mps_env->pcsm_resultlog) mps_env->pcsm_resultlog->dump(mps_env->b_syslogPrepend, ( msg ) );
+#define pnRLOUT( msg ) if(mps_env->pcsm_resultlog) mps_env->pcsm_resultlog->dump(false, ( msg ) );
 
 #define Cn( msg ) cout << ( msg ) << endl;
 #define CW(x, msg) cout.width((x))  ; cout << (msg);
@@ -77,6 +84,7 @@ short CURV_arrayProgress_print(
 );
 
 void    lprintf(int lw, const char* format, ...);
+char* 	lsprintf(int lw, char* pch_bufferOut, const char* format, ...);
 void    colprintf(int lw, int rw,
                     const char* pch_lstr, const char* format, ...);
 char*   colsprintf(int lw, int rw, char* pch_buffer,
@@ -165,6 +173,20 @@ str_rel2absDirSpec_change(
   string&  astr_abs
 );
 
+/// \fn void str_findAndReplace(string& astr_source, const string astr_find, string astr_replace)
+/// \brief Find and replace.
+/// \param astr_source 	The source string
+/// \param astr_find  	The string to find in the source
+/// \param astr_replace	The replacement string
+/// \return bool	TRUE: Performed replacement; FALSE: No replacement
+bool
+str_findAndReplace(
+    string& 		astr_source,
+    const string 	astr_find,
+    string		astr_replace
+);
+
+
 void warn(
   string          str_action,
   string          str_errorMsg,
@@ -182,7 +204,6 @@ void
 command_line_error(
   char   *fmt, ...
 );
-
 
 #endif //__GENERAL_H__
 

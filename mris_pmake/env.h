@@ -35,15 +35,18 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.13 2010/02/04 19:16:49 ginsburg Exp $
+/// $Id: env.h,v 1.14 2010/07/14 17:56:46 rudolph Exp $
 ///
 ///
 
 #ifndef __ENV_H__
 #define __ENV_H__
 
+#include <sys/stat.h>
+
 #include "general.h"
 #include "c_SMessage.h"
+#include "c_SSocket.h"
 #include "scanopt.h"
 
 #ifdef __cplusplus
@@ -60,10 +63,12 @@ extern  "C" {
 #endif
 
 #include <string>
+#include <vector>
 using namespace std;
 
 // Forward declaration
 class C_mpmProg;
+class C_mpmOverlay;
 
 /// Weights and values for the main cost function polynomial.
 typedef struct _weights {
@@ -163,14 +168,50 @@ typedef enum {
   e_user, e_sys, e_result
 } e_LOG;
 
-typedef enum {
-    e_NOP, e_autodijk,e_autodijk_fast
+
+/// 
+/// mpm MODULE enums
+///
+
+typedef enum _e_MODULE {
+	e_mpmProg, e_mpmOverlay, emodule
+} e_MODULE;
+
+typedef enum _e_mpmProg {
+    emp_NULL 		= -1, 
+    emp_NOP 		= 0,
+    emp_pathFind	= 1,
+    emp_autodijk 	= 2, 
+    emp_autodijk_fast 	= 3,
+    empmprog
 } e_MPMPROG;
+
+// enum typedef for mpmOverlays
+typedef enum _e_mpmOverlay {
+    emo_NULL 		= -1,	// NULL overlay -- for debugging
+    emo_NOP		= 0,	// NOP overlay -- for debugging 
+    emo_unity		= 1,	// returns '1' for each internode distance	
+    emo_distance	= 2,	// returns distance between nodes (read)
+    emo_euclidean	= 3,	// returns distance between nodes (calculated)
+    emo_fscurvs		= 4,	// returns weighted cost function of curvs
+    empmoverlay
+} e_MPMOVERLAY;
+
+
+///
+/// Main environment structure
+///
 
 typedef struct _env {
     s_weights*    pSTw;                     // weight structure
     s_Dweights*   pSTDw;                    // Del weight structure
 
+    C_scanopt*	  pcso_options;		    // class that houses the parsed
+    					    //+ options file for the environment
+    C_SMessage*   pcsm_optionsFile;         // message wrapper for options file
+    					    //+ used to create a new options
+    					    //+ file.
+    
     int           timeoutSec;               // listen timeout
     int           port;                     // port on which to listen
                                             //+ for async control
@@ -180,7 +221,6 @@ typedef struct _env {
 
     bool          b_syslogPrepend;          // prepend syslog style
     C_SMessage*   pcsm_stdout;              // stdout C_SMessage object
-    C_SMessage*   pcsm_optionsFile;         // message wrapper for options file
     string        str_userMsgLog;
     string        str_sysMsgLog;
     string        str_resultMsgLog;
@@ -263,6 +303,8 @@ typedef struct _env {
                                             //+ existing path
     int           totalNumFunctions;        // total number of cost
                                             // functions
+    s_iterInfo	  st_iterInfo;	            // structure that houses
+    					    //+ per-iteration information
     e_COSTFUNCTION ecf_current;             // the current cost function
     string*       pstr_functionName;        // names of each cost function
     float  (*costFunc_do)                   // a cost function to operate
@@ -274,10 +316,18 @@ typedef struct _env {
         bool            b_relNextReference
     );
 
+    //
+    // Modules
+    //
+
+    vector<string>	vstr_mpm;	    // contains list of all module
+    					    // type names
+    
+    // mpmProgs
     int                 totalmpmProgs;      // total number of mpmProgs
-    string*             pstr_mpmProgName;   // names of each mpmProg
+    vector<string>	vstr_mpmProgName;   // names of each mpmProg
     bool                b_mpmProgUse;       // flag toggle on using mpm's
-    e_MPMPROG           empm_current;       // mpm program index to run
+    e_MPMPROG           empmProg_current;   // mpm program index to run
     C_mpmProg*          pCmpmProg;          // handle to mpmProg object to run
     string              str_mpmArgs;        // User spec'd, semi-colon delimited
                                             //+ arg string
@@ -287,7 +337,35 @@ typedef struct _env {
     // autodijk options
     string              str_costCurvFile;   // file containing per vertex costs
                                             //+ for 'autodijk'
+
+    // mpmOverlays
+    bool		b_mpmOverlayUse;    // debugging flag to maintain
+    					    //+ legacy compatibility. If true,
+    					    //+ use overlay engine, else use
+    					    //+ legacy engine. This flag will
+    					    //+ probably go away (along with the
+    					    //+ old engine code!)
+    int                 totalmpmOverlays;   // total number of mpmOverlays
+    vector<string>	vstr_mpmOverlayName;// names of each mpmOverlay
+    e_MPMOVERLAY	empmOverlay_current;// mpmOverlay program index to use
+    C_mpmOverlay*       pCmpmOverlay;       // handle to mpmProg object to use
+    string              str_mpmOverlayArgs; // User spec'd, semi-colon delimited
+                                            //+ arg string
 } s_env;
+
+float 
+s_env_edgeCostFind(
+    s_env&		ast_env,
+    int			avertexi,
+    int			avertexj
+);
+
+void
+s_env_mpmPrint(
+    s_env&		ast_env,
+    string 		astr_msg	= "",
+    e_MODULE		ae_module	= e_mpmProg
+); 
 
 void
 s_env_defaultsSet(
@@ -302,8 +380,13 @@ s_env_optionsFile_write(
 
 void
 s_env_scan(
-    s_env&              st_env,
-    C_scanopt&          cso_options
+    s_env&              st_env
+);
+
+string 
+s_env_HUP(
+    s_env&			st_env,
+    c_SSocket_UDP_receive**    	pCSSocketReceive
 );
 
 /// \fn void s_env_nullify( s_env& st_env);
@@ -370,11 +453,13 @@ void s_env_activeSurfaceSetIndex(
     int         aindex
 );
 
-void s_env_mpmProgList(
-    s_env&      ast_env
+int s_env_mpmProgSetIndex(
+    s_env*      apst_env,
+    int         aindex
 );
 
-int s_env_mpmProgSetIndex(
+int
+s_env_mpmOverlaySetIndex(
     s_env*      apst_env,
     int         aindex
 );

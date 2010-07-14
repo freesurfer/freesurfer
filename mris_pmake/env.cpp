@@ -17,11 +17,12 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.22 2010/02/04 19:16:49 ginsburg Exp $
+// $Id: env.cpp,v 1.23 2010/07/14 17:56:46 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
 #include "C_mpmProg.h"
+#include "C_mpmOverlay.h"
 #include "asynch.h"
 
 #include <stdlib.h>
@@ -276,7 +277,7 @@ s_env_nullify(
     s_env&  st_env) {
     //
     // ARGS
-    // st_env  in  environment to nullify
+    // st_env  			in  			environment to nullify
     //
     // DESC
     // "nullify", i.e. set relevant records files to NULL / zero / ""
@@ -296,8 +297,8 @@ s_env_nullify(
     st_env.timeoutSec               = 0;
     st_env.port                     = 0;
 
-    st_env.lw                       = 40;
-    st_env.rw                       = 20;
+    st_env.lw                       = -50;
+    st_env.rw                       =  20;
 
     st_env.b_syslogPrepend          = false;
     st_env.b_exitOnDone             = false;
@@ -349,17 +350,36 @@ s_env_nullify(
     st_env.pstr_functionName[2]     = "euclid";
     st_env.pstr_functionName[3]     = "distance";
 
+    // Module names
+    st_env.vstr_mpm.clear();
+    st_env.vstr_mpm.push_back("mpmProg");
+    st_env.vstr_mpm.push_back("mpmOverlay");
+	
     // Define the internal mpmProg modules for human readable setting / getting
-    st_env.totalmpmProgs            = 3;
+    st_env.totalmpmProgs            = (int) empmprog;
     st_env.b_mpmProgUse             = false;
-    st_env.empm_current             = e_NOP;
-    st_env.pstr_mpmProgName         = new string[st_env.totalmpmProgs];
-    st_env.pstr_mpmProgName[0]      = "NOP";
-    st_env.pstr_mpmProgName[1]      = "autodijk";
-    st_env.pstr_mpmProgName[2]      = "autodijk_fast";
+    st_env.empmProg_current         = emp_NOP;
+    st_env.vstr_mpmProgName.clear();
+    st_env.vstr_mpmProgName.push_back("NOP");
+    st_env.vstr_mpmProgName.push_back("pathFind");
+    st_env.vstr_mpmProgName.push_back("autodijk");
+    st_env.vstr_mpmProgName.push_back("autodijk_fast");
+    st_env.totalmpmProgs	    = st_env.vstr_mpmProgName.size();
     st_env.pCmpmProg                = NULL; // Not yet created!
     // autodijk
     st_env.str_costCurvFile         = "autodijk.cost.crv";
+
+    // Define the internal mpmOverlay modules 
+    st_env.totalmpmOverlays	    = (int) empmoverlay;
+    st_env.empmOverlay_current	    = emo_NOP;
+    st_env.vstr_mpmOverlayName.clear();
+    st_env.vstr_mpmOverlayName.push_back("NOP");
+    st_env.vstr_mpmOverlayName.push_back("unity");
+    st_env.vstr_mpmOverlayName.push_back("distance");
+    st_env.vstr_mpmOverlayName.push_back("euclidean");
+    st_env.vstr_mpmOverlayName.push_back("fscurvs");
+    st_env.totalmpmOverlays	    = st_env.vstr_mpmOverlayName.size();
+    st_env.pCmpmOverlay		    = NULL; // Not yet created!
 
     // Define the active surface tracker
     st_env.totalNumSurfaces         = 3;
@@ -369,6 +389,200 @@ s_env_nullify(
     st_env.pstr_activeName[1]       = "workingSulcal";
     st_env.pstr_activeName[2]       = "auxillary";
 
+}
+
+void s_weights_copy(
+    s_weights&		sw_target,
+    s_weights&		sw_source
+) {
+    //
+    // ARGS
+    //	sw_target	in/out		target struct 
+    //	sw_source	in/out		source struct
+    //
+    // DESC
+    //	"Deep" copy the component of sw_source to sw_target.
+    //
+
+    sw_target.wd	= sw_source.wd;
+    sw_target.wc	= sw_source.wc;
+    sw_target.wh	= sw_source.wh;
+    sw_target.wdc	= sw_source.wdc;
+    sw_target.wdh	= sw_source.wdh;
+    sw_target.wch	= sw_source.wch;
+    sw_target.wdch	= sw_source.wdch;
+    sw_target.wdir	= sw_source.wdir;
+}
+
+void s_Dweights_copy(
+    s_Dweights&		sw_target,
+    s_Dweights&		sw_source
+) {
+    //
+    // ARGS
+    //	sw_target	in/out		target struct 
+    //	sw_source	in/out		source struct
+    //
+    // DESC
+    //	"Deep" copy the component of sw_source to sw_target.
+    //
+
+    sw_target.Dwd	= sw_source.Dwd;
+    sw_target.Dwc	= sw_source.Dwc;
+    sw_target.Dwh	= sw_source.Dwh;
+    sw_target.Dwdc	= sw_source.Dwdc;
+    sw_target.Dwdh	= sw_source.Dwdh;
+    sw_target.Dwch	= sw_source.Dwch;
+    sw_target.Dwdch	= sw_source.Dwdch;
+    sw_target.Dwdir	= sw_source.Dwdir;
+}
+
+string 
+s_env_HUP(
+    s_env&			st_env,
+    c_SSocket_UDP_receive**	pCSSocketReceive
+) {
+    // ARGS
+    //	st_env			in/out		reference to environment struct
+    //	pCSSocketReceive	in/out		pointer to "server" that 
+    //						receives asynch UDP comms
+    //
+    // DESC 
+    // 	This "method" handles a HUP "event" and reparses/rebuilds its core 
+    // 	environment.
+    //
+    //	It returns an initialized pointer to the UDP comms handler.
+    //
+    
+    //
+    // If the system receives a "HUP" comms (which is the first-run 
+    // default), then it will (re)parse the environment file (typically 
+    // 'options.txt') in the working directory.
+    //
+    // NOTE: the working dir and optionsFile name are set to startup
+    // defaults on very first run.
+    //
+
+    string		str_asynchComms         = "RUNPROG";
+    string		str_optionsFQName;
+    struct stat		st_fileInfo;
+    s_weights           st_costWeight;
+    s_Dweights		st_DcostWeight;
+    static int		oldport;
+
+    str_optionsFQName = 	st_env.str_workingDir + 
+	      			st_env.str_optionsFileName;
+    if(stat(str_optionsFQName.c_str(), &st_fileInfo))
+        error_exit("checking on the options file,",
+                   "I couldn't access the options file. Does it exist?",
+                    40);
+    if(st_env.pcso_options) delete st_env.pcso_options;
+    st_env.pcso_options = new C_scanopt(str_optionsFQName, e_EquLink);
+	  
+    // Parse the options file
+    s_env_scan(st_env);
+    // Initialize the "overlay" module that determines edge costs
+    s_env_mpmOverlaySetIndex(&st_env, st_env.empmOverlay_current);
+    // Legacy cost machinery	
+    s_weights_scan(   st_costWeight,  *(st_env.pcso_options));
+    s_Dweights_scan(  st_DcostWeight, *(st_env.pcso_options));
+    st_env.pSTw                         = new s_weights;
+    st_env.pSTDw                        = new s_Dweights;
+    s_weights_copy(*(st_env.pSTw), 	st_costWeight);
+    s_Dweights_copy(*(st_env.pSTDw),	st_DcostWeight);
+
+    // LEGACY DEBUGGING!!
+    st_env.b_mpmOverlayUse		= false;
+
+    if(st_env.port != oldport) {
+	if(*pCSSocketReceive) {
+	    delete *pCSSocketReceive;
+	    *pCSSocketReceive	= NULL;
+	}
+	oldport	= st_env.port;
+    }
+
+    if(!(*pCSSocketReceive))
+	*pCSSocketReceive	= new c_SSocket_UDP_receive(
+                                	st_env.port, st_env.timeoutSec);
+
+    // Finally, if the system is set to run in "server" mode, return
+    // a NULL str_asynchComms
+    if(!st_env.b_exitOnDone) str_asynchComms = "NULL";
+    
+    return str_asynchComms;
+}
+
+void
+s_env_mpmPrint(
+    s_env&		ast_env,
+    string 		astr_msg,
+    e_MODULE		ae_module) 
+    //
+    // ARGS
+    // 	ast_env			in		reference to environment
+    // 	astr_msg		in		intro message
+    //	ae_module		in		module enum to print
+    //
+    // DESCRIPTION
+    //	Default informational printing of internal mpm module data.
+    //
+    // PRECONDITIONS
+    // 	o ast_env must be non-NULL. 
+    //   
+    // POSTCONDITIONS
+    //	o Prints various internal information relating to given mpm module 
+    //	  type.
+    //   
+    // HISTORY
+    // Late June 2010
+    // o Initial design and coding.
+    //
+{
+
+    int  		lw       	= ast_env.lw;
+    int  		rw       	= ast_env.rw;
+    int  		moduleIndex	= 0;
+    vector<string>*	p_vstr;
+    string		str_moduleType;
+    string		str_moduleName;
+    void*		p_moduleAddress;
+
+    p_vstr 		= &ast_env.vstr_mpmProgName;
+    str_moduleType	= ast_env.vstr_mpm[ae_module];
+    switch(ae_module) {
+	case e_mpmProg:
+	    p_vstr		= &ast_env.vstr_mpmProgName;
+	    moduleIndex		= ast_env.empmProg_current;	
+	    p_moduleAddress	= ast_env.pCmpmProg;
+	    break;
+	case e_mpmOverlay:
+	    p_vstr		= &ast_env.vstr_mpmOverlayName;
+	    moduleIndex		= ast_env.empmOverlay_current;
+	    p_moduleAddress	= ast_env.pCmpmOverlay;
+	    break;
+	case emodule:
+	    break;
+    }
+
+    cout << astr_msg	<< endl;
+
+    colprintf(lw, rw, "Module type", "[ %s ]\n", str_moduleType.c_str());
+    colprintf(lw, rw, "Module index:name" , "[ %d:%s ]\n",
+            (int) moduleIndex,
+            (*p_vstr)[moduleIndex].c_str());
+    colprintf(lw, rw, "mpm module pointer:", "[ 0x%x ]\n", p_moduleAddress);
+    if(p_moduleAddress)
+	colprintf(lw, rw, "mpm module initialized:", "[ ok ]\n");
+    else 
+	colprintf(lw, rw, "mpm module initialized:", "[ no ]\n");
+
+    lprintf(lw, "\nAll available %s modules (index:name):-\n", 
+        str_moduleType.c_str());
+    for (unsigned int i=0; i<p_vstr->size(); i++) {
+        lprintf(lw, "%d: %s\n",
+                i, (*p_vstr)[i].c_str());
+    }
 }
 
 void
@@ -437,7 +651,7 @@ s_env_defaultsSet(
     st_env.pSTDw                        = new s_Dweights;
 
     s_weights_setAll(*st_env.pSTw, 0.0);
-    st_env.pSTw->wc                      = 1.0;
+    st_env.pSTw->wd                    	= 1.0;
 
     st_env.b_transitionPenalties        = false;
     s_Dweights_setAll(*st_env.pSTDw, 1.0);
@@ -562,14 +776,15 @@ s_env_optionsFile_write(
         O->pcolprintf("Dwdir",              " = %f\n",
                         st_env.pSTDw->Dwdir);
         O->pprintf("\n# mpmProg\n");
-        O->pcolprintf("b_mpmProgUse",       " = %d\n",
-                        st_env.b_mpmProgUse);
         O->pcolprintf("mpmProgID",          " = %d\n",
-                        st_env.empm_current);
+                        st_env.empmProg_current);
         O->pcolprintf("mpmArgs",            " = %s\n",
                         st_env.str_mpmArgs.c_str());
         O->pcolprintf("costCurvFile",       " = %s\n",
                         st_env.str_costCurvFile.c_str());
+        O->pprintf("\n# mpmOverlay\n");
+        O->pcolprintf("mpmOverlayID",          " = %d\n",
+                        st_env.empmOverlay_current);
 
         O->dump();
     }
@@ -577,12 +792,10 @@ s_env_optionsFile_write(
 
 void
 s_env_scan(
-    s_env&          st_env,
-    C_scanopt&      cso_options
+    s_env&          st_env
 ) {
   //
   // ARGS
-  //    cso_options     in              scanopt structure to be parsed
   //    st_env          in/out          environment structure to be filled
   //
   // DESCRIPTION
@@ -648,6 +861,7 @@ s_env_scan(
   int           port                    = 0;
   int           timeoutSec              = 0;
   int           mpmProgID               = -1;
+  int		mpmOverlayID		= -1;
 
   // These are used to re-read possibly new files if a HUP
   // is sent to the process with changed options file.
@@ -660,7 +874,8 @@ s_env_scan(
   static string str_resultMsgFileNameOld    = "";
 
   // mpmProg options
-  static string str_costCurvFile            = "autodijk.cost.crv";
+  static string str_costCurvFile        = "autodijk.cost.crv";
+  C_scanopt	cso_options		= *st_env.pcso_options;
   
   if (cso_options.scanFor("startVertex", &str_value))
     startVertex  = atoi(str_value.c_str());
@@ -800,7 +1015,14 @@ s_env_scan(
       b_exitOnDone      = atoi(str_value.c_str());
   if (cso_options.scanFor("b_costPathSave",     &str_value))
       b_costPathSave    = atoi(str_value.c_str());
-      
+
+    if (cso_options.scanFor("mpmOverlayID",	&str_value))
+	mpmOverlayID	= atoi(str_value.c_str());
+    else
+	error_exit("scanning user options",
+	    	   "I couldn't find mpmOverlayID",
+	    	   54);
+    
   st_env.b_syslogPrepend = b_syslogPrepend;
   e_SMessageIO esm_io  = eSM_cpp;
   int pos   = 0;
@@ -942,9 +1164,12 @@ s_env_scan(
     st_env.str_costCurvFile             = str_costCurvFile;
     st_env.b_mpmProgUse                 = b_mpmProgUse;
     st_env.str_mpmArgs                  = str_mpmArgs;
-    st_env.empm_current                 = (e_MPMPROG) mpmProgID;
+    st_env.empmProg_current             = (e_MPMPROG) mpmProgID;
     st_env.b_exitOnDone                 = b_exitOnDone;
 
+    // mpmOverlay
+    st_env.empmOverlay_current		= (e_MPMOVERLAY) mpmOverlayID;
+    
     if(    !st_env.str_hemi.length()
         || !st_env.str_subject.length()
         || !st_env.str_mainSurfaceFileName.length()) {
@@ -1242,60 +1467,61 @@ s_env_activeSurfaceSetIndex(
   }
 }
 
-void
-s_env_mpmProgList(
-  s_env& ast_env
-) {
-  int  lw       = ast_env.lw;
-  int  rw       = ast_env.rw;
-
-  colprintf(lw, rw, "Current mpmProg index:name" , "[ %d:%s ]\n",
-            (int) ast_env.empm_current,
-            ast_env.pstr_mpmProgName[ast_env.empm_current].c_str());
-  colprintf(lw, rw, "ENV mpmProg use flag:", "[ %d ]\n", ast_env.b_mpmProgUse);
-  colprintf(lw, rw, "mpmProg pointer:", "[ %d ]\n", ast_env.pCmpmProg);
-  if(ast_env.pCmpmProg) colprintf(lw, rw, "mpmProg initialized:", "[ ok ]\n");
-  else colprintf(lw, rw, "mpmProg initialized:", "[ no ]\n");
-
-  lprintf(lw, "\nAll available mpmProgs:-\n");
-  for (int i=0; i<ast_env.totalmpmProgs; i++) {
-      colprintf(lw, rw, "index:name", "[ %d:%s ]\n",
-                i, ast_env.pstr_mpmProgName[i].c_str());
-  }
-}
-
 int
 s_env_mpmProgSetIndex(
     s_env*      apst_env,
     int         aindex
 ) {
-  int   ret     = -1;
-  int   lw      = apst_env->lw;
-  int   rw      = apst_env->rw;
-  switch (aindex) {
-    case 0:
-        apst_env->b_mpmProgUse      = true;
-        apst_env->empm_current      = (e_MPMPROG) aindex;
-        if(apst_env->pCmpmProg) {
-            lprintf(lw, "Non-NULL mpmProg pointer detected.\n");
-            lprintf(lw, "Deleting existing mpmProg '%s'...", apst_env->pstr_mpmProgName[0].c_str());
-            delete apst_env->pCmpmProg;
-            lprintf(rw, "[ ok ]\n");
-        }
-        apst_env->pCmpmProg         = new C_mpmProg_NOP(apst_env);
+    int   ret     = -1;
+    int   lw      = apst_env->lw;
+    int   rw      = apst_env->rw;
+
+    apst_env->b_mpmProgUse	= true;
+    if(apst_env->pCmpmProg) {
+	e_MPMPROG	e_prog = apst_env->empmProg_current;
+        lprintf(lw, "Non-NULL mpmProg pointer detected.\n");
+        lprintf(lw, "Deleting existing mpmProg '%s'...", 
+	        	apst_env->vstr_mpmProgName[e_prog].c_str());
+        delete apst_env->pCmpmProg;
+        lprintf(rw, "[ ok ]\n");
+    }
+
+    switch (aindex) {
+      case emp_NOP:
+        apst_env->pCmpmProg         	= new C_mpmProg_NOP(apst_env);
         break;
-    case 1:
-        apst_env->b_mpmProgUse      = true;
-        apst_env->empm_current      = (e_MPMPROG) aindex;
-        if(apst_env->pCmpmProg) {
-            lprintf(lw, "Non-NULL mpmProg pointer detected.\n");
-            lprintf(lw, "Deleting existing mpmProg '%s'...", apst_env->pstr_mpmProgName[0].c_str());
-            delete apst_env->pCmpmProg;
-            lprintf(rw, "[ ok ]\n");
-        }
-        apst_env->pCmpmProg         = new C_mpmProg_autodijk(apst_env);
-        // Check for any command-line spec'd args for the 'autodijk' mpmProg:
-        if(apst_env->str_mpmArgs != "-x") {
+      case emp_pathFind:
+	apst_env->pCmpmProg		= new C_mpmProg_pathFind(apst_env,
+	    						apst_env->startVertex,
+	    						apst_env->endVertex);
+          // Check for any command-line spec'd args for the 'pathFind' mpmProg:
+          if(apst_env->str_mpmArgs != "-x") {
+            C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
+                                                e_EquLink, "--", " ", ":");
+            string      str_startVertex = "0";
+	    string	str_endVertex	= "0";
+            int         startVertex     = 0;
+	    int		endVertex	= apst_env->pMS_curvature->nvertices;
+            C_mpmProg_pathFind* pC_pathFind	= NULL;
+            pC_pathFind_cast(apst_env->pCmpmProg, pC_pathFind);
+            if(cso_mpm.scanFor("startVertex", &str_startVertex)) {
+                startVertex     = atoi(str_startVertex.c_str());
+                pC_pathFind->vertexStart_set(startVertex);
+            }
+            if(cso_mpm.scanFor("endVertex", &str_endVertex)) {
+                endVertex     = atoi(str_endVertex.c_str());
+                pC_pathFind->vertexEnd_set(endVertex);
+            }
+	    s_env_optionsFile_write(*apst_env);
+          }
+	break;
+      case emp_autodijk | emp_autodijk_fast:
+	if(aindex == emp_autodijk)
+	  apst_env->pCmpmProg	    	= new C_mpmProg_autodijk(apst_env);
+	if(aindex == emp_autodijk_fast)
+          apst_env->pCmpmProg		= new C_mpmProg_autodijk_fast(apst_env);
+          // Check for any command-line spec'd args for the 'autodijk' mpmProg:
+          if(apst_env->str_mpmArgs != "-x") {
             C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
                                                 e_EquLink, "--", " ", ":");
             string      str_polarVertex         = "0";
@@ -1314,51 +1540,67 @@ s_env_mpmProgSetIndex(
                 pC_autodijk->costFile_set(apst_env->str_costCurvFile);
                 s_env_optionsFile_write(*apst_env);
             }
-        }
-        break;
-    case 2:
-        apst_env->b_mpmProgUse      = true;
-        apst_env->empm_current      = (e_MPMPROG) aindex;
-        if(apst_env->pCmpmProg) {
-            lprintf(lw, "Non-NULL mpmProg pointer detected.\n");
-            lprintf(lw, "Deleting existing mpmProg '%s'...", apst_env->pstr_mpmProgName[0].c_str());
-            delete apst_env->pCmpmProg;
-            lprintf(rw, "[ ok ]\n");
-        }
-        apst_env->pCmpmProg         = new C_mpmProg_autodijk_fast(apst_env);
-        // Check for any command-line spec'd args for the 'autodijk' mpmProg:
-        if(apst_env->str_mpmArgs != "-x") {
-            C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
-                                                e_EquLink, "--", " ", ":");
-            string      str_polarVertex         = "0";
-            string      str_costCurvStem        = "";
-            int         polarVertex             = 0;
-            C_mpmProg_autodijk* pC_autodijk     = NULL;
-            pC_autodijk_cast(apst_env->pCmpmProg, pC_autodijk);
-            if(cso_mpm.scanFor("vertexPolar", &str_polarVertex)) {
-                polarVertex     = atoi(str_polarVertex.c_str());
-                pC_autodijk->vertexPolar_set(polarVertex);
-            }
-            if(cso_mpm.scanFor("costCurvStem", &str_costCurvStem)) {
-                apst_env->str_costCurvFile = apst_env->str_hemi + "." +
-                        apst_env->str_mainSurfaceFileName       + "." + 
-                        str_costCurvStem + ".crv";
-                pC_autodijk->costFile_set(apst_env->str_costCurvFile);
-                s_env_optionsFile_write(*apst_env);
-            }
-        }
+          }
         break;
     default:
-        apst_env->empm_current      = (e_MPMPROG) 0;
+        apst_env->empmProg_current      = (e_MPMPROG) 0;
+	apst_env->pCmpmProg		= new C_mpmProg_NOP(apst_env);
+        break;
+    }
+
+    if(aindex < 0 || aindex >= apst_env->totalmpmProgs)
+        ret       = -1;
+    else
+        ret       = aindex;
+    apst_env->empmProg_current	= (e_MPMPROG) ret;
+    return ret;
+}
+
+int
+s_env_mpmOverlaySetIndex(
+    s_env*      apst_env,
+    int         aindex
+) {
+    int   ret     = -1;
+    int   lw      = apst_env->lw;
+    int   rw      = apst_env->rw;
+
+    if(apst_env->pCmpmOverlay) {
+	e_MPMOVERLAY e_overlay = apst_env->empmOverlay_current;
+    	lprintf(lw, "Non-NULL mpmOverlay pointer detected.\n");
+        lprintf(lw, "Deleting existing mpmOverlay '%s'...", 
+	    apst_env->vstr_mpmOverlayName[e_overlay].c_str());
+        delete apst_env->pCmpmOverlay;
+        lprintf(rw, "[ ok ]\n");
+    }
+    
+    switch ((e_MPMOVERLAY) aindex) {
+      case emo_NULL:
+	break;
+      case emo_NOP:
+        apst_env->pCmpmOverlay	= new C_mpmOverlay_NOP(apst_env);
+        break;
+      case emo_unity:
+	apst_env->pCmpmOverlay	= new C_mpmOverlay_unity(apst_env);
+	break;
+      case emo_distance:
+	break;
+      case emo_euclidean:
+        break;
+      case emo_fscurvs:
+        break;
+      default:
+        apst_env->empmOverlay_current   = (e_MPMOVERLAY) 0;
+        apst_env->pCmpmOverlay		= new C_mpmOverlay_NOP(apst_env);
         break;
   }
-  if(aindex < 0 || aindex >= apst_env->totalmpmProgs)
+  if(aindex < 0 || aindex >= apst_env->totalmpmOverlays)
       ret       = -1;
   else
       ret       = aindex;
+  apst_env->empmOverlay_current  = (e_MPMOVERLAY) ret;
   return ret;
 }
-
 
 void
 s_env_costFctList(
@@ -1417,6 +1659,50 @@ s_env_costFctSetIndex(
   return ret;
 }
 
+float 
+s_env_edgeCostFind(
+    s_env&		ast_env,
+    int			avertexi,
+    int			avertexj
+) {
+    //
+    // ARGS
+    //	ast_env			in		environment structure
+    //	avertexi		in		"start" vertex
+    //	avertexj		in		"end" vertex
+    //
+    // DESC 
+    //	This "method" determines the cost of an edge between vertices
+    //	<avertexi> and <avertexj>.
+    //
+    // PRECONDITIONS
+    //	o The vertices are assumed to have only one edge between them, i.e.
+    //	  there are no vertices between <avertexi> and <avertexj>.
+    //  o The vertex indices are "absolute" indices.
+    //
+    // POSTCONDITIONS
+    //	o The cost of the edge is returned.
+    //	o The ast_env st_iterInfo structure is updated.
+    //
+    // HISTORY
+    // 08 July 2010
+    // 	o Initial design and coding.
+    //
+
+    float 	f_cost			= 0.0;
+    bool 	b_relNextReference	= false;
+
+    if(!ast_env.b_mpmOverlayUse)
+    	f_cost = ast_env.costFunc_do(	ast_env, &(ast_env.st_iterInfo), 
+        		    		avertexi, avertexj,
+        		    		b_relNextReference);
+    else
+	f_cost = ast_env.pCmpmOverlay->costEdge_calc(avertexi, avertexj);
+
+    return f_cost;
+}
+
+
 void
 s_env_costFctSet(
     s_env*          pst_env,
@@ -1442,7 +1728,7 @@ costFunc_defaultDetermine(
     bool            b_relNextReference) {
     //
     // HISTORY
-    //  09 November 2004
+    // 09 November 2004
     // o Added st_iterInfo
     //
 

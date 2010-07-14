@@ -18,18 +18,20 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: C_mpmProg.cpp,v 1.12 2010/02/04 19:16:49 ginsburg Exp $
+// $Id: C_mpmProg.cpp,v 1.13 2010/07/14 17:56:46 rudolph Exp $
 
 #include "C_mpmProg.h"
 #include "dijkstra.h"
 
 #include "c_surface.h"
+#include "c_label.h"
 #include "c_vertex.h"
 #include "unistd.h"
 
 #include <sstream>
 
-extern bool     Gb_stdout;
+extern 	bool     	Gb_stdout;
+extern	stringstream	Gsout;
 
 //
 //\\\---
@@ -105,11 +107,13 @@ C_mpmProg::function_trace(
         cerr << astr_separator;
         for (i=0; i<mstackDepth; i++)
         str_tab += "    ";
-        if (str_objectName != mstr_name)
-        cerr << "\nSSocket `" << str_name_get() << "' (id: " << mid << ")" << endl;
+        if (str_objectName != mstr_name) {
+	    cerr << "\n" << mstr_obj << " `";
+            cerr << str_name_get() << "' (id: " << mid << ")" << endl;
+	}
         if (str_funcName != str_proc_get()) {
-        cerr << "\n" << str_tab << "Current function: " << mstr_obj << "::";
-        cerr << str_proc_get();
+            cerr << "\n" << str_tab << "Current function: " << mstr_obj << "::";
+            cerr << str_proc_get();
         }
         cerr << "\n" << str_tab << astr_msg << endl;
     }
@@ -146,7 +150,7 @@ C_mpmProg::core_construct(
     mstackDepth = a_stackDepth;
 
     str_proc_set(stackDepth_get(), "no name");
-    mstr_obj = "C_SSocket";
+    mstr_obj = "C_mpmProg";
 }
 
 C_mpmProg::C_mpmProg(
@@ -213,6 +217,7 @@ C_mpmProg_NOP::C_mpmProg_NOP(
     //
 
     debug_push("C_mpmProg_NOP");
+    mstr_obj	= "C_mpmProg_NOP";
 
     msleepSeconds       = 5;
 
@@ -248,6 +253,194 @@ C_mpmProg_NOP::run() {
 
 //
 //\\\***
+// C_mpmProg_pathFind definitions ****>>>>
+/////***
+//
+
+C_mpmProg_pathFind::C_mpmProg_pathFind(
+    s_env*      aps_env,
+    int		amvertex_start,
+    int		amvertex_end) : C_mpmProg(aps_env)
+{
+    //
+    // ARGS
+    //	aps_env			in		parent env structure
+    //	amvertex_start		in		default start vertex
+    //	amvertex_end		in		default end vertex -- if set to
+    //						-1 the end vertex is assumed to
+    //						mean the total number of
+    //						vertices.
+    //
+    // DESC
+    // Basically a thin "fall-through" constructor to the base
+    // class.
+    //
+    // PRECONDITIONS
+    // o aps_env must be fully instantiated.
+    //
+    // HISTORY
+    // 08 July 2010
+    // o Initial design and coding.
+    //
+
+    debug_push("C_mpmProg_pathFind");
+
+    mstr_obj	= "C_mpmProg_pathFind";
+    vertexStart_set(amvertex_start);
+    mvertex_end                 = 0;
+    mb_surfaceRipClear          = false;
+
+    s_env_activeSurfaceSetIndex(mps_env, 0);
+    mvertex_total		= mps_env->pMS_curvature->nvertices;
+
+    if(	amvertex_start >= mvertex_total	||
+        amvertex_start < 0 )
+	vertexStart_set(0);
+    else
+	vertexStart_set(amvertex_start);
+
+    if(	amvertex_end == -1 		|| 
+        amvertex_end >= mvertex_total	|| 
+        amvertex_end < 0)
+	vertexEnd_set(mvertex_total-1);
+    else
+	vertexEnd_set(amvertex_end);
+
+    debug_pop();
+}
+
+C_mpmProg_pathFind::~C_mpmProg_pathFind() {
+    //
+    // Destructor
+    //
+
+}
+
+void
+C_mpmProg_pathFind::print() {
+  //
+  // DESC
+  // Simple info print method
+  //
+
+  C_mpmProg::print();
+}
+
+float
+C_mpmProg_pathFind::cost_compute(
+    int         a_start,
+    int         a_end
+) {
+    //
+    // ARGS
+    // a_start          in              start vertex index
+    // a_end            in              end vertex index
+    //
+    // DESC
+    // Sets the main environment and then calls a dijkstra
+    // computation.
+    //
+
+    int         ok;
+    float       f_cost  = 0.0;
+    static int  calls   = -1;
+    char 	pch_buffer[65536];
+
+    mps_env->startVertex = a_start;
+    mps_env->endVertex   = a_end;
+
+    calls++;
+    ok = dijkstra(*mps_env);  // costs are written to vertex elements along
+                              //+ the path in the MRIS structure.
+
+    if(!ok) {
+        fprintf(stderr, " fail ]\n");
+        fprintf(stderr, "dijkstra failure, returning to system.\n");
+        exit(1);
+    }
+    pULOUT(colsprintf(-50, 20, pch_buffer,
+           "Marking (rip) path along vertices", "[ ok ]\n"));
+//    s_env_activeSurfaceSetIndex(&st_env, (int) e_workingCurvature);
+    f_cost      = surface_ripMark(*mps_env);
+    if(mb_surfaceRipClear) {
+        surface_ripClear(*mps_env, mb_surfaceRipClear);
+    }
+    return f_cost;
+}
+
+int
+C_mpmProg_pathFind::run() {
+    //
+    // DESC
+    // Main entry to the actual 'run' core of the pathFind module
+    // -- for the most part, these innards comprise what used to be
+    // the core of the original 'mris_pmake'.
+    //
+
+    float       f_cost  = 0.0;
+    int         ret     = 1;
+    string      str_optionsFQName       = "";
+    string	str_patchFQName         = "";
+    char 	pch_buffer[65536];
+
+    debug_push("run");
+
+    pSLOUT("PROCESSING: path\n");
+    colsprintf(	mps_env->lw, mps_env->rw, pch_buffer, 
+        	"Start->End vertices", "[ %d->%d ]\n",
+        	mps_env->startVertex, mps_env->endVertex);
+    if(Gb_stdout) printf("%s", pch_buffer); pULOUT(pch_buffer);
+
+    f_cost            = cost_compute(mvertex_start, mvertex_end);
+
+    colsprintf(	mps_env->lw, mps_env->rw, pch_buffer, 
+        	"Total path cost", " [ %f ]\n", f_cost);
+    if(Gb_stdout) printf("%s", pch_buffer); pULOUT(pch_buffer);
+    pnRLOUT(lsprintf(mps_env->lw, pch_buffer, "%f", f_cost));
+
+    if (mps_env->b_patchFile_save) {
+        str_patchFQName =  mps_env->str_workingDir +
+        		   mps_env->str_patchFileName;
+        if (MRISwritePatch(mps_env->pMS_curvature,
+                               (char*) str_patchFQName.c_str()) != NO_ERROR)
+        	exit(1);
+	pULOUT(colsprintf(mps_env->lw, mps_env->rw, pch_buffer, 
+        	"Saving patch file...", " [ ok ]\n"));
+    }
+
+    if (mps_env->b_labelFile_save) {
+        //label_save(st_env);
+        void* pv_void = NULL;
+        label_workingSurface_saveTo(*mps_env, vertex_ripFlagIsTrue, pv_void);
+        if (mps_env->b_surfacesKeepInSync) {
+            surface_workingToAux_ripTrueCopy(*mps_env);
+            label_auxSurface_saveTo(*mps_env, vertex_ripFlagIsTrue, pv_void);
+        }
+	pULOUT(colsprintf(mps_env->lw, mps_env->rw, pch_buffer, 
+        	"Labeling and saving all target vertices...", " [ ok ]\n"));
+    }
+
+    if (mps_env->b_surfacesClear) {
+        s_env_activeSurfaceSetIndex(mps_env, (int) e_workingCurvature);
+        surface_ripClear(*mps_env, true);
+        if (mps_env->b_surfacesKeepInSync) {
+            s_env_activeSurfaceSetIndex(mps_env, (int) e_auxillary);
+            surface_ripClear(*mps_env, true);
+            // NB!! Remember to set the "active" surface back
+            // to the "working" surface. The dijkstra()
+            // function operates on this "active" surface.
+            s_env_activeSurfaceSetIndex(mps_env, (int) e_workingCurvature);
+        }
+	pULOUT(colsprintf(mps_env->lw, mps_env->rw, pch_buffer, 
+        	"Clearing (rip) path along vertices...", " [ ok ]\n"));
+    }
+    fflush(stdout);
+    debug_pop();
+    return ret;
+}
+
+//
+//\\\***
 // C_mpmProg_autodijk definitions ****>>>>
 /////***
 //
@@ -272,6 +465,7 @@ C_mpmProg_autodijk::C_mpmProg_autodijk(
 
     debug_push("C_mpmProg_autodijk");
 
+    mstr_obj	= "C_mpmProg_autodijk";
     mvertex_polar               = 0;
     mvertex_start               = 0;
     mvertex_step                = 1;
@@ -439,6 +633,7 @@ C_mpmProg_autodijk_fast::C_mpmProg_autodijk_fast(s_env* aps_env) :
     C_mpmProg_autodijk(aps_env)
 {
     debug_push("C_mpmProg_autodijk_fast");
+    mstr_obj	= "C_mpmProg_autodijk_fast";
 
     debug_pop();
 }
@@ -490,11 +685,14 @@ void C_mpmProg_autodijk_fast::genOpenCLGraphRepresentation(GraphData *graph)
 
         for(int j = 0; j < curVertex->vnum; j++)
         {
+	    int ij;
             // index for the neighbor
             graph->edgeArray[curEdgeIndex] = curVertex->v[j];
+	    ij = curVertex->v[j];
 
             // Compute the weight for this edge
-            float cost = mps_env->costFunc_do(*mps_env, &st_iterInfo, i, j, b_relNextReference);
+//            float cost = mps_env->costFunc_do(*mps_env, &st_iterInfo, i, j, b_relNextReference);
+	    float cost = s_env_edgeCostFind(*mps_env, i, ij);	    
             graph->weightArray[curEdgeIndex] = cost;
 
             curEdgeIndex++;

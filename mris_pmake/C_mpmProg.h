@@ -33,7 +33,7 @@
 ///
 /// \b HISTORY
 /// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.8 2010/02/04 19:16:49 ginsburg Exp $
+/// $Id: C_mpmProg.h,v 1.9 2010/07/14 17:56:46 rudolph Exp $
 ///
 ///
 
@@ -211,6 +211,63 @@ class C_mpmProg_NOP : public C_mpmProg {
     virtual int         run(void);
 };
 
+///
+/// \class C_mpmProg_pathFind
+/// \brief This class simply finds a path between two vertices.
+///
+class C_mpmProg_pathFind : public C_mpmProg {
+
+  protected:
+
+    int         mvertex_start;
+    int         mvertex_end;
+    int         mvertex_total;
+    bool        mb_surfaceRipClear;
+      
+  public:
+    C_mpmProg_pathFind(
+        s_env* 		aps_env, 
+        int 		amvertex_start = 0, 
+        int 		amvertex_end = -1);
+    ~C_mpmProg_pathFind(void);
+
+    //
+    // Access block
+    //
+    void        surfaceRipClear_set(bool avalue) {
+            mb_surfaceRipClear  = avalue;
+    };
+    int         surfaceRipClear_get() {
+            return(mb_surfaceRipClear);
+    };
+    void        vertexStart_set(int avalue) {
+            mvertex_start       	= avalue;
+	    mps_env->startVertex	= avalue;
+    };
+    int         vertexStart_get() {
+            return(mvertex_start);
+    };
+    void        vertexEnd_set(int avalue) {
+            mvertex_end         	= avalue;
+	    mps_env->endVertex		= avalue;
+    };
+    int         vertexEnd_get() {
+            return(mvertex_end);
+    };
+    void        print(void);
+
+    //
+    // Functional block
+    //
+
+    virtual int         run(void);
+    float               cost_compute(int start, int end);
+};
+
+///
+/// \class C_mpmProg_autodijk
+/// \brief This class implements the Dijkstra algorithm on the CPU.
+///
 class C_mpmProg_autodijk : public C_mpmProg {
 
   protected:

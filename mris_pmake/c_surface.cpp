@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: c_surface.cpp,v 1.8 2010/01/22 17:58:35 rudolph Exp $
+// $Id: c_surface.cpp,v 1.9 2010/07/14 17:56:46 rudolph Exp $
 
 #include "c_surface.h"
 #include "c_vertex.h"
@@ -366,8 +366,9 @@ surface_ripMark(
         i = st_env.pMS_active->vertices[i].old_undefval) {
         ii = st_env.pMS_active->vertices[i].old_undefval;
         jj = i;
-        f_cost = st_env.costFunc_do(st_env, &st_iterInfo, ii, jj,
-                                    b_relNextReference);
+//        f_cost = st_env.costFunc_do(st_env, &st_iterInfo, ii, jj,
+//                                    b_relNextReference);
+	f_cost = s_env_edgeCostFind(st_env, ii, jj);
         st_env.pMS_active->vertices[i].ripflag = TRUE;
         f_costSum += f_cost;
         if(st_env.b_costPathSave) {

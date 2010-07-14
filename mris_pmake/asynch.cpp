@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.12 2010/02/04 19:16:49 ginsburg Exp $
+// $Id: asynch.cpp,v 1.13 2010/07/14 17:56:46 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -28,7 +28,8 @@
 #include "c_label.h"
 #include "c_surface.h"
 
-extern  bool    Gb_stdout;
+extern  bool    	Gb_stdout;
+extern  stringstream 	Gsout;
 
 bool
 asynchEvent_processWGHT(
@@ -387,13 +388,13 @@ asynchEvent_processENV(
 
   if (str_object == "mpmProg") {
     if (str_verb == "list")
-        s_env_mpmProgList(st_env);
+        s_env_mpmPrint(st_env, "", e_mpmProg);
     if (str_verb == "use") {
         st_env.b_mpmProgUse     = true;
         colprintf(lw, rw, "mpmProg use set", "[ ok ]\n");
     }
     if (str_verb == "get")
-        s_env_mpmProgList(st_env);
+        s_env_mpmPrint(st_env, "", e_mpmProg);
     else if (str_verb == "set") {
       if (!str_modifier.length()) return false;
       val       = atoi(str_modifier.c_str());
@@ -403,7 +404,7 @@ asynchEvent_processENV(
         fprintf(stderr, "for a list of valid indices.\n");
       } else {
         lprintf(lw, "'%s' built",
-                st_env.pstr_mpmProgName[val].c_str());
+                st_env.vstr_mpmProgName[val].c_str());
         lprintf(rw, "[ ok ]\n");
         Gsout.str("");
         Gsout << "Setting mpmProgIndex to \t\t\t\t\t[ ";
@@ -591,6 +592,18 @@ pC_autodijk_cast(
     return pC_mpmProg_autodijk;
 }
 
+C_mpmProg_pathFind*
+pC_pathFind_cast(
+    C_mpmProg*                  pmpm,
+    C_mpmProg_pathFind*&        pC_mpmProg_pathFind
+) {
+    pC_mpmProg_pathFind         = dynamic_cast<C_mpmProg_pathFind*>(pmpm);
+    if(!pC_mpmProg_pathFind) {
+        cout << "The embedded mpmProg is not of type 'pathFind'" << endl;
+    }
+    return pC_mpmProg_pathFind;
+}
+
 bool
 asynchEvent_processMPMPROG(
     s_env&      st_env,
@@ -606,29 +619,40 @@ asynchEvent_processMPMPROG(
   string  str_verb      = "";
   string  str_modifier  = "";
   string  str_sep       = " ";
-  stringstream Gsout("");
 
-  std::_Ios_Fmtflags origFlags;
-  origFlags  = cout.flags();
-  cout.setf(ios::left);
+  char 	  pch_buffer[65536];
 
   if (!str_3parse( astr_comms, str_object, str_verb, str_modifier))
     warn(str_errorAct, "Some error occurred in the 3parse.", 1);
 
   if (str_object == "info") {
     C_mpmProg_NOP*              pC_NOP          = NULL;
+    C_mpmProg_pathFind*		pC_pathFind 	= NULL;
     C_mpmProg_autodijk*         pC_autodijk     = NULL;
-    switch(st_env.empm_current) {
-        case e_NOP:
-            if( (pC_NOP_cast(st_env.pCmpmProg, pC_NOP))==NULL) return false;
+    switch(st_env.empmProg_current) {
+	case emp_NULL: break;
+        case emp_NOP:
+            if( (pC_NOP_cast(st_env.pCmpmProg, pC_NOP))==NULL) 
+		return false;
             if (str_verb == "get" || str_verb == "list") {
                 colprintf(lw, rw, "Sleep seconds:", "[ %d ]\n",
                         pC_NOP->sleepSeconds_get());
             }
         break;
-        case e_autodijk:
-        case e_autodijk_fast:  
-            if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
+	case emp_pathFind: 
+            if( (pC_pathFind_cast(st_env.pCmpmProg, pC_pathFind))==NULL) 
+		return false;
+            if (str_verb == "get" || str_verb == "list") {
+                colprintf(lw, rw, "Start vertex:", "[ %d ]\n",
+                        pC_pathFind->vertexStart_get());
+                colprintf(lw, rw, "End vertex:",   "[ %d ]\n",
+                        pC_pathFind->vertexEnd_get());
+	    }
+	break;
+        case emp_autodijk:
+        case emp_autodijk_fast:  
+            if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) 
+		return false;
             if (str_verb == "get" || str_verb == "list") {
                 colprintf(lw, rw, "Polar vertex:", "[ %d ]\n",
                         pC_autodijk->vertexPolar_get());
@@ -643,69 +667,101 @@ asynchEvent_processMPMPROG(
                 colprintf(lw, rw, "Surface ripClear:","[ %d ]\n",
                         pC_autodijk->surfaceRipClear_get());
             }
-      break;
+	 break;
+	case empmprog: break;
       }
-  }
-  
-  if (str_object == "progressIter") {
-    C_mpmProg_autodijk*         pC_autodijk     = NULL;
-    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
-    if (str_verb == "get") {
-        colprintf(lw, rw, "Show progress at each iter:", "[ %d ]\n",
-                  pC_autodijk->progressIter_get());
     }
-    else if (str_verb == "set") {
-      if (!str_modifier.length()) return false;
-      pC_autodijk->progressIter_set(atoi(str_modifier.c_str()));
-      colprintf(lw, rw, "mpmProg progressIter set to", "[ %s ]\n",
-                str_modifier.c_str());
-      Gsout.str("");
-      Gsout << "Setting progressIter to \t\t\t\t\t[ " << str_modifier;
-      Gsout << " ]" << endl;
-      ULOUT(Gsout.str());
-    }
-  }
 
-  if (str_object == "vertexEnd") {
-    C_mpmProg_autodijk*         pC_autodijk     = NULL;
-    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
-    if (str_verb == "get") {
-        colprintf(lw, rw, "End vertex:", "[ %d ]\n",
-                  pC_autodijk->vertexEnd_get());
+    if(	st_env.empmProg_current == emp_pathFind ) {
+	C_mpmProg_pathFind*         pC_pathFind     = NULL;
+    	if( (pC_pathFind_cast(st_env.pCmpmProg, pC_pathFind))==NULL) 
+	    return false;
+        if (str_object == "vertexEnd") {
+    	    if (str_verb == "get") {
+        	colsprintf(lw, rw, pch_buffer,
+		    	   "End vertex:", "[ %d ]\n",
+                  	   pC_pathFind->vertexEnd_get());
+    	    } else if (str_verb == "set") {
+      		if (!str_modifier.length()) return false;
+      		pC_pathFind->vertexEnd_set(atoi(str_modifier.c_str()));
+      		colsprintf(lw, rw, pch_buffer,
+		           "mpmProg vertexEnd set to", "[ %s ]\n",
+                	   str_modifier.c_str());
+    	    }
+	    if(Gb_stdout) printf("%s", pch_buffer); 
+	    ULOUT(pch_buffer);
+  	}
+        if (str_object == "vertexStart") {
+    	    if (str_verb == "get") {
+        	colsprintf(lw, rw, pch_buffer,
+		    	   "Start vertex:", "[ %d ]\n",
+                  	   pC_pathFind->vertexStart_get());
+    	    } else if (str_verb == "set") {
+      		if (!str_modifier.length()) return false;
+      		pC_pathFind->vertexStart_set(atoi(str_modifier.c_str()));
+      		colsprintf(lw, rw, pch_buffer,
+		           "mpmProg vertexStart set to", "[ %s ]\n",
+                	   str_modifier.c_str());
+    	    }
+	    if(Gb_stdout) printf("%s", pch_buffer); 
+	    ULOUT(pch_buffer);
+  	}
     }
-    else if (str_verb == "set") {
-      if (!str_modifier.length()) return false;
-      pC_autodijk->vertexEnd_set(atoi(str_modifier.c_str()));
-      colprintf(lw, rw, "mpmProg vertexEnd set to", "[ %s ]\n",
-                str_modifier.c_str());
-      Gsout.str("");
-      Gsout << "Setting vertexEnd to \t\t\t\t\t[ " << str_modifier;
-      Gsout << " ]" << endl;
-      ULOUT(Gsout.str());
-    }
-  }
+    
+    if(	st_env.empmProg_current == emp_autodijk ||
+      	st_env.empmProg_current == emp_autodijk_fast ) {
+	C_mpmProg_autodijk*         pC_autodijk     = NULL;
+    	if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) 
+	    return false;
+        if (str_object == "progressIter") {
+    	    if (str_verb == "get") {
+        	colsprintf(lw, rw, pch_buffer,
+		    	   "Show progress at each iter:", "[ %d ]\n",
+                  	   pC_autodijk->progressIter_get());
+    	    } else if (str_verb == "set") {
+      	        if (!str_modifier.length()) return false;
+      	        pC_autodijk->progressIter_set(atoi(str_modifier.c_str()));
+      	        colsprintf(lw, rw, pch_buffer,
+		      	   "autodijk progressIter set to", "[ %s ]\n",
+                	   str_modifier.c_str());
+            }
+	    if(Gb_stdout) printf("%s", pch_buffer); 
+	    ULOUT(pch_buffer);
+        }
 
-  if (str_object == "vertexPolar") {
-    C_mpmProg_autodijk*         pC_autodijk     = NULL;
-    if( (pC_autodijk_cast(st_env.pCmpmProg, pC_autodijk))==NULL) return false;
-    if (str_verb == "get") {
-        colprintf(lw, rw, "Polar vertex:", "[ %d ]\n",
-                  pC_autodijk->vertexPolar_get());
-    }
-    else if (str_verb == "set") {
-      if (!str_modifier.length()) return false;
-      colprintf(lw, rw, "mpmProg polar vertex set to", "[ %s ]\n",
-                str_modifier.c_str());
-      Gsout.str("");
-      Gsout << "Setting polar vertex to \t\t\t\t\t[ " << str_modifier;
-      Gsout << " ]" << endl;
-      pC_autodijk->vertexPolar_set(atoi(str_modifier.c_str()));
-      ULOUT(Gsout.str());
-    }
-  }
+        if (str_object == "vertexEnd") {
+    	    if (str_verb == "get") {
+        	colsprintf(lw, rw, pch_buffer,
+		    	   "End vertex:", "[ %d ]\n",
+                  	   pC_autodijk->vertexEnd_get());
+    	    } else if (str_verb == "set") {
+      		if (!str_modifier.length()) return false;
+      		pC_autodijk->vertexEnd_set(atoi(str_modifier.c_str()));
+      		colsprintf(lw, rw, pch_buffer,
+		           "mpmProg vertexEnd set to", "[ %s ]\n",
+                	   str_modifier.c_str());
+    	    }
+	    if(Gb_stdout) printf("%s", pch_buffer); 
+	    ULOUT(pch_buffer);
+  	}
 
-   cout.flags(origFlags);
-  return true;
+        if (str_object == "vertexPolar") {
+    	    if (str_verb == "get") {
+        	colsprintf(lw, rw, pch_buffer, 
+		    	   "Polar vertex:", "[ %d ]\n",
+                  	   pC_autodijk->vertexPolar_get());
+    	    } else if (str_verb == "set") {
+      		if (!str_modifier.length()) return false;
+      		pC_autodijk->vertexPolar_set(atoi(str_modifier.c_str()));
+      		colsprintf(lw, rw, pch_buffer, 
+		          "autodijk polar vertex set to", "[ %s ]\n",
+                	  str_modifier.c_str());
+            }
+	    if(Gb_stdout) printf("%s", pch_buffer); 
+	    ULOUT(pch_buffer);
+        }
+    }
+    return true;
 }
 
 bool
@@ -986,8 +1042,8 @@ asynchEvent_process(
 ) {
   //
   // ARGS
-  // st_env    in  process environment
-  // str_event   in  event string
+  // st_env    		in  		process environment
+  // str_event   	in  		event string
   //
   // DESCRIPTION
   // Processes a string <str_event> that was received on the process
@@ -1213,11 +1269,11 @@ asynchEvent_poll(
 ) {
     //
     // ARGS
-    // pcSocketUDPR   in  socket on which to
-    //        listen
-    // maxPolls   in  maximum amount of
-    //        polls before
-    //        returning.
+    // pcSocketUDPR   		in  	socket on which to
+    //        				+ listen
+    // maxPolls   		in  	maximum amount of
+    //        				+ polls before
+    //        				+ returning.
     //
     // DESCRIPTION
     // Listens on a given socket, and returns a string (received)

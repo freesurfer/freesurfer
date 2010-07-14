@@ -11,37 +11,72 @@ extern bool     Gb_stdout;
 
 void
 lprintf(int lw, const char* format, ...) {
+    int len = 0;
     char pch_buffer[65536];
     va_list vp_arg;
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    if(Gb_stdout) printf("%*s", lw, pch_buffer);
-    fflush(stdout);
-}
-
-void
-colprintf(int lw, int rw, const char* pch_lstr, const char* format, ...) {
-    char pch_buffer[65536];
-    va_list vp_arg;
-    va_start(vp_arg, format);
-    vsnprintf(pch_buffer, 65536, format, vp_arg);
-    va_end(vp_arg);
-    if(Gb_stdout) {
-        printf("%*s", lw, pch_lstr);
-        printf("%*s", rw, pch_buffer);
+    len = strlen(pch_buffer);
+    if(pch_buffer[len-1] == '\n') {
+	pch_buffer[len-1] = '\0';
+	if(Gb_stdout) printf("%*s\n", lw, pch_buffer);
     }
+    else
+	if(Gb_stdout) printf("%*s", lw, pch_buffer);
     fflush(stdout);
 }
 
 char* 
-colsprintf(int lw, int rw, char* pch_buffer,
-           const char* pch_lstr, const char* format, ...) {
+lsprintf(int lw, char* pch_bufferOut, const char* format, ...) {
+    int len = 0;
+    char pch_bufferFormatted[65536];
+    va_list vp_arg;
+    va_start(vp_arg, format);
+    vsnprintf(pch_bufferFormatted, 65536, format, vp_arg);
+    va_end(vp_arg);
+    len = strlen(pch_bufferFormatted);
+    if(pch_bufferFormatted[len-1] == '\n') {
+	pch_bufferFormatted[len-1] = '\0';
+	sprintf(pch_bufferOut, "%*s\n", lw, pch_bufferFormatted);
+    } else
+    	sprintf(pch_bufferOut, "%*s", lw, pch_bufferFormatted);
+    return pch_bufferOut;
+}
+
+void
+colprintf(int lw, int rw, const char* pch_lstr, const char* format, ...) {
+    int len = 0;
+    char pch_buffer[65536];
     va_list vp_arg;
     va_start(vp_arg, format);
     vsnprintf(pch_buffer, 65536, format, vp_arg);
     va_end(vp_arg);
-    return pch_buffer;
+    len = strlen(pch_buffer);
+    if(pch_buffer[len-1] == '\n') {
+	pch_buffer[len-1] = '\0';
+        if(Gb_stdout) printf("%*s%*s\n", lw, pch_lstr, rw, pch_buffer);
+    } else 
+        if(Gb_stdout) printf("%*s%*s", lw, pch_lstr, rw, pch_buffer);
+    fflush(stdout);
+}
+
+char* 
+colsprintf(int lw, int rw, char* pch_bufferOut,
+           const char* pch_lstr, const char* format, ...) {
+    int len = 0;
+    char pch_bufferRight[65536];	       
+    va_list vp_arg;
+    va_start(vp_arg, format);
+    vsnprintf(pch_bufferRight, 65536, format, vp_arg);
+    va_end(vp_arg);
+    len = strlen(pch_bufferRight);
+    if(pch_bufferRight[len-1] == '\n') {
+	pch_bufferRight[len-1] = '\0';
+        sprintf(pch_bufferOut, "%*s%*s\n", lw, pch_lstr, rw, pch_bufferRight);	       
+    } else
+        sprintf(pch_bufferOut, "%*s%*s", lw, pch_lstr, rw, pch_bufferRight);	       
+    return pch_bufferOut;
 }
 
 short
@@ -334,6 +369,41 @@ str_3parse(
   }
   return 3;
 }
+
+bool
+str_findAndReplace(
+    string& 		astr_source,
+    const string 	astr_find,
+    string		astr_replace
+) {
+    //
+    // ARGS
+    //  astr_source	in/out		source string
+    //  astr_find	in		string to find
+    //  astr_replace	in		replace <find> with <replace>
+    //
+    // DESC
+    //  Simple find and replace.
+    //
+
+    size_t 	uPos 		= 0;
+    size_t 	uFindLen 	= astr_find.length(); 
+    size_t 	uReplaceLen 	= astr_replace.length();
+    bool	b_ret		= false;
+
+    if( uFindLen == 0 ) {
+    	return false;
+    }
+
+    for( ;(uPos = astr_source.find( astr_find, uPos )) != std::string::npos; )
+    {
+	b_ret	= true;
+        astr_source.replace( uPos, uFindLen, astr_replace );
+        uPos += uReplaceLen;
+    }
+    return b_ret;
+}
+
 
 void warn(
   string              str_action,

@@ -31,7 +31,7 @@
 ///
 /// \b HISTORY
 /// 15 March 2005 - Initial consolidation from several other sources.
-/// $Id: help.h,v 1.3 2009/12/10 21:18:45 rudolph Exp $
+/// $Id: help.h,v 1.4 2010/07/14 17:56:46 rudolph Exp $
 ///
 ///
 
@@ -63,22 +63,22 @@ using namespace std;
 extern string   G_VERSION;
 
 static struct option const longopts[] = {
-  {"optionsFile",       required_argument,      NULL, 'o'},
-  {"dir",               required_argument,      NULL, 'D'},
-  {"version",           no_argument,            NULL, 'v'},
-  {"listen",            no_argument,            NULL, 'l'},
-  {"listenOnPort",      required_argument,      NULL, 'L'},
-  {"subject",           required_argument,      NULL, 'S'},
-  {"hemi",              required_argument,      NULL, 'h'},
-  {"surface0",          required_argument,      NULL, 's'},
-  {"surface1",          required_argument,      NULL, 't'},
-  {"curv0",             required_argument,      NULL, 'c'},
-  {"curv1",             required_argument,      NULL, 'd'},
-  {"mpmProg",           required_argument,      NULL, 'm'},
-  {"mpmArgs",           required_argument,      NULL, 'M'},
-  {"useAbsCurvs",       no_argument,            NULL, 'a'},
-
-  {NULL, 0, NULL, 0}
+    {"optionsFile",     required_argument,      NULL, 'o'},
+    {"dir",             required_argument,      NULL, 'D'},
+    {"version",         no_argument,            NULL, 'v'},
+    {"listen",          no_argument,            NULL, 'l'},
+    {"listenOnPort",    required_argument,      NULL, 'L'},
+    {"subject",         required_argument,      NULL, 'S'},
+    {"hemi",            required_argument,      NULL, 'h'},
+    {"surface0",        required_argument,      NULL, 's'},
+    {"surface1",        required_argument,      NULL, 't'},
+    {"curv0",           required_argument,      NULL, 'c'},
+    {"curv1",           required_argument,      NULL, 'd'},
+    {"mpmProg",         required_argument,      NULL, 'm'},
+    {"mpmArgs",         required_argument,      NULL, 'M'},
+    {"useAbsCurvs",     no_argument,            NULL, 'a'},
+    {"mpmOverlay",	required_argument,	NULL, 'O'},
+    {NULL, 0, NULL, 0}
 };
 
 string

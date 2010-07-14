@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.9 2010/02/04 19:16:49 ginsburg Exp $
+// $Id: help.cpp,v 1.10 2010/07/14 17:56:46 rudolph Exp $
 
 #include "help.h"
 
@@ -46,6 +46,7 @@ SYNOPSIS \n\
     mris_pmake          [--optionsFile=<fileName>]              \\ \n\
                         [--dir=<workingDir>]                    \\ \n\
                         [--listen | --listenOnPort <port>] \n\
+                        [--pathFind] \n\
  \n\
     (No options file; will create) \n\
     mris_pmake          --subject       <subj>                  \\ \n\
@@ -254,6 +255,85 @@ version_show(void) {
   exit(0);
 }
 
+bool 
+mpmProg_check(
+	s_env&		st_env,
+    	string		str_mpmProg
+) {
+
+    bool b_validMpmProg	= false;
+    
+    if(!str_mpmProg.length()) {
+	s_env_mpmPrint(st_env,
+	      "\nNo mpmProg specified! You must specify an mpmProg to use.\n",
+	      e_mpmProg);
+        error_exit("processing command line options,",
+               "you must also specify '--mpmProg <mpmProg>'.",
+               20);
+    }
+    if(str_mpmProg == "NULL") {
+	b_validMpmProg      	= true;
+        st_env.empmProg_current = emp_NULL;
+    }
+    if(str_mpmProg == "NOP") {
+    	b_validMpmProg      	= true;
+        st_env.empmProg_current = emp_NOP;
+    }
+    if(str_mpmProg == "autodijk") {
+    	b_validMpmProg      	= true;
+        st_env.empmProg_current = emp_autodijk;
+    }
+    if(str_mpmProg == "autodijk_fast") {
+   	b_validMpmProg      	= true;
+        st_env.empmProg_current = emp_autodijk_fast;
+    }
+    return b_validMpmProg;
+}
+
+bool 
+mpmOverlay_check(
+	s_env&		st_env,
+    	string		str_mpmOverlay
+) {
+
+    bool b_validMpmOverlay	= false;
+    
+    if(!str_mpmOverlay.length()) {
+	s_env_mpmPrint(st_env,
+	      "\nNo overlay specified! You must specify an mpmOverlay to use.\n",
+	      e_mpmOverlay);
+        error_exit("processing command line options,",
+               "you must also specify '--mpmOverlay <mpmOverlayID>'.",
+               20);
+    }
+    if(str_mpmOverlay == "NULL") {
+	b_validMpmOverlay      		= true;
+        st_env.empmOverlay_current 	= emo_NULL;
+    }
+    if(str_mpmOverlay == "NOP") {
+	b_validMpmOverlay      		= true;
+        st_env.empmOverlay_current 	= emo_NOP;
+    }
+    if(str_mpmOverlay == "unity") {
+	b_validMpmOverlay      		= true;
+        st_env.empmOverlay_current 	= emo_unity;
+    }
+    if(str_mpmOverlay == "distance") {
+	b_validMpmOverlay      		= true;
+        st_env.empmOverlay_current 	= emo_distance;
+    }
+    if(str_mpmOverlay == "euclidean") {
+	b_validMpmOverlay      		= true;
+        st_env.empmOverlay_current 	= emo_euclidean;
+    }
+    if(str_mpmOverlay == "fscurvs") {
+	b_validMpmOverlay      		= true;
+        st_env.empmOverlay_current 	= emo_fscurvs;
+    }
+
+    return b_validMpmOverlay;
+}
+
 string
 commandLineOptions_process(
     int         argc,
@@ -263,9 +343,8 @@ commandLineOptions_process(
 
     bool        b_optionsFileUse                = true;
     bool        b_useAbsCurvs                   = false;
-    bool        b_validMpmProg                  = false;
     
-    string      str_asynchComms                 = "INITMPMPROG";
+    string      str_asynchComms                 = "HUP";
     string      str_subjectsDir                 = "";
     char*       pch_subjectsDir;
     string      str_subject                     = "";
@@ -273,6 +352,7 @@ commandLineOptions_process(
 
     string      str_mpmProg                     = "";
     string      str_mpmArgs                     = "-x";
+    string	str_mpmOverlay			= "";
 
     string      str_mainSurfaceFileName         = "inflated";
     string      str_auxSurfaceFileName          = "smoothwm";
@@ -343,13 +423,16 @@ commandLineOptions_process(
             case 'm':
                 str_mpmProg                     = optarg;
                 st_env.b_mpmProgUse             = true;
-                
                 b_optionsFileUse                = false;
             break;
             case 'M':
                 str_mpmArgs                     = optarg;
                 b_optionsFileUse                = false;
             break;
+	    case 'O':
+		str_mpmOverlay			= optarg;
+		b_optionsFileUse		= false;
+	    break;
             default:
                 cout << "?? getopt returned character code " << opt << endl;
         }
@@ -364,32 +447,30 @@ commandLineOptions_process(
         st_env.str_auxSurfaceFileName       = str_p+str_hemi+"."+str_auxSurfaceFileName;
         st_env.str_mainCurvatureFileName    = str_p+str_hemi+"."+str_mainCurvatureFileName;
         st_env.str_auxCurvatureFileName     = str_p+str_hemi+"."+str_auxCurvatureFileName;
-        if(!str_mpmProg.length())
-            error_exit("processing command line options,",
-               "you must also specify '--mpmProg <mpmProg>'.",
-               20);
-        if(str_mpmProg == "NOP") {
-            b_validMpmProg      = true;
-            st_env.empm_current = e_NOP;
-        }
-        if(str_mpmProg == "autodijk") {
-            b_validMpmProg      = true;
-            st_env.empm_current = e_autodijk;
-        }
-        if(str_mpmProg == "autodijk_fast") {
-   	    b_validMpmProg      = true;
-            st_env.empm_current = e_autodijk_fast;
-	}
-        if(!b_validMpmProg)
+	if(!mpmProg_check (st_env, str_mpmProg)) {
+	    s_env_mpmPrint(st_env,
+	      "\nInvalid mpmProg! You must specify a correct mpmProg to use.\n",
+	      e_mpmProg);
             error_exit("processing command line options,",
                 "I didn't recognize the <mpmProg>.",
                 20);
+	}
         st_env.b_mpmProgUse                     = true;
         st_env.str_mpmArgs                      = str_mpmArgs;
         s_env_optionsFile_write(st_env);
         st_env.b_optionsFileUse                 = true;
         st_env.b_exitOnDone                     = true;
-        str_asynchComms                         = "INITMPMPROG";
+
+	if(!mpmOverlay_check (st_env, str_mpmOverlay)) {
+	    s_env_mpmPrint(st_env,
+	      "\nInvalid mpmOverlay! You must specify an mpmOverlay to use.\n",
+	      e_mpmOverlay);
+            error_exit("processing command line options,",
+                "I didn't recognize the <mpmOverlay>.",
+                20);
+	}
+	
+        str_asynchComms                         = "HUP";
     }
     return str_asynchComms;
 }

@@ -20,7 +20,9 @@ mris_pmake_SOURCES = \
 	mris_pmake.cpp \
 	rel2abs.c \
 	scanopt.cpp \
-	surface.cpp
+	surface.cpp \
+	C_mpmOverlay.cpp \
+	C_mpmOverlay.h
 
 if BUILDOPENCL # Include OpenCL version of algorithms
     AM_CFLAGS=-I$(top_srcdir)/include
