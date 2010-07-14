@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/02 17:11:29 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/07/14 23:49:23 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -85,7 +85,7 @@ int main(int argc, char *argv[]) {
   double v;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.11 2010/07/02 17:11:29 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_matrix_multiply.c,v 1.12 2010/07/14 23:49:23 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -197,7 +197,8 @@ int read_mat(int argc, char *argv[], int i, MATRIX *in_mat) {
     return(-1);
   }
 
-  if ((strcmp(&argv[i][strlen(argv[i])-4], ".dat") == 0) && !fsl_flag) {
+  if( ((strcmp(&argv[i][strlen(argv[i])-4], ".dat") == 0) ||
+       (strcmp(&argv[i][strlen(argv[i])-4], ".reg") == 0) ) && !fsl_flag) {
     // tkregister-style
 
     if ((fin = fopen(argv[i], "r")) == NULL) {
