@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/15 18:46:56 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/07/14 15:05:32 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.10 2010/04/15 18:46:56 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.11 2010/07/14 15:05:32 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -390,6 +390,7 @@ int main(int argc, char *argv[]) {
 static int parse_commandline(int argc, char **argv) {
   int  nargc , nargsused;
   char **pargv, *option ;
+  double fwhm;
 
   if (argc < 1) usage_exit();
 
@@ -482,6 +483,13 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&nRepetitions);
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--fwhm")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&fwhm);
+      FWHMList[nFWHMList] = fwhm;
+      nFWHMList++;
+      nargsused = 1;
+    } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -506,6 +514,7 @@ static void print_usage(void) {
   printf("   --base csdbase\n");
   printf("   --surface subjectname hemi\n");
   printf("   --nreps nrepetitions\n");
+  printf("   --fwhm FWHM <--fwhm FWHM ...>\n");
   printf("   \n");
   printf("   --seed randomseed : default is to choose based on ToD\n");
   printf("   --label labelfile : default is ?h.cortex.label \n");
