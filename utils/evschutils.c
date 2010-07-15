@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2007/06/07 21:28:39 $
- *    $Revision: 1.12 $
+ *    $Author: twitzel $
+ *    $Date: 2010/07/15 15:29:33 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -377,7 +377,7 @@ EVENT_SCHEDULE *EVSsynth(int nEvTypes, int *nPer, float *tPer,
 -----------------------------------------------------------*/
 EVSCH *EVScb1Optimize(int nEvTypes, int *nEvReps, int nSearch)
 {
-  EVSCH *EvSch, *EvSchBest;
+  EVSCH *EvSch, *EvSchBest=NULL;
   int n;
 
   /* Loop over the number of search iterations */
