@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:03 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/07/15 19:14:14 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -354,10 +354,24 @@ vnl_matrix_fixed < double ,3,3> CostFunctions::orientation(MRI *i)
 
   // compute Eigenvectors
   vnl_symmetric_eigensystem < double > SymEig(cov);
-  // should be sorted:
-  assert(SymEig.D[0] >= SymEig.D[1]);
-  assert(SymEig.D[1] >= SymEig.D[2]);
-	vnl_matrix < double > evec (SymEig.V);
+	// sort:
+	unsigned int smallest = 0;
+	unsigned int largest  = 0;
+	for (uint i = 1; i<3;i++)
+	{
+	  if (SymEig.D[largest] < SymEig.D[i]) largest = i;
+		if (SymEig.D[smallest] > SymEig.D[i]) smallest = i;
+	}
+	unsigned int largetosmall[3];
+	largetosmall[0] = largest;
+	largetosmall[1] = 3-smallest-largest;
+	largetosmall[2] = smallest;	
+  // should be sorted when using this lookup:
+  assert(SymEig.D[largetosmall[0]] >= SymEig.D[largetosmall[1]]);
+  assert(SymEig.D[largetosmall[1]] >= SymEig.D[largetosmall[2]]);
+	vnl_matrix_fixed < double,3 ,3 > evec;
+	for (uint i =0;i<3;i++)
+	  evec.set_column(i,SymEig.V.get_column(largetosmall[i]));
 	
 //   float eval[3];
 //   MATRIX* evec = MatrixEigenSystem(cov, eval ,NULL) ;
