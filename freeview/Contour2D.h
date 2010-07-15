@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/03/30 18:31:03 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -56,7 +56,7 @@ public:
     return m_imageInput;
   }
   
-  void SetInput( vtkImageData* imagedata, double dContourValue, double dSliceLocation );
+  void SetInput( vtkImageData* imagedata, double dContourValue, double dSliceLocation, int active_frame = 0 );
   
   void SetContourValue( double dvalue );
   

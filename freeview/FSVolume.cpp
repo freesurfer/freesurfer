@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.51 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -482,6 +482,47 @@ vtkTransform* FSVolume::GetTransform()
   return m_transform;
 }
 
+bool FSVolume::SaveRegistration( const char* filename )
+{
+  vtkMatrix4x4* mat = m_transform->GetMatrix();
+  MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
+  for ( int i = 0; i < 16; i++ )
+  {
+    *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
+  }  
+  MATRIX* voxel_xform = MRIrasXformToVoxelXform( m_MRI, NULL, m, NULL );
+  LINEAR_TRANSFORM *lt;
+  VOL_GEOM srcG, dstG;
+  LTA* lta = LTAalloc(1, NULL) ;
+  lt = &lta->xforms[0];
+  lt->sigma = 1.0f ;
+  lt->x0 = lt->y0 = lt->z0 = 0;
+  lta->type = LINEAR_VOX_TO_VOX;
+  lt->m_L = voxel_xform; 
+
+  getVolGeom( m_MRI, &srcG );
+  getVolGeom( m_MRI, &dstG );
+  lta->xforms[0].src = srcG;
+  lta->xforms[0].dst = dstG;
+
+  FILE* fp = fopen( filename,"w" );
+  bool ret = true;
+  if( !fp )
+  {
+    cerr << "ERROR: cannot open for writing: " << filename << endl;
+    ret = false;
+  }
+  else
+  {
+    LTAprint(fp, lta);
+    fclose( fp );
+  }
+  
+  LTAfree(&lta);
+  
+  return ret;
+}
+
 bool FSVolume::MRIWrite( const char* filename, int nSampleMethod )
 {
   if ( !m_MRITemp )
@@ -493,7 +534,6 @@ bool FSVolume::MRIWrite( const char* filename, int nSampleMethod )
   // check if transformation needed
   vtkMatrix4x4* mat = m_transform->GetMatrix();
   bool bTransformed = false;
-  MATRIX* voxel_xform = NULL;
   if ( !MyUtils::IsIdentity( mat->Element ) )
   {    
     MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -508,7 +548,6 @@ bool FSVolume::MRIWrite( const char* filename, int nSampleMethod )
       cerr << "MRIapplyRASlinearTransformInterp failed." << endl;
       return false;
     }
-    voxel_xform = MRIrasXformToVoxelXform( m_MRITemp, NULL, m, NULL);
     MRIfree( &m_MRITemp );
     m_MRITemp = mri;
     MatrixFree( &m );
@@ -567,28 +606,6 @@ bool FSVolume::MRIWrite( const char* filename, int nSampleMethod )
     m_MRITemp = mri;
   }
   
-  LTA* lta = NULL;
-  if ( bTransformed ) // !bSaveToOriginalSpace && m_MRIOrigTarget) 
-  {
-    // prepare lta to be saved later
-    LINEAR_TRANSFORM *lt ;
-    VOL_GEOM srcG, dstG;
-
-    lta = LTAalloc(1, NULL) ;
-    lt = &lta->xforms[0] ;
-    lt->sigma = 1.0f ;
-    lt->x0 = lt->y0 = lt->z0 = 0 ;
-    lta->type = LINEAR_VOX_TO_VOX;
-    lt->m_L = voxel_xform; // MRIgetVoxelToVoxelXform( m_MRI, m_MRITemp );
-
-//    MRIcopyHeader( m_MRIOrigTarget, m_MRITemp );    
-    getVolGeom(m_MRI,     &srcG);
-    getVolGeom(m_MRITemp, &dstG);
-    
-    lta->xforms[0].src = srcG;
-    lta->xforms[0].dst = dstG;
-  }
-  
   // check if file is writable
   FILE* fp = fopen( filename, "w" );
   if ( !fp )
@@ -612,21 +629,12 @@ bool FSVolume::MRIWrite( const char* filename, int nSampleMethod )
   {
     cerr << "MRIwrite failed" << endl;
   }
-  else if ( lta )    // save lta file only if volume was saved successfully
+  else if ( bTransformed )    // save lta file only if volume was saved successfully
   {
     string fname = filename;
     fname = fname + ".lta";
-    fp = fopen(fname.c_str(),"w");
-    if(!fp)
-    {
-      cerr << "ERROR: cannot open for writing: " << fname.c_str() << endl;
-    }
-    LTAprint(fp, lta);
-    fclose( fp );
+    SaveRegistration( fname.c_str() );
   }
-  
-  if ( lta )
-    LTAfree(&lta);
 
   MRIfree( &m_MRITemp );
   m_MRITemp = NULL;

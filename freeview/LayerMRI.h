@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:17 $
- *    $Revision: 1.49 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -218,6 +218,8 @@ public:
   void SetCroppingBounds( double* bounds );
   
   virtual void GetDisplayBounds( double* bounds );
+  
+  bool SaveRegistration( const char* filename );
   
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations, 

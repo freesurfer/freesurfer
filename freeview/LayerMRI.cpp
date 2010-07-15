@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:17 $
- *    $Revision: 1.80 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.81 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1978,7 +1978,11 @@ void LayerMRI::GetDisplayBounds( double* bounds )
         }
       }
     }
-
   }
+}
+
+bool LayerMRI::SaveRegistration( const char* filename )
+{
+  return m_volumeSource->SaveRegistration( filename );
 }
 

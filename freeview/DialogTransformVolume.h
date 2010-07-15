@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:16 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -38,9 +38,10 @@ public:
   DialogTransformVolume( wxWindow* parent );
   virtual ~DialogTransformVolume();
 
-  void OnApply( wxCommandEvent& event );
+  void OnApply  ( wxCommandEvent& event );
   void OnRestore( wxCommandEvent& event );
-  void OnSaveAs( wxCommandEvent& event );
+  void OnSaveAs ( wxCommandEvent& event );
+  void OnSaveReg( wxCommandEvent& event );
 
   bool GetRotation( int nID_in, int& plane_out, double& angle_out );
 
@@ -80,6 +81,8 @@ protected:
   wxChoice*     m_choice[3];
   wxTextCtrl*   m_textAngle[3];
   wxButton*     m_btnRestoreOriginal;
+  wxButton*     m_btnSaveAs;
+  wxButton*     m_btnSaveReg;
   
   wxRadioButton*  m_radioAroundCenter;
   wxRadioButton*  m_radioAroundCursor;

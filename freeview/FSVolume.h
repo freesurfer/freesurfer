@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/08 20:50:46 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -53,6 +53,7 @@ public:
   bool MRIRead( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
   bool MRIWrite( const char* filename, int nSampleMethod = SAMPLE_NEAREST );
   bool MRIWrite();
+  bool SaveRegistration( const char* filename );
   bool Restore( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
 
   int OriginalIndexToRAS( float iIdxX, float iIdxY, float iIdxZ,

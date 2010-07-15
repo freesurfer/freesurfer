@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:17 $
- *    $Revision: 1.77 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.78 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -253,6 +253,7 @@ public:
   void NewVolume();
   void SaveVolume();
   void SaveVolumeAs();
+  void SaveRegistrationAs();
 
   void RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes );
 

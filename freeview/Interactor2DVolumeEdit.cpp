@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -165,7 +165,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
           if ( dValue != 0 )
           {
             m_bEditing = true;
-            c2d->SetInput( mri_ref->GetSliceImageData( view->GetViewPlane() ), dValue, ras[view->GetViewPlane()] );
+            c2d->SetInput( mri_ref->GetSliceImageData( view->GetViewPlane() ), dValue, ras[view->GetViewPlane()], mri_ref->GetActiveFrame() );
             c2d->SetVisible( true );
             view->NeedRedraw();
           }

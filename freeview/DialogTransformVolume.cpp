@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:16 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -43,15 +43,16 @@ extern "C"
 }
 
 BEGIN_EVENT_TABLE( DialogTransformVolume, wxDialog )
-    EVT_BUTTON      ( XRCID( "ID_BUTTON_APPLY" ),   DialogTransformVolume::OnApply )
-    EVT_BUTTON      ( XRCID( "ID_BUTTON_RESTORE" ), DialogTransformVolume::OnRestore )
-    EVT_BUTTON      ( XRCID( "ID_BUTTON_SAVEAS" ),  DialogTransformVolume::OnSaveAs )
-    EVT_CHECKBOX    ( XRCID( "ID_CHECK_1" ),        DialogTransformVolume::OnCheck1 )
-    EVT_CHECKBOX    ( XRCID( "ID_CHECK_2" ),        DialogTransformVolume::OnCheck2 )
-    EVT_CHECKBOX    ( XRCID( "ID_CHECK_3" ),        DialogTransformVolume::OnCheck3 )
-    EVT_TEXT        ( XRCID( "ID_TEXT_X" ),         DialogTransformVolume::OnTextTranslateX )
-    EVT_TEXT        ( XRCID( "ID_TEXT_Y" ),         DialogTransformVolume::OnTextTranslateY )
-    EVT_TEXT        ( XRCID( "ID_TEXT_Z" ),         DialogTransformVolume::OnTextTranslateZ )
+    EVT_BUTTON      ( XRCID( "ID_BUTTON_APPLY" ),     DialogTransformVolume::OnApply )
+    EVT_BUTTON      ( XRCID( "ID_BUTTON_RESTORE" ),   DialogTransformVolume::OnRestore )
+    EVT_BUTTON      ( XRCID( "ID_BUTTON_SAVEAS" ),    DialogTransformVolume::OnSaveAs )
+    EVT_BUTTON      ( XRCID( "ID_BUTTON_SAVE_REG" ),  DialogTransformVolume::OnSaveReg )
+    EVT_CHECKBOX    ( XRCID( "ID_CHECK_1" ),          DialogTransformVolume::OnCheck1 )
+    EVT_CHECKBOX    ( XRCID( "ID_CHECK_2" ),          DialogTransformVolume::OnCheck2 )
+    EVT_CHECKBOX    ( XRCID( "ID_CHECK_3" ),          DialogTransformVolume::OnCheck3 )
+    EVT_TEXT        ( XRCID( "ID_TEXT_X" ),           DialogTransformVolume::OnTextTranslateX )
+    EVT_TEXT        ( XRCID( "ID_TEXT_Y" ),           DialogTransformVolume::OnTextTranslateY )
+    EVT_TEXT        ( XRCID( "ID_TEXT_Z" ),           DialogTransformVolume::OnTextTranslateZ )
     EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_X" ),    DialogTransformVolume::OnScrollTranslateX )
     EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_Y" ),    DialogTransformVolume::OnScrollTranslateY )
     EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_Z" ),    DialogTransformVolume::OnScrollTranslateZ )    
@@ -77,10 +78,12 @@ DialogTransformVolume::DialogTransformVolume( wxWindow* parent ) : Listener( "Di
   m_choice[0] = XRCCTRL( *this, "ID_CHOICE_1", wxChoice );
   m_choice[1] = XRCCTRL( *this, "ID_CHOICE_2", wxChoice );
   m_choice[2] = XRCCTRL( *this, "ID_CHOICE_3", wxChoice );
-  m_textAngle[0] = XRCCTRL( *this, "ID_TEXT_ANGLE_1", wxTextCtrl );
-  m_textAngle[1] = XRCCTRL( *this, "ID_TEXT_ANGLE_2", wxTextCtrl );
-  m_textAngle[2] = XRCCTRL( *this, "ID_TEXT_ANGLE_3", wxTextCtrl );
-  m_btnRestoreOriginal = XRCCTRL( *this, "ID_BUTTON_RESTORE", wxButton );
+  m_textAngle[0]  = XRCCTRL( *this, "ID_TEXT_ANGLE_1", wxTextCtrl );
+  m_textAngle[1]  = XRCCTRL( *this, "ID_TEXT_ANGLE_2", wxTextCtrl );
+  m_textAngle[2]  = XRCCTRL( *this, "ID_TEXT_ANGLE_3", wxTextCtrl );
+  m_btnRestoreOriginal  = XRCCTRL( *this, "ID_BUTTON_RESTORE", wxButton );
+  m_btnSaveAs     = XRCCTRL( *this, "ID_BUTTON_SAVEAS", wxButton );
+  m_btnSaveReg    = XRCCTRL( *this, "ID_BUTTON_SAVE_REG", wxButton );
   
   m_radioAroundCenter = XRCCTRL( *this, "ID_RADIO_AROUND_CENTER", wxRadioButton );
   m_radioAroundCursor = XRCCTRL( *this, "ID_RADIO_AROUND_CURSOR", wxRadioButton );
@@ -158,6 +161,11 @@ void DialogTransformVolume::OnApply( wxCommandEvent& event )
 void DialogTransformVolume::OnSaveAs( wxCommandEvent& event )
 {
   MainWindow::GetMainWindowPointer()->SaveVolumeAs();
+}
+
+void DialogTransformVolume::OnSaveReg( wxCommandEvent& event )
+{
+  MainWindow::GetMainWindowPointer()->SaveRegistrationAs();
 }
 
 void DialogTransformVolume::OnRestore( wxCommandEvent& event )
@@ -424,5 +432,7 @@ void DialogTransformVolume::UpdateUI( int scope )
     }
     
     m_btnRestoreOriginal->Enable( layer->IsTransformed() );
+    m_btnSaveReg->Enable( layer->IsTransformed() );
+    m_btnSaveAs->Enable( layer->IsTransformed() );
   }
 }

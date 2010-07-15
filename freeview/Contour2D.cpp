@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/24 18:15:18 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,6 +34,7 @@
 #include "vtkImageMapToColors.h"
 #include "vtkRGBAColorTransferFunction.h"
 #include "vtkImageGaussianSmooth.h"
+#include "vtkImageExtractComponents.h"
 #include "vtkMatrix4x4.h"
 #include "vtkImageMask.h"
 #include "vtkImageLogic.h"
@@ -97,10 +98,20 @@ vtkImageData* Contour2D::GetThresholdedImage()
   return m_filterMask->GetOutput();
 }
 
-void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double dSliceLocation )
+void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double dSliceLocation, int active_frame )
 {
-  m_imageInput = imagedata;
-  m_filterThreshold->SetInput( imagedata );
+  vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
+  if ( imagedata->GetNumberOfScalarComponents() > 1 )
+  {
+    extract->SetInput( imagedata );
+    extract->SetComponents( active_frame );
+    extract->Update();
+    m_imageInput = extract->GetOutput();
+  }
+  else
+   m_imageInput = imagedata;
+  
+  m_filterThreshold->SetInput( m_imageInput );
   SetContourValue( dContourValue );
   
   // create two masks and initialize them.

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 20:48:31 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -644,7 +644,7 @@ void ToolWindowEdit::OnEditContourValue( wxCommandEvent& event )
         c2d->SetContourValue( value );
       else if ( mri )
       {
-        c2d->SetInput( mri->GetSliceImageData( view->GetViewPlane() ), value, mri->GetSlicePosition()[i] ); 
+        c2d->SetInput( mri->GetSliceImageData( view->GetViewPlane() ), value, mri->GetSlicePosition()[i], mri->GetActiveFrame() ); 
         c2d->SetVisible( true );
       }
     }

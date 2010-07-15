@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:17 $
- *    $Revision: 1.131 $
+ *    $Date: 2010/07/15 19:51:47 $
+ *    $Revision: 1.132 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -5361,5 +5361,24 @@ void MainWindow::OnToolCropVolumeUpdateUI( wxUpdateUIEvent& event )
 {
   Layer* layer = GetLayerCollection( "MRI" )->GetActiveLayer();
   event.Enable( !IsProcessing() && layer && layer->IsVisible() );
+}
+
+void MainWindow::SaveRegistrationAs()
+{
+  LayerMRI* layer_mri = ( LayerMRI* )GetActiveLayer( "MRI" );
+  if ( !layer_mri)
+  {
+    return;
+  }
+  
+  wxFileDialog dlg( this, _("Select file to save"), 
+                    wxFileName( layer_mri->GetFileName() ).GetPath(), 
+                    _(""),
+                    _("LTA files (*.lta)|*.lta|All files (*.*)|*.*"),
+                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+  if ( dlg.ShowModal() == wxID_OK )
+  {
+    layer_mri->SaveRegistration( dlg.GetPath().char_str() );
+  }
 }
 
