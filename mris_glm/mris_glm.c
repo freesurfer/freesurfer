@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:23 $
- *    $Revision: 1.52 $
+ *    $Author: twitzel $
+ *    $Date: 2010/07/15 15:51:42 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,7 +95,7 @@ static char *getstem(char *bfilename);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_glm.c,v 1.52 2008/03/10 13:35:23 nicks Exp $";
+static char vcid[] = "$Id: mris_glm.c,v 1.53 2010/07/15 15:51:42 twitzel Exp $";
 const char *Progname = "mris_glm";
 
 char *hemi        = NULL;
@@ -222,7 +222,7 @@ int main(int argc, char **argv) {
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_glm.c,v 1.52 2008/03/10 13:35:23 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_glm.c,v 1.53 2010/07/15 15:51:42 twitzel Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1668,7 +1668,7 @@ int ReadDesignMatrix(char *desmtxfname) {
   extern MATRIX *X;
   extern char *subjectlist[1000];
   extern int nsubjects, nregressors;
-  int nrows,ncols, r,c;
+  int nrows = 0,ncols = 0, r,c;
   char tmpstring[1001];
   FILE *fp;
 
