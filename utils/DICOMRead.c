@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/10/05 18:39:38 $
- *    $Revision: 1.128 $
+ *    $Author: twitzel $
+ *    $Date: 2010/07/15 15:29:12 $
+ *    $Revision: 1.129 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -2437,7 +2437,7 @@ int sdfiAssignRunNo2(SDCMFILEINFO **sdfi_list, int nlist)
 {
   SDCMFILEINFO *sdfi, *sdfitmp, *sdfi0;
   int nthfile, NRuns, nthrun, nthslice, nthframe;
-  int nfilesperrun, firstpass, nframes;
+  int nfilesperrun=0, firstpass, nframes;
   char *FirstFileName = 0;
   int *RunList=0, *RunNoList=0;
 
