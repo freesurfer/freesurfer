@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/05/28 21:22:21 $
- *    $Revision: 1.678 $
+ *    $Author: twitzel $
+ *    $Date: 2010/07/15 15:47:27 $
+ *    $Revision: 1.679 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -720,7 +720,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.678 2010/05/28 21:22:21 rpwang Exp $");
+  return("$Id: mrisurf.c,v 1.679 2010/07/15 15:47:27 twitzel Exp $");
 }
 
 /*-----------------------------------------------------
@@ -67736,7 +67736,7 @@ MRIScomputeSurfaceNormals(MRI_SURFACE *mris, int which, int navgs)
 {
   int     vno, n, i ;
   VERTEX  *v, *vn ;
-  double  nx, ny, nz, norm ;
+  double  nx=0.0, ny=0.0, nz=0.0, norm=0.0 ;
 
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
