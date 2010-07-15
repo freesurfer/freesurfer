@@ -1,0 +1,186 @@
+#! /bin/csh -f
+
+#
+# reg-mni305.2mm
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2010/07/15 16:24:45 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: reg-mni305.2mm,v 1.1 2010/07/15 16:24:45 greve Exp $';
+
+set subject = ();
+set regfile = ();
+set tmpdir = ();
+
+set PrintHelp = 0;
+set cmdargs = ($argv);
+#### If no arguments, print usage and exit ####
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+##### Print out version info, if needed ####
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# registration between fsaverage (mni305) and the 2mm mni305 space
+set mni2mmreg = $FREESURFER_HOME/average/mni305.cor.subfov2.reg
+
+# Compute registration from the mni305 subject (fsaverage) to the 
+# target subject. This is just another way to express the 
+# talairach.xfm file.
+set mni305reg = /tmp/tmp.$$.mni305toAnat.dat
+set cmd = (tkregister2_cmdl --fstal --reg $mni305reg --s $subject --noedit)
+echo $cmd
+$cmd
+if($status) exit 1;
+      
+# registration from the mni305 2mm space to the subject's anatomical
+set cmd = (mri_matrix_multiply -s $subject \
+     -im $mni2mmreg -im $mni305reg -om $regfile )
+echo $cmd
+$cmd
+if($status) exit 1;
+
+rm -f $mni305reg
+
+set mov = $FREESURFER_HOME/average/mni305.cor.subfov2.mgz
+
+echo "To check, run"
+echo ""
+echo "tkregister2 --reg $regfile --mov $mov"
+echo ""
+
+echo "reg-mni305.2mm done"
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--subject":
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--reg":
+      if($#argv < 1) goto arg1err;
+      set regfile = $argv[1]; shift;
+      breaksw
+
+    case "--debug":
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subject == 0) then
+    echo "ERROR: must specify a subject"
+    exit 1;
+  endif
+
+  set sd = $SUBJECTS_DIR/$subject
+  if(! -e $sd) then
+    echo "ERROR: cannot find $sd"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "reg-mni305.2mm --s subject --reg regfile"
+  echo ""
+
+  if( ! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Computes the registration between the FreeSurfer MNI305 2mm space and
+a subject's FreeSurfer anatomical space. This is completely dependent
+on the talairach.xfm file and should only take a few seconds to run.
+
+regfile is a tkregister2-style registration matrix (should have a .dat
+or .reg extension).
+
+This registration can be used to view mni305 2mm results as produced
+by FS-FAST in a subject's native anatomical.
+
+The FreeSurfer MNI305 2mm space is that defined by:
+
+$FREESURFER_HOME/average/mni305.cor.subfov2.mgz
+
+To check, run
+
+tkregister2 --reg regfile --mov $FREESURFER_HOME/average/mni305.cor.subfov2.mgz
+
+This should be no better or worse than the FreeSurfer taliarach registration 
+as seen by
+
+tkregister2 --s subject --fstal
+
