@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/01 19:56:45 $
- *    $Revision: 1.370 $
+ *    $Date: 2010/07/15 15:41:59 $
+ *    $Revision: 1.371 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -9381,10 +9381,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
   if (hdr.dim[0] == 4)
     mri->tr = mri->tr * time_units_factor;
 
-  if(!read_volume){
-    free(&hdr);
-    return(mri);
-  }
+  if(!read_volume)  return(mri);
 
   fp = fopen(img_fname, "r");
   if (fp == NULL)
