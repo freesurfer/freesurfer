@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/14 19:37:06 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/07/16 14:18:14 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -95,6 +95,10 @@ namespace GPU {
       void UnbindMRIsmooth( void ) const;
 
 
+      //! Posterior/Anterior consistency check for Label term
+      int LabelPostAntConsistency( GPU::Classes::GCAmorphGPU& gcam,
+				   GPU::Classes::MRIframeGPU<float>& mri_dist ) const;
+
       //! Final update stage for Label term
       int LabelFinalUpdate( GPU::Classes::GCAmorphGPU& gcam,
 			    const GPU::Classes::MRIframeGPU<float>& mri_dist,
@@ -126,7 +130,9 @@ namespace GPU {
       //! Timer for Log likelihood term computation
       static SciGPU::Utilities::Chronometer tLogLikelihoodCompute;
 
-
+      
+      //! Timer for post/ant consistency check of LabelTerm
+      static SciGPU::Utilities::Chronometer tLabelPostAntConsistency;
       //! Timer for final update of Label term
       static SciGPU::Utilities::Chronometer tLabelFinal;
 

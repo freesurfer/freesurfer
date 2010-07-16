@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/14 19:37:04 $
- *    $Revision: 1.207 $
+ *    $Date: 2010/07/16 14:18:05 $
+ *    $Revision: 1.208 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,7 @@
 #define GCAM_JACOB_TERM_GPU
 #define GCAM_LL_TERM_GPU
 
+#define GCAM_LABEL_TERM_POSTANT_GPU
 #define GCAM_LABEL_TERM_FINAL_GPU
 
 #else
@@ -7838,6 +7839,113 @@ remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh)
 // ====================================================
 // Separate out some operations from gcamLabelTerm
 
+#define GCAM_LABEL_POSTANTCONSIST_OUTPUT 1
+
+int gcamLabelTermPostAntConsistency( GCA_MORPH *gcam,
+				     MRI* mri_dist ) {
+  
+  int nremoved;
+#ifdef GCAM_LABEL_TERM_POSTANT_GPU
+
+  printf( "%s: On GPU\n", __FUNCTION__ );
+
+  nremoved = gcamLabelTermPostAntConsistencyGPU( gcam, mri_dist );
+#else
+  int x, y, z;
+
+  GCA_MORPH_NODE *gcamn;
+  GCA_MORPH_NODE *gcamn_medial, *gcamn_lateral;
+  GCA_MORPH_NODE *gcamn_post, *gcamn_ant;
+
+#if GCAM_LABEL_POSTANTCONSIST_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%outputFreq) == 0 ) {
+    unsigned int nOut = nCalls/outputFreq;
+    
+    char fname[STRLEN];
+
+    snprintf( fname, STRLEN-1, "gcamLabelPostAntConsistInput%04u", nOut );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+
+    snprintf( fname, STRLEN-1, "mriLabelPostAntConsistInput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri_dist, fname );
+  }
+  nCalls++;
+#endif
+
+
+  nremoved = 0;
+
+  /* do posterior/anterior consistency check */
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
+
+        gcamn = &gcam->nodes[x][y][z] ;
+
+        if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
+            ((gcamn->status & GCAM_LABEL_NODE) == 0))
+          continue;
+
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if ((fabs(gcamn->x-Gvx)<=gcam->spacing) &&
+            (fabs(gcamn->y-Gvy)<=gcam->spacing) &&
+            (fabs(gcamn->z-Gvz)<=gcam->spacing))
+          DiagBreak() ;
+
+        /*
+           if sign of nodes to left and right (medial and lateral)
+	   are both different, then don't trust this one.
+        */
+        if ((x < gcam->width-1) && (x > 0))
+        {
+          gcamn_medial = &gcam->nodes[x-1][y][z] ;
+          gcamn_lateral = &gcam->nodes[x+1][y][z] ;
+          if (((gcamn_medial->status & GCAM_LABEL_NODE) == 0) ||
+              ((gcamn_lateral->status & GCAM_LABEL_NODE) == 0))
+            /* only if they are both label nodes */
+            continue ;
+          if ((gcamn_medial->dy*gcamn_lateral->dy > 0) &&
+              (gcamn_medial->dy*gcamn->dy < 0))
+          {
+            gcamn->status = GCAM_USE_LIKELIHOOD ;
+            MRIsetVoxVal(mri_dist, x, y, z, 0, 0) ;
+            nremoved++ ;
+            continue ;
+          }
+        }
+        if ((z < gcam->depth-1) && (z > 0))
+        {
+          gcamn_post = &gcam->nodes[x][y][z-1] ;
+          gcamn_ant = &gcam->nodes[x][y][z+1] ;
+          if (((gcamn_ant->status & GCAM_LABEL_NODE) == 0) ||
+              ((gcamn_post->status & GCAM_LABEL_NODE) == 0))
+            /* only if they are both label nodes */
+            continue ;
+          if ((gcamn_ant->dy*gcamn_post->dy > 0) &&
+              (gcamn_ant->dy*gcamn->dy < 0))
+          {
+            gcamn->status = GCAM_USE_LIKELIHOOD ;
+            MRIsetVoxVal(mri_dist, x, y, z, 0, 0) ;
+            nremoved++ ;
+            continue ;
+          }
+        }
+
+      }
+    }
+  }
+#endif
+
+  return( nremoved );
+}
+
+
+// ----------------------
+
 
 #define GCAM_LABELFINAL_OUTPUT 0
 
@@ -7909,8 +8017,7 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 	       double l_label, double label_dist ) {
   int x, y, z, wm_label, num, xn, yn, zn, best_label, sup_wm, sup_ven, n ;
   double            dy;
-  GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup, 
-    *gcamn_medial, *gcamn_lateral, *gcamn_ant, *gcamn_post ;
+  GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup;
   float           vals[MAX_GCA_INPUTS], yi, yk, min_dist ;
   GC1D            *wm_gc ;
   GCA_NODE        *gcan ;
@@ -8188,66 +8295,7 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 
 
 
-  /* do posterior/anterior consistency check */
-  for (x = 0 ; x < gcam->width ; x++) {
-    for (y = 0 ; y < gcam->height ; y++) {
-      for (z = 0 ; z < gcam->depth ; z++) {
-
-        gcamn = &gcam->nodes[x][y][z] ;
-
-        if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
-            ((gcamn->status & GCAM_LABEL_NODE) == 0))
-          continue;
-
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if ((fabs(gcamn->x-Gvx)<=gcam->spacing) &&
-            (fabs(gcamn->y-Gvy)<=gcam->spacing) &&
-            (fabs(gcamn->z-Gvz)<=gcam->spacing))
-          DiagBreak() ;
-
-        /*
-           if sign of nodes to left and right (medial and lateral) are both different,
-           then don't trust this one.
-        */
-        if ((x < gcam->width-1) && (x > 0))
-        {
-          gcamn_medial = &gcam->nodes[x-1][y][z] ;
-          gcamn_lateral = &gcam->nodes[x+1][y][z] ;
-          if (((gcamn_medial->status & GCAM_LABEL_NODE) == 0) ||
-              ((gcamn_lateral->status & GCAM_LABEL_NODE) == 0))
-            /* only if they are both label nodes */
-            continue ;
-          if ((gcamn_medial->dy*gcamn_lateral->dy > 0) &&
-              (gcamn_medial->dy*gcamn->dy < 0))
-          {
-            gcamn->status = GCAM_USE_LIKELIHOOD ;
-            MRIsetVoxVal(mri_dist, x, y, z, 0, 0) ;
-            nremoved++ ;
-            continue ;
-          }
-        }
-        if ((z < gcam->depth-1) && (z > 0))
-        {
-          gcamn_post = &gcam->nodes[x][y][z-1] ;
-          gcamn_ant = &gcam->nodes[x][y][z+1] ;
-          if (((gcamn_ant->status & GCAM_LABEL_NODE) == 0) ||
-              ((gcamn_post->status & GCAM_LABEL_NODE) == 0))
-            /* only if they are both label nodes */
-            continue ;
-          if ((gcamn_ant->dy*gcamn_post->dy > 0) &&
-              (gcamn_ant->dy*gcamn->dy < 0))
-          {
-            gcamn->status = GCAM_USE_LIKELIHOOD ;
-            MRIsetVoxVal(mri_dist, x, y, z, 0, 0) ;
-            nremoved++ ;
-            continue ;
-          }
-        }
-
-      }
-    }
-  }
+  nremoved += gcamLabelTermPostAntConsistency( gcam, mri_dist );
 
 
   num = gcamLabelTermFinalUpdate( gcam, mri_dist, l_label );

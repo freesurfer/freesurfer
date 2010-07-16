@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/14 19:37:04 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/07/16 14:18:05 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,6 +69,7 @@ namespace GPU {
 
     const unsigned int kGCAmorphLLTermKernelSize = 16;
 
+    const unsigned int kGCAmorphLabelTermPostAntConsistencyKernelSize = 16;
     const unsigned int kGCAmorphLabelTermFinalKernelSize = 16;
 
     // ##############################################################
@@ -1041,7 +1042,120 @@ namespace GPU {
 
 
     // ##############################################################
+    
 
+    __global__
+    void LabelPostAntConsistKernel( const GPU::Classes::VolumeArgGPU<char> invalid,
+				    const GPU::Classes::VolumeArgGPU<float> dy,
+				    GPU::Classes::VolumeArgGPU<int> status,
+				    GPU::Classes::MRIframeOnGPU<float> mriDist,
+				    int *nRemoved ) {
+
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      // Loop over z slices
+      for( unsigned int iz = 0; iz < invalid.dims.z; iz++ ) {
+	
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( invalid.InVolume(ix,iy,iz) ) {
+	  
+	  // Validity check
+	  if( invalid(ix,iy,iz) ||
+	      ( (status(ix,iy,iz) & GCAM_LABEL_NODE) == 0 ) ) {
+	    continue;
+	  }
+
+	  /* 
+	     If signs of nodes to left and right are different,
+	     don't trust this one
+	  */
+	  if( (ix<invalid.dims.x-1) && (ix>0) ) {
+
+	    if( ( (status(ix-1,iy,iz) & GCAM_LABEL_NODE)==0 ) ||
+		( (status(ix+1,iy,iz) & GCAM_LABEL_NODE)==0 ) ) {
+	      // Only if they are both label nodes
+	      continue;
+	    }
+
+	    if( ( dy(ix-1,iy,iz) * dy(ix+1,iy,iz) > 0 ) &&
+		( dy(ix-1,iy,iz) * dy(ix,iy,iz) < 0 ) ) {
+	      status(ix,iy,iz) = GCAM_USE_LIKELIHOOD;
+	      mriDist(ix,iy,iz) = 0;
+	      atomicAdd( nRemoved, 1 );
+	      continue;
+	    }
+
+	  }
+
+	  // Repeat in z direction
+	  if( (iz<invalid.dims.z-1) && (iz>0) ) {
+
+	    if( ( (status(ix,iy,iz-1) & GCAM_LABEL_NODE)==0 ) ||
+		( (status(ix,iy,iz+1) & GCAM_LABEL_NODE)==0 ) ) {
+	      continue;
+	    }
+
+	    if( ( dy(ix,iy,iz+1)*dy(ix,iy,iz-1) > 0 ) && 
+		( dy(ix,iy,iz+1)*dy(ix,iy,iz) < 0 ) ) {
+	      status(ix,iy,iz) = GCAM_USE_LIKELIHOOD;
+	      mriDist(ix,iy,iz) = 0;
+	      atomicAdd( nRemoved, 1 );
+	    }
+	  }
+
+	} // if inVolume
+      } // iz Loop
+
+      
+    }
+
+    int GCAmorphTerm::LabelPostAntConsistency( GPU::Classes::GCAmorphGPU& gcam,
+					       GPU::Classes::MRIframeGPU<float>& mri_dist ) const {
+
+      int nRemoved;
+      int *d_nRemoved;
+
+      GCAmorphTerm::tLabelPostAntConsistency.Start();
+
+      // Allocate memory
+      CUDA_SAFE_CALL( cudaMalloc( (void**)&d_nRemoved, sizeof(int) ) );
+
+      // Zero
+      nRemoved = 0;
+      CUDA_SAFE_CALL( cudaMemcpy( d_nRemoved, &nRemoved, sizeof(int),
+				  cudaMemcpyHostToDevice ) );
+
+      // Run the kernel
+      dim3 threads, grid;
+      threads.x = threads.y = kGCAmorphLabelTermPostAntConsistencyKernelSize;
+      threads.z = 1;
+      
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphLabelTermPostAntConsistencyKernelSize );
+      grid.z = 1;
+      LabelPostAntConsistKernel<<<grid,threads>>>( gcam.d_invalid,
+						   gcam.d_dy,
+						   gcam.d_status,
+						   mri_dist,
+						   d_nRemoved );
+      CUDA_CHECK_ERROR( "LabelPostAndConsistKernel failed!\n" );
+
+      // Retrieve result
+      CUDA_SAFE_CALL( cudaMemcpy( &nRemoved, d_nRemoved, sizeof(int),
+				  cudaMemcpyDeviceToHost ) );
+
+      // Release memory
+      CUDA_SAFE_CALL( cudaFree( d_nRemoved ) );
+
+      GCAmorphTerm::tLabelPostAntConsistency.Stop();
+
+      return( nRemoved );
+    }
+
+    // -------------------------------------------------------------------
+    
     __global__
     void LabelFinalKernel( const GPU::Classes::VolumeArgGPU<char> invalid,
 			   const GPU::Classes::VolumeArgGPU<int> status,
@@ -1170,6 +1284,8 @@ namespace GPU {
       std::cout << std::endl;
 
        std::cout << "Log Likelihood:" << std::endl;
+       std::cout << " Post/Ant Cons:" << GCAmorphTerm::tLabelPostAntConsistency
+		 << std::endl;
        std::cout << " Final Update : " << GCAmorphTerm::tLabelFinal
 		 << std::endl;
 
@@ -1194,6 +1310,7 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodTot;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodCompute;
 
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelPostAntConsistency;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelFinal;
   }
 }
@@ -1265,4 +1382,27 @@ int gcamLabelTermFinalUpdateGPU( GCA_MORPH *gcam,
 
   return( num );
 }
+
+//! Wrapper around GPU class for LabelPostAntConsistency
+int gcamLabelTermPostAntConsistencyGPU( GCA_MORPH *gcam,
+					MRI* mri_dist ) {
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+  GPU::Classes::MRIframeGPU<float> mriDist;
+
+  int num;
+
+  myGCAM.SendAll( gcam );
+
+  mriDist.Allocate( mri_dist );
+  mriDist.Send( mri_dist, 0 );
+
+  num = myTerms.LabelPostAntConsistency( myGCAM, mriDist );
+
+  myGCAM.RecvAll( gcam );
+  mriDist.Recv( mri_dist, 0 );
+
+  return( num );
+}
+
 #endif

@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/14 19:37:06 $
- *    $Revision: 1.81 $
+ *    $Date: 2010/07/16 14:18:14 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -500,6 +500,8 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 		     const MRI *mri,
 		     double l_label, double label_dist );
 
+  int gcamLabelTermPostAntConsistency( GCA_MORPH *gcam,
+				       MRI* mri_dist );
   int gcamLabelTermFinalUpdate( GCA_MORPH *gcam,
 				const MRI* mri_dist,
 				const double l_label );
@@ -562,6 +564,8 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   void gcamAddStatusGPU( GCA_MORPH *gcam, const int statusFlags );
   void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags );
 
+  int gcamLabelTermPostAntConsistencyGPU( GCA_MORPH *gcam,
+					  MRI* mri_dist );
   int gcamLabelTermFinalUpdateGPU( GCA_MORPH *gcam,
 				   const MRI* mri_dist,
 				   const double l_label );
