@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.89 2010/06/29 21:53:49 greve Exp $
+% $Id: fast_selxavg3.m,v 1.90 2010/07/16 15:31:03 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/06/29 21:53:49 $
-%    $Revision: 1.89 $
+%    $Date: 2010/07/16 15:31:03 $
+%    $Revision: 1.90 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
 %
 
 
-fprintf('$Id: fast_selxavg3.m,v 1.89 2010/06/29 21:53:49 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.90 2010/07/16 15:31:03 greve Exp $\n');
 
 SUBJECTS_DIR = getenv('SUBJECTS_DIR');
 FSHOME = getenv('FREESURFER_HOME');
@@ -50,7 +50,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.89 2010/06/29 21:53:49 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.90 2010/07/16 15:31:03 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -588,7 +588,7 @@ if(DoGLMFit)
 	acfsegmn(:,nthseg) = fsv3AutoCor;
       end
       
-      fprintf('  seg  %2d  %5d  nrho1 = %5.3f\n',....
+      fprintf('  seg  %2d  %5d  nrho1 = %5.3f\n',...
 	      nthseg,nsegvox,nrho1segmn(nthseg));
       for nthrun = nthrunlist
 	indrun = find(tpindrun == nthrun);
@@ -1134,5 +1134,7 @@ end % sxa format
 end % outer run loop
 
 if(exist('okfile','var'))  fmri_touch(okfile); end
+
+fprintf('fast_selxavg3 done for %s\n',sess);
 
 return;
