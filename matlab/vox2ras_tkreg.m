@@ -1,5 +1,5 @@
-function T = vox2ras_tkregmtx(voldim, voxres)
-% T = vox2ras_tkregmtx(voldim, voxres)
+function T = vox2ras_tkreg(voldim, voxres)
+% T = vox2ras_tkreg(voldim, voxres)
 %   voldim = [ncols  nrows  nslices ...]
 %   volres = [colres rowres sliceres ...]
 %
@@ -14,9 +14,9 @@ function T = vox2ras_tkregmtx(voldim, voxres)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2007/01/10 22:55:10 $
-%    $Revision: 1.2 $
+%    $Author: greve $
+%    $Date: 2010/07/16 15:24:03 $
+%    $Revision: 1.3 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -34,7 +34,7 @@ function T = vox2ras_tkregmtx(voldim, voxres)
 T = [];
 
 if(nargin ~= 2)
-  fprintf('T = vox2ras_tkregmtx(voldim, voxres)\n');
+  fprintf('T = vox2ras_tkreg(voldim, voxres)\n');
   return;
 end
 
