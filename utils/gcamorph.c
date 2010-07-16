@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/16 14:18:05 $
- *    $Revision: 1.208 $
+ *    $Date: 2010/07/16 14:59:30 $
+ *    $Revision: 1.209 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7839,7 +7839,7 @@ remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh)
 // ====================================================
 // Separate out some operations from gcamLabelTerm
 
-#define GCAM_LABEL_POSTANTCONSIST_OUTPUT 1
+#define GCAM_LABEL_POSTANTCONSIST_OUTPUT 0
 
 int gcamLabelTermPostAntConsistency( GCA_MORPH *gcam,
 				     MRI* mri_dist ) {
