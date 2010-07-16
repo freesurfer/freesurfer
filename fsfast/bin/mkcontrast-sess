@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 19:42:50 $
-#    $Revision: 1.13 $
+#    $Date: 2010/07/16 16:20:10 $
+#    $Revision: 1.14 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.13 2010/04/28 19:42:50 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.14 2010/07/16 16:20:10 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -48,6 +48,11 @@ set CNorm = 1;
 set UseSXADat = 0;
 set PrintHelp = 0;
 set mfile = ();
+
+set UseOctave = 0;
+if($?FS_USE_OCTAVE) then
+  set UseOctave = $FS_USE_OCTAVE
+endif
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
@@ -184,6 +189,9 @@ if($setwcond)  set cmd = ($cmd -setwcond);
 if($setwdelay) set cmd = ($cmd -setwdelay);
 
 if($#mfile) set cmd = ($cmd -monly $mfile);
+
+if($UseOctave)   set cmd = ($cmd -octave);
+if(! $UseOctave) set cmd = ($cmd -no-octave);
 
 ## Prepare the script, if need be ##
 if($ScriptOnly) then
@@ -337,6 +345,15 @@ while( $#argv != 0 )
     case "-monly":
       if($#argv == 0) goto arg1err;
       set mfile = $argv[1]; shift;
+      breaksw
+
+    case "-octave":
+      set UseOctave = 1
+      breaksw
+
+    case "-no-octave":
+    case "-matlab":
+      set UseOctave = 0;
       breaksw
 
     case "-verbose":

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/06/29 21:53:49 $
-#    $Revision: 1.53 $
+#    $Date: 2010/07/16 16:20:10 $
+#    $Revision: 1.54 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.53 2010/06/29 21:53:49 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.54 2010/07/16 16:20:10 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -57,6 +57,11 @@ set SynthNoiseAmp = 1;
 set SynthNoiseAR1 = .3;
 set SynthSignalAmp = 0;
 set SynthSeed = -1;
+
+set UseOctave = 0;
+if($?FS_USE_OCTAVE) then
+  set UseOctave = $FS_USE_OCTAVE
+endif
 
 if($#argv == 0)  goto usage_exit;
 
@@ -299,8 +304,14 @@ echo "------------------------------------------" >> $LF
 
 if(! $monly && $nprocs > 0) then
   echo "------------------------------------------" | tee -a $LF
-  echo "------- matlab output --------------------" | tee -a $LF
-  cat $MLF | matlab -display iconic | tee -a $LF
+  if($UseOctave == 0) then
+    echo "------- matlab output --------------------" | tee -a $LF
+    cat $MLF | matlab -display iconic | tee -a $LF
+  else
+    echo "------- octave output --------------------" | tee -a $LF
+    echo LD_LIBRARY_PATH $LD_LIBRARY_PATH
+    cat $MLF | $FS_OCTAVE_BIN  |& tee -a $LF
+  endif
   echo "------------------------------------------" | tee -a $LF
   rm $MLF
   if(! -e $okfile) then
@@ -433,6 +444,15 @@ while( $#argv != 0 )
       set nolog = 1;
       breaksw
 
+    case "-octave":
+      set UseOctave = 1
+      breaksw
+
+    case "-no-octave":
+    case "-matlab":
+      set UseOctave = 0;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
@@ -511,6 +531,31 @@ check_params:
   if($perrun && $jkrun) then
     echo "ERROR: cannot -run-wise AND -jkrun"
     exit 1
+  endif
+
+  if($UseOctave) then
+    if($?FS_OCTAVE_LIB == 0) then
+      echo "ERROR: you must set the FS_OCTAVE_LIB environment variable"
+      exit 1;
+    endif
+    if(! -e $FS_OCTAVE_LIB) then
+      echo "ERROR: cannot find $FS_OCTAVE_LIB"
+      exit 1;
+    endif
+    if($?FS_OCTAVE_BIN == 0) then
+      echo "ERROR: you must set the FS_OCTAVE_BIN environment variable"
+      exit 1;
+    endif
+    if(! -x $FS_OCTAVE_BIN) then
+      echo "ERROR: cannot find or execute $FS_OCTAVE_BIN"
+      exit 1;
+    endif
+    if($?LD_LIBRARY_PATH == 0) setenv LD_LIBRARY_PATH ""
+    if($#LD_LIBRARY_PATH == 0) then 
+      setenv LD_LIBRARY_PATH $FS_OCTAVE_LIB
+    else
+      setenv LD_LIBRARY_PATH ${LD_LIBRARY_PATH}:$FS_OCTAVE_LIB
+    endif
   endif
 
 goto check_params_return;
