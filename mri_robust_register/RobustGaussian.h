@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/12/21 19:46:30 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/07/17 02:35:08 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -30,17 +30,19 @@
 #include <utility>
 
 
+template <class T>
 class RobustGaussian
 {
 public:
-  static double median(double a[],int n);
-  static double kth_smallest(double a[], int n, int k);
-  static double quick_select(double a[], int n, int k);
-  static std::pair <double, double> medianI(double a[],int n);
-  static std::pair <double, int> kth_smallestI(double a[], int n, int k);
-  static std::pair <double, int> quick_selectI(double a[], int n, int k);
-  static double mad(double a[],int n, double d =  1.4826);
+  static T median(T a[],int n);
+  static T kth_smallest(T a[], int n, int k);
+  static T quick_select(T a[], int n, int k);
+  static std::pair <T, T> medianI(T a[],int n);
+  static std::pair <T, int> kth_smallestI(T a[], int n, int k);
+  static std::pair <T, int> quick_selectI(T a[], int n, int k);
+  static T mad(T a[],int n, T d =  1.4826);
 };
 
+#include "RobustGaussian.cpp"
 
 #endif

@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/05 15:55:44 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/07/17 02:35:08 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -116,7 +116,7 @@ struct Parameters
 	bool   inittrans;
 	int    verbose;
 	int    highit;
-	bool   doublesvd;
+	bool   doubleprec;
 	double wlimit;
 	bool   oneminusweights;
 };
@@ -129,7 +129,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.33 2010/07/05 15:55:44 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.34 2010/07/17 02:35:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -179,12 +179,12 @@ void testRegression()
     b[i] = 0;
 	}
 	
-	Regression R1(A,b);
+	Regression<double> R1(A,b);
   vnl_vector < double >  M1 = R1.getLSEst();
 	cout << M1 << endl;
 	cout << endl <<endl;
 
-	Regression R2(A,b);
+	Regression<double> R2(A,b);
   vnl_vector < double >  M2 = R2.getRobustEst();
 	cout << M1 << endl;
 	cout << endl <<endl;
@@ -803,11 +803,11 @@ static void printUsage(void)
   cout << "  --satit                auto-detect good sensitivity (for head scans)" << endl;
 	cout << "  --wlimit <real>        sets maximal outlier limit in satit (default "<<P.wlimit<<")" << endl;
   cout << "  --subsample <#>        subsample if dim > # on all axes (default no subs.)" << endl;
-  cout << "  --doublesvd            double svd (instead of float) ~1Gig more memory" << endl;
+  cout << "  --doubleprec           double precision (default: float) for intensities (!!memory!!)" << endl;
   cout << "  --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
   cout << "  --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
 //  cout << "  --conform              conform output volumes 1mm uchar vox (256^3)" << endl; // not implemented
-//  cout << "  --keeptype             keep input image type in algorithm (default float)" << endl; // implemented, but expert only
+  cout << "  --keeptype             keep input image type in algorithm (default float)" << endl; 
   cout << "  --debug                create debug hw-images (default: no debug files)" << endl;
   cout << "  --verbose              0 quiet, 1 normal (default), 2 detail" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
@@ -850,7 +850,7 @@ static void initRegistration(Registration & R, Parameters & P)
 	R.setHighit(P.highit);
 	R.setInitTransform(P.inittrans);
   R.setInitOrient(P.initorient);
-	R.setFloatSVD(!P.doublesvd);
+	R.setDoublePrec(P.doubleprec);
 	R.setWLimit(P.wlimit);
   //R.setOutputWeights(P.weights,P.weightsout);
 
@@ -1173,11 +1173,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Will estimate SAT!" << endl;
   }
-  else if (!strcmp(option, "DOUBLESVD") )
+  else if (!strcmp(option, "DOUBLEPREC") )
   {
-    P.doublesvd = true;
+    P.doubleprec = true;
     nargs = 0 ;
-    cout << "Will perform SVD with double precision (higher mem usage)!" << endl;
+    cout << "Will perform algorithm with double precision (higher mem usage)!" << endl;
   }
   else if (!strcmp(option, "DEBUG") )
   {

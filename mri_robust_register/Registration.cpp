@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/02 14:17:27 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/07/17 02:35:07 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -26,6 +26,7 @@
  */
 
 #include "Registration.h"
+#include "RegistrationStep.h"
 #include "Quaternion.h"
 #include "MyMatrix.h"
 #include "MyMRI.h"
@@ -60,17 +61,10 @@ Registration::~Registration()
   //std::cout << " Destroy Registration" << std::endl;
   if (mri_source) MRIfree(&mri_source);
   if (mri_target) MRIfree(&mri_target);
-//  if (Minit) MatrixFree(&Minit);
-//  if (Mfinal) MatrixFree(&Mfinal);
-//  if (lastp) MatrixFree(&lastp);
   if (mri_indexing) MRIfree(&mri_indexing);
   if (mri_weights) MRIfree(&mri_weights);
   if (gpS.size() > 0) freeGaussianPyramid(gpS);
   if (gpT.size() > 0) freeGaussianPyramid(gpT);
-//  if (mov2weights) MatrixFree(&mov2weights);
-//  if (dst2weights) MatrixFree(&dst2weights);
-//	if (Rsrc) MatrixFree(&Rsrc);
-//	if (Rtrg) MatrixFree(&Rtrg);
   //std::cout << " Done " << std::endl;
 }
 
@@ -95,247 +89,247 @@ void Registration::clear() // initialize registration (keep source and target an
 
 	Minit.clear();
 	Mfinal.clear();
-	lastp.clear();
+	//lastp.clear();
   mov2weights.clear();
 	dst2weights.clear();
 }
 
-pair < vnl_vector <double >, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* mriT)
-// computes Registration single step
-// the mri's have to be in same space
-// returns parameter vector and float MRI with the weights (if robust, else weights ==NULL)
-//
-// if rigid (only trans and rot) else use affine transform
-// if robust  use M-estimator instead of ordinary least squares
-// if iscale add parameter for intensity scaling
-// rtype only for rigid (2: affine restriction to rigid, 1: use rigid from robust-paper)
-{
 
-//  MATRIX *A = constructA_rt(mriS, NULL);
-//  MATRIX *b = constructb(mriS, mriT, NULL);
-
-
-  //cout << " compute Registration!"<< endl;
-  //cout << "   - construct AB: " << endl;
-  //pair < MATRIX*, VECTOR*> Ab (NULL,NULL);
-	vnl_matrix <double> A;
-	vnl_vector <double> b;
-//  // cannot compute restriction without last p
-//  if (rtype == 2 && lastp == NULL) rtype = 1;
-//  cout << " rtype: " << rtype << endl;
-  if (rigid && rtype==2)
-  {
-    if (verbose > 1) cout << "rigid and rtype 2 !" << endl;
-		assert(rtype !=2);
-		
-//     // compute non rigid A
-//     rigid = false;
-//     Ab = constructAb(mriS,mriT);
-//     rigid = true;
-//     // now restrict A  (= A R(lastp) )
-//     MATRIX* R;
-//     if (lastp) R = constructR(lastp);
-//     else
-//     {
-//       int l = 6;
-//       if (!rigid) l = 12;
-//       if (iscale) l++;
-//       MATRIX* tm = MatrixAlloc(l,1,MATRIX_REAL);
-//       MatrixClear(tm);
-//       R = constructR(tm);
-//       MatrixFree(&tm);
-//       //MatrixPrintFmt(stdout,"% 2.8f",R);exit(1);
+//pair < vnl_vector <double >, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* mriT)
+// // computes Registration single step
+// // the mri's have to be in same space
+// // returns parameter vector and float MRI with the weights (if robust, else weights ==NULL)
+// //
+// // if rigid (only trans and rot) else use affine transform
+// // if robust  use M-estimator instead of ordinary least squares
+// // if iscale add parameter for intensity scaling
+// // rtype only for rigid (2: affine restriction to rigid, 1: use rigid from robust-paper)
+// {
 // 
-//     }
-//     MATRIX* Rt = MatrixTranspose(R,NULL);
-//     MATRIX* nA = MatrixMultiply(Ab.first,Rt,NULL);
-//     //MatrixPrintFmt(stdout,"% 2.8f",nA);exit(1);
-//     MatrixFree(&Ab.first);
-//     Ab.first = nA;
-//     MatrixFree(&R);
-//     MatrixFree(&Rt);
-  }
-  else
-  {
-    //cout << "Rtype  " << rtype << endl;
-
-    constructAb(mriS,mriT,A,b);
-  }
-
-  if (verbose > 1) cout << "   - checking A and b for nan ..." << flush;
-	if (A.has_nans())
-	{
-	   cerr << " A constains NAN values!!" << endl;
-		 exit(1);
-	}
-	for (unsigned int rr = 0; rr<b.size(); rr++)
-	   assert(!isnan (b[rr]));
-		 
-//   for (int rr = 1; rr<= Ab.first->rows; rr++)
+// //  MATRIX *A = constructA_rt(mriS, NULL);
+// //  MATRIX *b = constructb(mriS, mriT, NULL);
+// 
+// 
+//   //cout << " compute Registration!"<< endl;
+//   //cout << "   - construct AB: " << endl;
+//   //pair < MATRIX*, VECTOR*> Ab (NULL,NULL);
+// 	vnl_matrix <double> A;
+// 	vnl_vector <double> b;
+// //  // cannot compute restriction without last p
+// //  if (rtype == 2 && lastp == NULL) rtype = 1;
+// //  cout << " rtype: " << rtype << endl;
+//   if (rigid && rtype==2)
 //   {
-//     for (int cc = 1; cc <= Ab.first->cols; cc++)
-//     {
-//       assert (!isnan(*MATRIX_RELT(Ab.first, rr, cc)));
-//     }
-//     assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
+//     if (verbose > 1) cout << "rigid and rtype 2 !" << endl;
+// 		assert(rtype !=2);
+// 		
+// //     // compute non rigid A
+// //     rigid = false;
+// //     Ab = constructAb(mriS,mriT);
+// //     rigid = true;
+// //     // now restrict A  (= A R(lastp) )
+// //     MATRIX* R;
+// //     if (lastp) R = constructR(lastp);
+// //     else
+// //     {
+// //       int l = 6;
+// //       if (!rigid) l = 12;
+// //       if (iscale) l++;
+// //       MATRIX* tm = MatrixAlloc(l,1,MATRIX_REAL);
+// //       MatrixClear(tm);
+// //       R = constructR(tm);
+// //       MatrixFree(&tm);
+// //       //MatrixPrintFmt(stdout,"% 2.8f",R);exit(1);
+// // 
+// //     }
+// //     MATRIX* Rt = MatrixTranspose(R,NULL);
+// //     MATRIX* nA = MatrixMultiply(Ab.first,Rt,NULL);
+// //     //MatrixPrintFmt(stdout,"% 2.8f",nA);exit(1);
+// //     MatrixFree(&Ab.first);
+// //     Ab.first = nA;
+// //     MatrixFree(&R);
+// //     MatrixFree(&Rt);
 //   }
-  if (verbose > 1) cout << "  DONE" << endl;
-	
-  // DEBUG:
-  //MatrixWriteTxt("A.txt",Ab.first);
-  //MatrixWriteTxt("b.txt",Ab.second);
-
-  pair < vnl_vector <double>, MRI* > pw; pw.second = NULL;
-  Regression R(A,b);
-	R.setVerbose(verbose);
-	R.setFloatSvd(floatsvd);
-  if (robust)
-  {
-		vnl_vector <double> p;
-		vnl_vector <double> w;
-    if (verbose > 1) cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
-    if (sat < 0) p = R.getRobustEstW(w);
-    else p = R.getRobustEstW(w,sat);
-
-//    MatrixFree(&Ab.first); // free here, to reduce max memory load
-//    MatrixFree(&Ab.second);
-		A.clear();
-		b.clear();
-		
-    if (verbose > 1) cout << "  DONE" << endl;
-    pw.first  = p;
-    pw.second = NULL;
-
-//    cout << " pw-final  : "<< endl;
-//    cout.precision(16);
-//		for (unsigned int iii=0;iii<p.size(); iii++)
-//		  cout << p[iii] << endl;;
-//    cout.precision(8);
-
-    // transform weights vector back to 3d (mri real)
-    pw.second = MRIalloc(mriS->width, mriS->height, mriS->depth, MRI_FLOAT);
-    MRIcopyHeader(mriS, pw.second) ;
-    pw.second->type = MRI_FLOAT;
-    MRIsetResolution(pw.second, mriS->xsize, mriS->ysize, mriS->zsize);
-    int x,y,z;
-    unsigned int count = 0;
-		long int val;
-		wcheck = 0.0;
-		wchecksqrt = 0.0;
-		// sigma = max(widht,height,depth) / 6;
-		double sigma   = mriS->width;
-		if (mriS->height > sigma) sigma = mriS->height;
-		if (mriS->depth  > sigma) sigma = mriS->depth;
-		sigma = sigma / 6.0;
-		double sigma22 = 2.0 * sigma * sigma;
-		double factor = 1.0 / sqrt(M_PI * sigma22);
-		double dsum = 0.0;
-		//MRI * gmri = MRIalloc(mriS->width,mriS->height,mriS->depth, MRI_FLOAT);
-    for (z = 0 ; z < mriS->depth  ; z++)
-      for (x = 0 ; x < mriS->width  ; x++)
-        for (y = 0 ; y < mriS->height ; y++)
-        {
-          val = MRILvox(mri_indexing,x,y,z);
+//   else
+//   {
+//     //cout << "Rtype  " << rtype << endl;
+// 
+//     constructAb(mriS,mriT,A,b);
+//   }
+// 
+//   if (verbose > 1) cout << "   - checking A and b for nan ..." << flush;
+// 	//if (A.has_nans())
+// 	if (!A.is_finite() || !b.is_finite() )
+// 	{
+// 	   cerr << " A or b constain NAN or infinity values!!" << endl;
+// 		 exit(1);
+// 	}
+// 		 
+// //   for (int rr = 1; rr<= Ab.first->rows; rr++)
+// //   {
+// //     for (int cc = 1; cc <= Ab.first->cols; cc++)
+// //     {
+// //       assert (!isnan(*MATRIX_RELT(Ab.first, rr, cc)));
+// //     }
+// //     assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
+// //   }
+//   if (verbose > 1) cout << "  DONE" << endl;
+// 	
+//   // DEBUG:
+//   //MatrixWriteTxt("A.txt",Ab.first);
+//   //MatrixWriteTxt("b.txt",Ab.second);
+// 
+//   pair < vnl_vector <double>, MRI* > pw; pw.second = NULL;
+//   Regression< double > R(A,b);
+// 	R.setVerbose(verbose);
+// 	R.setFloatSvd(floatsvd);
+//   if (robust)
+//   {
+// 		vnl_vector <double> p;
+// 		vnl_vector <double> w;
+//     if (verbose > 1) cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
+//     if (sat < 0) p = R.getRobustEstW(w);
+//     else p = R.getRobustEstW(w,sat);
+// 
+// //    MatrixFree(&Ab.first); // free here, to reduce max memory load
+// //    MatrixFree(&Ab.second);
+// 		A.clear();
+// 		b.clear();
+// 		
+//     if (verbose > 1) cout << "  DONE" << endl;
+//     pw.first  = p;
+//     pw.second = NULL;
+// 
+// //    cout << " pw-final  : "<< endl;
+// //    cout.precision(16);
+// //		for (unsigned int iii=0;iii<p.size(); iii++)
+// //		  cout << p[iii] << endl;;
+// //    cout.precision(8);
+// 
+//     // transform weights vector back to 3d (mri real)
+//     pw.second = MRIalloc(mriS->width, mriS->height, mriS->depth, MRI_FLOAT);
+//     MRIcopyHeader(mriS, pw.second) ;
+//     pw.second->type = MRI_FLOAT;
+//     MRIsetResolution(pw.second, mriS->xsize, mriS->ysize, mriS->zsize);
+//     int x,y,z;
+//     unsigned int count = 0;
+// 		long int val;
+// 		wcheck = 0.0;
+// 		wchecksqrt = 0.0;
+// 		// sigma = max(widht,height,depth) / 6;
+// 		double sigma   = mriS->width;
+// 		if (mriS->height > sigma) sigma = mriS->height;
+// 		if (mriS->depth  > sigma) sigma = mriS->depth;
+// 		sigma = sigma / 6.0;
+// 		double sigma22 = 2.0 * sigma * sigma;
+// 		double factor = 1.0 / sqrt(M_PI * sigma22);
+// 		double dsum = 0.0;
+// 		//MRI * gmri = MRIalloc(mriS->width,mriS->height,mriS->depth, MRI_FLOAT);
+//     for (z = 0 ; z < mriS->depth  ; z++)
+//       for (x = 0 ; x < mriS->width  ; x++)
+//         for (y = 0 ; y < mriS->height ; y++)
+//         {
+//           val = MRILvox(mri_indexing,x,y,z);
+// // 						double xx = x-0.5*mriS->width;
+// // 						double yy = y-0.5*mriS->height;
+// // 						double zz = z-0.5*mriS->depth;
+// // 						double distance2 = xx*xx+yy*yy+zz*zz;
+// // 						double gauss    = factor * exp(- distance2 / sigma22 );
+// // 						MRIFvox(gmri,x,y,z) = gauss;
+//           if (val == -10) MRIFvox(pw.second, x, y, z) = -0.5; // init value (border)
+//           else if (val == -1) MRIFvox(pw.second, x, y, z) = -1; // zero element (skipped)
+//           else
+//           {
+//             //cout << val << "  xyz: " << x << " " << y << " " << z << " " << flush;
+//             assert(val < (int)w.size());
+//             //MRIFvox(pw.second, x, y, z) = *MATRIX_RELT(pwm.second,val , 1);
+//             MRIFvox(pw.second, x, y, z) = w[val] * w[val];  // pwm.second is the square root of weights
+//             //cout << "d"<<*MATRIX_RELT(pwm.second,val , 1)<< " " << MRIFvox(pw.second, x, y, z)<< endl;
+// 						// compute distance to center:
 // 						double xx = x-0.5*mriS->width;
 // 						double yy = y-0.5*mriS->height;
 // 						double zz = z-0.5*mriS->depth;
 // 						double distance2 = xx*xx+yy*yy+zz*zz;
 // 						double gauss    = factor * exp(- distance2 / sigma22 );
-// 						MRIFvox(gmri,x,y,z) = gauss;
-          if (val == -10) MRIFvox(pw.second, x, y, z) = -0.5; // init value (border)
-          else if (val == -1) MRIFvox(pw.second, x, y, z) = -1; // zero element (skipped)
-          else
-          {
-            //cout << val << "  xyz: " << x << " " << y << " " << z << " " << flush;
-            assert(val < (int)w.size());
-            //MRIFvox(pw.second, x, y, z) = *MATRIX_RELT(pwm.second,val , 1);
-            MRIFvox(pw.second, x, y, z) = w[val] * w[val];  // pwm.second is the square root of weights
-            //cout << "d"<<*MATRIX_RELT(pwm.second,val , 1)<< " " << MRIFvox(pw.second, x, y, z)<< endl;
-						// compute distance to center:
-						double xx = x-0.5*mriS->width;
-						double yy = y-0.5*mriS->height;
-						double zz = z-0.5*mriS->depth;
-						double distance2 = xx*xx+yy*yy+zz*zz;
-						double gauss    = factor * exp(- distance2 / sigma22 );
-						dsum   += gauss;
-						wcheck += gauss * (1.0 - w[val] * w[val]); 
-						wchecksqrt += gauss * (1.0 - w[val]);  //!!!!! historical, better not use the square root (use wcheck)
-            count++;
-          }
-        }
-    //cout << endl;
-//		MRIwrite(gmri,"mri_gauss.mgz");
-//		MRIwrite(mri_indexing, "mri_indexing.mgz");
-//		MRIwrite(pw.second, "mri_weights.mgz");
-//		MRIfree(&gmri);
-    //cout << " count-1: " << count-1 << " rows: " << pwm.second->rows << endl;
-    assert(count == w.size());
-		
-		wcheck = wcheck / dsum;
-		wchecksqrt = wchecksqrt / dsum;
-		if (verbose > 1)
-   		cout << "   - Weight Check: " << wcheck << "  wsqrt: " << wchecksqrt<< endl;
-//		if (wcheck > 0.5) 
-//		{
-//		   cerr << " Too many voxels in the center are removed! Try to set a larger SAT value! " << endl;
-//		   exit(1);
-//		}
+// 						dsum   += gauss;
+// 						wcheck += gauss * (1.0 - w[val] * w[val]); 
+// 						wchecksqrt += gauss * (1.0 - w[val]);  //!!!!! historical, better not use the square root (use wcheck)
+//             count++;
+//           }
+//         }
+//     //cout << endl;
+// //		MRIwrite(gmri,"mri_gauss.mgz");
+// //		MRIwrite(mri_indexing, "mri_indexing.mgz");
+// //		MRIwrite(pw.second, "mri_weights.mgz");
+// //		MRIfree(&gmri);
+//     //cout << " count-1: " << count-1 << " rows: " << pwm.second->rows << endl;
+//     assert(count == w.size());
+// 		
+// 		wcheck = wcheck / dsum;
+// 		wchecksqrt = wchecksqrt / dsum;
+// 		if (verbose > 1)
+//    		cout << "   - Weight Check: " << wcheck << "  wsqrt: " << wchecksqrt<< endl;
+// //		if (wcheck > 0.5) 
+// //		{
+// //		   cerr << " Too many voxels in the center are removed! Try to set a larger SAT value! " << endl;
+// //		   exit(1);
+// //		}
+// 
+//     //if (pwm.second != NULL) MatrixFree(&pwm.second);
+//   }
+//   else
+//   {
+//     if (verbose > 1) cout << "   - compute least squares estimate ..." << flush;
+//     pw.first = R.getLSEst();
+// //    MatrixFree(&Ab.first);
+// //    MatrixFree(&Ab.second);
+// 		A.clear();
+// 		b.clear();
+//     if (verbose > 1) cout << "  DONE" << endl;
+//     pw.second = NULL; // no weights in this case
+//   }
+// 
+// //  zeroweights = R.getLastZeroWeightPercent();
+//   zeroweights = R.getLastWeightPercent(); // does not need pointers A and B to be valid
+// 
+// //  R.plotPartialSat(name);
+// 
+// 
+// //    cout << " pw-final  : "<< endl;
+// //    MatrixPrintFmt(stdout,"% 2.8f",pw.first);
+// 
+//   return pw;
+// }
 
-    //if (pwm.second != NULL) MatrixFree(&pwm.second);
-  }
-  else
-  {
-    if (verbose > 1) cout << "   - compute least squares estimate ..." << flush;
-    pw.first = R.getLSEst();
-//    MatrixFree(&Ab.first);
-//    MatrixFree(&Ab.second);
-		A.clear();
-		b.clear();
-    if (verbose > 1) cout << "  DONE" << endl;
-    pw.second = NULL; // no weights in this case
-  }
-
-//  zeroweights = R.getLastZeroWeightPercent();
-  zeroweights = R.getLastWeightPercent(); // does not need pointers A and B to be valid
-
-//  R.plotPartialSat(name);
-
-
-//    cout << " pw-final  : "<< endl;
-//    MatrixPrintFmt(stdout,"% 2.8f",pw.first);
-
-  return pw;
-}
-
-vnl_vector <double > Registration::computeRegistrationStepP(MRI * mriS, MRI* mriT)
-// computes Registration single step
-// retruns parameter Vector only
-{
-  pair < vnl_vector <double >, MRI*> pw = computeRegistrationStepW(mriS,mriT);
-  if (pw.second)
-  {
-    //cout << "mrisweight widht " << pw.second->width << endl;
-    if (debug > 0)
-    {
-      string n = name+string("-mriS-weights.mgz");
-      MRIwrite(pw.second,n.c_str());
-    }
-    MRIfree(&pw.second);
-  }
-  return pw.first;
-}
-
-
-pair <vnl_matrix_fixed <double,4,4 >,double> Registration::computeRegistrationStep(MRI * mriS, MRI* mriT)
-// computes Registration single step
-// retruns 4x4 matrix and iscale value
-{
-//cout << "  Registration::computeRegistrationStep " << endl;
-  vnl_vector <double > p = computeRegistrationStepP(mriS,mriT);
-//   cout << " prows: " << p->rows << endl;
-  pair <vnl_matrix_fixed <double,4,4 >, double> pd = convertP2Md(p);
-  return pd;
-}
+// vnl_vector <double > Registration::computeRegistrationStepP(MRI * mriS, MRI* mriT)
+// // computes Registration single step
+// // retruns parameter Vector only
+// {
+//   pair < vnl_vector <double >, MRI*> pw = computeRegistrationStepW(mriS,mriT);
+//   if (pw.second)
+//   {
+//     //cout << "mrisweight widht " << pw.second->width << endl;
+//     if (debug > 0)
+//     {
+//       string n = name+string("-mriS-weights.mgz");
+//       MRIwrite(pw.second,n.c_str());
+//     }
+//     MRIfree(&pw.second);
+//   }
+//   return pw.first;
+// }
+// 
+// 
+// pair <vnl_matrix_fixed <double,4,4 >,double> Registration::computeRegistrationStep(MRI * mriS, MRI* mriT)
+// // computes Registration single step
+// // retruns 4x4 matrix and iscale value
+// {
+// //cout << "  Registration::computeRegistrationStep " << endl;
+//   vnl_vector <double > p = computeRegistrationStepP(mriS,mriT);
+// //   cout << " prows: " << p->rows << endl;
+//   pair <vnl_matrix_fixed <double,4,4 >, double> pd = convertP2Md(p);
+//   return pd;
+// }
 
 
 // pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
@@ -466,102 +460,63 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
   if (verbose > 1)
   {
     cout << "   - initial transform:\n" ;
-    //MatrixPrintFmt(stdout,"% 2.12f",fmd.first);
 		cout << fmd.first << endl;
   }
 
   //cout << "mris widht " << mriS->width << endl;
   MRI* mri_Swarp   = NULL;
   MRI* mri_Twarp   = NULL;
-  pair < vnl_vector<double>, MRI*> pw(vnl_vector<double>(),NULL);
-  vnl_matrix_fixed <double , 4, 4> mh2;
+  vnl_matrix_fixed<double , 4, 4> mh2;
   vnl_matrix_fixed<double , 4, 4> mh;
   vnl_matrix_fixed<double , 4, 4> mhi;
   vnl_matrix_fixed<double , 4, 4> mi;
-
-  //if (lastp) MatrixFree(&lastp);
-  //lastp = NULL;
-	lastp.clear();
 	
   double diff = 100;
   int i = 1;
-  //MATRIX* mras = NULL;
+	
+	if (doubleprec)
+	{
+	RegistrationStep<double> RStep(*this);
+	RStep.setFloatSVD(true); // even with double, use float for SVD to save some memory
   while (diff > epsit && i<=nmax)
   {
-    if (verbose >0) cout << " Iteration: " << i << flush;
+    if (verbose >0) cout << " Iteration(double-prec): " << i << flush;
 		if (verbose == 1 && subsamplesize > 0)
-		  if (mriS->width > subsamplesize || mriS->height > subsamplesize || mriS->depth > subsamplesize)
-			  cout << " (subsample " << subsamplesize << ") " << flush;
+    if (mriS->width > subsamplesize || mriS->height > subsamplesize || mriS->depth > subsamplesize)
+      cout << " (subsample " << subsamplesize << ") " << flush;
 		if (verbose >1) cout << endl;
 
-    // warp source to target
-//       cout << "   - warping source" << endl;
-//       mri_Swarp = MRIlinearTransform(mriS, mri_Swarp, fmd.first);
-//       mri_Twarp = MRIcopy(mriT,mri_Twarp);
-
-    // here maybe better to symmetrically warp both images SQRT(M)
+    // here symmetrically warp both images SQRT(M)
     // this keeps the problem symmetric
     if (verbose >1) cout << "   - warping source and target (sqrt)" << endl;
-
-    // Old: half way voxelxform
+    // half way voxelxform
     mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry probably destroyed here!!
-   //cout << " got sqrt" << endl;
     // do not just assume m = mh*mh, rather m = mh2 * mh
     // for transforming target we need mh2^-1 = mh * m^-1
     mi  = vnl_inverse(fmd.first);
-   //cout << " got inverse" << endl;
-    //MATRIX * mhi = MatrixMultiply(mi,mh,NULL); //old
     mhi = mh*mi;
-
-//     // get half way rasxform: (not working : low resolution?)
-//     mras = MRIvoxelXformToRasXform (mriS,mriT,fmd.first,mras);
-//     mh   = MatrixSqrt(mras);
-//     // do not just assume m = mh*mh, rather m = mh2 * mh
-//     // for transforming target we need mh2^-1 = mh * m^-1
-//     MATRIX * mi  = MatrixInverse(mras,NULL);
-//     //MATRIX * mhi = MatrixMultiply(mi,mh,NULL); //old
-//     mhi = MatrixMultiply(mh,mi,mhi);
-//     // make vox2vox
-//     mh  = MRIrasXformToVoxelXform (mriS,mriS,mh,mh);
-//     mhi = MRIrasXformToVoxelXform (mriT,mriT,mhi,mhi);
-
     if (mri_Swarp) MRIfree(&mri_Swarp);
     mri_Swarp = MRIclone(mriS,NULL);
     mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
-	
     if (mri_Twarp) MRIfree(&mri_Twarp);
-    mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry destroyed here!!
+    mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
     mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
 
     // adjust intensity 	
     if (iscale)
     {
       if (verbose >1) cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
-      //MRIvalscale(mri_Swarp,mri_Swarp,fmd.second);
-				// ISCALECHANGE:
-////      MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,(1.0+fmd.second)*0.5);
-////     MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/fmd.second)*0.5);
-      MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,sqrt(iscalefinal));
-      MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/sqrt(iscalefinal));
-//      MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,iscalefinal);
-
-//      double si = sqrt(fmd.second);
-//      MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,si);
-//      MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/si);
+			// ISCALECHANGE:
+      double si = sqrt(iscalefinal);
+      MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,si);
+      MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/si);
     }
 
-    // ============================
+    // ========================================================
     // compute Registration
     if (verbose >1) cout << "   - compute new registration" << endl;
-    if (pw.second) MRIfree(&pw.second);
-    pw = computeRegistrationStepW(mri_Swarp,mri_Twarp);
-
-    //if (cmd.first != NULL) MatrixFree(&cmd.first);
-    cmd = convertP2Md(pw.first);
-
-    //lastp = MyMatrix::convertVNL2MATRIX(pw.first,lastp);
-    lastp = pw.first;
-
+    cmd = RStep.computeRegistrationStep(mri_Swarp,mri_Twarp);
+    // ========================================================
 
     // store M and d
     if (verbose >1) cout << "   - store transform" << endl;
@@ -574,15 +529,10 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
     // new M = mh2 * cm * mh
     fmd.first = (mh2 * cmd.first) * mh;
 
-         // ISCALECHANGE:
-//  		fmd.second *= cmd.second;
-//		iscalefinal = fmd.second;
-//cout << " fmd.second: " << fmd.second << "  cmd.second : " << cmd.second << endl;
+    // ISCALECHANGE:
 		fmd.second -= cmd.second;
 	  iscalefinal = fmd.second;
 		
-    //cout << endl << " Matrix: " << endl;
-    //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
     if (!rigid) diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
     else        diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first, fmdtmp));
     if (verbose >1) cout << "     -- old diff. to prev. transform: " << diff << endl;
@@ -592,12 +542,98 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
 		else if (i == nmax) star<< " max it: " << nmax << " reached!";
     if (verbose >0) cout << "     -- diff. to prev. transform: " << diff << star.str() << endl;
     //cout << " intens: " << fmd.second << endl;
-
 		i++;
-
   } // end while loop
-  //if (mras) MatrixFree(&mras);
+ 
+  if (mri_hweights) MRIfree(&mri_hweights);
+  if (robust)
+  {
+		assert(RStep.getWeights());
+	  mri_hweights = MRIcopy(RStep.getWeights(),NULL);
+	}
+	
+	} // end double, now giving up RStep
+	else // identical (except float) below:
+	{
+	
+	RegistrationStep<float> RStep(*this);
+  while (diff > epsit && i<=nmax)
+  {
+    if (verbose >0) cout << " Iteration(single-prec): " << i << flush;
+		if (verbose == 1 && subsamplesize > 0)
+    if (mriS->width > subsamplesize || mriS->height > subsamplesize || mriS->depth > subsamplesize)
+      cout << " (subsample " << subsamplesize << ") " << flush;
+		if (verbose >1) cout << endl;
+
+    // here symmetrically warp both images SQRT(M)
+    // this keeps the problem symmetric
+    if (verbose >1) cout << "   - warping source and target (sqrt)" << endl;
+    // half way voxelxform
+    mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry probably destroyed here!!
+    // do not just assume m = mh*mh, rather m = mh2 * mh
+    // for transforming target we need mh2^-1 = mh * m^-1
+    mi  = vnl_inverse(fmd.first);
+    mhi = mh*mi;
+    if (mri_Swarp) MRIfree(&mri_Swarp);
+    mri_Swarp = MRIclone(mriS,NULL);
+    mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
+    if (mri_Twarp) MRIfree(&mri_Twarp);
+    mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
+    mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
+
+    // adjust intensity 	
+    if (iscale)
+    {
+      if (verbose >1) cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
+			// ISCALECHANGE:
+      double si = sqrt(iscalefinal);
+      MyMRI::MRIvalscale(mri_Swarp,mri_Swarp,si);
+      MyMRI::MRIvalscale(mri_Twarp,mri_Twarp,1.0/si);
+    }
+
+    // ========================================================
+    // compute Registration
+    if (verbose >1) cout << "   - compute new registration" << endl;
+    cmd = RStep.computeRegistrationStep(mri_Swarp,mri_Twarp);
+    // ========================================================
+
+    // store M and d
+    if (verbose >1) cout << "   - store transform" << endl;
+    //cout << endl << " current : Matrix: " << endl;
+    //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
+    //cout << " intens: " << cmd.second << endl;
+		vnl_matrix_fixed < double, 4, 4 > fmdtmp(fmd.first);
+    //fmd.first = MatrixMultiply(cmd.first,fmd.first,fmd.first); //old
+    mh2 = vnl_inverse(mhi); // M = mh2 * mh
+    // new M = mh2 * cm * mh
+    fmd.first = (mh2 * cmd.first) * mh;
+
+    // ISCALECHANGE:
+		fmd.second -= cmd.second;
+	  iscalefinal = fmd.second;
+		
+    if (!rigid) diff = MyMatrix::getFrobeniusDiff(fmd.first, fmdtmp);
+    else        diff = sqrt(MyMatrix::RigidTransDistSq(fmd.first, fmdtmp));
+    if (verbose >1) cout << "     -- old diff. to prev. transform: " << diff << endl;
+    diff = sqrt(MyMatrix::AffineTransDistSq(fmd.first, fmdtmp, 100));
+		ostringstream star;
+		if (diff < epsit) star << "  < " << epsit << "  :-)" ;
+		else if (i == nmax) star<< " max it: " << nmax << " reached!";
+    if (verbose >0) cout << "     -- diff. to prev. transform: " << diff << star.str() << endl;
+    //cout << " intens: " << fmd.second << endl;
+		i++;
+  } // end while loop
   
+  if (mri_hweights) MRIfree(&mri_hweights);
+  if (robust)
+  {
+		assert(RStep.getWeights());
+	  mri_hweights = MRIcopy(RStep.getWeights(),NULL);
+	}
+	
+	
+	} // end float loop
+	
   //   DEBUG OUTPUT
   if (debug > 0)
   {
@@ -609,38 +645,32 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
     salign = MyMRI::MRIlinearTransform(mri_Swarp, salign,cmd.first);
     MRIwrite(salign,(name+"-mriS-align.mgz").c_str());
     MRIfree(&salign);
-    if (pw.second)
-    {
-      // in the half-way space:
-      string n = name+string("-mriS-weights.mgz");
-      MRIwrite(pw.second,n.c_str());
-    }
   } // end if debug
 
   // store weights (mapped to target space):
-  if (pw.second)
+  if (mri_weights) MRIfree(&mri_weights);
+  if (mri_hweights)
   {
+    if (debug > 0)
+    {
+      // in the half-way space:
+      string n = name+string("-mriS-weights.mgz");
+      MRIwrite(mri_hweights,n.c_str());
+    }
     // remove negative weights (markers) set to 1
     int x,y,z;
-    for (z = 0 ; z < pw.second->depth  ; z++)
-      for (x = 0 ; x < pw.second->width  ; x++)
-        for (y = 0 ; y < pw.second->height ; y++)
+    for (z = 0 ; z < mri_hweights->depth  ; z++)
+      for (x = 0 ; x < mri_hweights->width  ; x++)
+        for (y = 0 ; y < mri_hweights->height ; y++)
         {
-          if (MRIFvox(pw.second,x,y,z) < 0) MRIFvox(pw.second,x,y,z) = 1;
+          if (MRIFvox(mri_hweights,x,y,z) < 0) MRIFvox(mri_hweights,x,y,z) = 1;
         }
-    MRI * mtmp = MRIalloc(mriT->width,mriT->height,mriT->depth,MRI_FLOAT);
-    MRIcopyHeader(mriT,mtmp);
-    mtmp->type = MRI_FLOAT;
-    mtmp = MyMRI::MRIlinearTransform(pw.second,mtmp,mh2);
-
-    //MRIwrite(mtmp,weightsname.c_str());
-    MRIfree(&pw.second);
-    pw.second = mtmp;
+		mri_weights = MRIalloc(mriT->width,mriT->height,mriT->depth,MRI_FLOAT);
+    MRIcopyHeader(mriT,mri_weights);
+    mri_weights->type = MRI_FLOAT;
+    mri_weights = MyMRI::MRIlinearTransform(mri_hweights,mri_weights,mh2);
+	
   }
-  if (mri_weights) MRIfree(&mri_weights);
-  mri_weights = pw.second;
-  //if (mov2weights) MatrixFree(&mov2weights);
-  //if (dst2weights) MatrixFree(&dst2weights);// no freeing needed
   mov2weights = mh; 
   dst2weights = mhi;
 
@@ -1252,7 +1282,7 @@ double  Registration::computeSatEstimate (int reslevel, int n,double epsit, MRI 
 // 	vnl_vector<double> b;
 //   constructAb(mri_Swarp,mri_Twarp,A,b);
 //   pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
-//   Regression R(A,b);
+//   Regression<double> R(A,b);
 // 	R.setVerbose(verbose);
 // 	R.setFloatSvd(floatsvd);
 // 
@@ -1754,6 +1784,7 @@ void Registration::testRobust(const std::string& fname, int testno)
     vector < double > mls(steps);
     vector < double > mls2(steps);
     //level--;
+		RegistrationStep<float> RStep(*this);
     for (int i=0; i<steps; i++)
     {
       // 0.. PI/div in 20 steps
@@ -1778,13 +1809,13 @@ void Registration::testRobust(const std::string& fname, int testno)
       rigid     = true;
       iscale    = false;
 
-      vnl_matrix<double> A;
-			vnl_vector<double> b;
-      constructAb(mriTs, mriTt,A,b);
+      vnl_matrix< float > A;
+			vnl_vector< float > b;
+      RStep.constructAb(mriTs, mriTt,A,b);
       pair < MATRIX*, MATRIX* > pwm(NULL,NULL);
-      Regression R(A,b);
+      Regression< float > R(A,b);
 			R.setVerbose(verbose);
-			R.setFloatSvd(floatsvd);
+
       sat = 5;
 
       cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
@@ -2224,9 +2255,9 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 
 	assert(counti == count);
 
-  Regression R(Ab.first,Ab.second);
+  Regression<double> R(Ab.first,Ab.second);
 	R.setVerbose(verbose);
-	R.setFloatSvd(floatsvd);
+	R.setFloatSvd(true); // even for double, the svd can be float, better switch to float all toghether
 	
 	vnl_vector<double> p( R.getRobustEst());
 
@@ -2239,381 +2270,388 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 
 //static int counter = 0;
 
-void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl_vector<double>&b)
-// similar to robust paper
-// (with symmetry and iscale)
-{
-
-  if (verbose > 1) cout << "   - constructAb: " << endl;
-
-  assert(mriT != NULL);
-  assert(mriS != NULL);
-  assert(mriS->width == mriT->width);
-  assert(mriS->height== mriT->height);
-  assert(mriS->depth == mriT->depth);
-  assert(mriS->type  == mriT->type);
-  //assert(mriS->width == mask->width);
-  //assert(mriS->height== mask->height);
-  //assert(mriS->depth == mask->depth);
-  //assert(mask->type == MRI_INT);
-  //MRIclear(mask);
-
-  int z,y,x;
-  long int ss = mriS->width * mriS->height * mriS->depth;
-  if (mri_indexing) MRIfree(&mri_indexing);
-  if (ss > std::numeric_limits<int>::max())
-  {
-     if (verbose > 1) cout << "     -- using LONG for indexing ... " << flush;
-     mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
-     if (mri_indexing == NULL) 
-        ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for mri_indexing") ;
-     if (verbose > 1) cout << " done!" << endl;
-  }
-  else 
-  {
-     double mu = ((double)ss) * sizeof(int) / (1024.0 * 1024.0);
-     if (verbose > 1) cout << "     -- allocating " << mu << "Mb mem for indexing ... " << flush;
-     mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_INT);
-     if (mri_indexing == NULL) 
-        ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for mri_indexing") ;
-     if (verbose > 1) cout << " done!" << endl;
-  }
-
-  for (z = 0 ; z < mriS->depth ; z++)
-    for (x = 0 ; x < mriS->width ; x++)
-      for (y = 0 ; y < mriS->height ; y++)
-        MRILvox(mri_indexing, x, y, z) = -10;
-
-
-  bool dosubsample = false;
-  if (subsamplesize > 0)
-    dosubsample = (mriS->width > subsamplesize && mriS->height > subsamplesize && mriS->depth > subsamplesize);
-//   bool dosubsample = true;
-
-//    // remove 0 voxels:
+// void Registration::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < double >& A,vnl_vector<double>&b)
+// // similar to robust paper
+// // (with symmetry and iscale)
+// {
+// 
+//   if (verbose > 1) cout << "   - constructAb: " << endl;
+// 
+//   assert(mriT != NULL);
+//   assert(mriS != NULL);
+//   assert(mriS->width == mriT->width);
+//   assert(mriS->height== mriT->height);
+//   assert(mriS->depth == mriT->depth);
+//   assert(mriS->type  == mriT->type);
+//   //assert(mriS->width == mask->width);
+//   //assert(mriS->height== mask->height);
+//   //assert(mriS->depth == mask->depth);
+//   //assert(mask->type == MRI_INT);
+//   //MRIclear(mask);
+// 
+//   int z,y,x;
+//   long int ss = mriS->width * mriS->height * mriS->depth;
+//   if (mri_indexing) MRIfree(&mri_indexing);
+//   if (ss > std::numeric_limits<int>::max())
+//   {
+//      if (verbose > 1) cout << "     -- using LONG for indexing ... " << flush;
+//      mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_LONG);
+//      if (mri_indexing == NULL) 
+//         ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for mri_indexing") ;
+//      if (verbose > 1) cout << " done!" << endl;
+//   }
+//   else 
+//   {
+//      double mu = ((double)ss) * sizeof(int) / (1024.0 * 1024.0);
+//      if (verbose > 1) cout << "     -- allocating " << mu << "Mb mem for indexing ... " << flush;
+//      mri_indexing = MRIalloc(mriS->width, mriS->height, mriS->depth,MRI_INT);
+//      if (mri_indexing == NULL) 
+//         ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for mri_indexing") ;
+//      if (verbose > 1) cout << " done!" << endl;
+//   }
+// 
 //   for (z = 0 ; z < mriS->depth ; z++)
-//   for (y = 0 ; y < mriS->height ; y++)
-//   for (x = 0 ; x < mriS->width ; x++)
+//     for (x = 0 ; x < mriS->width ; x++)
+//       for (y = 0 ; y < mriS->height ; y++)
+//         MRILvox(mri_indexing, x, y, z) = -10;
+// 
+// 
+//   bool dosubsample = false;
+//   if (subsamplesize > 0)
+//     dosubsample = (mriS->width > subsamplesize && mriS->height > subsamplesize && mriS->depth > subsamplesize);
+// //   bool dosubsample = true;
+// 
+// //    // remove 0 voxels:
+// //   for (z = 0 ; z < mriS->depth ; z++)
+// //   for (y = 0 ; y < mriS->height ; y++)
+// //   for (x = 0 ; x < mriS->width ; x++)
+// //   {
+// //      if (MRIgetVoxVal(mriS,x,y,z,0) <= 0)
+// //            MRIsetVoxVal(mriS,x,y,z,0,std::numeric_limits<float>::quiet_NaN());
+// //      if (MRIgetVoxVal(mriT,x,y,z,0) <= 0)
+// //            MRIsetVoxVal(mriT,x,y,z,0,std::numeric_limits<float>::quiet_NaN());
+// //
+// //   }
+// 
+//   // we will need the derivatives
+//   if (verbose > 1) cout << "     -- compute derivatives ... " << flush;
+// #if 0
+//   MRI *Sfx=NULL,*Sfy=NULL,*Sfz=NULL,*Sbl=NULL;
+//   MRI *Tfx=NULL,*Tfy=NULL,*Tfz=NULL,*Tbl=NULL;
+//   MyMRI::getPartials(mriS,Sfx,Sfy,Sfz,Sbl);
+//   MyMRI::getPartials(mriT,Tfx,Tfy,Tfz,Tbl);
+//   MRI * SmT  = MRIsubtract(Sbl,Tbl,NULL); //S-T = f2-f1 =  delta f from paper
+//   MRI * fx1  = MRIadd(Sfx,Tfx,Tfx); // store at Tfx location, renamed to fx1
+//   MRIfree(&Sfx);
+//   MRIscalarMul(fx1,fx1,0.5);
+//   MRI * fy1  = MRIadd(Sfy,Tfy,Tfy); // store at Tfy location, renamed to fy1
+//   MRIfree(&Sfy);
+//   MRIscalarMul(fy1,fy1,0.5);
+//   MRI * fz1  = MRIadd(Sfz,Tfz,Tfz); // store at Tfz location, renamed to fz1
+//   MRIfree(&Sfz);
+//   MRIscalarMul(fz1,fz1,0.5);
+//   MRI * ft1  = MRIadd(Sbl,Tbl,Tbl); // store at Tbl location, renamed to ft1
+//   MRIfree(&Sbl);
+//   MRIscalarMul(ft1,ft1,0.5);
+// #else
+//   MRI *SpTh = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
+// 	SpTh = MRIadd(mriS,mriT,SpTh);
+// 	SpTh = MRIscalarMul(SpTh,SpTh,0.5);
+// 	MRI *fx1 = NULL, *fy1 = NULL, *fz1 = NULL, *ft1 = NULL;
+// 	MyMRI::getPartials(SpTh,fx1,fy1,fz1,ft1);
+// 	MRI * SmT = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
+// 	SmT = MRIsubtract(mriS,mriT,SmT);
+// 	SmT = MyMRI::getBlur(SmT,SmT);
+// #endif
+//   if (verbose > 1) cout << " done!" << endl;
+//   //MRIwrite(fx1,"fx.mgz");
+//   //MRIwrite(fy1,"fy.mgz");
+//   //MRIwrite(fz1,"fz.mgz");
+//   //MRIwrite(ft1,"ft.mgz");
+// 
+//   // subsample if wanted
+//   MRI * fx,* fy,* fz,* ft;
+//   if (dosubsample)
 //   {
-//      if (MRIgetVoxVal(mriS,x,y,z,0) <= 0)
-//            MRIsetVoxVal(mriS,x,y,z,0,std::numeric_limits<float>::quiet_NaN());
-//      if (MRIgetVoxVal(mriT,x,y,z,0) <= 0)
-//            MRIsetVoxVal(mriT,x,y,z,0,std::numeric_limits<float>::quiet_NaN());
-//
+//     if (verbose > 1) cout << "     -- subsample ... "<< flush;
+// 
+//     fx = MyMRI::subSample(fx1);
+//     MRIfree(&fx1);
+//     fy = MyMRI::subSample(fy1);
+//     MRIfree(&fy1);
+//     fz = MyMRI::subSample(fz1);
+//     MRIfree(&fz1);
+//     ft = MyMRI::subSample(ft1);
+//     MRIfree(&ft1);
+// 		
+// 		MRI * SmTt = SmT;
+// 		SmT = MyMRI::subSample(SmTt);
+//     MRIfree(&SmTt);
+// 		
+//     if (verbose > 1) cout << " done! " << endl;
 //   }
-
-  // we will need the derivatives
-  if (verbose > 1) cout << "     -- compute derivatives ... " << flush;
-#if 0
-  MRI *Sfx=NULL,*Sfy=NULL,*Sfz=NULL,*Sbl=NULL;
-  MRI *Tfx=NULL,*Tfy=NULL,*Tfz=NULL,*Tbl=NULL;
-  MyMRI::getPartials(mriS,Sfx,Sfy,Sfz,Sbl);
-  MyMRI::getPartials(mriT,Tfx,Tfy,Tfz,Tbl);
-  MRI * SmT  = MRIsubtract(Sbl,Tbl,NULL); //S-T = f2-f1 =  delta f from paper
-  MRI * fx1  = MRIadd(Sfx,Tfx,Tfx); // store at Tfx location, renamed to fx1
-  MRIfree(&Sfx);
-  MRIscalarMul(fx1,fx1,0.5);
-  MRI * fy1  = MRIadd(Sfy,Tfy,Tfy); // store at Tfy location, renamed to fy1
-  MRIfree(&Sfy);
-  MRIscalarMul(fy1,fy1,0.5);
-  MRI * fz1  = MRIadd(Sfz,Tfz,Tfz); // store at Tfz location, renamed to fz1
-  MRIfree(&Sfz);
-  MRIscalarMul(fz1,fz1,0.5);
-  MRI * ft1  = MRIadd(Sbl,Tbl,Tbl); // store at Tbl location, renamed to ft1
-  MRIfree(&Sbl);
-  MRIscalarMul(ft1,ft1,0.5);
-#else
-  MRI *SpTh = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
-	SpTh = MRIadd(mriS,mriT,SpTh);
-	SpTh = MRIscalarMul(SpTh,SpTh,0.5);
-	MRI *fx1 = NULL, *fy1 = NULL, *fz1 = NULL, *ft1 = NULL;
-	MyMRI::getPartials(SpTh,fx1,fy1,fz1,ft1);
-	MRI * SmT = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
-	SmT = MRIsubtract(mriS,mriT,SmT);
-	SmT = MyMRI::getBlur(SmT,SmT);
-#endif
-  if (verbose > 1) cout << " done!" << endl;
-  //MRIwrite(fx1,"fx.mgz");
-  //MRIwrite(fy1,"fy.mgz");
-  //MRIwrite(fz1,"fz.mgz");
-  //MRIwrite(ft1,"ft.mgz");
-
-  // subsample if wanted
-  MRI * fx,* fy,* fz,* ft;
-  if (dosubsample)
-  {
-    if (verbose > 1) cout << "     -- subsample ... "<< flush;
-
-    fx = MyMRI::subSample(fx1);
-    MRIfree(&fx1);
-    fy = MyMRI::subSample(fy1);
-    MRIfree(&fy1);
-    fz = MyMRI::subSample(fz1);
-    MRIfree(&fz1);
-    ft = MyMRI::subSample(ft1);
-    MRIfree(&ft1);
-		
-		MRI * SmTt = SmT;
-		SmT = MyMRI::subSample(SmTt);
-    MRIfree(&SmTt);
-		
-    if (verbose > 1) cout << " done! " << endl;
-  }
-  else //just rename
-  {
-    fx = fx1;
-    fy = fy1;
-    fz = fz1;
-    ft = ft1;
-  }
-
-//cout << " size fx : " << fx->width << " , " << fx->height << " , " << fx->depth << endl;
-//cout << " size src: " << mriS->width << " , " << mriS->height << " , " << mriS->depth << endl;
-
-  // compute 'counti': the number of rows needed (zero elements need to be removed)
-  int n = fx->width * fx->height * fx->depth;
-  if (verbose > 1) cout << "     -- size " << fx->width << " x " << fx->height << " x " << fx->depth << " = " << n << flush;
-  long int counti = 0;
-  double eps = 0.00001;
-	int fxd = fx->depth ;
-	int fxw = fx->width ;
-	int fxh = fx->height ;
-	int fxstart = 0;
-  for (z = fxstart ; z < fxd ; z++)
-    for (x = fxstart ; x < fxw ; x++)
-      for (y = fxstart ; y < fxh ; y++)
-      {
-        if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
-        {
-          if (verbose > 0) cout << " found a nan value!!!" << endl;
-          continue;
-        }
-        if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(MRIFvox(fz, x, y, z)) < eps )
-        {
-          //if (verbose > 0) cout << " found a zero element !!!" << endl;
-          continue;
-        }
-        counti++; // start with 1
-      }	
-  if (verbose > 1) cout << "  need only: " << counti << endl;
-	if (counti == 0)
-	{
-	   cerr << endl;
-	   cerr << " ERROR: All entries are zero! Images do not overlap." << endl;
-		 cerr << "    Try calling with --noinit (if the original images are well aligned)" << endl;
-		 cerr << "    Or use --transform <init.lta> with an approximate alignment" <<endl;
-		 cerr << "    obtained from tkregister or another registration program." << endl << endl;
-		 exit(1);
-	}
-   
-
-  // allocate the space for A and B
-  int pnum = 12;
-  if (transonly)  pnum = 3;
-  else if (rigid) pnum = 6;
-  if (iscale) pnum++;
-
-  double amu = ((double)counti*(pnum+1)) * sizeof(double) / (1024.0 * 1024.0); // +1 =  rowpointer vector
-	double bmu = (double)counti * sizeof(double) / (1024.0 * 1024.0);
-  if (verbose > 1) cout << "     -- allocating " << amu + bmu<< "Mb mem for A and b ... " << flush;
-	A.set_size(counti,pnum);
-	b.set_size(counti);
-//   MATRIX* A = MatrixAlloc(counti,pnum,MATRIX_REAL);
-//   VECTOR* b = MatrixAlloc(counti,1,MATRIX_REAL);
-//   if (A == NULL || b == NULL) 
-// 	{
-// 	  cout << endl;
-//     ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A and b") ;
-// 	}
-  if (verbose > 1) cout << " done! " << endl;
-	double maxmu = 5* amu + 7 * bmu;
-	if (floatsvd) maxmu = amu + 3*bmu + 2*(amu+bmu);
-  if (verbose > 1 ) cout << "         (MAX usage in SVD will be > " << maxmu << "Mb mem + 6 MRI) " << endl;
-  if (maxmu > 3800)
-	{
-	  cout << "     -- WARNING: mem usage large: " << maxmu <<" + 6 MRI" << endl;
-		string fsvd;
-		if (!floatsvd) fsvd = "--floatsvd and/or ";
-	  cout << "          Maybe use "<<fsvd<< "--subsample <int> " << endl;
-	}
-
-  // Loop and construct A and b
-  int xp1,yp1,zp1;
-	long int count = 0;
-  for (z = fxstart ; z < fxd ; z++)
-    for (x = fxstart ; x < fxw ; x++)
-      for (y = fxstart ; y < fxh ; y++)
-      {
-        if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
-        {
-          //if (verbose > 0) cout << " found a nan value!!!" << endl;
-          continue;
-        }
-
-        if (dosubsample)
-        {
-          //xp1 = 2*x+2;
-          //yp1 = 2*y+2;
-          //zp1 = 2*z+2;
-          xp1 = 2*x;
-          yp1 = 2*y;
-          zp1 = 2*z;
-        }
-        else // if not subsampled, shift only due to 5 tab derivative above
-        {
-          //xp1 = x+2;
-          //yp1 = y+2;
-          //zp1 = z+2; 
-          xp1 = x;
-          yp1 = y;
-          zp1 = z; 
-        }
-        assert(xp1 < mriS->width);
-        assert(yp1 < mriS->height);
-        assert(zp1 < mriS->depth);
-
-
-        if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(MRIFvox(fz, x, y, z)) < eps )
-        {
-          //if (verbose > 0) cout << " found a zero element !!!" << endl;
-          MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
-          continue;
-        }
-
-       // count++; // start with 1
-
-        if (xp1 >= mriS->width || yp1 >= mriS->height || zp1 >= mriS->depth)
-        {
-
-          cerr << " outside !!! " << xp1 << " " << yp1 << " " << zp1 << endl;
-          assert(1==2);
-        }
-
-        MRILvox(mri_indexing, xp1, yp1, zp1) = count;
-
-        //cout << "x: " << x << " y: " << y << " z: " << z << " coutn: "<< count << endl;
-        //cout << " " << count << " mrifx: " << MRIFvox(mri_fx, x, y, z) << " mrifx int: " << (int)MRIvox(mri_fx,x,y,z) <<endl;
-				int dof = 0;
-        if (transonly)
-        {
-//           *MATRIX_RELT(A, count, 1) = MRIFvox(fx, x, y, z);
-//           *MATRIX_RELT(A, count, 2) = MRIFvox(fy, x, y, z);
-//           *MATRIX_RELT(A, count, 3) = MRIFvox(fz, x, y, z);
-          A[count][0] = MRIFvox(fx, x, y, z);
-          A[count][1] = MRIFvox(fy, x, y, z);
-          A[count][2] = MRIFvox(fz, x, y, z);
-				  dof = 3;
-        }
-        else if (rigid)
-        {
-//           *MATRIX_RELT(A, count, 1) = MRIFvox(fx, x, y, z);
-//           *MATRIX_RELT(A, count, 2) = MRIFvox(fy, x, y, z);
-//           *MATRIX_RELT(A, count, 3) = MRIFvox(fz, x, y, z);
-//           *MATRIX_RELT(A, count, 4) = MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1;
-//           *MATRIX_RELT(A, count, 5) = MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1;
-//           *MATRIX_RELT(A, count, 6) = MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1;
-          A[count][0] =  MRIFvox(fx, x, y, z);
-          A[count][1] =  MRIFvox(fy, x, y, z);
-          A[count][2] =  MRIFvox(fz, x, y, z);
-          A[count][3] =  (MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1);
-          A[count][4] =  (MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1);
-          A[count][5] =  (MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1);
-					dof = 6;
-					
-        }
-        else // affine
-        {
-//           *MATRIX_RELT(A, count, 1)  = MRIFvox(fx, x, y, z)*xp1;
-//           *MATRIX_RELT(A, count, 2)  = MRIFvox(fx, x, y, z)*yp1;
-//           *MATRIX_RELT(A, count, 3)  = MRIFvox(fx, x, y, z)*zp1;
-//           *MATRIX_RELT(A, count, 4)  = MRIFvox(fx, x, y, z);
-//           *MATRIX_RELT(A, count, 5)  = MRIFvox(fy, x, y, z)*xp1;
-//           *MATRIX_RELT(A, count, 6)  = MRIFvox(fy, x, y, z)*yp1;
-//           *MATRIX_RELT(A, count, 7)  = MRIFvox(fy, x, y, z)*zp1;
-//           *MATRIX_RELT(A, count, 8)  = MRIFvox(fy, x, y, z);
-//           *MATRIX_RELT(A, count, 9)  = MRIFvox(fz, x, y, z)*xp1;
-//           *MATRIX_RELT(A, count, 10) = MRIFvox(fz, x, y, z)*yp1;
-//           *MATRIX_RELT(A, count, 11) = MRIFvox(fz, x, y, z)*zp1;
-//           *MATRIX_RELT(A, count, 12) = MRIFvox(fz, x, y, z);
-          A[count][0]  = MRIFvox(fx, x, y, z)*xp1;
-          A[count][1]  = MRIFvox(fx, x, y, z)*yp1;
-          A[count][2]  = MRIFvox(fx, x, y, z)*zp1;
-          A[count][3]  = MRIFvox(fx, x, y, z);
-          A[count][4]  = MRIFvox(fy, x, y, z)*xp1;
-          A[count][5]  = MRIFvox(fy, x, y, z)*yp1;
-          A[count][6]  = MRIFvox(fy, x, y, z)*zp1;
-          A[count][7]  = MRIFvox(fy, x, y, z);
-          A[count][8]  = MRIFvox(fz, x, y, z)*xp1;
-          A[count][9]  = MRIFvox(fz, x, y, z)*yp1;
-          A[count][10] = MRIFvox(fz, x, y, z)*zp1;
-          A[count][11] = MRIFvox(fz, x, y, z);
-					dof = 12;
-        }
-
-////          if (iscale) *MATRIX_RELT(A, count, 7) = MRIFvox(Sbl, x, y, z);
- //         if (iscale) *MATRIX_RELT(A, count, dof+1) = MRIFvox(Tbl, x, y, z);
- 
- // !! ISCALECHANGE
-        // if (iscale) *MATRIX_RELT(A, count, dof+1) =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
-
-        // if (iscale) A[count][dof] =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
-         if (iscale) A[count][dof] =  MRIFvox(ft, x, y, z) / iscalefinal;
-//         if (iscale) A[count][dof]  = MRIFvox(Sbl,x,y,z);
-				 
-//         *MATRIX_RELT(b, count, 1) = - MRIFvox(ft, x, y, z); // ft = T-S => -ft = S-T
-//         b[count] = - MRIFvox(ft, x, y, z); // ft was = T-S => -ft = S-T
-         b[count] =  MRIFvox(SmT, x, y, z); // S-T
-
-        count++; // start with 0 above
-
-      }
-	assert(counti == count);
-      
-  // free remaining MRI    
-  MRIfree(&fx);
-  MRIfree(&fy);
-  MRIfree(&fz);
-  MRIfree(&ft);
-	MRIfree(&SmT);
-  //if (Sbl) MRIfree(&Sbl);
-  //if (Tbl) MRIfree(&Tbl);
-
-  // Setup return pair
- //  pair <MATRIX*, VECTOR* > Ab(A,b);
-	
-// 	if (counter == 1) exit(1);
-// 	counter++;
-// 	MatrixWriteTxt((name+"A.txt").c_str(),A);
-// 	MatrixWriteTxt((name+"b.txt").c_str(),b);
-//	if (counter == 1) exit(1);
-	
-//   // adjust sizes
-//   pair <MATRIX*, VECTOR* > Ab(NULL,NULL);
-//   double abmu2 = ((double)count*(pnum+1)) * sizeof(float) / (1024.0 * 1024.0);
-//   if (verbose > 1) cout << "     -- allocating another " << abmu2 << "Mb mem for A and b ... " << flush;
-//   Ab.first  = MatrixAlloc(count,pnum,MATRIX_REAL);
-//   Ab.second = MatrixAlloc(count,1,MATRIX_REAL);
-//   if (Ab.first == NULL || Ab.second == NULL) 
-// 	{
-// 	  cout << endl;
-//     ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for Ab.first Ab.second") ;
-// 	}
-//   if (verbose > 1) cout << " done! " << endl;	
-//   for (int rr = 1; rr<= count; rr++)
+//   else //just rename
 //   {
-//     *MATRIX_RELT(Ab.second, rr, 1) = *MATRIX_RELT(b, rr, 1);
-//     for (int cc = 1; cc <= pnum; cc++)
-//     {
-//       *MATRIX_RELT(Ab.first, rr, cc) = *MATRIX_RELT(A, rr, cc);
-//       assert (!isnan(*MATRIX_RELT(Ab.first, rr, cc)));
-//     }
-//     assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
+//     fx = fx1;
+//     fy = fy1;
+//     fz = fz1;
+//     ft = ft1;
 //   }
-//   MatrixFree(&A);
-//   MatrixFree(&b);
+// 
+// //cout << " size fx : " << fx->width << " , " << fx->height << " , " << fx->depth << endl;
+// //cout << " size src: " << mriS->width << " , " << mriS->height << " , " << mriS->depth << endl;
+// 
+//   // compute 'counti': the number of rows needed (zero elements need to be removed)
+//   int n = fx->width * fx->height * fx->depth;
+//   if (verbose > 1) cout << "     -- size " << fx->width << " x " << fx->height << " x " << fx->depth << " = " << n << flush;
+//   long int counti = 0;
+//   double eps = 0.00001;
+// 	int fxd = fx->depth ;
+// 	int fxw = fx->width ;
+// 	int fxh = fx->height ;
+// 	int fxstart = 0;
+//   for (z = fxstart ; z < fxd ; z++)
+//     for (x = fxstart ; x < fxw ; x++)
+//       for (y = fxstart ; y < fxh ; y++)
+//       {
+//         if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
+//         {
+//           if (verbose > 0) cout << " found a nan value!!!" << endl;
+//           continue;
+//         }
+//         if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(MRIFvox(fz, x, y, z)) < eps )
+//         {
+//           //if (verbose > 0) cout << " found a zero element !!!" << endl;
+//           continue;
+//         }
+//         counti++; // start with 1
+//       }	
+//   if (verbose > 1) cout << "  need only: " << counti << endl;
+// 	if (counti == 0)
+// 	{
+// 	   cerr << endl;
+// 	   cerr << " ERROR: All entries are zero! Images do not overlap." << endl;
+// 		 cerr << "    Try calling with --noinit (if the original images are well aligned)" << endl;
+// 		 cerr << "    Or use --transform <init.lta> with an approximate alignment" <<endl;
+// 		 cerr << "    obtained from tkregister or another registration program." << endl << endl;
+// 		 exit(1);
+// 	}
+//    
+// 
+//   // allocate the space for A and B
+//   int pnum = 12;
+//   if (transonly)  pnum = 3;
+//   else if (rigid) pnum = 6;
+//   if (iscale) pnum++;
+// 
+//   double amu = ((double)counti*(pnum+1)) * sizeof(double) / (1024.0 * 1024.0); // +1 =  rowpointer vector
+// 	double bmu = (double)counti * sizeof(double) / (1024.0 * 1024.0);
+//   if (verbose > 1) cout << "     -- allocating " << amu + bmu<< "Mb mem for A and b ... " << flush;
+// 	bool OK = A.set_size(counti,pnum);
+// 	OK = OK && b.set_size(counti);
+// 	if ( !OK )
+// 	{
+//  	  cout << endl;
+//      ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A and b") ;
+// 	
+// 	}
+// //   MATRIX* A = MatrixAlloc(counti,pnum,MATRIX_REAL);
+// //   VECTOR* b = MatrixAlloc(counti,1,MATRIX_REAL);
+// //   if (A == NULL || b == NULL) 
+// // 	{
+// // 	  cout << endl;
+// //     ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A and b") ;
+// // 	}
+//   if (verbose > 1) cout << " done! " << endl;
+// 	double maxmu = 5* amu + 7 * bmu;
+// 	if (floatsvd) maxmu = amu + 3*bmu + 2*(amu+bmu);
+//   if (verbose > 1 ) cout << "         (MAX usage in SVD will be > " << maxmu << "Mb mem + 6 MRI) " << endl;
+//   if (maxmu > 3800)
+// 	{
+// 	  cout << "     -- WARNING: mem usage large: " << maxmu <<"Mb mem + 6 MRI" << endl;
+// 		string fsvd;
+// 		if (!floatsvd) fsvd = "--floatsvd and/or ";
+// 	  cout << "          Maybe use "<<fsvd<< "--subsample <int> " << endl;
+// 	}
+// 
+//   // Loop and construct A and b
+//   int xp1,yp1,zp1;
+// 	long int count = 0;
+//   for (z = fxstart ; z < fxd ; z++)
+//     for (x = fxstart ; x < fxw ; x++)
+//       for (y = fxstart ; y < fxh ; y++)
+//       {
+//         if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
+//         {
+//           //if (verbose > 0) cout << " found a nan value!!!" << endl;
+//           continue;
+//         }
+// 
+//         if (dosubsample)
+//         {
+//           //xp1 = 2*x+2;
+//           //yp1 = 2*y+2;
+//           //zp1 = 2*z+2;
+//           xp1 = 2*x;
+//           yp1 = 2*y;
+//           zp1 = 2*z;
+//         }
+//         else // if not subsampled, shift only due to 5 tab derivative above
+//         {
+//           //xp1 = x+2;
+//           //yp1 = y+2;
+//           //zp1 = z+2; 
+//           xp1 = x;
+//           yp1 = y;
+//           zp1 = z; 
+//         }
+//         assert(xp1 < mriS->width);
+//         assert(yp1 < mriS->height);
+//         assert(zp1 < mriS->depth);
+// 
+// 
+//         if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(MRIFvox(fz, x, y, z)) < eps )
+//         {
+//           //if (verbose > 0) cout << " found a zero element !!!" << endl;
+//           MRILvox(mri_indexing, xp1, yp1, zp1) = -1;
+//           continue;
+//         }
+// 
+//        // count++; // start with 1
+// 
+//         if (xp1 >= mriS->width || yp1 >= mriS->height || zp1 >= mriS->depth)
+//         {
+// 
+//           cerr << " outside !!! " << xp1 << " " << yp1 << " " << zp1 << endl;
+//           assert(1==2);
+//         }
+// 
+//         MRILvox(mri_indexing, xp1, yp1, zp1) = count;
+// 
+//         //cout << "x: " << x << " y: " << y << " z: " << z << " coutn: "<< count << endl;
+//         //cout << " " << count << " mrifx: " << MRIFvox(mri_fx, x, y, z) << " mrifx int: " << (int)MRIvox(mri_fx,x,y,z) <<endl;
+// 				int dof = 0;
+//         if (transonly)
+//         {
+// //           *MATRIX_RELT(A, count, 1) = MRIFvox(fx, x, y, z);
+// //           *MATRIX_RELT(A, count, 2) = MRIFvox(fy, x, y, z);
+// //           *MATRIX_RELT(A, count, 3) = MRIFvox(fz, x, y, z);
+//           A[count][0] = MRIFvox(fx, x, y, z);
+//           A[count][1] = MRIFvox(fy, x, y, z);
+//           A[count][2] = MRIFvox(fz, x, y, z);
+// 				  dof = 3;
+//         }
+//         else if (rigid)
+//         {
+// //           *MATRIX_RELT(A, count, 1) = MRIFvox(fx, x, y, z);
+// //           *MATRIX_RELT(A, count, 2) = MRIFvox(fy, x, y, z);
+// //           *MATRIX_RELT(A, count, 3) = MRIFvox(fz, x, y, z);
+// //           *MATRIX_RELT(A, count, 4) = MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1;
+// //           *MATRIX_RELT(A, count, 5) = MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1;
+// //           *MATRIX_RELT(A, count, 6) = MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1;
+//           A[count][0] =  MRIFvox(fx, x, y, z);
+//           A[count][1] =  MRIFvox(fy, x, y, z);
+//           A[count][2] =  MRIFvox(fz, x, y, z);
+//           A[count][3] =  (MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1);
+//           A[count][4] =  (MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1);
+//           A[count][5] =  (MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1);
+// 					dof = 6;
+// 					
+//         }
+//         else // affine
+//         {
+// //           *MATRIX_RELT(A, count, 1)  = MRIFvox(fx, x, y, z)*xp1;
+// //           *MATRIX_RELT(A, count, 2)  = MRIFvox(fx, x, y, z)*yp1;
+// //           *MATRIX_RELT(A, count, 3)  = MRIFvox(fx, x, y, z)*zp1;
+// //           *MATRIX_RELT(A, count, 4)  = MRIFvox(fx, x, y, z);
+// //           *MATRIX_RELT(A, count, 5)  = MRIFvox(fy, x, y, z)*xp1;
+// //           *MATRIX_RELT(A, count, 6)  = MRIFvox(fy, x, y, z)*yp1;
+// //           *MATRIX_RELT(A, count, 7)  = MRIFvox(fy, x, y, z)*zp1;
+// //           *MATRIX_RELT(A, count, 8)  = MRIFvox(fy, x, y, z);
+// //           *MATRIX_RELT(A, count, 9)  = MRIFvox(fz, x, y, z)*xp1;
+// //           *MATRIX_RELT(A, count, 10) = MRIFvox(fz, x, y, z)*yp1;
+// //           *MATRIX_RELT(A, count, 11) = MRIFvox(fz, x, y, z)*zp1;
+// //           *MATRIX_RELT(A, count, 12) = MRIFvox(fz, x, y, z);
+//           A[count][0]  = MRIFvox(fx, x, y, z)*xp1;
+//           A[count][1]  = MRIFvox(fx, x, y, z)*yp1;
+//           A[count][2]  = MRIFvox(fx, x, y, z)*zp1;
+//           A[count][3]  = MRIFvox(fx, x, y, z);
+//           A[count][4]  = MRIFvox(fy, x, y, z)*xp1;
+//           A[count][5]  = MRIFvox(fy, x, y, z)*yp1;
+//           A[count][6]  = MRIFvox(fy, x, y, z)*zp1;
+//           A[count][7]  = MRIFvox(fy, x, y, z);
+//           A[count][8]  = MRIFvox(fz, x, y, z)*xp1;
+//           A[count][9]  = MRIFvox(fz, x, y, z)*yp1;
+//           A[count][10] = MRIFvox(fz, x, y, z)*zp1;
+//           A[count][11] = MRIFvox(fz, x, y, z);
+// 					dof = 12;
+//         }
+// 
+// ////          if (iscale) *MATRIX_RELT(A, count, 7) = MRIFvox(Sbl, x, y, z);
+//  //         if (iscale) *MATRIX_RELT(A, count, dof+1) = MRIFvox(Tbl, x, y, z);
+//  
+//  // !! ISCALECHANGE
+//         // if (iscale) *MATRIX_RELT(A, count, dof+1) =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
+// 
+//         // if (iscale) A[count][dof] =  (0.5 / iscalefinal) * ( MRIFvox(Tbl, x, y, z) + MRIFvox(Sbl,x,y,z));
+//          if (iscale) A[count][dof] =  MRIFvox(ft, x, y, z) / iscalefinal;
+// //         if (iscale) A[count][dof]  = MRIFvox(Sbl,x,y,z);
+// 				 
+// //         *MATRIX_RELT(b, count, 1) = - MRIFvox(ft, x, y, z); // ft = T-S => -ft = S-T
+// //         b[count] = - MRIFvox(ft, x, y, z); // ft was = T-S => -ft = S-T
+//          b[count] =  MRIFvox(SmT, x, y, z); // S-T
+// 
+//         count++; // start with 0 above
+// 
+//       }
+// 	assert(counti == count);
+//       
+//   // free remaining MRI    
+//   MRIfree(&fx);
+//   MRIfree(&fy);
+//   MRIfree(&fz);
+//   MRIfree(&ft);
+// 	MRIfree(&SmT);
+//   //if (Sbl) MRIfree(&Sbl);
+//   //if (Tbl) MRIfree(&Tbl);
+// 
+//   // Setup return pair
+//  //  pair <MATRIX*, VECTOR* > Ab(A,b);
+// 	
+// // 	if (counter == 1) exit(1);
+// // 	counter++;
+// // 	MatrixWriteTxt((name+"A.txt").c_str(),A);
+// // 	MatrixWriteTxt((name+"b.txt").c_str(),b);
+// //	if (counter == 1) exit(1);
+// 	
+// //   // adjust sizes
+// //   pair <MATRIX*, VECTOR* > Ab(NULL,NULL);
+// //   double abmu2 = ((double)count*(pnum+1)) * sizeof(float) / (1024.0 * 1024.0);
+// //   if (verbose > 1) cout << "     -- allocating another " << abmu2 << "Mb mem for A and b ... " << flush;
+// //   Ab.first  = MatrixAlloc(count,pnum,MATRIX_REAL);
+// //   Ab.second = MatrixAlloc(count,1,MATRIX_REAL);
+// //   if (Ab.first == NULL || Ab.second == NULL) 
+// // 	{
+// // 	  cout << endl;
+// //     ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for Ab.first Ab.second") ;
+// // 	}
+// //   if (verbose > 1) cout << " done! " << endl;	
+// //   for (int rr = 1; rr<= count; rr++)
+// //   {
+// //     *MATRIX_RELT(Ab.second, rr, 1) = *MATRIX_RELT(b, rr, 1);
+// //     for (int cc = 1; cc <= pnum; cc++)
+// //     {
+// //       *MATRIX_RELT(Ab.first, rr, cc) = *MATRIX_RELT(A, rr, cc);
+// //       assert (!isnan(*MATRIX_RELT(Ab.first, rr, cc)));
+// //     }
+// //     assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
+// //   }
+// //   MatrixFree(&A);
+// //   MatrixFree(&b);
+// 
+//   return;
+// }
 
-  return;
-}
 
 pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
 {
@@ -2757,59 +2795,59 @@ pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
 
 }
 
-
-MRI * Registration::applyParams(MRI * mri_in, const vnl_vector <double> & p, MRI * mri_dst, bool inverse)
-{
-
-  if (!mri_dst)
-  {
-    mri_dst = MRIallocSequence(mri_in->width, mri_in->height, mri_in->depth, mri_in->type,mri_in->nframes) ;
-    MRIcopyHeader(mri_in, mri_dst) ;
-  }
-
-  assert (mri_in->width == mri_dst->width);
-	assert (mri_in->height== mri_dst->height);
-	assert (mri_in->depth == mri_dst->depth);
-	assert (mri_in->type  == mri_dst->type);
-	assert (mri_in->nframes == mri_dst->nframes);
-	assert (mri_in->nframes == 1);
-
-
-  // depending on number of params etc, apply:
-	bool doiscale = (p.size() == 4 || p.size()==7 || p.size() == 13);
-	assert (doiscale == iscale);
-	
-	
-	// here we use global rtype:
-	pair < vnl_matrix < double >, double> Md = convertP2Md(p);
-	
-	if (!inverse)
-	{
-	  MATRIX * tmpmat = MyMatrix::convertVNL2MATRIX(Md.first,NULL);
-    mri_dst = MRIlinearTransform(mri_in,mri_dst, tmpmat);
-		Md.second = p[p.size()-1];
-		MatrixFree(&tmpmat);
-	}
-	else
-	{
-	  vnl_matrix < double > mi = vnl_matrix_inverse<double>(Md.first);
-    MATRIX * tmpmat = MyMatrix::convertVNL2MATRIX(mi,NULL);
-	  mri_dst = MRIlinearTransform(mri_in,mri_dst, tmpmat);
-    MatrixFree(&tmpmat);
-		Md.second = 1.0/ p[p.size()-1];
-	}
-	
-
-  // adjust intensity
-  if (doiscale)
-  {
-    //if (verbose >1) cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
-    MyMRI::MRIvalscale(mri_dst,mri_dst,Md.second);
-  }
-
-  return mri_dst;
-
-}
+// not needed anywhere
+// MRI * Registration::applyParams(MRI * mri_in, const vnl_vector <double> & p, MRI * mri_dst, bool inverse)
+// {
+// 
+//   if (!mri_dst)
+//   {
+//     mri_dst = MRIallocSequence(mri_in->width, mri_in->height, mri_in->depth, mri_in->type,mri_in->nframes) ;
+//     MRIcopyHeader(mri_in, mri_dst) ;
+//   }
+// 
+//   assert (mri_in->width == mri_dst->width);
+// 	assert (mri_in->height== mri_dst->height);
+// 	assert (mri_in->depth == mri_dst->depth);
+// 	assert (mri_in->type  == mri_dst->type);
+// 	assert (mri_in->nframes == mri_dst->nframes);
+// 	assert (mri_in->nframes == 1);
+// 
+// 
+//   // depending on number of params etc, apply:
+// 	bool doiscale = (p.size() == 4 || p.size()==7 || p.size() == 13);
+// 	assert (doiscale == iscale);
+// 	
+// 	
+// 	// here we use global rtype:
+// 	pair < vnl_matrix < double >, double> Md = convertP2Md(p);
+// 	
+// 	if (!inverse)
+// 	{
+// 	  MATRIX * tmpmat = MyMatrix::convertVNL2MATRIX(Md.first,NULL);
+//     mri_dst = MRIlinearTransform(mri_in,mri_dst, tmpmat);
+// 		Md.second = p[p.size()-1];
+// 		MatrixFree(&tmpmat);
+// 	}
+// 	else
+// 	{
+// 	  vnl_matrix < double > mi = vnl_matrix_inverse<double>(Md.first);
+//     MATRIX * tmpmat = MyMatrix::convertVNL2MATRIX(mi,NULL);
+// 	  mri_dst = MRIlinearTransform(mri_in,mri_dst, tmpmat);
+//     MatrixFree(&tmpmat);
+// 		Md.second = 1.0/ p[p.size()-1];
+// 	}
+// 	
+// 
+//   // adjust intensity
+//   if (doiscale)
+//   {
+//     //if (verbose >1) cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
+//     MyMRI::MRIvalscale(mri_dst,mri_dst,Md.second);
+//   }
+// 
+//   return mri_dst;
+// 
+// }
 
 
 MATRIX* Registration::constructR(MATRIX* p)
@@ -3023,111 +3061,111 @@ pair < MATRIX*, double > Registration::convertP2MATRIXd(MATRIX* p)
 
 
 
-pair < vnl_matrix_fixed <double,4,4 >, double > Registration::convertP2Md(const vnl_vector <double >& p)
-// rtype : use restriction (if 2) or rigid from robust paper
-// returns registration as 4x4 matrix M, and iscale
-{
-//   cout << " Registration::convertP2Md(MATRIX* p) (p->rows: " << p->rows << " )" << flush;
-  pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
-
-  vnl_vector <double > pt;
-	
-  if (p.size() == 4 ||p.size() == 7 || p.size() == 10|| p.size() == 13) // iscale
-  {
-    //cout << " has intensity " << endl;
-    // cut off intensity scale
-		
-		// ISCALECHANGE:
-   // //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
-//    ret.second = 1.0/(1.0+*MATRIX_RELT(p, p->rows, 1));
-
-//    ret.second =  *MATRIX_RELT(p, p->rows, 1);
-    ret.second =  p[p.size()-1];
-    //cout << " ret.second: " << ret.second << "   returned:  "<< *MATRIX_RELT(p, p->rows, 1) << endl;
-		
-//     pt=  MatrixAlloc(p->rows -1, 1,MATRIX_REAL);
-//     for (int rr = 1; rr<p->rows; rr++)
-//       *MATRIX_RELT(pt, rr, 1) = *MATRIX_RELT(p, rr, 1);
-    pt.set_size(p.size()-1);
-    for (unsigned int rr = 0; rr< pt.size(); rr++)
-      pt[rr] = p[rr];
-  }
-  else pt = p;
-
-  if (pt.size() == 12)
-	{
-	  ret.first.set_identity();
-    int count = 0;
-    for (int rr = 0;rr<3;rr++)
-    for (int cc = 0;cc<4;cc++)
-    {
-      ret.first[rr][cc] +=  pt[count];
-      count++;
-    }
-	  //ret.first = MyMatrix::aff2mat(pt,NULL);
-	} 
-  else if (pt.size() == 6)
-  {
-    //ret.first = p2mat(pt,NULL);
-		
-		// split translation and rotation:
-		vnl_vector_fixed <double,3 > t;
-		vnl_vector_fixed <double,3 > r;
-    for (int rr = 0;rr<3;rr++)
-    {
-      t[rr] = pt[rr];
-      r[rr] = pt[rr+3];
-    }
-    // converts rot vector (3x1) and translation vector (3x1)
-    // into an affine matrix (homogeneous coord) 4x4
-    // if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
-    // if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
-		vnl_matrix < double > rmat;
-		Quaternion q;
-    if (rtype == 2)
-    {
-      // first convert rotation to quaternion (clockwise)
-      q.importZYXAngles(-r[2], -r[1], -r[0]);
-    }
-    else if (rtype ==1)
-    {
-      // first convert rotation to quaternion;
-      q.importRotVec(r[0],r[1],r[2]);
-    }
-    else assert (1==2);
-    // then to rotation matrix
-    rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
-		
-    int rr, cc;
-    for (rr=0;rr<3;rr++)
-    {
-      for (cc=0;cc<3;cc++) // copy rot-matrix
-        ret.first[rr][cc] = rmat[rr][cc];
-
-      // copy translation into 4th column
-      ret.first[rr][3] = t[rr];
-      // set 4th row to zero
-      ret.first[3][rr] = 0.0;
-    }
-    //except 4,4
-    ret.first[3][3] = 1.0;
-  }
-  else if (pt.size() ==3)
-  {
-	  ret.first.set_identity();
-		ret.first[0][3] = pt[0];
-		ret.first[1][3] = pt[1];
-		ret.first[2][3] = pt[2];
-  }
-  else
-  {
-    cerr << " parameter neither 3,6 nor 12 : " << pt.size() <<" ??" << endl;
-    assert(1==2);
-  }
-
-//   cout << " -- DONE " << endl;
-  return ret;
-}
+// pair < vnl_matrix_fixed <double,4,4 >, double > Registration::convertP2Md(const vnl_vector <double >& p)
+// // rtype : use restriction (if 2) or rigid from robust paper
+// // returns registration as 4x4 matrix M, and iscale
+// {
+// //   cout << " Registration::convertP2Md(MATRIX* p) (p->rows: " << p->rows << " )" << flush;
+//   pair < vnl_matrix_fixed <double,4,4 >, double> ret; ret.second = 0.0;
+// 
+//   vnl_vector <double > pt;
+// 	
+//   if (p.size() == 4 ||p.size() == 7 || p.size() == 10|| p.size() == 13) // iscale
+//   {
+//     //cout << " has intensity " << endl;
+//     // cut off intensity scale
+// 		
+// 		// ISCALECHANGE:
+//    // //ret.second = 1.0-*MATRIX_RELT(p, p->rows, 1);		
+// //    ret.second = 1.0/(1.0+*MATRIX_RELT(p, p->rows, 1));
+// 
+// //    ret.second =  *MATRIX_RELT(p, p->rows, 1);
+//     ret.second =  p[p.size()-1];
+//     //cout << " ret.second: " << ret.second << "   returned:  "<< *MATRIX_RELT(p, p->rows, 1) << endl;
+// 		
+// //     pt=  MatrixAlloc(p->rows -1, 1,MATRIX_REAL);
+// //     for (int rr = 1; rr<p->rows; rr++)
+// //       *MATRIX_RELT(pt, rr, 1) = *MATRIX_RELT(p, rr, 1);
+//     pt.set_size(p.size()-1);
+//     for (unsigned int rr = 0; rr< pt.size(); rr++)
+//       pt[rr] = p[rr];
+//   }
+//   else pt = p;
+// 
+//   if (pt.size() == 12)
+// 	{
+// 	  ret.first.set_identity();
+//     int count = 0;
+//     for (int rr = 0;rr<3;rr++)
+//     for (int cc = 0;cc<4;cc++)
+//     {
+//       ret.first[rr][cc] +=  pt[count];
+//       count++;
+//     }
+// 	  //ret.first = MyMatrix::aff2mat(pt,NULL);
+// 	} 
+//   else if (pt.size() == 6)
+//   {
+//     //ret.first = p2mat(pt,NULL);
+// 		
+// 		// split translation and rotation:
+// 		vnl_vector_fixed <double,3 > t;
+// 		vnl_vector_fixed <double,3 > r;
+//     for (int rr = 0;rr<3;rr++)
+//     {
+//       t[rr] = pt[rr];
+//       r[rr] = pt[rr+3];
+//     }
+//     // converts rot vector (3x1) and translation vector (3x1)
+//     // into an affine matrix (homogeneous coord) 4x4
+//     // if global rtype ==1 r1,r2,r3 are as in robust paper (axis, and length is angle)
+//     // if global rtype ==2 then r1,r2,r3 are angles around x,y,z axis (order 1zrot,2yrot,3xrot)
+// 		vnl_matrix < double > rmat;
+// 		Quaternion q;
+//     if (rtype == 2)
+//     {
+//       // first convert rotation to quaternion (clockwise)
+//       q.importZYXAngles(-r[2], -r[1], -r[0]);
+//     }
+//     else if (rtype ==1)
+//     {
+//       // first convert rotation to quaternion;
+//       q.importRotVec(r[0],r[1],r[2]);
+//     }
+//     else assert (1==2);
+//     // then to rotation matrix
+//     rmat = MyMatrix::getVNLMatrix(q.getRotMatrix3d(),3);
+// 		
+//     int rr, cc;
+//     for (rr=0;rr<3;rr++)
+//     {
+//       for (cc=0;cc<3;cc++) // copy rot-matrix
+//         ret.first[rr][cc] = rmat[rr][cc];
+// 
+//       // copy translation into 4th column
+//       ret.first[rr][3] = t[rr];
+//       // set 4th row to zero
+//       ret.first[3][rr] = 0.0;
+//     }
+//     //except 4,4
+//     ret.first[3][3] = 1.0;
+//   }
+//   else if (pt.size() ==3)
+//   {
+// 	  ret.first.set_identity();
+// 		ret.first[0][3] = pt[0];
+// 		ret.first[1][3] = pt[1];
+// 		ret.first[2][3] = pt[2];
+//   }
+//   else
+//   {
+//     cerr << " parameter neither 3,6 nor 12 : " << pt.size() <<" ??" << endl;
+//     assert(1==2);
+//   }
+// 
+// //   cout << " -- DONE " << endl;
+//   return ret;
+// }
 
 
 

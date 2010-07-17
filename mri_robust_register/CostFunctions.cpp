@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/15 19:14:14 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/07/17 02:35:06 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -51,7 +51,7 @@ extern "C"
 
 using namespace std;
 
-double CostFunctions::mean(MRI *i)
+float CostFunctions::mean(MRI *i)
 {
   int count = 0;
   double d= 0.0;
@@ -61,10 +61,10 @@ double CostFunctions::mean(MRI *i)
     d += (*it1);
     count++;
   }
-  return d/count;
+  return (float)(d/count);
 }
 
-double CostFunctions::var(MRI *i)
+float CostFunctions::var(MRI *i)
 {
   double m = mean(i);
   double d= 0.0;
@@ -77,13 +77,13 @@ double CostFunctions::var(MRI *i)
     d += dd * dd;
     count++;
   }
-  return d/count;
+  return (float)(d/count);
 }
 
-double CostFunctions::median(MRI *i)
+float CostFunctions::median(MRI *i)
 {
   int n = i->width * i->height * i->depth;
-  double* t = (double *)calloc(n, sizeof(double));
+  float* t = (float *)calloc(n, sizeof(float));
 
   int cc = 0;
   // copy array to t
@@ -94,15 +94,15 @@ double CostFunctions::median(MRI *i)
     cc++;
   }
 
-  double qs = RobustGaussian::median(t,n);
+  float qs = RobustGaussian<float>::median(t,n);
   free(t);
   return qs;
 }
 
-double CostFunctions::mad(MRI *i,double d)
+float CostFunctions::mad(MRI *i,float d)
 {
   int n = i->width * i->height * i->depth;
-  double* t = (double *)calloc(n, sizeof(double));
+  float* t = (float *)calloc(n, sizeof(float));
 
   int cc = 0;
   // copy array to t
@@ -113,13 +113,13 @@ double CostFunctions::mad(MRI *i,double d)
     cc++;
   }
 
-  double qs = RobustGaussian::mad(t,n,d);
+  float qs = RobustGaussian<float>::mad(t,n,d);
   free(t);
   return qs;
 }
 
 
-double CostFunctions::leastSquares(MRI * i1, MRI * i2)
+float CostFunctions::leastSquares(MRI * i1, MRI * i2)
 {
   assert(i1 != NULL);
 
@@ -155,7 +155,7 @@ double CostFunctions::leastSquares(MRI * i1, MRI * i2)
 
   }
   //cout << " d: " << d << endl;
-  return d;
+  return (float)d;
 }
 
 
@@ -171,7 +171,7 @@ double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2,double sat)
   }
 
   int n = i1->width * i1->height * i1->depth;
-  double* diff = (double *)calloc(n, sizeof(double));
+  float* diff = (float *)calloc(n, sizeof(float));
 
   int cc = 0;
   if (i2 == NULL)
@@ -190,7 +190,7 @@ double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2,double sat)
     for (it1.begin();!it1.isEnd(); it1++)
     {
       //cout << "it1: " << *it1 << " it2: " << *it2 << endl;
-      diff[cc] = (double)(*it1) - (double)(*it2);
+      diff[cc] = (*it1) - (*it2);
       cc++;
       it2++;
     }
@@ -198,7 +198,7 @@ double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2,double sat)
   }
 
 
-  double sigma = RobustGaussian::mad(diff,n);
+  float sigma = RobustGaussian<float>::mad(diff,n);
 
   double d = 0;
   for (int i=0;i<n;i++)
@@ -210,7 +210,7 @@ double CostFunctions::tukeyBiweight(MRI * i1, MRI * i2,double sat)
 }
 
 
-double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
+float CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
 {
 
   assert(i1->width  == i2->width);
@@ -218,8 +218,8 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
   assert(i1->depth  == i2->depth);
 
   double d   = 0;
-  double d1  = 0;
-  double d2  = 0;
+  float d1  = 0;
+  float d2  = 0;
   double dd1 = 0;
   double dd2 = 0;
 
@@ -250,7 +250,7 @@ double CostFunctions::normalizedCorrelation(MRI * i1, MRI * i2)
           dd2 += d2 *d2;
         }
   }
-  return d/(sqrt(dd1)*sqrt(dd2));
+  return (float)(d/(sqrt(dd1)*sqrt(dd2)));
 }
 
 double CostFunctions::moment(MRI *i, int x, int y, int z)
@@ -261,12 +261,12 @@ double CostFunctions::moment(MRI *i, int x, int y, int z)
       for (int w = 0 ; w<i->width; w++)
       {
         dd += pow(d+1.0,z) * pow(h+1.0,y) * pow(w+1.0,x) * 
-	  MRIgetVoxVal(i, (int)w,(int)h,(int)d,0);
+              MRIgetVoxVal(i, (int)w,(int)h,(int)d,0);
       }
   return dd;
 }
 
-std::vector <double> CostFunctions::centroid(MRI *i)
+std::vector < double > CostFunctions::centroid(MRI *i)
 // M_100/M_000 , M_010/M_000 , M_001 / M_000
 {
   //cout << "CostFunctions::centroid" << endl;
@@ -291,16 +291,17 @@ std::vector <double> CostFunctions::centroid(MRI *i)
 	   cerr << "CostFunctions::centroid is NAN (empty image? n = " << n << " )"<<endl;
 		 exit(1);
 	}
+	
   return dd;
 }
 
-vnl_matrix_fixed < double ,3,3> CostFunctions::orientation(MRI *i)
+vnl_matrix_fixed < double ,3 ,3 > CostFunctions::orientation(MRI *i)
 // M_ijk below is the moment(i,j,k)
 {
   // compute mean
   std::vector < double > dd(3,0.0);
   double n = 0;
-  double val;
+  float val;
   int wp1, hp1, dp1;
 
 //  MATRIX* cov = MatrixAlloc(3,3,MATRIX_REAL);
@@ -354,24 +355,24 @@ vnl_matrix_fixed < double ,3,3> CostFunctions::orientation(MRI *i)
 
   // compute Eigenvectors
   vnl_symmetric_eigensystem < double > SymEig(cov);
-	// sort:
-	unsigned int smallest = 0;
-	unsigned int largest  = 0;
-	for (uint i = 1; i<3;i++)
-	{
-	  if (SymEig.D[largest] < SymEig.D[i]) largest = i;
-		if (SymEig.D[smallest] > SymEig.D[i]) smallest = i;
-	}
-	unsigned int largetosmall[3];
-	largetosmall[0] = largest;
-	largetosmall[1] = 3-smallest-largest;
-	largetosmall[2] = smallest;	
+  // sort:
+  unsigned int smallest = 0;
+  unsigned int largest  = 0;
+  for (uint i = 1; i<3;i++)
+  {
+    if (SymEig.D[largest] < SymEig.D[i]) largest = i;
+    if (SymEig.D[smallest] > SymEig.D[i]) smallest = i;
+  }
+  unsigned int largetosmall[3];
+  largetosmall[0] = largest;
+  largetosmall[1] = 3-smallest-largest;
+  largetosmall[2] = smallest;	
   // should be sorted when using this lookup:
   assert(SymEig.D[largetosmall[0]] >= SymEig.D[largetosmall[1]]);
   assert(SymEig.D[largetosmall[1]] >= SymEig.D[largetosmall[2]]);
-	vnl_matrix_fixed < double,3 ,3 > evec;
-	for (uint i =0;i<3;i++)
-	  evec.set_column(i,SymEig.V.get_column(largetosmall[i]));
+  vnl_matrix_fixed < double,3 ,3 > evec;
+  for (uint i =0;i<3;i++)
+    evec.set_column(i,SymEig.V.get_column(largetosmall[i]));
 	
 //   float eval[3];
 //   MATRIX* evec = MatrixEigenSystem(cov, eval ,NULL) ;

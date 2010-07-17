@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/05 15:55:46 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/07/17 02:35:08 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -115,7 +115,7 @@ struct Parameters
 	bool   fixtp;
 	bool   satit;
 	string conform;
-	bool   doublesvd;
+	bool   doubleprec;
 	bool   oneminusweights;
 };
 
@@ -147,6 +147,7 @@ static struct Parameters P =
 	false,
 	false,
 	"",
+	false,
 	false
 };
 
@@ -155,7 +156,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.21 2010/07/05 15:55:46 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.22 2010/07/17 02:35:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -217,7 +218,7 @@ int main(int argc, char *argv[])
 	MR.setFixVoxel(P.fixvoxel);
 	MR.setKeepType(P.keeptype);
 	MR.setAverage(P.average);
-	MR.setFloatSVD(!P.doublesvd);
+	MR.setDoublePrec(P.doubleprec);
 	MR.setSubsamplesize(P.subsamplesize);
 
 	// init MultiRegistration and load movables
@@ -342,7 +343,7 @@ static void printUsage(void)
   cout << "  --warp warp1.mgz ...       map each input to template" << endl;
   cout << "  --weights weights1.mgz ... output weights in target space" << endl;
   cout << "  --average #                construct template from: 0 Mean, 1 Median (default)" << endl;
-  cout << "  --inittp #                 use TP# for spacial init (default 1), 0: no init" << endl;
+  cout << "  --inittp #                 use TP# for spatial init (default 1), 0: no init" << endl;
   cout << "  --fixtp                    map everthing to init TP# (init TP is not resampled)" << endl;
 	
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
@@ -358,12 +359,12 @@ static void printUsage(void)
   cout << "  --sat <real>               set outlier sensitivity manually (e.g. '--sat 4.685' )" << endl;
 	cout << "                                higher values mean less sensitivity" << endl;
   cout << "  --satit                    auto-detect good sensitivity (for head scans)" << endl;
-  cout << "  --doublesvd                double svd (instead of float) ~1Gig more memory" << endl;
+  cout << "  --doubleprec               double precision (default: float) for intensities (!!memory!!)" << endl;
   cout << "  --subsample <#>            subsample if dim > # on all axes (default no subs.)" << endl;
 //  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
 //  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
-//  cout << "  --uchar                    set input type to UCHAR (with intensity scaling)" << endl;
 //  cout << "  --conform conform.mgz      output conform template, 1mm vox (256^3)" << endl;
+  cout << "  --keeptype                 keep input image type in algorithm (default float)" << endl; 
   cout << "  --debug                    show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
@@ -546,11 +547,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Will estimate SAT iteratively!" << endl;
   }
-  else if (!strcmp(option, "DOUBLESVD") )
+  else if (!strcmp(option, "DOUBLEPREC") )
   {
-    P.doublesvd = true;
+    P.doubleprec = true;
     nargs = 0 ;
-    cout << "Will perform SVD with double precision (higher mem usage)!" << endl;
+    cout << "Will perform algorithm with double precision (higher mem usage)!" << endl;
   }
   else if (!strcmp(option, "WEIGHTS") )
   {

@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:04 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/07/17 02:35:07 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -36,6 +36,7 @@
 #include <sstream>
 #include <iostream>
 #include <vnl/vnl_inverse.h>
+#include "RegistrationStep.h"
 
 using namespace std;
 
@@ -63,7 +64,8 @@ float RegPowell::costFunction(float p[])// starting at 1
 //    cout << ") = " << flush;
 
   // transform into matrix and iscale double
-  pair < vnl_matrix_fixed < double , 4, 4 > , double > Md = tocurrent->convertP2Md(v);
+  //pair < vnl_matrix_fixed < double , 4, 4 > , double > Md = tocurrent->convertP2Md(v);
+  pair < vnl_matrix_fixed < double , 4, 4 > , double > Md = RegistrationStep<double>::convertP2Md(v,tocurrent->rtype);
 
   // new full M = mh2 * cm * mh1
   //Md.first = MatrixMultiply(mh2,Md.first,Md.first);
@@ -253,7 +255,7 @@ void RegPowell::computeIterativeRegistration( int nmax,double epsit,MRI * mriS, 
 	cout << v << endl;
 
   //if (fmd.first) MatrixFree(&fmd.first);
-  fmd = convertP2Md(v);
+  fmd = RegistrationStep<double>::convertP2Md(v,rtype);
   //MatrixFree(&v);
   //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
 	cout << fmd.first << endl;

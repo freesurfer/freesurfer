@@ -9,8 +9,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/01/14 19:41:03 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/07/17 02:35:06 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -52,29 +52,29 @@ extern "C"
 class CostFunctions
 {
 public:
-  static double mean(MRI *i);
-  static double var(MRI *i);
-  static double sdev(MRI *i)
+  static float mean(MRI *i);
+  static float var(MRI *i);
+  static float sdev(MRI *i)
   {
     return sqrt(var(i));
   };
-  static double median(MRI *i);
-  static double mad(MRI *i, double d = 1.4826);
+  static float median(MRI *i);
+  static float mad(MRI *i, float d = 1.4826);
   static double moment(MRI * i, int x, int y, int z);
   static std::vector < double > centroid (MRI * i);
   static vnl_matrix_fixed < double,3,3 > orientation (MRI * i);
 
-  static double leastSquares(MRI * i1, MRI * i2 = NULL);
+  static float leastSquares(MRI * i1, MRI * i2 = NULL);
   static double tukeyBiweight(MRI *i1, MRI * i2 = NULL, double sat = 4.685);
-  static double normalizedCorrelation(MRI * i1, MRI * i2);
-  static double mutualInformation(MRI * i1, MRI * i2 = NULL);
-  static double normalizedMutualInformation(MRI * i1, MRI * i2 = NULL);
-  static double woods(MRI * i1, MRI * i2 = NULL);
-  static double correlationRatio(MRI * i1, MRI * i2 = NULL);
+  static float normalizedCorrelation(MRI * i1, MRI * i2);
+  static float mutualInformation(MRI * i1, MRI * i2 = NULL);
+  static float normalizedMutualInformation(MRI * i1, MRI * i2 = NULL);
+  static float woods(MRI * i1, MRI * i2 = NULL);
+  static float correlationRatio(MRI * i1, MRI * i2 = NULL);
 
 
 protected:
-  inline static double rhoTukeyBiweight (double d, double  sat = 4.685);
+  inline static double rhoTukeyBiweight (double d, double sat = 4.685);
   inline static double rhoSquare (double d)
   {
     return d*d;

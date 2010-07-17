@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/02 14:17:28 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/07/17 02:35:07 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -52,18 +52,19 @@ extern "C"
 
 class Registration
 {
+ template <class T> friend class RegistrationStep;
 public:
   Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
       robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
       inittransform(true),highit(-1),mri_source(NULL),mri_target(NULL),
-      iscalefinal(1.0),floatsvd(true),wlimit(0.175),resample(false),
-			mri_weights(NULL), mri_indexing(NULL)
+      iscalefinal(1.0),doubleprec(false),wlimit(0.175),resample(false),
+			mri_weights(NULL), mri_hweights(NULL),mri_indexing(NULL)
   {};
   Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
       robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
       inittransform(true),highit(-1),mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
-      iscalefinal(1.0),floatsvd(true),wlimit(0.175),resample(false),
-			mri_weights(NULL),mri_indexing(NULL)
+      iscalefinal(1.0),doubleprec(false),wlimit(0.175),resample(false),
+			mri_weights(NULL),mri_hweights(NULL),mri_indexing(NULL)
   {};
 
   virtual ~Registration();
@@ -133,9 +134,9 @@ public:
   {
     inittransform = it;
   };
-	void setFloatSVD(bool b)
+	void setDoublePrec(bool b)
 	{
-	  floatsvd = b;
+	  doubleprec = b;
   }
 	void setWLimit( double d)
 	{
@@ -153,6 +154,10 @@ public:
   MRI * getWeights()
   {
     return mri_weights;
+  };
+  MRI * getHWeights()
+  {
+    return mri_hweights;
   };
   std::pair <vnl_matrix_fixed< double, 4, 4 > , vnl_matrix_fixed < double, 4, 4 > > getHalfWayMaps();
 
@@ -184,17 +189,17 @@ public:
 protected:
 
   //   returns weights:
-  std::pair < vnl_vector <double >, MRI* > computeRegistrationStepW(MRI * mriS = NULL, MRI* mriT=NULL);
+ // std::pair < vnl_vector <double >, MRI* > computeRegistrationStepW(MRI * mriS = NULL, MRI* mriT=NULL);
   //   returns param vector:
-  vnl_vector <double > computeRegistrationStepP(MRI * mriS, MRI* mriT);
+//  vnl_vector <double > computeRegistrationStepP(MRI * mriS, MRI* mriT);
   //   returns 4x4 matrix and iscale:
-  std::pair < vnl_matrix_fixed <double,4,4 >, double> computeRegistrationStep(MRI * mriS = NULL, MRI* mriT = NULL);
+//  std::pair < vnl_matrix_fixed <double,4,4 >, double> computeRegistrationStep(MRI * mriS = NULL, MRI* mriT = NULL);
 
   //conversion
   std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector <double >& p);
   std::pair < MATRIX*, double > convertP2MATRIXd(MATRIX* p);
 	
-	MRI * applyParams(MRI * mri_in, const vnl_vector<double>& p, MRI * mri_dst=NULL, bool inverse=false);
+	//MRI * applyParams(MRI * mri_in, const vnl_vector<double>& p, MRI * mri_dst=NULL, bool inverse=false);
 
 
   // initial registration using moments
@@ -225,7 +230,7 @@ protected:
   vnl_matrix < double >  Minit;
   vnl_matrix < double >  Mfinal;
   double iscalefinal;
-	bool floatsvd;
+	bool doubleprec;
   double wlimit;
 
   bool resample;
@@ -238,7 +243,7 @@ private:
   MATRIX* constructR(MATRIX* p);
   //std::pair < MATRIX*, VECTOR* > constructAb(MRI *mriS, MRI *mriT);
   //std::pair < vnl_matrix <double>, vnl_vector <double> > constructAb(MRI *mriS, MRI *mriT);
-  void constructAb(MRI *mriS, MRI *mriT, vnl_matrix < double > &A, vnl_vector < double> &b);
+//  void constructAb(MRI *mriS, MRI *mriT, vnl_matrix < double > &A, vnl_vector < double > &b);
   std::pair < MATRIX*, VECTOR* > constructAb2(MRI *mriS, MRI *mriT);
 
   // conversions
@@ -252,14 +257,15 @@ private:
   void freeGaussianPyramid(std::vector< MRI* >& p);
 
   MRI * mri_weights;
+  MRI * mri_hweights;
   vnl_matrix < double> mov2weights;
   vnl_matrix < double> dst2weights;
 	double wcheck; // set from computeRegistrationStepW
 	double wchecksqrt; // set from computeRegistrationStepW
+  double zeroweights;// set from computeRegistrationStepW
 
   // help vars
-	vnl_vector < double > lastp;
-  double zeroweights;
+//	vnl_vector < double > lastp;
 
   MRI * mri_indexing;
 };
