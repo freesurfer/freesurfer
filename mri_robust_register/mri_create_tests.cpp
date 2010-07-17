@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/02 14:17:28 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/07/17 02:31:53 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -60,6 +60,7 @@ extern "C"
 #include "diag.h"
 #include "mrimorph.h"
 #include "version.h"
+#include <vnl/vnl_matrix.h>
 
 #ifdef __cplusplus
 }
@@ -95,7 +96,7 @@ static struct Parameters P =
 static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
-static char vcid[] = "$Id: mri_create_tests.cpp,v 1.3 2010/07/02 14:17:28 mreuter Exp $";
+static char vcid[] = "$Id: mri_create_tests.cpp,v 1.4 2010/07/17 02:31:53 mreuter Exp $";
 char *Progname = NULL;
 
 
@@ -117,8 +118,57 @@ std::vector < int > get_random(int lowest, int highest, int num=3)
 		return ret;
 }
 
+void testmalloc()
+{
+
+ double * a = (double*)malloc(sizeof(double) * 200 * 111322800);
+ if ( a == NULL) cout << " not enough mem" << endl;
+ else cout << "OK" << endl;
+ 
+ a[5053030+15*111322800] = 3.0;
+ cout << "a: " << a[5053030+15*111322800] << endl;
+ free(a);
+}
+
+void testvnl ()
+{
+
+ vnl_matrix < double > A;
+ bool OK = A.set_size(111322800,7);
+ if (OK) cout << " OK" << endl;
+ else cout << "not OK" << endl;
+ 
+ A.assert_size(111322800,7);
+ 
+ cout << "assert ok" << endl;
+ 
+ A[0][0] = 3.0;
+ cout << " success 0-0" << endl;
+ A[0][5] = 3.0;
+ cout << " success 0-5" << endl;
+ A[1][0] = 3.0;
+ cout << " success 1-0" << endl;
+  A[10530300][0] = 3.0;
+ cout << " success 10530300-0" << endl;
+  A[10530300][5] = 3.0;
+ cout << " success 10530300-5" << endl;
+ 
+ A[50530303][0] = 3.0;
+ cout << " success 505...0" << endl;
+ A[50530303][1] = 3.0;
+ cout << " success 1" << endl;
+ A[50530303][5] = 3.0;
+ cout << " success 5" << endl;
+ exit(0);
+ 
+}
+
 int main(int argc, char *argv[])
 {
+
+ // testmalloc();
+ // testvnl();
+
   { // for valgrind, so that everything is freed
   cout << vcid << endl;
 
