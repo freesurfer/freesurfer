@@ -10,7 +10,7 @@
 # Edited : 12-11-2009
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.4 2010/04/26 16:19:44 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.5 2010/07/19 20:06:59 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -19,6 +19,11 @@ set cleanup = 1;
 set nolog = 0;
 set UseAseg = 1;
 set PrintHelp = 0;
+set OnlyStep1 = 0
+set OnlyStep2 = 0
+set OnlyStep3 = 0
+set DoAllSteps = 1
+set BothHemis = 1
 
 # Parsing and checking the input arguments
 if($#argv == 0) goto usage_exit;
@@ -61,8 +66,8 @@ uname -a |& tee -a $LF
 
 ############--------------##################
 
-setenv LD_LIBRARY_PATH $ITK_DIR
-setenv PATH {$PATH}:/usr/pubsw/packages/petsc/current/bin
+# setenv LD_LIBRARY_PATH $ITK_DIR
+# setenv PATH {$PATH}:/usr/pubsw/packages/petsc/current/bin
 
 set voltype = norm
 set annotfile = aparc.annot
@@ -81,57 +86,106 @@ mkdir -p $outdir
 ### REGISTRATION: STEP 1: #CVS_step1.csh
 ###     preprocessing: to get mean and Gaussian curvature files (.H, .K) if they do not exist
 
+if ($DoAllSteps || $OnlyStep1) then 
+
 set movingsurfdir   = $SUBJECTS_DIR/$movingid/surf 
 set templatesurfdir = $SUBJECTS_DIR/$templateid/surf
 
 set movinglabeldir   = $SUBJECTS_DIR/$movingid/label
 set templatelabeldir = $SUBJECTS_DIR/$templateid/label
 
-if ((! -e $movingsurfdir/lh.inflated.K ) || (! -e $movingsurfdir/rh.inflated.K) || ( ! -e $movingsurfdir/lh.inflated.H) || (! -e $movingsurfdir/rh.inflated.H)) then
-  echo $movingid ': at least one mean and/or Gaussian curvature file is missing (.H, .K)'
-  pushd $movingsurfdir
-  foreach hemi (lh rh)
-    set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
-    echo $cmd |& tee -a $LF
-    $cmd |& tee -a $LF
-    if($status) exit 1;  
-  end
-  popd
-endif
+if ($BothHemis) then
+  if ((! -e $movingsurfdir/lh.inflated.K ) || (! -e $movingsurfdir/rh.inflated.K) || ( ! -e $movingsurfdir/lh.inflated.H) || (! -e $movingsurfdir/rh.inflated.H)) then
+    echo $movingid ': at least one mean and/or Gaussian curvature file is missing (.H, .K)'
+    pushd $movingsurfdir
+    foreach hemi (lh rh)
+      set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;  
+    end
+    popd
+  endif
 
-if ((! -e $templatesurfdir/lh.inflated.K ) || (! -e $templatesurfdir/rh.inflated.K) || ( ! -e $templatesurfdir/lh.inflated.H) || (! -e $templatesurfdir/rh.inflated.H)) then
-  echo $templateid ': at least one mean and/or Gaussian curvature file is missing (.H, .K)'
-  pushd $templateidsurfdir
-  foreach hemi (lh rh)
+  if ((! -e $templatesurfdir/lh.inflated.K ) || (! -e $templatesurfdir/rh.inflated.K) || ( ! -e $templatesurfdir/lh.inflated.H) || (! -e $templatesurfdir/rh.inflated.H)) then
+    echo $templateid ': at least one mean and/or Gaussian curvature file is missing (.H, .K)'
+    pushd $templatesurfdir
+    foreach hemi (lh rh)
+      set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;  
+    end
+    popd
+  endif
+else
+  set hemi = $hemiReq
+  if ((! -e $movingsurfdir/$hemi.inflated.K ) || ( ! -e $movingsurfdir/$hemi.inflated.H)) then
+    echo $movingid ': at least one mean and/or Gaussian curvature file is missing (.H, .K)'
+    pushd $movingsurfdir
     set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;  
-  end
-  popd
-endif
+    popd
+  endif
+
+  if ((! -e $templatesurfdir/$hemi.inflated.K ) || ( ! -e $templatesurfdir/$hemi.inflated.H) ) then
+    echo $templateid ': at least one mean and/or Gaussian curvature file is missing (.H, .K)'
+    pushd $templatesurfdir
+    set cmd = (mris_curvature -w -distances 10 10 $hemi.inflated)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;  
+    popd
+  endif
+
+endif #BothHemis
 
 ###     spherical registration (note: this step assumes existence of
 ###     the ?h.aparc.annot, ?h.white and ?h.pial files)
 
 ## Check whether the necessary files in label and surf exist
-foreach hemi (lh rh)
+if ($BothHemis) then
+  foreach hemi (lh rh)
+    if (!(-e $movinglabeldir/$hemi.$annotfile)) then
+      echo 'ERROR: The ' $hemi '.aparc.annot file should be CREATED for subject ' $movingid ' before continuing!'
+      exit 1;
+    endif
+  end #(hemi)
+  foreach hemi (lh rh)
+    foreach surf (white pial)
+      if (!(-e $movingsurfdir/$hemi.$surf) ) then
+        echo 'ERROR: The' $hemi '.' $surf ' file should be CREATED for subject ' $movingid ' before continuing!'
+        exit 1;
+      endif
+    end #(surf)
+  end #(hemi)
+else
   if (!(-e $movinglabeldir/$hemi.$annotfile)) then
     echo 'ERROR: The ' $hemi '.aparc.annot file should be CREATED for subject ' $movingid ' before continuing!'
     exit 1;
   endif
-end #(hemi)
-foreach hemi (lh rh)
   foreach surf (white pial)
     if (!(-e $movingsurfdir/$hemi.$surf) ) then
       echo 'ERROR: The' $hemi '.' $surf ' file should be CREATED for subject ' $movingid ' before continuing!'
       exit 1;
     endif
   end #(surf)
-end #(hemi)
+endif #BothHemis
 
 ## Surface-based registration
-foreach hemi (lh rh)
+if ($BothHemis) then
+  foreach hemi (lh rh)
+    if !(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) then
+      # the spherical registration does not yet exist
+      set cmd = (mris_register -1 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+    endif
+  end    # (hemi)
+else
   if !(-e $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg) then
     # the spherical registration does not yet exist
     set cmd = (mris_register -1 -inflated $movingsurfdir/$hemi.sphere $templatesurfdir/$hemi.sphere $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg)
@@ -139,10 +193,21 @@ foreach hemi (lh rh)
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
-end    # (hemi)
+endif #BothHemis
 
 ## Resampling based upon surface-based registration
-foreach hemi (lh rh)
+if ($BothHemis) then
+  foreach hemi (lh rh)
+    foreach surf (white pial)
+      if !(-e $outdir/$hemi.resample.$surf) then 
+        set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot $movinglabeldir/$hemi.$annotfile $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+        echo $cmd |& tee -a $LF
+        $cmd |& tee -a $LF
+        if($status) exit 1;
+      endif
+    end  # (white, pial)
+  end    # (hemi)
+else
   foreach surf (white pial)
     if !(-e $outdir/$hemi.resample.$surf) then 
       set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot $movinglabeldir/$hemi.$annotfile $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
@@ -151,13 +216,14 @@ foreach hemi (lh rh)
       if($status) exit 1;
     endif
   end  # (white, pial)
-end    # (hemi)
+endif #BothHemis
 
-
+endif # --step1
 
 ### REGISTRATION: STEP 2: # CVS_step2.csh
 ###     elastic registartion
 
+setenv FREESURFER_HOME_BIN $FREESURFER_HOME/bin
 setenv VOLTYPE $voltype
 setenv ANNOTFILE $annotfile
 setenv OUTDIR $outdir 
@@ -165,22 +231,37 @@ setenv OUTDIR $outdir
 set mmri = $SUBJECTS_DIR/$movingid/mri/
 set tmri = $SUBJECTS_DIR/$templateid/mri/
 
-grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
-source tmp.txt
-rm -f tmp.txt
-set elasticmorph = ${out_root}_to$templateid.tm3d
+if ($DoAllSteps || $OnlyStep2) then 
 
 ## Run the elastic registration
-# pushd $cvsdir
-if ! (-e $outdir/$elasticmorph) then
+pushd $cvsdir
+if ! (-e $outdir/el_reg_to$templateid.tm3d) then
+ if ($BothHemis) then
   set cmd = (perl $cvsdir/elastic_registration_CVS.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+ else
+  setenv HEMI $hemiReq
+  set cmd = (perl $cvsdir/elastic_registration_CVS_hemi.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+ endif
 endif
-# popd
+popd
+
+endif #--step2
+
+if ($DoAllSteps || $OnlyStep3) then 
 
 ## Apply results of elastic registration to aseg 
+
+grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
+source tmp.txt
+rm -f tmp.txt
+
+set elasticmorph = ${out_root}_to$templateid.tm3d
 
 if ($UseAseg) then 
   set voltype = aseg
@@ -192,10 +273,12 @@ if ($UseAseg) then
   endif
 endif
 
+
 ### REGISTRATION: STEP 3: # CVS_step3.csh
 ###     intensity-based volumetric registration
 ###        (UseAseg==0) only intensity-based
 ###        (UseAseg==1) aseg + intensity-based
+
 
 if ($UseAseg) then
   set voltype = aseg
@@ -287,15 +370,17 @@ if ($cleanup) then
   if($status) exit 1;
 endif
 
+echo "To check results, run:"
+echo "freeview -v $outdir/${nl_regresult:r}.mgz $tmri/norm.mgz $outdir/${combined:r}_${voltype}.mgz:colormap=lut $tmri/aseg.mgz:colormap=lut"
+echo " "
+
+endif #--step3
+
 echo " " |& tee -a $LF
 echo "Started at $StartTime " |& tee -a $LF
 echo "Ended   at `date`" |& tee -a $LF
 echo " " |& tee -a $LF
 echo "mri_cvs_register Done" |& tee -a $LF
-echo " "
-
-echo "To check results, run:"
-echo "freeview -v $outdir/${nl_regresult:r}.mgz $tmri/norm.mgz $outdir/${combined:r}_${voltype}.mgz:colormap=lut $tmri/aseg.mgz:colormap=lut"
 echo " "
 
 exit 0;
@@ -341,6 +426,27 @@ while( $#argv != 0 )
     case "--cleanup":
       set cleanup = 1;
       breaksw
+
+    case "--step1":
+      set OnlyStep1 = 1;
+      set DoAllSteps = 0;
+    breaksw
+
+    case "--step2":
+      set OnlyStep2 = 1;
+      set DoAllSteps = 0;
+    breaksw
+
+    case "--step3":
+      set OnlyStep3 = 1;
+      set DoAllSteps = 0;
+    breaksw
+    
+    case "--hemi":
+      if ( $#argv < 1) goto arg1err;
+      set hemiReq = $argv[1]; shift;
+      set BothHemis = 0;
+    breaksw
 
     case "--no-log":
     case "--nolog":
@@ -411,6 +517,9 @@ usage_exit:
   echo "   --noaseg     : do not use aseg volumes in the registration pipeline (default is 0)"
   echo "   --nocleanup  : do not delete temporary files (default is 0)"
   echo "   --nolog      : do not produce a log file (default is 0)"
+  echo "   --step1      : only do step 1 (spherical registration)"
+  echo "   --step2      : only do step 2 (elastic registration)"
+  echo "   --step3      : only do step 3 (volumetric registration)"
   echo "   --version    : print version and exit"
   echo "   --help       : print help and exit"
   echo ""
@@ -452,6 +561,8 @@ for the output is: SUBJECTS_DIR/mov/cvs
 
 Do not use the aseg volumes in the registration pipeline. The deafult 
 value is 0.
+
+--step1, --step2, --step3
 
 DETAILS:
 

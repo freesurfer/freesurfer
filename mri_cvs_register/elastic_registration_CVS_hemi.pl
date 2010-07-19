@@ -16,6 +16,7 @@ use getConfig;
 $sdir = "$ENV{'SUBJECTS_DIR'}";
 $annotFile = "$ENV{'ANNOTFILE'}";
 $volType = "$ENV{'VOLTYPE'}";
+$hemi = "$ENV{'HEMI'}";
 
 print " =====================\n settings: $sdir      \n========================\n";
 print " =====================\n settings: $annotFile \n========================\n";
@@ -61,10 +62,12 @@ if ( length $vol == 0 or
 $volData    = "$sdir/$vol/mri/$volType.mgz";
 $refVolData = "$sdir/$refVol/mri/$volType.mgz";
 
-$refSurf_lh_white = "$sdir/$refVol/surf/lh.white";
-$refSurf_rh_white = "$sdir/$refVol/surf/rh.white";
-$refSurf_lh_pial  = "$sdir/$refVol/surf/lh.pial";
-$refSurf_rh_pial  = "$sdir/$refVol/surf/rh.pial";
+$refSurf_white = "$sdir/$refVol/surf/$hemi.white";
+$refSurf_pial  = "$sdir/$refVol/surf/$hemi.pial";
+#$refSurf_lh_white = "$sdir/$refVol/surf/lh.white";
+#$refSurf_rh_white = "$sdir/$refVol/surf/rh.white";
+#$refSurf_lh_pial  = "$sdir/$refVol/surf/lh.pial";
+#$refSurf_rh_pial  = "$sdir/$refVol/surf/rh.pial";
 
 #------------------------------------------------------------
 
@@ -84,10 +87,14 @@ $outDir = "$ENV{'OUTDIR'}";
 
 # NOTE: hard-coded convention for the naming convention!
 $surfResample = "resample";
-$surf_lh_white = "$outDir/lh.$surfResample.white";
-$surf_rh_white = "$outDir/rh.$surfResample.white";
-$surf_lh_pial = "$outDir/lh.$surfResample.pial";
-$surf_rh_pial = "$outDir/rh.$surfResample.pial";
+
+$surf_white = "$outDir/$hemi.$surfResample.white";
+$surf_pial = "$outDir/$hemi.$surfResample.pial";
+
+#$surf_lh_white = "$outDir/lh.$surfResample.white";
+#$surf_rh_white = "$outDir/rh.$surfResample.white";
+#$surf_lh_pial = "$outDir/lh.$surfResample.pial";
+#$surf_rh_pial = "$outDir/rh.$surfResample.pial";
 
 # static elastic morph
 
@@ -124,24 +131,30 @@ $outElastic = "$outDir/${outRoot}_to${refVol}.mgz";
 if ( (not -e "$outElastic") or $overwrite )
   {
     $cmdVols = " -fixed_mri $refVolData -moving_mri $volData";
-    $cmdAparc = " -aparc $sdir/$refVol/label/lh.$annotFile -aparc_2 $sdir/$refVol/label/rh.$annotFile";
-    $cmdSurfWhite_lh = "-fixed_surf $refSurf_lh_white   -moving_surf $surf_lh_white";
-    $cmdSurfWhite_rh = "-fixed_surf_2 $refSurf_rh_white -moving_surf_2 $surf_rh_white";
+#    $cmdAparc = " -aparc $sdir/$refVol/label/lh.$annotFile -aparc_2 $sdir/$refVol/label/rh.$annotFile";
+    $cmdAparc = " -aparc $sdir/$refVol/label/$hemi.$annotFile ";
+#    $cmdSurfWhite_lh = "-fixed_surf $refSurf_lh_white   -moving_surf $surf_lh_white";
+#    $cmdSurfWhite_rh = "-fixed_surf_2 $refSurf_rh_white -moving_surf_2 $surf_rh_white";
+    $cmdSurfWhite = "-fixed_surf $refSurf_white   -moving_surf $surf_white";
     $cmdOptions = "-lin_res 20 -ksp_rtol 1.0e-$kspRtol -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
     $cmdOut = "-out $outElastic -out_surf $outDir/${surfRoot}_to${refVol} -out_mesh $outDir/${outRoot}_to${refVol}";
     if ( $dbgOut )
       {
 	$cmdOut = $cmdOut . " -dbg_output $outDir/${outRoot}_to${refVol}-dbg ";
       }
-    $cmdSurf = " $cmdSurfWhite_lh $cmdSurfWhite_rh ";
+#    $cmdSurf = " $cmdSurfWhite_lh $cmdSurfWhite_rh ";
+    $cmdSurf = " $cmdSurfWhite ";
     if ( $usePial )
       {
-	$cmdSurfPial_lh = " -fixed_surf_3 $refSurf_lh_pial -moving_surf_3 $surf_lh_pial";
-	$cmdSurfPial_rh = " -fixed_surf_4 $refSurf_rh_pial -moving_surf_4 $surf_rh_pial";
-	$cmdSurf = $cmdSurf . " $cmdSurfPial_lh $cmdSurfPial_rh ";
+#	$cmdSurfPial_lh = " -fixed_surf_3 $refSurf_lh_pial -moving_surf_3 $surf_lh_pial";
+#	$cmdSurfPial_rh = " -fixed_surf_4 $refSurf_rh_pial -moving_surf_4 $surf_rh_pial";
+	$cmdSurfPial = " -fixed_surf_2 $refSurf_pial -moving_surf_2 $surf_pial";
+#	$cmdSurf = $cmdSurf . " $cmdSurfPial_lh $cmdSurfPial_rh ";
+	$cmdSurf = $cmdSurf . " $cmdSurfPial ";
 
 	# option 2 - same aparcs as for the white surface
-	$cmdAparc = $cmdAparc . " -aparc_3 $sdir/$refVol/label/lh.$annotFile -aparc_4 $sdir/$refVol/label/rh.$annotFile";
+#	$cmdAparc = $cmdAparc . " -aparc_3 $sdir/$refVol/label/lh.$annotFile -aparc_4 $sdir/$refVol/label/rh.$annotFile";
+	$cmdAparc = $cmdAparc . " -aparc_2 $sdir/$refVol/label/$hemi.$annotFile ";
       }
      
      $cmdMain = "surf2vol $cmdVols $cmdSurf $cmdAparc $cmdOptions $cmdOut";
