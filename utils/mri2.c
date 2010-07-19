@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/27 22:44:36 $
- *    $Revision: 1.63 $
+ *    $Date: 2010/07/19 20:47:46 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -2968,6 +2968,11 @@ MRI *MRIvol2surfVSM(MRI *SrcVol, MATRIX *Rtk, MRI_SURFACE *TrgSurf,
       return(NULL);
     }
   }
+  // Dims here are meaningless, but setting to 1 means "volume" will be 
+  // number of vertices.
+  TrgVol->xsize = 1; 
+  TrgVol->ysize = 1;
+  TrgVol->zsize = 1;
 
   /* Zero the source hit volume */
   if (SrcHitVol != NULL)

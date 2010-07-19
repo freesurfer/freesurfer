@@ -41,8 +41,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/01 23:12:24 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/07/19 20:47:46 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -750,6 +750,11 @@ MRI *vol2surf_linear(MRI *SrcVol,
   TrgVol = MRIallocSequence(TrgSurf->nvertices,1,1,MRI_FLOAT,SrcVol->nframes);
   if (TrgVol == NULL) return(NULL);
   MRIcopyHeader(SrcVol,TrgVol);
+  // Dims here are meaningless, but setting to 1 means "volume" will be 
+  // number of vertices.
+  TrgVol->xsize = 1; 
+  TrgVol->ysize = 1;
+  TrgVol->zsize = 1;
 
   /* Zero the source hit volume */
   if (SrcHitVol != NULL)
