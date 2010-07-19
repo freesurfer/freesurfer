@@ -1,0 +1,375 @@
+#! /bin/csh -f
+
+#
+# funcroi-table-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2010/07/19 20:53:41 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: funcroi-table-sess,v 1.1 2010/07/19 20:53:41 greve Exp $';
+
+set inputargs = ($argv);
+
+set outtable = ();
+set roicfg = ();
+set analysis = ();
+set contrast = ();
+set map = ces;
+set frame = 0;
+set measure = "mean";
+
+set sessargs = ();
+set tmpdir = ();
+set cleanup = 1;
+set PrintHelp = 0;
+
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
+
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  echo "ERROR: finding sessions"
+  echo "       $SessList" 
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+##### Create a log file ######
+set LF = log/funcroi-table-sess.log
+if(-e $LF) mv $LF $LF.old
+echo $LF
+
+echo "funcroi-table-sess log file" >> $LF
+echo $VERSION >> $LF
+date          >> $LF
+uname -a      >> $LF
+pwd           >> $LF
+echo $0       >> $LF
+echo $inputargs  >> $LF
+id            >> $LF
+
+set StartTime = `date`;
+
+set tmpdir = /tmp/tmp.funcroi-table-sess.$$
+mkdir -p $tmpdir
+
+# Go thru each session
+set sumlist = ();
+set sessidlist = $tmpdir/sessid
+rm -f $sessidlist
+echo "FirstRow" >> $sessidlist
+foreach sess ($SessList)
+  set sessid = `basename $sess`;
+  set sessdir = `dirname $sess`;
+  echo "$sessid" >> $sessidlist
+
+  set ROIanadir = $sess/$ROIfsd/$ROIanalysis
+  if(! -e $ROIanadir) then
+    echo "ERROR: cannot find $ROIanadir, make sure to run selxavg3-sess on $ROIanalysis" 
+    exit 1;
+  endif
+
+  # Run or update if needed
+  set cmd = (funcroi-sess -s $sessid -d $sessdir -roi $roicfg -update)
+  echo $cmd 
+  $cmd 
+  if($status) exit 1;
+
+  set ROImask = `stem2fname $sess/$ROIfsd/$ROIanalysis/$ROIname`
+  if($status) then
+    echo "$ROImask"
+    exit 1;
+  endif
+
+  set anadir = $sess/$fsd/$analysis
+  if(! -e $anadir) then
+    echo "ERROR: cannot find $anadir, make sure to run selxavg3-sess on $analysis" 
+    exit 1;
+  endif
+
+  set condir = $sess/$fsd/$analysis/$contrast
+  set mapfile = `stem2fname $condir/$map`;
+  if($status) then
+    echo "$mapfile"
+    exit 1;
+  endif
+
+  set sum = $condir/$map.$ROIname.$frame.dat
+  set cmd = (mri_segstats --seg $ROImask --i $mapfile --frame $frame \
+    --id 1 --sum $sum)
+  echo $cmd
+  $cmd | tee -a $LF
+  if($status) exit 1;
+
+  set sumlist = ($sumlist $sum)
+
+end
+
+set tbltmp = $tmpdir/table.dat
+set cmd = (asegstats2table --inputs $sumlist -t $tbltmp -m $measure)
+echo $cmd
+$cmd | tee -a $LF
+if($status) exit 1;
+
+paste $sessidlist $tbltmp | awk '{print $1" "$3}' | tail -n +2 > $outtable
+
+if($cleanup) rm -r $tmpdir
+
+echo "" | tee -a $LF
+echo "Started at $StartTime" | tee -a $LF
+echo "Ended   at `date`"     | tee -a $LF
+echo "funcroi-table-sess completed" | tee -a $LF
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-roi":
+      if($#argv < 1) goto arg1err;
+      set roicfg = $argv[1]; shift;
+      if(! -e $roicfg) then
+        echo "ERROR: cannot find $roicfg"
+        exit 1;
+      endif
+      breaksw
+
+    case "-o":
+      if($#argv < 1) goto arg1err;
+      set outtable = $argv[1]; shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if ($#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+    case "-contrast":
+      if ($#argv < 1) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-m":
+    case "-map":
+      if ($#argv < 1) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-frame":
+      if ($#argv < 1) goto arg1err;
+      set frame = $argv[1]; shift;
+      breaksw
+
+    case "-mean":
+      set measure = "mean";
+      breaksw
+
+    case "-std":
+      set measure = "std";
+      breaksw
+
+    case "-vol":
+      set measure = "volume";
+      breaksw
+
+    case "-tmpdir":
+      if ($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+      set sessargs = ($sessargs $flag $argv[1]); shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#outtable == 0) then
+  echo "ERROR: must specify an output table"
+  exit 1;
+endif
+
+if($#roicfg == 0) then
+  echo "ERROR: must specify an ROI configuration"
+  exit 1;
+endif
+set ROIname     = `cat $roicfg | awk '{if($1 == "roiname") print $2}'`
+set ROIanalysis = `cat $roicfg | awk '{if($1 == "analysis") print $2}'`
+set ROIIsNative  = `getana -a $ROIanalysis -t IsNative`
+set ROIIsMNI305  = `getana -a $ROIanalysis -t IsMNI305`
+set ROIIsSurface = `getana -a $ROIanalysis -t IsSurface`
+set ROIhemi = ();
+if($ROIIsSurface) then
+  set ROIhemi = `getana -a $ROIanalysis -t hemi`
+endif
+set ROIfsd = `getana -a $ROIanalysis -t fsd`
+
+if($#analysis == 0) set analysis = $ROIanalysis
+
+if($#contrast == 0) then
+  echo "ERROR: must specify a contrast"
+  exit 1;
+endif
+if(! -e $analysis/$contrast.mat) then
+  echo "ERROR: cannot find $contrast.mat in $analysis"
+  exit 1;
+endif
+
+set fsd = `getana -a $analysis -t fsd`
+
+set IsNative  = `getana -a $analysis -t IsNative`
+set IsMNI305  = `getana -a $analysis -t IsMNI305`
+set IsSurface = `getana -a $analysis -t IsSurface`
+set hemi = ();
+if($IsSurface) then
+  set hemi = `getana -a $analysis -t hemi`
+endif
+
+if( ($IsNative  && ! $ROIIsNative) || \
+    ($IsMNI305  && ! $ROIIsMNI305) || \
+    ($IsSurface && ! $ROIIsSurface) ) then
+  echo "ERROR: the ROI configuration analysis ($ROIanalysis) has "
+  echo "       a different space from the analysis you specified ($analysis)"
+  exit 1;
+endif
+
+if($IsSurface && $hemi != $ROIhemi) then
+  echo "ERROR: the ROI configuration analysis ($ROIanalysis) has "
+  echo "       a different hemisphere ($ROIhemi) from the analysis"
+  echo "       you specified ($analysis, $hemi)"
+  exit 1;
+endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo " "
+  echo "USAGE: funcroi-table-sess"
+  echo ""
+  echo "   -o table : output table"
+  echo ""
+  echo "   -roi roicfg     : ROI configuration (created by funcroi-config)"
+  echo ""
+  echo "   -a analysisname : session-level functional analysis name"
+  echo "   -c contrast     : contrast "
+  echo "   -m map          : default ces"
+  echo "   -frame mapframe : 0-based frame (default is 0)"
+#  echo "   -hrf            : "
+  echo ""
+  echo "   -mean : compute spatail mean of map inside of ROI (default)"
+  echo "   -std : compute spatail standard deviation of map inside of ROI (probably not useful)"
+  echo ""
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "   -help"
+  echo "   -debug"
+  echo "   -tmpdir dir : use dir for temporary storage (implies -nocleanup)"
+  echo "   -nocleanup  : do not delete tmpdir"
+  echo "   -version    : print version and exit"
+  echo " "
+
+  if(! $PrintHelp ) exit 1;
+  echo " "
+  echo "$VERSION "
+  echo " "
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program creates a summary table of a region-of-interest (ROI)
+analysis. The ROI is defined by funcroi-config and may be constrained
+by a subject-specific anatomical ROI, and, possibly, a
+subject-specific functional ROI. The summary table (-o) is a simple
+text file that has a row for each session followed by the mean
+contrast (ces) inside the boundaries of the ROI.
+
+You are required to specify an analysis and a contrast eventhough you
+might have specified these when you configured the ROI with
+funcroi-config. This is because you may want to use the ROI to
+summarize different contrasts in the same or different analyses. It is
+usually wise to do this. For example, you can construct the ROI based
+on the sum of two conditions and then sumarize the values based on the
+difference between two conditions.
+
+See funcroi-config -help for more info.
+
+
