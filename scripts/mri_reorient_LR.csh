@@ -8,7 +8,7 @@
 # Created: 07-16-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_reorient_LR.csh,v 1.2 2010/07/19 19:37:27 lzollei Exp $';
+set VERSION = '$Id: mri_reorient_LR.csh,v 1.3 2010/07/19 19:39:40 lzollei Exp $';
 
 set inputvol      = ();
 set outputvol     = ();
@@ -16,6 +16,7 @@ set displayresult = 1;
 set newinputnii   = 0;
 set newoutputnii  = 0;
 set cleanup       = 0;
+set PrintHelp     = 0;
 
 # Parsing and checking the input arguments
 if($#argv == 0) goto usage_exit;
