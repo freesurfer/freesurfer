@@ -19,6 +19,8 @@ bugr \
 build_desikan_killiany_gcs.csh \
 check_subject \
 clear_fs_env.csh \
+compute_interrater_variability.csh \
+compute_label_volumes.csh \
 cor_to_minc \
 cp-dicom \
 datastruct_utils.py \
@@ -119,6 +121,7 @@ mri_mergelabels \
 mri_motion_correct \
 mri_motion_correct2 \
 mri_motion_correct.fsl \
+mri_reorient_LR.csh \
 mri-sph2surf \
 mris_preproc \
 mris_roiCircle \
