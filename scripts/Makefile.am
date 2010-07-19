@@ -243,6 +243,9 @@ twocond-views.tcl \
 wrappers.tcl \
 fsgdfPlot.tcl
 
+foodir=$(prefix)/bin
+foo_DATA=mri_cvs_requiredfiles.txt
+
 # these utilities should use our local build of tclsh, as that
 # has the bug fix to allow usage on 64bit NFS file systems
 install-exec-hook:
@@ -268,7 +271,7 @@ uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/fsfget.tcl
 
 EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
-extract_talairach_avi_QA.awk
+extract_talairach_avi_QA.awk $(foo_DATA)
 
 # notes: 
 # recon-all.2005 is the renamed recon-all-nmr, which is no longer used.
