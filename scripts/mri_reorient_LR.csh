@@ -8,7 +8,7 @@
 # Created: 07-16-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_reorient_LR.csh,v 1.1 2010/07/19 19:14:35 lzollei Exp $';
+set VERSION = '$Id: mri_reorient_LR.csh,v 1.2 2010/07/19 19:37:27 lzollei Exp $';
 
 set inputvol      = ();
 set outputvol     = ();
@@ -191,7 +191,7 @@ usage_exit:
   echo "   --i vol : input file to be reoriented"
   echo "   --o vol : reoriented input file"
   echo "Optional Arguments"
-  echo "
+  echo ""
   echo "   --disp       : display registration result using FreeView (def = 1)"
   echo "   --clean      : delete all aux and reg files (def = 0)"
   echo "   --version    : print version and exit"
