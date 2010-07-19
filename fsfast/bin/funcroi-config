@@ -1,0 +1,402 @@
+#! /bin/csh -f
+
+#
+# funcroi-config
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2010/07/19 19:44:33 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: funcroi-config,v 1.1 2010/07/19 19:44:33 greve Exp $';
+
+set roiconfig = ();
+set label = ();
+set annot = ();
+set annotlabel = ()
+set segvol = ();
+set segid = ();
+
+set analysis = ();
+set contrast = ();
+set thresh = ();
+set pct = ();
+set map = sig;
+set frame = 0;
+set fillthresh = 0;
+
+set Force = 0;
+
+set PrintHelp = 0;
+set cmdargs = ($argv);
+#### If no arguments, print usage and exit ####
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+##### Print out version info, if needed ####
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+# Strip some common extensions
+set roiname = $roiconfig
+set roiname = `basename $roiname .cfg`
+set roiname = `basename $roiname .roicfg`
+set roiname = `basename $roiname .roi`
+
+rm -f $roiconfig
+echo "# $0 $cmdargs"    >> $roiconfig
+echo "# $VERSION "      >> $roiconfig
+echo "# `date`"         >> $roiconfig
+echo ""                 >> $roiconfig
+echo "roiname $roiname" >> $roiconfig
+if($#label) echo "label $label"  >> $roiconfig
+if($#annot) echo "annot $annot $annotlabel"  >> $roiconfig
+if($#segvol) echo "seg $segvol $segid"  >> $roiconfig
+echo "fillthresh $fillthresh"  >> $roiconfig
+echo "analysis $analysis" >> $roiconfig
+if($#contrast) then
+  echo "contrast $contrast" >> $roiconfig
+  echo "sign $sign" >> $roiconfig
+  if($#thresh) echo "thresh $thresh" >> $roiconfig
+  if($#pct)    echo "pct $pct" >> $roiconfig
+  echo "map $map" >> $roiconfig
+  echo "frame $frame" >> $roiconfig
+endif
+
+echo "funcroi-config done"
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-roi":
+      if($#argv < 1) goto arg1err;
+      set roiconfig = $argv[1]; shift;
+      breaksw
+
+    case "-l":
+    case "-label":
+      if($#argv < 1) goto arg1err;
+      set label = $argv[1]; shift;
+      breaksw
+
+    case "-annot":
+      if($#argv < 2) goto arg2err;
+      set annot      = $argv[1]; shift;
+      set annotlabel = $argv[1]; shift;
+      breaksw
+
+    case "-seg":
+      if($#argv < 2) goto arg2err;
+      set segvol = $argv[1]; shift;
+      set segid  = $argv[1]; shift;
+      breaksw
+
+    case "-fillthresh":
+      if($#argv < 1) goto arg1err;
+      set fillthresh = $argv[1]; shift;
+      breaksw
+
+    case "-aparc+aseg":
+      if($#argv < 1) goto arg1err;
+      set segvol = aparc+aseg.mgz
+      set segid  = $argv[1]; shift;
+      breaksw
+
+    case "-a":
+    case "-analysis":
+      if($#argv < 1) goto arg1err;
+      set analysis = $argv[1]; shift;
+      breaksw
+
+    case "-c":
+    case "-contrast":
+      if($#argv < 1) goto arg1err;
+      set contrast = $argv[1]; shift;
+      breaksw
+
+    case "-t":
+    case "-thresh":
+      if($#argv < 1) goto arg1err;
+      set thresh = $argv[1]; shift;
+      breaksw
+
+    case "-pct":
+      if($#argv < 1) goto arg1err;
+      set pct = $argv[1]; shift;
+      breaksw
+
+    case "-sign":
+      if($#argv < 1) goto arg1err;
+      set sign = $argv[1]; shift;
+      breaksw
+
+    case "-m":
+    case "-map":
+      if($#argv < 1) goto arg1err;
+      set map = $argv[1]; shift;
+      breaksw
+
+    case "-f":
+    case "-frame":
+      if($#argv < 1) goto arg1err;
+      set frame = $argv[1]; shift;
+      breaksw
+
+    case "-force":
+      set Force = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#roiconfig == 0) then
+    echo "ERROR: must specify an ROI config name"
+    exit 1;
+  endif
+  if(-e $roiconfig && ! $Force) then
+    echo "ERROR: cannot find $roiconfig already exists"
+    exit 1;
+  endif
+
+  if($#analysis == 0) then
+    echo "ERROR: must specify an analysis"
+    exit 1;
+  endif
+  if(! -e $analysis) then
+    echo "ERROR: cannot find analysis"
+    exit 1;
+  endif
+
+  set IsSurface = `getana -a $analysis -t IsSurface`
+  set IsNative  = `getana -a $analysis -t IsNative`
+  set IsMNI305  = `getana -a $analysis -t IsMNI305`
+
+  if($#label == 0 && $#annot == 0 && $segvol == 0 ) then
+    echo "ERROR: must specify an anatomical constraint"
+    exit 1;
+  endif
+  if($#label && $#annot) then
+    echo "ERROR: cannot spec both -label and -annot"
+    exit 1;
+  endif
+  if($#label && $#segvol) then
+    echo "ERROR: cannot spec both -label and -seg"
+    exit 1;
+  endif
+  if($#annot && $#segvol) then
+    echo "ERROR: cannot spec both -annot and -seg"
+    exit 1;
+  endif
+
+  if($#annot && ! $IsSurface) then
+    echo "ERROR: annotations can only be used with surface-based analyses"
+    exit 1;
+  endif
+  if($IsSurface) then
+    if($#segvol) then
+      echo "ERROR: segmentations cannot be used with surface-based analyses"
+      exit 1;
+    endif
+  endif
+
+  if($#contrast) then
+    set mat = $analysis/$contrast.mat
+    if(! -e $mat) then
+      echo "ERROR: cannot find $mat"
+      exit 1;
+    endif
+    if($#thresh && $#pct) then
+      echo "ERROR: you cannot specify both -thresh and -pct"
+      exti 1;
+    endif
+    if($#thresh == 0 && $pct == 0) then
+      echo "ERROR: must specify a threshold or percent with a contrast"
+      exit 1;
+    endif
+    if($#sign == 0) then
+      echo "ERROR: must specify a sign (-sign) with contrast"
+      exit 1;
+    endif
+  endif
+
+  if(0) then
+  set cfg = $analysis/$roiconfig.roicfg
+  if(-e $cfg) then
+    echo "ERROR: cannot find $cfg already exists"
+    exit 1;
+  endif
+  set mat = $analysis/$roiconfig.mat
+  if(-e $mat) then
+    echo "ERROR: the ROI configuration namae already exists as a contrast."
+    echo "       Use a different name."
+    exit 1;
+  endif
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "funcroi-config : configure an ROI analysis"
+  echo ""
+  echo "  -roi roiconfig"
+  echo ""
+  echo " Define the anatomical label"
+  echo "   -label labelname"
+  echo "   -annot annotname labelname : (hemi.annotname.annot)"
+  echo "   -seg segvol segid"
+  echo "   -fillthresh fillthresh"
+  echo ""
+  echo " Define the functional constraint"
+  echo "   -analysis  analysisname : name of analysis configuration";
+  echo "   -contrast contrast name"
+  echo "   -thresh threshold "
+  echo "   -sign sign : abs, pos, neg"
+  echo "   -map  map  : (default is sig)"
+  echo "   -frame frameno : default is 0"
+  echo ""
+  echo " Other options"
+  echo ""
+  echo "   -force : delete any existing roiconfig file"
+  echo ""
+
+  if( ! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Configures a region-of-interest (ROI) based on subject-specific anatomical and, 
+possibly, functional definitions. This does not perform the analysis; it only 
+configures the parameters needed to define the ROI for later analysis with
+funcroi-sess and/or funcroi-table-sess. The output is a simple text file
+(the configuration).
+
+-roi roiconfig
+
+Name of the configuration file. Eg, left-hippocampus. Later, data files will be
+named based on this file name. If ".roicfg" is the extension, the name of the 
+roi will have this extension removed.
+
+
+SPECIFYING THE ANATOMICAL CONSTRAINT
+
+There are four possible ways to define the anatomical part of the ROI,
+two for surface-based analyses and two for volume based:
+1. Surface label (-label)
+2. Surface annotation (-annot)
+3. Volume label (also -label)
+4. Volume segmentation (-seg)
+
+You must specify an analysis to use. The analysis (-analysis) space
+must match that of the anatomical ROI space. Ie, if the anatomical ROI
+is defined by a surface annotation, then the analysis must be a
+surface-based analysis. If the anatomical ROI is defined in the volume
+using a segmentation or a volume label, then the analysis must be
+volume-based (ie, mni305 or native).
+
+The volume methods can be modified with the -fillthresh option, which
+is a number between 0 (the default) and 1. When mapping an anatomical
+volume ROI into the functional analysis space, there will be a
+difference in resolution (1mm for the anatomical and maybe 2mm for the
+analysis). This means that each analysis voxel may only be partially
+filled. The fill threshold indicates how full the analysis voxel must
+be in order for it to be considered part of the ROI. Eg, "-fillthresh
+0.5" indicates that the analysis voxel must be at least half full. 
+This will only make a difference on the edges of structures.
+
+Note that these are subject-specific anatmomical ROIs even when you
+use fsaverage or mni305 as an analysis space because the
+subject-specific ROIs are mapped into these spaces (and so stay
+subject-specific).
+
+SPECIFYING THE FUNCTIONAL CONSTRAINT
+
+The functional constraint is specified through a contrast (-contrast)
+of the given analysis along with a threshhold (-thresh) and a sign
+(-sign). You can also change the map (default is sig) and the frame
+in the map (default is 0). The functional map is thresholed at the
+given level with the given sign to create a binary mask. This mask
+is then intersected with the anatmomical constraint to create the
+final ROI.
+
+
