@@ -1,0 +1,401 @@
+#! /bin/csh -f
+
+#
+# funcroi-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2010/07/19 20:52:53 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+
+set VERSION = '$Id: funcroi-sess,v 1.1 2010/07/19 20:52:53 greve Exp $';
+
+set inputargs = ($argv);
+set analysis = ();
+set roicfg = ();
+set cleanup = 1;
+set UpdateOnly = 1;
+
+set PrintHelp = 0;
+set cmdargs = ($argv);
+#### If no arguments, print usage and exit ####
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+  exit 1;
+endif
+##### Print out version info, if needed ####
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+set SessList = `getsesspath $argv`;
+if($status || $#SessList == 0) then
+  echo $SessList
+  exit 1;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set fsd = `getana -a $analysis -t fsd`
+
+set IsNative  = `getana -a $analysis -t IsNative`
+set IsMNI305  = `getana -a $analysis -t IsMNI305`
+set IsSurface = `getana -a $analysis -t IsSurface`
+if($IsSurface) then
+  set hemi     = `getana -a $analysis -t hemi`
+  set anasubject  = `getana -a $analysis -t subject`
+endif
+set RegDOF = `getana -a $analysis -t RegDOF`
+
+set cvol = ();
+set labelfile = ();
+set segfile = ();
+set annotfile = ();
+
+### Go through each session ###
+@ nthsess = 0;
+foreach sess ($SessList)
+  @ nthsess = $nthsess + 1;
+  set sessbase = `basename $sess`;
+  set sessdir  = `dirname  $sess`;
+
+  echo "-------------------------------------------" 
+  echo "$sess " 
+  date 
+  set subject = `cat $sess/subjectname`
+
+  set anadir = $sess/$fsd/$analysis
+  if(! -e $anadir) then
+    echo "ERROR: cannot find $anadir"
+    exit 1;
+  endif
+  set ext = `stem2fmt $anadir/meanfunc`
+
+  # Get path to label, if used. Should probably put a check in
+  # to make sure this is a surface label when using a surface
+  # analysis
+  if($#label) then
+    # may or may not have a .label extension
+    set labelfile = $SUBJECTS_DIR/$subject/label/$label
+    if(! -e $labelfile) then
+      set labelfile0 = $labelfile
+      set labelfile  = $SUBJECTS_DIR/$subject/label/$label.label
+      if(! -e $labelfile) then
+        echo "ERROR: cannot find $labelfile0" 
+        exit 1;
+      endif
+    endif
+  endif
+
+  if($#segvol) then
+    set segfile = $SUBJECTS_DIR/$subject/mri/$segvol
+    if(! -e $segfile) then
+      set segfile = `stem2fname $segfile`
+      if($status) then
+        echo "$segfile" 
+        exit 1;
+      endif
+    endif
+  endif
+
+  if($#annot) then
+    set annotfile = $SUBJECTS_DIR/$subject/label/$hemi.$annot.annot
+  endif
+
+  # Contrast contingency
+  if($#contrast) then
+    set cvol = $anadir/$contrast/$map.$ext
+  endif
+
+  # This is what the output will be
+  set roivol = $anadir/$roiname.$ext
+
+  # Check whether update is needed
+  if($UpdateOnly && -e $roivol) then
+    set UpdateNeeded = `UpdateNeeded $roivol $roicfg`
+    if($#contrast && $UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $roivol $cvol`
+    if($#label    && $UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $roivol $labelfile`
+    if($#segvol   && $UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $roivol $segfile`
+    if($#annot    && $UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $roivol $annotfile`
+    if(! $UpdateNeeded) then
+      echo "$sessbase Update not needed"
+      continue;
+    endif
+  endif
+
+  # ----------------------------------
+  set LF = $anadir/$roiname.log
+  rm -f $LF
+  echo "funcroi-sess log file" >> $LF
+  echo $VERSION >> $LF
+  date          >> $LF
+  uname -a      >> $LF
+  pwd           >> $LF
+  echo $0       >> $LF
+  echo $inputargs >> $LF
+  id            >> $LF
+  # ----------------------------------
+
+  set tmpdir = $anadir/tmp.funcroi-sess.$roiname
+  mkdir -p $tmpdir
+
+  # Volume-based analysis with either segvol or label
+  if($IsMNI305 || $IsNative) then
+    # Get the registration
+    if($IsMNI305) then
+      set regfile = $tmpdir/register.dat
+      set cmd = (reg-mni305.2mm --s $subject --reg $regfile)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    endif
+    if($IsNative) set regfile = $sess/$fsd/register.dof$RegDOF.dat
+
+    if($#segvol) then
+      # Create a binary mask of the anat region
+      set anatmask = $tmpdir/anatmask.nii
+      set cmd = (mri_binarize --i $segfile --match $segid --o $anatmask)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set labelfile = ();
+    else # Must be a label
+      set anatmask = ();
+    endif
+
+    # Convert the mask/label to the analysis space
+    set template = `stem2fname $anadir/meanfunc`
+    set cmd = (mri_label2vol --temp $template --reg $regfile --o $roivol)
+    if($fillthresh != 0) set cmd = ($cmd --fillthresh $fillthresh )
+    if($#segvol) set cmd = ($cmd --seg $anatmask)
+    if($#label)  set cmd = ($cmd --label $labelfile --labvoxvol 1)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+
+  endif # mni305 or native
+
+  if($IsSurface) then
+    if($#annot) then
+      # First create a label from the annot
+      set labeldir = $tmpdir/label
+      set cmd = (mri_annotation2label --subject $subject --hemi $hemi \
+        --annotation $annot --outdir $labeldir)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set labelfile = $labeldir/$hemi.$annotlabel.label
+    endif # otherwise labelfile already set
+    if($anasubject != $subject) then
+      # map the label to the analysis subject
+      set trglabel = $tmpdir/target.label
+      set cmd = (mri_label2label --hemi $hemi \
+       --srclabel $labelfile --srcsubject $subject \
+       --trglabel $trglabel  --trgsubject $anasubject \
+       --regmethod surface)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+      set labelfile = $trglabel
+    endif
+    # Now create a binary mask
+    set cmd = (mri_label2label --hemi $hemi \
+      --srclabel $labelfile --s $anasubject \
+      --outmask $roivol  --regmethod surface \
+      --trglabel $tmpdir/junk.label)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif # surface analysis
+
+  # Merge with any functional constraint
+  if($#contrast) then
+    set cmd = (mri_binarize --i $cvol --frame $frame \
+      --mask $roivol --o $roivol)
+    if($sign == abs) set cmd = ($cmd --abs --min $thresh)
+    if($sign == pos) set cmd = ($cmd --min +$thresh)
+    if($sign == neg) set cmd = ($cmd --max -$thresh)
+    echo $cmd | tee -a $LF
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
+
+  if($cleanup) rm -rf $tmpdir
+
+end # loop over session
+
+echo "Ended   at `date`" 
+echo "funcroi-sess completed" 
+echo " "
+
+exit 0;
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-roi":
+      if($#argv < 1) goto arg1err;
+      set roicfg = $argv[1]; shift;
+      if(! -e $roicfg) then
+        echo "ERROR: cannot find $roicfg"
+        exit 1
+      endif
+      breaksw
+
+    case "-nolog":
+      set LF = /dev/null
+      breaksw
+
+    case "-update":
+      set UpdateOnly = 1;
+      breaksw
+
+    case "-force":
+    case "-noupdate":
+    case "-no-update":
+      set UpdateOnly = 0;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-d":
+    case "-df":
+      shift;
+      # ignore getsesspath arguments 
+      breaksw
+
+    case "-cwd":
+      # ignore getsesspath arguments 
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#SessList == 0) then
+    echo "ERROR: no sessions specified"
+    exit 1
+  endif
+
+  # Parse the roi configuration
+  if($#roicfg == 0) then
+    echo "ERROR: you must specify an ROI configuration"
+    exit 1
+  endif
+  set roiname  = `cat $roicfg | awk '{if($1 == "roiname") print $2}'`
+  set label    = `cat $roicfg | awk '{if($1 == "label") print $2}'`
+  set annot    = `cat $roicfg | awk '{if($1 == "annot") print $2}'`
+  if($#annot) then
+    set annotlabel = `cat $roicfg | awk '{if($1 == "annot") print $3}'`
+  endif
+  set segvol   = `cat $roicfg | awk '{if($1 == "seg") print $2}'`
+  if($#segvol) then
+    set segid  = `cat $roicfg | awk '{if($1 == "seg") print $3}'`
+  endif
+  set fillthresh = `cat $roicfg | awk '{if($1 == "fillthresh") print $2}'`
+  set analysis = `cat $roicfg | awk '{if($1 == "analysis") print $2}'`
+  set contrast = `cat $roicfg | awk '{if($1 == "contrast") print $2}'`
+  set sign     = `cat $roicfg | awk '{if($1 == "sign") print $2}'`
+  set thresh   = `cat $roicfg | awk '{if($1 == "thresh") print $2}'`
+  set pct      = `cat $roicfg | awk '{if($1 == "pct") print $2}'`
+  set map      = `cat $roicfg | awk '{if($1 == "map") print $2}'`
+  set frame    = `cat $roicfg | awk '{if($1 == "frame") print $2}'`
+
+  if(! -d $analysis ) then
+    echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: funcroi-sess"
+  echo ""
+  echo "   -roi roiconfig"
+  echo ""
+  echo "Optional Arguments:";
+  echo ""
+  echo "Session Arguments (Required)"
+  echo "   -sf sessidfile  ..."
+  echo "   -df srchdirfile ..."
+  echo "   -s  sessid      ..."
+  echo "   -d  srchdir     ..."
+  echo ""
+  echo "  -update        : only run a stage if input is newer than output (default)"
+  echo "  -force         : force reprocessing of all stages (turns off -update)"
+  echo "  -no-update     : same as -force"
+  echo ""
+exit 1;
+
+Computes the binary mask configured/specified by funcroi-config. 
+
+Example:
+
+funcroi-sess -sf sessidlist -roi lh.fusi+encode.th2.pos.roicfg
+
+This creates session/bold/ROIAnalysis/lh.fusi+encode.th2.pos.nii
+Note that the name is the name of the ROI configuration file without
+the ".roicfg" extension. This is a binary mask of the ROI which can 
+be viewed with
+
+   tksurfer fsaverage lh inflated -overlay lh.fusi+encode.th2.pos.nii -fthresh .5 
+
+This routine uses automatic updates, meaning that nothing is recomputed unless
+one of the inputs has changed. 
+
