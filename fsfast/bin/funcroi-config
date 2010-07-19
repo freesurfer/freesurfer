@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/19 19:44:33 $
-#    $Revision: 1.1 $
+#    $Date: 2010/07/19 20:53:59 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.1 2010/07/19 19:44:33 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.2 2010/07/19 20:53:59 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -399,4 +399,72 @@ given level with the given sign to create a binary mask. This mask
 is then intersected with the anatmomical constraint to create the
 final ROI.
 
+
+EXAMPLES
+
+==================================================
+Example 1. Left hemisphere fusiform
+
+# Create analysis on fsaverage left hemisphere
+mkanalysis-sess -analysis wm-sm5.lh -surface fsaverage lh
+  -paradigm workmem.par -nconditions 5 -gammafit 2.25 1.25 
+  -event-related -TR 2 -refeventdur 16  
+# Create two contrasts
+mkcontrast-sess -an wm-sm5.lh -co encode    -a 1 -c 0
+mkcontrast-sess -an wm-sm5.lh -co emot-neut -a 2 -c 3
+# Analyze
+selxavg3-sess -sf sessidlist -analysis wm-sm5.lh
+
+# Define an ROI based on an anatomical-functional constraint based on
+# the intersection of the left fusiform gyrus (defined in
+# lh.aparc.annot) with the area postively activated above sig=2 in the
+# encode contrast.
+funcroi-config  -annot aparc fusiform 
+  -analyisis wm-sm5.lh -c encode -thresh 2 -sign pos
+  -roi lh.fusi+encode.th2.pos.roicfg 
+# This instantly creates the file lh.fusi+encode.th2.pos.roicfg
+
+# Create this ROI in each subject
+funcroi-sess -sf sessidlist -roi lh.fusi+encode.th2.pos.roicfg
+# This creates session/bold/wm-sm5.lh/lh.fusi+encode.th2.pos.nii
+# Note that the name is the name of the ROI configuration file without
+# the ".roicfg" extension. This is a binary mask of the ROI which can 
+# be viewed with
+#   tksurfer fsaverage lh inflated -overlay lh.fusi+encode.th2.pos.nii -fthresh .5 
+
+# Now compute the mean contrast of the emot-neut contrast in this ROI.
+funcroi-table-sess -roi lh.fusi+encode.th2.pos.roicfg
+    -analysis wm-sm5.lh -contrast emot-neut 
+    -o lh.fusi+encode.th2.pos.emot-neut.dat
+# This creates lh.fusi+encode.th2.pos.emot-neut.dat, which is a simple
+# text file with two columns: (1) the session name, and (2) the
+# emot-neut contrast (ces.nii) averaged inside of the
+# lh.fusi+encode.th2.pos.nii mask. Note: if you do not run
+# funcroi-sess above, it will be run automatically when you run
+# funcroi-table-sess
+
+==================================================
+Example 2. Right hippocampus
+
+# Create analysis on mni305
+mkanalysis-sess -analysis wm-sm5.mni305 -mni305 2 
+  -paradigm workmem.par -nconditions 5 -gammafit 2.25 1.25 
+  -event-related -TR 2 -refeventdur 16  
+# Create two contrasts
+mkcontrast-sess -an wm-sm5.mni305 -co encode   -a 1 -c 0
+mkcontrast-sess -an wm-sm5.mni305 -co emot-neut -a 2 -c 3
+# Analyze
+selxavg3-sess -sf sessidlist -analysis wm-sm5.mni305
+
+# Define an ROI based on an anatomical-functional constraint based on
+# the intersection of the left right hippocampus (defined in
+# aseg.mgz) with the area negatively activated above sig=2 in the
+# encode contrast. Below, "53" is the index of right hippocampus
+# in $FREESURFER_HOME/FreeSurferColorLUT.txt
+funcroi-config -annot aseg.mgz 53 
+  -analyisis wm-sm5.mni305 -c encode -thresh 2 -sign neg
+  -roi right-hippo+encode.th2.neg.roicfg 
+# This instantly creates the file right-hippo+encode.th2.neg.roicfg 
+
+The next step will be to run funcroi-sess or funcroi-table-sess.
 
