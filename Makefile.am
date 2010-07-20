@@ -308,6 +308,7 @@ SUBDIRS=\
 	expat \
 	jpeg \
 	tiff \
+	xml2 \
 	rgb \
 	log \
 	gpu_utils \
@@ -337,7 +338,7 @@ SUBDIRS=\
 	scuba2 \
 	freeview \
 	qdec_glmfit \
-        cudatest
+	cudatest
 
 # build stamp and symlinks to necessary 3rd-party packages.
 # in the case of FSL, just copy the 'flirt' utility to our bin

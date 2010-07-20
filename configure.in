@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/07/13 21:21:55 $
-#    $Revision: 1.484 $
+#    $Date: 2010/07/20 18:22:40 $
+#    $Revision: 1.485 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2943,6 +2943,7 @@ AC_SUBST(TESTS_ENVIRONMENT)
 #########################################################################
 AC_OUTPUT([Makefile
            check_siemens_dir/Makefile
+           cudatest/Makefile
            dicom/Makefile
            distribution/Makefile
            distribution/average/Makefile
@@ -2971,7 +2972,7 @@ AC_OUTPUT([Makefile
            fslutils/Makefile
            glut/Makefile
            gpu_utils/Makefile
-	   opencl_algorithms/Makefile
+           opencl_algorithms/Makefile
            hiam_make_surfaces/Makefile
            hiam_register/Makefile
            hiam_make_template/Makefile
@@ -3281,7 +3282,7 @@ AC_OUTPUT([Makefile
            qdecproject/Makefile
            vtkfsio/Makefile
            vtkutils/Makefile
-	   cudatest/Makefile])
+           xml2/Makefile])
 
 ########################################################################
 
