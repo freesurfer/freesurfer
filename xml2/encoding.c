@@ -1950,11 +1950,7 @@ xmlIconvWrapper(iconv_t cd, unsigned char *out, int *outlen,
   }
   icv_inlen = *inlen;
   icv_outlen = *outlen;
-#ifdef Darwin
-  ret = iconv(cd, &icv_in, &icv_inlen, &icv_out, &icv_outlen);
-#else
   ret = iconv(cd, (ICONV_CONST char **) &icv_in, &icv_inlen, &icv_out, &icv_outlen);
-#endif
   *inlen -= icv_inlen;
   *outlen -= icv_outlen;
   if ((icv_inlen != 0) || (ret == -1))

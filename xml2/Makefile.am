@@ -2,7 +2,7 @@
 # Makefile.am
 #
 
-AM_CPPFLAGS=-fno-strict-aliasing -DHAVE_CONFIG_H -D_REENTRANT
+AM_CPPFLAGS=-DHAVE_CONFIG_H -D_REENTRANT
 
 AM_LDFLAGS=
 

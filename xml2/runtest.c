@@ -1962,12 +1962,13 @@ pushParseTest(const char *filename, const char *result,
     fprintf(stderr, "Failed to parse %s\n", filename);
     return(-1);
   }
+  void* vbase = &base;
 #ifdef LIBXML_HTML_ENABLED
   if (options & XML_PARSE_HTML)
-    htmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    htmlDocDumpMemory(doc, (xmlChar **) vbase, &size);
   else
 #endif
-    xmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+    xmlDocDumpMemory(doc, (xmlChar **) vbase, &size);
   xmlFreeDoc(doc);
   res = compareFileMem(result, base, size);
   if ((base == NULL) || (res != 0))
@@ -2028,7 +2029,8 @@ memParseTest(const char *filename, const char *result,
   {
     return(1);
   }
-  xmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+  void* vbase = &base;
+  xmlDocDumpMemory(doc, (xmlChar **) vbase, &size);
   xmlFreeDoc(doc);
   res = compareFileMem(result, base, size);
   if ((base == NULL) || (res != 0))
@@ -2152,14 +2154,15 @@ errParseTest(const char *filename, const char *result, const char *err,
     }
     else
     {
+      void* vbase = &base;
 #ifdef LIBXML_HTML_ENABLED
       if (options & XML_PARSE_HTML)
       {
-        htmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+        htmlDocDumpMemory(doc, (xmlChar **) vbase, &size);
       }
       else
 #endif
-        xmlDocDumpMemory(doc, (xmlChar **) &base, &size);
+        xmlDocDumpMemory(doc, (xmlChar **) vbase, &size);
     }
     res = compareFileMem(result, base, size);
   }

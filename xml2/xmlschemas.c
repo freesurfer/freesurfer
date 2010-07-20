@@ -8417,8 +8417,9 @@ xmlSchemaParseAttributeGroupDefinition(xmlSchemaParserCtxtPtr pctxt,
   /*
   * Parse contained attribute decls/refs.
   */
+  void* vret = &(ret->attrUses);
   if (xmlSchemaParseLocalAttributes(pctxt, schema, &child,
-                                    (xmlSchemaItemListPtr *) &(ret->attrUses),
+                                    (xmlSchemaItemListPtr *) vret,
                                     XML_SCHEMA_TYPE_ATTRIBUTEGROUP, &hasRefs) == -1)
     return(NULL);
   if (hasRefs)
@@ -12805,8 +12806,9 @@ xmlSchemaParseRestriction(xmlSchemaParserCtxtPtr ctxt, xmlSchemaPtr schema,
     /*
     * Attribute uses/declarations.
     */
+    void* vtype = &(type->attrUses);
     if (xmlSchemaParseLocalAttributes(ctxt, schema, &child,
-                                      (xmlSchemaItemListPtr *) &(type->attrUses),
+                                      (xmlSchemaItemListPtr *) vtype,
                                       XML_SCHEMA_TYPE_RESTRICTION, NULL) == -1)
       return(NULL);
     /*
@@ -12973,8 +12975,9 @@ xmlSchemaParseExtension(xmlSchemaParserCtxtPtr ctxt, xmlSchemaPtr schema,
     /*
     * Attribute uses/declarations.
     */
+    void* vtype = &(type->attrUses);
     if (xmlSchemaParseLocalAttributes(ctxt, schema, &child,
-                                      (xmlSchemaItemListPtr *) &(type->attrUses),
+                                      (xmlSchemaItemListPtr *) vtype,
                                       XML_SCHEMA_TYPE_EXTENSION, NULL) == -1)
       return(NULL);
     /*
@@ -13517,8 +13520,9 @@ xmlSchemaParseComplexType(xmlSchemaParserCtxtPtr ctxt, xmlSchemaPtr schema,
     /*
     * Parse attribute decls/refs.
     */
+    void* vtype = &(type->attrUses);
     if (xmlSchemaParseLocalAttributes(ctxt, schema, &child,
-                                      (xmlSchemaItemListPtr *) &(type->attrUses),
+                                      (xmlSchemaItemListPtr *) vtype,
                                       XML_SCHEMA_TYPE_RESTRICTION, NULL) == -1)
       return(NULL);
     /*

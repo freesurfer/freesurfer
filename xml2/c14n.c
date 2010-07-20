@@ -284,7 +284,8 @@ xmlC14NIsNodeInNodeset(xmlNodeSetPtr nodes, xmlNodePtr node, xmlNodePtr parent)
        * If the input is an XPath node-set, then the node-set must explicitly
        * contain every node to be rendered to the canonical form.
        */
-      return(xmlXPathNodeSetContains(nodes, (xmlNodePtr)&ns));
+      void* vns = (void*)&ns;
+      return(xmlXPathNodeSetContains(nodes, (xmlNodePtr)vns));
     }
   }
   return(1);
