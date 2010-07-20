@@ -31,6 +31,11 @@
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
+
+#ifdef Darwin
+#undef LIBXML_ICONV_ENABLED
+#endif
+
 #ifdef LIBXML_ICONV_ENABLED
 #ifdef HAVE_ERRNO_H
 #include <errno.h>
