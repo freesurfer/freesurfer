@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/15 15:41:59 $
- *    $Revision: 1.371 $
+ *    $Date: 2010/07/20 19:40:07 $
+ *    $Revision: 1.372 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -9174,7 +9174,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
      (ERROR_BADFILE,
       "nifti1Read(): bad magic number in %s", hdr_fname));
 
-  if (hdr.dim[0] != 3 && hdr.dim[0] != 4)
+  if (hdr.dim[0] != 2 && hdr.dim[0] != 3 && hdr.dim[0] != 4)
     ErrorReturn
     (NULL,
      (ERROR_UNSUPPORTED,
@@ -9238,7 +9238,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
     }
   }
 
-  if (hdr.dim[0] == 3) nslices = 1;
+  if (hdr.dim[0] < 4) nslices = 1;
   else                nslices = hdr.dim[4];
 
   if (hdr.scl_slope == 0)
@@ -9961,7 +9961,7 @@ static MRI *niiRead(const char *fname, int read_volume)
                        fname));
   }
 
-  if (hdr.dim[0] != 3 && hdr.dim[0] != 4)
+  if (hdr.dim[0] != 2 && hdr.dim[0] != 3 && hdr.dim[0] != 4)
   {
     ErrorReturn(NULL,
                 (ERROR_UNSUPPORTED,
@@ -10027,7 +10027,7 @@ static MRI *niiRead(const char *fname, int read_volume)
     }
   }
 
-  if (hdr.dim[0] == 3) nslices = 1;
+  if (hdr.dim[0] < 4) nslices = 1;
   else                nslices = hdr.dim[4];
 
   if (hdr.scl_slope == 0)
