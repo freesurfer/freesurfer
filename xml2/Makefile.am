@@ -103,10 +103,10 @@ libxml2_a_SOURCES=\
 check_PROGRAMS=runtest testapi testchar testdict testrecurse
 
 runtest_SOURCES=runtest.c
-runtest_LDADD=$(top_builddir)/xml2/libxml2.a -lpthread -lz -lm
+runtest_LDADD=$(top_builddir)/xml2/libxml2.a -ldl -lpthread -lz -lm
 
 testapi_SOURCES=testapi.c legacy.c
-testapi_LDADD=$(top_builddir)/xml2/libxml2.a -lpthread -lz -lm -ldl
+testapi_LDADD=$(top_builddir)/xml2/libxml2.a -ldl -lpthread -lz -lm
 
 testchar_SOURCES=testchar.c
 testchar_LDADD=$(top_builddir)/xml2/libxml2.a -lpthread -lz -lm

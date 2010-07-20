@@ -1,6 +1,6 @@
 /*************************************************************************
  *
- * $Id: trionan.c,v 1.1 2010/07/20 18:22:41 nicks Exp $
+ * $Id: trionan.c,v 1.2 2010/07/20 20:19:30 nicks Exp $
  *
  * Copyright (C) 2001 Bjorn Reese <breese@users.sourceforge.net>
  *
@@ -112,7 +112,7 @@
  * Constants
  */
 
-static TRIO_CONST char rcsid[] = "@(#)$Id: trionan.c,v 1.1 2010/07/20 18:22:41 nicks Exp $";
+static TRIO_CONST char rcsid[] = "@(#)$Id: trionan.c,v 1.2 2010/07/20 20:19:30 nicks Exp $";
 
 #if defined(USE_IEEE_754)
 
@@ -211,6 +211,7 @@ TRIO_ARGS2((number, has_mantissa),
   return is_special_quantity;
 }
 
+#if 0
 /*
  * trio_is_negative
  */
@@ -228,6 +229,7 @@ TRIO_ARGS1((number),
   }
   return is_negative;
 }
+#endif
 
 #endif /* USE_IEEE_754 */
 
