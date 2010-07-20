@@ -210,7 +210,7 @@ xmlMallocLoc(size_t size, const char * file, int line)
   if (xmlMemTraceBlockAt == ret)
   {
     xmlGenericError(xmlGenericErrorContext,
-                    "%p : Malloc(%ld) Ok\n", xmlMemTraceBlockAt, size);
+                    "%p : Malloc(%ld) Ok\n", xmlMemTraceBlockAt, (long)size);
     xmlMallocBreakpoint();
   }
 
@@ -280,7 +280,7 @@ xmlMallocAtomicLoc(size_t size, const char * file, int line)
   if (xmlMemTraceBlockAt == ret)
   {
     xmlGenericError(xmlGenericErrorContext,
-                    "%p : Malloc(%ld) Ok\n", xmlMemTraceBlockAt, size);
+                    "%p : Malloc(%ld) Ok\n", xmlMemTraceBlockAt, (long)size);
     xmlMallocBreakpoint();
   }
 
@@ -359,7 +359,7 @@ xmlReallocLoc(void *ptr,size_t size, const char * file, int line)
   {
     xmlGenericError(xmlGenericErrorContext,
                     "%p : Realloced(%ld -> %ld) Ok\n",
-                    xmlMemTraceBlockAt, p->mh_size, size);
+                    xmlMemTraceBlockAt, (long)p->mh_size, (long)size);
     xmlMallocBreakpoint();
   }
   p->mh_tag = MEMTAG;
