@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/16 16:20:10 $
-#    $Revision: 1.14 $
+#    $Date: 2010/07/21 17:11:28 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.14 2010/07/16 16:20:10 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.15 2010/07/21 17:11:28 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -101,6 +101,18 @@ set Nh  = `getana -a $analname -t npercond`;
 echo "INFO: Found $Nc Non-Null Conditions"
 echo "INFO: Found $Nh Delays"
 
+set NDeriv = 0;
+set IsGamma = `getana -a $analname -t IsGamma`;
+if($IsGamma) then
+  set GammaPars = `getana -a $analname -t gamma`;
+  set NDeriv = $GammaPars[4];
+endif
+set IsSPMHRF = `getana -a $analname -t IsSPMHRF`;
+if($IsSPMHRF) then
+  set SPMHRFPars = `getana -a $analname -t spmhrf`;
+  set NDeriv = $SPMHRFPars[1];
+endif
+
 if($#ncond != 0) then
   if($ncond != $Nc) then
     echo "ERROR: number of conditions specfied with -ncond ($ncond) does not"
@@ -149,10 +161,12 @@ echo "Condition Weights: $wcond" | tee -a $LF
 ## Set the delay weights ###
 if($nircorr == 0) then
   if($setwdelay == 0) then
-    set wdelay = ();
+    set wdelay = (1);
+    set wdval = 1;
+    if($NDeriv != 0) set wdval = 0;
     @ d = 1;
-    while($d <= $Nh)
-      set wdelay = ($wdelay 1);
+    while($d < $Nh)
+      set wdelay = ($wdelay $wdval);
       @ d = $d + 1;
     end
   else 
