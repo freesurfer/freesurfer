@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/15 19:51:47 $
- *    $Revision: 1.78 $
+ *    $Date: 2010/07/21 01:56:16 $
+ *    $Revision: 1.79 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -413,6 +413,11 @@ public:
     return m_nMainView;
   }
   
+  void SetDefaultSampleMethod( int nMethod )
+  {
+    m_nDefaultSampleMethod = nMethod;
+  }
+  
   static wxString AutoSelectLastDir( wxString lastDir, wxString subdirectory );
   
 protected:
@@ -533,6 +538,8 @@ private:
 
   bool            m_bProcessing;
   bool            m_bDoScreenshot;
+  
+  int             m_nDefaultSampleMethod;
 
   std::vector<wxArrayString> m_scripts;
 

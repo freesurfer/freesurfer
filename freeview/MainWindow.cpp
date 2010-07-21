@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/15 19:51:47 $
- *    $Revision: 1.132 $
+ *    $Date: 2010/07/21 01:56:16 $
+ *    $Revision: 1.133 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -304,6 +304,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_bDoScreenshot = false;
   m_layerVolumeRef = NULL;
   m_nPrevActiveViewId = -1;
+  m_nDefaultSampleMethod = SAMPLE_NEAREST;
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
   m_connectivity = new ConnectivityData();
@@ -2946,7 +2947,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
            vector_render = _("line"),
            tensor_display = _("no"),
            tensor_render = _("boxoid");
-  int nSampleMethod = SAMPLE_NEAREST;
+  int nSampleMethod = m_nDefaultSampleMethod;
   for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
@@ -3028,7 +3029,9 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
       }
       else if ( subOption == _("sample") )
       {
-        if ( subArgu.Lower() == _("trilinear") )
+        if ( subArgu.Lower() == _("nearest") )
+          nSampleMethod = SAMPLE_NEAREST;
+        else if ( subArgu.Lower() == _("trilinear") )
           nSampleMethod = SAMPLE_TRILINEAR;
       }
       else if ( subOption == _("opacity") )

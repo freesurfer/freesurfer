@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/15 19:51:47 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/07/21 01:56:16 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -189,7 +189,7 @@ protected:
   bool ResizeRotatedImage( MRI* mri, MRI* refTarget, vtkImageData* refImageData, double* rasPoint,
                     wxWindow* wnd, wxCommandEvent& event );
   void UpdateRASToRASMatrix();
-  MRI* CreateTargetMRI( MRI* src, MRI* refTarget, bool AllocatePixel = true );
+  MRI* CreateTargetMRI( MRI* src, MRI* refTarget, bool AllocatePixel = true, bool bForceResample = false );
 
   MATRIX* GetRotationMatrix( int nPlane, double angle, double* origin );
 

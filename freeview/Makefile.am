@@ -274,7 +274,7 @@ freeview_LDADD=\
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lvtkWidgets -lvtkHybrid \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
-	$(WXWIDGETS_LIBS)
+	$(WXWIDGETS_LIBS) -lwx_gtk2_gl-2.8
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 # and if the OS is MACOSX have a different install-hook to create a bundle
