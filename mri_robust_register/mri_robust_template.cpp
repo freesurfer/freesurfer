@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:08 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/07/21 15:53:04 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -96,7 +96,7 @@ struct Parameters
   vector <string> nltas;
   vector <string> nweights;
   bool   fixvoxel;
-  bool   keeptype;
+  bool   floattype;
   bool   lta_vox2vox;
   bool   affine;
   bool   iscale;
@@ -156,7 +156,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.22 2010/07/17 02:35:08 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.23 2010/07/21 15:53:04 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -216,7 +216,7 @@ int main(int argc, char *argv[])
   MR.setSaturation(P.sat);
   MR.setSatit(P.satit);
 	MR.setFixVoxel(P.fixvoxel);
-	MR.setKeepType(P.keeptype);
+	MR.setKeepType(!P.floattype);
 	MR.setAverage(P.average);
 	MR.setDoublePrec(P.doubleprec);
 	MR.setSubsamplesize(P.subsamplesize);
@@ -364,7 +364,7 @@ static void printUsage(void)
 //  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
 //  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
 //  cout << "  --conform conform.mgz      output conform template, 1mm vox (256^3)" << endl;
-  cout << "  --keeptype                 keep input image type in algorithm (default float)" << endl; 
+  cout << "  --floattype                use float intensities (default keep intput type)" << endl; 
   cout << "  --debug                    show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
@@ -607,9 +607,9 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 //     nargs = 0 ;
 //     cout << "Will conform images to 256^3 and voxels to 1mm!" << endl;
 //   }
-  else if (!strcmp(option, "KEEPTYPE") )
+  else if (!strcmp(option, "FLOATTYPE") )
   {
-     P.keeptype = true;
+     P.floattype = true;
      nargs = 0 ;
      cout << "Keeping image type as input!" << endl;
  	}

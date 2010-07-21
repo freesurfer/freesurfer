@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/21 14:34:54 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/07/21 15:53:04 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -93,350 +93,6 @@ void Registration::clear() // initialize registration (keep source and target an
   mov2weights.clear();
 	dst2weights.clear();
 }
-
-
-//pair < vnl_vector <double >, MRI* > Registration::computeRegistrationStepW(MRI * mriS, MRI* mriT)
-// // computes Registration single step
-// // the mri's have to be in same space
-// // returns parameter vector and float MRI with the weights (if robust, else weights ==NULL)
-// //
-// // if rigid (only trans and rot) else use affine transform
-// // if robust  use M-estimator instead of ordinary least squares
-// // if iscale add parameter for intensity scaling
-// // rtype only for rigid (2: affine restriction to rigid, 1: use rigid from robust-paper)
-// {
-// 
-// //  MATRIX *A = constructA_rt(mriS, NULL);
-// //  MATRIX *b = constructb(mriS, mriT, NULL);
-// 
-// 
-//   //cout << " compute Registration!"<< endl;
-//   //cout << "   - construct AB: " << endl;
-//   //pair < MATRIX*, VECTOR*> Ab (NULL,NULL);
-// 	vnl_matrix <double> A;
-// 	vnl_vector <double> b;
-// //  // cannot compute restriction without last p
-// //  if (rtype == 2 && lastp == NULL) rtype = 1;
-// //  cout << " rtype: " << rtype << endl;
-//   if (rigid && rtype==2)
-//   {
-//     if (verbose > 1) cout << "rigid and rtype 2 !" << endl;
-// 		assert(rtype !=2);
-// 		
-// //     // compute non rigid A
-// //     rigid = false;
-// //     Ab = constructAb(mriS,mriT);
-// //     rigid = true;
-// //     // now restrict A  (= A R(lastp) )
-// //     MATRIX* R;
-// //     if (lastp) R = constructR(lastp);
-// //     else
-// //     {
-// //       int l = 6;
-// //       if (!rigid) l = 12;
-// //       if (iscale) l++;
-// //       MATRIX* tm = MatrixAlloc(l,1,MATRIX_REAL);
-// //       MatrixClear(tm);
-// //       R = constructR(tm);
-// //       MatrixFree(&tm);
-// //       //MatrixPrintFmt(stdout,"% 2.8f",R);exit(1);
-// // 
-// //     }
-// //     MATRIX* Rt = MatrixTranspose(R,NULL);
-// //     MATRIX* nA = MatrixMultiply(Ab.first,Rt,NULL);
-// //     //MatrixPrintFmt(stdout,"% 2.8f",nA);exit(1);
-// //     MatrixFree(&Ab.first);
-// //     Ab.first = nA;
-// //     MatrixFree(&R);
-// //     MatrixFree(&Rt);
-//   }
-//   else
-//   {
-//     //cout << "Rtype  " << rtype << endl;
-// 
-//     constructAb(mriS,mriT,A,b);
-//   }
-// 
-//   if (verbose > 1) cout << "   - checking A and b for nan ..." << flush;
-// 	//if (A.has_nans())
-// 	if (!A.is_finite() || !b.is_finite() )
-// 	{
-// 	   cerr << " A or b constain NAN or infinity values!!" << endl;
-// 		 exit(1);
-// 	}
-// 		 
-// //   for (int rr = 1; rr<= Ab.first->rows; rr++)
-// //   {
-// //     for (int cc = 1; cc <= Ab.first->cols; cc++)
-// //     {
-// //       assert (!isnan(*MATRIX_RELT(Ab.first, rr, cc)));
-// //     }
-// //     assert (!isnan(*MATRIX_RELT(Ab.second, rr, 1)));
-// //   }
-//   if (verbose > 1) cout << "  DONE" << endl;
-// 	
-//   // DEBUG:
-//   //MatrixWriteTxt("A.txt",Ab.first);
-//   //MatrixWriteTxt("b.txt",Ab.second);
-// 
-//   pair < vnl_vector <double>, MRI* > pw; pw.second = NULL;
-//   Regression< double > R(A,b);
-// 	R.setVerbose(verbose);
-// 	R.setFloatSvd(floatsvd);
-//   if (robust)
-//   {
-// 		vnl_vector <double> p;
-// 		vnl_vector <double> w;
-//     if (verbose > 1) cout << "   - compute robust estimate ( sat "<<sat<<" )..." << flush;
-//     if (sat < 0) p = R.getRobustEstW(w);
-//     else p = R.getRobustEstW(w,sat);
-// 
-// //    MatrixFree(&Ab.first); // free here, to reduce max memory load
-// //    MatrixFree(&Ab.second);
-// 		A.clear();
-// 		b.clear();
-// 		
-//     if (verbose > 1) cout << "  DONE" << endl;
-//     pw.first  = p;
-//     pw.second = NULL;
-// 
-// //    cout << " pw-final  : "<< endl;
-// //    cout.precision(16);
-// //		for (unsigned int iii=0;iii<p.size(); iii++)
-// //		  cout << p[iii] << endl;;
-// //    cout.precision(8);
-// 
-//     // transform weights vector back to 3d (mri real)
-//     pw.second = MRIalloc(mriS->width, mriS->height, mriS->depth, MRI_FLOAT);
-//     MRIcopyHeader(mriS, pw.second) ;
-//     pw.second->type = MRI_FLOAT;
-//     MRIsetResolution(pw.second, mriS->xsize, mriS->ysize, mriS->zsize);
-//     int x,y,z;
-//     unsigned int count = 0;
-// 		long int val;
-// 		wcheck = 0.0;
-// 		wchecksqrt = 0.0;
-// 		// sigma = max(widht,height,depth) / 6;
-// 		double sigma   = mriS->width;
-// 		if (mriS->height > sigma) sigma = mriS->height;
-// 		if (mriS->depth  > sigma) sigma = mriS->depth;
-// 		sigma = sigma / 6.0;
-// 		double sigma22 = 2.0 * sigma * sigma;
-// 		double factor = 1.0 / sqrt(M_PI * sigma22);
-// 		double dsum = 0.0;
-// 		//MRI * gmri = MRIalloc(mriS->width,mriS->height,mriS->depth, MRI_FLOAT);
-//     for (z = 0 ; z < mriS->depth  ; z++)
-//       for (x = 0 ; x < mriS->width  ; x++)
-//         for (y = 0 ; y < mriS->height ; y++)
-//         {
-//           val = MRILvox(mri_indexing,x,y,z);
-// // 						double xx = x-0.5*mriS->width;
-// // 						double yy = y-0.5*mriS->height;
-// // 						double zz = z-0.5*mriS->depth;
-// // 						double distance2 = xx*xx+yy*yy+zz*zz;
-// // 						double gauss    = factor * exp(- distance2 / sigma22 );
-// // 						MRIFvox(gmri,x,y,z) = gauss;
-//           if (val == -10) MRIFvox(pw.second, x, y, z) = -0.5; // init value (border)
-//           else if (val == -1) MRIFvox(pw.second, x, y, z) = -1; // zero element (skipped)
-//           else
-//           {
-//             //cout << val << "  xyz: " << x << " " << y << " " << z << " " << flush;
-//             assert(val < (int)w.size());
-//             //MRIFvox(pw.second, x, y, z) = *MATRIX_RELT(pwm.second,val , 1);
-//             MRIFvox(pw.second, x, y, z) = w[val] * w[val];  // pwm.second is the square root of weights
-//             //cout << "d"<<*MATRIX_RELT(pwm.second,val , 1)<< " " << MRIFvox(pw.second, x, y, z)<< endl;
-// 						// compute distance to center:
-// 						double xx = x-0.5*mriS->width;
-// 						double yy = y-0.5*mriS->height;
-// 						double zz = z-0.5*mriS->depth;
-// 						double distance2 = xx*xx+yy*yy+zz*zz;
-// 						double gauss    = factor * exp(- distance2 / sigma22 );
-// 						dsum   += gauss;
-// 						wcheck += gauss * (1.0 - w[val] * w[val]); 
-// 						wchecksqrt += gauss * (1.0 - w[val]);  //!!!!! historical, better not use the square root (use wcheck)
-//             count++;
-//           }
-//         }
-//     //cout << endl;
-// //		MRIwrite(gmri,"mri_gauss.mgz");
-// //		MRIwrite(mri_indexing, "mri_indexing.mgz");
-// //		MRIwrite(pw.second, "mri_weights.mgz");
-// //		MRIfree(&gmri);
-//     //cout << " count-1: " << count-1 << " rows: " << pwm.second->rows << endl;
-//     assert(count == w.size());
-// 		
-// 		wcheck = wcheck / dsum;
-// 		wchecksqrt = wchecksqrt / dsum;
-// 		if (verbose > 1)
-//    		cout << "   - Weight Check: " << wcheck << "  wsqrt: " << wchecksqrt<< endl;
-// //		if (wcheck > 0.5) 
-// //		{
-// //		   cerr << " Too many voxels in the center are removed! Try to set a larger SAT value! " << endl;
-// //		   exit(1);
-// //		}
-// 
-//     //if (pwm.second != NULL) MatrixFree(&pwm.second);
-//   }
-//   else
-//   {
-//     if (verbose > 1) cout << "   - compute least squares estimate ..." << flush;
-//     pw.first = R.getLSEst();
-// //    MatrixFree(&Ab.first);
-// //    MatrixFree(&Ab.second);
-// 		A.clear();
-// 		b.clear();
-//     if (verbose > 1) cout << "  DONE" << endl;
-//     pw.second = NULL; // no weights in this case
-//   }
-// 
-// //  zeroweights = R.getLastZeroWeightPercent();
-//   zeroweights = R.getLastWeightPercent(); // does not need pointers A and B to be valid
-// 
-// //  R.plotPartialSat(name);
-// 
-// 
-// //    cout << " pw-final  : "<< endl;
-// //    MatrixPrintFmt(stdout,"% 2.8f",pw.first);
-// 
-//   return pw;
-// }
-
-// vnl_vector <double > Registration::computeRegistrationStepP(MRI * mriS, MRI* mriT)
-// // computes Registration single step
-// // retruns parameter Vector only
-// {
-//   pair < vnl_vector <double >, MRI*> pw = computeRegistrationStepW(mriS,mriT);
-//   if (pw.second)
-//   {
-//     //cout << "mrisweight widht " << pw.second->width << endl;
-//     if (debug > 0)
-//     {
-//       string n = name+string("-mriS-weights.mgz");
-//       MRIwrite(pw.second,n.c_str());
-//     }
-//     MRIfree(&pw.second);
-//   }
-//   return pw.first;
-// }
-// 
-// 
-// pair <vnl_matrix_fixed <double,4,4 >,double> Registration::computeRegistrationStep(MRI * mriS, MRI* mriT)
-// // computes Registration single step
-// // retruns 4x4 matrix and iscale value
-// {
-// //cout << "  Registration::computeRegistrationStep " << endl;
-//   vnl_vector <double > p = computeRegistrationStepP(mriS,mriT);
-// //   cout << " prows: " << p->rows << endl;
-//   pair <vnl_matrix_fixed <double,4,4 >, double> pd = convertP2Md(p);
-//   return pd;
-// }
-
-
-// pair < MATRIX*, double > Registration::computeIterativeRegistration( int n, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
-// // computes iterative registration (recomputing A and b in each step)
-// // retruns 4x4 matrix and iscale value
-// {
-//  //  if (!mriS) mriS = mri_source;
-//  //  if (!mriT) mriT = mri_target;
-//
-//    assert (mriS && mriT);
-//
-//    int MAX = n;
-//    int i;
-//    pair < MATRIX*, double > cmd(NULL,1.0);
-//    pair < MATRIX*, double > fmd(NULL,scaleinit);
-//    if (m) fmd.first = MatrixCopy(m,NULL);
-//    else if (Minit) fmd.first = MatrixCopy(Minit,NULL);
-//    else fmd.first = initializeTransform(mriS,mriT);
-//
-//   cout << "   - initial transform:\n" ;
-//   MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
-//
-//    //cout << "mris widht " << mriS->width << endl;
-//    MRI* mri_Swarp   = NULL;
-//    MRI* mri_Twarp   = NULL;
-//    MATRIX* p;
-//
-//    lastp = NULL;
-//
-//    for (i=1;i<=MAX;i++)
-//    {
-//       cout << " Iteration: " << i << endl;
-//
-//
-//        // warp source to target
-// //       cout << "   - warping source" << endl;
-// //       mri_Swarp = MRIlinearTransform(mriS, mri_Swarp, fmd.first);
-// //       mri_Twarp = MRIcopy(mriT,mri_Twarp);
-//
-//  // here maybe better to symmetrically warp both images SQRT(M)
-//  // this keeps the problem symmetric
-//          cout << "   - warping source and target (sqrt)" << endl;
-//          MATRIX * mh  = MatrixSqrt(fmd.first);
-//   // do not just assume m = mh*mh, instead compute B = mh^-1 m
-//   //  (in fact we need B^-1= m^-1 mh for transforming target):
-//   MATRIX * mi  = MatrixInverse(fmd.first,NULL);
-//   MATRIX * mhi = MatrixMultiply(mi,mh,NULL);
-//
-//          if (mri_Swarp) MRIfree(&mri_Swarp);
-//          mri_Swarp =  MRIlinearTransform(mriS,NULL, mh);
-//          if (mri_Twarp) MRIfree(&mri_Twarp);
-//          mri_Twarp =  MRIlinearTransform(mriT,NULL, mhi);
-//   MatrixFree(&mh);
-//   MatrixFree(&mi);
-//   MatrixFree(&mhi);
-//
-//        // adjust intensity
-//        if (iscale)
-//        {
-//           cout << "   - adjusting intensity ( "<< fmd.second << " ) " << endl;
-//           //MRIvalscale(mri_Swarp,mri_Swarp,fmd.second);
-//           MRIvalscale(mri_Swarp,mri_Swarp,(1.0+fmd.second)*0.5);
-//           MRIvalscale(mri_Twarp,mri_Twarp,(1.0+ 1.0/fmd.second)*0.5);
-//        }
-//
-//
-//        // compute Registration
-//        cout << "   - compute new registration" << endl;
-//  //cout << "mriswarp widht " << mri_Swarp->width << endl;
-//        p = computeRegistrationStepP(mri_Swarp,mri_Twarp);
-//        cmd = convertP2Md(p);
-//        if (lastp) MatrixFree(&lastp);
-//        lastp = p;
-//        p = NULL;
-//
-// //   DEBUG
-//      MRIwrite(mri_Swarp,"mriS-warp.mgz");
-//      MRIwrite(mri_Twarp,"mriT-warp.mgz");
-//      MRI* salign = MRIlinearTransform(mri_Swarp, NULL,cmd.first);
-//      MRIwrite(salign,"mriS-align.mgz");
-//      MRIfree(&salign);
-//
-//        // store M and d
-//        cout << "   - store transform" << endl;
-//      //cout << endl << " current : Matrix: " << endl;
-//      //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
-//      //cout << " intens: " << cmd.second << endl;
-//      MATRIX* fmdtmp = MatrixCopy(fmd.first,NULL);
-//        fmd.first = MatrixMultiply(cmd.first,fmd.first,fmd.first);
-//        fmd.second *= cmd.second;
-//        if (cmd.first != NULL) MatrixFree(&cmd.first);
-//      //cout << endl << " Matrix: " << endl;
-//      //MatrixPrintFmt(stdout,"% 2.8f",fmd.first);
-//      cout << "       difference to prev. transform: " << getFrobeniusDiff(fmd.first, fmdtmp) << endl;
-//      MatrixFree(&fmdtmp);
-//      //cout << " intens: " << fmd.second << endl;
-//
-//    }
-//
-//   MRIfree(&mri_Twarp);
-//   MRIfree(&mri_Swarp);
-//
-//   Mfinal = MatrixCopy(fmd.first, Mfinal);
-//   iscalefinal = fmd.second;
-//
-//    return fmd;
-// }
 
 void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit)
 // computes iterative registration (recomputing A and b in each step)
@@ -787,7 +443,6 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
 double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < double > & mi , double scaleinit )
 {
   if (verbose >0) cout << endl << endl << " Registration::findSaturation " << endl;
- // if (verbose >0) cout << "   - Gaussian Pyramid " << endl;
   if (!mriS) mriS = mri_source;
   if (!mriT) mriT = mri_target;
 	if (sat == -1) sat = 4.685; // set start value
@@ -831,7 +486,6 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
   if (verbose >1 ) 
   {
     cout << "   - initial transform:\n" ;
-    //MatrixPrintFmt(stdout,"% 2.8f",md.first);
 		cout << md.first << endl;
 		cout << "   - initial iscale: " << scaleinit <<endl;
   }
@@ -847,13 +501,11 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
   if (verbose >1 ) 
   {
     cout << "   - initial adjusted:\n" ;
-    //MatrixPrintFmt(stdout,"% 2.8f",md.first);
 		cout << md.first << endl;
   }
 
-
   bool iscaletmp = iscale;
-//  iscale = false; //disable intensity scaling on low resolutions
+  iscale = false; //disable intensity scaling on low resolutions
 
   int counter = 0;
   for (int r = resolution-rstart;r>=2;r--)
@@ -861,12 +513,11 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
 
     if (verbose >1 ) cout << endl << "Resolution: " << r << endl;
 
-//    if (r==2) iscale = iscaletmp; // set iscale if set by user
+    if (r==2) iscale = iscaletmp; // set iscale if set by user
 
 
     // compute Registration
     if (verbose >2 ) cout << "   - compute new iterative registration" << endl;
-    //if (cmd.first) MatrixFree(&cmd.first);
 		
 		int n = 3;
 		if (r==2) n = 1;
@@ -880,7 +531,6 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
     if (verbose > 1)
     {
       cout << endl << " current : Matrix: " << endl;
-      //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
 			cout << cmd.first << endl;
       cout << " intens: " << cmd.second << endl;
 
@@ -918,14 +568,11 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
 			 {
 			    sat = sat+0.5;
 			    if (verbose > 1) cout << "   - Weight check " << wcheck << " > "<< wlimit  << " increasing sat: " << sat << endl;
-					//MatrixFree(&md.first);
-					//md.first = MatrixCopy(firstbackup,NULL);
 					md.first = firstbackup;
 					md.second = scaleinit;
 					r = resolution-rstart+1;
 					continue;
 			  }
-			  //if (verbose > 0) cout << "   - Weight check " << wcheck << " <= "<< wlimit  << " done (it: " << counter << " , sat: " << sat << " )"<< endl;
 		}
 
     if (r !=0) // adjust matrix to higher resolution level
@@ -947,34 +594,23 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
     if (verbose > 1)
     {
       cout << endl << " Matrix: " << endl;
-      //MatrixPrintFmt(stdout,"% 2.8f",md.first);
 			cout << md.first << endl;
       cout << " intens: " << md.second << endl;
     }
   } // resolution loop
 	
-    if (verbose > 1)
-    {
-      cout << endl << "   - current transform: " << endl;
-      //MatrixPrintFmt(stdout,"% 2.8f",md.first);
-			cout << md.first << endl;
-      cout << "   - current iscale: " << md.second << endl;
-    }
+  if (verbose > 1)
+  {
+    cout << endl << "   - current transform: " << endl;
+    cout << md.first << endl;
+    cout << "   - current iscale: " << md.second << endl;
+  }
     
-		if (verbose > 0 )  cout << "   - final SAT: " << sat << " ( it: " << counter << " , weight check " << wcheck << " <= "<< wlimit << " )" <<  endl;
-	
-	
-  // cleanup
-  //if (cmd.first) MatrixFree(&cmd.first);
-  //MatrixFree(&m);
-	//MatrixFree(&firstbackup);
-  //if (md.first) MatrixFree(&md.first);
-
+  if (verbose > 0 )  cout << "   - final SAT: " << sat << " ( it: " << counter << " , weight check " << wcheck << " <= "<< wlimit << " )" <<  endl;
+		
   iscale = iscaletmp;
 
   return sat;
-
-
 }
 
 void Registration::computeMultiresRegistration (int stopres, int n,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double > &mi, double scaleinit )
@@ -1025,7 +661,6 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
   if (verbose >0 ) 
   {
     cout << "   - initial transform:\n" ;
-    //MatrixPrintFmt(stdout,"% 2.8f",md.first);
 		cout << md.first << endl;
 		cout << "   - initial iscale: " << scaleinit <<endl;
   }
@@ -1036,25 +671,14 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
     for (int rr = 0;rr<3;rr++)
       md.first[rr][3]  = 0.5 *  md.first[rr][3];
 			
-	 vnl_matrix_fixed <double, 4, 4>  firstbackup = md.first;
+	vnl_matrix_fixed <double, 4, 4>  firstbackup = md.first;
 
   if (verbose >1 ) 
   {
     cout << "   - initial adjusted:\n" ;
-    //MatrixPrintFmt(stdout,"% 2.8f",md.first);
 		cout << md.first << endl;
   }
 
-
-//     MRI* falign = MRIlinearTransform(gpS[resolution-rstart], NULL,md.first);
-//     MRIwrite(falign,"mriS-lowres-initaligned.mgz");
-//     MRIfree(&falign);
-//     MRIwrite(gpT[resolution-rstart],"mriT-lowres.mgz");
-
-
-//  md.second = 1; //??
-//  MRI* mri_Swarp   = NULL;
-//  MRI* mri_Twarp   = NULL;
 
   bool iscaletmp = iscale;
 //  iscale = false; //disable intensity scaling on low resolutions
@@ -1213,7 +837,6 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
     if (verbose > 1)
     {
       cout << endl << " Matrix: " << endl;
-      //MatrixPrintFmt(stdout,"% 2.8f",md.first);
 			cout << md.first << endl;
       cout << " intens: " << md.second << endl;
     }
@@ -1222,26 +845,14 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
     if (verbose == 1)
     {
       cout << endl << "   - final transform: " << endl;
-      //MatrixPrintFmt(stdout,"% 2.8f",md.first);
 			cout << md.first << endl;
       cout << "   - final iscale: " << md.second << endl;
     }
 	
 	
-  // cleanup
-  //if (cmd.first) MatrixFree(&cmd.first);
-  //MatrixFree(&m);
-	//MatrixFree(&firstbackup);
-  //MRIfree(&mri_Swarp);
-  //MRIfree(&mri_Twarp);
-
   Mfinal = md.first;
   iscalefinal = md.second;
   
-  //return md;
-
-
-
 }
 
 // update this to vnl:

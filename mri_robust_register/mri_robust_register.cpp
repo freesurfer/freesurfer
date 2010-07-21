@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:08 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/07/21 15:53:04 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -95,7 +95,7 @@ struct Parameters
   bool   satest;
   bool   nomulti;
   bool   conform;
-  bool   keeptype;
+  bool   floattype;
   bool   lta_vox2vox;
   bool   affine;
   bool   iscale;
@@ -129,7 +129,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.34 2010/07/17 02:35:08 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.35 2010/07/21 15:53:04 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -807,7 +807,7 @@ static void printUsage(void)
   cout << "  --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
   cout << "  --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
 //  cout << "  --conform              conform output volumes 1mm uchar vox (256^3)" << endl; // not implemented
-  cout << "  --keeptype             keep input image type in algorithm (default float)" << endl; 
+  cout << "  --floattype            use float intensities (default keep input type)" << endl; 
   cout << "  --debug                create debug hw-images (default: no debug files)" << endl;
   cout << "  --verbose              0 quiet, 1 normal (default), 2 detail" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
@@ -1033,7 +1033,7 @@ static void initRegistration(Registration & R, Parameters & P)
     MRIfree(&mri_mask) ;
   }
 
-  R.setSourceAndTarget(mri_mov,mri_dst,P.keeptype);
+  R.setSourceAndTarget(mri_mov,mri_dst,!P.floattype);
   MRIfree(&mri_mov);
   MRIfree(&mri_dst);
 
@@ -1260,9 +1260,9 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Will conform images to 256^3 and voxels to 1mm!" << endl;
   }
-  else if (!strcmp(option, "KEEPTYPE") )
+  else if (!strcmp(option, "FLOATTYPE") )
   {
-    P.keeptype = true;
+    P.floattype = true;
     nargs = 0 ;
     cout << "Keeping image type as input!" << endl;
   }
