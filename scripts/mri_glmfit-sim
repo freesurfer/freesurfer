@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.26 2010/07/07 03:52:32 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.27 2010/07/21 16:24:45 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -22,6 +22,7 @@ set UniformPDFMax = ();
 set DiagCluster = 0;
 set PBNodeType = ();
 set UseCache = 0;
+set PermForce = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -123,6 +124,10 @@ while($#glmfitcmd)
   case "--label"
     set label = $glmfitcmd[1]; shift glmfitcmd;
     breaksw
+  case "--perm-force"
+    # Probably never gets here
+    set PermForce = 1;
+    breaksw
   case "--y"
     set y = $glmfitcwd/$glmfitcmd[1]; shift glmfitcmd;
     if(! -e $y) then
@@ -154,7 +159,6 @@ while($#glmfitcmd)
   case "--allowsubjrep"
   case "--illcond"
   case "--debug"
-  case "--perm-force"
   case "--synth"
   case "--cortex"
   case "dods"
@@ -237,12 +241,20 @@ set StartDate = `date`
 
 # Create log file
 if($#LF == 0) then
-  set LF = $glmdir/$csdbase.mri_glmfit-sim.log
+  if($UseCache == 0) then
+    set LF = $glmdir/$csdbase.mri_glmfit-sim.log
+  else
+    set LF = $glmdir/cache.mri_glmfit-sim.log
+  endif
   rm -f $LF
 endif
-#pwd | tee -a $LF
+echo "log file is $LF"
+
+echo "" | tee -a $LF
+echo "cd `pwd`" | tee -a $LF
 echo $0 | tee -a $LF
 echo $inputargs | tee -a $LF
+echo "" | tee -a $LF
 echo $VERSION  | tee -a $LF
 date | tee -a $LF
 uname -a | tee -a $LF
@@ -315,6 +327,7 @@ if($DoSim) then
     if($#X)    set cmd = ($cmd --X $X)
     if($#wls)  set cmd = ($cmd --wls $wls)
     if($#label) set cmd = ($cmd --label $label)
+    if($PermForce) set cmd = ($cmd --perm-force)
     if($anattype == surface) set cmd = ($cmd --surf $subject $hemi $surf);
     if($#Seed) set cmd = ($cmd --seed $Seed);
     if($UseUniformPDF) set cmd = ($cmd --uniform $UniformPDFMin $UniformPDFMax);
@@ -594,11 +607,14 @@ while( $#argv != 0 )
       set fwhmOverride = $argv[1]; shift;
       breaksw
 
+    case "--perm-force":
+      set PermForce = 1;
+      breaksw
+
     case "--tmp":
       if($#argv < 1) goto arg1err;
       set tmpdir = $argv[1]; shift;
       breaksw
-
 
     case "--cwpvalthresh":
       if($#argv < 1) goto arg1err;
