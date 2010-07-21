@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/15 19:51:47 $
- *    $Revision: 1.50 $
+ *    $Date: 2010/07/21 19:00:06 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -157,6 +157,8 @@ public:
     m_nSampleMethod = nSampleMethod;
   }
 
+  void SetConform( bool bConform );
+  
   bool GetVoxelValueRange( const double* pt0, const double* pt1, 
                            int nPlane, double* range_out );
   
@@ -275,6 +277,7 @@ protected:
   bool    m_bResampleToRAS;
   bool    m_bReorient;
   int     m_nSampleMethod;
+  bool    m_bConform;
   
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 01:56:16 $
- *    $Revision: 1.53 $
+ *    $Date: 2010/07/21 19:00:06 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -67,6 +67,7 @@ FSVolume::FSVolume( FSVolume* ref ) :
     m_bResampleToRAS( false ),
     m_bBoundsCacheDirty( true ),
     m_nInterpolationMethod( SAMPLE_NEAREST ),
+    m_bConform( false ),
     m_bCrop( false )
 {
   m_imageData = NULL;
@@ -175,7 +176,7 @@ bool FSVolume::MRIRead( const char* filename, const char* reg_filename, wxWindow
   
     if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
     {
-      m_MRIOrigTarget = CreateTargetMRI( m_MRI, m_volumeRef->m_MRIOrigTarget, false );
+      m_MRIOrigTarget = CreateTargetMRI( m_MRI, m_volumeRef->m_MRIOrigTarget, false, m_bConform );
     } 
   
     // free MRI pixel space
@@ -838,7 +839,7 @@ int FSVolume::RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
   return r;
 }
 
-MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, bool bForceResample )
+MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, bool bConform )
 {
   MRI* mri = NULL;
   float cornerFactor[3];
@@ -870,7 +871,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
       }
     }
   }
-  if ( bForceResample )
+  if ( bConform )
   {
     int dim[3];
     for ( int i = 0; i < 3; i++ )
@@ -1008,7 +1009,7 @@ bool FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
     }
     MRIcopyHeader( mri, rasMRI );
   }
-  else if ( m_bResampleToRAS )
+  else if ( m_bResampleToRAS && ( !m_volumeRef || !m_bConform ) )
   {
     this->GetBounds( bounds );
     for ( int i = 0; i < 3; i++ )
@@ -1123,7 +1124,7 @@ bool FSVolume::MapMRIToImage( wxWindow* wnd, wxCommandEvent& event )
     }
     else
     {
-      rasMRI = CreateTargetMRI( m_MRI, m_volumeRef->m_MRITarget, true, false );
+      rasMRI = CreateTargetMRI( m_MRI, m_volumeRef->m_MRITarget, true, m_bConform );
       if ( rasMRI == NULL )
       {
         cerr << "Can not allocate memory for volume transformation" << endl;
@@ -2137,6 +2138,11 @@ void FSVolume::TkRegToNativeRAS( const double* pos_in, double* pos_out )
 void FSVolume::SetInterpolationMethod( int nMethod )
 {
   m_nInterpolationMethod = nMethod;
+}
+
+void FSVolume::SetConform( bool bConform )
+{
+  m_bConform = bConform;
 }
 
 int FSVolume::GetDataType()

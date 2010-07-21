@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/15 19:51:47 $
- *    $Revision: 1.81 $
+ *    $Date: 2010/07/21 19:00:06 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -81,6 +81,7 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
     m_bResampleToRAS( false ),
     m_bReorient( false ),
     m_nSampleMethod( SAMPLE_NEAREST ),
+    m_bConform( false ),
     m_currentSurfaceRegion( NULL )
 {
   m_strTypeNames.push_back( "MRI" );
@@ -175,6 +176,12 @@ const char* LayerMRI::GetOrientationString()
     return "RAS";
 }
 
+
+void LayerMRI::SetConform( bool bConform )
+{
+  m_bConform = bConform;
+}
+
 bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )
 {
   if ( m_volumeSource )
@@ -182,6 +189,7 @@ bool LayerMRI::LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event )
 
   m_volumeSource = new FSVolume( m_volumeRef );
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
+  m_volumeSource->SetConform( m_bConform );
   m_volumeSource->SetInterpolationMethod( m_nSampleMethod );
 
   if ( !m_volumeSource->MRIRead(  m_sFilename.c_str(),

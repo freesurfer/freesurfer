@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 01:56:16 $
- *    $Revision: 1.133 $
+ *    $Date: 2010/07/21 19:00:06 $
+ *    $Revision: 1.134 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -305,6 +305,7 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_layerVolumeRef = NULL;
   m_nPrevActiveViewId = -1;
   m_nDefaultSampleMethod = SAMPLE_NEAREST;
+  m_bDefaultConform = false;
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
   m_connectivity = new ConnectivityData();
@@ -835,7 +836,8 @@ void MainWindow::LoadVolume()
 
 void MainWindow::LoadVolumeFile( const wxString& filename, 
                                  const wxString& reg_filename, 
-                                 bool bResample, int nSampleMethod )
+                                 bool bResample, int nSampleMethod,
+                                 bool bConform )
 {
 // cout << bResample << endl;
   m_strLastDir = MyUtils::GetNormalizedPath( filename );
@@ -844,6 +846,7 @@ void MainWindow::LoadVolumeFile( const wxString& filename,
   LayerMRI* layer = new LayerMRI( m_layerVolumeRef );
   layer->SetResampleToRAS( bResample );
   layer->SetSampleMethod( nSampleMethod );
+  layer->SetConform( bConform );
   layer->GetProperties()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
   wxFileName fn( filename );
   fn.Normalize();
@@ -962,7 +965,7 @@ void MainWindow::OnFileRecent( wxCommandEvent& event )
 {
   wxString fn( m_fileHistory->GetHistoryFile( event.GetId() - wxID_FILE1 ) );
   if ( !fn.IsEmpty() )
-    this->LoadVolumeFile( fn, _(""), m_bResampleToRAS );
+    this->LoadVolumeFile( fn, _(""), m_bResampleToRAS, m_nDefaultSampleMethod, m_bDefaultConform );
 }
 
 LayerCollection* MainWindow::GetLayerCollection( std::string strType )
@@ -2948,6 +2951,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
            tensor_display = _("no"),
            tensor_render = _("boxoid");
   int nSampleMethod = m_nDefaultSampleMethod;
+  bool bConform = m_bDefaultConform;
   for ( size_t i = 1; i < sa_vol.GetCount(); i++ )
   {
     wxString strg = sa_vol[i];
@@ -3148,7 +3152,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
     m_scripts.insert( m_scripts.begin(), script );  
   }
   
-  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod );
+  LoadVolumeFile( fn, reg_fn, bResample, nSampleMethod, bConform );
 }
 
 void MainWindow::CommandSetColorMap( const wxArrayString& sa )

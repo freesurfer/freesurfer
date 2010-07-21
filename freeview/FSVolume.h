@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 01:56:16 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/07/21 19:00:06 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -179,6 +179,8 @@ public:
   
   vtkTransform* GetTransform();
   
+  void SetConform( bool bConform );
+  
 protected:
   bool LoadMRI( const char* filename, const char* reg_filename, wxWindow* wnd, wxCommandEvent& event );
   bool LoadRegistrationMatrix( const char* filename );
@@ -189,7 +191,7 @@ protected:
   bool ResizeRotatedImage( MRI* mri, MRI* refTarget, vtkImageData* refImageData, double* rasPoint,
                     wxWindow* wnd, wxCommandEvent& event );
   void UpdateRASToRASMatrix();
-  MRI* CreateTargetMRI( MRI* src, MRI* refTarget, bool AllocatePixel = true, bool bForceResample = false );
+  MRI* CreateTargetMRI( MRI* src, MRI* refTarget, bool AllocatePixel = true, bool bConform = false );
 
   MATRIX* GetRotationMatrix( int nPlane, double angle, double* origin );
 
@@ -223,6 +225,7 @@ protected:
   float     m_RASBounds[6];
   
   int       m_nInterpolationMethod;
+  bool      m_bConform;
   char      m_strOrientation[4];
   
   double    m_dBounds[6];

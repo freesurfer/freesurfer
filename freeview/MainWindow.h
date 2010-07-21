@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 01:56:16 $
- *    $Revision: 1.79 $
+ *    $Date: 2010/07/21 19:00:06 $
+ *    $Revision: 1.80 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -280,8 +280,9 @@ public:
 
   void LoadVolumeFile ( const wxString& fn, 
 		       const wxString& reg_fn, 
-		       bool bResample = true, 
-           int nSampleMethod = 0 );
+		       bool bResample = false, 
+           int nSampleMethod = 0,
+           bool bConform = false );
   void LoadDTIFile    ( const wxString& fn_vector, 
 		    const wxString& fn_fa, 
 		    const wxString& reg_fn, 
@@ -418,6 +419,11 @@ public:
     m_nDefaultSampleMethod = nMethod;
   }
   
+  void SetDefaultConform( bool bConform )
+  {
+    m_bDefaultConform = bConform;
+  }
+  
   static wxString AutoSelectLastDir( wxString lastDir, wxString subdirectory );
   
 protected:
@@ -540,6 +546,7 @@ private:
   bool            m_bDoScreenshot;
   
   int             m_nDefaultSampleMethod;
+  bool            m_bDefaultConform;
 
   std::vector<wxArrayString> m_scripts;
 
