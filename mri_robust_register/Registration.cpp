@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:07 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/07/21 14:34:54 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -516,6 +516,8 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
     // compute Registration
     if (verbose >1) cout << "   - compute new registration" << endl;
     cmd = RStep.computeRegistrationStep(mri_Swarp,mri_Twarp);
+		wcheck = RStep.getwcheck();
+		wchecksqrt = RStep.getwchecksqrt();
     // ========================================================
 
     // store M and d
@@ -595,6 +597,8 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
     // compute Registration
     if (verbose >1) cout << "   - compute new registration" << endl;
     cmd = RStep.computeRegistrationStep(mri_Swarp,mri_Twarp);
+		wcheck = RStep.getwcheck();
+		wchecksqrt = RStep.getwchecksqrt();
     // ========================================================
 
     // store M and d
@@ -849,7 +853,7 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
 
 
   bool iscaletmp = iscale;
-  iscale = false; //disable intensity scaling on low resolutions
+//  iscale = false; //disable intensity scaling on low resolutions
 
   int counter = 0;
   for (int r = resolution-rstart;r>=2;r--)

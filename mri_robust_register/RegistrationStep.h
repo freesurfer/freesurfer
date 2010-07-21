@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:07 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/07/21 14:34:55 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -528,23 +528,21 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
      ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A and b") ;
 	
 	}
-//   MATRIX* A = MatrixAlloc(counti,pnum,MATRIX_REAL);
-//   VECTOR* b = MatrixAlloc(counti,1,MATRIX_REAL);
-//   if (A == NULL || b == NULL) 
-// 	{
-// 	  std::cout << std::endl;
-//     ErrorExit(ERROR_NO_MEMORY,"Registration::constructAB could not allocate memory for A and b") ;
-// 	}
   if (verbose > 1) std::cout << " done! " << std::endl;
 	double maxmu = 5* amu + 7 * bmu;
-	if (floatsvd) maxmu = amu + 3*bmu + 2*(amu+bmu);
-  if (verbose > 1 ) std::cout << "         (MAX usage in SVD will be > " << maxmu << "Mb mem + 6 MRI) " << std::endl;
+	string fstr = "";
+	if (floatsvd) 
+	{
+	   maxmu = amu + 3*bmu + 2*(amu+bmu);
+		 fstr = "-float";
+	}
+  if (verbose > 1 ) std::cout << "         (MAX usage in SVD"<<fstr<<" will be > " << maxmu << "Mb mem + 6 MRI) " << std::endl;
   if (maxmu > 3800)
 	{
 	  std::cout << "     -- WARNING: mem usage large: " << maxmu <<"Mb mem + 6 MRI" << std::endl;
-		string fsvd;
-		if (!floatsvd) fsvd = "--floatsvd and/or ";
-	  std::cout << "          Maybe use "<<fsvd<< "--subsample <int> " << std::endl;
+		//string fsvd;
+		//if (doubleprec) fsvd = "remove --doubleprec and/or ";
+	  std::cout << "          Maybe use --subsample <int> " << std::endl;
 	}
 
   // Loop and construct A and b
@@ -606,9 +604,6 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 				int dof = 0;
         if (transonly)
         {
-//           *MATRIX_RELT(A, count, 1) = MRIFvox(fx, x, y, z);
-//           *MATRIX_RELT(A, count, 2) = MRIFvox(fy, x, y, z);
-//           *MATRIX_RELT(A, count, 3) = MRIFvox(fz, x, y, z);
           A[count][0] = MRIFvox(fx, x, y, z);
           A[count][1] = MRIFvox(fy, x, y, z);
           A[count][2] = MRIFvox(fz, x, y, z);
@@ -616,12 +611,6 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
         }
         else if (rigid)
         {
-//           *MATRIX_RELT(A, count, 1) = MRIFvox(fx, x, y, z);
-//           *MATRIX_RELT(A, count, 2) = MRIFvox(fy, x, y, z);
-//           *MATRIX_RELT(A, count, 3) = MRIFvox(fz, x, y, z);
-//           *MATRIX_RELT(A, count, 4) = MRIFvox(fz, x, y, z)*yp1 - MRIFvox(fy, x, y, z)*zp1;
-//           *MATRIX_RELT(A, count, 5) = MRIFvox(fx, x, y, z)*zp1 - MRIFvox(fz, x, y, z)*xp1;
-//           *MATRIX_RELT(A, count, 6) = MRIFvox(fy, x, y, z)*xp1 - MRIFvox(fx, x, y, z)*yp1;
           A[count][0] =  MRIFvox(fx, x, y, z);
           A[count][1] =  MRIFvox(fy, x, y, z);
           A[count][2] =  MRIFvox(fz, x, y, z);
@@ -633,18 +622,6 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
         }
         else // affine
         {
-//           *MATRIX_RELT(A, count, 1)  = MRIFvox(fx, x, y, z)*xp1;
-//           *MATRIX_RELT(A, count, 2)  = MRIFvox(fx, x, y, z)*yp1;
-//           *MATRIX_RELT(A, count, 3)  = MRIFvox(fx, x, y, z)*zp1;
-//           *MATRIX_RELT(A, count, 4)  = MRIFvox(fx, x, y, z);
-//           *MATRIX_RELT(A, count, 5)  = MRIFvox(fy, x, y, z)*xp1;
-//           *MATRIX_RELT(A, count, 6)  = MRIFvox(fy, x, y, z)*yp1;
-//           *MATRIX_RELT(A, count, 7)  = MRIFvox(fy, x, y, z)*zp1;
-//           *MATRIX_RELT(A, count, 8)  = MRIFvox(fy, x, y, z);
-//           *MATRIX_RELT(A, count, 9)  = MRIFvox(fz, x, y, z)*xp1;
-//           *MATRIX_RELT(A, count, 10) = MRIFvox(fz, x, y, z)*yp1;
-//           *MATRIX_RELT(A, count, 11) = MRIFvox(fz, x, y, z)*zp1;
-//           *MATRIX_RELT(A, count, 12) = MRIFvox(fz, x, y, z);
           A[count][0]  = MRIFvox(fx, x, y, z)*xp1;
           A[count][1]  = MRIFvox(fx, x, y, z)*yp1;
           A[count][2]  = MRIFvox(fx, x, y, z)*zp1;

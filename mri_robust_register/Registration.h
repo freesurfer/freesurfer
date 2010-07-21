@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:07 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/07/21 14:34:54 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -262,7 +262,7 @@ private:
   vnl_matrix < double> dst2weights;
 	double wcheck; // set from computeRegistrationStepW
 	double wchecksqrt; // set from computeRegistrationStepW
-  double zeroweights;// set from computeRegistrationStepW
+//  double zeroweights;// set from computeRegistrationStepW
 
   // help vars
 //	vnl_vector < double > lastp;
