@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/04/15 19:03:33 $
- *    $Revision: 1.166 $
+ *    $Author: greve $
+ *    $Date: 2010/07/21 20:33:48 $
+ *    $Revision: 1.167 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -194,7 +194,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $", 
+     "$Id: mri_convert.c,v 1.167 2010/07/21 20:33:48 greve Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -301,7 +301,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $", 
+      "$Id: mri_convert.c,v 1.167 2010/07/21 20:33:48 greve Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -329,6 +329,10 @@ int main(int argc, char *argv[]) {
     }
     else if(strcmp(argv[i], "--ascii+crsf") == 0) {
       ascii_flag = 2;
+      force_out_type_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--ascii-fcol") == 0) {
+      ascii_flag = 3;
       force_out_type_flag = TRUE;
     }
     else if(strcmp(argv[i], "--invert_contrast") == 0)
@@ -1331,7 +1335,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.166 2010/04/15 19:03:33 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.167 2010/07/21 20:33:48 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2428,16 +2432,29 @@ int main(int argc, char *argv[]) {
   if(ascii_flag){
     printf("Writing as ASCII to %s\n",out_name);
     fptmp = fopen(out_name,"w");
-    for(f=0; f < mri->nframes; f++){
+    if(ascii_flag == 1 || ascii_flag == 2){
+      for(f=0; f < mri->nframes; f++){
+	for(s=0; s < mri->depth; s++){
+	  for(r=0; r < mri->height; r++){
+	    for(c=0; c < mri->width; c++){
+	      if(ascii_flag == 1)
+		fprintf(fptmp,"%lf \n",MRIgetVoxVal(mri,c,r,s,f));
+	      if(ascii_flag == 2)
+		fprintf(fptmp,"%3d %3d %3d %3d %lf \n",c,r,s,f,MRIgetVoxVal(mri,c,r,s,f));
+	    }
+	  }
+	}
+      }
+    }
+    if(ascii_flag == 3){
       for(s=0; s < mri->depth; s++){
-        for(r=0; r < mri->height; r++){
-          for(c=0; c < mri->width; c++){
-	    if(ascii_flag == 1)
-	      fprintf(fptmp,"%lf \n",MRIgetVoxVal(mri,c,r,s,f));
-	    if(ascii_flag == 2)
-	      fprintf(fptmp,"%3d %3d %3d %3d %lf \n",c,r,s,f,MRIgetVoxVal(mri,c,r,s,f));
-          }
-        }
+	for(r=0; r < mri->height; r++){
+	  for(c=0; c < mri->width; c++){
+	    for(f=0; f < mri->nframes; f++)
+	      fprintf(fptmp,"%lf ",MRIgetVoxVal(mri,c,r,s,f));
+	    fprintf(fptmp,"\n");
+	  }
+	}
       }
     }
     fclose(fptmp);
@@ -2795,6 +2812,7 @@ void usage(FILE *stream) {
   printf("    column of data. The fastest dimension will be col, then row, \n");
   printf("    then slice, then frame.\n");
   printf("--ascii+crsf : same as --ascii but includes col row slice and frame\n");
+  printf("--ascii-fcol : same as --ascii but each frame is a separate column in output\n");
   printf("\n");
   printf("Other options\n");
   printf("\n");
