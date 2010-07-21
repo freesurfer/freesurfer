@@ -100,11 +100,17 @@ if [ "x$SGE_ROOT" = "x" ] ; then
 	. /usr/local/sge/default/common/settings.sh
     elif [ -d /pbs ] ; then
 	METHOD=PBS
-	if [ "x$MYPBSQUEUE" = "x" ] ; then
+	if [ "x$MYPBSQUEUE" = "x" ] && [ `hostname` = "seychelles" ] ; then
 	    MYPBSQUEUE=private
+	fi
+	if [ "x$MYPBSQUEUE" = "x" ] && [ `hostname` = "launchpad" ] ; then
+	    MYPBSQUEUE=default
 	fi
 	if [ "x$MYPBSMAXJOBS" = "x" ] ; then
 	    MYPBSMAXJOBS=40
+	fi
+	if [ "x$MYPBSWAIT" = "x" ] ; then
+	    MYPBSWAIT=20
 	fi
     else
 	METHOD=NONE
@@ -171,6 +177,7 @@ $command -a darwin regscript rawdata outputdir ...
   -m <mailoptions>      Change the SGE mail options, see qsub for details
   -F                    Use flags embedded in scripts to set SGE queuing options
   -v                    Verbose mode.
+  -s <shell-path>       Change the PBS shell option, see pbsubmit for details
 
   This is a modified version of FSL's fsl_sub that is compatible with
   the PBS queueing system running on seychelles. The above command line options
@@ -186,7 +193,7 @@ if [ $nargs -eq 0 ] ; then
   usage
 fi
 
-set -- `getopt T:q:a:p:M:j:t:N:Fvm:l: $*`
+set -- `getopt T:q:a:p:M:j:t:N:Fvm:l:s: $*`
 result=$?
 if [ $result != 0 ] ; then
   echo "What? Your arguments make no sense!"
@@ -288,6 +295,9 @@ while [ $1 != -- ] ; do
     -m)
       MailOpts=$2;
       shift;;
+    -s)
+      pbs_shell="-s $2";
+      shift;;
     -l)
       LogOpts="-o $2 -e $2";
       LogDir="${2}/";
@@ -386,11 +396,14 @@ EOF
 	    fi
 	    cmdline=$@
 	    if [ $verbose -eq 1 ] ; then 
-		echo pbsubmit -o \"$qsubopts\" -c \"$cmdline\" >&2
+		echo pbsubmit -o \"$qsubopts\" -c \"$cmdline\" $pbs_shell >&2
 	    fi
-	    jobid=`exec pbsubmit -o "$qsubopts" -c "$cmdline" | tail -n 1`
+	    jobid=`exec pbsubmit -o "$qsubopts" -c "$cmdline" $pbs_shell | tail -n 1`
 	    echo $jobid | awk -v FS=. '{print $1}'
 	else
+	    if [ "x$LogDir" != x ] ; then
+		cp /dev/null $LogDir/joblist
+	    fi
 	    # Split jobs in batches so that there are no more than
 	    # MYPBSMAXJOBS jobs running at the any given time
 	    nbatch=$(($tasks/$MYPBSMAXJOBS + ($tasks%$MYPBSMAXJOBS > 0)))
@@ -408,15 +421,16 @@ EOF
 		    let lineno=j+1
 		    cmdline=`sed -n -e "$lineno p" $taskfile`
 		    if [ $verbose -eq 1 ] ; then 
-			echo pbsubmit -o \"$qsubopts\" -c \"$cmdline\" >&2
+			echo pbsubmit -o \"$qsubopts\" -c \"$cmdline\" $pbs_shell >&2
 		    fi
-		    jobid=`exec pbsubmit -o "$qsubopts" -c "$cmdline" | tail -n 1`
+		    jobid=`exec pbsubmit -o "$qsubopts" -c "$cmdline" $pbs_shell | tail -n 1`
 		    jobid=`echo $jobid | awk -v FS=. '{print $1}'`
 		    pbs_hold_previous="-W depend=afterok:$jobid"
 		    if [ "x$LogDir" != x ] ; then
 			echo ${JobName}_$taskno $jobid >> $LogDir/joblist
 		    fi
 		    let j=j+ninbatch
+		    sleep $MYPBSWAIT
 		done
 		pbs_hold_last="$pbs_hold_last $jobid"
 		let k=k+1
