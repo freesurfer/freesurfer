@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/09/25 20:25:51 $
- *    $Revision: 1.71 $
+ *    $Author: greve $
+ *    $Date: 2010/07/21 20:21:23 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,7 +25,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.71 $";
+char *MRI_INFO_VERSION = "$Revision: 1.72 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +58,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.71 2009/09/25 20:25:51 mreuter Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.72 2010/07/21 20:21:23 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -88,6 +88,7 @@ static int PrintVox2RAS = 0;
 static int PrintRAS2Vox = 0;
 static int PrintRASGood = 0;
 static int PrintVox2RAStkr = 0;
+static int PrintRAS2Voxtkr = 0;
 static int PrintVox2RASfsl = 0;
 static int PrintTkr2Scanner = 0;
 static int PrintScanner2Tkr = 0;
@@ -198,6 +199,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--vox2ras"))   PrintVox2RAS = 1;
     else if (!strcasecmp(option, "--ras2vox"))   PrintRAS2Vox = 1;
     else if (!strcasecmp(option, "--vox2ras-tkr")) PrintVox2RAStkr = 1;
+    else if (!strcasecmp(option, "--ras2vox-tkr")) PrintRAS2Voxtkr = 1;
     else if (!strcasecmp(option, "--vox2ras-fsl")) PrintVox2RASfsl = 1;
     else if (!strcasecmp(option, "--tkr2scanner")) PrintTkr2Scanner = 1;
     else if (!strcasecmp(option, "--scanner2tkr")) PrintScanner2Tkr = 1;
@@ -272,6 +274,7 @@ static void print_usage(void) {
   printf("   --vox2ras : print the native/qform vox2ras matrix\n");
   printf("   --ras2vox : print the native/qform ras2vox matrix\n");
   printf("   --vox2ras-tkr : print the tkregister vox2ras matrix\n");
+  printf("   --ras2vox-tkr : print the tkregister ras2vox matrix\n");
   printf("   --vox2ras-fsl : print the FSL/FLIRT vox2ras matrix\n");
   printf("   --tkr2scanner : print tkrRAS-to-scannerRAS matrix \n");
   printf("   --scanner2tkr : print scannerRAS-to-tkrRAS matrix \n");
@@ -528,6 +531,18 @@ static void do_file(char *fname) {
   }
   if (PrintVox2RAStkr) {
     m = MRIxfmCRS2XYZtkreg(mri);
+    for (r=1; r<=4; r++) {
+      for (c=1; c<=4; c++) {
+        fprintf(fpout,"%10.5f ",m->rptr[r][c]);
+      }
+      fprintf(fpout,"\n");
+    }
+    MatrixFree(&m) ;
+    return;
+  }
+  if (PrintRAS2Voxtkr) {
+    m = MRIxfmCRS2XYZtkreg(mri);
+    m = MatrixInverse(m,m);
     for (r=1; r<=4; r++) {
       for (c=1; c<=4; c++) {
         fprintf(fpout,"%10.5f ",m->rptr[r][c]);
