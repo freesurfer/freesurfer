@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/22 17:03:39 $
- *    $Revision: 1.135 $
+ *    $Date: 2010/07/22 19:46:18 $
+ *    $Revision: 1.136 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -4434,10 +4434,9 @@ void MainWindow::OnToolSaveGotoPoint( wxCommandEvent& event )
   {
     m_dlgSavePoint = new DialogSavePoint( this );
     m_dlgSavePoint->SetGotoPoints( m_strGotoPoints );
-  }
-  
-  m_dlgSavePoint->Show();*/
-  
+  } 
+  m_dlgSavePoint->Show();
+  */
  
   wxString fn;
   LayerCollection* lc = GetLayerCollection( "MRI" );
@@ -4458,6 +4457,8 @@ void MainWindow::OnToolSaveGotoPoint( wxCommandEvent& event )
     }
   }
   
+  bool bError = false;
+  wxString msg;
   if ( !fn.IsEmpty() )
   {
     wxFileName wfn( fn );
@@ -4470,9 +4471,27 @@ void MainWindow::OnToolSaveGotoPoint( wxCommandEvent& event )
       wxFFile file( dir + wxFileName::GetPathSeparator() + _("edit.dat"), "w" );
       wxString strg;
       strg << ras[0] << " " << ras[1] << " " << ras[2] << "\n";
-      file.Write( strg );
+      bError = !file.Write( strg );
       file.Close();
+      if ( bError )
+        msg = _("Can not write to file."); 
     }
+    else
+    {
+      bError = true;
+      msg = _("Directory ") + dir + _(" does not exist.");
+    }
+  }
+  else
+  {
+    bError = true;
+    msg = _("Layer file name is empty. Can not decide where to save.");
+  }
+  if ( bError )
+  {
+    wxMessageDialog dlg( this, msg, 
+                         _("Error"), wxOK );
+    dlg.ShowModal();
   }
 }
 
