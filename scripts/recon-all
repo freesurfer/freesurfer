@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/07/13 19:49:06 $
-#    $Revision: 1.317 $
+#    $Date: 2010/07/22 21:24:33 $
+#    $Revision: 1.318 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.317 2010/07/13 19:49:06 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.318 2010/07/22 21:24:33 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -174,6 +174,7 @@ set BaseSubjsList = (); # subject set grabbed from -base-tp args
 set BaseSubjsListFname = (base-tps); # file containing BaseSubjsList
 set robust_template_avg_arg = 1; # construct template from: 0 Mean, 1 Median 
 set DoNuIntensityCor3T = 0; # if 1, use Zheng, Chee, Zagorodnov params for 3T
+set DoAddTp = 0; # if 1, then 'fake'-add this timepoint to long subj set
 
 # For defacing, as found in:
 # $FREESURFER_HOME/average/
@@ -814,6 +815,14 @@ endif
 
 #----------- Longitudinal ------------------#
 if($longitudinal) then
+  # if adding a new timepoint was requested by -addtp flag
+  if($DoAddTp) then
+    echo "Adding $tpNid as timepoint to base $longbaseid" |& tee -a $LF
+    set cmd=(mri_add_new_tp $longbaseid $tpNid)
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+  endif
+
   # cp base-to-thissubj transform
   set longbasetotpN_regfile = ${longbaseid}_to_${tpNid}.lta
   set cmd = (mkdir -p ${subjdir}/mri/transforms)
@@ -4596,6 +4605,11 @@ while( $#argv != 0 )
       set subjid = ${tpNid}.long.${longbaseid}
       breaksw
 
+    case "-addtp":
+      # 'fake'-add a new timepoint
+      set DoAddTp = 1;
+      breaksw
+
     case "-no-orig-pial":
       set no_orig_pial = 1;
       breaksw
@@ -5679,6 +5693,11 @@ The 'fsaverage' subject must exist within the SUBJECTS_DIR.  Based on:
 "Cortical Folding Patterns and Predicting Cytoarchitecture", Fischl et al.,
 Cerebral Cortex 2007. 
 
+-use-gpu
+
+Use the GPU versions of the binaries mri_em_register, mri_ca_register, 
+mris_inflate, and mris_sphere.
+
 
 EXPERT OPTIONS FILE
 
@@ -6088,6 +6107,16 @@ stream).
 
 Enables longitudinal processing. 
 
+Example:
+
+  recon-all -long <tpNsubjid> <longbasesubjid> -all
+
+The output subject is named <tpNsubjid>.long.<longbasesubjid>.
+
+Notice that the -all flag is included. A work directive flag is required.
+
+Other flags:
+
 -uselongbasectrlvol
 
 Optionally use a control-points volume created from longbase subjid and 
@@ -6104,19 +6133,21 @@ Do not create 'fused' aseg from the longbase timepoints, which would normally
 be used to initialize the ca_labeling.  Instead, initialize using the longbase
 aseg.mgz.
 
+-addtp
+
+If a new timepoint needs to be added to a longitudinal run where a base subject
+has already been created (from prior timepoints), then the -addtp command
+can be added to the -long command in order to 'fix-up' the longitudinal
+stream to accept the new timepoint.  Note that the base subject is *not*
+recomputed using the new timepoint.  See the LongitudinalProcessing wiki page.
+
 Example:
 
-  recon-all -long <tpNsubjid> <longbasesubjid> -all
+  recon-all -long <tpNsubjid> <longbasesubjid> -addtp -all
 
-The output subject is named <tpNsubjid>.long.<longbasesubjid>.
-
-Notice that the -all flag is included. A work directive flag is required.
-
--use-gpu
-
-Use the GPU versions of the binaries mri_em_register, mri_ca_register, 
-mris_inflate, and mris_sphere.
-
+In this example, 'tnNsubjid' is the subject name (assumed processed in the
+cross-sectional stream) to add as a new timepoint and upon which to run
+the longitudinal stream (creating <tpNsubjid>.long.<longbasesubjid>).
 
 MANUAL CHECKING AND EDITING OF SURFACES
 
