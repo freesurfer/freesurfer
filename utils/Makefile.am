@@ -51,6 +51,7 @@ NRRDIO_CPPFLAGS=-I$(top_srcdir)/include/NrrdIO \
 AM_CPPFLAGS=\
 	-I$(top_srcdir)/include \
 	-I$(top_srcdir)/include/dicom \
+  -I$(top_srcdir)/xml2 \
 	$(NRRDIO_CPPFLAGS) $(JPEG_THINGS) $(TIFF_THINGS) $(EXPAT_THINGS) \
 	$(ITK_THINGS) $(NIFTI_THINGS) $(GLUT_THINGS) \
 	$(GL_CFLAGS) $(VXL_CFLAGS) -DHAVE_ZLIB
