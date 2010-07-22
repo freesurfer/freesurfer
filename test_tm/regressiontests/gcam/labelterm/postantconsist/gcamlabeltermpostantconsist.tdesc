@@ -10,7 +10,7 @@ local FS = tools.freesurfer
 local inputDir = FS.ScratchDir().."/gcam/labelterm/postantconsist/"
 
 -- Number of tests to perform (assume files are numbered from zero)
-local nTests = 1
+local nTests = 34
 
 local function MRIname( testNum )
    return string.format( "mriLabelPostAntConsistInput%04d.mgz", testNum )

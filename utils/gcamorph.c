@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/16 14:59:30 $
- *    $Revision: 1.209 $
+ *    $Date: 2010/07/22 15:18:40 $
+ *    $Revision: 1.210 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7839,6 +7839,46 @@ remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh)
 // ====================================================
 // Separate out some operations from gcamLabelTerm
 
+
+#define MAX_MLE_DIST 1
+
+void gcamLabelTermCopyDeltas( GCA_MORPH *gcam,
+			      const MRI* mri_dist,
+			      const double l_label ) {
+
+  int x, y, z;
+  GCA_MORPH_NODE *gcamn;
+
+  // copy deltas from mri_dist into gcam struct
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
+        double dy ;
+
+        gcamn = &gcam->nodes[x][y][z] ;
+
+        if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
+            ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
+          continue;
+	}
+
+        dy = MRIgetVoxVal(mri_dist, x, y,z, 0) ;
+        gcamn->label_dist = dy ;   /* for use in label energy */
+
+        if (fabs(dy) > MAX_MLE_DIST) {
+          dy = dy * MAX_MLE_DIST / fabs(dy) ;
+	}
+
+        gcamn->dy += l_label * dy ;
+      }
+    }
+  }
+
+}
+
+
+// ----------------------
+
 #define GCAM_LABEL_POSTANTCONSIST_OUTPUT 0
 
 int gcamLabelTermPostAntConsistency( GCA_MORPH *gcam,
@@ -7879,7 +7919,7 @@ int gcamLabelTermPostAntConsistency( GCA_MORPH *gcam,
   nremoved = 0;
 
   /* do posterior/anterior consistency check */
-  for (x = 0 ; x < gcam->width ; x++) {
+  for (x = gcam->width-1 ; x >=0 ; x--) {
     for (y = 0 ; y < gcam->height ; y++) {
       for (z = 0 ; z < gcam->depth ; z++) {
 
@@ -8217,7 +8257,6 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 
         gcamn->label_dist = MRIFvox(mri_dist, x, y, z) = min_dist ;
 #if 1
-#define MAX_MLE_DIST 1
         if (fabs(min_dist) > MAX_MLE_DIST)
           min_dist = MAX_MLE_DIST * min_dist / fabs(min_dist) ;
 #endif
@@ -8264,35 +8303,14 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("%d inconsistent label nodes removed...\n", nremoved) ;
+
+
+  // Copy to some random global (which I think is actually unused)
   inconsistentLabelNodes=nremoved;
 
 
 
-  // copy deltas from mri_dist into gcam struct
-  for (x = 0 ; x < gcam->width ; x++) {
-    for (y = 0 ; y < gcam->height ; y++) {
-      for (z = 0 ; z < gcam->depth ; z++) {
-        double dy ;
-
-        gcamn = &gcam->nodes[x][y][z] ;
-
-        if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
-            ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
-          continue;
-	}
-
-        dy = MRIgetVoxVal(mri_dist, x, y,z, 0) ;
-        gcamn->label_dist = dy ;   /* for use in label energy */
-
-        if (fabs(dy) > MAX_MLE_DIST) {
-          dy = dy * MAX_MLE_DIST / fabs(dy) ;
-	}
-
-        gcamn->dy += l_label * dy ;
-      }
-    }
-  }
-
+  gcamLabelTermCopyDeltas( gcam, mri_dist, l_label );
 
 
   nremoved += gcamLabelTermPostAntConsistency( gcam, mri_dist );
