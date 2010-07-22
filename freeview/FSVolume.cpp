@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 19:00:06 $
- *    $Revision: 1.54 $
+ *    $Date: 2010/07/22 17:03:39 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -49,6 +49,7 @@ extern "C"
 {
 #include "registerio.h"
 #include "transform.h"
+#include "utils.h"
 }
 
 using namespace std;
@@ -596,15 +597,20 @@ bool FSVolume::MRIWrite( const char* filename, int nSampleMethod )
       return false;
     }
     
-    MRI* mri = MRIextract( m_MRITemp, NULL, nmin[0], nmin[1], nmin[2], 
-                           dx, dy, dz );
-    if ( !mri )
+    if ( nmin[0] != 0 || nmin[1] != 0 || nmin[2] != 0 ||
+         dx != m_MRITemp->width || dy != m_MRITemp->height ||
+         dz != m_MRITemp->depth )
     {
-      cerr << "MRIextract failed." << endl;
-      return false;
+      MRI* mri = MRIextract( m_MRITemp, NULL, nmin[0], nmin[1], nmin[2], 
+                            dx, dy, dz );
+      if ( !mri )
+      {
+        cerr << "MRIextract failed." << endl;
+        return false;
+      }
+      MRIfree( &m_MRITemp );
+      m_MRITemp = mri;
     }
-    MRIfree( &m_MRITemp );
-    m_MRITemp = mri;
   }
   
   // check if file is writable
@@ -1278,8 +1284,8 @@ bool FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
     m_volumeRef->GetImageOutput()->GetOrigin( origin );
     for ( int i = 0; i < 3; i++ )
     {
-      if ( fabs(cindex[i]) < 1e-4 )
-        cindex[i] = 0;
+      if ( fabs(cindex[i]-nint(cindex[i])) < 1e-4 )
+        cindex[i] = nint(cindex[i]);
     } 
     
     origin[0] += cindex[0] * m_volumeRef->m_MRITarget->xsize;
@@ -1296,13 +1302,8 @@ bool FSVolume::CreateImage( MRI* rasMRI, wxWindow* wnd, wxCommandEvent& event )
     */
   }
 
-//  cout << "origin: " << origin[0] << "  " << origin[1] << "  " << origin[2] << endl; fflush(0);
-  // if map to RAS
-  {
-    imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize );
-    imageData->SetOrigin( origin[0], origin[1], origin[2] );
-  }
-  
+  imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize );
+  imageData->SetOrigin( origin[0], origin[1], origin[2] );
   imageData->SetWholeExtent( 0, zX-1, 0, zY-1, 0, zZ-1 );
   imageData->SetNumberOfScalarComponents( zFrames );
 

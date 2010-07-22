@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 19:00:06 $
- *    $Revision: 1.134 $
+ *    $Date: 2010/07/22 17:03:39 $
+ *    $Revision: 1.135 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -4462,7 +4462,7 @@ void MainWindow::OnToolSaveGotoPoint( wxCommandEvent& event )
   {
     wxFileName wfn( fn );
     wfn.Normalize();
-    wxString dir = AutoSelectLastDir( wfn.GetFullPath(), _("tmp") );
+    wxString dir = AutoSelectLastDir( wfn.GetPath(), _("tmp") );
     if ( wxFileName::DirExists( dir ) )
     { 
       double ras[3];
@@ -4550,7 +4550,7 @@ void MainWindow::OnToolGotoPoint( wxCommandEvent& event )
     fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
     wxFileName wfn( fn );
     wfn.Normalize();
-    fn = AutoSelectLastDir( wfn.GetFullPath(), _("tmp") ) + wxFileName::GetPathSeparator() + _("edit.dat");
+    fn = AutoSelectLastDir( wfn.GetPath(), _("tmp") ) + wxFileName::GetPathSeparator() + _("edit.dat");
     if ( wxFileName::FileExists( fn ) )
       break;
     else  
