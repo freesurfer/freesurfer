@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/22 15:18:41 $
- *    $Revision: 1.465 $
+ *    $Date: 2010/07/22 15:29:01 $
+ *    $Revision: 1.466 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.465 $";
+const char *MRI_C_VERSION = "$Revision: 1.466 $";
 
 
 /*-----------------------------------------------------
@@ -900,9 +900,9 @@ int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0)
   mri->c_a = RAScenter->rptr[2][1];
   mri->c_s = RAScenter->rptr[3][1];
   // Recompute matrix
-  if(!mri->i_to_r__)  MatrixFree(&mri->i_to_r__);
+  if(mri->i_to_r__)  MatrixFree(&mri->i_to_r__);
   mri->i_to_r__ = extract_i_to_r(mri);
-  if (!mri->r_to_i__) MatrixFree(&mri->r_to_i__);
+  if (mri->r_to_i__) MatrixFree(&mri->r_to_i__);
   mri->r_to_i__ = extract_r_to_i(mri);
   // Clean up
   MatrixFree(&vox2ras);
