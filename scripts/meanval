@@ -1,9 +1,10 @@
 #!/bin/tcsh -f
 # meanval
 
-set VERSION = '$Id: meanval,v 1.1 2010/04/01 21:25:10 greve Exp $';
+set VERSION = '$Id: meanval,v 1.2 2010/07/23 22:52:47 greve Exp $';
 
 set meanval = ();
+set avgwf = ();
 set maskvol = ();
 set invol = ();
 set tmpdir = ();
@@ -55,6 +56,7 @@ uname -a  | tee -a $LF
 
 set cmd = (mri_segstats --seg $maskvol --id 1 --sum $tmpdir/blah.$$ \
             --in $invol --sfavg $meanval )
+if($#avgwf) set cmd = ($cmd --avgwf $avgwf)
 echo $cmd
 $cmd
 if($status) exit 1;
@@ -95,6 +97,11 @@ while( $#argv != 0 )
     case "--o":
       if($#argv < 1) goto arg1err;
       set meanval = $argv[1]; shift;
+      breaksw
+
+    case "--avgwf":
+      if($#argv < 1) goto arg1err;
+      set avgwf = $argv[1]; shift;
       breaksw
 
     case "--log":
@@ -167,6 +174,7 @@ arg1err:
 usage_exit:
   echo ""
   echo "meanval --i invol --m mask --o meanval.dat"
+  echo "  --avgwf avgwf"
   echo ""
 
   if(! $PrintHelp) exit 1;
