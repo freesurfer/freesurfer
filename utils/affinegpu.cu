@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/05 20:56:44 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/07/23 18:19:06 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -83,6 +83,39 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
+      // Do the copy
+      for( unsigned int i=0; i<kVectorSize; i++ ) {
+	for( unsigned int j=0; j<kVectorSize; j++ ) {
+	  this->operator()( i, j ) = *MATRIX_RELT( src, i+1, j+1 );
+	}
+      }
+    }
+
+
+
+    void AffineTransformation::SetTransform( const MATRIX* src ) {
+      /*!
+	Duplicates the functionality of the constructor from
+	a real 4x4 matrix
+      */
+      if( src->type != MATRIX_REAL ) {
+	std::cerr << __FUNCTION__ << ": Invalid matrix type " <<
+	  src->type << std::endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( static_cast<unsigned int>(src->rows) != kVectorSize ) {
+	std::cerr << __FUNCTION__ << ": Invalid number of rows " <<
+	  src->rows << std:: endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( static_cast<unsigned int>(src->cols) != kVectorSize ) {
+	std::cerr << __FUNCTION__ << ": Invalid number of cols " <<
+	  src->cols << std:: endl;
+	exit( EXIT_FAILURE );
+      }
+      
       // Do the copy
       for( unsigned int i=0; i<kVectorSize; i++ ) {
 	for( unsigned int j=0; j<kVectorSize; j++ ) {

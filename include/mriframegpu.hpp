@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/23 17:31:56 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/07/23 18:19:04 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,7 @@
 #include "mri.h"
 
 #include "volumegpu.hpp"
+#include "affinegpu.hpp"
 
 #include "cudatypeutils.hpp"
 #include "cudacheck.h"
@@ -199,7 +200,9 @@ namespace GPU {
       //! Default constructor does nothing
       MRIframeGPU<T>( void ) : VolumeGPU<T>(),
 			       thick(0),
-			       sizes(make_float3(0,0,0)) {};
+			       sizes(make_float3(0,0,0)),
+			       d_i_to_r(),
+			       d_r_to_i() {};
 
       //! Conversion operator to MRIframeOnGPU
       operator MRIframeOnGPU<T>( void ) const {
@@ -209,11 +212,17 @@ namespace GPU {
       }
 
       // --------------------------------------------------------
+      // Public data (should probably be private)
+      
+      AffineTransformation d_i_to_r;
+      AffineTransformation d_r_to_i;
+
+      // --------------------------------------------------------
       // Data accessors
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.43 2010/06/23 17:31:56 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.44 2010/07/23 18:19:04 rge21 Exp $";
       }
       
       //! Return the 'thick' field
@@ -221,7 +230,7 @@ namespace GPU {
 	return( this->thick );
       }
 
-      //! Return hte 'sizes' field
+      //! Return the 'sizes' field
       float3 GetSizes( void ) const {
 	return( this->sizes );
       }
@@ -288,6 +297,10 @@ namespace GPU {
 	this->sizes = make_float3( src->xsize,
 				   src->ysize,
 				   src->zsize );
+
+	// Send the transforms
+	this->d_r_to_i.SetTransform( src->r_to_i__ );
+	this->d_i_to_r.SetTransform( src->i_to_r__ );
 	
 	this->SendFrame( src, iFrame, h_work, stream );
       }
