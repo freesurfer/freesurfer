@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/22 19:46:18 $
- *    $Revision: 1.136 $
+ *    $Date: 2010/07/23 16:55:31 $
+ *    $Revision: 1.137 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -4581,7 +4581,8 @@ void MainWindow::OnToolGotoPoint( wxCommandEvent& event )
     wxFFile file( fn );
     wxString strg;
     file.ReadAll( &strg );
-    wxArrayString ar = MyUtils::SplitString( strg, " " );
+    wxArrayString ar_line = MyUtils::SplitString( strg, "\n" );
+    wxArrayString ar = MyUtils::SplitString( ar_line[0], " " );
     ar.insert( ar.begin(), _("setras") );
     ar.push_back( _("tkreg") );
     CommandSetRAS( ar ); 
