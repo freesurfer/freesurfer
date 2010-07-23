@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/23 22:51:58 $
-#    $Revision: 1.19 $
+#    $Date: 2010/07/23 22:58:20 $
+#    $Revision: 1.20 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.19 2010/07/23 22:51:58 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.20 2010/07/23 22:58:20 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -177,8 +177,9 @@ foreach sess ($SessList)
     set fstem = `cat $Run/template.log | grep FUNCSTEM | awk '{print $2}'`
     set ffile = `stem2fname $Run/$fstem`;
     set UpdateNeeded = 0;
-    if(! $UpdateOnly) set UpdateNeeded = 1;
-    if(`UpdateNeeded $meanval $avgwf $maske3 $ffile`) set UpdateNeeded = 1;
+    if(! $UpdateOnly)   set UpdateNeeded = 1;
+    if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $meanval $maske3 $ffile`
+    if(! $UpdateNeeded) set UpdateNeeded = `UpdateNeeded $avgwf   $maske3 $ffile`
     if($UpdateNeeded) then
       set cmd = (meanval --i $ffile --m $maske3 --o $meanval --avgwf $avgwf);
       echo $cmd | tee -a $LF
