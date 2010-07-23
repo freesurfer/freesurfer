@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/06/17 21:41:04 $
- *    $Revision: 1.82 $
+ *    $Author: rge21 $
+ *    $Date: 2010/07/23 18:20:53 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.82 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.83 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +41,12 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.82 $";
 #include <fstream>
 #include <iomanip>
 #include <vector>
+
+#define INDIVIDUAL_TIMERS 1
+
+#if INDIVIDUAL_TIMERS
+#include "chronometer.h"
+#endif
 
 extern "C"
 {
@@ -862,7 +868,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.82 2010/06/17 21:41:04 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.83 2010/07/23 18:20:53 rge21 Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -875,7 +881,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.82 2010/06/17 21:41:04 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.83 2010/07/23 18:20:53 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1313,6 +1319,18 @@ void MRI_weight_atlas(MRI *mri_with_skull,
   float value, val_buff,lambda;
   int xp, yp, zp;
 
+#if INDIVIDUAL_TIMERS
+  printf( "%s: Begin\n", __FUNCTION__ );
+  printf( "transform->type = %i\n", transform->type );
+  MatrixPrint( stdout, mri_with_skull->i_to_r__ );
+  printf( "--\n" );
+  MatrixPrint( stdout, parms->gca->prior_r_to_i__ );
+  Chronometer tMRIweightAtlas;
+
+  InitChronometer( &tMRIweightAtlas );
+  StartChronometer( &tMRIweightAtlas );
+#endif
+
   lambda = parms->preweight;//0.7;
 
   for (z = 0 ; z < mri_with_skull->depth ; z++)
@@ -1339,6 +1357,13 @@ void MRI_weight_atlas(MRI *mri_with_skull,
       }
     }
   }
+
+#if INDIVIDUAL_TIMERS
+  StopChronometer( &tMRIweightAtlas );
+  printf( "%s: Complete in %9.3f ms\n",
+	  __FUNCTION__,
+	  GetChronometerValue( &tMRIweightAtlas ) );
+#endif
 }
 
 
