@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:07 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/07/23 23:25:05 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -136,6 +136,7 @@ int MultiRegistration::loadLTAs(const std::vector < std::string > nltas)
         LTA* lta =  (LTA *)trans->xform ;
         if (!lta)
           ErrorExit(ERROR_BADFILE, "MultiRegistration::loadLTAs could not read transform file %s", nltas[i].c_str()) ;
+				//cout << " lta " << nltas[i] << "  src: " << lta->xforms[0].src.valid << "  dst: " << lta->xforms[0].dst.valid << endl;
         lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
 
         ltas[i] = lta;
@@ -1069,6 +1070,7 @@ bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, boo
       }
       else assert(ltas[i]->type == LINEAR_RAS_TO_RAS);
       strncpy(ltas[i]->xforms[0].dst.fname, mean.c_str(),STRLEN);
+      strncpy(ltas[i]->xforms[0].src.fname, mov[i].c_str(),STRLEN);
       LTAwriteEx(ltas[i], nltas[i].c_str()) ;	 
 	 }
 	 return (error == 0);
