@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/22 15:29:01 $
- *    $Revision: 1.374 $
+ *    $Author: greve $
+ *    $Date: 2010/07/23 14:27:18 $
+ *    $Revision: 1.375 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -10061,6 +10061,12 @@ static MRI *niiRead(const char *fname, int read_volume)
       fs_type = MRI_FLOAT;
       bytes_per_voxel = 4;
     }
+    else if (hdr.datatype == DT_DOUBLE)
+    {
+      fs_type = MRI_FLOAT;
+      bytes_per_voxel = 8;
+      printf("niiRead(): detected input as 64 bit double, reading in as 32 bit float\n");
+    }
     else
     {
       ErrorReturn
@@ -10209,13 +10215,21 @@ static MRI *niiRead(const char *fname, int read_volume)
   {
     // no voxel value scaling needed
     void *buf;
+    float *fbuf;
+    double *dbuf;
+    int nn;
+    fbuf = (float *)  calloc(mri->width, sizeof(float));
+    dbuf = (double *) calloc(mri->width, sizeof(double));
 
-    for (t = 0;t < mri->nframes;t++)    {
-      for (k = 0;k < mri->depth;k++)      {
-        for (j = 0;j < mri->height;j++)        {
+    for (t = 0; t < mri->nframes; t++)    {
+      for (k = 0; k < mri->depth; k++)      {
+        for (j = 0; j < mri->height; j++)        {
           buf = &MRIseq_vox(mri, 0, j, k, t);
 
-          n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	  if (hdr.datatype != DT_DOUBLE)
+	    n_read = znzread(buf, bytes_per_voxel, mri->width, fp);
+	  else
+	    n_read = znzread(dbuf, bytes_per_voxel, mri->width, fp);
           if(n_read != mri->width) {
 	    printf("ERROR: Read %d, expected %d\n",n_read,mri->width);
             znzclose(fp);
@@ -10225,16 +10239,24 @@ static MRI *niiRead(const char *fname, int read_volume)
                                "niiRead(): error reading from %s", fname));
           }
 
-          if (swapped_flag)
-          {
+          if (swapped_flag) {
             if (bytes_per_voxel == 2)
               byteswapbufshort(buf, bytes_per_voxel * mri->width);
             if (bytes_per_voxel == 4)
               byteswapbuffloat(buf, bytes_per_voxel * mri->width);
+            if (bytes_per_voxel == 8)
+              byteswapbuffloat(dbuf, bytes_per_voxel * mri->width);
           }
+	  if(hdr.datatype == DT_DOUBLE){
+	    for(nn=0; nn < mri->width; nn++) fbuf[nn] = (float) dbuf[nn];
+	    memcpy(buf,fbuf, 4*mri->width);
+	  }
+
         }
       }
     }
+    free(fbuf);
+    free(dbuf);
   }
   else
   {
