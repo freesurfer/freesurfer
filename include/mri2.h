@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/05/03 21:37:02 $
- *    $Revision: 1.33 $
+ *    $Author: ayendiki $
+ *    $Date: 2010/07/23 21:07:44 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,10 @@
 
 #ifndef MRI2_H
 #define MRI2_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "mri.h"
 #include "mriTransform.h"
@@ -98,5 +102,9 @@ MRI *MRIsegBoundary(MRI *seg);
 MRI *MRIsliceNo(MRI *in, MRI *out);
 MRI *MRIindexNo(MRI *in, MRI *out);
 MRI *MRIcrs(MRI *in, MRI *out);
+
+#if defined(__cplusplus)
+};
+#endif
 
 #endif

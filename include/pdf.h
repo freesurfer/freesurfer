@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.5 $
+ *    $Author: ayendiki $
+ *    $Date: 2010/07/23 21:07:45 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,10 @@
 #ifndef PDF_INC
 #define PDF_INC
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 unsigned long PDFtodSeed(void);
 double PDFgaussian(void);
 double PDFerlang(int order);
@@ -37,5 +41,9 @@ int PDFloadCDF(char *fname, double **xcdf, double **cdf, int *ncdf);
 double PDFsampleCDF(double *xcdf, double *cdf, int ncdf);
 int PDFsearchOrderedTable(double u, double *y, int ny);
 
+
+#if defined(__cplusplus)
+};
+#endif
 
 #endif //#ifndef PDF_INC

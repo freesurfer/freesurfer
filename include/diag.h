@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/06 13:39:00 $
- *    $Revision: 1.21 $
+ *    $Author: ayendiki $
+ *    $Date: 2010/07/23 21:07:44 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -38,6 +38,10 @@
 
 #ifndef DIAG_H
 #define DIAG_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include <stdarg.h>
 #include "image.h"
@@ -152,6 +156,10 @@ extern FILE *Gstdout ;
 extern FILE *Gstderr ;
 extern FILE *Gstdin ;
 extern FILE *Gdiag_fp ;
+
+#if defined(__cplusplus)
+};
+#endif
 
 #endif
 

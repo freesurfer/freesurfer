@@ -10,9 +10,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:32 $
- *    $Revision: 1.13 $
+ *    $Author: ayendiki $
+ *    $Date: 2010/07/23 21:07:45 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,10 @@
 
 #ifndef VERSION_H
 #define VERSION_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 /* This function looks for the --version, or -version tag in the
    argv and if found, prints out version information. This can be used
@@ -75,5 +79,9 @@ char *argv2cmdline(int argc, char *argv[]);
 char *VERuser(void);
 char *VERfileTimeStamp(char *fname);
 char *VERcurTimeStamp(void);
+
+#if defined(__cplusplus)
+};
+#endif
 
 #endif

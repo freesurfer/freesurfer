@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/02/10 21:07:55 $
- *    $Revision: 1.37 $
+ *    $Author: ayendiki $
+ *    $Date: 2010/07/23 21:07:45 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,6 +27,10 @@
 
 #ifndef UTILS_H
 #define UTILS_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include <stdio.h>
 
@@ -109,5 +113,9 @@ float mad(float a[], int n);
 
 /* define nint as a function now */
 int nint( double f );
+
+#if defined(__cplusplus)
+};
+#endif
 
 #endif

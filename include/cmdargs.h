@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:08:59 $
- *    $Revision: 1.3 $
+ *    $Author: ayendiki $
+ *    $Date: 2010/07/23 21:07:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,11 +28,15 @@
 
 // cmdargs.h - include file for cmdargs.c (used for
 //   handling command-line arguments)
-// $Id: cmdargs.h,v 1.3 2006/12/29 02:08:59 nicks Exp $
+// $Id: cmdargs.h,v 1.4 2010/07/23 21:07:44 ayendiki Exp $
 
 
 #ifndef CMDARGS_H
 #define CMDARGS_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 const char * CMDSrcVersion(void);
 void CMDargNErr(char *option, int n);
@@ -44,6 +48,10 @@ int CMDstringMatch(char *str1, char *str2);
 int CMDprintUsage(FILE *fp, char *ProgName);
 int CMDusageExit(char *ProgName);
 int CMDprintHelp(FILE *fp, char *ProgName);
+
+#if defined(__cplusplus)
+};
+#endif
 
 #endif
 

@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/04/09 03:08:15 $
- *    $Revision: 1.21 $
+ *    $Author: ayendiki $
+ *    $Date: 2010/07/23 21:07:44 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,10 @@
 
 #ifndef FIO_H
 #define FIO_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include "znzlib.h"
 
@@ -102,5 +106,9 @@ char *fio_fullpath(const char *fname);
 int fio_mkdirp(const char *path, mode_t mode);
 
 //#define fwriteLong(l, fp)   fwrite4((int)l, fp)
+
+#if defined(__cplusplus)
+};
+#endif
 
 #endif

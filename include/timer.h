@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:00 $
- *    $Revision: 1.3 $
+ *    $Author: ayendiki $
+ *    $Date: 2010/07/23 21:07:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -29,6 +29,10 @@
 #ifndef TIMER_H
 #define TIMER_H
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #include <sys/timeb.h>
 
 struct timeb *TimerStart(struct timeb *then) ;
@@ -37,6 +41,10 @@ int TimerStop(struct timeb *then) ;
 #ifdef Linux
 /* don't know why this doesn't work on linux, but.... */
 extern int ftime (struct timeb *__timebuf);
+#endif
+
+#if defined(__cplusplus)
+};
 #endif
 
 #endif
