@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/14 15:05:32 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/07/23 22:32:55 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.11 2010/07/14 15:05:32 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.12 2010/07/23 22:32:55 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -80,7 +80,6 @@ char *subject = NULL;
 char *hemi = NULL;
 char *MaskFile = NULL;
 char *LabelFile = "cortex";
-char *MaskId = "cortex";
 int nRepetitions = -1;
 int SynthSeed = -1;
 
@@ -460,21 +459,18 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--mask")) {
-      if(nargc < 2) CMDargNErr(option,2);
+      if(nargc < 1) CMDargNErr(option,1);
       MaskFile = pargv[0];
-      MaskId =  pargv[1];
       LabelFile = NULL;
       nargsused = 2;
     } 
     else if (!strcasecmp(option, "--label")) {
-      if(nargc < 2) CMDargNErr(option,2);
+      if(nargc < 1) CMDargNErr(option,1);
       LabelFile = pargv[0];
-      MaskId =  pargv[1];
       MaskFile = NULL;
-      nargsused = 2;
+      nargsused = 1;
     } 
     else if (!strcasecmp(option, "--no-label")) {
-      MaskId = "nomask";
       LabelFile = NULL;
     }
     else if (!strcasecmp(option, "--no-save-mask")) SaveMask = 0;
