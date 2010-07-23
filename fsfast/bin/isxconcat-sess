@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/14 16:04:54 $
-#    $Revision: 1.51 $
+#    $Date: 2010/07/23 23:36:05 $
+#    $Revision: 1.52 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.51 2010/07/14 16:04:54 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.52 2010/07/23 23:36:05 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -743,30 +743,19 @@ usage_exit:
   echo "   -a analysisname : session-level functional analysis name"
   echo "   -c contrast     : contrast "
   echo "   -all-contrasts  : contrast "
-  echo "   -percent        : use voxel-wise percent signal change"
-  echo "   -m mapname      : contrast-level maps stem (def is ces and cesvar)"
-  echo "   -hrf            : create hrf maps (saved as space.h.nii)"
   echo ""
-  echo "   -reg regfile    : instead of register.dat"
-  echo "   -interp method  : trilinear (def) or nearest"
-  echo "   -fwhm fwhm      : smooth by fwhm"
   echo "   -paired-diff    : compute 1-2, 3-4, etc"
-  echo "   -paired-avg     : compute avg 1+2, 3+4, etc"
-  echo "   -mean           : mean over all frames"
+  echo "   -no-hrf         : create hrf maps (saved as space.h.nii)"
   echo "   -no-anamaps     : do not compute analysis level maps"
   echo "   -no-split-mvc   : do not split multi-variate contrasts"
   echo ""
-  echo "  Volume-based options:"
-  echo "   -talres res     : 1 or 2 mm (def is 2)"
-  echo "   -talxfm xfmfile : use xfmfile instead of talairach.xfm"
+  echo "   -percent        : use voxel-wise percent signal change"
+  echo "   -m mapname      : contrast-level maps stem (def is ces and cesvar)"
   echo ""
-  echo "  Surface-based options:"
-  echo "   -hemis           : surface-based, both lh and rh";
-  echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
-  echo "   -projfrac frac   : sample frac into surface bet white and gray (0.5 def)"
-  echo "   -projfrac-avg    : average across cortical depth"
-  echo "   -trgsubject subject : sample to subject's surface (def fsaverage)"
+  echo "   -paired-avg     : compute avg 1+2, 3+4, etc"
+  echo "   -mean           : mean over all frames"
   echo ""
+  echo " Session arguments"
   echo "   -sf sessidfile  ..."
   echo "   -df srchdirfile ..."
   echo "   -s  sessid      ..."
@@ -780,6 +769,22 @@ usage_exit:
   echo "   -nocleanup  : do not delete tmpdir"
   echo "   -version    : print version and exit"
   echo " "
+  echo "Optoins below are for analyses done in native space"
+  echo "   -reg regfile    : instead of register.dat"
+  echo "   -interp method  : trilinear (def) or nearest"
+  echo "   -fwhm fwhm      : smooth by fwhm"
+  echo ""
+  echo "  Volume-based options:"
+  echo "   -talres res     : 1 or 2 mm (def is 2)"
+  echo "   -talxfm xfmfile : use xfmfile instead of talairach.xfm"
+  echo ""
+  echo "  Surface-based options:"
+  echo "   -hemis           : surface-based, both lh and rh";
+  echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
+  echo "   -projfrac frac   : sample frac into surface bet white and gray (0.5 def)"
+  echo "   -projfrac-avg    : average across cortical depth"
+  echo "   -trgsubject subject : sample to subject's surface (def fsaverage)"
+  echo ""
 
   if(! $PrintHelp ) exit 1;
 
@@ -793,8 +798,109 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Resamples a group of FS-FAST first-level analyses into a common space,
-either volume- or surface-based, and concatenates all the sessions
-together into one multi-frame file suitable for use with
-mri_glmfit. This script is partially redundant with mris_preproc.
+Creates the output necessary to run group fMRI analysis by
+concatenating the results from a first-level analysis of all the
+sessions together into one multi-frame file suitable for use with
+mri_glmfit. It also creates several other files that can be useful for
+analysis and quality control. The output is stored in a directory
+structure that closely follows the FS-FAST directory structure.
+
+-o outdir
+
+Output directory. The data will be placed in outdir/analysis. All
+analyses that are placed in the directory should have the same
+set of sessions in the same order.
+
+-a analysis
+
+First-level analysis made with mkanalysis-sess (and analyzed with
+selxavg3-sess).
+
+-c contrast
+
+First-level contrast made with mkcontrast-sess. You can specify
+multiple contrasts with multiple -c arguments. Or use -all-contrasts.
+
+-paired-diff
+
+Compute the difference between adjacent sessions as a preprocessing
+step to performing a paired-t analysis. This computes the differences
+between the first session and the second, the third and the forth, etc.
+The sign first-second, eg: 1-2 3-4 5-6. This reduces the number of 
+output frames by a factor of 2. See also -paried-avg.
+
+-no-hrf
+
+For FIR designs, do not create an average hemodynamic response file.
+This file can be quite large and take a long time to produce.
+
+-no-anamaps
+
+Only computes maps based on the contrast. By default, there are 
+several maps that are computed that are based on just the 
+analysis (eg, meanfunc is the mean functional). 
+
+-no-split-mvc
+
+Do not split multi-variate contrasts (MVCs). By default, each variate
+is split into a separate file (eg, ces.000.nii, ces.001.nii, etc).
+This causes them to simply be concatenated together.
+
+-percent
+
+Use cespct instead of ces. This is the percent contrast computed 
+on a voxel-wise basis.
+
+-m mapname
+
+Use mapname as the map in the contrast. Default is ces. This is
+mostly for experimental purposes.
+
+-paired-avg
+
+Compute the average adjacent sessions as a preprocessing step. This
+computes the average of the first session and the second, the third
+and the forth, etc.  eg: (1+2)/2 (3+4)/2 (5+6)/2. This reduces the
+number of output frames by a factor of 2. See also -paried-diff.
+
+OUTPUT 
+
+All the data will be under a folder called outdir/analysis. This 
+directory will have a subfolder for each contrast. These
+are some of the output files and what they mean:
+
+sessid.txt - list of the sessions specified
+
+analysis.info - copy of the file created by mkanalysis-sess
+
+ffxdof.dat - total number of degrees of freedom to use for a fixed
+  effects analysis
+
+masks.nii - maps of the binary mask for each subject
+
+mask.nii - intersection of the binary masks for each subject
+
+meanfunc.nii - mean functional intensity maps for each subject
+
+rho1.nii - temporal AR1 for each subject
+
+raw.fsnr.nii - maps of the raw functional SNR for each subject
+
+fsnr.nii - maps of the functional SNR for each subject computed after processing
+
+CONTRAST OUTPUT
+
+There will be a subfolder for each contrast. There will be several
+files in this folder:
+
+contrast.lowerlevel.mat -- this is a copy of the contrast mat file
+  created by mkcontrast-sess.
+
+ces.nii - "contrast effect size". This is maps of contrast values,
+  one map for eacah subject. This is the file that will be used
+  for group analysis. 
+
+cesvar.nii - This is maps of the variance of contrast values,
+  one map for eacah subject. This is the file that will be used
+  for weighted random and fixed effects group analysis.
 
