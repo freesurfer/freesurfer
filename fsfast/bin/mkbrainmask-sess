@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/17 22:47:29 $
-#    $Revision: 1.18 $
+#    $Date: 2010/07/23 22:51:58 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkbrainmask-sess,v 1.18 2010/04/17 22:47:29 greve Exp $'
+set VERSION = '$Id: mkbrainmask-sess,v 1.19 2010/07/23 22:51:58 greve Exp $'
 
 set cmdargs = ($argv);
 
@@ -173,13 +173,14 @@ foreach sess ($SessList)
 
     # Compute the global mean in the eroded mask from the 4D volume
     set meanval = $Run/global.meanval.dat
+    set avgwf   = $Run/global.waveform.dat
     set fstem = `cat $Run/template.log | grep FUNCSTEM | awk '{print $2}'`
     set ffile = `stem2fname $Run/$fstem`;
     set UpdateNeeded = 0;
     if(! $UpdateOnly) set UpdateNeeded = 1;
-    if(`UpdateNeeded $meanval $maske3 $ffile`) set UpdateNeeded = 1;
+    if(`UpdateNeeded $meanval $avgwf $maske3 $ffile`) set UpdateNeeded = 1;
     if($UpdateNeeded) then
-      set cmd = (meanval --i $ffile --m $maske3 --o $meanval);
+      set cmd = (meanval --i $ffile --m $maske3 --o $meanval --avgwf $avgwf);
       echo $cmd | tee -a $LF
       $cmd | tee -a $LF
       if($status) exit 1;
@@ -353,14 +354,15 @@ BEGINHELP
 
 This program creates a binary mask of the brain from the template
 created by mktemplate-sess.  It uses the FSL (www.fmrib.ox.ac.uk/fsl)
-Brain Extraction Tool (BET). This BET mask is dilated by one voxel 
-to make sure that it gets all tissue. A second mask is created
-that is eroded by 3 voxels. This is used to compute the global
-mean intensity, which can then be used for global intensity 
-normalization. The mean intensity is stored in each run in the
-global.mean.dat file. This script creates a session-level mask
-based on the session-level template as well as a mask for each
-run. 
+Brain Extraction Tool (BET). This BET mask is dilated by one voxel to
+make sure that it gets all tissue. A second mask is created that is
+eroded by 3 voxels. This is used to compute the global mean intensity,
+which can then be used for global intensity normalization. The mean
+intensity is stored in each run in the global.mean.dat file. A
+waveform called global.waveform.dat is also created.  This is the mean
+waveform across this eroded mask. This script creates a session-level
+mask based on the session-level template as well as a mask for each
+run.
 
 The only real parameter is the threshold (controlled with the -thresh
 option). The absolute threshold is set to thresh times the global
