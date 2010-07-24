@@ -43,7 +43,7 @@ endif
 
 echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
 
-set baseid  = $1
+set baseid   = $1
 set newtpid  = $2
 
 set basedir = $SUBJECTS_DIR/$baseid
@@ -51,7 +51,7 @@ if(! -e $basedir) then
   echo "ERROR: cannot find $basedir"
   exit 1;
 endif
-    
+
 set newtpdir = $SUBJECTS_DIR/$newtpid
 if(! -e $newtpdir) then
   echo "ERROR: cannot find $newtpdir"
@@ -123,8 +123,6 @@ set diff = (`$cmd | grep "sum of squared differences" | awk '{print $1}' `)
 if ($status) exit 1;
 echo $diff > $newmeanssd
 
-echo "Sum of squared differences to previous norm.mgz: $diff "
-
 set small = 1
 
 # if diff small:
@@ -163,11 +161,11 @@ else  # if diff large:
   echo "Then rerun ALL longitudinals with the new base:"
   echo "recon-all -long tpN $baseid -all -force"
   echo
-	rm $newmean
-	rm $newlta
-	rm $newmeanssd
+  rm $newmean
+  rm $newlta
+  rm $newmeanssd
 endif
 
-echo difference was $diff
+echo "Sum of squared differences to previous norm.mgz: $diff "
 
 exit 0;
