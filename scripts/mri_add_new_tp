@@ -82,9 +82,11 @@ foreach s ($BaseSubjsList)
     exit 1
   endif
 end
-    
-set newmean  = ${baseid}_with_${newtpid}_${voltype}.mgz
-set newtplta = ${newtpid}_to_${baseid}.lta
+ 
+# output files:
+set newmean    = ${basedir}/mri/${voltype}.with_${newtpid}.mgz
+set newtplta   = ${basedir}/mri/transforms/${newtpid}_to_${baseid}.lta
+set newmeanssd = ${basedir}/mri/${voltype}.with_${newtpid}.ssd.txt
 
 # register new tp to current base
 mri_robust_register --mov $newtpvol --dst $basevol --lta $newtplta --sat 4.685
@@ -119,8 +121,9 @@ endif
 set cmd  = ( mri_diff --pix-only --ssd $basevol $newmean )
 set diff = (`$cmd | grep "sum of squared differences" | awk '{print $1}' `)
 if ($status) exit 1;
+echo $diff > $newmeanssd
 
-echo $diff
+echo "Sum of squared differences to previous norm.mgz: $diff "
 
 set small = 1
 
@@ -134,13 +137,11 @@ if ($small) then
   # add tpid to base list file:
   echo $newtpid >> ${basedir}/${BaseSubjsListFname}
 
-  # move lta to transforms in base
-  set tptobase = ${basedir}/mri/transforms/${newtpid}_to_${baseid}.lta
-  mv $newtplta $tptobase
+  # keep newtplta and newmean newmeanssd where they are
 
   #invert lta
   set basetotp = ${basedir}/mri/transforms/${baseid}_to_${newtpid}.lta
-  mri_concatenate_lta -invert1 $tptobase identity.nofile $basetotp
+  mri_concatenate_lta -invert1 $newtplta identity.nofile $basetotp
   if ($status) then
     echo "ERROR: error running mri_concatenate_lta"
     exit 1;
@@ -162,6 +163,9 @@ else  # if diff large:
   echo "Then rerun ALL longitudinals with the new base:"
   echo "recon-all -long tpN $baseid -all -force"
   echo
+	rm $newmean
+	rm $newlta
+	rm $newmeanssd
 endif
 
 echo difference was $diff
