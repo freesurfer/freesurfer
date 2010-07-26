@@ -55,6 +55,7 @@ FSF_FILES=\
 	extract-roi-tc-sess \
 	fast_getext \
 	fast-log-preamble.csh \
+	fcseed-sess \
 	fcreg-sess \
 	feat.fsfast-patch \
 	feat.fsfast-patch.tcl \
@@ -83,6 +84,9 @@ FSF_FILES=\
 	func2sph-sess-vss \
 	func2tal \
 	func2tal-sess \
+        funcroi-config \
+        funcroi-sess \
+        funcroi-table-sess \
 	functcvm \
 	functcvm-sess \
 	functwf-sess \
