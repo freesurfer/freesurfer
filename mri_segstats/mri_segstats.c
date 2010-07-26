@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/06 20:06:27 $
- *    $Revision: 1.69 $
+ *    $Date: 2010/07/26 16:19:10 $
+ *    $Revision: 1.70 $
  *
  * Copyright (C) 2006-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -426,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.69 2010/05/06 20:06:27 greve Exp $";
+"$Id: mri_segstats.c,v 1.70 2010/07/26 16:19:10 greve Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -595,12 +595,14 @@ int main(int argc, char **argv) {
   }
 
   /* Make sure we can open the output summary table file*/
-  fp = fopen(StatTableFile,"w");
-  if (fp == NULL) {
-    printf("ERROR: could not open %s for writing\n",StatTableFile);
-    exit(1);
+  if(StatTableFile){
+    fp = fopen(StatTableFile,"w");
+    if (fp == NULL) {
+      printf("ERROR: could not open %s for writing\n",StatTableFile);
+      exit(1);
+    }
+    fclose(fp);
   }
-  fclose(fp);
 
   /* Make sure we can open the output frame average file*/
   if (FrameAvgFile != NULL) {
@@ -2119,7 +2121,7 @@ static void check_options(void) {
     printf("ERROR: must specify a segmentation volume\n");
     exit(1);
   }
-  if (StatTableFile == NULL && DoETIVonly == 0 && DoOldETIVonly == 0) {
+  if (StatTableFile == NULL && FrameAvgFile == NULL && DoETIVonly == 0 && DoOldETIVonly == 0) {
     printf("ERROR: must specify an output table file\n");
     exit(1);
   }
