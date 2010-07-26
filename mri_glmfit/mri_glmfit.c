@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/04/19 20:40:17 $
- *    $Revision: 1.187 $
+ *    $Author: greve $
+ *    $Date: 2010/07/26 15:54:16 $
+ *    $Revision: 1.188 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -560,7 +560,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.187 2010/04/19 20:40:17 nicks Exp $";
+"$Id: mri_glmfit.c,v 1.188 2010/07/26 15:54:16 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -2062,7 +2062,7 @@ static int parse_commandline(int argc, char **argv) {
       }
       nargsused = 1;
     } else if (!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
-    else if (!strcasecmp(option, "--surf")) {
+    else if (!strcasecmp(option, "--surf") || !strcasecmp(option, "--surface")) {
       if (nargc < 2) CMDargNErr(option,1);
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
       if (SUBJECTS_DIR == NULL) {
