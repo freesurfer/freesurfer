@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 22:20:59 $
-#    $Revision: 1.33 $
+#    $Date: 2010/07/26 15:35:44 $
+#    $Revision: 1.34 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.33 2010/04/28 22:20:59 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.34 2010/07/26 15:35:44 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -470,11 +470,8 @@ usage_exit:
   echo "   -help "
 
   echo "Also see tkregister2 --help"
-
   if(! $PrintHelp) exit 1;
-
   echo $VERSION
-
   echo "------------------------------------------------------------"
   cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 
@@ -483,6 +480,26 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-tkregister-sess allows users to visually inspect the registration 
-computed from register-sess.
+tkregister-sess allows users to visually inspect the registration
+computed from register-sess. It can also print out the final BBR cost
+value which can be used to determine which, if any, failed registration.
+
+To visually check
+
+tkregister-sess -sf sessidlist
+
+To print a list of cost values
+
+tkregister-sess -sf sessidlist -bbr-sum bbr.summary.dat -per-run
+
+The file bbr.summary.dat will have three columns:
+1. The session name
+2. The run number
+3. The final cost value
+
+A "good" final cost depends on a lot of things, so it is not possible
+to give a hard threshold before hand. Smaller is better. A value
+above 0.9 is almost always a failure. Something less than 0.7 is usually
+fine. You should visually check the worst 10% or so and spot check
+a few others. If it fails, try running register-sess with -init-spm.
 

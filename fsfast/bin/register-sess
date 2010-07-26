@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/05/04 22:00:40 $
-#    $Revision: 1.10 $
+#    $Date: 2010/07/26 15:35:44 $
+#    $Revision: 1.11 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.10 2010/05/04 22:00:40 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.11 2010/07/26 15:35:44 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -563,7 +563,7 @@ Performs a functional-structural registration.
 
 By default you only need to supply the sessions and register-sess will
 perform the registration. The default is to use bbregister initialized
-with fsl (FLIRT) and to create a file called register.dat in the bold
+with fsl (FLIRT) and to create a file called register.dof6.dat in the bold
 directory. Each session must have a subjectname file with the freesurfer
 subject name in it.
 
@@ -574,4 +574,7 @@ register-sess -s yoursession
 To check the registrations run
 
 tkregister-sess -s yoursession 
+
+See tkregister-sess -help for more options for checking your registration.
+
 

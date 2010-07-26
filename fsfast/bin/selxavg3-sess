@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/16 16:20:10 $
-#    $Revision: 1.54 $
+#    $Date: 2010/07/26 15:35:44 $
+#    $Revision: 1.55 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.54 2010/07/16 16:20:10 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.55 2010/07/26 15:35:44 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -63,9 +63,14 @@ if($?FS_USE_OCTAVE) then
   set UseOctave = $FS_USE_OCTAVE
 endif
 
+set PrintHelp = 0;
 if($#argv == 0)  goto usage_exit;
-
-set n = `echo $argv | grep version | wc -l` 
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
 if($n != 0) then
   echo $VERSION
   exit 0;
@@ -581,9 +586,6 @@ usage_exit:
   echo "   -contrasts-only : only compute contrasts (estimation already done) <-co>"
   echo "   -c c1 <-c c2 ...> : compute contrasts c1, c2, ... (default is to compute all)"
   echo "   -no-con-ok      : run even if no contrasts in analysis"
-  echo "   -svres          : save residuals (usually not needed)"
-  echo "   -svres-unwhitened : save unwhitened residuals (usually not needed)"
-  echo "   -run-wise        : analyze each run separately"
   echo "   -fwhm          : compute FWHM of residual"
   echo ""
   echo "Session Arguments (Required)"
@@ -594,10 +596,43 @@ usage_exit:
   echo ""
   echo "Other args"
   echo "   -no-preproc    : do not run preprocessing"
+  echo "   -svres          : save residuals (usually not needed)"
+  echo "   -svres-unwhitened : save unwhitened residuals (usually not needed)"
+  echo "   -run-wise        : analyze each run separately"
   echo "   -version       : print version and exit"
   echo "   -debug"
   echo "   -nolog         : do not create a log file"
   echo "   -log logfile   : specify log file explicitly"
   echo "   -outparent dir : save output to this dir instead of in session"
   echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
 exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This program performs the first-level fMRI analysis. Specify the
+analysis configuration with -analysis. This is the configuration
+created with mkanalysis-sess. The analysis should already have
+contrasts created (by mkcontrast-sess), though you can add
+contrasts afterwards.
+
+By default, selxavg3-sess will check the preprocessing to make
+sure that it has been run properly (turn off with -no-preproc).
+
+By default, it will only run the analysis on data sets that actually
+need to be re-run based on the time stamps of the input data. To force
+a re-analysis run with -force or -overwrite.
+
+This program will construct the design matrix for each run, fit the
+GLM, save regression coefficients, compute contrasts and significances
+of contrasts. The runs are combined together so the output is the
+average across runs (some would call this a "second-level" analysis).
+
+This program requires matlab or octave.
+

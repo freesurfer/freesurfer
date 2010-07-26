@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/12 17:16:40 $
-#    $Revision: 1.33 $
+#    $Date: 2010/07/26 15:35:44 $
+#    $Revision: 1.34 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.33 2010/07/12 17:16:40 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.34 2010/07/26 15:35:44 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -769,11 +769,13 @@ and spatial smoothing.
 
 -per-run 
 
-Motion correct and register using the middle time point.
+Motion correct and register using the middle time point of each run.
+This is the option that you should use.
 
 -per-session
 
-Motion correct and register using the first time point of the first run.
+Motion correct and register using the first time point of the first
+run.  This is mainly for compatability with version 4.
 
 -fwhm FWHM
 
@@ -783,7 +785,7 @@ want to smooth, specify 0 (but you must specify something).
 -update
 
 Only perform a stage if the output is newer than the input or if the
-output does not exist. This can be very convient as you do not have to
+output does not exist. This can be very convenient as you do not have to
 keep track of what has been done. Just specify all the sessions and
 and it will figure out what needs to be done. This is the default
 behavior. See also -force.
@@ -815,12 +817,53 @@ subject.  Hemi should be lh, rh, or lhrh (for both). Both -surface and
 Sample raw data into the mni305 2mm space. Both -mni305 and -surface can be
 specified (in which case it will do both).
 
-
-
-
 -i instem 
 
 Explicitly specify input stem. Default is f.
+
+
+EXAMPLE 1 
+
+To perform template creation, MC, registration, mask creation, sampling
+to the lh and rh hemispheres of fsaverage and to the mni305 2mm space,
+
+  preproc-sess -sf sessidlist -df sessdirlist -lhrh -mni305 -fwhm 5
+
+
+EXAMPLE 2
+
+To perform template creation, MC, registration, mask creation,
+sampling to the lh and rh hemispheres of native subject anatomy and
+to the mni305 2mm space,
+
+  preproc-sess -sf sessidlist -df sessdirlist -surface self -lhrh -mni305 -fwhm 5
+
+Note that "-surface self" has been added to indated that the analysis should
+be performed on the subjects native surface and not fsaverage.
+
+
+INPUTS AND OUTPUTS
+
+Unless otherwise specified, the input stem is f, and the input stems
+and output stems of the other stages are automatically determined as
+follows:
+
+Input to MC is instem (default is f) Output of MC is instem"mcpr" (ie,
+the MC input stem with "mcpr" appended to the end, eg, "fmcpr"). When
+per-session is used, the MC default stem will be instem"mc".
+
+Input  to STC is outstem of MC  
+Output of STC is stcinstem.SliceOrder where SliceOrder is the slice
+order used (eg, "siemens", see -sliceorder above).
+
+Input  to smoothing is outstem of STC (or MC if no STC)
+Output of smoothing is sminstem"smFWHM" (ie, the smoothing 
+input stem with "sm" appended to the end and then the specified
+FWHM appended to that).
+
+
+====================================================================
+These options are obsolete but still functional
 
 -vol-fwhm fwhm
 
@@ -852,48 +895,5 @@ with -projfrac-avg (but this will be slow).
 
 Not needed anymore. Turn on computing of intensity normalization
 factor (creates stem.meanval). This was necssary for the old selxavg.
-
-
-INPUTS AND OUTPUTS
-
-Unless otherwise specified, the input stem is f, and the input stems
-and output stems of the other stages are automatically determined as
-follows:
-
-Input  to MC is instem (default is f)
-Output of MC is instem"mc"  (ie, the MC input stem with "mc" 
-appended to the end). When per-run is used, the MC default 
-stem will be instem"mc.pr".
-
-Input  to STC is outstem of MC  
-Output of STC is stcinstem"stc" (ie, the STC input stem with "stc" 
-appended to the end)
-
-Input  to smoothing is outstem of STC (or MC if no STC)
-Output of smoothing is sminstem"smFWHM" (ie, the smoothing 
-input stem with "sm" appended to the end and then the specified
-FWHM appended to that).
-
-When -mcperrun is used, the target volume is the middle frame.
-
-
-EXAMPLE 1 
-To perform MC, smoothing by fwhm of 5mm, and brain mask, run
-
-  preproc-sess -sf sessidlist -df sessdirlist -vol-fwhm 5
-
-For MC the input will be f and the output will be fmc
-For Smoothiing the input will be fmc and the output will be fmcsm5
-
-
-EXAMPLE 2
-To perform MC, STC, smoothing by fwhm of 7.1 mm, and brain mask, run
-
-  preproc-sess -sf sessidlist -df sessdirlist -vol-fwhm 7.1 -stc
-
-For MC  the input will be f and the output will be fmc
-For STC the input will be fmc and the output will be fmcstc
-For Smoothiing the input will be fmcstc and the output will be fmcstcsm7.1
-
 
 

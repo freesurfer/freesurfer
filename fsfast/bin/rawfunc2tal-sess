@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/28 23:59:12 $
-#    $Revision: 1.14 $
+#    $Date: 2010/07/26 15:35:44 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.14 2010/04/28 23:59:12 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.15 2010/07/26 15:35:44 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -444,7 +444,7 @@ exit 1;
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
 
-Resamples raw data into "talairach" space. Currently, this is MNI305
-space sampled at 2mm isotropic.
+Resamples raw data into "talairach" space. This is MNI305 space
+sampled at 2mm isotropic.
 
 
