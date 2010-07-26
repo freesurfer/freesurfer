@@ -47,6 +47,7 @@ fix_subject-rh \
 flip4fsl \
 fname2ext \
 fname2stem \
+fscalc \
 fscalc.fsl \
 fsl_sub_seychelles \
 fsutils.py \
