@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/06/16 20:01:53 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/07/26 19:39:13 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,7 +56,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.14 2010/06/16 20:01:53 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.15 2010/07/26 19:39:13 mreuter Exp $";
 char *Progname = NULL;
 
 double cornerdiff(LTA* lta1, LTA* lta2)
@@ -141,6 +141,24 @@ double cornerdiff(LTA* lta1)
   }
   cout << " dmax: " << dmax << endl;
   return d/8.0;
+}
+
+double determinant(MATRIX * M1, MATRIX* M2)
+{
+
+   MATRIX* M = MatrixAlloc(4,4,MATRIX_REAL);
+	 if (M2 == NULL) M = MatrixCopy(M1,M);
+	 else
+	 {
+	 cout << " inverting" << endl;
+	    M = MatrixInverse(M1,M);
+			M = MatrixMultiply(M2,M,M);
+	 }
+
+
+   double d = MatrixDeterminant(M);
+	 MatrixFree(&M);
+   return d;
 }
 
 double sphereDiff(MATRIX * M1, MATRIX* M2, double r)
@@ -397,6 +415,7 @@ int main(int argc, char *argv[])
     cout << "       2  (default) Affine Transform Distance (RMS) " << endl;
     cout << "       3            8-corners mean distance after transform " << endl;
     cout << "       4            Max Displacement on Sphere " << endl;
+    cout << "       5            Determinant (scaling)" << endl;
     cout << "    norm-div  (=1)  divide final distance by this (e.g. step adjustment)" << endl;
 		cout << "    invert1         invert first LTA: 1 true, 0 false (default)" << endl;
     cout << endl;
@@ -519,7 +538,13 @@ int main(int argc, char *argv[])
   case 4 :
     dist =  sphereDiff(RAS1,RAS2,100)/d; 
 		break;
-    assert(1==2);
+   case 5 :
+    dist =  determinant(RAS1,RAS2)/d; 
+		break;
+	 default:
+     cerr<< "ERROR: dist-type " << disttype << " unknown!" << endl;
+		 exit(1);
+		break;
   }
   cout << dist << endl;
 }
