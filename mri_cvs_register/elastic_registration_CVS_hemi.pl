@@ -30,17 +30,13 @@ my $refVol = "";
 my $settingsFile = "";
 my $dbgOut = 0;
 my $usePial = 0;
-my $noCpus = 1; # only valid if using MPI - on by default
-my $noMpi = 0;
 
 GetOptions ( "moving=s" => \$vol,
 	     "fixed=s" => \$refVol,
 	     "settings=s" => \$settingsFile,
 	     "pial" => \$usePial,
 	     "dbgOut" => \$dbgOut,
-	     "cpus=s" => \$noCpus,
 	     "exe=s" => \$exeFile,
-	     "no_mpi" => \$noMpi
 	   );
 
 if ( length $vol == 0 or
@@ -156,16 +152,9 @@ if ( (not -e "$outElastic") or $overwrite )
 #	$cmdAparc = $cmdAparc . " -aparc_3 $sdir/$refVol/label/lh.$annotFile -aparc_4 $sdir/$refVol/label/rh.$annotFile";
 	$cmdAparc = $cmdAparc . " -aparc_2 $sdir/$refVol/label/$hemi.$annotFile ";
       }
-     
-     $cmdMain = "surf2vol $cmdVols $cmdSurf $cmdAparc $cmdOptions $cmdOut";
-    if ($noMpi)
-      {
-	$cmdLine = "$cmdMain &> $outDir/trace_${outRoot}_to${refVol}_$vol.txt";
-      }
-    else
-      {
-        $cmdLine = "mpiexec -np $noCpus $cmdMain  -openmp_merge_size $noCpus &> $outDir/trace_${outRoot}_to${refVol}_$vol.txt";
-       }
+    
+    $cmdMain = "surf2vol $cmdVols $cmdSurf $cmdAparc $cmdOptions $cmdOut";
+    $cmdLine = "$cmdMain &> $outDir/trace_${outRoot}_to${refVol}_$vol.txt";
 
     print ("trying to execute elastic registration -> cmd line = \n $cmdLine\n");
     system($cmdLine)==0 or die "error executing surf2vol";
