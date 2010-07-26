@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.27 2010/07/21 16:24:45 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.28 2010/07/26 18:34:11 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -29,6 +29,9 @@ set DoBackground = 0;
 set DoPBSubmit = 0;
 set DoPoll = 0;
 set tSleepSec = 10;
+
+set CacheDir = $FREESURFER_HOME/average/mult-comp-cor
+set CacheLabel = cortex;
 
 set tmpdir = ();
 set CleanUp = 1;
@@ -280,7 +283,7 @@ if($UseCache) then
   set fwhm = `cat $glmdir/fwhm.dat`;
   set fwhmStr = `perl -e "printf('"'%02d'"',int ( $fwhm+.5 ) ) "`
   set threshStr = `perl -e "print 10*$thresh"`;
-  set csdCache = $FREESURFER_HOME/average/mult-comp-cor/$subject/$hemi/cortex/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
+  set csdCache = $CacheDir/$subject/$hemi/$CacheLabel/fwhm$fwhmStr/$simsign/th$threshStr/mc-z.csd
   if(! -e $csdCache) then
     echo "ERROR: cannot find $csdCache" | tee -a $LF
     exit 1;
@@ -543,6 +546,16 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "--cache-dir":
+      if( $#argv < 1) goto arg1err;
+      set CacheDir = $argv[1]; shift;
+      breaksw
+
+    case "--cache-label":
+      if( $#argv < 1) goto arg1err;
+      set CacheLabel = $argv[1]; shift;
+      breaksw
+
     case "--sim":
       if( $#argv < 4) goto arg4err;
       set nulltype = $argv[1]; shift;
@@ -715,12 +728,13 @@ usage_exit:
   echo " --cwpvalthresh thresh : cluster p-value thresh ($cwpvalthresh)"
   echo ""
   echo " --cache threshold sign"
+  echo "   --cache-dir dir : default is FREESURFER_HOME/average/mult-comp-cor"
+  echo "   --cache-label label : default is cortex"
   echo ""
   echo " --sim nulltype nsim threshhold csdbase"
   echo " --sim-sign sign : <abs>,pos,neg"
   echo ""
   echo " --overwrite : delete previous CSDs"
-  echo ""
   echo " --bg njobs : divide sim into njobs and put in background"
   echo " --sleep tSleepSec : number of seconds to sleep between background polls "
   echo ""
