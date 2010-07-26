@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/21 17:10:29 $
-#    $Revision: 1.20 $
+#    $Date: 2010/07/26 20:41:33 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.20 2010/07/21 17:10:29 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.21 2010/07/26 20:41:33 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -45,6 +45,7 @@ set ToVol = 0;
 set ToSurf = 0;
 set DoLogFile = 0;
 set DoSplit = 0;
+set gmean = (); # Number in group for group mean
 set fsgd = ();
 
 set DoResample = 1;
@@ -195,6 +196,7 @@ if($paireddiff) set cmd = ($cmd --paired-diff --prune)
 if($pairedavg)  set cmd = ($cmd --paired-avg --prune)
 if($pairedsum)  set cmd = ($cmd --paired-sum --prune)
 if($mean)       set cmd = ($cmd --mean --prune)
+if($#gmean)     set cmd = ($cmd --gmean $gmean --prune)
 pwd |& tee -a $LF
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -393,6 +395,11 @@ while( $#argv != 0 )
 
     case "-mean"
       set mean = 1;
+      breaksw
+
+    case "-gmean"
+      if($#argv < 1) goto arg1err;
+      set gmean = $argv[1];shift
       breaksw
 
     case "-split"

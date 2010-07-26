@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/23 23:36:05 $
-#    $Revision: 1.52 $
+#    $Date: 2010/07/26 20:41:33 $
+#    $Revision: 1.53 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.52 2010/07/23 23:36:05 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.53 2010/07/26 20:41:33 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -340,31 +340,19 @@ foreach hemi ($hemilist)
       endif
     endif
     if($mapname == h) then
+      set cmd = ($cmd -gmean $#SessList)
       echo ""
       echo "Constructing the group HRF. This may take a while. If "
       echo "you do not want the HRF, re-run with -no-hrf"
       echo ""
+      # It would be better to set the XtX to something like the identity
+      if($ToVol)  cp $SessList[1]/$fsd/$analysis/h.dat $outdir/"$SpStr"h.dat
+      if($ToSurf) cp $SessList[1]/$fsd/$analysis/h.dat $outdir/"$SpStr"h.dat
     endif
     echo "cd `pwd`" |& tee -a $LF
     echo $cmd       |& tee -a $LF
     $cmd            |& tee -a $LF
     if($status) exit 1;
-
-    if($mapname == h) then
-      echo ""
-      echo "Constructing the group HRF. This may take a while. If "
-      echo "you do not want the HRF, re-run with -no-hrf"
-      echo ""
-      set cmd = (mri_concat $outvol --gmean $#SessList --o $outvol)
-      echo "cd `pwd`" |& tee -a $LF
-      echo $cmd       |& tee -a $LF
-      $cmd            |& tee -a $LF
-      if($status) exit 1;
-      # It would be better to set the XtX to something like the identity
-      if($ToVol)  cp $SessList[1]/$fsd/$analysis/h.dat $outdir/"$SpStr"h.dat
-      if($ToSurf) cp $SessList[1]/$fsd/$analysis/h.dat $outdir/"$SpStr"h.dat
-    endif
-
   end # mapname
 
 end # Loop over hemi
