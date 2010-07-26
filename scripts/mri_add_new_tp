@@ -89,7 +89,11 @@ set newtplta   = ${basedir}/mri/transforms/${newtpid}_to_${baseid}.lta
 set newmeanssd = ${basedir}/mri/${voltype}.with_${newtpid}.ssd.txt
 
 # register new tp to current base
-mri_robust_register --mov $newtpvol --dst $basevol --lta $newtplta --sat 4.685
+set cmd = ( mri_robust_register --mov $newtpvol --dst $basevol --lta $newtplta --sat 4.685 )
+echo 
+echo $cmd
+echo
+eval $cmd
 if ($status) then
   echo "ERROR: error running mri_robust_register"
   exit 1;
@@ -111,7 +115,11 @@ foreach s ($BaseSubjsList)
 end
 
 #only recreate template including new TP at same location (without iterating)
-mri_robust_template --mov $subjInVols $newtpvol --template $newmean --ixforms $ltaXforms $newtplta --noit
+set cmd = ( mri_robust_template --mov $subjInVols $newtpvol --template $newmean --ixforms $ltaXforms $newtplta --noit )
+echo 
+echo $cmd
+echo
+eval $cmd
 if ($status) then
   echo "ERROR: error running mri_robust_template"
   exit 1;
@@ -119,14 +127,23 @@ endif
 
 # checking differences in intensities
 set cmd  = ( mri_diff --pix-only --ssd $basevol $newmean )
+echo 
+echo $cmd
+echo
 set diff = (`$cmd | grep "sum of squared differences" | awk '{print $1}' `)
-if ($status) exit 1;
+# dont test status here, as it will not be zero if images differ
 echo $diff > $newmeanssd
+echo "Sum of squared differences to previous norm.mgz: $diff "
 
-set small = 1
+# maybe at some point we can use sse diff to recommend
+# rerunning the base (if the differences get too large).
+# For now it is completely unclear what 'too large' means,
+# and we might never know.
+# So if the user wants to add this time point let him do so:
+set small = 1 
 
 # if diff small:
-if ($small) then
+if ( "$small" == "1" ) then
   #  do not rerun base, only add ltas and update insubject list
   #  maybe update bruces stuff
 
@@ -150,7 +167,8 @@ if ($small) then
   echo "Base patched to include new TP $newtpid"
   echo "You only need to rerun new TP long:"
   echo "recon-all -long $newtpid $baseid -all"
-
+  echo
+	
 else  # if diff large:
   echo 
   echo "Base cannot be patched. Changes are too large, please rerun base with:"
@@ -165,7 +183,5 @@ else  # if diff large:
   rm $newlta
   rm $newmeanssd
 endif
-
-echo "Sum of squared differences to previous norm.mgz: $diff "
 
 exit 0;
