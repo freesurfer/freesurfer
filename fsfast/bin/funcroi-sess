@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/19 20:52:53 $
-#    $Revision: 1.1 $
+#    $Date: 2010/07/27 00:04:10 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: funcroi-sess,v 1.1 2010/07/19 20:52:53 greve Exp $';
+set VERSION = '$Id: funcroi-sess,v 1.2 2010/07/27 00:04:10 greve Exp $';
 
 set inputargs = ($argv);
 set analysis = ();
@@ -279,6 +279,10 @@ while( $#argv != 0 )
 
     case "-update":
       set UpdateOnly = 1;
+      breaksw
+
+    case "-no-cleanup":
+      set cleanup = 0;
       breaksw
 
     case "-force":

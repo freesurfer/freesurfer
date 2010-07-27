@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 20:41:33 $
-#    $Revision: 1.21 $
+#    $Date: 2010/07/27 00:04:10 $
+#    $Revision: 1.22 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.21 2010/07/26 20:41:33 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.22 2010/07/27 00:04:10 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -196,7 +196,7 @@ if($paireddiff) set cmd = ($cmd --paired-diff --prune)
 if($pairedavg)  set cmd = ($cmd --paired-avg --prune)
 if($pairedsum)  set cmd = ($cmd --paired-sum --prune)
 if($mean)       set cmd = ($cmd --mean --prune)
-if($#gmean)     set cmd = ($cmd --gmean $gmean --prune)
+if($#gmean)     set cmd = ($cmd --gmean $gmean); # dont prune
 pwd |& tee -a $LF
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/19 20:53:59 $
-#    $Revision: 1.2 $
+#    $Date: 2010/07/27 00:04:10 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.2 2010/07/19 20:53:59 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.3 2010/07/27 00:04:10 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -208,9 +208,11 @@ check_params:
     exit 1;
   endif
   if(-e $roiconfig && ! $Force) then
-    echo "ERROR: cannot find $roiconfig already exists"
+    echo "ERROR: $roiconfig already exists. Choose a different name or "
+    echo " re-run with -force"
     exit 1;
   endif
+  rm -f $roiconfig
 
   if($#analysis == 0) then
     echo "ERROR: must specify an analysis"
