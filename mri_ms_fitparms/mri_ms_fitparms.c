@@ -19,9 +19,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/27 19:34:07 $
- *    $Revision: 1.64 $
+ *    $Author: fischl $
+ *    $Date: 2010/07/27 14:56:33 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -218,14 +218,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ms_fitparms.c,v 1.64 2010/03/27 19:34:07 nicks Exp $",
+     "$Id: mri_ms_fitparms.c,v 1.65 2010/07/27 14:56:33 fischl Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_ms_fitparms.c,v 1.64 2010/03/27 19:34:07 nicks Exp $",
+    "$Id: mri_ms_fitparms.c,v 1.65 2010/07/27 14:56:33 fischl Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2543,6 +2543,8 @@ compute_T2star_map(MRI **mri_flash, int nvolumes, int *scan_types,
           else
             MRIsampleVolumeType(mri_flash[e], xf, yf, zf,
                                 &val, InterpMethod) ;
+          if (val <= 0 || !finite(val))
+            val = 1E-6 ;
 
           VECTOR_ELT(vY, e+1) = log(val) ;
         }
