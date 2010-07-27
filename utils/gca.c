@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/07/12 12:33:07 $
- *    $Revision: 1.278 $
+ *    $Author: rge21 $
+ *    $Date: 2010/07/27 15:36:56 $
+ *    $Revision: 1.279 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1205,6 +1205,13 @@ GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
       // transform point to talairach volume point
       TransformWithMatrix(lta->xforms[0].m_L,
                           xv, yv, zv, &xrt, &yrt, &zrt);
+      /*!
+	@BUGS
+	This is strange - a downcast from double to float,
+	when the next stop for these variables is a
+	call to GCAvoxelToPrior, which will immediately
+	convert them to int
+      */
       xt = xrt;
       yt = yrt;
       zt = zrt;
@@ -1219,7 +1226,14 @@ GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
     TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
   }
   // get the position in gca from talairach volume
+  /*!
+    @BUGS
+    Combine with note above - xt, yt and zt will be converted to
+    integers on this call
+  */
   GCAvoxelToPrior(gca, gca->mri_tal__, xt, yt, zt, pxp, pyp, pzp) ;
+
+
   if (*pxp < 0 || *pyp < 0 || *pzp < 0 ||
       *pxp >= gca->prior_width ||
       *pyp >= gca->prior_height ||
