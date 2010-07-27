@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.28 2010/07/26 18:34:11 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.29 2010/07/27 22:48:30 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -467,6 +467,7 @@ foreach conname ($conlist)
   set sig = `stem2fname $glmdir/$conname/sig`
   set vwsig = $glmdir/$conname/$csdbase.sig.voxel.mgh
   set cwsig = $glmdir/$conname/$csdbase.sig.cluster.mgh
+  set msig  = $glmdir/$conname/$csdbase.sig.masked.mgh
   set ocn   = $glmdir/$conname/$csdbase.sig.ocn.mgh
   set annot = $glmdir/$conname/$csdbase.sig.ocn.annot
   set sum   = $glmdir/$conname/$csdbase.sig.cluster.summary
@@ -476,7 +477,7 @@ foreach conname ($conlist)
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
       --oannot $annot --annot aparc --csdpdf $csdpdf \
-      --cwpvalthresh $cwpvalthresh)
+      --cwpvalthresh $cwpvalthresh --o $msig)
     set cmd = ($cmd --surf $surf); # bug to have to do this
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -844,6 +845,7 @@ csdbase.sig.cluster.summary
 csdbase.y.ocn.dat
 csdbase.sig.ocn.mgh
 csdbase.sig.ocn.annot (for surfaces only)
+csdbase.sig.masked.mgh 
 
 csdbase.sig.voxel.mgh - the sig volume corrected for multiple
 comparisons on a voxel-wise basis. The threshhold and sign are
@@ -873,6 +875,9 @@ csdbase.sig.ocn.annot (for surfaces only) - this is an annotation
 with the annotation name being the cluster number. This can be
 used like any other annotation (eg, to load into tksurfer or 
 as input for mri_segstats or mris_anatomical_stats).
+
+csdbase.sig.masked.mgh - the original sig volume masked to show
+only clusters.
 
 OTHER OPTIONS
 
