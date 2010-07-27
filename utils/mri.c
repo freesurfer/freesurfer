@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/22 15:29:01 $
- *    $Revision: 1.466 $
+ *    $Date: 2010/07/27 16:51:06 $
+ *    $Revision: 1.467 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.466 $";
+const char *MRI_C_VERSION = "$Revision: 1.467 $";
 
 
 /*-----------------------------------------------------
@@ -3071,25 +3071,40 @@ MRItalairachVoxelToWorld(MRI *mri, double xtv, double ytv, double ztv,
 int MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv,
                     double *pxw, double *pyw, double *pzw)
 {
-  VECTOR *vw, *vv;
+  /*!
+    @BUGS
+    These static declarations make this routine non-threadsafe
+  */
+  static VECTOR *vw = NULL;
+  static VECTOR *vv = NULL;
   MATRIX *RfromI;
+
+  if( vw == NULL ) {
+    vw = VectorAlloc(4, MATRIX_REAL);
+  }
+  if( vv == NULL ) {
+    vv = VectorAlloc(4, MATRIX_REAL);
+  }
 
   // if the transform is not cached yet, then
   if (!mri->i_to_r__)   mri->i_to_r__ = extract_i_to_r(mri);
   if (!mri->r_to_i__)   mri->r_to_i__ = extract_r_to_i(mri);
 
   RfromI = mri->i_to_r__; // extract_i_to_r(mri);
-
-  vv = VectorAlloc(4, MATRIX_REAL) ;
+ 
   V4_LOAD(vv, xv, yv, zv, 1.) ;
-  vw = MatrixMultiply(RfromI, vv, NULL) ;
+  MatrixMultiply(RfromI, vv, vw) ;
+
   *pxw = V3_X(vw);
   *pyw = V3_Y(vw);
   *pzw = V3_Z(vw);
 
   // MatrixFree(&RfromI);
+#if 0
+  // Give up thread safety.....
   VectorFree(&vv);
   VectorFree(&vw);
+#endif
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -3382,8 +3397,22 @@ int
 MRIworldToVoxel(MRI *mri, double xw, double yw, double zw,
                 double *pxv, double *pyv, double *pzv)
 {
-  VECTOR *vv, *vw;
+  /*
+    These internal workspaces are now static.
+    They will 'leak' in that they will not be freed at exit
+    They also contribute to the further destruction and
+    annihilation of thread safety
+  */
+  static VECTOR *vv = NULL;
+  static VECTOR *vw = NULL;
   MATRIX *IfromR;
+
+  if( vw == NULL ) {
+    vw = VectorAlloc(4, MATRIX_REAL);
+  }
+  if( vv == NULL ) {
+    vv = VectorAlloc(4, MATRIX_REAL);
+  }
 
   // if transform is not cached yet, then
   if (!mri->r_to_i__)
@@ -3392,15 +3421,18 @@ MRIworldToVoxel(MRI *mri, double xw, double yw, double zw,
     mri->i_to_r__ = extract_i_to_r(mri);
 
   IfromR = mri->r_to_i__;
-  vw = VectorAlloc(4, MATRIX_REAL) ;
+ 
   V4_LOAD(vw, xw, yw, zw, 1.) ;
-  vv = MatrixMultiply(IfromR, vw, NULL) ;
+  MatrixMultiply(IfromR, vw, vv) ;
   *pxv = V3_X(vv);
   *pyv = V3_Y(vv);
   *pzv = V3_Z(vv);
 
+#if 0
+  // Memory leaked here
   VectorFree(&vv);
   VectorFree(&vw);
+#endif
 
   return(NO_ERROR) ;
 }
