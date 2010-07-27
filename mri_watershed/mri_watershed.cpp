@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/27 13:31:11 $
- *    $Revision: 1.84 $
+ *    $Date: 2010/07/27 15:38:16 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.84 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.85 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -42,10 +42,12 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.84 $";
 #include <iomanip>
 #include <vector>
 
-#define INDIVIDUAL_TIMERS 1
+#define INDIVIDUAL_TIMERS 0
+
+#define FAST_GCAsourceVoxelToPrior 1
 
 #if INDIVIDUAL_TIMERS
-#include "chronometer.h"
+#include "chronometer.hpp"
 #endif
 
 extern "C"
@@ -872,7 +874,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.84 2010/07/27 13:31:11 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.85 2010/07/27 15:38:16 rge21 Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -885,7 +887,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.84 2010/07/27 13:31:11 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.85 2010/07/27 15:38:16 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1321,17 +1323,18 @@ void MRI_weight_atlas(MRI *mri_with_skull,
 {
   int x, y, z;
   float value, val_buff,lambda;
-  double xpd2, ypd2, zpd2;
   int xp, yp, zp;
 
 #if INDIVIDUAL_TIMERS
   printf( "%s: Begin\n", __FUNCTION__ );
-  Chronometer tMRIweightAtlas;
+  SciGPU::Utilities::Chronometer tTotal;
 
-  InitChronometer( &tMRIweightAtlas );
-  StartChronometer( &tMRIweightAtlas );
+  tTotal.Start();
 #endif
 
+
+#if FAST_GCAsourceVoxelToPrior
+  double xpd2, ypd2, zpd2;
   MATRIX *tmp = NULL;
   MATRIX *affTrans = NULL;
   LTA *lta = (LTA*)transform->xform;
@@ -1340,6 +1343,7 @@ void MRI_weight_atlas(MRI *mri_with_skull,
 			parms->gca->mri_tal__->i_to_r__,
 			NULL );
   affTrans = MatrixMultiply( tmp, lta->xforms[0].m_L, NULL );
+#endif
 
 
   lambda = parms->preweight;//0.7;
@@ -1368,11 +1372,18 @@ void MRI_weight_atlas(MRI *mri_with_skull,
 			     (int)xpd, (int)ypd, (int)zpd,
 			     &xpd2, &ypd2, &zpd2 );
 	*/
-
+#if FAST_GCAsourceVoxelToPrior
 	TransformWithMatrix( affTrans, x, y, z, &xpd2, &ypd2, &zpd2 );
 	xp = static_cast<int>( floor( xpd2 ) );
 	yp = static_cast<int>( floor( ypd2 ) );
 	zp = static_cast<int>( floor( zpd2 ) );
+#else
+	GCAsourceVoxelToPrior(parms->gca, 
+                              mri_with_skull, 
+                              transform, 
+                              x, y, z, 
+                              &xp, &yp, &zp);
+#endif
 
 	if( xp < 0 ) {
 	  xp = 0;
@@ -1406,14 +1417,15 @@ void MRI_weight_atlas(MRI *mri_with_skull,
     }
   }
 
+#if FAST_GCAsourceVoxelToPrior
   MatrixFree( &tmp );
   MatrixFree( &affTrans );
+#endif
 
 #if INDIVIDUAL_TIMERS
-  StopChronometer( &tMRIweightAtlas );
-  printf( "%s: Complete in %9.3f ms\n",
-	  __FUNCTION__,
-	  GetChronometerValue( &tMRIweightAtlas ) );
+  tTotal.Stop();
+
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
 #endif
 }
 
@@ -2739,23 +2751,50 @@ double DistanceToSeeds(int i,int j,int k,int seeds[100][3], int n)
 void AnalyzeCerebellum( STRIP_PARMS *parms,
 		        MRI_variables *MRI_var, 
 		        float & mean, 
-		        float &var )
-{
+		        float &var ) {
+#if INDIVIDUAL_TIMERS
+  printf( "%s: Begin\n", __FUNCTION__ );
+  SciGPU::Utilities::Chronometer tTotal;
+
+  tTotal.Start();
+#endif
+
+
   int i, j, k, xp, yp, zp, count=0;
   float  vox;
   mean=0;
   var=0;
+
+
+#if FAST_GCAsourceVoxelToPrior
+  double xpd, ypd, zpd;
+  MATRIX *tmp = NULL;
+  MATRIX *affTrans = NULL;
+  LTA *lta = (LTA*)parms->transform->xform;
+
+  tmp = MatrixMultiply( parms->gca->prior_r_to_i__,
+			parms->gca->mri_tal__->i_to_r__,
+			NULL );
+  affTrans = MatrixMultiply( tmp, lta->xforms[0].m_L, NULL );
+#endif
 
   for (k=2;k<MRI_var->depth-2;k++)
     for (j=2;j<MRI_var->height-2;j++)
       for (i=2;i<MRI_var->width-2;i++)
       {
         vox = MRIvox(MRI_var->mri_src,i,j,k);
+#if FAST_GCAsourceVoxelToPrior
+	TransformWithMatrix( affTrans, i, j, k, &xpd, &ypd, &zpd );
+	xp = static_cast<int>( floor( xpd ) );
+	yp = static_cast<int>( floor( ypd ) );
+	zp = static_cast<int>( floor( zpd ) );
+#else
         GCAsourceVoxelToPrior(parms->gca, 
                               MRI_var->mri_src, 
                               parms->transform, 
                               i, j, k, 
                               &xp, &yp, &zp);
+#endif
         if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128)
           if (MRIgetVoxVal(parms->mri_atlas_cerebellum, xp, yp, zp, 0)>0)
           {
@@ -2766,6 +2805,17 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
       }
   mean/=count;
   var=sqrt(var/count-mean*mean);
+
+#if FAST_GCAsourceVoxelToPrior
+  MatrixFree( &tmp );
+  MatrixFree( &affTrans );
+#endif
+
+#if INDIVIDUAL_TIMERS
+  tTotal.Stop();
+
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+#endif
 }
 
 
@@ -2790,23 +2840,52 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   float mean_cer, var_cer;
   int number_seed = 20;
 
+#if INDIVIDUAL_TIMERS
+  printf( "%s: Begin\n", __FUNCTION__ );
+  SciGPU::Utilities::Chronometer tTotal;
+
+  tTotal.Start();
+#endif
+
   AnalyzeCerebellum(parms,MRI_var,mean_cer, var_cer);
   
   fprintf(stdout,"\n      Looking for seedpoints ");
 
-  for (k=2;k<MRI_var->depth-2;k++)
-    for (j=2;j<MRI_var->height-2;j++)
+#if FAST_GCAsourceVoxelToPrior
+  double xpd, ypd, zpd;
+  MATRIX *tmp = NULL;
+  MATRIX *affTrans = NULL;
+  LTA *lta = (LTA*)parms->transform->xform;
+
+  tmp = MatrixMultiply( parms->gca->prior_r_to_i__,
+			parms->gca->mri_tal__->i_to_r__,
+			NULL );
+  affTrans = MatrixMultiply( tmp, lta->xforms[0].m_L, NULL );
+#endif
+
+  for (k=2;k<MRI_var->depth-2;k++) {
+    for (j=2;j<MRI_var->height-2;j++) {
       for (i=2;i<MRI_var->width-2;i++) {
-        if (n<2){
+
+        if (n<2) {
           vox = MRIvox(MRI_var->mri_src,i,j,k);
+#if FAST_GCAsourceVoxelToPrior
+	  TransformWithMatrix( affTrans, i, j, k, &xpd, &ypd, &zpd );
+	  xp = static_cast<int>( floor( xpd ) );
+	  yp = static_cast<int>( floor( ypd ) );
+	  zp = static_cast<int>( floor( zpd ) );
+#else
           GCAsourceVoxelToPrior(parms->gca, 
                                 MRI_var->mri_src, 
                                 parms->transform, 
                                 i, j, k, 
                                 &xp, &yp, &zp);
+#endif
+
           if (xp>0 && yp>0 && zp>0 && 
               xp<128 && yp<128 && zp<128 &&  
-              DistanceToSeeds(i,j,k,seeds,n)>10) 
+              DistanceToSeeds(i,j,k,seeds,n)>10) {
+
             if (vox <mean_cer+var_cer/2 && 
                 vox >mean_cer-var_cer/2 && 
                 MRIgetVoxVal(parms->mri_atlas_cerebellum, 
@@ -2816,8 +2895,13 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
               seeds[n][2] = k;
               n++;
             } 
+	  }
         }
+
       }
+    }
+  }
+
   fprintf(stdout,"\n        %i found in the cerebellum ", n);
   cbm = n;
 
@@ -2828,12 +2912,20 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
           vox = MRIvox(MRI_var->mri_src,i,j,k);
           if (vox>=MRI_var->WM_MIN && 
               vox<=MRI_var->WM_MAX && 
-              DistanceToSeeds(i,j,k,seeds,n)>40){
+              DistanceToSeeds(i,j,k,seeds,n)>40) {
+	    
+#if FAST_GCAsourceVoxelToPrior
+	    TransformWithMatrix( affTrans, i, j, k, &xpd, &ypd, &zpd );
+	    xp = static_cast<int>( floor( xpd ) );
+	    yp = static_cast<int>( floor( ypd ) );
+	    zp = static_cast<int>( floor( zpd ) );
+#else
             GCAsourceVoxelToPrior(parms->gca, 
                                   MRI_var->mri_src, 
                                   parms->transform, 
                                   i, j, k, 
                                   &xp, &yp, &zp);
+#endif
             if (xp>0 && yp>0 && zp>0 && xp<128 && yp<128 && zp<128) {
               if (MRIgetVoxVal(parms->mri_atlas_brain, xp, yp, zp, 0)>0.995){ 
                 seeds[n][0] = i;
@@ -2872,6 +2964,18 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
     parms->seed_coord[parms->nb_seed_points][2] = seeds[i][2];
     parms->nb_seed_points++;
   } 
+
+#if FAST_GCAsourceVoxelToPrior
+  MatrixFree( &tmp );
+  MatrixFree( &affTrans );
+#endif
+  
+
+#if INDIVIDUAL_TIMERS
+  tTotal.Stop();
+
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+#endif
 } 
 
 /*-----------------------------------------------------
@@ -3539,6 +3643,25 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
   int xp, yp, zp, ig, jg, kg, nb_merging=0;
   double nu;
 
+#if INDIVIDUAL_TIMERS
+  printf( "%s: Begin\n", __FUNCTION__ );
+  SciGPU::Utilities::Chronometer tTotal;
+
+  tTotal.Start();
+#endif
+
+#if FAST_GCAsourceVoxelToPrior
+  double xpd, ypd, zpd;
+  MATRIX *tmp = NULL;
+  MATRIX *affTrans = NULL;
+  LTA *lta = (LTA*)parms->transform->xform;
+
+  tmp = MatrixMultiply( parms->gca->prior_r_to_i__,
+			parms->gca->mri_tal__->i_to_r__,
+			NULL );
+  affTrans = MatrixMultiply( tmp, lta->xforms[0].m_L, NULL );
+#endif
+
   for (k=2;k<MRI_var->depth-2;k++)
   {
     for (j=2;j<MRI_var->height-2;j++)
@@ -3553,6 +3676,8 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
       }
     }
   }
+
+
   for (k=2;k<MRI_var->depth-2;k++)
   {
     for (j=2;j<MRI_var->height-2;j++)
@@ -3566,11 +3691,18 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
           cell1=cell;
         if (cell->type)
         {
+#if FAST_GCAsourceVoxelToPrior
+	  TransformWithMatrix( affTrans, i, j, k, &xpd, &ypd, &zpd );
+	  xp = static_cast<int>( floor( xpd ) );
+	  yp = static_cast<int>( floor( ypd ) );
+	  zp = static_cast<int>( floor( zpd ) );
+#else
           GCAsourceVoxelToPrior(parms->gca, 
                                 MRI_var->mri_src, 
                                 parms->transform, 
                                 i, j, k, 
                                 &xp, &yp, &zp);
+#endif
           if (xp>0 && yp>0 && zp>0 && 
               xp<128 && yp<128 && zp<128)
             ((BasinCell*)cell1->next)->prior+=
@@ -3579,6 +3711,8 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
       }
     }
   }
+
+
   ig=MRI_var->i_global_min;
   jg=MRI_var->j_global_min;
   kg=MRI_var->k_global_min;
@@ -3608,6 +3742,19 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
         }
       }
   fprintf(stdout," %i basins merged thanks to atlas ", nb_merging);
+
+  
+#if FAST_GCAsourceVoxelToPrior
+  MatrixFree( &tmp );
+  MatrixFree( &affTrans );
+#endif
+
+#if INDIVIDUAL_TIMERS
+  tTotal.Stop();
+
+  std::cout << __FUNCTION__ << ": Complete in " << tTotal << std::endl;
+#endif
+
 
 }
 
