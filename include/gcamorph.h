@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/22 15:18:36 $
- *    $Revision: 1.83 $
+ *    $Author: lzollei $
+ *    $Date: 2010/07/27 22:56:19 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -158,6 +158,7 @@ typedef struct
   float  momentum ;
   int    niterations ;
   char   base_name[STRLEN] ;
+  char   base_path[STRLEN] ; 
   double l_log_likelihood ;
   double l_likelihood ;
   double l_area ;
@@ -174,6 +175,8 @@ typedef struct
   double l_area_smoothness;
   double l_dtrans ;         // distance transform coefficient
   double l_multiscale ;     // marginalize over smoothness scale
+  double l_subcortical; //for energy: subcortical connection
+  //  double l_diff ; // diffusion information coefficient
   double tol ;
   int    levels ;
   FILE   *log_fp ;
@@ -221,8 +224,32 @@ typedef struct
 GCA_MORPH_PARMS, GMP ;
 
 
+typedef struct
+{
+  char* lhcoord_fname; 
+  char* rhcoord_fname;
+  char* lhdata_fname; 
+  char* rhdata_fname;
+
+  int* lhcoords;       // (nLines x 3)
+  int* rhcoords;
+  int* lhdata;         // (nLines x nConnection)
+  int* rhdata;
+
+  int nLHLines;
+  int nRHLines;
+  int nLHConnections;
+  int nRHConnections;
+}
+MRI_SUBCORTCONN ;
+
 GCA_MORPH *GCAMupsample2(GCA_MORPH *gcam) ;
+int       GCAMcopy(GCA_MORPH *gcamsrc, GCA_MORPH *gcamdst) ;
+  //GCA_MORPH *GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2, 
+  //			     GCA_MORPH *gcamcomp) ;
+  int GCAMconcatenate(GCA_MORPH *gcam1, GCA_MORPH *gcam2);
 GCA_MORPH *GCAMalloc( const int width, const int height, const int depth );
+
 int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca, 
                    TRANSFORM *transform, int relabel) ;
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
@@ -232,23 +259,29 @@ GCA_MORPH *GCAMread(const char *fname) ;
 GCA_MORPH *GCAMreadAndInvert(const char *gcamfname);
 int       GCAMfree(GCA_MORPH **pgcam) ;
 int       GCAMfreeContents(GCA_MORPH *gcam) ;
-MRI       *GCAMmorphFromAtlas(MRI *mri_src,
-                              GCA_MORPH *gcam,
-                              MRI *mri_dst,
-                              int sample_type) ;
+
+MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int sample_type) ;
+MRI_SUBCORTCONN *
+SubcortConn_alloc(int nLHLines, int nLHConnections, int nRHLines, int nRHConnections);
+
 MRI       *GCAMmorphToAtlasWithDensityCorrection(MRI *mri_src, 
                                                  GCA_MORPH *gcam, 
                                                  MRI *mri_morphed, int frame) ;
 MRI       *GCAMmorphToAtlas(MRI *mri_src, 
-                            GCA_MORPH *gcam,
-                            MRI *mri_dst,
-                            int frame,
-                            int sample_type) ;
+                            GCA_MORPH *gcam, MRI *mri_dst, int frame, int sample_type) ;
+MRI       *GCAMmorphToAtlasLZ(MRI *mri_src, 
+			      GCA_MORPH *gcam, MRI *mri_dst, int frame, int sample_type) ; //, MRI *template) ;
 MRI       *GCAMmorphToAtlasType(MRI *mri_src, 
                                 GCA_MORPH *gcam, 
                                 MRI *mri_dst, int frame, int interp_type) ;
+MRI       *GCAMmorphDTIToAtlasType(MRI *mri_src, 
+					  GCA_MORPH *gcam, 
+					  MRI *mri_dst, int interp_type, int reorient) ;
 int       GCAMmarkNegativeNodesInvalid(GCA_MORPH *gcam) ;
 int       GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
+int       GCAMregisterWithSubcorticalConnections(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, 
+						 MRI_SUBCORTCONN *mri_source_subcort, MRI_SUBCORTCONN *mri_target_subcort) ;
+//int       GCAMregister_wdiff(GCA_MORPH *gcam, MRI *mri, MRI *diff_mri, GCA_MORPH_PARMS *parms) ;
 int       GCAMdemonsRegister(GCA_MORPH *gcam, MRI *mri_source_labels, 
                              MRI *mri_atlas_labels, 
                              GCA_MORPH_PARMS *parms,
@@ -257,6 +290,12 @@ int       GCAMdemonsRegister(GCA_MORPH *gcam, MRI *mri_source_labels,
                              MRI *mri_atlas_dtrans_orig) ;
 int       GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                             GCA_MORPH_PARMS *parms) ;
+int       GCAMregisterWithSubcorticalConnectionsLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
+						      GCA_MORPH_PARMS *parms, 
+						      MRI_SUBCORTCONN *mri_source_subcort, MRI_SUBCORTCONN *mri_target_subcort) ;
+//int       GCAMregisterLevel_wdiff(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, 
+//                                  MRI *diff_mri, GCA_MORPH_PARMS *parms);
+
 int       GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
                           float *pxd, float *pyd, float *pzd) ;
 int       GCAMsampleInverseMorph(GCA_MORPH *gcam,
@@ -311,6 +350,8 @@ MRI *GCAMmorphFieldFromAtlas(GCA_MORPH *gcam,
                              int save_inversion, 
                              int filter) ;
 double GCAMcomputeRMS(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms) ;
+double GCAMcomputeRMSWithSubcorticalConnections(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms, 
+						MRI_SUBCORTCONN *mri_source_subcort, MRI_SUBCORTCONN *mri_target_subcort);
 int GCAMexpand(GCA_MORPH *gcam, float distance) ;
 GCA_MORPH *GCAMregrid(GCA_MORPH *gcam, MRI *mri_dst, int pad,
                       GCA_MORPH_PARMS *parms, MRI **pmri) ;
