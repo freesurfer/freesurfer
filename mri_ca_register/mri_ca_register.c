@@ -24,8 +24,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/15 13:38:18 $
- *    $Revision: 1.72 $
+ *    $Date: 2010/07/27 13:25:40 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -216,7 +216,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.72 2010/06/15 13:38:18 rge21 Exp $", 
+     "$Id: mri_ca_register.c,v 1.73 2010/07/27 13:25:40 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1105,13 +1105,6 @@ main(int argc, char *argv[]) {
   // GCAMwrite is used not MORPH3D
   if (GCAMwrite(gcam, out_fname) != NO_ERROR)
     ErrorExit(Gerror, "%s: GCAMwrite(%s) failed", Progname, out_fname) ;
-
-  // Write out the gcam as NetCDF too
-#ifdef FS_CUDA
-  WriteGCAMoneInput( gcam, "gpuTransform" );
-#else
-  WriteGCAMoneInput( gcam, "cpuTransform" );
-#endif
 
 #if 0
   if (gca)
