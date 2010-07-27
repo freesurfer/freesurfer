@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/06/02 14:45:27 $
- *    $Revision: 1.63 $
+ *    $Author: lzollei $
+ *    $Date: 2010/07/27 22:55:42 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -464,7 +464,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.64 2010/07/27 22:55:42 lzollei Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -576,12 +576,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $",
+                          "$Id: mri_vol2vol.c,v 1.64 2010/07/27 22:55:42 lzollei Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.63 2010/06/02 14:45:27 rge21 Exp $",
+                                "$Id: mri_vol2vol.c,v 1.64 2010/07/27 22:55:42 lzollei Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1052,7 +1052,7 @@ static int parse_commandline(int argc, char **argv) {
       fstarg = 1;
     } else if (istringnmatch(option, "--m3z",0)) {
       if (nargc < 1) argnerr(option,1);
-      m3zfile = pargv[0];
+      m3zfile = pargv[0]; DoMorph = 1;
       nargsused = 1;
     } else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
