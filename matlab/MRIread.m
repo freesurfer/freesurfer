@@ -47,8 +47,8 @@ function mri = MRIread(fstring,headeronly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2007/11/01 17:47:14 $
-%    $Revision: 1.19 $
+%    $Date: 2010/07/27 21:21:56 $
+%    $Revision: 1.20 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -147,7 +147,7 @@ switch(fmt)
   else            mri.vol = [];
   end
   volsz([1 2]) = volsz([2 1]); % Make consistent. No effect when rows=cols
-  tr = hdr.dime.pixdim(5); % Keep in msec
+  tr = 1000*hdr.dime.pixdim(5); % msec
   flip_angle = 0;
   te = 0;
   ti = 0;
