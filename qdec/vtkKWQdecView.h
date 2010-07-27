@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/06/16 20:05:53 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/07/27 17:42:22 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -73,7 +72,7 @@ public:
   void ResetView ();
 
   // Reset the view the the original location.
-  void RestoreView ();
+  void RestoreView ( const char* isHemi );
 
   // Dolly the camera.
   void ZoomBy ( float iFactor );

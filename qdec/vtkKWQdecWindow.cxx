@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/06/18 22:46:41 $
- *    $Revision: 1.58 $
+ *    $Date: 2010/07/27 17:42:22 $
+ *    $Revision: 1.59 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -103,7 +103,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.58 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.59 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -2235,6 +2235,7 @@ vtkKWQdecWindow::LoadAnalyzedData (  QdecGlmFitResults* iGlmResults ) {
 
   // Update the display page.
   this->UpdateDisplayPage();
+  this->RestoreView();
 
   printf("\n============================================================\n"
          "Completed loading of analyzed data.\n");
@@ -2698,8 +2699,9 @@ vtkKWQdecWindow::SaveTIFFImage ( const char* ifnTIFF,
 void
 vtkKWQdecWindow::RestoreView () {
 
-  if( mView.GetPointer() )
-    mView->RestoreView();
+  if( mView.GetPointer() ) {
+    mView->RestoreView( mMenuMorphHemisphere->GetValue() );
+  }
 
   // Update our menu and buttons.
   this->UpdateCommandStatus();

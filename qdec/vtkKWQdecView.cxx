@@ -10,10 +10,10 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/21 21:29:44 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/07/27 17:42:22 $
+ *    $Revision: 1.11 $
  *
- * Copyright (C) 2007-2009,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -71,7 +70,7 @@
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecView );
-vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.10 $" );
+vtkCxxRevisionMacro( vtkKWQdecView, "$Revision: 1.11 $" );
 
 // these control the amount and speed of rotation
 // with AnimateSteps=1, it doesnt animate, and its instaneous
@@ -545,7 +544,7 @@ vtkKWQdecView::SetSurface ( vtkFSSurfaceSource* iSurface ) {
 void 
 vtkKWQdecView::ResetView () {
 
-  // Initial camera position to lateral view.
+  // Initial camera position to lateral view (assumes left hemi).
   this->GetRenderer()->GetActiveCamera()->SetPosition( -1, 0, 0 );
   this->GetRenderer()->GetActiveCamera()->SetFocalPoint( 0, 0, 0 );
   this->GetRenderer()->GetActiveCamera()->SetViewUp( 0, 0, 1 );
@@ -563,9 +562,9 @@ vtkKWQdecView::ResetView () {
 }
 
 void
-vtkKWQdecView::RestoreView () {
+vtkKWQdecView::RestoreView ( const char* isHemi ) {
 
-  // Set the camera position to our original settings.
+  // Set the camera position to our original settings (assumes left hemi).
   this->GetRenderer()->GetActiveCamera()->SetPosition( mDefaultPosition );
   this->GetRenderer()->GetActiveCamera()->SetFocalPoint( mDefaultFocalPoint );
   this->GetRenderer()->GetActiveCamera()->SetViewUp( mDefaultViewUp );
@@ -573,6 +572,11 @@ vtkKWQdecView::RestoreView () {
   this->GetRenderer()->ResetCamera();
   this->GetRenderer()->GetActiveCamera()->Zoom( mDefaultZoom );
   this->GetRenderer()->GetRenderWindow()->Render();
+
+  if( strcmp(isHemi, "rh") == 0 ) {
+    this->AnimateCameraAzimuthNegative( );
+    this->AnimateCameraAzimuthNegative( );
+  }
 }
 
 void

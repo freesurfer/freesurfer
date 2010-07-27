@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/06/10 22:30:34 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/07/27 17:42:22 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -209,7 +209,7 @@ class vtkKWQdecWindow : public vtkKWWindow
   void ClearCurvature ();
 
   // These call the similarly named functions in the view.
-  void RestoreView ();
+  void RestoreView ( );
   void ZoomBy ( float iFactor );
   void ZoomIn ();
   void ZoomOut ();
