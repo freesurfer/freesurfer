@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2010/07/28 17:16:31 $
-##    $Revision: 1.29 $
+##    $Date: 2010/07/28 20:55:24 $
+##    $Revision: 1.30 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -31,7 +31,6 @@ if { [info commands gdfRead] == "gdfRead" }  {
   puts "fsgdfPlot.tcl: Couldn't find gdf commands."
 }
 
-
 # This function finds a file from a list of directories.
 proc FindFile { ifnFile ilDirs } {
   foreach sPath $ilDirs {
@@ -44,7 +43,6 @@ proc FindFile { ifnFile ilDirs } {
   puts "fsgdfPlot.tcl: Couldn't find $ifnFile: Not in $ilDirs"
   return ""
 }
-
 
 # Also look for tkUtils.tcl.
 set sDefaultScriptsDir ""
@@ -146,7 +144,8 @@ proc FsgdfPlot_BuildWindow { iID } {
   blt::graph $gwPlot \
     -title $gGDF($iID,title) \
     -plotbackground white \
-    -relief raised -border 2
+    -relief raised -border 2 \
+    -font "Helvetica 14"
 
   # Bind our callbacks.
   $gwPlot legend bind all <Enter> [list FsgdfPlot_CBLegendEnter $iID %W]
@@ -162,7 +161,8 @@ proc FsgdfPlot_BuildWindow { iID } {
   # Blt_ZoomStack $gwPlot
 
   # Set the y axis label to the measurement name.
-  $gwPlot axis configure y -title $gGDF($iID,measurementName)
+  $gwPlot axis configure y -title $gGDF($iID,measurementName) \
+    -titlefont "Helvetica 12" -tickfont "Helvetica 10"
 
   # Make the info label.
   set gPlot($iID,state,info) ""
@@ -624,7 +624,8 @@ proc FsgdfPlot_PlotData { iID } {
 
   # Set the x axis title to the label of the current variable.
   $gw axis configure x \
-    -title $gGDF($iID,variables,$gPlot($iID,state,nVariable),label)
+    -title $gGDF($iID,variables,$gPlot($iID,state,nVariable),label) \
+    -titlefont "Helvetica 12" -tickfont "Helvetica 10"
 
   # Remove all the elements and markers from the graph.
   set lElements [$gw element names *]
