@@ -3,12 +3,12 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2008/07/07 22:27:53 $
-##    $Revision: 1.28 $
+##    $Date: 2010/07/28 17:16:31 $
+##    $Revision: 1.29 $
 ##
 ## Original Author: Kevin Teich
 ##
-## Copyright (C) 2006-2007,
+## Copyright (C) 2006-2010,
 ## The General Hospital Corporation (Boston, MA).
 ## All rights reserved.
 ##
@@ -18,7 +18,6 @@
 ## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 ##
 ## General inquiries: freesurfer@nmr.mgh.harvard.edu
-## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 ##
 
 package require Tix;
@@ -106,6 +105,8 @@ source $fnUtils
 #     visible - whether or not is visible
 #   classes,n - where n is 0 -> cClasses
 #     visible - whether or not is visible
+#     regLineVisible - whether or not is regression line is visible
+#     meanVisible - whether or not is mean/stddev line is visible
 #     mean - mean measurement for subects in this class
 #     stdDev - stdDev for subjects in this class
 #   legend - subject or class
@@ -151,6 +152,8 @@ proc FsgdfPlot_BuildWindow { iID } {
   $gwPlot legend bind all <Enter> [list FsgdfPlot_CBLegendEnter $iID %W]
   $gwPlot legend bind all <Leave> [list FsgdfPlot_CBLegendLeave $iID %W]
   $gwPlot legend bind all <ButtonPress-1> [list FsgdfPlot_CBLegendClick $iID %W]
+  $gwPlot legend bind all <ButtonPress-2> [list FsgdfPlot_CBLegendClick2 $iID %W]
+  $gwPlot legend bind all <ButtonPress-3> [list FsgdfPlot_CBLegendClick3 $iID %W]
   bind $gwPlot <Motion> [list FsgdfPlot_CBGraphMotion $iID %W %x %y]
   bind $gwPlot <Destroy> [list FsgdfPlot_CBCloseWindow $iID]
 
@@ -452,6 +455,8 @@ proc FsgdfPlot_ParseHeader { ifnHeader } {
 
       # Initialize all classes as visible.
       set gPlot($ID,state,classes,$nClass,visible) 1
+      set gPlot($ID,state,classes,$nClass,regLineVisible) 1
+      set gPlot($ID,state,classes,$nClass,meanVisible) 1
     }
   } else {
     puts "ERROR: Could not get number of classes."
@@ -708,7 +713,7 @@ proc FsgdfPlot_PlotData { iID } {
       }
 
       # Draw the mean line.
-      if { 1 } {
+      if { $gPlot($iID,state,classes,$nClass,meanVisible) } {
         set x1 -200
         set y1 $gPlot($iID,state,classes,$nClass,mean)
         set x2 200
@@ -791,35 +796,38 @@ proc FsgdfPlot_PlotData { iID } {
 
       if { $gPlot($iID,state,classes,$nClass,visible) } {
 
-        set nVar $gPlot($iID,state,nVariable)
+        if { $gPlot($iID,state,classes,$nClass,regLineVisible) } {
 
-        # Calc the avg offset and slope for all points.
-        set offset 0
-        set slope 0
-        set cGood 0
-        foreach lPoint $gPlot($iID,state,lPoints) {
-          scan $lPoint "%d %d %d" x y z
-          set lResults [gdfOffsetSlope $gGDF($iID,object) $nClass $nVar $x $y $z]
-          set err [lindex $lResults 0]
-          if { 0 == $err } {
-            set offset [expr $offset + [lindex $lResults 1]]
-            set slope [expr $slope + [lindex $lResults 2]]
-            incr cGood
-          } else {
-            set gPlot($iID,state,bTryRegressionLine) 0
-            break
-          }
+          set nVar $gPlot($iID,state,nVariable)
 
-          if { $cGood > 0 } {
-            set x1 -200
-            set y1 [expr ($slope * $x1) + $offset]
-            set x2 200
-            set y2 [expr ($slope * $x2) + $offset]
+          # Calc the avg offset and slope for all points.
+          set offset 0
+          set slope 0
+          set cGood 0
+          foreach lPoint $gPlot($iID,state,lPoints) {
+            scan $lPoint "%d %d %d" x y z
+            set lResults [gdfOffsetSlope $gGDF($iID,object) $nClass $nVar $x $y $z]
+            set err [lindex $lResults 0]
+            if { 0 == $err } {
+              set offset [expr $offset + [lindex $lResults 1]]
+              set slope [expr $slope + [lindex $lResults 2]]
+              incr cGood
+            } else {
+              set gPlot($iID,state,bTryRegressionLine) 0
+              break
+            }
 
-            $gw marker create line \
-              -coords [list $x1 $y1 $x2 $y2] \
-              -outline $gGDF($iID,classes,$nClass,color) \
-              -dashes {5 5}
+            if { $cGood > 0 } {
+              set x1 -200
+              set y1 [expr ($slope * $x1) + $offset]
+              set x2 200
+              set y2 [expr ($slope * $x2) + $offset]
+
+              $gw marker create line \
+                -coords [list $x1 $y1 $x2 $y2] \
+                -outline $gGDF($iID,classes,$nClass,color) \
+                -dashes {5 5}
+            }
           }
         }
       }
@@ -951,8 +959,12 @@ proc FsgdfPlot_ToggleVisibility { iID iElement } {
     set nClass [FsgdfPlot_GetClassIndexFromLabel $iID $iElement]
     if { $gPlot($iID,state,classes,$nClass,visible) } {
       set gPlot($iID,state,classes,$nClass,visible) 0
+      set gPlot($iID,state,classes,$nClass,regLineVisible) 0
+      set gPlot($iID,state,classes,$nClass,meanVisible) 0
     } else {
       set gPlot($iID,state,classes,$nClass,visible) 1
+      set gPlot($iID,state,classes,$nClass,regLineVisible) 1
+      set gPlot($iID,state,classes,$nClass,meanVisible) 1
     }
   }
 }
@@ -1068,6 +1080,36 @@ proc FsgdfPlot_CBLegendLeave { iID igw } {
 
 proc FsgdfPlot_CBLegendClick { iID igw } {
   FsgdfPlot_ToggleVisibility $iID [$igw legend get current]
+  FsgdfPlot_PlotData $iID
+}
+
+# mouse button 2 (middle click) turns on/off regression line
+proc FsgdfPlot_CBLegendClick2 { iID igw } {
+  global gPlot
+
+  set iElement [$igw legend get current]
+  set nClass [FsgdfPlot_GetClassIndexFromLabel $iID $iElement]
+
+  if { $gPlot($iID,state,classes,$nClass,regLineVisible) } {
+    set gPlot($iID,state,classes,$nClass,regLineVisible) 0
+  } else {
+    set gPlot($iID,state,classes,$nClass,regLineVisible) 1
+  }
+  FsgdfPlot_PlotData $iID
+}
+
+# mouse button 3 (right click) turns on/off mean/stddev line
+proc FsgdfPlot_CBLegendClick3 { iID igw } {
+  global gPlot
+
+  set iElement [$igw legend get current]
+  set nClass [FsgdfPlot_GetClassIndexFromLabel $iID $iElement]
+
+  if { $gPlot($iID,state,classes,$nClass,meanVisible) } {
+    set gPlot($iID,state,classes,$nClass,meanVisible) 0
+  } else {
+    set gPlot($iID,state,classes,$nClass,meanVisible) 1
+  }
   FsgdfPlot_PlotData $iID
 }
 
