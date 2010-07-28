@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 18:04:13 $
- *    $Revision: 1.92 $
+ *    $Author: rge21 $
+ *    $Date: 2010/07/28 14:35:55 $
+ *    $Revision: 1.93 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -82,35 +82,44 @@ static double TEs[MAX_GCA_INPUTS] ;
 static int load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z) ;
 static double compute_conditional_density(MATRIX *m_inv_cov, VECTOR *v_means, VECTOR *v_vals) ;
 #endif
-static int is_possible(GCA *gca,
-                       MRI *mri,
-                       TRANSFORM *transform,
-                       int x, int y, int z, int label) ;
-static int insert_thin_temporal_white_matter(MRI *mri_in,
-    MRI *mri_labeled,
-    GCA *gca,
-    TRANSFORM *transform,
-    GCA *gca_all) ;
-static int distance_to_label(MRI *mri_labeled, int label, int x,
-                             int y, int z, int dx, int dy,
-                             int dz, int max_dist) ;
-static int preprocess(MRI *mri_in,
-                      MRI *mri_labeled,
-                      GCA *gca,
-                      TRANSFORM *transform,
-                      MRI *mri_fixed) ;
-static int edit_hippocampus(MRI *mri_in,
-                            MRI *mri_labeled,
-                            GCA *gca,
-                            TRANSFORM *transform,
-                            MRI *mri_fixed) ;
-static int edit_amygdala(MRI *mri_in,
-                         MRI *mri_labeled,
-                         GCA *gca,
-                         TRANSFORM *transform,
-                         MRI *mri_fixed) ;
+
+int is_possible( GCA *gca,
+		 MRI *mri,
+		 TRANSFORM *transform,
+		 int x, int y, int z, int label );
+
+int insert_thin_temporal_white_matter( MRI *mri_in,
+				       MRI *mri_labeled,
+				       GCA *gca,
+				       TRANSFORM *transform,
+				       GCA *gca_all );
+
+int distance_to_label( MRI *mri_labeled, int label, int x,
+		       int y, int z, int dx, int dy,
+		       int dz, int max_dist );
+
+int preprocess( MRI *mri_in,
+		MRI *mri_labeled,
+		GCA *gca,
+		TRANSFORM *transform,
+		MRI *mri_fixed );
+
+int edit_hippocampus( MRI *mri_in,
+		      MRI *mri_labeled,
+		      GCA *gca,
+		      TRANSFORM *transform,
+		      MRI *mri_fixed );
+
+int edit_amygdala( MRI *mri_in,
+		   MRI *mri_labeled,
+		   GCA *gca,
+		   TRANSFORM *transform,
+		   MRI *mri_fixed );
 //static MRI *GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform) ;
-static int MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label) ;
+
+int MRIcountNbhdLabels( MRI *mri,
+			int x, int y, int z, int label );
+
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
 
@@ -153,9 +162,10 @@ static int hippocampus_flag = 1 ;
 
 #define CMA_PARCELLATION  0
 static int parcellation_type = CMA_PARCELLATION ;
-static MRI *insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm,
-                                   int parcellation_type, int fixed_flag,
-                                   GCA *gca, TRANSFORM *transform) ;
+
+MRI *insert_wm_segmentation( MRI *mri_labeled, MRI *mri_wm,
+			     int parcellation_type, int fixed_flag,
+			     GCA *gca, TRANSFORM *transform );
 
 extern char *gca_write_fname ;
 extern int gca_write_iterations ;
@@ -180,13 +190,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.92 2009/11/19 18:04:13 fischl Exp $",
+   "$Id: mri_ca_label.c,v 1.93 2010/07/28 14:35:55 rge21 Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.92 2009/11/19 18:04:13 fischl Exp $",
+           "$Id: mri_ca_label.c,v 1.93 2010/07/28 14:35:55 rge21 Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1290,9 +1300,10 @@ static int cma_editable_labels[] = {
                                    } ;
 #define NEDITABLE_LABELS sizeof(cma_editable_labels) / sizeof(cma_editable_labels[0])
 
-static MRI *
-insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm, int parcellation_type,
-                       int fixed_flag, GCA *gca,TRANSFORM *transform) {
+MRI *
+insert_wm_segmentation( MRI *mri_labeled, MRI *mri_wm,
+			int parcellation_type,
+			int fixed_flag, GCA *gca,TRANSFORM *transform ) {
   int      x, y, z, width, depth, height, change_label[1000], n, label,
   nchanged, rh, lh, xn, yn, zn ;
   MRI      *mri_fixed ;
@@ -1360,8 +1371,10 @@ insert_wm_segmentation(MRI *mri_labeled, MRI *mri_wm, int parcellation_type,
   return(mri_fixed) ;
 }
 
-static int
-MRIcountNbhdLabels(MRI *mri, int x, int y, int z, int label) {
+
+int
+MRIcountNbhdLabels( MRI *mri,
+		    int x, int y, int z, int label ) {
   int     total, xi, yi, zi, xk, yk, zk ;
 
   for (total = 0, zk = -1 ; zk <= 1 ; zk++) {
@@ -1400,9 +1413,10 @@ static int cma_expandable_labels[] = {
                                      } ;
 #define NEXPANDABLE_LABELS sizeof(cma_expandable_labels) / sizeof(cma_expandable_labels[0])
 
-static int
-preprocess(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
-           MRI *mri_fixed) {
+int
+preprocess( MRI *mri_inputs, MRI *mri_labeled,
+	    GCA *gca, TRANSFORM *transform,
+            MRI *mri_fixed ) {
   int i ;
 
   GCArelabel_cortical_gray_and_white
@@ -1467,9 +1481,10 @@ preprocess(MRI *mri_inputs, MRI *mri_labeled, GCA *gca, TRANSFORM *transform,
   return(NO_ERROR) ;
 }
 
-static int
-distance_to_label(MRI *mri_labeled, int label, int x, int y, int z, int dx,
-                  int dy, int dz, int max_dist) {
+int
+distance_to_label( MRI *mri_labeled, int label,
+		   int x, int y, int z,
+		   int dx, int dy, int dz, int max_dist ) {
   int   xi, yi, zi, d ;
 
   for (d = 1 ; d <= max_dist ; d++) {
@@ -1485,10 +1500,12 @@ distance_to_label(MRI *mri_labeled, int label, int x, int y, int z, int dx,
 
   return(d) ;
 }
-static int
-edit_hippocampus
-(MRI *mri_inputs, MRI *mri_labeled, GCA *gca,
- TRANSFORM *transform,  MRI *mri_fixed) {
+
+int
+edit_hippocampus( MRI *mri_inputs, MRI *mri_labeled,
+		  GCA *gca,
+		  TRANSFORM *transform, 
+		  MRI *mri_fixed ) {
   int   width, height, depth, x, y, z, label, nchanged, dleft, olabel,
   dright, dpos, dant, dup, ddown, dup_hippo, ddown_gray, i, left,
   ddown_ventricle, yi, found_wm, found_hippo, was_wm, was_hippo,
@@ -2080,12 +2097,14 @@ edit_hippocampus
   printf("%d hippocampal voxels changed.\n", total_changed) ;
   return(NO_ERROR) ;
 }
-static int
-edit_amygdala(MRI *mri_inputs,
-              MRI *mri_labeled,
-              GCA *gca,
-              TRANSFORM *transform,
-              MRI *mri_fixed) {
+
+
+int
+edit_amygdala( MRI *mri_inputs,
+	       MRI *mri_labeled,
+	       GCA *gca,
+	       TRANSFORM *transform,
+	       MRI *mri_fixed ) {
   int   width, height, depth, x, y, z, label, nchanged, olabel,
   i, left, yi, found_wm, found_amygdala, was_wm, was_amygdala ;
   MRI   *mri_tmp ;
@@ -2163,9 +2182,10 @@ edit_amygdala(MRI *mri_inputs,
   return(NO_ERROR) ;
 }
 
-static int
-insert_thin_temporal_white_matter(MRI *mri_inputs, MRI *mri_labeled,
-                                  GCA *gca, TRANSFORM *transform, GCA *gca_all) {
+int
+insert_thin_temporal_white_matter( MRI *mri_inputs, MRI *mri_labeled,
+				   GCA *gca, TRANSFORM *transform,
+				   GCA *gca_all ) {
   MRI       *mri_tmp, *mri_probs, *mri_tmp_labels ;
   int       width, height, depth, x, y, z, n, nsamples, i, xp, yp, zp ;
   int       xmin, xmax, ymin, ymax, zmin, zmax,yi,zi, yimax, ximax, zimax,
@@ -2797,14 +2817,14 @@ insert_thin_temporal_white_matter(MRI *mri_inputs, MRI *mri_labeled,
   return(NO_ERROR) ;
 }
 
-static int
-is_possible(GCA *gca,
-            MRI *mri,
-            TRANSFORM *transform,
-            int x, int y, int z, int label) {
+int
+is_possible( GCA *gca,
+	     MRI *mri,
+	     TRANSFORM *transform,
+	     int x, int y, int z, int label ) {
   GCA_PRIOR  *gcap ;
   int        n ;
-
+  
   gcap = getGCAP(gca, mri, transform, x, y, z) ;
   for (n = 0 ; n < gcap->nlabels ; n++)
     if (gcap->labels[n] == label)
@@ -2823,8 +2843,12 @@ is_possible(GCA *gca,
 #define WSIZE  5
 #define WHALF  ((WSIZE-1)/2)
 
-static MRI *
-GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_labels, TRANSFORM *transform) {
+MRI *
+GCAlabelWMandWMSAs( GCA *gca,
+		    MRI *mri_inputs,
+		    MRI *mri_src_labels,
+		    MRI *mri_dst_labels,
+		    TRANSFORM *transform ) {
   int    h, wm_label, wmsa_label, x, y, z, label, nwm, nwmsa, nunknown, ngm,
   ncaudate, caudate_label, gm_label, n, found, i;
   MATRIX *m_cov_wm, *m_cov_wmsa, *m_inv_cov_wmsa, *m_inv_cov_wm, *m_I,
@@ -3061,8 +3085,11 @@ GCAlabelWMandWMSAs(GCA *gca, MRI *mri_inputs, MRI *mri_src_labels, MRI *mri_dst_
   MRIfree(&mri_tmp) ;
   return(mri_dst_labels) ;
 }
-static double
-compute_conditional_density(MATRIX *m_inv_cov, VECTOR *v_means, VECTOR *v_vals) {
+
+double
+compute_conditional_density( MATRIX *m_inv_cov,
+			     VECTOR *v_means,
+			     VECTOR *v_vals ) {
   double  p, dist, det ;
   int     ninputs ;
 
@@ -3074,8 +3101,11 @@ compute_conditional_density(MATRIX *m_inv_cov, VECTOR *v_means, VECTOR *v_vals) 
   return(p) ;
 }
 
-static int
-load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z) {
+
+int
+load_val_vector( VECTOR *v_means,
+		 MRI *mri_inputs,
+		 int x, int y, int z ) {
   int  n ;
 
   for (n = 0 ; n < mri_inputs->nframes ; n++)
@@ -3084,8 +3114,9 @@ load_val_vector(VECTOR *v_means, MRI *mri_inputs, int x, int y, int z) {
 }
 
 #endif
-static int
-GCAremoveWMSA(GCA *gca)
+
+int
+GCAremoveWMSA( GCA *gca )
 {
   int        x, y, z, n, found, i ;
   GCA_PRIOR  *gcap ;
