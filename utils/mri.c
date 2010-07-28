@@ -1,14 +1,14 @@
 /**
- * @file  mri.c
+ * @File  mri.c
  * @brief utilities for MRI data structure
  *
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/27 16:51:06 $
- *    $Revision: 1.467 $
+ *    $Author: lzollei $
+ *    $Date: 2010/07/28 17:26:20 $
+ *    $Revision: 1.468 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.467 $";
+const char *MRI_C_VERSION = "$Revision: 1.468 $";
 
 
 /*-----------------------------------------------------
@@ -10288,6 +10288,132 @@ MRIcubicSampleVolume(MRI *mri, double x, double y, double z, double *pval)
   return(NO_ERROR);
 }
 
+int
+MRIcubicSampleVolumeFrame(MRI *mri, double x, double y, double z, int frame, double *pval)
+{
+  int  OutOfBounds;
+  int  width, height, depth ;
+  int ix_low,iy_low,iz_low,ix,iy,iz;
+  double val,xx,yy,zz,fx,fy,fz,vv[4][4][4];
+
+  if (FEQUAL((int)x,x) && FEQUAL((int)y,y) && FEQUAL((int)z, z))
+    return(MRIsampleVolumeFrameType(mri, x, y, z, frame, SAMPLE_NEAREST, pval)) ;
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if (OutOfBounds == 1)
+  {
+    /* unambiguously out of bounds */
+    *pval = val = mri->outside_val;
+    return(NO_ERROR) ;
+  }
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+
+  /*E* I suppose these are for "ambiguously out of bounds" - within .5vox */
+
+  /*E* I think this needs an edit - x is double, whatever that is, not
+    int, so any x>= width-1 should be set to width-1.
+    if (x >= width)    x = width - 1.0 ;
+    if (y >= height)   y = height - 1.0 ;
+    if (z >= depth)    z = depth - 1.0 ;
+  */
+
+  if (x > width-1.0)    x = width - 1.0 ;
+  if (y > height-1.0)   y = height - 1.0 ;
+  if (z > depth-1.0)    z = depth - 1.0 ;
+  if (x < 0.0)       x = 0.0 ;
+  if (y < 0.0)       y = 0.0 ;
+  if (z < 0.0)       z = 0.0 ;
+
+  ix_low = floor((double)x);
+  if ((ix_low = floor((double)x)) < width-1)
+    xx = x - ix_low;
+  else
+  {
+    ix_low--;
+    xx = 1;
+  }
+  iy_low = floor((double)y);
+  if ((iy_low = floor((double)y)) < height-1)
+    yy = y - iy_low;
+  else
+  {
+    iy_low--;
+    yy = 1;
+  }
+  iz_low = floor((double)z);
+  if ((iz_low = floor((double)z)) < depth-1)
+    zz = z - iz_low;
+  else
+  {
+    iz_low--;
+    zz = 1;
+  }
+
+  /*E* build a little box of the local points plus boundary stuff -
+    for this rev accept zeroes for the border expansion */
+
+  for (iz= MAX(0,1-iz_low); iz<MIN(4,depth+1-iz_low); iz++)
+  {
+    for (iy= MAX(0,1-iy_low); iy<MIN(4,height+1-iy_low); iy++)
+    {
+      for (ix= MAX(0,1-ix_low); ix<MIN(4,width+1-ix_low); ix++)
+      {
+        switch (mri->type)
+        {
+        case MRI_UCHAR:
+          vv[ix][iy][iz] =
+            (double)MRIseq_vox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz,frame);
+          break;
+        case MRI_FLOAT:
+          vv[ix][iy][iz] =
+            (double)MRIFseq_vox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz,frame);
+          break;
+        case MRI_SHORT:
+          vv[ix][iy][iz] =
+            (double)MRISseq_vox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz,frame);
+          break;
+        case MRI_INT:
+          vv[ix][iy][iz] =
+            (double)MRIIseq_vox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz,frame);
+          break;
+        case MRI_LONG:
+          vv[ix][iy][iz] =
+            (double)MRILseq_vox(mri,ix_low-1+ix,iy_low-1+iy,iz_low-1+iz,frame);
+          break;
+        default:
+          ErrorReturn(ERROR_UNSUPPORTED,
+                      (ERROR_UNSUPPORTED,
+                       "MRIcubicSampleVolumeFrame: unsupported type %d",
+                       mri->type)) ;
+          break ;
+        }
+      }
+    }
+  }
+
+  val = 0;
+
+  for (iz=0; iz<=3; iz++)
+  {
+    fz = localeval(zz,iz);
+    for (iy=0; iy<=3; iy++)
+    {
+      fy = localeval(yy,iy);
+      for (ix=0; ix<=3; ix++)
+      {
+        fx = localeval(xx,ix);
+        val += (double)(vv[ix][iy][iz]*fx*fy*fz);
+      }
+    }
+  }
+
+  *pval = val/8.;
+
+  return(NO_ERROR);
+}
+
 /*-----------------------------------------------------
   Parameters:
 
@@ -10420,6 +10546,138 @@ MRIsincSampleVolume(MRI *mri,
             ErrorReturn(ERROR_UNSUPPORTED,
                         (ERROR_UNSUPPORTED,
                          "MRIsincSampleVolume: unsupported type %d",
+                         mri->type)) ;
+            break;
+          }
+        }
+        sum_y += sum_x * (coeff_y[jy_rel]/coeff_y_sum);
+      }
+      sum_z += sum_y * (coeff_z[jz_rel]/coeff_z_sum);
+    }
+    if ((mri->type == MRI_UCHAR || mri->type == MRI_SHORT) && sum_z<0.0)
+      *pval = 0.0;
+    else if (mri->type == MRI_UCHAR && sum_z >255.0)
+      *pval = 255.0;
+    else if (mri->type == MRI_SHORT && sum_z > 65535.0)
+      *pval = 65535.0;
+    else
+      *pval = sum_z;
+  }
+  else
+    *pval = 0.0;
+
+  return(NO_ERROR);
+}
+
+int
+MRIsincSampleVolumeFrame(MRI *mri,
+		       double x, double y, double z, int frame, 
+		       int hw, double *pval)
+{
+  int  OutOfBounds;
+  int  width, height, depth ;
+  int nwidth;
+  int ix_low,ix_high,iy_low,iy_high,iz_low,iz_high;
+  int jx1,jy1,jz1,jx_rel,jy_rel,jz_rel;
+  double coeff_x[128],coeff_y[128],coeff_z[128];
+  double coeff_x_sum,coeff_y_sum,coeff_z_sum;
+  double sum_x,sum_y,sum_z;
+  double xsize,ysize,zsize;
+
+  OutOfBounds = MRIindexNotInVolume(mri, x, y, z);
+  if (OutOfBounds == 1)
+  {
+    /* unambiguously out of bounds */
+    *pval = mri->outside_val ;
+    return(NO_ERROR) ;
+  }
+
+  xsize = mri->xsize;
+  ysize=mri->ysize;
+  zsize=mri->zsize;
+  width = mri->width ;
+  height = mri->height ;
+  depth = mri->depth ;
+  if (x >= width)    x = width - 1.0 ;
+  if (y >= height)   y = height - 1.0 ;
+  if (z >= depth)    z = depth - 1.0 ;
+  if (x < 0.0)       x = 0.0 ;
+  if (y < 0.0)       y = 0.0 ;
+  if (z < 0.0)       z = 0.0 ;
+
+  nwidth = hw;
+  ix_low = floor((double)x);
+  ix_high = ceil((double)x);
+  iy_low = floor((double)y);
+  iy_high = ceil((double)y);
+  iz_low = floor((double)z);
+  iz_high = ceil((double)z);
+
+  coeff_x_sum = coeff_y_sum = coeff_z_sum = 0;
+  if (iz_low>=0 && iz_high < depth)
+  {
+    for (jx1=IMAX(ix_high-nwidth,0), jx_rel=0;
+         jx1<IMIN(ix_low+nwidth,width-1);
+         jx1++,jx_rel++)
+    {
+      coeff_x[jx_rel] = ham_sinc((double)(x-jx1),2*nwidth);
+      coeff_x_sum += coeff_x[jx_rel];
+    }
+    for (jy1=IMAX(iy_high-nwidth,0), jy_rel=0;
+         jy1<IMIN(iy_low+nwidth,height-1);
+         jy1++,jy_rel++)
+    {
+      coeff_y[jy_rel] = ham_sinc((double)(y-jy1),2*nwidth);
+      coeff_y_sum += coeff_y[jy_rel];
+    }
+    for (jz1=IMAX(iz_high-nwidth,0), jz_rel=0;
+         jz1<IMIN(iz_low+nwidth,depth-1);
+         jz1++,jz_rel++)
+    {
+      coeff_z[jz_rel] = ham_sinc((double)(z-jz1),2*nwidth);
+      coeff_z_sum += coeff_z[jz_rel];
+    }
+
+    for (sum_z=0., jz1=IMAX(iz_high-nwidth,0), jz_rel = 0;
+         jz1 < IMIN(iz_low+nwidth,depth-1);
+         jz1++, jz_rel++)
+    {
+
+      for (sum_y=0., jy1=IMAX(iy_high-nwidth,0), jy_rel = 0;
+           jy1 < IMIN(iy_low+nwidth,height-1);
+           jy1++, jy_rel++)
+      {
+        for (sum_x=0., jx1=IMAX(ix_high-nwidth,0), jx_rel = 0;
+             jx1 < IMIN(ix_low+nwidth,width-1);
+             jx1++, jx_rel++)
+        {
+
+          switch (mri->type)
+          {
+          case MRI_UCHAR:
+            sum_x += (coeff_x[jx_rel]/coeff_x_sum)
+	      * (double)MRIseq_vox(mri,jx1,jy1,jz1,frame);
+            break;
+          case MRI_SHORT:
+            sum_x += (coeff_x[jx_rel]/coeff_x_sum)
+	      * (double)MRISseq_vox(mri,jx1,jy1,jz1,frame);
+            break;
+          case MRI_INT:
+            sum_x += (coeff_x[jx_rel]/coeff_x_sum)
+	      * (double)MRIIseq_vox(mri,jx1,jy1,jz1,frame);
+            break;
+          case MRI_LONG:
+            sum_x += (coeff_x[jx_rel]/coeff_x_sum)
+	      * (double)MRILseq_vox(mri,jx1,jy1,jz1,frame);
+            break;
+          case MRI_FLOAT:
+            sum_x += (coeff_x[jx_rel]/coeff_x_sum)
+	      * (double)MRIFseq_vox(mri,jx1,jy1,jz1,frame);
+            break;
+          default:
+            ErrorReturn(ERROR_UNSUPPORTED,
+                        (ERROR_UNSUPPORTED,
+                         "MRIsincSampleVolumeFrame: unsupported type %d",
                          mri->type)) ;
             break;
           }
@@ -12253,12 +12511,12 @@ MRI *MRIresampleFill
 
           if (resample_type == SAMPLE_SINC)
           {
-            MRIsincSampleVolume(src, si_ff, sj_ff, sk_ff, 5, &pval);
+            MRIsincSampleVolumeFrame(src, si_ff, sj_ff, sk_ff, nframe, 5, &pval);
             val = (float)pval;
           }
           else if (resample_type == SAMPLE_CUBIC)
           {
-            MRIcubicSampleVolume(src, si_ff, sj_ff, sk_ff, &pval);
+            MRIcubicSampleVolumeFrame(src, si_ff, sj_ff, sk_ff, nframe, &pval);
             val = (float)pval;
           }
           else
@@ -12275,35 +12533,35 @@ MRI *MRIresampleFill
               val000 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRIvox(src, si    , sj    , sk    ));
+                         (float)MRIseq_vox(src, si    , sj    , sk    , nframe));
               val001 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRIvox(src, si    , sj    , sk + 1));
+                         (float)MRIseq_vox(src, si    , sj    , sk + 1, nframe));
               val010 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRIvox(src, si    , sj + 1, sk    ));
+                         (float)MRIseq_vox(src, si    , sj + 1, sk    , nframe));
               val011 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRIvox(src, si    , sj + 1, sk + 1));
+                         (float)MRIseq_vox(src, si    , sj + 1, sk + 1, nframe));
               val100 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRIvox(src, si + 1, sj    , sk    ));
+                        (float)MRIseq_vox(src, si + 1, sj    , sk    , nframe));
               val101 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRIvox(src, si + 1, sj    , sk + 1));
+                        (float)MRIseq_vox(src, si + 1, sj    , sk + 1, nframe));
               val110 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRIvox(src, si + 1, sj + 1, sk    ));
+                        (float)MRIseq_vox(src, si + 1, sj + 1, sk    , nframe));
               val111 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRIvox(src, si + 1, sj + 1, sk + 1));
+                        (float)MRIseq_vox(src, si + 1, sj + 1, sk + 1, nframe));
             }
 
             if (si == 154 && sj == 134 && sk == 136)
@@ -12314,35 +12572,35 @@ MRI *MRIresampleFill
               val000 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRISvox(src, si    , sj    , sk    ));
+                         (float)MRISseq_vox(src, si    , sj    , sk    , nframe));
               val001 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRISvox(src, si    , sj    , sk + 1));
+                         (float)MRISseq_vox(src, si    , sj    , sk + 1, nframe));
               val010 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRISvox(src, si    , sj + 1, sk    ));
+                         (float)MRISseq_vox(src, si    , sj + 1, sk    , nframe));
               val011 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRISvox(src, si    , sj + 1, sk + 1));
+                         (float)MRISseq_vox(src, si    , sj + 1, sk + 1, nframe));
               val100 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRISvox(src, si + 1, sj    , sk    ));
+                        (float)MRISseq_vox(src, si + 1, sj    , sk    , nframe));
               val101 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRISvox(src, si + 1, sj    , sk + 1));
+                        (float)MRISseq_vox(src, si + 1, sj    , sk + 1, nframe));
               val110 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRISvox(src, si + 1, sj + 1, sk    ));
+                        (float)MRISseq_vox(src, si + 1, sj + 1, sk    , nframe));
               val111 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRISvox(src, si + 1, sj + 1, sk + 1));
+                        (float)MRISseq_vox(src, si + 1, sj + 1, sk + 1, nframe));
             }
 
             if (src->type == MRI_INT)
@@ -12350,35 +12608,35 @@ MRI *MRIresampleFill
               val000 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRIIvox(src, si    , sj    , sk    ));
+                         (float)MRIIseq_vox(src, si    , sj    , sk    , nframe));
               val001 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRIIvox(src, si    , sj    , sk + 1));
+                         (float)MRIIseq_vox(src, si    , sj    , sk + 1, nframe));
               val010 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRIIvox(src, si    , sj + 1, sk    ));
+                         (float)MRIIseq_vox(src, si    , sj + 1, sk    , nframe));
               val011 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRIIvox(src, si    , sj + 1, sk + 1));
+                         (float)MRIIseq_vox(src, si    , sj + 1, sk + 1, nframe));
               val100 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRIIvox(src, si + 1, sj    , sk    ));
+                        (float)MRIIseq_vox(src, si + 1, sj    , sk    , nframe));
               val101 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRIIvox(src, si + 1, sj    , sk + 1));
+                        (float)MRIIseq_vox(src, si + 1, sj    , sk + 1, nframe));
               val110 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRIIvox(src, si + 1, sj + 1, sk    ));
+                        (float)MRIIseq_vox(src, si + 1, sj + 1, sk    , nframe));
               val111 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRIIvox(src, si + 1, sj + 1, sk + 1));
+                        (float)MRIIseq_vox(src, si + 1, sj + 1, sk + 1, nframe));
             }
 
             if (src->type == MRI_LONG)
@@ -12386,35 +12644,35 @@ MRI *MRIresampleFill
               val000 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRILvox(src, si    , sj    , sk    ));
+                         (float)MRILseq_vox(src, si    , sj    , sk    , nframe));
               val001 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRILvox(src, si    , sj    , sk + 1));
+                         (float)MRILseq_vox(src, si    , sj    , sk + 1, nframe));
               val010 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRILvox(src, si    , sj + 1, sk    ));
+                         (float)MRILseq_vox(src, si    , sj + 1, sk    , nframe));
               val011 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRILvox(src, si    , sj + 1, sk + 1));
+                         (float)MRILseq_vox(src, si    , sj + 1, sk + 1, nframe));
               val100 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRILvox(src, si + 1, sj    , sk    ));
+                        (float)MRILseq_vox(src, si + 1, sj    , sk    , nframe));
               val101 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRILvox(src, si + 1, sj    , sk + 1));
+                        (float)MRILseq_vox(src, si + 1, sj    , sk + 1, nframe));
               val110 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRILvox(src, si + 1, sj + 1, sk    ));
+                        (float)MRILseq_vox(src, si + 1, sj + 1, sk    , nframe));
               val111 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRILvox(src, si + 1, sj + 1, sk + 1));
+                        (float)MRILseq_vox(src, si + 1, sj + 1, sk + 1, nframe));
             }
 
             if (src->type == MRI_FLOAT)
@@ -12422,35 +12680,35 @@ MRI *MRIresampleFill
               val000 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRIFvox(src, si    , sj    , sk    ));
+                         (float)MRIFseq_vox(src, si    , sj    , sk    , nframe));
               val001 = ( !i_good_flag ||
                          !j_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRIFvox(src, si    , sj    , sk + 1));
+                         (float)MRIFseq_vox(src, si    , sj    , sk + 1, nframe));
               val010 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k_good_flag ? 0.0 :
-                         (float)MRIFvox(src, si    , sj + 1, sk    ));
+                         (float)MRIFseq_vox(src, si    , sj + 1, sk    , nframe));
               val011 = ( !i_good_flag ||
                          !j1_good_flag ||
                          !k1_good_flag ? 0.0 :
-                         (float)MRIFvox(src, si    , sj + 1, sk + 1));
+                         (float)MRIFseq_vox(src, si    , sj + 1, sk + 1, nframe));
               val100 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRIFvox(src, si + 1, sj    , sk    ));
+                        (float)MRIFseq_vox(src, si + 1, sj    , sk    , nframe));
               val101 = (!i1_good_flag ||
                         !j_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRIFvox(src, si + 1, sj    , sk + 1));
+                        (float)MRIFseq_vox(src, si + 1, sj    , sk + 1, nframe));
               val110 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k_good_flag ? 0.0 :
-                        (float)MRIFvox(src, si + 1, sj + 1, sk    ));
+                        (float)MRIFseq_vox(src, si + 1, sj + 1, sk    , nframe));
               val111 = (!i1_good_flag ||
                         !j1_good_flag ||
                         !k1_good_flag ? 0.0 :
-                        (float)MRIFvox(src, si + 1, sj + 1, sk + 1));
+                        (float)MRIFseq_vox(src, si + 1, sj + 1, sk + 1, nframe));
             }
 
             if (resample_type == SAMPLE_TRILINEAR)
@@ -12650,15 +12908,15 @@ MRI *MRIresampleFill
           }
 
           if (dest->type == MRI_UCHAR)
-            MRIvox(dest, di, dj, dk) = (unsigned char)nint(val);
+            MRIseq_vox(dest, di, dj, dk, nframe) = (unsigned char)nint(val);
           if (dest->type == MRI_SHORT)
-            MRISvox(dest, di, dj, dk) = (short)nint(val);
+            MRISseq_vox(dest, di, dj, dk, nframe) = (short)nint(val);
           if (dest->type == MRI_INT)
-            MRIIvox(dest, di, dj, dk) = (int)nint(val);
+            MRIIseq_vox(dest, di, dj, dk, nframe) = (int)nint(val);
           if (dest->type == MRI_LONG)
-            MRILvox(dest, di, dj, dk) = (long)nint(val);
+            MRILseq_vox(dest, di, dj, dk, nframe) = (long)nint(val);
           if (dest->type == MRI_FLOAT)
-            MRIFvox(dest, di, dj, dk) = (float)val;
+            MRIFseq_vox(dest, di, dj, dk, nframe) = (float)val;
 
         }
       }
