@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:16 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/07/28 01:30:54 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -149,6 +149,16 @@ public:
   
   virtual void GetDisplayBounds( double* bounds );
 
+  void Show()
+  {
+    SetVisible( true );
+  }
+  
+  void Hide() 
+  {
+    SetVisible( false );
+  }
+  
 protected:
   virtual void DoListenToMessage( std::string const iMessage, void* iData, void* sender );
   virtual bool DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event ) 

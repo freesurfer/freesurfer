@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/23 16:55:31 $
- *    $Revision: 1.137 $
+ *    $Date: 2010/07/28 01:30:54 $
+ *    $Revision: 1.138 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -233,6 +233,11 @@ BEGIN_EVENT_TABLE(MainWindow, wxFrame)
   
   EVT_MENU        ( XRCID( "ID_VIEW_HISTOGRAM" ),         MainWindow::OnViewHistogram )
   EVT_UPDATE_UI   ( XRCID( "ID_VIEW_HISTOGRAM" ),         MainWindow::OnViewHistogramUpdateUI )
+  
+  EVT_MENU        ( XRCID( "ID_LAYER_SHOW_ALL" ),         MainWindow::OnLayerShowAll )
+  EVT_UPDATE_UI   ( XRCID( "ID_LAYER_SHOW_ALL" ),         MainWindow::OnLayerShowHideAllUpdateUI )
+  EVT_MENU        ( XRCID( "ID_LAYER_HIDE_ALL" ),         MainWindow::OnLayerHideAll )
+  EVT_UPDATE_UI   ( XRCID( "ID_LAYER_HIDE_ALL" ),         MainWindow::OnLayerShowHideAllUpdateUI )
   
   EVT_MENU        ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolTransformVolume )
   EVT_UPDATE_UI   ( XRCID( "ID_TOOL_ROTATE_VOLUME" ),     MainWindow::OnToolTransformVolumeUpdateUI )
@@ -5409,3 +5414,28 @@ void MainWindow::SaveRegistrationAs()
   }
 }
 
+void MainWindow::OnLayerShowAll( wxCommandEvent& event )
+{
+  LayerCollection* lc = GetCurrentLayerCollection();
+  if ( lc )
+  {
+    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+      lc->GetLayer( i )->Show();
+  }
+}
+
+void MainWindow::OnLayerHideAll( wxCommandEvent& event )
+{
+  LayerCollection* lc = GetCurrentLayerCollection();
+  if ( lc )
+  {
+    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+      lc->GetLayer( i )->Hide();
+  }
+}
+
+void MainWindow::OnLayerShowHideAllUpdateUI( wxUpdateUIEvent& event )
+{
+  LayerCollection* lc = GetCurrentLayerCollection();
+  event.Enable( lc && lc->GetNumberOfLayers() > 0 );
+}
