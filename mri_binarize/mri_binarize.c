@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/02 18:37:53 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/07/28 20:01:44 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $
+// $Id: mri_binarize.c,v 1.24 2010/07/28 20:01:44 greve Exp $
 
 /*
   BEGINHELP
@@ -53,6 +53,13 @@ that voxel.  By default, min = -infinity and max = +infinity, but you
 must set one of the thresholds. Cannot be used with --match. If --rmin
 or --rmax are specified, then min (or max) is computed as rmin (or
 rmax) times the global mean of the input.
+
+--pct P
+
+Set min threshold so that the top P percent of the voxels are captured
+in the output mask. The percent will be computed based on the number of
+voxels in the volume (if not input mask is specified) or within the
+input mask.
 
 --match matchvalue <--match matchvalue>
 
@@ -174,7 +181,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.23 2010/04/02 18:37:53 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.24 2010/07/28 20:01:44 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -195,6 +202,7 @@ int BinVal=1;
 int BinValNot=0;
 int frame=0;
 int DoAbs=0;
+int DoNeg=0;
 int ZeroColEdges = 0;
 int ZeroRowEdges = 0;
 int ZeroSliceEdges = 0;
@@ -204,7 +212,7 @@ int nMatch = 0;
 int MatchValues[1000];
 int Matched = 0;
 
-MRI *InVol,*OutVol,*MergeVol,*MaskVol;
+MRI *InVol,*OutVol,*MergeVol,*MaskVol=NULL;
 double MaskThresh = 0.5;
 
 int nErode2d = 0;
@@ -215,6 +223,8 @@ int DoBinCol = 0;
 int mriTypeUchar = 0;
 int DoFrameSum = 0;
 int DoFrameAnd = 0;
+int DoPercent = 0;
+double TopPercent = -1;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -252,12 +262,17 @@ int main(int argc, char *argv[]) {
   if(DoFrameSum || DoFrameAnd) {
     printf("Summing over %d frames\n",InVol->nframes);
     InVol = MRIframeSum(InVol,InVol);
+    frame = 0;
   }
   if(DoFrameAnd) MinThresh = InVol->nframes - 0.5;
 
   if(DoAbs) {
     printf("Removing sign from input\n");
     MRIabs(InVol,InVol);
+  }
+  if(DoNeg) {
+    printf("Negating input\n");
+    MRImultiplyConst(InVol,-1.0,InVol);
   }
 
   if(RMinThreshSet || RMaxThreshSet){
@@ -312,6 +327,12 @@ int main(int argc, char *argv[]) {
       printf("ERROR: dimension mismatch between input and mask volumes\n");
       exit(1);
     }
+  }
+
+  if(DoPercent) {
+    printf("Computing threshold based on top %g percent\n",TopPercent);
+    MinThresh = MRIpercentThresh(InVol, MaskVol, frame, TopPercent);
+    printf("  Threshold set to %g\n",MinThresh);
   }
 
   // Prepare the output volume
@@ -457,6 +478,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
     else if (!strcasecmp(option, "--abs")) DoAbs = 1;
+    else if (!strcasecmp(option, "--neg")) DoNeg = 1;
     else if (!strcasecmp(option, "--bincol")) DoBinCol = 1;
     else if (!strcasecmp(option, "--uchar")) mriTypeUchar = 1;
     else if (!strcasecmp(option, "--zero-edges")){
@@ -531,6 +553,12 @@ static int parse_commandline(int argc, char **argv) {
     } else if (!strcasecmp(option, "--mask-thresh")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%lf",&MaskThresh);
+      nargsused = 1;
+    } else if (!strcasecmp(option, "--pct")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%lf",&TopPercent);
+      MinThreshSet = 1;
+      DoPercent = 1;
       nargsused = 1;
     } else if (!strcasecmp(option, "--min")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -622,6 +650,7 @@ static void print_usage(void) {
   printf("   \n");
   printf("   --min min  : min thresh (def is -inf)\n");
   printf("   --max max  : max thresh (def is +inf)\n");
+  printf("   --pct P : set threshold to capture top P%% (in mask or total volume)\n");
   printf("   --rmin rmin  : compute min based on rmin*globalmean\n");
   printf("   --rmax rmax  : compute max based on rmax*globalmean\n");
   printf("   --match matchval <--match matchval>  : match instead of threshold\n");
@@ -681,6 +710,13 @@ printf("that voxel.  By default, min = -infinity and max = +infinity, but you\n"
 printf("must set one of the thresholds. Cannot be used with --match. If --rmin\n");
 printf("or --rmax are specified, then min (or max) is computed as rmin (or\n");
 printf("rmax) times the global mean of the input.\n");
+printf("\n");
+printf("--pct P\n");
+printf("\n");
+printf("Set min threshold so that the top P percent of the voxels are captured\n");
+printf("in the output mask. The percent will be computed based on the number of\n");
+printf("voxels in the volume (if not input mask is specified) or within the\n");
+printf("input mask.\n");
 printf("\n");
 printf("--match matchvalue <--match matchvalue>\n");
 printf("\n");
@@ -837,4 +873,7 @@ static void dump_options(FILE *fp) {
   }
   return;
 }
+
+
+
 

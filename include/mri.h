@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/13 18:35:32 $
- *    $Revision: 1.404 $
+ *    $Author: greve $
+ *    $Date: 2010/07/28 20:01:44 $
+ *    $Revision: 1.405 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -975,6 +975,7 @@ int MRIsetDifferentVoxelsWithValue(MRI *mri1,
                                    MRI *mri2,
                                    MRI *mri_dst,
                                    int dst_val) ;
+double MRIpercentThresh(MRI *mri, MRI *mask, int frame, double pct);
 int MRIcopyLabeledVoxels(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
                          int label) ;
 MRI *MRIcpolvVote(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst, int wsize,

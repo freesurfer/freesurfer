@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/04/27 21:35:44 $
- *    $Revision: 1.74 $
+ *    $Author: greve $
+ *    $Date: 2010/07/28 20:01:44 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+double round(double x);
 #include <string.h>
 #include <memory.h>
 
@@ -3847,3 +3848,41 @@ MRIsetVoxelsWithValue(MRI *mri_src, MRI *mri_dst, int src_val, int dst_val)
   }
   return(nvox) ;
 }
+/*-------------------------------------------------------*/
+/*!
+  \fn double MRIpercentThresh(MRI *mri, MRI *mask, int frame, double pct)
+  \brief Computes a threshold above which there will be pct percent of the
+    voxels in the mask.
+ */
+double MRIpercentThresh(MRI *mri, MRI *mask, int frame, double pct)
+{
+  double *vlist, thresh;
+  int nlist, ntot,npct;
+  int c, r, s;
+  
+  ntot = mri->width*mri->depth*mri->height;
+  vlist = (double *) calloc(ntot,sizeof(double));
+
+  nlist = 0;
+  for(c=0; c < mri->width; c++){
+    for(r=0; r < mri->height; r++){
+      for(s=0; s < mri->depth; s++){
+	if(mask && MRIgetVoxVal(mask,c,r,s,0) < 0.5) continue;
+	vlist[nlist] = MRIgetVoxVal(mri,c,r,s,frame);
+	nlist++;
+      }
+    }
+  }
+
+  // sort from lowest to highest
+  qsort(vlist,nlist,sizeof(double),CompareDoubles);
+
+  // ascending order so 100-pct
+  npct = round(nlist*(100-pct)/100);
+  thresh = vlist[npct];
+
+  //printf("nlist %d, npct = %d, pct=%g, thresh %g\n",nlist,npct,pct,thresh);
+  free(vlist);
+  return(thresh);
+}
+
