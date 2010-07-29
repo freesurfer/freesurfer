@@ -1,0 +1,112 @@
+#!/bin/sh
+#
+# map_to_base
+#
+# maps an input image or surface to the base space 
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2010/07/29 23:11:03 $
+#    $Revision: 1.2 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: map_to_base,v 1.2 2010/07/29 23:11:03 mreuter Exp $';
+
+# WITHOUT FREESURFER DO NOTHING
+if [ -z $FREESURFER_HOME ]
+then
+  echo "ERROR: environment variable FREESURFER_HOME not set"
+  exit 1;
+fi
+
+
+# USAGE
+if [ "$#" -le "3" ]
+then
+  echo
+	echo "`basename $0` baseid tpid input rt [cross]"
+	echo
+	echo "  baseid:    id of base"
+	echo "  tpid  :    id of tp (without .long.baseid)"
+	echo "  input :    input image, e.g. norm.mgz, aseg.mgz, lh.white"
+	echo "  rt    :    resample-type "
+	echo "               'interpolate' for norm, T1, orig.."
+	echo "               'nearest'     for aseg .."
+	echo "               'surface'     for surfaces .."
+	echo "  cross :    if '1' input from cross sectionals"
+	echo "             default: use longitudinal directories"
+	echo
+	echo " Will map single image or surface from tp dir (cross or long)"
+	echo " to the base space and place output in base dir."
+	echo
+	echo " Output will be in base/mri directory or base/surf"
+	echo " Naming will be: tpid-long.input or tpid-cross.input"
+	echo
+	exit 1
+fi
+
+# SET PARAMETERS
+base=$1
+tp=$2
+input=$3
+rt=$4
+ldir=mri
+if [ "$rt" == "surface" ] ; then ldir=surf ; fi
+
+long=1
+tpid=$tp.long.$base
+longtxt="-long"
+if [ "$#" -ge "5" ] ; then long=0; tpid=$tp ; longtxt="-cross"; fi
+
+# check input
+infile=$SUBJECTS_DIR/$tpid/$ldir/$input
+if [ ! -e $infile ]
+then
+  echo "ERROR: $infile does not exist ..."
+	exit 1
+fi
+bdir=$SUBJECTS_DIR/$base
+if [ ! -e $bdir ]
+then
+  echo "ERROR: $bdir does not exist ..."
+	exit 1
+fi
+lta=$bdir/mri/transforms/${tp}_to_${base}.lta
+if [ ! -e $lta ]
+then
+  echo "ERROR: $lta does not exist, make sure tp is part of this base ..."
+	exit 1
+fi
+
+ofile=$bdir/$ldir/${tp}${longtxt}.$input
+
+case "$rt" in
+  "interpolate" )
+    cmd="mri_convert -at $lta"
+	  cmd="$cmd -rl $bdir/mri/$input"
+	  cmd="$cmd $infile $ofile" ;;
+	"nearest" )
+    cmd="mri_convert -at $lta -rt $rt"
+	  cmd="$cmd -rl $bdir/mri/$input"
+	  cmd="$cmd $infile $ofile" ;;
+	"surface" )
+	  cmd="mris_transform $infile $lta $ofile";;
+   * )
+	  echo "ERROR: Reslice type: $rt not recognized"
+		exit 1 ;;
+esac
+
+  echo $cmd
+	eval $cmd
