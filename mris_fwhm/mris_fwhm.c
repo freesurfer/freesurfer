@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/04 21:44:47 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/07/30 19:22:54 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -146,7 +146,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.27 2010/05/04 21:44:47 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.28 2010/07/30 19:22:54 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -332,7 +332,8 @@ int main(int argc, char *argv[]) {
     niters = MRISfwhm2niters(infwhm,surf);
     printf("Smoothing input by fwhm=%lf, gstd=%lf, niters=%d \n",
            infwhm,ingstd,niters);
-    MRISsmoothMRI(surf, InVals, niters, mask,InVals);
+    InVals = MRISsmoothMRI(surf, InVals, niters, mask,InVals);
+    if(InVals == NULL) exit(1);
     if(SmoothOnly) {
       printf("Only smoothing, so saving and exiting now\n");
       err = MRIwrite(InVals,outpath);
