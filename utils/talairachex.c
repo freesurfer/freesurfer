@@ -8,9 +8,9 @@
 /*
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:46 $
- *    $Revision: 1.13 $
+ *    $Author: rge21 $
+ *    $Date: 2010/07/30 15:32:33 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2003-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,8 +37,6 @@ extern const char* Progname;
 #define V4_LOAD(v, x, y, z, r)  (VECTOR_ELT(v,1)=x, VECTOR_ELT(v,2)=y, \
                                   VECTOR_ELT(v,3)=z, VECTOR_ELT(v,4)=r) ;
 
-static VECTOR *src__ = 0;
-static VECTOR *dst__ = 0;
 
 int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
 {
@@ -233,6 +231,9 @@ void TransformWithMatrix( const MATRIX *mat,
 			  double *pz )
 {
   // VECTOR *src, *dst;
+#if 0
+  static VECTOR *src__ = 0;
+  static VECTOR *dst__ = 0;
   if (src__ == 0)
     src__ = VectorAlloc(4, MATRIX_REAL);
   if (dst__ == 0)
@@ -242,6 +243,18 @@ void TransformWithMatrix( const MATRIX *mat,
   *px = V3_X(dst__);
   *py = V3_Y(dst__);
   *pz = V3_Z(dst__);
+#else
+  float xf, yf, zf;
+
+  xf = x;
+  yf = y;
+  zf = z;
+
+  *px = mat->data[0]*xf + mat->data[1]*yf + mat->data[2]*zf + mat->data[3]; 
+  *py = mat->data[4]*xf + mat->data[5]*yf + mat->data[6]*zf + mat->data[7];
+  *pz = mat->data[8]*xf + mat->data[9]*yf + mat->data[10]*zf + mat->data[11];
+#endif 
+
   // VectorFree(&src);
   // VectorFree(&dst);
 }
