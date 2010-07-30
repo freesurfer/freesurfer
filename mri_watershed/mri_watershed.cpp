@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/27 15:38:16 $
- *    $Revision: 1.85 $
+ *    $Date: 2010/07/30 19:47:29 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.85 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.86 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,6 +48,11 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.85 $";
 
 #if INDIVIDUAL_TIMERS
 #include "chronometer.hpp"
+#endif
+
+#define USE_SSE
+#ifdef USE_SSE
+#include "affine.hpp"
 #endif
 
 extern "C"
@@ -874,7 +879,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.85 2010/07/27 15:38:16 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.86 2010/07/30 19:47:29 rge21 Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -887,7 +892,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.85 2010/07/27 15:38:16 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.86 2010/07/30 19:47:29 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1332,17 +1337,23 @@ void MRI_weight_atlas(MRI *mri_with_skull,
   tTotal.Start();
 #endif
 
-
 #if FAST_GCAsourceVoxelToPrior
-  double xpd2, ypd2, zpd2;
+  LTA *lta = (LTA*)transform->xform;
+#ifdef USE_SSE
+  Freesurfer::AffineMatrix<float> myTrans, A, B, C;
+  A.Set( parms->gca->prior_r_to_i__ );
+  B.Set( parms->gca->mri_tal__->i_to_r__ );
+  C.Set( lta->xforms[0].m_L );
+  myTrans = A * B * C;
+#else 
   MATRIX *tmp = NULL;
   MATRIX *affTrans = NULL;
-  LTA *lta = (LTA*)transform->xform;
 
   tmp = MatrixMultiply( parms->gca->prior_r_to_i__,
 			parms->gca->mri_tal__->i_to_r__,
 			NULL );
   affTrans = MatrixMultiply( tmp, lta->xforms[0].m_L, NULL );
+#endif
 #endif
 
 
@@ -1373,10 +1384,18 @@ void MRI_weight_atlas(MRI *mri_with_skull,
 			     &xpd2, &ypd2, &zpd2 );
 	*/
 #if FAST_GCAsourceVoxelToPrior
+#ifdef USE_SSE
+	Freesurfer::AffineVector<float> rp, rv;
+	rv.Set( x, y, z );
+	rp = myTrans * rv;
+	rp.GetFloor( xp, yp, zp );
+#else
+	double xpd2, ypd2, zpd2;
 	TransformWithMatrix( affTrans, x, y, z, &xpd2, &ypd2, &zpd2 );
 	xp = static_cast<int>( floor( xpd2 ) );
 	yp = static_cast<int>( floor( ypd2 ) );
 	zp = static_cast<int>( floor( zpd2 ) );
+#endif
 #else
 	GCAsourceVoxelToPrior(parms->gca, 
                               mri_with_skull, 
@@ -1418,8 +1437,10 @@ void MRI_weight_atlas(MRI *mri_with_skull,
   }
 
 #if FAST_GCAsourceVoxelToPrior
+#ifndef USE_SSE
   MatrixFree( &tmp );
   MatrixFree( &affTrans );
+#endif
 #endif
 
 #if INDIVIDUAL_TIMERS
@@ -2767,15 +2788,23 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
 
 
 #if FAST_GCAsourceVoxelToPrior
+  LTA *lta = (LTA*)parms->transform->xform;
+#ifdef USE_SSE
+  Freesurfer::AffineMatrix<float> myTrans, A, B, C;
+  A.Set( parms->gca->prior_r_to_i__ );
+  B.Set( parms->gca->mri_tal__->i_to_r__ );
+  C.Set( lta->xforms[0].m_L );
+  myTrans = A * B * C;
+#else
   double xpd, ypd, zpd;
   MATRIX *tmp = NULL;
   MATRIX *affTrans = NULL;
-  LTA *lta = (LTA*)parms->transform->xform;
 
   tmp = MatrixMultiply( parms->gca->prior_r_to_i__,
 			parms->gca->mri_tal__->i_to_r__,
 			NULL );
   affTrans = MatrixMultiply( tmp, lta->xforms[0].m_L, NULL );
+#endif
 #endif
 
   for (k=2;k<MRI_var->depth-2;k++)
@@ -2784,10 +2813,17 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
       {
         vox = MRIvox(MRI_var->mri_src,i,j,k);
 #if FAST_GCAsourceVoxelToPrior
+#ifdef USE_SSE
+	Freesurfer::AffineVector<float> rp, rv;
+	rv.Set( i, j, k );
+	rp = myTrans * rv;
+	rp.GetFloor( xp, yp, zp );
+#else
 	TransformWithMatrix( affTrans, i, j, k, &xpd, &ypd, &zpd );
 	xp = static_cast<int>( floor( xpd ) );
 	yp = static_cast<int>( floor( ypd ) );
 	zp = static_cast<int>( floor( zpd ) );
+#endif
 #else
         GCAsourceVoxelToPrior(parms->gca, 
                               MRI_var->mri_src, 
@@ -2807,8 +2843,10 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
   var=sqrt(var/count-mean*mean);
 
 #if FAST_GCAsourceVoxelToPrior
+#ifndef USE_SSE
   MatrixFree( &tmp );
   MatrixFree( &affTrans );
+#endif
 #endif
 
 #if INDIVIDUAL_TIMERS
@@ -2852,15 +2890,23 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   fprintf(stdout,"\n      Looking for seedpoints ");
 
 #if FAST_GCAsourceVoxelToPrior
+  LTA *lta = (LTA*)parms->transform->xform;
+#ifdef USE_SSE
+  Freesurfer::AffineMatrix<float> myTrans, A, B, C;
+  A.Set( parms->gca->prior_r_to_i__ );
+  B.Set( parms->gca->mri_tal__->i_to_r__ );
+  C.Set( lta->xforms[0].m_L );
+  myTrans = A * B * C;
+#else
   double xpd, ypd, zpd;
   MATRIX *tmp = NULL;
   MATRIX *affTrans = NULL;
-  LTA *lta = (LTA*)parms->transform->xform;
 
   tmp = MatrixMultiply( parms->gca->prior_r_to_i__,
 			parms->gca->mri_tal__->i_to_r__,
 			NULL );
   affTrans = MatrixMultiply( tmp, lta->xforms[0].m_L, NULL );
+#endif
 #endif
 
   for (k=2;k<MRI_var->depth-2;k++) {
@@ -2870,10 +2916,17 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
         if (n<2) {
           vox = MRIvox(MRI_var->mri_src,i,j,k);
 #if FAST_GCAsourceVoxelToPrior
+#ifdef USE_SSE
+	  Freesurfer::AffineVector<float> rp, rv;
+	  rv.Set( i, j, k );
+	  rp = myTrans * rv;
+	  rp.GetFloor( xp, yp, zp );
+#else
 	  TransformWithMatrix( affTrans, i, j, k, &xpd, &ypd, &zpd );
 	  xp = static_cast<int>( floor( xpd ) );
 	  yp = static_cast<int>( floor( ypd ) );
 	  zp = static_cast<int>( floor( zpd ) );
+#endif
 #else
           GCAsourceVoxelToPrior(parms->gca, 
                                 MRI_var->mri_src, 
@@ -2915,10 +2968,17 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
               DistanceToSeeds(i,j,k,seeds,n)>40) {
 	    
 #if FAST_GCAsourceVoxelToPrior
+#ifdef USE_SSE
+	    Freesurfer::AffineVector<float> rp, rv;
+	    rv.Set( i, j, k );
+	    rp = myTrans * rv;
+	    rp.GetFloor( xp, yp, zp );
+#else
 	    TransformWithMatrix( affTrans, i, j, k, &xpd, &ypd, &zpd );
 	    xp = static_cast<int>( floor( xpd ) );
 	    yp = static_cast<int>( floor( ypd ) );
 	    zp = static_cast<int>( floor( zpd ) );
+#endif
 #else
             GCAsourceVoxelToPrior(parms->gca, 
                                   MRI_var->mri_src, 
@@ -2966,8 +3026,10 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   } 
 
 #if FAST_GCAsourceVoxelToPrior
+#ifndef USE_SSE
   MatrixFree( &tmp );
   MatrixFree( &affTrans );
+#endif
 #endif
   
 
@@ -3651,15 +3713,23 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
 #endif
 
 #if FAST_GCAsourceVoxelToPrior
+  LTA *lta = (LTA*)parms->transform->xform;
+#ifdef USE_SSE
+  Freesurfer::AffineMatrix<float> myTrans, A, B, C;
+  A.Set( parms->gca->prior_r_to_i__ );
+  B.Set( parms->gca->mri_tal__->i_to_r__ );
+  C.Set( lta->xforms[0].m_L );
+  myTrans = A * B * C;
+#else
   double xpd, ypd, zpd;
   MATRIX *tmp = NULL;
   MATRIX *affTrans = NULL;
-  LTA *lta = (LTA*)parms->transform->xform;
 
   tmp = MatrixMultiply( parms->gca->prior_r_to_i__,
 			parms->gca->mri_tal__->i_to_r__,
 			NULL );
   affTrans = MatrixMultiply( tmp, lta->xforms[0].m_L, NULL );
+#endif
 #endif
 
   for (k=2;k<MRI_var->depth-2;k++)
@@ -3692,10 +3762,17 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
         if (cell->type)
         {
 #if FAST_GCAsourceVoxelToPrior
+#ifdef USE_SSE
+	  Freesurfer::AffineVector<float> rp, rv;
+	  rv.Set( i, j, k );
+	  rp = myTrans * rv;
+	  rp.GetFloor( xp, yp, zp );
+#else
 	  TransformWithMatrix( affTrans, i, j, k, &xpd, &ypd, &zpd );
 	  xp = static_cast<int>( floor( xpd ) );
 	  yp = static_cast<int>( floor( ypd ) );
 	  zp = static_cast<int>( floor( zpd ) );
+#endif
 #else
           GCAsourceVoxelToPrior(parms->gca, 
                                 MRI_var->mri_src, 
@@ -3745,8 +3822,10 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
 
   
 #if FAST_GCAsourceVoxelToPrior
+#ifndef USE_SSE
   MatrixFree( &tmp );
   MatrixFree( &affTrans );
+#endif
 #endif
 
 #if INDIVIDUAL_TIMERS
