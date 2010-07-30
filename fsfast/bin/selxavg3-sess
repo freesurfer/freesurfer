@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 15:35:44 $
-#    $Revision: 1.55 $
+#    $Date: 2010/07/30 16:47:37 $
+#    $Revision: 1.56 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.55 2010/07/26 15:35:44 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.56 2010/07/30 16:47:37 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -366,6 +366,10 @@ while( $#argv != 0 )
     case "-analysis":
     case "-a":
       if ( $#argv == 0) goto arg1err;
+      if($#analysis) then
+        echo "ERROR: you have specified the analysis twice"
+        exit 1
+      endif
       set analysis = $argv[1]; shift;
       set analysis = `basename $analysis`; # remove trailing /
       breaksw
@@ -524,6 +528,10 @@ check_params:
   if($#analysis != 0) then 
     if(! -d $analysis ) then
       echo "ERROR: analysis $analysis does not exist, see mkanalysis-sess"
+      exit 1;
+    endif
+    if(! -e $analysis/analysis.info ) then
+      echo "ERROR: analysis $analysis/analysis.info does not exist, see mkanalysis-sess"
       exit 1;
     endif
   endif
