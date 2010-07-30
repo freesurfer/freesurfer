@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/21 17:13:38 $
-#    $Revision: 1.51 $
+#    $Date: 2010/07/30 16:47:19 $
+#    $Revision: 1.52 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.51 2010/07/21 17:13:38 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.52 2010/07/30 16:47:19 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -77,6 +77,7 @@ set retinotopy = 0;
 set notask = 0;
 set PrintHelp = 0;
 set RegDOF = 6;
+set DoMCExtReg = 0;
 
 set force = 0;
 set UseGUI = 0;
@@ -204,6 +205,14 @@ if($#TaskRegList) then
   end
 endif
 # ------------ Nuisance External Regressors -----------------
+if($DoMCExtReg) then
+  if($RawSpace == native) then
+    set NuisRegList  = ($NuisRegList mcextreg);
+  else
+    set NuisRegList  = ($NuisRegList mcprextreg);
+  endif
+  set nNuisRegList = ($nNuisRegList 3);
+endif
 if($#NuisRegList) then
   @ nth = 1;
   foreach reg ($NuisRegList)
@@ -231,6 +240,10 @@ while( $#argv != 0 )
     case "-a":
     case "-analysis":
       if($#argv < 1) goto arg1err;
+      if($#analysis) then
+        echo "ERROR: you have specified the analysis twice"
+        exit 1
+      endif
       set analysis = $1; shift;
       breaksw
 
@@ -334,8 +347,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-mcextreg": # MotionCor External regressor file
-      set NuisRegList  = ($NuisRegList mcextreg);
-      set nNuisRegList = ($nNuisRegList 3);
+      set DoMCExtReg = 1;
       breaksw
 
     case "-taskreg": # External regressor file
