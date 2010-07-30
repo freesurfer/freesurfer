@@ -9,8 +9,8 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/30 15:32:33 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/07/30 16:45:04 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2003-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -230,8 +230,8 @@ void TransformWithMatrix( const MATRIX *mat,
 			  double *py,
 			  double *pz )
 {
-  // VECTOR *src, *dst;
 #if 0
+  // VECTOR *src, *dst;
   static VECTOR *src__ = 0;
   static VECTOR *dst__ = 0;
   if (src__ == 0)
@@ -243,6 +243,20 @@ void TransformWithMatrix( const MATRIX *mat,
   *px = V3_X(dst__);
   *py = V3_Y(dst__);
   *pz = V3_Z(dst__);
+  // VectorFree(&src);
+  // VectorFree(&dst);
+#else
+
+  /*
+    Original version uses float internally.
+    Set this to zero to recover original behaviour
+  */
+#define DOUBLE_INTERNAL 0
+
+#if DOUBLE_INTERNAL
+  *px = mat->data[0]*x + mat->data[1]*y + mat->data[ 2]*z + mat->data[3]; 
+  *py = mat->data[4]*x + mat->data[5]*y + mat->data[ 6]*z + mat->data[7];
+  *pz = mat->data[8]*x + mat->data[9]*y + mat->data[10]*z + mat->data[11];
 #else
   float xf, yf, zf;
 
@@ -250,13 +264,12 @@ void TransformWithMatrix( const MATRIX *mat,
   yf = y;
   zf = z;
 
-  *px = mat->data[0]*xf + mat->data[1]*yf + mat->data[2]*zf + mat->data[3]; 
-  *py = mat->data[4]*xf + mat->data[5]*yf + mat->data[6]*zf + mat->data[7];
+  *px = mat->data[0]*xf + mat->data[1]*yf + mat->data[ 2]*zf + mat->data[3]; 
+  *py = mat->data[4]*xf + mat->data[5]*yf + mat->data[ 6]*zf + mat->data[7];
   *pz = mat->data[8]*xf + mat->data[9]*yf + mat->data[10]*zf + mat->data[11];
 #endif 
 
-  // VectorFree(&src);
-  // VectorFree(&dst);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////////////////
