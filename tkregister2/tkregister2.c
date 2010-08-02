@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 23:51:25 $
- *    $Revision: 1.117 $
+ *    $Date: 2010/08/02 17:41:36 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -34,7 +34,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.117 2010/04/09 23:51:25 greve Exp $";
+"$Id: tkregister2.c,v 1.118 2010/08/02 17:41:36 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -358,6 +358,7 @@ int use_colornorm = 0;
 int DoSlicePrescription = 0;
 
 char subjectid[1000];
+int subjectidOverride = 0;
 char *mov_vol_id = NULL;
 int   mov_vol_fmt = MRI_VOLUME_TYPE_UNKNOWN;
 char *targ_vol_id;
@@ -1474,6 +1475,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       memset(subjectid,'\0',1000);
       memmove(subjectid,pargv[0],strlen(pargv[0]));
+      subjectidOverride = 1;
       nargsused = 1;
     } else if ( !strcmp(option, "--sd") ) {
       if (nargc < 1) argnerr(option,1);
@@ -3556,7 +3558,7 @@ void  read_reg(char *fname) {
   ps_2 = ipr;
   st_2 = bpr;
   if (fscale_2 == 0) fscale_2 = fscale;
-  strcpy(subjectid,tmpstr);
+  if(subjectidOverride == 0) strcpy(subjectid,tmpstr);
 
   for (i=0;i<4;i++) {
     for (j=0;j<4;j++) {
@@ -4903,7 +4905,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.117 2010/04/09 23:51:25 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.118 2010/08/02 17:41:36 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
