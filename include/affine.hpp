@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/03 15:17:20 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/03 15:26:18 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -51,17 +51,6 @@ namespace Freesurfer {
 
     // ----------------------------------------------------
     // No constructors or destructors
-
-
-    // ----------------------------------------------------
-    // Assignment operator
-    
-    AffineVector<T>& operator=( const AffineVector<T>& src ) {
-      memcpy( &(this->vec[0]),
-	      &(src.vec[0]),
-	      kAffineVectorSize * sizeof(T) );
-      return( *this );
-    }
 
 
     // ----------------------------------------------------
@@ -111,16 +100,6 @@ namespace Freesurfer {
   };
 
 
-  // Specialise float copy to use SSE
-  template<>
-  AffineVector<float>&
-  AffineVector<float>::operator=( const AffineVector<float>& src ) {
-    __m128 tmp = _mm_load_ps( &(src.vec[0]) );
-    _mm_store_ps( &(this->vec[0]), tmp );
-    return( *this );
-  }
-
-
   // ================================================================
 
   //! Affine matrix class
@@ -130,16 +109,6 @@ namespace Freesurfer {
   public:
     // ----------------------------------------------------
     // No constructors or destructors
-
-
-    // ----------------------------------------------------
-    // Assignment operator
-    AffineMatrix<T>& operator=( const AffineMatrix<T>& src ) {
-      memcpy( &(this->mat[0]),
-	      &(src.mat[0]),
-	      kAffineMatrixSize*sizeof(T) );
-      return( *this );
-    }
 
 
     // ----------------------------------------------------
