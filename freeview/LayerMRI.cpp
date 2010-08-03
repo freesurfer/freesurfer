@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 19:00:06 $
- *    $Revision: 1.82 $
+ *    $Date: 2010/08/03 18:14:00 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -321,6 +321,14 @@ bool LayerMRI::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd,
     
     // record transformation in RAS space
     ras_tr->Translate( -rotations[i].Point[0], -rotations[i].Point[1], -rotations[i].Point[2] );
+    double vp[3];
+    vp[0] = dTargetPoint[0] + v[0];
+    vp[1] = dTargetPoint[1] + v[1];
+    vp[2] = dTargetPoint[2] + v[2];
+    TargetToRAS( vp, vp );
+    v[0] = vp[0] - rotations[i].Point[0];
+    v[1] = vp[1] - rotations[i].Point[1];
+    v[2] = vp[2] - rotations[i].Point[2];    
     ras_tr->RotateWXYZ( rotations[i].Angle, v );
     ras_tr->Translate( rotations[i].Point[0], rotations[i].Point[1], rotations[i].Point[2] );
   }
