@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/30 19:48:22 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/03 15:17:20 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -22,6 +22,9 @@
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#ifndef AFFINE_HPP
+#define AFFINE_HPP
 
 #include <xmmintrin.h>
 #include <cstring>
@@ -263,7 +266,7 @@ namespace Freesurfer {
     return( res );
   }
 
-  //! Specialise matrix-matrix for float and use SES
+  //! Specialise matrix-matrix for float and use SSE
   template<>
   AffineMatrix<float>
   AffineMatrix<float>::operator*( const AffineMatrix<float>& m ) const {
@@ -308,3 +311,6 @@ namespace Freesurfer {
   }
 
 }
+
+
+#endif
