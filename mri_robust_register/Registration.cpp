@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/03 20:01:40 $
- *    $Revision: 1.44 $
+ *    $Date: 2010/08/03 20:17:49 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -2075,10 +2075,14 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 	if (counti == 0)
 	{
 	   cerr << endl;
-	   cerr << " ERROR: All entries are zero! Images do not overlap." << endl;
-		 cerr << "    Try calling with --noinit (if the original images are well aligned)" << endl;
-		 cerr << "    Or use --transform <init.lta> with an approximate alignment" <<endl;
-		 cerr << "    obtained from tkregister or another registration program." << endl << endl;
+	   cerr << " ERROR: All entries are zero! Images do not overlap (anymore?)." << endl;
+     cerr << "    This can have several reasons (i.e. different images, different "<< endl;
+		 cerr << "    intensity scales, large non-linearities, too diff. voxel sizes ...)" << endl;
+		 //cerr << "    Try calling with --noinit (if the original images are well aligned)" << endl;
+		 cerr << "    Maybe use --transform <init.lta> with an approx. alignment" <<endl;
+		 cerr << "    obtained from tkregister or another registration program." << endl;
+		 cerr << "    Or do some prior intensity correction? " << endl;
+		 cerr << endl;
 		 exit(1);
 	}
    
