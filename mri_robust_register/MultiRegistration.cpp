@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/24 05:08:17 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/08/03 19:57:55 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -136,10 +136,10 @@ int MultiRegistration::loadLTAs(const std::vector < std::string > nltas)
         LTA* lta =  (LTA *)trans->xform ;
         if (!lta)
           ErrorExit(ERROR_BADFILE, "MultiRegistration::loadLTAs could not read transform file %s", nltas[i].c_str()) ;
-				if ( ! lta->xforms[0].src.valid)
-				  ErrorExit(ERROR_BADFILE, "MultiRegistration::loadLTAs no source geometry, use lta with valid geometry ( %s )",nltas[i].c_str());
-				if ( ! lta->xforms[0].dst.valid)
-				  ErrorExit(ERROR_BADFILE, "MultiRegistration::loadLTAs no target geometry, use lta with valid geometry ( %s )",nltas[i].c_str());
+        if ( ! lta->xforms[0].src.valid)
+          ErrorExit(ERROR_BADFILE, "MultiRegistration::loadLTAs no source geometry, use lta with valid geometry ( %s )",nltas[i].c_str());
+        if ( ! lta->xforms[0].dst.valid)
+          ErrorExit(ERROR_BADFILE, "MultiRegistration::loadLTAs no target geometry, use lta with valid geometry ( %s )",nltas[i].c_str());
 
         lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
 
