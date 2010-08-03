@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/21 14:34:55 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/03 19:58:29 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -489,7 +489,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
       {
         if (isnan(MRIFvox(fx, x, y, z)) ||isnan(MRIFvox(fy, x, y, z)) || isnan(MRIFvox(fz, x, y, z)) || isnan(MRIFvox(ft, x, y, z)) )
         {
-          if (verbose > 0) std::cout << " found a nan value!!!" << std::endl;
+          //if (verbose > 0) std::cout << " found a nan value!!!" << std::endl;
           continue;
         }
         if (fabs(MRIFvox(fx, x, y, z)) < eps  && fabs(MRIFvox(fy, x, y, z)) < eps &&  fabs(MRIFvox(fz, x, y, z)) < eps )
