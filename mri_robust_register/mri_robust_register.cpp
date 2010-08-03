@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/21 15:53:04 $
- *    $Revision: 1.35 $
+ *    $Date: 2010/08/03 20:01:40 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -119,9 +119,11 @@ struct Parameters
 	bool   doubleprec;
 	double wlimit;
 	bool   oneminusweights;
+	bool   symmetry;
+	string iscaleout;
 };
 static struct Parameters P =
-  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false
+  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,""
   };
 
 
@@ -129,7 +131,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.35 2010/07/21 15:53:04 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.36 2010/08/03 20:01:40 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -307,7 +309,9 @@ int main(int argc, char *argv[])
 
   if (R.isIscale() && Md.second >0)
   {
-    string fn = R.getName() + "-intensity.txt";
+    string fn;
+		if (P.iscaleout != "") fn = P.iscaleout;
+		else fn = R.getName() + "-intensity.txt";
     ofstream f(fn.c_str(),ios::out);
     f << Md.second;
     f.close();
@@ -784,6 +788,8 @@ static void printUsage(void)
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
   cout << "  --iscale               estimate intensity scale factor (default no)" << endl;
   cout << "                            !!Highly recommended for unnormalized images!!" << endl;
+  cout << "  --iscaleout <str>      output file for iscale value (only with --iscale)" << endl;
+	cout << "                            default: <regfile>-intensitiy.txt (regfile: --lta regifle.lta)" << endl;
   cout << "  --transonly            find 3 parameter translation only" << endl;
   cout << "  --transform lta        use initial transform lta on source ('id'=identity)" << endl;
   cout << "                            default is align center (using moments)" << endl;
@@ -852,6 +858,7 @@ static void initRegistration(Registration & R, Parameters & P)
   R.setInitOrient(P.initorient);
 	R.setDoublePrec(P.doubleprec);
 	R.setWLimit(P.wlimit);
+	R.setSymmetry(P.symmetry);
   //R.setOutputWeights(P.weights,P.weightsout);
 
 
@@ -860,76 +867,6 @@ static void initRegistration(Registration & R, Parameters & P)
   else  R.setName(P.lta);
 
   if (P.subsamplesize > 0) R.setSubsamplesize(P.subsamplesize);
-
-  // Set initial transform
-  if (P.transform != "")
-  {
-    cout << endl << "reading initial transform '"<<P.transform<<"'..."<< endl;
-    
-    // try to read simple text
-    bool st = true;
-    MATRIX* mi = MatrixAlloc(4,4,MATRIX_REAL);
-    ifstream f;
-    while (1==1) // fake while loop (to be run once)
-    {
-      string sin (P.transform);
-      if (sin == "id" || sin == "identity.nofile")
-      {
-        mi = MatrixIdentity(4,mi);
-        break;
-      }
-
-      f.open(P.transform.c_str(),ios::in);
-      if (!f)
-      {
-        cerr <<" Read 4x4: could not open initial transform file " << P.transform <<endl;
-        st = false;
-        break;
-      }
-
-      int row, col;
-      for (row = 1 ; row <= 4 ; row++)
-      {
-        string s;
-        getline(f,s);
-        istringstream s1(s);
-        for (col = 1 ; col <= 4 ; col++)
-        {
-          s1>> mi->rptr[row][col];
-        }
-        if (!s1.good())
-        {
-          st = false;
-          break;
-        }
-      }
-      break; // quit fake while loop
-    }
-    f.close();
-
-
-    if (st)
-    {
-      R.setMinit(MyMatrix::convertMATRIX2VNL(mi));
-    }
-    MatrixFree(&mi);
-
-
-    if (!st)
-    {
-      // try to read other transform
-      TRANSFORM * trans = TransformRead(P.transform.c_str());
-      LTA* lta =  (LTA *)trans->xform ;
-      if (!lta)
-        ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, P.transform.c_str()) ;
-      lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
-      if (lta->type!=LINEAR_VOX_TO_VOX)
-      {
-        ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, P.transform.c_str(), lta->type) ;
-      }
-      R.setMinit(MyMatrix::convertMATRIX2VNL(lta->xforms[0].m_L));
-    }
-  }
 
 //   //////////////////////////////////////////////////////////////
 //   // create a list of MRI volumes
@@ -986,6 +923,7 @@ static void initRegistration(Registration & R, Parameters & P)
 ////   MRIfree(&mri_src);
 
   ///////////  read MRI Source //////////////////////////////////////////////////
+	cout << endl;
   cout <<  "reading source '"<<P.mov<<"'..."<< endl ;
   fflush(stdout) ;
 
@@ -1032,12 +970,101 @@ static void initRegistration(Registration & R, Parameters & P)
     MRImask(mri_dst, mri_mask, mri_dst, 0, 0) ;
     MRIfree(&mri_mask) ;
   }
-
-  R.setSourceAndTarget(mri_mov,mri_dst,!P.floattype);
+	
+  // Set initial transform //////////////////////////////////////////////////
+  if (P.transform != "")
+  {
+    cout << endl << "reading initial transform '"<<P.transform<<"'..."<< endl;
+    
+//     // try to read simple text
+//     bool st = true;
+//     MATRIX* mi = MatrixAlloc(4,4,MATRIX_REAL);
+//     ifstream f;
+//     while (1==1) // fake while loop (to be run once)
+//     {
+//       string sin (P.transform);
+//       if (sin == "id" || sin == "identity.nofile")
+//       {
+//         mi = MatrixIdentity(4,mi);
+//         break;
+//       }
+// 
+//       f.open(P.transform.c_str(),ios::in);
+//       if (!f)
+//       {
+//         cerr <<" Read 4x4: could not open initial transform file " << P.transform <<endl;
+//         st = false;
+//         break;
+//       }
+// 
+//       int row, col;
+//       for (row = 1 ; row <= 4 ; row++)
+//       {
+//         string s;
+//         getline(f,s);
+//         istringstream s1(s);
+//         for (col = 1 ; col <= 4 ; col++)
+//         {
+//           s1>> mi->rptr[row][col];
+//         }
+//         if (!s1.good())
+//         {
+//           st = false;
+//           break;
+//         }
+//       }
+//       break; // quit fake while loop
+//     }
+//     f.close();
+// 
+// 
+//     if (st)
+//     {
+//       R.setMinit(MyMatrix::convertMATRIX2VNL(mi));
+//     }
+//     MatrixFree(&mi);
+// 
+// 
+//     if (!st)
+//     {
+      // try to read other transform
+      TRANSFORM * trans = TransformRead(P.transform.c_str());
+      LTA* lta =  (LTA *)trans->xform ;
+      if (!lta)
+        ErrorExit(ERROR_BADFILE, "%s: could not read transform file %s",Progname, P.transform.c_str()) ;
+      if (! lta->xforms[0].src.valid )
+			{
+			  cout << " WARNING: no source geometry (RAS) in transform, assuming movable !!!" << endl;
+        getVolGeom(mri_mov, &lta->xforms[0].src);
+			}
+      if (! lta->xforms[0].dst.valid )
+			{
+			  cout << " WARNING: no target geometry (RAS) in transform, assuming destination !!!" << endl;
+        getVolGeom(mri_dst, &lta->xforms[0].dst);
+			}
+      lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+      if (lta->type!=LINEAR_VOX_TO_VOX)
+      {
+        ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, P.transform.c_str(), lta->type) ;
+      }
+      R.setMinit(MyMatrix::convertMATRIX2VNL(lta->xforms[0].m_L));
+      //if (P.debug) // apply init transform to input source image directly
+      //{
+      //  MRI * mri_tmp = LTAtransform(mri_mov,NULL, lta);
+	    //  string fn = R.getName() + "-source-init.mgz";
+      //  MRIwrite(mri_tmp,fn.c_str());
+      //  MRIfree(&mri_tmp);
+      //}
+//    }
+  }
+	
+	cout << endl;
+	
+  // now actually set source and target (and possibly reslice):
+  R.setSourceAndTarget(mri_mov,mri_dst,!P.floattype);	
   MRIfree(&mri_mov);
   MRIfree(&mri_dst);
 
-//   cout << endl;
 }
 
 /*!
@@ -1063,188 +1090,194 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.mov = string(argv[1]);
     nargs = 1;
-    cout << "Using "<< P.mov << " as movable/source volume." << endl;
+    cout << "--mov: Using "<< P.mov << " as movable/source volume." << endl;
   }
   else if (!strcmp(option, "DST") || !strcmp(option, "D") )
   {
     P.dst = string(argv[1]);
     nargs = 1;
-    cout << "Using "<< P.dst << " as target volume." << endl;
+    cout << "--dst: Using "<< P.dst << " as target volume." << endl;
   }
   else if (!strcmp(option, "LTA")   )
   {
     P.lta = string(argv[1]);
     nargs = 1;
-    cout << "Output transform as "<< P.lta << " . " << endl;
+    cout << "--lta: Output transform as "<< P.lta << " . " << endl;
   }
   else if (!strcmp(option, "VOX2VOX")   )
   {
     P.lta_vox2vox = true;
-    cout << "Output transform as VOX2VOX. " << endl;
+    cout << "--vox2vox: Output transform as VOX2VOX. " << endl;
   }
   else if (!strcmp(option, "AFFINE") || !strcmp(option, "A") )
   {
     P.affine = true;
-    cout << "Enableing affine transform!" << endl;
+    cout << "--affine: Enableing affine transform!" << endl;
   }
   else if (!strcmp(option, "ISCALE") || !strcmp(option, "I") )
   {
     P.iscale = true;
-    cout << "Enableing intensity scaling!" << endl;
+    cout << "--iscale: Enableing intensity scaling!" << endl;
   }
   else if (!strcmp(option, "TRANSONLY"))
   {
     P.transonly = true;
-    cout << "Using only translation!" << endl;
+    cout << "--transonly: Using only translation!" << endl;
   }
   else if (!strcmp(option, "TRANSFORM") || !strcmp(option, "T") )
   {
     P.transform = string(argv[1]);
     nargs = 1;
-    cout << "Using previously computed initial transform: "<< argv[1] << endl;
+    cout << "--transform: Using previously computed initial transform: "<< argv[1] << endl;
   }
   else if (!strcmp(option, "INITORIENT"))
   {
     P.initorient = true;
-    cout << "Using moments for initial orientation!" << endl;
+    cout << "--initorient: Using moments for initial orientation!" << endl;
   }
   else if (!strcmp(option, "NOINIT"))
   {
     P.inittrans = false;
-    cout << "Skipping init of transform !" << endl;
+    cout << "--noinit: Skipping init of transform !" << endl;
   }
   else if (!strcmp(option, "LEASTSQUARES") || !strcmp(option, "L")  )
   {
     P.leastsquares = true;
-    cout << "Using standard least squares (non-robust)!" << endl;
+    cout << "--leastsquares: Using standard least squares (non-robust)!" << endl;
   }
   else if (!strcmp(option, "MAXIT")  )
   {
     P.iterate = atoi(argv[1]);
     nargs = 1 ;
-    cout << "Performing maximal " << P.iterate << " iterations on each resolution" << endl;
+    cout << "--maxit: Performing maximal " << P.iterate << " iterations on each resolution" << endl;
   }
   else if (!strcmp(option, "HIGHIT")  )
   {
     P.highit = atoi(argv[1]);
     nargs = 1 ;
-    cout << "Performing maximal " << P.highit << " iterations on highest resolution" << endl;
+    cout << "--highit: Performing maximal " << P.highit << " iterations on highest resolution" << endl;
   }
   else if (!strcmp(option, "EPSIT") )
   {
     P.epsit = atof(argv[1]);
     nargs = 1 ;
-    cout << "Stop iterations when change is less than " << P.epsit << " . " << endl;
+    cout << "--epsit: Stop iterations when change is less than " << P.epsit << " . " << endl;
   }
   else if (!strcmp(option, "NOMULTI") )
   {
     P.nomulti = true;
     nargs = 0 ;
-    cout << "Will work on highest resolution only (nomulti)!" << endl;
+    cout << "--nomulti: Will work on highest resolution only (nomulti)!" << endl;
   }
   else if (!strcmp(option, "SAT")  )
   {
     P.sat = atof(argv[1]);
     nargs = 1 ;
-    cout << "Using saturation " << P.sat << " in M-estimator!" << endl;
+    cout << "--sat: Using saturation " << P.sat << " in M-estimator!" << endl;
   }
   else if (!strcmp(option, "WLIMIT")  )
   {
     P.wlimit = atof(argv[1]);
     nargs = 1 ;
-    cout << "Using wlimit in satit " << P.wlimit <<  endl;
+    cout << "--wlimit: Using wlimit in satit " << P.wlimit <<  endl;
   }
   else if (!strcmp(option, "SUBSAMPLE") )
   {
     P.subsamplesize = atoi(argv[1]);
     nargs = 1 ;
-    if (P.subsamplesize >= 0) cout << "Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
-    else cout << "Will not subsample on any scale!" << endl;
+    if (P.subsamplesize >= 0) cout << "--subsample: Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
+    else cout << "--subsample: Will not subsample on any scale!" << endl;
   }
   else if (!strcmp(option, "SATIT") )
   {
     P.satit = true;
     nargs = 0 ;
-    cout << "Will iterate with different SAT to ensure outliers below wlimit!" << endl;
+    cout << "--satit: Will iterate with different SAT to ensure outliers below wlimit!" << endl;
   }
-  else if (!strcmp(option, "SATEST") )
+  else if (!strcmp(option, "SATEST") ) // old  remove
   {
     P.satest = true;
     nargs = 0 ;
-    cout << "Will estimate SAT!" << endl;
+    cout << "--satest: Will estimate SAT (never really tested, use --satit instead!)" << endl;
+  }
+  else if (!strcmp(option, "SATEST") ) // never reached???  - old remove
+  {
+    P.dosatest = true;
+    nargs = 0 ;
+    cout << "--satest: Trying to estimate SAT value!" << endl;
   }
   else if (!strcmp(option, "DOUBLEPREC") )
   {
     P.doubleprec = true;
     nargs = 0 ;
-    cout << "Will perform algorithm with double precision (higher mem usage)!" << endl;
+    cout << "--doubleprec: Will perform algorithm with double precision (higher mem usage)!" << endl;
   }
   else if (!strcmp(option, "DEBUG") )
   {
     P.debug = 1;
     nargs = 0 ;
-    cout << "Will output debug info and files!" << endl;
+    cout << "--debug: Will output debug info and files!" << endl;
   }
   else if (!strcmp(option, "VERBOSE") )
   {
     P.verbose = atoi(argv[1]);
     nargs = 1 ;
-    cout << "Will use verbose level : " << P.verbose << endl;
+    cout << "--verbose: Will use verbose level : " << P.verbose << endl;
   }
   else if (!strcmp(option, "WEIGHTS") )
   {
     P.weightsout = string(argv[1]);
     nargs = 1 ;
-    cout << "Will output weights transformed to target space as "<<P.weightsout<<" !" << endl;
+    cout << "--weights: Will output weights transformed to target space as "<<P.weightsout<<" !" << endl;
   }
   else if (!strcmp(option, "WARP") || !strcmp(option, "W") )
   {
     P.warp = true;
     P.warpout = string(argv[1]);
     nargs = 1 ;
-    cout << "Will save warped source as "<<P.warpout <<" !" << endl;
+    cout << "--warp: Will save warped source as "<<P.warpout <<" !" << endl;
   }
   else if (!strcmp(option, "HALFMOV") )
   {
     P.halfmov = string(argv[1]);
     nargs = 1 ;
-    cout << "Will output final half way MOV !" << endl;
+    cout << "--halfmov: Will output final half way MOV !" << endl;
   }
   else if (!strcmp(option, "HALFDST") )
   {
     P.halfdst = string(argv[1]);
     nargs = 1 ;
-    cout << "Will output final half way DST !" << endl;
+    cout << "--halfdst: Will output final half way DST !" << endl;
   }
   else if (!strcmp(option, "HALFWEIGHTS") )
   {
     P.halfweights = string(argv[1]);
     nargs = 1 ;
-    cout << "Will output half way WEIGHTS from last step to " <<P.halfweights<<" !" << endl;
+    cout << "--halfweights: Will output half way WEIGHTS from last step to " <<P.halfweights<<" !" << endl;
   }
   else if (!strcmp(option, "HALFMOVLTA") )
   {
     P.halfmovlta = string(argv[1]);
     nargs = 1 ;
-    cout << "Will output half way transform (mov) " <<P.halfmovlta << " !" << endl;
+    cout << "--halfmovlta: Will output half way transform (mov) " <<P.halfmovlta << " !" << endl;
   }
   else if (!strcmp(option, "HALFDSTLTA") )
   {
     P.halfdstlta = string(argv[1]);
     nargs = 1 ;
-    cout << "Will output half way transform (dst) " <<P.halfdstlta << " !" << endl;
+    cout << "--halfdstlta: Will output half way transform (dst) " <<P.halfdstlta << " !" << endl;
   }
   else if (!strcmp(option, "MASKMOV") )
   {
     P.maskmov = string(argv[1]);
     nargs = 1 ;
-    cout << "Will apply "<<P.maskmov <<" to mask mov/src !" << endl;
+    cout << "--maskmov: Will apply "<<P.maskmov <<" to mask mov/src !" << endl;
   }
   else if (!strcmp(option, "MASKDST") )
   {
     P.maskdst = string(argv[1]);
     nargs = 1 ;
-    cout << "Will apply "<<P.maskdst <<" to mask dst/target !" << endl;
+    cout << "--maskdst: Will apply "<<P.maskdst <<" to mask dst/target !" << endl;
   }
   else if (!strcmp(option, "TEST"))
   {
@@ -1258,25 +1291,31 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.conform = true;
     nargs = 0 ;
-    cout << "Will conform images to 256^3 and voxels to 1mm!" << endl;
+    cout << "--conform: Will conform images to 256^3 and voxels to 1mm!" << endl;
   }
   else if (!strcmp(option, "FLOATTYPE") )
   {
     P.floattype = true;
     nargs = 0 ;
-    cout << "Keeping image type as input!" << endl;
-  }
-  else if (!strcmp(option, "SATEST") )
-  {
-    P.dosatest = true;
-    nargs = 0 ;
-    cout << "Trying to estimate SAT value!" << endl;
+    cout << "--floattype: Use float images internally (independent of input)!" << endl;
   }
   else if (!strcmp(option, "ONEMINUSW") )
   {
     P.oneminusweights = true;
     nargs = 0 ;
-    cout << "Will output 1-weights!" << endl;
+    cout << "--oneminusw: Will output 1-weights!" << endl;
+  }
+  else if (!strcmp(option, "NOSYM") )
+  {
+    P.symmetry = false;
+    nargs = 0 ;
+    cout << "--nosym: Will resample source to target (no half-way space)!" << endl;
+  }
+  else if (!strcmp(option, "ISCALEOUT") )
+  {
+    P.iscaleout = string(argv[1]);
+    nargs = 1 ;
+    cout << "--iscaleout: Will ouput intensity scale to "<<P.iscaleout <<  endl;
   }
   else
   {
@@ -1318,5 +1357,10 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
 	{
 	  cerr << endl << "Please specify either --satit or --sat <float> !  "<< endl;
 	}
-  return (test1 && test2);
+	bool test3 = ( P.iscaleout == "" || P.iscale);
+	if (!test3)
+	{
+	  cerr << endl << "Please spedify --iscale together with --iscaleout to compute and output global intensity scaling! " << endl;
+	}
+  return (test1 && test2 && test3);
 }
