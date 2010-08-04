@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/07/28 20:01:44 $
- *    $Revision: 1.405 $
+ *    $Author: fischl $
+ *    $Date: 2010/08/04 01:46:45 $
+ *    $Revision: 1.406 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -280,7 +280,8 @@ long  MRIcorrelate(MRI *mri_ref, MRI *mri_in, int xoff, int yoff, int zoff) ;
 
 
 int   MRIpeak(MRI *mri, int *px, int *py, int *pz) ;
-int   MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
+int   MRIcompareHeaders(MRI *mri1, MRI *mri2) ;
+MRI   *MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
 int   MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;

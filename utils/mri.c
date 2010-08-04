@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/07/28 17:26:20 $
- *    $Revision: 1.468 $
+ *    $Author: fischl $
+ *    $Date: 2010/08/04 01:46:51 $
+ *    $Revision: 1.469 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.468 $";
+const char *MRI_C_VERSION = "$Revision: 1.469 $";
 
 
 /*-----------------------------------------------------
@@ -6500,14 +6500,91 @@ int MRIpeak(MRI *mri, int *px, int *py, int *pz)
   *pz = max_slice ;
   return(NO_ERROR) ;
 }
+/*
+  compare two headers to see if they are the same voxel and ras coords
+*/
+int
+MRIcompareHeaders(MRI *mri1, MRI *mri2)
+{
+  if (mri1 == NULL || mri2 == NULL)
+    return(1) ; // not the same
+  if (mri1->xsize != mri2->xsize)
+    return(1) ;
+  if (mri1->ysize != mri2->ysize)
+    return(1) ;
+  if (mri1->zsize != mri2->zsize)
+    return(1) ;
+  if (mri1->ptype != mri2->ptype)
+    return(1) ;
+  if (mri1->fov != mri2->fov)
+    return(1) ;
+  if (mri1->thick != mri2->thick)
+    return(1) ;
+  if (mri1->ps != mri2->ps)
+    return(1) ;
+  if (mri1->location != mri2->location)
+    return(1) ;
+  if (mri1->xstart != mri2->xstart)
+    return(1) ;
+  if (mri1->xend != mri2->xend)
+    return(1) ;
+  if (mri1->ystart != mri2->ystart)
+    return(1) ;
+  if (mri1->yend != mri2->yend)
+    return(1) ;
+  if (mri1->zstart != mri2->zstart)
+    return(1) ;
+  if (mri1->zend != mri2->zend)
+    return(1) ;
+  if (mri1->flip_angle != mri2->flip_angle)
+    return(1) ;
+  if (mri1->tr != mri2->tr)
+    return(1) ;
+  if (mri1->te != mri2->te)
+    return(1) ;
+  if (mri1->ti != mri2->ti)
+    return(1) ;
+  if (mri1->x_r != mri2->x_r)
+    return(1) ;
+  if (mri1->x_a != mri2->x_a)
+    return(1) ;
+  if (mri1->x_s != mri2->x_s)
+    return(1) ;
+  if (mri1->y_r != mri2->y_r)
+    return(1) ;
+  if (mri1->y_a != mri2->y_a)
+    return(1) ;
+  if (mri1->y_s != mri2->y_s)
+    return(1) ;
+  if (mri1->z_r != mri2->z_r)
+    return(1) ;
+  if (mri1->z_a != mri2->z_a)
+    return(1) ;
+  if (mri1->z_s != mri2->z_s)
+    return(1) ;
+  if (mri1->c_r != mri2->c_r)
+    return(1) ;
+  if (mri1->c_a != mri2->c_a)
+    return(1) ;
+  if (mri1->c_s != mri2->c_s)
+    return(1) ;
+  if (mri1->ras_good_flag != mri2->ras_good_flag)
+    return(1) ;
+  return(0) ;   // they are the same
+}
+
 /*--------------------------------------------------------------
   Description: Copy the header information from one MRI into another.
   Does not copy the dimension lengths, only the geometry, pulse seq,
   etc. Does not copy ischunked or chunk pointer.
   ------------------------------------------------------*/
-int MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
+MRI *
+MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
 {
   int i ;
+
+  if (mri_dst == NULL)
+    mri_dst = MRIallocHeader(mri_src->width, mri_src->height, mri_src->depth, mri_src->type) ;
 
   mri_dst->dof = mri_src->dof ;
   mri_dst->mean = mri_src->mean ;
@@ -6592,7 +6669,7 @@ int MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
     strcpy(mri_dst->cmdlines[i], mri_src->cmdlines[i]) ;
   }
   mri_dst->ncmds = mri_src->ncmds ;
-  return(NO_ERROR) ;
+  return(mri_dst) ;
 }
 /*-----------------------------------------------------
   Parameters:
