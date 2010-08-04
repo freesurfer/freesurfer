@@ -90,6 +90,7 @@ make-segvol-table \
 map_all_labels \
 map_all_labels-lh \
 map_central_sulcus \
+map_to_base \
 meanval \
 minc2seqinfo \
 misc.py \
