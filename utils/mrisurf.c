@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/08/04 02:24:39 $
- *    $Revision: 1.681 $
+ *    $Date: 2010/08/04 03:12:26 $
+ *    $Revision: 1.682 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.681 2010/08/04 02:24:39 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.682 2010/08/04 03:12:26 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -8485,7 +8485,7 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
 {
   double  sse, sse_area, sse_angle, delta, sse_curv, sse_spring, sse_dist,
     area_scale, sse_corr, sse_neg_area, l_corr, sse_val, sse_sphere,
-    sse_thick_min, sse_thick_parallel,
+    sse_thick_min, sse_thick_parallel,sse_ashburner_triangle,
     sse_grad, sse_nl_area, sse_nl_dist, sse_tspring, sse_repulse,
     sse_tsmooth, sse_loc,
     sse_repulsive_ratio, sse_shrinkwrap, sse_expandwrap, sse_lap,
