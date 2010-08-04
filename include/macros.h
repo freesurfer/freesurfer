@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/01/22 12:20:57 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/08/04 01:47:53 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -74,7 +74,11 @@
 #define ISSMALL(f)   (fabs(f) < 0.000001f)
 #define ISTINY(f)    (fabs(f) < 0.00000001f)
 
-#define FZERO(f)     (fabs(f) < 0.0000001F)
+#ifndef FLT_EPSILON
+#define FLT_EPSILON 1e-5
+#endif
+
+#define FZERO(f)     (fabs(f) < FLT_EPSILON)
 #define DZERO(d)     (fabs(d) < 1e-15)
 #define iszero(f)   (FZERO(f))
 #define FEQUAL(f1,f2) (FZERO(f1-f2))
