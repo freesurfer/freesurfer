@@ -6,9 +6,9 @@
 /*
  * Original Author: inverse
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/05/10 21:05:38 $
- *    $Revision: 1.53 $
+ *    $Author: fischl $
+ *    $Date: 2010/08/04 01:58:13 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -2017,9 +2017,7 @@ FunD_tErr FunD_CalcFDRThreshold ( mriFunctionalDataRef this,
                        eResult, FunD_tErr_CouldntAllocateVolume );
 
     DebugNote( ("Copying header") );
-    eMRI = MRIcopyHeader( this->mpData, pLocalMaskVol );
-    DebugAssertThrowX( (ERROR_NONE == eMRI),
-                       eResult, FunD_tErr_CouldntAllocateVolume );
+    MRIcopyHeader( this->mpData, pLocalMaskVol );
 
     DebugNote( ("Creating inverse of transform (for local->client)") );
     localToClient = MatrixInverse( this->mIdxToIdxTransform->mAtoB, NULL );
