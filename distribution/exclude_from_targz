@@ -30,6 +30,7 @@ freesurfer/bin/plotter.app
 freesurfer/bin/paint
 freesurfer/bin/tkregister
 freesurfer/bin/csurf
+freesurfer/bin/flirt
 freesurfer/lib/tcltktixblt/src
 freesurfer/lib/tcltktixblt/man
 freesurfer/lib/tcltktixblt/share

@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/05/28 17:30:02 $
-#    $Revision: 1.10 $
+#    $Date: 2010/08/04 15:45:26 $
+#    $Revision: 1.11 $
 #
-# Copyright (C) 2005-2008,
+# Copyright (C) 2005-2010,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -21,11 +21,10 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.10 2010/05/28 17:30:02 nicks Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.11 2010/08/04 15:45:26 nicks Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -83,7 +82,7 @@ pwd                >> $LF
 uname -a           >> $LF
 date               >> $LF
 which mri_convert  >> $LF
-which flirt        >> $LF
+which flirt.fsl    >> $LF
 
 set StartTime = `date`;
 

@@ -7,11 +7,11 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2009/07/31 22:22:46 $
-#    $Revision: 1.29 $
+#    $Author: nicks $
+#    $Date: 2010/08/04 15:45:26 $
+#    $Revision: 1.30 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -21,11 +21,10 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.29 2009/07/31 22:22:46 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.30 2010/08/04 15:45:26 nicks Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -215,7 +214,7 @@ endif
 if($#InitFSLMat)  set fslmat0 = $InitFSLMat;
 
 # Set up and run the Flirt command-line
-set cmd = (flirt -ref $refvolimg -in $movvolimg -bins $bins)
+set cmd = (flirt.fsl -ref $refvolimg -in $movvolimg -bins $bins)
 set cmd = ($cmd  -omat $fslmat -cost $cost -dof $dof)
 set cmd = ($cmd  -searchrx -$maxangle $maxangle);
 set cmd = ($cmd  -searchry -$maxangle $maxangle);

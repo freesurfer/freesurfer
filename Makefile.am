@@ -355,7 +355,7 @@ install-data-hook:
 	fi;
 	if test ! "x$(FSLDIR)" = "x" ; then \
 		if test -e $(FSLDIR) ; then \
-			cp -f $(FSLDIR)/bin/flirt $(DESTDIR)$(bindir) ; \
+			cp -f $(FSLDIR)/bin/flirt $(DESTDIR)$(bindir)/flirt.fsl ; \
 		fi; \
 	fi;
 	if test ! "x$(ANFIDIR)" = "x" ; then \

@@ -7,11 +7,11 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2010/05/10 03:49:56 $
-#    $Revision: 1.40 $
+#    $Author: nicks $
+#    $Date: 2010/08/04 15:45:26 $
+#    $Revision: 1.41 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -21,13 +21,12 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 # epidewarp.fsl
 #
 
-set VERSION = '$Id: epidewarp.fsl,v 1.40 2010/05/10 03:49:56 greve Exp $'
+set VERSION = '$Id: epidewarp.fsl,v 1.41 2010/08/04 15:45:26 nicks Exp $'
 set inputargs = ($argv);
 
 set KeepMean = 0;
@@ -417,7 +416,7 @@ if($#epimat) cp $epimat `dirname $magfw`/`basename $magfw .$ext`.mat
 # Register magfw to example func. There are some parameters here
 # that may need to be tweeked. Should probably strip the mag.
 if($DoMagExfReg) then
-  set cmd = (flirt -in $magfw -ref $exf \
+  set cmd = (flirt.fsl -in $magfw -ref $exf \
     -out $tmpdir/magfw-in-exf.$ext \
     -omat $tmpdir/magfw-in-exf.fsl.mat \
     -bins 256 -cost corratio \
@@ -440,7 +439,7 @@ endif
 
 # Now resample VSM into epi space. This will take care of any
 # differences in in-plane voxel size.
-set cmd = (flirt -in $vsmmag -ref $exf -out $vsm \
+set cmd = (flirt.fsl -in $vsmmag -ref $exf -out $vsm \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
@@ -453,7 +452,7 @@ endif
 # Now resample brain mask into epi space. This will take care of any
 # differences in in-plane voxel size.
 set maskexf = $tmpdir/maskexf.$ext
-set cmd = (flirt -in $mask -ref $exf -out $maskexf \
+set cmd = (flirt.fsl -in $mask -ref $exf -out $maskexf \
   -init $tmpdir/magfw-in-exf.fsl.mat -applyxfm)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF

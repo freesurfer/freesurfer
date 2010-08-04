@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/08/12 18:15:54 $
-#    $Revision: 1.27 $
+#    $Date: 2010/08/04 15:45:26 $
+#    $Revision: 1.28 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -21,13 +21,12 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 #
 #
 
-set VERSION = '$Id: fsl_rigid_register,v 1.27 2008/08/12 18:15:54 nicks Exp $';
+set VERSION = '$Id: fsl_rigid_register,v 1.28 2010/08/04 15:45:26 nicks Exp $';
 
 setenv FSLOUTPUTTYPE NIFTI
 
@@ -170,7 +169,7 @@ endif
 
 
 # Run flirt
-set cmd = (flirt -in $involbase.hdr)
+set cmd = (flirt.fsl -in $involbase.hdr)
 set cmd = ($cmd -out $outvolbase.hdr)
 set cmd = ($cmd -bins $bins -cost $cost )
 set cmd = ($cmd -searchrx -$maxangle $maxangle)
@@ -188,7 +187,7 @@ endif
 # Check if schedule file flirt.newdefault.20080811.sch exists, which
 # explicitly uses an identity starting matrix at both 4mm and 1mm phases.
 # this bug fix is necessary only for v5.4.2b
-set flirtversion=`flirt -version`
+set flirtversion=`flirt.fsl -version`
 if ("$flirtversion" == "FLIRT version 5.4.2b") then
   set schedulefile="$FREESURFER_HOME/bin/flirt.newdefault.20080811.sch"
   if ( -e $schedulefile) then

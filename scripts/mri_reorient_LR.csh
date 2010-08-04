@@ -8,7 +8,7 @@
 # Created: 07-16-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_reorient_LR.csh,v 1.3 2010/07/19 19:39:40 lzollei Exp $';
+set VERSION = '$Id: mri_reorient_LR.csh,v 1.4 2010/08/04 15:45:26 nicks Exp $';
 
 set inputvol      = ();
 set outputvol     = ();
@@ -73,7 +73,7 @@ echo $cmd; eval $cmd
 echo "***Register..."
 set flirtoutput = ${inputvolLR:r:r}.flirt6DOFreg.nii.gz
 set flirtfslmat = ${flirtoutput:r:r}.fslmat
-set cmd = (flirt -dof 6 -in $inputvol -ref $inputvolLR -out $flirtoutput -omat $flirtfslmat)
+set cmd = (flirt.fsl -dof 6 -in $inputvol -ref $inputvolLR -out $flirtoutput -omat $flirtfslmat)
 echo $cmd; eval $cmd
 
 ### COMPUTE half angle rotation

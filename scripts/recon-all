@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/07/22 21:24:33 $
-#    $Revision: 1.318 $
+#    $Date: 2010/08/04 15:45:26 $
+#    $Revision: 1.319 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.318 2010/07/22 21:24:33 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.319 2010/08/04 15:45:26 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -442,7 +442,7 @@ echo "########################################" >> $LF
 echo "program versions used" >> $LF
 echo $VERSION                >> $LF
 mri_motion_correct.fsl -version >> $LF
-flirt -version >> $LF
+flirt.fsl -version >> $LF
 talairach_avi --version >> $LF
 tkregister2_cmdl --all-info >> $LF
 nu_correct -version >> $LF

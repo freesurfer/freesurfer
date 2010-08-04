@@ -5,11 +5,11 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2010/04/29 21:22:12 $
-#    $Revision: 1.35 $
+#    $Author: nicks $
+#    $Date: 2010/08/04 15:45:25 $
+#    $Revision: 1.36 $
 #
-# Copyright (C) 2002-2007,
+# Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -19,11 +19,10 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.35 2010/04/29 21:22:12 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.36 2010/08/04 15:45:25 nicks Exp $';
 set inputargs = ($argv);
 
 set subject = ();
