@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 18:35:45 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/08/04 12:20:52 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.13 2009/11/19 18:35:45 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.14 2010/08/04 12:20:52 fischl Exp $";
 
 typedef struct
 {
@@ -190,7 +190,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.13 2009/11/19 18:35:45 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.14 2010/08/04 12:20:52 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -198,7 +198,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.13 2009/11/19 18:35:45 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.14 2010/08/04 12:20:52 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -489,6 +489,7 @@ main(int argc, char *argv[]) {
                                 v->x, v->y, v->z, 
                                 mris_ico->avg_vertex_dist/10, 
                                 mris_ico->avg_vertex_dist/10, 
+                                0,
                                 &face, &fno, &fdist) ;
       if (fno < 0)
       {
