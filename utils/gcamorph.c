@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/22 15:18:40 $
- *    $Revision: 1.210 $
+ *    $Author: fischl $
+ *    $Date: 2010/08/04 02:21:27 $
+ *    $Revision: 1.211 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -656,7 +656,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   int    level, i, level_steps, navgs, l2, relabel, 
     orig_relabel, start_t = 0, passno ;
   MRI    *mri_smooth = NULL, *mri_kernel ;
-  double base_sigma, pct_change, rms, last_rms = 0.0, 
+  double base_sigma, pct_change, rms, last_rms = 0.0, label_dist,
     orig_dt,l_smooth, start_rms=0.0, l_orig_smooth ;
 
   if (FZERO(parms->min_sigma))
@@ -827,6 +827,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
               "**************** pass %d of %d ************************\n",
               passno+1, parms->npasses);
     parms->navgs = navgs ;
+    label_dist = parms->label_dist ;
     for (level = parms->levels-1 ; level >= 0 ; level--)
     {
       rms = parms->start_rms ;
@@ -991,6 +992,7 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
       if (parms->navgs < parms->min_avgs)
         break ;
     }
+    parms->label_dist = label_dist ;
     // if not scaling smoothness and making multiple passes, 
     // relax smoothness contstraint
     if ((passno < parms->npasses-1) && (parms->scale_smoothness == 0))
@@ -7860,7 +7862,7 @@ void gcamLabelTermCopyDeltas( GCA_MORPH *gcam,
         if ((gcamn->invalid/* == GCAM_POSITION_INVALID*/) ||
             ((gcamn->status & GCAM_LABEL_NODE) == 0)) {
           continue;
-	}
+        }
 
         dy = MRIgetVoxVal(mri_dist, x, y,z, 0) ;
         gcamn->label_dist = dy ;   /* for use in label energy */
