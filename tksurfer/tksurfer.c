@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/05/07 20:47:57 $
- *    $Revision: 1.342 $
+ *    $Author: greve $
+ *    $Date: 2010/08/04 20:13:07 $
+ *    $Revision: 1.343 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -854,6 +854,7 @@ static int vertex_array_dirty = 0;
 static int use_vertex_arrays = 1;
 
 static int color_scale_changed = TRUE;
+static char tmpstr[STRLEN];
 
 /*---------------------- PROTOTYPES (should be static) ----------------*/
 #ifdef TCL
@@ -2689,6 +2690,10 @@ int  main(int argc,char *argv[])
   sprintf(lext,"%s",argv[3]);
   tclscriptflag = FALSE;
 
+  printf("subject is %s\n",lpname);
+  printf("hemi    is %s\n",lstem);
+  printf("surface is %s\n",lext);
+
   /* rkt: commented this part out. i'm not sure how it was accepting
      any other command line options with it active. */
 #if 0
@@ -2733,6 +2738,33 @@ int  main(int argc,char *argv[])
   }
   strcpy(lsubjectsdir,envptr);
   printf("surfer: current subjects dir: %s\n",lsubjectsdir);
+
+  /* OK, now we're going to do something silly and check whether the subject
+   actually exists in SUBJECTS_DIR. If it does not, then we're going to do
+   something REALLY silly and print out a coherent msg to the terminal.*/
+  sprintf(tmpstr,"%s/%s",lsubjectsdir,lpname);
+  if(!fio_IsDirectory(tmpstr)){
+    printf("Checking %s\n",lpname);
+    if(fio_FileExistsReadable(lpname)){
+      /* Check whether subjectname is an actual file. Try opening it and reading
+	 a string if it is */
+      FILE *fp00;
+      printf("Getting subjectname from %s\n",lpname);
+      fp00 = fopen(lpname,"r");
+      fscanf(fp00,"%s",lpname);
+      fclose(fp00);
+      printf("subject is %s\n",lpname);
+      sprintf(tmpstr,"%s/%s",lsubjectsdir,lpname);
+      if(!fio_IsDirectory(tmpstr)){
+	printf("ERROR: cannot find subject %s in %s\n",lpname,lsubjectsdir);
+	exit(1);
+      }
+    }
+    else{
+      printf("ERROR: cannot find subject %s in %s\n",lpname,lsubjectsdir);
+      exit(1);
+    }
+  }
 
   /* guess datadir from cwd path */
   getcwd(cwd,100*NAME_LENGTH);
@@ -21303,7 +21335,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.342 2010/05/07 20:47:57 nicks Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.343 2010/08/04 20:13:07 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
