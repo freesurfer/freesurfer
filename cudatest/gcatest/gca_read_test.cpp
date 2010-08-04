@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 using namespace std;
 
 #include <boost/program_options.hpp>
@@ -18,9 +19,11 @@ namespace bpo = boost::program_options;
 // ============================================
 
 const string inFileDefault = "input.gca";
+const string outFileDefault = "output.gca";
 
 
 string inFilename;
+string outFilename;
 
 // ============================================
 
@@ -31,6 +34,7 @@ void ReadCommandLine( int ac, char* av[] ) {
     desc.add_options()
       ("help", "Produce help message" )
       ("input", bpo::value<string>(&inFilename)->default_value(inFileDefault), "Input filename" )
+      ("output", bpo::value<string>(&outFilename)->default_value(outFileDefault), "Input filename" )
       ;
 
     
@@ -82,8 +86,17 @@ int main( int argc, char *argv[] ) {
 
   myLinearNode.Exhume( origGCA );
   cout << "Exhumation complete" << endl;
-  cout << endl;
 
+  // =============================
+  // Send back to the GCA
+  myLinearNode.Inhume( origGCA );
+  cout << "Inhumation complete" << endl;
+
+  // =============================
+  // Write the output
+  GCAwrite( origGCA, outFilename.c_str() );
+  cout << "Written output file" << endl;
+  
   // =============================
 
   myLinearNode.PrintStats();
