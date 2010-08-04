@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2008/08/26 02:18:00 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/08/04 01:43:52 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -324,7 +324,7 @@ CAtrain(CA *ca, VOXEL_LIST *vl, MRI *mri_norm, MRI *mri_aseg,
 
   ca->c1_label = target_label ;
   ca->c2_label = source_label ;
-  VLSTtransformCoords(vl, ca->m_vox2index) ;
+  VLSTtransformCoords(vl, ca->m_vox2index, 0) ;
   mri_normals = caComputeSurfaceNormals(mri_aseg, NULL, source_label) ;
 
   for (i = 0 ; i < vl->nvox ; i++)

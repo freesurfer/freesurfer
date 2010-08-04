@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/04/23 18:10:58 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/08/04 01:43:52 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -488,7 +488,7 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
   double   val, xd, yd, zd ;
   int    i ;
 
-  VLSTtransformCoords(vl, m) ;
+  VLSTtransformCoords(vl, m, 0) ;
   for (i = 0 ; i < vl->nvox ; i++)
   {
     val = MRIgetVoxVal(vl->mri, vl->xi[i], vl->yi[i], vl->zi[i], 0) ;
@@ -513,12 +513,13 @@ VLSTtransform(VOXEL_LIST *vl, MATRIX *m, MRI *mri, int sample_type)
   return(NO_ERROR) ;
 }
 int
-VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m)
+VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m, int skip)
 {
   double   xd, yd, zd, val ;
   int    i, x, y, z ;
   static VECTOR *v1 = NULL, *v2 ;
 
+  skip++ ;   // skip=0 means do every one
   if (v1 == NULL)
   {
     v1 = VectorAlloc(4, MATRIX_REAL) ;
@@ -527,7 +528,7 @@ VLSTtransformCoords(VOXEL_LIST *vl, MATRIX *m)
     *MATRIX_RELT(v2, 4, 1) = 1.0 ;
   }
 
-  for (i = 0 ; i < vl->nvox ; i++)
+  for (i = 0 ; i < vl->nvox ; i+=skip)
   {
     x = vl->xi[i] ; y = vl->yi[i] ; z = vl->zi[i] ;
     if (vl->mri)
