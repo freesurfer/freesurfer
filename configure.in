@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/07/22 16:58:45 $
-#    $Revision: 1.486 $
+#    $Author: rge21 $
+#    $Date: 2010/08/04 17:43:15 $
+#    $Revision: 1.487 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2945,6 +2945,7 @@ AC_SUBST(TESTS_ENVIRONMENT)
 AC_OUTPUT([Makefile
            check_siemens_dir/Makefile
            cudatest/Makefile
+           cudatest/gcatest/Makefile
            dicom/Makefile
            distribution/Makefile
            distribution/average/Makefile
