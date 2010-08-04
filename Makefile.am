@@ -208,6 +208,7 @@ MRISSUBDIRS=\
 	mris_compute_parc_overlap \
 	mris_convert \
 	mris_decimate \
+	mris_decimate_gui \
 	mris_distance_map \
 	mris_curvature \
 	mris_curvature_stats \
