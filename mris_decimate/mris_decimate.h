@@ -3,26 +3,23 @@
  * @brief Reduce the number of vertices and faces in a surface. 
  *
  * This tool reduces the number of triangles in a surface using the
- * the vtkDecimatePro class documented at:
+ * the GNU Triangulated Surface Library documented at:
  *
- *            http://www.vtk.org/doc/release/5.2/html/a00310.htmls 
+ *            http://gts.sourceforge.net/reference/book1.html
  *
- * Please see the VTK documentation for details on the decimation algorithm.
+ * Please see the GTS documentation for details on the decimation algorithm.
  * mris_decimate will read in an existing surface and write out a new one
  * with less triangles.  The decimation level and other options can be provided
  * on the command-line.
  *
- * By default, this tool is command-line driven.  If you wish to use a VTK-based
- * interactive visualization of the surface, uncomment the '#define BUILT_IN_VISUALIZER'
- * below.
  */
 
 /*
  * Original Author: Dan Ginsburg
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/07/12 19:38:12 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/04 20:41:56 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,49 +48,42 @@ extern "C"
 //
 
 ///
-/// The follow structure correspond to options for vtkDecimatePro and
-/// are settable via the command-line of mris_decimate.  These options
-/// all correspond to members of vtkDecimatePro as described here:
-///
-///   http://www.vtk.org/doc/release/5.2/html/a00310.htmls
+/// The follow structure contains options for the DECIMATION algorithm
+///	provided by the GNU Trianglulated Surface Library (gts)
 ///
 typedef struct
 {
-    /// See vtkDecimatePro::SetTargetReduction()
-    float reductionLevel;
+    /// A value between (0, 1.0) that controls how decimated the surface
+	/// is.  A value of 1.0 means that the surface is not decimated at all
+	/// and a value close to 0 means that it will be reduced to nearly no
+	/// edges.  More specifically, this controls the number of edges that
+	/// the decimated mesh will contain.
+    float decimationLevel;
 
-    /// See vtkDecimatePro::SetPreserveTopology()
-    bool   setPreserveTopology;
-    int    preserveTopology;
-
-    /// See vtkDecimatePro::SetSplitting()
-    bool   setSplitting;
-    int    splitting;
-
-    /// See vtkDecimatePro::SetFeatureAngle()
-    bool   setFeatureAngle;
-    double featureAngle;
-
-    /// See vtkDecimatePro::SetBoundaryVertexDeletion()
-    bool   setBoundaryVertexDeletion;
-    int    boundaryVertexDeletion;
-
-    /// See vtkDecimatePro::SetDegree()   
-    bool   setDegree;
-    int    degree;
-
+	///	The minimum angle between two neighboring triangles allowed by
+	/// the decimation
+	bool setMinimumAngle;
+	float minimumAngle;
+	
 } DECIMATION_OPTIONS;
 
+///	Optional callback function 
+typedef void (*DECIMATE_PROGRESS_FUNC)(float percentDone, const char *msg, void *userData);
 
 ///
-/// \fn int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptions, char *outFilePath)
+/// \fn int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptions,
+///							DECIMATE_PROGRESS_FUNC decimateProgressFn)
 /// \brief This function performs decimation on the input surface and outputs the new surface to a file.
 /// \param mris Input loaded MRI_SURFACE to decimate
 /// \param decimationOptions Options controlling the decimation arguments (see DECIMATION_OPTIONS)
-/// \param outFilePath Full path to output file to write decimated surface to
+/// \param decimateProgressFn If non-NULL, provides updates on decimation percentage complete and
+///							  a status message that can, for example, be displayed in a GUI.
+/// \param userData If decimateProgressFn is non-NULL, argument passed into decimateProgressFn
 /// \return 0 on success, 1 on failure
 ///
-int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptions, char *outFilePath);
+int decimateSurface(MRI_SURFACE **mris, const DECIMATION_OPTIONS &decimationOptions, 
+    				DECIMATE_PROGRESS_FUNC decimateProgressFn = NULL,
+    				void *userData = NULL);
 
 #endif // MRIS_DECIMATE_H
 

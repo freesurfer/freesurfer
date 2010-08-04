@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/07/12 19:38:12 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/04 20:41:56 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -35,61 +35,27 @@
 ///
 /// \b DESCRIPTION
 ///
-/// This tool reduces the number of triangles in a surface using the
-/// the vtkDecimatePro class documented at:
+///  This tool reduces the number of triangles in a surface using the
+///  the GNU Triangulated Surface Library documented at:
 ///
-///            http://www.vtk.org/doc/release/5.2/html/a00310.htmls 
+///           http://gts.sourceforge.net/reference/book1.html
 ///
-/// Please see the VTK documentation for details on the decimation algorithm.
-/// mris_decimate will read in an existing surface and write out a new one
-/// with less triangles.  The decimation level and other options can be provided
-/// on the command-line.
-///
-/// By default, this tool is command-line driven.  If you wish to use a VTK-based
-/// interactive visualization of the surface, uncomment the '#define BUILT_IN_VISUALIZER'
-/// below.
+///  Please see the GTS documentation for details on the decimation algorithm.
+///  mris_decimate will read in an existing surface and write out a new one
+///  with less triangles.  The decimation level and other options can be provided
+///  on the command-line.
 ///
 
 
-// $Id: mris_decimate.cpp,v 1.1 2010/07/12 19:38:12 ginsburg Exp $
-
-
-#ifdef BUILT_IN_VISUALIZER
-#include <vtkActor.h>
-#include <vtkCamera.h>
-#include <vtkPolyDataMapper.h>
-#include <vtkRenderWindow.h>
-#include <vtkRenderWindowInteractor.h>
-#include <vtkRenderer.h>
-#include <vtkCommand.h>
-#include <vtkWidgetEvent.h>
-#include <vtkCallbackCommand.h>
-#include <vtkWidgetEventTranslator.h>
-#include <vtkInteractorStyleTrackballCamera.h>
-#include <vtkSliderWidget.h>
-#include <vtkSliderRepresentation2D.h>
-#include <vtkProperty2D.h>
-#include <vtkTextProperty.h>
-#include <vtkTextActor.h>
-#include <vtkWindowToImageFilter.h>
-#include <vtkPNGWriter.h>
-#endif // BUILT_IN_VISUALIZER
-
-#include <vtkFloatArray.h>
-#include <vtkPointData.h>
-#include <vtkPoints.h>
-#include <vtkIdList.h>
-#include <vtkCellArray.h>
-#include <vtkPolyData.h>
-#include <vtkDecimatePro.h>
-#include <vtkSmartPointer.h>
+// $Id: mris_decimate.cpp,v 1.2 2010/08/04 20:41:56 ginsburg Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <sstream>
-
+#include <gts.h>
+#include <iostream>
 #include "mris_decimate.h"
 
 extern "C"
@@ -104,32 +70,103 @@ extern "C"
 }
 
 
+///////////////////////////////////////////////////////////////////////////////////
+//  
+//  Private Functions
+//
+//
+
 
 ///
-//  Function Prototypes
+//	Callback function for loading vertex data from GtsSurface in
+//	decimateSurface()
 //
-static int  get_option(int argc, char **argv);
-static void print_usage(void) ;
-static void usage_exit(void);
-static void print_help(void) ;
-static void print_version(void) ;
-static void dump_options(FILE *fp);
-int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptions, char *outFilePath);
-std::string getStatsAsString(vtkPolyData *decimatedMesh, vtkDecimatePro *decimate);
-int main(int argc, char *argv[]) ;
+static void vertexLoad(GtsPoint * p, gpointer * data)
+{
+	MRI_SURFACE *mris = (MRI_SURFACE *)data;
+	mris->vertices[mris->nvertices].x = p->x;
+	mris->vertices[mris->nvertices].y = p->y;
+	mris->vertices[mris->nvertices].z = p->z;
+	unsigned int vertexID = mris->nvertices;
+	GTS_OBJECT(p)->reserved = GUINT_TO_POINTER(vertexID);
+	mris->nvertices++;
+}
 
 ///
-//  Global Variables
+//	Callbackfunction for loading traingle data from GtsSurface in
+//	decimateSurface()
 //
-static char vcid[] = "$Id: mris_decimate.cpp,v 1.1 2010/07/12 19:38:12 ginsburg Exp $";
-char *Progname = NULL;
-char *cmdline;
-int debug=0;
-int checkoptsonly=0;
-bool gSavePNGImage = false;
-char *gSavePNGImagePath = NULL;
-struct utsname uts;
-DECIMATION_OPTIONS gDecimationOptions;
+static void faceLoad(GtsTriangle * t, gpointer * data)
+{	
+	MRI_SURFACE *mris = (MRI_SURFACE *)data;
+	GtsVertex *v1, *v2, *v3;
+	gts_triangle_vertices(t, &v1, &v2, &v3);
+	
+	mris->faces[mris->nfaces].v[0] = GPOINTER_TO_UINT (GTS_OBJECT (v1)->reserved);
+	mris->faces[mris->nfaces].v[1] = GPOINTER_TO_UINT (GTS_OBJECT (v2)->reserved);	
+	mris->faces[mris->nfaces].v[2] = GPOINTER_TO_UINT (GTS_OBJECT (v3)->reserved);
+	mris->nfaces++;
+}
+
+///
+//	From cleanup.c example in gts, use this callback function in
+//	edgeCleanup to remove duplicate edges
+//
+static void buildList(gpointer data, GSList ** list)
+{
+	*list = g_slist_prepend (*list, data);
+}
+
+///
+//	Cleanup any duplicate edges from GtsSurface.  This is needed because
+//	the GTS library uses a data structure where each face edge needs
+//	to be stored only once (vs. the way Freesurfer stores the edge in
+//	each face).  This function goes through and cleans out any duplicate
+//	edges from the mesh.  This is applied before the surface is 
+//	decimated.
+//
+//	This code was adapted from gts-0.7.6 examples/cleanup.c
+//
+static void edgeCleanup(GtsSurface * surface)
+{
+	GSList * edges = NULL;
+	GSList * i;
+
+	g_return_if_fail (surface != NULL);
+
+	/* build list of edges */
+	gts_surface_foreach_edge (surface, (GtsFunc) buildList, &edges);
+
+	/* remove degenerate and duplicate edges.
+	 Note: we could use gts_edges_merge() to remove the duplicates and then
+	 remove the degenerate edges but it is more efficient to do everything 
+	 at once (and it's more pedagogical too ...) */
+
+	/* We want to control manually the destruction of edges */
+	gts_allow_floating_edges = TRUE;
+
+	i = edges;
+	while (i) {
+		GtsEdge * e = (GtsEdge*) i->data;
+		GtsEdge * duplicate;
+		if (GTS_SEGMENT (e)->v1 == GTS_SEGMENT (e)->v2) /* edge is degenerate */
+		  /* destroy e */
+		  gts_object_destroy (GTS_OBJECT (e));
+		else if ((duplicate = gts_edge_is_duplicate (e))) {
+		  /* replace e with its duplicate */
+		  gts_edge_replace (e, duplicate);
+		  /* destroy e */
+		  gts_object_destroy (GTS_OBJECT (e));
+		}
+		i = i->next;
+	}
+
+	/* don't forget to reset to default */
+	gts_allow_floating_edges = FALSE;
+
+	/* free list of edges */
+	g_slist_free (edges);
+}
 
 ///////////////////////////////////////////////////////////////////////////////////
 //  
@@ -137,238 +174,102 @@ DECIMATION_OPTIONS gDecimationOptions;
 //
 //
 
-#ifdef BUILT_IN_VISUALIZER
 
 ///
-/// \class vtkSliderCallback
-/// \brief Callback to handle adjustment to 3D slider in visualizer mode
-///
-class vtkSliderCallback : public vtkCommand
-{
-public:
-    static vtkSliderCallback *New() 
-    {
-        return new vtkSliderCallback;
-    }
-
-    virtual void Execute(vtkObject *caller, unsigned long, void*)
-    {
-        vtkSliderWidget *sliderWidget = reinterpret_cast<vtkSliderWidget*>(caller);
-        this->Decimate->SetTargetReduction(static_cast<vtkSliderRepresentation *>(sliderWidget->GetRepresentation())->GetValue());
-        Decimate->Update();
-
-        vtkSmartPointer<vtkPolyData> decimatedMesh = Decimate->GetOutput();
- 
-        std::cout << "After decimation" << std::endl << "------------" << std::endl;
- 
-        std::cout << "There are " << decimatedMesh->GetNumberOfPolys() << " triangles." << std::endl;
-        std::cout << "There are " << decimatedMesh->GetNumberOfPoints() << " points." << std::endl;
-
-        TextActor->SetInput(getStatsAsString(decimatedMesh, Decimate).c_str());
-    }
-    vtkSliderCallback():Decimate(0) {}
-    vtkDecimatePro *Decimate;
-    vtkTextActor *TextActor;
-};
-#endif // BUILT_IN_VISUALIZER
-
-///
-/// \fn int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptions, char *outFilePath)
-/// \brief This function performs decimation on the input surface and outputs the new surface to a file.
+/// \fn int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptions)
+/// \brief This function performs decimation on the input surface and outputs the new surface to a file
+////	   using GTS (GNUT Triangulated Surface Library)
 /// \param mris Input loaded MRI_SURFACE to decimate
 /// \param decimationOptions Options controlling the decimation arguments (see DECIMATION_OPTIONS)
-/// \param outFilePath Full path to output file to write decimated surface to
+/// \param decimateProgressFn If non-NULL, provides updates on decimation percentage complete and
+///							  a status message that can, for example, be displayed in a GUI.
+/// \param userData If decimateProgressFn is non-NULL, argument passed into decimateProgressFn
 /// \return 0 on success, 1 on failure
 ///
-int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptions, char *outFilePath)
-{    
+int decimateSurface(MRI_SURFACE **pmris, const DECIMATION_OPTIONS &decimationOptions,
+       				DECIMATE_PROGRESS_FUNC decimateProgressFn,
+    				void *userData)
+{
+	MRI_SURFACE *mris = (*pmris);
+	GtsSurface *gtsSurface = NULL;
+	GtsVertex **gtsVertices = NULL;
+	GtsEdge **gtsEdges = NULL;
 
-    // ---------------------------------------------------------------------------
-    // Copy the vertex and face buffer to VTK data structures
-    // ---------------------------------------------------------------------------
-    vtkSmartPointer<vtkPolyData> mesh = vtkSmartPointer<vtkPolyData>::New();
-    vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkCellArray> polys = vtkSmartPointer<vtkCellArray>::New();
+	gtsSurface = gts_surface_new( gts_surface_class(),
+	    						  gts_face_class(),
+	    						  gts_edge_class(),
+	    						  gts_vertex_class() );
+	gtsVertices = (GtsVertex**) g_malloc( sizeof(GtsVertex*) * (mris->nvertices) );	
 
-    for( int v = 0; v < mris->nvertices; v++)
-    {
-        points->InsertPoint(v, mris->vertices[v].x,
-                               mris->vertices[v].y,
-                               mris->vertices[v].z);
-    }
+	if (decimateProgressFn != NULL)
+		decimateProgressFn(0.10, "Creating vertices...", userData);
 
-    for (int f = 0; f < mris->nfaces; f++)
-    {
-        vtkIdType pts[3];
-        pts[0] =  mris->faces[f].v[0];
-        pts[1] =  mris->faces[f].v[1];
-        pts[2] =  mris->faces[f].v[2];
+	for (int vno = 0; vno < mris->nvertices; vno++)
+	{
+		gtsVertices[vno] = gts_vertex_new ( gtsSurface->vertex_class,
+		    								mris->vertices[vno].x,
+		    								mris->vertices[vno].y,
+		    								mris->vertices[vno].z );
+	}
 
-        polys->InsertNextCell(3, pts);
-    }
+	if (decimateProgressFn != NULL)
+		decimateProgressFn(0.20, "Creating edges...", userData);
 
-    mesh->SetPoints(points);
-    mesh->SetPolys(polys);
+	gtsEdges = (GtsEdge**) g_malloc(sizeof(GtsEdge*) * mris->nfaces * 3);
+	int edge = 0;
+	for (int fno = 0; fno < mris->nfaces; fno++)
+	{
+		GtsVertex *v1 = gtsVertices[mris->faces[fno].v[0]];
+		GtsVertex *v2 = gtsVertices[mris->faces[fno].v[1]];
+		GtsVertex *v3 = gtsVertices[mris->faces[fno].v[2]];
 
-    std::cout << std::endl << "Before decimation" << std::endl << "------------" << std::endl;
- 
-    std::cout << "There are " << mesh->GetNumberOfPolys() << " triangles." << std::endl;
-    std::cout << "There are " << mesh->GetNumberOfPoints() << " points." << std::endl;
+		gtsEdges[edge++] = gts_edge_new( gtsSurface->edge_class, v1, v2 );
+		gtsEdges[edge++] = gts_edge_new( gtsSurface->edge_class, v2, v3 );
+		gtsEdges[edge++] = gts_edge_new( gtsSurface->edge_class, v3, v1 );
+		
+	}
 
+	if (decimateProgressFn != NULL)
+		decimateProgressFn(0.30, "Adding faces...", userData);
 
-    vtkSmartPointer<vtkDecimatePro> decimate = vtkSmartPointer<vtkDecimatePro>::New();
-    decimate->SetInput(mesh);
-    
-    // ---------------------------------------------------------------------------
-    // Set Decimation options from the command-line
-    // ---------------------------------------------------------------------------
-    decimate->SetTargetReduction(decimationOptions.reductionLevel);
-    if(decimationOptions.setPreserveTopology)
-        decimate->SetPreserveTopology(decimationOptions.preserveTopology);
-    if(decimationOptions.setSplitting)
-        decimate->SetSplitting(decimationOptions.splitting);
-    if(decimationOptions.setFeatureAngle)
-        decimate->SetFeatureAngle(decimationOptions.featureAngle);
-    if(decimationOptions.setBoundaryVertexDeletion)
-        decimate->SetBoundaryVertexDeletion(decimationOptions.boundaryVertexDeletion);
-    if(decimationOptions.setDegree)
-        decimate->SetDegree(decimationOptions.degree);    
+	edge = 0;
+	for (int fno = 0; fno < mris->nfaces; fno++)
+	{
+		gts_surface_add_face( gtsSurface,
+		    					gts_face_new(gtsSurface->face_class,
+								    		 gtsEdges[edge],
+   			 								 gtsEdges[edge + 1],
+ 											 gtsEdges[edge + 2]) );
+		edge += 3;
+	}
 
-    // ---------------------------------------------------------------------------
-    // Perform the decimation
-    // ---------------------------------------------------------------------------
-    decimate->Update();
+	// The GTS data structure requires the edges to be merged.  Since
+	// we did not cull duplicate edges from the Freesurfer data structure,
+	// use this GTS function to merge the edges of the surface before
+	// decimation.
+	edgeCleanup(gtsSurface);
+	int numDistinctEdges = gts_surface_edge_number(gtsSurface);	
 
-    vtkSmartPointer<vtkPolyData> decimatedMesh = decimate->GetOutput();
- 
-    std::cout << "After decimation" << std::endl << "------------" << std::endl;
- 
-    std::cout << "There are " << decimatedMesh->GetNumberOfPolys() << " triangles." << std::endl;
-    std::cout << "There are " << decimatedMesh->GetNumberOfPoints() << " points." << std::endl;
+	if (decimateProgressFn != NULL)
+		decimateProgressFn(0.40, "Decimating surface...", userData);
 
-    
-#ifdef BUILT_IN_VISUALIZER
+    float minimumAngle = 1.0;
+    if (decimationOptions.setMinimumAngle)
+        minimumAngle = decimationOptions.minimumAngle;
 
-    // ---------------------------------------------------------------------------
-    // If compiled with BUILT_IN_VISUALIZER, display a simple GUI using VTK
-    // that can adjust the decimation level interactively.
-    // ---------------------------------------------------------------------------
-    
-    // Now we'll look at it.
-    vtkSmartPointer<vtkPolyDataMapper> polyMapper = vtkSmartPointer<vtkPolyDataMapper>::New();
-      polyMapper->SetInput(decimatedMesh);
-      polyMapper->SetScalarRange(0,7);
-    vtkSmartPointer<vtkActor> polyActor = vtkSmartPointer<vtkActor>::New();
-      polyActor->SetMapper(polyMapper);
+	GtsVolumeOptimizedParams params = { 0.5, 0.5, 0. };
+	gdouble fold = minimumAngle * PI/180.; 
+	int stop = (int)((float)numDistinctEdges * decimationOptions.decimationLevel);
+	gts_surface_coarsen (gtsSurface,
+      (GtsKeyFunc) gts_volume_optimized_cost,
+      &params,
+      (GtsCoarsenFunc) gts_volume_optimized_vertex,
+      &params,
+      (GtsStopFunc) gts_coarsen_stop_number,
+      &stop,
+      fold);
 
-    // The usual rendering stuff.
-    vtkSmartPointer<vtkCamera> camera = vtkSmartPointer<vtkCamera>::New();
-      camera->SetPosition(-1,0,0);
-      camera->SetFocalPoint(0,0,0);
-      camera->Roll(90.0);
-
-    vtkSmartPointer<vtkRenderer> renderer = vtkSmartPointer<vtkRenderer>::New();
-    vtkSmartPointer<vtkRenderWindow> renWin = vtkSmartPointer<vtkRenderWindow>::New();
-    renWin->AddRenderer(renderer);
-    renWin->SetWindowName("mris_decimate_gui");
-
-    vtkSmartPointer<vtkRenderWindowInteractor> iren = vtkSmartPointer<vtkRenderWindowInteractor>::New();
-    iren->SetRenderWindow(renWin);
-
-    renderer->AddActor(polyActor);
-      renderer->SetActiveCamera(camera);
-      renderer->ResetCamera();
-      renderer->SetBackground(0,0,0);
-
-    renWin->SetSize(1024,768);
-
-    vtkSmartPointer<vtkSliderRepresentation2D> sliderRep =
-        vtkSmartPointer<vtkSliderRepresentation2D>::New();
-    sliderRep->SetMinimumValue(0.0);
-    sliderRep->SetMaximumValue(1.0);
-    sliderRep->SetValue(decimationOptions.reductionLevel);
-    sliderRep->SetTitleText("Decimation Level");
-
-    //set color properties:
-    //change the color of the knob that slides
-    sliderRep->GetSliderProperty()->SetColor(1,0,0);//red
-
-    //change the color of the text indicating what the slider controls
-    sliderRep->GetTitleProperty()->SetColor(1,0,0);//red
-
-    //change the color of the text displaying the value
-    sliderRep->GetLabelProperty()->SetColor(1,0,0);//red
-
-    //change the color of the knob when the mouse is held on it
-    sliderRep->GetSelectedProperty()->SetColor(0,1,0);//green
-
-    //change the color of the bar
-    sliderRep->GetTubeProperty()->SetColor(1,1,0);//yellow
-
-    //change the color of the ends of the bar
-    sliderRep->GetCapProperty()->SetColor(1,1,0);//yellow
-
-    sliderRep->GetPoint1Coordinate()->SetCoordinateSystemToNormalizedDisplay();
-    sliderRep->GetPoint1Coordinate()->SetValue(.25 ,0.1);
-    sliderRep->GetPoint2Coordinate()->SetCoordinateSystemToNormalizedDisplay();
-    sliderRep->GetPoint2Coordinate()->SetValue(.75, 0.1);
- 
-    vtkSmartPointer<vtkSliderWidget> sliderWidget =
-        vtkSmartPointer<vtkSliderWidget>::New();
-    sliderWidget->SetInteractor(iren);
-    sliderWidget->SetRepresentation(sliderRep);
-    sliderWidget->SetAnimationModeToJump();
-    sliderWidget->EnabledOn();
-
-    // Text widget
-    vtkSmartPointer<vtkTextActor> textActor = 
-        vtkSmartPointer<vtkTextActor>::New();    
-
-    textActor->SetInput(getStatsAsString(decimatedMesh, decimate).c_str());
-    textActor->GetTextProperty()->SetColor(1.0, 0.0, 0.0);
-    textActor->GetTextProperty()->SetJustificationToLeft();
-    textActor->GetTextProperty()->SetVerticalJustificationToBottom();
-    textActor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
-    textActor->GetPosition2Coordinate()->SetCoordinateSystemToNormalizedViewport();
-    textActor->GetPositionCoordinate()->SetValue(0.0, 0.01);
-    textActor->GetPosition2Coordinate()->SetValue(0.5, 0.35);
-    renderer->AddActor2D(textActor);
-    
-    vtkSmartPointer<vtkSliderCallback> callback =
-        vtkSmartPointer<vtkSliderCallback>::New();
-    callback->Decimate = decimate;
-    callback->TextActor = textActor;
- 
-    sliderWidget->AddObserver(vtkCommand::InteractionEvent,callback);
-
-    iren->Initialize();
-
-    // interact with data
-    renWin->Render();
-
-    if (gSavePNGImage)
-    {
-        textActor->VisibilityOff();
-        sliderRep->VisibilityOff();
-        vtkSmartPointer<vtkWindowToImageFilter> w2if = vtkSmartPointer<vtkWindowToImageFilter>::New();
-        vtkSmartPointer<vtkPNGWriter> pngWriter = vtkSmartPointer<vtkPNGWriter>::New();
-
-        w2if->SetInput(renWin);
-        pngWriter->SetInput(w2if->GetOutput());
-        pngWriter->SetFileName(gSavePNGImagePath);
-        pngWriter->Write();
-        return 0;
-    }
-    iren->Start();
-#endif // BUILT_IN_VISUALIZER
-
-    // ---------------------------------------------------------------------------
-    // Get the decimated mesh and modify the 'mris' to use this mesh rather
-    // than the original
-    // ---------------------------------------------------------------------------
-    decimatedMesh = decimate->GetOutput();
-    
-    // Free the vertex and face buffers
+	// Free the vertex and face buffers
     for (int vno = 0 ; vno < mris->nvertices ; vno++)
     {
         if (mris->vertices[vno].f)
@@ -400,18 +301,24 @@ int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptio
     free(mris->vertices);
     free(mris->faces);
 
-    mris->nvertices = decimatedMesh->GetNumberOfPoints();
-    mris->nfaces = decimatedMesh->GetNumberOfPolys();
+	GtsSurfaceStats stats;
+	gts_surface_stats( gtsSurface, &stats);
 
-    // Allocate at the new size       
-    mris->vertices = (VERTEX *)calloc(mris->nvertices, sizeof(VERTEX)) ;
+	printf("Decimated Surface Number of vertices: %d\n", stats.edges_per_vertex.n);
+	printf("Decimated Surface Number of faces: %d\n", stats.n_faces);
+
+	mris->nvertices = stats.edges_per_vertex.n;
+	mris->nfaces = stats.n_faces;
+	
+	// Allocate at the new size       
+    mris->vertices = (VERTEX *)calloc(stats.edges_per_vertex.n, sizeof(VERTEX)) ;
     if (!mris->vertices)
     {
         ErrorExit(ERROR_NO_MEMORY,
                   "decimateSurface(%d, %d): could not allocate vertices",
                   mris->nvertices, sizeof(VERTEX));
     }
-    mris->faces = (FACE *)calloc(mris->nfaces, sizeof(FACE)) ;
+    mris->faces = (FACE *)calloc(stats.n_faces, sizeof(FACE)) ;
     if (!mris->faces)
     {
         ErrorExit(ERROR_NO_MEMORY,
@@ -419,316 +326,59 @@ int decimateSurface(MRI_SURFACE *mris, const DECIMATION_OPTIONS &decimationOptio
                   mris->nfaces, sizeof(FACE));
     }
 
-    // Copy the data into the vertex and face buffers
-    for(int v = 0; v < mris->nvertices; v++)
-    {
-        double *vert = decimatedMesh->GetPoint(v);
-        mris->vertices[v].x = (float)vert[0];
-        mris->vertices[v].y = (float)vert[1];
-        mris->vertices[v].z = (float)vert[2];
-    }
-    vtkIdType *decimatedFaces = decimatedMesh->GetPolys()->GetPointer();
-    for (int f = 0; f < mris->nfaces; f++)        
-    {
-        mris->faces[f].v[0] = decimatedFaces[f * 4 + 1];
-        mris->faces[f].v[1] = decimatedFaces[f * 4 + 2];
-        mris->faces[f].v[2] = decimatedFaces[f * 4 + 3];
-    }
+	if (decimateProgressFn != NULL)
+		decimateProgressFn(0.70, "Copying vertices to mris...", userData);
 
-    // Finally, write out the final mesh and free the MRI_SURFACE
-    MRISwrite(mris, outFilePath);
-    MRISfree(&mris);
+	gpointer data;
+	mris->nvertices = 0;
+	data = (gpointer)mris;
+	gts_surface_foreach_vertex( gtsSurface, (GtsFunc) vertexLoad, data);
 
-    return 0;
+
+	if (decimateProgressFn != NULL)
+		decimateProgressFn(0.80, "Copying faces to mris...", userData);
+
+	mris->nfaces = 0;
+	data = (gpointer)mris;
+	gts_surface_foreach_face( gtsSurface, (GtsFunc) faceLoad, data);
+
+
+	if (decimateProgressFn != NULL)
+		decimateProgressFn(0.90, "Creating new mris...", userData);
+
+	// Create a temporary file to write the output and then read it back in
+	// to get the decimated surface. The reason I do this is because there
+	// was no clear API call in mrisurf.c that would allow me to muck with
+	// the vertex/face array and properly calculate everything else in the
+	// structure.  I felt this was the safest way to make sure everything
+	// in the surface got recalculated properly.
+	char *tmpName = strdup("/tmp/mris_decimateXXXXXX");
+	int fd = mkstemp(tmpName);	
+    char tmp_fpath[STRLEN];
+
+	if (fd == -1)
+	{
+		std::cerr << "Error creating temporary file: " << std::string(tmpName) << std::endl;
+		return -1;
+	}
+
+    FileNameAbsolute(tmpName, tmp_fpath);    
+
+    MRISwrite(mris, tmp_fpath);
+    MRISfree(pmris);
+    *pmris = MRISread(tmp_fpath);
+    remove(tmp_fpath);
+	
+	g_free(gtsVertices);
+	g_free(gtsEdges);
+	g_free(gtsSurface);
+
+	if (decimateProgressFn != NULL)
+		decimateProgressFn(1.0, "Done.", userData);
+
+	return 0;
 }
 
 
-///////////////////////////////////////////////////////////////////////////////////
-//  
-//  Private Functions
-//
-//
-
-///
-/// Get the stats from a mesh and decimation as a string for output
-/// \param decimatedMesh vtkPolyData for decimated mesh
-/// \param decimate vtkDecimatePro that is used for decimation
-///
-std::string getStatsAsString(vtkPolyData *decimatedMesh, 
-                             vtkDecimatePro *decimate)
-{
-    std::stringstream textStr;
-    textStr << "Triangles: " << decimatedMesh->GetNumberOfPolys() << std::endl;
-    textStr << "Vertices: " << decimatedMesh->GetNumberOfPoints() << std::endl;
-    textStr << "Reduction Level: " << decimate->GetTargetReduction() << std:: endl;
-    textStr << "Preserve Topology: " << decimate->GetPreserveTopology() << std::endl;
-    textStr << "Splitting: " << decimate->GetSplitting() << std::endl;
-    textStr << "Feature Angle: " << decimate->GetFeatureAngle() << std::endl;
-    textStr << "Boundary Vertex Deletion: " << decimate->GetBoundaryVertexDeletion() << std::endl;
-    textStr << "Degree: " << decimate->GetDegree();
-
-    return textStr.str();
-}
-
-///
-/// \fn Main entrypoint for mris_decimate
-/// \return 0 on succesful run, 1 on error
-///
-int main(int argc, char *argv[]) 
-{
-    // Initialize Decimation options
-    memset(&gDecimationOptions, 0, sizeof(DECIMATION_OPTIONS));
-    gDecimationOptions.reductionLevel = 0.5; // Default decimation level if not specified
-
-    char **av;
-    char *in_fname, out_fpath[STRLEN] ;
-    int ac, nargs;
-    MRI_SURFACE *mris ;
-
-    nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
-    if (nargs && argc - nargs == 1) 
-        exit (0);
-    Progname = argv[0] ;
-    argc -= nargs;
-    cmdline = argv2cmdline(argc,argv);
-    uname(&uts);
-
-    if (argc < 3)
-        usage_exit();
-
-    ErrorInit(NULL, NULL, NULL) ;
-    DiagInit(NULL, NULL, NULL) ;
-    
-    ac = argc ;
-    av = argv ;
-    for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) 
-    {
-        nargs = get_option(argc, argv) ;
-        argc -= nargs ;
-        argv += nargs ;
-    }
-
-    if (argc < 3)
-        usage_exit();
-
-    in_fname = argv[1] ;
-    FileNameAbsolute(argv[2], out_fpath);
-
-    dump_options(stdout);
-
-    mris = MRISfastRead(in_fname) ;
-    if (!mris)
-    {
-        ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
-                  Progname, in_fname) ;
-    }
-
-    decimateSurface(mris, gDecimationOptions, out_fpath);
-
-    return 0;
-}
-
-///
-/// \fn int get_option(int argc, char **argv)
-/// \brief Parses a command-line argument
-/// \param argc - number of command line arguments
-/// \param argv - pointer to a character pointer
-///
-static int get_option(int argc, char *argv[]) 
-{
-    int  nargs = 0 ;
-    char *option ;
-
-    option = argv[1] + 1 ;            /* past '-' */
-    if (!stricmp(option, "-help"))
-    {
-        print_help() ;
-    }
-    else if (!stricmp(option, "-version"))
-    {
-        print_version() ;
-    } 
-    else switch (toupper(*option)) 
-    {
-    case 'R':
-        gDecimationOptions.reductionLevel = atof(argv[2]) ;
-        printf("using reduction = %2.2f\n", gDecimationOptions.reductionLevel) ;
-        nargs = 1 ;
-        break ;
-    case 'T':
-        gDecimationOptions.setPreserveTopology = true;
-        gDecimationOptions.preserveTopology = atoi(argv[2]);
-        printf("using preserveTopology = %d\n", gDecimationOptions.preserveTopology) ;
-        nargs = 1;
-        break;
-    case 'S':
-        gDecimationOptions.setSplitting = true;
-        gDecimationOptions.splitting = atoi(argv[2]);
-        printf("using splitting = %d\n", gDecimationOptions.splitting) ;
-        nargs = 1;
-        break;
-    case 'F':
-        gDecimationOptions.setFeatureAngle = true;
-        gDecimationOptions.featureAngle = atof(argv[2]);
-        printf("using featureAngle = %2.2f\n", gDecimationOptions.featureAngle) ;
-        nargs = 1;
-        break;
-    case 'B':
-        gDecimationOptions.setBoundaryVertexDeletion = true;
-        gDecimationOptions.boundaryVertexDeletion = atoi(argv[2]);
-        printf("using boundaryVertexDeletion = %d\n", gDecimationOptions.boundaryVertexDeletion) ;
-        nargs = 1;
-        break;
-    case 'D':
-        gDecimationOptions.setDegree = true;
-        gDecimationOptions.degree = atoi(argv[2]);
-        printf("using degree = %d\n", gDecimationOptions.degree) ;
-        nargs = 1;
-        break;
-    case 'P':
-        gSavePNGImage = true;
-        gSavePNGImagePath = argv[2];
-        printf("save screenshot to '%s'\n", gSavePNGImagePath);
-        nargs = 1;
-        break;
-    default:
-      fprintf(stderr, "unknown option %s\n", argv[1]) ;
-      exit(1) ;
-      break ;
-    }
-
-  return(nargs) ;
-}
 
 
-///
-/// \fn static void usage_exit(void)
-/// \brief Prints usage and exits
-///
-static void usage_exit(void) 
-{
-    print_usage() ;
-    exit(1) ;
-}
-
-///
-/// \fn static void print_usage(void)
-/// \brief Prints usage and returns (does not exit)
-///
-static void print_usage(void) 
-{
-    // Create an object to get default values
-    vtkSmartPointer<vtkDecimatePro> decimate = vtkSmartPointer<vtkDecimatePro>::New();
-
-    printf("USAGE: %s [options] <input surface> <output surface>\n",Progname) ;
-    printf("\n");
-    printf("This program reduces the number of triangles in a surface and\n");
-    printf("outputs the new surface to a file.  All of the command line\n");
-    printf("options are used to set parameters of the decimation algorithm\n");
-    printf("which is provided by the VTK class 'vtkDecimatePro' documented at:\n\n");
-    printf("    http://www.vtk.org/doc/release/5.2/html/a00310.htmls\n\n");
-    printf("For more information on what the options do, please consult the VTK\n");
-    printf("documentation for 'vtkDecimatePro'\n");
-    printf("\nValid options are:\n\n");
-    printf("   -r reductionLevel\n");
-    printf("         percentage to reduce triangles in surface\n");
-    printf("         by (value between 0<-->1.0, default: 0.5) \n");
-    printf("   -t preserveTopology\n");
-    printf("         whether or not to preserve topology (0 or 1, default: %d)\n", decimate->GetPreserveTopology());
-    printf("   -s splitting\n");
-    printf("         whether to allow splitting of the mesh (0 or 1, default: %d)\n", decimate->GetSplitting());
-    printf("   -f featureAngle\n");
-    printf("         specify the angle used to define what an edge is (default: %2.2f)\n", decimate->GetFeatureAngle());
-    printf("   -b boundaryVertexDeletion\n");
-    printf("         whether to allow deletion of vertices on the boundary \n");
-    printf("         of a mesh (default: %d)\n", decimate->GetBoundaryVertexDeletion());
-    printf("   -d degree\n");
-    printf("         if the degree of vertex is greater than degree then\n");
-    printf("         it will be split (default: %d)\n", decimate->GetDegree());
-#ifdef BUILT_IN_VISUALIZER
-    printf("   -p png_file\n");
-    printf("         save a screenshot to <png_file>\n");
-#endif
-    printf("\n");
-    printf("\n");
-    printf("   --help      print out information on how to use this program\n");
-    printf("   --version   print out version and exit\n");
-    printf("\n");
-    printf("\n");
-}
-
-///
-/// \fn static void print_help(void)
-/// \brief Prints help and exits
-///
-static void print_help(void) 
-{
-    print_usage() ;
-    exit(1) ;
-}
-
-///
-/// \fn static void print_version(void)
-/// \brief Prints version and exits
-///
-static void print_version(void) 
-{
-    printf("%s\n", vcid) ;
-    exit(1) ;
-}
-
-
-///
-/// \fn static void dump_options(FILE *fp)
-/// \brief Prints command-line options to the given file pointer
-/// \param FILE *fp - file pointer
-///
-static void dump_options(FILE *fp) 
-{
-    // Create an object to get default values
-    vtkSmartPointer<vtkDecimatePro> decimate = vtkSmartPointer<vtkDecimatePro>::New();
-    
-    fprintf(fp,"\n");
-    fprintf(fp,"%s\n",vcid);
-    fprintf(fp,"cmdline %s\n",cmdline);
-    fprintf(fp,"sysname  %s\n",uts.sysname);
-    fprintf(fp,"hostname %s\n",uts.nodename);
-    fprintf(fp,"machine  %s\n",uts.machine);
-    fprintf(fp,"user     %s\n",VERuser());
-
-    fprintf(fp,"\nreductionLevel            %f\n", gDecimationOptions.reductionLevel);
-    if (gDecimationOptions.setPreserveTopology)
-        fprintf(fp,"preserveTopology          %d\n", gDecimationOptions.preserveTopology) ;
-    else
-        fprintf(fp,"preserveTopology          %d\n", decimate->GetPreserveTopology()) ;
-    
-
-    if (gDecimationOptions.setSplitting)
-        fprintf(fp,"splitting                 %d\n", gDecimationOptions.splitting) ;
-    else
-        fprintf(fp,"splitting                 %d\n", decimate->GetSplitting()) ;
-
-
-    if (gDecimationOptions.setFeatureAngle)
-        fprintf(fp,"featureAngle              %2.2f\n", gDecimationOptions.featureAngle) ;
-    else
-        fprintf(fp,"featureAngle              %2.2f\n", decimate->GetFeatureAngle()) ;
-
-    if (gDecimationOptions.setBoundaryVertexDeletion)
-        fprintf(fp,"boundaryVertexDeletion    %d\n", gDecimationOptions.boundaryVertexDeletion) ;
-    else
-        fprintf(fp,"boundaryVertexDeletion    %d\n", decimate->GetBoundaryVertexDeletion()) ;
-
-
-    if (gDecimationOptions.setDegree)
-        fprintf(fp,"degree                    %d\n", gDecimationOptions.degree) ;
-    else
-        fprintf(fp,"degree                    %d\n", decimate->GetDegree()) ;
-
-    if (gSavePNGImage)
-    {
-        fprintf(fp, "Saving screenshot to '%s'\n", gSavePNGImagePath);
-    }
-
-    return;
-}
