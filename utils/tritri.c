@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 01:49:40 $
- *    $Revision: 1.5 $
+ *    $Author: fischl $
+ *    $Date: 2010/08/04 01:42:39 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -480,3 +480,126 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
   }
   return(1) ;
 }
+
+// from http://www.softsurfer.com/Archive/algorithm_0105/algorithm_0105.htm#intersect_RayTriangle()
+// intersect_RayTriangle(): intersect a ray with a 3D triangle
+ //    Input:  a ray n, and a triangle T
+ //    Output: *I = intersection point (when it exists)
+ //    Return: -1 = triangle is degenerate (a segment or point)
+ //             0 = disjoint (no intersect)
+ //             1 = intersect in unique point I1
+ //             2 = are in the same plane
+ int
+ intersect_RayTriangle( double ray[2][3], double V0[3], double V1[3], double V2[3], double I[3] )
+ {
+     double    u[3], v[3], n[3];             // triangle vectors
+     double    dir[3], w0[3], w[3];          // ray vectors
+     float     r, a, b;             // params to calc ray-plane intersect
+     float     uu, uv, vv, wu, wv, D;
+     float     s, t;
+ 
+     // get triangle edge vectors and plane normal
+     SUB(u, V1, V0) ;
+     SUB(v, V2, V0) ;
+     CROSS(u, v, n);             // cross product
+     if (VLEN(n) == 0)            // triangle is degenerate
+         return -1;                 // do not deal with this case
+ 
+     SUB(dir, ray[1], ray[0]);             // ray direction vector
+     SUB(w0, ray[0], V0);
+     a = -DOT(n,w0);
+     b = DOT(n,dir);
+#define SMALL_NUM 1e-8
+     if (fabs(b) < SMALL_NUM) {     // ray is parallel to triangle plane
+         if (a == 0)                // ray lies in triangle plane
+             return 2;
+         else return 0;             // ray disjoint from plane
+     }
+ 
+     // get intersect point of ray with triangle plane
+     r = a / b;
+     if (r < 0.0)                   // ray goes away from triangle
+         return 0;                  // => no intersect
+     // for a segment, also test if (r > 1.0) => no intersect
+
+     SCALAR_MUL(dir, r, dir) ;
+     ADD(I, ray[0], dir) ;
+
+     // is I inside T?
+     uu = DOT(u,u);
+     uv = DOT(u,v);
+     vv = DOT(v,v);
+     SUB(w, I, V0) ;
+     wu = DOT(w,u);
+     wv = DOT(w,v);
+     D = uv * uv - uu * vv;
+ 
+     // get and test parametric coords
+     s = (uv * wv - vv * wu) / D;
+     if (s < 0.0 || s > 1.0)        // I is outside T
+       return 0;
+     t = (uv * wu - uu * wv) / D;
+     if (t < 0.0 || (s + t) > 1.0)  // I is outside T
+       return 0;
+     
+     return 1;                      // I is in T
+ }
+int
+project_point_to_plane(double point[3], double V0[3], double V1[3], double V2[3], double proj[3], 
+                       double pe1[3], double pe2[3])
+{
+  double  e1[3], e2[3], norm, d1, d2, tmp[3] ;
+
+  // first basis vector
+  SUB(e1, V1, V0) ;
+  norm = VLEN(e1) ;
+  SCALAR_MUL(e1, 1.0/norm, e1) ;
+  if (DZERO(norm))
+  {
+    ADD(point, V0, V1) ;
+    ADD(proj, point, V2) ;
+    SCALAR_MUL(proj, 1.0/3.0, proj) ;
+    return(-1) ;
+  }
+
+  // project 1st basis vector out of 2nd to orthonormalize it
+  SUB(e2, V2, V0) ;
+  norm = VLEN(e2) ;
+  SCALAR_MUL(e2, 1.0/norm, e2) ;
+  if (DZERO(norm))
+  {
+    ADD(point, V0, V1) ;
+    ADD(proj, point, V2) ;
+    SCALAR_MUL(proj, 1.0/3.0, proj) ;
+    return(-2) ;
+  }
+
+  d1 = DOT(e1, e2) ;
+  SCALAR_MUL(tmp, d1, e1) ;
+  SUB(e2, e2, tmp) ;
+  norm = VLEN(e2) ;
+  if (DZERO(norm))
+  {
+    ADD(point, V0, V1) ;
+    ADD(proj, point, V2) ;
+    SCALAR_MUL(proj, 1.0/3.0, proj) ;
+    return(-1) ;
+  }
+  SCALAR_MUL(e2, 1.0/norm, e2) ;
+
+  if (pe1)  // return coordinate basis
+  {
+    memmove(pe1, e1, sizeof(e1)) ;
+    memmove(pe2, e2, sizeof(e2)) ;
+  }
+
+  SUB(point, point, V0) ;
+  d1 = DOT(e1, point) ;
+  d2 = DOT(e2, point) ;
+  SCALAR_MUL(e1, d1, e1) ;
+  SCALAR_MUL(e2, d2, e2) ;
+  ADD(proj, e1, e2) ;
+  ADD(proj, V0, proj) ;
+  return(0) ;
+}
+

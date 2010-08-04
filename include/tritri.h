@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2007/04/17 15:00:29 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/08/04 01:42:24 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -39,6 +39,10 @@ int tri_tri_intersect(double V0[3],double V1[3],double V2[3],
 
 int triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
                            double U1[3],double U2[3], double int_pt[3]) ;
+
+int intersect_RayTriangle(double ray[2][3], double V0[3], double V1[3], double V2[3], double I[3]);
+int project_point_to_plane(double point[3], double V0[3], double V1[3], double V2[3], double proj[3],
+                           double pe1[3], double pe2[3]);
 
 /* some macros */
 #define CROSS(dest,v1,v2)                      \
