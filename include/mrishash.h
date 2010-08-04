@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/04/14 14:42:00 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/08/04 01:55:31 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -226,6 +226,8 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
                               double in_max_distance_mm, /* Use large number 
                                                             to ignore */
                               int    in_max_mhts,  /* Use -1 to ignore */
+                              // only faces that projection is interior to (Use -1 to ignore )
+                              int    project_into_face, 
                               //---------- outputs -------------
                               FACE **pface, 
                               int *pfno, 
