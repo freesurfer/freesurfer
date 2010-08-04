@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/13 19:34:35 $
- *    $Revision: 1.341 $
+ *    $Date: 2010/08/04 20:46:55 $
+ *    $Revision: 1.342 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -34,7 +34,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.341 $";
+char *VERSION = "$Revision: 1.342 $";
 
 #define TCL
 #define TKMEDIT
@@ -1190,7 +1190,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.341 2010/05/13 19:34:35 greve Exp $",
+     "$Id: tkmedit.c,v 1.342 2010/08/04 20:46:55 greve Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -2091,7 +2091,29 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg ++;
         }
 
-      } else if ( MATCH( sArg, "-fthresh" ) ) {
+      } 
+      else if ( MATCH( sArg, "-fminmax" ) ) {
+
+        /* check for the value following the switch */
+        if ( argc > nCurrentArg + 2 &&
+             '-' != argv[nCurrentArg+1][0] ) {
+          /* get the value */
+          DebugNote( ("Parsing -fminmax option") );
+          min = (FunV_tFunctionalValue) atof( argv[nCurrentArg+1] );
+          bThresh = TRUE;
+          max = (FunV_tFunctionalValue) atof( argv[nCurrentArg+2] );
+          bMax = TRUE;
+          nCurrentArg +=3 ;
+        } else {
+          /* misuse of that switch */
+          tkm_DisplayError( "Parsing -fminmax option",
+                            "Expected two arguments",
+                            "This option needs two arguments: the threshold and max");
+          nCurrentArg += 1;
+        }
+
+      } 
+      else if ( MATCH( sArg, "-fthresh" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
@@ -2110,7 +2132,8 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
           nCurrentArg += 1;
         }
 
-      } else if ( MATCH( sArg, "-fmax" ) ) {
+      } 
+      else if ( MATCH( sArg, "-fmax" ) ) {
 
         /* check for the value following the switch */
         if ( argc > nCurrentArg + 1 &&
@@ -5913,7 +5936,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.341 2010/05/13 19:34:35 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.342 2010/08/04 20:46:55 greve Exp $ $Name:  $\n"
         )
       );
 
