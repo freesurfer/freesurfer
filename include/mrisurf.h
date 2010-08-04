@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/08/04 01:49:13 $
- *    $Revision: 1.348 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/08/04 20:43:00 $
+ *    $Revision: 1.349 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -888,6 +888,12 @@ int          MRISclearCurvature(MRI_SURFACE *mris) ;
 int          MRISclearDistances(MRI_SURFACE *mris) ;
 int          MRISusePrincipalCurvature(MRI_SURFACE *mris) ;
 int          MRISuseMeanCurvature(MRI_SURFACE *mris) ;
+int          MRISuseK1Curvature(MRI_SURFACE *mris);
+int          MRISuseK2Curvature(MRI_SURFACE *mris);
+int          MRISusePrincipalCurvatureFunction(MRI_SURFACE*		pmris, 
+                                               float 			(*f)(float k1, float k2));
+
+
 int          MRIScomputeCurvatureIndices(MRI_SURFACE *mris,
                                          double *pici, double *pfi) ;
 int          MRISuseCurvatureRatio(MRI_SURFACE *mris) ;

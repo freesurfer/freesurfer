@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/08/04 03:12:26 $
- *    $Revision: 1.682 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/08/04 20:43:00 $
+ *    $Revision: 1.683 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.682 2010/08/04 03:12:26 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.683 2010/08/04 20:43:00 ginsburg Exp $");
 }
 
 /*-----------------------------------------------------
@@ -15243,6 +15243,89 @@ MRISusePrincipalCurvature(MRI_SURFACE *mris)
 
   mris->min_curv = mris->Hmin ;
   mris->max_curv = mris->Hmax ;
+  return(NO_ERROR) ;
+}
+
+int
+MRISuseK1Curvature(MRI_SURFACE *mris) {
+  int    vno ;
+  VERTEX *vertex ;
+
+  float  f_min =  mris->vertices[0].curv;
+  float  f_max = f_min;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->curv = vertex->k1 ;
+    if (vertex->curv < f_min) f_min = vertex->curv;
+    if (vertex->curv > f_max) f_max = vertex->curv;
+  }
+
+  mris->min_curv = f_min ;
+  mris->max_curv = f_max;
+  return(NO_ERROR) ;
+}
+
+int
+MRISuseK2Curvature(MRI_SURFACE *mris) {
+  int    vno ;
+  VERTEX *vertex ;
+
+  float  f_min =  mris->vertices[0].curv;
+  float  f_max = f_min;
+
+  for (vno = 0 ; vno < mris->nvertices ; vno++) {
+    vertex = &mris->vertices[vno] ;
+    if (vertex->ripflag)
+      continue ;
+    vertex->curv = vertex->k2 ;
+    if (vertex->curv < f_min) f_min = vertex->curv;
+    if (vertex->curv > f_max) f_max = vertex->curv;
+  }
+
+  mris->min_curv = f_min ;
+  mris->max_curv = f_max;
+  return(NO_ERROR) ;
+}
+
+int 
+MRISusePrincipalCurvatureFunction(
+	MRI_SURFACE*		pmris, 
+	float 			(*f)(float k1, float k2)) {
+  //
+  // PRECONDITIONS
+  //	o The principal curvatures k1 and k2 for each vertex point on the 
+  //	  surface have been defined.
+  //
+  // POSTCONDITIONS
+  // 	o Each vertex 'curv' value is replaced with the result from the
+  //	  the (*f)(k1, k2) function.
+  //	o Surface min and max values are set appropriately.
+  //
+
+  int    	vno ;
+  VERTEX*	pvertex ;
+  float		f_k1;
+  float		f_k2;
+
+  float  	f_min           =  pmris->vertices[0].curv;
+  float  	f_max           = f_min;
+
+  for (vno = 0 ; vno < pmris->nvertices ; vno++) {
+    pvertex = &pmris->vertices[vno] ;
+    if (pvertex->ripflag)
+      continue ;
+    f_k1		= pvertex->k1;
+    f_k2		= pvertex->k2;
+    pvertex->curv 	= (*f)(f_k1, f_k2);
+    if (pvertex->curv < f_min) f_min = pvertex->curv;
+    if (pvertex->curv > f_max) f_max = pvertex->curv;
+  }
+
+  pmris->min_curv = f_min ;
+  pmris->max_curv = f_max;
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -66564,18 +66647,19 @@ VERTICES_commonInFaces_find(
     float f_val   = -1.;
 
     if(apv_verticesCommon->rows != 3 || apv_verticesCommon->cols !=1)
-  ErrorExit(-1, "%s: Return VECTOR must be 3x1.\n", pch_function);
+      ErrorExit(-1, "%s: Return VECTOR must be 3x1.\n", pch_function);
     V3_LOAD(apv_verticesCommon, -1, -1, -1);
 
     for(i=0; i<3; i++) {
-  b_hit   = 0;
-  f_val = -1.;
-  for(j=0; j<3; j++) {
-      if(apFACE_J->v[j] == apFACE_I->v[i]) b_hit = 1; }
-  if(b_hit) {
-      f_val = apFACE_I->v[i];
-      VECTOR_ELT(apv_verticesCommon, ++k) = f_val;
-  }
+      b_hit   = 0;
+      f_val = -1.;
+      for(j=0; j<3; j++) {
+        if(apFACE_J->v[j] == apFACE_I->v[i]) b_hit = 1; 
+      }
+      if(b_hit) {
+          f_val = apFACE_I->v[i];
+          VECTOR_ELT(apv_verticesCommon, ++k) = f_val;
+      }
     }
     return k;
 }
@@ -66922,23 +67006,23 @@ MRIS_facesAtVertices_reorder(
     DebugEnterFunction(( pch_function ));
     fprintf(stderr, "\n");
     for(vertex=0; vertex<apmris->nvertices; vertex++) {
-  MRIS_vertexProgress_print(apmris, vertex,
-        "Determining geometric order for vertex faces...");
-  pVERTEX     = &apmris->vertices[vertex];
-  nfaces      = pVERTEX->num;
-  pv_geometricOrderIndx = VectorAlloc(nfaces, MATRIX_REAL);
-  pv_logicalOrderFace = VectorAlloc(nfaces, MATRIX_REAL);
-  FACES_aroundVertex_reorder(apmris, vertex, pv_geometricOrderIndx);
-  for(face=0; face<nfaces; face++) {
-      VECTOR_ELT(pv_logicalOrderFace, face+1) = pVERTEX->f[face];
-  }
-  for(face=0; face<nfaces; face++) {
-      orderedIndex  = VECTOR_ELT(pv_geometricOrderIndx, face+1);
-      orderedFace   = VECTOR_ELT(pv_logicalOrderFace, orderedIndex+1);
-      pVERTEX->f[face]  = orderedFace;
-  }
-  VectorFree(&pv_geometricOrderIndx);
-  VectorFree(&pv_logicalOrderFace);
+      MRIS_vertexProgress_print(apmris, vertex,
+            "Determining geometric order for vertex faces...");
+      pVERTEX     = &apmris->vertices[vertex];
+      nfaces      = pVERTEX->num;
+      pv_geometricOrderIndx = VectorAlloc(nfaces, MATRIX_REAL);
+      pv_logicalOrderFace = VectorAlloc(nfaces, MATRIX_REAL);
+      FACES_aroundVertex_reorder(apmris, vertex, pv_geometricOrderIndx);
+      for(face=0; face<nfaces; face++) {
+          VECTOR_ELT(pv_logicalOrderFace, face+1) = pVERTEX->f[face];
+      }
+      for(face=0; face<nfaces; face++) {
+          orderedIndex  = VECTOR_ELT(pv_geometricOrderIndx, face+1);
+          orderedFace   = VECTOR_ELT(pv_logicalOrderFace, orderedIndex+1);
+          pVERTEX->f[face]  = orderedFace;
+      }
+      VectorFree(&pv_geometricOrderIndx);
+      VectorFree(&pv_logicalOrderFace);
     }
     xDbg_PopStack();
     return ret;
@@ -67017,40 +67101,40 @@ FACES_aroundVertex_reorder(
     DebugEnterFunction(( pch_function ));
 
     if(!nfaces) {
-  fprintf(stderr,
-    "\n\nFATAL ERROR encountered in function ''%s'.\nMesh structural error. Vertex %d has no faces.\n\n",
-    pch_function, avertex);
-  exit(1);
+          fprintf(stderr,
+            "\n\nFATAL ERROR encountered in function ''%s'.\nMesh structural error. Vertex %d has no faces.\n\n",
+            pch_function, avertex);
+          exit(1);
     }
 
     for(i=1; i<=nfaces; i++) {
-  VECTOR_ELT(pv_geometricOrder, i)= -1;
-  pFACE_I = &apmris->faces[pFaceIndex[i-1]];
+      VECTOR_ELT(pv_geometricOrder, i)= -1;
+      pFACE_I = &apmris->faces[pFaceIndex[i-1]];
     }
     VECTOR_ELT(pv_geometricOrder, 1)  = 0;
     for(i=0; i<nfaces; i++) {
-  if(packedCount == nfaces) break;
-  I = VECTOR_ELT(pv_geometricOrder, i+1);
-  pFACE_I = &apmris->faces[pFaceIndex[I]];
-  for(j=0; j<nfaces; j++) {
-      k       = (i+j) % nfaces;
-      pFACE_J   = &apmris->faces[pFaceIndex[k]];
-      commonVertices  = VERTICES_commonInFaces_find(pFACE_I, pFACE_J,
-          pv_commonVertices
-          );
-      if(commonVertices==2) {
-    if(!VECTOR_elementIndex_find(pv_geometricOrder, k)) {
-        VECTOR_ELT(pv_geometricOrder, i+2) = k;
-        b_borderFound   = 1;
-        packedCount++;
-        break;
-    }
+      if(packedCount == nfaces) break;
+      I = VECTOR_ELT(pv_geometricOrder, i+1);
+      pFACE_I = &apmris->faces[pFaceIndex[I]];
+      for(j=0; j<nfaces; j++) {        
+          k       = (i+j) % nfaces;
+          pFACE_J   = &apmris->faces[pFaceIndex[k]];
+          commonVertices  = VERTICES_commonInFaces_find(pFACE_I, pFACE_J,
+              pv_commonVertices
+              );
+          if(commonVertices==2) {
+            if(!VECTOR_elementIndex_find(pv_geometricOrder, k)) {
+                VECTOR_ELT(pv_geometricOrder, i+2) = k;
+                b_borderFound   = 1;
+                packedCount++;
+                break;
+            }
       }
-  }
+    }
     }
     if(packedCount != nfaces)
-  ErrorExit(-4, "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
-      pch_function, avertex, nfaces, packedCount);
+          ErrorExit(-4, "%s: packed / faces mismatch; vertex = %d, faces = %d, packed = %d",
+              pch_function, avertex, nfaces, packedCount);
     VectorFree(&pv_commonVertices);
     xDbg_PopStack();
     return 1;
@@ -67300,28 +67384,28 @@ MRIS_discretek1k2_compute(
     int   deltaViolations = 0;
 
     for (vertex = 0 ; vertex < apmris->nvertices ; vertex++) {
-  MRIS_vertexProgress_print(apmris, vertex,
-        "Determining k1k2 curvatures...");
-  pVERTEX     = &apmris->vertices[vertex];
-  f_K = pVERTEX->K;
-  f_H = pVERTEX->H;
-  f_delta = f_H*f_H - f_K;
-  if(f_delta<0) {deltaViolations++; f_delta = 0.;}
-  if(f_delta < 0)
-      ErrorExit(-4, "%s: f_delta = %f, vertex = %d, f_K = %f, f_H = %f\n",
-      pch_function, f_delta, vertex, f_K, f_H
-      );
-  f_A = f_H + sqrt(f_delta);
-  f_B = f_H - sqrt(f_delta);
-  if(!ab_signedPrinciples) {
-      f_k1  = fabs(f_A) >= fabs(f_B) ? f_A : f_B;
-      f_k2  = fabs(f_A) <= fabs(f_B) ? f_A : f_B;
-  } else {
-      f_k1  = f_A >= f_B ? f_A : f_B;
-      f_k2  = f_A <= f_B ? f_A : f_B;
-  }
-  pVERTEX->k1 = f_k1;
-  pVERTEX->k2 = f_k2;
+      MRIS_vertexProgress_print(apmris, vertex,
+            "Determining k1k2 curvatures...");
+      pVERTEX     = &apmris->vertices[vertex];
+      f_K = pVERTEX->K;
+      f_H = pVERTEX->H;
+      f_delta = f_H*f_H - f_K;
+      if(f_delta<0) {deltaViolations++; f_delta = 0.;}
+      if(f_delta < 0)
+          ErrorExit(-4, "%s: f_delta = %f, vertex = %d, f_K = %f, f_H = %f\n",
+          pch_function, f_delta, vertex, f_K, f_H
+          );
+      f_A = f_H + sqrt(f_delta);
+      f_B = f_H - sqrt(f_delta);
+      if(!ab_signedPrinciples) {
+          f_k1  = fabs(f_A) >= fabs(f_B) ? f_A : f_B;
+          f_k2  = fabs(f_A) <= fabs(f_B) ? f_A : f_B;
+      } else {
+          f_k1  = f_A >= f_B ? f_A : f_B;
+          f_k2  = f_A <= f_B ? f_A : f_B;
+      }
+      pVERTEX->k1 = f_k1;
+      pVERTEX->k2 = f_k2;
     }
     if(deltaViolations)
   cprintd("deltaViolations", deltaViolations);

@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/27 01:49:33 $
- *    $Revision: 1.60 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/08/04 20:43:01 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.60 2010/02/27 01:49:33 nicks Exp $";
+  "$Id: mris_curvature_stats.c,v 1.61 2010/08/04 20:43:01 ginsburg Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -477,7 +477,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.60 2010/02/27 01:49:33 nicks Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.61 2010/08/04 20:43:01 ginsburg Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1482,88 +1482,7 @@ MRISminMaxCurvatureIndicesLookup(
   return(NO_ERROR);
 }
 
-int
-MRISuseK1Curvature(MRI_SURFACE *mris) {
-  int    vno ;
-  VERTEX *vertex ;
 
-  float  f_min =  mris->vertices[0].curv;
-  float  f_max = f_min;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    vertex = &mris->vertices[vno] ;
-    if (vertex->ripflag)
-      continue ;
-    vertex->curv = vertex->k1 ;
-    if (vertex->curv < f_min) f_min = vertex->curv;
-    if (vertex->curv > f_max) f_max = vertex->curv;
-  }
-
-  mris->min_curv = f_min ;
-  mris->max_curv = f_max;
-  return(NO_ERROR) ;
-}
-
-int
-MRISuseK2Curvature(MRI_SURFACE *mris) {
-  int    vno ;
-  VERTEX *vertex ;
-
-  float  f_min =  mris->vertices[0].curv;
-  float  f_max = f_min;
-
-  for (vno = 0 ; vno < mris->nvertices ; vno++) {
-    vertex = &mris->vertices[vno] ;
-    if (vertex->ripflag)
-      continue ;
-    vertex->curv = vertex->k2 ;
-    if (vertex->curv < f_min) f_min = vertex->curv;
-    if (vertex->curv > f_max) f_max = vertex->curv;
-  }
-
-  mris->min_curv = f_min ;
-  mris->max_curv = f_max;
-  return(NO_ERROR) ;
-}
-
-int
-MRISusePrincipalCurvatureFunction(
-	MRI_SURFACE*		pmris, 
-	float 			(*f)(float k1, float k2)) {
-  //
-  // PRECONDITIONS
-  //	o The principal curvatures k1 and k2 for each vertex point on the 
-  //	  surface have been defined.
-  //
-  // POSTCONDITIONS
-  // 	o Each vertex 'curv' value is replaced with the result from the
-  //	  the (*f)(k1, k2) function.
-  //	o Surface min and max values are set appropriately.
-  //
-
-  int    	vno ;
-  VERTEX*	pvertex ;
-  float		f_k1;
-  float		f_k2;
-
-  float  	f_min           =  pmris->vertices[0].curv;
-  float  	f_max           = f_min;
-
-  for (vno = 0 ; vno < pmris->nvertices ; vno++) {
-    pvertex = &pmris->vertices[vno] ;
-    if (pvertex->ripflag)
-      continue ;
-    f_k1		= pvertex->k1;
-    f_k2		= pvertex->k2;
-    pvertex->curv 	= (*f)(f_k1, f_k2);
-    if (pvertex->curv < f_min) f_min = pvertex->curv;
-    if (pvertex->curv > f_max) f_max = pvertex->curv;
-  }
-
-  pmris->min_curv = f_min ;
-  pmris->max_curv = f_max;
-  return(NO_ERROR) ;
-}
 
 int
 MRISvertexAreaPostProcess(
