@@ -65,25 +65,25 @@ install-exec-hook:mris_decimate_gui
 	mkdir -p $(DESTDIR)$(bindir)/MrisDecimate.app/Contents/MacOS
 	mkdir -p $(DESTDIR)$(bindir)/MrisDecimate.app/Contents/Resources
 	mkdir -p $(DESTDIR)$(bindir)/MrisDecimate.app/Contents/Resources/English.lproj
-	cp $(top_builddir)/mris_decimate/gui/Info.plist $(DESTDIR)$(bindir)/MrisDecimate.app/Contents
+	cp $(top_builddir)/mris_decimate_gui/Info.plist $(DESTDIR)$(bindir)/MrisDecimate.app/Contents
 	echo -n 'APPL????' > $(DESTDIR)$(bindir)/MrisDecimate.app/Contents/PkgInfo
-	cp $(top_builddir)/mris_decimate/gui/mris_decimate_gui $(DESTDIR)$(bindir)/MrisDecimate.app/Contents/MacOS/mris_decimate_gui.bin
+	cp $(top_builddir)/mris_decimate_gui/mris_decimate_gui $(DESTDIR)$(bindir)/MrisDecimate.app/Contents/MacOS/mris_decimate_gui.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_decimate_gui
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/mris_decimate_gui
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/mris_decmris_deci
-	echo "exec $(DESTDIR)$(bindir)/.app/Contents/MacOS/mris_decimate_gui.bin \$$*" >> $(DESTDIR)$(bindir)/mris_decimate_gui
+	echo "exec $(DESTDIR)$(bindir)/MrisDecimate.app/Contents/MacOS/mris_decimate_gui.bin \$$*" >> $(DESTDIR)$(bindir)/mris_decimate_gui
 	chmod a+x $(DESTDIR)$(bindir)/mris_decimate_gui
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/mris_decimate_gui.bin; fi
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/MrisDecimate.app/Contents/MacOS/mris_decimate_gui.bin; fi
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(bindir)/freeview
-	rm -rf $(DESTDIR)$(bindir)/Freeview.app
+	rm -f $(DESTDIR)$(bindir)/mris_decimate_gui
+	rm -rf $(DESTDIR)$(bindir)/MrisDecimatey.app
 else
 install-exec-hook:mris_decimate_gui
-	cp $(top_builddir)/mris_decimate/gui/mris_decimate_gui $(DESTDIR)$(bindir)/mris_decimate_gui.bin
+	cp $(top_builddir)/mris_decimate_gui/mris_decimate_gui $(DESTDIR)$(bindir)/mris_decimate_gui.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/mris_decimate_gui
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/mris_decimate_gui
