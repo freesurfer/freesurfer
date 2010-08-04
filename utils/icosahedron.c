@@ -1,15 +1,15 @@
 /**
  * @file  icosahedron.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief utilies for readind and converting icosahedra
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 18:57:40 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/08/04 01:58:37 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,7 +32,6 @@
 #include "error.h"
 #include "diag.h"
 #include "utils.h" //fgetl
-
 
 IC_VERTEX ic0_vertices[12] =
 {
@@ -7782,6 +7781,8 @@ ICOreadOverAlloc(const char *fname, double pct_over)
   FACE        *f ;
 
   ico = read_icosahedron(fname) ;
+  if (ico == NULL)
+    ErrorReturn(NULL, (ERROR_NOFILE, "ICOreadOverAlloc(%s): could not open file", fname)) ;
 
   for (fno = 0 ; fno < ico->nfaces ; fno++)
   {
