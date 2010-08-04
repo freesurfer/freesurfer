@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:45 $
- *    $Revision: 1.98 $
+ *    $Author: fischl $
+ *    $Date: 2010/08/04 02:02:16 $
+ *    $Revision: 1.99 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -2198,6 +2198,11 @@ MRI3dGentleNormalize(MRI *mri_src,
       {
         printf("writing control point volume to c.mgz\n") ;
         MRIwrite(mri_ctrl, "c.mgz") ;
+      }
+      if (Gdiag & DIAG_WRITE)
+      {
+        printf("writing scaled intensity volume to scaled.mgz\n") ;
+        MRIwrite(mri_src, "scaled.mgz") ;
       }
     }
 
