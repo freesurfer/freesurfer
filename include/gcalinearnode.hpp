@@ -1,0 +1,452 @@
+/**
+ * @file  gcalinearnode.hpp
+ * @brief Class to hold a volume of GCA nodes in linear memory
+ *
+ */
+/*
+ * Original Authors: Richard Edgar
+ * CVS Revision Info:
+ *    $Author: rge21 $
+ *    $Date: 2010/08/04 19:01:36 $
+ *    $Revision: 1.1 $
+ *
+ * Copyright (C) 2002-2010,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
+ *
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
+#ifndef GCA_LINEAR_NODE_HPP
+#define GCA_LINEAR_NODE_HPP
+
+#include <vector>
+
+#include "chronometer.hpp"
+
+#include "gca.h"
+
+
+//! Catch-all namespace
+namespace Freesurfer {
+
+  //! Class to hold a 3D volume of GCA nodes in linear memory (ninputs=1)
+  class GCAlinearNode {
+  public:
+    GCAlinearNode( void ) : xDim(0), yDim(0), zDim(0),
+			    gc1dDim(0), gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
+			    gc1dLabelDim(0),
+			    nGC1Dnode(), nodeLabels(),
+			    means(), variances(),
+			    nLabelsGC1D(),
+			    gc1dDirecLabels(), gc1dDirecLabelPriors(),
+			    bytes(0), tExhume() {};
+
+   
+   
+
+    // -------------------------------------------------
+
+
+    // -------------------------------------------------
+
+
+    //! Accessor for nGC1Dnode array
+    int& gc1dCount( const int ix, const int iy, const int iz ) {
+      /*!
+	The nGC1Dnode array holds per voxel data - the number
+	of GC1D's (and also labels) hanging off each voxel.
+       */
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int index;
+      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
+
+      return( this->nGC1Dnode.at(index) );
+    }
+
+    //! Const accessor for nGC1Dnode array
+    int gc1dCount( const int ix, const int iy, const int iz ) const {
+      /*!
+	The nGC1Dnode array holds per voxel data - the number
+	of GC1D's (and also labels) hanging off each voxel.
+       */
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int index;
+      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
+
+      return( this->nGC1Dnode.at(index) );
+    }
+
+
+    // ---
+
+
+    //! Accessor for nodeLabels array
+    unsigned short& labelsAtNode( const int ix,
+				 const int iy,
+				 const int iz,
+				 const int iGC1D ) {
+      /*!
+	The nodeLabels array is 4D.
+	From each voxel there is a linear array, with a
+	number of entries given by the corresponding
+	voxel in the nGC1Dnode array.
+      */
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int idx;
+
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+
+      return( this->nodeLabels.at(idx) );
+    }
+    
+
+
+    //! Accessor for the means array
+    float& meansAtNodeGC1D( const int ix,
+			    const int iy,
+			    const int iz,
+			    const int iGC1D ) {
+      /*!
+	The means array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a mean associated with
+	it.
+	Remember that we are assuming that ninputs==1.
+      */
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      
+      return( this->means.at(idx) );
+    }
+
+
+    //! Accessor for the variances array
+    float& variancesAtNodeGC1D( const int ix,
+				const int iy,
+				const int iz,
+				const int iGC1D ) {
+      /*!
+	The variances array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a mean and variance
+	associated with it.
+	Remember that we are assuming that ninputs==1,
+	so the covariance matrix is just a single
+	variance.
+      */
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      
+      return( this->variances.at(idx) );
+    }
+
+
+    //! Accessor for the nLabelsGC1D array
+    short& nLabelsAtNodeGC1Ddirection( const int ix,
+				       const int iy,
+				       const int iz,
+				       const int iGC1D,
+				       const int iDirec ) {
+      /*!
+	The nLabelsGC1D array is 5-D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a label and label prior
+	array hanging off it in each of six directions.
+	The nLabelsGC1D array holds the length of these
+	arrays in each direction
+      */
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
+	cerr << __FUNCTION__
+	     << ": iDirec index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim *
+				     ( iGC1D + ( this->gc1dDim *
+						 iDirec ) )
+				     ) )
+			    ) )
+		   );
+
+      return( this->nLabelsGC1D.at(idx) );
+    }
+
+
+    //! Accessor for gc1dDirecLabels array
+    unsigned short& labelsAtNodeGC1Ddirection( const int ix,
+					       const int iy,
+					       const int iz,
+					       const int iGC1D,
+					       const int iDirec,
+					       const int iLabel ) {
+      /*!
+	The gc1dDirecLabels array is 6D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a label and label prior
+	array hanging off it in each of six directions.
+	This is the accessor for the labels themselves
+      */
+
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
+	cerr << __FUNCTION__
+	     << ": iDirec index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iLabel<0) || (iLabel>=this->gc1dLabelDim) ||
+	  (iLabel>=this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) ) ) {
+	cerr << __FUNCTION__
+	     << ": iLabel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim *
+				     ( iGC1D + ( this->gc1dDim *
+						 ( iDirec + ( this->gc1dNeighbourDim *
+							      iLabel ) )
+						 ) )
+				     ) )
+			    ) )
+		   );
+      
+      return( this->gc1dDirecLabels.at(idx) );
+    }
+
+    
+
+    //! Accessor for gc1dDirecLabelPriors array
+    float& labelPriorsAtNodeGC1Ddirection( const int ix,
+					   const int iy,
+					   const int iz,
+					   const int iGC1D,
+					   const int iDirec,
+					   const int iLabel ) {
+      /*!
+	The gc1dDirecLabels array is 6D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a label and label prior
+	array hanging off it in each of six directions.
+	This is the accessor for the labels themselves
+      */
+
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
+	cerr << __FUNCTION__
+	     << ": iDirec index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iLabel<0) || (iLabel>=this->gc1dLabelDim) ||
+	  (iLabel>=this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) ) ) {
+	cerr << __FUNCTION__
+	     << ": iLabel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim *
+				     ( iGC1D + ( this->gc1dDim *
+						 ( iDirec + ( this->gc1dNeighbourDim *
+							      iLabel ) )
+						 ) )
+				     ) )
+			    ) )
+		   );
+      
+      return( this->gc1dDirecLabelPriors.at(idx) );
+    }
+
+
+    // -------------------------------------------------
+
+    //! Method to extract node data from a GCA
+    void Exhume( const GCA* const src );
+
+    //! Method to place node data into a GCA
+    void Inhume( GCA* dst ) const;
+
+    // -------------------------------------------------
+
+    //! Method to print out statistics & timers
+    void PrintStats( std::ostream& os = std::cout ) const ;
+
+    // -------------------------------------------------
+  private:
+
+    // Dimensions
+    int xDim;
+    int yDim;
+    int zDim;
+    int gc1dDim;
+    const int gc1dNeighbourDim;
+    int gc1dLabelDim;
+
+    //! Stores number of GC1D hanging off each node (nlabels in GCA_NODE)
+    std::vector<int> nGC1Dnode;
+
+    //! Stores the labels for the node (4D, controlled via gca1dDim and gc1dCount)
+    std::vector<unsigned short> nodeLabels;
+
+    //! Stores the means for each GC1D of the node (4-D)
+    std::vector<float> means;
+    //! Stores the variances for each GC1D of the node
+    std::vector<float> variances;
+
+    //! Stores the number of labels for each direction for each GC1D (5D)
+    std::vector<short> nLabelsGC1D;
+
+    //! Stores the labels for each direction of each GC1D (6D)
+    std::vector<unsigned short> gc1dDirecLabels;
+
+    //! Stores the label priors for each direction of each GC1D (6D)
+    std::vector<float> gc1dDirecLabelPriors;
+
+    // -------------------------------------------------
+
+    //! Method to extract the max. dimensions from a GCA
+    void ExtractDims( const GCA* const src );
+
+    //! Method to allocate memory according to internals
+    void Allocate( void );
+
+    // -------------------------------------------------
+    
+    //! Total size of the allocated arrays
+    size_t bytes;
+
+    //! Timer for exhumation
+    SciGPU::Utilities::Chronometer tExhume;
+    
+  };
+
+}
+
+#endif
