@@ -12,8 +12,8 @@
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/08/04 20:13:07 $
- *    $Revision: 1.343 $
+ *    $Date: 2010/08/04 20:43:02 $
+ *    $Revision: 1.344 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2385,6 +2385,15 @@ int  main(int argc,char *argv[])
       nargs = 2 ;
       fthresh = atof(argv[i+1]) ;
       fprintf(stderr, "setting fthresh to %2.4f\n", fthresh) ;
+    }
+    else if (!stricmp(argv[i], "-fminmax"))
+    {
+      nargs = 3 ;
+      fthresh = atof(argv[i+1]) ;
+      tksfmax = atof(argv[i+2]) ;
+      fmid = (tksfmax+fthresh)/2.0;
+      fslope = 1.0/(tksfmax-fthresh);
+      printf("thresholds min=%g max=%g slope=%g mid=%g\n", fthresh,tksfmax,fslope,fmid) ;
     }
     else if (!stricmp(argv[i], "-patch"))
     {
@@ -19290,6 +19299,7 @@ print_help_tksurfer(void)
   printf("-overlay-reg-identity        : calculate an identity transform for registration\n");
   printf("-mni152reg : for use with average subject when overlay is mni152\n");
   printf("-zm                          : remove mean from overlays\n") ;
+  printf("-fminmax min max             : set the overlay threshold min (fthresh) and max\n");
   printf("-fslope <value>              : set the overlay threshold slope value\n");
   printf("-fmid <value>                : set the overlay threshold midpoint value\n");
   printf("-fthresh <value>             : set the overlay threshold minimum value\n");
@@ -21335,7 +21345,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.343 2010/08/04 20:13:07 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.344 2010/08/04 20:43:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
