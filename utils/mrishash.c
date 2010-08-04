@@ -10,8 +10,8 @@
  * Original Author: Graham Wideman, based on code by Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/04/14 19:50:46 $
- *    $Revision: 1.49 $
+ *    $Date: 2010/08/04 01:55:00 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2007,
  * The General Hospital Corporation (Boston, MA).
@@ -128,6 +128,9 @@ static void mhtFaceCentroid2xyz_float (MRI_SURFACE *mris,
                                        FACE * face,
                                        int which,
                                        float  *x, float  *y, float  *z);
+static void mhtStoreFaceCentroids (MRI_SURFACE *mris,
+                                   int which) ;
+                                   
 static void mhtVertex2xyz_float (VERTEX * vtx,
                                  int which,
                                  float  *x, float  *y, float  *z);
@@ -214,6 +217,7 @@ MRIS_HASH_TABLE * MHTfillTableAtResolution(
   MHBT    *bucket ;
   static int ncalls = 0 ;
 
+  mhtStoreFaceCentroids(mris, which) ;
   //-----------------------------
   // Allocation and initialization
   //-----------------------------
@@ -381,10 +385,21 @@ static int mhtFaceToMHT(MRIS_HASH_TABLE *mht,
   v1 = &mris->vertices[face->v[1]] ;
   v2 = &mris->vertices[face->v[2]] ;
 
+  if (face->v[0] == Gdiag_no || face->v[1] == Gdiag_no || face->v[2] == Gdiag_no)
+    DiagBreak() ;
   mhtVertex2Ptxyz_double(v0, mht->which_vertices, &vpt0);
   mhtVertex2Ptxyz_double(v1, mht->which_vertices, &vpt1);
   mhtVertex2Ptxyz_double(v2, mht->which_vertices, &vpt2);
 
+  if (Gx >= 0)
+  {
+    double dist0, dist1, dist2 ;
+    dist0 = sqrt(SQR(vpt0.x - Gx) + SQR(vpt0.y - Gy) + SQR(vpt0.z - Gz)) ;
+    dist1 = sqrt(SQR(vpt1.x - Gx) + SQR(vpt1.y - Gy) + SQR(vpt1.z - Gz)) ;
+    dist2 = sqrt(SQR(vpt2.x - Gx) + SQR(vpt2.y - Gy) + SQR(vpt2.z - Gz)) ;
+    if (dist0 < mht->vres || dist1 < mht->vres || dist2 < mht->vres)
+      DiagBreak() ;
+  }
   mhtVoxelList_SampleFace(mht->vres, &vpt0, &vpt1, &vpt2, fno, &voxlist);
 
   for (vlix = 0; vlix < voxlist.nused; vlix++)
@@ -607,6 +622,7 @@ MRIS_HASH_TABLE *MHTfillVertexTableRes(
   VERTEX  *v ;
   static int ncalls = 0 ;
 
+  mhtStoreFaceCentroids(mris, which) ;
   //-----------------------------
   // Allocation and initialization
   //-----------------------------
@@ -1314,6 +1330,7 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
                                               double probex, 
                                               double probey, 
                                               double probez,
+                                              int    project_into_face,
                                       //---------- in/outs -------------
                                               FACE **MinDistFace, 
                                               int *MinDistFaceNum, 
@@ -1357,6 +1374,9 @@ int mhtfindClosestFaceCentroidGenericInBucket(MRIS_HASH_TABLE *mht,
     mhtFaceCentroid2xyz_float(mris, face, mht->which_vertices, 
                         &tryx, &tryy, &tryz);  // Added [2007-07-27 GW]
 
+    if (project_into_face > 0 &&
+        face_barycentric_coords(mris, fno, mht->which_vertices, probex, probey, probez, NULL,NULL,NULL) <0)
+      continue ;
     ADistSq = SQR(tryx - probex) 
             + SQR(tryy - probey)
             + SQR(tryz - probez) ;
@@ -1744,6 +1764,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
                               double in_max_distance_mm, /* Use large number 
                                                             to ignore */
                               int    in_max_mhts,  /* Use -1 to ignore */
+                              int    project_into_face,
                               //---------- outputs -------------
                               FACE **pface, 
                               int *pfno, 
@@ -1875,6 +1896,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
                                                   probey_vox + yv,
                                                   probez_vox + zv,
                                                   probex, probey, probez,
+                                                  project_into_face,
                                                   &MinDistFace,
                                                   &MinDistFaceNum,
                                                   &MinDistSq) ;
@@ -1919,6 +1941,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
                                                     probey_vox + yv,
                                                     probez_vox + zv,
                                                     probex, probey, probez,
+                                                    project_into_face,
                                                     &MinDistFace,
                                                     &MinDistFaceNum,
                                                     &MinDistSq) ;
@@ -1976,6 +1999,7 @@ int MHTfindClosestFaceGeneric(MRIS_HASH_TABLE *mht,
                                                     probey_vox + yv,
                                                     probez_vox + zv,
                                                     probex, probey, probez,
+                                                    project_into_face,
                                                     &MinDistFace,
                                                     &MinDistFaceNum,
                                                     &MinDistSq) ;
@@ -2063,6 +2087,7 @@ FACE *MHTfindClosestFaceToVertex(MRIS_HASH_TABLE *mht,
                                    x, y, z,
                                    1000,
                                    1,  // max_mhts: search out to 3 x 3 x 3
+                                   -1, // don't force it to project into the face
                                    &face, NULL, NULL);
 
   return face;
@@ -2303,6 +2328,9 @@ int mhtBruteForceClosestVertex(MRI_SURFACE *mris,
       case INFLATED_VERTICES  :
         break;
       case FLATTENED_VERTICES :
+        tryx = vtx->fx;
+        tryy = vtx->fy;
+        tryz = vtx->fz;
         break;
       case PIAL_VERTICES      :
         tryx = vtx->pialx;
@@ -2424,9 +2452,13 @@ static void mhtFaceCentroid2xyz_float (MRI_SURFACE *mris,
                                        int which,
                                        float  *px, float  *py, float  *pz)
 {
+#if 1
+  *px = face->cx ; *py = face->cy ; *pz = face->cz ;
+#else
   float    x, y, z, xt, yt, zt ;
   int      n ;
 
+  
   x = y = z = 0.0 ;  // for compiler warnings
   for (xt = yt = zt = 0.0, n = 0 ; n < VERTICES_PER_FACE ; n++)
   {
@@ -2435,6 +2467,7 @@ static void mhtFaceCentroid2xyz_float (MRI_SURFACE *mris,
   }
   xt /= VERTICES_PER_FACE ;  yt /= VERTICES_PER_FACE ;  zt /= VERTICES_PER_FACE ; 
   *px = xt ; *py = yt ; *pz = zt ;
+#endif
 }
 
 //---------------------------------------------
@@ -2469,6 +2502,9 @@ static void mhtVertex2xyz_float(VERTEX * vtx,
   case INFLATED_VERTICES  :
     break;
   case FLATTENED_VERTICES :
+    *x = vtx->fx;
+    *y = vtx->fy;
+    *z = 0 ;
     break;
   case PIAL_VERTICES      :
     *x = vtx->pialx;
@@ -2517,6 +2553,9 @@ static void mhtVertex2xyz_double(VERTEX * vtx,
   case INFLATED_VERTICES  :
     break;
   case FLATTENED_VERTICES :
+    *x = vtx->fx;
+    *y = vtx->fy;
+    *z = 0;
     break;
   case PIAL_VERTICES      :
     *x = vtx->pialx;
@@ -2563,6 +2602,9 @@ static void mhtVertex2Ptxyz_double(VERTEX * vtx, int which, Ptdbl_t *pt)
   case INFLATED_VERTICES  :
     break;
   case FLATTENED_VERTICES :
+    pt->x = vtx->fx;
+    pt->y = vtx->fy;
+    pt->z = 0 ;
     break;
   case PIAL_VERTICES      :
     pt->x = vtx->pialx;
@@ -2610,6 +2652,9 @@ static void mhtVertex2array3_double(VERTEX * vtx, int which, double *array3)
   case INFLATED_VERTICES  :
     break;
   case FLATTENED_VERTICES :
+    array3[0] = vtx->fx;
+    array3[1] = vtx->fy;
+    array3[2] = 0 ;
     break;
   case PIAL_VERTICES      :
     array3[0] = vtx->pialx;
@@ -2974,6 +3019,9 @@ VERTEX * MHTfindClosestVertexSetInDirection(MRIS_HASH_TABLE *mht,
   {
     switch (which)
     {
+    case FLATTENED_VERTICES: 
+      dx = v_closest->fx - v->x ; dy = v_closest->fx - v->y ; dz = 0 - v->z ;
+      break ;
     case PIAL_VERTICES: 
       dx = v_closest->pialx - v->x ; dy = v_closest->pialy - v->y ; dz = v_closest->pialz - v->z ;
       break ;
@@ -2997,6 +3045,9 @@ VERTEX * MHTfindClosestVertexSetInDirection(MRIS_HASH_TABLE *mht,
       continue ;
     switch (which)
     {
+    case FLATTENED_VERTICES: 
+      dx = vn->fx - v->x ; dy = vn->fy - v->y ; dz = vn->fz - v->z ;
+      break ;
     case PIAL_VERTICES: 
       dx = vn->pialx - v->x ; dy = vn->pialy - v->y ; dz = vn->pialz - v->z ;
       break ;
@@ -3020,3 +3071,24 @@ VERTEX * MHTfindClosestVertexSetInDirection(MRIS_HASH_TABLE *mht,
   return(v_closest) ;
 }
 
+static void
+mhtStoreFaceCentroids (MRI_SURFACE *mris,
+                       int which) 
+{
+  float    x, y, z, xt, yt, zt ;
+  int      n, fno ;
+  FACE     *face ;
+
+  x = y = z = 0.0 ;  // for compiler warnings
+  for (fno = 0 ; fno < mris->nfaces ; fno++)
+  {
+    face = &mris->faces[fno] ;
+    for (xt = yt = zt = 0.0, n = 0 ; n < VERTICES_PER_FACE ; n++)
+    {
+      mhtVertex2xyz_float(&mris->vertices[face->v[n]], which, &x, &y, &z);
+      xt += x; yt += y ; zt += z ;
+    }
+    xt /= VERTICES_PER_FACE ;  yt /= VERTICES_PER_FACE ;  zt /= VERTICES_PER_FACE ; 
+    face->cx = xt ; face->cy = yt ; face->cz = zt ;
+  }
+}
