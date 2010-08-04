@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/04 19:01:48 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/04 20:01:03 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -108,6 +108,8 @@ namespace Freesurfer {
       of appropriate dimensions
     */
 
+    this->tInhume.Start();
+
     if( dst->ninputs != 1 ) {
       cerr << __FUNCTION__
 	   << ": Must have ninputs==1!" << endl;
@@ -130,6 +132,7 @@ namespace Freesurfer {
 	for( int iz=0; iz<this->zDim; iz++ ) {
 	  GCA_NODE* const gcan = &(dst->nodes[ix][iy][iz]);
 
+	  // Check the number of labels at the node
 	  if( gcan->nlabels != this->gc1dCount(ix,iy,iz) ) {
 	    cerr << __FUNCTION__
 		 << ": nlabels mismatch at "
@@ -138,10 +141,50 @@ namespace Freesurfer {
 	    exit( EXIT_FAILURE );
 	  }
 
+	  // Loop over the GC1Ds
+	  for( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
+	    // Do the labels on the side
+	    gcan->labels[iGC1D] = this->labelsAtNode(ix,iy,iz,iGC1D);
+
+	    GC1D* const gc1d = &(gcan->gcs[iGC1D]);
+
+	    // Do the mean and variance (recall ninputs==1)
+	    gc1d->means[0] = this->meansAtNodeGC1D(ix,iy,iz,iGC1D);
+	    gc1d->covars[0] = this->variancesAtNodeGC1D(ix,iy,iz,iGC1D);
+
+	    for( int iDirec=0;
+		 iDirec<this->gc1dNeighbourDim;
+		 iDirec++ ) {
+	      // Check the number of labels in each direction
+	      if( this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) !=
+		  gc1d->nlabels[iDirec] ) {
+		cerr << __FUNCTION__
+		     << ": Mismatch in labels at node "
+		     << "( " << ix << ", " << iy << ", " << iz << " )"
+		     << " iGC1D = " << iGC1D
+		     << " iDirec = " << iDirec
+		     << endl;
+		exit( EXIT_FAILURE );
+	      }
+
+	      for( int iLabel=0;
+		   iLabel<this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec);
+		   iLabel++ ) {
+		gc1d->labels[iDirec][iLabel] =
+		  this->labelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec,iLabel);
+		gc1d->label_priors[iDirec][iLabel] =
+		  this->labelPriorsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec,iLabel);
+	      }
+
+	    }
+
+	  }
 
 	}
       }
     }
+
+    this->tInhume.Stop();
 
   }
 
@@ -260,6 +303,7 @@ namespace Freesurfer {
     os << "Stats for GCAlinearNode" << endl;
     os << "  Bytes allocated = " << this->bytes << endl;
     os << "  Exhumation time = " << this->tExhume << endl;
+    os << "  Inhumation time = " << this->tInhume << endl;
 
   }
 }

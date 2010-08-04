@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/04 19:01:36 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/04 20:01:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@ namespace Freesurfer {
 			    means(), variances(),
 			    nLabelsGC1D(),
 			    gc1dDirecLabels(), gc1dDirecLabelPriors(),
-			    bytes(0), tExhume() {};
+			    bytes(0), tExhume(), tInhume() {};
 
    
    
@@ -63,19 +63,12 @@ namespace Freesurfer {
 	The nGC1Dnode array holds per voxel data - the number
 	of GC1D's (and also labels) hanging off each voxel.
        */
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
 
-      unsigned int index;
-      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
+      unsigned int index = this->gc1dCountIndex(ix,iy,iz);
 
       return( this->nGC1Dnode.at(index) );
     }
+
 
     //! Const accessor for nGC1Dnode array
     int gc1dCount( const int ix, const int iy, const int iz ) const {
@@ -83,16 +76,7 @@ namespace Freesurfer {
 	The nGC1Dnode array holds per voxel data - the number
 	of GC1D's (and also labels) hanging off each voxel.
        */
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      unsigned int index;
-      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
+      unsigned int index = this->gc1dCountIndex(ix,iy,iz);
 
       return( this->nGC1Dnode.at(index) );
     }
@@ -100,42 +84,43 @@ namespace Freesurfer {
 
     // ---
 
-
+    
     //! Accessor for nodeLabels array
     unsigned short& labelsAtNode( const int ix,
-				 const int iy,
-				 const int iz,
-				 const int iGC1D ) {
+				  const int iy,
+				  const int iz,
+				  const int iGC1D ) {
       /*!
 	The nodeLabels array is 4D.
 	From each voxel there is a linear array, with a
 	number of entries given by the corresponding
 	voxel in the nGC1Dnode array.
       */
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
+      
       unsigned int idx;
-
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      idx = this->labelsAtNodeIndex(ix,iy,iz,iGC1D);
 
       return( this->nodeLabels.at(idx) );
     }
     
+    //! Const accessor for nodeLabels array
+    unsigned short labelsAtNode( const int ix,
+				 const int iy,
+				 const int iz,
+				 const int iGC1D ) const {
+      /*!
+	The nodeLabels array is 4D.
+	From each voxel there is a linear array, with a
+	number of entries given by the corresponding
+	voxel in the nGC1Dnode array.
+      */
+      unsigned int idx;
+      idx = this->labelsAtNodeIndex(ix,iy,iz,iGC1D);
+
+      return( this->nodeLabels.at(idx) );
+    }
+
+    // ---
 
 
     //! Accessor for the means array
@@ -150,29 +135,37 @@ namespace Freesurfer {
 	it.
 	Remember that we are assuming that ninputs==1.
       */
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
       unsigned int idx;
       
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      idx = this->meansAtNodeGC1Dindex(ix,iy,iz,iGC1D);
       
       return( this->means.at(idx) );
     }
+
+
+    //! Const accessor for the means array
+    float meansAtNodeGC1D( const int ix,
+			   const int iy,
+			   const int iz,
+			   const int iGC1D ) const {
+      /*!
+	The means array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a mean associated with
+	it.
+	Remember that we are assuming that ninputs==1.
+      */
+      unsigned int idx;
+      
+      idx = this->meansAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+      
+      return( this->means.at(idx) );
+    }
+
+
+    
+    // ---
+
 
 
     //! Accessor for the variances array
@@ -189,29 +182,40 @@ namespace Freesurfer {
 	so the covariance matrix is just a single
 	variance.
       */
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
       
       unsigned int idx;
       
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
-      
+      idx = this->variancesAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+
       return( this->variances.at(idx) );
     }
+
+
+    //! Accessor for the variances array
+    float variancesAtNodeGC1D( const int ix,
+			       const int iy,
+			       const int iz,
+			       const int iGC1D ) const {
+      /*!
+	The variances array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a mean and variance
+	associated with it.
+	Remember that we are assuming that ninputs==1,
+	so the covariance matrix is just a single
+	variance.
+      */
+      
+      unsigned int idx;
+      
+      idx = this->variancesAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+
+      return( this->variances.at(idx) );
+    }
+
+
+
+    // ---
 
 
     //! Accessor for the nLabelsGC1D array
@@ -228,40 +232,39 @@ namespace Freesurfer {
 	The nLabelsGC1D array holds the length of these
 	arrays in each direction
       */
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
-	cerr << __FUNCTION__
-	     << ": iDirec index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
 
       unsigned int idx;
       
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim *
-				     ( iGC1D + ( this->gc1dDim *
-						 iDirec ) )
-				     ) )
-			    ) )
-		   );
-
+      idx = this->nLabelsAtNodeGC1DdirectionIndex(ix,iy,iz,iGC1D,iDirec);
       return( this->nLabelsGC1D.at(idx) );
     }
+
+
+
+    //! Const accessor for the nLabelsGC1D array
+    short nLabelsAtNodeGC1Ddirection( const int ix,
+				      const int iy,
+				      const int iz,
+				      const int iGC1D,
+				      const int iDirec ) const {
+      /*!
+	The nLabelsGC1D array is 5-D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a label and label prior
+	array hanging off it in each of six directions.
+	The nLabelsGC1D array holds the length of these
+	arrays in each direction
+      */
+
+      unsigned int idx;
+      
+      idx = this->nLabelsAtNodeGC1DdirectionIndex(ix,iy,iz,iGC1D,iDirec);
+      return( this->nLabelsGC1D.at(idx) );
+    }
+
+
+    // ---
+
 
 
     //! Accessor for gc1dDirecLabels array
@@ -279,50 +282,33 @@ namespace Freesurfer {
 	This is the accessor for the labels themselves
       */
 
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
-	cerr << __FUNCTION__
-	     << ": iDirec index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( (iLabel<0) || (iLabel>=this->gc1dLabelDim) ||
-	  (iLabel>=this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) ) ) {
-	cerr << __FUNCTION__
-	     << ": iLabel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
       unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim *
-				     ( iGC1D + ( this->gc1dDim *
-						 ( iDirec + ( this->gc1dNeighbourDim *
-							      iLabel ) )
-						 ) )
-				     ) )
-			    ) )
-		   );
-      
+      idx = this->labelsAtNodeGC1DdirectionIndex(ix,iy,iz,iGC1D,iDirec,iLabel);
       return( this->gc1dDirecLabels.at(idx) );
     }
 
+
+    //! Const accessor for gc1dDirecLabels array
+    unsigned short labelsAtNodeGC1Ddirection( const int ix,
+					      const int iy,
+					      const int iz,
+					      const int iGC1D,
+					      const int iDirec,
+					      const int iLabel ) const {
+      /*!
+	The gc1dDirecLabels array is 6D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a label and label prior
+	array hanging off it in each of six directions.
+	This is the accessor for the labels themselves
+      */
+      unsigned int idx;
+      idx = this->labelsAtNodeGC1DdirectionIndex(ix,iy,iz,iGC1D,iDirec,iLabel);
+      return( this->gc1dDirecLabels.at(idx) );
+    }
+
+
+    // ---
     
 
     //! Accessor for gc1dDirecLabelPriors array
@@ -340,47 +326,36 @@ namespace Freesurfer {
 	This is the accessor for the labels themselves
       */
 
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
-	cerr << __FUNCTION__
-	     << ": iDirec index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( (iLabel<0) || (iLabel>=this->gc1dLabelDim) ||
-	  (iLabel>=this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) ) ) {
-	cerr << __FUNCTION__
-	     << ": iLabel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
       unsigned int idx;
+      idx = this->labelPriorsAtNodeGC1DdirectionIndex( ix, iy, iz,
+						       iGC1D,
+						       iDirec,
+						       iLabel );
       
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim *
-				     ( iGC1D + ( this->gc1dDim *
-						 ( iDirec + ( this->gc1dNeighbourDim *
-							      iLabel ) )
-						 ) )
-				     ) )
-			    ) )
-		   );
-      
+      return( this->gc1dDirecLabelPriors.at(idx) );
+    }
+
+
+    //! Const accessor for gc1dDirecLabelPriors array
+    float labelPriorsAtNodeGC1Ddirection( const int ix,
+					  const int iy,
+					  const int iz,
+					  const int iGC1D,
+					  const int iDirec,
+					  const int iLabel ) const {
+      /*!
+	The gc1dDirecLabels array is 6D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has a label and label prior
+	array hanging off it in each of six directions.
+	This is the accessor for the labels themselves
+      */
+      unsigned int idx;
+      idx = this->labelPriorsAtNodeGC1DdirectionIndex( ix, iy, iz,
+						       iGC1D,
+						       iDirec,
+						       iLabel );
+
       return( this->gc1dDirecLabelPriors.at(idx) );
     }
 
@@ -443,8 +418,276 @@ namespace Freesurfer {
     size_t bytes;
 
     //! Timer for exhumation
-    SciGPU::Utilities::Chronometer tExhume;
+    mutable SciGPU::Utilities::Chronometer tExhume;
+    //! Inhumation timer
+    mutable SciGPU::Utilities::Chronometer tInhume;
     
+    // -------------------------------------------------
+
+    //! Index computation for gc1dCount
+    unsigned int gc1dCountIndex( const int ix,
+				 const int iy,
+				 const int iz ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int index;
+      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
+
+      return( index );
+    }
+
+    // ---
+
+    //! Index computation for labelsAtNode
+    unsigned int labelsAtNodeIndex( const int ix,
+				    const int iy,
+				    const int iz,
+				    const int iGC1D ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int idx;
+
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      
+      return(idx);
+    }
+
+    
+    // ---
+
+    //! Index computation for meansAtNodeGC1D
+    unsigned int meansAtNodeGC1Dindex( const int ix,
+				       const int iy,
+				       const int iz,
+				       const int iGC1D ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+
+      return( idx );
+    }
+
+    // ---
+
+    //! Index computation for variancesAtNodeGC1D
+    unsigned int variancesAtNodeGC1Dindex( const int ix,
+					   const int iy,
+					   const int iz,
+					   const int iGC1D ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      
+      return( idx );
+    }
+      
+
+    
+    // ---
+
+    //! Index computation for nLabelsAtNodeGC1Ddirection
+    unsigned int nLabelsAtNodeGC1DdirectionIndex( const int ix,
+						  const int iy,
+						  const int iz,
+						  const int iGC1D,
+						  const int iDirec ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
+	cerr << __FUNCTION__
+	     << ": iDirec index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim *
+				     ( iGC1D + ( this->gc1dDim *
+						 iDirec ) )
+				     ) )
+			    ) )
+		   );
+      
+      return( idx );
+    }
+
+    // ---
+
+    //! Index computation for labelsAtNodeGC1Ddirection
+    unsigned int labelsAtNodeGC1DdirectionIndex( const int ix,
+						 const int iy,
+						 const int iz,
+						 const int iGC1D,
+						 const int iDirec,
+						 const int iLabel ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
+	cerr << __FUNCTION__
+	     << ": iDirec index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      if( (iLabel<0) || (iLabel>=this->gc1dLabelDim) ||
+	  (iLabel>=this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) ) ) {
+	cerr << __FUNCTION__
+	     << ": iLabel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim *
+				     ( iGC1D + ( this->gc1dDim *
+						 ( iDirec + ( this->gc1dNeighbourDim *
+							      iLabel ) )
+						 ) )
+				     ) )
+			    ) )
+		   );
+
+      return( idx );
+    }
+
+    // ---
+
+    //! Index computation for labelPriorsAtNodeGC1Ddirection
+    unsigned int labelPriorsAtNodeGC1DdirectionIndex( const int ix,
+						      const int iy,
+						      const int iz,
+						      const int iGC1D,
+						      const int iDirec,
+						      const int iLabel ) const {
+
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
+	cerr << __FUNCTION__
+	     << ": iDirec index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iLabel<0) || (iLabel>=this->gc1dLabelDim) ||
+	  (iLabel>=this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) ) ) {
+	cerr << __FUNCTION__
+	     << ": iLabel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim *
+				     ( iGC1D + ( this->gc1dDim *
+						 ( iDirec + ( this->gc1dNeighbourDim *
+							      iLabel ) )
+						 ) )
+				     ) )
+			    ) )
+		   );
+
+      return( idx );
+    }
+
   };
 
 }
