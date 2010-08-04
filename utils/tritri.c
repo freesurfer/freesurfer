@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/08/04 01:42:39 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/08/04 12:50:00 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -501,7 +501,7 @@ triangle_ray_intersect(double orig_pt[3], double dir[3], double U0[3],
      // get triangle edge vectors and plane normal
      SUB(u, V1, V0) ;
      SUB(v, V2, V0) ;
-     CROSS(u, v, n);             // cross product
+     CROSS(n, u, v);             // cross product
      if (VLEN(n) == 0)            // triangle is degenerate
          return -1;                 // do not deal with this case
  
