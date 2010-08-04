@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/08/04 01:49:21 $
- *    $Revision: 1.680 $
+ *    $Date: 2010/08/04 02:24:39 $
+ *    $Revision: 1.681 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.680 2010/08/04 01:49:21 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.681 2010/08/04 02:24:39 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -7952,7 +7952,7 @@ mrisIntegrateCUDA(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int n_averages)
 
     gettimeofday(&tv1,NULL);
 #endif // FS_CUDA_TIMINGS
-    mrisComputeAshburnerTriangleTerm(mris, parms->l_ashburner_triangle parms) ;
+    mrisComputeAshburnerTriangleTerm(mris, parms->l_ashburner_triangle, parms);
     mrisComputeThicknessParallelTerm(mris, parms->l_thick_parallel, parms) ;
     mrisComputeThicknessNormalTerm(mris, parms->l_thick_normal, parms) ;
     mrisComputeThicknessSpringTerm(mris, parms->l_thick_spring, parms) ;
@@ -8579,7 +8579,7 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     mrisComputeAshburnerTriangleEnergy(mris, parms->l_ashburner_triangle, parms) ;
   sse_thick_normal =
     mrisComputeThicknessNormalEnergy(mris, parms->l_thick_normal, parms) ;
-  sse_thick_sping =
+  sse_thick_spring =
     mrisComputeThicknessSpringEnergy(mris, parms->l_thick_spring, parms) ;
   if (!FZERO(parms->l_nlarea))
     sse_nl_area = mrisComputeNonlinearAreaSSE(mris) ;
@@ -8627,9 +8627,9 @@ MRIScomputeSSE_CUDA(MRI_SURFACE *mris,
     (double)parms->l_tsmooth   * sse_tsmooth +
     (double)parms->l_thick_min * sse_thick_min +
     (double)parms->l_thick_parallel * sse_thick_parallel +
-    (double)parms->l_asburner_triangle * sse_ashburner_triangle +
+    (double)parms->l_ashburner_triangle * sse_ashburner_triangle +
     (double)parms->l_thick_normal * sse_thick_normal +
-    (double)parms->l_thick_sping * sse_thick_spring +
+    (double)parms->l_thick_spring * sse_thick_spring +
     (double)parms->l_sphere    * sse_sphere + sse_repulsive_ratio +
     (double)parms->l_intensity * sse_val +
     (double)parms->l_location  * sse_loc +
@@ -68334,7 +68334,7 @@ MRISsampleFaceCoordsCanonical(MHT *mht, MRI_SURFACE *mris, float x, float y, flo
 {
   float    xv, yv, zv ;
   double   lambda[3], fdist, norm ;
-  int      n, ret, fno ;
+  int      n, ret = NO_ERROR, fno ;
   FACE     *face ;
   VERTEX   *v ;
 
