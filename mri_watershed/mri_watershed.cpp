@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/30 19:47:29 $
- *    $Revision: 1.86 $
+ *    $Date: 2010/08/04 17:43:39 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.86 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.87 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -53,7 +53,10 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.86 $";
 #define USE_SSE
 #ifdef USE_SSE
 #include "affine.hpp"
+#include "affine.h"
 #endif
+
+#include "gcautils.hpp"
 
 extern "C"
 {
@@ -879,7 +882,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.86 2010/07/30 19:47:29 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.87 2010/08/04 17:43:39 rge21 Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -892,7 +895,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.86 2010/07/30 19:47:29 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.87 2010/08/04 17:43:39 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1337,14 +1340,25 @@ void MRI_weight_atlas(MRI *mri_with_skull,
   tTotal.Start();
 #endif
 
+#define CplusplusAffine 1
+
 #if FAST_GCAsourceVoxelToPrior
   LTA *lta = (LTA*)transform->xform;
 #ifdef USE_SSE
+#if CplusplusAffine
   Freesurfer::AffineMatrix<float> myTrans, A, B, C;
   A.Set( parms->gca->prior_r_to_i__ );
   B.Set( parms->gca->mri_tal__->i_to_r__ );
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
+#else
+  AffineMatrix myTrans, A, B, C, tmp;
+  SetAffineMatrix( &A, parms->gca->prior_r_to_i__ );
+  SetAffineMatrix( &B, parms->gca->mri_tal__->i_to_r__ );
+  SetAffineMatrix( &C, lta->xforms[0].m_L );
+  AffineMM( &tmp, &A, &B );
+  AffineMM( &myTrans, &tmp, &C );
+#endif
 #else 
   MATRIX *tmp = NULL;
   MATRIX *affTrans = NULL;
@@ -1385,10 +1399,17 @@ void MRI_weight_atlas(MRI *mri_with_skull,
 	*/
 #if FAST_GCAsourceVoxelToPrior
 #ifdef USE_SSE
+#if CplusplusAffine
 	Freesurfer::AffineVector<float> rp, rv;
 	rv.Set( x, y, z );
 	rp = myTrans * rv;
 	rp.GetFloor( xp, yp, zp );
+#else
+	AffineVector rp, rv;
+	SetAffineVector( &rv, x, y, z );
+	AffineMV( &rp, &myTrans, &rv );
+	GetFloorAffineVector( &rp, &xp, &yp, &zp );
+#endif
 #else
 	double xpd2, ypd2, zpd2;
 	TransformWithMatrix( affTrans, x, y, z, &xpd2, &ypd2, &zpd2 );
