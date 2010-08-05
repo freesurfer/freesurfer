@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/01 21:24:09 $
-#    $Revision: 1.8 $
+#    $Date: 2010/08/05 16:33:52 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mktemplate-sess,v 1.8 2010/04/01 21:24:09 greve Exp $';
+set VERSION = '$Id: mktemplate-sess,v 1.9 2010/08/05 16:33:52 greve Exp $';
 set inputargs = ($argv);
 
 set fsd          = bold;
@@ -189,8 +189,7 @@ foreach sess ($SessList)
       set llog = $sess/$fsd/$Run/template.log
       rm -f $llog
       echo "FUNCSTEM $funcstem" >> $llog
-      if($DoMidFrame) echo "FRAME mid" >> $llog
-      if($#NthFrame)  echo "FRAME $NthFrame" >> $llog
+      echo "FRAME mid" >> $llog
     endif
 
     if($DoView)  tkmedit -f $templatevol
