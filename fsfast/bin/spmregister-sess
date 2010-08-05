@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2008/04/23 19:05:45 $
-#    $Revision: 1.17 $
+#    $Date: 2010/08/05 16:35:19 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spmregister-sess,v 1.17 2008/04/23 19:05:45 greve Exp $';
+set VERSION = '$Id: spmregister-sess,v 1.18 2010/08/05 16:35:19 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -194,13 +194,13 @@ foreach sess ($SessList)
       set movfile = $funcdir/$funcstem.$fmtuse
       # Does not do COR anymore
 
-      set regfile = $funcdir/fs.$regfilename
+      set regfile = $funcdir/$regfilename
       set cmd = (spmregister --s $subject --mov $movfile \
         --reg $regfile --fsvol $fsvol)
       if($midframe) set cmd = ($cmd --mid-frame)
       if($#frame)   set cmd = ($cmd --frame $frame)
       if($#svtemplate) then
-        set template = $funcdir/template.$fmtuse
+        set template = $funcdir/spmreg.template.$fmtuse
         set cmd = ($cmd --template-out $template)
       endif
       if($#BBRFileName) then
@@ -249,6 +249,7 @@ while( $#argv != 0 )
       set Run = $argv[1]; shift;
       breaksw
 
+    case "-per-run":
     case "-perrun":
       set PerRun = 1;
       set midframe = 1;
