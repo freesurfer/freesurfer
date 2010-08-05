@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/04 19:01:36 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/05 16:04:53 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -36,7 +36,8 @@ namespace Freesurfer {
   public:
     //! Default constructor
     MinMax( void ) : minVal(std::numeric_limits<T>::max()),
-		     maxVal(std::numeric_limits<T>::min()) {};
+		     maxVal(std::numeric_limits<T>::min()),
+		     nAcc(0), intTotal(0), doubleTotal(0) {};
 
     //! Accumulator
     void Accumulate( const T val ) {
@@ -46,6 +47,10 @@ namespace Freesurfer {
       if( val < this->minVal ) {
 	this->minVal = val;
       }
+
+      nAcc++;
+      intTotal += val;
+      doubleTotal += val;
     }
 
     //! Accessor for maximum
@@ -57,12 +62,30 @@ namespace Freesurfer {
     T GetMin( void ) const {
       return( this->minVal );
     }
+
+    //! Accessor for number accumulated
+    size_t GetN( void ) const {
+      return( this->nAcc );
+    }
+
+    //! Accessor for integer running total
+    long long GetIntTotal( void ) const {
+      return( this->intTotal );
+    }
+
+    //! Accessor for double running total
+    double GetDoubleTotal( void ) const {
+      return( this->doubleTotal );
+    }
 			
 
   private:
     T minVal;
     T maxVal;
 
+    size_t nAcc;
+    long long intTotal;
+    double doubleTotal;
   };
 
 }

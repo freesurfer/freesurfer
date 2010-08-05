@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/04 20:01:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/05 16:04:53 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -42,8 +42,12 @@ namespace Freesurfer {
     GCAlinearNode( void ) : xDim(0), yDim(0), zDim(0),
 			    gc1dDim(0), gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
 			    gc1dLabelDim(0),
-			    nGC1Dnode(), nodeLabels(),
+			    nGC1Dnode(), maxLabelsNode(), totTrainNode(),
+			    nodeLabels(),
 			    means(), variances(),
+			    nJustPriors(),
+			    nTraining(),
+			    regularised(),
 			    nLabelsGC1D(),
 			    gc1dDirecLabels(), gc1dDirecLabelPriors(),
 			    bytes(0), tExhume(), tInhume() {};
@@ -79,6 +83,55 @@ namespace Freesurfer {
       unsigned int index = this->gc1dCountIndex(ix,iy,iz);
 
       return( this->nGC1Dnode.at(index) );
+    }
+
+    // ---
+
+    //! Accessor for maxLabelsNode array
+    int& maxLabels( const int ix, const int iy, const int iz ) {
+      /*!
+	The maxLabels array holds per voxel data 
+      */
+
+      unsigned int index = this->maxLabelsIndex(ix,iy,iz);
+
+      return( this->maxLabelsNode.at(index) );
+    }
+
+    //! Const accessor for maxLabelsNode array
+    int maxLabels( const int ix, const int iy, const int iz ) const {
+      /*!
+	The maxLabels array holds per voxel data 
+      */
+
+      unsigned int index = this->maxLabelsIndex(ix,iy,iz);
+
+      return( this->maxLabelsNode.at(index) );
+    }
+    
+
+    // ---
+
+    //! Accessor for totTrainNode array
+    int& totalTraining( const int ix, const int iy, const int iz ) {
+      /*!
+	The totTrainNode array holds per voxel data 
+      */
+
+      unsigned int index = this->totalTrainingIndex(ix,iy,iz);
+
+      return( this->totTrainNode.at(index) );
+    }
+
+    //! Const accessor for totTrainNode array
+    int totalTraining( const int ix, const int iy, const int iz ) const {
+      /*!
+	The totTrainNode array holds per voxel data 
+      */
+
+      unsigned int index = this->totalTrainingIndex(ix,iy,iz);
+
+      return( this->totTrainNode.at(index) );
     }
 
 
@@ -211,6 +264,130 @@ namespace Freesurfer {
       idx = this->variancesAtNodeGC1Dindex(ix,iy,iz,iGC1D);
 
       return( this->variances.at(idx) );
+    }
+
+
+    // ---
+
+
+    //! Accessor for the nJustPriors array
+    short& nJustPriorsAtNodeGC1D( const int ix,
+				  const int iy,
+				  const int iz,
+				  const int iGC1D ) {
+      /*!
+	The nJustPriors array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has an n_just_priors value
+	associated with it.
+      */
+      
+      unsigned int idx;
+      
+      idx = this->nJustPriorsAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+
+      return( this->nJustPriors.at(idx) );
+    }
+
+    //! Const accessor for the nJustPriors array
+    short nJustPriorsAtNodeGC1D( const int ix,
+				 const int iy,
+				 const int iz,
+				 const int iGC1D ) const {
+      /*!
+	The nJustPriors array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has an n_just_priors value
+	associated with it.
+      */
+      
+      unsigned int idx;
+      
+      idx = this->nJustPriorsAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+
+      return( this->nJustPriors.at(idx) );
+    }
+
+    // ---
+
+
+    //! Accessor for the nTraining array
+    int& nTrainingAtNodeGC1D( const int ix,
+			      const int iy,
+			      const int iz,
+			      const int iGC1D ) {
+      /*!
+	The nTraining array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has an ntraining value
+	associated with it.
+      */
+      
+      unsigned int idx;
+      
+      idx = this->nTrainingAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+
+      return( this->nTraining.at(idx) );
+    }
+
+     //! Const accessor for the nTraining array
+    int nTrainingAtNodeGC1D( const int ix,
+			     const int iy,
+			     const int iz,
+			     const int iGC1D ) const {
+      /*!
+	The nTraining array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has an ntraining value
+	associated with it.
+      */
+      
+      unsigned int idx;
+      
+      idx = this->nTrainingAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+
+      return( this->nTraining.at(idx) );
+    }
+
+
+    // ---
+
+    //! Accessor for the regularised array
+    char& regularisedAtNodeGC1D( const int ix,
+				 const int iy,
+				 const int iz,
+				 const int iGC1D ) {
+      /*!
+	The regularised array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has an regularized value
+	associated with it.
+      */
+      
+      unsigned int idx;
+      
+      idx = this->regularisedAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+
+      return( this->regularised.at(idx) );
+    }
+
+    //! Const accessor for the regularised array
+    char regularisedAtNodeGC1D( const int ix,
+				const int iy,
+				const int iz,
+				const int iGC1D ) const {
+      /*!
+	The regularised array is 4D.
+	For each voxel, there is an array of GC1Ds,
+	and each of these has an regularized value
+	associated with it.
+      */
+      
+      unsigned int idx;
+      
+      idx = this->regularisedAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+
+      return( this->regularised.at(idx) );
     }
 
 
@@ -387,6 +564,12 @@ namespace Freesurfer {
     //! Stores number of GC1D hanging off each node (nlabels in GCA_NODE)
     std::vector<int> nGC1Dnode;
 
+    //! Stores max_labels in each node
+    std::vector<int> maxLabelsNode;
+
+    //! Stores total_training in each node
+    std::vector<int> totTrainNode;
+
     //! Stores the labels for the node (4D, controlled via gca1dDim and gc1dCount)
     std::vector<unsigned short> nodeLabels;
 
@@ -394,6 +577,15 @@ namespace Freesurfer {
     std::vector<float> means;
     //! Stores the variances for each GC1D of the node
     std::vector<float> variances;
+
+    //! Stores n_just_priors for each GC1D of the node (4D)
+    std::vector<short> nJustPriors;
+
+    //! Stores ntraining for each GC1D of the node (4D)
+    std::vector<int> nTraining;
+
+    //! Stores the 'regularizied' member for each GC1D of the node (4D)
+    std::vector<char> regularised;
 
     //! Stores the number of labels for each direction for each GC1D (5D)
     std::vector<short> nLabelsGC1D;
@@ -441,6 +633,47 @@ namespace Freesurfer {
 
       return( index );
     }
+
+    // ---
+
+    //! Index computation for maxLabels
+    unsigned int maxLabelsIndex( const int ix,
+				 const int iy,
+				 const int iz ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int index;
+      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
+      
+      return( index );
+    }
+
+    // ---
+
+    //! Index computation for total training
+    unsigned int totalTrainingIndex( const int ix,
+				     const int iy,
+				     const int iz ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int index;
+      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
+      
+      return( index );
+    }
+    
 
     // ---
 
@@ -535,7 +768,103 @@ namespace Freesurfer {
       
       return( idx );
     }
+
+    
+    // ---
+
+    //! Index computation for nJustPriorsAtNodeGC1D
+    unsigned int nJustPriorsAtNodeGC1Dindex( const int ix,
+					     const int iy,
+					     const int iz,
+					     const int iGC1D ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
       
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      
+      return( idx );
+    }
+      
+
+
+    // ---
+
+    //! Index computation for nTrainingAtNodeGC1D
+    unsigned int nTrainingAtNodeGC1Dindex( const int ix,
+					   const int iy,
+					   const int iz,
+					   const int iGC1D ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      
+      return( idx );
+    }
+
+    // ---
+
+    //! Index computation for regularisedAtNodeGC1D
+    unsigned int regularisedAtNodeGC1Dindex( const int ix,
+					     const int iy,
+					     const int iz,
+					     const int iGC1D ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Voxel index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
+	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
+	cerr << __FUNCTION__
+	     << ": GC1D index out of range" << endl;
+	exit( EXIT_FAILURE );
+      }
+      
+      unsigned int idx;
+      
+      idx = ix + ( this->xDim *
+		   ( iy + ( this->yDim *
+			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      
+      return( idx );
+    }
+
 
     
     // ---
@@ -630,6 +959,7 @@ namespace Freesurfer {
 				     ) )
 			    ) )
 		   );
+
 
       return( idx );
     }
