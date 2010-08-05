@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/21 20:33:48 $
- *    $Revision: 1.167 $
+ *    $Date: 2010/08/05 19:38:41 $
+ *    $Revision: 1.168 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -142,6 +142,7 @@ int main(int argc, char *argv[]) {
   int transform_flag, invert_transform_flag;
   LTA *lta_transform = NULL;
   MRI *mri_transformed = NULL;
+  MRI *mritmp=NULL;
   int transform_type;
   MATRIX *inverse_transform_matrix;
   int smooth_parcellation_flag, smooth_parcellation_count;
@@ -194,7 +195,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.167 2010/07/21 20:33:48 greve Exp $", 
+     "$Id: mri_convert.c,v 1.168 2010/08/05 19:38:41 greve Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -301,7 +302,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.167 2010/07/21 20:33:48 greve Exp $", 
+      "$Id: mri_convert.c,v 1.168 2010/08/05 19:38:41 greve Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -1335,7 +1336,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.167 2010/07/21 20:33:48 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.168 2010/08/05 19:38:41 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -1627,13 +1628,11 @@ int main(int argc, char *argv[]) {
       MRIfree(&mri_in_like);
       exit(1);
     }
-    if (mri->nframes != mri_in_like->nframes)
-      printf("INFO: frames are not the same, "
-             "but I'm going to let that slide\n");
-
+    if (mri->nframes != mri_in_like->nframes)  printf("INFO: frames are not the same\n");
     temp_type = mri->type;
 
-    if (MRIcopyHeader(mri_in_like, mri) != NO_ERROR) {
+    mritmp = MRIcopyHeader(mri_in_like, mri);
+    if (mritmp == NULL) {
       errno = 0;
       ErrorPrintf(ERROR_BADPARM, "error copying information from "
                   "%s structure to %s structure\n",
