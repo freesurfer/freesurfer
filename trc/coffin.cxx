@@ -1,8 +1,8 @@
 /**
  * @file  coffin.cxx
- * @brief Container of tractography data and functions
+ * @brief Container of tractography data and methods
  *
- * Container of tractography data and functions
+ * Container of tractography data and methods
  */
 /*
  * Original Author: Anastasia Yendiki
@@ -204,7 +204,7 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
 
     for (vector<string>::const_iterator isuff = suff.begin();
                                         isuff < suff.end(); isuff++) {
-      float val;
+      unsigned int val;
       sprintf(fname, "%s%s.nii.gz", AsegIdFile, isuff->c_str());
       ifstream idfile(fname, ios::in);
 
@@ -432,7 +432,7 @@ void Coffin::ReadControlPoints(const char *ControlPointFile) {
   cout << "Loading control points from " << ControlPointFile << endl;
   mControlPoints.clear();
   while (infile >> coord)
-    mControlPoints.push_back(round(coord));
+    mControlPoints.push_back((int) round(coord));
 
   if (mControlPoints.size() % 3 != 0) {
     cout << "ERROR: File " << ControlPointFile
@@ -745,12 +745,26 @@ void Coffin::InitializeMCMC() {
   mProposalStd.resize(mProposalStdInit.size());
   copy(mProposalStdInit.begin(), mProposalStdInit.end(), mProposalStd.begin());
 
-  mAcceptCount.resize(mControlPoints.size());
-  fill(mAcceptCount.begin(), mAcceptCount.end(), 0.0);
-  mRejectCount.resize(mControlPoints.size());
-  fill(mRejectCount.begin(), mRejectCount.end(), 0.0);
+  if (mDebug) {
+    cout << "Proposal STDs: ";
+    for (vector<float>::const_iterator pstd = mProposalStd.begin();
+                                       pstd < mProposalStd.end(); pstd++)
+      cout << *pstd << " ";
+    cout << endl;
+  }
 
+  // Initialize jump acceptance statistics
   mRejectControl.resize(mNumControl);
+
+  mAcceptCount.resize(mNumControl);
+  fill(mAcceptCount.begin(), mAcceptCount.end(), 0);
+  mRejectCount.resize(mNumControl);
+  fill(mRejectCount.begin(), mRejectCount.end(), 0);
+
+  mAcceptSpan.resize(mControlPoints.size());
+  fill(mAcceptSpan.begin(), mAcceptSpan.end(), 0.0);
+  mRejectSpan.resize(mControlPoints.size());
+  fill(mRejectSpan.begin(), mRejectSpan.end(), 0.0);
 
   mControlPointsNew.resize(mControlPoints.size());
   mControlPointJumps.resize(mControlPoints.size());
@@ -817,13 +831,13 @@ bool Coffin::ProposePath() {
 
   // Perturb current control points
   if (mDebug)
-    cout << "Jump norms ";
+    cout << "Jump norms: ";
   for (isrej = mRejectControl.begin(); isrej < mRejectControl.end(); isrej++) {
     double norm = 0;
 
     for (unsigned int ii = 0; ii < 3; ii++) {
       *jump = round((*pstd) * PDFgaussian());
-      *newcoord = *coord + *jump;
+      *newcoord = *coord + (int) *jump;
 
       *jump *= *jump;
       norm += *jump;
@@ -914,7 +928,7 @@ bool Coffin::ProposePath1(unsigned int ControlIndex) {
   // Perturb current control point
   for (unsigned int ii = 0; ii < 3; ii++) {
     *jump = round((*pstd) * PDFgaussian());
-    *newcoord = *coord + *jump;
+    *newcoord = *coord + (int) *jump;
 
     *jump *= *jump;
     norm += *jump;
@@ -1147,10 +1161,10 @@ void Coffin::UpdateAcceptanceRate() {
   vector<float>::const_iterator jump = mControlPointJumps.begin();
   
   if (!(mAcceptF || mAcceptTheta))
-    // Increment acceptance count for all control points
-    for (vector<float>::iterator count = mAcceptCount.begin();
-                                 count < mAcceptCount.end(); count++) {
-      *count += *jump;
+    // Update length of accepted jumps for all control points
+    for (vector<float>::iterator span = mAcceptSpan.begin();
+                                 span < mAcceptSpan.end(); span++) {
+      *span += *jump;
       jump++;
     }
 }
@@ -1170,27 +1184,27 @@ void Coffin::UpdateRejectionRate() {
       cout << "Reject due to control point" << endl;
 
   if (mRejectPosterior || mRejectSpline)
-    // Increment rejection count for all control points
-    for (vector<float>::iterator count = mRejectCount.begin();
-                                 count < mRejectCount.end(); count++) {
-      *count += *jump;
+    // Update length of rejected jumps all control points
+    for (vector<float>::iterator span = mRejectSpan.begin();
+                                 span < mRejectSpan.end(); span++) {
+      *span += *jump;
       jump++;
     }
   else {
-    vector<float>::iterator count = mRejectCount.begin();
+    vector<float>::iterator span = mRejectSpan.begin();
 
-    // Increment rejection count for specific rejected control points
+    // Update length of rejected jumps for specific rejected control points
     for (vector<bool>::const_iterator isrej = mRejectControl.begin();
                                       isrej < mRejectControl.end(); isrej++)
       if (*isrej)
         for (unsigned int ii = 0; ii < 3; ii++) {
-          *count += *jump;
+          *span += *jump;
           jump++;
-          count++;
+          span++;
         }
       else {
         jump += 3;
-        count += 3;
+        span += 3;
       }
   }
 }
@@ -1199,45 +1213,71 @@ void Coffin::UpdateRejectionRate() {
 // Update control point acceptance and rejection rates (single point update)
 //
 void Coffin::UpdateAcceptRejectRate1() {
+  vector<unsigned int>::iterator acount = mAcceptCount.begin();
+  vector<unsigned int>::iterator rcount = mRejectCount.begin();
   vector<float>::const_iterator jump = mControlPointJumps.begin();
-  vector<float>::iterator acount = mAcceptCount.begin();
-  vector<float>::iterator rcount = mRejectCount.begin();
+  vector<float>::iterator aspan = mAcceptSpan.begin();
+  vector<float>::iterator rspan = mRejectSpan.begin();
 
   for (vector<bool>::const_iterator isrej = mRejectControl.begin();
                                     isrej < mRejectControl.end(); isrej++)
-    if (*isrej)		// Increment rejection count
+    if (*isrej) {	// Increment rejection count and jump length
       for (unsigned int ii = 0; ii < 3; ii++) {
-//        *rcount += *jump;
-(*rcount)++;
+        *rspan += *jump;
         jump++;
-        acount++;
-        rcount++;
-      }
-    else		// Increment acceptance count
-      for (unsigned int ii = 0; ii < 3; ii++) {
-//        *acount += *jump;
-(*acount)++;
-        jump++;
-        acount++;
-        rcount++;
+        aspan++;
+        rspan++;
       }
 
-acount = mAcceptCount.begin();
-rcount = mRejectCount.begin();
-cout << "Acceptance rates ";
-for (vector<bool>::const_iterator isrej = mRejectControl.begin(); isrej < mRejectControl.end(); isrej++) {
-cout << *acount << "/" << *acount+*rcount << "=" << *acount/(*acount+*rcount) << " ";
-acount+=3; rcount+=3;
-}
-cout << endl;
+      (*rcount)++;
+      acount++;
+      rcount++;
+    }
+    else {		// Increment acceptance count and jump length
+      for (unsigned int ii = 0; ii < 3; ii++) {
+        *aspan += *jump;
+        jump++;
+        aspan++;
+        rspan++;
+      }
+
+      (*acount)++;
+      acount++;
+      rcount++;
+    }
 
   if (mDebug) {
-    cout << "Normalized jumps ";
-
+    cout << "Normalized jumps: ";
     for (jump = mControlPointJumps.begin(); jump < mControlPointJumps.end();
                                             jump++)
       cout << sqrt(*jump) << " ";
+    cout << endl;
 
+    acount = mAcceptCount.begin();
+    rcount = mRejectCount.begin();
+
+    cout << "Acceptance counts: ";
+    for (vector<bool>::const_iterator isrej = mRejectControl.begin();
+                                      isrej < mRejectControl.end(); isrej++) {
+      cout << *acount << "/" << *acount + *rcount << "="
+           << *acount / float(*acount + *rcount) << " ";
+      acount++;
+      rcount++;
+    }
+    cout << endl;
+
+    aspan = mAcceptSpan.begin();
+    rspan = mRejectSpan.begin();
+
+    cout << "Acceptance spans: ";
+    for (vector<float>::const_iterator pstd = mProposalStd.begin();
+                                       pstd < mProposalStd.end(); pstd++) {
+      cout << *aspan << "/" << *aspan + *rspan << "="
+           << *aspan / (*aspan + *rspan) << " ";
+
+      aspan++;
+      rspan++;
+    }
     cout << endl;
   }
 }
@@ -1246,40 +1286,30 @@ cout << endl;
 // Update control point proposal distribution
 //
 void Coffin::UpdateProposalStd() {
-  vector<float>::const_iterator acount = mAcceptCount.begin();
-  vector<float>::const_iterator rcount = mRejectCount.begin();
+  vector<float>::const_iterator aspan = mAcceptSpan.begin();
+  vector<float>::const_iterator rspan = mRejectSpan.begin();
 
   for (vector<float>::iterator pstd = mProposalStd.begin();
                                pstd < mProposalStd.end(); pstd++) {
-    *pstd *= sqrt((*acount + 1) / (*rcount + 1));
+    *pstd *= sqrt((*aspan + 1) / (*rspan + 1));
 
-    acount++;
-    rcount++;
+    aspan++;
+    rspan++;
   }
 
   if (mDebug) {
-    acount = mAcceptCount.begin();
-    rcount = mRejectCount.begin();
-
-    cout << "Acceptance rates ";
-    for (vector<float>::const_iterator pstd = mProposalStd.begin();
-                                       pstd < mProposalStd.end(); pstd++) {
-      cout << *acount << "/" << *acount+*rcount << " ";
-
-      acount++;
-      rcount++;
-    }
-    cout << endl;
-
-    cout << "Updated proposal STDs ";
+    cout << "Proposal STDs: ";
     for (vector<float>::const_iterator pstd = mProposalStd.begin();
                                        pstd < mProposalStd.end(); pstd++)
       cout << *pstd << " ";
     cout << endl;
   }
 
-  fill(mAcceptCount.begin(), mAcceptCount.end(), 0.0);
-  fill(mRejectCount.begin(), mRejectCount.end(), 0.0);
+  fill(mAcceptCount.begin(), mAcceptCount.end(), 0);
+  fill(mRejectCount.begin(), mRejectCount.end(), 0);
+
+  fill(mAcceptSpan.begin(), mAcceptSpan.end(), 0.0);
+  fill(mRejectSpan.begin(), mRejectSpan.end(), 0.0);
 }
 
 //
@@ -1371,7 +1401,7 @@ void Coffin::ApplyAffine(vector<int> &OutPoint,
   }
 
   for (unsigned int i = 0; i < 3; i++)
-    OutPoint[i] = round(pout[i] / pout[3] / OutVoxelSize[i]);
+    OutPoint[i] = (int) round(pout[i] / pout[3] / OutVoxelSize[i]);
 }
 
 //

@@ -228,7 +228,7 @@ void Spline::ReadControlPoints(const char *ControlPointFile) {
   cout << "Loading spline control points from " << ControlPointFile << endl;
   mControlPoints.clear();
   while (infile >> coord)
-    mControlPoints.push_back(round(coord));
+    mControlPoints.push_back((int) round(coord));
 
   if (mControlPoints.size() % 3 != 0) {
     cout << "ERROR: File " << ControlPointFile
@@ -327,8 +327,8 @@ void Spline::CatmullRomInterp(vector<int> &InterpPoint,
               d = .5*(t3 - t2);
 
   for (unsigned int k = 0; k < 3; k++)
-    InterpPoint[k] = round(a * ControlPoint1[k] + b * ControlPoint2[k] +
-                           c * ControlPoint3[k] + d * ControlPoint4[k]);
+    InterpPoint[k] = (int) round(a * ControlPoint1[k] + b * ControlPoint2[k] +
+                                 c * ControlPoint3[k] + d * ControlPoint4[k]);
 }
 
 void Spline::CatmullRomTangent(vector<float> &InterpTangent,

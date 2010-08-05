@@ -28,7 +28,7 @@ using namespace std;
 
 unsigned int Bite::mNumDir, Bite::mNumB0, Bite::mNumTract, Bite::mNumBedpost,
              Bite::mAsegPriorType, Bite::mNumTrain;
-const float Bite::mFminPath = 0.05;
+const float Bite::mFminPath = 0.02;
 vector<float> Bite::mGradients, Bite::mBvalues;
 vector< vector<unsigned int> > Bite::mAsegIds;
 
@@ -128,11 +128,11 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
   // Training paths and segmentation maps
   if (AsegTrain && PathTrain) {
     for (unsigned int itrain = 0; itrain < mNumTrain; itrain++) {
-      mPathTrain.push_back(MRIgetVoxVal(PathTrain,
-                                        mCoordX, mCoordY, mCoordZ, itrain));
+      mPathTrain.push_back((unsigned int)
+                 MRIgetVoxVal(PathTrain, mCoordX, mCoordY, mCoordZ, itrain));
 
-      mAsegTrain.push_back(MRIgetVoxVal(AsegTrain,
-                                        mCoordX, mCoordY, mCoordZ, itrain));
+      mAsegTrain.push_back((unsigned int)
+                 MRIgetVoxVal(AsegTrain, mCoordX, mCoordY, mCoordZ, itrain));
     }
 
     if (mAsegPriorType == 2) {
@@ -140,33 +140,33 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
 
       coord = (mCoordX < (unsigned int) Aseg->width-1 ? mCoordX+1 : mCoordX);
       for (unsigned int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back(MRIgetVoxVal(AsegTrain,
-                                          coord, mCoordY, mCoordZ, itrain));
+        mAsegTrain.push_back((unsigned int)
+                   MRIgetVoxVal(AsegTrain, coord, mCoordY, mCoordZ, itrain));
 
       coord = (mCoordX > 0 ? mCoordX-1 : mCoordX);
       for (unsigned int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back(MRIgetVoxVal(AsegTrain,
-                                          coord, mCoordY, mCoordZ, itrain));
+        mAsegTrain.push_back((unsigned int)
+                   MRIgetVoxVal(AsegTrain, coord, mCoordY, mCoordZ, itrain));
 
       coord = (mCoordY < (unsigned int) Aseg->height-1 ? mCoordY+1 : mCoordY);
       for (unsigned int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back(MRIgetVoxVal(AsegTrain,
-                                          mCoordX, coord, mCoordZ, itrain));
+        mAsegTrain.push_back((unsigned int)
+                   MRIgetVoxVal(AsegTrain, mCoordX, coord, mCoordZ, itrain));
 
       coord = (mCoordY > 0 ? mCoordY-1 : mCoordY);
       for (unsigned int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back(MRIgetVoxVal(AsegTrain,
-                                          mCoordX, coord, mCoordZ, itrain));
+        mAsegTrain.push_back((unsigned int)
+                   MRIgetVoxVal(AsegTrain, mCoordX, coord, mCoordZ, itrain));
 
       coord = (mCoordZ < (unsigned int) Aseg->depth-1 ? mCoordZ+1 : mCoordZ);
       for (unsigned int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back(MRIgetVoxVal(AsegTrain,
-                                          mCoordX, mCoordY, coord, itrain));
+        mAsegTrain.push_back((unsigned int)
+                   MRIgetVoxVal(AsegTrain, mCoordX, mCoordY, coord, itrain));
 
       coord = (mCoordZ > 0 ? mCoordZ-1 : mCoordZ);
       for (unsigned int itrain = 0; itrain < mNumTrain; itrain++)
-        mAsegTrain.push_back(MRIgetVoxVal(AsegTrain,
-                                          mCoordX, mCoordY, coord, itrain));
+        mAsegTrain.push_back((unsigned int)
+                   MRIgetVoxVal(AsegTrain, mCoordX, mCoordY, coord, itrain));
     }
     else if (mAsegPriorType > 2) {
       unsigned int coord;
@@ -180,7 +180,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
           coord++;
           seg = MRIgetVoxVal(Aseg, coord, mCoordY, mCoordZ, itrain);
         }
-        mAsegTrain.push_back(seg);
+        mAsegTrain.push_back((unsigned int) seg);
 
         if (mAsegPriorType == 4)
           mAsegDistTrain.push_back(coord - mCoordX);
@@ -194,7 +194,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
           coord--;
           seg = MRIgetVoxVal(Aseg, coord, mCoordY, mCoordZ, itrain);
         }
-        mAsegTrain.push_back(seg);
+        mAsegTrain.push_back((unsigned int) seg);
 
         if (mAsegPriorType == 4)
           mAsegDistTrain.push_back(mCoordX - coord);
@@ -208,7 +208,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
           coord++;
           seg = MRIgetVoxVal(Aseg, mCoordX, coord, mCoordZ, itrain);
         }
-        mAsegTrain.push_back(seg);
+        mAsegTrain.push_back((unsigned int) seg);
 
         if (mAsegPriorType == 4)
           mAsegDistTrain.push_back(coord - mCoordY);
@@ -222,7 +222,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
           seg = MRIgetVoxVal(Aseg, mCoordX, coord, mCoordZ, itrain);
           coord--;
         }
-        mAsegTrain.push_back(seg);
+        mAsegTrain.push_back((unsigned int) seg);
 
         if (mAsegPriorType == 4)
           mAsegDistTrain.push_back(mCoordY - coord);
@@ -236,7 +236,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
           seg = MRIgetVoxVal(Aseg, mCoordX, mCoordY, coord, itrain);
           coord++;
         }
-        mAsegTrain.push_back(seg);
+        mAsegTrain.push_back((unsigned int) seg);
 
         if (mAsegPriorType == 4)
           mAsegDistTrain.push_back(coord - mCoordZ);
@@ -250,7 +250,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
           seg = MRIgetVoxVal(Aseg, mCoordX, mCoordY, coord, itrain);
             coord--;
         }
-        mAsegTrain.push_back(seg);
+        mAsegTrain.push_back((unsigned int) seg);
 
         if (mAsegPriorType == 4)
           mAsegDistTrain.push_back(mCoordZ - coord);
@@ -260,28 +260,35 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
 
   // Segmentation map
   if (Aseg) {
-    mAseg.push_back(MRIgetVoxVal(Aseg, mCoordX, mCoordY, mCoordZ, 0));
+    mAseg.push_back((unsigned int)
+          MRIgetVoxVal(Aseg, mCoordX, mCoordY, mCoordZ, 0));
 
     if (mAsegPriorType == 2) {
       unsigned int coord;
 
       coord = (mCoordX < (unsigned int) Aseg->width-1 ? mCoordX+1 : mCoordX);
-      mAseg.push_back(MRIgetVoxVal(Aseg, coord, mCoordY, mCoordZ, 0));
+      mAseg.push_back((unsigned int)
+            MRIgetVoxVal(Aseg, coord, mCoordY, mCoordZ, 0));
 
       coord = (mCoordX > 0 ? mCoordX-1 : mCoordX);
-      mAseg.push_back(MRIgetVoxVal(Aseg, coord, mCoordY, mCoordZ, 0));
+      mAseg.push_back((unsigned int)
+            MRIgetVoxVal(Aseg, coord, mCoordY, mCoordZ, 0));
 
       coord = (mCoordY < (unsigned int) Aseg->height-1 ? mCoordY+1 : mCoordY);
-      mAseg.push_back(MRIgetVoxVal(Aseg, mCoordX, coord, mCoordZ, 0));
+      mAseg.push_back((unsigned int)
+            MRIgetVoxVal(Aseg, mCoordX, coord, mCoordZ, 0));
 
       coord = (mCoordY > 0 ? mCoordY-1 : mCoordY);
-      mAseg.push_back(MRIgetVoxVal(Aseg, mCoordX, coord, mCoordZ, 0));
+      mAseg.push_back((unsigned int)
+            MRIgetVoxVal(Aseg, mCoordX, coord, mCoordZ, 0));
 
       coord = (mCoordZ < (unsigned int) Aseg->depth-1 ? mCoordZ+1 : mCoordZ);
-      mAseg.push_back(MRIgetVoxVal(Aseg, mCoordX, mCoordY, coord, 0));
+      mAseg.push_back((unsigned int)
+            MRIgetVoxVal(Aseg, mCoordX, mCoordY, coord, 0));
 
       coord = (mCoordZ > 0 ? mCoordZ-1 : mCoordZ);
-      mAseg.push_back(MRIgetVoxVal(Aseg, mCoordX, mCoordY, coord, 0));
+      mAseg.push_back((unsigned int)
+            MRIgetVoxVal(Aseg, mCoordX, mCoordY, coord, 0));
     }
     else if (mAsegPriorType > 2) {
       unsigned int coord;
@@ -294,7 +301,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
         coord++;
         seg = MRIgetVoxVal(Aseg, coord, mCoordY, mCoordZ, 0);
       }
-      mAseg.push_back(seg);
+      mAseg.push_back((unsigned int) seg);
 
       if (mAsegPriorType == 4)
         mAsegDist.push_back(coord - mCoordX);
@@ -305,7 +312,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
         coord--;
         seg = MRIgetVoxVal(Aseg, coord, mCoordY, mCoordZ, 0);
       }
-      mAseg.push_back(seg);
+      mAseg.push_back((unsigned int) seg);
 
       if (mAsegPriorType == 4)
         mAsegDist.push_back(mCoordX - coord);
@@ -316,7 +323,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
         coord++;
         seg = MRIgetVoxVal(Aseg, mCoordX, coord, mCoordZ, 0);
       }
-      mAseg.push_back(seg);
+      mAseg.push_back((unsigned int) seg);
 
       if (mAsegPriorType == 4)
         mAsegDist.push_back(coord - mCoordY);
@@ -327,7 +334,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
         seg = MRIgetVoxVal(Aseg, mCoordX, coord, mCoordZ, 0);
         coord--;
       }
-      mAseg.push_back(seg);
+      mAseg.push_back((unsigned int) seg);
 
       if (mAsegPriorType == 4)
         mAsegDist.push_back(mCoordY - coord);
@@ -338,7 +345,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
         seg = MRIgetVoxVal(Aseg, mCoordX, mCoordY, coord, 0);
         coord++;
       }
-      mAseg.push_back(seg);
+      mAseg.push_back((unsigned int) seg);
 
       if (mAsegPriorType == 4)
         mAsegDist.push_back(coord - mCoordZ);
@@ -349,7 +356,7 @@ Bite::Bite(MRI *Dwi, MRI **Phi, MRI **Theta, MRI **F,
         seg = MRIgetVoxVal(Aseg, mCoordX, mCoordY, coord, 0);
           coord--;
       }
-      mAseg.push_back(seg);
+      mAseg.push_back((unsigned int) seg);
 
       if (mAsegPriorType == 4)
         mAsegDist.push_back(mCoordZ - coord);
@@ -435,7 +442,8 @@ unsigned int Bite::GetNumBedpost() { return mNumBedpost; }
 // Draw samples from marginal posteriors of diffusion parameters
 //
 void Bite::SampleParameters() {
-  const unsigned int isamp = round(drand48() * (mNumBedpost-1)) * mNumTract;
+  const unsigned int isamp = (unsigned int) round(drand48() * (mNumBedpost-1))
+                                            * mNumTract;
   vector<float>::const_iterator samples;
  
   samples = mPhiSamples.begin() + isamp;
