@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/05 16:04:53 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/08/05 18:25:30 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -544,6 +544,9 @@ namespace Freesurfer {
 
     //! Method to place node data into a GCA
     void Inhume( GCA* dst ) const;
+
+    //! Method to remove nodes from a GCA prior to inhumation of new data
+    void ScorchNodes( GCA* targ ) const;
 
     // -------------------------------------------------
 
