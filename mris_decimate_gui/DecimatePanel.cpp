@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:38:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/05 15:59:47 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ void DecimateProgressCallback(float percent, const char *msg, void *userData)
     wxProgressDialog *progress = (wxProgressDialog*)userData;
     if (progress)
     {
-        progress->Update(percent * 100.0f, msg);
+        progress->Update((int)(percent * 100.0f), msg);
     }
 }
 

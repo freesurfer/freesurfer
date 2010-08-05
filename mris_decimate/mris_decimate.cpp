@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:41:56 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/05 15:59:48 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 ///
 
 
-// $Id: mris_decimate.cpp,v 1.2 2010/08/04 20:41:56 ginsburg Exp $
+// $Id: mris_decimate.cpp,v 1.3 2010/08/05 15:59:48 ginsburg Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -102,9 +102,9 @@ static void faceLoad(GtsTriangle * t, gpointer * data)
 	GtsVertex *v1, *v2, *v3;
 	gts_triangle_vertices(t, &v1, &v2, &v3);
 	
-	mris->faces[mris->nfaces].v[0] = GPOINTER_TO_UINT (GTS_OBJECT (v1)->reserved);
-	mris->faces[mris->nfaces].v[1] = GPOINTER_TO_UINT (GTS_OBJECT (v2)->reserved);	
-	mris->faces[mris->nfaces].v[2] = GPOINTER_TO_UINT (GTS_OBJECT (v3)->reserved);
+	mris->faces[mris->nfaces].v[0] = (guint) (glong) GTS_OBJECT (v1)->reserved;
+        mris->faces[mris->nfaces].v[1] = (guint) (glong) GTS_OBJECT (v2)->reserved;	
+        mris->faces[mris->nfaces].v[2] = (guint) (glong) GTS_OBJECT (v3)->reserved;
 	mris->nfaces++;
 }
 
