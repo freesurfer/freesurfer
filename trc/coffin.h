@@ -1,8 +1,8 @@
 /**
  * @file  coffin.h
- * @brief Main container of tractography data and functions
+ * @brief Main container of tractography data and methods
  *
- * Main container of tractography data and functions
+ * Main container of tractography data and methods
  */
 /*
  * Original Author: Anastasia Yendiki
@@ -72,19 +72,20 @@ class Coffin {
            mPosteriorOnPathMap,
            mLikelihoodOffPath, mPriorOffPath, mPosteriorOffPath,
            mLikelihoodOffPathNew, mPriorOffPathNew, mPosteriorOffPathNew;
-    std::vector<bool> mRejectControl;
+    std::vector<bool> mRejectControl;				// [mNumControl]
+    std::vector<unsigned int> mAcceptCount, mRejectCount;	// [mNumControl]
     std::vector<int> mControlPoints, mControlPointsNew, mControlPointsMap,
                      mPathPoints, mPathPointsNew, mPathPointsMap,
                      mControlPointSamples, mPathLengthSamples;
     std::vector<float> mDwiToRoi;			// [4 x 4]
     std::vector<float> mDwiVoxelSize, mRoiVoxelSize;	// [3]
     std::vector<float> mProposalStdInit, mProposalStd, mControlPointJumps,
-                       mAcceptCount, mRejectCount;	// [mNumControl x 3]
+                       mAcceptSpan, mRejectSpan;	// [mNumControl x 3]
     std::vector<float> mLikelihoodOnPathSamples, mPriorOnPathSamples,
                        mPosteriorOnPathSamples;
     std::vector<float> mPathPhi, mPathPhiNew, mPathTheta, mPathThetaNew;
-    std::vector<Bite> mData;		// [mNumVox]
-    std::vector<Bite *>mDataMask;	// [mNx x mNy x mNz]
+    std::vector<Bite> mData;				// [mNumVox]
+    std::vector<Bite *>mDataMask;			// [mNx x mNy x mNz]
     char *mOutDir;
     MRI *mMask, *mRoi1, *mRoi2, *mPathSamples;
     Spline mSpline;
