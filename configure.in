@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: ginsburg $
-#    $Date: 2010/08/04 20:44:47 $
-#    $Revision: 1.488 $
+#    $Author: nicks $
+#    $Date: 2010/08/05 14:41:05 $
+#    $Revision: 1.489 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2185,10 +2185,14 @@ AC_ARG_WITH(gts-dir,
 
 # use the handy wx-config utility to get the compiler and linker flags
 if test ! "x$GTS_DIR" = "x"; then
+  AC_MSG_RESULT([Enabled building of GTS apps.])
   GTSCONFIG="${GTS_DIR}/bin/gts-config"
   GTS_CFLAGS="`${GTSCONFIG} --cflags`"
   # we want to use the local / static jpeg, tiff and expat libs
   GTS_LIBS="`${GTSCONFIG} --libs`"
+else
+  AC_MSG_RESULT([Not building of GTS apps.])
+
 fi
 
 AM_CONDITIONAL(HAVE_GTS_LIBS, test ! "x$GTS_DIR" = "x")
@@ -3301,6 +3305,7 @@ AC_OUTPUT([Makefile
            tkregister2/Makefile
            tkregister2/cmdl/Makefile
            tksurfer/Makefile
+           trc/Makefile
            tridec/Makefile
            unix/Makefile
            utils/Makefile

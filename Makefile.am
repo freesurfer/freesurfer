@@ -339,7 +339,8 @@ SUBDIRS=\
 	scuba2 \
 	freeview \
 	qdec_glmfit \
-	cudatest
+	cudatest \
+	trc
 
 # build stamp and symlinks to necessary 3rd-party packages.
 # in the case of FSL, just copy the 'flirt' utility to our bin
