@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/04 20:01:03 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/05 16:05:24 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -25,6 +25,7 @@
 
 
 #include <iostream>
+#include <iomanip>
 #include <cstdlib>
 #include <limits>
 using namespace std;
@@ -56,6 +57,10 @@ namespace Freesurfer {
 
 	  this->gc1dCount(ix,iy,iz) = gcan->nlabels;
 
+	  
+	  this->maxLabels(ix,iy,iz) = gcan->max_labels;
+	  this->totalTraining(ix,iy,iz) = gcan->total_training;
+
 	  for( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
 	    
 	    // Deal with the label held inside each node
@@ -69,6 +74,10 @@ namespace Freesurfer {
 	    // Recall that ninputs==1
 	    this->meansAtNodeGC1D(ix,iy,iz,iGC1D) = gc1d->means[0];
 	    this->variancesAtNodeGC1D(ix,iy,iz,iGC1D) = gc1d->covars[0];
+
+	    this->nJustPriorsAtNodeGC1D(ix,iy,iz,iGC1D) = gc1d->n_just_priors;
+	    this->nTrainingAtNodeGC1D(ix,iy,iz,iGC1D) = gc1d->ntraining;
+	    this->regularisedAtNodeGC1D(ix,iy,iz,iGC1D) = gc1d->regularized;
 
 	    for( int iDirec=0;
 		 iDirec<this->gc1dNeighbourDim;
@@ -141,6 +150,9 @@ namespace Freesurfer {
 	    exit( EXIT_FAILURE );
 	  }
 
+	  gcan->max_labels = this->maxLabels(ix,iy,iz);
+	  gcan->total_training = this->totalTraining(ix,iy,iz);
+
 	  // Loop over the GC1Ds
 	  for( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
 	    // Do the labels on the side
@@ -151,6 +163,10 @@ namespace Freesurfer {
 	    // Do the mean and variance (recall ninputs==1)
 	    gc1d->means[0] = this->meansAtNodeGC1D(ix,iy,iz,iGC1D);
 	    gc1d->covars[0] = this->variancesAtNodeGC1D(ix,iy,iz,iGC1D);
+
+	    gc1d->n_just_priors = this->nJustPriorsAtNodeGC1D(ix,iy,iz,iGC1D);
+	    gc1d->ntraining = this->nTrainingAtNodeGC1D(ix,iy,iz,iGC1D);
+	    gc1d->regularized = this->regularisedAtNodeGC1D(ix,iy,iz,iGC1D);
 
 	    for( int iDirec=0;
 		 iDirec<this->gc1dNeighbourDim;
@@ -209,12 +225,24 @@ namespace Freesurfer {
     this->nGC1Dnode.resize( nVoxels, 0 );
     this->bytes += this->nGC1Dnode.size() * sizeof(int);
 
+    // Allocate the max_labels held in the GCA_NODE structure
+    this->maxLabelsNode.clear();
+    this->maxLabelsNode.resize( nVoxels,
+				numeric_limits<int>::max() );
+    this->bytes += this->maxLabelsNode.size() * sizeof(int);
+    
+    // Allocate the total_training held in the GCA_NODE structure
+    this->totTrainNode.clear();
+    this->totTrainNode.resize( nVoxels,
+			       numeric_limits<int>::max() );
+    this->bytes += this->totTrainNode.size() * sizeof(int);
 
     // Allocate the labels held in the GCA_NODE structure
     this->nodeLabels.clear();
     this->nodeLabels.resize( nVoxels * this->gc1dDim,
 			     numeric_limits<unsigned short>::max() );
     this->bytes += this->nodeLabels.size() * sizeof(unsigned short);
+
 
     // Allocate the means held in the GC1D structure (ninputs=1)
     this->means.clear();
@@ -227,6 +255,24 @@ namespace Freesurfer {
     this->variances.resize( nVoxels * this->gc1dDim,
 			    numeric_limits<float>::quiet_NaN() );
     this->bytes += this->variances.size() * sizeof(float);
+
+    //! Allocate nJustPriors for the GC1D structures
+    this->nJustPriors.clear();
+    this->nJustPriors.resize( nVoxels * this->gc1dDim,
+			      numeric_limits<short>::max() );
+    this->bytes += this->nJustPriors.size() * sizeof(short);
+
+    //! Allocate nTraining for the GC1D structures
+    this->nTraining.clear();
+    this->nTraining.resize( nVoxels * this->gc1dDim,
+			    numeric_limits<int>::max() );
+    this->bytes += this->nTraining.size() * sizeof(int);
+
+    //! Allocate regularised for the GC1D structures
+    this->regularised.clear();
+    this->regularised.resize( nVoxels * this->gc1dDim,
+			      numeric_limits<char>::max() );
+    this->bytes += this->regularised.size() * sizeof(char);
 
     // Allocate the number of labels for each direction for each GC1D
     this->nLabelsGC1D.clear();
@@ -293,6 +339,14 @@ namespace Freesurfer {
 
     this->gc1dDim = nLabelsNode.GetMax();
     this->gc1dLabelDim = nLabelsGC1D.GetMax();
+
+    double mean = nLabelsGC1D.GetDoubleTotal() / nLabelsGC1D.GetN();
+    cout << "nLabels GC1D: "
+	 << nLabelsGC1D
+	 << " (avg. "
+	 << setprecision(3) << mean
+	 << " )" << endl;
+      
   }
 
 
