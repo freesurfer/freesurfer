@@ -12,10 +12,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/02/05 00:54:31 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/08/05 17:49:30 $
+ *    $Revision: 1.20 $
  *
- * Copyright (C) 2007-2009,
+ * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -25,7 +25,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -265,10 +264,21 @@ int QdecGlmDesign::Create ( QdecDataTable* iDataTable,
   int err =  mkdir( this->mfnWorkingDir.c_str(), 0777 );
   if( err != 0 && errno != EEXIST )
   {
-    fprintf( stderr,
-             "ERROR: QdecGlmDesign::Create: could not create directory %s\n",
-             this->mfnWorkingDir.c_str());
-    return(-2);
+    // try again, with relaxed permissions
+    err =  mkdir( this->mfnWorkingDir.c_str(), 0770 );
+    if( err != 0 && errno != EEXIST )
+    {
+      // one more time...
+      err =  mkdir( this->mfnWorkingDir.c_str(), 0700 );
+      if( err != 0 && errno != EEXIST )
+      {
+        fprintf( stderr,
+                 "ERROR: QdecGlmDesign::Create: "
+                 "could not create directory %s\n",
+                 this->mfnWorkingDir.c_str());
+        return(-2);
+      }
+    }
   }
 
   if( this->mProgressUpdateGUI )
