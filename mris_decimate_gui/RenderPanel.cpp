@@ -2,11 +2,11 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:38:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/06 14:23:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -40,7 +40,7 @@ BEGIN_EVENT_TABLE( RenderPanel, wxPanel )
 END_EVENT_TABLE()
 
 ///////////////////////////////////////////////////////////////////////////////////
-//  
+//
 //  Constructor/Destructor
 //
 //
@@ -51,6 +51,10 @@ END_EVENT_TABLE()
 RenderPanel::RenderPanel( wxWindow* parent ) :
         wxPanel( parent ),
         m_histogramMaxY(0.0),
+        m_histogramPosMean(0.0),
+        m_histogramPosStdDev(0.0),
+        m_histogramNegMean(0.0),
+        m_histogramNegStdDev(0.0),
         m_surface( NULL )
 {
 
@@ -70,7 +74,6 @@ RenderPanel::RenderPanel( wxWindow* parent ) :
     m_camera->SetPosition(-1,0,0);
     m_camera->SetFocalPoint(0,0,0);
     m_camera->Roll(90.0);
-
 
     m_renderer = vtkRenderer::New();
     m_renWin = new wxVTKRenderWindowInteractor(this,-1, this->GetPosition(), this->GetSize());
@@ -117,7 +120,7 @@ RenderPanel::~RenderPanel()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-//  
+//
 //  Public Methods
 //
 //
@@ -156,8 +159,30 @@ void RenderPanel::SetSurface( MRI_SURFACE *mris )
     Render();
 }
 
+///
+/// Automatically determine the min/max values to use for the
+///	histogram based on the mean/std. dev. of the positive and
+/// negative lobes of the curvature histograms.
+///
+void RenderPanel::GetHistogramAutoRange(float& minVal, float &maxVal) const
+{
+    minVal = m_histogramNegMean - 2.5 * m_histogramNegStdDev;
+    maxVal = m_histogramPosMean + 2.5 * m_histogramPosStdDev;
+}
+
+///
+/// Rotate the camera about the focal point by an angle.  The
+/// default position has the left side of the left hemisphere facing
+/// the camera.
+///
+void RenderPanel::AzimuthCamera(double angle)
+{
+    m_camera->Azimuth(angle);
+    Render();
+}
+
 ///////////////////////////////////////////////////////////////////////////////////
-//  
+//
 //  wxWidgets Handlers
 //
 //
@@ -169,7 +194,7 @@ void RenderPanel::OnSize(wxSizeEvent& event)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-//  
+//
 //  Public Methods
 //
 //
@@ -279,44 +304,87 @@ void RenderPanel::ShowCurvature(bool enable)
 {
     if (enable && m_surface != NULL)
     {
+        //
+        //	This code is doing three things:
+        //		1.  Computing an overall histogram for the curvatures that
+        //			is used for rendering the histogram graph.
+        //		2.  Computing a histogram for the positive lobe of the curvatures
+        //		3.  Computing a histogram for the negative lobe of the curvatures.
+        //
+        //	The positive and negative lobes are used to compute automatic points
+        //	for initializing the histogram range min/max.
+        //
         vtkSmartPointer<vtkFloatArray> curvs = vtkSmartPointer<vtkFloatArray>::New();
+        vtkSmartPointer<vtkFloatArray> posCurvs = vtkSmartPointer<vtkFloatArray>::New();
+        vtkSmartPointer<vtkFloatArray> negCurvs = vtkSmartPointer<vtkFloatArray>::New();
+        int numPosCurvs = 0, numNegCurvs = 0;
+
         curvs->Allocate( m_surface->nvertices );
         curvs->SetNumberOfComponents( 1 );
+        posCurvs->Allocate( m_surface->nvertices );
+        posCurvs->SetNumberOfComponents( 1 );
+        negCurvs->Allocate( m_surface->nvertices );
+        negCurvs->SetNumberOfComponents( 1 );
+
         for ( int vno = 0; vno < m_surface->nvertices; vno++ )
         {
             curvs->InsertNextValue( m_surface->vertices[vno].curv );
+            if ( m_surface->vertices[vno].curv >= 0.0 )
+            {
+                posCurvs->InsertNextValue( m_surface->vertices[vno].curv );
+                numPosCurvs++;
+            }
+            else
+            {
+                negCurvs->InsertNextValue( m_surface->vertices[vno].curv );
+                numNegCurvs++;
+            }
         }
         m_mesh->GetPointData()->SetScalars( curvs );
 
-        // Compute a histogram for the curvs values
-        vtkSmartPointer<vtkImageData> curvData = vtkSmartPointer<vtkImageData>::New();
-        vtkSmartPointer<vtkImageImport> curvImport = vtkSmartPointer<vtkImageImport>::New();
+        double range[2], negRange[2], posRange[2];
 
-        curvImport->SetDataOrigin(0, 0, 0);
-        curvImport->SetWholeExtent(0, m_surface->nvertices - 1, 0, 0, 0, 0);
-        curvImport->SetDataExtentToWholeExtent();
-        curvImport->SetDataScalarTypeToFloat();
-        curvImport->SetNumberOfScalarComponents(1);
-        curvImport->SetImportVoidPointer(curvs->GetPointer(0));
+        vtkSmartPointer<vtkImageAccumulate> histogram,
+        posHistogram,
+        negHistogram;
 
-        vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
-        extract->SetInputConnection( curvImport->GetOutputPort() );
-        extract->SetComponents( 0 );
-        extract->Update();
 
-        double range[2];
-        extract->GetOutput()->GetScalarRange(range);
+        histogram = ComputeHistogram(curvs, m_surface->nvertices, range);
 
-        vtkSmartPointer<vtkImageAccumulate> histogram = vtkSmartPointer<vtkImageAccumulate>::New();
-        histogram->SetInputConnection( extract->GetOutputPort() );
-        histogram->SetComponentExtent( 0, 255,0,0,0,0 );
-        histogram->SetComponentOrigin( range[0],0,0 );
-        histogram->SetComponentSpacing( (range[1] - range[0]) / 255.0f, 0, 0 );
-        histogram->Update();
+
+        // Compute the mean/std. dev of the postive and negative lobes
+        if (numPosCurvs > 0)
+        {
+            posHistogram = ComputeHistogram(posCurvs, numPosCurvs, posRange);
+            m_histogramPosMean = posHistogram->GetMean()[0];
+            m_histogramPosStdDev = posHistogram->GetStandardDeviation()[0];
+
+        }
+        else
+        {
+            m_histogramPosMean = 0.0f;
+            m_histogramPosStdDev = 0.0f;
+        }
+
+        if (numNegCurvs > 0)
+        {
+            negHistogram = ComputeHistogram(negCurvs, numNegCurvs, negRange);
+            m_histogramNegMean = negHistogram->GetMean()[0];
+            m_histogramNegStdDev = negHistogram->GetStandardDeviation()[0];
+        }
+        else
+        {
+            m_histogramNegMean = 0.0f;
+            m_histogramNegStdDev = 0.0f;
+        }
 
         m_histogramMaxY = histogram->GetOutput()->GetScalarRange()[1];
 
-        SetHistogramMinMaxLines(range[0], range[1]);
+        // Automatically set the histogram min/max
+        float minVal, maxVal;
+        GetHistogramAutoRange (minVal, maxVal);
+        SetHistogramMinMaxLines (minVal, maxVal);
+
         m_histogramPlot->RemoveAllInputs();
         m_histogramPlot->AddInput(m_histogramMinLine);
         m_histogramPlot->AddInput(m_histogramMaxLine);
@@ -395,5 +463,48 @@ void RenderPanel::ShowHistogram(bool enabled)
     }
 
     Render();
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+//
+//  Protected Methods
+//
+//
+
+///
+///	Given a buffer of scalar values, compute a histogram
+/// using VTK
+///
+vtkSmartPointer<vtkImageAccumulate>
+RenderPanel::ComputeHistogram(vtkSmartPointer<vtkFloatArray> scalars,
+                              int numScalars,
+                              double range[2])
+{
+    // Compute a histogram for the curvs values
+    vtkSmartPointer<vtkImageData> scalarData = vtkSmartPointer<vtkImageData>::New();
+    vtkSmartPointer<vtkImageImport> scalarImport = vtkSmartPointer<vtkImageImport>::New();
+
+    scalarImport->SetDataOrigin(0, 0, 0);
+    scalarImport->SetWholeExtent(0, numScalars - 1, 0, 0, 0, 0);
+    scalarImport->SetDataExtentToWholeExtent();
+    scalarImport->SetDataScalarTypeToFloat();
+    scalarImport->SetNumberOfScalarComponents(1);
+    scalarImport->SetImportVoidPointer(scalars->GetPointer(0));
+
+    vtkSmartPointer<vtkImageExtractComponents> extract = vtkSmartPointer<vtkImageExtractComponents>::New();
+    extract->SetInputConnection( scalarImport->GetOutputPort() );
+    extract->SetComponents( 0 );
+    extract->Update();
+
+    extract->GetOutput()->GetScalarRange(range);
+
+    vtkSmartPointer<vtkImageAccumulate> histogram = vtkSmartPointer<vtkImageAccumulate>::New();
+    histogram->SetInputConnection( extract->GetOutputPort() );
+    histogram->SetComponentExtent( 0,255,0,0,0,0 );
+    histogram->SetComponentOrigin( range[0],0,0 );
+    histogram->SetComponentSpacing( (range[1] - range[0]) / 255.0f, 0, 0 );
+    histogram->Update();
+
+    return histogram;
 }
 

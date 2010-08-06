@@ -2,11 +2,11 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:38:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/06 14:23:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -30,10 +30,10 @@
 #include <wx/filename.h>
 #include <wx/aboutdlg.h>
 
-static char vcid[] = "$Id: MainWindow.cpp,v 1.1 2010/08/04 20:38:52 ginsburg Exp $";
+static char vcid[] = "$Id: MainWindow.cpp,v 1.2 2010/08/06 14:23:57 ginsburg Exp $";
 
 ///////////////////////////////////////////////////////////////////////////////////
-//  
+//
 //  Constructor/Destructor
 //
 //
@@ -75,7 +75,7 @@ MainWindow::MainWindow( wxWindow* parent ) :
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-//  
+//
 //  wxWidgets Handlers
 //
 //
@@ -175,7 +175,7 @@ void MainWindow::OnClose( wxCloseEvent& event )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-//  
+//
 //  Protected Methods
 //
 //
@@ -202,7 +202,7 @@ void MainWindow::LoadSurface(const wxString& filePath)
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
-//  
+//
 //  Public Methods
 //
 //
@@ -229,6 +229,22 @@ void MainWindow::RunScript()
         {
             CommandScreenCapture( sa );
         }
+        else if ( sa[0] == _("decimationLevel") )
+        {
+            CommandDecimationLevel( sa );
+        }
+        else if ( sa[0] == _("curvature") )
+        {
+            CommandCurvature( sa );
+        }
+        else if ( sa[0] == _("filesave") )
+        {
+            CommandFileSave( sa );
+        }
+        else if ( sa[0] == _("rotate") )
+        {
+            CommandCameraRotate( sa );
+        }
         else if ( sa[0] == _("quit") || sa[0] == _("exit") )
         {
             Close();
@@ -244,5 +260,58 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 
 void MainWindow::CommandScreenCapture( const wxArrayString& cmd )
 {
+    m_renderPanel->ShowHistogram( false );
     m_renderPanel->SaveScreenshot( cmd[1] );
 }
+
+void MainWindow::CommandDecimationLevel( const wxArrayString& sa )
+{
+    double dValue;
+    if ( sa[1].ToDouble( &dValue ) )
+    {
+        if ( dValue > 1.0 )
+        {
+            dValue = 1.0;
+        }
+        if ( dValue < 0.0 )
+        {
+            dValue = 0.0;
+        }
+        m_decimatePanel->UpdateDecimationLevel( (float) dValue );
+    }
+    else
+    {
+        std::cerr << "Decimation level is not valid." << endl;
+    }
+}
+
+void MainWindow::CommandCurvature( const wxArrayString& sa )
+{
+    if (!m_decimatePanel->UpdateCurvature( sa[1] ) )
+    {
+        std::cerr << "Unknown curvature type: " << sa[1] << endl;
+    }
+}
+
+void MainWindow::CommandFileSave( const wxArrayString& sa )
+{
+    if (m_decimatePanel->SaveDecimatedSurface(sa[1].c_str()) != 0)
+    {
+        std::cerr << "Error saving decimated surface to file: " << sa[1] << endl;
+    }
+}
+
+void MainWindow::CommandCameraRotate( const wxArrayString& sa )
+{
+    double dValue;
+    if ( sa[1].ToDouble( &dValue ) )
+    {
+        m_renderPanel->AzimuthCamera( dValue );
+    }
+    else
+    {
+        std::cerr << "Camera rotate angle is not valid." << endl;
+    }    
+}
+
+

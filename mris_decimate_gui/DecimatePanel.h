@@ -2,11 +2,11 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:38:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/06 14:23:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -56,6 +56,8 @@ public:
     void ResetToDefault();
     DECIMATION_OPTIONS GetDecimationOptions() const;
     void DoDecimate();
+    void UpdateDecimationLevel(float val);
+    bool UpdateCurvature( const wxString& curvature );
 
 protected:
     typedef enum
@@ -96,6 +98,7 @@ protected:
     RenderPanel *m_renderPanel;
     MRI_SURFACE *m_origSurface;
     MRI_SURFACE *m_decimatedSurface;
+    wxString m_curvatureTypes[e_numCurvTypes];
     float m_decimationLevel;
     float m_minimumAngle;
     float m_minimumValue;

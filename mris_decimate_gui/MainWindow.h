@@ -2,11 +2,11 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:38:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/06 14:23:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -54,6 +54,10 @@ protected:
 
     void CommandLoadSurface( const wxArrayString& sa );
     void CommandScreenCapture( const wxArrayString& sa );
+    void CommandDecimationLevel( const wxArrayString& sa );
+    void CommandCurvature( const wxArrayString& sa );
+    void CommandFileSave( const wxArrayString& sa );
+    void CommandCameraRotate( const wxArrayString& sa );
 
     void LoadSurface(const wxString& filePath);
 

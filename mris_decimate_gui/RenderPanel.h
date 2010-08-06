@@ -2,11 +2,11 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:38:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/06 14:23:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -50,6 +50,7 @@
 #include <vtkSmartPointer.h>
 #include <vtkProperty.h>
 #include <vtkXYPlotActor.h>
+#include <vtkImageAccumulate.h>
 
 #include "wxVTKRenderWindowInteractor.h"
 
@@ -84,8 +85,30 @@ public:
 
     void ShowHistogram(bool enable);
 
+    ///
+    /// Automatically determine the min/max values to use for the
+    ///	histogram based on the mean/std. dev. of the positive and
+    /// negative lobes of the curvature histograms.
+    ///
+    void GetHistogramAutoRange(float& minVal, float &maxVal) const;
+
+    ///
+    /// Rotate the camera about the focal point by an angle.  The
+    /// default position has the left side of the left hemisphere facing
+    /// the camera.
+    ///
+    void AzimuthCamera(double angle);
 
 protected:
+
+    ///
+    ///	Given a buffer of scalar values, compute a histogram
+    /// using VTK
+    ///
+    vtkSmartPointer<vtkImageAccumulate> ComputeHistogram(vtkSmartPointer<vtkFloatArray> scalars,
+            int numScalars,
+            double range[2]);
+
     vtkPolyData *m_mesh;
     vtkActor *m_polyActor;
     vtkPolyDataMapper *m_polyMapper;
@@ -97,6 +120,10 @@ protected:
     vtkPolyData *m_histogramMaxLine;
     float m_histogramMaxY;
 
+    float m_histogramPosMean;
+    float m_histogramPosStdDev;
+    float m_histogramNegMean;
+    float m_histogramNegStdDev;
 
     MRI_SURFACE *m_surface;
 

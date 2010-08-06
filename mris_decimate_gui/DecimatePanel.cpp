@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/05 15:59:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/06 14:23:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -72,31 +72,28 @@ void DecimateProgressCallback(float percent, const char *msg, void *userData)
 /// Constructor
 ///
 DecimatePanel::DecimatePanel( wxWindow* parent, RenderPanel *renderPanel) :
-        DecimatePanelBase( parent ),
-        m_renderPanel(renderPanel),
-        m_origSurface(NULL),
-        m_decimatedSurface(NULL),
-        m_lastSaveDir(NULL)
+    DecimatePanelBase( parent ),
+    m_renderPanel(renderPanel),
+    m_origSurface(NULL),
+    m_decimatedSurface(NULL),
+    m_lastSaveDir(NULL)
 {
-    const wxString curvTypes[e_numCurvTypes] =
-    {
-        wxT("None"),
-        wxT("Gaussian"),
-        wxT("Mean"),
-        wxT("K1"),
-        wxT("K2"),
-        wxT("S"),
-        wxT("C"),
-        wxT("SI"),
-        wxT("BE"),
-        wxT("FI")
-    };
+    m_curvatureTypes[e_None] = "None";
+    m_curvatureTypes[e_Gaussian] = "Gaussian";
+    m_curvatureTypes[e_Mean] = "Mean";
+    m_curvatureTypes[e_K1] = "K1";
+    m_curvatureTypes[e_K2] = "K2";
+    m_curvatureTypes[e_S] = "S";
+    m_curvatureTypes[e_C] = "C";
+    m_curvatureTypes[e_SI] = "SI";
+    m_curvatureTypes[e_BE] = "BE";
+    m_curvatureTypes[e_FI] = "FI";
 
     ResetToDefault();
 
     for (int i = 0; i < (int)e_numCurvTypes; i++)
     {
-        m_curvatureChoice->Append(curvTypes[i]);
+        m_curvatureChoice->Append(m_curvatureTypes[i]);
     }
     m_curvatureChoice->Select(0);
 
@@ -148,7 +145,7 @@ DECIMATION_OPTIONS DecimatePanel::GetDecimationOptions() const
 void DecimatePanel::DoDecimate()
 {
     wxProgressDialog *progress = new wxProgressDialog("Decimation Progress",
-            "Loading Surface...", 100, this);
+        "Loading Surface...", 100, this);
     progress->SetSize(300, 100);
 
     if (m_decimatedSurface != NULL)
@@ -163,9 +160,9 @@ void DecimatePanel::DoDecimate()
     m_renderPanel->SetSurface(m_decimatedSurface);
 
     wxString stats = wxString::Format("Decimated Surface Statistics:\n"
-                                      "Triangles: %d\n"
-                                      "Vertices: %d\n", m_decimatedSurface->nfaces,
-                                      m_decimatedSurface->nvertices);
+        "Triangles: %d\n"
+        "Vertices: %d\n", m_decimatedSurface->nfaces,
+        m_decimatedSurface->nvertices);
     m_decimatedStatsText->SetLabel(stats);
 
     SetCurvatureType(m_curvatureChoice->GetSelection());
@@ -180,9 +177,9 @@ void DecimatePanel::SetOrigSurface(MRI_SURFACE *origSurface)
     if (m_origSurface != NULL)
     {
         wxString stats = wxString::Format("Original Surface Statistics:\n"
-                                          "Triangles: %d\n"
-                                          "Vertices: %d\n", m_origSurface->nfaces,
-                                          m_origSurface->nvertices);
+            "Triangles: %d\n"
+            "Vertices: %d\n", m_origSurface->nfaces,
+            m_origSurface->nvertices);
         m_origStatsText->SetLabel(stats);
     }
     else
@@ -201,6 +198,43 @@ int DecimatePanel::SaveDecimatedSurface(const char* filePath)
     FileNameAbsolute(filePath, outFpath);
     return MRISwrite(m_decimatedSurface, outFpath);
 }
+
+///
+///	Update the decimation level internally along with on the GUI
+///
+void DecimatePanel::UpdateDecimationLevel(float val)
+{
+    int maxLevel = m_decimationLevelSlider->GetMax();
+    int minLevel = m_decimationLevelSlider->GetMin();
+    int valToSet = ((int)(val * (float) (maxLevel - minLevel))) + minLevel;
+    m_decimationLevelSlider->SetValue( valToSet );
+    SetDecimationLevel( val );
+    m_defaultButton->Enable();
+}
+
+///
+///	Update the curvature type by name.  Returns true if it is a known
+///	curvature type or false if it is not found
+///
+bool DecimatePanel::UpdateCurvature( const wxString& curvature )
+{
+    for (int i = 0; i < (int)e_numCurvTypes; i++)
+    {
+        if (m_curvatureTypes[i].Lower() == curvature.Lower())
+        {
+            m_curvatureChoice->Select(i);
+            SetCurvatureType(i);
+            return true;
+        }
+    }
+
+    return false;
+}
+///////////////////////////////////////////////////////////////////////////////////
+//  
+//  Protected Methods
+//
+//
 
 ///
 /// Set the level of decimation
@@ -269,46 +303,46 @@ void DecimatePanel::SetCurvatureType(int type)
 
         switch (type)
         {
-        case e_Gaussian:
-            ret = MRISuseGaussianCurvature(m_decimatedSurface);
-            break;
-        case e_Mean:
-            ret = MRISuseMeanCurvature(m_decimatedSurface);
-            break;
-        case e_K1:
-            ret = MRISuseK1Curvature(m_decimatedSurface);
-            break;
-        case e_K2:
-            ret = MRISuseK2Curvature(m_decimatedSurface);
-            break;
-        case e_S:
-            ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
-                                                    f_sharpnessCurvature);
-            break;
-        case e_C:
-            ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
-                                                    f_curvednessCurvature);
-            break;
-        case e_BE:
-            ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
-                                                    f_bendingEnergyCurvature);
-            break;
-        case e_SI:
-            ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
-                                                    f_shapeIndexCurvature);
-            break;
-        case e_FI:
-            ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
-                                                    f_foldingIndexCurvature);
-            break;
-        default:
-            m_renderPanel->ShowCurvature(false);
-            m_saveCurvatureButton->Disable();
-            m_minValueSlider->Disable();
-            m_maxValueSlider->Disable();
-            m_histogramCheckBox->Disable();
-            m_renderPanel->ShowHistogram(false);
-            return;
+            case e_Gaussian:
+                ret = MRISuseGaussianCurvature(m_decimatedSurface);
+                break;
+            case e_Mean:
+                ret = MRISuseMeanCurvature(m_decimatedSurface);
+                break;
+            case e_K1:
+                ret = MRISuseK1Curvature(m_decimatedSurface);
+                break;
+            case e_K2:
+                ret = MRISuseK2Curvature(m_decimatedSurface);
+                break;
+            case e_S:
+                ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
+                    f_sharpnessCurvature);
+                break;
+            case e_C:
+                ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
+                    f_curvednessCurvature);
+                break;
+            case e_BE:
+                ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
+                    f_bendingEnergyCurvature);
+                break;
+            case e_SI:
+                ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
+                    f_shapeIndexCurvature);
+                break;
+            case e_FI:
+                ret = MRISusePrincipalCurvatureFunction(m_decimatedSurface,
+                    f_foldingIndexCurvature);
+                break;
+            default:
+                m_renderPanel->ShowCurvature(false);
+                m_saveCurvatureButton->Disable();
+                m_minValueSlider->Disable();
+                m_maxValueSlider->Disable();
+                m_histogramCheckBox->Disable();
+                m_renderPanel->ShowHistogram(false);
+                return;
         }
 
         float minVal = 100000.0f;
@@ -330,14 +364,32 @@ void DecimatePanel::SetCurvatureType(int type)
         m_renderPanel->ShowCurvature(true);
         m_minimumValue = minVal;
         m_maximumValue = maxVal;
-        SetMinValue(minVal);
-        SetMaxValue(maxVal);
-        m_minValueSlider->SetValue(m_minValueSlider->GetMin());
-        m_maxValueSlider->SetValue(m_minValueSlider->GetMax());
 
-        m_renderPanel->SetMinMaxCurvatureRange(minVal, maxVal);
+        // Set the min/max based on the automatic analysis of the histogram
+        float autoMinVal,
+        autoMaxVal;
+        m_renderPanel->GetHistogramAutoRange( autoMinVal, autoMaxVal );
+        SetMinValue(autoMinVal);
+        SetMaxValue(autoMaxVal);
         m_minValueSlider->Enable();
         m_maxValueSlider->Enable();
+
+
+        // Adjust the slider to the automatic value
+        if ((m_maximumValue - m_minimumValue) != 0.0)
+        {
+            float sliderMinVal = (autoMinVal - m_minimumValue) / (m_maximumValue - m_minimumValue);
+            float sliderMaxVal = (autoMaxVal - m_minimumValue) / (m_maximumValue - m_minimumValue);
+
+            float sliderMinRange = m_minValueSlider->GetMax() - m_minValueSlider->GetMin();
+            float sliderMaxRange = m_maxValueSlider->GetMax() - m_maxValueSlider->GetMin();
+
+            m_minValueSlider->SetValue( (int)(sliderMinVal * sliderMinRange) + m_minValueSlider->GetMin() );
+            m_maxValueSlider->SetValue( (int)(sliderMaxVal * sliderMaxRange) + m_maxValueSlider->GetMin() );
+
+        }
+
+        m_renderPanel->SetMinMaxCurvatureRange(autoMinVal, autoMaxVal);
         m_histogramCheckBox->Enable();
         m_renderPanel->ShowHistogram(m_histogramCheckBox->GetValue() == 0 ? false : true);
 
@@ -438,7 +490,7 @@ void DecimatePanel::OnSaveCurvatureClick( wxCommandEvent& event )
         if (MRISwriteCurvature(m_decimatedSurface, currentFilePath) != 0)
         {
             wxMessageBox(wxString::Format("ERROR: Saving file '%s'", currentFilePath.c_str()),
-                         "ERROR");
+                "ERROR");
         }
     }
 }

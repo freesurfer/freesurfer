@@ -9,8 +9,8 @@
  * Original Author: Dan Ginsburg
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:38:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/06 14:23:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -82,6 +82,10 @@ bool MainApp::OnInit()
     {
         CmdLineEntry( CMD_LINE_OPTION, "f", "surface", "<FILE>", "Load a surface file on startup.", 1, 1 ),
         CmdLineEntry( CMD_LINE_OPTION, "ss", "screenshot", "<PNG_FILE>", "Take a screen shot (.png) of the viewport and then quit the program.", 1, 1 ),
+        CmdLineEntry( CMD_LINE_OPTION, "d", "decimationLevel", "<level>", "Decimation level between (0, 1.0) to apply to surface.", 1, 1 ),
+        CmdLineEntry( CMD_LINE_OPTION, "c", "curvature", "<curvatureName>", "Curvature name, can be: (None, Gaussian, Mean, K1, K2, S, C, SI, BE, or FI)", 1, 1),
+        CmdLineEntry( CMD_LINE_OPTION, "fs", "filesave", "<FILE>", "Save decimated surface to a file.", 1, 1 ),
+        CmdLineEntry( CMD_LINE_OPTION, "r", "rotate", "<angle>", "Rotate (azimuth) the camera <angle> degrees from its initial angle.  Useful for screenshots.", 1, 1),
         CmdLineEntry( CMD_LINE_NONE )
     };
 
@@ -96,11 +100,42 @@ bool MainApp::OnInit()
 
     string_array sa;
 
+    if ( cmd.Found( "d", &sa ) )
+    {
+        wxArrayString script;
+        script.Add( _( "decimationLevel" ) );
+        script.Add( wxString::FromAscii(sa[0].c_str()) );
+        m_wndMain->AddScript( script );
+    }
 
     if ( cmd.Found( "f", &sa ) )
     {
         wxArrayString script;
         script.Add( _( "loadsurface" ) );
+        script.Add( wxString::FromAscii(sa[0].c_str()) );
+        m_wndMain->AddScript( script );
+    }
+
+    if ( cmd.Found( "r", &sa ) )
+    {
+        wxArrayString script;
+        script.Add( _( "rotate" ) );
+        script.Add( wxString::FromAscii(sa[0].c_str()) );
+        m_wndMain->AddScript( script );
+    }
+
+    if ( cmd.Found( "c", &sa ) )
+    {
+        wxArrayString script;
+        script.Add( _( "curvature" ) );
+        script.Add( wxString::FromAscii(sa[0].c_str()) );
+        m_wndMain->AddScript( script );
+    }
+
+    if ( cmd.Found( "fs", &sa ) )
+    {
+        wxArrayString script;
+        script.Add( _( "filesave" ) );
         script.Add( wxString::FromAscii(sa[0].c_str()) );
         m_wndMain->AddScript( script );
     }
