@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/08/04 17:43:39 $
- *    $Revision: 1.87 $
+ *    $Author: nicks $
+ *    $Date: 2010/08/06 00:20:34 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.87 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.88 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -50,7 +50,10 @@ const char *MRI_WATERSHED_VERSION = "$Revision: 1.87 $";
 #include "chronometer.hpp"
 #endif
 
+#ifndef powerpc
 #define USE_SSE
+#endif
+
 #ifdef USE_SSE
 #include "affine.hpp"
 #include "affine.h"
@@ -882,7 +885,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.87 2010/08/04 17:43:39 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.88 2010/08/06 00:20:34 nicks Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -895,7 +898,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.87 2010/08/04 17:43:39 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.88 2010/08/06 00:20:34 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

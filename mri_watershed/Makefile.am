@@ -2,7 +2,7 @@
 ## Makefile.am 
 ##
 
-AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CXXFLAGS=-I$(top_srcdir)/include -D$(target_cpu)
 AM_LDFLAGS=
 
 bin_PROGRAMS = mri_watershed  mri_validate_skull_stripped
@@ -15,7 +15,6 @@ mri_validate_skull_stripped_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_validate_skull_stripped_LDFLAGS=$(OS_LDFLAGS)
 
 SUBDIRS=brain_volume
-
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
