@@ -182,6 +182,7 @@ FSF_FILES=\
 	paint-sess \
 	paint-sess-new \
 	par2fsl \
+	par2fsl3 \
 	par2kspar \
 	par2schedule \
 	par2stf \
