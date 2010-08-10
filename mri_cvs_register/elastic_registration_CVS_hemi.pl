@@ -30,6 +30,7 @@ my $refVol = "";
 my $settingsFile = "";
 my $dbgOut = 0;
 my $usePial = 0;
+my $useMpi = 0;
 
 GetOptions ( "moving=s" => \$vol,
 	     "fixed=s" => \$refVol,
@@ -37,6 +38,7 @@ GetOptions ( "moving=s" => \$vol,
 	     "pial" => \$usePial,
 	     "dbgOut" => \$dbgOut,
 	     "exe=s" => \$exeFile,
+	     "mpi" => \$useMpi,
 	   );
 
 if ( length $vol == 0 or
@@ -105,6 +107,9 @@ $surf_pial = "$outDir/$hemi.$surfResample.pial";
 my $hash = &getConfig( conf_file => "$settingsFile" );
 
 # populate values
+if ( exists $$hash{ksp_rtol} ) { $kspRtol = $$hash{ksp_rtol}; }
+else { $kspRtol = 10; }
+
 if ( exists $$hash{weight} ) { $weight = $$hash{weight}; }
 else { $weight = 1; }
 
@@ -129,7 +134,16 @@ if ( (not -e "$outElastic") or $overwrite )
 #    $cmdSurfWhite_lh = "-fixed_surf $refSurf_lh_white   -moving_surf $surf_lh_white";
 #    $cmdSurfWhite_rh = "-fixed_surf_2 $refSurf_rh_white -moving_surf_2 $surf_rh_white";
     $cmdSurfWhite = "-fixed_surf $refSurf_white   -moving_surf $surf_white";
-    $cmdOptions = "-lin_res 20 -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
+
+    if ( $useMpi )
+      {
+        $cmdOptions = "-lin_res 20 -ksp_rtol 1.0e-$kspRtol -cache_transform $outDir/transform.txt -penalty_weight $weight $mpiOtherOptions";
+      }
+    else
+      {
+        $cmdOptions = "-lin_res 20 -ksp_rtol 1.0e-$kspRtol -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
+      }
+
     $cmdOut = "-out $outElastic -out_surf $outDir/${surfRoot}_to${refVol} -out_mesh $outDir/${outRoot}_to${refVol}";
     if ( $dbgOut )
       {

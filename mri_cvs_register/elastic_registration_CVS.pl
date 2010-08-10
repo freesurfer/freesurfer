@@ -29,6 +29,7 @@ my $refVol = "";
 my $settingsFile = "";
 my $dbgOut = 0;
 my $usePial = 0;
+my $useMpi = 0;
 
 GetOptions ( "moving=s" => \$vol,
 	     "fixed=s" => \$refVol,
@@ -36,6 +37,7 @@ GetOptions ( "moving=s" => \$vol,
 	     "pial" => \$usePial,
 	     "dbgOut" => \$dbgOut,
 	     "exe=s" => \$exeFile,
+	     "mpi" => \$useMpi,
 	   );
 
 if ( length $vol == 0 or
@@ -98,6 +100,9 @@ $surf_rh_pial = "$outDir/rh.$surfResample.pial";
 my $hash = &getConfig( conf_file => "$settingsFile" );
 
 # populate values
+if ( exists $$hash{ksp_rtol} ) { $kspRtol = $$hash{ksp_rtol}; }
+else { $kspRtol = 10; }
+
 if ( exists $$hash{weight} ) { $weight = $$hash{weight}; }
 Belse { $weight = 1; }
 
@@ -113,6 +118,9 @@ else { $overwrite = 0; }
 if ( exists $$hash{options} ) { $otherOptions = $$hash{options}; }
 else { $otherOptions = " "; }
 
+if ( exists $$hash{mpioptions} ) { $mpiOtherOptions = $$hash{mpioptions}; }
+else { $mpiOtherOptions = " "; }
+
 $outElastic = "$outDir/${outRoot}_to${refVol}.mgz";
 if ( (not -e "$outElastic") or $overwrite )
   {
@@ -120,7 +128,17 @@ if ( (not -e "$outElastic") or $overwrite )
     $cmdAparc = " -aparc $sdir/$refVol/label/lh.$annotFile -aparc_2 $sdir/$refVol/label/rh.$annotFile";
     $cmdSurfWhite_lh = "-fixed_surf $refSurf_lh_white   -moving_surf $surf_lh_white";
     $cmdSurfWhite_rh = "-fixed_surf_2 $refSurf_rh_white -moving_surf_2 $surf_rh_white";
-    $cmdOptions = "-lin_res 20 -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
+
+
+    if ( $useMpi )
+      {
+        $cmdOptions = "-lin_res 20 -ksp_rtol 1.0e-$kspRtol -cache_transform $outDir/transform.txt -penalty_weight $weight $mpiOtherOptions";
+      }
+    else
+      {
+        $cmdOptions = "-lin_res 20 -ksp_rtol 1.0e-$kspRtol -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
+      }
+
     $cmdOut = "-out $outElastic -out_surf $outDir/${surfRoot}_to${refVol} -out_mesh $outDir/${outRoot}_to${refVol}";
     if ( $dbgOut )
       {
