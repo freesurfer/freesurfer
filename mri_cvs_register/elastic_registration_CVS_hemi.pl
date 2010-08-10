@@ -49,7 +49,7 @@ if ( length $vol == 0 or
 	" pial - use pial surfaces\n" .
 	  " cpus <n> - number of CPUs to use\n" .
 	    " no_mpi - option NOT to use MPI\n";
-    exit 1;
+    exit 1;B
   }
 
 
@@ -105,9 +105,6 @@ $surf_pial = "$outDir/$hemi.$surfResample.pial";
 my $hash = &getConfig( conf_file => "$settingsFile" );
 
 # populate values
-if ( exists $$hash{ksp_rtol} ) { $kspRtol = $$hash{ksp_rtol}; }
-else { $kspRtol = 10; }
-
 if ( exists $$hash{weight} ) { $weight = $$hash{weight}; }
 else { $weight = 1; }
 
@@ -132,7 +129,7 @@ if ( (not -e "$outElastic") or $overwrite )
 #    $cmdSurfWhite_lh = "-fixed_surf $refSurf_lh_white   -moving_surf $surf_lh_white";
 #    $cmdSurfWhite_rh = "-fixed_surf_2 $refSurf_rh_white -moving_surf_2 $surf_rh_white";
     $cmdSurfWhite = "-fixed_surf $refSurf_white   -moving_surf $surf_white";
-    $cmdOptions = "-lin_res 20 -ksp_rtol 1.0e-$kspRtol -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
+    $cmdOptions = "-lin_res 20 -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
     $cmdOut = "-out $outElastic -out_surf $outDir/${surfRoot}_to${refVol} -out_mesh $outDir/${outRoot}_to${refVol}";
     if ( $dbgOut )
       {

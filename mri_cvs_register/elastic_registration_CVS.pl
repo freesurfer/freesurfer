@@ -69,7 +69,7 @@ my $cmdLine;
 print " =====================\n processing brain $vol\n========================\n";
 print " =====================\n template brain $refVol\n========================\n";
 
-#my $outPath = "$sdir/$vol";
+#my $oAutPath = "$sdir/$vol";
 ## make sure out dir exists
 #if (not -d $outPath)
 #  {
@@ -98,11 +98,8 @@ $surf_rh_pial = "$outDir/rh.$surfResample.pial";
 my $hash = &getConfig( conf_file => "$settingsFile" );
 
 # populate values
-if ( exists $$hash{ksp_rtol} ) { $kspRtol = $$hash{ksp_rtol}; }
-else { $kspRtol = 10; }
-
 if ( exists $$hash{weight} ) { $weight = $$hash{weight}; }
-else { $weight = 1; }
+Belse { $weight = 1; }
 
 if ( exists $$hash{out_root} ) { $outRoot = $$hash{out_root}; }
 else { $outRoot = "out_root"; }
@@ -123,7 +120,7 @@ if ( (not -e "$outElastic") or $overwrite )
     $cmdAparc = " -aparc $sdir/$refVol/label/lh.$annotFile -aparc_2 $sdir/$refVol/label/rh.$annotFile";
     $cmdSurfWhite_lh = "-fixed_surf $refSurf_lh_white   -moving_surf $surf_lh_white";
     $cmdSurfWhite_rh = "-fixed_surf_2 $refSurf_rh_white -moving_surf_2 $surf_rh_white";
-    $cmdOptions = "-lin_res 20 -ksp_rtol 1.0e-$kspRtol -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
+    $cmdOptions = "-lin_res 20 -cache_transform $outDir/transform.txt -penalty_weight $weight $otherOptions";
     $cmdOut = "-out $outElastic -out_surf $outDir/${surfRoot}_to${refVol} -out_mesh $outDir/${outRoot}_to${refVol}";
     if ( $dbgOut )
       {
