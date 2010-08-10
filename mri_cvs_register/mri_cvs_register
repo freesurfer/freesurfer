@@ -10,7 +10,7 @@
 # Edited : 12-11-2009
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.5 2010/07/19 20:06:59 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.6 2010/08/10 18:48:06 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -72,7 +72,7 @@ uname -a |& tee -a $LF
 set voltype = norm
 set annotfile = aparc.annot
 set cvsdir =  $FREESURFER_HOME/bin
-set settingsfile = $cvsdir/set-mpi17-3.txt
+set settingsfile = $cvsdir/settings.txt
 
 ### Creating outputdir
 echo The outdir:
