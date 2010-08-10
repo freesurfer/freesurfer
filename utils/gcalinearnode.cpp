@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/05 18:25:33 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/08/10 18:55:44 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -122,16 +122,6 @@ namespace Freesurfer {
 
     this->tInhume.Start();
 
-    if( (this->xDim!=dst->node_width) ||
-	(this->yDim!=dst->node_height) ||
-	(this->zDim!=dst->node_depth) ) {
-      cerr << __FUNCTION__
-	   << ": Volume dimension mismatch!"
-	   << endl;
-      exit( EXIT_FAILURE );
-    }
-
-    
     // Dispose of the old node data
     this->ScorchNodes( dst );
 
@@ -142,7 +132,7 @@ namespace Freesurfer {
     dst->node_height = this->yDim;
     dst->node_depth = this->zDim;
 
-    // Dispose of old node data
+    // Start allocating
     dst->nodes = (GCA_NODE***)calloc( this->xDim, sizeof(GCA_NODE**) );
     if( !(dst->nodes) ) {
       cerr << __FUNCTION__

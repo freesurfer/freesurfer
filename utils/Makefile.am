@@ -235,7 +235,8 @@ libutils_main_SOURCES=\
         chronometerpp.cpp\
         gcamorphtestutils.cpp\
         gcautils.cpp\
-        gcalinearnode.cpp
+        gcalinearnode.cpp\
+        gcalinearprior.cpp
 
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \

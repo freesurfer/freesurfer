@@ -15,6 +15,7 @@ namespace bpo = boost::program_options;
 
 #include "gca.h"
 #include "gcalinearnode.hpp"
+#include "gcalinearprior.hpp"
 
 // ============================================
 
@@ -83,13 +84,16 @@ int main( int argc, char *argv[] ) {
   // =============================
   // Pack GCA into linear format
   Freesurfer::GCAlinearNode myLinearNode;
+  Freesurfer::GCAlinearPrior myLinearPrior;
 
   myLinearNode.Exhume( origGCA );
+  myLinearPrior.Exhume( origGCA );
   cout << "Exhumation complete" << endl;
 
   // =============================
   // Send back to the GCA
   myLinearNode.Inhume( origGCA );
+  myLinearPrior.Inhume( origGCA );
   cout << "Inhumation complete" << endl;
 
   // =============================
@@ -100,6 +104,7 @@ int main( int argc, char *argv[] ) {
   // =============================
 
   myLinearNode.PrintStats();
+  myLinearPrior.PrintStats();
 
   // =============================
   // Free data
