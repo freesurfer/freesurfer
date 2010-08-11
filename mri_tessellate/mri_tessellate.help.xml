@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mri_tessellate</name>
+	<synopsis>mri_tessellate [options] &lt;invol&gt; &lt;labelvalue&gt; &lt;outsurf&gt;</synopsis>
+	<description>This program creates surface by tessellating given input volumeNote: the meaning of the labels can be found in $FREESURFER_HOME/FreeSurferColorLUT.txt</description>
+  <arguments>
+    <positional>
+      <argument>&lt;invol&gt;</argument>
+      <explanation>input volume</explanation>
+      <argument>&lt;labelvalue&gt;</argument>
+      <explanation>integer, if input is filled volume, 127 is rh, 255 is lh</explanation>
+      <argument>&lt;outsurf&gt;</argument>
+      <explanation>binary surface of the tessellation </explanation>
+    </positional>
+    <required_flagged>
+      <intro>None</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-a</argument>
+      <explanation>tessellate the surface of all voxels with different labels</explanation>
+      <argument>-n</argument>
+      <explanation>save surface with real RAS coordinates where c_(r,a,s) != 0</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>outsurf</output>
+    <explanation>surface file, typically ?h.orig</explanation>
+  </outputs>
+	<example>mri_tessellate $SUBJECTS_DIR/subjid/mri/filled 127 rh.orig</example>
+	<example>mri_tessellate $SUBJECTS_DIR/subjid/mri/aseg 17 lh.hippocampus</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>mri_pretess</see_also>
+</help>
