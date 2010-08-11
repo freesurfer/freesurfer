@@ -1,6 +1,10 @@
 #
 # Makefile.am for scripts
 #
+
+foodir=$(prefix)/docs/xml
+foo_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml mri_nu_correct.mni.help.xml
+
 dist_bin_SCRIPTS = \
 aparc2feat \
 aseg2feat \
