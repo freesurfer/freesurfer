@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/27 00:04:10 $
-#    $Revision: 1.22 $
+#    $Date: 2010/08/11 18:44:57 $
+#    $Revision: 1.23 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.22 2010/07/27 00:04:10 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.23 2010/08/11 18:44:57 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -153,7 +153,7 @@ foreach sess ($SessList)
   rm $tmpfile
   if($nframes0 == -1) set nframes0 = $nframes;
   if($nframes != $nframes0) then
-    echo "ERROR: session $sess has $nframes, expecting $nframes0"
+    echo "ERROR: session $sess has $nframes frames, expecting $nframes0 frames."
     exit 1;
   endif
 
