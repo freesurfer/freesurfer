@@ -6,6 +6,9 @@ bin_PROGRAMS = mri_mc mri_pretess mris_extract_main_component
 mri_mc_SOURCES=mri_mc.c
 mri_mc_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_pretess.help.xml mris_extract_main_component.help.xml
+
 # trick to get test data into build dir
 foo_SOURCES=
 foo:
