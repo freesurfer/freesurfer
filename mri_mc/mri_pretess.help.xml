@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mri_pretess</name>
+	<synopsis>mri_pretess [options] filledvol labelstring normvol newfilledvol</synopsis>
+	<description>Changes white matter (WM) segmentation so that the neighbors of all voxels labeled as WM have a face in common - no edges or corners allowed.</description>
+  <arguments>
+    <positional>
+      <argument>filledvol</argument>
+      <explanation>usually wm.mgz</explanation>
+      <argument>labelstring</argument>
+      <explanation>usually wm</explanation>
+      <argument>normvol</argument>
+      <explanation>usually norm.mgz</explanation>
+      <argument>newfilledvol</argument>
+      <explanation>usually wm.mgz</explanation>
+    </positional>
+    <required_flagged>
+      <intro>****************************************************************</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-debug_voxel C R S</argument>
+      <argument>-nocorners</argument>
+      <explanation>no removal of corner configurations in addition to edge ones</explanation>
+      <argument>-w</argument>
+      <explanation>turn on diagnostic writing</explanation>
+      <argument>-keep</argument>
+      <explanation>keep WM edits</explanation>
+      <argument>-test</argument>
+      <explanation>adds a voxel that should be removed by mri_pretess. The value of the voxel is set to that of an ON-edited WM, so it should be kept with -keep. The output will NOT be saved.</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>**********************************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>*********************************************************************************</see_also>
+</help>
