@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_extract_main_component</name>
+	<synopsis>mris_extract_main_component input_surface output_surface</synopsis>
+	<description>************************************************************</description>
+  <arguments>
+    <positional>
+      <argument>input_surface</argument>
+      <argument>output_surface</argument>
+    </positional>
+    <required_flagged>
+      <intro>*******************************************************************</intro>
+    </required_flagged>
+    <optional_flagged>
+      <intro>*******************************************************************</intro>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+      <intro>*******************************************************************</intro>
+  </outputs>
+	<example>*******************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>***************************************************************** </see_also>
+</help>
