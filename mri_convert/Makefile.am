@@ -9,6 +9,9 @@ mri_convert_SOURCES=mri_convert.c
 mri_convert_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_convert_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_convert.help.xml
+
 # trick to get test data into the build directory
 foo_SOURCES=
 foo:
