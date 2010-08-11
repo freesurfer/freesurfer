@@ -8,6 +8,9 @@ AM_FFLAGS=-ffixed-line-length-132 -fno-second-underscore
 # LIB_G2C_A is defined to libg2c.a (static lib) if configure find it
 AM_LDFLAGS=$(LIB_G2C_A)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=talairach_avi.help.xml
+
 LIBS=
 
 foodir=$(prefix)/average

@@ -11,6 +11,9 @@ mris_smooth_SOURCES=mris_smooth.c
 mris_smooth_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_smooth_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_smooth.help.xml
+
 
 
 # Our release target. Include files to be excluded here. They will be

@@ -20,6 +20,9 @@ mris_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	-L$(top_builddir)/tetgen -ltetgen $(LIBS_PETSC)
 mris_register_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_register.help.xml
+
 
 #PETSC if HAVE_PETSC_LIBS
 #PETSC install-exec-hook:

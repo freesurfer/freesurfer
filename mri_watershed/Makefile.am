@@ -14,6 +14,9 @@ mri_validate_skull_stripped_SOURCES=mri_validate_skull_stripped.cpp
 mri_validate_skull_stripped_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_validate_skull_stripped_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_watershed.help.xml
+
 SUBDIRS=brain_volume
 
 # Our release target. Include files to be excluded here. They will be

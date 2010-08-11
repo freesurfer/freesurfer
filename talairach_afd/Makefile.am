@@ -10,6 +10,9 @@ talairach_afd_SOURCES=talairach_afd.c
 talairach_afd_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 talairach_afd_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=talairach_afd.help.xml
+
 # trick to get test data into build dir
 foo_SOURCES=
 foo:

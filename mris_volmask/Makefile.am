@@ -7,6 +7,9 @@ AM_CXXFLAGS=-I$(top_srcdir)/include $(VTK_CXXFLAGS) -Wno-deprecated
 
 bin_PROGRAMS=mris_volmask mris_volmask_novtk
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_volmask.help.xml
+
 if HAVE_VTK_LIBS
 bin_PROGRAMS += mris_volmask_vtk
 mris_volmask_vtk_SOURCES=mris_volmask_old.cpp cmd_line_interface.cpp
