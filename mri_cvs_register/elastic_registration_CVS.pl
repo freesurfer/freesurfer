@@ -104,7 +104,7 @@ if ( exists $$hash{ksp_rtol} ) { $kspRtol = $$hash{ksp_rtol}; }
 else { $kspRtol = 10; }
 
 if ( exists $$hash{weight} ) { $weight = $$hash{weight}; }
-Belse { $weight = 1; }
+else { $weight = 1; }
 
 if ( exists $$hash{out_root} ) { $outRoot = $$hash{out_root}; }
 else { $outRoot = "out_root"; }
