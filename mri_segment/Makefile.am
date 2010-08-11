@@ -11,6 +11,9 @@ mri_segment_SOURCES=mri_segment.c
 mri_segment_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_segment_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_segment.help.xml
+
 
 
 # Our release target. Include files to be excluded here. They will be
