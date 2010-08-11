@@ -11,6 +11,8 @@ mri_remove_neck_SOURCES=mri_remove_neck.c
 mri_remove_neck_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_remove_neck_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_remove_neck.help.xml
 
 
 # Our release target. Include files to be excluded here. They will be

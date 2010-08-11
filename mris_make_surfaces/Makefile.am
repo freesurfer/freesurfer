@@ -22,6 +22,9 @@ mris_exvivo_surfaces_SOURCES=mris_exvivo_surfaces.c
 mris_exvivo_surfaces_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_exvivo_surfaces_LDFLAGS= $(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_make_surfaces.help.xml
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

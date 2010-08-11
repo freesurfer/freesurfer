@@ -10,6 +10,9 @@ mri_aparc2aseg_SOURCES=mri_aparc2aseg.c
 mri_aparc2aseg_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_aparc2aseg_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_aparc2aseg.help.xml
+
 # trick to get test data into the build directory
 foo_SOURCES=
 foo:

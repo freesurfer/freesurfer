@@ -12,6 +12,9 @@ mris_jacobian_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_jacobian_LDFLAGS=$(OS_LDFLAGS)
 
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_jacobian.help.xml
+
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

@@ -11,6 +11,8 @@ mri_normalize_SOURCES=mri_normalize.c
 mri_normalize_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_normalize_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_normalize.help.xml
 
 
 # Our release target. Include files to be excluded here. They will be

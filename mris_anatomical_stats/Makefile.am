@@ -10,6 +10,9 @@ mris_anatomical_stats_SOURCES=mris_anatomical_stats.c
 mris_anatomical_stats_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_anatomical_stats_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_anatomical_stats.help.xml
+
 # trick to get test data into build dir
 foo_SOURCES=
 foo:

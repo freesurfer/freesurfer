@@ -11,6 +11,8 @@ mris_curvature_SOURCES=mris_curvature.c
 mris_curvature_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_curvature_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_curvature.help.xml
 
 
 # Our release target. Include files to be excluded here. They will be

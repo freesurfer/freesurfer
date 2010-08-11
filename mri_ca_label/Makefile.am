@@ -11,7 +11,8 @@ mri_ca_label_SOURCES=mri_ca_label.c
 mri_ca_label_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_ca_label_LDFLAGS=$(OS_LDFLAGS)
 
-
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_ca_label.help.xml
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

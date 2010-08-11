@@ -11,6 +11,9 @@ mri_mask_SOURCES=mri_mask.c
 mri_mask_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_mask_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_mask.help.xml
+
 
 
 # Our release target. Include files to be excluded here. They will be

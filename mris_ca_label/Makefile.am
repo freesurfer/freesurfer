@@ -10,6 +10,9 @@ mris_ca_label_SOURCES=mris_ca_label.c
 mris_ca_label_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_ca_label_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_ca_label.help.xml
+
 # trick to get test data into the build directory
 foo_SOURCES=
 foo:

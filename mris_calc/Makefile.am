@@ -10,5 +10,8 @@ mris_calc_SOURCES=mris_calc.c
 mris_calc_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_calc_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_calc.help.xml
+
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

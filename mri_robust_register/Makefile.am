@@ -5,6 +5,9 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include $(VXL_CFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_robust_template.help.xml
+
 bin_PROGRAMS = mri_robust_register mri_robust_template lta_diff mri_create_tests mri_gradient_info
 mri_robust_register_SOURCES= \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp \

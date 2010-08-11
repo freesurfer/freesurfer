@@ -11,6 +11,9 @@ mrisp_paint_SOURCES=mrisp_paint.c
 mrisp_paint_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mrisp_paint_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mrisp_paint.help.xml
+
 
 
 # Our release target. Include files to be excluded here. They will be

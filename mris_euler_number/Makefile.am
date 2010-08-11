@@ -11,6 +11,8 @@ mris_euler_number_SOURCES=mris_euler_number.c
 mris_euler_number_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_euler_number_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_euler_number.help.xml
 
 
 # Our release target. Include files to be excluded here. They will be

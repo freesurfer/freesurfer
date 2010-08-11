@@ -11,6 +11,9 @@ mris_inflate_SOURCES=mris_inflate.c
 mris_inflate_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_inflate_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_inflate.help.xml
+
 ## ----
 ## CUDA
 ## ----

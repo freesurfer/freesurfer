@@ -30,6 +30,10 @@ bin_PROGRAMS = mri_edit_wm_with_aseg
 mri_edit_wm_with_aseg_SOURCES=mri_edit_wm_with_aseg.c
 mri_edit_wm_with_aseg_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_edit_wm_with_aseg_LDFLAGS=$(OS_LDFLAGS)
+
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_edit_wm_with_aseg.help.xml
+
 # to --------------------------------------------------
 #
 # where $(OS_LDFLAGS) is to compile program statically for Linux

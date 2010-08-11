@@ -3,6 +3,9 @@
 ##
 
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_pmake.help.xml
+
 bin_PROGRAMS = mris_pmake
 mris_pmake_SOURCES = \
 	abs2rel.c \

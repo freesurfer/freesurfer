@@ -14,6 +14,9 @@ mris_remove_intersection_SOURCES=mris_remove_intersection.c
 mris_remove_intersection_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_remove_intersection_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_fix_topology.help.xml mris_remove_intersection.help.xml
+
 ## ----
 ## CUDA
 ## ----

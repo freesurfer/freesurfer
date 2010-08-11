@@ -10,6 +10,9 @@ mri_ca_normalize_SOURCES=mri_ca_normalize.c
 mri_ca_normalize_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_ca_normalize_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_ca_normalize.help.xml
+
 # trick to get test data into the build directory (during make distcheck)
 foo_SOURCES=
 foo:

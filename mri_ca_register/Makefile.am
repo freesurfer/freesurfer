@@ -16,6 +16,9 @@ mri_ca_register_SOURCES=mri_ca_register.c
 mri_ca_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) 
 mri_ca_register_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mri_convert.help.xml
+
 ## ----
 ## CUDA
 ## ----
