@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_jacobian</name>
+	<synopsis>mris_jacobian [options] &lt;original surface&gt; &lt;mapped surface&gt; &lt;jacobian file name&gt;</synopsis>
+	<description>This program computes the Jacobian of a surface mapping.</description>
+  <arguments>
+    <positional>
+      <intro>*******************************************************************</intro>
+    </positional>
+    <required_flagged>
+      <intro>*******************************************************************</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-log</argument>
+      <explanation>compute and write out log of jacobian</explanation>
+      <argument>-noscale</argument>
+      <explanation>don't scale jacobian by total surface areas</explanation>
+      <argument>-invert</argument>
+      <explanation>compute -1/jacobian for jacobian &lt; 1</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>*******************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>*******************************************************************</see_also>
+</help>

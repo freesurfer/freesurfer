@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_sphere</name>
+	<synopsis>mris_sphere [options] &lt;surface file&gt; &lt;patch file name&gt; &lt;output patch&gt;</synopsis>
+	<description>This program will add a template into an average surface</description>
+  <arguments>
+    <positional>
+      <argument>surface file</argument>
+      <argument>patch file name</argument>
+      <argument>output patch</argument>
+    </positional>
+    <required_flagged>
+      <intro>*******************************************************************</intro>
+    </required_flagged>
+    <optional_flagged>
+      <intro>*******************************************************************</intro>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>*****************************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>********************************************************************</see_also>
+</help>

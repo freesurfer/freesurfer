@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_volmask</name>
+	<synopsis>mris_volmask &lt;options&gt; &lt;io&gt;</synopsis>
+	<description>Computes a volume mask, at the same resolution as the
+ &lt;subject&gt;/mri/brain.mgz.  The volume mask contains 4 values: LH_WM (default 10), LH_GM (default 100), RH_WM (default 20), RH_GM (default 200).
+ The algorithm uses the 4 surfaces situated in &lt;subject&gt;/surf/[lh|rh].[white|pial].surf and labels voxels based on the signed-distance function from the surface.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;io&gt;</argument>
+    </positional>
+    <required_flagged>
+      <intro>None.</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>--cap_distance</argument>
+      <explanation>pars = 1. maximum distance up to which the signed distance function computation is accurate</explanation>
+      <argument>--label_background</argument>
+      <explanation>pars = 1. Override default value for background label value (0)</explanation>
+      <argument>--label_left_white</argument>
+      <explanation>pars = 1. Override default value for left white matter label - 20</explanation>
+      <argument>--label_left_ribbon</argument>
+      <explanation>pars = 1. Override default value for left ribbon label - 10</explanation>
+      <argument>--label_right_white</argument>
+      <explanation>pars = 1. Override default value for right white matter label - 120</explanation>
+      <argument>--label_right_ribbon</argument>
+      <explanation>pars = 1. Override default value for right ribbon label - 110</explanation>
+      <argument>--surf_white</argument>
+      <explanation>pars = 1. Surface root name (i.e. &lt;subject&gt;/surf/$hemi.&lt;NAME&gt; - default value is white</explanation>
+      <argument>--surf_pial</argument>
+      <explanation>pars = 1. Surface root name (i.e. &lt;subject&gt;/surf/$hemi.&lt;NAME&gt; - default value is pial</explanation>
+      <argument>--out_root</argument>
+      <explanation>pars = 1. Default value is ribbon - output will then be mri/ribbon.mgz and mri/lh.ribbon.mgz and mri/rh.ribbon.mgz (last 2 if -save_ribbon is used)</explanation>
+      <argument>--sd</argument>
+      <explanation>pars = 1. Option to specify SUBJECTS_DIR, default is read from enviro</explanation>
+      <argument>--help</argument>
+      <explanation>display help message</explanation>
+      <argument>--save_distance</argument>
+      <explanation>option to save the signed distance function as ?h.dwhite.mgz ?h.dpial.mgz in the mri directory</explanation>
+      <argument>--edit_aseg</argument>
+      <explanation>option to edit the aseg using the ribbons and save to aseg.ribbon.mgz in the mri directory</explanation>
+      <argument>--save_ribbon</argument>
+      <explanation>option to save just the ribbon for the hemispheres - in the format ?h.ribbon.mgz</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>*************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>**********************************************************</see_also>
+</help>

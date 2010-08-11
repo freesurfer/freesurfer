@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mri_edit_wm_with_aseg</name>
+	<synopsis>mri_edit_wm_with_aseg &lt;options&gt; input-wm input-T1/brain aseg output-wm</synopsis>
+	<description>**********************************************************************</description>
+  <arguments>
+    <positional>
+      <intro>*******************************************************************</intro>
+    </positional>
+    <required_flagged>
+      <intro>*******************************************************************</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-fillven</argument>
+      <argument>-keep</argument>
+      <explanation>keep edits as found in output volume</explanation>
+      <argument>-keep-in</argument>
+      <explanation>keep edits as found in input volume</explanation>
+      <argument>-debug_voxel Gx Gy Gz</argument>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>mri_edit_wm_with_aseg -keep-in wm.seg.mgz brain.mgz aseg.mgz wm.asegedit.mgz</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>********************************************************************************</see_also>
+</help>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>talairach_afd</name>
+	<synopsis>talairach_afd -subj &lt;subject_name&gt; [-T &lt;p-value threshold&gt;] or talairach_afd -xfm &lt;xfm_fname&gt; [-T &lt;p-value threshold&gt;]</synopsis>
+	<description>This program detects Talairach alignment failures.</description>
+  <arguments>
+    <positional>
+      <intro>****************************************************************</intro>
+    </positional>
+    <required_flagged>
+      <intro>Only one of the following is required.</intro>
+      <argument>-subj %s</argument>
+      <explanation>specify subject's name</explanation>
+      <argument>-xfm %s</argument>
+      <explanation>specify the talairach.xfm file to check</explanation>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-T #threshold the p-values at #</argument>
+      <explanation>Talairach transforms for subjects with p-values &lt;= T are considered as very unlikely default=0.010</explanation>
+      <argument>-afd %s</argument>
+      <explanation>specify directory containing .afd data files</explanation>
+      <argument>-V</argument>
+      <explanation>verbose</explanation>
+ </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>********************************************************************</intro>
+  </outputs>
+	<example>********************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>**********************************************************************</see_also>
+</help>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_curvature</name>
+	<synopsis>mris_curvature [&lt;options&gt;] insurf</synopsis>
+	<description>This program will compute the second fundamental form of a cortical surface. It will create two new files &lt;hemi&gt;.&lt;surface&gt;.H and &lt;hemi&gt;.&lt;surface&gt;.K with the mean and Gaussian curvature respectively.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;insurf&gt;</argument>
+      <explanation>input surface file</explanation>
+    </positional>
+    <required_flagged>
+      <intro>None.</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-w</argument>
+      <explanation>save curvature files (will only generate screen output without this option)</explanation>
+      <argument>-max</argument>
+      <explanation>save  1st (max) principal curvature in ?h.&lt;surface&gt;.max file</explanation>
+      <argument>-min</argument>
+      <explanation>save  2nd (min) principal curvature in ?h.&lt;surface&gt;.min file</explanation>
+      <argument>-a &lt;avgs&gt;</argument>
+      <explanation>perform &lt;avgs&gt; iterative averages of curvature measure before saving</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>insurf.h</output>
+    <explanation>mean curvature file</explanation>
+    <output>insurf.K</output>
+    <explanation>gaussian curvature file</explanation>
+  </outputs>
+	<example>mris_curvature lh.pial
+Compute the curvature and do not produce output files. </example>
+	<example>mris_curvature -w -a 10 lh.pial
+Smooth 10 iterations and produce output files.</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>*********************************************************************************</see_also>
+</help>

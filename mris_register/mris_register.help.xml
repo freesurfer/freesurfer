@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_register</name>
+	<synopsis>mris_register [options] &lt;surf_fname&gt; &lt;target&gt; &lt;out_fname&gt;</synopsis>
+	<description>This program registers a surface to an average surface template.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;surf_fname&gt;</argument>
+      <explanation>Input: Surface to register, often {hemi}.sphere</explanation>
+      <argument>&lt;target&gt;</argument>
+      <explanation>Input: The data to register to. In normal recon-all usage, this is a template file for average surface. Alternatively could also be a single-subject's surface -- see argument '-1' (one), which is useful during the template-development process.</explanation>
+      <argument>&lt;out_fname&gt;</argument>
+      <explanation>Output surface file to capture registration. Example: {hemi}.sphere.reg</explanation>
+    </positional>
+    <required_flagged>
+      <intro>*******************************************************************</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-1</argument>
+      <explanation>(One) Treats target argument as the name of as a single subject's surface not a template file. (What pattern of filename is required?)</explanation>
+      <argument>-addframe &lt;which_field, where_in_atlas (ints)&gt;</argument>
+      <explanation>Add field which_field with location where_in_atlas in the atlas</explanation>
+      <argument>-annot &lt;annot_name&gt;</argument>
+      <explanation>Zeroes medial wall using annotation {annot_name}</explanation>
+      <argument>-C &lt;curvature_fname&gt;</argument>
+      <argument>-canon &lt;canon_name&gt;</argument>
+      <explanation>Use surface {canon_name} for canonical properties</explanation>
+      <argument>-inflated</argument>
+      <explanation>Use inflated surface for initial alignment</explanation>
+      <argument>-infname &lt;name&gt;</argument>
+      <explanation>Uses {name} for inflated surface, for initial alignment. Sets inflated_name, surface_name and curvature_names[0]</explanation>
+      <argument>-L &lt;labelfile atlas_gcsa_file label_name&gt;</argument>
+      <explanation>Specify a manual label to align with atlas label &lt;label name&gt;</explanation>
+      <argument>-O &lt;orig_name&gt;</argument>
+      <explanation>Use {orig_name} for original properties</explanation>
+      <argument>-overlay &lt;overlay_file navgs(int)&gt;</argument>
+      <explanation>Adds a variable to the atlas from {overlay_file}, smoothing it {navgs} times. {subject}/labels/{hemi}.{overlay_file}</explanation>
+      <argument>-overlay-dir &lt;overlay_dir&gt;</argument>
+      <explanation>Changes overlay path: {subject}/{overlay_dir}/{hemi}.{overlay_file}</explanation>
+      <argument>-sreg &lt;starting_reg_fname&gt;</argument>
+      <explanation>Start registration with coordinates in file starting_reg_fname</explanation>
+      <argument>-jacobian &lt;jacobian_fname&gt;</argument>
+      <explanation>Write out jacobian of mapping to file jacobian_fname</explanation>
+      <argument>-A &lt;n_averages (int)&gt;</argument>
+      <argument>-adaptive</argument>
+      <explanation>Use adaptive time step integration</explanation>
+      <argument>-area &lt;l_area (float)&gt;</argument>
+      <explanation>Sets l_area</explanation>
+      <argument>-corr &lt;l_corr (float)&gt;</argument>
+      <argument>-curv</argument>
+      <explanation>Use smoothwm curvature for final alignment</explanation>
+      <argument>-dist &lt;l_dist (float)&gt;</argument>
+      <explanation>Specify distance term. Sets l_dist and also use_defaults = 0</explanation>
+      <argument>-dt &lt;dt (float)&gt;</argument>
+      <explanation>Sets momentum with dt</explanation>
+      <argument>-dt_dec &lt;dt_decrease (float)&gt;</argument>
+      <argument>-dt_inc &lt;dt_increase (float)&gt;</argument>
+      <argument>-E &lt;l_external (float)&gt;</argument>
+      <argument>-error_ratio &lt;error_ratio (float)&gt;</argument>
+      <argument>-init</argument>
+      <explanation>Use initial registration</explanation>
+      <argument>-lap &lt;lap (float)&gt;</argument>
+      <explanation>l_laplacian</explanation>
+      <argument>-lm</argument>
+      <explanation>Integrate using line minimization</explanation>
+      <argument>-M &lt;momentum (float)&gt;</argument>
+      <explanation>Chooses integration_type = INTEGRATE_MOMENTUM and sets momentum value</explanation>
+      <argument>-max_degrees &lt;max_degrees (float)&gt;</argument>
+      <explanation>Set max angle for search to max_degrees</explanation>
+      <argument>-median</argument>
+      <explanation>Uses median normalization (instead of mean).</explanation>
+      <argument>-min_degrees &lt;min_degrees (float)&gt;</argument>
+      <explanation>Set min angle for search to min_degrees</explanation>
+      <argument>-multi_scale &lt;multi_scale (int)&gt;</argument>
+      <explanation>Use multi_scale scales for morphing</explanation>
+      <argument>-N &lt;niterations (int)&gt;</argument>
+      <argument>-nangles &lt;nangles (int)&gt;</argument>
+      <explanation>Set # of angles/search per scale to nangles</explanation>
+      <argument>-nbrs &lt;nbrs (int)&gt;</argument>
+      <explanation>Use neighborhood size=nbrs</explanation>
+      <argument>-nlarea &lt;l_nlarea (float)&gt;</argument>
+      <explanation>Sets l_nlarea</explanation>
+      <argument>-nocurv</argument>
+      <explanation>Do not use smoothwm curvature for final alignment</explanation>
+      <argument>-nonorm</argument>
+      <explanation>Disables normalization</explanation>
+      <argument>-norot</argument>
+      <explanation>Disables initial rigid alignment</explanation>
+      <argument>-nosulc</argument>
+      <explanation>Disables initial sulc alignment</explanation>
+      <argument>-nsurfaces &lt;nsurfaces&gt;</argument>
+      <explanation>Use nsurfaces surfaces/curvatures for alignment</explanation>
+      <argument>-ocorr &lt;l_ocorr (float)&gt;</argument>
+      <explanation>Sets overlay correlation coefficient to l_ocorr</explanation>
+      <argument>-P &lt;max_passes (int)&gt;</argument>
+      <explanation>Limit unfolding to {max_passes} passes</explanation>
+      <argument>-parea &lt;l_parea (float)&gt;</argument>
+      <explanation>Sets l_parea</explanation>
+      <argument>-remove_negative &lt;remove_negative (int)&gt;</argument>
+      <explanation>Non-zero to remove negative triangles with iterative smoothing, or 0 to skip that</explanation>
+      <argument>-reverse</argument>
+      <explanation>Mirror image reverse brain before morphing</explanation>
+      <argument>-rotate &lt;dalpha, dbeta, dgamma (floats)&gt;</argument>
+      <explanation>Rotates brain by dalpha, dbeta, dgamma</explanation>
+      <argument>-S &lt;scale (float)&gt;</argument>
+      <explanation>Scales distances by {scale}</explanation>
+      <argument>-search</argument>
+      <explanation>Integrating with binary search line minimization</explanation>
+      <argument>-spring &lt;l_spring (float)&gt;</argument>
+      <argument>-tol &lt;tol (float)&gt;</argument>
+      <explanation>Tolerance?</explanation>
+      <argument>-topology</argument>
+      <explanation>Preserves the topology of positive area triangles</explanation>
+      <argument>-vnum, -distances &lt;nbhd_size, max_nbrs (floats)&gt;</argument>
+      <explanation>Sets neighborhood parameters</explanation>
+      <argument>-vsmooth</argument>
+      <explanation>Use space/time varying smoothness weighting</explanation>
+      <argument>-W &lt;write_iterations (int)&gt;</argument>
+      <explanation>Also triggers diagnostics</explanation>
+      <argument>-?, -H, -U, --help</argument>
+      <explanation>print help</explanation>
+      <argument>-V &lt;Gdiag_no (int)&gt;</argument>
+      <explanation>Supplies a vertex number for diagnostics</explanation>
+      <argument>-vector</argument>
+      <explanation>Prints some help for Multiframe mode including listing field names/numbers</explanation>
+      <argument>--version</argument>
+      <explanation>print version</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>***************************************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>**************************************************************************************</see_also>
+</help>

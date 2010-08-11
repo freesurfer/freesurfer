@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mri_fill</name>
+	<synopsis>mri_fill [options] &lt;input MR directory&gt; &lt;output MR directory&gt;</synopsis>
+	<description>This program creates hemispheric cutting planes and fills white matter with specific values for subsequent surface tesselation.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;input MR directory&gt;</argument>
+      <explanation>input directory</explanation>
+      <argument>&lt;output MR directory&gt;</argument>
+      <explanation>output directory </explanation>
+    </positional>
+    <required_flagged>
+      <intro>None</intro>
+    </required_flagged>
+    <optional_flagged>
+      <intro>Where options</intro>
+      <argument>-T &lt;threshold&gt;</argument>
+      <explanation>specify fill_holes threshold (default=1)</explanation>
+      <argument>-xform &lt;xformname&gt;</argument>
+      <explanation>use xform dst offset to get an accurate Talairach volume</explanation>
+      <argument>-segmentation &lt;filename&gt;</argument>
+      <explanation>aseg volume used to perform fill</explanation>
+      <argument>-atlas &lt;filename&gt;</argument>
+      <explanation>specify atlas to use for auto-filling</explanation>
+      <argument>-fillven</argument>
+      <explanation>fill ventricles</explanation>
+      <intro>Seed point options in Talairach coordinates</intro>
+      <argument>-C &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>Talairach coords of the seed for the corpus callosum</explanation>
+      <argument>-P &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>Talairach coords of the seed for the pons</explanation>
+      <argument>-lh &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>Talairach coords of the white matter seed for the left hemisphere</explanation>
+      <argument>-rh &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>Talairach coords of the white matter seed for the right hemisphere</explanation>
+      <intro>Alternative seed point options in voxel coordinates</intro>
+      <argument>-CV &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>voxel coords of the seed for the corpus callosum</explanation>
+      <argument>-PV &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>voxel coords of the seed for the pons</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>filled</output>
+    <explanation>The filled volume for the cortical reconstruction- used for subsequent surface tesselation.</explanation>
+  </outputs>
+	<example>mri_fill SUBJECT/mri/wm/. SUBJECT/mri/filled
+
+Takes a subjects wm volume as input and uses this to find cutting planes to seperate the hemispheres and remove the brainstem, and fills hemispheres with specific values as filled volume output.</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>mri_segment</see_also>
+</help>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+
+<help>
+  <name>mris_pmake</name>
+  <synopsis>(Using existing options file)
+mris_pmake [--optionsFile=&lt;fileName&gt;] [--dir=&lt;workingDir&gt;] [--listen | --listenOnPort &lt;port&gt;]
+ 
+(No options file; will create)
+mris_pmake --subject &lt;subj&gt; --hemi &lt;hemi&gt; --surface0 &lt;surface0File&gt; --surface1 &lt;surface1File&gt; --curv0 &lt;curv0File&gt; --curv1 &lt;curv1File&gt; --useAbsCurvs --mpmProg &lt;mpmProgName&gt; --mpmArgs &lt;argsForMpmProg&gt;</synopsis>
+	<description>'mris_pmake' calculates paths and related costs on FreeSurfer surfaces based on an edge cost and Dijkstra's algorithm.
+
+In its simplest usage, a &lt;start&gt; and &lt;end&gt; vertex index on the surface is specified (typically in the &lt;optionsFile&gt;), and the program calculates the shortest path connected the points as well as the path cost. "Shortest" path in this case only has meaning in the context of the cost function that is being evaluated (see COST FUNCTION for details).
+
+More complex use is enabled through embedded 'mpmProgs' that perform various functions based around Dijkstra calculations. Such mpmProgs include 'autodijk' which calculates the cost in moving from a reference to all other vertices in the mesh, and 'patchMake' which generates label patches about a set of seed vertices.
+
+An interactive mode of operation is also available through a companion Python script called 'dsh' that allows asychronous setting of &lt;start&gt; and &lt;end&gt; vertices, changes in the cost function weights, etc. This 'dsh' script is probably the best and easiest way to run 'mris_pmake'.
+
+******************************************
+COST FUNCTION
+
+The cost function is currently a multi-dimensional weight vector of following form:
+
+p = w  d +  w c + w h + w  dc + w  dh + w  ch + w   dch + w   (dir)
+     d       c     h     dc      dh      ch      dch       dir
+
+where
+
+w_d     : weighting factor for distance, d
+w_c     : weighting factor for curvature, c
+w_h     : weighting factor for sulcal height, h
+w_dc    : weighting factor for product of distance and curve
+w_dh    : weighting factor for product of distance and height
+w_ch    : weighting factor for product of curve and height
+w_dch   : weighting factor for product of distance, curve, and height
+w_dir   : weighting factor for direction
+
+The curvature, c, is specified in the &lt;optionsFile&gt; with the 'curvatureFile' option, and the height, h, is specified in the &lt;optionsFile&gt; with the 'sulcalHeightFile'. These names are somewhat historical, and in theory any valid FreeSurfer overlay can be used for 'c' and 'h'.
+
+An additional non-linear penalty is also available, and if 'b_transitionPenalties' is TRUE, will be applied to the cost function, by an index-to-index multiplication of the cost vector. It currently triggered if the original 'c' value undergoes a zero-crossing along a trajectory path.
+  </description>
+  <arguments>
+    <positional><intro>None</intro></positional>
+    <required_flagged>
+      <intro>If no &lt;optionsFile&gt; is present. One will be created when 'mris_pmake' starts.</intro>
+      <argument>--subject &lt;subj&gt;</argument>
+      <explanation>Set the subject to &lt;subj&gt;. This is assumed relative to an env variable SUBJECTS_DIR.</explanation>
+      <argument>--hemi &lt;hemi&gt;</argument>
+      <explanation>The hemisphere to process.</explanation>
+    </required_flagged>
+    <optional_flagged>
+      <intro>If an &lt;optionsFile&gt; is already present</intro>
+      <argument>--optionsFile=&lt;fileName&gt;</argument>
+      <explanation>The main configuration file that specifies the startup run-time behaviour of the program, including cost function variables, start and terminal vertex indices, cost function, input files, output files, etc. If the &lt;fileName&gt; contains a directory prefix, this directory will be assumed to be the working directory. Default is 'options.txt'.</explanation>
+      <argument>--dir=&lt;workingDir&gt;</argument>
+      <explanation>The working directory. This will override a working directory that might have been specified in the &lt;fileName&gt; prefix. Defaults is current directory.</explanation>
+      <argument>--listen</argument>
+      <explanation>Start in LISTEN mode, i.e. initialize the program and read the default 'options.txt' file parsing surfaces and curvatures, but do not actually calculate a path. Instead, once ready, start listening on the embedded server socket for instructions. Send a 'RUN' string in a UDP packet to the port specified in &lt;optionsFile&gt; to perform the path search.</explanation> 
+      <argument>--listenOnPort &lt;port&gt;</argument>
+      <explanation>Similar to above, but do not interpret the &lt;optionsFile&gt; environment. Essentially create the server port on &lt;port&gt; and do nothing else. In this mode, the program requires an explicit 'HUP' text string to be sent as a UDP packet to &lt;port&gt; to read the default enviroment, or an options file can be spec'd by sending a UDP string 'OPT &lt;optionsFile&gt;'.</explanation>
+      <intro>If no &lt;optionsFile&gt; is present.</intro>
+      <argument>--surface0 &lt;surface0File&gt;</argument>
+      <explanation>The main mesh surface to read. This is relative to the 'surf' dir of &lt;subj&gt; and does not include a hemisphere prefix, e.g. 'smoothwm'. Defaults to 'inflated'.</explanation>
+      <argument>--surface1 &lt;surface1File&gt;</argument>
+      <explanation>The aux mesh surface to read. This is relative to the 'surf' dir of &lt;subj&gt; and does not include a hemisphere prefix, e.g. 'smoothwm'. Defaults to 'smoothwm'.</explanation>
+      <argument>--curve0 &lt;curv0File&gt;</argument>
+      <explanation>The main curvature function maps. This is relative to the 'surf' dir of &lt;subj&gt; and does not include a hemisphere prefix, e.g. 'smoothwm.H.crv'. This curvature map is used as the 'c' parameter in the internal cost function. Defaults to 'smoothwm.H.crv.</explanation>
+      <argument>--curve1 &lt;curv1File&gt;</argument>
+      <explanation>The aux curvature function maps. This is relative to the 'surf' dir of &lt;subj&gt; and does not include a hemisphere prefix, e.g. 'smoothwm.H.crv'. This curvature map is used as the 'h' parameter in the internal cost function. Defaults to 'sulc'.</explanation>
+      <argument>--useAbsCurvs</argument>
+      <explanation>If specified, use an fabs(...) on each curvature map. Otherwise, the curvature map field is offset so that its minimum value (most negative) is zero.</explanation>
+      <argument>--mpmProg &lt;mpmProgName&gt;</argument>
+      <explanation>The mpmProg to run.</explanation> 
+      <argument>--mpmArgs &lt;argsForMpmProg&gt;</argument>
+      <explanation>A semi-colon delimited list of arguments for the specified &lt;mpmProg&gt;. This list is of course dependent on the particular mpmProg being executed.</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>The best mechanism to run a 'mris_pmake' process is from a companion 'shell' called 'dsh'. The use of 'dsh' is beyond the scope of this help, but in the simplest case (and assuming a valid &lt;optionsFile&gt;), simply run 'dsh' and wait for it to provide a prompt. At the prompt type 'RUN' and wait for the next prompt, at which simply type 'quit'.
+
+Alternatively, 'mris_pmake' can be evoked in a more conventional FreeSurfer manner, specifying subject and hemisphere by using appropriate command line args. This is most useful when non-interactive behaviour is desired and typically implies running an embedded mpmProg.
+
+'mris_pmake' communicates on three different channels. Most operational data is sent to a channel called &lt;userMessages&gt; (in the &lt;optionsFile&gt;). System-type messages are sent to a channel called &lt;sysMessages&gt; and results are sent to &lt;resultMessages&gt;. If these are defined as files, then the channel simply logs to the file. If these are specifed as 'localhost:XXXX' then these channels are created as UDP sockets to which 'mris_pmake' transmits data.
+
+HOW DO I RUN 'AUTODIJK'? 
+If you have an existing options file and 'dsh': 
+1. Start 'dsh' by typing 'dsh' at the Linux prompt. Make sure your current directory contains a valid 'options.txt' file. 
+2. When 'dsh' starts, it will parse the options file and control 'mris_pmake' to read relevant surface and curvature files.
+3. Once done, 'dsh' will present a prompt. Type: &gt;ENV mpmProg set 1
+This will create an 'autodijk' mpmProg. 
+3a. Optionally set some parameters for the mpmProg: &gt;MPMPROG polarVertex set 100
+4. To run, type: &gt;RUNPROG
+This will run the created autodjik.
+If you do not have an options file:
+1. From the Linux prompt, make sure your SUBJECTS_DIR is properly set. 
+2. For a subject called '11' and using the rh.smoothwm.K1.crv file as main curvature function, type: &gt;mris_pmake --subject 11 --hemi rh --curv0 smoothwm.K1.crv --mpmProg autodijk  </example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>********************************************** </see_also>
+</help>

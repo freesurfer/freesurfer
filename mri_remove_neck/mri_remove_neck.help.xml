@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mri_remove_neck</name>
+	<synopsis>mri_remove_neck &lt;in volume&gt; &lt;transform&gt; &lt;GCA&gt; &lt;output volume&gt;</synopsis>
+	<description>****************************************************************************************</description>
+  <arguments>
+    <positional>
+      <intro>************************************************************************************</intro>
+    </positional>
+    <required_flagged>
+      <intro>************************************************************************************</intro>
+    </required_flagged>
+    <optional_flagged>
+      <intro>**************************************************************************************</intro>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>******************************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>**********************************************************</see_also>
+</help>

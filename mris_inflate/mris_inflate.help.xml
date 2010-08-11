@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_inflate - inflate cortical surface</name>
+	<synopsis>mris_inflate [&lt;options&gt;] insurfacefile outsurfacefile</synopsis>
+	<description>This program will inflate a cortical surface.</description>
+  <arguments>
+    <positional>
+      <argument>insurfacefile</argument>
+      <explanation>input surface file</explanation>
+      <argument>outsurfacefile</argument>
+      <explanation>output surface file </explanation>
+    </positional>
+    <required_flagged>
+      <intro>None</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-n &lt;# of iterations&gt;</argument>
+      <explanation>set the maximum # of iterations (default = 10)</explanation>
+      <argument>-w &lt;# of iterations&gt;</argument>
+      <explanation>write out a snapshot of the inflation every #th time step.</explanation>
+      <argument>-dist &lt;distance coefficient&gt;</argument>
+      <explanation>specify the relative strength of the metric preserving term in the cost functional versus the smoothing term (default = 0.100000).</explanation>
+      <argument>-no-save-sulc</argument>
+      <explanation>do not save ?h.sulc</explanation>
+      <argument>-sulc sulcname</argument>
+      <explanation>save to ?h.sulcname</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>outsurfacefile</output>
+    <explanation>output surface file</explanation>
+  </outputs>
+	<example>********************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>*********************************************************</see_also>
+</help>

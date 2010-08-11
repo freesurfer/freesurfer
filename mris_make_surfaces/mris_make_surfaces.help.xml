@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_make_surfaces</name>
+	<synopsis>mris_make_surfaces [options] &lt;subject name&gt; &lt;hemisphere&gt;</synopsis>
+	<description>This program positions the tessellation of the cortical surface at the white matter surface, then the gray matter surface and generate surface files for these surfaces as well as a 'curvature' file for the cortical thickness, and a surface file which approximates layer IV of the cortical sheet.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;Subject Name&gt;</argument>
+      <argument>&lt;Hemisphere&gt;</argument>
+      <explanation>r(right) or l(left) brain hemisphere</explanation>
+    </positional>
+    <required_flagged>
+      <intro>None</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-q</argument>
+      <explanation>Omit self-intersection and only generate gray/white surface</explanation>
+      <argument>-c</argument>
+      <explanation>Create curvature and area files from white matter surface</explanation>
+      <argument>-a &lt;avgs&gt;</argument>
+      <explanation>Average curvature values &lt;avgs&gt; times (default=10)</explanation>
+      <argument>-whiteonly</argument>
+      <explanation>Only generate white matter surface</explanation>
+      <argument>-orig_white &lt;surf&gt;</argument>
+      <explanation>specify a white surface to start with</explanation>
+      <argument>-orig_pial &lt;surf&gt;</argument>
+      <explanation>specify a white surface to start with</explanation>
+      <argument>-w &lt;value&gt;</argument>
+      <explanation>unknown</explanation>
+      <argument>-pa &lt;avgs&gt;</argument>
+      <explanation>average pial curvature values a max of &lt;avgs&gt; times (default=16)</explanation>
+      <argument>-wa &lt;avgs&gt;</argument>
+      <explanation>average white curvature values a max of &lt;avgs&gt; times (default=4)</explanation>
+      <argument>-T1 T1vol</argument>
+      <explanation>default is brain</explanation>
+      <argument>-wvol whitevol &lt;hires&gt;</argument>
+      <argument>-long</argument>
+      <explanation>longitudinal</explanation>
+      <argument>-SDIR</argument>
+      <explanation>SUBJECTS_DIR</explanation>
+      <argument>-pial</argument>
+      <explanation>pialsurfname</explanation>
+      <argument>-white</argument>
+      <explanation>whitesurfname</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>***********************************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>**************************************************************************</see_also>
+</help>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_smooth</name>
+  <synopsis>mris_smooth [options] &lt;input surface&gt; &lt;output surface&gt;</synopsis>
+	<description>This program smooths the tessellation of a cortical surface and write out the first and second order properties after smoothing to the files $hemi.curv (mean curvature) and $hemi.area (area).</description>
+  <arguments>
+    <positional>
+      <argument>input surface</argument>
+      <argument>output surface</argument>
+    </positional>
+    <required_flagged>
+      <intro>None</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-a &lt;avgs&gt;</argument>
+      <explanation>specify # of curvature averaging iterations (def=10).</explanation>
+      <argument>-n &lt;niter&gt;</argument>
+      <explanation>specify # of smoothing iterations (def=10).</explanation>
+      <argument>-nw</argument>
+      <explanation>disable writing of curvature and area estimates</explanation>
+      <argument>-c curvname</argument>
+      <explanation>write curv to ?h.curvname (default 'curv')</explanation>
+      <argument>-b areaname</argument>
+      <explanation>write area to ?h.areaname (default 'area')</explanation>
+      <argument>-g &lt;norm&gt; &lt;steps&gt;</argument>
+      <explanation>use Gaussian curvature smoothing with norm &lt;norm&gt; and &lt;steps&gt; smoothing steps(-g 20 8 works well for hippo)</explanation>
+      <argument>-area</argument>
+      <explanation>normalize area after smoothing</explanation>
+      <argument>-m momentum</argument>
+      <argument>-w nwrite</argument>
+      <explanation>write snapshot every nwrite iterations</explanation>
+
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>*****************************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>*****************************************************************************</see_also>
+</help>

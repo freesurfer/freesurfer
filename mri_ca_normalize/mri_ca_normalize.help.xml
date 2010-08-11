@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mri_ca_normalize</name>
+	<synopsis>mri_ca_normalize [&lt;options&gt;] &lt;inbrain1&gt; &lt;inbrain2&gt; ... &lt;atlas&gt; &lt;xform&gt; &lt;output1&gt; &lt;output2&gt; ...</synopsis>
+	<description>This program creates a normalized volume using the brain volume and an input gca file.</description>
+  <arguments>
+    <positional>
+      <argument>inbrain1</argument>
+      <explanation>input volume</explanation> 
+      <argument>inbrain2</argument>
+      <explanation>input volume</explanation> 
+      <argument>atlas</argument>
+      <explanation>atlas file in gca format</explanation> 
+      <argument>xform</argument>
+      <explanation>tranform file in lta format</explanation> 
+      <argument>output1</argument>
+      <explanation>output volume</explanation> 
+      <argument>output2</argument>
+      <explanation>output volume</explanation> 
+   </positional>
+   <required_flagged>
+      <intro>None</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-seg &lt;filename&gt;</argument>
+      <explanation>aseg file, to help normalization</explanation>
+      <argument>-sigma &lt;bias sigma&gt;</argument>
+      <explanation>smoothing sigma for bias field if control points specified (def=4)</explanation>
+      <argument>-fsamples &lt;filename&gt;</argument>
+      <explanation>write control points to filename</explanation>
+      <argument>-nsamples &lt;filename&gt;</argument>
+      <explanation>write transformed normalization control points to filename</explanation>
+      <argument>-mask &lt;mri_vol&gt;</argument>
+      <explanation>use mri_vol to mask input</explanation>
+      <argument>-f &lt;filename&gt;</argument>
+      <explanation>define control points from filename</explanation>
+      <argument>-fonly &lt;filename&gt;</argument>
+      <explanation>only use control points from filename</explanation>
+      <argument>-diag &lt;filename&gt;</argument>
+      <explanation>write to log file</explanation>
+      <argument>-debug_voxel &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>debug voxel</explanation>
+      <argument>-debug_node &lt;x&gt; &lt;y&gt; &lt;z&gt;</argument>
+      <explanation>debug node</explanation>
+      <argument>-tr &lt;float n&gt;</argument>
+      <explanation>set TR in msec</explanation>
+      <argument>-te &lt;float n&gt;</argument>
+      <explanation>set TE in msec</explanation>
+      <argument>-alpha &lt;float n&gt;</argument>
+      <explanation>set alpha in radians</explanation>
+      <argument>-example &lt;mri_vol&gt; &lt;segmentation&gt;</argument>
+      <explanation>use T1 (mri_vol) and segmentation as example</explanation>
+      <argument>-novar</argument>
+      <explanation>do not use variance estimates</explanation>
+      <argument>-renorm &lt;mri_vol&gt;</argument>
+      <explanation>renormalize using predicted intensity values in mri_vol</explanation>
+      <argument>-flash</argument>
+      <explanation>use FLASH forward model to predict intensity values</explanation>
+      <argument>-prior &lt;float t&gt;</argument>
+      <explanation>use prior threshold t (default=.6)</explanation>
+      <argument>-w</argument>
+      <explanation>write normalized volume each nregion iteration to norm(n).mgh(see -n)</explanation>
+      <argument>-n &lt;int n&gt;</argument>
+      <explanation>use n regions/struct for normalization</explanation>
+      <argument>-v &lt;int n&gt;</argument>
+      <explanation>does nothing as far as i can tell, but an option</explanation>
+      <argument>-p &lt;float p&gt;</argument>
+      <explanation>use top p percent(default=.25) white matter points as control points</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>outvol</output>
+    <explanation>output volume in either mgh or mgz format</explanation>
+  </outputs>
+	<example>mri_ca_normalize -mask -p 0.25 subject1/mri/brain subject1/mri/nu single_one.gca subject1/mri/transforms/talairach_one.lta subject1/mri/norm_one.mgh</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>***********************************************************************</see_also>
+</help>

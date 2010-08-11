@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_fix_topology</name>
+	<synopsis>mris_fix_topology [options] &lt;subject name&gt; &lt;hemisphere&gt;</synopsis>
+	<description>This program computes a mapping from the unit sphere onto the surface of the cortex from a previously generated approximation of the cortical surface, thus guaranteeing a topologically correct surface.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;subject name&gt;</argument>
+      <explanation>subject name</explanation>
+      <argument>&lt;hemisphere&gt;</argument>
+      <explanation>hemisphere</explanation>
+    </positional>
+    <required_flagged>
+      <intro>None</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-orig origname</argument>
+      <argument>-sphere spherename</argument>
+      <argument>-inflated inflatedname</argument>
+      <argument>-wi</argument>
+      <explanation>write fixed inflated</explanation>
+      <argument>-verbose </argument>
+      <argument>-verbose_low </argument>
+      <argument>-warnings</argument>
+      <argument>-errors</argument>
+      <argument>-movies</argument>
+      <argument>-intersect</argument>
+      <explanation>check if the final surface self-intersects</explanation>
+      <argument>-mappings</argument>
+      <explanation>generate several different mappings</explanation>
+      <argument>-correct_defect N</argument>
+      <explanation>correct defect N only</explanation>
+      <argument>-niters N</argument>
+      <explanation>stop genetic algorithm after N iterations</explanation>
+      <argument>-genetic</argument>
+      <explanation>use genetic search</explanation>
+      <argument>-ga</argument>
+      <explanation>optimize genetic search</explanation>
+      <argument>-optimize</argument>
+      <explanation>optimize genetic search</explanation>
+      <argument>-random N</argument>
+      <explanation>use random search with N iterations</explanation>
+      <argument>-seed N</argument>
+      <explanation>set random number generator to seed N</explanation>
+      <argument>-diag</argument>
+      <explanation>sets DIAG_SAVE_DIAGS</explanation>
+      <argument>-mgz</argument>
+      <explanation>assume volumes are in mgz format</explanation>
+      <argument>-s N</argument>
+      <explanation>smooth corrected surface by N iterations</explanation>
+      <argument>-v D</argument>
+      <explanation>set diagnostic level to D</explanation>
+      <argument>-help</argument>
+      <explanation>print help and exit</explanation>
+      <argument>-version</argument>
+      <explanation>print version and exit</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <intro>******************************************************************</intro>
+  </outputs>
+	<example>*********************************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>*****************************************************************************</see_also>
+</help>

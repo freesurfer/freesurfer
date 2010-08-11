@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mrisp_paint</name>
+	<synopsis>mrisp_paint [options] &lt;template file&gt; &lt;input surface&gt; &lt;output name&gt;</synopsis>
+	<description>This program is useful for extracting one of the arrays ("a variable") from a surface-registration template file. The output is a file containing a surface-worth of per-vertex values, saved in "curvature" format. Because the template data is sampled to a particular surface mesh, this conjures the idea of "painting to a surface".
+
+Extra Notes:
+1. I (GW) am fairly certain that it only makes sense to use a sphere as the input surface to which to resample the template data. At that, it probably only produces a useful result to resample the data to the ?h.sphere.reg file of a subject that's been registered to this template. (Of course, once that's done, the output curv-format file can be displayed on any of the same subject's surfaces.)
+
+2. The ?h.sphere (and ?h.sphere.reg) of subject fsaverage is an evenly-gridded icosahedron which would make a particularly regular surface to use with mris_paint, if the objective is simply to visualize a template variable. (I think). The files {fshome}/average/surf/?h.sphere.reg look to be the same thing, and all of these may be the same thing as ic7.tri.</description>
+  <arguments>
+    <positional>
+      <argument>&lt;template_fname&gt;</argument>
+      <explanation>Full path to template_file. Template file is usually a tif file (not a picture image; tif format is just used to contain FreeSurfer array data). Template may contain more than one parameter, typically 3 as in the standard template. To select a particular parameter, append '#' followed by frame number. Eg: 'somepath/mytemplate.tif#1'. Numbering starts at 0, which is the default.</explanation>
+      <argument>&lt;surf_fname&gt;</argument>
+      <explanation>Full path to surface file which will provide the grid (vertices) onto which the template data is to be sampled or 'painted'. (See note below on what kind of surface is suitable.)</explanation>
+      <argument>&lt;out_fname&gt;</argument>
+      <explanation>Output file name. Can be full path, or if directory omitted then will save to same directory as surf_fname</explanation>
+    </positional>
+    <required_flagged>
+      <intro>None.</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-SDIR &lt;subjects_dir&gt;</argument>
+      <explanation>Set SUBJECTS_DIR. Default: use environment variable/</explanation>
+      <argument>-A &lt;navgs&gt;</argument>
+      <explanation>Average curvature patterns navgs times</explanation>
+      <argument>-N</argument>
+      <explanation>Normalize curvature by variance.</explanation>
+      <argument>-S</argument>
+      <explanation>Take square-root of output variable</explanation>
+      <argument>-variance &lt;subject_name hemi field_no&gt;</argument>
+      <explanation>Generate variance map. This selects from the template the second frame of the selected parameter, and invokes some other computations.</explanation>
+      <argument>-?,-U</argument>
+      <explanation>Print usage</explanation>
+      <argument>--all-info, -all-info</argument>
+      <explanation>Prints BIRN-standard program information</explanation>
+      <argument>--help</argument>
+      <explanation>Prints help message</explanation>
+      <argument>-V &lt;vertex_num (int)&gt;</argument>
+      <explanation>Invoke diagnostics for vertex number vertex_num</explanation>
+      <argument>--version, -version</argument>
+      <explanation>Prints version information</explanation>
+      <argument>-W</argument>
+      <explanation>Write some diagnostics (DIAG_WRITE)</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>&lt;output name&gt;</output>
+    <explanation>the output specified as an argument. This is a file containing a surface-worth of per-vertex values, saved in "curvature" format. The per-vertex values are the selected variable from the template file, sampled to the given surface.</explanation>
+  </outputs>
+	<example>***********************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>mris_make_template</see_also>
+</help>

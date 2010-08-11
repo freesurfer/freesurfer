@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mri_mask - applies a mask volume ( typically skull stripped )</name>
+	<synopsis>mri_mask [options] &lt;in vol&gt; &lt;mask vol&gt; &lt;out vol&gt;</synopsis>
+	<description>This program applies a mask volume ( typically skull stripped ).</description>
+  <arguments>
+    <positional>
+      <argument>in vol</argument>
+      <explanation>input volume</explanation>
+      <argument>mask vol</argument>
+      <explanation>mask volume</explanation>
+    </positional>
+    <required_flagged>
+      <intro>**********************************************************************</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-xform %s</argument>
+      <explanation>apply LTA transform to align mask to input volume</explanation>
+      <argument>-invert</argument>
+      <explanation>reversely apply -xform</explanation>
+      <argument>-lta_src %s</argument>
+      <explanation>source volume for -xform (if not available from the xform file)</explanation>
+      <argument>-lta_dst %s</argument>
+      <explanation>target volume for -xform (if not available from the xform file)</explanation>
+      <argument>-T #</argument>
+      <explanation>threshold mask volume at # (i.e., all values &lt;= T considered as zero)</explanation>
+      <argument>-abs</argument>
+      <explanation>take abs() before applying threshold</explanation>
+      <argument>-transfer #</argument>
+      <explanation>transfer only voxel value # from mask to out</explanation>
+      <argument>-keep_mask_deletion_edits</argument>
+      <explanation>transfer voxel-deletion edits (voxels=1) from mask to out vol</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>out vol</output>
+    <explanation>output volume</explanation>
+  </outputs>
+	<example>**********************************************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;analysis-bugs@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>**************************************************************************</see_also>
+</help>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_ca_label</name>
+	<synopsis>mris_ca_label [options] &lt;subject&gt; &lt;hemi&gt; &lt;canonsurf&gt; &lt;classifier&gt; &lt;outputfile&gt;</synopsis>
+	<description>For a single subject, produces an annotation file, in which each cortical surface vertex is assigned a neuroanatomical label.This automatic procedure employs data from a previously-prepared atlas file. An atlas file is created from a training set, capturing region data manually drawn by neuroanatomists combined with statistics on variability correlated to geometric information derived from the cortical model (sulcus and curvature). Besides the atlases provided with FreeSurfer, new ones can be prepared using mris_ca_train).</description>
+  <arguments>
+    <positional>
+      <argument>&lt;subject&gt;</argument>
+      <explanation>subject id</explanation>
+      <argument>&lt;hemi&gt;</argument>
+      <explanation>hemisphere: rh or lh</explanation>
+      <argument>&lt;canonsurf&gt;</argument>
+      <explanation>canonical surface file. Ie: the name of the spherical surface file which describes the registration of a subject's vertices to the reference "average" surface. Example: sphere.reg</explanation>
+      <argument>&lt;classifier&gt;</argument>
+      <explanation>specify classifier array input file</explanation>
+      <argument>&lt;outputfile&gt;</argument>
+      <explanation>annotated surface output file. Ie: an annotation file listing the region label for each vertex.</explanation>
+    </positional>
+    <required_flagged>
+      <intro>None.</intro>
+    </required_flagged>
+    <optional_flagged>
+      <argument>-sdir &lt;subject dir&gt;</argument>
+      <explanation>specify a subjects directory (default=$SUBJECTS_DIR)</explanation>
+      <argument>-orig &lt;filename&gt;</argument>
+      <explanation>specify filename of original surface (default=smoothwm)</explanation>
+      <argument>-long</argument>
+      <explanation>refines the initial labeling read-in from -r (default: disabled)</explanation>
+      <argument>-r &lt;filename&gt;</argument>
+      <explanation>file containing precomputed parcellation</explanation>
+      <argument>-novar</argument>
+      <explanation>sets all covariance matrices to the identify (default: disabled)</explanation>
+      <argument>-nbrs &lt;number&gt;</argument>
+      <explanation>neighborhood size (default=2)</explanation>
+      <argument>-f &lt;number&gt;</argument>
+      <explanation>applies mode filter &lt;number&gt; times before writing output (default=10)</explanation>
+      <argument>-t &lt;filename&gt;</argument>
+      <explanation>specify parcellation table input file (default: none)</explanation>
+      <argument>-v &lt;number&gt;</argument>
+      <explanation>diagnostic level (default=0)</explanation>
+      <argument>-w &lt;number&gt; &lt;filename&gt;</argument>
+      <explanation>writes-out snapshots of gibbs process every &lt;number&gt; iterations to &lt;filename&gt; (default=disabled)</explanation>
+      <argument>--help</argument>
+      <explanation>print help info</explanation>
+      <argument>--version</argument>
+      <explanation>print version info</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>outputfile</output>
+    <explanation>labeled cortical surface model</explanation>
+  </outputs>
+	<example>mris_ca_label -orig white  -novar  -t $SUBJECTS_DIR/scripts/colortable_final.txt  my_subject  lh  sphere.reg  $SUBJECTS_DIR/average/lh.rahul.gcs  $SUBJECTS_DIR/my_subject/label/lh.raparc.annot 
+
+In this example, mris_ca_label take sphere.reg as the canonical surface input file, lh.rahul.gcs as the classifier array input file, and writes the annotated surface info to lh.raparc.annot. The file colortable_final.txt is embedded into the output file, so that tksurfer (and other utilities) can read it in.
+
+ </example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>mris_sample_parc, mris_ca_train</see_also>
+</help>

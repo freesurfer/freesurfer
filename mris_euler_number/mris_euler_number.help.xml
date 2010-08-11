@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd">
+<help>
+	<name>mris_euler_number</name>
+	<synopsis>mris_euler_number [&lt;options&gt;] insurf</synopsis>
+	<description>This program computes EulerNumber for a cortical surface</description>
+  <arguments>
+    <positional>
+      <argument>insurf</argument>
+      <explanation>input surface file</explanation>
+    </positional>
+    <required_flagged>
+      <intro>None</intro>
+    </required_flagged>
+    <optional_flagged>
+      <intro>None</intro>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>eulernumber</output>
+    <explanation>EulerNumber as text to stdout</explanation>
+  </outputs>
+	<example>mris_euler_number surface</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>******************************************************************************</see_also>
+</help>

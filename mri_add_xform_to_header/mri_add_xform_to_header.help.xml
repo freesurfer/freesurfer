@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE template SYSTEM "template.dtd"><help>
+	<name>mri_add_xform_to_header</name>
+	<synopsis>mri_add_xform_to_header &lt;options&gt; xfmfile invol outvol</synopsis>
+	<description>this program adds specified xform to the volume header.</description>
+  <arguments>
+    <positional> 
+      <argument>xfm file</argument>
+      <argument>input volume</argument>
+    </positional>
+    <required_flagged>
+      <intro>**********************************************************</intro>
+    </required_flagged>
+    <optional_flagged> 
+      <argument>-v</argument>
+      <explanation>Be verbose</explanation>
+      <argument>-c</argument>
+      <explanation>Do not try to load the xfmfile, just copy name</explanation>
+    </optional_flagged>
+  </arguments>
+  <outputs>
+    <output>output volume</output>
+  </outputs>
+	<example>*******************************************</example>
+  <bugs>None</bugs>
+  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
+	<see_also>*****************************************************</see_also>
+</help>
+
