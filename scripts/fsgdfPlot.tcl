@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2010/07/28 20:55:24 $
-##    $Revision: 1.30 $
+##    $Date: 2010/08/11 20:42:30 $
+##    $Revision: 1.31 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -118,6 +118,7 @@ source $fnUtils
 #   state
 #   window
 #     geometry - if hidden and reshown, will appear with same geometry
+# gSubjectData - data for currently highlighted subject in graph plot
 
 # constant values for stuff
 set kValid(lMarkers) {square circle diamond plus cross splus scross triangle}
@@ -155,6 +156,7 @@ proc FsgdfPlot_BuildWindow { iID } {
   $gwPlot legend bind all <ButtonPress-3> [list FsgdfPlot_CBLegendClick3 $iID %W]
   bind $gwPlot <Motion> [list FsgdfPlot_CBGraphMotion $iID %W %x %y]
   bind $gwPlot <Destroy> [list FsgdfPlot_CBCloseWindow $iID]
+  bind $gwPlot <ButtonPress-1> [list FsgdfPlot_CBGraphClick $iID %W %x %y]
 
   # Hooking up the zoom functions seems to break some of the other
   # bindings. Needs more work.
@@ -990,7 +992,7 @@ proc FsgdfPlot_UnfocusElement { iID } {
 }
 
 proc FsgdfPlot_FocusElement { iID iElement inSubjInClass iX iY } {
-  global gPlot gWidgets gGDF
+  global gPlot gWidgets gGDF gSubjectData
 
   # Don't focus on error bars.
   if { [string match error* $iElement] } {
@@ -1029,6 +1031,8 @@ proc FsgdfPlot_FocusElement { iID iElement inSubjInClass iX iY } {
   set sShortLabel "$sId ($sValue$sStdDev, $sMeasurement)"
 
   set sLongLabel "$sId: $gGDF($iID,variables,$nVariable,label) = $sValue$sStdDev, $gGDF($iID,measurementName) = $sMeasurement"
+
+  set gSubjectData "Subject ID: $sId : $gGDF($iID,variables,$nVariable,label) = $sValue$sStdDev, $gGDF($iID,measurementName) = $sMeasurement"
 
   $gWidgets($iID,gwPlot) marker create text -name hover -text $sShortLabel -anchor nw -coords [list $iX $iY]
 
@@ -1123,6 +1127,22 @@ proc FsgdfPlot_CBGraphMotion { iID igw iX iY } {
     set x [lindex $lResult 2]
     set y [lindex $lResult 3]
     FsgdfPlot_FocusElement $iID $element $index $x $y
+  }
+}
+
+# mouse button 1 (left click) prints subject/class info
+proc FsgdfPlot_CBGraphClick { iID igw iX iY } {
+  global gSubjectData
+  FsgdfPlot_UnfocusElement $iID
+  set lResult [FsgdfPlot_FindMousedElement $iID $iX $iY]
+  set element [lindex $lResult 0]
+  if { "$element" != "" } {
+    set index [lindex $lResult 1]
+    set x [lindex $lResult 2]
+    set y [lindex $lResult 3]
+    FsgdfPlot_FocusElement $iID $element $index $x $y
+    # FocusElement sets the global var gSubjectData to highlighted subject
+    puts "$gSubjectData"
   }
 }
 
