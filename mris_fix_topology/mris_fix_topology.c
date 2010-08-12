@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/05/27 23:37:16 $
- *    $Revision: 1.44 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:41:48 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #endif // FS_CUDA
 
 static char vcid[] =
-  "$Id: mris_fix_topology.c,v 1.44 2010/05/27 23:37:16 nicks Exp $";
+  "$Id: mris_fix_topology.c,v 1.45 2010/08/12 17:41:48 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -110,7 +110,7 @@ main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_fix_topology.c,v 1.44 2010/05/27 23:37:16 nicks Exp $",
+   "$Id: mris_fix_topology.c,v 1.45 2010/08/12 17:41:48 gregt Exp $",
    "$Name:  $",
    cmdline);
 
@@ -119,7 +119,7 @@ main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.44 2010/05/27 23:37:16 nicks Exp $",
+     "$Id: mris_fix_topology.c,v 1.45 2010/08/12 17:41:48 gregt Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -316,7 +316,7 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -572,6 +572,7 @@ get_option(int argc, char *argv[]) {
       printf("smoothing corrected surface for %d iterations\n", nsmooth) ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_usage() ;
       exit(1) ;
@@ -598,6 +599,9 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   printf("%s [options] <subject name> <hemisphere>\n",Progname) ;
   printf("\n");
   printf("Options:\n");
@@ -630,17 +634,20 @@ print_usage(void) {
   printf(" -v D       : set diagnostic level to D\n");
   printf(" -help      : print help and exit\n");
   printf(" -version   : print version and exit\n");
+#endif
 }
 
 static void
 print_help(void) {
   print_usage() ;
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program computes a mapping from the unit sphere onto the\n"
           "surface of the cortex from a previously generated approximation\n"
           "of the cortical surface, thus guaranteeing a topologically\n"
           "correct surface.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
+#endif
   exit(1) ;
 }
 

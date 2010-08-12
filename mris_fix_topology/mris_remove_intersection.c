@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.3 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:41:48 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,7 @@
 #include "version.h"
 
 static char vcid[]=
-  "$Id: mris_remove_intersection.c,v 1.3 2006/12/29 02:09:10 nicks Exp $";
+  "$Id: mris_remove_intersection.c,v 1.4 2010/08/12 17:41:48 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -68,13 +68,13 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_remove_intersection.c,v 1.3 2006/12/29 02:09:10 nicks Exp $",
+   "$Id: mris_remove_intersection.c,v 1.4 2010/08/12 17:41:48 gregt Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_remove_intersection.c,v 1.3 2006/12/29 02:09:10 nicks Exp $",
+           "$Id: mris_remove_intersection.c,v 1.4 2010/08/12 17:41:48 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -133,7 +133,7 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -143,6 +143,7 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_usage() ;
       exit(1) ;
@@ -164,17 +165,23 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf(stderr,
           "usage: %s [options] <surface in-file> <corrected surface out-file>"
           "\n", Progname) ;
+#endif
 }
 
 static void
 print_help(void) {
   print_usage() ;
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program will remove intersecting vertices, if any, "
           "from the surface.\n");
+#endif
   exit(1) ;
 }
 
