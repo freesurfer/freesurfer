@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.6 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:21:49 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,6 +61,7 @@ static MRI * fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int rad
 MRI *MRIremoveNonBrain(MRI *mri_src, MRI *mri_dst, TRANSFORM *transform, GCA *gca, int radius, int fill_val) ;
 static int get_option(int argc, char *argv[]) ;
 
+static void usage_exit(int code);
 
 /*
    command line consists of three inputs:
@@ -86,7 +87,7 @@ main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.6 2006/12/29 02:09:08 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.7 2010/08/12 17:21:49 gregt Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -100,8 +101,7 @@ main(int argc, char *argv[]) {
   }
 
   if (argc < 5)
-    ErrorExit(ERROR_BADPARM,
-              "usage: %s <in volume> <transform> <gca> <output volume>\n", argv[0]) ;
+    usage_exit(0);
 
   in_fname = argv[1] ;
   transform_fname = argv[2] ;
@@ -166,7 +166,9 @@ get_option(int argc, char *argv[]) {
     fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     printf("filling defaced regions with %d\n", fill_val) ;
-  } else if (!stricmp(option, "RADIUS")) {
+  }else if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
+    usage_exit(0);
+  }else if (!stricmp(option, "RADIUS")) {
     radius = atoi(argv[2]) ;
     nargs = 1 ;
     printf("erasing everything more than %d mm from possible brain\n", radius) ;
@@ -198,10 +200,11 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       printf("usage: %s <in volume> <transform> <GCA> <output volume>\n",
              argv[0]) ;
-      exit(1) ;
+      usage_exit(0);
       break ;
     default:
       printf("unknown option %s\n", argv[1]) ;
@@ -272,4 +275,10 @@ fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius) {
   for (i = 0 ; i < radius ; i++)
     MRIdilate(mri_brain, mri_brain) ;
   return(mri_brain) ;
+}
+
+static void
+usage_exit(int code) {
+  outputHelp(Progname);
+  exit(code) ;
 }

@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/07/21 15:53:04 $
- *    $Revision: 1.23 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:24:14 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -156,7 +156,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.23 2010/07/21 15:53:04 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.24 2010/08/12 17:24:14 gregt Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -326,6 +326,9 @@ int main(int argc, char *argv[])
   ----------------------------------------------------------------------*/
 static void printUsage(void)
 {
+  outputHelp("mri_robust_template");
+
+#ifdef GREGT
   cout << endl << endl;
   cout << "Usage: mri_robust_template <required arguments>" << endl <<endl;
 
@@ -376,6 +379,7 @@ static void printUsage(void)
   cout << "Report bugs to: freesurfer@nmr.mgh.harvard.edu" << endl;
 
   cout << endl;
+#endif
 }
 
 
@@ -626,9 +630,15 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "Will output 1-weights!" << endl;
   }
+  else if (!stricmp(option, "-help")||!stricmp(option, "-usage")||!stricmp(option, "h")||!stricmp(option, "u"))
+  {
+    printUsage();
+    exit(0);
+  }
   else
   {
-    cerr << "Option: " << argv[0] << " unknown !! " << endl;
+    cerr << "Option: " << argv[0] << " unknown !! " << endl << endl;
+    printUsage();
     exit(1);
   }
 
