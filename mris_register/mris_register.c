@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/02/28 23:08:04 $
- *    $Revision: 1.56 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:45:54 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -46,7 +46,7 @@
 #include "gcsa.h"
 
 static char vcid[] = 
-"$Id: mris_register.c,v 1.56 2010/02/28 23:08:04 fischl Exp $";
+"$Id: mris_register.c,v 1.57 2010/08/12 17:45:54 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -142,14 +142,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.56 2010/02/28 23:08:04 fischl Exp $", 
+     "$Id: mris_register.c,v 1.57 2010/08/12 17:45:54 gregt Exp $", 
      "$Name:  $", 
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_register.c,v 1.56 2010/02/28 23:08:04 fischl Exp $", 
+     "$Id: mris_register.c,v 1.57 2010/08/12 17:45:54 gregt Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -552,7 +552,7 @@ get_option(int argc, char *argv[])
   float  f ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -1137,6 +1137,9 @@ usage_exit(void)
 static void
 print_usage(void)
 {
+  outputHelp(Progname);
+
+#ifdef GREGT
   printf("\nUSAGE:\n"
          "%s [options] <input surface> <average surface> <output surface>\n",
          Progname) ;
@@ -1155,13 +1158,16 @@ print_usage(void)
   printf("  -overlay-dir <dir> : subject/dir/hemi.surfvals\n");
   printf("  -1                 : target specifies a subject's surface,\n"
          "                       not a template file\n") ;
+#endif
 }
 
 static void
 print_help(void)
 {
   print_usage() ;
+#ifdef GREGT
   printf("\nThis program registers a surface with an atlas.\n\n");
+#endif
   exit(1) ;
 }
 

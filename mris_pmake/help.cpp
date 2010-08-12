@@ -17,9 +17,10 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: help.cpp,v 1.10 2010/07/14 17:56:46 rudolph Exp $
+// $Id: help.cpp,v 1.11 2010/08/12 17:45:06 gregt Exp $
 
 #include "help.h"
+#include "utils.h"
 
 
 void
@@ -32,6 +33,9 @@ synopsis_show(void) {
   // 24 September 2004
   //  o Initial design and coding.
   //
+  outputHelp("mris_pmake");
+
+#ifdef GREGT
 
   const char*   pch_synopsis = "\n\
  \n\
@@ -237,6 +241,7 @@ EXAMPLE USE \n\
 \n";
 
    cout << pch_synopsis;
+#endif
 }
 
 void
@@ -390,6 +395,7 @@ commandLineOptions_process(
                 st_env.timeoutSec       = 60;
             break;
             case '?':
+            case 'u':
                 synopsis_show();
                 exit(1);
             break;

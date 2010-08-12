@@ -5,9 +5,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/04/18 21:16:10 $
- *    $Revision: 1.7 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:44:08 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -40,7 +40,7 @@
 #include "version.h"
 
 static char vcid[] = 
-"$Id: mris_jacobian.c,v 1.7 2007/04/18 21:16:10 nicks Exp $";
+"$Id: mris_jacobian.c,v 1.8 2010/08/12 17:44:08 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -69,7 +69,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mris_jacobian.c,v 1.7 2007/04/18 21:16:10 nicks Exp $", 
+     "$Id: mris_jacobian.c,v 1.8 2010/08/12 17:44:08 gregt Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -135,7 +135,7 @@ get_option(int argc, char *argv[])
   char   *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -160,6 +160,7 @@ get_option(int argc, char *argv[])
       nargs = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_usage() ;
       exit(1) ;
@@ -183,18 +184,22 @@ usage_exit(void)
 static void
 print_usage(void)
 {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf
     (stderr,
      "Usage:\n"
      "%s [options] <original surface> <mapped surface> <jacobian file name>\n",
      Progname) ;
+#endif
 }
 
 static void
 print_help(void)
 {
   print_usage() ;
-
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program computes the Jacobian of a surface mapping.\n") ;
   fprintf(stderr, 
@@ -205,6 +210,7 @@ print_help(void)
           "  -noscale : don't scale jacobian by total surface areas\n") ;
   fprintf(stderr, 
           "  -invert  : compute -1/jacobian for jacobian<1\n") ;
+#endif
   exit(1) ;
 }
 

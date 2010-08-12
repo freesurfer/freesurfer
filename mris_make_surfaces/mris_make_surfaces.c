@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/06/18 12:37:32 $
- *    $Revision: 1.115 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:44:33 $
+ *    $Revision: 1.116 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.115 2010/06/18 12:37:32 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.116 2010/08/12 17:44:33 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -241,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.115 2010/06/18 12:37:32 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.116 2010/08/12 17:44:33 gregt Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.115 2010/06/18 12:37:32 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.116 2010/08/12 17:44:33 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1315,7 +1315,7 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -1632,6 +1632,7 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_usage() ;
       exit(1) ;
@@ -1719,6 +1720,9 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   printf("%s [options] <subject name> <hemisphere>\n",Progname) ;
   printf("\n");
   printf("options\n");
@@ -1728,11 +1732,13 @@ print_usage(void) {
   printf("  -SDIR SUBJECTS_DIR \n");
   printf("  -pial pialsurfname \n");
   printf("  -white whitesurfname \n");
+#endif
 }
 
 static void
 print_help(void) {
   print_usage() ;
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program positions the tessellation of the cortical surface\n"
           "at the white matter surface, then the gray matter surface\n"
@@ -1754,6 +1760,7 @@ print_help(void) {
           "values a max of <avgs> times (default=4)\n");
   fprintf(stderr,
           "-whiteonly  only generate white matter surface\n") ;
+#endif
   exit(1) ;
 }
 

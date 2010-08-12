@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/04 15:40:29 $
- *    $Revision: 1.25 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:49:19 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,7 +44,7 @@
 #include "version.h"
 
 static char vcid[] =
-  "$Id: mris_smooth.c,v 1.25 2010/03/04 15:40:29 fischl Exp $";
+  "$Id: mris_smooth.c,v 1.26 2010/08/12 17:49:19 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -87,13 +87,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_smooth.c,v 1.25 2010/03/04 15:40:29 fischl Exp $",
+   "$Id: mris_smooth.c,v 1.26 2010/08/12 17:49:19 gregt Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_smooth.c,v 1.25 2010/03/04 15:40:29 fischl Exp $",
+           "$Id: mris_smooth.c,v 1.26 2010/08/12 17:49:19 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -299,7 +299,7 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -344,6 +344,7 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_usage() ;
       exit(1) ;
@@ -381,14 +382,19 @@ get_option(int argc, char *argv[]) {
 
 static void
 print_usage(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf(stderr,
           "usage: %s [options] <input surface> <output surface>\n",
           Progname) ;
+#endif
 }
 
 static void
 print_help(void) {
   print_usage() ;
+#ifdef GREGT
   printf("\nThis program smooths the tessellation of a surface and\n"
           "writes-out the first and second order properties after smoothing\n"
           "to the files $hemi.curv (mean curvature) and $hemi.area (area).\n");
@@ -405,6 +411,7 @@ print_help(void) {
   printf( "-area : normalize area after smoothing\n") ;
   printf( "-m momentum\n") ;
   printf( "-w nwrite : write snapshot every nwrite iterations\n") ;
+#endif
   exit(1) ;
 }
 

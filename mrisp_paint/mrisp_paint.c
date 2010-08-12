@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2007/02/13 16:57:23 $
- *    $Revision: 1.8 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:45:33 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,7 +41,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mrisp_paint.c,v 1.8 2007/02/13 16:57:23 fischl Exp $";
+static char vcid[] = "$Id: mrisp_paint.c,v 1.9 2010/08/12 17:45:33 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -80,7 +80,7 @@ main(int argc, char *argv[]) {
   VERTEX *v;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mrisp_paint.c,v 1.8 2007/02/13 16:57:23 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mrisp_paint.c,v 1.9 2010/08/12 17:45:33 gregt Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -226,7 +226,7 @@ get_option(int argc, char *argv[]) {
   char   *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -267,6 +267,7 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_usage() ;
       exit(1) ;
@@ -288,18 +289,24 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf(stderr,
           "usage: %s [options] <parameterization file> <input surface> <output name>\n",
           Progname) ;
+#endif
 }
 
 static void
 print_help(void) {
   print_usage() ;
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program paint a parameterization onto a surface and output.\n"
           "the results as a curvature file.\n") ;
   fprintf(stderr, "\nvalid options are:\n\n") ;
+#endif
   exit(1) ;
 }
 

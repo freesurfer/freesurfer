@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/05/27 21:35:00 $
- *    $Revision: 1.40 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:42:23 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -51,7 +51,7 @@
 #endif // FS_CUDA
 
 static char vcid[] =
-  "$Id: mris_inflate.c,v 1.40 2010/05/27 21:35:00 nicks Exp $";
+  "$Id: mris_inflate.c,v 1.41 2010/08/12 17:42:23 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -90,7 +90,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_inflate.c,v 1.40 2010/05/27 21:35:00 nicks Exp $",
+   "$Id: mris_inflate.c,v 1.41 2010/08/12 17:42:23 gregt Exp $",
    "$Name:  $", cmdline);
 
 #ifdef FS_CUDA
@@ -101,7 +101,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_inflate.c,v 1.40 2010/05/27 21:35:00 nicks Exp $",
+           "$Id: mris_inflate.c,v 1.41 2010/08/12 17:42:23 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -241,7 +241,7 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -538,15 +538,20 @@ usage_exit(void)
 static void
 print_usage(void)
 {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf(stderr,
           "usage: %s [options] <input surface file> <output surface file>"
           "\n", Progname) ;
+#endif
 }
 
 static void
 print_help(void)
 {
   print_usage() ;
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program will inflate a cortical surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
@@ -562,6 +567,7 @@ print_help(void)
           DEFAULT_DIST);
   printf("-no-save-sulc : do not save ?h.sulc\n");
   printf("-sulc sulcname : save to ?h.sulcname\n");
+#endif
   exit(1) ;
 }
 

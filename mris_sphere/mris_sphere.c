@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/14 15:16:23 $
- *    $Revision: 1.54 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:50:01 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@
 #endif // FS_CUDA
 
 static char vcid[]=
-  "$Id: mris_sphere.c,v 1.54 2010/04/14 15:16:23 fischl Exp $";
+  "$Id: mris_sphere.c,v 1.55 2010/08/12 17:50:01 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -122,13 +122,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_sphere.c,v 1.54 2010/04/14 15:16:23 fischl Exp $",
+   "$Id: mris_sphere.c,v 1.55 2010/08/12 17:50:01 gregt Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_sphere.c,v 1.54 2010/04/14 15:16:23 fischl Exp $",
+           "$Id: mris_sphere.c,v 1.55 2010/08/12 17:50:01 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -373,7 +373,7 @@ get_option(int argc, char *argv[]) {
   float f ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -631,6 +631,7 @@ get_option(int argc, char *argv[]) {
       fprintf(stderr, "using n_averages = %d\n", parms.n_averages) ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_usage() ;
       exit(1) ;
@@ -657,17 +658,23 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf(stderr,
           "usage: %s [options] <inflated surface> <output spherical surface>"
           "\n", Progname) ;
+#endif
 }
 
 static void
 print_help(void) {
   print_usage() ;
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program will inflated a surface into a sphere.\n");
   //  fprintf(stderr, "\nvalid options are:\n\n") ;
+#endif
   exit(1) ;
 }
 
