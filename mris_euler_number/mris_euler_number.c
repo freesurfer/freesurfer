@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:10 $
- *    $Revision: 1.5 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:30:21 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,7 +42,7 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_euler_number.c,v 1.5 2006/12/29 02:09:10 nicks Exp $";
+static char vcid[] = "$Id: mris_euler_number.c,v 1.6 2010/08/12 17:30:21 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -64,7 +64,7 @@ main(int argc, char *argv[]) {
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_euler_number.c,v 1.5 2006/12/29 02:09:10 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_euler_number.c,v 1.6 2010/08/12 17:30:21 gregt Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -141,7 +141,7 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -150,6 +150,7 @@ get_option(int argc, char *argv[]) {
       patch_flag = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_usage() ;
       exit(1) ;
@@ -175,15 +176,21 @@ usage_exit(void) {
 
 static void
 print_usage(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf(stderr, "usage: %s [options] <input surface file>\n", Progname) ;
+#endif
 }
 
 static void
 print_help(void) {
   print_usage() ;
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program will compute the euler number of a cortical surface.\n");
   fprintf(stderr, "\nvalid options are:\n\n") ;
+#endif
   exit(1) ;
 }
 

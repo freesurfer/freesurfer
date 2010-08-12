@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/11/13 18:49:41 $
- *    $Revision: 1.28 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:26:02 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -41,13 +41,15 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.28 2008/11/13 18:49:41 fischl Exp $";
+static char vcid[] = "$Id: mris_curvature.c,v 1.29 2010/08/12 17:26:02 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
+#ifdef GREGT
 static void print_usage(void) ;
+#endif
 static void print_help(void) ;
 static void print_version(void) ;
 
@@ -89,7 +91,7 @@ main(int argc, char *argv[]) {
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.28 2008/11/13 18:49:41 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.29 2010/08/12 17:26:02 gregt Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -330,8 +332,8 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
-    print_usage() ;
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+    print_help() ;
   else if (!stricmp(option, "distances") || !stricmp(option, "vnum")) {
     nbhd_size = atoi(argv[2]) ;
     nbrs_per_distance = atoi(argv[3]) ;
@@ -415,8 +417,9 @@ get_option(int argc, char *argv[]) {
       write_flag = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
-      print_usage() ;
+      print_help() ;
       exit(1) ;
       break ;
     default:
@@ -430,18 +433,23 @@ get_option(int argc, char *argv[]) {
 
 static void
 usage_exit(void) {
-  print_usage() ;
+  print_help() ;
   exit(1) ;
 }
 
+#ifdef GREGT
 static void
 print_usage(void) {
   fprintf(stderr, "usage: %s [options] <input surface file>\n", Progname) ;
   print_help() ;
 }
+#endif
 
 static void
 print_help(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf(stderr,
           "\nThis program will compute the second fundamental form of a cortical surface."
           "\nIt will create two new files <hemi>.<surface>.H and <hemi>.<surface>.K with the\n"
@@ -451,6 +459,7 @@ print_help(void) {
   fprintf(stderr, "\t-max\t\t save  1st (max) principal curvature in ?h.<surface>.max file\n") ;
   fprintf(stderr, "\t-min\t\t save  2nd (min) principal curvature in ?h.<surface>.min file\n") ;
   fprintf(stderr, "\t-a <avgs>\t perform <avgs> iterative averages of curvature measure before saving\n") ;
+#endif
   exit(1) ;
 }
 

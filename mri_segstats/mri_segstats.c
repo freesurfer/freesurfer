@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/07/26 16:19:10 $
- *    $Revision: 1.70 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:30:03 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2006-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -426,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.70 2010/07/26 16:19:10 greve Exp $";
+"$Id: mri_segstats.c,v 1.71 2010/08/12 17:30:03 gregt Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1489,7 +1489,8 @@ static int parse_commandline(int argc, char **argv) {
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help"))  print_help() ;
+    if (!strcasecmp(option, "--help")||!strcasecmp(option, "--usage")
+      ||!strcasecmp(option, "-h")||!strcasecmp(option, "-u"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--dontrun"))   dontrun = 1;
@@ -1724,6 +1725,9 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --seg segvol : segmentation volume path \n");
@@ -1786,11 +1790,13 @@ static void print_usage(void) {
   printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
+#endif
 }
 
 /* --------------------------------------------- */
 static void print_help(void) {
   print_usage() ;
+#ifdef GREGT
 printf("\n");
 printf("This program will comute statistics on segmented volumes. In its\n");
 printf("simplist invocation, it will report on the number of voxels and volume\n");
@@ -2099,6 +2105,7 @@ printf("\n");
 printf("SEE ALSO:\n");
 printf("  mri_label2vol, tkregister2, mri_vol2roi.\n");
 printf("\n");
+#endif
   exit(1) ;
 }
 /* --------------------------------------------- */

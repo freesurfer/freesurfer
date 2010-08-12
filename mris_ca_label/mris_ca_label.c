@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/27 00:59:09 $
- *    $Revision: 1.32 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:25:17 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.32 2010/03/27 00:59:09 nicks Exp $";
+  "$Id: mris_ca_label.c,v 1.33 2010/08/12 17:25:17 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -58,7 +58,9 @@ static int postprocess(GCSA *gcsa, MRI_SURFACE *mris) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
+#ifdef GREGT
 static void print_usage(void) ;
+#endif
 static void print_help(void) ;
 static void print_version(void) ;
 
@@ -93,6 +95,10 @@ static int relabel_unknowns_with_cortex_label(GCSA *gcsa,
 int
 main(int argc, char *argv[])
 {
+
+
+
+  
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp,*hemi,
   *canon_surf_name ;
   int          ac, nargs, i ;
@@ -338,7 +344,7 @@ get_option(int argc, char *argv[])
   MRIS *ico;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -482,6 +488,7 @@ get_option(int argc, char *argv[])
       nargs = 1 ;
       printf("reading precomputed parcellation from %s...\n", read_fname) ;
       break ;
+    case 'H':
     case 'U':
       usage_exit(0) ;
       break ;
@@ -499,9 +506,12 @@ get_option(int argc, char *argv[])
 
   Description:
   ----------------------------------------------------------------------*/
+#ifdef GREGT
 static void
 print_usage(void)
 {
+
+
   printf("mris_ca_label [options] <subject> <hemi> "
          "<canon surf> <classifier> <output file>\n");
   printf("\n");
@@ -529,17 +539,21 @@ print_usage(void)
   printf("  -seed N  - set random number generator to seed N\n");
   printf("\n");
 }
+#endif
 
 static void
 usage_exit(int code)
 {
-  print_usage();
+  print_help();
   exit(code) ;
 }
 
 static void
 print_help(void)
 {
+  outputHelp(Progname);
+
+#ifdef GREGT
   print_usage() ;
   fprintf(stderr,
           "\n"
@@ -599,6 +613,7 @@ print_help(void)
           "  --help             print help info\n\n");
   fprintf(stderr,
           "  --version          print version info\n");
+#endif
   exit(1) ;
 }
 

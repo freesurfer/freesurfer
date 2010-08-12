@@ -11,9 +11,9 @@
 /*
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/04/12 21:05:24 $
- *    $Revision: 1.28 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:25:41 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@
 #define  START_i    	3
 
 static const char vcid[] =
-"$Id: mris_calc.c,v 1.28 2010/04/12 21:05:24 greve Exp $";
+"$Id: mris_calc.c,v 1.29 2010/08/12 17:25:41 gregt Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -454,6 +454,9 @@ int main(int argc, char *argv[]) ;
 
 static void
 synopsis_show(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   char  pch_synopsis[STRBUF];
 
   sprintf(pch_synopsis, "    \n\
@@ -762,6 +765,7 @@ synopsis_show(void) {
 \n");
 
   fprintf(stdout,"%s",pch_synopsis);
+#endif
   exit(1) ;
 }
 
@@ -1326,12 +1330,13 @@ main(
   init();
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_calc.c,v 1.28 2010/04/12 21:05:24 greve Exp $",
+     "$Id: mris_calc.c,v 1.29 2010/08/12 17:25:41 gregt Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
-
+  
+  Progname=argv[0];
   G_pch_progname = argv[0] ;
   strcpy(G_pch_curvFile3, "out");
 
@@ -1420,6 +1425,9 @@ options_parse(int argc, char *argv[]) {
     strcpy(G_pch_labelFile, argv[2]);
     Gb_labelMask        = 1;
     nargs               = 1;
+  }else if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
+    synopsis_show() ;
+    exit(1) ;
   } else switch (toupper(*option)) {
   case 'T':
     pch_text  = "void";

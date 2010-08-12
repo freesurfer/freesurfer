@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/21 04:38:06 $
- *    $Revision: 1.35 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:29:39 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.35 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.36 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_segment.c,v 1.35 2007/11/21 04:38:06 nicks Exp $", 
+     "$Id: mri_segment.c,v 1.36 2010/08/12 17:29:39 gregt Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -334,8 +334,7 @@ get_option(int argc, char *argv[]) {
   if (!strcasecmp(option, "-version")) {
     fprintf(stderr, "Version: %s\n", MRI_SEGMENT_VERSION);
     exit(0);
-  } else if ((!stricmp(option, "help")) ||
-             (!stricmp(option, "-help"))) {
+  } else if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
     usage_exit(0);
   } else if (!stricmp(option, "MGH_MPRAGE") || !stricmp(option, "MPRAGE")) {
     scan_type = MRI_MGH_MPRAGE;
@@ -451,6 +450,7 @@ get_option(int argc, char *argv[]) {
       fprintf(stderr, "using wsize = %d\n", wsize) ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       usage_exit(0) ;
       break ;
@@ -1205,6 +1205,11 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
 
 static void
 usage_exit(int code) {
+  char *name= malloc(strlen(Progname));
+  strcpy(name,Progname);
+  outputHelp(name);
+
+#ifdef GREGT
   printf("\nSegments white matter from the input volume.  The input\n"
          "volume should be normalized such that white matter voxels are\n"
          "~110-valued, and the volume is conformed to 256^3.  This can be\n"
@@ -1237,5 +1242,6 @@ usage_exit(int code) {
   printf("\t-x <filename>      extract options from filename\n");
   printf("\t-w <int w>         set wsize (default=%d)\n", wsize);
   printf("\t-u, -help          usage\n");
+#endif
   exit(code);
 }

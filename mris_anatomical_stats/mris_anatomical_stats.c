@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/05/28 20:36:45 $
- *    $Revision: 1.68 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:24:46 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -42,7 +42,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.68 2010/05/28 20:36:45 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.69 2010/08/12 17:24:46 gregt Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -121,7 +121,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_anatomical_stats.c,v 1.68 2010/05/28 20:36:45 nicks Exp $",
+     "$Id: mris_anatomical_stats.c,v 1.69 2010/08/12 17:24:46 gregt Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -890,7 +890,7 @@ get_option(int argc, char *argv[])
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -1018,7 +1018,6 @@ get_option(int argc, char *argv[])
     case '?':
     case 'U':
       print_usage() ;
-      exit(1) ;
       break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
@@ -1047,6 +1046,9 @@ print_usage(void)
 static void
 print_help(void)
 {
+  outputHelp(Progname);
+
+#ifdef GREGT
   print_usage() ;
   fprintf
   (stderr,
@@ -1089,7 +1091,7 @@ print_help(void)
   fprintf
   (stderr,
    "-c <.ctab file>              - output the colortable for this annotation\n") ;
-
+#endif
   exit(1) ;
 }
 
