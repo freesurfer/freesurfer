@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: gregt $
- *    $Date: 2010/08/12 17:21:49 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/08/12 17:23:29 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -87,7 +87,7 @@ main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.7 2010/08/12 17:21:49 gregt Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.8 2010/08/12 17:23:29 gregt Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
     exit (0);
@@ -202,8 +202,6 @@ get_option(int argc, char *argv[]) {
     case '?':
     case 'H':
     case 'U':
-      printf("usage: %s <in volume> <transform> <GCA> <output volume>\n",
-             argv[0]) ;
       usage_exit(0);
       break ;
     default:
