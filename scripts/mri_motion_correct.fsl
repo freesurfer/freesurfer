@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: gregt $
-#    $Date: 2010/08/12 16:49:15 $
-#    $Revision: 1.12 $
+#    $Date: 2010/08/12 17:40:32 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2005-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.12 2010/08/12 16:49:15 gregt Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.13 2010/08/12 17:40:32 gregt Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -422,7 +422,7 @@ goto cleanup_return;
 
 ############--------------##################
 usage_exit:
-printHelp "mri_motion_correct.fsl"
+fsPrintHelp "mri_motion_correct.fsl"
 #  echo "USAGE: mri_motion_correct.fsl"
 #  echo ""
 #  echo "Required Arguments:"
