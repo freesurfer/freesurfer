@@ -76,6 +76,7 @@ extern "C"
 #include "error.h"
 #include "diag.h"
 #include "version.h"
+#include "utils.h"
 }
 
 #include "pre_pro.cpp"
@@ -83,7 +84,7 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-  "$Id: mri_gcut.cpp,v 1.7 2010/02/18 19:50:06 nicks Exp $";
+  "$Id: mri_gcut.cpp,v 1.8 2010/08/12 17:08:35 gregt Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -91,6 +92,7 @@ static bool bNeedPreprocessing = 1;
 static bool bNeedMasking = 0;
 static double _t = 0.36;
 
+#ifdef GREGT
 static const char help[] =
   {
     "Usage:\n"
@@ -143,7 +145,7 @@ static const char help[] =
     "[1] S.A. Sadananthan, W. Zheng, M.W.L. Chee, and V. Zagorodnov,\n"
     "'Skull Stripping Using Graph Cuts', Neuroimage, 2009\n"
   };
-
+#endif
 
 bool matrix_alloc(int ****pointer, int z, int y, int x)
 {
@@ -180,7 +182,13 @@ bool matrix_free(int ***pointer, int z, int y, int x)
 
 static void print_help(void)
 {
+  char *name= (char*)malloc(strlen(Progname));
+  strcpy(name,Progname);
+  outputHelp(name);
+  
+#ifdef GREGT
   printf("%s",help);
+#endif
   exit(1);
 }
 
@@ -218,7 +226,7 @@ static int parse_commandline(int argc, char **argv)
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help")) print_help() ;
+    if (!strcasecmp(option, "--help")||!strcasecmp(option, "--usage")) print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcmp(option, "-110") || !strcmp(option, "--110"))
     {
@@ -281,7 +289,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.7 2010/02/18 19:50:06 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.8 2010/08/12 17:08:35 gregt Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/27 13:25:40 $
- *    $Revision: 1.73 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:01:21 $
+ *    $Revision: 1.74 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -128,6 +128,7 @@ static int translation_only = 0 ;
 static int get_option(int argc, char *argv[]) ;
 static int write_vector_field(MRI *mri, GCA_MORPH *gcam, char *vf_fname) ;
 static int remove_bright_stuff(MRI *mri, GCA *gca, TRANSFORM *transform) ;
+static void print_help(void);
 
 static char *renormalization_fname = NULL ;
 static char *tissue_parms_fname = NULL ;
@@ -216,7 +217,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.73 2010/07/27 13:25:40 rge21 Exp $", 
+     "$Id: mri_ca_register.c,v 1.74 2010/08/12 17:01:21 gregt Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -231,6 +232,8 @@ main(int argc, char *argv[]) {
   }
 
   if (argc < 4) {
+    outputHelp(Progname);
+#ifdef GREGT
     printf("mri_ca_register [options] inbrain template outputfilename\n");
     printf("\n");
     printf("  -align\n");
@@ -267,6 +270,7 @@ main(int argc, char *argv[]) {
     printf("  -secondpassrenorm\n");
     printf("\n");
     printf("\n");
+#endif
     exit(1);
   }
 
@@ -1534,9 +1538,13 @@ get_option(int argc, char *argv[]) {
       nargs = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
+      print_help();
+#ifdef GREGT
       printf("usage: %s <in volume> <template volume> <output transform>\n",
              argv[0]) ;
+#endif
       exit(1) ;
       break ;
     case 'N':
@@ -1568,6 +1576,10 @@ get_option(int argc, char *argv[]) {
     }
 
   return(nargs) ;
+}
+
+static void print_help(void){
+  outputHelp(Progname);
 }
 
 static int

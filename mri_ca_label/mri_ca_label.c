@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/28 14:35:55 $
- *    $Revision: 1.93 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:00:03 $
+ *    $Revision: 1.94 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,13 +190,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_ca_label.c,v 1.93 2010/07/28 14:35:55 rge21 Exp $",
+   "$Id: mri_ca_label.c,v 1.94 2010/08/12 17:00:03 gregt Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_label.c,v 1.93 2010/07/28 14:35:55 rge21 Exp $",
+           "$Id: mri_ca_label.c,v 1.94 2010/08/12 17:00:03 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -968,6 +968,8 @@ get_option(int argc, char *argv[]) {
     wm_fname = argv[2] ;
     nargs = 1 ;
     printf("inserting white matter segmentation from %s...\n", wm_fname) ;
+  } else if (!stricmp(option, "-HELP")||!stricmp(option, "-USAGE")) {
+      usage_exit(0) ;
   } else if (!stricmp(option, "SAVE_GCA")) {
     save_gca_fname = argv[2] ;
     nargs = 1 ;
@@ -1221,6 +1223,8 @@ get_option(int argc, char *argv[]) {
   ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
+  outputHelp(Progname);
+#ifdef GREGT
   printf("usage: %s [options] <input volume(s)> <xform> <gca file>"
          " <output volume>\n\n", Progname) ;
   printf("\t-cross-sequence              label a volume acquired with "
@@ -1282,6 +1286,7 @@ usage_exit(int code) {
   printf("\t-RELABEL_UNLIKELY <1/0> <wsize> <sigma> <thresh>\n") ;
   printf("\treclassify voxels at least <thresh> std devs from the mean using a <wsize> Gaussian window\n"
          "\t(with <sigma> standard dev) to recompute priors and likelihoods\n") ;
+#endif
   exit(code) ;
 }
 

@@ -20,9 +20,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2009/10/29 20:38:47 $
- *    $Revision: 1.38 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 16:57:49 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,7 +76,7 @@ int CCSegment(MRI *seg, int segid, int segidunknown);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_aparc2aseg.c,v 1.38 2009/10/29 20:38:47 krish Exp $";
+  "$Id: mri_aparc2aseg.c,v 1.39 2010/08/12 16:57:49 gregt Exp $";
 char *Progname = NULL;
 static char *SUBJECTS_DIR = NULL;
 static char *subject = NULL;
@@ -643,7 +643,7 @@ static int parse_commandline(int argc, char **argv) {
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help"))  print_help() ;
+    if (!strcasecmp(option, "--help")||!strcasecmp(option, "-h")||!strcasecmp(option, "--usage")||!strcasecmp(option, "-u"))  print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     // This was --ribbon, but changed to --old-ribbon 4/17/08 DNG
@@ -735,6 +735,9 @@ static void usage_exit(void) {
 }
 /* --------------------------------------------- */
 static void print_usage(void) {
+
+  outputHelp(Progname);
+#ifdef GREGT
   printf("USAGE: %s \n",Progname) ;
   printf("\n");
   printf("   --s subject \n");
@@ -760,9 +763,14 @@ static void print_usage(void) {
   printf("\n");
   printf("%s\n", vcid) ;
   printf("\n");
+#endif
 }
 /* --------------------------------------------- */
 static void print_help(void) {
+
+  outputHelp(Progname);
+
+#ifdef GREGT
   print_usage() ;
   printf(
     "Maps the cortical labels from the automatic cortical parcellation (aparc)\n"
@@ -835,6 +843,7 @@ static void print_help(void) {
     "the aparc+aseg volume.\n"
     "\n"
   );
+#endif
 
   exit(1) ;
 }

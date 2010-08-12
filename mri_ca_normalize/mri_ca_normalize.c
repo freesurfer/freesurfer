@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/04/23 18:17:44 $
- *    $Revision: 1.49 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:00:26 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -148,13 +148,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.49 2010/04/23 18:17:44 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.50 2010/08/12 17:00:26 gregt Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_ca_normalize.c,v 1.49 2010/04/23 18:17:44 fischl Exp $",
+     "$Id: mri_ca_normalize.c,v 1.50 2010/08/12 17:00:26 gregt Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -585,6 +585,8 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     printf("writing control points to %s...\n", sample_fname) ;
   }
+  else if (!strcmp(option, "-HELP")||!strcmp(option, "-USAGE"))
+    usage_exit(0) ;
   else if (!strcmp(option, "MASK"))
   {
     mask_fname = argv[2] ;
@@ -732,6 +734,7 @@ get_option(int argc, char *argv[])
     nargs = 1 ;
     break ;
   case '?':
+  case 'H':
   case 'U':
     usage_exit(0) ;
     break ;
@@ -1276,6 +1279,8 @@ discard_unlikely_control_points(GCA *gca, GCA_SAMPLE *gcas, int nsamples,
 static void
 usage_exit(int code)
 {
+  outputHelp(Progname);
+#ifdef GREGT
   printf("usage: %s [<options>] <in volume> <atlas> <transform> "
          "<normalized volume>\n\n",
          Progname) ;
@@ -1317,6 +1322,7 @@ usage_exit(int code)
          "as i can tell, but an option\n");
   printf("\t-p <float p>                 use top p percent(default=.25) "
          "white matter points as control points\n");
+#endif
   exit(code) ;
 }
 static MRI *

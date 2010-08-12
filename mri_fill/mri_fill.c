@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/11/19 19:07:00 $
- *    $Revision: 1.113 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:07:46 $
+ *    $Revision: 1.114 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $";
+  "$Id: mri_fill.c,v 1.114 2010/08/12 17:07:46 gregt Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -1553,7 +1553,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.114 2010/08/12 17:07:46 gregt Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1561,7 +1561,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.113 2009/11/19 19:07:00 fischl Exp $", 
+           "$Id: mri_fill.c,v 1.114 2010/08/12 17:07:46 gregt Exp $", 
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2827,7 +2827,7 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
@@ -3018,6 +3018,7 @@ get_option(int argc, char *argv[]) {
       logging = 1 ;
       break ;
     case '?':
+    case 'H':
     case 'U':
       print_help() ;
       exit(1) ;
@@ -3039,6 +3040,9 @@ print_version(void) {
 
 static void
 print_help(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   fprintf(stderr,
           "usage: %s [options] <input MR directory> <output MR directory>\n",
           Progname) ;
@@ -3078,6 +3082,7 @@ print_help(void) {
           "\t-PV <x> <y> <z> - the voxel coords of the seed for the pons\n");
   fprintf(stderr,
           "\n");
+#endif
   exit(0) ;
 }
 

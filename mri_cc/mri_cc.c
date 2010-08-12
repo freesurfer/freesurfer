@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/12 23:23:05 $
- *    $Revision: 1.29 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:01:55 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2004-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -172,13 +172,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.29 2010/03/12 23:23:05 fischl Exp $",
+   "$Id: mri_cc.c,v 1.30 2010/08/12 17:01:55 gregt Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.29 2010/03/12 23:23:05 fischl Exp $",
+           "$Id: mri_cc.c,v 1.30 2010/08/12 17:01:55 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1233,6 +1233,8 @@ edge_detection(MRI *mri_temp, int edge_count, int signal)
 static void 
 print_usage()
 {
+      outputHelp(Progname);
+#ifdef GREGT
       fprintf(stdout,
               "usage: %s <subject>\n\n",
               Progname) ;
@@ -1251,6 +1253,7 @@ print_usage()
             "\nSegments the corpus callosum into five parts divided along\n"
             "the primary eigendirection (mostly anterior/posterior), and\n"
             "writes the results to <subject>/mri/aseg.mgz\n");
+#endif
 
 }
 static int
@@ -1265,6 +1268,11 @@ get_option(int argc, char *argv[])
     strcpy(sdir, argv[2]) ;
     printf("using %s as SUBJECTS_DIR...\n", sdir) ;
     nargs = 1 ;
+  }
+  else if (!stricmp(option, "-HELP")||!stricmp(option, "-USAGE"))
+  {
+		  print_usage();
+      exit(1) ;
   }
   else if (!stricmp(option, "DEBUG_VOXEL"))
   {
@@ -1302,6 +1310,7 @@ get_option(int argc, char *argv[])
              DEGREES(max_cc_rot)) ;
       break ;
     case '?':
+    case 'H':
     case 'U':
 		  print_usage();
       exit(1) ;

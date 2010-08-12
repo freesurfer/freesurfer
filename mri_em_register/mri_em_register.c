@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.77 2010/02/12 19:43:30 rge21 Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.78 2010/08/12 17:07:18 gregt Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -197,7 +197,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.77 2010/02/12 19:43:30 rge21 Exp $",
+     "$Id: mri_em_register.c,v 1.78 2010/08/12 17:07:18 gregt Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1520,6 +1520,9 @@ find_optimal_translation
   ----------------------------------------------------------------------*/
 static void printUsage(void)
 {
+  outputHelp(Progname);
+
+#ifdef GREGT
   // there are so many options.
   printf("usage: mri_em_register [<options>] "
          "<in volume> <atlas> <output transform>\n") ;
@@ -1579,6 +1582,7 @@ static void printUsage(void)
   printf("  -p ctl_point_pct : use top pct percent wm points as control points\n");
   printf("  -m momentum\n");
   printf("  \n");
+#endif
 
 }
 
@@ -1596,6 +1600,10 @@ get_option(int argc, char *argv[])
     parms.l_dist = atof(argv[2]) ;
     nargs = 1 ;
     printf("l_dist = %2.2f\n", parms.l_dist) ;
+  }
+  else if (!strcmp(option, "-HELP")||!strcmp(option, "-USAGE")) {
+      printUsage();
+      exit(1) ;
   }
   else if (!strcmp(option, "NOMAP"))
   {
@@ -2003,6 +2011,7 @@ get_option(int argc, char *argv[])
 #endif
       break ;
     case '?':
+    case 'H':
     case 'U':
       printUsage();
       exit(1) ;

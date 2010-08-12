@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2009/02/12 14:54:55 $
- *    $Revision: 1.20 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:06:53 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,9 +32,9 @@
 // written by Bruce Fischl
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2009/02/12 14:54:55 $
-// Revision       : $Revision: 1.20 $
+// Revision Author: $Author: gregt $
+// Revision Date  : $Date: 2010/08/12 17:06:53 $
+// Revision       : $Revision: 1.21 $
 //
 
 #include <stdio.h>
@@ -113,10 +113,10 @@ main(int argc, char *argv[]) {
   int    msec, nargs ;
   char cmdline[CMD_LINE_LEN], *output_file_name,*input_file_name, *edits_file_name ;
 
-  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.20 2009/02/12 14:54:55 fischl Exp $", "$Name:  $", cmdline);
+  make_cmd_version_string (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.21 2010/08/12 17:06:53 gregt Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.20 2009/02/12 14:54:55 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_edit_wm_with_aseg.c,v 1.21 2010/08/12 17:06:53 gregt Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1) exit (0);
 
   TimerStart(&then) ;
@@ -203,6 +203,9 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "dilate")) {}
+  else if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
+    usage_exit(0);
+  }
   else if (!strcmp(option, "fillven")) {
     fillven = atoi(argv[2]) ;
     printf("%sfilling ventricles\n", fillven == 0 ? "not " : "") ;
@@ -222,6 +225,7 @@ get_option(int argc, char *argv[]) {
     nargs = 3 ;
   } else switch (toupper(*option)) {
     case '?':
+    case 'H':
     case 'U':
       usage_exit(0) ;
       break ;
@@ -240,6 +244,9 @@ get_option(int argc, char *argv[]) {
 ----------------------------------------------------------------------*/
 static void
 usage_exit(int code) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   printf(" \n");
   printf("%s <options> input-wm input-T1/brain aseg output-wm\n",
          Progname) ;
@@ -253,6 +260,7 @@ usage_exit(int code) {
   printf("Example: \n");
   printf("  mri_edit_wm_with_aseg -keep-in wm.seg.mgz brain.mgz aseg.mgz wm.asegedit.mgz \n");
   printf(" \n");
+#endif
   exit(code) ;
 }
 #if !SPACKLE_MTL

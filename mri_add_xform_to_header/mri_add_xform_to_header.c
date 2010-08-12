@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/08/07 21:03:01 $
- *    $Revision: 1.8 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 16:57:04 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -59,7 +59,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_add_xform_to_header.c,v 1.8 2007/08/07 21:03:01 nicks Exp $", 
+     "$Id: mri_add_xform_to_header.c,v 1.9 2010/08/12 16:57:04 gregt Exp $", 
      "$Name:  $");
 
   argc -= nargs;
@@ -152,7 +152,9 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option)) {
+  if (!stricmp(option,"-help")||!stricmp(option,"-usage"))
+    usage_exit();
+  else switch (toupper(*option)) {
   case 'C':
     CopyNameOnly = 1;
     break ;
@@ -163,10 +165,9 @@ get_option(int argc, char *argv[]) {
     nargs = 1 ;
     break ;
   case '?':
+  case 'H':
   case 'U':
-    printf
-      ("usage: %s [xform file name] [input directory] [output directory]\n",
-       argv[0]) ;
+    print_usage();
     exit(1) ;
     break ;
   default:
@@ -186,9 +187,14 @@ static void usage_exit(void) {
 
 /* --------------------------------------------- */
 static void print_usage(void) {
+
+  outputHelp(Progname);
+
+#ifdef GREGT
   printf("USAGE: %s <options> xfmfile invol outvol \n",Progname) ;
   printf("\n");
   printf("   -v : verbose \n");
   printf("   -c : do not try to load the xfmfile, just copy name\n");
   printf("\n");
+#endif
 }

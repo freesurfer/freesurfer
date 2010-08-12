@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/14 20:35:45 $
- *    $Revision: 1.13 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:13:15 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 #include "version.h"
 #include "transform.h"
 
-static char vcid[] = "$Id: mri_mask.c,v 1.13 2010/01/14 20:35:45 nicks Exp $";
+static char vcid[] = "$Id: mri_mask.c,v 1.14 2010/08/12 17:13:15 gregt Exp $";
 
 void usage(int exit_val);
 
@@ -87,7 +87,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_mask.c,v 1.13 2010/01/14 20:35:45 nicks Exp $", "$Name:  $"
+      "$Id: mri_mask.c,v 1.14 2010/08/12 17:13:15 gregt Exp $", "$Name:  $"
     );
   if (nargs && argc - nargs == 1) exit (0);
   argc -= nargs ;
@@ -289,7 +289,9 @@ int main(int argc, char *argv[]) {
 }  /*  end main()  */
 
 void usage(int exit_val) {
+  outputHelp(Progname);
 
+#ifdef GREGT
   FILE *fout;
 
   fout = (exit_val ? stderr : stdout);
@@ -324,6 +326,7 @@ void usage(int exit_val) {
           "                               (voxels=1) from mask to out vol\n");
 
   fprintf(fout, "\n");
+#endif
 
   exit(exit_val);
 
@@ -342,7 +345,7 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     usage(1) ;
   else if (!stricmp(option, "version"))
     print_version() ;

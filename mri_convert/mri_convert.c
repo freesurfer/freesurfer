@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/08/05 19:38:41 $
- *    $Revision: 1.168 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:06:12 $
+ *    $Revision: 1.169 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.168 2010/08/05 19:38:41 greve Exp $", 
+     "$Id: mri_convert.c,v 1.169 2010/08/12 17:06:12 gregt Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.168 2010/08/05 19:38:41 greve Exp $", 
+      "$Id: mri_convert.c,v 1.169 2010/08/12 17:06:12 gregt Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -1007,7 +1007,10 @@ int main(int argc, char *argv[]) {
 
     } else if ((strcmp(argv[i], "-u") == 0)
                || (strcmp(argv[i], "--usage") == 0)
-               || (strcmp(argv[i], "--help") == 0)) {
+               || (strcmp(argv[i], "--help") == 0)
+               || (strcmp(argv[i], "-h") == 0)) {
+      printf("hi");
+      fflush(stdout);
       usage(stdout);
       exit(0);
     }
@@ -1336,7 +1339,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.168 2010/08/05 19:38:41 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.169 2010/08/12 17:06:12 gregt Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2604,7 +2607,12 @@ void usage_message(FILE *stream) {
 
 } /* end usage_message() */
 
+
 void usage(FILE *stream) {
+
+  outputHelp(Progname);
+
+#ifdef GREGT
 
   fprintf(stream, "\n");
   fprintf(stream, "usage: %s [options] <in volume> <out volume>\n",
@@ -2976,6 +2984,7 @@ void usage(FILE *stream) {
          "cosines or orientation string,\n");
   printf("the ras_good_flag is set.\n");
   printf("\n");
+#endif // GREGT
 
 } /* end usage() */
 

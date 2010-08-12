@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/11 17:15:27 $
- *    $Revision: 1.65 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:13:37 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -120,14 +120,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.65 2010/01/11 17:15:27 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.66 2010/08/12 17:13:37 gregt Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.65 2010/01/11 17:15:27 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.66 2010/08/12 17:13:37 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -515,7 +515,7 @@ get_option(int argc, char *argv[]) {
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "-help")) {
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
     usage_exit(0);
   } else if (!stricmp(option, "no1d")) {
     no1d = 1 ;
@@ -686,6 +686,9 @@ get_option(int argc, char *argv[]) {
 
 static void
 usage_exit(int code) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   printf("%s input output\n\n", Progname) ;
   printf("  -n <int n>         use n 3d normalization "
          "iterations (default=%d)\n", num_3d_iter);
@@ -721,7 +724,7 @@ usage_exit(int code) {
          
   printf("  -u or -h           print usage\n");
   printf("  \n");
-
+#endif
   exit(code);
 }
 
