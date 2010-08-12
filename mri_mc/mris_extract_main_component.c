@@ -6,9 +6,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: segonne $
- *    $Date: 2007/02/13 17:17:30 $
- *    $Revision: 1.4 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:14:16 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,17 +45,15 @@
 
 char *Progname;
 
+static void usage_exit(int code);
+
 int main(int argc, char *argv[]) {
   MRIS *mris_in,*mris_out;
 
   Progname=argv[0];
 
   if (argc < 3) {
-    fprintf
-      (stderr,
-       "\n\nUSAGE: mris_extract_main_component "
-       "input_surface output_surface\n\n");
-    exit(-1);
+    usage_exit(-1);
   }
 
   mris_in=MRISread(argv[1]);
@@ -70,4 +68,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-
+static void
+usage_exit(int code) {
+  outputHelp(Progname);
+  exit(code) ;
+}

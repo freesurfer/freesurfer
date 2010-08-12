@@ -8,9 +8,9 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/07/02 17:31:52 $
- *    $Revision: 1.17 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:14:16 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,9 @@ char *Progname;
 
 int MRIaddEdgeVoxel(MRI *mri, int SetVal);
 
+#ifdef GREGT
 static void  print_usage(void);
+#endif
 static void  print_help(void);
 static int get_option(int argc, char *argv[]) ;
 static int corners = 1, keep_edits = 0,test_edge = 0, test_edge_added;
@@ -863,14 +865,14 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_pretess.c,v 1.17 2010/07/02 17:31:52 nicks Exp $", 
+     "$Id: mri_pretess.c,v 1.18 2010/08/12 17:14:16 gregt Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
 
   make_cmd_version_string 
     (argc, argv, 
-     "$Id: mri_pretess.c,v 1.17 2010/07/02 17:31:52 nicks Exp $", 
+     "$Id: mri_pretess.c,v 1.18 2010/08/12 17:14:16 gregt Exp $", 
      "$Name:  $", 
      cmdline);
 
@@ -885,7 +887,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (argc < 5) {
-    print_usage();
+    print_help();
     exit(-1);
   }
 
@@ -1035,14 +1037,13 @@ get_option(int argc, char *argv[]) {
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-  } else if (!stricmp(option, "nocorners"))    {
-    corners = 0 ;
-    printf("no removal of corner configurations in addition to edge ones\n") ;
-  } else if (!stricmp(option, "help"))    {
-    print_usage();
+  }else if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
     print_help();
     exit(1);
-  } else if (!stricmp(option, "keep"))    {
+  }else if (!stricmp(option, "nocorners"))    {
+    corners = 0 ;
+    printf("no removal of corner configurations in addition to edge ones\n") ;
+  }else if (!stricmp(option, "keep"))    {
     keep_edits = 1;
     printf("keeping edits\n") ;
   } else if (!stricmp(option, "test"))    {
@@ -1053,8 +1054,8 @@ get_option(int argc, char *argv[]) {
       Gdiag |= DIAG_WRITE ;
       break ;
     case '?':
+    case 'H':
     case 'U':
-      print_usage();
       print_help();
       exit(1);
       break ;
@@ -1065,7 +1066,10 @@ get_option(int argc, char *argv[]) {
     }
   return(nargs) ;
 }
+
+#ifdef GREGT
 static void print_usage(void) {
+
   printf("%s [options] filledvol labelstring normvol newfilledvol\n",
          Progname) ;
   printf("\n");
@@ -1078,7 +1082,12 @@ static void print_usage(void) {
   printf(" -help : print help (duh)\n");
   printf("\n");
 }
+#endif
+
 static void print_help(void) {
+  outputHelp(Progname);
+
+#ifdef GREGT
   printf("Changes white matter (WM) segmentation so that the neighbors of \n");
   printf("all voxels labeled as WM have a face in common - no edges or \n");
   printf("corners allowed.\n");
@@ -1092,6 +1101,7 @@ static void print_help(void) {
   printf("  The value of the voxel is set to that of an ON-edited WM,\n");
   printf("  so it should be kept with -keep. The output will NOT be saved.\n");
   printf("\n");
+#endif
 }
 
 /*------------------------------------------------------------------------
