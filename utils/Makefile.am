@@ -397,6 +397,7 @@ gifti_test_SOURCES=gifti_test.c gifti_test.h gifti_io.c gifti_xml.c \
 gifti_test_LDADD=$(top_builddir)/expat/libexpat.a -lz $(LIBS_NIFTI)
 
 fsPrintHelp_SOURCES=fsPrintHelp.c
+fsPrintHelp_CFLAGS=-DBUILD_MAIN
 fsPrintHelp_LDADD=$(top_builddir)/xml2/libxml2.a -lz
 fsPrintHelp_LDFLAGS=$(OS_LDFLAGS)
 

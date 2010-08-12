@@ -7,8 +7,8 @@
  * Original Author: Greg Terrono
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/08/12 18:42:44 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/12 18:47:52 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,18 +33,20 @@
 #include <ctype.h>
 #include "utils.h"
 
-/*-------------------------------------------------------------------
-
- routines for printing of help text formated in xml
-
--------------------------------------------------------------------*/
-
+#ifdef BUILD_MAIN
 //-------------------------------------------------------------------
 int main(int argc, char *argv[])
 {
   return outputHelp(argv[1]);
   exit(0);
 }
+#endif
+
+/*-------------------------------------------------------------------
+
+ routines for printing of help text formated in xml
+
+-------------------------------------------------------------------*/
 
 static void toUpperCase(char *sPtr);
 static void printName(xmlNodePtr cur);
