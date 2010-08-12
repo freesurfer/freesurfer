@@ -84,7 +84,7 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-  "$Id: mri_gcut.cpp,v 1.8 2010/08/12 17:08:35 gregt Exp $";
+  "$Id: mri_gcut.cpp,v 1.9 2010/08/12 18:18:01 gregt Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -185,6 +185,7 @@ static void print_help(void)
   char *name= (char*)malloc(strlen(Progname));
   strcpy(name,Progname);
   outputHelp(name);
+  free(name);
   
 #ifdef GREGT
   printf("%s",help);
@@ -289,7 +290,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.8 2010/08/12 17:08:35 gregt Exp $",
+               "$Id: mri_gcut.cpp,v 1.9 2010/08/12 18:18:01 gregt Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
