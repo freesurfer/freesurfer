@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2009/12/16 20:15:41 $
-#    $Revision: 1.12 $
+#    $Author: gregt $
+#    $Date: 2010/08/12 16:49:15 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.12 2009/12/16 20:15:41 greve Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.13 2010/08/12 16:49:15 gregt Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -45,12 +45,6 @@ if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
-  exit 1;
-endif
-set n = `echo $argv | egrep -e --help | wc -l`
-if($n != 0) then
-  set PrintHelp = 1;
-  goto usage_exit;
   exit 1;
 endif
 
@@ -179,6 +173,16 @@ while( $#argv != 0 )
 
   switch($flag)
 
+    case "-h"
+    case "-u"
+    case "-usage"
+    case "--usage"
+    case "-help"
+    case "--help"
+      set PrintHelp = 1;
+      goto usage_exit;
+      breaksw
+
     case "--i":
       if ( $#argv == 0) goto arg1err;
       set InVol = $argv[1]; shift;
@@ -274,33 +278,34 @@ arg1err:
 
 ############--------------##################
 usage_exit:
-  echo ""
-  echo "USAGE: mri_nu_correct.mni"
-  echo ""
-  echo " --i  invol  : input volume"
-  echo " --o  outvol : output volume"
-  echo " --n  niters : number of iterations, default is $nIters"
-  echo " --proto-iters Np : number of protocol iterations "
-  echo " --stop thresh        : N3 option"
-  echo " --distance Distance  : N3 -distance option"
-  echo " --fwhm FWHM          : N3 -fwhm option"
-  echo " --float : use floating point internally (default)"
-  echo " --no-float : do NOT use floating point internally"
-  echo ""
-  echo " --cm        : conform COR volumes to the min voxel size "
-  echo ""
-  echo "Optional flags and arguments:"
-  echo ""
-  echo " --help               : print help and exit"
-  echo " --debug              : turn on debugging"
-  echo " --version            : print version and exit"
-  echo ""
+printHelp $0
+#  echo ""
+#  echo "USAGE: mri_nu_correct.mni"
+#  echo ""
+#  echo " --i  invol  : input volume"
+#  echo " --o  outvol : output volume"
+#  echo " --n  niters : number of iterations, default is $nIters"
+#  echo " --proto-iters Np : number of protocol iterations "
+#  echo " --stop thresh        : N3 option"
+#  echo " --distance Distance  : N3 -distance option"
+#  echo " --fwhm FWHM          : N3 -fwhm option"
+#  echo " --float : use floating point internally (default)"
+#  echo " --no-float : do NOT use floating point internally"
+#  echo ""
+#  echo " --cm        : conform COR volumes to the min voxel size "
+#  echo ""
+#  echo "Optional flags and arguments:"
+#  echo ""
+#  echo " --help               : print help and exit"
+#  echo " --debug              : turn on debugging"
+#  echo " --version            : print version and exit"
+#  echo ""
 
-  if(! $PrintHelp) exit 1;
+#  if(! $PrintHelp) exit 1;
 
-  echo $VERSION
+#  echo $VERSION
 
-  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+#  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 
 exit 1;
 

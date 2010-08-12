@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/08/04 15:45:26 $
-#    $Revision: 1.11 $
+#    $Author: gregt $
+#    $Date: 2010/08/12 16:49:15 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2005-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 #
 
 
-set VERSION = '$Id: mri_motion_correct.fsl,v 1.11 2010/08/04 15:45:26 nicks Exp $';
+set VERSION = '$Id: mri_motion_correct.fsl,v 1.12 2010/08/12 16:49:15 gregt Exp $';
 
 set tmpdir      = ();
 set inputlist   = ();
@@ -246,6 +246,10 @@ while( $#argv != 0 )
 
   switch($flag)
 
+    case "-h"
+    case "-u"
+    case "-usage"
+    case "--usage"
     case "-help"
     case "--help"
       set PrintHelp = 1;
@@ -418,31 +422,32 @@ goto cleanup_return;
 
 ############--------------##################
 usage_exit:
-  echo "USAGE: mri_motion_correct.fsl"
-  echo ""
-  echo "Required Arguments:"
-  echo ""
-  echo "  -o  output spec : output file or directory (for COR)"
-  echo "  -i  input1 <-i input2 <-i input3>>"
-  echo ""
-  echo "Optional Arguments:";
-  echo ""
-  echo "  -target #      : spec # of target for registration (default = 1)"
-  echo "  -wild          : assume unmatched args are input files"
-  echo "  -tmpdir tmpdir : directory for temporary files"
-  echo "  -nocleanup     : do not delete temporary files"
-  echo "  -cm            : COR volumes conform to min voxel size"
-  echo "  -version       : print version and exit"
-  echo "  -log logfile   : explicitly spec logfile"
-  echo "  -nolog         : do not create a log file"
-  echo "  -debug         : print lots of stuff to screen"
-  echo ""
+printHelp "mri_motion_correct.fsl"
+#  echo "USAGE: mri_motion_correct.fsl"
+#  echo ""
+#  echo "Required Arguments:"
+#  echo ""
+#  echo "  -o  output spec : output file or directory (for COR)"
+#  echo "  -i  input1 <-i input2 <-i input3>>"
+#  echo ""
+#  echo "Optional Arguments:";
+#  echo ""
+#  echo "  -target #      : spec # of target for registration (default = 1)"
+#  echo "  -wild          : assume unmatched args are input files"
+#  echo "  -tmpdir tmpdir : directory for temporary files"
+#  echo "  -nocleanup     : do not delete temporary files"
+#  echo "  -cm            : COR volumes conform to min voxel size"
+#  echo "  -version       : print version and exit"
+#  echo "  -log logfile   : explicitly spec logfile"
+#  echo "  -nolog         : do not create a log file"
+#  echo "  -debug         : print lots of stuff to screen"
+#  echo ""
 
-  if(! $PrintHelp) exit 1;
+#  if(! $PrintHelp) exit 1;
 
-  echo $VERSION
+#  echo $VERSION
 
-  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+#  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 
 exit 1;
 
