@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: gregt $
- *    $Date: 2010/08/12 17:29:39 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/08/12 18:09:30 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.36 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.37 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_segment.c,v 1.36 2010/08/12 17:29:39 gregt Exp $", 
+     "$Id: mri_segment.c,v 1.37 2010/08/12 18:09:30 gregt Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1208,6 +1208,7 @@ usage_exit(int code) {
   char *name= malloc(strlen(Progname));
   strcpy(name,Progname);
   outputHelp(name);
+  free(name);
 
 #ifdef GREGT
   printf("\nSegments white matter from the input volume.  The input\n"
