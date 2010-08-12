@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/08/04 02:21:27 $
- *    $Revision: 1.211 $
+ *    $Author: rge21 $
+ *    $Date: 2010/08/12 13:28:33 $
+ *    $Revision: 1.212 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7673,9 +7673,11 @@ gcamLabelEnergy( const GCA_MORPH *gcam,
 }
 
 #include "voxlist.h"
-static int
-remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh) 
-{
+int
+remove_label_outliers( const GCA_MORPH *gcam,
+		       MRI *mri_dist,
+		       const int whalf,
+		       const double thresh ) {
   int         nremoved, nremoved_total, n, i, vox_to_examine, niters ;
   MRI         *mri_std, *mri_ctrl, *mri_tmp ;
   VOXEL_LIST  *vl ;
@@ -7685,14 +7687,16 @@ remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh)
   double      max_change ;
 
   mri_ctrl = MRIcloneDifferentType(mri_dist, MRI_UCHAR) ;
-  for (x = 0 ; x < gcam->width ; x++)
-    for (y = 0 ; y < gcam->height ; y++)
-      for (z = 0 ; z < gcam->depth ; z++)
-      {
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
         gcamn = &gcam->nodes[x][y][z] ;
-        if (gcamn->status & GCAM_LABEL_NODE)
-          MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_MARKED) ;
+        if (gcamn->status & GCAM_LABEL_NODE) {
+          MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_MARKED);
+	}
       }
+    }
+  }
   
   niters = 100 ;
   for (nremoved_total = i = 0 ; i < niters ; i++)
@@ -7776,6 +7780,9 @@ remove_label_outliers(GCA_MORPH *gcam, MRI *mri_dist, int whalf, double thresh)
       break ;
     VLSTfree(&vl) ; // keep it for last iteration
   }
+
+
+
 
   // now use soap bubble smoothing to estimate label offset of deleted locations
   mri_tmp = NULL ;
@@ -8054,6 +8061,8 @@ int gcamLabelTermFinalUpdate( GCA_MORPH *gcam,
 
 // ----------------------
 
+#define GCAM_LABEL_TERM_TIMERS 0
+
 int
 gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 	       double l_label, double label_dist ) {
@@ -8066,8 +8075,22 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
   MRI             *mri_dist ;
   int             nremoved ;
 
-  if (DZERO(l_label))
+  if( DZERO(l_label) ) {
     return(NO_ERROR) ;
+  }
+
+
+
+#if GCAM_LABEL_TERM_TIMERS
+  Chronometer tTot, tOutliers, tMainLoop;
+
+  InitChronometer( &tTot );
+  InitChronometer( &tOutliers );
+  InitChronometer( &tMainLoop );
+
+  StartChronometer( &tTot );
+#endif
+
 
   mri_dist = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
   MRIsetResolution(mri_dist, gcam->spacing, gcam->spacing, gcam->spacing) ;
@@ -8075,7 +8098,9 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 
   GCAMresetLabelNodeStatus( gcam ) ;
 
-
+#if GCAM_LABEL_TERM_TIMERS
+  StartChronometer( &tMainLoop );
+#endif
   for (x = 0 ; x < gcam->width ; x++) {
     for (y = 0 ; y < gcam->height ; y++) {
       for (z = 0 ; z < gcam->depth ; z++) {
@@ -8293,15 +8318,23 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
       }
     }
   }
-
+#if GCAM_LABEL_TERM_TIMERS
+  StopChronometer( &tMainLoop );
+#endif
 
 
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist, "dist_before.mgz") ;
 
+#if GCAM_LABEL_TERM_TIMERS
+  StartChronometer( &tOutliers );
+#endif
   /* do neighborhood consistency check */
   nremoved = remove_label_outliers(gcam, mri_dist, 2, 3) ;
+#if GCAM_LABEL_TERM_TIMERS
+  StopChronometer( &tOutliers );
+#endif
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("%d inconsistent label nodes removed...\n", nremoved) ;
@@ -8329,6 +8362,17 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON) {
     printf("\t%d nodes for which label term applies\n", num) ;
   }
+
+#if GCAM_LABEL_TERM_TIMERS
+
+  StopChronometer( &tTot );
+
+  printf( "     Main loop : %6.3f ms\n", GetChronometerValue( &tMainLoop ) );
+  printf( "      Outliers : %6.3f ms\n", GetChronometerValue( &tOutliers ) );
+  printf( "%s: Total Time    : %6.3f ms\n",
+	  __FUNCTION__,
+	  GetChronometerValue( &tTot ) );
+#endif
 
 
   return(NO_ERROR) ;
