@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/08/12 17:49:43 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/08/12 18:42:44 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,8 +113,8 @@ float mad(float a[], int n);
 /* define nint as a function now */
 int nint( double f );
 
-/*Outputs the help files*/
-void outputHelp(char *name);
+/* Outputs the help files (found in utils/fsPrintHelp.c) */
+int outputHelp(char *name);
 
 #if defined(__cplusplus)
 };

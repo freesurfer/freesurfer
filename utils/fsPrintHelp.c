@@ -7,8 +7,8 @@
  * Original Author: Greg Terrono
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/08/12 17:35:52 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/08/12 18:42:44 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,15 +25,27 @@
 
 //-------------------------------------------------------------------
  
-#include <stdio.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/xinclude.h>
 #include <libxml/xmlIO.h>
-#include <ctype.h>
 #include <string.h>
+#include <ctype.h>
+#include "utils.h"
+
+/*-------------------------------------------------------------------
+
+ routines for printing of help text formated in xml
+
+-------------------------------------------------------------------*/
 
 //-------------------------------------------------------------------
+int main(int argc, char *argv[])
+{
+  return outputHelp(argv[1]);
+  exit(0);
+}
+
 static void toUpperCase(char *sPtr);
 static void printName(xmlNodePtr cur);
 static void replaceUnderscore(char *c);
@@ -41,19 +53,16 @@ static void printContents(xmlDocPtr doc, xmlNodePtr cur);
 static int tagNameIs(char *c, xmlNodePtr cur);
 static int wrdLen(char *c);
 
-//-------------------------------------------------------------------
-int main(int argc, char *argv[])
+int outputHelp(char *name)
 {
   xmlDocPtr doc;
   xmlNodePtr cur;
-
   //Checks for the .xml file name
-  if (argc==1)
+  if (name==NULL)
   {
     fprintf(stderr, "No file name passed.\n");
     return -1;
   }
-  char *name=argv[1];
   char * fshome = getenv("FREESURFER_HOME");
   char *temp= name;
   name= malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml"));
@@ -115,7 +124,7 @@ int main(int argc, char *argv[])
           { 
             if (!tagNameIs("text",argumentElement))
             {
-              if (tagNameIs("intro",argumentElement)||
+              if (tagNameIs("intro",argumentElement) || 
                   tagNameIs("argument",argumentElement))
               {
                 if (first==1)
@@ -147,7 +156,7 @@ int main(int argc, char *argv[])
         {
           if (!tagNameIs("text",outputElement))
           {
-            if (tagNameIs("intro",outputElement)||
+            if (tagNameIs("intro",outputElement) ||
                 tagNameIs("output",outputElement))
             {
               if (first==1)
@@ -167,7 +176,8 @@ int main(int argc, char *argv[])
   }
   
   printf("\n\n\n");
-	return EXIT_SUCCESS;
+
+  return 0; // success
 }
 
 //Changes a string to unpper case
@@ -216,9 +226,10 @@ static void printContents(xmlDocPtr doc, xmlNodePtr cur)
     }
     if (*(contents+i)==' ')
       i++;
-    for(j=i; j<78-tabNum*8+i &&
-          j<strlen((char *)contents)&&
-          (wrdLen((char *)(contents+j))>78-tabNum*8||
+    for(j=i; 
+        j< 78-tabNum*8+i &&
+          j<strlen((char *)contents) &&
+          (wrdLen((char *)(contents+j))>78-tabNum*8 ||
            wrdLen((char *)(contents+j))<=78-tabNum*8+i-j); j++)
     {
       if (*(contents+j)=='\n')
@@ -254,3 +265,5 @@ static int wrdLen(char *c)
       return i;
   return i;
 }
+
+

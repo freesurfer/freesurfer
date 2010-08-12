@@ -101,6 +101,7 @@ libutils_main_SOURCES=\
 	fmriutils.c \
 	fsenv.c \
 	fsglm.c \
+	fsPrintHelp.c \
 	gcaboundary.c \
 	gca.c \
 	gcamorph.c \
@@ -232,11 +233,11 @@ libutils_main_SOURCES=\
 	mriio_nrrd.c \
 	mriio_nrrd_itk.cpp \
 	numerics.cpp \
-        chronometerpp.cpp\
-        gcamorphtestutils.cpp\
-        gcautils.cpp\
-        gcalinearnode.cpp\
-        gcalinearprior.cpp
+	chronometerpp.cpp\
+	gcamorphtestutils.cpp\
+	gcautils.cpp\
+	gcalinearnode.cpp\
+	gcalinearprior.cpp
 
 libutils_cephes_SOURCES=\
 	$(srcdir)/$(cephes_dir)/bdtr.c \
@@ -397,6 +398,7 @@ gifti_test_LDADD=$(top_builddir)/expat/libexpat.a -lz $(LIBS_NIFTI)
 
 fsPrintHelp_SOURCES=fsPrintHelp.c
 fsPrintHelp_LDADD=$(top_builddir)/xml2/libxml2.a -lz
+fsPrintHelp_LDFLAGS=$(OS_LDFLAGS)
 
 if USE_SSE_MATHFUN
 check_PROGRAMS = sse_mathfun_test
