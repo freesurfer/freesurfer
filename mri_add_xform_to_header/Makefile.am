@@ -1,8 +1,8 @@
 ## 
-# Makefile.am - specify in addition to the standard
+# Makefile.am
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mri_add_xform_to_header

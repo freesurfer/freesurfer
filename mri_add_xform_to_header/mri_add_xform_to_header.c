@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 16:57:04 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2010/08/12 18:05:15 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -29,6 +28,7 @@
 #include <math.h>
 #include <ctype.h>
 
+#include "utils.h"
 #include "mri.h"
 #include "macros.h"
 #include "volume_io.h"
@@ -59,7 +59,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_add_xform_to_header.c,v 1.9 2010/08/12 16:57:04 gregt Exp $", 
+     "$Id: mri_add_xform_to_header.c,v 1.10 2010/08/12 18:05:15 nicks Exp $", 
      "$Name:  $");
 
   argc -= nargs;
