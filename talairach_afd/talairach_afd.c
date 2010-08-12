@@ -9,9 +9,9 @@
 /*
  * Original Author: Laurence Wastiaux
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/27 01:14:19 $
- *    $Revision: 1.10 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:57:25 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 #include "transform.h"
 
 static char vcid[] =
-"$Id: talairach_afd.c,v 1.10 2010/02/27 01:14:19 nicks Exp $";
+"$Id: talairach_afd.c,v 1.11 2010/08/12 17:57:25 gregt Exp $";
 static int get_option(int argc, char *argv[]) ;
 static void usage(int exit_value) ;
 static char *subject_name = NULL;
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: talairach_afd.c,v 1.10 2010/02/27 01:14:19 nicks Exp $",
+     "$Id: talairach_afd.c,v 1.11 2010/08/12 17:57:25 gregt Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -237,9 +237,7 @@ get_option(int argc, char *argv[])
   char *option;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!stricmp(option, "help"))
-    usage(1) ;
-  else if (!stricmp(option, "-help"))
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
     usage(1) ;
   else if (!stricmp(option, "version"))
     print_version() ;
@@ -266,6 +264,7 @@ get_option(int argc, char *argv[])
   {
   case 'T':
   case '?':
+  case 'H':
   case 'U':
     usage(0) ;
     break ;
@@ -290,6 +289,9 @@ get_option(int argc, char *argv[])
 static void
 usage(int exit_value)
 {
+  outputHelp(Progname);
+
+#ifdef GREGT
   FILE *fout;
 
   fout = (exit_value ? stderr : stdout);
@@ -318,7 +320,7 @@ usage(int exit_value)
           "   -afd %%s   specify directory containing .afd data files\n");
   fprintf(fout,
           "   -V        verbose\n");
-
+#endif
   exit(exit_value) ;
 }
 

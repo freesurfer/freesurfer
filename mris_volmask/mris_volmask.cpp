@@ -10,8 +10,8 @@
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2010/02/17 22:51:19 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:55:36 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -161,7 +161,7 @@ main(int ac, char* av[])
   nargs =
     handle_version_option
     ( ac, av,
-      "$Id: mris_volmask.cpp,v 1.22 2010/02/17 22:51:19 krish Exp $", 
+      "$Id: mris_volmask.cpp,v 1.23 2010/08/12 17:55:36 gregt Exp $", 
       "$Name:  $"
       );
   if (nargs && ac - nargs == 1)
@@ -447,6 +447,8 @@ IoParams::parse(int ac, char* av[])
 
   interface.AddOptionBool
   ( "help", &showHelp, "display help message");
+  interface.AddOptionBool
+  ( "usage", &showHelp, "display help message");
   interface.AddOptionString
   ( (ssurf+sw).c_str(), &surfWhiteRoot,
     (strUse + " - default value is white").c_str()
@@ -511,6 +513,7 @@ IoParams::parse(int ac, char* av[])
   // if ac == 0, then print complete help
   if ( ac == 1 )
   {
+#ifdef GREGT
     std::cout <<
     "\n"
     " Computes a volume mask, at the same resolution as the\n"
@@ -522,6 +525,7 @@ IoParams::parse(int ac, char* av[])
     " The algorithm uses the 4 surfaces situated in\n"
     " <subject>/surf/[lh|rh].[white|pial].surf and labels voxels\n"
     " based on the signed-distance function from the surface.\n";
+#endif
     interface.PrintHelp();
     exit(0);
   }

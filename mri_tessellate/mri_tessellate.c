@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/05/03 16:57:06 $
- *    $Revision: 1.33 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:56:17 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,9 +30,9 @@
 // mri_tessellate.c
 //
 // Warning: Do not edit the following four lines.  CVS maintains them.
-// Revision Author: $Author: fischl $
-// Revision Date  : $Date: 2010/05/03 16:57:06 $
-// Revision       : $Revision: 1.33 $
+// Revision Author: $Author: gregt $
+// Revision Date  : $Date: 2010/08/12 17:56:17 $
+// Revision       : $Revision: 1.34 $
 //
 //
 // How it works.
@@ -74,7 +74,7 @@
 //
 
 
-char *MRI_TESSELLATE_VERSION = "$Revision: 1.33 $";
+char *MRI_TESSELLATE_VERSION = "$Revision: 1.34 $";
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -98,7 +98,7 @@ char *MRI_TESSELLATE_VERSION = "$Revision: 1.33 $";
 #include "mrisurf.h"
 
 static char vcid[] =
-  "$Id: mri_tessellate.c,v 1.33 2010/05/03 16:57:06 fischl Exp $";
+  "$Id: mri_tessellate.c,v 1.34 2010/08/12 17:56:17 gregt Exp $";
 
 #define SQR(x) ((x)*(x))
 
@@ -152,6 +152,7 @@ static void check_face(MRI *mri, int im0, int i0, int j0,
 static void make_surface(MRI *mri) ;
 static void write_binary_surface(char *fname, MRI *mri, char *cmdline) ;
 static int get_option(int argc, char *argv[]) ;
+static void usage_exit(int code);
 
 char *Progname ;
 
@@ -164,13 +165,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_tessellate.c,v 1.33 2010/05/03 16:57:06 fischl Exp $",
+   "$Id: mri_tessellate.c,v 1.34 2010/08/12 17:56:17 gregt Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_tessellate.c,v 1.33 2010/05/03 16:57:06 fischl Exp $",
+           "$Id: mri_tessellate.c,v 1.34 2010/08/12 17:56:17 gregt Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -187,10 +188,7 @@ main(int argc, char *argv[]) {
   }
   // we removed the option
   if (argc<3) {
-    printf
-    ("Usage: %s <option> <input volume> <label-value> <output surface>\n",
-     Progname);
-    exit(1);
+    usage_exit(1);
   }
   if (argc == 3)   // value not specified on cmdline - figure it out from hemi in output surf
   {
@@ -548,6 +546,9 @@ get_option(int argc, char *argv[]) {
   option = argv[1] + 1 ;            /* past '-' */
 
   if (!stricmp(option, "an option")) {}
+  else if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
+    usage_exit(0);
+  }
   else if (!strcasecmp(option, "-version")) {
     fprintf(stderr, "Version: %s\n", MRI_TESSELLATE_VERSION);
     exit(0);
@@ -576,8 +577,7 @@ get_option(int argc, char *argv[]) {
       break;
     case '?':
     case 'U':
-      printf("Usage: %s <input volume> <label> <output surface>\n",Progname);
-      exit(1) ;
+      usage_exit(1);
       break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
@@ -633,3 +633,8 @@ remove_non_hippo_voxels(MRI *mri) {
   return(NO_ERROR) ;
 }
 
+static void
+usage_exit(int code) {
+  outputHelp(Progname);
+  exit(code) ;
+}

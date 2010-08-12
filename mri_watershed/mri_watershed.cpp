@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/08/06 00:20:34 $
- *    $Revision: 1.88 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:56:44 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.88 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.89 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -451,6 +451,11 @@ int (*myVoxelToWorld)(MRI *mri,
 
 void usageHelp()
 {
+  char *name= (char*)malloc(strlen(Progname));
+  strcpy(name,Progname);
+  outputHelp(name);
+
+#ifdef GREGT
   fprintf(stdout, "\nUsage: %s [options] input_file output_file\n", Progname);
 
   fprintf(stdout, "\nOptions are:\n\n");
@@ -535,6 +540,7 @@ void usageHelp()
   fprintf(stdout, "\n\n--help               : show this usage message");
   fprintf(stdout, "\n--version            : show the current version\n\n");
   fflush(stdout);
+#endif
 }
 
 /*-----------------------------------------------------
@@ -550,7 +556,7 @@ get_option(int argc, char *argv[],STRIP_PARMS *parms)
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!strcmp(option, "-help"))
+  if (!strcmp(option, "-help")||!strcmp(option, "-usage"))
   {
     usageHelp();
     exit(0);
@@ -885,7 +891,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.88 2010/08/06 00:20:34 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.89 2010/08/12 17:56:44 gregt Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -898,7 +904,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.88 2010/08/06 00:20:34 nicks Exp $", 
+     "$Id: mri_watershed.cpp,v 1.89 2010/08/12 17:56:44 gregt Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

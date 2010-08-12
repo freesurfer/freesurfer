@@ -12,9 +12,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/06/30 21:37:55 $
- *    $Revision: 1.5 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:55:36 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@
 #include <string.h>
 
 #include "cmd_line_interface.h"
+#include "utils.h"
 
 using namespace std;
 // this sucks a little - cannot make generic code here
@@ -190,7 +191,7 @@ CCmdLineInterface::Parse(int argc, char *argv[]) {
       cit_string++;
     }
 
-    if ( strcmp(cpOption, "help") == 0 ) {
+    if ( strcmp(cpOption, "help") == 0||strcmp(cpOption, "usage") == 0 ) {
       PrintHelp();
     } else if ( !bFound ) {
       // signal the presence of a misinterpreted option
@@ -228,6 +229,9 @@ CCmdLineInterface::Parse(int argc, char *argv[]) {
 
 void
 CCmdLineInterface::PrintHelp() const {
+  outputHelp("mris_volmask");
+
+#ifdef GREGT
   cout << "\n --------- \n PrintHelp for " << m_strProgName << "\n"
   << " General syntax : " << m_strProgName << " <options> <io> " << std::endl;
 
@@ -259,6 +263,7 @@ CCmdLineInterface::PrintHelp() const {
     i++;
   }
   cout << "\n --------------- \n";
+#endif
 }
 
 

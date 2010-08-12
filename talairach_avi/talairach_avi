@@ -8,9 +8,9 @@
 # Original Author: Nick Schmansky
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/02/07 22:50:52 $
-#    $Revision: 1.7 $
+#    $Author: gregt $
+#    $Date: 2010/08/12 17:58:12 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2007-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 
 #
-set VERSION = '$Id: talairach_avi,v 1.7 2010/02/07 22:50:52 nicks Exp $'
+set VERSION = '$Id: talairach_avi,v 1.8 2010/08/12 17:58:12 gregt Exp $'
 
 set InVol = ();
 set XFM = ();
@@ -42,12 +42,6 @@ set target = 711-2C_as_mni_average_305		# 711-2C registered to mni305
 set cmdargs = ($argv);
 
 if($#argv == 0)  goto usage_exit;
-set n = `echo $argv | egrep -e --help | wc -l`
-if($n != 0) then
-  set PrintHelp = 1;
-  goto usage_exit;
-  exit 1;
-endif
 set n = `echo $argv | egrep -e --version | wc -l`
 if($n != 0) then
   echo $VERSION
@@ -136,6 +130,16 @@ while( $#argv != 0 )
 
   switch($flag)
 
+    case "-h"
+    case "-u"
+    case "-usage"
+    case "--usage"
+    case "-help"
+    case "--help"
+      set PrintHelp = 1;
+      goto usage_exit;
+      breaksw
+
     case "--i":
       if ( $#argv == 0) goto arg1err;
       set InVol = $argv[1]; shift;
@@ -199,26 +203,27 @@ arg1err:
 
 ############--------------##################
 usage_exit:
-  echo ""
-  echo "USAGE: talairach_avi"
-  echo ""
-  echo " --i   invol  : input volume"
-  echo " --xfm outxfm : output xfm file"
-  echo ""
-  echo "Optional flags and arguments:"
-  echo ""
-  echo " --atlas    : alternate target atlas (in freesurfer/average dir)"
-  echo " --log      : log file. default is outdir/talairach_avi.log"
-  echo " --help     : print help and exit"
-  echo " --debug    : turn on debugging"
-  echo " --version  : print version and exit"
-  echo ""
+fsPrintHelp "talairach_avi"
+#  echo ""
+#  echo "USAGE: talairach_avi"
+#  echo ""
+#  echo " --i   invol  : input volume"
+#  echo " --xfm outxfm : output xfm file"
+#  echo ""
+#  echo "Optional flags and arguments:"
+#  echo ""
+#  echo " --atlas    : alternate target atlas (in freesurfer/average dir)"
+#  echo " --log      : log file. default is outdir/talairach_avi.log"
+#  echo " --help     : print help and exit"
+#  echo " --debug    : turn on debugging"
+#  echo " --version  : print version and exit"
+#  echo ""
 
-  if(! $PrintHelp) exit 1;
+#  if(! $PrintHelp) exit 1;
 
-  echo $VERSION
+#  echo $VERSION
 
-  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+#  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 
 exit 1;
 
