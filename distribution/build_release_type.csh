@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.136 2010/07/14 17:10:32 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.137 2010/08/12 17:46:19 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -13,8 +13,8 @@ umask 002
 #  build_release_type stable-pub
 set RELEASE_TYPE=$1
 
-set STABLE_VER_NUM="v5.0.0beta"
-set STABLE_PUB_VER_NUM="v5.0.0beta"
+set STABLE_VER_NUM="v5.0.0"
+set STABLE_PUB_VER_NUM="v5.0.0"
 
 set HOSTNAME=`hostname -s`
 
@@ -35,6 +35,9 @@ if ("$HOSTNAME" == "sleet") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "mist") then
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+endif
+if ("$HOSTNAME" == "storm") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
 endif
 
@@ -278,9 +281,15 @@ endif
 # one in CVS) will not be used.  Also check for removed files, added
 # files, and files with conflicts, all these being a big no-no.
 # this stupid cd is to try to get Mac NFS to see CVSROOT:
-cd /autofs/space/repo_001/dev
+setenv CVSROOT /autofs/space/repo_001/dev
+cd $CVSROOT >>& $OUTPUTF
+sleep 3
+cd ${BUILD_DIR} >>& $OUTPUTF
+setenv CVSROOT /space/repo/1/dev
+cd $CVSROOT >>& $OUTPUTF
+sleep 3
 ls >& /dev/null
-cd -
+cd ${BUILD_DIR} >>& $OUTPUTF
 echo "##########################################################" >>& $OUTPUTF
 echo "Updating $SRC_DIR" >>& $OUTPUTF
 echo "" >>& $OUTPUTF
@@ -509,6 +518,19 @@ if ("$OSTYPE" == "Darwin") then
   echo "CMD: make -s" >>& $OUTPUTF
   make -s >>& $OUTPUTF
   set mstat = $status
+  # stupid Mac OS NFS has intermittent file access failures,
+  # resulting in make failures because it cant find stuff in
+  # /usr/pubsw/packages, so we will retry make a couple times...
+  if ($mstat != 0) then
+    sleep 60
+    make -s >>& $OUTPUTF
+    set mstat = $status
+    if ($mstat != 0) then
+      sleep 60
+      make -s >>& $OUTPUTF
+      set mstat = $status
+    endif
+  endif
 else
   echo "CMD: make -j 9 -s" >>& $OUTPUTF
   make -j 9 -s >>& $OUTPUTF
@@ -545,6 +567,19 @@ if ("$RELEASE_TYPE" != "stable-pub") then
   cd ${BUILD_DIR} >>& $OUTPUTF
   echo "CMD: make check" >>& $OUTPUTF
   make check >>& $OUTPUTF
+  if ("$OSTYPE" == "Darwin") then
+    # stupid Mac OS NFS has intermittent file access failures,
+    # resulting in make failures because it cant find stuff in
+    # /usr/pubsw/packages, so we will retry make a couple times...
+    if ($status != 0) then
+      sleep 60
+      make check >>& $OUTPUTF
+      if ($status != 0) then
+        sleep 60
+        make check >>& $OUTPUTF
+      endif
+    endif
+  endif
   if ($status != 0) then
     # note: /usr/local/freesurfer/dev/bin/ dirs have not 
     # been modified (bin/ gets written after make install)
@@ -584,6 +619,19 @@ echo "CMD: cd $BUILD_DIR" >>& $OUTPUTF
 cd ${BUILD_DIR} >>& $OUTPUTF
 echo "$make_cmd" >>& $OUTPUTF
 $make_cmd >>& $OUTPUTF
+if ("$OSTYPE" == "Darwin") then
+  # stupid Mac OS NFS has intermittent file access failures,
+  # resulting in make failures because it cant find stuff in
+  # /usr/pubsw/packages, so we will retry make a couple times...
+  if ($status != 0) then
+    sleep 60
+    $make_cmd >>& $OUTPUTF
+    if ($status != 0) then
+      sleep 60
+      $make_cmd >>& $OUTPUTF
+    endif
+  endif
+endif
 if ($status != 0) then
   set msg="$HOSTNAME $RELEASE_TYPE build ($make_cmd) FAILED"
   tail -n 20 $OUTPUTF | mail -s "$msg" $FAILURE_MAIL_LIST
@@ -611,8 +659,15 @@ endif
 # compress binaries using 'upx', greatly reducing their size even more (3x)
 if ("${RELEASE_TYPE}" == "stable-pub") then
   if ( -e /usr/pubsw/bin/upx ) then
-    echo "CMD: /usr/pubsw/bin/upx ${INSTALL_DIR}/bin-new/*" >>& $OUTPUTF
-    /usr/pubsw/bin/upx ${INSTALL_DIR}/bin-new/* >& /dev/null
+    rm -f ELF-files
+    foreach f (`ls ${INSTALL_DIR}/bin-new/*`)
+      file $f | grep ELF >& /dev/null
+      if ( ! $status ) echo $f >> ELF-files
+    end
+    foreach f (`cat ELF-files`)
+      echo "CMD: /usr/pubsw/bin/upx $f" >>& $OUTPUTF
+      /usr/pubsw/bin/upx $f >& /dev/null
+    end
   endif
 endif
 #
@@ -741,20 +796,6 @@ endif
 endif
 endif
 make_distcheck_done:
-
-
-#
-# HACK
-#
-# dmri_poistats only builds in dev on the centos platforms because currently
-# only those have working ITK libs, so copy dmri_poistats from there, for now..
-#
-if (("${RELEASE_TYPE}" == "stable") || \
-    ("${RELEASE_TYPE}" == "stable-pub")) then
-  cp /usr/local/freesurfer/dev/bin/dmri_poistats \
-    ${INSTALL_DIR}/bin/ >& /dev/null
-endif
-
 
 
 #

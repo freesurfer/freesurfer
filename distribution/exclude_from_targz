@@ -21,6 +21,7 @@ freesurfer/bin.deleteme
 freesurfer/bin.deleteme*
 freesurfer/freediffusion
 freesurfer/SetUpFreeDiffusion.csh
+freesurfer/bin/recon-all.2005
 freesurfer/bin/recon-all-long
 freesurfer/bin/recon-all-nmr
 freesurfer/bin/recon-all-dev
@@ -30,7 +31,6 @@ freesurfer/bin/plotter.app
 freesurfer/bin/paint
 freesurfer/bin/tkregister
 freesurfer/bin/csurf
-freesurfer/bin/flirt
 freesurfer/lib/tcltktixblt/src
 freesurfer/lib/tcltktixblt/man
 freesurfer/lib/tcltktixblt/share
@@ -70,8 +70,6 @@ freesurfer/average/RB_all_withskull_2006-02-15.gca
 freesurfer/average/RB_new.gca
 freesurfer/average/lh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
 freesurfer/average/rh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
-freesurfer/average/lh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
-freesurfer/average/rh.curvature.buckner40.filled.desikan_killiany.2009-03-04.gcs
 freesurfer/subjects/talairach
 freesurfer/subjects/mri
 freesurfer/matlab/read_meas_dat.m
@@ -82,3 +80,8 @@ freesurfer/subjects/fsaverage/surf/lh.inflated2
 freesurfer/subjects/fsaverage/surf/lh.inflated_more
 freesurfer/subjects/fsaverage/surf/lh.inflated200
 freesurfer/subjects/fsaverage/surf/lh.inflated-dng
+freesurfer/subjects/fsaverage3
+freesurfer/subjects/fsaverage4
+freesurfer/subjects/fsaverage5
+freesurfer/subjects/fsaverage6
+

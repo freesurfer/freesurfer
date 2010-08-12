@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: create_targz.csh,v 1.27 2009/12/16 18:07:34 nicks Exp $'
+set ID='$Id: create_targz.csh,v 1.28 2010/08/12 17:46:20 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -28,8 +28,8 @@ if ($?USE_SPACE_MINERVA) then
 endif
 
 if ("$PLATFORM" == "centos5_x86_64") then
-    if ("${HOSTNAME}" != "terrier" ) then
-        echo "must run on machine terrier"
+    if ("${HOSTNAME}" != "swan" ) then
+        echo "must run on machine swan"
         exit 1
     endif
 else if ("$PLATFORM" == "centos4") then
@@ -93,7 +93,7 @@ if ( ("$PLATFORM" == "leopard-ppc") || \
   cd /Users/Shared/tmp
 endif
 
-if (-e freesurfer) rm freesurfer
+rm -f freesurfer
 set cmd=(ln -s $RELEASE_TYPE freesurfer)
 echo $cmd
 $cmd
