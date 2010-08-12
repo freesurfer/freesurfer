@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:18:10 $
- *    $Revision: 1.39 $
+ *    $Author: nicks $
+ *    $Date: 2010/08/12 17:49:43 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,14 +113,11 @@ float mad(float a[], int n);
 /* define nint as a function now */
 int nint( double f );
 
-//<<<<<<< utils.h
 /*Outputs the help files*/
 void outputHelp(char *name);
 
-//=======
 #if defined(__cplusplus)
 };
 #endif
 
-//>>>>>>> 1.38
 #endif
