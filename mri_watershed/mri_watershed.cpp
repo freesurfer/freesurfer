@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: gregt $
- *    $Date: 2010/08/12 17:56:44 $
- *    $Revision: 1.89 $
+ *    $Date: 2010/08/12 18:03:49 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.89 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.90 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -454,6 +454,7 @@ void usageHelp()
   char *name= (char*)malloc(strlen(Progname));
   strcpy(name,Progname);
   outputHelp(name);
+  free(name);
 
 #ifdef GREGT
   fprintf(stdout, "\nUsage: %s [options] input_file output_file\n", Progname);
@@ -891,7 +892,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.89 2010/08/12 17:56:44 gregt Exp $", 
+     "$Id: mri_watershed.cpp,v 1.90 2010/08/12 18:03:49 gregt Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -904,7 +905,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.89 2010/08/12 17:56:44 gregt Exp $", 
+     "$Id: mri_watershed.cpp,v 1.90 2010/08/12 18:03:49 gregt Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
