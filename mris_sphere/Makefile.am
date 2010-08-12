@@ -10,6 +10,9 @@ mris_sphere_SOURCES=mris_sphere.c
 mris_sphere_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_sphere_LDFLAGS=$(OS_LDFLAGS)
 
+foodir=$(prefix)/docs/xml
+foo_DATA=mris_sphere.help.xml
+
 mris_remove_negative_vertices_SOURCES=mris_remove_negative_vertices.c
 mris_remove_negative_vertices_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_remove_negative_vertices_LDFLAGS=$(OS_LDFLAGS)
