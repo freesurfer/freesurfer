@@ -6,11 +6,11 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2010/07/23 21:07:45 $
- *    $Revision: 1.38 $
+ *    $Author: gregt $
+ *    $Date: 2010/08/12 17:18:10 $
+ *    $Revision: 1.39 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -114,8 +113,14 @@ float mad(float a[], int n);
 /* define nint as a function now */
 int nint( double f );
 
+//<<<<<<< utils.h
+/*Outputs the help files*/
+void outputHelp(char *name);
+
+//=======
 #if defined(__cplusplus)
 };
 #endif
 
+//>>>>>>> 1.38
 #endif
