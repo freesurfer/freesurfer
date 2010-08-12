@@ -5,20 +5,22 @@ SUBDIRS=
 
 foodir=$(prefix)/fsafd
 foo_DATA=\
-	lh.CorpusCallosumCutDice.adf \
-	lh.CorticalLabelingPercentArea_txt.adf \
-	lh.SurfRegistrationResidualVar.adf \
-	PonsCutDice.adf \
-	rh.CorpusCallosumCutDice.adf \
-	rh.CorticalLabelingPercentArea_txt.adf \
-	RibbonPlacementDice.adf \
-	SubcorticalLabelingPercentVol.adf \
 	TalairachingCovariance.adf \
 	TalairachingMean.adf \
-	TalairachingProbas.adf \
-	WMsegmentationDice.adf \
-	lh.EV90.mgh \
-	lh.ThicknessMatrix.mgh
+	TalairachingProbas.adf
+
+# not yet used:
+#	lh.CorpusCallosumCutDice.adf \
+#	lh.CorticalLabelingPercentArea_txt.adf \
+#	lh.SurfRegistrationResidualVar.adf \
+#	PonsCutDice.adf \
+#	rh.CorpusCallosumCutDice.adf \
+#	rh.CorticalLabelingPercentArea_txt.adf \
+#	RibbonPlacementDice.adf \
+#	SubcorticalLabelingPercentVol.adf \
+#	WMsegmentationDice.adf \
+#	lh.EV90.mgh \
+#	lh.ThicknessMatrix.mgh
 
 EXTRA_DIST=$(foo_DATA)
 
