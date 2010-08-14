@@ -257,6 +257,13 @@ freeview_SOURCES=\
 #	scout/tracer.cpp \
 #	scout/tracer.h
 
+if HAVE_MAC_OSX
+# mac doesnt have gtk
+WXGTK2GL=
+else
+WXGTK2GL=-lwx_gtk2_gl-2.8
+endif
+
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
 freeview_LDADD=\
@@ -274,7 +281,7 @@ freeview_LDADD=\
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lvtkWidgets -lvtkHybrid \
 	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
-	$(WXWIDGETS_LIBS) -lwx_gtk2_gl-2.8
+	$(WXWIDGETS_LIBS) $(WXGTK2GL)
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 # and if the OS is MACOSX have a different install-hook to create a bundle
