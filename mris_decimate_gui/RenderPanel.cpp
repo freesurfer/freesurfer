@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/06 14:23:57 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/16 19:35:15 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA).
@@ -39,6 +39,9 @@ BEGIN_EVENT_TABLE( RenderPanel, wxPanel )
     EVT_SIZE        ( RenderPanel::OnSize )
 END_EVENT_TABLE()
 
+
+
+
 ///////////////////////////////////////////////////////////////////////////////////
 //
 //  Constructor/Destructor
@@ -69,6 +72,16 @@ RenderPanel::RenderPanel( wxWindow* parent ) :
     m_polyActor = vtkActor::New();
     m_polyActor->SetMapper(m_polyMapper);
 
+    m_wireframe = vtkPolyData::New();
+    m_wireframeMapper = vtkPolyDataMapper::New();
+    m_wireframeMapper->SetInput(m_wireframe);
+    //    m_wireframeMapper->SetResolveCoincidentTopologyToShiftZBuffer();
+    //    m_wireframeMapper->SetResolveCoincidentTopologyZShift(0.2);
+
+    m_wireframeActor = vtkActor::New();
+    m_wireframeActor->SetMapper(m_wireframeMapper);
+    m_wireframeActor->VisibilityOff();
+
     // The usual rendering stuff.
     m_camera = vtkCamera::New();
     m_camera->SetPosition(-1,0,0);
@@ -82,6 +95,7 @@ RenderPanel::RenderPanel( wxWindow* parent ) :
     sizer->Add(m_renWin, 1, wxEXPAND);
 
     m_renderer->AddActor(m_polyActor);
+    m_renderer->AddActor(m_wireframeActor);
     m_renderer->SetActiveCamera(m_camera);
     m_renderer->ResetCamera();
     m_renderer->SetBackground(0,0,0);
@@ -101,6 +115,18 @@ RenderPanel::RenderPanel( wxWindow* parent ) :
     m_histogramMinLine = vtkPolyData::New();
     m_histogramMaxLine = vtkPolyData::New();
 
+    m_scalarBarActor = vtkScalarBarActor::New();
+    m_scalarBarActor->SetLookupTable(m_polyMapper->GetLookupTable());
+    m_scalarBarActor->SetTitle("Curvature");
+    m_scalarBarActor->GetPositionCoordinate()->SetCoordinateSystemToNormalizedViewport();
+    m_scalarBarActor->GetPositionCoordinate()->SetValue(0.05, 0.725);
+    m_scalarBarActor->SetOrientationToVertical();
+    m_scalarBarActor->SetWidth(0.08);
+    m_scalarBarActor->SetHeight(0.25);
+    m_scalarBarActor->SetLabelFormat("%-#6.2f");
+    m_scalarBarActor->VisibilityOff();
+    
+    m_renderer->AddActor(m_scalarBarActor);
 }
 
 
@@ -111,12 +137,16 @@ RenderPanel::~RenderPanel()
 {
     m_renWin->Delete();
     m_mesh->Delete();
+    m_wireframe->Delete();
     m_polyMapper->Delete();
+    m_wireframeMapper->Delete();
     m_polyActor->Delete();
+    m_wireframeActor->Delete();
     m_renderer->Delete();
     m_histogramPlot->Delete();
     m_histogramMinLine->Delete();
     m_histogramMaxLine->Delete();
+    m_scalarBarActor->Delete();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -135,6 +165,7 @@ void RenderPanel::SetSurface( MRI_SURFACE *mris )
 
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> polys = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
 
     for ( int v = 0; v < mris->nvertices; v++)
     {
@@ -151,10 +182,21 @@ void RenderPanel::SetSurface( MRI_SURFACE *mris )
         pts[2] =  mris->faces[f].v[2];
 
         polys->InsertNextCell(3, pts);
+
+        vtkIdType l0[2] = { pts[0], pts[1] };
+        vtkIdType l1[2] = { pts[1], pts[2] };
+        vtkIdType l2[2] = { pts[2], pts[0] };
+        lines->InsertNextCell( 2, l0 );
+        lines->InsertNextCell( 2, l1 );
+        lines->InsertNextCell( 2, l2 );
+
     }
 
     m_mesh->SetPoints(points);
     m_mesh->SetPolys(polys);
+
+    m_wireframe->SetPoints(points);
+    m_wireframe->SetLines(lines);
 
     Render();
 }
@@ -179,6 +221,26 @@ void RenderPanel::AzimuthCamera(double angle)
 {
     m_camera->Azimuth(angle);
     Render();
+}
+
+///
+/// Add an observer that gets notified when there are changes
+/// to the camera.
+///        
+void RenderPanel::AddCameraObserver(vtkCommand *observer)
+{
+    m_camera->AddObserver(vtkCommand::AnyEvent, observer);
+}
+
+///
+/// Record the current camera coordinates for resetting them
+///
+void RenderPanel::RecordCameraCoordinates()
+{
+    m_camera->GetPosition(m_origCamPosition);
+    m_camera->GetFocalPoint(m_origCamFocalPoint);
+    m_camera->GetViewUp(m_origCamUpVector);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -210,20 +272,28 @@ void RenderPanel::Render()
 ///
 /// Turn wireframe rendering on
 ///
-void RenderPanel::SetWireframe(bool enable)
+void RenderPanel::SetRenderMode(RenderPanel::RenderMode renderMode)
 {
-    if (m_polyActor != NULL)
+    if (m_polyActor != NULL && m_wireframeActor != NULL)
     {
-        if (enable)
+        switch(renderMode)
         {
-            m_polyActor->GetProperty()->SetRepresentationToWireframe();
-            m_polyActor->GetProperty()->ShadingOff();
+            case e_SurfaceAndWireframe:
+                m_polyActor->VisibilityOn();
+                m_wireframeActor->VisibilityOn();
+                break;      
+            case e_Wireframe:
+                m_polyActor->VisibilityOff();
+                m_wireframeActor->VisibilityOn();
+                break;
+            case e_Surface:
+            default:
+                m_polyActor->VisibilityOn();
+                m_wireframeActor->VisibilityOff();
+                break;
+
         }
-        else
-        {
-            m_polyActor->GetProperty()->SetRepresentationToSurface();
-            m_polyActor->GetProperty()->ShadingOn();
-        }
+       
         Render();
     }
 }
@@ -234,6 +304,29 @@ void RenderPanel::SetWireframe(bool enable)
 void RenderPanel::ResetCamera()
 {
     m_renderer->ResetCamera();
+    Render();
+}
+
+///
+/// Reset the camera to the default view
+///
+void RenderPanel::ResetCameraToDefaultView()
+{
+    m_camera->SetFocalPoint(m_origCamFocalPoint);
+    m_camera->SetPosition(m_origCamPosition);
+    m_camera->SetViewUp(m_origCamUpVector);
+    m_renderer->ResetCameraClippingRange();
+
+    Render();
+}
+
+///
+/// Reset the camera clipping range (required after adjusting
+/// the view transform)
+///
+void RenderPanel::ResetCameraClippingRange()
+{
+    m_renderer->ResetCameraClippingRange();
     Render();
 }
 
@@ -341,6 +434,7 @@ void RenderPanel::ShowCurvature(bool enable)
             }
         }
         m_mesh->GetPointData()->SetScalars( curvs );
+        m_wireframe->GetPointData()->SetScalars( curvs );
 
         double range[2], negRange[2], posRange[2];
 
@@ -350,7 +444,6 @@ void RenderPanel::ShowCurvature(bool enable)
 
 
         histogram = ComputeHistogram(curvs, m_surface->nvertices, range);
-
 
         // Compute the mean/std. dev of the postive and negative lobes
         if (numPosCurvs > 0)
@@ -383,11 +476,8 @@ void RenderPanel::ShowCurvature(bool enable)
         // Automatically set the histogram min/max
         float minVal, maxVal;
         GetHistogramAutoRange (minVal, maxVal);
-        SetHistogramMinMaxLines (minVal, maxVal);
 
         m_histogramPlot->RemoveAllInputs();
-        m_histogramPlot->AddInput(m_histogramMinLine);
-        m_histogramPlot->AddInput(m_histogramMaxLine);
         m_histogramPlot->AddInput(histogram->GetOutput());
         m_histogramPlot->SetPlotColor(0, 1, 0, 0);
         m_histogramPlot->SetPlotColor(1, 1, 0, 0);
@@ -402,6 +492,7 @@ void RenderPanel::ShowCurvature(bool enable)
     else
     {
         m_mesh->GetPointData()->SetScalars(NULL);
+        m_wireframe->GetPointData()->SetScalars(NULL);
     }
 
     Render();
@@ -412,44 +503,24 @@ void RenderPanel::ShowCurvature(bool enable)
 ///
 void RenderPanel::SetMinMaxCurvatureRange(float minVal, float maxVal)
 {
-    m_polyMapper->SetScalarRange(minVal, maxVal);
-    SetHistogramMinMaxLines(minVal, maxVal);
-    Render();
+    if ( m_surface != NULL )
+    {
+         m_polyMapper->SetScalarRange(minVal, maxVal);
+         m_wireframeMapper->SetScalarRange(minVal, maxVal);
+
+        // VTK does not seem to like these values to be identical, so
+        // add some epsilon if they are
+        if (minVal >= maxVal)
+        {
+            minVal -= 0.001;
+            maxVal += 0.001;
+        }
+        m_histogramPlot->SetXRange(minVal, maxVal);
+
+        Render();
+    }
 }
 
-///
-/// Compute lines to draw on the 2D histogram plot for the min/max histogram
-///
-void RenderPanel::SetHistogramMinMaxLines(float minVal, float maxVal)
-{
-    // Create vertical lines for min/max histogram
-    vtkSmartPointer<vtkPoints> vertPointsMin = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkFloatArray> vertScalarsMin = vtkSmartPointer<vtkFloatArray>::New();
-    vtkSmartPointer<vtkPoints> vertPointsMax = vtkSmartPointer<vtkPoints>::New();
-    vtkSmartPointer<vtkFloatArray> vertScalarsMax = vtkSmartPointer<vtkFloatArray>::New();
-
-
-    float x[3] = {0, 0, 0};
-    float y0 = 0.0;
-    float y1 = m_histogramMaxY-1;
-    x[0] = minVal;
-    vertPointsMin->InsertPoint(0, x);
-    vertScalarsMin->InsertTuple1(0, y0);
-    vertPointsMin->InsertPoint(1, x);
-    vertScalarsMin->InsertTuple1(1, y1);
-
-    m_histogramMinLine->SetPoints(vertPointsMin);
-    m_histogramMinLine->GetPointData()->SetScalars(vertScalarsMin);
-
-    x[0] = maxVal;
-    vertPointsMax->InsertPoint(0, x);
-    vertScalarsMax->InsertTuple1(0, y0);
-    vertPointsMax->InsertPoint(1, x);
-    vertScalarsMax->InsertTuple1(1, y1);
-
-    m_histogramMaxLine->SetPoints(vertPointsMax);
-    m_histogramMaxLine->GetPointData()->SetScalars(vertScalarsMax);
-}
 
 void RenderPanel::ShowHistogram(bool enabled)
 {
@@ -460,6 +531,20 @@ void RenderPanel::ShowHistogram(bool enabled)
     else
     {
         m_histogramPlot->VisibilityOff();
+    }
+
+    Render();
+}
+
+void RenderPanel::ShowColorBar(bool enabled)
+{
+    if (enabled)
+    {
+        m_scalarBarActor->VisibilityOn();
+    }
+    else
+    {
+        m_scalarBarActor->VisibilityOff();
     }
 
     Render();
@@ -500,11 +585,14 @@ RenderPanel::ComputeHistogram(vtkSmartPointer<vtkFloatArray> scalars,
 
     vtkSmartPointer<vtkImageAccumulate> histogram = vtkSmartPointer<vtkImageAccumulate>::New();
     histogram->SetInputConnection( extract->GetOutputPort() );
-    histogram->SetComponentExtent( 0,255,0,0,0,0 );
-    histogram->SetComponentOrigin( range[0],0,0 );
-    histogram->SetComponentSpacing( (range[1] - range[0]) / 255.0f, 0, 0 );
+	histogram->SetComponentExtent( 0, 1000, 0, 0, 0, 0 );
+	histogram->SetComponentOrigin( range[0],0,0 );
+    histogram->SetComponentSpacing( (range[1] - range[0]) / 1000.0f, 0, 0 );
+   
     histogram->Update();
 
     return histogram;
 }
+
+
 

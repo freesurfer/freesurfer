@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/06 14:23:57 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/16 19:35:15 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA).
@@ -72,6 +72,9 @@ public:
     /// Run a script established from the command-line (or elsewhere)
     void RunScript();
 
+    /// Handle updates to the camera
+    void HandleCameraUpdate();
+        
     /// Original MRIS surface
     MRI_SURFACE *m_origSurface;
 

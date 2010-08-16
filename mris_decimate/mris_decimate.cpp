@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/05 15:59:48 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/08/16 19:35:15 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -47,7 +47,7 @@
 ///
 
 
-// $Id: mris_decimate.cpp,v 1.3 2010/08/05 15:59:48 ginsburg Exp $
+// $Id: mris_decimate.cpp,v 1.4 2010/08/16 19:35:15 ginsburg Exp $
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -191,6 +191,16 @@ int decimateSurface(MRI_SURFACE **pmris, const DECIMATION_OPTIONS &decimationOpt
     				void *userData)
 {
 	MRI_SURFACE *mris = (*pmris);
+
+	// Special case: if decimation level is 1.0, just make a copy of the 
+	// surface and return
+	if (decimationOptions.decimationLevel == 1.0)
+	{
+		if (decimateProgressFn != NULL)
+			decimateProgressFn(1.0, "No decimation requested, finished.", userData);			
+
+		return 0;
+	}
 	GtsSurface *gtsSurface = NULL;
 	GtsVertex **gtsVertices = NULL;
 	GtsEdge **gtsEdges = NULL;

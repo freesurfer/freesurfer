@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/06 14:23:57 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/16 19:35:15 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA).
@@ -59,6 +59,11 @@ public:
     void UpdateDecimationLevel(float val);
     bool UpdateCurvature( const wxString& curvature );
 
+    ///
+    /// Update the camera parameters from the current camera location
+    ///
+    void UpdateCameraInfo();
+
 protected:
     typedef enum
     {
@@ -83,17 +88,39 @@ protected:
 
     // Handlers for DecimatePanelBase events.
     void OnDecimationLevelChanged( wxScrollEvent& event );
+    void OnDecimationText( wxCommandEvent& event );
     void OnMinimumAngleChanged( wxScrollEvent& event );
+    void OnMinimumAngleText( wxCommandEvent& event );
     void OnMinimumValueChanged( wxScrollEvent& event );
+    void OnMinimumValueText( wxCommandEvent& event );
     void OnMaximumValueChanged( wxScrollEvent& event );
+    void OnMaximumValueText( wxCommandEvent& event );
     void OnCurvatureChoice( wxCommandEvent& event );
     void OnApplyButtonClick( wxCommandEvent& event );
     void OnDefaultButtonClick( wxCommandEvent& event );
-    void OnWireframeCheck( wxCommandEvent& event );
+    void OnRenderModeChoice( wxCommandEvent& event );
     void OnSaveCurvatureClick( wxCommandEvent& event );
     void OnHistogramCheckBox( wxCommandEvent& event );
+    void OnColorBarCheckBox( wxCommandEvent& event );
+    void OnUpVectorText( wxCommandEvent& event );
+    void OnCameraPositionText( wxCommandEvent& event );
+    void OnFocalPointText( wxCommandEvent& event );
+    void OnSetCameraClick( wxCommandEvent& event );
+    void OnResetCameraClick( wxCommandEvent& event );
+    void OnSaveScreenshotClick( wxCommandEvent& event );
 
+    ///
+    /// Given an input text string such as (1.0 2.0 3.0) convert
+    /// the strings to double values
+    /// \return True if succesfully converted, false otherwise
+    ///
+    bool ConvertStringVecToDoubles( const wxString& str, double *vec, int components);
 
+	///
+	///	Compute curvature stats (min, max, mean, sigma)
+	///
+	void ComputeStats(MRI_SURFACE *mris, float& minVal, float& maxVal, float& mean, float& sigma);
+	    
 protected:
     RenderPanel *m_renderPanel;
     MRI_SURFACE *m_origSurface;
@@ -111,3 +138,4 @@ protected:
 };
 
 #endif // __DecimatePanel__
+

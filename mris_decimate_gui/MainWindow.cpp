@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/06 14:23:57 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/16 19:35:15 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,49 @@
 #include <wx/filename.h>
 #include <wx/aboutdlg.h>
 
-static char vcid[] = "$Id: MainWindow.cpp,v 1.2 2010/08/06 14:23:57 ginsburg Exp $";
+///////////////////////////////////////////////////////////////////////////////////
+//
+//  VTK Observer classes
+//
+//
+
+
+class CameraObserver : public vtkCommand
+{
+public:
+    static CameraObserver *New()
+    {
+        return new CameraObserver;
+    }
+ 
+    void SetMainWindow( MainWindow *mainWindow )
+    {
+        m_mainWindow = mainWindow;
+    }
+
+    virtual void Execute(vtkObject *vtkNotUsed(caller),
+                         unsigned long event,
+                         void *vtkNotUsed(calldata))
+    {
+        if (m_mainWindow != 0)
+        {
+            m_mainWindow->HandleCameraUpdate();
+        }
+    }
+ 
+protected:
+    CameraObserver() :
+        m_mainWindow(0)
+    {
+    }
+
+    ~CameraObserver()
+    {
+        m_mainWindow = 0;
+    }
+
+    MainWindow *m_mainWindow;
+};
 
 ///////////////////////////////////////////////////////////////////////////////////
 //
@@ -46,8 +88,7 @@ MainWindow::MainWindow( wxWindow* parent ) :
         m_origSurface(NULL),
         m_currentFilePath("")
 {
-
-    SetSize( 50, 50, 1024, 768 );
+    SetSize( 50, 50, 1024, 840 );
 
     wxSplitterWindow *splitter = new wxSplitterWindow(this, -1);
 
@@ -69,9 +110,13 @@ MainWindow::MainWindow( wxWindow* parent ) :
         m_decimatePanel->SetLastSaveDir(&m_lastSaveDir);
     }
 
-#ifdef __WXMAC__
-    wxApp:: s_macAboutMenuItemId = ID_ABOUT;
-#endif
+    // Add camera observer
+    vtkSmartPointer<CameraObserver> cameraObserver = 
+        vtkSmartPointer<CameraObserver>::New();
+    cameraObserver->SetMainWindow(this);
+    m_renderPanel->AddCameraObserver(cameraObserver);
+    
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -157,9 +202,16 @@ void MainWindow::OnAbout( wxCommandEvent& event)
 
     wxAboutDialogInfo info;
     info.SetName("mris_decimate_gui");
-    info.SetVersion(vcid);
+	wxString version =
+			wxString::FromAscii( __DATE__) +
+    		_(" ") +
+		    wxString::FromAscii(__TIME__);
+
+    info.SetVersion( "1.0 (internal) \r\nbuild " + version);
     info.SetDescription("This program provides tools to decimate and visualize freesurfer surfaces.");
-    info.SetCopyright("2010 Children's Hospital Boston - Daniel Ginsburg <daniel.ginsburg@childrens.harvard.edu>");
+    info.SetCopyright("2010 Children's Hospital Boston\n"
+	    			  "Daniel Ginsburg <daniel.ginsburg@childrens.harvard.edu>\n"
+	    			  "Rudolph Pienaar <rudolph.pienaar@childrens.harvard.edu>");
     wxAboutBox(info);
 }
 
@@ -193,6 +245,7 @@ void MainWindow::LoadSurface(const wxString& filePath)
         m_decimatePanel->SetOrigSurface(m_origSurface);
         m_decimatePanel->DoDecimate();
         m_renderPanel->ResetCamera();
+        m_renderPanel->RecordCameraCoordinates();
 
         m_saveSurface->Enable();
         m_saveSurfaceAs->Enable();
@@ -252,6 +305,12 @@ void MainWindow::RunScript()
     }
 }
 
+/// Handle updates to the camera
+void MainWindow::HandleCameraUpdate()
+{
+    m_decimatePanel->UpdateCameraInfo();
+}
+
 void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 {
     LoadSurface( cmd[1] );
@@ -260,7 +319,6 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
 
 void MainWindow::CommandScreenCapture( const wxArrayString& cmd )
 {
-    m_renderPanel->ShowHistogram( false );
     m_renderPanel->SaveScreenshot( cmd[1] );
 }
 

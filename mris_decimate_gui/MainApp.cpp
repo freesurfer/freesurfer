@@ -9,8 +9,8 @@
  * Original Author: Dan Ginsburg
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/06 14:23:57 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/16 19:35:15 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -168,6 +168,10 @@ void MainApp::InitializeGUI()
 
 void MainApp::CreateMainWindow()
 {
+#ifdef __WXMAC__
+    wxApp::s_macAboutMenuItemId = ID_ABOUT;
+#endif
+
     // create the main application window
     m_wndMain = new MainWindow( (wxWindow*)NULL );
     m_wndMain->SetTitle( Progname );

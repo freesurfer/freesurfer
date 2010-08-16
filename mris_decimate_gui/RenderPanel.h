@@ -2,8 +2,8 @@
  * Original Author: Dan Ginsburg (@ Children's Hospital Boston)
  * CVS Revision Info:
  *    $Author: ginsburg $
- *    $Date: 2010/08/06 14:23:57 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/16 19:35:15 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,7 @@
 #include <vtkProperty.h>
 #include <vtkXYPlotActor.h>
 #include <vtkImageAccumulate.h>
+#include <vtkScalarBarActor.h>
 
 #include "wxVTKRenderWindowInteractor.h"
 
@@ -62,6 +63,17 @@ extern "C"
 class RenderPanel : public wxPanel
 {
 public:
+
+    /// Render mode
+    typedef enum
+    {
+        e_Surface = 0,
+        e_SurfaceAndWireframe,
+        e_Wireframe,
+
+        e_NumRenderModes
+    } RenderMode;
+
     RenderPanel( wxWindow* parent );
     virtual ~RenderPanel();
 
@@ -71,7 +83,7 @@ public:
 
     void Render();
 
-    void SetWireframe(bool enable);
+    void SetRenderMode(RenderMode renderMode);
 
     void ResetCamera();
 
@@ -81,9 +93,20 @@ public:
 
     void SetMinMaxCurvatureRange(float minVal, float maxVal);
 
-    void SetHistogramMinMaxLines(float minVal, float maxVal);
-
     void ShowHistogram(bool enable);
+
+    void ShowColorBar(bool enable);
+
+    ///
+    /// Get the camera
+    ///
+    vtkCamera* GetCamera() const { return m_camera; } 
+
+    ///
+    /// Add an observer that gets notified when there are changes
+    /// to the camera.
+    ///        
+    void AddCameraObserver(vtkCommand *observer);
 
     ///
     /// Automatically determine the min/max values to use for the
@@ -99,6 +122,23 @@ public:
     ///
     void AzimuthCamera(double angle);
 
+    ///
+    /// Record the current camera coordinates for resetting them
+    ///
+    void RecordCameraCoordinates();
+
+    ///
+    /// Reset the camera to the default view
+    ///
+    void ResetCameraToDefaultView();
+
+    ///
+    /// Reset the camera clipping range (required after adjusting
+    /// the view transform)
+    ///
+    void ResetCameraClippingRange();
+
+
 protected:
 
     ///
@@ -110,20 +150,28 @@ protected:
             double range[2]);
 
     vtkPolyData *m_mesh;
+    vtkPolyData *m_wireframe;
     vtkActor *m_polyActor;
+    vtkActor *m_wireframeActor;
     vtkPolyDataMapper *m_polyMapper;
+    vtkPolyDataMapper *m_wireframeMapper;
     vtkRenderer *m_renderer;
     vtkCamera *m_camera;
     wxVTKRenderWindowInteractor *m_renWin;
     vtkXYPlotActor *m_histogramPlot;
     vtkPolyData *m_histogramMinLine;
     vtkPolyData *m_histogramMaxLine;
+    vtkScalarBarActor *m_scalarBarActor;
     float m_histogramMaxY;
 
     float m_histogramPosMean;
     float m_histogramPosStdDev;
     float m_histogramNegMean;
     float m_histogramNegStdDev;
+
+    double m_origCamFocalPoint[3];
+    double m_origCamPosition[3];
+    double m_origCamUpVector[3];
 
     MRI_SURFACE *m_surface;
 
