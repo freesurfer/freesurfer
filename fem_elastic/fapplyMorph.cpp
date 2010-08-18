@@ -1,4 +1,3 @@
-
 // STL includes
 #include <cmath>
 #include <fstream>
@@ -28,6 +27,8 @@ extern "C"
 
 // required by FreeSurfer
 char *Progname;
+
+int tractPointList = 0;
 
 ////////////
 
@@ -427,6 +428,26 @@ IoParams::parse(int ac,
 
       items.push_back( item );
     }
+    else if ( *cit == "tract_point_list" )
+    {
+      tractPointList = 1;
+      if ( ++cit == container.end() )
+        throw " Incomplete data item ";
+
+      DataItem item;
+      item.m_type = DataItem::pointList;
+      item.strInput = *cit;
+
+      if ( ++cit == container.end() )
+        throw " Incomplete data item ";
+      item.strOutput = *cit;
+
+      if ( ++cit == container.end() )
+        throw " Incomplete data item ";
+      item.strAttached = *cit;
+
+      items.push_back( item );
+    }
     else
       throw " Unrecognized data item type";
 
@@ -674,14 +695,15 @@ PointListProbeFilter::Execute()
 
   std::vector<Coords3d> outputImages;
   Coords3d pt, img;
-
+  
+  if (tractPointList) this->pmorph->invert();
   while ( ifs )
     {
       ifs >> pt(0) >> pt(1) >> pt(2);
-      if ( ifs.eof() ) break;
+      //std::cout << " Pt:" <<  pt(0) << ", "<< pt(1) << ", "<< pt(2) << "\n";
       img = this->pmorph->image(pt);
-
-     outputImages.push_back( img );
+      //std::cout << " Img:" <<  img(0) << ", "<< img(1) << ", "<< img(2) << "\n";
+      outputImages.push_back( img );
     }
   ifs.close();
 
@@ -694,7 +716,7 @@ PointListProbeFilter::Execute()
       if ( cit->isValid() )
         ofs << (*cit)(0) << " " << (*cit)(1) << " " << (*cit)(2) << std::endl;
       else
-        ofs << 10000 << " "<< 10000 << " " << 10000 << std::endl; // hack not to lose order
+	ofs << 10000 << " "<< 10000 << " " << 10000 << std::endl; // hack not to lose order
     } // next cit
   ofs.close();
 }
