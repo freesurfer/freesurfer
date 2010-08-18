@@ -12,7 +12,7 @@
 #define HAVE_PTHREAD_H /**/
 
 /* Define if IPV6 support is there */
-#define SUPPORT_IP6 /**/
+/* #undef SUPPORT_IP6 */
 
 /* Define if getaddrinfo is there */
 #define HAVE_GETADDRINFO /**/
@@ -285,7 +285,7 @@
 #define STDC_HEADERS 1
 
 /* Support for IPv6 */
-#define SUPPORT_IP6 /**/
+/* #undef SUPPORT_IP6 */
 
 /* Version number of package */
 #define VERSION "2.7.7"

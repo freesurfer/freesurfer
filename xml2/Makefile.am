@@ -25,6 +25,8 @@ libxml2_a_SOURCES=\
 	HTMLparser.c \
 	HTMLtree.c \
 	list.c \
+	nanoftp.c \
+	nanohttp.c \
 	parser.c \
 	parserInternals.c \
 	pattern.c \
@@ -64,6 +66,8 @@ libxml2_a_SOURCES=\
 	libxml/HTMLparser.h \
 	libxml/HTMLtree.h \
 	libxml/list.h \
+	libxml/nanoftp.h \
+	libxml/nanohttp.h \
 	libxml/parser.h \
 	libxml/parserInternals.h \
 	libxml/pattern.h \
