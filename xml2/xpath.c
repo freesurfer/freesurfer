@@ -2916,7 +2916,7 @@ xmlXPathFormatNumber(double number, char buffer[], int buffersize)
         Note that this dimension is slightly (a few characters)
         larger than actually necessary.
       */
-      char work[DBL_DIG + EXPONENT_DIGITS + 3 + LOWER_DOUBLE_EXP];
+      char work[DBL_DIG + EXPONENT_DIGITS + 3 + LOWER_DOUBLE_EXP + 80];
       int integer_place, fraction_place;
       char *ptr;
       char *after_fraction;
