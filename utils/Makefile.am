@@ -313,6 +313,12 @@ if BUILDCUDA
 # rules for building cuda files
 NVCCINCLUDES = -I$(top_srcdir)/include $(MNI_CFLAGS)
 
+if HAVE_FERMI_GPU
+NVCC_ARCH = -DGCAMORPH_ON_GPU
+else
+NVCC_ARCH = 
+endif
+
 G++FLAGS = -Wall -Wextra -Weffc++
 
 #NVCCFLAGS += $(patsubst -%, --compiler-options -%, $(G++FLAGS) )
@@ -327,7 +333,8 @@ CUDA_DEPS = ../include/volumegpu.hpp\
             ../include/gcamorphenergy.hpp
 
 .cu.o:
-	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) -DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS -DGCAMORPH_ON_GPU
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \
+		-DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS
 
 noinst_LIBRARIES += libutils_cuda.a
 

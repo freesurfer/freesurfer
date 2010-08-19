@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/08/07 23:46:22 $
-#    $Revision: 1.490 $
+#    $Date: 2010/08/19 23:28:24 $
+#    $Revision: 1.491 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -673,12 +673,26 @@ AC_ARG_ENABLE([emu],
    [EMULATION=false]
 )
 
-# setup  nvcc flags
-if  test x$DEBUG = xtrue
+# default is to support tesla-class, this enables building for fermi-class
+ac_have_fermi_gpu=no
+AC_ARG_ENABLE(fermi-gpu,
+ [  --enable-fermi-gpu      enable NVidia Fermi GPU support],
+ [ ac_have_fermi_gpu=yes
+   AC_MSG_NOTICE(Building for Fermi-class GPU)
+ ])
+AM_CONDITIONAL(HAVE_FERMI_GPU, test "x$ac_have_fermi_gpu" = "xyes")
+
+# setup nvcc flags (default is for tesla-class, --enable-fermi-gpu overrides)
+NVIDIA_ARCH="sm_13"
+if test x$ac_have_fermi_gpu = xyes
 then
-   NVCCFLAGS="-g -arch sm_20 --ptxas-options=-v"
+  NVIDIA_ARCH="sm_20"
+fi
+if test x$DEBUG = xtrue
+then
+   NVCCFLAGS="-g -arch $NVIDIA_ARCH --ptxas-options=-v"
 else
-   NVCCFLAGS="-arch sm_20 --ptxas-options=-v -g"
+   NVCCFLAGS="-arch $NVIDIA_ARCH --ptxas-options=-v -g"
 fi
 if test x$EMULATION = xtrue
 then
