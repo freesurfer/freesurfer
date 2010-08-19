@@ -8,9 +8,6 @@ AM_FFLAGS=-ffixed-line-length-132 -fno-second-underscore
 # LIB_G2C_A is defined to libg2c.a (static lib) if configure find it
 AM_LDFLAGS=$(LIB_G2C_A)
 
-foodir=$(prefix)/docs/xml
-foo_DATA=talairach_avi.help.xml
-
 LIBS=
 
 foodir=$(prefix)/average
@@ -38,6 +35,9 @@ foo_DATA= \
 	3T18yoSchwartzReactN32_as_orig.4dfp.img.rec \
 	3T18yoSchwartzReactN32_as_orig.4dfp.mat \
 	3T18yoSchwartzReactN32_as_orig.lst
+
+xmldir=$(prefix)/docs/xml
+xml_DATA=talairach_avi.help.xml
 
 dist_bin_SCRIPTS = talairach_avi mpr2mni305 brec brec.awk \
 	t4img_4dfp tal_QC_AZS

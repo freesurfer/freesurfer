@@ -2,9 +2,6 @@
 # Makefile.am for scripts
 #
 
-foodir=$(prefix)/docs/xml
-foo_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml mri_nu_correct.mni.help.xml
-
 dist_bin_SCRIPTS = \
 aparc2feat \
 aseg2feat \
@@ -251,6 +248,9 @@ fsgdfPlot.tcl
 
 foodir=$(prefix)/bin
 foo_DATA=mri_cvs_requiredfiles.txt
+
+xmldir=$(prefix)/docs/xml
+xml_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml mri_nu_correct.mni.help.xml
 
 # these utilities should use our local build of tclsh, as that
 # has the bug fix to allow usage on 64bit NFS file systems
