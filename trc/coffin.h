@@ -29,7 +29,10 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <limits>
+#include <algorithm>
 #include <math.h>
+#include <limits.h>
 #include "utils.h"
 #include "pdf.h"
 #include "mri.h"

@@ -29,6 +29,7 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <limits>
 #include <math.h>
 #include "mri.h"
 
