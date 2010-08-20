@@ -18,7 +18,7 @@ mri_em_register_LDFLAGS=$(OS_LDFLAGS)
 
 
 foodir=$(prefix)/docs/xml
-foo_DATA=mri_em_register.help.xml
+foo_DATA=mri_em_register.help.xml mri_em_register_cuda.help.xml
 
 
 ## ----
