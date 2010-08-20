@@ -314,8 +314,10 @@ if BUILDCUDA
 NVCCINCLUDES = -I$(top_srcdir)/include $(MNI_CFLAGS)
 
 if HAVE_FERMI_GPU
-NVCC_ARCH = -DGCAMORPH_ON_GPU
+# Fermi flags:
+NVCC_ARCH = 
 else
+# Tesla flags (default):
 NVCC_ARCH = 
 endif
 
@@ -334,7 +336,8 @@ CUDA_DEPS = ../include/volumegpu.hpp\
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \
-		-DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS
+		-DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS \
+		-DGCAMORPH_ON_GPU
 
 noinst_LIBRARIES += libutils_cuda.a
 
