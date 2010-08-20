@@ -33,8 +33,8 @@ function hdr = load_nifti(niftifile,hdronly)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/07/01 17:31:19 $
-%    $Revision: 1.16 $
+%    $Date: 2010/08/20 16:01:24 $
+%    $Revision: 1.17 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -145,7 +145,7 @@ if(nitemsread ~= nvoxels)
 end
 
 if(IsIco7)
-  fprintf('load_nifti: ico7 reshaping\n');
+  %fprintf('load_nifti: ico7 reshaping\n');
   hdr.dim(2) = 163842;
   hdr.dim(3) = 1;
   hdr.dim(4) = 1;
