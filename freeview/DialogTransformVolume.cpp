@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/15 19:51:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/23 18:58:00 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -36,6 +36,10 @@
 #include "LayerMRI.h"
 #include "LayerCollection.h"
 #include "CommonDataStruct.h"
+
+#if wxCHECK_VERSION( 2, 9, 0 )
+#include <wx/bookctrl.h>
+#endif
 
 extern "C"
 {
@@ -383,7 +387,11 @@ void DialogTransformVolume::RespondScrollScale( int n )
   }
 }
 
+#if wxCHECK_VERSION( 2, 9, 0 )
+void DialogTransformVolume::OnPageChanged( wxBookCtrlEvent& event )
+#else
 void DialogTransformVolume::OnPageChanged( wxNotebookEvent& event )
+#endif
 {
 }
 

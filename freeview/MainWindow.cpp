@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/28 01:30:54 $
- *    $Revision: 1.138 $
+ *    $Date: 2010/08/23 18:58:00 $
+ *    $Revision: 1.139 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -959,7 +959,11 @@ void MainWindow::OnActivate( wxActivateEvent& event )
 void MainWindow::OnIconize( wxIconizeEvent& event )
 {
 #ifdef __WXGTK__
+#if wxCHECK_VERSION(2,9,0)
+  if ( !event.IsIconized() )
+#else
   if ( !event.Iconized() )
+#endif
     NeedRedraw( 2 );
 #endif
   event.Skip();
@@ -3227,10 +3231,10 @@ void MainWindow::CommandSetLayerName( const wxArrayString& cmd )
 {
   if ( cmd.size() > 2 )
   {
-    LayerCollection* lc = GetLayerCollection( cmd[1].c_str() );
+    LayerCollection* lc = GetLayerCollection( (const char*)cmd[1].c_str() );
     if ( lc && !lc->IsEmpty() )
     {
-      lc->GetActiveLayer()->SetName( cmd[2].c_str() );
+      lc->GetActiveLayer()->SetName( (const char*)cmd[2].c_str() );
     }
   }
   ContinueScripts();
@@ -3240,7 +3244,7 @@ void MainWindow::CommandLockLayer( const wxArrayString& cmd )
 {
   if ( cmd.size() > 2 && ( cmd[2] == _("1") || cmd[2] == _("true") ) )
   {
-    LayerCollection* lc = GetLayerCollection( cmd[1].c_str() );
+    LayerCollection* lc = GetLayerCollection( (const char*)cmd[1].c_str() );
     if ( lc && !lc->IsEmpty() )
     {
       lc->GetActiveLayer()->Lock( true );
@@ -3253,7 +3257,7 @@ void MainWindow::CommandShowLayer( const wxArrayString& cmd )
 {
   if ( cmd.size() > 2 && ( cmd[2] == _("0") || cmd[2] == _("false") ) )
   {
-    LayerCollection* lc = GetLayerCollection( cmd[1].c_str() );
+    LayerCollection* lc = GetLayerCollection( (const char*)cmd[1].c_str() );
     if ( lc && !lc->IsEmpty() )
     {
       lc->GetActiveLayer()->SetVisible( false );

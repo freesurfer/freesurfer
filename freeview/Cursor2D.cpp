@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/08/23 18:58:00 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -129,6 +129,32 @@ void Cursor2D::Update( bool bConnectPrevious )
   lines->InsertNextCell( 2 );
   lines->InsertCellPoint( n++ );
   lines->InsertCellPoint( n++ );
+  if ( m_nStyle == CS_Short )
+  {
+    int w, h;
+    m_view->GetClientSize( &w, &h );
+    int nd = 9;
+    points->InsertNextPoint( 0, pos[1], pos[2] );
+    points->InsertNextPoint( nd, pos[1], pos[2] );   
+    lines->InsertNextCell( 2 );
+    lines->InsertCellPoint( n++ );
+    lines->InsertCellPoint( n++ );
+    points->InsertNextPoint( w-nd, pos[1], pos[2] );
+    points->InsertNextPoint( w, pos[1], pos[2] );   
+    lines->InsertNextCell( 2 );
+    lines->InsertCellPoint( n++ );
+    lines->InsertCellPoint( n++ );
+    points->InsertNextPoint( pos[0], 0, pos[2] );
+    points->InsertNextPoint( pos[0], nd, pos[2] );
+    lines->InsertNextCell( 2 );
+    lines->InsertCellPoint( n++ );
+    lines->InsertCellPoint( n++ );
+    points->InsertNextPoint( pos[0], h-nd, pos[2] );
+    points->InsertNextPoint( pos[0], h, pos[2] );
+    lines->InsertNextCell( 2 );
+    lines->InsertCellPoint( n++ );
+    lines->InsertCellPoint( n++ );
+  }
 
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );

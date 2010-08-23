@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 20:48:31 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/08/23 18:58:00 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -97,7 +97,12 @@ void DialogCropVolume::OnShow( wxShowEvent& event )
   static bool bShowFrames = true;
   MainWindow* mainwnd = MainWindow::GetMainWindowPointer();
   RenderView3D* view = (RenderView3D*)mainwnd->GetRenderView( 3 );
+
+#if wxCHECK_VERSION(2,9,0)
+  if ( event.IsShown() )
+#else
   if ( event.GetShow() )
+#endif
   {
     if ( view )
     {

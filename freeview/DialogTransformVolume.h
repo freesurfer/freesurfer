@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/15 19:51:47 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/08/23 18:58:00 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -31,6 +31,7 @@
 
 class wxNotebook;
 class wxNotebookEvent;
+class wxBookCtrlEvent;
 
 class DialogTransformVolume : public wxDialog, public Listener
 {
@@ -61,7 +62,11 @@ protected:
   void OnScrollTranslateY ( wxScrollEvent& event );
   void OnScrollTranslateZ ( wxScrollEvent& event );
   
+#if wxCHECK_VERSION( 2, 9, 0 )
+  void OnPageChanged      ( wxBookCtrlEvent& event );
+#else  
   void OnPageChanged      ( wxNotebookEvent& event );
+#endif
   
   void RespondTextTranslate   ( int n );
   void RespondScrollTranslate ( int n );

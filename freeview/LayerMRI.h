@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/21 19:00:06 $
- *    $Revision: 1.51 $
+ *    $Date: 2010/08/23 18:58:00 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -222,6 +222,12 @@ public:
   virtual void GetDisplayBounds( double* bounds );
   
   bool SaveRegistration( const char* filename );
+  
+  void GetLabelStats( LayerMRI* label, int nPlane,
+                      std::vector<int>& id, 
+                      std::vector<int>& number, 
+                      std::vector<double>& mean, 
+                      std::vector<double>& std );
   
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations, 

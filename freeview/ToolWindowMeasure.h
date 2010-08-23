@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/22 20:48:31 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/08/23 18:58:00 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,12 +55,15 @@ public:
   void OnActionMeasureSplineUpdateUI        ( wxUpdateUIEvent& event );
   void OnActionMeasureSurfaceRegion         ( wxCommandEvent& event );
   void OnActionMeasureSurfaceRegionUpdateUI ( wxUpdateUIEvent& event );
+  void OnActionMeasureLabel                ( wxCommandEvent& event );
+  void OnActionMeasureLabelUpdateUI ( wxUpdateUIEvent& event );
   
   void OnButtonCopy         ( wxCommandEvent& event );
   void OnButtonExport       ( wxCommandEvent& event );
   void OnButtonSave         ( wxCommandEvent& event );
   void OnButtonSaveAll      ( wxCommandEvent& event );
   void OnButtonLoad         ( wxCommandEvent& event );
+  void OnButtonUpdate       ( wxCommandEvent& event );
   void OnSpinId             ( wxSpinEvent& evnet );
   
   void UpdateWidgets();
@@ -74,6 +77,8 @@ protected:
   
   void OnInternalIdle();
  
+  wxString GetLabelStats();
+  
   void DoUpdateWidgets();
   
   wxToolBar*      m_toolbar;
@@ -83,6 +88,7 @@ protected:
   wxButton*       m_btnSave;
   wxButton*       m_btnSaveAll;
   wxButton*       m_btnLoad;
+  wxButton*       m_btnUpdate;
   wxSpinCtrl*     m_spinId;
   
   std::vector<wxWindow*>  m_widgets2D;    // widgets for 2D measurements

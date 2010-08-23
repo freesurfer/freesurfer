@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/03 18:14:00 $
- *    $Revision: 1.83 $
+ *    $Date: 2010/08/23 18:58:00 $
+ *    $Revision: 1.84 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2000,5 +2000,90 @@ void LayerMRI::GetDisplayBounds( double* bounds )
 bool LayerMRI::SaveRegistration( const char* filename )
 {
   return m_volumeSource->SaveRegistration( filename );
+}
+  
+struct LabelStatsPrivate
+{
+  int id;
+  int count;
+  int* x;
+  int* y;
+};
+
+void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
+                              std::vector<int>& ids, 
+                              std::vector<int>& numbers, 
+                              std::vector<double>& means, 
+                              std::vector<double>& stds )
+{
+  vtkImageData* mri_image = mReslice[nPlane]->GetOutput();
+  vtkImageData* label_image = label->mReslice[nPlane]->GetOutput();
+  int* dim = mri_image->GetDimensions();
+  // first find all lable ids
+
+  std::vector<LabelStatsPrivate> labels;
+  for ( int i = 0; i < dim[0]; i++ )
+  {
+    for ( int j = 0; j < dim[1]; j++ )
+    {
+      int nId = (int)label_image->GetScalarComponentAsDouble( i, j, 0, 0 );
+      bool bFound = false;
+      for ( size_t n = 0; n < labels.size(); n++ )
+      {
+        if ( nId == labels[n].id )
+        {
+          labels[n].x[labels[n].count] = i;
+          labels[n].y[labels[n].count] = j;
+          labels[n].count++;
+          bFound = true;
+          break;
+        }
+        else if ( nId < labels[n].id )
+        {
+          LabelStatsPrivate l;
+          l.id = nId;
+          l.count = 1;
+          l.x = new int[dim[0]*dim[1]];
+          l.y = new int[dim[0]*dim[1]];
+          l.x[0] = i;
+          l.y[0] = j;
+          labels.insert( labels.begin() + n, l );
+          bFound = true;
+          break; 
+        }
+      }
+      if ( !bFound )
+      {
+        LabelStatsPrivate l;
+        l.id = nId;
+        l.count = 1;
+        l.x = new int[dim[0]*dim[1]];
+        l.y = new int[dim[0]*dim[1]];
+        l.x[0] = i;
+        l.y[0] = j;
+        labels.push_back( l );
+      }
+    }
+  }
+  for ( size_t n = 0; n < labels.size(); n++ )
+  {
+    if ( labels[n].id > 0 )
+    {
+      ids.push_back( labels[n].id );
+      numbers.push_back( labels[n].count );
+      double dvalue = 0;
+      for ( int i = 0; i < labels[n].count; i++ )
+      {
+        dvalue += mri_image->GetScalarComponentAsDouble( labels[n].x[i], labels[n].y[i], 0, 0 );
+      }
+      double dmean = dvalue / labels[n].count;
+      means.push_back( dmean );
+    }
+  }
+  for ( size_t n = 0; n < labels.size(); n++ )
+  {
+    delete[] labels[n].x;
+    delete[] labels[n].y;
+  }
 }
 
