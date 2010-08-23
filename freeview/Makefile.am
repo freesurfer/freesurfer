@@ -257,13 +257,6 @@ freeview_SOURCES=\
 #	scout/tracer.cpp \
 #	scout/tracer.h
 
-if HAVE_MAC_OSX
-# mac doesnt have gtk
-WXGTK2GL=
-else
-WXGTK2GL=-lwx_gtk2_gl-2.8
-endif
-
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
 freeview_LDADD=\
