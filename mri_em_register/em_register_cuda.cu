@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/02/12 19:27:38 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/08/25 19:50:49 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -419,6 +419,8 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 
   // Construct the generator which will give the required translations
   TranslationGenerator myGen( minTrans, maxTrans, nTrans );
+  
+  
 
   // Extract the 'base' transform, inverting
   MATRIX *invBaseTransform = NULL;
@@ -442,7 +444,18 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 				      myGCAS,
 				      thrust::raw_pointer_cast( d_logps ) );
   CUDA_CHECK_ERROR( "TranslationLogps failed!" );
-  
+ 
+#if 0
+  for( unsigned int i=0; i<totalTrans; i++ ) {
+    float3 translation = myGen(i);
+    cout << __FUNCTION__  << " "
+	 << setw(8) << setprecision(4) << translation.x << " "
+	 << setw(8) << setprecision(4) << translation.y << " "
+	 << setw(8) << setprecision(4) << translation.z << " "
+	 << setw(12) << setprecision(8) << d_logps[i] << endl;
+  }
+#endif
+
   // Extract the maximum location
   thrust::device_ptr<float> maxLoc;
   maxLoc = thrust::max_element( d_logps, d_logps+totalTrans );
@@ -453,6 +466,7 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
   // Convert the location to the required translation
   const int index = (maxLoc - d_logps);
   const float3 trans = myGen(index);
+
 
   *dx = trans.x;
   *dy = trans.y;
