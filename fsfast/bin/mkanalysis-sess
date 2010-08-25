@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/30 16:47:19 $
-#    $Revision: 1.52 $
+#    $Date: 2010/08/25 19:02:48 $
+#    $Revision: 1.53 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.52 2010/07/30 16:47:19 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.53 2010/08/25 19:02:48 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -596,11 +596,18 @@ check_params:
     echo "ERROR: must specify -native, -surface, or -mni305"
     exit 1;
   endif
-  if($#RawFWHM == 0) then
-    echo "ERROR: you must set a FWHM with -fwhm. If you do not want"
-    echo "to smooth, use -fwhm 0"
+  if($#RawFWHM != 0 && $#funcstem != 0) then
+    echo "ERROR: do not specify  -fwhm with -funcstem. The FWHM is"
+    echo "no relevant when you have specified a funcstem (the FWHM."
+    echo "will be set to 0)."
     exit 1;
   endif
+  if($#RawFWHM == 0 && $#funcstem == 0) then
+    echo "ERROR: you must set a FWHM with -fwhm. If you do not want"
+    echo "to smooth, use -fwhm 0."
+    exit 1;
+  endif
+  if($#funcstem != 0) set RawFWHM = 0;
 
   if($eventrelated) then
     if($#ParName == 0) then
