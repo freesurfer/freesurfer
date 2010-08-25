@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/30 16:47:37 $
-#    $Revision: 1.56 $
+#    $Date: 2010/08/25 19:07:25 $
+#    $Revision: 1.57 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: selxavg3-sess,v 1.56 2010/07/30 16:47:37 greve Exp $'
+set VERSION = '$Id: selxavg3-sess,v 1.57 2010/08/25 19:07:25 greve Exp $'
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M%S'`"
@@ -148,6 +148,10 @@ date          >> $LF
 set StartTime = `date`;
 
 if($SaveRes || $SaveResUnwhitened) set MatlabSaveRes = 1;
+
+# Dont run preproc if funcstem specified
+set funcstemspec  = `getana -a $analysis -t funcstem-specified`
+if($funcstemspec) set DoPreProc = 0;
 
 ### Preprocess each session ####
 if($DoPreProc) then
