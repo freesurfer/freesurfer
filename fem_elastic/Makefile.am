@@ -76,6 +76,10 @@ exportGcam_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/tetgen/libtetgen.a $(BOOST_PO_LIB)
 
+# build library...
+noinst_LIBRARIES= libfem_elastic.a
+libfem_elastic_a_SOURCES = $(createMorph_SOURCES) $(applyMorph_SOURCES)
+
 endif
 endif
 endif
