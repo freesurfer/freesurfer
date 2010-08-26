@@ -2,11 +2,10 @@
 ## Makefile.am 
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CFLAGS=-I$(top_srcdir)/include
 
-AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom\
-             $(BOOST_CFLAGS)\
-             -Wall -Wextra
+AM_CXXFLAGS=-I$(top_srcdir)/include \
+             $(BOOST_CFLAGS)
 
 AM_LDFLAGS=
 
@@ -17,7 +16,7 @@ mri_ca_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_ca_register_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
-foo_DATA=mri_ca_register.help.xml
+foo_DATA=mri_ca_register.help.xml mri_ca_register_cuda.help.xml
 
 ## ----
 ## CUDA
@@ -25,8 +24,6 @@ foo_DATA=mri_ca_register.help.xml
 
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
-
-NVCCFLAGS += -g -arch sm_13 --ptxas-options=-v
 
 # rules for building cuda files
 .cu.o:
@@ -42,13 +39,6 @@ mri_ca_register_cuda_LDFLAGS = $(OS_LDFLAGS)
 mri_ca_register_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mri_em_register_cuda_CFLAGS) \
         $(CFLAGS) $(mri_em_register_cuda_LDFLAGS) $(LDFLAGS) -o $@
-
-
-
-
-
-
-
 
 endif
 # endif BUILDCUDA
