@@ -18,6 +18,18 @@ function MRIdir()
    return ScratchDir().."/mri/"
 end
 
+-- Returns the location of the registration directory
+function Registrationdir()
+   return ScratchDir().."/registration/"
+end
+
+
+-- Returns the location of the linear registration directory
+function LinearRegistrationdir()
+   return Registrationdir().."/linear/"
+end
+
+
 
 -- Lists the files matching 'pattern' in the specified directory
 function GetFiles( srcDir, pattern )

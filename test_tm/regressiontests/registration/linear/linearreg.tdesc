@@ -1,0 +1,110 @@
+-- -*- lua -*-
+
+require "io"
+require "os"
+require "string"
+require( "tools.freesurfer" )
+
+-- Make access to the FreeSurfer module quicker
+local FS = tools.freesurfer
+
+
+-- The GCA to use
+local allGCA = FS.Registrationdir().."RB_all_2008-03-26.gca"
+
+
+-- Function to get list of directories in designated dir
+local function GetInputDirs( srcDir )
+   local lsPipe = io.popen( "ls -F "..srcDir )
+
+   local dirList = {}
+
+   local currItem
+   for currItem in lsPipe:lines() do
+      if currItem:gmatch( "/" ) then
+	 table.insert( dirList, currItem )
+      end
+   end
+
+   return dirList
+end
+
+-- List of the test directories
+local testDirs = GetInputDirs( FS.LinearRegistrationdir() )
+
+
+
+
+-- Generate a table of tests
+local function testGen( inputDirs )
+
+   local testTable = {}
+
+   for i,input in ipairs( inputDirs ) do
+      -- Strip the "/" from the name
+      local len = input:len()
+      local tstName = input:sub( 1, len-1 )
+
+      table.insert( testTable, { id=tstName,
+				 inputDir = FS.LinearRegistrationdir()..input,
+				 gca = allGCA } )
+   end
+
+   return testTable
+end
+
+
+
+
+
+-- Table required by tm itself
+testdescript = {
+
+   -- Lengthier description of the test
+   description = [[
+	 Testing of mri_em_register
+   ]],
+
+   -- Keywords (for subtest selection)
+   keywords = { "mri", "registration" },
+
+   -- Designate the test as active
+   active = 1,
+
+   -- The test name
+   testName = "mri_em_register_test",
+
+   -- The script to run the test case
+   runScript = [[
+	
+
+	 ${TM_BIN_DIR}/mri_em_register $(inputDir)/norm.mgz \
+	                               $(gca) \
+                                       normcpu.lta
+         
+         ${TM_BIN_DIR}/mri_em_register_cuda $(inputDir)/norm.mgz \
+	                                    $(gca) \
+                                            normgpu.lta
+	
+	 echo " ---------- "
+
+         ${TM_BIN_DIR}/mri_em_register $(inputDir)/nu.mgz \
+	                               $(gca) \
+                                       nucpu.lta
+         
+         ${TM_BIN_DIR}/mri_em_register_cuda $(inputDir)/nu.mgz \
+	                                    $(gca) \
+                                            nugpu.lta
+
+
+	 echo " ---------- "
+
+	 $(projectDir)/tools/ltaMultiDiff.pl \--results=$(cmdResultFn) \
+                                             \--config=$(testDir)/lta.config
+
+	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
+   ]],
+
+   -- The list of tests to run
+   tests = testGen( testDirs )
+}
