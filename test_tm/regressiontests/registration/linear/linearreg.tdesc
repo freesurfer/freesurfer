@@ -77,30 +77,69 @@ testdescript = {
    -- The script to run the test case
    runScript = [[
 	
+	 if [ -e $(inputDir)/normcpu.lta ]; then
+            echo
+            echo "normcpu.lta found.... copying"
+	    cp $(inputDir)/normcpu.lta .
+            echo
+	 else
+	    ${TM_BIN_DIR}/mri_em_register $(inputDir)/norm.mgz \
+	                                  $(gca) \
+                                          normcpu.lta
 
-	 ${TM_BIN_DIR}/mri_em_register $(inputDir)/norm.mgz \
-	                               $(gca) \
-                                       normcpu.lta
+            echo
+            echo "Copying normcpu.lta back to inputDir"
+            cp normcpu.lta $(inputDir)/
+            echo
+         fi
+
+         echo
+         echo "----"
+         echo
          
          ${TM_BIN_DIR}/mri_em_register_cuda $(inputDir)/norm.mgz \
 	                                    $(gca) \
                                             normgpu.lta
 	
-	 echo " ---------- "
 
-         ${TM_BIN_DIR}/mri_em_register $(inputDir)/nu.mgz \
-	                               $(gca) \
-                                       nucpu.lta
-         
+         echo
+         echo
+	 echo " -----#################----- "
+         echo
+         echo
+
+
+	 if [ -e $(inputDir)/nucpu.lta ]; then
+            echo
+            echo "nucpu.lta found.... copying"
+	    cp $(inputDir)/nucpu.lta .
+            echo
+         else
+            ${TM_BIN_DIR}/mri_em_register $(inputDir)/nu.mgz \
+	                                  $(gca) \
+                                          nucpu.lta
+            echo
+            echo "Copying nucpu.lta back to inputDir"
+	    cp nucpu.lta $(inputDir)/
+            echo
+         fi
+
+         echo
+         echo "----"
+         echo
+ 
          ${TM_BIN_DIR}/mri_em_register_cuda $(inputDir)/nu.mgz \
 	                                    $(gca) \
                                             nugpu.lta
 
-
+         echo
 	 echo " ---------- "
+	 echo
 
 	 $(projectDir)/tools/ltaMultiDiff.pl \--results=$(cmdResultFn) \
                                              \--config=$(testDir)/lta.config
+
+         echo
 
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
