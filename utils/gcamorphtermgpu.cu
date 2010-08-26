@@ -8,11 +8,11 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/16 14:18:05 $
- *    $Revision: 1.15 $
+ *    $Author: nicks $
+ *    $Date: 2010/08/26 15:40:08 $
+ *    $Revision: 1.16 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *

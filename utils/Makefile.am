@@ -315,16 +315,15 @@ NVCCINCLUDES = -I$(top_srcdir)/include $(MNI_CFLAGS)
 
 if HAVE_FERMI_GPU
 # Fermi flags:
-NVCC_ARCH = 
+NVCC_ARCH = -DGCAMORPH_ON_GPU
+CUDA_GCA_CFLAGS = -DGCAMORPH_ON_GPU
 else
 # Tesla flags (default):
 NVCC_ARCH = 
+CUDA_GCA_CFLAGS = 
 endif
 
 G++FLAGS = -Wall -Wextra -Weffc++
-
-#NVCCFLAGS += $(patsubst -%, --compiler-options -%, $(G++FLAGS) )
-#NVCCFLAGS += -Xopencc "-Wall"
 
 CUDA_DEPS = ../include/volumegpu.hpp\
             ../include/volumegpu_impl.hpp\
@@ -336,8 +335,7 @@ CUDA_DEPS = ../include/volumegpu.hpp\
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \
-		-DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS \
-		-DGCAMORPH_ON_GPU
+		-DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS
 
 noinst_LIBRARIES += libutils_cuda.a
 
@@ -346,10 +344,10 @@ libutils_cuda_a_SOURCES=\
 	$(libutils_cephes_SOURCES) \
 	$(libutils_nrrdio_SOURCES) \
         mriframegpu.cu \
-	devicemanagement.cu \
-	mriconvolve_cuda.cu \
+				devicemanagement.cu \
+				mriconvolve_cuda.cu \
         mrivol2vol_cuda.cu \
-	mrisurf_cuda.cu \
+				mrisurf_cuda.cu \
         affinegpu.cu\
         mrimean_cuda.cu\
         gcasgpu.cu\
@@ -359,7 +357,7 @@ libutils_cuda_a_SOURCES=\
         gcamfots_cuda.cu\
         gcamorphtermgpu.cu
 
-libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) -DGCAMORPH_ON_GPU
+libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) $(CUDA_GCA_CFLAGS)
 
 # We have some templating dependencies
 mriframegpu_cuda.o: $(CUDA_DEPS)
@@ -372,9 +370,6 @@ gcamorphgpu.o: $(CUDA_DEPS) ../include/volumegpucompare.hpp
 cudatypeutils.o: ../include/cudatypeutils.hpp
 gcamorphenergygpu.o: $(CUDA_DEPS)
 gcamorphtermgpu.o: $(CUDA_DEPS)
-
-
-
 
 CALLDEPTH ?= -1
 
