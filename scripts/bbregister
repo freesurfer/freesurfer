@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: gregt $
-#    $Date: 2010/08/12 17:40:32 $
-#    $Revision: 1.38 $
+#    $Author: greve $
+#    $Date: 2010/08/27 18:05:21 $
+#    $Revision: 1.39 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.38 2010/08/12 17:40:32 gregt Exp $';
+set VERSION = '$Id: bbregister,v 1.39 2010/08/27 18:05:21 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -56,6 +56,7 @@ set Tol1D = 1e-3;
 set nPowellMax = 36;
 set DOF = 6;
 set FSLDOF = 6;
+set FSLSwapTrans = 0;
 set DoPass1 = 1;
 
 set WMProjAbs = 2;
@@ -144,6 +145,7 @@ if($#InitReg == 0) then
     set cmd = (fslregister --s $subject --mov $regvol --reg $InitReg \
       --niters 1 --maxangle 90 --nobetmov --tmp $tmpdir/fslregister \
       --dof $FSLDOF)
+    if($FSLSwapTrans) set cmd = ($cmd --allow-swap --trans)
     if($nolog) set cmd = ($cmd --nolog)
     echo $cmd | tee -a $LF
     $cmd |& tee -a $LF
@@ -370,6 +372,10 @@ while( $#argv != 0 )
       set InitReg = ();
       breaksw
  
+    case "--fsl-swap-trans":
+      set FSLSwapTrans = 1;
+      breaksw
+
     case "--init-spm":
       set InitFSL = 0;
       set InitSPM = 1;
@@ -739,6 +745,7 @@ fsPrintHelp $0
 #  echo "   --s-from-reg reg : get subject name from regfile"
 #  echo "   --rms rmsfile : RMS change in cortical surface position"
 #  echo "   --fsl flirt.mtx : output an FSL FLIRT matrix"
+#  echo "   --fsl-swap-trans : allow swapdim for det>0. Init with xyztrans"
 #  echo ""
 #  echo "   --lh-only : only use left hemi"
 #  echo "   --rh-only : only use right hemi"
@@ -836,6 +843,14 @@ registration. This is useful for when the cross-modal is volume is a
 partial field-of-view (FoV). If you acquire in the same session a
 whole-head FoV, then pass the whole-head as the intermediate and the
 partial as the moveable.
+
+--fsl-swap-trans 
+
+Forces swapping of dimensions of the input when the input has a
+positive determinant. Forces an initial 3 DOF (xyz translation)
+registration as an initial step before the full FSL registration.
+These steps can be helpful when FSL/FLIRT fail to create an initial
+registration that is close enough for BBR.
 
 --spm-nii
 
