@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/27 19:55:00 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/08/27 21:20:19 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -52,6 +52,7 @@
 #include "CostFunctions.h"
 #include "MyMRI.h"
 #include "MyMatrix.h"
+#include "mri_robust_register.help.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -131,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.37 2010/08/27 19:55:00 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.38 2010/08/27 21:20:19 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -764,7 +765,8 @@ int main(int argc, char *argv[])
   ----------------------------------------------------------------------*/
 static void printUsage(void)
 {
-  outputHelp("mri_robust_register");
+//  outputHelp("mri_robust_register");
+  outputHelpMemory(mri_robust_register_help_xml,mri_robust_register_help_xml_len);
 
 #ifdef GREGT
   cout << endl << endl;
