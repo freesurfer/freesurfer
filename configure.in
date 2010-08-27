@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/08/26 15:49:28 $
-#    $Revision: 1.493 $
+#    $Date: 2010/08/27 21:34:41 $
+#    $Revision: 1.494 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1351,6 +1351,22 @@ AC_ARG_WITH(boost-dir,
      ac_boost_libraries="$withval"/lib
      ac_boost_dir="$withval"
   ])
+
+if test "x$BOOST_DIR" = "x"; then
+  # if a Boost root was not supplied, but one exists in the
+  # default packages path at the NMR Center, AND this is a mac,
+  # then use that:
+  if test "$OS" = "Darwin"; then
+    if test -d "/usr/pubsw/packages/boost/current" ; then
+      withval=/usr/pubsw/packages/boost/current
+      BOOST_DIR="$withval"
+      ac_boost_dir="$withval"
+      boost_i="$withval"/include
+      ac_boost_includes="$boost_i"
+      ac_boost_libraries="$withval"/lib
+    fi
+  fi
+fi
 
 AC_ARG_WITH(boost-include,
   [  --with-boost-include=DIR    root of BOOST include directory.],
