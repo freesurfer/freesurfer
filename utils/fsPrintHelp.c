@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Terrono
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/08/27 15:25:20 $
- *    $Revision: 1.4 $
+ *    $Author: mreuter $
+ *    $Date: 2010/08/27 20:49:28 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,35 +55,11 @@ static void printContents(xmlDocPtr doc, xmlNodePtr cur);
 static int tagNameIs(char *c, xmlNodePtr cur);
 static int wrdLen(char *c);
 
-int outputHelp(char *name)
+int outputHelpDoc(const xmlDocPtr doc)
+// output the help text from the xml Doc
 {
-  xmlDocPtr doc;
-  xmlNodePtr cur;
-  //Checks for the .xml file name
-  if (name==NULL)
-  {
-    fprintf(stderr, "No file name passed.\n");
-    return -1;
-  }
-  char *fshome = getenv("FREESURFER_HOME");
-  if (NULL == fshome) return -1;
-  char *temp = name;
-  name = malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml"));
-  strcpy(name,fshome);
-  strcat(name,"/docs/xml/");
-  strcat(name,temp);
-  strcat(name,".help.xml");
-  //Opens the .xml file given as an argument
-  doc = xmlParseFile(name);
-  //Catches an error in parsing the file
-  if (doc == NULL )
-  {
-    fprintf(stderr,"Document not parsed successfully. \n");
-    return -1;
-	}
+  xmlNodePtr cur = xmlDocGetRootElement(doc);
 
-  cur = xmlDocGetRootElement(doc);
-	
   //Catches the error of passing a blank document
   if (cur == NULL)
   {
@@ -181,6 +157,60 @@ int outputHelp(char *name)
   printf("\n\n\n");
 
   return 0; // success
+}
+
+int outputHelp(const char *name)
+// load and parse xml doc from file
+{
+  xmlDocPtr doc;
+
+  //Checks for the .xml file name
+  if (name==NULL)
+  {
+    fprintf(stderr, "No file name passed.\n");
+    return -1;
+  }
+  char *fshome = getenv("FREESURFER_HOME");
+  if (NULL == fshome) return -1;
+  char *fullname = malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml"));
+  strcpy(fullname,fshome);
+  strcat(fullname,"/docs/xml/");
+  strcat(fullname,name);
+  strcat(fullname,".help.xml");
+  //Opens the .xml file given as an argument
+  doc = xmlParseFile(fullname);
+  //Catches an error in parsing the file
+  if (doc == NULL )
+  {
+    fprintf(stderr,"Document not parsed successfully. \n");
+    return -1;
+	}
+
+  return outputHelpDoc(doc);
+}
+
+int outputHelpMemory(const unsigned char *text, unsigned int size)
+// load and parse xml doc from memory
+{
+  xmlDocPtr doc;
+
+  //Checks if really passed:
+  if (text==NULL)
+  {
+    fprintf(stderr, "No xml string passed.\n");
+    return -1;
+  }
+
+  //Parses the .xml file given as an argument
+  doc = xmlParseMemory((char *)text,size);
+  //Catches an error in parsing the file
+  if (doc == NULL )
+  {
+    fprintf(stderr,"Document not parsed successfully. \n");
+    return -1;
+	}
+
+  return outputHelpDoc(doc);
 }
 
 //Changes a string to unpper case
