@@ -7,8 +7,8 @@
  * Original Author: Greg Terrono
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/08/12 18:47:52 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/08/27 15:25:20 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,9 +65,10 @@ int outputHelp(char *name)
     fprintf(stderr, "No file name passed.\n");
     return -1;
   }
-  char * fshome = getenv("FREESURFER_HOME");
-  char *temp= name;
-  name= malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml"));
+  char *fshome = getenv("FREESURFER_HOME");
+  if (NULL == fshome) return -1;
+  char *temp = name;
+  name = malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml"));
   strcpy(name,fshome);
   strcat(name,"/docs/xml/");
   strcat(name,temp);
