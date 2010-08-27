@@ -24,7 +24,7 @@ local function GetInputDirs( srcDir )
 
    local currItem
    for currItem in lsPipe:lines() do
-      if currItem:gmatch( "/" ) then
+      if string.match( currItem, "/$" ) then
 	 table.insert( dirList, currItem )
       end
    end
