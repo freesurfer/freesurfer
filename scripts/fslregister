@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/08/27 17:41:38 $
-#    $Revision: 1.31 $
+#    $Date: 2010/08/27 19:05:13 $
+#    $Revision: 1.32 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.31 2010/08/27 17:41:38 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.32 2010/08/27 19:05:13 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -306,7 +306,11 @@ if($#outvol) then
 endif
 
 # Now create the freesurfer registration matrix
-set cmd = (tkregister2_cmdl --s $subjid --mov $movvolimg)
+set cmd = (tkregister2_cmdl --s $subjid)
+# movvol and movvoloimg have slightly diff geometries
+# The lines below are for backwards compatibiltiy
+if(! $DoSwap) set cmd = ($cmd --mov $movvol)
+if($DoSwap) set cmd = ($cmd --mov $movvolimg)
 set cmd = ($cmd --reg $regfile)
 set cmd = ($cmd --fslreg $fslmat)
 set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection
