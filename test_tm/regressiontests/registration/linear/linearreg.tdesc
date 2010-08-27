@@ -12,6 +12,9 @@ local FS = tools.freesurfer
 -- The GCA to use
 local allGCA = FS.Registrationdir().."RB_all_2008-03-26.gca"
 
+-- MRI names
+local mriList = { "nu", "norm" }
+
 
 -- Function to get list of directories in designated dir
 local function GetInputDirs( srcDir )
@@ -36,18 +39,22 @@ local testDirs = GetInputDirs( FS.LinearRegistrationdir() )
 
 
 -- Generate a table of tests
-local function testGen( inputDirs )
+local function testGen( inputDirs, mriList )
 
    local testTable = {}
 
    for i,input in ipairs( inputDirs ) do
-      -- Strip the "/" from the name
-      local len = input:len()
-      local tstName = input:sub( 1, len-1 )
-
-      table.insert( testTable, { id=tstName,
-				 inputDir = FS.LinearRegistrationdir()..input,
-				 gca = allGCA } )
+      for m,mri in ipairs( mriList ) do
+	 -- Strip the "/" from the name
+	 local len = input:len()
+	 local tstName = input:sub( 1, len-1 )
+	 tstName = tstName.."-"..mri
+	 
+	 table.insert( testTable, { id=tstName,
+				    inputDir = FS.LinearRegistrationdir()..input,
+				    mri=mri,
+				    gca = allGCA } )
+      end
    end
 
    return testTable
@@ -76,20 +83,20 @@ testdescript = {
 
    -- The script to run the test case
    runScript = [[
-	
-	 if [ -e $(inputDir)/normcpu.lta ]; then
+
+	 if [ -e $(inputDir)/$(mri).cpu.lta ]; then
             echo
-            echo "normcpu.lta found.... copying"
-	    cp $(inputDir)/normcpu.lta .
+            echo "$(mri).cpu.lta found.... copying"
+	    cp $(inputDir)/$(mri).cpu.lta .
             echo
 	 else
-	    ${TM_BIN_DIR}/mri_em_register $(inputDir)/norm.mgz \
+	    ${TM_BIN_DIR}/mri_em_register $(inputDir)/$(mri).mgz \
 	                                  $(gca) \
-                                          normcpu.lta
+                                          $(mri).cpu.lta
 
             echo
-            echo "Copying normcpu.lta back to inputDir"
-            cp normcpu.lta $(inputDir)/
+	    echo "Copying $(mri).cpu.lta back to inputDir"
+	    cp $(mri).cpu.lta $(inputDir)/
             echo
          fi
 
@@ -97,47 +104,15 @@ testdescript = {
          echo "----"
          echo
          
-         ${TM_BIN_DIR}/mri_em_register_cuda $(inputDir)/norm.mgz \
+         ${TM_BIN_DIR}/mri_em_register_cuda $(inputDir)/$(mri).mgz \
 	                                    $(gca) \
-                                            normgpu.lta
+                                            $(mri).gpu.lta
 	
 
-         echo
-         echo
-	 echo " -----#################----- "
-         echo
-         echo
-
-
-	 if [ -e $(inputDir)/nucpu.lta ]; then
-            echo
-            echo "nucpu.lta found.... copying"
-	    cp $(inputDir)/nucpu.lta .
-            echo
-         else
-            ${TM_BIN_DIR}/mri_em_register $(inputDir)/nu.mgz \
-	                                  $(gca) \
-                                          nucpu.lta
-            echo
-            echo "Copying nucpu.lta back to inputDir"
-	    cp nucpu.lta $(inputDir)/
-            echo
-         fi
-
-         echo
-         echo "----"
-         echo
- 
-         ${TM_BIN_DIR}/mri_em_register_cuda $(inputDir)/nu.mgz \
-	                                    $(gca) \
-                                            nugpu.lta
-
-         echo
-	 echo " ---------- "
-	 echo
+       
 
 	 $(projectDir)/tools/ltaMultiDiff.pl \--results=$(cmdResultFn) \
-                                             \--config=$(testDir)/lta.config
+	                                     \--config=$(testDir)/lta.$(mri).config
 
          echo
 
@@ -145,5 +120,5 @@ testdescript = {
    ]],
 
    -- The list of tests to run
-   tests = testGen( testDirs )
+   tests = testGen( testDirs, mriList )
 }

@@ -13,8 +13,8 @@ my( $configFile, $outFile );
 
 my( $rcs, $rev, $rcsdate );
 $rcs = '$RCSfile: ltaMultiDiff.pl,v $';
-$rev = '$Revision: 1.1 $';
-$rcsdate = '$Date: 2010/08/26 16:44:22 $';
+$rev = '$Revision: 1.2 $';
+$rcsdate = '$Date: 2010/08/27 14:01:34 $';
 
 print "LTA Multi-Diff\n";
 print "==============\n\n";
@@ -157,6 +157,8 @@ sub RunCompare{
     } else {
 	$result = "failed";
     }
+
+    print "Comparison $cpu $gpu ->  $cmdOut\n";
 
     return( $result );
 }
