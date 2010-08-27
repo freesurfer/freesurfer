@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/08/04 15:45:26 $
-#    $Revision: 1.30 $
+#    $Author: greve $
+#    $Date: 2010/08/27 17:41:38 $
+#    $Revision: 1.31 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.30 2010/08/04 15:45:26 nicks Exp $';
+set VERSION = '$Id: fslregister,v 1.31 2010/08/27 17:41:38 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -57,6 +57,8 @@ set BBRMask = 1;
 set UseNewSchedule = 1;
 set sch = ();
 set nolog = 0;
+set DoTrans = 0;
+set AllowSwapPosDet = 0;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -144,7 +146,7 @@ echo $cmd  |& tee -a $LF
 $cmd       |& tee -a $LF
 if($status) exit 1;
 
-# Convert input to analyze #
+# Convert input/movable to analyze #
 set movvolbase = $tmpdir/movvol.fslregister
 set movvolimg  = $movvolbase.nii
 set cmd = (mri_convert $movvol $movvolimg)
@@ -159,6 +161,23 @@ echo $cmd  |& tee -a $LF
 
 $cmd       |& tee -a $LF
 if($status) exit 2;
+
+# Check for PosDeterminant
+mri_info --det --o $tmpdir/det.dat $movvol
+set det = `cat $tmpdir/det.dat`
+echo "Mov determinant is $det" | tee -a $LF
+set isPosDet = `perl -e "printf('"'%d'"',$det > 0 ) "`
+set DoSwap = 0;
+if($AllowSwapPosDet && $isPosDet) then
+  echo "Swapping dims for pos det" | tee -a $LF
+  set DoSwap = 1;
+  fslswapdim $movvolimg -x y z $movvolimg |& tee -a $LF
+  fslorient  -swaporient $movvolimg |& tee -a $LF
+  set swapreg = $tmpdir/swapreg.dat
+  tkregister2_cmdl --mov $movvol --targ $movvolimg \
+     --regheader --reg $swapreg |& tee -a $LF
+endif
+
 
 # Perform brain extration on the movable
 if($betmov) then
@@ -213,13 +232,33 @@ endif
 # Use supplied initial matrix
 if($#InitFSLMat)  set fslmat0 = $InitFSLMat;
 
-# Set up and run the Flirt command-line
-set cmd = (flirt.fsl -ref $refvolimg -in $movvolimg -bins $bins)
-set cmd = ($cmd  -omat $fslmat -cost $cost -dof $dof)
-set cmd = ($cmd  -searchrx -$maxangle $maxangle);
-set cmd = ($cmd  -searchry -$maxangle $maxangle);
-set cmd = ($cmd  -searchrz -$maxangle $maxangle);
-set cmd = ($cmd  -verbose $Verbosity);
+# Set up the basic flirt command-line options
+set cmd0 = (flirt.fsl -ref $refvolimg -in $movvolimg -bins $bins)
+set cmd0 = ($cmd0  -cost $cost -dof $dof)
+set cmd0 = ($cmd0  -searchrx -$maxangle $maxangle);
+set cmd0 = ($cmd0  -searchry -$maxangle $maxangle);
+set cmd0 = ($cmd0  -searchrz -$maxangle $maxangle);
+set cmd0 = ($cmd0  -verbose $Verbosity);
+
+# First, run with translation only. This is good for problem data sets
+if($DoTrans) then
+  set newfslmat0 = $tmpdir/fslmat0.trans.mat
+  set cmd = ($cmd0 -omat $newfslmat0 -schedule $FSLDIR/etc/flirtsch/xyztrans.sch)
+  if($#fslmat0) set cmd = ($cmd -init $fslmat0)
+  date | tee -a $LF
+  pwd | tee -a $LF
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) then
+    echo "ERROR: flirt" | tee -a $LF
+    exit 1;
+  endif
+  set fslmat0 = $newfslmat0;
+endif
+
+# Now run with full schedule
+set cmd = ($cmd0 -omat $fslmat)
+if($#fslmat0) set cmd = ($cmd -init $fslmat0)
 if($#sch) set cmd = ($cmd -schedule $sch);
 if($#outvol) then
   set outvolbase = $tmpdir/outvol.fslregister
@@ -227,7 +266,6 @@ if($#outvol) then
   set cmd = ($cmd -o $outvolimg);
 endif
 set cmdA = ($cmd); # cmd line without init
-if($#fslmat0) set cmd = ($cmd -init $fslmat0)
 date | tee -a $LF
 pwd | tee -a $LF
 echo $cmd | tee -a $LF
@@ -268,7 +306,7 @@ if($#outvol) then
 endif
 
 # Now create the freesurfer registration matrix
-set cmd = (tkregister2_cmdl --s $subjid --mov $movvol)
+set cmd = (tkregister2_cmdl --s $subjid --mov $movvolimg)
 set cmd = ($cmd --reg $regfile)
 set cmd = ($cmd --fslreg $fslmat)
 set tkregcheckcmd = ($cmd --surf orig);  # for visual inspection
@@ -278,6 +316,14 @@ $cmd |& tee -a $LF
 if($status) then
   echo "ERROR: tkregister2_cmdl" | tee -a $LF
   exit 1;
+endif
+
+# Fix for dim swap 
+if($DoSwap) then
+  set cmd = (mri_matrix_multiply -im $swapreg -im $regfile -om $regfile)
+  echo $cmd | tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
 endif
 
 # Check for possible LR flip
@@ -429,6 +475,24 @@ while( $#argv != 0 )
       set initxfm = 0;
       breaksw
 
+    case "--trans":
+      set DoTrans = 1;
+      breaksw
+
+    case "--notrans":
+    case "--no-trans":
+      set DoTrans = 0;
+      breaksw
+
+    case "--allow-swap":
+      set AllowSwapPosDet = 1;
+      breaksw
+
+    case "--noallow-swap":
+    case "--no-allow-swap":
+      set AllowSwapPosDet = 0;
+      breaksw
+
     case "--fslmat":
       if ( $#argv < 1) goto arg1err;
       set fslmat = $argv[1]; shift;
@@ -578,6 +642,9 @@ usage_exit:
   echo "   --cost cost      : FLIRT cost (default is $cost)"
   echo "   --maxangle angle : FLIRT max search angle (default is $maxangle)"
   echo "   --no-new-schedule "
+  echo " "
+  echo "   --allow-swap : allow swap dim of positive determinant input volumes"
+  echo "   --trans : do a translation-only registration prior to full "
   echo " "
   echo "   --betmov      : perform brain extration on mov"
   echo "   --betfvalue f : f value for bet, 0.1 default (passed with -f to bet)"
