@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/03 20:01:40 $
- *    $Revision: 1.36 $
+ *    $Date: 2010/08/27 19:55:00 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -131,7 +131,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.36 2010/08/03 20:01:40 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.37 2010/08/27 19:55:00 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -764,6 +764,9 @@ int main(int argc, char *argv[])
   ----------------------------------------------------------------------*/
 static void printUsage(void)
 {
+  outputHelp("mri_robust_register");
+
+#ifdef GREGT
   cout << endl << endl;
   cout << "Usage: mri_robust_register <required arguments>" << endl <<endl;
 
@@ -820,21 +823,22 @@ static void printUsage(void)
 
   cout << endl;
   cout << endl;
-  cout << " Important Note: " << endl;
-	cout << " If the registration looks wrong, try to switch on intensity scaling (--iscale)." << endl;
-  cout << " Still the registration can fail if the images contain, for example, non linear" << endl;
-	cout << " differences. In these cases the default saturation value is too low and too" << endl;
-	cout << " many voxels are considered outlier early in the process. You can check this by" << endl;
-	cout << " outputing the weights (--weights ow.mgz) and by looking at them in: " << endl;
-	cout << "    tkmedit -f dst.mgz -aux mov.mgz -overlay ow.mgz  " << endl;
-	cout << " If most of the brain is labeled outlier, try to set the saturation to a higher" << endl;
-	cout << " value (eg. --sat 9) or use --satit to automatically determine a good sat value." << endl;
+  cout << "Description:" << endl;
+	cout << "This program symmetrically aligns two volumes. It uses a method based on robust statistics to detect outliers and removes them from the registration. This leads to highly accurate registrations even with local changes in the image (e.g. jaw movement). The main purpose is to find the rigid registration (translation, rotation) of longitudinal data, but the method can be used to rigidly align different images. An additional optional intensity scale parameter can be used to adjust for global intensity differences. The extension to affine registration is being tested."<<endl;
   cout << endl;
-
+  cout << "If the registration fails: " << endl;
+	cout << "The registration can fail because of several reasons, most likeley due to large intensity differences or non-linear differences in the image. You can try:"<< endl;
+	cout << " * Switch on intensity scaling (--iscale)." << endl;
+	cout << " * When specifying a manual saturation (--sat) too many voxels might be considered outlier early in the process. You can check this by outputing the weights (--weights ow.mgz) and by looking at them in:" << endl;
+	cout << "   > tkmedit -f dst.mgz -aux mov.mgz -overlay ow.mgz " << endl;
+	cout << "   If most of the brain is labeled outlier, try to set the saturation to a higher value (eg. --sat 12) or use --satit to automatically determine a good sat value." << endl;
+  cout << " * When using automatic saturation estimation (--satit) you can try specifying the sensitivity manually or twiddle around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels." << endl;
+  cout << endl;
   cout << " Report bugs to: freesurfer@nmr.mgh.harvard.edu" << endl;
 
 
   cout << endl;
+#endif
 
 }
 

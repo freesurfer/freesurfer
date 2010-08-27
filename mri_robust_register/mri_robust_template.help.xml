@@ -3,59 +3,57 @@
 <help>
 	<name>mri_robust_template</name>
 	<synopsis>mri_robust_template --mov &lt;tp1.mgz&gt; &lt;tp2.mgz&gt; ... --template &lt;template.mgz&gt; [options]</synopsis>
-	<description>This program constructs an unbiased robust template for longitudinal volumes. It uses an iterative method to construct a mean/median volume and the robust rigid registration of all input images to the current mean/median.
+	<description>This program constructs an unbiased robust template for longitudinal volumes (within modality, 6-7 DOF). It uses an iterative method to construct a mean/median volume and the robust rigid registration of all input images to the current mean/median.
 
-Important Note: The input images should all have the same intensity level! Good images are, for example, the T1.mgz and norm.mgz from the FreeSurfer stream. </description>
+Important Note: For best performance the input images should all have the same intensity level! Good images are, for example, the T1.mgz and norm.mgz from the FreeSurfer stream. </description>
   <arguments>
     <positional>
       <intro>None.</intro>
     </positional>
     <required_flagged>
       <argument>--mov &lt;tp1.mgz&gt; &lt;tp2.mgz&gt;...</argument>
-      <explanation>input volumes. movable volumes to be aligned to common mean/median template</explanation>
+      <explanation>input movable volumes to be aligned to common mean/median template</explanation>
       <argument>--template &lt;template.mgz&gt;</argument>
-      <explanation>output template volume. mean/median image</explanation>
-      <intro>One of the following is required for sensitivity.</intro>
+      <explanation>output template volume (final mean/median image)</explanation>
+      <intro>One of the following is required for sensitivity:</intro>
       <argument>--sat &lt;real&gt;</argument>
       <explanation>set outlier sensitivity manually (e.g. '--sat 4.685' ). Higher values mean less sensitivity.</explanation>
       <argument>--satit</argument>
-      <explanation>auto-detect good sensitivity (for head scans)</explanation>
+      <explanation>auto-detect good sensitivity (recommended for head or full brain scans)</explanation>
     </required_flagged>
     <optional_flagged>
-      <argument>--lta tp1.lta tp2.lta ...</argument>
+      <argument>--lta &lt;tp1.lta&gt; &lt;tp2.lta&gt; ...</argument>
       <explanation>output xforms to template (for each input)</explanation>
-      <argument>--warp warp1.mgz ...</argument>
-      <explanation>map each input to template</explanation>
-      <argument>--weights weights1.mgz ...</argument>
-      <explanation>output weights in target space</explanation>
-      <argument>--average #</argument>
+      <argument>--warp &lt;warp1.mgz&gt; ...</argument>
+      <explanation>output images: map and resample each input to template</explanation>
+      <argument>--weights &lt;weights1.mgz&gt; ...</argument>
+      <explanation>output weights (outliers) in target space</explanation>
+      <argument>--average &lt;#&gt;</argument>
       <explanation>construct template from: 0 Mean, 1 Median (default)</explanation>
-      <argument>--inittp #</argument>
+      <argument>--inittp &lt;#&gt;</argument>
       <explanation>use TP# for spacial init (default 1), 0: no init</explanation>
       <argument>--fixtp</argument>
       <explanation>map everthing to init TP# (init TP is not resampled)</explanation>
       <argument>--iscale</argument>
       <explanation>allow also intensity scaling (default no)</explanation>
-      <argument>--ixforms t1.lta t2.lta ...</argument>
+      <argument>--ixforms &lt;t1.lta&gt; &lt;t2.lta&gt; ...</argument>
       <explanation>use initial transforms (lta) on source  ('id'=identity)</explanation>
       <argument>--vox2vox</argument>
       <explanation>output VOX2VOX lta file (default is RAS2RAS)</explanation>
       <argument>--leastsquares</argument>
-      <explanation>use least squares instead of robust M-estimator</explanation>
+      <explanation>use least squares instead of robust M-estimator (for testing only)</explanation>
       <argument>--noit</argument>
       <explanation>do not iterate, just create first template</explanation>
       <argument>--maxit &lt;#&gt;</argument>
       <explanation>iterate max # times (if #tp&gt;2 default 6, else 5 for 2tp reg.)</explanation>
       <argument>--epsit &lt;real&gt;</argument>
-      <explanation>stop iterations when all tp changes below &lt;float&gt; (if #tp>2 default 0.03, else 0.01 for 2tp reg.)</explanation>
-      <argument>--doublesvd</argument>
-      <explanation>double svd (instead of float) ~1Gig more memory</explanation>
+      <explanation>stop iterations when all tp transform updates fall below &lt;real&gt; (if #tp>2 default 0.03, else 0.01 for 2tp reg.)</explanation>
       <argument>--subsample &lt;#&gt;</argument>
       <explanation>subsample if dim &gt; # on all axes (default no subs.)</explanation>
-      <argument>--uchar</argument>
-      <explanation>set input type to UCHAR (with intensity scaling)</explanation> 
-      <argument>--conform conform.mgz</argument>
-      <explanation>output conform template, 1mm vox (256^3)</explanation>
+      <argument>--floattype</argument>
+      <explanation>convert images to float internally (default: keep input type)</explanation> 
+      <argument>--doubleprec</argument>
+      <explanation>double precision (instead of float) internally (large memory usage!!!)</explanation>
       <argument>--debug</argument>
       <explanation>show debug output (default no debug output)</explanation>
     </optional_flagged>
@@ -68,8 +66,11 @@ Important Note: The input images should all have the same intensity level! Good 
 Constructs a mean template from tp1,tp2 and tp3 and outputs the mean.mgz, the corresponding transforms (tp?.lta) and aligned images (tp?tomean.mgz). Intensity scaling is allowed (on highest resolution, once the images are well aligned).
 
 View results:
+
 tkmedit -f mean.mgz -aux tp1tomean.mgz </example>
   <bugs>None</bugs>
+	<references>Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl. NeuroImage, in Press, July 2010.
+	http://reuter.mit.edu/lcount/click.php?id=13 </references>
   <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
 	<see_also>mri_robust_register</see_also>
 </help>
