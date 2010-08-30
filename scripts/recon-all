@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/08/04 15:45:26 $
-#    $Revision: 1.319 $
+#    $Author: mreuter $
+#    $Date: 2010/08/30 20:42:43 $
+#    $Revision: 1.320 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.319 2010/08/04 15:45:26 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.320 2010/08/30 20:42:43 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4836,13 +4836,13 @@ check_params:
         echo "ERROR: file ${longbasedir}/${BaseSubjsListFname} does not exist!"
         exit 1;
       else
-        grep $tpNid ${longbasedir}/${BaseSubjsListFname} >& /dev/null
+        grep -w $tpNid ${longbasedir}/${BaseSubjsListFname} >& /dev/null
         if ($status) then
           echo "ERROR: $tpNid is not in ${longbasedir}/${BaseSubjsListFname}"
           exit 1
         endif
         # check that baseid is not the same as any of the timepoint subj IDs
-        grep $longbaseid ${longbasedir}/${BaseSubjsListFname} >& /dev/null
+        grep -w $longbaseid ${longbasedir}/${BaseSubjsListFname} >& /dev/null
         if ( ! $status) then
           echo "ERROR: longitudinal base ID cannot be the same as a timepoint"
           echo "subject ID (in ${longbasedir}/${BaseSubjsListFname})"
