@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:24:14 $
- *    $Revision: 1.24 $
+ *    $Author: mreuter $
+ *    $Date: 2010/08/30 23:02:31 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,7 @@
 #include <cassert>
 
 #include "MultiRegistration.h"
+#include "mri_robust_template.help.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -156,7 +157,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.24 2010/08/12 17:24:14 gregt Exp $";
+"$Id: mri_robust_template.cpp,v 1.25 2010/08/30 23:02:31 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -326,7 +327,8 @@ int main(int argc, char *argv[])
   ----------------------------------------------------------------------*/
 static void printUsage(void)
 {
-  outputHelp("mri_robust_template");
+//  outputHelp("mri_robust_template");
+  outputHelpMemory(mri_robust_template_help_xml,mri_robust_template_help_xml_len);
 
 #ifdef GREGT
   cout << endl << endl;
