@@ -28,7 +28,6 @@ namespace thrust
 
 /*! \addtogroup set_operations Set Operations
  *  \ingroup algorithms
- *  \{
  */
 
 /*! \p set_intersection constructs a sorted range that is the

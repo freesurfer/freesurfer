@@ -122,3 +122,16 @@
 #endif // THRUST_HOST_COMPILER_MSVC
 #endif // __DEVICE_EMULATION__
 
+// deprecate nvcc 2.3
+#if CUDA_VERSION == 2030
+#if THRUST_HOST_COMPILER == THRUST_HOST_COMPILER_MSVC
+#pragma message("-----------------------------------------------------------------------")
+#pragma message("| WARNING: This version of Thrust does not support CUDA 2.3                            ")
+#pragma message("-----------------------------------------------------------------------")
+#else
+#warning -----------------------------------------------------------------------
+#warning | WARNING: This version of Thrust does not support CUDA 2.3
+#warning -----------------------------------------------------------------------
+#endif // THRUST_HOST_COMPILER_MSVC
+#endif 
+

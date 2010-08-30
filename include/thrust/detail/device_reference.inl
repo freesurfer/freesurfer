@@ -148,7 +148,17 @@ template<typename T>
     host_space_tag
   >::type interop;
 
+#if (THRUST_DEVICE_COMPILER == THRUST_DEVICE_COMPILER_NVCC) && (CUDA_VERSION >= 3000)
+// XXX WAR nvcc 3.1's problems with this
+//     in __device__ code, return something bogus just to get it to compile
+#ifndef __CUDA_ARCH__
   return convert(interop());
+#else
+  return value_type();
+#endif
+#else
+  return convert(interop());
+#endif // NVCC > 2.3
 } // end device_reference::operator value_type ()
 
 template<typename T>
