@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/06 21:41:51 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/08/31 17:26:05 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -47,12 +47,16 @@ class LayerMRI;
 class PanelVolume : public wxPanel, public Listener, public Broadcaster
 {
 public:
-  PanelVolume(wxWindow* parent);
+  PanelVolume(wxWindow* parent = NULL) : Listener( "PanelVolume" ), Broadcaster( "PanelVolume" )
+  {
+    InitWidgetsFromXRC( parent );
+  }
   virtual ~PanelVolume();
 
   void UpdateUI( bool bForce = false );
 
-protected:
+private:
+  void InitWidgetsFromXRC(wxWindow* parent);
   void OnInternalIdle();
 
 private:

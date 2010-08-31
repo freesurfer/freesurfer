@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/06 21:41:51 $
- *    $Revision: 1.49 $
+ *    $Date: 2010/08/31 17:26:05 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -115,24 +115,19 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_COMMAND_SCROLL_THUMBTRACK   ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMaxChanging )
 END_EVENT_TABLE()
 
-
-PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadcaster( "PanelVolume" )
+void PanelVolume::InitWidgetsFromXRC( wxWindow* parent )
 {
-  m_curCTAB = NULL;
-  m_bUINeedUpdate = false;
-  m_layerCopied = NULL;
-
-  wxXmlResource::Get()->LoadPanel( this, parent, _("ID_PANEL_VOLUME") );
+  wxXmlResource::Get()->LoadObject( this, parent, wxT("ID_PANEL_VOLUME"), wxT("wxPanel") );
   m_listBoxLayers       = XRCCTRL( *this, "ID_LISTBOX_VOLUMES", wxCheckListBox );
-  m_sliderOpacity       = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
-  m_textOpacity         = XRCCTRL( *this, "ID_TEXT_OPACITY", wxTextCtrl );
   m_checkClearBackground =  XRCCTRL( *this, "ID_CHECKBOX_CLEAR_BACKGROUND", wxCheckBox );
   m_checkSmooth         = XRCCTRL( *this, "ID_CHECKBOX_SMOOTH", wxCheckBox );
   m_checkUpsample       = XRCCTRL( *this, "ID_CHECKBOX_UPSAMPLE", wxCheckBox );
   m_listColorTable      = XRCCTRL( *this, "ID_LISTBOX_COLORTABLE", wxListBox );
   m_choiceColorMap      = XRCCTRL( *this, "ID_CHOICE_COLORMAP", wxChoice );
   m_choiceLUT           = XRCCTRL( *this, "ID_CHOICE_LUT", wxChoice );
+  m_textOpacity         = XRCCTRL( *this, "ID_TEXT_OPACITY", wxTextCtrl );
   m_textDrawValue       = XRCCTRL( *this, "ID_TEXT_DRAW_VALUE", wxTextCtrl );
+  m_sliderOpacity       = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
   m_sliderWindow        = XRCCTRL( *this, "ID_SLIDER_WINDOW", wxSlider );
   m_sliderLevel         = XRCCTRL( *this, "ID_SLIDER_LEVEL", wxSlider );
   m_textWindow          = XRCCTRL( *this, "ID_TEXT_WINDOW", wxTextCtrl );
@@ -282,6 +277,10 @@ PanelVolume::PanelVolume( wxWindow* parent ) : Listener( "PanelVolume" ), Broadc
   m_widgetlistResize.push_back( m_listColorTable );
   
   MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->AddListener( this );
+  
+  m_curCTAB = NULL;
+  m_bUINeedUpdate = false;
+  m_layerCopied = NULL;
   
   UpdateUI( true );
 }

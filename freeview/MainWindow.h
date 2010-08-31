@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/28 01:30:54 $
- *    $Revision: 1.81 $
+ *    $Date: 2010/08/31 17:26:05 $
+ *    $Revision: 1.82 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -76,9 +76,16 @@ class VolumeCropper;
 class MainWindow : public wxFrame, public Listener, public Broadcaster
 {
 public:
-  MainWindow();
+  MainWindow(wxWindow* parent = NULL) : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
+  {
+    InitWidgetsFromXRC(parent);
+  }
   virtual ~MainWindow();
+  
+private:
+  void InitWidgetsFromXRC(wxWindow* parent);
 
+public:
   enum ViewLayout { VL_1X1 = 0, VL_2X2, VL_1N3, VL_1N3_H };
   enum MainView  { MV_Sagittal = 0, MV_Coronal, MV_Axial, MV_3D };
 
@@ -494,9 +501,6 @@ private:
   WindowQuickReference* m_wndQuickReference;
   StatusBar*          m_statusBar;
   wxToolBar*          m_toolbarMain;
-  wxToolBar*          m_toolbarVoxelEdit;
-  wxToolBar*          m_toolbarROIEdit;
-  wxToolBar*          m_toolbarBrush;
   wxPanel*            m_panelToolbarHolder;
   ToolWindowEdit*     m_toolWindowEdit;
   ToolWindowMeasure*  m_toolWindowMeasure;

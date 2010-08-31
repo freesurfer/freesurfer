@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/23 18:58:00 $
- *    $Revision: 1.139 $
+ *    $Date: 2010/08/31 17:26:05 $
+ *    $Revision: 1.140 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -299,8 +299,9 @@ END_EVENT_TABLE()
 // ----------------------------------------------------------------------------
 
 // frame constructor
-MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
-{
+
+void MainWindow::InitWidgetsFromXRC( wxWindow* parent)
+{  
 // m_bLoading = false;
 // m_bSaving = false;
   m_bProcessing = false;
@@ -316,12 +317,12 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_connectivity = new ConnectivityData();
   m_volumeCropper = new VolumeCropper();
 
-  wxXmlResource::Get()->LoadFrame( this, NULL, wxT("ID_MAIN_WINDOW") );
+  wxXmlResource::Get()->LoadObject( this, parent, wxT("ID_MAIN_WINDOW"), wxT("wxFrame") );
 
   // must be created before the following controls
   m_layerCollectionManager = new LayerCollectionManager();
 
-  m_panelToolbarHolder = XRCCTRL( *this, "ID_PANEL_HOLDER", wxPanel );
+//  m_panelToolbarHolder = XRCCTRL( *this, "ID_PANEL_HOLDER", wxPanel );
 // wxBoxSizer* sizer = (wxBoxSizer*)panelHolder->GetSizer(); //new wxBoxSizer( wxVERTICAL );
 
   // create the main splitter window
@@ -329,15 +330,8 @@ MainWindow::MainWindow() : Listener( "MainWindow" ), Broadcaster( "MainWindow" )
   m_splitterMain = XRCCTRL( *this, "ID_SPLITTER_MAIN", wxSplitterWindow );
   m_splitterMain->SetMinimumPaneSize( 80 );
 // sizer->Add( m_splitterMain, 1, wxEXPAND );
-
   
   m_toolbarMain = GetToolBar();
-  m_toolbarVoxelEdit = XRCCTRL( *this, "ID_TOOLBAR_VOXEL_EDIT", wxToolBar );
-  m_toolbarROIEdit = XRCCTRL( *this, "ID_TOOLBAR_ROI_EDIT", wxToolBar );
-  m_toolbarBrush = XRCCTRL( *this, "ID_TOOLBAR_BRUSH", wxToolBar );
-  m_toolbarBrush->Show( false );
-  m_toolbarVoxelEdit->Show( false );
-  m_toolbarROIEdit->Show( false );
 
 // this->SetSizer( sizer );
 // sizer->Add( ( wxToolBar* )XRCCTRL( *this, "m_toolBar2", wxToolBar ), 0, wxEXPAND );
@@ -2975,7 +2969,7 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
       }
       else if ( subOption == _("grayscale") || 
                 subOption == _("heatscale") || 
-                subOption == _("jetscale") ) 
+                subOption == _("colorscale") ) 
       {
         colormap_scale = subOption;    // colormap scale might be different from colormap!
         scales = MyUtils::SplitString( subArgu, _(",") );
@@ -3185,7 +3179,7 @@ void MainWindow::CommandSetColorMap( const wxArrayString& sa )
   strg = sa[2];
   if ( strg == _("heatscale") )
     nColorMapScale = LayerPropertiesMRI::Heat;
-  else if ( strg == _("jetscale") )
+  else if ( strg == _("colorscale") )
     nColorMapScale = LayerPropertiesMRI::Jet;
   else if ( strg == _("lut") )
     nColorMapScale = LayerPropertiesMRI::LUT;
@@ -5132,7 +5126,7 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, std::vect
           p->SetMinMaxGenericThreshold( scales[0], scales[1] );
         }
         else if ( !scales.empty() )
-          cerr << "Need 2 values for jetscale." << endl;
+          cerr << "Need 2 values for colorscale." << endl;
         break;
     }
   }

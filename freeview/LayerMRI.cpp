@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/23 18:58:00 $
- *    $Revision: 1.84 $
+ *    $Date: 2010/08/31 17:26:05 $
+ *    $Revision: 1.85 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1575,7 +1575,7 @@ COLOR_TABLE* LayerMRI::GetEmbeddedColorTable()
   return ( m_volumeSource ? m_volumeSource->GetEmbeddedColorTable(): NULL );
 }
 
-void LayerMRI::SnagToVoxelCenter( const double* pt_in, double* pt_out )
+void LayerMRI::SnapToVoxelCenter( const double* pt_in, double* pt_out )
 {
   if ( m_imageData == NULL )
   {
