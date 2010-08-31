@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/07/27 02:09:17 $
- *    $Revision: 1.145 $
+ *    $Author: mreuter $
+ *    $Date: 2010/08/31 16:08:02 $
+ *    $Revision: 1.146 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -771,9 +771,10 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
     //           dst' vox ---> RAS
     //
     //  where dst->dst' map is given by V2V' = r2i(dst')*i2r(dst)
+    //  (here dst is from the lta, and dst' from mri_dst)
     //
     //  Note that in order to obtain src->dst' with r2r, you
-    // "don't need any info from dst"
+    // "don't need any info from dst (only from dst')"
     //  since
     //          src->dst'  = r2i(dst')* r2r * i2r(src)
     //
@@ -782,20 +783,23 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
     //          src->dst'  = r2i(dst')* i2r(dst) * v2v
     //
     ////////////////////////////////////////////////////////////////////////
-    // when the dst volume is not given
+
+    // when the mri_dst volume is not given
     if (!mri_dst)
     {
       if (tran->dst.valid == 1) // transform dst is valid
       {
-        // modify dst geometry using the transform dst value
-        // to make the better positioning (i.e. put the
-        // head in the same position in
-        // the volume as the dst was)
+        // modify dst geometry using the transform dst value,
+        // i.e. put the head in the same position in the dst'
+        // volume as the transform dst was
         if (DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: Modifying dst geometry, "
                   "using the transform dst\n");
+				// allocate dst space (take type from src and geometry from transform):
         mri_dst = MRIalloc(tran->dst.width, tran->dst.height, tran->dst.depth,mri_src->type) ;
-        MRIsetResolution(mri_dst, tran->dst.xsize, tran->dst.ysize, tran->dst.zsize) ;
+				// cp rest of header information from src:
+        MRIcopyHeader(mri_src, mri_dst) ;
+				// make sure the geometry is taken from the transform, not from src:
         useVolGeomToMRI(&tran->dst,mri_dst);
       }
       else if (getenv("USE_AVERAGE305"))
@@ -812,9 +816,9 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         mri_dst->c_a = -16.5100;
         mri_dst->c_s = 9.7500;
         mri_dst->ras_good_flag = 1;
-	// maye one should set also the other geometry entries
-	// from the average ???
-	//
+        // maye one should set also the other geometry entries
+        // from the average ???
+        //
         // now we cache transform and thus we have to
         // do the following whenever
         // we change direction cosines
@@ -831,12 +835,12 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         // maybe also reset or concatenate the actual transform 
         // if available in mri_dst->transform (not yet implemented) ...
 			}
-      MRIcopyHeader(mri_src, mri_dst) ;
     }
+		
     ////////////////////////////////////////////////////////////////////////
     if (lta->type == LINEAR_RAS_TO_RAS)
     {
-      // don't need any info from dst
+      // don't need any info from dst(in lta) only from mri_dst:
       return(MRIapplyRASlinearTransformInterp(mri_src,
                                               mri_dst,
                                               lta->xforms[0].m_L,
