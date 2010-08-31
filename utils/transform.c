@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 16:08:02 $
- *    $Revision: 1.146 $
+ *    $Date: 2010/08/31 16:38:22 $
+ *    $Revision: 1.147 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -795,11 +795,11 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         if (DIAG_VERBOSE_ON)
           fprintf(stderr, "INFO: Modifying dst geometry, "
                   "using the transform dst\n");
-				// allocate dst space (take type from src and geometry from transform):
+        // allocate dst space (take type from src and geometry from transform):
         mri_dst = MRIalloc(tran->dst.width, tran->dst.height, tran->dst.depth,mri_src->type) ;
-				// cp rest of header information from src:
+        // cp rest of header information from src:
         MRIcopyHeader(mri_src, mri_dst) ;
-				// make sure the geometry is taken from the transform, not from src:
+        // make sure the geometry is taken from the transform, not from src:
         useVolGeomToMRI(&tran->dst,mri_dst);
       }
       else if (getenv("USE_AVERAGE305"))
@@ -836,7 +836,7 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
         // if available in mri_dst->transform (not yet implemented) ...
 			}
     }
-		
+
     ////////////////////////////////////////////////////////////////////////
     if (lta->type == LINEAR_RAS_TO_RAS)
     {
