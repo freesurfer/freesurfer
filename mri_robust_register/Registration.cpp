@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/03 20:17:49 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/08/31 00:18:24 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -3353,7 +3353,7 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
   for (uint i = 0;i<3;i++)
 	  if (s_dim[i] < t_dim[i]) s_dim[i] = t_dim[i];
 
-  cout << "   Asserting Source " << isosize <<"mm isotropic and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
+  cout << "   Asserting both images: " << isosize <<"mm isotropic and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
 
   // source
 	pair < MRI*, vnl_matrix_fixed < double, 4, 4> > mm = makeIsotropic(s,NULL,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
@@ -3361,11 +3361,15 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	mri_source = mm.first;
 	Rsrc = mm.second;
 	bool rl = needReslice(s,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
-	if (debug && rl)
+	if (debug)
 	{
-	   string n = name+string("-mriS-resample.mgz");
-		 cout << "   Writing resampled source as " << n << endl;
-     MRIwrite(mri_source,n.c_str());
+	   cout << "   Reslice Src Matrix: " << endl << mm.second << endl;
+		 if (rl)
+		 {
+	     string n = name+string("-mriS-resample.mgz");
+		   cout << "   Writing resampled source as " << n << endl;
+       MRIwrite(mri_source,n.c_str());
+		 }
   }
 	if (!rl ) cout << "    - no Source reslice necessary" << endl;
 	   
@@ -3375,11 +3379,15 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	mri_target = mm.first;
 	Rtrg = mm.second;
 	rl = needReslice(t,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
-	if (debug && rl)
+	if (debug)
 	{
-	  string n = name+string("-mriT-resample.mgz");
-		cout << "   Writing resampled target as " << n << endl;
-    MRIwrite(mri_target,n.c_str());
+	  cout << "   Reslice Trg Matrix: " << endl << mm.second << endl;
+		if (rl)
+		{
+	    string n = name+string("-mriT-resample.mgz");
+		  cout << "   Writing resampled target as " << n << endl;
+      MRIwrite(mri_target,n.c_str());
+		}
   }
 	if (!rl ) cout << "    - no Target reslice necessary" << endl;
 		 
