@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 16:17:48 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/08/31 22:20:37 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -132,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.39 2010/08/31 16:17:48 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.40 2010/08/31 22:20:37 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -311,8 +311,8 @@ int main(int argc, char *argv[])
   if (R.isIscale() && Md.second >0)
   {
     string fn;
-		if (P.iscaleout != "") fn = P.iscaleout;
-		else fn = R.getName() + "-intensity.txt";
+    if (P.iscaleout != "") fn = P.iscaleout;
+    else fn = R.getName() + "-intensity.txt";
     ofstream f(fn.c_str(),ios::out);
     f << Md.second;
     f.close();
@@ -855,9 +855,8 @@ static void printUsage(void)
   cout << " * When using automatic saturation estimation (--satit) you can try specifying the sensitivity manually or twiddle around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels." << endl;
   cout << endl;
   cout << " Report bugs to: freesurfer@nmr.mgh.harvard.edu" << endl;
-
-
   cout << endl;
+
 #endif
 
 }
@@ -875,14 +874,14 @@ static void initRegistration(Registration & R, Parameters & P)
   R.setTransonly(P.transonly);
   R.setRobust(!P.leastsquares);
   R.setSaturation(P.sat);
-	R.setVerbose(P.verbose); // set before debug, as debug sets its own verbose level
+  R.setVerbose(P.verbose); // set before debug, as debug sets its own verbose level
   R.setDebug(P.debug);
-	R.setHighit(P.highit);
-	R.setInitTransform(P.inittrans);
+  R.setHighit(P.highit);
+  R.setInitTransform(P.inittrans);
   R.setInitOrient(P.initorient);
-	R.setDoublePrec(P.doubleprec);
-	R.setWLimit(P.wlimit);
-	R.setSymmetry(P.symmetry);
+  R.setDoublePrec(P.doubleprec);
+  R.setWLimit(P.wlimit);
+  R.setSymmetry(P.symmetry);
   //R.setOutputWeights(P.weights,P.weightsout);
 
 
@@ -947,7 +946,7 @@ static void initRegistration(Registration & R, Parameters & P)
 ////   MRIfree(&mri_src);
 
   ///////////  read MRI Source //////////////////////////////////////////////////
-	cout << endl;
+  cout << endl;
   cout <<  "reading source '"<<P.mov<<"'..."<< endl ;
   fflush(stdout) ;
 
@@ -1210,7 +1209,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.subsamplesize = atoi(argv[1]);
     nargs = 1 ;
     if (P.subsamplesize >= 0) cout << "--subsample: Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
-    else cout << "--subsample: Will not subsample on any scale!" << endl;
+    else cout << "--subsample -1: Will not subsample on any scale!" << endl;
   }
   else if (!strcmp(option, "SATIT") )
   {
@@ -1305,7 +1304,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else if (!strcmp(option, "TEST"))
   {
-    cout << " TEST-MODE " << endl;
+    cout << "--test: TEST-MODE " << endl;
     Registration R;
     R.testRobust(argv[2], atoi(argv[1]));
     nargs = 2 ;

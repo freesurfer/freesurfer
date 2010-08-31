@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 16:17:48 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/08/31 22:20:37 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -376,7 +376,7 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
           if (MRIFvox(mri_hweights,x,y,z) < 0) MRIFvox(mri_hweights,x,y,z) = 1;
         }
 				
-		mri_weights = MRIalloc(mriT->width,mriT->height,mriT->depth,MRI_FLOAT);
+    mri_weights = MRIalloc(mriT->width,mriT->height,mriT->depth,MRI_FLOAT);
     MRIcopyHeader(mriT,mri_weights);
     mri_weights->type = MRI_FLOAT;
     mri_weights = MyMRI::MRIlinearTransform(mri_hweights,mri_weights,mh2);
@@ -3339,15 +3339,15 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	// we will make images isotropic
 
   // get smallest dimension
-	double mins = s->xsize;
+  double mins = s->xsize;
   if (s->ysize < mins) mins = s->ysize;
-	if (s->zsize < mins) mins = s->zsize;
-	double mint = t->xsize;
-	if (t->ysize < mint) mint = t->ysize;
-	if (t->zsize < mint) mint = t->zsize;
-	// select the larger of the smallest sides
-	double isosize = mins;
-	if ( mint > mins ) isosize = mint;
+  if (s->zsize < mins) mins = s->zsize;
+  double mint = t->xsize;
+  if (t->ysize < mint) mint = t->ysize;
+  if (t->zsize < mint) mint = t->zsize;
+  // select the larger of the smallest sides
+  double isosize = mins;
+  if ( mint > mins ) isosize = mint;
   vector < int > s_dim = MyMRI::findRightSize(s, isosize,false);
   vector < int > t_dim = MyMRI::findRightSize(t, isosize,false);
   for (uint i = 0;i<3;i++)
@@ -3766,7 +3766,6 @@ std::pair < vnl_matrix_fixed < double , 4, 4 >, vnl_matrix_fixed < double , 4, 4
 		
   return md2w;
 }
-
 
 vnl_matrix < double > Registration::getMinitResampled()
 // returns the Minit matrix as vox2vox for the resampled images

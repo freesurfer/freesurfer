@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 16:17:48 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/08/31 22:20:37 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -90,9 +90,9 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
 
   assert (mri_mov.size () == 0);
   int n = (int) pmov.size();
-	assert(n>0);
+  assert(n>0);
   mri_mov.resize(n);
-	mov = pmov; // copy of input filenames
+  mov = pmov; // copy of input filenames
   vector < double > msize (pmov.size());
   for (unsigned int i = 0;i<mov.size(); i++)
   {
@@ -104,20 +104,22 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
       ErrorExit(ERROR_NOFILE, "MultiRegistration::loadMovables: could not open input volume %s.\n",
                 mov[i].c_str()) ;
     }
-		msize[i] = mri_mov[i]->xsize;
-		if (mri_mov[i]->ysize < msize[i]) msize[i] = mri_mov[i]->ysize ;
-		if (mri_mov[i]->zsize < msize[i]) msize[i] = mri_mov[i]->zsize ;	
+    msize[i] = mri_mov[i]->xsize;
+    if (mri_mov[i]->ysize < msize[i]) msize[i] = mri_mov[i]->ysize ;
+    if (mri_mov[i]->zsize < msize[i]) msize[i] = mri_mov[i]->zsize ;	
   }
-	float EPS = 0.000001;
-	for (unsigned int i = 1;i<mov.size();i++)
-	   if (fabs(mri_mov[i]->xsize-mri_mov[0]->xsize) > EPS || fabs(mri_mov[i]->ysize-mri_mov[0]->ysize) > EPS || fabs(mri_mov[i]->zsize-mri_mov[0]->zsize) > EPS)
-		 {
-       cerr << "ERROR: MultiRegistration::loadMovables: images have different voxel sizes.\n";
-			 cerr << "  Currently not supported, maybe first make conform?\n";
-			 cerr << "  Debug info: size(" << i << ") = " << mri_mov[i]->xsize << ", " << mri_mov[i]->ysize << ", " << mri_mov[i]->zsize << "   size(0) = " << mri_mov[0]->xsize << ", " << mri_mov[0]->ysize << ", " << mri_mov[0]->zsize << endl;
-       ErrorExit(ERROR_BADFILE, "MultiRegistration::loadMovables: voxel size is different %s.\n",
+  float EPS = 0.00001;
+  for (unsigned int i = 1;i<mov.size();i++)
+  {
+    if (fabs(mri_mov[i]->xsize-mri_mov[0]->xsize) > EPS || fabs(mri_mov[i]->ysize-mri_mov[0]->ysize) > EPS || fabs(mri_mov[i]->zsize-mri_mov[0]->zsize) > EPS)
+    {
+      cerr << "ERROR: MultiRegistration::loadMovables: images have different voxel sizes.\n";
+      cerr << "  Currently not supported, maybe first make conform?\n";
+      cerr << "  Debug info: size(" << i << ") = " << mri_mov[i]->xsize << ", " << mri_mov[i]->ysize << ", " << mri_mov[i]->zsize << "   size(0) = " << mri_mov[0]->xsize << ", " << mri_mov[0]->ysize << ", " << mri_mov[0]->zsize << endl;
+      ErrorExit(ERROR_BADFILE, "MultiRegistration::loadMovables: voxel size is different %s.\n",
                 mov[i].c_str()) ;	 
-		 }
+    }
+  }
 
   mri_warps.resize(n,NULL);
   intensities.resize(n,1.0);
@@ -242,6 +244,7 @@ MRI* MultiRegistration::averageConformSet(int itdebug)
       mri_cwarps[i] = LTAtransform(mri_mov[i],NULL, ltas[i]);
 		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
 			//????
+            cerr << " MultiRegistration::averageConformSet not implemented, yet !!!" << endl;
 			assert (1==2);
 			
 			if (iscale)

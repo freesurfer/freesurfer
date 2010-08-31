@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/17 02:35:07 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/08/31 22:20:37 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -157,9 +157,9 @@ private:
 	
 	// copy of output filenames
   //std::string mean;
- // std::vector <std::string> nltas;
+  // std::vector <std::string> nltas;
   //std::vector <std::string> nweights;
- // std::vector <std::string> nwarps;
+  // std::vector <std::string> nwarps;
 	
 	// Parameter:
   std::string outdir;

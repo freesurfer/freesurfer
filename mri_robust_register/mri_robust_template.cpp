@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/30 23:02:31 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/08/31 22:20:37 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -157,7 +157,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.25 2010/08/30 23:02:31 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.26 2010/08/31 22:20:37 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -415,25 +415,25 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
       {
         nargs++;
         P.mov.push_back(string(argv[nargs]));
-        cout << "Using "<< P.mov.back() <<
+        cout << "--mov: Using "<< P.mov.back() <<
           " as movable/source volume." << endl;
       }
     }
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
-    cout << "    Using " << nargs << " input volumes" << endl;
+    cout << "    Total: " << nargs << " input volumes" << endl;
   }
 //  else if (!strcmp(option, "OUTDIR") )
 //  {
 //     P.outdir = string(argv[1]);
 //     nargs = 1;
-//     cout << "Using "<< P.outdir << " as output directory." << endl;
+//     cout << "--outdir: Using "<< P.outdir << " as output directory." << endl;
 //  }
   else if (!strcmp(option, "TEMPLATE") )
   {
     P.mean = string(argv[1]);
     nargs = 1;
-    cout << "Using "<< P.mean << " as template output volume." << endl;
+    cout << "--template: Using "<< P.mean << " as template output volume." << endl;
   }
   else if (!strcmp(option, "LTA")   )
   {
@@ -450,7 +450,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     }
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
-    cout << "Will output LTA transforms" << endl;
+    cout << "--lta: Will output LTA transforms" << endl;
   }
   else if (!strcmp(option, "IXFORMS")   )
   {
@@ -468,96 +468,96 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     }
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
-    cout << "Will use init XFORMS." << endl;
+    cout << "--ixforms: Will use init XFORMS." << endl;
   }
   else if (!strcmp(option, "AVERAGE") )
   {
     P.average = atoi(argv[1]);
     nargs = 1;
-    cout << "Using Method: " << P.average <<
+    cout << "--average: Using method " << P.average <<
       " for template computation." <<  endl;
   }
   else if (!strcmp(option, "VOX2VOX")   )
   {
     P.lta_vox2vox = true;
-    cout << "Output transforms as VOX2VOX. " << endl;
+    cout << "--vox2vox: Output transforms as VOX2VOX. " << endl;
   }
   else if (!strcmp(option, "AFFINE") || !strcmp(option, "A") )
   {
     P.affine = true;
-    cout << "Enableing affine transform!" << endl;
+    cout << "--affine: Enableing affine transform!" << endl;
   }
   else if (!strcmp(option, "ISCALE") || !strcmp(option, "I") )
   {
     P.iscale = true;
-    cout << "Enableing intensity scaling!" << endl;
+    cout << "--iscale: Enableing intensity scaling!" << endl;
   }
   else if (!strcmp(option, "TRANSONLY"))
   {
     P.transonly = true;
-    cout << "Using only translation!" << endl;
+    cout << "--transonly: Using only translation!" << endl;
   }
   else if (!strcmp(option, "LEASTSQUARES") || !strcmp(option, "L")  )
   {
     P.leastsquares = true;
-    cout << "Using standard least squares (non-robust)!" << endl;
+    cout << "--leastsquares: Using standard least squares (non-robust)!" << endl;
   }
   else if (!strcmp(option, "MAXIT")  )
   {
     P.iterate = atoi(argv[1]);
     nargs = 1 ;
-    cout << "Performing maximal " << P.iterate <<
+    cout << "--maxit: Performing maximal " << P.iterate <<
       " iterations on each resolution" << endl;
   }
   else if (!strcmp(option, "EPSIT") )
   {
     P.epsit = atof(argv[1]);
     nargs = 1 ;
-    cout << "Stop iterations when change is less than " << P.epsit <<
+    cout << "--epsit: Stop iterations when change is less than " << P.epsit <<
       " . " << endl;
   }
   else if (!strcmp(option, "SAT")  )
   {
     P.sat = atof(argv[1]);
     nargs = 1 ;
-    cout << "Using saturation " << P.sat << " in M-estimator!" << endl;
+    cout << "--sat: Using saturation " << P.sat << " in M-estimator!" << endl;
   }
   else if (!strcmp(option, "SUBSAMPLE") )
   {
     P.subsamplesize = atoi(argv[1]);
     nargs = 1 ;
-    if (P.subsamplesize >= 0) cout << "Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
-    else cout << "Will not subsample on any scale!" << endl;
+    if (P.subsamplesize >= 0) cout << "--subsample: Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
+    else cout << "--subsample -1: Will not subsample on any scale!" << endl;
   }
   else if (!strcmp(option, "DEBUG") )
   {
     P.debug = 1;
     nargs = 0 ;
-    cout << "Will output debug info and files!" << endl;
+    cout << "--debug: Will output debug info and files!" << endl;
   }
   else if (!strcmp(option, "NOIT") )
   {
     P.noit = true;
     nargs = 0 ;
-    cout << "Will output only first template (no iterations)!" << endl;
+    cout << "--noit: Will output only first template (no iterations)!" << endl;
   }
   else if (!strcmp(option, "FIXTP") )
   {
     P.fixtp = true;
     nargs = 0 ;
-    cout << "Will map everything to init TP!" << endl;
+    cout << "--fixtp: Will map everything to init TP!" << endl;
   }
   else if (!strcmp(option, "SATIT") )
   {
     P.satit = true;
     nargs = 0 ;
-    cout << "Will estimate SAT iteratively!" << endl;
+    cout << "--satit: Will estimate SAT iteratively!" << endl;
   }
   else if (!strcmp(option, "DOUBLEPREC") )
   {
     P.doubleprec = true;
     nargs = 0 ;
-    cout << "Will perform algorithm with double precision (higher mem usage)!" << endl;
+    cout << "--doubleprec: Will perform algorithm with double precision (higher mem usage)!" << endl;
   }
   else if (!strcmp(option, "WEIGHTS") )
   {
@@ -574,7 +574,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     }
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
-    cout << "Will output weights in target space" << endl;
+    cout << "--weights: Will output weights in target space" << endl;
   }
   else if (!strcmp(option, "WARP") || !strcmp(option, "W") )
   {
@@ -591,11 +591,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     }
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
-    cout << "Will save warped sources !" << endl;
+    cout << "--warp: Will save mapped sources !" << endl;
   }
   else if (!strcmp(option, "TEST"))
   {
-    cout << " TEST-MODE " << endl;
+    cout << "--test: TEST-MODE " << endl;
     Registration R;
     R.testRobust(argv[2], atoi(argv[1]));
     nargs = 2 ;
@@ -605,7 +605,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.conform = argv[1];
     nargs = 1 ;
-    cout << "Will output conform template (256^3 and 1mm voxels)!" << endl;
+    cout << "--conform: Will output conform template (256^3 and 1mm voxels)!" << endl;
   }
 //   else if (!strcmp(option, "CONFORM") )
 //   {
@@ -617,29 +617,29 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
      P.floattype = true;
      nargs = 0 ;
-     cout << "Keeping image type as input!" << endl;
+     cout << "--floattype: Use float images internally (independent of input)!" << endl;
  	}
   else if (!strcmp(option, "INITTP") )
   {
     P.inittp = atoi(argv[1]);
     nargs = 1 ;
-    if (P.inittp ==0 ) cout<< " No initialization, construct first mean from original TPs" << endl;
-    else cout << "Using TP " <<P.inittp <<" as target for initialization" << endl;
+    if (P.inittp ==0 ) cout<< "--inittp 0: No initialization, construct first mean from original TPs" << endl;
+    else cout << "--inittp: Using TP " <<P.inittp <<" as target for initialization" << endl;
   }
   else if (!strcmp(option, "ONEMINUSW") )
   {
     P.oneminusweights = true;
     nargs = 0 ;
-    cout << "Will output 1-weights!" << endl;
+    cout << "--oneminusw: Will output 1-weights!" << endl;
   }
-  else if (!stricmp(option, "-help")||!stricmp(option, "-usage")||!stricmp(option, "h")||!stricmp(option, "u"))
+  else if (!stricmp(option, "HELP")||!stricmp(option, "USAGE")||!stricmp(option, "h")||!stricmp(option, "u"))
   {
     printUsage();
     exit(0);
   }
   else
   {
-    cerr << "Option: " << argv[0] << " unknown !! " << endl << endl;
+    cerr << "ERROR: Option " << argv[0] << " unknown !!! " << endl << endl;
     printUsage();
     exit(1);
   }
