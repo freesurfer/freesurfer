@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 00:18:24 $
- *    $Revision: 1.46 $
+ *    $Date: 2010/08/31 16:17:48 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -3361,15 +3361,15 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	mri_source = mm.first;
 	Rsrc = mm.second;
 	bool rl = needReslice(s,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
-	if (debug)
+  if (debug)
 	{
 	   cout << "   Reslice Src Matrix: " << endl << mm.second << endl;
-		 if (rl)
-		 {
+     if (rl)
+     {
 	     string n = name+string("-mriS-resample.mgz");
 		   cout << "   Writing resampled source as " << n << endl;
        MRIwrite(mri_source,n.c_str());
-		 }
+     }
   }
 	if (!rl ) cout << "    - no Source reslice necessary" << endl;
 	   
@@ -3379,15 +3379,15 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
 	mri_target = mm.first;
 	Rtrg = mm.second;
 	rl = needReslice(t,isosize,s_dim[0],s_dim[1],s_dim[2],keeptype);
-	if (debug)
+  if (debug)
 	{
 	  cout << "   Reslice Trg Matrix: " << endl << mm.second << endl;
-		if (rl)
-		{
+    if (rl)
+    {
 	    string n = name+string("-mriT-resample.mgz");
 		  cout << "   Writing resampled target as " << n << endl;
       MRIwrite(mri_target,n.c_str());
-		}
+    }
   }
 	if (!rl ) cout << "    - no Target reslice necessary" << endl;
 		 

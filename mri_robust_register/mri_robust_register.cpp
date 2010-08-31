@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/27 21:20:19 $
- *    $Revision: 1.38 $
+ *    $Date: 2010/08/31 16:17:48 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -132,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.38 2010/08/27 21:20:19 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.39 2010/08/31 16:17:48 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -437,37 +437,50 @@ int main(int argc, char *argv[])
       cout << " creating half-way movable ..." << endl;
       // take dst geometry info from lta:
       MRI* mri_Swarp = LTAtransform(P.mri_mov,NULL, m2hwlta);
+
+      //cout << " MOV       RAS: " << P.mri_mov->c_r << " , " <<	P.mri_mov->c_a << " , " <<	P.mri_mov->c_s << endl;
+      //cout << " DST       RAS: " << P.mri_dst->c_r << " , " <<	P.mri_dst->c_a << " , " <<	P.mri_dst->c_s << endl;
+      //cout << " weights   RAS: " << mri_weights->c_r << " , " <<	mri_weights->c_a << " , " <<	mri_weights->c_s << endl;
+      //cout << " Swarp_old RAS: " << mri_Swarp_old->c_r << " , " <<	mri_Swarp_old->c_a << " , " <<	mri_Swarp_old->c_s << endl;
+      //MRI* mri_Swarp = MRIalloc(mri_weights->width, mri_weights->height, mri_weights->depth, P.mri_mov->type);
+      //MRIcopyHeader(mri_weights,mri_Swarp);
+      //mri_Swarp->type = P.mri_mov->type;
+      //LTAtransform(P.mri_mov,mri_Swarp, m2hwlta);
+      //cout << " Swarp     RAS: " << mri_Swarp->c_r << " , " <<	mri_Swarp->c_a << " , " <<	mri_Swarp->c_s << endl;
 		  MRIcopyPulseParameters(P.mri_mov,mri_Swarp);
       MRIwrite(mri_Swarp,P.halfmov.c_str());
 
-      MRIiterator mw(mri_weights);
-      MRIiterator ms(mri_Swarp);
-      double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
-      int countw1=0,countw0=0,count=0;
-      for (ms.begin(); !ms.isEnd(); ms++)
+      if (P.debug)
       {
-        if (fabs(*mw )>0.0001)
+        MRIiterator mw(mri_weights);
+        MRIiterator ms(mri_Swarp);
+        double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
+        int countw1=0,countw0=0,count=0;
+        for (ms.begin(); !ms.isEnd(); ms++)
         {
-          meanw0+= (*ms);
-          countw0++;
+          if (fabs(*mw )>0.0001)
+          {
+            meanw0+= (*ms);
+            countw0++;
+          }
+          if (fabs(*mw-1.0) < 0.0001)
+          {
+            meanw1+= *ms;
+            countw1++;
+          }
+
+          mean+= *ms;
+          count++;
+
+          meanw+= *ms * *mw;
+          countw+= *mw;
+
+          assert(! (mw.isEnd() && !ms.isEnd()));
+          mw++;
         }
-        if (fabs(*mw-1.0) < 0.0001)
-        {
-          meanw1+= *ms;
-          countw1++;
-        }
-
-        mean+= *ms;
-        count++;
-
-        meanw+= *ms * *mw;
-        countw+= *mw;
-
-        assert(! (mw.isEnd() && !ms.isEnd()));
-        mw++;
+			
+        cout << " mov int means: " << mean/count << " ( " << count << " )  w0: " << meanw0/countw0 << " ( " << countw0 << " ) w1: " << meanw1/countw1 << " ( " << countw1 << " )  weighted: " << meanw/countw<<" ( " << countw << " )" << endl;
       }
-      cout << " mov int means: " << mean/count << " ( " << count << " )  w0: " << meanw0/countw0 << " ( " << countw0 << " ) w1: " << meanw1/countw1 << " ( " << countw1 << " )  weighted: " << meanw/countw<<" ( " << countw << " )" << endl;
-
 
       MRIfree(&mri_Swarp);
 
@@ -488,33 +501,38 @@ int main(int argc, char *argv[])
 		  MRIcopyPulseParameters(P.mri_dst,mri_Twarp);
       MRIwrite(mri_Twarp,P.halfdst.c_str());
       MRI * mri_weights = R.getWeights();
-      MRIiterator mw(mri_weights);
-      MRIiterator ms(mri_Twarp);
-      double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
-      int countw1=0,countw0=0,count=0;
-      for (ms.begin(); !ms.isEnd(); ms++)
+			
+      if (P.debug)
       {
-        if (fabs(*mw )>0.0001)
+        MRIiterator mw(mri_weights);
+        MRIiterator ms(mri_Twarp);
+        double meanw1=0, meanw0=0, mean = 0, meanw = 0, countw = 0;
+        int countw1=0,countw0=0,count=0;
+        for (ms.begin(); !ms.isEnd(); ms++)
         {
-          meanw0+= (*ms);
-          countw0++;
+          if (fabs(*mw )>0.0001)
+          {
+            meanw0+= (*ms);
+            countw0++;
+          }
+          if (fabs(*mw-1.0) < 0.0001)
+          {
+            meanw1+= *ms;
+            countw1++;
+          }
+
+          mean+= *ms;
+          count++;
+
+          meanw+= *ms * *mw;
+          countw+= *mw;
+
+          assert(! (mw.isEnd() && !ms.isEnd()));
+          mw++;
         }
-        if (fabs(*mw-1.0) < 0.0001)
-        {
-          meanw1+= *ms;
-          countw1++;
-        }
-
-        mean+= *ms;
-        count++;
-
-        meanw+= *ms * *mw;
-        countw+= *mw;
-
-        assert(! (mw.isEnd() && !ms.isEnd()));
-        mw++;
+        cout << " mov int means: " << mean/count << " ( " << count << " )  w0: " << meanw0/countw0 << " ( " << countw0 << " ) w1: " << meanw1/countw1 << " ( " << countw1 << " )  weighted: " << meanw/countw<<" ( " << countw << " )" << endl;
       }
-      cout << " mov int means: " << mean/count << " ( " << count << " )  w0: " << meanw0/countw0 << " ( " << countw0 << " ) w1: " << meanw1/countw1 << " ( " << countw1 << " )  weighted: " << meanw/countw<<" ( " << countw << " )" << endl;
+			
       MRIfree(&mri_Twarp);
     }
     if (P.halfweights != "")

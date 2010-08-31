@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/30 23:58:21 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/08/31 16:17:48 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -167,7 +167,7 @@ void MultiRegistration::initRegistration(Registration & R)
   R.setRobust(robust);
   R.setSaturation(sat);
   R.setDoublePrec(doubleprec);
-  R.setDebug(debug);
+  //R.setDebug(debug);
   
 	
 	if (subsamplesize > 0) R.setSubsamplesize(subsamplesize);
@@ -240,8 +240,9 @@ MRI* MultiRegistration::averageConformSet(int itdebug)
 			// use geometry from ltas
 			// (if initXforms was called, this is the center of mass of all tps)
       mri_cwarps[i] = LTAtransform(mri_mov[i],NULL, ltas[i]);
+		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
 			//????
-			
+			assert (1==2);
 			
 			if (iscale)
 			{
