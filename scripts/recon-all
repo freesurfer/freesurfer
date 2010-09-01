@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2010/08/30 20:42:43 $
-#    $Revision: 1.320 $
+#    $Date: 2010/09/01 15:27:52 $
+#    $Revision: 1.321 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.320 2010/08/30 20:42:43 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.321 2010/09/01 15:27:52 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -6296,3 +6296,7 @@ upgrade and manufacturer, (2006) NeuroImage, 32(1):180-194.
 
 [13] Schaer et al., A Surface-based Approach to Quantify Local Cortical 
 Gyrification (2007) IEEE Transactions on Medical Imaging.
+
+[14] Martin Reuter, H Diana Rosas, Bruce Fischl.
+Highly Accurate Inverse Consistent Registration: A Robust Approach.
+NeuroImage (2010). http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
