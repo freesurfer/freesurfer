@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 22:20:37 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/09/01 01:42:47 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -108,7 +108,7 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
     if (mri_mov[i]->ysize < msize[i]) msize[i] = mri_mov[i]->ysize ;
     if (mri_mov[i]->zsize < msize[i]) msize[i] = mri_mov[i]->zsize ;	
   }
-  float EPS = 0.00001;
+  float EPS = 0.0001;
   for (unsigned int i = 1;i<mov.size();i++)
   {
     if (fabs(mri_mov[i]->xsize-mri_mov[0]->xsize) > EPS || fabs(mri_mov[i]->ysize-mri_mov[0]->ysize) > EPS || fabs(mri_mov[i]->zsize-mri_mov[0]->zsize) > EPS)
