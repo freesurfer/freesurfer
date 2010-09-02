@@ -46,7 +46,7 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_mri_robust_template
+#TESTS=test_mri_robust_template
 
 EXTRA_DIST=Regression.h Registration.h RegistrationStep.h \
 	MultiRegistration.h Quaternion.h \
