@@ -16,8 +16,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/06 18:33:23 $
-#    $Revision: 1.6 $
+#    $Date: 2010/09/03 15:50:36 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -48,7 +48,7 @@ endif
 if($#argv != 2) then
   # This is the new, fast way to do it
   pushd $dir > /dev/null
-  set RunList = (`find -maxdepth 1 -name "[0-9][0-9][0-9]"`);
+  set RunList = (`find . -maxdepth 1 -name "[0-9][0-9][0-9]"`);
   if($#RunList == 0) then
     echo "ERROR: no run directories found"
     exit 1;
