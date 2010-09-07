@@ -7,8 +7,8 @@
  * Original Author: Douglas Greve
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2010/09/07 18:35:56 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/09/07 20:41:53 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.23 2010/09/07 18:35:56 rudolph Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.24 2010/09/07 20:41:53 rudolph Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.23 2010/09/07 18:35:56 rudolph Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.24 2010/09/07 20:41:53 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -415,6 +415,16 @@ static void print_usage(void) {
   printf("\n");
   printf("   --subject    source subject\n");
   printf("   --hemi       hemisphere (lh or rh) (with surface)\n");
+  printf("   --lobes <LobesFile>\n");
+  printf("   	Create an annotation based on cortical lobes.\n");
+  printf("   	Note that the precentral and postcentral labels are not\n");
+  printf("   	included as part of the 'frontal' and 'parietal' lobes.\n");
+  printf("   	The lobar annotation is saved to <LobesFile>.\n");
+  printf("   --lobesStrict <LobesFile>\n");
+  printf("   	Use a slightly stricter lobe definition that adds the\n");
+  printf("   	precentral to the 'frontal' and includes the postcentral\n");
+  printf("   	with the 'parietal' lobe.\n");
+  printf("   	The lobar annotation is saved to <LobesFile>.\n");
   printf("\n");
   printf("Output options:\n");
   printf("   --labelbase  output will be base-XXX.label \n");
