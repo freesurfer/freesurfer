@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/01/13 00:01:07 $
- *    $Revision: 1.22 $
+ *    $Author: rudolph $
+ *    $Date: 2010/09/07 18:35:56 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.22 2010/01/13 00:01:07 greve Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.23 2010/09/07 18:35:56 rudolph Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -92,6 +92,11 @@ char *StatFile=NULL;
 MRI  *Stat=NULL;
 static int label_index = -1 ;  // if >= 0 only extract this label
 
+// The global 'gi_lobarDivision' 
+typedef enum _lobarDivision {
+	e_default, e_strict
+} e_LOBARDIVISION;
+e_LOBARDIVISION Ge_lobarDivision = e_default;
 
 /*-------------------------------------------------*/
 /*-------------------------------------------------*/
@@ -102,7 +107,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.22 2010/01/13 00:01:07 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.23 2010/09/07 18:35:56 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -172,7 +177,7 @@ int main(int argc, char **argv) {
   }
 
   if(LobesFile){
-    MRISaparc2lobes(Surf);
+    MRISaparc2lobes(Surf, (int) Ge_lobarDivision);
     MRISwriteAnnotation(Surf,LobesFile);
     exit(0);
   }
@@ -380,6 +385,13 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       LobesFile = pargv[0];
       nargsused = 1;
+      Ge_lobarDivision = e_default;
+    } 
+    else if (!strcmp(option, "--lobesStrict")) {
+      if (nargc < 1) argnerr(option,1);
+      LobesFile = pargv[0];
+      nargsused = 1;
+      Ge_lobarDivision = e_strict;
     } 
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
