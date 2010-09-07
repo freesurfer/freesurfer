@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/07/31 22:01:19 $
- *    $Revision: 1.26 $
+ *    $Author: rudolph $
+ *    $Date: 2010/09/07 18:37:03 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -744,10 +744,15 @@ MRI *MRISannot2border(MRIS *surf)
 /*!
   \fn int MRISaparc2lobes(MRIS *surf)
   Merges aparc labels into lobes.  
+
+      Lobar division type can be specified by the 'a_lobeDivisionType' --
+      see 'mris_annotation2Label.c' for the enumerated types.
 */
-int MRISaparc2lobes(MRIS *surf)
+int MRISaparc2lobes(MRIS *surf, int a_lobeDivisionType)
 {
-  char *parcnames[10];
+  int   parcCount = 0;  
+  char *parcnames[64];
+    
   parcnames[0] = "caudalmiddlefrontal";
   parcnames[1] = "superiorfrontal";
   parcnames[2] = "rostralmiddlefrontal";
@@ -758,7 +763,14 @@ int MRISaparc2lobes(MRIS *surf)
   parcnames[7] = "medialorbitofrontal";
   parcnames[8] = "paracentral";
   parcnames[9] = "frontalpole";
-  MRISmergeAnnotations(surf, 10, parcnames, "frontal");
+  switch(a_lobeDivisionType) {
+      case 0: 	parcCount = 10;
+      		break;
+      case 1:	parcnames[10] = "precentral";
+		parcCount = 11;
+      		break;
+  }
+  MRISmergeAnnotations(surf, parcCount, parcnames, "frontal");
 
   parcnames[0] = "superiortemporal";
   parcnames[1] = "entorhinal";
@@ -775,7 +787,14 @@ int MRISaparc2lobes(MRIS *surf)
   parcnames[1] = "inferiorparietal";
   parcnames[2] = "superiorparietal";
   parcnames[3] = "precuneus";
-  MRISmergeAnnotations(surf, 4, parcnames, "parietal");
+  switch(a_lobeDivisionType) {
+      case 0: 	parcCount = 4;
+      		break;
+      case 1:	parcnames[4] = "postcentral";
+		parcCount = 5;
+      		break;
+  }
+  MRISmergeAnnotations(surf, parcCount, parcnames, "parietal");
 
   parcnames[0] = "pericalcarine";
   parcnames[1] = "cuneus";
