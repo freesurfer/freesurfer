@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/10 21:04:06 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/09/10 20:24:50 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -86,7 +86,7 @@ BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
   EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacity )
   EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacity )
   EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_OPACITY" ),   PanelSurface::OnSliderOpacity )
-  EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_OPACITY" ),       PanelSurface::OnTextOpacity )
+  EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_OPACITY_CTRL" ),       PanelSurface::OnTextOpacity )
   
   EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_POSITION" ),      PanelSurface::OnTextPosition )
 END_EVENT_TABLE()
@@ -100,7 +100,7 @@ PanelSurface::PanelSurface( wxWindow* parent ) :
   wxXmlResource::Get()->LoadPanel( this, parent, _("ID_PANEL_SURFACE") );
   m_listBoxLayers = XRCCTRL( *this, "ID_LISTBOX_SURFACE", wxCheckListBox );
   m_sliderOpacity = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
-  m_textOpacity   = XRCCTRL( *this, "ID_TEXT_OPACITY", wxTextCtrl );
+  m_textOpacity   = XRCCTRL( *this, "ID_TEXT_OPACITY_CTRL", wxTextCtrl );
   
   /*
   m_btnNew   = XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
@@ -449,18 +449,24 @@ void PanelSurface::OnButtonMoveDown( wxCommandEvent& event )
 
 void PanelSurface::OnSurfaceLock( wxCommandEvent& event )
 {
-  LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->Lock( event.IsChecked() );
+    LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->Lock( event.IsChecked() );
+    }
   }
 }
 
 void PanelSurface::OnSurfaceLockUpdateUI( wxUpdateUIEvent& event )
 {
   event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
-  LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  event.Check( layer && layer->IsLocked() );
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    event.Check( layer && layer->IsLocked() );
+  }
 }
 
 void PanelSurface::OnSurfaceClose( wxCommandEvent& event )

@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/31 17:26:05 $
- *    $Revision: 1.50 $
+ *    $Date: 2010/09/10 20:24:50 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -79,14 +79,14 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_CLEAR_HIGH" ),  PanelVolume::OnCheckHeatScaleClearHigh )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_TRUNCATE" ),    PanelVolume::OnCheckHeatScaleTruncate )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HEATSCALE_INVERT" ),      PanelVolume::OnCheckHeatScaleInvert )
-  EVT_TEXT            ( XRCID( "ID_TEXT_OPACITY" ),           PanelVolume::OnTextOpacityChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_OPACITY_CTRL" ),           PanelVolume::OnTextOpacityChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_WINDOW" ),          PanelVolume::OnSliderWindowChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_LEVEL" ),           PanelVolume::OnSliderLevelChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_COLORMAP_MIN" ),    PanelVolume::OnSliderColorMapMinChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_COLORMAP_MAX" ),    PanelVolume::OnSliderColorMapMaxChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_MID" ),   PanelVolume::OnSliderHeatScaleMidChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_HEATSCALE_OFFSET" ),  PanelVolume::OnSliderHeatScaleOffsetChanged )
-  EVT_TEXT            ( XRCID( "ID_TEXT_FRAME" ),             PanelVolume::OnTextFrameChanged )
+  EVT_TEXT            ( XRCID( "ID_TEXT_FRAME_CTRL" ),             PanelVolume::OnTextFrameChanged )
   EVT_COMMAND_SCROLL  ( XRCID( "ID_SLIDER_FRAME" ),           PanelVolume::OnSliderFrameChanged )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_DISPLAY_VECTOR" ), PanelVolume::OnCheckDisplayVector )
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_DISPLAY_TENSOR" ), PanelVolume::OnCheckDisplayTensor )
@@ -115,9 +115,18 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_COMMAND_SCROLL_THUMBTRACK   ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMaxChanging )
 END_EVENT_TABLE()
 
+PanelVolume::PanelVolume(wxWindow* parent) : 
+  Listener( "PanelVolume" ), 
+  Broadcaster( "PanelVolume" ),
+  m_listBoxLayers( NULL ),
+  m_textOpacity( NULL )
+{
+  InitWidgetsFromXRC( parent );
+}
+
 void PanelVolume::InitWidgetsFromXRC( wxWindow* parent )
 {
-  wxXmlResource::Get()->LoadObject( this, parent, wxT("ID_PANEL_VOLUME"), wxT("wxPanel") );
+  wxXmlResource::Get()->LoadPanel( this, parent, wxT("ID_PANEL_VOLUME"));
   m_listBoxLayers       = XRCCTRL( *this, "ID_LISTBOX_VOLUMES", wxCheckListBox );
   m_checkClearBackground =  XRCCTRL( *this, "ID_CHECKBOX_CLEAR_BACKGROUND", wxCheckBox );
   m_checkSmooth         = XRCCTRL( *this, "ID_CHECKBOX_SMOOTH", wxCheckBox );
@@ -125,7 +134,7 @@ void PanelVolume::InitWidgetsFromXRC( wxWindow* parent )
   m_listColorTable      = XRCCTRL( *this, "ID_LISTBOX_COLORTABLE", wxListBox );
   m_choiceColorMap      = XRCCTRL( *this, "ID_CHOICE_COLORMAP", wxChoice );
   m_choiceLUT           = XRCCTRL( *this, "ID_CHOICE_LUT", wxChoice );
-  m_textOpacity         = XRCCTRL( *this, "ID_TEXT_OPACITY", wxTextCtrl );
+  m_textOpacity         = XRCCTRL( *this, "ID_TEXT_OPACITY_CTRL", wxTextCtrl );
   m_textDrawValue       = XRCCTRL( *this, "ID_TEXT_DRAW_VALUE", wxTextCtrl );
   m_sliderOpacity       = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
   m_sliderWindow        = XRCCTRL( *this, "ID_SLIDER_WINDOW", wxSlider );
@@ -142,8 +151,8 @@ void PanelVolume::InitWidgetsFromXRC( wxWindow* parent )
   m_sliderHeatScaleMid  = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_MID", wxSlider );
   m_sliderHeatScaleOffset = XRCCTRL( *this, "ID_SLIDER_HEATSCALE_OFFSET", wxSlider );
   m_choiceDirectionCode = XRCCTRL( *this, "ID_CHOICE_DIRECTION_CODE", wxChoice );
-  m_colorIndicator      = XRCCTRL( *this, "ID_COLOR_INDICATOR", wxColorIndicator );
-  m_textFrame           = XRCCTRL( *this, "ID_TEXT_FRAME", wxTextCtrl );
+//  m_colorIndicator      = XRCCTRL( *this, "ID_COLOR_INDICATOR", wxColorIndicator );
+  m_textFrame           = XRCCTRL( *this, "ID_TEXT_FRAME_CTRL", wxTextCtrl );
   m_sliderFrame         = XRCCTRL( *this, "ID_SLIDER_FRAME", wxSlider );
   m_checkDisplayVector  = XRCCTRL( *this, "ID_CHECKBOX_DISPLAY_VECTOR", wxCheckBox );
   m_checkDisplayTensor  = XRCCTRL( *this, "ID_CHECKBOX_DISPLAY_TENSOR", wxCheckBox );
@@ -156,8 +165,15 @@ void PanelVolume::InitWidgetsFromXRC( wxWindow* parent )
   
   m_choiceUpSampleMethod  = XRCCTRL( *this, "ID_CHOICE_UPSAMPLE_METHOD", wxChoice );
 
-  // workaround for wxformbuilder bug
-  m_colorIndicator->SetSize( 40, wxDefaultCoord );
+  // workaround for wxWidgets 2.9.1 & wxformbuilder bug
+  wxPanel* cpanel = XRCCTRL( *this, "ID_COLOR_INDICATOR_PANEL", wxPanel );
+  if ( cpanel )
+  { 
+    wxBoxSizer* sizer = new wxBoxSizer( wxHORIZONTAL );
+    cpanel->SetSizer( sizer );
+    m_colorIndicator = new wxColorIndicator( cpanel );
+    sizer->Add( m_colorIndicator, 1, wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL, 5 );
+  }
   
   m_checkShowLabelOutline   =      XRCCTRL( *this, "ID_CHECKBOX_LABEL_OUTLINE", wxCheckBox );
   
@@ -174,13 +190,6 @@ void PanelVolume::InitWidgetsFromXRC( wxWindow* parent )
   m_checkHideInfo = XRCCTRL( *this, "ID_CHECKBOX_HIDE_INFO", wxCheckBox );
   
   m_luts = MainWindow::GetMainWindowPointer()->GetLUTData();
-
-  m_choiceDirectionCode->Append( _("RAS -> RGB") );
-  m_choiceDirectionCode->Append( _("RAS -> RBG") );
-  m_choiceDirectionCode->Append( _("RAS -> GRB") );
-  m_choiceDirectionCode->Append( _("RAS -> GBR") );
-  m_choiceDirectionCode->Append( _("RAS -> BRG") );
-  m_choiceDirectionCode->Append( _("RAS -> BGR") );
 
   m_widgetlistGrayScale.push_back( m_checkClearBackground );
   m_widgetlistGrayScale.push_back( XRCCTRL( *this, "ID_STATIC_WINDOW",        wxStaticText ) );
@@ -332,7 +341,9 @@ void PanelVolume::OnSliderOpacityChanged( wxScrollEvent& event )
 void PanelVolume::OnTextOpacityChanged( wxCommandEvent& event )
 {
   double dvalue;
-  if ( m_textOpacity->GetValue().ToDouble( &dvalue ) )
+  if ( m_textOpacity && m_listBoxLayers && 
+       m_textOpacity->GetValue().ToDouble( &dvalue ) && 
+       m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
@@ -561,7 +572,7 @@ void PanelVolume::PopulateColorTable( COLOR_TABLE* ct )
     char name[1000];
     int nSel = -1;
     long nValue = 0;
-    if ( !m_textDrawValue->GetValue().ToLong( &nValue ) )
+    if ( !m_textDrawValue->GetValue().ToLong( &nValue ) && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
     {
       LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
       if ( layer )
@@ -660,7 +671,7 @@ void PanelVolume::DoUpdateUI()
 	
 	LayerMRI* layer = NULL;
 	int nColorMap = LayerPropertiesMRI::NoColorMap;
-	if ( bHasVolume )
+  if ( bHasVolume && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
 	{
 		LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
 		for ( int i = 0; i < (int)m_listBoxLayers->GetCount() && i < lc->GetNumberOfLayers(); i++ )
@@ -942,7 +953,9 @@ void PanelVolume::OnTextFillValueChanged( wxCommandEvent& event )
 
     UpdateColorIndicator();
 
-    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    LayerMRI* layer = NULL;
+    if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+      layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
       layer->SetFillValue( (float)nvalue );
     
@@ -960,7 +973,7 @@ void PanelVolume::OnTextFillValueChanged( wxCommandEvent& event )
 void PanelVolume::OnTextWindowChanged( wxCommandEvent& event )
 {
   double dvalue;
-  if ( m_textWindow->GetValue().ToDouble( &dvalue ) )
+  if ( m_textWindow->GetValue().ToDouble( &dvalue ) && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer && layer->GetProperties()->GetWindow() != dvalue )
@@ -975,7 +988,7 @@ void PanelVolume::OnTextWindowChanged( wxCommandEvent& event )
 void PanelVolume::OnTextLevelChanged( wxCommandEvent& event )
 {
   double dvalue;
-  if ( m_textLevel->GetValue().ToDouble( &dvalue ) )
+  if ( m_textLevel->GetValue().ToDouble( &dvalue ) && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer && layer->GetProperties()->GetLevel() != dvalue )
@@ -987,21 +1000,27 @@ void PanelVolume::OnTextLevelChanged( wxCommandEvent& event )
 
 void PanelVolume::OnSliderWindowChanged( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double* r = layer->GetProperties()->GetWindowRange();
-    layer->GetProperties()->SetWindow( (double)m_sliderWindow->GetValue() / 100.0 * ( r[1] - r[0] ) + r[0] );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      double* r = layer->GetProperties()->GetWindowRange();
+      layer->GetProperties()->SetWindow( (double)m_sliderWindow->GetValue() / 100.0 * ( r[1] - r[0] ) + r[0] );
+    }
   }
 }
 
 void PanelVolume::OnSliderLevelChanged( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double* r = layer->GetProperties()->GetLevelRange();
-    layer->GetProperties()->SetLevel( (double)m_sliderLevel->GetValue() / 100.0 * ( r[1] - r[0] ) + r[0] );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      double* r = layer->GetProperties()->GetLevelRange();
+      layer->GetProperties()->SetLevel( (double)m_sliderLevel->GetValue() / 100.0 * ( r[1] - r[0] ) + r[0] );
+    }
   }
 }
 
@@ -1019,7 +1038,7 @@ void PanelVolume::OnInternalIdle()
 void PanelVolume::OnTextColorMapMinChanged( wxCommandEvent& event )
 {
   double dvalue;
-  if ( m_textColorMapMin->GetValue().ToDouble( &dvalue ) )
+  if ( m_textColorMapMin->GetValue().ToDouble( &dvalue ) && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
@@ -1043,7 +1062,7 @@ void PanelVolume::OnTextColorMapMinChanged( wxCommandEvent& event )
 void PanelVolume::OnTextColorMapMaxChanged( wxCommandEvent& event )
 {
   double dvalue;
-  if ( m_textColorMapMax->GetValue().ToDouble( &dvalue ) )
+  if ( m_textColorMapMax->GetValue().ToDouble( &dvalue ) && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer )
@@ -1067,7 +1086,7 @@ void PanelVolume::OnTextColorMapMaxChanged( wxCommandEvent& event )
 void PanelVolume::OnTextHeatScaleMidChanged( wxCommandEvent& event )
 {
   double dvalue;
-  if ( m_textHeatScaleMid->GetValue().ToDouble( &dvalue ) )
+  if ( m_textHeatScaleMid->GetValue().ToDouble( &dvalue ) && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer && layer->GetProperties()->GetHeatScaleMidThreshold() != dvalue )
@@ -1080,7 +1099,7 @@ void PanelVolume::OnTextHeatScaleMidChanged( wxCommandEvent& event )
 void PanelVolume::OnTextHeatScaleOffsetChanged( wxCommandEvent& event )
 {
   double dvalue;
-  if ( m_textHeatScaleOffset->GetValue().ToDouble( &dvalue ) )
+  if ( m_textHeatScaleOffset->GetValue().ToDouble( &dvalue ) && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
     LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
     if ( layer && layer->GetProperties()->GetHeatScaleOffset() != dvalue )
@@ -1092,27 +1111,30 @@ void PanelVolume::OnTextHeatScaleOffsetChanged( wxCommandEvent& event )
 
 void PanelVolume::OnSliderColorMapMinChanged( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    double fScaleMin = fMin - (fMax-fMin)/4;
-    double fScaleMax = fMax + (fMax-fMin)/4;
-    switch ( layer->GetProperties()->GetColorMap() )
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
     {
-      case LayerPropertiesMRI::Grayscale:
-        layer->GetProperties()->SetMinGrayscaleWindow( (double)m_sliderColorMapMin->GetValue() / 
-            100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
-        break;
-      case LayerPropertiesMRI::Heat:       
-        layer->GetProperties()->SetHeatScaleMinThreshold( (double)m_sliderColorMapMin->GetValue() / 
-            100.0 * ( fMax - fMin ) + fMin );
-        break;
-      default:
-        layer->GetProperties()->SetMinGenericThreshold( (double)m_sliderColorMapMin->GetValue() / 
-            100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
-        break;
+      double fMin = layer->GetProperties()->GetMinValue();
+      double fMax = layer->GetProperties()->GetMaxValue();
+      double fScaleMin = fMin - (fMax-fMin)/4;
+      double fScaleMax = fMax + (fMax-fMin)/4;
+      switch ( layer->GetProperties()->GetColorMap() )
+      {
+        case LayerPropertiesMRI::Grayscale:
+          layer->GetProperties()->SetMinGrayscaleWindow( (double)m_sliderColorMapMin->GetValue() / 
+              100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
+          break;
+        case LayerPropertiesMRI::Heat:       
+          layer->GetProperties()->SetHeatScaleMinThreshold( (double)m_sliderColorMapMin->GetValue() / 
+              100.0 * ( fMax - fMin ) + fMin );
+          break;
+        default:
+          layer->GetProperties()->SetMinGenericThreshold( (double)m_sliderColorMapMin->GetValue() / 
+              100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
+          break;
+      }
     }
   }
 }
@@ -1120,51 +1142,60 @@ void PanelVolume::OnSliderColorMapMinChanged( wxScrollEvent& event )
 
 void PanelVolume::OnSliderColorMapMaxChanged( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    double fScaleMin = fMin - (fMax-fMin)/4;
-    double fScaleMax = fMax + (fMax-fMin)/4;
-    switch ( layer->GetProperties()->GetColorMap() )
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
     {
-      case LayerPropertiesMRI::Grayscale:
-        layer->GetProperties()->SetMaxGrayscaleWindow( (double)m_sliderColorMapMax->GetValue() / 
-            100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
-        break;
-      case LayerPropertiesMRI::Heat:       
-        layer->GetProperties()->SetHeatScaleMaxThreshold( (double)m_sliderColorMapMax->GetValue() / 
-            100.0 * ( fMax - fMin ) + fMin );
-        break;
-      default:
-        layer->GetProperties()->SetMaxGenericThreshold( (double)m_sliderColorMapMax->GetValue() / 
-            100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
-        break;
+      double fMin = layer->GetProperties()->GetMinValue();
+      double fMax = layer->GetProperties()->GetMaxValue();
+      double fScaleMin = fMin - (fMax-fMin)/4;
+      double fScaleMax = fMax + (fMax-fMin)/4;
+      switch ( layer->GetProperties()->GetColorMap() )
+      {
+        case LayerPropertiesMRI::Grayscale:
+          layer->GetProperties()->SetMaxGrayscaleWindow( (double)m_sliderColorMapMax->GetValue() / 
+              100.0 * ( fScaleMax - fScaleMin ) + fScaleMin );
+          break;
+        case LayerPropertiesMRI::Heat:       
+          layer->GetProperties()->SetHeatScaleMaxThreshold( (double)m_sliderColorMapMax->GetValue() / 
+              100.0 * ( fMax - fMin ) + fMin );
+          break;
+        default:
+          layer->GetProperties()->SetMaxGenericThreshold( (double)m_sliderColorMapMax->GetValue() / 
+              100.0 * ( fScaleMax - fScaleMin ) + fScaleMin  );
+          break;
+      }
     }
   }
 }
 
 void PanelVolume::OnSliderHeatScaleMidChanged( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    layer->GetProperties()->SetHeatScaleMidThreshold( (double)m_sliderHeatScaleMid->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      double fMin = layer->GetProperties()->GetMinValue();
+      double fMax = layer->GetProperties()->GetMaxValue();
+      layer->GetProperties()->SetHeatScaleMidThreshold( (double)m_sliderHeatScaleMid->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    }
   }
 }
 
 
 void PanelVolume::OnSliderHeatScaleOffsetChanged( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    // double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    layer->GetProperties()->SetHeatScaleOffset( (double)m_sliderHeatScaleOffset->GetValue() / 100.0 * ( fMax + fMax ) - fMax );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      // double fMin = layer->GetProperties()->GetMinValue();
+      double fMax = layer->GetProperties()->GetMaxValue();
+      layer->GetProperties()->SetHeatScaleOffset( (double)m_sliderHeatScaleOffset->GetValue() / 100.0 * ( fMax + fMax ) - fMax );
+    }
   }
 }
 
@@ -1183,20 +1214,26 @@ void PanelVolume::OnChoiceDirectionCode( wxCommandEvent& event )
 
 void PanelVolume::OnSliderFrameChanged( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->SetActiveFrame( event.GetInt() - 1 );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->SetActiveFrame( event.GetInt() - 1 );
+    }
   }
 }
 
 void PanelVolume::OnTextFrameChanged( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  long value;
-  if ( layer && m_textFrame->GetValue().ToLong( &value ) )
+  if ( m_listBoxLayers && m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->SetActiveFrame( value - 1 );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    long value;
+    if ( layer && m_textFrame->GetValue().ToLong( &value ) )
+    {
+      layer->SetActiveFrame( value - 1 );
+    }
   }
 }
 
@@ -1219,23 +1256,32 @@ void PanelVolume::OnMoveDownUpdateUI( wxUpdateUIEvent& event )
 
 void PanelVolume::OnVolumeLock( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->Lock( event.IsChecked() );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->Lock( event.IsChecked() );
+    }
   }
 }
 
 void PanelVolume::OnVolumeLockUpdateUI( wxUpdateUIEvent& event )
 {
   event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  event.Check( layer && layer->IsLocked() );
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    event.Check( layer && layer->IsLocked() );
+  }
 }
 
 void PanelVolume::OnVolumeCopySetting( wxCommandEvent& event )
 {
-  m_layerCopied = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    m_layerCopied = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  }
 }
 
 void PanelVolume::OnVolumeCopySettingUpdateUI( wxUpdateUIEvent& event )
@@ -1245,15 +1291,22 @@ void PanelVolume::OnVolumeCopySettingUpdateUI( wxUpdateUIEvent& event )
 
 void PanelVolume::OnVolumePasteSetting( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  layer->GetProperties()->CopySettings( m_layerCopied->GetProperties() );
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    layer->GetProperties()->CopySettings( m_layerCopied->GetProperties() );
+  }
 }
 
 void PanelVolume::OnVolumePasteSettingUpdateUI( wxUpdateUIEvent& event )
 {
-  LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  event.Enable( lc->Contains( m_layerCopied ) && m_layerCopied != layer );
+  event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    event.Enable( lc->Contains( m_layerCopied ) && m_layerCopied != layer );
+  }
 }
 
 
@@ -1276,23 +1329,29 @@ void PanelVolume::OnVolumePasteSettingAllUpdateUI( wxUpdateUIEvent& event )
 
 void PanelVolume::OnCheckContour( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  layer->GetProperties()->SetShowAsContour( event.IsChecked() );
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    layer->GetProperties()->SetShowAsContour( event.IsChecked() );
+  }
 }
 
 
 void PanelVolume::OnTextContourMin( wxCommandEvent& event )
 {
-  // update both threshold input
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( !layer )
-    return;
-  
-  double dMin = layer->GetProperties()->GetContourMinThreshold();
-  double dMax = layer->GetProperties()->GetContourMaxThreshold();
-  m_textContourMin->GetValue().ToDouble( &dMin );
-  m_textContourMax->GetValue().ToDouble( &dMax );
-  layer->GetProperties()->SetContourThreshold( dMin, dMax );
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    // update both threshold input
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( !layer )
+      return;
+    
+    double dMin = layer->GetProperties()->GetContourMinThreshold();
+    double dMax = layer->GetProperties()->GetContourMaxThreshold();
+    m_textContourMin->GetValue().ToDouble( &dMin );
+    m_textContourMax->GetValue().ToDouble( &dMax );
+    layer->GetProperties()->SetContourThreshold( dMin, dMax );
+  }
 }
 
 void PanelVolume::OnTextContourMax( wxCommandEvent& event )
@@ -1314,146 +1373,188 @@ void PanelVolume::OnTextContourMax( wxCommandEvent& event )
 
 void PanelVolume::OnSliderContourMin( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    layer->GetProperties()->SetContourMinThreshold( (double)m_sliderContourMin->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      double fMin = layer->GetProperties()->GetMinValue();
+      double fMax = layer->GetProperties()->GetMaxValue();
+      layer->GetProperties()->SetContourMinThreshold( (double)m_sliderContourMin->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    }
   }
 }
 
 void PanelVolume::OnSliderContourMax( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    layer->GetProperties()->SetContourMaxThreshold( (double)m_sliderContourMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      double fMin = layer->GetProperties()->GetMinValue();
+      double fMax = layer->GetProperties()->GetMaxValue();
+      layer->GetProperties()->SetContourMaxThreshold( (double)m_sliderContourMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    }
   }
 }
 
 void PanelVolume::OnSliderContourMinChanging( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    UpdateTextValue( m_textContourMin, (double)m_sliderContourMin->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      double fMin = layer->GetProperties()->GetMinValue();
+      double fMax = layer->GetProperties()->GetMaxValue();
+      UpdateTextValue( m_textContourMin, (double)m_sliderContourMin->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    }
   }
 }
 
 void PanelVolume::OnSliderContourMaxChanging( wxScrollEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    double fMin = layer->GetProperties()->GetMinValue();
-    double fMax = layer->GetProperties()->GetMaxValue();
-    UpdateTextValue( m_textContourMax, (double)m_sliderContourMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      double fMin = layer->GetProperties()->GetMinValue();
+      double fMax = layer->GetProperties()->GetMaxValue();
+      UpdateTextValue( m_textContourMax, (double)m_sliderContourMax->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    }
   }
 }
 
 void PanelVolume::OnCheckDisplayVector( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetDisplayVector( event.IsChecked() );
-    UpdateUI();
-  } 
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetDisplayVector( event.IsChecked() );
+      UpdateUI();
+    } 
+  }
 }
 
 void PanelVolume::OnCheckDisplayTensor( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetDisplayTensor( event.IsChecked() );
-    UpdateUI();
-  } 
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetDisplayTensor( event.IsChecked() );
+      UpdateUI();
+    } 
+  }
 }
 
 void PanelVolume::OnChoiceInversion( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    if ( layer->GetProperties()->GetDisplayVector() )
-      layer->GetProperties()->SetVectorInversion( event.GetSelection() );
-    else if ( layer->GetProperties()->GetDisplayTensor() )
-      layer->GetProperties()->SetTensorInversion( event.GetSelection() );
-    UpdateUI();
-  }   
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      if ( layer->GetProperties()->GetDisplayVector() )
+        layer->GetProperties()->SetVectorInversion( event.GetSelection() );
+      else if ( layer->GetProperties()->GetDisplayTensor() )
+        layer->GetProperties()->SetTensorInversion( event.GetSelection() );
+      UpdateUI();
+    }   
+  }
 }
 
 void PanelVolume::OnChoiceRepresentation( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    if ( layer->GetProperties()->GetDisplayVector() )
-      layer->GetProperties()->SetVectorRepresentation( event.GetSelection() );
-    else if ( layer->GetProperties()->GetDisplayTensor() )
-      layer->GetProperties()->SetTensorRepresentation( event.GetSelection() );
-    UpdateUI();
-  } 
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      if ( layer->GetProperties()->GetDisplayVector() )
+        layer->GetProperties()->SetVectorRepresentation( event.GetSelection() );
+      else if ( layer->GetProperties()->GetDisplayTensor() )
+        layer->GetProperties()->SetTensorRepresentation( event.GetSelection() );
+      UpdateUI();
+    } 
+  }
 }
 
 void PanelVolume::OnCheckHeatScaleClearHigh( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetHeatScaleClearHigh( event.IsChecked() );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetHeatScaleClearHigh( event.IsChecked() );
+    }
   }
 }
 
 void PanelVolume::OnCheckHeatScaleTruncate( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetHeatScaleTruncate( event.IsChecked() );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetHeatScaleTruncate( event.IsChecked() );
+    }
   }
 }
 
 void PanelVolume::OnCheckHeatScaleInvert( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetHeatScaleInvert( event.IsChecked() );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetHeatScaleInvert( event.IsChecked() );
+    }
   }
 }
 
 void PanelVolume::OnCheckUseImageColorMap( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetContourUseImageColorMap( event.IsChecked() );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetContourUseImageColorMap( event.IsChecked() );
+    }
   }
 }
 
 void PanelVolume::OnCheckContourExtractAll( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetContourExtractAllRegions( event.IsChecked() );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetContourExtractAllRegions( event.IsChecked() );
+    }
   }
 }
 
 void PanelVolume::OnColorContour( wxColourPickerEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    wxColour c = event.GetColour();
-    layer->GetProperties()->SetContourColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      wxColour c = event.GetColour();
+      layer->GetProperties()->SetContourColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
+    }
   }
 }
 
@@ -1470,27 +1571,36 @@ void PanelVolume::OnColorSurface( wxColourPickerEvent& event )
 */
 void PanelVolume::OnCheckHideInfo( wxCommandEvent& event )
 {
-  Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetShowInfo( !event.IsChecked() );
+    Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetShowInfo( !event.IsChecked() );
+    }
   }
 }
 
 void PanelVolume::OnCheckShowLabelOutline( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetShowLabelOutline( event.IsChecked() );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetShowLabelOutline( event.IsChecked() );
+    }
   }
 }
 
 void PanelVolume::OnChoiceUpSampleMethod( wxCommandEvent& event )
 {
-  LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-  if ( layer )
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
   {
-    layer->GetProperties()->SetUpSampleMethod( event.GetSelection() );
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetUpSampleMethod( event.GetSelection() );
+    }
   }
 }

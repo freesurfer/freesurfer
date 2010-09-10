@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/23 18:58:00 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/09/10 20:24:50 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -98,6 +98,7 @@ END_EVENT_TABLE()
 
 
 ToolWindowEdit::ToolWindowEdit( wxWindow* parent ) : Listener( "ToolWindowMeasure" ),
+    m_editSmoothSD( NULL ),
     m_bToUpdateTools( false )
 {
   wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_TOOLWINDOW_EDIT") );
@@ -621,15 +622,19 @@ void ToolWindowEdit::OnCheckSmooth( wxCommandEvent& event )
 void ToolWindowEdit::OnEditSmoothSD( wxCommandEvent& event )
 {
   double value;
-  if ( m_editSmoothSD->GetValue().ToDouble( &value ) && value > 0 )
+
+  if (m_editSmoothSD != NULL)
   {
-    for ( int i = 0; i < 3; i++ )
+    if ( m_editSmoothSD->GetValue().ToDouble( &value ) && value > 0 )
     {
-      RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( i );
-      Contour2D* c2d = view->GetContour2D();
-      c2d->SetSmoothSD( value );
+      for ( int i = 0; i < 3; i++ )
+      {
+        RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( i );
+        Contour2D* c2d = view->GetContour2D();
+        c2d->SetSmoothSD( value );
+      }
+      UpdateTools();
     }
-    UpdateTools();
   }
 }
 

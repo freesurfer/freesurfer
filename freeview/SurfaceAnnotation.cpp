@@ -10,9 +10,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/02/28 22:51:48 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2010/09/10 20:24:50 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -58,9 +58,6 @@ void SurfaceAnnotation::Reset()
 {
   if ( m_nIndices )
     delete[] m_nIndices;
-  
-  if ( m_lut )
-    CTABfree( &m_lut );
   
   if ( m_nCenterVertices )
     delete[] m_nCenterVertices;

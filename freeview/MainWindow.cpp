@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/31 17:26:05 $
- *    $Revision: 1.140 $
+ *    $Date: 2010/09/10 20:24:50 $
+ *    $Revision: 1.141 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2544,7 +2544,10 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
   else
   {
     // if ( event.GetInt() > m_statusBar->m_gaugeBar->GetValue() )
-    m_statusBar->m_gaugeBar->SetValue( event.GetInt() );
+    int val = event.GetInt();
+    if ( val > m_statusBar->m_gaugeBar->GetRange() )
+      val = m_statusBar->m_gaugeBar->GetRange();
+    m_statusBar->m_gaugeBar->SetValue( val );
   }
 }
 
