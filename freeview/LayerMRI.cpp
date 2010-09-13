@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/31 17:26:05 $
- *    $Revision: 1.85 $
+ *    $Date: 2010/09/13 20:46:32 $
+ *    $Revision: 1.86 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2006,8 +2006,7 @@ struct LabelStatsPrivate
 {
   int id;
   int count;
-  int* x;
-  int* y;
+  std::vector<double> values;
 };
 
 void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
@@ -2018,50 +2017,56 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
 {
   vtkImageData* mri_image = mReslice[nPlane]->GetOutput();
   vtkImageData* label_image = label->mReslice[nPlane]->GetOutput();
-  int* dim = mri_image->GetDimensions();
-  // first find all lable ids
-
+  int*    mri_dim = mri_image->GetDimensions();
+  double* mri_vs = mri_image->GetSpacing();
+  double* mri_orig = mri_image->GetOrigin();
+  int*    label_dim = label_image->GetDimensions();
+  double* label_vs = label_image->GetSpacing();
+  double* label_orig = label_image->GetOrigin();
+  
+  // first find all label ids
   std::vector<LabelStatsPrivate> labels;
-  for ( int i = 0; i < dim[0]; i++ )
+  for ( int i = 0; i < label_dim[0]; i++ )
   {
-    for ( int j = 0; j < dim[1]; j++ )
+    for ( int j = 0; j < label_dim[1]; j++ )
     {
       int nId = (int)label_image->GetScalarComponentAsDouble( i, j, 0, 0 );
-      bool bFound = false;
-      for ( size_t n = 0; n < labels.size(); n++ )
+      if ( nId > 0 )
       {
-        if ( nId == labels[n].id )
+        int mi = (int)( ( i*label_vs[0] + label_orig[0] - mri_orig[0] ) / mri_vs[0] );
+        int mj = (int)( ( j*label_vs[1] + label_orig[1] - mri_orig[1] ) / mri_vs[1] );
+        if ( mi >= 0 && mi < mri_dim[0] && mj >= 0 && mj < mri_dim[1] )
         {
-          labels[n].x[labels[n].count] = i;
-          labels[n].y[labels[n].count] = j;
-          labels[n].count++;
-          bFound = true;
-          break;
+          bool bFound = false;
+          for ( size_t n = 0; n < labels.size(); n++ )
+          {
+            if ( nId == labels[n].id )
+            {
+              labels[n].values.push_back( mri_image->GetScalarComponentAsDouble( mi, mj, 0, 0 ) );
+              labels[n].count++;
+              bFound = true;
+              break;
+            }
+            else if ( nId < labels[n].id )
+            {
+              LabelStatsPrivate l;
+              l.id = nId;
+              l.count = 1;
+              l.values.push_back( mri_image->GetScalarComponentAsDouble( mi, mj, 0, 0 ) );
+              labels.insert( labels.begin() + n, l );
+              bFound = true;
+              break; 
+            }
+          }
+          if ( !bFound )
+          {
+            LabelStatsPrivate l;
+            l.id = nId;
+            l.count = 1;
+            l.values.push_back( mri_image->GetScalarComponentAsDouble( mi, mj, 0, 0 ) );
+            labels.push_back( l );
+          }
         }
-        else if ( nId < labels[n].id )
-        {
-          LabelStatsPrivate l;
-          l.id = nId;
-          l.count = 1;
-          l.x = new int[dim[0]*dim[1]];
-          l.y = new int[dim[0]*dim[1]];
-          l.x[0] = i;
-          l.y[0] = j;
-          labels.insert( labels.begin() + n, l );
-          bFound = true;
-          break; 
-        }
-      }
-      if ( !bFound )
-      {
-        LabelStatsPrivate l;
-        l.id = nId;
-        l.count = 1;
-        l.x = new int[dim[0]*dim[1]];
-        l.y = new int[dim[0]*dim[1]];
-        l.x[0] = i;
-        l.y[0] = j;
-        labels.push_back( l );
       }
     }
   }
@@ -2074,16 +2079,10 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
       double dvalue = 0;
       for ( int i = 0; i < labels[n].count; i++ )
       {
-        dvalue += mri_image->GetScalarComponentAsDouble( labels[n].x[i], labels[n].y[i], 0, 0 );
+        dvalue += labels[n].values[i];
       }
       double dmean = dvalue / labels[n].count;
       means.push_back( dmean );
     }
   }
-  for ( size_t n = 0; n < labels.size(); n++ )
-  {
-    delete[] labels[n].x;
-    delete[] labels[n].y;
-  }
 }
-
