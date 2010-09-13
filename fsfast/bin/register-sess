@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 15:35:44 $
-#    $Revision: 1.11 $
+#    $Date: 2010/09/13 16:19:47 $
+#    $Revision: 1.12 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.11 2010/07/26 15:35:44 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.12 2010/09/13 16:19:47 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -48,6 +48,7 @@ set LF = ();
 set DoPBSub = 0;
 set DoBackground = 0;
 set RunListFile = ();
+set FSLSwapTrans = 0;
 
 set UpdateOnly = 0;
 
@@ -182,9 +183,11 @@ foreach sess ($SessList)
     if($#BBRTolF) set cmd = ($cmd --tolf $BBRTolF)
     if($#BBRTol1D) set cmd = ($cmd --tol1d $BBRTol1D)
     if($#IntermediateFSD) set cmd = ($cmd --int $Intermediate)
+    if($FSLSwapTrans) set cmd = ($cmd --fsl-swap-trans)
     set XOpts = ($BBRXOpts)
   else if($regmethod == fslregister) then
     set cmd = ($cmd --dof $RegDOF --fsvol $fstargvol)
+    if($FSLSwapTrans) set cmd = ($cmd --allow-swap --trans)
     set XOpts = ($FSLXOpts)
   else # spmregister
     set cmd = ($cmd --fsvol $fstargvol $SPMXOpts)
@@ -328,6 +331,14 @@ while( $#argv != 0 )
     case "-init-header":
     case "-bbr-init-header":
       set bbrinit = "--init-header"
+      breaksw
+
+    case "-fsl-swap-trans":
+      set FSLSwapTrans = 1;
+      breaksw
+
+    case "-no-fsl-swap-trans":
+      set FSLSwapTrans = 0;
       breaksw
 
     case "-init-sess":
@@ -547,6 +558,8 @@ usage_exit:
   echo "   -bbr-xopts xopts : expert options for bbregister"
   echo "   -fsl-xopts xopts : expert options for fslregister"
   echo "   -spm-xopts xopts : expert options for spmregister"
+  echo "   -fsl-swap-trans : (possibly) better init for FSL"
+  echo "   -no-fsl-swap-trans : do not change init FSL (default)"
   echo ""
   echo "   -update   : only run when files have changed"
   echo "   -version  : print version and exit"
