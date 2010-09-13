@@ -10,8 +10,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/28 20:01:44 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/09/13 21:33:15 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,7 +28,7 @@
  */
 
 
-// $Id: mri_binarize.c,v 1.24 2010/07/28 20:01:44 greve Exp $
+// $Id: mri_binarize.c,v 1.25 2010/09/13 21:33:15 greve Exp $
 
 /*
   BEGINHELP
@@ -61,7 +61,7 @@ in the output mask. The percent will be computed based on the number of
 voxels in the volume (if not input mask is specified) or within the
 input mask.
 
---match matchvalue <--match matchvalue>
+--match matchvalue <matchvalue2 ...>
 
 Binarize based on matching values. Any number of match values can be 
 specified. Cannot be used with --min/--max.
@@ -181,7 +181,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_binarize.c,v 1.24 2010/07/28 20:01:44 greve Exp $";
+static char vcid[] = "$Id: mri_binarize.c,v 1.25 2010/09/13 21:33:15 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -456,7 +456,7 @@ int main(int argc, char *argv[]) {
 }
 /* --------------------------------------------- */
 static int parse_commandline(int argc, char **argv) {
-  int  nargc , nargsused;
+  int  nargc , nargsused, nth;
   char **pargv, *option ;
 
   if (argc < 1) usage_exit();
@@ -593,10 +593,14 @@ static int parse_commandline(int argc, char **argv) {
       BinValNot = 1;
     } else if (!strcasecmp(option, "--match")) {
       if (nargc < 1) CMDargNErr(option,1);
-      sscanf(pargv[0],"%d",&MatchValues[nMatch]);
-      nMatch ++;
+      nth = 0;
+      while(CMDnthIsArg(nargc, pargv, nth) ){
+	sscanf(pargv[nth],"%d",&MatchValues[nMatch]);
+	nMatch ++;
+	nth++;
+      }
+      nargsused = nth;
       DoMatch = 1;
-      nargsused = 1;
     } 
     else if (!strcasecmp(option, "--frame")) {
       if (nargc < 1) CMDargNErr(option,1);
@@ -653,7 +657,7 @@ static void print_usage(void) {
   printf("   --pct P : set threshold to capture top P%% (in mask or total volume)\n");
   printf("   --rmin rmin  : compute min based on rmin*globalmean\n");
   printf("   --rmax rmax  : compute max based on rmax*globalmean\n");
-  printf("   --match matchval <--match matchval>  : match instead of threshold\n");
+  printf("   --match matchval <matchval2 ...>  : match instead of threshold\n");
   printf("   --wm : set match vals to 2 and 41 (aseg for cerebral WM)\n");
   printf("   --ventricles : set match vals those for aseg ventricles+choroid (not 4th)\n");
   printf("   --wm+vcsf : WM and ventricular CSF, including choroid (not 4th)\n");
@@ -718,7 +722,7 @@ printf("in the output mask. The percent will be computed based on the number of\
 printf("voxels in the volume (if not input mask is specified) or within the\n");
 printf("input mask.\n");
 printf("\n");
-printf("--match matchvalue <--match matchvalue>\n");
+printf("--match matchvalue <matchvalue2 ...>\n");
 printf("\n");
 printf("Binarize based on matching values. Any number of match values can be \n");
 printf("specified. Cannot be used with --min/--max.\n");
