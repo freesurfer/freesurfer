@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/10 20:24:50 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/09/15 01:11:39 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,7 +37,7 @@
 #include "LayerCollection.h"
 #include "CommonDataStruct.h"
 
-#if wxCHECK_VERSION( 2, 9, 0 )
+#if wxVERSION_NUMBER > 2900
 #include <wx/bookctrl.h>
 #endif
 
@@ -396,7 +396,8 @@ void DialogTransformVolume::RespondScrollScale( int n )
   }
 }
 
-#if wxCHECK_VERSION( 2, 9, 0 )
+//#if wxCHECK_VERSION( 2, 9, 0 )
+#if wxVERSION_NUMBER > 2900
 void DialogTransformVolume::OnPageChanged( wxBookCtrlEvent& event )
 #else
 void DialogTransformVolume::OnPageChanged( wxNotebookEvent& event )

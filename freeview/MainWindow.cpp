@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/10 20:24:50 $
- *    $Revision: 1.141 $
+ *    $Date: 2010/09/15 01:11:39 $
+ *    $Revision: 1.142 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -953,7 +953,8 @@ void MainWindow::OnActivate( wxActivateEvent& event )
 void MainWindow::OnIconize( wxIconizeEvent& event )
 {
 #ifdef __WXGTK__
-#if wxCHECK_VERSION(2,9,0)
+//#if wxCHECK_VERSION(2,9,0)
+#if wxVERSION_NUMBER > 2900  
   if ( !event.IsIconized() )
 #else
   if ( !event.Iconized() )
