@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/23 14:27:18 $
- *    $Revision: 1.375 $
+ *    $Date: 2010/09/15 16:20:41 $
+ *    $Revision: 1.376 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -12373,173 +12373,212 @@ MRI *MRIreorder4(MRI *mri, int order[4])
   return(new);
 }
 
-
-MRI *
-MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
+/*!
+\fn MRIreorderVox2RAS(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
+\brief Changes the vox2ras matrix (and so xsize, x_r, ysize, etc) so that 
+it is appropriate for the given reordering of dimensions as performed by
+MRIreorder(). xdim,ydim,zdim indicate which dimension the given dimension
+moves to. So xdim=2 indicates that the cols of the source become the rows
+of the destination. The dims can be signed.
+*/
+int MRIreorderVox2RAS(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
 {
-  // note that allowed xdim, ydim, zdim values are only +/- 1,2,3 only
-  // xdim tells the original x-axis goes to which axis of the new, etc.
+  MATRIX *Q, *Msrc, *Mdst;
+
+  // Source vox2ras
+  Msrc =  MRIxfmCRS2XYZ(mri_src, 0);
+
+  // Q maps CRSdst to CRSsrc, ie, CRSsrc = Q*CRSdst
+  Q = MatrixConstVal(0,4,4,NULL);
+  Q->rptr[1][abs(xdim)] = ISIGN(xdim);
+  Q->rptr[2][abs(ydim)] = ISIGN(ydim);
+  Q->rptr[3][abs(zdim)] = ISIGN(zdim);
+  Q->rptr[4][4] = 1;
+  if(xdim < 0) Q->rptr[1][4] = mri_src->width  - 1;
+  if(ydim < 0) Q->rptr[2][4] = mri_src->height - 1;
+  if(zdim < 0) Q->rptr[3][4] = mri_src->depth  - 1;
+
+  // Dst vox2ras = Msrc*Q
+  Mdst = MatrixMultiply(Msrc,Q,NULL);
+  if(Gdiag > 0){
+    printf("Msrc ------------------------\n");
+    MatrixPrint(stdout,Msrc);
+    printf("Q ------------------------\n");
+    MatrixPrint(stdout,Q);
+    printf("Qinv ------------------------\n");
+    MatrixPrint(stdout,MatrixInverse(Q,NULL));
+    printf("Mdst ------------------------\n");
+    MatrixPrint(stdout,Mdst);
+  }
+
+  // Set destination vox2ras (does not change vox size!)
+  MRIsetVox2RASFromMatrix(mri_dst, Mdst);
+
+  // Free at last
+  MatrixFree(&Msrc);
+  MatrixFree(&Mdst);
+  MatrixFree(&Q);
+  return(0);
+}
+
+/*!
+\fn MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
+\brief Reorders the dimensions of a volume.  xdim,ydim,zdim indicate
+which dimension the given dimension moves to. So xdim=2 indicates that
+the cols of the source become the rows of the destination. The dims
+can be signed indicating a reversal. xdim, ydim, zdim values are only
++/- 1,2,3 only. The vox2ras matrix is updated so that the new and old
+volumes will share RAS space (and can be alligned with a header
+registration. Handles multiple frames.
+*/
+MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim)
+{
   int  width, height, depth, xs, ys, zs, xd, yd, zd, x, y, z, f ;
-  float ras_sign;
+  int srcdims[3],dstdims[3];
+  float srcsizes[3],dstsizes[3];
+
+  printf("MRIreorder() -----------\n");
+  printf("xdim=%d ydim=%d zdim=%d\n",xdim,ydim,zdim);
+  /* check that the source ras coordinates are good and
+     that each direction is used once and only once */
+  if (abs(xdim) * abs(ydim) * abs(zdim) != 6 ||
+      abs(xdim) + abs(ydim) + abs(zdim) != 6){
+    printf("ERROR: replicated/incorrect dimension number\n");
+    return(NULL);
+  }
 
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth;
-  if (!mri_dst)
-    mri_dst = MRIclone(mri_src, NULL) ;
 
-  /* check that the source ras coordinates are good and
-     that each direction is used once and only once */
-  if (mri_src->ras_good_flag)
-    if (abs(xdim) * abs(ydim) * abs(zdim) != 6 ||
-        abs(xdim) + abs(ydim) + abs(zdim) != 6)
-      mri_dst->ras_good_flag = 0;
+  srcdims[0] = width;
+  srcdims[1] = height;
+  srcdims[2] = depth;
+  srcsizes[0] = mri_src->xsize;
+  srcsizes[1] = mri_src->ysize;
+  srcsizes[2] = mri_src->zsize;
+
+  dstdims[abs(xdim)-1] = srcdims[0];
+  dstdims[abs(ydim)-1] = srcdims[1];
+  dstdims[abs(zdim)-1] = srcdims[2];
+  dstsizes[abs(xdim)-1] = srcsizes[0];
+  dstsizes[abs(ydim)-1] = srcsizes[1];
+  dstsizes[abs(zdim)-1] = srcsizes[2];
+
+  if(!mri_dst){
+    //mri_dst = MRIclone(mri_src, NULL) ;
+    mri_dst = MRIallocSequence(dstdims[0],dstdims[1],dstdims[2],
+			       mri_src->type,mri_src->nframes);
+    MRIcopyHeader(mri_src,mri_dst);
+    mri_dst->xsize = dstsizes[0];
+    mri_dst->ysize = dstsizes[1];
+    mri_dst->zsize = dstsizes[2];
+  }
+  MRIreorderVox2RAS(mri_src, mri_dst, xdim, ydim, zdim);
+  printf("src %d %d %d, %f %f %f\n",mri_src->width,mri_src->height,mri_src->depth,
+	 mri_src->xsize,mri_src->ysize,mri_src->zsize);
+  printf("dst %d %d %d, %f %f %f\n",mri_dst->width,mri_dst->height,mri_dst->depth,
+	 mri_dst->xsize,mri_dst->ysize,mri_dst->zsize);
 
   xd = yd = zd = 0 ;
 
-  ras_sign = (xdim < 0 ? -1.0 : 1.0);
-  // check xdim direction size (XDIM=1, YDIM=2, ZDIM=3)
-  // xdim tells original x-axis goes to where
-  switch (abs(xdim))
-  {
+  // XDIM=1, YDIM=2, ZDIM=3
+  // xdim tells original x-axis/cols goes to where
+  switch (abs(xdim)){
   default:
   case XDIM:
-    if (mri_dst->width != width)
-    {
+    if (mri_dst->width != mri_src->width){
       errno = 0;
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
     }
     break ;
   case YDIM:
-    if (mri_dst->height != width)
-    {
+    if (mri_dst->height != mri_src->width){
       errno = 0;
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
     }
     break ;
   case ZDIM:
-    if (mri_dst->depth != width)
-    {
+    if (mri_dst->depth != mri_src->width){
       errno = 0;
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width"));
     }
     break ;
   }
-  ras_sign = (ydim < 0 ? -1.0 : 1.0);
-  // check ydim
-  // ydim tells original y-axis goes to where
-  switch (abs(ydim))
-  {
+  // ydim tells original y-axis/rows goes to where
+  switch (abs(ydim)) {
   default:
-  case XDIM:
-    if (mri_dst->width != height)
-    {
+  case XDIM: // map srcrows to dstcols
+    if(mri_src->height != mri_dst->width){
       errno = 0;
       ErrorReturn
-      (NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+      (NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst width != src height"));
     }
     break ;
-  case YDIM:
-    if (mri_dst->height != height)
-    {
+  case YDIM:// map srcrows to dstrows
+    if(mri_src->height != mri_dst->height){
       errno = 0;
       ErrorReturn
-      (NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+      (NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height != src height"));
     }
     break ;
-  case ZDIM:
-    if (mri_dst->depth != height)
-    {
+  case ZDIM:// map srcrows to dstrows
+    if(mri_src->height != mri_dst->depth){
       errno = 0;
       ErrorReturn
-      (NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst height"));
+      (NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth != height"));
     }
     break ;
   }
-  ras_sign = (zdim < 0 ? -1.0 : 1.0);
-  // check zdim
-  // zdim tells original z-axis goes to where
-  switch (abs(zdim))
-  {
+  // zdim tells original z-axis/slices goes to where
+  switch (abs(zdim)){
   default:
   case XDIM:
-    if (mri_dst->width != depth)
-    {
+    if(mri_src->depth != mri_dst->width){
       errno = 0;
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
     }
     break ;
   case YDIM:
-    if (mri_dst->height != depth)
-    {
+    if(mri_src->depth != mri_dst->height){
       errno = 0;
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
     }
     break ;
   case ZDIM:
-    if (mri_dst->depth != depth)
-    {
+    if(mri_src->depth != mri_dst->depth){
       errno = 0;
       ErrorReturn(NULL,(ERROR_BADPARM, "MRIreorder: incorrect dst depth"));
     }
     break ;
   }
 
-  for (f = 0; f < mri_src->nframes; f++)
-  {
-    for (zs = 0 ; zs < depth ; zs++)
-    {
+  for (f = 0; f < mri_src->nframes; f++){
+    for (zs = 0 ; zs < depth ; zs++){
       if (zdim < 0) z = depth - zs - 1 ;
       else          z = zs ;
-      switch (abs(zdim))
-      {
-      case XDIM:
-        xd = z ;
-        break ;
-      case YDIM:
-        yd = z ;
-        break ;
-      case ZDIM:
-      default:
-        zd = z ;
-        break ;
+      switch (abs(zdim)){
+      case XDIM: xd = z ; break ;
+      case YDIM: yd = z ; break ;
+      case ZDIM: default: zd = z ; break ;
       }
-      for (ys = 0 ; ys < height ; ys++)
-      {
+      for (ys = 0 ; ys < height ; ys++) {
         if (ydim < 0) y = height - ys - 1 ;
         else          y = ys ;
-        switch (abs(ydim))
-        {
-        case XDIM:
-          xd = y ;
-          break ;
-        case YDIM:
-          yd = y ;
-          break ;
-        case ZDIM:
-        default:
-          zd = y ;
-          break ;
+        switch (abs(ydim)){
+        case XDIM: xd = y ; break ;
+        case YDIM: yd = y ; break ;
+        case ZDIM: default: zd = y ; break ;
         }
-        for (xs = 0 ; xs < width ; xs++)
-        {
+        for (xs = 0 ; xs < width ; xs++){
           if (xdim < 0) x = width - xs - 1 ;
           else          x = xs ;
-          switch (abs(xdim))
-          {
-          case XDIM:
-            xd = x ;
-            break ;
-          case YDIM:
-            yd = x ;
-            break ;
-          case ZDIM:
-          default:
-            zd = x ;
-            break ;
+          switch (abs(xdim)) {
+          case XDIM: xd = x ; break ;
+          case YDIM: yd = x ; break ;
+          case ZDIM: default: zd = x ; break ;
           }
-          switch (mri_src->type)
-          {
+          switch (mri_src->type){
           case MRI_SHORT:
             MRISseq_vox(mri_dst,xd,yd,zd,f) =
               MRISseq_vox(mri_src,xs,ys,zs,f) ;
