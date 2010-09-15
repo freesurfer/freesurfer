@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/09/15 01:11:39 $
- *    $Revision: 1.142 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/09/15 13:03:59 $
+ *    $Revision: 1.143 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -330,8 +330,8 @@ void MainWindow::InitWidgetsFromXRC( wxWindow* parent)
   m_splitterMain = XRCCTRL( *this, "ID_SPLITTER_MAIN", wxSplitterWindow );
   m_splitterMain->SetMinimumPaneSize( 80 );
 // sizer->Add( m_splitterMain, 1, wxEXPAND );
-  
-  m_toolbarMain = GetToolBar();
+
+   m_toolbarMain = GetToolBar();
 
 // this->SetSizer( sizer );
 // sizer->Add( ( wxToolBar* )XRCCTRL( *this, "m_toolBar2", wxToolBar ), 0, wxEXPAND );
@@ -496,6 +496,7 @@ void MainWindow::InitWidgetsFromXRC( wxWindow* parent)
 //  UpdateGotoPoints();
   
   m_timerWriteMovieFrames.SetOwner( this, ID_TIMER_WRITE_MOVIE_FRAMES );
+
 }
 
 // frame destructor
@@ -796,7 +797,7 @@ void MainWindow::LoadVolume()
   DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
   dlg.SetLastDir( AutoSelectLastDir( m_strLastDir, _("mri") ) );
   wxArrayString list;
-  for ( int i = 0; i < m_fileHistory->GetMaxFiles(); i++ )
+  for ( int i = 0; i < m_fileHistory->GetCount(); i++ )
     list.Add( m_fileHistory->GetHistoryFile( i ) );
   dlg.SetRecentFiles( list );
   if ( dlg.ShowModal() == wxID_OK )

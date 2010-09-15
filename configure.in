@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/08/27 21:34:41 $
-#    $Revision: 1.494 $
+#    $Author: ginsburg $
+#    $Date: 2010/09/15 13:04:46 $
+#    $Revision: 1.495 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2139,6 +2139,7 @@ WXWIDGETS_CFLAGS=""
 WXWIDGETS_CXXFLAGS=""
 WXWIDGETS_LIBS=""
 WXWIDGETS_GL_LIBS=""
+WXWIDGETS_OPTIONAL_LIBS=""
 WXWIDGETS_DIR=""
 
 AC_MSG_CHECKING(wxWidgets config)
@@ -2166,6 +2167,7 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   # we want to use the local / static jpeg, tiff and expat libs
   WXWIDGETS_LIBS="`${WXCONFIG} --libs | sed 's/-ljpeg/..\/jpeg\/libjpeg.a/g' | sed 's/-ltiff/..\/tiff\/libtiff.a/g' | sed 's/-lexpat/..\/expat\/libexpat.a/g'`"
   WXWIDGETS_GL_LIBS="`${WXCONFIG} --libs gl | sed 's/-ljpeg/..\/jpeg\/libjpeg.a/g' | sed 's/-ltiff/..\/tiff\/libtiff.a/g' | sed 's/-lexpat/..\/expat\/libexpat.a/g'`"
+  WXWIDGETS_OPTIONAL_LIBS="`${WXCONFIG} --optional-libs aui`"
 
   # except wx-config isn't so handy in including some header paths on Linux:
   if test -d /usr/include/gtk-2.0 ; then
@@ -2217,6 +2219,7 @@ AC_SUBST(WXWIDGETS_CFLAGS)
 AC_SUBST(WXWIDGETS_CXXFLAGS)
 AC_SUBST(WXWIDGETS_LIBS)
 AC_SUBST(WXWIDGETS_GL_LIBS)
+AC_SUBST(WXWIDGETS_OPTIONAL_LIBS)
 AC_SUBST(WXWIDGETS_DIR)
 
 ################################################################
