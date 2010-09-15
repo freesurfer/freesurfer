@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/08/04 01:46:45 $
- *    $Revision: 1.406 $
+ *    $Author: greve $
+ *    $Date: 2010/09/15 16:58:06 $
+ *    $Revision: 1.407 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1119,6 +1119,7 @@ int MRIwrite(MRI *mri,const  char *fname);
 int MRIwriteFrame(MRI *mri,const  char *fname, int frame) ;
 int MRIwriteType(MRI *mri,const  char *fname, int type);
 MRI *MRIreadRaw(FILE *fp, int width, int height, int depth, int type);
+int MRIreorderVox2RAS(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIreorder(MRI *mri_src, MRI *mri_dst, int xdim, int ydim, int zdim);
 MRI *MRIreorder4(MRI *mri, int order[4]);
 MRI *MRIsmoothParcellation(MRI *mri, int smooth_parcellation_count);
