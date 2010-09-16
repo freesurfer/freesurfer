@@ -216,13 +216,6 @@ freeview_SOURCES=\
 	VolumeFilterMean.h \
 	VolumeFilterMedian.cpp \
 	VolumeFilterMedian.h \
-	vtkDijkstraGraphGeodesicPath.cxx \
-	vtkDijkstraGraphGeodesicPath.h \
-	vtkDijkstraGraphInternals.h \
-	vtkDijkstraImageContourLineInterpolator.cxx \
-	vtkDijkstraImageContourLineInterpolator.h \
-	vtkDijkstraImageGeodesicPath.cxx \
-	vtkDijkstraImageGeodesicPath.h \
 	vtkSimpleLabelEdgeFilter.cpp \
 	vtkSimpleLabelEdgeFilter.h \
 	WindowConnectivityConfiguration.cpp \
@@ -248,14 +241,6 @@ freeview_SOURCES=\
 	res/resource.cpp \
 	res/resource.h \
 	res/QuickRef.h
-#	scout/laplace2.cpp \
-#	scout/laplace2.h \
-#	scout/locator.cpp \
-#	scout/locator.h \
-#	scout/preprocessor.cpp \
-#	scout/preprocessor.h \
-#	scout/tracer.cpp \
-#	scout/tracer.h
 
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 

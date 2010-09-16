@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/15 01:11:39 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/09/16 17:25:05 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -93,6 +93,7 @@ BEGIN_EVENT_TABLE( ToolWindowEdit, wxFrame )
   EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_CONTOUR" ),  ToolWindowEdit::OnColorContour )
 
   EVT_SHOW      ( ToolWindowEdit::OnShow )
+  EVT_CLOSE     ( ToolWindowEdit::OnClose )
 
 END_EVENT_TABLE()
 
@@ -164,6 +165,14 @@ void ToolWindowEdit::ShowWidgets( std::vector<wxWindow*>& list, bool bShow )
   }
 }
 
+void ToolWindowEdit::OnClose( wxCloseEvent& event )
+{
+  Hide();
+  MainWindow* mainwnd = MainWindow::GetMainWindowPointer();
+  if ( mainwnd->IsShown() )
+    mainwnd->SetMode( 0 );
+}
+
 void ToolWindowEdit::OnShow( wxShowEvent& event )
 {
 //#if wxCHECK_VERSION(2,9,0)
@@ -198,7 +207,7 @@ void ToolWindowEdit::OnShow( wxShowEvent& event )
       GetPosition( &x, &y );
       config->Write( _T("/ToolWindowEdit/PosX"), (long) x );
       config->Write( _T("/ToolWindowEdit/PosY"), (long) y );
-    }
+    } 
   }
   MainWindow::GetMainWindowPointer()->SetFocus();
 }

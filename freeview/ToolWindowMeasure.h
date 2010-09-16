@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/23 18:58:00 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/09/16 17:25:05 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -44,6 +44,7 @@ public:
   virtual ~ToolWindowMeasure();
 
   void OnShow( wxShowEvent& event );
+  void OnClose( wxCloseEvent& event);
 
   void OnActionMeasureLine                  ( wxCommandEvent& event );
   void OnActionMeasureLineUpdateUI          ( wxUpdateUIEvent& event );

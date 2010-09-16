@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/15 01:11:39 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/09/16 17:25:05 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -69,6 +69,7 @@ BEGIN_EVENT_TABLE( ToolWindowMeasure, wxFrame )
   EVT_SPINCTRL  ( XRCID( "ID_SPIN_ID"),                   ToolWindowMeasure::OnSpinId )      
   
   EVT_SHOW      ( ToolWindowMeasure::OnShow )
+  EVT_CLOSE     ( ToolWindowMeasure::OnClose )
 
 END_EVENT_TABLE()
 
@@ -102,6 +103,15 @@ ToolWindowMeasure::ToolWindowMeasure( wxWindow* parent ) : Listener( "ToolWindow
 
 ToolWindowMeasure::~ToolWindowMeasure()
 {}
+
+
+void ToolWindowMeasure::OnClose( wxCloseEvent& event)
+{
+  Hide(); 
+  MainWindow* mainwnd = MainWindow::GetMainWindowPointer();
+  if ( mainwnd->IsShown() )
+    mainwnd->SetMode( 0 );
+}
 
 void ToolWindowMeasure::OnShow( wxShowEvent& event )
 {

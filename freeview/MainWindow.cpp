@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: ginsburg $
- *    $Date: 2010/09/15 13:03:59 $
- *    $Revision: 1.143 $
+ *    $Author: rpwang $
+ *    $Date: 2010/09/16 17:25:05 $
+ *    $Revision: 1.144 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -797,7 +797,7 @@ void MainWindow::LoadVolume()
   DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
   dlg.SetLastDir( AutoSelectLastDir( m_strLastDir, _("mri") ) );
   wxArrayString list;
-  for ( int i = 0; i < m_fileHistory->GetCount(); i++ )
+  for ( size_t i = 0; i < m_fileHistory->GetCount(); i++ )
     list.Add( m_fileHistory->GetHistoryFile( i ) );
   dlg.SetRecentFiles( list );
   if ( dlg.ShowModal() == wxID_OK )
