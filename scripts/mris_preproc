@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/10/13 17:01:00 $
-#    $Revision: 1.53 $
+#    $Author: greve $
+#    $Date: 2010/09/17 21:12:43 $
+#    $Revision: 1.54 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.53 2009/10/13 17:01:00 nicks Exp $';
+set VERSION = '$Id: mris_preproc,v 1.54 2010/09/17 21:12:43 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -46,6 +46,7 @@ set fwhmtarg = ();
 set niterssrc = ();
 set niterstarg = ();
 set projfrac = ();
+set V2SMaskNonCtx = 1; 
 set outpath = ();
 set paireddiff = 0;
 set paireddiffnorm = 0;
@@ -209,6 +210,7 @@ foreach subj ($subjlist)
       set cmd = (mri_vol2surf --src $vol --srcreg $reg --hemi $srchemi)
       set cmd = ($cmd --out $srcsurfpath)
       if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+      if($V2SMaskNonCtx) set cmd = ($cmd --cortex)
       if($synth)     set cmd = ($cmd --srcsynth -1) # Synth if desired
       if($reshape)   set cmd = ($cmd --reshape);
       if(! $reshape) set cmd = ($cmd --noreshape);
@@ -300,12 +302,12 @@ echo "\n\n" | tee -a $LF
 if(! $CacheOutOnly) then
   # Now concatenate all the inputs together
   set cmd = (mri_concat $tvallist --o $outpath)
-  if($paireddiff)      set cmd = ($cmd --paired-diff);
-  if($paireddiffnorm)  set cmd = ($cmd --paired-diff-norm);
-  if($paireddiffnorm1) set cmd = ($cmd --paired-diff-norm1);
-  if($paireddiffnorm2) set cmd = ($cmd --paired-diff-norm2);
-  if($catmean)         set cmd = ($cmd --mean);
-  if($catstd)          set cmd = ($cmd --std);
+  if($paireddiff)      set cmd = ($cmd --paired-diff --prune);
+  if($paireddiffnorm)  set cmd = ($cmd --paired-diff-norm --prune);
+  if($paireddiffnorm1) set cmd = ($cmd --paired-diff-norm1 --prune);
+  if($paireddiffnorm2) set cmd = ($cmd --paired-diff-norm2 --prune);
+  if($catmean)         set cmd = ($cmd --mean --prune);
+  if($catstd)          set cmd = ($cmd --std --prune);
   echo "-----------------------"| tee -a $LF
   echo $cmd | tee -a $LF
   if($RunIt) $cmd |& tee -a $LF
@@ -469,6 +471,10 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set srchemi = $argv[1]; shift;
       set trghemi = $srchemi;
+      breaksw
+
+    case "--no-mask-non-cortex":
+      set V2SMaskNonCtx = 0;
       breaksw
 
     case "--srchemi":
@@ -928,6 +934,7 @@ usage_exit:
   echo ""
   echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
   echo "  --projfrac frac : projection fraction for vol2surf"
+  echo "  --no-mask-non-cortex : do not mask out non-cortex in vol2surf"
   echo ""
   echo "  --sf sessfile        : fsfast session file"
   echo "  --df sessdirfile     : fsfast session directory file"
@@ -1058,6 +1065,8 @@ The registration matrix file is of the type accepted/created by
 tkregister2. The volume is sampled to the surface, and the result is
 used as the input surface measure. This is an alternative to
 using --meas. This still requires that a subject list be supplied.
+The non-cortical area (eg in the medial wall) is set to 0 unless
+--no-mask-non-cortex is specified.
 
 --projfrac projfrac
 
@@ -1098,7 +1107,9 @@ Allow medial wall values to smooth into cortex (default).
 
 After concatenating all the inputs together, create a new output file by
 computing paired differences, ie, Input1-Input2, Input3-Input4, etc.
-There must be an even number of inputs.
+There must be an even number of inputs. The inputs are "pruned" before
+taking the difference, meaning that values for all inputs are set to 0
+if any individual is 0.
 
 --paired-diff-norm
 
