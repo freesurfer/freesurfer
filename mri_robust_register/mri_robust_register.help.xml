@@ -29,7 +29,7 @@
 			<argument>--iscale </argument>
 			<explanation>estimate intensity scale factor (default no). Highly recommended for unnormalized images!</explanation>
 			<argument>--iscaleout &lt;fname.txt&gt;</argument>
-			<explanation>output file for iscale value (only with --iscale). Default: &lt;reg&gt;-intensitiy.txt (with &lt;reg&gt; from --lta reg.lta)</explanation>
+			<explanation>output txt file for iscale value (will activate --iscale). Default: no iscale output</explanation>
 
 			<argument>--transonly</argument>
 			<explanation>find 3 parameter translation only</explanation>

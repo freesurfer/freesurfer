@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 22:20:37 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/09/17 19:29:52 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -132,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.40 2010/08/31 22:20:37 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.41 2010/09/17 19:29:52 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -308,15 +308,16 @@ int main(int argc, char *argv[])
   getVolGeom(P.mri_dst, &lta->xforms[0].dst);
   LTAwriteEx(lta, reg) ;
 
-  if (R.isIscale() && Md.second >0)
+  if (R.isIscale() && Md.second >0 && P.iscaleout != "")
+//  if (R.isIscale() && Md.second >0)
   {
-    string fn;
-    if (P.iscaleout != "") fn = P.iscaleout;
-    else fn = R.getName() + "-intensity.txt";
-    ofstream f(fn.c_str(),ios::out);
+    //string fn;
+    //if (P.iscaleout != "") fn = P.iscaleout;
+    //else fn = R.getName() + "-intensity.txt";
+    //ofstream f(fn.c_str(),ios::out);
+    ofstream f(P.iscaleout.c_str(),ios::out);
     f << Md.second;
     f.close();
-
   }
 
   //  MatrixWriteTxt("xform.txt",Md.first);
@@ -1338,11 +1339,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.iscaleout = string(argv[1]);
     nargs = 1 ;
-    cout << "--iscaleout: Will ouput intensity scale to "<<P.iscaleout <<  endl;
+		P.iscale = true;
+    cout << "--iscaleout: Will do --iscale and ouput intensity scale to "<<P.iscaleout <<  endl;
   }
   else
   {
-    cerr << "Option: " << argv[0] << " unknown !! " << endl;
+    cerr << endl << endl << "ERROR: Option: " << argv[0] << " unknown !! " << endl << endl;
     exit(1);
   }
 

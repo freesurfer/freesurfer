@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 22:20:37 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/09/17 19:29:52 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -118,6 +118,8 @@ struct Parameters
 	string conform;
 	bool   doubleprec;
 	bool   oneminusweights;
+	vector < string > iscalein;
+	vector < string > iscaleout;
 };
 
 // Initializations:
@@ -149,7 +151,9 @@ static struct Parameters P =
 	false,
 	"",
 	false,
-	false
+	false,
+  vector < string >(0),
+  vector < string >(0)
 };
 
 
@@ -157,7 +161,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.26 2010/08/31 22:20:37 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.27 2010/09/17 19:29:52 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -230,6 +234,10 @@ int main(int argc, char *argv[])
 	// load initial ltas if set:
 	assert (P.iltas.size () == 0 || P.iltas.size() == P.mov.size());
 	if (P.iltas.size() > 0) assert(MR.loadLTAs(P.iltas)==nin);
+	
+	// load initial iscales if set:
+	assert (P.iscalein.size () == 0 || P.iscalein.size() == P.mov.size());
+	if (P.iscalein.size() > 0) assert(MR.loadIntensities(P.iscalein)==nin);
 
 	if (P.noit) // no registration, only averaging
 	{
@@ -288,24 +296,7 @@ int main(int argc, char *argv[])
   cout << "Writing final transforms (warps etc.)..." << endl;
 	if (P.nltas.size() > 0) MR.writeLTAs(P.nltas,P.lta_vox2vox,P.mean);
 	if (P.nwarps.size() >0) MR.writeWarps(P.nwarps);
-  if (P.iscale && P.nwarps.size() > 0)
-  {
-	  vector < string > nintens(P.nwarps.size());
-	  for (uint i = 0;i<P.nwarps.size();i++)
-		{
-      size_t  pos = P.nwarps[i].rfind(".");    // position of "." in str
-      if (pos!=string::npos)
-      {
-          nintens[i] = P.nwarps[i].substr(0,pos) + "-intensity.txt";
-      }
-      else
-      {
-        cerr << " output warp :  " <<
-          P.nwarps[i] << " should end with .mgz!" << endl;
-        exit (1);
-      }
-	  }
-  }
+  if (P.iscaleout.size() >0) MR.writeIntensities(P.iscaleout);
   if (!P.leastsquares && P.nweights.size() > 0) MR.writeWeights(P.nweights,P.oneminusweights);
 
   ///////////////////////////////////////////////////////////////
@@ -451,6 +442,39 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
     cout << "--lta: Will output LTA transforms" << endl;
+  }
+  else if (!strcmp(option, "ISCALEOUT")   )
+  {
+    nargs = 0;
+    do
+    {
+      option = argv[nargs+1];
+      if (option[0] != '-')
+      {
+        nargs++;
+        P.iscaleout.push_back(string(argv[nargs]));
+      }
+    }
+    while (nargs+1 < argc && option[0] != '-');
+    assert(nargs > 0);
+		P.iscale = true;
+    cout << "--iscaleout: Will perform intensity scaling and output results" << endl;
+  }
+  else if (!strcmp(option, "ISCALEIN")   )
+  {
+    nargs = 0;
+    do
+    {
+      option = argv[nargs+1];
+      if (option[0] != '-')
+      {
+        nargs++;
+        P.iscalein.push_back(string(argv[nargs]));
+      }
+    }
+    while (nargs+1 < argc && option[0] != '-');
+    assert(nargs > 0);
+    cout << "--iscalein: Will use init intensity scales" << endl;
   }
   else if (!strcmp(option, "IXFORMS")   )
   {
@@ -639,7 +663,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   }
   else
   {
-    cerr << "ERROR: Option " << argv[0] << " unknown !!! " << endl << endl;
+    cerr << endl << endl << "ERROR: Option " << argv[0] << " unknown !!! " << endl << endl;
     printUsage();
     exit(1);
   }
@@ -683,10 +707,31 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
          << endl;
     exit(1);
   }
+  if (P.iltas.size() > 0 && P.mov.size() != P.iltas.size())
+  {
+    ntest = false;
+    cerr << " No. of filnames for --ixforms should agree with no. of inputs!"
+         << endl;
+    exit(1);
+  }
   if (P.nweights.size() > 0 && P.mov.size() != P.nweights.size())
   {
     ntest = false;
     cerr << " No. of filnames for --weights should agree with no. of inputs!"
+         << endl;
+    exit(1);
+  }
+  if (P.iscalein.size() > 0 && P.iltas.size() != P.iscalein.size())
+  {
+    ntest = false;
+    cerr << " No. of filnames for --iscalein should agree with no. of init LTAs (--ixforms)!"
+         << endl;
+    exit(1);
+  }
+  if (P.iscaleout.size() > 0 && P.mov.size() != P.iscaleout.size())
+  {
+    ntest = false;
+    cerr << " No. of filnames for --iscaleout should agree with no. of inputs!"
          << endl;
     exit(1);
   }

@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 22:20:37 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/09/17 19:29:52 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -82,6 +82,7 @@ public:
 
    int loadMovables(const std::vector < std::string > mov);
 	 int loadLTAs(const std::vector < std::string > nltas);
+	 int loadIntensities(const std::vector < std::string > nintens);
 	 void clear();
 	 
   // Set parameters:
@@ -154,6 +155,7 @@ private:
 	// copy of input filenames
 	std::vector <std::string > mov;
 	std::vector <std::string > iltas;
+	std::vector <std::string > iintens;
 	
 	// copy of output filenames
   //std::string mean;
