@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/16 17:25:05 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/09/20 19:14:58 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -204,12 +204,16 @@ wxString ToolWindowMeasure::GetLabelStats()
   {
     int nPlane = MainWindow::GetMainWindowPointer()->GetMainViewId();
     std::vector<int> ids, numbers;
-    std::vector<double> means, stds;
-    mri->GetLabelStats( label, nPlane, ids, numbers, means, stds );
-    strg << "Id \tCount \t Mean\n";
+    std::vector<double> means, sds;
+    mri->GetLabelStats( label, nPlane, ids, numbers, means, sds );
+    strg << "Id \tCount \tMean +/-SD\n";
     for ( size_t i = 0; i < ids.size(); i++ )
     {
-      strg << ids[i] << " \t" << numbers[i] << " \t" << means[i] << "\n";
+      wxString snum;
+      snum << numbers[i];
+      if ( snum.size() < 4 )
+        snum.Pad( (4-snum.size())*2 );
+      strg << ids[i] << " \t" << snum << " \t" << means[i] << " +/-" << sds[i] << "\n";
     }
   }
   

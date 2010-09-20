@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/13 20:46:32 $
- *    $Revision: 1.86 $
+ *    $Date: 2010/09/20 19:14:58 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2083,6 +2083,16 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
       }
       double dmean = dvalue / labels[n].count;
       means.push_back( dmean );
+      double sd = 0;
+      for ( int i = 0; i < labels[n].count; i++ )
+      {
+        sd += (labels[n].values[i]-dmean)*(labels[n].values[i]-dmean);
+      }
+      if ( labels[n].count > 1 )
+        sd = sqrt( sd / ( labels[n].count-1 ) );
+      else
+        sd = 0;  
+      stds.push_back( sd );     
     }
   }
 }
