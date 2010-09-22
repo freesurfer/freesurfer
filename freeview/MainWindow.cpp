@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/16 17:25:05 $
- *    $Revision: 1.144 $
+ *    $Date: 2010/09/22 19:39:37 $
+ *    $Revision: 1.145 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -794,7 +794,9 @@ void MainWindow::SaveVolumeAs()
 
 void MainWindow::LoadVolume()
 {
-  DialogLoadVolume dlg( this, GetLayerCollection( "MRI" )->IsEmpty() );
+  bool bHasVolume = !GetLayerCollection( "MRI" )->IsEmpty();
+  bool bHasSurface = !GetLayerCollection( "Surface" )->IsEmpty();
+  DialogLoadVolume dlg( this, !(bHasVolume || bHasSurface) );
   dlg.SetLastDir( AutoSelectLastDir( m_strLastDir, _("mri") ) );
   wxArrayString list;
   for ( size_t i = 0; i < m_fileHistory->GetCount(); i++ )
@@ -825,7 +827,7 @@ void MainWindow::LoadVolume()
       
       script.Add( fn );
   
-      if ( ( GetLayerCollection( "MRI" )->IsEmpty() && dlg.IsToResample() ) || m_bResampleToRAS )
+      if ( (!bHasVolume && bHasSurface) || (!bHasVolume && dlg.IsToResample()) || m_bResampleToRAS )
         script.Add( _("r") );
   
       AddScript( script );
