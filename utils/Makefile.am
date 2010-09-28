@@ -355,7 +355,8 @@ libutils_cuda_a_SOURCES=\
         gcamorphgpu.cu\
         gcamorphenergygpu.cu\
         gcamfots_cuda.cu\
-        gcamorphtermgpu.cu
+        gcamorphtermgpu.cu\
+        gcamorphcpu.cpp
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) $(CUDA_GCA_CFLAGS)
 
@@ -370,6 +371,7 @@ gcamorphgpu.o: $(CUDA_DEPS) ../include/volumegpucompare.hpp
 cudatypeutils.o: ../include/cudatypeutils.hpp
 gcamorphenergygpu.o: $(CUDA_DEPS)
 gcamorphtermgpu.o: $(CUDA_DEPS)
+gcamorphcpu.o: ../include/gcamorphcpu.hpp $(CUDA_DEPS)
 
 CALLDEPTH ?= -1
 

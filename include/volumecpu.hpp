@@ -13,8 +13,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/28 16:44:28 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/09/28 18:38:27 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,8 +31,11 @@
 
 
 #include <cstdlib>
-
+#include <cstring>
 #include <iostream>
+
+#ifndef VOLUME_CPU_HPP
+#define VOLUME_CPU_HPP
 
 namespace Freesurfer {
 
@@ -105,6 +108,7 @@ namespace Freesurfer {
     }
 
     // --------------------------------
+    // Memory management
 
     //! Allocates storage of given dimensions
     void Allocate( const unsigned int xn,
@@ -141,12 +145,52 @@ namespace Freesurfer {
       }
     }
 
+    //! Size of the buffer
+    size_t BufferSize( void ) const {
+      size_t mem;
+      mem = this->nx * this->ny * this->nz;
+      return( mem );
+    }
+
+    // -------------------------------
+    // Data transfer
+
+    //! Send a buffer to the class
+    void SendBuffer( const T* const buffer ) {
+      memcpy( this->data, buffer, this->BufferSize() );
+    }
+
+    //! Retrieve a buffer from the class
+    void RecvBuffer( T* const buffer ) const {
+      memcpy( buffer, this->data, this->BufferSize() );
+    }
 
 
   private:
     unsigned int nx, ny, nz;
     T* data;
+
+    //! Hidden copy constructor
+    VolumeCPU( const VolumeCPU& src ) : nx(0), ny(0), nz(0),
+					data(NULL) {
+      std::cerr << __FUNCTION__
+		<< ": Please don't use copy constructor"
+		<< std::endl;
+      exit( EXIT_FAILURE );
+    }
+
+    //! Hidden assignment operator
+    VolumeCPU& operator=( const VolumeCPU& src ) {
+      std::cerr << __FUNCTION__
+		<< ": Please don't use assignment operator"
+		<< std::endl;
+      exit( EXIT_FAILURE );
+    }
+
   };
 
 
 }
+
+
+#endif
