@@ -13,8 +13,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/28 18:38:27 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/09/28 19:40:22 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -135,7 +135,7 @@ namespace Freesurfer {
     }
 
     //! Releases memory
-    void Relase( void ) {
+    void Release( void ) {
       if( this->data != NULL ) {
 	this->nx = 0;
 	this->ny = 0;
@@ -151,6 +151,30 @@ namespace Freesurfer {
       mem = this->nx * this->ny * this->nz;
       return( mem );
     }
+
+    //! Accessor for dimensions
+    void GetDims( unsigned int& x, unsigned int& y, unsigned int& z ) const {
+      x = this->nx;
+      y = this->ny;
+      z = this->nz;
+    }
+
+
+    //! Check for dimension match
+    template<typename U>
+    bool MatchDims( const VolumeCPU<U>& src ) const {
+      bool match;
+
+      unsigned int srcx, srcy, srcz;
+      src.GetDims( srcx, srcy, srcz );
+
+      match = ( this->nx == srcx );
+      match = match && ( this->ny == srcy );
+      match = match && ( this->nz == srcz );
+
+      return( match );
+    }
+
 
     // -------------------------------
     // Data transfer

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/28 18:38:27 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/09/28 19:40:22 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@
 #include <cuda_runtime.h>
 #include "gcamorphgpu.hpp"
 
-#include "volumegpu.hpp"
+#include "volumecpu.hpp"
 
 // =================================
 
@@ -80,6 +80,28 @@ namespace Freesurfer {
     //! Destructor
     ~GCAmorphCPU( void ) {};
 
+
+    // ----------------------------------
+
+    //! Routine to verify sizes
+    void CheckIntegrity( void ) const;
+
+
+    // ----------------------------------
+    
+    void AllocateAll( const unsigned int nx,
+		      const unsigned int ny,
+		      const unsigned int nz );
+
+    // ----------------------------------
+
+    //! Get data from the GPU
+    void GetFromGPU( const GPU::Classes::GCAmorphGPU& src );
+    
+    //! Return data to the GPU
+    void PutOnGPU( GPU::Classes::GCAmorphGPU& dst ) const;
+    
+    
   };
 
 }

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/06 17:08:06 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/09/28 19:40:25 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -422,7 +422,7 @@ namespace GPU {
       this->d_labelDist.RecvBuffer( GCAmorphGPU::h_labelDist );
 
       this->d_mean.RecvBuffer( GCAmorphGPU::h_mean );
-      this->d_variance.RecvBuffer(GCAmorphGPU:: h_variance );
+      this->d_variance.RecvBuffer( GCAmorphGPU:: h_variance );
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
       GCAmorphGPU::tRecvTransfer.Stop();
 
