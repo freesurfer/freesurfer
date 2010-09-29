@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/10 20:24:50 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/09/29 17:17:15 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -752,11 +752,12 @@ void PanelSurface::OnChoiceOverlay( wxCommandEvent& event )
     {
       surf->SetActiveOverlay( nSel );
     }
-    else
+    else 
     {
       // load new overlay map
        MainWindow::GetMainWindowPointer()->LoadSurfaceOverlay();
     }
+
     UpdateUI();
   }  
 }

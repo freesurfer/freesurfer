@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/09/29 17:17:15 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -443,6 +443,15 @@ void RenderView3D::DoUpdateRASPosition( int posX, int posY, bool bCursor )
   }
 }
 
+void RenderView3D::UpdateSurfaceCorrelationData()
+{
+  std::vector<Layer*> layers = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetLayers();
+  for ( size_t i = 0; i < layers.size(); i++ )
+  {
+    ((LayerSurface*)layers[i])->UpdateCorrelationOverlay();
+  }
+}
+
 vtkProp* RenderView3D::PickProp( int posX, int posY, double* pos_out )
 {
   vtkCellPicker* picker = vtkCellPicker::SafeDownCast( this->GetPicker() );
@@ -629,6 +638,7 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void
   else if ( iMsg == "SlicePositionChanged" )
   {  
     UpdateSliceFrames();
+    UpdateSurfaceCorrelationData();
   }
   else if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerTransformed" )
   {

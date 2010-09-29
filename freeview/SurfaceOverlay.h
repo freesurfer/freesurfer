@@ -10,8 +10,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/18 21:21:04 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/09/29 17:17:15 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,6 +34,11 @@
 #include "Broadcaster.h"
 #include "Listener.h"
 #include <string>
+
+extern "C"
+{
+#include "mri.h"
+}
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
@@ -80,6 +85,15 @@ public:
     range[1] = m_dMaxValue;
   }
   
+  bool LoadCorrelationData( const char* filename );
+  
+  bool HasCorrelationData()
+  {
+    return m_bCorrelationData;
+  }
+  
+  void UpdateCorrelationAtVertex( int nVertex );
+  
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
   
@@ -92,6 +106,10 @@ private:
   std::string   m_strName;
   SurfaceOverlayProperties* m_properties;
   LayerSurface* m_surface;
+  
+  bool        m_bCorrelationData;
+  bool        m_bCorrelationDataReady;
+  MRI*        m_mriCorrelation;
 };
 
 #endif

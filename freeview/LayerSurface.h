@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/08 17:43:26 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/09/29 17:17:14 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -201,6 +201,11 @@ public:
   
   void Undo();
   bool HasUndo();
+  
+  bool LoadCorrelationFromFile( const char* filename );
+  
+  void UpdateCorrelationOverlayAtVertex( int nVertex );
+  void UpdateCorrelationOverlay();
 
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );

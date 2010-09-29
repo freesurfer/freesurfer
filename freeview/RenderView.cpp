@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.32 $
+ *    $Date: 2010/09/29 17:17:15 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -179,8 +179,8 @@ void RenderView::InitializeRenderView()
   vtkSmartPointer<vtkLightKit> lights = vtkSmartPointer<vtkLightKit>::New();
   lights->AddLightsToRenderer( m_renderer );
 //  lights->SetKeyLightIntensity( lights->GetKeyLightIntensity() * 1.1 );
-  lights->SetKeyLightAngle( 35, 10 );
-  lights->SetKeyLightWarmth( 0.5 );
+//  lights->SetKeyLightAngle( 35, 10 );
+//  lights->SetKeyLightWarmth( 0.5 );
 }
 
 RenderView* RenderView::New()

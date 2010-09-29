@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/29 20:41:50 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/09/29 17:17:15 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -106,6 +106,8 @@ public:
   
   int PickCell( vtkProp* prop, int posX, int posY, double* pos_out = NULL );
   
+  void UpdateSurfaceCorrelationData();
+  
 protected:
   void OnInternalIdle();
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
@@ -118,6 +120,7 @@ protected:
   
   void PreScreenshot();
   void PostScreenshot();
+  
 
 private:
   void InitializeRenderView3D();

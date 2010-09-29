@@ -11,8 +11,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/09/18 21:21:04 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/09/29 17:17:15 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2007-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -39,11 +39,14 @@
 #include "FSSurface.h"
 #include <wx/filename.h>
 
+
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
     Broadcaster( "SurfaceOverlay" ),
     Listener( "SurfaceOverlay" ),
     m_fData( NULL ),
-    m_surface( surf )
+    m_surface( surf ),
+    m_bCorrelationData( false ),
+    m_mriCorrelation( NULL )
 {
   InitializeData();  
   
@@ -57,6 +60,10 @@ SurfaceOverlay::~SurfaceOverlay ()
     delete[] m_fData;
   
   delete m_properties;
+  if ( m_mriCorrelation )
+  {
+    MRIfree( &m_mriCorrelation );
+  }
 }
 
 void SurfaceOverlay::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
@@ -91,6 +98,49 @@ void SurfaceOverlay::InitializeData()
   }
 }
 
+bool SurfaceOverlay::LoadCorrelationData( const char* filename )
+{
+  MRI* mri = ::MRIreadHeader( filename, -1 ); 
+  if ( mri == NULL )
+  {
+    cerr << "MRIread failed" << endl;
+    return false;
+  }
+  if ( mri->width != m_nDataSize*2 || mri->height != m_nDataSize*2 )
+  {
+    cerr << "Correlation data does not match with surface" << endl;
+    MRIfree( &mri );
+    return false;
+  }
+  MRIfree( &mri );
+  mri = ::MRIread( filename );      // long process
+  if ( mri == NULL )
+  {
+    cerr << "MRIread failed" << endl;
+    return false;
+  }
+  m_mriCorrelation = mri;
+  m_bCorrelationData = true;
+  m_bCorrelationDataReady = false;
+  
+  return true;
+}
+
+void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex )
+{
+  int nOffset = m_surface->GetHemisphere() * m_nDataSize;
+  m_dMaxValue = m_dMinValue = MRIFseq_vox( m_mriCorrelation, nOffset, nVertex + nOffset, 0, 0 );
+  for ( int i = 0; i < m_nDataSize; i++ )
+  {
+    m_fData[i] = MRIFseq_vox( m_mriCorrelation, i + nOffset, nVertex + nOffset, 0, 0 );
+    if ( m_dMaxValue < m_fData[i] )
+      m_dMaxValue = m_fData[i];
+    else if ( m_dMinValue > m_fData[i] )
+      m_dMinValue = m_fData[i];
+  }
+  m_bCorrelationDataReady = true;
+}
+
 const char* SurfaceOverlay::GetName()
 {
   return m_strName.c_str();
@@ -103,7 +153,8 @@ void SurfaceOverlay::SetName( const char* name )
 
 void SurfaceOverlay::MapOverlay( unsigned char* colordata )
 {
-  m_properties->MapOverlayColor( colordata, m_nDataSize );
+  if ( !m_bCorrelationData || m_bCorrelationDataReady )
+    m_properties->MapOverlayColor( colordata, m_nDataSize );
 }
 
 double SurfaceOverlay::GetDataAtVertex( int nVertex )

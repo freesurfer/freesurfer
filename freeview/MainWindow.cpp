@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/22 19:39:37 $
- *    $Revision: 1.145 $
+ *    $Date: 2010/09/29 17:17:14 $
+ *    $Revision: 1.146 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -4923,7 +4923,12 @@ void MainWindow::LoadSurfaceOverlayFile( const wxString& filename )
   LayerSurface* layer = ( LayerSurface* )GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( layer )
   {
-    layer->LoadOverlayFromFile( fn.char_str() );
+    if ( MyUtils::HasExtension( fn, "mgh" ) || MyUtils::HasExtension( fn, "mgz" ) ||
+         MyUtils::HasExtension( fn, "nii" ) || MyUtils::HasExtension( fn, "nii.gz" ) ||
+         MyUtils::HasExtension( fn, "mnc" ) || MyUtils::HasExtension( fn, "img" ) )
+      layer->LoadCorrelationFromFile( fn.char_str() );
+    else
+      layer->LoadOverlayFromFile( fn.char_str() );
 //    m_strLastDir = MyUtils::GetNormalizedPath( filename );
   }
 }
