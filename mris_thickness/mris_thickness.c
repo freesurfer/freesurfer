@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/08/04 01:51:36 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/09/29 17:23:47 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #include "version.h"
 #include "icosahedron.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.19 2010/08/04 01:51:36 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.20 2010/09/29 17:23:47 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -71,6 +71,8 @@ static int fmin_thick = 0 ;
 static float laplace_res = 0.5 ;
 static int laplace_thick = 0 ;
 static INTEGRATION_PARMS parms ;
+
+static char *long_fname = NULL ;
 
 #include "voxlist.h"
 #include "mrinorm.h"
@@ -310,7 +312,7 @@ main(int argc, char *argv[]) {
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.19 2010/08/04 01:51:36 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.20 2010/09/29 17:23:47 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -562,7 +564,70 @@ main(int argc, char *argv[]) {
       }
       MRISwriteNormals(mris, fname) ;
     }
-      
+    if (long_fname)
+    {
+      char line[STRLEN], subject[STRLEN], fname[STRLEN], base_name[STRLEN], *cp,
+        tmp[STRLEN], out_fname_only[STRLEN] ;
+      int  ntimepoints, vno ;
+      FILE *fp ;
+      VERTEX *v ;
+      MHT   *mht ;
+
+      MRIScopyCurvatureToImagValues(mris) ; // save base thickness 
+      // to lookup closest face
+      mht = MHTfillTableAtResolution(mris, NULL, CANONICAL_VERTICES, 1.0); 
+
+      fp = fopen(long_fname, "r") ;
+      strcpy(tmp, long_fname) ;
+      cp = strrchr(tmp, '/') ;
+      if (cp == NULL)
+        ErrorExit(ERROR_BADPARM, "could not read trailing / from %s", tmp) ;
+      *cp = 0 ;
+      cp = strrchr(tmp, '/') ;
+      if (cp == NULL)
+        cp = tmp-1 ;
+      strcpy(base_name, cp+1) ;
+      ntimepoints = 0 ;
+      do
+      {
+        if (fgetl(line, STRLEN-1, fp) == NULL)
+          break ;
+        sscanf(line, "%s", subject) ;
+        printf("processing longitudinal subject %s\n", subject) ;
+        sprintf(fname, "%s/%s.long.%s/surf/%s.%s", sdir, subject, base_name, hemi, 
+                white_name) ;
+        if (MRISreadWhiteCoordinates(mris, fname) != NO_ERROR)
+          ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
+        sprintf(fname, "%s/%s.long.%s/surf/%s.%s", sdir, subject, base_name, hemi, 
+                pial_name) ;
+        if (MRISreadPialCoordinates(mris, fname) != NO_ERROR)
+          ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
+        for (vno = 0 ; vno < mris->nvertices ; vno++)
+        {
+          float   xw, yw, zw, xp, yp, zp, thick ;
+          
+          v = &mris->vertices[vno] ;
+          if (vno == Gdiag_no)
+            DiagBreak() ;
+          if (v->ripflag)
+          {
+            v->tx = v->whitex ; v->ty = v->whitey ; v->tz = v->whitez ;
+            continue ;
+          }
+          MRISvertexCoord2XYZ_float(v, WHITE_VERTICES, &xw, &yw, &zw) ;
+          MRISsampleFaceCoordsCanonical(mht, mris, v->x, v->y, v->z, 
+                                        PIAL_VERTICES, &xp, &yp, &zp);
+          thick = sqrt(SQR(xp-xw) + SQR(yp-yw) + SQR(zp-zw)) ;
+          v->curv = thick ; v->tx = xp ; v->ty = yp ; v->tz = zp ;
+        }
+        FileNameOnly(out_fname, out_fname_only) ;
+        sprintf(fname, "%s/%s.long.%s/surf/%s", sdir, subject, base_name, out_fname_only);
+        printf("writing thickness estimate to %s\n", fname) ;
+        MRISwriteCurvature(mris, fname) ;
+      } while (strlen(line) > 0) ;
+      MHTfree(&mht) ;
+      MRIScopyImagValuesToCurvature(mris) ; // restore base  thickness 
+    }
   }
   else if (write_vertices) {
     MRISfindClosestOrigVertices(mris, nbhd_size) ;
@@ -599,6 +664,13 @@ get_option(int argc, char *argv[]) {
     print_usage() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "long"))
+  {
+    long_fname = argv[2] ;
+    nargs = 1 ;
+    printf("computing longitudinal thickness from time points found in %s\n",
+           long_fname) ;
+  }
   else if (!stricmp(option, "pial")) {
     strcpy(pial_name, argv[2]) ;
     fprintf(stderr,  "reading pial surface from file named %s\n", pial_name) ;
