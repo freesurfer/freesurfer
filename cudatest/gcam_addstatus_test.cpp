@@ -138,4 +138,6 @@ int main( int argc, char *argv[] ) {
   // ====================================
   // Release
   GCAMfree( &gcam );
+
+  return( EXIT_SUCCESS );
 }

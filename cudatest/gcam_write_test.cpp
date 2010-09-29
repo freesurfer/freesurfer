@@ -116,13 +116,17 @@ int main( int argc, char *argv[] ) {
     if( linearCPU ) {
       Freesurfer::GCAmorphCPU myCPUgcam;
 
+      // Allocate space
+      myCPUgcam.AllocateFromTemplate( myGCAM );
+
+      // Get from the GPU
       myCPUgcam.GetFromGPU( myGCAM );
 
-      GPU::Classes::GCAmorphGPU::RandomiseHost();
+      // Clear the GPU data
+      myGCAM.ClearAll();
 
+      // Return to the GPU
       myCPUgcam.PutOnGPU( myGCAM );
-
-      GPU::Classes::GCAmorphGPU::RandomiseHost();
     }
 
     // Retrieve from the GPU
@@ -142,4 +146,6 @@ int main( int argc, char *argv[] ) {
   PrintGPUtimers();
   GPU::Classes::GCAmorphGPU::ReleaseHost();
 #endif
+
+  return( EXIT_SUCCESS );
 }

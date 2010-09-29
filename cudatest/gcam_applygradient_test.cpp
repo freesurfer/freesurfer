@@ -148,4 +148,6 @@ int main( int argc, char *argv[] ) {
 #ifdef FS_CUDA
   PrintGPUtimers();
 #endif
+
+  return( EXIT_SUCCESS );
 }

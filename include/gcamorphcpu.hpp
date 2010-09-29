@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 17:59:10 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/09/29 20:12:00 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,6 +91,8 @@ namespace Freesurfer {
 
     // ----------------------------------
     
+    void AllocateFromTemplate( const GPU::Classes::GCAmorphGPU& src );
+
     void AllocateAll( const unsigned int nx,
 		      const unsigned int ny,
 		      const unsigned int nz );

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 17:59:15 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/09/29 20:12:02 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,6 +78,16 @@ namespace Freesurfer {
 
   // -----------------------------
 
+  void GCAmorphCPU::AllocateFromTemplate( const GPU::Classes::GCAmorphGPU& src ) {
+    src.CheckIntegrity();
+
+    const dim3 dims = src.d_rx.GetDims();
+
+    this->AllocateAll( dims.x, dims.y, dims.z );
+  }
+
+
+
   void GCAmorphCPU::AllocateAll( const unsigned int nx,
 				 const unsigned int ny,
 				 const unsigned int nz ) {
@@ -121,93 +131,63 @@ namespace Freesurfer {
   void GCAmorphCPU::GetFromGPU( const GPU::Classes::GCAmorphGPU& src ) {
     /*!
       Retrieves linearly packed data from the GPU.
-      Assumes that the GCAmorphGPU has already allocated its page-locked
-      memory
+      Assumes that the current object has already allocated its memory
     */
-
+    
     GCAmorphCPU::tGetTot.Start();
 
-    // Get the data to page-locked memory
-    GCAmorphCPU::tGetPCIe.Start();
-    src.d_rx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_rx );
-    src.d_ry.RecvBuffer( GPU::Classes::GCAmorphGPU::h_ry );
-    src.d_rz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_rz );
+    src.CheckIntegrity();
+    this->CheckIntegrity();
 
-    src.d_origx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origx );
-    src.d_origy.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origy );
-    src.d_origz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origz );
-    
-    src.d_dx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_dx );
-    src.d_dy.RecvBuffer( GPU::Classes::GCAmorphGPU::h_dy );
-    src.d_dz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_dz );
-    
-    src.d_odx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_odx );
-    src.d_ody.RecvBuffer( GPU::Classes::GCAmorphGPU::h_ody );
-    src.d_odz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_odz );
-    
-    src.d_origArea.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origArea );
-    src.d_origArea1.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origArea1 );
-    src.d_origArea2.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origArea2 );
-    
-    src.d_area.RecvBuffer( GPU::Classes::GCAmorphGPU::h_area );
-    src.d_area1.RecvBuffer( GPU::Classes::GCAmorphGPU::h_area1 );
-    src.d_area2.RecvBuffer( GPU::Classes::GCAmorphGPU::h_area2 );
-
-    src.d_invalid.RecvBuffer( GPU::Classes::GCAmorphGPU::h_invalid );
-    src.d_status.RecvBuffer( GPU::Classes::GCAmorphGPU::h_status );
-    src.d_label.RecvBuffer( GPU::Classes::GCAmorphGPU::h_label );
-    src.d_labelDist.RecvBuffer( GPU::Classes::GCAmorphGPU::h_labelDist );
-    
-    src.d_mean.RecvBuffer( GPU::Classes::GCAmorphGPU::h_mean );
-    src.d_variance.RecvBuffer( GPU::Classes::GCAmorphGPU:: h_variance );
-
-    // Wait for transfers
-    CUDA_SAFE_CALL( cudaThreadSynchronize() );
-    GCAmorphCPU::tGetPCIe.Stop();
-
-    // Allocate CPU memory
-    this->AllocateAll( GPU::Classes::GCAmorphGPU::hostDims.x,
-		       GPU::Classes::GCAmorphGPU::hostDims.y,
-		       GPU::Classes::GCAmorphGPU::hostDims.z );
+    const dim3 srcDims = src.d_rx.GetDims();
+    unsigned int myx, myy, myz;
+    this->rx.GetDims( myx, myy, myz );
+    if( (srcDims.x != myx) ||
+	(srcDims.y != myy) ||
+	(srcDims.z != myz) ) {
+      std::cerr << __FUNCTION__
+		<< ": Dimension mismatch!" << std::endl;
+      exit( EXIT_FAILURE );
+    }
 
     // Copy scalars
     this->exp_k = src.exp_k;
     this->neg = src.neg;
     
-    // Transfer to internal buffers
-    GCAmorphCPU::tGetCPU.Start();
-    this->rx.SendBuffer( GPU::Classes::GCAmorphGPU::h_rx );
-    this->ry.SendBuffer( GPU::Classes::GCAmorphGPU::h_ry );
-    this->rz.SendBuffer( GPU::Classes::GCAmorphGPU::h_rz );
+    // Do the PCIe thing
+    this->rx.PullGPU( src.d_rx );
+    this->ry.PullGPU( src.d_ry );
+    this->rz.PullGPU( src.d_rz );
 
-    this->origx.SendBuffer( GPU::Classes::GCAmorphGPU::h_origx );
-    this->origy.SendBuffer( GPU::Classes::GCAmorphGPU::h_origy );
-    this->origz.SendBuffer( GPU::Classes::GCAmorphGPU::h_origz );
+    this->origx.PullGPU( src.d_origx );
+    this->origy.PullGPU( src.d_origy );
+    this->origz.PullGPU( src.d_origz );
 
-    this->dx.SendBuffer( GPU::Classes::GCAmorphGPU::h_dx );
-    this->dy.SendBuffer( GPU::Classes::GCAmorphGPU::h_dy );
-    this->dz.SendBuffer( GPU::Classes::GCAmorphGPU::h_dz );
+    this->dx.PullGPU( src.d_dx );
+    this->dy.PullGPU( src.d_dy );
+    this->dz.PullGPU( src.d_dz );
     
-    this->odx.SendBuffer( GPU::Classes::GCAmorphGPU::h_odx );
-    this->ody.SendBuffer( GPU::Classes::GCAmorphGPU::h_ody );
-    this->odz.SendBuffer( GPU::Classes::GCAmorphGPU::h_odz );
+    this->odx.PullGPU( src.d_odx );
+    this->ody.PullGPU( src.d_ody );
+    this->odz.PullGPU( src.d_odz );
     
-    this->origArea.SendBuffer( GPU::Classes::GCAmorphGPU::h_origArea );
-    this->origArea1.SendBuffer( GPU::Classes::GCAmorphGPU::h_origArea1 );
-    this->origArea2.SendBuffer( GPU::Classes::GCAmorphGPU::h_origArea2 );
+    this->origArea.PullGPU( src.d_origArea );
+    this->origArea1.PullGPU( src.d_origArea1 );
+    this->origArea2.PullGPU( src.d_origArea2 );
     
-    this->area.SendBuffer( GPU::Classes::GCAmorphGPU::h_area );
-    this->area1.SendBuffer( GPU::Classes::GCAmorphGPU::h_area1 );
-    this->area2.SendBuffer( GPU::Classes::GCAmorphGPU::h_area2 );
+    this->area.PullGPU( src.d_area );
+    this->area1.PullGPU( src.d_area1 );
+    this->area2.PullGPU( src.d_area2 );
 
-    this->invalid.SendBuffer( GPU::Classes::GCAmorphGPU::h_invalid );
-    this->status.SendBuffer( GPU::Classes::GCAmorphGPU::h_status );
-    this->label.SendBuffer( GPU::Classes::GCAmorphGPU::h_label );
-    this->labelDist.SendBuffer( GPU::Classes::GCAmorphGPU::h_labelDist );
+    this->invalid.PullGPU( src.d_invalid );
+    this->status.PullGPU( src.d_status );
+    this->label.PullGPU( src.d_label );
+    this->labelDist.PullGPU( src.d_labelDist );
     
-    this->mean.SendBuffer( GPU::Classes::GCAmorphGPU::h_mean );
-    this->variance.SendBuffer( GPU::Classes::GCAmorphGPU:: h_variance );
-    GCAmorphCPU::tGetCPU.Stop();
+    this->mean.PullGPU( src.d_mean );
+    this->variance.PullGPU( src.d_variance );
+
+    CUDA_SAFE_CALL( cudaThreadSynchronize() );
 
     GCAmorphCPU::tGetTot.Stop();
   }
@@ -218,77 +198,55 @@ namespace Freesurfer {
   void GCAmorphCPU::PutOnGPU( GPU::Classes::GCAmorphGPU& dst ) const {
     /*!
       Puts the linearly packed data back on the GPU.
-      Assumes that the GCAmorphGPU already has its page-locked
-      memory allocated.
+      Requires preallocated data
     */
+    
+    dst.CheckIntegrity();
+    this->CheckIntegrity();
+
+    const dim3 dstDims = dst.d_rx.GetDims();
+    unsigned int myx, myy, myz;
+    this->rx.GetDims( myx, myy, myz );
+    if( (dstDims.x != myx) ||
+	(dstDims.y != myy) ||
+	(dstDims.z != myz) ) {
+      std::cerr << __FUNCTION__
+		<< ": Dimension mismatch!" << std::endl;
+      exit( EXIT_FAILURE );
+    }
 
     // Copy data to page-locked memory
-    this->rx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_rx );
-    this->ry.RecvBuffer( GPU::Classes::GCAmorphGPU::h_ry );
-    this->rz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_rz );
+    this->rx.PushGPU( dst.d_rx );
+    this->ry.PushGPU( dst.d_ry );
+    this->rz.PushGPU( dst.d_rz );
 
-    this->origx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origx );
-    this->origy.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origy );
-    this->origz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origz );
+    this->origx.PushGPU( dst.d_origx );
+    this->origy.PushGPU( dst.d_origy );
+    this->origz.PushGPU( dst.d_origz );
 
-    this->dx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_dx );
-    this->dy.RecvBuffer( GPU::Classes::GCAmorphGPU::h_dy );
-    this->dz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_dz );
+    this->dx.PushGPU( dst.d_dx );
+    this->dy.PushGPU( dst.d_dy );
+    this->dz.PushGPU( dst.d_dz );
     
-    this->odx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_odx );
-    this->ody.RecvBuffer( GPU::Classes::GCAmorphGPU::h_ody );
-    this->odz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_odz );
+    this->odx.PushGPU( dst.d_odx );
+    this->ody.PushGPU( dst.d_ody );
+    this->odz.PushGPU( dst.d_odz );
     
-    this->origArea.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origArea );
-    this->origArea1.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origArea1 );
-    this->origArea2.RecvBuffer( GPU::Classes::GCAmorphGPU::h_origArea2 );
+    this->origArea.PushGPU( dst.d_origArea );
+    this->origArea1.PushGPU( dst.d_origArea1 );
+    this->origArea2.PushGPU( dst.d_origArea2 );
     
-    this->area.RecvBuffer( GPU::Classes::GCAmorphGPU::h_area );
-    this->area1.RecvBuffer( GPU::Classes::GCAmorphGPU::h_area1 );
-    this->area2.RecvBuffer( GPU::Classes::GCAmorphGPU::h_area2 );
+    this->area.PushGPU( dst.d_area );
+    this->area1.PushGPU( dst.d_area1 );
+    this->area2.PushGPU( dst.d_area2 );
 
-    this->invalid.RecvBuffer( GPU::Classes::GCAmorphGPU::h_invalid );
-    this->status.RecvBuffer( GPU::Classes::GCAmorphGPU::h_status );
-    this->label.RecvBuffer( GPU::Classes::GCAmorphGPU::h_label );
-    this->labelDist.RecvBuffer( GPU::Classes::GCAmorphGPU::h_labelDist );
+    this->invalid.PushGPU( dst.d_invalid );
+    this->status.PushGPU( dst.d_status );
+    this->label.PushGPU( dst.d_label );
+    this->labelDist.PushGPU( dst.d_labelDist );
     
-    this->mean.RecvBuffer( GPU::Classes::GCAmorphGPU::h_mean );
-    this->variance.RecvBuffer( GPU::Classes::GCAmorphGPU:: h_variance );
-
-
-    // Now, do the GPU transfers
-    
-    dst.d_rx.SendBuffer( GPU::Classes::GCAmorphGPU::h_rx );
-    dst.d_ry.SendBuffer( GPU::Classes::GCAmorphGPU::h_ry );
-    dst.d_rz.SendBuffer( GPU::Classes::GCAmorphGPU::h_rz );
-
-    dst.d_origx.SendBuffer( GPU::Classes::GCAmorphGPU::h_origx );
-    dst.d_origy.SendBuffer( GPU::Classes::GCAmorphGPU::h_origy );
-    dst.d_origz.SendBuffer( GPU::Classes::GCAmorphGPU::h_origz );
-    
-    dst.d_dx.SendBuffer( GPU::Classes::GCAmorphGPU::h_dx );
-    dst.d_dy.SendBuffer( GPU::Classes::GCAmorphGPU::h_dy );
-    dst.d_dz.SendBuffer( GPU::Classes::GCAmorphGPU::h_dz );
-    
-    dst.d_odx.SendBuffer( GPU::Classes::GCAmorphGPU::h_odx );
-    dst.d_ody.SendBuffer( GPU::Classes::GCAmorphGPU::h_ody );
-    dst.d_odz.SendBuffer( GPU::Classes::GCAmorphGPU::h_odz );
-    
-    dst.d_origArea.SendBuffer( GPU::Classes::GCAmorphGPU::h_origArea );
-    dst.d_origArea1.SendBuffer( GPU::Classes::GCAmorphGPU::h_origArea1 );
-    dst.d_origArea2.SendBuffer( GPU::Classes::GCAmorphGPU::h_origArea2 );
-    
-    dst.d_area.SendBuffer( GPU::Classes::GCAmorphGPU::h_area );
-    dst.d_area1.SendBuffer( GPU::Classes::GCAmorphGPU::h_area1 );
-    dst.d_area2.SendBuffer( GPU::Classes::GCAmorphGPU::h_area2 );
-
-    dst.d_invalid.SendBuffer( GPU::Classes::GCAmorphGPU::h_invalid );
-    dst.d_status.SendBuffer( GPU::Classes::GCAmorphGPU::h_status );
-    dst.d_label.SendBuffer( GPU::Classes::GCAmorphGPU::h_label );
-    dst.d_labelDist.SendBuffer( GPU::Classes::GCAmorphGPU::h_labelDist );
-    
-    dst.d_mean.SendBuffer( GPU::Classes::GCAmorphGPU::h_mean );
-    dst.d_variance.SendBuffer( GPU::Classes::GCAmorphGPU:: h_variance );
+    this->mean.PushGPU( dst.d_mean );
+    this->variance.PushGPU( dst.d_variance );
 
     // Copy scalars
     dst.exp_k = this->exp_k;
@@ -312,8 +270,6 @@ namespace Freesurfer {
       std::cout << std::endl;
 
       std::cout << "Get from GPU:" << std::endl;
-      std::cout << "       PCIe : " << GCAmorphCPU::tGetPCIe << std::endl;
-      std::cout << "   CPU copy : " << GCAmorphCPU::tGetCPU << std::endl;
       std::cout << "Total       : " << GCAmorphCPU::tGetTot << std::endl;
       std::cout << std::endl;
 
@@ -323,8 +279,6 @@ namespace Freesurfer {
 
   // Define static members
   SciGPU::Utilities::Chronometer GCAmorphCPU::tGetTot;
-  SciGPU::Utilities::Chronometer GCAmorphCPU::tGetPCIe;
-  SciGPU::Utilities::Chronometer GCAmorphCPU::tGetCPU;
 }
 
 

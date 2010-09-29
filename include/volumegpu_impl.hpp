@@ -10,8 +10,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/03/25 14:42:40 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/09/29 20:12:00 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,8 @@
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#include <cuda_runtime.h>
 
 
 namespace GPU {

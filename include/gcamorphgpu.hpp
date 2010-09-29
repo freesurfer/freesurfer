@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 17:59:10 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/09/29 20:12:00 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -169,6 +169,9 @@ namespace GPU {
 
       //! Releases all the GPU memory
       void ReleaseAll( void );
+
+      //! Zeros out all the memory
+      void ClearAll( void );
 
       // -------------------------------------------
       // Transfer routines

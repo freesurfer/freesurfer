@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 17:59:15 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/09/29 20:12:02 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -202,6 +202,43 @@ namespace GPU {
       this->d_variance.Release();
 
     }
+
+
+
+    void GCAmorphGPU::ClearAll( void ) {
+      this->d_rx.Zero();
+      this->d_ry.Zero();
+      this->d_rz.Zero();
+
+      this->d_dx.Zero();
+      this->d_dy.Zero();
+      this->d_dz.Zero();
+
+      this->d_odx.Zero();
+      this->d_ody.Zero();
+      this->d_odz.Zero();
+
+      this->d_origx.Zero();
+      this->d_origy.Zero();
+      this->d_origz.Zero();
+
+      this->d_origArea.Zero();
+      this->d_origArea1.Zero();
+      this->d_origArea2.Zero();
+
+      this->d_area.Zero();
+      this->d_area1.Zero();
+      this->d_area2.Zero();
+
+      this->d_invalid.Zero();
+      this->d_label.Zero();
+      this->d_status.Zero();
+      this->d_labelDist.Zero();
+
+      this->d_mean.Zero();
+      this->d_variance.Zero();
+    }
+
 
     // --------------------------------------------
 

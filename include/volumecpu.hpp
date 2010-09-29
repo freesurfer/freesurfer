@@ -13,8 +13,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 17:59:11 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/09/29 20:12:00 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,11 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+
+#include <cuda_runtime.h>
+
+
+#include "volumegpu.hpp"
 
 #ifndef VOLUME_CPU_HPP
 #define VOLUME_CPU_HPP
@@ -114,7 +119,6 @@ namespace Freesurfer {
     void Allocate( const unsigned int xn,
 		   const unsigned int yn,
 		   const unsigned int zn ) {
-      
       // Check for prior allocation
       if( this->data != NULL ) {
 	if( (xn == this->nx) &&
@@ -131,7 +135,9 @@ namespace Freesurfer {
       this->ny = yn;
       this->nz = zn;
 
-      this->data = new T[xn*yn*zn];
+      CUDA_SAFE_CALL( cudaHostAlloc( &(this->data),
+				     this->BufferSize(),
+				     cudaHostAllocDefault ) );
     }
 
     //! Releases memory
@@ -140,7 +146,7 @@ namespace Freesurfer {
 	this->nx = 0;
 	this->ny = 0;
 	this->nz = 0;
-	delete[] this->data;
+	CUDA_SAFE_CALL( cudaFreeHost( this->data ) );
 	this->data = NULL;
       }
     }
@@ -179,16 +185,17 @@ namespace Freesurfer {
     // -------------------------------
     // Data transfer
 
-    //! Send a buffer to the class
-    void SendBuffer( const T* const buffer ) {
-      memcpy( this->data, buffer, this->BufferSize() );
+    //! Pulls from VolumeGPU
+    void PullGPU( const GPU::Classes::VolumeGPU<T>& src ) {
+      src.RecvBuffer( this->data );
+      CUDA_SAFE_CALL( cudaThreadSynchronize() );
     }
 
-    //! Retrieve a buffer from the class
-    void RecvBuffer( T* const buffer ) const {
-      memcpy( buffer, this->data, this->BufferSize() );
+    //! Returns data to a VolumeGPU
+    void PushGPU( GPU::Classes::VolumeGPU<T>& dst ) const {
+      dst.SendBuffer( this->data );
+      CUDA_SAFE_CALL( cudaThreadSynchronize() );
     }
-
 
   private:
     unsigned int nx, ny, nz;
