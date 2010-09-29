@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:43:00 $
- *    $Revision: 1.683 $
+ *    $Author: fischl $
+ *    $Date: 2010/09/29 17:47:38 $
+ *    $Revision: 1.684 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.683 2010/08/04 20:43:00 ginsburg Exp $");
+  return("$Id: mrisurf.c,v 1.684 2010/09/29 17:47:38 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -68799,7 +68799,7 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
     v->curv = thick ; v->tx = xp ; v->ty = yp ; v->tz = zp ;
   }
 
-  { MHT *mht = ((MHT *)(parms->mht)) ; MHTfree(&mht) ;}
+  { MHT *mht = ((MHT *)(parms->mht)) ; MHTfree(&mht) ; parms->mht = NULL;}
   return(NO_ERROR) ;
 }
 
