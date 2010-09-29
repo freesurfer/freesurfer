@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/06 17:08:03 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/09/29 17:59:10 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,8 @@
 
 #ifndef GCA_MORPH_GPU_H
 #define GCA_MORPH_GPU_H
+
+#include <cuda_runtime.h>
 
 #include "gcamorph.h"
 
@@ -129,6 +131,7 @@ namespace GPU {
 
       static void AllocateHost( const GCAmorphGPU& gcam );
       static void ReleaseHost( void );
+      static void RandomiseHost( void );
       
 
       // -----------------------------------------
@@ -214,6 +217,7 @@ namespace GPU {
       static SciGPU::Utilities::Chronometer tRecvTot;
       static SciGPU::Utilities::Chronometer tRecvPack, tRecvTransfer;
       static SciGPU::Utilities::Chronometer tHostAlloc, tHostRelease;
+      static SciGPU::Utilities::Chronometer tHostRandomise;
 
       static SciGPU::Utilities::Chronometer tCMPtot;
       static SciGPU::Utilities::Chronometer tCMPcompute;

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/28 19:40:25 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/09/29 17:59:15 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -125,7 +125,10 @@ namespace Freesurfer {
       memory
     */
 
+    GCAmorphCPU::tGetTot.Start();
+
     // Get the data to page-locked memory
+    GCAmorphCPU::tGetPCIe.Start();
     src.d_rx.RecvBuffer( GPU::Classes::GCAmorphGPU::h_rx );
     src.d_ry.RecvBuffer( GPU::Classes::GCAmorphGPU::h_ry );
     src.d_rz.RecvBuffer( GPU::Classes::GCAmorphGPU::h_rz );
@@ -157,10 +160,22 @@ namespace Freesurfer {
     
     src.d_mean.RecvBuffer( GPU::Classes::GCAmorphGPU::h_mean );
     src.d_variance.RecvBuffer( GPU::Classes::GCAmorphGPU:: h_variance );
-    
+
+    // Wait for transfers
     CUDA_SAFE_CALL( cudaThreadSynchronize() );
+    GCAmorphCPU::tGetPCIe.Stop();
+
+    // Allocate CPU memory
+    this->AllocateAll( GPU::Classes::GCAmorphGPU::hostDims.x,
+		       GPU::Classes::GCAmorphGPU::hostDims.y,
+		       GPU::Classes::GCAmorphGPU::hostDims.z );
+
+    // Copy scalars
+    this->exp_k = src.exp_k;
+    this->neg = src.neg;
     
     // Transfer to internal buffers
+    GCAmorphCPU::tGetCPU.Start();
     this->rx.SendBuffer( GPU::Classes::GCAmorphGPU::h_rx );
     this->ry.SendBuffer( GPU::Classes::GCAmorphGPU::h_ry );
     this->rz.SendBuffer( GPU::Classes::GCAmorphGPU::h_rz );
@@ -192,7 +207,9 @@ namespace Freesurfer {
     
     this->mean.SendBuffer( GPU::Classes::GCAmorphGPU::h_mean );
     this->variance.SendBuffer( GPU::Classes::GCAmorphGPU:: h_variance );
+    GCAmorphCPU::tGetCPU.Stop();
 
+    GCAmorphCPU::tGetTot.Stop();
   }
 
 
@@ -273,10 +290,41 @@ namespace Freesurfer {
     dst.d_mean.SendBuffer( GPU::Classes::GCAmorphGPU::h_mean );
     dst.d_variance.SendBuffer( GPU::Classes::GCAmorphGPU:: h_variance );
 
+    // Copy scalars
+    dst.exp_k = this->exp_k;
+    dst.neg = this->neg;
+
     CUDA_SAFE_CALL( cudaThreadSynchronize() );
   }
 
 
+  // ----------------------------------------------
+
+  void GCAmorphCPU::ShowTimings( void ) {
+#ifdef CUDA_SHOW_TIMINGS
+      std::cout << "==================================" << std::endl;
+      std::cout << "GCAmorphCPU timers" << std::endl;
+      std::cout << "------------------" << std::endl;
+#ifndef CUDA_FORCE_SYNC
+      std::cout << "WARNING: CUDA_FORCE_SYNC not #defined" << std::endl;
+      std::cout << "Timings may not be accurate" << std::endl;
+#endif
+      std::cout << std::endl;
+
+      std::cout << "Get from GPU:" << std::endl;
+      std::cout << "       PCIe : " << GCAmorphCPU::tGetPCIe << std::endl;
+      std::cout << "   CPU copy : " << GCAmorphCPU::tGetCPU << std::endl;
+      std::cout << "Total       : " << GCAmorphCPU::tGetTot << std::endl;
+      std::cout << std::endl;
+
+      std::cout << "==================================" << std::endl;
+#endif
+  }
+
+  // Define static members
+  SciGPU::Utilities::Chronometer GCAmorphCPU::tGetTot;
+  SciGPU::Utilities::Chronometer GCAmorphCPU::tGetPCIe;
+  SciGPU::Utilities::Chronometer GCAmorphCPU::tGetCPU;
 }
 
 

@@ -18,6 +18,7 @@ using namespace std;
 #include "gcamorphenergy.hpp"
 #include "gcamorphgpu.hpp"
 #include "gcamorphtermgpu.hpp"
+#include "gcamorphcpu.hpp"
 #endif
 
 // ==============================================
@@ -75,5 +76,6 @@ void PrintGPUtimers( void ) {
   GPU::Classes::GCAmorphGPU::ShowTimings();
   GPU::Algorithms::GCAmorphEnergy::ShowTimings();
   GPU::Algorithms::GCAmorphTerm::ShowTimings();
+  Freesurfer::GCAmorphCPU::ShowTimings();
 #endif
 }

@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/28 19:40:25 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/09/29 17:59:15 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1045,7 +1045,8 @@ namespace GPU {
 
       std::cout << "Host Memory:" << std::endl;
       std::cout << "     Alloc : " << GCAmorphGPU::tHostAlloc << std::endl;
-      std::cout << " Release   : " << GCAmorphGPU::tHostRelease << std::endl;
+      std::cout << "   Release : " << GCAmorphGPU::tHostRelease << std::endl;
+      std::cout << " Randomise : " << GCAmorphGPU::tHostRandomise << std::endl;
       std::cout << std::endl;
 
       std::cout << "Compute Metric Properties:" << std::endl;
@@ -1068,6 +1069,7 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphGPU::tRecvTransfer;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tHostAlloc;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tHostRelease;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tHostRandomise;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tCMPtot;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tCMPcompute;
 
@@ -1101,7 +1103,8 @@ namespace GPU {
 	return;
       }
 
-      std::cerr << __FUNCTION__ << ": Warning - not thread safe!" << std::endl;
+      std::cerr << __FUNCTION__
+		<< ": Warning - not thread safe!" << std::endl;
 
       // Get rid of the old allocation
       GCAmorphGPU::ReleaseHost();
@@ -1147,6 +1150,7 @@ namespace GPU {
 
     }
 
+
     
     void GCAmorphGPU::ReleaseHost( void ) {
 
@@ -1155,7 +1159,8 @@ namespace GPU {
 	return;
       }
 
-      std::cerr << __FUNCTION__ << ": Warning - not thread safe!" << std::endl;
+      std::cerr << __FUNCTION__
+		<< ": Warning - not thread safe!" << std::endl;
 
       GCAmorphGPU::tHostRelease.Start();
 
@@ -1197,6 +1202,71 @@ namespace GPU {
       GCAmorphGPU::tHostRelease.Stop();
     }
 
+
+    
+
+    template<typename T>
+    void RandomArray( T* arr, const size_t nVals ) {
+      
+      for( unsigned int i=0; i<nVals; i++ ) {
+	char randVal = std::rand() % std::numeric_limits<char>::max();
+	arr[i] = static_cast<T>(randVal);
+      }
+
+    }
+
+
+    void GCAmorphGPU::RandomiseHost( void ) {
+
+      // Sanity check
+      if( GCAmorphGPU::hostDims == make_uint3(0,0,0) ) {
+	return;
+      }
+
+      std::cerr << __FUNCTION__
+		<< ": Warning - not thread safe!" << std::endl;
+
+      GCAmorphGPU::tHostRandomise.Start();
+
+      size_t currSize = GCAmorphGPU::hostDims.x *
+	GCAmorphGPU::hostDims.y * GCAmorphGPU::hostDims.z;
+
+      RandomArray( GCAmorphGPU::h_rx, currSize );
+      RandomArray( GCAmorphGPU::h_ry, currSize );
+      RandomArray( GCAmorphGPU::h_rz, currSize );
+
+      
+      RandomArray( GCAmorphGPU::h_origx, currSize );
+      RandomArray( GCAmorphGPU::h_origy, currSize );
+      RandomArray( GCAmorphGPU::h_origz, currSize );
+
+      RandomArray( GCAmorphGPU::h_dx, currSize );
+      RandomArray( GCAmorphGPU::h_dy, currSize );
+      RandomArray( GCAmorphGPU::h_dz, currSize );
+
+      RandomArray( GCAmorphGPU::h_odx, currSize );
+      RandomArray( GCAmorphGPU::h_ody, currSize );
+      RandomArray( GCAmorphGPU::h_odz, currSize );
+
+      RandomArray( GCAmorphGPU::h_origArea, currSize );
+      RandomArray( GCAmorphGPU::h_origArea1, currSize );
+      RandomArray( GCAmorphGPU::h_origArea2, currSize );
+
+      RandomArray( GCAmorphGPU::h_area, currSize );
+      RandomArray( GCAmorphGPU::h_area1, currSize );
+      RandomArray( GCAmorphGPU::h_area2, currSize );
+
+      RandomArray( GCAmorphGPU::h_invalid, currSize );
+      RandomArray( GCAmorphGPU::h_status, currSize );
+      RandomArray( GCAmorphGPU::h_label, currSize );
+      RandomArray( GCAmorphGPU::h_labelDist, currSize );
+
+      RandomArray( GCAmorphGPU::h_mean, currSize );
+      RandomArray( GCAmorphGPU::h_variance, currSize );
+
+      
+      GCAmorphGPU::tHostRandomise.Stop();
+    }
 
   }
 }

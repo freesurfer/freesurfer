@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/28 19:40:22 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/09/29 17:59:10 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,8 @@
 
 #include <cuda_runtime.h>
 #include "gcamorphgpu.hpp"
+
+#include "chronometer.hpp"
 
 #include "volumecpu.hpp"
 
@@ -102,6 +104,14 @@ namespace Freesurfer {
     void PutOnGPU( GPU::Classes::GCAmorphGPU& dst ) const;
     
     
+    // ------------------------------------
+
+    static void ShowTimings( void );
+
+  private:
+    static SciGPU::Utilities::Chronometer tGetTot;
+    static SciGPU::Utilities::Chronometer tGetPCIe, tGetCPU;
+
   };
 
 }

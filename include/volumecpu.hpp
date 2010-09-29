@@ -13,8 +13,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/28 19:40:22 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/09/29 17:59:11 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -148,7 +148,7 @@ namespace Freesurfer {
     //! Size of the buffer
     size_t BufferSize( void ) const {
       size_t mem;
-      mem = this->nx * this->ny * this->nz;
+      mem = this->nx * this->ny * this->nz * sizeof(T);
       return( mem );
     }
 
