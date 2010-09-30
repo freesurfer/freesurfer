@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/30 15:29:54 $
- *    $Revision: 1.213 $
+ *    $Date: 2010/09/30 19:19:49 $
+ *    $Revision: 1.214 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,7 @@
 #define GCAM_JACOB_TERM_GPU
 #define GCAM_LL_TERM_GPU
 
+#define GCAM_LABEL_TERM_COPYDELTAS_GPU
 #define GCAM_LABEL_TERM_POSTANT_GPU
 #define GCAM_LABEL_TERM_FINAL_GPU
 
@@ -7851,12 +7852,18 @@ remove_label_outliers( const GCA_MORPH *gcam,
 
 #define MAX_MLE_DIST 1
 
-#define GCAM_LABEL_COPYDELTAS_OUTPUT 1
+#define GCAM_LABEL_COPYDELTAS_OUTPUT 0
 
 void gcamLabelTermCopyDeltas( GCA_MORPH *gcam,
 			      const MRI* mri_dist,
 			      const double l_label ) {
 
+#ifdef GCAM_LABEL_TERM_COPYDELTAS_GPU
+
+  printf( "%s: On GPU\n", __FUNCTION__ );
+
+  gcamLabelTermCopyDeltasGPU( gcam, mri_dist, l_label );
+#else
   int x, y, z;
   GCA_MORPH_NODE *gcamn;
 
@@ -7902,6 +7909,7 @@ void gcamLabelTermCopyDeltas( GCA_MORPH *gcam,
       }
     }
   }
+#endif
 
 }
 

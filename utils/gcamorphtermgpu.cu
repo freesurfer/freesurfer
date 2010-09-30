@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/30 15:29:55 $
- *    $Revision: 1.17 $
+ *    $Date: 2010/09/30 19:19:50 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1073,8 +1073,8 @@ namespace GPU {
 	  float localdy = mriDist(ix,iy,iz);
 	  labelDist(ix,iy,iz) = localdy;
 
-	  if( abs(localdy) > kMaxMLEdist ) {
-	    localdy *= kMaxMLEdist / abs(localdy);
+	  if( fabs(localdy) > kMaxMLEdist ) {
+	    localdy *= kMaxMLEdist / fabs(localdy);
 	  }
 
 	  dy(ix,iy,iz) += l_label * localdy;
