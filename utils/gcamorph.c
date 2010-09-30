@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/12 13:28:33 $
- *    $Revision: 1.212 $
+ *    $Date: 2010/09/30 15:29:54 $
+ *    $Revision: 1.213 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7851,12 +7851,32 @@ remove_label_outliers( const GCA_MORPH *gcam,
 
 #define MAX_MLE_DIST 1
 
+#define GCAM_LABEL_COPYDELTAS_OUTPUT 1
+
 void gcamLabelTermCopyDeltas( GCA_MORPH *gcam,
 			      const MRI* mri_dist,
 			      const double l_label ) {
 
   int x, y, z;
   GCA_MORPH_NODE *gcamn;
+
+#if GCAM_LABEL_COPYDELTAS_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%outputFreq) == 0 ) {
+    unsigned int nOut = nCalls/outputFreq;
+    
+    char fname[STRLEN];
+
+    snprintf( fname, STRLEN-1, "gcamLabelCopyDeltasInput%04u", nOut );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+
+    snprintf( fname, STRLEN-1, "mriLabelCopyDeltasInput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri_dist, fname );
+  }
+  nCalls++;
+#endif
 
   // copy deltas from mri_dist into gcam struct
   for (x = 0 ; x < gcam->width ; x++) {

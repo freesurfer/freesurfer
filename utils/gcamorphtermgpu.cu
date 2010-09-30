@@ -8,9 +8,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/08/26 15:40:08 $
- *    $Revision: 1.16 $
+ *    $Author: rge21 $
+ *    $Date: 2010/09/30 15:29:55 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -69,6 +69,7 @@ namespace GPU {
 
     const unsigned int kGCAmorphLLTermKernelSize = 16;
 
+    const unsigned int kGCAmorphLabelTermCopyDeltasKernelSize = 16;
     const unsigned int kGCAmorphLabelTermPostAntConsistencyKernelSize = 16;
     const unsigned int kGCAmorphLabelTermFinalKernelSize = 16;
 
@@ -1043,6 +1044,76 @@ namespace GPU {
 
     // ##############################################################
     
+    const int kMaxMLEdist = 1;
+
+    __global__
+    void LabelCopyDeltasKernel( const GPU::Classes::VolumeArgGPU<char> invalid,
+				const GPU::Classes::VolumeArgGPU<int> status,
+				GPU::Classes::VolumeArgGPU<float> dy,
+				GPU::Classes::VolumeArgGPU<float> labelDist,
+				const GPU::Classes::MRIframeOnGPU<float> mriDist ,
+				const float l_label ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      // Loop over z slices
+      for( unsigned int iz = 0; iz < invalid.dims.z; iz++ ) {
+	
+	// Only compute if ix, iy & iz are inside the bounding box
+	if( invalid.InVolume(ix,iy,iz) ) {
+	  
+	  // Validity check
+	  if( invalid(ix,iy,iz) ||
+	      ( (status(ix,iy,iz) & GCAM_LABEL_NODE) == 0 ) ) {
+	    continue;
+	  }
+	  
+	  float localdy = mriDist(ix,iy,iz);
+	  labelDist(ix,iy,iz) = localdy;
+
+	  if( abs(localdy) > kMaxMLEdist ) {
+	    localdy *= kMaxMLEdist / abs(localdy);
+	  }
+
+	  dy(ix,iy,iz) += l_label * localdy;
+
+	}
+      }
+
+    }
+
+
+    void GCAmorphTerm::LabelCopyDeltas( GPU::Classes::GCAmorphGPU& gcam,
+					const GPU::Classes::MRIframeGPU<float>& mri_dist,
+					const float l_label ) const {
+
+      GCAmorphTerm::tLabelCopyDeltas.Start();
+
+      // Run the kernel
+      dim3 grid, threads;
+      threads.x = threads.y = kGCAmorphLabelTermCopyDeltasKernelSize;
+      threads.z = 1;
+
+      grid = gcam.d_rx.CoverBlocks( kGCAmorphLabelTermCopyDeltasKernelSize );
+      grid.z = 1;
+
+      LabelCopyDeltasKernel<<<grid,threads>>>( gcam.d_invalid,
+					       gcam.d_status,
+					       gcam.d_dy,
+					       gcam.d_labelDist,
+					       mri_dist,
+					       l_label );
+      CUDA_CHECK_ERROR( "LabelCopyDeltasKernel failed!\n" );
+
+      GCAmorphTerm::tLabelCopyDeltas.Stop();
+
+    }
+    
+
+
+    // -------------------------------------------------------------------
 
     __global__
     void LabelPostAntConsistKernel( const GPU::Classes::VolumeArgGPU<char> invalid,
@@ -1283,7 +1354,9 @@ namespace GPU {
 		<< std::endl;
       std::cout << std::endl;
 
-       std::cout << "Log Likelihood:" << std::endl;
+       std::cout << "Label Term:" << std::endl;
+       std::cout << "   Copy Deltas:" << GCAmorphTerm::tLabelCopyDeltas
+		 << std::endl;
        std::cout << " Post/Ant Cons:" << GCAmorphTerm::tLabelPostAntConsistency
 		 << std::endl;
        std::cout << " Final Update : " << GCAmorphTerm::tLabelFinal
@@ -1310,6 +1383,7 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodTot;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodCompute;
 
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelCopyDeltas;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelPostAntConsistency;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelFinal;
   }
@@ -1403,6 +1477,24 @@ int gcamLabelTermPostAntConsistencyGPU( GCA_MORPH *gcam,
   mriDist.Recv( mri_dist, 0 );
 
   return( num );
+}
+
+
+//! Wrapper around GPU class for LabelCopyDeltas
+void gcamLabelTermCopyDeltasGPU( GCA_MORPH *gcam,
+				 const MRI* mri_dist,
+				 const double l_label ) {
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+  GPU::Classes::MRIframeGPU<float> mriDist;
+
+  myGCAM.SendAll( gcam );
+  mriDist.Allocate( mri_dist );
+  mriDist.Send( mri_dist, 0 );
+
+  myTerms.LabelCopyDeltas( myGCAM, mriDist, l_label );
+
+  myGCAM.RecvAll( gcam );
 }
 
 #endif

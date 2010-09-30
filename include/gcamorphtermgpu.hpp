@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/16 14:18:14 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/09/30 15:29:58 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -105,6 +105,11 @@ namespace GPU {
 			    const float l_label ) const;
 
 
+      //! Copy deltas for Label term
+      void LabelCopyDeltas( GPU::Classes::GCAmorphGPU& gcam,
+			    const GPU::Classes::MRIframeGPU<float>& mri_dist,
+			    const float l_label ) const;
+
       // ######################################################
     private:
 
@@ -130,7 +135,8 @@ namespace GPU {
       //! Timer for Log likelihood term computation
       static SciGPU::Utilities::Chronometer tLogLikelihoodCompute;
 
-      
+      //! Timer for copy deltas portion of LabelTerm
+      static SciGPU::Utilities::Chronometer tLabelCopyDeltas;
       //! Timer for post/ant consistency check of LabelTerm
       static SciGPU::Utilities::Chronometer tLabelPostAntConsistency;
       //! Timer for final update of Label term
