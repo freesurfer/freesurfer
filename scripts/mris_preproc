@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/09/17 21:12:43 $
-#    $Revision: 1.54 $
+#    $Date: 2010/09/30 18:04:02 $
+#    $Revision: 1.55 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.54 2010/09/17 21:12:43 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.55 2010/09/30 18:04:02 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -46,6 +46,7 @@ set fwhmtarg = ();
 set niterssrc = ();
 set niterstarg = ();
 set projfrac = ();
+set projfracmax = ();
 set V2SMaskNonCtx = 1; 
 set outpath = ();
 set paireddiff = 0;
@@ -157,22 +158,28 @@ endif
 # Log file
 if(! $nolog) then
   if($#LF == 0) then
-    if(! $#CacheOutOnly) set LF = $outdir/mris_preproc.$geom.$trghemi.log
-    if($#CacheOutOnly)   set LF = mris_preproc.$geom.$trghemi.log
+    if(! $CacheOutOnly) set LF = $outstem.mris_preproc.log
+    if($CacheOutOnly)   set LF = mris_preproc.$geom.$trghemi.log
     if(-e $LF) mv $LF $LF.bak
   endif
 else
   set LF = /dev/null
 endif
 
+echo "Log file is $LF"
+
 date | tee -a $LF
-pwd | tee -a $LF
-echo $cmdargs  | tee -a $LF
-uname -a  | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`" | tee -a $LF
+echo $0 $cmdargs | tee -a $LF
+echo ""  | tee -a $LF
+uname -a  | tee -a $LF
+echo $VERSION | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
 echo "tmpdir is $tmpdir" | tee -a $LF
 echo "Src $srchemi $SrcSurfReg" | tee -a $LF
 echo "Trg $trghemi $TrgSurfReg" | tee -a $LF
+echo ""  | tee -a $LF
 
 set tvallist = ();
 @ nthsubj = 0;
@@ -210,6 +217,7 @@ foreach subj ($subjlist)
       set cmd = (mri_vol2surf --src $vol --srcreg $reg --hemi $srchemi)
       set cmd = ($cmd --out $srcsurfpath)
       if($#projfrac) set cmd = ($cmd --projfrac $projfrac)
+      if($#projfracmax)  set cmd = ($cmd --projfrac-max $projfracmax)
       if($V2SMaskNonCtx) set cmd = ($cmd --cortex)
       if($synth)     set cmd = ($cmd --srcsynth -1) # Synth if desired
       if($reshape)   set cmd = ($cmd --reshape);
@@ -527,11 +535,17 @@ while( $#argv != 0 )
       set projfrac = $argv[1]; shift;
       breaksw
 
+    case "--projfrac-max":
+      if ( $#argv < 3) goto arg3err;
+      set projfracmax = ($argv[1] $argv[2] $argv[3]); 
+      shift; shift; shift;
+      breaksw
+
     case "--out":
       if ( $#argv == 0) goto arg1err;
       set outpath = $argv[1]; shift;
       # Make sure format is recognized
-      fname2stem $outpath > /dev/null
+      set outstem = `fname2stem $outpath`
       if($status) then
         echo "ERROR: format for $outpath not recognized"
         exit 1
@@ -898,6 +912,11 @@ if($#fwhmtarg && $#niterstarg) then
   exit 1;
 endif
 
+if($#projfrac && $#projfracmax) then
+  echo "ERROR: cannot specify --projfrac and --projfrac-max"
+  exit 1;
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -910,6 +929,12 @@ arg1err:
 ############--------------##################
 arg2err:
   echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg3err:
+  echo "ERROR: flag $flag requires three arguments"
   exit 1
 ############--------------##################
 
@@ -934,6 +959,7 @@ usage_exit:
   echo ""
   echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
   echo "  --projfrac frac : projection fraction for vol2surf"
+  echo "  --projfrac-max min delta max : find max along projection for vol2surf"
   echo "  --no-mask-non-cortex : do not mask out non-cortex in vol2surf"
   echo ""
   echo "  --sf sessfile        : fsfast session file"
@@ -1072,6 +1098,14 @@ The non-cortical area (eg in the medial wall) is set to 0 unless
 
 When sampling a volume onto the surface, sample a fraction of the thickness
 along the surface normal. projfrac is 0-1. Default is 0.
+
+--projfrac-max min delta max
+
+When sampling a volume onto the surface, return the maximum along the
+surface normal sampled at fractions of the thickness between min and
+max at increments of delta.  Eg, 0 .1 1 means to sample every 10% of
+the thickness between the white and pial surfaces. Just passes
+the arguments to mri_vol2surf with the --projfrac-max flag.
 
 --fwhm fwhm
 
