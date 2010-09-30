@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/29 17:17:14 $
- *    $Revision: 1.146 $
+ *    $Date: 2010/09/30 21:02:34 $
+ *    $Revision: 1.147 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -669,6 +669,11 @@ void MainWindow::NewVolume()
   col_mri->AddLayer( layer_new );
 
   m_controlPanel->RaisePage( _("Volumes") );
+}
+
+wxString MainWindow::AutoSelectLastDir( wxString subdirectory )
+{
+  return AutoSelectLastDir( m_strLastDir, subdirectory );
 }
 
 wxString MainWindow::AutoSelectLastDir( wxString lastDir, wxString subdirectory )

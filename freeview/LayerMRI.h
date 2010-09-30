@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/31 17:26:05 $
- *    $Revision: 1.53 $
+ *    $Date: 2010/09/30 21:02:34 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -228,6 +228,8 @@ public:
                       std::vector<int>& number, 
                       std::vector<double>& mean, 
                       std::vector<double>& std );
+  
+  bool SaveContourToFile( const char* filename );
   
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations, 

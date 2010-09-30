@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/10 20:24:50 $
- *    $Revision: 1.51 $
+ *    $Date: 2010/09/30 21:02:34 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -102,6 +102,9 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_CHECKBOX        ( XRCID( "ID_CHECK_USE_IMAGE_COLORMAP" ),   PanelVolume::OnCheckUseImageColorMap )
   EVT_CHECKBOX        ( XRCID( "ID_CHECK_CONTOUR_EXTRACT_ALL" ),   PanelVolume::OnCheckContourExtractAll )
   
+  EVT_TEXT_ENTER      ( XRCID( "ID_TEXT_SMOOTH_ITERATIONS" ),     PanelVolume::OnTextContourSmooth )
+  EVT_BUTTON          ( XRCID( "ID_BUTTON_SAVE_ISOSURFACE" ),     PanelVolume::OnButtonSaveContour )
+  
   EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HIDE_INFO" ),         PanelVolume::OnCheckHideInfo )
   EVT_CHOICE          ( XRCID( "ID_CHOICE_UPSAMPLE_METHOD" ),     PanelVolume::OnChoiceUpSampleMethod )
   
@@ -113,7 +116,12 @@ BEGIN_EVENT_TABLE( PanelVolume, wxPanel )
   EVT_COMMAND_SCROLL_PAGEUP       ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMax )
   EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMax )
   EVT_COMMAND_SCROLL_THUMBTRACK   ( XRCID( "ID_SLIDER_CONTOUR_MAX" ),  PanelVolume::OnSliderContourMaxChanging )
+  EVT_COMMAND_SCROLL_PAGEDOWN     ( XRCID( "ID_SLIDER_SMOOTH_ITERATIONS" ),  PanelVolume::OnSliderContourSmooth )
+  EVT_COMMAND_SCROLL_PAGEUP       ( XRCID( "ID_SLIDER_SMOOTH_ITERATIONS" ),  PanelVolume::OnSliderContourSmooth )
+  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_SMOOTH_ITERATIONS" ),  PanelVolume::OnSliderContourSmooth )
+  EVT_COMMAND_SCROLL_THUMBTRACK   ( XRCID( "ID_SLIDER_SMOOTH_ITERATIONS" ),  PanelVolume::OnSliderContourSmoothChanging )
 END_EVENT_TABLE()
+
 
 PanelVolume::PanelVolume(wxWindow* parent) : 
   Listener( "PanelVolume" ), 
@@ -185,6 +193,9 @@ void PanelVolume::InitWidgetsFromXRC( wxWindow* parent )
   m_checkUseImageColorMap   = XRCCTRL( *this, "ID_CHECK_USE_IMAGE_COLORMAP", wxCheckBox );
   m_checkContourExtractAll  = XRCCTRL( *this, "ID_CHECK_CONTOUR_EXTRACT_ALL", wxCheckBox );
   m_colorpickerContour      = XRCCTRL( *this, "ID_COLORPICKER_CONTOUR", wxColourPickerCtrl );
+  m_sliderContourSmooth =  XRCCTRL( *this, "ID_SLIDER_SMOOTH_ITERATIONS", wxSlider );
+  m_textContourSmooth =  XRCCTRL( *this, "ID_TEXT_SMOOTH_ITERATIONS", wxTextCtrl );
+  m_btnSaveContour    = XRCCTRL( *this, "ID_BUTTON_SAVE_ISOSURFACE", wxButton );
 //  m_checkContour->Hide();
 
   m_checkHideInfo = XRCCTRL( *this, "ID_CHECKBOX_HIDE_INFO", wxCheckBox );
@@ -246,6 +257,10 @@ void PanelVolume::InitWidgetsFromXRC( wxWindow* parent )
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MIN", wxStaticText ) );
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_MAX", wxStaticText ) );
   m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_CONTOUR_COLOR", wxStaticText ) );
+  m_widgetlistContour.push_back( m_sliderContourSmooth );
+  m_widgetlistContour.push_back( m_textContourSmooth );
+  m_widgetlistContour.push_back( m_btnSaveContour );
+  m_widgetlistContour.push_back( XRCCTRL( *this, "ID_STATIC_SMOOTH_SURFACE", wxStaticText ) );
   
   m_widgetlistEditable.push_back( XRCCTRL( *this, "ID_STATIC_BRUSH_VALUE", wxStaticText ) );
   m_widgetlistEditable.push_back( m_textDrawValue );  
@@ -789,6 +804,9 @@ void PanelVolume::DoUpdateUI()
 			UpdateTextValue( m_textContourMax, layer->GetProperties()->GetContourMaxThreshold() );
       m_checkUseImageColorMap->SetValue( layer->GetProperties()->GetContourUseImageColorMap() );
       m_checkContourExtractAll->SetValue( layer->GetProperties()->GetContourExtractAllRegions() );
+      m_sliderContourSmooth->SetValue( layer->GetProperties()->GetContourSmoothIterations() );
+      UpdateTextValue( m_textContourSmooth, layer->GetProperties()->GetContourSmoothIterations() );
+      
       m_colorpickerContour->Enable( !layer->GetProperties()->GetContourUseImageColorMap() );
       double rgb[3];
       layer->GetProperties()->GetContourColor( rgb );
@@ -1427,6 +1445,45 @@ void PanelVolume::OnSliderContourMaxChanging( wxScrollEvent& event )
   }
 }
 
+void PanelVolume::OnSliderContourSmooth( wxScrollEvent& event )
+{
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      layer->GetProperties()->SetContourSmoothIterations( m_sliderContourSmooth->GetValue() );
+    }
+  }
+}
+
+void PanelVolume::OnSliderContourSmoothChanging( wxScrollEvent& event )
+{
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      UpdateTextValue( m_textContourSmooth, m_sliderContourSmooth->GetValue() );
+    }
+  }  
+}
+
+void PanelVolume::OnTextContourSmooth( wxCommandEvent& event )
+{
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    // update both threshold input
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( !layer )
+      return;
+    
+    long n;
+    if ( m_textContourSmooth->GetValue().ToLong( &n ) && n >= 0 && n <=50 )
+      layer->GetProperties()->SetContourSmoothIterations( n );
+  }
+}
+
 void PanelVolume::OnCheckDisplayVector( wxCommandEvent& event )
 {
   if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
@@ -1604,3 +1661,29 @@ void PanelVolume::OnChoiceUpSampleMethod( wxCommandEvent& event )
     }
   }
 }
+
+void PanelVolume::OnButtonSaveContour( wxCommandEvent& event )
+{
+  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  {
+    LayerMRI* layer = ( LayerMRI* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    if ( layer )
+    {
+      wxFileDialog dlg( this, _("Save iso-surface"), 
+                        MainWindow::GetMainWindowPointer()->AutoSelectLastDir( _("mri") ),
+                        wxString( layer->GetName() ) + _(".vtk"),
+                        _("VTK files (*.vtk)|*.vtk|All files (*.*)|*.*"),
+                        wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
+      if ( dlg.ShowModal() == wxID_OK )
+      {
+        if ( !layer->SaveContourToFile( dlg.GetPath().char_str() ) )
+        {
+          wxMessageDialog mdlg( this, _("Can not save surface to file."), 
+                               _("Error"), wxOK );
+          mdlg.ShowModal();
+        }
+      }
+    }
+  }  
+}
+

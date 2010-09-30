@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/08/31 17:26:05 $
- *    $Revision: 1.82 $
+ *    $Date: 2010/09/30 21:02:34 $
+ *    $Revision: 1.83 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -434,6 +434,8 @@ public:
   {
     m_bDefaultConform = bConform;
   }
+  
+  wxString AutoSelectLastDir( wxString subdirectory );
   
   static wxString AutoSelectLastDir( wxString lastDir, wxString subdirectory );
   

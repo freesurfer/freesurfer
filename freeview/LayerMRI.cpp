@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/20 19:14:58 $
- *    $Revision: 1.87 $
+ *    $Date: 2010/09/30 21:02:33 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -56,6 +56,7 @@
 #include "vtkImageStencil.h"
 #include "vtkSimpleLabelEdgeFilter.h"
 #include "vtkImageResample.h"
+#include "vtkPolyDataWriter.h"
 
 #include "LayerPropertiesMRI.h"
 #include "MyUtils.h"
@@ -517,6 +518,7 @@ void LayerMRI::UpdateContourActor( int nSegValue )
   // are different, it means a new thread is rebuilding the contour
   m_nThreadID++;
   BuildContourThread* thread = new BuildContourThread( MainWindow::GetMainWindowPointer() );
+  thread->SetSmoothFactor( GetProperties()->GetContourSmoothIterations() );
   thread->BuildContour( this, nSegValue, m_nThreadID );
 }
 
@@ -2095,4 +2097,30 @@ void LayerMRI::GetLabelStats( LayerMRI* label, int nPlane,
       stds.push_back( sd );     
     }
   }
+}
+
+bool LayerMRI::SaveContourToFile( const char* filename )
+{
+  MATRIX* mat = m_volumeSource->GetTargetToRASMatrix();
+  double m[16];
+  for ( int i = 0; i < 16; i++ )
+  {
+    m[i] = (double) *MATRIX_RELT((mat),(i/4)+1,(i%4)+1);
+  }
+  MatrixFree( &mat );
+  vtkSmartPointer<vtkMatrix4x4> vmat = vtkSmartPointer<vtkMatrix4x4>::New();
+  vmat->DeepCopy( m );
+  vtkSmartPointer<vtkTransform> tr = vtkSmartPointer<vtkTransform>::New();
+  tr->SetMatrix( vmat );
+  vtkSmartPointer<vtkTransformPolyDataFilter> filter = 
+      vtkSmartPointer<vtkTransformPolyDataFilter>::New();
+  filter->SetTransform( tr );
+  filter->SetInput( vtkPolyDataMapper::SafeDownCast( m_actorContour->GetMapper())->GetInput() );
+  filter->Update();
+  vtkPolyDataWriter* writer = vtkPolyDataWriter::New();
+  writer->SetInput( filter->GetOutput() );
+  writer->SetFileName( filename );
+  bool ret = writer->Write();
+  writer->Delete();
+  return ret;
 }
