@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:13:37 $
- *    $Revision: 1.66 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/01 20:42:23 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -120,14 +120,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.66 2010/08/12 17:13:37 gregt Exp $",
+   "$Id: mri_normalize.c,v 1.67 2010/10/01 20:42:23 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.66 2010/08/12 17:13:37 gregt Exp $",
+           "$Id: mri_normalize.c,v 1.67 2010/10/01 20:42:23 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -248,6 +248,7 @@ main(int argc, char *argv[]) {
     mri_dst = MRIapplyBiasCorrectionSameGeometry
               (mri_src, mri_bias, mri_dst, 
                DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
+    printf("writing normalized volume to %s\n", out_fname) ;
     MRIwrite(mri_dst, out_fname) ;
     exit(0) ;
   }
