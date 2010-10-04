@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/10/04 16:30:28 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/10/04 16:30:47 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -428,11 +428,6 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
   MRIscalarMul(ft1,ft1,0.5);
 #else
   MRI *SpTh = MRIalloc(mriS->width,mriS->height,mriS->depth,MRI_FLOAT);
-	if (mriS->width == 128)
-	{
-	   MRIwrite(mriS,"mriS.mgz");
-		 MRIwrite(mriT,"mriT.mgz");
-	}
 	SpTh = MRIadd(mriS,mriT,SpTh);
 	SpTh = MRIscalarMul(SpTh,SpTh,0.5);
 	MRI *fx1 = NULL, *fy1 = NULL, *fz1 = NULL, *ft1 = NULL;
