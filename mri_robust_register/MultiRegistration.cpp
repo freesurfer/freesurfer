@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/09/17 19:29:48 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/10/04 16:30:27 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -104,6 +104,11 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
       ErrorExit(ERROR_NOFILE, "MultiRegistration::loadMovables: could not open input volume %s.\n",
                 mov[i].c_str()) ;
     }
+	  if (mri_mov[i]->nframes != 1)
+	  {
+      ErrorExit(ERROR_NOFILE, "MultiRegistration::loadMovables: only pass single frame MRI %s.\n",
+               mov[i].c_str()) ;	
+	  }
     msize[i] = mri_mov[i]->xsize;
     if (mri_mov[i]->ysize < msize[i]) msize[i] = mri_mov[i]->ysize ;
     if (mri_mov[i]->zsize < msize[i]) msize[i] = mri_mov[i]->zsize ;	

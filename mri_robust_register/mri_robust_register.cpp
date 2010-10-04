@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/09/17 19:29:52 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/10/04 16:30:29 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -132,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.41 2010/09/17 19:29:52 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.42 2010/10/04 16:30:29 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -959,6 +959,11 @@ static void initRegistration(Registration & R, Parameters & P)
     //cerr << Progname << " could not open MRI Target " << P.mov << endl;
     //exit(1);
   }
+	if (mri_mov->nframes != 1)
+	{
+    ErrorExit(ERROR_NOFILE, "%s: only pass single frame MRI source %s.\n",
+              Progname, P.mov.c_str()) ;	
+	}
   P.mri_mov = MRIcopy(mri_mov,P.mri_mov); // save dst mri
 
   if (P.maskmov != "")
@@ -983,6 +988,11 @@ static void initRegistration(Registration & R, Parameters & P)
     //cerr << Progname << " could not open MRI Target " << P.dst << endl;
     //exit(1);
   }
+	if (mri_dst->nframes != 1)
+	{
+    ErrorExit(ERROR_NOFILE, "%s: only pass single frame MRI target %s.\n",
+              Progname, P.dst.c_str()) ;	
+	}
   P.mri_dst = MRIcopy(mri_dst,P.mri_dst); // save dst mri
 
   if (P.maskdst != "")
