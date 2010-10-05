@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/30 19:19:50 $
- *    $Revision: 1.18 $
+ *    $Date: 2010/10/05 18:04:59 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,8 @@
 
 #include "macros.h"
 #include "cma.h"
+#include "voxlist.h"
+#include "mrinorm.h"
 
 #include "chronometer.hpp"
 
@@ -1313,6 +1315,209 @@ namespace GPU {
     }
 
 
+    // -------------------------------------------------------------------
+
+    int GCAmorphTerm::RemoveLabelOutliers( Freesurfer::GCAmorphCPU& gcam,
+					   MRI *mri_dist,
+					   const int whalf,
+					   const double thresh ) const {
+      
+      int         nremoved, nremoved_total, n, i, vox_to_examine, niters;
+      MRI         *mri_std, *mri_ctrl, *mri_tmp;
+      VOXEL_LIST  *vl;
+      float       diff, val0, oval;
+      int         del, xv, yv, zv, xo, yo, zo, x, y, z;
+      double      max_change;
+      
+      GCAmorphTerm::tRemoveOutliers.Start();
+
+      // Get hold of dimensions etc.
+      gcam.CheckIntegrity();
+      
+      unsigned int width, height, depth;
+      
+      gcam.rx.GetDims( width, height, depth );
+      const int nx = width;
+      const int ny = height;
+      const int nz = depth;
+      
+      Freesurfer::VolumeArgCPU<int> status( gcam.status );
+      Freesurfer::VolumeArgCPU<float> dy( gcam.dy );
+      
+      
+      mri_ctrl = MRIcloneDifferentType( mri_dist, MRI_UCHAR );
+      
+      for (z = 0 ; z < nz ; z++) {
+	for (y = 0 ; y < ny ; y++) {
+	  for (x = 0 ; x < nx ; x++) {
+	    if( status(x,y,z) & GCAM_LABEL_NODE) {
+	      MRIsetVoxVal( mri_ctrl, x, y, z, 0, CONTROL_MARKED );
+	    }
+	  }
+	}
+      }
+      
+      niters = 100 ;
+      for( nremoved_total = i = 0; i < niters; i++) {
+	
+	mri_std = MRIstdNonzero(mri_dist, NULL, mri_dist, whalf*2+1) ;
+	vl = VLSTcreate(mri_std, .001, 1e10, NULL, 0, 0) ;
+	VLSTsort(vl, vl) ;
+	
+	vox_to_examine = static_cast<int>( ceil( vl->nvox*.05 ) );
+	for( nremoved = n = 0; n < vox_to_examine; n++ ) {
+	  x = vl->xi[n] ; y = vl->yi[n] ; z = vl->zi[n];
+	  
+	  if( (status(x,y,z) & GCAM_LABEL_NODE) == 0 ) {
+	    continue;
+	  }
+	  
+	  val0 = MRIgetVoxVal(mri_dist, x, y, z, 0) ;
+	  del = 0 ;
+	  
+	  for (xo = -whalf ; xo <= whalf && !del ; xo++) {
+	    xv = mri_dist->xi[x+xo] ;
+	    for (yo = -whalf ; yo <= whalf && !del; yo++) {
+	      yv = mri_dist->yi[y+yo] ;
+	      for (zo = -whalf ; zo <= whalf && !del ; zo++) {
+		zv = mri_dist->zi[z+zo] ;
+		oval = MRIgetVoxVal(mri_dist, xv, yv, zv, 0);
+		
+		if (!FZERO(oval)) {
+		  diff = fabs(oval - val0) ;
+		  if (diff > thresh) { /* shouldn't ever be this big */
+		    if (fabs(val0) > fabs(oval) && (val0*oval < 0)) {
+		      /*if their signs are different and difference is big */
+		      del = 1 ;
+		    }
+		  }
+		}
+	      }
+	    }
+	  }
+	  
+	  if( del ) {
+	    nremoved++ ;
+	    MRIFvox(mri_dist, x, y, z) = 0 ;
+	    MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_NONE) ;
+	    dy(x,y,z) = 0;
+	    
+	    // Inferior is y+1
+	    if( status(x,y+1,z) & GCAM_LABEL_NODE ) {
+	      nremoved++ ;
+	      //  gcamn_inf->status = GCAM_USE_LIKELIHOOD ;
+	      MRIsetVoxVal(mri_dist, x, y+1, z, 0, 0) ;
+	      MRIsetVoxVal(mri_ctrl, x, y+1, z, 0, CONTROL_NONE) ;
+	      dy(x,y+1,z) = 0 ;
+	    }
+	    
+	    // Superior is y-1
+	    if( status(x,y-1,z) & GCAM_LABEL_NODE ) {
+	      nremoved++ ;
+	      //          gcamn_sup->status = GCAM_USE_LIKELIHOOD ;
+	      dy(x,y-1,z) = 0 ;
+	      MRIsetVoxVal(mri_dist, x, y-1, z, 0, 0) ;
+	      MRIsetVoxVal(mri_ctrl, x, y-1, z, 0, CONTROL_NONE) ;
+	    }
+	  }
+	}
+	
+	
+	nremoved_total += nremoved ;
+	MRIfree(&mri_std) ;
+	if( nremoved == 0 ) {
+	  // nothing happened
+	  break ;
+	}
+	VLSTfree(&vl); // keep it for last iteration
+      }
+      
+      
+      
+      
+      /* now use soap bubble smoothing to estimate
+	 label offset of deleted locations */
+      mri_tmp = NULL ;
+      for (i = 0 ; i < 100 ; i++) {
+	max_change = 0.0 ;
+	mri_tmp = MRIcopy(mri_dist, mri_tmp);
+	
+	for( z = 0; z < nz; z++ ) {
+	  for( y = 0; y < ny; y++ ) {
+	    for( x = 0; x < nx; x++ ) {
+	      int    xi, yi, zi, xk, yk, zk, num ;
+	      double mean ;
+	      
+	      if( (MRIgetVoxVal(mri_ctrl, x, y, z, 0) == CONTROL_MARKED) ||
+		  ((status(x,y,z) & GCAM_LABEL_NODE) == 0) ) {
+		continue;
+	      }
+	      
+	      for (xk = -1, num = 0, mean = 0.0 ; xk <= 1 ; xk++) {
+		xi = mri_ctrl->xi[x+xk] ;
+		for (yk = -1 ; yk <= 1 ; yk++) {
+		  yi = mri_ctrl->yi[y+yk] ;
+		  for (zk = -1 ; zk <= 1 ; zk++) {
+		    zi = mri_ctrl->zi[z+zk];
+		    
+		    
+		    if( (MRIgetVoxVal(mri_ctrl, xi, yi, zi, 0) == CONTROL_MARKED) ||
+			(MRIgetVoxVal(mri_ctrl, xi, yi, zi, 0) == CONTROL_NBR) ) {
+		      mean += MRIgetVoxVal(mri_dist, xi, yi, zi, 0) ;
+		      num++ ;
+		    }
+		  }
+		}
+	      }
+	      if (num > 0) {
+		float val ;
+		val = MRIgetVoxVal(mri_tmp, x, y, z, 0) ;
+		mean /= num ;
+		if (fabs(val-mean) > max_change) {
+		  max_change = fabs(val-mean) ;
+		}
+		MRIsetVoxVal(mri_tmp, x, y, z, 0, mean) ;
+		MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_TMP) ;
+		status(x,y,z) = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
+	      }
+	    }
+	  }
+	}
+	
+	MRIcopy(mri_tmp, mri_dist) ;
+	MRIreplaceValuesOnly(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NBR) ;
+	if( max_change < 0.05 ) {
+	  break;
+	}
+	
+      }
+      
+      
+      MRIfree( &mri_ctrl );
+      MRIfree( &mri_tmp );
+      
+      GCAmorphTerm::tRemoveOutliers.Stop();
+
+      return( nremoved );
+    }
+
+    
+    void GCAmorphTerm::RemoveLabelOutliersDispatch( GPU::Classes::GCAmorphGPU& gcam,
+						    MRI *mri_dist,
+						    const int whalf,
+						    const double thresh ) const {
+      Freesurfer::GCAmorphCPU myGCAM;
+
+      myGCAM.AllocateFromTemplate( gcam );
+      myGCAM.GetFromGPU( gcam );
+
+      this->RemoveLabelOutliers( myGCAM, mri_dist, whalf, thresh );
+
+      myGCAM.PutOnGPU( gcam );
+
+    }
+
+
     // ##############################################################
     
     void GCAmorphTerm::ShowTimings( void ) {
@@ -1355,11 +1560,13 @@ namespace GPU {
       std::cout << std::endl;
 
        std::cout << "Label Term:" << std::endl;
-       std::cout << "   Copy Deltas:" << GCAmorphTerm::tLabelCopyDeltas
+       std::cout << "  Remove Outliers:" << GCAmorphTerm::tRemoveOutliers
 		 << std::endl;
-       std::cout << " Post/Ant Cons:" << GCAmorphTerm::tLabelPostAntConsistency
+       std::cout << "      Copy Deltas:" << GCAmorphTerm::tLabelCopyDeltas
 		 << std::endl;
-       std::cout << " Final Update : " << GCAmorphTerm::tLabelFinal
+       std::cout << "    Post/Ant Cons:" << GCAmorphTerm::tLabelPostAntConsistency
+		 << std::endl;
+       std::cout << "     Final Update:" << GCAmorphTerm::tLabelFinal
 		 << std::endl;
 
      std::cout << "==================================" << std::endl;
@@ -1383,6 +1590,7 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodTot;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodCompute;
 
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tRemoveOutliers;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelCopyDeltas;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelPostAntConsistency;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelFinal;
@@ -1493,6 +1701,22 @@ void gcamLabelTermCopyDeltasGPU( GCA_MORPH *gcam,
   mriDist.Send( mri_dist, 0 );
 
   myTerms.LabelCopyDeltas( myGCAM, mriDist, l_label );
+
+  myGCAM.RecvAll( gcam );
+}
+
+
+//! Wrapper around GPU class for RemoveLablOutliers
+void gcamRemoveLabelOutliersGPU( GCA_MORPH *gcam,
+				 MRI* mri_dist,
+				 const int whalf,
+				 const double thresh ) {
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+
+  myGCAM.SendAll( gcam );
+
+  myTerms.RemoveLabelOutliersDispatch( myGCAM, mri_dist, whalf, thresh );
 
   myGCAM.RecvAll( gcam );
 }

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/30 15:29:58 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/10/05 18:05:07 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -33,6 +33,7 @@
 
 #include "mriframegpu.hpp"
 #include "gcamorphgpu.hpp"
+#include "gcamorphcpu.hpp"
 
 namespace GPU {
   namespace Algorithms {
@@ -110,6 +111,14 @@ namespace GPU {
 			    const GPU::Classes::MRIframeGPU<float>& mri_dist,
 			    const float l_label ) const;
 
+      
+      //! Wrapper for Remove Label Outliers
+      void RemoveLabelOutliersDispatch( GPU::Classes::GCAmorphGPU& gcam,
+					MRI *mri_dist,
+					const int whalf,
+					const double thresh ) const;
+      
+
       // ######################################################
     private:
 
@@ -135,6 +144,8 @@ namespace GPU {
       //! Timer for Log likelihood term computation
       static SciGPU::Utilities::Chronometer tLogLikelihoodCompute;
 
+      //! Timer for the computation portion of RemoveOutliers
+      static SciGPU::Utilities::Chronometer tRemoveOutliers;
       //! Timer for copy deltas portion of LabelTerm
       static SciGPU::Utilities::Chronometer tLabelCopyDeltas;
       //! Timer for post/ant consistency check of LabelTerm
@@ -150,6 +161,11 @@ namespace GPU {
 				 const MRI* mri_smooth,
 				 double l_log_likelihood ) const;
 
+      //! Remove Label Outliers for Label term
+      int RemoveLabelOutliers( Freesurfer::GCAmorphCPU& gcam,
+			       MRI *mri_dist,
+			       const int whalf,
+			       const double thresh ) const;
       
     };
 

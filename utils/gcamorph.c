@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/30 19:19:49 $
- *    $Revision: 1.214 $
+ *    $Date: 2010/10/05 18:04:59 $
+ *    $Revision: 1.215 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7674,8 +7674,12 @@ gcamLabelEnergy( const GCA_MORPH *gcam,
 }
 
 #include "voxlist.h"
+
+
+#define GCAM_REMOVE_LABEL_OUTLIERS_OUTPUT 0
+
 int
-remove_label_outliers( const GCA_MORPH *gcam,
+remove_label_outliers( GCA_MORPH *gcam,
 		       MRI *mri_dist,
 		       const int whalf,
 		       const double thresh ) {
@@ -7686,6 +7690,25 @@ remove_label_outliers( const GCA_MORPH *gcam,
   int         delete, xv, yv, zv, xo, yo, zo, x, y, z ;
   GCA_MORPH_NODE  *gcamn, *gcamn_sup, *gcamn_inf ;
   double      max_change ;
+
+#if GCAM_REMOVE_LABEL_OUTLIERS_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%outputFreq) == 0 ) {
+    unsigned int nOut = nCalls/outputFreq;
+    
+    char fname[STRLEN];
+
+    snprintf( fname, STRLEN-1, "gcamRemoveLabelOutliersInput%04u", nOut );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+
+    snprintf( fname, STRLEN-1, "mriRemoveLabelOutliersInput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri_dist, fname );
+  }
+  nCalls++;
+
+#endif
 
   mri_ctrl = MRIcloneDifferentType(mri_dist, MRI_UCHAR) ;
   for (x = 0 ; x < gcam->width ; x++) {
