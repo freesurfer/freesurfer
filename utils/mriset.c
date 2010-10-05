@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/07/28 20:01:44 $
- *    $Revision: 1.75 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/05 13:10:49 $
+ *    $Revision: 1.76 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -296,38 +296,26 @@ MRI *
 MRIxor(MRI *mri1, MRI *mri2, MRI *mri_dst, int t1, int t2)
 {
   int     width, height, depth, x, y, z ;
-  BUFTYPE *p1, *p2, *pdst, v1, v2 ;
+  int   v1, v2 ;
 
   MRIcheckVolDims(mri1, mri2);
 
-  if ((mri1->type != MRI_UCHAR) || (mri2->type != MRI_UCHAR))
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIxor: inputs must be UCHAR")) ;
-
-  width = mri1->width ;
-  height = mri1->height ;
-  depth = mri1->depth ;
+  width = mri1->width ; height = mri1->height ; depth = mri1->depth ;
 
   if (!mri_dst)
     mri_dst = MRIclone(mri1, NULL) ;
-  else if (mri_dst->type != MRI_UCHAR)
-    ErrorReturn(NULL,
-                (ERROR_UNSUPPORTED, "MRIxor: destination must be UCHAR")) ;
 
   for (z = 0 ; z < depth ; z++)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      p1 = &MRIvox(mri1, 0, y, z) ;
-      p2 = &MRIvox(mri2, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        v1 = *p1++ ;
-        v2 = *p2++ ;
+        v1 = (int)MRIgetVoxVal(mri1, x, y, z, 0) ;
+        v2 = (int)MRIgetVoxVal(mri2, x, y, z, 0) ;
         v1 = ((v1 >= t1) && (v1 <= t2)) ;
         v2 = ((v2 >= t1) && (v2 <= t2)) ;
-        *pdst++ = v1 ^ v2 ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, (float)(v1 ^ v2)) ;
       }
     }
   }

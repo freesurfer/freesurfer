@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:45 $
- *    $Revision: 1.40 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/05 13:10:48 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1731,7 +1731,6 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
   int      width, height, depth, x, y, z, vertex, thin, i, total_filled,
   nfilled, nseg ;
   float    nx, ny, nz, nd ;
-  BUFTYPE  *psrc, *pthin ;
   double     val, xf, yf, zf, max_dist, up_dist, down_dist ;
   MRI_SEGMENTATION *mriseg ;
   MRI              *mri_thin ;
@@ -1758,8 +1757,6 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
     {
       for (y = 0 ; y < height ; y++)
       {
-        psrc = &MRIvox(mri_src, 0, y, z) ;  /* ptr to source */
-        pthin = &MRIvox(mri_thin, 0, y, z) ;  /* ptr to destination */
         for (x = 0 ; x < width ; x++)
         {
           if (x == 160 && y == 147 && z == 116)
@@ -1800,9 +1797,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
           }
 
           if (thin)
-            *pthin++ = thin ;
-          else
-            pthin++ ;
+            MRIsetVoxVal(mri_thin, x, y, z, 0,  thin) ;
         }
       }
     }
@@ -1832,12 +1827,12 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src,MRI *mri_dst,int thickness,
             DiagBreak() ;
           if (xd == 126 && yd == 69 && zd == 127)
             DiagBreak() ;
-          if ((MRIvox(mri_src, xd, yd, zd) <= wm_hi) &&
-              (MRIvox(mri_dst, xd, yd, zd) == 0) &&
+          if ((MRIgetVoxVal(mri_src, xd, yd, zd, 0) <= wm_hi) &&
+              (MRIgetVoxVal(mri_dst, xd, yd, zd, 0) == 0) &&
               MRIneighborsOn(mri_dst, xd, yd, zd, WM_MIN_VAL) >= 1)
           {
             nfilled++ ;
-            MRIvox(mri_dst, xd, yd, zd) = THICKEN_FILL ;
+            MRIsetVoxVal(mri_dst, xd, yd, zd, 0, THICKEN_FILL) ;
           }
         }
       }
@@ -1869,7 +1864,6 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
   int      width, height, depth, x, y, z, thin, i, dont_fill, up_added,
   down_added, total_filled, nfilled, nseg, nx, ny, nz, xv, yv, zv, v ;
   float    nd ;
-  BUFTYPE  *psrc, *pthin ;
   double     val, xf, yf, zf, max_dist, up_dist, down_dist /*, xt, yt, zt*/ ;
   MRI_SEGMENTATION *mriseg ;
   MRI              *mri_thin, *mri_tmp ;
@@ -1897,7 +1891,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
         MRIvoxelToTalairach(mri_src, x, y, z, &xt, &yt, &zt) ;
         if ((fabs(xt) < 10) || zt < -50 || zt > 10)
         {
-          MRIvox(mri_tmp, x, y, z) = 0 ;
+          MRIsetVoxVal(mri_tmp, x, y, z,0, 0) ;
         }
       }
     }
@@ -1914,14 +1908,12 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
   {
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_tmp, 0, y, z) ;  /* ptr to source */
-      pthin = &MRIvox(mri_thin, 0, y, z) ;  /* ptr to destination */
       for (x = 0 ; x < width ; x++)
       {
         if (x == 96 && y == 134 && z == 97)
           DiagBreak() ;
         thin = 0 ;
-        if (*psrc++) /* this is in closed volume to prevent fragmentation */
+        if (MRIgetVoxVal(mri_src,x,y,z,0)>0) /* this is in closed volume to prevent fragmentation */
         {
           for (nz = 0 ; !thin && nz <= 1 ; nz++)
           {
@@ -1972,9 +1964,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
           }
         }
         if (thin)
-          *pthin++ = thin ;
-        else
-          pthin++ ;
+          MRIsetVoxVal(mri_thin, x, y, z, 0, thin) ;
       }
     }
   }
@@ -2054,7 +2044,7 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
       z = mseg->voxels[v].z;
       if (x == 96 && y == 134 && z == 97)
         DiagBreak() ;
-      if (MRIvox(mri_src, x, y, z) < WM_MIN_VAL)
+      if (MRIgetVoxVal(mri_src, x, y, z, 0) < WM_MIN_VAL)
         continue ;
 
       /* find the direction in which this voxel is thin and thicken it */
@@ -2118,19 +2108,19 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                             "invalid x,y,z!\n");
                 }
                 if ((MRIindexNotInVolume(mri_T1,xv,yv,zv) == 0) && 
-                    !MRIvox(mri_dst, xv, yv, zv))
+                    !MRIgetVoxVal(mri_dst, xv, yv, zv,0))
                 {
                   up_added = 1 ;
                   xv = nint((double)x + (up_dist+.5)*nx) ;
                   yv = nint((double)y + (up_dist+.5)*ny) ;
                   zv = nint((double)z + (up_dist+.5)*nz) ;
 
-                  if (MRIvox(mri_T1, xv, yv, zv) < wm_hi)
+                  if (MRIgetVoxVal(mri_T1, xv, yv, zv, 0) < wm_hi)
                   {
                     if (xv == 110 && yv == 125 && zv == 172)
                       DiagBreak() ; /* T1=148, wm=THICKEN */
-                    MRIvox(mri_dst, xv, yv, zv) = THICKEN_FILL ;
-                    MRIvox(mri_thin, xv, yv, zv) = THICKEN_FILL ;
+                    MRIsetVoxVal(mri_dst, xv, yv, zv, 0, THICKEN_FILL) ;
+                    MRIsetVoxVal(mri_thin, xv, yv, zv, 0, THICKEN_FILL) ;
                     nfilled++ ;
                   }
                 }
@@ -2148,18 +2138,18 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                   ErrorExit(ERROR_BADPARM,"ERROR: MRIthickenThinWMStrands: "
                             "invalid x,y,z!\n");
                 }
-                if (!MRIvox(mri_dst, xv, yv, zv))
+                if (!MRIgetVoxVal(mri_dst, xv, yv, zv, 0))
                 {
                   down_added = 1 ;
                   xv = nint((double)x - (down_dist+.5)*nx) ;
                   yv = nint((double)y - (down_dist+.5)*ny) ;
                   zv = nint((double)z - (down_dist+.5)*nz) ;
-                  if (MRIvox(mri_T1, xv, yv, zv) < wm_hi)
+                  if (MRIgetVoxVal(mri_T1, xv, yv, zv, 0) < wm_hi)
                   {
                     if (xv == 110 && yv == 125 && zv == 172)
                       DiagBreak() ; /* T1=148, wm=THICKEN */
-                    MRIvox(mri_dst, xv, yv, zv) = THICKEN_FILL ;
-                    MRIvox(mri_thin, xv, yv, zv) = THICKEN_FILL ;
+                    MRIsetVoxVal(mri_dst, xv, yv, zv, 0, THICKEN_FILL) ;
+                    MRIsetVoxVal(mri_thin, xv, yv, zv, 0, THICKEN_FILL) ;
                     nfilled++ ;
                   }
                 }
@@ -2200,12 +2190,12 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
               DiagBreak() ;
 
             /* check if it should be filled */
-            if (!MRIvox(mri_dst, x, y, z) &&
-                (MRIvox(mri_T1, x, y, z) < wm_hi))
+            if (!MRIgetVoxVal(mri_dst, x, y, z, 0) &&
+                (MRIgetVoxVal(mri_T1, x, y, z, 0) < wm_hi))
             {
-              if ((MRIvox(mri_thin,x+1,y,z) && MRIvox(mri_thin, x-1, y, z)) ||
-                  (MRIvox(mri_thin,x,y+1,z) && MRIvox(mri_thin, x, y-1, z)) ||
-                  (MRIvox(mri_thin,x,y,z+1) && MRIvox(mri_thin, x, y, z-1)))
+              if ((MRIgetVoxVal(mri_thin,x+1,y,z, 0) && MRIgetVoxVal(mri_thin, x-1, y, z, 0)) ||
+                  (MRIgetVoxVal(mri_thin,x,y+1,z, 0) && MRIgetVoxVal(mri_thin, x, y-1, z, 0)) ||
+                  (MRIgetVoxVal(mri_thin,x,y,z+1, 0) && MRIgetVoxVal(mri_thin, x, y, z-1, 0)))
               {
                 dont_fill = 0 ;
                 for (nz = -1 ; !dont_fill && nz <= 1 ; nz++)
@@ -2217,8 +2207,8 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                       /* if any neighboring voxels are on the src image
                       that are not part of this segment, don't fill it.
                       */
-                      if (MRIvox(mri_dst, x+nx,y+ny,z+nz) &&
-                          !MRIvox(mri_thin, x+nx,y+ny,z+nz))
+                      if (MRIgetVoxVal(mri_dst, x+nx,y+ny,z+nz, 0) &&
+                          !MRIgetVoxVal(mri_thin, x+nx,y+ny,z+nz, 0))
                         dont_fill = 1 ;
                     }
                   }
@@ -2228,8 +2218,8 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                 {
                   if (x == 160 && y == 140 && z == 122)
                     DiagBreak() ;
-                  MRIvox(mri_dst, x, y, z) = NBHD_FILL ;
-                  MRIvox(mri_thin, x, y, z) = NBHD_FILL ;
+                  MRIsetVoxVal(mri_dst, x, y, z, 0, NBHD_FILL) ;
+                  MRIsetVoxVal(mri_thin, x, y, z, 0,  NBHD_FILL) ;
                   nfilled++ ;
                 }
 
@@ -2317,7 +2307,7 @@ MRIpolvCount(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
   int      width, height, depth, x, y, z, whalf, xk, yk, n, vertex,xi,yi,zi,
   *pxi, *pyi, *pzi, order ;
   float    e1_x, e1_y, e1_z, e2_x, e2_y, e2_z, xbase, ybase, zbase ;
-  BUFTYPE  *pdst, *pptr, val ;
+  float    val ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -2337,11 +2327,9 @@ MRIpolvCount(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
     DiagHeartbeat((float)z / (float)(depth-1)) ;
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;  /* ptr to destination */
-      pptr = &MRIvox(mri_polv, 0, y, z) ; /* ptr to normal vectors */
       for (x = 0 ; x < width ; x++)
       {
-        vertex = *pptr++ ;
+        vertex = (int)MRIgetVoxVal(mri_polv, x, y, z, 0) ;
         e1_x = e1_x_v[vertex] ;  /* basis vectors for plane */
         e1_y = e1_y_v[vertex] ;
         e1_z = e1_z_v[vertex] ;
@@ -2375,7 +2363,7 @@ MRIpolvCount(MRI *mri_src, MRI *mri_dst, MRI *mri_polv, int wsize,
           }
         }
 
-        *pdst++ = (BUFTYPE)order ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, order) ;
       }
     }
   }
@@ -2881,7 +2869,7 @@ MRIcountCpolvAtVoxel(MRI *mri_src, int x, int y, int z, int wsize, int *pnum,
         yi = pyi[yi] ;
         zi = nint(zbase + xk*e1_z) ;
         zi = pzi[zi] ;
-        label = MRIvox(mri_src, xi, yi, zi) ;
+        label = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
         if (label == label_to_check)
           num++ ;
       }
@@ -4160,7 +4148,7 @@ MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled,
                          float wm_low, float wm_hi, float gray_hi)
 {
   int     width, height, depth, x, y, z, nwhite, nblack, nambiguous ;
-  BUFTYPE val, *psrc, *pdst ;
+  float   val ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -4173,13 +4161,11 @@ MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled,
   {
     for (y = 0 ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_labeled, 0, y, z) ;
-      psrc = &MRIvox(mri_src, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         if (x == 105 && y == 75 && z == 127)
           DiagBreak() ;
-        val = MRIvox(mri_src, x, y, z) ;
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val < wm_low || val > wm_hi)
         {
           val = MRI_NOT_WHITE ;
@@ -4195,7 +4181,7 @@ MRIintensitySegmentation(MRI *mri_src, MRI *mri_labeled,
           nwhite++ ;
           val = MRI_WHITE ;
         }
-        *pdst++ = val ;
+        MRIsetVoxVal(mri_labeled, x, y, z, 0, val) ;
       }
     }
   }
@@ -4351,7 +4337,7 @@ MRI *
 MRImaskLabels(MRI *mri_src, MRI *mri_mask, MRI *mri_dst)
 {
   int     width, height, depth, x, y, z ;
-  BUFTYPE *psrc, *pdst, *pmask, mask, src ;
+  float   mask, src ;
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -4363,21 +4349,18 @@ MRImaskLabels(MRI *mri_src, MRI *mri_mask, MRI *mri_dst)
   {
     for (y = 0 ; y < height ; y++)
     {
-      pmask = &MRIvox(mri_mask, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      psrc = &MRIvox(mri_src, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         if (x == 157 && y == 154 && z == 127)
           DiagBreak() ;
-        mask = *pmask++ ;
-        src = *psrc++ ;
+        mask = MRIgetVoxVal(mri_mask, x, y, z, 0) ;
+        src = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (mask == MRI_AMBIGUOUS)
-          *pdst++ = MRI_AMBIGUOUS ;
+          MRIsetVoxVal(mri_dst, x, y, z, 0, MRI_AMBIGUOUS) ;
         else if (mask == MRI_WHITE)
-          *pdst++ = src ;
+          MRIsetVoxVal(mri_dst, x, y, z, 0, src) ;
         else
-          *pdst++ = 0 ;
+          MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
       }
     }
   }
@@ -4813,7 +4796,7 @@ MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh)
 {
   int     width, height, depth, x, y, z, whalf, x0, y0, z0,xi,yi,zi,
   num_on, num_off ;
-  BUFTYPE val, *pdst, out_val ;
+  float   val, out_val ;
   float   wcubed ;
 
   width = mri_src->width ;
@@ -4829,7 +4812,6 @@ MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh)
   {
     for (y = whalf ; y < height ; y++)
     {
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
         for (out_val=num_on = num_off = 0, z0 = -whalf ; z0 <= whalf ; z0++)
@@ -4841,7 +4823,7 @@ MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh)
             for (x0 = -whalf ; x0 <= whalf ; x0++)
             {
               xi = mri_src->xi[x+x0] ;
-              val = MRIvox(mri_src, xi, yi, zi) ;
+              val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
               if (!val)
                 num_off++ ;
               else
@@ -4853,12 +4835,12 @@ MRIremoveIslands(MRI *mri_src, MRI*mri_dst, int wsize, int thresh)
             }
           }
         }
-        val = MRIvox(mri_src, x, y, z) ;
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val && (num_off >= thresh))
           val = 0 ;
         else if (!val && (num_on >= thresh))
           val = THICKEN_FILL ;
-        *pdst++ = val ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, val) ;
       }
     }
   }
@@ -4933,9 +4915,9 @@ MRIfillPlanarHoles(MRI *mri_src, MRI *mri_segment, MRI *mri_dst,
             if (MRIneighborsOn(mri_binary_strand, x, y, z, 1) ==
                 MRIneighborsOn(mri_dst, x, y, z, WM_MIN_VAL))
             {
-              MRIvox(mri_dst, x, y, z) = THICKEN_FILL ;
-              MRIvox(mri_binary_strand, x, y, z) = 1 ;
-              MRIvox(mri_strand_border, x, y, z) = 0 ;
+              MRIsetVoxVal(mri_dst, x, y, z, 0, THICKEN_FILL) ;
+              MRIsetVoxVal(mri_binary_strand, x, y, z, 0, 1) ;
+              MRIsetVoxVal(mri_strand_border, x, y, z, 0, 0) ;
               nfilled++ ;
             }
           }
@@ -5010,7 +4992,7 @@ MRIcpolvMaxWhiteAtVoxel(MRI *mri, int x, int y, int z, int wsize)
 #if 0
         MRIsampleVolume(mri, xi, yi, zi, &val) ;
 #else
-        val = MRIvox(mri, xi, yi, zi) ;
+        val = MRIgetVoxVal(mri, xi, yi, zi, 0) ;
 #endif
         if (val > 0.5)
           num++ ;

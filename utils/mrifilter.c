@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/06/15 13:38:23 $
- *    $Revision: 1.86 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/05 13:10:48 $
+ *    $Revision: 1.87 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -4726,7 +4726,7 @@ MRImarkBorderVoxels(MRI *mri_src, MRI *mri_dst)
                 for (xk = -1 ; xk <= 1 ; xk++)
                 {
                   xi = mri_src->xi[x+xk] ;
-                  if (MRIvox(mri_src, xi, yi, zi) == MRI_WHITE)
+                  if (MRIgetVoxVal(mri_src, xi, yi, zi, 0) == MRI_WHITE)
                   {
                     dlabel = MRI_NOT_WHITE ; /* mark it as a 
                                                 gray border voxel */
@@ -4860,14 +4860,14 @@ MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x,
         if (!zk && !yk && !xk)
           continue ;   /* don't use central value as we are classifying it */
         xi = mri_src->xi[x+xk] ;
-        val = MRIvox(mri_src, xi, yi, zi) ;
-        if (MRIvox(mri_labeled, xi, yi, zi) == MRI_NOT_WHITE)
+        val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
+        if (MRIgetVoxVal(mri_labeled, xi, yi, zi, 0) == MRI_NOT_WHITE)
         {
           ng++ ;
           gsq += val*val ;
           gmean += val ;
         }
-        else if (MRIvox(mri_labeled, xi, yi, zi) == MRI_WHITE)
+        else if (MRIgetVoxVal(mri_labeled, xi, yi, zi, 0) == MRI_WHITE)
         {
           nw++ ;
           wsq += val*val ;
@@ -4892,12 +4892,12 @@ MRIborderClassifyVoxel(MRI *mri_src, MRI *mri_labeled, int wsize, int x,
   else
     gmean = gvar = 1.0 ;
 
-  val = MRIvox(mri_src, x, y, z) ;
+  val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
   dist = (float)val - wmean ;
   dist *= dist ;
   pw = exp(-dist / (2*wvar)) ;
 
-  val = MRIvox(mri_src, x, y, z) ;
+  val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
   dist = (float)val - gmean ;
   dist *= dist ;
   pg = exp(-dist / (2*wvar)) ;
@@ -4926,7 +4926,7 @@ MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border,
                     MRI *mri_dst, int wsize)
 {
   int      x, y, z, width, height, depth,  nw, ng, nchanged, ntested ;
-  BUFTYPE  *psrc, *plabeled, *pdst, label, new_label, *pborder, border ;
+  float    label, new_label, border ;
 
   if (!mri_dst)
     mri_dst = MRIcopy(mri_labeled, NULL) ;
@@ -4940,14 +4940,10 @@ MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border,
     DiagShowPctDone((float)(z) / (float)(depth-1), 5) ;
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      plabeled = &MRIvox(mri_labeled, 0, y, z) ;
-      pborder = &MRIvox(mri_border, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        label = *plabeled++ ;
-        border = *pborder++ ;
+        label = MRIgetVoxVal(mri_labeled, x, y, z, 0) ;
+        border = MRIgetVoxVal(mri_border, x, y, z, 0) ;
         if (border != MRI_AMBIGUOUS)  /* a border voxel */
         {
           ntested++ ;
@@ -4957,7 +4953,7 @@ MRIreclassifyBorder(MRI *mri_src, MRI *mri_labeled, MRI *mri_border,
             nchanged++ ;
           label = new_label ;
         }
-        *pdst++ = label ;
+        MRIsetVoxVal(mri_labeled, x, y, z, 0, label) ;
       }
     }
   }
@@ -4984,7 +4980,7 @@ MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
               float wm_low, float gray_hi, int wsize)
 {
   int      x, y, z, width, height, depth,  nw, ng, nchanged, ntested,w,nmulti;
-  BUFTYPE  *psrc, *plabeled, *pdst, label, new_label, src ;
+  int      label, new_label, src ;
   float    pw, pg, gtotal, wtotal ;
   MRI      *mri_border ;
 
@@ -5001,13 +4997,10 @@ MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
     DiagShowPctDone((float)(z) / (float)(depth-1), 5) ;
     for (y = 0 ; y < height ; y++)
     {
-      psrc = &MRIvox(mri_src, 0, y, z) ;
-      pdst = &MRIvox(mri_dst, 0, y, z) ;
-      plabeled = &MRIvox(mri_labeled, 0, y, z) ;
       for (x = 0 ; x < width ; x++)
       {
-        src = *psrc++ ;
-        label = *plabeled++ ;
+        src = (int)MRIgetVoxVal(mri_src, x, y, z, 0) ;
+        label = (int)MRIgetVoxVal(mri_labeled, x, y, z, 0) ;
         if (src > wm_low && src < gray_hi)
         {
           ntested++ ;
@@ -5033,7 +5026,7 @@ MRIreclassify(MRI *mri_src, MRI *mri_labeled, MRI *mri_dst,
             nchanged++ ;
           label = new_label ;
         }
-        *pdst++ = label ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0, label) ;
       }
     }
   }

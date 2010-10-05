@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/04/14 14:43:09 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/10/05 13:10:49 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -119,7 +119,7 @@ MRImaxsegment(MRI *mri, float low_val, float hi_val)
     for (y=0; y < height; y++)
       for (x=0; x < width; x++)
       {
-        val = MRIvox(mri, x, y, z) ;
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
         if (val >= low_val && val <= hi_val)
           totcount++;
       }
@@ -143,7 +143,7 @@ MRImaxsegment(MRI *mri, float low_val, float hi_val)
     {
       for (x = 0 ; x < width ; x++)
       {
-        val = MRIvox(mri, x, y, z) ;
+        val = MRIgetVoxVal(mri, x, y, z, 0) ;
         // if within the range
         if (val >= low_val && val <= hi_val)
         {
@@ -1015,8 +1015,8 @@ MRIsegmentDilate(MRI_SEGMENTATION *mriseg, MRI *mri)
             if ((fabs(xk) + fabs(yk) + fabs(zk)) != 1)
               continue ;
             zi = mri->zi[z+zk] ;
-            if (MRIvox(mri, xi, yi, zi) &&
-                !MRIvox(mri_segments,xi,yi,zi))
+            if (MRIgetVoxVal(mri, xi, yi, zi,0) &&
+                !MRIgetVoxVal(mri_segments,xi,yi,zi,0))
             {
               if (mseg->nvoxels >= mseg->max_voxels)
               {
@@ -1032,8 +1032,7 @@ MRIsegmentDilate(MRI_SEGMENTATION *mriseg, MRI *mri)
               mseg->voxels[mseg->nvoxels].x = xi ;
               mseg->voxels[mseg->nvoxels].y = yi ;
               mseg->voxels[mseg->nvoxels].z = zi ;
-              MRIvox(mri_segments,xi,yi,zi) =
-                MRIvox(mri, xi, yi, zi) ;
+              MRIsetVoxVal(mri_segments,xi,yi,zi, 0, MRIgetVoxVal(mri, xi, yi, zi,0)) ;
               mseg->nvoxels++ ;
               mseg->area += voxel_size ;
             }
@@ -1154,9 +1153,9 @@ MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg, MRI *mri_binary,
             if ((fabs(xk) + fabs(yk) + fabs(zk)) != 1)
               continue ;
             zi = mri_binary->zi[z+zk] ;
-            val = MRIvox(mri_thresh, xi, yi, zi) ;
-            if (MRIvox(mri_binary, xi, yi, zi) &&
-                !MRIvox(mri_segments,xi,yi,zi) &&
+            val = MRIgetVoxVal(mri_thresh, xi, yi, zi,0) ;
+            if (MRIgetVoxVal(mri_binary, xi, yi, zi,0) &&
+                !MRIgetVoxVal(mri_segments,xi,yi,zi,0) &&
                 (val >= low_thresh) && (val <= hi_thresh))
             {
               if (mseg->nvoxels >= mseg->max_voxels)
@@ -1174,8 +1173,7 @@ MRIsegmentDilateThreshold(MRI_SEGMENTATION *mriseg, MRI *mri_binary,
               mseg->voxels[mseg->nvoxels].x = xi ;
               mseg->voxels[mseg->nvoxels].y = yi ;
               mseg->voxels[mseg->nvoxels].z = zi ;
-              MRIvox(mri_segments,xi,yi,zi) =
-                MRIvox(mri_binary, xi, yi, zi) ;
+              MRIsetVoxVal(mri_segments,xi,yi,zi, 0, MRIgetVoxVal(mri_binary, xi, yi, zi,0)) ;
               mseg->nvoxels++ ;
               mseg->area += voxel_size ;
             }
