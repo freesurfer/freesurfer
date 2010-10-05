@@ -76,6 +76,11 @@ testdescript = {
 	                                      \--gold="$INPUT.nc" \
                                               \--cmp="$OUT.nc" \
                                               \--config=$(testDir)/writetest.config
+
+	 if [ ! -e $(testDir)/keepResults ]; then
+             rm "$OUT.nc"
+         fi
+
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
 

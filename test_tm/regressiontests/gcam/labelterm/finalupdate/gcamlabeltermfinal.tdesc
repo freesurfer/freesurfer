@@ -92,6 +92,12 @@ testdescript = {
 	                                      \--gold="$CPUOUT.nc" \
                                               \--cmp="$GPUOUT.nc" \
                                               \--config=$(testDir)/labelfinal.config
+
+         if [ ! -e $(testDir)/keepResults ]; then
+             rm "$CPUOUT.nc"
+             rm "$GPUOUT.nc"
+         fi
+
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
 

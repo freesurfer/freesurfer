@@ -10,7 +10,7 @@ local FS = tools.freesurfer
 local inputDir = FS.ScratchDir().."/gcam/labelterm/copydeltas/"
 
 -- Number of tests to perform (assume files are numbered from zero)
-local nTests = 34
+local nTests = 33
 
 local lambdas = { 0.1, 1, 10 }
 
@@ -92,6 +92,13 @@ testdescript = {
 	                                      \--gold="$CPUOUT.nc" \
                                               \--cmp="$GPUOUT.nc" \
                                               \--config=$(testDir)/labelcopydeltas.config
+ 
+         if [ ! -e $(testDir)/keepResults ]; then
+             rm "$CPUOUT.nc"
+             rm "$GPUOUT.nc"
+         fi
+
+
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
 

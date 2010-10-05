@@ -90,6 +90,14 @@ testdescript = {
 	                                      \--gold="$CPUOUT.nc" \
                                               \--cmp="$GPUOUT.nc" \
                                               \--config=$(testDir)/removestatus.config
+
+         if [ ! -e $(testDir)/keepResults ]; then
+             rm "$CPUOUT.nc"
+             rm "$GPUOUT.nc"
+             rm "$INTERMED.nc"
+         fi
+
+
 	 testFinish -c $(cmdResultFn) -r $(resultFn) -t $(runtimeFn)
    ]],
 
