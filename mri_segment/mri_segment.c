@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 18:09:30 $
- *    $Revision: 1.37 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/05 13:10:25 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.37 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.38 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -122,7 +122,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_segment.c,v 1.37 2010/08/12 18:09:30 gregt Exp $", 
+     "$Id: mri_segment.c,v 1.38 2010/10/05 13:10:25 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -149,6 +149,14 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE, "%s: could not read source volume from %s",
               Progname, input_file_name) ;
   MRIaddCommandLine(mri_src, cmdline) ;
+  if (mri_src->type != MRI_UCHAR)
+  {
+    MRI *mri_tmp ;
+    printf("changing input type from %d to UCHAR\n", mri_src->type) ;
+    mri_tmp = MRIchangeType(mri_src, MRI_UCHAR, 0, 1000, 1) ;
+    MRIfree(&mri_src) ;
+    mri_src = mri_tmp ;
+  }
 
   if (thicken > 1) {
     mri_dst = MRIcopy(mri_src, NULL) ;
@@ -494,7 +502,7 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
           DiagBreak() ;
         if (z == 88 && y == 89 && x == 163)
           DiagBreak() ;
-        val = MRIvox(mri_src, x, y, z) ;
+        val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val >= low_thresh && val <= hi_thresh) {
           ntested++ ;
           dir = MRIvoxelDirection(mri_smooth, x, y, z, wsize) ;
@@ -507,11 +515,11 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
               nchanged++ ;
               val = 0 ;
               if (mri_labels)
-                MRIvox(mri_labels, x, y, z) = 255 ;
+                MRIsetVoxVal(mri_labels, x, y, z, 0, 255) ;
             }
           }
         }
-        MRIvox(mri_dst, x, y, z) = val ;
+        MRIsetVoxVal(mri_dst, x, y, z, 0,  val) ;
       }
     }
   }
@@ -554,7 +562,7 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
       for (x = 0 ; x < width ; x++) {
         if (x == 152 && y == 117 && z == 132)  /* 93 */
           DiagBreak() ;
-        val0 = MRIvox(mri_src, x, y, z) ;
+        val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
 #if 0
         if (val0 >= low_thresh && val0 <= hi_thresh &&
             MRIvox(mri_dst,x,y,z) < WM_MIN_VAL)
@@ -573,7 +581,7 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
               yi = mri_src->yi[y+yk] ;
               for (xk = -WHALF ; fill && xk <= WHALF ; xk++) {
                 xi = mri_src->xi[x+xk] ;
-                val = MRIvox(mri_src, xi, yi, zi) ;
+                val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
                 if (val < 85 || val > 110)
                   fill = 0 ;   /* not homogeneous enough */
               }
@@ -585,7 +593,7 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
         if (fill)
           total_filled++ ;
         if (fill)
-          MRIvox(mri_bg, x, y, z) = BASAL_GANGLIA_FILL ;
+          MRIsetVoxVal(mri_bg, x, y, z, 0, BASAL_GANGLIA_FILL) ;
       }
     }
   }
@@ -663,7 +671,7 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst) {
     for (z = 0 ; z < depth ; z++) {
       for (y = 0 ; y < height ; y++) {
         for (x = 0 ; x < width ; x++) {
-          val = MRIvox(mri_dst, x, y, z) ;
+          val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
           if (x == 159 && y == 138 && z == 101)
             DiagBreak() ;
           if (val < WM_MIN_VAL)
@@ -679,33 +687,33 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst) {
                 zi = mri_dst->zi[z+zk] ;
                 if (xi == 159 && yi == 138 && zi == 101)
                   DiagBreak() ;
-                if (MRIvox(mri_dst, xi, yi, zi) >= WM_MIN_VAL) {
-                  if (xk && MRIvox(mri_dst, xi, y, z) >= WM_MIN_VAL)
+                if (MRIgetVoxVal(mri_dst, xi, yi, zi, 0) >= WM_MIN_VAL) {
+                  if (xk && MRIgetVoxVal(mri_dst, xi, y, z, 0) >= WM_MIN_VAL)
                     continue ;
-                  if (yk && MRIvox(mri_dst, x, yi, z) >= WM_MIN_VAL)
+                  if (yk && MRIgetVoxVal(mri_dst, x, yi, z, 0) >= WM_MIN_VAL)
                     continue ;
-                  if (zk && MRIvox(mri_dst, x, y, zi) >= WM_MIN_VAL)
+                  if (zk && MRIgetVoxVal(mri_dst, x, y, zi, 0) >= WM_MIN_VAL)
                     continue ;
                   if (xk) {
                     if (xi == 141 && y == 132 && z == 30)
                       DiagBreak() ;
-                    MRIvox(mri_dst, xi, y, z) = DIAGONAL_FILL ;
+                    MRIsetVoxVal(mri_dst, xi, y, z, 0, DIAGONAL_FILL) ;
                     if (is_diagonal(mri_dst, xi, y, z))
-                      MRIvox(mri_dst, xi, y, z) = 0 ;
+                      MRIsetVoxVal(mri_dst, xi, y, z, 0, 0) ;
                     else
                       nvox++ ;
                   }
                   if (yk) {
-                    MRIvox(mri_dst, x, yi, z) = DIAGONAL_FILL ;
+                    MRIsetVoxVal(mri_dst, x, yi, z, 0, DIAGONAL_FILL) ;
                     if (is_diagonal(mri_dst, x, yi, z))
-                      MRIvox(mri_dst, x, yi, z) = 0 ;
+                      MRIsetVoxVal(mri_dst, x, yi, z, 0, 0) ;
                     else
                       nvox++ ;
                   }
                   if (zk) {
-                    MRIvox(mri_dst, x, y, zi) = DIAGONAL_FILL ;
+                    MRIsetVoxVal(mri_dst, x, y, zi, 0, DIAGONAL_FILL) ;
                     if (is_diagonal(mri_dst, x, y, zi))
-                      MRIvox(mri_dst, x, y, zi) = 0 ;
+                      MRIsetVoxVal(mri_dst, x, y, zi, 0, 0) ;
                     else
                       nvox++ ;
                   }
@@ -809,14 +817,14 @@ is_diagonal(MRI *mri, int x, int y, int z) {
         xi = mri->xi[x+xk] ;
         yi = mri->yi[y+yk] ;
         zi = mri->zi[z+zk] ;
-        if (!MRIvox(mri, xi, yi, zi))
+        if (!MRIgetVoxVal(mri, xi, yi, zi, 0))
           continue ;   /* not a diagonal */
 
-        if (xk && MRIvox(mri, xi, y, z) >= WM_MIN_VAL)
+        if (xk && MRIgetVoxVal(mri, xi, y, z, 0) >= WM_MIN_VAL)
           continue ;   /* not a diagonal */
-        if (yk && MRIvox(mri, x, yi, z) >= WM_MIN_VAL)
+        if (yk && MRIgetVoxVal(mri, x, yi, z, 0) >= WM_MIN_VAL)
           continue ;  /* not a diagonal */
-        if (zk && MRIvox(mri, x, y, zi) >= WM_MIN_VAL)
+        if (zk && MRIgetVoxVal(mri, x, y, zi, 0) >= WM_MIN_VAL)
           continue ;  /* not a diagonal */
         return(1) ;   /* found a diagonal with no 4-connection */
       }
@@ -852,17 +860,17 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
     total = 0 ;
     do {
       nfilled = 0 ;
-      MRIvox(mri_filled, 0, 0, z) = VENTRICLE_FILL ;
+      MRIsetVoxVal(mri_filled, 0, 0, z, 0, VENTRICLE_FILL) ;
       for (y = 0 ; y < height ; y++) {
         for (x = 0 ; x < width ; x++) {
-          if (MRIvox(mri_filled, x, y, z) == VENTRICLE_FILL) {
+          if (MRIgetVoxVal(mri_filled, x, y, z, 0) == VENTRICLE_FILL) {
             for (yk = -1 ; yk <= 1 ; yk++) {
               yi = mri_src->yi[y+yk] ;
               for (xk = -1 ; xk <= 1 ; xk++) {
                 xi = mri_src->xi[x+xk] ;
-                if (!MRIvox(mri_filled, xi, yi, z)) {
+                if (!MRIgetVoxVal(mri_filled, xi, yi, z, 0)) {
                   nfilled++ ;
-                  MRIvox(mri_filled, xi, yi, z) = VENTRICLE_FILL ;
+                  MRIsetVoxVal(mri_filled, xi, yi, z, 0, VENTRICLE_FILL) ;
                 }
               }
             }
@@ -901,7 +909,7 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
       for (x = 0 ; x < width ; x++) {
         MRIvoxelToTalairach(mri_src, x, y, z, &xt, &yt, &zt);
         if (fabs(xt) < 5)
-          MRIvox(mri_ventricles, x, y, z) = 0 ;
+          MRIsetVoxVal(mri_ventricles, x, y, z, 0, 0) ;
       }
     }
   }
@@ -934,9 +942,9 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
   for (z = 0 ; z < depth ; z++) {
     for (y = 0 ; y < height ; y++) {
       for (x = 0 ; x < width ; x++) {
-        val = MRIvox(mri_T1, x, y, z) ;
+        val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         if (val > wm_hi && val <= intensity_thresh &&
-            MRIvox(mri_src, x, y, z) < WM_MIN_VAL) {
+            MRIgetVoxVal(mri_src, x, y, z, 0) < WM_MIN_VAL) {
           ntested++ ;
           nwhite = 0 ;
           for (zk = -1 ; zk <= 1 ; zk++) {
@@ -945,7 +953,7 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
               yi = mri_src->yi[y+yk] ;
               for (xk = -1 ; xk <= 1 ; xk++) {
                 xi = mri_src->xi[x+xk] ;
-                val = MRIvox(mri_T1, xi, yi, zi);
+                val = MRIgetVoxVal(mri_T1, xi, yi, zi, 0);
                 if (val >= wm_low && val <= wm_hi)
                   nwhite++ ;
               }
@@ -953,7 +961,7 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
           }
           if (nwhite >= nvox_thresh) {
             nchanged++ ;
-            MRIvox(mri_dst, x, y, z) = MRIvox(mri_T1, x, y, z) ;
+            MRIsetVoxVal(mri_dst, x, y, z, 0, MRIgetVoxVal(mri_T1, x, y, z,0)) ;
           }
         }
       }
@@ -1031,7 +1039,7 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
         if (x == 142 && y == 139 && z == 54)   /* test4 */
           DiagBreak() ;
 
-        if (!MRIvox(mri_labels, x, y, z))
+        if (!MRIgetVoxVal(mri_labels, x, y, z, 0))
           continue ;
         ntested++ ;
 
@@ -1061,15 +1069,15 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
             i_prev = i-1 ;
             if (i_prev < 0)
               i_prev = NPTS-1 ;
-            if (MRIvox(mri_binary_plane, whalf+xpts[i], whalf+ypts[i], 0) !=
-                MRIvox(mri_binary_plane,whalf+xpts[i_prev],
-                       whalf+ypts[i_prev],0))
+            if (MRIgetVoxVal(mri_binary_plane, whalf+xpts[i], whalf+ypts[i], 0, 0) !=
+                MRIgetVoxVal(mri_binary_plane,whalf+xpts[i_prev],
+                       whalf+ypts[i_prev],0, 0))
               ntransitions++ ;
           }
           if (ntransitions > 2)   /* not planar */
           {
             nchanged++ ;
-            MRIvox(mri_dst, x, y, z) = MRIvox(mri_T1, x, y, z) ;
+            MRIsetVoxVal(mri_dst, x, y, z, 0, MRIgetVoxVal(mri_T1, x, y, z, 0)) ;
           }
         }
         if (Gdiag & DIAG_WRITE) {
@@ -1111,11 +1119,11 @@ MRIremoveFilledBrightStuff(MRI *mri_T1, MRI *mri_labeled, MRI *mri_dst,
   for (z = 0 ; z < depth ; z++) {
     for (y = 0 ; y < height ; y++) {
       for (x = 0 ; x < width ; x++) {
-        val = MRIvox(mri_T1, x, y, z) ;
+        val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         ntested++ ;
-        if (MRIvox(mri_labeled, x, y, z) == filled_label &&
+        if (MRIgetVoxVal(mri_labeled, x, y, z, 0) == filled_label &&
             val > thresh) {
-          MRIvox(mri_labeled, x, y, z) = 0 ;
+          MRIsetVoxVal(mri_labeled, x, y, z, 0) ;
           nchanged++ ;
         }
       }
@@ -1136,7 +1144,7 @@ MRI *
 MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
   int     width, height, depth, x, y, z, nlabeled, nwhite,
   xk, yk, zk, xi, yi, zi;
-  BUFTYPE *pT1, *pwm, val, wm ;
+  BUFTYPE val, wm ;
   MRI     *mri_labeled, *mri_tmp ;
 
   mri_labeled = MRIclone(mri_T1, NULL) ;
@@ -1146,11 +1154,9 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
 
   for (z = 0 ; z < depth ; z++) {
     for (y = 0 ; y < height ; y++) {
-      pT1 = &MRIvox(mri_T1, 0, y, z) ;
-      pwm = &MRIvox(mri_wm, 0, y, z) ;
       for (x = 0 ; x < width ; x++) {
-        val = *pT1++ ;
-        wm = *pwm++ ;
+        val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
+        wm = MRIgetVoxVal(mri_wm, x, y, z, 0) ;
 
         if (x == 110 && y == 125 && z == 172)  /* T1=148 */
           DiagBreak() ;
@@ -1163,14 +1169,14 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
               yi = mri_T1->yi[y+yk] ;
               for (zk = -1 ; zk <= 1 ; zk++) {
                 zi = mri_T1->zi[z+zk] ;
-                if (MRIvox(mri_wm, xi, yi, zi) >= WM_MIN_VAL)
+                if (MRIgetVoxVal(mri_wm, xi, yi, zi, 0) >= WM_MIN_VAL)
                   nwhite++ ;
               }
             }
           }
 #define MIN_WHITE  ((3*3*3-1)/2)
           if (nwhite < MIN_WHITE)
-            MRIvox(mri_labeled, x, y, z) = BRIGHT_LABEL ;
+            MRIsetVoxVal(mri_labeled, x, y, z, 0, BRIGHT_LABEL) ;
         }
       }
     }
