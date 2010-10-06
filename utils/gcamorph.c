@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/06 17:24:40 $
- *    $Revision: 1.217 $
+ *    $Date: 2010/10/06 19:44:10 $
+ *    $Revision: 1.218 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7694,7 +7694,7 @@ remove_label_outliers( GCA_MORPH *gcam,
 
 #else
   int         nremoved_total, n, i, vox_to_examine, niters ;
-  MRI         *mri_std, *mri_ctrl, *mri_tmp ;
+  MRI         *mri_std, *mri_ctrl, *mri_tmp, *mri_ctrl_tmp ;
   VOXEL_LIST  *vl ;
   float       diff, val0, oval ;
   int         delete, xv, yv, zv, xo, yo, zo, x, y, z ;
@@ -7821,22 +7821,27 @@ remove_label_outliers( GCA_MORPH *gcam,
 
   // now use soap bubble smoothing to estimate label offset of deleted locations
   mri_tmp = NULL ;
+  mri_ctrl_tmp = NULL;
   for (i = 0 ; i < 100 ; i++)
   {
     max_change = 0.0 ;
     mri_tmp = MRIcopy(mri_dist, mri_tmp) ;
-    for (x = 0 ; x < gcam->width ; x++)
-      for (y = 0 ; y < gcam->height ; y++)
-        for (z = 0 ; z < gcam->depth ; z++)
-        {
+    mri_ctrl_tmp = MRIcopy( mri_ctrl, mri_ctrl_tmp );
+
+    for (x = 0 ; x < gcam->width ; x++) {
+      for (y = 0 ; y < gcam->height ; y++) {
+        for (z = 0 ; z < gcam->depth ; z++) {
           int    xi, yi, zi, xk, yk, zk, num ;
           double mean ;
           if (x == Gx && y == Gy && z == Gz)
             DiagBreak() ;
           gcamn = &gcam->nodes[x][y][z] ;
-          if (MRIgetVoxVal(mri_ctrl, x, y, z, 0) == CONTROL_MARKED ||
-              (gcamn->status & GCAM_LABEL_NODE) == 0)
+
+          if( MRIgetVoxVal(mri_ctrl, x, y, z, 0) == CONTROL_MARKED ||
+              (gcamn->status & GCAM_LABEL_NODE) == 0 ) {
             continue ;
+	  }
+
           for (xk = -1, num = 0, mean = 0.0 ; xk <= 1 ; xk++)
           {
             xi = mri_ctrl->xi[x+xk] ;
@@ -7863,10 +7868,12 @@ remove_label_outliers( GCA_MORPH *gcam,
             if (fabs(val-mean) > max_change)
               max_change = fabs(val-mean) ;
             MRIsetVoxVal(mri_tmp, x, y, z, 0, mean) ;
-            MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_TMP) ;
+            MRIsetVoxVal(mri_ctrl_tmp, x, y, z, 0, CONTROL_TMP) ;
             gcamn->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
           }
         }
+      }
+    }
       
     MRIcopy(mri_tmp, mri_dist) ;
 
@@ -7883,7 +7890,9 @@ remove_label_outliers( GCA_MORPH *gcam,
       break ;
   }
 
-  MRIfree(&mri_ctrl) ; MRIfree(&mri_tmp) ;
+  MRIfree(&mri_ctrl);
+  MRIfree(&mri_tmp) ;
+  MRIfree(&mri_ctrl_tmp);
 
 #if GCAM_REMOVE_LABEL_OUTLIERS_OUTPUT
   if( nremoved != 0 ) {
