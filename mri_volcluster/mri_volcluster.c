@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/01/16 02:25:40 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/10/06 17:51:26 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,7 +98,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.42 2009/01/16 02:25:40 greve Exp $";
+  "$Id: mri_volcluster.c,v 1.43 2010/10/06 17:51:26 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -207,7 +207,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.42 2009/01/16 02:25:40 greve Exp $",
+     "$Id: mri_volcluster.c,v 1.43 2010/10/06 17:51:26 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -364,6 +364,11 @@ int main(int argc, char **argv) {
                            binmask, maskframe);
   if (HitMap == NULL) {
     printf("ERROR: initializing hit map\n");
+    if(nhits == 0){
+      printf("  No voxels were found that met the threshold criteria");      
+      if(binmask) printf(" within the mask");      
+      printf(".\n");
+    }
     exit(1);
   }
   //MRIwriteType(HitMap,"hitmap",BSHORT_FILE);
