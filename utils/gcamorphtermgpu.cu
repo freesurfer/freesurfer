@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/05 18:04:59 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/10/06 17:24:41 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1421,8 +1421,14 @@ namespace GPU {
 	    }
 	  }
 	}
-	
-	
+#if 0
+	if( true ) {
+	  char fname[STRLEN] ;
+	  sprintf( fname, "gpu_dist_after%d.mgz",i );
+	  MRIwrite(mri_dist, fname) ;
+	}
+#endif	
+
 	nremoved_total += nremoved ;
 	MRIfree(&mri_std) ;
 	if( nremoved == 0 ) {
@@ -1485,6 +1491,15 @@ namespace GPU {
 	}
 	
 	MRIcopy(mri_tmp, mri_dist) ;
+
+#if 0
+	if( true ) {
+	  char fname[STRLEN] ;
+	  sprintf( fname, "gpu_dist_after%d.mgz",i );
+	  MRIwrite(mri_dist, fname) ;
+	}
+#endif
+
 	MRIreplaceValuesOnly(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NBR) ;
 	if( max_change < 0.05 ) {
 	  break;
@@ -1502,19 +1517,22 @@ namespace GPU {
     }
 
     
-    void GCAmorphTerm::RemoveLabelOutliersDispatch( GPU::Classes::GCAmorphGPU& gcam,
+    int GCAmorphTerm::RemoveLabelOutliersDispatch( GPU::Classes::GCAmorphGPU& gcam,
 						    MRI *mri_dist,
 						    const int whalf,
 						    const double thresh ) const {
       Freesurfer::GCAmorphCPU myGCAM;
 
+      int nRemoved;
+
       myGCAM.AllocateFromTemplate( gcam );
       myGCAM.GetFromGPU( gcam );
 
-      this->RemoveLabelOutliers( myGCAM, mri_dist, whalf, thresh );
+      nRemoved = this->RemoveLabelOutliers( myGCAM, mri_dist, whalf, thresh );
 
       myGCAM.PutOnGPU( gcam );
 
+      return( nRemoved );
     }
 
 
@@ -1707,18 +1725,25 @@ void gcamLabelTermCopyDeltasGPU( GCA_MORPH *gcam,
 
 
 //! Wrapper around GPU class for RemoveLablOutliers
-void gcamRemoveLabelOutliersGPU( GCA_MORPH *gcam,
+int gcamRemoveLabelOutliersGPU( GCA_MORPH *gcam,
 				 MRI* mri_dist,
 				 const int whalf,
 				 const double thresh ) {
+
+  int nremoved;
 
   GPU::Classes::GCAmorphGPU myGCAM;
 
   myGCAM.SendAll( gcam );
 
-  myTerms.RemoveLabelOutliersDispatch( myGCAM, mri_dist, whalf, thresh );
+  nremoved = myTerms.RemoveLabelOutliersDispatch( myGCAM,
+						  mri_dist,
+						  whalf,
+						  thresh );
 
   myGCAM.RecvAll( gcam );
+
+  return( nremoved );
 }
 
 #endif

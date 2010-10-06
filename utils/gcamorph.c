@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/10/06 16:07:51 $
- *    $Revision: 1.216 $
+ *    $Author: rge21 $
+ *    $Date: 2010/10/06 17:24:40 $
+ *    $Revision: 1.217 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,7 @@
 #define GCAM_JACOB_TERM_GPU
 #define GCAM_LL_TERM_GPU
 
+#define GCAM_LABEL_TERM_REMOVE_OUTLIERS_GPU
 #define GCAM_LABEL_TERM_COPYDELTAS_GPU
 #define GCAM_LABEL_TERM_POSTANT_GPU
 #define GCAM_LABEL_TERM_FINAL_GPU
@@ -7683,13 +7684,23 @@ remove_label_outliers( GCA_MORPH *gcam,
 		       MRI *mri_dist,
 		       const int whalf,
 		       const double thresh ) {
-  int         nremoved, nremoved_total, n, i, vox_to_examine, niters ;
+
+  int nremoved;
+
+#ifdef GCAM_LABEL_TERM_REMOVE_OUTLIERS_GPU
+
+  printf( "%s: On GPU\n", __FUNCTION__ );
+  nremoved = gcamRemoveLabelOutliersGPU( gcam, mri_dist, whalf, thresh );
+
+#else
+  int         nremoved_total, n, i, vox_to_examine, niters ;
   MRI         *mri_std, *mri_ctrl, *mri_tmp ;
   VOXEL_LIST  *vl ;
   float       diff, val0, oval ;
   int         delete, xv, yv, zv, xo, yo, zo, x, y, z ;
   GCA_MORPH_NODE  *gcamn, *gcamn_sup, *gcamn_inf ;
   double      max_change ;
+
 
 #if GCAM_REMOVE_LABEL_OUTLIERS_OUTPUT
   const unsigned int outputFreq = 10;
@@ -7858,12 +7869,31 @@ remove_label_outliers( GCA_MORPH *gcam,
         }
       
     MRIcopy(mri_tmp, mri_dist) ;
+
+#if 0
+    {
+      char fname[STRLEN] ;
+      sprintf(fname, "dist_after%d.mgz",i) ;
+      MRIwrite(mri_dist, fname) ;
+    }
+#endif
+
     MRIreplaceValuesOnly(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NBR) ;
     if (max_change < 0.05)
       break ;
   }
 
   MRIfree(&mri_ctrl) ; MRIfree(&mri_tmp) ;
+
+#if GCAM_REMOVE_LABEL_OUTLIERS_OUTPUT
+  if( nremoved != 0 ) {
+    printf( "%s: nremoved = %i on nCall %i\n",
+	    __FUNCTION__, nremoved, nCalls-1 );
+  }
+#endif
+
+#endif
+
   return(nremoved) ;
 }
 

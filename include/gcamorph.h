@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/05 18:05:07 $
- *    $Revision: 1.87 $
+ *    $Date: 2010/10/06 17:24:40 $
+ *    $Revision: 1.88 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -615,10 +615,10 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags );
 
 
-  void gcamRemoveLabelOutliersGPU( GCA_MORPH *gcam,
-				   MRI* mri_dist,
-				   const int whalf,
-				   const double thresh );
+  int gcamRemoveLabelOutliersGPU( GCA_MORPH *gcam,
+				  MRI* mri_dist,
+				  const int whalf,
+				  const double thresh );
   void gcamLabelTermCopyDeltasGPU( GCA_MORPH *gcam,
 				   const MRI* mri_dist,
 				   const double l_label );

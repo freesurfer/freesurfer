@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/05 18:05:07 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/10/06 17:24:40 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -113,10 +113,10 @@ namespace GPU {
 
       
       //! Wrapper for Remove Label Outliers
-      void RemoveLabelOutliersDispatch( GPU::Classes::GCAmorphGPU& gcam,
-					MRI *mri_dist,
-					const int whalf,
-					const double thresh ) const;
+      int RemoveLabelOutliersDispatch( GPU::Classes::GCAmorphGPU& gcam,
+				       MRI *mri_dist,
+				       const int whalf,
+				       const double thresh ) const;
       
 
       // ######################################################
