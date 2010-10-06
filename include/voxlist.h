@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/08/04 01:43:23 $
- *    $Revision: 1.10 $
+ *    $Author: rge21 $
+ *    $Date: 2010/10/06 14:08:07 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,12 @@
 #define VOXLIST_H
 
 #include "mri.h"
+
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 
 typedef struct
 {
@@ -70,5 +76,12 @@ VOXEL_LIST *VLSTsort(VOXEL_LIST *vl_src, VOXEL_LIST *vl_dst) ;
 
 #define VL_DILATE_ADD      0
 #define VL_DILATE_REPLACE  1
+
+
+
+#if defined(__cplusplus)
+};
+#endif
+
 
 #endif
