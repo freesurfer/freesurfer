@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/10/05 18:04:59 $
- *    $Revision: 1.215 $
+ *    $Author: lzollei $
+ *    $Date: 2010/10/06 16:07:51 $
+ *    $Revision: 1.216 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -3727,7 +3727,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
 
   if (mri_morphed == NULL)
     mri_morphed = MRIalloc(gcam->image.width, gcam->image.height, 
-                           gcam->image.depth, MRI_UCHAR);
+                           gcam->image.depth, mri_in->type);
 
   useVolGeomToMRI(&gcam->image, mri_morphed);
   transform->type = MORPH_3D_TYPE ;
