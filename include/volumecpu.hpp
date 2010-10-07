@@ -13,8 +13,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 20:12:00 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/10/07 19:10:34 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,20 +65,23 @@ namespace Freesurfer {
 		  T* const _data ) : nx(_nx), ny(_ny), nz(_nz),
 				     data(_data) {};
 
+    //! Empty destructor
+    ~VolumeArgCPU( void ) {};
+
     // ---------------------------------------------------
     // Subscripting operators (unsafe)
     
     //! RHS subscripting operator
-    T operator()( const unsigned int ix,
-		  const unsigned int iy,
-		  const unsigned int iz ) const {
+    inline const T& operator()( const unsigned int ix,
+			 const unsigned int iy,
+			 const unsigned int iz ) const {
       return( data[ix + ( nx * ( iy + (ny*iz) ) )] );
     }
 
     //! LHS subscripting operator
-    T& operator()( const unsigned int ix,
-		   const unsigned int iy,
-		   const unsigned int iz ) {
+    inline T& operator()( const unsigned int ix,
+			  const unsigned int iy,
+			  const unsigned int iz ) {
       return( data[ix + ( nx * ( iy + (ny*iz) ) )] );
     }
 
@@ -182,6 +185,28 @@ namespace Freesurfer {
     }
 
 
+    //! Copy method
+    void Copy( const VolumeCPU<T>& src ) {
+
+      // Check for NULL source
+      if( src.data == NULL ) {
+	std::cerr << __FUNCTION__
+		  << ": Can't copy from NULL source"
+		  << std::endl;
+	exit( EXIT_FAILURE );	
+      }
+
+      // Check for self-copy
+      if( &src == this ) {
+	return;
+      }
+
+      this->Allocate( src.nx, src.ny, src.nz );
+
+      memcpy( this->data, src.data, src.BufferSize() );
+    }
+
+
     // -------------------------------
     // Data transfer
 
@@ -195,6 +220,29 @@ namespace Freesurfer {
     void PushGPU( GPU::Classes::VolumeGPU<T>& dst ) const {
       dst.SendBuffer( this->data );
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
+    }
+
+    // ---------------------------------
+    // Value manipulation
+
+    //! Replace all occurences of one value by another
+    void ReplaceValue( const T inVal, const T outVal ) {
+      
+
+      VolumeArgCPU<T> me( *this );
+
+      for( unsigned int iz=0; iz<this->nz; iz++ ) {
+	for( unsigned int iy=0; iy<this->ny; iy++ ) {
+	  T *rowPtr = &me(0,iy,iz);
+	  
+	  for( unsigned int ix=0; ix<this->nx; ix++ ) {
+	    if( inVal == *rowPtr ) {
+	      *rowPtr = outVal;
+	    }
+	    rowPtr++;
+	  }
+	}
+      }
     }
 
   private:

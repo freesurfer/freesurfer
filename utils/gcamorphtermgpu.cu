@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/06 19:44:10 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/10/07 19:10:38 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1323,7 +1323,7 @@ namespace GPU {
 					   const double thresh ) const {
       
       int         nremoved, nremoved_total, n, i, vox_to_examine, niters;
-      MRI         *mri_std, *mri_ctrl, *mri_tmp, *mri_ctrl_tmp;
+      MRI         *mri_std, *mri_tmp;
       VOXEL_LIST  *vl;
       float       diff, val0, oval;
       int         del, xv, yv, zv, xo, yo, zo, x, y, z;
@@ -1344,18 +1344,22 @@ namespace GPU {
       Freesurfer::VolumeArgCPU<int> status( gcam.status );
       Freesurfer::VolumeArgCPU<float> dy( gcam.dy );
       
-      
-      mri_ctrl = MRIcloneDifferentType( mri_dist, MRI_UCHAR );
+      // The control volumes for soap bubble smoothing
+      Freesurfer::VolumeCPU<unsigned char> ctrl, ctrl_tmp;
+      ctrl.Allocate( nx, ny, nz );
+
+      Freesurfer::VolumeArgCPU<unsigned char> ctrlArg( ctrl );
       
       for (z = 0 ; z < nz ; z++) {
 	for (y = 0 ; y < ny ; y++) {
 	  for (x = 0 ; x < nx ; x++) {
 	    if( status(x,y,z) & GCAM_LABEL_NODE) {
-	      MRIsetVoxVal( mri_ctrl, x, y, z, 0, CONTROL_MARKED );
+	      ctrlArg( x, y, z ) = CONTROL_MARKED;
 	    }
 	  }
 	}
       }
+
       
       niters = 100 ;
       for( nremoved_total = i = 0; i < niters; i++) {
@@ -1399,7 +1403,7 @@ namespace GPU {
 	  if( del ) {
 	    nremoved++ ;
 	    MRIFvox(mri_dist, x, y, z) = 0 ;
-	    MRIsetVoxVal(mri_ctrl, x, y, z, 0, CONTROL_NONE) ;
+	    ctrlArg(x,y,z) = CONTROL_NONE;
 	    dy(x,y,z) = 0;
 	    
 	    // Inferior is y+1
@@ -1407,7 +1411,7 @@ namespace GPU {
 	      nremoved++ ;
 	      //  gcamn_inf->status = GCAM_USE_LIKELIHOOD ;
 	      MRIsetVoxVal(mri_dist, x, y+1, z, 0, 0) ;
-	      MRIsetVoxVal(mri_ctrl, x, y+1, z, 0, CONTROL_NONE) ;
+	      ctrlArg(x,y+1,z) = CONTROL_NONE;
 	      dy(x,y+1,z) = 0 ;
 	    }
 	    
@@ -1417,7 +1421,7 @@ namespace GPU {
 	      //          gcamn_sup->status = GCAM_USE_LIKELIHOOD ;
 	      dy(x,y-1,z) = 0 ;
 	      MRIsetVoxVal(mri_dist, x, y-1, z, 0, 0) ;
-	      MRIsetVoxVal(mri_ctrl, x, y-1, z, 0, CONTROL_NONE) ;
+	      ctrlArg(x,y-1,z) = CONTROL_NONE;
 	    }
 	  }
 	}
@@ -1444,12 +1448,13 @@ namespace GPU {
       /* now use soap bubble smoothing to estimate
 	 label offset of deleted locations */
       mri_tmp = NULL;
-      mri_ctrl_tmp = NULL;
+      ctrl_tmp.Allocate( nx, ny, nz );
 
       for (i = 0 ; i < 100 ; i++) {
 	max_change = 0.0 ;
 	mri_tmp = MRIcopy(mri_dist, mri_tmp);
-	mri_ctrl_tmp = MRIcopy( mri_ctrl, mri_ctrl_tmp );
+	ctrl_tmp.Copy( ctrl );
+	Freesurfer::VolumeArgCPU<unsigned char> ctrlTmpArg( ctrl_tmp );
 	
 	for( z = 0; z < nz; z++ ) {
 	  for( y = 0; y < ny; y++ ) {
@@ -1457,21 +1462,38 @@ namespace GPU {
 	      int    xi, yi, zi, xk, yk, zk, num ;
 	      double mean ;
 	      
-	      if( (MRIgetVoxVal(mri_ctrl, x, y, z, 0) == CONTROL_MARKED) ||
+	      if( (ctrlArg(x,y,z) == CONTROL_MARKED) ||
 		  ((status(x,y,z) & GCAM_LABEL_NODE) == 0) ) {
 		continue;
 	      }
 	      
-	      for (xk = -1, num = 0, mean = 0.0 ; xk <= 1 ; xk++) {
-		xi = mri_ctrl->xi[x+xk] ;
+	      num = 0;
+	      mean = 0;
+	      for (xk = -1; xk <= 1 ; xk++) {
+		xi = x + xk;
+		if( xi < 0 ) {
+		  xi = 0;
+		} else if( xi >= nx ) {
+		  xi = nx-1;
+		}
+
 		for (yk = -1 ; yk <= 1 ; yk++) {
-		  yi = mri_ctrl->yi[y+yk] ;
+		  yi = y + yk;
+		  if( yi < 0 ) {
+		    yi = 0;
+		  } else if( yi >= ny ) {
+		    yi = ny - 1;
+		  }
 		  for (zk = -1 ; zk <= 1 ; zk++) {
-		    zi = mri_ctrl->zi[z+zk];
+		    zi = z+zk;
+		    if( zi < 0 ) {
+		      zi = 0;
+		    } else if( zi >= nz ) {
+		      zi = nz - 1;
+		    }
 		    
-		    
-		    if( (MRIgetVoxVal(mri_ctrl, xi, yi, zi, 0) == CONTROL_MARKED) ||
-			(MRIgetVoxVal(mri_ctrl, xi, yi, zi, 0) == CONTROL_NBR) ) {
+		    if( (ctrlArg(xi,yi,zi) == CONTROL_MARKED) ||
+			(ctrlArg(xi,yi,zi) == CONTROL_NBR) ) {
 		      mean += MRIgetVoxVal(mri_dist, xi, yi, zi, 0) ;
 		      num++ ;
 		    }
@@ -1486,7 +1508,7 @@ namespace GPU {
 		  max_change = fabs(val-mean) ;
 		}
 		MRIsetVoxVal(mri_tmp, x, y, z, 0, mean) ;
-		MRIsetVoxVal(mri_ctrl_tmp, x, y, z, 0, CONTROL_TMP) ;
+		ctrlTmpArg(x,y,z) = CONTROL_TMP;
 		status(x,y,z) = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
 	      }
 	    }
@@ -1494,6 +1516,7 @@ namespace GPU {
 	}
 	
 	MRIcopy(mri_tmp, mri_dist) ;
+	ctrl.Copy( ctrl_tmp );
 
 #if 0
 	if( true ) {
@@ -1503,7 +1526,7 @@ namespace GPU {
 	}
 #endif
 
-	MRIreplaceValuesOnly(mri_ctrl, mri_ctrl, CONTROL_TMP, CONTROL_NBR) ;
+	ctrl.ReplaceValue( CONTROL_TMP, CONTROL_NBR );
 	if( max_change < 0.05 ) {
 	  break;
 	}
@@ -1511,9 +1534,7 @@ namespace GPU {
       }
       
       
-      MRIfree( &mri_ctrl );
       MRIfree( &mri_tmp );
-      MRIfree( &mri_ctrl_tmp );
       
       GCAmorphTerm::tRemoveOutliers.Stop();
 

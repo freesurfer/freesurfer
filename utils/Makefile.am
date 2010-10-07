@@ -371,7 +371,7 @@ gcasgpu.o: $(CUDA_DEPS)
 gcamorphgpu.o: $(CUDA_DEPS) ../include/volumegpucompare.hpp
 cudatypeutils.o: ../include/cudatypeutils.hpp
 gcamorphenergygpu.o: $(CUDA_DEPS)
-gcamorphtermgpu.o: $(CUDA_DEPS)
+gcamorphtermgpu.o: $(CUDA_DEPS)  ../include/volumecpu.hpp
 gcamorphcpu.o: ../include/gcamorphcpu.hpp $(CUDA_DEPS)
 
 CALLDEPTH ?= -1

@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/06 19:44:10 $
- *    $Revision: 1.218 $
+ *    $Date: 2010/10/07 19:10:37 $
+ *    $Revision: 1.219 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7822,8 +7822,7 @@ remove_label_outliers( GCA_MORPH *gcam,
   // now use soap bubble smoothing to estimate label offset of deleted locations
   mri_tmp = NULL ;
   mri_ctrl_tmp = NULL;
-  for (i = 0 ; i < 100 ; i++)
-  {
+  for (i = 0 ; i < 100 ; i++) {
     max_change = 0.0 ;
     mri_tmp = MRIcopy(mri_dist, mri_tmp) ;
     mri_ctrl_tmp = MRIcopy( mri_ctrl, mri_ctrl_tmp );
@@ -7876,6 +7875,7 @@ remove_label_outliers( GCA_MORPH *gcam,
     }
       
     MRIcopy(mri_tmp, mri_dist) ;
+    MRIcopy( mri_ctrl_tmp, mri_ctrl );
 
 #if 0
     {
