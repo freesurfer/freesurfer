@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/25 21:18:52 $
- *    $Revision: 1.37 $
+ *    $Date: 2010/10/07 17:07:37 $
+ *    $Revision: 1.38 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -475,10 +475,10 @@ void RenderView2D::MoveDown()
 
 void RenderView2D::OnSize( wxSizeEvent& event )
 {
+  RenderView::OnSize( event );
+  
   Update2DOverlay();
   UpdateAnnotation();
-
-  event.Skip();
 }
 
 void RenderView2D::PreScreenshot()
