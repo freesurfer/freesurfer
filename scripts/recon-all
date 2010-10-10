@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2010/09/01 15:27:52 $
-#    $Revision: 1.321 $
+#    $Author: nicks $
+#    $Date: 2010/10/10 03:58:37 $
+#    $Revision: 1.322 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.321 2010/09/01 15:27:52 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.322 2010/10/10 03:58:37 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -103,7 +103,8 @@ set FixDiagOnly = 0; # for topology fixer
 set RmNeckRadius = 25;  # used by mri_remove_neck
 set UseCAAlign = (-align); # flag added to mri_ca_label
 set UseCAAlignAfter = (-align-after); # flag added to mri_ca_register
-set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used
+set UseAseg  = 1 # when set to 0 (using -noaseg), then aseg.mgz is not used,
+                 # nor is ?h.cortex.label (which originates through the aseg)
 set NoAsegInorm2 = 0 # when set to 1 (using -noaseg-inorm2), then aseg.mgz
                      # is not used during the 2nd mri_normalize step
 set UseNoNeg = 0 # if 1, add '-remove_negative 1' to mris_sphere,mris_register
@@ -2675,7 +2676,7 @@ foreach hemi ($hemilist)
     set CPAtlas = ${GCSDIR}/$hemi.$GCS
     set annot = ../label/$hemi.aparc.annot
     set cmd = (mris_ca_label)
-    set cmd = ($cmd -l ../label/$hemi.cortex.label)
+    if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
     if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
@@ -2723,7 +2724,7 @@ foreach hemi ($hemilist)
     set CPAtlas = ${GCSDIR}/${hemi}.${DESTRIEUX_GCS}
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set cmd = (mris_ca_label)
-    set cmd = ($cmd -l ../label/$hemi.cortex.label)
+    if($UseAseg) set cmd = ($cmd -l ../label/$hemi.cortex.label)
     if($UseAseg) set cmd = ($cmd -aseg ../mri/aseg.mgz)
     if($NoRandomness) set cmd = ($cmd -seed $RngSeed)
     set cmd = ($cmd $xopts)
