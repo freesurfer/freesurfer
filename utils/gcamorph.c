@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 16:53:00 $
- *    $Revision: 1.220 $
+ *    $Date: 2010/10/12 19:24:42 $
+ *    $Revision: 1.221 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,6 +46,7 @@
 #define GCAM_JACOB_TERM_GPU
 #define GCAM_LL_TERM_GPU
 
+#define GCAM_LABEL_TERM_MAINLOOP_GPU
 #define GCAM_LABEL_TERM_REMOVE_OUTLIERS_GPU
 #define GCAM_LABEL_TERM_COPYDELTAS_GPU
 #define GCAM_LABEL_TERM_POSTANT_GPU
@@ -201,9 +202,6 @@ static MRI *gcamCreateJacobianImage(GCA_MORPH *gcam) ;
 static int gcamMLElabelAtLocation(GCA_MORPH *gcam, 
                                   int x, int y, int z, float *vals) ;
 #endif
-static int is_temporal_wm( const GCA_MORPH *gcam, const MRI *mri,
-			   const GCA_NODE *gcan,
-			   float x, float y, float z, int ninputs) ;
 
 static int gcamRemoveNegativeNodes(GCA_MORPH *gcam, 
                                    MRI *mri, 
@@ -8162,7 +8160,12 @@ int gcamLabelTermFinalUpdate( GCA_MORPH *gcam,
 void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
 			    MRI *mri_dist,
 			    const double l_label, const double label_dist ) {
+#ifdef GCAM_LABEL_TERM_MAINLOOP_GPU
+  
+  printf( "%s: On GPU\n", __FUNCTION__ );
+  gcamLabelTermMainLoopGPU( gcam, mri, mri_dist, l_label, label_dist );
 
+#else
   int x, y, z;
   int xn, yn, zn;
   int best_label, sup_wm, sup_ven, wm_label;
@@ -8190,6 +8193,9 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
 
     snprintf( fname, STRLEN-1, "mriLabelMainLoopInput%04u.mgz", nOut );
     MRIwrite( (MRI*)mri, fname );
+
+    snprintf( fname, STRLEN-1, "gcaLabelMainLoop%04u.gca", nOut );
+    GCAwrite( gcam->gca, fname );
   }
   nCalls++;
 #endif
@@ -8446,6 +8452,7 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
     }
   }
 
+#endif
 }
 
 
@@ -9139,7 +9146,7 @@ check_gcam( const GCAM *gcam )
 
 #define MAX_TEMPORAL_WM 3
 
-static int
+int
 is_temporal_wm( const GCA_MORPH *gcam, const MRI *mri,
 		const GCA_NODE *gcan,
 		float xf, float yf, float zf, int ninputs )

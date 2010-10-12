@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 16:52:57 $
- *    $Revision: 1.89 $
+ *    $Date: 2010/10/12 19:24:41 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -546,6 +546,10 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 			 MRI *mri_dist,
 			 const int whalf,
 			 const double thresh );
+  int
+  is_temporal_wm( const GCA_MORPH *gcam, const MRI *mri,
+		  const GCA_NODE *gcan,
+		  float xf, float yf, float zf, int ninputs );
 
 
   void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
@@ -618,7 +622,10 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   void gcamAddStatusGPU( GCA_MORPH *gcam, const int statusFlags );
   void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags );
 
-
+  void gcamLabelTermMainLoopGPU( GCA_MORPH *gcam, const MRI *mri,
+				 MRI *mri_dist,
+				 const double l_label,
+				 const double label_dist );
   int gcamRemoveLabelOutliersGPU( GCA_MORPH *gcam,
 				  MRI* mri_dist,
 				  const int whalf,

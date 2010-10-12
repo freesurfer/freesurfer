@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 16:52:57 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/10/12 19:24:41 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -118,6 +118,13 @@ namespace GPU {
 				       const int whalf,
 				       const double thresh ) const;
       
+      //! Wrapper for Label Main Loop
+      void LabelMainLoopDispatch( GPU::Classes::GCAmorphGPU& gcam,
+				  const MRI *mri,
+				  MRI *mri_dist,
+				  const double l_label,
+				  const double label_dist ) const;
+
 
       // ######################################################
     private:
@@ -144,6 +151,8 @@ namespace GPU {
       //! Timer for Log likelihood term computation
       static SciGPU::Utilities::Chronometer tLogLikelihoodCompute;
 
+      //! Timer for the main loop of LabelTerm
+      static SciGPU::Utilities::Chronometer tLabelMainLoop;
       //! Timer for the computation portion of RemoveOutliers
       static SciGPU::Utilities::Chronometer tRemoveOutliers;
       //! Timer for copy deltas portion of LabelTerm

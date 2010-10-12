@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 16:53:01 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/10/12 19:24:42 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1564,6 +1564,9 @@ namespace GPU {
       GC1D *wm_gc;
       float vals[MAX_GCA_INPUTS], yi, yk, min_dist;
 
+      
+      GCAmorphTerm::tLabelMainLoop.Start();
+
       // Get hold of dimensions etc.
       gcam.CheckIntegrity();
       
@@ -1810,6 +1813,8 @@ namespace GPU {
 	}
       }
       
+
+      GCAmorphTerm::tLabelMainLoop.Stop();
     }
     
     
@@ -1865,6 +1870,27 @@ namespace GPU {
       return( nwhite <= MAX_TEMPORAL_WM );
     }
     
+
+
+
+    void GCAmorphTerm::LabelMainLoopDispatch( GPU::Classes::GCAmorphGPU& gcam,
+					      const MRI *mri,
+					      MRI *mri_dist,
+					      const double l_label,
+					      const double label_dist ) const {
+
+      Freesurfer::GCAmorphCPU myGCAM;
+
+      myGCAM.AllocateFromTemplate( gcam );
+      myGCAM.GetFromGPU( gcam );
+
+      this->LabelMainLoop( myGCAM, mri, mri_dist, l_label, label_dist );
+
+      myGCAM.PutOnGPU( gcam );
+      
+    }
+    
+
     // ##############################################################
     
     void GCAmorphTerm::ShowTimings( void ) {
@@ -1907,6 +1933,8 @@ namespace GPU {
       std::cout << std::endl;
 
        std::cout << "Label Term:" << std::endl;
+       std::cout << "        Main Loop:" << GCAmorphTerm::tLabelMainLoop
+		 << std::endl;
        std::cout << "  Remove Outliers:" << GCAmorphTerm::tRemoveOutliers
 		 << std::endl;
        std::cout << "      Copy Deltas:" << GCAmorphTerm::tLabelCopyDeltas
@@ -1937,6 +1965,7 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodTot;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLogLikelihoodCompute;
 
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelMainLoop;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tRemoveOutliers;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelCopyDeltas;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelPostAntConsistency;
@@ -2073,6 +2102,23 @@ int gcamRemoveLabelOutliersGPU( GCA_MORPH *gcam,
   myGCAM.RecvAll( gcam );
 
   return( nremoved );
+}
+
+
+//! Wrapper around GPU class for Label Main Loop
+void gcamLabelTermMainLoopGPU( GCA_MORPH *gcam, const MRI *mri,
+			   MRI *mri_dist,
+			   const double l_label, const double label_dist ) {
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+
+  myGCAM.SendAll( gcam );
+
+  myTerms.LabelMainLoopDispatch( myGCAM,
+				 mri, mri_dist,
+				 l_label, label_dist );
+
+  myGCAM.RecvAll( gcam );
 }
 
 #endif
