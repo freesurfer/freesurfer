@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 20:12:00 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/10/12 16:52:57 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -61,6 +61,8 @@ namespace Freesurfer {
 
     double exp_k;
     int neg;
+    //! Copies from GCAmorphGPU for LabelTerm... NASTY!!!
+    GCA* gca;
 
     // -----------------------------------
     //! Default constructor
@@ -77,7 +79,8 @@ namespace Freesurfer {
 			  mean(),
 			  variance(),
 			  exp_k(0),
-			  neg(0) {};
+			  neg(0),
+			  gca(NULL) {};
 
     //! Destructor
     ~GCAmorphCPU( void ) {};

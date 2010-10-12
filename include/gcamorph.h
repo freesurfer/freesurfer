@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/06 17:24:40 $
- *    $Revision: 1.88 $
+ *    $Date: 2010/10/12 16:52:57 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -547,6 +547,10 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 			 const int whalf,
 			 const double thresh );
 
+
+  void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
+			      MRI *mri_dist,
+			      const double l_label, const double label_dist );
   void gcamLabelTermCopyDeltas( GCA_MORPH *gcam,
 				const MRI* mri_dist,
 				const double l_label );

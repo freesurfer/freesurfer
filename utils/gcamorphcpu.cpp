@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 20:12:02 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/10/12 16:53:01 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -153,6 +153,7 @@ namespace Freesurfer {
     // Copy scalars
     this->exp_k = src.exp_k;
     this->neg = src.neg;
+    this->gca = src.gca;
     
     // Do the PCIe thing
     this->rx.PullGPU( src.d_rx );
@@ -251,6 +252,9 @@ namespace Freesurfer {
     // Copy scalars
     dst.exp_k = this->exp_k;
     dst.neg = this->neg;
+    std::cerr << __FUNCTION__
+	      << ": Did not reset gca in dst"
+	      << std::endl;
 
     CUDA_SAFE_CALL( cudaThreadSynchronize() );
   }

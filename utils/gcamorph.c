@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/07 19:10:37 $
- *    $Revision: 1.219 $
+ *    $Date: 2010/10/12 16:53:00 $
+ *    $Revision: 1.220 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -7674,7 +7674,12 @@ gcamLabelEnergy( const GCA_MORPH *gcam,
   return(sse) ;
 }
 
+// ------------------------------------------------------------
+
+
 #include "voxlist.h"
+
+
 
 
 #define GCAM_REMOVE_LABEL_OUTLIERS_OUTPUT 0
@@ -8151,19 +8156,309 @@ int gcamLabelTermFinalUpdate( GCA_MORPH *gcam,
 
 // ----------------------
 
+#define GCAM_LABEL_MAINLOOP_OUTPUT 0
+
+//! Sliced out of gcamLabelTerm
+void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
+			    MRI *mri_dist,
+			    const double l_label, const double label_dist ) {
+
+  int x, y, z;
+  int xn, yn, zn;
+  int best_label, sup_wm, sup_ven, wm_label;
+  int n;
+  double dy;
+  GCA_MORPH_NODE *gcamn, *gcamn_inf, *gcamn_sup;
+  GCA_NODE *gcan;
+  GC1D *wm_gc;
+  float vals[MAX_GCA_INPUTS], yi, yk, min_dist;
+
+#if GCAM_LABEL_MAINLOOP_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%outputFreq) == 0 ) {
+    unsigned int nOut = nCalls/outputFreq;
+    
+    char fname[STRLEN];
+
+    snprintf( fname, STRLEN-1, "gcamLabelMainLoopInput%04u", nOut );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+
+    snprintf( fname, STRLEN-1, "mri_distLabelMainLoopInput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri_dist, fname );
+
+    snprintf( fname, STRLEN-1, "mriLabelMainLoopInput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri, fname );
+  }
+  nCalls++;
+#endif
+
+
+  for (x = 0 ; x < gcam->width ; x++) {
+    for (y = 0 ; y < gcam->height ; y++) {
+      for (z = 0 ; z < gcam->depth ; z++) {
+
+        gcamn = &gcam->nodes[x][y][z] ;
+
+	// Skip invalid nodes
+        if( gcamn->invalid == GCAM_POSITION_INVALID ) {
+          continue;
+	}
+
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (x == Gx && y == (Gy-1) && z == Gz)
+          DiagBreak() ;
+        if (x == Gx && y == (Gy+1) && z == Gz)
+          DiagBreak() ;
+
+	// Can't do top or bottom layers
+        if( (y == gcam->height-1) || (y == 0) ) {
+          continue;
+	}
+
+        if ((fabs(gcamn->x-Gvx)<=gcam->spacing) &&
+            (fabs(gcamn->y-Gvy)<=gcam->spacing) &&
+            (fabs(gcamn->z-Gvz)<=gcam->spacing))
+          DiagBreak() ;
+
+        /* only process nodes which are hippocampus superior to something else,
+           or white matter inferior to hippocampus
+        */
+        if (y == 0 || y == gcam->height-1 || 
+            gcamn->y == 0 || gcamn->y == mri->height-1) {
+          continue;
+	}
+
+        if( !IS_HIPPO(gcamn->label) && !IS_WM(gcamn->label) ) {
+          continue;
+	}
+
+        if ( !IS_WM(gcamn->label) ) {   /* only do white matter for now */
+          continue;
+	}
+
+        if (fabs(2*x-107) <= 2 && fabs(2*y-162)<=2 && fabs(2*z-133)<=2)
+          DiagBreak() ;
+
+        gcamn_inf = &gcam->nodes[x][y+1][z] ;
+        gcamn_sup = &gcam->nodes[x][y-1][z] ;
+        if (
+          ((IS_HIPPO(gcamn->label) && IS_WM(gcamn_inf->label)) ||
+           (IS_WM(gcamn->label) && IS_HIPPO(gcamn_sup->label))) == 0) {
+          continue ;  /* only hippo above wm, or wm below hippo */
+	}
+
+        if (IS_HIPPO(gcamn->label)) {
+          load_vals(mri, gcamn->x, gcamn->y+1, gcamn->z, vals, gcam->ninputs);
+        } else {
+          load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs);
+	}
+
+#if 0
+        label = gcamMLElabelAtLocation(gcam, x, y, z, vals) ;
+        if (IS_WM(label))  /* already has wm immediately inferior */
+          continue ;
+#endif
+        if (GCApriorToNode(gcam->gca, x, y, z, &xn, &yn, &zn) != NO_ERROR) {
+          continue ;
+	}
+
+        if ((IS_HIPPO(gcamn->label) && gcamn->label == Left_Hippocampus) ||
+            (IS_WM(gcamn->label) && 
+             gcamn->label == Left_Cerebral_White_Matter)) {
+          wm_label = Left_Cerebral_White_Matter ;
+        } else {
+          wm_label = Right_Cerebral_White_Matter ;
+	}
+
+        wm_gc = GCAfindPriorGC(gcam->gca, x, y, z, wm_label) ;
+
+        if (wm_gc == NULL) {
+          continue;
+	}
+
+        gcan = GCAbuildRegionalGCAN(gcam->gca, xn, yn, zn, 3) ;
+
+        // ventral DC is indistinguishible from temporal wm pretty much
+        for (n = 0 ; n < gcan->nlabels; n++) {
+          if ((gcan->labels[n] == Left_VentralDC ||
+               gcan->labels[n] == Right_VentralDC ||
+               gcan->labels[n] == Brain_Stem) &&
+              gcan->gcs[n].means[0] > 90) {
+            gcan->labels[n] = wm_label ;
+	  }
+	}
+
+        dy = 0 ;
+        min_dist = label_dist+1 ;
+        sup_ven = sup_wm = 0 ;  /* if can't find any wm superior, then 
+                                   must be partial volume and don't trust */
+#define SAMPLE_DIST 0.1
+        for (yk = -label_dist ; yk <= label_dist ; yk += SAMPLE_DIST)
+        {
+          yi = gcamn->y+yk ;   /* sample inferiorly */
+          if ((yi >= (mri->height-1)) || (yi <= 0)) {
+            break ;
+	  }
+
+          load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->ninputs) ;
+
+          best_label = GCAmaxLikelihoodLabel(gcan, vals, gcam->ninputs, NULL) ;
+          if (yk < 0)
+          {
+            if (IS_CSF(best_label))
+              sup_ven++ ;
+            else if (sup_ven < 3/SAMPLE_DIST)
+              sup_ven = 0 ;
+          }
+
+          if (IS_CSF(best_label) && 
+              sup_ven > 2/SAMPLE_DIST && yk < 0) {
+	    /* shouldn't have to go 
+                                                     through CSF to get to 
+                                                     wm superiorly */
+            min_dist = label_dist+1 ;
+	  }
+
+          if (best_label != gcamn->label) {
+            continue ;
+	  }
+
+          if (yk < 0 && IS_WM(best_label)) {
+            sup_wm = 1 ;
+	  }
+
+          if (fabs(yk) < fabs(min_dist))
+          {
+            if (is_temporal_wm(gcam, mri, gcan, 
+                               gcamn->x, yi, gcamn->z, gcam->ninputs)) {
+              min_dist = yk ;
+	    }
+          }
+        }
+
+        /* if inferior to lateral ventricle (as opposed to 
+           temporal horn) and can't find any
+           wm above then it means the wm is partial-volumed 
+           and don't trust estimate */
+        if (sup_ven && sup_wm == 0) {
+          min_dist = label_dist+1 ;
+	}
+
+        if (min_dist > label_dist)  /* couldn't find any labels that match */
+        {
+          double log_p, max_log_p ;
+
+          /* wm may be partial volumed - look in smaller 
+             nbhd for most likely location of wm */
+          min_dist = 0 ;
+          max_log_p = -1e20 ;
+          for (yk = -label_dist/3 ; yk <= label_dist/3 ; yk += SAMPLE_DIST)
+          {
+            yi = gcamn->y+yk ;
+            if ((yi >= (mri->height-1)) || (yi <= 0)) {
+              break ;
+	    }
+
+            load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->ninputs) ;
+            log_p = GCAcomputeConditionalLogDensity
+              (wm_gc, vals, gcam->ninputs, wm_label);
+            if (log_p > max_log_p)
+            {
+              max_log_p = log_p ;
+              min_dist = yk ;
+            }
+          }
+        }
+        else   /* adjust estimated position to be at most likely value */
+        {
+          double log_p, max_log_p ;
+          double  ykmin, ykmax ;
+
+          /* wm may be partial volumed - look in smaller 
+             nbhd for most likely location of wm */
+          max_log_p = -1e20 ;
+          ykmin = min_dist-1 ;
+          ykmax = min_dist+1 ;
+          for (yk = ykmin ; yk <= ykmax ; yk += SAMPLE_DIST)
+          {
+            yi = gcamn->y+yk ;   /* sample inferiorly */
+            if ((yi >= (mri->height-1)) || (yi <= 0)) {
+              break ;
+	    }
+            load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->ninputs) ;
+            log_p = 
+              GCAcomputeConditionalLogDensity
+              (wm_gc, vals, gcam->ninputs, wm_label);
+            if (log_p > max_log_p)
+            {
+              max_log_p = log_p ;
+              min_dist = yk ;
+            }
+          }
+        }
+
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+        if (x == Gx && y == (Gy-1) && z == Gz)
+          DiagBreak() ;
+        if (x == Gx && y == (Gy+1) && z == Gz)
+          DiagBreak() ;
+
+        gcamn->label_dist = MRIFvox(mri_dist, x, y, z) = min_dist ;
+#if 1
+        if (fabs(min_dist) > MAX_MLE_DIST) {
+          min_dist = MAX_MLE_DIST * min_dist / fabs(min_dist) ;
+	}
+#endif
+        dy = min_dist ;
+        if (!FZERO(min_dist))
+        {
+          gcamn->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
+          if (IS_WM(gcamn_inf->label) && 
+              ((gcamn_inf->status & GCAM_LABEL_NODE)==0))
+          {
+            gcamn_inf->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
+            gcamn_inf->dy += (l_label)*dy ;
+            gcamn_inf->label_dist = 
+              MRIFvox(mri_dist, x, y+1, z) = gcamn->label_dist ;
+            if (x == Gx && (y+1) == Gy && z == Gz)
+              printf("l_label: node(%d,%d,%d): dy = %2.2f\n", 
+                     x, y+1, z, gcamn_inf->dy)  ;
+          }
+          if (IS_HIPPO(gcamn_sup->label) && 
+              ((gcamn_sup->status & GCAM_LABEL_NODE)==0))
+          {
+            gcamn_sup->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
+            gcamn_sup->dy += (l_label)*dy ;
+            gcamn_sup->label_dist = 
+              MRIFvox(mri_dist, x, y-1, z) = gcamn->label_dist ;
+            if (x == Gx && (y-1) == Gy && z == Gz) {
+              printf("l_label: node(%d,%d,%d): dy = %2.2f\n", 
+                     x, y-1, z, gcamn_sup->dy)  ;
+	    }
+          }
+        }
+        GCAfreeRegionalGCAN(&gcan) ;
+      }
+    }
+  }
+
+}
+
+
+// ----------------------
+
 #define GCAM_LABEL_TERM_TIMERS 0
 
 int
 gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 	       double l_label, double label_dist ) {
-  int x, y, z, wm_label, num, xn, yn, zn, best_label, sup_wm, sup_ven, n ;
-  double            dy;
-  GCA_MORPH_NODE  *gcamn, *gcamn_inf, *gcamn_sup;
-  float           vals[MAX_GCA_INPUTS], yi, yk, min_dist ;
-  GC1D            *wm_gc ;
-  GCA_NODE        *gcan ;
-  MRI             *mri_dist ;
-  int             nremoved ;
+  int num;
+  MRI *mri_dist ;
+  int nremoved ;
 
   if( DZERO(l_label) ) {
     return(NO_ERROR) ;
@@ -8191,223 +8486,7 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 #if GCAM_LABEL_TERM_TIMERS
   StartChronometer( &tMainLoop );
 #endif
-  for (x = 0 ; x < gcam->width ; x++) {
-    for (y = 0 ; y < gcam->height ; y++) {
-      for (z = 0 ; z < gcam->depth ; z++) {
-        gcamn = &gcam->nodes[x][y][z] ;
-
-        if (gcamn->invalid == GCAM_POSITION_INVALID)
-          continue;
-
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if (x == Gx && y == (Gy-1) && z == Gz)
-          DiagBreak() ;
-        if (x == Gx && y == (Gy+1) && z == Gz)
-          DiagBreak() ;
-
-        if ((y == gcam->height-1) || (y == 0))
-          continue ;
-        if ((fabs(gcamn->x-Gvx)<=gcam->spacing) &&
-            (fabs(gcamn->y-Gvy)<=gcam->spacing) &&
-            (fabs(gcamn->z-Gvz)<=gcam->spacing))
-          DiagBreak() ;
-
-        /* only process nodes which are hippocampus superior to something else,
-           or white matter inferior to hippocampus
-        */
-        if (y == 0 || y == gcam->height-1 || 
-            gcamn->y == 0 || gcamn->y == mri->height-1)
-          continue ;
-        if (!IS_HIPPO(gcamn->label) && !IS_WM(gcamn->label))
-          continue ;
-        if (!IS_WM(gcamn->label))   /* only do white matter for now */
-          continue ;
-
-        if (fabs(2*x-107) <= 2 && fabs(2*y-162)<=2 && fabs(2*z-133)<=2)
-          DiagBreak() ;
-
-        gcamn_inf = &gcam->nodes[x][y+1][z] ;
-        gcamn_sup = &gcam->nodes[x][y-1][z] ;
-        if (
-          ((IS_HIPPO(gcamn->label) && IS_WM(gcamn_inf->label)) ||
-           (IS_WM(gcamn->label) && IS_HIPPO(gcamn_sup->label))) == 0)
-          continue ;  /* only hippo above wm, or wm below hippo */
-
-        if (IS_HIPPO(gcamn->label))
-          load_vals(mri, gcamn->x, gcamn->y+1, gcamn->z, vals, gcam->ninputs) ;
-        else
-          load_vals(mri, gcamn->x, gcamn->y, gcamn->z, vals, gcam->ninputs) ;
-
-#if 0
-        label = gcamMLElabelAtLocation(gcam, x, y, z, vals) ;
-        if (IS_WM(label))  /* already has wm immediately inferior */
-          continue ;
-#endif
-        if (GCApriorToNode(gcam->gca, x, y, z, &xn, &yn, &zn) != NO_ERROR)
-          continue ;
-
-        if ((IS_HIPPO(gcamn->label) && gcamn->label == Left_Hippocampus) ||
-            (IS_WM(gcamn->label) && 
-             gcamn->label == Left_Cerebral_White_Matter))
-          wm_label = Left_Cerebral_White_Matter ;
-        else
-          wm_label = Right_Cerebral_White_Matter ;
-
-        wm_gc = GCAfindPriorGC(gcam->gca, x, y, z, wm_label) ;
-
-        if (wm_gc == NULL)
-          continue ;
-
-        gcan = GCAbuildRegionalGCAN(gcam->gca, xn, yn, zn, 3) ;
-
-        // ventral DC is indistinguishible from temporal wm pretty much
-        for (n = 0 ; n < gcan->nlabels; n++)
-          if ((gcan->labels[n] == Left_VentralDC ||
-               gcan->labels[n] == Right_VentralDC ||
-               gcan->labels[n] == Brain_Stem) &&
-              gcan->gcs[n].means[0] > 90)
-            gcan->labels[n] = wm_label ;
-
-        dy = 0 ;
-        min_dist = label_dist+1 ;
-        sup_ven = sup_wm = 0 ;  /* if can't find any wm superior, then 
-                                   must be partial volume and don't trust */
-#define SAMPLE_DIST 0.1
-        for (yk = -label_dist ; yk <= label_dist ; yk += SAMPLE_DIST)
-        {
-          yi = gcamn->y+yk ;   /* sample inferiorly */
-          if ((yi >= (mri->height-1)) || (yi <= 0))
-            break ;
-          load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->ninputs) ;
-
-          best_label = GCAmaxLikelihoodLabel(gcan, vals, gcam->ninputs, NULL) ;
-          if (yk < 0)
-          {
-            if (IS_CSF(best_label))
-              sup_ven++ ;
-            else if (sup_ven < 3/SAMPLE_DIST)
-              sup_ven = 0 ;
-          }
-
-          if (IS_CSF(best_label) && 
-              sup_ven > 2/SAMPLE_DIST && yk < 0)  /* shouldn't have to go 
-                                                     through CSF to get to 
-                                                     wm superiorly */
-            min_dist = label_dist+1 ;
-
-          if (best_label != gcamn->label)
-            continue ;
-          if (yk < 0 && IS_WM(best_label))
-            sup_wm = 1 ;
-
-          if (fabs(yk) < fabs(min_dist))
-          {
-            if (is_temporal_wm(gcam, mri, gcan, 
-                               gcamn->x, yi, gcamn->z, gcam->ninputs))
-              min_dist = yk ;
-          }
-        }
-
-        /* if inferior to lateral ventricle (as opposed to 
-           temporal horn) and can't find any
-           wm above then it means the wm is partial-volumed 
-           and don't trust estimate */
-        if (sup_ven && sup_wm == 0)
-          min_dist = label_dist+1 ;
-        if (min_dist > label_dist)  /* couldn't find any labels that match */
-        {
-          double log_p, max_log_p ;
-
-          /* wm may be partial volumed - look in smaller 
-             nbhd for most likely location of wm */
-          min_dist = 0 ;
-          max_log_p = -1e20 ;
-          for (yk = -label_dist/3 ; yk <= label_dist/3 ; yk += SAMPLE_DIST)
-          {
-            yi = gcamn->y+yk ;
-            if ((yi >= (mri->height-1)) || (yi <= 0))
-              break ;
-            load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->ninputs) ;
-            log_p = GCAcomputeConditionalLogDensity
-              (wm_gc, vals, gcam->ninputs, wm_label);
-            if (log_p > max_log_p)
-            {
-              max_log_p = log_p ;
-              min_dist = yk ;
-            }
-          }
-        }
-        else   /* adjust estimated position to be at most likely value */
-        {
-          double log_p, max_log_p ;
-          double  ykmin, ykmax ;
-
-          /* wm may be partial volumed - look in smaller 
-             nbhd for most likely location of wm */
-          max_log_p = -1e20 ;
-          ykmin = min_dist-1 ;
-          ykmax = min_dist+1 ;
-          for (yk = ykmin ; yk <= ykmax ; yk += SAMPLE_DIST)
-          {
-            yi = gcamn->y+yk ;   /* sample inferiorly */
-            if ((yi >= (mri->height-1)) || (yi <= 0))
-              break ;
-            load_vals(mri, gcamn->x, yi, gcamn->z, vals, gcam->ninputs) ;
-            log_p = 
-              GCAcomputeConditionalLogDensity
-              (wm_gc, vals, gcam->ninputs, wm_label);
-            if (log_p > max_log_p)
-            {
-              max_log_p = log_p ;
-              min_dist = yk ;
-            }
-          }
-        }
-
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        if (x == Gx && y == (Gy-1) && z == Gz)
-          DiagBreak() ;
-        if (x == Gx && y == (Gy+1) && z == Gz)
-          DiagBreak() ;
-
-        gcamn->label_dist = MRIFvox(mri_dist, x, y, z) = min_dist ;
-#if 1
-        if (fabs(min_dist) > MAX_MLE_DIST)
-          min_dist = MAX_MLE_DIST * min_dist / fabs(min_dist) ;
-#endif
-        dy = min_dist ;
-        if (!FZERO(min_dist))
-        {
-          gcamn->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
-          if (IS_WM(gcamn_inf->label) && 
-              ((gcamn_inf->status & GCAM_LABEL_NODE)==0))
-          {
-            gcamn_inf->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
-            gcamn_inf->dy += (l_label)*dy ;
-            gcamn_inf->label_dist = 
-              MRIFvox(mri_dist, x, y+1, z) = gcamn->label_dist ;
-            if (x == Gx && (y+1) == Gy && z == Gz)
-              printf("l_label: node(%d,%d,%d): dy = %2.2f\n", 
-                     x, y+1, z, gcamn_inf->dy)  ;
-          }
-          if (IS_HIPPO(gcamn_sup->label) && 
-              ((gcamn_sup->status & GCAM_LABEL_NODE)==0))
-          {
-            gcamn_sup->status = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
-            gcamn_sup->dy += (l_label)*dy ;
-            gcamn_sup->label_dist = 
-              MRIFvox(mri_dist, x, y-1, z) = gcamn->label_dist ;
-            if (x == Gx && (y-1) == Gy && z == Gz)
-              printf("l_label: node(%d,%d,%d): dy = %2.2f\n", 
-                     x, y-1, z, gcamn_sup->dy)  ;
-          }
-        }
-        GCAfreeRegionalGCAN(&gcan) ;
-      }
-    }
-  }
+  gcamLabelTermMainLoop( gcam, mri, mri_dist, l_label, label_dist );
 #if GCAM_LABEL_TERM_TIMERS
   StopChronometer( &tMainLoop );
 #endif

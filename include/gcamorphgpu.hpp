@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 20:12:00 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/10/12 16:52:57 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -114,6 +114,9 @@ namespace GPU {
       //! Matches neg in GCAmorph
       int neg;
 
+      //! Matches GCA in GCAmorph (NASTY!!!)
+      GCA* gca;
+
       // -----------------------------------------------
       // Static host arrays for transfers
       static dim3 hostDims;
@@ -151,7 +154,8 @@ namespace GPU {
 			    d_mean(),
 			    d_variance(),
 			    exp_k(0),
-			    neg(0) {};
+			    neg(0),
+			    gca(NULL) {};
 
       //! Destructor
       ~GCAmorphGPU( void ) {};

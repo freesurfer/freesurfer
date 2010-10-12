@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/06 17:24:40 $
- *    $Revision: 1.13 $
+ *    $Date: 2010/10/12 16:52:57 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -166,7 +166,18 @@ namespace GPU {
 			       MRI *mri_dist,
 			       const int whalf,
 			       const double thresh ) const;
+
+      //! Main loop of Label term
+      void LabelMainLoop( Freesurfer::GCAmorphCPU& gcam,
+			  const MRI *mri,
+			  MRI *mri_dist,
+			  const double l_label,
+			  const double label_dist ) const;
       
+      //! Variation on is_temporal_wm
+      static int IsTemporalWM( const MRI *mri,
+			       const GCA_NODE *gcan,
+			       float xf, float yf, float zf );
     };
 
   }
