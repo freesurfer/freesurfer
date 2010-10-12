@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/30 21:02:34 $
- *    $Revision: 1.147 $
+ *    $Date: 2010/10/12 21:22:31 $
+ *    $Revision: 1.148 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -3443,7 +3443,7 @@ void MainWindow::CommandLoadIsoSurfaceRegion( const wxArrayString& sa )
   {  
     if ( sa.size() > 1 )
     {
-      if ( !mri->LoadRegionSurfaces( sa[1] ) )
+      if ( !mri->LoadSurfaceRegions( sa[1] ) )
       {
         cerr << "Can not load surfacer region(s) from " << sa[1].c_str() << endl;
       }

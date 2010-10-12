@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/30 21:36:34 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/10/12 21:22:32 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -85,7 +85,14 @@ public:
   {
     m_nId = nId;
   }
-
+  
+  int GetGroup()
+  {
+    return m_nGroup;
+  }
+  
+  void SetGroup( int n );
+  
   bool Write( wxString& fn );
   
   static bool WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum = 1 );
@@ -93,6 +100,11 @@ public:
   bool WriteBody( FILE* fp );
   
   bool Load( FILE* fp );
+  
+  LayerMRI* GetMRI()
+  {
+    return m_mri;
+  }
   
 private:
   void RebuildOutline( bool bClose );
@@ -109,8 +121,9 @@ private:
   vtkSmartPointer<vtkPolyData>        m_polydataHolder;
   
   LayerMRI*     m_mri;
-  
+  wxColour      m_color;
   int   m_nId;
+  int   m_nGroup;
 };
 
 #endif

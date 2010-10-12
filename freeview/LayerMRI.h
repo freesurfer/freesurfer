@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/30 21:02:34 $
- *    $Revision: 1.54 $
+ *    $Date: 2010/10/12 21:22:31 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -60,11 +60,13 @@ class wxCommandEvent;
 class BuildContourThread;
 class Contour2D;
 class SurfaceRegion;
+class SurfaceRegionGroups;
 
 class LayerMRI : public LayerVolumeBase
 {
   friend class BuildContourThread;
   friend class VolumeCropper;
+  friend class SurfaceRegionGroups;
   
 public:
   LayerMRI( LayerMRI* ref );
@@ -213,7 +215,7 @@ public:
   
   bool SaveAllSurfaceRegions( wxString& fn );
   
-  bool LoadRegionSurfaces( wxString& fn );
+  bool LoadSurfaceRegions( wxString& fn );
   
   const char* GetOrientationString();
   
@@ -230,6 +232,11 @@ public:
                       std::vector<double>& std );
   
   bool SaveContourToFile( const char* filename );
+  
+  SurfaceRegionGroups* GetSurfaceRegionGroups()
+  {
+    return m_surfaceRegionGroups;
+  }
   
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations, 
@@ -309,6 +316,7 @@ protected:
   
   std::vector<SurfaceRegion*>     m_surfaceRegions;
   SurfaceRegion*                  m_currentSurfaceRegion;
+  SurfaceRegionGroups*            m_surfaceRegionGroups;
   
   int         m_nOrientationIndex[3];
   

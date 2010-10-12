@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/30 21:02:33 $
- *    $Revision: 1.88 $
+ *    $Date: 2010/10/12 21:22:31 $
+ *    $Revision: 1.89 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -66,6 +66,7 @@
 #include "BuildContourThread.h"
 #include "Contour2D.h"
 #include "SurfaceRegion.h"
+#include "SurfaceRegionGroups.h"
 
 #ifndef max
 #define max(a,b)            (((a) > (b)) ? (a) : (b))
@@ -119,6 +120,7 @@ LayerMRI::LayerMRI( LayerMRI* ref ) : LayerVolumeBase(),
   m_propVolume = vtkSmartPointer<vtkVolume>::New();
   
   m_nThreadID = 0;
+  m_surfaceRegionGroups = new SurfaceRegionGroups( this );
   
   private_buf1_3x3 = new double*[3];
   private_buf2_3x3 = new double*[3];
@@ -150,6 +152,7 @@ LayerMRI::~LayerMRI()
     m_segActors[i].actor->Delete();
   }
   
+  delete m_surfaceRegionGroups;
   for ( size_t i = 0; i < m_surfaceRegions.size(); i++ )
   {
     delete m_surfaceRegions[i];
@@ -176,7 +179,6 @@ const char* LayerMRI::GetOrientationString()
   else
     return "RAS";
 }
-
 
 void LayerMRI::SetConform( bool bConform )
 {
@@ -768,6 +770,8 @@ void LayerMRI::DoListenToMessage( std::string const iMessage, void* iData, void*
     UpdateUpSampleMethod();
     this->SendBroadcast( "LayerActorUpdated", this, this );
   }
+  else if ( iMessage == "SurfaceRegionColorChanged" )
+    this->SendBroadcast( iMessage, this, this );
   
   LayerVolumeBase::DoListenToMessage( iMessage, iData, sender );
 }
@@ -1816,10 +1820,16 @@ SurfaceRegion* LayerMRI::CreateNewSurfaceRegion( double* pt )
   r->AddPoint( pt );
   r->SetId( m_surfaceRegions.size() + 1 );
   m_surfaceRegions.push_back( r );
+  int nGroup = 1;
   if ( m_currentSurfaceRegion )
+  {
     m_currentSurfaceRegion->Highlight( false );
+    nGroup = m_currentSurfaceRegion->GetGroup();
+  }
   m_currentSurfaceRegion = r;
+  r->SetGroup( nGroup );
   this->SendBroadcast( "SurfaceRegionAdded", this );
+  r->AddListener( this );
   return r;
 }
   
@@ -1919,7 +1929,7 @@ bool LayerMRI::SaveAllSurfaceRegions( wxString& fn )
   return ret;
 }
 
-bool LayerMRI::LoadRegionSurfaces( wxString& fn )
+bool LayerMRI::LoadSurfaceRegions( wxString& fn )
 {
   FILE* fp = fopen( fn.c_str(), "r" );
   if ( !fp )
@@ -1943,6 +1953,7 @@ bool LayerMRI::LoadRegionSurfaces( wxString& fn )
       r->SetInput( vtkPolyData::SafeDownCast( m_actorContour->GetMapper()->GetInput() ) );
       m_surfaceRegions.push_back( r );
       r->Highlight( false );
+      r->AddListener( this );
     }
     else
     {

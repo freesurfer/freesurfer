@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/29 17:17:15 $
- *    $Revision: 1.46 $
+ *    $Date: 2010/10/12 21:22:32 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -649,7 +649,7 @@ void RenderView3D::DoListenToMessage ( std::string const iMsg, void* iData, void
   {
     RefreshAllActors();
   }
-  else if ( iMsg == "SurfaceRegionUpdated" )
+  else if ( iMsg == "SurfaceRegionUpdated" || iMsg == "SurfaceRegionColorChanged" )
   {
     NeedRedraw( true );
   }

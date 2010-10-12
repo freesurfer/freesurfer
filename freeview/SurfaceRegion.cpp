@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/30 21:36:34 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/10/12 21:22:32 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -48,6 +48,7 @@
 #include "LayerPropertiesMRI.h"
 #include "vtkCleanPolyData.h"
 #include "vtkAppendPolyData.h"
+#include "SurfaceRegionGroups.h"
 #include <wx/ffile.h>
 
 SurfaceRegion::SurfaceRegion( LayerMRI* owner ) : 
@@ -77,6 +78,8 @@ SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   m_cleanerPost = vtkSmartPointer<vtkCleanPolyData>::New();
   m_cleanerPost->SetInputConnection( m_selector->GetOutputPort() );
   m_mri = owner;
+  m_nGroup = 1;
+  m_color = wxColour( "blue" );
 }
 
 SurfaceRegion::~SurfaceRegion()
@@ -212,13 +215,14 @@ void SurfaceRegion::AppendProps( vtkRenderer* renderer )
 
 void SurfaceRegion::SetColor( const wxColour& color )
 {
+  m_color = color;
   m_actorMesh->GetProperty()->SetColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+  SendBroadcast( "SurfaceRegionColorChanged", this, this );
 }
 
 wxColour SurfaceRegion::GetColor()
 {
-  double* rgb = m_actorMesh->GetProperty()->GetColor();
-  return wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) );
+  return m_color;
 }
 
 void SurfaceRegion::Show( bool bShow )
@@ -236,8 +240,8 @@ void SurfaceRegion::Highlight( bool bHighlight )
 {
   if ( bHighlight )
     m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
-  else 
-    m_actorMesh->GetProperty()->SetColor( 0, 0, 1 );
+  else
+    m_actorMesh->GetProperty()->SetColor( m_color.Red()/255.0, m_color.Green()/255.0, m_color.Blue()/255.0 );
 }
 
 bool SurfaceRegion::Write( wxString& fn )
@@ -278,6 +282,7 @@ bool SurfaceRegion::WriteBody( FILE* fp )
   vtkCellArray* polys = polydata->GetPolys();
   wxString strg = _("SURFACE_REGION\n");
   strg << _( "ID " ) << m_nId << _("\n")
+      << _( "GROUP_ID " ) << m_nGroup << _("\n")
       << _( "POINTS " ) << points->GetNumberOfPoints() << _("\n");
   double pt[3];
   for ( vtkIdType i = 0; i < points->GetNumberOfPoints(); i++ )
@@ -314,10 +319,21 @@ bool SurfaceRegion::Load( FILE* fp )
   if ( id_strg != tmp_strg )
     return false;
   
-  int nId, nPts = 0;
+  int nId, nGroup = 1, nPts = 0;
   float x, y, z;
-  if ( fscanf( fp, "ID %d\nPOINTS %d", &nId, &nPts ) == EOF || nPts == 0 )
+  char ch[100] = {0};
+  if ( fscanf( fp, "ID %d", &nId ) == EOF || fscanf( fp, "%s", ch ) == EOF ) 
     return false;
+  
+  wxString strg = ch;
+  if ( strg == "GROUP_ID" )
+    fscanf( fp, "%d\nPOINTS %d", &nGroup, &nPts );
+  else
+    fscanf( fp, "%d", &nPts );
+  if ( nPts <= 0 )
+    return false;
+  if ( nGroup <= 0 )
+    nGroup = 1;
   
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   double pt[3];
@@ -358,6 +374,8 @@ bool SurfaceRegion::Load( FILE* fp )
   mapper->ScalarVisibilityOff();
   m_actorMesh->SetMapper( mapper );
   
+  SetGroup( nGroup );
+  
   return true;
 }
 
@@ -387,3 +405,10 @@ bool SurfaceRegion::DeleteCell( RenderView3D* view, int pos_x, int pos_y )
   else
     return false;
 }
+
+void SurfaceRegion::SetGroup( int nGroup )
+{
+  m_nGroup = nGroup;
+  SetColor( m_mri->GetSurfaceRegionGroups()->GetGroupColor( nGroup ) );
+}
+

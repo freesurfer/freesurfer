@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/21 16:29:43 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/10/12 21:22:32 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 
 #include "ToolWindowMeasure.h"
 #include <wx/wx.h>
+#include <wx/clrpicker.h>
 #include <wx/config.h>
 #include <wx/xrc/xmlres.h>
 #include <wx/filedlg.h>
@@ -46,6 +47,7 @@
 #include "LayerPropertiesMRI.h"
 #include "Region2D.h"
 #include "SurfaceRegion.h"
+#include "SurfaceRegionGroups.h"
 
 BEGIN_EVENT_TABLE( ToolWindowMeasure, wxFrame )
   EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_LINE" ),      ToolWindowMeasure::OnActionMeasureLine )
@@ -67,6 +69,8 @@ BEGIN_EVENT_TABLE( ToolWindowMeasure, wxFrame )
   EVT_BUTTON    ( XRCID( "ID_BUTTON_LOAD" ),              ToolWindowMeasure::OnButtonLoad )
   EVT_BUTTON    ( XRCID( "ID_BUTTON_UPDATE" ),            ToolWindowMeasure::OnButtonUpdate )
   EVT_SPINCTRL  ( XRCID( "ID_SPIN_ID"),                   ToolWindowMeasure::OnSpinId )      
+  EVT_SPINCTRL  ( XRCID( "ID_SPIN_GROUP"),                   ToolWindowMeasure::OnSpinGroup )      
+  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLORPICKER_GROUP" ),     ToolWindowMeasure::OnColorGroup )
   
   EVT_SHOW      ( ToolWindowMeasure::OnShow )
   EVT_CLOSE     ( ToolWindowMeasure::OnClose )
@@ -82,10 +86,12 @@ ToolWindowMeasure::ToolWindowMeasure( wxWindow* parent ) : Listener( "ToolWindow
   m_btnCopy     = XRCCTRL( *this, "ID_BUTTON_COPY",     wxButton );
   m_btnExport   = XRCCTRL( *this, "ID_BUTTON_EXPORT",   wxButton );
   m_btnSave     = XRCCTRL( *this, "ID_BUTTON_SAVE",     wxButton );
-  m_btnSaveAll  = XRCCTRL( *this, "ID_BUTTON_SAVE_ALL",   wxButton );
+  m_btnSaveAll  = XRCCTRL( *this, "ID_BUTTON_SAVE_ALL", wxButton );
   m_btnLoad     = XRCCTRL( *this, "ID_BUTTON_LOAD",     wxButton );
-  m_btnUpdate   = XRCCTRL( *this, "ID_BUTTON_UPDATE",     wxButton );
+  m_btnUpdate   = XRCCTRL( *this, "ID_BUTTON_UPDATE",   wxButton );
   m_spinId      = XRCCTRL( *this, "ID_SPIN_ID",         wxSpinCtrl );
+  m_spinGroup   = XRCCTRL( *this, "ID_SPIN_GROUP",      wxSpinCtrl );
+  m_colorPickerGroup = XRCCTRL( *this, "ID_COLORPICKER_GROUP",         wxColourPickerCtrl );
   
   m_widgets2D.push_back( m_btnCopy );
   m_widgets2D.push_back( m_btnExport );
@@ -94,7 +100,10 @@ ToolWindowMeasure::ToolWindowMeasure( wxWindow* parent ) : Listener( "ToolWindow
   m_widgets3D.push_back( m_btnSaveAll );
   m_widgets3D.push_back( m_btnLoad );
   m_widgets3D.push_back( m_spinId );
+  m_widgets3D.push_back( m_spinGroup );
+  m_widgets3D.push_back( m_colorPickerGroup );
   m_widgets3D.push_back( XRCCTRL( *this, "ID_STATIC_ID",    wxStaticText ) );
+  m_widgets3D.push_back( XRCCTRL( *this, "ID_STATIC_GROUP",    wxStaticText ) );
   
   m_region = NULL;
   m_surfaceRegion = NULL;
@@ -249,7 +258,14 @@ void ToolWindowMeasure::DoUpdateWidgets()
     m_widgets2D[i]->Show( view->GetAction() != Interactor::MM_SurfaceRegion );
   
   if ( m_surfaceRegion )
+  {
     m_spinId->SetValue( m_surfaceRegion->GetId() );
+    m_spinGroup->SetValue( m_surfaceRegion->GetGroup() );
+    m_spinGroup->SetRange( 1, 
+                           m_surfaceRegion->GetMRI()->GetSurfaceRegionGroups()
+                               ->GetGroupIdRange( m_surfaceRegion ) );
+    m_colorPickerGroup->SetColour( m_surfaceRegion->GetColor() );
+  }
   
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
   bool bSurfaceRegionValid = ( mri && mri->GetProperties()->GetShowAsContour() && mri->GetNumberOfSurfaceRegions() > 0 );
@@ -258,6 +274,8 @@ void ToolWindowMeasure::DoUpdateWidgets()
   
   m_btnSave->Enable( m_surfaceRegion && bSurfaceRegionValid );
   m_spinId->Enable( m_surfaceRegion && bSurfaceRegionValid );
+  m_spinGroup->Enable( m_surfaceRegion && bSurfaceRegionValid );
+  m_colorPickerGroup->Enable( m_surfaceRegion && bSurfaceRegionValid );
   m_btnSaveAll->Enable( bSurfaceRegionValid );
   
   XRCCTRL( *this, "ID_PANEL_HOLDER",  wxPanel )->Layout();
@@ -298,7 +316,7 @@ void ToolWindowMeasure::DoListenToMessage ( std::string const iMsg, void* iData,
     if ( m_surfaceRegion == iData )
       SetSurfaceRegion( NULL );
   }
-  else if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerEdited" )
+  else if ( iMsg == "LayerAdded" || iMsg == "LayerRemoved" || iMsg == "LayerEdited" || iMsg == "SurfaceRegionColorChanged" )
   {
     UpdateWidgets();
   }
@@ -437,6 +455,7 @@ void ToolWindowMeasure::OnSpinId( wxSpinEvent& event )
 {
   RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindowPointer()->GetRenderView( 3 );
   view->PickSelectRegion( event.GetInt() );
+  UpdateWidgets();
 }
 
 void ToolWindowMeasure::OnButtonSave( wxCommandEvent& event )
@@ -485,7 +504,7 @@ void ToolWindowMeasure::OnButtonLoad( wxCommandEvent& event )
   if ( mri && dlg.ShowModal() == wxID_OK )
   {
     wxString fn = dlg.GetPath();
-    if ( !mri->LoadRegionSurfaces( fn ) )
+    if ( !mri->LoadSurfaceRegions( fn ) )
     {
       wxMessageDialog msg_dlg( this, wxString("Can not load file ") + fn, 
                                _("Error"), wxOK );
@@ -498,4 +517,21 @@ void ToolWindowMeasure::OnButtonLoad( wxCommandEvent& event )
 void ToolWindowMeasure::OnButtonUpdate( wxCommandEvent& event )
 {
   UpdateWidgets();
+}
+
+void ToolWindowMeasure::OnSpinGroup( wxSpinEvent& event )
+{
+  if ( m_surfaceRegion )
+  {
+    m_surfaceRegion->SetGroup( event.GetInt() );
+  }
+}
+  
+void ToolWindowMeasure::OnColorGroup( wxColourPickerEvent& event )
+{
+  if ( m_surfaceRegion )
+  {
+    m_surfaceRegion->GetMRI()->GetSurfaceRegionGroups()
+        ->SetGroupColor( m_surfaceRegion->GetGroup(), event.GetColour() );
+  }
 }
