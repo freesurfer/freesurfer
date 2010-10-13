@@ -70,5 +70,5 @@ echo
 tm .
 echo
 
-echo "NIGHTLY: Tests complete"
+echo "NIGHTLY: Tests complete @ `date`"
 echo "NIGHTLY: Tests complete" >> $LOGFILE
