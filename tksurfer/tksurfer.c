@@ -11,9 +11,9 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/08/04 20:43:02 $
- *    $Revision: 1.344 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/13 16:27:35 $
+ *    $Revision: 1.345 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -2867,6 +2867,13 @@ int  main(int argc,char *argv[])
   last_frame_xdim = frame_xdim;
   sf=0.55;
 
+  printf("checking for nofix files in '%s'\n", lext) ;
+  if ((strcmp(lext, "orig.nofix") == 0) || (strcmp(lext, "inflated.nofix") == 0))
+  {
+    printf("nofix surface detected - using nofix for orig and white\n") ;
+    white_suffix = "orig.nofix" ;
+    orig_suffix = "orig.nofix" ;
+  }
   make_filenames(lsubjectsdir,lsrname,lpname,lstem,lext);
 
   if (MATCH(cwd,srname))
@@ -21345,7 +21352,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.344 2010/08/04 20:43:02 greve Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.345 2010/10/13 16:27:35 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
