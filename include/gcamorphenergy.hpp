@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/04 13:53:44 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/10/13 18:45:48 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -92,7 +92,21 @@ namespace GPU {
       template<typename T>
       float ComputeRMS( GPU::Classes::GCAmorphGPU& gcam,
 			const GPU::Classes::MRIframeGPU<T>& mri,
-			GCA_MORPH_PARMS *parms ) const;
+			GCA_MORPH_PARMS *parms ) const {
+	
+	float sse = this->ComputeSSE( gcam, mri, parms );
+	
+	const dim3 dims = gcam.d_rx.GetDims();
+	float nVoxels = dims.x;
+	nVoxels *= dims.y;
+	nVoxels *= dims.z;
+	
+	float rms = sqrtf( sse/nVoxels );
+	
+	return( rms );
+      }
+
+
 
       template<typename T>
       float RMSdispatch( GPU::Classes::GCAmorphGPU& gcam,

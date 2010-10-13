@@ -336,7 +336,8 @@ CUDA_DEPS = ../include/volumegpu.hpp\
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \
-		-DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS
+		-DFS_CUDA -DCUDA_FORCE_SYNC -DCUDA_SHOW_TIMINGS \
+                --compiler-options -O3
 
 noinst_LIBRARIES += libutils_cuda.a
 

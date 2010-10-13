@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/06 17:08:06 $
- *    $Revision: 1.39 $
+ *    $Date: 2010/10/13 18:45:52 $
+ *    $Revision: 1.40 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1027,7 +1027,8 @@ namespace GPU {
       
 
     // --------------------------------------------------
-    
+ 
+#if 0   
     template<typename T>
     float GCAmorphEnergy::ComputeRMS( GPU::Classes::GCAmorphGPU& gcam,
 				      const GPU::Classes::MRIframeGPU<T>& mri,
@@ -1044,6 +1045,7 @@ namespace GPU {
       
       return( rms );
     }
+#endif
     
     template<typename T>
     float GCAmorphEnergy::RMSdispatch( GPU::Classes::GCAmorphGPU& gcam,

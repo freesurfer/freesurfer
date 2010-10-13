@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 19:24:42 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/10/13 18:45:52 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1587,13 +1587,14 @@ namespace GPU {
       Freesurfer::VolumeArgCPU<float> labelDist( gcam.labelDist );
       
 
-      for( x=0 ; x < nx; x++ ) {
-	for( y=0; y < ny; y++) {
-	  for (z=0 ; z < nz; z++) {
+      for( z=0; z < nz; z++ ) {
+	for( y=0; y < ny; y++ ) {
+	  for( x=0; x < nx; x++ ) {
 
+	    const char& currInvalid( invalid(x,y,z) );
 
 	    // Skip invalid nodes
-	    if( invalid(x,y,z) == GCAM_POSITION_INVALID ) {
+	    if( currInvalid == GCAM_POSITION_INVALID ) {
 	      continue;
 	    }
 	    
@@ -1602,37 +1603,45 @@ namespace GPU {
 	      continue;
 	    }
 
+	    const float& rxCurr( rx(x,y,z) );
+	    const float& ryCurr( ry(x,y,z) );
+	    const float& rzCurr( rz(x,y,z) );
+
 	    /*
 	      only process nodes which are hippocampus
 	      superior to something else,
 	      or white matter inferior to hippocampus
 	    */
 	    if( y == 0 || y == ny-1 || 
-		ry(x,y,z) == 0 || ry(x,y,z) == mri->height-1 ) {
+		ryCurr == 0 || ryCurr == mri->height-1 ) {
 	      continue;
 	    }
 
-	    if( !IS_HIPPO(label(x,y,z)) && !IS_WM(label(x,y,z)) ) {
+	    const int& labelCurr( label(x,y,z) );
+	    const int& labelInf( label(x,y+1,z) );
+	    const int& labelSup( label(x,y-1,z) );
+
+	    if( !IS_HIPPO(labelCurr) && !IS_WM(labelCurr) ) {
 	      continue;
 	    }
 
-	    if ( !IS_WM(label(x,y,z)) ) {   /* only do white matter for now */
+	    if ( !IS_WM(labelCurr) ) {   /* only do white matter for now */
 	      continue;
 	    }
 
 	    if (
-		((IS_HIPPO(label(x,y,z)) && IS_WM(label(x,y+1,z))) ||
-		 (IS_WM(label(x,y,z)) && IS_HIPPO(label(x,y-1,z)))) == 0) {
+		((IS_HIPPO(labelCurr) && IS_WM(labelInf)) ||
+		 (IS_WM(labelCurr) && IS_HIPPO(labelSup))) == 0) {
 	      continue ;  /* only hippo above wm, or wm below hippo */
 	    }
 
-	    if( IS_HIPPO(label(x,y,z)) ) {
+	    if( IS_HIPPO(labelCurr) ) {
 	      load_vals( mri,
-			 rx(x,y,z), ry(x,y,z)+1, rz(x,y,z),
+			 rxCurr, ryCurr+1, rzCurr,
 			 vals, 1 ); // Last argument is ninputs == 1
 	    } else {
 	      load_vals( mri,
-			 rx(x,y,z), ry(x,y,z), rz(x,y,z),
+			 rxCurr, ryCurr, rzCurr,
 			 vals, 1); // Last argument is ninputs == 1
 	    }
 	    
@@ -1642,9 +1651,9 @@ namespace GPU {
 	      continue ;
 	    }
 
-	    if( (IS_HIPPO(label(x,y,z)) && label(x,y,z) == Left_Hippocampus) ||
-		(IS_WM(label(x,y,z)) && 
-		 label(x,y,z) == Left_Cerebral_White_Matter)) {
+	    if( (IS_HIPPO(labelCurr) && labelCurr == Left_Hippocampus) ||
+		(IS_WM(labelCurr) && 
+		 labelCurr == Left_Cerebral_White_Matter)) {
 	      wm_label = Left_Cerebral_White_Matter ;
 	    } else {
 	      wm_label = Right_Cerebral_White_Matter ;
@@ -1675,12 +1684,12 @@ namespace GPU {
 #define SAMPLE_DIST 0.1
 	    for (yk = -label_dist ; yk <= label_dist ; yk += SAMPLE_DIST)
 	      {
-		yi = ry(x,y,z)+yk ;   /* sample inferiorly */
+		yi = ryCurr+yk ;   /* sample inferiorly */
 		if ((yi >= (mri->height-1)) || (yi <= 0)) {
 		  break ;
 		}
 		
-		load_vals(mri, rx(x,y,z), yi, rz(x,y,z), vals, 1 );
+		load_vals(mri, rxCurr, yi, rzCurr, vals, 1 );
 
 		best_label = GCAmaxLikelihoodLabel(gcan, vals, 1, NULL) ;
 		if( yk < 0 ) {
@@ -1700,7 +1709,7 @@ namespace GPU {
 		  min_dist = label_dist+1 ;
 		}
 
-		if( best_label != label(x,y,z) ) {
+		if( best_label != labelCurr ) {
 		  continue ;
 		}
 
@@ -1711,7 +1720,7 @@ namespace GPU {
 		if (fabs(yk) < fabs(min_dist))
 		  {
 		    if( GCAmorphTerm::IsTemporalWM( mri, gcan, 
-						    rx(x,y,z), yi, rz(x,y,z) ) ) {
+						    rxCurr, yi, rzCurr ) ) {
 		      min_dist = yk ;
 		    }
 		  }
@@ -1735,12 +1744,12 @@ namespace GPU {
 		max_log_p = -1e20 ;
 		for (yk = -label_dist/3 ; yk <= label_dist/3 ; yk += SAMPLE_DIST)
 		  {
-		    yi = ry(x,y,z)+yk ;
+		    yi = ryCurr+yk ;
 		    if ((yi >= (mri->height-1)) || (yi <= 0)) {
 		      break ;
 		    }
 
-		    load_vals(mri, rx(x,y,z), yi, rz(x,y,z), vals, 1 );
+		    load_vals(mri, rxCurr, yi, rzCurr, vals, 1 );
 		    log_p = GCAcomputeConditionalLogDensity
 		      (wm_gc, vals, 1, wm_label);
 		    if (log_p > max_log_p)
@@ -1762,12 +1771,12 @@ namespace GPU {
 		ykmax = min_dist+1 ;
 		for (yk = ykmin ; yk <= ykmax ; yk += SAMPLE_DIST)
 		  {
-		    yi = ry(x,y,z)+yk ;   /* sample inferiorly */
+		    yi = ryCurr+yk ;   /* sample inferiorly */
 		    if ((yi >= (mri->height-1)) || (yi <= 0)) {
 		      break ;
 		    }
 
-		    load_vals(mri, rx(x,y,z), yi, rz(x,y,z), vals, 1 );
+		    load_vals(mri, rxCurr, yi, rzCurr, vals, 1 );
 		    log_p = 
 		      GCAcomputeConditionalLogDensity
 		      (wm_gc, vals, 1, wm_label);
@@ -1790,7 +1799,7 @@ namespace GPU {
 	    if( !FZERO(min_dist) ) {
 	      status(x,y,z) = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
 
-	      if( IS_WM(label(x,y+1,z) ) && 
+	      if( IS_WM(labelInf ) && 
 		  ((status(x,y+1,z) & GCAM_LABEL_NODE)==0)) {
 		status(x,y+1,z) = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE);
 		gcamdy(x,y+1,z) += (l_label)*dy ;
@@ -1799,7 +1808,7 @@ namespace GPU {
 		
 	      }
 
-	      if( IS_HIPPO(label(x,y-1,z)) && 
+	      if( IS_HIPPO(labelSup) && 
 		  ((status(x,y-1,z) & GCAM_LABEL_NODE)==0)) {
 		status(x,y-1,z) = (GCAM_IGNORE_LIKELIHOOD | GCAM_LABEL_NODE) ;
 		gcamdy(x,y-1,z) += (l_label)*dy ;
