@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/29 00:32:17 $
-%    $Revision: 1.51 $
+%    $Date: 2010/10/14 20:59:24 $
+%    $Revision: 1.52 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -43,7 +43,11 @@ flacnew = flac;
 % Read in source subject name for 'self' subjects
 if(strcmp(flacnew.subject,'self'))
   fname = sprintf('%s/subjectname',flac.sess);
-  flacnew.sourcesubject = char(textread(fname,'%s'));
+  % textread() not supported in OCTAVE
+  % flacnew.sourcesubject = char(textread(fname,'%s'));
+  fp = fopen(fname,'r');
+  flacnew.sourcesubject = fscanf(fp,'%s',1);
+  fclose(fp);
 else
   flacnew.sourcesubject = flacnew.subject;
 end
