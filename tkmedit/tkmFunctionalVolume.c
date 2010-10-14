@@ -13,8 +13,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/10/14 21:23:06 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/10/14 21:45:35 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -1456,6 +1456,8 @@ FunV_tErr FunV_SetThresholdUsingFDR ( tkmFunctionalVolumeRef this,
   int        nSignFlag = 0;
   float      newMin    = 0;
   char       fnBrainVol[1024] = "";
+  char       fnMaskStem[1024] = ""; 
+  char       *pTmpStr = NULL;
   MRI*       pMaskVol  = NULL;
 
   DebugEnterFunction( ("FunV_SetThresholdUsingFDR( this=%p, iRate=%f, "
@@ -1475,8 +1477,12 @@ FunV_tErr FunV_SetThresholdUsingFDR ( tkmFunctionalVolumeRef this,
      take care of converting it properly. */
   if ( ibMaskToBrain ) {
     DebugNote( ("Making filename for mask volume") );
-    tkm_MakeFileName( "brain.mgz", tkm_tFileName_Volume,
+    pTmpStr = getenv("TKM_FDR_MASK");
+    if(pTmpStr == NULL) sprintf(fnMaskStem,"%s","brain.mgz");
+    else                sprintf(fnMaskStem,"%s",pTmpStr);
+    tkm_MakeFileName( fnMaskStem, tkm_tFileName_Volume,
                       fnBrainVol, sizeof(fnBrainVol) );
+    printf("FDR Mask is %s\n",fnBrainVol);
     DebugNote( ("Reading brain volume from %s", fnBrainVol) );
     pMaskVol = MRIread( fnBrainVol );
     if(pMaskVol == NULL) printf("ERROR: could not load %s\n",fnBrainVol);
