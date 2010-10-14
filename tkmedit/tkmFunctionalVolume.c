@@ -13,8 +13,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2008/11/17 22:12:57 $
- *    $Revision: 1.63 $
+ *    $Date: 2010/10/14 21:23:06 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA). 
@@ -1475,11 +1475,12 @@ FunV_tErr FunV_SetThresholdUsingFDR ( tkmFunctionalVolumeRef this,
      take care of converting it properly. */
   if ( ibMaskToBrain ) {
     DebugNote( ("Making filename for mask volume") );
-    tkm_MakeFileName( "brain", tkm_tFileName_Volume,
+    tkm_MakeFileName( "brain.mgz", tkm_tFileName_Volume,
                       fnBrainVol, sizeof(fnBrainVol) );
-
     DebugNote( ("Reading brain volume from %s", fnBrainVol) );
     pMaskVol = MRIread( fnBrainVol );
+    if(pMaskVol == NULL) printf("ERROR: could not load %s\n",fnBrainVol);
+      
     DebugAssertThrowX( (NULL != pMaskVol),
                        eResult, FunV_tErr_CouldntLoadBrainMask );
   }
