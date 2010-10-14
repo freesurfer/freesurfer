@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/08/27 19:05:13 $
-#    $Revision: 1.32 $
+#    $Date: 2010/10/14 16:29:50 $
+#    $Revision: 1.33 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 #
 
 #
-set VERSION = '$Id: fslregister,v 1.32 2010/08/27 19:05:13 greve Exp $';
+set VERSION = '$Id: fslregister,v 1.33 2010/10/14 16:29:50 greve Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -57,8 +57,8 @@ set BBRMask = 1;
 set UseNewSchedule = 1;
 set sch = ();
 set nolog = 0;
-set DoTrans = 0;
-set AllowSwapPosDet = 0;
+set DoTrans = 1;
+set AllowSwapPosDet = 1;
 
 if($#argv == 0) goto usage_exit;
 set n = `echo $argv | egrep -e --version | wc -l`
@@ -647,8 +647,8 @@ usage_exit:
   echo "   --maxangle angle : FLIRT max search angle (default is $maxangle)"
   echo "   --no-new-schedule "
   echo " "
-  echo "   --allow-swap : allow swap dim of positive determinant input volumes"
-  echo "   --trans : do a translation-only registration prior to full "
+  echo "   --no-allow-swap : do not allow swap dim of positive determinant input volumes"
+  echo "   --no-trans : do not do a translation-only registration prior to full "
   echo " "
   echo "   --betmov      : perform brain extration on mov"
   echo "   --betfvalue f : f value for bet, 0.1 default (passed with -f to bet)"
