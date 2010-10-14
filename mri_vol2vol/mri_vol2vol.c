@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2010/07/27 22:55:42 $
- *    $Revision: 1.64 $
+ *    $Date: 2010/10/14 22:13:40 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -464,7 +464,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.64 2010/07/27 22:55:42 lzollei Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.65 2010/10/14 22:13:40 lzollei Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -576,12 +576,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.64 2010/07/27 22:55:42 lzollei Exp $",
+                          "$Id: mri_vol2vol.c,v 1.65 2010/10/14 22:13:40 lzollei Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.64 2010/07/27 22:55:42 lzollei Exp $",
+                                "$Id: mri_vol2vol.c,v 1.65 2010/10/14 22:13:40 lzollei Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -903,17 +903,21 @@ int main(int argc, char **argv) {
       if(gcam == NULL) exit(1);
       printf("Applying reg to gcam\n");
       GCAMapplyTransform(gcam, Rtransform);  //voxel2voxel
-      if(in->type != MRI_UCHAR){
+      if (0) { //(in->type != MRI_UCHAR){
 	printf("Changing type to uchar\n");
 	tmpmri = MRISeqchangeType(in, MRI_UCHAR, 0 , 255, 1);
 	MRIfree(&in);
 	in = tmpmri;
       }
       printf("Applying inverse morph to input\n");
-      out = GCAMmorphFromAtlas(in, gcam, NULL, SAMPLE_TRILINEAR);
+      gcam->gca = gcaAllocMax(1, 1, 1,
+			      in->width, in->height,
+			      in->depth,
+			      0, 0) ;
+      out = GCAMmorphFromAtlas(in, gcam, NULL, interpcode); 
     }
     if(out == NULL) exit(1);
-
+    
     if(0){
     printf("Extracting region\n");
     region.x = 51;
@@ -1049,7 +1053,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--inv-morph")) {
       DoMorph = 1;
       InvertMorph = 1;
-      fstarg = 1;
+      invert = 1;
     } else if (istringnmatch(option, "--m3z",0)) {
       if (nargc < 1) argnerr(option,1);
       m3zfile = pargv[0]; DoMorph = 1;
