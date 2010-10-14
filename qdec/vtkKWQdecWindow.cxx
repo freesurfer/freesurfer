@@ -11,8 +11,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/07/27 17:42:22 $
- *    $Revision: 1.59 $
+ *    $Date: 2010/10/14 20:05:35 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -103,7 +103,7 @@ extern "C" {
 using namespace std;
 
 vtkStandardNewMacro( vtkKWQdecWindow );
-vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.59 $" );
+vtkCxxRevisionMacro( vtkKWQdecWindow, "$Revision: 1.60 $" );
 
 const char* vtkKWQdecWindow::ksSubjectsPanelName = "Subjects";
 const char* vtkKWQdecWindow::ksDesignPanelName = "Design";
@@ -2282,6 +2282,20 @@ vtkKWQdecWindow::LoadSurface ( const char* ifnSurface, const char* isLabel ) {
       // Select this one.
       this->SetCurrentSurface( sLabel.c_str() );
 
+      // determine whether this is the lh or rh, and set our var
+      string str (ifnSurface);
+      size_t found = str.find( "rh." );
+      if (found != string::npos) {
+        mMenuMorphHemisphere->SetValue( "rh" );
+        mQdecProject->GetGlmDesign()->SetHemi( "rh" );
+      } else {
+        found = str.find( "lh." );
+        if (found != string::npos) {
+          mMenuMorphHemisphere->SetValue( "lh" );
+          mQdecProject->GetGlmDesign()->SetHemi( "lh" );
+        }
+      }
+
       // reset the view to initialized it
       mView->ResetView();
 
@@ -2620,6 +2634,9 @@ vtkKWQdecWindow::MapLabelToSubjects ( const char* ifnLabel ) {
     // Try to write the label to the average subject.
     mROISource->SetLabelFileName( ifnLabel );
     mROISource->WriteLabelFile();
+
+    // make sure hemi is set
+    mQdecProject->GetGlmDesign()->SetHemi( mMenuMorphHemisphere->GetValue() );
 
     // Tell the project to run this for all our subjects.
     mQdecProject->GenerateMappedLabelForAllSubjects( ifnLabel, this );
