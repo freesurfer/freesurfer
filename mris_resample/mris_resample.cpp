@@ -22,8 +22,8 @@
  * Original Author: Gheorghe Postelnicu, 2006
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2010/10/15 18:31:52 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/10/15 23:36:28 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -159,17 +159,25 @@ IoParams::parse(int ac,
 {
   namespace po = boost::program_options;
 
-  std::vector<std::string> vstrAnnotation;
+  // std::vector<std::string> vstrAnnotation;
+  std::string strAnnotationIn;
+  std::string strAnnotationOut;
 
   po::options_description desc("mris_resample cmd-line interface");
   desc.add_options()
   ("help", " produce help message")
   ("atlas_reg", po::value(&strAtlasReg),
    " atlas spherical registration file")
-  ("annot", po::value(&vstrAnnotation)->multitoken(),
+    /*("annot", po::value(&vstrAnnotation)->multitoken(),
    " annotation - optional - if present needs 2 args "
    "- input and output (input for the subject and "
-   "output for the resampled atlas")
+   "output for the resampled atlas")*/
+  ("annot_in", po::value(&strAnnotationIn),
+   " input annotation - optional - if present, output annotation needs to be present as well "
+   "- (input for the subject) ")
+  ("annot_out", po::value(&strAnnotationOut),
+   " output annotation - optional - if present, input annotation needs to be present as well "
+   "- (output for the resampled atlas) ")
   ("subject_reg", po::value(&strSubjectReg),
    " subject spherical registration file")
   ("subject_surf", po::value(&strSubjectSurf),
@@ -180,7 +188,6 @@ IoParams::parse(int ac,
   po::variables_map vm;
   po::store( po::parse_command_line(ac,av,desc), vm);
   po::notify(vm);
-
 
   if ( vm.count("help") )
   {
@@ -201,15 +208,37 @@ IoParams::parse(int ac,
     }
 
   annotation = false;
-  if ( vm.count("annot") )
-  {
-    annotation = true;
+
+  if (strAnnotationOut.empty() && !strAnnotationIn.empty())
+    {
+      std::cout << "\n *** Missing --annot_out in cmd-line! *** \n" << std::endl;
+      std::cout << desc << std::endl;
+      exit(0);
+    }
+
+  if (!strAnnotationOut.empty() && strAnnotationIn.empty())
+    {
+      std::cout << "\n *** Missing --annot_in in cmd-line! *** \n" << std::endl;
+      std::cout << desc << std::endl;
+      exit(0);
+    }
+
+  if (!strAnnotationOut.empty() && !strAnnotationIn.empty())
+    {
+      annotation = true;
+      strSubjectAnnot = strAnnotationIn;
+      strOutAnnotation = strAnnotationOut;
+    }
+
+  /*  if ( vm.count("annot") )
+      {
+      annotation = true;
     if ( vstrAnnotation.size() != 2 )
-      throw std::length_error(" Incorect number of arguments for "
-                              "--annot parameter");
+    throw std::length_error(" Incorect number of arguments for "
+    "--annot parameter");
     strSubjectAnnot = vstrAnnotation[0];
     strOutAnnotation = vstrAnnotation[1];
-  }
+    }*/
 }
 
 
