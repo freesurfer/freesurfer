@@ -21,9 +21,9 @@
 /*
  * Original Author: Gheorghe Postelnicu, 2006
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/04/18 01:11:37 $
- *    $Revision: 1.1 $
+ *    $Author: lzollei $
+ *    $Date: 2010/10/15 18:31:52 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2006-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -161,7 +161,7 @@ IoParams::parse(int ac,
 
   std::vector<std::string> vstrAnnotation;
 
-  po::options_description desc("mris_morph cmd-line interface");
+  po::options_description desc("mris_resample cmd-line interface");
   desc.add_options()
   ("help", " produce help message")
   ("atlas_reg", po::value(&strAtlasReg),
@@ -181,6 +181,7 @@ IoParams::parse(int ac,
   po::store( po::parse_command_line(ac,av,desc), vm);
   po::notify(vm);
 
+
   if ( vm.count("help") )
   {
     std::cout << desc << std::endl;
@@ -192,7 +193,12 @@ IoParams::parse(int ac,
        strSubjectReg.empty() ||
        strSubjectSurf.empty() ||
        strOutput.empty() )
-    throw std::length_error(" Missing arguments in cmd-line");
+    {
+      std::cout << "\n *** Missing arguments in cmd-line! *** \n" << std::endl;
+      std::cout << desc << std::endl;
+      exit(0);
+      //throw std::length_error(" Missing arguments in cmd-line");
+    }
 
   annotation = false;
   if ( vm.count("annot") )
@@ -221,7 +227,7 @@ process_input_data( const IoParams& params,
 
   mris = MRISread
          ( const_cast<char*>(params.strSubjectReg.c_str()));
-  if (!mris) throw " Failed reading subject orig surface file";
+  if (!mris) throw  " Failed reading subject spherical registration file";
   *mrisSubject = mris;
 
   MRISsaveVertexPositions(mris, TMP_VERTICES);
@@ -229,7 +235,7 @@ process_input_data( const IoParams& params,
   if ( MRISreadVertexPositions
        ( mris, const_cast<char*>(params.strSubjectSurf.c_str()) )
        != NO_ERROR )
-    throw " Failed reading subject registration file";
+    throw " Failed reading subject orig surface file";
 
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES);
   MRISrestoreVertexPositions(mris, TMP_VERTICES);
