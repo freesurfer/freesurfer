@@ -11,7 +11,7 @@
 # Edited : 08-10-2010: added --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.8 2010/08/10 21:46:38 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.9 2010/10/15 23:33:57 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -43,6 +43,7 @@ if($n != 0) then
   goto usage_exit;
 endif
 
+setenv TEMPLATE_DIR $SUBJECTS_DIR # the default scenario
 goto parse_args;
 parse_args_return:
 goto check_params;
@@ -76,7 +77,8 @@ uname -a |& tee -a $LF
 
 set voltype = norm
 set annotfile = aparc.annot
-set cvsdir =  $FREESURFER_HOME/bin
+set cvsdir =  /autofs/space/erdos_001/users/lzollei/dev/mri_cvs_register
+#$FREESURFER_HOME/bin
 set settingsfile = $cvsdir/mri_cvs_register.settings.txt
 
 ### Creating outputdir
@@ -94,10 +96,10 @@ mkdir -p $outdir
 if ($DoAllSteps || $OnlyStep1) then 
 
 set movingsurfdir   = $SUBJECTS_DIR/$movingid/surf 
-set templatesurfdir = $SUBJECTS_DIR/$templateid/surf
+set templatesurfdir = $TEMPLATE_DIR/$templateid/surf
 
 set movinglabeldir   = $SUBJECTS_DIR/$movingid/label
-set templatelabeldir = $SUBJECTS_DIR/$templateid/label
+set templatelabeldir = $TEMPLATE_DIR/$templateid/label
 
 if ($BothHemis) then
   if ((! -e $movingsurfdir/lh.inflated.K ) || (! -e $movingsurfdir/rh.inflated.K) || ( ! -e $movingsurfdir/lh.inflated.H) || (! -e $movingsurfdir/rh.inflated.H)) then
@@ -205,7 +207,7 @@ if ($BothHemis) then
   foreach hemi (lh rh)
     foreach surf (white pial)
       if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
-        set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot $movinglabeldir/$hemi.$annotfile $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+        set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
         echo $cmd |& tee -a $LF
         $cmd |& tee -a $LF
         if($status) exit 1;
@@ -215,7 +217,7 @@ if ($BothHemis) then
 else
   foreach surf (white pial)
     if (!(-e $outdir/$hemi.resample.$surf) || $CleanSurfReg) then 
-      set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot $movinglabeldir/$hemi.$annotfile $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
+      set cmd = (mris_resample --atlas_reg $templatesurfdir/$hemi.sphere --annot_in $movinglabeldir/$hemi.$annotfile --annot_out $outdir/$hemi.resample.$annotfile --subject_surf $movingsurfdir/$hemi.$surf --subject_reg $movingsurfdir/$hemi.cvs.to$templateid.sphere.reg --out $outdir/$hemi.resample.$surf)     
       echo $cmd |& tee -a $LF
       $cmd |& tee -a $LF
       if($status) exit 1;
@@ -234,7 +236,7 @@ setenv ANNOTFILE $annotfile
 setenv OUTDIR $outdir 
 
 set mmri = $SUBJECTS_DIR/$movingid/mri/
-set tmri = $SUBJECTS_DIR/$templateid/mri/
+set tmri = $TEMPLATE_DIR/$templateid/mri/
 
 if ($DoAllSteps || $OnlyStep2) then 
 
@@ -421,6 +423,11 @@ while( $#argv != 0 )
       set outdir = $argv[1]; shift;
       breaksw
 
+    case "--templatedir":
+      if ( $#argv < 1) goto arg1err;
+      setenv TEMPLATE_DIR $argv[1]; shift;
+      breaksw
+
     case "--verbose":
       if ( $#argv < 1) goto arg1err;
       set Verbosity = $argv[1]; shift;
@@ -542,7 +549,8 @@ usage_exit:
   echo ""
   echo "Optional Arguments"
   echo ""
-  echo "   --outdir directory : output directory where all the results are written (default is SUBJECTS_DIR/mov/cvs)"
+  echo "   --outdir directory      : output directory where all the results are written (default is SUBJECTS_DIR/mov/cvs)"
+  echo "   --templatedir directory : template's SUBJECTS_DIR directory where all the relevant FS recon files are located (default is SUBJECTS_DIR)"
   echo "   --noaseg       : do not use aseg volumes in the registration pipeline (default is 0)"
   echo "   --nocleanup    : do not delete temporary files (default is 0)"
   echo "   --nolog        : do not produce a log file (default is 0)"
@@ -590,6 +598,13 @@ Output directory where the resulting morphs should be written. NOTE,
 the morphs require quite a lot of space so make sure that there is
 enough disk space available before your analysis. The default location
 for the output is: SUBJECTS_DIR/mov/cvs
+
+--templatedir 
+
+Template SUBJECTS_DIR directory where all the FS recon-related files 
+are located. The default location is the SUBJECTS_DIR of the moving
+subject.
+
 
 --noaseg
 
