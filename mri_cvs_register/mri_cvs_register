@@ -11,7 +11,7 @@
 # Edited : 08-10-2010: added --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.9 2010/10/15 23:33:57 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.10 2010/10/15 23:35:35 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -77,8 +77,7 @@ uname -a |& tee -a $LF
 
 set voltype = norm
 set annotfile = aparc.annot
-set cvsdir =  /autofs/space/erdos_001/users/lzollei/dev/mri_cvs_register
-#$FREESURFER_HOME/bin
+set cvsdir =  $FREESURFER_HOME/bin
 set settingsfile = $cvsdir/mri_cvs_register.settings.txt
 
 ### Creating outputdir
