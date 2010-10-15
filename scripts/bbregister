@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2010/08/27 18:05:21 $
-#    $Revision: 1.39 $
+#    $Author: nicks $
+#    $Date: 2010/10/15 18:46:39 $
+#    $Revision: 1.40 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.39 2010/08/27 18:05:21 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.40 2010/10/15 18:46:39 nicks Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -712,7 +712,7 @@ arg2err:
 
 ############--------------##################
 usage_exit:
-fsPrintHelp $0
+fsPrintHelp "bbregister"
 #  echo ""
 #  echo "bbregister"
 #  echo ""
