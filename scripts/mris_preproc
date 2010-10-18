@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/09/30 18:04:02 $
-#    $Revision: 1.55 $
+#    $Date: 2010/10/18 15:27:50 $
+#    $Revision: 1.56 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.55 2010/09/30 18:04:02 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.56 2010/10/18 15:27:50 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -959,7 +959,7 @@ usage_exit:
   echo ""
   echo "  --iv volmeasfile reg <--iv volmeasfile reg>"
   echo "  --projfrac frac : projection fraction for vol2surf"
-  echo "  --projfrac-max min delta max : find max along projection for vol2surf"
+  echo "  --projfrac-max min max delta : find max along projection for vol2surf"
   echo "  --no-mask-non-cortex : do not mask out non-cortex in vol2surf"
   echo ""
   echo "  --sf sessfile        : fsfast session file"
@@ -1099,11 +1099,11 @@ The non-cortical area (eg in the medial wall) is set to 0 unless
 When sampling a volume onto the surface, sample a fraction of the thickness
 along the surface normal. projfrac is 0-1. Default is 0.
 
---projfrac-max min delta max
+--projfrac-max min max delta 
 
 When sampling a volume onto the surface, return the maximum along the
 surface normal sampled at fractions of the thickness between min and
-max at increments of delta.  Eg, 0 .1 1 means to sample every 10% of
+max at increments of delta.  Eg, 0 1 .1 means to sample every 10% of
 the thickness between the white and pial surfaces. Just passes
 the arguments to mri_vol2surf with the --projfrac-max flag.
 
