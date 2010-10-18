@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
- *    $Author: ginsburg $
- *    $Date: 2010/08/04 20:43:01 $
- *    $Revision: 1.61 $
+ *    $Author: rudolph $
+ *    $Date: 2010/10/18 22:53:26 $
+ *    $Revision: 1.62 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.61 2010/08/04 20:43:01 ginsburg Exp $";
+  "$Id: mris_curvature_stats.c,v 1.62 2010/10/18 22:53:26 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -282,6 +282,7 @@ static int 	G_bins   			= 1;
 static int 	Gb_maxUlps  			= 0;
 static int 	G_maxUlps  			= 0;
 
+static int	Gb_regionalPercentages		= 0;
 static int	Gb_vertexAreaNormalize		= 0;
 static int	Gb_vertexAreaWeigh		= 0;
 static int      Gb_vertexAreaNormalizeFrac      = 0;
@@ -477,7 +478,7 @@ main(int argc, char *argv[]) {
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.61 2010/08/04 20:43:01 ginsburg Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.62 2010/10/18 22:53:26 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1017,6 +1018,9 @@ MRIS_surfaceIntegrals_report(
   char* pch_function		= "MRIS_surfaceIntegrals_report";
   char  tmp[1024];
 
+  float	f_totalSurfaceArea	= apmris->total_area;
+  int 	totalVertices		= apmris->nvertices;
+
   DebugEnterFunction (( pch_function ));
   sprintf(pch_curveName, "%s", Gppch[aesot]);
 
@@ -1112,15 +1116,29 @@ MRIS_surfaceIntegrals_report(
       strcat(apch_report,tmp);
 
       sprintf(tmp, "%12.2f%s\n", 
+              100 * (float)f_SInaturalArea / apmris->total_area, "%");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%10s%-40s", 
+              pch_curveName, " ROI Surface Vertex Percentage:");
+      strcat(apch_report,tmp);
+
+      sprintf(tmp, "%12.2f%s\n", 
               100 * (float)SInaturalVertices / apmris->nvertices, "%");
       strcat(apch_report,tmp);
 
+	  
       sprintf(tmp, "%10s%-40s",
           pch_curveName, " Average Vertex Area (ROI Surface):");
       strcat(apch_report,tmp);
 
       sprintf(tmp, "%12.5f mm^2\n",	f_SInaturalArea / SInaturalVertices);
       strcat(apch_report,tmp);
+
+      if(Gb_regionalPercentages) {
+	totalVertices 		= SInaturalVertices;
+	f_totalSurfaceArea	= f_SInaturalArea;
+      }
   }
 
   sprintf(tmp, "%10s%-40s",
@@ -1161,7 +1179,7 @@ MRIS_surfaceIntegrals_report(
 
   sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SInaturalMean, SInaturalVertices, 
-          100 * (float)SInaturalVertices / apmris->nvertices, 
+          100 * (float)SInaturalVertices / totalVertices, 
           "%");
   strcat(apch_report,tmp);
 
@@ -1171,7 +1189,7 @@ MRIS_surfaceIntegrals_report(
 
   sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SIabsMean, SIabsVertices, 
-          100 * (float)SIabsVertices / apmris->nvertices, "%");
+          100 * (float)SIabsVertices / totalVertices, "%");
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%10s%-40s",
@@ -1180,7 +1198,7 @@ MRIS_surfaceIntegrals_report(
 
   sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SIposMean, SIposVertices, 
-          100 * (float)SIposVertices / apmris->nvertices, "%");
+          100 * (float)SIposVertices / totalVertices, "%");
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%10s%-40s",
@@ -1189,7 +1207,7 @@ MRIS_surfaceIntegrals_report(
   
   sprintf(tmp, "%12.5f across %d (%05.2f%s) vertices\n", 
           f_SInegMean, SInegVertices, 
-          100 * (float)SInegVertices / apmris->nvertices, "%");
+          100 * (float)SInegVertices / totalVertices, "%");
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%10s%-40s",
@@ -1198,7 +1216,7 @@ MRIS_surfaceIntegrals_report(
   
   sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SInaturalAreaNorm, f_SInaturalArea, 
-          100 * f_SInaturalArea / apmris->total_area, "%");
+          100 * f_SInaturalArea / f_totalSurfaceArea, "%");
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%10s%-40s",
@@ -1207,7 +1225,7 @@ MRIS_surfaceIntegrals_report(
   
   sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SIabsAreaNorm, f_SIabsArea, 
-          100 * f_SIabsArea / apmris->total_area, "%");
+          100 * f_SIabsArea / f_totalSurfaceArea, "%");
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%10s%-40s",
@@ -1216,7 +1234,7 @@ MRIS_surfaceIntegrals_report(
   
   sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SIposAreaNorm, f_SIposArea, 
-          100 * f_SIposArea / apmris->total_area, "%");
+          100 * f_SIposArea / f_totalSurfaceArea, "%");
   strcat(apch_report,tmp);
 
   sprintf(tmp, "%10s%-40s",
@@ -1225,7 +1243,7 @@ MRIS_surfaceIntegrals_report(
   
   sprintf(tmp, "%12.5f across %f (%05.2f%s) mm^2\n", 
           f_SInegAreaNorm, f_SInegArea, 
-          100 * f_SInegArea / apmris->total_area, "%");
+          100 * f_SInegArea / f_totalSurfaceArea, "%");
   strcat(apch_report,tmp);
 
   xDbg_PopStack();
@@ -2108,6 +2126,9 @@ get_option(int argc, char *argv[]) {
     Gf_lowPassFilter		= atof(argv[2]);
     nargs			= 1;
     cprintf("Setting rectified low pass filter to", Gf_lowPassFilter);
+  } else if (!stricmp(option, "-regionalPercentages")) {
+    Gb_regionalPercentages	= 1;
+    cprints("Toggling regional percentages", "ok");
   } else if (!stricmp(option, "-shapeIndex")) {
     Gb_shapeIndex		= 1;
     cprints("Toggling shape index map on", "ok");
@@ -2449,6 +2470,7 @@ print_help(void) {
 
   sprintf(pch_synopsis, "\n\
  \n\
+ \n\
     NAME \n\
  \n\
           mris_curvature_stats \n\
@@ -2774,9 +2796,12 @@ print_help(void) {
           are the most convenient ways to zoom into a region of interest \n\
           in a histogram. \n\
  \n\
-    [-l <labelFileName>] \n\
+    [-l <labelFileName>] [--regionalPercentages] \n\
  \n\
           Constrain statistics to the region defined in <labelFileName>. \n\
+          If additionally, the [--regionalPercentages] flag is passed, \n\
+	  the integral percentages are reported relative to the region, and \n\
+	  not the whole brain surface (the default). \n\
  \n\
     [--highPassFilter <HPvalue>] [--lowPassFilter <LPvalue>] \n\
  \n\

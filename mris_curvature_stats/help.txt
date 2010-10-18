@@ -324,9 +324,12 @@
           are the most convenient ways to zoom into a region of interest 
           in a histogram.       
 
-    [-l <labelFileName>]      
+    [-l <labelFileName>] [--regionalPercentages]     
 
           Constrain statistics to the region defined in <labelFileName>. 
+          If additionally, the [--regionalPercentages] flag is passed, 
+	  the integral percentages are reported relative to the region, and
+	  not the whole brain surface (the default).
 
     [--highPassFilter <HPvalue>] [--lowPassFilter <LPvalue>]
 
