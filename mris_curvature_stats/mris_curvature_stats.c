@@ -12,8 +12,8 @@
  * Original Author: Bruce Fischl / heavily hacked by Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2010/10/18 22:53:26 $
- *    $Revision: 1.62 $
+ *    $Date: 2010/10/19 22:08:31 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,7 +121,7 @@ typedef struct _minMax {
 } s_MINMAX;
 
 static char vcid[] =
-  "$Id: mris_curvature_stats.c,v 1.62 2010/10/18 22:53:26 rudolph Exp $";
+  "$Id: mris_curvature_stats.c,v 1.63 2010/10/19 22:08:31 rudolph Exp $";
 
 int   main(int argc, char *argv[]) ;
 
@@ -234,7 +234,8 @@ int	MRISvertexAreaPostProcess(
 );
 
 int	MRIS_surfaceRipFlags_filter(
-	MRI_SURFACE*	apmris
+	MRI_SURFACE*	apmris,
+	float*		apf_notRippedArea                               		
 );
 
 
@@ -282,6 +283,8 @@ static int 	G_bins   			= 1;
 static int 	Gb_maxUlps  			= 0;
 static int 	G_maxUlps  			= 0;
 
+static float	Gf_regionalTotalSurfaceArea	= 0;
+static int	G_regionalTotalVertexCount	= 0;
 static int	Gb_regionalPercentages		= 0;
 static int	Gb_vertexAreaNormalize		= 0;
 static int	Gb_vertexAreaWeigh		= 0;
@@ -422,6 +425,16 @@ stats_update(
   return 1;
 }
 
+void
+surface_applyFilter(MRI_SURFACE*	apmris) {
+    cprints("Scanning surface for labels and/or filters...", "");
+    G_regionalTotalVertexCount = MRIS_surfaceRipFlags_filter(
+					apmris, &Gf_regionalTotalSurfaceArea);
+    cprints("", "ok");
+    cprintd("Filtered vertices", 	G_regionalTotalVertexCount);
+    cprintf("Filtered Area (mm^2)", 	Gf_regionalTotalSurfaceArea);
+}
+
 int
 LABEL_RipSurface(
 	MRI_SURFACE*	apmris,
@@ -470,15 +483,15 @@ main(int argc, char *argv[]) {
   char		pch_surface[16384];
   char		pch_tmp[1024];
   int           ac, nargs;
-  int		i 		= START_i;
-  int		notRipped 	= 0;
-  MRI_SURFACE   *mris ;
+  int		i 			= START_i;
+  MRI_SURFACE   *mris;
+  int		b_surfaceFiltered 	= 0;
 
   GpSTDOUT	= stdout;
   InitDebugging( "mris_curvature_stats" );
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mris_curvature_stats.c,v 1.62 2010/10/18 22:53:26 rudolph Exp $", "$Name:  $");
+                                 "$Id: mris_curvature_stats.c,v 1.63 2010/10/19 22:08:31 rudolph Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -589,13 +602,13 @@ main(int argc, char *argv[]) {
           MRISwriteCurvature(mris, Gpch_scaledCurv);
       }
 
-      if(Gb_filter) {
-    	cprints("Pre-filtering surface...", "");
-    	notRipped = MRIS_surfaceRipFlags_filter(mris);
-    	cprints("", "ok");
-    	cprintd("Filtered vertices", notRipped);
-      }
+	printf("Gb_filter = %d\n", Gb_filter);
 
+      if(Gb_filter || label_name) {
+	  surface_applyFilter(mris);
+	  b_surfaceFiltered = 1;
+      }
+	
       if (Gb_scaleMin && Gb_scaleMax) {
         MRISscaleCurvatures(mris, Gf_scaleMin, Gf_scaleMax);
         if (Gpch_scaledCurv[0] && Gb_writeCurvatureFiles) 
@@ -623,6 +636,11 @@ main(int argc, char *argv[]) {
       cprints("Calculating Discrete Principal Curvatures...", "");
       MRIScomputeSecondFundamentalFormDiscrete(mris, Gb_signedPrincipals);
     }
+
+    // Apply any filters -- the pattern of ripMarks is used to limit
+    // analysis to tagged vertices
+    if((Gb_filter || label_name) && !b_surfaceFiltered) 
+	  surface_applyFilter(mris);    
 
     MRIS_curvatureStats_analyze(mris, e_Gaussian); stats_update(i++);
     if (Gpch_KCurv[0] && Gb_writeCurvatureFiles) 
@@ -1136,8 +1154,8 @@ MRIS_surfaceIntegrals_report(
       strcat(apch_report,tmp);
 
       if(Gb_regionalPercentages) {
-	totalVertices 		= SInaturalVertices;
-	f_totalSurfaceArea	= f_SInaturalArea;
+	totalVertices 		= G_regionalTotalVertexCount;
+	f_totalSurfaceArea	= Gf_regionalTotalSurfaceArea;
       }
   }
 
@@ -1620,8 +1638,10 @@ MRIS_surfaceRipFlags_filterVertex(
     // 	  filter contraints, it is "ripped"!
     // 	  
     // RETURN
-    // 	o If vertex is ripped, return 1; else return 0.
+    // 	o If vertex is within a label region (or whole hemisphere) it is
+    //    not ripped, and thus return 0; else return 1.
     // 	  
+    
     VERTEX*	pv ;
     short	b_canProcess	= 1;
 
@@ -1655,12 +1675,13 @@ MRIS_surfaceRipFlags_filterVertex(
     }
     if(b_canProcess) 	pv->ripflag	= 0;
     else		pv->ripflag	= 1;
-    return pv->ripflag;
+    return 0;
 }
 
 int
 MRIS_surfaceRipFlags_filter(
-	MRI_SURFACE*	apmris
+	MRI_SURFACE*	apmris,
+        float*		apf_notRippedArea
 ) {
     //
     // DESCRIPTION
@@ -1686,16 +1707,22 @@ MRIS_surfaceRipFlags_filter(
     // RETURN
     // 	o Returns the number of vertices that can be processed, 
     // 	  i.e. number of vertices that were *not* ripped.
+    //  o Returns the sum area of valid vertices in <apf_notRippedArea>.
     // 	  
 
     int       	vno ;
     int		ripped		= 0;
     int		notRipped	= 0;
+    float	f_rippedArea	= 0;
 
     for (vno = 0 ; vno < apmris->nvertices ; vno++) {
 	ripped = MRIS_surfaceRipFlags_filterVertex(apmris, vno);
-	if(!ripped) notRipped++;
+	if(!ripped) {
+	    notRipped++;
+	    f_rippedArea += apmris->vertices[vno].area;
+	}
     }
+    *apf_notRippedArea	= f_rippedArea;
     return notRipped;
 }
 
@@ -1765,7 +1792,9 @@ MRIS_surfaceIntegral_compute(
     for(vno=0; vno<pmris->nvertices; vno++) p_labelMark[vno] = 0;
   for (f_n = f_total =f_totalArea = 0.0, vno = 0 ; vno < pmris->nvertices ; vno++) {
     pv = &pmris->vertices[vno] ;
-    if(Gb_filter)   MRIS_surfaceRipFlags_filterVertex(pmris, vno);
+    // This call to MRIS_surfaceRipFlags_filterVertex is needed
+    // since Gaussian curvatures are now available.
+//    if(Gb_filter)   MRIS_surfaceRipFlags_filterVertex(pmris, vno);
     if(pv->ripflag) continue ;
     if( (*fcond)(pv)) {
       f_total 			+= ((*fv)(pv) * pv->area) ;
