@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/09/29 17:47:38 $
- *    $Revision: 1.684 $
+ *    $Author: greve $
+ *    $Date: 2010/10/19 15:42:12 $
+ *    $Revision: 1.685 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.684 2010/09/29 17:47:38 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.685 2010/10/19 15:42:12 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62110,8 +62110,8 @@ MRI *MRISloadSurfVals(const char *srcvalfile, const char *typestring, MRI_SURFAC
       fprintf(stdout,"       Number of value vertices = %d\n",SrcVals->width);
       return(NULL);
     }
-    if (is_sxa_volume(srcvalfile))
-    {
+    if(0 && is_sxa_volume(srcvalfile)){
+      // Dont need to do this anymore 10/19/2010
       printf("INFO: Source volume detected as selxavg format\n");
       sxa = ld_sxadat_from_stem(srcvalfile);
       if (sxa == NULL) return(NULL);
