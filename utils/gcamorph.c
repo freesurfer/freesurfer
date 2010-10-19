@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2010/10/14 22:14:28 $
- *    $Revision: 1.222 $
+ *    $Date: 2010/10/19 13:36:48 $
+ *    $Revision: 1.223 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -3776,6 +3776,8 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
   double       weight, orig_val, val ;
   MRI        *mri_weights, *mri_ctrl, *mri_s_morphed ;
 
+  //MRIwrite(mri_in, "/tmp/lz-0.mgz");
+
   // GCAM is a non-linear voxel-to-voxel transform
   // it also assumes that the uniform voxel size
   if ( (mri_in->xsize != mri_in->ysize)
@@ -3797,6 +3799,8 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
   MRIcopyHeader(mri_in, mri_weights);
   mri_s_morphed = MRIalloc(width, height, depth, MRI_FLOAT) ;
   MRIcopyHeader(mri_in, mri_s_morphed);
+
+  //MRIwrite(mri_s_morphed, "/tmp/lz-1.mgz");
 
   // loop over input volume indices
   for (x = 0 ; x < width ; x++)
@@ -3898,6 +3902,9 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
     }
   }
   
+  //MRIwrite(mri_s_morphed, "/tmp/lz-3.mgz");
+  //MRIwrite(mri_weights, "/tmp/lz-4.mgz");
+
   /* now normalize weights and values */
   for (x = 0 ; x < width ; x++)
   {
@@ -3914,17 +3921,24 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
           //if (val > 255.0) LZ: does not work with non-uchar data!
           //  val = 255.0 ;
           //MRIFvox(mri_s_morphed,x,y,z) = (short)nint(val) ;
-	  MRIFvox(mri_s_morphed,x,y,z) = (float)nint(val) ;
+	  //MRIFvox(mri_s_morphed,x,y,z) = (float)nint(val) ;
+	  MRIFvox(mri_s_morphed,x,y,z) = (float)(val) ;
         }
       }
     }
   }
+
+  //MRIwrite(mri_s_morphed, "/tmp/lz-5.mgz");
 
   /* copy from short image to BUFTYPE one */
   if (!mri_morphed)
     mri_morphed = MRIclone(mri_in, NULL) ;
   else
     MRIclear(mri_morphed) ;
+
+  MRIwrite(mri_morphed, "/tmp/lz-6.mgz");
+  printf("type of morphed: %d/n", mri_morphed->type);
+
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -3936,13 +3950,13 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
         switch (mri_morphed->type)
         {
         case MRI_UCHAR:
-          MRIvox(mri_morphed,x,y,z) = (BUFTYPE)MRIFvox(mri_s_morphed,x,y,z) ;
+          MRIvox(mri_morphed,x,y,z) = (uchar)MRIFvox(mri_s_morphed,x,y,z) ;
           break ;
         case MRI_SHORT:
-          MRISvox(mri_morphed,x,y,z) = MRIFvox(mri_s_morphed,x,y,z) ;
+          MRISvox(mri_morphed,x,y,z) = (short)MRIFvox(mri_s_morphed,x,y,z) ;
           break ;
         case MRI_FLOAT:
-          MRIFvox(mri_morphed,x,y,z) = (float)MRIFvox(mri_s_morphed,x,y,z) ;
+          MRIFvox(mri_morphed,x,y,z) = MRIFvox(mri_s_morphed,x,y,z) ;
           break ;
         default:
           ErrorReturn(NULL,
@@ -3955,6 +3969,7 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
     }
   }
 
+  //MRIwrite(mri_morphed, "/tmp/lz-7.mgz");
   MRIfree(&mri_s_morphed) ;
 
   /* run soap bubble to fill in remaining holes */
@@ -3963,6 +3978,9 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
 #else
   mri_ctrl = mri_weights ;
 #endif
+  
+  //MRIwrite(mri_ctrl, "/tmp/lz-8.mgz");
+  
   for (x = 0 ; x < width ; x++)
   {
     for (y = 0 ; y < height ; y++)
@@ -3980,6 +3998,8 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
     }
   }
 
+  //MRIwrite(mri_ctrl, "/tmp/lz-9.mgz");
+
 #if 1
   MRIfree(&mri_weights) ;
 #endif
@@ -3988,10 +4008,13 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
     that won't be accurate anyway.
     MRIbuildVoronoiDiagram(mri_morphed, mri_ctrl, mri_morphed) ;
   */
+  
+  //printf("FromAtlas gcam->spacing: %d\n", gcam->spacing) ;
   if( sample_type != 0) // non-NN interpolation
     MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 3*gcam->spacing) ;
   MRIfree(&mri_ctrl) ;
 
+  //MRIwrite(mri_morphed, "/tmp/lz-10.mgz");
   // use gcam src information to the morphed image
   useVolGeomToMRI(&gcam->image, mri_morphed);
   return(mri_morphed) ;
@@ -4044,7 +4067,8 @@ GCAMmorphToAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_morphed, int frame, int
   {
     // alloc with FOV same as gcam
     mri_morphed = MRIallocSequence
-      (width, height, depth, MRI_FLOAT, frame < 0 ? mri_src->nframes : 1) ;
+      //(width, height, depth, MRI_FLOAT, frame < 0 ? mri_src->nframes : 1) ;
+      (width, height, depth, mri_src->type, frame < 0 ? mri_src->nframes : 1) ;
     MRIcopyHeader(mri_src, mri_morphed) ;
   }
 
