@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/08 19:16:51 $
- *    $Revision: 1.109 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/20 20:25:46 $
+ *    $Revision: 1.110 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,6 +84,7 @@ GCA_PARMS ;
   border, then a classifier center every scale pixels.
   */
 
+
 typedef struct
 {
   int    xp ;         /* prior coordinates */
@@ -97,6 +98,7 @@ typedef struct
   int    x ;          /* image coordinates */
   int    y ;
   int    z ;
+  int    tissue_class ;
 }
 GCA_SAMPLE, GCAS ;
 
@@ -455,6 +457,8 @@ int GCAmaxLikelihoodLabel( const GCA_NODE *gcan,
 int GCAfreeRegionalGCAN(GCA_NODE **pgcan) ;
 GCA *GCAcompactify(GCA *gca);
 MRI *GCAreplaceImpossibleLabels(MRI *mri_inputs, GCA *gca, MRI *mri_in_labels, MRI *mri_out_labels, TRANSFORM *transform) ;
+int  GCAremoveHemi(GCA *gca, int lh) ; 
+int  GCAremoveLabel(GCA *gca, int label) ; 
 GC1D *alloc_gcs(int nlabels, int flags, int ninputs) ;
 int free_gcs(GC1D *gcs, int nlabels, int ninputs) ;
 int GCAmapRenormalizeByClass(GCA *gca, MRI *mri, TRANSFORM *transform) ;
@@ -494,6 +498,7 @@ GCAreclassifyVoxelsAtOptimalScale(GCA *gca, TRANSFORM *transform,
 GCA *GCAsmooth(GCA *gca, double sigma) ;
 GCA *GCAcopy(GCA *gca_src, GCA *gca_dst) ;
 int GCAgetMaxPriorLabel(GCA *gca, int xp, int yp, int zp, double *p_prior) ;
+int GCAupdateDistributions(GCA *gca, MRI *mri, TRANSFORM *transform);
 double GCAgibbsImageLogPosterior(GCA *gca,MRI *mri_labels,
                                  MRI *mri_inputs,
                                  TRANSFORM *transform) ;
