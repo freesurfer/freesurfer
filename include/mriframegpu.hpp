@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/23 18:19:04 $
- *    $Revision: 1.44 $
+ *    $Date: 2010/10/20 15:43:03 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -141,6 +141,7 @@ namespace GPU {
       }
 
       //! Utility function to convert float to the class' datatype
+      inline
       __device__ T ConvertFloat( const float in ) const {
 	/*!
 	  This template is specialised for each supported class.
@@ -222,7 +223,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.44 2010/07/23 18:19:04 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.45 2010/10/20 15:43:03 rge21 Exp $";
       }
       
       //! Return the 'thick' field
@@ -677,18 +678,21 @@ namespace GPU {
    
 
     template<> __device__
+    inline
     unsigned char MRIframeOnGPU<unsigned char>::ConvertFloat( const float in ) const {
       // Copy 'nint' from utils.c
       return( static_cast<unsigned char>( in+0.5f ) );
     }
 
     template<> __device__
+    inline
     short MRIframeOnGPU<short>::ConvertFloat( const float in ) const {
       // Copy 'nint' from utils.c
       return( static_cast<short>( in+0.5f ) );
     }
 
     template<> __device__
+    inline
     float MRIframeOnGPU<float>::ConvertFloat( const float in ) const {
       return( in );
     }
