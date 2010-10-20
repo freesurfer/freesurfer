@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/07/27 15:36:56 $
- *    $Revision: 1.279 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/20 20:25:38 $
+ *    $Revision: 1.280 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -109,7 +109,7 @@ static double GCAcomputeScaledMeanEntropy(GCA *gca,
 #endif
 static int gcaScale(GCA *gca, int *labels, int *contra_labels, 
                     float *scales, int nlabels, int dir);
-#if 0
+#if 1
 static int gcaMaxPriorLabel(GCA *gca, 
                             MRI *mri, 
                             TRANSFORM *transform, 
@@ -7966,33 +7966,38 @@ GCAvoxelGibbsLogPosterior(GCA *gca,
       DiagBreak() ;
 
     nbr_prior = 0.0 ;
-    for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
+    if (gc->nlabels == NULL)
+      nbr_prior += log(0.1f/(float)gcan->total_training) ;
+    else 
     {
-      xnbr = mri_labels->xi[x+xnbr_offset[i]] ;
-      ynbr = mri_labels->yi[y+ynbr_offset[i]] ;
-      znbr = mri_labels->zi[z+znbr_offset[i]] ;
-      nbr_label = nint(MRIgetVoxVal(mri_labels, xnbr, ynbr, znbr,0)) ;
-      for (j = 0 ; j < gc->nlabels[i] ; j++)
+      for (i = 0 ; i < GIBBS_NEIGHBORS ; i++)
       {
-        if (nbr_label == gc->labels[i][j])
-          break ;
-      }
-      if (j < gc->nlabels[i])
-      {
-        if (!FZERO(gc->label_priors[i][j]))
-          nbr_prior += log(gc->label_priors[i][j]) ;
-        else
+        xnbr = mri_labels->xi[x+xnbr_offset[i]] ;
+        ynbr = mri_labels->yi[y+ynbr_offset[i]] ;
+        znbr = mri_labels->zi[z+znbr_offset[i]] ;
+        nbr_label = nint(MRIgetVoxVal(mri_labels, xnbr, ynbr, znbr,0)) ;
+        for (j = 0 ; j < gc->nlabels[i] ; j++)
+        {
+          if (nbr_label == gc->labels[i][j])
+            break ;
+        }
+        if (j < gc->nlabels[i])
+        {
+          if (!FZERO(gc->label_priors[i][j]))
+            nbr_prior += log(gc->label_priors[i][j]) ;
+          else
+            nbr_prior += log(0.1f/(float)gcan->total_training) ;
+          /*BIG_AND_NEGATIVE */
+          check_finite("GCAvoxelGibbsLogPosterior: label_priors",
+                       nbr_prior) ;
+        }
+        else   /* never occurred - make it unlikely */
+        {
+          if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
+            DiagBreak() ;
           nbr_prior += log(0.1f/(float)gcan->total_training) ;
-        /*BIG_AND_NEGATIVE */
-        check_finite("GCAvoxelGibbsLogPosterior: label_priors",
-                     nbr_prior) ;
-      }
-      else   /* never occurred - make it unlikely */
-      {
-        if (x == Ggca_x && y == Ggca_y && z == Ggca_z)
-          DiagBreak() ;
-        nbr_prior += log(0.1f/(float)gcan->total_training) ;
-        /*BIG_AND_NEGATIVE*/
+          /*BIG_AND_NEGATIVE*/
+        }
       }
     }
     // added to the previous value
@@ -21641,7 +21646,7 @@ GCAimageLogLikelihood(GCA *gca, MRI *mri_inputs, TRANSFORM *transform)
 }
 #endif
 
-#if 0
+#if 1
 static int
 gcaMaxPriorLabel(GCA *gca, MRI *mri, TRANSFORM *transform, int x, int y, int z)
 {
@@ -22317,9 +22322,13 @@ GCArenormalizeClass(GCA *gca, int class, float scale_to_wm)
         {
           switch (class)
           {
-          case CSF_CLASS: same_class = IS_CSF_CLASS(gcan->labels[n]) ;   break ;
-          case GM_CLASS:  same_class = IS_GRAY_CLASS(gcan->labels[n]) ;  break ;
-          case WM_CLASS:  same_class = IS_WHITE_CLASS(gcan->labels[n]) ; break ;
+#if 0
+          case LH_CLASS:  same_class = IS_LH(gcan->labels[n]) ;   break ;
+          case RH_CLASS:  same_class = IS_RH(gcan->labels[n]) ;   break ;
+#endif
+          case CSF_CLASS: same_class = IS_FLUID(gcan->labels[n]) ;   break ;
+          case GM_CLASS:  same_class = IS_GRAY_MATTER(gcan->labels[n]) ;  break ;
+          case WM_CLASS:  same_class = IS_WHITE_MATTER(gcan->labels[n]) ; break ;
           default: same_class = 0 ; break ;
           }
           if (same_class)
@@ -23798,3 +23807,165 @@ GCAreadLabelIntensities(char *fname, float *label_scales, float *label_offsets)
   return(NO_ERROR) ;
 }
 
+int
+GCAremoveHemi(GCA *gca, int lh) 
+{
+  int       x, y, z, n, r ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          if ((lh && (IS_LH_CLASS(gcan->labels[n]))) ||
+              (!lh && (IS_RH_CLASS(gcan->labels[n]))))
+          {
+            gcan->labels[n] = Unknown ;
+            for (r = 0 ; r < gca->ninputs ; r++)
+              gcan->gcs[n].means[r] = 0 ;
+          }
+        }
+      }
+    }
+  }
+
+  for (x = 0 ; x < gca->prior_width ; x++)
+  {
+    for (y = 0 ; y < gca->prior_height ; y++)
+    {
+      for (z = 0 ; z < gca->prior_depth ; z++)
+      {
+        gcap = &gca->priors[x][y][z] ;
+        for (n = 0 ; n < gcap->nlabels ; n++)
+        {
+          if ((lh && (IS_LH_CLASS(gcap->labels[n]))) ||
+              (!lh && (IS_RH_CLASS(gcap->labels[n]))))
+          {
+            gcap->labels[n] = Unknown ;
+          }
+        }
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
+
+int
+GCAupdateDistributions(GCA *gca, MRI *mri, TRANSFORM *transform)
+{
+  int       x, y, z, nvals, label, xv, yv, zv, n, node_label ;
+  float     vals[MAX_GCA_INPUTS], *all_vals, med ;
+  GCA_NODE  *gcan ;
+
+  all_vals = (float *)calloc(gca->node_width*gca->node_height*gca->node_depth, sizeof(float)) ;
+  for (label = 0 ; label <= MAX_CMA_LABEL ; label++)
+  {
+    //    printf("updating means for label %s\n", cma_label_to_name(label)) ;
+    nvals = 0  ;
+    for (x = 0 ; x < gca->node_width ; x++)
+    {
+      for (y = 0 ; y < gca->node_height ; y++)
+      {
+        for (z = 0 ; z < gca->node_depth ; z++)
+        {
+          gcan = &gca->nodes[x][y][z] ;
+          if (GCAnodeToSourceVoxel(gca, mri, transform,
+                                   x, y, z, &xv, &yv, &zv)==NO_ERROR)
+          {
+            node_label = gcaMaxPriorLabel(gca, mri, transform, xv, yv, zv) ;
+            if (node_label == label)
+            {
+              load_vals(mri, xv, yv, zv, vals, gca->ninputs) ;
+              all_vals[nvals++] = vals[0] ;
+            }
+          }
+        }
+      }
+    }
+    if (nvals == 0)
+    {
+      //      printf("label %s not found, skipping\n", cma_label_to_name(label)) ;
+      continue ;
+    }
+    med = median(all_vals, nvals) ;
+    printf("updating label %s to use median %f\n", cma_label_to_name(label), med) ;
+    for (x = 0 ; x < gca->node_width ; x++)
+    {
+      for (y = 0 ; y < gca->node_height ; y++)
+      {
+        for (z = 0 ; z < gca->node_depth ; z++)
+        {
+          gcan = &gca->nodes[x][y][z] ;
+          if (GCAnodeToSourceVoxel(gca, mri, transform,
+                                   x, y, z, &xv, &yv, &zv)==NO_ERROR)
+          {
+            for (n = 0 ; n < gcan->nlabels ; n++)
+            {
+              if (gcan->labels[n] == label)
+              {
+                gcan->gcs[n].means[0] = med ;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  free(all_vals) ;
+  return(NO_ERROR) ;
+  
+}
+
+
+int
+GCAremoveLabel(GCA *gca, int label)
+{
+  int       x, y, z, n, r ;
+  GCA_NODE  *gcan ;
+  GCA_PRIOR *gcap ;
+
+  for (x = 0 ; x < gca->node_width ; x++)
+  {
+    for (y = 0 ; y < gca->node_height ; y++)
+    {
+      for (z = 0 ; z < gca->node_depth ; z++)
+      {
+        gcan = &gca->nodes[x][y][z] ;
+        for (n = 0 ; n < gcan->nlabels ; n++)
+        {
+          if (gcan->labels[n] == label)
+          {
+            gcan->labels[n] = Unknown ;
+            for (r = 0 ; r < gca->ninputs ; r++)
+              gcan->gcs[n].means[r] = 0 ;
+          }
+        }
+      }
+    }
+  }
+
+  for (x = 0 ; x < gca->prior_width ; x++)
+  {
+    for (y = 0 ; y < gca->prior_height ; y++)
+    {
+      for (z = 0 ; z < gca->prior_depth ; z++)
+      {
+        gcap = &gca->priors[x][y][z] ;
+        for (n = 0 ; n < gcap->nlabels ; n++)
+        {
+          if (gcap->labels[n] == label)
+            gcap->labels[n] = Unknown ;
+        }
+      }
+    }
+  }
+
+  return(NO_ERROR) ;
+}
