@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 22:20:37 $
- *    $Revision: 1.48 $
+ *    $Date: 2010/10/21 22:52:22 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -283,7 +283,6 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
 		wcheck = RStep.getwcheck();
 		wchecksqrt = RStep.getwchecksqrt();
     // ========================================================
-
     // store M and d
     if (verbose >1) cout << "   - store transform" << endl;
     //cout << endl << " current : Matrix: " << endl;
@@ -673,16 +672,25 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
   pair < vnl_matrix_fixed < double, 4, 4> , double > cmd;
   pair < vnl_matrix_fixed < double, 4, 4> , double > md(mi,scaleinit);
 
+  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
+	{
+     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+	}
   int resolution = gpS.size();
-  int rstart = 2;
-
+	assert(resolution >= 2); // otherwise we should have exited above
+  int rstart = 2;  // at least 16^3
+	// stop if we get larger than 64^3
+	int stopres;
+	for (stopres = resolution-rstart; stopres>0; stopres--)
+	{
+	   if (gpS[stopres]->width >= 64 && gpS[stopres]->height >= 64 && gpS[stopres]->depth >= 64) break;
+	}
+		
 //  bool iscaletmp = iscale;
 //  iscale = false; //disable intensity scaling on low resolutions
 
-
-  for (int r = resolution-rstart;r>=2;r--)
+  for (int r = resolution-rstart;r>=stopres;r--)
   {
-
     if (verbose >1 ) cout << endl << "Resolution: " << r << endl;
 
 //    if (r==2) iscale = iscaletmp; // set iscale if set by user
@@ -712,7 +720,7 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
       double tz = cmd.first[2][3];
       for (int ll = r; ll > 0; ll--)
       {
-        tx *= 2;
+        tx*=2;
         ty*=2;
         tz*=2;
       }
@@ -794,6 +802,27 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
   if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,100);
   if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,100);
   assert(gpS.size() == gpT.size());
+  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
+	{
+     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+	}
+  int resolution = gpS.size();
+	assert(resolution >= 2); // otherwise we should have exited above
+  int rstart = 2;  // at least 16^3
+	// stop if we get larger than 64^3
+	int stopres;
+	for (stopres = resolution-rstart; stopres>0; stopres--)
+	{
+	   if (gpS[stopres]->width >= 64 && gpS[stopres]->height >= 64 && gpS[stopres]->depth >= 64) break;
+	}
+	
+  if ( gpS[stopres]->width < 64 || gpS[stopres]->height < 64 || gpS[stopres]->depth < 64)
+	{
+	   cout << endl<< " ========================================================================" << endl;
+     cout << " WARNING: image might be too small for --satit to work." << endl;
+		 cout << "          Try to manually specify --sat # if not satisfied with result! " << endl;
+	   cout << " ========================================================================" << endl << endl;;
+	}
 
   vnl_matrix_fixed < double, 4, 4> m; m.set_identity();
 
@@ -813,8 +842,6 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
   }
 
   // adjust md.first to current (lowest) resolution:
-  int rstart = 2;
-  int resolution = gpS.size();
   for (int r = 1; r<=resolution-rstart; r++)
     for (int rr = 0;rr<3;rr++)
       md.first[rr][3]  = 0.5 *  md.first[rr][3];
@@ -969,6 +996,16 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
 
   bool iscaletmp = iscale;
 //  iscale = false; //disable intensity scaling on low resolutions
+
+  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
+	{
+     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+	}
+	
+	if ( resolution-rstart < stopres)
+	{
+     ErrorExit(ERROR_BADFILE, "Input images have insufficient resoltuion.\n") ;	
+	}
 
   for (int r = resolution-rstart;r>=stopres;r--)
   {
@@ -3100,16 +3137,19 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int n)
   int i;
   int min = 16; // stop when we are smaller than min
   p[0] = MRIconvolveGaussian(mri_in, NULL, mri_kernel);
+	//cout << " w[0]: " << p[0]->width << endl;
   for (i = 1;i<n;i++)
   {
+    if (p[i-1]->width < min || p[i-1]->height <min || p[i-1]->depth <min)
+      break;
+		//else subsample:
     mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
     p[i] = MRIdownsample2(mri_tmp,NULL);
     MRIfree(&mri_tmp);
     mri_tmp = p[i];
-    if (p[i]->width < min || p[i]->height <min || p[i]->depth <min)
-      break;
+	  //cout << " w[" << i<<"]: " << p[i]->width << endl;
   }
-  if (i<n) p.resize(i+1);
+  if (i<n) p.resize(i);
 
   MRIfree(&mri_kernel);
 
