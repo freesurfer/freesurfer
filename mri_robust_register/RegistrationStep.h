@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/10/04 16:30:47 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/10/21 22:51:30 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -250,23 +250,15 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
         for (y = 0 ; y < mriS->height ; y++)
         {
           val = MRILvox(mri_indexing,x,y,z);
-// 						double xx = x-0.5*mriS->width;
-// 						double yy = y-0.5*mriS->height;
-// 						double zz = z-0.5*mriS->depth;
-// 						double distance2 = xx*xx+yy*yy+zz*zz;
-// 						double gauss    = factor * exp(- distance2 / sigma22 );
-// 						MRIFvox(gmri,x,y,z) = gauss;
-         // if (val == -10) MRIFvox(pw.second, x, y, z) = -0.5; // init value (border)
-          //else if (val == -1) MRIFvox(pw.second, x, y, z) = -1; // zero element (skipped)
+					//std::cout << " val: " << val << endl;
           if (val == -10) MRIFvox(mri_weights, x, y, z) = -0.5; // init value (border)
           else if (val == -1) MRIFvox(mri_weights, x, y, z) = -1; // zero element (skipped)
           else
           {
-            //std::cout << val << "  xyz: " << x << " " << y << " " << z << " " << std::flush;
+            //std::cout << "val: " << val << "  xyz: " << x << " " << y << " " << z << " " << std::flush;
             assert(val < (int)w.size());
-            //MRIFvox(pw.second, x, y, z) = w[val] * w[val];  // pwm.second is the square root of weights
-            MRIFvox(mri_weights, x, y, z) = w[val] * w[val];  // pwm.second is the square root of weights
-            //std::cout << "d"<<*MATRIX_RELT(pwm.second,val , 1)<< " " << MRIFvox(pw.second, x, y, z)<< std::endl;
+						double wtemp = w[val] * w[val];
+            MRIFvox(mri_weights, x, y, z) = wtemp; 
 						// compute distance to center:
 						double xx = x-0.5*mriS->width;
 						double yy = y-0.5*mriS->height;
@@ -274,9 +266,10 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
 						double distance2 = xx*xx+yy*yy+zz*zz;
 						double gauss    = factor * exp(- distance2 / sigma22 );
 						dsum   += gauss;
-						wcheck += gauss * (1.0 - w[val] * w[val]); 
+						wcheck += gauss * (1.0 - wtemp); 
 						wchecksqrt += gauss * (1.0 - w[val]);  //!!!!! historical, better not use the square root (use wcheck)
-            count++;
+            //std::cout << " w^2 : "<< wtemp << "  gauss: " << gauss << "  wcheck+= " << gauss * (1.0 - wtemp) << endl;
+						count++;
           }
         }
     //cout << std::endl;
