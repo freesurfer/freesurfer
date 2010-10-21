@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/09/14 21:03:12 $
- *    $Revision: 1.171 $
+ *    $Author: lzollei $
+ *    $Date: 2010/10/21 17:50:29 $
+ *    $Revision: 1.172 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.171 2010/09/14 21:03:12 greve Exp $", 
+     "$Id: mri_convert.c,v 1.172 2010/10/21 17:50:29 lzollei Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.171 2010/09/14 21:03:12 greve Exp $", 
+      "$Id: mri_convert.c,v 1.172 2010/10/21 17:50:29 lzollei Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -1336,7 +1336,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.171 2010/09/14 21:03:12 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.172 2010/10/21 17:50:29 lzollei Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2161,11 +2161,13 @@ int main(int argc, char *argv[]) {
       MRIfree(&mri);
       mri = mri_transformed;
     } else if (transform_type == MORPH_3D_TYPE) {
+      	printf("Applying morph_3d ...\n");
       // this is a non-linear vox-to-vox transform
       //note that in this case trilinear
       // interpolation is always used, and -rt
       // option has no effect! -xh
       TRANSFORM *tran = TransformRead(transform_fname);
+      // check whether the volume to be morphed and the morph have the same dimensions
       if (invert_transform_flag == 0)
         mri_transformed =
           GCAMmorphToAtlas(mri, (GCA_MORPH *)tran->xform, NULL, 0,
@@ -2173,6 +2175,7 @@ int main(int argc, char *argv[]) {
       else // invert
       {
         mri_transformed = MRIclone(mri, NULL);
+	// check whether the volume to be morphed and the morph have the same dimensions
         mri_transformed =
           GCAMmorphFromAtlas(mri,
                              (GCA_MORPH *)tran->xform,

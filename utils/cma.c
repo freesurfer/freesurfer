@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/04/05 21:01:35 $
- *    $Revision: 1.7 $
+ *    $Author: lzollei $
+ *    $Date: 2010/10/21 17:49:34 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,13 +115,15 @@ CMAoutlineField *CMAoutlineFieldAlloc(int width, int height)
   }
   memset(of->claim_field, 0x00, height * sizeof(CMAoutlineClaim *));
 
-  of->fill_field = (unsigned char **)malloc(height * sizeof(unsigned char *));
+  //of->fill_field = (unsigned char **)malloc(height * sizeof(unsigned char *));
+  of->fill_field = (short **)malloc(height * sizeof(short *));
   if (of->fill_field == NULL)
   {
     CMAfreeOutlineField(&of);
     ErrorReturn(NULL, (ERROR_NOMEMORY, "CMAoutlineFieldAlloc(): error allocating fill field"));
   }
-  memset(of->fill_field, 0x00, height * sizeof(unsigned char *));
+  //memset(of->fill_field, 0x00, height * sizeof(unsigned char *));
+  memset(of->fill_field, 0x00, height * sizeof(short *));
 
   of->outline_points_field = (unsigned char **)malloc(height * sizeof(unsigned char *));
   if (of->outline_points_field == NULL)
@@ -142,13 +144,15 @@ CMAoutlineField *CMAoutlineFieldAlloc(int width, int height)
     }
     memset(of->claim_field[i], 0x00, width * sizeof(CMAoutlineClaim));
 
-    of->fill_field[i] = (unsigned char *)malloc(width * sizeof(unsigned char));
+    //of->fill_field[i] = (unsigned char *)malloc(width * sizeof(unsigned char));
+    of->fill_field[i] = (short *)malloc(width * sizeof(short));
     if (of->fill_field[i] == NULL)
     {
       CMAfreeOutlineField(&of);
       ErrorReturn(NULL, (ERROR_NOMEMORY, "CMAoutlineFieldAlloc(): error allocating fill field"));
     }
-    memset(of->fill_field[i], 0x00, width * sizeof(unsigned char));
+    //memset(of->fill_field[i], 0x00, width * sizeof(unsigned char));
+    memset(of->fill_field[i], 0x00, width * sizeof(short));
 
     of->outline_points_field[i] = (unsigned char *)malloc(width * sizeof(unsigned char));
     if (of->outline_points_field[i] == NULL)
@@ -170,7 +174,8 @@ int CMAclearFillField(CMAoutlineField *field)
   int i;
 
   for (i = 0;i < field->height;i++)
-    memset(field->fill_field[i], 0x00, field->width * sizeof(unsigned char));
+    //memset(field->fill_field[i], 0x00, field->width * sizeof(unsigned char));
+    memset(field->fill_field[i], 0x00, field->width * sizeof(short));
 
   return(NO_ERROR);
 

@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/10/21 11:24:52 $
- *    $Revision: 1.53 $
+ *    $Author: lzollei $
+ *    $Date: 2010/10/21 17:49:46 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -344,7 +344,8 @@ typedef struct
 {
   int width, height;
   CMAoutlineClaim **claim_field;
-  unsigned char **fill_field;
+  //unsigned char **fill_field;
+  short **fill_field;
   unsigned char **outline_points_field;
 }
 CMAoutlineField;
