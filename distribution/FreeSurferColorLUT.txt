@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.67 2010/02/06 04:27:06 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.68 2010/10/21 17:54:15 lzollei Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -165,6 +165,17 @@
 166 Posterior-fossa			    14  48  255 0 
 167 Scalp				    166 42  42  0
 168 Hematoma				    121 18  134 0
+
+# Label names and colors for Brainstem consituents
+# No.  Label Name:                                       R   G   B   A
+# 16  Brain-Stem                                         119 159 176 0
+170  brainstem                                          119 159 176 0
+171  DCG                                                119 0   176 0                               
+172  Vermis                                             119 100 176 0
+173  Midbrain                                           119 200 176 0
+174  Pons                                               119 159 100 0
+175  Medulla                                            119 159 200 0
+
 
 180 Left-Cortical-Dysplasia		    73  61  139 0	    
 181 Right-Cortical-Dysplasia		    73  62  139 0
@@ -983,7 +994,6 @@
 8012  Thalamus-pulvinar                                 12  46  250 0
 8013  Thalamus-lateral-geniculate                       203 182 143 0
 8014  Thalamus-medial-geniculate                        42  204 167 0
-
 
 # Below is the color table for the cortical labels of the seg volume
 # created by mri_aparc2aseg (with --a2009s flag) in which the aseg
