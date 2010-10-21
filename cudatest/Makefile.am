@@ -16,9 +16,11 @@ AM_LDFLAGS=
 # BUILDCUDA is defined if configure.in finds CUDA
 if BUILDCUDA
 
+if HAVE_FERMI_GPU
 NVCCFLAGS += -g -arch sm_20 --ptxas-options=-v
 
 CUDA_CFLAGS += -DGCAMORPH_ON_GPU
+endif
 
 # rules for building cuda files
 .cu.o:

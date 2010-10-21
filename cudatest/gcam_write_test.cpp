@@ -97,6 +97,7 @@ int main( int argc, char *argv[] ) {
 
   // Optionally cycle through GPU and linear CPU memory
 #ifdef FS_CUDA
+#ifdef GCAMORPH_ON_GPU
   
   // Coerce putOnGPU if required
   if( linearCPU ) {
@@ -132,6 +133,10 @@ int main( int argc, char *argv[] ) {
     // Retrieve from the GPU
     myGCAM.RecvAll( gcam );
   }
+#else
+  cerr << "GCAMORPH_ON_GPU is not defined" << endl;
+#endif
+  cerr << "FS_CUDA is not defined" << endl;
 #endif
 
   // =============================================
@@ -144,7 +149,9 @@ int main( int argc, char *argv[] ) {
 
 #ifdef FS_CUDA
   PrintGPUtimers();
+#ifdef GCAMORPH_ON_GPU
   GPU::Classes::GCAmorphGPU::ReleaseHost();
+#endif
 #endif
 
   return( EXIT_SUCCESS );
