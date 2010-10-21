@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/10/18 15:27:50 $
-#    $Revision: 1.56 $
+#    $Date: 2010/10/21 19:15:05 $
+#    $Revision: 1.57 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.56 2010/10/18 15:27:50 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.57 2010/10/21 19:15:05 greve Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -75,6 +75,8 @@ set MeasIn  = 0;
 set outdir = ();
 set SmoothCortexOnly = 0; # At some point, this should be the default
 set DoXHemi = 0;
+set subjlistfile = ();
+set fsgdf = ();
 
 set SessFile = ();
 set SessDirFile = ();
@@ -788,6 +790,18 @@ goto handle_fsfast_return;
 ############--------------##################
 check_params:
 
+if($#subjlistfile && $#ivplist) then
+  echo "ERROR: do not use both --f and --iv "
+  exit 1;
+endif
+if($#subjlistfile && $#fsgdf) then
+  echo "ERROR: do not use both --f and --fsgd "
+  exit 1;
+endif
+if($#ivplist && $#fsgdf) then
+  echo "ERROR: do not use both --iv and --fsgd "
+  exit 1;
+endif
 if($#subjlist == 0) then
   echo "ERROR: no subjects specified"
   exit 1;
@@ -842,7 +856,7 @@ if($MeasIn && $CacheIn) then
 endif
 if($#ivplist != 0) then
   if($#ivplist != $#subjlist) then
-    echo "ERROR: number of input volumes ($#ivplist) does not equal number of subjects"
+    echo "ERROR: number of input volumes ($#ivplist) does not equal number of subjects ($#subjlist)"
     exit 1;
   endif
 endif
