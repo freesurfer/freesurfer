@@ -8,7 +8,7 @@
 # Created: 07-16-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_reorient_LR.csh,v 1.4 2010/08/04 15:45:26 nicks Exp $';
+set VERSION = '$Id: mri_reorient_LR.csh,v 1.5 2010/10/21 17:07:48 lzollei Exp $';
 
 set inputvol      = ();
 set outputvol     = ();
@@ -49,15 +49,9 @@ endif
 # If input does not have nii(.gz) then do conversion -- FLIRT canot handle .mgz
 echo "***Input check..."
 set originputvol = $inputvol
-if ( (${inputvol:e} != "nii") || (! (${inputvol:e} == "gz" && ${inputvol:r:e} == "nii") ) ) then
-   if (! -e ${inputvol:r}.nii.gz) then 
-     set cmd = ( mri_convert $inputvol ${inputvol:r}.nii.gz )
-     $cmd
-   endif
-   if (-e ${inputvol:r}.nii) then 
-     set cmd = (rm -f ${inputvol:r}.nii)
-     $cmd
-   endif
+if ( (${inputvol:e} != "nii") && (! (${inputvol:e} == "gz" && ${inputvol:r:e} == "nii") ) ) then
+   set cmd = ( mri_convert $inputvol ${inputvol:r}.nii.gz )
+   $cmd
    set inputvol    = ${inputvol:r}.nii.gz
    set newinputnii = 1
 endif
@@ -89,7 +83,7 @@ echo $matrix[13] $matrix[14] $matrix[15] $matrix[16] >> $newtransformation
 
 ### APPLYING half-angle rotation
 echo "***Create output..."
-if (( ${outputvol:e} != "nii") || (! (${outputvol:e} == "gz" && ${outputvol:r:e} == "nii") )) then
+if (( ${outputvol:e} != "nii") && (! (${outputvol:e} == "gz" && ${outputvol:r:e} == "nii") )) then
   set origoutputvol = $outputvol
   set outputvol = ${outputvol:r}.nii.gz
   set newoutputnii = 1
@@ -104,7 +98,7 @@ endif
 
 ### DISPLAY
 if ($displayresult) then 
-  fv -v  $originputvol $outputvol
+  freeview -v  $originputvol $outputvol
 endif
 
 ### CLEANING UP
