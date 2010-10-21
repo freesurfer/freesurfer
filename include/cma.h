@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/04/05 21:01:35 $
- *    $Revision: 1.52 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/21 11:24:52 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -383,6 +383,76 @@ double SupraTentorialVolCorrection(MRI *aseg, MRI *ribbon);
 #define GM_CLASS         1
 #define WM_CLASS         2
 #define NTISSUE_CLASSES  3
+#define LH_CLASS         4
+#define RH_CLASS         5
+#define FLUID_CLASS      6
+#define OTHER_CLASS      7
+
+#define IS_GRAY_MATTER(l) (         \
+   ((l) == Left_Cerebral_Cortex) || \
+   ((l) == Left_Hippocampus) || \
+   ((l) == Left_Amygdala) || \
+   ((l) == Left_Putamen) || \
+   ((l) == Left_Caudate) || \
+   ((l) == Left_Cerebellum_Cortex) || \
+   ((l) == Left_Accumbens_area) || \
+   ((l) == Right_Cerebral_Cortex) || \
+   ((l) == Right_Hippocampus) || \
+   ((l) == Right_Amygdala) || \
+   ((l) == Right_Putamen) || \
+   ((l) == Right_Caudate) || \
+   ((l) == Right_Cerebellum_Cortex) || \
+   ((l) == Right_Accumbens_area))
+
+#define IS_WHITE_MATTER(l) (         \
+   ((l) == Left_Cerebellum_White_Matter) || \
+   ((l) == Left_Cerebral_White_Matter) || \
+   ((l) == Right_Cerebellum_White_Matter) || \
+   ((l) == Right_Cerebral_White_Matter))
+
+#define IS_FLUID(l) (         \
+   ((l) == Left_Lateral_Ventricle) || \
+   ((l) == Left_Inf_Lat_Vent) || \
+   ((l) == Right_Lateral_Ventricle) || \
+   ((l) == Right_Inf_Lat_Vent) || \
+   ((l) == Unknown))
+
+
+#define IS_LH_CLASS(l) (\
+   ((l) == Left_Cerebral_Cortex) || \
+   ((l) == Left_Cerebral_White_Matter) || \
+   ((l) == Left_Hippocampus) || \
+   ((l) == Left_Amygdala) || \
+   ((l) == Left_Putamen) || \
+   ((l) == Left_Pallidum) || \
+   ((l) == Left_Caudate) || \
+   ((l) == Left_Lateral_Ventricle) || \
+   ((l) == Left_Inf_Lat_Vent) || \
+   ((l) == Left_Cerebellum_Cortex) || \
+   ((l) == Left_Cerebellum_White_Matter) || \
+   ((l) == Left_Thalamus_Proper) || \
+   ((l) == Left_vessel) || \
+   ((l) == Left_choroid_plexus) || \
+   ((l) == Left_VentralDC) || \
+   ((l) == Left_Accumbens_area))
+
+#define IS_RH_CLASS(l) (\
+   ((l) == Right_Cerebral_Cortex) || \
+   ((l) == Right_Cerebral_White_Matter) || \
+   ((l) == Right_Hippocampus) || \
+   ((l) == Right_Amygdala) || \
+   ((l) == Right_Putamen) || \
+   ((l) == Right_Pallidum) || \
+   ((l) == Right_Caudate) || \
+   ((l) == Right_Lateral_Ventricle) || \
+   ((l) == Right_Inf_Lat_Vent) || \
+   ((l) == Right_Cerebellum_Cortex) || \
+   ((l) == Right_Cerebellum_White_Matter) || \
+   ((l) == Right_Thalamus_Proper) || \
+   ((l) == Right_vessel) || \
+   ((l) == Right_choroid_plexus) || \
+   ((l) == Right_VentralDC) || \
+   ((l) == Right_Accumbens_area))
 
 
 // only structures that are 'pure' of one tissue type
