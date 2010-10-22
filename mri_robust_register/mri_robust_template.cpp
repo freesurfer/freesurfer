@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/09/17 19:29:52 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/10/22 21:32:33 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -120,6 +120,7 @@ struct Parameters
 	bool   oneminusweights;
 	vector < string > iscalein;
 	vector < string > iscaleout;
+	int    finalinterp;
 };
 
 // Initializations:
@@ -153,7 +154,8 @@ static struct Parameters P =
 	false,
 	false,
   vector < string >(0),
-  vector < string >(0)
+  vector < string >(0),
+	SAMPLE_TRILINEAR
 };
 
 
@@ -161,7 +163,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.27 2010/09/17 19:29:52 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.28 2010/10/22 21:32:33 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -248,7 +250,7 @@ int main(int argc, char *argv[])
 		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
 	
 	  // create template:
-    MR.averageSet(0);
+    MR.averageSet(0,P.finalinterp);
 	   
 	}
   // run registrations
@@ -259,7 +261,7 @@ int main(int argc, char *argv[])
 		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
 
   	  // create template:
-      MR.averageSet(0);
+      MR.averageSet(0,P.finalinterp);
 	
 //	  // here default params are adjusted for just 2 images (if not passed):
 //	  if (P.iterate == -1) P.iterate = 5;
@@ -286,6 +288,9 @@ int main(int argc, char *argv[])
 		// P.iterate and P.epsit are used for terminating the template iterations
 		// while 5 and 0.01 are default for the individual registrations
     MR.computeTemplate(P.iterate,P.epsit,5,0.01);
+		// if final interp not trilinear (=default), then:
+    if (P.finalinterp == SAMPLE_NEAREST)
+		   MR.averageSet(0,P.finalinterp);
   }
 
   cout << "Writing final template: " << P.mean << endl;
@@ -642,6 +647,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
      P.floattype = true;
      nargs = 0 ;
      cout << "--floattype: Use float images internally (independent of input)!" << endl;
+ 	}
+  else if (!strcmp(option, "FINALNEAREST") )
+  {
+     P.finalinterp = SAMPLE_NEAREST;
+     nargs = 0 ;
+     cout << "--finalnearest: Use nearest neighbor interpolation for final average!" << endl;
  	}
   else if (!strcmp(option, "INITTP") )
   {

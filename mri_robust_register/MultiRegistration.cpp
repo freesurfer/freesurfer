@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/10/04 16:30:27 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/10/22 21:32:33 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -209,7 +209,7 @@ void MultiRegistration::initRegistration(Registration & R)
 //   R.setTarget(P.mri_mean,P.fixvoxel,P.keeptype);
 }
 
-bool MultiRegistration::averageSet(int itdebug)
+bool MultiRegistration::averageSet(int itdebug, int interp)
 // maps mov to template (using ltas)
 // adjust intensities (if iscale)
 // creates template acording to average:1 mean, 2 median..
@@ -229,7 +229,7 @@ bool MultiRegistration::averageSet(int itdebug)
       //mri_warps[i] = LTAtransform(mri_mov[i],mri_warps[i], ltas[i]);
 			// use geometry from ltas
 			// (if initXforms was called, this is the center of mass of all tps)
-      mri_warps[i] = LTAtransform(mri_mov[i],NULL, ltas[i]);
+      mri_warps[i] = LTAtransformInterp(mri_mov[i],NULL, ltas[i], interp);
 		  MRIcopyPulseParameters(mri_mov[i],mri_warps[i]);
 			if (iscale)
 			{

@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/09/17 19:29:52 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/10/22 21:32:33 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -139,7 +139,7 @@ public:
 	  doubleprec = b;
   }
 	
-	bool averageSet(int itdebug = 0);
+	bool averageSet(int itdebug = 0, int interp = SAMPLE_TRILINEAR);
 	MRI * averageConformSet(int itdebug = 0);
 	
   static MRI* averageSet(const std::vector < MRI * >& set,
