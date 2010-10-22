@@ -5,6 +5,9 @@
 # Where to keep a log
 export LOGFILE="${HOME}/nightly.err"
 
+# Where to pipe tm output
+export TMOUTPUT="${HOME}/tm-nightly.log"
+
 # Location of the nightly build directory
 export NIGHTLYDIR="${HOME}/avebury01nfs/nightly/"
 
@@ -67,8 +70,11 @@ testcleanup
 
 echo "NIGHTLY: Running tm" >> $LOGFILE
 echo
-tm .
+tm . > $TMOUTPUT
 echo
 
+grep --after-context=25 -e "Finished Tests" $TMOUTPUT
+
+echo
 echo "NIGHTLY: Tests complete @ `date`"
 echo "NIGHTLY: Tests complete" >> $LOGFILE
