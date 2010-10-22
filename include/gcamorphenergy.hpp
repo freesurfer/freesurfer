@@ -8,11 +8,11 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/10/13 18:45:48 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2010/10/22 20:56:11 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2008,
+ * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -24,6 +24,8 @@
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
  *
  */
+
+#ifdef GCAMORPH_ON_GPU
 
 #ifndef GCA_MORPH_ENERGY_HPP
 #define GCA_MORPH_ENERGY_HPP
@@ -164,5 +166,7 @@ namespace GPU {
   }
 }
 
+
+#endif
 
 #endif
