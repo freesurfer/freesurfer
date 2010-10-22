@@ -332,7 +332,8 @@ CUDA_DEPS = ../include/volumegpu.hpp\
             ../include/gcamorphgpu.hpp\
             ../include/mriconvolve_cuda.hpp\
             ../include/mrimean_cuda.hpp\
-            ../include/gcamorphenergy.hpp
+            ../include/gcamorphenergy.hpp\
+            ../include/gcamorphtermgpu.hpp
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \

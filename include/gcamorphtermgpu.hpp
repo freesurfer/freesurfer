@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 19:24:41 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/10/22 18:41:05 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -124,6 +124,95 @@ namespace GPU {
 				  MRI *mri_dist,
 				  const double l_label,
 				  const double label_dist ) const;
+
+
+      //! Label Term for the GPU
+      template<typename T>
+      int LabelTerm( GPU::Classes::GCAmorphGPU& gcam,
+		     const GPU::Classes::MRIframeGPU<T>& mri,
+		     double l_label, double label_dist ) const {
+
+	int num;
+	MRI *mri_dist, *mriCPU;
+	int nremoved;
+
+	if( DZERO(l_label) ) {
+	  return( NO_ERROR );
+	}
+
+	gcam.CheckIntegrity();
+
+	const dim3 gcamDims = gcam.d_rx.GetDims();
+
+	mri_dist = MRIalloc( gcamDims.x, gcamDims.y, gcamDims.z, MRI_FLOAT );
+	//MRIsetResolution( mri_dist, gcam.spacing, gcam.spacing, gcam.spacing );
+	std::cerr << __FUNCTION__ << ": Did not call MRIsetResolution" << std::endl;
+
+	// GCAMresetLabelNodeStatus
+	gcam.RemoveStatus( GCAM_LABEL_NODE );
+	gcam.RemoveStatus( GCAM_IGNORE_LIKELIHOOD );
+
+
+	// Set up the CPU copies
+	Freesurfer::GCAmorphCPU gcamCPU;
+	gcamCPU.AllocateFromTemplate( gcam );
+	gcamCPU.GetFromGPU( gcam );
+
+	const dim3 mriDims = mri.GetDims();
+	mriCPU = MRIalloc( mriDims.x, mriDims.y, mriDims.z, mri.MRItype() );
+	mri.Recv( mriCPU, 0 );
+	
+	// Do the main loop
+	this->LabelMainLoop( gcamCPU, mriCPU, mri_dist, l_label, label_dist );
+
+	// Remove the outliers
+	nremoved = RemoveLabelOutliers( gcamCPU, mri_dist, 2, 3 );
+
+	SetInconsistentLabelNodes( nremoved );
+
+	// Put data back on the GPU
+	gcamCPU.PutOnGPU( gcam );
+
+	// Put mri_dist on the GPU
+	GPU::Classes::MRIframeGPU<float> mriDistGPU;
+	mriDistGPU.Allocate( mri_dist );
+	mriDistGPU.Send( mri_dist, 0 );
+
+	// Copy the deltas
+	this->LabelCopyDeltas( gcam, mriDistGPU, l_label );
+
+	nremoved += this->LabelPostAntConsistency( gcam, mriDistGPU );
+
+	num = this->LabelFinalUpdate( gcam, mriDistGPU, l_label );
+
+	MRIfree( &mri_dist );
+	MRIfree( &mriCPU );
+
+	return( NO_ERROR );
+      }
+
+
+      //! Dispatch wrapper from CPU types
+      template<typename T>
+      int LabelTermDispatch( GCA_MORPH *gcam, const MRI *mri,
+			     double l_label, double label_dist ) const {
+
+	int retVal;
+
+	GPU::Classes::MRIframeGPU<T> mriGPU;
+
+	mriGPU.Allocate( mri );
+	mriGPU.Send( mri, 0 );
+
+	GPU::Classes::GCAmorphGPU gcamGPU;
+	gcamGPU.SendAll( gcam );
+
+	retVal = this->LabelTerm( gcamGPU, mriGPU, l_label, label_dist );
+
+	gcamGPU.RecvAll( gcam );
+
+	return( retVal );
+      }
 
 
       // ######################################################

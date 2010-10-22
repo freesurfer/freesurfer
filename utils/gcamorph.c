@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/10/21 17:51:48 $
- *    $Revision: 1.225 $
+ *    $Author: rge21 $
+ *    $Date: 2010/10/22 18:41:10 $
+ *    $Revision: 1.226 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -8499,6 +8499,17 @@ void gcamLabelTermMainLoop( GCA_MORPH *gcam, const MRI *mri,
 // ----------------------
 
 #define GCAM_LABEL_TERM_TIMERS 0
+
+void SetInconsistentLabelNodes( const int val ) {
+  /*!
+    This is a call back from the GPU version of Label Term.
+    I'm not sure if the inconsistentLabelNodes global is
+    ever actually used.
+  */
+  inconsistentLabelNodes = val;
+}
+
+
 
 int
 gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,

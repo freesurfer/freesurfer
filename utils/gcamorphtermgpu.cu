@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/13 18:45:52 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/10/22 18:41:11 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -2129,5 +2129,34 @@ void gcamLabelTermMainLoopGPU( GCA_MORPH *gcam, const MRI *mri,
 
   myGCAM.RecvAll( gcam );
 }
+
+
+//! Wrapper around GPU class for whole of LabelTerm
+int gcamLabelTermGPU( GCA_MORPH *gcam, const MRI *mri,
+		      double l_label, double label_dist ) {
+
+  int retVal;
+
+  switch( mri->type ) {
+  case MRI_UCHAR:
+    retVal = myTerms.LabelTermDispatch<unsigned char>( gcam, mri,
+						       l_label, label_dist );
+    break;
+
+  case MRI_FLOAT:
+    retVal = myTerms.LabelTermDispatch<float>( gcam, mri,
+					       l_label, label_dist );
+    break;
+    
+  default:
+    std::cerr << __FUNCTION__
+	      << ": Unrecognised destination MRI type " << mri->type
+	      << std::endl;
+    exit( EXIT_FAILURE );
+  }
+  
+  return( retVal );
+}
+
 
 #endif
