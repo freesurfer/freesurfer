@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/10/12 21:22:31 $
- *    $Revision: 1.148 $
+ *    $Date: 2010/10/22 19:43:03 $
+ *    $Revision: 1.149 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -977,7 +977,12 @@ void MainWindow::OnFileRecent( wxCommandEvent& event )
 {
   wxString fn( m_fileHistory->GetHistoryFile( event.GetId() - wxID_FILE1 ) );
   if ( !fn.IsEmpty() )
-    this->LoadVolumeFile( fn, _(""), m_bResampleToRAS, m_nDefaultSampleMethod, m_bDefaultConform );
+  {
+    bool bResample = m_bResampleToRAS;
+    if ( !GetLayerCollection( "Surface" )->IsEmpty() && GetLayerCollection( "MRI" )->IsEmpty() )
+      bResample = true;
+    this->LoadVolumeFile( fn, _(""), bResample, m_nDefaultSampleMethod, m_bDefaultConform );
+  }
 }
 
 LayerCollection* MainWindow::GetLayerCollection( std::string strType )

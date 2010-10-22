@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2009/12/04 21:57:12 $
- *    $Revision: 1.11 $
+ *    $Date: 2010/10/22 19:43:03 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -108,11 +108,12 @@ COLOR_TABLE* LUTDataHolder::GetColorTable( const char* name )
 COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
 {
   // first trying to see if we've already loaded the lut from the same file
-  COLOR_TABLE* ct = GetColorTable( filename );
-  std::string filename_full = filename;
+  wxFileName fn = wxFileName::FileName( wxString::FromAscii(filename) );
+  fn.Normalize();
+  COLOR_TABLE* ct = GetColorTable( fn.GetFullPath().ToAscii() );
+  std::string filename_full = fn.GetFullPath().ToAscii();
   if ( !ct )
   {
-    wxFileName fn = wxFileName::FileName( wxString::FromAscii(filename) );
     if ( !fn.FileExists() )
       fn = wxFileName::FileName( wxString( _("$FREESURFER_HOME/") ) + wxString::FromAscii(filename) );
     fn.Normalize();

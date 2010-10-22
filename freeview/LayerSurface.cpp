@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/29 17:17:14 $
- *    $Revision: 1.49 $
+ *    $Date: 2010/10/22 19:43:03 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -468,8 +468,9 @@ void LayerSurface::UpdateVectorPointSize()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_vectorActor->GetProperty()->SetPointSize( GetProperties()->GetVectorPointSize() );
+    m_vectorActor2D[i]->GetProperty()->SetPointSize( GetProperties()->GetVectorPointSize() );
   }
+  m_vectorActor->GetProperty()->SetPointSize( GetProperties()->GetVectorPointSize() );
 }
 
 void LayerSurface::UpdateColorMap()
@@ -483,6 +484,7 @@ void LayerSurface::UpdateColorMap()
     m_sliceActor3D[i]->GetProperty()->SetColor( GetProperties()->GetEdgeColor() );
     m_sliceActor2D[i]->GetMapper()->ScalarVisibilityOff();
     m_sliceActor3D[i]->GetMapper()->ScalarVisibilityOff();
+    m_vectorActor2D[i]->GetProperty()->SetColor( GetProperties()->GetVectorColor() );
   }
 
   m_mainActor->GetProperty()->SetColor( GetProperties()->GetBinaryColor() );
