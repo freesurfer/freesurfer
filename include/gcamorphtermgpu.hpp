@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/22 18:41:05 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/10/22 19:43:24 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -28,6 +28,9 @@
 
 #ifndef GCA_MORPH_TERM_GPU_HPP
 #define GCA_MORPH_TERM_GPU_HPP
+
+#include "macros.h"
+#include "error.h"
 
 #include "chronometer.hpp"
 
