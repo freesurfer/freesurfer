@@ -6,9 +6,9 @@
 /*
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:33 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/25 19:56:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2005,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,8 +31,16 @@ extern "C" {
 #include "error.h"
 #include "mri.h"
 #include "version.h"
+#include "macros.h"
   const char *Progname = "mri_copy_params";
 }
+static int  get_option(int argc, char *argv[]) ;
+static void usage_exit(void) ;
+static void print_version(void) ;
+static char vcid[] =
+  "$Id: mri_copy_params.cpp,v 1.4 2010/10/25 19:56:35 fischl Exp $";
+
+static int copy_pulse_params_only = 0 ;
 
 using namespace std;
 
@@ -44,15 +52,24 @@ void print_usage() {
 int main(int argc, char *argv[]) {
   bool bVolumeDifferent = false;
   bool bSizeDifferent = false;
-  int nargs;
+  int ac, nargs;
+  char **av ;
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_copy_params.cpp,v 1.3 2007/11/18 03:03:33 nicks Exp $", 
+     "$Id: mri_copy_params.cpp,v 1.4 2010/10/25 19:56:35 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
+
+  ac = argc ;
+  av = argv ;
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+    nargs = get_option(argc, argv) ;
+    argc -= nargs ;
+    argv += nargs ;
+  }
 
   if (argc < 3) {
     print_usage();
@@ -89,7 +106,10 @@ int main(int argc, char *argv[]) {
     bSizeDifferent= true;
   }
   // copy everything in the header from template
-  MRIcopyHeader(temp, dst);
+  if (copy_pulse_params_only)
+    MRIcopyPulseParameters(temp, dst) ;
+  else
+    MRIcopyHeader(temp, dst);
   // just few things restored
   if (bVolumeDifferent) {
     dst->width = in->width;
@@ -111,3 +131,43 @@ int main(int argc, char *argv[]) {
 
   return (NO_ERROR);
 }
+/*----------------------------------------------------------------------
+  Parameters:
+
+  Description:
+  ----------------------------------------------------------------------*/
+static int
+get_option(int argc, char *argv[]) {
+  int  nargs = 0 ;
+  char *option ;
+
+  option = argv[1] + 1 ;            /* past '-' */
+  if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+    usage_exit() ;
+  else if (!stricmp(option, "-version"))
+    print_version() ;
+  else if (!stricmp(option, "-pulse") || !stricmp(option, "-mri"))
+  {
+    printf("only copying pulse parameters\n") ;
+    copy_pulse_params_only = 1 ;
+  }
+  else switch (toupper(*option))
+  {
+    
+  }
+
+  return(nargs) ;
+}
+
+static void
+print_version(void) {
+  fprintf(stderr, "%s\n", vcid) ;
+  exit(1) ;
+}
+static void
+usage_exit(void) {
+  print_usage() ;
+  exit(1) ;
+}
+
+
