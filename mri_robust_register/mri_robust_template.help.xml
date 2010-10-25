@@ -57,7 +57,7 @@ Important Note: For best performance the input images should all have the same i
       <argument>--floattype</argument>
       <explanation>convert images to float internally (default: keep input type)</explanation> 
       <argument>--finalnearest</argument>
-      <explanation>use nearest neighbor in final interpolation when creating average. This is useful, e.g., when -noit and --ixiforms are specified and brainmasks are mapped.</explanation> 
+      <explanation>use nearest neighbor in final interpolation when creating average. This is useful, e.g., when -noit and --ixforms are specified and brainmasks are mapped.</explanation> 
       <argument>--doubleprec</argument>
       <explanation>double precision (instead of float) internally (large memory usage!!!)</explanation>
       <argument>--debug</argument>
