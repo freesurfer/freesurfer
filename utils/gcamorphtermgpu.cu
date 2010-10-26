@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/22 18:41:11 $
- *    $Revision: 1.27 $
+ *    $Date: 2010/10/26 16:26:49 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -2136,6 +2136,10 @@ int gcamLabelTermGPU( GCA_MORPH *gcam, const MRI *mri,
 		      double l_label, double label_dist ) {
 
   int retVal;
+
+  if( DZERO(l_label) ) {
+    return( NO_ERROR );
+  }
 
   switch( mri->type ) {
   case MRI_UCHAR:

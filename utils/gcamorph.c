@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/22 18:41:10 $
- *    $Revision: 1.226 $
+ *    $Date: 2010/10/26 16:26:49 $
+ *    $Revision: 1.227 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -51,6 +51,7 @@
 #define GCAM_LABEL_TERM_COPYDELTAS_GPU
 #define GCAM_LABEL_TERM_POSTANT_GPU
 #define GCAM_LABEL_TERM_FINAL_GPU
+#define GCAM_LABEL_TERM_GPU
 
 #else
 // Have to turn everything off
@@ -8511,9 +8512,20 @@ void SetInconsistentLabelNodes( const int val ) {
 
 
 
+#define GCAM_LABEL_TERM_OUTPUT 0
+
 int
 gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 	       double l_label, double label_dist ) {
+
+#ifdef GCAM_LABEL_TERM_MAINLOOP_GPU
+  
+  printf( "%s: On GPU\n", __FUNCTION__ );
+  gcamLabelTermGPU( gcam, mri, l_label, label_dist );
+
+
+#else
+
   int num;
   MRI *mri_dist ;
   int nremoved ;
@@ -8522,18 +8534,26 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
     return(NO_ERROR) ;
   }
 
+#if GCAM_LABEL_TERM_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( (nCalls%outputFreq) == 0 ) {
+    unsigned int nOut = nCalls/outputFreq;
+    
+    char fname[STRLEN];
 
+    snprintf( fname, STRLEN-1, "gcamLabelTermInput%04u", nOut );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
 
-#if GCAM_LABEL_TERM_TIMERS
-  Chronometer tTot, tOutliers, tMainLoop;
+    snprintf( fname, STRLEN-1, "mriLabelTermInput%04u.mgz", nOut );
+    MRIwrite( (MRI*)mri, fname );
 
-  InitChronometer( &tTot );
-  InitChronometer( &tOutliers );
-  InitChronometer( &tMainLoop );
-
-  StartChronometer( &tTot );
+    snprintf( fname, STRLEN-1, "gcaLabelTerm%04u.gca", nOut );
+    GCAwrite( gcam->gca, fname );
+  }
+  nCalls++;
 #endif
-
 
   mri_dist = MRIalloc(gcam->width, gcam->height, gcam->depth, MRI_FLOAT) ;
   MRIsetResolution(mri_dist, gcam->spacing, gcam->spacing, gcam->spacing) ;
@@ -8541,27 +8561,15 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 
   GCAMresetLabelNodeStatus( gcam ) ;
 
-#if GCAM_LABEL_TERM_TIMERS
-  StartChronometer( &tMainLoop );
-#endif
   gcamLabelTermMainLoop( gcam, mri, mri_dist, l_label, label_dist );
-#if GCAM_LABEL_TERM_TIMERS
-  StopChronometer( &tMainLoop );
-#endif
 
 
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist, "dist_before.mgz") ;
 
-#if GCAM_LABEL_TERM_TIMERS
-  StartChronometer( &tOutliers );
-#endif
   /* do neighborhood consistency check */
   nremoved = remove_label_outliers(gcam, mri_dist, 2, 3) ;
-#if GCAM_LABEL_TERM_TIMERS
-  StopChronometer( &tOutliers );
-#endif
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("%d inconsistent label nodes removed...\n", nremoved) ;
@@ -8590,17 +8598,7 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
     printf("\t%d nodes for which label term applies\n", num) ;
   }
 
-#if GCAM_LABEL_TERM_TIMERS
-
-  StopChronometer( &tTot );
-
-  printf( "     Main loop : %6.3f ms\n", GetChronometerValue( &tMainLoop ) );
-  printf( "      Outliers : %6.3f ms\n", GetChronometerValue( &tOutliers ) );
-  printf( "%s: Total Time    : %6.3f ms\n",
-	  __FUNCTION__,
-	  GetChronometerValue( &tTot ) );
 #endif
-
 
   return(NO_ERROR) ;
 }
