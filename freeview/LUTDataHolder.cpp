@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/10/22 19:43:03 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/10/26 16:45:06 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -29,17 +29,19 @@
 #include <iostream>
 #include "LUTDataHolder.h"
 #include <iostream>
+#include <wx/xrc/xmlres.h>
+#include <wx/file.h>
+#include "res/FreeSurferColorLUT.h"
 
 LUTDataHolder::LUTDataHolder()
 {
-  ColorTableData ctd;
+  ColorTableData ctd;  
   wxFileName fn = wxFileName::FileName
     ( _("$FREESURFER_HOME/FreeSurferColorLUT.txt") );
   fn.Normalize();
   ctd.filename = fn.GetFullPath().char_str();
   ctd.table = CTABreadASCII( ctd.filename.c_str() );
   ctd.name = "FreeSurferColorLUT";
-  ctd.filename = fn.GetFullPath().char_str();
   if ( ctd.table )
     m_tables.push_back( ctd );
 
@@ -49,7 +51,6 @@ LUTDataHolder::LUTDataHolder()
   ctd.filename = fn.GetFullPath().char_str();
   ctd.table = CTABreadASCII( ctd.filename.c_str() );
   ctd.name = "tkmeditParcColorsCMA";
-  ctd.filename = fn.GetFullPath().char_str();
   if ( ctd.table )
     m_tables.push_back( ctd );
 
@@ -59,9 +60,31 @@ LUTDataHolder::LUTDataHolder()
   ctd.filename = fn.GetFullPath().char_str();
   ctd.table = CTABreadASCII( ctd.filename.c_str() );
   ctd.name = "Simple_surface_labels2009";
-  ctd.filename = fn.GetFullPath().char_str();
   if ( ctd.table )
-    m_tables.push_back( ctd );
+  m_tables.push_back( ctd );
+  
+  // did not find any stock tables, load build-in one
+  if ( m_tables.size() == 0)
+  {
+
+    wxString tempfn = wxFileName::GetTempDir() + "/FreeSurferColorLUT.txt";
+    wxFile file;
+    if ( file.Open( tempfn, wxFile::write) )
+    {
+      file.Write( FreeSurferColorLUT_binary, FreeSurferColorLUT_binary_LEN );
+      file.Flush();
+      file.Close();
+      ctd.filename = "FreeSurferColorLUT.txt";
+      ctd.table = CTABreadASCII( tempfn.c_str() );
+      ctd.name = "FreeSurferColorLUT";
+      if ( ctd.table )
+        m_tables.push_back( ctd );
+    }
+    else
+    {
+      std::cerr << "Can not load any stock look up tables." << std::endl;
+    }
+  }
 }
 
 LUTDataHolder::~LUTDataHolder()
