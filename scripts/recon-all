@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/10/10 03:58:37 $
-#    $Revision: 1.322 $
+#    $Date: 2010/10/27 21:43:20 $
+#    $Revision: 1.323 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.322 2010/10/10 03:58:37 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.323 2010/10/27 21:43:20 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1028,6 +1028,19 @@ if($DoMotionCor) then
       end
     endif
   endif
+
+  # sanity-check: check if the input contains multiple frames, which would
+  # be the case if a multi-echo frame mprage was accidently used as input.
+  # without this check, andre is unhappy
+  foreach RunVol ($RunList)
+    echo "Checking for (invalid) multi-frame inputs..." |& tee -a $LF
+    set nframes = `mri_info --nframes $RunVol |& tail --lines 1`
+    if ($nframes != 1) then
+      echo "ERROR: input(s) cannot have multiple frames!" |& tee -a $LF
+      echo "$RunVol has $nframes frames" |& tee -a $LF
+      goto error_exit;
+    endif
+  end
 
   set origvol = $subjdir/mri/orig.mgz
   set rawavg  = $subjdir/mri/rawavg.mgz
