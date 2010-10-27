@@ -9,9 +9,9 @@
 /*
  * Original Author: Xaio Han
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2007/01/08 18:10:12 $
- *    $Revision: 1.6 $
+ *    $Author: mreuter $
+ *    $Date: 2010/10/27 21:05:48 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,9 +84,9 @@ int main(int argc, char *argv[]) {
   LTA          *lta = 0;
   int          transform_type;
   double mean, std, value, src, bias, norm;
-  HISTOGRAM *h;
-  float bin_size;
-  int nbins, bin_no;
+//  HISTOGRAM *h;
+//  float bin_size;
+//  int nbins, bin_no;
   double mean1, std1, mean2, std2, count1, count2, slope, offset;
   VOL_GEOM vgtmp;
   LT *lt = NULL;
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize_tp2.c,v 1.6 2007/01/08 18:10:12 nicks Exp $",
+           "$Id: mri_normalize_tp2.c,v 1.7 2010/10/27 21:05:48 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -181,8 +181,8 @@ int main(int argc, char *argv[]) {
   height = mri_in->height ;
   depth = mri_in->depth ;
 
-  nbins = 200;
-  h = HISTOalloc(nbins);
+  //nbins = 200;
+  //h = HISTOalloc(nbins);
 
   mri_out = MRIclone(mri_in, NULL) ;
 
@@ -510,10 +510,10 @@ int main(int argc, char *argv[]) {
   printf("now compute SNR and stats for input volume ... \n");
   mri_snr = MRIalloc(mri_in->width, mri_in->height, mri_in->depth, MRI_FLOAT) ;
   MRIcopyHeader(mri_in, mri_snr) ;
-  HISTOclear(h,h);
-  h->bin_size = bin_size = 0.5;
-  for (bin_no = 0; bin_no < nbins; bin_no++)
-    h->bins[bin_no] = (bin_no)*bin_size;
+  //HISTOclear(h,h);
+  //h->bin_size = bin_size = 0.5;
+  //for (bin_no = 0; bin_no < nbins; bin_no++)
+  //  h->bins[bin_no] = (bin_no)*bin_size;
 
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
@@ -553,9 +553,9 @@ int main(int argc, char *argv[]) {
         value = mean/sqrt(std);
 
         MRIFvox(mri_snr,x,y,z) = value;
-        bin_no = nint((float)value/(float)bin_size);
-        if (bin_no >= nbins) bin_no = nbins - 1;
-        h->counts[bin_no]++;
+        //bin_no = nint((float)value/(float)bin_size);
+        //if (bin_no >= nbins) bin_no = nbins - 1;
+        //h->counts[bin_no]++;
       }
 
 #if 0
@@ -693,7 +693,7 @@ int main(int argc, char *argv[]) {
   MRIfree(&mri_T1);
   MRIfree(&mri_ctrl);
   MRIfree(&mri_snr);
-  HISTOfree(&h);
+  //HISTOfree(&h);
 
   exit(0);
 
