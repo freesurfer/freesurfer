@@ -76,6 +76,8 @@ AffineTransform3d::invert()
   if ( !m_pdata )
     throw " AffineTransform3d invert - NULL data";
 
+  //std::cout << "AffineTransform3d: invert" << std::endl;
+
   float* t = m_pdata;
 
   float fdet = t[0] * ( t[4]*t[8] - t[5]*t[7] )
@@ -437,7 +439,6 @@ DeltaTransform3d::doOwnImg(const tCoords& pt) const
   }
 
   retVal += pt;
-
   return retVal;
 }
 
@@ -526,7 +527,18 @@ DeltaTransform3d::doOutput(std::ostream& os) const
 
 void
 DeltaTransform3d::invert()
-{}
+{ 
+  double val;
+  //  std::cout << "DeltaTransform3d: invert" << std::endl;
+  int i, j, k;
+  for (i = 0; i < m_field->width; i++)
+    for (j = 0; j < m_field->height; j++)
+      for (k = 0; k < m_field->depth; k++)
+	{
+	  MRIsampleVolume(m_field, i, j, k, &val);
+	  MRIsetVoxVal(m_field, i, j, k, 0, -val); 
+	}
+}
 
 
 //--------------------------------------------------
@@ -576,6 +588,8 @@ FemTransform3d::invert()
 {
   if ( m_pInitial )
     throw " FemTransform3d invert - non null initial";
+
+  //std::cout << "FemTransform3d: invert" << std::endl;
 
   // ugly, but how else?
   boost::shared_ptr<CMesh3d>
@@ -744,8 +758,8 @@ VolumeMorph::apply_transforms(MRI* input,
     MatrixFree(&ras2vox_crt);
   }
 
-  MatrixPrint( stdout, mat_template );
-  MatrixPrint( stdout, mat_subject );
+  //MatrixPrint( stdout, mat_template );
+  //MatrixPrint( stdout, mat_subject );
 
   if ( cacheField )
   {
@@ -1496,7 +1510,7 @@ VolumeMorph::exportGcam(MRI* mriMoving,
     MRIfree(&mriTmp);
   }
   else
-    std::cout << "exortGcam: mriCache exists\n";
+    std::cout << "exportGcam: mriCache exists\n";
 
   //allocate the Gcam
   MRI_REGION box;
@@ -1624,6 +1638,10 @@ VolumeMorph::invert()
 {
   TransformContainerType tmpContainer;
 
+  //std::cout << "VolumeMorph: invert" << std::endl;
+
+  //int counter = 0;
+
   for ( TransformContainerType::iterator it = m_transforms.begin();
         it != m_transforms.end(); ++it )
   {
@@ -1632,8 +1650,12 @@ VolumeMorph::invert()
 
     (*it)->invert();
     tmpContainer.push_front( *it );
+
+    //counter ++;
   } // next it
   m_transforms = tmpContainer;
+
+  //std::cout << "in morph:invert ==> counter = " <<  counter-1 << std::endl;
 }
 
 void

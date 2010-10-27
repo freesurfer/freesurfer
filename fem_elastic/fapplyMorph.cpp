@@ -176,6 +176,19 @@ main(int argc,
   }
   std::cout<<"After loading template\n";
 
+  // load template
+  std::cout<<"Template name:";  // TODO: why does not it read nii volumes????
+  std::cout<< const_cast<char*>( params.strTemplate.c_str()) << "\n";
+  mriTemplate = MRIread( const_cast<char*>( params.strTemplate.c_str()) );
+  if ( !mriTemplate )
+    {
+      std::cerr << " Failed reading template volume "
+		<< params.strTemplate << std::endl;
+      exit(1);
+    }
+  std::cout<<"After loading template\n";
+  
+
   // load transform
   boost::shared_ptr<gmp::VolumeMorph> pmorph(new gmp::VolumeMorph);
   pmorph->m_template = mriTemplate;
@@ -493,9 +506,9 @@ VolumeFilter::Execute()
 void
 SurfaceFilter::Execute()
 {
-  std::cout << " before serialize\n";
+  //std::cout << " before serialize\n";
   pmorph->serialize();
-  std::cout << " before inverting\n";
+  //std::cout << " before inverting\n";
   //pmorph->invert();
 
   // load the surface
@@ -694,22 +707,37 @@ PointListProbeFilter::Execute()
   if ( !ifs ) throw " Failed to open input file while applying PointListProbeFilter ";
 
   std::vector<Coords3d> outputImages;
-  Coords3d pt, img;
+  Coords3d pt, img; 
+
+  //int counter = 0;
+
+  if (tractPointList) 
+    this->pmorph->invert();
   
-  if (tractPointList) this->pmorph->invert();
+  //unsigned int voxInvalid(0);
   while ( ifs )
     {
       ifs >> pt(0) >> pt(1) >> pt(2);
-      //std::cout << " Pt:" <<  pt(0) << ", "<< pt(1) << ", "<< pt(2) << "\n";
+      
       img = this->pmorph->image(pt);
-      //std::cout << " Img:" <<  img(0) << ", "<< img(1) << ", "<< img(2) << "\n";
+      /*  if ( !img.isValid() )
+	  {
+	  if (img.status()==cInvalid)
+	  ++voxInvalid;
+	  continue;
+	  }*/
+      
       outputImages.push_back( img );
+      //counter ++;
     }
+
   ifs.close();
+  //std::cout << "In counter :" <<  counter << "\n";
 
   std::ofstream ofs( this->strOutput.c_str() );
   if ( !ofs ) throw " Failed to open output stream while applying PointListProbeFilter";
 
+  //counter = 0;
   for ( std::vector<Coords3d>::const_iterator cit = outputImages.begin();
         cit != outputImages.end(); ++cit )
     {
@@ -717,6 +745,8 @@ PointListProbeFilter::Execute()
         ofs << (*cit)(0) << " " << (*cit)(1) << " " << (*cit)(2) << std::endl;
       else
 	ofs << 10000 << " "<< 10000 << " " << 10000 << std::endl; // hack not to lose order
+      //  counter ++;
     } // next cit
   ofs.close();
-}
+  //  std::cout << "Out counter :" <<  counter << "\n";
+  }
