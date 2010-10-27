@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/26 16:26:49 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/10/27 14:05:19 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1125,7 +1125,11 @@ namespace GPU {
 				    GPU::Classes::VolumeArgGPU<int> status,
 				    GPU::Classes::MRIframeOnGPU<float> mriDist,
 				    int *nRemoved ) {
-
+      /*!
+	This kernel is awful. If you look, you'll see that each voxel
+	depends on those on either side in both the x and z directions.
+	It gives different results to the CPU version
+      */
       const unsigned int bx = ( blockIdx.x * blockDim.x );
       const unsigned int by = ( blockIdx.y * blockDim.y );
       const unsigned int ix = threadIdx.x + bx;

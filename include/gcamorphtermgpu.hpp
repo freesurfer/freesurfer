@@ -8,9 +8,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/10/22 20:57:06 $
- *    $Revision: 1.18 $
+ *    $Author: rge21 $
+ *    $Date: 2010/10/27 14:05:12 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -157,6 +157,7 @@ namespace GPU {
 	gcam.RemoveStatus( GCAM_IGNORE_LIKELIHOOD );
 
 
+
 	// Set up the CPU copies
 	Freesurfer::GCAmorphCPU gcamCPU;
 	gcamCPU.AllocateFromTemplate( gcam );
@@ -169,8 +170,13 @@ namespace GPU {
 	// Do the main loop
 	this->LabelMainLoop( gcamCPU, mriCPU, mri_dist, l_label, label_dist );
 
+
+
 	// Remove the outliers
 	nremoved = RemoveLabelOutliers( gcamCPU, mri_dist, 2, 3 );
+
+
+
 
 	SetInconsistentLabelNodes( nremoved );
 
@@ -185,7 +191,13 @@ namespace GPU {
 	// Copy the deltas
 	this->LabelCopyDeltas( gcam, mriDistGPU, l_label );
 
+	/*
+	  This call causes differences between the CPU and GPU.
+	  See notes in corresponding kernel.
+	*/
 	nremoved += this->LabelPostAntConsistency( gcam, mriDistGPU );
+
+	
 
 	num = this->LabelFinalUpdate( gcam, mriDistGPU, l_label );
 

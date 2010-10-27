@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/26 16:26:49 $
- *    $Revision: 1.227 $
+ *    $Date: 2010/10/27 14:05:18 $
+ *    $Revision: 1.228 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -8026,7 +8026,11 @@ void gcamLabelTermCopyDeltas( GCA_MORPH *gcam,
 
 int gcamLabelTermPostAntConsistency( GCA_MORPH *gcam,
 				     MRI* mri_dist ) {
-  
+  /*!
+    The main loop within this routine is very nasty.
+    Each voxel depends on those on either side in x,
+    and in z.
+  */
   int nremoved;
 #ifdef GCAM_LABEL_TERM_POSTANT_GPU
 
@@ -8565,11 +8569,16 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 
 
 
+
+
+
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dist, "dist_before.mgz") ;
 
   /* do neighborhood consistency check */
   nremoved = remove_label_outliers(gcam, mri_dist, 2, 3) ;
+
+
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     printf("%d inconsistent label nodes removed...\n", nremoved) ;
@@ -8583,6 +8592,10 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
   gcamLabelTermCopyDeltas( gcam, mri_dist, l_label );
 
 
+  /*
+    The following gives different results on the CPU and GPU.
+    It is built around a very nasty, order dependent loop.
+  */
   nremoved += gcamLabelTermPostAntConsistency( gcam, mri_dist );
 
 
