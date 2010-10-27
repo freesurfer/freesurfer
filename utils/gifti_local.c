@@ -10,8 +10,8 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/19 17:23:39 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/10/27 18:15:51 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2007-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -884,7 +884,7 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
 
         if (mris->vertices[vno].ripflag) continue;
         int table_key = *(label_data + da_index);
-        int table_index;
+        int table_index = 0;
         for (table_index = 0; table_index < ct->nentries; table_index++)
         {
           if (table_key == image->labeltable.key[table_index])
@@ -893,20 +893,15 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
             break;
           }
         }
-        if (table_index == ct->nentries)
+        int annotation = 0; // default to no label found
+        if ((table_index < ct->nentries) && (table_index >= 0)) 
         {
-          fprintf
-            (stderr,
-             "mrisReadGIFTIfile: failed to find labeltable key "
-             "for vertex %d in file %s\n", vno, fname);
-          gifti_free_image (image);
-          return NULL;
+          //printf("vno: %d, tidx: %d, name: %s\n",
+          //     vno,table_index,ct->entries[table_index]->name);
+          annotation = CTABrgb2Annotation(ct->entries[table_index]->ri,
+                                          ct->entries[table_index]->gi,
+                                          ct->entries[table_index]->bi);
         }
-        //printf("vno: %d, tidx: %d, name: %s\n",
-        //     vno,table_index,ct->entries[table_index]->name);
-        int annotation = CTABrgb2Annotation(ct->entries[table_index]->ri,
-                                            ct->entries[table_index]->gi,
-                                            ct->entries[table_index]->bi);
         mris->vertices[vno].annotation = annotation;
 
         // cross-check:
