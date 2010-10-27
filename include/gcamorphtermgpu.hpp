@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/27 14:05:12 $
- *    $Revision: 1.19 $
+ *    $Date: 2010/10/27 18:51:00 $
+ *    $Revision: 1.20 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -144,6 +144,8 @@ namespace GPU {
 	  return( NO_ERROR );
 	}
 
+	GCAmorphTerm::tLabelTot.Start();
+
 	gcam.CheckIntegrity();
 
 	const dim3 gcamDims = gcam.d_rx.GetDims();
@@ -204,6 +206,8 @@ namespace GPU {
 	MRIfree( &mri_dist );
 	MRIfree( &mriCPU );
 
+	GCAmorphTerm::tLabelTot.Stop();
+
 	return( NO_ERROR );
       }
 
@@ -226,6 +230,7 @@ namespace GPU {
 	retVal = this->LabelTerm( gcamGPU, mriGPU, l_label, label_dist );
 
 	gcamGPU.RecvAll( gcam );
+
 
 	return( retVal );
       }
@@ -266,6 +271,8 @@ namespace GPU {
       static SciGPU::Utilities::Chronometer tLabelPostAntConsistency;
       //! Timer for final update of Label term
       static SciGPU::Utilities::Chronometer tLabelFinal;
+      //! Timer for complete Label term
+      static SciGPU::Utilities::Chronometer tLabelTot;
 
       // ---------------------
 

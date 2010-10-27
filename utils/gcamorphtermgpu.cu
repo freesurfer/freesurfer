@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/27 14:05:19 $
- *    $Revision: 1.29 $
+ *    $Date: 2010/10/27 18:51:03 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1956,6 +1956,8 @@ namespace GPU {
 		 << std::endl;
        std::cout << "     Final Update:" << GCAmorphTerm::tLabelFinal
 		 << std::endl;
+       std::cout << "Total            :" << GCAmorphTerm::tLabelTot
+		 << std::endl;
 
      std::cout << "==================================" << std::endl;
 #endif
@@ -1983,6 +1985,8 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelCopyDeltas;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelPostAntConsistency;
     SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelFinal;
+    
+    SciGPU::Utilities::Chronometer GCAmorphTerm::tLabelTot;
   }
 }
 

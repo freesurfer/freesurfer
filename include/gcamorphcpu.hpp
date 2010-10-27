@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 16:52:57 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/10/27 18:51:00 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -115,7 +115,9 @@ namespace Freesurfer {
 
   private:
     static SciGPU::Utilities::Chronometer tGetTot;
-    static SciGPU::Utilities::Chronometer tGetPCIe, tGetCPU;
+    static SciGPU::Utilities::Chronometer tPutTot;
+    
+    static SciGPU::Utilities::Chronometer tAllocate;
 
   };
 

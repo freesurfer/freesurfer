@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 16:53:01 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/10/27 18:51:03 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -91,6 +91,8 @@ namespace Freesurfer {
   void GCAmorphCPU::AllocateAll( const unsigned int nx,
 				 const unsigned int ny,
 				 const unsigned int nz ) {
+    GCAmorphCPU::tAllocate.Start();
+
     this->rx.Allocate( nx, ny, nz );
     this->ry.Allocate( nx, ny, nz );
     this->rz.Allocate( nx, ny, nz );
@@ -122,6 +124,8 @@ namespace Freesurfer {
 
     this->mean.Allocate( nx, ny, nz );
     this->variance.Allocate( nx, ny, nz );
+
+    GCAmorphCPU::tAllocate.Stop();
   }
 
 
@@ -202,6 +206,8 @@ namespace Freesurfer {
       Requires preallocated data
     */
     
+    GCAmorphCPU::tPutTot.Start();
+
     dst.CheckIntegrity();
     this->CheckIntegrity();
 
@@ -257,6 +263,8 @@ namespace Freesurfer {
 	      << std::endl;
 
     CUDA_SAFE_CALL( cudaThreadSynchronize() );
+
+    GCAmorphCPU::tPutTot.Stop();
   }
 
 
@@ -277,12 +285,21 @@ namespace Freesurfer {
       std::cout << "Total       : " << GCAmorphCPU::tGetTot << std::endl;
       std::cout << std::endl;
 
+      std::cout << "Put on GPU  :" << std::endl;
+      std::cout << "Total       : " << GCAmorphCPU::tPutTot << std::endl;
+      std::cout << std::endl;
+
+      std::cout << "Allocate    : " << GCAmorphCPU::tAllocate << std::endl;
+      std::cout << std::endl;
+
       std::cout << "==================================" << std::endl;
 #endif
   }
 
   // Define static members
   SciGPU::Utilities::Chronometer GCAmorphCPU::tGetTot;
+  SciGPU::Utilities::Chronometer GCAmorphCPU::tPutTot;
+  SciGPU::Utilities::Chronometer GCAmorphCPU::tAllocate;
 }
 
 
