@@ -359,7 +359,8 @@ libutils_cuda_a_SOURCES=\
         gcamorphenergygpu.cu\
         gcamfots_cuda.cu\
         gcamorphtermgpu.cu\
-        gcamorphcpu.cpp
+        gcamorphcpu.cpp\
+        gcamcomputegradient_cuda.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) $(CUDA_GCA_CFLAGS)
 

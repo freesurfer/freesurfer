@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/22 18:41:05 $
- *    $Revision: 1.91 $
+ *    $Date: 2010/10/28 18:35:47 $
+ *    $Revision: 1.92 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -581,6 +581,9 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
   int gcamComputeGradient( GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 			   GCA_MORPH_PARMS *parms );
 
+
+  int gcamSmoothGradient( GCA_MORPH *gcam, int navgs );
+
 #ifdef FS_CUDA
   //! Wrapper around the GPU version of gcamComputeMetricProperties
   void gcamComputeMetricPropertiesGPU( GCA_MORPH* gcam,
@@ -645,6 +648,9 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   //! Accessor for (probably unused) global
   void SetInconsistentLabelNodes( const int val );
+
+  //! Accessor for global
+  void SetGinvalid( const int val );
 #endif
 
 #if defined(__cplusplus)

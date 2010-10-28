@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/27 14:05:18 $
- *    $Revision: 1.228 $
+ *    $Date: 2010/10/28 18:35:51 $
+ *    $Revision: 1.229 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -289,7 +289,6 @@ static int gcamAreaTerm(GCA_MORPH *gcam, double l_jacobian) ;
 static double gcamAreaEnergy(GCA_MORPH *gcam) ;
 
 
-static int gcamSmoothGradient(GCA_MORPH *gcam, int navgs) ;
 
 static int check_gcam( const GCAM *gcam ) ;
 static MATRIX *gcamComputeOptimalLinearTransformInRegion
@@ -3211,6 +3210,11 @@ gcamAreaTermAtNode(GCA_MORPH *gcam, double l_area,
 
   Description
   ------------------------------------------------------*/
+
+void SetGinvalid( const int val ) {
+  Ginvalid = val;
+}
+
 #define GCAM_CMP_OUTPUT 0
 #if 1
 int
@@ -5496,9 +5500,13 @@ gcamComputeGradient
     MRIfree(&mri_grad) ;
 
   }
+
   //
   gcamJacobianTerm(gcam, mri, parms->l_jacobian,parms->ratio_thresh)  ;
+  // The following appears to be a null operation, based on current #ifdefs
   gcamLimitGradientMagnitude(gcam, parms, mri) ;
+
+
   if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && (i<10)))
   {
     char fname[STRLEN] ;
@@ -5517,7 +5525,9 @@ gcamComputeGradient
     if (i == 0)
       MRIwrite(mri_smooth, "s.mgz") ;
   }
+
   gcamSmoothGradient(gcam, parms->navgs) ;
+
   if (parms->write_iterations > 0 && 
       (Gdiag & DIAG_WRITE) && 
       getenv("GCAM_YGRAD_AFTER") != NULL)
@@ -5583,6 +5593,10 @@ gcamMaxGradient(GCA_MORPH *gcam)
 static int
 gcamLimitGradientMagnitude(GCA_MORPH *gcam, GCA_MORPH_PARMS *parms, MRI *mri)
 {
+  /*!
+    This appears to be a null operation, according to the #ifdefs
+    both here and in gcamJacobianTerm
+  */
   int            x, y, z, xmax, ymax, zmax ;
   double         norm, max_norm, dx, dy, dz /*, scale*/ ;
   GCA_MORPH_NODE *gcamn ;
@@ -7162,7 +7176,7 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
   return(mri) ;
 }
 
-static int
+int
 gcamSmoothGradient(GCA_MORPH *gcam, int navgs)
 {
 #if 1
