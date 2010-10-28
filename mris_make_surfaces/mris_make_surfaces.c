@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:44:33 $
- *    $Revision: 1.116 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/28 12:18:36 $
+ *    $Revision: 1.117 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.116 2010/08/12 17:44:33 gregt Exp $";
+  "$Id: mris_make_surfaces.c,v 1.117 2010/10/28 12:18:36 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -241,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.116 2010/08/12 17:44:33 gregt Exp $",
+   "$Id: mris_make_surfaces.c,v 1.117 2010/10/28 12:18:36 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.116 2010/08/12 17:44:33 gregt Exp $",
+           "$Id: mris_make_surfaces.c,v 1.117 2010/10/28 12:18:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2150,6 +2150,7 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
   }
   MRISclearMarks(mris) ;
 
+#if 0
   if (mris->ct && CTABfindName(mris->ct, "unknown", &index) == NO_ERROR)
   {
     CTABannotationAtIndex(mris->ct, index, &annotation) ;
@@ -2164,10 +2165,13 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
         v->marked = 1 ;
     }
     MRISdilateMarked(mris, 3) ;
+#if 0
     MRISinvertMarks(mris) ;  // 1 -- means can't be unknown
+#endif
     MRIScopyMarkedToMarked2(mris) ;
     MRISclearMarks(mris) ;
   }
+#endif
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
     if (v->ripflag || v->marked2 > 0)
@@ -2402,6 +2406,31 @@ fix_midline(MRI_SURFACE *mris, MRI *mri_aseg, MRI *mri_brain, char *hemi,
       for (i = 0 ; i < labels[n]->n_points ; i++)
         mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
     }
+    if (mris->ct && CTABfindName(mris->ct, "unknown", &index) == NO_ERROR)
+    {
+      double pct_unknown; 
+      int    i ;
+      CTABannotationAtIndex(mris->ct, index, &annotation) ;
+      
+      for (pct_unknown = 0.0, i = 0 ; i < labels[n]->n_points ; i++)
+      {
+        if (mris->vertices[labels[n]->lv[i].vno].annotation == annotation)
+          pct_unknown = pct_unknown + 1 ;
+      }
+      pct_unknown /= (double)labels[n]->n_points ;
+      if (pct_unknown < .6)
+      {
+        printf("deleting segment %d with %d points - only %2.2f%% unknown\n",n, 
+               labels[n]->n_points,100*pct_unknown) ;
+        for (i = 0 ; i < labels[n]->n_points ; i++)
+        {
+          mris->vertices[labels[n]->lv[i].vno].marked = 0 ;
+          if (labels[n]->lv[i].vno  == Gdiag_no)
+            printf("removing ripflag from v %d due to non-unknown aparc\n", Gdiag_no) ;
+        }
+      }
+    }
+
     LabelFree(&labels[n]) ;
   }
   free(labels) ;
