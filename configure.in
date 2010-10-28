@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: krish $
-#    $Date: 2010/10/28 19:33:05 $
-#    $Revision: 1.496 $
+#    $Date: 2010/10/28 20:00:54 $
+#    $Revision: 1.497 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2729,6 +2729,11 @@ if test ! "x$ac_boost_dir" = "xNO"; then
   if test -e ${BOOST_LIB}/libboost_program_options-mt.a ; then
     BOOST_PO_LIB=${BOOST_LIB}/libboost_program_options-mt.a
     AC_MSG_RESULT([found '$BOOST_PO_LIB'])
+  else
+    if test -e ${BOOST_LIB}/libboost_program_options.a ; then
+      BOOST_PO_LIB=${BOOST_LIB}/libboost_program_options.a
+      AC_MSG_RESULT([found '$BOOST_PO_LIB'])
+    fi
   fi
 else
   # else check for native install of boost program options lib
