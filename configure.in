@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: ginsburg $
-#    $Date: 2010/09/15 13:04:46 $
-#    $Revision: 1.495 $
+#    $Author: krish $
+#    $Date: 2010/10/28 19:33:05 $
+#    $Revision: 1.496 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2057,6 +2057,97 @@ AC_SUBST(VTK_LIBS)
 AC_SUBST(VTK_LIB)
 AC_SUBST(VTK_LIB_VTK)
 AC_SUBST(VTK_DIR)
+
+
+################################################################
+# VTK for Freeview in Mac
+################################################################
+# This is essentially a different VTK because a Carbon build in Leopard doesn't compile when 
+# TCL is on. However TCL is a requirement for other binaries. So freeview is built with separate
+# VTK which has TCL turned off. 
+ac_vtk_carbon_includes="NO"
+ac_vtk_carbon_libraries="NO"
+ac_vtk_carbon_dir="NO"
+VTK_CARBON_CFLAGS=""
+VTK_CARBON_CXXFLAGS=""
+VTK_CARBON_LIBS=""
+VTK_CARBON_LIB=""
+VTK_CARBON_LIB_VTK=""
+VTK_CARBON_DIR=""
+
+AC_MSG_CHECKING(Carbon VTK config)
+
+AC_ARG_WITH(vtk-carbon-dir,
+  [  --with-vtk-carbon-dir=DIR      where the root of VTK is installed.],
+  [  ac_vtk_carbon_includes="$withval/include"
+     ac_vtk_carbon_libraries="$withval"/lib
+     ac_vtk_carbon_dir="$withval"
+     VTK_CARBON_DIR=$ac_vtk_carbon_dir
+  ])
+
+if test ! "$ac_vtk_carbon_includes" = "NO"; then
+  AC_MSG_RESULT(VTK Carbon directory is $withval)
+  if test -e $ac_vtk_carbon_includes/vtk-5.6 ; then
+    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.6"
+  elif test -e $ac_vtk_carbon_includes/vtk-5.5 ; then
+    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.5"
+  elif test -e $ac_vtk_carbon_includes/vtk-5.4 ; then
+    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.4"
+  elif test -e $ac_vtk_carbon_includes/vtk-5.3 ; then
+    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.3"
+  elif test -e $ac_vtk_carbon_includes/vtk-5.2 ; then
+    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.2"
+  elif test -e $ac_vtk_carbon_includes/vtk-5.1 ; then
+    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.1"
+  elif test -e $ac_vtk_carbon_includes/vtk-5.0 ; then
+    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.0"
+  elif test -e $ac_vtk_carbon_includes/vtk ; then
+    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk"
+  fi
+  VTK_CARBON_CFLAGS="${VTK_CARBON_CFLAGS} -I$ac_vtk_carbon_includes"
+  VTK_CARBON_CXXFLAGS="${VTK_CARBON_CXXFLAGS} -I$ac_vtk_carbon_includes"
+fi
+
+if test ! "$ac_vtk_libraries" = "NO"; then
+  VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries
+  VTK_CARBON_LIB=$ac_vtk_carbon_libraries
+  if test -e $ac_vtk_carbon_libraries/vtk-5.6 ; then
+    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.6"
+    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.6
+    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.6
+  elif test -e $ac_vtk_carbon_libraries/vtk-5.5 ; then
+    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.5"
+    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.5
+    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.5
+  elif test -e $ac_vtk_carbon_libraries/vtk-5.4 ; then
+    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.4"
+    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.4
+    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.4
+  elif test -e $ac_vtk_carbon_libraries/vtk-5.3 ; then
+    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.3"
+    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.3
+    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.3
+  elif test -e $ac_vtk_carbon_libraries/vtk-5.2 ; then
+    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.2"
+    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.2
+    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.2
+  elif test -e $ac_vtk_carbon_libraries/vtk-5.1 ; then
+    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.1"
+  elif test -e $ac_vtk_carbon_libraries/vtk-5.0 ; then
+    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.0"
+  elif test -e $ac_vtk_carbon_libraries/vtk ; then
+    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk"
+  fi
+fi
+
+AM_CONDITIONAL(HAVE_CARBON_VTK_LIBS, test ! "x$VTK_CARBON_DIR" = "x")
+
+AC_SUBST(VTK_CARBON_CFLAGS)
+AC_SUBST(VTK_CARBON_CXXFLAGS)
+AC_SUBST(VTK_CARBON_LIBS)
+AC_SUBST(VTK_CARBON_LIB)
+AC_SUBST(VTK_CARBON_LIB_VTK)
+AC_SUBST(VTK_CARBON_DIR)
 
 
 ################################################################

@@ -1,15 +1,8 @@
-AM_CXXFLAGS=\
-	-fno-strict-aliasing \
-	-Wno-deprecated \
-	-I$(top_srcdir)/include \
-	$(TCL_CFLAGS) \
-	$(GL_CFLAGS) \
-	$(VTK_CXXFLAGS) \
-	-I$(top_srcdir)/vtkfsio \
-	-I$(top_srcdir)/vtkutils \
-	$(WXWIDGETS_CXXFLAGS) \
-	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
-	$(VXL_CFLAGS)
+# The logic is divided into 2 parts based on whether we are building for OSX or not.
+# The VTK for OSX doesn't compile when Carbon is enabled and TCL is enabled. However,
+# a TCL enabled VTK is essential for FreeSurfer suite. Hence Freeview uses a special
+# static build of VTK which has Carbon=ON, TCL=OFF, Static=ON. So depending on whether
+# the platform is OSX or not, we use different versions of the VTK. 
 
 if ENABLE_WXWIDGETS_APPS
 bin_PROGRAMS = freeview
@@ -244,6 +237,80 @@ freeview_SOURCES=\
 	res/resource.h \
 	res/QuickRef.h
 
+
+if HAVE_MAC_OSX
+AM_CXXFLAGS=\
+	-fno-strict-aliasing \
+	-Wno-deprecated \
+	-I$(top_srcdir)/include \
+	$(TCL_CFLAGS) \
+	$(GL_CFLAGS) \
+	$(VTK_CARBON_CXXFLAGS) \
+	-I$(top_srcdir)/vtkfsio \
+	-I$(top_srcdir)/vtkutils \
+	$(WXWIDGETS_CXXFLAGS) \
+	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
+	$(VXL_CFLAGS)
+
+freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
+
+# put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
+# and if the OS is MACOSX have a different install-hook to create a bundle
+freeview_LDADD=\
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(top_builddir)/vtkfsio/libvtkfsio.a \
+	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(VTK_CARBON_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
+	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	$(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) \
+	$(VTK_SQLITE_LIB) \
+	-lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys -lvtkGenericFiltering \
+	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	-lvtkWidgets -lvtkHybrid \
+	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
+	$(WXWIDGETS_LIBS) $(WXGTK2GL) $(WXWIDGETS_OPTIONAL_LIBS)
+
+install-exec-hook:freeview
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
+#	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks
+	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
+	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
+	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
+#	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
+#	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "exec $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
+	chmod a+x $(DESTDIR)$(bindir)/freeview
+#	./mac_package_dylibs.sh $(WXWIDGETS_DIR)lib $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/freeview
+	rm -rf $(DESTDIR)$(bindir)/Freeview.app
+else
+AM_CXXFLAGS=\
+	-fno-strict-aliasing \
+	-Wno-deprecated \
+	-I$(top_srcdir)/include \
+	$(TCL_CFLAGS) \
+	$(GL_CFLAGS) \
+	$(VTK_CXXFLAGS) \
+	-I$(top_srcdir)/vtkfsio \
+	-I$(top_srcdir)/vtkutils \
+	$(WXWIDGETS_CXXFLAGS) \
+	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
+	$(VXL_CFLAGS)
+
 freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
 freeview_LDADD=\
@@ -265,32 +332,6 @@ freeview_LDADD=\
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 # and if the OS is MACOSX have a different install-hook to create a bundle
-if HAVE_MAC_OSX
-install-exec-hook:freeview
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
-#	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks
-	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
-	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
-	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
-	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
-		>> $(DESTDIR)$(bindir)/freeview
-	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
-		>> $(DESTDIR)$(bindir)/freeview
-	echo "exec $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
-	chmod a+x $(DESTDIR)$(bindir)/freeview
-#	./mac_package_dylibs.sh $(WXWIDGETS_DIR)lib $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
-	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
-
-uninstall-hook:
-	rm -f $(DESTDIR)$(bindir)/freeview
-	rm -rf $(DESTDIR)$(bindir)/Freeview.app
-else
 install-exec-hook:freeview
 	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/freeview.bin
 	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
