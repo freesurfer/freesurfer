@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/10/27 21:43:20 $
-#    $Revision: 1.323 $
+#    $Author: mreuter $
+#    $Date: 2010/10/28 02:26:11 $
+#    $Revision: 1.324 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.323 2010/10/27 21:43:20 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.324 2010/10/28 02:26:11 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -167,6 +167,7 @@ set tpNid = ();
 set longbasetotpN_regfile = ();   # reg file to align longbase to current subj
 set UseConcatLtaTal = 0; # if 1, use mri_concatenate_lta during tal creation
 set UseLongbaseCtrlVol = 0;   # if 1, use ctrl volume of longbase in norm step
+set UseLongbaseWMedits = 0;   # if 1, use transfer wm edits from base (default from cross)
 set no_orig_pial = 0;    # if 1, mris_make_surfaces won't use orig pial
 set UseAsegFusion = 1; # if 0, dont create 'fused' asegs from timepoints
 set DoCreateBaseSubj = 0; # if 1, create the 'base' subject used in longitud
@@ -824,28 +825,23 @@ if($longitudinal) then
     if($status) goto error_exit;
   endif
 
-  # cp base-to-thissubj transform
-  set longbasetotpN_regfile = ${longbaseid}_to_${tpNid}.lta
-  set cmd = (mkdir -p ${subjdir}/mri/transforms)
-  echo "\n $cmd"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  set cmd = (cp ${longbasedir}/mri/transforms/${longbasetotpN_regfile})
-  set cmd = ($cmd ${subjdir}/mri/transforms/${longbasetotpN_regfile})
-  echo " $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $cmd |& tee -a $LF
-  if($status) goto error_exit;
+  # init regfile variable with map cross_tp to base:
+	# used later
+  set tpNtobase_regfile = ${longbasedir}/mri/transforms/${tpNid}_to_${longbaseid}.lta
 
-  # cp control.dat file from the cross-sectional data for this subj
-  if ( -e ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat) then
-    set cmd = (mkdir -p ${subjdir}/tmp)
-    echo "\n $cmd"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    set cmd = (cp ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat)
-    set cmd = ($cmd ${subjdir}/tmp/)
-    echo " $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $cmd |& tee -a $LF
-    if($status) goto error_exit;
-  endif
+  # HACK remove for now (later map the controlpoints to the base space!!!)
+	# OLD:
+#  # cp control.dat file from the cross-sectional data for this subj
+#  if ( -e ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat) then
+#    set cmd = (mkdir -p ${subjdir}/tmp)
+#    echo "\n $cmd"|& tee -a $LF |& tee -a $CF
+#    if($RunIt) $cmd |& tee -a $LF
+#    set cmd = (cp ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat)
+#    set cmd = ($cmd ${subjdir}/tmp/)
+#    echo " $cmd \n"|& tee -a $LF |& tee -a $CF
+#    if($RunIt) $cmd |& tee -a $LF
+#    if($status) goto error_exit;
+#  endif
 endif
 
 #----------- Convert Input ------------------#
@@ -959,37 +955,152 @@ if($DoMotionCor) then
   echo "#@# MotionCor `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
 
   if ($longitudinal) then
-    # longitudinal processing:
-    # just copy from the cross-sectionaly processed data for this subject
-    cd $subjdir/mri/
-    if ( -e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
-      set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz)
+    # longitudinal processing to create orig.mgz:
+
+    # in order to create orig.mgz in LONG we need at least 001.mgz in CROSS:
+    if ( ! -e ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz ) then
+      echo "ERROR: no CROSS run data found in ${SUBJECTS_DIR}/${tpNid}/mri/orig/. Make sure to" \
+        |& tee -a $LF
+      echo "have a volume called 001.mgz there." |& tee -a $LF
+      echo "If you have a second run of data call it 002.mgz, etc." \
+        |& tee -a $LF
+      echo "See also: http://surfer.nmr.mgh.harvard.edu/fswiki/FsTutorial/Conversion" \
+        |& tee -a $LF
+      goto error_exit;
+    endif
+
+    # use orig/00?.mgz from cross:
+    set CrossList = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].mgz`;
+    set origvol = $subjdir/mri/orig.mgz
+		
+    if($#CrossList == 1) then
+      # if only single input, directly resample to base space
+      set cmd = (mri_convert -at $tpNtobase_regfile -odt uchar)
+      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/orig/001.mgz)
+      set cmd = ($cmd ${origvol})
+      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      goto motioncor_post_process
+    endif		
+		
+    # if ltas and iscales exist in cross, copy them over
+    set CrossLtas = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9].lta`;
+    set CrossIscales = `ls ${SUBJECTS_DIR}/${tpNid}/mri/orig/[0-9][0-9][0-9]-iscale.txt`;
+    if ( $#CrossLtas > 0 ) then
+      # check if one lta for each mgz:
+      # here we could better check if really each 00?.mgz has its own 00?.lta in future
+      if ( $#CrossList != $#CrossLtas ) then
+        echo "ERROR: Orig 00?.mgz runs and number of 00?.lta files must agree in" \
+         |& tee -a $LF
+        echo "${SUBJECTS_DIR}/${tpNid}/mri/orig/" \
+         |& tee -a $LF
+        goto error_exit;
+      endif
+      #copy ltas:
+      cd $subjdir/mri/
+      set cmd = (cp -vf ${CrossLtas})
       set cmd = ($cmd orig/)
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-    endif 
+      #copy iscales if available:
+      if ($#CrossIscales > 0) then
+        # here we could better check if really each 00?.mgz has its own iscale file in future
+        if ( $#CrossList != $#CrossIscales ) then
+          echo "ERROR: Orig 00?.mgz runs and number of 00?-iscale.txt files must agree in" \
+            |& tee -a $LF
+          echo "${SUBJECTS_DIR}/${tpNid}/mri/orig/" \
+            |& tee -a $LF
+          goto error_exit;
+        endif
+        cd $subjdir/mri/
+        set cmd = (cp -vf ${CrossIscales})
+        set cmd = ($cmd orig/)
+        echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+        if($status) goto error_exit;
+      endif
+    else
+      # else the ltas don't exist (mabye because 5.0 or fsl was used, they are created by 5.1+)
+      # if more than one input, re-receate the ltas:
+      if($#CrossList > 1) then
+        # set output names for ltas and iscales in long dir
+        set LongLtas = ""
+        set LongIscales = ""
+        foreach nthid ($CrossList)
+          set nthname=`basename $nthid .mgz`
+          set nthdir=$subjdir/mri/orig
+          set nthlta=${nthdir}/${nthname}.lta
+          set LongLtas=($LongLtas $nthlta)
+          set LongIscales=($LongIscales $nthdir/${nthname}-iscale.txt)
+        end
+        # perform motion correction again to obtain the ltas (but in long dir, don't touch cross):
+        set rawavg  = $subjdir/mri/rawavg.mgz
+        # the output rawavg in long will be ignored and not used for anything
+        # except maybe debugging, we only need the ltas and iscales!
+        set cmd = (mri_robust_template)
+        set cmd = ($cmd --mov ${CrossList})
+        set cmd = ($cmd --average 1)
+        set cmd = ($cmd --template ${rawavg})
+        set cmd = ($cmd --satit)
+        set cmd = ($cmd --inittp 1)
+        set cmd = ($cmd --fixtp)
+        set cmd = ($cmd --noit)
+        set cmd = ($cmd --iscale)
+        set cmd = ($cmd --iscaleout $LongIscales)
+        set cmd = ($cmd --subsample 200)
+        set cmd = ($cmd --lta $LongLtas)
+        echo "#-----------------------------------------------"
+        $PWD |& tee -a $LF
+        echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+        if($RunIt) then
+          $fs_time $cmd |& tee -a $LF
+          if($status) goto error_exit;
+        endif
+      else
+        # we should never get here, this case hase been dealt with above
+        echo Only single run - should not get here
+        goto error_exit;
+      endif
+    endif
 
-    if ( -e ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz ) then
-      set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/rawavg.mgz .)
+    # now we have the ltas in long (current tp : subjdir)
+    set LongLtas = `ls $subjdir/mri/orig/[0-9][0-9][0-9].lta`;
+    set LongIscales = `ls $subjdir/mri/orig/[0-9][0-9][0-9]-iscale.txt`;
+   
+    # concat ltas (e.g. 002 -> 001 -> base/orig.mgz)
+    set ConcatLtas = ""
+    foreach nthlta ($LongLtas)
+      set nthname=`basename $nthlta .lta`
+      set nthdir=$subjdir/mri/orig
+      set concatlta=${nthdir}/${nthname}-long.lta
+      set ConcatLtas=($ConcatLtas $nthdir/${nthname}-long.lta)
+      set cmd = (mri_concatenate_lta $nthlta $tpNtobase_regfile $concatlta)
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
-    endif
+    end
 
-    if ( ! -e ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz ) then
-      echo "ERROR: ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz does not exist!" \
-        |& tee -a $LF 
-      goto error_exit;
-    else  
-      set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/orig.mgz .)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
+    # use mri_robust_template just to create the average in base orig space:
+    set cmd = (mri_robust_template)
+    set cmd = ($cmd --mov ${CrossList})
+    set cmd = ($cmd --average 1)
+    set cmd = ($cmd --ixforms ${ConcatLtas})
+    if ($#LongIscales > 0) then
+      set cmd = ($cmd --iscalein ${LongIscales})
+    endif
+    set cmd = ($cmd --noit)
+    set cmd = ($cmd --template ${origvol})
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
 
-    goto motioncor_done
-  endif
+    goto motioncor_post_process
+
+  endif #longitudinal
 
   # default processing:
   set cmd = ();
@@ -1062,6 +1173,17 @@ if($DoMotionCor) then
 
   # Actually perform the motion correction -- creates rawavg
   if($#RunList > 1) then
+    # set names for ltas
+    set RunLtas = ""
+    set RunIscales = ""
+    foreach nthid ($RunList)
+      set nthname=`basename $nthid .mgz`
+      set nthdir=`dirname $nthid`
+      set nthlta=${nthdir}/${nthname}.lta
+      set RunLtas=($RunLtas $nthlta)
+      set RunIscales=($RunIscales ${nthdir}/${nthname}-iscale.txt)
+    end
+
     if($DoRobustMotionCor) then
       set cmd = (mri_robust_template)
       set cmd = ($cmd --mov ${RunList})
@@ -1072,7 +1194,9 @@ if($DoMotionCor) then
       set cmd = ($cmd --fixtp)
       set cmd = ($cmd --noit)
       set cmd = ($cmd --iscale)
+      set cmd = ($cmd --iscaleout $RunIscales)
       set cmd = ($cmd --subsample 200)
+      set cmd = ($cmd --lta $RunLtas)
     else
       # use FSL's flirt to do motion correction (averaging of runs)
       set cmd = (mri_motion_correct.fsl -o $rawavg -wild $RunList)
@@ -1081,16 +1205,7 @@ if($DoMotionCor) then
     $PWD |& tee -a $LF
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
-      if($DoRobustMotionCor) then
-        set MRTLF = ${subjdir}/mri/mri_robust_template.log
-        if(-e $MRTLF) mv $MRTLF $MRTLF.old
-        echo "--------------------------------------------------------------"
-        echo "mri_robust_template logfile is $MRTLF" |& tee -a $LF
-        echo "--------------------------------------------------------------"
-        $fs_time $cmd |& tee -a $MRTLF
-      else
-        $fs_time $cmd |& tee -a $LF
-      endif
+      $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
       echo $cmd > $touchdir/motion_correct.touch
     endif
@@ -1117,6 +1232,9 @@ if($DoMotionCor) then
     echo $cmd > $touchdir/conform.touch
   endif
 
+  # this is the goto target for longitudinal processing (from above):
+  motioncor_post_process:
+
   # check if FOV > 256 and error exit if so
   set FOV=`mri_info ${origvol} | grep fov: | awk '{print $2}'`
   set FOV_gt_256=`echo "${FOV} > 256" | bc`
@@ -1140,8 +1258,6 @@ if($DoMotionCor) then
     if($status) goto error_exit;
   endif
 
-  # goto target for longitudinal processing:
-  motioncor_done:
 
 endif # Motion Correction
 
@@ -1152,23 +1268,16 @@ if($DoNuIntensityCor) then
   echo "#@# Nu Intensity Correction `date`" \
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
-  if ($longitudinal) then
-    # longitudinal processing:
-    # just copy from the cross-sectionally processed data for this subject
-    set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/nu.mgz .)
-  else
-    # default processing:
-    set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
-    set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz)
-    if ($DoNuIntensityCor3T) then
-      # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper 
-      # "Improvement of brain segmentation accuracy by optimizing 
-      # non-uniformity correction using N3"
-      set NuIterations = 1;
-      set cmd = ($cmd --proto-iters 1000 --distance 50)
-    endif
-    set cmd = ($cmd --n $NuIterations $xopts)
+  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
+  set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz)
+  if ($DoNuIntensityCor3T) then
+    # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
+    # "Improvement of brain segmentation accuracy by optimizing
+    # non-uniformity correction using N3"
+    set NuIterations = 1;
+    set cmd = ($cmd --proto-iters 1000 --distance 50)
   endif
+  set cmd = ($cmd --n $NuIterations $xopts)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
@@ -1186,32 +1295,14 @@ talairach:
   set xfma = transforms/talairach.auto.xfm
   if ($longitudinal) then
     # longitudinal processing:
-    if ($UseConcatLtaTal) then
-      # longitudinal processing stream:
-      # NJS NOTE: using mri_concatenate_lta is no longer the default method
-      # of creating the talairach.xfm file in the longitudinal stream.
-      # the -use-concat-lta-tal flag is used to revert to its usage
-      set tal_targ = ${FREESURFER_HOME}/average/mni305.cor.mgz
-      if( ! -e $tal_targ ) then
-        echo "ERROR: template file $tal_targ for talairach reg doesn't exist" \
-          |& tee -a $LF
-        goto error_exit;
-      endif
-      if( -e $longbasedir/mri/$xfm) then
-        set tal_xfm = $xfm
-      else
-        set tal_xfm = $xfma
-      endif
-      set cmd = (mri_concatenate_lta -invert1 -tal \
-        $longbasedir/mri/orig.mgz $tal_targ \
-        $subjdir/mri/transforms/$longbasetotpN_regfile \
-        $longbasedir/mri/$tal_xfm \
-        $subjdir/mri/$xfma)
+    if( -e $longbasedir/mri/$xfm) then
+      set tal_xfm = $xfm
     else
-      # longitudinal processing:
-      # just copy from the cross-sectionaly processed data for this subject
-      set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/${xfm} ${xfma})
+      set tal_xfm = $xfma
     endif
+    # copy from the base (as we are now in same space)
+    # if edits were made to base, they will be also in long
+    set cmd = (cp $longbasedir/mri/$tal_xfm $subjdir/mri/$xfma)
   else
     # default processing:
     if ($UseMincMritotal) then
@@ -1363,57 +1454,51 @@ if($DoNormalization) then
   cd $subjdir/mri > /dev/null
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_normalize $XOptsFile`;
-  if ( $longitudinal) then
-    # longitudinal processing stream:
-    if ($UseLongbaseCtrlVol ) then
-      if( ! -e $longbasedir/mri/ctrl_vol.mgz) then
-        echo "Recompute intensity norm to create $longbaseid ctrl_vol.mgz" \
-          |& tee -a $LF
-        set cmd = (mri_normalize)
-        if($IsMPRAGE)      set cmd = ($cmd -mprage)
-        if($IsWashuMPRAGE) set cmd = ($cmd -washu_mprage)
-        set cmd = ($cmd \
-          -mask $longbasedir/mri/brain.mgz \
-          -W $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
-          $longbasedir/mri/nu.mgz \
-          $longbasedir/mri/T1_tmp.mgz)
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
-        if($status) goto error_exit;
-        if( ! -e $longbasedir/mri/ctrl_vol.mgz ) then
-          echo "ERROR: unable to generate cntl-point volume for longbase" \
-            |& tee -a $LF
-          goto error_exit;
-        endif
-        rm -f $longbasedir/mri/bias_vol.mgz
-        rm -f $longbasedir/mri/T1_tmp.mgz
-      endif
-      set cmd = (mri_normalize_tp2 \
-        -T1 $longbasedir/mri/nu.mgz \
-        -ctrl $longbasedir/mri/ctrl_vol.mgz \
-        -mask1 $longbasedir/mri/brain.mgz \
-        -xform $subjdir/mri/transforms/$longbasetotpN_regfile \
-        $subjdir/mri/nu.mgz \
-        $subjdir/mri/T1.mgz)
-      echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    else
-      # longitudinal processing default:
-      # just copy from the cross-sectionaly processed data for this subject
-      set cmd = (cp -vf ${SUBJECTS_DIR}/${tpNid}/mri/T1.mgz .)
+  if ( $longitudinal && $UseLongbaseCtrlVol) then
+	# HACK 
+    # longitudinal processing stream AND using ctrl_vol.mgz from base:
+    if( ! -e $longbasedir/mri/ctrl_vol.mgz) then
+      echo "Recompute intensity norm to create $longbaseid ctrl_vol.mgz" \
+        |& tee -a $LF
+      set cmd = (mri_normalize)
+      if($IsMPRAGE)      set cmd = ($cmd -mprage)
+      if($IsWashuMPRAGE) set cmd = ($cmd -washu_mprage)
+      set cmd = ($cmd \
+        -mask $longbasedir/mri/brain.mgz \
+        -W $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
+        $longbasedir/mri/nu.mgz \
+        $longbasedir/mri/T1_tmp.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
+      if( ! -e $longbasedir/mri/ctrl_vol.mgz ) then
+        echo "ERROR: unable to generate cntl-point volume for longbase" \
+          |& tee -a $LF
+        goto error_exit;
+      endif
+      rm -f $longbasedir/mri/bias_vol.mgz
+      rm -f $longbasedir/mri/T1_tmp.mgz
     endif
+    # note: dont need to pass xform as we are in same space
+    set cmd = (mri_normalize_tp2 \
+      -T1 $longbasedir/mri/nu.mgz \
+      -ctrl $longbasedir/mri/ctrl_vol.mgz \
+      -mask1 $longbasedir/mri/brain.mgz \
+      $subjdir/mri/nu.mgz \
+      $subjdir/mri/T1.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
   else
-    # default processing stream:
+    # both cross, long and base (aka default) processing stream:
     set cmd = (mri_normalize -g $NormMaxGrad);
     if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
     if($#Norm3dIters)     set cmd = ($cmd -n $Norm3dIters)
     if($IsMPRAGE)         set cmd = ($cmd -mprage)
     if($IsWashuMPRAGE)    set cmd = ($cmd -washu_mprage)
     if($ConformMin)       set cmd = ($cmd -noconform)
+    # in base create the ctrl_vol.mgz for init longs later:
+    if($DoCreateBaseSubj) set cmd = ($cmd -W ctrl_vol.mgz bias_vol.mgz)
     set cmd = ($cmd $xopts nu.mgz T1.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -1432,17 +1517,11 @@ skullstrip:
   $PWD |& tee -a $LF
 
   if ($longitudinal) then
-    # longitudinal processing stream:
-    #  create mask by mapping brainmask from base
-    #  (which is basically an OR of the cross sectional runs)
+    # longitudinal processing stream (copy from base):
     set BM  = brainmask.mgz
     set BMA = brainmask.auto.mgz
-
-    set cmd=(mri_convert -T $subjdir/mri/transforms/$longbasetotpN_regfile)
-    set cmd=($cmd -rl T1.mgz)
-    set cmd=($cmd ${longbasedir}/mri/${BM})
     set bmbase = brainmask_${longbaseid}.mgz
-    set cmd=($cmd ${bmbase})
+    set cmd = (cp -vf ${longbasedir}/mri/${BM} ./${bmbase})
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -1455,12 +1534,32 @@ skullstrip:
     goto skipped_skullstrip;
   endif
 
-  # base subject stream: just use the norm vol created during -base-init
+  # base subject stream:
   if($DoCreateBaseSubj) then
     set BMA = brainmask.auto.mgz
     set BM  = brainmask.mgz  #used later
-    set cmd = (cp -fv norm_template.mgz $BMA)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    # create lists with all cross brainmasks and all ltas:
+    set bmInVols=""
+    set ltaXforms=""
+    foreach s ($BaseSubjsList)
+      set bmInVols = ($bmInVols ${SUBJECTS_DIR}/${s}/mri/brainmask.mgz)
+      set ltaname = ${s}_to_${subjid}.lta
+      set ltaXforms = ($ltaXforms ${subjdir}/mri/transforms/${ltaname})
+    end
+    # map all brainmask with nearest neighbor and average 0=mean=logicalOR:
+    set cmd = (mri_robust_template --mov ${bmInVols})
+    set cmd = ($cmd --average 0)
+    set cmd = ($cmd --ixforms ${ltaXforms})
+    set cmd = ($cmd --noit)
+	  set cmd = ($cmd --finalnearest)
+    set cmd = ($cmd --template brainmask_template.mgz)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+		# create brainmask.auto by applying bm_template to T1
+		set cmd = (mri_mask T1.mgz brainmask_template.mgz $BMA)
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     goto skipped_skullstrip;
@@ -1715,10 +1814,9 @@ if($DoGCAReg) then
   set xopts = `fsr-getxopts mri_em_register $XOptsFile`;
   if($longitudinal) then
     # longitudinal processing:
-    set cmd = (mri_concatenate_lta \
-                -invert1 $subjdir/mri/transforms/$longbasetotpN_regfile \
-                $longbasedir/mri/transforms/talairach.lta \
-                transforms/talairach.lta)
+     set cmd = (cp -vf $longbasedir/mri/transforms/talairach.lta \
+                 transforms/talairach.lta )
+
   else
     set cmd = (mri_em_register)
     if($UseCuda) set cmd = (mri_em_register_cuda)
@@ -1749,10 +1847,8 @@ if($DoCANormalize) then
 
   if ($longitudinal) then
     # longitudinal processing:
-    # map the aseg of the base to the current TP:
-    set cmd = (mri_convert -T $subjdir/mri/transforms/$longbasetotpN_regfile)
-    set cmd = ($cmd -rt nearest -rl nu.mgz)
-    set cmd = ($cmd ${longbasedir}/mri/aseg.mgz aseg_${longbaseid}.mgz)
+    # cp aseg from base to current TP:
+    set cmd = (cp -vf ${longbasedir}/mri/aseg.mgz aseg_${longbaseid}.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if ($RunIt) $fs_time $cmd |& tee -a $LF
     if ($status) goto error_exit;
@@ -1771,7 +1867,7 @@ if($DoCANormalize) then
   endif
   set cmd = ($cmd -mask brainmask.mgz $xopts)
   if($DoCreateBaseSubj) then
-    # base subject stream 
+    # base subject stream
     # (use norm vol created during -base-init, no mask needed)
     set cmd = ($cmd norm_template.mgz)
   else
@@ -1806,9 +1902,11 @@ if($DoCAReg) then
   if( ! $longitudinal) set cmd = ($cmd -T transforms/talairach.lta)
   if ( $longitudinal ) then
     # here is tpN's longitudinal command
+    # init with warp (m3z) from base
+    # no need to concatenate, as we are in same space now
     set cmd = ($cmd -levels 2 -A 1 \
                 -l $longbasedir/mri/transforms/talairach.m3z \
-                $subjdir/mri/transforms/$longbasetotpN_regfile)
+                identity.nofile)
   endif
   set cmd = ($cmd $UseCAAlignAfter)
   set cmd = ($cmd -mask brainmask.mgz)
@@ -1951,11 +2049,10 @@ if($DoCALabel) then
     set BaseSubjsList = (`cat ${longbasedir}/${BaseSubjsListFname}`)
     # first create lta's of basesubjs to longsubj
     foreach s (${BaseSubjsList})
-      set cmd=(mri_robust_register)
-      set cmd=($cmd --mov ${SUBJECTS_DIR}/${s}/mri/norm.mgz)
-      set cmd=($cmd --dst ${subjdir}/mri/norm.mgz)
-      set cmd=($cmd --lta ${subjdir}/mri/transforms/${s}_to_${subjid}.lta)
-			set cmd=($cmd --sat 4.685 )
+      # copy the transform (tpi cross to base) to local transform dir
+      # where mri_fuse_segmentations is looking for it:
+      set cmd = (cp -vf ${longbasedir}/mri/transforms/${s}_to_${longbaseid}.lta \
+                        ${subjdir}/mri/transforms/${s}_to_${subjid}.lta)
       echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
       if($RunIt) then
         $fs_time $cmd |& tee -a $LF
@@ -2095,11 +2192,14 @@ if($DoSegmentation) then
   echo "#@# WM Segmentation `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
 
+  set AllowLongWMtransfers = "1"
   if(! $DoCleanWM && -e wm.mgz) then
     set cmd = (cp wm.mgz wm.seg.mgz)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
+    # wm.mgz was available (probably edited): don't allow transfers in long below
+    set AllowLongWMtransfers = "0"
   endif
   # ----------- Segment -------------------------
   set xopts = `fsr-getxopts mri_segment $XOptsFile`;
@@ -2143,16 +2243,27 @@ if($DoSegmentation) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
 
-  if($longitudinal) then
-    # transfer wm matter edits (voxels=255) from longbase wm.mgz to tpN wm.mgz
-    # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
-    set cmd = (mri_mask -transfer 255)
-    set cmd = ($cmd -keep_mask_deletion_edits)
-    set cmd = ($cmd -xform $subjdir/mri/transforms/$longbasetotpN_regfile)
-    set cmd = ($cmd wm.mgz $longbasedir/mri/wm.mgz wm.mgz)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
+  if($longitudinal && $AllowLongWMtransfers) then
+    if ($UseLongbaseWMedits) then
+      # transfer wm edits (voxels=255) from longbase wm.mgz to long tpN wm.mgz
+      # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
+      set cmd = (mri_mask -transfer 255)
+      set cmd = ($cmd -keep_mask_deletion_edits)
+      set cmd = ($cmd wm.mgz $longbasedir/mri/wm.mgz wm.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    else #default in -long:
+      # transfer wm matter edits (voxels=255) from cross wm.mgz to long tpN wm.mgz
+      # and -keep_mask_deletion_edits transfers voxel-deletion (voxels=1) edits
+      set cmd = (mri_mask -transfer 255)
+      set cmd = ($cmd -keep_mask_deletion_edits)
+      set cmd = ($cmd -xform $tpNtobase_regfile)
+      set cmd = ($cmd wm.mgz ${SUBJECTS_DIR}/${tpNid}/mri/wm.mgz wm.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
   endif
 
   echo $cmd > $touchdir/wmsegment.touch
@@ -2398,31 +2509,26 @@ foreach hemi ($hemilist)
     cd $subjdir/scripts > /dev/null
 
     if( $longitudinal ) then
-      set cmd = (mris_transform --dst $subjdir/mri/orig.mgz \
-        $longbasedir/surf/${hemi}.white \
-        $subjdir/mri/transforms/$longbasetotpN_regfile \
-        $subjdir/surf/${hemi}.orig)
+      set cmd = (cp -vf $longbasedir/surf/${hemi}.white \
+                         $subjdir/surf/${hemi}.orig)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
 
-      set cmd = (mris_transform --dst $subjdir/mri/orig.mgz \
-        $longbasedir/surf/${hemi}.white \
-        $subjdir/mri/transforms/$longbasetotpN_regfile \
-        $subjdir/surf/${hemi}.orig_white)
+      set cmd = (cp -vf $longbasedir/surf/${hemi}.white \
+                         $subjdir/surf/${hemi}.orig_white)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
 
-      set cmd = (mris_transform --dst $subjdir/mri/orig.mgz \
-        $longbasedir/surf/${hemi}.pial \
-        $subjdir/mri/transforms/$longbasetotpN_regfile \
-        $subjdir/surf/${hemi}.orig_pial)
+      set cmd = (cp -vf $longbasedir/surf/${hemi}.pial\
+                         $subjdir/surf/${hemi}.orig_pial)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
 
+    # Note mris_make_surfaces uses filled.mgz implicitly
     set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
     if($longitudinal) then
       # longitudinal processing:
@@ -4636,6 +4742,10 @@ while( $#argv != 0 )
       set UseLongbaseCtrlVol = 1;
       breaksw
 
+    case "-uselongbasewmedits":
+      set UseLongbaseWMedits = 1;
+      breaksw
+
     case "-mprage":
       set IsMPRAGE = 1;
       breaksw;
@@ -6133,8 +6243,14 @@ Other flags:
 
 -uselongbasectrlvol
 
-Optionally use a control-points volume created from longbase subjid and 
-used to specify control points for tpN subjid.
+With -long: Optionally use a control-points volume created in base/template
+to process the long TP. Default: map and use control-points from
+corresponding cross run.
+
+-uselongbasewmedits
+
+With -long: Optionally transfer WM edits from base/template.
+Default: map WM edits from corresponding cross run.
 
 -no-orig-pial
 
