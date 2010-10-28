@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 16:53:01 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/10/28 19:50:12 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,6 +32,8 @@
 
 #include "volumegpucompare.hpp"
 
+#include "mriframegpu.hpp"
+#include "mriconvolve_cuda.hpp"
 
 #include "gcamorphgpu.hpp"
 
@@ -1058,6 +1060,76 @@ namespace GPU {
       this->RemoveStatus( GCAM_IGNORE_LIKELIHOOD );
     }
     
+
+    // --------------------------------------------
+
+    void GCAmorphGPU::SmoothGradient( const int nAvgs ) {
+      /*!
+	A re-implementation of gcamSmoothGradient for
+	the GPU.
+	This is going to get very, very messy.
+	Almost as messy as the CPU routine... at least
+	we already have a structure of arrays for the
+	GCAmorph....
+      */
+
+      GPU::Algorithms::MRIconvolve myConvolution;
+
+      this->CheckIntegrity();
+      const dim3 myDims = this->d_dx.GetDims();
+
+      // Set up the kernel
+      MRI *mri_kernel;
+
+      mri_kernel = MRIgaussian1d(sqrt((float)nAvgs*2/M_PI), 0 );
+      const int klen = mri_kernel->width;
+
+      myConvolution.BindKernel( &MRIFvox(mri_kernel, 0, 0, 0), klen );
+
+      MRIframeGPU<float> d_tmp1, d_tmp2;
+
+      d_tmp1.Allocate( myDims );
+      d_tmp2.Allocate( myDims );
+
+      /*
+	And now boys and girls, let's blow type safety to smithereens.
+	We are going to coerce the VolumeGPU fields of the GCAmorph
+	structure into MRIframeGPU types, so we can use the canned
+	convolution routines.
+	What we should do is make convolutions available to the
+	VolumeGPU base class.
+	However, that would require quite a bit of coding.
+      */
+      MRIframeGPU<float> *curr;
+      curr = reinterpret_cast< MRIframeGPU<float>* >(&(this->d_dx));
+
+      // Do some convolving
+      myConvolution.RunGPU1D( *curr, d_tmp1, MRI_WIDTH );
+      myConvolution.RunGPU1D( d_tmp1, d_tmp2, MRI_HEIGHT );
+      myConvolution.RunGPU1D( d_tmp2, *curr, MRI_DEPTH );
+
+      // Move on to dy
+      curr = reinterpret_cast< MRIframeGPU<float>* >(&(this->d_dy));
+
+      // Do some convolving
+      myConvolution.RunGPU1D( *curr, d_tmp1, MRI_WIDTH );
+      myConvolution.RunGPU1D( d_tmp1, d_tmp2, MRI_HEIGHT );
+      myConvolution.RunGPU1D( d_tmp2, *curr, MRI_DEPTH );
+
+      // And finally dz
+      curr = reinterpret_cast< MRIframeGPU<float>* >(&(this->d_dz));
+
+      // Do some convolving
+      myConvolution.RunGPU1D( *curr, d_tmp1, MRI_WIDTH );
+      myConvolution.RunGPU1D( d_tmp1, d_tmp2, MRI_HEIGHT );
+      myConvolution.RunGPU1D( d_tmp2, *curr, MRI_DEPTH );
+
+      // Release things
+      myConvolution.UnbindKernel();
+
+      MRIfree( &mri_kernel );
+    }
+
 
     // ----------------------------------------------------
     void GCAmorphGPU::ShowTimings( void ) {

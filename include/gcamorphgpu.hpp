@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/12 16:52:57 $
- *    $Revision: 1.31 $
+ *    $Date: 2010/10/28 19:50:10 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -212,6 +212,9 @@ namespace GPU {
 
       //! Removes two labels
       void ResetLabelNodeStatus( void );
+
+      //! Smooths dx, dy and dz fields with a gaussian
+      void SmoothGradient( const int nAvgs );
 
       // -------------------------------------------
       static void ShowTimings( void );

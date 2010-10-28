@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/20 15:43:03 $
- *    $Revision: 1.45 $
+ *    $Date: 2010/10/28 19:50:10 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -223,7 +223,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: mriframegpu.hpp,v 1.45 2010/10/20 15:43:03 rge21 Exp $";
+	return "$Id: mriframegpu.hpp,v 1.46 2010/10/28 19:50:10 rge21 Exp $";
       }
       
       //! Return the 'thick' field
@@ -280,6 +280,11 @@ namespace GPU {
 	  frame, but allocates space for its own type.
 	*/
 	this->VolumeGPU<T>::Allocate( src );
+      }
+
+      //! Pass through wrapper to base class
+      void Allocate( const dim3 dims ) {
+	this->VolumeGPU<T>::Allocate( dims );
       }
 
 
