@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/28 18:35:51 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/10/29 19:15:08 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -164,9 +164,7 @@ int ComputeGradient( GPU::Classes::GCAmorphGPU& gcam,
   // gcamLimitGradientMagnitude is null operation
 
   //gcamSmoothGradient(gcam, parms->navgs) ;
-  std::cerr << __FUNCTION__
-	    << ": gcamSmoothGradient not yet iplemented" << std::endl;
-  exit( EXIT_FAILURE );
+  gcam.SmoothGradient( parms->navgs );
 
   return( NO_ERROR );
 }
