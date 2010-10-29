@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/10/19 15:42:12 $
- *    $Revision: 1.685 $
+ *    $Author: fischl $
+ *    $Date: 2010/10/29 12:55:28 $
+ *    $Revision: 1.686 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.685 2010/10/19 15:42:12 greve Exp $");
+  return("$Id: mrisurf.c,v 1.686 2010/10/29 12:55:28 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -30376,6 +30376,8 @@ int MRISsoapBubbleVertexPositions(MRI_SURFACE *mris, int navgs)
       v = &mris->vertices[vno] ;
       if (v->ripflag || v->marked == 1)
         continue ;
+      if (vno == Gdiag_no)
+        printf("moving v %d from (%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.f, %2.1f\n", vno, v->tdx, v->tdy, v->tdz, v->x, v->y, v->z) ;
       if (v->marked)
       {
         v->x = v->tdx ;
@@ -46843,6 +46845,7 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
                                  kept_vertices, 2*mris->nfaces) ;
   // keep the extra info into the new one
   mris_corrected->useRealRAS = mris->useRealRAS;
+  mris_corrected->hemisphere = mris->hemisphere ;
   copyVolGeom(&mris->vg, &mris_corrected->vg);
 
   mris_corrected->type = MRIS_TRIANGULAR_SURFACE ;
@@ -47593,6 +47596,9 @@ MRI_SURFACE *MRIScorrectTopology(MRI_SURFACE *mris,
     fprintf(WHICH_OUTPUT,"%ld vertices were eliminated\n",nkilled) ;
 
   mris_corrected_final=MRISremoveRippedSurfaceElements(mris_corrected);
+  mris_corrected_final->hemisphere = mris->hemisphere ;
+  strcpy(mris_corrected_final->fname, mris->fname) ;
+
   MRISfree(&mris_corrected);
   /* current = orig vertices
      tmp = originial vertices
