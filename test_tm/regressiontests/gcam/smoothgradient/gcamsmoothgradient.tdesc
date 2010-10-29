@@ -9,7 +9,7 @@ local FS = tools.freesurfer
 
 local inputFiles = FS.AllGCAMfiles()
 
-local myAvgs = { 1, 4 }
+local myAvgs = { 1, 4, 9 }
 
 local function testName( testNum, avg )
 
