@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/28 18:35:51 $
- *    $Revision: 1.229 $
+ *    $Date: 2010/10/29 16:18:44 $
+ *    $Revision: 1.230 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,6 +52,8 @@
 #define GCAM_LABEL_TERM_POSTANT_GPU
 #define GCAM_LABEL_TERM_FINAL_GPU
 #define GCAM_LABEL_TERM_GPU
+
+#define GCAM_SMOOTH_GRADIENT_GPU
 
 #else
 // Have to turn everything off
@@ -7179,6 +7181,11 @@ GCAMwriteMRI(GCA_MORPH *gcam, MRI *mri, int which)
 int
 gcamSmoothGradient(GCA_MORPH *gcam, int navgs)
 {
+#ifdef GCAM_SMOOTH_GRADIENT_GPU
+  printf( "%s: On GPU\n", __FUNCTION__ );
+  gcamSmoothGradientGPU( gcam, navgs );
+#else
+
 #if 1
   MRI   *mri_tmp = NULL, *mri_kernel ;
   int   i ;
@@ -7327,6 +7334,9 @@ gcamSmoothGradient(GCA_MORPH *gcam, int navgs)
            gcam->nodes[Gx][Gy][Gz].dx,
            gcam->nodes[Gx][Gy][Gz].dy,
            gcam->nodes[Gx][Gy][Gz].dz) ;
+
+#endif
+
   return(NO_ERROR) ;
 }
 

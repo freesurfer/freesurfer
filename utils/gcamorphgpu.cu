@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/28 19:50:12 $
- *    $Revision: 1.46 $
+ *    $Date: 2010/10/29 16:18:46 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1075,6 +1075,13 @@ namespace GPU {
 
       GPU::Algorithms::MRIconvolve myConvolution;
 
+      if( nAvgs <= 0 ) {
+	return;
+      }
+
+      GCAmorphGPU::tSmoothGradient.Start();
+
+      
       this->CheckIntegrity();
       const dim3 myDims = this->d_dx.GetDims();
 
@@ -1128,6 +1135,9 @@ namespace GPU {
       myConvolution.UnbindKernel();
 
       MRIfree( &mri_kernel );
+
+      
+      GCAmorphGPU::tSmoothGradient.Stop();
     }
 
 
@@ -1166,6 +1176,10 @@ namespace GPU {
       std::cout << "Total      : " << GCAmorphGPU::tCMPtot << std::endl;
       std::cout << std::endl;
 
+      std::cout << "SmoothGradient:" << std::endl;
+      std::cout << "Total         : " << GCAmorphGPU::tSmoothGradient << std::endl;
+      std::cout << std::endl;
+
       std::cout << "==================================" << std::endl;
 #endif
     }
@@ -1184,6 +1198,7 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphGPU::tHostRandomise;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tCMPtot;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tCMPcompute;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tSmoothGradient;
 
 
     dim3 GCAmorphGPU::hostDims = make_uint3(0,0,0);
@@ -1455,6 +1470,15 @@ void gcamRemoveStatusGPU( GCA_MORPH *gcam, const int statusFlags ) {
   
   gcamGPU.SendAll( gcam );
   gcamGPU.RemoveStatus( statusFlags );
+  gcamGPU.RecvAll( gcam );
+}
+
+
+void gcamSmoothGradientGPU( GCA_MORPH *gcam, int navgs ) {
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.SmoothGradient( navgs );
   gcamGPU.RecvAll( gcam );
 }
 
