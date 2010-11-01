@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/06/30 21:36:34 $
- *    $Revision: 1.23 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/11/01 21:38:45 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,7 +55,7 @@ bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
 
   view->CancelUpdateMouseRASPosition();
 
-  if ( event.MiddleDown() && event.ControlDown() )
+  if ( event.MiddleDown() && event.CmdDown() )
   {
     m_bWindowLevel = true;
   }

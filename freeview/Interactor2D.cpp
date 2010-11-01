@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/12/21 21:26:44 $
- *    $Revision: 1.22 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/11/01 21:38:45 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -54,7 +54,7 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
 
   view->UpdateAnnotation();
 
-  if ( event.ControlDown() && !event.ShiftDown() )
+  if ( event.CmdDown() && !event.ShiftDown() )
   {
     if ( event.LeftDown() )
     {
@@ -73,7 +73,7 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
     m_nDownPosX = m_nMousePosX;
     m_nDownPosY = m_nMousePosY;
 
-    if ( event.ShiftDown() && !event.ControlDown() )
+    if ( event.ShiftDown() && !event.CmdDown() )
     {
       m_bWindowLevel = true;
     }
@@ -89,7 +89,7 @@ bool Interactor2D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
       m_bSelecting = true;
       view->StartSelection( m_nMousePosX, m_nMousePosY );
   }
-  else if ( event.RightDown() && event.ShiftDown() && !event.ControlDown() )
+  else if ( event.RightDown() && event.ShiftDown() && !event.CmdDown() )
   {
     m_bWindowLevel = true;
   }

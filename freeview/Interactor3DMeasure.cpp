@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/06/30 21:36:34 $
- *    $Revision: 1.3 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/11/01 21:38:45 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -51,7 +51,7 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
 
   if ( m_nAction == MM_SurfaceRegion && !Interactor3D::IsInAction() && event.LeftDown() )
   {
-    if ( event.ControlDown() && !event.ShiftDown() )
+    if ( event.CmdDown() && !event.ShiftDown() )
     {
       if ( view->InitializeSelectRegion( event.GetX(), event.GetY() ) )
       {
@@ -59,7 +59,7 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
         return false;   // do not pass down the event
       }
     }
-    else if ( event.ControlDown() && event.ShiftDown() )
+    else if ( event.CmdDown() && event.ShiftDown() )
     {
       LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
       if ( mri && mri->GetCurrentSurfaceRegion() )
@@ -69,7 +69,7 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
         return false;
       }
     }
-    else if ( !event.ControlDown() && event.ShiftDown() )
+    else if ( !event.CmdDown() && event.ShiftDown() )
     {
       LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
       if ( mri && mri->GetCurrentSurfaceRegion() )
@@ -133,17 +133,17 @@ void Interactor3DMeasure::UpdateCursor( wxEvent& event, wxWindow* wnd )
     wxMouseEvent* e = ( wxMouseEvent* )&event;
     if ( !e->RightDown() && !e->MiddleDown() )
     {
-      if ( e->ControlDown() && !e->ShiftDown() )
+      if ( e->CmdDown() && !e->ShiftDown() )
       {
         wnd->SetCursor( CursorFactory::CursorContour );
         return;
       }
-      else if ( e->ControlDown() && e->ShiftDown() )
+      else if ( e->CmdDown() && e->ShiftDown() )
       {
         wnd->SetCursor( CursorFactory::CursorAdd );
         return;
       }
-      else if ( !e->ControlDown() && e->ShiftDown() )
+      else if ( !e->CmdDown() && e->ShiftDown() )
       {
         wnd->SetCursor( CursorFactory::CursorRemove );
         return;
@@ -161,12 +161,12 @@ void Interactor3DMeasure::UpdateCursor( wxEvent& event, wxWindow* wnd )
         return;
       }
       else if ( ( e->GetKeyCode() == WXK_CONTROL && e->ShiftDown() ) ||
-                  ( e->GetKeyCode() == WXK_SHIFT && e->ControlDown() ) )
+                  ( e->GetKeyCode() == WXK_SHIFT && e->CmdDown() ) )
       {
         wnd->SetCursor( CursorFactory::CursorAdd );
         return;
       }
-      else if ( e->GetKeyCode() == WXK_SHIFT && !e->ControlDown() )
+      else if ( e->GetKeyCode() == WXK_SHIFT && !e->CmdDown() )
       {
         wnd->SetCursor( CursorFactory::CursorRemove );
         return;

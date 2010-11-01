@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/05/24 21:42:53 $
- *    $Revision: 1.7 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/11/01 21:38:45 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -61,7 +61,7 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
   
   if ( event.LeftDown() )
   {
-    if ( event.ControlDown() && event.ShiftDown() )
+    if ( event.CmdDown() && event.ShiftDown() )
       return Interactor2D::ProcessMouseDownEvent( event, renderview );
 
     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->GetLayerCollection( "MRI" );
@@ -275,7 +275,7 @@ void Interactor2DMeasure::UpdateCursor( wxEvent& event, wxWindow* wnd )
     {
       wxMouseEvent* e = ( wxMouseEvent* )&event;
       if ( ( ( e->MiddleDown() || e->RightDown() ) && !m_bEditing ) ||
-           ( e->ControlDown() && e->ShiftDown() ) )
+           ( e->CmdDown() && e->ShiftDown() ) )
       {
         Interactor2D::UpdateCursor( event, wnd );
         return;

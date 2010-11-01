@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/09/16 17:25:05 $
- *    $Revision: 1.17 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/11/01 21:38:45 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -55,16 +55,16 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
 
   if ( event.LeftDown() || ( event.RightDown() && event.LeftIsDown() ) )
   {
-    if ( event.ControlDown() && event.ShiftDown() )
+    if ( event.CmdDown() && event.ShiftDown() )
       return Interactor2D::ProcessMouseDownEvent( event, renderview );
 
     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager()->GetLayerCollection( m_strLayerTypeName.c_str() );
     LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
-    if ( (!mri || !mri->IsVisible()) ) //&& ( event.ControlDown() || m_nAction == EM_Polyline ) )
+    if ( (!mri || !mri->IsVisible()) ) //&& ( event.CmdDown() || m_nAction == EM_Polyline ) )
     {
       SendBroadcast( m_strLayerTypeName + "NotVisible", this );
     }
-    else if ( !mri->IsEditable() ) //&& ( event.ControlDown() || m_nAction == EM_Polyline ) )
+    else if ( !mri->IsEditable() ) //&& ( event.CmdDown() || m_nAction == EM_Polyline ) )
     {
       SendBroadcast( m_strLayerTypeName + "NotEditable", this );
     }
@@ -79,10 +79,10 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
 
       double ras[3];
       view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras );
-      if ( m_nAction == EM_Freehand ) //&& ( event.ControlDown() ) )
+      if ( m_nAction == EM_Freehand ) //&& ( event.CmdDown() ) )
       {
         mri->SaveForUndo( view->GetViewPlane() );
-        if ( event.ControlDown() )
+        if ( event.CmdDown() )
         {
           mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
         }
@@ -92,7 +92,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
           mri->SetVoxelByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
         }
       }
-      else if ( m_nAction == EM_Fill ) //&& ( event.ControlDown() ) )
+      else if ( m_nAction == EM_Fill ) //&& ( event.CmdDown() ) )
       {
         mri->SaveForUndo( view->GetViewPlane() );
         mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
@@ -100,7 +100,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
       else if ( m_nAction == EM_Polyline || m_nAction == EM_Livewire )
       {
         mri->SaveForUndo( view->GetViewPlane() );
-        if ( event.ControlDown() )
+        if ( event.CmdDown() )
         {
           mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
         }
@@ -135,7 +135,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
       }
       else if ( m_nAction == EM_ColorPicker && mri->IsTypeOf( "MRI" ) )
       {
-        if ( event.ControlDown() )
+        if ( event.CmdDown() )
         {
           mri->SaveForUndo( view->GetViewPlane() );
           mri->FloodFillByRAS( ras, view->GetViewPlane(), !event.ShiftDown() && !event.RightIsDown() );
@@ -160,7 +160,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
         }
           
         Contour2D* c2d = view->GetContour2D();
-        if ( event.ControlDown() && event.AltDown() )
+        if ( event.CmdDown() && event.AltDown() )
         {
           double dValue = mri_ref->GetVoxelValue( ras );
           if ( dValue != 0 )
@@ -175,7 +175,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( wxMouseEvent& event, RenderV
             m_bEditing = true;
           }
         }
-        else if ( event.ControlDown() && !event.AltDown() )
+        else if ( event.CmdDown() && !event.AltDown() )
         {
           mri->SaveForUndo( view->GetViewPlane() );
           ((LayerMRI*)mri)->FloodFillByContour2D( ras, c2d );
@@ -314,7 +314,7 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( wxMouseEvent& event, RenderV
         view->MousePositionToRAS( posX, posY, ras2 );
         c2d->RemoveLine( ras1, ras2 );
       }
-      else if ( event.ControlDown() && event.AltDown() )
+      else if ( event.CmdDown() && event.AltDown() )
       {
         double scale = 0.2;
         if ( mri_ref )
@@ -381,7 +381,7 @@ void Interactor2DVolumeEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
     {
       wxMouseEvent* e = ( wxMouseEvent* )&event;
       if ( ( ( e->MiddleDown() || e->RightDown() ) && !m_bEditing ) ||
-           ( e->ControlDown() && e->ShiftDown() ) )
+           ( e->CmdDown() && e->ShiftDown() ) )
       {
         Interactor2D::UpdateCursor( event, wnd );
         return;
@@ -400,7 +400,7 @@ void Interactor2DVolumeEdit::UpdateCursor( wxEvent& event, wxWindow* wnd )
         }
       }
 
-      if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->ControlDown()
+      if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) && (( wxMouseEvent* )&event)->CmdDown()
            && !(( wxMouseEvent* )&event)->ShiftDown() && !(( wxMouseEvent* )&event)->AltDown() )
       {
         wnd->SetCursor( CursorFactory::CursorFill );
