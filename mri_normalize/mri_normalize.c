@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/10/01 20:42:23 $
- *    $Revision: 1.67 $
+ *    $Date: 2010/11/02 23:02:49 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -86,6 +86,8 @@ static float intensity_above = 25 ;
 static float intensity_below = 10 ;
 
 static char *control_point_fname ;
+static char *long_control_volume_fname = NULL ;
+static char *long_bias_volume_fname = NULL ;
 
 static char *aseg_fname = NULL ;
 //static int aseg_wm_labels[] =
@@ -99,6 +101,7 @@ static int aseg_wm_labels[] =
 static char *control_volume_fname = NULL ;
 static char *bias_volume_fname = NULL ;
 static int read_flag = 0 ;
+static int long_flag = 0 ;
 
 static int no1d = 0 ;
 static int file_only = 0 ;
@@ -120,14 +123,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.67 2010/10/01 20:42:23 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.68 2010/11/02 23:02:49 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.67 2010/10/01 20:42:23 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.68 2010/11/02 23:02:49 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -292,6 +295,41 @@ main(int argc, char *argv[]) {
     exit(0) ;
   }
 
+  if (long_flag) {
+    MRI *mri_ctrl ;
+    double scale ;
+
+    mri_bias = MRIread(long_bias_volume_fname) ;
+    if (!mri_bias)
+      ErrorExit
+      (ERROR_BADPARM,
+       "%s: could not read bias volume %s", Progname, long_bias_volume_fname) ;
+    mri_ctrl = MRIread(long_control_volume_fname) ;
+    if (!mri_ctrl)
+      ErrorExit
+      (ERROR_BADPARM,
+       "%s: could not read control volume %s",
+       Progname, long_control_volume_fname) ;
+    MRIbinarize(mri_ctrl, mri_ctrl, 1, 0, 128) ;
+    if (mri_ctrl->type != MRI_UCHAR)
+    {
+      MRI *mri_tmp ;
+      mri_tmp = MRIchangeType(mri_ctrl, MRI_UCHAR, 0, 1,1);
+      MRIfree(&mri_ctrl) ; mri_ctrl = mri_tmp ;
+    }
+    scale = MRImeanInLabel(mri_src, mri_ctrl, 128) ;
+    printf("mean in wm is %2.0f, scaling by %2.2f\n", scale, 110/scale) ;
+    scale = 110/scale ;
+    mri_dst = MRIscalarMul(mri_src, NULL, scale) ;
+    MRIremoveWMOutliers(mri_dst, mri_ctrl, mri_ctrl, intensity_below) ;
+    mri_bias = MRIbuildBiasImage(mri_dst, mri_ctrl, NULL, 0.0) ;
+    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, 25) ;
+    MRIapplyBiasCorrectionSameGeometry(mri_dst, mri_bias, mri_dst,
+                                       DEFAULT_DESIRED_WHITE_MATTER_VALUE);
+    //    MRIwrite(mri_dst, out_fname) ;
+    //    exit(0) ;
+  }
+
 #if 0
 #if 0
   if ((mri_src->type != MRI_UCHAR) ||
@@ -333,19 +371,21 @@ main(int argc, char *argv[]) {
 
   /* first do a gentle normalization to get
      things in the right intensity range */
-  if (control_point_fname != NULL)  /* do one pass with only
-                                       file control points first */
-    mri_dst =
-      MRI3dGentleNormalize(mri_src,
-                           NULL,
-                           DEFAULT_DESIRED_WHITE_MATTER_VALUE,
-                           NULL,
-                           intensity_above,
-                           intensity_below/2,1,
-                           bias_sigma);
-  else
-    mri_dst = MRIcopy(mri_src, NULL) ;
-
+  if (long_flag == 0)  // if long, then this will already have been done with base control points
+  {
+    if (control_point_fname != NULL)  /* do one pass with only
+                                         file control points first */
+      mri_dst =
+        MRI3dGentleNormalize(mri_src,
+                             NULL,
+                             DEFAULT_DESIRED_WHITE_MATTER_VALUE,
+                             NULL,
+                             intensity_above,
+                             intensity_below/2,1,
+                             bias_sigma);
+    else
+      mri_dst = MRIcopy(mri_src, NULL) ;
+  }
   if (mri_aseg) {
     MRI *mri_ctrl, *mri_bias ;
     int  i ;
@@ -442,7 +482,7 @@ main(int argc, char *argv[]) {
                                                          DEFAULT_DESIRED_WHITE_MATTER_VALUE) ;
             MRIfree(&mri_ctrl) ;
           }
-          else  // no initial normalization specified
+          else if (long_flag == 0)  // no initial normalization specified
             mri_dst = MRIclone(mri_src, NULL) ;
         }
         else
@@ -481,6 +521,9 @@ main(int argc, char *argv[]) {
                      file_only, prune, bias_sigma, scan_type);
   }
 
+  if (control_volume_fname)
+    // this just setup writing control-point volume saving
+    MRI3dWriteControlPoints(control_volume_fname) ;
   if (bias_volume_fname) {
     mri_bias = compute_bias(mri_src, mri_dst, NULL) ;
     printf("writing bias field to %s....\n", bias_volume_fname) ;
@@ -628,6 +671,15 @@ get_option(int argc, char *argv[]) {
       bias_volume_fname = argv[3] ;
       printf("reading bias field from %s and ctrl points from %s\n",
              bias_volume_fname, control_volume_fname) ;
+      break ;
+    case 'L':
+      long_flag = 1 ;
+      no1d = 1 ;
+      nargs = 2 ;
+      long_control_volume_fname = argv[2] ;
+      long_bias_volume_fname = argv[3] ;
+      printf("reading bias field from %s and ctrl points from %s\n",
+             long_bias_volume_fname, long_control_volume_fname) ;
       break ;
     case 'W':
       control_volume_fname = argv[2] ;
