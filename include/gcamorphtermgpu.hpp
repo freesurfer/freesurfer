@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/27 18:51:00 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/11/03 14:12:52 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -207,6 +207,11 @@ namespace GPU {
 	MRIfree( &mriCPU );
 
 	GCAmorphTerm::tLabelTot.Stop();
+
+	// Shut up compiler warning
+	if( false ) {
+	  std::cout << __FUNCTION__ << num << std::endl;
+	}
 
 	return( NO_ERROR );
       }

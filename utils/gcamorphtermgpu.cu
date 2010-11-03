@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/27 18:51:03 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/11/03 14:12:49 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -969,7 +969,7 @@ namespace GPU {
 
     template<typename T, typename U>
     void GCAmorphTerm::LLtermDispatch( GCA_MORPH *gcam,
-				       const MRI*  mri,
+				       const MRI* mri,
 				       const MRI* mri_smooth,
 				       double l_log_likelihood ) const {
       GPU::Classes::GCAmorphGPU myGCAM;
@@ -1034,6 +1034,11 @@ namespace GPU {
       case MRI_UCHAR:
 	this->LLTmrismoothDispatch<unsigned char>( gcam, mri, mri_smooth,
 						   l_log_likelihood );
+	break;
+
+      case MRI_FLOAT:
+	this->LLTmrismoothDispatch<float>( gcam, mri, mri_smooth,
+					   l_log_likelihood );
 	break;
 
       default:

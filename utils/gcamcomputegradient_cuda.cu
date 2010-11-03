@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/29 19:15:08 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/11/03 14:12:48 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -48,8 +48,8 @@
 
 template<typename T, typename U>
 int ComputeGradient( GPU::Classes::GCAmorphGPU& gcam,
-		     GPU::Classes::MRIframeGPU<T>& mri,
-		     GPU::Classes::MRIframeGPU<U>& mri_smooth,
+		     const GPU::Classes::MRIframeGPU<T>& mri,
+		     const GPU::Classes::MRIframeGPU<U>& mri_smooth,
 		     GCA_MORPH_PARMS *parms ) {
 
   static GPU::Algorithms::GCAmorphTerm myTerms;
@@ -174,13 +174,88 @@ int ComputeGradient( GPU::Classes::GCAmorphGPU& gcam,
 
 
 
+template<typename T, typename U>
+int
+gcamCGFinalDispatch( GCA_MORPH *gcam,
+		     const MRI *mri,
+		     const MRI *mri_smooth,
+		     GCA_MORPH_PARMS *parms ) {
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+  GPU::Classes::MRIframeGPU<T> myMRI;
+  GPU::Classes::MRIframeGPU<U> myMRIsmooth;
+
+  // Handle the MRIs
+  myMRI.Allocate( mri );
+  myMRI.Send( mri, 0 );
+  myMRI.AllocateArray();
+  myMRI.SendArray();
+  
+  myMRIsmooth.Allocate( mri_smooth );
+  myMRIsmooth.Send( mri_smooth, 0 );
+  myMRIsmooth.AllocateArray();
+  myMRIsmooth.SendArray();
+
+  // Run the computation
+  ComputeGradient( myGCAM, myMRI, myMRIsmooth, parms );
+
+  // Retrieve results
+  myGCAM.RecvAll( gcam );
+
+  return( NO_ERROR );
+}
 
 
 
+template<typename T>
+int
+gcamCGSmoothDispatch( GCA_MORPH *gcam,
+		      const MRI *mri,
+		      const MRI *mri_smooth,
+		      GCA_MORPH_PARMS *parms ) {
+  
+  switch( mri_smooth->type ) {
+
+  case MRI_UCHAR:
+    gcamCGFinalDispatch<T,unsigned char>( gcam, mri, mri_smooth, parms );
+    break;
+
+  default:
+    std::cerr << __FUNCTION__
+	      << ": Unrecognised type for mri_smooth "
+	      << mri_smooth->type << std::endl;
+    exit( EXIT_FAILURE );
+  }
+
+  return( NO_ERROR );
+}
 
 
 
+int gcamComputeGradientGPU( GCA_MORPH *gcam,
+			    const MRI *mri,
+			    const MRI *mri_smooth,
+			    GCA_MORPH_PARMS *parms ) {
 
+  switch( mri->type ) {
+
+  case MRI_UCHAR:
+    gcamCGSmoothDispatch<unsigned char>( gcam, mri, mri_smooth, parms );
+    break;
+
+  case MRI_FLOAT:
+    gcamCGSmoothDispatch<float>( gcam, mri, mri_smooth, parms );
+    break;
+    
+  default:
+    std::cerr << __FUNCTION__
+	      << ": Unrecognised type for mri "
+	      << mri->type << std::endl;
+    exit( EXIT_FAILURE );
+  }
+
+  return( NO_ERROR );
+}
 
 
 

@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/29 16:18:44 $
- *    $Revision: 1.230 $
+ *    $Date: 2010/11/03 14:12:48 $
+ *    $Revision: 1.231 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,6 +54,8 @@
 #define GCAM_LABEL_TERM_GPU
 
 #define GCAM_SMOOTH_GRADIENT_GPU
+
+#define GCAM_COMPUTE_GRADIENT_GPU
 
 #else
 // Have to turn everything off
@@ -182,7 +184,7 @@ static MATRIX *gcamComputeOptimalTargetLinearTransform(GCA_MORPH *gcam,
                                                        double reg) ;
 static int    gcamApplyLinearTransform(GCA_MORPH *gcam, MATRIX *m_L) ;
 static int gcamComputeTargetGradient(GCA_MORPH *gcam) ;
-static int gcamExpansionTerm(GCA_MORPH *gcam, MRI *mri, double l_expansion) ;
+int gcamExpansionTerm(GCA_MORPH *gcam, MRI *mri, double l_expansion) ;
 static double gcamExpansionEnergy(GCA_MORPH *gcam, MRI *mri) ;
 static int gcamSetTotalMovement(GCA_MORPH *gcam, float alpha) ;
 static int gcamCheckJacobian(GCA_MORPH *gcam, float min_j, float max_j) ;
@@ -236,11 +238,11 @@ static int gcamLimitGradientMagnitude(GCA_MORPH *gcam,
                                       MRI *mri) ;
 
 
-static int gcamMultiscaleTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
+int gcamMultiscaleTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                               double l_multiscale) ;
-static int gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri,double l_dtrans, GCA_MORPH_PARMS *mp) ;
+int gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri,double l_dtrans, GCA_MORPH_PARMS *mp) ;
 static double gcamDistanceTransformEnergy(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *mp) ;
-static int gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
+int gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                               double l_likelihood, GCA_MORPH_PARMS *parms) ;
 static double gcamMapEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
@@ -248,17 +250,17 @@ static double gcamBinaryEnergy(GCA_MORPH *gcam, MRI *mri) ;
 static double gcamAreaIntensityEnergy(GCA_MORPH *gcam, 
                                       MRI *mri, 
                                       NODE_LOOKUP_TABLE *nlt) ;
-static int gcamMapTerm(GCA_MORPH *gcam, 
+int gcamMapTerm(GCA_MORPH *gcam, 
                        MRI *mri, 
                        MRI *mri_smooth, 
                        double l_map) ;
 
-static int gcamBinaryTerm(GCA_MORPH *gcam, 
+int gcamBinaryTerm(GCA_MORPH *gcam, 
                           MRI *mri, 
                           MRI *mri_smooth, 
                           MRI *mri_dist, 
                           double l_binary) ;
-static int gcamAreaIntensityTerm(GCA_MORPH *gcam, 
+int gcamAreaIntensityTerm(GCA_MORPH *gcam, 
                                  MRI *mri, MRI *mri_smooth,
                                  double l_area_intensity, 
                                  NODE_LOOKUP_TABLE *nlt, float sigma) ;
@@ -267,27 +269,27 @@ static int gcamAreaIntensityTerm(GCA_MORPH *gcam,
 
 static double gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
-static int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
+int gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance) ;
 static double gcamDistanceEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
 
 
-static int gcamLSmoothnessTerm(GCA_MORPH *gcam, 
+int gcamLSmoothnessTerm(GCA_MORPH *gcam, 
                                MRI *mri, 
                                double l_smoothness) ;
 static double gcamLSmoothnessEnergy(GCA_MORPH *gcam, MRI *mri) ;
 
-static int gcamSpringTerm(GCA_MORPH *gcam, 
+int gcamSpringTerm(GCA_MORPH *gcam, 
                           double l_spring, 
                           double ratio_thresh) ;
 static double gcamSpringEnergy(GCA_MORPH *gcam, double ratio_thresh) ;
 
 //static int gcamInvalidSpringTerm(GCA_MORPH *gcam, double l_spring) ;
 
-static int gcamAreaSmoothnessTerm(GCA_MORPH *gcam, 
+int gcamAreaSmoothnessTerm(GCA_MORPH *gcam, 
                                   MRI *mri, 
                                   double l_jacobian) ;
-static int gcamAreaTerm(GCA_MORPH *gcam, double l_jacobian) ;
+int gcamAreaTerm(GCA_MORPH *gcam, double l_jacobian) ;
 static double gcamAreaEnergy(GCA_MORPH *gcam) ;
 
 
@@ -1784,7 +1786,7 @@ gcamLogLikelihoodTerm( GCA_MORPH *gcam,
 
 /*
  */
-static int
+int
 gcamLikelihoodTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, 
                    double l_likelihood, \
                    GCA_MORPH_PARMS *parms)
@@ -2061,7 +2063,7 @@ gcamLogLikelihoodEnergy( const GCA_MORPH *gcam, MRI *mri)
 }
 
 
-static int
+int
 gcamDistanceTerm(GCA_MORPH *gcam, MRI *mri, double l_distance)
 {
   double          dx, dy, dz, error, d0, d, xdelta, ydelta, zdelta ;
@@ -2499,7 +2501,7 @@ gcamJacobianTerm(GCA_MORPH *gcam, MRI *mri,
 }
 #endif
 
-static int
+int
 gcamAreaTerm(GCA_MORPH *gcam, double l_area)
 {
   int    i, j, k ;
@@ -2529,7 +2531,7 @@ gcamAreaTerm(GCA_MORPH *gcam, double l_area)
   return(NO_ERROR) ;
 }
 
-static int
+int
 gcamAreaSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_area_smoothness)
 {
   int            i, j, k ;
@@ -5460,6 +5462,11 @@ int
 gcamComputeGradient
 (GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, GCA_MORPH_PARMS *parms)
 {
+
+#ifdef GCAM_COMPUTE_GRADIENT_GPU
+  printf( "%s: On GPU\n", __FUNCTION__ );
+  gcamComputeGradientGPU( gcam, mri, mri_smooth, parms );
+#else
   static int i = 0 ;
 
   // make dx = dy = 0
@@ -5566,6 +5573,8 @@ gcamComputeGradient
     MRIfree(&mri) ;
   }
   i++ ;  /* for debugging */
+#endif
+
   return(NO_ERROR) ;
 }
 
@@ -5955,7 +5964,9 @@ gcamSmoothnessEnergy( const GCA_MORPH *gcam, const MRI *mri )
 
   return(sse) ;
 }
-static int
+
+
+int
 gcamLSmoothnessTerm(GCA_MORPH *gcam, MRI *mri, double l_smoothness)
 {
   double          vx, vy, vz, vnx, vny, vnz, dx, dy, dz ;
@@ -6112,7 +6123,8 @@ gcamLSmoothnessEnergy(GCA_MORPH *gcam, MRI *mri)
   return(sse) ;
 }
 
-static int
+
+int
 gcamSpringTerm(GCA_MORPH *gcam, double l_spring, double ratio_thresh)
 {
   double          xc, yc, zc, dx, dy, dz ;
@@ -8645,7 +8657,7 @@ gcamLabelTerm( GCA_MORPH *gcam, const MRI *mri,
 
 
 
-static int
+int
 gcamMapTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_map)
 {
   int             x, y, z, n, xn, yn, zn, i ;
@@ -9757,7 +9769,7 @@ gcamBinaryEnergy(GCA_MORPH *gcam, MRI *mri)
 
 #define MAX_NBR_NODES   30000
 
-static int
+int
 gcamAreaIntensityTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_area_intensity,
                       NODE_LOOKUP_TABLE *nlt, float sigma)
 {
@@ -9991,7 +10003,8 @@ gcamAreaIntensityTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_area_
   return(NO_ERROR) ;
 }
 
-static int
+
+int
 gcamBinaryTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, MRI *mri_dist, double l_binary)
 {
   int            x, y, z ;
@@ -13662,7 +13675,8 @@ gcamComputeOptimalLinearTransformInRegion(GCA_MORPH *gcam, MRI *mri_mask, MATRIX
   MatrixFree(&m_Uinv) ;
   return(m_L) ;
 }
-static int
+
+int
 gcamExpansionTerm(GCA_MORPH *gcam, MRI *mri, double l_expansion)
 {
   double    sse, error_0, error_n, dx, dy, dz ;
@@ -14464,7 +14478,8 @@ dtrans_label_to_frame(GCA_MORPH_PARMS *mp, int label)
   return(frame) ;
 }
 
-static int
+
+int
 gcamDistanceTransformTerm(GCA_MORPH *gcam, MRI *mri, double l_dtrans, GCA_MORPH_PARMS *mp)
 {
   int             x, y, z, frame ;
@@ -14743,7 +14758,8 @@ gcamMultiscaleEnergy(GCA_MORPH *gcam, MRI *mri)
   return(-total_log_pval) ;
 }
 
-static int
+
+int
 gcamMultiscaleTerm(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, double l_multiscale)
 {
   GCAM_MS         *gcam_ms = (GCAM_MS *)gcam->vgcam_ms ;
