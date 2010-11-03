@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/11/02 22:12:50 $
-#    $Revision: 1.325 $
+#    $Date: 2010/11/03 14:20:28 $
+#    $Revision: 1.326 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.325 2010/11/02 22:12:50 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.326 2010/11/03 14:20:28 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -256,10 +256,10 @@ set DoMorphRGB       = 0;
 set DoWhiteSurfs     = 0;
 set DoSurfVolume     = 0;
 set DoCortParc       = 0;
+set DoPialSurfs      = 0;
 set DoCortParc2      = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
-set DoPialSurfs      = 0;
 set DoCurvStats      = 0;
 set DoVnoMatchCheck  = 0;
 set DoLocalGyriIndex = 0;
@@ -2766,6 +2766,67 @@ foreach hemi ($hemilist)
     echo $cmd > $touchdir/$hemi.aparc.touch
   endif
 
+  #---------------- Make Pial Surfaces --------------------------#
+  if($DoPialSurfs) then
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Make Pial Surf $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/scripts > /dev/null
+
+    if( $longitudinal ) then
+      set cmd = (cp -vf $longbasedir/surf/${hemi}.pial\
+                        $subjdir/surf/${hemi}.orig_pial)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+
+    # Note mris_make_surfaces uses filled.mgz implicitly
+    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
+    if($longitudinal) then
+      # longitudinal processing:
+      set cmd = (mris_make_surfaces \
+          -orig_pial orig_pial \
+          -long -max 3.5)
+    else
+      # default stream:
+      set cmd = (mris_make_surfaces)
+    endif
+    if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+    set cmd = ($cmd -nowhite)
+    set cmd = ($cmd -mgz -T1 brain.finalsurfs)
+    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
+    $PWD |& tee -a $LF
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.final_surfaces.touch
+  endif
+  if($DoPialSurfs || $DoSurfVolume) then
+    echo "#--------------------------------------------" \
+      |& tee -a $LF |& tee -a $CF
+    echo "#@# Surf Volume $hemi `date`" \
+      |& tee -a $SF |& tee -a $LF |& tee -a $CF
+    cd $subjdir/surf > /dev/null
+    $PWD |& tee -a $LF
+    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    set cmd=(mris_calc -o ${hemi}.volume)
+    set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
+    echo $cmd > $touchdir/$hemi.surfvolume.touch
+  endif
+
   # ---------- Surface Anatomical Stats ---------------------------
   if($DoParcStats) then
     echo "#-----------------------------------------" \
@@ -2835,70 +2896,6 @@ foreach hemi ($hemilist)
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.aparcstats2.touch
   endif
-
-  #---------------- Make Pial Surfaces --------------------------#
-  if($DoPialSurfs) then
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Make Pial Surf $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/scripts > /dev/null
-
-    if( $longitudinal ) then
-      set cmd = (cp -vf $longbasedir/surf/${hemi}.pial\
-                        $subjdir/surf/${hemi}.orig_pial)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;
-    endif
-
-    # Note mris_make_surfaces uses filled.mgz implicitly
-    set xopts = `fsr-getxopts mris_make_surfaces $XOptsFile`;
-    if($longitudinal) then
-      # longitudinal processing:
-      set cmd = (mris_make_surfaces \
-          -orig_pial orig_pial \
-          -long -max 3.5)
-    else
-      # default stream:
-      set cmd = (mris_make_surfaces)
-    endif
-    if ( ! $UseAseg) set cmd = ($cmd -noaseg)
-    set cmd = ($cmd -nowhite)
-    set cmd = ($cmd -mgz -T1 brain.finalsurfs)
-    set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
-    $PWD |& tee -a $LF
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.final_surfaces.touch
-  endif
-  if($DoPialSurfs || $DoSurfVolume) then
-    echo "#--------------------------------------------" \
-      |& tee -a $LF |& tee -a $CF
-    echo "#@# Surf Volume $hemi `date`" \
-      |& tee -a $SF |& tee -a $LF |& tee -a $CF
-    cd $subjdir/surf > /dev/null
-    $PWD |& tee -a $LF
-    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area add ${hemi}.area.pial)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd=(mris_calc -o ${hemi}.area.mid ${hemi}.area.mid div 2)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    set cmd=(mris_calc -o ${hemi}.volume)
-    set cmd=($cmd ${hemi}.area.mid mul ${hemi}.thickness)
-    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-    if($RunIt) $fs_time $cmd |& tee -a $LF
-    if($status) goto error_exit;
-    if(-e .xdebug_mris_calc) rm -f .xdebug_mris_calc
-    echo $cmd > $touchdir/$hemi.surfvolume.touch
-  endif
-
-
-
 
   # ---------- Surface Vertices Number Match Check --------------
   if($DoVnoMatchCheck) then
@@ -4377,10 +4374,10 @@ while( $#argv != 0 )
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
+      set DoPialSurfs      = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
-      set DoPialSurfs      = 1;
       set DoCortRibbonVolMask = 1;
       set DoSegStats       = 1;
       set DoAParc2ASeg     = 1;
@@ -4518,10 +4515,10 @@ while( $#argv != 0 )
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
+      set DoPialSurfs      = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
-      set DoPialSurfs      = 1;
       breaksw
 
     case "-autorecon3":
@@ -4531,10 +4528,10 @@ while( $#argv != 0 )
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
+      set DoPialSurfs      = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
-      set DoPialSurfs      = 1;
       set DoSegStats       = 1;
       set DoCortRibbonVolMask = 1;
       set DoAParc2ASeg     = 1;
@@ -4567,10 +4564,10 @@ while( $#argv != 0 )
       set DoAvgCurv        = 1;
       set DoJacobianWhite  = 1;
       set DoCortParc       = 1;
+      set DoPialSurfs      = 1;
       set DoParcStats      = 1;
       set DoCortParc2      = 1;
       set DoParcStats2     = 1;
-      set DoPialSurfs      = 1;
       set DoCortRibbonVolMask = 0;
       set DoAParc2ASeg     = 0;
       set DoWMParc         = 0;
@@ -6056,6 +6053,21 @@ Incorporates both geometric information derived from the cortical model
 Calls mris_ca_label.  -cortparc creates label/?h.aparc.annot, and
 -cortparc2 creates /label/?h.aparc.a2009s.annot.
 
+Pial Surfaces (-<no>pial)
+
+Creates the ?h.pial surfaces as well as the thickness file (?h.thickness).
+The pial surface is created by expanding the white surface so that it closely
+follows the gray-CSF intensity gradient as found in the T1 volume.  The
+cortical parcellation is also used to refine the surface in certain areas.
+Calls mris_make_surfaces.
+
+Surface Volume (-surfvolume)
+
+Creates the ?h.volume file by first creating the ?h.mid.area file by
+adding ?h.area(.white) to ?h.area.pial, then dividing by two.  Then
+?h.volume is created by multiplying ?.mid.area with ?h.thickness.
+This step is also run at the end of the -pial step.
+
 Parcellation Statistics (-<no>parcstats, -<no>parcstats2)
 
 Runs mris_anatomical_stats to create a summary table of cortical
@@ -6067,20 +6079,6 @@ curvature 8. integrated rectified Gaussian wm curvature 9. folding index
 10. intrinsic curvature index.
 For -parcstats, the file is saved in stats/?h.aparc.stats.
 For -parcstats2, the file is saved in stats/?h.aparc.${DESTRIEUX_NAME}.stats.
-
-Pial Surfaces (-<no>pial)
-
-Creates the ?h.pial surfaces as well as the thickness file (?h.thickness).
-The pial surface is created by expanding the white surface so that it closely
-follows the gray-CSF intensity gradient as found in the T1 volume.
-Calls mris_make_surfaces.
-
-Surface Volume (-surfvolume)
-
-Creates the ?h.volume file by first creating the ?h.mid.area file by
-adding ?h.area(.white) to ?h.area.pial, then dividing by two.  Then
-?h.volume is created by multiplying ?.mid.area with ?h.thickness.
-This step is also run at the end of the -pial step.
 
 Cortical Ribbon Mask (-<no>cortribbon)
 
