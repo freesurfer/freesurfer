@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2010/11/03 19:04:59 $
-#    $Revision: 1.327 $
+#    $Date: 2010/11/03 19:34:58 $
+#    $Revision: 1.328 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.327 2010/11/03 19:04:59 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.328 2010/11/03 19:34:58 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1522,7 +1522,9 @@ skullstrip:
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
-    set cmd=(mri_mask T1.mgz ${bmbase} ${BMA})
+    set cmd = (mri_mask -transfer 255)
+    set cmd = ($cmd -keep_mask_deletion_edits)
+    set cmd = ($cmd T1.mgz ${bmbase} ${BMA})
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -1555,7 +1557,9 @@ skullstrip:
       if($status) goto error_exit;
     endif
     # create brainmask.auto by applying brainmask_template to T1
-    set cmd = (mri_mask T1.mgz brainmask_template.mgz $BMA)
+    set cmd = (mri_mask -transfer 255)
+    set cmd = ($cmd -keep_mask_deletion_edits)
+    set cmd = ($cmd T1.mgz brainmask_template.mgz $BMA)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
