@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/10/28 12:18:36 $
- *    $Revision: 1.117 $
+ *    $Author: nicks $
+ *    $Date: 2010/11/03 16:14:30 $
+ *    $Revision: 1.118 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.117 2010/10/28 12:18:36 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.118 2010/11/03 16:14:30 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -241,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.117 2010/10/28 12:18:36 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.118 2010/11/03 16:14:30 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.117 2010/10/28 12:18:36 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.118 2010/11/03 16:14:30 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -751,6 +751,7 @@ main(int argc, char *argv[]) {
   if (aseg_name) {
     char fname[STRLEN] ;
     sprintf(fname, "%s/%s/mri/%s", sdir, sname, aseg_name) ;
+    fprintf(stderr, "reading volume %s...\n", fname) ;
     mri_aseg = MRIread(fname) ;
     if (mri_aseg == NULL)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation volume %s",
