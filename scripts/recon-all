@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2010/11/03 19:34:58 $
-#    $Revision: 1.328 $
+#    $Date: 2010/11/03 19:53:35 $
+#    $Revision: 1.329 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.328 2010/11/03 19:34:58 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.329 2010/11/03 19:53:35 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1522,10 +1522,17 @@ skullstrip:
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
-    set cmd = (mri_mask -transfer 255)
-    set cmd = ($cmd -keep_mask_deletion_edits)
+    # first apply mask and keep deletion edits (1)
+    set cmd = (mri_mask -keep_mask_deletion_edits)
     set cmd = ($cmd T1.mgz ${bmbase} ${BMA})
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # then transfer the 255 edits (still keep deletions)
+    set cmd = (mri_mask -transfer 255)
+    set cmd = ($cmd -keep_mask_deletion_edits)
+    set cmd = ($cmd $BMA ${bmbase} $BMA)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
 
@@ -1557,9 +1564,16 @@ skullstrip:
       if($status) goto error_exit;
     endif
     # create brainmask.auto by applying brainmask_template to T1
+		# first apply mask and keep deletion edits (1)
+    set cmd = (mri_mask -keep_mask_deletion_edits)
+    set cmd = ($cmd T1.mgz brainmask_template.mgz $BMA)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # then copy over the 255 (edits) and still keep deletions (1)
     set cmd = (mri_mask -transfer 255)
     set cmd = ($cmd -keep_mask_deletion_edits)
-    set cmd = ($cmd T1.mgz brainmask_template.mgz $BMA)
+    set cmd = ($cmd $BMA brainmask_template.mgz $BMA)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
