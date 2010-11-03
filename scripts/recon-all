@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/11/03 14:20:28 $
-#    $Revision: 1.326 $
+#    $Author: mreuter $
+#    $Date: 2010/11/03 19:04:59 $
+#    $Revision: 1.327 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.326 2010/11/03 14:20:28 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.327 2010/11/03 19:04:59 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1554,8 +1554,9 @@ skullstrip:
       $fs_time $cmd |& tee -a $LF
       if($status) goto error_exit;
     endif
-    # create brainmask.auto by applying bm_template to T1
+    # create brainmask.auto by applying brainmask_template to T1
     set cmd = (mri_mask T1.mgz brainmask_template.mgz $BMA)
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     goto skipped_skullstrip;
