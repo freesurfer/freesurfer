@@ -34,16 +34,20 @@ $(BRAINMASK): $(T1)
 	recon-all -s $(subj) -skullstrip
 
 
-#------------------- A U T O R E C O N	 2	 V O L	----------------------
+#------------------- A U T O R E C O N   2   V O L	----------------------
 TAL_LTA=$(subj)/mri/transforms/talairach.lta
 NORM=$(subj)/mri/norm.mgz
 TAL_M3Z=$(subj)/mri/transforms/talairach.m3z
 NU_NONECK=$(subj)/mri/nu_noneck.mgz
 TAL_SKULL_LTA=$(subj)/mri/transforms/talairach_with_skull.lta
 ASEG=$(subj)/mri/aseg.mgz
-ASEG_STATS=$(subj)/stats/aseg.stats
+# ASEG_TOUCH can be used as a dependency target in some targets instead of
+# aseg.mgz because aseg.mgz can change in autorecon3 as a result of edits
+# via the surfaces.
+# the ASEG_TOUCH file is created after the aseg is first created.
+ASEG_TOUCH=$(subj)/touch/asegmerge.touch
 SUBCORTICAL=$(TAL_LTA) $(NORM) $(TAL_M3Z) $(NU_NONECK) $(TAL_SKULL_LTA) \
-	$(ASEG) $(ASEG_STATS)
+	$(ASEG)
 BRAIN=$(subj)/mri/brain.mgz
 BRAINFINALSURFS=$(subj)/mri/brain.finalsurfs.mgz
 WM=$(subj)/mri/wm.mgz
@@ -52,7 +56,7 @@ SEED_CC=$(wildcard $(subj)/scripts/seed-cc.crs.man.dat)
 SEED_LH=$(wildcard $(subj)/scripts/seed-lh.crs.man.dat)
 SEED_RH=$(wildcard $(subj)/scripts/seed-rh.crs.man.dat)
 FILLED=$(subj)/mri/filled.mgz
-AUTORECON2_VOL=$(SUBCORTICAL) $(BRAIN) $(WM) $(FILLED)
+AUTORECON2_VOL=$(SUBCORTICAL) $(BRAIN) $(BRAINFINALSURFS) $(WM) $(FILLED)
 
 autorecon2-vol: $(AUTORECON2_VOL)
 
@@ -99,7 +103,7 @@ $(FILLED): $(WM) $(ASEG) $(TAL_LTA) $(SEED_PONS) $(SEED_CC) $(SEED_LH) $(SEED_RH
 	recon-all -s $(subj) -fill
 
 
-#------------------- A U T O R E C O N	 2	 S U R F -----------------------
+#------------------- A U T O R E C O N   2   S U R F -----------------------
 LH=$(subj)/surf/lh
 RH=$(subj)/surf/rh
 ORIG_NOFIX_LH=$(LH).orig.nofix
@@ -116,10 +120,6 @@ INFLATED_LH=$(LH).inflated
 INFLATED_RH=$(RH).inflated
 WHITE_LH=$(LH).white
 WHITE_RH=$(RH).white
-PIAL_LH=$(LH).pial
-PIAL_RH=$(RH).pial
-THICKNESS_LH=$(LH).thickness
-THICKNESS_RH=$(RH).thickness
 CURV_LH=$(LH).curv
 CURV_RH=$(RH).curv
 AREA_LH=$(LH).area
@@ -137,8 +137,6 @@ AUTORECON2_SURF=$(ORIG_NOFIX_LH) $(ORIG_NOFIX_RH) \
 	$(QSPHERE_NOFIX_LH) $(QSPHERE_NOFIX_RH) \
 	$(ORIG_LH) $(ORIG_RH) \
 	$(WHITE_LH) $(WHITE_RH) \
-	$(PIAL_LH) $(PIAL_RH) \
-	$(THICKNESS_LH) $(THICKNESS_RH) \
 	$(CURV_LH) $(CURV_RH) \
 	$(AREA_LH) $(AREA_RH) \
 	$(SMOOTHWM_LH) $(SMOOTHWM_RH) \
@@ -183,35 +181,23 @@ $(ORIG_LH): $(ORIG_NOFIX_LH) $(INFLATED_NOFIX_LH) $(QSPHERE_NOFIX_LH)
 $(ORIG_RH): $(ORIG_NOFIX_RH) $(INFLATED_NOFIX_RH) $(QSPHERE_NOFIX_RH)
 	recon-all -s $(subj) -hemi rh -fix
 
-$(WHITE_LH): $(BRAINFINALSURFS) $(ORIG_LH)
-	recon-all -s $(subj) -hemi lh -finalsurfs
+$(WHITE_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
+	recon-all -s $(subj) -hemi lh -white
 
-$(WHITE_RH): $(BRAINFINALSURFS) $(ORIG_RH)
-	recon-all -s $(subj) -hemi rh -finalsurfs
+$(WHITE_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
+	recon-all -s $(subj) -hemi rh -white
 
-$(PIAL_LH): $(BRAINFINALSURFS) $(ORIG_LH)
-	recon-all -s $(subj) -hemi lh -finalsurfs
+$(CURV_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
+	recon-all -s $(subj) -hemi lh -white
 
-$(PIAL_RH): $(BRAINFINALSURFS) $(ORIG_RH)
-	recon-all -s $(subj) -hemi rh -finalsurfs
+$(CURV_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
+	recon-all -s $(subj) -hemi rh -white
 
-$(THICKNESS_LH): $(BRAINFINALSURFS) $(ORIG_LH)
-	recon-all -s $(subj) -hemi lh -finalsurfs
+$(AREA_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH)
+	recon-all -s $(subj) -hemi lh -white
 
-$(THICKNESS_RH): $(BRAINFINALSURFS) $(ORIG_RH)
-	recon-all -s $(subj) -hemi rh -finalsurfs
-
-$(CURV_LH): $(BRAINFINALSURFS) $(ORIG_LH)
-	recon-all -s $(subj) -hemi lh -finalsurfs
-
-$(CURV_RH): $(BRAINFINALSURFS) $(ORIG_RH)
-	recon-all -s $(subj) -hemi rh -finalsurfs
-
-$(AREA_LH): $(BRAINFINALSURFS) $(ORIG_LH)
-	recon-all -s $(subj) -hemi lh -finalsurfs
-
-$(AREA_RH): $(BRAINFINALSURFS) $(ORIG_RH)
-	recon-all -s $(subj) -hemi rh -finalsurfs
+$(AREA_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH)
+	recon-all -s $(subj) -hemi rh -white
 
 $(SMOOTHWM_LH): $(WHITE_LH)
 	recon-all -s $(subj) -hemi lh -smooth2
@@ -231,10 +217,6 @@ $(SULC_LH): $(WHITE_LH)
 $(SULC_RH): $(WHITE_RH)
 	recon-all -s $(subj) -hemi rh -inflate2
 
-$(ASEG_STATS): $(ASEG) $(WHITE_LH) $(WHITE_RH)
-	recon-all -s $(subj) -segstats
-
-
 #---------------------- A U T O R E C O N	 3 --------------------------
 SPHERE_LH=$(LH).sphere
 SPHERE_RH=$(RH).sphere
@@ -248,6 +230,10 @@ AVG_CURV_LH=$(LH).avg_curv
 AVG_CURV_RH=$(RH).avg_curv
 APARC_ANNOT_LH=$(subj)/label/lh.aparc.annot
 APARC_ANNOT_RH=$(subj)/label/rh.aparc.annot
+PIAL_LH=$(LH).pial
+PIAL_RH=$(RH).pial
+THICKNESS_LH=$(LH).thickness
+THICKNESS_RH=$(RH).thickness
 APARC_STATS_LH=$(subj)/stats/lh.aparc.stats
 APARC_STATS_RH=$(subj)/stats/rh.aparc.stats
 APARC_A2009S_ANNOT_LH=$(subj)/label/lh.aparc.a2009s.annot
@@ -256,6 +242,7 @@ APARC_A2009S_STATS_LH=$(subj)/stats/lh.aparc.a2009s.stats
 APARC_A2009S_STATS_RH=$(subj)/stats/rh.aparc.a2009s.stats
 RIBBON_LH=$(subj)/mri/lh.ribbon.mgz
 RIBBON_RH=$(subj)/mri/rh.ribbon.mgz
+ASEG_STATS=$(subj)/stats/aseg.stats
 APARC_ASEG=$(subj)/mri/aparc+aseg.mgz
 WMPARC=$(subj)/stats/wmparc.stats
 
@@ -264,10 +251,13 @@ AUTORECON3=$(SPHERE_LH) $(SPHERE_RH) \
 	$(JACOBIAN_WHITE_LH) $(JACOBIAN_WHITE_RH) \
 	$(AVG_CURV_LH) $(AVG_CURV_RH) \
 	$(APARC_ANNOT_LH) $(APARC_ANNOT_RH) \
+	$(PIAL_LH) $(PIAL_RH) \
+	$(THICKNESS_LH) $(THICKNESS_RH) \
 	$(APARC_STATS_LH) $(APARC_STATS_RH) \
 	$(APARC_A2009S_ANNOT_LH) $(APARC_A2009S_ANNOT_RH) \
 	$(APARC_A2009S_STATS_LH) $(APARC_A2009S_STATS_RH) \
 	$(RIBBON_LH) $(RIBBON_RH) \
+	$(ASEG_STATS) \
 	$(APARC_ASEG) $(WMPARC)
 
 autorecon3: $(AUTORECON3)
@@ -302,6 +292,18 @@ $(APARC_ANNOT_LH): $(SPHERE_REG_LH)
 $(APARC_ANNOT_RH): $(SPHERE_REG_RH)
 	recon-all -s $(subj) -hemi rh -cortparc
 
+$(PIAL_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH) $(WHITE_LH)
+	recon-all -s $(subj) -hemi lh -pial
+
+$(PIAL_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH) $(WHITE_RH)
+	recon-all -s $(subj) -hemi rh -pial
+
+$(THICKNESS_LH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_LH) $(WHITE_LH)
+	recon-all -s $(subj) -hemi lh -pial
+
+$(THICKNESS_RH): $(BRAINFINALSURFS) $(FILLED) $(ORIG_RH) $(WHITE_LH)
+	recon-all -s $(subj) -hemi rh -pial
+
 $(APARC_STATS_LH): $(APARC_ANNOT_LH)
 	recon-all -s $(subj) -hemi lh -parcstats
 
@@ -325,6 +327,9 @@ $(RIBBON_LH): $(ORIG) $(WHITE_LH) $(PIAL_LH)
 
 $(RIBBON_RH): $(ORIG) $(WHITE_RH) $(PIAL_RH)
 	recon-all -s $(subj) -hemi rh -cortribbon
+
+$(ASEG_STATS): $(ASEG) $(WHITE_LH) $(WHITE_RH) $(PIAL_LH) $(PIAL_RH)
+	recon-all -s $(subj) -segstats
 
 $(APARC_ASEG): $(ASEG) $(RIBBON_LH) $(RIBBON_RH) \
 	$(APARC_ANNOT_LH) $(APARC_ANNOT_RH)
