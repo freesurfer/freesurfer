@@ -95,6 +95,7 @@ MRISUBDIRS=\
 	mri_label2label \
 	mri_label2vol \
 	mri_linear_register \
+	mri_map_cpdat \
 	mri_make_bem_surfaces \
 	mri_make_register \
 	mri_make_template \
