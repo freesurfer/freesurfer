@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2010/11/03 19:53:35 $
-#    $Revision: 1.329 $
+#    $Author: nicks $
+#    $Date: 2010/11/04 17:33:19 $
+#    $Revision: 1.330 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.329 2010/11/03 19:53:35 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.330 2010/11/04 17:33:19 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -254,9 +254,9 @@ set DoContraSurfRegWithinSubject = 0;
 set DoAvgCurv        = 0;
 set DoMorphRGB       = 0;
 set DoWhiteSurfs     = 0;
-set DoSurfVolume     = 0;
 set DoCortParc       = 0;
 set DoPialSurfs      = 0;
+set DoSurfVolume     = 0;
 set DoCortParc2      = 0;
 set DoParcStats      = 0;
 set DoParcStats2     = 0;
@@ -3027,7 +3027,7 @@ if($DoCortRibbonVolMask) then
   set cmd = (mris_volmask \
     --label_left_white   2 --label_left_ribbon   3 \
     --label_right_white 41 --label_right_ribbon 42 \
-    --save_ribbon --save_distance $subjid)
+    --save_ribbon $subjid)
   $PWD |& tee -a $LF
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -4860,6 +4860,8 @@ while( $#argv != 0 )
       breaksw
 
     case "-vno_match_check":
+    case "-vno_check":
+    case "-vno-check":
       set DoVnoMatchCheck = 1;
       breaksw;
 
