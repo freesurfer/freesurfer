@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/10/14 20:45:48 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/11/04 12:48:49 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -45,7 +45,7 @@
 #include "version.h"
 #include "icosahedron.h"
 
-static char vcid[] = "$Id: mris_thickness.c,v 1.21 2010/10/14 20:45:48 fischl Exp $";
+static char vcid[] = "$Id: mris_thickness.c,v 1.22 2010/11/04 12:48:49 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -312,7 +312,7 @@ main(int argc, char *argv[]) {
   struct timeb  then ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.21 2010/10/14 20:45:48 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_thickness.c,v 1.22 2010/11/04 12:48:49 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -549,6 +549,7 @@ main(int argc, char *argv[]) {
       
       sprintf(fname, "%s.normals.mgz", tmp) ;
       printf("writing final surface normals to %s\n", fname) ;
+      MRISsaveVertexPositions(mris, TMP2_VERTICES) ;
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
       for (vno = 0 ; vno < mris->nvertices ; vno++)
       {
@@ -563,6 +564,7 @@ main(int argc, char *argv[]) {
         v->nz = v->tz - v->whitez ; 
       }
       MRISwriteNormals(mris, fname) ;
+      MRISrestoreVertexPositions(mris, TMP2_VERTICES) ;
     }
     if (long_fname)
     {
