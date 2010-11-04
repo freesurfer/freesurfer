@@ -7,8 +7,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/04 23:02:11 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/11/04 23:36:37 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010-2011,
  * The General Hospital Corporation (Boston, MA). 
@@ -64,7 +64,7 @@ static struct Parameters P =
 static int get_option(int argc, char *argv[], Parameters & P) ;
 static void  usage_exit(int code) ;
 
-static char vcid[] = "$Id: mri_map_cpdat.cpp,v 1.1 2010/11/04 23:02:11 mreuter Exp $";
+static char vcid[] = "$Id: mri_map_cpdat.cpp,v 1.2 2010/11/04 23:36:37 mreuter Exp $";
 char *Progname = NULL;
 
 int main(int argc, char *argv[])
@@ -83,11 +83,9 @@ int main(int argc, char *argv[])
   ErrorInit(NULL, NULL, NULL) ;
   //DiagInit(NULL, NULL, NULL) ;
 	
-  if (argc < 3)
-    usage_exit(0) ;
-		
 	
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[0]) ; argc--, argv++)
+	{
     nargs = get_option(argc, argv,P) ;
     argc -= nargs ;
     argv += nargs ;
@@ -107,10 +105,13 @@ int main(int argc, char *argv[])
 	// read ctrl points
   MPoint *pArray = MRIreadControlPoints(P.cpin.c_str(), &count, &useRealRAS);
   // read lta
+	cout << "Reading LTA" << endl;
 	LTA* lta = LTAread(P.lta.c_str());
 	// map ctrl points
+	cout << "Mapping control points..." << endl;
 	MPoint *mappedArray = MRImapControlPoints(pArray,count,useRealRAS,NULL,lta);
 	// write ctrl points
+	cout << "Writing control points..." << endl;
 	MRIwriteControlPoints(mappedArray, count, useRealRAS, P.cpout.c_str());
 
   //cleanup
@@ -127,7 +128,7 @@ get_option(int argc, char *argv[], Parameters & P)
   int  nargs = 0 ;
   char *option ;
 
-  option = argv[1] + 1 ;            /* past '-' */
+  option = argv[0] + 1 ;            /* past '-' */
   if (option[0] == '-') option = option +1;  // remove second '-'
   StrUpper(option) ;
 	
@@ -151,7 +152,7 @@ get_option(int argc, char *argv[], Parameters & P)
 	{
     P.lta = string(argv[1]);
     nargs = 1;
-    cout << "-lta: Using "<< P.lta << " as transform." << endl;
+    cout << "--lta: Using "<< P.lta << " as transform." << endl;
   }
 	else
 	{
