@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: fischl $
-#    $Date: 2010/11/05 13:21:29 $
-#    $Revision: 1.499 $
+#    $Author: nicks $
+#    $Date: 2010/11/05 21:19:27 $
+#    $Revision: 1.500 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2258,7 +2258,6 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   # we want to use the local / static jpeg, tiff and expat libs
   WXWIDGETS_LIBS="`${WXCONFIG} --libs | sed 's/-ljpeg/..\/jpeg\/libjpeg.a/g' | sed 's/-ltiff/..\/tiff\/libtiff.a/g' | sed 's/-lexpat/..\/expat\/libexpat.a/g'`"
   WXWIDGETS_GL_LIBS="`${WXCONFIG} --libs gl | sed 's/-ljpeg/..\/jpeg\/libjpeg.a/g' | sed 's/-ltiff/..\/tiff\/libtiff.a/g' | sed 's/-lexpat/..\/expat\/libexpat.a/g'`"
-  WXWIDGETS_OPTIONAL_LIBS="`${WXCONFIG} --optional-libs aui`"
 
   # except wx-config isn't so handy in including some header paths on Linux:
   if test -d /usr/include/gtk-2.0 ; then
@@ -2283,8 +2282,10 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   if test -e ${WXWIDGETS_DIR}/lib/libwx_gtk2u_gl-2.9.a ; then
     WXWIDGETS_LIBS="$WXWIDGETS_LIBS -lwx_gtk2u_gl-2.9"
   fi
+  WXWIDGETS_OPTIONAL_LIBS=
   if test -e ${WXWIDGETS_DIR}/lib/libwx_gtk2u_aui-2.9.a ; then
     WXWIDGETS_LIBS="$WXWIDGETS_LIBS -lwx_gtk2u_aui-2.9"
+    WXWIDGETS_OPTIONAL_LIBS="`${WXCONFIG} --optional-libs aui`"
   fi
   if test -e ${WXWIDGETS_DIR}/lib/libwx_gtk2u_core-2.9.a ; then
     WXWIDGETS_LIBS="$WXWIDGETS_LIBS -lwx_gtk2u_core-2.9"
