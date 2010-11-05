@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2010/11/04 23:02:51 $
-#    $Revision: 1.498 $
+#    $Author: fischl $
+#    $Date: 2010/11/05 13:21:29 $
+#    $Revision: 1.499 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3415,6 +3415,7 @@ AC_OUTPUT([Makefile
            mris_surface_to_vol_distances/Makefile
            mris_talairach/Makefile
            mris_thickness/Makefile
+           mris_surface_change/Makefile
            mris_BA_segment/Makefile
            mris_compute_optimal_kernel/Makefile
            mris_thickness_comparison/Makefile

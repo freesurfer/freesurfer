@@ -260,6 +260,7 @@ MRISSUBDIRS=\
 	mris_surface_to_vol_distances \
 	mrisp_paint \
 	mris_talairach \
+	mris_surface_change \
 	mris_thickness \
 	mris_BA_segment \
 	mris_compute_optimal_kernel \
