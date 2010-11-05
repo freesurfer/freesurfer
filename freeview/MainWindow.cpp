@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/10/22 19:43:03 $
- *    $Revision: 1.149 $
+ *    $Author: ginsburg $
+ *    $Date: 2010/11/05 13:22:08 $
+ *    $Revision: 1.150 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -952,7 +952,7 @@ void MainWindow::OnFileExit( wxCommandEvent& event )
 
 void MainWindow::OnActivate( wxActivateEvent& event )
 {
-#ifdef __WXGTK__
+#if defined(__WXGTK__) || defined(__WXMAC__)
   NeedRedraw( 2 );
 #endif
   event.Skip();
@@ -960,7 +960,7 @@ void MainWindow::OnActivate( wxActivateEvent& event )
 
 void MainWindow::OnIconize( wxIconizeEvent& event )
 {
-#ifdef __WXGTK__
+#if defined(__WXGTK__) || defined(__WXMAC__)
 //#if wxCHECK_VERSION(2,9,0)
 #if wxVERSION_NUMBER > 2900  
   if ( !event.IsIconized() )
@@ -2230,7 +2230,7 @@ void MainWindow::OnInternalIdle()
 {
   wxFrame::OnInternalIdle();
 
-#ifdef __WXGTK__
+#if defined(__WXGTK__) || defined(__WXMAC__)
   if ( IsShown() && m_nRedrawCount > 0 )
   {
     for ( int i = 0; i < 4; i++ )
@@ -2538,8 +2538,21 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
       m_bResampleToRAS = false;
       m_layerCollectionManager->RefreshSlices();
     }
+   
+    m_controlPanel->UpdateUI( true ); 
 
-    m_controlPanel->UpdateUI();
+#ifdef __WXMAC__
+    // On Mac OS X (Carbon) with wxWidgets 2.8.10 we are seeing a problem where
+    // after loading a volume, the PanelVolume widgets do not get laid out     
+    // properly.  Resizing the window fixes the problem.  This *HACK* fix
+    // is to set the size to a different size, and then set it back to
+    // its old size, which seems to force a resize event and works around the
+    // problem - DRG
+    int width, height;
+    GetSize(&width, &height);
+    SetSize(width, height-1);
+    SetSize(width, height);
+#endif
 
     RunScript();
   }
