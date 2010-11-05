@@ -6,9 +6,9 @@
 /*
  * Original Author: Y.Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.5 $
+ *    $Author: mreuter $
+ *    $Date: 2010/11/05 17:14:55 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,8 @@
 
 #ifndef ctrpoints_h
 #define ctrpoints_h
+
+#include "transform.h"
 
 typedef struct
 {
@@ -44,9 +46,14 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS);
 // returning array of MGHPoint
 // we will write whether they are in scannerRAS or surfaceRAS
 // Note that use must tell which coordinate system it is.
-int MRIwriteControlPoints(MPoint *pointArray,
+int MRIwriteControlPoints(const MPoint *pointArray,
                           int count,
                           int useRealRAS,
-                          char *fname);
+                          const char *fname);
+													
+// map control points using LTA (contains src and trg geometries):
+MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
+                            MPoint *trgArray, LTA* lta);
+												
 
 #endif // inclusion guard

@@ -6,9 +6,9 @@
 /*
  * Original Author: Y. Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:41 $
- *    $Revision: 1.7 $
+ *    $Author: mreuter $
+ *    $Date: 2010/11/05 17:14:25 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -31,6 +31,8 @@
 #include "mri.h"
 #include "utils.h" //  fgetl
 #include "ctrpoints.h"
+#include "transform.h"
+
 extern char *cuserid(char *);
 
 MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
@@ -89,7 +91,7 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
   *count = num_control_points;
 
   // allocate memory
-  pointArray=(MPoint*) calloc(num_control_points, sizeof(MPoint));
+  pointArray=(MPoint*) malloc(num_control_points* sizeof(MPoint));
   if (!pointArray)
     ErrorExit(ERROR_NOMEMORY,
               "MRIreadControlPoints could not allocate %d-sized array",
@@ -113,10 +115,10 @@ MPoint *MRIreadControlPoints(const char *fname, int *count, int *useRealRAS)
   return pointArray;
 }
 
-int MRIwriteControlPoints(MPoint *pointArray,
+int MRIwriteControlPoints(const MPoint *pointArray,
                           int count,
                           int useRealRAS,
-                          char *fname)
+                          const char *fname)
 {
   FILE *fp;
   int i;
@@ -146,7 +148,7 @@ int MRIwriteControlPoints(MPoint *pointArray,
                        pointArray[i].z))< 0)
       ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM, "MRIwriteControlPoints(%s): could not"
-                   " writing file", fname)) ;
+                   " write file", fname)) ;
   }
   // if res < 0, then error
   res=fprintf(fp, "info\n");
@@ -159,3 +161,82 @@ int MRIwriteControlPoints(MPoint *pointArray,
   return (NO_ERROR);
 }
 
+// (mr) uses LTA to map point array:
+MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
+                            MPoint *trgArray, LTA* lta)
+{
+	if (trgArray == NULL)
+     trgArray=(MPoint*) malloc(count* sizeof(MPoint));
+
+  if (! lta->xforms[0].src.valid )
+    ErrorExit(ERROR_BADPARM,"MRImapControlPoints LTA src geometry not valid!\n");
+  if (! lta->xforms[0].dst.valid )
+    ErrorExit(ERROR_BADPARM,"MRImapControlPoints LTA dst geometry not valid!\n");
+
+  // create face src and target mri from lta:
+	MRI* mri_src = MRIallocHeader(1,1,1,MRI_UCHAR);
+	useVolGeomToMRI(&lta->xforms[0].src,mri_src);
+	MRI* mri_trg = MRIallocHeader(1,1,1,MRI_UCHAR);
+	useVolGeomToMRI(&lta->xforms[0].dst,mri_trg);
+
+  // set vox ras transforms depending on flag:
+  MATRIX * src_ras2vox, *trg_vox2ras;
+  switch (useRealRAS)
+  {
+    case 0:
+		{
+      MATRIX * src_vox2ras = MRIxfmCRS2XYZtkreg(mri_src);
+      src_ras2vox = MatrixInverse(src_vox2ras,NULL);	
+	  	MatrixFree(&src_vox2ras);
+      trg_vox2ras = MRIxfmCRS2XYZtkreg(mri_trg);
+      break;
+		}
+    case 1:
+		{
+      src_ras2vox = extract_r_to_i(mri_src);
+      trg_vox2ras = extract_i_to_r(mri_trg);
+      break;
+		}
+    default:
+      ErrorExit(ERROR_BADPARM,
+                "MRImapControlPoints has bad useRealRAS flag %d\n",
+                useRealRAS) ;
+  }
+	
+	// make vox2vox:
+	lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+
+  // concatenate transforms:
+  MATRIX *M = NULL;
+	M = MatrixMultiply(lta->xforms[0].m_L, src_ras2vox, M);
+	M = MatrixMultiply(trg_vox2ras, M, M);
+	
+	// clenup some stuff:
+	MRIfree(&mri_src);
+	MRIfree(&mri_trg);
+	MatrixFree(&src_ras2vox);
+	MatrixFree(&trg_vox2ras);
+	
+	// map point array
+  VECTOR * p  = VectorAlloc(4,MATRIX_REAL);
+	VECTOR_ELT(p,4)=1.0;
+  VECTOR * p2 = VectorAlloc(4,MATRIX_REAL);
+	int i;
+	for (i=0;i<count;i++)
+	{
+    VECTOR_ELT(p,1)=pointArray[i].x;
+		VECTOR_ELT(p,2)=pointArray[i].y;
+		VECTOR_ELT(p,3)=pointArray[i].z;
+		MatrixMultiply(M, p, p2) ;
+    trgArray[i].x=VECTOR_ELT(p2,1);
+    trgArray[i].y=VECTOR_ELT(p2,2);
+    trgArray[i].z=VECTOR_ELT(p2,3);
+	}
+	
+	// cleanup rest
+	MatrixFree(&M);
+	MatrixFree(&p);
+	MatrixFree(&p2);
+	
+  return trgArray;
+}
