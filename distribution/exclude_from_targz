@@ -39,9 +39,11 @@ freesurfer/lib/tcltktixblt/lib/tix8.1/demos
 freesurfer/lib/tcltktixblt/lib/blt2.4/demos
 freesurfer/lib/qt
 freesurfer/lib/vtk/src
+freesurfer/lib/vtk/VTK
 freesurfer/lib/itk/src
 freesurfer/lib/petsc/src
 freesurfer/lib/KWWidgets/src
+freesurfer/lib/KWWidgets/KWWidgets
 freesurfer/lib/dev
 freesurfer/include
 freesurfer/mni/src
@@ -70,6 +72,12 @@ freesurfer/average/RB_all_withskull_2006-02-15.gca
 freesurfer/average/RB_new.gca
 freesurfer/average/lh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
 freesurfer/average/rh.curvature.buckner40.filled.desikan_killiany.2005-6-6.gcs
+freesurfer/average/3T18yoSchwartzReactN32_as_orig.4dfp.hdr
+freesurfer/average/3T18yoSchwartzReactN32_as_orig.4dfp.ifh
+freesurfer/average/3T18yoSchwartzReactN32_as_orig.4dfp.img
+freesurfer/average/3T18yoSchwartzReactN32_as_orig.4dfp.img.rec
+freesurfer/average/3T18yoSchwartzReactN32_as_orig.4dfp.mat
+freesurfer/average/3T18yoSchwartzReactN32_as_orig.lst
 freesurfer/subjects/talairach
 freesurfer/subjects/mri
 freesurfer/matlab/read_meas_dat.m
@@ -80,8 +88,3 @@ freesurfer/subjects/fsaverage/surf/lh.inflated2
 freesurfer/subjects/fsaverage/surf/lh.inflated_more
 freesurfer/subjects/fsaverage/surf/lh.inflated200
 freesurfer/subjects/fsaverage/surf/lh.inflated-dng
-freesurfer/subjects/fsaverage3
-freesurfer/subjects/fsaverage4
-freesurfer/subjects/fsaverage5
-freesurfer/subjects/fsaverage6
-

@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.137 2010/08/12 17:46:19 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.138 2010/11/05 12:58:00 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -567,20 +567,23 @@ if ("$RELEASE_TYPE" != "stable-pub") then
   cd ${BUILD_DIR} >>& $OUTPUTF
   echo "CMD: make check" >>& $OUTPUTF
   make check >>& $OUTPUTF
+  set check_status = $status
   if ("$OSTYPE" == "Darwin") then
     # stupid Mac OS NFS has intermittent file access failures,
     # resulting in make failures because it cant find stuff in
     # /usr/pubsw/packages, so we will retry make a couple times...
-    if ($status != 0) then
+    if ($check_status != 0) then
       sleep 60
       make check >>& $OUTPUTF
-      if ($status != 0) then
+      set check_status = $status
+      if ($check_status != 0) then
         sleep 60
         make check >>& $OUTPUTF
+        set check_status = $status
       endif
     endif
   endif
-  if ($status != 0) then
+  if ($check_status != 0) then
     # note: /usr/local/freesurfer/dev/bin/ dirs have not 
     # been modified (bin/ gets written after make install)
     set msg="$HOSTNAME $RELEASE_TYPE build (make check) FAILED unit tests"
@@ -664,6 +667,12 @@ if ("${RELEASE_TYPE}" == "stable-pub") then
       file $f | grep ELF >& /dev/null
       if ( ! $status ) echo $f >> ELF-files
     end
+    # UPX seems to munge the _cuda file, causing this error:
+    # CUDA Error in file 'devicemanagement.cu'
+    # so dont upx those files
+    grep -v _cuda ELF-files >> ELF-files-wocuda
+    mv ELF-files-wocuda ELF-files
+    # now run upx...
     foreach f (`cat ELF-files`)
       echo "CMD: /usr/pubsw/bin/upx $f" >>& $OUTPUTF
       /usr/pubsw/bin/upx $f >& /dev/null
