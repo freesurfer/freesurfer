@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.29 2010/07/27 22:48:30 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.30 2010/11/05 18:37:07 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -100,7 +100,8 @@ set wls = ();
 set glmfitcwd = `cat $glmfitlog | awk '{if($1 == "cwd") print $2}'`
 
 # Go through the original mri_glmfit command-line
-set glmfitcmd = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
+set glmfitcmd0 = `cat $glmfitlog | awk '{if($1 == "cmdline") print $0}'`
+set glmfitcmd = ($glmfitcmd0);
 echo $glmfitcmd
 set gd2mtx = dods
 set label = ();
@@ -264,6 +265,10 @@ uname -a | tee -a $LF
 echo $user | tee -a $LF
 echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
 echo "FREESURFER_HOME $FREESURFER_HOME" | tee -a $LF
+echo "" | tee -a $LF
+echo "Original mri_glmfit command line:" | tee -a $LF
+echo $glmfitcmd0 | tee -a $LF
+echo "" | tee -a $LF
 echo "DoSim = $DoSim" | tee -a $LF
 echo "UseCache = $UseCache" | tee -a $LF
 echo "DoPoll = $DoPoll" | tee -a $LF
