@@ -13,8 +13,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/11/02 23:02:49 $
- *    $Revision: 1.68 $
+ *    $Date: 2010/11/06 02:29:06 $
+ *    $Revision: 1.69 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -123,14 +123,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.68 2010/11/02 23:02:49 fischl Exp $",
+   "$Id: mri_normalize.c,v 1.69 2010/11/06 02:29:06 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.68 2010/11/02 23:02:49 fischl Exp $",
+           "$Id: mri_normalize.c,v 1.69 2010/11/06 02:29:06 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -813,7 +813,7 @@ static MRI *
 MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
                     int intensity_below) 
 {
-  MRI       *mri_bin, *mri_dist, *mri_dist_sup ;
+  MRI       *mri_bin, *mri_dist, *mri_dist_sup, *mri_outliers = NULL ;
   float     max, thresh, val;
   HISTOGRAM *histo, *hsmooth ;
   int       wm_peak, x, y, z, nremoved = 0, whalf = 5 ;
@@ -839,6 +839,8 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
 
   HISTOfree(&histo) ;
   HISTOfree(&hsmooth) ;
+  if (Gdiag & DIAG_WRITE)
+    mri_outliers = MRIclone(mri_dst_ctrl, NULL) ;
   for (x = 0 ; x < mri_src->width ; x++) {
     for (y = 0 ; y < mri_src->height ; y++) {
       for (z = 0 ; z < mri_src->depth ; z++) {
@@ -850,6 +852,8 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
         if (val+intensity_below < max && val < thresh) {
           MRIsetVoxVal(mri_dst_ctrl, x, y, z, 0, 0) ;
+          if (mri_outliers)
+            MRIsetVoxVal(mri_outliers, x, y, z, 0, 128) ;
           nremoved++ ;
         }
       }
@@ -857,6 +861,12 @@ MRIremoveWMOutliers(MRI *mri_src, MRI *mri_src_ctrl, MRI *mri_dst_ctrl,
   }
 
   fprintf(stderr, "%d control points removed\n", nremoved) ;
+  if (mri_outliers)
+  {
+    fprintf(stderr, "writing out.mgz outlier volume\n") ;
+    MRIwrite(mri_outliers, "out.mgz") ; 
+    MRIfree(&mri_outliers) ;
+  }
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     MRIwrite(mri_dst_ctrl, "dc.mgz") ;
   MRIfree(&mri_bin) ;
