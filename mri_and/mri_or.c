@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2009/06/09 19:32:31 $
- *    $Revision: 1.1 $
+ *    $Author: lzollei $
+ *    $Date: 2010/11/06 00:02:01 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.1 $";
+char *MRI_INFO_VERSION = "$Revision: 1.2 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -49,10 +49,10 @@ static void print_help(void) ;
 static void print_version(void) ;
 
 static int get_option(int argc, char *argv[]) ;
-static char vcid[] = "$Id: mri_or.c,v 1.1 2009/06/09 19:32:31 nicks Exp $";
+static char vcid[] = "$Id: mri_or.c,v 1.2 2010/11/06 00:02:01 lzollei Exp $";
 
 char *Progname ;
-
+int use_orig_value = 0;
 
 /***-------------------------------------------------------****/
 int main(int argc, char *argv[])
@@ -92,8 +92,13 @@ int main(int argc, char *argv[])
     mri = MRIread(fname) ;
     if (index == 0)
       mri_or = MRIcopy(mri, NULL) ;
-    else
-      MRIor(mri, mri_or, mri_or, 0) ;
+    else {
+      if(use_orig_value)
+	MRIorVal(mri, mri_or, mri_or, 0) ;
+      else
+	MRIor(mri, mri_or, mri_or, 0) ;
+    }
+
 
     MRIfree(&mri) ;
   }
@@ -131,6 +136,9 @@ get_option(int argc, char *argv[])
       break ;
     case 'V':
       print_version() ;
+      break ;
+    case 'O':
+      use_orig_value = 1;
       break ;
     default:
       fprintf(stderr, "unknown option %s\n", argv[1]) ;
