@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/11/06 00:02:01 $
- *    $Revision: 1.408 $
+ *    $Author: fischl $
+ *    $Date: 2010/11/08 17:28:43 $
+ *    $Revision: 1.409 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -52,6 +52,8 @@ extern "C" {
 #define MRI_SHORT   4
 #define MRI_BITMAP  5
 #define MRI_TENSOR  6
+#define MRI_FLOAT_COMPLEX  7
+#define MRI_DOUBLE_COMPLEX  8
 
 #define MAX_CMDS 1000
 
