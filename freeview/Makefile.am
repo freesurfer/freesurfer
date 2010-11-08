@@ -357,7 +357,8 @@ all:
 
 endif
 
-TESTS=test_freeview
+# NJS commented-out till a virtual-screen way of testing is implemented
+#TESTS=test_freeview
 
 EXTRA_DIST=test_freeview
 
