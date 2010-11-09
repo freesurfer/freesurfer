@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.91 2010/09/16 15:35:39 greve Exp $
+% $Id: fast_selxavg3.m,v 1.92 2010/11/09 22:28:52 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/09/16 15:35:39 $
-%    $Revision: 1.91 $
+%    $Date: 2010/11/09 22:28:52 $
+%    $Revision: 1.92 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.91 2010/09/16 15:35:39 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.92 2010/11/09 22:28:52 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -60,7 +60,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.91 2010/09/16 15:35:39 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.92 2010/11/09 22:28:52 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -845,7 +845,7 @@ if(DoContrasts)
     [J K] = size(C);
     fprintf('%s J=%d -------------\n',conname,J);
     if(J==1)
-      [Fmat dof1 dof2 cesmat cesvarmat] = ...
+      [Fmat dof1 dof2 cesmat cesvarmat pccmat] = ...
 	  fast_fratiow(betamat,X,rvarmat,C,acfsegmn,acfseg.vol(:));
     else
       [Fmat dof1 dof2 cesmat] = ...
@@ -906,6 +906,11 @@ if(DoContrasts)
       cnr.vol(indnz) = ces.vol(indnz) ./ sqrt(rvar.vol(indnz));
       fname = sprintf('%s/cnr.%s',outcondir,ext);
       MRIwrite(cnr,fname);
+    
+      pcc = mri;
+      pcc.vol = fast_mat2vol(pccmat,pcc.volsize);
+      fname = sprintf('%s/pcc.%s',outcondir,ext);
+      MRIwrite(pcc,fname);
     
     end
 

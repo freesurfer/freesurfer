@@ -1,5 +1,5 @@
-function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
-% [F dof1 dof2 ces cescvm] = fast_fratiow(beta,X,rvar,C,<nacf>,<nacfmap>);
+function [F, dof1, dof2, ces, cescvm, pcc] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
+% [F dof1 dof2 ces cescvm pcc] = fast_fratiow(beta,X,rvar,C,<nacf>,<nacfmap>);
 %
 % beta - GLM regression coefficients from fast_glmfitw
 % rvar - residual error variance from GLM from fast_glmfitw
@@ -14,6 +14,7 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 %   Fsig = FTest(dof1, dof2, F, dof2max);
 % ces - contrast effect size = C*beta.
 % cescvm - contrast effect size covariance matrix = rvar * inv(C*inv(X'*W*X)*C');
+% pcc - partial correlation coefficient (for univariate contrasts)
 %
 % See also: fast_glmfitw, FTest, fast_glmfit, fast_fratio.
 %
@@ -26,8 +27,8 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/06 21:34:49 $
-%    $Revision: 1.13 $
+%    $Date: 2010/11/09 22:28:52 $
+%    $Revision: 1.14 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -41,6 +42,8 @@ function [F, dof1, dof2, ces, cescvm] = fast_fratiow(beta,X,rvar,C,nacf,nacfmap)
 % General inquiries: freesurfer@nmr.mgh.harvard.edu
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
+
+pcc = [];
 
 if(nargin < 4 | nargin > 6)
   fprintf('[F dof1 dof2 ces cescvm] = fast_fratiow(beta,X,rvar,C,<nacf>,<nacfmap>)\n');
@@ -88,9 +91,11 @@ if(isempty(nacf))
   % Covariance matrix of contrast effect size
   cescvmr = inv(C*inv(X'*X)*C');
   if(dof1 ~= 1) F = (sum(ces .* (cescvmr*ces))./rvar)/dof1;
-  else          F = ((ces.^2)./rvar)*(cescvmr/dof1);
+  else          
+    F = ((ces.^2)./rvar)*(cescvmr/dof1);
+    if(nargout >= 6) pcc = fast_glm_pcc(beta,X,C,rvar); end
   end
-  if(nargout == 5) 
+  if(nargout >= 5) 
     invcescvmr = inv(cescvmr);
     cescvm = zeros(dof1.^2,nnz);
     cescvm = invcescvmr(:) * rvar; % outer product
@@ -101,6 +106,7 @@ else
   end
   nbins = size(nacf,2);
   F = zeros(1,nnz);
+  if(nargout == 6) pcc = zeros(1,nnz); end
   cescvm = zeros(dof1,nnz); % bug was here (nvox instead of nnz)
   for nthbin = 0:nbins
     indbin = find(nacfmap==nthbin);
@@ -127,13 +133,16 @@ else
     cesbin  = ces(:,indbin);
     rvarbin = rvar(indbin);
     if(dof1 ~= 1) Fbin = (sum(cesbin .* (cescvmr*cesbin))./rvarbin)/dof1;
-    else          Fbin = ((cesbin.^2)./rvarbin)*(cescvmr/dof1);
+    else          
+      Fbin = ((cesbin.^2)./rvarbin)*(cescvmr/dof1);
+      if(nargout == 6) pccbin = fast_glm_pcc(beta(:,indbin),Xbin,C,rvarbin); end
     end
     F(indbin) = Fbin;
-    if(nargout == 5) 
+    if(nargout >= 5) 
       invcescvmr = inv(cescvmr);
       cescvm(:,indbin) = invcescvmr(:) * rvarbin; % outer product
     end
+    if(nargout >= 6) pcc(indbin) = pccbin; end
   end
 end
 
@@ -145,10 +154,15 @@ if(~isempty(indz))
   ces0 = zeros(dof1,nvox);
   ces0(:,indnz) = ces;
   ces = ces0;
-  if(nargout == 5) 
+  if(nargout >= 5) 
     cescvm0 = zeros(dof1,nvox);
     cescvm0(:,indnz) = cescvm;
     cescvm = cescvm0;
+  end
+  if(nargout >= 6) 
+    pcc0 = zeros(1,nvox);
+    pcc0(indnz) = pcc;
+    pcc = pcc0;
   end
 end
 
