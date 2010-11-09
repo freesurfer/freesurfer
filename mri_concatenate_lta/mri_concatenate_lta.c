@@ -11,8 +11,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2009/05/06 23:01:36 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/11/09 16:48:47 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -47,7 +47,7 @@
 
 static void usage(int exit_val);
 static int get_option(int argc, char *argv[]);
-static LTA *ltaReadFileEx(const char *fname);
+//static LTA *ltaReadFileEx(const char *fname);
 static LTA *ltaMNIreadEx(const char *fname);
 static int  ltaMNIwrite(LTA *lta, char *fname);
 
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_concatenate_lta.c,v 1.5 2009/05/06 23:01:36 mreuter Exp $", 
+     "$Id: mri_concatenate_lta.c,v 1.6 2010/11/09 16:48:47 mreuter Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -100,7 +100,10 @@ int main(int argc, char *argv[])
   ltafn_total = argv[3];
 
   printf("Read individual LTAs\n");
-  lta1 = ltaReadFileEx(ltafn1);
+  //lta1 = ltaReadFileEx(ltafn1);
+  TRANSFORM * trans = TransformRead(ltafn1);
+  lta1 =  (LTA *)trans->xform ;
+	
   if (!lta1)
     ErrorExit(ERROR_BADFILE, "%s: can't read file %s",Progname, ltafn1);
 
@@ -131,26 +134,26 @@ int main(int argc, char *argv[])
 
   if (strcmp(ltafn2,"identity.nofile") == 0)
   {
-     type = TransformFileNameType(ltafn_total);
-     if (type == MNI_TRANSFORM_TYPE)
-     {
-       ltaMNIwrite(lta1, ltafn_total);
-     }
-     else
+    type = TransformFileNameType(ltafn_total);
+    if (type == MNI_TRANSFORM_TYPE)
+    {
+      ltaMNIwrite(lta1, ltafn_total);
+    }
+    else
     { 
-       //change type to VOXEL_VOXEL
-       if (lta1->type != out_type)
+      //change type to VOXEL_VOXEL
+      if (lta1->type != out_type)
         LTAchangeType(lta1, out_type);
 
-    printf("Writing  LTA to file %s...\n", ltafn_total);
-    fo = fopen(ltafn_total,"w");
-    if (fo==NULL)
+      printf("Writing  LTA to file %s...\n", ltafn_total);
+      fo = fopen(ltafn_total,"w");
+      if (fo==NULL)
       ErrorExit(ERROR_BADFILE, 
                 "%s: can't create file %s",Progname, ltafn_total);
 
-    LTAprint(fo, lta1);
+      LTAprint(fo, lta1);
 
-    fclose(fo);
+      fclose(fo);
     }
     LTAfree(&lta1);
     printf("%s successful.\n", Progname);
@@ -188,8 +191,12 @@ int main(int argc, char *argv[])
       LTAmodifySrcDstGeom(lta2, NULL, tal_dst); // add src and dst information
   }
   else
-    lta2 = ltaReadFileEx(ltafn2);
-
+	{
+    TRANSFORM * trans = TransformRead(ltafn1);
+    lta2 =  (LTA *)trans->xform ;
+    //lta2 = ltaReadFileEx(ltafn2);
+  }
+	
   if (!lta2)
     ErrorExit(ERROR_BADFILE, "%s: can't read file %s",Progname, ltafn2);
 
@@ -361,7 +368,7 @@ static void usage(int exit_val)
 }  /*  end usage()  */
 
 
-static LTA *ltaReadFileEx(const char *fname)
+/* static LTA *ltaReadFileEx(const char *fname)
 {
   FILE             *fp;
   LINEAR_TRANSFORM *lt ;
@@ -410,7 +417,7 @@ static LTA *ltaReadFileEx(const char *fname)
   fclose(fp) ;
   return(lta) ;
 }
-
+ */
 static int
 get_option(int argc, char *argv[])
 {
