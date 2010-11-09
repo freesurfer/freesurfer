@@ -12,7 +12,8 @@ foo_DATA=license.freesurfer \
 	license.slicer \
 	license.swig \
 	license.togl \
-	license.vxl
+	license.vxl \
+	license.thrust
 
 EXTRA_DIST=$(foo_DATA)
 
