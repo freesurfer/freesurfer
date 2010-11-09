@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/10/15 18:46:39 $
-#    $Revision: 1.40 $
+#    $Author: greve $
+#    $Date: 2010/11/09 15:05:54 $
+#    $Revision: 1.41 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.40 2010/10/15 18:46:39 nicks Exp $';
+set VERSION = '$Id: bbregister,v 1.41 2010/11/09 15:05:54 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -66,6 +66,7 @@ set GMProjAbs = ();
 set nSubSamp = 1;
 set Interp = trilinear
 set UseEPIMask = 0;
+set UseCortexLabel = 1;
 
 set RMSFile = ();
 set templateout = ();
@@ -194,6 +195,7 @@ if($DoPass1) then
   if($LHOnly) set cmd = ($cmd --lh-only);
   if($RHOnly) set cmd = ($cmd --rh-only);
   if($UseEPIMask) set cmd = ($cmd --mask);
+  if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
   if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
   if($#RandInitMax) then
     # Only for testing
@@ -221,6 +223,7 @@ if($#nSubSamp) set cmd = ($cmd --nsub $nSubSamp);
 if($LHOnly) set cmd = ($cmd --lh-only);
 if($RHOnly) set cmd = ($cmd --rh-only);
 if($UseEPIMask) set cmd = ($cmd --mask);
+if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
 if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
 if($#OutVol) set cmd = ($cmd --o $OutVol);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
@@ -612,6 +615,10 @@ while( $#argv != 0 )
 
     case "--epi-mask":
       set UseEPIMask = 1;
+      breaksw
+
+    case "--no-cortex-label":
+      set UseCortexLabel = 0;
       breaksw
 
     case "--no-save-cur-reg":
