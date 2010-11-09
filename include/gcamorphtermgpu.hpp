@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/03 14:12:52 $
- *    $Revision: 1.21 $
+ *    $Date: 2010/11/09 20:08:38 $
+ *    $Revision: 1.22 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -161,7 +161,7 @@ namespace GPU {
 
 
 	// Set up the CPU copies
-	Freesurfer::GCAmorphCPU gcamCPU;
+	static Freesurfer::GCAmorphCPU gcamCPU;
 	gcamCPU.AllocateFromTemplate( gcam );
 	gcamCPU.GetFromGPU( gcam );
 
