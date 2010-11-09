@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/03 14:12:48 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/11/09 17:37:58 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -190,11 +190,14 @@ gcamCGFinalDispatch( GCA_MORPH *gcam,
   myMRI.Send( mri, 0 );
   myMRI.AllocateArray();
   myMRI.SendArray();
-  
+
   myMRIsmooth.Allocate( mri_smooth );
   myMRIsmooth.Send( mri_smooth, 0 );
   myMRIsmooth.AllocateArray();
   myMRIsmooth.SendArray();
+
+  // Put the GCAM on the GPU
+  myGCAM.SendAll( gcam );
 
   // Run the computation
   ComputeGradient( myGCAM, myMRI, myMRIsmooth, parms );
