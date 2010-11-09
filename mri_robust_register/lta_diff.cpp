@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/26 19:39:13 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/11/09 16:31:12 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,8 +56,15 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.15 2010/07/26 19:39:13 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.16 2010/11/09 16:31:12 mreuter Exp $";
 char *Progname = NULL;
+void writeVox2Vox(LTA * lta)
+{
+  cout << " convet to vox 2 vox" << endl;
+  LTAchangeType(lta,LINEAR_VOX_TO_VOX);
+  cout << " writing" << endl;
+  LTAwrite(lta,"test-vox2vox.lta");
+}
 
 double cornerdiff(LTA* lta1, LTA* lta2)
 {
@@ -110,8 +117,8 @@ double cornerdiff(LTA* lta1)
 
   VECTOR * v_X  = VectorAlloc(4, MATRIX_REAL) ;  /* input (src) coordinates */
   VECTOR * v_Y1 = VectorAlloc(4, MATRIX_REAL) ;  /* transformed (dst) coordinates */
-   VECTOR_ELT(v_X,4) = 1;	
-   VECTOR_ELT(v_Y1,4) = 1;	
+  VECTOR_ELT(v_X,4) = 1;	
+  VECTOR_ELT(v_Y1,4) = 1;	
 
   int y3,y2,y1;
   double d = 0;
@@ -480,7 +487,7 @@ int main(int argc, char *argv[])
     cerr << "Could not open one of the LTA input files" << endl;
     exit(1);
   }
-
+	
   if (invert1 )
 	{
     VOL_GEOM vgtmp;
