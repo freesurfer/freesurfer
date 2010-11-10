@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/09/15 16:20:41 $
- *    $Revision: 1.376 $
+ *    $Author: lzollei $
+ *    $Date: 2010/11/10 20:38:59 $
+ *    $Revision: 1.377 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1120,7 +1120,9 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
   }
   else if (type == NII_FILE)
   {
+    //printf("Before writing nii file \n");
     error = niiWrite(mri, fname);
+    //printf("The error code is: %d\n", error);
   }
   else if (type == NRRD_FILE)
   {
@@ -1234,6 +1236,7 @@ int MRIwriteType(MRI *mri, const char *fname, int type)
 
   fstem = IDstemFromName(fname);
   if(fstem == NULL) return(error);
+
   printf("Saving bvals and bvecs\n");
   sprintf(tmpstr,"%s.mghdti.bvals",fstem);
   DTIwriteBValues(mri->bvals, tmpstr);
@@ -8486,9 +8489,13 @@ static int read_otl_file(FILE *fp,
         if ( NO_ERROR ==
              CTABcopyName(ctab,j,entry_name,sizeof(entry_name)) )
         {
+	  //	  printf("%s compared to  (%s, %s)\n", entry_name, label_to_compare, alt_compare);
           if (strcmp(entry_name, label_to_compare) == 0 ||
               strcmp(entry_name, alt_compare) == 0)
-            label_value = j;
+            {
+	      //	      printf("FOUND \n");
+	      label_value = j;
+	    }
         }
       }
 
@@ -8541,6 +8548,300 @@ static int read_otl_file(FILE *fp,
   return(NO_ERROR);
 
 } /* end read_otl_file() */
+
+int list_labels_in_otl_file(FILE *fp)
+{
+  char line[STRLEN];
+  int main_header_flag;
+  int n_outlines = -1;
+  int n_rows, n_cols;
+  char type[STRLEN], global_type[STRLEN];
+  char *c;
+  int i, gdf_header_flag;
+  int seed_x, seed_y;
+  char label[STRLEN];
+  int ascii_short_flag;
+  short *points;
+  int row;
+  int n_read;
+  int empty_label_flag;
+  
+  fgets(line, STRLEN, fp);
+  if (strncmp(line, "GDF FILE VERSION", 15) != 0)
+  {
+    errno = 0;
+    ErrorReturn(ERROR_BADFILE,
+                (ERROR_BADFILE,
+                 "otl slice does not appear to be a GDF file"));
+  }
+
+  main_header_flag = FALSE;
+  while (!main_header_flag)
+  {
+    if (feof(fp))
+    {
+      errno = 0;
+      ErrorReturn
+      (ERROR_BADFILE,
+       (ERROR_BADFILE, "premature EOF () in otl file"));
+    }
+    fgets(line, STRLEN, fp);
+    if (strncmp(line, "START MAIN HEADER", 17) == 0)
+      main_header_flag = TRUE;
+  }
+
+  n_cols = -1;
+  type[0] = '\0';
+  global_type[0] = '\0';
+
+  while (main_header_flag)
+  {
+    if (feof(fp))
+    {
+      errno = 0;
+      ErrorReturn
+      (ERROR_BADFILE,
+       (ERROR_BADFILE,
+        "premature EOF (in main header) in otl file"));
+    }
+    fgets(line, STRLEN, fp);
+    if (strncmp(line, "END MAIN HEADER", 15) == 0)
+      main_header_flag = FALSE;
+    if (strncmp(line, "ONUM ", 5) == 0)
+      sscanf(line, "%*s %d", &n_outlines);
+    if (strncmp(line, "COL_NUM", 7) == 0)
+      sscanf(line, "%*s %d", &n_cols);
+    if (strncmp(line, "TYPE", 4) == 0)
+    {
+      strcpy(global_type, &(line[5]));
+      c = strrchr(global_type, '\n');
+      if (c != NULL)
+        *c = '\0';
+    }
+  }
+
+  if (n_outlines == -1)
+  {
+    errno = 0;
+    ErrorReturn
+    (ERROR_BADPARM,
+     (ERROR_BADPARM,
+      "bad or undefined ONUM in otl file %d"));
+  }
+
+  for (i = 0;i < n_outlines;i++)
+  {
+    if (feof(fp))
+    {
+      errno = 0;
+      ErrorReturn
+      (ERROR_BADFILE,
+       (ERROR_BADFILE,
+        "premature EOF (ready for next outline) in otl file"));
+    }
+
+    gdf_header_flag = FALSE;
+
+    while (!gdf_header_flag)
+    {
+      if (feof(fp))
+      {
+        errno = 0;
+        ErrorReturn
+        (ERROR_BADFILE,
+         (ERROR_BADFILE,
+          "premature EOF (searching for gdf header) in otl file"));
+      }
+      fgets(line, STRLEN, fp);
+      if (strncmp(line, "START GDF HEADER", 16) == 0)
+        gdf_header_flag = TRUE;
+    }
+
+    n_rows = -1;
+    seed_x = seed_y = -1;
+    label[0] = '\0';
+    type[0] = '\0';
+
+    empty_label_flag = 0;
+
+    while (gdf_header_flag)
+    {
+
+      if (feof(fp))
+      {
+        errno = 0;
+        ErrorReturn
+        (ERROR_BADFILE,
+         (ERROR_BADFILE,
+          "premature EOF (in gdf header) in otl file"));
+      }
+      fgets(line, STRLEN, fp);
+      if (strncmp(line, "END GDF HEADER", 14) == 0)
+        gdf_header_flag = FALSE;
+      // getting rows, cols, type
+      if (strncmp(line, "ROW_NUM", 7) == 0)
+        sscanf(line, "%*s %d", &n_rows);
+      if (strncmp(line, "COL_NUM", 7) == 0)
+        sscanf(line, "%*s %d", &n_cols);
+      if (strncmp(line, "TYPE", 4) == 0)
+      {
+        strcpy(type, &(line[5]));
+        c = strrchr(type, '\n');
+        if (c != NULL)
+          *c = '\0';
+      }
+      if (strncmp(line, "SEED", 4) == 0)
+        sscanf(line, "%*s %d %d", &seed_x, &seed_y);
+      if (strncmp(line, "LABEL", 5) == 0)
+      {
+
+        strcpy(label, &(line[6]));
+        c = strrchr(label, '\n');
+        if (c != NULL)
+          *c = '\0';
+
+	printf("%d: %s\n", i, label);
+      }
+      
+    }
+
+    if (n_rows < 0)
+      {
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM,
+		    (ERROR_BADPARM,
+		     "bad or undefined ROW_NUM in otl file"));
+      }
+    
+    if (n_cols != 2)
+      {
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM,
+		    (ERROR_BADPARM,
+		     "bad or undefined COL_NUM in otl file"));
+      }
+    
+    if (label[0] == '\0')
+    {
+      empty_label_flag = 1;
+      errno = 0;
+      ErrorPrintf(ERROR_BADPARM,
+                  "empty LABEL in otl file (outline %d)", i);
+    }
+
+    if (seed_x < 0 || seed_x >= 512 || seed_y < 0 || seed_y >= 512)
+      {
+	errno = 0;
+	ErrorReturn(ERROR_BADPARM,
+		    (ERROR_BADPARM,
+      "bad or undefined SEED in otl file"));
+      }
+    
+    if (type[0] == '\0')
+      strcpy(type, global_type);
+
+    if (strcmp(type, "ascii short") == 0)
+      ascii_short_flag = TRUE;
+    else if (strcmp(type, "short") == 0)
+      ascii_short_flag = FALSE;
+    else if (type[0] == '\0')
+    {
+      errno = 0;
+      ErrorReturn(ERROR_UNSUPPORTED,
+                  (ERROR_UNSUPPORTED,
+                   "undefined TYPE in otl file"));
+    }
+    else
+    {
+      errno = 0;
+      ErrorReturn(ERROR_UNSUPPORTED,
+                  (ERROR_UNSUPPORTED,
+                   "unsupported TYPE \"%s\" in otl file", type));
+    }
+
+    do
+    {
+      fgets(line, STRLEN, fp);
+      if (feof(fp))
+      {
+        errno = 0;
+        ErrorReturn
+        (ERROR_BADFILE,
+         (ERROR_BADFILE,
+          "premature EOF (searching for points) in otl file"));
+      }
+    }
+    while (strncmp(line, "START POINTS", 12) != 0);
+
+    points = (short *)malloc(2 * n_rows * sizeof(short));
+    if (points == NULL)
+    {
+      errno = 0;
+      ErrorReturn
+      (ERROR_NOMEMORY,
+       (ERROR_NOMEMORY,
+        "error allocating memory for points in otl file"));
+    }
+
+    if (ascii_short_flag)
+    {
+      for (row = 0;row < n_rows;row++)
+      {
+        fgets(line, STRLEN, fp);
+        if (feof(fp))
+        {
+          free(points);
+          errno = 0;
+          ErrorReturn
+          (ERROR_BADFILE,
+           (ERROR_BADFILE,
+            "premature end of file while reading "
+            "points from otl file"));
+        }
+        sscanf(line, "%hd %hd", &(points[2*row]), &(points[2*row+1]));
+      }
+    }
+    else
+    {
+      n_read = fread(points, 2, n_rows * 2, fp);
+      if (n_read != n_rows * 2)
+      {
+        free(points);
+        errno = 0;
+        ErrorReturn(ERROR_BADFILE,
+                    (ERROR_BADFILE,
+                     "error reading points from otl file"));
+      }
+#if (BYTE_ORDER == LITTLE_ENDIAN)
+#if defined(SunOS)
+      swab((const char *)points,
+           (char *)points,
+           2 * n_rows * sizeof(short));
+#else
+      swab(points, points, 2 * n_rows * sizeof(short));
+#endif
+#endif
+    }
+
+    fgets(line, STRLEN, fp);
+    if (strncmp(line, "END POINTS", 10) != 0)
+    {
+      free(points);
+      errno = 0;
+      ErrorReturn
+      (ERROR_BADFILE,
+       (ERROR_BADFILE,
+        "error after points (\"END POINTS\" expected "
+        "but not found) in otl file"));
+    }
+
+    free(points);
+  }
+
+
+  return(NO_ERROR);
+
+} /* end list_labels_in_otl_file() */
 
 MRI *MRIreadOtl
 (const char *fname, int width, int height, int slices,
@@ -10535,6 +10836,8 @@ static int niiWrite(MRI *mri0, const char *fname)
   MRI *mri=NULL;
   int FreeMRI=0;
 
+  //printf("In niiWrite()\n"); 
+
   use_compression = 0;
   fnamelen = strlen(fname);
   if (fname[fnamelen-1] == 'z') use_compression = 1;
@@ -10603,6 +10906,8 @@ static int niiWrite(MRI *mri0, const char *fname)
   hdr.pixdim[3] = mri->zsize;
   hdr.pixdim[4] = mri->tr/1000.0; // see also xyzt_units
 
+  //printf("In niiWrite(): after init\n"); 
+
   if (mri->type == MRI_UCHAR)
   {
     hdr.datatype = DT_UNSIGNED_CHAR;
@@ -10662,6 +10967,8 @@ static int niiWrite(MRI *mri0, const char *fname)
   error = mriToNiftiQform(mri, &hdr);
   if (error != NO_ERROR) return(error);
 
+  //printf("In niiWrite():before sform\n"); 
+
   /* set the nifti header sform values */
   // This just copies the vox2ras into the sform
   mriToNiftiSform(mri, &hdr);
@@ -10700,11 +11007,13 @@ static int niiWrite(MRI *mri0, const char *fname)
   }
   free(chbuf);
 
+  //printf("In niiWrite():before dumping: %d, %d, %d, %d\n", mri->nframes,mri->depth,mri->width,mri->height ); 
   // Now dump the pixel data
   for (t = 0;t < mri->nframes;t++)
     for (k = 0;k < mri->depth;k++)
       for (j = 0;j < mri->height;j++)
       {
+	//printf("%d,%d,%d\n",t, k, j); 
         buf = &MRIseq_vox(mri, 0, j, k, t);
         if ((int)znzwrite(buf, hdr.bitpix/8, mri->width, fp) != mri->width)
         {
@@ -12165,6 +12474,7 @@ mghWrite(MRI *mri, const char *fname, int frame)
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
+  printf("(w,h,d) = (%d,%d,%d)\n", width, height, depth);
   znzwriteInt(MGH_VERSION, fp) ;
   znzwriteInt(mri->width, fp) ;
   znzwriteInt(mri->height, fp) ;
@@ -12232,6 +12542,7 @@ mghWrite(MRI *mri, const char *fname, int frame)
           {
             if (z == 74 && y == 16 && x == 53)
               DiagBreak() ;
+	    //printf("mghWrite: MRI_FLOAT: curr (x, y, z, frame) = (%d, %d, %d, %d)\n", x, y, z, frame);
             fval = MRIFseq_vox(mri,x,y,z,frame) ;
             //if(x==10 && y == 0 && z == 0 && frame == 67)
             // printf("MRIIO: %g\n",fval);

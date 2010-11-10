@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/11/08 17:28:43 $
- *    $Revision: 1.409 $
+ *    $Author: lzollei $
+ *    $Date: 2010/11/10 20:38:37 $
+ *    $Revision: 1.410 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1141,6 +1141,8 @@ int decompose_b_fname(const char *fname_passed, char *directory, char *stem);
 #define READ_OTL_ZERO_OUTLINES_FLAG     0x08
 MRI *MRIreadOtl(const char *fname, int width, int height, int slices,
                 const char *color_file_name, int flags);
+
+int list_labels_in_otl_file(FILE *fp);
 
 MATRIX *extract_i_to_r(MRI *mri);
 int apply_i_to_r(MRI *mri, MATRIX *m);
