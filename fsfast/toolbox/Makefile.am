@@ -137,6 +137,7 @@ MFILES=\
 	fast_ghostmask.m \
 	fast_glm2anova_mtx.m \
 	fast_glmfit.m \
+	fast_glm_pcc.m \
 	fast_glmfitw.m \
 	fast_glmpower.m \
 	fast_group_glm.m \
