@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2010/11/04 23:52:38 $
-#    $Revision: 1.331 $
+#    $Date: 2010/11/10 01:27:21 $
+#    $Revision: 1.332 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.331 2010/11/04 23:52:38 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.332 2010/11/10 01:27:21 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1453,9 +1453,8 @@ if($DoNormalization) then
   $PWD |& tee -a $LF
   set xopts = `fsr-getxopts mri_normalize $XOptsFile`;
   if ( $longitudinal && $UseLongbaseCtrlVol) then
-  # HACK
     # longitudinal processing stream AND using ctrl_vol.mgz from base:
-    if( ! -e $longbasedir/mri/ctrl_vol.mgz) then
+    if( ! -e $longbasedir/mri/ctrl_vol.mgz || ! -e $longbasedir/mri/bias_vol.mgz ) then
       echo "Recompute intensity norm to create $longbaseid ctrl_vol.mgz" \
         |& tee -a $LF
       set cmd = (mri_normalize)
@@ -1474,21 +1473,19 @@ if($DoNormalization) then
           |& tee -a $LF
         goto error_exit;
       endif
-      rm -f $longbasedir/mri/bias_vol.mgz
       rm -f $longbasedir/mri/T1_tmp.mgz
     endif
-    # note: dont need to pass xform as we are in same space
-    set cmd = (mri_normalize_tp2 \
-      -T1 $longbasedir/mri/nu.mgz \
-      -ctrl $longbasedir/mri/ctrl_vol.mgz \
-      -mask1 $longbasedir/mri/brain.mgz \
+		# use ctrl_vol.mgz from base for normalization:
+    set cmd = (mri_normalize \
+		  -w $subjdir/mri/ctrl_vol.mgz $subjdir/mri/bias_vol.mgz \
+			-l $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
       $subjdir/mri/nu.mgz \
       $subjdir/mri/T1.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
-    # both cross, long and base (aka default) processing stream:
+    # for cross, base (and long if not useLongBaseCtrlVol) processing streams:
     set cmd = (mri_normalize -g $NormMaxGrad);
     if($UseControlPoints) set cmd = ($cmd -f $ControlPointsFile)
     if($#Norm3dIters)     set cmd = ($cmd -n $Norm3dIters)
@@ -6160,9 +6157,8 @@ Other flags:
 
 -uselongbasectrlvol
 
-With -long: Optionally use a control-points volume created in base/template
-to process the long TP. Default: map and use control-points from
-corresponding cross run.
+With -long: Switch on use of control-points from the base in the long
+runs for intensity normalization (T1.mgz).
 
 -uselongbasewmedits
 
