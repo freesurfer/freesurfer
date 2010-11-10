@@ -30,10 +30,15 @@ int main(int argc, char *argv[]) {
   int i;
   FILE* fp;
 
+  if (argc <= 1)
+    printf("Input filename is required! Use -i or --input_volume and the name of the file.\n");
+
   for(i = 1;i < argc;i++) {
     if(strcmp(argv[i], "-i") == 0 ||
        strcmp(argv[i], "--input_volume") == 0)
       get_string(argc, argv, &i, in_name);
+    else
+      printf("Input filename is required! Use -i or --input_volume and the name of the file.\n");
   }
   if ((fp = fopen(in_name, "r")) != NULL)
     {
