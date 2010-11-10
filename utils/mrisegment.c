@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/10/05 13:10:49 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/11/10 01:44:59 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1246,16 +1246,19 @@ MRIfindMaxSegmentNumber(MRI_SEGMENTATION *mriseg)
 }
 
 
-int
+MRI *
 MRIsegmentFill(MRI_SEGMENTATION *mriseg, int s, MRI *mri, float fillval)
 {
   int          v, x, y, z ;
   MRI_SEGMENT  *mseg ;
 
   if (s < 0 || s >= mriseg->nsegments)
-    ErrorReturn(ERROR_BADPARM, 
+    ErrorReturn(NULL, 
                 (ERROR_BADPARM, "MRIsegmentFill: invalid segment #%d",s));
   mseg = &mriseg->segments[s] ;
+
+  if (mri == NULL)
+    mri = MRIclone(mriseg->mri, NULL) ;
 
   for (v = 0 ; v < mseg->nvoxels ; v++)
   {
@@ -1265,6 +1268,6 @@ MRIsegmentFill(MRI_SEGMENTATION *mriseg, int s, MRI *mri, float fillval)
     MRIsetVoxVal(mri, x, y, z,0, fillval) ;
   }
 
-  return(NO_ERROR) ;
+  return(mri) ;
 }
 

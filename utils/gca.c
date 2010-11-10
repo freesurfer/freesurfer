@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/10/20 20:25:38 $
- *    $Revision: 1.280 $
+ *    $Date: 2010/11/10 01:44:59 $
+ *    $Revision: 1.281 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -8371,17 +8371,26 @@ GCAfindGC( const GCA *gca,
 
 static int gcaReclassifySegment(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                                 MRI_SEGMENT *mseg,
-                                int old_label, TRANSFORM *transform);
+                                int old_label, TRANSFORM *transform,
+                                int *exclude_labels, int nexcluded);
 static int gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                               int x, int y, int z,
-                              int old_label, TRANSFORM *transform);
+                              int old_label, TRANSFORM *transform,
+                              int *exclude_list, int nexcluded);
+static int choroid_labels[] = 
+  {
+    Left_choroid_plexus,
+    Right_choroid_plexus
+  } ;
+#define NCHOROID  (sizeof(choroid_labels) / sizeof(choroid_labels[0]))
+
 MRI *
 GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
                           TRANSFORM *transform)
 {
-  int              i, j, nvox; /*, x, y, z, width, height, depth*/
-  ;
+  int              i, nex, *ex, j, nvox; /*, x, y, z, width, height, depth*/
   MRI_SEGMENTATION *mriseg ;
+  MRI              *mri_dilated, *mri_in_main_segment ;
 
   mri_dst = MRIcopy(mri_src, mri_dst) ;
 
@@ -8397,6 +8406,32 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     // if hypointensities, continue
     if (LABEL_WITH_NO_TOPOLOGY_CONSTRAINT(i))
       continue ;
+
+    /*
+      for the ventricles we want to get rid of segments that are not close to the
+      main/biggest one, but being wary of small disconnections. Dilate the labels
+      a few times to close small disconnections, then erase segments that are still
+      not connected.
+    */
+    if (IS_LAT_VENT(i))
+    {
+      int max_segno ;
+
+      mri_dilated = MRIdilateLabel(mri_src, NULL, i, 3) ;
+      MRIwrite(mri_dilated, "vdilated.mgz") ;
+      mriseg = MRIsegment(mri_dilated, (float)i, (float)i) ;
+      max_segno = MRIfindMaxSegmentNumber(mriseg) ;
+      mri_in_main_segment = MRIsegmentFill(mriseg, max_segno, NULL, 1) ; // only retain biggest segment
+      MRIfree(&mri_dilated) ;
+      MRIsegmentFree(&mriseg) ;
+      nex = NCHOROID ; ex = choroid_labels ;
+    }
+    else
+    {
+      mri_in_main_segment = NULL ;
+      nex = 0 ; ex = NULL ;
+    }
+
     /*    printf("label %03d: %d voxels\n", i, nvox) ;*/
     mriseg = MRIsegment(mri_src, (float)i, (float)i) ;
     if (!mriseg)
@@ -8410,7 +8445,12 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
     /*    printf("\t%d segments:\n", mriseg->nsegments) ;*/
     for (j = 0 ; j < mriseg->nsegments ; j++)
     {
-      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 50)
+      // every voxel in the lateral ventricle label should be in the max segment found above
+      if (IS_LAT_VENT(i) && mriseg->segments[j].nvoxels > 50 && 
+          MRIgetVoxVal(mri_in_main_segment,
+                       mriseg->segments[j].voxels[0].x,
+                       mriseg->segments[j].voxels[0].y,
+                       mriseg->segments[j].voxels[0].z,0) > 0)
         continue ;
       /* printf("\t\t%02d: %d voxels", j, mriseg->segments[j].nvoxels) ;*/
       if ((float)mriseg->segments[j].nvoxels / (float)nvox < MIN_SEG_PCT)
@@ -8418,11 +8458,14 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
         // printf(" - reclassifying...") ;
         gcaReclassifySegment(gca,mri_inputs,mri_dst,
                              &mriseg->segments[j], i,
-                             transform);
+                             transform,
+                             ex, nex);
       }
       // printf("\n") ;
     }
     MRIsegmentFree(&mriseg) ;
+    if (mri_in_main_segment)
+      MRIfree(&mri_in_main_segment) ;
   }
 
 #if 0
@@ -8439,18 +8482,20 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
           DiagBreak() ;
         if (nint(MRIgetVoxVal(mri_dst, x, y, z,0)) == LABEL_UNDETERMINED)
           gcaReclassifyVoxel(gca, mri_inputs, mri_dst,
-                             x, y, z, LABEL_UNDETERMINED, transform) ;
+                             x, y, z, LABEL_UNDETERMINED, transform, NULL, 0) ;
       }
     }
   }
 #endif
+
 
   return(mri_dst) ;
 }
 
 static int
 gcaReclassifySegment(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
-                     MRI_SEGMENT *mseg, int old_label, TRANSFORM *transform)
+                     MRI_SEGMENT *mseg, int old_label, TRANSFORM *transform,
+                     int *exclude_list, int nexcluded)
 {
   int   i ;
 
@@ -8461,7 +8506,8 @@ gcaReclassifySegment(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
                        mseg->voxels[i].x,
                        mseg->voxels[i].y,
                        mseg->voxels[i].z,
-                       old_label, transform) ;
+                       old_label, transform,
+                       exclude_list, nexcluded) ;
 #else
     MRIsetVoxVal(mri_labels, 
 								 mseg->voxels[i].x,
@@ -8476,9 +8522,10 @@ gcaReclassifySegment(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
 
 static int
 gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
-                   int x, int y, int z, int old_label, TRANSFORM *transform)
+                   int x, int y, int z, int old_label, TRANSFORM *transform,
+                   int *exclude_list, int nexcluded)
 {
-  int     nbr_labels[MAX_CMA_LABELS], xi, yi, zi, xk, yk, zk, i, new_label ;
+  int     nbr_labels[MAX_CMA_LABELS], xi, yi, zi, xk, yk, zk, i, new_label, ex, skip ;
   double  max_p, p ;
 
   memset(nbr_labels, 0, sizeof(int)*MAX_CMA_LABELS) ;
@@ -8506,6 +8553,15 @@ gcaReclassifyVoxel(GCA *gca, MRI *mri_inputs, MRI *mri_labels,
   {
     if (mri_labels->type == MRI_UCHAR && i >= 256)
       break ;
+    for (skip = ex = 0 ; ex < nexcluded ; ex++)
+      if (exclude_list[ex] == i)
+      {
+        skip = 1 ;
+        break ;
+      }
+    if (skip)
+      continue ;
+
     if (nbr_labels[i] > 0)  // if neighbors has this label, then
     {
       MRIsetVoxVal(mri_labels, x, y, z, 0, i) ;
