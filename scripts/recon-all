@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2010/11/10 01:27:21 $
-#    $Revision: 1.332 $
+#    $Author: nicks $
+#    $Date: 2010/11/10 16:35:14 $
+#    $Revision: 1.333 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.332 2010/11/10 01:27:21 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.333 2010/11/10 16:35:14 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1268,6 +1268,8 @@ if($DoNuIntensityCor) then
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
   set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz)
+  # --cm for hi-res support:
+  if ($ConformMin) set cmd = ($cmd --cm)
   if ($DoNuIntensityCor3T) then
     # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
     # "Improvement of brain segmentation accuracy by optimizing
