@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/11/10 01:44:59 $
- *    $Revision: 1.281 $
+ *    $Date: 2010/11/10 01:47:37 $
+ *    $Revision: 1.282 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -8418,7 +8418,6 @@ GCAconstrainLabelTopology(GCA *gca, MRI *mri_inputs,MRI *mri_src, MRI *mri_dst,
       int max_segno ;
 
       mri_dilated = MRIdilateLabel(mri_src, NULL, i, 3) ;
-      MRIwrite(mri_dilated, "vdilated.mgz") ;
       mriseg = MRIsegment(mri_dilated, (float)i, (float)i) ;
       max_segno = MRIfindMaxSegmentNumber(mriseg) ;
       mri_in_main_segment = MRIsegmentFill(mriseg, max_segno, NULL, 1) ; // only retain biggest segment
