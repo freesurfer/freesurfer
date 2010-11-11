@@ -11,8 +11,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/09 16:48:47 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/11/11 20:02:55 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_concatenate_lta.c,v 1.6 2010/11/09 16:48:47 mreuter Exp $", 
+     "$Id: mri_concatenate_lta.c,v 1.7 2010/11/11 20:02:55 mreuter Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -192,7 +192,7 @@ int main(int argc, char *argv[])
   }
   else
 	{
-    TRANSFORM * trans = TransformRead(ltafn1);
+    TRANSFORM * trans = TransformRead(ltafn2);
     lta2 =  (LTA *)trans->xform ;
     //lta2 = ltaReadFileEx(ltafn2);
   }
