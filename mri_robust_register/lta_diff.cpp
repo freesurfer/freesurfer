@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/09 16:31:12 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/11/11 22:32:17 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,7 +56,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.16 2010/11/09 16:31:12 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.17 2010/11/11 22:32:17 mreuter Exp $";
 char *Progname = NULL;
 void writeVox2Vox(LTA * lta)
 {
@@ -487,9 +487,9 @@ int main(int argc, char *argv[])
     cerr << "Could not open one of the LTA input files" << endl;
     exit(1);
   }
-	
+
   if (invert1 )
-	{
+  {
     VOL_GEOM vgtmp;
     LT *lt;
     MATRIX *m_tmp = lta1->xforms[0].m_L ;

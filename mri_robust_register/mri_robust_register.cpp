@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/10/04 16:30:29 $
- *    $Revision: 1.42 $
+ *    $Date: 2010/11/11 22:32:17 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -132,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.42 2010/10/04 16:30:29 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.43 2010/11/11 22:32:17 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -1349,7 +1349,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.iscaleout = string(argv[1]);
     nargs = 1 ;
-		P.iscale = true;
+    P.iscale = true;
     cout << "--iscaleout: Will do --iscale and ouput intensity scale to "<<P.iscaleout <<  endl;
   }
   else

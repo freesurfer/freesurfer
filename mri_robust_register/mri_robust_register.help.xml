@@ -89,12 +89,12 @@
 	<description>This program symmetrically aligns two volumes. It uses a method based on robust statistics to detect outliers and removes them from the registration. This leads to highly accurate registrations even with local changes in the image (e.g. jaw movement). The main purpose is to find the rigid registration (translation, rotation) of longitudinal data, but the method can be used to rigidly align different images. An additional optional intensity scale parameter can be used to adjust for global intensity differences. The extension to affine registration is being tested.
 	
 If the registration fails: 
-The registration can fail because of several reasons, most likeley due to large intensity differences or non-linear differences in the image. You can try:
+The registration can fail because of several reasons, most likely due to large intensity differences or non-linear differences in the image. You can try:
  * Switch on intensity scaling (--iscale).
  * When specifying a manual saturation (--sat) too many voxels might be considered outlier early in the process. You can check this by outputing the weights (--weights ow.mgz) and by looking at them in:
    tkmedit -f dst.mgz -aux mov.mgz -overlay ow.mgz 
 If most of the brain is labeled outlier, try to set the saturation to a higher value (eg. --sat 12) or use --satit to automatically determine a good sat value.
- * When using automatic saturation estimation (--satit) you can try specifying the sensitivity manually or twiddle around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels.	</description>
+ * When using automatic saturation estimation (--satit) you can try specifying the sensitivity manually or play around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels.	</description>
 	<example>mri_robust_register --mov vol1.mgz --dst vol2.mgz --lta v1to2.lta --warp v1to2.mgz --weights v1to2-weights.mgz --iscale
 
 Computes the rigid registration (6 degrees of freedom) of vol1.mgz to vol2.mgz using robust statistics and with an additional 7th global intensity scaling parameter (recommended e.g. for orig.mgz). The output is the transform (v1to2.lta) and v1to2.mgz (the aligned vol1.mgz to the target image). Additionally the weights of the robust registation (outlier detection) are saved. Everything can be viewed in tkmedit with:
@@ -106,7 +106,7 @@ Computes the rigid robust registration with intensity scaling of vol1 to vol2 (t
 
 tkmedit -f h1.mgz -aux h2.mgz</example>
   <bugs>None</bugs>
-	<references>Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl. NeuroImage, in Press, July 2010.
+	<references>Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl.  NeuroImage 53 (4), pp. 1181-1196, 2010.
 http://reuter.mit.edu/lcount/click.php?id=13 </references>
   <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
 	<see_also>mri_robust_template</see_also>

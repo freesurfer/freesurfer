@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/10/21 22:52:22 $
- *    $Revision: 1.49 $
+ *    $Date: 2010/11/11 22:32:17 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -143,32 +143,32 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
 		if (verbose >1) cout << endl;
 
     if (symmetry)
-		{
-    // here symmetrically warp both images SQRT(M)
-    // this keeps the problem symmetric
-    if (verbose >1) cout << "   - warping source and target (sqrt)" << endl;
-    // half way voxelxform
-    mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry probably destroyed here!!
-    // do not just assume m = mh*mh, rather m = mh2 * mh
-    // for transforming target we need mh2^-1 = mh * m^-1
-    mi  = vnl_inverse(fmd.first);
-    mhi = mh*mi;
-    if (mri_Swarp) MRIfree(&mri_Swarp);
-    mri_Swarp = MRIclone(mriS,NULL);
-    mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
-    if (mri_Twarp) MRIfree(&mri_Twarp);
-    mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
-    mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
+    {
+      // here symmetrically warp both images SQRT(M)
+      // this keeps the problem symmetric
+      if (verbose >1) cout << "   - warping source and target (sqrt)" << endl;
+      // half way voxelxform
+      mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry probably destroyed here!!
+      // do not just assume m = mh*mh, rather m = mh2 * mh
+      // for transforming target we need mh2^-1 = mh * m^-1
+      mi  = vnl_inverse(fmd.first);
+      mhi = mh*mi;
+      if (mri_Swarp) MRIfree(&mri_Swarp);
+      mri_Swarp = MRIclone(mriS,NULL);
+      mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
+      if (mri_Twarp) MRIfree(&mri_Twarp);
+      mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
+      mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
     }
-		else
-		{
+    else // HACK !!! not tested: !!!!
+    {
       if (verbose >1) cout << "   - warping source to target " << endl;
       if (mri_Swarp) MRIfree(&mri_Swarp);
       mri_Swarp = MRIclone(mriT,NULL);
       mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, fmd.first);
-			mh = fmd.first;
-			if (! mri_Twarp ) mri_Twarp = MRIcopy(mriT,NULL);
-		}
+      mh = fmd.first;
+      if (! mri_Twarp ) mri_Twarp = MRIcopy(mriT,NULL);
+    }
 		
     // adjust intensity 	
     if (iscale)
@@ -237,34 +237,34 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
 		if (verbose >1) cout << endl;
 
     if (symmetry)
-		{
-    // here symmetrically warp both images SQRT(M)
-    // this keeps the problem symmetric
-    if (verbose >1) cout << "   - warping source and target (sqrt)" << endl;
-    // half way voxelxform
-    mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry probably destroyed here!!
-    // do not just assume m = mh*mh, rather m = mh2 * mh
-    // for transforming target we need mh2^-1 = mh * m^-1
-    mi  = vnl_inverse(fmd.first);
-    mhi = mh*mi;
-    if (mri_Swarp) MRIfree(&mri_Swarp);
-    mri_Swarp = MRIclone(mriS,NULL);
-    mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
-    if (mri_Twarp) MRIfree(&mri_Twarp);
-    mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
-    mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
+    {
+      // here symmetrically warp both images SQRT(M)
+      // this keeps the problem symmetric
+      if (verbose >1) cout << "   - warping source and target (sqrt)" << endl;
+      // half way voxelxform
+      mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry probably destroyed here!!
+      // do not just assume m = mh*mh, rather m = mh2 * mh
+      // for transforming target we need mh2^-1 = mh * m^-1
+      mi  = vnl_inverse(fmd.first);
+      mhi = mh*mi;
+      if (mri_Swarp) MRIfree(&mri_Swarp);
+      mri_Swarp = MRIclone(mriS,NULL);
+      mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, mh);
+      if (mri_Twarp) MRIfree(&mri_Twarp);
+      mri_Twarp = MRIclone(mriS,NULL); // bring them to same space (just use src geometry) !! symmetry slightly destroyed here!!
+      mri_Twarp = MyMRI::MRIlinearTransform(mriT,mri_Twarp, mhi);
     }
-		else
-		{
+    else // HACK !!!! not tested !!!!
+    {
       if (verbose >1) cout << "   - warping source to target " << endl;
       if (mri_Swarp) MRIfree(&mri_Swarp);
       mri_Swarp = MRIclone(mriT,NULL);
       mri_Swarp = MyMRI::MRIlinearTransform(mriS,mri_Swarp, fmd.first);
-			mh = fmd.first;
-			if (! mri_Twarp ) mri_Twarp = MRIcopy(mriT,NULL);
+      mh = fmd.first;
+      if (! mri_Twarp ) mri_Twarp = MRIcopy(mriT,NULL);
       MRIwrite(mri_Swarp,"mri_Swarp.mgz");
       MRIwrite(mri_Twarp,"mri_Twarp.mgz");
-		}
+    }
 
     // adjust intensity 	
     if (iscale)
@@ -907,11 +907,11 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
 
 	if (debug)
 	{
-    // write out wcheck
-		string fn = getName() + "-wcheck-est.txt";
-    ofstream f(fn.c_str(),ios::out);
-    f << sat << " " << wcheck << endl;
-    f.close();  
+      // write out wcheck
+      string fn = getName() + "-wcheck-est.txt";
+      ofstream f(fn.c_str(),ios::out);
+      f << sat << " " << wcheck << endl;
+      f.close();  
 	}
 
   return sat;
@@ -3142,7 +3142,7 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int n)
   {
     if (p[i-1]->width < min || p[i-1]->height <min || p[i-1]->depth <min)
       break;
-		//else subsample:
+    //else subsample:
     mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
     p[i] = MRIdownsample2(mri_tmp,NULL);
     MRIfree(&mri_tmp);

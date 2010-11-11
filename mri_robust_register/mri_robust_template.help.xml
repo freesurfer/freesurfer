@@ -75,7 +75,7 @@ View results:
 
 tkmedit -f mean.mgz -aux tp1tomean.mgz </example>
   <bugs>None</bugs>
-	<references>Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl. NeuroImage, in Press, July 2010.
+	<references>Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
 	http://reuter.mit.edu/lcount/click.php?id=13 </references>
   <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
 	<see_also>mri_robust_register</see_also>
