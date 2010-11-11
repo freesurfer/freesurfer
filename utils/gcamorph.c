@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/11/04 13:26:13 $
- *    $Revision: 1.232 $
+ *    $Author: mreuter $
+ *    $Date: 2010/11/11 19:17:52 $
+ *    $Revision: 1.233 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -6819,8 +6819,10 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
       || mri->height != gcam->image.height
       || mri->depth != gcam->image.depth)
     ErrorExit(ERROR_BADPARM, \
-              "mri passed volume size is different from "
-              "the one used to create M3D data\n");
+              "mri passed volume size ( %d %d %d ) is different from "
+              "the one used to create M3D data ( %d %d %d )\n",
+							mri->width, mri->height,mri->depth,gcam->image.width,
+							gcam->image.height,gcam->image.depth);
 
   // use mri
   width = mri->width ;
