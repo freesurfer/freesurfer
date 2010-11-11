@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: ginsburg $
- *    $Date: 2010/11/05 13:22:08 $
- *    $Revision: 1.150 $
+ *    $Author: rpwang $
+ *    $Date: 2010/11/11 20:21:28 $
+ *    $Revision: 1.151 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2516,7 +2516,13 @@ void MainWindow::OnWorkerThreadResponse( wxCommandEvent& event )
         }
         else
           lc_surface->AddLayer( layer );
-
+        
+        if ( !sf->HasVolumeGeometry() )
+        {
+          wxMessageDialog dlg( this, _("Surface does not contain valid volume geometry information. It may not align with volumes and other surfaces."), 
+                               _("Warning"), wxOK );
+          dlg.ShowModal();
+        }
         // m_fileHistory->AddFileToHistory( MyUtils::GetNormalizedFullPath( layer->GetFileName() ) );
 
         m_controlPanel->RaisePage( _("Surfaces") );
@@ -3773,7 +3779,7 @@ void MainWindow::CommandLoadSurface( const wxArrayString& cmd )
       else if ( subOption == _("lock") )
       {
         wxArrayString script;
-        script.Add( _("lock") );
+        script.Add( _("locklayer") );
         script.Add( _("Surface") );
         script.Add( subArgu );
         m_scripts.insert( m_scripts.begin(), script );

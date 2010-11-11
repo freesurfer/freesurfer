@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/08 17:43:26 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/11/11 20:21:28 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -188,6 +188,11 @@ public:
   void Reposition( FSVolume* volume, int target_vnos, double* coord, int nsize, double sigma );
   
   void UndoReposition();
+  
+  bool HasVolumeGeometry()
+  {
+    return m_bHasVolumeGeometry;
+  }
 
 protected:
   void UpdatePolyData();
@@ -270,6 +275,8 @@ protected:
 
   std::vector<VertexVectorItem>  m_vertexVectors;
   int      m_nActiveVector;
+  
+  bool     m_bHasVolumeGeometry;
 };
 
 #endif

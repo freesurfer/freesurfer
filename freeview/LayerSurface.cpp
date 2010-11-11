@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/10/22 19:43:03 $
- *    $Revision: 1.50 $
+ *    $Date: 2010/11/11 20:21:28 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -1248,4 +1248,9 @@ void LayerSurface::Undo()
 bool LayerSurface::HasUndo()
 {
   return m_bUndoable;
+}
+
+bool LayerSurface::HasVolumeGeometry()
+{
+  return m_surfaceSource && m_surfaceSource->HasVolumeGeometry();
 }

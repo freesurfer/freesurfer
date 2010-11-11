@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/08 17:43:26 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/11/11 20:21:28 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -172,7 +172,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
     m_SurfaceToRASMatrix[11] = -m_MRIS->lta->xforms[0].src.c_s;
   }
   */
-  
+  m_bHasVolumeGeometry = false;
   if ( m_MRIS->vg.valid )
   {
     MRI* tmp = MRIallocHeader(m_MRIS->vg.width, m_MRIS->vg.height, m_MRIS->vg.depth, MRI_UCHAR);
@@ -191,6 +191,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
     MatrixFree( &vo2rasTkReg );
     MatrixFree( &vox2rasTkReg_inv );
     MatrixFree( &M );
+    m_bHasVolumeGeometry = true;
   }  
 
   // Make our transform object and set the matrix.

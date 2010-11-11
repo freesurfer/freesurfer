@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/29 17:17:14 $
- *    $Revision: 1.34 $
+ *    $Date: 2010/11/11 20:21:28 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -206,6 +206,8 @@ public:
   
   void UpdateCorrelationOverlayAtVertex( int nVertex );
   void UpdateCorrelationOverlay();
+  
+  bool HasVolumeGeometry();
 
 protected:
   virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
