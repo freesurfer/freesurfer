@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.92 2010/11/09 22:28:52 greve Exp $
+% $Id: fast_selxavg3.m,v 1.93 2010/11/11 16:54:41 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/11/09 22:28:52 $
-%    $Revision: 1.92 $
+%    $Date: 2010/11/11 16:54:41 $
+%    $Revision: 1.93 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.92 2010/11/09 22:28:52 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.93 2010/11/11 16:54:41 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -60,7 +60,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.92 2010/11/09 22:28:52 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.93 2010/11/11 16:54:41 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -883,9 +883,14 @@ if(DoContrasts)
     fname = sprintf('%s/fsig.%s',outcondir,ext);
     MRIwrite(fsig,fname);
 
+    Fvol = mri;
+    Fvol.vol = fast_mat2vol(Fmat,mri.volsize);
+    fname = sprintf('%s/F.%s',outcondir,ext);
+    MRIwrite(Fvol,fname);
+
     if(J == 1)
       t = mri;
-      t.vol = sqrt(fsig.vol) .* sign(ces.vol);
+      t.vol = sqrt(Fvol.vol) .* sign(ces.vol);
       fname = sprintf('%s/t.%s',outcondir,ext);
       MRIwrite(t,fname);
       sig = mri;
@@ -911,7 +916,6 @@ if(DoContrasts)
       pcc.vol = fast_mat2vol(pccmat,pcc.volsize);
       fname = sprintf('%s/pcc.%s',outcondir,ext);
       MRIwrite(pcc,fname);
-    
     end
 
     if(flac.IsRetinotopy)
