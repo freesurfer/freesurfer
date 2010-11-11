@@ -7,9 +7,9 @@
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2009/06/10 18:35:45 $
-#    $Revision: 1.3 $
+#    $Author: mreuter $
+#    $Date: 2010/11/11 20:13:06 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2009
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_concatenate_lta,v 1.3 2009/06/10 18:35:45 nicks Exp $'
+set VERSION='$Id: test_mri_concatenate_lta,v 1.4 2010/11/11 20:13:06 mreuter Exp $'
 
 umask 002
 
@@ -34,7 +34,7 @@ umask 002
 gunzip -c testdata.tar.gz | tar xvf -
 
 #
-# run command
+# run command1
 #
 set cmd=(./mri_concatenate_lta -invert1 \
   nick13_to_nickbase.lta \
@@ -44,7 +44,7 @@ echo ""
 echo $cmd
 $cmd
 if ($status != 0) then
-  echo "mri_concatenate_lta FAILED"
+  echo "mri_concatenate_lta test1 FAILED"
   exit 1
 endif
 
@@ -52,6 +52,33 @@ endif
 # look for differences
 #
 set cmd=(diff nickbase_to_nick13.lta reference-nickbase_to_nick13.lta)
+echo ""
+echo $cmd
+$cmd
+set diff_status=$status
+if ($diff_status != 0) then
+  echo "$cmd FAILED (exit status=$diff_status)"
+  exit 1
+endif
+
+#
+# run command2
+#
+set cmd=(./mri_concatenate_lta 002.lta \
+  tp_to_base.lta \
+  002-long.lta)
+echo ""
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "mri_concatenate_lta test2 FAILED"
+  exit 1
+endif
+
+#
+# look for differences
+#
+set cmd=(diff 002-long.lta reference-002-long.lta)
 echo ""
 echo $cmd
 $cmd
