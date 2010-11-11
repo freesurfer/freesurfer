@@ -11,8 +11,8 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/11 20:02:55 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/11/11 22:40:33 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2006-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_concatenate_lta.c,v 1.7 2010/11/11 20:02:55 mreuter Exp $", 
+     "$Id: mri_concatenate_lta.c,v 1.8 2010/11/11 22:40:33 mreuter Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -191,12 +191,12 @@ int main(int argc, char *argv[])
       LTAmodifySrcDstGeom(lta2, NULL, tal_dst); // add src and dst information
   }
   else
-	{
-    TRANSFORM * trans = TransformRead(ltafn2);
-    lta2 =  (LTA *)trans->xform ;
-    //lta2 = ltaReadFileEx(ltafn2);
+  {
+     TRANSFORM * trans = TransformRead(ltafn2);
+     lta2 =  (LTA *)trans->xform ;
+     //lta2 = ltaReadFileEx(ltafn2);
   }
-	
+
   if (!lta2)
     ErrorExit(ERROR_BADFILE, "%s: can't read file %s",Progname, ltafn2);
 
