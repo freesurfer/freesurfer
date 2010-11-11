@@ -9,9 +9,9 @@
 /*
  * Original Authors: Xiao Han, Nick Schmansky 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/01/12 19:47:57 $
- *    $Revision: 1.9 $
+ *    $Author: mreuter $
+ *    $Date: 2010/11/11 22:41:09 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2006-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.9 2010/01/12 19:47:57 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.10 2010/11/11 22:41:09 mreuter Exp $",
      "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
@@ -259,7 +259,7 @@ int main(int argc, char *argv[]) {
   printf("mean +/- std = %6.4f +/- %6.4f \n", mean2, std2);
 
   if (log_fname != NULL) {
-    log_fp = fopen(log_fname, "w+") ;
+    log_fp = fopen(log_fname, "a+") ;
     if (!log_fp)
       ErrorExit(ERROR_BADFILE, "%s: could not open %s for writing",
                 Progname, log_fname) ;
@@ -268,6 +268,8 @@ int main(int argc, char *argv[]) {
     }
     fprintf(log_fp, "%6.4f ", mean2);
     fprintf(log_fp, "%6.4f ", std2);
+    fprintf(log_fp, "%6.4f \n",
+            subcorvolume_overlap*2.0/(float)(subcorvolume1 + subcorvolume2));
     fclose(log_fp);
   }
 
