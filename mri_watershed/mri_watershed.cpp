@@ -11,9 +11,9 @@
 /*
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 18:03:49 $
- *    $Revision: 1.90 $
+ *    $Author: greve $
+ *    $Date: 2010/11/11 20:14:13 $
+ *    $Revision: 1.91 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.90 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.91 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -86,6 +86,7 @@ extern "C"
 #include "gca.h"
 #include "gcamorph.h"
 #include "cma.h"
+#include "transform.h"
 
 #include "talairachex.h"
 }
@@ -870,6 +871,7 @@ void writeSurface(char *fname, MRI_variables *var, STRIP_PARMS *parms)
     var->mris->useRealRAS = 0;
   else
     var->mris->useRealRAS = 1;
+  getVolGeom(var->mri_src, &var->mris->vg);
   MRISwrite(var->mris, fname);
 }
 
@@ -883,7 +885,6 @@ int main(int argc, char *argv[])
   MRI *mri_with_skull, *mri_without_skull=NULL, *mri_mask;
   MRI *PreEditVol=NULL, *PostEditVol=NULL, *mritmp=NULL;
   float preval, postval, outval;
-
   int x, y, z, k;
   GCA_PRIOR *gcap;
   float value_brain, value_cer, value_cergw;
@@ -892,7 +893,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.90 2010/08/12 18:03:49 gregt Exp $", 
+     "$Id: mri_watershed.cpp,v 1.91 2010/11/11 20:14:13 greve Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -905,7 +906,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.90 2010/08/12 18:03:49 gregt Exp $", 
+     "$Id: mri_watershed.cpp,v 1.91 2010/11/11 20:14:13 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
