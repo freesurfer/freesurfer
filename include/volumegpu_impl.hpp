@@ -10,8 +10,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/09/29 20:12:00 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/11/11 15:00:47 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -186,6 +186,24 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaMemset3D( this->d_data,
 				    0,
 				    extent ) );
+    }
+
+    // ---------------------------------
+
+    template<typename T>
+    void VolumeGPU<T>::Copy( const VolumeGPU<T>& src,
+			     const cudaStream_t myStream ) {
+      this->Allocate( src.dims );
+
+      cudaMemcpy3DParms copyParams = {0};
+
+      copyParams.srcPtr = src->d_data;
+      copyParams.dstPtr = this->d_data;
+      copyParams.extent = ExtentFromDims( this->dims );
+      copyParams.extent.width *= sizeof(T);
+      copyParams.kind = cudaMemcpyDeviceToDevice;
+
+      CUDA_SAFE_CALL( cudaMemcpy3DAsync( &copyParams, myStream ) );
     }
 
 
