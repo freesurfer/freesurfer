@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/11/10 16:35:14 $
-#    $Revision: 1.333 $
+#    $Date: 2010/11/12 14:21:44 $
+#    $Revision: 1.334 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.333 2010/11/10 16:35:14 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.334 2010/11/12 14:21:44 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -851,14 +851,14 @@ if($#InputList != 0) then
     if ($nth == 1) then
       # assume first input has 'correct' dimensions
       set firstInput = ($InputVol)
-      set rows = `mri_info --nrows $InputVol |& tail --lines 1`
-      set cols = `mri_info --ncols $InputVol |& tail --lines 1`
-      set slices = `mri_info --nslices $InputVol |& tail --lines 1`
+      set rows = `mri_info --nrows $InputVol |& tail -n 1`
+      set cols = `mri_info --ncols $InputVol |& tail -n 1`
+      set slices = `mri_info --nslices $InputVol |& tail -n 1`
     else
       # check subsequent against the first input
-      set nrows = `mri_info --nrows $InputVol |& tail --lines 1`
-      set ncols = `mri_info --ncols $InputVol |& tail --lines 1`
-      set nslices = `mri_info --nslices $InputVol |& tail --lines 1`
+      set nrows = `mri_info --nrows $InputVol |& tail -n 1`
+      set ncols = `mri_info --ncols $InputVol |& tail -n 1`
+      set nslices = `mri_info --nslices $InputVol |& tail -n 1`
       if (($nrows != $rows) || \
           ($ncols != $cols) || \
           ($nslices != $slices)) then
@@ -1143,7 +1143,7 @@ if($DoMotionCor) then
   # without this check, andre is unhappy
   foreach RunVol ($RunList)
     echo "Checking for (invalid) multi-frame inputs..." |& tee -a $LF
-    set nframes = `mri_info --nframes $RunVol |& tail --lines 1`
+    set nframes = `mri_info --nframes $RunVol |& tail -n 1`
     if ($nframes != 1) then
       echo "ERROR: input(s) cannot have multiple frames!" |& tee -a $LF
       echo "$RunVol has $nframes frames" |& tee -a $LF
@@ -1716,7 +1716,7 @@ skullstrip:
         if($RunIt) then
           $fs_time $cmd |& tee -a $LF |& tee -a ll_tmp
           # extract the last line of output, containing the result
-          set ll = `tail --lines 1 ll_tmp`
+          set ll = `tail -n 1 ll_tmp`
           rm -f ll_tmp
         endif
         if($status) goto error_exit;
