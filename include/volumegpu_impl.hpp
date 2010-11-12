@@ -10,8 +10,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/11 15:00:47 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/11/12 18:01:47 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -197,7 +197,7 @@ namespace GPU {
 
       cudaMemcpy3DParms copyParams = {0};
 
-      copyParams.srcPtr = src->d_data;
+      copyParams.srcPtr = src.d_data;
       copyParams.dstPtr = this->d_data;
       copyParams.extent = ExtentFromDims( this->dims );
       copyParams.extent.width *= sizeof(T);
