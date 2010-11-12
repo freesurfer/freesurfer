@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/11/04 18:10:38 $
- *    $Revision: 1.119 $
+ *    $Author: fischl $
+ *    $Date: 2010/11/12 15:55:09 $
+ *    $Revision: 1.120 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.119 2010/11/04 18:10:38 nicks Exp $";
+  "$Id: mris_make_surfaces.c,v 1.120 2010/11/12 15:55:09 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -241,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.119 2010/11/04 18:10:38 nicks Exp $",
+   "$Id: mris_make_surfaces.c,v 1.120 2010/11/12 15:55:09 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.119 2010/11/04 18:10:38 nicks Exp $",
+           "$Id: mris_make_surfaces.c,v 1.120 2010/11/12 15:55:09 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -745,7 +745,8 @@ main(int argc, char *argv[]) {
       MRIwrite(mri_T1, "white_masked.mgz") ;
   }
   if (mri_T1_white) {
-    MRIfree(&mri_T1);
+    if (mri_T1 != mri_T1_pial)
+      MRIfree(&mri_T1);
     mri_T1 = mri_T1_white ; // T1 and T1_white is swapped
   }
   if (aseg_name) {
