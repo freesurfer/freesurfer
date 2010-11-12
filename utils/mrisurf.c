@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/10/29 12:55:28 $
- *    $Revision: 1.686 $
+ *    $Date: 2010/11/12 22:17:34 $
+ *    $Revision: 1.687 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.686 2010/10/29 12:55:28 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.687 2010/11/12 22:17:34 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -61572,6 +61572,11 @@ mrisComputeJointGrayWhiteBorderDistributions(MRI_SURFACE *mris, MRI *mri,
     MRIFvox(mri_gray_white, nint(white_val), nint(gray_val), 0) += 1.0f ;
 #else
     // set the value
+    if (nint(v->val2) < 0 || nint(v->val2bak < 0) ||
+        nint(v->val2) >= mri_gray_white->width ||
+        nint(v->val2bak) >= mri_gray_white->height)
+      ErrorExit(ERROR_UNSUPPORTED, "gray/white vals out of [0 255] range (%d, %d)\n",
+                nint(v->val2), nint(v->val)) ;
     MRIFvox(mri_gray_white, nint(v->val2), nint(v->val2bak), 0) += 1.0f ;
 
     //      if ((nint(nint(v->val2)) == 110) && (nint(v->val2bak) == 110)) DiagBreak() ;
