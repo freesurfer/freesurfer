@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/11/12 14:21:44 $
-#    $Revision: 1.334 $
+#    $Date: 2010/11/15 14:43:58 $
+#    $Revision: 1.335 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.334 2010/11/12 14:21:44 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.335 2010/11/15 14:43:58 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2854,13 +2854,13 @@ foreach hemi ($hemilist)
     echo "#@# Parcellation Stats $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set clabel = ../label/$hemi.cortex.label
     set annot = ../label/$hemi.aparc.annot
     set stats = ../stats/$hemi.aparc.stats
     set ctab  = ../label/aparc.annot.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz -cortex $clabel -f $stats \
-            -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    set cmd = (mris_anatomical_stats -mgz)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -2903,13 +2903,13 @@ foreach hemi ($hemilist)
     echo "#@# Parcellation Stats 2 $hemi `date`" \
       |& tee -a $SF |& tee -a $LF |& tee -a $CF
     cd $subjdir/scripts > /dev/null
-    set clabel = ../label/$hemi.cortex.label
     set annot = ../label/$hemi.aparc.${DESTRIEUX_NAME}.annot
     set stats = ../stats/$hemi.aparc.${DESTRIEUX_NAME}.stats
     set ctab  = ../label/aparc.annot.${DESTRIEUX_NAME}.ctab
     set xopts = `fsr-getxopts mris_anatomical_stats $XOptsFile`;
-    set cmd = (mris_anatomical_stats -mgz -cortex $clabel -f $stats \
-            -b -a $annot -c $ctab $xopts $subjid $hemi white);
+    set cmd = (mris_anatomical_stats -mgz)
+    if($UseAseg) set cmd = ($cmd -cortex ../label/$hemi.cortex.label)
+    set cmd = ($cmd -f $stats -b -a $annot -c $ctab $xopts $subjid $hemi white);
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -5675,9 +5675,9 @@ See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
 -smooth-cortex-only
 
 Only applies with -qcache. Only smooth data if it is part of the ?h.cortex.label.
-This prevents values in the medial wall (which are meaningless) from being smoothed
-into cortical areas. This is the default and you will have to turn it off with
--no-smooth-cortex-only.
+This prevents values in the medial wall (which are meaningless) from being 
+smoothed into cortical areas. This is the default and you will have to turn 
+it off with -no-smooth-cortex-only.
 
 -no-smooth-cortex-only
 
