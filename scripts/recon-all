@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/11/15 14:43:58 $
-#    $Revision: 1.335 $
+#    $Date: 2010/11/15 21:54:12 $
+#    $Revision: 1.336 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.335 2010/11/15 14:43:58 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.336 2010/11/15 21:54:12 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -155,6 +155,8 @@ set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
 set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
                  # mri_em_register_cuda, mri_ca_register_cuda,
                  # mris_inflate_cuda, mris_sphere_cuda
+set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to 
+                     # mris_make_surfaces to bypass usage of parcellation
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -2814,6 +2816,7 @@ foreach hemi ($hemilist)
       set cmd = (mris_make_surfaces)
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
+    if ($PialNoAparc) set cmd = ($cmd -noaparc)
     set cmd = ($cmd -nowhite)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi);
@@ -4205,6 +4208,12 @@ while( $#argv != 0 )
     case "-nopial":
     case "-nofinalsurfs"
       set DoPialSurfs = 0;
+      breaksw
+
+    case "-pial-noaparc":
+    case "-pial_noaparc":
+      set DoPialSurfs = 1;
+      set PialNoAparc = 1;
       breaksw
 
     case "-cortparc":
