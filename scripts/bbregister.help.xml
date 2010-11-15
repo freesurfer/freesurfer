@@ -95,6 +95,8 @@
       <explanation>pass 1 vertex subsampling (default 1)</explanation>
       <argument>--no-pass1</argument>
       <explanation>turn off pass 1</explanation>
+      <argument>--surf surfname</argument>
+      <explanation>change surface to surfname from ?h.white </explanation>
       <argument>--surf-cost basename</argument>
       <explanation>saves final cost as basename.?h.mgh</explanation>
       <argument>--surf-con  basename</argument>

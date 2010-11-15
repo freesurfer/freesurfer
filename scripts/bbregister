@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/11/09 15:05:54 $
-#    $Revision: 1.41 $
+#    $Date: 2010/11/15 17:37:28 $
+#    $Revision: 1.42 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.41 2010/11/09 15:05:54 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.42 2010/11/15 17:37:28 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -74,6 +74,7 @@ set OutVol = ();
 set fsvol  = brainmask;
 set surfcost = ();
 set surfcon  = ();
+set surfname = "white";
 
 set RandInitMax = ();
 
@@ -187,7 +188,7 @@ set Pass1Reg = $tmpdir/bbr.pass1.dat
 if($DoPass1) then
   set cmd = (mri_segreg --mov $template --init-reg $InitReg --out-reg $Pass1Reg\
     --subsamp-brute $SubSamp1 --subsamp $SubSamp1 --tol 1e-4 --tol1d 1e-3 \
-    --brute -$Brute1Max $Brute1Max $Brute1Delta );
+    --brute -$Brute1Max $Brute1Max $Brute1Delta --surf $surfname);
   if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
   if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
   if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
@@ -215,7 +216,7 @@ set cmd = (mri_segreg --mov $template --init-reg $Pass1Reg \
   --out-reg $outreg --brute -0.1 0.1 0.1 --interp $Interp \
   --wm-proj-abs $WMProjAbs --tol $TolF --tol1d $Tol1D\
   --c0 $Offset2 --mincost $MinCostFile --dof $DOF \
-  --nmax $nPowellMax --param $ParamFile)
+  --nmax $nPowellMax --param $ParamFile --surf $surfname);
 if($SaveCurReg) set cmd = ($cmd --cur-reg $tmpdir/reg.curopt.dat)
 if($#GMProjFrac) set cmd = ($cmd --gm-proj-frac $GMProjFrac)
 if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
@@ -507,6 +508,11 @@ while( $#argv != 0 )
     case "--subsamp1":
       if ( $#argv < 1) goto arg1err;
       set SubSamp1 = $argv[1]; shift;
+      breaksw
+
+    case "--surf":
+      if ( $#argv < 1) goto arg1err;
+      set surfname = $argv[1]; shift;
       breaksw
 
     case "--surf-cost":
