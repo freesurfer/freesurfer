@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/30 21:02:34 $
- *    $Revision: 1.52 $
+ *    $Date: 2010/11/16 17:48:32 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -676,7 +676,7 @@ void PanelVolume::DoUpdateUI()
     return;
   
 	bool bHasVolume = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
-	wxWindowList children = GetChildren();
+  wxWindowList children = XRCCTRL( *this, "ID_SCROLL_WINDOW", wxScrolledWindow )->GetChildren();
 	wxWindowList::iterator it = children.begin(), end = children.end();
 	for (; it != end; it++) 
 	{

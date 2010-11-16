@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/11/11 20:21:28 $
- *    $Revision: 1.151 $
+ *    $Date: 2010/11/16 17:48:32 $
+ *    $Revision: 1.152 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2678,7 +2678,8 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
   
   // Update world geometry
   LayerCollection* mri_col = GetLayerCollection( "MRI" );
-  if ( !mri_col )
+  LayerCollection* surf_col = GetLayerCollection( "Surface" );
+  if ( !mri_col || !surf_col )
     return;
   Layer* mri = mri_col->GetActiveLayer();
   double new_origin[3], new_ext[3];
@@ -2718,6 +2719,9 @@ void MainWindow::DoListenToMessage ( std::string const iMsg, void* iData, void* 
     mri_col->SetWorldOrigin( new_origin );
     mri_col->SetWorldSize( new_ws );
     mri_col->SetWorldVoxelSize( voxel_size );
+    surf_col->SetWorldOrigin( new_origin );
+    surf_col->SetWorldSize( new_ws );
+    surf_col->SetWorldVoxelSize( voxel_size );
   }
 }
 
