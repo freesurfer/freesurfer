@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/11/16 00:00:04 $
- *    $Revision: 1.148 $
+ *    $Date: 2010/11/16 23:24:15 $
+ *    $Revision: 1.149 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -3587,6 +3587,33 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
       break;
     }
   } 
+  else if (lta->type == REGISTER_DAT)
+  {
+    MRI    *mriSrc, *mriDst ;
+    lt = &lta->xforms[0];
+    m_L = lt->m_L;
+    switch (ltatype){
+    case LINEAR_RAS_TO_RAS:
+      mriSrc = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR) ;
+      MRIcopyVolGeomToMRI(mriSrc, &lt->src) ;
+      mriDst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR) ;
+      MRIcopyVolGeomToMRI(mriDst, &lt->dst) ;
+      lt->m_L = MRItkReg2Native(mriDst,mriSrc,m_L);
+      MRIfree(&mriSrc) ;
+      MRIfree(&mriDst) ;
+      lta->type = ltatype ;
+      break ;
+    case LINEAR_VOX_TO_VOX:
+      lta = LTAchangeType(lta, LINEAR_RAS_TO_RAS);
+      lta = LTAchangeType(lta, LINEAR_VOX_TO_VOX);
+      break ;
+    default:
+      ErrorExit(ERROR_BADPARM, "LTAchangeType unsupported: you are"
+                " requesting REGISTER_DAT to %d ", ltatype);
+      break;
+    }
+    printf("transformed matrix:\n") ;MatrixPrint(Gstdout, lta->xforms[0].m_L) ;
+  }
   else if (lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
   {
     MATRIX *m_sras2ras ;
@@ -4016,15 +4043,14 @@ MATRIX *TransformLTA2RegDat(LTA *lta)
 
   if(lta->type != LINEAR_RAS_TO_RAS && 
      lta->type != LINEAR_VOX_TO_VOX &&
-     lta->type != LINEAR_CORONAL_RAS_TO_CORONAL_RAS){
+     lta->type != REGISTER_DAT){
     printf("ERROR: TransformLTA2RegDat(): type = %d, must be %d or %d or %d\n",
 	   lta->type,LINEAR_RAS_TO_RAS,LINEAR_VOX_TO_VOX, 
 	   LINEAR_CORONAL_RAS_TO_CORONAL_RAS);
     return(NULL);
   }
 
-  if(lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS ||
-     lta->type == REGISTER_DAT){
+  if(lta->type == REGISTER_DAT){
     R = MatrixCopy(lta->xforms[0].m_L,NULL);
     return(R);
   }
