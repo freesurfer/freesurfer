@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.66 $
+ *    $Author: greve $
+ *    $Date: 2010/11/16 00:00:04 $
+ *    $Revision: 1.67 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -218,6 +218,8 @@ MATRIX *vg_i_to_r(const VOL_GEOM *vg);
 MATRIX *vg_r_to_i(const VOL_GEOM *vg);
 #define vg_getRasToVoxelXform vg_r_to_i
 #define vg_getVoxelToRasXform vg_i_to_r
+MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg);
+MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg);
 
 int TransformCopyVolGeomToMRI(TRANSFORM *transform, MRI *mri);
 

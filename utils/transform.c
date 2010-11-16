@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/08/31 16:38:22 $
- *    $Revision: 1.147 $
+ *    $Author: greve $
+ *    $Date: 2010/11/16 00:00:04 $
+ *    $Revision: 1.148 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -308,7 +308,7 @@ void readVolGeom(FILE *fp, VOL_GEOM *vg)
   }
 }
 
-// return i_to_r from VOL_GEOM
+// scanner space vox2ras from vol geom
 MATRIX *vg_i_to_r(const VOL_GEOM *vg)
 {
   MATRIX *mat =0;
@@ -319,7 +319,6 @@ MATRIX *vg_i_to_r(const VOL_GEOM *vg)
   MRIfree(&tmp);
   return mat;
 }
-
 MATRIX *vg_r_to_i(const VOL_GEOM *vg)
 {
   MATRIX *mat =0;
@@ -329,6 +328,25 @@ MATRIX *vg_r_to_i(const VOL_GEOM *vg)
   mat = extract_r_to_i(tmp);
   MRIfree(&tmp);
   return mat;
+}
+// tkregister space vox2ras from vol geom
+MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg)
+{
+  MATRIX *mat = NULL;
+  MRI *tmp = 0;
+  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+  useVolGeomToMRI(vg, tmp);
+  mat = MRIxfmCRS2XYZtkreg(tmp);
+  MRIfree(&tmp);
+  return(mat);
+}
+// tkregister space ras2vox from vol geom
+MATRIX *TkrRAS2VoxfromVolGeom(const VOL_GEOM *vg)
+{
+  MATRIX *mat = NULL;
+  mat = TkrVox2RASfromVolGeom(vg);
+  mat = MatrixInverse(mat,mat);
+  return(mat);
 }
 
 int vg_isEqual(const VOL_GEOM *vg1, const VOL_GEOM *vg2)
@@ -3991,46 +4009,67 @@ LTA *TransformRegDat2LTA(MRI *targ, MRI *mov, MATRIX *R)
 */
 MATRIX *TransformLTA2RegDat(LTA *lta)
 {
-  MATRIX *vox2vox; // Targ->Mov
-  MATRIX *R,*Ttarg, *Tmov, *invTtarg;
+  MATRIX *Vox2Vox=NULL; // Mov->Targ
+  MATRIX *invVox2Vox=NULL; // Targ->Mov
+  MATRIX *Ttarg, *Tmov, *invTtarg; // tkreg space vox2ras
+  MATRIX *R; // TkRegMat
 
-  vox2vox = MatrixCopy(lta->xforms[0].m_L,NULL);
+  if(lta->type != LINEAR_RAS_TO_RAS && 
+     lta->type != LINEAR_VOX_TO_VOX &&
+     lta->type != LINEAR_CORONAL_RAS_TO_CORONAL_RAS){
+    printf("ERROR: TransformLTA2RegDat(): type = %d, must be %d or %d or %d\n",
+	   lta->type,LINEAR_RAS_TO_RAS,LINEAR_VOX_TO_VOX, 
+	   LINEAR_CORONAL_RAS_TO_CORONAL_RAS);
+    return(NULL);
+  }
 
-  // Reverse Targ and Source because that is how tkreg mat is defined.
-  Ttarg = vg_i_to_r(&(lta->xforms[0].src));
-  if (Ttarg == NULL)
-  {
-    printf("ERROR: constructing vox2ras from src/targ vol geom\n");
-    vg_print(&lta->xforms[0].src);
-    exit(1);
+  if(lta->type == LINEAR_CORONAL_RAS_TO_CORONAL_RAS ||
+     lta->type == REGISTER_DAT){
+    R = MatrixCopy(lta->xforms[0].m_L,NULL);
+    return(R);
   }
-  Tmov  = vg_i_to_r(&lta->xforms[0].dst);
-  if (Tmov == NULL)
-  {
-    printf("ERROR: constructing vox2ras from dst/mov vol geom\n");
-    vg_print(&lta->xforms[0].dst);
-    exit(1);
+
+  // Get MovVox-to-TargVox (Vox2Vox)
+  if(lta->type == LINEAR_VOX_TO_VOX)
+    Vox2Vox = MatrixCopy(lta->xforms[0].m_L,NULL);
+  if(lta->type == LINEAR_RAS_TO_RAS){
+    MATRIX *M; // Scanner Space MovRAS-to-TargRAS
+    MATRIX *Starg, *Smov, *invStarg; // Scanner Space vox2ras
+    M = MatrixCopy(lta->xforms[0].m_L,NULL);
+    Starg = vg_i_to_r(&lta->xforms[0].dst);
+    Smov  = vg_i_to_r(&(lta->xforms[0].src));
+    invStarg = MatrixInverse(Starg,NULL);
+    // MovVox2TargVox = inv(Starg)*M*Smov
+    Vox2Vox = MatrixMultiply(invStarg,M,NULL);
+    Vox2Vox = MatrixMultiply(Vox2Vox,Smov,Vox2Vox);
+    MatrixFree(&M);
+    MatrixFree(&Smov);
+    MatrixFree(&Starg);
+    MatrixFree(&invStarg);
   }
+  invVox2Vox = MatrixInverse(Vox2Vox,NULL);
+
+  // TkReg Space vox2ras
+  Ttarg = TkrVox2RASfromVolGeom(&lta->xforms[0].dst);
+  Tmov  = TkrVox2RASfromVolGeom(&(lta->xforms[0].src));
   invTtarg = MatrixInverse(Ttarg,NULL);
 
-  // vox2vox = invTmov * R * Ttarg
-  // R = Tmov * vox2vox * invTtarg
-  R = MatrixMultiply(Tmov,vox2vox,NULL);
+  // R = Tmov * invVox2Vox * invTtarg
+  R = MatrixMultiply(Tmov,invVox2Vox,NULL);
   R = MatrixMultiply(R,invTtarg,R);
 
-  if (Gdiag_no > 0)
-  {
+  if (Gdiag_no > 0) {
     printf("TransformLTA2RegDat() -----------");
     printf("src/targ Vol Geom");
     vg_print(&lta->xforms[0].src);
     printf("dst/mov  Vol Geom");
     vg_print(&lta->xforms[0].dst);
     printf("Vox2Vox---------------------------\n");
-    MatrixPrint(stdout,vox2vox);
+    MatrixPrint(stdout,Vox2Vox);
     printf("Tmov ---------------------------\n");
     MatrixPrint(stdout,Tmov);
     printf("invTtarg ---------------------------\n");
-    MatrixPrint(stdout,Tmov);
+    MatrixPrint(stdout,invTtarg);
     printf("---------------------------\n");
     MatrixPrint(stdout,R);
     printf("---------------------------\n");
@@ -4039,7 +4078,8 @@ MATRIX *TransformLTA2RegDat(LTA *lta)
   MatrixFree(&Ttarg);
   MatrixFree(&Tmov);
   MatrixFree(&invTtarg);
-  MatrixFree(&vox2vox);
+  MatrixFree(&Vox2Vox);
+  MatrixFree(&invVox2Vox);
 
   return(R);
 }

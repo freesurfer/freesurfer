@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/01/04 18:44:55 $
- *    $Revision: 1.20 $
+ *    $Author: greve $
+ *    $Date: 2010/11/16 00:00:04 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,20 +65,17 @@ int regio_read_register(char *regfile, char **subject, float *inplaneres,
   if (!stricmp(FileNameExtension(regfile, tmp), "LTA"))
   {
     LTA *lta ;
+    printf("regio_read_register: loading lta\n");
     lta = LTAread(regfile) ;
-    if (lta == NULL)
-      return(1) ;
+    if (lta == NULL) return(1) ;
     *subject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
     strcpy(*subject, lta->subject) ;
 
     *intensity = lta->fscale ;
     *float2int = FLT2INT_ROUND ;
-    *inplaneres = lta->xforms[0].dst.xsize ;
+    *inplaneres  = lta->xforms[0].dst.xsize ;
     *betplaneres = lta->xforms[0].dst.zsize ;
-    *R = MatrixCopy(lta->xforms[0].m_L, NULL) ;
-    if (lta->type != LINEAR_CORONAL_RAS_TO_CORONAL_RAS)
-      printf("!!! WARNING: non TKREG .lta file %s read in regio_read_register !!!\n",
-             regfile) ;
+    *R = TransformLTA2RegDat(lta);
     LTAfree(&lta) ;
     return(0) ;
   }
