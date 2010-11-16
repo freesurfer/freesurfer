@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/10/21 17:51:48 $
- *    $Revision: 1.470 $
+ *    $Author: greve $
+ *    $Date: 2010/11/16 23:17:30 $
+ *    $Revision: 1.471 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.470 $";
+const char *MRI_C_VERSION = "$Revision: 1.471 $";
 
 
 /*-----------------------------------------------------
@@ -5837,6 +5837,7 @@ MRIcopy(MRI *mri_src, MRI *mri_dst)
       break ;  /* in case someone removes the errorreturn */
     }
   }
+  strcpy(mri_dst->fname,mri_src->fname);
   return(mri_dst) ;
 }
 /*

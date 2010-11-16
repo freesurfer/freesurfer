@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/11/10 20:38:59 $
- *    $Revision: 1.377 $
+ *    $Author: greve $
+ *    $Date: 2010/11/16 23:18:58 $
+ *    $Revision: 1.378 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -433,8 +433,7 @@ int MRIgetVolumeName(const char *string, char *name_only)
 
 } /* end MRIgetVolumeName() */
 
-static MRI *mri_read
-(const char *fname, int type, int volume_flag, int start_frame, int end_frame)
+static MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame)
 {
   MRI *mri, *mri2;
   IMAGE *I;
@@ -712,6 +711,7 @@ static MRI *mri_read
   }
 
   if (mri == NULL)  return(NULL) ;
+  strcpy(mri->fname,fname); // added by dng 11/16/2010
 
   // update/cache the transform
   if (mri->i_to_r__)
