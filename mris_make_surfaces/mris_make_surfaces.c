@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/11/12 15:55:09 $
- *    $Revision: 1.120 $
+ *    $Author: mreuter $
+ *    $Date: 2010/11/17 00:33:50 $
+ *    $Revision: 1.121 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.120 2010/11/12 15:55:09 fischl Exp $";
+  "$Id: mris_make_surfaces.c,v 1.121 2010/11/17 00:33:50 mreuter Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -241,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.120 2010/11/12 15:55:09 fischl Exp $",
+   "$Id: mris_make_surfaces.c,v 1.121 2010/11/17 00:33:50 mreuter Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.120 2010/11/12 15:55:09 fischl Exp $",
+           "$Id: mris_make_surfaces.c,v 1.121 2010/11/17 00:33:50 mreuter Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1049,7 +1049,7 @@ main(int argc, char *argv[]) {
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
 
     if (longitudinal) {
-      //save final white location
+      //save final white location into TMP_VERTICES
       MRISsaveVertexPositions(mris, TMP_VERTICES);
     }
 
@@ -1057,7 +1057,7 @@ main(int argc, char *argv[]) {
       ErrorExit(Gerror, "reading orig pial positions failed") ;
 
     if (longitudinal) {
-      //reset starting point to be in the middle of final white and orig pial
+      //reset starting point to be between final white and orig pial
       int vno;
       VERTEX *v;
       //reset the starting position to be
@@ -1066,6 +1066,7 @@ main(int argc, char *argv[]) {
         v = &mris->vertices[vno];
         if (v->ripflag)
           continue;
+				// where tx ty tz is the TMP_VERTICES (final white)
         v->x = 0.75*v->x + 0.25*v->tx;
         v->y = 0.75*v->y + 0.25*v->ty;
         v->z = 0.75*v->z + 0.25*v->tz;
@@ -1758,7 +1759,7 @@ print_help(void) {
         "-pa <avgs>  average pial curvature "
           "values a max of <avgs> times (default=16)\n");
   fprintf(stderr,
-        "-wa <avgs>  average white curvature "
+        "-wa <avgs>  average white curvature "ORIG
           "values a max of <avgs> times (default=4)\n");
   fprintf(stderr,
           "-whiteonly  only generate white matter surface\n") ;
