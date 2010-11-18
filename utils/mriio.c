@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/11/16 23:18:58 $
- *    $Revision: 1.378 $
+ *    $Author: fischl $
+ *    $Date: 2010/11/18 15:50:05 $
+ *    $Revision: 1.379 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -12145,7 +12145,7 @@ mghRead(const char *fname, int read_volume, int frame)
         znzgetc(fp);
     }
     else
-      znzseek(fp, mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
+      znzseek(fp, (long)mri->nframes*width*height*depth*bpv, SEEK_CUR) ;
   }
   else
   {
