@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/11/18 15:51:27 $
- *    $Revision: 1.380 $
+ *    $Author: greve $
+ *    $Date: 2010/11/18 18:21:56 $
+ *    $Revision: 1.381 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -12474,7 +12474,7 @@ mghWrite(MRI *mri, const char *fname, int frame)
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
-  printf("(w,h,d) = (%d,%d,%d)\n", width, height, depth);
+  //printf("(w,h,d) = (%d,%d,%d)\n", width, height, depth);
   znzwriteInt(MGH_VERSION, fp) ;
   znzwriteInt(mri->width, fp) ;
   znzwriteInt(mri->height, fp) ;
