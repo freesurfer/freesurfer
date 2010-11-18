@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/11/18 15:50:05 $
- *    $Revision: 1.379 $
+ *    $Date: 2010/11/18 15:51:27 $
+ *    $Revision: 1.380 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -12140,8 +12140,8 @@ mghRead(const char *fname, int read_volume, int frame)
     mri->nframes = nframes ;
     if (gzipped)
     { // pipe cannot seek
-      int count;
-      for (count=0; count < mri->nframes*width*height*depth*bpv; count++)
+      long count;
+      for (count=0; count < (long)mri->nframes*width*height*depth*bpv; count++)
         znzgetc(fp);
     }
     else
@@ -12154,12 +12154,12 @@ mghRead(const char *fname, int read_volume, int frame)
       start_frame = end_frame = frame ;
       if (gzipped)
       { // pipe cannot seek
-        int count;
-        for (count=0; count < frame*width*height*depth*bpv; count++)
+        long count;
+        for (count=0; count < (long)frame*width*height*depth*bpv; count++)
           znzgetc(fp);
       }
       else
-        znzseek(fp, frame*width*height*depth*bpv, SEEK_CUR) ;
+        znzseek(fp, (long)frame*width*height*depth*bpv, SEEK_CUR) ;
       nframes = 1 ;
     }
     else
