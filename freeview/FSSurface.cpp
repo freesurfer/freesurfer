@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/11/11 20:21:28 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/11/19 19:45:56 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -323,7 +323,6 @@ bool FSSurface::LoadCurvature( const char* filename )
   }
 }
 
-/*
 bool FSSurface::LoadOverlay( const char* filename )
 {
   if ( ::MRISreadValues( m_MRIS, (char*)( filename ) ) != 0 )
@@ -336,9 +335,8 @@ bool FSSurface::LoadOverlay( const char* filename )
     return true;
   }
 }
-*/
 
-
+/*
 bool FSSurface::LoadOverlay( const char* filename )
 {
   // user read curvature routine because read values does not handle filename properly
@@ -369,6 +367,7 @@ bool FSSurface::LoadOverlay( const char* filename )
     return true;
   }
 }
+*/
 
 bool FSSurface::LoadVectors( const char* filename )
 {
