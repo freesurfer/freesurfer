@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/11/20 00:59:39 $
-#    $Revision: 1.337 $
+#    $Date: 2010/11/20 19:43:32 $
+#    $Revision: 1.338 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.337 2010/11/20 00:59:39 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.338 2010/11/20 19:43:32 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2817,6 +2817,7 @@ foreach hemi ($hemilist)
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     if ($PialNoAparc) set cmd = ($cmd -noaparc)
+    set cmd = ($cmd -orig white)
     set cmd = ($cmd -orig_white white)
     set cmd = ($cmd -nowhite)
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
