@@ -20,8 +20,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/07/27 14:56:33 $
- *    $Revision: 1.65 $
+ *    $Date: 2010/11/20 22:11:15 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -218,14 +218,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ms_fitparms.c,v 1.65 2010/07/27 14:56:33 fischl Exp $",
+     "$Id: mri_ms_fitparms.c,v 1.66 2010/11/20 22:11:15 fischl Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_ms_fitparms.c,v 1.65 2010/07/27 14:56:33 fischl Exp $",
+    "$Id: mri_ms_fitparms.c,v 1.66 2010/11/20 22:11:15 fischl Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -2332,20 +2332,26 @@ static MRI *
 estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
                 MATRIX **Mreg, LTA *lta, MRI *mri_T1) {
   int    i, j, nechoes, processed[MAX_IMAGES], nprocessed, x, y,\
-    z, different_te, width, depth, height ;
+    z, different_te, width, depth, height, unique_te ;
   MRI    *mri_T2star = NULL ;
   double T2star ;
   Real   PD = 10 ;
 
   /* first decide whether T2* can be estimated at all */
   different_te = 0 ;
-  for (i = 0 ; different_te == 0 && i < nvolumes ; i++) {
-    for (j = i+1 ; different_te == 0 && j < nvolumes ; j++) {
-      if (mri_flash[i]->te != mri_flash[j]->te)
-        different_te = 1 ;
+  for (i = 0 ; i < nvolumes ; i++) {
+    unique_te = 1 ;
+    for (j = 0 ; j < i ; j++) {
+      if (mri_flash[i]->te == mri_flash[j]->te)
+      {
+        unique_te = 0 ;
+        break ;
+      }
     }
+    if (unique_te)
+      different_te++ ;
   }
-  if (different_te == 0)
+  if (different_te <= 1)
     return(NULL) ;  /* can't estimate T2* */
 
   memset(processed, 0, sizeof(processed)) ;
@@ -2367,7 +2373,7 @@ estimate_T2star(MRI **mri_flash, int nvolumes, MRI *mri_PD,
   }
   printf("estimating T2* with %d different acquisitions, "
          "each with %d echoes...\n",
-         nprocessed, nvolumes/nprocessed) ;
+         nvolumes/different_te, different_te) ;
   mri_T2star = compute_T2star_map(mri_flash, nvolumes, processed, Mreg, lta) ;
 
   /* now update PD map to take out T2* component */
