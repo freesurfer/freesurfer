@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/11/16 23:21:44 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/11/22 22:58:28 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,13 +67,10 @@ int regio_read_register(char *regfile, char **subject, float *inplaneres,
     LTA *lta ;
     printf("regio_read_register: loading lta\n");
     lta = LTAread(regfile) ;
-    if (lta == NULL) return(1) ;
-    if(lta->subject == NULL) 
-      strcpy(*subject, "subject-unknown"); 
-    else {
-      *subject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
-      strcpy(*subject, lta->subject) ;
-    }
+    if(lta == NULL) return(1) ;
+    if(lta->subject[0]==0) strcpy(lta->subject, "subject-unknown"); 
+    *subject = (char *) calloc(strlen(lta->subject)+2,sizeof(char));
+    strcpy(*subject, lta->subject) ;
 
     *intensity = lta->fscale ;
     *float2int = FLT2INT_ROUND ;
