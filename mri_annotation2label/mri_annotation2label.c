@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas Greve
  * CVS Revision Info:
- *    $Author: rudolph $
- *    $Date: 2010/09/07 20:41:53 $
- *    $Revision: 1.24 $
+ *    $Author: greve $
+ *    $Date: 2010/11/22 23:36:17 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@ static int  singledash(char *flag);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_annotation2label.c,v 1.24 2010/09/07 20:41:53 rudolph Exp $";
+static char vcid[] = "$Id: mri_annotation2label.c,v 1.25 2010/11/22 23:36:17 greve Exp $";
 char *Progname = NULL;
 
 char  *subject   = NULL;
@@ -84,6 +84,7 @@ int  nperannot[1000];
 char *segfile=NULL;
 MRI  *seg;
 int  segbase = -1000;
+char *ctabfile = NULL;
 
 char *borderfile=NULL;
 char *BorderAnnotFile=NULL;
@@ -107,7 +108,7 @@ int main(int argc, char **argv) {
   MRI *border;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.24 2010/09/07 20:41:53 rudolph Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_annotation2label.c,v 1.25 2010/11/22 23:36:17 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -207,21 +208,28 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+  if(segbase == -1000){
+    // segbase has not been set with --segbase
+    if(!strcmp(annotation,"aparc")){
+      if(!strcmp(hemi,"lh")) segbase = 1000;
+      else                   segbase = 2000;
+    }
+    else if(!strcmp(annotation,"aparc.a2005s")){
+      if(!strcmp(hemi,"lh")) segbase = 1100;
+      else                   segbase = 2100;
+    }
+    else segbase = 0;
+  }
+  printf("Seg base %d\n",segbase);
+
+  if(ctabfile != NULL){
+    Surf->ct->idbase = segbase;
+    CTABwriteFileASCII(Surf->ct,ctabfile);
+    exit(0);
+  }
+
   if(segfile != NULL){
     printf("Converting to a segmentation\n");
-    if(segbase == -1000){
-      // segbase has not been set with --segbase
-      if(!strcmp(annotation,"aparc")){
-	if(!strcmp(hemi,"lh")) segbase = 1000;
-	else                   segbase = 2000;
-      }
-      else if(!strcmp(annotation,"aparc.a2005s")){
-	if(!strcmp(hemi,"lh")) segbase = 1100;
-	else                   segbase = 2100;
-      }
-      else segbase = 0;
-    }
-    printf("Seg base %d\n",segbase);
     seg = MRISannot2seg(Surf,segbase);
     MRIwrite(seg,segfile);
     exit(0);
@@ -371,6 +379,11 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[0],"%d",&segbase);
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--ctab")) {
+      if (nargc < 1) argnerr(option,1);
+      ctabfile = pargv[0];
+      nargsused = 1;
+    } 
     else if (!strcmp(option, "--border")) {
       if (nargc < 1) argnerr(option,1);
       borderfile = pargv[0];
@@ -431,6 +444,7 @@ static void print_usage(void) {
   printf("   --outdir dir :  output will be dir/hemi.name.label \n");
   printf("   --seg segfile : output will be a segmentation 'volume'\n");
   printf("   --segbase base : add base to the annotation number to get seg value\n");
+  printf("   --ctab colortable : colortable like FreeSurferColorLUT.txt\n");
   printf("   --border borderfile : output will be a binary overlay of the parc borders \n");
   printf("   --border-annot borderannot : default goes in subject/label\n");
   printf("\n");
@@ -587,7 +601,7 @@ static void check_options(void) {
     exit(1);
   }
   if(outdir == NULL && labelbase == NULL && segfile == NULL &&
-     borderfile == NULL && LobesFile == NULL ) {
+     borderfile == NULL && LobesFile == NULL && ctabfile == NULL) {
     fprintf(stderr,"ERROR: no output specified\n");
     exit(1);
   }
