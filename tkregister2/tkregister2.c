@@ -8,8 +8,8 @@
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/11/16 23:25:45 $
- *    $Revision: 1.119 $
+ *    $Date: 2010/11/22 22:57:32 $
+ *    $Revision: 1.120 $
  *
  * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
@@ -34,7 +34,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.119 2010/11/16 23:25:45 greve Exp $";
+"$Id: tkregister2.c,v 1.120 2010/11/22 22:57:32 greve Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -1330,7 +1330,7 @@ static int parse_commandline(int argc, char **argv) {
       // Note: This ignores the volume geometry in the LTA file.
       XFM = lta->xforms[0].m_L;
       printf("lta->subject %s\n",lta->subject);
-      if(lta->subject != NULL) {
+      if(lta->subject[0] != 0) {
 	memset(subjectid,'\0',1000);
 	memmove(subjectid,lta->subject,strlen(lta->subject));
       }
@@ -4862,7 +4862,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.119 2010/11/16 23:25:45 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.120 2010/11/22 22:57:32 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
