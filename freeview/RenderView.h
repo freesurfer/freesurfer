@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/06/21 21:57:09 $
- *    $Revision: 1.23 $
+ *    $Date: 2010/11/23 22:46:19 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -123,6 +123,17 @@ public:
   void SetFocusFrameColor( double r, double g, double b );
   
   virtual void UpdateScalarBar();
+  
+  void SetRenderDisabled(bool bDisable)
+  {
+    m_bDisabled = true;
+    RefreshAllActors();
+  }
+  
+  bool GetRenderDisabled()
+  {
+    return m_bDisabled;
+  }
 
 protected:
   void InitializeRenderView();
@@ -141,6 +152,8 @@ protected:
   int           m_nInteractionMode;
 
   int           m_nRedrawCount;
+  
+  bool          m_bDisabled;
 
   // any class wishing to process wxWindows events must use this macro
   DECLARE_EVENT_TABLE()

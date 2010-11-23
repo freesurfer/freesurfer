@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/11/16 17:48:32 $
- *    $Revision: 1.152 $
+ *    $Date: 2010/11/23 22:46:18 $
+ *    $Revision: 1.153 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -2925,6 +2925,10 @@ void MainWindow::RunScript()
   {
     CommandSetDisplayIsoSurface( sa );
   }
+  else if ( sa[0] == _("setisosurfacecolor") )
+  {
+    CommandSetIsoSurfaceColor( sa );
+  }
   else if ( sa[0] == _("loadisosurfaceregion") )
   {
     CommandLoadIsoSurfaceRegion( sa );
@@ -3102,6 +3106,13 @@ void MainWindow::CommandLoadVolume( const wxArrayString& sa )
         {
           script.Add( argus[1] );
         }
+        m_scripts.insert( m_scripts.begin(), script );
+      }
+      else if (subOption == _("color"))
+      {
+        wxArrayString script;
+        script.Add( _("setisosurfacecolor") );
+        script.Add(subArgu);
         m_scripts.insert( m_scripts.begin(), script );
       }
       else if ( subOption == _("surface_region") || subOption == _("surface_regions") )
@@ -3461,6 +3472,37 @@ void MainWindow::CommandSetDisplayIsoSurface( const wxArrayString& sa )
     mri->GetProperties()->SetShowAsContour( true );
   }
   
+  ContinueScripts();
+}
+
+void MainWindow::CommandSetIsoSurfaceColor( const wxArrayString& cmd )
+{
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  { 
+    wxColour color( cmd[1] );
+    if ( !color.IsOk() )      
+    {
+      long rgb[3];
+      wxArrayString rgb_strs = MyUtils::SplitString( cmd[1], _(",") );
+      if ( rgb_strs.GetCount() < 3 || 
+           !rgb_strs[0].ToLong( &(rgb[0]) ) ||
+           !rgb_strs[1].ToLong( &(rgb[1]) ) ||
+           !rgb_strs[2].ToLong( &(rgb[2]) ) )
+      {
+        cerr << "Invalid isosurface color name or value " << cmd[1] << endl;
+      }
+      else
+      {
+        color.Set( rgb[0], rgb[1], rgb[2] );
+      }
+    }
+      
+    if ( color.IsOk() )
+      mri->GetProperties()->SetContourColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+    else
+      cerr << "Invalid isosurface color name or value " << cmd[1] << endl;  
+  }
   ContinueScripts();
 }
 

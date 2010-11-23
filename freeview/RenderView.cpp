@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/09/29 17:17:15 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/11/23 22:46:19 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -109,6 +109,7 @@ void RenderView::InitializeRenderView()
   m_interactor = NULL;
   m_nInteractionMode = 0;
   m_nRedrawCount = 0;
+  m_bDisabled = false;
 
   // initialize focus frame
   m_actorFocusFrame = vtkActor2D::New();

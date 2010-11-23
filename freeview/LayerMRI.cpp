@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/10/12 21:22:31 $
- *    $Revision: 1.89 $
+ *    $Date: 2010/11/23 22:46:18 $
+ *    $Revision: 1.90 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -62,6 +62,7 @@
 #include "MyUtils.h"
 #include "FSVolume.h"
 #include "MainWindow.h"
+#include "RenderView.h"
 #include "vtkMath.h"
 #include "BuildContourThread.h"
 #include "Contour2D.h"
@@ -442,7 +443,8 @@ void LayerMRI::InitializeActors()
     // Prop in scene with plane mesh and texture.
     //
     m_sliceActor2D[i]->SetInput( mColorMap[i]->GetOutput() );
-    m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
+    if ( !MainWindow::GetMainWindowPointer()->GetRenderView(3)->GetRenderDisabled())
+      m_sliceActor3D[i]->SetInput( mColorMap[i]->GetOutput() );
 
     mEdgeFilter[i] = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
     mResample[i] = vtkSmartPointer<vtkImageResample>::New();
