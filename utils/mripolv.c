@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/10/05 13:10:48 $
- *    $Revision: 1.41 $
+ *    $Date: 2010/11/23 14:32:51 $
+ *    $Revision: 1.42 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -2104,8 +2104,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                     yv >= mri_dst->height || yv < 0 ||
                     zv >= mri_dst->depth || zv < 0)
                 {
-                  ErrorExit(ERROR_BADPARM,"ERROR: MRIthickenThinWMStrands: "
+                  ErrorPrintf(ERROR_BADPARM,"ERROR: MRIthickenThinWMStrands: "
                             "invalid x,y,z!\n");
+                  break ;
                 }
                 if ((MRIindexNotInVolume(mri_T1,xv,yv,zv) == 0) && 
                     !MRIgetVoxVal(mri_dst, xv, yv, zv,0))
@@ -2135,8 +2136,9 @@ MRIthickenThinWMStrands(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,int thickness,
                     yv >= mri_dst->height || yv < 0 ||
                     zv >= mri_dst->depth || zv < 0)
                 {
-                  ErrorExit(ERROR_BADPARM,"ERROR: MRIthickenThinWMStrands: "
-                            "invalid x,y,z!\n");
+                  ErrorPrintf(ERROR_BADPARM,"ERROR: MRIthickenThinWMStrands: "
+                              "invalid x,y,z!\n");
+                  break ;
                 }
                 if (!MRIgetVoxVal(mri_dst, xv, yv, zv, 0))
                 {
