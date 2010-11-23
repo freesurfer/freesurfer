@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/29 16:18:42 $
- *    $Revision: 1.33 $
+ *    $Date: 2010/11/23 19:21:25 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -108,6 +108,34 @@ namespace GPU {
       //! Matches the 'covars' field of the GC1D (a variance with only one mean). A negative value indicates that no value is stored for this or corresponding d_mean
       VolumeGPU<float> d_variance;
 
+      /*
+	The following volumes are NOT saved into
+	a NetCDF file
+      */
+
+      //! Matches xs in GCAmorph
+      VolumeGPU<float> d_xs;
+      //! Matches ys in GCAmorph
+      VolumeGPU<float> d_ys;
+      //! Matches zs in GCAmorph
+      VolumeGPU<float> d_zs;
+       //! Matches xs2 in GCAmorph
+      VolumeGPU<float> d_xs2;
+      //! Matches ys2 in GCAmorph
+      VolumeGPU<float> d_ys2;
+      //! Matches zs2 in GCAmorph
+      VolumeGPU<float> d_zs2;
+      //! Matches saved_origx in GCAmorph
+      VolumeGPU<float> d_saved_origx;
+      //! Matches saved_origy in GCAmorph
+      VolumeGPU<float> d_saved_origy;
+      //! Matches saved_origz in GCAmorph
+      VolumeGPU<float> d_saved_origz;
+
+      /*
+	The following are scalars
+      */
+
       //! Matches exp_k in GCAmorph
       double exp_k;
 
@@ -131,6 +159,10 @@ namespace GPU {
       static float *h_labelDist;
       static float *h_mean;
       static float *h_variance;
+      static float *h_xs, *h_ys, *h_zs;
+      static float *h_xs2, *h_ys2, *h_zs2;
+      static float *h_saved_origx, *h_saved_origy, *h_saved_origz;
+      
 
       static void AllocateHost( const GCAmorphGPU& gcam );
       static void ReleaseHost( void );
@@ -153,12 +185,17 @@ namespace GPU {
 			    d_labelDist(),
 			    d_mean(),
 			    d_variance(),
+			    d_xs(), d_ys(), d_zs(),
+			    d_xs2(), d_ys2(), d_zs2(),
+			    d_saved_origx(), d_saved_origy(), d_saved_origz(),
 			    exp_k(0),
 			    neg(0),
 			    gca(NULL) {};
 
       //! Destructor
-      ~GCAmorphGPU( void ) {};
+      ~GCAmorphGPU( void ) {
+	this->ReleaseAll();
+      };
 
       // -------------------------------------------
 
@@ -215,6 +252,9 @@ namespace GPU {
 
       //! Smooths dx, dy and dz fields with a gaussian
       void SmoothGradient( const int nAvgs );
+
+      //! Copies positions around
+      void CopyNodePositions( const int from, const int to );
 
       // -------------------------------------------
       static void ShowTimings( void );

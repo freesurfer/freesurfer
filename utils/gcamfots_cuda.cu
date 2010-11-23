@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/06 17:08:05 $
- *    $Revision: 1.6 $
+ *    $Date: 2010/11/23 19:21:28 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -286,6 +286,7 @@ float FindOptimalTimestepDispatch( GCA_MORPH *gcam,
 #endif
 
   GPU::Classes::GCAmorphGPU myGCAM;
+  myGCAM.CheckIntegrity(); // Shouldn't be necessary....
   myGCAM.SendAll( gcam );
 
   GPU::Classes::MRIframeGPU<T> myMRI;

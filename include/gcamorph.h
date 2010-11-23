@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/03 14:12:52 $
- *    $Revision: 1.94 $
+ *    $Date: 2010/11/23 19:21:25 $
+ *    $Revision: 1.95 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -657,6 +657,10 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 			      const MRI *mri,
 			      const MRI *mri_smooth,
 			      GCA_MORPH_PARMS *parms );
+
+  void GCAMcopyNodePositionsGPU( GCA_MORPH *gcam,
+				 const int from,
+				 const int to );
 #endif
 
 #if defined(__cplusplus)

@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/11/11 19:17:52 $
- *    $Revision: 1.233 $
+ *    $Author: rge21 $
+ *    $Date: 2010/11/23 19:21:28 $
+ *    $Revision: 1.234 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -56,6 +56,8 @@
 #define GCAM_SMOOTH_GRADIENT_GPU
 
 #define GCAM_COMPUTE_GRADIENT_GPU
+
+#define GCAM_COPY_NODE_POSITIONS_GPU
 
 #else
 // Have to turn everything off
@@ -8904,6 +8906,10 @@ GCAMcomputeOriginalProperties(GCA_MORPH *gcam)
 int
 GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to)
 {
+#ifdef GCAM_COPY_NODE_POSITIONS_GPU
+  printf( "%s: On GPU\n", __FUNCTION__ );
+  GCAMcopyNodePositionsGPU( gcam, from, to );
+#else
   int             x, y, z ;
   GCA_MORPH_NODE  *gcamn ;
 
@@ -9049,6 +9055,8 @@ GCAMcopyNodePositions(GCA_MORPH *gcam, int from, int to)
 
         }
       }
+
+#endif
   return(NO_ERROR) ;
 }
 

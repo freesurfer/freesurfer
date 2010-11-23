@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/29 16:18:46 $
- *    $Revision: 1.47 $
+ *    $Date: 2010/11/23 19:21:28 $
+ *    $Revision: 1.48 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -102,11 +102,22 @@ namespace GPU {
 
       good = ( good && ( myDims == this->d_labelDist.GetDims() ) );
 
+      // Work on the non-saved volumes
+      good = ( good && ( myDims == this->d_xs.GetDims() ) );
+      good = ( good && ( myDims == this->d_ys.GetDims() ) );
+      good = ( good && ( myDims == this->d_zs.GetDims() ) );
+      good = ( good && ( myDims == this->d_xs2.GetDims() ) );
+      good = ( good && ( myDims == this->d_ys2.GetDims() ) );
+      good = ( good && ( myDims == this->d_zs2.GetDims() ) );
+      good = ( good && ( myDims == this->d_saved_origx.GetDims() ) );
+      good = ( good && ( myDims == this->d_saved_origy.GetDims() ) );
+      good = ( good && ( myDims == this->d_saved_origz.GetDims() ) );
+
       if( !good ) {
 	std::cerr << __FUNCTION__
 		  << ": Dimension mismatch"
 		  << std::endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
     }
 
@@ -162,6 +173,17 @@ namespace GPU {
 
       this->d_mean.Allocate( dims );
       this->d_variance.Allocate( dims );
+
+      // The non-saved volumes
+      this->d_xs.Allocate( dims );
+      this->d_ys.Allocate( dims );
+      this->d_zs.Allocate( dims );
+      this->d_xs2.Allocate( dims );
+      this->d_ys2.Allocate( dims );
+      this->d_zs2.Allocate( dims );
+      this->d_saved_origx.Allocate( dims );
+      this->d_saved_origy.Allocate( dims );
+      this->d_saved_origz.Allocate( dims );
     }
 
 
@@ -203,6 +225,17 @@ namespace GPU {
       this->d_mean.Release();
       this->d_variance.Release();
 
+      // The non-saved volumes
+      this->d_xs.Release();
+      this->d_ys.Release();
+      this->d_zs.Release();
+      this->d_xs2.Release();
+      this->d_ys2.Release();
+      this->d_zs2.Release();
+      this->d_saved_origx.Release();
+      this->d_saved_origy.Release();
+      this->d_saved_origz.Release();
+
     }
 
 
@@ -239,6 +272,17 @@ namespace GPU {
 
       this->d_mean.Zero();
       this->d_variance.Zero();
+
+      // The non-saved volumes
+      this->d_xs.Zero();
+      this->d_ys.Zero();
+      this->d_zs.Zero();
+      this->d_xs2.Zero();
+      this->d_ys2.Zero();
+      this->d_zs2.Zero();
+      this->d_saved_origx.Zero();
+      this->d_saved_origy.Zero();
+      this->d_saved_origz.Zero();
     }
 
 
@@ -253,6 +297,8 @@ namespace GPU {
       */
 
       GCAmorphGPU::tSendTot.Start();
+
+      this->CheckIntegrity();
 
 #if 0
       std::cerr << __FUNCTION__
@@ -348,6 +394,18 @@ namespace GPU {
 	      GCAmorphGPU::h_variance[i1d] = -1;
 	    }
 
+	    // Deal with the non-saved members
+	    GCAmorphGPU::h_xs[i1d] = gcamn.xs;
+	    GCAmorphGPU::h_ys[i1d] = gcamn.ys;
+	    GCAmorphGPU::h_zs[i1d] = gcamn.zs;
+	    GCAmorphGPU::h_xs2[i1d] = gcamn.xs2;
+	    GCAmorphGPU::h_ys2[i1d] = gcamn.ys2;
+	    GCAmorphGPU::h_zs2[i1d] = gcamn.zs2;
+	    GCAmorphGPU::h_saved_origx[i1d] = gcamn.saved_origx;
+	    GCAmorphGPU::h_saved_origy[i1d] = gcamn.saved_origy;
+	    GCAmorphGPU::h_saved_origz[i1d] = gcamn.saved_origz;
+	    
+
 
 	  }
 	}
@@ -388,6 +446,17 @@ namespace GPU {
 
       this->d_mean.SendBuffer( GCAmorphGPU::h_mean );
       this->d_variance.SendBuffer( GCAmorphGPU::h_variance );
+
+      // And the non-saved variables
+      this->d_xs.SendBuffer( GCAmorphGPU::h_xs );
+      this->d_ys.SendBuffer( GCAmorphGPU::h_ys );
+      this->d_zs.SendBuffer( GCAmorphGPU::h_zs );
+      this->d_xs2.SendBuffer( GCAmorphGPU::h_xs2 );
+      this->d_ys2.SendBuffer( GCAmorphGPU::h_ys2 );
+      this->d_zs2.SendBuffer( GCAmorphGPU::h_zs2 );
+      this->d_saved_origx.SendBuffer( GCAmorphGPU::h_saved_origx );
+      this->d_saved_origy.SendBuffer( GCAmorphGPU::h_saved_origy );
+      this->d_saved_origz.SendBuffer( GCAmorphGPU::h_saved_origz );
 
       // Wait for the copies to complete
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
@@ -465,6 +534,18 @@ namespace GPU {
 
       this->d_mean.RecvBuffer( GCAmorphGPU::h_mean );
       this->d_variance.RecvBuffer( GCAmorphGPU:: h_variance );
+
+      // And the non-saved variables
+      this->d_xs.RecvBuffer( GCAmorphGPU::h_xs );
+      this->d_ys.RecvBuffer( GCAmorphGPU::h_ys );
+      this->d_zs.RecvBuffer( GCAmorphGPU::h_zs );
+      this->d_xs2.RecvBuffer( GCAmorphGPU::h_xs2 );
+      this->d_ys2.RecvBuffer( GCAmorphGPU::h_ys2 );
+      this->d_zs2.RecvBuffer( GCAmorphGPU::h_zs2 );
+      this->d_saved_origx.RecvBuffer( GCAmorphGPU::h_saved_origx );
+      this->d_saved_origy.RecvBuffer( GCAmorphGPU::h_saved_origy );
+      this->d_saved_origz.RecvBuffer( GCAmorphGPU::h_saved_origz );
+
       CUDA_SAFE_CALL( cudaThreadSynchronize() );
       GCAmorphGPU::tRecvTransfer.Stop();
 
@@ -521,6 +602,16 @@ namespace GPU {
 	      }
 	    }
 
+	    // And the non-saved members
+	    gcamn->xs = GCAmorphGPU::h_xs[i1d];
+	    gcamn->ys = GCAmorphGPU::h_ys[i1d];
+	    gcamn->zs = GCAmorphGPU::h_zs[i1d];
+	    gcamn->xs2 = GCAmorphGPU::h_xs2[i1d];
+	    gcamn->ys2 = GCAmorphGPU::h_ys2[i1d];
+	    gcamn->zs2 = GCAmorphGPU::h_zs2[i1d];
+	    gcamn->saved_origx = GCAmorphGPU::h_saved_origx[i1d];
+	    gcamn->saved_origy = GCAmorphGPU::h_saved_origy[i1d];
+	    gcamn->saved_origz = GCAmorphGPU::h_saved_origz[i1d];
 	  }
 	}
       }
@@ -1140,6 +1231,184 @@ namespace GPU {
       GCAmorphGPU::tSmoothGradient.Stop();
     }
 
+    // --------------------------------------------
+
+    void GCAmorphGPU::CopyNodePositions( const int from, const int to ) {
+      /*!
+	This is a reimplementation using the GPU copies
+	of GCAMcopyNodePositions.
+	Really, I think that the GCAM should be torn apart,
+	and this would happen as a copy between two GCAMs
+      */
+      this->CheckIntegrity();
+
+      switch( from ) {
+
+      case ORIGINAL_POSITIONS:
+	switch( to ) {
+	  
+	case SAVED_ORIGINAL_POSITIONS:
+	  this->d_saved_origx.Copy( this->d_origx );
+	  this->d_saved_origy.Copy( this->d_origy );
+	  this->d_saved_origz.Copy( this->d_origz );
+	  break;
+
+	case SAVED_POSITIONS:
+	  this->d_xs.Copy( this->d_origx );
+	  this->d_ys.Copy( this->d_origy );
+	  this->d_zs.Copy( this->d_origz );
+	  break;
+
+	case CURRENT_POSITIONS:
+	  this->d_rx.Copy( this->d_origx );
+	  this->d_ry.Copy( this->d_origy );
+	  this->d_rz.Copy( this->d_origz );
+	  break;
+
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Unrecognised to = " << to << std::endl;
+	  abort();
+	}
+	break;
+	
+	// -----------------------
+
+      case SAVED_ORIGINAL_POSITIONS:
+	switch( to ) {
+
+	case SAVED_POSITIONS:
+	  this->d_xs.Copy( this->d_saved_origx );
+	  this->d_ys.Copy( this->d_saved_origy );
+	  this->d_zs.Copy( this->d_saved_origz );
+	  break;
+
+	case CURRENT_POSITIONS:
+	  this->d_rx.Copy( this->d_saved_origx );
+	  this->d_ry.Copy( this->d_saved_origy );
+	  this->d_rz.Copy( this->d_saved_origz );
+	  break;
+
+	case ORIGINAL_POSITIONS:
+	  this->d_origx.Copy( this->d_saved_origx );
+	  this->d_origy.Copy( this->d_saved_origy );
+	  this->d_origz.Copy( this->d_saved_origz );
+	  break;
+
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Unrecognised to = " << to << std::endl;
+	  abort();
+	}
+	break;
+	
+	// -----------------------
+
+      case SAVED_POSITIONS:
+	switch( to ) {
+
+	case ORIGINAL_POSITIONS:
+	  this->d_origx.Copy( this->d_xs );
+	  this->d_origy.Copy( this->d_ys );
+	  this->d_origz.Copy( this->d_zs );
+	  break;
+	  
+	case CURRENT_POSITIONS:
+	  this->d_rx.Copy( this->d_xs );
+	  this->d_ry.Copy( this->d_ys );
+	  this->d_rz.Copy( this->d_zs );
+	  break;
+
+	case SAVED_ORIGINAL_POSITIONS:
+	  this->d_saved_origx.Copy( this->d_xs );
+	  this->d_saved_origy.Copy( this->d_ys );
+	  this->d_saved_origz.Copy( this->d_zs );
+	  break;
+
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Unrecognised to = " << to << std::endl;
+	  abort();
+	}
+	break;
+
+
+	// -----------------------
+
+      case SAVED2_POSITIONS:
+	switch( to ) {
+
+	case ORIGINAL_POSITIONS:
+	  this->d_origx.Copy( this->d_xs2 );
+	  this->d_origy.Copy( this->d_ys2 );
+	  this->d_origz.Copy( this->d_zs2 );
+	  break;
+	  
+	case CURRENT_POSITIONS:
+	  this->d_rx.Copy( this->d_xs2 );
+	  this->d_ry.Copy( this->d_ys2 );
+	  this->d_rz.Copy( this->d_zs2 );
+	  break;
+
+	case SAVED_ORIGINAL_POSITIONS:
+	  this->d_saved_origx.Copy( this->d_xs2 );
+	  this->d_saved_origy.Copy( this->d_ys2 );
+	  this->d_saved_origz.Copy( this->d_zs2 );
+	  break;
+
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Unrecognised to = " << to << std::endl;
+	  abort();
+	}
+	break;
+
+	// -----------------------
+
+      case CURRENT_POSITIONS:
+	switch( to ) {
+
+	case ORIGINAL_POSITIONS:
+	  this->d_origx.Copy( this->d_rx );
+	  this->d_origy.Copy( this->d_ry );
+	  this->d_origz.Copy( this->d_rz );
+	  break;
+
+	case SAVED_POSITIONS:
+	  this->d_xs.Copy( this->d_rx );
+	  this->d_ys.Copy( this->d_ry );
+	  this->d_zs.Copy( this->d_rz );
+	  break;
+
+	case SAVED2_POSITIONS:
+	  this->d_xs2.Copy( this->d_rx );
+	  this->d_ys2.Copy( this->d_ry );
+	  this->d_zs2.Copy( this->d_rz );
+	  break;
+
+	case SAVED_ORIGINAL_POSITIONS:
+	  this->d_saved_origx.Copy( this->d_rx );
+	  this->d_saved_origy.Copy( this->d_ry );
+	  this->d_saved_origz.Copy( this->d_rz );
+	  break;
+
+	default:
+	  std::cerr << __FUNCTION__
+		    << ": Unrecognised to = " << to << std::endl;
+	  abort();
+	}
+	break;
+
+	// -----------------------
+
+      default:
+	std::cerr << __FUNCTION__
+		  << ": Unrecognised from = " << from << std::endl;
+	abort();
+      }
+
+    }
+
 
     // ----------------------------------------------------
     void GCAmorphGPU::ShowTimings( void ) {
@@ -1213,7 +1482,11 @@ namespace GPU {
     float *GCAmorphGPU::h_labelDist;
     float *GCAmorphGPU::h_mean;
     float *GCAmorphGPU::h_variance;
-
+    float *GCAmorphGPU::h_xs, *GCAmorphGPU::h_ys, *GCAmorphGPU::h_zs;
+    float *GCAmorphGPU::h_xs2, *GCAmorphGPU::h_ys2, *GCAmorphGPU::h_zs2;
+    float *GCAmorphGPU::h_saved_origx;
+    float *GCAmorphGPU::h_saved_origy;
+    float *GCAmorphGPU::h_saved_origz;
 
 
     void GCAmorphGPU::AllocateHost( const GCAmorphGPU& gcam ) {
@@ -1273,6 +1546,18 @@ namespace GPU {
       GCAmorphGPU::h_mean = gcam.d_mean.AllocateHostBuffer();
       GCAmorphGPU::h_variance = gcam.d_variance.AllocateHostBuffer();
 
+      // And the non-saved volumes
+      GCAmorphGPU::h_xs = gcam.d_xs.AllocateHostBuffer();
+      GCAmorphGPU::h_ys = gcam.d_ys.AllocateHostBuffer();
+      GCAmorphGPU::h_zs = gcam.d_zs.AllocateHostBuffer();
+      GCAmorphGPU::h_xs2 = gcam.d_xs2.AllocateHostBuffer();
+      GCAmorphGPU::h_ys2 = gcam.d_ys2.AllocateHostBuffer();
+      GCAmorphGPU::h_zs2 = gcam.d_zs2.AllocateHostBuffer();
+      GCAmorphGPU::h_saved_origx = gcam.d_saved_origx.AllocateHostBuffer();
+      GCAmorphGPU::h_saved_origy = gcam.d_saved_origy.AllocateHostBuffer();
+      GCAmorphGPU::h_saved_origz = gcam.d_saved_origz.AllocateHostBuffer();
+
+
       GCAmorphGPU::tHostAlloc.Stop();
 
     }
@@ -1325,6 +1610,17 @@ namespace GPU {
 
       CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_mean ) );
       CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_variance ) );
+
+      // The non-saved members
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_xs ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_ys ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_zs ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_xs2 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_ys2 ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_zs2 ) ); 
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_saved_origx ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_saved_origy ) );
+      CUDA_SAFE_CALL( cudaFreeHost( GCAmorphGPU::h_saved_origz ) );
 
       GCAmorphGPU::tHostRelease.Stop();
     }
@@ -1391,7 +1687,17 @@ namespace GPU {
       RandomArray( GCAmorphGPU::h_mean, currSize );
       RandomArray( GCAmorphGPU::h_variance, currSize );
 
-      
+      // And the non-saved....
+      RandomArray( GCAmorphGPU::h_xs, currSize );
+      RandomArray( GCAmorphGPU::h_ys, currSize );
+      RandomArray( GCAmorphGPU::h_zs, currSize );
+      RandomArray( GCAmorphGPU::h_xs2, currSize );
+      RandomArray( GCAmorphGPU::h_ys2, currSize );
+      RandomArray( GCAmorphGPU::h_zs2, currSize ); 
+      RandomArray( GCAmorphGPU::h_saved_origx, currSize );
+      RandomArray( GCAmorphGPU::h_saved_origy, currSize );
+      RandomArray( GCAmorphGPU::h_saved_origz, currSize );
+
       GCAmorphGPU::tHostRandomise.Stop();
     }
 
@@ -1479,6 +1785,16 @@ void gcamSmoothGradientGPU( GCA_MORPH *gcam, int navgs ) {
   
   gcamGPU.SendAll( gcam );
   gcamGPU.SmoothGradient( navgs );
+  gcamGPU.RecvAll( gcam );
+}
+
+void GCAMcopyNodePositionsGPU( GCA_MORPH *gcam,
+			       const int from,
+			       const int to ) {
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.CopyNodePositions( from, to );
   gcamGPU.RecvAll( gcam );
 }
 

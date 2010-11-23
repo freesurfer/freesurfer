@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/04/06 20:09:57 $
- *    $Revision: 1.26 $
+ *    $Date: 2010/11/23 19:21:28 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -46,7 +46,11 @@ using namespace std;
 
 GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
 				       scalarTypeMap() {
-    
+  
+  std::cout << __FUNCTION__
+	    << ": Will not write out saved, saved2 and saved original positions"
+	    << std::endl;
+  
   // Sanity check
   if( this->nVars != 24 ) {
     cerr << __FUNCTION__ << ": Invalid nVars!" << endl;

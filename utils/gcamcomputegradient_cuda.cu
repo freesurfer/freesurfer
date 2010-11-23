@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/09 17:37:58 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/11/23 19:21:28 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -197,6 +197,7 @@ gcamCGFinalDispatch( GCA_MORPH *gcam,
   myMRIsmooth.SendArray();
 
   // Put the GCAM on the GPU
+  myGCAM.CheckIntegrity(); // Shouldn't be necessary....
   myGCAM.SendAll( gcam );
 
   // Run the computation
