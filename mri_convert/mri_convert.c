@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/10/21 17:50:29 $
- *    $Revision: 1.172 $
+ *    $Author: fischl $
+ *    $Date: 2010/11/23 14:09:46 $
+ *    $Revision: 1.173 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.172 2010/10/21 17:50:29 lzollei Exp $", 
+     "$Id: mri_convert.c,v 1.173 2010/11/23 14:09:46 fischl Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.172 2010/10/21 17:50:29 lzollei Exp $", 
+      "$Id: mri_convert.c,v 1.173 2010/11/23 14:09:46 fischl Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -1336,7 +1336,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.172 2010/10/21 17:50:29 lzollei Exp $\n");
+  printf("$Id: mri_convert.c,v 1.173 2010/11/23 14:09:46 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2238,6 +2238,8 @@ int main(int argc, char *argv[]) {
       printf("ERROR: MRISeqchangeType\n");
       exit(1);
     }
+    if (conform_flag)
+      MRImask(mri2, mri, mri2, 0, 0) ;  // make sure 0 maps to 0
     MRIfree(&mri);
     mri = mri2;
   }
