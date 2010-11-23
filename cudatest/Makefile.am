@@ -1,6 +1,5 @@
-SUBDIRS = gcatest 
-#NJS volumecopy commented-out for now...
-#volumecopy
+SUBDIRS = gcatest \
+          volumecopy
 
 
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
