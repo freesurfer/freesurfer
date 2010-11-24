@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/08/25 19:02:48 $
-#    $Revision: 1.53 $
+#    $Date: 2010/11/24 19:06:38 $
+#    $Revision: 1.54 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.53 2010/08/25 19:02:48 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.54 2010/11/24 19:06:38 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -400,6 +400,7 @@ while( $#argv != 0 )
     case "-fwhm":
       if($#argv < 1) goto arg1err;
       set RawFWHM = $argv[1]; shift;
+      set RawFWHM = `perl -e "print sprintf('%g',$RawFWHM)"`; # strip leading 0s
       breaksw
 
     case "-reg-dof":
@@ -435,6 +436,10 @@ while( $#argv != 0 )
       set RawHemi = $argv[1]; shift;
       set RawSpaceType = surface
       set mcstem = fmcpr
+      if($RawHemi != lh && $RawHemi != rh) then
+        echo "ERROR: hemisphere $RawHemi unrecognized, must be lh or rh"
+        exit 1;
+      endif
       breaksw
 
     case "-mni305":
