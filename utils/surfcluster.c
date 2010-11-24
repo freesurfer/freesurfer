@@ -10,8 +10,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/09 14:43:09 $
- *    $Revision: 1.24 $
+ *    $Date: 2010/11/24 22:09:41 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,7 +53,7 @@ static int sclustCompare(const void *a, const void *b);
   ---------------------------------------------------------------*/
 const char *sculstSrcVersion(void)
 {
-  return("$Id: surfcluster.c,v 1.24 2010/04/09 14:43:09 greve Exp $");
+  return("$Id: surfcluster.c,v 1.25 2010/11/24 22:09:41 greve Exp $");
 }
 
 /* ------------------------------------------------------------
@@ -504,6 +504,23 @@ double sclustMaxClusterArea(SURFCLUSTERSUM *scs, int nClusters)
   for (n=0; n<nClusters; n++)
     if (maxarea < scs[n].area) maxarea = scs[n].area;
   return(maxarea);
+}
+
+/*-------------------------------------------------------------------
+  sclustMaxClusterCount() - returns the area of the cluster with the
+  maximum number of members (count)
+  -------------------------------------------------------------------*/
+int sclustMaxClusterCount(SURFCLUSTERSUM *scs, int nClusters)
+{
+  int n;
+  int maxcount;
+
+  if (nClusters==0) return(0);
+
+  maxcount = scs[0].nmembers;
+  for (n=0; n<nClusters; n++)
+    if (maxcount < scs[n].nmembers) maxcount = scs[n].nmembers;
+  return(maxcount);
 }
 
 /*---------------------------------------------------------------*/
