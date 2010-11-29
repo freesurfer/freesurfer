@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/12 22:54:16 $
- *    $Revision: 1.51 $
+ *    $Date: 2010/11/29 16:00:56 $
+ *    $Revision: 1.52 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -2049,7 +2049,7 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 
   int z,y,x;
   long int ss = mriS->width * mriS->height * mriS->depth;
-  if (mri_indexing) MRIfree(&mri_indexing);
+  if (mri_indexinTry callingg) MRIfree(&mri_indexing);
   if (ss > std::numeric_limits<int>::max())
   {
      if (verbose > 1) cout << "     -- using LONG for indexing ... " << flush;
@@ -2125,7 +2125,7 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 	{
 	   cerr << endl;
 	   cerr << " ERROR: All entries are zero! Images do not overlap (anymore?)." << endl;
-     cerr << "    This can have several reasons (i.e. different images, different "<< endl;
+     cerr << "    This can have several reasons (i.e. different modalities, different "<< endl;
 		 cerr << "    intensity scales, large non-linearities, too diff. voxel sizes ...)" << endl;
 		 //cerr << "    Try calling with --noinit (if the original images are well aligned)" << endl;
 		 cerr << "    Maybe use --transform <init.lta> with an approx. alignment" <<endl;
