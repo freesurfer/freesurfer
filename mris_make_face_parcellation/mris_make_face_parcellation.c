@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/08/04 12:20:52 $
- *    $Revision: 1.14 $
+ *    $Date: 2010/11/29 20:05:29 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,7 +50,7 @@
 
 #define MAX_PARCEL_VERTICES 10000
 static char vcid[] =
-  "$Id: mris_make_face_parcellation.c,v 1.14 2010/08/04 12:20:52 fischl Exp $";
+  "$Id: mris_make_face_parcellation.c,v 1.15 2010/11/29 20:05:29 fischl Exp $";
 
 typedef struct
 {
@@ -190,7 +190,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_face_parcellation.c,v 1.14 2010/08/04 12:20:52 fischl Exp $",
+   "$Id: mris_make_face_parcellation.c,v 1.15 2010/11/29 20:05:29 fischl Exp $",
    "$Name:  $", cmdline);
 
   setRandomSeed(1L) ;
@@ -198,7 +198,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mris_make_face_parcellation.c,v 1.14 2010/08/04 12:20:52 fischl Exp $",
+     "$Id: mris_make_face_parcellation.c,v 1.15 2010/11/29 20:05:29 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -620,6 +620,10 @@ get_option(int argc, char *argv[]) {
     parms.l_gaussian = atof(argv[2]) ;
     nargs = 1 ;
     printf("setting gaussian coefficient to %2.6f\n", parms.l_gaussian) ;
+    break ;
+  case 'F':
+    do_vertices = 0 ;
+    printf("writing out face parcellation instead of vertex one\n") ;
     break ;
   case 'B':
     parms.l_border = atof(argv[2]) ;
