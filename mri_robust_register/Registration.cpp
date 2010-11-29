@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/29 16:04:56 $
- *    $Revision: 1.53 $
+ *    $Date: 2010/11/29 20:02:15 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -507,12 +507,12 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
 //   if (mriS != mri_source)
 //   {
 //     if (gpS.size() > 0) freeGaussianPyramid(gpS);
-//     gpS = buildGaussianPyramid(mriS,100);
+//     gpS = buildGaussianPyramid(mriS,100); OLD!!!
 //   }
 //   if (mriT != mri_target)
 //   {
 //     if (gpT.size() > 0) freeGaussianPyramid(gpT);
-//     gpT = buildGaussianPyramid(mriT,100);
+//     gpT = buildGaussianPyramid(mriT,100); OLD!!!
 //   }
 // 
 //   if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,100);
@@ -540,7 +540,7 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
 //   }
 // 
 //   // adjust md.first to current (lowest) resolution:
-//   int rstart = 2;
+//   int rstart = 2; OLD!!!
 //   for (int r = 1; r<=resolution-rstart; r++)
 //     for (int rr = 0;rr<3;rr++)
 //       md.first[rr][3]  = 0.5 *  md.first[rr][3];
@@ -677,9 +677,10 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}
   int resolution = gpS.size();
-	assert(resolution >= 2); // otherwise we should have exited above
-  int rstart = 2;  // at least 16^3
-	// stop if we get larger than 64^3
+	assert(resolution >= 1); // otherwise we should have exited above
+  int rstart = 1;  // at least 16^3
+	
+	// stop if we get larger than 64^3 or if we reach highest resolution:
 	int stopres;
 	for (stopres = resolution-rstart; stopres>0; stopres--)
 	{
@@ -791,24 +792,34 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
   if (mriS != mri_source)
   {
     if (gpS.size() > 0) freeGaussianPyramid(gpS);
-    gpS = buildGaussianPyramid(mriS,100);
+    gpS = buildGaussianPyramid(mriS,16);
   }
   if (mriT != mri_target)
   {
     if (gpT.size() > 0) freeGaussianPyramid(gpT);
-    gpT = buildGaussianPyramid(mriT,100);
+    gpT = buildGaussianPyramid(mriT,16);
   }
 
-  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,100);
-  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,100);
-  assert(gpS.size() == gpT.size());
+  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,16);
+  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,16);
+  //assert(gpS.size() == gpT.size());
   if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
 	{
      ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
 	}
+  if ( gpT[0]->width < 16 || gpT[0]->height < 16 || gpT[0]->depth < 16)
+	{
+     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+	}	
+	
   int resolution = gpS.size();
-	assert(resolution >= 2); // otherwise we should have exited above
-  int rstart = 2;  // at least 16^3
+	if ((int)gpT.size() < resolution) resolution = gpT.size();
+	gpS.resize(resolution);
+	gpT.resize(resolution);
+	
+	assert(resolution >= 1); // otherwise we should have exited above
+  int rstart = 1;  // at least 16^3, last and most coarse image
+	
 	// stop if we get larger than 64^3
 	int stopres;
 	for (stopres = resolution-rstart; stopres>0; stopres--)
@@ -940,20 +951,30 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
   else
   {
     if (gpS.size() > 0) freeGaussianPyramid(gpS);
-    gpS = buildGaussianPyramid(mriS,100);
+    gpS = buildGaussianPyramid(mriS,16);
   }
   if (!mriT) mriT = mri_target;
   else
   {
     if (gpT.size() > 0) freeGaussianPyramid(gpT);
-    gpT = buildGaussianPyramid(mriT,100);
+    gpT = buildGaussianPyramid(mriT,16);
   }
 
-  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,100);
-  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,100);
-  assert(gpS.size() == gpT.size());
-
+  if (gpS.size() ==0) gpS = buildGaussianPyramid(mriS,16);
+  if (gpT.size() ==0) gpT = buildGaussianPyramid(mriT,16);
+  if ( gpT[0]->width < 16 || gpT[0]->height < 16 || gpT[0]->depth < 16)
+	{
+     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+	}	
+  if ( gpS[0]->width < 16 || gpS[0]->height < 16 || gpS[0]->depth < 16)
+	{
+     ErrorExit(ERROR_BADFILE, "Input images must be larger than 16^3.\n") ;
+	}	
   int resolution = gpS.size();
+	if ((int) gpT.size() < resolution) resolution = gpT.size();
+	gpS.resize(resolution);
+	gpT.resize(resolution);
+
 
 // debug : save pyramid
 //  for (uint i = 0;i<gpS.size();i++)
@@ -992,7 +1013,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
   }
 
   // adjust minit to current (lowest) resolution:
-  int rstart = 2;
+  int rstart = 1;
   for (int r = 1; r<=resolution-rstart; r++)
     for (int rr = 0;rr<3;rr++)
       md.first[rr][3]  = 0.5 *  md.first[rr][3];
@@ -3124,18 +3145,20 @@ pair < MATRIX*, double > Registration::convertP2MATRIXd(MATRIX* p)
 
 
 
-vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int n)
+vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min)
+// min: no dimension should get smaller than min voxels, default 16
 {
 
   if (verbose >0) cout << "   - Gaussian Pyramid " << endl;
 
+	int n=mri_in->depth; // choose n too large and adjust below
+	
   vector <MRI* > p (n);
   MRI * mri_tmp;
 // if (mri_in->type == MRI_UCHAR) cout << " MRI_UCHAR" << endl;
 // else cout << " type: " << mri_in->type << endl;
 
-
-
+  // smoothing kernel:
   MRI *mri_kernel ;
   mri_kernel = MRIgaussian1d(1.08, 5) ;
   //mri_kernel = MRIalloc(5,1,1, MRI_FLOAT);
@@ -3146,10 +3169,12 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int n)
   MRIFvox(mri_kernel, 4, 0, 0) =  0.0625 ;
 
   mri_tmp = mri_in;
-  int i;
-  int min = 16; // stop when we are smaller than min
+   
+	// smooth high res:
   p[0] = MRIconvolveGaussian(mri_in, NULL, mri_kernel);
+	
 	//cout << " w[0]: " << p[0]->width << endl;
+  int i;
   for (i = 1;i<n;i++)
   {
     if (p[i-1]->width < min || p[i-1]->height <min || p[i-1]->depth <min)
@@ -3161,7 +3186,8 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int n)
     mri_tmp = p[i];
 	  //cout << " w[" << i<<"]: " << p[i]->width << endl;
   }
-  if (i<n) p.resize(i);
+  if (i<n) p.resize(i-1);
+	else assert(1==2); // should never get here as n should be large enough
 
   MRIfree(&mri_kernel);
 

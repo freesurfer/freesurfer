@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/08/31 22:20:37 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/11/29 20:02:17 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -263,7 +263,7 @@ private:
   void findSatMultiRes(const vnl_matrix < double > &mi, double scaleinit );
 
   // gaussian pyramid:
-  std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int n);
+  std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int min = 16);
   void freeGaussianPyramid(std::vector< MRI* >& p);
 
   MRI * mri_weights;
