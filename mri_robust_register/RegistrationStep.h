@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/29 16:00:56 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/11/29 16:04:56 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -354,7 +354,7 @@ void RegistrationStep<T>::constructAb(MRI *mriS, MRI *mriT,vnl_matrix < T >& A,v
 // (with symmetry and iscale)
 {
 
-  if (verbose > Try calling1) std::cout << "   - constructAb: " << std::endl;
+  if (verbose > 1) std::cout << "   - constructAb: " << std::endl;
 
   assert(mriT != NULL);
   assert(mriS != NULL);

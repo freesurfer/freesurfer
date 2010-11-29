@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/29 16:00:56 $
- *    $Revision: 1.52 $
+ *    $Date: 2010/11/29 16:04:56 $
+ *    $Revision: 1.53 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -2049,7 +2049,7 @@ double Registration::estimateIScale(MRI *mriS, MRI *mriT)
 
   int z,y,x;
   long int ss = mriS->width * mriS->height * mriS->depth;
-  if (mri_indexinTry callingg) MRIfree(&mri_indexing);
+  if (mri_indexing) MRIfree(&mri_indexing);
   if (ss > std::numeric_limits<int>::max())
   {
      if (verbose > 1) cout << "     -- using LONG for indexing ... " << flush;
