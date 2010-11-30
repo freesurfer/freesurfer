@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/27 00:04:10 $
-#    $Revision: 1.3 $
+#    $Date: 2010/11/30 17:26:39 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.3 2010/07/27 00:04:10 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.4 2010/11/30 17:26:39 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -255,11 +255,20 @@ check_params:
     endif
   endif
 
+  set IsRetinotopy = `getana -a $analysis -t isretinotopy`
+
   if($#contrast) then
-    set mat = $analysis/$contrast.mat
-    if(! -e $mat) then
-      echo "ERROR: cannot find $mat"
-      exit 1;
+    if(! $IsRetinotopy) then
+      set mat = $analysis/$contrast.mat
+      if(! -e $mat) then
+        echo "ERROR: cannot find $mat"
+        exit 1;
+      endif
+    else
+      if($contrast != polar && $contrast != eccen) then
+        echo "ERROR: contrast must be polar or eccen for retinotopy"
+        exit 1;
+      endif
     endif
     if($#thresh && $#pct) then
       echo "ERROR: you cannot specify both -thresh and -pct"
@@ -421,8 +430,8 @@ selxavg3-sess -sf sessidlist -analysis wm-sm5.lh
 # the intersection of the left fusiform gyrus (defined in
 # lh.aparc.annot) with the area postively activated above sig=2 in the
 # encode contrast.
-funcroi-config  -annot aparc fusiform 
-  -analyisis wm-sm5.lh -c encode -thresh 2 -sign pos
+funcroi-config  -annot aparc fusiform \
+  -analysis wm-sm5.lh -c encode -thresh 2 -sign pos \
   -roi lh.fusi+encode.th2.pos.roicfg 
 # This instantly creates the file lh.fusi+encode.th2.pos.roicfg
 
