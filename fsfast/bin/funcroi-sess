@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/27 00:04:10 $
-#    $Revision: 1.2 $
+#    $Date: 2010/11/30 17:26:54 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: funcroi-sess,v 1.2 2010/07/27 00:04:10 greve Exp $';
+set VERSION = '$Id: funcroi-sess,v 1.3 2010/11/30 17:26:54 greve Exp $';
 
 set inputargs = ($argv);
 set analysis = ();
@@ -210,7 +210,7 @@ foreach sess ($SessList)
       if($status) exit 1;
       set labelfile = $labeldir/$hemi.$annotlabel.label
     endif # otherwise labelfile already set
-    if($anasubject != $subject) then
+    if($anasubject != $subject && $anasubject != self) then
       # map the label to the analysis subject
       set trglabel = $tmpdir/target.label
       set cmd = (mri_label2label --hemi $hemi \
@@ -223,10 +223,11 @@ foreach sess ($SessList)
       set labelfile = $trglabel
     endif
     # Now create a binary mask
-    set cmd = (mri_label2label --hemi $hemi \
-      --srclabel $labelfile --s $anasubject \
+    set cmd = (mri_label2label --hemi $hemi --srclabel $labelfile  \
       --outmask $roivol  --regmethod surface \
       --trglabel $tmpdir/junk.label)
+    if($anasubject == self) set cmd = ($cmd --s $subject)
+    if($anasubject != self) set cmd = ($cmd --s $anasubject)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
