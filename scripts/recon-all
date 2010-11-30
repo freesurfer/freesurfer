@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/11/20 19:43:32 $
-#    $Revision: 1.338 $
+#    $Author: greve $
+#    $Date: 2010/11/30 17:00:03 $
+#    $Revision: 1.339 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.338 2010/11/20 19:43:32 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.339 2010/11/30 17:00:03 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3540,6 +3540,9 @@ error_exit:
   echo "recon-all -s $subjid exited with ERRORS at `date`" \
     |& tee -a $LF |& tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
+  echo "For more details, see the log file $LF" 
+  echo "To report a problem, see http://surfer.nmr.mgh.harvard.edu/fswiki/BugReporting"|& tee -a $LF
+  echo "" 
   # Handle IsRunningFile
   if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
   # Mail the user
