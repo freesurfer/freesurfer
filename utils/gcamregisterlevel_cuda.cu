@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/30 16:25:55 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/11/30 18:15:17 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -126,7 +126,7 @@ int RegisterLevel( GPU::Classes::GCAmorphGPU& gcam,
     case GCAM_INTEGRATE_OPTIMAL:
       parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around 
                                                          this value */
-      min_dt = FindOptimalTimeStep(gcam, parms, mri) ;
+      min_dt = FindOptimalTimestep(gcam, parms, mri) ;
       parms->dt = min_dt ;
       break ;
 
@@ -138,7 +138,7 @@ int RegisterLevel( GPU::Classes::GCAmorphGPU& gcam,
       if (which == GCAM_INTEGRATE_OPTIMAL) {
         parms->dt = (sqrt(parms->navgs)+1.0f)*orig_dt ; /* will search around 
                                                            this value */
-        min_dt = FindOptimalTimeStep( gcam, parms, mri);
+        min_dt = FindOptimalTimestep( gcam, parms, mri);
         parms->dt = min_dt ;
         max_small = parms->nsmall ;
         tol = parms->tol ;
@@ -200,8 +200,10 @@ int RegisterLevel( GPU::Classes::GCAmorphGPU& gcam,
     }
     min_dt = parms->dt;
 
-    gcamRemoveNegativeNodes( gcam, mri, parms );
-
+    //gcamRemoveNegativeNodes( gcam, mri, parms );
+    std::cerr << __FUNCTION__
+	      << ": gcamRemoveNegativeNodes not yet implemented"
+	      << std::endl;
 
     if( parms->uncompress ) {
       //gcamRemoveCompressedNodes(gcam, mri, parms, parms->ratio_thresh);
@@ -221,7 +223,7 @@ int RegisterLevel( GPU::Classes::GCAmorphGPU& gcam,
     
 
     
-    rms = ComputeRMS( gcam, mri, parms );
+    rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
     last_pct_change = pct_change;
 
     if( FZERO(last_rms) ) {
@@ -250,7 +252,7 @@ int RegisterLevel( GPU::Classes::GCAmorphGPU& gcam,
 
         gcam.CopyNodePositions( SAVED2_POSITIONS, CURRENT_POSITIONS );
         gcam.ComputeMetricProperties( myGinvalid );
-        rms = ComputeRMS( gcam, mri, parms );
+        rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
       }
     }
 
@@ -349,15 +351,89 @@ int RegisterLevel( GPU::Classes::GCAmorphGPU& gcam,
 
 
 
+template<typename T, typename U>
+void
+gcamRLfinalDispatch( GCA_MORPH *gcam,
+		     const MRI *mri,
+		     const MRI *mri_smooth,
+		     GCA_MORPH_PARMS *parms ) {
+
+  GPU::Classes::GCAmorphGPU myGCAM;
+  GPU::Classes::MRIframeGPU<T> myMRI;
+  GPU::Classes::MRIframeGPU<U> myMRIsmooth;
+
+  // Handle the MRIs
+  myMRI.Allocate( mri );
+  myMRI.Send( mri, 0 );
+  myMRI.AllocateArray();
+  myMRI.SendArray();
+
+  myMRIsmooth.Allocate( mri_smooth );
+  myMRIsmooth.Send( mri_smooth, 0 );
+  myMRIsmooth.AllocateArray();
+  myMRIsmooth.SendArray();
+
+  // Put the GCAM on the GPU
+  myGCAM.CheckIntegrity(); // Shouldn't be necessary....
+  myGCAM.SendAll( gcam );
+
+  // Run the computation
+  RegisterLevel( myGCAM, myMRI, myMRIsmooth, parms );
+
+  // Retrieve results
+  myGCAM.RecvAll( gcam );
+}
+
+
+template<typename T>
+void
+gcamRLsmoothDispatch( GCA_MORPH *gcam,
+		      const MRI *mri,
+		      const MRI *mri_smooth,
+		      GCA_MORPH_PARMS *parms ) {
+  
+  switch( mri_smooth->type ) {
+
+  case MRI_UCHAR:
+    gcamRLfinalDispatch<T,unsigned char>( gcam, mri, mri_smooth, parms );
+    break;
+
+  default:
+    std::cerr << __FUNCTION__
+	      << ": Unrecognised type for mri_smooth "
+	      << mri_smooth->type << std::endl;
+    abort();
+  }
+
+}
 
 
 
 
 
+void gcamRegisterLevelGPU( GCA_MORPH *gcam,
+			   const MRI *mri,
+			   const MRI *mri_smooth,
+			   GCA_MORPH_PARMS *parms ) {
 
+  switch( mri->type ) {
 
+  case MRI_UCHAR:
+    gcamRLsmoothDispatch<unsigned char>( gcam, mri, mri_smooth, parms );
+    break;
 
+  case MRI_FLOAT:
+    gcamRLsmoothDispatch<float>( gcam, mri, mri_smooth, parms );
+    break;
+    
+  default:
+    std::cerr << __FUNCTION__
+	      << ": Unrecognised type for mri "
+	      << mri->type << std::endl;
+    abort();
+  }
 
+}
 
 
 

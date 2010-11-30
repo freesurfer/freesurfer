@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/23 19:21:28 $
- *    $Revision: 1.234 $
+ *    $Date: 2010/11/30 18:15:16 $
+ *    $Revision: 1.235 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -58,6 +58,8 @@
 #define GCAM_COMPUTE_GRADIENT_GPU
 
 #define GCAM_COPY_NODE_POSITIONS_GPU
+
+#define GCAM_REGISTER_LEVEL_GPU
 
 #else
 // Have to turn everything off
@@ -4418,7 +4420,9 @@ gcamCropNegativeAreaNodeGradient(GCA_MORPH *gcam, float crop)
 #endif
 
 // globals to track conditions by which loop can terminate early
+#ifndef GCAM_REGISTER_LEVEL_GPU
 static int nodesCompressed1, nodesCompressed2, nodesCompressed3;
+#endif
 static int inconsistentLabelNodes;
 static float maxGradient, gradientArea;
 
@@ -4426,6 +4430,10 @@ int
 GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
                   GCA_MORPH_PARMS *parms)
 {
+#ifdef GCAM_REGISTER_LEVEL_GPU
+  printf( "%s: On GPU\n", __FUNCTION__ );
+  gcamRegisterLevelGPU( gcam, mri, mri_smooth, parms );
+#else
   int  n, nsmall, done = 0, which = GCAM_INTEGRATE_OPTIMAL,
     max_small, increasing, good_step,reduced, good_step_ever ;
   double rms, last_rms, pct_change, orig_dt, min_dt, orig_j,
@@ -4843,6 +4851,8 @@ GCAMregisterLevel(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth,
 
   parms->start_t = n ;
   parms->dt = orig_dt ;
+
+#endif
   return(NO_ERROR) ;
 }
 

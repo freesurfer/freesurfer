@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/30 16:25:55 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/11/30 18:15:16 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -324,6 +324,10 @@ float gcamFindOptimalTimestepGPU( GCA_MORPH *gcam,
 
   case MRI_UCHAR:
     dt = FindOptimalTimestepDispatch<unsigned char>( gcam, parms, mri );
+    break;
+
+  case MRI_FLOAT:
+    dt = FindOptimalTimestepDispatch<float>( gcam, parms, mri );
     break;
 
   default:

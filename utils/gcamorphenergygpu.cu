@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/10/13 18:45:52 $
- *    $Revision: 1.40 $
+ *    $Date: 2010/11/30 18:15:17 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1243,6 +1243,10 @@ float gcamComputeRMSonGPU( GCA_MORPH *gcam,
 
   case MRI_UCHAR:
     rms = myEnergy.RMSdispatch<unsigned char>( myGCAM, mri, parms );
+    break;
+
+  case MRI_FLOAT:
+    rms = myEnergy.RMSdispatch<float>( myGCAM, mri, parms );
     break;
 
   default:
