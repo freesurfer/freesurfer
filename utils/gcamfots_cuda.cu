@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/23 19:21:28 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/11/30 16:25:55 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,7 @@
 #include "gcamorphgpu.hpp"
 #include "gcamorphenergy.hpp"
 
+#include "gcamfots_cuda.hpp"
 #include "gcamfots_cuda.h"
 
 #define SHOW_TIMERS 1
