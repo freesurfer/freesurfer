@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:19 $
-#    $Revision: 1.3 $
+#    $Author: greve $
+#    $Date: 2010/12/01 21:54:34 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,25 +23,32 @@
 #
 
 
-set VERSION = '$Id: tar-sess,v 1.3 2007/01/09 22:41:19 nicks Exp $';
+set VERSION = '$Id: tar-sess,v 1.4 2010/12/01 21:54:34 greve Exp $';
 
-set cmdargs = ($argv);
+set inputargs = ($argv);
 
-set monly     = 0;
-set PrintHelp = 0;
 set funcstems = ();
 set parfiles = ();
 set tarfile = ();
 set fsd = bold;
 set runlistfile = ();
 set compress = 1;
+set analysis = ();
+set GetAnat = 1;
+set Force = 0;
+set ExtRegList = ();
 
+set PrintHelp = 0;
 if($#argv == 0)  goto usage_exit;
 set n = `echo $argv | grep -e -help | wc -l` 
 if($n != 0) then
   set PrintHelp = 1;
   goto usage_exit;
-  exit 1;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
 endif
 
 set SessList = `getsesspath $argv`;
@@ -52,9 +59,19 @@ endif
 
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
+
+# Check that all the subjects are there
+if($GetAnat) then
+  foreach sess ($SessList)
+    set subjname = `cat $sess/subjectname`
+    if(! -e $SUBJECTS_DIR/$subjname) then
+      echo "ERROR: cannot find $subjname in $SUBJECTS_DIR"
+      exit 1;
+    endif
+  end
+endif
 
 rm -f $tarfile
 set tardir = `dirname $tarfile`;
@@ -66,35 +83,77 @@ popd > /dev/null
 set tarfile = $tardir/$tarfname
 set tarfiletmp = $tarfile.$$.tmp
 
+set LF = $tarfile.log
+rm -f $LF
+echo "tar-sess log file " >> $LF
+echo $0        >> $LF
+echo $inputargs  >> $LF
+echo $VERSION >> $LF
+id            >> $LF
+pwd           >> $LF
+uname -a      >> $LF
+date          >> $LF
+
 #------------------------------------------------------------------#
 set StartTime = `date`;
+
+if($#analysis) then
+  tar hrvf $tarfiletmp ./$analysis |& tee -a $LF
+  if($status) exit 1;
+endif
+
 foreach sess ($SessList)
   set sessid = `basename $sess`;
   set sesspar = `dirname $sess`;
+  echo "$sessid `date`" |& tee -a $LF
+  #-------------------------------------------
+  if($GetAnat) then
+    set subjname = `cat $sess/subjectname`
+    pushd $SUBJECTS_DIR
+    tar hrvf $tarfiletmp $subjname |& tee -a $LF
+    if($status) exit 1;
+    popd
+  endif
+  #-------------------------------------------
   pushd $sesspar > /dev/null
   set RunList = `getrunlist $sess/$fsd $runlistfile`
   set flist = ./$sessid/subjectname;
-  set flist = ($flist ./$sessid/$fsd/seq.info)
-  set flist = ($flist ./$sessid/$fsd/masks);
   foreach run ($RunList)
     foreach stem ($funcstems)
       set fstem = ./$sessid/$fsd/$run/$stem
-      set flist = ($flist `ls "$fstem"_???.*`);
-      set flist = ($flist $fstem.bhdr);
+      set fname = `stem2fname $fstem`
+      set flist = ($flist $fname);
     end
     foreach par ($parfiles)
       set parfile = ./$sessid/$fsd/$run/$par
       set flist = ($flist $parfile);
     end
+    foreach extreg ($ExtRegList)
+      set extregfile = ./$sessid/$fsd/$run/$extreg
+      set flist = ($flist $extregfile)
+    end
+    set regfile = ./$sessid/$fsd/$run/register.dof6.dat
+    if(-e $regfile) set flist = ($flist $regfile);
   end # run
-  tar rvf $tarfiletmp $flist
+  set regfile = ./$sessid/$fsd/register.dof6.dat
+  if(-e $regfile) set flist = ($flist $regfile);
+  if($#analysis) then
+    set anapath = ./$sessid/$fsd/$analysis
+    if(-e $anapath) set flist = ($flist $anapath);
+  endif
+  tar hrvf $tarfiletmp $flist |& tee -a $LF
+  if($status) exit 1;
 end # Loop over sessions #
 
 if($compress) then
-  gzip $tarfiletmp
-  mv $tarfiletmp.gz $tarfile
+  echo "Compressing `date`" |& tee -a $LF
+  gzip $tarfiletmp |& tee -a $LF
+  if($status) exit 1;
+  mv $tarfiletmp.gz $tarfile |& tee -a $LF
+  if($status) exit 1;
 else
-  mv $tarfiletmp $tarfile
+  mv $tarfiletmp $tarfile |& tee -a $LF
+  if($status) exit 1;
 endif
 
 echo "Started at $StartTime" 
@@ -113,6 +172,23 @@ while( $#argv != 0 )
   set flag = $argv[1]; shift;
   
   switch($flag)
+
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      if(! -e $analysis) then
+        echo "ERROR: cannot find $analysis"
+        exit 1;
+      endif
+      set runlistfile = `getana -a $analysis -t runlistfile`
+      set fsd = `getana -a $analysis -t fsd`
+      set parfile = `getana -a $analysis -t parname`
+      set parfiles = ($parfiles $parfile)
+      set funcstems = ($funcstems f);
+      set taskreg = (`getana -a $analysis -t taskreg`)
+      set nuisreg = (`getana -a $analysis -t nuisreg`)
+      set ExtRegList = ($ExtRegList $taskreg $nuisreg)
+      breaksw
 
     case "-f":
       if ( $#argv == 0) goto arg1err;
@@ -139,13 +215,28 @@ while( $#argv != 0 )
       set fsd = $argv[1]; shift;
       breaksw
 
+    case "-no-extreg":
+      set ExtRegList = ();
+      breaksw
+
+    case "-no-compress":
+    case "-nocompress":
+      set compress = 0;
+      breaksw
+
+    case "-no-anat":
+    case "-noanat":
+      set GetAnat = 0;
+      breaksw
+
+    case "-force":
+    case "-overwrite":
+      set Force = 1;
+      breaksw
+
     case "-debug":
       set verbose = 1;
       set echo = 1;
-      breaksw
-
-    case "-nocompress":
-      set compress = 0;
       breaksw
 
     case "-g":
@@ -181,6 +272,15 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+if($#tarfile == 0) then
+  echo "ERROR: you must supply a tarfile"
+  exit 1;
+endif
+if(-e $tarfile && ! $Force) then
+  echo "ERROR: tarfile $tarfile exists, delete or run with -force"
+  exit 1;
+endif
+
 goto check_params_return;
 ############--------------##################
 
@@ -196,9 +296,10 @@ usage_exit:
   echo "USAGE: tar-sess"
   echo ""
   echo "   -t tarfile "
+  echo "   -a analysis"
+  echo ""
   echo "   -f funcstem <-f funcstem>"
   echo "   -p parfile  <-p parfile>"
-  echo "   -nocompresss"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
@@ -208,6 +309,9 @@ usage_exit:
   echo "   -fsd fsdir      (optional)"
   echo "   -rlf runlistfile   (optional)"
   echo ""
+  echo "   -no-anat : do not include FreeSurfer anatomical"
+  echo "   -nocompresss"
+  echo "   -force : overwrite"
   echo "   -version        : print version and exit"
   echo "   -help           : print help and exit"
   echo ""
@@ -225,4 +329,22 @@ exit 1;
 
 #---- Everything below here is printed out as part of help -----#
 BEGINHELP
+
+The purpose of this program is to collect imaging data from an FS-FAST
+analysis in a way that it can be easily transmitted to the FS-FAST 
+developers for debugging purposes. The output is as single file in the
+unix tar format (ie, a "tarfile"). 
+
+Basic usage is something like:
+
+tar-sess -t mydata.tar.gz -a myanalysis -s sess1 -s sess2 
+
+This will create mydata.tar.gz. This will contain information from
+sess1 and sess2 relating to analysis myanalysis, mainly the raw fMRI
+data (f.nii or f.nii.gz) and the paradigm file associated with the
+analysis. By default, it will also grab the FreeSurfer anatomical
+information for each session. This can be turned off with -no-anat.
+
+DO NOT EMAIL THE TAR FILE!! Instead, upload it to the file drop:
+www.nmr.mgh.harvard.edu/facility/filedrop
 
