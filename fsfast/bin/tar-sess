@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/12/01 21:54:34 $
-#    $Revision: 1.4 $
+#    $Date: 2010/12/01 22:24:48 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tar-sess,v 1.4 2010/12/01 21:54:34 greve Exp $';
+set VERSION = '$Id: tar-sess,v 1.5 2010/12/01 22:24:48 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -110,7 +110,10 @@ foreach sess ($SessList)
   if($GetAnat) then
     set subjname = `cat $sess/subjectname`
     pushd $SUBJECTS_DIR
-    tar hrvf $tarfiletmp $subjname |& tee -a $LF
+    tar hrvf $tarfiletmp $subjname \
+      --exclude talairach.m3z --exclude talairach.m3z.inv.x.mgz \
+      --exclude talairach.m3z.inv.y.mgz \
+      --exclude talairach.m3z.inv.z.mgz |& tee -a $LF
     if($status) exit 1;
     popd
   endif
@@ -173,6 +176,7 @@ while( $#argv != 0 )
   
   switch($flag)
 
+    case "-analysis":
     case "-a":
       if ( $#argv == 0) goto arg1err;
       set analysis = $argv[1]; shift;
