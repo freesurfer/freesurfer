@@ -4,10 +4,14 @@
 
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
-bin_PROGRAMS = mri_convert
+bin_PROGRAMS = mri_convert mri_make_uchar
 mri_convert_SOURCES=mri_convert.c
 mri_convert_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_convert_LDFLAGS=$(OS_LDFLAGS)
+
+mri_make_uchar_SOURCES=mri_make_uchar.c
+mri_make_uchar_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mri_make_uchar_LDFLAGS=$(OS_LDFLAGS)
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_convert.help.xml
