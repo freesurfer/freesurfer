@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/11/30 17:47:16 $
-#    $Revision: 1.5 $
+#    $Date: 2010/12/02 17:16:35 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.5 2010/11/30 17:47:16 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.6 2010/12/02 17:16:35 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -264,12 +264,6 @@ check_params:
     if(! $ConFound) then
       echo "ERROR: cannot find contrast $contrast in analysis $analysis"
       exit 1;
-    endif
-    else
-      if($contrast != polar && $contrast != eccen) then
-        echo "ERROR: contrast must be polar or eccen for retinotopy"
-        exit 1;
-      endif
     endif
     if($#thresh && $#pct) then
       echo "ERROR: you cannot specify both -thresh and -pct"
