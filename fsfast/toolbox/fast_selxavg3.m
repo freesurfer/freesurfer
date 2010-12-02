@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.93 2010/11/11 16:54:41 greve Exp $
+% $Id: fast_selxavg3.m,v 1.94 2010/12/02 19:14:03 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/11/11 16:54:41 $
-%    $Revision: 1.93 $
+%    $Date: 2010/12/02 19:14:03 $
+%    $Revision: 1.94 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.93 2010/11/11 16:54:41 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.94 2010/12/02 19:14:03 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -60,7 +60,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.93 2010/11/11 16:54:41 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.94 2010/12/02 19:14:03 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -206,7 +206,7 @@ for nthouter = outer_runlist
     
     % This is for comparing cross-run FFX analysis vs this analysis 
     % in which the data and design matrices are concatenated.
-    Xrun = flac.X;
+    % Xrun = flac.X;
     %for nthcon = 1:ncontrasts
     %  if(~isempty(ConList))
     %	ind = strmatch(flac0.con(nthcon).name,ConList);
@@ -347,6 +347,11 @@ if(DoGLMFit)
       return;
     end
     yrun = fast_vol2mat(yrun);
+    if(~isempty(flac.TFmtx))
+      % Temporal filter
+      fprintf('Temporally filtering\n');
+      yrun = flac.TFmtx * yrun;
+    end
     % Compute mean and rvar of raw data for raw SFNR
     Xdt = fast_polytrendmtx(1,size(yrun,1),1,2);
     [rawbetarun rawrvarrun] = fast_glmfit(yrun,Xdt);
@@ -417,6 +422,11 @@ if(DoGLMFit)
     indrun = find(tpindrun == nthrun);
     yrun = MRIread(flac.funcfspec);
     yrun = fast_vol2mat(yrun);
+    if(~isempty(flac.TFmtx))
+      % Temporal filter
+      fprintf('Temporally filtering\n');
+      yrun = flac.TFmtx * yrun;
+    end
     yrun = RescaleFactor*yrun;
     Xrun = X(indrun,:);
     yhatrun = Xrun*betamat0;
@@ -628,6 +638,11 @@ if(DoGLMFit)
       indrun = find(tpindrun == nthrun);
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
+      if(~isempty(flac.TFmtx))
+	% Temporal filter
+	fprintf('Temporally filtering\n');
+	yrun = flac.TFmtx * yrun;
+      end
       yrun = RescaleFactor*yrun;  
       for nthseg = 0:flac0.acfbins
 	%fprintf('     seg  %d    %g    ---------\n',nthseg,toc);
@@ -655,11 +670,15 @@ if(DoGLMFit)
       indrun = find(tpindrun == nthrun);
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
+      if(~isempty(flac.TFmtx))
+	% Temporal filter
+	fprintf('Temporally filtering\n');
+	yrun = flac.TFmtx * yrun;
+      end
       yrun = RescaleFactor*yrun;
       Xrun = X(indrun,:);
       yhatrun = Xrun*betamat;
       rrun = yrun - yhatrun;
-      clear yhatrun;
       for nthseg = 1:flac0.acfbins % ok to skip 0
 	indseg = find(acfseg.vol==nthseg);
 	if(~flac.fsv3_whiten)
@@ -673,9 +692,6 @@ if(DoGLMFit)
       rsserun = sum(rrun.^2);
       rsse = rsse + rsserun;
       
-      clear yrun;
-      %pack;
-
       if(MatlabSaveRes | DoFWHM)
 	fname = sprintf('%s/res-%03d.%s',outresdir,nthrun,ext);
 	rrunmri = mri;
@@ -683,8 +699,7 @@ if(DoGLMFit)
 	MRIwrite(rrunmri,fname);
       end
       
-      clear rrun rrunmri;
-      %pack;
+      %clear yrun yhatrun rrun rrunmri;
     end % run list
     rvarmat = rsse/DOF;
   else

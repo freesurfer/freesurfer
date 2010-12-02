@@ -17,8 +17,8 @@ function flacnew = flac_customize(flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/10/14 20:59:24 $
-%    $Revision: 1.52 $
+%    $Date: 2010/12/02 19:14:04 $
+%    $Revision: 1.53 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -350,9 +350,17 @@ for nthev = 1:nev
 
 end
 
+% Temporal Filter Matrix
+flacnew.TFmtx = flac_tfilter(flacnew); 
+
 % Now create the full design matrix. This will also create the
 % matrices for the HRF-related EVs.
 flacnew = flac_desmat(flacnew);
+if(~isempty(flacnew.TFmtx))
+  % Filter design matrix
+  flacnew.X0 = flacnew.X; % save unfiltered copy
+  flacnew.X = flacnew.TFmtx * flacnew.X ;
+end
 flacnew.indtask = flac_taskregind(flacnew);			    
 flacnew.indnuis = flac_nuisregind(flacnew);			    
 

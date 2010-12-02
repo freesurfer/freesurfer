@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/07/16 16:21:21 $
-%    $Revision: 1.59 $
+%    $Date: 2010/12/02 19:13:42 $
+%    $Revision: 1.60 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -119,6 +119,14 @@ while(1)
    case 'TER',         TER              = sscanf(tline,'%*s %f',1);
    case 'stimulusdelay', flac.stimulusdelay = sscanf(tline,'%*s %f',1);
    case 'nconditions', nconditions      = sscanf(tline,'%*s %d',1);
+   case 'TFILTER', 
+    tfilter = flac_tfilter_parse(tline);
+    if(isempty(tfilter)) 
+      flac=[]; 
+      fprintf('line %d\n',nthline);
+      return; 
+    end
+    flac.tfilter = tfilter;
    case 'gamma', 
     gammafit = 1;
     gamdelay = sscanf(tline,'%*s %f',1);

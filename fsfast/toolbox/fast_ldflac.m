@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/04/28 22:23:13 $
-%    $Revision: 1.52 $
+%    $Date: 2010/12/02 19:13:42 $
+%    $Revision: 1.53 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -48,6 +48,8 @@ if(isempty(flac))
   flac.TR = [];
   flac.mask = '';
   flac.inorm = 0;
+  flac.tfilter = []; % Spec for temporal filtering matrix
+  flac.TFmtx = []; % Actual matrix
   flac.stimulusdelay = 0;
   flac.fixacf = 1;
   flac.acfsegstem = '';
@@ -214,6 +216,14 @@ while(1)
       fprintf('line %d\n',nthline);
       flac=[]; return; 
     end
+   case 'TFILTER', 
+    tfilter = flac_tfilter_parse(tline);
+    if(isempty(tfilter)) 
+      flac=[]; 
+      fprintf('line %d\n',nthline);
+      return; 
+    end
+    flac.tfilter = tfilter;
    case 'EV', 
     ev = flac_ev_parse(tline);
     if(isempty(ev)) 
