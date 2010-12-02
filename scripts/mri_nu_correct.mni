@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/10/15 18:46:39 $
-#    $Revision: 1.15 $
+#    $Author: greve $
+#    $Date: 2010/12/02 17:02:58 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.15 2010/10/15 18:46:39 nicks Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.16 2010/12/02 17:02:58 greve Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -36,6 +36,9 @@ set Distance = ();
 set FWHM = ();
 set LF = ();
 set UseFloat = 1;
+set DoRescale = 1;
+set cleanup = 1;
+set tmpdir = ();
 
 set debug = 0;
 set PrintHelp = 0;
@@ -71,7 +74,7 @@ uname -a | tee -a $LF
 date | tee -a $LF
 nu_correct -version | tee -a $LF
 
-set tmpdir = $OutDir/tmp.mri_nu_correct.mni.$$
+if(! $#tmpdir) set tmpdir = $OutDir/tmp.mri_nu_correct.mni.$$
 mkdir -p $tmpdir
 echo "tmpdir is $tmpdir" | tee -a $LF
 
@@ -114,7 +117,9 @@ echo " " |& tee -a $LF
 
 set numnc = $tmpdir/nu$nIters.mnc
 
-if($UseFloat) then
+if($DoRescale) then
+  cp $numnc $tmpdir/pre-scale.mnc
+
   # Rescale so that global mean of output = mean of input
   set ones = $tmpdir/ones.mgz
   set cmd = (mri_binarize --i $numnc --min -1 --o $ones);
@@ -153,7 +158,7 @@ if($status) then
   exit 1;
 endif
 
-rm -r $tmpdir
+if($cleanup) rm -r $tmpdir
 
 echo " " |& tee -a $LF
 echo " " |& tee -a $LF
@@ -224,10 +229,34 @@ while( $#argv != 0 )
 
     case "--float":
       set UseFloat = 1;
+      set DoRescale = 1;
       breaksw
 
     case "--no-float":
       set UseFloat = 0;
+      breaksw
+
+    case "--rescale":
+      set DoRescale = 1;
+      breaksw
+
+    case "--no-rescale":
+      set DoRescale = 0;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--no-cleanup":
+      set cleanup = 0;
       breaksw
 
     case "--log":
