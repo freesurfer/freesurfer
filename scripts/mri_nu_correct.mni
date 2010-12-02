@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/12/02 17:02:58 $
-#    $Revision: 1.16 $
+#    $Date: 2010/12/02 20:23:44 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -24,7 +24,7 @@
 
 # mri_nu_correct.mni
 #
-set VERSION = '$Id: mri_nu_correct.mni,v 1.16 2010/12/02 17:02:58 greve Exp $';
+set VERSION = '$Id: mri_nu_correct.mni,v 1.17 2010/12/02 20:23:44 greve Exp $';
 
 set InVol = ();
 set OutVol = ();
@@ -39,6 +39,8 @@ set UseFloat = 1;
 set DoRescale = 1;
 set cleanup = 1;
 set tmpdir = ();
+set DoUchar = 0;
+set talxfm = ();
 
 set debug = 0;
 set PrintHelp = 0;
@@ -150,13 +152,18 @@ endif
 
 # Convert nu back to cor or mgz, use --like to keep all the header info
 set cmd = (mri_convert ${HiRes} $numnc $OutVol --like $InVol)
-if($UseFloat && $#HiRes == 0) set cmd = ($cmd --conform)
+if($UseFloat && $#HiRes == 0 && ! $DoUchar) set cmd = ($cmd --conform)
 echo $cmd |& tee -a $LF
 $cmd |& tee -a $LF
-if($status) then
-  echo "ERROR: converting nu to COR/mgz" |& tee -a $LF
-  exit 1;
+if($status) exit 1;
+
+if($UseFloat && $#HiRes == 0 && $DoUchar) then
+  set cmd = (mri_make_uchar $OutVol $talxfm $OutVol)
+  echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
 endif
+
 
 if($cleanup) rm -r $tmpdir
 
@@ -221,6 +228,21 @@ while( $#argv != 0 )
     case "--fwhm":
       if ( $#argv == 0) goto arg1err;
       set FWHM = $argv[1]; shift;
+      breaksw
+
+    case "--uchar":
+      if($#argv < 1) goto arg1err;
+      set talxfm = $argv[1]; shift;
+      if(! -e $talxfm) then
+        echo "ERROR: cannot find $talxfm"
+        exit 1;
+      endif
+      set DoUchar = 1;
+      breaksw
+
+    case "--no-uchar":
+    case "--nouchar":
+      set DoUchar = 0;
       breaksw
 
     case "--cm":

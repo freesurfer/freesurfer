@@ -19,6 +19,10 @@
       <explanation>Passes Np as argument of the -iterations flag of nu_correct. This is different than the --n flag above. Default is not to pass nu_correct the -iterations flag.</explanation>
       <argument>--stop thresh</argument>
       <explanation>Passes thresh as argument of the -stop flag of nu_correct. According to the nu_correct documentation, this threshold is the "CV of change in field estimate below which iteration stops (suggest 0.01 to 0.0001)".  Default is not to pass nu_correct the -stop flag.</explanation>
+      <argument>--uchar tal.xfm</argument>
+      <explanation>Use mri_make_uchar instead of conforming</explanation>
+      <argument>--no-uchar</argument>
+      <explanation>Do not use mri_make_uchar (default)</explanation>
       <argument>--cm</argument>
       <explanation>For use with data that is higher than 1mm resolution.</explanation>
     </required_flagged>
