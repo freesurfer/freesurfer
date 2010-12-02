@@ -2,14 +2,16 @@
  * @file  mri_make_uchar.c
  * @brief change a volume to 8 bits/voxel
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * uses the Tal xform to find a ball of voxels that are mostly brain. The top of the
+ * intensity histogram in this ball will then be white matter, which allows us to
+ * center it at the desired value approximately (110)
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/12/02 18:06:54 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/12/02 18:42:02 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +44,7 @@
 #include "const.h"
 #include "timer.h"
 #include "version.h"
+#include "mrinorm.h"
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -61,7 +64,7 @@ main(int argc, char *argv[]) {
   LTA *tal_xform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_uchar.c,v 1.1 2010/12/02 18:06:54 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_make_uchar.c,v 1.2 2010/12/02 18:42:02 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -142,7 +145,8 @@ usage_exit(int code) {
 
 
 #define FIRST_PERCENTILE    0.01
-#define SECOND_PERCENTILE   0.99
+#define WM_PERCENTILE       0.90
+
 
 MRI *
 MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
@@ -195,7 +199,7 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
 
   bin_size = h->bins[2] - h->bins[1] ;
   i1 = HISTOfindBinWithCount(hcum, FIRST_PERCENTILE) ;
-  i2 = HISTOfindBinWithCount(hcum, SECOND_PERCENTILE) ;
+  i2 = HISTOfindBinWithCount(hcum, WM_PERCENTILE) ;
 
   x1 = h->bins[i1] ; x2 = h->bins[i2] ;
   y1 = FIRST_PERCENTILE*255 ;
@@ -203,9 +207,9 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
   /*
     since the ball around tal (0,0,0) will contain almost only brain we
     want to map this intensity range into somewhere around the middle of
-    the uchar range so that wm winds up around 128
+    the uchar range so that wm winds up around 110
   */
-  y2 = (0.5*(FIRST_PERCENTILE+SECOND_PERCENTILE))*255 ;
+  y2 = DEFAULT_DESIRED_WHITE_MATTER_VALUE ;
   m = (y2 - y1) / (x2 - x1) ;
   b = y2 - m * x2 ;
   printf("mapping (%2.0f, %2.0f) to (%2.0f, %2.0f)\n", x1, x2, y1, y2) ;
