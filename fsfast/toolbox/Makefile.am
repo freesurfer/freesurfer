@@ -166,6 +166,7 @@ MFILES=\
 	fast_ldanacfg.m \
 	fast_ldanaflac.m \
 	fast_ldanalyze.m \
+	fast_lpfmtx.m \
 	fast_ldbfile.m \
 	fast_ldbfiletp.m \
 	fast_ldbhdr.m \
