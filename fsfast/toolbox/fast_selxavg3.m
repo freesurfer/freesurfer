@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.94 2010/12/02 19:14:03 greve Exp $
+% $Id: fast_selxavg3.m,v 1.95 2010/12/02 19:16:11 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/12/02 19:14:03 $
-%    $Revision: 1.94 $
+%    $Date: 2010/12/02 19:16:11 $
+%    $Revision: 1.95 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.94 2010/12/02 19:14:03 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.95 2010/12/02 19:16:11 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -60,7 +60,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.94 2010/12/02 19:14:03 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.95 2010/12/02 19:16:11 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -699,7 +699,7 @@ if(DoGLMFit)
 	MRIwrite(rrunmri,fname);
       end
       
-      %clear yrun yhatrun rrun rrunmri;
+      clear yrun yhatrun rrun rrunmri;
     end % run list
     rvarmat = rsse/DOF;
   else
