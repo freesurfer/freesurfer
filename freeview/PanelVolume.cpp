@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/11/16 17:48:32 $
- *    $Revision: 1.53 $
+ *    $Date: 2010/12/02 16:35:58 $
+ *    $Revision: 1.54 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -901,7 +901,21 @@ void PanelVolume::DoUpdateUI()
 
 void PanelVolume::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
 {
-  wxString value_strg = ( (wxString)_("") << dvalue );
+  double val;
+  if ( ctrl->GetValue().ToDouble(&val) && val == dvalue )
+    return;
+  
+  wxString value_strg;
+  if (dvalue < 1)
+    value_strg = ( (wxString)_("") << dvalue );
+  else
+  {
+    value_strg.Printf(_("%f"), dvalue);
+    while(value_strg[value_strg.Length()-1] == '0')
+      value_strg = value_strg.Left(value_strg.Length()-1);
+    if (value_strg[value_strg.Length()-1] == '.')
+      value_strg = value_strg.Left(value_strg.Length()-1);
+  }
   if ( value_strg != ctrl->GetValue() && (value_strg + _(".")) != ctrl->GetValue() )
     ctrl->ChangeValue( value_strg );
 }
