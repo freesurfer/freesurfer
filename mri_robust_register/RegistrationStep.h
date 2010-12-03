@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/29 16:04:56 $
- *    $Revision: 1.8 $
+ *    $Date: 2010/12/03 02:48:25 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -63,8 +63,10 @@ public:
  
 					 
   RegistrationStep(const Registration & R):sat(R.sat),iscale(R.iscale),
-									 transonly(R.transonly),rigid(R.rigid),robust(R.robust),rtype(R.rtype),subsamplesize(R.subsamplesize),
-									 debug(R.debug),verbose(R.verbose),floatsvd(false),iscalefinal(R.iscalefinal),mri_weights(NULL),mri_indexing(NULL){};
+									 transonly(R.transonly),rigid(R.rigid),robust(R.robust),rtype(R.rtype),
+									 subsamplesize(R.subsamplesize),debug(R.debug),verbose(R.verbose),
+									 floatsvd(false),iscalefinal(R.iscalefinal),mri_weights(NULL),
+									 mri_indexing(NULL){};
 
   ~RegistrationStep()
 	{ 
@@ -77,7 +79,7 @@ public:
 	double getwcheck()      {return wcheck;};
 	double getwchecksqrt()  {return wchecksqrt;};
 	double getzeroweights() {return zeroweights;};
-	MRI * getWeights()  {return mri_weights;}; //??? who takes care of freeing?
+	MRI * getWeights()  {return mri_weights;}; //??? who takes care of freeing? Currently we do.
 	std::pair < vnl_matrix_fixed <double,4,4 >, double > getMd() {return Md;};
 
   void setFloatSVD(bool fsvd) { floatsvd = fsvd;}; // only makes sense for T=double;
@@ -94,7 +96,13 @@ public:
 	// should be made protected at some point.
   void constructAb(MRI *mriS, MRI *mriT, vnl_matrix < T > &A, vnl_vector < T > &b);
 
+  // called from RegPowell
   static std::pair < vnl_matrix_fixed <double,4,4 >, double > convertP2Md(const vnl_vector < T >& p,int rtype);
+
+
+protected:
+
+  vnl_matrix < T > constructR(const vnl_vector < T > & p);
 
 
 private:
@@ -123,6 +131,7 @@ private:
 
 //internal
   MRI * mri_indexing;
+  vnl_vector < T > pvec;
 	
 };
 
@@ -148,32 +157,23 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
     if (verbose > 1) std::cout << "rigid and rtype 2 !" << std::endl;
 		assert(rtype !=2);
 		
-//     // compute non rigid A
-//     rigid = false;
-//     Ab = constructAb(mriS,mriT);
-//     rigid = true;
-//     // now restrict A  (= A R(lastp) )
-//     MATRIX* R;
-//     if (lastp) R = constructR(lastp);
-//     else
-//     {
-//       int l = 6;
-//       if (!rigid) l = 12;
-//       if (iscale) l++;
-//       MATRIX* tm = MatrixAlloc(l,1,MATRIX_REAL);
-//       MatrixClear(tm);
-//       R = constructR(tm);
-//       MatrixFree(&tm);
-//       //MatrixPrintFmt(stdout,"% 2.8f",R);exit(1);
-// 
-//     }
-//     MATRIX* Rt = MatrixTranspose(R,NULL);
-//     MATRIX* nA = MatrixMultiply(Ab.first,Rt,NULL);
-//     //MatrixPrintFmt(stdout,"% 2.8f",nA);exit(1);
-//     MatrixFree(&Ab.first);
-//     Ab.first = nA;
-//     MatrixFree(&R);
-//     MatrixFree(&Rt);
+    // compute non rigid A
+    rigid = false;
+    constructAb(mriS,mriT,A,b);
+    rigid = true;
+    // now restrict A  (= A R(lastp) )
+		vnl_matrix < T > R;
+    if (pvec.size() > 0) R = constructR(pvec); // construct from last param estimate
+    else // construct from identity:
+    {
+      int l = 6;
+      if (!rigid) l = 12;
+      if (iscale) l++;
+			vnl_vector < T > tempp(l,0.0);
+      R = constructR(tempp);
+      //MatrixPrintFmt(stdout,"% 2.8f",R);exit(1);
+    }
+    A = A * R.transpose();
   }
   else
   {
@@ -191,8 +191,6 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
 		 
   if (verbose > 1) std::cout << "  DONE" << std::endl;
 	
-//  std::pair < vnl_vector <double>, MRI* > pw; pw.second = NULL;
-		vnl_vector < T > p;
   Regression< T > R(A,b);
 	R.setVerbose(verbose);
 	R.setFloatSvd(floatsvd);
@@ -200,20 +198,18 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
   {
 		vnl_vector < T > w;
     if (verbose > 1) std::cout << "   - compute robust estimate ( sat "<<sat<<" )..." << std::flush;
-    if (sat < 0) p = R.getRobustEstW(w);
-    else p = R.getRobustEstW(w,sat);
+    if (sat < 0) pvec = R.getRobustEstW(w);
+    else pvec = R.getRobustEstW(w,sat);
 
 		A.clear();
 		b.clear();
 		
     if (verbose > 1) std::cout << "  DONE" << std::endl;
-//    pw.first  = p;
-//    pw.second = NULL;
 
-//    std::cout << " pw-final  : "<< std::endl;
+//    std::cout << " pvec  : "<< std::endl;
 //    std::cout.precision(16);
-//		for (unsigned int iii=0;iii<p.size(); iii++)
-//		  std::cout << p[iii] << std::endl;;
+//		for (unsigned int iii=0;iii<pvec.size(); iii++)
+//		  std::cout << pvec[iii] << std::endl;;
 //    std::cout.precision(8);
 
     // transform weights vector back to 3d (mri real)
@@ -227,10 +223,7 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
       mri_weights->type = MRI_FLOAT;
       MRIsetResolution(mri_weights, mriS->xsize, mriS->ysize, mriS->zsize);
 		}
-//    pw.second = MRIalloc(mriS->width, mriS->height, mriS->depth, MRI_FLOAT);
-//    MRIcopyHeader(mriS, pw.second) ;
-//    pw.second->type = MRI_FLOAT;
-//    MRIsetResolution(pw.second, mriS->xsize, mriS->ysize, mriS->zsize);
+
     int x,y,z;
     unsigned int count = 0;
 		long int val;
@@ -275,9 +268,8 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
     //cout << std::endl;
 //		MRIwrite(gmri,"mri_gauss.mgz");
 //		MRIwrite(mri_indexing, "mri_indexing.mgz");
-//		MRIwrite(pw.second, "mri_weights.mgz");
+//		MRIwrite(mri_weights, "mri_weights.mgz");
 //		MRIfree(&gmri);
-    //std::cout << " count-1: " << count-1 << " rows: " << pwm.second->rows << std::endl;
     assert(count == w.size());
 		
 		wcheck = wcheck / dsum;
@@ -290,17 +282,16 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
 //		   exit(1);
 //		}
 
-    //if (pwm.second != NULL) MatrixFree(&pwm.second);
   }
   else
   {
     if (verbose > 1) std::cout << "   - compute least squares estimate ..." << std::flush;
-    //pw.first = R.getLSEst();
-    p = R.getLSEst();
+    pvec = R.getLSEst();
+
 		A.clear();
 		b.clear();
     if (verbose > 1) std::cout << "  DONE" << std::endl;
-    //pw.second = NULL; // no weights in this case
+    // no weights in this case
 		if (mri_weights) MRIfree(&mri_weights);
   }
 
@@ -309,7 +300,7 @@ std::pair < vnl_matrix_fixed <double,4,4 >, double >  RegistrationStep<T>::compu
 
 //  R.plotPartialSat(name);
 
-  Md = convertP2Md(p,rtype);
+  Md = convertP2Md(pvec,rtype);
 
   return Md;
 }
@@ -799,6 +790,77 @@ pair < vnl_matrix_fixed <double,4,4 >, double > RegistrationStep<T>::convertP2Md
 
 //   std::cout << " -- DONE " << std::endl;
   return ret;
+}
+
+template <class T>
+vnl_matrix < T > RegistrationStep<T>::constructR(const vnl_vector < T > & p)
+// Construct restriction matrix (to restrict the affine problem to less parameters)
+// if p->rows == 6 use only rigid
+// if p->rows == 7 use also intensity scale
+// if p->rows == 3 use only trans
+// if p->rows == 4 use only trans + intensity
+{
+  assert(p.size() > 0);
+  assert(p.size() == 6 || p.size()==7);
+
+  int adim = 12;
+  if (iscale)
+  {
+    assert(p.size() == 7 || p.size() ==4);
+    adim++;
+  }
+	vnl_matrix < T > R(p.size(),adim,0.0);
+
+  // translation p0,p1,p2 map to m3,m7,m11, (counting from zero)
+	R[0][3]  = 1.0;
+	R[1][7]  = 1.0;
+	R[2][11] = 1.0;
+
+  // iscale (p6 -> m12)
+  if (p.size() ==7) R[6][12] = 1.0;
+  if (p.size() ==4) R[3][12] = 1.0;
+
+  if (p.size() <=4) return R;
+
+  // rotation derivatives (dm_i/dp_i)
+  double s4 = sin(p[3]);
+  double c4 = cos(p[3]);
+  double s5 = sin(p[4]);
+  double c5 = cos(p[4]);
+  double s6 = sin(p[5]);
+  double c6 = cos(p[5]);
+
+  R[4][0]  = (T) (-s5*c6);
+  R[5][0]  = (T) (-c5*s6);
+
+  R[4][1]  = (T) (-s5*s6);
+  R[5][1]  = (T) ( c5*c6);
+
+  R[4][2]  = (T) (-c5);
+
+  R[3][4]  = (T) ( c4*s5*c6+s4*s6);
+  R[4][4]  = (T) ( s4*c5*c6);
+  R[5][4]  = (T) (-s4*s5*s6-c4*c6);
+
+  R[3][5]  = (T) (c4*s5*s6-s4*c6);
+  R[4][5]  = (T) (s4*c5*s6);
+  R[5][5]  = (T) (s4*s5*c6-c4*s6);
+
+  R[3][6]  = (T) (c4*c5);
+  R[4][6]  = (T) (-s4*s5);
+
+  R[3][8]  = (T) (-s4*s5*c6+c4*s6);
+  R[4][8]  = (T) ( c4*c5*c6);
+  R[5][8]  = (T) (-c4*s5*s6+s4*c6);
+
+  R[3][9]  = (T) (-s4*s5*s6-c4*c6);
+  R[4][9]  = (T) ( c4*c5*s6);
+  R[5][9]  = (T) ( c4*s5*c6+s4*s6);
+
+  R[3][10] = (T) (-s4*c5);
+  R[4][10] = (T) (-c4*s5);
+
+  return R;
 }
 
 #endif

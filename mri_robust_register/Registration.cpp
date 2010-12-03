@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/29 20:02:15 $
- *    $Revision: 1.54 $
+ *    $Date: 2010/12/03 02:48:24 $
+ *    $Revision: 1.55 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -2825,79 +2825,79 @@ pair < MATRIX*, VECTOR* > Registration::constructAb2(MRI *mriS, MRI *mriT)
 // 
 // }
 
-
-MATRIX* Registration::constructR(MATRIX* p)
-// Construct restriction matrix (to restrict the affine problem to less parameters)
-// if p->rows == 6 use only rigid
-// if p->rows == 7 use also intensity scale
-// if p->rows == 3 use only trans
-// if p->rows == 4 use only trans + intensity
-{
-  assert(p != NULL);
-  assert((p->rows == 6 || p->rows==7) && p->cols ==1);
-
-  int adim = 12;
-  if (iscale)
-  {
-    assert(p->rows == 7 || p->rows ==4);
-    adim++;
-  }
-  MATRIX* R = MatrixAlloc(p->rows,adim,MATRIX_REAL);
-  MatrixClear(R);
-
-
-  // translation p1,p2,p3 map to m4,m8,m12
-  *MATRIX_RELT(R, 1,  4) = 1.0;
-  *MATRIX_RELT(R, 2,  8) = 1.0;
-  *MATRIX_RELT(R, 3, 12) = 1.0;
-
-  // iscale (p7 -> m13)
-  if (p->rows ==7) *MATRIX_RELT(R, 7, 13) = 1.0;
-  if (p->rows ==4) *MATRIX_RELT(R, 4, 13) = 1.0;
-
-  if (p->rows <=4) return R;
-
-  // rotation derivatives (dm_i/dp_i)
-  double s4 = sin(*MATRIX_RELT(p, 4, 1));
-  double c4 = cos(*MATRIX_RELT(p, 4, 1));
-  double s5 = sin(*MATRIX_RELT(p, 5, 1));
-  double c5 = cos(*MATRIX_RELT(p, 5, 1));
-  double s6 = sin(*MATRIX_RELT(p, 6, 1));
-  double c6 = cos(*MATRIX_RELT(p, 6, 1));
-
-  *MATRIX_RELT(R, 5,  1) = -s5*c6;
-  *MATRIX_RELT(R, 6,  1) = -c5*s6;
-
-  *MATRIX_RELT(R, 5,  2) = -s5*s6;
-  *MATRIX_RELT(R, 6,  2) =  c5*c6;
-
-  *MATRIX_RELT(R, 5,  3) = -c5;
-
-  *MATRIX_RELT(R, 4,  5) =  c4*s5*c6+s4*s6;
-  *MATRIX_RELT(R, 5,  5) =  s4*c5*c6;
-  *MATRIX_RELT(R, 6,  5) = -s4*s5*s6-c4*c6;
-
-  *MATRIX_RELT(R, 4,  6) =  c4*s5*s6-s4*c6;
-  *MATRIX_RELT(R, 5,  6) =  s4*c5*s6;
-  *MATRIX_RELT(R, 6,  6) =  s4*s5*c6-c4*s6;
-
-  *MATRIX_RELT(R, 4,  7) =  c4*c5;
-  *MATRIX_RELT(R, 5,  7) = -s4*s5;
-
-  *MATRIX_RELT(R, 4,  9) = -s4*s5*c6+c4*s6;
-  *MATRIX_RELT(R, 5,  9) =  c4*c5*c6;
-  *MATRIX_RELT(R, 6,  9) = -c4*s5*s6+s4*c6;
-
-  *MATRIX_RELT(R, 4, 10) = -s4*s5*s6-c4*c6;
-  *MATRIX_RELT(R, 5, 10) =  c4*c5*s6;
-  *MATRIX_RELT(R, 6, 10) =  c4*s5*c6+s4*s6;
-
-  *MATRIX_RELT(R, 4, 11) = -s4*c5;
-  *MATRIX_RELT(R, 5, 11) = -c4*s5;
-
-  return R;
-}
-
+// (mr) moved to RegistrationStep and converted to vnl_matrix
+// MATRIX* Registration::constructR(MATRIX* p)
+// // Construct restriction matrix (to restrict the affine problem to less parameters)
+// // if p->rows == 6 use only rigid
+// // if p->rows == 7 use also intensity scale
+// // if p->rows == 3 use only trans
+// // if p->rows == 4 use only trans + intensity
+// {
+//   assert(p != NULL);
+//   assert((p->rows == 6 || p->rows==7) && p->cols ==1);
+// 
+//   int adim = 12;
+//   if (iscale)
+//   {
+//     assert(p->rows == 7 || p->rows ==4);
+//     adim++;
+//   }
+//   MATRIX* R = MatrixAlloc(p->rows,adim,MATRIX_REAL);
+//   MatrixClear(R);
+// 
+// 
+//   // translation p1,p2,p3 map to m4,m8,m12
+//   *MATRIX_RELT(R, 1,  4) = 1.0;
+//   *MATRIX_RELT(R, 2,  8) = 1.0;
+//   *MATRIX_RELT(R, 3, 12) = 1.0;
+// 
+//   // iscale (p7 -> m13)
+//   if (p->rows ==7) *MATRIX_RELT(R, 7, 13) = 1.0;
+//   if (p->rows ==4) *MATRIX_RELT(R, 4, 13) = 1.0;
+// 
+//   if (p->rows <=4) return R;
+// 
+//   // rotation derivatives (dm_i/dp_i)
+//   double s4 = sin(*MATRIX_RELT(p, 4, 1));
+//   double c4 = cos(*MATRIX_RELT(p, 4, 1));
+//   double s5 = sin(*MATRIX_RELT(p, 5, 1));
+//   double c5 = cos(*MATRIX_RELT(p, 5, 1));
+//   double s6 = sin(*MATRIX_RELT(p, 6, 1));
+//   double c6 = cos(*MATRIX_RELT(p, 6, 1));
+// 
+//   *MATRIX_RELT(R, 5,  1) = -s5*c6;
+//   *MATRIX_RELT(R, 6,  1) = -c5*s6;
+// 
+//   *MATRIX_RELT(R, 5,  2) = -s5*s6;
+//   *MATRIX_RELT(R, 6,  2) =  c5*c6;
+// 
+//   *MATRIX_RELT(R, 5,  3) = -c5;
+// 
+//   *MATRIX_RELT(R, 4,  5) =  c4*s5*c6+s4*s6;
+//   *MATRIX_RELT(R, 5,  5) =  s4*c5*c6;
+//   *MATRIX_RELT(R, 6,  5) = -s4*s5*s6-c4*c6;
+// 
+//   *MATRIX_RELT(R, 4,  6) =  c4*s5*s6-s4*c6;
+//   *MATRIX_RELT(R, 5,  6) =  s4*c5*s6;
+//   *MATRIX_RELT(R, 6,  6) =  s4*s5*c6-c4*s6;
+// 
+//   *MATRIX_RELT(R, 4,  7) =  c4*c5;
+//   *MATRIX_RELT(R, 5,  7) = -s4*s5;
+// 
+//   *MATRIX_RELT(R, 4,  9) = -s4*s5*c6+c4*s6;
+//   *MATRIX_RELT(R, 5,  9) =  c4*c5*c6;
+//   *MATRIX_RELT(R, 6,  9) = -c4*s5*s6+s4*c6;
+// 
+//   *MATRIX_RELT(R, 4, 10) = -s4*s5*s6-c4*c6;
+//   *MATRIX_RELT(R, 5, 10) =  c4*c5*s6;
+//   *MATRIX_RELT(R, 6, 10) =  c4*s5*c6+s4*s6;
+// 
+//   *MATRIX_RELT(R, 4, 11) = -s4*c5;
+//   *MATRIX_RELT(R, 5, 11) = -c4*s5;
+// 
+//   return R;
+// }
+// 
 
 MATRIX * Registration::rt2mat(MATRIX * r, MATRIX * t, MATRIX *outM)
 // converts rot vector (3x1) and translation vector (3x1)
@@ -3774,6 +3774,35 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
   return std::pair < MRI *,vnl_matrix_fixed < double, 4, 4> >(out,Rm);
 
 
+}
+
+std::vector < double > Registration::getCentroidS()
+// map centroid back to original space
+{
+	vnl_vector_fixed < double, 4 > ncenter;
+	for (uint ii = 0; ii<3;ii++)
+	   ncenter[ii] = centroidS[ii];
+  ncenter[3] = 1.0;
+	ncenter = Rsrc * ncenter;
+  vector < double > cs (3);
+	for (uint ii = 0; ii<3;ii++)
+	   cs[ii] = ncenter[ii];
+	
+  return cs;
+}
+
+std::vector < double > Registration::getCentroidT()
+// map centroid back to original space
+{
+	vnl_vector_fixed < double, 4 > ncenter;
+	for (uint ii = 0; ii<3;ii++)
+	   ncenter[ii] = centroidT[ii];
+  ncenter[3] = 1.0;
+	ncenter = Rtrg * ncenter;
+  vector < double > ct (3);
+	for (uint ii = 0; ii<3;ii++)
+	   ct[ii] = ncenter[ii];
+  return ct;
 }
 
 vnl_matrix_fixed <double, 4, 4> Registration::getFinalVox2Vox()

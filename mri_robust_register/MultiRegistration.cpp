@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/11 22:32:17 $
- *    $Revision: 1.25 $
+ *    $Date: 2010/12/03 02:48:24 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -973,10 +973,13 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 	for (uint ii = 0; ii<3;ii++)
 	   ncenter[ii] = centroid[ii];
   ncenter[3] = 1.0;
+	//cout << "ncenter: " << ncenter << endl;
 	// map to RAS:
 	ncenter = tpi_v2r * ncenter;
+	//cout << "ncenter RAS: " << ncenter << endl;
 	// map to mean space
 	ncenter = Mm * ncenter;
+	//cout << "ncenter mean: " << ncenter << endl;
   // set new center in geometry
 	template_geo->c_r = ncenter[0];
 	template_geo->c_a = ncenter[1];
