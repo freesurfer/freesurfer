@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/03 15:17:20 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/12/03 16:34:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -31,8 +31,12 @@
 #include "matrix.h"
 
 
-const unsigned int kAffineVectorSize = 4;
-const unsigned int kAffineMatrixSize = kAffineVectorSize * kAffineVectorSize;
+/*
+  Apparently 'const' in C isn't quite the same as 'const' in C++
+  So we have enums here
+*/
+enum { kAffineVectorSize = 4 };
+enum { kAffineMatrixSize = 16 };
 
 // =====================================================
 
@@ -89,14 +93,16 @@ inline
 void SetAffineMatrix( AffineMatrix* am,
 		      const MATRIX* src ) {
   
+  unsigned int i, j;
+
   if( (src->rows!=(int)kAffineVectorSize) ||
       (src->cols!=(int)kAffineVectorSize) ) {
     fprintf( stderr, "%s: Bad matrix sizes\n", __FUNCTION__ );
     exit( EXIT_FAILURE );
   }
 
-  for( unsigned int i=0; i<kAffineVectorSize; i++ ) {
-    for( unsigned int j=0; j<kAffineVectorSize; j++ ) {
+  for( i=0; i<kAffineVectorSize; i++ ) {
+    for( j=0; j<kAffineVectorSize; j++ ) {
       am->mat[i+(kAffineVectorSize*j)] =
 	src->data[j+(i*kAffineVectorSize)];
     }
@@ -137,14 +143,14 @@ inline
 void AffineMM( AffineMatrix* C,
 	       const AffineMatrix* A,
 	       const AffineMatrix* B ) {
-
+  unsigned int j;
   __m128 resLine, col, val;
 
   const float *Bloc = &(B->mat[0]);
   const float *Aloc = &(A->mat[0]);
   float *cLoc = &(C->mat[0]);
 
-  for( unsigned int j=0; j<kAffineVectorSize; j++ ) {
+  for( j=0; j<kAffineVectorSize; j++ ) {
     val = _mm_set1_ps( *Bloc );
     col = _mm_load_ps( Aloc );
     resLine = _mm_mul_ps( col, val );
