@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/11/10 01:47:37 $
- *    $Revision: 1.282 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/03 18:48:40 $
+ *    $Revision: 1.283 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -53,6 +53,8 @@
 #include "intensity_eig.h"
 #include "numerics.h"
 #include "mrisegment.h"
+
+#include "affine.h"
 
 #if WITH_DMALLOC
 #include <dmalloc.h>
@@ -1006,6 +1008,7 @@ int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
 			 const double xv, const double yv, const double zv,
 			 double *pxp, double *pyp, double *pzp )
 {
+#if 1
   MATRIX *rasFromVoxel = mri->i_to_r__; //extract_i_to_r(mri);
   MATRIX *priorFromRAS = gca->prior_r_to_i__;
   //extract_r_to_i(gca->mri_prior__);
@@ -1021,6 +1024,25 @@ int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
   // MatrixFree(&rasFromVoxel);
   // MatrixFree(&priorFromRAS);
   // MatrixFree(&voxelToPrior);
+#else
+  AffineMatrix rasFromVoxel, priorFromRAS, voxelToPrior;
+
+  SetAffineMatrix( &rasFromVoxel, mri->i_to_r__ );
+  SetAffineMatrix( &priorFromRAS, gca->prior_r_to_i__ );
+  AffineMM( &voxelToPrior, &priorFromRAS, &rasFromVoxel );
+
+  AffineVector vv, pv;
+
+  SetAffineVector( &vv, xv, yv, zv );
+  AffineMV( &pv, &voxelToPrior, &vv );
+
+  float pxf, pyf, pzf;
+  GetAffineVector( &pv, &pxf, &pyf, &pzf );
+  *pxp = pxf;
+  *pyp = pyf;
+  *pzp = pzf;
+
+#endif
 
   return NO_ERROR;
 }

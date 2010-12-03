@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/30 18:15:16 $
- *    $Revision: 1.235 $
+ *    $Date: 2010/12/03 18:48:41 $
+ *    $Revision: 1.236 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,6 +60,7 @@
 #define GCAM_COPY_NODE_POSITIONS_GPU
 
 #define GCAM_REGISTER_LEVEL_GPU
+#define GCAM_REGISTER_PIPELINE_GPU
 
 #else
 // Have to turn everything off
@@ -661,6 +662,31 @@ GCA_MORPH *GCAMreadAndInvert(const char *gcamfname)
   return(gcam) ;
 }
 
+//! A thin pipeline segment to save a GPU copy
+void GCAMregisterPipeline( GCA_MORPH *gcam,
+			   MRI *mri,
+			   MRI *mri_smooth,
+			   GCA_MORPH_PARMS *parms,
+			   double *last_rms,
+			   int *level_steps,
+			   int i ) {
+
+#ifdef GCAM_REGISTER_PIPELINE_GPU
+  printf( "%s: On GPU\n", __FUNCTION__ );
+
+  GCAMregisterPipelineGPU( gcam, mri, mri_smooth, parms,
+			   last_rms, level_steps, i );
+#else  
+  *last_rms = GCAMcomputeRMS( gcam, mri, parms );
+  if( i==0 ) {
+    parms->start_rms = *last_rms;
+  }
+  *level_steps = parms->start_t;
+  GCAMregisterLevel( gcam, mri, mri_smooth, parms);
+#endif
+}
+
+
 int
 GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
@@ -927,11 +953,11 @@ GCAMregister(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
               MRIfree(&mri_gca) ;
             }
           }
-          last_rms = GCAMcomputeRMS(gcam, mri, parms) ;
-          if (i == 0)
-            parms->start_rms = last_rms ;
-          level_steps = parms->start_t ;
-          GCAMregisterLevel(gcam, mri, mri_smooth, parms) ;
+	  
+	  GCAMregisterPipeline( gcam, mri, mri_smooth, parms,
+				&last_rms, &level_steps, i );
+
+
           if (parms->write_fname && 
               (((Gdiag & DIAG_WRITE)) || (getenv("WRITE_GCAM") != NULL)))
           {

@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/30 18:15:17 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/12/03 18:48:41 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -44,6 +44,7 @@
 #include "gcamcomputegradient_cuda.hpp"
 #include "gcamfots_cuda.hpp"
 
+#include "gcamregisterlevel_cuda.hpp"
 
 // ========================================================================
 
