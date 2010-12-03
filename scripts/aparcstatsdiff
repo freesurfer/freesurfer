@@ -98,6 +98,7 @@ set idx=2
 set newrow=( "pctdiff" )
 set diffcount=0
 set stdoutfile=(/tmp/aparcstatsdiff-$$.txt)
+set totalpctdiff=0
 rm -f $stdoutfile >& /dev/null
 while ( "$idx" != "$total" )
 
@@ -114,6 +115,8 @@ while ( "$idx" != "$total" )
       endif
       if ($status) exit 1
       set pctdiff=`echo "scale=4; ${pctdiff} * 100" | bc`
+      if ($status) exit 1
+      set totalpctdiff=`echo "scale=4; (${pctdiff} * ${pctdiff} ) + ${totalpctdiff}" | bc`
       if ($status) exit 1
       echo "${pctdiff}\t\t${label}   (s1: ${struct1}, s2: ${struct2})" \
           >>& $stdoutfile
@@ -144,6 +147,8 @@ if ( -e $stdoutfile) then
 else 
     echo "All labels in $stat have equal measures (zero diff)."
 endif
+echo ""
+echo "${totalpctdiff}\t\tTotal diff measure"
 echo ""
 
 exit ${diffcount}
