@@ -8,7 +8,7 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.80 2010/10/20 20:25:26 fischl Exp $
+ * CVS Revision Info: $Id: mri_em_register.c,v 1.81 2010/12/03 16:34:23 rge21 Exp $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -45,8 +45,8 @@
 #ifdef FS_CUDA
 #include "devicemanagement.h"
 #include "em_register_cuda.h"
-#define FAST_TRANSLATION 1
-#define FAST_TRANSFORM 1
+#define FAST_TRANSLATION 0
+#define FAST_TRANSFORM 0
 #endif // FS_CUDA
 
 static int remove_cerebellum = 0 ;
@@ -202,7 +202,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.80 2010/10/20 20:25:26 fischl Exp $",
+     "$Id: mri_em_register.c,v 1.81 2010/12/03 16:34:23 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
