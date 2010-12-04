@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/04 14:36:10 $
-#    $Revision: 1.340 $
+#    $Date: 2010/12/04 14:51:32 $
+#    $Revision: 1.341 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.340 2010/12/04 14:36:10 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.341 2010/12/04 14:51:32 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4232,6 +4232,7 @@ while( $#argv != 0 )
     case "-finalsurfs":
       set DoWhiteSurfs = 1;
       set DoPialSurfs = 0;
+      set DoSurfVolume = 1;
       breaksw
 
     case "-nofinalsurfs":
@@ -6048,12 +6049,12 @@ will be removed, but the user should check the orig surface in the volume
 to make sure that it looks appropriate. Calls mris_topo_fixer.
 Creates surf/?h.orig (by iteratively fixing surf/?h.orig.nofix).
 
-White Surfaces (-<no>white)
+White Surface (-<no>white)
 
 Creates the ?h.white surfacees as well as the curvature file (?h.curv).
 The white surface is created by "nudging" the orig surface so that it
 closely follows the white-gray intensity gradient as found in the T1 volume.
-Calls mris_make_surfaces.
+Calls mris_make_surfaces.  See also "Pial Surface" and "Final Surfaces".
 
 Spherical Inflation (-<no>sphere)
 
@@ -6107,13 +6108,19 @@ Incorporates both geometric information derived from the cortical model
 Calls mris_ca_label.  -cortparc creates label/?h.aparc.annot, and
 -cortparc2 creates /label/?h.aparc.a2009s.annot.
 
-Pial Surfaces (-<no>pial)
+Pial Surface (-<no>pial)
 
 Creates the ?h.pial surfaces as well as the thickness file (?h.thickness).
 The pial surface is created by expanding the white surface so that it closely
 follows the gray-CSF intensity gradient as found in the T1 volume.  The
 cortical parcellation is also used to refine the surface in certain areas.
-Calls mris_make_surfaces.
+Calls mris_make_surfaces.  See also "Final Surfaces".
+
+Final Surfaces (-<no>finalsurfs)
+
+!!! DEPRECATED !!! This flag is intended only to emulate the old-style single-run
+mris_make_surfaces, where the white and pial surfaces are created at the same
+time without aid from the cortical parcellation data.
 
 Surface Volume (-surfvolume)
 
