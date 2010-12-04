@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/03 02:48:24 $
- *    $Revision: 1.55 $
+ *    $Date: 2010/12/04 01:10:27 $
+ *    $Revision: 1.56 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -684,7 +684,7 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
 	int stopres;
 	for (stopres = resolution-rstart; stopres>0; stopres--)
 	{
-	   if (gpS[stopres]->width >= 64 && gpS[stopres]->height >= 64 && gpS[stopres]->depth >= 64) break;
+	   if (gpS[stopres]->width >= 64 || gpS[stopres]->height >= 64 || gpS[stopres]->depth >= 64) break;
 	}
 		
 //  bool iscaletmp = iscale;
@@ -692,7 +692,12 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
 
   for (int r = resolution-rstart;r>=stopres;r--)
   {
-    if (verbose >1 ) cout << endl << "Resolution: " << r << endl;
+    if (verbose >1 ) 
+		{ 
+		  cout << endl << "Resolution: " << r << endl;
+		  cout << " gpS ( " << gpS[r]->width <<" , " << gpS[r]->height << " , " << gpS[r]->depth << " )" << endl;
+		  cout << " gpT ( " << gpT[r]->width <<" , " << gpT[r]->height << " , " << gpT[r]->depth << " )" << endl;
+		}
 
 //    if (r==2) iscale = iscaletmp; // set iscale if set by user
 
@@ -778,8 +783,6 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
     }
   } // resolution loop
 	
-
-
 }
 
 double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < double > & mi , double scaleinit )
@@ -821,16 +824,18 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
   int rstart = 1;  // at least 16^3, last and most coarse image
 	
 	// stop if we get larger than 64^3
+	// should be as close as possible to 64
+	// the problem is that on other scales the wcheck limit gets meaningless
 	int stopres;
 	for (stopres = resolution-rstart; stopres>0; stopres--)
 	{
-	   if (gpS[stopres]->width >= 64 && gpS[stopres]->height >= 64 && gpS[stopres]->depth >= 64) break;
+	   if (gpS[stopres]->width >= 64 || gpS[stopres]->height >= 64 || gpS[stopres]->depth >= 64) break;
 	}
 	
-  if ( gpS[stopres]->width < 64 || gpS[stopres]->height < 64 || gpS[stopres]->depth < 64)
+  if ( gpS[stopres]->width < 32 || gpS[stopres]->height < 32 || gpS[stopres]->depth < 32)
 	{
 	   cout << endl<< " ========================================================================" << endl;
-     cout << " WARNING: image might be too small for --satit to work." << endl;
+     cout << " WARNING: image might be too small (or ill shaped) for --satit to work." << endl;
 		 cout << "          Try to manually specify --sat # if not satisfied with result! " << endl;
 	   cout << " ========================================================================" << endl << endl;;
 	}
