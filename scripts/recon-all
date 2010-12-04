@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2010/11/30 17:00:03 $
-#    $Revision: 1.339 $
+#    $Author: nicks $
+#    $Date: 2010/12/04 14:36:10 $
+#    $Revision: 1.340 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.339 2010/11/30 17:00:03 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.340 2010/12/04 14:36:10 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2553,14 +2553,22 @@ foreach hemi ($hemilist)
       set cmd = (mris_make_surfaces)
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
-    set cmd = ($cmd -whiteonly -noaparc)
+    set cmd = ($cmd -noaparc)
+    if($DoPialSurf) then
+      # if creating pial downstream, then only do white surface now
+      set cmd = ($cmd -whiteonly)
+    else
+      # else old-style single-run -finalsurfs is emulated
+      if($longitudinal) set cmd = ($cmd -orig_pial orig_pial)
+    endif
     set cmd = ($cmd -mgz -T1 brain.finalsurfs)
     set cmd = ($cmd $WMSeg_wlo $WMSeg_ghi $xopts $subjid $hemi)
     $PWD |& tee -a $LF
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
-    echo $cmd > $touchdir/$hemi.final_surfaces.touch
+    echo $cmd > $touchdir/$hemi.white_surface.touch
+    if( ! $DoPialSurf) then echo $cmd > $touchdir/$hemi.final_surfaces.touch
   endif
 
   #---------------- Smooth2 --------------------------#
@@ -2826,6 +2834,7 @@ foreach hemi ($hemilist)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
+    echo $cmd > $touchdir/$hemi.pial_surface.touch
     echo $cmd > $touchdir/$hemi.final_surfaces.touch
   endif
   if($DoPialSurfs || $DoSurfVolume) then
@@ -4206,12 +4215,10 @@ while( $#argv != 0 )
 
     case "-pialsurfs":
     case "-pial":
-    case "-finalsurfs"
       set DoPialSurfs = 1;
       breaksw
     case "-nopialsurfs":
     case "-nopial":
-    case "-nofinalsurfs"
       set DoPialSurfs = 0;
       breaksw
 
@@ -4219,6 +4226,17 @@ while( $#argv != 0 )
     case "-pial_noaparc":
       set DoPialSurfs = 1;
       set PialNoAparc = 1;
+      breaksw
+
+    # backward compatibility with single-run mris_make_surfaces:
+    case "-finalsurfs":
+      set DoWhiteSurfs = 1;
+      set DoPialSurfs = 0;
+      breaksw
+
+    case "-nofinalsurfs":
+      set DoWhiteSurfs = 0;
+      set DoPialSurfs = 0;
       breaksw
 
     case "-cortparc":
