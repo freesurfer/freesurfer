@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/06 15:24:56 $
-#    $Revision: 1.342 $
+#    $Date: 2010/12/06 19:21:38 $
+#    $Revision: 1.343 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.342 2010/12/06 15:24:56 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.343 2010/12/06 19:21:38 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2568,7 +2568,7 @@ foreach hemi ($hemilist)
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.white_surface.touch
-    if( ! $DoPialSurfs) then echo $cmd > $touchdir/$hemi.final_surfaces.touch
+    if( ! $DoPialSurfs) echo $cmd > $touchdir/$hemi.final_surfaces.touch
   endif
 
   #---------------- Smooth2 --------------------------#
@@ -4011,6 +4011,7 @@ while( $#argv != 0 )
       set WSUseTalXfm = 0; breaksw
 
     case "-no-gcut":
+    case "-nogcut":
       set DoGcut = 0;
       breaksw
 
@@ -4490,6 +4491,7 @@ while( $#argv != 0 )
 
     case "-autorecon2-perhemi":
     case "-autorecon2-surfonly":
+    case "-autorecon2-surfsonly":
       set DoTessellate     = 1;
       set DoSmooth1        = 1;
       set DoInflate1       = 1;
