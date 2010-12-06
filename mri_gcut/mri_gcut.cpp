@@ -84,13 +84,13 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-  "$Id: mri_gcut.cpp,v 1.9 2010/08/12 18:18:01 gregt Exp $";
+  "$Id: mri_gcut.cpp,v 1.10 2010/12/06 14:09:34 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
 static bool bNeedPreprocessing = 1;
 static bool bNeedMasking = 0;
-static double _t = 0.36;
+static double _t = 0.40;
 
 #ifdef GREGT
 static const char help[] =
@@ -116,7 +116,7 @@ static const char help[] =
     "  -T <value>: set threshold to value (%) of WM intensity, the value\n"
     "  should be >0 and <1; larger values would correspond to cleaner\n"
     "  skull-strip but higher chance of brain erosion. Default is set\n"
-    "  conservatively at 0.36, which provide approx. the same negligible\n"
+    "  conservatively at 0.40, which provide approx. the same negligible\n"
     "  level of brain erosion as 'mri_watershed'.\n"
     "\n"
     "The memory needed to process a standard 256*256*256 .mgz file\n"
@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.9 2010/08/12 18:18:01 gregt Exp $",
+               "$Id: mri_gcut.cpp,v 1.10 2010/12/06 14:09:34 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
