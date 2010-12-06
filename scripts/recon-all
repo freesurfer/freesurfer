@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/04 14:51:32 $
-#    $Revision: 1.341 $
+#    $Date: 2010/12/06 15:24:56 $
+#    $Revision: 1.342 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.341 2010/12/04 14:51:32 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.342 2010/12/06 15:24:56 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2554,7 +2554,7 @@ foreach hemi ($hemilist)
     endif
     if ( ! $UseAseg) set cmd = ($cmd -noaseg)
     set cmd = ($cmd -noaparc)
-    if($DoPialSurf) then
+    if($DoPialSurfs) then
       # if creating pial downstream, then only do white surface now
       set cmd = ($cmd -whiteonly)
     else
@@ -2568,7 +2568,7 @@ foreach hemi ($hemilist)
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     echo $cmd > $touchdir/$hemi.white_surface.touch
-    if( ! $DoPialSurf) then echo $cmd > $touchdir/$hemi.final_surfaces.touch
+    if( ! $DoPialSurfs) then echo $cmd > $touchdir/$hemi.final_surfaces.touch
   endif
 
   #---------------- Smooth2 --------------------------#
