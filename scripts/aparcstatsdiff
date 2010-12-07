@@ -106,19 +106,19 @@ while ( "$idx" != "$total" )
     set struct1=$subj1[$idx]
     set struct2=$subj2[$idx]
     set diff=`echo "scale=4; ${struct2} - ${struct1}" | bc`
+    if ($status) exit 1
     set totaldiff=`echo "scale=4; (${diff} * ${diff} ) + ${totaldiff}" | bc`
     if ($status) exit 1
+    set sum=`echo "scale=4; ${struct1} + ${struct2}" | bc`
+    if ($status) exit 1
+    set avg=`echo "scale=4; ${sum} / 2" | bc`
     if ($status) exit 1
     if ( "$diff" != "0" ) then
-      if ( "$struct1" != "0" ) then
-        set pctdiff=`echo "scale=4; ${diff} / ${struct1}" | bc`
-      else
-        set pctdiff=`echo "scale=4; ${diff} / ${struct2}" | bc`
-      endif
+      set pctdiff=`echo "scale=4; ${diff} / ${avg}" | bc`
       if ($status) exit 1
       set pctdiff=`echo "scale=4; ${pctdiff} * 100" | bc`
       if ($status) exit 1
-      echo "${pctdiff}\t\t${label}   (s1: ${struct1}, s2: ${struct2})" \
+      echo "${pctdiff}\t\t${label}   (s1: ${struct1}, s2: ${struct2}, d: ${diff})" \
           >>& $stdoutfile
       set newrow=( ${newrow} ${pctdiff} )
       @ diffcount++
@@ -139,8 +139,8 @@ echo "----------------"
 echo "Aparc Stats Diff:" 
 echo "subject1: ${subject1}, subject2: ${subject2}"
 echo "hemisphere: ${hemi}, parcellation: ${parc}, measure: ${meas}"
-echo "% diff:\t\tlabel:   (subject1: value, subject2: value)"
-echo "-------\t\t-------------------------------------------"
+echo "% diff:\t\tlabel:   (subject1: value, subject2: value, diff: value)"
+echo "-------\t\t--------------------------------------------------------"
 if ( -e $stdoutfile) then
     cat $stdoutfile | sort -n
     rm -f $stdoutfile >& /dev/null
@@ -148,7 +148,7 @@ else
     echo "All labels in $stat have equal measures (zero diff)."
 endif
 echo ""
-echo "${totaldiff}\t\tTotal diff measure (sum-of-squares)"
+echo "Total diff measure (sum-of-square-of-diff):\t${totaldiff}"
 echo ""
 
 exit ${diffcount}
