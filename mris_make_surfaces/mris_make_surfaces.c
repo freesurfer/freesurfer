@@ -11,9 +11,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/11/20 01:26:50 $
- *    $Revision: 1.123 $
+ *    $Author: nicks $
+ *    $Date: 2010/12/07 18:44:42 $
+ *    $Revision: 1.124 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #include "label.h"
 
 static char vcid[] =
-  "$Id: mris_make_surfaces.c,v 1.123 2010/11/20 01:26:50 mreuter Exp $";
+  "$Id: mris_make_surfaces.c,v 1.124 2010/12/07 18:44:42 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -241,13 +241,13 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_make_surfaces.c,v 1.123 2010/11/20 01:26:50 mreuter Exp $",
+   "$Id: mris_make_surfaces.c,v 1.124 2010/12/07 18:44:42 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_make_surfaces.c,v 1.123 2010/11/20 01:26:50 mreuter Exp $",
+           "$Id: mris_make_surfaces.c,v 1.124 2010/12/07 18:44:42 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -850,6 +850,8 @@ main(int argc, char *argv[]) {
     if (orig_white)
     {
       sprintf(fname, "%s%s", orig_white, suffix) ;
+      printf("reading white vertex positions from %s...\n",
+           orig_white) ;
       if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
         ErrorExit(Gerror, "%s: could not read white matter surface.",
                   Progname) ;
@@ -879,7 +881,11 @@ main(int argc, char *argv[]) {
     }
   }
 	
-  if (!nowhite) {
+  // NJS HACK: if filename passed to -white is "NOWRITE", then dont write
+  // the white, curv, area, and cortex.label files.  this is in lieu of 
+  // -nowhite not creating pial surfaces that match those created
+  // w/o the -nowhite option.
+  if (!nowhite && strcmp(white_matter_name,"NOWRITE")) {
     sprintf(fname,
             "%s/%s/surf/%s.%s%s%s",
             sdir, sname,hemi,white_matter_name,
@@ -997,6 +1003,7 @@ main(int argc, char *argv[]) {
   //////////////////////////////////////////////////////////////////
   // pial surface
   //////////////////////////////////////////////////////////////////
+
   parms.t = parms.start_t = 0 ;
   sprintf(parms.base_name, "%s%s%s", pial_name, output_suffix, suffix) ;
   parms.niterations = ngray ;
@@ -1009,7 +1016,6 @@ main(int argc, char *argv[]) {
     printf("smoothing surface for %d iterations...\n", smooth) ;
     MRISaverageVertexPositions(mris, smooth) ;
   }
-
 
 #if 1
   if (dura_echo_name) {
@@ -1063,7 +1069,7 @@ main(int argc, char *argv[]) {
     printf("reading initial pial vertex positions from %s...\n", orig_pial) ;
 
     if (longitudinal) {
-      //save final white location into TMP_VERTICES
+      //save final white location into TMP_VERTICES (v->tx, v->ty, v->tz)
       MRISsaveVertexPositions(mris, TMP_VERTICES);
     }
 
@@ -1129,13 +1135,13 @@ main(int argc, char *argv[]) {
        GRAY_CSF, mri_mask, thresh) ;
       MRISaddToValues(mris, pial_target_offset) ;
       {
-        int i, vno, n, vtotal ;
+        int ii, vno, n, vtotal ;
         VERTEX *v ;
-        for (i = 0; i < pial_num ; i++)
+        for (ii = 0; ii < pial_num ; ii++)
         {
-          vno = pial_vnos[i] ;
+          vno = pial_vnos[ii] ;
           v = &mris->vertices[vno] ;
-          v->val = pial_vals[i] ;
+          v->val = pial_vals[ii] ;
           v->marked = 1 ;
           v->val2 = current_sigma ;
 
@@ -1149,7 +1155,7 @@ main(int argc, char *argv[]) {
           }
           for (n = 0 ; n < vtotal ; n++)
           { 
-            mris->vertices[v->v[n]].val = pial_vals[i] ;
+            mris->vertices[v->v[n]].val = pial_vals[ii] ;
             mris->vertices[v->v[n]].marked = 1 ;
             mris->vertices[v->v[n]].val2 = current_sigma ;
           }
@@ -1316,8 +1322,10 @@ main(int argc, char *argv[]) {
       MRISrestoreVertexPositions(mris, TMP_VERTICES) ;
     }
   }
+
   msec = TimerStop(&then) ;
   fprintf(stderr,"positioning took %2.1f minutes\n", (float)msec/(60*1000.0f));
+
   exit(0) ;
   return(0) ;  /* for ansi */
 }
@@ -1573,8 +1581,17 @@ get_option(int argc, char *argv[]) {
   } else if (!stricmp(option, "white")) {
     strcpy(white_matter_name, argv[2]) ;
     nargs = 1 ;
-    fprintf(stderr, "using %s as white matter name...\n",
-            white_matter_name) ;
+    // NJS HACK: if filename passed to -white is "NOWRITE", then dont write
+    // the white, curv, area, and cortex.label files.
+    // this is in lieu of -nowhite not creating pial surfaces that
+    // match those created w/o the -nowhite option.
+    if (!strcmp(white_matter_name,"NOWRITE")) {
+      fprintf(stderr, "-white NOWRITE indicates that white, curv, area, "
+              "and cortex.label files will not be written...\n") ;
+    } else {
+      fprintf(stderr, "using %s as white matter name...\n",
+              white_matter_name) ;
+    }
   } else if (!stricmp(option, "intensity")) {
     parms.l_intensity = atof(argv[2]) ;
     nargs = 1 ;
