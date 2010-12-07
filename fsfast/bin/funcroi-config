@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/12/02 17:16:35 $
-#    $Revision: 1.6 $
+#    $Date: 2010/12/07 19:04:56 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.6 2010/12/02 17:16:35 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.7 2010/12/07 19:04:56 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -448,6 +448,10 @@ funcroi-table-sess -roi lh.fusi+encode.th2.pos.roicfg
 # lh.fusi+encode.th2.pos.nii mask. Note: if you do not run
 # funcroi-sess above, it will be run automatically when you run
 # funcroi-table-sess
+
+# Now summarize the volume of this ROI.
+funcroi-table-sess -roi lh.fusi+encode.th2.pos.roicfg
+    -o lh.fusi+encode.th2.pos.volume.dat -vol
 
 ==================================================
 Example 2. Right hippocampus
