@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/12/06 15:10:35 $
-#    $Revision: 1.2 $
+#    $Date: 2010/12/07 19:04:46 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: funcroi-table-sess,v 1.2 2010/12/06 15:10:35 greve Exp $';
+set VERSION = '$Id: funcroi-table-sess,v 1.3 2010/12/07 19:04:46 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -118,16 +118,21 @@ foreach sess ($SessList)
     exit 1;
   endif
 
-  set condir = $sess/$fsd/$analysis/$contrast
-  set mapfile = `stem2fname $condir/$map`;
-  if($status) then
-    echo "$mapfile"
-    exit 1;
+  if($#contrast) then
+    set condir = $anadir/$contrast
+    set mapfile = `stem2fname $condir/$map`;
+    if($status) then
+      echo "$mapfile"
+      exit 1;
+    endif
+    set sum = $condir/$map.$ROIname.$frame.dat
+  else
+    set mapfile = `stem2fname $anadir/meanfunc`
+    set sum = $anadir/$ROIname.$frame.dat
   endif
 
-  set sum = $condir/$map.$ROIname.$frame.dat
-  set cmd = (mri_segstats --seg $ROImask --i $mapfile --frame $frame \
-    --id 1 --sum $sum)
+  set cmd = (mri_segstats --seg $ROImask --frame $frame --id 1 \
+     --i $mapfile --sum $sum)
   echo $cmd
   $cmd | tee -a $LF
   if($status) exit 1;
@@ -269,15 +274,27 @@ if($ROIIsSurface) then
 endif
 set ROIfsd = `getana -a $ROIanalysis -t fsd`
 
-if($#analysis == 0) set analysis = $ROIanalysis
-
-if($#contrast == 0) then
-  echo "ERROR: must specify a contrast"
+if($measure == volume && $#analysis) then
+  echo "ERROR: do not specify an analysis with -vol"
   exit 1;
 endif
-if(! -e $analysis/$contrast.mat) then
-  echo "ERROR: cannot find $contrast.mat in $analysis"
+if($measure == volume && $#contrast) then
+  echo "ERROR: do not specify a contrast with -vol"
   exit 1;
+endif
+
+if($#analysis == 0) set analysis = $ROIanalysis
+
+if($#contrast) then
+  set conlist = (`getana -a $analysis -t contrasts`);
+  set ConFound = 0;
+  foreach con ($conlist)
+    if($con == $contrast) set ConFound = 1;
+  end
+  if(! $ConFound) then
+    echo "ERROR: cannot find $contrast in $analysis"
+    exit 1;
+  endif
 endif
 
 set fsd = `getana -a $analysis -t fsd`
@@ -323,6 +340,7 @@ usage_exit:
   echo ""
   echo "   -roi roicfg     : ROI configuration (created by funcroi-config)"
   echo ""
+  echo "   -vol : report the ROI volume"
   echo "   -a analysisname : session-level functional analysis name"
   echo "   -c contrast     : contrast "
   echo "   -m map          : default ces"
@@ -365,14 +383,40 @@ contrast (ces) inside the boundaries of the ROI. The percent contrast
 can be reported by specifying -map cespct. The ROI volume can be
 reported instead with the -vol.
 
-You are required to specify an analysis and a contrast eventhough you
-might have specified these when you configured the ROI with
-funcroi-config. This is because you may want to use the ROI to
-summarize different contrasts in the same or different analyses. It is
-usually wise to do this. For example, you can construct the ROI based
-on the sum of two conditions and then sumarize the values based on the
-difference between two conditions.
+The boundaries of the ROI itself are fixed by the funcroi-config and
+funcroi-sess commands. The purpose of this program is to report
+characteristics of this ROI. This may include the following:
+
+1. The mean of a contrast inside the ROI
+2. The mean of a percent contrast inside the ROI (-map cespct)
+3. The volume of the ROI (with -vol)
+
+If you want (1) or (2) above, then you need to specify a contrast.
+You can also specify an analysis if the contrast you want was not in
+the analysis used to configure the ROI. If you specify the analysis
+and contrast used to configure the ROI, you may be creating a
+circularity (this is bad). An example of a better way is to configure
+the ROI based on the sum of two conditions and then summarize the
+values based on the difference between two conditions.
+
+For (3), the volume of the ROI, you are not allowed to specify a
+contrast or analysis. This is because the volume depends only on the
+boundaries of the ROI which are fixed when you run funcroi-sess.
+If you do not specify a contrast or vol, then it will report
+the mean of the meanfunc volume in the ROI analysis.
 
 See funcroi-config -help for more info.
 
+Examples:
+
+1. Report the percent contrast of the e-n.dist contrast within the 
+lh.fusi+encode.th2.pos.roicfg ROI.
+
+funcroi-table-sess -sf sessidfile -roi lh.fusi+encode.th2.pos.roicfg \
+  -c e-n.dist -map cespct -o myroi.cespct.dat 
+
+2. Report the volume of the lh.fusi+encode.th2.pos.roicfg ROI.
+
+funcroi-table-sess -sf sessidfile -roi lh.fusi+encode.th2.pos.roicfg \
+  -vol -o myroi.vol.dat 
 
