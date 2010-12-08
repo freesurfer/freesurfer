@@ -9,8 +9,8 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/30 16:45:04 $
- *    $Revision: 1.15 $
+ *    $Date: 2010/12/08 20:59:43 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2003-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -98,12 +98,19 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
     }
   } // lta == 0
   // when you modify c_(ras), you must recalculate i_to_r__ and r_to_i__
-  if (mri_tal->i_to_r__)
-    MatrixFree(&mri_tal->i_to_r__);
-  if (mri_tal->r_to_i__)
-    MatrixFree(&mri_tal->r_to_i__);
+  if( mri_tal->i_to_r__ ) {
+    AffineMatrixFree(&mri_tal->i_to_r__);
+  }
 
-  mri_tal->i_to_r__ = extract_i_to_r(mri_tal);
+  if (mri_tal->r_to_i__) {
+    MatrixFree(&mri_tal->r_to_i__);
+  }
+
+  MATRIX *tmp = extract_i_to_r(mri_tal);
+  SetAffineMatrix( mri_tal->i_to_r__ , tmp );
+  MatrixFree( &tmp );
+
+
   mri_tal->r_to_i__ = extract_r_to_i(mri_tal);
 
   return (NO_ERROR);

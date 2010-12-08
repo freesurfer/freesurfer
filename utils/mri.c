@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/11/16 23:17:30 $
- *    $Revision: 1.471 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/08 20:59:41 $
+ *    $Revision: 1.472 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.471 $";
+const char *MRI_C_VERSION = "$Revision: 1.472 $";
 
 
 /*-----------------------------------------------------
@@ -899,11 +899,21 @@ int MRIp0ToCRAS(MRI *mri, double r0, double a0, double s0)
   mri->c_r = RAScenter->rptr[1][1];
   mri->c_a = RAScenter->rptr[2][1];
   mri->c_s = RAScenter->rptr[3][1];
+
   // Recompute matrix
-  if(mri->i_to_r__)  MatrixFree(&mri->i_to_r__);
-  mri->i_to_r__ = extract_i_to_r(mri);
-  if (mri->r_to_i__) MatrixFree(&mri->r_to_i__);
+  MATRIX *tmp;
+
+  tmp = extract_i_to_r( mri );
+  AffineMatrixAlloc( &(mri->i_to_r__ ) );
+  SetAffineMatrix( mri->i_to_r__, tmp );
+  MatrixFree( &tmp );
+
+  if( mri->r_to_i__ ) {
+    MatrixFree(&mri->r_to_i__);
+  }
   mri->r_to_i__ = extract_r_to_i(mri);
+
+
   // Clean up
   MatrixFree(&vox2ras);
   MatrixFree(&CRScenter);
@@ -3071,40 +3081,34 @@ MRItalairachVoxelToWorld(MRI *mri, double xtv, double ytv, double ztv,
 int MRIvoxelToWorld(MRI *mri, double xv, double yv, double zv,
                     double *pxw, double *pyw, double *pzw)
 {
-  /*!
-    @BUGS
-    These static declarations make this routine non-threadsafe
-  */
-  static VECTOR *vw = NULL;
-  static VECTOR *vv = NULL;
-  MATRIX *RfromI;
 
-  if( vw == NULL ) {
-    vw = VectorAlloc(4, MATRIX_REAL);
-  }
-  if( vv == NULL ) {
-    vv = VectorAlloc(4, MATRIX_REAL);
-  }
+  AffineVector vw, vv;
+
 
   // if the transform is not cached yet, then
-  if (!mri->i_to_r__)   mri->i_to_r__ = extract_i_to_r(mri);
-  if (!mri->r_to_i__)   mri->r_to_i__ = extract_r_to_i(mri);
+  if( !mri->i_to_r__ ) {
+    AffineMatrixAlloc( &(mri->i_to_r__) );
+    MATRIX *tmp = extract_i_to_r(mri);
+    SetAffineMatrix( mri->i_to_r__, tmp );
+    MatrixFree( &tmp );
+  }
 
-  RfromI = mri->i_to_r__; // extract_i_to_r(mri);
- 
-  V4_LOAD(vv, xv, yv, zv, 1.) ;
-  MatrixMultiply(RfromI, vv, vw) ;
+  if (!mri->r_to_i__) { 
+    mri->r_to_i__ = extract_r_to_i(mri);
+  }
 
-  *pxw = V3_X(vw);
-  *pyw = V3_Y(vw);
-  *pzw = V3_Z(vw);
+  // Do matrix-vector multiply
+  SetAffineVector( &vv, xv, yv, zv );
+  AffineMV( &vw, mri->i_to_r__, &vv );
 
-  // MatrixFree(&RfromI);
-#if 0
-  // Give up thread safety.....
-  VectorFree(&vv);
-  VectorFree(&vw);
-#endif
+  // Extract the results
+  float xwf, ywf, zwf;
+  GetAffineVector( &vw, &xwf, &ywf, &zwf );
+
+  *pxw = xwf;
+  *pyw = ywf;
+  *pzw = zwf;
+
   return(NO_ERROR) ;
 }
 /*-----------------------------------------------------
@@ -3153,8 +3157,17 @@ MATRIX *surfaceRASFromVoxel_(MRI *mri)
   // Compute i_to_r and r_to_i if it has not been done yet. This is
   // not necessary for this function, but it was in Tosa's original
   // code, and I don't know what else might be using it.
-  if (!mri->i_to_r__) mri->i_to_r__ = extract_i_to_r(mri);
-  if (!mri->r_to_i__) mri->r_to_i__ = extract_r_to_i(mri);
+  if (!mri->i_to_r__) {
+    MATRIX *tmp = extract_i_to_r(mri);
+    AffineMatrixAlloc( &(mri->i_to_r__) );
+    SetAffineMatrix( mri->i_to_r__, tmp );
+    MatrixFree( &tmp );
+  }
+
+  if (!mri->r_to_i__) {
+    mri->r_to_i__ = extract_r_to_i(mri);
+  }
+
   vox2ras = MRIxfmCRS2XYZtkreg(mri);
   if (Gdiag_no > 0)
   {
@@ -3191,8 +3204,16 @@ MATRIX *voxelFromSurfaceRAS_(MRI *mri)
   // Compute i_to_r and r_to_i if it has not been done yet. This is
   // not necessary for this function, but it was in Tosa's original
   // code, and I don't know what else might be using it.
-  if (!mri->i_to_r__)   mri->i_to_r__ = extract_i_to_r(mri);
-  if (!mri->r_to_i__)   mri->r_to_i__ = extract_r_to_i(mri);
+  if (!mri->i_to_r__) {
+    MATRIX *tmp = extract_i_to_r(mri);
+    AffineMatrixAlloc( &(mri->i_to_r__) );
+    SetAffineMatrix( mri->i_to_r__, tmp );
+    MatrixFree( &tmp );
+  }
+
+  if (!mri->r_to_i__) {
+    mri->r_to_i__ = extract_r_to_i(mri);
+  }
   vox2ras = MRIxfmCRS2XYZtkreg(mri);
   ras2vox = MatrixInverse(vox2ras,NULL);
   if (Gdiag_no > 0 && DIAG_VERBOSE_ON)
@@ -3415,10 +3436,17 @@ MRIworldToVoxel(MRI *mri, double xw, double yw, double zw,
   }
 
   // if transform is not cached yet, then
-  if (!mri->r_to_i__)
+
+  if (!mri->r_to_i__) {
     mri->r_to_i__ = extract_r_to_i(mri);
-  if (!mri->i_to_r__)
-    mri->i_to_r__ = extract_i_to_r(mri);
+  }
+
+  if( !mri->i_to_r__ ) {
+    MATRIX *tmp = extract_i_to_r(mri);
+    AffineMatrixAlloc( &(mri->i_to_r__) );
+    SetAffineMatrix( mri->i_to_r__, tmp );
+    MatrixFree( &tmp );
+  }
 
   IfromR = mri->r_to_i__;
  
@@ -3478,8 +3506,13 @@ MRIinitHeader(MRI *mri)
   mri->tag_data = NULL;
   mri->tag_data_size = 0;
 
-  if (!mri->i_to_r__)
-    mri->i_to_r__ = extract_i_to_r(mri);
+  if (!mri->i_to_r__) {
+    MATRIX *tmp = extract_i_to_r(mri);
+    AffineMatrixAlloc( &(mri->i_to_r__) );
+    SetAffineMatrix( mri->i_to_r__, tmp );
+    MatrixFree( &tmp );
+  }
+    
   if (!mri->r_to_i__)
     mri->r_to_i__ = extract_r_to_i(mri);
 
@@ -3495,17 +3528,19 @@ MRIinitHeader(MRI *mri)
  */
 int MRIreInitCache(MRI *mri)
 {
-  if (mri->i_to_r__)
-  {
-    MatrixFree(&mri->i_to_r__);
-    mri->i_to_r__ = 0;
-  }
+  MATRIX *tmp;
+
+  AffineMatrixFree( &(mri->i_to_r__) );
+  AffineMatrixAlloc( &(mri->i_to_r__) );
+  tmp = extract_i_to_r(mri);
+  SetAffineMatrix( mri->i_to_r__, tmp );
+  MatrixFree( &tmp );
+
   if (mri->r_to_i__)
   {
     MatrixFree(&mri->r_to_i__);
     mri->r_to_i__ = 0;
   }
-  mri->i_to_r__ = extract_i_to_r(mri);
   mri->r_to_i__ = extract_r_to_i(mri);
 
   return (NO_ERROR);
@@ -6182,7 +6217,12 @@ MRI *MRIallocHeader(int width, int height, int depth, int type)
   mri->transform_fname[0] = '\0';
   mri->pedir = NULL;
 
-  mri->i_to_r__ = extract_i_to_r(mri);
+  MATRIX *tmp;
+  tmp = extract_i_to_r(mri);
+  AffineMatrixAlloc( &(mri->i_to_r__ ) );
+  SetAffineMatrix( mri->i_to_r__, tmp );
+  MatrixFree( &tmp );
+
   mri->r_to_i__ = extract_r_to_i(mri);
   mri->AutoAlign = NULL;
 
@@ -6273,7 +6313,10 @@ MRIfree(MRI **pmri)
   if (mri->register_mat != NULL)
     MatrixFree(&(mri->register_mat));
 
-  if (mri->i_to_r__)    MatrixFree(&mri->i_to_r__);
+  if (mri->i_to_r__) { 
+    AffineMatrixFree( &mri->i_to_r__ );
+  }
+
   if (mri->r_to_i__)    MatrixFree(&mri->r_to_i__);
   if (mri->AutoAlign)   MatrixFree(&mri->AutoAlign);
 
@@ -6656,7 +6699,9 @@ MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
 
   strcpy(mri_dst->gdf_image_stem, mri_src->gdf_image_stem);
 
-  mri_dst->i_to_r__ = MatrixCopy(mri_src->i_to_r__, mri_dst->i_to_r__);
+  mri_dst->i_to_r__ = AffineMatrixCopy( mri_src->i_to_r__,
+					mri_dst->i_to_r__ );
+
   mri_dst->r_to_i__ = MatrixCopy(mri_src->r_to_i__, mri_dst->r_to_i__);
   if(mri_src->AutoAlign != NULL){
     mri_dst->AutoAlign = MatrixCopy(mri_src->AutoAlign,NULL);
@@ -15203,10 +15248,26 @@ void MRIcalcCRASforSampledVolume
   // get ras of the "center" voxel position in dst
   if (!src->i_to_r__)
   {
-    src->i_to_r__ = extract_i_to_r(src);
+    MATRIX *tmp = extract_i_to_r( src );
+    AffineMatrixAlloc( &(src->i_to_r__ ) );
+    SetAffineMatrix( src->i_to_r__, tmp );
+    MatrixFree( &tmp );
+
     src->r_to_i__ = extract_r_to_i(src);
   }
-  TransformWithMatrix(src->i_to_r__, sx, sy, sz, pr, pa, ps);
+
+  AffineVector s, p;
+  SetAffineVector( &s, sx, sy, sz );
+  
+  AffineMV( &p, src->i_to_r__, &s );
+
+  float pxf, pyf, pzf;
+  GetAffineVector( &p, &pxf, &pyf, &pzf );
+  *pr = pxf;
+  *pa = pyf;
+  *ps = pzf;
+
+
 
   if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
     fprintf(stderr, "c_ras for sample volume is (%f, %f, %f) "
@@ -15243,10 +15304,26 @@ void MRIcalcCRASforExtractedVolume
 
   if (!src->i_to_r__)
   {
-    src->i_to_r__ = extract_i_to_r(src);
+    MATRIX *tmp;
+    tmp = extract_i_to_r(src);
+    AffineMatrixAlloc( &(src->i_to_r__) );
+    SetAffineMatrix( src->i_to_r__, tmp );
+    MatrixFree( &tmp );
+
     src->r_to_i__ = extract_r_to_i(src);
   }
-  TransformWithMatrix(src->i_to_r__, cx, cy, cz, pr, pa, ps);
+
+  AffineVector c, p;
+  float pxf, pyf,pzf;
+
+  SetAffineVector( &c, cx, cy,cz );
+  AffineMV( &p, src->i_to_r__, &c );
+
+  GetAffineVector( &p, &pxf, &pyf, &pzf );
+  *pr = pxf;
+  *pa = pyf;
+  *ps = pzf;
+
   // got where the RAS position of the new volume position
   // we have to translate so that we can get the same value
   // under the new volume
@@ -15270,7 +15347,15 @@ void MRIcalcCRASforHiresVolume(MRI *hires, MRI *lowres,
   cz = (double)hires->depth/2.0;
   TransformWithMatrix(vox_xform, cx, cy, cz, &dx, &dy, &dz);
   // get the c_ras values for this position
-  TransformWithMatrix(lowres->i_to_r__, dx, dy, dz, pr, pa, ps);
+  AffineVector d, p;
+  float prf, paf, psf;
+  SetAffineVector( &d, dx, dy, dz );
+  AffineMV( &p, lowres->i_to_r__, &d );
+  GetAffineVector( &p, &prf, &paf, &psf );
+  *pr = prf;
+  *pa = paf;
+  *ps = psf;
+
   // if we use this c_ras value for the transformed hires volume, then
   // the volume will be containing the original points
 }
@@ -15310,7 +15395,11 @@ MRIsrcTransformedCentered
   //     src'  -->  RAS
   // new rotated src volume whose center is at the right location
   //
-  tmp = MatrixMultiply(rotated->r_to_i__, dst->i_to_r__, NULL);
+  MATRIX *tmp2 = MatrixAlloc( 4, 4, MATRIX_REAL );
+  GetAffineMatrix( tmp2, dst->i_to_r__ );
+  tmp = MatrixMultiply(rotated->r_to_i__, tmp2, NULL);
+  MatrixFree( &tmp2 );
+
   stosrotVox = MatrixMultiply(tmp, stod_voxtovox, NULL);
   MRIlinearTransformInterp(src, rotated, stosrotVox, interp_method);
   return rotated;
@@ -15424,7 +15513,11 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
     //
     // transform it to the vox-to-vox
     // now calculate M
-    tmp = MatrixMultiply(tran->m_L, src->i_to_r__, NULL);
+    MATRIX *tmp2 = MatrixAlloc( 4, 4, MATRIX_REAL );
+    GetAffineMatrix( tmp2, src->i_to_r__ );
+    tmp = MatrixMultiply(tran->m_L, tmp2, NULL);
+    MatrixFree( &tmp2 );
+
     MatrixFree(&tran->m_L);
     tran->m_L = MatrixMultiply(orig_dst->r_to_i__, tmp, NULL);
     MatrixFree(&tmp);
@@ -15476,7 +15569,10 @@ MRI *MRITransformedCentered(MRI *src, MRI *orig_dst, LTA *lta)
   //      ( 0  1 )           ( 0     1 )
   //
   //
-  dstToRas = MatrixMultiply(orig_dst->i_to_r__, tran->m_L, NULL);
+  MATRIX *tmp2 = MatrixAlloc( 4, 4, MATRIX_REAL );
+  GetAffineMatrix( tmp2, orig_dst->i_to_r__ );
+  dstToRas = MatrixMultiply( tmp2, tran->m_L, NULL);
+  MatrixFree( &tmp2 );
 
   SI = MatrixAlloc(4, 4, MATRIX_REAL);
   *MATRIX_RELT(SI, 1, 1) = 1./dst->xsize ;

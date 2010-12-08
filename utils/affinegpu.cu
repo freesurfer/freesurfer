@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/23 18:19:06 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/12/08 20:59:41 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -122,6 +122,10 @@ namespace GPU {
 	  this->operator()( i, j ) = *MATRIX_RELT( src, i+1, j+1 );
 	}
       }
+    }
+
+    void AffineTransformation::SetTransform( const AffineMatrix* src ) {
+      memcpy( this->matrix, src->mat, kMatrixSize*sizeof(float) );
     }
 
 

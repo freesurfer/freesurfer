@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/07/23 18:19:03 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/12/08 20:59:20 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,6 +30,8 @@
 extern "C" {
 #include "matrix.h"
 }
+
+#include "affine.h"
 
 // ==================================================================
 
@@ -55,6 +57,9 @@ namespace GPU {
 
       //! Set transform from MATRIX
       void SetTransform( const MATRIX* src );
+
+      //! Set transform from AffineMatrix
+      void SetTransform( const AffineMatrix* src );
 
       //! RHS subscripting operator (no bounds check)
       __host__ __device__ float operator() ( const unsigned int i,

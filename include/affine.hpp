@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/03 15:26:18 $
- *    $Revision: 1.3 $
+ *    $Date: 2010/12/08 20:59:20 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,8 @@
 #include <iomanip>
 
 #include "matrix.h"
+
+#include "affine.h"
 
 
 namespace Freesurfer {
@@ -133,6 +135,20 @@ namespace Freesurfer {
 	}
       }
     }
+
+    void Set( const ::AffineMatrix* src ) {
+      /*
+	Note the descoping on AffineMatrix, since this
+	is for getting data from the C version of the
+	structure.
+	Can't use memcpy because of possible type
+	conversion
+      */
+      for( unsigned int i=0; i<kAffineMatrixSize; i++ ) {
+	this->mat[i] = src->mat[i];
+      }
+    }
+
 
     void Clear( void ) {
       memset( &(this->mat[0]), 0, kAffineMatrixSize*sizeof(T) );

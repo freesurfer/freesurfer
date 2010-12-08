@@ -13,9 +13,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/12/03 02:48:24 $
- *    $Revision: 1.26 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/08 20:59:40 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -548,7 +548,8 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
           MATRIX * v2r  = MRIgetVoxelToRasXform(mri_mean);
           MRIsetVoxelToRasXform(wtarg,v2r);
           wtarg->type = MRI_FLOAT;
-          wtarg->i_to_r__ = MatrixCopy(mri_mean->i_to_r__, wtarg->i_to_r__);
+          wtarg->i_to_r__ = AffineMatrixCopy( mri_mean->i_to_r__,
+					      wtarg->i_to_r__ );
           wtarg->r_to_i__ = MatrixCopy(mri_mean->r_to_i__, wtarg->r_to_i__);
 
           wtarg = MyMRI::MRIlinearTransform(mri_weights[i],wtarg, hinv);

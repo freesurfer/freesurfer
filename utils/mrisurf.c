@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/11/12 22:17:34 $
- *    $Revision: 1.687 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/08 20:59:42 $
+ *    $Revision: 1.688 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.687 2010/11/12 22:17:34 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.688 2010/12/08 20:59:42 rge21 Exp $");
 }
 
 /*-----------------------------------------------------
@@ -64368,12 +64368,20 @@ MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta)
     // just make sure
     if (!src->r_to_i__)
       src->r_to_i__ = extract_r_to_i(src);
-    if (!dst->i_to_r__)
-      dst->i_to_r__ = extract_i_to_r(dst);
+
+    MATRIX *tmp2 = NULL;
+    if (!dst->i_to_r__) {
+      tmp2 = extract_i_to_r(dst);
+      AffineMatrixAlloc( &(dst->i_to_r__) );
+      SetAffineMatrix( dst->i_to_r__, tmp );
+    } else {
+      tmp2 = MatrixAlloc( 4, 4, MATRIX_REAL );
+      GetAffineMatrix( tmp, dst->i_to_r__ );
+    }
 
     // create ras_to_ras transform
     tmp = MatrixMultiply(lta->xforms[0].m_L, src->r_to_i__, NULL);
-    RASToRAS = MatrixMultiply(dst->i_to_r__, tmp, NULL);
+    RASToRAS = MatrixMultiply( tmp2, tmp, NULL);
     tmp = MatrixMultiply(RASToRAS, sRASToRAS, NULL);
     res = MatrixMultiply(RASToSRAS, tmp, NULL);
 
@@ -64381,6 +64389,7 @@ MATRIX *surfaceRASToSurfaceRAS_(MRI *src, MRI *dst, LTA *lta)
     MatrixFree(&sRASToRAS);
     MatrixFree(&RASToSRAS);
     MatrixFree(&tmp);
+    MatrixFree( &tmp2 );
 
     return res;
   }

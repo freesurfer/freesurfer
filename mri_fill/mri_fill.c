@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:07:46 $
- *    $Revision: 1.114 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/08 20:59:40 $
+ *    $Revision: 1.115 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -57,7 +57,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.114 2010/08/12 17:07:46 gregt Exp $";
+  "$Id: mri_fill.c,v 1.115 2010/12/08 20:59:40 rge21 Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -1553,7 +1553,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.114 2010/08/12 17:07:46 gregt Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.115 2010/12/08 20:59:40 rge21 Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1561,7 +1561,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.114 2010/08/12 17:07:46 gregt Exp $", 
+           "$Id: mri_fill.c,v 1.115 2010/12/08 20:59:40 rge21 Exp $", 
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1769,12 +1769,14 @@ main(int argc, char *argv[]) {
     }
     // when modify c_(ras), you must recalculate i_to_r__ and r_to_i__
     // when you modify c_(ras), you must recalculate i_to_r__ and r_to_i__
-    if (mri_talheader->i_to_r__)
-      MatrixFree(&mri_talheader->i_to_r__);
-    if (mri_talheader->r_to_i__)
-      MatrixFree(&mri_talheader->r_to_i__);
+    AffineMatrixAlloc( &(mri_talheader->i_to_r__ ) );
+    MATRIX *tmp2 = extract_i_to_r(mri_talheader);
+    SetAffineMatrix( mri_talheader->i_to_r__, tmp2 );
+    MatrixFree( &tmp2 );
 
-    mri_talheader->i_to_r__ = extract_i_to_r(mri_talheader);
+    if (mri_talheader->r_to_i__) {
+      MatrixFree(&mri_talheader->r_to_i__);
+    }
     mri_talheader->r_to_i__ = extract_r_to_i(mri_talheader);
   }
   //////////////////////////////////////////////////////////////////

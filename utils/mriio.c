@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/12/06 15:15:18 $
- *    $Revision: 1.382 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/08 20:59:42 $
+ *    $Revision: 1.383 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -108,8 +108,11 @@ static int GetMINCInfo(MRI *mri,
                        double VolCenterWorld[3]);
 #endif
 
-static MRI *mri_read
-(const char *fname, int type, int volume_flag, int start_frame, int end_frame);
+MRI *mri_read( const char *fname,
+	       int type,
+	       int volume_flag,
+	       int start_frame,
+	       int end_frame );
 static MRI *corRead(const char *fname, int read_volume);
 static int corWrite(MRI *mri,const char *fname);
 static MRI *siemensRead(const char *fname, int read_volume);
@@ -433,8 +436,11 @@ int MRIgetVolumeName(const char *string, char *name_only)
 
 } /* end MRIgetVolumeName() */
 
-static MRI *mri_read(const char *fname, int type, int volume_flag, int start_frame, int end_frame)
-{
+MRI *mri_read( const char *fname,
+	       int type,
+	       int volume_flag,
+	       int start_frame,
+	       int end_frame ) {
   MRI *mri, *mri2;
   IMAGE *I;
   char fname_copy[STRLEN];
@@ -714,9 +720,14 @@ static MRI *mri_read(const char *fname, int type, int volume_flag, int start_fra
   strcpy(mri->fname,fname); // added by dng 11/16/2010
 
   // update/cache the transform
-  if (mri->i_to_r__)
-    MatrixFree(&(mri->i_to_r__));
-  mri->i_to_r__ = extract_i_to_r(mri);
+  MATRIX *tmp;
+  if( mri->i_to_r__ ) {
+    AffineMatrixFree( &(mri->i_to_r__) );
+  }
+  AffineMatrixAlloc( &(mri->i_to_r__) );
+  tmp = extract_i_to_r(mri);
+  SetAffineMatrix( mri->i_to_r__, tmp );
+  MatrixFree( &tmp );
 
   if (mri->r_to_i__)
     MatrixFree(&(mri->r_to_i__));

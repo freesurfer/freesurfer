@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/11/10 20:38:37 $
- *    $Revision: 1.410 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/08 20:59:20 $
+ *    $Revision: 1.411 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,8 @@ extern "C" {
 #include "matrix.h"
 #include "machine.h"
 #include "colortab.h"
+
+#include "affine.h"
 
 #define BUFTYPE  unsigned char
 
@@ -140,7 +142,7 @@ typedef struct
 
   void*         tag_data; /* saved tag data */
   int           tag_data_size; /* size of saved tag data */
-  MATRIX *i_to_r__; /* cache */
+  AffineMatrix *i_to_r__; /* cache */
   MATRIX *r_to_i__;
   char   *cmdlines[MAX_CMDS] ;
   int    ncmds;

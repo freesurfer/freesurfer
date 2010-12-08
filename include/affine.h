@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/03 16:34:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/12/08 20:59:20 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,14 @@
 #ifndef AFFINE_H
 #define AFFINE_H
 
+//#define AFFINE_MATRIX_USE_SSE
+
+
+#ifdef AFFINE_MATRIX_USE_SSE
+#ifndef __CUDACC__
 #include <xmmintrin.h>
+#endif
+#endif
 
 #include "matrix.h"
 
@@ -45,7 +52,7 @@ typedef struct _av {
 } AffineVector;
 
 
-inline
+inline static
 void SetAffineVector( AffineVector* av,
 		      const float x,
 		      const float y,
@@ -57,7 +64,7 @@ void SetAffineVector( AffineVector* av,
 }
 
 
-inline
+inline static
 void GetAffineVector( const AffineVector* av,
 		      float* x,
 		      float* y,
@@ -67,7 +74,7 @@ void GetAffineVector( const AffineVector* av,
   *z = av->vec[2];
 }
 
-inline
+inline static
 void GetFloorAffineVector( const AffineVector* av,
 			   int *x,
 			   int *y,
@@ -89,7 +96,7 @@ typedef struct _am {
 
 
 
-inline
+inline static
 void SetAffineMatrix( AffineMatrix* am,
 		      const MATRIX* src ) {
   
@@ -97,8 +104,8 @@ void SetAffineMatrix( AffineMatrix* am,
 
   if( (src->rows!=(int)kAffineVectorSize) ||
       (src->cols!=(int)kAffineVectorSize) ) {
-    fprintf( stderr, "%s: Bad matrix sizes\n", __FUNCTION__ );
-    exit( EXIT_FAILURE );
+    fprintf( stderr, "%s: Bad matrix size\n", __FUNCTION__ );
+    abort();
   }
 
   for( i=0; i<kAffineVectorSize; i++ ) {
@@ -110,39 +117,125 @@ void SetAffineMatrix( AffineMatrix* am,
 }
 
 
+inline static
+void GetAffineMatrix( MATRIX* dst,
+		      const AffineMatrix* am ) {
+  unsigned int i, j;
 
-inline
-void AffineMV( AffineVector* y,
-	       const AffineMatrix* A,
-	       const AffineVector* x ) {
+  if( (dst->rows!=(int)kAffineVectorSize) ||
+      (dst->cols!=(int)kAffineVectorSize) ) {
+    fprintf( stderr, "%s: Bad matrix size\n", __FUNCTION__ );
+    abort();
+  }
+
+  for( i=0; i<kAffineVectorSize; i++ ) {
+    for( j=0; j<kAffineVectorSize; j++ ) {
+      dst->data[j+(i*kAffineVectorSize)] =
+	am->mat[i+(kAffineVectorSize*j)];
+    }
+  }
+
+}
+
+
+#ifndef __CUDACC__
+
+inline static
+void AffineMatrixFree( AffineMatrix **am ) {
+  if( *am != NULL ) {
+#ifdef AFFINE_MATRIX_USE_SSE
+    _mm_free( *am );
+#else
+    free( *am );
+#endif
+    *am = NULL;
+  }
+}
+
+inline static
+void AffineMatrixAlloc( AffineMatrix **am ) {
+#ifdef AFFINE_MATRIX_USE_SSE
+  AffineMatrix* tmp = (AffineMatrix*)_mm_malloc( sizeof(AffineMatrix), 16 );
+#else
+  AffineMatrix* tmp = (AffineMatrix*)malloc( sizeof(AffineMatrix) );
+#endif
+
+  if( tmp == NULL ) {
+    fprintf( stderr, "%s: FAILED\n", __FUNCTION__ );
+    abort();
+  }
   
-  __m128 resLine, col, val;
+  AffineMatrixFree( am );
 
-  val = _mm_set1_ps( x->vec[0] );
-  col = _mm_load_ps( &(A->mat[0] ) );
-  resLine = _mm_mul_ps( col, val );
+  *am = tmp;
+}
 
-  val = _mm_set1_ps( x->vec[1] );
-  col = _mm_load_ps( &(A->mat[4] ) );
-  resLine = _mm_add_ps( _mm_mul_ps( col, val ), resLine );
 
-  val = _mm_set1_ps( x->vec[2] );
-  col = _mm_load_ps( &(A->mat[8] ) );
-  resLine = _mm_add_ps( _mm_mul_ps( col, val ), resLine );
+inline static
+AffineMatrix* AffineMatrixCopy( const AffineMatrix *src,
+				AffineMatrix* dst ) {
+  if( dst == NULL ) {
+    AffineMatrixAlloc( &dst );
+  }
 
-  val = _mm_set1_ps( x->vec[3] );
-  col = _mm_load_ps( &(A->mat[12] ) );
-  resLine = _mm_add_ps( _mm_mul_ps( col, val ), resLine );
+  memcpy( dst->mat, src->mat, kAffineMatrixSize*sizeof(float) );
 
-  _mm_store_ps( &(y->vec[0]), resLine );
+  return( dst );
 }
 
 
 
-inline
-void AffineMM( AffineMatrix* C,
-	       const AffineMatrix* A,
-	       const AffineMatrix* B ) {
+inline static
+void AffineMV( AffineVector * const y,
+	       const AffineMatrix * const A,
+	       const AffineVector * const x ) {
+  
+  const float * const Amat = &(A->mat[0]);
+  const float * const xVec = &(x->vec[0]);
+  float *yVec = &(y->vec[0]);
+
+#ifdef AFFINE_MATRIX_USE_SSE
+  __m128 resLine, col, val;
+
+  val = _mm_set1_ps( xVec[0] );
+  col = _mm_load_ps( &(Amat[0]) );
+  resLine = _mm_mul_ps( col, val );
+
+  val = _mm_set1_ps( xVec[1] );
+  col = _mm_load_ps( &(Amat[4]) );
+  resLine = _mm_add_ps( _mm_mul_ps( col, val ), resLine );
+
+  val = _mm_set1_ps( xVec[2] );
+  col = _mm_load_ps( &(Amat[8]) );
+  resLine = _mm_add_ps( _mm_mul_ps( col, val ), resLine );
+
+  val = _mm_set1_ps( xVec[3] );
+  col = _mm_load_ps( &(Amat[12]) );
+  resLine = _mm_add_ps( _mm_mul_ps( col, val ), resLine );
+
+  _mm_store_ps( yVec, resLine );
+#else
+  unsigned int i, j;
+
+  for( i=0; i<kAffineVectorSize; i++ ) {
+    yVec[i] = 0;
+  }
+
+  for( j=0; j<kAffineVectorSize; j++ ) {
+    for( i=0; i<kAffineVectorSize; i++ ) {
+      yVec[i] += Amat[i+(j*kAffineVectorSize)] * xVec[j];
+    }
+  }
+#endif
+}
+
+
+
+inline static
+void AffineMM( AffineMatrix * const C,
+	       const AffineMatrix * const A,
+	       const AffineMatrix * const B ) {
+#ifdef AFFINE_MATRIX_USE_SSE
   unsigned int j;
   __m128 resLine, col, val;
 
@@ -177,9 +270,32 @@ void AffineMM( AffineMatrix* C,
       
     _mm_store_ps( cLoc, resLine );
     cLoc += kAffineVectorSize;
-    
   }
+#else
+  unsigned int i, j, k;
+  
+  const float * const Amat = &(A->mat[0]);
+  const float * const Bmat = &(B->mat[0]);
+  float * const Cmat = &(C->mat[0]);
+
+  for( i=0; i<kAffineMatrixSize; i++ ) {
+    Cmat[i] = 0;
+  }
+
+
+  for( j=0; j<kAffineVectorSize; j++ ) {
+    for( k=0; k<kAffineVectorSize; k++ ) {
+      for( i=0; i<kAffineVectorSize; i++ ) {
+	Cmat[i+(j*kAffineVectorSize)] +=
+	  Amat[i+(k*kAffineVectorSize)] * Bmat[k+(j*kAffineVectorSize)];
+      }
+    }
+  }
+#endif
 }
+#endif
+
+
 
 
 #endif

@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/03 18:48:40 $
- *    $Revision: 1.283 $
+ *    $Date: 2010/12/08 20:59:41 $
+ *    $Revision: 1.284 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -326,6 +326,7 @@ void GCAsetVolGeom(GCA *gca, VOL_GEOM *vg)
   vg->valid = 1;
 }
 
+
 void GCAcopyDCToMRI(GCA *gca, MRI *mri)
 {
   mri->x_r = gca->x_r;
@@ -341,10 +342,19 @@ void GCAcopyDCToMRI(GCA *gca, MRI *mri)
   mri->c_a = gca->c_a;
   mri->c_s = gca->c_s;
   mri->ras_good_flag = 1;
-	MRIreInitCache(mri) ;
-  mri->i_to_r__ = extract_i_to_r(mri);
+  MRIreInitCache(mri) ;
+
+  //mri->i_to_r__ = extract_i_to_r(mri);
+  MATRIX* tmp;
+  tmp = extract_i_to_r(mri);
+  AffineMatrixAlloc( &(mri->i_to_r__) );
+  SetAffineMatrix( mri->i_to_r__, tmp );
+  
   mri->r_to_i__ = extract_r_to_i(mri);
+  MatrixFree( &tmp );
 }
+
+
 void GCAcopyDCToGCA(GCA *gca, GCA *gca_dst)
 {
   gca_dst->x_r = gca->x_r;
@@ -367,7 +377,7 @@ void GCAcopyDCToGCA(GCA *gca, GCA *gca_dst)
   gca_dst->prior_i_to_r__ =
     MatrixCopy(gca->prior_i_to_r__, gca_dst->prior_i_to_r__);
   gca_dst->prior_r_to_i__ =
-    MatrixCopy(gca->prior_r_to_i__, gca_dst->prior_r_to_i__);
+    AffineMatrixCopy(gca->prior_r_to_i__, gca_dst->prior_r_to_i__);
   gca_dst->tal_i_to_r__ = MatrixCopy(gca->tal_i_to_r__, gca_dst->tal_i_to_r__);
   gca_dst->tal_r_to_i__ = MatrixCopy(gca->tal_r_to_i__, gca_dst->tal_r_to_i__);
   //
@@ -410,7 +420,7 @@ void GCAcleanup(GCA *gca)
   }
   if (gca->prior_r_to_i__)
   {
-    MatrixFree(&(gca->prior_r_to_i__));
+    AffineMatrixFree( &(gca->prior_r_to_i__) );
     gca->prior_r_to_i__ = 0;
   }
   if (gca->tal_i_to_r__)
@@ -519,7 +529,7 @@ void GCAsetup(GCA *gca)
   }
   if (gca->prior_r_to_i__)
   {
-    MatrixFree(&(gca->prior_r_to_i__));
+    AffineMatrixFree( &(gca->prior_r_to_i__) );
     gca->prior_r_to_i__ = 0;
   }
   if (gca->tal_i_to_r__)
@@ -540,7 +550,12 @@ void GCAsetup(GCA *gca)
   gca->node_i_to_r__ = extract_i_to_r(gca->mri_node__);
   gca->node_r_to_i__ = extract_r_to_i(gca->mri_node__);
   gca->prior_i_to_r__ = extract_i_to_r(gca->mri_prior__);
-  gca->prior_r_to_i__ = extract_r_to_i(gca->mri_prior__);
+
+  MATRIX *tmp = extract_r_to_i(gca->mri_prior__);
+  AffineMatrixAlloc( &(gca->prior_r_to_i__) );
+  SetAffineMatrix( gca->prior_r_to_i__, tmp );
+  MatrixFree( &tmp );
+
   gca->tal_i_to_r__ = extract_i_to_r(gca->mri_tal__);
   gca->tal_r_to_i__ = extract_r_to_i(gca->mri_tal__);
   gca->tmp__ = MatrixAlloc(4,4, MATRIX_REAL);
@@ -941,6 +956,7 @@ int GCAvoxelToNodeReal(GCA *gca, MRI *mri, double xv, double yv, double zv,
   //         V                V
   //        node   <-----    RAS
   //               r_to_i
+#if 0
   MATRIX *rasFromVoxel = mri->i_to_r__; // extract_i_to_r(mri);
   MATRIX *nodeFromRAS = gca->node_r_to_i__; // extract_r_to_i(gca->mri_node__);
   MATRIX *voxelToNode = gca->tmp__;
@@ -951,6 +967,22 @@ int GCAvoxelToNodeReal(GCA *gca, MRI *mri, double xv, double yv, double zv,
   // MatrixFree(&rasFromVoxel);
   // MatrixFree(&nodeFromRAS);
   // MatrixFree(&voxelToNode);
+#else
+  AffineMatrix voxelToNode, nodeFromRAS;
+  SetAffineMatrix( &nodeFromRAS, gca->node_r_to_i__ );
+  AffineMM( &voxelToNode, &nodeFromRAS, mri->i_to_r__ );
+  
+  AffineVector vv, nv;
+  SetAffineVector( &vv, xv, yv, zv );
+  AffineMV( &nv, &voxelToNode, &vv );
+
+  float nxf, nyf, nzf;
+  GetAffineVector( &nv, &nxf, &nyf, &nzf );
+  *pxn = nxf;
+  *pyn = nyf;
+  *pzn = nzf;
+
+#endif
 
   return NO_ERROR;
 }
@@ -1008,7 +1040,8 @@ int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
 			 const double xv, const double yv, const double zv,
 			 double *pxp, double *pyp, double *pzp )
 {
-#if 1
+
+#if 0
   MATRIX *rasFromVoxel = mri->i_to_r__; //extract_i_to_r(mri);
   MATRIX *priorFromRAS = gca->prior_r_to_i__;
   //extract_r_to_i(gca->mri_prior__);
@@ -1025,11 +1058,9 @@ int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
   // MatrixFree(&priorFromRAS);
   // MatrixFree(&voxelToPrior);
 #else
-  AffineMatrix rasFromVoxel, priorFromRAS, voxelToPrior;
+  AffineMatrix voxelToPrior;
 
-  SetAffineMatrix( &rasFromVoxel, mri->i_to_r__ );
-  SetAffineMatrix( &priorFromRAS, gca->prior_r_to_i__ );
-  AffineMM( &voxelToPrior, &priorFromRAS, &rasFromVoxel );
+  AffineMM( &voxelToPrior, gca->prior_r_to_i__, mri->i_to_r__ );
 
   AffineVector vv, pv;
 
@@ -1726,8 +1757,10 @@ gcaAllocMax(int ninputs,
   gca->mri_prior__ = 0;
   gca->mri_tal__ = 0;
   // initialize
-  gca->node_i_to_r__ = gca->node_r_to_i__ = 0;
-  gca->prior_i_to_r__ = gca->prior_r_to_i__ = 0;
+  gca->node_i_to_r__ = NULL;
+  gca->node_r_to_i__ = NULL;
+  gca->prior_i_to_r__ = NULL;
+  gca->prior_r_to_i__ = NULL;
   gca->tal_i_to_r__ = gca->tal_r_to_i__ = 0;
 
   GCAsetup(gca);

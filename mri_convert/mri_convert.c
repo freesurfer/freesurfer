@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/11/23 14:09:46 $
- *    $Revision: 1.173 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/08 20:59:40 $
+ *    $Revision: 1.174 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_convert.c,v 1.173 2010/11/23 14:09:46 fischl Exp $", 
+     "$Id: mri_convert.c,v 1.174 2010/12/08 20:59:40 rge21 Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.173 2010/11/23 14:09:46 fischl Exp $", 
+      "$Id: mri_convert.c,v 1.174 2010/12/08 20:59:40 rge21 Exp $", 
       "$Name:  $"
       );
   if (nargs && argc - nargs == 1)
@@ -1336,7 +1336,7 @@ int main(int argc, char *argv[]) {
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.173 2010/11/23 14:09:46 fischl Exp $\n");
+  printf("$Id: mri_convert.c,v 1.174 2010/12/08 20:59:40 rge21 Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE) {
@@ -2214,16 +2214,27 @@ int main(int argc, char *argv[]) {
     MRIfree(&tmp);
     tmp = 0;
     // just to make sure
-    if (mri->i_to_r__)
-      mri->i_to_r__ = extract_i_to_r(mri);
-    if (mri_transformed->r_to_i__)
+    MATRIX *tmp2;
+    if( !(mri->i_to_r__) ) {
+      tmp2 = extract_i_to_r(mri);
+      AffineMatrixAlloc( &(mri->i_to_r__) );
+      SetAffineMatrix( mri->i_to_r__, tmp2 );
+    } else {
+      tmp2 = MatrixAlloc( 4, 4, MATRIX_REAL );
+      GetAffineMatrix( tmp2, mri->i_to_r__ );
+    }
+
+    if( !(mri_transformed->r_to_i__) ) {
       mri_transformed->r_to_i__ = extract_r_to_i(mri_transformed);
+    }
     // got the transform
-    src2dst = MatrixMultiply(mri_transformed->r_to_i__,
-                             mri->i_to_r__, NULL);
+    src2dst = MatrixMultiply( mri_transformed->r_to_i__,
+                              tmp2,
+			      NULL );
     // now get the values (tri-linear)
     MRIlinearTransform(mri, mri_transformed, src2dst);
     MatrixFree(&src2dst);
+    MatrixFree( &tmp2 );
     MRIfree(&mri);
     mri=mri_transformed;
   }

@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/10/20 20:25:46 $
- *    $Revision: 1.110 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/08 20:59:20 $
+ *    $Revision: 1.111 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,6 +40,8 @@ extern "C" {
 #include "mri.h"
 #include "transform.h"
 #include "colortab.h"
+
+#include "affine.h"
 
 #define MIN_PRIOR  0.5
 #define MAX_GCA_INPUTS 1000
@@ -187,7 +189,7 @@ typedef struct
   MATRIX       *node_i_to_r__;
   MATRIX       *node_r_to_i__;
   MATRIX       *prior_i_to_r__;
-  MATRIX       *prior_r_to_i__;
+  AffineMatrix *prior_r_to_i__;
   MATRIX       *tal_i_to_r__;
   MATRIX       *tal_r_to_i__;
   MATRIX       *tmp__;
