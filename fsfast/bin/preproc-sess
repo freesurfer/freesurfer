@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 15:55:06 $
-#    $Revision: 1.35 $
+#    $Date: 2010/12/08 18:25:53 $
+#    $Revision: 1.36 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.35 2010/07/26 15:55:06 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.36 2010/12/08 18:25:53 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -232,7 +232,7 @@ foreach sess ($SessList)
     set cmd = (rawfunc2surf-sess -fwhm $fwhm)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     # By default it will do both, so set -hemi to anything
-    if($hemi == lh || $hemi == rh) set cmd = ($cmd -hemi $hemi)
+    if("$hemi" == lh || "$hemi" == rh) set cmd = ($cmd -hemi $hemi)
     if($subject == self) set cmd = ($cmd -self)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
@@ -493,6 +493,10 @@ while( $#argv != 0 )
       set ToSurf = 1;
       set PerRun = 1;
       set PerSess = 0;
+      if(! -e $SUBJECTS_DIR/$subject) then
+        echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+        exit 1;
+      endif
       breaksw
 
     case "-mni305":
