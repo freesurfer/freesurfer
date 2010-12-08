@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/07 18:52:33 $
-#    $Revision: 1.344 $
+#    $Date: 2010/12/08 14:12:22 $
+#    $Revision: 1.345 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.344 2010/12/07 18:52:33 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.345 2010/12/08 14:12:22 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1786,10 +1786,12 @@ skullstrip:
   # Nanyang Technological University's skull-stripper, which is intended to
   # work best running after watershed.  it further removes dura.  see:
   # 'Skull Stripping Using Graph Cuts', Neuroimage, 2009
+  # brainmask.gcuts.mgz is a debug file showing voxels that were cut.
   if($DoGcut) then
     set BMA = brainmask.auto.mgz
+    set BGC = brainmask.gcuts.mgz
     set xopts = `fsr-getxopts mri_gcut $XOptsFile`;
-    set cmd = (mri_gcut $xopts -110 -mult $BMA T1.mgz $BMA)
+    set cmd = (mri_gcut $xopts -110 -mult $BMA T1.mgz $BMA $BGC)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;

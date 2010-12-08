@@ -84,10 +84,11 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-  "$Id: mri_gcut.cpp,v 1.10 2010/12/06 14:09:34 nicks Exp $";
+  "$Id: mri_gcut.cpp,v 1.11 2010/12/08 14:12:22 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
+static char diff_filename[STRLEN];
 static bool bNeedPreprocessing = 1;
 static bool bNeedMasking = 0;
 static double _t = 0.40;
@@ -97,11 +98,13 @@ static const char help[] =
   {
     "Usage:\n"
     "\n"
-    "./mri_gcut [-110|-mult <filename>|-T <value>] in_filename out_filename\n"
+    "./mri_gcut [-110|-mult <filename>|-T <value>] in_filename out_filename [diff_filename]\n"
     "\n"
     "  in_filename - name of the file that contains brain volume, eg. T1.mgz\n"
     "\n"
     "  out_filename - name given to output file, eg. brainmask.auto.mgz\n"
+    "\n"
+    "  diff_filename - output file containing cuts made, eg. brainmask.gcuts.mgz\n"
     "\n"
     "  -110: use voxels with intensity 110 as white matter mask\n"
     "  (when applied on T1.mgz, FreeSurfer only)\n"
@@ -227,7 +230,8 @@ static int parse_commandline(int argc, char **argv)
 
     nargsused = 0;
 
-    if (!strcasecmp(option, "--help")||!strcasecmp(option, "--usage")) print_help() ;
+    if (!strcasecmp(option, "--help")||
+        !strcasecmp(option, "--usage")) print_help() ;
     else if (!strcasecmp(option, "--version")) print_version() ;
     else if (!strcmp(option, "-110") || !strcmp(option, "--110"))
     {
@@ -269,6 +273,10 @@ static int parse_commandline(int argc, char **argv)
         {
           strcpy(out_filename, option);
         }
+        else if (diff_filename[0] == '\0')
+        {
+          strcpy(diff_filename, option);
+        }
         else
         {
           printf("Error: extra arguments!\n\n");
@@ -290,7 +298,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.10 2010/12/06 14:09:34 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.11 2010/12/08 14:12:22 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -530,6 +538,34 @@ int main(int argc, char *argv[])
   }//end of for 1
 
   MRIwrite(mri2, out_filename);
+
+  // if user supplied a filename to which to write diffs, then write-out
+  // volume file containing where cuts were made (for debug)
+  if (diff_filename[0])
+  {
+    MRI *mri_diff = MRISeqchangeType(mri3, MRI_UCHAR, 0.0, 0.999, FALSE);
+    for (int z = 0 ; z < mri3->depth ; z++)
+    {
+      for (int y = 0 ; y < mri3->height ; y++)
+      {
+        for (int x = 0 ; x < mri3->width ; x++)
+        {
+          if (mri_mask) 
+          {
+            mri_diff->slices[z][y][x] = 
+              mri2->slices[z][y][x] - mri_mask->slices[z][y][x];
+          }
+          else
+          {
+            mri_diff->slices[z][y][x] = 
+              mri2->slices[z][y][x] - mri3->slices[z][y][x];
+          }
+        }
+      }//end of for 2
+    }//end of for 1
+    MRIwrite(mri_diff, diff_filename);
+    MRIfree(&mri_diff);
+  }
 
   if (mri) MRIfree(&mri);
   if (mri2) MRIfree(&mri2);
