@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: rge21 $
-#    $Date: 2010/11/12 18:01:34 $
-#    $Revision: 1.502 $
+#    $Author: nicks $
+#    $Date: 2010/12/08 17:09:35 $
+#    $Revision: 1.503 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -448,6 +448,7 @@ DEADCODE_STRIP=""
 # and on the Mac:
 DEADCODE_STRIP_MAC="-dead_strip"
 
+ac_have_sse_mathfun=no
 FCLIBS=""
 AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
@@ -460,6 +461,7 @@ case "${target}" in
  SHARED_LDFLAGS="-shared "
  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ ac_have_sse_mathfun=yes
  ;;
  x86_64-*)
  OS=Linux
@@ -471,6 +473,7 @@ case "${target}" in
  SHARED_LDFLAGS="-shared"
  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ ac_have_sse_mathfun=yes
  TEEM_32BIT=0
  ;;
  ia64-*)
@@ -552,12 +555,13 @@ AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 ################################################################
 # SSE math functions (sin_ps, cos_ps, sincos_ps, exp_ps, log_ps)
 ################################################################
-ac_have_sse_mathfun=no
+#ac_have_sse_mathfun is initialized in OS target section above
 AC_ARG_ENABLE(sse_mathfun,
- [  --enable-sse_mathfun    enable SSE math function support],
- [ ac_have_sse_mathfun=yes
-   AC_MSG_NOTICE(Using SSE math functions)
+ [  --disable-sse_mathfun   disable SSE math function support],
+ [ ac_have_sse_mathfun=no
+   AC_MSG_NOTICE(Disabling usage SSE math functions)
  ])
+# note that if compiling with x86, USE_SSE_MATHFUN is set (see OS target stuff)
 AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
 
 
