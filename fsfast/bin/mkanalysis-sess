@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/11/24 19:06:38 $
-#    $Revision: 1.54 $
+#    $Date: 2010/12/08 18:26:38 $
+#    $Revision: 1.55 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.54 2010/11/24 19:06:38 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.55 2010/12/08 18:26:38 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -61,6 +61,7 @@ set TaskRegList = ();
 set nTaskRegList = ();
 set PolyFit = 2;
 set HPFCutoffHz = 0;
+set LPFCutoffHz = (); # LPF is Experimental
 set TPExcludeFile = ();
 set NSkip = 0;
 set NuisRegList = ();
@@ -170,6 +171,8 @@ if($#TPExcludeFile) echo "tpexclude $TPExcludeFile" | tee -a $flac
 echo "nskip $NSkip" | tee -a $flac
 if($#PolyFit) echo "polyfit $PolyFit" | tee -a $flac
 echo "HPFCutoffHz $HPFCutoffHz" | tee -a $flac
+# LPF is Experimental
+if($#LPFCutoffHz) echo "TFILTER lpf $LPFCutoffHz 5" | tee -a $flac
 # ------------ Event Task Modeling -----------
 if($eventrelated) then
   echo "nconditions $NConditions"  | tee -a $flac
@@ -509,6 +512,12 @@ while( $#argv != 0 )
     case "-pf":
       if ( $#argv < 1) goto arg1err;
       set PolyFit = $argv[1]; shift;
+      breaksw
+
+    case "-lpf":
+      # Experimental
+      if ( $#argv < 1) goto arg1err;
+      set LPFCutoffHz = $argv[1]; shift;
       breaksw
 
     case "-hpf":
