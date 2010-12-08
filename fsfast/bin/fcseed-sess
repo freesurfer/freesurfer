@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-sess,v 1.4 2010/11/19 21:14:05 greve Exp $';
+set VERSION    = '$Id: fcseed-sess,v 1.5 2010/12/08 18:32:11 greve Exp $';
 set cmdargs = ($argv);
 
 set segstem    = "aparc+aseg"; 
@@ -18,6 +18,7 @@ set maskfile = ();
 set Overwrite = 0;
 set DoWM = 0;
 set WMErode = 3;
+set SVDSynth = 0;
 
 set nolog = 0;
 
@@ -188,6 +189,7 @@ foreach sess ($SessList)
       # Remove trends, take PCA only in mask
       set cmd = (mri_glmfit --y $f --mask $mask --qa \
          --glmdir $tmpdir/glm --pca --no-est-fwhm)
+      if($SVDSynth) set cmd = ($cmd --synth)
       echo $cmd | tee -a $LLF
       $cmd | tee -a $LLF
       if($status) exit 1;
@@ -286,6 +288,11 @@ while( $#argv != 0 )
     case "-svd":
       set DoMean = 0;
       set DoSVD  = 1;
+      breaksw
+
+    case "-pca-synth":
+    case "-svd-synth":
+      set SVDSynth = 1;
       breaksw
 
     case "-mean":
