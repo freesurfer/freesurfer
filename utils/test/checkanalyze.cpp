@@ -7,10 +7,10 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/10 19:26:11 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/12/09 19:03:40 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2002-2007,
+ * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -36,6 +35,8 @@ extern "C"
 {
 #include "mri.h"
 #include "matrix.h"
+#include "affine.h"
+
 const char *Progname = "checkanalyze";
 }
 
@@ -50,9 +51,13 @@ bool compareBad(const MRI *base, const MRI *tmp)
   VECTOR *vb=VectorAlloc(4, MATRIX_REAL);
   VECTOR *vt=VectorAlloc(4, MATRIX_REAL);
   bool bad = false;
+
+  MATRIX *base_i_to_r = MatrixAlloc( 4, 4, MATRIX_REAL );
+  GetAffineMatrix( base_i_to_r, base->i_to_r__ );
+
   // RAS voxel position should be the same
   // get the base->tmp voxel map
-  MATRIX *b2t = MatrixMultiply(tmp->r_to_i__, base->i_to_r__, NULL);
+  MATRIX *b2t = MatrixMultiply(tmp->r_to_i__, base_i_to_r, NULL);
   cout << endl;
   for (int k = 0; k < base->depth; k++)
     for (int j=0; j < base->height; ++j)
@@ -74,8 +79,10 @@ bool compareBad(const MRI *base, const MRI *tmp)
             if (bad == false)
               bad = true;
             cout << endl;
-            cout << "base: (" << i << "," <<j << "," << k << ") =" << MRIvox(base, i,j,k)
-            << "    tmp: (" << it << "," << jt << "," << kt << ") = " << MRIvox(tmp, i,j,k) << endl;
+            cout << "base: (" << i                << "," <<j << "," << k
+                 << ") =" << MRIvox(base, i,j,k) << "    tmp: (" << it
+                 << "," << jt << "," << kt << ") = "
+                 << MRIvox(tmp, i,j,k) << endl;
           }
         }
       }
@@ -103,10 +110,18 @@ int main(int argc, char *argv[])
     if (compareBad(base, tmp)==true)
     {
       bad = true;
-      cout << "Failed comparison for " << file[6].c_str() << " and " << file[i].c_str() << endl;
+      cout << "Failed comparison for " 
+           << file[6].c_str() 
+           << " and " 
+           << file[i].c_str()
+           << endl;
     }
     else
-      cout << "Good comparison for " << file[6].c_str() << " and " << file[i].c_str() << endl;
+      cout << "Good comparison for "
+           << file[6].c_str()
+           << " and "
+           << file[i].c_str()
+           << endl;
   }
   return (bad==true) ? 1 : 0;
 }
