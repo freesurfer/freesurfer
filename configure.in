@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/08 17:09:35 $
-#    $Revision: 1.503 $
+#    $Date: 2010/12/09 15:25:09 $
+#    $Revision: 1.504 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -553,16 +553,19 @@ AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 
 
 ################################################################
-# SSE math functions (sin_ps, cos_ps, sincos_ps, exp_ps, log_ps)
+# SSE matrix and math functions (affine.h, sse_mathfun.h)
 ################################################################
 #ac_have_sse_mathfun is initialized in OS target section above
 AC_ARG_ENABLE(sse_mathfun,
  [  --disable-sse_mathfun   disable SSE math function support],
  [ ac_have_sse_mathfun=no
-   AC_MSG_NOTICE(Disabling usage SSE math functions)
+   AC_MSG_NOTICE(Disabling usage of SSE math functions)
  ])
-# note that if compiling with x86, USE_SSE_MATHFUN is set (see OS target stuff)
-AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
+# note that if compiling with x86, ac_have_sse_mathfun is set to 'yes'
+# (see OS target stuff), so --disable-sse_mathfun is used to disable for testing
+if test "x$ac_have_sse_mathfun" = "xyes"; then
+  CPPFLAGS="$CPPFLAGS -DUSE_SSE_MATHFUN"
+fi  
 
 
 ##############################################################
