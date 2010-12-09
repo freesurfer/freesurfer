@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/08 14:12:22 $
-#    $Revision: 1.345 $
+#    $Date: 2010/12/09 19:48:36 $
+#    $Revision: 1.346 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.345 2010/12/08 14:12:22 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.346 2010/12/09 19:48:36 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1261,30 +1261,6 @@ if($DoMotionCor) then
 
 endif # Motion Correction
 
-#----------- Nu Intensity Correction ------------------#
-if($DoNuIntensityCor) then
-  echo "#--------------------------------------------" \
-    |& tee -a $LF |& tee -a $CF
-  echo "#@# Nu Intensity Correction `date`" \
-    |& tee -a $SF |& tee -a $LF |& tee -a $CF
-  cd $subjdir/mri > /dev/null
-  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
-  set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz)
-  # --cm for hi-res support:
-  if ($ConformMin) set cmd = ($cmd --cm)
-  if ($DoNuIntensityCor3T) then
-    # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
-    # "Improvement of brain segmentation accuracy by optimizing
-    # non-uniformity correction using N3"
-    set NuIterations = 1;
-    set cmd = ($cmd --proto-iters 1000 --distance 50)
-  endif
-  set cmd = ($cmd --n $NuIterations $xopts)
-  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-  if($RunIt) $fs_time $cmd |& tee -a $LF
-  if($status) goto error_exit;
-  touch $touchdir/nu.touch
-endif
 
 #----------- Talairach ------------------#
 if($DoTalairach) then
@@ -1310,11 +1286,11 @@ talairach:
     if ($UseMincMritotal) then
       # use the MINC mritotal utility
       set xopts = `fsr-getxopts talairach $XOptsFile`;
-      set cmd = (talairach --i nu.mgz --xfm $xfma $xopts)
+      set cmd = (talairach --i orig.mgz --xfm $xfma $xopts)
     else
       # Avi Snyder's registration tools
       set xopts = `fsr-getxopts talairach_avi $XOptsFile`;
-      set cmd = (talairach_avi --i nu.mgz --xfm $xfma)
+      set cmd = (talairach_avi --i orig.mgz --xfm $xfma)
       if($UseYa3tTalAtlas) then
         # special atlas composed of young adults scanned at 3T
         set cmd = ($cmd --atlas 3T18yoSchwartzReactN32_as_orig)
@@ -1398,8 +1374,8 @@ if($DoTalCheck) then
       endif
       set talAviQA=`grep "TalAviQA" ${qalog} | awk '{print $2}'`
       echo "TalAviQA: ${talAviQA}" |& tee -a $LF
-      set mean=(0.9787) # buckner40 mean TalAviQA
-      set std=(0.0046)  # buckner40 std TalAviQA
+      set mean=(0.9781) # buckner40 mean TalAviQA
+      set std=(0.0044)  # buckner40 std TalAviQA
       set zscore=`echo "scale=0;(${talAviQA} - ${mean}) / ${std}" | bc`
       echo "z-score: ${zscore}" |& tee -a $LF
       set zscoreThreshold=(-9) # conservative value, but catches M.Harms subjs.
@@ -1430,6 +1406,33 @@ if($DoTalCheck) then
   endif
 endif
 
+
+#----------- Nu Intensity Correction ------------------#
+if($DoNuIntensityCor) then
+  echo "#--------------------------------------------" \
+    |& tee -a $LF |& tee -a $CF
+  echo "#@# Nu Intensity Correction `date`" \
+    |& tee -a $SF |& tee -a $LF |& tee -a $CF
+  cd $subjdir/mri > /dev/null
+  set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
+  set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz)
+  # --cm for hi-res support:
+  if ($ConformMin) set cmd = ($cmd --cm)
+  if ($DoNuIntensityCor3T) then
+    # params from Zheng, Chee, Zagorodnov 2009 NeuroImage paper
+    # "Improvement of brain segmentation accuracy by optimizing
+    # non-uniformity correction using N3"
+    set NuIterations = 1;
+    set cmd = ($cmd --proto-iters 1000 --distance 50)
+  endif
+  set cmd = ($cmd --n $NuIterations $xopts)
+  echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+  if($RunIt) $fs_time $cmd |& tee -a $LF
+  if($status) goto error_exit;
+  touch $touchdir/nu.touch
+endif
+
+
 #----------- Defacing ------------------#
 if($DoDeface) then
   echo "#--------------------------------------------" \
@@ -1446,6 +1449,7 @@ if($DoDeface) then
   if($status) goto error_exit;
   touch $touchdir/deface.touch
 endif
+
 
 #----------- Intensity Normalization1 ------------------#
 if($DoNormalization) then
