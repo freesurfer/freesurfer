@@ -4,12 +4,13 @@
 # test_mri_convert
 #
 # execute mri_convert and check results against expected results
+# (and test mri_make_uchar while we're at it)
 #
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/03/01 21:06:30 $
-#    $Revision: 1.6 $
+#    $Date: 2010/12/09 21:34:02 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2010
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +24,7 @@
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mri_convert,v 1.6 2010/03/01 21:06:30 nicks Exp $'
+set VERSION='$Id: test_mri_convert,v 1.7 2010/12/09 21:34:02 nicks Exp $'
 
 umask 002
 
@@ -74,6 +75,24 @@ if ($status != 0) then
   exit 1
 endif
 
+
+
+# mri_make_uchar test
+# data (nu.mgz) is from ADNI subj 0030_m12, which was problematic because
+# mri_nu_correct.mni float thing would mess with the histogramming stuff
+# in mri_normalize.  mri_make_uchar was introduced to fix that, so this is
+# a regression test of sorts.
+set cmd=(../mri_make_uchar nu.mgz talairach.xfm nuuc.mgz)
+echo ""
+echo $cmd
+$cmd
+if ($status != 0) then
+  echo "mri_make_uchar FAILED"
+  exit 1
+endif
+
+
+
 echo ""
 echo ""
 echo ""
@@ -82,13 +101,16 @@ echo ""
 # compare expected results with actual (produced) results
 #
 
-set TEST_FILES=( orig.mgz dicom.mgz nifti.mgz analyze.mgz )
+set TEST_FILES=( orig.mgz dicom.mgz nifti.mgz analyze.mgz nuuc.mgz )
 foreach tstvol ($TEST_FILES)
   # now compare expected with observed data
   set REF_VOL  = freesurfer.mgz
   if ( "x$tstvol" == "xorig.mgz" ) then
     set REF_VOL = ref_orig.mgz
     if ( "`uname -p`" == "powerpc" ) set REF_VOL = ref_powerpc_orig.mgz
+  endif
+  if ( "x$tstvol" == "xnuuc.mgz" ) then
+    set REF_VOL = nuuc_ref.mgz
   endif
   set TST_VOL  = $tstvol
   set DIFF_VOL = $PWD/mri_diff-$tstvol
