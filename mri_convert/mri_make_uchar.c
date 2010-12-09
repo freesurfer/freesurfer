@@ -2,19 +2,19 @@
  * @file  mri_make_uchar.c
  * @brief change a volume to 8 bits/voxel
  *
- * uses the Tal xform to find a ball of voxels that are mostly brain. The top of the
- * intensity histogram in this ball will then be white matter, which allows us to
- * center it at the desired value approximately (110)
+ * uses the Tal xform to find a ball of voxels that are mostly brain.
+ * the top of the intensity histogram in this ball will then be white matter,
+ * which allows us to center it at the desired value approximately (110)
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/12/02 18:42:02 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2010/12/09 21:17:48 $
+ *    $Revision: 1.3 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2010,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -55,7 +54,8 @@ static void usage_exit(int code) ;
 
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char   **av ;
   int    ac, nargs ;
   int          msec, minutes, seconds ;
@@ -64,7 +64,10 @@ main(int argc, char *argv[]) {
   LTA *tal_xform ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_make_uchar.c,v 1.2 2010/12/02 18:42:02 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (
+            argc, argv,
+            "$Id: mri_make_uchar.c,v 1.3 2010/12/09 21:17:48 nicks Exp $",
+            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -77,7 +80,8 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
@@ -89,7 +93,8 @@ main(int argc, char *argv[]) {
 
   mri_in = MRIread(argv[1]) ;
   if (mri_in == NULL)
-    ErrorExit(ERROR_NOFILE, "%s: could not read input volume %s", Progname, argv[1]) ;
+    ErrorExit(ERROR_NOFILE,
+              "%s: could not read input volume %s", Progname, argv[1]) ;
   tal_xform = LTAread(argv[2]) ;
   if (tal_xform == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, argv[2]) ;
@@ -100,22 +105,27 @@ main(int argc, char *argv[]) {
   seconds = nint((float)msec/1000.0f) ;
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
-  fprintf(stderr, "type change took %d minutes and %d seconds.\n", minutes, seconds) ;
+  fprintf(stderr,
+          "type change took %d minutes and %d seconds.\n", minutes, seconds) ;
   exit(0) ;
   return(0) ;
 }
+
+
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option)) {
+  switch (toupper(*option))
+  {
   case 'N':
     break ;
   case '?':
@@ -130,14 +140,22 @@ get_option(int argc, char *argv[]) {
 
   return(nargs) ;
 }
+
 /*----------------------------------------------------------------------
             Parameters:
 
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code) {
-  printf("usage: %s [options] <input volume> <talairach xform> <output volume>",Progname) ;
+usage_exit(int code)
+{
+  printf(
+    "Uses the Tal xform to find a ball of voxels that are mostly brain.\n"
+    "The top of the intensity histogram in this ball will then be white\n"
+    "matter, which allows us to center it at the desired value,\n"
+    "approximately (110).\n\n"
+    "usage: %s [options] <input volume> <talairach xform> <output volume>\n",
+    Progname) ;
   exit(code) ;
 }
 
@@ -179,19 +197,24 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
         r = sqrt(xt*xt + yt*yt + zt*zt) ;
 
         MRIvoxelToWorld(mri_in, x, y, z, &xt, &yt, &zt) ;
-        V3_X(v_X) = xt ; V3_Y(v_X) = yt ; V3_Z(v_X) = zt ; 
+        V3_X(v_X) = xt ;
+        V3_Y(v_X) = yt ;
+        V3_Z(v_X) = zt ;
         LTAtransformPoint(tal_xform, v_X, v_Y) ;
-        xt = V3_X(v_Y) ; yt = V3_Y(v_Y) ; zt = V3_Z(v_Y) ;
+        xt = V3_X(v_Y) ;
+        yt = V3_Y(v_Y) ;
+        zt = V3_Z(v_Y) ;
         r = sqrt(xt*xt + yt*yt + zt*zt) ;
         if (r < MAX_R)
           MRIsetVoxVal(mri_out, x, y, z, 0, MRIgetVoxVal(mri_in, x, y, z, 0)) ;
       }
     }
   }
-  MatrixFree(&v_X) ; MatrixFree(&v_Y) ;
+  MatrixFree(&v_X) ;
+  MatrixFree(&v_Y) ;
 
-
-  h = MRIhistogram(mri_out, 100) ;  // only in a radius around the center of the brain
+  // only in a radius around the center of the brain
+  h = MRIhistogram(mri_out, 100) ;
 
   HISTOclearZeroBin(h) ;
   HISTOmakePDF(h, h) ;
@@ -201,7 +224,8 @@ MRIconvertToUchar(MRI *mri_in, LTA *tal_xform, MRI *mri_out)
   i1 = HISTOfindBinWithCount(hcum, FIRST_PERCENTILE) ;
   i2 = HISTOfindBinWithCount(hcum, WM_PERCENTILE) ;
 
-  x1 = h->bins[i1] ; x2 = h->bins[i2] ;
+  x1 = h->bins[i1] ;
+  x2 = h->bins[i2] ;
   y1 = FIRST_PERCENTILE*255 ;
 
   /*
