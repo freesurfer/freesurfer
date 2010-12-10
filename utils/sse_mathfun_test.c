@@ -519,7 +519,7 @@ void sanity_check() {
   print2i(((v2si*)&w.v)[0]);
   print2i(((v2si*)&w.v)[1]); _mm_empty();
   v.v = w.v;
-  assert((((int)&v.v)&0xf) == 0);
+  assert((((long)&v.v)&0xf) == 0);
   printf("converted back to float: "); print4(v.v); printf("\n"); fflush(stdout);
   assert(v.f[0] == 1);
   assert(v.f[1] == 2);

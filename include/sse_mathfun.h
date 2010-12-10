@@ -31,7 +31,8 @@
   (this is the zlib license)
 */
 
-#define USE_SSE2
+//NJS: gcc 3.4 doesnt have _mm_castps_si128(), so USE_SSE2 cannot be defined
+//#define USE_SSE2
 
 #include <xmmintrin.h>
 
