@@ -9,8 +9,8 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/08 20:59:43 $
- *    $Revision: 1.16 $
+ *    $Date: 2010/12/10 18:48:20 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2003-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -106,6 +106,7 @@ int ModifyTalairachCRAS(MRI *mri_tal, const LTA *lta)
     MatrixFree(&mri_tal->r_to_i__);
   }
 
+  AffineMatrixAlloc( &(mri_tal->i_to_r__) );
   MATRIX *tmp = extract_i_to_r(mri_tal);
   SetAffineMatrix( mri_tal->i_to_r__ , tmp );
   MatrixFree( &tmp );
