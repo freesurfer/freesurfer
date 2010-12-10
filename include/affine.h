@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/09 16:28:47 $
- *    $Revision: 1.4 $
+ *    $Date: 2010/12/10 18:59:51 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -27,7 +27,9 @@
 #define AFFINE_H
 
 #ifdef USE_SSE_MATHFUN
+#if __GNUC__ > 3
 #define AFFINE_MATRIX_USE_SSE
+#endif
 #endif
 
 
