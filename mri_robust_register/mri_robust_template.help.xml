@@ -24,7 +24,7 @@ Important Note: For best performance the input images should all have the same i
     <optional_flagged>
       <argument>--lta &lt;tp1.lta&gt; &lt;tp2.lta&gt; ...</argument>
       <explanation>output xforms to template (for each input)</explanation>
-      <argument>--warp &lt;warp1.mgz&gt; ...</argument>
+      <argument>--mapmov &lt;aligned1.mgz&gt; ...</argument>
       <explanation>output images: map and resample each input to template</explanation>
       <argument>--weights &lt;weights1.mgz&gt; ...</argument>
       <explanation>output weights (outliers) in target space</explanation>
@@ -67,7 +67,7 @@ Important Note: For best performance the input images should all have the same i
   <outputs>
     <intro>*******************************************************************</intro>
   </outputs>
-	<example>mri_robust_template --mov tp1.mgz tp2.mgz tp3.mgz --template mean.mgz --lta tp1.lta tp2.lta tp3.lta --warp tp1tomean.mgz tp2tomean.mgz tp3tomean.mgz --average 0 --iscale
+	<example>mri_robust_template --mov tp1.mgz tp2.mgz tp3.mgz --template mean.mgz --lta tp1.lta tp2.lta tp3.lta --mapmov tp1tomean.mgz tp2tomean.mgz tp3tomean.mgz --average 0 --iscale
 
 Constructs a mean template from tp1,tp2 and tp3 and outputs the mean.mgz, the corresponding transforms (tp?.lta) and aligned images (tp?tomean.mgz). Intensity scaling is allowed (on highest resolution, once the images are well aligned).
 

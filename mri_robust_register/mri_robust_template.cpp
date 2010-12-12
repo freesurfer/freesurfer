@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/10/22 21:32:33 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/12/12 20:19:01 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -163,7 +163,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.28 2010/10/22 21:32:33 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.29 2010/12/12 20:19:01 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -341,14 +341,16 @@ static void printUsage(void)
   cout << "Optional arguments" << endl << endl;
 //  cout << "      --outdir               output directory (default ./ )" << endl;
   cout << "  --lta tp1.lta tp2.lta ...  output xforms to template (for each input)" << endl;
-  cout << "  --warp warp1.mgz ...       map each input to template" << endl;
+  cout << "  --mapmov align1.mgz ...    map and resample each input to template" << endl;
   cout << "  --weights weights1.mgz ... output weights in target space" << endl;
   cout << "  --average #                construct template from: 0 Mean, 1 Median (default)" << endl;
   cout << "  --inittp #                 use TP# for spatial init (default 1), 0: no init" << endl;
   cout << "  --fixtp                    map everthing to init TP# (init TP is not resampled)" << endl;
 	
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
-  cout << "  --iscale                   allow also intensity scaling (default no)" << endl;
+  cout << "  --iscale                   allow also intensity scaling (default off)" << endl;
+  cout << "  --iscalein is1.txt ...     read in initial iscale values from txt files" << endl;
+	cout << "  --iscaleout is1.txt ...    output final iscale values (activates --iscale)" << endl;
   cout << "  --ixforms t1.lta t2.lta .. use initial transforms (lta) on source  ('id'=identity)" << endl;
   cout << "  --vox2vox                  output VOX2VOX lta file (default is RAS2RAS)" << endl;
   cout << "  --leastsquares             use least squares instead of robust M-estimator" << endl;
@@ -365,18 +367,23 @@ static void printUsage(void)
 //  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
 //  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
 //  cout << "  --conform conform.mgz      output conform template, 1mm vox (256^3)" << endl;
+  cout << "  --finalnearest             use nearest neighbor interpol. for final average" << endl;
   cout << "  --floattype                use float intensities (default keep intput type)" << endl; 
   cout << "  --debug                    show debug output (default no debug output)" << endl;
 //  cout << "      --test i mri         perform test number i on mri volume" << endl;
 
   cout << endl;
-  cout << "Important Note: The input images should all have the same intensity level!" << endl;
-  cout << "Good images are, for example, the T1.mgz and norm.mgz from the FreeSurfer stream." << endl;
-  cout << endl;
 
   cout << "Report bugs to: freesurfer@nmr.mgh.harvard.edu" << endl;
 
+	cout << endl << "References:" << endl<< endl;
+	cout << " Highly Accurate Inverse Consistent Registration: A Robust Approach," << endl;
+	cout << "   M. Reuter, H.D. Rosas, B. Fischl." << endl;
+	cout << "   NeuroImage 53 (4), pp. 1181-1196, 2010." << endl;
+	cout << "   http://reuter.mit.edu/lcount/click.php?id=13 " << endl;
+
   cout << endl;
+
 #endif
 }
 
@@ -605,7 +612,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     assert(nargs > 0);
     cout << "--weights: Will output weights in target space" << endl;
   }
-  else if (!strcmp(option, "WARP") || !strcmp(option, "W") )
+  else if (!strcmp(option, "WARP") || !strcmp(option, "MAPMOV") )
   {
     nargs = 0;
     do
@@ -620,7 +627,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     }
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
-    cout << "--warp: Will save mapped sources !" << endl;
+    cout << "--mapmov: Will save mapped movables/sources !" << endl;
   }
   else if (!strcmp(option, "TEST"))
   {
@@ -707,49 +714,49 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
   if (P.nwarps.size() > 0 && P.mov.size() != P.nwarps.size())
   {
     ntest = false;
-    cerr << " No. of filnames for --warp should agree with no. of inputs!"
+    cerr << "ERROR: No. of filnames for --warp should agree with no. of inputs!"
          << endl;
     exit(1);
   }
   if (P.nltas.size() > 0 && P.mov.size() != P.nltas.size())
   {
     ntest = false;
-    cerr << " No. of filnames for --lta should agree with no. of inputs!"
+    cerr << "ERROR: No. of filnames for --lta should agree with no. of inputs!"
          << endl;
     exit(1);
   }
   if (P.iltas.size() > 0 && P.mov.size() != P.iltas.size())
   {
     ntest = false;
-    cerr << " No. of filnames for --ixforms should agree with no. of inputs!"
+    cerr << "ERROR: No. of filnames for --ixforms should agree with no. of inputs!"
          << endl;
     exit(1);
   }
   if (P.nweights.size() > 0 && P.mov.size() != P.nweights.size())
   {
     ntest = false;
-    cerr << " No. of filnames for --weights should agree with no. of inputs!"
+    cerr << "ERROR: No. of filnames for --weights should agree with no. of inputs!"
          << endl;
     exit(1);
   }
   if (P.iscalein.size() > 0 && P.iltas.size() != P.iscalein.size())
   {
     ntest = false;
-    cerr << " No. of filnames for --iscalein should agree with no. of init LTAs (--ixforms)!"
+    cerr << "ERROR: No. of filnames for --iscalein should agree with no. of init LTAs (--ixforms)!"
          << endl;
     exit(1);
   }
   if (P.iscaleout.size() > 0 && P.mov.size() != P.iscaleout.size())
   {
     ntest = false;
-    cerr << " No. of filnames for --iscaleout should agree with no. of inputs!"
+    cerr << "ERROR: No. of filnames for --iscaleout should agree with no. of inputs!"
          << endl;
     exit(1);
   }
   if (n>0 &&!P.satit &&  P.sat <= 0 && ! ( P.noit && P.iltas.size() > 0))
   {
     ntest = false;
-    cerr << " Specify either --satit or set sensitivity manually with --sat <real> !"
+    cerr << "ERROR: Specify either --satit or set sensitivity manually with --sat <real> !"
          << endl;
     exit(1);
   }

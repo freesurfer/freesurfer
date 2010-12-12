@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/11 22:32:17 $
- *    $Revision: 1.43 $
+ *    $Date: 2010/12/12 20:19:01 $
+ *    $Revision: 1.44 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -132,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.43 2010/11/11 22:32:17 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.44 2010/12/12 20:19:01 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -223,7 +223,7 @@ int main(int argc, char *argv[])
 
   if (!parseCommandLine(argc, argv, P))
   {
-    printUsage();
+    //printUsage();
     exit(1);
   }
 
@@ -330,12 +330,12 @@ int main(int argc, char *argv[])
     P.mri_mov = MyMRI::MRIvalscale(P.mri_mov, P.mri_mov, Md.second);
   }
 
-  // maybe warp source to target:
+  // maybe map source to target:
   if (P.warpout != "")
   {
     //cout << "using lta" << endl;
     int nframes = P.mri_mov->nframes;
-		if (P.mri_mov->nframes > 1) cout << " WARNING: movable has more than one frame !!! Only warp first ..." << endl;
+		if (P.mri_mov->nframes > 1) cout << " WARNING: movable has more than one frame !!! Only map first ..." << endl;
     P.mri_mov->nframes = 1 ; // only map frame 1
     MRI *mri_aligned = MRIclone(P.mri_dst,NULL);
     mri_aligned = LTAtransform(P.mri_mov,mri_aligned, lta);
@@ -558,7 +558,7 @@ int main(int argc, char *argv[])
     cout << endl;
     cout << "To check debug output, run:" << endl;
     std::string name = R.getName();
-    cout << "  tkmedit -f " << name << "-mriS-warp.mgz -aux " << name << "-mriT-warp.mgz -overlay " << name << "-mriS-weights.mgz" << endl;
+    cout << "  tkmedit -f " << name << "-mriS-mapped.mgz -aux " << name << "-mriT-mapped.mgz -overlay " << name << "-mriS-weights.mgz" << endl;
   }
 
   cout << endl;
@@ -800,7 +800,7 @@ static void printUsage(void)
 	cout << "  Either --satit or --sat <real> (if not --leastsquares) for sensitivity" << endl << endl;
 
   cout << "Optional arguments" << endl << endl;
-  cout << "  --warp outvol.mgz      apply final xform to source, write to outvol.mgz" << endl;
+  cout << "  --mapmov outvol.mgz    apply final xform to movable, write to outvol.mgz" << endl;
   cout << "  --weights wvol.mgz     output weights (in target space) as wvol.mgz" << endl;
 
   cout << "  --halfmov hm.mgz       outputs half-way mov (mapped to halfway space)" << endl;
@@ -848,14 +848,21 @@ static void printUsage(void)
 	cout << "This program symmetrically aligns two volumes. It uses a method based on robust statistics to detect outliers and removes them from the registration. This leads to highly accurate registrations even with local changes in the image (e.g. jaw movement). The main purpose is to find the rigid registration (translation, rotation) of longitudinal data, but the method can be used to rigidly align different images. An additional optional intensity scale parameter can be used to adjust for global intensity differences. The extension to affine registration is being tested."<<endl;
   cout << endl;
   cout << "If the registration fails: " << endl;
-	cout << "The registration can fail because of several reasons, most likeley due to large intensity differences or non-linear differences in the image. You can try:"<< endl;
+	cout << "The registration can fail because of several reasons, most likely due to large intensity differences or non-linear differences in the image. You can try:"<< endl;
 	cout << " * Switch on intensity scaling (--iscale)." << endl;
 	cout << " * When specifying a manual saturation (--sat) too many voxels might be considered outlier early in the process. You can check this by outputing the weights (--weights ow.mgz) and by looking at them in:" << endl;
 	cout << "   > tkmedit -f dst.mgz -aux mov.mgz -overlay ow.mgz " << endl;
 	cout << "   If most of the brain is labeled outlier, try to set the saturation to a higher value (eg. --sat 12) or use --satit to automatically determine a good sat value." << endl;
-  cout << " * When using automatic saturation estimation (--satit) you can try specifying the sensitivity manually or twiddle around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels." << endl;
+  cout << " * When using automatic saturation estimation (--satit) you can try specifying the sensitivity manually or play around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels." << endl;
   cout << endl;
   cout << " Report bugs to: freesurfer@nmr.mgh.harvard.edu" << endl;
+
+	cout << endl << "References:" << endl<<endl;
+	cout << " Highly Accurate Inverse Consistent Registration: A Robust Approach," << endl;
+	cout << "   M. Reuter, H.D. Rosas, B. Fischl." << endl;
+	cout << "   NeuroImage 53 (4), pp. 1181-1196, 2010." << endl;
+	cout << "   http://reuter.mit.edu/lcount/click.php?id=13 " << endl;
+
   cout << endl;
 
 #endif
@@ -1264,12 +1271,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1 ;
     cout << "--weights: Will output weights transformed to target space as "<<P.weightsout<<" !" << endl;
   }
-  else if (!strcmp(option, "WARP") || !strcmp(option, "W") )
+  else if (!strcmp(option, "WARP") || !strcmp(option, "MAPMOV") )
   {
     P.warp = true;
     P.warpout = string(argv[1]);
     nargs = 1 ;
-    cout << "--warp: Will save warped source as "<<P.warpout <<" !" << endl;
+    cout << "--mapmov: Will save mapped movable as "<<P.warpout <<" !" << endl;
   }
   else if (!strcmp(option, "HALFMOV") )
   {
@@ -1374,7 +1381,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 static bool parseCommandLine(int argc, char *argv[], Parameters & P)
 {
   int nargs;
-
+  int inputargs = argc;
   for ( ; argc > 0 && ISOPTION(*argv[0]) ; argc--, argv++)
   {
     nargs = parseNextCommand(argc, argv,P) ;
@@ -1382,20 +1389,40 @@ static bool parseCommandLine(int argc, char *argv[], Parameters & P)
     argv += nargs ;
   }
 
+  if (inputargs == 0)
+	{
+	   printUsage();
+		 exit(1);
+	}
+
   bool test1 = ( P.mov != "" && P.dst != "" && P.lta != "" );
 	if (!test1)
 	{
-	  cerr << endl << "Please specify --mov --dst and --lta !  "<< endl;
+	  printUsage();
+	  cerr << endl<< endl << "ERROR: Please specify --mov --dst and --lta !  "<< endl << endl;
+		exit(1);
 	}
 	bool test2 = ( P.satit || P.sat > 0 || P.leastsquares );
 	if (!test2)
 	{
-	  cerr << endl << "Please specify either --satit or --sat <float> !  "<< endl;
+	  printUsage();
+	  cerr << endl << endl<< "ERROR: Please specify either --satit or --sat <float> !  "<< endl << endl;
+		exit(1);
 	}
 	bool test3 = ( P.iscaleout == "" || P.iscale);
 	if (!test3)
 	{
-	  cerr << endl << "Please spedify --iscale together with --iscaleout to compute and output global intensity scaling! " << endl;
+	  printUsage();
+	  cerr << endl << endl << "ERROR: Please specify --iscale together with --iscaleout to compute and output global intensity scaling! " << endl << endl;
+		exit(1);
 	}
-  return (test1 && test2 && test3);
+	bool test4 = ( P.warpout == "" || (P.warpout != P.weightsout) );
+	if (!test4)
+	{ 
+	  printUsage();
+	  cerr << endl << endl << "ERROR: Resampled input name (--mapmov) cannot be same as --weights output!" << endl << endl;
+		exit(1);
+	}
+	
+  return (test1 && test2 && test3 && test4);
 }

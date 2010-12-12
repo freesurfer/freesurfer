@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/04 01:10:27 $
- *    $Revision: 1.56 $
+ *    $Date: 2010/12/12 20:19:00 $
+ *    $Revision: 1.57 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -313,8 +313,8 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
 //     {
 //       // write weights and warped images after last step:
 // 
-//       MRIwrite(mri_Swarp,(name+"-mriS-warp.mgz").c_str());
-//       MRIwrite(mri_Twarp,(name+"-mriT-warp.mgz").c_str());
+//       MRIwrite(mri_Swarp,(name+"-mriS-mapped.mgz").c_str());
+//       MRIwrite(mri_Twarp,(name+"-mriT-mapped.mgz").c_str());
 //       if (robust)
 //       {
 //         if (mri_hweights) MRIfree(&mri_hweights);
@@ -348,8 +348,8 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
   {
     // write weights and warped images after last step:
 
-    MRIwrite(mri_Swarp,(name+"-mriS-warp.mgz").c_str());
-    MRIwrite(mri_Twarp,(name+"-mriT-warp.mgz").c_str());
+    MRIwrite(mri_Swarp,(name+"-mriS-mapped.mgz").c_str());
+    MRIwrite(mri_Twarp,(name+"-mriT-mapped.mgz").c_str());
     MRI* salign = MRIclone(mriS,NULL);
     salign = MyMRI::MRIlinearTransform(mri_Swarp, salign,cmd.first);
     MRIwrite(salign,(name+"-mriS-align.mgz").c_str());
@@ -839,6 +839,10 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
 		 cout << "          Try to manually specify --sat # if not satisfied with result! " << endl;
 	   cout << " ========================================================================" << endl << endl;;
 	}
+	
+  cout << endl << "   - Max Resolution used: " << stopres << endl;
+  cout << "     -- gpS ( " << gpS[stopres]->width <<" , " << gpS[stopres]->height << " , " << gpS[stopres]->depth << " )" << endl;
+  cout << "     -- gpT ( " << gpT[stopres]->width <<" , " << gpT[stopres]->height << " , " << gpT[stopres]->depth << " )" << endl;
 
   vnl_matrix_fixed < double, 4, 4> m; m.set_identity();
 

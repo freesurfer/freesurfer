@@ -22,7 +22,7 @@
       <explanation>auto-detect good sensitivity (recommended for head or full brain scans)</explanation>
     </required_flagged>
     <optional_flagged>
-      <argument>--warp &lt;warp.mgz&gt; </argument>
+      <argument>--mapmov &lt;aligned.mgz&gt; </argument>
       <explanation>output image: movable mapped and resampled at destination</explanation>
       <argument>--weights &lt;weights.mgz&gt; </argument>
       <explanation>output weights (outliers) in destination space</explanation>
@@ -95,7 +95,7 @@ The registration can fail because of several reasons, most likely due to large i
    tkmedit -f dst.mgz -aux mov.mgz -overlay ow.mgz 
 If most of the brain is labeled outlier, try to set the saturation to a higher value (eg. --sat 12) or use --satit to automatically determine a good sat value.
  * When using automatic saturation estimation (--satit) you can try specifying the sensitivity manually or play around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels.	</description>
-	<example>mri_robust_register --mov vol1.mgz --dst vol2.mgz --lta v1to2.lta --warp v1to2.mgz --weights v1to2-weights.mgz --iscale
+	<example>mri_robust_register --mov vol1.mgz --dst vol2.mgz --lta v1to2.lta --mapmov v1to2.mgz --weights v1to2-weights.mgz --iscale
 
 Computes the rigid registration (6 degrees of freedom) of vol1.mgz to vol2.mgz using robust statistics and with an additional 7th global intensity scaling parameter (recommended e.g. for orig.mgz). The output is the transform (v1to2.lta) and v1to2.mgz (the aligned vol1.mgz to the target image). Additionally the weights of the robust registation (outlier detection) are saved. Everything can be viewed in tkmedit with:
 
