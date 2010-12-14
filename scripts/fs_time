@@ -1,3 +1,36 @@
-#! /bin/tcsh -f
-exec /usr/bin/time -f "\ntime:: %E\tcmd:: $1\n" $argv
+#!/usr/bin/env perl
 
+use warnings;
+use strict;
+use integer;
+
+my( $start, $stop );
+my( $elapsed, $secs, $mins, $hours );
+my( $command, $outString );
+
+# Get the command
+$command = "";
+while( <@ARGV> ) {
+    $command = $command." ".$_;
+}
+
+
+# Run it inside timer
+$start = time;
+system( $command );
+$stop = time;
+
+# Compute elapsed time
+$elapsed = int( $stop-$start );
+
+$hours = $elapsed / 3600;
+$elapsed = $elapsed % 3600;
+
+$mins = $elapsed / 60;
+$secs = $elapsed % 60;
+
+
+# Print output
+$outString = sprintf( "\ntime:: %02d:%02d:%02d   elapsed:: %d   cmd:: $ARGV[0]\n", $hours, $mins, $secs, $elapsed );
+
+printf STDERR $outString;
