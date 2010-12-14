@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/09 19:48:36 $
-#    $Revision: 1.346 $
+#    $Date: 2010/12/14 17:55:52 $
+#    $Revision: 1.347 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.346 2010/12/09 19:48:36 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.347 2010/12/14 17:55:52 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -157,6 +157,8 @@ set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
                  # mris_inflate_cuda, mris_sphere_cuda
 set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to 
                      # mris_make_surfaces to bypass usage of parcellation
+set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
+                       # to run mri_make_uchar to correct histogram problem
 
 # Longitudinal processing:
 set longitudinal = 0;    # if 1, will run the longitudinal scheme
@@ -443,9 +445,11 @@ echo "program versions used" >> $LF
 echo $VERSION                >> $LF
 mri_motion_correct.fsl -version >> $LF
 flirt.fsl -version >> $LF
+if($status) goto error_exit;
 talairach_avi --version >> $LF
 tkregister2_cmdl --all-info >> $LF
 nu_correct -version >> $LF
+mri_make_uchar -all-info >> $LF
 mri_normalize -all-info >> $LF
 mri_watershed -all-info >> $LF
 mri_gcut -all-info >> $LF
@@ -1415,7 +1419,16 @@ if($DoNuIntensityCor) then
     |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir/mri > /dev/null
   set xopts = `fsr-getxopts mri_nu_correct.mni $XOptsFile`;
-  set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz)
+  set cmd = (mri_nu_correct.mni  --i orig.mgz --o nu.mgz )
+  # to fix a problem with mri_nu_correct.mni messing with the histogramming
+  # in some odd subjects (due to voxels outside the brain, which has the
+  # effect of altering white matter intensity interpretation downstream),
+  # the inclusion of talairach.xfm with mri_nu_correct.mni causes 
+  # mri_make_uchar to run, which uses the Tal xform to find a ball of voxels
+  # that are mostly brain. The top of the intensity histogram in this ball
+  # will then be white matter, which allows us to center it at the desired
+  # value, approximately (110).
+  if ($DoNuMakeUchar) set cmd = ($cmd --uchar transforms/talairach.xfm)
   # --cm for hi-res support:
   if ($ConformMin) set cmd = ($cmd --cm)
   if ($DoNuIntensityCor3T) then
@@ -1954,7 +1967,8 @@ if($DoCARegInv) then
   $PWD |& tee -a $LF
   # set xopts = `fsr-getxopts mri_ca_register $XOptsFile`; # careful here
   set cmd = (mri_ca_register)
-  if($UseCuda) set cmd = (mri_ca_register_cuda)
+  #NJS: cuda version doesnt work will -invert-and-save:
+  #if($UseCuda) set cmd = (mri_ca_register_cuda)
   set cmd = ($cmd -invert-and-save transforms/talairach.m3z)
   echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
   if($RunIt) $fs_time $cmd |& tee -a $LF
@@ -3261,7 +3275,21 @@ if ($DoQdecCache) then
           |& tee -a $LF |& tee -a $CF
       echo "#@# Qdec Cache $hemi $measure $target `date`" \
           |& tee -a $SF |& tee -a $LF |& tee -a $CF
-      # check that the file exists, print only warning if not
+
+      # check for the target subject 'fsaverage' (if using as default target)
+      # and create symlink from distribution dir if not found in subjects dir
+      if (("${target}" == "fsaverage") && ( ! -e $SUBJECTS_DIR/fsaverage)) then
+        echo "INFO: fsaverage subject does not exist in SUBJECTS_DIR" \
+          |& tee -a $LF |& tee -a $CF
+        echo "INFO: Creating symlink to fsaverage subject..." \
+          |& tee -a $LF |& tee -a $CF
+        set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage \
+          $SUBJECTS_DIR/fsaverage)
+        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+        if($RunIt) $fs_time $cmd |& tee -a $LF
+      endif
+
+      # now check that the measure file exists, print only warning if not
       if ( ! -e ${hemi}.${measure} ) then
         echo "INFO: File ${hemi}.${measure} does not exist!" \
             |& tee -a $LF |& tee -a $CF
@@ -3744,6 +3772,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-nuintensitycor":
+    case "-nu_correct":
       set DoNuIntensityCor = 1;
       breaksw
     case "-nonuintensitycor":
@@ -3759,6 +3788,14 @@ while( $#argv != 0 )
     case "-nuiterations":
       if ( $#argv < 1) goto arg1err;
       set NuIterations = $argv[1]; shift;
+      breaksw
+
+    case "-numakeuchar":
+      set DoNuMakeUchar = 1;
+      breaksw
+    case "-no-numakeuchar":
+    case "-nonumakeuchar":
+      set DoNuMakeUchar = 0;
       breaksw
 
     case "-norm3diters":
