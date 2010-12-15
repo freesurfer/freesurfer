@@ -30,6 +30,7 @@ dcmunpack \
 deface_subject \
 defect-seg \
 dicom-rename \
+dmrirc.example \
 dsh \
 dt_recon \
 epidewarp.fsl\
@@ -188,6 +189,9 @@ tcl_setup \
 test_recon-all.csh \
 test_fs_tutorial.csh \
 thickdiffmap \
+trac-all \
+trac-paths \
+trac-preproc \
 unpack_ima1.tcl \
 unpackimadir \
 unpackimadir2 \
@@ -200,6 +204,7 @@ usbtree \
 vno_match_check \
 vtk_setup \
 wfilemask \
+xfmrot \
 xhemireg \
 xsanatreg
 
