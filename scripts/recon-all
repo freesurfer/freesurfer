@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/14 17:55:52 $
-#    $Revision: 1.347 $
+#    $Date: 2010/12/15 20:13:42 $
+#    $Revision: 1.348 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.347 2010/12/14 17:55:52 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.348 2010/12/15 20:13:42 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1809,6 +1809,12 @@ skullstrip:
     set BGC = brainmask.gcuts.mgz
     set xopts = `fsr-getxopts mri_gcut $XOptsFile`;
     set cmd = (mri_gcut $xopts -110 -mult $BMA T1.mgz $BMA $BGC)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $fs_time $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # binarize the gcuts file, setting vals to label 999 which appears as red
+    # when loaded as a segmentation
+    set cmd = (mri_binarize --i $BGC --o $BGC --binval 999 --min 1)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
