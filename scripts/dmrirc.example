@@ -1,0 +1,172 @@
+#
+# dmrirc.example
+#
+# This file contains commands that will be run by trac-all before an analysis.
+# It is used to set all parameters needed for the analysis.
+#
+# Remove a parameter from your dmrirc file if you want use the default value.
+# Parameters that don't have default values must be specified.
+#
+# Any other commands that you might want to run before an analysis can be added
+# to this file.
+#
+# Original Author: Anastasia Yendiki
+# CVS Revision Info:
+#    $Author: ayendiki $
+#    $Date: 2010/12/15 08:36:00 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2010
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+#
+
+# FreeSurfer SUBJECTS_DIR
+# T1 images and FreeSurfer segmentations are expected to be found here
+# 
+setenv SUBJECTS_DIR /path/to/recons/of/ducks
+
+# Output directory where trac-all results will be saved
+# Default: Same as SUBJECTS_DIR
+#
+set dtroot = /path/to/tracts/of/ducks
+
+# Subject IDs
+#
+set subjlist = (huey dewey louie)
+
+# In case you want to analyze only Huey and Louie
+# Default: Run analysis on all subjects
+#
+set runlist = (1 3)
+
+# Input diffusion DICOMs (file names relative to dcmroot)
+# If original DICOMs don't exist, these can be in other image format
+# but then bvecfile, bvalfile, and nb0 must be specified (see below)
+#
+set dcmroot = /path/to/dicoms/of/ducks
+set dcmlist = (huey/day1/XXX-1.dcm dewey/day1/XXX-1.dcm louie/day2/XXX-1.dcm)
+
+# Diffusion gradient table (in mri_convert format)
+# Must be specified if inputs are not DICOM
+# Default: Read from DICOM header
+#
+set bvecfile = /path/to/bvecs.txt
+
+# Diffusion b-value table (in mri_convert format)
+# Must be specified if inputs are not DICOM
+# Default: Read from DICOM header
+#
+set bvalfile = /path/to/bvals.txt
+
+# Number of low-b images
+# Must be specified if inputs are not DICOM
+# Default: Read from DICOM header
+#
+set nb0 = 10
+
+# Perform registration-based B0-inhomogeneity compensation?
+# Default: 0 (no)
+#
+set dob0 = 1
+
+# Input B0 field map magnitude DICOMs (file names relative to dcmroot)
+# Only used if dob0 = 1
+# Default: None
+#
+set b0mlist = (huey/fmag/XXX-1.dcm dewey/fmag/XXX-1.dcm louie/fmag/XXX-1.dcm)
+
+# Input B0 field map phase DICOMs (file names relative to dcmroot)
+# Only used if dob0 = 1
+# Default: None
+#
+set b0plist = (huey/fphas/XXX-1.dcm dewey/fphas/XXX-1.dcm louie/fphas/XXX-1.dcm)
+
+# Echo spacing for field mapping sequence (from sequence printout)
+# Only used if dob0 = 1
+# Default: None
+#
+set echospacing = 0.7
+
+# Perform registration-based eddy-current compensation?
+# Default: 1 (yes)
+#
+set doeddy = 1
+
+# Rotate diffusion gradient vectors to match eddy-current compensation?
+# Only used if doeddy = 1
+# Default: 1 (yes)
+#
+set dorotbvecs = 1
+
+# Fractional intensity threshold for BET mask extraction from low-b images
+# Default: 0.3
+#
+set thrbet = 0.5
+
+# Perform diffusion-to-T1 registration by flirt?
+# Default: 1 (yes)
+#
+set doregflt = 1
+
+# Perform diffusion-to-T1 registration by bbregister?
+# Default: 1 (yes)
+#
+set doregbbr = 1
+
+# Perform registration of T1 to MNI template?
+# Default: 1 (yes)
+#
+set doregmni = 1
+
+# MNI template
+# Only used if doregmni = 1
+# Default: $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+#
+set mnitemp = /path/to/mni_template.nii.gz
+
+# Perform registration of T1 to CVS template?
+# Default: 1 (yes)
+#
+set doregcvs = 1
+
+# CVS template subject ID
+# Only used if doregcvs = 1
+# Default: avg35rerun
+#
+set cvstemp = donald
+
+# CVS template subject directory
+# Only used if doregcvs = 1
+# Default: Same as SUBJECTS_DIR
+#
+set cvstempdir = /path/to/cvs/atlases/of/ducks
+
+# Paths to reconstruct
+# Default: All paths
+#
+set pathlist = ( lh.cst_AS lh.uncinate_AS lh.ilf_AS \
+                 rh.cst_AS rh.uncinate_AS rh.ilf_AS )
+
+# Number of path control points
+# Default: 5
+#
+set ncpts = 5
+
+# Path atlas (mni or cvs)
+# Default: mni
+#
+set xspace = mni
+
+# Location of trc executables
+# Default: $FREESURFER_HOME/bin
+#
+set trcdir = /path/to/trc/bin
+

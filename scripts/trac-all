@@ -1,0 +1,1002 @@
+#! /bin/tcsh -f
+
+#
+# trac-all
+#
+# For when you need to look beneath the surface
+#
+# Original Author: Anastasia Yendiki
+# CVS Revision Info:
+#    $Author: ayendiki $
+#    $Date: 2010/12/15 08:36:00 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2010
+# The General Hospital Corporation (Boston, MA).
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+#
+
+umask 002
+
+set VERSION = '$Id: trac-all,v 1.1 2010/12/15 08:36:00 ayendiki Exp $'
+set ProgName = `basename $0`
+set inputargs = ($argv)
+
+set onpbs = 0
+set hname = `hostname | awk -v FS=. '{print $1}'`
+if ($hname == seychelles || $hname == launchpad) then
+  set onpbs = 1
+endif
+
+#------------ Set default options -----------------------------------------#
+
+set PrintHelp = 0	# Print help and exit
+set DoVersionsOnly = 0	# Print versions and exit
+
+set debug = 0		# Generate more output
+set umaskid = ()	# Unix file permission mask
+set groupid = ()	# Unix user group ID
+set allowcore = 0	# Unlimit core dump size
+
+set DoTime = 0		# Time main commands
+set fs_time = ()
+
+set LF = ()		# Name of log file
+set CF = ()		# Name of command file
+set AppendLog = 1	# Append or overwrite log file
+
+set DoIsRunning = 1     # Create a lock file while processing continues
+
+set RunIt = 1		# If 0, do everything but run commands (for debugging)
+
+set DoCleanCSDF = 0	# If 1, ignore FREESURFER_HOME of previous processing
+
+set dopreproc = 0	# Perform select processing steps
+set dobedpost = 0
+set dopaths = 0
+
+set docorr = 1
+set dointra = 1
+set dointer = 1
+set domasks = 1
+set dotensor = 1
+set dotensormni = 0
+set dosnr = 1
+set dopriors = 1
+
+set rcfile = ./dmrirc	# Run command file
+
+if ($onpbs) then
+  setenv MYPBSWAIT 15
+  setenv MYPBSMAXJOBS 10
+  set pbslogdir = `dirname $rcfile`/trac-all.$$
+  mkdir -p $pbslogdir
+  set submitfile = $pbslogdir/submit.txt
+  rm -f $submitfile
+endif
+
+#------------ Parse input arguments ---------------------------------------#
+
+if ($#argv == 0) goto usage_exit
+
+set n = `echo $argv | egrep -e -help | wc -l`
+if ($n != 0) then
+  set PrintHelp = 1
+  goto usage_exit
+endif
+
+set n = `echo $argv | egrep -e -version | wc -l`
+if ($n != 0) then
+  echo $VERSION
+  exit 0
+endif
+
+goto parse_args
+parse_args_return:
+goto check_params
+check_params_return:
+
+echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
+
+pushd $FREESURFER_HOME > /dev/null
+set freesurfer_home_true = `pwd`;
+popd > /dev/null
+echo "Actual FREESURFER_HOME $freesurfer_home_true"
+
+#------------ Read configuration file -------------------------------------#
+
+# Set defaults
+set dtroot = ()
+set subjlist = ()
+set runlist = ()
+set dcmroot = ()
+set dcmlist = ()
+set bvecfile = ()
+set bvalfile = ()
+set nb0 = ()
+set dob0 = 0
+set b0mlist = ()
+set b0plist = ()
+set echospacing = ()
+set doeddy = 1
+set dorotbvecs = 1
+set thrbet = 0.3
+set doregflt = 1
+set doregbbr = 1
+set doregmni = 1
+set doregcvs = 1
+set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
+set cvstempdir = $SUBJECTS_DIR
+set cvstemp = avg35rerun
+set usemaskanat = 1
+set pathlist = ( lh.cst_AS lh.uncinate_AS lh.ilf_AS \
+                 rh.cst_AS rh.uncinate_AS rh.ilf_AS )
+set ncpts = 5
+set xspace = mni
+set trainfile = $FREESURFER_HOME/trctrainlist.txt
+set ntrainlist = ()
+set do1out = 0
+set doprior = 0
+set dosegprior = 1
+set dopathsubdirs = 0
+set fmin = 0.05
+set nburnin = 200
+set nsample = 1000
+set nupdate = 0
+set nkeep = 10
+set doinitprop = 0
+set trcdir = $FREESURFER_HOME/bin
+
+# Source run command file
+source $rcfile
+
+if (! $#runlist) then		# Process all subjects
+  set runlist = `jot $#subjlist`
+endif
+
+if (! $#dtroot) then		# Save output under SUBJECTS_DIR
+  set dtroot = $SUBJECTS_DIR
+endif
+
+echo "INFO: Diffusion root is $dtroot"
+
+if (! $?ncptlist ) set ncptlist = ncpts
+if (! $?xspacelist ) set xspacelist = xspace
+
+if ($do1out) then
+  # Leave-one-out training file:
+  # The first subject of each line is the test subject,
+  # the remaining subjects of the line are the training subjects
+  set subjlist = `cat $trainfile | awk '{print $1}'`
+  if (! #ntrainlist) then
+    set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
+  endif
+else
+  # Simple training file:
+  # The file lists the training subjects
+  # Info on the test subjects comes from dmrirc
+  set ntrainlist = `wc -w $trainfile | awk '{print $1}'`
+endif
+
+if ($#runlist > $#subjlist) then
+  echo "ERROR: run list is longer than subject list - potential duplicates"
+  exit 1
+endif
+
+if ($#dcmlist ~= $#subjlist) then
+  echo "ERROR: must specify as many DWI dicoms as subjects"
+  exit 1
+endif
+
+if ($#b0mlist > 0 && $#b0mlist ~= $#subjlist) then
+  echo "ERROR: must specify as many field map magnitude dicoms as subjects"
+  exit 1
+endif
+
+if ($#b0plist > 0 && $#b0plist ~= $#subjlist) then
+  echo "ERROR: must specify as many field map phase dicoms as subjects"
+  exit 1
+endif
+
+set cmdopts = ()
+if ($DoTime) set cmdopts = ($cmdopts -time)
+if (! $DoIsRunning) set cmdopts = ($cmdopts -no-isrunning)
+if (! $RunIt) set cmdopts = ($cmdopts -dontrun)
+if ($debug) set cmdopts = ($cmdopts -debug)
+if ($#umaskid) set cmdopts = ($cmdopts -umask $umaskid)
+if ($#groupid) set cmdopts = ($cmdopts -grp $groupid)
+if ($allowcore) set cmdopts = ($cmdopts -allowcoredump)
+
+#------------ Loop over subjects ------------------------------------------#
+set dmdirlist = ()
+
+foreach isubj ($runlist)
+  if ($isubj > $#subjlist) then
+    echo "ERROR: $isubj found in run list but have only $#subjlist subjects"
+    exit 1
+  end
+
+  set subj = $subjlist[$isubj]
+
+  if ($do1out) then
+    set dtdir = $subj
+    set subj = `basename $dtdir`
+    set trainsubjlist = `cat $trainfile | sed -n "$isubj p"`
+    shift trainsubjlist
+  else
+    set dtdir = $dtroot/$subj
+    set trainsubjlist = `cat $trainfile`
+  endif
+
+  #---------- Check subject directories -----------------------------------#
+
+  set fsdir = $SUBJECTS_DIR/$subj
+
+  if (! -e $fsdir) then
+    echo "ERROR: cannot find $fsdir"
+    exit 1
+  endif
+
+  if (! -r $fsdir) then
+    echo "ERROR: $fsdir exists but is unreadable"
+    exit 1
+  endif
+
+  mkdir -p $dtdir/scripts
+
+  if ($status || ! -w $dtdir) then
+    echo "ERROR: cannot write in $dtdir"
+    exit 1
+  endif
+
+  #---------- Check build stamp -------------------------------------------#
+  # This allows the user to require that the build stamp be
+  # consistent from one trac-all/recon-all invocation to the next.
+  # Good for frozen versions.
+
+  if ($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
+  #echo "REQUIRE_FS_MATCH $REQUIRE_FS_MATCH"
+
+  set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
+  set bstampfile  = $dtdir/scripts/build-stamp.txt
+
+  if (-e $bstampfile0) then
+    if (! -e $bstampfile) cp $bstampfile0 $bstampfile
+
+    set bstamp0 = `cat $bstampfile0`
+    set bstamp  = `cat $bstampfile`
+
+    if ("$bstamp0" != "$bstamp") then
+      if ($REQUIRE_FS_MATCH) then
+        echo "ERROR: FreeSurfer build stamps do not match"
+        echo "Subject Stamp: $bstamp"
+        echo "Current Stamp: $bstamp0"
+        exit 1;
+      else
+        echo "INFO: FreeSurfer build stamps do not match"
+      endif
+    endif
+
+    echo "Subject Stamp: $bstamp"
+    echo "Current Stamp: $bstamp0"
+  endif
+
+  #---------- Create log and command files --------------------------------#
+
+  if ($DoVersionsOnly) then
+    if (-e /dev/stdout) then
+      set LF = /dev/stdout
+    else
+      set LF = /dev/null
+    endif
+  else
+    if ($#LF == 0) set LF = ($dtdir/scripts/trac-all.log)
+    if (-e $LF) then
+      ls -l $LF
+      if (! $AppendLog) mv -f $LF $LF.old
+    endif
+
+    if ($#CF == 0) set CF = ($dtdir/scripts/trac-all.cmd)
+    rm -f $CF
+  endif
+
+  if (-e $LF) then
+    echo "\n\n"  >> $LF
+    echo "New invocation of $ProgName"  >> $LF
+    echo "\n\n"  >> $LF
+  endif
+  
+  date >> $LF
+  pwd >> $LF
+  echo $0 >> $LF
+  echo $inputargs >> $LF
+  echo "Subject $subj" >> $LF
+  echo "SUBJECTS_DIR $SUBJECTS_DIR" >> $LF
+  echo "FREESURFER_HOME $FREESURFER_HOME" >> $LF
+  echo "Actual FREESURFER_HOME $freesurfer_home_true" >> $LF
+  if (-e $FREESURFER_HOME/build-stamp.txt) then
+    echo "build-stamp.txt: `cat $FREESURFER_HOME/build-stamp.txt`" >> $LF
+  endif
+  whoami >> $LF
+  hostname >> $LF
+  uname -a >> $LF
+  limit >> $LF
+  if (-e /usr/bin/free) then
+    echo "" >> $LF
+    /usr/bin/free >> $LF
+    echo "" >> $LF
+  endif
+  if ("`uname -s`" == "Darwin") then
+    echo "" >> $LF
+    /usr/bin/top -l 1 | grep PhysMem >> $LF
+    echo "" >> $LF
+  endif
+
+  echo "########################################" >> $LF
+  echo "Program versions:"	>> $LF
+  echo $VERSION               	>> $LF
+  mri_convert --all-info	>> $LF
+  flirt -version		>> $LF
+  bbregister --version		>> $LF
+  mri_cvs_register --version	>> $LF
+  dmri_train --all-info		>> $LF
+  dmri_track --all-info		>> $LF
+  dmri_path_meas --all-info	>> $LF
+
+  if ($DoVersionsOnly) continue
+
+  #---------- Check FREESURFER_HOME consistency ---------------------------#
+
+  set CSDF = $dtdir/scripts/csurfdir
+  if ($DoCleanCSDF) rm -vf $CSDF
+  if (-e $CSDF) then
+    set tmp = `cat $CSDF`;
+    if ($tmp != $FREESURFER_HOME) then
+      echo "INFO: current FREESURFER_HOME does not match that of previous processing." \
+        | tee -a $LF
+      echo "    Current: $FREESURFER_HOME" | tee -a $LF
+      echo "    Previous: $tmp" | tee -a $LF
+      sleep 1;
+    endif
+  else
+    echo $FREESURFER_HOME > $CSDF
+  endif
+
+  # Put a copy of myself (this script) in the scripts dir
+  cp $0 $dtdir/scripts/$ProgName.local-copy
+
+  # Write all parameters to local copy of dmrirc
+  set RCF = $dtdir/scripts/dmrirc.local
+  if (-e $RCF) mv -f $RCF $RCF.orig
+
+  echo "# Run command file generated automatically by $ProgName" 	>> $RCF
+  echo "#"							 	>> $RCF
+  echo "setenv FREESURFER_HOME $FREESURFER_HOME"			>> $RCF
+  echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"				>> $RCF
+  echo "set dtroot = $dtroot"						>> $RCF
+  echo "set subj = $subj"						>> $RCF
+  echo "#"							 	>> $RCF
+  echo "# Processing steps to be performed"			 	>> $RCF
+  echo "#"							 	>> $RCF
+  echo "set docorr = $docorr"						>> $RCF
+  echo "set dointra = $dointra"						>> $RCF
+  echo "set dointer = $dointer"						>> $RCF
+  echo "set domasks = $domasks"						>> $RCF
+  echo "set dotensor = $dotensor"					>> $RCF
+  echo "set dotensormni = $dotensormni"					>> $RCF
+  echo "set dosnr = $dosnr"						>> $RCF
+  echo "set dopriors = $dopriors"					>> $RCF
+  echo "#"							 	>> $RCF
+  echo "# Options for image corrections and tensor fit"		 	>> $RCF
+  echo "#"							 	>> $RCF
+  echo "set dcmroot = $dcmroot"						>> $RCF
+  echo "set dcmfile = $dcmlist[$isubj]"					>> $RCF
+  echo "set bvecfile = $bvecfile"					>> $RCF
+  echo "set bvalfile = $bvalfile"					>> $RCF
+  echo "set nb0 = $nb0"							>> $RCF
+  echo "set dob0 = $dob0"						>> $RCF
+  if ($#b0mlist) then
+    echo "set b0mfile = $b0mlist[$isubj]"				>> $RCF
+  else
+    echo "set b0mfile = "						>> $RCF
+  endif
+  if ($#b0plist) then
+    echo "set b0pfile = $b0plist[$isubj]"				>> $RCF
+  else
+    echo "set b0pfile = "						>> $RCF
+  endif
+  echo "set echospacing = $echospacing"					>> $RCF
+  echo "set doeddy = $doeddy"						>> $RCF
+  echo "set dorotbvecs = $dorotbvecs"					>> $RCF
+  echo "set thrbet = $thrbet"						>> $RCF
+  echo "#"							 	>> $RCF
+  echo "# Options for registrations"				 	>> $RCF
+  echo "#"							 	>> $RCF
+  echo "set doregflt = $doregflt"					>> $RCF
+  echo "set doregbbr = $doregbbr"					>> $RCF
+  echo "set doregmni = $doregmni"					>> $RCF
+  echo "set doregcvs = $doregcvs"					>> $RCF
+  echo "set mnitemp = $mnitemp"						>> $RCF
+  echo "set cvstempdir = $cvstempdir"					>> $RCF
+  echo "set cvstemp = $cvstemp"						>> $RCF
+  echo "#"							 	>> $RCF
+  echo "# Options for path reconstructions"				>> $RCF
+  echo "#"							 	>> $RCF
+  echo "set usemaskanat = $usemaskanat"					>> $RCF
+  echo "set pathlist = ($pathlist)"					>> $RCF
+  echo "set ncptlist = ($ncptlist)"					>> $RCF
+  echo "set xspacelist = ($xspacelist)"					>> $RCF
+  echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
+  echo "set ntrainlist = ($ntrainlist)"					>> $RCF
+  echo "set doprior = $doprior"						>> $RCF
+  echo "set dosegprior = $dosegprior"					>> $RCF
+  echo "set dopathsubdirs = ($dopathsubdirs)"				>> $RCF
+  echo "set fmin = $fmin"						>> $RCF
+  echo "set nburnin = $nburnin"						>> $RCF
+  echo "set nsample = $nsample"						>> $RCF
+  echo "set nupdate = $nupdate"						>> $RCF
+  echo "set nkeep = $nkeep"						>> $RCF
+  echo "set doinitprop = $doinitprop"					>> $RCF
+  echo "set trcdir = $trcdir"						>> $RCF
+
+  set dmdirlist = ($dmdirlist $dtdir/dmri)
+
+  if ($dopreproc) then				# Pre-processing #############
+    set cmd = trac-preproc
+    set cmd = ($cmd -c $RCF)
+    set cmd = ($cmd -log $LF)
+    set cmd = ($cmd -cmd $CF)
+    set cmd = ($cmd $cmdopts)
+    if ($onpbs) then
+      echo $cmd >> $submitfile
+    else if ($RunIt) then
+      $cmd
+      if ($status) exit 1
+    endif
+  else if ($dobedpost && ! $onpbs) then		# Bedpost ####################
+    echo "WARN: Running FSL's bedbost locally - this might take a while" \
+      |& tee -a $LF |& tee -a $CF
+    echo "WARN: It is recommended to run this step on a cluster" \
+      |& tee -a $LF |& tee -a $CF
+    set cmd = (bedpostx_seychelles $dtdir/dmri)
+    echo $cmd
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) exit 1
+    endif
+  else if ($dopaths) then			# Path reconstruction ########
+    set cmd = trac-paths
+    set cmd = ($cmd -c $RCF)
+    set cmd = ($cmd -log $LF)
+    set cmd = ($cmd -cmd $CF)
+    set cmd = ($cmd $cmdopts)
+    if ($onpbs) then
+      echo $cmd >> $submitfile
+    else if ($RunIt) then
+      $cmd
+      if ($status) exit 1
+  endif
+end
+
+if ($onpbs && $RunIt) then
+  if ($dopreproc) then
+    echo Queueing pre-processing
+    set preid = `fsl_sub_seychelles 
+                 -l $pbslogdir/log -m a -N trcpre -t $submitfile`
+  else if ($dobedp) then
+    bedpostx_seychelles $dmdirlist
+  else if ($dopaths) then
+    echo Queueing path reconstruction
+    set trcid = `fsl_sub_seychelles \
+                 -l $pbslogdir/log -m a -N trc -t $submitfile`
+  endif
+endif
+
+# Add to usage tracking file, if configured and writable
+# A sysadmin would need to have users set the environment var
+# TRACALL_USAGE_FILE to a world-writable file. Example: 
+# setenv TRACALL_USAGE_FILE /space/freesurfer/trac-all_run_log
+if ($?TRACALL_USAGE_FILE) then
+  if (-e $TRACALL_USAGE_FILE) then
+    if (-w $TRACALL_USAGE_FILE) then
+      if ($RunIt) then
+        echo "`date` `cat $FREESURFER_HOME/build-stamp.txt`" \
+          >> $TRACALL_USAGE_FILE
+        endif
+      endif
+  endif
+endif
+
+exit 0
+#############------------------------------------#######################
+##################>>>>>>>>>>>>>.<<<<<<<<<<<<<<<<<#######################
+#############------------------------------------#######################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv)
+
+while( $#argv != 0 )
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+    case "-subject":
+    case "-subjid":
+    case "-sid":
+    case "-s":
+      if ( $#argv < 1) goto arg1err;
+      set subjlist = $argv[1]; shift;
+      set subjlist = `basename $subjlist`	# to remove trailing /
+      breaksw
+
+    case "-i":
+      if ( $#argv < 1) goto arg1err;
+      set dcmlist = "$argv[1]"; shift;
+      if (! -e "$dcmlist") then
+        echo "ERROR: cannot find $dcmlist"
+        exit 1
+      endif
+      if (! -r "$dcmlist") then
+        echo "ERROR: $dcmlist exists but is not readable"
+        exit 1
+      endif
+      set dcmroot = `dirname  "$dcmlist"`
+      set dcmlist = `basename "$dcmlist"`
+      breaksw
+
+    case "-c":
+      if ( $#argv < 1) goto arg1err;
+      set rcfile = "$argv[1]"; shift;
+      if (! -e "$rcfile") then
+        echo "ERROR: cannot find $rcfile"
+        exit 1
+      endif
+      if (! -r "$rcfile") then
+        echo "ERROR: $rcfile exists but is not readable"
+        exit 1
+      endif
+      breaksw
+
+    case "-prep":
+      set dopreproc = 1
+      set docorr = 1
+      set dointra = 1
+      set dointer = 1
+      set domasks = 1
+      set dotensor = 1
+      set dopriors = 1
+      set dobedpost = 0
+      set dopaths = 0
+      breaksw
+
+    case "-bedp":
+      set dopreproc = 0
+      set dobedpost = 1
+      set dopaths = 0
+      breaksw
+
+    case "-path":
+      set dopreproc = 0
+      set dobedpost = 0
+      set dopaths = 1
+      breaksw
+
+    case "-corr":
+      set dopreproc = 1
+      set docorr = 1
+      set dointra = 0
+      set dointer = 0
+      set domasks = 0
+      set dotensor = 0
+      set dopriors = 0
+      set dobedpost = 0
+      set dopaths = 0
+      breaksw
+
+    case "-nocorr":
+      set docorr = 0
+      breaksw
+
+    case "-intra":
+      set dopreproc = 1
+      set docorr = 0
+      set dointra = 1
+      set dointer = 0
+      set domasks = 0
+      set dotensor = 0
+      set dopriors = 0
+      set dobedpost = 0
+      set dopaths = 0
+      breaksw
+
+    case "-nointra":
+      set dointra = 0
+      breaksw
+
+    case "-inter":
+      set dopreproc = 1
+      set docorr = 0
+      set dointra = 0
+      set dointer = 1
+      set domasks = 0
+      set dotensor = 0
+      set dopriors = 0
+      set dobedpost = 0
+      set dopaths = 0
+      breaksw
+
+    case "-nointer":
+      set dointer = 0
+      breaksw
+
+    case "-masks":
+      set dopreproc = 1
+      set docorr = 0
+      set dointra = 0
+      set dointer = 0
+      set domasks = 1
+      set dotensor = 0
+      set dopriors = 0
+      set dobedpost = 0
+      set dopaths = 0
+      breaksw
+
+    case "-nomasks":
+      set domasks = 0
+      breaksw
+
+    case "-tensor":
+      set dopreproc = 1
+      set docorr = 0
+      set dointra = 0
+      set dointer = 0
+      set domasks = 0
+      set dotensor = 1
+      set dopriors = 0
+      set dobedpost = 0
+      set dopaths = 0
+      breaksw
+
+    case "-notensor":
+      set dotensor = 0
+      breaksw
+
+    case "-prior":
+      set dopreproc = 1
+      set docorr = 0
+      set dointra = 0
+      set dointer = 0
+      set domasks = 0
+      set dotensor = 0
+      set dopriors = 1
+      set dobedpost = 0
+      set dopaths = 0
+      breaksw
+
+    case "-noprior":
+      set dopriors = 0
+      breaksw
+
+    case "-cleancsdf":
+      set DoCleanCSDF = 1
+      breaksw
+
+    case "-time":
+      set DoTime = 1
+      breaksw
+
+    case "-notime":
+      set DoTime = 0
+      breaksw
+
+    case "-noappendlog":
+      set AppendLog = 0
+      breaksw
+
+    case "-log":
+      if ( $#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set LF = /dev/null
+      breaksw
+
+    case "-cmd":
+      if ( $#argv < 1) goto arg1err;
+      set CF = $argv[1]; shift;
+      breaksw
+
+    case "-nocmd":
+      set CF = /dev/null
+      breaksw
+
+    case "-no-isrunning":
+      set DoIsRunning = 0
+      breaksw
+
+    case "-sd":
+      if ( $#argv < 1) goto arg1err;
+      setenv SUBJECTS_DIR $argv[1]; shift;
+      breaksw
+
+    case "-csurfdir":
+      if ( $#argv < 1) goto arg1err;
+      setenv FREESURFER_HOME $argv[1]; shift;
+      if (! -e $FREESURFER_HOME) then
+        echo "ERROR: cannot find $FREESURFER_HOME"
+        exit 1
+      endif
+      pushd $FREESURFER_HOME > /dev/null
+      setenv FREESURFER_HOME `pwd`;
+      breaksw
+
+    case "-umask":
+      if ( $#argv < 1) goto arg1err;
+      set umaskid = $1;
+      umask $1; shift;
+      breaksw
+
+    case "-grp":
+      if ( $#argv < 1) goto arg1err;
+      set groupid = $argv[1];
+      set curgrp = `id -gn`;
+      if ($groupid != $curgrp) then
+        echo "ERROR: current group $curgrp and specified group $groupid differ"
+        exit 1
+      endif
+      breaksw
+
+    case "-allowcoredump":
+      set allowcore = 1
+      limit coredumpsize unlimited
+      breaksw
+
+    case "-debug":
+      set debug = 1
+      breaksw
+
+    case "-dontrun":
+      set RunIt = 0
+      breaksw
+
+    case "-onlyversions":
+      set DoVersionsOnly = 1
+      breaksw
+
+    default:
+      echo "ERROR: flag $flag unrecognized"
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+end
+
+goto parse_args_return;
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+
+############--------------##################
+check_params:
+  if (! $DoVersionsOnly) then
+    if (! $#subjlist) then
+      echo "ERROR: must specify a subject id"
+      exit 1
+    endif
+
+    if (! $?SUBJECTS_DIR) then
+      echo "ERROR: environment variable SUBJECTS_DIR not set"
+      echo "  this can be done by setting it in the shell before"
+      echo "  executing trac-all or by using the -sd flag"
+      exit 1
+    endif
+
+    if (! -e $SUBJECTS_DIR) then
+      echo "ERROR: SUBJECTS_DIR $SUBJECTS_DIR does not exist."
+      exit 1
+    endif
+
+    # Get the full path #
+    pushd $SUBJECTS_DIR > /dev/null
+    setenv SUBJECTS_DIR `$PWD`;
+    popd > /dev/null
+  endif
+
+  if (! $?FREESURFER_HOME) then
+    echo "ERROR: environment variable FREESURFER_HOME not set."
+    exit 1
+  endif
+
+  if (! -e $FREESURFER_HOME) then
+    echo "ERROR: FREESURFER_HOME $FREESURFER_HOME does not exist."
+    exit 1
+  endif
+
+  if (! $docorr && ! $dointra && ! $dointer && ! $domasks && \
+      ! $dotensor && ! $dopriors && ! $dobedpost && ! $dopaths) then
+    echo "ERROR: no analysis step has been selected"
+    exit 1
+  endif
+
+goto check_params_return;
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: $ProgName"
+  echo ""
+  echo "Using a configuration file to set analysis options:"
+  echo "  -c <file> : dmrirc file (see dmrirc.example)"
+  echo ""
+  echo "Using only mandatory inputs with all default options:"
+  echo "  -s <subjectname> : subject name (if not defined in dmrirc)
+  echo "  -i <file> : input DWI DICOM (if not defined in dmrirc)
+  echo ""
+  echo "Choosing which part of the analysis to do:"
+  echo "  -prep     : do pre-processing (step 1, all substeps)"
+  echo "  -bedp     : do bedpost (step 2)"
+  echo "  -path     : do pathway reconstruction (step 3)"
+  echo ""
+  echo "Performing only one part of the preprocessing or skipping a part:"
+  echo "  -corr     : do image corrections only (step 1.1)"
+  echo "  -nocorr   : don't do step 1.1"
+  echo "  -intra    : do intra-subject registration only (step 1.2)"
+  echo "  -nointra  : don't do step 1.2"
+  echo "  -inter    : do inter-subject registration only (step 1.3)"
+  echo "  -nointer  : don't do step 1.3"
+  echo "  -masks    : do masks only (step 1.4)"
+  echo "  -nomasks  : don't do step 1.4"
+  echo "  -tensor   : do tensor fit only (step 1.5)"
+  echo "  -notensor : don't do step 1.5"
+  echo "  -prior    : do pathway priors only (step 1.6)"
+  echo "  -noprior  : don't do step 1.6"
+  echo ""
+  echo "Analysis steps:"
+  echo "  1. Pre-processing"
+  echo "     1.1 Image corrections (eddy-current and/or B0)"
+  echo "     1.2 Intra-subject registration (diffusion to T1)"
+  echo "     1.3 Inter-subject registration (T1 to template)"
+  echo "     1.4 White-matter, cortical, and whole-brain masks"
+  echo "     1.5 Tensor fit"
+  echo "     1.6 Pathway priors from atlas and T1"
+  echo "  2. Stick-and-ball model fitting with bedpost"
+  echo "  3. Pathway reconstruction"
+  echo ""
+  echo "Other options:"
+  echo "  -log <file>     : default is scripts/trac-all.log"
+  echo "  -nolog          : do not save a log file"
+  echo "  -noappendlog    : overwrite old log files instead of appending"
+  echo "  -cmd <file>     : default is scripts/trac-all.cmd"
+  echo "  -nocmd          : do not save a cmd file"
+  echo "  -no-isrunning   : do not check whether subjects are currently being processed"
+  echo "  -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
+  echo "  -umask umask    : set unix file permission mask (default 002)"
+  echo "  -grp groupid    : check that current group is alpha groupid "
+  echo "  -allowcoredump  : set coredump limit to unlimited"
+  echo "  -debug          : generate much more output"
+  echo "  -dontrun        : do everything but execute each command"
+  echo "  -onlyversions   : print version of each binary and exit"
+  echo "  -version        : print version of this script and exit"
+  echo "  -help           : print full contents of help"
+  echo ""
+
+  if (! $PrintHelp) exit 1
+
+  echo $VERSION
+  echo ""
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt=1}'
+
+  exit 1
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Recostruct white-matter pathways using an atlas of the underlying anatomy.
+
+BASIC USAGE
+There are two ways to use this script.
+
+> Using only mandatory inputs with all default options:
+  trac-all -{prep,bedp,path} -subject subjectname -i dicomfile
+
+> Using a file called dmrirc to define custom options:
+  trac-all -{prep,bedp,path} -c dmrirc
+
+If a dmrirc file is not specified, then the subject name and input DWI
+DICOM must be specified on the command line. If a dmrirc file is specified,
+then the options set in that file override any corresponding command line
+options.
+
+STEP-WISE DIRECTIVES
+Any of the two basic forms of usage described above must include an
+argument (-prep for pre-processing, -bedp for bedpost, or -path for path
+reconstruction) that specifies which part of the analysis to perform.
+The three parts must be performed in that order.
+
+It is also possible to perform only a certain step of the pre-processing
+(with -stepname) or to skip a certain step from the pre-processing (with
+-nostepname). The default pre-processing performs all steps.
+
+If there are conflicting step-wise arguments, the ones that come later
+in the command line override the ones that come earlier.
+
+Various aspects of each processing step can be configured in the dmrirc
+file. See dmrirc.example for more details.
+
+> Step 1: Pre-processing
+          -prep to do this step
+
+  Pre-processing includes steps 1.1 through 1.5 below.
+
+> Step 1.1: Image corrections
+            -corr to do this step only, -nocorr to skip this step
+
+  Eddy current correction with eddy_correct, B0 field map correction with
+  epidewarp.fsl.
+
+> Step 1.2: Intra-subject registration
+            -intra to do this step only, -nointra to skip this step
+
+  Diffusion-to-T1 registration with flirt and/or bbregister.
+
+> Step 1.3: Inter-subject registration
+            -inter to do this step only, -nointer to skip this step
+
+  T1-to-template registration using MNI and/or CVS templates.
+
+> Step 1.4: White-matter, cortical, and whole-brain masks
+            -masks to do this step only, -nomasks to skip this step
+
+  Generate masks of the white matter and cortex from FreeSurfer outputs,
+  whole-brain masks from T1 and DWIs.
+
+> Step 1.5: Tensor fit
+            -tensor to do this step only, -notensor to skip this step
+
+  Tensor model fitting on DWIs.
+
+> Step 1.6: Pathway priors
+            -prior to do this step only, -noprior to skip this step
+
+  Combine training data and subject's own data to generate pathway priors.
+
+> Step 2: Bedpost (cluster highly recommended for this step)
+          -bedp to do this step
+
+  Ball-and-stick model fitting on DWIs with bedpostx.
+
+> Step 3: Pathway reconstruction
+          -path to do this step
+
+  Do the actual work.
+
+OTHER OPTIONS
+-log <file>     : default is scripts/trac-all.log
+-nolog          : do not save a log file
+-noappendlog    : overwrite old log files instead of appending
+-cmd <file>     : default is scripts/trac-all.cmd
+-nocmd          : do not save a cmd file
+-no-isrunning   : do not check whether subjects are currently being processed
+-sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)
+-umask umask    : set unix file permission mask (default 002)
+-grp groupid    : check that current group is alpha groupid 
+-allowcoredump  : set coredump limit to unlimited
+-debug          : print out more info and generate more files
+-dontrun        : do everything but execute each command
+-onlyversions   : print version of each binary and exit
+-version        : print version of this script and exit
+-help           : print full contents of help
+
+SEE ALSO: dmrirc.example
+
