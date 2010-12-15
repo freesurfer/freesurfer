@@ -1,0 +1,97 @@
+#! /bin/tcsh -f
+
+if ($#argv < 2 || $#argv > 3) then
+  echo "xfmrot <transform file> <input vector file> [<output vector file>]"
+  echo
+  echo "Transform file can be an eddy_correct log file or a simple .mat file."
+  echo "Input vector file can be formatted in 3 rows or 3 columns."
+  echo "Output vector file will have the same format as input."
+  exit 1
+endif
+
+set xforms  = $1
+set invecs  = $2
+if ($#argv == 2) then
+  set outvecs = $2
+else
+  set outvecs = $3
+endif
+
+
+grep -q processing $xforms
+if (! $status) then					# eddy_correct log file
+  set xfmtype = eddy
+  set matfile = /tmp/xfmrot.$$.mat
+else if (`wc -l $xforms | awk '{print $1}'` == 4) then  # .mat file
+  set xfmtype = mat
+  set matfile = $xforms
+else
+  echo "ERROR: Transform file should be an eddy_correct log file or a .mat file"
+  exit 1
+endif
+
+if (`awk '{print $1}' $invecs | wc -w` == 3) then	# Vectors in 3 rows
+  set vectype = rows
+else if (`awk 'NR==1' $invecs | wc -w` == 3) then	# Vectors in 3 columns
+  set vectype = cols
+else
+  echo "ERROR: Gradient file needs to have 3 rows or 3 columns of coordinates"
+  exit 1
+endif 
+
+if ($vectype == rows) then
+  set xx = `awk 'NR==1' $invecs`
+  set yy = `awk 'NR==2' $invecs`
+  set zz = `awk 'NR==3' $invecs`
+else
+  set xx = `awk '{print $1}' $invecs`
+  set yy = `awk '{print $2}' $invecs`
+  set zz = `awk '{print $3}' $invecs`
+endif
+
+set yy = `echo $yy | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+set xx = `echo $xx | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+set zz = `echo $zz | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+
+set nvec = $#xx
+
+set xxr = ()
+set yyr = ()
+set zzr = ()
+set xyzr = ()
+
+@ k = 1
+while ($k <= $nvec)
+  if ($xfmtype == eddy) then
+    awk "NR >= ($k-1)*8 + 4 && NR <= ($k-1)*8 + 7" $xforms > $matfile
+  endif
+
+  set R = `avscale --allparams $matfile | awk 'NR >= 2 && NR <= 5'`
+  set R = `echo $R | sed 's/E/\\*10\\^/g; s/e/\\*10\\^/g; s/+//g'`
+
+  set x = `echo "$R[1] * $xx[$k] + $R[2]  * $yy[$k] + $R[3]  * $zz[$k]" | bc -l`
+  set x = `printf '%1.7f' $x`
+  set y = `echo "$R[5] * $xx[$k] + $R[6]  * $yy[$k] + $R[7]  * $zz[$k]" | bc -l`
+  set y = `printf '%1.7f' $y`
+  set z = `echo "$R[9] * $xx[$k] + $R[10] * $yy[$k] + $R[11] * $zz[$k]" | bc -l`
+  set z = `printf '%1.7f' $z`
+
+  if ($vectype == rows) then
+    set xxr = ($xxr $x)
+    set yyr = ($yyr $y)
+    set zzr = ($zzr $z)
+  else
+    set xyzr = ($xyzr $x $y $z)
+  endif
+
+  @ k = $k + 1
+end
+
+if ($vectype == rows) then
+  echo $xxr >  $outvecs
+  echo $yyr >> $outvecs
+  echo $zzr >> $outvecs
+else
+  printf '%g %g %g\n' $xyzr > $outvecs
+endif
+
