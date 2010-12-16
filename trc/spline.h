@@ -40,28 +40,34 @@ class Spline {
     bool IsDegenerate();
     bool InterpolateSpline();
     void ComputeTangent();
+    void ComputeNormal();
     void ComputeCurvature();
     void ReadControlPoints(const char *ControlPointFile);
     void ReadMask(const char *MaskFile);
     void SetControlPoints(const std::vector<int> &ControlPoints);
     void WriteVolume(const char *VolumeFile, const bool ShowControls=false);
+    void WriteValues(MRI **ValueVolumes, int NumVols, const char *TextFile);
     void PrintControlPoints();
     void PrintAllPoints();
     void PrintTangent();
+    void PrintNormal();
     void PrintCurvature();
     std::vector<int>::const_iterator GetAllPointsBegin();
     std::vector<int>::const_iterator GetAllPointsEnd();
     std::vector<float>::const_iterator GetTangentBegin();
     std::vector<float>::const_iterator GetTangentEnd();
+    std::vector<float>::const_iterator GetNormalBegin();
+    std::vector<float>::const_iterator GetNormalEnd();
     std::vector<float>::const_iterator GetCurvatureBegin();
     std::vector<float>::const_iterator GetCurvatureEnd();
 
   private:
-    unsigned int mNumControl;
+    int mNumControl;
     std::vector<int> mControlPoints;
     std::vector<int> mAllPoints;
     std::vector<float> mArcLength;
     std::vector<float> mTangent;
+    std::vector<float> mNormal;
     std::vector<float> mCurvature;
     MRI *mMask, *mVolume;
 
@@ -77,12 +83,12 @@ class Spline {
                            std::vector<int>::const_iterator ControlPoint2,
                            std::vector<int>::const_iterator ControlPoint3,
                            std::vector<int>::const_iterator ControlPoint4);
-    void CatmullRomCurvature(std::vector<float> &InterpCurvature,
-                             const float t,
-                             std::vector<int>::const_iterator ControlPoint1,
-                             std::vector<int>::const_iterator ControlPoint2,
-                             std::vector<int>::const_iterator ControlPoint3,
-                             std::vector<int>::const_iterator ControlPoint4);
+    void CatmullRomNormal(std::vector<float> &InterpNormal,
+                          const float t,
+                          std::vector<int>::const_iterator ControlPoint1,
+                          std::vector<int>::const_iterator ControlPoint2,
+                          std::vector<int>::const_iterator ControlPoint3,
+                          std::vector<int>::const_iterator ControlPoint4);
     bool IsInMask(std::vector<int>::const_iterator Point);
 };
 

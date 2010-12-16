@@ -25,6 +25,22 @@
 #ifndef COFFIN_H
 #define COFFIN_H
 
+//define NO_CVS_UP_IN_HERE
+
+#ifndef NO_CVS_UP_IN_HERE
+// Needed for CVS - these must be included first or else they don't compile
+#include <cmath>
+#include <boost/program_options.hpp>
+#include <boost/progress.hpp>
+#undef SEEK_SET
+#undef SEEK_END
+#undef SEEK_CUR
+#include <mpi.h>
+#include "../fem_elastic/morph.h"
+#include "../fem_elastic/surf_utils.h"
+#include "../fem_elastic/morph_utils.h"
+#endif
+
 #include <vector>
 #include <string>
 #include <iostream>
@@ -39,27 +55,75 @@
 #include "bite.h"
 #include "spline.h"
 
+class AffineReg {
+  public:
+    AffineReg();
+    ~AffineReg();
+    bool IsEmpty();
+    void ReadXfm(const char *XfmFile, const MRI *InRefVol, 
+                                      const MRI *OutRefVol);
+    void ApplyXfm(std::vector<int> &OutPoint,
+                  std::vector<int>::const_iterator InPoint);
+
+  private:
+    std::vector<float> mInToOut,			// [4 x 4]
+                       mInVoxelSize, mOutVoxelSize;	// [3]
+};
+
+#ifndef NO_CVS_UP_IN_HERE
+class NonlinReg {
+  public:
+    NonlinReg();
+    ~NonlinReg();
+    bool IsEmpty();
+    void ReadXfm(const char *XfmFile, MRI *OutRefVol);
+    void ApplyXfm(std::vector<int> &OutPoint,
+                  std::vector<int>::const_iterator InPoint);
+
+  private:
+    boost::shared_ptr<gmp::VolumeMorph> mMorph;
+};
+#endif
+
 class Coffin {
   public:
     Coffin(const char *OutDir, const char *DwiFile,
            const char *GradientFile, const char *BvalueFile,
-           const char *MaskFile,
-           const char *BedpostDir, const unsigned int NumTract,
+           const char *MaskFile, const char *BedpostDir,
+           const int NumTract, const float FminPath,
+           const char *InitFile,
            const char *RoiFile1, const char *RoiFile2,
            const char *RoiMeshFile1, const char *RoiMeshFile2,
            const char *RoiRefFile1, const char *RoiRefFile2,
-           const char *XfmFile, const char *InitFile,
            const char *PriorFile0, const char *PriorFile1,
-           const unsigned int AsegPriorType,
+           const int AsegPriorType,
            const char *AsegPriorFile0, const char *AsegPriorFile1,
            const char *AsegIdFile, 
            const char *AsegTrainFile, const char *PathTrainFile,
+           const char *NeighPriorFile, const char *NeighIdFile,
+           const char *LocalPriorFile, const char *LocalIdFile,
            const char *AsegFile,
-           const unsigned int NumBurnIn, const unsigned int NumSample,
-           const unsigned int KeepSampleNth, const unsigned int UpdatePropNth,
+           const char *AffineXfmFile, const char *NonlinXfmFile,
+           const int NumBurnIn, const int NumSample,
+           const int KeepSampleNth, const int UpdatePropNth,
            const char *PropStdFile,
            const bool Debug=false);
     ~Coffin();
+    void SetOutputDir(const char *OutDir);
+    void SetPathway(const char *InitFile,
+                    const char *RoiFile1, const char *RoiFile2,
+                    const char *RoiMeshFile1, const char *RoiMeshFile2,
+                    const char *RoiRefFile1, const char *RoiRefFile2,
+                    const char *PriorFile0, const char *PriorFile1,
+                    int AsegPriorType,
+                    const char *AsegPriorFile0, const char *AsegPriorFile1,
+                    const char *AsegIdFile,
+                    const char *AsegTrainFile, const char *PathTrainFile,
+                    const char *NeighPriorFile, const char *NeighIdFile,
+                    const char *LocalPriorFile, const char *LocalIdFile);
+    void SetMCMCParameters(const int NumBurnIn, const int NumSample,
+                           const int KeepSampleNth, const int UpdatePropNth,
+                           const char *PropStdFile);
     void RunMCMC();
     void RunMCMC1();
     void WriteOutputs();
@@ -68,20 +132,22 @@ class Coffin {
     bool mRejectSpline, mRejectPosterior,
          mRejectF, mAcceptF, mRejectTheta, mAcceptTheta;
     const bool mDebug;
-    unsigned int mNx, mNy, mNz, mNxy, mNumVox, mNumControl;
-    const unsigned int mNumBurnIn, mNumSample, mKeepSampleNth, mUpdatePropNth;
+    int mNx, mNy, mNz, mNxy, mNumVox, mNumControl,
+        mNxAtlas, mNyAtlas, mNzAtlas, mNumArc, mNumLocal, mNumNear,
+        mNumBurnIn, mNumSample, mKeepSampleNth, mUpdatePropNth;
     double mLikelihoodOnPath, mPriorOnPath, mPosteriorOnPath,
            mLikelihoodOnPathNew, mPriorOnPathNew, mPosteriorOnPathNew,
            mPosteriorOnPathMap,
            mLikelihoodOffPath, mPriorOffPath, mPosteriorOffPath,
-           mLikelihoodOffPathNew, mPriorOffPathNew, mPosteriorOffPathNew;
+           mLikelihoodOffPathNew, mPriorOffPathNew, mPosteriorOffPathNew,
+           mAnatomicalPrior, mAnatomicalPriorNew;
+    std::string mInfoGeneral, mInfoPathway, mInfoMCMC;
     std::vector<bool> mRejectControl;				// [mNumControl]
-    std::vector<unsigned int> mAcceptCount, mRejectCount;	// [mNumControl]
+    std::vector<int> mAcceptCount, mRejectCount;		// [mNumControl]
     std::vector<int> mControlPoints, mControlPointsNew, mControlPointsMap,
                      mPathPoints, mPathPointsNew, mPathPointsMap,
-                     mControlPointSamples, mPathLengthSamples;
-    std::vector<float> mDwiToRoi;			// [4 x 4]
-    std::vector<float> mDwiVoxelSize, mRoiVoxelSize;	// [3]
+                     mControlPointSamples, mPathLengthSamples,
+                     mDirLocal, mDirNear;
     std::vector<float> mProposalStdInit, mProposalStd, mControlPointJumps,
                        mAcceptSpan, mRejectSpan;	// [mNumControl x 3]
     std::vector<float> mLikelihoodOnPathSamples, mPriorOnPathSamples,
@@ -89,20 +155,31 @@ class Coffin {
     std::vector<float> mPathPhi, mPathPhiNew, mPathTheta, mPathThetaNew;
     std::vector<Bite> mData;				// [mNumVox]
     std::vector<Bite *>mDataMask;			// [mNx x mNy x mNz]
+    std::vector< std::vector<unsigned int> > mIdsLocal, mIdsNear;
+    std::vector< std::vector<float> > mPriorLocal, mPriorNear; //[mNumArcx{6,7}]
     char *mOutDir;
-    MRI *mMask, *mRoi1, *mRoi2, *mPathSamples;
+    MRI *mMask, *mRoi1, *mRoi2, 
+        *mPathPrior0, *mPathPrior1, 
+        *mAsegTrain, *mPathTrain, *mAseg,
+        *mPathSamples;
+    std::vector<MRI *> mSegPrior0, mSegPrior1;
+    std::ofstream mLog;
     Spline mSpline;
+    AffineReg mAffineReg;
+#ifndef NO_CVS_UP_IN_HERE
+    NonlinReg mNonlinReg;
+#endif
 
-    void ReadDwiToRoi(const char *XfmFile);
     void ReadControlPoints(const char *ControlPointFile);
     void ReadProposalStds(const char *PropStdFile);
     void InitializeMCMC();
     bool JumpMCMC();
-    bool JumpMCMC1(unsigned int ControlIndex);
+    bool JumpMCMC1(int ControlIndex);
     bool ProposePath();
-    bool ProposePath1(unsigned int ControlIndex);
+    bool ProposePath1(int ControlIndex);
     void ProposeDiffusionParameters();
     bool AcceptPath();
+    double ComputeAnatomicalPrior(std::vector<int> &PathPoints);
     void UpdatePath();
     void UpdateAcceptanceRate();
     void UpdateRejectionRate();
@@ -111,11 +188,9 @@ class Coffin {
     void SavePath();
     bool IsInMask(std::vector<int>::const_iterator Point);
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);
-    void ApplyAffine(std::vector<int> &OutPoint,
-                     std::vector<int>::const_iterator InPoint,
-                     std::vector<float> &In2Out,
-                     std::vector<float> &OutVoxelSize,
-                     std::vector<float> &InVoxelSize);
+    void MapToAtlas(std::vector<int> &OutPoint,
+                    std::vector<int>::const_iterator InPoint);
+    void LogInputs();
 };
 
 #endif
