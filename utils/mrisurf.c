@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/08 20:59:42 $
- *    $Revision: 1.688 $
+ *    $Date: 2010/12/16 14:21:46 $
+ *    $Revision: 1.689 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -409,9 +409,9 @@ static double mrisComputeSphereError(MRI_SURFACE *mris,
                                      double l_sphere,double a);
 static double mrisComputeDistanceError(MRI_SURFACE *mris,
                                        INTEGRATION_PARMS *parms) ;
-static double mrisComputeCorrelationError(MRI_SURFACE *mris,
-    INTEGRATION_PARMS *parms,
-    int use_stds) ;
+double mrisComputeCorrelationError( MRI_SURFACE *mris,
+				    INTEGRATION_PARMS *parms,
+				    int use_stds );
 static int    mrisComputeVertexDistances(MRI_SURFACE *mris) ;
 static int    mrisComputeOriginalVertexDistances(MRI_SURFACE *mris) ;
 static double mrisComputeError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.688 2010/12/08 20:59:42 rge21 Exp $");
+  return("$Id: mrisurf.c,v 1.689 2010/12/16 14:21:46 rge21 Exp $");
 }
 
 /*-----------------------------------------------------
@@ -24814,7 +24814,7 @@ MRIScomputeCorrelationError(MRI_SURFACE *mris,MRI_SP *mrisp_template,int fno)
 
   Description
   ------------------------------------------------------*/
-static double
+double
 mrisComputeCorrelationError(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
                             int use_stds)
 {
@@ -27180,42 +27180,45 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
   max_degrees = RADIANS(max_degrees) ;
   mrisOrientSurface(mris) ;
   mris->status = MRIS_RIGID_BODY ;
-  if (!parms->start_t)
-  {
+
+  if (!parms->start_t) {
     mrisLogStatus(mris, parms, stdout, 0.0f, -1) ;
-    if (Gdiag & DIAG_WRITE)
-    {
+    if (Gdiag & DIAG_WRITE) {
       mrisLogStatus(mris, parms, parms->fp, 0.0f, -1) ;
-      if (parms->write_iterations > 0)
+      if (parms->write_iterations > 0) {
         mrisWriteSnapshot(mris, parms, 0) ;
+      }
     }
   }
-  for (degrees = max_degrees ; degrees >= min_degrees ; degrees /= 2.0f)
-  {
+
+  for (degrees = max_degrees ; degrees >= min_degrees ; degrees /= 2.0f) {
     mina = minb = ming = 0.0 ;
     min_sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
+
     if (gMRISexternalSSE)
     {
       ext_sse = (*gMRISexternalSSE)(mris, parms) ;
       min_sse += ext_sse ;
     }
+
     delta = 2*degrees / (float)nangles ;
-    if (Gdiag & DIAG_SHOW)
+
+    if (Gdiag & DIAG_SHOW) {
       fprintf(stdout, "scanning %2.2f degree nbhd, min sse = %2.2f\n",
               (float)DEGREES(degrees), (float)min_sse) ;
-    for (alpha = -degrees ; alpha <= degrees ; alpha += delta)
-    {
-      for (beta = -degrees ; beta <= degrees ; beta += delta)
-      {
-        if (Gdiag & DIAG_SHOW)
+    }
+
+    for (alpha = -degrees ; alpha <= degrees ; alpha += delta) {
+      for (beta = -degrees ; beta <= degrees ; beta += delta) {
+        if (Gdiag & DIAG_SHOW) {
           fprintf(stdout, "\r(%+2.2f, %+2.2f, %+2.2f), "
                   "min @ (%2.2f, %2.2f, %2.2f) = %2.1f   ",
                   (float)DEGREES(alpha), (float)DEGREES(beta), (float)
                   DEGREES(-degrees), (float)DEGREES(mina),
                   (float)DEGREES(minb), (float)DEGREES(ming),(float)min_sse);
+	}
 
-        for (gamma = -degrees ; gamma <= degrees ; gamma += delta)
-        {
+        for (gamma = -degrees ; gamma <= degrees ; gamma += delta) {
           MRISsaveVertexPositions(mris, TMP_VERTICES) ;
           MRISrotate(mris, mris, alpha, beta, gamma) ;
           sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
@@ -27243,36 +27246,49 @@ MRISrigidBodyAlignGlobal(MRI_SURFACE *mris, INTEGRATION_PARMS *parms,
         }
       }
     }
-    if (Gdiag & DIAG_SHOW)
+
+    if (Gdiag & DIAG_SHOW) {
       fprintf(stdout, "\n") ;
-    if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming))
-    {
+    }
+
+    if (!FZERO(mina) || !FZERO(minb) || !FZERO(ming) ) {
       MRISrotate(mris, mris, mina, minb, ming) ;
       sse = mrisComputeCorrelationError(mris, parms, 1) ;  /* was 0 !!!! */
-      if (gMRISexternalSSE)
+      if (gMRISexternalSSE) {
         sse += (*gMRISexternalSSE)(mris, parms) ;
-      if (Gdiag & DIAG_SHOW)
+      }
+
+      if (Gdiag & DIAG_SHOW) {
         fprintf(stdout, "min sse = %2.2f at (%2.2f, %2.2f, %2.2f)\n",
                 sse, (float)DEGREES(mina), (float)DEGREES(minb),
                 (float)DEGREES(ming)) ;
-      if (Gdiag & DIAG_WRITE)
+      }
+
+      if (Gdiag & DIAG_WRITE) {
         fprintf(parms->fp,
                 "rotating brain by (%2.2f, %2.2f, %2.2f), sse: %2.2f\n",
                 (float)DEGREES(mina), (float)DEGREES(minb),
                 (float)DEGREES(ming), (float)sse) ;
+      }
+
       parms->start_t += 1.0f ;
       parms->t += 1.0f ;
-      if (Gdiag & DIAG_WRITE && parms->write_iterations > 0)
+
+      if (Gdiag & DIAG_WRITE && parms->write_iterations > 0) {
         mrisWriteSnapshot(mris, parms, parms->start_t) ;
-      if (Gdiag & DIAG_WRITE)
+      }
+      if (Gdiag & DIAG_WRITE) {
         mrisLogStatus(mris, parms, parms->fp, 0.0f, -1) ;
-      if (Gdiag & DIAG_SHOW)
+      }
+      if (Gdiag & DIAG_SHOW) {
         mrisLogStatus(mris, parms, stdout, 0.0f, -1) ;
+      }
     }
   }
 
   mris->status = old_status ;
   parms->abs_norm = old_norm ;
+
   return(NO_ERROR) ;
 }
 
