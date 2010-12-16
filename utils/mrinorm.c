@@ -9,9 +9,9 @@
 /*
  * Original Author: Bruce Fischl, 4/9/97
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/10/21 17:51:49 $
- *    $Revision: 1.101 $
+ *    $Author: fischl $
+ *    $Date: 2010/12/16 21:24:31 $
+ *    $Revision: 1.102 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -616,7 +616,7 @@ MRInormFillHistograms(MRI *mri, MNI *mni)
 int
 MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
 {
-  int        i, peak, deleted, nwindows, npeaks ;
+  int        i, peak, deleted, nwindows, npeaks, whalf = (HISTO_WINDOW_SIZE-1)/2 ;
   HISTOGRAM  *hsmooth = NULL ;
   MRI_REGION *reg ;
 
@@ -625,7 +625,7 @@ MRInormFindPeaks(MNI *mni, float *inputs, float *outputs)
   {
     reg = &mni->regions[i] ;
     hsmooth = HISTOsmooth(&mni->histograms[i], hsmooth, mni->smooth_sigma) ;
-    peak = HISTOfindLastPeak(hsmooth, HISTO_WINDOW_SIZE, MIN_HISTO_PCT) ;
+    peak = HISTOfindLastPeakInRegion(hsmooth, HISTO_WINDOW_SIZE, MIN_HISTO_PCT, whalf, hsmooth->nbins-whalf) ;
     if (peak < 0)
       deleted++ ;
     else
