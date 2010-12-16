@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/16 14:21:46 $
- *    $Revision: 1.689 $
+ *    $Date: 2010/12/16 16:36:40 $
+ *    $Revision: 1.690 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.689 2010/12/16 14:21:46 rge21 Exp $");
+  return("$Id: mrisurf.c,v 1.690 2010/12/16 16:36:40 rge21 Exp $");
 }
 
 /*-----------------------------------------------------
@@ -9152,8 +9152,11 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
         dx += vn->dx ;
         dy += vn->dy ;
         dz += vn->dz ;
+
+#ifdef INCLUDE_DIAG
         if (!devFinite(dx) || !devFinite(dy) || !devFinite(dz))
           DiagBreak() ;
+#endif
 #if 0
         if (vno == Gdiag_no)
         {
@@ -9176,8 +9179,10 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
       v = &mris->vertices[vno] ;
       if (v->ripflag)
         continue ;
+#ifdef INCLUDE_DIAG
       if (!devFinite(v->tdx) || !devFinite(v->tdy) || !devFinite(v->tdz))
         DiagBreak() ;
+#endif
       v->dx = v->tdx ;
       v->dy = v->tdy ;
       v->dz = v->tdz ;
