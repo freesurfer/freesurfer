@@ -82,6 +82,7 @@ label_subject_flash \
 label_subject_mixed \
 labels_union \
 labels_intersect \
+labels_disjoint \
 lpcregister \
 make_average_surface \
 make_average_volume \

@@ -1,0 +1,61 @@
+#! /bin/tcsh -f
+
+# set echo=1
+
+set f1=$1
+set f2=$2
+set f3=$3
+
+if (( $f1 == "" ) || ( $f2 == "" ) || ( $f3 == "") ) then
+  echo "description: label1 minus label2"
+  echo "usage:   $0 <label1> <label2> <outputname>"
+  echo "example: $0 rh.Occ.label rh.V1.label rh.Occ_V1.label"
+  exit 1
+endif
+
+# save-away header and line counts
+grep "^#" $f1 > $$.tmp.f1.header
+grep "^#" $f2 > $$.tmp.f2.header
+
+grep -v "`cat $$.tmp.f1.header`" $f1 > $$.tmp.f1.noheader
+grep -v "`cat $$.tmp.f2.header`" $f2 > $$.tmp.f2.noheader
+head -n 1 $$.tmp.f1.noheader > $$.tmp.f1.vertexcount
+head -n 1 $$.tmp.f2.noheader > $$.tmp.f2.vertexcount
+
+# strip header and vertex count lines from label files
+grep -v "`cat $$.tmp.f1.header`" $f1 > $$.tmp.1.f1
+grep -v "`cat $$.tmp.f2.header`" $f2 > $$.tmp.2.f2
+grep -v --line-regexp "`cat $$.tmp.f1.vertexcount`" $$.tmp.1.f1 > $$.tmp.f1
+grep -v --line-regexp "`cat $$.tmp.f2.vertexcount`" $$.tmp.2.f2 > $$.tmp.f2
+
+# sort
+sort -n -u $$.tmp.f1 $$.tmp.f2 > $$.tmp.sorted
+
+# get vertices
+cat $$.tmp.sorted | awk '{print $1}' > $$.tmp.vertices
+
+# find disjoint union (label1 - label2)
+rm -f $$.tmp.f3 >& /dev/null
+foreach vno (`cat $$.tmp.vertices`)
+  echo $vno
+  grep --word-regexp "^${vno}" $$.tmp.f1 > $$.tmp.grep.f1
+  if ($status == 0) then
+    # look for this vno in label2
+    grep --word-regexp "^${vno}" $$.tmp.f2 > $$.tmp.grep.f2
+    if ($status == 0) then
+      # this vno is in both label1 and label2, so dont use it
+    else
+      # this vno is only in label1
+      cat $$.tmp.grep.f1 >> $$.tmp.f3
+    endif
+  endif
+end
+
+# append header and vertex count
+cat $$.tmp.f1.header > $f3
+set vertexcount=`wc -l $$.tmp.f3 | awk '{print $1}'`
+echo $vertexcount >> $f3
+cat $$.tmp.f3 >> $f3
+
+# delete junk files
+rm -f $$.tmp.*
