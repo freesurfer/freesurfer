@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/15 08:36:00 $
-#    $Revision: 1.1 $
+#    $Date: 2010/12/16 08:12:35 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.1 2010/12/15 08:36:00 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.2 2010/12/16 08:12:35 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -38,7 +38,7 @@ set debug = 0		# Generate more output
 set DoTime = 0		# Time main commands
 set fs_time = ()
 
-set RCF = ()		# Name of input run command file
+set rcfile = ()		# Name of input run command file
 set LF = ()		# Name of log file
 set CF = ()		# Name of command file
 
@@ -69,7 +69,7 @@ check_params_return:
 
 #------------ Read configuration file -------------------------------------#
 
-source $RCF
+source $rcfile
 
 if ($DoTime) then
   fs_time ls >& /dev/null
@@ -307,7 +307,7 @@ if ($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
 
 # Create the done file
 echo "------------------------------" > $DoneFile
-echo "SUBJECT $subjid" >> $DoneFile
+echo "SUBJECT $subj" >> $DoneFile
 echo "DATE `date`"     >> $DoneFile
 echo "USER `whoami`"      >> $DoneFile
 echo "HOST `hostname`" >> $DoneFile
@@ -338,7 +338,7 @@ error_exit:
   # Create an error file with date, cmd, etc of error
   if ($?ErrorFile) then
     echo "------------------------------" > $ErrorFile
-    echo "SUBJECT $subjid" >> $ErrorFile
+    echo "SUBJECT $subj" >> $ErrorFile
     echo "DATE `date`"     >> $ErrorFile
     echo "USER `whoami`"      >> $ErrorFile
     echo "HOST `hostname`" >> $ErrorFile
@@ -453,13 +453,13 @@ arg1err:
 
 ############--------------##################
 check_params:
-  if (! $#RCF) then
+  if (! $#rcfile) then
     echo "ERROR: a configuration (dmrirc) file must be specified"
     goto error_exit
   endif
 
-  if (! $#LF) set LF = `dirname $RCF`/trac-all.log
-  if (! $#CF) set CF = `dirname $RCF`/trac-all.cmd
+  if (! $#LF) set LF = `dirname $rcfile`/trac-all.log
+  if (! $#CF) set CF = `dirname $rcfile`/trac-all.cmd
 
 goto check_params_return;
 

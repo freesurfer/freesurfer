@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/15 08:36:00 $
-#    $Revision: 1.1 $
+#    $Date: 2010/12/16 08:12:35 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.1 2010/12/15 08:36:00 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.2 2010/12/16 08:12:35 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -71,18 +71,22 @@ set dotensormni = 0
 set dosnr = 1
 set dopriors = 1
 
-set rcfile = ./dmrirc	# Run command file
+set rcfile = ()		# Run command file
 
 if ($onpbs) then
   setenv MYPBSWAIT 15
   setenv MYPBSMAXJOBS 10
-  set pbslogdir = `dirname $rcfile`/trac-all.$$
+  if ($#rcfile) then
+    set pbslogdir = `dirname $rcfile`/trac-all.$$
+  else
+    set pbslogdir = ./trac-all.$$
+  endif
   mkdir -p $pbslogdir
   set submitfile = $pbslogdir/submit.txt
   rm -f $submitfile
 endif
 
-#------------ Parse input arguments ---------------------------------------#
+#------------ Parse input arguments and configuration file ----------------#
 
 if ($#argv == 0) goto usage_exit
 
@@ -97,20 +101,6 @@ if ($n != 0) then
   echo $VERSION
   exit 0
 endif
-
-goto parse_args
-parse_args_return:
-goto check_params
-check_params_return:
-
-echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
-
-pushd $FREESURFER_HOME > /dev/null
-set freesurfer_home_true = `pwd`;
-popd > /dev/null
-echo "Actual FREESURFER_HOME $freesurfer_home_true"
-
-#------------ Read configuration file -------------------------------------#
 
 # Set defaults
 set dtroot = ()
@@ -140,7 +130,7 @@ set pathlist = ( lh.cst_AS lh.uncinate_AS lh.ilf_AS \
                  rh.cst_AS rh.uncinate_AS rh.ilf_AS )
 set ncpts = 5
 set xspace = mni
-set trainfile = $FREESURFER_HOME/trctrainlist.txt
+set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
 set ntrainlist = ()
 set do1out = 0
 set doprior = 0
@@ -154,56 +144,23 @@ set nkeep = 10
 set doinitprop = 0
 set trcdir = $FREESURFER_HOME/bin
 
+# Parse command line arguments
+goto parse_args
+parse_args_return:
+
 # Source run command file
-source $rcfile
+if ($#rcfile) source $rcfile
 
-if (! $#runlist) then		# Process all subjects
-  set runlist = `jot $#subjlist`
-endif
+goto check_params
+check_params_return:
 
-if (! $#dtroot) then		# Save output under SUBJECTS_DIR
-  set dtroot = $SUBJECTS_DIR
-endif
-
+echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
 echo "INFO: Diffusion root is $dtroot"
 
-if (! $?ncptlist ) set ncptlist = ncpts
-if (! $?xspacelist ) set xspacelist = xspace
-
-if ($do1out) then
-  # Leave-one-out training file:
-  # The first subject of each line is the test subject,
-  # the remaining subjects of the line are the training subjects
-  set subjlist = `cat $trainfile | awk '{print $1}'`
-  if (! #ntrainlist) then
-    set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
-  endif
-else
-  # Simple training file:
-  # The file lists the training subjects
-  # Info on the test subjects comes from dmrirc
-  set ntrainlist = `wc -w $trainfile | awk '{print $1}'`
-endif
-
-if ($#runlist > $#subjlist) then
-  echo "ERROR: run list is longer than subject list - potential duplicates"
-  exit 1
-endif
-
-if ($#dcmlist ~= $#subjlist) then
-  echo "ERROR: must specify as many DWI dicoms as subjects"
-  exit 1
-endif
-
-if ($#b0mlist > 0 && $#b0mlist ~= $#subjlist) then
-  echo "ERROR: must specify as many field map magnitude dicoms as subjects"
-  exit 1
-endif
-
-if ($#b0plist > 0 && $#b0plist ~= $#subjlist) then
-  echo "ERROR: must specify as many field map phase dicoms as subjects"
-  exit 1
-endif
+pushd $FREESURFER_HOME > /dev/null
+set freesurfer_home_true = `pwd`;
+popd > /dev/null
+echo "Actual FREESURFER_HOME $freesurfer_home_true"
 
 set cmdopts = ()
 if ($DoTime) set cmdopts = ($cmdopts -time)
@@ -221,7 +178,7 @@ foreach isubj ($runlist)
   if ($isubj > $#subjlist) then
     echo "ERROR: $isubj found in run list but have only $#subjlist subjects"
     exit 1
-  end
+  endif
 
   set subj = $subjlist[$isubj]
 
@@ -346,9 +303,9 @@ foreach isubj ($runlist)
   flirt -version		>> $LF
   bbregister --version		>> $LF
   mri_cvs_register --version	>> $LF
-  dmri_train --all-info		>> $LF
-  dmri_track --all-info		>> $LF
-  dmri_path_meas --all-info	>> $LF
+  $trcdir/dmri_train --all-info		>> $LF
+  $trcdir/dmri_track --all-info		>> $LF
+  $trcdir/dmri_path_meas --all-info	>> $LF
 
   if ($DoVersionsOnly) continue
 
@@ -380,71 +337,71 @@ foreach isubj ($runlist)
   echo "#"							 	>> $RCF
   echo "setenv FREESURFER_HOME $FREESURFER_HOME"			>> $RCF
   echo "setenv SUBJECTS_DIR $SUBJECTS_DIR"				>> $RCF
-  echo "set dtroot = $dtroot"						>> $RCF
-  echo "set subj = $subj"						>> $RCF
+  echo "set dtroot = ($dtroot)"						>> $RCF
+  echo "set subj = ($subj)"						>> $RCF
   echo "#"							 	>> $RCF
   echo "# Processing steps to be performed"			 	>> $RCF
   echo "#"							 	>> $RCF
-  echo "set docorr = $docorr"						>> $RCF
-  echo "set dointra = $dointra"						>> $RCF
-  echo "set dointer = $dointer"						>> $RCF
-  echo "set domasks = $domasks"						>> $RCF
-  echo "set dotensor = $dotensor"					>> $RCF
-  echo "set dotensormni = $dotensormni"					>> $RCF
-  echo "set dosnr = $dosnr"						>> $RCF
-  echo "set dopriors = $dopriors"					>> $RCF
+  echo "set docorr = ($docorr)"						>> $RCF
+  echo "set dointra = ($dointra)"					>> $RCF
+  echo "set dointer = ($dointer)"					>> $RCF
+  echo "set domasks = ($domasks)"					>> $RCF
+  echo "set dotensor = ($dotensor)"					>> $RCF
+  echo "set dotensormni = ($dotensormni)"				>> $RCF
+  echo "set dosnr = ($dosnr)"						>> $RCF
+  echo "set dopriors = ($dopriors)"					>> $RCF
   echo "#"							 	>> $RCF
   echo "# Options for image corrections and tensor fit"		 	>> $RCF
   echo "#"							 	>> $RCF
-  echo "set dcmroot = $dcmroot"						>> $RCF
-  echo "set dcmfile = $dcmlist[$isubj]"					>> $RCF
-  echo "set bvecfile = $bvecfile"					>> $RCF
-  echo "set bvalfile = $bvalfile"					>> $RCF
-  echo "set nb0 = $nb0"							>> $RCF
-  echo "set dob0 = $dob0"						>> $RCF
+  echo "set dcmroot = ($dcmroot)"					>> $RCF
+  echo "set dcmfile = ($dcmlist[$isubj])"				>> $RCF
+  echo "set bvecfile = ($bvecfile)"					>> $RCF
+  echo "set bvalfile = ($bvalfile)"					>> $RCF
+  echo "set nb0 = ($nb0)"						>> $RCF
+  echo "set dob0 = ($dob0)"						>> $RCF
   if ($#b0mlist) then
-    echo "set b0mfile = $b0mlist[$isubj]"				>> $RCF
+    echo "set b0mfile = ($b0mlist[$isubj])"				>> $RCF
   else
-    echo "set b0mfile = "						>> $RCF
+    echo "set b0mfile = ()"						>> $RCF
   endif
   if ($#b0plist) then
-    echo "set b0pfile = $b0plist[$isubj]"				>> $RCF
+    echo "set b0pfile = ($b0plist[$isubj])"				>> $RCF
   else
-    echo "set b0pfile = "						>> $RCF
+    echo "set b0pfile = ()"						>> $RCF
   endif
-  echo "set echospacing = $echospacing"					>> $RCF
-  echo "set doeddy = $doeddy"						>> $RCF
-  echo "set dorotbvecs = $dorotbvecs"					>> $RCF
-  echo "set thrbet = $thrbet"						>> $RCF
+  echo "set echospacing = ($echospacing)"				>> $RCF
+  echo "set doeddy = ($doeddy)"						>> $RCF
+  echo "set dorotbvecs = ($dorotbvecs)"					>> $RCF
+  echo "set thrbet = ($thrbet)"						>> $RCF
   echo "#"							 	>> $RCF
   echo "# Options for registrations"				 	>> $RCF
   echo "#"							 	>> $RCF
-  echo "set doregflt = $doregflt"					>> $RCF
-  echo "set doregbbr = $doregbbr"					>> $RCF
-  echo "set doregmni = $doregmni"					>> $RCF
-  echo "set doregcvs = $doregcvs"					>> $RCF
-  echo "set mnitemp = $mnitemp"						>> $RCF
-  echo "set cvstempdir = $cvstempdir"					>> $RCF
-  echo "set cvstemp = $cvstemp"						>> $RCF
+  echo "set doregflt = ($doregflt)"					>> $RCF
+  echo "set doregbbr = ($doregbbr)"					>> $RCF
+  echo "set doregmni = ($doregmni)"					>> $RCF
+  echo "set doregcvs = ($doregcvs)"					>> $RCF
+  echo "set mnitemp = ($mnitemp)"					>> $RCF
+  echo "set cvstempdir = ($cvstempdir)"					>> $RCF
+  echo "set cvstemp = ($cvstemp)"					>> $RCF
   echo "#"							 	>> $RCF
   echo "# Options for path reconstructions"				>> $RCF
   echo "#"							 	>> $RCF
-  echo "set usemaskanat = $usemaskanat"					>> $RCF
+  echo "set usemaskanat = ($usemaskanat)"				>> $RCF
   echo "set pathlist = ($pathlist)"					>> $RCF
   echo "set ncptlist = ($ncptlist)"					>> $RCF
   echo "set xspacelist = ($xspacelist)"					>> $RCF
   echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
   echo "set ntrainlist = ($ntrainlist)"					>> $RCF
-  echo "set doprior = $doprior"						>> $RCF
-  echo "set dosegprior = $dosegprior"					>> $RCF
+  echo "set doprior = ($doprior)"					>> $RCF
+  echo "set dosegprior = ($dosegprior)"					>> $RCF
   echo "set dopathsubdirs = ($dopathsubdirs)"				>> $RCF
-  echo "set fmin = $fmin"						>> $RCF
-  echo "set nburnin = $nburnin"						>> $RCF
-  echo "set nsample = $nsample"						>> $RCF
-  echo "set nupdate = $nupdate"						>> $RCF
-  echo "set nkeep = $nkeep"						>> $RCF
-  echo "set doinitprop = $doinitprop"					>> $RCF
-  echo "set trcdir = $trcdir"						>> $RCF
+  echo "set fmin = ($fmin)"						>> $RCF
+  echo "set nburnin = ($nburnin)"					>> $RCF
+  echo "set nsample = ($nsample)"					>> $RCF
+  echo "set nupdate = ($nupdate)"					>> $RCF
+  echo "set nkeep = ($nkeep)"						>> $RCF
+  echo "set doinitprop = ($doinitprop)"					>> $RCF
+  echo "set trcdir = ($trcdir)"						>> $RCF
 
   set dmdirlist = ($dmdirlist $dtdir/dmri)
 
@@ -456,7 +413,8 @@ foreach isubj ($runlist)
     set cmd = ($cmd $cmdopts)
     if ($onpbs) then
       echo $cmd >> $submitfile
-    else if ($RunIt) then
+    else
+      echo $cmd
       $cmd
       if ($status) exit 1
     endif
@@ -479,7 +437,8 @@ foreach isubj ($runlist)
     set cmd = ($cmd $cmdopts)
     if ($onpbs) then
       echo $cmd >> $submitfile
-    else if ($RunIt) then
+    else
+      echo $cmd
       $cmd
       if ($status) exit 1
   endif
@@ -789,9 +748,13 @@ arg1err:
 ############--------------##################
 check_params:
   if (! $DoVersionsOnly) then
-    if (! $#subjlist) then
+    if (! $?subjlist) then
       echo "ERROR: must specify a subject id"
       exit 1
+    endif
+
+    if (! $#runlist) then		# Process all subjects
+      set runlist = `jot $#subjlist`
     endif
 
     if (! $?SUBJECTS_DIR) then
@@ -808,8 +771,50 @@ check_params:
 
     # Get the full path #
     pushd $SUBJECTS_DIR > /dev/null
-    setenv SUBJECTS_DIR `$PWD`;
+    setenv SUBJECTS_DIR `pwd`;
     popd > /dev/null
+
+    if (! $#dtroot) then		# Save output under SUBJECTS_DIR
+      set dtroot = $SUBJECTS_DIR
+    endif
+
+    if (! $?ncptlist ) set ncptlist = ncpts
+    if (! $?xspacelist ) set xspacelist = xspace
+
+    if ($do1out) then
+      # Leave-one-out training file:
+      # The first subject of each line is the test subject,
+      # the remaining subjects of the line are the training subjects
+      set subjlist = `cat $trainfile | awk '{print $1}'`
+      if (! #ntrainlist) then
+        set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
+      endif
+    else
+      # Simple training file:
+      # The file lists the training subjects
+      # Info on the test subjects comes from dmrirc
+      set ntrainlist = `wc -w $trainfile | awk '{print $1}'`
+    endif
+
+    if ($#runlist > $#subjlist) then
+      echo "ERROR: run list is longer than subject list - potential duplicates"
+      exit 1
+    endif
+
+    if ($#dcmlist != $#subjlist) then
+      echo "ERROR: must specify as many DWI dicoms as subjects"
+      exit 1
+    endif
+
+    if ($#b0mlist > 0 && $#b0mlist != $#subjlist) then
+      echo "ERROR: must specify as many field map magnitude dicoms as subjects"
+      exit 1
+    endif
+
+    if ($#b0plist > 0 && $#b0plist != $#subjlist) then
+      echo "ERROR: must specify as many field map phase dicoms as subjects"
+      exit 1
+    endif
   endif
 
   if (! $?FREESURFER_HOME) then
