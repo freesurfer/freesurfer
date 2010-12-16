@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/15 20:13:42 $
-#    $Revision: 1.348 $
+#    $Date: 2010/12/16 20:40:04 $
+#    $Revision: 1.349 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.348 2010/12/15 20:13:42 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.349 2010/12/16 20:40:04 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -741,7 +741,8 @@ if($DoShowEdits) then
   # control points
   if(-e $ControlPointsFile) then
     @ edit_count = $edit_count + 1;
-    echo "Control points declared in file $ControlPointsFile" |& tee -a $LF
+    set num_cps = (`grep numpoints $ControlPointsFile | awk '{print $2}'`)
+    echo "$num_cps control points declared in file $ControlPointsFile" |& tee -a $LF
   endif
 
   # seeds
