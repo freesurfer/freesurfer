@@ -31,6 +31,6 @@ $secs = $elapsed % 60;
 
 
 # Print output
-$outString = sprintf( "\ntime:: %02d:%02d:%02d   elapsed:: %d   cmd:: $ARGV[0]\n", $hours, $mins, $secs, $elapsed );
+$outString = sprintf( "\ntime:: %02d:%02d:%02d   elapsed:: %05d   cmd:: $ARGV[0]\n", $hours, $mins, $secs, $elapsed );
 
 printf STDERR $outString;
