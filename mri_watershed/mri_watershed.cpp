@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/17 18:55:36 $
- *    $Revision: 1.92 $
+ *    $Date: 2010/12/17 19:14:01 $
+ *    $Revision: 1.93 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,7 +28,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.92 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.93 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -890,7 +890,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.92 2010/12/17 18:55:36 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.93 2010/12/17 19:14:01 rge21 Exp $", 
      "$Name:  $",
      cmdline);
 
@@ -903,7 +903,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_watershed.cpp,v 1.92 2010/12/17 18:55:36 rge21 Exp $", 
+     "$Id: mri_watershed.cpp,v 1.93 2010/12/17 19:14:01 rge21 Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1358,11 +1358,13 @@ void MRI_weight_atlas(MRI *mri_with_skull,
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
 #else
-  AffineMatrix myTrans, A, B, C, tmp;
-  SetAffineMatrix( &A, parms->gca->prior_r_to_i__ );
-  SetAffineMatrix( &B, parms->gca->mri_tal__->i_to_r__ );
+  AffineMatrix myTrans, tmp, C;
+  const AffineMatrix *A, *B;
+  A = parms->gca->prior_r_to_i__;
+  B = parms->gca->mri_tal__->i_to_r__;
   SetAffineMatrix( &C, lta->xforms[0].m_L );
-  AffineMM( &tmp, &A, &B );
+
+  AffineMM( &tmp, A, B );
   AffineMM( &myTrans, &tmp, &C );
 #endif
 #endif
@@ -2801,12 +2803,13 @@ void AnalyzeCerebellum( STRIP_PARMS *parms,
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
 #else
-  AffineMatrix myTrans, A, B, C, tmp;
-  SetAffineMatrix( &A, parms->gca->prior_r_to_i__ );
-  SetAffineMatrix( &B, parms->gca->mri_tal__->i_to_r__ );
+  AffineMatrix myTrans, C, tmp;
+  const AffineMatrix *A, *B;
+  A = parms->gca->prior_r_to_i__;
+  B = parms->gca->mri_tal__->i_to_r__;
   SetAffineMatrix( &C, lta->xforms[0].m_L );
  
-  AffineMM( & tmp, &A, &B );
+  AffineMM( & tmp, A, B );
   AffineMM( &myTrans, &tmp, &C );
 #endif
 #endif
@@ -2896,12 +2899,14 @@ void FindSeedPrior(STRIP_PARMS *parms,MRI_variables *MRI_var) {
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
 #else
-  AffineMatrix myTrans, A, B, C, tmp;
-  
-  SetAffineMatrix( &A, parms->gca->prior_r_to_i__ );
-  SetAffineMatrix( &B, parms->gca->mri_tal__->i_to_r__ );
+  AffineMatrix myTrans, C, tmp;
+  const AffineMatrix *A, *B; 
+ 
+  A = parms->gca->prior_r_to_i__;
+  B = parms->gca->mri_tal__->i_to_r__;
   SetAffineMatrix( &C, lta->xforms[0].m_L );
-  AffineMM( &tmp, &A, &B );
+
+  AffineMM( &tmp, A, B );
   AffineMM( &myTrans, &tmp, &C );
 #endif
 #endif
@@ -3712,11 +3717,14 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
   C.Set( lta->xforms[0].m_L );
   myTrans = A * B * C;
 #else
-  AffineMatrix myTrans, A, B, C, tmp;
-  SetAffineMatrix( &A, parms->gca->prior_r_to_i__ );
-  SetAffineMatrix( &B, parms->gca->mri_tal__->i_to_r__ );
+  AffineMatrix myTrans, C, tmp;
+  const AffineMatrix *A, *B;
+
+  A =parms->gca->prior_r_to_i__;
+  B = parms->gca->mri_tal__->i_to_r__;
   SetAffineMatrix( &C, lta->xforms[0].m_L );
-  AffineMM( &tmp, &A, &B );
+
+  AffineMM( &tmp, A, B );
   AffineMM( &myTrans, &tmp, &C );
 #endif
 #endif
@@ -3758,7 +3766,7 @@ void BASIN_PRIOR(STRIP_PARMS *parms,MRI_variables *MRI_var)
 	  rp.GetFloor( xp, yp, zp );
 #else
 	  AffineVector rp, rv;
-	  SetAffineVector( &rv, x, y, z );
+	  SetAffineVector( &rv, i, j, k );
 	  AffineMV( &rp, &myTrans, &rv );
 	  GetFloorAffineVector( &rp, &xp, &yp, &zp );
 #endif
