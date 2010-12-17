@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/12 20:19:00 $
- *    $Revision: 1.57 $
+ *    $Date: 2010/12/17 22:39:22 $
+ *    $Revision: 1.58 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -1054,8 +1054,13 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
 //    MRIwrite(gpS[r],"mriS-smooth.mgz");
 //    MRIwrite(gpT[r],"mriT-smooth.mgz");
 
-    if (verbose >0 ) cout << endl << "Resolution: " << r << endl;
-
+    if (verbose >0 )
+		{
+		  cout << endl << "Resolution: " << r;
+		  cout <<  "  S( " << gpS[r]->width << " "<< gpS[r]->height << " " << gpS[r]->depth << " )";
+		  cout <<  "  T( " << gpT[r]->width << " "<< gpT[r]->height << " " << gpT[r]->depth << " )"<< endl;
+    }
+		
     if (r<=1) iscale = iscaletmp; // set iscale if set by user
 
 //        if (transonly)

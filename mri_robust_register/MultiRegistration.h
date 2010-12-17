@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/10/22 21:32:33 $
- *    $Revision: 1.10 $
+ *    $Date: 2010/12/17 22:39:22 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,12 +56,12 @@ class MultiRegistration
 {
 public:
    MultiRegistration():outdir("./"),transonly(false),rigid(true),robust(true),sat(4.685),satit(false),
-	                     debug(0),iscale(false),subsamplesize(-1),fixvoxel(false),
+	                     debug(0),iscale(false),subsamplesize(-1),highit(-1),fixvoxel(false),
 											 keeptype(false),average(1),doubleprec(false),mri_mean(NULL)
 		{};
 	 MultiRegistration(const std::vector < std::string > mov):outdir("./"),transonly(false),
 	                     rigid(true),robust(true),sat(4.685),satit(false),debug(0),iscale(false),
-											 subsamplesize(-1),fixvoxel(false),keeptype(false),average(1),doubleprec(false),
+											 subsamplesize(-1),highit(-1),fixvoxel(false),keeptype(false),average(1),doubleprec(false),
 											 mri_mean(NULL)
 	  { loadMovables(mov);};
 		
@@ -134,6 +134,10 @@ public:
   {
     subsamplesize = sss;
   };
+	void setHighit (int hit)
+	{
+	  highit = hit;
+	};
 	void setDoublePrec(bool b)
 	{
 	  doubleprec = b;
@@ -173,6 +177,7 @@ private:
   int    debug;
   bool   iscale;
 	int    subsamplesize;
+	int    highit;
 	
   bool   fixvoxel;
   bool   keeptype;

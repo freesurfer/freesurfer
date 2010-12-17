@@ -50,6 +50,8 @@ Important Note: For best performance the input images should all have the same i
       <explanation>do not iterate, just create first template</explanation>
       <argument>--maxit &lt;#&gt;</argument>
       <explanation>iterate max # times (if #tp&gt;2 default 6, else 5 for 2tp reg.)</explanation>
+      <argument>--highit &lt;#&gt;</argument>
+      <explanation>iterate max # times on highest resolution (default 5)</explanation>
       <argument>--epsit &lt;real&gt;</argument>
       <explanation>stop iterations when all tp transform updates fall below &lt;real&gt; (if #tp>2 default 0.03, else 0.01 for 2tp reg.)</explanation>
       <argument>--subsample &lt;#&gt;</argument>

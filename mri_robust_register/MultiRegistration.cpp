@@ -13,9 +13,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/12/08 20:59:40 $
- *    $Revision: 1.27 $
+ *    $Author: mreuter $
+ *    $Date: 2010/12/17 22:39:21 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -197,7 +197,8 @@ void MultiRegistration::initRegistration(Registration & R)
   
 	
 	if (subsamplesize > 0) R.setSubsamplesize(subsamplesize);
-
+  if (highit > 0) R.setHighit(highit);
+	 
 //   int pos = P.mov[n].rfind(".");
 //   if (pos > 0) R.setName(P.mov[n].substr(0,pos));
 //   else  R.setName(P.mov[n]);
