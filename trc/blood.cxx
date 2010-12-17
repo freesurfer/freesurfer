@@ -726,7 +726,7 @@ void Blood::ComputeCurvaturePrior() {
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
                                ivalid2 = mIsInEnd2.begin();
   vector<int>::const_iterator ilen = mLengths.begin();
-  vector<float> tang(3), norm(3);
+  vector<float> tang(3), norm(3), tangmean(3), tangstd(3);
 
   mTangentArc.resize(mNumArc);
   mCurvatureArc.resize(mNumArc);
@@ -781,32 +781,52 @@ void Blood::ComputeCurvaturePrior() {
   }
 
   // Compute mean and variance of tangent vector by arc length
-  for (vector< vector<unsigned float> >::const_iterator
+  for (vector< vector<float> >::const_iterator
        itang = mTangentArc.begin(); itang != mTangentArc.end(); itang++) {
-    vector<float> tangmean(3, 0), tangstd(3, 0);
+    unsigned int nsamp = itang->size() / 3;
+
+    fill(tangmean.begin(), tangmean.end(), 0.0);
+    fill(tangstd.begin(), tangstd.end(), 0.0);
+
+    for (vector<float>::const_iterator isamp = itang->begin(); 
+                                       isamp != itang->end(); isamp += 3)
+      for (int k = 0; k < 3; k++) {
+        tangmean[k] += isamp[k];
+        tangstd[k]  += isamp[k] * isamp[k];
+      }
 
     for (int k = 0; k < 3; k++) {
-      const int d = idist->at(imatch - iseg->begin());
+      tangmean[k] /= nsamp;
 
-      tangmean[k] += (float) d;
-      tangstd[k]  += (float) d*d;
-
-    tangmean[k] /= nmatch;
-
-    if (nmatch > 1)
-      tangstd[k] = sqrt((*idstd - nmatch * (tangmean[k]) * (tangmean[k])) / (nmatch-1));
-    else
-      tangstd[k] = 0;
+      if (nsamp > 1)
+        tangstd[k] = sqrt((tangstd[k] - nsamp * tangmean[k] * tangmean[k])
+                           / (nsamp-1));
+      else
+        tangstd[k] = 0;
     }
 
-    mTangentMean.push_back(tangmean);
-    mTangentStd.push_back(tangstd);
+    mTangentMean.insert(mTangentMean.end(), tangmean.begin(), tangmean.end());
+    mTangentStd.insert(mTangentStd.end(), tangstd.begin(), tangstd.end());
   }
 
   // Compute mean and variance of curvature by arc length
-  for (vector< vector<unsigned float> >::const_iterator
+  for (vector< vector<float> >::const_iterator
        icurv = mCurvatureArc.begin(); icurv != mCurvatureArc.end(); icurv++) {
+    unsigned int nsamp = icurv->size();
     float curvmean = 0, curvstd = 0;
+
+    for (vector<float>::const_iterator isamp = icurv->begin(); 
+                                       isamp != icurv->end(); isamp++) {
+      curvmean += *isamp;
+      curvstd  += (*isamp) * (*isamp);
+    }
+
+    curvmean /= nsamp;
+
+    if (nsamp > 1)
+      curvstd = sqrt((curvstd - nsamp * curvmean * curvmean) / (nsamp-1));
+    else
+      curvstd = 0;
 
     mCurvatureMean.push_back(curvmean);
     mCurvatureStd.push_back(curvstd);
@@ -1099,6 +1119,7 @@ void Blood::WriteOutputs(const char *OutBase) {
   MRI *out1 = MRIclone(mTestMask, NULL);
   MRI *out2 = MRIclone(mTestMask, NULL);
   MRI *out3 = MRIclone(mTestMask, NULL);
+  ofstream outfile;
 
   cout << "Writing output files to " << OutBase << "_*" << endl;
 
@@ -1170,7 +1191,6 @@ void Blood::WriteOutputs(const char *OutBase) {
   for (vector<int>::const_iterator idir = mDirLocal.begin();
                                    idir < mDirLocal.end(); idir += 3) {
     const int idx = idir[0], idy = idir[1], idz = idir[2];
-    ofstream outfile;
 
     sprintf(fname, "%s_fsids_%d_%d_%d.txt", OutBase, idx, idy, idz);
     outfile.open(fname, ios::out);
@@ -1225,7 +1245,6 @@ void Blood::WriteOutputs(const char *OutBase) {
   for (vector<int>::const_iterator idir = mDirNear.begin();
                                    idir < mDirNear.end(); idir += 3) {
     const int idx = idir[0], idy = idir[1], idz = idir[2];
-    ofstream outfile;
 
     sprintf(fname, "%s_fsnnids_%d_%d_%d.txt", OutBase, idx, idy, idz);
     outfile.open(fname, ios::out);
@@ -1298,6 +1317,44 @@ void Blood::WriteOutputs(const char *OutBase) {
     idmean++;
     idstd++;
   }
+
+  // Save tangent vector distribution in training set
+  sprintf(fname, "%s_tangmean.txt", OutBase);
+  outfile.open(fname, ios::out);
+
+  for (vector<float>::const_iterator imean = mTangentMean.begin();
+                                     imean != mTangentMean.end(); imean += 3)
+    outfile << imean[0] << " " << imean[1] << " " << imean[2] << endl;
+
+  outfile.close();
+
+  sprintf(fname, "%s_tangstd.txt", OutBase);
+  outfile.open(fname, ios::out);
+
+  for (vector<float>::const_iterator istd = mTangentStd.begin();
+                                     istd != mTangentStd.end(); istd += 3)
+    outfile << istd[0] << " " << istd[1] << " " << istd[2] << endl;
+
+  outfile.close();
+
+  // Save curvature distribution in training set
+  sprintf(fname, "%s_curvmean.txt", OutBase);
+  outfile.open(fname, ios::out);
+
+  for (vector<float>::const_iterator imean = mCurvatureMean.begin();
+                                     imean != mCurvatureMean.end(); imean++)
+    outfile << *imean << endl;
+
+  outfile.close();
+
+  sprintf(fname, "%s_curvstd.txt", OutBase);
+  outfile.open(fname, ios::out);
+
+  for (vector<float>::const_iterator istd = mCurvatureStd.begin();
+                                     istd != mCurvatureStd.end(); istd++)
+    outfile << *istd << endl;
+
+  outfile.close();
 
   // Write end ROIs to volumes
   MRIclear(out1);
