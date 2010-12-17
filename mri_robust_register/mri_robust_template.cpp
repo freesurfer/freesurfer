@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/17 22:39:23 $
- *    $Revision: 1.30 $
+ *    $Date: 2010/12/17 23:36:08 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -165,7 +165,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.30 2010/12/17 22:39:23 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.31 2010/12/17 23:36:08 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -229,6 +229,7 @@ int main(int argc, char *argv[])
 	MR.setAverage(P.average);
 	MR.setDoublePrec(P.doubleprec);
 	MR.setSubsamplesize(P.subsamplesize);
+	MR.setHighit(P.highit);
 
 	// init MultiRegistration and load movables
 	int nin = (int) P.mov.size();

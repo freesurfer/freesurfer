@@ -12,8 +12,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/17 22:39:23 $
- *    $Revision: 1.20 $
+ *    $Date: 2010/12/17 23:36:08 $
+ *    $Revision: 1.21 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -544,9 +544,9 @@ vnl_vector< T >  Regression<T>::getWeightedLSEstFloat(const vnl_vector< T > & w)
   //if (!wb.valid()) ErrorExit(ERROR_NO_MEMORY,"Regression<T>::getWeightedLSEst could not allocate memory for wb") ;
   for (rr = 0;rr<b->size();rr++)
     wb[rr] = b->operator[](rr) * w[rr];
-  
-	// solve
-	vnl_vector < float > p = QR->solve(wb);
+
+  // solve
+  vnl_vector < float > p = QR->solve(wb);
   delete(QR);
 
   // copy p back:

@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/17 22:39:21 $
- *    $Revision: 1.28 $
+ *    $Date: 2010/12/17 23:36:06 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -195,10 +195,9 @@ void MultiRegistration::initRegistration(Registration & R)
   R.setDoublePrec(doubleprec);
   //R.setDebug(debug);
   
-	
-	if (subsamplesize > 0) R.setSubsamplesize(subsamplesize);
-  if (highit > 0) R.setHighit(highit);
-	 
+  if (subsamplesize > 0) R.setSubsamplesize(subsamplesize);
+  if (highit >= 0) R.setHighit(highit);
+
 //   int pos = P.mov[n].rfind(".");
 //   if (pos > 0) R.setName(P.mov[n].substr(0,pos));
 //   else  R.setName(P.mov[n]);
