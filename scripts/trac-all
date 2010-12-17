@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/16 08:12:35 $
-#    $Revision: 1.2 $
+#    $Date: 2010/12/17 06:55:34 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.2 2010/12/16 08:12:35 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.3 2010/12/17 06:55:34 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -74,13 +74,7 @@ set dopriors = 1
 set rcfile = ()		# Run command file
 
 if ($onpbs) then
-  setenv MYPBSWAIT 15
-  setenv MYPBSMAXJOBS 10
-  if ($#rcfile) then
-    set pbslogdir = `dirname $rcfile`/trac-all.$$
-  else
-    set pbslogdir = ./trac-all.$$
-  endif
+  set pbslogdir = /tmp/trac-all.$$
   mkdir -p $pbslogdir
   set submitfile = $pbslogdir/submit.txt
   rm -f $submitfile
@@ -88,12 +82,12 @@ endif
 
 #------------ Parse input arguments and configuration file ----------------#
 
-if ($#argv == 0) goto usage_exit
+if ($#argv == 0) goto usage_exit;
 
 set n = `echo $argv | egrep -e -help | wc -l`
 if ($n != 0) then
   set PrintHelp = 1
-  goto usage_exit
+  goto usage_exit;
 endif
 
 set n = `echo $argv | egrep -e -version | wc -l`
@@ -145,13 +139,13 @@ set doinitprop = 0
 set trcdir = $FREESURFER_HOME/bin
 
 # Parse command line arguments
-goto parse_args
+goto parse_args;
 parse_args_return:
 
 # Source run command file
 if ($#rcfile) source $rcfile
 
-goto check_params
+goto check_params;
 check_params_return:
 
 echo "INFO: SUBJECTS_DIR is $SUBJECTS_DIR"
@@ -405,7 +399,7 @@ foreach isubj ($runlist)
 
   set dmdirlist = ($dmdirlist $dtdir/dmri)
 
-  if ($dopreproc) then				# Pre-processing #############
+  if ($dopreproc) then			# Pre-processing #############
     set cmd = trac-preproc
     set cmd = ($cmd -c $RCF)
     set cmd = ($cmd -log $LF)
@@ -418,18 +412,40 @@ foreach isubj ($runlist)
       $cmd
       if ($status) exit 1
     endif
-  else if ($dobedpost && ! $onpbs) then		# Bedpost ####################
-    echo "WARN: Running FSL's bedbost locally - this might take a while" \
-      |& tee -a $LF |& tee -a $CF
-    echo "WARN: It is recommended to run this step on a cluster" \
-      |& tee -a $LF |& tee -a $CF
-    set cmd = (bedpostx_seychelles $dtdir/dmri)
-    echo $cmd
+  else if ($dobedpost) then		# Bedpost ####################
+    # Create links named as expected by bedpostx
+    if ($usemaskanat) then
+      set bedmask = $dtdir/dlabel/diff/anat_brain_mask.bbr.nii.gz
+    else
+      set bedmask = $dtdir/dlabel/diff/lowb_brain_mask.nii.gz
+    endif
+    set cmd = (ln -sf $bedmask $dtdir/dmri/nodif_brain_mask.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF 
+    if ($RunIt) then
+      $cmd |& tee -a $LF 
+      if ($status) goto error_exit
+    endif
+  
+    set cmd = (ln -sf $dtdir/dmri/dwi.nii.gz $dtdir/dmri/data.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
       $cmd |& tee -a $LF
-      if ($status) exit 1
+      if ($status) goto error_exit
     endif
-  else if ($dopaths) then			# Path reconstruction ########
+
+    if (! $onpbs) then
+      echo "WARN: Running FSL's bedbost locally - this might take a while" \
+        |& tee -a $LF
+      echo "WARN: It is recommended to run this step on a cluster" \
+        |& tee -a $LF
+      set cmd = (bedpostx_seychelles $dtdir/dmri)
+      echo $cmd |& tee -a $LF |& tee -a $CF
+      if ($RunIt) then
+        $cmd |& tee -a $LF
+        if ($status) exit 1
+      endif
+    endif
+  else if ($dopaths) then		# Path reconstruction ########
     set cmd = trac-paths
     set cmd = ($cmd -c $RCF)
     set cmd = ($cmd -log $LF)
@@ -441,17 +457,24 @@ foreach isubj ($runlist)
       echo $cmd
       $cmd
       if ($status) exit 1
+    endif
   endif
 end
 
 if ($onpbs && $RunIt) then
   if ($dopreproc) then
+    setenv MYPBSWAIT 15
+    setenv MYPBSMAXJOBS 10
     echo Queueing pre-processing
     set preid = `fsl_sub_seychelles 
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
-  else if ($dobedp) then
+  else if ($dobedpost) then
+    setenv MYPBSWAIT 0
+    setenv MYPBSMAXJOBS 30
     bedpostx_seychelles $dmdirlist
   else if ($dopaths) then
+    setenv MYPBSWAIT 15
+    setenv MYPBSMAXJOBS 10
     echo Queueing path reconstruction
     set trcid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trc -t $submitfile`
@@ -778,8 +801,8 @@ check_params:
       set dtroot = $SUBJECTS_DIR
     endif
 
-    if (! $?ncptlist ) set ncptlist = ncpts
-    if (! $?xspacelist ) set xspacelist = xspace
+    if (! $?ncptlist ) set ncptlist = $ncpts
+    if (! $?xspacelist ) set xspacelist = $xspace
 
     if ($do1out) then
       # Leave-one-out training file:
@@ -827,8 +850,9 @@ check_params:
     exit 1
   endif
 
-  if (! $docorr && ! $dointra && ! $dointer && ! $domasks && \
-      ! $dotensor && ! $dopriors && ! $dobedpost && ! $dopaths) then
+  if ((! $docorr || (! $dointra && ! $dointer && ! $domasks && \
+                     ! $dotensor && ! $dopriors)) && \
+       ! $dobedpost && ! $dopaths) then
     echo "ERROR: no analysis step has been selected"
     exit 1
   endif

@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/16 08:12:35 $
-#    $Revision: 1.2 $
+#    $Date: 2010/12/17 06:55:34 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.2 2010/12/16 08:12:35 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.3 2010/12/17 06:55:34 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -931,14 +931,6 @@ if ($domasks) then
       endif
     endif
   end
-
-  # Copy of brain mask to be used by bedpostx
-  if ($usemaskanat) then
-    set bedmask = $labdir/diff/anat_brain_mask.bbr.nii.gz
-  else
-    set bedmask = $labdir/diff/lowb_brain_mask.nii.gz
-  endif
-  set cmd = (cp $bedmask $dwidir/nodif_brain_mask.nii.gz)
 endif
 
 #------------ Tensor fit --------------------------------------------------#
