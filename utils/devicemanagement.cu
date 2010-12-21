@@ -21,6 +21,8 @@ using namespace std;
 #include "gcamorphcpu.hpp"
 #endif
 
+#include "mrilabels_cuda.hpp"
+
 // ==============================================
 
 
@@ -78,4 +80,5 @@ void PrintGPUtimers( void ) {
   GPU::Algorithms::GCAmorphTerm::ShowTimings();
   Freesurfer::GCAmorphCPU::ShowTimings();
 #endif
+  GPU::Algorithms::MRIlabels::ShowTimings();
 }

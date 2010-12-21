@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/21 16:41:58 $
- *    $Revision: 1.473 $
+ *    $Date: 2010/12/21 20:03:44 $
+ *    $Revision: 1.474 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.473 $";
+const char *MRI_C_VERSION = "$Revision: 1.474 $";
 
 
 /*-----------------------------------------------------
@@ -15110,7 +15110,6 @@ MRImarkLabelBorderVoxels( const MRI *mri_src,
 			  int label,
 			  int mark,
 			  int six_connected ) {
-  int  x, y, z, xk, yk, zk, xi, yi, zi, this_label, that_label, border ;
 
 #if MRI_MARK_LABEL_BORDER_VOXELS_OUTPUT
   const unsigned int outputFreq = 10;
@@ -15128,6 +15127,11 @@ MRImarkLabelBorderVoxels( const MRI *mri_src,
     mri_dst = MRIclone(mri_src, NULL) ;
   }
 
+#ifdef FS_CUDA
+  MRImarkLabelBorderVoxelsGPU( mri_src, mri_dst, label, mark, six_connected );
+#else
+  int  x, y, z, xk, yk, zk, xi, yi, zi;
+  int this_label, that_label, border;
   for (x = 0 ; x < mri_src->width ; x++)
   {
     for (y = 0 ; y < mri_src->height ; y++)
@@ -15164,6 +15168,7 @@ MRImarkLabelBorderVoxels( const MRI *mri_src,
       }
     }
   }
+#endif
 
   return(mri_dst) ;
 }
