@@ -10,6 +10,34 @@ mri_segstats_SOURCES=mri_segstats.c
 mri_segstats_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_segstats_LDFLAGS=$(OS_LDFLAGS)
 
+
+## ----
+## CUDA
+## ----
+
+# BUILDCUDA is defined if configure.in finds CUDA
+if BUILDCUDA
+
+# rules for building cuda files
+.cu.o:
+	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(AM_CFLAGS) $(MNI_CFLAGS)
+
+bin_PROGRAMS += mri_segstats_cuda
+
+mri_segstats_cuda_SOURCES = mri_segstats.c
+mri_segstats_cuda_CFLAGS = $(AM_CFLAGS)  $(CUDA_CFLAGS) -DFS_CUDA
+mri_segstats_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
+mri_segstats_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
+mri_segstats_cuda_LDFLAGS = $(OS_LDFLAGS) 
+mri_segstats_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mri_segstats_cuda_CFLAGS) \
+        $(CFLAGS) $(mri_segstats_cuda_LDFLAGS) $(LDFLAGS) -o $@
+
+endif
+# endif BUILDCUDA
+
+
+
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_segstats.help.xml
 
