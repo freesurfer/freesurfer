@@ -37,8 +37,8 @@ mri_ca_register_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
 mri_ca_register_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
 mri_ca_register_cuda_LDFLAGS = $(OS_LDFLAGS) 
 mri_ca_register_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
-        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mri_em_register_cuda_CFLAGS) \
-        $(CFLAGS) $(mri_em_register_cuda_LDFLAGS) $(LDFLAGS) -o $@
+        $(LIBTOOLFLAGS) --mode=link $(CCLD) $(mri_ca_register_cuda_CFLAGS) \
+        $(CFLAGS) $(mri_ca_register_cuda_LDFLAGS) $(LDFLAGS) -o $@
 
 endif
 # endif BUILDCUDA
