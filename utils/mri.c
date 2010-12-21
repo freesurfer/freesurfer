@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/08 20:59:41 $
- *    $Revision: 1.472 $
+ *    $Date: 2010/12/21 16:41:58 $
+ *    $Revision: 1.473 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.472 $";
+const char *MRI_C_VERSION = "$Revision: 1.473 $";
 
 
 /*-----------------------------------------------------
@@ -5568,7 +5568,7 @@ MRI *MRIdivide(MRI *mri1, MRI *mri2, MRI *mri_dst)
   header info and allocs the pixel space (but does not
   copy pixel data).
   ------------------------------------------------------*/
-MRI *MRIclone(MRI *mri_src, MRI *mri_dst)
+MRI *MRIclone( const MRI *mri_src, MRI *mri_dst)
 {
   if (!mri_dst)
     mri_dst =
@@ -6623,7 +6623,7 @@ MRIcompareHeaders(MRI *mri1, MRI *mri2)
   etc. Does not copy ischunked or chunk pointer.
   ------------------------------------------------------*/
 MRI *
-MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
+MRIcopyHeader( const MRI *mri_src, MRI *mri_dst )
 {
   int i ;
 
@@ -6637,7 +6637,8 @@ MRIcopyHeader(MRI *mri_src, MRI *mri_dst)
   mri_dst->zsize = mri_src->zsize ;
   if (mri_src->linear_transform)
   {
-    copy_general_transform(&mri_src->transform, &mri_dst->transform) ;
+    copy_general_transform(&(((MRI*)mri_src)->transform),
+			   &mri_dst->transform) ;
     mri_dst->linear_transform = mri_src->linear_transform ;
     mri_dst->inverse_linear_transform = mri_src->inverse_linear_transform ;
     mri_dst->linear_transform =
@@ -14858,10 +14859,11 @@ MRIsampleVolumeSlice
   return(NO_ERROR) ;
 }
 
-float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals, 
-                                               int label, 
-                                               MRI *mri_mixing_coef, 
-                                               MRI *mri_nbr_labels)
+float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
+						const MRI *mri_vals, 
+						int label, 
+						MRI *mri_mixing_coef, 
+						MRI *mri_nbr_labels )
 {
   float   volume, vox_vol ;
   int     x, y, z, nbr_label_counts[20000];
@@ -15100,14 +15102,31 @@ MRImakeDensityMap(MRI *mri,
 
 
 
+#define MRI_MARK_LABEL_BORDER_VOXELS_OUTPUT 0
+
 MRI *
-MRImarkLabelBorderVoxels
-(MRI *mri_src, MRI *mri_dst, int label, int mark, int six_connected)
-{
+MRImarkLabelBorderVoxels( const MRI *mri_src,
+			  MRI *mri_dst,
+			  int label,
+			  int mark,
+			  int six_connected ) {
   int  x, y, z, xk, yk, zk, xi, yi, zi, this_label, that_label, border ;
 
-  if (mri_dst == NULL)
+#if MRI_MARK_LABEL_BORDER_VOXELS_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( ( nCalls%outputFreq ) == 0 ) {
+    char fname[STRLEN];
+    const unsigned int nOut = nCalls / outputFreq;
+    snprintf( fname, STRLEN-1, "mriMarkLabelBorderVoxelsInput%04u.mgz", nOut );
+    fname[STRLEN-1] = '\0';
+    MRIwrite( (MRI*)mri_src, fname );
+  }
+  nCalls++; 
+#endif
+  if (mri_dst == NULL) {
     mri_dst = MRIclone(mri_src, NULL) ;
+  }
 
   for (x = 0 ; x < mri_src->width ; x++)
   {
@@ -15149,12 +15168,13 @@ MRImarkLabelBorderVoxels
   return(mri_dst) ;
 }
 
+
 int
-MRIcomputeLabelNbhd
-(MRI *mri_labels, MRI *mri_vals,
- int x, int y, int z, int *label_counts, float *label_means,
- int whalf, int max_labels)
-{
+MRIcomputeLabelNbhd( const MRI *mri_labels,
+		     const MRI *mri_vals,
+		     int x, int y, int z,
+		     int *label_counts, float *label_means,
+		     int whalf, int max_labels ) {
   int    xi, yi, zi, xk, yk, zk, label ;
   float  val ;
 
