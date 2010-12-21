@@ -11,9 +11,9 @@
 /*
  * Original Author: Dougas N Greve
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:30:03 $
- *    $Revision: 1.71 $
+ *    $Author: rge21 $
+ *    $Date: 2010/12/21 16:41:53 $
+ *    $Revision: 1.72 $
  *
  * Copyright (C) 2006-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -426,7 +426,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.71 2010/08/12 17:30:03 gregt Exp $";
+"$Id: mri_segstats.c,v 1.72 2010/12/21 16:41:53 rge21 Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -599,6 +599,8 @@ int main(int argc, char **argv) {
     fp = fopen(StatTableFile,"w");
     if (fp == NULL) {
       printf("ERROR: could not open %s for writing\n",StatTableFile);
+      int err = errno;
+      printf("Errno: %s\n", strerror(err) );
       exit(1);
     }
     fclose(fp);
