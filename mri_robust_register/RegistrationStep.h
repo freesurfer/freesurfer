@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/03 02:48:25 $
- *    $Revision: 1.9 $
+ *    $Date: 2010/12/21 18:23:47 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -54,7 +54,6 @@ extern "C"
 #include "Regression.h"
 #include "Quaternion.h"
 
-//class Registration;
 
 template <class T>
 class RegistrationStep
