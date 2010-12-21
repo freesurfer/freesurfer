@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/08 20:59:20 $
- *    $Revision: 1.411 $
+ *    $Date: 2010/12/21 16:41:41 $
+ *    $Revision: 1.412 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -285,7 +285,7 @@ long  MRIcorrelate(MRI *mri_ref, MRI *mri_in, int xoff, int yoff, int zoff) ;
 
 int   MRIpeak(MRI *mri, int *px, int *py, int *pz) ;
 int   MRIcompareHeaders(MRI *mri1, MRI *mri2) ;
-MRI   *MRIcopyHeader(MRI *mri_src, MRI *mri_dst) ;
+MRI   *MRIcopyHeader( const MRI *mri_src, MRI *mri_dst) ;
 int   MRIcopyPulseParameters(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcopy(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIreslice(MRI *mri_src, MRI *mri_dst, int slice_direction) ;
@@ -440,7 +440,7 @@ MRI   *MRIapplyOffset(MRI *mri_src, MRI *mri_dst, MRI *mri_offset) ;
 
 
  /* it just copies the header info, not image data */
-MRI   *MRIclone(MRI *mri_src, MRI *mri_dst) ;  
+MRI   *MRIclone( const MRI *mri_src, MRI *mri_dst );  
 MRI   *MRIcloneDifferentType(MRI *mri_src, int type) ;
 MRI   *MRIcloneRoi(MRI *mri_src, MRI *mri_dst) ;
 MRI   *MRIcloneBySpace(MRI *mri_src, int type, int nframes);
@@ -1202,15 +1202,17 @@ MRI *MRIremoveNaNs(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRImakePositive(MRI *mri_src, MRI *mri_dst);
 MRI *MRIeraseNegative(MRI *mri_src, MRI *mri_dst) ;
 
-MRI *MRImarkLabelBorderVoxels(MRI *mri_src, MRI *mri_dst,
-                              int label, int mark, int six_connected) ;
-int MRIcomputeLabelNbhd(MRI *mri_labels, MRI *mri_vals,
-                        int x, int y, int z,
-                        int *label_counts, float *label_means,
-                        int whalf, int max_labels) ;
-float MRIvoxelsInLabelWithPartialVolumeEffects(MRI *mri, MRI *mri_vals,
-                                               int label,MRI *mri_mixing_coef,
-                                               MRI *mri_nbr_labels);
+MRI *MRImarkLabelBorderVoxels( const MRI *mri_src, MRI *mri_dst,
+			       int label, int mark, int six_connected) ;
+int MRIcomputeLabelNbhd( const MRI *mri_labels, const MRI *mri_vals,
+			 int x, int y, int z,
+			 int *label_counts, float *label_means,
+			 int whalf, int max_labels );
+float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
+						const MRI *mri_vals,
+						int label,
+						MRI *mri_mixing_coef,
+						MRI *mri_nbr_labels );
 MRI   *MRImakeDensityMap(MRI *mri, MRI *mri_vals, int label, MRI *mri_dst,
                          float orig_res) ;
 int MRIfillBox(MRI *mri, MRI_REGION *box, float fillval) ;
