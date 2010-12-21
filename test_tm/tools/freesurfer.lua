@@ -29,10 +29,16 @@ function LinearRegistrationdir()
    return Registrationdir().."/linear/"
 end
 
+-- Returns the location of the mrilabel directory
+function MRIlabelDir()
+   return ScratchDir().."/mrilabel/"
+end
+
 
 
 -- Lists the files matching 'pattern' in the specified directory
 function GetFiles( srcDir, pattern )
+   print (srcDir)
    local lsPipe = io.popen( "ls "..srcDir )
 
    local fileList = {}
