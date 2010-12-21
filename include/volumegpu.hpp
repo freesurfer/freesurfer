@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/11 15:00:47 $
- *    $Revision: 1.22 $
+ *    $Date: 2010/12/21 20:02:18 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -239,7 +239,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.22 2010/11/11 15:00:47 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.23 2010/12/21 20:02:18 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray
@@ -316,7 +316,8 @@ namespace GPU {
       //! Copies data into a CUDA array for texturing
       void SendArray( const cudaStream_t myStream = 0 );
       
-
+      //! Creates a cudaArray, copies data to it, and returns the array
+      cudaArray* CreateArray( void ) const;
 
       // --------------------------------------
       // Other routines

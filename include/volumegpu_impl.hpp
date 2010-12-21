@@ -10,8 +10,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/12 18:01:47 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/12/21 20:02:18 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -311,6 +311,37 @@ namespace GPU {
 
     // ================================================================
     // Other routines
+
+    template<typename T>
+    cudaArray* VolumeGPU<T>::CreateArray( void ) const {
+      /*!
+	Creates a cudaArray, and copies contents to it.
+	Does not take ownership of the array
+      */
+
+      cudaArray* myArr;
+
+      // Allocate the array
+      cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
+      cudaExtent tmp = ExtentFromDims( this->dims );
+      
+      CUDA_SAFE_CALL( cudaMalloc3DArray( &myArr, &cd, tmp ) );
+
+      // Copy the data to it
+      cudaMemcpy3DParms cp = {0};
+      
+      cp.srcPtr = this->d_data;
+      cp.dstArray = myArr;
+      cp.extent = ExtentFromDims( this->dims );
+      cp.kind = cudaMemcpyDeviceToDevice;
+
+      CUDA_SAFE_CALL( cudaMemcpy3D( &cp ) );
+
+      return( myArr );
+    }
+
+
+    // -------------------------------
 
     template<typename T>
     dim3 VolumeGPU<T>::CoverBlocks( const unsigned int threadCount ) const {

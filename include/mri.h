@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/21 16:41:41 $
- *    $Revision: 1.412 $
+ *    $Date: 2010/12/21 20:02:17 $
+ *    $Revision: 1.413 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1337,6 +1337,14 @@ MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
                                            MRI *mri_dst_dist);
 
 const char* MRItype2str(int type);
+
+#ifdef FS_CUDA
+  void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
+				    MRI* mri_dst,
+				    int label,
+				    int mark,
+				    int six_connected );
+#endif
 
 #if defined(__cplusplus)
 };
