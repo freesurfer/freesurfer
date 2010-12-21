@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/16 16:36:40 $
- *    $Revision: 1.690 $
+ *    $Date: 2010/12/21 14:38:54 $
+ *    $Revision: 1.691 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -736,7 +736,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.690 2010/12/16 16:36:40 rge21 Exp $");
+  return("$Id: mrisurf.c,v 1.691 2010/12/21 14:38:54 rge21 Exp $");
 }
 
 /*-----------------------------------------------------
@@ -9109,7 +9109,8 @@ MRISaverageGradients(MRI_SURFACE *mris, int num_avgs)
 {
   int    i, vno, vnb, *pnb, vnum ;
   float  dx, dy, dz, num, sigma ;
-  VERTEX *v, *vn ;
+  VERTEX *v;
+  const VERTEX *vn ;
   MRI_SP *mrisp, *mrisp_blur ;
 
   if (num_avgs <= 0)
