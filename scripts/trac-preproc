@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/17 06:55:34 $
-#    $Revision: 1.3 $
+#    $Date: 2010/12/22 05:13:13 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.3 2010/12/17 06:55:34 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.4 2010/12/22 05:13:13 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -76,9 +76,9 @@ if ($DoTime) then
   if (! $status) set fs_time = fs_time
 endif
 
-echo "\n\n"  >> $LF
+printf '\n\n' >> $LF
 echo "New invocation of $ProgName"  >> $LF
-echo "\n\n"  >> $LF
+printf '\n\n' >> $LF
 whoami >> $LF
 hostname >> $LF
 uname -a >> $LF
@@ -184,7 +184,7 @@ if ($docorr) then
     set cmd = (mri_probedicom --i $infile)
     echo "$cmd > $dwidir/dcminfo.dat" |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
-      ($cmd > $dwidir/dcminfo.dat) >& $LF
+      ($cmd > $dwidir/dcminfo.dat) >>& $LF
       if ($status) goto error_exit
     endif
   endif
@@ -263,7 +263,7 @@ if ($docorr) then
     set cmd = (mri_probedicom --i $dcmfile)
     echo "$cmd > $dwidir/b0info.dat" |& tee -a $LF |& tee -a $CF
     if ($RunIt) then
-      ($cmd > $dwidir/b0info.dat) >& $LF
+      ($cmd > $dwidir/b0info.dat) >>& $LF
       if ($status) goto error_exit
     endif
 
@@ -1035,7 +1035,7 @@ if ($dosnr) then
   echo "$cmd | awk '{print "'$1/$2'"}' > $dwidir/dwi_snr.txt" \
     |& tee -a $LF |& tee -a $CF
   if ($RunIt) then
-    ($cmd | awk '{print $1/$2}' > $dwidir/dwi_snr.txt) >& $LF
+    ($cmd | awk '{print $1/$2}' > $dwidir/dwi_snr.txt) >>& $LF
   endif
 endif
 
@@ -1112,7 +1112,7 @@ if ($dopriors) then
                      |& tee -a $LF |& tee -a $CF
                 if ($RunIt) then
                   ($cmd | sed -n "$a,$b p" > $labdir/diff/$fname.$reg.txt) \
-                    >& $LF
+                    >>& $LF
                   if ($status) goto error_exit
                 endif
               endif

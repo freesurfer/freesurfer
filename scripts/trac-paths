@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/16 08:12:35 $
-#    $Revision: 1.2 $
+#    $Date: 2010/12/22 05:13:13 $
+#    $Revision: 1.3 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.2 2010/12/16 08:12:35 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.3 2010/12/22 05:13:13 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -76,9 +76,9 @@ if ($DoTime) then
   if (! $status) set fs_time = fs_time
 endif
 
-echo "\n\n"  >> $LF
+printf '\n\n' >> $LF
 echo "New invocation of $ProgName"  >> $LF
-echo "\n\n"  >> $LF
+printf '\n\n' >> $LF
 whoami >> $LF
 hostname >> $LF
 uname -a >> $LF
