@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2010/12/16 20:40:04 $
-#    $Revision: 1.349 $
+#    $Author: rge21 $
+#    $Date: 2010/12/22 14:20:17 $
+#    $Revision: 1.350 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.349 2010/12/16 20:40:04 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.350 2010/12/22 14:20:17 rge21 Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -155,6 +155,7 @@ set mc_robust_template_avg_arg = 1; # when using mri_robust_template for motion
 set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
                  # mri_em_register_cuda, mri_ca_register_cuda,
                  # mris_inflate_cuda, mris_sphere_cuda
+                 # mri_segstats_cuda
 set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to 
                      # mris_make_surfaces to bypass usage of parcellation
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
@@ -3087,6 +3088,7 @@ if($DoSegStats) then
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
   set cmd = (mri_segstats --seg mri/aseg.mgz --sum stats/aseg.stats)
+  if($UseCuda) set cmd = (mri_segstats_cuda --seg mri/aseg.mgz --sum stats/aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz --empty)
   set cmd = ($cmd --excludeid 0 --excl-ctxgmwm)
   if ( -e mri/ribbon.mgz ) then
@@ -3189,7 +3191,9 @@ if($DoWMParc) then
   if($status) goto error_exit;
   echo $cmd > $touchdir/wmaparc.touch
   # Do segstats while we're here
-  set cmd = (mri_segstats --seg mri/wmparc.mgz --sum stats/wmparc.stats \
+  set cmd = (mri_segstats)
+  if($UseCuda) set cmd = (mri_segstats_cuda)
+  set cmd = ($cmd --seg mri/wmparc.mgz --sum stats/wmparc.stats \
     --pv mri/norm.mgz --excludeid 0 --brain-vol-from-seg  \
     --brainmask mri/brainmask.mgz --in mri/norm.mgz --in-intensity-name norm \
     --in-intensity-units MR --subject $subjid --surf-wm-vol \
@@ -3508,7 +3512,9 @@ if($DoAParcASegStats) then
   echo "#@# AParcASeg Stats `date`" |& tee -a $SF |& tee -a $LF |& tee -a $CF
   cd $subjdir > /dev/null
   set xopts = `fsr-getxopts mri_segstats $XOptsFile`;
-  set cmd = (mri_segstats --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
+  set cmd = (mri_segstats)
+  if($UseCuda) set cmd = (mri_segstats_cuda)
+  set cmd = ($cmd --seg mri/aparc+aseg.mgz --sum stats/aparc+aseg.stats)
   set cmd = ($cmd --pv mri/norm.mgz )
   set cmd = ($cmd --excludeid 0 --ctab-default --empty)
   set cmd = ($cmd --brain-vol-from-seg --brainmask mri/brainmask.mgz)
