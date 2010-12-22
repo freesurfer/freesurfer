@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/21 20:02:17 $
- *    $Revision: 1.413 $
+ *    $Date: 2010/12/22 15:59:08 $
+ *    $Revision: 1.414 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1205,9 +1205,9 @@ MRI *MRIeraseNegative(MRI *mri_src, MRI *mri_dst) ;
 MRI *MRImarkLabelBorderVoxels( const MRI *mri_src, MRI *mri_dst,
 			       int label, int mark, int six_connected) ;
 int MRIcomputeLabelNbhd( const MRI *mri_labels, const MRI *mri_vals,
-			 int x, int y, int z,
+			 const int x, const int y, const int z,
 			 int *label_counts, float *label_means,
-			 int whalf, int max_labels );
+			 const int whalf, const int max_labels );
 float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
 						const MRI *mri_vals,
 						int label,
