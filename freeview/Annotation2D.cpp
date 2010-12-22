@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/05/28 20:32:30 $
- *    $Revision: 1.12 $
+ *    $Date: 2010/12/22 18:16:45 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -336,12 +336,15 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
   if ( mri )
   {
     const char* ostr = mri->GetOrientationString();
-    if ( ostr[nPlane] == 'R' || ostr[nPlane] == 'L' )
-      nOrigPlane = 0;
-    else if ( ostr[nPlane] == 'A' || ostr[nPlane] == 'P' )
-      nOrigPlane = 1;
-    else if ( ostr[nPlane] == 'I' || ostr[nPlane] == 'S' )
-      nOrigPlane = 2;
+    char ch[3][3] = {"RL", "AP", "IS"};
+    for (int i = 0; i < 3; i++)
+    {
+      if (ostr[i] == ch[nPlane][0] || ostr[i] == ch[nPlane][1])
+      {
+        nOrigPlane = i;
+        break;
+      }
+    }
   }
   m_actorCoordinates[5]->SetInput
     ( mri ? wxString::Format
