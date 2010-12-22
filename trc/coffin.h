@@ -25,21 +25,7 @@
 #ifndef COFFIN_H
 #define COFFIN_H
 
-//define NO_CVS_UP_IN_HERE
-
-#ifndef NO_CVS_UP_IN_HERE
-// Needed for CVS - these must be included first or else they don't compile
-#include <cmath>
-#include <boost/program_options.hpp>
-#include <boost/progress.hpp>
-#undef SEEK_SET
-#undef SEEK_END
-#undef SEEK_CUR
-#include <mpi.h>
-#include "../fem_elastic/morph.h"
-#include "../fem_elastic/surf_utils.h"
-#include "../fem_elastic/morph_utils.h"
-#endif
+#include "vial.h"	// Needs to be included first becasue of CVS
 
 #include <vector>
 #include <string>
@@ -54,36 +40,6 @@
 #include "mri.h"
 #include "bite.h"
 #include "spline.h"
-
-class AffineReg {
-  public:
-    AffineReg();
-    ~AffineReg();
-    bool IsEmpty();
-    void ReadXfm(const char *XfmFile, const MRI *InRefVol, 
-                                      const MRI *OutRefVol);
-    void ApplyXfm(std::vector<int> &OutPoint,
-                  std::vector<int>::const_iterator InPoint);
-
-  private:
-    std::vector<float> mInToOut,			// [4 x 4]
-                       mInVoxelSize, mOutVoxelSize;	// [3]
-};
-
-#ifndef NO_CVS_UP_IN_HERE
-class NonlinReg {
-  public:
-    NonlinReg();
-    ~NonlinReg();
-    bool IsEmpty();
-    void ReadXfm(const char *XfmFile, MRI *OutRefVol);
-    void ApplyXfm(std::vector<int> &OutPoint,
-                  std::vector<int>::const_iterator InPoint);
-
-  private:
-    boost::shared_ptr<gmp::VolumeMorph> mMorph;
-};
-#endif
 
 class Coffin {
   public:
