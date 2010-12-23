@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:41:48 $
- *    $Revision: 1.45 $
+ *    $Author: fischl $
+ *    $Date: 2010/12/23 03:22:57 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -54,7 +54,7 @@
 #endif // FS_CUDA
 
 static char vcid[] =
-  "$Id: mris_fix_topology.c,v 1.45 2010/08/12 17:41:48 gregt Exp $";
+  "$Id: mris_fix_topology.c,v 1.46 2010/12/23 03:22:57 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -110,7 +110,7 @@ main(int argc, char *argv[]) {
   make_cmd_version_string
   (argc,
    argv,
-   "$Id: mris_fix_topology.c,v 1.45 2010/08/12 17:41:48 gregt Exp $",
+   "$Id: mris_fix_topology.c,v 1.46 2010/12/23 03:22:57 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -119,7 +119,7 @@ main(int argc, char *argv[]) {
     handle_version_option
     (argc,
      argv,
-     "$Id: mris_fix_topology.c,v 1.45 2010/08/12 17:41:48 gregt Exp $",
+     "$Id: mris_fix_topology.c,v 1.46 2010/12/23 03:22:57 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -229,6 +229,15 @@ main(int argc, char *argv[]) {
     ErrorExit(ERROR_NOFILE,
               "%s: could not read brain volume from %s", Progname, fname) ;
 
+  {
+    float fmin, fmax ;
+    MRIvalRange(mri, &fmin, &fmax) ;
+    if (fmax > 255) 
+    {
+      printf("scaling intensities down by %2.3f\n", 255.0/fmax) ;
+      MRIscalarMul(mri, mri, 255/fmax) ;
+    }
+  }
   sprintf(fname, "%s/%s/mri/%s", sdir, sname, wm_name) ;
   if (MGZ) strcat(fname,".mgz");
   printf("reading wm segmentation from %s...\n", wm_name) ;
