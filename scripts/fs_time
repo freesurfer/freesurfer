@@ -24,10 +24,10 @@ $stop = time;
 $elapsed = int( $stop-$start );
 
 $hours = $elapsed / 3600;
-$elapsed = $elapsed % 3600;
+my $elapsed2 = $elapsed % 3600;
 
-$mins = $elapsed / 60;
-$secs = $elapsed % 60;
+$mins = $elapsed2 / 60;
+$secs = $elapsed2 % 60;
 
 
 # Print output
