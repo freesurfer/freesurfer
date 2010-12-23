@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/07 01:15:07 $
- *    $Revision: 1.7 $
+ *    $Date: 2010/12/23 00:08:40 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -33,6 +33,10 @@
 #include <vnl/algo/vnl_determinant.h>
 #include <vnl/vnl_vector_fixed.h>
 #include <vnl/vnl_matrix_fixed.h>
+#include <vnl/algo/vnl_complex_eigensystem.h>
+#include <vnl/vnl_real.h>
+#include <vnl/vnl_imag.h>
+#include <vnl/algo/vnl_qr.h>
 
 using namespace std;
 
@@ -202,6 +206,106 @@ std::pair < vnl_matrix < double >, vnl_matrix < double > >
 }
 
 vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& m)
+// for now separate the translation, else we get defective m
+// (where we cannot do the eigendecomposition trick)
+// in the future use schur decomposition (as in LAPACK) and
+// then replicate the sqrtm from matlab
+{
+  assert(m.rows() == 4 && m.cols() == 4);
+
+	vnl_matrix < double > R(3,3);// = m.extract(3,3,0,0);
+  for (int rr = 0; rr<3; rr++)
+    for (int cc = 0; cc<3; cc++)
+    {
+      R[rr][cc] = m[rr][cc];
+    }
+
+//cout << endl << endl;
+//cout << " M: " << endl << m << endl;
+//cout << " R: " << endl << R << endl;
+
+  vnl_matrix < double > rsqrt (3,3,0.0);
+  vnl_complex_eigensystem esys(R, rsqrt); //complex part is zero
+	
+//cout << " V' " << endl << esys.R << endl;
+//cout << " D " << endl << esys.W << endl;
+
+	
+	vnl_diag_matrix < vcl_complex < double > > Wsqrt(3);
+	for (unsigned int i=0;i<3;i++)
+	{
+	  Wsqrt[i] = sqrt(esys.W[i]);
+	}
+//cout << " Wsqrt " << endl << Wsqrt << endl;
+
+  vnl_matrix < vcl_complex < double > > Rcomp (3,3);
+
+//  esys.R.inplace_transpose(); // store evec in columns
+//	vnl_matrix_fixed < vcl_complex < double >, 4, 4 > Rt = esys.R;
+//  Rcomp = (esys.R * Wsqrt) * vnl_inverse(Rt);
+  vnl_qr < vcl_complex < double > > QR(esys.R);
+	Rcomp =  QR.solve(Wsqrt*esys.R);
+	Rcomp.inplace_transpose();
+	
+//cout << " Rcomp " << endl << Rcomp << endl;
+ 
+	
+	rsqrt = vnl_real(Rcomp);
+	
+	
+  // compute new T
+	// Rh1 = R + I
+	vnl_matrix_fixed < double,3,3 > Rh1(rsqrt);
+	Rh1[0][0] += 1; Rh1[1][1] +=1; Rh1[2][2] += 1;
+
+  vnl_vector_fixed < double,3 > T;
+	T[0] = m[0][3]; T[1] = m[1][3]; T[2] = m[2][3];
+
+  // solve T = Rh1 * Th   <=>   Th = Rh1^-1 * T
+  vnl_vector_fixed < double,3 > Th = vnl_inverse(Rh1) * T; //vnl_svd<double>(Rh1).solve(T);
+
+  // put everything together:
+  vnl_matrix < double > msqrt(4,4);
+  msqrt[0][3] = Th[0];
+	msqrt[1][3] = Th[1];
+	msqrt[2][3] = Th[2];
+	msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
+  for (int c=0; c<3; c++)
+    for (int r=0; r<3; r++)
+		  msqrt[r][c] = rsqrt[r][c];
+
+//cout << " msqrt " << endl << msqrt << endl;
+	
+
+  bool test = true;
+  double eps = 0.00000000000001;  
+  if (test)
+  {
+	  double fnorm = vnl_imag(Rcomp).frobenius_norm();
+		//cout << " fnorm (img) = " << fnorm << endl;
+	  if (fnorm > eps)
+		{
+		   cerr << " Error complex result?: " << fnorm << endl << vnl_imag(Rcomp) << endl;
+			 assert(1==2);
+		}
+	
+    vnl_matrix < double > ms2 = msqrt * msqrt;
+    ms2 -= m;
+    double sum = ms2.absolute_value_max();
+		//cout << " max = " << sum << endl;
+    if (sum > eps)
+    {
+      cerr << " Error : " << sum << endl;
+      cerr << " sqrt(M): " << endl << msqrt << endl;
+      cerr << endl;
+      assert(1==2);
+    }
+  }
+	
+  return msqrt;
+}
+
+vnl_matrix < double > MyMatrix::MatrixSqrtIter(const vnl_matrix < double >& m)
 {
   assert(m.rows() == 4 && m.cols() == 4);
 	

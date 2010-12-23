@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/07/07 01:15:07 $
- *    $Revision: 1.5 $
+ *    $Date: 2010/12/23 00:08:40 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -66,6 +66,7 @@ public:
 //======== VNL STUFF ===========================================================================
 
   // operations
+  static vnl_matrix < double >  MatrixSqrtIter(const vnl_matrix < double >& m);
   static vnl_matrix < double >  MatrixSqrt(const vnl_matrix < double >& m);
   static std::pair < vnl_matrix < double > , vnl_matrix < double > >
 	   MatrixSqrtAndInv(const vnl_matrix < double >& m);
