@@ -1,20 +1,24 @@
 #!/usr/bin/env python
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
-import os, sys, optparse
-from sets import Set
+import os
+import sys
+import optparse
+import logging
 import fsutils
+from fsutils import AsegStatsParser, BadFileError, aseglogger
 
 # Original Version - Douglas Greve, MGH
 # Rewrite - Krish Subramaniam, MGH
-# $Id: asegstats2table,v 1.32 2010/03/30 16:30:51 greve Exp $
+# $Id: asegstats2table,v 1.33 2010/12/23 23:24:16 krish Exp $
 
-# map of measures and their appropriate columns in .stats file
-seg2statcol_map = {'volume':3, 'mean':5, 'std':6}
+# globals
+l = aseglogger
+
 # map of delimeter choices and string literals
 delimiter2char = {'comma':',', 'tab':'\t', 'space':' ', 'semicolon':';'}
 
-helptext = """
+HELPTEXT = """
 Converts a subcortical stats file created by recon-all and/or
 mri_segstats (eg, aseg.stats) into a table in which each line is a
 subject and each column is a segmentation ( there is an option to transpose that). 
@@ -77,9 +81,14 @@ contains segs different from the segs of other files ( which results in the
 script exiting, the default behavior ). Subjects which don't have a certain
 segmentation show a value of 0.
 
-The --segno option outputs only the segmentations requested.
+The --segids-from-file <file> option outputs only the segmentations present in the file.
+There has to be one segmentation id per line in the file. The output table will maintain the 
+order of the segmentation ids
+
+The --segno option outputs only the segmentation id requested.
 This is useful because if the number of segmentations is large,
 the table becomes huge.
+The order of the specified seg ids is maintained. 
 
 The --no-segno options doesn't output the segmentations. 
 This can be convenient for removing segs that are always empty.
@@ -97,10 +106,10 @@ exit the program.
 
 def options_parse():
     """
-    Command Line Options Parser for aparcstats2table
+    Command Line Options Parser for asegstats2table
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.32 2010/03/30 16:30:51 greve Exp $', usage=helptext)
+    parser = optparse.OptionParser(version='$Id: asegstats2table,v 1.33 2010/12/23 23:24:16 krish Exp $', usage=HELPTEXT)
     
     # help text
     h_sub = '(REQUIRED) subject1 <subject2 subject3..>'
@@ -110,6 +119,7 @@ def options_parse():
     h_i = ' inputname'
     h_meas = 'measure: default is volume ( alt: mean, std)'
     h_max = ' maximum segmentation number to report'
+    h_segsfile = 'filename : output seg ids specified in the file'
     h_seg = 'segno1 <segno2 segno3..> : only include given segmentation numbers'
     h_noseg = 'segno1 <segno2 segno3..> : exclude given segmentation numbers'
     h_common = 'output only the common segmentations of all the statsfiles given'
@@ -138,6 +148,7 @@ def options_parse():
                       choices=('volume','mean','std'),  default='volume', help=h_meas)
     parser.add_option('--maxsegno', dest='maxsegno',
                        help=h_inp)
+    parser.add_option('--segids-from-file', dest='segidsfile', help=h_segsfile)
     parser.add_option('--segno', dest='segnos' ,action='callback',
                       callback=fsutils.callback_var,  help=h_seg)
     parser.add_option('--no-segno', dest='no_segnos' ,action='callback',
@@ -203,6 +214,10 @@ def options_parse():
         print 'ERROR: output table name should be specified (use --tablefile FILE)'
         sys.exit(1)
 
+    if options.segidsfile is not None and options.segnos is not None:
+        print 'ERROR: cannot spec both --segids-from-file and --segnos. Spec just one'
+        sys.exit(1)
+
     if options.maxsegno and int(options.maxsegno) < 1:
         print 'ERROR: maximum number of segs reported shouldnt be less than 1'
         sys.exit(1)
@@ -214,70 +229,46 @@ def options_parse():
     if options.no_segnos is not None and len(options.no_segnos) < 1:
         print 'ERROR: to be excluded segmentation numbers should be specified with that option'
         sys.exit(1)
+
+    # parse the segids file
+    if options.segidsfile is not None:
+        try:
+            f = open(options.segidsfile, 'r')
+            options.segnos = [line.strip() for line in f]
+        except IOError:
+            print 'ERROR: cannot read '+ options.segidsfile
+            sys.exit(1)
+
+    if options.verboseflag:
+        l.setLevel(logging.DEBUG)
     
     return options
 
-def is_valid_segno(options, seg):
-    """
-    check whether the segmentation is what the user asked for
-    """
-    # invalid if doesn't belong to segnos ( only if segnos exists in the first
-    # place)
-    if options.segnos is not None:
-        if seg not in options.segnos:
-            return False
-    # invalid if it belongs to no_segnos
-    if options.no_segnos is not None:
-        if seg in options.no_segnos:
-            return False
-    # invalid if it exceeds max segno 
-    if options.maxsegno is not None:
-        if int(seg) > int(options.maxsegno):
-            return False
-    # else
-    return True
-    
-def sanity_check_segs(table, rows, stats, verbose=False):
-    """
-    primarily, if all the segs in all the subjects are the same (they should
-    be! ), the union ( segs ) should be equal to intersection(segs)
-    return False otherwise.. the program quits
-    """
-    _union = []
-    intersection = table[rows[0]].keys()
-    if verbose:
-        print 'Displaying debugging information for each subject, statsfile'
-    for count, row in enumerate(rows):
-        rowkeys = table[row].keys()
-        _union.append(rowkeys)
-        intersection = fsutils.intersect_order(intersection, rowkeys)
-        if verbose:
-            pass
-    temp_union = [item for sublist in _union for item in sublist]
-    union = fsutils.unique_union(temp_union)
-    if union == intersection:
-        return (union, intersection, True)
-    else:
-        return (union, intersection, False)
-
-def build_table(options):
-    """
-    This function builds the 2d table (spreadsheet )
-    of subjects vs segs. The values are given by what the user chose in 
-    measure option.
-    """
-    o = options
-    # a devious trick in which all the subject files take the form
-    # (subjectnumber, subjectname, subjectpath)
-    # the table's first column will have subjectnumber+subjectname ( concat) 
-    # since --subjects and --inputs are mut-ex, so are subjectnumber and
-    # subjectname
-    stats = []
-    if options.dodirect:
+"""
+Args:
+    the parsed options
+Returns:
+    a sequence of tuples ( see below)
+assemble_inputs takes the command line parsed options and gives a sequence of tuples.
+The tuples take the following format
+((specifier1, path1),
+ (specifier2, path2),
+ ...
+ )
+where specifierN is the name which goes in the first row of the table. 
+This is not necessarily the subject name because in case --inputs arg is given, 
+we should output just the number of the input
+pathN is the corresponding path where that stat file can be found
+"""
+def assemble_inputs(o):
+    specs_paths = []
+    # in the case of --inputs specification
+    if o.dodirect:
         for count, inp in enumerate(o.inputs):
-            stats.append( (str(count), '', inp) )
+            specs_paths.append( (str(count), inp) )
+    # in the case of --subjects spec or --subjectsfile spec
     else:
-        # check the subjects dir
+        # check subjects dir
         subjdir = fsutils.check_subjdirs()
         print 'SUBJECTS_DIR : %s' %subjdir
         if o.subdir is None:
@@ -294,128 +285,169 @@ def build_table(options):
                 print 'ERROR: the file %s doesnt exist'%o.subjectsfile
                 sys.exit(1)
         for sub in o.subjects:
-            stats.append( ('', sub,  os.path.join(subjdir, sub, o.subdir, o.statsfname)) )
-    
-    rows = []
-    # init the table
+            specs_paths.append( (sub,  os.path.join(subjdir, sub, o.subdir, o.statsfname)) )
+    return specs_paths
+
+
+"""
+Args:
+make_table2d takes a disorganized table of the form 
+(spec1,id_name_map1, measurelist1)
+(spec2,id_name_map2, measurelist2)
+..
+..
+specN - either the name of the subject or the number of the stat file
+id_name_mapN -  a dict with key[segmentations ids, and values=segmentation names..corresponding to the specN file
+measurelistN - list of measures corresponding to the segs
+(table is disorganized because lengths of the id_name_mapN ( or  measurelistN ) need not be the same for all N)
+and a list of segmentation names segnamelist
+
+Returns:
+and returns a proper 2d table ( of datastructure 'Ddict(StableDict)')
+with list of specN forming the rows
+and seglist forming the columns
+and the corresponding measure in table[specN][segidN] 
+It also returns the list of specN ( rows ) and seglist(column)
+
+If the specN has no segidN, then the corresponding measure is returned as 0.0
+
+
+"""
+def make_table2d(disorganized_table, segnamelist):
+    dt = disorganized_table
+
+    # create an ordered 2d table
     table = fsutils.Ddict(fsutils.StableDict)
-    for statno, subname, statfile in stats:
-        if os.path.exists( statfile):
-            if o.verboseflag:
-                print 'Processing file %s' %statfile
-            rows.append(statno+subname)
-            # if file size is less than 10, not a valid segstats file. so exit
-            if os.path.getsize(statfile) < 10:
-                print 'WARNING: File:' + statfile + ' is not a valid aseg statsfile'
-                print 'Exclude it from the list of subjects/don\'t use common-segs option'
-                print 'Rerun recon-all -segstats to regenerate a valid statsfile'
-            fp = open(statfile, 'r')
-            cols = []
-            for line in fp:
-                # valid line
-                if line.rfind('#') == -1:
-                    strlst = line.split()
-                    seg = strlst[1]
-                    if is_valid_segno(options, seg):
-                        segid = strlst[4]
-                        cols.append(segid)
-                        table[statno+subname][segid] = float(strlst[seg2statcol_map[o.meas]])
-            # unfortunately we do it again because we necessarily put these
-            # volumes at the end of the table ( last 2 columns). Since we aren't
-            # processing a lot of files, this wouldn't hamper the speed. Also
-            # more volume measures can be added easily.
-            fp.seek(0)
-            for line in fp:
-                # if measure is volume, also output ICV and BSV
-                if not o.dodirect and o.meas == 'volume':
-                    if line.startswith('# Measure lhCortex, lhCortexVol,') :
-                        strlst = line.split(',')
-                        cols.append('lhCortexVol')
-                        table[statno+subname]['lhCortexVol'] = float(strlst[3])
-                    if line.startswith('# Measure rhCortex, rhCortexVol,') :
-                        strlst = line.split(',')
-                        cols.append('rhCortexVol')
-                        table[statno+subname]['rhCortexVol'] = float(strlst[3])
-                    if line.startswith('# Measure Cortex, CortexVol,') :
-                        strlst = line.split(',')
-                        cols.append('CortexVol')
-                        table[statno+subname]['CortexVol'] = float(strlst[3])
-                    if line.startswith('# Measure lhCorticalWhiteMatter, lhCorticalWhiteMatterVol,') :
-                        strlst = line.split(',')
-                        cols.append('lhCorticalWhiteMatterVol')
-                        table[statno+subname]['lhCorticalWhiteMatterVol'] = float(strlst[3])
-                    if line.startswith('# Measure rhCorticalWhiteMatter, rhCorticalWhiteMatterVol,') :
-                        strlst = line.split(',')
-                        cols.append('rhCorticalWhiteMatterVol')
-                        table[statno+subname]['rhCorticalWhiteMatterVol'] = float(strlst[3])
-                    if line.startswith('# Measure SubCortGray, SubCortGrayVol,') :
-                        strlst = line.split(',')
-                        cols.append('SubCortGrayVol')
-                        table[statno+subname]['SubCortGrayVol'] = float(strlst[3])
-                    if line.startswith('# Measure TotalGray, TotalGrayVol,') :
-                        strlst = line.split(',')
-                        cols.append('TotalGrayVol')
-                        table[statno+subname]['TotalGrayVol'] = float(strlst[3])
-                    if line.startswith('# Measure SuperTentorial, SuperTentorialVol,') :
-                        strlst = line.split(',')
-                        cols.append('SuperTentorialVol')
-                        table[statno+subname]['SuperTentorialVol'] = float(strlst[3])
-                    if line.startswith('# Measure IntraCranialVol, ICV,') :
-                        strlst = line.split(',')
-                        cols.append('IntraCranialVol')
-                        table[statno+subname]['IntraCranialVol'] = float(strlst[3])
-                    if line.startswith('# Measure BrainSeg, BrainSegVol,') :
-                        strlst = line.split(',')
-                        cols.append('BrainSegVol')
-                        table[statno+subname]['BrainSegVol'] = float(strlst[3])
-        else:
-            if not o.skipflag:
-                print 'ERROR: cannot find %s' %statfile
-                print 'Use --skip flag if you want to continue in such cases'
+    for _spec, _id_name_map, _ml in dt:
+        for seg in segnamelist:
+            try:
+                idindex = _id_name_map.values().index(seg)
+                table[_spec][seg] = _ml[idindex]
+            except ValueError:
+                table[_spec][seg] = 0.0
+
+    return [spec for (spec, i, j) in dt], segnamelist, table
+
+"""
+Args:
+sanitize_tables takes in a datastructure of the form 
+(spec1, id_name_map1, measurelist1)
+(spec2, id_name_map2, measurelist2)
+..
+..
+where 
+specN - either the name of the subject or the number of the stat file
+id_name_mapN - an ordered dict with keys=segmentations ids, and values=seg names corresponding to the specN file
+measurelistN - list of measures corresponding to the segs
+
+For a proper 2d tabular structure len(segnamelistN) == len(measurelistN)
+And usually this might not be the case because different stats files will have slightly 
+different segmentations. 
+- If --common-segs is specified, output the intersection of segs
+- If --all-segs is specified, output the union of segs ( put 0.0 as measure wherever appropriate )
+- If none of the above is specified but still the lengths of the lists are inconsistent, exit gracefully.
+
+Returns:
+returns rows, columns, table
+rows - the sequence which consists of specifiers ( subjects/statsfile numbers)
+columns - the sequence which consists of segmentation names
+table -  2d table containing the measure
+
+Special Case:
+    There might be some segmentations named "Placeholder_Segmentation". These are segs for which the ids were given by the users..
+    but when parsing, the parser wasn't able to find the segmentations in the initial list of .stats files. But it puts their value as 0.
+    After parsing all the .stats files, the segmentation names for the ids given by the users should be clearer 
+    and this function will attempt to rename the "Placeholder Segmentation" to the proper segmentation name. 
+"""
+def sanitize_table(options, disorganized_table):
+    o = options
+    _t = disorganized_table
+
+    l.debug( '-'*40)
+    l.debug('Sanitizing the table')
+    # first find all the ids with 'Placeholder_Segmentation'
+    pl_ids = fsutils.StableDict()
+    for _spec, _id_name_map, _measl in _t:
+        for _id in _id_name_map.keys():
+            if _id_name_map[_id] == 'Placeholder_Segmentation':
+                pl_ids[_id] = 'Placeholder_Segmentation'
+
+    # then find the actual segmentation of the ids which have 'Placeholder_Segmentation' 
+    # if it can't find, it's an error because the only way something is assigned 
+    # 'Placeholder_Segmentation' is if the user has requested that segmentation id and error results when 
+    # parser doesn't encounter that segmentation name and the corresponding measure for that id
+    if pl_ids:
+        tmp_pl_ids = pl_ids.copy()
+        itmp_pl_ids = tmp_pl_ids.iteritems()
+        plid,plname = itmp_pl_ids.next()
+        try:
+            for _spec, _id_name_map, _measl in _t:
+                for _id in _id_name_map.keys():
+                    if _id == plid:
+                        if _id_name_map[plid] != 'Placeholder_Segmentation':
+                            pl_ids[plid] = _id_name_map[plid]
+                            plid,plname = itmp_pl_ids.next()
+        except StopIteration:
+            pass
+
+        # sanity check
+        for plid, plname in  pl_ids.iteritems():
+            if plname == 'Placeholder_Segmentation':
+                print 'ERROR: cannot find the corresponding segmentation for the id:' + plid + ' you provided'
+                print 'in any of the .stats files parsed' 
                 sys.exit(1)
-            else:
-                print 'WARNING: cannot find %s. proceeding to next file' %statfile
+
+        # now go through the entire disorganized table and replace the ids with 'Placeholder_Segmentation' 
+        # with the actual segmentations
+        for _spec, _id_name_map, _measl in _t:
+            for _id in _id_name_map.keys():
+                if _id_name_map[_id] == 'Placeholder_Segmentation':
+                    _id_name_map[_id] = pl_ids[_id]
+
+    # At this point, there are no 'Placeholder_Segmentation's
+
+    # find the union and intersection of segnames
+    # init the values
+    _union = []
+    _specs, _id_name_map, _measl = _t[0]
+    intersection = _id_name_map.values() 
     
-    # check sanity
-    (union, intersection, sanityflag) = sanity_check_segs(table, rows, stats,
-                                                          verbose=o.verboseflag)
-    if not sanityflag:
-        if o.common_flag:
-            # write only the common segmentations
-            new_table = fsutils.Ddict(fsutils.StableDict)
-            for row in rows:
-                for seg in intersection:
-                    new_table[row][seg]  = table[row][seg]
+    for _spec, _id_name_map, _measl in _t:
+        segnames = _id_name_map.values()
+        _union.append(segnames)
+        intersection = fsutils.intersect_order(intersection, segnames)
+        l.debug('-'*20)
+        l.debug('Specifier: '+_spec)
+        l.debug('Intersection upto now:')
+        l.debug(intersection)
+    #_union is a list of lists. Make it a flat list ( single list )
+    temp_union = [item for sublist in _union for item in sublist]
+    union = fsutils.unique_union(temp_union)
+    l.debug('-'*20)
+    l.debug('Union:')
+    l.debug(union)
+    
+    if o.common_flag:
+        #write only the common segs ( intersection )
+        row, column, table = make_table2d(_t, intersection)
+    elif o.all_flag:
+        # write all the segs ever encountered
+        # if there's no seg for a certain .stats file, write the measure as 0.0
+        row, column, table = make_table2d(_t, union)
+    # at this point, find whether all segs are equal.
+    # if not, error out because all-segs / common-segs is not requested 
+    elif union == intersection:
+        row, column, table = make_table2d(_t, union)
+    else:
+        print 'ERROR: All stat files should have the same segmentations'
+        print 'If one or more stats file have different segs from others,'
+        print 'use --common-segs or --all-segs flag depending on the need.'
+        print '(see help)'
+        sys.exit(1)
 
-            table = new_table
-            cols = intersection
+    return row, column, table
+
         
-        elif o.all_flag:
-            # write all the segs
-            new_table = fsutils.Ddict(fsutils.StableDict)
-            for row in rows: 
-                for seg in union:
-                    if not seg in table[row]:
-                        new_table[row][seg] = 0.0
-                    else:
-                        new_table[row][seg] = table[row][seg]
-            table = new_table
-            cols = union
-
-        else:
-            print 'ERROR: All stat files should have the same segmentations'
-            print 'If one or more stats file have different segs from others,'
-            print 'use --common-segs or --all-segs flag depending on the need.'
-            print '(see help)'
-            sys.exit(1)
-
-    # if verbose
-    if o.verboseflag:
-        for row in rows:
-            print table[row]
-            print '-'*40
-    return rows, cols, table
-
 def write_table(options, rows, cols, table):
     """
     Write the table from memory to disk. Initialize the writer class.
@@ -428,14 +460,61 @@ def write_table(options, rows, cols, table):
         tw.write_transpose()
     else:
         tw.write()
-    
+
 
 if __name__=="__main__":
+    # Command Line options and error checking done here
     options = options_parse()
-    if options.verboseflag:
-        print options
+    l.debug('-- The options you entered --')
+    l.debug(options) 
+
+    # Assemble the input stats files
+    subj_listoftuples = assemble_inputs(options)
+
+    # Init the table in memory
+    # is a list containing tuples of the form 
+    # [(specifier, segidlist, structlist, measurelist),] for all specifiers
+    pretable = []
+
+    # Parse the stats files 
+    print 'Parsing the .stats files'
+    for specifier, filepath in subj_listoftuples:
+        try:
+            l.debug('-'*20)
+            l.debug('Processing file ' + filepath)
+            parsed = AsegStatsParser(filepath)
+            # segs filter from the command line
+            if options.segnos is not None:
+                parsed.parse_only(options.segnos)
+            if options.no_segnos is not None:
+                parsed.exclude_structs(options.no_segnos)
+            if options.maxsegno is not None:
+                parsed.set_maxsegno(options.maxsegno)
+
+            id_name_map, measurelist = parsed.parse(options.meas)
+            l.debug('-- Parsed Ids, Names --')
+            l.debug(id_name_map)
+            l.debug('-- Measures --')
+            l.debug(measurelist)
+        except BadFileError, e:
+            if options.skipflag:
+                print 'Skipping ' + str(e)
+                continue
+            else:
+                print 'ERROR: The stats file '+str(e)+' is not found or is too small to be a valid statsfile'
+                print 'Use --skip flag to automatically skip bad stats files'
+                sys.exit(1)
+        
+        pretable.append( (specifier, id_name_map, measurelist)) 
+
+    # Make sure the table has the same number of cols for all stats files
+    # and merge them up, clean them up etc. More in the documentation of the fn.
     print 'Building the table..'
-    (rows, cols, table) = build_table(options)
+    rows, columns, table = sanitize_table(options, pretable)
+
+    # Write this table ( in memory ) to disk.. function uses TableWriter class
     print 'Writing the table to %s' %options.outputfile
-    write_table(options, rows, cols, table)
+    write_table(options, rows, columns, table)
+
+    # always exit with 0 exit code
     sys.exit(0)
