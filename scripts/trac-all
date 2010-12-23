@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/22 05:13:13 $
-#    $Revision: 1.4 $
+#    $Date: 2010/12/23 01:13:04 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.4 2010/12/22 05:13:13 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.5 2010/12/23 01:13:04 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -48,9 +48,9 @@ set allowcore = 0	# Unlimit core dump size
 set DoTime = 0		# Time main commands
 set fs_time = ()
 
-set LF = ()		# Name of log file
-set CF = ()		# Name of command file
-set AppendLog = 1	# Append or overwrite log file
+set logfile = ()	# Name of log file
+set cmdfile = ()	# Name of command file
+set AppendLog = 1	# Append to log file if it exists
 
 set DoIsRunning = 1     # Create a lock file while processing continues
 
@@ -156,6 +156,14 @@ set freesurfer_home_true = `pwd`;
 popd > /dev/null
 echo "Actual FREESURFER_HOME $freesurfer_home_true"
 
+if ($#logfile) then
+  if (-e $logfile && ! $AppendLog) mv -f $logfile $logfile.old
+endif
+
+if ($#cmdfile) then
+  rm -f $cmdfile
+endif
+
 set cmdopts = ()
 if ($DoTime) set cmdopts = ($cmdopts -time)
 if (! $DoIsRunning) set cmdopts = ($cmdopts -no-isrunning)
@@ -248,14 +256,19 @@ foreach isubj ($runlist)
       set LF = /dev/null
     endif
   else
-    if ($#LF == 0) set LF = ($dtdir/scripts/trac-all.log)
-    if (-e $LF) then
-      ls -l $LF
-      if (! $AppendLog) mv -f $LF $LF.old
+    if ($#logfile) then
+      set LF = $logfile
+    else
+      set LF = ($dtdir/scripts/trac-all.log)
+      if (-e $LF && ! $AppendLog) mv -f $LF $LF.old
     endif
 
-    if ($#CF == 0) set CF = ($dtdir/scripts/trac-all.cmd)
-    rm -f $CF
+    if ($#cmdfile) then
+      set CF = $cmdfile
+    else
+      set CF = ($dtdir/scripts/trac-all.cmd)
+      rm -f $CF
+    endif
   endif
 
   if (-e $LF) then
@@ -513,13 +526,13 @@ while( $#argv != 0 )
     case "-subjid":
     case "-sid":
     case "-s":
-      if ( $#argv < 1) goto arg1err;
+      if ($#argv < 1) goto arg1err;
       set subjlist = $argv[1]; shift;
       set subjlist = `basename $subjlist`	# to remove trailing /
       breaksw
 
     case "-i":
-      if ( $#argv < 1) goto arg1err;
+      if ($#argv < 1) goto arg1err;
       set dcmlist = "$argv[1]"; shift;
       if (! -e "$dcmlist") then
         echo "ERROR: cannot find $dcmlist"
@@ -534,7 +547,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-c":
-      if ( $#argv < 1) goto arg1err;
+      if ($#argv < 1) goto arg1err;
       set rcfile = "$argv[1]"; shift;
       if (! -e "$rcfile") then
         echo "ERROR: cannot find $rcfile"
@@ -683,21 +696,13 @@ while( $#argv != 0 )
       breaksw
 
     case "-log":
-      if ( $#argv < 1) goto arg1err;
-      set LF = $argv[1]; shift;
-      breaksw
-
-    case "-nolog":
-      set LF = /dev/null
+      if ($#argv < 1) goto arg1err;
+      set logfile = $argv[1]; shift;
       breaksw
 
     case "-cmd":
-      if ( $#argv < 1) goto arg1err;
-      set CF = $argv[1]; shift;
-      breaksw
-
-    case "-nocmd":
-      set CF = /dev/null
+      if ($#argv < 1) goto arg1err;
+      set cmdfile = $argv[1]; shift;
       breaksw
 
     case "-no-isrunning":
@@ -705,12 +710,12 @@ while( $#argv != 0 )
       breaksw
 
     case "-sd":
-      if ( $#argv < 1) goto arg1err;
+      if ($#argv < 1) goto arg1err;
       setenv SUBJECTS_DIR $argv[1]; shift;
       breaksw
 
     case "-csurfdir":
-      if ( $#argv < 1) goto arg1err;
+      if ($#argv < 1) goto arg1err;
       setenv FREESURFER_HOME $argv[1]; shift;
       if (! -e $FREESURFER_HOME) then
         echo "ERROR: cannot find $FREESURFER_HOME"
@@ -721,13 +726,13 @@ while( $#argv != 0 )
       breaksw
 
     case "-umask":
-      if ( $#argv < 1) goto arg1err;
+      if ($#argv < 1) goto arg1err;
       set umaskid = $1;
       umask $1; shift;
       breaksw
 
     case "-grp":
-      if ( $#argv < 1) goto arg1err;
+      if ($#argv < 1) goto arg1err;
       set groupid = $argv[1];
       set curgrp = `id -gn`;
       if ($groupid != $curgrp) then
@@ -902,11 +907,9 @@ usage_exit:
   echo "  3. Pathway reconstruction"
   echo ""
   echo "Other options:"
-  echo "  -log <file>     : default is scripts/trac-all.log"
-  echo "  -nolog          : do not save a log file"
+  echo "  -log <file>     : unique log file instead of scripts/trac-all.log"
   echo "  -noappendlog    : overwrite old log files instead of appending"
-  echo "  -cmd <file>     : default is scripts/trac-all.cmd"
-  echo "  -nocmd          : do not save a cmd file"
+  echo "  -cmd <file>     : unique cmd file instead of scripts/trac-all.cmd"
   echo "  -no-isrunning   : do not check whether subjects are currently being processed"
   echo "  -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  -umask umask    : set unix file permission mask (default 002)"
@@ -1012,10 +1015,8 @@ file. See dmrirc.example for more details.
 
 OTHER OPTIONS
 -log <file>     : default is scripts/trac-all.log
--nolog          : do not save a log file
 -noappendlog    : overwrite old log files instead of appending
 -cmd <file>     : default is scripts/trac-all.cmd
--nocmd          : do not save a cmd file
 -no-isrunning   : do not check whether subjects are currently being processed
 -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)
 -umask umask    : set unix file permission mask (default 002)
