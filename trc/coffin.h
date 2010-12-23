@@ -25,7 +25,7 @@
 #ifndef COFFIN_H
 #define COFFIN_H
 
-#include "vial.h"	// Needs to be included first becasue of CVS
+#include "vial.h"	// Needs to be included first because of CVS libs
 
 #include <vector>
 #include <string>

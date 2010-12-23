@@ -12,7 +12,7 @@ AM_CXXFLAGS=-I$(top_srcdir)/include \
 
 AM_LDFLAGS=$(OS_LDFLAGS)
 
-bin_PROGRAMS = dmri_spline dmri_train dmri_path_meas dmri_track
+bin_PROGRAMS = dmri_spline dmri_train dmri_path_meas dmri_track dmri_trk2trk
 
 dmri_spline_SOURCES=dmri_spline.cxx spline.cxx spline.h
 dmri_spline_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
@@ -33,6 +33,12 @@ dmri_track_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
                   $(top_builddir)/fem_elastic/libfem_elastic.a \
                   $(top_builddir)/tetgen/libtetgen.a 
 dmri_track_LDFLAGS=$(OS_LDFLAGS)
+
+dmri_trk2trk_SOURCES=dmri_trk2trk.cxx vial.cxx vial.h TrackIO.cxx TrackIO.h
+dmri_trk2trk_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+                  $(top_builddir)/fem_elastic/libfem_elastic.a \
+                  $(top_builddir)/tetgen/libtetgen.a 
+dmri_trk2trk_LDFLAGS=$(OS_LDFLAGS)
 
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
