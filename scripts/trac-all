@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/23 01:13:04 $
-#    $Revision: 1.5 $
+#    $Date: 2010/12/24 17:26:25 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.5 2010/12/23 01:13:04 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.6 2010/12/24 17:26:25 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -221,7 +221,6 @@ foreach isubj ($runlist)
   # Good for frozen versions.
 
   if ($?REQUIRE_FS_MATCH == 0) setenv REQUIRE_FS_MATCH 0
-  #echo "REQUIRE_FS_MATCH $REQUIRE_FS_MATCH"
 
   set bstampfile0 = $FREESURFER_HOME/build-stamp.txt
   set bstampfile  = $dtdir/scripts/build-stamp.txt
@@ -240,11 +239,10 @@ foreach isubj ($runlist)
         exit 1;
       else
         echo "INFO: FreeSurfer build stamps do not match"
+        echo "Subject Stamp: $bstamp"
+        echo "Current Stamp: $bstamp0"
       endif
     endif
-
-    echo "Subject Stamp: $bstamp"
-    echo "Current Stamp: $bstamp0"
   endif
 
   #---------- Create log and command files --------------------------------#
@@ -479,7 +477,7 @@ if ($onpbs && $RunIt) then
     setenv MYPBSWAIT 15
     setenv MYPBSMAXJOBS 10
     echo Queueing pre-processing
-    set preid = `fsl_sub_seychelles 
+    set preid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
     setenv MYPBSWAIT 0
