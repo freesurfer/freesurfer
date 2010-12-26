@@ -90,8 +90,8 @@ void AffineReg::ReadXfm(const char *XfmFile, const MRI *InRefVol,
 //
 // Apply an affine transform to a single point
 //
-void AffineReg::ApplyXfm(vector<int> &OutPoint,
-                         vector<int>::const_iterator InPoint) {
+void AffineReg::ApplyXfm(vector<float> &OutPoint,
+                         vector<float>::const_iterator InPoint) {
   vector<float>::const_iterator in2out = mInToOut.begin();
   vector<float> pin, pout;
 
@@ -112,7 +112,7 @@ void AffineReg::ApplyXfm(vector<int> &OutPoint,
   }
 
   for (int i = 0; i < 3; i++)
-    OutPoint[i] = (int) round(pout[i] / pout[3] / mOutVoxelSize[i]);
+    OutPoint[i] = pout[i] / pout[3] / mOutVoxelSize[i];
 }
 
 #ifndef NO_CVS_UP_IN_HERE
@@ -158,8 +158,8 @@ void NonlinReg::ReadXfm(const char *XfmFile, MRI *OutRefVol) {
 //
 // Apply a non-linear transform to a single point
 //
-void NonlinReg::ApplyXfm(vector<int> &OutPoint,
-                         vector<int>::const_iterator InPoint) {
+void NonlinReg::ApplyXfm(vector<float> &OutPoint,
+                         vector<float>::const_iterator InPoint) {
   Coords3d inpt, outpt;
 
   for (int k = 0; k < 3; k++)
@@ -168,7 +168,7 @@ void NonlinReg::ApplyXfm(vector<int> &OutPoint,
   outpt = mMorph->image(inpt);
 
   for (int k = 0; k < 3; k++)
-    OutPoint[k] = (int) round(outpt(k));
+    OutPoint[k] = (float) outpt(k);
 }
 #endif
 

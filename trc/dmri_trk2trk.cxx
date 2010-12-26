@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2010/12/23 01:12:14 $
- *    $Revision: 1.1 $
+ *    $Date: 2010/12/26 07:54:49 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -72,8 +72,8 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_track";
 
-int nin = 0, nout = 0;
-char *inFile[100], *outFile[100],
+int nin = 0, nout = 0, nvol = 0;
+char *inFile[100], *outFile[100], *outVolFile[100],
      *inRefFile = NULL, *outRefFile = NULL,
      *affineXfmFile = NULL, *nonlinXfmFile = NULL;
 
@@ -85,8 +85,8 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  vector<int> point(3);
-  MRI *inref = 0, *outref = 0;
+  vector<float> point(3);
+  MRI *inref = 0, *outref = 0, *outvol = 0;
   AffineReg affinereg;
 #ifndef NO_CVS_UP_IN_HERE
   NonlinReg nonlinreg;
@@ -118,13 +118,16 @@ int main(int argc, char **argv) {
   inref = MRIread(inRefFile);
   outref = MRIread(outRefFile);
 
+  if (nvol > 0)
+    outvol = MRIclone(outref, NULL);
+
   // Read transform files
 #ifndef NO_CVS_UP_IN_HERE
   if (nonlinXfmFile) {
-    affinereg.ReadXfm(affineXfmFile, inref, 0);
+    if (affineXfmFile)
+      affinereg.ReadXfm(affineXfmFile, inref, 0);
     nonlinreg.ReadXfm(nonlinXfmFile, outref);
   }
-  else
 #endif
   if (affineXfmFile)
     affinereg.ReadXfm(affineXfmFile, inref, outref);
@@ -140,23 +143,28 @@ int main(int argc, char **argv) {
 
     // Open input .trk file
     if (!trkreader.Open(inFile[itrk], &trkheadin)) {
-      cout << "ERROR: Cannot open " << inFile[itrk] << " for reading" << endl;
+      cout << "ERROR: Cannot open input " << inFile[itrk] << endl;
       cout << trkreader.GetLastErrorMessage() << endl;
       exit(1);
     }
 
-    // Set output .trk header
-    trkheadout = trkheadin;
-    trkheadout.voxel_size[0] = outref->xsize;
-    trkheadout.voxel_size[1] = outref->ysize;
-    trkheadout.voxel_size[2] = outref->zsize;
+    if (nout > 0) {
+      // Set output .trk header
+      trkheadout = trkheadin;
+      trkheadout.voxel_size[0] = outref->xsize;
+      trkheadout.voxel_size[1] = outref->ysize;
+      trkheadout.voxel_size[2] = outref->zsize;
 
-    // Open output .trk file
-    if (!trkwriter.Initialize(outFile[itrk], trkheadout)) {
-      cout << "ERROR: Cannot open " << outFile[itrk] << " for writing" << endl;
-      cout << trkwriter.GetLastErrorMessage() << endl;
-      exit(1);
+      // Open output .trk file
+      if (!trkwriter.Initialize(outFile[itrk], trkheadout)) {
+        cout << "ERROR: Cannot open output " << outFile[itrk] << endl;
+        cout << trkwriter.GetLastErrorMessage() << endl;
+        exit(1);
+      }
     }
+
+    if (nvol > 0)
+      MRIclear(outvol);
 
     while (trkreader.GetNextPointCount(&npts)) {
       float *iraw, *rawpts = new float[npts*3];
@@ -166,9 +174,9 @@ int main(int argc, char **argv) {
 
       iraw = rawpts;
       for (int ipt = npts; ipt > 0; ipt--) {
-        // Divide by input voxel size and round to get voxel coords
+        // Divide by input voxel size to get voxel coords
         for (int k = 0; k < 3; k++) {
-          point[k] = (int) round(*iraw / trkheadin.voxel_size[k]);
+          point[k] = *iraw / trkheadin.voxel_size[k];
           iraw++;
         }
 
@@ -182,6 +190,16 @@ int main(int argc, char **argv) {
           nonlinreg.ApplyXfm(point, point.begin());
 #endif
 
+        // Write transformed point to volume
+        if (nvol > 0) {
+          int ix = (int) round(point[0]),
+              iy = (int) round(point[1]),
+              iz = (int) round(point[2]);
+
+          MRIsetVoxVal(outvol, ix, iy, iz, 0,
+                       MRIgetVoxVal(outvol, ix, iy, iz, 0) + 1);
+        }
+
         // Multiply back by output voxel size
         iraw -= 3;
         for (int k = 0; k < 3; k++) {
@@ -190,13 +208,18 @@ int main(int argc, char **argv) {
         }
       }
 
-      // Write transformed streamline to output file
-      trkwriter.WriteNextTrack(npts, rawpts);
+      // Write transformed streamline to .trk file
+      if (nout > 0)
+        trkwriter.WriteNextTrack(npts, rawpts);
 
       delete[] rawpts;
     }
 
-    trkwriter.Close();
+    if (nout > 0)
+      trkwriter.Close();
+
+    if (nvol > 0)
+      MRIwrite(outvol, outVolFile[itrk]);
 
     cputime = TimerStop(&cputimer);
     printf("Done in %g sec.\n", cputime/1000.0);
@@ -247,6 +270,15 @@ static int parse_commandline(int argc, char **argv) {
         nout++;
       }
     } 
+    else if (!strcmp(option, "--outvol")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      nargsused = 0;
+      while (strncmp(pargv[nargsused], "--", 2)) {
+        outVolFile[nvol] = fio_fullpath(pargv[nargsused]);
+        nargsused++;
+        nvol++;
+      }
+    } 
     else if (!strcmp(option, "--inref")) {
       if (nargc < 1) CMDargNErr(option,1);
       inRefFile = fio_fullpath(pargv[0]);
@@ -288,6 +320,7 @@ static void print_usage(void)
   printf("Basic inputs\n");
   printf("   --in  <file> [...]: input .trk file(s)\n");
   printf("   --out <file> [...]: output .trk file(s), as many as inputs\n");
+  printf("   --outvol <file> [...]: output volume(s), as many as inputs\n");
   printf("   --inref  <file>: input reference volume\n");
   printf("   --outref <file>: output reference volume\n");
   printf("   --reg   <file>: affine registration (.mat), applied first\n");
@@ -328,8 +361,16 @@ static void check_options(void) {
     printf("ERROR: must specify input .trk file(s)\n");
     exit(1);
   }
-  if(nin != nout) {
-    printf("ERROR: must specify as many output files as input files\n");
+  if(nout == 0 && nvol == 0) {
+    printf("ERROR: must specify output .trk or volume file(s)\n");
+    exit(1);
+  }
+  if(nout > 0 && nout != nin) {
+    printf("ERROR: must specify as many output .trk files as input files\n");
+    exit(1);
+  }
+  if(nvol > 0 && nvol != nin) {
+    printf("ERROR: must specify as many output volumes as input .trk files\n");
     exit(1);
   }
   if(!inRefFile) {
@@ -338,10 +379,6 @@ static void check_options(void) {
   }
   if(!outRefFile) {
     printf("ERROR: must specify output reference volume\n");
-    exit(1);
-  }
-  if(!affineXfmFile && !nonlinXfmFile) {
-    printf("ERROR: must specify affine and/or nonlinear transform file\n");
     exit(1);
   }
   return;
@@ -362,10 +399,18 @@ static void dump_options(FILE *fp) {
   for (int k = 0; k < nin; k++)
     fprintf(fp, " %s", inFile[k]);
   fprintf(fp, "\n");
-  fprintf(fp, "Output files:");
-  for (int k = 0; k < nout; k++)
-    fprintf(fp, " %s", outFile[k]);
-  fprintf(fp, "\n");
+  if (nout > 0) {
+    fprintf(fp, "Output files:");
+    for (int k = 0; k < nout; k++)
+      fprintf(fp, " %s", outFile[k]);
+    fprintf(fp, "\n");
+  }
+  if (nvol > 0) {
+    fprintf(fp, "Output volumes:");
+    for (int k = 0; k < nvol; k++)
+      fprintf(fp, " %s", outVolFile[k]);
+    fprintf(fp, "\n");
+  }
   fprintf(fp, "Input reference: %s\n", inRefFile);
   fprintf(fp, "Output reference: %s\n", outRefFile);
   if (affineXfmFile)

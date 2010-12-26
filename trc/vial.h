@@ -44,7 +44,6 @@
 #include <vector>
 #include <iostream>
 #include <fstream>
-#include <math.h>
 #include "mri.h"
 
 class AffineReg {
@@ -54,8 +53,8 @@ class AffineReg {
     bool IsEmpty();
     void ReadXfm(const char *XfmFile, const MRI *InRefVol, 
                                       const MRI *OutRefVol);
-    void ApplyXfm(std::vector<int> &OutPoint,
-                  std::vector<int>::const_iterator InPoint);
+    void ApplyXfm(std::vector<float> &OutPoint,
+                  std::vector<float>::const_iterator InPoint);
 
   private:
     std::vector<float> mInToOut,			// [4 x 4]
@@ -69,8 +68,8 @@ class NonlinReg {
     ~NonlinReg();
     bool IsEmpty();
     void ReadXfm(const char *XfmFile, MRI *OutRefVol);
-    void ApplyXfm(std::vector<int> &OutPoint,
-                  std::vector<int>::const_iterator InPoint);
+    void ApplyXfm(std::vector<float> &OutPoint,
+                  std::vector<float>::const_iterator InPoint);
 
   private:
     boost::shared_ptr<gmp::VolumeMorph> mMorph;

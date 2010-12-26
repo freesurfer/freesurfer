@@ -224,7 +224,7 @@ Coffin::Coffin(const char *OutDir, const char *DwiFile,
     mAffineReg.ReadXfm(AffineXfmFile, mMask, mRoi1);
 
 	/*
-vector<int> pt(3);
+vector<float> pt(3);
 pt[0] = 75; pt[1] = 55; pt[2] = 51;
 cout << "In DWI space: " << pt[0] << " " << pt[1] << " " << pt[2] << endl;
 mAffineReg.ApplyXfm(pt, pt.begin());
@@ -1845,11 +1845,16 @@ bool Coffin::IsInRoi(vector<int>::const_iterator Point, MRI *Roi) {
 void Coffin::MapToAtlas(vector<int> &OutPoint,
                         vector<int>::const_iterator InPoint) {
   if (!mAffineReg.IsEmpty()) {
-    mAffineReg.ApplyXfm(OutPoint, InPoint);
+    vector<float> point(InPoint, InPoint+3);
+
+    mAffineReg.ApplyXfm(point, point.begin());
 #ifndef NO_CVS_UP_IN_HERE
     if (!mNonlinReg.IsEmpty())
-      mNonlinReg.ApplyXfm(OutPoint, OutPoint.begin());
+      mNonlinReg.ApplyXfm(point, point.begin());
 #endif
+
+    for (int k = 0; k < 3; k++)
+      OutPoint[k] = (int) round(point[k]);
   }
   else
     for (int k = 0; k < 3; k++)
