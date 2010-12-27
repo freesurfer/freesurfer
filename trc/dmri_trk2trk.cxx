@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2010/12/26 07:54:49 $
- *    $Revision: 1.2 $
+ *    $Date: 2010/12/27 17:49:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -195,6 +195,13 @@ int main(int argc, char **argv) {
           int ix = (int) round(point[0]),
               iy = (int) round(point[1]),
               iz = (int) round(point[2]);
+
+          if (ix < 0)			ix = 0;
+          if (ix >= outvol->width)	ix = outvol->width-1;
+          if (iy < 0)			iy = 0;
+          if (iy >= outvol->height)	iy = outvol->height-1;
+          if (iz < 0)			iz = 0;
+          if (iz >= outvol->depth)	iz = outvol->depth-1;
 
           MRIsetVoxVal(outvol, ix, iy, iz, 0,
                        MRIgetVoxVal(outvol, ix, iy, iz, 0) + 1);
