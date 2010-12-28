@@ -28,7 +28,7 @@ using namespace std;
 
 const int Blood::mDistThresh = 2;
 const unsigned int Blood::mCurvOffset = 2;
-const float Blood::mLengthCutoff = 0.0,
+const float Blood::mLengthCutoff = 0.05,
             Blood::mLengthRatio = 3.0;
 
 Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
@@ -134,9 +134,11 @@ void Blood::ReadStreamlines(const char *TrainListFile,
     int npts, nlines = 0;
 
     if (!trkreader.Open(fname.c_str(), &trkheader)) {
-      cout << "ERROR: Opening streamline file " << fname << " failed" << endl;
-      cout << trkreader.GetLastErrorMessage();
-      exit(1);
+      cout << "WARN: Could not open " << fname << " for reading" << endl;
+      cout << "WARN: Error was: " << trkreader.GetLastErrorMessage() << endl;
+      cout << "WARN: Skipping to next subject" << endl;
+      mNumLines.push_back(0);
+      continue;
     }
 
     cout << "Loading streamlines from " << fname << endl;
@@ -290,6 +292,7 @@ void Blood::ComputePriors() {
 
   cout << "Matching streamline ends" << endl;
   MatchStreamlineEnds();
+  cout << "Found " << mNumMask << " streamlines with ends in mask"  << endl;
 
   SetArcSegments();
   cout << "Splitting streamlines in " << mNumArc << " segments"  << endl;
@@ -734,7 +737,8 @@ void Blood::ComputeCurvaturePrior() {
   // Compute tangent vector and curvature along streamlines
   for (vector< vector<int> >::const_iterator istr = mStreamlines.begin();
                                            istr != mStreamlines.end(); istr++) {
-    if (*ivalid1 && *ivalid2) {		// TODO: Use other streamlines, too?
+    if (*ivalid1 && *ivalid2 && (*ilen >= 2 * (int) mCurvOffset + 1)) {
+ 					// TODO: Use other streamlines, too?
       unsigned int iarc = 0;
       const double darc = mNumArc / (double) *ilen;
       double larc = 0;
@@ -903,7 +907,7 @@ void Blood::FindPointsOnStreamline(vector<int> &Streamline, int NumPoints) {
   const int nptot = Streamline.size() / 3;
   int kmax, nseg = 1, npthave = 1;
   double lentot = 0;
-  vector<bool>::const_iterator iturn;
+  vector<bool>::iterator iturn;
   vector<int>::const_iterator ipt;
   vector<int>::iterator inpt;
   vector<double>::iterator ilen, inptdec;
@@ -912,6 +916,12 @@ void Blood::FindPointsOnStreamline(vector<int> &Streamline, int NumPoints) {
   vector<int> sum(3, 0), nptseg, cpts, diff(3, 0), diffmin(3, 0);
   vector<float> cstd;
   vector<double> sumsq(3, 0), ptdist(nptot-1, 0), lenseg, nptsegdec;
+
+  if (NumPoints > (int) Streamline.size() / 3) {
+    cout << "ERROR: Selected streamline has fewer than " << NumPoints
+         << " points" << endl;
+    exit(1);
+  }
 
   // Find the dimension in which the points have the greatest variance
   for (ipt = Streamline.begin(); ipt != Streamline.end(); ipt += 3)
@@ -925,12 +935,18 @@ void Blood::FindPointsOnStreamline(vector<int> &Streamline, int NumPoints) {
 
   kmax = max_element(sumsq.begin(), sumsq.end()) - sumsq.begin();
 
+  // Alternative:
+  //vector<int> sumdiff(3, 0);
+  //for (ipt = Streamline.begin() + 3; ipt != Streamline.end(); ipt += 3)
+  //  for (int k = 0; k < 3; k++)
+  //    sumdiff[k] += abs(ipt[k] - ipt[k-3]);
+  //kmax = max_element(sumdiff.begin(), sumdiff.end()) - sumdiff.begin();
+
   // Find turning points along the dimension of greatest variance
   ipt = Streamline.begin() + kmax;
   sign2 = (*(ipt+3) > *ipt);
   ipt += 3;
-  for (vector<bool>::iterator iturn = isturnpt.begin() + 1;
-                              iturn != isturnpt.end() - 1; iturn++) {
+  for (iturn = isturnpt.begin() + 1; iturn != isturnpt.end() - 1; iturn++) {
     sign1 = sign2;
     sign2 = (*(ipt+3) > *ipt);
 
@@ -978,6 +994,37 @@ void Blood::FindPointsOnStreamline(vector<int> &Streamline, int NumPoints) {
     iturn++;
   }
 
+  // Remove turn points if there are more than points requested
+  while (nseg >= NumPoints) {
+    int imerge,
+        idel = min_element(lenseg.begin(), lenseg.end()) - lenseg.begin();
+
+    if (idel == 0)
+      imerge = 1;
+    else if (idel == nseg-1)
+      imerge = nseg-2;
+    else
+      imerge = (lenseg[idel-1] < lenseg[idel+1]) ? idel-1 : idel+1;
+
+    lenseg[imerge] += lenseg[idel];
+    lenseg.erase(lenseg.begin() + idel);
+
+    nptseg[imerge] += nptseg[idel];
+    nptseg.erase(nptseg.begin() + idel);
+
+    iturn = isturnpt.begin() + 1;
+    if (idel == 0)
+      while (! *iturn)
+        iturn++;
+    while (idel > 0) {
+      iturn++;
+      if (*iturn) idel--;
+    }
+    *iturn = false;
+   
+    nseg--;
+  }
+
   // Determine how many points to choose over each segment between turn points
   // based on length of segments
   inpt = nptseg.begin();
@@ -985,7 +1032,7 @@ void Blood::FindPointsOnStreamline(vector<int> &Streamline, int NumPoints) {
 
   for (vector<double>::const_iterator ilen = lenseg.begin();
                                       ilen != lenseg.end(); ilen++) {
-    const double n = (NumPoints-1) * (*ilen) / lentot;
+    const double n = (NumPoints-nseg-1) * (*ilen) / lentot + 1;
 
     if (n < *inpt) {
       *inpt = (int) round(n);
