@@ -754,6 +754,41 @@ void Coffin::ReadControlPoints(const char *ControlPointFile) {
   }
 
   mNumControl = mControlPoints.size()/3;
+
+  // Make sure that initial control points are in mask
+  for (vector<int>::iterator icpt = mControlPoints.begin();
+                             icpt < mControlPoints.end(); icpt += 3)
+    if (! MRIgetVoxVal(mMask, icpt[0], icpt[1], icpt[2], 0)) {
+      int dmin = 1000000, ixmin = 0, iymin = 0, izmin = 0;
+
+      cout << "WARN: Initial control point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in mask" << endl
+           << "WARN: Replacing with closest point in mask (";
+
+      for (int iz = 0; iz < mNz; iz++)
+        for (int iy = 0; iy < mNy; iy++)
+          for (int ix = 0; ix < mNx; ix++)
+            if (MRIgetVoxVal(mMask, ix, iy, iz, 0)) {
+              const int dx = icpt[0] - ix,
+                        dy = icpt[1] - iy,
+                        dz = icpt[2] - iz,
+                        dist = dx*dx + dy*dy + dz*dz;
+
+              if (dist < dmin) {
+                ixmin = ix;
+                iymin = iy;
+                izmin = iz;
+                dmin = dist;
+              }
+            }
+
+      icpt[0] = ixmin;
+      icpt[1] = iymin;
+      icpt[2] = izmin;
+
+      cout << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
 }
 
 //
