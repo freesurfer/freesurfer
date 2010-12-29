@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/24 17:26:25 $
-#    $Revision: 1.6 $
+#    $Date: 2010/12/29 04:39:58 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.6 2010/12/24 17:26:25 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.7 2010/12/29 04:39:58 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -62,14 +62,13 @@ set dopreproc = 0	# Perform select processing steps
 set dobedpost = 0
 set dopaths = 0
 
-set docorr = 1
-set dointra = 1
-set dointer = 1
-set domasks = 1
-set dotensor = 1
+set docorr = 0
+set dointra = 0
+set dointer = 0
+set domasks = 0
+set dotensor = 0
 set dotensormni = 0
-set dosnr = 1
-set dopriors = 1
+set dopriors = 0
 
 set rcfile = ()		# Run command file
 
@@ -120,8 +119,15 @@ set mnitemp = $FSLDIR/data/standard/MNI152_T1_1mm_brain.nii.gz
 set cvstempdir = $SUBJECTS_DIR
 set cvstemp = avg35rerun
 set usemaskanat = 1
-set pathlist = ( lh.cst_AS lh.uncinate_AS lh.ilf_AS \
-                 rh.cst_AS rh.uncinate_AS rh.ilf_AS )
+set pathlist = ( lh.cst_AS rh.cst_AS \
+                 lh.ilf_AS rh.ilf_AS \
+                 lh.uncinate_AS rh.uncinate_AS \
+                 fmajor_PP fminor_PP \
+                 lh.atr_PP rh.atr_PP \
+                 lh.ccg_PP rh.ccg_PP \
+                 lh.cab_PP rh.cab_PP \
+                 lh.slf_PP rh.slf_PP \
+                 lh.slft_PP rh.slft_PP )
 set ncpts = 5
 set xspace = mni
 set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
@@ -353,7 +359,6 @@ foreach isubj ($runlist)
   echo "set domasks = ($domasks)"					>> $RCF
   echo "set dotensor = ($dotensor)"					>> $RCF
   echo "set dotensormni = ($dotensormni)"				>> $RCF
-  echo "set dosnr = ($dosnr)"						>> $RCF
   echo "set dopriors = ($dopriors)"					>> $RCF
   echo "#"							 	>> $RCF
   echo "# Options for image corrections and tensor fit"		 	>> $RCF
@@ -394,7 +399,6 @@ foreach isubj ($runlist)
   echo "set usemaskanat = ($usemaskanat)"				>> $RCF
   echo "set pathlist = ($pathlist)"					>> $RCF
   echo "set ncptlist = ($ncptlist)"					>> $RCF
-  echo "set xspacelist = ($xspacelist)"					>> $RCF
   echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
   echo "set ntrainlist = ($ntrainlist)"					>> $RCF
   echo "set doprior = ($doprior)"					>> $RCF
@@ -584,11 +588,6 @@ while( $#argv != 0 )
     case "-corr":
       set dopreproc = 1
       set docorr = 1
-      set dointra = 0
-      set dointer = 0
-      set domasks = 0
-      set dotensor = 0
-      set dopriors = 0
       set dobedpost = 0
       set dopaths = 0
       breaksw
@@ -599,12 +598,7 @@ while( $#argv != 0 )
 
     case "-intra":
       set dopreproc = 1
-      set docorr = 0
       set dointra = 1
-      set dointer = 0
-      set domasks = 0
-      set dotensor = 0
-      set dopriors = 0
       set dobedpost = 0
       set dopaths = 0
       breaksw
@@ -615,12 +609,7 @@ while( $#argv != 0 )
 
     case "-inter":
       set dopreproc = 1
-      set docorr = 0
-      set dointra = 0
       set dointer = 1
-      set domasks = 0
-      set dotensor = 0
-      set dopriors = 0
       set dobedpost = 0
       set dopaths = 0
       breaksw
@@ -631,12 +620,7 @@ while( $#argv != 0 )
 
     case "-masks":
       set dopreproc = 1
-      set docorr = 0
-      set dointra = 0
-      set dointer = 0
       set domasks = 1
-      set dotensor = 0
-      set dopriors = 0
       set dobedpost = 0
       set dopaths = 0
       breaksw
@@ -647,12 +631,7 @@ while( $#argv != 0 )
 
     case "-tensor":
       set dopreproc = 1
-      set docorr = 0
-      set dointra = 0
-      set dointer = 0
-      set domasks = 0
       set dotensor = 1
-      set dopriors = 0
       set dobedpost = 0
       set dopaths = 0
       breaksw
@@ -663,11 +642,6 @@ while( $#argv != 0 )
 
     case "-prior":
       set dopreproc = 1
-      set docorr = 0
-      set dointra = 0
-      set dointer = 0
-      set domasks = 0
-      set dotensor = 0
       set dopriors = 1
       set dobedpost = 0
       set dopaths = 0
@@ -805,7 +779,6 @@ check_params:
     endif
 
     if (! $?ncptlist ) set ncptlist = $ncpts
-    if (! $?xspacelist ) set xspacelist = $xspace
 
     if ($do1out) then
       # Leave-one-out training file:
@@ -879,18 +852,18 @@ usage_exit:
   echo "  -bedp     : do bedpost (step 2)"
   echo "  -path     : do pathway reconstruction (step 3)"
   echo ""
-  echo "Performing only one part of the preprocessing or skipping a part:"
-  echo "  -corr     : do image corrections only (step 1.1)"
+  echo "Performing a part of the preprocessing or skipping a part:"
+  echo "  -corr     : do image corrections (step 1.1)"
   echo "  -nocorr   : don't do step 1.1"
-  echo "  -intra    : do intra-subject registration only (step 1.2)"
+  echo "  -intra    : do intra-subject registration (step 1.2)"
   echo "  -nointra  : don't do step 1.2"
-  echo "  -inter    : do inter-subject registration only (step 1.3)"
+  echo "  -inter    : do inter-subject registration (step 1.3)"
   echo "  -nointer  : don't do step 1.3"
-  echo "  -masks    : do masks only (step 1.4)"
+  echo "  -masks    : do masks (step 1.4)"
   echo "  -nomasks  : don't do step 1.4"
-  echo "  -tensor   : do tensor fit only (step 1.5)"
+  echo "  -tensor   : do tensor fit (step 1.5)"
   echo "  -notensor : don't do step 1.5"
-  echo "  -prior    : do pathway priors only (step 1.6)"
+  echo "  -prior    : do pathway priors (step 1.6)"
   echo "  -noprior  : don't do step 1.6"
   echo ""
   echo "Analysis steps:"
@@ -954,7 +927,7 @@ argument (-prep for pre-processing, -bedp for bedpost, or -path for path
 reconstruction) that specifies which part of the analysis to perform.
 The three parts must be performed in that order.
 
-It is also possible to perform only a certain step of the pre-processing
+It is also possible to perform a certain step of the pre-processing
 (with -stepname) or to skip a certain step from the pre-processing (with
 -nostepname). The default pre-processing performs all steps.
 
@@ -970,34 +943,34 @@ file. See dmrirc.example for more details.
   Pre-processing includes steps 1.1 through 1.5 below.
 
 > Step 1.1: Image corrections
-            -corr to do this step only, -nocorr to skip this step
+            -corr to do this step, -nocorr to skip this step
 
   Eddy current correction with eddy_correct, B0 field map correction with
   epidewarp.fsl.
 
 > Step 1.2: Intra-subject registration
-            -intra to do this step only, -nointra to skip this step
+            -intra to do this step, -nointra to skip this step
 
   Diffusion-to-T1 registration with flirt and/or bbregister.
 
 > Step 1.3: Inter-subject registration
-            -inter to do this step only, -nointer to skip this step
+            -inter to do this step, -nointer to skip this step
 
   T1-to-template registration using MNI and/or CVS templates.
 
 > Step 1.4: White-matter, cortical, and whole-brain masks
-            -masks to do this step only, -nomasks to skip this step
+            -masks to do this step, -nomasks to skip this step
 
   Generate masks of the white matter and cortex from FreeSurfer outputs,
   whole-brain masks from T1 and DWIs.
 
 > Step 1.5: Tensor fit
-            -tensor to do this step only, -notensor to skip this step
+            -tensor to do this step, -notensor to skip this step
 
   Tensor model fitting on DWIs.
 
 > Step 1.6: Pathway priors
-            -prior to do this step only, -noprior to skip this step
+            -prior to do this step, -noprior to skip this step
 
   Combine training data and subject's own data to generate pathway priors.
 

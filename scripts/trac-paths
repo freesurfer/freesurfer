@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/22 05:13:13 $
-#    $Revision: 1.3 $
+#    $Date: 2010/12/29 04:39:58 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.3 2010/12/22 05:13:13 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.4 2010/12/29 04:39:58 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -166,6 +166,10 @@ echo "#@# Path reconstruction `date`" |& tee -a $LF
 
 set cvswarp = combined_elreg_afteraseg-norm
 
+set xspacelist = ()
+if ($doregmni) set xspacelist = ($xspacelist mni)
+if ($doregcvs) set xspacelist = ($xspacelist cvs)
+
 set reglist = ()
 if ($doregflt) set reglist = ($reglist flt)
 if ($doregbbr) set reglist = ($reglist bbr)
@@ -176,8 +180,8 @@ foreach ntrain ($ntrainlist)
   foreach xspace ($xspacelist)
     foreach reg ($reglist)
       foreach ncpts ($ncptlist)
-        set avgmode = avg${ntrain}_$xspace
-        set mnimode = avg${ntrain}_mni
+        set avgmode = avg${ntrain}_${xspace}_$reg
+        set mnimode = avg${ntrain}_mni_$reg
 
         set outdir = $dtdir/dpath
 
@@ -206,7 +210,7 @@ foreach ntrain ($ntrainlist)
           `printf "$labdir/$xspace/%s_${avgmode}_end2_dil.nii.gz " $pathlist`
 
         set initlist = \
-          `printf "$labdir/diff/%s_${mnimode}_cpts_$ncpts.$reg.txt " $pathlist`
+          `printf "$labdir/diff/%s_${mnimode}_cpts_$ncpts.txt " $pathlist`
 
         set priorlist = ()
         foreach pathname ($pathlist)
@@ -230,7 +234,7 @@ foreach ntrain ($ntrainlist)
         end
 
         set sdplist = \
-          `printf "$labdir/diff/%s_${mnimode}_cpts_${ncpts}_std.$reg.txt " $pathlist`
+          `printf "$labdir/diff/%s_${mnimode}_cpts_${ncpts}_std.txt " $pathlist`
 
         # Clean up pre-existing directories
         foreach dname ($outlist)
@@ -256,7 +260,9 @@ foreach ntrain ($ntrainlist)
           set cmd = ($cmd --reg $xfmdir/diff2mni.$reg.mat)
         else if ($xspace == cvs) then
           set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.mat)
-          set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.tm3d)
+          if ($subj != $cvstemp) then
+            set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.tm3d)
+          endif
         endif
         set cmd = ($cmd --init $initlist)
         if ($dosegprior) then
