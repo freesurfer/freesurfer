@@ -923,6 +923,7 @@ void Blood::FindPointsOnStreamline(vector<int> &Streamline, int NumPoints) {
     exit(1);
   }
 
+if (0) {
   // Find the dimension in which the points have the greatest variance
   for (ipt = Streamline.begin(); ipt != Streamline.end(); ipt += 3)
     for (int k = 0; k < 3; k++) {
@@ -934,13 +935,15 @@ void Blood::FindPointsOnStreamline(vector<int> &Streamline, int NumPoints) {
     sumsq[k] -= (pow(sum[k], 2) / nptot);
 
   kmax = max_element(sumsq.begin(), sumsq.end()) - sumsq.begin();
-
-  // Alternative:
-  //vector<int> sumdiff(3, 0);
-  //for (ipt = Streamline.begin() + 3; ipt != Streamline.end(); ipt += 3)
-  //  for (int k = 0; k < 3; k++)
-  //    sumdiff[k] += abs(ipt[k] - ipt[k-3]);
-  //kmax = max_element(sumdiff.begin(), sumdiff.end()) - sumdiff.begin();
+}
+else {
+  // Find the dimension that the points traverse the most
+  vector<int> sumdiff(3, 0);
+  for (ipt = Streamline.begin() + 3; ipt != Streamline.end(); ipt += 3)
+    for (int k = 0; k < 3; k++)
+      sumdiff[k] += abs(ipt[k] - ipt[k-3]);
+  kmax = max_element(sumdiff.begin(), sumdiff.end()) - sumdiff.begin();
+}
 
   // Find turning points along the dimension of greatest variance
   ipt = Streamline.begin() + kmax;
