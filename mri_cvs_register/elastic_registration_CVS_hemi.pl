@@ -14,6 +14,7 @@ use getConfig;
 ############### 
 
 $sdir = "$ENV{'SUBJECTS_DIR'}";
+$tdir = "$ENV{'TEMPLATE_DIR'}";
 $annotFile = "$ENV{'ANNOTFILE'}";
 $volType = "$ENV{'VOLTYPE'}";
 $hemi = "$ENV{'HEMI'}";
@@ -58,10 +59,10 @@ if ( length $vol == 0 or
 #------------------------------------------------------------
 # STANDARD freesurfer convention
 $volData    = "$sdir/$vol/mri/$volType.mgz";
-$refVolData = "$sdir/$refVol/mri/$volType.mgz";
+$refVolData = "$tdir/$refVol/mri/$volType.mgz";
 
-$refSurf_white = "$sdir/$refVol/surf/$hemi.white";
-$refSurf_pial  = "$sdir/$refVol/surf/$hemi.pial";
+$refSurf_white = "$tdir/$refVol/surf/$hemi.white";
+$refSurf_pial  = "$tdir/$refVol/surf/$hemi.pial";
 #$refSurf_lh_white = "$sdir/$refVol/surf/lh.white";
 #$refSurf_rh_white = "$sdir/$refVol/surf/rh.white";
 #$refSurf_lh_pial  = "$sdir/$refVol/surf/lh.pial";
@@ -130,7 +131,7 @@ if ( (not -e "$outElastic") or $overwrite )
   {
     $cmdVols = " -fixed_mri $refVolData -moving_mri $volData";
 #    $cmdAparc = " -aparc $sdir/$refVol/label/lh.$annotFile -aparc_2 $sdir/$refVol/label/rh.$annotFile";
-    $cmdAparc = " -aparc $sdir/$refVol/label/$hemi.$annotFile ";
+    $cmdAparc = " -aparc $tdir/$refVol/label/$hemi.$annotFile ";
 #    $cmdSurfWhite_lh = "-fixed_surf $refSurf_lh_white   -moving_surf $surf_lh_white";
 #    $cmdSurfWhite_rh = "-fixed_surf_2 $refSurf_rh_white -moving_surf_2 $surf_rh_white";
     $cmdSurfWhite = "-fixed_surf $refSurf_white   -moving_surf $surf_white";
@@ -161,7 +162,7 @@ if ( (not -e "$outElastic") or $overwrite )
 
 	# option 2 - same aparcs as for the white surface
 #	$cmdAparc = $cmdAparc . " -aparc_3 $sdir/$refVol/label/lh.$annotFile -aparc_4 $sdir/$refVol/label/rh.$annotFile";
-	$cmdAparc = $cmdAparc . " -aparc_2 $sdir/$refVol/label/$hemi.$annotFile ";
+	$cmdAparc = $cmdAparc . " -aparc_2 $tdir/$refVol/label/$hemi.$annotFile ";
       }
     
     $cmdMain = "surf2vol $cmdVols $cmdSurf $cmdAparc $cmdOptions $cmdOut";

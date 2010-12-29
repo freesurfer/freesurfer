@@ -14,10 +14,12 @@ use getConfig;
 ############### 
 
 $sdir = "$ENV{'SUBJECTS_DIR'}";
+$tdir = "$ENV{'TEMPLATE_DIR'}";
 $annotFile = "$ENV{'ANNOTFILE'}";
 $volType = "$ENV{'VOLTYPE'}";
 
 print " =====================\n settings: $sdir      \n========================\n";
+print " =====================\n settings: $tdir      \n========================\n";
 print " =====================\n settings: $annotFile \n========================\n";
 print " =====================\n settings: $volType   \n========================\n";
 
@@ -44,7 +46,7 @@ if ( length $vol == 0 or
      length $refVol == 0 or
      length $settingsFile == 0 )
   {
-    print " Please provide moving, fixed and settins arguments\n Optionally, dbgOut will write intermediate morph files\n";
+    print " Please provide moving, fixed and settings arguments\n Optionally, dbgOut will write intermediate morph files\n";
     print " Other options \n" .
       " exe <s> - executable to use\n" .
 	" pial - use pial surfaces\n" .
@@ -57,12 +59,12 @@ if ( length $vol == 0 or
 #------------------------------------------------------------
 # STANDARD freesurfer convention
 $volData    = "$sdir/$vol/mri/$volType.mgz";
-$refVolData = "$sdir/$refVol/mri/$volType.mgz";
+$refVolData = "$tdir/$refVol/mri/$volType.mgz";
 
-$refSurf_lh_white = "$sdir/$refVol/surf/lh.white";
-$refSurf_rh_white = "$sdir/$refVol/surf/rh.white";
-$refSurf_lh_pial  = "$sdir/$refVol/surf/lh.pial";
-$refSurf_rh_pial  = "$sdir/$refVol/surf/rh.pial";
+$refSurf_lh_white = "$tdir/$refVol/surf/lh.white";
+$refSurf_rh_white = "$tdir/$refVol/surf/rh.white";
+$refSurf_lh_pial  = "$tdir/$refVol/surf/lh.pial";
+$refSurf_rh_pial  = "$tdir/$refVol/surf/rh.pial";
 
 #------------------------------------------------------------
 
@@ -125,7 +127,7 @@ $outElastic = "$outDir/${outRoot}_to${refVol}.mgz";
 if ( (not -e "$outElastic") or $overwrite )
   {
     $cmdVols = " -fixed_mri $refVolData -moving_mri $volData";
-    $cmdAparc = " -aparc $sdir/$refVol/label/lh.$annotFile -aparc_2 $sdir/$refVol/label/rh.$annotFile";
+    $cmdAparc = " -aparc $tdir/$refVol/label/lh.$annotFile -aparc_2 $tdir/$refVol/label/rh.$annotFile";
     $cmdSurfWhite_lh = "-fixed_surf $refSurf_lh_white   -moving_surf $surf_lh_white";
     $cmdSurfWhite_rh = "-fixed_surf_2 $refSurf_rh_white -moving_surf_2 $surf_rh_white";
 
@@ -152,7 +154,7 @@ if ( (not -e "$outElastic") or $overwrite )
 	$cmdSurf = $cmdSurf . " $cmdSurfPial_lh $cmdSurfPial_rh ";
 
 	# option 2 - same aparcs as for the white surface
-	$cmdAparc = $cmdAparc . " -aparc_3 $sdir/$refVol/label/lh.$annotFile -aparc_4 $sdir/$refVol/label/rh.$annotFile";
+	$cmdAparc = $cmdAparc . " -aparc_3 $tdir/$refVol/label/lh.$annotFile -aparc_4 $tdir/$refVol/label/rh.$annotFile";
       }
      
     $cmdMain = "surf2vol $cmdVols $cmdSurf $cmdAparc $cmdOptions $cmdOut";
