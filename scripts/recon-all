@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/30 16:43:32 $
-#    $Revision: 1.351 $
+#    $Date: 2010/12/30 19:09:24 $
+#    $Revision: 1.352 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.351 2010/12/30 16:43:32 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.352 2010/12/30 19:09:24 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1677,10 +1677,10 @@ skullstrip:
       foreach pfh ( $PREFLOOD_HEIGHTS )
         set cmd = (mri_watershed)
         set BMA_OLD = brainmask.auto.mgz
-        if(-e $BMA_OLD && -e $BM && ! $DoCleanBM) then
-          set cmd = ($cmd -keep $BMA_OLD $BM $BM)
-        endif
         set BMA = brainmask_${vol}_PFH${pfh}.auto.mgz
+        if(-e $BMA_OLD && -e $BM && ! $DoCleanBM) then
+          set cmd = ($cmd -keep $BMA_OLD $BM $BMA)
+        endif
         set cmd = ($cmd $opts -h ${pfh} $xopts ${vol}.mgz $BMA)
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
         set CMDF = mri_watershed_${vol}_PFH${pfh}.cmd
@@ -1735,7 +1735,7 @@ skullstrip:
         set cmd = ($cmd $xopts ${GCADIR}/$GCA $LTA)
         echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
         if($RunIt) then
-          $fs_time $cmd |& tee -a $LF |& tee -a ll_tmp
+          $cmd |& tee -a $LF |& tee -a ll_tmp
           # extract the last line of output, containing the result
           set ll = `tail -n 1 ll_tmp`
           rm -f ll_tmp
