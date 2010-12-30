@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: rge21 $
-#    $Date: 2010/12/22 14:20:17 $
-#    $Revision: 1.350 $
+#    $Author: nicks $
+#    $Date: 2010/12/30 16:43:32 $
+#    $Revision: 1.351 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.350 2010/12/22 14:20:17 rge21 Exp $';
+set VERSION = '$Id: recon-all,v 1.351 2010/12/30 16:43:32 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4994,6 +4994,18 @@ while( $#argv != 0 )
       set DoBaLabels = 1;
       breaksw;
 
+    case "-nobalabels":
+    case "-noba_labels":
+    case "-noba-labels":
+    case "-nolabel_ba":
+    case "-nolabel_BA":
+    case "-no_ba_labels":
+    case "-no-ba-labels":
+    case "-no_label_ba":
+    case "-no_label_BA":
+      set DoBaLabels = 0;
+      breaksw;
+
     case "-surfvolume":
       set DoSurfVolume = 1;
       breaksw;
@@ -5010,6 +5022,17 @@ while( $#argv != 0 )
     case "-label_exvivo_EC":
     case "-label-exvivo-EC":
       set DoLabelExvivoEC = 1;
+      breaksw;
+
+    case "-nolabel_exvivo_ec":
+    case "-nolabel-exvivo-ec":
+    case "-nolabel_exvivo_EC":
+    case "-nolabel-exvivo-EC":
+    case "-no_label_exvivo_ec":
+    case "-no-label-exvivo-ec":
+    case "-no_label_exvivo_EC":
+    case "-no-label-exvivo-EC":
+      set DoLabelExvivoEC = 0;
       breaksw;
 
     case "-use-concat-lta-tal":
