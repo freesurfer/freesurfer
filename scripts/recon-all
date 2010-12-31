@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/30 19:09:24 $
-#    $Revision: 1.352 $
+#    $Date: 2010/12/31 19:06:14 $
+#    $Revision: 1.353 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.352 2010/12/30 19:09:24 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.353 2010/12/31 19:06:14 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4509,6 +4509,7 @@ while( $#argv != 0 )
       breaksw
 
     case "-autorecon2":
+    case "-autorecon2-cp":
       set DoGCAReg         = 1;
       set DoCARegInv       = 1;
       set DoRemoveNeck     = 1;
@@ -4579,7 +4580,6 @@ while( $#argv != 0 )
       set DoInflate1       = 1;
       breaksw
 
-    case "-autorecon2-cp":
     case "-autorecon2-aseg":
       set DoNormalization2 = 1;
       set DoSegmentation   = 1;
@@ -5358,7 +5358,7 @@ usage_exit:
   echo "                     a. if wm edit was required, then run -autorecon2-wm"
   echo "                     b. if control points added, then run -autorecon2-cp"
   echo "                     c. proceed to run -autorecon3"
-  echo "  -autorecon2-cp : process stages 12-23 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
+  echo "  -autorecon2-cp : process stages 6-23 (uses -f w/ mri_normalize, -keep w/ mri_seg)"
   echo "  -autorecon2-wm : process stages 15-23"
   echo "  -autorecon2-inflate1 : 6-18"
   echo "  -autorecon2-perhemi : tess, sm1, inf1, q, fix, sm2, inf2, finalsurf, ribbon"
@@ -5561,7 +5561,7 @@ Subcortical segmentation through make white surfaces.
 
 -autorecon2-cp
 
-Normalization2 through make final surfaces.
+Deprecated.  Same as -autorecon2, as control points affect subcortical.
 
 -autorecon2-wm
 
@@ -6061,8 +6061,8 @@ Normalization2 (-<no>normalization)
 Performs a second (major) intensity correction using only the brain
 volume as the input (so that it has to be done after the skull strip).
 Intensity normalization works better when the skull has been removed.
-Creates a new brain.mgz volume. The -autorecon2-cp stage begins here.
-If -noaseg flag is used, then aseg.mgz is not used by mri_normalize.
+Creates a new brain.mgz volume. If -noaseg flag is used, then aseg.mgz
+is not used by mri_normalize.
 
 WM Segmentation (-<no>segmentation)
 
