@@ -15,24 +15,33 @@ bin_PROGRAMS = mri_robust_register \
 	lta_diff \
 	mri_create_tests \
 	mri_gradient_info
+	
 mri_robust_register_SOURCES= \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp \
 	Quaternion.cpp Registration.cpp RegPowell.cpp mri_robust_register.cpp
-mri_robust_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mri_robust_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+  $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 mri_robust_register_LDFLAGS=$(OS_LDFLAGS)
+
 mri_robust_template_SOURCES= Registration.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp Quaternion.cpp \
 	MultiRegistration.cpp mri_robust_template.cpp 
-mri_robust_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mri_robust_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+  $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 mri_robust_template_LDFLAGS=$(OS_LDFLAGS)
+
 lta_diff_SOURCES=lta_diff.cpp Registration.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp Quaternion.cpp
-lta_diff_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+lta_diff_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+  $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 lta_diff_LDFLAGS=$(OS_LDFLAGS)
+
 mri_create_tests_SOURCES=mri_create_tests.cpp Quaternion.cpp \
 	MyMatrix.cpp MyMRI.cpp
-mri_create_tests_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mri_create_tests_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+  $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 mri_create_tests_LDFLAGS=$(OS_LDFLAGS)
+
 mri_gradient_info_SOURCES=mri_gradient_info.cpp
 mri_gradient_info_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_gradient_info_LDFLAGS=$(OS_LDFLAGS)
