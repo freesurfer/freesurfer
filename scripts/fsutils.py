@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.2 2010/12/23 23:24:17 krish Exp $
+# $Id: fsutils.py,v 1.3 2011/01/02 05:24:00 krish Exp $
 import os
 import logging
 from misc import *
@@ -59,13 +59,21 @@ class StatsParser:
 
     # parse only the following structures
     def parse_only(self, structlist):
-        self.include_structlist = structlist
+        # this is simply an Ordered Set
+        # we need this because if inputs repeat, this will take care
+        self.include_structlist = StableDict()
+        for struct in structlist:
+            self.include_structlist[struct] = 1
         self.structlist = []
         self.measurelist = []
         
     # exclude the following structures
     def exclude_structs(self, structlist):
-        self.exclude_structlist = structlist
+        # this is simply an Ordered Set
+        # we need this because if inputs repeat, this will take care
+        self.exclude_structlist = StableDict()
+        for struct in structlist:
+            self.exclude_structlist[struct] = 1
         self.structlist = []
         self.measurelist = []
 
@@ -98,7 +106,7 @@ class AsegStatsParser(StatsParser):
                 seg = strlst[1] # segmentation id is in the 2nd field
                 if self.maxsegno and int(seg) > self.maxsegno:
                     continue
-                if self.exclude_structlist and seg in self.exclude_structlist:
+                if self.exclude_structlist and seg in self.exclude_structlist.keys():
                     continue
                 self.id_name_map[seg] = strlst[4] # Col 4 is Seg Name
                 # Float of the measure we are interested in 
@@ -113,7 +121,7 @@ class AsegStatsParser(StatsParser):
         if self.include_structlist: 
             tmp_id_name_map = StableDict()
             tmp_ml = []
-            for oseg in self.include_structlist:
+            for oseg in self.include_structlist.keys():
                 idlist = self.id_name_map.keys()
                 if oseg in idlist:
                     corres_meas_index = idlist.index( oseg )
@@ -185,7 +193,7 @@ class AparcStatsParser(StatsParser):
         # we need to make sure the order has to be maintained
         if self.include_structlist: 
             tmp_parc_measure_map = StableDict()
-            for oparc in self.include_structlist:
+            for oparc in self.include_structlist.keys():
                 parclist = self.parc_measure_map.keys()
                 if oparc in parclist:
                     tmp_parc_measure_map[oparc] = self.parc_measure_map[oparc] 
