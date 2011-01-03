@@ -16,8 +16,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/01/07 21:55:30 $
- *    $Revision: 1.29 $
+ *    $Date: 2011/01/03 19:25:55 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,7 +65,7 @@
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_probedicom.c,v 1.29 2010/01/07 21:55:30 greve Exp $";
+static char vcid[] = "$Id: mri_probedicom.c,v 1.30 2011/01/03 19:25:55 greve Exp $";
 char *Progname = NULL;
 
 static int  parse_commandline(int argc, char **argv);
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
   int nargs;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.29 2010/01/07 21:55:30 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_probedicom.c,v 1.30 2011/01/03 19:25:55 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -1483,7 +1483,7 @@ int DCMCompare(char *dcmfile1, char *dcmfile2)
   n = 0;
   tagname[n] = "Manufacturer";     tag1[n] = 0x8;  tag2[n] = 0x0070; type[n] = 0; n++;
   tagname[n] = "Model";            tag1[n] = 0x8;  tag2[n] = 0x1090; type[n] = 0; n++;
-  tagname[n] = "Software Version"; tag1[n] = 0x8;  tag2[n] = 0x1090; type[n] = 0; n++;
+  tagname[n] = "Software Version"; tag1[n] = 0x18; tag2[n] = 0x1020; type[n] = 0; n++;
   tagname[n] = "Institution";      tag1[n] = 0x8;  tag2[n] = 0x0080; type[n] = 0; n++;
   //tagname[n] = "Imaging Frequency";tag1[n] = 0x18; tag2[n] = 0x0084; type[n] = 0; n++;
   tagname[n] = "Pixel Frequency";  tag1[n] = 0x18; tag2[n] = 0x0095; type[n] = 0; n++;
