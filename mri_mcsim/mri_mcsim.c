@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/23 22:32:55 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/01/03 22:53:03 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.12 2010/07/23 22:32:55 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.13 2011/01/03 22:53:03 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -77,6 +77,7 @@ struct utsname uts;
 char *OutTop = NULL;
 char *csdbase = NULL;
 char *subject = NULL;
+char *surfname = "white";
 char *hemi = NULL;
 char *MaskFile = NULL;
 char *LabelFile = "cortex";
@@ -91,6 +92,7 @@ int SignList[3] = {-1,0,1}, nSignList=3;
 char *DoneFile = NULL;
 char *LogFile = NULL;
 int SaveMask = 1;
+int UseAvgVtxArea = 0;
 
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
@@ -105,7 +107,8 @@ int main(int argc, char *argv[]) {
   int FreeMask = 0;
   int nthSign, nthFWHM, nthThresh;
   CSD *csdList[100][100][3], *csd;
-  double sigmax, zmax, threshadj, csize, searchspace;
+  double sigmax, zmax, threshadj, csize, csizeavg, searchspace,avgvtxarea;
+  int csizen;
   int nClusters, cmax,rmax,smax, nmask;
   SURFCLUSTERSUM *SurfClustList;
   struct timeb  mytimer;
@@ -170,18 +173,22 @@ int main(int argc, char *argv[]) {
   }
 
   // Load the target surface
-  sprintf(tmpstr,"%s/%s/surf/%s.white",SUBJECTS_DIR,subject,hemi);
+  sprintf(tmpstr,"%s/%s/surf/%s.%s",SUBJECTS_DIR,subject,hemi,surfname);
   printf("Loading %s\n",tmpstr);
   surf = MRISread(tmpstr);
   if(!surf) return(1);
 
   // Handle masking
   if(LabelFile){
-    sprintf(tmpstr,"%s/%s/label/%s.%s.label",SUBJECTS_DIR,subject,hemi,LabelFile);
+    printf("Loading label file %s\n",LabelFile);
+    sprintf(tmpstr,"%s/%s/label/%s.%s.label",
+	    SUBJECTS_DIR,subject,hemi,LabelFile);
     if(!fio_FileExistsReadable(tmpstr)){
+      printf(" Cannot find label file %s\n",tmpstr);
       sprintf(tmpstr,"%s",LabelFile);
+      printf(" Trying label file %s\n",tmpstr);
       if(!fio_FileExistsReadable(tmpstr)){
-	printf("ERROR: cannot find label file %s\n",LabelFile);
+	printf("  ERROR: cannot read or find label file %s\n",LabelFile);
 	exit(1);
       }
     }
@@ -214,6 +221,8 @@ int main(int argc, char *argv[]) {
   if(surf->group_avg_surface_area > 0)
     searchspace *= (surf->group_avg_surface_area/surf->total_area);
   printf("search space %g mm2\n",searchspace);
+  avgvtxarea = searchspace/nmask;
+  printf("average vertex area %g mm2\n",avgvtxarea);
 
   // Determine how many iterations are needed for each FWHM
   nSmoothsList = (int *) calloc(sizeof(int),nFWHMList);
@@ -326,7 +335,15 @@ int main(int argc, char *argv[]) {
 	  else threshadj = csd->thresh - log10(2.0); // one-sided test
 	  SurfClustList = sclustMapSurfClusters(surf,threshadj,-1,csd->threshsign,
 						0,&nClusters,NULL);
-	  csize = sclustMaxClusterArea(SurfClustList, nClusters);
+	  // Actual area of cluster with max area
+	  csize  = sclustMaxClusterArea(SurfClustList, nClusters);
+	  // Number of vertices of cluster with max number of vertices. 
+	  // Note: this may be a different cluster from above!
+	  csizen = sclustMaxClusterCount(SurfClustList, nClusters);
+	  // Area of this cluster based on average vertex area. This just scales
+	  // the number of vertices.
+	  csizeavg = csizen * avgvtxarea;
+	  if(UseAvgVtxArea) csize = csizeavg;
 	  // Store results
 	  csd->nClusters[nthRep] = nClusters;
 	  csd->MaxClusterSize[nthRep] = csize;
@@ -371,6 +388,7 @@ int main(int argc, char *argv[]) {
 	if(mask) fprintf(fp,"# masking 1\n");
 	else     fprintf(fp,"# masking 0\n");
 	fprintf(fp,"# SmoothLevel %d\n",nSmoothsList[nthFWHM]);
+	fprintf(fp,"# UseAvgVtxArea %d\n",UseAvgVtxArea);
 	CSDprint(fp, csd);
 	fclose(fp);
       }
@@ -453,6 +471,13 @@ static int parse_commandline(int argc, char **argv) {
       hemi = pargv[1];
       nargsused = 2;
     } 
+    else if (!strcasecmp(option, "--surfname")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      surfname = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--avgvtxarea"))    UseAvgVtxArea = 1;
+    else if (!strcasecmp(option, "--no-avgvtxarea")) UseAvgVtxArea = 0;
     else if (!strcasecmp(option, "--seed")) {
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%d",&SynthSeed);
@@ -512,11 +537,13 @@ static void print_usage(void) {
   printf("   --nreps nrepetitions\n");
   printf("   --fwhm FWHM <--fwhm FWHM ...>\n");
   printf("   \n");
+  printf("   --avgvtxarea : report cluster area based on average vtx area\n");
   printf("   --seed randomseed : default is to choose based on ToD\n");
   printf("   --label labelfile : default is ?h.cortex.label \n");
   printf("   --mask maskfile : instead of label\n");
   printf("   --no-label : do not use a label to mask\n");
   printf("   --no-save-mask : do not save mask to output (good for mult jobs)\n");
+  printf("   --surfname surfname : default is white\n");
   printf("\n");
   printf("   --log  LogFile \n");
   printf("   --done DoneFile : will create DoneFile when finished\n");
@@ -596,6 +623,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"subject  %s\n",subject);
   fprintf(fp,"hemi     %s\n",hemi);
   if(MaskFile) fprintf(fp,"mask     %s\n",MaskFile);
+  fprintf(fp,"UseAvgVtxArea %d\n",UseAvgVtxArea);
   fflush(fp);
   return;
 }
