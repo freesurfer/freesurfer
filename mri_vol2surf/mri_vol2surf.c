@@ -27,8 +27,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/05/03 21:37:03 $
- *    $Revision: 1.59 $
+ *    $Date: 2011/01/03 19:20:42 $
+ *    $Revision: 1.60 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.59 2010/05/03 21:37:03 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.60 2011/01/03 19:20:42 greve Exp $";
 
 char *Progname = NULL;
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.59 2010/05/03 21:37:03 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.60 2011/01/03 19:20:42 greve Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -659,6 +659,18 @@ int main(int argc, char **argv) {
     SurfVals2 = mritmp;
   }
 
+  if(mask_label_name) {
+    printf("Masking with %s\n",mask_label_name);
+    MRISclearMarks(SurfOut) ;
+    LabelMarkSurface(area, SurfOut) ;
+    for (vtx = 0; vtx < SurfVals2->width; vtx++){
+      if (SurfOut->vertices[vtx].marked == 0){
+	for(f=0; f < SurfVals2->nframes; f++)
+	  MRIsetVoxVal(SurfVals2, vtx, 0, 0, f, 0.0) ;
+      }
+    }
+  }
+
   if (outtypestring != NULL &&
       (!strcasecmp(outtypestring,"w") || !strcasecmp(outtypestring,"paint"))) {
     /*-------------- paint or .w --------------*/
@@ -690,17 +702,6 @@ int main(int argc, char **argv) {
         SurfVals2 = mritmp;
       } else {
         printf("INFO: nvertices is prime, cannot reshape\n");
-      }
-    }
-    else if (mask_label_name) {
-      printf("Masking with %s\n",mask_label_name);
-      MRISclearMarks(SurfOut) ;
-      LabelMarkSurface(area, SurfOut) ;
-      for (vtx = 0; vtx < SurfVals2->width; vtx++){
-        if (SurfOut->vertices[vtx].marked == 0){
-	  for(f=0; f < SurfVals2->nframes; f++)
-	    MRIsetVoxVal(SurfVals2, vtx, 0, 0, f, 0.0) ;
-	}
       }
     }
     printf("Writing to %s\n",outfile);
