@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/01/03 22:53:03 $
- *    $Revision: 1.13 $
+ *    $Date: 2011/01/04 14:12:53 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,7 +67,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.13 2011/01/03 22:53:03 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.14 2011/01/04 14:12:53 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -97,9 +97,8 @@ int UseAvgVtxArea = 0;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, n, msecTime, err;
-  char *cmdline, tmpstr[2000], *signstr=NULL,*SUBJECTS_DIR, fname[2000];
+  char tmpstr[2000], *signstr=NULL,*SUBJECTS_DIR, fname[2000];
   //char *OutDir = NULL;
-  struct utsname uts;
   MRIS *surf;
   RFS *rfs;
   int *nSmoothsList, nSmoothsPrev, nSmoothsDelta, nthRep;
