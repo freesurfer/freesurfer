@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2006/12/29 02:09:08 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2011/01/04 16:49:34 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,13 +34,16 @@
 #include "mri.h"
 #include "macros.h"
 #include "error.h"
+#include "cma.h"
 
-#define DEBUG_MODE 0
+#define DEBUG_MODE 1
 #define OUTPUT_SURFACES 0
 
 #define MAXVERTICES 25000
 #define MAXFACES 25000
 
+static double  GM_max_T1 = 3000 ; // used to be 1200
+static double  WM_min_T1 = 800 ;
 typedef struct ss_vertex_type_ {
   float x,y,z;
   float nx,ny,nz;
@@ -154,11 +157,11 @@ static void brain_params(void) {
   for (k=0;k<depth;k++)
     for (j=0;j<height;j++)
       for (i=0;i<width;i++) {
-        txCOG+= i*MRISvox(mri_dst,i,j,k);
-        tyCOG+= j*MRISvox(mri_dst,i,j,k);
-        tzCOG+= k*MRISvox(mri_dst,i,j,k);
+        txCOG+= i*MRIFvox(mri_dst,i,j,k);
+        tyCOG+= j*MRIFvox(mri_dst,i,j,k);
+        tzCOG+= k*MRIFvox(mri_dst,i,j,k);
 
-        fmasse+=MRISvox(mri_dst,i,j,k);
+        fmasse+=MRIFvox(mri_dst,i,j,k);
       }
 
   txCOG/=fmasse;
@@ -176,13 +179,13 @@ static void brain_params(void) {
   for (k=nb*d;k<depth-nb*d;k++)
     for (j=nb*d;j<height-nb*d;j++)
       for (i=nb*d;i<width-nb*d;i++)
-        if (MRISvox(mri_dst,i,j,k)>threshold) {
+        if (MRIFvox(mri_dst,i,j,k)>threshold) {
           mean=0;
           var=0;
           for (c=-nb;c<nb+1;c++)
             for (b=-nb;b<nb+1;b++)
               for (a=-nb;a<nb+1;a++) {
-                val=MRISvox(mri_dst,i+a*d,j+b*d,k+c*d);
+                val=MRIFvox(mri_dst,i+a*d,j+b*d,k+c*d);
                 mean+=val;
                 var+=SQR(val);
               }
@@ -204,9 +207,9 @@ static void brain_params(void) {
   for (k=0;k<depth;k++)
     for (j=0;j<height;j++)
       for (i=0;i<width;i++)
-        if (MRISvox(mri_dst,i,j,k)>threshold) {
-          masse+=MRISvox(mri_dst,i,j,k);
-          rad_Brain+=(SQR(i-xCOG)+SQR(j-yCOG)+SQR(k-zCOG))*MRISvox(mri_dst,i,j,k);
+        if (MRIFvox(mri_dst,i,j,k)>threshold) {
+          masse+=MRIFvox(mri_dst,i,j,k);
+          rad_Brain+=(SQR(i-xCOG)+SQR(j-yCOG)+SQR(k-zCOG))*MRIFvox(mri_dst,i,j,k);
         }
 
   rad_Brain=sqrt(rad_Brain/masse);
@@ -587,7 +590,7 @@ shrink_Inner_Skull(void) {
           if (kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height)
             valt = 0;
           else {
-            valt = MRISvox(mri_dst,it,jt,kt);
+            valt = MRIFvox(mri_dst,it,jt,kt);
           }
           if (h<=0)
             outsamp[-h] = valt;
@@ -869,7 +872,7 @@ static void shrink_Outer_Skull(void) {
             if ((kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height))
               val=0;
             else
-              val=MRISvox(mri_dst,it,jt,kt);
+              val=MRIFvox(mri_dst,it,jt,kt);
 
             test_samp[h][3*b+a+4] = val;
           }
@@ -1145,7 +1148,7 @@ static void shrink_Outer_Skin(void) {
             if ((kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height))
               val=0;
             else
-              val=MRISvox(mri_dst,it,jt,kt);
+              val=MRIFvox(mri_dst,it,jt,kt);
 
             test_samp[h][3*b+a+4] = val;
           }
@@ -1474,12 +1477,12 @@ shrink_Brain(void) {
               if ((kt<0||kt>=depth||it<0||it>=width||jt<0||jt>=height))
                 valt=0;
               else {
-                if (MRISvox(mri_T1,it,jt,kt)>4000)
+                if (MRIFvox(mri_T1,it,jt,kt)>4000)
                   valt=0;
-                else if (MRISvox(mri_T1,it,jt,kt)>2000)
+                else if (MRIFvox(mri_T1,it,jt,kt)>2000)
                   valt=fzero-1;
                 else
-                  valt = MRISvox(mri_PD,it,jt,kt);
+                  valt = MRIFvox(mri_PD,it,jt,kt);
               }
               test_samp[h][3*b+a+4] = valt;
             }
@@ -1701,7 +1704,7 @@ static void write_image(MRI *mri) {
         imnr = (int)(pz+0.5);
 
         if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
-          MRISvox(mri,i,j,imnr) = 2500;
+          MRIFvox(mri,i,j,imnr) = 2500;
       }
     }
   }
@@ -1710,7 +1713,7 @@ static void write_image(MRI *mri) {
     j = (int)(vertex[k].y+0.5);
     imnr = (int)(vertex[k].z+0.5);
     if (i>=0 && i<width && j>=0 && j<height && imnr>=0 && imnr<depth)
-      MRISvox(mri,i,j,imnr) = 1000;
+      MRIFvox(mri,i,j,imnr) = 1000;
   }
 }
 
@@ -1721,6 +1724,16 @@ static int Reading(void) {
 
   mri_T1=MRIread(T1_fname);
   mri_PD=MRIread(PD_fname);
+  if (mri_T1->type != MRI_FLOAT)
+  {
+    MRI *mri_tmp = MRIchangeType(mri_T1, MRI_FLOAT, 0, 1, 1) ;
+    MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+  }
+  if (mri_PD->type != MRI_FLOAT)
+  {
+    MRI *mri_tmp = MRIchangeType(mri_PD, MRI_FLOAT, 0, 1, 1) ;
+    MRIfree(&mri_PD) ; mri_PD = mri_tmp ;
+  }
   if (mriErr) {
     mri_Err=MRIread(Err_fname);
     if (mri_Err==NULL) {
@@ -1860,14 +1873,14 @@ static void peel_brain(MRI *mri, float h,int type, short val) {
       for (j=1;j<height-1;j++)
         for (i=1;i<width-1;i++) {
           if (MRIvox(mri_buff,i,j,k)==64)
-            MRISvox(mri,i,j,k) = val;
+            MRIFvox(mri,i,j,k) = val;
         }
   else if (type==1)
     for (k=1;k<depth-1;k++)
       for (j=1;j<height-1;j++)
         for (i=1;i<width-1;i++) {
           if (MRIvox(mri_buff,i,j,k)!=64 && MRIvox(mri_buff,i,j,k)!=255)
-            MRISvox(mri,i,j,k) = val;
+            MRIFvox(mri,i,j,k) = val;
         }
 
   for (k=0;k<nvertices;k++) {
@@ -1971,7 +1984,10 @@ static void analyse_curve(unsigned long *tab,int dim,int scale_factor) {
     Sxx+=k*k;
   }
 
-  a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
+  if (FZERO((n*Sxx-Sx*Sx)))
+    a = -1 ;
+  else
+    a=(n*Sxy-Sy*Sx)/(n*Sxx-Sx*Sx);
   b=-(a*Sx-Sy)/n;
   SKULL_PD=(int)((-b/a));
 
@@ -2003,18 +2019,22 @@ static void PDcurve(MRI* mri) {
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++) {
-        val=MRISvox(mri,i,j,k);
+        val=MRIFvox(mri,i,j,k);
         if (val>max)
           max=val;
       }
 
+  if (max > 2000)
+    max = 2000 ;
   nb_vox=0;
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++) {
-        val=MRISvox(mri,i,j,k);
+        val=MRIFvox(mri,i,j,k);
         if (val) {
           n=val*299/max;
+          if (n > 299)
+            n = 299 ;
           countPD[n]++;
           nb_vox++;
         }
@@ -2043,7 +2063,7 @@ static void PDcurve(MRI* mri) {
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++) {
-        val=MRISvox(mri,i,j,k);
+        val=MRIFvox(mri,i,j,k);
         if (val) {
           n=MIN(299,val/scale);
           countPD[n]++;
@@ -2117,13 +2137,13 @@ static void GenerateMRI(void) {
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++) {
-        if (MRISvox(mri_T1,i,j,k))
-          MRISvox(mri_dst,i,j,k)=(short)(MRISvox(mri_PD,i,j,k)
-                                         *exp(-100/MRISvox(mri_T1,i,j,k)));
+        if (MRIFvox(mri_T1,i,j,k))
+          MRIFvox(mri_dst,i,j,k)=(short)(MRIFvox(mri_PD,i,j,k)
+                                         *exp(-100/MRIFvox(mri_T1,i,j,k)));
         else
-          MRISvox(mri_dst,i,j,k)=0;
+          MRIFvox(mri_dst,i,j,k)=0;
 
-        MRISvox(mri_test,i,j,k)=MRISvox(mri_PD,i,j,k);
+        MRIFvox(mri_test,i,j,k)=MRIFvox(mri_PD,i,j,k);
       }
 }
 
@@ -2137,7 +2157,7 @@ static void intensity_correction(void) {
       for (k=0;k<depth;k++) {
         f=((i-xCOG)*txCOG+(j-yCOG)*tyCOG+(k-zCOG)*tzCOG)/nf;
         if (f >= 0) {
-          MRISvox(mri_dst,i,j,k)=(short)((float)MRISvox(mri_dst,i,j,k)*(1+f/rad_Brain*0.5));
+          MRIFvox(mri_dst,i,j,k)=(short)((float)MRIFvox(mri_dst,i,j,k)*(1+f/rad_Brain*0.5));
         }
       }
 }
@@ -2150,7 +2170,7 @@ static void label_voxel(void) {
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++)
-        MRISvox(mri_CSF,i,j,k)=5;
+        MRIFvox(mri_CSF,i,j,k)=5;
 
   strcpy(fname,"surface_Inner_Skull");
   read_geometry(fname);
@@ -2168,27 +2188,27 @@ static void label_voxel(void) {
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++)
-        if (MRISvox(mri_CSF,i,j,k)==5) {
-          if (MRISvox(mri_T1,i,j,k)>1400 && MRISvox(mri_PD,i,j,k)>80*PEAK1/100)
-            MRISvox(mri_CSF,i,j,k)=4; /*CSF*/
+        if (MRIFvox(mri_CSF,i,j,k)==5) {
+          if (MRIFvox(mri_T1,i,j,k)>GM_max_T1 && MRIFvox(mri_PD,i,j,k)>80*PEAK1/100)
+            MRIFvox(mri_CSF,i,j,k)=CSF; /*CSF*/
 
 #if 0   /*could be usefull to determine white matter tissue- gray...
           However, the right threshold have to be found...*/
 
-          else if (MRISvox(mri_T1,i,j,k)>800 && MRISvox(mri_T1,i,j,k)<1400)
-            MRISvox(mri_CSF,i,j,k)=800;  /*Gray matter*/
+          else if (MRIFvox(mri_T1,i,j,k)>800 && MRIFvox(mri_T1,i,j,k)<1400)
+            MRIFvox(mri_CSF,i,j,k)=800;  /*Gray matter*/
 
-          else if (MRISvox(mri_T1,i,j,k)>500 && MRISvox(mri_T1,i,j,k)<700)
-            MRISvox(mri_T1,i,j,k)=600; /*white matter*/
+          else if (MRIFvox(mri_T1,i,j,k)>500 && MRIFvox(mri_T1,i,j,k)<700)
+            MRIFvox(mri_T1,i,j,k)=600; /*white matter*/
 
           else
-            MRISvox(mri_T1,i,j,k)=500; /*ambiguous*/
+            MRIFvox(mri_T1,i,j,k)=500; /*ambiguous*/
 #endif
 
 
-        } else if (MRISvox(mri_CSF,i,j,k)==7) {
-          if (MRISvox(mri_T1,i,j,k)<750)
-            MRISvox(mri_CSF,i,j,k)=900; /*SKULL*/
+        } else if (MRIFvox(mri_CSF,i,j,k)==7) {
+          if (MRIFvox(mri_T1,i,j,k)<WM_min_T1)
+            MRIFvox(mri_CSF,i,j,k)=Bone; /*SKULL*/
         }
 
   strcpy(fname,"surface_Outer_Skin");
