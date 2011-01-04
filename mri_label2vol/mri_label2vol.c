@@ -14,8 +14,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2009/10/22 23:35:53 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/01/04 19:20:33 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA). 
@@ -78,7 +78,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.32 2009/10/22 23:35:53 greve Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.33 2011/01/04 19:20:33 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -96,6 +96,7 @@ double ProjStop = 0;
 char *ProjType = NULL;
 char *OutVolId = NULL;
 char *HitVolId = NULL;
+char *PVFVolId = NULL;
 char *subject = NULL;
 char *hemi    = NULL;
 char *AnnotFile = NULL;
@@ -104,7 +105,7 @@ char *SurfId  = "white";
 char *LabelVolFile = NULL;
 
 MRI_SURFACE *Surf=NULL;
-MRI *OutVol=NULL, *TempVol=NULL, *HitVol=NULL;
+MRI *OutVol=NULL, *TempVol=NULL, *HitVol=NULL, *PVFVol=NULL;
 MRI *ASeg=NULL;
 MRI *LabelStatVol=NULL;
 char *LabelStatVolFSpec=NULL;
@@ -138,18 +139,18 @@ int main(int argc, char **argv) {
   int  nargs, nthlabel, float2int, err, nthpoint, vtxno;
   float ipr,bpr,intensity;
   char *regsubject;
-  float x,y,z;
+  float x,y,z,voxvol;
   int c,r,s, oob, nhits, nhitsmax, nhitsmax_label;
   MRI *LabelVol;
 
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.32 2009/10/22 23:35:53 greve Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.33 2011/01/04 19:20:33 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.32 2009/10/22 23:35:53 greve Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.33 2011/01/04 19:20:33 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -269,12 +270,18 @@ int main(int argc, char **argv) {
       exit(1);
     }
     if (UseNewASeg2Vol) {
-      OutVol = MRIaseg2vol(ASeg, R,TempVol, nHitsThresh, &HitVol);
+      OutVol = MRIaseg2vol(ASeg, R,TempVol, FillThresh, &HitVol);
       MRIaddCommandLine(OutVol, cmdline) ;
       MRIwrite(OutVol,OutVolId);
       if (HitVolId != NULL) {
         MRIaddCommandLine(HitVol, cmdline) ;
         MRIwrite(HitVol,HitVolId);
+      }
+      if(PVFVolId != NULL) {
+	printf("PVF %s\n",PVFVolId);
+	printf("Computing PVF %g\n",TempVoxVol);
+	PVFVol = MRImultiplyConst(HitVol, 1.0/TempVoxVol, NULL);
+	MRIwrite(PVFVol,PVFVolId);
       }
       exit(0);
     }
@@ -396,7 +403,15 @@ int main(int argc, char **argv) {
 
   if(DoLabelStatVol) MRIwrite(LabelStatVol,LabelStatVolFSpec);
 
-  if (HitVolId != NULL) MRIwrite(HitVol,HitVolId);
+  if(HitVolId != NULL) MRIwrite(HitVol,HitVolId);
+  printf("PVF %s\n",PVFVolId);
+  if(PVFVolId != NULL) {
+    voxvol = TempVol->xsize * TempVol->ysize * TempVol->zsize;
+    printf("Computing PVF %g\n",voxvol);
+    PVFVol = MRImultiplyConst(HitVol, 1/voxvol, NULL);
+    MRIwrite(PVFVol,PVFVolId);
+    exit(1);
+  }
 
   // Create output volume based on template, but use 1 frame int
   OutVol = MRIallocSequence(TempVol->width, TempVol->height,
@@ -563,11 +578,19 @@ static int parse_commandline(int argc, char **argv) {
       hemi = pargv[0];
       checkhemi(hemi);
       nargsused = 1;
-    } else if (!strcmp(option, "--hits")) {
+    } 
+    else if (!strcmp(option, "--hits")) {
       if (nargc < 1) argnerr(option,1);
       HitVolId = pargv[0];
       nargsused = 1;
-    } else if (!strcmp(option, "--o")) {
+    } 
+    else if (!strcmp(option, "--pvf")) {
+      if (nargc < 1) argnerr(option,1);
+      PVFVolId = pargv[0];
+      printf("PVF %s\n",PVFVolId);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--o")) {
       if (nargc < 1) argnerr(option,1);
       OutVolId = pargv[0];
       nargsused = 1;
