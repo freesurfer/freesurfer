@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/03 18:18:24 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/01/04 22:17:28 $
+ *    $Revision: 1.11 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -81,6 +81,23 @@ extern void ztrsen_(
 		long             *info);
 		
 		
+}
+
+void PrintComplex (const vnl_matrix < vcl_complex < double > > &M)
+{
+
+  char signum[2]={ '+','-'};
+
+  cout << " [ ";
+	
+	for (unsigned int r=0;r<M.rows();r++)
+	{
+	  for (unsigned int c=0;c<M.cols();c++)
+		  cout << " ( " << M[r][c].real() << " " << signum[(M[r][c].imag()<0)]<< " " << M[r][c].imag() << "i ) " ;
+		if (r < M.rows() -1 ) cout << " ; " << endl;
+	}
+	cout << " ] " << endl;
+
 }
 
 
@@ -590,32 +607,44 @@ vnl_matrix < double > MyMatrix::MatrixLog(const vnl_matrix < double >& A, int ma
 				 int j = jj[0];
 				 //cout << " scalar case ( " << i << " , " << j << " )" << endl;
          //k = i+1:j-1;
-				 if (i+1 > j-1)  // empty k below
-				 {
-				   //cout << " !!! empty k  !! "  << endl;
-				   F[i][j] = (T[i][j]*(F[i][i] - F[j][j]))/(T(i,i)-T(j,j));
-				 }
-				 else
-				   for (int k = i+1; k<= j-1; k++)
-				   {
-             vcl_complex < double > temp = T[i][j]*(F[i][i] - F[j][j]) + F[i][k]*T[k][j] - T[i][k]*F[k][j];
-             F[i][j] = temp/(T(i,i)-T(j,j));
-				   }
+// 				 if (i+1 > j-1)  // empty k below
+// 				 {
+// 				   //cout << " !!! empty k  !! "  << endl;
+// 				   F[i][j] = (T[i][j]*(F[i][i] - F[j][j]))/(T(i,i)-T(j,j));
+// 				 }
+// 				 else
+// 				 {
+// 				   for (int k = i+1; k<= j-1; k++)
+// 				   {
+//              vcl_complex < double > temp = T[i][j]*(F[i][i] - F[j][j]) + F[i][k]*T[k][j] - T[i][k]*F[k][j];
+//              F[i][j] = temp/(T(i,i)-T(j,j));
+// 				   }
+// 				 }
+				 
+				vcl_complex < double > temp1(0);
+				vcl_complex < double > temp2(0);
+				for (int k = i+1; k<= j-1; k++)
+				{
+          temp1 += F[i][k]*T[k][j];
+					temp2 += T[i][k]*F[k][j];
+			  }
+				F[i][j] = ( T[i][j]*(F[i][i] - F[j][j]) + temp1 - temp2 ) / (T(i,i)-T(j,j)); 
+				 
+				 
 			}
       else
 			{
 				 //cout << " matrix case  " << endl;
-         //k = cat(2,ind{row+1:col-1});
+				 
+				 // concatenate indices: (matlab) k = cat(2,ind{row+1:col-1});
 				 std::vector < int > kk;
 				 for (int k=row+1; k<col; k++)
-				   kk.insert(kk.end(),ind[k].begin(),ind[k].end());
-					
+				   kk.insert(kk.end(),ind[k].begin(),ind[k].end());					
 				 //cout << " kk : " ; Print(kk);
-					 
+					 					 
          //rhs = F(i,i)*T(i,j) - T(i,j)*F(j,j) + F(i,k)*T(k,j) - T(i,k)*F(k,j);
 				 vnl_matrix < vcl_complex < double > > rhs(getSubMatrix(F,ii,ii) * getSubMatrix(T,ii,jj));
-				 rhs -= getSubMatrix(T,ii,jj) * getSubMatrix(F,jj,jj);
-				 
+				 rhs -= getSubMatrix(T,ii,jj) * getSubMatrix(F,jj,jj);				 
 				 //cout << " rhs1 : " << rhs << endl;
 				 if (kk.size() > 0)
 				 {
@@ -632,7 +661,12 @@ vnl_matrix < double > MyMatrix::MatrixLog(const vnl_matrix < double >& A, int ma
     } // rows in upper triangle
   }
 
-  //cout << " F final " << F << endl;
+//  		cout << endl;
+//  		cout.precision(16);
+//  		cout << " T   = ";PrintComplex(T);
+//  		cout << " F   = ";PrintComplex(F);
+//      cout.precision(6);
+  
 
  
   F = U*F*U.conjugate_transpose();
@@ -645,6 +679,13 @@ vnl_matrix < double > MyMatrix::MatrixLog(const vnl_matrix < double >& A, int ma
 	{
 	  cerr << " MatrixLog Error: " << endl;
 		cerr << "  Result too imaginary to ignore! ( "<< imagone << " )" << endl;
+	  cerr.precision(16);
+			cerr << " A = " << A << endl;
+			cerr << " T = " << T << endl;
+			cerr << " U = " << U << endl;
+			cerr << " fro( real(U * T * U^*) - A) = " << (vnl_real(U * T * U.conjugate_transpose()) - A).frobenius_norm() << endl << endl;
+			cerr << " log(A) = " <<  F << endl;
+			cerr << " fro( exp(real(log(A))) - A)  = " << (MatrixExp(vnl_real(F)) - A).frobenius_norm() << endl << endl;
 		exit(1);
 	}
 	
@@ -885,7 +926,7 @@ vnl_matrix < vcl_complex <double > > MyMatrix::MatrixLog_isst(const vnl_matrix <
   double phi;
 	bool prnt = false; // true;
 	int iter, j,i,k;
-  vcl_complex < double > s;
+//  vcl_complex < double > s;
 	vnl_diag_matrix < vcl_complex < double > > I(n,1);//	I.set_identity();
 	
   for (iter = 0;iter <maxlogiter; iter++)
@@ -911,15 +952,24 @@ vnl_matrix < vcl_complex <double > > MyMatrix::MatrixLog_isst(const vnl_matrix <
         R[j][j] = sqrt(T[j][j]);
         for (i=j-1; i >=0 ; i--)
 				{
-				  if (i+1>=j)  // empty k below => zero s
-				    R[i][j] = (T[i][j])/(R[i][i] + R[j][j]);
-				  else
+// 				  if (i+1>=j)  // empty k below => zero s
+// 				    R[i][j] = (T[i][j])/(R[i][i] + R[j][j]);
+// 				  else
+// 			    for (k=i+1; k<j; k++)
+// 				  {
+// 				    //cout << i << " " << j << " " << k << endl;
+//             s = R[i][k]*R[k][j];
+//             R[i][j] = (T[i][j] - s)/(R[i][i] + R[j][j]);
+//           }
+					
+          vcl_complex < double > s(0);
 			    for (k=i+1; k<j; k++)
 				  {
 				    //cout << i << " " << j << " " << k << endl;
-            s = R[i][k]*R[k][j];
-            R[i][j] = (T[i][j] - s)/(R[i][i] + R[j][j]);
+            s += R[i][k]*R[k][j];
           }
+          R[i][j] = (T[i][j] - s)/(R[i][i] + R[j][j]);
+					
 				}
     }
 		
@@ -1244,7 +1294,7 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 // 	
 //   cout.precision(5);
 
-//  return MatrixPow(A,0.5); // for testing log and exp
+  //return MatrixPow(A,0.5); // for testing log and exp
 
 
   assert(A.cols() == A.rows());
@@ -1254,6 +1304,7 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 	vnl_matrix < vcl_complex < double > > T(n,n);
 	SchurComplex(A,U,T);
 	
+	vnl_matrix < vcl_complex < double > > Asqrt(n,n);
 		
   if (isDiag(vnl_real(T)) && isDiag(vnl_imag(T)))
 	{
@@ -1262,7 +1313,7 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 		for (int i = 0;i<n;i++)
 		  R[i] = sqrt(T[i][i]);  // Square root always exists. 
 			
-		T =  U * R * U.conjugate_transpose();
+		Asqrt =  U * R * U.conjugate_transpose();
   }    
   else
 	{
@@ -1272,28 +1323,32 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 	  
 		vnl_matrix < vcl_complex < double > > R(n,n,0.0);
     vcl_complex < double > s;
-    for (int j= 0; j< n ; j++)
+    for (int j= 0; j< n ; j++) // column
 		{
         R[j][j] = sqrt(T[j][j]);
         for (int i=j-1; i >=0 ; i--)
-				if (i+1>=j)  // empty k below => zero s
-				  R[i][j] = (T[i][j])/(R[i][i] + R[j][j]);
-				else
-			  for (int k=i+1; k<j; k++)
 				{
-            s = R[i][k]*R[k][j];
-            R[i][j] = (T[i][j] - s)/(R[i][i] + R[j][j]);
-        }
+          vcl_complex < double > s(0);
+			    for (int k=i+1; k<j; k++)
+				  {
+              s += R[i][k]*R[k][j];
+				  }
+          R[i][j] = (T[i][j] - s)/(R[i][i] + R[j][j]);					
+				}
     }
 		
-		//cout << " A " << endl << A << endl;
-		//cout << " U " << endl << U << endl;
-		//cout << " T " << endl << T << endl;
-		//cout << " R " << endl << R << endl;
+// 		cout << endl;
+// 		cout.precision(16);
+// 		cout << " T = ";PrintComplex(T);
+// 		cout << " R = ";PrintComplex(R);
+// 		cout << " R*R = ";PrintComplex(R*R);
+// 		cout << " R*R - T = ";PrintComplex(R*R-T);
+// 		cout << " fro(R*R-T) = " << (R*R-T).frobenius_norm() << endl << endl ;
+//     cout.precision(6);
 		
-    T =  U * R * U.conjugate_transpose();
+    Asqrt =  U * R * U.conjugate_transpose();
 		
-		//cout << " sqrt " << endl << T << endl;
+		//cout << " sqrt " << endl << Asqrt << endl;
   }
 
 
@@ -1302,11 +1357,19 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
   {
 		// test if imaginary values too large:
     double eps_matlab = pow(2.0,-52);
-	  double imagone = vnl_imag(T).operator_one_norm();
+	  double imagone = vnl_imag(Asqrt).operator_one_norm();
     if ( imagone > 10*n*eps_matlab*T.operator_one_norm() )
 	  {
 	    cerr << " MatrixSqrt Error: " << endl;
 		  cerr << "  Result too imaginary to ignore! ( "<< imagone << " )" << endl;
+			cerr << " Debug Info: " << endl;
+			cerr.precision(16);
+			cerr << " A = " << A << endl;
+			cerr << " T = " << T << endl;
+			cerr << " U = " << U << endl;
+			cerr << " fro( real(U * T * U^*) - A) = " << (vnl_real(U * T * U.conjugate_transpose()) - A).frobenius_norm() << endl << endl;
+			cerr << " Asqrt = " <<  Asqrt << endl;
+			cerr << " fro( real(sqrt(A)) ^2 - A)  = " << (vnl_real(Asqrt) * vnl_real(Asqrt) - A).frobenius_norm() << endl << endl;
 		  exit(1);
 	  }
 	 // double fnorm = vnl_imag(T).frobenius_norm();
@@ -1319,7 +1382,7 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 	
 	  // test if sqrt^2==A
     double eps = 0.000000000001;  
-    vnl_matrix < double > msqrt = vnl_real(T);
+    vnl_matrix < double > msqrt = vnl_real(Asqrt);
     vnl_matrix < double > ms2 = msqrt * msqrt;
     ms2 -= A;
     //double sum = ms2.absolute_value_max();
@@ -1336,7 +1399,7 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
     }
   }
 
-  return vnl_real(T);
+  return vnl_real(Asqrt);
 
 }
 

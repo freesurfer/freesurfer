@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/01 06:33:15 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/01/04 22:17:30 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -165,6 +165,7 @@ private:
 
 };
 
+// // helper code to print vectors for debugging
 // template <class T> void Print(std::vector<T> & Vec)
 // {
 //    typename std::vector<T>::iterator p;
