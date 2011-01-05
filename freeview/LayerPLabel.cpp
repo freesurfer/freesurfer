@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/01/05 18:02:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,6 +34,7 @@
 #include "vtkImageMapToColors.h"
 #include "vtkLookupTable.h"
 #include "vtkMath.h"
+#include "vtkAbstractTransform.h"
 #include "MainWindow.h"
 #include "LUTDataHolder.h"
 #include <vtkImageActor.h>
@@ -79,6 +80,9 @@ bool LayerPLabel::LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event )
   m_imageData = vtkSmartPointer<vtkImageData>::New();
   m_imageData->SetScalarTypeToUnsignedChar();
   m_imageData->SetNumberOfScalarComponents(4);
+  m_imageIndex = vtkSmartPointer<vtkImageData>::New();
+  m_imageIndex->SetScalarTypeToFloat();
+  m_imageIndex->SetNumberOfScalarComponents(2);
   for ( size_t i = 0; i < m_sFilenames.size(); i++ )
   {
     wxString fn = wxFileName( m_sFilenames[i] ).GetName();
@@ -114,6 +118,11 @@ bool LayerPLabel::LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event )
       m_imageData->SetSpacing( imageData->GetSpacing() );
       m_imageData->SetExtent( imageData->GetExtent() );
       m_imageData->AllocateScalars();
+      m_imageIndex->SetDimensions( imageData->GetDimensions() );
+      m_imageIndex->SetOrigin( imageData->GetOrigin() );
+      m_imageIndex->SetSpacing( imageData->GetSpacing() );
+      m_imageIndex->SetExtent( imageData->GetExtent() );
+      m_imageIndex->AllocateScalars();
     }
     
     int* dim = m_imageData->GetDimensions();
@@ -124,6 +133,20 @@ bool LayerPLabel::LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event )
         for ( int nk = 0; nk < dim[2]; nk++ )
         {
           float pvalue = imageData->GetScalarComponentAsFloat( ni, nj, nk, 0 );
+          if ( i == 0)
+          {
+            m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 0, 0);
+            m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 1, pvalue);
+          }
+          else
+          {
+            float old_pvalue = m_imageIndex->GetScalarComponentAsFloat( ni, nj, nk, 0 );
+            if ( old_pvalue < pvalue)
+            {
+              m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 0, i);  
+              m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 1, pvalue);
+            }
+          }
           for ( int m = 0; m < 4; m++ )
           { 
             float fvalue = 0;
@@ -163,6 +186,69 @@ void LayerPLabel::UpdateColorMap()
   // over-ride parent class, do nothing
 }
 
+double LayerPLabel::GetVoxelValue( double* pos )
+{
+  if ( m_imageIndex.GetPointer() == NULL )
+    return 0;
+
+  vtkAbstractTransform* tr = mReslice[0]->GetResliceTransform();
+  double pos_new[3];
+  tr->TransformPoint( pos, pos_new );
+  
+  double* orig = m_imageIndex->GetOrigin();
+  double* vsize = m_imageIndex->GetSpacing();
+  int* ext = m_imageIndex->GetExtent();
+  
+  int n[3];
+  for ( int i = 0; i < 3; i++ )
+  {
+    n[i] = (int)( ( pos_new[i] - orig[i] ) / vsize[i] + 0.5 );
+  }
+
+  if ( n[0] < ext[0] || n[0] > ext[1] ||
+       n[1] < ext[2] || n[1] > ext[3] ||
+       n[2] < ext[4] || n[2] > ext[5] )
+    return 0;
+  else
+    return m_imageIndex->GetScalarComponentAsDouble( n[0], n[1], n[2], 1 );
+}
+
+std::string LayerPLabel::GetLabelName( double* pos )
+{
+  if ( m_imageIndex.GetPointer() == NULL )
+    return 0;
+
+  vtkAbstractTransform* tr = mReslice[0]->GetResliceTransform();
+  double pos_new[3];
+  tr->TransformPoint( pos, pos_new );
+  
+  double* orig = m_imageIndex->GetOrigin();
+  double* vsize = m_imageIndex->GetSpacing();
+  int* ext = m_imageIndex->GetExtent();
+  
+  int n[3];
+  for ( int i = 0; i < 3; i++ )
+  {
+    n[i] = (int)( ( pos_new[i] - orig[i] ) / vsize[i] + 0.5 );
+  }
+
+  int nIndex = 0;
+  if ( n[0] < ext[0] || n[0] > ext[1] ||
+       n[1] < ext[2] || n[1] > ext[3] ||
+       n[2] < ext[4] || n[2] > ext[5] )
+  {
+    return "";
+  }
+  else
+  {
+    nIndex = (int)m_imageIndex->GetScalarComponentAsDouble( n[0], n[1], n[2], 0 ); 
+    wxString strg = m_sFilenames[nIndex].Mid( m_sFilenamePrefix.Len() );
+    int n = strg.Find('.', true);
+    if (n >= 0 )
+      strg = strg.Left(n);
+    return strg.c_str();
+  }
+}
 
 bool LayerPLabel::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
 {

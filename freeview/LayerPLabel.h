@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2010/07/13 20:43:41 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/01/05 18:02:57 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2008-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -34,6 +34,7 @@
 class wxWindow;
 class wxCommandEvent;
 class FSVolume;
+class vtkImageData;
 
 class LayerPLabel : public LayerMRI
 {
@@ -58,6 +59,10 @@ public:
     m_sLUT = lut;
   }
 
+  std::string GetLabelName( double* pos );
+  
+  virtual double GetVoxelValue( double* pos );
+  
 protected:
   bool DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
   void UpdateColorMap();
@@ -66,6 +71,7 @@ protected:
   wxArrayString   m_sFilenames;
   wxString        m_sFilenamePrefix;
   wxString        m_sLUT;
+  vtkSmartPointer<vtkImageData> m_imageIndex;
 };
 
 #endif
