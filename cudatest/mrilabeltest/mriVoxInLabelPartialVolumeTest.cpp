@@ -20,7 +20,10 @@ namespace bpo = boost::program_options;
 
 // ========================================
 
-const string inFilenameDefault = "mri.mgz";
+const string mriFilenameDefault = "mri.mgz";
+const string mrivalsFilenameDefault = "mri_vals.mgz";
+const string mixFilenameDefault = "mix";
+const string nbrFilenameDefault = "nbr";
 
 #ifdef FS_CUDA
 const string outFilenameStemDefault = "gpu";
@@ -28,21 +31,20 @@ const string outFilenameStemDefault = "gpu";
 const string outFilenameStemDefault = "cpu";
 #endif
 
-const int markDefault = 1;
 const int labelStartDefault = 0;
 const int labelStopDefault = 40;
-const int sixConnectDefault = 0;
 
 
-string inFilename;
+string mriFilename;
+string mrivalsFilename;
+string mixFilename;
+string nbrFilename;
 string outFilenameStem;
-int mark;
 int labelStart;
 int labelStop;
-int sixConnect;
 
 
-const char* Progname = "mriMarkLabelBorderVoxelTest";
+const char* Progname = "mriVoxInLabelPartialVolumeTest";
 
 
 // ==========================================================
@@ -53,14 +55,15 @@ void ReadCommandLine( int ac, char* av[] ) {
     bpo::options_description desc("Allowed options");
     desc.add_options()
       ("help", "Produce help message" )
-      ("input", bpo::value<string>(&inFilename)->default_value(inFilenameDefault), "Input filename" )
+      ("mri", bpo::value<string>(&mriFilename)->default_value(mriFilenameDefault), "Input mri filename" )
+      ("mrivals", bpo::value<string>(&mrivalsFilename)->default_value(mrivalsFilenameDefault), "Input mri_vals filename" )
       ("outstem", bpo::value<string>(&outFilenameStem)->default_value(outFilenameStemDefault), "Stem for output filenames" )
-      ("mark", bpo::value<int>(&mark)->default_value(markDefault), "Value for marks" )
+      ("mix", bpo::value<string>(&mixFilename)->default_value(mixFilenameDefault), "Middle of 'mix' MRI filename" )
+      ("nbr", bpo::value<string>(&nbrFilename)->default_value(nbrFilenameDefault), "Middle of 'nbr' MRI filename" )
       ("start", bpo::value<int>(&labelStart)->default_value(labelStartDefault), "First label to examine" )
       ("stop", bpo::value<int>(&labelStop)->default_value(labelStopDefault), "Last label to examine" )
-      ("sixConnect", bpo::value<int>(&sixConnect)->default_value(sixConnectDefault), "Six connect test" )
       ;
-     bpo::variables_map vm;
+    bpo::variables_map vm;
     bpo::store( bpo::parse_command_line( ac, av, desc ), vm );
     bpo::notify( vm );
     
@@ -80,14 +83,32 @@ void ReadCommandLine( int ac, char* av[] ) {
 }
 
 
+// ------------------------
+
+void WriteMRI( const MRI* mri,
+	       const string stem,
+	       const string id,
+	       const int label ) {
+
+  stringstream ofname;
+
+  ofname << stem
+	 << id
+	 << setw(3) << setfill('0') << label
+	 << ".mgz";
+  
+  MRIwrite( const_cast<MRI*>(mri), ofname.str().c_str() );
+}
+
+
 // ==========================================================
 
 int main( int argc, char *argv[] ) {
 
   SciGPU::Utilities::Chronometer tTotal;
 
-  cout << "MRImarkLabelBorderVoxel Tester" << endl;
-  cout << "==============================" << endl << endl;
+  cout << "mriVoxInLabelPartialVolume Tester" << endl;
+  cout << "=================================" << endl << endl;
 
   
 #ifdef FS_CUDA
@@ -102,32 +123,49 @@ int main( int argc, char *argv[] ) {
   // ----------------------------------------------
 
   // Read in the input
-  cout << "Reading input file: " << inFilename << endl;
-  MRI* input = MRIread( inFilename.c_str() );
-  if( !input ) {
-    cerr << "Failed to open input file: " << inFilename << endl;
+  cout << "Reading input file: " << mriFilename << endl;
+  MRI* mri = MRIread( mriFilename.c_str() );
+  if( !mri ) {
+    cerr << "Failed to open input file: " << mriFilename << endl;
+    exit( EXIT_FAILURE );
+  }
+
+  cout << "Reading input file: " << mrivalsFilename << endl;
+  MRI* mri_vals = MRIread( mrivalsFilename.c_str() );
+  if( !mri_vals ) {
+    cerr << "Failed to open input file: " << mrivalsFilename << endl;
     exit( EXIT_FAILURE );
   }
 
   // ----------------------------------------------
   for( int i=labelStart; i<=labelStop; i++ ) {
 
-    MRI* output = NULL;
+    MRI* mix = NULL;
+    MRI* nbr = NULL;
+
+    mix = MRIalloc( mri->width, mri->height, mri->depth, MRI_FLOAT );
+    nbr = MRIalloc( mri->width, mri->height, mri->depth, MRI_UCHAR );
+
+    float vol;
 
     tTotal.Start();
-    output = MRImarkLabelBorderVoxels( input, output,
-				       i, mark, sixConnect );
+    vol =MRIvoxelsInLabelWithPartialVolumeEffects( mri,
+						   mri_vals,
+						   i,
+						   mix,
+						   nbr );
     tTotal.Stop();
 
-    stringstream ofname;
-    ofname << outFilenameStem
-	   << setw(3) << setfill('0') << i
-	   << ".mgz";
-    cout << "Writing file: " << ofname.str() << endl;
 
-    MRIwrite( output, ofname.str().c_str() );
+    cout << "Volume was " << vol << endl;
+
+    // Create some output files
+    WriteMRI( nbr, outFilenameStem, nbrFilename, i );
+    WriteMRI( mix, outFilenameStem, mixFilename, i );
     
-    MRIfree( &output );
+
+    MRIfree( &mix );
+    MRIfree( &nbr );
   }
 
   cout << "Compute time: " << tTotal << endl;
@@ -138,7 +176,8 @@ int main( int argc, char *argv[] ) {
   PrintGPUtimers();
 #endif
 
-  MRIfree( &input );
+  MRIfree( &mri );
+  MRIfree( &mri_vals );
 
   return( EXIT_SUCCESS );
 }

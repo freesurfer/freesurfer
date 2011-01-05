@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/22 15:58:11 $
- *    $Revision: 1.475 $
+ *    $Date: 2011/01/05 20:15:36 $
+ *    $Revision: 1.476 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.475 $";
+const char *MRI_C_VERSION = "$Revision: 1.476 $";
 
 
 /*-----------------------------------------------------
@@ -14859,18 +14859,27 @@ MRIsampleVolumeSlice
   return(NO_ERROR) ;
 }
 
+
+#define MRI_VOX_LABEL_PARTIAL_VOLUME_OUTPUT 0
+
 float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
 						const MRI *mri_vals, 
 						const int label, 
 						MRI *mri_mixing_coef, 
 						MRI *mri_nbr_labels ) {
-  enum { maxlabels = 20000 };
-  float   volume;
+  enum { maxlabels = 1000 };
+  float volume;
+#ifdef FS_CUDA
+  volume = MRIvoxelsInLabelWithPartialVolumeEffectsGPU( mri,
+							mri_vals,
+							label,
+							maxlabels,
+							mri_mixing_coef,
+							mri_nbr_labels );
+  
+#else
   int     x, y, z;
-  int     this_label;
-  int     nbr_label, max_count;
   MRI     *mri_border ;
-  float   pv, mean_label, mean_nbr;
   // DNG 6/7/07 : had to use maxlabels instead of MAX_CMA_LABELS here
   // so that segmentations with values > MAX_CMA_LABELS can be
   // accessed. This includes the cortical segmentations as well as
@@ -14884,6 +14893,24 @@ float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
     printf(" label %d exceeds maximum label number %d\n",label,maxlabels);
     return(-100000);
   }
+
+#if MRI_VOX_LABEL_PARTIAL_VOLUME_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+  if( ( nCalls%outputFreq ) == 0 ) {
+    char fname[STRLEN];
+    const unsigned int nOut = nCalls / outputFreq;
+
+    snprintf( fname, STRLEN-1, "MRIvoxelsInLabelWithPartialVolumeEffectsInput%04u.mgz", nOut );
+    fname[STRLEN-1] = '\0';
+    MRIwrite( (MRI*)mri, fname );
+
+    snprintf( fname, STRLEN-1, "MRIvoxelsInLabelWithPartialVolumeEffectsVals%04u.mgz", nOut );
+    fname[STRLEN-1] = '\0';
+    MRIwrite( (MRI*)mri_vals, fname );
+  }
+  nCalls++; 
+#endif
 
   const float vox_vol = mri->xsize*mri->ysize*mri->zsize ;
 
@@ -14929,12 +14956,17 @@ float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
 	  // Compute partial volume based on intensity
           const float val = MRIgetVoxVal( mri_vals, x, y, z, 0 );
 
-          mean_label = label_means[vox_label];
-          nbr_label = -1 ;
-          max_count = 0 ;
+	  
+
+          float mean_label = label_means[vox_label];
+          int nbr_label = -1 ;
+          int max_count = 0 ;
+	  float pv, mean_nbr;
 
           /* look for a label that is a nbr and is
              on the other side of val from the label mean */
+	  int this_label;
+
           for( this_label = 0 ; this_label < maxlabels;  this_label++ ) {
 
             if( this_label == vox_label ) {
@@ -15027,6 +15059,8 @@ float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
   }
   
   MRIfree(&mri_border) ;
+#endif
+
   return(volume) ;
 }
 
