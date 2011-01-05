@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 00:34:25 $
- *    $Revision: 1.30 $
+ *    $Date: 2011/01/05 01:01:32 $
+ *    $Revision: 1.31 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -615,6 +615,12 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, bool vox2vox)
 // can be used only with two input images
 {
+
+
+  cerr << " Error MultiRegistration::halfWayTemplate is deprecated "  << endl;
+	exit(1);
+
+
   int nin = (int) mri_mov.size();
   assert (nin == 2);
 
@@ -648,8 +654,10 @@ bool MultiRegistration::halfWayTemplate(int maxres, int iterate, double epsit, b
 	// adjust subsamplesize, if passed:
 	if (subsamplesize > 0 ) R.setSubsamplesize(subsamplesize);
 	if (satit) R.findSaturation();
+
 	//!!!! what if iscale init was passed? needs fixing, if this is used at all?
-  R.computeMultiresRegistration(maxres,iterate,epsit,NULL,NULL,minit);
+	R.setMinitOrig(minit);
+  R.computeMultiresRegistration(maxres,iterate,epsit);
 	Md.first  = R.getFinalVox2Vox();
 	Md.second = R.getFinalIscale();
 	//if (minit) MatrixFree(&minit);

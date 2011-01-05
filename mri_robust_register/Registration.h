@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 00:34:27 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/01/05 01:01:39 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -183,12 +183,12 @@ public:
   };
   std::pair <vnl_matrix_fixed< double, 4, 4 > , vnl_matrix_fixed < double, 4, 4 > > getHalfWayMaps();
 
-  double findSaturation (MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double >& Minit = vnl_matrix < double >(), double iscaleinit = 1.0 );
-  std::pair <MATRIX*, double> computeIterativeRegSat( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
+  double findSaturation ();
+  //std::pair <MATRIX*, double> computeIterativeRegSat( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* Minit = NULL, double iscaleinit = 1.0);
 
   // compute registration
-  virtual void computeIterativeRegistration( int n,double epsit,MRI * mriS=NULL, MRI* mriT=NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
-  void computeMultiresRegistration (int stopres, int n,double epsit, MRI * mriS= NULL, MRI* mriT= NULL, const vnl_matrix < double > &Minit = vnl_matrix<double>(), double iscaleinit = 1.0);
+  void computeIterativeRegistration(int n,double epsit);
+  void computeMultiresRegistration (int stopres, int n,double epsit);
 
   // get final transform (might be different from mfinal due to possible resampling)
   vnl_matrix_fixed < double , 4 , 4 >  getFinalVox2Vox ();
@@ -202,7 +202,7 @@ public:
   // testing
   void testRobust(const std::string & fname, int testno);
 
-  double computeSatEstimate (int reslevel, int n,double epsit, MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* mi=NULL, double scaleinit=1.0 );
+//  double computeSatEstimate (int reslevel, int n,double epsit, MRI * mriS=NULL, MRI* mriT=NULL, MATRIX* mi=NULL, double scaleinit=1.0 );
 
   // return centroid (of input, not of resampled internal version)
   std::vector < double > getCentroidS();
@@ -267,7 +267,7 @@ protected:
 private:
 
   // IterativeRegistrationHelper
-	
+  void computeIterativeRegistration(int n,double epsit,MRI * mriS, MRI* mriT, const vnl_matrix < double > &Minit, double iscaleinit);	
 	template < class T > void iterativeRegistrationHelper( int nmax,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double >& m, double scaleinit);
 
 

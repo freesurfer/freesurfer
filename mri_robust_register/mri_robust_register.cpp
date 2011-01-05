@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 00:34:27 $
- *    $Revision: 1.45 $
+ *    $Date: 2011/01/05 01:01:39 $
+ *    $Revision: 1.46 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -93,7 +93,6 @@ struct Parameters
   string halfdstlta;
   string weightsout;
   bool   satit;
-  bool   satest;
   bool   nomulti;
   bool   conform;
   bool   floattype;
@@ -125,7 +124,7 @@ struct Parameters
 	string iscalein;
 };
 static struct Parameters P =
-  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"",""
+  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"",""
   };
 
 
@@ -133,7 +132,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.45 2011/01/05 00:34:27 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.46 2011/01/05 01:01:39 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -250,25 +249,26 @@ int main(int argc, char *argv[])
 
   // compute Alignment
   //std::pair <MATRIX*, double> Md;
-  if (P.satest) R.computeSatEstimate(2,P.iterate,P.epsit);
-//  else if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
-  else if (P.satit) {  R.findSaturation(); R.computeMultiresRegistration(0,P.iterate,P.epsit); }
+//  if (P.satest) R.computeSatEstimate(2,P.iterate,P.epsit);
+////  else if (P.satit) Md = R.computeIterativeRegSat(P.iterate,P.epsit);
+//  else 
+	if (P.satit) {  R.findSaturation(); R.computeMultiresRegistration(0,P.iterate,P.epsit); }
   else if (P.nomulti) R.computeIterativeRegistration(P.iterate,P.epsit);
   else R.computeMultiresRegistration(0,P.iterate,P.epsit);
 
-  if (P.satest) // old stuff, can be removed ?
-  {
-    cout << "run:" << endl;
-    cout << " gnuplot " << R.getName() << "-sat.plot ; \\ " << endl;
-    cout << " epstopdf " << R.getName() << "-sat.eps " << endl;
-    cout << " and view the pdf " << endl << endl;
-    msec = TimerStop(&start) ;
-    seconds = nint((float)msec/1000.0f) ;
-    minutes = seconds / 60 ;
-    seconds = seconds % 60 ;
-    cout << "registration took "<<minutes<<" minutes and "<<seconds<<" seconds." << endl;
-    exit(0);
-  }
+//   if (P.satest) // old stuff, can be removed ?
+//   {
+//     cout << "run:" << endl;
+//     cout << " gnuplot " << R.getName() << "-sat.plot ; \\ " << endl;
+//     cout << " epstopdf " << R.getName() << "-sat.eps " << endl;
+//     cout << " and view the pdf " << endl << endl;
+//     msec = TimerStop(&start) ;
+//     seconds = nint((float)msec/1000.0f) ;
+//     minutes = seconds / 60 ;
+//     seconds = seconds % 60 ;
+//     cout << "registration took "<<minutes<<" minutes and "<<seconds<<" seconds." << endl;
+//     exit(0);
+//   }
 
   //Md.first = MatrixReadTxt("xform.txt",NULL);
   //Md.second = 1;
@@ -1258,12 +1258,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 0 ;
     cout << "--satit: Will iterate with different SAT to ensure outliers below wlimit!" << endl;
   }
-  else if (!strcmp(option, "SATEST") ) // old  remove
-  {
-    P.satest = true;
-    nargs = 0 ;
-    cout << "--satest: Will estimate SAT (never really tested, use --satit instead!)" << endl;
-  }
+//   else if (!strcmp(option, "SATEST") ) // old  remove
+//   {
+//     P.satest = true;
+//     nargs = 0 ;
+//     cout << "--satest: Will estimate SAT (never really tested, use --satit instead!)" << endl;
+//   }
   else if (!strcmp(option, "SATEST") ) // never reached???  - old remove
   {
     P.dosatest = true;
