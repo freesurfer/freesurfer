@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/22 15:59:08 $
- *    $Revision: 1.414 $
+ *    $Date: 2011/01/05 20:15:23 $
+ *    $Revision: 1.415 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1344,6 +1344,13 @@ const char* MRItype2str(int type);
 				    int label,
 				    int mark,
 				    int six_connected );
+
+  float MRIvoxelsInLabelWithPartialVolumeEffectsGPU( const MRI *mri,
+						     const MRI *mri_vals, 
+						     const int label,
+						     const int maxlabels,
+						     MRI *mri_mixing_coef, 
+						     MRI *mri_nbr_labels );
 #endif
 
 #if defined(__cplusplus)

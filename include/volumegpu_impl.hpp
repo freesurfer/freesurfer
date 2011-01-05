@@ -10,8 +10,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/21 20:02:18 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/01/05 20:15:23 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -176,17 +176,43 @@ namespace GPU {
 
     // ---------------------------------
 
+#ifdef __CUDACC__
+    template<typename T>
+    __global__
+    void ZeroKernel( VolumeArgGPU<T> arr ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      if( arr.InVolume(ix,iy,0) ) {
+	for( unsigned int iz=0; iz<arr.dims.z; iz++ ) {
+	  arr(ix,iy,iz) = 0;
+	}
+      }
+      
+    }
+
     template<typename T>
     void VolumeGPU<T>::Zero( void ) {
       
-      // Have to set up an extent too
-      cudaExtent extent = ExtentFromDims( this->dims );
-      extent.width *= sizeof(T);
+      const unsigned int kKernelSize = 16;
 
-      CUDA_SAFE_CALL( cudaMemset3D( this->d_data,
-				    0,
-				    extent ) );
+      dim3 grid, threads;
+      threads.x = threads.y = kKernelSize;
+      threads.z = 1;
+
+      grid = this->CoverBlocks( kKernelSize );
+      grid.z = 1;
+
+      VolumeArgGPU<T> vag( this->dims,
+			   this->d_data.ptr,
+			   this->d_data.pitch );
+
+      ZeroKernel<<<grid,threads>>>( vag );
+      CUDA_CHECK_ERROR( "ZeroKernel failed!\n" );
     }
+#endif
 
     // ---------------------------------
 

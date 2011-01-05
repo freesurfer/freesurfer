@@ -7,8 +7,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/21 20:02:18 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/01/05 20:15:23 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,11 +55,23 @@ namespace GPU {
 				  const int mark,
 				  const int sixConnect ) const;
 
+      float VoxInLabelWithPartialVolume( const GPU::Classes::MRIframeGPU<unsigned char>& mri,
+					 const GPU::Classes::MRIframeGPU<unsigned char>& mri_vals,
+					 const int label,
+					 const int maxLabels,
+					 GPU::Classes::MRIframeGPU<float>& mri_mixing_coeff,
+					 GPU::Classes::MRIframeGPU<unsigned char>& mri_nbr_labels ) const;
+					 
+
+
       // --------------------------------------
     private:
 
       // Timers
       static SciGPU::Utilities::Chronometer tMarkLabelBorderVoxelsTot;
+
+      static SciGPU::Utilities::Chronometer tVoxInLabelPartVolumeTot;
+      static SciGPU::Utilities::Chronometer tVoxInLabelPartVolumeCompute;
 
       // ---------
 
