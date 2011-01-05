@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/04 22:17:28 $
- *    $Revision: 1.11 $
+ *    $Date: 2011/01/05 00:34:26 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -1424,7 +1424,9 @@ bool MyMatrix::isDiag(const vnl_matrix < double >& A, double eps)
 
 
 vnl_matrix < double > MyMatrix::MatrixSqrtEigs(const vnl_matrix < double >& m)
-// for now separate the translation, else we get defective m 
+// compute the squareroot of a matrix using its eigen-decomposition (here via svd)
+//   works only if the matrix is diagonalizable
+// for now separate the translation, else we easily get defective m (not diagonalizable)
 // (where we cannot do the eigendecomposition trick)
 {
   assert(m.rows() == 4 && m.cols() == 4);

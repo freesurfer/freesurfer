@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/12 20:19:01 $
- *    $Revision: 1.44 $
+ *    $Date: 2011/01/05 00:34:27 $
+ *    $Revision: 1.45 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -122,9 +122,10 @@ struct Parameters
 	bool   oneminusweights;
 	bool   symmetry;
 	string iscaleout;
+	string iscalein;
 };
 static struct Parameters P =
-  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,""
+  { "","","","","","","","","","","",false,false,false,false,false,false,false,false,false,"",false,5,0.01,SAT,false,"",SSAMPLE,0,NULL,NULL,false,false,true,1,-1,false,0.16,false,true,"",""
   };
 
 
@@ -132,7 +133,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.44 2010/12/12 20:19:01 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.45 2011/01/05 00:34:27 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -814,8 +815,9 @@ static void printUsage(void)
   cout << "                            !!Highly recommended for unnormalized images!!" << endl;
   cout << "  --iscaleout <str>      output file for iscale value (only with --iscale)" << endl;
 	cout << "                            default: <regfile>-intensitiy.txt (regfile: --lta regifle.lta)" << endl;
+  cout << "  --iscalein <str>       input file for initial iscale value" << endl;
   cout << "  --transonly            find 3 parameter translation only" << endl;
-  cout << "  --transform lta        use initial transform lta on source ('id'=identity)" << endl;
+  cout << "  --ixform lta           use initial transform lta on source ('id'=identity)" << endl;
   cout << "                            default is align center (using moments)" << endl;
   cout << "  --initorient           use moments for orientation init. (default false)" << endl;
   cout << "                            (recommended for stripped brains, but not with" << endl;
@@ -1083,12 +1085,17 @@ static void initRegistration(Registration & R, Parameters & P)
 			  cout << " WARNING: no target geometry (RAS) in transform, assuming destination !!!" << endl;
         getVolGeom(mri_dst, &lta->xforms[0].dst);
 			}
+      
+			// change to Ras2Ras, then swap geometries (this is important only, if the geometries in the lta
+			// differ from the source and target passed on the command line):
+			lta = LTAchangeType(lta,LINEAR_RAS_TO_RAS);
+		  LTAmodifySrcDstGeom(lta, P.mri_mov, P.mri_dst);
       lta = LTAchangeType(lta,LINEAR_VOX_TO_VOX);
       if (lta->type!=LINEAR_VOX_TO_VOX)
-      {
+      { // should never happen:
         ErrorExit(ERROR_BADFILE, "%s: must be LINEAR_VOX_TO_VOX (=0), but %d", Progname, P.transform.c_str(), lta->type) ;
       }
-      R.setMinit(MyMatrix::convertMATRIX2VNL(lta->xforms[0].m_L));
+      R.setMinitOrig(MyMatrix::convertMATRIX2VNL(lta->xforms[0].m_L));
       //if (P.debug) // apply init transform to input source image directly
       //{
       //  MRI * mri_tmp = LTAtransform(mri_mov,NULL, lta);
@@ -1098,6 +1105,22 @@ static void initRegistration(Registration & R, Parameters & P)
       //}
 //    }
   }
+	
+	// load initial iscale value
+	if (P.iscalein != "")
+	{
+	  double iscale = 1.0;
+	  ifstream f(P.iscalein.c_str(),ios::in);
+	  if (f.good())
+		{
+      f >> iscale;
+      f.close();
+		} else 
+		{
+      ErrorExit(ERROR_BADFILE, "Load Iscale input: no such file ( %s )",P.iscalein.c_str());	
+		};	
+		R.setIscaleInit(iscale);
+	}
 	
 	cout << endl;
 	
@@ -1165,11 +1188,11 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.transonly = true;
     cout << "--transonly: Using only translation!" << endl;
   }
-  else if (!strcmp(option, "TRANSFORM") || !strcmp(option, "T") )
+  else if (!strcmp(option, "TRANSFORM") || !strcmp(option, "IXFORM") )
   {
     P.transform = string(argv[1]);
     nargs = 1;
-    cout << "--transform: Using previously computed initial transform: "<< argv[1] << endl;
+    cout << "--ixform: Using previously computed initial transform: "<< argv[1] << endl;
   }
   else if (!strcmp(option, "INITORIENT"))
   {
@@ -1358,6 +1381,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     nargs = 1 ;
     P.iscale = true;
     cout << "--iscaleout: Will do --iscale and ouput intensity scale to "<<P.iscaleout <<  endl;
+  }
+  else if (!strcmp(option, "ISCALEIN")   )
+  {
+    nargs = 1;
+    P.iscalein = string(argv[1]);
+    cout << "--iscalein: Will use init intensity scale" << endl;
   }
   else
   {

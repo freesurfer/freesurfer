@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/21 18:23:46 $
- *    $Revision: 1.60 $
+ *    $Date: 2011/01/05 00:34:27 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -111,7 +111,7 @@ void Registration::computeIterativeRegistration( int nmax,double epsit, MRI * mr
 	
 }
 
-// update this to vnl:
+// update this to vnl:   or remove???
 pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsit, MRI * mriS, MRI* mriT, MATRIX* m, double scaleinit)
 // tests trough many saturations:
 {
@@ -127,6 +127,9 @@ pair < MATRIX*, double > Registration::computeIterativeRegSat( int n,double epsi
 //   if (m)          fmd.first = MatrixCopy(m,NULL);
 //   else if (!Minit.empty()) fmd.first = MatrixCopy(Minit,NULL);
 //   else            fmd.first = initializeTransform(mriS,mriT) ;
+//
+//  if (scaleinit != 1.0) md.second = scaleinit;
+//	else md.second = iscaleinit;
 // 
 //   if (verbose >1) 
 //   {
@@ -561,6 +564,9 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
   else if (!Minit.empty()) md.first = getMinitResampled();
   else md.first = initializeTransform(mriS,mriT);
 
+  if (scaleinit != 1.0) md.second = scaleinit;
+	else md.second = iscaleinit;
+
   if (verbose >1 ) 
   {
     cout << "   - initial transform:\n" ;
@@ -657,7 +663,7 @@ double Registration::findSaturation (MRI * mriS, MRI* mriT, const vnl_matrix < d
 }
 
 void Registration::computeMultiresRegistration (int stopres, int n,double epsit, MRI * mriS, MRI* mriT, const vnl_matrix < double > &mi, double scaleinit )
-// stopres : stops on this resolution level (0 highest resoltuion ...)
+// stopres : stops on this resolution level (0 highest resolution ...)
 // n: number of max iterations on each resolution
 // epsit: epsilon to stop iterations
 {
@@ -710,6 +716,9 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit,
   if (!mi.empty()) md.first =mi;
   else if (!Minit.empty()) md.first = getMinitResampled();
   else md.first = initializeTransform(mriS,mriT); //default
+
+  if (scaleinit != 1.0) md.second = scaleinit;
+	else md.second = iscaleinit;
 
   if (debug)
   {

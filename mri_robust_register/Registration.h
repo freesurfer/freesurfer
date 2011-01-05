@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/21 18:23:47 $
- *    $Revision: 1.31 $
+ *    $Date: 2011/01/05 00:34:27 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -66,14 +66,14 @@ class Registration
 public:
   Registration(): sat(-1),iscale(false),transonly(false),rigid(true),
       robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
-      inittransform(true),highit(-1),mri_source(NULL),mri_target(NULL),
+      inittransform(true),highit(-1),mri_source(NULL),mri_target(NULL),iscaleinit(1.0),
       iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),resample(false),
 			mri_weights(NULL), mri_hweights(NULL),mri_indexing(NULL)
   {};
   Registration(MRI * s, MRI *t): sat(-1),iscale(false),transonly(false),rigid(true),
       robust(true),rtype(1),subsamplesize(-1),debug(0),verbose(1),initorient(false),
       inittransform(true),highit(-1),mri_source(MRIcopy(s,NULL)),mri_target(MRIcopy(t,NULL)),
-      iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),resample(false),
+      iscaleinit(1.0),iscalefinal(1.0),doubleprec(false),wlimit(0.175),symmetry(true),resample(false),
 			mri_weights(NULL),mri_hweights(NULL),mri_indexing(NULL)
   {};
 
@@ -120,11 +120,15 @@ public:
   {
     iscale = i;
   };
+  void setIscaleInit(double d)
+  {
+    iscaleinit = d;
+  };
   void setRtype(int r)
   {
     rtype = r;
   };
-  void setMinit(const vnl_matrix < double > & m)
+  void setMinitOrig(const vnl_matrix < double > & m)
   {
     Minit =m; // this is for the original volumes (not in resampled space!)
   };
@@ -136,10 +140,14 @@ public:
     subsamplesize = sss;
   };
   void setName(const std::string &n);
+	
+	// if inittransform is true additionally use orientation?
   void setInitOrient(bool io)
   {
     initorient = io;
   };
+	
+	// if true (default) automatically initialize transform
   void setInitTransform(bool it)
   {
     inittransform = it;
@@ -246,6 +254,7 @@ protected:
   std::vector < double > centroidT;
   vnl_matrix < double >  Minit;
   vnl_matrix < double >  Mfinal;
+	double iscaleinit;
   double iscalefinal;
   bool doubleprec;
   double wlimit;
@@ -316,6 +325,9 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
   if (!m.empty()) fmd.first = m;
   else if (!Minit.empty()) fmd.first = getMinitResampled();
   else fmd.first = initializeTransform(mriS,mriT);
+
+  if (scaleinit != 1.0) fmd.second = scaleinit;
+	else fmd.second = iscaleinit;
 
   if (verbose > 1)
   {

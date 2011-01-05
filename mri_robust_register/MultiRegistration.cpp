@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/17 23:36:06 $
- *    $Revision: 1.29 $
+ *    $Date: 2011/01/05 00:34:25 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -350,22 +350,29 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
   int itcount = 0;
   double maxchange = 100;
 
-  //vector < MATRIX * > transforms(mri_mov.size(),NULL);
+  vector < Registration > Rv(mri_mov.size());
+  for (int i = 0;i<nin;i++) Rv[i].setSource(mri_mov[i],fixvoxel,keeptype);
+	
   vector < vnl_matrix_fixed < double, 4, 4> > transforms(mri_mov.size());
-  if (havexforms) //init transforms
+  if (havexforms) //initial transforms
   {
      for (int i=0;i<nin;i++)
      {
-        LTAchangeType(ltas[i],LINEAR_VOX_TO_VOX); //vox2vox for registration
-        //transforms[i] = MatrixCopy(ltas[i]->xforms[0].m_L, NULL);
+			  // first change to Ras2Ras, then swap geometries
+				// (this is important only, if ixforms were passed AND the geometries in the input lta
+			  //   differ from the source and target mean space specified on the command line):
+				// if we constructed the initial xforms, geometries should already be accurate
+			  ltas[i] = LTAchangeType(ltas[i],LINEAR_RAS_TO_RAS);
+		    LTAmodifySrcDstGeom(ltas[i], mri_mov[i], mri_mean);
+        ltas[i] = LTAchangeType(ltas[i],LINEAR_VOX_TO_VOX);		//vox2vox for registration	
+				
+				// the transforms are maps from the original images
+				// (not resampled to conform as inside the Registeration)
         transforms[i] = MyMatrix::convertMATRIX2VNL(ltas[i]->xforms[0].m_L);
      }
 	
   }
   
-  vector < Registration > Rv(mri_mov.size());
-  for (int i = 0;i<nin;i++) Rv[i].setSource(mri_mov[i],fixvoxel,keeptype);
-
   LTA * lastlta = NULL;
   while (itcount < itmax && maxchange > eps)
   {
@@ -440,17 +447,21 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
 //      }
 
       Rv[i].setSubsamplesize(subsamp);
+      Rv[i].setIscaleInit(intensities[i]);
+      Rv[i].setMinitOrig(transforms[i]); // as the transforms are in the original space
 			if (satit) Rv[i].findSaturation();
-      Rv[i].computeMultiresRegistration(maxres,
-                                               iterate,
-                                               epsit,
-                                               NULL,
-                                               NULL,
-                                               transforms[i],
-                                               intensities[i]);
+//       Rv[i].computeMultiresRegistration(maxres,
+//                                                iterate,
+//                                                epsit,
+//                                                NULL,
+//                                                NULL,
+//                                                transforms[i],
+//                                                intensities[i]);
+      Rv[i].computeMultiresRegistration(maxres, iterate, epsit);
+
 		  Md.first  = Rv[i].getFinalVox2Vox();
 			Md.second = Rv[i].getFinalIscale();
-      //if (transforms[i]) MatrixFree(&transforms[i]);
+
       transforms[i] = Md.first;
       intensities[i] = Md.second;
 

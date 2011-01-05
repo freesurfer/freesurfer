@@ -30,10 +30,11 @@
 			<explanation>estimate intensity scale factor (default no). Highly recommended for unnormalized images!</explanation>
 			<argument>--iscaleout &lt;fname.txt&gt;</argument>
 			<explanation>output txt file for iscale value (will activate --iscale). Default: no iscale output</explanation>
-
+			<argument>--iscalein &lt;fname.txt&gt;</argument>
+			<explanation>initial input txt file for iscale value (probably you want to also activate --iscale to estimate final value?)</explanation>
 			<argument>--transonly</argument>
 			<explanation>find 3 parameter translation only</explanation>
-			<argument>--transform lta</argument>
+			<argument>--ixform lta</argument>
 			<explanation>use initial transform lta on source ('id'=identity), default is align center (using moments)</explanation>
 			<argument>--initorient</argument>
 			<explanation>use moments for orientation init (default false). Recommended for stripped brains, but not with full head images with different cropping </explanation>
