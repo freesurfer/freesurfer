@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 01:01:39 $
- *    $Revision: 1.46 $
+ *    $Date: 2011/01/05 02:38:23 $
+ *    $Revision: 1.47 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -43,8 +43,12 @@
 #include <vector>
 #include <cassert>
 
+#include <vcl_iostream.h>
 #include <vnl/vnl_inverse.h>
 #include <vnl/vnl_matrix_fixed.h>
+#include <vnl/algo/vnl_determinant.h>
+#include <vnl/algo/vnl_svd.h>
+#include <vnl/vnl_matlab_print.h>
 
 #include "Registration.h"
 #include "Regression.h"
@@ -132,7 +136,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.46 2011/01/05 01:01:39 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.47 2011/01/05 02:38:23 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -276,11 +280,41 @@ int main(int argc, char *argv[])
   // Print results:
   std::pair <MATRIX*, double> Md;
   cout << endl << "Final Transform:" << endl;
-  Md.first = MyMatrix::convertVNL2MATRIX(R.getFinalVox2Vox());
+	vnl_matrix < double > fMv2v(R.getFinalVox2Vox());
+	vnl_matlab_print(vcl_cout,fMv2v,"M");cout << endl;
+  Md.first = MyMatrix::convertVNL2MATRIX(fMv2v);
 	Md.second = R.getFinalIscale();
-  MatrixPrintFmt(stdout,"% 2.8f",Md.first);
+//  MatrixPrintFmt(stdout,"% 2.8f",Md.first);
+	
+	cout << " Determinant : " << vnl_determinant(fMv2v) << endl << endl;
+	
+	cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
+	vnl_svd <double > svd(fMv2v.extract(3,3));
+	// svd: M = U * W * V'
+	//vnl_matlab_print(vcl_cout,svd.U(),"U");cout << endl;
+	//vnl_matlab_print(vcl_cout,svd.W(),"W");cout << endl;
+	//vnl_matlab_print(vcl_cout,svd.V(),"V");cout << endl;
+	// Polar: M = R*S = (U*V') * (V*W*V')
+	vnl_matrix < double > Rot(svd.U()*svd.V().transpose());
+	vnl_matrix < double > S(svd.V()*svd.W()*svd.V().transpose());
+	vnl_matlab_print(vcl_cout,Rot,"Rot");cout << endl;
+	//vnl_matlab_print(vcl_cout,S,"S");cout << endl;
+	// further decompose S into shear * diag(scales)
+	vnl_matrix < double > Shear(3,3);
+	vnl_diag_matrix < double > Scale(3);
+	for (unsigned int c=0;c<3;c++)
+	{
+	  Scale[c] = S[c][c];
+	  Shear.set_column(c,S.get_column(c) / Scale[c]);
+	}
+	vnl_matlab_print(vcl_cout,Shear,"Shear");cout << endl;
+	vnl_matlab_print(vcl_cout,Scale,"Scale");cout << endl;	
+	//cout << " decompose error: " << (Rot*Shear*Scale - fMv2v.extract(3,3)).frobenius_norm() << endl;
+	
   if (R.isIscale()) cout << "Intenstiy Scale Factor: " << Md.second << endl;
   cout << endl ;
+
+  
 
 
   // writing transform section here
