@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/12/08 18:26:38 $
-#    $Revision: 1.55 $
+#    $Date: 2011/01/05 16:12:42 $
+#    $Revision: 1.56 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.55 2010/12/08 18:26:38 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.56 2011/01/05 16:12:42 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -467,17 +467,12 @@ while( $#argv != 0 )
     case "-notask":
       set DesignType = "notask"
       set notask = 1;
-      set eventrelated = 0;
-      set abblocked = 0;
-      set retinotopy = 0;
       breaksw
 
     case "-event-related":
     case "-er":
       set DesignType = "event-related"
       set eventrelated = 1;
-      set abblocked = 0;
-      set retinotopy = 0;
       breaksw
 
     case "-abblocked":
@@ -489,8 +484,6 @@ while( $#argv != 0 )
       #set HPFCutoffHz = `echo ".5/$Period" | bc -l`
       set HPFCutoffHz = 0;
       set ACFBins = 0;
-      set eventrelated = 0;
-      set retinotopy = 0;
       breaksw
 
     case "-retinotopy":
@@ -504,8 +497,6 @@ while( $#argv != 0 )
       #set HPFCutoffHz = `echo ".5/$Period" | bc -l`
       set HPFCutoffHz = 0;
       set ACFBins = 0;
-      set eventrelated = 0;
-      set abblocked = 0;
       breaksw
 
     case "-polyfit":
@@ -603,7 +594,13 @@ check_params:
   endif
   if($#DesignType == 0) then
     echo "ERROR: must specify design type. Choose "
-    echo " either -event-related, -abblocked, or -retinotopy" 
+    echo " either -event-related, -abblocked, -retinotopy, or -notask" 
+    exit 1;
+  endif
+  @ a = $eventrelated + $retinotopy + $abblocked + $notask
+  if($a > 1) then
+    echo "ERROR: you have multiple design types specified, choose only one:"
+    echo " either -event-related, -abblocked, -retinotopy, or -notask" 
     exit 1;
   endif
   if($#RawSpaceType == 0) then
