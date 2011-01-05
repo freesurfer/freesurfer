@@ -6,9 +6,9 @@
 /*
  * Original Author: Greg Terrono
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/08/27 20:49:28 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2011/01/05 03:18:18 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -172,7 +172,7 @@ int outputHelp(const char *name)
   }
   char *fshome = getenv("FREESURFER_HOME");
   if (NULL == fshome) return -1;
-  char *fullname = malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml"));
+  char *fullname = malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml")+1);
   strcpy(fullname,fshome);
   strcat(fullname,"/docs/xml/");
   strcat(fullname,name);
@@ -226,7 +226,7 @@ static void toUpperCase(char *c)
 //Prints the name of a tag in the correct format
 static void printName(xmlNodePtr cur)
 {
-  char *n= malloc(strlen((char *)cur->name));
+  char *n= malloc(strlen((char *)cur->name)+1);
   strcpy(n,(char *)cur->name);
   toUpperCase(n);
   replaceUnderscore(n);
