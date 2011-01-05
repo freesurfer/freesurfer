@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/12/31 19:06:14 $
-#    $Revision: 1.353 $
+#    $Date: 2011/01/05 17:59:01 $
+#    $Revision: 1.354 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.353 2010/12/31 19:06:14 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.354 2011/01/05 17:59:01 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5050,6 +5050,16 @@ while( $#argv != 0 )
     case "-use-gpu":
     case "-use_gpu":
       set UseCuda = 1;
+      # for NMR Center launchpad cluster GPU usage, declare path to libs...
+      if ( -e /usr/pubsw/packages/CUDA/current/lib) then
+        setenv CUDA_LIB /usr/pubsw/packages/CUDA/current/lib
+        echo "Setting LD_LIBRARY_PATH to $CUDA_LIB"
+        if(! $?LD_LIBRARY_PATH ) then
+          setenv LD_LIBRARY_PATH $CUDA_LIB
+        else
+          setenv LD_LIBRARY_PATH "$CUDA_LIB":"$LD_LIBRARY_PATH"
+        endif        
+      endif
       breaksw;
 
     default:
