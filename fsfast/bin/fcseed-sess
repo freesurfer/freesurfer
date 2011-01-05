@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-sess,v 1.5 2010/12/08 18:32:11 greve Exp $';
+set VERSION    = '$Id: fcseed-sess,v 1.6 2011/01/05 22:14:40 greve Exp $';
 set cmdargs = ($argv);
 
 set segstem    = "aparc+aseg"; 
@@ -17,8 +17,9 @@ set roicfg = ();
 set maskfile = ();
 set Overwrite = 0;
 set DoWM = 0;
-set WMErode = 3;
+set WMErode = 0;
 set SVDSynth = 0;
+set cleanup = 1;
 
 set nolog = 0;
 
@@ -116,7 +117,8 @@ foreach sess ($SessList)
         set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
         set seganat = $tmpdir/wm.seg.nii
         set cmd = (mri_binarize --i $apas --o $seganat \
-          --match 2 --match 41 --erode $WMErode)
+          --match 2 41 7 46 251 252 253 254 255 77 78 79)
+        if($WMErode > 0) set cmd = ($cmd --erode $WMErode)
         echo $cmd | tee -a $LLF
         $cmd | tee -a $LLF
         if($status) exit 1;
@@ -126,10 +128,11 @@ foreach sess ($SessList)
       endif
 
       # Convert segmentation to native functional space
-      set seg = $rundir/masks/$segstem.nii
+      set seg = $tmpdir/seg.nii
+      set pvf = $tmpdir/pvf.nii
       set cmd = (mri_label2vol --seg $seganat \
          --reg $reg --temp $template --fillthresh $FillThresh \
-         --o $seg);
+         --o $seg --pvf $pvf);
       echo $cmd | tee -a $LLF
       $cmd | tee -a $LLF
       if($status) exit 1;
@@ -202,7 +205,7 @@ foreach sess ($SessList)
       cp $tmpdir/glm/pca-eres/stats.dat $statsfile
     endif
 
-    rm -rf $tmpdir
+    if($cleanup) rm -rf $tmpdir
 
   end
 end # sess
@@ -265,7 +268,7 @@ while( $#argv != 0 )
 
     case "-wm":
       set segidlist = ($segidlist 2 41);
-      set FillThresh = .5;
+      set FillThresh = .95;
       set DoMean = 0;
       set DoSVD  = 1;
       set DoWM = 1;
@@ -277,8 +280,8 @@ while( $#argv != 0 )
       breaksw
 
     case "-vcsf":
-      set segidlist = ($segidlist 4 5 14 43 44 31 63) 
-      set FillThresh = .75;
+      set segidlist = ($segidlist 4 5 43 44 31 63) 
+      set FillThresh = .95;
       set DoMean = 0;
       set DoSVD  = 1;
       #set segidlist = ($segidlist 4 5 14 43 44 72);
@@ -307,6 +310,14 @@ while( $#argv != 0 )
     case "-force":
     case "-overwrite":
       set Overwrite = 1;
+      breaksw
+
+    case "-cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "-no-cleanup":
+      set cleanup = 0;
       breaksw
 
     case "-debug":
@@ -387,7 +398,6 @@ usage_exit:
   echo "Segmentation-based options"
   echo "  -segid segid  <-segid segid2 ...>"
   echo "  -wm : white matter "
-  echo "  -wm-erode N : erode WM mask by N anat voxels (default is $WMErode) "
   echo "  -vcsf : ventricular CSF"
   echo "  -seg segmentation : default is aparc+aseg"
   echo "  -fillthresh thresh : value between 0 and 1 (default is .5)"
@@ -403,7 +413,8 @@ usage_exit:
   echo "   -d  srchdir     "
   echo "   -fsd FSD "
   echo ""
-  echo "   -m maskfile : output mask for segmentation-based. Good for checking"
+  echo "   -m maskfile : output mask (no ext) for segmentation-based. Good for checking"
+  echo "   -wm-erode N : erode WM mask by N anat voxels (default is $WMErode) "
   echo "   -overwrite : delete and overwrite any existing files"
   echo "   -pca       : compute pca instead of a spatial mean"
   echo "   -mean      : compute spatial mean instead of PCA"
@@ -430,9 +441,9 @@ Computes seeds (regressors) that can be used for functional
 connectivity analysis or for use as nuisance regressors. Seed regions
 can be defined in two ways: (1) as an anatomical region in a
 segmentation such as aparc+aseg, or (2) as an ROI created with
-funcroi-config. The seed regions are always subject-specific.
-The output is a text file in the same directory as the raw
-data. This file will be named based on the -o flag.
+funcroi-config. The seed regions are always subject-specific.  The
+output is a text file in the same directory as the raw data. This file
+will be named based on the -o flag.
 
 ======================================================
 Segmentation-based Seed Regions
@@ -459,12 +470,12 @@ is recommended that this not be set above .8. Default is .5.
 There are two default segmentations: (1) white matter (-wm) and (2)
 ventricular CSF (-vcsf). The white matter option first creates a mask
 of the WM in the anatomical space by finding the voxels in the
-aparc+aseg.mgz with indices 2 and 41. It then erodes the mask by 3
-voxels (-wm-erode). It then converts the mask to native functional
-space with fillthresh=0.5 The CSF segmentation uses segmentation
-indices 4 5 14 43 44 31 and 63 with fillthresh=.75. Both use a PCA
-output. These are good to use as nuisance regressors for functional
-connectivity analysis.
+aparc+aseg.mgz with indices 2 41 7 46 251 252 253 254 255 77 78 and
+79. It then converts the mask to native functional space with
+fillthresh=0.95 The CSF segmentation uses segmentation indices 4 5 43
+44 31 and 63 with fillthresh=.95. Both use a PCA output. These are
+good to use as nuisance regressors.
+
 
 ======================================================
 ROI-based Seed Regions
