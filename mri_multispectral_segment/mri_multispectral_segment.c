@@ -1,15 +1,15 @@
 /**
  * @file  mri_multispectral_segment.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief segment tissue classes based on T1/PD volumes
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/01/04 16:49:34 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/01/05 18:28:38 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -32,18 +32,33 @@
 #include <ctype.h>
 
 #include "mri.h"
+#include "diag.h"
 #include "macros.h"
 #include "error.h"
 #include "cma.h"
+#include "histo.h"
+#include "mri.h"
 
 #define DEBUG_MODE 1
 #define OUTPUT_SURFACES 0
 
+#define FILL_OUTSIDE   1
+#define FILL_INSIDE    -1
+
 #define MAXVERTICES 25000
 #define MAXFACES 25000
 
-static double  GM_max_T1 = 3000 ; // used to be 1200
-static double  WM_min_T1 = 800 ;
+static double field_strength = 3 ;
+
+#define GM_MAX_T1_3T  3000
+#define WM_MIN_T1_3T   800
+
+#define GM_MAX_T1_1p5T  1200
+#define WM_MIN_T1_1p5T   500
+
+static long PDthresh = 0 ;
+static double  GM_max_T1 = GM_MAX_T1_3T ; // used to be 1200
+static double  WM_min_T1 = WM_MIN_T1_3T  ;
 typedef struct ss_vertex_type_ {
   float x,y,z;
   float nx,ny,nz;
@@ -83,6 +98,7 @@ int PEAK1;
 int MRI_correction=0;
 
 MRI *mri_T1,*mri_PD,*mri_Err,*mri_dst,*mri_test,*mri_CSF;
+MRI *mri_orig = NULL ;
 int mriT1=0, mriPD=0, mriErr=0,mriCSF=0,mriOut=0,mriSURF=0;
 char *Progname, *T1_fname, *out_fname,*Err_fname,*PD_fname,*tmp_fname,
 *CSF_fname,surf_fname[512];
@@ -1061,6 +1077,10 @@ static void shrink_Outer_Skin(void) {
   F=6/(1/rmin-1/rmax);
 
   fzero=PEAK1/20;
+  if (field_strength > 1.5)
+    fzero=PEAK1/10;
+  if (PDthresh > 0)
+    fzero = PDthresh ; // BRF
 
   for (k=0;k<nvertices;k++)
     for (m=0;m<4;m++)
@@ -1734,6 +1754,16 @@ static int Reading(void) {
     MRI *mri_tmp = MRIchangeType(mri_PD, MRI_FLOAT, 0, 1, 1) ;
     MRIfree(&mri_PD) ; mri_PD = mri_tmp ;
   }
+  {
+    MRI *mri_conformed = MRIalloc(256, 256, 256, MRI_FLOAT), *mri_tmp ; 
+
+    mri_tmp = MRIresampleFill(mri_T1, mri_conformed, SAMPLE_TRILINEAR, 0) ;
+    MRIfree(&mri_T1) ; mri_T1 = mri_tmp ;
+    mri_tmp = MRIresampleFill(mri_PD, mri_conformed, SAMPLE_TRILINEAR, 0) ;
+    mri_orig = mri_PD ; mri_PD = mri_tmp ;
+    MRIfree(&mri_conformed) ;
+  }
+
   if (mriErr) {
     mri_Err=MRIread(Err_fname);
     if (mri_Err==NULL) {
@@ -1775,7 +1805,7 @@ static int Reading(void) {
 
 /*routine to select an area inside or outside the surface,and
  fill the complement in the MR Image with the short val (usually =0)*/
-static void peel_brain(MRI *mri, float h,int type, short val) {
+static void peel_brain(MRI *mri, float height_offset,int type, short val) {
   int i,j,k,imnr;
   float x0,y0,z0,x1,y1,z1,x2,y2,z2,d0,d1,d2,dmax,u,v;
   float px,py,pz,px0,py0,pz0,px1,py1,pz1;
@@ -1793,9 +1823,9 @@ static void peel_brain(MRI *mri, float h,int type, short val) {
     vertex[k].nyf=vertex[k].ny;
     vertex[k].nzf=vertex[k].nz;
 
-    vertex[k].x+=h*vertex[k].nx;
-    vertex[k].y+=h*vertex[k].ny;
-    vertex[k].z+=h*vertex[k].nz;
+    vertex[k].x+=height_offset*vertex[k].nx;
+    vertex[k].y+=height_offset*vertex[k].ny;
+    vertex[k].z+=height_offset*vertex[k].nz;
   }
 
   for (k=0;k<nfaces;k++) {
@@ -1928,6 +1958,8 @@ static void lisse(unsigned long *tab,int m) {
 }
 
 
+#define HISTO_SIZE 300
+
 static void analyse_curve(unsigned long *tab,int dim,int scale_factor) {
   int n,k,k1,k2;
   unsigned long max;
@@ -1940,11 +1972,11 @@ static void analyse_curve(unsigned long *tab,int dim,int scale_factor) {
 
 #if DEBUG_MODE
   n=0;
-  for (k=1;k<299;k++)
+  for (k=1;k<(HISTO_SIZE-1);k++)
     if (n<tab[k])
       n=tab[k];
 
-  for (k=1;k<300;k++) {
+  for (k=1;k<HISTO_SIZE;k++) {
     fprintf(stderr,"\n%3d ",k);
     for (k1=0;k1<(int)((double)tab[k]*65/n);k1++)
       fprintf(stderr,".");
@@ -2009,10 +2041,10 @@ static void analyse_curve(unsigned long *tab,int dim,int scale_factor) {
 
 static void PDcurve(MRI* mri) {
   int i,j,k,n,val;
-  unsigned long countPD[300],nb_vox;
+  unsigned long countPD[HISTO_SIZE],nb_vox;
   int max,scale;
 
-  for (k=0;k<300;k++)
+  for (k=0;k<HISTO_SIZE;k++)
     countPD[k]=0;
 
   max=0;
@@ -2026,22 +2058,41 @@ static void PDcurve(MRI* mri) {
 
   if (max > 2000)
     max = 2000 ;
+#if 0
+  {
+    long total, count ;
+    double max_pct = .99 ;
+    HISTOGRAM *h ;
+
+    h = MRIhistogram(mri, 300) ;
+    HISTOplot(h, "h.plt") ;
+    total = HISTOtotal(h) ;
+    for (count = 0L, n = 0 ; n <h->nbins ; n++)
+    {
+      count += h->counts[n] ;
+      if ((double)count / (double)total > max_pct)
+        break ;
+    }
+    max = h->bins[n] ;
+  }
+#endif
+
   nb_vox=0;
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++) {
         val=MRIFvox(mri,i,j,k);
         if (val) {
-          n=val*299/max;
-          if (n > 299)
-            n = 299 ;
+          n=val*(HISTO_SIZE-1)/max;
+          if (n > (HISTO_SIZE-1))
+            n = (HISTO_SIZE-1) ;
           countPD[n]++;
           nb_vox++;
         }
       }
 
 
-  scale=299;
+  scale=(HISTO_SIZE-1);
   for (k=298;k>=0;k--) {
     countPD[k]+=countPD[k+1];
     if (countPD[k]*1000<nb_vox)
@@ -2050,22 +2101,22 @@ static void PDcurve(MRI* mri) {
       break;
   }
 
-  scale=MIN(299,scale*12/10);
+  scale=MIN((HISTO_SIZE-1),scale*12/10);
 
-  fprintf(stderr,"max=%d scale=%d  %d ",max,scale*10/15,max*scale/299/299);
+  fprintf(stderr,"max=%d scale=%d  %d ",max,scale*10/15,max*scale/(HISTO_SIZE-1)/(HISTO_SIZE-1));
 
-  for (k=0;k<300;k++)
+  for (k=0;k<HISTO_SIZE;k++)
     countPD[k]=0;
 
 
-  scale=max*scale/299/299;
+  scale=max*scale/(HISTO_SIZE-1)/(HISTO_SIZE-1);
 
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++) {
         val=MRIFvox(mri,i,j,k);
         if (val) {
-          n=MIN(299,val/scale);
+          n=MIN((HISTO_SIZE-1),val/scale);
           countPD[n]++;
         }
       }
@@ -2073,11 +2124,11 @@ static void PDcurve(MRI* mri) {
 
 
 
-  /* for(k=1;k<299;k++)
+  /* for(k=1;k<(HISTO_SIZE-1);k++)
    if (n<countPD[k])
     n=countPD[k];
 
-  for(k=1;k<300;k++)
+  for(k=1;k<HISTO_SIZE;k++)
   {
    fprintf(stderr,"\n%3d ",k);
    for(i=0;i<(int)((double)countPD[k]*65/n);i++)
@@ -2085,16 +2136,33 @@ static void PDcurve(MRI* mri) {
     }*/
 
 
-  analyse_curve(countPD,300,scale);
+  analyse_curve(countPD,HISTO_SIZE,scale);
 
 }
 
 
 
 static void write_surface(char *fname) {
-  int k,n;
-  FILE *fout;
+  int  k, n ;
+  MRI_SURFACE *mris ;
+  double      x, y, z ;
+  FILE        *fout ;
 
+  mris = MRISalloc(nvertices, nfaces) ;
+  for (k=0;k<nvertices;k++)
+  {
+    MRISsurfaceRASFromVoxelCached(mris, mri_PD, vertex[k].x, vertex[k].y, vertex[k].z, &x, &y, &z) ;
+    mris->vertices[k].x = x ;
+    mris->vertices[k].y = y ;
+    mris->vertices[k].z = z ;
+  }
+  for (k=0;k<nfaces;k++)
+    for (n = 0 ; n < 3 ; n++)
+      mris->faces[k].v[n] = face[k][n] ;
+  
+  mris->type = MRIS_TRIANGULAR_SURFACE ;
+  MRISwrite(mris, fname) ;
+  MRISfree(&mris) ;
 
   fout=fopen(fname,"w");
   if (fout==NULL) {
@@ -2136,10 +2204,10 @@ static void GenerateMRI(void) {
 
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
-      for (k=0;k<depth;k++) {
+      for (k=0;k<depth;k++) 
+      {
         if (MRIFvox(mri_T1,i,j,k))
-          MRIFvox(mri_dst,i,j,k)=(short)(MRIFvox(mri_PD,i,j,k)
-                                         *exp(-100/MRIFvox(mri_T1,i,j,k)));
+          MRIFvox(mri_dst,i,j,k)=(MRIFvox(mri_PD,i,j,k)*exp(-100/MRIFvox(mri_T1,i,j,k)));
         else
           MRIFvox(mri_dst,i,j,k)=0;
 
@@ -2157,7 +2225,7 @@ static void intensity_correction(void) {
       for (k=0;k<depth;k++) {
         f=((i-xCOG)*txCOG+(j-yCOG)*tyCOG+(k-zCOG)*tzCOG)/nf;
         if (f >= 0) {
-          MRIFvox(mri_dst,i,j,k)=(short)((float)MRIFvox(mri_dst,i,j,k)*(1+f/rad_Brain*0.5));
+          MRIFvox(mri_dst,i,j,k)=((float)MRIFvox(mri_dst,i,j,k)*(1+f/rad_Brain*0.5));
         }
       }
 }
@@ -2188,29 +2256,33 @@ static void label_voxel(void) {
   for (i=0;i<width;i++)
     for (j=0;j<height;j++)
       for (k=0;k<depth;k++)
+      {
+        if (i == Gx && j == Gy && k == Gz)
+          DiagBreak() ;
         if (MRIFvox(mri_CSF,i,j,k)==5) {
           if (MRIFvox(mri_T1,i,j,k)>GM_max_T1 && MRIFvox(mri_PD,i,j,k)>80*PEAK1/100)
             MRIFvox(mri_CSF,i,j,k)=CSF; /*CSF*/
-
+          
 #if 0   /*could be usefull to determine white matter tissue- gray...
           However, the right threshold have to be found...*/
-
+          
           else if (MRIFvox(mri_T1,i,j,k)>800 && MRIFvox(mri_T1,i,j,k)<1400)
             MRIFvox(mri_CSF,i,j,k)=800;  /*Gray matter*/
-
+          
           else if (MRIFvox(mri_T1,i,j,k)>500 && MRIFvox(mri_T1,i,j,k)<700)
             MRIFvox(mri_T1,i,j,k)=600; /*white matter*/
-
+          
           else
             MRIFvox(mri_T1,i,j,k)=500; /*ambiguous*/
 #endif
-
-
-        } else if (MRIFvox(mri_CSF,i,j,k)==7) {
+        } 
+        else if (MRIFvox(mri_CSF,i,j,k)==7) 
+        {
           if (MRIFvox(mri_T1,i,j,k)<WM_min_T1)
             MRIFvox(mri_CSF,i,j,k)=Bone; /*SKULL*/
         }
-
+      }
+  
   strcpy(fname,"surface_Outer_Skin");
   read_geometry(fname);
   peel_brain(mri_CSF,-3,-1,7); /*originally 0*/
@@ -2227,35 +2299,56 @@ get_option(int argc, char *argv[]) {
 
   option = argv[1] + 1 ;            /* past '-' */
 
-  if (!strcmp(option, "T1")) {
+  if (!stricmp(option, "T1")) {
     mriT1=1;
     T1_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-  } else if (!strcmp(option, "PD")) {
+  } else if (!stricmp(option, "PD")) {
     mriPD=1;
     PD_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-  } else if (!strcmp(option, "ERR")) {
+  } else if (!stricmp(option, "PDthresh")) {
+    PDthresh=atol(argv[2]);
+    nargs = 1 ;
+    fprintf(stderr,"using intracranial PD thresh %ld\n", PDthresh) ;
+  } else if (!stricmp(option, "ERR")) {
     mriErr=1;
     Err_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-  } else if (!strcmp(option, "CSF")) {
+  } else if (!stricmp(option, "3T")) {
+    GM_max_T1 = GM_MAX_T1_3T ; // used to be 1200
+    WM_min_T1 = WM_MIN_T1_3T  ;
+    fprintf(stderr,"using 3T T1 thresholds ") ;
+  } else if (!stricmp(option, "1.5T")) {
+    field_strength = 1.5 ;
+    GM_max_T1 = GM_MAX_T1_1p5T ;
+    WM_min_T1 = WM_MIN_T1_1p5T  ;
+    fprintf(stderr,"using 3T T1 thresholds ") ;
+  } else if (!stricmp(option, "max_GM_T1")) {
+    GM_max_T1 = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,"using max GM T1 threshold = %2.0f\n", GM_max_T1) ;
+  } else if (!stricmp(option, "min_WM_T1")) {
+    WM_min_T1 = atof(argv[2]) ;
+    nargs = 1 ;
+    fprintf(stderr,"using min WM T1 threshold = %2.0f\n", WM_min_T1) ;
+  } else if (!stricmp(option, "CSF")) {
     mriCSF=1;
     CSF_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-  } else if (!strcmp(option, "OUT")) {
+  } else if (!stricmp(option, "OUT")) {
     mriOut=1;
     out_fname = argv[2];
     nargs = 1 ;
     fprintf(stderr," ") ;
-  } else if (!strcmp(option, "correction")) {
+  } else if (!stricmp(option, "correction")) {
     MRI_correction=1;
     fprintf(stderr," mode correction of the MR intensity: top of the head...") ;
-  } else if (!strcmp(option, "SURF")) {
+  } else if (!stricmp(option, "SURF")) {
     mriSURF = 1;
     strcpy(surf_fname,argv[2]);
     nargs=1;
@@ -2289,7 +2382,11 @@ int main(int argc, char *argv[]) {
 
 
   if (!(mriT1*mriPD)) {
-    fprintf(stderr, "\nUsage: %s -[option] file -[option] file ...", Progname);
+    fprintf(stderr, "\nUsage: %s -[option] file -[option] file ...\n", Progname);
+    printf(" specify -3T to use default 3T thresholds (GM < %d, WM > %d)\n", GM_MAX_T1_3T, WM_MIN_T1_3T) ;
+    printf(" specify -1.5T to use default 1.5T thresholds (GM < %d, WM > %d)\n", GM_MAX_T1_1p5T, WM_MIN_T1_1p5T) ;
+    printf(" specify -max_GM_T1 <thresh> to set the max GM T1 threshold\n") ;
+    printf(" specify -min_WM_T1 <thresh> to set the min WM T1 threshold\n") ;
     exit(1);
   };
 
@@ -2410,12 +2507,25 @@ int main(int argc, char *argv[]) {
 
   fprintf(stderr,"\nlabelize the volume...");
   label_voxel();
-  fprintf(stderr,"done\n");
+  fprintf(stderr,"\ndone\n");
 
+  if (mri_orig)  // reslice back to original voxel coords
+  {
+    MRI *mri_tmp ;
+    if (mriCSF)
+    {
+      mri_tmp = MRIresampleFill(mri_CSF, mri_orig, SAMPLE_NEAREST, 0) ;
+      MRIfree(&mri_CSF) ; mri_CSF = mri_tmp ;
+    }
+    mri_tmp = MRIresampleFill(mri_test, mri_orig, SAMPLE_NEAREST, 0) ;
+    MRIfree(&mri_test) ; mri_test = mri_tmp ;
+
+    MRIfree(&mri_orig) ;
+  }
   if (mriCSF)
-    MRIwrite(mri_test,CSF_fname);
+    MRIwrite(mri_CSF,CSF_fname);
   if (mriOut)
-    MRIwrite(mri_CSF,out_fname);
+    MRIwrite(mri_test,out_fname);
 
   if (mriSURF) {
     strcpy(fname,surf_fname);
