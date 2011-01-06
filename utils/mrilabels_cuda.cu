@@ -7,8 +7,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/05 20:15:36 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/01/06 14:30:11 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -171,6 +171,8 @@ namespace GPU {
 
     // ==============================================================
 
+    // We use atomic float operations, so need Fermi GPU
+#ifdef GCAMORPH_ON_GPU
     template<typename T, unsigned int nVals>
     __device__
     void ZeroArray( T* arr ) {
@@ -380,7 +382,7 @@ namespace GPU {
 
 
 
-
+#endif
 
 
 
@@ -398,7 +400,7 @@ namespace GPU {
 	assumes that both input MRIs (mri and mri_vals) are of type
 	unsigned char.
       */
-      
+#ifdef GCAMORPH_ON_GPU
       MRIlabels::tVoxInLabelPartVolumeTot.Start();
 
       // Allocate  and zero the 'volume' global
@@ -494,6 +496,13 @@ namespace GPU {
       MRIlabels::tVoxInLabelPartVolumeTot.Stop();
 
       return( h_volume );
+#else
+      cerr << __FUNCTION__
+	   << ": Requires Fermi class GPU"
+	   << endl;
+      abort();
+      return(0)
+#endif
     }
 
 
