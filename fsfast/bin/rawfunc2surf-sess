@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/06/29 21:53:49 $
-#    $Revision: 1.16 $
+#    $Date: 2011/01/06 16:53:03 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.16 2010/06/29 21:53:49 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.17 2011/01/06 16:53:03 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -50,6 +50,7 @@ set SurfReg = sphere.reg
 set ExpKey = ();
 set ExpKeyNeeded = 0;
 set SliceOrder = ();
+set SaveUnsmoothed = 0;
 
 set outfmt = nii
 if($?FSF_OUTPUT_FORMAT) then
@@ -213,6 +214,7 @@ foreach sess ($SessList)
 
     # Smooth raw data within mask
     if($fwhm != 0) then
+      if($SaveUnsmoothed) cp $outvol $funcdir/$outstem0.$hemi$ExpKey.$outfmt
       set cmd = (mris_fwhm --s $trgsubject --hemi $hemi --smooth-only \
         --i $outvol --fwhm $fwhm --o $outvol --mask $outmask )
       echo $cmd | tee -a $LF
@@ -356,10 +358,15 @@ while( $#argv != 0 )
       if ( $#argv == 0) goto arg1err;
       set outstem = $argv[1]; shift;
       breaksw
+
     case "-mask":
       # output mask stem
       if ( $#argv == 0) goto arg1err;
       set maskstem = $argv[1]; shift;
+      breaksw
+
+    case "-save-unsmoothed":
+      set SaveUnsmoothed = 1;
       breaksw
 
     case "-nolog":
@@ -422,7 +429,8 @@ else
 endif
 
 if($#outstem == 0) set outstem = $instem
-set outstem = $outstem.sm$fwhm.$subjstr; # hemi appended later
+set outstem0 = $outstem.sm0.$subjstr; # for saving unsmoothed
+set outstem  = $outstem.sm$fwhm.$subjstr; # hemi appended later
 
 if($#maskstem == 0) set maskstem = $maskname
 set maskstem = $maskstem.$subjstr # hemi appended later
@@ -466,6 +474,7 @@ usage_exit:
   echo "  -per-session : use session-level registration and mask instead of -per-run"
   echo ""
   echo "Other options"
+  echo "  -save-unsmoothed : save sm0 in addition to smoothed data"
   echo "  -update : only run if update is needed"
   echo "  -force : force an update (default)"
   echo "  -version       : print version and exit"
