@@ -7,8 +7,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/06 14:30:11 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/01/07 15:11:19 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -497,11 +497,11 @@ namespace GPU {
 
       return( h_volume );
 #else
-      cerr << __FUNCTION__
-	   << ": Requires Fermi class GPU"
-	   << endl;
+      std::cerr << __FUNCTION__
+		<< ": Requires Fermi class GPU"
+		<< std::endl;
       abort();
-      return(0)
+      return(0);
 #endif
     }
 
