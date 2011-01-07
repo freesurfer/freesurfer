@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/06 14:30:10 $
- *    $Revision: 1.477 $
+ *    $Date: 2011/01/07 20:45:36 $
+ *    $Revision: 1.478 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.477 $";
+const char *MRI_C_VERSION = "$Revision: 1.478 $";
 
 
 /*-----------------------------------------------------
@@ -14867,13 +14867,12 @@ float MRIvoxelsInLabelWithPartialVolumeEffects( const MRI *mri,
 						const int label, 
 						MRI *mri_mixing_coef, 
 						MRI *mri_nbr_labels ) {
-  enum { maxlabels = 1000 };
+  enum { maxlabels = 20000 };
   float volume;
 #if (defined(FS_CUDA) && defined(GCAMORPH_ON_GPU))
   volume = MRIvoxelsInLabelWithPartialVolumeEffectsGPU( mri,
 							mri_vals,
 							label,
-							maxlabels,
 							mri_mixing_coef,
 							mri_nbr_labels );
   

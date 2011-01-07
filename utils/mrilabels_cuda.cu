@@ -7,8 +7,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/07 15:11:19 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/01/07 20:45:37 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,8 @@
 #include "chronometer.hpp"
 #include "cudacheck.h"
 #include "mriframegpu.hpp"
+
+#include "fixedmap.hpp"
 
 #include "mrilabels_cuda.hpp"
 
@@ -208,10 +210,11 @@ namespace GPU {
 
     
     //! Implementation of MRIcomputeLabelNbhd
-    template<unsigned int nVals>
+    template<typename T, typename U>
     __device__
     void ComputeLabelNbhd( const int x, const int y, const int z,
-			   int *label_counts, float *label_means,
+			   T& label_counts,
+			   U& label_means,
 			   const int whalf ) {
       /*!
 	This is an implementation of MRIcomputeLabelNbhd specific
@@ -223,8 +226,8 @@ namespace GPU {
 	parameter nVals
       */
       
-      ZeroArray<int,nVals>( label_counts );
-      ZeroArray<float,nVals>( label_means );
+      label_counts.clear();
+      label_means.clear();
 
       for( int zk=-whalf; zk<=whalf; zk++ ) {
 	for( int yk=-whalf; yk<=whalf; yk++ ) {
@@ -238,15 +241,14 @@ namespace GPU {
 	}
       }
 
-      for( int label=0; label<nVals; label++ ) {
-	if( label_counts[label] > 0 ) {
-	  label_means[label] /= label_counts[label];
+      for( unsigned int i=0; i<label_counts.size(); i++ ) {
+	if( label_counts.ValueByIndex(i) > 0 ) {
+	  label_means.ValueByIndex(i) /= label_counts.ValueByIndex(i);
 	}
       }
     }
 
 
-    template<unsigned int nVals>
     __global__
     void VoxInLabelPartVolumeKernel( const GPU::Classes::MRIframeOnGPU<unsigned char> mri_border,
 				     GPU::Classes::MRIframeOnGPU<unsigned char> mri_nbr_labels,
@@ -278,12 +280,13 @@ namespace GPU {
 	  if( border == 0 ) {
 	    atomicAdd( volume, vox_vol );
 	  } else {
-	    int nbr_label_counts[nVals];
-	    int label_counts[nVals];
-	    float label_means[nVals];
+	    
+	    GPU::Classes::FixedMap<int,int,32> nbr_label_counts( -1, 0 );
+	    GPU::Classes::FixedMap<int,int,1024> label_counts( -1, 0 );
+	    GPU::Classes::FixedMap<int,float,1024> label_means(-1, 0 );;
 
-	    ComputeLabelNbhd<nVals>( ix, iy, iz, nbr_label_counts, label_means, 1 );
-	    ComputeLabelNbhd<nVals>( ix, iy, iz, label_counts, label_means, 7 );
+	    ComputeLabelNbhd( ix, iy, iz, nbr_label_counts, label_means, 1 );
+	    ComputeLabelNbhd( ix, iy, iz, label_counts, label_means, 7 );
 
 	    const float val = FetchMRIval( ix, iy, iz );
 
@@ -296,15 +299,24 @@ namespace GPU {
 	      look for a label that is a nbr and is
 	      on the other side of val from the label mean
 	    */
-	    for( int this_label=0; this_label<nVals; this_label++ ) {
+
+
+	    for( unsigned int i=0; i<nbr_label_counts.size(); i++ ) {
+
+	      const GPU::Classes::KVpair<int,int> nlpair = nbr_label_counts.AccessByIndex(i);
+
+	      const int this_label = nlpair.key;
 
 	      if( this_label == vox_label ) {
 		continue ;
 	      }
 
+	      /*
+		// Guaranteed to work
 	      if( nbr_label_counts[this_label] == 0 ) {
-		continue ; /* not a nbr */
+		continue ;
 	      }
+	      */
 
 	      if( (label_counts[this_label] > max_count) &&
 		  ((label_means[this_label] - val) *
@@ -323,15 +335,22 @@ namespace GPU {
 	      atomicAdd( volume, vox_vol ); // couldn't find an appropriate label
 	      
 	      // find max nbr label anyway for caller
-	      for( int this_label=0; this_label<nVals;  this_label++ ) {
+	      for( unsigned int i=0; i<nbr_label_counts.size(); i++ ) {
 		  
+		const GPU::Classes::KVpair<int,int> nlpair = nbr_label_counts.AccessByIndex(i);
+
+		const int this_label = nlpair.key;
+
 		if( this_label == vox_label ) {
 		  continue;
 		}
 		
+		/*!
+		  // Guaranteed to be always false
 		if( nbr_label_counts[this_label] == 0 ) {
-		  continue ; /* not a nbr */
+		  continue ;
 		}
+		*/
 		  
 		if( label_counts[this_label] > max_count ) {
 		  max_count = label_means[this_label] ;
@@ -392,7 +411,6 @@ namespace GPU {
     float MRIlabels::VoxInLabelWithPartialVolume( const GPU::Classes::MRIframeGPU<unsigned char>& mri,
 						  const GPU::Classes::MRIframeGPU<unsigned char>& mri_vals,
 						  const int label,
-						  const int maxLabels,
 						  GPU::Classes::MRIframeGPU<float>& mri_mixing_coeff,
 						  GPU::Classes::MRIframeGPU<unsigned char>& mri_nbr_labels ) const {
       /*!
@@ -460,21 +478,12 @@ namespace GPU {
       grid = mri.CoverBlocks( kKernelSize );
       grid.z = 1;
       MRIlabels::tVoxInLabelPartVolumeCompute.Start();
-      if( maxLabels <= 1024 ) {
-	VoxInLabelPartVolumeKernel<1024><<<grid,threads>>>( mriBorder,
-							    mri_nbr_labels,
-							    mri_mixing_coeff,
-							    vox_vol,
-							    label,
-							    d_volume );
-      } else {
-	VoxInLabelPartVolumeKernel<32768><<<grid,threads>>>( mriBorder,
-							     mri_nbr_labels,
-							     mri_mixing_coeff,
-							     vox_vol,
-							     label,
-							     d_volume );
-      }
+      VoxInLabelPartVolumeKernel<<<grid,threads>>>( mriBorder,
+						    mri_nbr_labels,
+						    mri_mixing_coeff,
+						    vox_vol,
+						    label,
+						    d_volume );
       CUDA_CHECK_ERROR( "VoxInLabelPartVolumeKernel failed!\n" );
       MRIlabels::tVoxInLabelPartVolumeCompute.Stop();
 
@@ -570,7 +579,6 @@ void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
 float MRIvoxelsInLabelWithPartialVolumeEffectsGPU( const MRI *mri,
 						   const MRI *mri_vals, 
 						   const int label,
-						   const int maxlabels,
 						   MRI *mri_mixing_coef, 
 						   MRI *mri_nbr_labels ) {
   
@@ -589,7 +597,7 @@ float MRIvoxelsInLabelWithPartialVolumeEffectsGPU( const MRI *mri,
 
   // Run computation
   float vol = myLabels.VoxInLabelWithPartialVolume( mriGPU, mri_valsGPU,
-						    label, maxlabels,
+						    label,
 						    mri_mixing_coefGPU,
 						    mri_nbr_labelsGPU );
 

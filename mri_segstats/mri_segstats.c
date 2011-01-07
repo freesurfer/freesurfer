@@ -12,8 +12,8 @@
  * Original Author: Dougas N Greve
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/21 16:41:53 $
- *    $Revision: 1.72 $
+ *    $Date: 2011/01/07 20:45:36 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2006-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -394,6 +394,10 @@ SEE ALSO:
 #include "registerio.h"
 #include "cmdargs.h"
 
+#ifdef FS_CUDA
+#include "devicemanagement.h"
+#endif
+
 static int  parse_commandline(int argc, char **argv);
 static void check_options(void);
 static void print_usage(void) ;
@@ -426,7 +430,7 @@ int DumpStatSumTable(STATSUMENTRY *StatSumTable, int nsegid);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segstats.c,v 1.72 2010/12/21 16:41:53 rge21 Exp $";
+"$Id: mri_segstats.c,v 1.73 2011/01/07 20:45:36 rge21 Exp $";
 char *Progname = NULL, *SUBJECTS_DIR = NULL, *FREESURFER_HOME=NULL;
 char *SegVolFile = NULL;
 char *InVolFile = NULL;
@@ -1466,6 +1470,10 @@ int main(int argc, char **argv) {
       MRIwrite(famri,FrameAvgVolFile);
     }
   }// Done with Frame Average
+
+#ifdef FS_CUDA
+  PrintGPUtimers();
+#endif
 
   return(0);
 }
