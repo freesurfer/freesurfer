@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 00:34:26 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/01/07 18:08:55 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -83,22 +83,22 @@ extern void ztrsen_(
 		
 }
 
-void PrintComplex (const vnl_matrix < vcl_complex < double > > &M)
-{
-
-  char signum[2]={ '+','-'};
-
-  cout << " [ ";
-	
-	for (unsigned int r=0;r<M.rows();r++)
-	{
-	  for (unsigned int c=0;c<M.cols();c++)
-		  cout << " ( " << M[r][c].real() << " " << signum[(M[r][c].imag()<0)]<< " " << M[r][c].imag() << "i ) " ;
-		if (r < M.rows() -1 ) cout << " ; " << endl;
-	}
-	cout << " ] " << endl;
-
-}
+// void PrintComplex (const vnl_matrix < vcl_complex < double > > &M)
+// {
+// 
+//   char signum[2]={ '+','-'};
+// 
+//   cout << " [ ";
+// 	
+// 	for (unsigned int r=0;r<M.rows();r++)
+// 	{
+// 	  for (unsigned int c=0;c<M.cols();c++)
+// 		  cout << " ( " << M[r][c].real() << " " << signum[(M[r][c].imag()<0)]<< " " << M[r][c].imag() << "i ) " ;
+// 		if (r < M.rows() -1 ) cout << " ; " << endl;
+// 	}
+// 	cout << " ] " << endl;
+// 
+// }
 
 
 // extern "C"{
@@ -1686,6 +1686,74 @@ void MyMatrix::SchurComplex( const vnl_matrix < double > & M,
 		assert(info==0);
   }
 	
+}
+
+vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix < double > > & vm, int n)
+// Computes ( mv[0] * mv[1] ... * mv[n] )^{1/n}
+// by first computing the n-th square root of each factor and then multiplying,
+// to ensure the solution is the one that lies between the inputs
+// (imagine n=7 with six pos 45 degree rotations and one identity,
+// the result X should be 0 < X < 45 degree rotation, not negative, 
+// which happens by multiplying first)
+// If n=-1 set n number of elements in vm (default)
+// else use n for the squareroot (usefull, if some elements are the identity matrix and not
+// passed in the array).
+{
+  assert(vm.size() > 0);
+
+  if (n==-1) n=(int)vm.size();
+	
+	double d = 1.0/n;
+	vnl_matrix < double > geo(MatrixPow(vm[0],d));
+	
+	// compute n-th sqrt or the rest
+	for (unsigned int i=1;i<vm.size();i++)
+   geo *= MatrixPow(vm[i],d);
+
+  return geo;
+}
+
+void MyMatrix::PolarDecomposition(const vnl_matrix < double > &A,
+	                               vnl_matrix < double > &R,
+																 vnl_matrix < double > &S)
+{
+  assert(A.cols() == A.rows());
+  vnl_svd < double > svd(A);
+  if ( svd.valid() )
+  {
+	   R = svd.U()*svd.V().transpose();
+	   S = svd.V()*svd.W()*svd.V().transpose();
+	  //vnl_matlab_print(vcl_cout,R,"R");cout << endl;
+	  //vnl_matlab_print(vcl_cout,S,"S");cout << endl;
+  }
+  else
+  {
+     cerr << "MyMatrix PolarDecomposition ERROR: SVD not possible?" << endl;
+		 exit(1);
+  }
+
+}
+
+void MyMatrix::Polar2Decomposition(const vnl_matrix < double > &A,
+	                               vnl_matrix < double > &R,
+																 vnl_matrix < double > &S,
+																 vnl_diag_matrix < double > &D)
+{
+  assert(A.cols() == A.rows());
+  PolarDecomposition(A,R,S);
+	
+	// further decompose S into shear * diag(scales)
+	D.set_size(A.cols());
+	for (unsigned int c=0;c<A.cols();c++)
+	{
+	  D[c] = S[c][c];
+	  S.set_column(c,S.get_column(c) / D[c]);
+	}
+	//vnl_matlab_print(vcl_cout,R,"Rot");cout << endl;
+	//vnl_matlab_print(vcl_cout,S,"Shear");cout << endl;
+	//vnl_matlab_print(vcl_cout,D,"Scale");cout << endl;	
+	
+
 }
 
 

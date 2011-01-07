@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/04 22:17:30 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/01/07 18:08:52 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -51,6 +51,7 @@ extern "C"
 #include <iostream>
 #include <vnl/vnl_vector.h>
 #include <vnl/vnl_matrix.h>
+#include <vnl/vnl_diag_matrix.h>
 #include <vnl/vnl_vector_fixed.h>
 #include <vnl/vnl_matrix_fixed.h>
 
@@ -75,6 +76,20 @@ public:
   static vnl_matrix < double >  MatrixSqrtEigs(const vnl_matrix < double >& m);
 	//! Matrix Square Root (using Complex Schur)
   static vnl_matrix < double >  MatrixSqrt(const vnl_matrix < double >& m);
+	
+	//! Geometric mean
+	static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);
+	
+	// ! Polar Decomposition: A = R * S  (R orthogonal, S pos. semi def, symmetric)
+	static void PolarDecomposition(const vnl_matrix < double > &A,
+	                                     vnl_matrix < double > &R,
+																       vnl_matrix < double > &S);
+  // ! Advanced Polar Decomp. A = Rot * Shear * Scale  (where scale is diag)
+	static void Polar2Decomposition(const vnl_matrix < double > &A,
+	                                      vnl_matrix < double > &R,
+																        vnl_matrix < double > &S,
+                                   vnl_diag_matrix < double > &D);
+																 
 	
 	//! Complex Schur Decomposition
 	static void SchurComplex( const vnl_matrix < double > & A ,
