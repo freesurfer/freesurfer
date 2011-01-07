@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 01:01:36 $
- *    $Revision: 1.62 $
+ *    $Date: 2011/01/07 18:09:44 $
+ *    $Revision: 1.63 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -37,9 +37,11 @@
 #include <cassert>
 #include <fstream>
 #include <sstream>
+#include <vcl_iostream.h>
 #include <vnl/algo/vnl_matrix_inverse.h>
 #include <vnl/vnl_inverse.h>
 #include <vnl/vnl_vector_fixed.h>
+#include <vnl/vnl_matlab_print.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -436,9 +438,9 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
 		
     if (verbose > 1)
     {
-      cout << endl << " current : Matrix: " << endl;
-			cout << cmd.first << endl;
-      cout << " intens: " << cmd.second << endl;
+      cout << endl << " current Matrix: " << endl;
+	    vnl_matlab_print(vcl_cout,cmd.first,"Tc");cout << endl;
+      cout << " intens: Ic = " << cmd.second << endl;
 
       // adjust to highest level for output only:
       double tx = cmd.first[0][3];
@@ -501,8 +503,8 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
     if (verbose > 1)
     {
       cout << endl << " Matrix: " << endl;
-			cout << md.first << endl;
-      cout << " intens: " << md.second << endl;
+	    vnl_matlab_print(vcl_cout,md.first,"T");cout << endl;
+      cout << " Intensity:  I = " << md.second << endl;
     }
   } // resolution loop
 	
@@ -586,8 +588,8 @@ double Registration::findSaturation ( )
   if (verbose >1 ) 
   {
     cout << "   - initial transform:\n" ;
-		cout << md.first << endl;
-		cout << "   - initial iscale: " << md.second <<endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Ti");cout << endl;
+		cout << "   - initial iscale:   Ii = " << md.second <<endl;
   }
 
   // adjust md.first to current (lowest) resolution:
@@ -600,7 +602,7 @@ double Registration::findSaturation ( )
   if (verbose >1 ) 
   {
     cout << "   - initial adjusted:\n" ;
-		cout << md.first << endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Tia");cout << endl;
   }
 
 	
@@ -754,8 +756,8 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   if (verbose >0 ) 
   {
     cout << "   - initial transform:\n" ;
-		cout << md.first << endl;
-		cout << "   - initial iscale: " << md.second <<endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Ti");cout << endl;
+		cout << "   - initial iscale:  Ii =" << md.second <<endl;
   }
 
   // adjust minit to current (lowest) resolution:
@@ -769,7 +771,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   if (verbose >1 ) 
   {
     cout << "   - initial adjusted:\n" ;
-		cout << md.first << endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Tia");cout << endl;
   }
 
 
@@ -888,8 +890,8 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     {
       cout << endl << " current : Matrix: " << endl;
       //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
-			cout << cmd.first << endl;
-      cout << " intens: " << cmd.second << endl;
+	    vnl_matlab_print(vcl_cout,cmd.first,"Tc");cout << endl;
+      cout << " intens:  Ic = " << cmd.second << endl;
 
       // adjust to highest level for output only:
       double tx = cmd.first[0][3];
@@ -949,16 +951,16 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     if (verbose > 1)
     {
       cout << endl << " Matrix: " << endl;
-			cout << md.first << endl;
-      cout << " intens: " << md.second << endl;
+	    vnl_matlab_print(vcl_cout,md.first,"Tcpost");cout << endl;
+      cout << " intens: Icpost = " << md.second << endl;
     }
   } // resolution loop
 	
     if (verbose == 1)
     {
       cout << endl << "   - final transform: " << endl;
-			cout << md.first << endl;
-      cout << "   - final iscale: " << md.second << endl;
+	    vnl_matlab_print(vcl_cout,md.first,"Tf");cout << endl;
+      cout << "   - final iscale:  If = " << md.second << endl;
     }
 	
 	
