@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/29 04:39:58 $
-#    $Revision: 1.5 $
+#    $Date: 2011/01/09 13:37:47 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.5 2010/12/29 04:39:58 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.6 2011/01/09 13:37:47 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -685,8 +685,8 @@ if ($domasks) then
   set cvswarp = combined_elreg_afteraseg-norm
 
   mkdir -p $labdir/anatorig $labdir/anat $labdir/diff
-  if (-e $xfmdir/anat2mni.mat) mkdir -p $labdir/mni
-  if (-e $xfmdir/cvs/$cvswarp.tm3d) mkdir -p $labdir/cvs
+  if ($doregmni && -e $xfmdir/anat2mni.mat) mkdir -p $labdir/mni
+  if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) mkdir -p $labdir/cvs
   if ($subj == $cvstemp) ln -sf $labdir/anatorig $labdir/cvs
 
   set wmlist = ( Left-Cerebral-White-Matter \
@@ -872,7 +872,7 @@ if ($domasks) then
     end
 
     # Map label to MNI space
-    if (-e $xfmdir/anat2mni.mat) then
+    if ($doregmni && -e $xfmdir/anat2mni.mat) then
       set cmd = flirt
       set cmd = ($cmd -in $labdir/anat/$label.nii.gz)
       set cmd = ($cmd -ref $mnitemp)
@@ -887,7 +887,7 @@ if ($domasks) then
     endif
 
     # Map label to CVS space
-    if (-e $xfmdir/cvs/$cvswarp.tm3d) then
+    if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) then
       set cmd = applyMorph
       set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
       set cmd = ($cmd --transform $xfmdir/cvs/$cvswarp.tm3d)
@@ -904,7 +904,7 @@ if ($domasks) then
 
   # Transform diffusion brain mask
   foreach reg (flt bbr)
-    if (-e $xfmdir/diff2mni.$reg.mat) then
+    if ($doregmni && -e $xfmdir/diff2mni.$reg.mat) then
       # Map diffusion brain mask to MNI space
       set cmd = flirt
       set cmd = ($cmd -in $labdir/diff/lowb_brain_mask.nii.gz)
@@ -933,7 +933,7 @@ if ($domasks) then
         if ($status) goto error_exit
       endif
 
-      if (-e $xfmdir/cvs/$cvswarp.tm3d) then
+      if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) then
         # Map diffusion brain mask to CVS space
         set cmd = applyMorph
         set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
