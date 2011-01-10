@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/12/08 18:25:53 $
-#    $Revision: 1.36 $
+#    $Date: 2011/01/10 17:05:35 $
+#    $Revision: 1.37 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.36 2010/12/08 18:25:53 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.37 2011/01/10 17:05:35 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -493,7 +493,7 @@ while( $#argv != 0 )
       set ToSurf = 1;
       set PerRun = 1;
       set PerSess = 0;
-      if(! -e $SUBJECTS_DIR/$subject) then
+      if($subject != self && ! -e $SUBJECTS_DIR/$subject) then
         echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
         exit 1;
       endif
