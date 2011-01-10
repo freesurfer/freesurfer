@@ -388,17 +388,17 @@ EOF
 	    if [ $scriptmode -ne 1 ] ; then
 		qsubopts="-V -r y -q $queue -M $mailto -m $MailOpts"
 		qsubopts="$qsubopts -N $JobName"
-		qsubopts="$qsubopts $pbs_arch $pbs_hold"
+		qsubopts="$qsubopts $pbs_hold"
 		#qsubopts="$qsubopts $LogOpts"
 	    else
-		#qsubopts="$LogOpts $pbs_arch $pbs_hold"
-		qsubopts="$pbs_arch $pbs_hold"
+		#qsubopts="$LogOpts $pbs_hold"
+		qsubopts="$pbs_hold"
 	    fi
 	    cmdline=$@
 	    if [ $verbose -eq 1 ] ; then 
-		echo pbsubmit -o \"$qsubopts\" -c \"$cmdline\" $pbs_shell >&2
+		echo pbsubmit -o \"$qsubopts\" -c \"$cmdline\" $pbs_arch $pbs_shell >&2
 	    fi
-	    jobid=`exec pbsubmit -o "$qsubopts" -c "$cmdline" $pbs_shell | tail -n 1`
+	    jobid=`exec pbsubmit -o "$qsubopts" -c "$cmdline" $pbs_arch $pbs_shell | tail -n 1`
 	    echo $jobid | awk -v FS=. '{print $1}'
 	else
 	    if [ "x$LogDir" != x ] ; then
@@ -416,14 +416,14 @@ EOF
 		    taskno=`printf '%04d' $j`
 		    qsubopts="-V -r y -q $queue -M $mailto -m $MailOpts"
 		    qsubopts="$qsubopts -N ${JobName}_$taskno"
-		    qsubopts="$qsubopts $pbs_arch $pbs_hold_previous"
+		    qsubopts="$qsubopts $pbs_hold_previous"
 		    #qsubopts="$qsubopts $LogOpts"
 		    let lineno=j+1
 		    cmdline=`sed -n -e "$lineno p" $taskfile`
 		    if [ $verbose -eq 1 ] ; then 
-			echo pbsubmit -o \"$qsubopts\" -c \"$cmdline\" $pbs_shell >&2
+			echo pbsubmit -o \"$qsubopts\" -c \"$cmdline\" $pbs_arch $pbs_shell >&2
 		    fi
-		    jobid=`exec pbsubmit -o "$qsubopts" -c "$cmdline" $pbs_shell | tail -n 1`
+		    jobid=`exec pbsubmit -o "$qsubopts" -c "$cmdline" $pbs_arch $pbs_shell | tail -n 1`
 		    jobid=`echo $jobid | awk -v FS=. '{print $1}'`
 		    pbs_hold_previous="-W depend=afterok:$jobid"
 		    if [ "x$LogDir" != x ] ; then
