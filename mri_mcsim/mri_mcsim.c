@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/01/04 14:12:53 $
- *    $Revision: 1.14 $
+ *    $Date: 2011/01/11 19:27:19 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -65,9 +65,10 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
+int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.14 2011/01/04 14:12:53 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.15 2011/01/11 19:27:19 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -91,24 +92,32 @@ double FWHMList[100];
 int SignList[3] = {-1,0,1}, nSignList=3;
 char *DoneFile = NULL;
 char *LogFile = NULL;
+char *StopFile = NULL;
+char *SaveFile = NULL;
 int SaveMask = 1;
 int UseAvgVtxArea = 0;
 
+CSD *csdList[100][100][3], *csd;
+MRI *mask=NULL;
+MRIS *surf;
+char tmpstr[2000],*signstr=NULL;
+int msecTime, nmask, nthRep;
+int *nSmoothsList;
+
+
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
-  int nargs, n, msecTime, err;
+  int nargs, n, err;
   char tmpstr[2000], *signstr=NULL,*SUBJECTS_DIR, fname[2000];
   //char *OutDir = NULL;
-  MRIS *surf;
   RFS *rfs;
-  int *nSmoothsList, nSmoothsPrev, nSmoothsDelta, nthRep;
-  MRI *z, *zabs=NULL, *sig=NULL, *p=NULL, *mask=NULL;
+  int nSmoothsPrev, nSmoothsDelta;
+  MRI *z, *zabs=NULL, *sig=NULL, *p=NULL;
   int FreeMask = 0;
   int nthSign, nthFWHM, nthThresh;
-  CSD *csdList[100][100][3], *csd;
   double sigmax, zmax, threshadj, csize, csizeavg, searchspace,avgvtxarea;
   int csizen;
-  int nClusters, cmax,rmax,smax, nmask;
+  int nClusters, cmax,rmax,smax;
   SURFCLUSTERSUM *SurfClustList;
   struct timeb  mytimer;
   LABEL *clabel;
@@ -353,53 +362,37 @@ int main(int argc, char *argv[]) {
     } // FWHM
     printf("\n");
     if(fpLog) fprintf(fpLog,"\n");
+    if(fio_FileExistsReadable(SaveFile)){
+      printf("Found save file %s\n",SaveFile);
+      SaveOutput();
+      unlink(SaveFile); // Delete it
+    }
+    if(fio_FileExistsReadable(StopFile)) {
+      printf("Found stop file %s\n",StopFile);
+      goto finish;
+    }
   } // Simulation Repetition
+
+ finish:
+
+  SaveOutput();
 
   msecTime = TimerStop(&mytimer) ;
   printf("Total Sim Time %g min (%g per rep)\n",
-	 msecTime/(1000*60.0),(msecTime/(1000*60.0))/nRepetitions);
+	 msecTime/(1000*60.0),(msecTime/(1000*60.0))/nthRep);
   if(fpLog) fprintf(fpLog,"Total Sim Time %g min (%g per rep)\n",
-		    msecTime/(1000*60.0),(msecTime/(1000*60.0))/nRepetitions);
+		    msecTime/(1000*60.0),(msecTime/(1000*60.0))/nthRep);
 
-  // Save output
-  printf("Saving results\n");
-  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
-    for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
-      for(nthSign = 0; nthSign < nSignList; nthSign++){
-	csd = csdList[nthFWHM][nthThresh][nthSign];
-	if(csd->threshsign ==  0) signstr = "abs"; 
-	if(csd->threshsign == +1) signstr = "pos"; 
-	if(csd->threshsign == -1) signstr = "neg"; 
-	sprintf(tmpstr,"%s/fwhm%02d/%s/th%02d/%s.csd",
-		OutTop,(int)round(FWHMList[nthFWHM]),
-		signstr,(int)round(10*ThreshList[nthThresh]),
-		csdbase);
-	fp = fopen(tmpstr,"w");
-	fprintf(fp,"# ClusterSimulationData 2\n");
-	fprintf(fp,"# mri_mcsim\n");
-	fprintf(fp,"# %s\n",cmdline);
-	fprintf(fp,"# %s\n",vcid);
-	fprintf(fp,"# hostname %s\n",uts.nodename);
-	fprintf(fp,"# machine  %s\n",uts.machine);
-	fprintf(fp,"# runtime_min %g\n",msecTime/(1000*60.0));
-	fprintf(fp,"# nvertices-total %d\n",surf->nvertices);
-	fprintf(fp,"# nvertices-search %d\n",nmask);
-	if(mask) fprintf(fp,"# masking 1\n");
-	else     fprintf(fp,"# masking 0\n");
-	fprintf(fp,"# SmoothLevel %d\n",nSmoothsList[nthFWHM]);
-	fprintf(fp,"# UseAvgVtxArea %d\n",UseAvgVtxArea);
-	CSDprint(fp, csd);
-	fclose(fp);
-      }
-    }
-  }
   if(DoneFile){
     fp = fopen(DoneFile,"w");
     fprintf(fp,"%g\n",msecTime/(1000*60.0));
     fclose(fp);
   }
   printf("mri_mcsim done\n");
-  if(fpLog) fprintf(fpLog,"mri_mcsim done\n");
+  if(fpLog){
+    fprintf(fpLog,"mri_mcsim done\n");
+    fclose(fpLog);
+  }
   exit(0);
 }
 /* --------------------------------------------- */
@@ -456,6 +449,16 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--log")) {
       if(nargc < 1) CMDargNErr(option,1);
       LogFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--stop")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      StopFile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (!strcasecmp(option, "--save")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      SaveFile = pargv[0];
       nargsused = 1;
     } 
     else if (!strcasecmp(option, "--base")) {
@@ -546,6 +549,8 @@ static void print_usage(void) {
   printf("\n");
   printf("   --log  LogFile \n");
   printf("   --done DoneFile : will create DoneFile when finished\n");
+  printf("   --stop stopfile : default is ourdir/mri_mcsim.stop \n");
+  printf("   --save savefile : default is ourdir/mri_mcsim.save \n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -603,6 +608,15 @@ static void check_options(void) {
     ThreshList[4] = 3.3; 
     ThreshList[5] = 4.0;
   }
+  if(StopFile == NULL) {
+    sprintf(tmpstr,"%s/mri_mcsim.stop",OutTop);
+    StopFile = strcpyalloc(tmpstr);
+  }
+  if(SaveFile == NULL) {
+    sprintf(tmpstr,"%s/mri_mcsim.save",OutTop);
+    SaveFile = strcpyalloc(tmpstr);
+  }
+
   return;
 }
 
@@ -623,6 +637,49 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"hemi     %s\n",hemi);
   if(MaskFile) fprintf(fp,"mask     %s\n",MaskFile);
   fprintf(fp,"UseAvgVtxArea %d\n",UseAvgVtxArea);
+  fprintf(fp,"SaveFile %s\n",SaveFile);
+  fprintf(fp,"StopFile %s\n",StopFile);
   fflush(fp);
   return;
+}
+
+int SaveOutput(void)
+{
+  int nthSign, nthFWHM, nthThresh;
+  FILE *fp;
+
+  // Save output
+  printf("Saving results nreps = %d\n",nthRep);
+  for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
+    for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
+      for(nthSign = 0; nthSign < nSignList; nthSign++){
+	csd = csdList[nthFWHM][nthThresh][nthSign];
+	if(csd->threshsign ==  0) signstr = "abs"; 
+	if(csd->threshsign == +1) signstr = "pos"; 
+	if(csd->threshsign == -1) signstr = "neg"; 
+	csd->nreps = nthRep;
+	sprintf(tmpstr,"%s/fwhm%02d/%s/th%02d/%s.csd",
+		OutTop,(int)round(FWHMList[nthFWHM]),
+		signstr,(int)round(10*ThreshList[nthThresh]),
+		csdbase);
+	fp = fopen(tmpstr,"w");
+	fprintf(fp,"# ClusterSimulationData 2\n");
+	fprintf(fp,"# mri_mcsim\n");
+	fprintf(fp,"# %s\n",cmdline);
+	fprintf(fp,"# %s\n",vcid);
+	fprintf(fp,"# hostname %s\n",uts.nodename);
+	fprintf(fp,"# machine  %s\n",uts.machine);
+	fprintf(fp,"# runtime_min %g\n",msecTime/(1000*60.0));
+	fprintf(fp,"# nvertices-total %d\n",surf->nvertices);
+	fprintf(fp,"# nvertices-search %d\n",nmask);
+	if(mask) fprintf(fp,"# masking 1\n");
+	else     fprintf(fp,"# masking 0\n");
+	fprintf(fp,"# SmoothLevel %d\n",nSmoothsList[nthFWHM]);
+	fprintf(fp,"# UseAvgVtxArea %d\n",UseAvgVtxArea);
+	CSDprint(fp, csd);
+	fclose(fp);
+      }
+    }
+  }
+  return(0);
 }
