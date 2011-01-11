@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/10 18:55:44 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/01/11 18:24:23 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -27,6 +27,8 @@
 #include <iomanip>
 #include <cstdlib>
 #include <limits>
+#include <numeric>
+#include <algorithm>
 using namespace std;
 
 
@@ -55,17 +57,15 @@ namespace Freesurfer {
     this->yDim = src->prior_height;
     this->zDim = src->prior_depth;
 
-    MinMax<short> nLabelsVoxel;
+    this->n4D = 0;
 
     for( int ix=0; ix<this->xDim; ix++ ) {
       for( int iy=0; iy<this->yDim; iy++ ) {
 	for( int iz=0; iz<this->zDim; iz++ ) {
-	  nLabelsVoxel.Accumulate( src->priors[ix][iy][iz].nlabels );
+	  this->n4D += src->priors[ix][iy][iz].nlabels ;
 	}
       }
     }
-
-    this->labelDim = nLabelsVoxel.GetMax();
   }
 
   // ==========================================
@@ -80,11 +80,11 @@ namespace Freesurfer {
 
     const size_t nVoxels = this->xDim * this->yDim * this->zDim;
 
-    //! Indicate the number of labels for each voxel
-    this->nLabels.clear();
-    this->nLabels.resize( nVoxels,
-			  numeric_limits<short>::max() );
-    this->bytes += this->nLabels.size() * sizeof(short);
+    //! Space for the offsets4D array
+    this->offsets4D.clear();
+    this->offsets4D.resize( nVoxels+1,
+			    numeric_limits<unsigned int>::max() );
+    this->bytes += this->offsets4D.size() * sizeof(unsigned int);
 
     //! Space for maxLabels
     this->maxLabels.clear();
@@ -93,13 +93,13 @@ namespace Freesurfer {
     
     //! Space for the labels
     this->labels.clear();
-    this->labels.resize( nVoxels * this->labelDim,
+    this->labels.resize( this->n4D,
 			 numeric_limits<unsigned short>::max() );
     this->bytes += this->labels.size() * sizeof(unsigned short);
 
     //! Space for the priors
     this->priors.clear();
-    this->priors.resize( nVoxels * this->labelDim,
+    this->priors.resize( this->n4D,
 			 numeric_limits<float>::quiet_NaN() );
     this->bytes += this->priors.size() * sizeof(float);
 
@@ -124,15 +124,35 @@ namespace Freesurfer {
     this->ExtractDims( src );
     this->Allocate();
 
+    std::vector<unsigned int> labelCounts( this->totTraining.size(),
+					   numeric_limits<unsigned int>::max() );
+
+    // Handle the 3D data
     for( int ix=0; ix<this->xDim; ix++ ) {
       for( int iy=0; iy<this->yDim; iy++ ) {
 	for( int iz=0; iz<this->zDim; iz++ ) {
 	  const GCA_PRIOR* const gcap = &(src->priors[ix][iy][iz]);
 	  
-	  this->voxelLabelCount(ix,iy,iz) = gcap->nlabels;
 	  this->maxVoxelLabel(ix,iy,iz) = gcap->max_labels;
-	  
 	  this->totalTraining(ix,iy,iz) = gcap->total_training;
+	  
+	  labelCounts.at( this->index3D(ix,iy,iz) ) = gcap->nlabels;
+
+	}
+      }
+    }
+
+    // Compute 4D offsets
+    this->offsets4D.at(0) = 0;
+    std::partial_sum( labelCounts.begin(), labelCounts.end(),
+		      ++(this->offsets4D.begin()) );
+
+
+    // Handle the 4D data
+    for( int ix=0; ix<this->xDim; ix++ ) {
+      for( int iy=0; iy<this->yDim; iy++ ) {
+	for( int iz=0; iz<this->zDim; iz++ ) {
+	  const GCA_PRIOR* const gcap = &(src->priors[ix][iy][iz]);
 
 	  for( int iLabel=0;
 	       iLabel<this->voxelLabelCount(ix,iy,iz);
@@ -145,6 +165,7 @@ namespace Freesurfer {
       }
     }
     
+
     this->tExhume.Stop();
   }
 

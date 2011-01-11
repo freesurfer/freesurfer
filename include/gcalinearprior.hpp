@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/10 18:55:39 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/01/11 18:24:21 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -40,8 +40,9 @@ namespace Freesurfer {
   class GCAlinearPrior {
   public:
 
-    GCAlinearPrior( void ) : xDim(0), yDim(0), zDim(0), labelDim(0),
-			     nLabels(),
+    GCAlinearPrior( void ) : xDim(0), yDim(0), zDim(0), n4D(0),
+			     bytes(),
+			     offsets4D(),
 			     maxLabels(),
 			     labels(),
 			     priors(),
@@ -50,76 +51,104 @@ namespace Freesurfer {
 
     // -----------------------------------------------------
 
-    //! Accessor for nLabels array
-    short& voxelLabelCount( const int ix, const int iy, const int iz ) {
+    //! Accessor for totTraining array
+    inline int& totalTraining( const int ix,
+			       const int iy,
+			       const int iz ) {
       /*!
-	The nLabels array holds per voxel data
+	The totTraining array holds per voxel data
       */
-      unsigned int index = nLabelsIndex(ix,iy,iz);
-
-      return( this->nLabels.at(index) );
+      unsigned int idx = index3D(ix,iy,iz);
+      
+      return( this->totTraining.at(idx) );
     }
     
-    //! Const accessor for nLabels array
-    short voxelLabelCount( const int ix, const int iy, const int iz ) const {
+    //! Const accessor for totTraining array
+    inline int totalTraining( const int ix,
+			      const int iy,
+			      const int iz ) const {
       /*!
-	The nLabels array holds per voxel data
+	The totTraining array holds per voxel data
       */
-      unsigned int index = nLabelsIndex(ix,iy,iz);
-
-      return( this->nLabels.at(index) );
+      unsigned int idx = index3D(ix,iy,iz);
+      
+      return( this->totTraining.at(idx) );
     }
+
 
     // --
     
 
     //! Accessor for maxLabels array
-    short& maxVoxelLabel( const int ix, const int iy, const int iz ) {
+    inline short& maxVoxelLabel( const int ix,
+				 const int iy,
+				 const int iz ) {
       /*!
 	The maxLabels array holds per voxel data
       */
-      unsigned int idx = maxLabelsIndex(ix,iy,iz);
+      unsigned int idx = index3D(ix,iy,iz);
 
       return( this->maxLabels.at(idx) );
     }
 
     //! Const accessor for maxLabels array
-    short maxVoxelLabel( const int ix, const int iy, const int iz ) const {
+    inline short maxVoxelLabel( const int ix,
+				const int iy,
+				const int iz ) const {
       /*!
 	The maxLabels array holds per voxel data
       */
-      unsigned int idx = maxLabelsIndex(ix,iy,iz);
+      unsigned int idx = index3D(ix,iy,iz);
 
       return( this->maxLabels.at(idx) );
     }
 
     
     // --
+    
+    //! Dynamically compute nlabels for each prior voxel
+    inline short voxelLabelCount( const int ix,
+				  const int iy,
+				  const int iz ) const {
+      /*!
+	This is computed as a difference between consecutive
+	entries on the offsets4D array;
+      */
+      short currOffset = this->offsets4D.at( this->index3D(ix,iy,iz) );
+      short nextOffset = this->offsets4D.at( this->index3D(ix,iy,iz) + 1 );
+
+      return( nextOffset - currOffset );
+    }
+
+    // --
 
     //! Accessor for the labels array
-    unsigned short& voxelLabel( const int ix, const int iy, const int iz,
-				const int iLabel ) {
+    inline unsigned short& voxelLabel( const int ix,
+				       const int iy,
+				       const int iz,
+				       const int iLabel ) {
       /*!
 	The labels array is 4D.
 	Each voxel has a 1D array of labels hanging from it,
-	the length of which is given by the corresponding entry
-	in nLabels (max. held in this->labelDim).
+	which are indexed according to the offsets4D array.
       */
-      unsigned int idx = labelsIndex(ix,iy,iz,iLabel);
+      unsigned int idx = this->index4D(ix,iy,iz,iLabel);
 
       return( this->labels.at(idx) );
     }
 
     //! Const accessor for the labels array
-    unsigned short voxelLabel( const int ix, const int iy, const int iz,
-			       const int iLabel ) const {
+    inline unsigned short voxelLabel( const int ix,
+				      const int iy,
+				      const int iz,
+				      const int iLabel ) const {
       /*!
 	The labels array is 4D.
 	Each voxel has a 1D array of labels hanging from it,
-	the length of which is given by the corresponding entry
-	in nLabels.
+	which are indexed according to the offsets4D array.
+	
       */
-      unsigned int idx = labelsIndex(ix,iy,iz,iLabel);
+      unsigned int idx = this->index4D(ix,iy,iz,iLabel);
       
       return( this->labels.at(idx) );
     }
@@ -128,54 +157,34 @@ namespace Freesurfer {
     // --
 
     //! Accessor for the priors array
-    float& voxelPrior(  const int ix, const int iy, const int iz,
-			const int iLabel ) {
+    inline float& voxelPrior(  const int ix, const int iy, const int iz,
+			       const int iLabel ) {
       /*!
 	The priors array is 4D.
 	Each voxel has a 1D array of priors hanging from it,
-	the length of which is given by the corresponding entry
-	in nLabels (max. held in this->labelDim).
+	which are indexed according to the offsets4D array.
       */
-      unsigned int idx = priorsIndex(ix,iy,iz,iLabel);
+      unsigned int idx = this->index4D(ix,iy,iz,iLabel);
 
       return( this->priors.at(idx) );
     }
 
     //! Const accessor for the priors array
-    float voxelPrior(  const int ix, const int iy, const int iz,
-		       const int iLabel ) const {
+    inline float voxelPrior(  const int ix, const int iy, const int iz,
+			      const int iLabel ) const {
       /*!
 	The priors array is 4D.
 	Each voxel has a 1D array of priors hanging from it,
-	the length of which is given by the corresponding entry
-	in nLabels.
+	which are indexed according to the offsets4D array.
       */
-      unsigned int idx = priorsIndex(ix,iy,iz,iLabel);
+      unsigned int idx = this->index4D(ix,iy,iz,iLabel);
 
       return( this->priors.at(idx) );
     }
 
     // --
 
-    //! Accessor for totTraining array
-    int& totalTraining( const int ix, const int iy, const int iz ) {
-      /*!
-	The totTraining array holds per voxel data
-      */
-      unsigned int idx = totTrainingIndex(ix,iy,iz);
-
-      return( this->totTraining.at(idx) );
-    }
-
-    //! Const accessor for totTraining array
-    int totalTraining( const int ix, const int iy, const int iz ) const {
-      /*!
-	The totTraining array holds per voxel data
-      */
-      unsigned int idx = totTrainingIndex(ix,iy,iz);
-
-      return( this->totTraining.at(idx) );
-    }
+    
 
     // -------------------------
 
@@ -199,128 +208,52 @@ namespace Freesurfer {
 
     // -----------------------------------------------------
 
-    //! Index computation for nLabels
-    unsigned int nLabelsIndex( const int ix,
-			       const int iy,
-			       const int iz ) const {
-
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      unsigned int index;
-      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
-
-      return( index );
-    }
-
-
-
-    //! Index computation for maxLabels
-    unsigned int maxLabelsIndex( const int ix,
+    //! Index computation for 3D indices
+    inline unsigned int index3D( const int ix,
 				 const int iy,
 				 const int iz ) const {
-      
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
 	cerr << __FUNCTION__
 	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int index;
-      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
-      
-      return( index );
-    }
-
-
-
-    //! Index computation for labels
-    unsigned int labelsIndex( const int ix,
-			      const int iy,
-			      const int iz,
-			      const int iLabel ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iLabel<0) || (iLabel>=this->labelDim) ||
-	  (iLabel>=this->voxelLabelCount(ix,iy,iz) ) ) {
-	cerr << __FUNCTION__
-	     << ": Label index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      unsigned int index;
-      index = ix + ( this->xDim *
-		     ( iy + ( this->yDim *
-			      ( iz + ( this->zDim *
-				       iLabel ) )
-			      ) )
-		     );
-      return( index );
-    }
-
-
-
-    //! Index computation for priors
-    unsigned int priorsIndex( const int ix,
-			      const int iy,
-			      const int iz,
-			      const int iLabel ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iLabel<0) || (iLabel>=this->labelDim) ||
-	  (iLabel>=this->voxelLabelCount(ix,iy,iz) ) ) {
-	cerr << __FUNCTION__
-	     << ": Label index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int index;
-      index = ix + ( this->xDim *
-		     ( iy + ( this->yDim *
-			      ( iz + ( this->zDim *
-				       iLabel ) )
-			      ) )
-		     );
-      return( index );
-    }
-    
-
-    //! Index computation for totTraining
-    unsigned int totTrainingIndex( const int ix,
-				   const int iy,
-				   const int iz ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
 
       unsigned int index;
       index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
-      
+
       return( index );
     }
+
+    //! Index computation for 4D indices
+    inline unsigned int index4D( const int ix,
+				 const int iy,
+				 const int iz,
+				 const int iLabel ) const {
+      if( (ix<0) || (ix>=this->xDim) ||
+	  (iy<0) || (iy>=this->yDim) ||
+	  (iz<0) || (iz>=this->zDim ) ) {
+	cerr << __FUNCTION__
+	     << ": Index out of range" << endl;
+	abort();
+      }
+
+      const unsigned int idx3D = this->index3D(ix,iy,iz);
+
+      const int currOffset = this->offsets4D.at( idx3D );
+      const int nextOffset = this->offsets4D.at( idx3D + 1 );
+
+      if( (iLabel<0) || (iLabel>=(nextOffset-currOffset) ) ) {
+	cerr << __FUNCTION__
+	     << ": iLabel out of range" << endl;
+	abort();
+      }
+      
+      return( currOffset+iLabel );
+    }
+
+
 
     // =======================
 
@@ -328,19 +261,19 @@ namespace Freesurfer {
     int xDim;
     int yDim;
     int zDim;
-    short labelDim;
-    
+    unsigned int n4D;
 
     //! Count of bytes allocated
     size_t bytes;
 
-    //! Stores nlabels field of GCA_PRIOR
-    std::vector<short> nLabels;
+    //! Stores offsets of the (variable length) 4th dimensions
+    std::vector<unsigned int> offsets4D;
+
     //! Stores max_labels of GCA_PRIOR
     std::vector<short> maxLabels;
-    //! Stores labels of GCA_PRIOR (4D, bounded by labelDim and nLabels)
+    //! Stores labels of GCA_PRIOR (4D, variable length 4th dimension)
     std::vector<unsigned short> labels;
-    //! Stores priors field of GCA_PRIOR (4D, bounded by labelDim and nLabels)
+    //! Stores priors field of GCA_PRIOR (4D, variable length 4th dimension)
     std::vector<float> priors;
     //! Stores total_training field of GCA_PRIOR
     std::vector<int> totTraining;
