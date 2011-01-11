@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/01/11 19:27:19 $
- *    $Revision: 1.15 $
+ *    $Date: 2011/01/11 21:53:01 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,7 +68,7 @@ static void dump_options(FILE *fp);
 int SaveOutput(void);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_mcsim.c,v 1.15 2011/01/11 19:27:19 greve Exp $";
+static char vcid[] = "$Id: mri_mcsim.c,v 1.16 2011/01/11 21:53:01 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -96,6 +96,7 @@ char *StopFile = NULL;
 char *SaveFile = NULL;
 int SaveMask = 1;
 int UseAvgVtxArea = 0;
+int SaveEachIter = 0;
 
 CSD *csdList[100][100][3], *csd;
 MRI *mask=NULL;
@@ -362,11 +363,7 @@ int main(int argc, char *argv[]) {
     } // FWHM
     printf("\n");
     if(fpLog) fprintf(fpLog,"\n");
-    if(fio_FileExistsReadable(SaveFile)){
-      printf("Found save file %s\n",SaveFile);
-      SaveOutput();
-      unlink(SaveFile); // Delete it
-    }
+    if(SaveEachIter || fio_FileExistsReadable(SaveFile)) SaveOutput();
     if(fio_FileExistsReadable(StopFile)) {
       printf("Found stop file %s\n",StopFile);
       goto finish;
@@ -461,6 +458,12 @@ static int parse_commandline(int argc, char **argv) {
       SaveFile = pargv[0];
       nargsused = 1;
     } 
+    else if (!strcasecmp(option, "--save-iter")) {
+      SaveEachIter = 1;
+    } 
+    else if (!strcasecmp(option, "--no-save-iter")) {
+      SaveEachIter = 0;
+    } 
     else if (!strcasecmp(option, "--base")) {
       if(nargc < 1) CMDargNErr(option,1);
       csdbase = pargv[0];
@@ -551,6 +554,7 @@ static void print_usage(void) {
   printf("   --done DoneFile : will create DoneFile when finished\n");
   printf("   --stop stopfile : default is ourdir/mri_mcsim.stop \n");
   printf("   --save savefile : default is ourdir/mri_mcsim.save \n");
+  printf("   --save-iter : save output after each iteration \n");
   printf("   --debug     turn on debugging\n");
   printf("   --checkopts don't run anything, just check options and exit\n");
   printf("   --help      print out information on how to use this program\n");
@@ -649,7 +653,7 @@ int SaveOutput(void)
   FILE *fp;
 
   // Save output
-  printf("Saving results nreps = %d\n",nthRep);
+  // printf("Saving results nreps = %d\n",nthRep);
   for(nthFWHM=0; nthFWHM < nFWHMList; nthFWHM++){
     for(nthThresh = 0; nthThresh < nThreshList; nthThresh++){
       for(nthSign = 0; nthSign < nSignList; nthSign++){
