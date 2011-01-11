@@ -101,10 +101,6 @@ int main( int argc, char *argv[] ) {
   GCAwrite( origGCA, outFilename.c_str() );
   cout << "Written output file" << endl;
   
-  // =============================
-
-  myLinearNode.PrintStats();
-  myLinearPrior.PrintStats();
 
   // =============================
   // Free data
