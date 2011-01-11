@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/30 19:22:54 $
- *    $Revision: 1.28 $
+ *    $Date: 2011/01/11 20:44:50 $
+ *    $Revision: 1.29 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -146,7 +146,7 @@ static void print_version(void) ;
 static void dump_options(FILE *fp);
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_fwhm.c,v 1.28 2010/07/30 19:22:54 greve Exp $";
+static char vcid[] = "$Id: mris_fwhm.c,v 1.29 2011/01/11 20:44:50 greve Exp $";
 char *Progname = NULL;
 char *cmdline, cwd[2000];
 int debug=0;
@@ -188,7 +188,7 @@ char *ar1fname = NULL;
 int FixGroupAreaTest(MRIS *surf, char *outfile);
 char *GroupAreaTestFile = NULL;
 char *nitersfile = NULL;
-int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile);
+double DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile);
 int DHvtxno=0, DHniters=0;
 char *DHfile = NULL;
 
@@ -196,7 +196,7 @@ char *DHfile = NULL;
 /*---------------------------------------------------------------*/
 int main(int argc, char *argv[]) {
   int nargs, niters=0, Ntp, n, err;
-  double fwhm = 0, ar1mn, ar1std, ar1max, avgvtxarea,ftmp;
+  double fwhm = 0, ar1mn, ar1std, ar1max, avgvtxarea,ftmp, fwhmDH;
   double InterVertexDistAvg, InterVertexDistStdDev;
   MRI *ar1=NULL;
   FILE *fp;
@@ -385,7 +385,15 @@ int main(int argc, char *argv[]) {
       printf("ERROR: opening %s\n",datfile);
       exit(1);
     }
-    fprintf(fp,"%lf\n",fwhm);
+    fprintf(fp,"%lf ",fwhm);
+    if(infwhm>0) {
+      fprintf(fp,"%lf %d ",infwhm,niters);
+      fwhmDH = DHiters2fwhm(surf, 10000, niters, NULL);
+      fprintf(fp,"%lf ",fwhmDH);
+      fwhmDH = DHiters2fwhm(surf, 20000, niters, NULL);
+      fprintf(fp,"%lf ",fwhmDH);
+    }
+    fprintf(fp,"\n");
     fclose(fp);
   }
 
@@ -769,12 +777,12 @@ int FixGroupAreaTest(MRIS *surf, char *outfile)
   surface, then counting the area of the vertices above half the max.
   Also fits to fwhm = beta*sqrt(k) model.
 */
-int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
+double DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
 {
   int k, nhits,c;
   MRI *mri;
   double XtX, Xty, vXty, b, bv;
-  double f, fn, areasum;
+  double f, fn, areasum, fwhmRet;
   double fwhm[1000], fwhmv[1000], fn2sum[1000], fwhmdng;
   FILE *fp;
 
@@ -807,6 +815,7 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
       vXty += (fwhmv[k]*sqrt((double)(k+1)));
     }
   }
+  fwhmRet = fwhm[k-1];
 
   // Fit
   b  = Xty/XtX;
@@ -832,7 +841,8 @@ int DHiters2fwhm(MRIS *surf, int vtxno, int niters, char *outfile)
     }
     fclose(fp);
   }
-  return(0);
+
+  return(fwhmRet);
 }
 
 #if 0
