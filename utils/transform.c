@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/11/16 23:24:15 $
- *    $Revision: 1.149 $
+ *    $Author: nicks $
+ *    $Date: 2011/01/11 22:51:20 $
+ *    $Revision: 1.150 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -814,7 +814,11 @@ LTAtransformInterp(MRI *mri_src, MRI *mri_dst, LTA *lta, int interp)
           fprintf(stderr, "INFO: Modifying dst geometry, "
                   "using the transform dst\n");
         // allocate dst space (take type from src and geometry from transform):
-        mri_dst = MRIalloc(tran->dst.width, tran->dst.height, tran->dst.depth,mri_src->type) ;
+        mri_dst = MRIallocSequence(tran->dst.width,
+                                   tran->dst.height,
+                                   tran->dst.depth,
+                                   mri_src->type,
+                                   mri_src->nframes) ;
         // cp rest of header information from src:
         MRIcopyHeader(mri_src, mri_dst) ;
         // make sure the geometry is taken from the transform, not from src:
