@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/08 20:59:41 $
- *    $Revision: 1.284 $
+ *    $Date: 2011/01/11 18:23:36 $
+ *    $Revision: 1.285 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1036,7 +1036,7 @@ GCAvoxelToNodeNearest(GCA *gca, MRI *mri, int xv, int yv, int zv, int *pxn,
 ////////////////////////////////////////////////////////////////////
 // transform from template -> prior
 ////////////////////////////////////////////////////////////////////
-int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
+int GCAvoxelToPriorReal( const GCA *gca, const MRI *mri,
 			 const double xv, const double yv, const double zv,
 			 double *pxp, double *pyp, double *pzp )
 {
@@ -1079,7 +1079,7 @@ int GCAvoxelToPriorReal( GCA *gca, const MRI *mri,
 }
 
 int
-GCAvoxelToPrior( GCA *gca, const MRI *mri,
+GCAvoxelToPrior( const GCA *gca, const MRI *mri,
 		 const int xv, const int yv, const int zv,
 		 int *pxp, int *pyp, int *pzp )
 {
@@ -1242,8 +1242,9 @@ GCApriorToVoxel(GCA *gca, MRI *mri, int xp, int yp, int zp,
 // transform from source -> template space -> prior
 //////////////////////////////////////////////////////////////////////
 int
-GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
-                      int xv, int yv, int zv, int *pxp, int *pyp, int *pzp)
+GCAsourceVoxelToPrior( const GCA *gca, MRI *mri, TRANSFORM *transform,
+		       int xv, int yv, int zv,
+		       int *pxp, int *pyp, int *pzp )
 {
   float   xt, yt, zt ;
   double    xrt, yrt, zrt;
@@ -1261,7 +1262,7 @@ GCAsourceVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
       /*!
 	@BUGS
 	This is strange - a downcast from double to float,
-	when the next stop for these variables is a
+	when the next step for these variables is a
 	call to GCAvoxelToPrior, which will immediately
 	convert them to int
       */
@@ -1354,7 +1355,7 @@ GCAsourceFloatVoxelToPrior(GCA *gca, MRI *mri, TRANSFORM *transform,
 // transform from source -> template space -> prior
 /////////////////////////////////////////////////////////////////////
 int
-GCAsourceVoxelToNode(GCA *gca, MRI *mri, TRANSFORM *transform,
+GCAsourceVoxelToNode( const GCA *gca, MRI *mri, TRANSFORM *transform,
                      int xv, int yv, int zv,
                      int *pxn, int *pyn, int *pzn)
 {
@@ -8221,8 +8222,8 @@ MRI *
 GCAbuildMostLikelyVolume(GCA *gca, MRI *mri)
 {
   int       x,  y, z, xn, yn, zn, width, depth, height, n, xp, yp, zp, r ;
-  GCA_NODE  *gcan ;
-  GCA_PRIOR *gcap ;
+  const GCA_NODE  *gcan ;
+  const GCA_PRIOR *gcap ;
   double    max_prior ;
   int       max_label ;
   GC1D      *gc_max ;
@@ -20118,16 +20119,19 @@ GCAmaxLabel(GCA *gca)
 
 
 MRI *
-GCAbuildMostLikelyVolumeForStructure(GCA *gca, MRI *mri, int label, int border,
-                                     TRANSFORM *transform, MRI *mri_labels)
+GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
+				      MRI *mri,
+				      int label, int border,
+				      TRANSFORM *transform, 
+				      MRI *mri_labels)
 {
   int              x,  y, z, xn, yn, zn, width, depth, height, 
     n, xp, yp, zp, r ;
-  GCA_NODE         *gcan ;
-  GCA_PRIOR        *gcap ;
+  const GCA_NODE         *gcan ;
+  const GCA_PRIOR        *gcap ;
   double           max_prior ;
   int              max_label ;
-  GC1D             *gc_max ;
+  const GC1D             *gc_max ;
   MRI              *mri_tmp ;
   MRI_SEGMENTATION *mriseg ;
   int              free_transform = 0 ;
