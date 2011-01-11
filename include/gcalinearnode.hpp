@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/05 18:25:30 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/01/11 20:56:18 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -40,502 +40,285 @@ namespace Freesurfer {
   class GCAlinearNode {
   public:
     GCAlinearNode( void ) : xDim(0), yDim(0), zDim(0),
-			    gc1dDim(0), gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
-			    gc1dLabelDim(0),
-			    nGC1Dnode(), maxLabelsNode(), totTrainNode(),
+			    n4D(0), n5D(0), n6D(0),
+			    gc1dNeighbourDim(GIBBS_NEIGHBORHOOD),
+			    offsets4D(), offsets5D(), offsets6D(),
+			    nodeMaxLabels(),
+			    nodeTotalTraining(),
 			    nodeLabels(),
 			    means(), variances(),
-			    nJustPriors(),
-			    nTraining(),
-			    regularised(),
-			    nLabelsGC1D(),
-			    gc1dDirecLabels(), gc1dDirecLabelPriors(),
-			    bytes(0), tExhume(), tInhume() {};
+			    nJustPriors(), nTraining(), regularised(),
+			    gc1dDirecLabelPriors(),
+			    gc1dDirecLabels(),
+			    tExhume(), tInhume() {};
 
    
    
 
     // -------------------------------------------------
+    // 3D data access
 
+    //! Accessor for nodeMaxLabels
+    inline int maxLabels( const int ix, const int iy, const int iz ) const {
+      unsigned int idx = this->index3D(ix,iy,iz);
 
-    // -------------------------------------------------
-
-
-    //! Accessor for nGC1Dnode array
-    int& gc1dCount( const int ix, const int iy, const int iz ) {
-      /*!
-	The nGC1Dnode array holds per voxel data - the number
-	of GC1D's (and also labels) hanging off each voxel.
-       */
-
-      unsigned int index = this->gc1dCountIndex(ix,iy,iz);
-
-      return( this->nGC1Dnode.at(index) );
+      return( this->nodeMaxLabels.at(idx) );
     }
 
+    //! Mutator for nodeMaxLabels
+    inline int& maxLabels( const int ix, const int iy, const int iz ) {
+      unsigned int idx = this->index3D(ix,iy,iz);
 
-    //! Const accessor for nGC1Dnode array
-    int gc1dCount( const int ix, const int iy, const int iz ) const {
-      /*!
-	The nGC1Dnode array holds per voxel data - the number
-	of GC1D's (and also labels) hanging off each voxel.
-       */
-      unsigned int index = this->gc1dCountIndex(ix,iy,iz);
-
-      return( this->nGC1Dnode.at(index) );
+      return( this->nodeMaxLabels.at(idx) );
     }
 
-    // ---
+    // --------------
 
-    //! Accessor for maxLabelsNode array
-    int& maxLabels( const int ix, const int iy, const int iz ) {
-      /*!
-	The maxLabels array holds per voxel data 
-      */
-
-      unsigned int index = this->maxLabelsIndex(ix,iy,iz);
-
-      return( this->maxLabelsNode.at(index) );
-    }
-
-    //! Const accessor for maxLabelsNode array
-    int maxLabels( const int ix, const int iy, const int iz ) const {
-      /*!
-	The maxLabels array holds per voxel data 
-      */
-
-      unsigned int index = this->maxLabelsIndex(ix,iy,iz);
-
-      return( this->maxLabelsNode.at(index) );
-    }
-    
-
-    // ---
-
-    //! Accessor for totTrainNode array
-    int& totalTraining( const int ix, const int iy, const int iz ) {
-      /*!
-	The totTrainNode array holds per voxel data 
-      */
-
-      unsigned int index = this->totalTrainingIndex(ix,iy,iz);
-
-      return( this->totTrainNode.at(index) );
-    }
-
-    //! Const accessor for totTrainNode array
-    int totalTraining( const int ix, const int iy, const int iz ) const {
-      /*!
-	The totTrainNode array holds per voxel data 
-      */
-
-      unsigned int index = this->totalTrainingIndex(ix,iy,iz);
-
-      return( this->totTrainNode.at(index) );
-    }
-
-
-    // ---
-
-    
-    //! Accessor for nodeLabels array
-    unsigned short& labelsAtNode( const int ix,
-				  const int iy,
-				  const int iz,
-				  const int iGC1D ) {
-      /*!
-	The nodeLabels array is 4D.
-	From each voxel there is a linear array, with a
-	number of entries given by the corresponding
-	voxel in the nGC1Dnode array.
-      */
-      
-      unsigned int idx;
-      idx = this->labelsAtNodeIndex(ix,iy,iz,iGC1D);
-
-      return( this->nodeLabels.at(idx) );
-    }
-    
-    //! Const accessor for nodeLabels array
-    unsigned short labelsAtNode( const int ix,
-				 const int iy,
-				 const int iz,
-				 const int iGC1D ) const {
-      /*!
-	The nodeLabels array is 4D.
-	From each voxel there is a linear array, with a
-	number of entries given by the corresponding
-	voxel in the nGC1Dnode array.
-      */
-      unsigned int idx;
-      idx = this->labelsAtNodeIndex(ix,iy,iz,iGC1D);
-
-      return( this->nodeLabels.at(idx) );
-    }
-
-    // ---
-
-
-    //! Accessor for the means array
-    float& meansAtNodeGC1D( const int ix,
-			    const int iy,
-			    const int iz,
-			    const int iGC1D ) {
-      /*!
-	The means array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a mean associated with
-	it.
-	Remember that we are assuming that ninputs==1.
-      */
-      unsigned int idx;
-      
-      idx = this->meansAtNodeGC1Dindex(ix,iy,iz,iGC1D);
-      
-      return( this->means.at(idx) );
-    }
-
-
-    //! Const accessor for the means array
-    float meansAtNodeGC1D( const int ix,
-			   const int iy,
-			   const int iz,
-			   const int iGC1D ) const {
-      /*!
-	The means array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a mean associated with
-	it.
-	Remember that we are assuming that ninputs==1.
-      */
-      unsigned int idx;
-      
-      idx = this->meansAtNodeGC1Dindex(ix,iy,iz,iGC1D);
-      
-      return( this->means.at(idx) );
-    }
-
-
-    
-    // ---
-
-
-
-    //! Accessor for the variances array
-    float& variancesAtNodeGC1D( const int ix,
-				const int iy,
-				const int iz,
-				const int iGC1D ) {
-      /*!
-	The variances array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a mean and variance
-	associated with it.
-	Remember that we are assuming that ninputs==1,
-	so the covariance matrix is just a single
-	variance.
-      */
-      
-      unsigned int idx;
-      
-      idx = this->variancesAtNodeGC1Dindex(ix,iy,iz,iGC1D);
-
-      return( this->variances.at(idx) );
-    }
-
-
-    //! Accessor for the variances array
-    float variancesAtNodeGC1D( const int ix,
-			       const int iy,
-			       const int iz,
-			       const int iGC1D ) const {
-      /*!
-	The variances array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a mean and variance
-	associated with it.
-	Remember that we are assuming that ninputs==1,
-	so the covariance matrix is just a single
-	variance.
-      */
-      
-      unsigned int idx;
-      
-      idx = this->variancesAtNodeGC1Dindex(ix,iy,iz,iGC1D);
-
-      return( this->variances.at(idx) );
-    }
-
-
-    // ---
-
-
-    //! Accessor for the nJustPriors array
-    short& nJustPriorsAtNodeGC1D( const int ix,
-				  const int iy,
-				  const int iz,
-				  const int iGC1D ) {
-      /*!
-	The nJustPriors array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has an n_just_priors value
-	associated with it.
-      */
-      
-      unsigned int idx;
-      
-      idx = this->nJustPriorsAtNodeGC1Dindex(ix,iy,iz,iGC1D);
-
-      return( this->nJustPriors.at(idx) );
-    }
-
-    //! Const accessor for the nJustPriors array
-    short nJustPriorsAtNodeGC1D( const int ix,
-				 const int iy,
-				 const int iz,
-				 const int iGC1D ) const {
-      /*!
-	The nJustPriors array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has an n_just_priors value
-	associated with it.
-      */
-      
-      unsigned int idx;
-      
-      idx = this->nJustPriorsAtNodeGC1Dindex(ix,iy,iz,iGC1D);
-
-      return( this->nJustPriors.at(idx) );
-    }
-
-    // ---
-
-
-    //! Accessor for the nTraining array
-    int& nTrainingAtNodeGC1D( const int ix,
+    //! Accessor for nodeTotalTraining
+    inline int totalTraining( const int ix,
 			      const int iy,
-			      const int iz,
-			      const int iGC1D ) {
-      /*!
-	The nTraining array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has an ntraining value
-	associated with it.
-      */
-      
-      unsigned int idx;
-      
-      idx = this->nTrainingAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+			      const int iz ) const {
+      unsigned int idx = this->index3D(ix,iy,iz);
 
-      return( this->nTraining.at(idx) );
+      return( this->nodeTotalTraining.at(idx) );
     }
 
-     //! Const accessor for the nTraining array
-    int nTrainingAtNodeGC1D( const int ix,
-			     const int iy,
-			     const int iz,
-			     const int iGC1D ) const {
-      /*!
-	The nTraining array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has an ntraining value
-	associated with it.
-      */
+    //! Mutator for nodeTotalTraining
+    inline int& totalTraining( const int ix,
+			       const int iy,
+			       const int iz ) {
+      unsigned int idx = this->index3D(ix,iy,iz);
       
-      unsigned int idx;
-      
-      idx = this->nTrainingAtNodeGC1Dindex(ix,iy,iz,iGC1D);
-
-      return( this->nTraining.at(idx) );
+      return( this->nodeTotalTraining.at(idx) );
     }
 
+    // -------------------------------------------------
 
-    // ---
 
-    //! Accessor for the regularised array
-    char& regularisedAtNodeGC1D( const int ix,
-				 const int iy,
-				 const int iz,
-				 const int iGC1D ) {
+    //! Dynamic computation of gc1dCount
+    inline int gc1dCount( const int ix,
+			  const int iy,
+			  const int iz ) const {
       /*!
-	The regularised array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has an regularized value
-	associated with it.
+	This is computed as the difference between
+	consecutive entries of the offsets4D array
       */
-      
-      unsigned int idx;
-      
-      idx = this->regularisedAtNodeGC1Dindex(ix,iy,iz,iGC1D);
+      const int idx3D = this->index3D(ix,iy,iz);
 
-      return( this->regularised.at(idx) );
-    }
+      int currOffset = this->offsets4D.at( idx3D );
+      int nextOffset = this->offsets4D.at( idx3D+1 );
 
-    //! Const accessor for the regularised array
-    char regularisedAtNodeGC1D( const int ix,
-				const int iy,
-				const int iz,
-				const int iGC1D ) const {
-      /*!
-	The regularised array is 4D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has an regularized value
-	associated with it.
-      */
-      
-      unsigned int idx;
-      
-      idx = this->regularisedAtNodeGC1Dindex(ix,iy,iz,iGC1D);
-
-      return( this->regularised.at(idx) );
+      return( nextOffset - currOffset );
     }
 
 
+    // -------------------------------------------------
+    // 4D data access
+    
+    //! Accessor for nodeLabels
+    inline unsigned short labelsAtNode( const int ix,
+					const int iy,
+					const int iz,
+					const int iGC1D ) const {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
 
-    // ---
-
-
-    //! Accessor for the nLabelsGC1D array
-    short& nLabelsAtNodeGC1Ddirection( const int ix,
-				       const int iy,
-				       const int iz,
-				       const int iGC1D,
-				       const int iDirec ) {
-      /*!
-	The nLabelsGC1D array is 5-D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a label and label prior
-	array hanging off it in each of six directions.
-	The nLabelsGC1D array holds the length of these
-	arrays in each direction
-      */
-
-      unsigned int idx;
-      
-      idx = this->nLabelsAtNodeGC1DdirectionIndex(ix,iy,iz,iGC1D,iDirec);
-      return( this->nLabelsGC1D.at(idx) );
+      return( this->nodeLabels.at(idx) );
     }
 
+    //! Mutator for nodeLabels
+    inline unsigned short& labelsAtNode( const int ix,
+					 const int iy,
+					 const int iz,
+					 const int iGC1D ) {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
 
+      return( this->nodeLabels.at(idx) );
+    }
 
-    //! Const accessor for the nLabelsGC1D array
-    short nLabelsAtNodeGC1Ddirection( const int ix,
+    // --
+
+    //! Accessor for means
+    inline float meansAtNodeGC1D( const int ix,
+				  const int iy,
+				  const int iz,
+				  const int iGC1D ) const {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+
+      return( this->means.at(idx) );
+    }
+
+    //! Mutator for means
+    inline float& meansAtNodeGC1D( const int ix,
+				   const int iy,
+				   const int iz,
+				   const int iGC1D ) {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+
+      return( this->means.at(idx) );
+    }
+
+    // --
+
+    //! Accessor for variances
+    inline float variancesAtNodeGC1D( const int ix,
 				      const int iy,
 				      const int iz,
-				      const int iGC1D,
-				      const int iDirec ) const {
-      /*!
-	The nLabelsGC1D array is 5-D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a label and label prior
-	array hanging off it in each of six directions.
-	The nLabelsGC1D array holds the length of these
-	arrays in each direction
-      */
+				      const int iGC1D ) const {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
 
-      unsigned int idx;
+      return( this->variances.at(idx) );
+    }
+
+    //! Mutator for variances
+    inline float& variancesAtNodeGC1D( const int ix,
+				       const int iy,
+				       const int iz,
+				       const int iGC1D ) {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+
+      return( this->variances.at(idx) );
+    }
+
+    // --
+
+    //! Accessor for nJustPriors
+    inline short nJustPriorsAtNodeGC1D( const int ix,
+					const int iy,
+					const int iz,
+					const int iGC1D ) const {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+
+      return( this->nJustPriors.at(idx) );
+    }
+
+    //! Mutator for nJustPriors
+    inline short& nJustPriorsAtNodeGC1D( const int ix,
+					 const int iy,
+					 const int iz,
+					 const int iGC1D ) {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+
+      return( this->nJustPriors.at(idx) );
+    }
+
+    // --
+
+    //! Accessor for nTraining
+    inline int nTrainingAtNodeGC1D( const int ix,
+				    const int iy,
+				    const int iz,
+				    const int iGC1D ) const {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+
+      return( this->nTraining.at(idx) );
+    }
+
+    //! Mutator for nTraining
+    inline int& nTrainingAtNodeGC1D( const int ix,
+				     const int iy,
+				     const int iz,
+				     const int iGC1D ) {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
       
-      idx = this->nLabelsAtNodeGC1DdirectionIndex(ix,iy,iz,iGC1D,iDirec);
-      return( this->nLabelsGC1D.at(idx) );
+      return( this->nTraining.at(idx) );
     }
 
+    // --
 
-    // ---
+    //! Accessor for regularised
+    inline char regularisedAtNodeGC1D( const int ix,
+				       const int iy,
+				       const int iz,
+				       const int iGC1D ) const {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
 
-
-
-    //! Accessor for gc1dDirecLabels array
-    unsigned short& labelsAtNodeGC1Ddirection( const int ix,
-					       const int iy,
-					       const int iz,
-					       const int iGC1D,
-					       const int iDirec,
-					       const int iLabel ) {
-      /*!
-	The gc1dDirecLabels array is 6D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a label and label prior
-	array hanging off it in each of six directions.
-	This is the accessor for the labels themselves
-      */
-
-      unsigned int idx;
-      idx = this->labelsAtNodeGC1DdirectionIndex(ix,iy,iz,iGC1D,iDirec,iLabel);
-      return( this->gc1dDirecLabels.at(idx) );
+      return( this->regularised.at(idx) );
     }
 
-
-    //! Const accessor for gc1dDirecLabels array
-    unsigned short labelsAtNodeGC1Ddirection( const int ix,
-					      const int iy,
-					      const int iz,
-					      const int iGC1D,
-					      const int iDirec,
-					      const int iLabel ) const {
-      /*!
-	The gc1dDirecLabels array is 6D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a label and label prior
-	array hanging off it in each of six directions.
-	This is the accessor for the labels themselves
-      */
-      unsigned int idx;
-      idx = this->labelsAtNodeGC1DdirectionIndex(ix,iy,iz,iGC1D,iDirec,iLabel);
-      return( this->gc1dDirecLabels.at(idx) );
+    //! Mutator for regularised
+    inline char& regularisedAtNodeGC1D( const int ix,
+					const int iy,
+					const int iz,
+					const int iGC1D ) {
+      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      
+      return( this->regularised.at(idx) );
     }
 
+    // -------------------------------------------------
 
-    // ---
-    
 
-    //! Accessor for gc1dDirecLabelPriors array
-    float& labelPriorsAtNodeGC1Ddirection( const int ix,
+    //! Dynamic computation of nLabelsAtNodeGC1Ddirection
+    inline int nLabelsAtNodeGC1Ddirection( const int ix,
 					   const int iy,
 					   const int iz,
 					   const int iGC1D,
-					   const int iDirec,
-					   const int iLabel ) {
+					   const int iDirec ) const {
       /*!
-	The gc1dDirecLabels array is 6D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a label and label prior
-	array hanging off it in each of six directions.
-	This is the accessor for the labels themselves
+	This is computed as the difference between
+	consecutive entries of the offsets6D array
       */
+      const unsigned int idx5D = this->index5D(ix,iy,iz,iGC1D,iDirec);
 
-      unsigned int idx;
-      idx = this->labelPriorsAtNodeGC1DdirectionIndex( ix, iy, iz,
-						       iGC1D,
-						       iDirec,
-						       iLabel );
+      int currOffset = this->offsets6D.at( idx5D );
+      int nextOffset = this->offsets6D.at( idx5D+1 );
+
+      return( nextOffset - currOffset );
+    }
+
+    // -------------------------------------------------
+    // 6D data access
+
+
+    //! Accesor for gc1dDirecLabelPriors
+    inline float labelPriorsAtNodeGC1Ddirection( const int ix,
+						 const int iy,
+						 const int iz,
+						 const int iGC1D,
+						 const int iDirec,
+						 const int iLabel ) const {
+      const unsigned int idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
+
+      return( this->gc1dDirecLabelPriors.at(idx) );
+    }
+
+    //! Mutator for gc1dDirecLabelPriors
+    inline float& labelPriorsAtNodeGC1Ddirection( const int ix,
+						  const int iy,
+						  const int iz,
+						  const int iGC1D,
+						  const int iDirec,
+						  const int iLabel ) {
+      const unsigned int idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
+
+      return( this->gc1dDirecLabelPriors.at(idx) );
+    }
+
+    // --
+
+    //! Accessor for gc1dDirecLabels
+    inline unsigned short labelsAtNodeGC1Ddirection( const int ix,
+						     const int iy,
+						     const int iz,
+						     const int iGC1D,
+						     const int iDirec,
+						     const int iLabel ) const {
+      const unsigned int idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
       
-      return( this->gc1dDirecLabelPriors.at(idx) );
+      return( this->gc1dDirecLabels.at(idx) );
     }
-
-
-    //! Const accessor for gc1dDirecLabelPriors array
-    float labelPriorsAtNodeGC1Ddirection( const int ix,
-					  const int iy,
-					  const int iz,
-					  const int iGC1D,
-					  const int iDirec,
-					  const int iLabel ) const {
-      /*!
-	The gc1dDirecLabels array is 6D.
-	For each voxel, there is an array of GC1Ds,
-	and each of these has a label and label prior
-	array hanging off it in each of six directions.
-	This is the accessor for the labels themselves
-      */
-      unsigned int idx;
-      idx = this->labelPriorsAtNodeGC1DdirectionIndex( ix, iy, iz,
-						       iGC1D,
-						       iDirec,
-						       iLabel );
-
-      return( this->gc1dDirecLabelPriors.at(idx) );
+    
+    //! Mutator for gc1dDirecLabels
+    inline unsigned short& labelsAtNodeGC1Ddirection( const int ix,
+						      const int iy,
+						      const int iz,
+						      const int iGC1D,
+						      const int iDirec,
+						      const int iLabel ) {
+      const unsigned int idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
+      
+      return( this->gc1dDirecLabels.at(idx) );
     }
-
 
     // -------------------------------------------------
 
@@ -548,10 +331,6 @@ namespace Freesurfer {
     //! Method to remove nodes from a GCA prior to inhumation of new data
     void ScorchNodes( GCA* targ ) const;
 
-    // -------------------------------------------------
-
-    //! Method to print out statistics & timers
-    void PrintStats( std::ostream& os = std::cout ) const ;
 
     // -------------------------------------------------
   private:
@@ -560,44 +339,48 @@ namespace Freesurfer {
     int xDim;
     int yDim;
     int zDim;
-    int gc1dDim;
+    unsigned int n4D;
+    unsigned int n5D;
+    unsigned int n6D;
     const int gc1dNeighbourDim;
-    int gc1dLabelDim;
+    
 
-    //! Stores number of GC1D hanging off each node (nlabels in GCA_NODE)
-    std::vector<int> nGC1Dnode;
+    //! Stores offsets of (variable length) 4th dimension
+    std::vector<unsigned int> offsets4D;
 
-    //! Stores max_labels in each node
-    std::vector<int> maxLabelsNode;
+    //! Stores offsets of 5th dimension (5th dim itself always of length gc1dNeighbourDim)
+    std::vector<unsigned int> offsets5D;
 
-    //! Stores total_training in each node
-    std::vector<int> totTrainNode;
+    //! Stores offsets of (variable length) 6th dimension
+    std::vector<unsigned int> offsets6D;
 
-    //! Stores the labels for the node (4D, controlled via gca1dDim and gc1dCount)
+
+    //! Stores the value of max_labels for each node (3D)
+    std::vector<int> nodeMaxLabels;
+    //! Stores value of total_training for each node (3D)
+    std::vector<int> nodeTotalTraining;
+
+    
+    //! Stores a list of labels for each node (4D)
     std::vector<unsigned short> nodeLabels;
 
-    //! Stores the means for each GC1D of the node (4-D)
+    //! Stores the mean for each GC1D of each node (4D)
     std::vector<float> means;
-    //! Stores the variances for each GC1D of the node
+    //! Stores the variance for each GC1D of each node (4D)
     std::vector<float> variances;
-
-    //! Stores n_just_priors for each GC1D of the node (4D)
+    //! Stores n_just_priors for each GC1D of each node (4D)
     std::vector<short> nJustPriors;
-
-    //! Stores ntraining for each GC1D of the node (4D)
+    //! Stores ntraining for each GC1D of each node (4D)
     std::vector<int> nTraining;
-
-    //! Stores the 'regularizied' member for each GC1D of the node (4D)
+    //! Stores regularized for each GC1D of each node (4D)
     std::vector<char> regularised;
+    
 
-    //! Stores the number of labels for each direction for each GC1D (5D)
-    std::vector<short> nLabelsGC1D;
-
-    //! Stores the labels for each direction of each GC1D (6D)
+    //! Stores label_priors for each direction of each GC1D of each node (6D)
+    std::vector<float> gc1dDirecLabelPriors;
+    //! Stores labels for each direction of each GC1D of each node (6D)
     std::vector<unsigned short> gc1dDirecLabels;
 
-    //! Stores the label priors for each direction of each GC1D (6D)
-    std::vector<float> gc1dDirecLabelPriors;
 
     // -------------------------------------------------
 
@@ -608,9 +391,6 @@ namespace Freesurfer {
     void Allocate( void );
 
     // -------------------------------------------------
-    
-    //! Total size of the allocated arrays
-    size_t bytes;
 
     //! Timer for exhumation
     mutable SciGPU::Utilities::Chronometer tExhume;
@@ -619,8 +399,8 @@ namespace Freesurfer {
     
     // -------------------------------------------------
 
-    //! Index computation for gc1dCount
-    unsigned int gc1dCountIndex( const int ix,
+    //! Index computation for 3D matrices
+    inline unsigned int index3D( const int ix,
 				 const int iy,
 				 const int iz ) const {
       if( (ix<0) || (ix>=this->xDim) ||
@@ -628,7 +408,7 @@ namespace Freesurfer {
 	  (iz<0) || (iz>=this->zDim ) ) {
 	cerr << __FUNCTION__
 	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
 
       unsigned int index;
@@ -637,388 +417,126 @@ namespace Freesurfer {
       return( index );
     }
 
-    // ---
-
-    //! Index computation for maxLabels
-    unsigned int maxLabelsIndex( const int ix,
+    //! Index computation for 4D arrays
+    inline unsigned int index4D( const int ix,
 				 const int iy,
-				 const int iz ) const {
+				 const int iz,
+				 const int iGC1D ) const {
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
 	cerr << __FUNCTION__
 	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
-      
-      unsigned int index;
-      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
-      
-      return( index );
+
+      const unsigned int idx3D = this->index3D(ix,iy,iz);
+
+      const int currOffset = this->offsets4D.at( idx3D );
+      const int nextOffset = this->offsets4D.at( idx3D + 1 );
+
+      if( (iGC1D<0) || (iGC1D>=(nextOffset-currOffset) ) ) {
+	std::cerr << __FUNCTION__
+		  << ": iGC1D out of range" << std::endl;
+	abort();
+      }
+
+      return( currOffset + iGC1D );
     }
+    
 
-    // ---
-
-    //! Index computation for total training
-    unsigned int totalTrainingIndex( const int ix,
-				     const int iy,
-				     const int iz ) const {
+    //! Index computation for 5D arrays
+    inline unsigned int index5D( const int ix,
+				 const int iy,
+				 const int iz,
+				 const int iGC1D,
+				 const int iDirec ) const {
+      /*!
+	No actual 5D arrays exist in the class, since nlabels in GC1D
+	can be dynamically computed.
+	However, the Exhume method does have a 5D temporary
+	to generate the 6D offset array
+      */
+      
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
 	cerr << __FUNCTION__
 	     << ": Index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int index;
-      index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
-      
-      return( index );
-    }
-    
-
-    // ---
-
-    //! Index computation for labelsAtNode
-    unsigned int labelsAtNodeIndex( const int ix,
-				    const int iy,
-				    const int iz,
-				    const int iGC1D ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
+	abort();
       }
 
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
+      const unsigned int idx3D = this->index3D(ix,iy,iz);
 
-      unsigned int idx;
+      const int currGC1dOffset = this->offsets4D.at( idx3D );
+      const int nextGC1dOffset = this->offsets4D.at( idx3D + 1 );
 
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
-      
-      return(idx);
-    }
-
-    
-    // ---
-
-    //! Index computation for meansAtNodeGC1D
-    unsigned int meansAtNodeGC1Dindex( const int ix,
-				       const int iy,
-				       const int iz,
-				       const int iGC1D ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
+      if( (iGC1D<0) || (iGC1D>=(nextGC1dOffset-currGC1dOffset) ) ) {
+	std::cerr << __FUNCTION__
+		  << ": iGC1D out of range" << std::endl;
+	abort();
       }
       
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
+      const int currOffset = this->offsets5D.at( currGC1dOffset+iGC1D );
+      const int nextOffset = this->offsets5D.at( currGC1dOffset+iGC1D+1 );
 
-      return( idx );
-    }
-
-    // ---
-
-    //! Index computation for variancesAtNodeGC1D
-    unsigned int variancesAtNodeGC1Dindex( const int ix,
-					   const int iy,
-					   const int iz,
-					   const int iGC1D ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
+      if( (iDirec<0) || (iDirec>=(nextOffset-currOffset) ) ) {
+	std::cerr << __FUNCTION__
+		  << ": iDirec out of range" << std::endl;
+	abort();
       }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
-      
-      return( idx );
-    }
 
-    
-    // ---
-
-    //! Index computation for nJustPriorsAtNodeGC1D
-    unsigned int nJustPriorsAtNodeGC1Dindex( const int ix,
-					     const int iy,
-					     const int iz,
-					     const int iGC1D ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
-      
-      return( idx );
+      return( currOffset + iDirec );
     }
       
-
-
-    // ---
-
-    //! Index computation for nTrainingAtNodeGC1D
-    unsigned int nTrainingAtNodeGC1Dindex( const int ix,
-					   const int iy,
-					   const int iz,
-					   const int iGC1D ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
+  
       
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
-      
-      return( idx );
-    }
-
-    // ---
-
-    //! Index computation for regularisedAtNodeGC1D
-    unsigned int regularisedAtNodeGC1Dindex( const int ix,
-					     const int iy,
-					     const int iz,
-					     const int iGC1D ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim * iGC1D ) ) ) ) );
-      
-      return( idx );
-    }
-
-
-    
-    // ---
-
-    //! Index computation for nLabelsAtNodeGC1Ddirection
-    unsigned int nLabelsAtNodeGC1DdirectionIndex( const int ix,
-						  const int iy,
-						  const int iz,
-						  const int iGC1D,
-						  const int iDirec ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
-	cerr << __FUNCTION__
-	     << ": iDirec index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim *
-				     ( iGC1D + ( this->gc1dDim *
-						 iDirec ) )
-				     ) )
-			    ) )
-		   );
-      
-      return( idx );
-    }
-
-    // ---
-
-    //! Index computation for labelsAtNodeGC1Ddirection
-    unsigned int labelsAtNodeGC1DdirectionIndex( const int ix,
-						 const int iy,
-						 const int iz,
-						 const int iGC1D,
-						 const int iDirec,
-						 const int iLabel ) const {
-      if( (ix<0) || (ix>=this->xDim) ||
-	  (iy<0) || (iy>=this->yDim) ||
-	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
-	cerr << __FUNCTION__
-	     << ": iDirec index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      if( (iLabel<0) || (iLabel>=this->gc1dLabelDim) ||
-	  (iLabel>=this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) ) ) {
-	cerr << __FUNCTION__
-	     << ": iLabel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-
-      unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim *
-				     ( iGC1D + ( this->gc1dDim *
-						 ( iDirec + ( this->gc1dNeighbourDim *
-							      iLabel ) )
-						 ) )
-				     ) )
-			    ) )
-		   );
-
-
-      return( idx );
-    }
-
-    // ---
-
-    //! Index computation for labelPriorsAtNodeGC1Ddirection
-    unsigned int labelPriorsAtNodeGC1DdirectionIndex( const int ix,
-						      const int iy,
-						      const int iz,
-						      const int iGC1D,
-						      const int iDirec,
-						      const int iLabel ) const {
+    //! Index computation for 6D arrays
+    inline unsigned int index6D( const int ix,
+				 const int iy,
+				 const int iz,
+				 const int iGC1D,
+				 const int iDirec,
+				 const int iLabel ) const {
 
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
 	cerr << __FUNCTION__
-	     << ": Voxel index out of range" << endl;
-	exit( EXIT_FAILURE );
+	     << ": Index out of range" << endl;
+	abort();
       }
-      
-      if( (iGC1D<0) || (iGC1D>=this->gc1dDim) ||
-	  (iGC1D >= this->gc1dCount(ix,iy,iz)) ) {
-	cerr << __FUNCTION__
-	     << ": GC1D index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iDirec<0) || (iDirec>=this->gc1dNeighbourDim) ) {
-	cerr << __FUNCTION__
-	     << ": iDirec index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      if( (iLabel<0) || (iLabel>=this->gc1dLabelDim) ||
-	  (iLabel>=this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) ) ) {
-	cerr << __FUNCTION__
-	     << ": iLabel index out of range" << endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      unsigned int idx;
-      
-      idx = ix + ( this->xDim *
-		   ( iy + ( this->yDim *
-			    ( iz + ( this->zDim *
-				     ( iGC1D + ( this->gc1dDim *
-						 ( iDirec + ( this->gc1dNeighbourDim *
-							      iLabel ) )
-						 ) )
-				     ) )
-			    ) )
-		   );
 
-      return( idx );
+      const unsigned int idx3D = this->index3D(ix,iy,iz);
+
+      const int currgc1DOffset = this->offsets4D.at( idx3D );
+      const int nextgc1DOffset = this->offsets4D.at( idx3D + 1 );
+
+      if( (iGC1D<0) || (iGC1D>=(nextgc1DOffset-currgc1DOffset) ) ) {
+	std::cerr << __FUNCTION__
+		  << ": iGC1D outof range" << std::endl;
+	abort();
+      }
+
+      const int currDirecOffset = this->offsets5D.at( currgc1DOffset+iGC1D );
+      const int nextDirecOffset = this->offsets5D.at( currgc1DOffset+iGC1D+1 );
+      
+      if( (iDirec<0) || (iDirec>=(nextDirecOffset-currDirecOffset) ) ) {
+	std::cerr << __FUNCTION__
+		  << ": iDirec out of range" << std::endl;
+	abort();
+      }
+
+      const int currOffset = this->offsets6D.at( currDirecOffset+iDirec );
+      const int nextOffset = this->offsets6D.at( currDirecOffset+iDirec+1 );
+
+      if( (iLabel<0) || (iLabel>=(nextOffset-currOffset)) ) {
+	std::cerr << __FUNCTION__
+		  << ": iLabel out of range" << std::endl;
+	abort();
+      }
+      
+      return( currOffset + iLabel );
     }
 
   };

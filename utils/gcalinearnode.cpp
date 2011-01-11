@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/08/10 18:55:44 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/01/11 20:56:21 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,8 @@
 #include <iomanip>
 #include <cstdlib>
 #include <limits>
+#include <numeric>
+#include <algorithm>
 using namespace std;
 
 
@@ -50,19 +52,48 @@ namespace Freesurfer {
     this->ExtractDims( src );
     this->Allocate();
 
+    // Array to hold label count at each node
+    vector<unsigned int> nLabelsNode( this->nodeTotalTraining.size(),
+				      numeric_limits<unsigned int>::max() );
+
+
+    // Handle the 3D data
     for( int ix=0; ix<this->xDim; ix++ ) {
       for( int iy=0; iy<this->yDim; iy++ ) {
 	for( int iz=0; iz<this->zDim; iz++ ) {
 	  const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
 
-	  this->gc1dCount(ix,iy,iz) = gcan->nlabels;
+	  nLabelsNode.at( this->index3D(ix,iy,iz) ) = gcan->nlabels;
 
-	  
-	  this->maxLabels(ix,iy,iz) = gcan->max_labels;
 	  this->totalTraining(ix,iy,iz) = gcan->total_training;
+	  this->maxLabels(ix,iy,iz) = gcan->max_labels;
+	  
+
+	}
+      }
+    }
+
+    // Compute 4D offsets
+    this->offsets4D.at(0) = 0;
+    std::partial_sum( nLabelsNode.begin(), nLabelsNode.end(),
+		      ++(this->offsets4D.begin()) );
+    
+
+    // Array to hold directions for each GC1D
+    vector<unsigned int> nDirecAtGC1D( this->n4D,
+				       numeric_limits<unsigned int>::max() );
+
+    // Handle the 4D data
+    for( int ix=0; ix<this->xDim; ix++ ) {
+      for( int iy=0; iy<this->yDim; iy++ ) {
+	for( int iz=0; iz<this->zDim; iz++ ) {
+
+	  const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
 
 	  for( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
 	    
+	    nDirecAtGC1D.at( this->index4D(ix,iy,iz,iGC1D) ) = this->gc1dNeighbourDim;
+
 	    // Deal with the label held inside each node
 	    this->labelsAtNode(ix,iy,iz,iGC1D) = gcan->labels[iGC1D];
 	    
@@ -78,13 +109,64 @@ namespace Freesurfer {
 	    this->nJustPriorsAtNodeGC1D(ix,iy,iz,iGC1D) = gc1d->n_just_priors;
 	    this->nTrainingAtNodeGC1D(ix,iy,iz,iGC1D) = gc1d->ntraining;
 	    this->regularisedAtNodeGC1D(ix,iy,iz,iGC1D) = gc1d->regularized;
+	    
+	  }
+	}
+      }
+    }
+
+
+    // Compute 5D offsets
+    this->offsets5D.at(0) = 0;
+    std::partial_sum( nDirecAtGC1D.begin(), nDirecAtGC1D.end(),
+		      ++(this->offsets5D.begin() ) );
+
+    // Array to hold labels for each direction at each GC1D
+    vector<unsigned int> nLabelsDirecAtGC1D( this->n5D,
+					     numeric_limits<unsigned int>::max() );
+
+    // Handle 5D data
+    for( int ix=0; ix<this->xDim; ix++ ) {
+      for( int iy=0; iy<this->yDim; iy++ ) {
+	for( int iz=0; iz<this->zDim; iz++ ) {
+
+	  const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
+
+	  for( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
+	    const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
 
 	    for( int iDirec=0;
 		 iDirec<this->gc1dNeighbourDim;
 		 iDirec++ ) {
-	      // Unpack the number of labels for each direction
-	      this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec) =
+
+	      nLabelsDirecAtGC1D.at( this->index5D(ix,iy,iz,iGC1D,iDirec) ) = 
 		gc1d->nlabels[iDirec];
+				      
+	    }
+	  }
+
+	}
+      }
+    }
+
+
+    // Compute 6D offsets
+    this->offsets6D.at(0) = 0;
+    std::partial_sum( nLabelsDirecAtGC1D.begin(), nLabelsDirecAtGC1D.end(),
+		      ++(this->offsets6D.begin()) );
+
+    // Handle 6D data
+    for( int ix=0; ix<this->xDim; ix++ ) {
+      for( int iy=0; iy<this->yDim; iy++ ) {
+	for( int iz=0; iz<this->zDim; iz++ ) {
+
+	  const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
+
+	  for( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
+	    const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
+	    for( int iDirec=0;
+		 iDirec<this->gc1dNeighbourDim;
+		 iDirec++ ) {
 
 	      for( int iLabel=0;
 		   iLabel<this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec);
@@ -95,11 +177,10 @@ namespace Freesurfer {
 		  gc1d->label_priors[iDirec][iLabel];
 	      }
 		
-	      
-	    }
-	    
+	    }	    
 	  }
 
+	  // End of per-voxel loop
 	}
       }
     }
@@ -305,6 +386,7 @@ namespace Freesurfer {
 
     this->tInhume.Stop();
 
+
   }
 
     
@@ -319,81 +401,43 @@ namespace Freesurfer {
       fill with defaults
     */
 
-    this->bytes = 0;
-
     const size_t nVoxels = this->xDim * this->yDim * this->zDim;
 
-    // Indicate the number of GC1D and labels for this node
-    this->nGC1Dnode.clear();
-    this->nGC1Dnode.resize( nVoxels, 0 );
-    this->bytes += this->nGC1Dnode.size() * sizeof(int);
+    // Allocate the offset arrays
+    this->offsets4D.resize( nVoxels+1,
+			    numeric_limits<unsigned int>::max() );
+    this->offsets5D.resize( this->n4D+1,
+			    numeric_limits<unsigned int>::max() );
+    this->offsets6D.resize( this->n5D+1,
+			    numeric_limits<unsigned int>::max() );
 
-    // Allocate the max_labels held in the GCA_NODE structure
-    this->maxLabelsNode.clear();
-    this->maxLabelsNode.resize( nVoxels,
+
+    // Allocate the 3D arrays
+    this->nodeMaxLabels.resize( nVoxels,
 				numeric_limits<int>::max() );
-    this->bytes += this->maxLabelsNode.size() * sizeof(int);
-    
-    // Allocate the total_training held in the GCA_NODE structure
-    this->totTrainNode.clear();
-    this->totTrainNode.resize( nVoxels,
-			       numeric_limits<int>::max() );
-    this->bytes += this->totTrainNode.size() * sizeof(int);
+    this->nodeTotalTraining.resize( nVoxels,
+				    numeric_limits<int>::max() );
 
-    // Allocate the labels held in the GCA_NODE structure
-    this->nodeLabels.clear();
-    this->nodeLabels.resize( nVoxels * this->gc1dDim,
+
+    // Allocate the 4D arrays
+    this->nodeLabels.resize( this->n4D,
 			     numeric_limits<unsigned short>::max() );
-    this->bytes += this->nodeLabels.size() * sizeof(unsigned short);
-
-
-    // Allocate the means held in the GC1D structure (ninputs=1)
-    this->means.clear();
-    this->means.resize( nVoxels * this->gc1dDim,
+    this->means.resize( this->n4D,
 			numeric_limits<float>::quiet_NaN() );
-    this->bytes += this->means.size() * sizeof(float);
-
-    // Allocate the variances held in the GC1D structure (ninputs=1)
-    this->variances.clear();
-    this->variances.resize( nVoxels * this->gc1dDim,
+    this->variances.resize( this->n4D,
 			    numeric_limits<float>::quiet_NaN() );
-    this->bytes += this->variances.size() * sizeof(float);
-
-    //! Allocate nJustPriors for the GC1D structures
-    this->nJustPriors.clear();
-    this->nJustPriors.resize( nVoxels * this->gc1dDim,
+    this->nJustPriors.resize( this->n4D,
 			      numeric_limits<short>::max() );
-    this->bytes += this->nJustPriors.size() * sizeof(short);
-
-    //! Allocate nTraining for the GC1D structures
-    this->nTraining.clear();
-    this->nTraining.resize( nVoxels * this->gc1dDim,
+    this->nTraining.resize( this->n4D,
 			    numeric_limits<int>::max() );
-    this->bytes += this->nTraining.size() * sizeof(int);
-
-    //! Allocate regularised for the GC1D structures
-    this->regularised.clear();
-    this->regularised.resize( nVoxels * this->gc1dDim,
+    this->regularised.resize( this->n4D,
 			      numeric_limits<char>::max() );
-    this->bytes += this->regularised.size() * sizeof(char);
 
-    // Allocate the number of labels for each direction for each GC1D
-    this->nLabelsGC1D.clear();
-    this->nLabelsGC1D.resize( nVoxels * this->gc1dDim * this->gc1dNeighbourDim,
-			      numeric_limits<short>::max() );
-    this->bytes += this->nLabelsGC1D.size() * sizeof(short);
-
-    // Allocate the labels for each direction of each GC1D
-    this->gc1dDirecLabels.clear();
-    this->gc1dDirecLabels.resize( nVoxels * this->gc1dDim * this->gc1dNeighbourDim * this->gc1dLabelDim,
+    // Allocate the 6D arrays
+    this->gc1dDirecLabelPriors.resize( this->n6D,
+				       numeric_limits<float>::quiet_NaN() );
+    this->gc1dDirecLabels.resize( this->n6D,
 				  numeric_limits<unsigned short>::max() );
-    this->bytes += this->gc1dDirecLabels.size() * sizeof(unsigned short);
-
-    // Allocate the label priors for each direction of each GC1D
-    this->gc1dDirecLabelPriors.clear();
-    this->gc1dDirecLabelPriors.resize(  nVoxels * this->gc1dDim * this->gc1dNeighbourDim * this->gc1dLabelDim,
-					numeric_limits<float>::quiet_NaN() );
-    this->bytes += this->gc1dDirecLabelPriors.size() * sizeof(float);
   }
 
 
@@ -416,39 +460,33 @@ namespace Freesurfer {
     this->xDim = src->node_width;
     this->yDim = src->node_height;
     this->zDim = src->node_depth;
-
-    MinMax<int> nLabelsNode;
-    MinMax<short> nLabelsGC1D;
+    
+    this->n4D = 0;
+    this->n5D = 0;
+    this->n6D = 0;
 
     for( int ix=0; ix<this->xDim; ix++ ) {
       for( int iy=0; iy<this->yDim; iy++ ) {
 	for( int iz=0; iz<this->zDim; iz++ ) {
+
 	  const GCA_NODE* const gcan = &(src->nodes[ix][iy][iz]);
+	  this->n4D += gcan->nlabels;
 
-	  nLabelsNode.Accumulate( gcan->nlabels );
 	  for( int iGC1D=0; iGC1D<gcan->nlabels; iGC1D++ ) {
-	    const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
 
+            const GC1D* const gc1d = &(gcan->gcs[iGC1D]);
+	    this->n5D += GIBBS_NEIGHBORHOOD;
+	    
 	    for( unsigned int iNeighbour=0;
-		 iNeighbour<GIBBS_NEIGHBORHOOD;
+		 iNeighbour < GIBBS_NEIGHBORHOOD;
 		 iNeighbour++ ) {
-	      nLabelsGC1D.Accumulate( gc1d->nlabels[iNeighbour] );
+	      this->n6D += gc1d->nlabels[iNeighbour];
 	    }
 	  }
-
 	}
       }
     }
 
-    this->gc1dDim = nLabelsNode.GetMax();
-    this->gc1dLabelDim = nLabelsGC1D.GetMax();
-
-    double mean = nLabelsGC1D.GetDoubleTotal() / nLabelsGC1D.GetN();
-    cout << "nLabels GC1D: "
-	 << nLabelsGC1D
-	 << " (avg. "
-	 << setprecision(3) << mean
-	 << " )" << endl;
       
   }
 
@@ -474,14 +512,4 @@ namespace Freesurfer {
   }
 
 
-  // ====================================================
-
-  void GCAlinearNode::PrintStats( ostream& os ) const {
-
-    os << "Stats for GCAlinearNode" << endl;
-    os << "  Bytes allocated = " << this->bytes << endl;
-    os << "  Exhumation time = " << this->tExhume << endl;
-    os << "  Inhumation time = " << this->tInhume << endl;
-
-  }
 }
