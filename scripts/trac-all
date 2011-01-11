@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/01/10 02:58:23 $
-#    $Revision: 1.9 $
+#    $Date: 2011/01/11 15:09:13 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.9 2011/01/10 02:58:23 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.10 2011/01/11 15:09:13 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -192,28 +192,29 @@ foreach isubj ($runlist)
 
   if ($do1out) then
     set dtdir = $subj
+    set dtroot = `dirname $dtdir`
     set subj = `basename $dtdir`
     set trainsubjlist = `cat $trainfile | sed -n "$isubj p"`
     shift trainsubjlist
   else
     set dtdir = $dtroot/$subj
     set trainsubjlist = `cat $trainfile`
+
+    # Check freesurfer directory
+    set fsdir = $SUBJECTS_DIR/$subj
+
+    if (! -e $fsdir) then
+      echo "ERROR: cannot find $fsdir"
+      exit 1
+    endif
+
+    if (! -r $fsdir) then
+      echo "ERROR: $fsdir exists but is unreadable"
+      exit 1
+    endif
   endif
 
-  #---------- Check subject directories -----------------------------------#
-
-  set fsdir = $SUBJECTS_DIR/$subj
-
-  if (! -e $fsdir) then
-    echo "ERROR: cannot find $fsdir"
-    exit 1
-  endif
-
-  if (! -r $fsdir) then
-    echo "ERROR: $fsdir exists but is unreadable"
-    exit 1
-  endif
-
+  # Check diffusion directory
   mkdir -p $dtdir/scripts
 
   if ($status || ! -w $dtdir) then
@@ -478,11 +479,13 @@ end
 
 if ($onpbs && $RunIt) then
   if ($dopreproc) then
-    setenv MYPBSMAXJOBS 10
     setenv MYPBSWAIT 15
     if ($doregcvs) then
+      setenv MYPBSMAXJOBS 15
       if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
       if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+    else
+      setenv MYPBSMAXJOBS 30
     endif
     echo Queueing pre-processing
     set preid = `fsl_sub_seychelles \
@@ -492,11 +495,13 @@ if ($onpbs && $RunIt) then
     setenv MYPBSWAIT 0
     bedpostx_seychelles $dmdirlist
   else if ($dopaths) then
-    setenv MYPBSMAXJOBS 10
     setenv MYPBSWAIT 15
     if ($doregcvs) then
+      setenv MYPBSMAXJOBS 15
       if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
       if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+    else
+      setenv MYPBSMAXJOBS 30
     endif
     echo Queueing path reconstruction
     set trcid = `fsl_sub_seychelles \
@@ -756,6 +761,22 @@ arg1err:
 ############--------------##################
 check_params:
   if (! $DoVersionsOnly) then
+    if ($do1out) then
+      # Leave-one-out training file:
+      # The first subject of each line is the test subject,
+      # the remaining subjects of the line are the training subjects
+      set subjlist = `cat $trainfile | awk '{print $1}'`
+      set runlist = `jot - 1 $#subjlist 1`
+      if (! $#ntrainlist) then
+        set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
+      endif
+    else
+      # Simple training file:
+      # The file lists the training subjects
+      # Info on the test subjects comes from dmrirc
+      set ntrainlist = `wc -w $trainfile | awk '{print $1}'`
+    endif
+
     if (! $?subjlist) then
       echo "ERROR: must specify a subject id"
       exit 1
@@ -788,39 +809,26 @@ check_params:
 
     if (! $?ncptlist ) set ncptlist = $ncpts
 
-    if ($do1out) then
-      # Leave-one-out training file:
-      # The first subject of each line is the test subject,
-      # the remaining subjects of the line are the training subjects
-      set subjlist = `cat $trainfile | awk '{print $1}'`
-      if (! $#ntrainlist) then
-        set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
-      endif
-    else
-      # Simple training file:
-      # The file lists the training subjects
-      # Info on the test subjects comes from dmrirc
-      set ntrainlist = `wc -w $trainfile | awk '{print $1}'`
-    endif
-
     if ($#runlist > $#subjlist) then
       echo "ERROR: run list is longer than subject list - potential duplicates"
       exit 1
     endif
 
-    if ($#dcmlist != $#subjlist) then
-      echo "ERROR: must specify as many DWI dicoms as subjects"
-      exit 1
-    endif
+    if ($docorr) then
+      if ($#dcmlist != $#subjlist) then
+        echo "ERROR: must specify as many DWI dicoms as subjects"
+        exit 1
+      endif
 
-    if ($#b0mlist > 0 && $#b0mlist != $#subjlist) then
-      echo "ERROR: must specify as many field map magnitude dicoms as subjects"
-      exit 1
-    endif
+      if ($#b0mlist > 0 && $#b0mlist != $#subjlist) then
+        echo "ERROR: must specify as many fieldmap magnitude dicoms as subjects"
+        exit 1
+      endif
 
-    if ($#b0plist > 0 && $#b0plist != $#subjlist) then
-      echo "ERROR: must specify as many field map phase dicoms as subjects"
-      exit 1
+      if ($#b0plist > 0 && $#b0plist != $#subjlist) then
+        echo "ERROR: must specify as many fieldmap phase dicoms as subjects"
+        exit 1
+      endif
     endif
   endif
 
