@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2010/12/29 04:39:58 $
-#    $Revision: 1.4 $
+#    $Date: 2011/01/11 22:10:15 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.4 2010/12/29 04:39:58 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.5 2011/01/11 22:10:15 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -148,6 +148,8 @@ if ($DoIsRunning) then
   uname -a				>> $IsRunningFile 
   echo "PROGRAM $ProgName"		>> $IsRunningFile
   echo $VERSION				>> $IsRunningFile 
+else
+  set IsRunningFile = ()
 endif
 
 # Put a copy of myself (this script) in the scripts dir
@@ -286,7 +288,7 @@ foreach ntrain ($ntrainlist)
         endif
 
         foreach pathname ($pathlist)
-          set pathpre = ${pathname}_avg${ntrain}_$xspace
+          set pathpre = ${pathname}_$avgmode
 
           set cmd = $trcdir/dmri_path_meas
           set cmd = ($cmd --cpts $outdir/$pathpre/CONTROLS_1_1.txt)

@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/01/11 10:01:05 $
-#    $Revision: 1.7 $
+#    $Date: 2011/01/11 22:10:15 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.7 2011/01/11 10:01:05 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.8 2011/01/11 22:10:15 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -148,6 +148,8 @@ if ($DoIsRunning) then
   uname -a				>> $IsRunningFile 
   echo "PROGRAM $ProgName"		>> $IsRunningFile 
   echo $VERSION				>> $IsRunningFile 
+else
+  set IsRunningFile = ()
 endif
 
 # Put a copy of myself (this script) in the scripts dir
