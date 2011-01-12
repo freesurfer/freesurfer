@@ -80,8 +80,8 @@ class Coffin {
     void SetMCMCParameters(const int NumBurnIn, const int NumSample,
                            const int KeepSampleNth, const int UpdatePropNth,
                            const char *PropStdFile);
-    void RunMCMC();
-    void RunMCMC1();
+    bool RunMCMC();
+    bool RunMCMC1();
     void WriteOutputs();
 
   private:
@@ -128,7 +128,7 @@ class Coffin {
 
     void ReadControlPoints(const char *ControlPointFile);
     void ReadProposalStds(const char *PropStdFile);
-    void InitializeMCMC();
+    bool InitializeMCMC();
     bool JumpMCMC();
     bool JumpMCMC1(int ControlIndex);
     bool ProposePath();

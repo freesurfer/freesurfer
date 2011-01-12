@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2010/12/16 06:50:46 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/01/12 23:43:21 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -170,9 +170,11 @@ int main(int argc, char **argv) {
     printf("Processing pathway %d of %d...\n", k+1, nout);
     TimerStart(&cputimer);
 
-    //mycoffin.RunMCMC();
-mycoffin.RunMCMC1();
-    mycoffin.WriteOutputs();
+    //if (mycoffin.RunMCMC())
+if (mycoffin.RunMCMC1())
+      mycoffin.WriteOutputs();
+    else
+      cout << "ERROR: Pathway reconstruction failed" << endl;
 
     cputime = TimerStop(&cputimer);
     printf("Done in %g sec.\n", cputime/1000.0);

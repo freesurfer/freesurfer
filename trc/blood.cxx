@@ -70,6 +70,11 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
   ReadAnatomy(TrainListFile, TrainAsegFile, TrainMaskFile);
 }
 
+Blood::Blood(const char *TrainTrkFile) {
+  mTestMask = 0;
+  ReadStreamlines(TrainTrkFile);
+}
+
 Blood::~Blood() {
   vector<MRI *>::iterator ivol;
 
@@ -216,13 +221,126 @@ void Blood::ReadStreamlines(const char *TrainListFile,
 }
 
 //
+// Read streamlines from single file
+//
+void Blood::ReadStreamlines(const char *TrainTrkFile) {
+  CTrackReader trkreader;
+  TRACK_HEADER trkheader;
+  int npts, nlines = 0;
+
+  // Clear all variables that depend on pathway
+  mStreamlines.clear();
+  mLengths.clear();
+  mNumLines.clear();
+  mIsInEnd1.clear();
+  mIsInEnd2.clear();
+  mCenterStreamline.clear();
+  mControlPoints.clear();
+  mControlStd.clear();
+  mTangent.clear();
+  mTangentArc.clear();
+  mTangentMean.clear();
+  mTangentStd.clear();
+  mCurvature.clear();
+  mCurvatureArc.clear();
+  mCurvatureMean.clear();
+  mCurvatureStd.clear();
+  mAsegLocal.clear();
+  mAsegLocalArc.clear();
+  mHistoLocal.clear();
+  mPriorLocal.clear();
+  mIdsLocal.clear();
+  mAsegNear.clear();
+  mAsegNearArc.clear();
+  mHistoNear.clear();
+  mPriorNear.clear();
+  mIdsNear.clear();
+  mAsegDist.clear();
+  mAsegDistArc.clear();
+  mAsegDistMean.clear();
+  mAsegDistStd.clear();
+
+  if (!trkreader.Open(TrainTrkFile, &trkheader)) {
+    cout << "ERROR: Could not open " << TrainTrkFile << " for reading" << endl;
+    exit(1);
+  }
+
+  cout << "Loading streamlines from " << TrainTrkFile << endl;
+
+  while (trkreader.GetNextPointCount(&npts)) {
+    bool isinmask = true;
+    vector<int> pts;
+    float *iraw, *rawpts = new float[npts*3];
+
+    trkreader.GetNextTrackData(npts, rawpts);
+
+    // Divide by voxel size and round to get voxel coords
+    iraw = rawpts; 
+    for (int ipt = npts; ipt > 0; ipt--)
+      for (int k = 0; k < 3; k++) {
+        *iraw = round(*iraw / trkheader.voxel_size[k]);
+        iraw++;
+      }
+
+    // Remove duplicate points and check that streamline stays within mask
+    iraw = rawpts; 
+    for (int ipt = npts; ipt > 1; ipt--)
+      if ( (iraw[0] != iraw[3]) || (iraw[1] != iraw[4]) ||
+                                   (iraw[2] != iraw[5]) ) {
+        for (int k = 0; k < 3; k++) {
+          pts.push_back((int) *iraw);
+          iraw++;
+        }
+
+        if (!IsInMask(pts.end()-3)) {
+          isinmask = false;
+          break;
+        }
+      }
+      else
+        iraw += 3;
+
+    // Don't save streamline if it strayed off the test subject's mask
+    if (!isinmask) {
+      delete[] rawpts;
+      continue;
+    }
+
+    // Final point
+    for (int k = 0; k < 3; k++) {
+      pts.push_back((int) *iraw);
+      iraw++;
+    }
+
+    // Don't save streamline if it strayed off the test subject's mask
+    if (!IsInMask(pts.end()-3)) {
+      delete[] rawpts;
+      continue;
+    }
+
+    mStreamlines.push_back(pts);
+    mLengths.push_back(pts.size() / 3);
+    nlines++;
+
+    delete[] rawpts;
+  }
+
+  mNumLines.push_back(nlines);
+
+  trkreader.Close();
+}
+
+//
 // Check that a point is inside the test subject's brain mask
 //
 bool Blood::IsInMask(vector<int>::const_iterator Point) {
-  return (Point[0] > -1) && (Point[0] < mNx) &&
-         (Point[1] > -1) && (Point[1] < mNy) &&
-         (Point[2] > -1) && (Point[2] < mNz) &&
-         (MRIgetVoxVal(mTestMask, Point[0], Point[1], Point[2], 0) > 0);
+  if (mTestMask)
+    return (Point[0] > -1) && (Point[0] < mNx) &&
+           (Point[1] > -1) && (Point[1] < mNy) &&
+           (Point[2] > -1) && (Point[2] < mNz) &&
+           (MRIgetVoxVal(mTestMask, Point[0], Point[1], Point[2], 0) > 0);
+  else
+    return true;
 }
 
 //

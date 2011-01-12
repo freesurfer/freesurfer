@@ -757,7 +757,73 @@ void Coffin::ReadControlPoints(const char *ControlPointFile) {
 
   // Make sure that initial control points are in mask
   for (vector<int>::iterator icpt = mControlPoints.begin();
-                             icpt < mControlPoints.end(); icpt += 3)
+                             icpt < mControlPoints.end(); icpt += 3) {
+    if (icpt[0] < 0) {
+      cout << "WARN: Initial control point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in DWI volume - is DWI cropped?" << endl;
+
+      icpt[0] = 0;
+
+      cout << "WARN: Replacing with closest point in volume ("
+           << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
+
+    if (icpt[0] >= mMask->width) {
+      cout << "WARN: Initial control point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in DWI volume - is DWI cropped?" << endl;
+
+      icpt[0] = mMask->width - 1;
+
+      cout << "WARN: Replacing with closest point in volume ("
+           << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
+
+    if (icpt[1] < 0) {
+      cout << "WARN: Initial control point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in DWI volume - is DWI cropped?" << endl;
+
+      icpt[1] = 0;
+
+      cout << "WARN: Replacing with closest point in volume ("
+           << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
+
+    if (icpt[1] >= mMask->height) {
+      cout << "WARN: Initial control point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in DWI volume - is DWI cropped?" << endl;
+
+      icpt[1] = mMask->height - 1;
+
+      cout << "WARN: Replacing with closest point in volume ("
+           << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
+
+    if (icpt[2] < 0) {
+      cout << "WARN: Initial control point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in DWI volume - is DWI cropped?" << endl;
+
+      icpt[2] = 0;
+
+      cout << "WARN: Replacing with closest point in volume ("
+           << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
+
+    if (icpt[2] >= mMask->depth) {
+      cout << "WARN: Initial control point "
+           << icpt[0] << " " << icpt[1] << " " << icpt[2]
+           << " is not in DWI volume - is DWI cropped?" << endl;
+
+      icpt[2] = mMask->depth - 1;
+
+      cout << "WARN: Replacing with closest point in volume ("
+           << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
+    }
+
     if (! MRIgetVoxVal(mMask, icpt[0], icpt[1], icpt[2], 0)) {
       int dmin = 1000000, ixmin = 0, iymin = 0, izmin = 0;
 
@@ -789,6 +855,7 @@ void Coffin::ReadControlPoints(const char *ControlPointFile) {
 
       cout << icpt[0] << " " << icpt[1] << " " << icpt[2] << ")" << endl;
     }
+  }
 }
 
 //
@@ -821,7 +888,7 @@ void Coffin::ReadProposalStds(const char *PropStdFile) {
 //
 // Run MCMC
 //
-void Coffin::RunMCMC() {
+bool Coffin::RunMCMC() {
   int iprop, ikeep;
   char fname[PATH_MAX];
 
@@ -832,7 +899,8 @@ void Coffin::RunMCMC() {
 
   cout << "Initializing MCMC" << endl;
   mLog << "Initializing MCMC" << endl;
-  InitializeMCMC();
+  if (! InitializeMCMC())
+    return false;
 
   if (mDebug) {
     sprintf(fname, "%s/Finit.nii.gz", mOutDir);
@@ -910,12 +978,13 @@ void Coffin::RunMCMC() {
   }
 
   mLog.close();
+  return true;
 }
 
 //
 // Run MCMC (single point updates)
 //
-void Coffin::RunMCMC1() {
+bool Coffin::RunMCMC1() {
   int iprop, ikeep;
   char fname[PATH_MAX];
   vector<int> cptorder(mNumControl);
@@ -928,7 +997,8 @@ void Coffin::RunMCMC1() {
 
   cout << "Initializing MCMC" << endl;
   mLog << "Initializing MCMC" << endl;
-  InitializeMCMC();
+  if (! InitializeMCMC())
+    return false;
 
   if (mDebug) {
     sprintf(fname, "%s/Finit.nii.gz", mOutDir);
@@ -1044,19 +1114,21 @@ mRejectPosterior = false;
   }
 
   mLog.close();
+  return true;
 }
 
 //
 // Initialize path and MCMC proposals
 //
-void Coffin::InitializeMCMC() {
+bool Coffin::InitializeMCMC() {
   vector<float>::iterator phi, theta;
 
   // Interpolate spline from initial control points
   mSpline.SetControlPoints(mControlPoints);
   if (!mSpline.InterpolateSpline()) {
-    cout << "Path from initial control points is not entirely in mask" << endl;
-    exit (1);
+    cout << "ERROR: Path from initial control points is not entirely in mask"
+         << "ERROR: Initialization failed" << endl;
+    return false;
   }
 
   mSpline.ComputeTangent();
@@ -1151,6 +1223,8 @@ void Coffin::InitializeMCMC() {
   mPriorOnPathSamples.clear();
   mPosteriorOnPathSamples.clear();
   MRIclear(mPathSamples);
+
+  return true;
 }
 
 //

@@ -41,8 +41,10 @@ class Blood {
     Blood(const char *TrainListFile, const char *TrainTrkFile,
           const char *TrainAsegFile, const char *TrainMaskFile,
           const char *TestMaskFile);
+    Blood(const char *TrainTrkFile);
     ~Blood();
     void ReadStreamlines(const char *TrainListFile, const char *TrainTrkFile);
+    void ReadStreamlines(const char *TrainTrkFile);
     void ReadAnatomy(const char *TrainListFile, const char *TrainAsegFile,
                                                 const char *TrainMaskFile);
     void ComputePriors();
