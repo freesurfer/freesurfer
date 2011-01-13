@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/13 16:56:08 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/01/13 20:19:29 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -197,6 +197,14 @@ namespace Freesurfer {
 
   // ====================================================
 
+  const_GCAnode GCAlinearNode::GetConstNode( const int ix,
+					     const int iy,
+					     const int iz ) const {
+    return( const_GCAnode( ix, iy, iz, *this ) );
+  }
+
+  // ====================================================
+
   void GCAlinearNode::Inhume( GCA* dst ) const {
     /*!
       Stores data back from the linear arrays into a GCA.
@@ -251,13 +259,14 @@ namespace Freesurfer {
 	for( int iz=0; iz<this->zDim; iz++ ) {
 	  // Allocate pointer block
 	  GCA_NODE* const gcan = &(dst->nodes[ix][iy][iz]);
+	  const const_GCAnode gln = this->GetConstNode(ix,iy,iz);
 
-	  gcan->nlabels = this->gc1dCount(ix,iy,iz);
-	  gcan->max_labels = this->maxLabels(ix,iy,iz);
-	  gcan->total_training = this->totalTraining(ix,iy,iz);
+	  gcan->nlabels = gln.gc1dCount();
+	  gcan->max_labels = gln.maxLabels();
+	  gcan->total_training = gln.totalTraining();
 
 	  // Allocate labels array
-	  gcan->labels = (unsigned short*)calloc( this->gc1dCount(ix,iy,iz),
+	  gcan->labels = (unsigned short*)calloc( gln.gc1dCount(),
 						  sizeof(unsigned short) );
 	  if( !(gcan->labels) ) {
 	    cerr << __FUNCTION__
@@ -284,11 +293,12 @@ namespace Freesurfer {
 				     
 
 	  // Loop over the GC1Ds
-	  for( int iGC1D=0; iGC1D<this->gc1dCount(ix,iy,iz); iGC1D++ ) {
+	  for( int iGC1D=0; iGC1D<gln.gc1dCount(); iGC1D++ ) {
 	    // Do the labels on the side
-	    gcan->labels[iGC1D] = this->labelsAtNode(ix,iy,iz,iGC1D);
+	    gcan->labels[iGC1D] = gln.labels(iGC1D);
 
 	    GC1D* const gc1d = &(gcan->gcs[iGC1D]);
+	    const const_GCAnode_GC1D g1d = gln.GetConstGC1D( iGC1D );
 
 	    gc1d->means = (float*)calloc( dst->ninputs, // Always 1
 					  sizeof(float) );
@@ -309,12 +319,12 @@ namespace Freesurfer {
 	    }
 
 	    // Do the mean and variance (recall ninputs==1)
-	    gc1d->means[0] = this->meansAtNodeGC1D(ix,iy,iz,iGC1D);
-	    gc1d->covars[0] = this->variancesAtNodeGC1D(ix,iy,iz,iGC1D);
+	    gc1d->means[0] = g1d.mean();
+	    gc1d->covars[0] = g1d.variance();
 
-	    gc1d->n_just_priors = this->nJustPriorsAtNodeGC1D(ix,iy,iz,iGC1D);
-	    gc1d->ntraining = this->nTrainingAtNodeGC1D(ix,iy,iz,iGC1D);
-	    gc1d->regularized = this->regularisedAtNodeGC1D(ix,iy,iz,iGC1D);
+	    gc1d->n_just_priors = g1d.nJustPriors();
+	    gc1d->ntraining = g1d.nTraining();
+	    gc1d->regularized = g1d.regularised();
 
 	    // Allocate the nlabels array
 	    gc1d->nlabels = (short*)calloc( this->gc1dNeighbourDim, // Always 6/GIBBS_NEIGHBORHOOD
@@ -351,8 +361,7 @@ namespace Freesurfer {
 		 iDirec++ ) {
 
 	      // Set the number
-	      gc1d->nlabels[iDirec] = 
-		this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec);
+	      gc1d->nlabels[iDirec] = g1d.nLabels( iDirec );
 
 	      // Allocate the memory
 	      gc1d->label_priors[iDirec] = (float*)calloc( gc1d->nlabels[iDirec],
@@ -374,12 +383,10 @@ namespace Freesurfer {
 	      }
 	      
 	      for( int iLabel=0;
-		   iLabel<this->nLabelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec);
+		   iLabel<g1d.nLabels(iDirec);
 		   iLabel++ ) {
-		gc1d->labels[iDirec][iLabel] =
-		  this->labelsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec,iLabel);
-		gc1d->label_priors[iDirec][iLabel] =
-		  this->labelPriorsAtNodeGC1Ddirection(ix,iy,iz,iGC1D,iDirec,iLabel);
+		gc1d->labels[iDirec][iLabel] = g1d.labels(iDirec,iLabel);
+		gc1d->label_priors[iDirec][iLabel] = g1d.labelPriors(iDirec,iLabel);
 	      }
 
 	    }
@@ -517,5 +524,20 @@ namespace Freesurfer {
     free( targ->nodes );
   }
 
+
+  // ###############################################################
+
+  const_GCAnode_GC1D const_GCAnode::GetConstGC1D( const int iGC1D ) const {
+    if( (iGC1D<0) || (iGC1D>=this->myGC1Dcount) ) {
+      std::cerr << __FUNCTION__
+		  << ": Out of range " << iGC1D
+		  << std::endl;
+	abort();
+    }
+
+    const_GCAnode_GC1D gc1d( this->ix, this->iy, this->iz, iGC1D, this->gcaln );
+
+    return( gc1d );
+  }
 
 }

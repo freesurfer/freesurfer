@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/13 16:56:08 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/01/13 20:19:29 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -169,6 +169,14 @@ namespace Freesurfer {
   }
 
   // ==========================================
+  const_GCAprior GCAlinearPrior::GetConstPrior( const int ix,
+						const int iy,
+						const int iz ) const {
+    return( const_GCAprior( ix, iy, iz, *this ) );
+  }
+
+
+  // ==========================================
   void GCAlinearPrior::Inhume( GCA* dst ) const {
     /*!
       Stores data about the priors back into the target
@@ -221,20 +229,22 @@ namespace Freesurfer {
 
 	  GCA_PRIOR* gcap = &(dst->priors[ix][iy][iz]);
 
-	  gcap->nlabels = this->voxelLabelCount(ix,iy,iz);
-	  gcap->max_labels = this->maxVoxelLabel(ix,iy,iz);
+	  const_GCAprior cGCAp = this->GetConstPrior(ix,iy,iz);
 
-	  gcap->total_training = this->totalTraining(ix,iy,iz);
+	  gcap->nlabels = cGCAp.labelCount();
+	  gcap->max_labels = cGCAp.maxLabel();
 
-	  gcap->labels = (unsigned short*)calloc( this->voxelLabelCount(ix,iy,iz),
+	  gcap->total_training = cGCAp.totalTraining();
+
+	  gcap->labels = (unsigned short*)calloc( gcap->nlabels,
 						  sizeof(unsigned short) );
-	  gcap->priors = (float*)calloc( this->voxelLabelCount(ix,iy,iz),
+	  gcap->priors = (float*)calloc( gcap->nlabels,
 					 sizeof(float) );
 	  for( int iLabel=0;
-	       iLabel < this->voxelLabelCount(ix,iy,iz);
+	       iLabel < gcap->nlabels;
 	       iLabel++ ) {
-	    gcap->labels[iLabel] = this->voxelLabel(ix,iy,iz,iLabel);
-	    gcap->priors[iLabel] = this->voxelPrior(ix,iy,iz,iLabel);
+	    gcap->labels[iLabel] = cGCAp.labels(iLabel);
+	    gcap->priors[iLabel] = cGCAp.priors(iLabel);
 	  }
 
 	}

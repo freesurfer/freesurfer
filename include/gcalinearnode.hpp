@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/13 16:56:06 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/01/13 20:19:26 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,10 @@
 
 //! Catch-all namespace
 namespace Freesurfer {
+
+  // Forward declaration
+  class const_GCAnode;
+  class const_GCAnode_GC1D;
 
   //! Class to hold a 3D volume of GCA nodes in linear memory (ninputs=1)
   class GCAlinearNode {
@@ -393,6 +397,11 @@ namespace Freesurfer {
     //! Method to allocate memory according to internals
     void Allocate( void );
 
+    //! Create a const_GCAnode
+    const_GCAnode GetConstNode( const int ix,
+				const int iy, 
+				const int iz ) const;
+
     // -------------------------------------------------
 
     //! Timer for exhumation
@@ -539,6 +548,203 @@ namespace Freesurfer {
 	abort();
       }
       
+      return( currOffset + iLabel );
+    }
+
+
+    friend class const_GCAnode;
+    friend class const_GCAnode_GC1D;
+  };
+
+
+  //! Equivalent of a 'const GCA_NODE'
+  /*!
+    This class provides quick addess to a particular 3D
+    point of a GCAlinearNode.
+    The indexing must match that in GCAlinearNode, or everything
+    will fall apart horribly.
+    A lot of the precomputations are performed in the constructor
+  */
+
+  class const_GCAnode {
+  public:
+    //! Constructor from location
+    const_GCAnode( const int _ix,
+		   const int _iy,
+		   const int _iz,
+		   const GCAlinearNode& src ) : gcaln(src),
+						idx3d(src.index3D(_ix,_iy,_iz)),
+						offset4d(src.offsets4D.at(idx3d)),
+						myGC1Dcount(src.offsets4D.at(idx3d+1)-offset4d),
+						ix(_ix),
+						iy(_iy),
+						iz(_iz) {}
+
+    // --------------------
+    
+    //! Accessor for max_labels
+    inline int maxLabels( void ) const {
+      return( this->gcaln.nodeMaxLabels.at(this->idx3d) );
+    }
+
+    //! Accessor for totalTraining
+    inline int totalTraining( void ) const {
+      return( this->gcaln.nodeTotalTraining.at(this->idx3d) );
+    }
+
+    //! Accessor for gc1dCount
+    inline int gc1dCount( void ) const {
+      return( this->myGC1Dcount );
+    }
+
+    //! Accessor for nodeLabels
+    inline unsigned short labels( const int iGC1D ) const {
+      if( (iGC1D<0) || (iGC1D>=this->myGC1Dcount) ) {
+	std::cerr << __FUNCTION__
+		  << ": Out of range " << iGC1D
+		  << std::endl;
+	abort();
+      }
+
+      return( this->gcaln.nodeLabels.at(this->offset4d+iGC1D) );
+    }
+
+    // ----------------------
+    
+    //! Create the GC1D
+    const_GCAnode_GC1D GetConstGC1D( const int iGC1D ) const;
+
+  private:
+    //! The GCAlinearNode we're part of
+    const GCAlinearNode& gcaln;
+    //! Precomputed linear index for 3D data
+    const unsigned int idx3d;
+    //! Precomputed linear start index for 4D data
+    const unsigned int offset4d;
+    //! Length of the 4th dimension
+    const int myGC1Dcount;
+
+    //! Original location
+    const int ix, iy, iz;
+
+  };
+
+
+
+  //! Equivalent of a 'const GC1D' for a GCA_NODE
+  class const_GCAnode_GC1D {
+  public:
+    const_GCAnode_GC1D( const int _ix,
+			const int _iy,
+			const int _iz,
+			const int _iGC1D,
+			const GCAlinearNode& src ) : gcaln(src),
+						     offset4d(src.index4D(_ix,_iy,_iz,_iGC1D)) {}
+
+    // -----------------------------
+    // 4D data
+
+    //! Accessor for the mean
+    inline float mean( void ) const {
+      return( this->gcaln.means.at(this->offset4d) );
+    }
+
+    //! Accessor for the variance
+    inline float variance( void ) const {
+      return( this->gcaln.variances.at(this->offset4d) );
+    }
+
+    //! Accessor for nJustPriors
+    inline short nJustPriors( void ) const {
+      return( this->gcaln.nJustPriors.at(this->offset4d) );
+    }
+
+    //! Accessor for nTraining
+    inline int nTraining( void ) const {
+      return( this->gcaln.nTraining.at(this->offset4d) );
+    }
+
+    //! Accessor for regularised
+    inline int regularised( void ) const {
+      return( this->gcaln.regularised.at(this->offset4d ) );
+    }
+    
+    // -------------------------------
+    // 5D data
+
+    //! Accessor for nlabels
+    inline short nLabels( const int iDirec ) const {
+      /*!
+	This is basically an alternative for
+	GCAlinearNode::nLabelsAtNodeGC1Ddirection
+      */
+      if( iDirec >= this->gcaln.gc1dNeighbourDim ) {
+	std::cerr << __FUNCTION__
+		  << ": iDirec out of range"
+		  << std::endl;
+      }
+
+      const unsigned int idx5D = this->gcaln.offsets5D.at( this->offset4d ) + iDirec;
+
+      const int currOffset = this->gcaln.offsets6D.at( idx5D );
+      const int nextOffset = this->gcaln.offsets6D.at( idx5D+1 );
+
+      return( nextOffset - currOffset );
+    }
+
+    // -------------------------------
+    // 6D data
+
+    //! Accessor for labels
+    inline unsigned short labels( const int iDirec, const int iLabel ) const {
+      /*!
+	This is basically an alternative for 
+	GCAlinearNode::labelsAtNodeGC1Ddirection
+      */
+      const unsigned int idx6D = this->index6D(iDirec,iLabel);
+
+      return( this->gcaln.gc1dDirecLabels.at(idx6D) );
+    }
+
+    //! Accessor for labelPriors
+    inline float labelPriors( const int iDirec, const int iLabel ) const {
+      /*!
+	This is an alternative for 
+	GCAlinearNode::labelPriorsAtNodeGC1Ddirection
+      */
+      const unsigned int idx6D = this->index6D(iDirec,iLabel);
+      
+      return( this->gcaln.gc1dDirecLabelPriors.at(idx6D) );
+    }
+    
+
+  private:
+    //! The GCAlinearNode we're part of
+    const GCAlinearNode& gcaln;
+    //! Precomputed linear start index for 4D data
+    const unsigned int offset4d;
+
+    
+    //! Index computation for 6D data
+    inline unsigned int index6D( const int iDirec,
+				 const int iLabel ) const {
+      if( (iDirec<0) || (iDirec>= this->gcaln.gc1dNeighbourDim ) ) {
+	std::cerr << __FUNCTION__
+		  << ": iDirec out of range"
+		  << std::endl;
+      }
+      
+      const unsigned int idx5D = this->gcaln.offsets5D.at( this->offset4d ) + iDirec;
+
+      const int currOffset = this->gcaln.offsets6D.at( idx5D );
+      const int nextOffset = this->gcaln.offsets6D.at( idx5D+1 );
+
+      if( (iLabel<0) || (iLabel>=(nextOffset-currOffset)) ) {
+	std::cerr << __FUNCTION__
+		  << ": iLabel out of range" << std::endl;
+	abort();
+      }
+
       return( currOffset + iLabel );
     }
 

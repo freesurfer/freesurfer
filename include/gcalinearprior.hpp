@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/11 18:24:21 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/01/13 20:19:26 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -36,6 +36,12 @@
 
 namespace Freesurfer {
 
+  
+  // Forward declaration
+  class const_GCAprior;
+
+
+
   //! Class to hold a 3D volume of GCA priors in linear memory
   class GCAlinearPrior {
   public:
@@ -48,6 +54,8 @@ namespace Freesurfer {
 			     priors(),
 			     totTraining(),
 			     tExhume() {};
+
+
 
     // -----------------------------------------------------
 
@@ -194,6 +202,11 @@ namespace Freesurfer {
     // -------------------------
     void PrintStats( std::ostream& os = std::cout ) const;
 
+    const_GCAprior GetConstPrior( const int ix,
+				  const int iy,
+				  const int iz ) const;
+    
+    
     // -----------------------------------------------------
   private:
     
@@ -282,7 +295,85 @@ namespace Freesurfer {
     mutable SciGPU::Utilities::Chronometer tExhume;
     //! Time require for inhumation of data
     mutable SciGPU::Utilities::Chronometer tInhume;
+
+    friend class const_GCAprior;
   };
+
+
+
+  
+  //! Equivalent of 'const GCA_PRIOR'
+  /*!
+    This class provides quick access to a particular 3D point
+    of a GCAlinearPrior.
+    The indexing must match that used in GCAlinearPrior, or
+    everything will fall apart horribly.
+    A lot of the precomputations are performed in the constructor
+  */
+  class const_GCAprior {
+  public:
+    const_GCAprior( const int _ix,
+		    const int _iy,
+		    const int _iz,
+		    const GCAlinearPrior& src ) : gcalp(src),
+						  idx3d(src.index3D(_ix,_iy,_iz)),
+						  currOffset(src.offsets4D.at(idx3d)),
+						  myLabelCount(src.offsets4D.at(idx3d+1)-currOffset) {}
+    
+
+    //! Accessor for totalTraining
+    inline int totalTraining( void ) const {
+      return( this->gcalp.totTraining.at(this->idx3d) );
+    }
+
+    //! Accessor for maxLabels
+    inline short maxLabel( void ) const {
+      return( this->gcalp.maxLabels.at(this->idx3d) );
+    }
+
+    //! Accessor for nlabels
+    inline short labelCount( void ) const {
+      return( this->myLabelCount );
+    }
+
+    //! Accessor for labels
+    inline unsigned short labels( const int iLabel ) const {
+      if( (iLabel<0) || (iLabel>=this->myLabelCount) ) {
+	std::cerr << __FUNCTION__
+		  << ": iLabel out of range " << iLabel
+		  << std::endl;
+	abort();
+      }
+
+      return( this->gcalp.labels.at( this->currOffset+iLabel ) );
+    }
+
+    //! Accessor for priors
+    inline float priors( const int iLabel ) const {
+      if( (iLabel<0) || (iLabel>=this->myLabelCount) ) {
+	std::cerr << __FUNCTION__
+		  << ": iLabel out of range " << iLabel
+		  << std::endl;
+	abort();
+      }
+
+      return( this->gcalp.priors.at( this->currOffset+iLabel ) );
+    }
+    
+
+  private:
+    
+    //! The GCAlinearPrior we're part of
+    const GCAlinearPrior& gcalp;
+    //! Precomputed linear index for 3D data
+    const unsigned int idx3d;
+    //! Precomputed linear start index for 4D data
+    const unsigned int currOffset;
+    //! Length of the 4th dimension
+    const int myLabelCount;
+  };
+
+
 
 }
 
