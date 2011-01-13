@@ -10,10 +10,10 @@
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/10/27 18:15:51 $
- *    $Revision: 1.25 $
+ *    $Date: 2011/01/13 22:10:58 $
+ *    $Revision: 1.26 $
  *
- * Copyright (C) 2007-2010,
+ * Copyright (C) 2007-2011,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -110,8 +110,10 @@ static double gifti_get_DA_value_2D (giiDataArray* da, int row, int col)
   }
   else if (GIFTI_IND_ORD_COL_MAJOR == da->ind_ord)
   {
-    dim0_index = col;
-    dim1_index = row;
+    // NJS NOTE: notice that order is treated as row/col, so that the
+    // calling sequence can just assume row major
+    dim0_index = row;//col;
+    dim1_index = col;//row;
   }
   else
   {
@@ -560,7 +562,14 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     /* Check the number of vertices and faces. */
     long long num_vertices = 0;
     long long num_cols = 0;
-    gifti_DA_rows_cols (coords, &num_vertices, &num_cols);
+    if (coords->ind_ord == GIFTI_IND_ORD_ROW_MAJOR)
+    { // RowMajorOrder
+      gifti_DA_rows_cols (coords, &num_vertices, &num_cols);
+    }
+    else
+    { // ColumnMajorOrder
+      gifti_DA_rows_cols (coords, &num_cols, &num_vertices);
+    }
     if (num_vertices <= 0 || num_cols != 3)
     {
       fprintf (stderr,"mrisReadGIFTIfile: malformed coords data array in file "
@@ -571,7 +580,14 @@ MRIS *mrisReadGIFTIdanum(const char *fname, MRIS *mris, int daNum)
     }
     long long num_faces = 0;
     num_cols = 0;
-    gifti_DA_rows_cols (faces, &num_faces, &num_cols);
+    if (faces->ind_ord == GIFTI_IND_ORD_ROW_MAJOR)
+    { // RowMajorOrder
+      gifti_DA_rows_cols (faces, &num_faces, &num_cols);
+    }
+    else
+    { // ColumnMajorOrder
+      gifti_DA_rows_cols (faces, &num_cols, &num_faces);
+    }
     if (num_faces <= 0 || num_cols != 3)
     {
       fprintf (stderr,"mrisReadGIFTIfile: malformed faces data array in file "
