@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/11 20:56:21 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/01/13 16:56:08 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -40,7 +40,13 @@ using namespace std;
 namespace Freesurfer {
 
   // ====================================================
+  void GCAlinearNode::PrintStats( ostream& os ) const {
+    os << "Stats for GCAlinearNode" << endl;
+    os << "  Exhumation time = " << this->tExhume << endl;
+    os << "  Inhumation time = " << this->tInhume << endl;
+  }
 
+  // ==========================================
   void GCAlinearNode::Exhume( const GCA* const src ) {
     /*!
       This method is responsible for extracting data from

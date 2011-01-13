@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/11 18:24:23 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/01/13 16:56:08 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -39,8 +39,7 @@ using namespace std;
 namespace Freesurfer {
   // ==========================================
   void GCAlinearPrior::PrintStats( ostream& os ) const {
-    os << "Stats for GCApriorNode" << endl;
-    os << "  Bytes allocated = " << this->bytes << endl;
+    os << "Stats for GCAlinearPrior" << endl;
     os << "  Exhumation time = " << this->tExhume << endl;
     os << "  Inhumation time = " << this->tInhume << endl;
   }

@@ -106,5 +106,10 @@ int main( int argc, char *argv[] ) {
   // Free data
   GCAfree( &origGCA );
 
+  // =============================
+  // Print the timers
+  myLinearNode.PrintStats();
+  myLinearPrior.PrintStats();
+
   return( EXIT_SUCCESS );
 }

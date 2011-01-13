@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/11 20:56:18 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/01/13 16:56:06 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -331,6 +331,9 @@ namespace Freesurfer {
     //! Method to remove nodes from a GCA prior to inhumation of new data
     void ScorchNodes( GCA* targ ) const;
 
+
+    //! Method to print out timers
+    void PrintStats( std::ostream& os = std::cout ) const;
 
     // -------------------------------------------------
   private:
