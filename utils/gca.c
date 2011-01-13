@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/11 18:23:36 $
- *    $Revision: 1.285 $
+ *    $Date: 2011/01/13 16:55:26 $
+ *    $Revision: 1.286 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -55,6 +55,8 @@
 #include "mrisegment.h"
 
 #include "affine.h"
+
+#include "chronometer.h"
 
 #if WITH_DMALLOC
 #include <dmalloc.h>
@@ -20135,6 +20137,12 @@ GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
   MRI              *mri_tmp ;
   MRI_SEGMENTATION *mriseg ;
   int              free_transform = 0 ;
+#ifdef GCAbuildMostLikelyVolumeForStructure_TIMERS
+  Chronometer tTot;
+  InitChronometer( &tTot );
+
+  StartChronometer( &tTot );
+#endif
 
   if (transform == NULL)
   {
@@ -20342,8 +20350,18 @@ GCAbuildMostLikelyVolumeForStructure( const GCA *gca,
     MRIcopy(mri_tmp, mri) ;
     MRIfree(&mri_tmp) ;
   }
-  if (free_transform)
+  if (free_transform) {
     TransformFree(&transform) ;
+  }
+
+#ifdef GCAbuildMostLikelyVolumeForStructure_TIMERS
+  StopChronometer( &tTot );
+
+  printf( "%s: Complete in %9.3f ms\n",
+	  __FUNCTION__,
+	  GetChronometerValue( &tTot ) );
+#endif
+
   return(mri) ;
 }
 
