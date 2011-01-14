@@ -8,8 +8,8 @@
  * Original Author: Florent Segonne
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/01/05 18:28:38 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/01/14 01:54:31 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -283,7 +283,7 @@ static void read_geometry_init(void) {
   char fname[512], *mri_dir;
   FILE *fp;
 
-  mri_dir = getenv("MRI_DIR");
+  mri_dir = getenv("FREESURFER_HOME");
   sprintf(fname,"%s/lib/bem/ic5.tri",mri_dir);
 
   fp = fopen(fname,"r");
@@ -1743,7 +1743,11 @@ static int Reading(void) {
   fprintf(stderr,"\nreading...");
 
   mri_T1=MRIread(T1_fname);
+  if (mri_T1 == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not open %s", T1_fname) ;
   mri_PD=MRIread(PD_fname);
+  if (mri_PD == NULL)
+    ErrorExit(ERROR_NOFILE, "%s: could not open %s", PD_fname) ;
   if (mri_T1->type != MRI_FLOAT)
   {
     MRI *mri_tmp = MRIchangeType(mri_T1, MRI_FLOAT, 0, 1, 1) ;
