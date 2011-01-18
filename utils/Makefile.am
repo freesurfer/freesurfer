@@ -382,7 +382,7 @@ gcamorphenergygpu.o: $(CUDA_DEPS)
 gcamorphtermgpu.o: $(CUDA_DEPS)  ../include/volumecpu.hpp
 gcamorphcpu.o: ../include/gcamorphcpu.hpp $(CUDA_DEPS)
 mrilabels_cuda.o: $(CUDA_DEPS) ../include/mrilabels_cuda.hpp
-gcanodegpu_cuda.o: $(CUDA_DEPS) ../include/gcanodegpu.hpp ../include/gcalinearnode.hpp
+gcanodegpu.o: $(CUDA_DEPS) ../include/gcanodegpu.hpp ../include/gcalinearnode.hpp
 
 CALLDEPTH ?= -1
 
