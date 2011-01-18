@@ -8,13 +8,13 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: rge21 $
-#    $Date: 2010/12/21 16:41:25 $
-#    $Revision: 1.506 $
+#    $Author: nicks $
+#    $Date: 2011/01/18 16:12:06 $
+#    $Revision: 1.507 $
 #
 ########################################################################
 AC_PREREQ(2.57)
-AC_INIT(Freesurfer, dev4, freesurfer@nmr.mgh.harvard.edu)
+AC_INIT(Freesurfer, dev5, freesurfer@nmr.mgh.harvard.edu)
 # if $FREESURFER_HOME is defined, then use that as default install dir:
 if test ! "x${FREESURFER_HOME}" = "x"; then
   ac_default_prefix=${FREESURFER_HOME}
