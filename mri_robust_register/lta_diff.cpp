@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/11/11 22:32:17 $
- *    $Revision: 1.17 $
+ *    $Date: 2011/01/18 17:00:39 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -56,7 +56,7 @@ extern "C"
 
 using namespace std;
 
-//static char vcid[] = "$Id: lta_diff.cpp,v 1.17 2010/11/11 22:32:17 mreuter Exp $";
+//static char vcid[] = "$Id: lta_diff.cpp,v 1.18 2011/01/18 17:00:39 mreuter Exp $";
 char *Progname = NULL;
 void writeVox2Vox(LTA * lta)
 {
@@ -423,6 +423,8 @@ int main(int argc, char *argv[])
     cout << "       3            8-corners mean distance after transform " << endl;
     cout << "       4            Max Displacement on Sphere " << endl;
     cout << "       5            Determinant (scaling)" << endl;
+		cout << "       6            Interpolation Smoothing (only for first transform)" << endl;
+		cout << "                       pass 'identity.nofile' for second lta " << endl;
     cout << "    norm-div  (=1)  divide final distance by this (e.g. step adjustment)" << endl;
 		cout << "    invert1         invert first LTA: 1 true, 0 false (default)" << endl;
     cout << endl;
@@ -545,10 +547,13 @@ int main(int argc, char *argv[])
   case 4 :
     dist =  sphereDiff(RAS1,RAS2,100)/d; 
 		break;
-   case 5 :
+  case 5 :
     dist =  determinant(RAS1,RAS2)/d; 
 		break;
-	 default:
+  case 6 :
+    dist =  MyMatrix::getResampSmoothing(lta1)/d; 
+		break;
+	default:
      cerr<< "ERROR: dist-type " << disttype << " unknown!" << endl;
 		 exit(1);
 		break;
