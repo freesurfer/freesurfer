@@ -19,7 +19,7 @@ dmri_spline_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 dmri_spline_LDFLAGS=$(OS_LDFLAGS)
 
 dmri_train_SOURCES=dmri_train.cxx blood.cxx blood.h spline.cxx spline.h \
-                   TrackIO.cxx TrackIO.h
+                   TrackIO.cxx TrackIO.h ByteSwap.h ErrorCode.h
 dmri_train_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 dmri_train_LDFLAGS=$(OS_LDFLAGS)
 

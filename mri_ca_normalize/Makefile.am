@@ -28,7 +28,7 @@ check_PROGRAMS=foo
 
 TESTS=test_mri_ca_normalize
 
-EXTRA_DIST=testdata.tar.gz test_mri_ca_normalize
+EXTRA_DIST=testdata.tar.gz test_mri_ca_normalize $(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

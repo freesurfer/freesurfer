@@ -13,6 +13,8 @@ mri_cc_LDFLAGS=$(OS_LDFLAGS)
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_cc.help.xml
 
+EXTRA_DIST=$(foo_DATA)
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

@@ -24,7 +24,7 @@ check_PROGRAMS=foo
 
 TESTS=test_mris_ca_label
 
-EXTRA_DIST=test_mris_ca_label testdata.tar.gz
+EXTRA_DIST=test_mris_ca_label testdata.tar.gz $(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

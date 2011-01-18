@@ -325,8 +325,8 @@ MFILES=\
 	flac_resynth.m \
 	flacrfx.m \
 	flac_taskregind.m \
-        flac_tfilter.m \
-        flac_tfilter_parse.m \
+  flac_tfilter.m \
+  flac_tfilter_parse.m \
 	flacview.m \
 	fmri_abjackknife.m \
 	fmri_accrandeff.m \

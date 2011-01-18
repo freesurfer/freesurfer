@@ -15,7 +15,7 @@ bin_PROGRAMS = mri_robust_register \
 	lta_diff \
 	mri_create_tests \
 	mri_gradient_info
-	
+
 mri_robust_register_SOURCES= \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp \
 	Quaternion.cpp Registration.cpp RegPowell.cpp mri_robust_register.cpp
@@ -57,10 +57,11 @@ check_PROGRAMS=foo
 
 #TESTS=test_mri_robust_template
 
-EXTRA_DIST=Regression.h Registration.h RegistrationStep.h \
-	MultiRegistration.h Quaternion.h \
+EXTRA_DIST=Regression.h Regression.cpp Registration.h RegistrationStep.h \
+	MultiRegistration.h Quaternion.h RobustGaussian.cpp RegPowell.cpp \
 	CostFunctions.h RobustGaussian.h RegPowell.h MyMatrix.h MyMRI.h \
-	testdata.tar.gz
+	testdata.tar.gz $(foo_DATA) Registration.cpp \
+	mri_robust_register.help.h mri_robust_template.help.h
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

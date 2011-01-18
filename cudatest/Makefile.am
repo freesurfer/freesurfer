@@ -3,11 +3,9 @@ SUBDIRS = gcatest \
           mrilabeltest
 
 
-AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CFLAGS=-I$(top_srcdir)/include
 
-AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom\
-             $(BOOST_CFLAGS)\
-             -Wall -Wextra
+AM_CXXFLAGS=-I$(top_srcdir)/include $(BOOST_CFLAGS) -Wall -Wextra
 
 AM_LDFLAGS=
 
@@ -57,7 +55,7 @@ bin_PROGRAMS = gcamCompare\
                gcam_smoothgradient_test gcam_smoothgradient_test_cuda
 
 
-gcamCompare_SOURCES = gcamCompare.cpp
+gcamCompare_SOURCES = gcamCompare.cpp kahan.hpp
 gcamCompare_LDADD=  $(addprefix $(top_builddir)/, $(LIBS_MGH)) $(BOOST_PO_LIB)
 gcamCompare_LDFLAGS=$(OS_LDFLAGS)
 

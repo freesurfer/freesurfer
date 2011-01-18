@@ -2,8 +2,8 @@
 ## Makefile.am 
 ##
 
-AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
-AM_CXXFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CFLAGS=-I$(top_srcdir)/include
+AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mri_segstats
 mri_segstats_SOURCES=mri_segstats.c
@@ -52,7 +52,7 @@ check_PROGRAMS=foo
 
 TESTS=test_mri_segstats
 
-EXTRA_DIST=test_mri_segstats testdata.tar.gz
+EXTRA_DIST=test_mri_segstats testdata.tar.gz $(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

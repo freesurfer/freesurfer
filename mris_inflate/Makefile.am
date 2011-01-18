@@ -1,9 +1,8 @@
 ## 
 ## Makefile.am 
 ##
-# Makefile.am specify i addtion to the standard
 
-AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mris_inflate
@@ -38,6 +37,8 @@ mris_inflate_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
         $(CFLAGS) $(mris_inflate_cuda_LDFLAGS) $(LDFLAGS) -o $@
 
 endif
+
+EXTRA_DIST=$(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

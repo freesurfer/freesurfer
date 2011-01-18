@@ -237,6 +237,154 @@ freeview_SOURCES=\
 	res/resource.h \
 	res/QuickRef.h
 
+RESOURCES=\
+	res/DialogLoadDTI.xrc \
+	res/DialogVolumeFilter.xrc \
+	res/CursorFill_png.h \
+	res/CursorAdd_png.h \
+	res/DialogNewVolume.xrc \
+	res/DialogPreferences.xrc \
+	res/DialogLoadROI.xrc \
+	res/DialogRepositionSurface.xrc \
+	res/DialogSavePoint.xrc \
+	res/PanelSurface.xrc \
+	res/CursorZoom_png.h \
+	res/QuickRef.html \
+	res/QuickRef.h \
+	res/DialogOptimalVolume.xrc \
+	res/DialogSavePointSetAs.xrc \
+	res/DialogEditLookupTable.xrc \
+	res/ToolWindowMeasure.xrc \
+	res/ToolWindowEdit.xrc \
+	res/PanelVolume.xrc \
+	res/FreeSurferColorLUT.h \
+	res/DialogTransformVolume.xrc \
+	res/CursorMeasure_png.h \
+	res/resource.cpp \
+	res/DialogLoadConnectivityData.xrc \
+	res/CursorPolyline_png.h \
+	res/DialogSaveVolumeAs.xrc \
+	res/CursorMeasurePolyline_png.h \
+	res/DialogGradientVolume.xrc \
+	res/DialogSaveScreenshot.xrc \
+	res/CursorMeasureLine_png.h \
+	res/CursorPan_png.h \
+	res/DialogNewROI.xrc \
+	res/res2c.sh \
+	res/DialogLoadPVolumes.xrc \
+	res/WindowQuickReference.xrc \
+	res/CursorColorPicker_png.h \
+	res/CursorGrab_png.h \
+	res/CursorRemove_png.h \
+	res/PanelSceneSetting.xrc \
+	res/MainWindow.xrc \
+	res/DialogWriteMovieFrames.xrc \
+	res/resource.h \
+	res/PanelROI.xrc \
+	res/DialogLoadPointSet.xrc \
+	res/CursorPencil_png.h \
+	res/DialogNewWayPoints.xrc \
+	res/images/surface_inflated.png \
+	res/images/tool_save_point.png \
+	res/images/view_histogram.png \
+	res/images/surface_main.png \
+	res/images/edit_undo.png \
+	res/images/surface_pial.png \
+	res/images/voxel_draw_freehand.png \
+	res/images/view_control_panel.png \
+	res/images/surface_load_16.png \
+	res/images/cursor_zoom.png \
+	res/images/waypoints_load.png \
+	res/images/surface_load.png \
+	res/images/cursor_fill.png \
+	res/images/view_coordinate.png \
+	res/images/view_sagittal.png \
+	res/images/cursor_measure_polyline.png \
+	res/images/voxel_draw_livewire.png \
+	res/images/move_up.png \
+	res/images/measure_line.png \
+	res/images/roi_save.png \
+	res/images/edit_paste_16.png \
+	res/images/waypoints_save.png \
+	res/images/edit_redo_16.png \
+	res/images/surface_curvature.png \
+	res/images/view_scalar_bar.png \
+	res/images/layout_1n3_h.png \
+	res/images/measure_label.png \
+	res/images/tool_goto_point.png \
+	res/images/navigate.png \
+	res/images/volume_paste_setting.png \
+	res/images/cursor_polyline.png \
+	res/images/volume_lock.png \
+	res/images/edit_copy_16.png \
+	res/images/view_3d.png \
+	res/images/surface_original.png \
+	res/images/file_open.png \
+	res/images/volume_paste_setting_all.png \
+	res/images/view_coronal.png \
+	res/images/view_coronal_old.png \
+	res/images/edit_redo.png \
+	res/images/voxel_draw_fill.png \
+	res/images/roi_load.png \
+	res/images/measure_polyline.png \
+	res/images/volume_save.png \
+	res/images/move_down.png \
+	res/images/surface_delete.png \
+	res/images/cursor_measure_rectangle.png \
+	res/images/view_3d_old.png \
+	res/images/view_axial_old.png \
+	res/images/cursor_remove.png \
+	res/images/view_axial.png \
+	res/images/volume_delete.png \
+	res/images/layout_2x2.png \
+	res/images/measure_rectangle.png \
+	res/images/layout_1n3.png \
+	res/images/edit_paste.png \
+	res/images/measure.png \
+	res/images/waypoints_new.png \
+	res/images/view_sagittal_old.png \
+	res/images/roi_draw_freehand.png \
+	res/images/voxel_edit.png \
+	res/images/cursor_colorpicker.png \
+	res/images/measure_spline.png \
+	res/images/roi_delete.png \
+	res/images/layout_1x1.png \
+	res/images/volume_new.png \
+	res/images/file_screenshot_16.png \
+	res/images/cursor_pan.png \
+	res/images/cursor_contour.png \
+	res/images/voxel_draw_colorpicker.png \
+	res/images/surface_white.png \
+	res/images/cursor_grab.png \
+	res/images/voxel_draw_contour.png \
+	res/images/cursor_measure_line.png \
+	res/images/roi_draw_polyline.png \
+	res/images/voxel_draw_polyline.png \
+	res/images/file_open_16.png \
+	res/images/volume_load.png \
+	res/images/edit_copy.png \
+	res/images/tool_rotate_volume.png \
+	res/images/file_screenshot.png \
+	res/images/measure_surface_region.png \
+	res/images/roi_new.png \
+	res/images/cursor_pencil.png \
+	res/images/volume_load_16.png \
+	res/images/roi_draw_fill.png \
+	res/images/waypoints_edit.png \
+	res/images/volume_copy_setting.png \
+	res/images/edit_undo_16.png \
+	res/images/roi_edit.png \
+	res/images/cursor_add.png \
+	res/images/waypoints_delete.png \
+	res/PanelWayPoints.xrc \
+	res/DialogLoadVolume.xrc \
+	res/CursorMeasureRectangle_png.h \
+	res/CursorContour_png.h \
+	res/WindowOverlayConfiguration.xrc \
+	res/WindowHistogram.xrc \
+	res/WindowConnectivityConfiguration.xrc \
+	res/Info.plist \
+	res/DialogCropVolume.xrc
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\
@@ -360,7 +508,7 @@ endif
 # NJS commented-out till a virtual-screen way of testing is implemented
 #TESTS=test_freeview
 
-EXTRA_DIST=test_freeview
+EXTRA_DIST=test_freeview $(RESOURCES) StockColorMap.h
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

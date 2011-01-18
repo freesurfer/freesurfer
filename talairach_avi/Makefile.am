@@ -183,7 +183,7 @@ EXTRA_DIST=$(dist_bin_SCRIPTS) \
 	$(CFILES) \
 	$(HFILES) \
 	$(FFILES) \
-	test_libg2c test_talairach_avi nu.mgz reference-tal.xfm
+	test_libg2c test_talairach_avi nu.mgz reference-tal.xfm $(xml_DATA)
 
 listfiles:
 	@echo $(EXTRA_DIST) Makefile.am

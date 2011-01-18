@@ -42,6 +42,8 @@ mris_fix_topology_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 
 endif
 
+EXTRA_DIST=$(foo_DATA)
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.

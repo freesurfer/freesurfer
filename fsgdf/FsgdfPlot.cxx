@@ -7,10 +7,10 @@
  * Original Author: Nick Schmansky
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2009/10/17 22:47:24 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/01/18 22:02:11 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2008,
+ * Copyright (C) 2008-2010,
  * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 

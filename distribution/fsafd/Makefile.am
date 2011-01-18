@@ -1,6 +1,7 @@
 #
 # Makefile.am
 #
+
 SUBDIRS=
 
 foodir=$(prefix)/fsafd

@@ -27,7 +27,8 @@ check_PROGRAMS=foo
 
 TESTS=test_tal_afd
 
-EXTRA_DIST=test_tal_afd good_tal.xfm good_tal.txt bad_tal.xfm bad_tal.txt
+EXTRA_DIST=test_tal_afd good_tal.xfm good_tal.txt bad_tal.xfm bad_tal.txt \
+	$(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

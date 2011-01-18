@@ -9,7 +9,7 @@ mri_gcut_LDFLAGS=$(OS_LDFLAGS)
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_gcut.help.xml
 
-EXTRA_DIST = gcut.h graphcut.h graphcut.cpp pre_pro.cpp
+EXTRA_DIST = gcut.h graphcut.h graphcut.cpp pre_pro.cpp $(foo_DATA)
 
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

@@ -27,7 +27,7 @@ check_PROGRAMS=foo
 
 TESTS=test_mri_aparc2aseg
 
-EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz testdata2.tar.gz
+EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz testdata2.tar.gz $(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

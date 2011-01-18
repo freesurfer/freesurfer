@@ -13,5 +13,7 @@ mris_calc_LDFLAGS=$(OS_LDFLAGS)
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_calc.help.xml
 
+EXTRA_DIST=$(foo_DATA)
+
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra

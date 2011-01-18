@@ -281,7 +281,7 @@ uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/fsfget.tcl
 
 EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
-extract_talairach_avi_QA.awk $(foo_DATA)
+extract_talairach_avi_QA.awk $(foo_DATA) $(xml_DATA)
 
 # notes: 
 # recon-all.2005 is the renamed recon-all-nmr, which is no longer used.
