@@ -84,7 +84,7 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-  "$Id: mri_gcut.cpp,v 1.11 2010/12/08 14:12:22 nicks Exp $";
+  "$Id: mri_gcut.cpp,v 1.12 2011/01/18 19:39:44 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -298,7 +298,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.11 2010/12/08 14:12:22 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.12 2011/01/18 19:39:44 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -504,7 +504,7 @@ int main(int argc, char *argv[])
       }
     }
     _ratio = (double)numGcut / numMask;
-    if (_ratio <= 0.75)
+    if (_ratio <= 0.85)
       error_Hurestic = 1;
   }
 
@@ -541,7 +541,7 @@ int main(int argc, char *argv[])
 
   // if user supplied a filename to which to write diffs, then write-out
   // volume file containing where cuts were made (for debug)
-  if (diff_filename[0])
+  if (diff_filename[0] && (error_Hurestic != 1))
   {
     MRI *mri_diff = MRISeqchangeType(mri3, MRI_UCHAR, 0.0, 0.999, FALSE);
     for (int z = 0 ; z < mri3->depth ; z++)
