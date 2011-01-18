@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/03/19 16:55:59 $
- *    $Revision: 1.4 $
+ *    $Author: mreuter $
+ *    $Date: 2011/01/18 21:23:22 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -81,7 +81,7 @@ main(int argc, char *argv[]) {
   float         std ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_compute_change_map.c,v 1.4 2010/03/19 16:55:59 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_compute_change_map.c,v 1.5 2011/01/18 21:23:22 mreuter Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -119,6 +119,18 @@ main(int argc, char *argv[]) {
   if (transform == NULL)
     ErrorExit(ERROR_BADPARM, "%s: could not read transform %s\n",
               Progname,argv[3]);
+	// if identity, set geometries (to allow conversion later
+	// from vox2vox to ras2ras etc) also set vox2vox as that
+	// is needed below (avoid conversion)
+  if (0 == strcmp(argv[3], "identity.nofile"))
+  {
+	  transform->type =  LINEAR_VOX_TO_VOX;
+		LTA* lta = transform->xform;
+		lta->type =  LINEAR_VOX_TO_VOX;
+	  getVolGeom(mri2,&lta->xforms[0].src);
+	  getVolGeom(mri1,&lta->xforms[0].dst);
+		//LTAwrite(lta,"identity.lta");
+	}
 
   if (smooth_sigma > 0)
   {
