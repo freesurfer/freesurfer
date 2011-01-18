@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/13 20:19:26 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/01/18 17:53:43 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,13 @@
 
 #include "gca.h"
 
+
+// Forward declaration
+namespace GPU {
+  namespace Classes {
+    class GCAnodeGPU;
+  }
+}
 
 //! Catch-all namespace
 namespace Freesurfer {
@@ -64,14 +71,14 @@ namespace Freesurfer {
 
     //! Accessor for nodeMaxLabels
     inline int maxLabels( const int ix, const int iy, const int iz ) const {
-      unsigned int idx = this->index3D(ix,iy,iz);
+      const size_t idx = this->index3D(ix,iy,iz);
 
       return( this->nodeMaxLabels.at(idx) );
     }
 
     //! Mutator for nodeMaxLabels
     inline int& maxLabels( const int ix, const int iy, const int iz ) {
-      unsigned int idx = this->index3D(ix,iy,iz);
+      const size_t idx = this->index3D(ix,iy,iz);
 
       return( this->nodeMaxLabels.at(idx) );
     }
@@ -82,7 +89,7 @@ namespace Freesurfer {
     inline int totalTraining( const int ix,
 			      const int iy,
 			      const int iz ) const {
-      unsigned int idx = this->index3D(ix,iy,iz);
+      const size_t idx = this->index3D(ix,iy,iz);
 
       return( this->nodeTotalTraining.at(idx) );
     }
@@ -91,7 +98,7 @@ namespace Freesurfer {
     inline int& totalTraining( const int ix,
 			       const int iy,
 			       const int iz ) {
-      unsigned int idx = this->index3D(ix,iy,iz);
+      const size_t idx = this->index3D(ix,iy,iz);
       
       return( this->nodeTotalTraining.at(idx) );
     }
@@ -107,10 +114,10 @@ namespace Freesurfer {
 	This is computed as the difference between
 	consecutive entries of the offsets4D array
       */
-      const int idx3D = this->index3D(ix,iy,iz);
+      const size_t idx3D = this->index3D(ix,iy,iz);
 
-      int currOffset = this->offsets4D.at( idx3D );
-      int nextOffset = this->offsets4D.at( idx3D+1 );
+      long long currOffset = this->offsets4D.at( idx3D );
+      long long nextOffset = this->offsets4D.at( idx3D+1 );
 
       return( nextOffset - currOffset );
     }
@@ -124,7 +131,7 @@ namespace Freesurfer {
 					const int iy,
 					const int iz,
 					const int iGC1D ) const {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->nodeLabels.at(idx) );
     }
@@ -134,7 +141,7 @@ namespace Freesurfer {
 					 const int iy,
 					 const int iz,
 					 const int iGC1D ) {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->nodeLabels.at(idx) );
     }
@@ -146,7 +153,7 @@ namespace Freesurfer {
 				  const int iy,
 				  const int iz,
 				  const int iGC1D ) const {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->means.at(idx) );
     }
@@ -156,7 +163,7 @@ namespace Freesurfer {
 				   const int iy,
 				   const int iz,
 				   const int iGC1D ) {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->means.at(idx) );
     }
@@ -168,7 +175,7 @@ namespace Freesurfer {
 				      const int iy,
 				      const int iz,
 				      const int iGC1D ) const {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->variances.at(idx) );
     }
@@ -178,7 +185,7 @@ namespace Freesurfer {
 				       const int iy,
 				       const int iz,
 				       const int iGC1D ) {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->variances.at(idx) );
     }
@@ -190,7 +197,7 @@ namespace Freesurfer {
 					const int iy,
 					const int iz,
 					const int iGC1D ) const {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->nJustPriors.at(idx) );
     }
@@ -200,7 +207,7 @@ namespace Freesurfer {
 					 const int iy,
 					 const int iz,
 					 const int iGC1D ) {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->nJustPriors.at(idx) );
     }
@@ -212,7 +219,7 @@ namespace Freesurfer {
 				    const int iy,
 				    const int iz,
 				    const int iGC1D ) const {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->nTraining.at(idx) );
     }
@@ -222,7 +229,7 @@ namespace Freesurfer {
 				     const int iy,
 				     const int iz,
 				     const int iGC1D ) {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
       
       return( this->nTraining.at(idx) );
     }
@@ -234,7 +241,7 @@ namespace Freesurfer {
 				       const int iy,
 				       const int iz,
 				       const int iGC1D ) const {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
 
       return( this->regularised.at(idx) );
     }
@@ -244,7 +251,7 @@ namespace Freesurfer {
 					const int iy,
 					const int iz,
 					const int iGC1D ) {
-      const unsigned int idx = this->index4D(ix,iy,iz,iGC1D);
+      const size_t idx = this->index4D(ix,iy,iz,iGC1D);
       
       return( this->regularised.at(idx) );
     }
@@ -262,10 +269,10 @@ namespace Freesurfer {
 	This is computed as the difference between
 	consecutive entries of the offsets6D array
       */
-      const unsigned int idx5D = this->index5D(ix,iy,iz,iGC1D,iDirec);
+      const size_t idx5D = this->index5D(ix,iy,iz,iGC1D,iDirec);
 
-      int currOffset = this->offsets6D.at( idx5D );
-      int nextOffset = this->offsets6D.at( idx5D+1 );
+      long long currOffset = this->offsets6D.at( idx5D );
+      long long nextOffset = this->offsets6D.at( idx5D+1 );
 
       return( nextOffset - currOffset );
     }
@@ -281,7 +288,7 @@ namespace Freesurfer {
 						 const int iGC1D,
 						 const int iDirec,
 						 const int iLabel ) const {
-      const unsigned int idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
+      const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
 
       return( this->gc1dDirecLabelPriors.at(idx) );
     }
@@ -293,7 +300,7 @@ namespace Freesurfer {
 						  const int iGC1D,
 						  const int iDirec,
 						  const int iLabel ) {
-      const unsigned int idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
+      const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
 
       return( this->gc1dDirecLabelPriors.at(idx) );
     }
@@ -307,7 +314,7 @@ namespace Freesurfer {
 						     const int iGC1D,
 						     const int iDirec,
 						     const int iLabel ) const {
-      const unsigned int idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
+      const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
       
       return( this->gc1dDirecLabels.at(idx) );
     }
@@ -319,7 +326,7 @@ namespace Freesurfer {
 						      const int iGC1D,
 						      const int iDirec,
 						      const int iLabel ) {
-      const unsigned int idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
+      const size_t idx = this->index6D(ix,iy,iz,iGC1D,iDirec,iLabel);
       
       return( this->gc1dDirecLabels.at(idx) );
     }
@@ -343,23 +350,23 @@ namespace Freesurfer {
   private:
 
     // Dimensions
-    int xDim;
-    int yDim;
-    int zDim;
-    unsigned int n4D;
-    unsigned int n5D;
-    unsigned int n6D;
+    long long xDim;
+    long long yDim;
+    long long zDim;
+    size_t n4D;
+    size_t n5D;
+    size_t n6D;
     const int gc1dNeighbourDim;
     
 
     //! Stores offsets of (variable length) 4th dimension
-    std::vector<unsigned int> offsets4D;
+    std::vector<size_t> offsets4D;
 
     //! Stores offsets of 5th dimension (5th dim itself always of length gc1dNeighbourDim)
-    std::vector<unsigned int> offsets5D;
+    std::vector<size_t> offsets5D;
 
     //! Stores offsets of (variable length) 6th dimension
-    std::vector<unsigned int> offsets6D;
+    std::vector<size_t> offsets6D;
 
 
     //! Stores the value of max_labels for each node (3D)
@@ -412,40 +419,40 @@ namespace Freesurfer {
     // -------------------------------------------------
 
     //! Index computation for 3D matrices
-    inline unsigned int index3D( const int ix,
-				 const int iy,
-				 const int iz ) const {
+    inline size_t index3D( const int ix,
+			   const int iy,
+			   const int iz ) const {
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
+	std::cerr << __FUNCTION__
+		  << ": Index out of range" << std::endl;
 	abort();
       }
 
-      unsigned int index;
+      size_t index;
       index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
 
       return( index );
     }
 
     //! Index computation for 4D arrays
-    inline unsigned int index4D( const int ix,
-				 const int iy,
-				 const int iz,
-				 const int iGC1D ) const {
+    inline size_t index4D( const int ix,
+			   const int iy,
+			   const int iz,
+			   const int iGC1D ) const {
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
+	std::cerr << __FUNCTION__
+		  << ": Index out of range" << std::endl;
 	abort();
       }
 
-      const unsigned int idx3D = this->index3D(ix,iy,iz);
+      const size_t idx3D = this->index3D(ix,iy,iz);
 
-      const int currOffset = this->offsets4D.at( idx3D );
-      const int nextOffset = this->offsets4D.at( idx3D + 1 );
+      const long long currOffset = this->offsets4D.at( idx3D );
+      const long long nextOffset = this->offsets4D.at( idx3D + 1 );
 
       if( (iGC1D<0) || (iGC1D>=(nextOffset-currOffset) ) ) {
 	std::cerr << __FUNCTION__
@@ -458,11 +465,11 @@ namespace Freesurfer {
     
 
     //! Index computation for 5D arrays
-    inline unsigned int index5D( const int ix,
-				 const int iy,
-				 const int iz,
-				 const int iGC1D,
-				 const int iDirec ) const {
+    inline size_t index5D( const int ix,
+			   const int iy,
+			   const int iz,
+			   const int iGC1D,
+			   const int iDirec ) const {
       /*!
 	No actual 5D arrays exist in the class, since nlabels in GC1D
 	can be dynamically computed.
@@ -473,15 +480,15 @@ namespace Freesurfer {
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
+	std::cerr << __FUNCTION__
+		  << ": Index out of range" << std::endl;
 	abort();
       }
 
-      const unsigned int idx3D = this->index3D(ix,iy,iz);
+      const size_t idx3D = this->index3D(ix,iy,iz);
 
-      const int currGC1dOffset = this->offsets4D.at( idx3D );
-      const int nextGC1dOffset = this->offsets4D.at( idx3D + 1 );
+      const long long currGC1dOffset = this->offsets4D.at( idx3D );
+      const long long nextGC1dOffset = this->offsets4D.at( idx3D + 1 );
 
       if( (iGC1D<0) || (iGC1D>=(nextGC1dOffset-currGC1dOffset) ) ) {
 	std::cerr << __FUNCTION__
@@ -489,8 +496,8 @@ namespace Freesurfer {
 	abort();
       }
       
-      const int currOffset = this->offsets5D.at( currGC1dOffset+iGC1D );
-      const int nextOffset = this->offsets5D.at( currGC1dOffset+iGC1D+1 );
+      const long long currOffset = this->offsets5D.at( currGC1dOffset+iGC1D );
+      const long long nextOffset = this->offsets5D.at( currGC1dOffset+iGC1D+1 );
 
       if( (iDirec<0) || (iDirec>=(nextOffset-currOffset) ) ) {
 	std::cerr << __FUNCTION__
@@ -504,25 +511,25 @@ namespace Freesurfer {
   
       
     //! Index computation for 6D arrays
-    inline unsigned int index6D( const int ix,
-				 const int iy,
-				 const int iz,
-				 const int iGC1D,
-				 const int iDirec,
-				 const int iLabel ) const {
+    inline size_t index6D( const int ix,
+			   const int iy,
+			   const int iz,
+			   const int iGC1D,
+			   const int iDirec,
+			   const int iLabel ) const {
 
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
+	std::cerr << __FUNCTION__
+		  << ": Index out of range" << std::endl;
 	abort();
       }
 
-      const unsigned int idx3D = this->index3D(ix,iy,iz);
+      const size_t idx3D = this->index3D(ix,iy,iz);
 
-      const int currgc1DOffset = this->offsets4D.at( idx3D );
-      const int nextgc1DOffset = this->offsets4D.at( idx3D + 1 );
+      const long long currgc1DOffset = this->offsets4D.at( idx3D );
+      const long long nextgc1DOffset = this->offsets4D.at( idx3D + 1 );
 
       if( (iGC1D<0) || (iGC1D>=(nextgc1DOffset-currgc1DOffset) ) ) {
 	std::cerr << __FUNCTION__
@@ -530,8 +537,8 @@ namespace Freesurfer {
 	abort();
       }
 
-      const int currDirecOffset = this->offsets5D.at( currgc1DOffset+iGC1D );
-      const int nextDirecOffset = this->offsets5D.at( currgc1DOffset+iGC1D+1 );
+      const long long currDirecOffset = this->offsets5D.at( currgc1DOffset+iGC1D );
+      const long long nextDirecOffset = this->offsets5D.at( currgc1DOffset+iGC1D+1 );
       
       if( (iDirec<0) || (iDirec>=(nextDirecOffset-currDirecOffset) ) ) {
 	std::cerr << __FUNCTION__
@@ -539,8 +546,8 @@ namespace Freesurfer {
 	abort();
       }
 
-      const int currOffset = this->offsets6D.at( currDirecOffset+iDirec );
-      const int nextOffset = this->offsets6D.at( currDirecOffset+iDirec+1 );
+      const long long currOffset = this->offsets6D.at( currDirecOffset+iDirec );
+      const long long nextOffset = this->offsets6D.at( currDirecOffset+iDirec+1 );
 
       if( (iLabel<0) || (iLabel>=(nextOffset-currOffset)) ) {
 	std::cerr << __FUNCTION__
@@ -554,6 +561,7 @@ namespace Freesurfer {
 
     friend class const_GCAnode;
     friend class const_GCAnode_GC1D;
+    friend class GPU::Classes::GCAnodeGPU;
   };
 
 
@@ -618,9 +626,9 @@ namespace Freesurfer {
     //! The GCAlinearNode we're part of
     const GCAlinearNode& gcaln;
     //! Precomputed linear index for 3D data
-    const unsigned int idx3d;
+    const size_t idx3d;
     //! Precomputed linear start index for 4D data
-    const unsigned int offset4d;
+    const size_t offset4d;
     //! Length of the 4th dimension
     const int myGC1Dcount;
 
@@ -684,10 +692,10 @@ namespace Freesurfer {
 		  << std::endl;
       }
 
-      const unsigned int idx5D = this->gcaln.offsets5D.at( this->offset4d ) + iDirec;
+      const size_t idx5D = this->gcaln.offsets5D.at( this->offset4d ) + iDirec;
 
-      const int currOffset = this->gcaln.offsets6D.at( idx5D );
-      const int nextOffset = this->gcaln.offsets6D.at( idx5D+1 );
+      const long long currOffset = this->gcaln.offsets6D.at( idx5D );
+      const long long nextOffset = this->gcaln.offsets6D.at( idx5D+1 );
 
       return( nextOffset - currOffset );
     }
@@ -701,7 +709,7 @@ namespace Freesurfer {
 	This is basically an alternative for 
 	GCAlinearNode::labelsAtNodeGC1Ddirection
       */
-      const unsigned int idx6D = this->index6D(iDirec,iLabel);
+      const size_t idx6D = this->index6D(iDirec,iLabel);
 
       return( this->gcaln.gc1dDirecLabels.at(idx6D) );
     }
@@ -712,7 +720,7 @@ namespace Freesurfer {
 	This is an alternative for 
 	GCAlinearNode::labelPriorsAtNodeGC1Ddirection
       */
-      const unsigned int idx6D = this->index6D(iDirec,iLabel);
+      const size_t idx6D = this->index6D(iDirec,iLabel);
       
       return( this->gcaln.gc1dDirecLabelPriors.at(idx6D) );
     }
@@ -726,18 +734,18 @@ namespace Freesurfer {
 
     
     //! Index computation for 6D data
-    inline unsigned int index6D( const int iDirec,
-				 const int iLabel ) const {
+    inline size_t index6D( const int iDirec,
+			   const int iLabel ) const {
       if( (iDirec<0) || (iDirec>= this->gcaln.gc1dNeighbourDim ) ) {
 	std::cerr << __FUNCTION__
 		  << ": iDirec out of range"
 		  << std::endl;
       }
       
-      const unsigned int idx5D = this->gcaln.offsets5D.at( this->offset4d ) + iDirec;
+      const size_t idx5D = this->gcaln.offsets5D.at( this->offset4d ) + iDirec;
 
-      const int currOffset = this->gcaln.offsets6D.at( idx5D );
-      const int nextOffset = this->gcaln.offsets6D.at( idx5D+1 );
+      const long long currOffset = this->gcaln.offsets6D.at( idx5D );
+      const long long nextOffset = this->gcaln.offsets6D.at( idx5D+1 );
 
       if( (iLabel<0) || (iLabel>=(nextOffset-currOffset)) ) {
 	std::cerr << __FUNCTION__

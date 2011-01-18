@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/13 20:19:26 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/01/18 17:53:43 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -66,7 +66,7 @@ namespace Freesurfer {
       /*!
 	The totTraining array holds per voxel data
       */
-      unsigned int idx = index3D(ix,iy,iz);
+      size_t idx = index3D(ix,iy,iz);
       
       return( this->totTraining.at(idx) );
     }
@@ -78,7 +78,7 @@ namespace Freesurfer {
       /*!
 	The totTraining array holds per voxel data
       */
-      unsigned int idx = index3D(ix,iy,iz);
+      size_t idx = index3D(ix,iy,iz);
       
       return( this->totTraining.at(idx) );
     }
@@ -94,7 +94,7 @@ namespace Freesurfer {
       /*!
 	The maxLabels array holds per voxel data
       */
-      unsigned int idx = index3D(ix,iy,iz);
+      size_t idx = index3D(ix,iy,iz);
 
       return( this->maxLabels.at(idx) );
     }
@@ -106,7 +106,7 @@ namespace Freesurfer {
       /*!
 	The maxLabels array holds per voxel data
       */
-      unsigned int idx = index3D(ix,iy,iz);
+      size_t idx = index3D(ix,iy,iz);
 
       return( this->maxLabels.at(idx) );
     }
@@ -122,8 +122,8 @@ namespace Freesurfer {
 	This is computed as a difference between consecutive
 	entries on the offsets4D array;
       */
-      short currOffset = this->offsets4D.at( this->index3D(ix,iy,iz) );
-      short nextOffset = this->offsets4D.at( this->index3D(ix,iy,iz) + 1 );
+      long long currOffset = this->offsets4D.at( this->index3D(ix,iy,iz) );
+      long long nextOffset = this->offsets4D.at( this->index3D(ix,iy,iz) + 1 );
 
       return( nextOffset - currOffset );
     }
@@ -140,7 +140,7 @@ namespace Freesurfer {
 	Each voxel has a 1D array of labels hanging from it,
 	which are indexed according to the offsets4D array.
       */
-      unsigned int idx = this->index4D(ix,iy,iz,iLabel);
+      size_t idx = this->index4D(ix,iy,iz,iLabel);
 
       return( this->labels.at(idx) );
     }
@@ -156,7 +156,7 @@ namespace Freesurfer {
 	which are indexed according to the offsets4D array.
 	
       */
-      unsigned int idx = this->index4D(ix,iy,iz,iLabel);
+      size_t idx = this->index4D(ix,iy,iz,iLabel);
       
       return( this->labels.at(idx) );
     }
@@ -172,7 +172,7 @@ namespace Freesurfer {
 	Each voxel has a 1D array of priors hanging from it,
 	which are indexed according to the offsets4D array.
       */
-      unsigned int idx = this->index4D(ix,iy,iz,iLabel);
+      size_t idx = this->index4D(ix,iy,iz,iLabel);
 
       return( this->priors.at(idx) );
     }
@@ -185,7 +185,7 @@ namespace Freesurfer {
 	Each voxel has a 1D array of priors hanging from it,
 	which are indexed according to the offsets4D array.
       */
-      unsigned int idx = this->index4D(ix,iy,iz,iLabel);
+      size_t idx = this->index4D(ix,iy,iz,iLabel);
 
       return( this->priors.at(idx) );
     }
@@ -222,44 +222,44 @@ namespace Freesurfer {
     // -----------------------------------------------------
 
     //! Index computation for 3D indices
-    inline unsigned int index3D( const int ix,
-				 const int iy,
-				 const int iz ) const {
+    inline size_t index3D( const int ix,
+			   const int iy,
+			   const int iz ) const {
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
+	std::cerr << __FUNCTION__
+		  << ": Index out of range" << std::endl;
 	abort();
       }
 
-      unsigned int index;
+      size_t index;
       index = ix + ( this->xDim * ( iy + ( this->yDim * iz ) ) );
 
       return( index );
     }
 
     //! Index computation for 4D indices
-    inline unsigned int index4D( const int ix,
-				 const int iy,
-				 const int iz,
-				 const int iLabel ) const {
+    inline size_t index4D( const int ix,
+			   const int iy,
+			   const int iz,
+			   const int iLabel ) const {
       if( (ix<0) || (ix>=this->xDim) ||
 	  (iy<0) || (iy>=this->yDim) ||
 	  (iz<0) || (iz>=this->zDim ) ) {
-	cerr << __FUNCTION__
-	     << ": Index out of range" << endl;
+	std::cerr << __FUNCTION__
+		  << ": Index out of range" << std::endl;
 	abort();
       }
 
-      const unsigned int idx3D = this->index3D(ix,iy,iz);
+      const size_t idx3D = this->index3D(ix,iy,iz);
 
-      const int currOffset = this->offsets4D.at( idx3D );
-      const int nextOffset = this->offsets4D.at( idx3D + 1 );
+      const long long currOffset = this->offsets4D.at( idx3D );
+      const long long nextOffset = this->offsets4D.at( idx3D + 1 );
 
       if( (iLabel<0) || (iLabel>=(nextOffset-currOffset) ) ) {
-	cerr << __FUNCTION__
-	     << ": iLabel out of range" << endl;
+	std::cerr << __FUNCTION__
+		  << ": iLabel out of range" << std::endl;
 	abort();
       }
       
@@ -271,16 +271,16 @@ namespace Freesurfer {
     // =======================
 
     // Dimensions
-    int xDim;
-    int yDim;
-    int zDim;
-    unsigned int n4D;
+    long long xDim;
+    long long yDim;
+    long long zDim;
+    size_t n4D;
 
     //! Count of bytes allocated
     size_t bytes;
 
     //! Stores offsets of the (variable length) 4th dimensions
-    std::vector<unsigned int> offsets4D;
+    std::vector<size_t> offsets4D;
 
     //! Stores max_labels of GCA_PRIOR
     std::vector<short> maxLabels;
@@ -366,9 +366,9 @@ namespace Freesurfer {
     //! The GCAlinearPrior we're part of
     const GCAlinearPrior& gcalp;
     //! Precomputed linear index for 3D data
-    const unsigned int idx3d;
+    const size_t idx3d;
     //! Precomputed linear start index for 4D data
-    const unsigned int currOffset;
+    const size_t currOffset;
     //! Length of the 4th dimension
     const int myLabelCount;
   };

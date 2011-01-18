@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/13 20:19:29 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/01/18 17:53:40 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -82,7 +82,7 @@ namespace Freesurfer {
     //! Space for the offsets4D array
     this->offsets4D.clear();
     this->offsets4D.resize( nVoxels+1,
-			    numeric_limits<unsigned int>::max() );
+			    numeric_limits<size_t>::max() );
     this->bytes += this->offsets4D.size() * sizeof(unsigned int);
 
     //! Space for maxLabels

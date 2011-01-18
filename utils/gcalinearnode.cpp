@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/13 20:19:29 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/01/18 17:53:40 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -418,11 +418,11 @@ namespace Freesurfer {
 
     // Allocate the offset arrays
     this->offsets4D.resize( nVoxels+1,
-			    numeric_limits<unsigned int>::max() );
+			    numeric_limits<size_t>::max() );
     this->offsets5D.resize( this->n4D+1,
-			    numeric_limits<unsigned int>::max() );
+			    numeric_limits<size_t>::max() );
     this->offsets6D.resize( this->n5D+1,
-			    numeric_limits<unsigned int>::max() );
+			    numeric_limits<size_t>::max() );
 
 
     // Allocate the 3D arrays
