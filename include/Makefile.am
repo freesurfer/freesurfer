@@ -190,8 +190,6 @@ EXTRA_DIST=\
 	nifti1.h \
 	nifti1_io.h \
 	numerics.h \
-	oclCommon.h \
-	oclDijkstraKernel.h \
 	path.h \
 	pbm.h \
 	pbmplus.h \
