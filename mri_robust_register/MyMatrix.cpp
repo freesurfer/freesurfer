@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/07 18:08:55 $
- *    $Revision: 1.13 $
+ *    $Date: 2011/01/18 17:00:14 $
+ *    $Revision: 1.14 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -28,6 +28,7 @@
 
 #include "MyMatrix.h"
 #include "Quaternion.h"
+#include "utils.h" //nint
 #include <vnl/vnl_inverse.h>
 #include <vnl/algo/vnl_matrix_inverse.h>
 #include <vnl/algo/vnl_determinant.h>
@@ -39,6 +40,8 @@
 #include <vnl/vnl_imag.h>
 #include <vnl/algo/vnl_qr.h>
 #include <vnl/vnl_complexify.h>
+#include <vcl_iostream.h>
+#include <vnl/vnl_matlab_print.h>
 
 using namespace std;
 
@@ -1688,30 +1691,30 @@ void MyMatrix::SchurComplex( const vnl_matrix < double > & M,
 	
 }
 
-vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix < double > > & vm, int n)
-// Computes ( mv[0] * mv[1] ... * mv[n] )^{1/n}
-// by first computing the n-th square root of each factor and then multiplying,
-// to ensure the solution is the one that lies between the inputs
-// (imagine n=7 with six pos 45 degree rotations and one identity,
-// the result X should be 0 < X < 45 degree rotation, not negative, 
-// which happens by multiplying first)
-// If n=-1 set n number of elements in vm (default)
-// else use n for the squareroot (usefull, if some elements are the identity matrix and not
-// passed in the array).
-{
-  assert(vm.size() > 0);
-
-  if (n==-1) n=(int)vm.size();
-	
-	double d = 1.0/n;
-	vnl_matrix < double > geo(MatrixPow(vm[0],d));
-	
-	// compute n-th sqrt or the rest
-	for (unsigned int i=1;i<vm.size();i++)
-   geo *= MatrixPow(vm[i],d);
-
-  return geo;
-}
+// vnl_matrix < double > MyMatrix::GeometricMean(const std::vector < vnl_matrix < double > > & vm, int n)
+// // Computes ( mv[0] * mv[1] ... * mv[n] )^{1/n}
+// // by first computing the n-th square root of each factor and then multiplying,
+// // to ensure the solution is the one that lies between the inputs
+// // (imagine n=7 with six pos 45 degree rotations and one identity,
+// // the result X should be 0 < X < 45 degree rotation, not negative, 
+// // which happens by multiplying first)
+// // If n=-1 set n number of elements in vm (default)
+// // else use n for the squareroot (usefull, if some elements are the identity matrix and not
+// // passed in the array).
+// {
+//   assert(vm.size() > 0);
+// 
+//   if (n==-1) n=(int)vm.size();
+// 	
+// 	double d = 1.0/n;
+// 	vnl_matrix < double > geo(MatrixPow(vm[0],d));
+// 	
+// 	// compute n-th sqrt or the rest
+// 	for (unsigned int i=1;i<vm.size();i++)
+//    geo *= MatrixPow(vm[i],d);
+// 
+//   return geo;
+// }
 
 void MyMatrix::PolarDecomposition(const vnl_matrix < double > &A,
 	                               vnl_matrix < double > &R,
@@ -1892,6 +1895,93 @@ double  MyMatrix::RotMatrixLogNorm(const vnl_matrix_fixed < double, 4, 4 >& m)
   return sqrt(2.0) * theta;
 
 }
+
+double MyMatrix::getResampSmoothing(const LTA * lta)
+// assuming tri-linear interpolation, how large
+// is the smoothing (averaging) introduced by this transform.
+// source and target geometries are taken from the lta
+{
+
+  MATRIX *V2V;
+	
+	if (lta->type == LINEAR_VOX_TO_VOX)
+	  V2V = MatrixCopy(lta->xforms[0].m_L, NULL);
+  else if (lta->type == LINEAR_RAS_TO_RAS)
+  {
+	  V2V = MatrixCopy(lta->xforms[0].m_L, NULL);
+    //           sI2R
+    //     src -------> RAS
+    //      |?           | mod (input)
+    //      V            V
+    //     dst <------- RAS
+    //           dR2I
+    MATRIX *sI2R = vg_i_to_r(&lta->xforms[0].src);
+    MATRIX *dR2I = vg_r_to_i(&lta->xforms[0].dst);
+    MATRIX *tmp = 0;
+    if (sI2R==0 || dR2I==0)
+		{
+      cerr<<"MyMatrix::getResampSmoothing: passed volumes did not have the info on i_to_r or r_to_i." << endl;
+			exit(1);
+		}
+    tmp = MatrixMultiply(V2V, sI2R, NULL);
+    MatrixMultiply(dR2I, tmp, V2V); 
+		MatrixFree(&tmp);
+		MatrixFree(&sI2R);
+		MatrixFree(&dR2I);
+  }
+	else
+	{
+	  cerr << "MyMatrix::getResampSmoothing  LTA type " << lta->type << " not supported!" << endl;
+		exit (1);
+	}
+
+  // convert to double:
+	vnl_matrix < double > V = convertMATRIX2VNL(V2V);
+	//vnl_matlab_print(vcl_cout,V,"V");cout << endl;
+  vnl_matrix < double > Vinv = vnl_inverse(V);
+	//vnl_matlab_print(vcl_cout,Vinv,"Vinv");cout << endl;
+
+	assert(Vinv.rows() ==4 && Vinv.cols()==4);
+	
+	MatrixFree(&V2V);
+	
+	int width  = lta->xforms[0].dst.width;
+	int height = lta->xforms[0].dst.height;
+	int depth  = lta->xforms[0].dst.depth;
+	vnl_vector < double > x(4),y(4);
+	x[3] = 1.0;
+	y[3] = 1.0;
+	double row=0.0, slice=0.0, full=0.0;
+	for (int d = 0; d<depth; d++)
+	{
+	  y[2] = d;
+		slice = 0.0;
+	  for (int h = 0; h<height; h++)
+		{
+		  y[1] = h;
+			row = 0.0;
+      for (int w = 0; w<width; w++)
+			{
+			  y[0] = w;
+				x = Vinv*y;
+				
+				row += fabs(nint(x[0]) - x[0]) + fabs(nint(x[1]) - x[1]) + fabs(nint(x[2])-x[2]);
+				//cout << " Y " << y << " X " << x << endl;
+				//cout << " err " << row << endl;
+				//exit(1);
+			}
+			slice += row/width;
+		}
+    full += slice/height;
+	}
+  
+	full /= depth;
+	//full /= 1.5; // the maximum
+	
+	return full;
+
+}
+
 
 vnl_matrix < double > MyMatrix::getVNLMatrix(std::vector < double > d, int r)
 // convert double array to matrix

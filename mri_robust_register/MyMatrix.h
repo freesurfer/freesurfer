@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/07 18:08:52 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/01/18 17:00:13 $
+ *    $Revision: 1.10 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -77,8 +77,8 @@ public:
 	//! Matrix Square Root (using Complex Schur)
   static vnl_matrix < double >  MatrixSqrt(const vnl_matrix < double >& m);
 	
-	//! Geometric mean
-	static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);
+//	//! Geometric mean
+//	static vnl_matrix < double > GeometricMean(const std::vector < vnl_matrix < double > > &vm, int n=-1);
 	
 	// ! Polar Decomposition: A = R * S  (R orthogonal, S pos. semi def, symmetric)
 	static void PolarDecomposition(const vnl_matrix < double > &A,
@@ -108,6 +108,8 @@ public:
   static double RigidTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b  = vnl_matrix<double>());
   static double AffineTransDistSq(const vnl_matrix < double >&a, const vnl_matrix < double >&b = vnl_matrix<double>(), double r=100);
   static double getFrobeniusDiff(const vnl_matrix < double >&m1, const vnl_matrix < double >&m2);
+
+  static double getResampSmoothing(const LTA*);
 
   // conversions
   static vnl_matrix < double > getVNLMatrix(std::vector < double > d, int r);
