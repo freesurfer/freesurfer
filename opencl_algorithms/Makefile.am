@@ -8,7 +8,8 @@ if BUILDOPENCL
 # If OpenCL was detected on the system, include all of the OpenCL code.
 # Otherwise, just build versions of the code that do not require
 # OpenCL (reference algorithms).
-libopencl_algorithms_a_SOURCES = oclDijkstraKernel.cpp oclCommon.cpp
+libopencl_algorithms_a_SOURCES = oclDijkstraKernel.cpp oclDijkstraKernel.h \
+	oclCommon.cpp oclCommon.h
 libopencl_algorithms_a_CXXFLAGS = $(AM_CXXFLAGS) $(OPENCL_CFLAGS)
 else
 libopencl_algorithms_a_SOURCES = oclDijkstraKernel.cpp
