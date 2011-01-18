@@ -70,6 +70,7 @@ EXTRA_DIST=\
 	gcamorphtestutils.h \
 	gcamorphtestutils.hpp \
 	gcamfots_cuda.h \
+	gcanodegpu.hpp \
 	gcautils.hpp \
 	gcarray.h \
 	gclass.h \
