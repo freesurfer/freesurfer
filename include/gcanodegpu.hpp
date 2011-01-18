@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/18 19:14:51 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/01/18 20:10:32 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -35,6 +35,10 @@
 namespace GPU {
 
   namespace Classes {
+
+    // Forward declarations
+    class const_GCAnode;
+    class const_GCAnode_GC1D;
 
     
     //! Device class for GCA node data
@@ -230,6 +234,14 @@ namespace GPU {
 	return( this->gc1dDirecLabels[idx] );
       }
 
+#ifdef __CUDA_ARCH__
+      __device__
+      const_GCAnode GetConstNode( const int ix,
+				  const int iy,
+				  const int iz ) const;
+#else
+#warning "Not declaring GetConstNode method on host"
+#endif
       
     private:
       // Dimensions
@@ -312,7 +324,192 @@ namespace GPU {
 
 	return( currOffset+iLabel );
       }
+
+      friend const_GCAnode;
+      friend const_GCAnode_GC1D;
     };
+
+
+    // ===============
+
+#ifdef __CUDA_ARCH__
+    //! Mirror of the CPU const_GCAnode
+    class const_GCAnode {
+    public:
+      //! Constructor from location
+      __device__
+      const_GCAnode( const int _ix,
+		     const int _iy,
+		     const int _iz,
+		     const GCAnodeGPUarg& src ) : gnga(src),
+						  idx3d(src.index3D(_ix,_iy,_iz)),
+						  offset4d(src.offsets4D[idx3d]),
+						  myGC1Dcount(src.offsets4D[idx3d+1]-offset4d),
+						  ix(_ix),
+						  iy(_iy),
+						  iz(_iz) {}
+
+      
+      //! Accessor for max_labels
+      __device__
+      int maxLabels( void ) const {
+	return( this->gnga.nodeMaxLabels[this->idx3d] );
+      }
+
+      //! Accessor for totalTraining
+      __device__
+      int totalTraining( void ) const {
+	return( this->gnga.nodeTotalTraining[this->idx3d] );
+      }
+
+      //! Accessor for gc1dCount
+      __device__
+      int gc1dCount( void ) const {
+	return( this->myGC1Dcount );
+      }
+
+      //! Access for nodeLabels
+      __device__
+      unsigned short labels( const int iGC1D ) const {
+	return( this->gnga.nodeLabels[this->offset4d+iGC1D] );
+      }
+
+      //! Create the GC1D
+      const_GCAnode_GC1D GetConstGC1D( const int iGC1D ) const;
+
+    private:
+      const GCAnodeGPUarg& gnga;
+      const size_t idx3d;
+      const size_t offset4d;
+      const int myGC1Dcount;
+
+      const int ix, iy, iz;
+
+    };
+
+
+    __device__
+    const_GCAnode GCAnodeGPUarg::GetConstNode( const int ix,
+					       const int iy,
+					       const int iz ) const {
+      return( const_GCAnode( ix, iy, iz, *this ) );
+    }
+#else
+#warning "const_GCAnode does not exist in host code"
+#endif
+    
+
+     // ===============
+
+#ifdef __CUDA_ARCH__
+    class const_GCAnode_GC1D {
+    public:
+      //! Construction from location
+      __device__
+      const_GCAnode_GC1D( const int _ix,
+			  const int _iy,
+			  const int _iz,
+			  const int _iGC1D,
+			  const GCAnodeGPUarg& src ) : gnga(src),
+						       offset4d(src.index4D(_ix,_iy,_iz,_iGC1D)) {}
+
+      // -----------------------------
+      // 4D data
+      
+      //! Accessor for the mean
+      __device__
+      float mean( void ) const {
+	return( this->gnga.means[this->offset4d] );
+      }
+      
+      //! Accessor for the variance
+      __device__
+      float variance( void ) const {
+	return( this->gnga.variances[this->offset4d] );
+      }
+      
+      //! Accessor for nJustPriors
+      __device__
+      short nJustPriors( void ) const {
+	return( this->gnga.nJustPriors[this->offset4d] );
+      }
+      
+      //! Accessor for nTraining
+      __device__
+      int nTraining( void ) const {
+	return( this->gnga.nTraining[this->offset4d] );
+      }
+      
+      //! Accessor for regularised
+      __device__
+      int regularised( void ) const {
+	return( this->gnga.regularised[this->offset4d] );
+      }
+
+      // -----------------------------
+      // 5D data
+      __device__
+      short nLabels( const int iDirec ) const {
+	/*!
+	  This is basically an alternative for
+	  GCAlinearNode::nLabelsAtNodeGC1Ddirection
+	*/
+	const size_t idx5D = this->gnga.offsets5D[this->offset4d] + iDirec;
+
+	const size_t currOffset = this->gnga.offsets6D[idx5D];
+	const size_t nextOffset = this->gnga.offsets6D[idx5D+1];
+	
+	return( nextOffset-currOffset );
+      }
+
+
+      // -----------------------------
+      // 6D data
+      
+      //! Accessor for labels
+      __device__
+      unsigned short labels( const int iDirec, const int iLabel ) const {
+	const size_t idx6D = this->index6D(iDirec,iLabel);
+	return( this->gnga.gc1dDirecLabels[idx6D] );
+      }
+
+      //! Accessor for labelPriors
+      __device__
+      float labelPriors( const int iDirec, const int iLabel ) const {
+	const size_t idx6D = this->index6D(iDirec,iLabel);
+	return( this->gnga.gc1dDirecLabelPriors[idx6D] );
+      }
+      
+    private:
+      const GCAnodeGPUarg& gnga;
+      const size_t offset4d;
+
+      //! Index computation for 6D data
+      __device__
+      size_t index6D( const int iDirec,
+		      const int iLabel ) const {
+	const size_t idx5D = this->gnga.offsets5D[this->offset4d] + iDirec;
+	const size_t currOffset = this->gnga.offsets6D[idx5D];
+	return( currOffset + iLabel );
+      }
+    };
+
+
+
+    __device__
+    const_GCAnode_GC1D const_GCAnode::GetConstGC1D( const int iGC1D ) const {
+      const_GCAnode_GC1D gc1d( this->ix,
+			       this->iy,
+			       this->iz,
+			       iGC1D,
+			       this->gnga );
+      return( gc1d );
+    }
+#else
+#warning "const_GCAnode_GC1D does not exsist in host code"
+#endif
+
+
 
     
     // =============================================================

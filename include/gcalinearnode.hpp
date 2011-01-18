@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/18 17:53:43 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/01/18 20:10:32 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -730,7 +730,7 @@ namespace Freesurfer {
     //! The GCAlinearNode we're part of
     const GCAlinearNode& gcaln;
     //! Precomputed linear start index for 4D data
-    const unsigned int offset4d;
+    const size_t offset4d;
 
     
     //! Index computation for 6D data
