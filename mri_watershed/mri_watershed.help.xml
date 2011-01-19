@@ -12,6 +12,9 @@ If you used -atlas option, then { The template was used to correct the surface. 
 
 The finely grained sphere was fit to the brain.
 
+The default parameters are: -w 0.82 -b 0.32 -h 10 -seedpt -ta -wta 
+You can use one of the first five flags to change these default parms.
+
 (Segonne 2004)</description>
   <arguments>
     <positional>
@@ -24,6 +27,20 @@ The finely grained sphere was fit to the brain.
       <intro>None</intro>
     </required_flagged>
     <optional_flagged>
+      <argument>-w weight</argument>
+      <explanation>preweight the input image using atlas information (no_w -> 1)</explanation> 
+      <argument>-no_wta</argument>
+      <explanation>dont use the preweighting fot the template deformation</explanation> 
+      <argument>-b proba_merging</argument>
+      <explanation>use the basins merging using atlas information (no_b -> 1)</explanation> 
+      <argument>-h int_hpf</argument>
+      <explanation>presize the preflooding height (in percent)</explanation> 
+      <argument>-no_seedpt</argument>
+      <explanation>dont use (seedpoints using atlas information)</explanation> 
+      <argument>-no-ta</argument>
+      <explanation>dont use (template deformation using atlas information)</explanation> 
+
+
       <argument>-atlas</argument>
       <explanation>use the atlas information to correct the segmentation. When the segmented brain is not correct, this option might help you.</explanation> 
       <argument>-surf [surfname]</argument>
