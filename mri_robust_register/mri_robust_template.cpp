@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/17 23:36:08 $
- *    $Revision: 1.31 $
+ *    $Date: 2011/01/19 20:48:59 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -33,6 +33,11 @@
 #include <sstream>
 #include <vector>
 #include <cassert>
+
+// for rand:
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include "MultiRegistration.h"
 #include "mri_robust_template.help.h"
@@ -145,7 +150,7 @@ static struct Parameters P =
 	vector < string >(0),
 	0,
 	1,
-	1,
+	-1,
 	false,
 	false,
 	SSAMPLE,
@@ -165,12 +170,20 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.31 2010/12/17 23:36:08 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.32 2011/01/19 20:48:59 mreuter Exp $";
 char *Progname = NULL;
 
-//static MORPH_PARMS  parms ;
-//static FILE *diag_fp = NULL ;
+int getRandomNumber(int start, int end)
+// return n in [start,end]
+{
 
+  // initialize random seed: 
+  srand ( time(NULL) );
+
+  // generate random number: 
+	int range = end-start+1;
+  return rand() % range + start;
+}
 
 int main(int argc, char *argv[])
 {
@@ -203,8 +216,14 @@ int main(int argc, char *argv[])
     exit(1);
   }
 //  if (P.outdir[P.outdir.length()-1] != '/') P.outdir += "/";
-
-
+  
+	// randomly pick target:
+	if (P.inittp < 0)
+	{
+	  P.inittp = getRandomNumber(1,P.mov.size());
+    //cout << "Will use TP " << P.inittp << " as random initial target." << endl;
+	}
+	
   // Timer
   struct timeb start ;
   int    msec,minutes,seconds;
@@ -347,7 +366,7 @@ static void printUsage(void)
   cout << "  --mapmov align1.mgz ...    map and resample each input to template" << endl;
   cout << "  --weights weights1.mgz ... output weights in target space" << endl;
   cout << "  --average #                construct template from: 0 Mean, 1 Median (default)" << endl;
-  cout << "  --inittp #                 use TP# for spatial init (default 1), 0: no init" << endl;
+  cout << "  --inittp #                 use TP# for spatial init (default random), 0: no init" << endl;
   cout << "  --fixtp                    map everthing to init TP# (init TP is not resampled)" << endl;
 	
 //  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;

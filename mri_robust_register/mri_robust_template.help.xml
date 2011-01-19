@@ -31,7 +31,7 @@ Important Note: For best performance the input images should all have the same i
       <argument>--average &lt;#&gt;</argument>
       <explanation>construct template from: 0 Mean, 1 Median (default)</explanation>
       <argument>--inittp &lt;#&gt;</argument>
-      <explanation>use TP# for spacial init (default 1), 0: no init</explanation>
+      <explanation>use TP# for spacial init (default random), 0: no init</explanation>
       <argument>--fixtp</argument>
       <explanation>map everthing to init TP# (init TP is not resampled)</explanation>
       <argument>--iscale</argument>
