@@ -19,6 +19,9 @@ foo:
 	if ! test -f "$(top_builddir)/mris_ca_label/testdata.tar.gz"; then \
 		cp -v $(top_srcdir)/mris_ca_label/testdata.tar.gz \
 					$(top_builddir)/mris_ca_label/; fi;
+	if ! test -f "$(top_builddir)/distribution/average/lh.curvature.buckner40.filled.desikan_killiany.2010-03-25.gcs"; then \
+		cp -v $(top_srcdir)/distribution/average/*.gcs \
+					$(top_builddir)/distribution/average/; fi;
 
 check_PROGRAMS=foo
 
