@@ -171,7 +171,7 @@ foo:
 		cp -v $(top_srcdir)/talairach_avi/reference-tal.xfm \
 					$(top_builddir)/talairach_avi/; fi;
 	if ! test -f "$(top_builddir)/talairach_avi/711-2C_as_mni_average_305.4dfp.img"; then \
-		cp -v $(top_srcdir)/talairach_avi/711-2C* \
+		cp -v $(top_srcdir)/talairach_avi/711-2* \
 					$(top_builddir)/talairach_avi/; fi;
 	if ! test -f "$(top_builddir)/talairach_avi/talairach_avi"; then \
 		list=( $(dist_bin_SCRIPTS) ); \
