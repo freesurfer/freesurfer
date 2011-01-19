@@ -5,25 +5,11 @@
 	<synopsis>mri_gcut [-110|-mult &lt;filename&gt;|-T &lt;value&gt;] in_filename out_filename</synopsis>
 	<description>Skull stripping algorithm based on graph cuts.
 
-The algorithm consists of four main steps. In step 1, a conservative
-white matter (WM) mask is estimated using region growing. In step 2,
-the image is thresholded at the level proportional to intensity of WM,
-where the latter is estimated by averaging voxels with WM mask
-obtained in step 1. The thresholded image will contain brain and
-non-brain structures connected to each other by a set of (hopefully)
-narrow connections. In step 3, an undirected graph is defined on
-the image and subsequently partitioned into two portions using
-graph cuts approach. In the last step, post processing is applied
-to regain CSF and partial volume voxels that were lost during
-thresholding. For more details, see [1]
+The algorithm consists of four main steps. In step 1, a conservative white matter (WM) mask is estimated using region growing. In step 2, the image is thresholded at the level proportional to intensity of WM, where the latter is estimated by averaging voxels with WM mask obtained in step 1. The thresholded image will contain brain and non-brain structures connected to each other by a set of (hopefully) narrow connections. In step 3, an undirected graph is defined on the image and subsequently partitioned into two portions using graph cuts approach. In the last step, post processing is applied to regain CSF and partial volume voxels that were lost during thresholding. For more details, see [1]
 
-When the algorithm is applied in the context of FreeSurfer pipeline,
-eg. T1.mgz, one can choose to use voxels with intensity 110 in T1.mgz
-as the WM mask, rather than estimating the mask from the image by
-region growing.
+When the algorithm is applied in the context of FreeSurfer pipeline, eg. T1.mgz, one can choose to use voxels with intensity 110 in T1.mgz as the WM mask, rather than estimating the mask from the image by region growing.
 
-The memory needed to process a standard 256*256*256 .mgz file
-is about 1GB ~ 1.5GB.
+The memory needed to process a standard 256*256*256 .mgz file is about 1GB ~ 1.5GB.
 
 [1] S.A. Sadananthan, W. Zheng, M.W.L. Chee, and V. Zagorodnov,
 'Skull Stripping Using Graph Cuts', Neuroimage, 2009</description>
@@ -46,11 +32,5 @@ is about 1GB ~ 1.5GB.
       <intro>None.</intro>
     </optional_flagged>
   </arguments>
-  <outputs>
-      <intro>*******************************************************************</intro>
-  </outputs>
-	<example>*******************************************************************</example>
-  <bugs>None</bugs>
   <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>*******************************************************************</see_also>
 </help>
