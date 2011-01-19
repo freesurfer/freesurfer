@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/11/15 17:33:05 $
- *    $Revision: 1.98 $
+ *    $Date: 2011/01/19 16:38:44 $
+ *    $Revision: 1.99 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -218,7 +218,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.98 2010/11/15 17:33:05 greve Exp $";
+"$Id: mri_segreg.c,v 1.99 2011/01/19 16:38:44 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -363,13 +363,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.98 2010/11/15 17:33:05 greve Exp $",
+     "$Id: mri_segreg.c,v 1.99 2011/01/19 16:38:44 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.98 2010/11/15 17:33:05 greve Exp $",
+     "$Id: mri_segreg.c,v 1.99 2011/01/19 16:38:44 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -558,6 +558,7 @@ int main(int argc, char **argv) {
     exit(0);
   }
 
+  GetSurfCosts(mov, NULL, R0, R, p, dof, costs);
   fprintf(fp,"Initial costs ----------------\n");
   fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
   fprintf(fp,"WM  Intensity0 %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
@@ -806,14 +807,24 @@ int main(int argc, char **argv) {
     fclose(fpParam);
   }
 
-  printf("Costs at optimum\n");
-  printf("%7d %10.4lf %8.4lf ",
-	 (int)costs[0],costs[1],costs[2]); // WM  n mean std
-  printf("%10.4lf %10.4lf %8.4lf ",
-	 costs[3],costs[4],costs[5]); // CTX n mean std
-  printf("%8.4lf %8.4lf ",costs[6],costs[7]); // t, cost=1/t
-  printf("\n");
-  
+  GetSurfCosts(mov, NULL, R0, R, p, dof, costs);
+  fprintf(fp,"Final costs ----------------\n");
+  fprintf(fp,"Number of surface hits %d\n",(int)costs[0]);  
+  fprintf(fp,"WM  Intensity0 %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
+  fprintf(fp,"Ctx Intensity0 %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
+  fprintf(fp,"Pct Contrast0  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
+  fprintf(fp,"Cost %8.4lf\n",costs[7]); 
+  fprintf(fp,"RelCost %8.4lf\n",rcost0);
+  fflush(fp);
+
+  printf("Final costs ----------------\n");
+  printf("Number of surface hits %d\n",(int)costs[0]);  
+  printf("WM  Intensity %10.4lf +/- %8.4lf\n",costs[1],costs[2]); 
+  printf("Ctx Intensity %10.4lf +/- %8.4lf\n",costs[4],costs[5]); 
+  printf("Pct Contrast  %10.4lf +/- %8.4lf\n",costs[6],costs[3]); 
+  printf("Cost %8.4lf\n",costs[7]); 
+  printf("RelCost %8.4lf\n",rcost0);
+
   printf("Reg at min cost was \n");
   MatrixPrint(stdout,R);
   printf("\n");
