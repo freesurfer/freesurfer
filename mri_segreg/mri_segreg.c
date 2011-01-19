@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/01/19 16:38:44 $
- *    $Revision: 1.99 $
+ *    $Date: 2011/01/19 21:56:43 $
+ *    $Revision: 1.100 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -115,7 +115,7 @@
   --init-surf-cost basename0 : saves init cost as basename0.?h.mgh
   --surf-cost-diff diffbase : saves final-init cost as diffbase.?h.mgh
   --surf-con basename : saves final contrast as basename.?h.mgh
-
+  --cost-eval file.dat : save costs at each iteration
 
   ENDUSAGE ---------------------------------------------------------------
 */
@@ -218,7 +218,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.99 2011/01/19 16:38:44 greve Exp $";
+"$Id: mri_segreg.c,v 1.100 2011/01/19 21:56:43 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -261,7 +261,6 @@ double NoiseStd;
 int DoProfile = 0;
 int n1dmin = 3;
 
-int DoPowell = 1;
 int nMaxItersPowell = 36;
 double TolPowell = 1e-8;
 double LinMinTolPowell = 1e-8;
@@ -363,13 +362,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.99 2011/01/19 16:38:44 greve Exp $",
+     "$Id: mri_segreg.c,v 1.100 2011/01/19 21:56:43 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.99 2011/01/19 16:38:44 greve Exp $",
+     "$Id: mri_segreg.c,v 1.100 2011/01/19 21:56:43 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1018,8 +1017,6 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--version"))  print_version() ;
     else if (!strcasecmp(option, "--debug"))    debug = 1;
     else if (!strcasecmp(option, "--profile"))  DoProfile = 1;
-    else if (!strcasecmp(option, "--powell"))   DoPowell = 1;
-    else if (!strcasecmp(option, "--no-powell")) DoPowell = 0;
     else if (!strcasecmp(option, "--abs"))       DoAbs = 1;
     else if (!strcasecmp(option, "--no-abs"))    DoAbs = 0;
     else if (!strcasecmp(option, "--no-cortex-label")) UseCortexLabel = 0;
@@ -1187,6 +1184,11 @@ static int parse_commandline(int argc, char **argv) {
     else if (istringnmatch(option, "--o",0)) {
       if (nargc < 1) argnerr(option,1);
       outfile = pargv[0];
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--cost-eval",0)) {
+      if (nargc < 1) argnerr(option,1);
+      costfile_powell = pargv[0];
       nargsused = 1;
     } 
     else if (istringnmatch(option, "--relcost",0)) {
@@ -1672,7 +1674,6 @@ static void dump_options(FILE *fp)
   fprintf(fp,"rhcostfile %s\n",rhcostfile);
   fprintf(fp,"interp  %s (%d)\n",interpmethod,interpcode);
   fprintf(fp,"frame  %d\n",frame);
-  fprintf(fp,"DoPowell  %d\n",DoPowell);
   fprintf(fp,"TolPowell %lf\n",TolPowell);
   fprintf(fp,"nMaxItersPowell %d\n",nMaxItersPowell);
   fprintf(fp,"n1dmin  %d\n",n1dmin);
@@ -1792,13 +1793,14 @@ float compute_powell_cost(float *p)
 
   if(costfile_powell != NULL){
     // write costs to file
-    fp = fopen(costfile_powell,"a");
+    if(nCostEvaluations == 0) fp = fopen(costfile_powell,"w");
+    else                      fp = fopen(costfile_powell,"a");
     fprintf(fp,"%4d ",nCostEvaluations);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[0],pp[1],pp[2]);
     fprintf(fp,"%6.3lf %6.3lf %6.3lf ",pp[3],pp[4],pp[5]);
     if(dof > 6) fprintf(fp,"sc: %4.3lf %4.3lf %4.3lf ",pp[6],pp[7],pp[8]);
     if(dof > 9) fprintf(fp,"sh: %6.3lf %6.3lf %6.3lf ",pp[9],pp[10],pp[11]);
-    fprintf(fp,"  %8.5lf %8.5lf\n",costs[7],copt);
+    fprintf(fp,"  %8.5lf %8.5lf %7d\n",costs[7],copt,(int)costs[0]);
     //fprintf(fp,"%7d %10.4lf %8.4lf ",
 	//    (int)costs[0],costs[1],costs[2]); // WM  n mean std
     //fprintf(fp,"%10.4lf %10.4lf %8.4lf ",
@@ -2195,6 +2197,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   costs[4] = costs[4]/nhits; // ctx mean
   costs[6] = dmean; // percent contrast
   costs[7] = cmean;
+  if(nhits == 0) costs[7] = 10.0; 
 
   if(UseLH){
     //MRIfree(&vlhwm);
