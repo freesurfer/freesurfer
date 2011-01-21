@@ -1,0 +1,271 @@
+#!/bin/tcsh -f
+
+set VERSION = '$Id: wm-anat-snr,v 1.1 2011/01/21 22:42:04 greve Exp $';
+set inputargs = ($argv);
+
+set subject = ();
+set datfile = ();
+set datfilespeced = 0;
+set LF = ();
+set tmpdir = ();
+set nWMErode = 3;
+set UpdateOnly = 1;
+set cleanup = 1;
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | egrep -e -version | wc -l`
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | egrep -e -help | wc -l`
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
+if(! -e $apas) then
+  echo "ERROR: cannot find $apas" 
+  exit 1;
+endif
+set norm = $SUBJECTS_DIR/$subject/mri/norm.mgz
+if(! -e $norm) then
+  echo "ERROR: cannot find $norm" 
+  exit 1;
+endif
+if($#datfile == 0) set datfile = $SUBJECTS_DIR/$subject/stats/wmsnr.e$nWMErode.dat
+
+set outdir = `dirname $datfile`
+mkdir -p $outdir
+if($status) exit 1;
+if(! -w $outdir) then
+  echo "ERROR: cannot write to $outdir"
+  exit 1;
+endif
+
+set UpdateNeeded = 1;
+if(-e $datfile && $UpdateOnly) then
+  # Check contingencies
+  set UpdateNeeded = `UpdateNeeded $datfile $apas $norm`
+endif
+if($UpdateNeeded == 0) then
+  echo "Output file is up-to-date for $subject"
+  exit 0;
+endif
+
+if($datfilespeced) set LF = $datfile.log
+if($#LF == 0) set LF = $SUBJECTS_DIR/$subject/scripts/wmsnr.log
+rm -f $LF
+
+date | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+echo "subject $subject" | tee -a $LF
+echo $FREESURFER_HOME   | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+uname -a | tee -a $LF
+echo $VERSION | tee -a $LF
+echo UpdateOnly $UpdateOnly | tee -a $LF
+
+if($datfilespeced) set tmpdir = $outdir/tmp.wm-anat-snr.$$ 
+if($#tmpdir == 0) set $SUBJECTS_DIR/$subject/tmp
+mkdir -p $tmpdir
+
+set wme = $tmpdir/wmeroded.mgh
+set cmd = (mri_binarize --i $apas --o $wme --erode $nWMErode \
+   --match 2 41 7 46 251 252 253 254 255 77 78 79)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+set sumfile = $tmpdir/wmeroded.sum
+set cmd = (mri_segstats --snr --seg $wme --sum $sumfile \
+  --i $norm --excludeid 0)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
+set stats = (`cat $sumfile | grep -v \#`)
+echo $stats
+set nvox = $stats[3];
+set mean = $stats[6];
+set std  = $stats[7];
+set snr  = $stats[11];
+
+printf "%-15s %5.2f   %6.2f %5.2f %6d  %2d\n" \
+   $subject $snr $mean $std $nvox $nWMErode | tee $datfile | tee -a $LF
+
+if($cleanup) rm -r $tmpdir
+
+date | tee -a $LF
+echo "wm-anat-snr done" | tee -a $LF
+
+exit 0
+###################################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+
+  switch($flag)
+
+    case "--s":
+      if ( $#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if ( $#argv < 1) goto arg1err;
+      set datfile = $argv[1]; shift;
+      set datfilespeced = 1;
+      breaksw
+
+    case "--nerode":
+      if ( $#argv < 1) goto arg1err;
+      set nWMErode = $argv[1]; shift;
+      breaksw
+
+    case "--tmp":
+    case "--tmpdir":
+      if ( $#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--no-cleanup":
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--force":
+      set UpdateOnly = 0;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized.
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#subject == 0) then
+    echo "ERROR: must spec a subject id"
+    exit 1;
+  endif
+  if(! -e $SUBJECTS_DIR/$subject) then
+    echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+    exit 1;
+  endif
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "wm-anat-snr "
+  echo ""
+  echo "   --s subject  : FreeSurfer subject name"
+  echo ""
+  echo "   --force : force analysis even if output is up-to-date"
+  echo "   --o datfile  : output file"
+  echo "   --nerode N   : number of erodes of the WM mask"
+  echo "   --tmp tmpdir : temporary directory"
+  echo "   --cleanup    : delete tmpdir (default)"
+  echo "   --no-cleanup : do not delete tmpdir (default)"
+  echo "   --help       : print help and exit"
+  echo ""
+
+  if($PrintHelp) \
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+Measures the anatomical SNR in white matter (WM). This can be used as
+a quality assurance (QA) metric. This metric is experimental and may 
+change in the future.
+
+Simply run:  wm-anat-snr --s subject
+
+The WM is determined from the aparc+aseg.mgz automatic segmentation as
+voxels with the following indices: 2 41 7 46 251 252 253 254 255 77 78
+79. The last three are WM hypointensities.  A mask is made from these
+voxels and then eroded by 3 voxels (controlled by --nerode). The mean
+and standard deviation (measured over space) of the norm.mgz is
+computed within this mask.  The snr is then computed as the
+mean/stddev. The output is put in stats/wmsnr.e3.dat (e3 is for erode
+by 3, so the name will change if you change the number of erodes). The
+output file contains 6 columns:
+
+1. subject name
+2. SNR
+3. Mean WM intensity
+4. Standard deviation of WM intensity
+5. Number of voxels in the mask after erosion
+6. Number of erodes
+
+Typical values are 15-20. Subjects with less than 15 should be
+scrutinized. SNR values may be low because of several factors,
+including motion, imperfect intensity inhomogeneity correction, high
+background noise, some scanner artifact, a failure in the FreeSurfer
+analysis, or some other reason. It might also be low because the
+subject biologically has a large range of intensities (eg, many
+hypointensities).  Note that a low SNR does not necessarily mean that
+the data are bad, and a high SNR does not necessarily mean that
+everything is ok.
+
+By default, this program will not re-run an analysis unless the
+output file is older than the aparc+aseg.mgz or the norm.mgz. To
+force re-analysis, run with --force.
+
+After running on a group of subjects, you can run
+
+cd $SUBJECTS_DIR
+cat */stats/wmsnr.e3.dat | sort -k 2 -n 
+
+To get a list of subjects sorted by the SNR.
+
