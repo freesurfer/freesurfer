@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set VERSION = '$Id: wm-anat-snr,v 1.1 2011/01/21 22:42:04 greve Exp $';
+set VERSION = '$Id: wm-anat-snr,v 1.2 2011/01/21 23:11:47 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -78,7 +78,7 @@ echo $VERSION | tee -a $LF
 echo UpdateOnly $UpdateOnly | tee -a $LF
 
 if($datfilespeced) set tmpdir = $outdir/tmp.wm-anat-snr.$$ 
-if($#tmpdir == 0) set $SUBJECTS_DIR/$subject/tmp
+if($#tmpdir == 0) set tmpdir = $SUBJECTS_DIR/$subject/tmp
 mkdir -p $tmpdir
 
 set wme = $tmpdir/wmeroded.mgh
