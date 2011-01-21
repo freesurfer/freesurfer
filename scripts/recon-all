@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/01/18 19:36:23 $
-#    $Revision: 1.355 $
+#    $Author: mreuter $
+#    $Date: 2011/01/21 19:53:53 $
+#    $Revision: 1.356 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.355 2011/01/18 19:36:23 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.356 2011/01/21 19:53:53 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -118,7 +118,8 @@ set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # default is to seed with current time and date,
                      # resulting in slightly different surfaces each run.
                      # affects: mris_smooth, mris_sphere, mris_topology_fixer,
-                     # mris_topo_fixer, mris_ca_label
+                     # mris_topo_fixer, mris_ca_label, 
+                     # mri_robust_template (1st-base-call-only)
 set RngSeed = 1234   # seed for random number generator, used only when
                      # -norandomness flag is used, and can be overriden by
                      # the flag -rng-seed <seed>
@@ -921,6 +922,7 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   set cmd = ($cmd --average ${robust_template_avg_arg})
   set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
   set cmd = ($cmd --sat 4.685 )
+  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
