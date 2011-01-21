@@ -1,13 +1,12 @@
 #! /bin/csh -f
-
 #
 # funcroi-config
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/01/20 19:44:42 $
-#    $Revision: 1.8 $
+#    $Date: 2011/01/21 23:20:26 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +21,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.8 2011/01/20 19:44:42 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.9 2011/01/21 23:20:26 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -110,7 +109,7 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set roiconfig = $argv[1]; shift;
       # This is to prevent an annoying bug in LabelWrite() in label.c
-      set n = `echo $roiconfig | grep .label | wc -l `
+      set n = `echo $roiconfig | grep -e "\.label" | wc -l `
       if($n != 0) then
         echo "ERROR: do not include the string .label in your ROI configuration name"
 	exit 1;
