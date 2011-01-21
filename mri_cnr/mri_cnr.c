@@ -1,15 +1,15 @@
 /**
  * @file  mri_cnr.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief use white and pial surfaces to compute the CNR of a volume
  *
  * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/11/19 19:09:12 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/01/21 02:18:44 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,8 +40,9 @@
 #include "mrisurf.h"
 #include "mri_conform.h"
 #include "version.h"
+#include "label.h"
 
-static char vcid[] = "$Id: mri_cnr.c,v 1.7 2009/11/19 19:09:12 fischl Exp $";
+static char vcid[] = "$Id: mri_cnr.c,v 1.8 2011/01/21 02:18:44 fischl Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -60,6 +61,7 @@ static char *slope_fname = NULL ;
 static double dist_in, dist_out, step_in, step_out ;
 static int interp = SAMPLE_TRILINEAR ;
 
+static LABEL *lh_area, *rh_area ;
 int
 main(int argc, char *argv[]) {
   char        **av, *mri_name,  fname[STRLEN], *hemi, *path ;
@@ -69,7 +71,7 @@ main(int argc, char *argv[]) {
   double      cnr_total, cnr = 0.0 ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.7 2009/11/19 19:09:12 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_cnr.c,v 1.8 2011/01/21 02:18:44 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -91,7 +93,7 @@ main(int argc, char *argv[]) {
 
   path = argv[1] ;
   for (cnr_total = 0.0, j = 0 ; j <= 1 ; j++) {
-    if (j == 0)
+    if (j == LEFT_HEMISPHERE)
       hemi = "lh" ;
     else
       hemi = "rh" ;
@@ -104,6 +106,11 @@ main(int argc, char *argv[]) {
     sprintf(fname, "%s/%s.pial", path, hemi) ;
     if (MRISreadVertexPositions(mris, fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s", Progname, fname) ;
+
+    if (lh_area && j == LEFT_HEMISPHERE)
+      LabelRipRestOfSurface(lh_area, mris) ;
+    else if (rh_area && j == RIGHT_HEMISPHERE)
+      LabelRipRestOfSurface(rh_area, mris) ;
 
     for (i = 2 ; i < argc ; i++) {
       mri_name = argv[i] ;
@@ -125,12 +132,16 @@ main(int argc, char *argv[]) {
         mri = mri_tmp ;
       }
 
-      if (!j)
+      if (j == LEFT_HEMISPHERE)
+      {
         cnr = compute_volume_cnr(mris, mri, log_fname) ;
+        printf("%s CNR = %2.3f\n", hemi, cnr) ;
+      }
       else {
-        cnr += compute_volume_cnr(mris, mri, log_fname) ;
-        cnr /= 2.0 ;
-        printf("CNR = %2.3f\n", cnr) ;
+        double rh_cnr ;
+        rh_cnr = compute_volume_cnr(mris, mri, log_fname) ;
+        cnr = (cnr + rh_cnr) / 2.0 ;
+        printf("%s CNR = %2.3f\n", hemi, rh_cnr) ;
       }
 
       if (slope_fname)
@@ -177,6 +188,17 @@ get_option(int argc, char *argv[]) {
     print_help() ;
   else if (!stricmp(option, "-version"))
     print_version() ;
+  else if (!stricmp(option, "label"))
+  {
+    printf("reading lh and rh labels from %s and %s\n", argv[2], argv[3]) ;
+    lh_area = LabelRead(NULL, argv[2]) ;
+    if (lh_area == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label %s", Progname, argv[2]) ;
+    rh_area = LabelRead(NULL, argv[3]) ;
+    if (rh_area == NULL)
+      ErrorExit(ERROR_NOFILE, "%s: could not load label %s", Progname, argv[3]) ;
+    nargs = 2 ;
+  }
   else switch (toupper(*option)) {
   case 'L':
     log_fname = argv[2] ;
@@ -253,6 +275,9 @@ compute_volume_cnr(MRI_SURFACE *mris, MRI *mri, char *log_fname) {
   gray_mean = gray_var = white_mean = white_var = csf_mean = csf_var = 0.0 ;
   for (vno = 0 ; vno < mris->nvertices ; vno++) {
     v = &mris->vertices[vno] ;
+    if (v->ripflag)
+      continue ;
+
     //MRIworldToVoxel(mri, v->x+v->nx, v->y+v->ny, v->z+v->nz, &x, &y, &z) ;
     MRIsurfaceRASToVoxel(mri, v->x+v->nx, v->y+v->ny, v->z+v->nz, &x, &y, &z) ;
     MRIsampleVolume(mri, x, y, z, &csf) ;
