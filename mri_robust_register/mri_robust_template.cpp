@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/19 20:48:59 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/01/21 19:52:51 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -127,6 +127,7 @@ struct Parameters
 	vector < string > iscaleout;
 	int    finalinterp;
 	int    highit;
+	int    seed;
 };
 
 // Initializations:
@@ -162,6 +163,7 @@ static struct Parameters P =
   vector < string >(0),
   vector < string >(0),
 	SAMPLE_TRILINEAR,
+	-1,
 	-1
 };
 
@@ -170,15 +172,18 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.32 2011/01/19 20:48:59 mreuter Exp $";
+"$Id: mri_robust_template.cpp,v 1.33 2011/01/21 19:52:51 mreuter Exp $";
 char *Progname = NULL;
 
-int getRandomNumber(int start, int end)
+int getRandomNumber(int start, int end, int & seed)
 // return n in [start,end]
+// also return seed if it was -1
 {
 
+  if (seed == -1) seed = time(NULL);
+
   // initialize random seed: 
-  srand ( time(NULL) );
+  srand ( seed );
 
   // generate random number: 
 	int range = end-start+1;
@@ -217,13 +222,16 @@ int main(int argc, char *argv[])
   }
 //  if (P.outdir[P.outdir.length()-1] != '/') P.outdir += "/";
   
-	// randomly pick target:
-	if (P.inittp < 0)
-	{
-	  P.inittp = getRandomNumber(1,P.mov.size());
+  // Randomly pick target (default):
+  // Only if no inittp is passed and if no init transforms are given
+  // In those cases we either fixed the target (--inittp)
+  // or we won't need to compute ixforms when they are passed (--ixforms)
+  if (P.inittp < 0 && P.iltas.size() == 0 )
+  {
+    P.inittp = getRandomNumber(1,P.mov.size(),P.seed);
     //cout << "Will use TP " << P.inittp << " as random initial target." << endl;
-	}
-	
+  }
+
   // Timer
   struct timeb start ;
   int    msec,minutes,seconds;
@@ -263,7 +271,7 @@ int main(int argc, char *argv[])
 	assert (P.iscalein.size () == 0 || P.iscalein.size() == P.mov.size());
 	if (P.iscalein.size() > 0) assert(MR.loadIntensities(P.iscalein)==nin);
 
-	if (P.noit) // no registration, only averaging
+	if (P.noit) // no registration to mean space, only averaging
 	{
     // if no initial xforms are given, use initialization to median space
 		//   by registering everything first to inittp
@@ -282,6 +290,9 @@ int main(int argc, char *argv[])
     if(P.iltas.size() == 0 && P.inittp > 0) 
 		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
 
+      // we are done here, since with 2TP the registration
+      // to the first mean space is allready accurate
+			
   	  // create template:
       MR.averageSet(0,P.finalinterp);
 	
@@ -702,6 +713,12 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.oneminusweights = true;
     nargs = 0 ;
     cout << "--oneminusw: Will output 1-weights!" << endl;
+  }
+  else if (!strcmp(option, "SEED") )
+  {
+    P.seed = atoi(argv[1]);
+    nargs = 1 ;
+    cout << "--seed: Will use random seed " << P.seed << endl;
   }
   else if (!stricmp(option, "HELP")||!stricmp(option, "USAGE")||!stricmp(option, "h")||!stricmp(option, "u"))
   {
