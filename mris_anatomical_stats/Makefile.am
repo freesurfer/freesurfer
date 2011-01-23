@@ -16,9 +16,9 @@ foo_DATA=mris_anatomical_stats.help.xml
 # trick to get test data into build dir
 foo_SOURCES=
 foo:
-  if ! test -f "$(top_builddir)/mris_ca_label/testdata.tar.gz"; then \
-    cp -v $(top_srcdir)/mris_ca_label/testdata.tar.gz \
-          $(top_builddir)/mris_ca_label/; fi;
+	if ! test -f "$(top_builddir)/mris_ca_label/testdata.tar.gz"; then \
+		cp -v $(top_srcdir)/mris_ca_label/testdata.tar.gz \
+					$(top_builddir)/mris_ca_label/; fi;
 	if ! test -f "$(top_builddir)/mris_anatomical_stats/test1.expected"; then \
 		cp -v $(top_srcdir)/mris_anatomical_stats/*.expected \
 					$(top_builddir)/mris_anatomical_stats/; fi;
