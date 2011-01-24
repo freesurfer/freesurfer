@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/06/28 17:14:04 $
- *    $Revision: 1.49 $
+ *    $Date: 2011/01/24 16:18:58 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2009,
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <float.h>
+#include <ctype.h>
 #include "macros.h"
 #include "mrisurf.h"
 #include "mrisutils.h"
@@ -62,7 +63,7 @@ static void dump_options(FILE *fp);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_concat.c,v 1.49 2010/06/28 17:14:04 greve Exp $";
+static char vcid[] = "$Id: mri_concat.c,v 1.50 2011/01/24 16:18:58 greve Exp $";
 char *Progname = NULL;
 int debug = 0;
 #define NInMAX 400000
@@ -650,11 +651,21 @@ static int parse_commandline(int argc, char **argv) {
       nargsused = 1;
     } else if ( !strcmp(option, "--mul") ) {
       if (nargc < 1) argnerr(option,1);
+      if(! isdigit(pargv[0][0])){
+	printf("ERROR: value passed to the --mul flag must be a number\n");
+	printf("       If you want to multiply two images, use fscalc\n");
+	exit(1);
+      }
       sscanf(pargv[0],"%lf",&MultiplyVal);
       DoMultiply = 1;
       nargsused = 1;
     } else if ( !strcmp(option, "--add") ) {
       if (nargc < 1) argnerr(option,1);
+      if(! isdigit(pargv[0][0])){
+	printf("ERROR: value passed to the --add flag must be a number\n");
+	printf("       If you want to add two images, use --sum or fscalc\n");
+	exit(1);
+      }
       sscanf(pargv[0],"%lf",&AddVal);
       DoAdd = 1;
       nargsused = 1;
