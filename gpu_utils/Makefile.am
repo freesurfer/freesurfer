@@ -26,6 +26,8 @@ install-exec-hook:cudadetect
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/cudadetect.bin; fi
 
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/cudadetect.bin
 
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
