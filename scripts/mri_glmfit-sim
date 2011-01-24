@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.30 2010/11/05 18:37:07 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.31 2011/01/24 17:06:47 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -179,6 +179,7 @@ while($#glmfitcmd)
   case "--yffxvar"
   case "--ffxdof"
   case "--ffxdofdat"
+  case "--nii"
     shift glmfitcmd;
     breaksw
   default
@@ -900,8 +901,10 @@ some reason, this will never quit because it looks for a file created
 by the simulation job before continuing. If this file is not created,
 then it will keep polling for this file forever. ALSO: if you are not
 running on a computer with multiple nodes, then this will not make it
-run any faster (in fact, it will run slower). You can stop backgrounded
-jobs creating a file called glmdir/csd/poll/StopSim.
+run any faster (in fact, it will run slower). You can stop
+backgrounded jobs creating a file called glmdir/csd/poll/StopSim. If
+you are in the Martinos center, do not attempt to use --bg on the
+launchpad computational cluster.
 
 --cwpvalthresh cwpvalthresh
 
