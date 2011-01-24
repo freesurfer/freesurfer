@@ -28,7 +28,8 @@ check_PROGRAMS=foo
 TESTS=test_mris_anatomical_stats
 
 EXTRA_DIST=test_mris_anatomical_stats test1.expected test2.expected \
-test2_logfile.expected test3.expected test4.expected $(foo_DATA)
+test2_logfile.expected test3.expected test4.expected \
+test6.expected $(foo_DATA)
 
 clean:
 	rm -f mris_anatomical_stats *.o
