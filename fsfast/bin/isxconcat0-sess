@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/08/11 18:44:57 $
-#    $Revision: 1.23 $
+#    $Date: 2011/01/24 18:19:26 $
+#    $Revision: 1.24 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat0-sess,v 1.23 2010/08/11 18:44:57 greve Exp $';
+set VERSION = '$Id: isxconcat0-sess,v 1.24 2011/01/24 18:19:26 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -47,7 +47,8 @@ set DoLogFile = 0;
 set DoSplit = 0;
 set gmean = (); # Number in group for group mean
 set fsgd = ();
-
+set SrcAnatSurf = 0;
+set SrcAnatVol = 0;
 set DoResample = 1;
 
 # for volume-based only
@@ -132,19 +133,41 @@ foreach sess ($SessList)
     endif
   endif
 
-  set condir = $sess/$fsd/$analysis/$contrast
-  if(! -e $condir) then
-    echo "ERROR: cannot find $condir"|& tee -a $LF
-    exit 1;
+  if($SrcAnatSurf == 0 && $SrcAnatVol == 0) then
+    # Use functional data
+    set condir = $sess/$fsd/$analysis/$contrast
+    if(! -e $condir) then
+      echo "ERROR: cannot find $condir"|& tee -a $LF
+      exit 1;
+    endif
+    set mapstem = $condir/$mapname
+    set ext = `fast_getext $mapstem`
+    if($status) then
+      echo "$ext"|& tee -a $LF
+      exit 1;
+    endif
+    set map = $mapstem.$ext
   endif
-
-  set mapstem = $condir/$mapname
-  set ext = `fast_getext $mapstem`
-  if($status) then
-    echo "$ext"|& tee -a $LF
-    exit 1;
+  if($SrcAnatSurf) then
+    # Use anatomical surface data
+    set map = $tmpdir/$hemi.$mapname.$subject.mgh
+    set srcanatmap = $SUBJECTS_DIR/$subject/surf/$hemi.$mapname
+    set cmd = (mri_surf2surf --hemi $hemi --srcsubject $subject \
+      --trgsubject $trgsubject --sval $srcanatmap --tval $map)
+    echo $cmd
+    $cmd | tee -a $LF
+    if($status) exit 1;
   endif
-  set map = $mapstem.$ext
+  if($SrcAnatVol) then
+    # Use anatomical volume data
+    set srcanatmap = $SUBJECTS_DIR/$subject/mri/$mapname.mgz
+    set map = $tmpdir/$mapname.$subject.mgh
+    set cmd = (mri_vol2vol --mov $srcanatmap --out $map \
+      --s $subject --tal --talres $talres --no-save-reg)
+    echo $cmd
+    $cmd | tee -a $LF
+    if($status) exit 1;
+  endif
 
   # Get nframes
   set tmpfile = /tmp/isxconcat0-sess.$$.nframes
@@ -366,6 +389,20 @@ while( $#argv != 0 )
       set ToSurf = 1;
       breaksw
 
+    case "-surf-anat":
+      if( $#argv < 1) goto arg1err;
+      set mapname = $argv[1]; shift;
+      set SrcAnatSurf = 1;
+      set ToSurf = 1;
+      breaksw
+
+    case "-vol-anat":
+      if( $#argv < 1) goto arg1err;
+      set mapname = $argv[1]; shift;
+      set SrcAnatVol = 1;
+      set ToVol = 1;
+      breaksw
+
     case "-fsgd":
       if($#argv == 0) goto arg1err;
       set fsgd = $argv[1]; shift;
@@ -547,12 +584,14 @@ usage_exit:
   echo "  Volume-based options:"
   echo "   -talres res     : 1 or 2 mm (def is 2)"
   echo "   -talxfm xfmfile : use xfmfile instead of talairach.xfm"
+  echo "   -vol-anat vol   : eg, norm"
   echo ""
   echo "  Surface-based options:"
   echo "   -hemi hemisphere : for surface-based analysis (lh or rh)";
   echo "   -projfrac frac   : sample frac into surface (def is 0.5)"
   echo "   -projfrac-avg    : average over cortex"
   echo "   -trgsubject subject : sample to subject's surface (def fsaverage)"
+  echo "   -surf-anat surfmeas  : eg, thickness or curv"
   echo ""
   echo "   -space spacename : tal, lh. rh"
   echo ""

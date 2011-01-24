@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/08/11 18:44:46 $
-#    $Revision: 1.54 $
+#    $Date: 2011/01/24 18:19:26 $
+#    $Revision: 1.55 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.54 2010/08/11 18:44:46 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.55 2011/01/24 18:19:26 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -53,6 +53,7 @@ set DoFFX = 0;
 set SplitMVC = 1; # Split multivariate contrasts
 set DoResample = 1;
 set GetHRF = ();
+set DoAnats = 0;
 
 # for volume-based only
 set talres = 2;
@@ -357,6 +358,42 @@ foreach hemi ($hemilist)
 
 end # Loop over hemi
 
+
+if($DoAnats) then
+  foreach hemi ($hemilist)
+    if($hemi != mni305) then
+      foreach mapname (thickness curv sulc)
+        set outvol = $outdir/$hemi.$mapname.sm00.$FSF_OUTPUT_FORMAT
+        set cmd = (isxconcat0-sess -o $outvol $sessargs \
+          -surf-anat $mapname -hemi $hemi)
+        if($#flac == 0) set cmd = ($cmd -a $analysis)
+        if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
+        if($#tmpdir)  set cmd = ($cmd -tmp $tmpdir);
+        if($paireddiff) set cmd = ($cmd -paired-diff)
+        if($pairedavg)  set cmd = ($cmd -paired-avg)
+        echo "cd `pwd`" |& tee -a $LF
+        echo $cmd       |& tee -a $LF
+        $cmd            |& tee -a $LF
+        if($status) exit 1;
+      end # Loop over maps
+    else
+      set outvol = $outdir/anat.norm.sm00.$FSF_OUTPUT_FORMAT
+      set cmd = (isxconcat0-sess -o $outvol $sessargs \
+         -vol-anat norm)
+      if($#flac == 0) set cmd = ($cmd -a $analysis)
+      if($#flac)      set cmd = ($cmd -flac $flac -fsd $fsd)
+      if($#tmpdir)  set cmd = ($cmd -tmp $tmpdir);
+      if($paireddiff) set cmd = ($cmd -paired-diff)
+      if($pairedavg)  set cmd = ($cmd -paired-avg)
+      echo "cd `pwd`" |& tee -a $LF
+      echo $cmd       |& tee -a $LF
+      $cmd            |& tee -a $LF
+      if($status) exit 1;
+    endif
+  end # Loop over hemis
+   
+endif
+
 echo "" | tee -a $LF
 echo "" | tee -a $LF
 echo "Started at $StartTime" | tee -a $LF
@@ -525,6 +562,14 @@ while( $#argv != 0 )
     case "-hdr"
     case "-hrf"
       set GetHRF = 1;
+      breaksw
+
+    case "-anats"
+      set DoAnats = 1;
+      breaksw
+
+    case "-no-anats"
+      set DoAnats = 0;
       breaksw
 
     case "-osgm"
@@ -757,7 +802,7 @@ usage_exit:
   echo "   -nocleanup  : do not delete tmpdir"
   echo "   -version    : print version and exit"
   echo " "
-  echo "Optoins below are for analyses done in native space"
+  echo "Options below are for analyses done in native space"
   echo "   -reg regfile    : instead of register.dat"
   echo "   -interp method  : trilinear (def) or nearest"
   echo "   -fwhm fwhm      : smooth by fwhm"
