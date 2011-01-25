@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 02:40:30 $
- *    $Revision: 1.48 $
+ *    $Date: 2011/01/25 23:18:11 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2008-2012
  * The General Hospital Corporation (Boston, MA).
@@ -136,7 +136,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.48 2011/01/05 02:40:30 mreuter Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.49 2011/01/25 23:18:11 mreuter Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;
@@ -281,7 +281,7 @@ int main(int argc, char *argv[])
   std::pair <MATRIX*, double> Md;
   cout << endl << "Final Transform:" << endl;
 	vnl_matrix < double > fMv2v(R.getFinalVox2Vox());
-	vnl_matlab_print(vcl_cout,fMv2v,"M");cout << endl;
+	vnl_matlab_print(vcl_cout,fMv2v,"M",vnl_matlab_print_format_long);cout << endl;
   Md.first = MyMatrix::convertVNL2MATRIX(fMv2v);
 	Md.second = R.getFinalIscale();
 //  MatrixPrintFmt(stdout,"% 2.8f",Md.first);
@@ -290,27 +290,35 @@ int main(int argc, char *argv[])
 	if (P.affine)
 	{
 	  cout << " Decompose into Rot * Shear * Scale : " << endl << endl;
-	  vnl_svd <double > svd(fMv2v.extract(3,3));
-	  // svd: M = U * W * V'
-	  //vnl_matlab_print(vcl_cout,svd.U(),"U");cout << endl;
-	  //vnl_matlab_print(vcl_cout,svd.W(),"W");cout << endl;
-	  //vnl_matlab_print(vcl_cout,svd.V(),"V");cout << endl;
-	  // Polar: M = R*S = (U*V') * (V*W*V')
-	  vnl_matrix < double > Rot(svd.U()*svd.V().transpose());
-	  vnl_matrix < double > S(svd.V()*svd.W()*svd.V().transpose());
-	  vnl_matlab_print(vcl_cout,Rot,"Rot");cout << endl;
-	  //vnl_matlab_print(vcl_cout,S,"S");cout << endl;
-	  // further decompose S into shear * diag(scales)
-	  vnl_matrix < double > Shear(3,3);
-	  vnl_diag_matrix < double > Scale(3);
-	  for (unsigned int c=0;c<3;c++)
-	  {
-	    Scale[c] = S[c][c];
-	    Shear.set_column(c,S.get_column(c) / Scale[c]);
-	  }
-	  vnl_matlab_print(vcl_cout,Shear,"Shear");cout << endl;
-	  vnl_matlab_print(vcl_cout,Scale,"Scale");cout << endl;	
-	  //cout << " decompose error: " << (Rot*Shear*Scale - fMv2v.extract(3,3)).frobenius_norm() << endl;
+		vnl_matrix < double > Rot, Shear;
+		vnl_diag_matrix < double > Scale;
+		MyMatrix::Polar2Decomposition(fMv2v.extract(3,3),Rot,Shear,Scale);
+	  vnl_matlab_print(vcl_cout,Rot,"Rot",vnl_matlab_print_format_long);cout << endl;
+	  vnl_matlab_print(vcl_cout,Shear,"Shear",vnl_matlab_print_format_long);cout << endl;
+	  vnl_matlab_print(vcl_cout,Scale,"Scale",vnl_matlab_print_format_long);cout << endl;	
+		
+		
+// 	  vnl_svd <double > svd(fMv2v.extract(3,3));
+// 	  // svd: M = U * W * V'
+// 	  //vnl_matlab_print(vcl_cout,svd.U(),"U");cout << endl;
+// 	  //vnl_matlab_print(vcl_cout,svd.W(),"W");cout << endl;
+// 	  //vnl_matlab_print(vcl_cout,svd.V(),"V");cout << endl;
+// 	  // Polar: M = R*S = (U*V') * (V*W*V')
+// 	  vnl_matrix < double > Rot(svd.U()*svd.V().transpose());
+// 	  vnl_matrix < double > S(svd.V()*svd.W()*svd.V().transpose());
+// 	  vnl_matlab_print(vcl_cout,Rot,"Rot");cout << endl;
+// 	  //vnl_matlab_print(vcl_cout,S,"S");cout << endl;
+// 	  // further decompose S into shear * diag(scales)
+// 	  vnl_matrix < double > Shear(3,3);
+// 	  vnl_diag_matrix < double > Scale(3);
+// 	  for (unsigned int c=0;c<3;c++)
+// 	  {
+// 	    Scale[c] = S[c][c];
+// 	    Shear.set_column(c,S.get_column(c) / Scale[c]);
+// 	  }
+// 	  vnl_matlab_print(vcl_cout,Shear,"Shear");cout << endl;
+// 	  vnl_matlab_print(vcl_cout,Scale,"Scale");cout << endl;	
+// 	  //cout << " decompose error: " << (Rot*Shear*Scale - fMv2v.extract(3,3)).frobenius_norm() << endl;
 	}
 	
   if (R.isIscale()) cout << "Intenstiy Scale Factor: " << Md.second << endl;
