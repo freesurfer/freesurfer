@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/07 18:09:44 $
- *    $Revision: 1.63 $
+ *    $Date: 2011/01/25 23:17:17 $
+ *    $Revision: 1.64 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -439,7 +439,7 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
     if (verbose > 1)
     {
       cout << endl << " current Matrix: " << endl;
-	    vnl_matlab_print(vcl_cout,cmd.first,"Tc");cout << endl;
+	    vnl_matlab_print(vcl_cout,cmd.first,"Tc",vnl_matlab_print_format_long);cout << endl;
       cout << " intens: Ic = " << cmd.second << endl;
 
       // adjust to highest level for output only:
@@ -503,7 +503,7 @@ void Registration::findSatMultiRes(const vnl_matrix < double > &mi, double scale
     if (verbose > 1)
     {
       cout << endl << " Matrix: " << endl;
-	    vnl_matlab_print(vcl_cout,md.first,"T");cout << endl;
+	    vnl_matlab_print(vcl_cout,md.first,"T",vnl_matlab_print_format_long);cout << endl;
       cout << " Intensity:  I = " << md.second << endl;
     }
   } // resolution loop
@@ -588,7 +588,7 @@ double Registration::findSaturation ( )
   if (verbose >1 ) 
   {
     cout << "   - initial transform:\n" ;
-	  vnl_matlab_print(vcl_cout,md.first,"Ti");cout << endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Ti",vnl_matlab_print_format_long);cout << endl;
 		cout << "   - initial iscale:   Ii = " << md.second <<endl;
   }
 
@@ -602,7 +602,7 @@ double Registration::findSaturation ( )
   if (verbose >1 ) 
   {
     cout << "   - initial adjusted:\n" ;
-	  vnl_matlab_print(vcl_cout,md.first,"Tia");cout << endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Tia",vnl_matlab_print_format_long);cout << endl;
   }
 
 	
@@ -756,7 +756,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   if (verbose >0 ) 
   {
     cout << "   - initial transform:\n" ;
-	  vnl_matlab_print(vcl_cout,md.first,"Ti");cout << endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Ti",vnl_matlab_print_format_long);cout << endl;
 		cout << "   - initial iscale:  Ii =" << md.second <<endl;
   }
 
@@ -771,7 +771,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
   if (verbose >1 ) 
   {
     cout << "   - initial adjusted:\n" ;
-	  vnl_matlab_print(vcl_cout,md.first,"Tia");cout << endl;
+	  vnl_matlab_print(vcl_cout,md.first,"Tia",vnl_matlab_print_format_long);cout << endl;
   }
 
 
@@ -890,7 +890,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     {
       cout << endl << " current : Matrix: " << endl;
       //MatrixPrintFmt(stdout,"% 2.8f",cmd.first);
-	    vnl_matlab_print(vcl_cout,cmd.first,"Tc");cout << endl;
+	    vnl_matlab_print(vcl_cout,cmd.first,"Tc",vnl_matlab_print_format_long);cout << endl;
       cout << " intens:  Ic = " << cmd.second << endl;
 
       // adjust to highest level for output only:
@@ -951,7 +951,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     if (verbose > 1)
     {
       cout << endl << " Matrix: " << endl;
-	    vnl_matlab_print(vcl_cout,md.first,"Tcpost");cout << endl;
+	    vnl_matlab_print(vcl_cout,md.first,"Tcpost",vnl_matlab_print_format_long);cout << endl;
       cout << " intens: Icpost = " << md.second << endl;
     }
   } // resolution loop
@@ -959,7 +959,7 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
     if (verbose == 1)
     {
       cout << endl << "   - final transform: " << endl;
-	    vnl_matlab_print(vcl_cout,md.first,"Tf");cout << endl;
+	    vnl_matlab_print(vcl_cout,md.first,"Tf",vnl_matlab_print_format_long);cout << endl;
       cout << "   - final iscale:  If = " << md.second << endl;
     }
 	

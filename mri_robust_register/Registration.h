@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 01:01:39 $
- *    $Revision: 1.33 $
+ *    $Date: 2011/01/25 23:17:17 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -37,6 +37,7 @@ extern "C"
 {
 #endif
 #include "matrix.h"
+#include "error.h"
 #include "mri.h"
 #ifdef __cplusplus
 }
@@ -365,7 +366,49 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
       // this keeps the problem symmetric
       if (verbose >1) std::cout << "   - warping source and target (sqrt)" << std::endl;
       // half way voxelxform
-      mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry probably destroyed here!!
+      mh  = MyMatrix::MatrixSqrtAffine(fmd.first); //!! symmetry slighlty destroyed here? !!
+
+			// test if we moved out of our space
+			if (rigid)
+			{
+			  vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
+				I.set_identity();
+				fmd.first.extract(A);
+				MyMatrix::PolarDecomposition(A,R,S);
+				if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
+				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Matrix Sqrt produced reflection.\n") ;
+        double eps = 0.00000000000001;
+				
+				double fnorm1 = (S-I).frobenius_norm();
+				if (fnorm1 > eps)
+				{
+				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt of Rotation should not scale.\n") ;
+				}
+				  
+				double fnorm2 = (A-R).frobenius_norm();
+				if (fnorm2 > eps)
+				{
+				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt should be a rotation.\n") ;
+				}
+
+			}
+			else //affine
+			{
+			  vnl_matrix < double > R(3,3),S(3,3),A(3,3);
+			  vnl_diag_matrix < double > D(3),I(3,1.0);
+				fmd.first.extract(A);
+				MyMatrix::Polar2Decomposition(A,R,S,D);
+				
+				if (D[0] < 0.0 || D[1] < 0.0 || D[2] < 0.0) 
+				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Matrix Sqrt produced reflection.\n") ;
+				
+				// actually should not even get close to zero
+        double eps = 0.001;
+				if (D[0] < eps || D[1] < eps || D[2] < eps) 
+				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Matrix Sqrt produced near projection.\n") ;
+			  
+			}
+			
       // do not just assume m = mh*mh, rather m = mh2 * mh
       // for transforming target we need mh2^-1 = mh * m^-1
       mi  = vnl_inverse(fmd.first);
