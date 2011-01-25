@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.72 $
+ *    $Author: greve $
+ *    $Date: 2011/01/25 20:24:21 $
+ *    $Revision: 1.73 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -283,6 +283,7 @@ int MatrixCheckFinite(MATRIX *m);
 double MatrixRowDotProduct(MATRIX *m, int row, VECTOR *v) ;
 MATRIX *MatrixKron(MATRIX *m1, MATRIX *m2, MATRIX *k);
 MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm);
+MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
 
 #if defined(__cplusplus)
 };

@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:42 $
- *    $Revision: 1.123 $
+ *    $Author: greve $
+ *    $Date: 2011/01/25 20:24:22 $
+ *    $Revision: 1.124 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -3828,4 +3828,32 @@ MATRIX *MatrixDemean(MATRIX *M, MATRIX *Mdm)
     for(r=1; r <= M->rows; r++) M->rptr[r][c] -= vmean;
   }    
   return(Mdm);
+}
+
+
+/*!
+  \fn MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude)
+  \brief Creates a new matrix by excluding the given set of rows.
+  \param Src - source matrix.
+*/
+MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude)
+{
+  MATRIX *Trg=NULL;
+  int q, n, skip, m, c, nframesNew;
+
+  nframesNew = Src->rows - nExclude;
+  
+  Trg = MatrixAlloc(nframesNew,Src->cols,MATRIX_REAL);
+  q = 0;
+  for(n=0; n < Src->rows; n++){
+    skip = 0;
+    for(m=0; m < nExclude; m++) if(n == ExcludeFrames[m]) skip = 1;
+    if(skip) continue;
+    for(c=0; c < Src->cols; c++) {
+      //printf("%d %d %d %d\n",n,q,c,Src->cols);
+      Trg->rptr[q+1][c+1] = Src->rptr[n+1][c+1];
+    }
+    q++;
+  }
+  return(Trg);
 }

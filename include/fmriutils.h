@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/15 03:34:51 $
- *    $Revision: 1.40 $
+ *    $Date: 2011/01/25 20:24:21 $
+ *    $Revision: 1.41 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -121,6 +121,7 @@ int fMRIspatialAR2Mean(MRI *src, MRI *mask, double *car2mn,
                        double *rar2mn,double *sar2mn);
 MRI *fMRIaddOffset(MRI *in, MRI *offset, MRI *mask, MRI *out);
 MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub);
+MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex);
 MRI *MRIframeSum(MRI *vol, MRI *volsum);
 MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ);
 MRI *fMRIkurtosis(MRI *y, MRI *mask);

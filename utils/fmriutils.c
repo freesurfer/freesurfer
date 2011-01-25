@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/04/15 15:36:41 $
- *    $Revision: 1.65 $
+ *    $Date: 2011/01/25 20:24:22 $
+ *    $Revision: 1.66 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -30,7 +30,7 @@
   \file fmriutils.c
   \brief Multi-frame utilities
 
-  $Id: fmriutils.c,v 1.65 2010/04/15 15:36:41 greve Exp $
+  $Id: fmriutils.c,v 1.66 2011/01/25 20:24:22 greve Exp $
 
   Things to do:
   1. Add flag to turn use of weight on and off
@@ -62,7 +62,7 @@ double round(double x);
 // Return the CVS version of this file.
 const char *fMRISrcVersion(void)
 {
-  return("$Id: fmriutils.c,v 1.65 2010/04/15 15:36:41 greve Exp $");
+  return("$Id: fmriutils.c,v 1.66 2011/01/25 20:24:22 greve Exp $");
 }
 
 
@@ -2369,6 +2369,40 @@ MRI *fMRIsubSample(MRI *f, int Start, int Delta, int Stop, MRI *fsub)
   }
 
   return(fsub);
+}
+/*!
+  \fn MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex)
+  \brief Creates a new MRI by excluding the given set of rows.
+*/
+MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex)
+{
+  int skip, m, nframesNew, c,r,s,frame, subframe;
+  double v;
+
+  nframesNew = f->nframes - nExclude;
+  if(!fex) fex = MRIcloneBySpace(f, MRI_FLOAT, nframesNew);
+  if(nframesNew != fex->nframes){
+    printf("ERROR: fMRIexcludeFrames(): frame mismatch (%d, %d)\n",
+	   nframesNew,fex->nframes);
+    return(NULL);
+  }
+
+  for(c=0; c < f->width; c++){
+    for(r=0; r < f->height; r++){
+      for(s=0; s < f->depth; s++){
+	subframe = 0;
+	for(frame = 0; frame < f->nframes; frame++){
+	  skip = 0;
+	  for(m=0; m < nExclude; m++) if(frame == ExcludeFrames[m]) skip = 1;
+	  if(skip) continue;
+	  v = MRIgetVoxVal(f,c,r,s,frame);
+	  MRIsetVoxVal(fex,c,r,s,subframe,v);
+	  subframe ++;
+	}
+      }
+    }
+  }
+  return(fex);
 }
 /*!
   \fn MRI *fMRItemporalGaussian(MRI *src, double gstdmsec, MRI *targ)
