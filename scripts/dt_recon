@@ -2,7 +2,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: dt_recon,v 1.14 2009/12/16 20:03:32 greve Exp $';
+set VERSION = '$Id: dt_recon,v 1.15 2011/01/25 21:53:04 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -159,7 +159,7 @@ if($#reg == 0) then
     echo "Registration" |  tee -a $LF
     date |  tee -a $LF
     set cmd = (bbregister --s $subject --mov $OutDir/lowb.nii \
-       --init-fsl --reg $reg --bold --tol1d 1e-3)
+       --init-fsl --reg $reg --bold)
     if($subject == fsaverage) set cmd = ($cmd --12)
     echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
     echo "cd `pwd`" |  tee -a $LF
