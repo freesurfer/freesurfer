@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/01/19 21:56:43 $
- *    $Revision: 1.100 $
+ *    $Date: 2011/01/25 16:55:08 $
+ *    $Revision: 1.101 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -218,7 +218,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.100 2011/01/19 21:56:43 greve Exp $";
+"$Id: mri_segreg.c,v 1.101 2011/01/25 16:55:08 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -362,13 +362,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.100 2011/01/19 21:56:43 greve Exp $",
+     "$Id: mri_segreg.c,v 1.101 2011/01/25 16:55:08 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.100 2011/01/19 21:56:43 greve Exp $",
+     "$Id: mri_segreg.c,v 1.101 2011/01/25 16:55:08 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -882,7 +882,7 @@ int main(int argc, char **argv) {
       getVolGeom(anat, &lt->src) ;
       getVolGeom(mov, &lt->dst) ;
       strcpy(lt->dst.fname, movvolfile) ;
-      lta->type = LINEAR_CORONAL_RAS_TO_CORONAL_RAS ;
+      lta->type = REGISTER_DAT ;
       LTAwriteEx(lta, outregfile) ;
       LTAfree(&lta) ;
     }
