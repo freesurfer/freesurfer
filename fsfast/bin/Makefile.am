@@ -258,8 +258,7 @@ FSF_FILES=\
 	tkregister-sess \
 	tksurfer-sess \
 	txt2bfile \
-	vertavg-group \
-	vertavg-sess \
+	vlrmerge \
 	yakview \
 	zpadfmri
 
