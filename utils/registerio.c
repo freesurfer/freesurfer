@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/11/22 22:58:28 $
- *    $Revision: 1.23 $
+ *    $Date: 2011/01/25 18:05:51 $
+ *    $Revision: 1.24 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -196,7 +196,7 @@ int regio_print_register(FILE *fp, char *subject, float inplaneres,
   {
     for (c=0;c<4;c++)
     {
-      fprintf(fp,"%e ",R->rptr[r+1][c+1]);
+      fprintf(fp,"%18.15e ",R->rptr[r+1][c+1]);
     }
     fprintf(fp,"\n");
   }

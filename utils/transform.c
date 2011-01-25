@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/01/11 22:51:20 $
- *    $Revision: 1.150 $
+ *    $Author: greve $
+ *    $Date: 2011/01/25 18:05:51 $
+ *    $Revision: 1.151 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -217,11 +217,11 @@ void writeVolGeom(FILE *fp, const VOL_GEOM *vg)
     fprintf(fp, "valid = %d  # volume info valid\n", vg->valid);
   fprintf(fp, "filename = %s\n", vg->fname);
   fprintf(fp, "volume = %d %d %d\n", vg->width, vg->height, vg->depth);
-  fprintf(fp, "voxelsize = %.4f %.4f %.4f\n", vg->xsize, vg->ysize, vg->zsize);
-  fprintf(fp, "xras   = %.4f %.4f %.4f\n", vg->x_r, vg->x_a, vg->x_s);
-  fprintf(fp, "yras   = %.4f %.4f %.4f\n", vg->y_r, vg->y_a, vg->y_s);
-  fprintf(fp, "zras   = %.4f %.4f %.4f\n", vg->z_r, vg->z_a, vg->z_s);
-  fprintf(fp, "cras   = %.4f %.4f %.4f\n", vg->c_r, vg->c_a, vg->c_s);
+  fprintf(fp, "voxelsize = %.15e %.15e %.15e\n", vg->xsize, vg->ysize, vg->zsize);
+  fprintf(fp, "xras   = %.15e %.15e %.15e\n", vg->x_r, vg->x_a, vg->x_s);
+  fprintf(fp, "yras   = %.15e %.15e %.15e\n", vg->y_r, vg->y_a, vg->y_s);
+  fprintf(fp, "zras   = %.15e %.15e %.15e\n", vg->z_r, vg->z_a, vg->z_s);
+  fprintf(fp, "cras   = %.15e %.15e %.15e\n", vg->c_r, vg->c_a, vg->c_s);
 }
 
 void readVolGeom(FILE *fp, VOL_GEOM *vg)
@@ -449,6 +449,9 @@ LTAalloc(int nxforms, MRI *mri)
 int
 LTAwrite(LTA *lta, const char *fname)
 {
+  return(LTAwriteEx(lta, fname)) ;
+#if 0
+
   FILE             *fp;
   time_t           tt ;
   char             *user, *time_str ;
@@ -456,7 +459,6 @@ LTAwrite(LTA *lta, const char *fname)
   int              i ;
   char             ext[STRLEN] ;
 
-  return(LTAwriteEx(lta, fname)) ;
   if (!stricmp(FileNameExtension(fname, ext), "XFM"))
     return(ltaMNIwrite(lta, fname)) ;
 
@@ -485,6 +487,7 @@ LTAwrite(LTA *lta, const char *fname)
   }
   fclose(fp) ;
   return(NO_ERROR) ;
+#endif
 }
 
 /*-----------------------------------------------------
@@ -3117,7 +3120,7 @@ LTAreadEx(const char *fname)
 // in addition to the transform
 int LTAprint(FILE *fp, const LTA *lta)
 {
-  int i;
+  int i,c,r;
   LT *lt;
 
   fprintf(fp, "type      = %d\n", lta->type) ;
@@ -3125,9 +3128,14 @@ int LTAprint(FILE *fp, const LTA *lta)
   for (i = 0 ; i < lta->num_xforms ; i++)
   {
     lt = &lta->xforms[i] ;
-    fprintf(fp, "mean      = %2.3f %2.3f %2.3f\n", lt->x0, lt->y0, lt->z0) ;
-    fprintf(fp, "sigma     = %2.3f\n", lt->sigma) ;
-    MatrixAsciiWriteInto(fp, lt->m_L) ;
+    fprintf(fp, "mean      = %6.4f %6.4f %6.4f\n", lt->x0, lt->y0, lt->z0) ;
+    fprintf(fp, "sigma     = %6.4f\n", lt->sigma) ;
+    //MatrixAsciiWriteInto(fp, lt->m_L) ;
+    fprintf(fp,"1 4 4\n"); // Matrix size
+    for(r=1; r<=4; r++){
+      for(c=1; c<=4; c++) fprintf(fp,"%18.15le ",(double)lt->m_L->rptr[r][c]);
+      fprintf(fp,"\n");
+    }
   }
   // write out src and dst volume info if there is one
   // note that this info may or may not be valid depending on vg->valid value
@@ -3177,10 +3185,8 @@ LTAwriteEx(const LTA *lta, const char *fname)
     ErrorReturn(ERROR_BADFILE,
                 (ERROR_BADFILE, "LTAwrite(%s): can't create file",fname));
   user = getenv("USER") ;
-  if (!user)
-    user = getenv("LOGNAME") ;
-  if (!user)
-    user = "UNKNOWN" ;
+  if (!user) user = getenv("LOGNAME") ;
+  if (!user) user = "UNKNOWN" ;
   tt = time(&tt) ;
   time_str = ctime(&tt) ;
   fprintf(fp, "# transform file %s\n# created by %s on %s\n",
@@ -4049,8 +4055,8 @@ MATRIX *TransformLTA2RegDat(LTA *lta)
      lta->type != LINEAR_VOX_TO_VOX &&
      lta->type != REGISTER_DAT){
     printf("ERROR: TransformLTA2RegDat(): type = %d, must be %d or %d or %d\n",
-	   lta->type,LINEAR_RAS_TO_RAS,LINEAR_VOX_TO_VOX, 
-	   LINEAR_CORONAL_RAS_TO_CORONAL_RAS);
+	   lta->type,LINEAR_RAS_TO_RAS,LINEAR_VOX_TO_VOX,REGISTER_DAT);
+	   
     return(NULL);
   }
 
