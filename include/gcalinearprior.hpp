@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/18 17:53:43 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/01/25 15:55:30 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -32,6 +32,12 @@
 
 #include "gca.h"
 
+// Forward declaration
+namespace GPU {
+  namespace Classes {
+    class GCApriorGPU;
+  }
+}
 
 
 namespace Freesurfer {
@@ -297,6 +303,7 @@ namespace Freesurfer {
     mutable SciGPU::Utilities::Chronometer tInhume;
 
     friend class const_GCAprior;
+    friend class GPU::Classes::GCApriorGPU;
   };
 
 

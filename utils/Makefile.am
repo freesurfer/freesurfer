@@ -365,7 +365,8 @@ libutils_cuda_a_SOURCES=\
         gcamregisterlevel_cuda.cu\
         gcamregisterpipeline_cuda.cu\
         mrilabels_cuda.cu\
-        gcanodegpu.cu
+        gcanodegpu.cu\
+        gcapriorgpu.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) $(CUDA_GCA_CFLAGS)
 
@@ -383,6 +384,7 @@ gcamorphtermgpu.o: $(CUDA_DEPS)  ../include/volumecpu.hpp
 gcamorphcpu.o: ../include/gcamorphcpu.hpp $(CUDA_DEPS)
 mrilabels_cuda.o: $(CUDA_DEPS) ../include/mrilabels_cuda.hpp
 gcanodegpu.o: $(CUDA_DEPS) ../include/gcanodegpu.hpp ../include/gcalinearnode.hpp
+gcapriorgpu.o: $(CUDA_DEPS) ../include/gcapriorgpu.hpp ../include/gcalinearprior.hpp
 
 CALLDEPTH ?= -1
 

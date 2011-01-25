@@ -1,5 +1,5 @@
 /**
- * @file  gcanode.hpp
+ * @file  gcanodegpu.cu
  * @brief Class to hold a volume of GCA nodes in linear memory on the GPU
  *
  */
@@ -7,8 +7,8 @@
  * Original Authors: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/18 17:53:40 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/01/25 15:55:32 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
