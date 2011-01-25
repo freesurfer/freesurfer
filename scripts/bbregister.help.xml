@@ -87,6 +87,8 @@
       <explanation>mask out brain edge and B0 regions (1st and 2nd stages)</explanation>
       <argument>--no-cortex-label</argument>
       <explanation>Do not use ?h.cortex.label to mask. </explanation>
+      <argument>--label labelfile</argument>
+      <explanation>Use label to mask. </explanation>
       <argument>--brute1max max</argument>
       <explanation>pass 1 search -max to +max (default 4)</explanation>
       <argument>--brute1delta delta</argument>

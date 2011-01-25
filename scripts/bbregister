@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/11/15 17:37:28 $
-#    $Revision: 1.42 $
+#    $Date: 2011/01/25 16:15:55 $
+#    $Revision: 1.43 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.42 2010/11/15 17:37:28 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.43 2011/01/25 16:15:55 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -75,6 +75,7 @@ set fsvol  = brainmask;
 set surfcost = ();
 set surfcon  = ();
 set surfname = "white";
+set MaskLabel = ();
 
 set RandInitMax = ();
 
@@ -193,6 +194,7 @@ if($DoPass1) then
   if($#GMProjAbs)  set cmd = ($cmd --gm-proj-abs  $GMProjAbs)
   if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope1);
   if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope1);
+  if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
   if($LHOnly) set cmd = ($cmd --lh-only);
   if($RHOnly) set cmd = ($cmd --rh-only);
   if($UseEPIMask) set cmd = ($cmd --mask);
@@ -227,6 +229,7 @@ if($UseEPIMask) set cmd = ($cmd --mask);
 if(! $UseCortexLabel) set cmd = ($cmd --no-cortex-label);
 if($#VSM) set cmd = ($cmd --mask --vsm $VSM);
 if($#OutVol) set cmd = ($cmd --o $OutVol);
+if($#MaskLabel)  set cmd = ($cmd --label $MaskLabel);
 if("$Contrast" == "-1") set cmd = ($cmd --wm-gt-gm $Slope2);
 if("$Contrast" == "+1") set cmd = ($cmd --gm-gt-wm $Slope2);
 if($#surfcost)  set cmd = ($cmd --surf-cost $surfcost);
@@ -617,6 +620,15 @@ while( $#argv != 0 )
     case "--trilin":
     case "--trilinear":
       set Interp = trilinear
+      breaksw
+
+    case "--label":
+      if($#argv < 1) goto arg1err;
+      set MaskLabel = $argv[1]; shift;
+      if(! -e $MaskLabel) then
+        echo "ERROR: cannot find $MaskLabel"
+        exit 1;
+      endif
       breaksw
 
     case "--epi-mask":
