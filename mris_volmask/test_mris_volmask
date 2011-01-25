@@ -8,10 +8,10 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2008/02/26 16:01:48 $
-#    $Revision: 1.5 $
+#    $Date: 2011/01/25 15:58:33 $
+#    $Revision: 1.6 $
 #
-# Copyright (C) 2007,
+# Copyright (C) 2007-2011,
 # The General Hospital Corporation (Boston, MA). 
 # All rights reserved.
 #
@@ -21,10 +21,9 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_mris_volmask,v 1.5 2008/02/26 16:01:48 nicks Exp $'
+set VERSION='$Id: test_mris_volmask,v 1.6 2011/01/25 15:58:33 nicks Exp $'
 
 umask 002
 
@@ -48,7 +47,7 @@ endif
 #
 
 setenv SUBJECTS_DIR $PWD
-source ../scripts/vtk_setup
+# no longer necessary: source ../scripts/vtk_setup
 set cmd=(./mris_volmask testdata2)
 echo ""
 echo $cmd
