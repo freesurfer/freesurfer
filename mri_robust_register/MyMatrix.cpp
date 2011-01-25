@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/18 17:00:14 $
- *    $Revision: 1.14 $
+ *    $Date: 2011/01/25 23:16:03 $
+ *    $Revision: 1.15 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -249,9 +249,9 @@ std::pair < vnl_matrix < double >, vnl_matrix < double > >
   // put everything together:
   vnl_matrix < double > msqrt(4,4);
   msqrt[0][3] = Th[0];
-	msqrt[1][3] = Th[1];
-	msqrt[2][3] = Th[2];
-	msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
+  msqrt[1][3] = Th[1];
+  msqrt[2][3] = Th[2];
+  msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
   for (int c=0; c<3; c++)
     for (int r=0; r<3; r++)
 		  msqrt[r][c] = Yn[r][c];
@@ -259,16 +259,16 @@ std::pair < vnl_matrix < double >, vnl_matrix < double > >
   // construct sqrt(M)^-1 = sqrt(R)-1 x + Thm (affine)
   // compute new Thm
 	// Rh1 = R + I
-	vnl_matrix_fixed < double,3,3 > Rhi1(Zn);
-	Rhi1[0][0] += 1; Rhi1[1][1] +=1; Rhi1[2][2] += 1;
+  vnl_matrix_fixed < double,3,3 > Rhi1(Zn);
+  Rhi1[0][0] += 1; Rhi1[1][1] +=1; Rhi1[2][2] += 1;
   // solve T = Rh1 * Th   <=>   Th = Rh1^-1 * T
   vnl_vector_fixed < double,3 > Thi = vnl_inverse(Rhi1) * Ti; //vnl_svd<double>(Rh1).solve(T);
   // put everything together:
   vnl_matrix < double > msqrti(4,4);
   msqrti[0][3] = Thi[0];
-	msqrti[1][3] = Thi[1];
-	msqrti[2][3] = Thi[2];
-	msqrti[3][0] = 0.0; msqrti[3][1] = 0.0; msqrti[3][2] = 0.0; msqrti[3][3] = 1.0;
+  msqrti[1][3] = Thi[1];
+  msqrti[2][3] = Thi[2];
+  msqrti[3][0] = 0.0; msqrti[3][1] = 0.0; msqrti[3][2] = 0.0; msqrti[3][3] = 1.0;
   for (int c=0; c<3; c++)
     for (int r=0; r<3; r++)
 		  msqrti[r][c] = Zn[r][c];
@@ -1480,7 +1480,7 @@ vnl_matrix < double > MyMatrix::MatrixSqrtEigs(const vnl_matrix < double >& m)
 	Rh1[0][0] += 1; Rh1[1][1] +=1; Rh1[2][2] += 1;
 
   vnl_vector_fixed < double,3 > T;
-	T[0] = m[0][3]; T[1] = m[1][3]; T[2] = m[2][3];
+  T[0] = m[0][3]; T[1] = m[1][3]; T[2] = m[2][3];
 
   // solve T = Rh1 * Th   <=>   Th = Rh1^-1 * T
   vnl_vector_fixed < double,3 > Th = vnl_inverse(Rh1) * T; //vnl_svd<double>(Rh1).solve(T);
@@ -1488,12 +1488,12 @@ vnl_matrix < double > MyMatrix::MatrixSqrtEigs(const vnl_matrix < double >& m)
   // put everything together:
   vnl_matrix < double > msqrt(4,4);
   msqrt[0][3] = Th[0];
-	msqrt[1][3] = Th[1];
-	msqrt[2][3] = Th[2];
-	msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
+  msqrt[1][3] = Th[1];
+  msqrt[2][3] = Th[2];
+  msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
   for (int c=0; c<3; c++)
     for (int r=0; r<3; r++)
-		  msqrt[r][c] = rsqrt[r][c];
+  	  msqrt[r][c] = rsqrt[r][c];
 
 //cout << " msqrt " << endl << msqrt << endl;
 	
@@ -1523,6 +1523,44 @@ vnl_matrix < double > MyMatrix::MatrixSqrtEigs(const vnl_matrix < double >& m)
     }
   }
 	
+  return msqrt;
+}
+
+vnl_matrix < double > MyMatrix::MatrixSqrtAffine(const vnl_matrix < double >& m)
+// using Schur on 3x3 linear map and splitting off the translation
+// smith:01 say that sqrt(affine) is not necessarily affine
+{
+  assert(m.rows() == 4 && m.cols() == 4);
+	
+  vnl_matrix_fixed < double,3,3 > R;// = m.extract(3,3,0,0);
+  for (int rr = 0; rr<3; rr++)
+    for (int cc = 0; cc<3; cc++)
+    {
+      R[rr][cc] = m[rr][cc];
+    }
+
+  vnl_matrix_fixed < double,3,3> sqrtR(MatrixSqrt(R));
+
+  vnl_vector_fixed < double,3 > T;
+  T[0] = m[0][3]; T[1] = m[1][3]; T[2] = m[2][3];
+  
+	// Rh1 = sqrt(R) + I
+  vnl_matrix_fixed < double,3,3 > Rh1(sqrtR);
+  Rh1[0][0] += 1; Rh1[1][1] +=1; Rh1[2][2] += 1;
+  // solve T = Rh1 * Th   <=>   Th = Rh1^-1 * T
+  // can Rh1 always be inverted ??? not sure...
+  vnl_vector_fixed < double,3 > Th = vnl_inverse(Rh1) * T; //vnl_svd<double>(Rh1).solve(T);
+
+  // put everything together:
+  vnl_matrix < double > msqrt(4,4);
+  msqrt[0][3] = Th[0];
+  msqrt[1][3] = Th[1];
+  msqrt[2][3] = Th[2];
+  msqrt[3][0] = 0.0; msqrt[3][1] = 0.0; msqrt[3][2] = 0.0; msqrt[3][3] = 1.0;
+  for (int c=0; c<3; c++)
+    for (int r=0; r<3; r++)
+  	  msqrt[r][c] = sqrtR[r][c];
+
   return msqrt;
 }
 
@@ -1726,8 +1764,8 @@ void MyMatrix::PolarDecomposition(const vnl_matrix < double > &A,
   {
 	   R = svd.U()*svd.V().transpose();
 	   S = svd.V()*svd.W()*svd.V().transpose();
-	  //vnl_matlab_print(vcl_cout,R,"R");cout << endl;
-	  //vnl_matlab_print(vcl_cout,S,"S");cout << endl;
+	  //vnl_matlab_print(vcl_cout,R,"R",vnl_matlab_print_format_long);cout << endl;
+	  //vnl_matlab_print(vcl_cout,S,"S",vnl_matlab_print_format_long);cout << endl;
   }
   else
   {
@@ -1752,9 +1790,9 @@ void MyMatrix::Polar2Decomposition(const vnl_matrix < double > &A,
 	  D[c] = S[c][c];
 	  S.set_column(c,S.get_column(c) / D[c]);
 	}
-	//vnl_matlab_print(vcl_cout,R,"Rot");cout << endl;
-	//vnl_matlab_print(vcl_cout,S,"Shear");cout << endl;
-	//vnl_matlab_print(vcl_cout,D,"Scale");cout << endl;	
+	//vnl_matlab_print(vcl_cout,R,"Rot",vnl_matlab_print_format_long);cout << endl;
+	//vnl_matlab_print(vcl_cout,S,"Shear",vnl_matlab_print_format_long);cout << endl;
+	//vnl_matlab_print(vcl_cout,D,"Scale",vnl_matlab_print_format_long);cout << endl;	
 	
 
 }
@@ -1937,9 +1975,9 @@ double MyMatrix::getResampSmoothing(const LTA * lta)
 
   // convert to double:
 	vnl_matrix < double > V = convertMATRIX2VNL(V2V);
-	//vnl_matlab_print(vcl_cout,V,"V");cout << endl;
+	//vnl_matlab_print(vcl_cout,V,"V",vnl_matlab_print_format_long);cout << endl;
   vnl_matrix < double > Vinv = vnl_inverse(V);
-	//vnl_matlab_print(vcl_cout,Vinv,"Vinv");cout << endl;
+	//vnl_matlab_print(vcl_cout,Vinv,"Vinv",vnl_matlab_print_format_long);cout << endl;
 
 	assert(Vinv.rows() ==4 && Vinv.cols()==4);
 	
