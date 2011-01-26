@@ -9,6 +9,7 @@ EXTRA_DIST=\
 	annotation.h \
 	art1.h \
 	artmap.h \
+	aseg_edit_svm.h \
 	backprop.h \
 	bfileio.h \
 	box.h \
@@ -229,6 +230,7 @@ EXTRA_DIST=\
 	svm.h \
 	tags.h \
 	talairachex.h \
+	testgpu.h \
 	TexFont.h \
 	thread.h \
 	timer.h \
@@ -259,6 +261,7 @@ EXTRA_DIST=\
 	xUtilities.h \
 	xVoxel.h \
 	znzlib.h \
+	thrust/CHANGELOG \
 	thrust/set_intersection.h \
 	thrust/binary_search.h \
 	thrust/generate.h \
