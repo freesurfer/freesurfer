@@ -40,5 +40,7 @@ dmri_trk2trk_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
                   $(top_builddir)/tetgen/libtetgen.a 
 dmri_trk2trk_LDFLAGS=$(OS_LDFLAGS)
 
+EXTRA_DIST=TrackExporter.h
+
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
