@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/25 23:16:03 $
- *    $Revision: 1.15 $
+ *    $Date: 2011/01/26 22:31:45 $
+ *    $Revision: 1.16 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -1361,17 +1361,17 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 		// test if imaginary values too large:
     double eps_matlab = pow(2.0,-52);
 	  double imagone = vnl_imag(Asqrt).operator_one_norm();
-    if ( imagone > 10*n*eps_matlab*T.operator_one_norm() )
+    if ( imagone > 10*n*eps_matlab*Asqrt.operator_one_norm() )
+    //if ( imagone > 0.000000001 )
 	  {
-	    cerr << " MatrixSqrt Error: " << endl;
-		  cerr << "  Result too imaginary to ignore! ( "<< imagone << " )" << endl;
+	    cerr << "Internal MatrixSqrt Error: " << endl;
+		  cerr << " Result too imaginary to ignore! ( "<< imagone << " )" << endl;
 			cerr << " Debug Info: " << endl;
-			cerr.precision(16);
-			cerr << " A = " << A << endl;
-			cerr << " T = " << T << endl;
-			cerr << " U = " << U << endl;
+      vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);cerr << endl;
+      vnl_matlab_print(vcl_cerr,T,"T",vnl_matlab_print_format_long);cerr << endl;
+      vnl_matlab_print(vcl_cerr,U,"U",vnl_matlab_print_format_long);cerr << endl;
 			cerr << " fro( real(U * T * U^*) - A) = " << (vnl_real(U * T * U.conjugate_transpose()) - A).frobenius_norm() << endl << endl;
-			cerr << " Asqrt = " <<  Asqrt << endl;
+      vnl_matlab_print(vcl_cerr,Asqrt,"Asqrt",vnl_matlab_print_format_long);cerr << endl;
 			cerr << " fro( real(sqrt(A)) ^2 - A)  = " << (vnl_real(Asqrt) * vnl_real(Asqrt) - A).frobenius_norm() << endl << endl;
 		  exit(1);
 	  }
@@ -1395,9 +1395,9 @@ vnl_matrix < double > MyMatrix::MatrixSqrt(const vnl_matrix < double >& A)
 	    cerr << " MatrixSqrt Error: " << endl;
 		  cerr << "  Result not close enough to square root!" << endl;
       cerr << "  Frobenius norm of difference: " << fnorm << endl;
-			cerr << "  A: " << endl << A << endl;
-      cerr << "  sqrt(A): " << endl << msqrt << endl;
-			cerr << "  (sqrt(A))^2: " << endl << ms2 << endl;
+      vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);cerr << endl;
+      vnl_matlab_print(vcl_cerr,msqrt,"Asqrt",vnl_matlab_print_format_long);cerr << endl;
+      vnl_matlab_print(vcl_cerr,ms2,"Asqrt2",vnl_matlab_print_format_long);cerr << endl;
 			exit(1);
     }
   }
