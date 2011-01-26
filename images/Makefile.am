@@ -142,7 +142,9 @@ TIF=\
 	icon_zoom_in.tif \
 	icon_zoom_out.tif
 
-foo_DATA= $(GIF) $(TIF)
+foo_DATA= $(GIF) $(TIF) \
+	icon_zoom_out.png icon_label_list.xpm icon_fill_roi.png \
+	icon_fill_volume.png icon_label_table.xpm
 
 EXTRA_DIST = $(foo_DATA)
 
