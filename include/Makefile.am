@@ -59,19 +59,24 @@ EXTRA_DIST=\
 	fixedmap.hpp \
 	gcaboundary.h \
 	gca.h \
-	gcasgpu.hpp \
 	gcalinearnode.hpp \
 	gcalinearprior.hpp \
-	gcamorph.h \
+	gcamcomputegradient_cuda.hpp \
+	gcamfots_cuda.hpp \
 	gcamorphcpu.hpp \
-	gcamorphgpu.hpp \
-	gcamorphtermgpu.hpp \
 	gcamorphenergy.hpp \
+	gcamorphgpu.hpp\
+	gcamorphtermgpu.hpp\
+	gcamorphtestutils.hpp\
+	gcamregisterlevel_cuda.hpp \
+	gcanodegpu.hpp \
+	gcapriorgpu.hpp \
+	gcasgpu.hpp \
+	gcautils.hpp \
+	gcamorph.h \
 	gcamorphtestutils.h \
-	gcamorphtestutils.hpp \
 	gcamfots_cuda.h \
 	gcanodegpu.hpp \
-	gcautils.hpp \
 	gcarray.h \
 	gclass.h \
 	gcsa.h \
