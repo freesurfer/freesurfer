@@ -60,7 +60,7 @@ check_PROGRAMS=foo
 EXTRA_DIST=Regression.h Regression.cpp Registration.h RegistrationStep.h \
 	MultiRegistration.h Quaternion.h RobustGaussian.cpp RegPowell.cpp \
 	CostFunctions.h RobustGaussian.h RegPowell.h MyMatrix.h MyMRI.h \
-	testdata.tar.gz $(foo_DATA) Registration.cpp \
+	testdata.tar.gz $(foo_DATA) Registration.cpp test_mri_robust_template \
 	mri_robust_register.help.h mri_robust_template.help.h
 
 # Our release target. Include files to be excluded here. They will be
