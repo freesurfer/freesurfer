@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/25 23:17:17 $
- *    $Revision: 1.34 $
+ *    $Date: 2011/01/26 22:30:23 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -54,6 +54,8 @@ extern "C"
 #include <vnl/vnl_matrix.h>
 #include <vnl/vnl_matrix_fixed.h>
 #include <vnl/vnl_inverse.h>
+#include <vnl/vnl_matlab_print.h>
+#include <vcl_iostream.h>
 
 #include "MyMatrix.h"
 #include "MyMRI.h"
@@ -366,22 +368,31 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
       // this keeps the problem symmetric
       if (verbose >1) std::cout << "   - warping source and target (sqrt)" << std::endl;
       // half way voxelxform
-      mh  = MyMatrix::MatrixSqrtAffine(fmd.first); //!! symmetry slighlty destroyed here? !!
+      //mh  = MyMatrix::MatrixSqrtAffine(fmd.first); // does not seem to work (creates imag results ...)?
+      mh  = MyMatrix::MatrixSqrt(fmd.first); //!! symmetry slighlty destroyed here? !!
 
 			// test if we moved out of our space
 			if (rigid)
 			{
 			  vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
 				I.set_identity();
-				fmd.first.extract(A);
+				mh.extract(A);
 				MyMatrix::PolarDecomposition(A,R,S);
 				if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
 				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Matrix Sqrt produced reflection.\n") ;
-        double eps = 0.00000000000001;
+        double eps = 0.0000001; // cannot be smaller due to scaling in ras2ras -> vox2vox conversion
 				
 				double fnorm1 = (S-I).frobenius_norm();
 				if (fnorm1 > eps)
 				{
+	        std::cerr << "Internal Error: " << std::endl;
+		      std::cerr << " Sqrt of Rotation should not scale ( "<< fnorm1 << " )" << std::endl;
+			    std::cerr << " Debug Info: " << std::endl;
+          vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
+          vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
+          vnl_matlab_print(vcl_cerr,S,"S",vnl_matlab_print_format_long);std::cerr << std::endl;
+				  
+				
 				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt of Rotation should not scale.\n") ;
 				}
 				  
