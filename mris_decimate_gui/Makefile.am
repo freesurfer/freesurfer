@@ -1,6 +1,7 @@
 ##
 ## Makefile.am - build with the GUI
 ##
+
 AM_CXXFLAGS=\
 	-fno-strict-aliasing \
 	-Wno-deprecated \
@@ -34,8 +35,10 @@ if HAVE_VTK_LIBS
         wxVTKRenderWindowInteractor.h \
         res/MainWindowBase.cpp \
         res/MainWindowBase.h \
+        res/MainWindowBase.fbp \
         res/DecimatePanelBase.cpp \
-        res/DecimatePanelBase.h
+        res/DecimatePanelBase.h \
+        res/DecimatePanelBase.fbp
     mris_decimate_gui_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
             $(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
             $(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \

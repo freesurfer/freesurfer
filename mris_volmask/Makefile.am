@@ -80,7 +80,8 @@ uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/mris_volmask_vtk.bin
 endif
 
-EXTRA_DIST=cmd_line_interface.h test_mris_volmask $(foo_DATA)
+EXTRA_DIST=cmd_line_interface.h test_mris_volmask $(foo_DATA) \
+	TestMRISOBBTree.cpp TestMRISDistanceField.cpp
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
