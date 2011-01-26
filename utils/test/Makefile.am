@@ -95,7 +95,12 @@ test_matrix_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(CPPUNIT_LIBS) -lcppunit -ldl
 endif
 
-EXTRA_DIST=setup_test_data test_data.tar.gz cleanup_test_data
+EXTRA_DIST=setup_test_data test_data.tar.gz cleanup_test_data \
+	mri_ms_LDA.c mri_apply_EM_mask.c mri_ms_compute_CNR.c mri_remove.cpp \
+	mri_uchar.cpp mri_flip2analyze.cpp mri_extract.c mri_fslmat_to_lta.c \
+	mri_ms_EM.c mri_ms_gca_EM.c mri_transform_to_COR.c mri_compute_all_CNR.c \
+	mri_compute_stats.c mri_edit_wm.c mri_apply_INU.c mri_concatenate_lta.c \
+	mri_ms_fcm.c mri_copy_params.cpp
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
