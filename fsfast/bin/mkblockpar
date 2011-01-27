@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.4 $
+#    $Author: greve $
+#    $Date: 2011/01/27 16:18:51 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkblockpar,v 1.4 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: mkblockpar,v 1.5 2011/01/27 16:18:51 greve Exp $';
 
 ##### Print out version info, if needed ####
 set n = `echo $argv | grep version | wc -l` 
@@ -66,10 +66,12 @@ while($epoch <= $nepochs)
   else
     set nper = $nper_epoch;
   endif
+  set tper = `echo "$TR*$nper" | bc -l`
+  printf "%6.3f  %3d   %6.3f   1\n" $t $code $tper >> $parname
 
   @ ntr = 0;
   while($ntr < $nper)
-    printf "%6.3f  %3d\n" $t $code >> $parname
+    #printf "%6.3f  %3d\n" $t $code >> $parname
     set t = `echo "$t + $TR" | bc -l`;
     @ ntr = $ntr + 1;
   end
