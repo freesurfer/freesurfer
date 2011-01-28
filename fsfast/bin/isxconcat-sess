@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/01/24 18:19:26 $
-#    $Revision: 1.55 $
+#    $Date: 2011/01/28 18:49:50 $
+#    $Revision: 1.56 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.55 2011/01/24 18:19:26 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.56 2011/01/28 18:49:50 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -122,6 +122,8 @@ if($#flac == 0) cp $analysis/analysis.* $outdir
 # Go thru each session, get DOF, etc
 set sesslistfile = $outdir/sessid.txt
 rm -f $sesslistfile
+set subjlistfile = $outdir/subjectlist.txt
+rm -f $subjlistfile
 @ DOF = 0;
 foreach sess ($SessList)
   set sessid = `basename $sess`;
@@ -145,6 +147,7 @@ foreach sess ($SessList)
 
   set srcsubject = `cat $sess/subjectname`
   echo "$sessid $srcsubject $dofsess $mdate $bstamp" >> $sesslistfile
+  echo "$srcsubject" >> $subjlistfile
 end
 set ffxdofdat = $outdir/ffxdof.dat
 echo $DOF > $ffxdofdat
@@ -564,6 +567,7 @@ while( $#argv != 0 )
       set GetHRF = 1;
       breaksw
 
+    case "-anat"
     case "-anats"
       set DoAnats = 1;
       breaksw
@@ -903,6 +907,10 @@ directory will have a subfolder for each contrast. These
 are some of the output files and what they mean:
 
 sessid.txt - list of the sessions specified
+
+subjectlist.txt - list of subjects specified. This can be used with
+ mris_preproc, asegstats2table, aparcstats2table, or
+ make_average_subject.
 
 analysis.info - copy of the file created by mkanalysis-sess
 
