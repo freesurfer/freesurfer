@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2007/01/09 22:41:18 $
-#    $Revision: 1.7 $
+#    $Author: greve $
+#    $Date: 2011/01/28 16:56:09 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: spikedet,v 1.7 2007/01/09 22:41:18 nicks Exp $';
+set VERSION = '$Id: spikedet,v 1.8 2011/01/28 16:56:09 greve Exp $';
 set inputargs = ($argv);
 
 set instem    = ();
@@ -81,7 +81,6 @@ instem   = '$instem';
 fftflag  = $fftflag;
 dtorder  = $dtorder;
 sumfile  = '$sumfile';
-matfile  = '$matfile';
 spikethresh = $spikethresh;
 maskthresh  = $maskthresh;
 tpexcfile   = '$tpexcfile';
@@ -190,8 +189,8 @@ if(~isempty(tpexcfile))
   fclose(fp);
 end
 
-save(matfile,'instem','fftflag','dtorder','aaz','jkz','slicelist',...
-     'spikethresh','nr','nc','ns','nf','maskthresh','mask');
+%save(matfile,'instem','fftflag','dtorder','aaz','jkz','slicelist',...
+%     'spikethresh','nr','nc','ns','nf','maskthresh','mask');
       
 fprintf('matlab: spikedet done\n');
 EOF
@@ -294,20 +293,16 @@ check_params:
   if($#sumfile == 0) then
     if($#sumsuffix) then
       set sumfile = $instem.$sumsuffix.sum
-      set matfile = $instem.$sumsuffix.mat
     else
       if(! $fftflag) then
         set sumfile = $instem.spike.sum
-        set matfile = $instem.spike.mat
       else
         set sumfile = $instem.spike.fft.sum
-        set matfile = $instem.spike.fft.mat
       endif
     endif
   else
     set outdir = `dirname $sumfile`;
     mkdir -p $outdir
-    set matfile = $sumfile.mat
   endif
 
   if("$maskthresh" != "0" && $fftflag) then
@@ -365,10 +360,7 @@ Bshort/bfloat stem of the functional data to check. Required.
 --s sumfile
 
 Summary file. Default is instem.spike.sum or instem.spike.fft.sum 
-depending upon whether the FFT flag is set. In addition, a matlab
-mat file is created with the name instem.spike.mat (or 
-instem.spike.fft.mat). If a summary file is explicitly specified,
-then the mat file will be called sumfile.mat. See also --suffix.
+depending upon whether the FFT flag is set. See also --suffix.
 
 --tpexc tpexcludefile
 
@@ -379,7 +371,7 @@ point exclude file in FS-FAST).
 
 --suffix suffix
 
-Name summary file instem.suffix.sum. matfile will be instem.suffix.mat
+Name summary file instem.suffix.sum. 
 
 --fft
 
