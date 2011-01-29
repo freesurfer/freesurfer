@@ -48,7 +48,8 @@ foo_DATA=README \
 	gradient_mgh_dti53.gdt  gradient_mgh_dti97.gdt \
 	gradient_mgh_dti54.gdt  gradient_mgh_dti98.gdt \
 	gradient_mgh_dti55.gdt  gradient_mgh_dti99.gdt \
-	gradient_mgh_dti56.gdt
+	gradient_mgh_dti56.gdt \
+	gradient_mgh_dti06.gdt gradient_mgh_dti240.gdt
 
 EXTRA_DIST=$(foo_DATA)
 
