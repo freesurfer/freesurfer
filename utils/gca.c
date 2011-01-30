@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/01/23 18:21:42 $
- *    $Revision: 1.287 $
+ *    $Date: 2011/01/30 15:20:16 $
+ *    $Revision: 1.288 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -97,6 +97,7 @@ static int total_pruned = 0 ;
 #define GCA_INT_VERSION             5.0  // labels are ints in file
 #define DEFAULT_MAX_LABELS_PER_GCAN 4
 
+static float get_node_prior(GCA *gca, int label, int xn, int yn, int zn) ;
 //static int gcapBrainIsPossible(GCA_PRIOR *gcap) ;
 #if 0
 static HISTOGRAM *gcaComputeHistogramNormalization(GCA *gca,
@@ -132,7 +133,7 @@ static GCA_NODE *gcaBuildNbhdGCAN(GCA *gca, int x, int y, int z, int wsize,
 static GCA_PRIOR *gcaBuildNbhdGCAP(GCA *gca, int x, int y, int z, int wsize,
                                    float sigma, GCA *gca_smooth) ;
 
-static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label, int frame) ;
+static HISTOGRAM *gcaGetLabelHistogram(GCA *gca, int label, int frame, int border) ;
 int GCAmaxLabel(GCA *gca) ;
 static int gcaRelabelSegment(GCA *gca,
                              TRANSFORM *transform,
@@ -750,6 +751,30 @@ get_voxel_prior(GCA *gca, MRI *mri, TRANSFORM *transform,
     return (VERY_UNLIKELY)
 
            return(getPrior(gcap, label)) ;
+}
+
+static int
+nbr_priors(GCA *gca, int label, int x0, int y0, int z0)
+{
+  int  xn, yn, zn, xk, yk, zk ;
+  float p ;
+
+  for (xk = -1 ; xk <= 1 ; xk++)
+    for (yk = -1 ; yk <= 1 ; yk++)
+      for (zk = -1 ; zk <= 1 ; zk++)
+      {
+        xn = xk+x0 ; yn = yk+y0 ;zn = zk+z0 ;
+        if (xn < 0 || xn >= gca->node_width ||
+            yn < 0 || yn >= gca->node_height ||
+            zn < 0 || zn >= gca->node_depth)
+          continue ;
+        p = get_node_prior(gca, label,  xn,  yn,  zn) ;
+        if (FZERO(p))
+        {
+          return(1) ; // should be 0 to enable this code
+        }
+      }
+  return(1) ;
 }
 #endif
 
@@ -13181,7 +13206,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
   for (r = 0 ; r < gca->ninputs ; r++)
   {
     // use modes instead of means
-    h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_White_Matter, r) ;
+    h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_White_Matter, r, 0) ;
     peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
     printf("resetting wm mean[%d]: %2.0f --> %2.0f\n",
            r, wm_means[r], h_gca->bins[peak]) ;
@@ -13190,7 +13215,7 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
       HISTOplot(h_gca, "wm.plt") ;
     HISTOfree(&h_gca) ;
 
-    h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_Cortex, r) ;
+    h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_Cortex, r, 0) ;
     peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
     gm_means[r] = h_gca->bins[peak] ;
     printf("resetting gm mean[%d]: %2.0f --> %2.0f\n",
@@ -16527,15 +16552,6 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
           }
         }
       }
-      if (l == Left_Hippocampus || l == Right_Hippocampus ||
-          l == Left_Amygdala || l == Right_Amygdala)
-      {
-        h_mtl->bin_size = 1 ;
-        h_mtl->min = 0 ; h_mtl->max = 255 ;
-        for (i = 0 ; i < nbins ; i++)
-          h_mtl->bins[i] = (i+1)*h_mtl->bin_size ;
-        HISTOadd(h_mri, h_mtl, h_mtl) ;
-      }
       MRIfree(&mri_aligned) ;
       peak = HISTOfindHighestPeakInRegion(h_mri, 0, h_mri->nbins) ;
       HISTOfillHoles(h_mri) ;
@@ -16560,7 +16576,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
         else
           MatrixFree(&m_L) ;
       }
-      h_gca = gcaGetLabelHistogram(gca, l, 0) ;
+      h_gca = gcaGetLabelHistogram(gca, l, 0, 0) ;
       HISTOmakePDF(h_gca, h_gca) ;
 
       {
@@ -16591,6 +16607,7 @@ GCAmapRenormalizeWithAlignment(GCA *gca,
                   num);
           fflush(logfp) ;
         }
+        if (Gdiag & DIAG_WRITE)
         {
           HISTOlinearScale(h_gca, h_gca,
                            label_scales[l], label_offsets[l]) ;
@@ -17124,6 +17141,48 @@ static int mtl_labels[] = {Left_Amygdala, Right_Amygdala, Left_Hippocampus, Righ
 #define MTL_LABELS (sizeof(mtl_labels) / sizeof(mtl_labels[0])) 
 
 
+MRI *
+MRImarkPossibleBorders(MRI *mri, MRI *mri_borders, float border_thresh)
+{
+  int     x, y, z, xk, yk, zk, xi, yi, zi ;
+  float   val, val0 ;
+
+  if (mri_borders == NULL)
+    mri_borders = MRIclone(mri, NULL) ;
+
+  for (x = 0 ; x < mri->width ; x++)
+    for (y = 0 ; y < mri->height ; y++)
+      for (z = 0 ; z < mri->depth ; z++)
+      {
+        if (x == Gx && y == Gy && z == Gz)
+          DiagBreak() ;
+
+        val0 = MRIgetVoxVal(mri, x, y, z, 0) ;
+        for (xk = -1 ; xk <=1 ; xk++)
+        {
+          xi = mri->xi[x+xk] ;
+          for (yk = -1 ; yk <=1 ; yk++)
+          {
+            yi = mri->yi[y+yk] ;
+            for (zk = -1 ; zk <=1 ; zk++)
+            {
+              if (fabs(xk) + fabs(yk) + fabs(zk) > 1)
+                continue ; // only 6-connected nbrs
+              zi = mri->zi[z+zk] ;
+              val = MRIgetVoxVal(mri, xi, yi, zi, 0) ;
+              if (fabs(val - val0) >= border_thresh)
+              {
+                MRIsetVoxVal(mri_borders, x, y, z, 0, 1) ;
+                xk=yk=zk=2 ;  // force breaking out of loop
+                break ;
+              }
+            }
+          }
+        }
+      }
+  return(mri_borders) ;
+}
+
 int
 GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform, 
                                        FILE *logfp,const char *base_name, LTA **plta, 
@@ -17131,7 +17190,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
                                        float *plabel_scales, float *plabel_offsets, 
                                        float *plabel_peaks, int* plabel_computed)
 {
-  HISTOGRAM *h_mri, *h_gca, *h_mtl = NULL ;
+  HISTOGRAM *h_mri, *h_gca, *h_mtl = NULL, *h_caudate ;
   int       l, nbins, i, x, y, z, num, frame, bin, j, n, computed[MAX_CMA_LABELS], 
             b, label, k, border = BORDER_SIZE, gca_peak, mri_peak ;
   float     fmin, fmax, label_scales[MAX_CMA_LABELS], overlap,
@@ -17140,7 +17199,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
             mean_wm_offset, mean_csf_offset, mean_gm_offset,
             lower_thresh, upper_thresh ;
   double      val/*, scale*/ ;
-  MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL ;
+  MRI       *mri_seg = NULL, *mri_aligned, *mri_labels = NULL, *mri_borders ;
   char      fname[STRLEN] ;
   MATRIX    *m_L, *m_by_label[MAX_CMA_LABELS] ;
   LTA       *lta ;
@@ -17174,6 +17233,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
     lta = *plta ;
   else
     lta = NULL ;
+  mri_borders = MRImarkPossibleBorders(mri, NULL, 15) ;
   for (frame = 0 ; frame < mri->nframes ; frame++)
   {
     for (l = 0 ; l < MAX_CMA_LABELS ; l++)
@@ -17191,6 +17251,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
     nbins = 256 ;
     h_mri = HISTOalloc(nbins) ;
     h_mtl = HISTOalloc(nbins) ;
+    h_caudate = HISTOalloc(nbins) ;
     for (j = 0 ; j < NALIGN_LABELS ; j++)
     {
       l = align_labels[j] ;
@@ -17484,6 +17545,8 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
 
             if (FZERO(val))  // skull stripped
               continue ;
+            if (MRIgetVoxVal(mri_borders, x, y, z, 0) > 0)  // avoid border voxels - matches erosion
+              continue ;
             bin = nint((val - fmin)/h_mri->bin_size) ;
             if (bin >= h_mri->nbins)
               bin = h_mri->nbins-1 ;
@@ -17495,9 +17558,11 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
           }
         }
       }
+      if (l == Gdiag_no)
+        DiagBreak() ;
       MRIfree(&mri_aligned) ;
 
-      h_gca = gcaGetLabelHistogram(gca, l, 0) ;
+      h_gca = gcaGetLabelHistogram(gca, l, 0, 0) ;
       gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
       HISTOmakePDF(h_gca, h_gca) ;
 
@@ -17528,8 +17593,80 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
       label_peaks[l] = h_gca->bins[gca_peak] ;
       fflush(stdout);
 
+      switch (l)
+      {
+      case Brain_Stem:
+      case Left_VentralDC:
+      case Right_VentralDC:
+        lower_thresh = 80 ;
+        upper_thresh = 110 ;
+        break ;
+      case Left_Caudate:
+      case Right_Caudate:
+        lower_thresh = 50 ;
+        upper_thresh = 100 ;
+        break ;
+      case Left_Cerebral_Cortex:
+      case Right_Cerebral_Cortex:
+        lower_thresh = 40 ;
+        upper_thresh = 95 ;
+        break ;
+      case Left_Pallidum:
+      case Right_Pallidum:
+        lower_thresh = 75 ;
+        upper_thresh = 135 ;
+        break ;
+      case Left_Thalamus_Proper:
+      case Right_Thalamus_Proper:
+        lower_thresh = 75 ;
+        upper_thresh = 120 ;
+        break ;
+      case Left_Amygdala:
+      case Right_Amygdala:
+        lower_thresh = 50 ;
+        upper_thresh = 90 ;
+        break ;
+      case Left_Cerebral_White_Matter:
+      case Right_Cerebral_White_Matter:
+        lower_thresh = 90 ;
+        upper_thresh = 130 ;
+        break ;
+      case Left_Putamen:
+      case Right_Putamen:
+        lower_thresh = 60 ;
+        upper_thresh = 107 ;
+        break ;
+      case Left_Lateral_Ventricle:
+      case Right_Lateral_Ventricle:
+      case Third_Ventricle:
+      case Fourth_Ventricle:
+      case CSF:
+        lower_thresh = 0 ;
+        upper_thresh = 55 ;
+        break ;
+      case Left_Inf_Lat_Vent:
+      case Right_Inf_Lat_Vent:
+        lower_thresh = 0 ;
+        upper_thresh = 65 ;
+        break ;
+      default:
+        lower_thresh = 0 ;
+        upper_thresh = 256 ;
+        break ;
+      }
+      HISTOclearBins(h_mri, h_mri, 0, lower_thresh-1) ;
+      HISTOclearBins(h_mri, h_mri, upper_thresh+1, 255) ;
       mri_peak = HISTOfindHighestPeakInRegion(h_mri, 0, h_mri->nbins) ;
       HISTOfillHoles(h_mri) ;
+      if (l == Left_Caudate || l == Right_Caudate)
+      {
+        h_caudate->bin_size = 1 ;
+        h_caudate->min = 0 ; h_caudate->max = 255 ;
+        for (i = 0 ; i < nbins ; i++)
+          h_caudate->bins[i] = (i+1)*h_caudate->bin_size ;
+        HISTOadd(h_mri, h_caudate, h_caudate) ;
+      }
+
       if (l == Left_Hippocampus || l == Right_Hippocampus ||
           l == Left_Amygdala || l == Right_Amygdala)
       {
@@ -17568,7 +17705,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
           MatrixFree(&m_L) ;
       }
 
-      if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      if (Gdiag & DIAG_WRITE)
       {
         sprintf(fname, "%s_label%d_mri.plt", base_name, l) ;
         HISTOplot(h_mri, fname) ;
@@ -17591,67 +17728,6 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
                            &label_scales[l], &label_offsets[l]) ;
 
         val = h_gca->bins[gca_peak]*label_scales[l]+label_offsets[l] ;
-        switch (l)
-        {
-        case Brain_Stem:
-        case Left_VentralDC:
-        case Right_VentralDC:
-          lower_thresh = 80 ;
-          upper_thresh = 110 ;
-          break ;
-        case Left_Caudate:
-        case Right_Caudate:
-          lower_thresh = 50 ;
-          upper_thresh = 100 ;
-          break ;
-        case Left_Cerebral_Cortex:
-        case Right_Cerebral_Cortex:
-          lower_thresh = 40 ;
-          upper_thresh = 95 ;
-          break ;
-        case Left_Pallidum:
-        case Right_Pallidum:
-          lower_thresh = 75 ;
-          upper_thresh = 135 ;
-          break ;
-        case Left_Thalamus_Proper:
-        case Right_Thalamus_Proper:
-          lower_thresh = 75 ;
-          upper_thresh = 120 ;
-          break ;
-        case Left_Amygdala:
-        case Right_Amygdala:
-          lower_thresh = 50 ;
-          upper_thresh = 90 ;
-          break ;
-        case Left_Cerebral_White_Matter:
-        case Right_Cerebral_White_Matter:
-          lower_thresh = 90 ;
-          upper_thresh = 130 ;
-          break ;
-        case Left_Putamen:
-        case Right_Putamen:
-          lower_thresh = 60 ;
-          upper_thresh = 107 ;
-          break ;
-        case Left_Lateral_Ventricle:
-        case Right_Lateral_Ventricle:
-        case Third_Ventricle:
-        case Fourth_Ventricle:
-        case CSF:
-          lower_thresh = 0 ;
-          upper_thresh = 55 ;
-          break ;
-        case Left_Inf_Lat_Vent:
-        case Right_Inf_Lat_Vent:
-          lower_thresh = 0 ;
-          upper_thresh = 65 ;
-          break ;
-        default:
-          lower_thresh = 0 ;
-          upper_thresh = 256 ;
-          break ;
-        }
         if ((val < lower_thresh || 
              val > upper_thresh) ||
             (h_mri->bins[mri_peak] < lower_thresh || 
@@ -17720,7 +17796,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         {
           HISTOlinearScale(h_gca, h_gca,
                            label_scales[l], label_offsets[l]) ;
-          if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+          if (Gdiag & DIAG_WRITE)
           {
             sprintf(fname, "%s_label%d_gca_scaled.plt", base_name, l) ;
             HISTOplot(h_gca, fname) ;
@@ -17741,15 +17817,69 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         break ;
     }
 
+    if (getenv("FS_USE_HISTO_COMBOS") != NULL)
     {
       int j ;
+      HISTOmakePDF(h_caudate, h_caudate) ;
+      mri_peak = HISTOfindHighestPeakInRegion(h_caudate, 0, h_caudate->nbins) ;
+      for (j = 0 ; j <= 1 ; j++)
+      {
+        if (j == 0)
+          l = Left_Caudate ;
+        else
+          l = Right_Caudate ;
+        h_gca = gcaGetLabelHistogram(gca, l, 0, 1) ;
+        gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
+        HISTOmakePDF(h_gca, h_gca) ;
+        label_peaks[l] = h_gca->bins[gca_peak] ;
+        HISTOfindLinearFit(h_gca, h_caudate, .025, 4, 0, 0,
+                           &label_scales[l], &label_offsets[l]) ;
+        val = h_gca->bins[gca_peak]*label_scales[l]+label_offsets[l] ;
+        lower_thresh = 50 ;
+        upper_thresh = 100 ;
+        if ((val < lower_thresh || 
+             val > upper_thresh) ||
+            (h_caudate->bins[mri_peak] < lower_thresh || 
+             h_caudate->bins[mri_peak] > upper_thresh))
+        {
+          printf("%s: unreasonable value (%2.1f/%2.1f), "
+                 "not in range [%2.0f, %2.0f] - rejecting\n",
+                 cma_label_to_name(l), val, 
+                 h_caudate->bins[mri_peak], 
+                 lower_thresh, upper_thresh) ;
+          label_scales[l] = 1.0 ;
+          label_offsets[l] = 1.0 ;
+        }
+        else
+        {
+          label_peaks[l] = label_peaks[l] * label_scales[l] + label_offsets[l];
+
+          if (logfp)
+          {
+            fprintf(logfp, "%s (%d): linear fit = %2.2f x + "
+                    "%2.1f (peak = %2.0f), gca=%2.1f\n",
+                    cma_label_to_name(l), l,
+                    label_scales[l], label_offsets[l],
+                    val, label_peaks[l]);
+            fflush(logfp) ;
+          }
+          fprintf(stdout, "%s (%d): linear fit = %2.2f x + "
+                  "%2.1f (peak = %2.0f), gca=%2.1f\n",
+                  cma_label_to_name(l), l,
+                  label_scales[l], label_offsets[l],
+                  val, label_peaks[l]);
+          fflush(stdout) ;
+          computed[l] = 1 ;
+        }
+      }
+
       HISTOmakePDF(h_mtl, h_mtl) ;
       mri_peak = HISTOfindHighestPeakInRegion(h_mtl, 0, h_mtl->nbins) ;
       for (j = 0 ; 
            j < MTL_LABELS ; j++)
       {
         l = mtl_labels[j] ;
-        h_gca = gcaGetLabelHistogram(gca, l, 0) ;
+        h_gca = gcaGetLabelHistogram(gca, l, 0, 1) ;
         gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
         HISTOmakePDF(h_gca, h_gca) ;
         label_peaks[l] = h_gca->bins[gca_peak] ;
@@ -17795,9 +17925,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
       }
     }
 
-    HISTOfree(&h_gca) ;
-    HISTOfree(&h_mri) ;
-    HISTOfree(&h_mtl) ;
+    HISTOfree(&h_gca) ; HISTOfree(&h_mri) ; HISTOfree(&h_mtl) ; HISTOfree(&h_caudate) ;
     
     // make sure non-computed labels don't scale
     for (l = 0 ; l < MAX_CMA_LABELS ; l++)
@@ -17806,7 +17934,7 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
       {
         label_scales[l] = 1.0 ;
         label_offsets[l] = 0.0 ;
-        h_gca = gcaGetLabelHistogram(gca, l, 0) ;
+        h_gca = gcaGetLabelHistogram(gca, l, 0, 1) ;
         gca_peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
         HISTOmakePDF(h_gca, h_gca) ;
 
@@ -17869,9 +17997,9 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         label_offsets[rhl] = label_offsets[lhl] ;
         label_peaks[rhl] = label_peaks[lhl] ;
         computed[rhl] = 1;
-        fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f\n",
-                cma_label_to_name(lhl), cma_label_to_name(rhl),
-                label_scales[rhl], label_offsets[rhl]) ;
+        fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f: %2.0f\n",
+                cma_label_to_name(rhl), cma_label_to_name(lhl),
+                label_scales[rhl], label_offsets[rhl], label_peaks[rhl]) ;
       }
       else if (computed[rh_labels[k]] && !computed[lh_labels[k]])
       {
@@ -17881,9 +18009,9 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
         label_offsets[lhl] = label_offsets[rhl] ;
         label_peaks[lhl] = label_peaks[rhl] ;
         computed[lhl] = 1;
-        fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f\n",
-                cma_label_to_name(rhl), cma_label_to_name(lhl),
-                label_scales[lhl], label_offsets[lhl]) ;
+        fprintf(stdout, "setting label %s based on %s = %2.2f x + %2.0f: %2.0f\n",
+                cma_label_to_name(lhl), cma_label_to_name(rhl),
+                label_scales[lhl], label_offsets[lhl], label_peaks[lhl]) ;
       }
     }
 
@@ -18094,11 +18222,11 @@ GCAcomputeRenormalizationWithAlignment(GCA *gca, MRI *mri, TRANSFORM *transform,
       {
       case Left_Pallidum:
       case Right_Pallidum:
-        if ((label_peaks[l] >= .95*label_peaks[Left_Cerebral_White_Matter]) ||
-            (label_peaks[l] >= .95*label_peaks[Right_Cerebral_White_Matter]))
+        if ((label_peaks[l] >= .97*label_peaks[Left_Cerebral_White_Matter]) ||
+            (label_peaks[l] >= .97*label_peaks[Right_Cerebral_White_Matter]))
         {
           // don't let pallidum be as bright as wm
-          peak = 0.95 *
+          peak = 0.97 *
                  (label_peaks[Left_Cerebral_White_Matter] +
                   label_peaks[Right_Cerebral_White_Matter])/2 ;
           scale = peak / label_peaks[l] ;
@@ -20549,7 +20677,7 @@ gcaComputeHistogramNormalization(GCA *gca, HISTOGRAM *h_mri, int label)
 {
   HISTOGRAM *h_gca, *h_gca_eq, *h_mri_eq, *h_norm ;
 
-  h_gca = gcaGetLabelHistogram(gca, label, 0) ;
+  h_gca = gcaGetLabelHistogram(gca, label, 0, 0) ;
   h_norm = HISTOcomposeInvert(h_gca, h_mri, NULL) ;
   HISTOfree(&h_gca) ;
   return(h_eq) ;
@@ -20557,7 +20685,7 @@ gcaComputeHistogramNormalization(GCA *gca, HISTOGRAM *h_mri, int label)
 
 #endif
 static HISTOGRAM *
-gcaGetLabelHistogram(GCA *gca, int label, int frame)
+gcaGetLabelHistogram(GCA *gca, int label, int frame, int border)
 {
   HISTOGRAM *h_gca ;
   int       xn, yn, zn, n ;
@@ -22027,12 +22155,12 @@ GCArenormalizeWithEntropyMinimization(GCA *gca,
   for (i = 0 ; i < NUM_ENTROPY_LABELS ; i++)
   {
     scales[i] = 1.0 ;
-    h_gca = gcaGetLabelHistogram(gca, entropy_labels[i], 0) ;
+    h_gca = gcaGetLabelHistogram(gca, entropy_labels[i], 0, 0) ;
     peak_bin = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
     peaks[i] = h_gca->bins[peak_bin] ;
     HISTOfree(&h_gca) ;
 
-    h_gca = gcaGetLabelHistogram(gca, contra_entropy_labels[i], 0) ;
+    h_gca = gcaGetLabelHistogram(gca, contra_entropy_labels[i], 0, 0) ;
     peak_bin = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
     contra_peaks[i] = h_gca->bins[peak_bin] ;
     HISTOfree(&h_gca) ;
