@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/16 22:33:54 $
- *    $Revision: 1.38 $
+ *    $Date: 2011/01/30 15:20:58 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -70,6 +70,7 @@ HISTOGRAM *HISTOcomposeInvert(HISTOGRAM *histo_fwd, HISTOGRAM *histo_inv,
                               HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOmul(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst) ;
+HISTOGRAM *HISTOscalarAdd(HISTOGRAM *hsrc, float add, HISTOGRAM *hdst) ;
 HISTOGRAM *HISTOadd(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOsubtract(HISTOGRAM *h1, HISTOGRAM *h2, HISTOGRAM *histo_dst) ;
 HISTOGRAM *HISTOclearBins(HISTOGRAM *h1, HISTOGRAM *h2, int b0, int b1) ;
