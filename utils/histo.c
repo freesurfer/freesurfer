@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2010/03/16 22:33:48 $
- *    $Revision: 1.67 $
+ *    $Date: 2011/01/30 15:20:48 $
+ *    $Revision: 1.68 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -2133,6 +2133,22 @@ HISTOscalarMul(HISTOGRAM *hsrc, float mul, HISTOGRAM *hdst)
 
   for (b = 0 ; b < hsrc->nbins ; b++)
     hdst->counts[b] = hsrc->counts[b] * mul ;
+
+  return(hdst) ;
+}
+
+HISTOGRAM *
+HISTOscalarAdd(HISTOGRAM *hsrc, float add, HISTOGRAM *hdst) 
+{
+  int  b ;
+
+  if (!hdst)
+    hdst = HISTOalloc(hsrc->nbins) ;
+  else
+    hdst->nbins = hsrc->nbins ;
+
+  for (b = 0 ; b < hsrc->nbins ; b++)
+    hdst->counts[b] = hsrc->counts[b] + add ;
 
   return(hdst) ;
 }
