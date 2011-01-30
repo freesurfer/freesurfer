@@ -14,7 +14,6 @@ GLSUBDIRS=\
 	mris2rgb \
 	nmovie \
 	mris_show \
-	stim \
 	stim_polar \
 	tkmedit \
 	tkregister2 \

@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/01/18 16:12:06 $
-#    $Revision: 1.507 $
+#    $Date: 2011/01/30 15:27:48 $
+#    $Revision: 1.508 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3454,7 +3454,6 @@ AC_OUTPUT([Makefile
            connectgraph/Makefile
            spherical_stats/Makefile
            stat_normalize/Makefile
-           stim/Makefile
            stim_polar/Makefile
            svm-lib/Makefile
            talairach_afd/Makefile
