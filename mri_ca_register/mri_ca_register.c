@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:01:21 $
- *    $Revision: 1.74 $
+ *    $Author: fischl $
+ *    $Date: 2011/01/30 15:18:46 $
+ *    $Revision: 1.75 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -68,6 +68,10 @@
 #include "devicemanagement.h"
 #endif
 #include "gcamorphtestutils.h"
+
+static int remove_cerebellum = 0 ;
+static int remove_lh = 0 ;
+static int remove_rh = 0 ;
 
 static int remove_bright =0 ;
 static int map_to_flash = 0 ;
@@ -217,7 +221,7 @@ main(int argc, char *argv[]) {
 
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_ca_register.c,v 1.74 2010/08/12 17:01:21 gregt Exp $", 
+     "$Id: mri_ca_register.c,v 1.75 2011/01/30 15:18:46 fischl Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -342,6 +346,10 @@ main(int argc, char *argv[]) {
   if (gca == NULL)
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n",
               Progname, gca_fname) ;
+  if (remove_lh)
+    GCAremoveHemi(gca, 1) ; // for exvivo contrast
+  if (remove_rh)
+    GCAremoveHemi(gca, 0) ; // for exvivo contrast
   /////////////////////////////////////////////////////////////////
   // Remapping GCA
   /////////////////////////////////////////////////////////////////
@@ -1038,6 +1046,7 @@ main(int argc, char *argv[]) {
 		if (!got_scales)
 		// this is the first (and also last) call
 		// do not bother passing or receiving scales info
+    {
       GCAmapRenormalizeWithAlignment
       (gcam->gca,
        mri_inputs,
@@ -1046,6 +1055,26 @@ main(int argc, char *argv[]) {
        parms.base_name,
        NULL,
        handle_expanded_ventricles) ;
+
+      if (parms.write_iterations != 0) {
+        char fname[STRLEN] ;
+        MRI  *mri_gca, *mri_tmp ;
+        mri_gca = MRIclone(mri_inputs, NULL) ;
+        GCAMbuildMostLikelyVolume(gcam, mri_gca) ;
+        if (mri_gca->nframes > 1) {
+          printf("careg: extracting %dth frame\n", mri_gca->nframes-1) ;
+          mri_tmp = MRIcopyFrame(mri_gca, NULL, mri_gca->nframes-1, 0) ;
+          MRIfree(&mri_gca) ;
+          mri_gca = mri_tmp ;
+        }
+        sprintf(fname, "%s_target", parms.base_name) ;
+        MRIwriteImageViews(mri_gca, fname, IMAGE_SIZE) ;
+        sprintf(fname, "%s_target1.mgz", parms.base_name) ;
+        printf("writing target volume to %s...\n", fname) ;
+        MRIwrite(mri_gca, fname) ;
+        MRIfree(&mri_gca) ;
+      }
+    }
 		else // this is a sequential call, pass scales..
       GCAseqRenormalizeWithAlignment
       (gcam->gca,
@@ -1067,6 +1096,10 @@ main(int argc, char *argv[]) {
     }
     parms.tol /= 5 ;  // reset parameters to previous level
     parms.l_smoothness /= 5 ;
+    GCAMregister(gcam, mri_inputs, &parms) ;
+    parms.noneg = 0 ;
+    parms.tol = 0.25 ;
+    parms.navgs = 16 ;
     GCAMregister(gcam, mri_inputs, &parms) ;
   }
 
@@ -1158,7 +1191,23 @@ get_option(int argc, char *argv[]) {
     regularize = atof(argv[2]) ;
     printf("regularizing variance to be sigma+%2.1fC(noise)\n", regularize) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "write_gca")) {
+  } 
+  else if (!stricmp(option, "LH"))
+  {
+    remove_rh = 1  ;
+    printf("removing right hemisphere labels\n") ;
+  }
+  else if (!stricmp(option, "RH"))
+  {
+    remove_lh = 1  ;
+    printf("removing left hemisphere labels\n") ;
+  }
+  else if (!strcmp(option, "NOCEREBELLUM"))
+  {
+    remove_cerebellum = 1 ;
+    printf("removing cerebellum from atlas\n") ;
+  }
+  else if (!stricmp(option, "write_gca")) {
     write_gca_fname = argv[2] ;
     printf("writing gca to file name %s\n", write_gca_fname) ;
     nargs = 1 ;
@@ -1397,6 +1446,12 @@ get_option(int argc, char *argv[]) {
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging node (%d, %d, %d)\n", Gx, Gy, Gz) ;
+  } else if (!stricmp(option, "SNAPSHOTS")) {
+    Gsx = atoi(argv[2]) ;
+    Gsy = atoi(argv[3]) ;
+    Gsz = atoi(argv[4]) ;
+    nargs = 3 ;
+    printf("writing snapshots of planes through (%d, %d, %d)\n", Gsx, Gsy, Gsz) ;
   } else if (!stricmp(option, "read_intensities") || !stricmp(option, "ri")) {
     read_intensity_fname[nreads] = argv[2] ;
     nargs = 1 ;
