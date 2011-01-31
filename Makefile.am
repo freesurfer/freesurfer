@@ -348,6 +348,8 @@ SUBDIRS=\
 install-data-hook:
 	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" \
 		> $(DESTDIR)$(prefix)/build-stamp.txt ;
+	cp -f $(DESTDIR)$(prefix)/build-stamp.txt \
+		$(DESTDIR)$(prefix)/VERSION
 	if test ! "x$(MNI_DIR)" = "x" ; then \
 		if test ! "$(MNI_DIR)" = "$(DESTDIR)$(prefix)/mni" ; then \
 			if test -e $(MNI_DIR) ; then \
