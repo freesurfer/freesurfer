@@ -133,8 +133,9 @@ vtkKWQdecView.h \
 vtkKWQdecViewTcl.cxx \
 vtkKWQdecWindow.cxx \
 vtkKWQdecWindow.h \
-vtkKWQdecWindowTcl.cxx
-
+vtkKWQdecWindowTcl.cxx \
+development_notes.txt \
+qdec.ppt
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
