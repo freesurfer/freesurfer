@@ -7,8 +7,8 @@
  * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/09/19 15:26:03 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/01/31 22:20:47 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,12 +37,12 @@ extern "C" {
 #include "mrisurf.h"
 }
 
-vtkCxxRevisionMacro(vtkFSSurfaceWriter, "$Revision: 1.2 $");
+vtkCxxRevisionMacro(vtkFSSurfaceWriter, "$Revision: 1.3 $");
 vtkStandardNewMacro(vtkFSSurfaceWriter);
 
 vtkFSSurfaceWriter::vtkFSSurfaceWriter() :
-  mMRIS( NULL ) {
-
+  mMRIS( NULL ),
+  FileName( NULL ) {
 }
 
 vtkFSSurfaceWriter::~vtkFSSurfaceWriter() {

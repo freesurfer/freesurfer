@@ -27,12 +27,14 @@ libvtkfsio_a_SOURCES=\
 	vtkFSVolumeSource.cxx \
 	vtkFSVolumeSource.h
 
-EXTRA_DIST=$(libvtkfsio_a_SOURCES)
+EXTRA_DIST=$(libvtkfsio_a_SOURCES) lh.vtkFSSurfaceWriterTestFile
 
 if ENABLE_KWWIDGETS_APPS
 check_PROGRAMS = vtkFSSurfaceWriterTester
+#TESTS = vtkFSSurfaceWriterTester
 else
 check_PROGRAMS =
+#TESTS =
 endif
 
 vtkFSSurfaceWriterTester_SOURCES=vtkFSSurfaceWriterTester.cxx
