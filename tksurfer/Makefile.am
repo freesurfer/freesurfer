@@ -53,6 +53,8 @@ all:
 install-exec-hook:
 endif
 
+EXTRA_DIST=development_notes.txt
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
