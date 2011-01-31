@@ -1,8 +1,9 @@
-# The logic is divided into 2 parts based on whether we are building for OSX or not.
-# The VTK for OSX doesn't compile when Carbon is enabled and TCL is enabled. However,
-# a TCL enabled VTK is essential for FreeSurfer suite. Hence Freeview uses a special
-# static build of VTK which has Carbon=ON, TCL=OFF, Static=ON. So depending on whether
-# the platform is OSX or not, we use different versions of the VTK. 
+# The logic is divided into 2 parts based on whether we are building for 
+# OSX or not. The VTK for OSX doesn't compile when Carbon is enabled and 
+# TCL is enabled. However, a TCL enabled VTK is essential for FreeSurfer
+# suite. Hence Freeview uses a special static build of VTK which has 
+# Carbon=ON, TCL=OFF, Static=ON. So depending on whether the platform is 
+# OSX or not, we use different versions of the VTK. 
 
 if ENABLE_WXWIDGETS_APPS
 bin_PROGRAMS = freeview
@@ -88,6 +89,8 @@ freeview_SOURCES=\
 	Interactor2DNavigate.h \
 	Interactor2DMeasure.cpp \
 	Interactor2DMeasure.h \
+	Interactor2DRegionEdit.cpp \
+	Interactor2DRegionEdit.h \
 	Interactor2DROIEdit.cpp \
 	Interactor2DROIEdit.h \
 	Interactor2DVolumeEdit.cpp \
@@ -508,7 +511,7 @@ endif
 # NJS commented-out till a virtual-screen way of testing is implemented
 #TESTS=test_freeview
 
-EXTRA_DIST=test_freeview $(RESOURCES) StockColorMap.h
+EXTRA_DIST=test_freeview $(RESOURCES) StockColorMap.h Info.plist
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
