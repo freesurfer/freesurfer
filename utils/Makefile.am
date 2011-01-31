@@ -67,6 +67,7 @@ libutils_main_SOURCES=\
 	annotation.c \
 	art1.c \
 	artmap.c \
+	aseg_edit_svm.c \
 	backprop.c \
 	bfileio.c \
 	box.c \
@@ -223,6 +224,7 @@ libutils_main_SOURCES=\
 	xUndoList.c \
 	xUtilities.c \
 	xVoxel.c \
+	xmlToHtml.c \
 	znzlib.c \
 	fs_cost_function.cpp \
 	fs_lbfgs.cpp \
