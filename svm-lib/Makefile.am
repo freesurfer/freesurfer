@@ -19,7 +19,8 @@ EXTRA_DIST=svm-data-param.h svm-element-types.h svm-kernel-param.h \
 	svm-similarity.h svm-vector-types.h \
 	svm-element-type.h svm-io-format.h svm-kernel.h \
 	svm-lib.h svm-model.h svm-pr-loqo.h svm-sketch.h \
-	svm-vector.h
+	svm-vector.h svm-pr-loqo.c \
+	classification_setup.example INSTALL_README.txt README.txt
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
