@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/01/21 19:53:53 $
-#    $Revision: 1.356 $
+#    $Author: nicks $
+#    $Date: 2011/02/01 18:58:08 $
+#    $Revision: 1.357 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.356 2011/01/21 19:53:53 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.357 2011/02/01 18:58:08 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1876,7 +1876,7 @@ if($DoGCAReg) then
                   transforms/talairach.lta)
     else
       # default processing:
-      set cmd = ($cmd -mask brainmask.mgz $xopts \
+      set cmd = ($cmd -uns 3 -mask brainmask.mgz $xopts \
                   nu.mgz ${GCADIR}/$GCA \
                   transforms/talairach.lta)
     endif
