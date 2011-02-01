@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/01/25 15:43:56 $
- *    $Revision: 1.130 $
+ *    $Author: greve $
+ *    $Date: 2011/02/01 15:55:16 $
+ *    $Revision: 1.131 $
  *
  * Copyright (C) 2002-2011,
  * The General Hospital Corporation (Boston, MA). 
@@ -4328,17 +4328,15 @@ int IsDICOM(const char *fname)
   static int yes = 0;          // statically initialized
   static char file[1024] = ""; // statically initialized
 
+  d = 0;
+  if(getenv("FS_DICOM_DEBUG")) d = 1;
+
   // use the cached value if the fname is the same as privious one
-  if (!strcmp(fname, file)) // used before
-    return yes;
-  else
-  {
+  if(d==0 && !strcmp(fname, file)) return yes; // used before
+  else  {
     yes = 0;                // initialize
     strcpy(file, fname);    // save the current filename
   }
-
-  d = 0;
-  if(getenv("FS_DICOM_DEBUG")) d = 1;
 
   if (d) printf("Entering IsDICOM (%s)\n",fname);
   fflush(stdout);
