@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/01/30 15:27:48 $
-#    $Revision: 1.508 $
+#    $Date: 2011/02/01 22:00:51 $
+#    $Revision: 1.509 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3315,7 +3315,6 @@ AC_OUTPUT([Makefile
            mri_segstats/Makefile
            mri_stats2seg/Makefile
            mri_strip_nonwhite/Makefile
-           mri_strip_skull/Makefile
            mri_strip_subject_info/Makefile
            mri_surf2surf/Makefile
            mri_surf2vol/Makefile

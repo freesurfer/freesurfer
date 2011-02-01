@@ -125,7 +125,6 @@ MRISUBDIRS=\
 	mri_segment \
 	mri_seghead \
 	mri_surfacemask \
-	mri_strip_skull \
 	mri_strip_subject_info \
 	mri_strip_nonwhite \
 	mri_surf2surf \
