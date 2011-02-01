@@ -15,6 +15,7 @@ mfiles_DATA=\
 	cc_cut_afd.m \
 	cc_cut_dir_afd.m \
 	cc_cut_table.m \
+	combine_labels.m \
 	convert_fieldsign.m \
 	convert_unwarp_resample.m \
 	cortical_labeling_afd_txt.m \
@@ -60,6 +61,7 @@ mfiles_DATA=\
 	MRIvote.m \
 	MRIwrite.m \
 	mri_zcdf.m \
+	mris_display.m \
 	peakfinder.m \
 	pons_cut_afd.m \
 	pons_cut_dir_afd.m \
@@ -93,6 +95,7 @@ mfiles_DATA=\
 	ribbon_afd.m \
 	ribbon_dir_afd.m \
 	ribbon_table.m \
+	rotmat.m \
 	rotmat2angles.m \
 	sampleSize.m \
 	save_cor.m \
@@ -128,6 +131,7 @@ mfiles_DATA=\
 	wm_seg_dir_afd.m \
 	wm_seg_table.m \
 	write_analyze_hdr.m \
+	write_annotation.m \
 	write_ascii_curv.m \
 	write_curv.m \
 	write_label.m \
