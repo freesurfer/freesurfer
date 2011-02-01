@@ -1,9 +1,8 @@
 ## 
 ## Makefile.am 
 ##
-# Makefile.am specify i addtion to the standard
 
-AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
+AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mris_flatten
@@ -36,6 +35,7 @@ mris_flatten_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 
 endif
 
+EXTRA_DIST = make_mris_flatten_movie.tcl
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
