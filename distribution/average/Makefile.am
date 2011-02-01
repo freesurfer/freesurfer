@@ -76,8 +76,9 @@ endif
 
 EXTRA_DIST=$(foo_DATA) fsaverage.tar.gz V1_average.tar.gz \
 	fsaverage3.tar.gz fsaverage4.tar.gz \
-	fsaverage5.tar.gz fsaverage6.tar.gz \
-	EC_average.tar.gz mult-comp-cor.tar.gz
+	fsaverage5.tar.gz fsaverage6.tar.gz fsaverage7.tar.gz \
+	EC_average.tar.gz mult-comp-cor.tar.gz \
+	build_gcs_morph.csh
 
 install: install-fooDATA
 	mkdir -p $(DESTDIR)$(prefix)/subjects
