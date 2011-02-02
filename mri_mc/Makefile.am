@@ -34,7 +34,7 @@ mris_extract_main_component_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 #build_MC_table_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 EXTRA_DIST=compare_test_volumes test_volume_reference.mgz $(foo_DATA) \
-	build_MC_table.c mc_table.c
+	build_MC_table.c mc_table.gif
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
