@@ -1,18 +1,16 @@
 /**
  * @file  xGLutWindow.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief general purpose utils
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/02/26 00:59:32 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +19,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -32,7 +29,8 @@
 #include <glut.h>
 #include "xTypes.h"
 
-typedef enum {
+typedef enum
+{
 
   xGWin_tErr_NoErr = 0,
   xGWin_tErr_InvalidWindowPtr,
@@ -45,7 +43,8 @@ typedef enum {
 } xGWin_tErr;
 
 /* the event class */
-typedef enum {
+typedef enum
+{
 
   xGWin_tEventType_NoEvent = 0,
   xGWin_tEventType_KeyDown,
@@ -63,7 +62,8 @@ typedef int           xGWin_tButton;
 typedef unsigned char xGWin_tKey;
 
 /* special keys */
-enum {
+enum
+{
 
   xGWin_tKey_Tab = 9,  /* 9 myst remain hardcoded */
   xGWin_tKey_UpArrow = 10,

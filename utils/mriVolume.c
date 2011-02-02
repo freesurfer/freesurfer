@@ -4,14 +4,14 @@
  *
  */
 /*
- * Original Author: inverse
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:43 $
- *    $Revision: 1.92 $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.93 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -41,26 +41,27 @@
 
 // should be in transform.h if they aren't already
 
-char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] = {
-      "No error.",
-      "Invalid signature.",
-      "Invalid parameter.",
-      "Invalid index.",
-      "Memory allocation failed.",
-      "Couldn't read volume.",
-      "Couldn't copy volume.",
-      "Couldn't read transform.",
-      "Couldn't copy transform.",
-      "Couldn't normalize volume.",
-      "Couldn't export volume to COR format.",
-      "MRI volume not present.",
-      "Scanner transform not present.",
-      "Index to RAS transform not present.",
-      "Flood user function can only return Continue or Stop",
-      "While trying to find a suitable destination volume for the display transform, couldn't find FREESURFER_HOME environment variable.",
-      "While trying to find a suitable destination volume for the display transform, couldn't find FREESURFER_HOME/average/mni305.cor.mgz.",
-      "Error reading FREESURFER_HOME/average/mni305.cor.mgz while trying to population destination information in the display transform."
-    };
+char Volm_ksaErrorStrings[Volm_knNumErrorCodes][Volm_knErrStringLen] =
+{
+  "No error.",
+  "Invalid signature.",
+  "Invalid parameter.",
+  "Invalid index.",
+  "Memory allocation failed.",
+  "Couldn't read volume.",
+  "Couldn't copy volume.",
+  "Couldn't read transform.",
+  "Couldn't copy transform.",
+  "Couldn't normalize volume.",
+  "Couldn't export volume to COR format.",
+  "MRI volume not present.",
+  "Scanner transform not present.",
+  "Index to RAS transform not present.",
+  "Flood user function can only return Continue or Stop",
+  "While trying to find a suitable destination volume for the display transform, couldn't find FREESURFER_HOME environment variable.",
+  "While trying to find a suitable destination volume for the display transform, couldn't find FREESURFER_HOME/average/mni305.cor.mgz.",
+  "Error reading FREESURFER_HOME/average/mni305.cor.mgz while trying to population destination information in the display transform."
+};
 
 Volm_tErr Volm_New ( mriVolumeRef* opVolume )
 {
@@ -146,14 +147,18 @@ Volm_tErr Volm_New ( mriVolumeRef* opVolume )
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
 
   if ( NULL != this )
+  {
     Volm_Delete( &this );
+  }
 
   EndDebugCatch;
 
   DebugExitFunction;
 
   if ( NULL != tmpMatrix )
+  {
     MatrixFree( &tmpMatrix );
+  }
 
   return eResult;
 }
@@ -291,7 +296,7 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   if ( NULL != this->mDisplayTransform )
   {
     DebugNote( ("Copying display transform") );
-    clone->mDisplayTransform = 
+    clone->mDisplayTransform =
       TransformCopy( this->mDisplayTransform, NULL );
     DebugAssertThrowX( (NULL != clone->mDisplayTransform),
                        eResult, Volm_tErr_CouldntCopyTransform );
@@ -331,9 +336,9 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
 
   /* allocate and copy color tables */
   memmove( clone->mafColorTable, this->mafColorTable,
-          sizeof( this->manColorTable ));
+           sizeof( this->manColorTable ));
   memmove( clone->manColorTable, this->manColorTable,
-          sizeof( this->mafColorTable ));
+           sizeof( this->mafColorTable ));
 
   /* Copy the resample information then calc the resample matrices,
      that will point the m_resample{} matrices to the right place in
@@ -361,7 +366,9 @@ Volm_tErr Volm_DeepClone  ( mriVolumeRef  this,
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
 
   if ( NULL != clone )
+  {
     Volm_Delete( &clone );
+  }
 
   EndDebugCatch;
 
@@ -592,9 +599,13 @@ Volm_tErr Volm_SetFromMRI_ ( mriVolumeRef this,
   EndDebugCatch;
 
   if ( NULL != scannerTransform )
+  {
     MatrixFree( &scannerTransform );
+  }
   if ( NULL != identity )
+  {
     MatrixFree( &identity );
+  }
 
   DebugExitFunction;
 
@@ -685,7 +696,9 @@ Volm_tErr Volm_CalculateMRIIdxToAnaIdx_ ( mriVolumeRef this )
   EndDebugCatch;
 
   if ( NULL != identity )
+  {
     MatrixFree( &identity );
+  }
 
   DebugExitFunction;
 
@@ -863,13 +876,15 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
   /* If this is an RAS_TO_RAS, take a look at the valid flags for
      source and dest. If they aren't valid, we have to provide some
      data. */
-  if( transform->type == LINEAR_RAS_TO_RAS ) {
+  if( transform->type == LINEAR_RAS_TO_RAS )
+  {
 
     lta = (LTA *)transform->xform ;
 
     /* If the source is invalid, we can provide the data from this MRI
        volume. */
-    if( !lta->xforms[0].src.valid ) {
+    if( !lta->xforms[0].src.valid )
+    {
 
       fprintf( stderr, "INFO: Setting transform source geometry data to MRI volume's geometry\n" );
 
@@ -880,31 +895,32 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
        can provide the volume from
        $FREESURFER_HOME/average/mni305.cor.mgz if it's available. */
     if( !lta->xforms[0].dst.valid &&
-	NULL != strstr( isFileName, "talairach.xfm" ) ) {
-      
+        NULL != strstr( isFileName, "talairach.xfm" ) )
+    {
+
       fprintf( stderr, "INFO: Setting transform dest geometry data to mni305's geometry\n" );
 
       /* Get FREESURFER_HOME. */
       fsenv = FSENVgetenv();
       DebugAssertThrowX( (NULL != fsenv),
-	  eResult, Volm_tErr_FsenvNotFoundWhileSearchingForTransformDest );
+                         eResult, Volm_tErr_FsenvNotFoundWhileSearchingForTransformDest );
       DebugAssertThrowX( (NULL != fsenv->FREESURFER_HOME),
-	  eResult, Volm_tErr_FsenvNotFoundWhileSearchingForTransformDest );
+                         eResult, Volm_tErr_FsenvNotFoundWhileSearchingForTransformDest );
 
       /* Build the file name. */
-      snprintf( sMNI305FileName, sizeof(sMNI305FileName), 
-		"%s/average/mni305.cor.mgz", fsenv->FREESURFER_HOME );
-      
+      snprintf( sMNI305FileName, sizeof(sMNI305FileName),
+                "%s/average/mni305.cor.mgz", fsenv->FREESURFER_HOME );
+
       /* Make sure the file exists. */
       eStat = stat( sMNI305FileName, &statMNI305 );
       DebugAssertThrowX( (0 == eStat),
-	  eResult, Volm_tErr_MNI305NotFoundWhilePopulatingTramsformDest );
+                         eResult, Volm_tErr_MNI305NotFoundWhilePopulatingTramsformDest );
 
       /* Load it and read the header. */
       MNI305volume = MRIreadHeader( sMNI305FileName, MRI_VOLUME_TYPE_UNKNOWN );
       DebugAssertThrowX( (NULL != MNI305volume),
-	  eResult, Volm_tErr_ErrorReadingMNI305WhilePopulatingTramsformDest );
-    
+                         eResult, Volm_tErr_ErrorReadingMNI305WhilePopulatingTramsformDest );
+
       /* Copy the geometry data. */
       getVolGeom( MNI305volume, &(lta->xforms[0].dst) );
     }
@@ -912,25 +928,32 @@ Volm_tErr Volm_LoadDisplayTransform ( mriVolumeRef this,
 
   /* This doesn't invert the transform (as you might think), but
      calculates the inverses that we'll use later. */
-  eTransform = TransformInvert( transform, this->mpMriValues ); 
-  if( 0 != eTransform ) { 
-    fprintf( stderr, "TransformInvert returned %d\n", eTransform ); 
-  } 
+  eTransform = TransformInvert( transform, this->mpMriValues );
+  if( 0 != eTransform )
+  {
+    fprintf( stderr, "TransformInvert returned %d\n", eTransform );
+  }
 
   /* Success! Out with the old and in with the new. */
   if( NULL != this->mDisplayTransform )
+  {
     TransformFree( &this->mDisplayTransform );
+  }
   this->mDisplayTransform = transform;
-  
+
   //  TransformRas2Vox(transform, this->mpMriValues, this->mpMriValues) ;
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
   EndDebugCatch;
 
-  if( NULL != fsenv ) 
+  if( NULL != fsenv )
+  {
     FSENVfree( &fsenv );
+  }
   if( NULL != MNI305volume )
+  {
     MRIfree( &MNI305volume );
+  }
 
   DebugExitFunction;
 
@@ -949,7 +972,8 @@ Volm_tErr Volm_UnloadDisplayTransform ( mriVolumeRef this )
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
 
   /* if we already have a transform, delete it */
-  if ( NULL != this->mDisplayTransform ) {
+  if ( NULL != this->mDisplayTransform )
+  {
     TransformFree( &(this->mDisplayTransform) );
     this->mDisplayTransform = NULL;
   }
@@ -1008,18 +1032,22 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
   xVoxel disp;
 
   /* transform idx to display transform */
-  if ( NULL != this->mDisplayTransform ) {
+  if ( NULL != this->mDisplayTransform )
+  {
 
     /* Transform using the inverse of the display transform. */
     TransformSampleInverse( this->mDisplayTransform,
-			    xVoxl_ExpandFloat( iIdx ), &x, &y, &z );
+                            xVoxl_ExpandFloat( iIdx ), &x, &y, &z );
     xVoxl_SetFloat( &disp, x, y, z );
-    
-    if ( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr ) {
+
+    if ( Volm_VerifyIdx_( this, &disp ) == Volm_tErr_NoErr )
+    {
       Volm_GetSampledValueAtIdx_( this, &disp, &value );
     }
 
-  } else {
+  }
+  else
+  {
 
     /* Get the sampled value. Cap it to the color min and max. If in
        between that, calculate the color index between 0 and 255. */
@@ -1027,9 +1055,13 @@ void Volm_GetIntColorAtIdx ( mriVolumeRef this,
   }
 
   if ( value <= this->mfColorMin )
+  {
     colorIdx = 0;
+  }
   else if ( value >= this->mfColorMax )
+  {
     colorIdx = 255;
+  }
   else
   {
     colorIdx = (int) (Volm_knNumColorTableEntries *
@@ -1396,9 +1428,13 @@ Volm_tErr Volm_SetValueAtIdx ( mriVolumeRef this,
 
   /* update our min max. */
   if ( iValue > this->mfMaxValue )
+  {
     this->mfMaxValue = iValue;
+  }
   if ( iValue < this->mfMinValue )
+  {
     this->mfMinValue = iValue;
+  }
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -1549,9 +1585,13 @@ Volm_tErr Volm_SetValueAtMRIIdx ( mriVolumeRef this,
 
   /* update our min max. */
   if ( iValue > this->mfMaxValue )
+  {
     this->mfMaxValue = iValue;
+  }
   if ( iValue < this->mfMinValue )
+  {
     this->mfMinValue = iValue;
+  }
 
   DebugCatch;
   DebugCatchError( eResult, Volm_tErr_NoErr, Volm_GetErrorString );
@@ -2153,13 +2193,13 @@ Volm_tErr Volm_ConvertSurfaceRASToMRIIdx ( mriVolumeRef this,
 }
 
 Volm_tErr Volm_GetMRIIdxToAnaIdxTransform ( mriVolumeRef     this,
-					    mriTransformRef* opTransform )
+    mriTransformRef* opTransform )
 {
 
   Volm_tErr eResult = Volm_tErr_NoErr;
 
   DebugEnterFunction( ("Volm_GetMRIIdxToAnaIdxTransform( this=%p, "
-		       "opTransform=%p )", this, opTransform) );
+                       "opTransform=%p )", this, opTransform) );
 
   DebugNote( ("Verifying volume") );
   eResult = Volm_Verify( this );
@@ -2228,9 +2268,9 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
   if ( NULL == iParams->mComparatorFunc )
   {
     DebugAssertThrowX
-      ((iParams->mComparatorType>Volm_tValueComparator_Invalid &&
-        iParams->mComparatorType < Volm_knNumValueComparators),
-       eResult, Volm_tErr_InvalidParamater );
+    ((iParams->mComparatorType>Volm_tValueComparator_Invalid &&
+      iParams->mComparatorType < Volm_knNumValueComparators),
+     eResult, Volm_tErr_InvalidParamater );
   }
   if ( FALSE == iParams->mb3D )
   {
@@ -2345,7 +2385,9 @@ Volm_tErr Volm_Flood ( mriVolumeRef        this,
                 ((xVoxl_GetZ(curVoxel) - xVoxl_GetZ(&(iParams->mSourceIdx))) *
                  (xVoxl_GetZ(curVoxel) - xVoxl_GetZ(&(iParams->mSourceIdx)))));
         if ( fDistance > iParams->mfMaxDistance )
+        {
           continue;
+        }
       }
 
       /* This is good, so call the user function. Handle their return code. */
@@ -2529,11 +2571,17 @@ Volm_tErr Volm_FindMaxValues ( mriVolumeRef this )
 
   /* Allocate our buffers. */
   if ( NULL != this->mpMaxValuesX )
+  {
     free( this->mpMaxValuesX );
+  }
   if ( NULL != this->mpMaxValuesY )
+  {
     free( this->mpMaxValuesY );
+  }
   if ( NULL != this->mpMaxValuesZ )
+  {
     free( this->mpMaxValuesZ );
+  }
 
   this->mpMaxValuesX = (float**) calloc( this->mnDimensionY, sizeof(float*) );
   DebugAssertThrowX( (NULL != this->mpMaxValuesX),
@@ -2653,7 +2701,7 @@ Volm_tErr Volm_MakeColorTable ( mriVolumeRef this )
       lookuptable entries with intensity values from min->max so
       that by lowering the range of min->max, you increase the
       granularity of intensities in the visible values. */
-      fComponent = 
+      fComponent =
         (1.0 / (1.0 + exp( (((value-min)/(max-min))-thresh) * -squash )));
 
       /* set the float color */
@@ -2802,7 +2850,9 @@ Volm_tErr Volm_SaveToSnapshot ( mriVolumeRef this )
 
   /* if we have snapshot data, delete it */
   if ( NULL != this->mpSnapshot )
+  {
     free( this->mpSnapshot );
+  }
 
   /* make a buffer the same size as the slices buffer. */
   nSize = this->mpMriValues->width *
@@ -2855,7 +2905,9 @@ Volm_tErr Volm_RestoreFromSnapshot ( mriVolumeRef this )
 
   /* if we don't have a snapshot, return. */
   if ( NULL == this->mpSnapshot )
+  {
     DebugGotoCleanup;
+  }
 
   /* copy the snapshot data into the norm volume buffer data */
   nSize = this->mpMriValues->width *
@@ -3312,7 +3364,9 @@ Volm_tErr Volm_ExtractAndSetSubjectName ( mriVolumeRef this,
     {
       sWord -= sizeof( char );
       if ( *sWord == '/' )
+      {
         break;
+      }
     }
 
     /* inc past the slash and use the next part as the name */
@@ -3368,7 +3422,9 @@ Volm_tErr Volm_ExtractAndSetSubjectName ( mriVolumeRef this,
       while ( isSource[nChar] != '\0' )
       {
         if ( isSource[nChar] == '/' )
+        {
           nLastSlash = nChar;
+        }
         nChar++;
       }
 
@@ -3422,7 +3478,9 @@ Volm_tErr Volm_ExtractAndSetVolumeName ( mriVolumeRef this,
   while ( isSource[nChar] != '\0' )
   {
     if ( isSource[nChar] == '/' )
+    {
       nLastSlash = nChar;
+    }
     nChar++;
   }
 
@@ -3462,7 +3520,7 @@ Volm_tErr Volm_SetMinVoxelSizeToOne ( mriVolumeRef this )
   DebugAssertThrow( (eResult == Volm_tErr_NoErr) );
 
   /* Calculate the scale factor and size the xyzsize values. */
-  scale = 1.0/MIN(MIN(this->mpMriValues->xsize, 
+  scale = 1.0/MIN(MIN(this->mpMriValues->xsize,
                       this->mpMriValues->ysize),
                   this->mpMriValues->zsize) ;
   printf("scaling voxel sizes up by %2.2f\n", scale) ;
@@ -3484,9 +3542,9 @@ Volm_tErr Volm_SetMinVoxelSizeToOne ( mriVolumeRef this )
   this->mpMriValues->zstart = -this->mpMriValues->zend;
 
   /* Find the overall fov. */
-  this->mpMriValues->fov = (fov_x > fov_y ? 
-                            (fov_x > fov_z ? fov_x : fov_z) : 
-                            (fov_y > fov_z ? fov_y : fov_z) );
+  this->mpMriValues->fov = (fov_x > fov_y ?
+                            (fov_x > fov_z ? fov_x : fov_z) :
+                              (fov_y > fov_z ? fov_y : fov_z) );
 
   /* Set from the newly fov'd MRI. */
   DebugNote( ("Setting from MRI") );
@@ -3630,9 +3688,9 @@ void Volm_GetValueAtIdx_ ( mriVolumeRef this,
   switch ( this->mpMriValues->type )
   {
   case MRI_UCHAR:
-      *oValue =
-        MRIvox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel),
-                xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel) );
+    *oValue =
+      MRIvox( this->mpMriValues, xVoxl_GetX(&this->mTmpVoxel),
+              xVoxl_GetY(&this->mTmpVoxel), xVoxl_GetZ(&this->mTmpVoxel) );
     break;
   case MRI_INT:
     *oValue =

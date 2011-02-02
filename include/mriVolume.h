@@ -4,14 +4,14 @@
  *
  */
 /*
- * Original Author: inverse
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.42 $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.43 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -37,7 +37,8 @@
 /* Enable this to turn macros on, see details below. */
 #define VOLM_USE_MACROS
 
-typedef enum {
+typedef enum
+{
   Volm_tErr_Invalid = -1,
   Volm_tErr_NoErr = 0,
   Volm_tErr_InvalidSignature,
@@ -78,7 +79,8 @@ typedef Volm_tValue *Volm_tValueRef;
 /* Function definition and return codes for a visit callback. The user
    supplies their own visit function and it is called in the flood and
    VisitAll algorithms. */
-typedef enum {
+typedef enum
+{
   Volm_tVisitComm_Continue = 0,
   Volm_tVisitComm_SkipRestOfRow,
   Volm_tVisitComm_SkipRestOfPlane,
@@ -90,7 +92,8 @@ typedef Volm_tVisitCommand(*Volm_tVisitFunction)(xVoxelRef  iMRIIdx,
     void*      ipData);
 
 /* Parameters for a generic flood algorithm. */
-typedef enum {
+typedef enum
+{
   Volm_tValueComparator_Invalid = -1,
   Volm_tValueComparator_LTE = 0,
   Volm_tValueComparator_EQ,
@@ -105,14 +108,16 @@ typedef tBoolean(*Volm_tFloodComparatorFunction)(xVoxelRef  iMRIIdx,
     void*      ipData);
 
 /* This should be kept in sync with the SAMPLE_* constants in mri.h */
-typedef enum {
+typedef enum
+{
   Volm_tSampleType_Nearest = 0,
   Volm_tSampleType_Trilinear,
   Volm_tSampleType_Sinc,
   Volm_knNumSampleTypes
 } Volm_tSampleType;
 
-typedef enum {
+typedef enum
+{
   Volm_tResampleMethod_RAS = 0,
   Volm_tResampleMethod_Slice,
   Volm_knNumResampleMethods
@@ -346,7 +351,7 @@ Volm_tErr Volm_ConvertSurfaceRASToMRIIdx  ( mriVolumeRef this,
     xVoxelRef    oMRIIdx );
 
 Volm_tErr Volm_GetMRIIdxToAnaIdxTransform ( mriVolumeRef     this,
-					    mriTransformRef* opTransform );
+    mriTransformRef* opTransform );
 
 /* Generic flood algorithm. Starts at a user-supplied voxel and floods
    outwards, in 3D or inplane, and for every valid voxel, calls the

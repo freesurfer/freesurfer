@@ -1,18 +1,16 @@
 /**
  * @file  mriFunctionalDataAccess.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief general purpose utils
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:40 $
- *    $Revision: 1.29 $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.30 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +19,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -40,7 +37,8 @@
 
 
 /* error constants. */
-typedef enum {
+typedef enum
+{
   FunD_tErr_NoError = 0,
   FunD_tErr_InvalidSignature,
   FunD_tErr_InvalidPtr,
@@ -71,13 +69,15 @@ typedef enum {
   FunD_tErr_knNumErrorCodes
 } FunD_tErr;
 
-typedef enum {
+typedef enum
+{
   FunD_tDataType_Short,
   FunD_tDataType_Float
 } FunD_tDataType;
 
 /* This should be kept in sync with the SAMPLE_* constants in mri.h */
-typedef enum {
+typedef enum
+{
   FunD_tSampleType_Nearest = 0,
   FunD_tSampleType_Trilinear,
   FunD_tSampleType_Sinc,
@@ -86,7 +86,8 @@ typedef enum {
 
 /* methods of func idx conversion. this is the rounding method used to
    get the functional index from an ras coord. */
-typedef enum {
+typedef enum
+{
   FunD_tConversionMethod_FFF = 0, /* floor, floor, floor */
   FunD_tConversionMethod_Round,   /* rint */
   FunD_tConversionMethod_FCF,     /* floor, ceil, floor */
@@ -94,7 +95,8 @@ typedef enum {
 } FunD_tConversionMethod;
 
 /* Methods of finding the registration. Specified in the New function. */
-typedef enum {
+typedef enum
+{
   FunD_tRegistration_None = -1,
   FunD_tRegistration_File = 0,
   FunD_tRegistration_Find,

@@ -4,14 +4,14 @@
  *
  */
 /*
- * Original Author: Bruce Fischl
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:43 $
- *    $Revision: 1.36 $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.37 $
  *
- * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2010,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -26,25 +26,27 @@
 #include "mriSurface.h"
 #include "error.h"
 
-char *Surf_ksaErrorStrings [Surf_knNumErrorCodes] = {
+char *Surf_ksaErrorStrings [Surf_knNumErrorCodes] =
+{
 
-      "No error.",
-      "Invalid pointer to object.",
-      "Invalid paramter.",
-      "Invalid signature.",
-      "Memory allocation failed.",
-      "Error loading surface (MRISread).",
-      "Error loading vertex set.",
-      "Error loading annotation.",
-      "Error accessing surface.",
-      "Last face.",
-      "Last vertex.",
-      "Invalid error code."
-    };
+  "No error.",
+  "Invalid pointer to object.",
+  "Invalid paramter.",
+  "Invalid signature.",
+  "Memory allocation failed.",
+  "Error loading surface (MRISread).",
+  "Error loading vertex set.",
+  "Error loading annotation.",
+  "Error accessing surface.",
+  "Last face.",
+  "Last vertex.",
+  "Invalid error code."
+};
 
-char *Surf_ksaVertexSets [Surf_knNumVertexSets] = {
-      "main", "original", "pial"
-    };
+char *Surf_ksaVertexSets [Surf_knNumVertexSets] =
+{
+  "main", "original", "pial"
+};
 
 static xVoxel sTmpVertex;
 
@@ -119,10 +121,14 @@ Surf_tErr Surf_New ( mriSurfaceRef*  opSurface,
 error:
 
   if ( NULL != this->mSurface )
+  {
     MRISfree( &this->mSurface );
+  }
 
   if ( NULL != this )
+  {
     free( this );
+  }
 
   if ( Surf_tErr_NoErr != eResult )
   {
@@ -133,7 +139,9 @@ error:
 cleanup:
 
   if ( NULL != transform )
+  {
     Trns_Delete( &transform );
+  }
 
   return eResult;
 }
@@ -154,7 +162,9 @@ Surf_tErr Surf_Delete ( mriSurfaceRef* iopSurface )
   this = *iopSurface;
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* free surface */
   MRISfree( &(this->mSurface) );
@@ -197,7 +207,9 @@ Surf_tErr Surf_SetTransform ( mriSurfaceRef this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* copy the transformation */
   Trns_DeepClone( iTransform, &this->mTransform );
@@ -244,7 +256,9 @@ Surf_tErr Surf_LoadVertexSet ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* save current vertex set to tmp */
   MRISsaveVertexPositions( this->mSurface, TMP_VERTICES );
@@ -312,7 +326,9 @@ Surf_tErr Surf_WriteValues ( mriSurfaceRef this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   for ( vno = 0; vno < this->mSurface->nvertices; vno++ )
   {
@@ -352,7 +368,9 @@ Surf_tErr Surf_IsVertexSetLoaded ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* return flag */
   *obIsLoaded = this->mabVertexSetLoaded[ iSet ];
@@ -382,7 +400,9 @@ Surf_tErr Surf_LoadAnnotation ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* read in the annotation */
   eMRIS = MRISreadAnnotation( this->mSurface, isFileName );
@@ -417,7 +437,9 @@ Surf_tErr Surf_IsInternalColorTablePresent ( mriSurfaceRef this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* Return whether or not we have a ct. */
   *obPresent = (this->mSurface->ct != NULL);
@@ -446,7 +468,9 @@ Surf_tErr Surf_NewColorTableFromInternal   ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* Make a COPY our ct, if we have one. */
   if ( this->mSurface->ct )
@@ -454,7 +478,9 @@ Surf_tErr Surf_NewColorTableFromInternal   ( mriSurfaceRef   this,
 
     colorTable = CTABdeepCopy( this->mSurface->ct );
     if ( NULL == colorTable )
+    {
       goto error;
+    }
 
     *opTable = colorTable;
   }
@@ -534,7 +560,9 @@ Surf_tErr Surf_ConvertSurfaceToClientSpace_ ( mriSurfaceRef   this,
 
       /* if longer than the longest edge, set it */
       if ( fDistance > this->mfLongestEdge )
+      {
         this->mfLongestEdge = fDistance;
+      }
     }
 
     if ( !(nFaceIdx % 1000) )
@@ -575,7 +603,9 @@ Surf_tErr Surf_SetIteratorPosition ( mriSurfaceRef    this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* see what orientation we're in and save the plane */
   if ( xVoxl_GetFloatX( iPlane ) != 0 )
@@ -631,7 +661,9 @@ Surf_tErr Surf_GetNextAndNeighborVertex ( mriSurfaceRef    this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if vertex is -1, search for next face. */
   if ( -1 == this->mnCurVertex )
@@ -699,7 +731,9 @@ Surf_tErr Surf_GetNextAndNeighborVertex ( mriSurfaceRef    this,
   /* get the index of the last vertex. */
   nNeighborVertex = this->mnCurVertex - 1;
   if ( nNeighborVertex < 0 )
+  {
     nNeighborVertex = VERTICES_PER_FACE - 1;
+  }
 
   /* get this vertex and the last one */
   vertex         = &(face->mVoxel[iSet][this->mnCurVertex]);
@@ -853,7 +887,9 @@ Surf_tErr Surf_GetNthVertex ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* verify the index */
   if ( inIndex < 0 ||
@@ -915,7 +951,9 @@ Surf_tErr Surf_GetClosestVertexVoxel ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* since we want to return results with the vertex index, it is better
      to search for the closest vertex in the surface space, not in client
@@ -934,11 +972,11 @@ Surf_tErr Surf_GetClosestVertexVoxel ( mriSurfaceRef   this,
   /* make a string of info */
   if ( NULL != osDescription )
   {
-    sprintf( osDescription, 
-             "Index: %d Distance: %.2f RAS Coords: %.2f %.2f %.2f", 
-             nIndex, fDistance, 
-             Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_X ), 
-             Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_Y ), 
+    sprintf( osDescription,
+             "Index: %d Distance: %.2f RAS Coords: %.2f %.2f %.2f",
+             nIndex, fDistance,
+             Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_X ),
+             Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_Y ),
              Surf_GetVertexCoord( vertex, iSet, Surf_tOrientation_Z ) );
   }
 
@@ -1033,7 +1071,9 @@ Surf_tErr Surf_SetVertexValue ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* Get the closest vertex to this voxel. First get the voxel in
      surface space, then find the closest vertex. */
@@ -1088,7 +1128,9 @@ Surf_tErr Surf_GetVertexValue ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* Get the closest vertex to this voxel. First get the voxel in
      surface space, then find the closest vertex. */
@@ -1137,7 +1179,9 @@ Surf_tErr Surf_GetVertexAnnotationByIndex ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* Verify the index. */
   if ( iVertexIndex < 0 || iVertexIndex >= this->mSurface->nvertices )
@@ -1181,7 +1225,9 @@ Surf_tErr Surf_GetDistance ( mriSurfaceRef this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* Get both voxels in surface space, then calc the distance. */
   Surf_ConvertVoxelToSurfaceSpace( iClientVoxel1, this->mTransform,
@@ -1227,7 +1273,9 @@ Surf_tErr Surf_GetMRIS ( mriSurfaceRef   this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* pass back the surface. */
   *opSurface = this->mSurface;
@@ -1286,7 +1334,9 @@ Surf_tErr Surf_UsesRealRAS ( mriSurfaceRef this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* Return the useRealRAS flag. */
   *obUseRealRAS = this->mSurface->useRealRAS;
@@ -1314,12 +1364,16 @@ Surf_tErr Surf_AverageVertexPositions ( mriSurfaceRef this,
 
   eResult = Surf_Verify( this );
   if ( Surf_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* Call the MRIS function. */
   eMRIS = MRISaverageVertexPositions( this->mSurface, inNumAverages );
   if ( NO_ERROR != eMRIS )
+  {
     goto error;
+  }
 
   /* Since that changes the vertex positions, reconvert our client
      space cache. */

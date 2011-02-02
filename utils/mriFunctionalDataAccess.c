@@ -4,14 +4,14 @@
  *
  */
 /*
- * Original Author: inverse
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/08/04 01:58:13 $
- *    $Revision: 1.54 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.55 $
  *
- * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2010,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -55,37 +55,38 @@
 #define FunD_ksRegisterFileName  "register.dat"
 
 
-char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] = {
-      "No error.",
-      "Invalid object signature.",
-      "Invalid ptr to volume (was probably NULL).",
-      "Path not found.",
-      "No stem provided and it couldn't be guessed.",
-      "Data not found in specified path.",
-      "Header file not found in specified path.",
-      "Couldn't allocate volume (memory allocation failed).",
-      "Unrecognized header format.",
-      "Questionable header format (found expected types of values, "
-      "but keywords were different).",
-      "Couldn't find a recognizable data file.",
-      "Couldn't allocate storage (memory allocation failed).",
-      "Couldn't allocate MRI.",
-      "Couldn't allocate matrix (not my fault).",
-      "Couldn't load MRI volume.",
-      "Couldn't read register file.",
-      "Couldn't calculate deviations.",
-      "Error performing an operation on a transform.",
-      "Invalid parameter",
-      "Invalid time resolution, number of time points must be "
-      "evenly divisble by it.",
-      "Invalid number of pre stim time points.",
-      "Invalid functional voxel, out of bounds.",
-      "Invalid condition (is it zero-based?)",
-      "Invalid time point (is it zero-based?)",
-      "Couldn't transform mask into local space.",
-      "Error performing FDR.",
-      "Invalid error code."
-    };
+char *FunD_ksaErrorString [FunD_tErr_knNumErrorCodes] =
+{
+  "No error.",
+  "Invalid object signature.",
+  "Invalid ptr to volume (was probably NULL).",
+  "Path not found.",
+  "No stem provided and it couldn't be guessed.",
+  "Data not found in specified path.",
+  "Header file not found in specified path.",
+  "Couldn't allocate volume (memory allocation failed).",
+  "Unrecognized header format.",
+  "Questionable header format (found expected types of values, "
+  "but keywords were different).",
+  "Couldn't find a recognizable data file.",
+  "Couldn't allocate storage (memory allocation failed).",
+  "Couldn't allocate MRI.",
+  "Couldn't allocate matrix (not my fault).",
+  "Couldn't load MRI volume.",
+  "Couldn't read register file.",
+  "Couldn't calculate deviations.",
+  "Error performing an operation on a transform.",
+  "Invalid parameter",
+  "Invalid time resolution, number of time points must be "
+  "evenly divisble by it.",
+  "Invalid number of pre stim time points.",
+  "Invalid functional voxel, out of bounds.",
+  "Invalid condition (is it zero-based?)",
+  "Invalid time point (is it zero-based?)",
+  "Couldn't transform mask into local space.",
+  "Error performing FDR.",
+  "Invalid error code."
+};
 
 // ===================================================================== VOLUME
 
@@ -246,7 +247,9 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume )
 
   /* Delete other data. */
   if ( NULL != this->mpData )
+  {
     MRIfree( &this->mpData );
+  }
   if ( NULL != this->mCovMtx )
   {
     for ( column = 0;
@@ -260,9 +263,13 @@ FunD_tErr FunD_Delete ( mriFunctionalDataRef* iopVolume )
 
   /* delete our transformers. */
   if ( NULL != this->mIdxToIdxTransform )
+  {
     Trns_Delete( &(this->mIdxToIdxTransform) );
+  }
   if ( NULL != this->mOriginalIdxToIdxTransform )
+  {
     Trns_Delete( &(this->mOriginalIdxToIdxTransform) );
+  }
 
   /* delete the structure. */
   free( this );
@@ -354,8 +361,9 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
   int       nValue         = 0;
   int       nValuesRead    = 0;
 
-  
-  if(getenv("USEDNGDRAW")){
+
+  if(getenv("USEDNGDRAW"))
+  {
     printf("FunD_FindAndParseStemHeader_ msFileName %s\n",this->msFileName);
     printf("Using dng draw %s\n",getenv("USEDNGDRAW"));
     fflush(stdout);
@@ -382,7 +390,8 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
   printf("tkmedit: Trying to open %s\n", sFileName);
   DebugNote( ("Trying to open %s", sFileName) );
   pHeader = fopen( sFileName, "r" );
-  if ( NULL != pHeader ){
+  if ( NULL != pHeader )
+  {
     fclose( pHeader );
     bFoundFile = TRUE;
   }
@@ -406,7 +415,10 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
     /* grab a keyword */
     DebugNote( ("Reading a keyword") );
     nValuesRead = fscanf( pHeader, "%s", sKeyword );
-    if ( feof( pHeader ) ) break;
+    if ( feof( pHeader ) )
+    {
+      break;
+    }
     DebugAssertThrowX( (1 == nValuesRead && !feof( pHeader )),
                        eResult, FunD_tErr_UnrecognizedHeaderFormat );
 
@@ -448,7 +460,9 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
       DebugNote( ("Reading SumXtX") );
       nNumValues = pow( this->mNumTimePoints * (this->mNumConditions-1), 2 );
       for ( nValue = 0; nValue < nNumValues; nValue++ )
+      {
         fscanf( pHeader, "%*d" );
+      }
       bSomethingRead = TRUE;
     }
     else if ( strcmp( sKeyword, "hCovMtx" ) == 0 )
@@ -500,7 +514,7 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
 
   /* If nothing was read, this isn't a real .dat file, so bail. */
   DebugAssertThrowX( (bSomethingRead),
-		     eResult, FunD_tErr_UnrecognizedHeaderFormat );
+                     eResult, FunD_tErr_UnrecognizedHeaderFormat );
 
   /* Divide the num prestim points by the time res. Do it here because
      we might not have gotten the timeres when we read TPreStim up
@@ -519,7 +533,9 @@ FunD_tErr FunD_FindAndParseStemHeader_ ( mriFunctionalDataRef this )
   EndDebugCatch;
 
   if ( NULL != pHeader )
+  {
     fclose( pHeader );
+  }
 
   DebugExitFunction;
 
@@ -623,7 +639,7 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
 
       /* Save the file name we found. */
       strncpy( this->msRegistrationFileName, sFileName,
-	       sizeof(this->msRegistrationFileName) );
+               sizeof(this->msRegistrationFileName) );
 
     }
 
@@ -631,15 +647,15 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
     DebugNote( ("Checking if %s exists", this->msRegistrationFileName) );
     eStat = stat( this->msRegistrationFileName, &fileInfo );
     DebugAssertThrowX( (0 == eStat),
-		       eResult, FunD_tErr_CouldntReadRegisterFile );
-    
+                       eResult, FunD_tErr_CouldntReadRegisterFile );
+
     DebugNote( ("Checking S_ISREG") );
     DebugAssertThrowX( ( S_ISREG(fileInfo.st_mode) ),
                        eResult, FunD_tErr_CouldntReadRegisterFile );
 
     /* Read the registration info. */
-    DebugNote( ("StatReadRegistration on %s\n", 
-		this->msRegistrationFileName ) );
+    DebugNote( ("StatReadRegistration on %s\n",
+                this->msRegistrationFileName ) );
     theRegInfo = StatReadRegistration( this->msRegistrationFileName );
     DebugAssertThrowX( (NULL != theRegInfo ),
                        eResult, FunD_tErr_CouldntReadRegisterFile );
@@ -684,7 +700,9 @@ FunD_ParseRegistrationAndInitMatricies_ ( mriFunctionalDataRef   this,
       /* read line and look for string */
       fgets( sLine, 1024, fRegister );
       if (feof(fRegister))
+      {
         break;
+      }
       bGood = sscanf( sLine, "%s", sKeyWord );
       if ( bGood )
       {
@@ -948,7 +966,9 @@ FunD_tErr FunD_ClientSpaceIsTkRegRAS ( mriFunctionalDataRef this )
   EndDebugCatch;
 
   if ( NULL != identity )
+  {
     MatrixFree (&identity);
+  }
 
   DebugExitFunction;
 
@@ -1401,7 +1421,9 @@ FunD_tErr FunD_Smooth ( mriFunctionalDataRef this,
   DebugExitFunction;
 
   if ( NULL != kernel )
+  {
     MRIfree( &kernel );
+  }
 
   return eResult;
 }
@@ -1929,7 +1951,9 @@ FunD_tErr FunD_GetPercentileOfValue ( mriFunctionalDataRef this,
   {
     theErr = FunD_CalcFrequencies_( this, FunD_knNumFrequencyBins );
     if ( FunD_tErr_NoError != theErr )
+    {
       goto error;
+    }
   }
 
   /* Check to make sure numBins is 100 here? */
@@ -2149,7 +2173,9 @@ FunD_tErr FunD_SaveRegistration ( mriFunctionalDataRef this )
     {
       fread( &data, sizeof(data), 1, pFile );
       if (feof(pFile))
+      {
         break;
+      }
       fwrite( &data, sizeof(data), 1, pBackupFile );
     }
 
@@ -2660,7 +2686,9 @@ char* FunD_GetErrorString ( FunD_tErr iErr )
 {
 
   if ( !(iErr >= 0 && iErr < FunD_tErr_knNumErrorCodes) )
+  {
     iErr = FunD_tErr_InvalidErrorCode;
+  }
 
   return (char*)(FunD_ksaErrorString[iErr]);
 }

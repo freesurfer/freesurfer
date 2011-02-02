@@ -1,18 +1,16 @@
 /**
  * @file  mriTransform.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief general purpose utils
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.18 $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.19 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +19,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -31,17 +28,18 @@
 #include "mriTransform.h"
 #include "macros.h"
 
-char *Trns_ksaErrorStrings [Trns_knNumErrorCodes] = {
+char *Trns_ksaErrorStrings [Trns_knNumErrorCodes] =
+{
 
-      "No error.",
-      "Invalid pointer to object.",
-      "Invalid signature.",
-      "Invalid parameter.",
-      "Allocation failed.",
-      "Tranformation matrices not inited.",
-      "LTA import (LTAread) failed.",
-      "Invalid error code."
-    };
+  "No error.",
+  "Invalid pointer to object.",
+  "Invalid signature.",
+  "Invalid parameter.",
+  "Allocation failed.",
+  "Tranformation matrices not inited.",
+  "LTA import (LTAread) failed.",
+  "Invalid error code."
+};
 
 
 Trns_tErr Trns_New ( mriTransformRef* opTransform )
@@ -129,7 +127,7 @@ Trns_tErr Trns_NewFromLTA ( mriTransformRef* opTransform,
   DebugAssertThrowX( (NULL != LTATransform),
                      eResult, Trns_tErr_LTAImportFailed );
 
-  this->type = LTATransform->type ;  /* if RAS will be converted 
+  this->type = LTATransform->type ;  /* if RAS will be converted
                                         to voxel later */
 
   /* copy the matrix out of it */
@@ -160,10 +158,14 @@ error:
 cleanup:
 
   if ( NULL != LTATransform )
+  {
     LTAfree( &LTATransform );
+  }
 
   if ( NULL != identity )
+  {
     MatrixFree( &identity );
+  }
 
   return eResult;
 }
@@ -180,25 +182,43 @@ Trns_tErr Trns_Delete ( mriTransformRef* iopTransform )
   /* verify us. */
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* delete any matricies we have. */
   if ( NULL != this->mAtoRAS )
+  {
     MatrixFree( &(this->mAtoRAS) );
+  }
   if ( NULL != this->mBtoRAS )
+  {
     MatrixFree( &(this->mBtoRAS) );
+  }
   if ( NULL != this->mARAStoBRAS )
+  {
     MatrixFree( &(this->mARAStoBRAS) );
+  }
   if ( NULL != this->mRAStoA )
+  {
     MatrixFree( &(this->mRAStoA) );
+  }
   if ( NULL != this->mRAStoB )
+  {
     MatrixFree( &(this->mRAStoB) );
+  }
   if ( NULL != this->mBRAStoARAS )
+  {
     MatrixFree( &(this->mBRAStoARAS) );
+  }
   if ( NULL != this->mAtoB )
+  {
     MatrixFree( &(this->mAtoB) );
+  }
   if ( NULL != this->mBtoA )
+  {
     MatrixFree( &(this->mBtoA) );
+  }
   MatrixFree( &(this->mCoord1) );
   MatrixFree( &(this->mCoord2) );
 
@@ -236,20 +256,30 @@ Trns_tErr Trns_DeepClone ( mriTransformRef  this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* allocate the clone */
   eResult = Trns_New( &clone );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* copy any of our matrices that are defined */
   if ( NULL != this->mAtoRAS )
+  {
     Trns_CopyAtoRAS( clone, this->mAtoRAS );
+  }
   if ( NULL != this->mBtoRAS )
+  {
     Trns_CopyBtoRAS( clone, this->mBtoRAS );
+  }
   if ( NULL != this->mARAStoBRAS )
+  {
     Trns_CopyARAStoBRAS( clone, this->mARAStoBRAS );
+  }
 
   /* return the clone. */
   *opTransform = clone;
@@ -277,7 +307,9 @@ Trns_tErr Trns_CopyAtoRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* create a copy of this matrix */
   this->mAtoRAS = MatrixCopy( iAtoRAS, NULL );
@@ -313,7 +345,9 @@ Trns_tErr Trns_CopyBtoRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* create a copy of this matrix */
   this->mBtoRAS = MatrixCopy( iBtoRAS, NULL );
@@ -349,7 +383,9 @@ Trns_tErr Trns_CopyARAStoBRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* create a copy of this matrix */
   this->mARAStoBRAS = MatrixCopy( iARAStoBRAS, NULL );
@@ -385,7 +421,9 @@ Trns_tErr Trns_GetAtoRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* return the matrix */
   *opMatrix = this->mAtoRAS;
@@ -413,7 +451,9 @@ Trns_tErr Trns_GetBtoRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* return the matrix */
   *opMatrix = this->mBtoRAS;
@@ -441,7 +481,9 @@ Trns_tErr Trns_GetARAStoBRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* return the matrix */
   *opMatrix = this->mARAStoBRAS;
@@ -468,7 +510,9 @@ Trns_tErr Trns_GetAtoB ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* return the matrix */
   *opMatrix = this->mAtoB;
@@ -495,7 +539,9 @@ Trns_tErr Trns_GetBtoA ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* return the matrix */
   *opMatrix = this->mBtoA;
@@ -536,7 +582,9 @@ Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* init our matricies */
   mTranslation    = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -606,7 +654,9 @@ Trns_tErr Trns_ApplyTransform ( mriTransformRef this,
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
@@ -621,27 +671,49 @@ error:
 cleanup:
 
   if ( mTranslation )
+  {
     MatrixFree( &mTranslation );
+  }
   if ( mTranslationInv )
+  {
     MatrixFree( &mTranslationInv );
+  }
   if ( mRotation )
+  {
     MatrixFree( &mRotation );
+  }
   if ( mRotationInv )
+  {
     MatrixFree( &mRotationInv );
+  }
   if ( mScale )
+  {
     MatrixFree( &mScale );
+  }
   if ( mNewTranslation )
+  {
     MatrixFree( &mNewTranslation );
+  }
   if ( mNewRotation )
+  {
     MatrixFree( &mNewRotation );
+  }
   if ( mNewScale )
+  {
     MatrixFree( &mNewScale );
+  }
   if ( mNew )
+  {
     MatrixFree( &mNew );
+  }
   if ( mTmp1 )
+  {
     MatrixFree( &mTmp1 );
+  }
   if ( mTmp2 )
+  {
     MatrixFree( &mTmp2 );
+  }
 
   return eResult;
 }
@@ -652,7 +724,9 @@ Trns_tErr Trns_ExtractTranslationMatrix ( MATRIX* iTransform,
 
   if ( NULL == iTransform
        || NULL == oTranslation )
+  {
     return Trns_tErr_InvalidParameter;
+  }
 
   /* identity matrix with just the translation components */
   MatrixIdentity( 4, oTranslation );
@@ -673,7 +747,9 @@ Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
 
   if ( NULL == iTransform
        || NULL == oRotation )
+  {
     return Trns_tErr_InvalidParameter;
+  }
 
   /* create a matrix identical to the transform but without the translation */
   mTmp = MatrixCopy( iTransform, NULL );
@@ -689,9 +765,13 @@ Trns_tErr Trns_ExtractRotationMatrix    ( MATRIX* iTransform,
   /* now modify it so that all the factors are one-overed. */
   for ( n = 1; n <= 3; n ++ )
     if ( !FZERO(*MATRIX_RELT(mScale,n,n)) )
+    {
       *MATRIX_RELT(mScale,n,n) = 1.0 / *MATRIX_RELT(mScale,n,n);
+    }
     else
+    {
       *MATRIX_RELT(mScale,n,n) = 1.0;
+    }
 
   /* rotation is that matrix composed with original matrix sans translation */
   MatrixMultiply( mTmp, mScale, oRotation );
@@ -712,7 +792,9 @@ Trns_tErr Trns_ExtractScaleMatrix ( MATRIX* iTransform,
 
   if ( NULL == iTransform
        || NULL == oScale )
+  {
     return Trns_tErr_InvalidParameter;
+  }
 
   /* create a matrix identical to the transform but without the translation */
   mTmp = MatrixCopy( iTransform, mTmp );
@@ -771,7 +853,9 @@ Trns_tErr Trns_Translate ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
   mOld = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -801,7 +885,9 @@ Trns_tErr Trns_Translate ( mriTransformRef this,
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
@@ -816,11 +902,17 @@ error:
 cleanup:
 
   if ( mTransform != NULL )
+  {
     MatrixFree( &mTransform );
+  }
   if ( mOld != NULL )
+  {
     MatrixFree( &mNew );
+  }
   if ( mNew != NULL )
+  {
     MatrixFree( &mNew );
+  }
 
   return eResult;
 }
@@ -838,7 +930,9 @@ Trns_tErr Trns_Rotate ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
   mOld = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -868,7 +962,9 @@ Trns_tErr Trns_Rotate ( mriTransformRef this,
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
@@ -897,7 +993,9 @@ Trns_tErr Trns_Scale ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   mTransform = MatrixAlloc( 4, 4, MATRIX_REAL );
   mOld = MatrixAlloc( 4, 4, MATRIX_REAL );
@@ -927,7 +1025,9 @@ Trns_tErr Trns_Scale ( mriTransformRef this,
   /* set the new matrix */
   eResult = Trns_CopyARAStoBRAS( this, mNew );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
@@ -954,7 +1054,9 @@ Trns_tErr Trns_ConvertAtoB ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mAtoB )
@@ -1002,7 +1104,9 @@ Trns_tErr Trns_ConvertAtoRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mAtoRAS )
@@ -1050,7 +1154,9 @@ Trns_tErr Trns_ConvertBtoA ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mBtoA )
@@ -1098,7 +1204,9 @@ Trns_tErr Trns_ConvertBtoRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mBtoRAS )
@@ -1147,7 +1255,9 @@ Trns_tErr Trns_ConvertBRAStoB ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mRAStoB )
@@ -1196,7 +1306,9 @@ Trns_tErr Trns_ConvertMatrixAtoB ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mAtoB )
@@ -1232,7 +1344,9 @@ Trns_tErr Trns_ConvertMatrixAtoRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mAtoRAS )
@@ -1268,7 +1382,9 @@ Trns_tErr Trns_ConvertMatrixBtoA ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mBtoA )
@@ -1304,7 +1420,9 @@ Trns_tErr Trns_ConvertMatrixBtoRAS ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if we don't have our trans matricies, return an error. */
   if ( NULL == this->mBtoRAS )
@@ -1485,7 +1603,9 @@ Trns_tErr Trns_GetType     ( mriTransformRef this, int *ptype)
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* return the type */
   *ptype = this->type;
@@ -1513,12 +1633,18 @@ Trns_tErr Trns_CopyAtoB ( mriTransformRef this,
 
   eResult = Trns_Verify( this );
   if ( Trns_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   if (NULL != this->mAtoB)
+  {
     MatrixFree(&this->mAtoB) ;
+  }
   if (NULL != this->mBtoA)
+  {
     MatrixFree(&this->mBtoA) ;
+  }
 
   /* create a copy of this matrix */
   this->mAtoB = MatrixCopy( iAtoB, NULL );

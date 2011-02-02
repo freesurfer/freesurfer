@@ -1,18 +1,16 @@
 /**
  * @file  xSparseVolume.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief general purpose utils
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/02/02 19:25:20 $
+ *    $Revision: 1.8 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +19,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -32,18 +29,19 @@
 #include "xSparseVolume.h"
 #include "xDebug.h"
 
-char *xSVol_ksaErrorStrings [xSVol_knNumErrorCodes] = {
+char *xSVol_ksaErrorStrings [xSVol_knNumErrorCodes] =
+{
 
-      "No error.",
-      "Invalid pointer to object.",
-      "Invalid parameter.",
-      "Invalid signature.",
-      "Memory allocation failed.",
-      "Item not found.",
-      "Index out of bounds.",
-      "Index not allocated.",
-      "Invalid error code."
-    };
+  "No error.",
+  "Invalid pointer to object.",
+  "Invalid parameter.",
+  "Invalid signature.",
+  "Memory allocation failed.",
+  "Item not found.",
+  "Index out of bounds.",
+  "Index not allocated.",
+  "Invalid error code."
+};
 
 xSVol_tErr xSVol_New( xSparseVolumeRef* opVolume,
                       int               inXDim,
@@ -117,12 +115,16 @@ xSVol_tErr xSVol_Delete ( xSparseVolumeRef*         iopVolume,
   this = *iopVolume;
   eResult = xSVol_Verify( this );
   if ( xSVol_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* first purge the volume */
   eResult = xSVol_Purge( this, ipDeleteFunc );
   if ( xSVol_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* trash signature */
   this->mSignature = 0x1;
@@ -155,7 +157,9 @@ xSVol_tErr xSVol_Get ( xSparseVolumeRef this,
 
   eResult = xSVol_Verify( this );
   if ( xSVol_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   if ( NULL == iWhere ||
        NULL == oppItem )
@@ -212,7 +216,9 @@ xSVol_tErr xSVol_Set ( xSparseVolumeRef this,
 
   eResult = xSVol_Verify( this );
   if ( xSVol_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* look at the index */
   eResult = xSVol_VerifyIndex_( this, iWhere );
@@ -254,7 +260,9 @@ xSVol_tErr xSVol_Set ( xSparseVolumeRef this,
 
   }
   else if ( xSVol_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* set the item. */
   this->mStorage[ xVoxl_GetZ( iWhere ) ]
@@ -283,12 +291,16 @@ xSVol_tErr xSVol_Purge ( xSparseVolumeRef          this,
 
   eResult = xSVol_Verify( this );
   if ( xSVol_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* visit every node with the delete function */
   eResult = xSVol_VisitAll( this, ipDeleteFunc, NULL, NULL, NULL );
   if ( xSVol_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* for every y and z, delete the arrays */
   for ( nZ = 0; nZ < this->mnZDim; nZ++ )
@@ -298,7 +310,9 @@ xSVol_tErr xSVol_Purge ( xSparseVolumeRef          this,
       for ( nY = 0; nY < this->mnYDim; nY++ )
       {
         if ( NULL != this->mStorage[nZ][nY] )
+        {
           free( this->mStorage[nZ][nY] );
+        }
       }
       free( this->mStorage[nZ] );
     }
@@ -334,7 +348,9 @@ xSVol_tErr xSVol_VisitAll ( xSparseVolumeRef this,
 
   eResult = xSVol_Verify( this );
   if ( xSVol_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   for ( nZ = 0; nZ < this->mnZDim; nZ++ )
   {
@@ -342,33 +358,47 @@ xSVol_tErr xSVol_VisitAll ( xSparseVolumeRef this,
     if ( NULL != this->mStorage[nZ] )
     {
       if ( NULL != ipZFunction )
+      {
         ipZFunction( nZ, TRUE );
+      }
       for ( nY = 0; nY < this->mnYDim; nY++ )
       {
 
         if ( NULL != this->mStorage[nZ][nY] )
         {
           if ( NULL != ipYFunction )
+          {
             ipYFunction( nY, TRUE );
+          }
           for ( nX = 0; nX < this->mnXDim; nX++ )
           {
 
             if ( NULL != this->mStorage[nZ][nY][nX] )
             {
               if ( NULL != ipXFunction )
+              {
                 ipXFunction( nX, TRUE );
+              }
               if ( NULL != ipVisitFunction )
+              {
                 ipVisitFunction( this->mStorage[nZ][nY][nX] );
+              }
               if ( NULL != ipXFunction )
+              {
                 ipXFunction( nX, FALSE );
+              }
             }
           }
           if ( NULL != ipYFunction )
+          {
             ipYFunction( nY, FALSE );
+          }
         }
       }
       if ( NULL != ipZFunction )
+      {
         ipZFunction( nZ, FALSE );
+      }
     }
   }
 
@@ -395,14 +425,20 @@ xSVol_tErr xSVol_VerifyIndex_ ( xSparseVolumeRef this,
        xVoxl_GetY(iIndex) >= this->mnYDim ||
        xVoxl_GetZ(iIndex) < 0 ||
        xVoxl_GetZ(iIndex) >= this->mnZDim )
+  {
     return xSVol_tErr_IndexOutOfBounds;
+  }
 
   /* check if it exists */
   if ( NULL != this->mStorage[xVoxl_GetZ(iIndex)] &&
        NULL != this->mStorage[xVoxl_GetZ(iIndex)][xVoxl_GetY(iIndex)] )
+  {
     return xSVol_tErr_NoErr;
+  }
   else
+  {
     return xSVol_tErr_IndexNotAllocated;
+  }
 }
 
 char* xSVol_GetErrorString ( xSVol_tErr ieCode )

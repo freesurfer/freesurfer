@@ -1,18 +1,16 @@
 /**
  * @file  xTypes.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief general purpose utils
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/02/02 19:25:20 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +19,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -138,36 +135,56 @@ void xColr_HilightComponent ( xColor3fRef      iColor,
 {
 
   if ( NULL == iColor )
+  {
     return;
+  }
 
   switch ( iComponent )
   {
   case xColr_tComponent_Red:
     iColor->mfRed += xColr_kfHilightAmt;
     if ( iColor->mfRed > 1.0 )
+    {
       iColor->mfRed = 1.0;
+    }
     if ( iColor->mfRed - iColor->mfGreen < xColr_kfMinHighlightDistance )
+    {
       iColor->mfGreen = iColor->mfRed - xColr_kfMinHighlightDistance;
+    }
     if ( iColor->mfRed - iColor->mfBlue < xColr_kfMinHighlightDistance )
+    {
       iColor->mfBlue = iColor->mfRed - xColr_kfMinHighlightDistance;
+    }
     break;
   case xColr_tComponent_Green:
     iColor->mfGreen += xColr_kfHilightAmt;
     if ( iColor->mfGreen > 1.0 )
+    {
       iColor->mfGreen = 1.0;
+    }
     if ( iColor->mfGreen - iColor->mfRed < xColr_kfMinHighlightDistance )
+    {
       iColor->mfRed = iColor->mfGreen - xColr_kfMinHighlightDistance;
+    }
     if ( iColor->mfGreen - iColor->mfBlue < xColr_kfMinHighlightDistance )
+    {
       iColor->mfBlue = iColor->mfGreen - xColr_kfMinHighlightDistance;
+    }
     break;
   case xColr_tComponent_Blue:
     iColor->mfBlue += xColr_kfHilightAmt;
     if ( iColor->mfBlue > 1.0 )
+    {
       iColor->mfBlue = 1.0;
+    }
     if ( iColor->mfBlue - iColor->mfGreen < xColr_kfMinHighlightDistance )
+    {
       iColor->mfGreen = iColor->mfBlue - xColr_kfMinHighlightDistance;
+    }
     if ( iColor->mfBlue - iColor->mfRed < xColr_kfMinHighlightDistance )
+    {
       iColor->mfRed = iColor->mfBlue - xColr_kfMinHighlightDistance;
+    }
     break;
   default:
     return;

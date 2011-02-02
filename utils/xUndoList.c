@@ -1,18 +1,17 @@
 /**
  * @file  xUndoList.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief general-purpose utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.10 $
+ *    $Date: 2011/02/02 19:25:20 $
+ *    $Revision: 1.11 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -31,25 +29,25 @@
 #include "xDebug.h"
 
 static char *xUndL_ksaError [xUndL_knNumErrorCodes]  =
-  {
+{
 
-    "No error.",
-    "Allocation of undo list structure failed.",
-    "Allocation of internal list structure failed.",
-    "Couldn't delete items from list.",
-    "Couldn't delete list.",
-    "Invalid swap or delete function ptr.",
-    "Couldn't add item to list.",
-    "Couldn't retrieve item from list.",
-    "Couldn't allocate swap list (non-fatal).",
-    "Couldn't add item to swap list (non-fatal).",
-    "Invalid undo list ptr.",
-    "Failed to clear the list.",
-    "Failed to count items in the list.",
-    "Failed to reset the list position.",
-    "Invalid print function.",
-    "Invalid error code."
-  };
+  "No error.",
+  "Allocation of undo list structure failed.",
+  "Allocation of internal list structure failed.",
+  "Couldn't delete items from list.",
+  "Couldn't delete list.",
+  "Invalid swap or delete function ptr.",
+  "Couldn't add item to list.",
+  "Couldn't retrieve item from list.",
+  "Couldn't allocate swap list (non-fatal).",
+  "Couldn't add item to swap list (non-fatal).",
+  "Invalid undo list ptr.",
+  "Failed to clear the list.",
+  "Failed to count items in the list.",
+  "Failed to reset the list position.",
+  "Invalid print function.",
+  "Invalid error code."
+};
 
 xUndL_tErr xUndL_New ( xUndoListRef*               oppList,
                        xUndL_tSwapFuncPtr          ipSwapFunction,
@@ -84,7 +82,9 @@ xUndL_tErr xUndL_New ( xUndoListRef*               oppList,
   // allocate us a list.
   eResult = xUndL_NewList_ ( &(this->mpList) );
   if ( xUndL_tErr_NoErr != eResult )
+  {
     goto cleanup;
+  }
 
   // set the function ptrs.
   this->mpSwapFunction     = ipSwapFunction;
@@ -135,12 +135,16 @@ xUndL_tErr xUndL_Delete ( xUndoListRef* ioppList )
   this = *ioppList;
   eResult = xUndL_Verify ( this );
   if ( xUndL_tErr_NoErr != eResult )
+  {
     goto cleanup;
+  }
 
   // delete the internal structure.
   eResult = xUndL_DeleteList_ ( this, &(this->mpList) );
   if ( xUndL_tErr_NoErr != eResult )
+  {
     goto cleanup;
+  }
 
   // mangle our signature
   this->mSignature = 0x1;
@@ -203,7 +207,7 @@ cleanup:
   DebugCode
   if ( xList_tErr_NoErr != eListResult )
   {
-    DebugPrint( 
+    DebugPrint(
       ("xUndL_DeleteInternalList(): Error in xList function %d: %s\n",
        eListResult, xList_GetErrorString ( eListResult ) ) );
   }
@@ -224,7 +228,9 @@ xUndL_tErr xUndL_Clear ( xUndoListRef ipList )
   this = ipList;
   eResult = xUndL_Verify ( this );
   if ( xUndL_tErr_NoErr != eResult )
+  {
     goto cleanup;
+  }
 
   // we need to pop every entry off the list...
   pEntry = NULL;
@@ -258,7 +264,9 @@ xUndL_tErr xUndL_AddEntry ( xUndoListRef    ipList,
   this = ipList;
   eResult = xUndL_Verify ( this );
   if ( xUndL_tErr_NoErr != eResult )
+  {
     goto cleanup;
+  }
 
   /* push the entry on the list. we want to
   actually add the ptr to the ptr to the
@@ -299,7 +307,9 @@ xUndL_tErr xUndL_Restore ( xUndoListRef ipList )
   this = ipList;
   eResult = xUndL_Verify ( this );
   if ( xUndL_tErr_NoErr != eResult )
+  {
     goto cleanup;
+  }
 
   // make a swap list.
   eResult = xUndL_NewList_ ( &pSwapList );
@@ -361,7 +371,9 @@ xUndL_tErr xUndL_Restore ( xUndoListRef ipList )
     // delete the old list.
     eResult = xUndL_DeleteList_ ( this, &(this->mpList) );
     if ( xUndL_tErr_NoErr != eResult )
+    {
       goto cleanup;
+    }
 
     // make our swap list the new one.
     this->mpList = pSwapList;
@@ -390,7 +402,9 @@ xUndL_tErr xUndL_SetPrintFunction ( xUndoListRef             this,
   // verify ourself.
   eResult = xUndL_Verify ( this );
   if ( xUndL_tErr_NoErr != eResult )
+  {
     goto cleanup;
+  }
 
   // set the function.
   this->mpPrintFunction = ipPrintFunction;
@@ -411,7 +425,9 @@ xUndL_tErr xUndL_Print ( xUndoListRef this )
   // verify ourself.
   eResult = xUndL_Verify ( this );
   if ( xUndL_tErr_NoErr != eResult )
+  {
     goto cleanup;
+  }
 
   // make sure we have a print function.
   if ( NULL == this->mpPrintFunction )
@@ -486,16 +502,22 @@ xUndL_tErr xUndL_Verify ( xUndoListRef ipList )
 
   // check for a null list ptr.
   if ( NULL == ipList )
+  {
     eResult = xUndL_tErr_InvalidListPtr;
+  }
 
   // check for our sig.
   if ( ipList->mSignature != xUndL_kSignature )
+  {
     eResult = xUndL_tErr_InvalidListPtr;
+  }
 
   // check for null function ptrs.
   if ( NULL == ipList->mpSwapFunction
        || NULL == ipList->mpDeleteFunction )
+  {
     eResult = xUndL_tErr_InvalidFunctionPtr;
+  }
 
   return eResult;
 }

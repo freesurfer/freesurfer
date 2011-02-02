@@ -1,18 +1,17 @@
 /**
  * @file  xGLutWindow.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief general purpose utils
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -35,14 +33,14 @@
 static xGLutWindowRef mLookupList [xGWin_knMaxNumWindows];
 
 static char *ksErrorStrings [xGWin_knNumErrorCodes] =
-  {
-    "No error.",
-    "Invalid window ptr (probably NULL).",
-    "Invalid window signature.",
-    "Memory allocation failed.",
-    "Invalid input paramter.",
-    "Invalid error code."
-  };
+{
+  "No error.",
+  "Invalid window ptr (probably NULL).",
+  "Invalid window signature.",
+  "Memory allocation failed.",
+  "Invalid input paramter.",
+  "Invalid error code."
+};
 
 xGWin_tErr xGWin_New ( xGLutWindowRef* oppWindow,
                        int             inWidth,
@@ -315,7 +313,9 @@ char* xGWin_GetErrorString ( xGWin_tErr ieCode )
 {
 
   if ( ieCode < 0 || ieCode >= xGWin_knNumErrorCodes )
+  {
     ieCode = xGWin_tErr_InvalidErrorCode;
+  }
 
   return ksErrorStrings [ieCode];
 }
@@ -458,11 +458,17 @@ void xGWin_GLutKeyboardCallback ( unsigned char icKey,
   /* finds the state of modifer keys and set booleans appropriatly */
   nState = glutGetModifiers();
   if ( nState & GLUT_ACTIVE_SHIFT )
+  {
     pEvent->mbShiftKey = TRUE;
+  }
   if ( nState & GLUT_ACTIVE_CTRL )
+  {
     pEvent->mbCtrlKey = TRUE;
+  }
   if ( nState & GLUT_ACTIVE_ALT )
+  {
     pEvent->mbAltKey = TRUE;
+  }
 
   /* if control is down, the char we got was not an actual char, it was
      a special character. so we'll add the value of a minus the value of
@@ -567,11 +573,17 @@ void xGWin_GLutSpecialCallback ( int inKey,
   /* finds the state of modifer keys and set booleans appropriatly */
   nState = glutGetModifiers();
   if ( nState & GLUT_ACTIVE_SHIFT )
+  {
     pEvent->mbShiftKey = TRUE;
+  }
   if ( nState & GLUT_ACTIVE_CTRL )
+  {
     pEvent->mbCtrlKey = TRUE;
+  }
   if ( nState & GLUT_ACTIVE_ALT )
+  {
     pEvent->mbAltKey = TRUE;
+  }
 
   xGWin_PassEventToCurrentWindow ( pEvent );
 }
@@ -598,17 +610,27 @@ void xGWin_GLutMouseCallback ( int inButton,
 
   /* find out if it was up or down. */
   if ( GLUT_DOWN == inState )
+  {
     pEvent->mType = xGWin_tEventType_MouseDown;
+  }
   if ( GLUT_UP   == inState )
+  {
     pEvent->mType = xGWin_tEventType_MouseUp;
+  }
 
   /* find out which button */
   if ( GLUT_LEFT_BUTTON   == inButton )
+  {
     pEvent->mButton = 1;
+  }
   if ( GLUT_MIDDLE_BUTTON == inButton )
+  {
     pEvent->mButton = 2;
+  }
   if ( GLUT_RIGHT_BUTTON  == inButton )
+  {
     pEvent->mButton  = 3;
+  }
   mButton = pEvent->mButton;
 
   /* set location */

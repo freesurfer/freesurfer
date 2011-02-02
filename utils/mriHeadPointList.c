@@ -1,18 +1,16 @@
 /**
  * @file  mriHeadPointList.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief general purpose utils
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/03/26 19:36:48 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +19,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -31,23 +28,24 @@
 #include <math.h>
 #include "mriHeadPointList.h"
 
-char *HPtL_ksaErrorStrings [HPtL_knNumErrorCodes] = {
+char *HPtL_ksaErrorStrings [HPtL_knNumErrorCodes] =
+{
 
-      "No error.",
-      "Invalid object.",
-      "Invalid parameter.",
-      "Invalid signature.",
-      "Allocation failed.",
-      "Error opening or finding head point file.",
-      "Error parsing head point file.",
-      "Error opening or finding transform file.",
-      "Error parsing transform file.",
-      "Error creating transform object.",
-      "Error accessing client transform object.",
-      "Couldn't access transform.",
-      "Last point.",
-      "Invalid error code."
-    };
+  "No error.",
+  "Invalid object.",
+  "Invalid parameter.",
+  "Invalid signature.",
+  "Allocation failed.",
+  "Error opening or finding head point file.",
+  "Error parsing head point file.",
+  "Error opening or finding transform file.",
+  "Error parsing transform file.",
+  "Error creating transform object.",
+  "Error accessing client transform object.",
+  "Couldn't access transform.",
+  "Last point.",
+  "Invalid error code."
+};
 
 HPtL_tErr HPtL_New ( mriHeadPointListRef* oList,
                      char*                isListName,
@@ -101,7 +99,9 @@ HPtL_tErr HPtL_New ( mriHeadPointListRef* oList,
   DebugNote( ("Reading head point file") );
   eResult = HPtL_ReadHeadListFile_( this, isListName );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* read in the transform file. makes a transform object for us with
      the clients transform as aras->a and the transform file as the
@@ -110,13 +110,17 @@ HPtL_tErr HPtL_New ( mriHeadPointListRef* oList,
   eResult = HPtL_CreateTransform_( this, isTransformName,
                                    iClientTransform );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* convert all our points to client space */
   DebugNote( ("Converting points into client space") );
   eResult = HPtL_ConvertListToClientSpace_( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* set current point to the beginning */
   this->mnCurPoint = 0;
@@ -129,7 +133,9 @@ HPtL_tErr HPtL_New ( mriHeadPointListRef* oList,
   DebugCatchError( eResult, HPtL_tErr_NoErr, HPtL_GetErrorString );
 
   if ( NULL != this )
+  {
     free( this );
+  }
 
   EndDebugCatch;
 
@@ -155,11 +161,15 @@ HPtL_tErr HPtL_Delete ( mriHeadPointListRef* iopList )
   this = *iopList;
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* delete our point storage */
   if ( NULL != this->maPoints )
+  {
     free( this->maPoints );
+  }
 
   /* mangle sig */
   this->mSignature = 0x1;
@@ -213,10 +223,13 @@ HPtL_tErr HPtL_ReadHeadListFile_ ( mriHeadPointListRef this,
 
   /* scan it and count the number of points */
   nNumPoints = 0;
-  while (1) /* !feof( file ) ) */ {
+  while (1) /* !feof( file ) ) */
+  {
     fgets( sLine, 1024, file );
     if (feof(file)) // wow read too much.  break
+    {
       break;
+    }
     nNumPoints++;
   }
 
@@ -255,7 +268,9 @@ HPtL_tErr HPtL_ReadHeadListFile_ ( mriHeadPointListRef this,
 
   /* save the file name, number of points, and storage */
   if ( NULL != this->maPoints )
+  {
     free( this->maPoints );
+  }
   this->maPoints = aStorage;
   this->mnNumPoints = nNumPoints;
   strcpy( this->msPointFile, isListName );
@@ -265,7 +280,9 @@ HPtL_tErr HPtL_ReadHeadListFile_ ( mriHeadPointListRef this,
 error:
 
   if ( NULL != aStorage )
+  {
     free( aStorage );
+  }
 
   if ( HPtL_tErr_NoErr != eResult )
   {
@@ -276,7 +293,9 @@ error:
 cleanup:
 
   if ( NULL != file )
+  {
     fclose( file );
+  }
 
   return eResult;
 }
@@ -305,7 +324,9 @@ HPtL_tErr HPtL_CreateTransform_ ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* create a new transform */
   DebugNote( ("Creating transform") );
@@ -389,18 +410,19 @@ HPtL_tErr HPtL_CreateTransform_ ( mriHeadPointListRef this,
        as a->ras */
     DebugNote( ("Inverting client transform") );
     clientTransformI = MatrixInverse( iClientTransform, NULL );
-    if( clientTransformI ) {
-      
+    if( clientTransformI )
+    {
+
       DebugNote( ("Copying client transform invert") );
       eTransform = Trns_CopyAtoRAS( transform, clientTransformI );
       if ( Trns_tErr_NoErr != eTransform )
-	{
-	  eResult = HPtL_tErr_ErrorCreatingTransform;
-	  goto error;
-	}
+      {
+        eResult = HPtL_tErr_ErrorCreatingTransform;
+        goto error;
+      }
     }
   }
-  
+
   /* use an identity matrix as our a->b */
   DebugNote( ("Making identity matrix") );
   MatrixIdentity( 4, mTmp );
@@ -469,7 +491,9 @@ HPtL_tErr HPtL_ConvertListToClientSpace_ ( mriHeadPointListRef this )
   DebugNote( ("Resetting iterator") );
   eResult = HPtL_ResetIterator( this, HPtL_tIterationPlane_All, 0, 0 );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   DebugNote( ("Starting loop") );
   while ( (eResult = HPtL_NextPoint( this, &pHeadPt ))
@@ -493,7 +517,9 @@ HPtL_tErr HPtL_ConvertListToClientSpace_ ( mriHeadPointListRef this )
   }
 
   if ( eResult != HPtL_tErr_LastPoint )
+  {
     goto error;
+  }
 
   /* clear error */
   eResult = HPtL_tErr_NoErr;
@@ -525,7 +551,9 @@ HPtL_tErr HPtL_WriteTransform ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if null arg, use saved transform name */
   if ( NULL == isDest )
@@ -580,12 +608,18 @@ error:
 cleanup:
 
   if ( NULL != mTmp )
+  {
     MatrixFree( &mTmp );
+  }
   if ( NULL != mBRAStoARAS )
+  {
     MatrixFree( &mBRAStoARAS );
+  }
 
   if ( NULL != file )
+  {
     fclose( file );
+  }
 
   return eResult;
 }
@@ -601,7 +635,9 @@ HPtL_tErr HPtL_WriteHeadPointFile ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if null arg, use saved name */
   if ( NULL == isDest )
@@ -643,7 +679,9 @@ error:
 cleanup:
 
   if ( NULL != file )
+  {
     fclose( file );
+  }
 
   return eResult;
 }
@@ -658,7 +696,9 @@ HPtL_tErr HPtL_ResetIterator ( mriHeadPointListRef  this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* save iteration desires */
   this->mIterPlane        = iPlane;
@@ -693,7 +733,9 @@ HPtL_tErr HPtL_NextPoint ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* while we haven't found a good point */
   bGoodPoint = FALSE;
@@ -711,17 +753,23 @@ HPtL_tErr HPtL_NextPoint ( mriHeadPointListRef this,
     case HPtL_tIterationPlane_X:
       if ( abs( xVoxl_GetFloatX( &(point->mClientPoint) ) -
                 this->mfIterPlaneNumber ) <= this->mfIterPlaneRange )
+      {
         bGoodPoint = TRUE;
+      }
       break;
     case HPtL_tIterationPlane_Y:
       if ( abs( xVoxl_GetFloatY( &(point->mClientPoint) ) -
                 this->mfIterPlaneNumber ) <= this->mfIterPlaneRange )
+      {
         bGoodPoint = TRUE;
+      }
       break;
     case HPtL_tIterationPlane_Z:
       if ( abs( xVoxl_GetFloatZ( &(point->mClientPoint) ) -
                 this->mfIterPlaneNumber ) <= this->mfIterPlaneRange )
+      {
         bGoodPoint = TRUE;
+      }
       break;
     case HPtL_tIterationPlane_All:
       bGoodPoint = TRUE;
@@ -771,7 +819,9 @@ HPtL_tErr HPtL_FindNearestPoint ( mriHeadPointListRef  this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* get the plane we're looking on */
   switch ( iPlane )
@@ -796,7 +846,9 @@ HPtL_tErr HPtL_FindNearestPoint ( mriHeadPointListRef  this,
   /* set the iterator */
   eResult = HPtL_ResetIterator( this, iPlane, fPlane, ifPlaneRange );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* for every point... */
   fNearestDistance = 999;
@@ -823,7 +875,9 @@ HPtL_tErr HPtL_FindNearestPoint ( mriHeadPointListRef  this,
   }
 
   if ( eResult != HPtL_tErr_LastPoint )
+  {
     goto error;
+  }
 
   /* clear error */
   eResult = HPtL_tErr_NoErr;
@@ -861,7 +915,9 @@ HPtL_tErr HPtL_FindFlattenedNearestPoint ( mriHeadPointListRef  this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* for every point... */
   fNearestDistance = 999;
@@ -944,14 +1000,18 @@ HPtL_tErr HPtL_RestoreTransform ( mriHeadPointListRef this )
   /* reconvert all the points */
   eResult = HPtL_ConvertListToClientSpace_( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
 error:
 
   if ( Trns_tErr_NoErr != eTransform )
+  {
     eResult = HPtL_tErr_ErrorAccessingTransform;
+  }
 
   if ( HPtL_tErr_NoErr != eResult )
   {
@@ -962,7 +1022,9 @@ error:
 cleanup:
 
   if ( NULL != mTransform )
+  {
     MatrixFree( &mTransform );
+  }
 
   return eResult;
 }
@@ -976,7 +1038,9 @@ HPtL_tErr HPtL_ApplyTransform ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   if ( NULL == iTransform )
   {
@@ -987,19 +1051,25 @@ HPtL_tErr HPtL_ApplyTransform ( mriHeadPointListRef this,
   /* apply the transform */
   eTransform = Trns_ApplyTransform( this->mTransform, iTransform );
   if ( Trns_tErr_NoErr != eTransform )
+  {
     goto error;
+  }
 
   /* reconvert all the points */
   eResult = HPtL_ConvertListToClientSpace_( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
 error:
 
   if ( Trns_tErr_NoErr != eTransform )
+  {
     eResult = HPtL_tErr_ErrorAccessingTransform;
+  }
 
   if ( HPtL_tErr_NoErr != eResult )
   {
@@ -1022,24 +1092,32 @@ HPtL_tErr HPtL_Translate ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* translate by the inverse */
   eTransform = Trns_Translate( this->mTransform, -ifDistance, iAxis );
   if ( Trns_tErr_NoErr != eTransform )
+  {
     goto error;
+  }
 
   /* reconvert all the points */
   eResult = HPtL_ConvertListToClientSpace_( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
 error:
 
   if ( Trns_tErr_NoErr != eTransform )
+  {
     eResult = HPtL_tErr_ErrorAccessingTransform;
+  }
 
   if ( HPtL_tErr_NoErr != eResult )
   {
@@ -1062,24 +1140,32 @@ HPtL_tErr HPtL_Rotate ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* rotate by the inverse */
   eTransform = Trns_Rotate( this->mTransform, -ifDegrees, iAxis );
   if ( Trns_tErr_NoErr != eTransform )
+  {
     goto error;
+  }
 
   /* reconvert all the points */
   eResult = HPtL_ConvertListToClientSpace_( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
 error:
 
   if ( Trns_tErr_NoErr != eTransform )
+  {
     eResult = HPtL_tErr_ErrorAccessingTransform;
+  }
 
   if ( HPtL_tErr_NoErr != eResult )
   {
@@ -1102,24 +1188,32 @@ HPtL_tErr HPtL_Scale ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* scale by the inverse */
   eTransform = Trns_Scale( this->mTransform, 1.0 / ifFactor, iAxis );
   if ( Trns_tErr_NoErr != eTransform )
+  {
     goto error;
+  }
 
   /* reconvert all the points */
   eResult = HPtL_ConvertListToClientSpace_( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
 error:
 
   if ( Trns_tErr_NoErr != eTransform )
+  {
     eResult = HPtL_tErr_ErrorAccessingTransform;
+  }
 
   if ( HPtL_tErr_NoErr != eResult )
   {
@@ -1154,7 +1248,9 @@ HPtL_tErr HPtL_AlignPointToClientVoxel ( mriHeadPointListRef this,
 
   eResult = HPtL_Verify( this );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* convert the client vox and our head pt to ras */
   Trns_ConvertBtoRAS( this->mTransform, &(iPoint->mPoint), &srcPt );
@@ -1168,7 +1264,7 @@ HPtL_tErr HPtL_AlignPointToClientVoxel ( mriHeadPointListRef this,
   DebugPrint( ("ana dest: %d %d %d local src %.2f %.2f %.2f\n"
                "ras dest %.2f %.2f %.2f ras src %.2f %.2f %.2f "
                "delta %.2f %.2f %.2f\n",
-               xVoxl_ExpandInt( iClientVox ), 
+               xVoxl_ExpandInt( iClientVox ),
                xVoxl_ExpandFloat( &(iPoint->mPoint) ),
                xVoxl_ExpandFloat( &destPt ), xVoxl_ExpandFloat( &srcPt ),
                fDeltaX, fDeltaY, fDeltaZ ) );
@@ -1185,7 +1281,9 @@ HPtL_tErr HPtL_AlignPointToClientVoxel ( mriHeadPointListRef this,
   /* apply it */
   eResult = HPtL_ApplyTransform( this, mTranslation );
   if ( HPtL_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
@@ -1200,7 +1298,9 @@ error:
 cleanup:
 
   if ( NULL != mTranslation )
+  {
     MatrixFree( &mTranslation );
+  }
 
   return eResult;
 }

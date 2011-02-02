@@ -1,18 +1,16 @@
 /**
  * @file  x3DList.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
+ * @brief general purpose utils
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/01/11 20:15:18 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/02/02 19:25:19 $
+ *    $Revision: 1.9 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,7 +19,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -32,19 +29,20 @@
 #include "xList.h"
 #include "xDebug.h"
 
-char *x3Lst_ksaErrorString [x3Lst_knNumErrorCodes] = {
-      "No error.",
-      "Invalid space ptr.",
-      "Invalid signature.",
-      "Error accessing the list.",
-      "Item not found in space.",
-      "Invalid space (probably not initialized).",
-      "Invalid location (location is out of bounds of the space).",
-      "Invalid plane number, out of range.",
-      "Couldn't allocate space, memory full?",
-      "Couldn't allocate list, memory full?",
-      "Invalid error code."
-    };
+char *x3Lst_ksaErrorString [x3Lst_knNumErrorCodes] =
+{
+  "No error.",
+  "Invalid space ptr.",
+  "Invalid signature.",
+  "Error accessing the list.",
+  "Item not found in space.",
+  "Invalid space (probably not initialized).",
+  "Invalid location (location is out of bounds of the space).",
+  "Invalid plane number, out of range.",
+  "Couldn't allocate space, memory full?",
+  "Couldn't allocate list, memory full?",
+  "Invalid error code."
+};
 
 /* init the space */
 x3Lst_tErr x3Lst_New ( x3DListRef* op3DList,
@@ -128,7 +126,9 @@ x3Lst_tErr x3Lst_Delete ( x3DListRef* iop3DList )
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* for each plane.. */
   for ( plane = 0; plane < x3Lst_knNumPlanes; plane++ )
@@ -178,7 +178,9 @@ x3Lst_tErr x3Lst_GetPlaneSize ( x3DListRef this,
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   if ( NULL == onPlaneSize )
   {
@@ -212,11 +214,15 @@ x3Lst_tErr x3Lst_AddItem ( x3DListRef this,
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   eResult = x3Lst_VerifyLocation( this, iWhere );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* add it to the every plane at the approriate voxel */
   eList = xList_PushItem( this->mPlane[x3Lst_tPlane_X][xVoxl_GetX( iWhere )],
@@ -266,30 +272,40 @@ x3Lst_tErr x3Lst_RemoveItem ( x3DListRef this,
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   eResult = x3Lst_VerifyLocation( this, iWhere );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* remove it from every plane at the approriate voxel */
   pItemToRemove = *iopItemToRemove;
   eList = xList_RemoveItem( this->mPlane[x3Lst_tPlane_X][xVoxl_GetX(iWhere)],
                             &pItemToRemove );
   if ( xList_tErr_NoErr != eList )
+  {
     goto error;
+  }
 
   pItemToRemove = *iopItemToRemove;
   eList = xList_RemoveItem( this->mPlane[x3Lst_tPlane_Y][xVoxl_GetY(iWhere)],
                             &pItemToRemove );
   if ( xList_tErr_NoErr != eList )
+  {
     goto error;
+  }
 
   pItemToRemove = *iopItemToRemove;
   eList = xList_RemoveItem( this->mPlane[x3Lst_tPlane_Z][xVoxl_GetZ(iWhere)],
                             &pItemToRemove );
   if ( xList_tErr_NoErr != eList )
+  {
     goto error;
+  }
 
   /* return the removed item */
   *iopItemToRemove = pItemToRemove;
@@ -334,7 +350,9 @@ x3Lst_tErr x3Lst_Clear ( x3DListRef this )
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* for each plane.. */
   for ( plane = 0; plane < x3Lst_knNumPlanes; plane++ )
@@ -378,7 +396,9 @@ x3Lst_tErr x3Lst_IsInList ( x3DListRef this,
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* for each plane.. */
   for ( plane = 0; plane < x3Lst_knNumPlanes; plane++ )
@@ -427,12 +447,16 @@ x3Lst_tErr x3Lst_GetItemsInXPlane ( x3DListRef this,
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   eResult = x3Lst_GetItemsInPlane_( this, x3Lst_tPlane_X,
                                     inXPlane, opList );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
@@ -456,12 +480,16 @@ x3Lst_tErr x3Lst_GetItemsInYPlane ( x3DListRef this,
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   eResult = x3Lst_GetItemsInPlane_( this, x3Lst_tPlane_Y,
                                     inYPlane, opList );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
@@ -485,12 +513,16 @@ x3Lst_tErr x3Lst_GetItemsInZPlane ( x3DListRef this,
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   eResult = x3Lst_GetItemsInPlane_( this, x3Lst_tPlane_Z,
                                     inZPlane, opList );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   goto cleanup;
 
@@ -547,7 +579,9 @@ x3Lst_tErr x3Lst_SetComparator ( x3DListRef this,
 
   eResult = x3Lst_Verify( this );
   if ( x3Lst_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* for each plane.. */
   for ( plane = 0; plane < x3Lst_knNumPlanes; plane++ )
@@ -569,7 +603,9 @@ x3Lst_tErr x3Lst_SetComparator ( x3DListRef this,
 error:
 
   if ( xList_tErr_NoErr != eList )
+  {
     eResult = x3Lst_tErr_ErrorAccessingList;
+  }
 
   DebugPrint( ("Error %d in x3Lst_: %s\n",
                eResult, x3Lst_GetErrorString( eResult ) ) );

@@ -4,14 +4,14 @@
  *
  */
 /*
- * Original Author: Dr. Inverse
+ * Original Author: Kevin Teich
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2008/03/10 13:35:36 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/02/02 19:25:20 $
+ *    $Revision: 1.9 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2002-2007,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -30,15 +29,16 @@
 #include "xGrowableArray.h"
 #include "xDebug.h"
 
-char *xGArr_ksaErrorStrings [xGArr_knNumErrorCodes] = {
+char *xGArr_ksaErrorStrings [xGArr_knNumErrorCodes] =
+{
 
-      "No error.",
-      "Invalid object.",
-      "Invalid signature.",
-      "Allocation failed.",
-      "Last item.",
-      "Invalid error code."
-    };
+  "No error.",
+  "Invalid object.",
+  "Invalid signature.",
+  "Allocation failed.",
+  "Last item.",
+  "Invalid error code."
+};
 
 
 xGArr_tErr xGArr_New ( xGrowableArrayRef* opList,
@@ -83,7 +83,9 @@ xGArr_tErr xGArr_New ( xGrowableArrayRef* opList,
 error:
 
   if ( NULL != this )
+  {
     free( this );
+  }
 
   if ( xGArr_tErr_NoErr != eResult )
   {
@@ -112,7 +114,9 @@ xGArr_tErr xGArr_Delete ( xGrowableArrayRef* iopList )
 
   eResult = xGArr_Verify( this );
   if ( xGArr_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* trash sig */
   this->mSignature = 0x1;
@@ -148,7 +152,9 @@ xGArr_tErr xGArr_Add ( xGrowableArrayRef this,
 
   eResult = xGArr_Verify( this );
   if ( xGArr_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* if our num items is not less than our max items.... */
   if ( !(this->mnNumItems < this->mnMaxNumItems) )
@@ -177,7 +183,7 @@ xGArr_tErr xGArr_Add ( xGrowableArrayRef this,
 
   /* copy data into this location */
   memmove( &((char*)this->mpData)[ this->mnNumItems * this->mnItemSizeBytes ],
-          ipSrc, this->mnItemSizeBytes );
+           ipSrc, this->mnItemSizeBytes );
 
   /* inc num items */
   this->mnNumItems ++;
@@ -205,7 +211,9 @@ xGArr_tErr xGArr_ResetIterator ( xGrowableArrayRef this )
 
   eResult = xGArr_Verify( this );
   if ( xGArr_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   this->mnNext = 0;
 
@@ -232,7 +240,9 @@ xGArr_tErr xGArr_NextItem ( xGrowableArrayRef this,
 
   eResult = xGArr_Verify( this );
   if ( xGArr_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* see if we're at the end */
   if ( this->mnNext >= (this->mnNumItems) )
@@ -243,8 +253,8 @@ xGArr_tErr xGArr_NextItem ( xGrowableArrayRef this,
 
   /* return data at this location */
   memmove( opDest,
-          &((char*)this->mpData)[ this->mnNext * this->mnItemSizeBytes ],
-          this->mnItemSizeBytes );
+           &((char*)this->mpData)[ this->mnNext * this->mnItemSizeBytes ],
+           this->mnItemSizeBytes );
 
   /* inc interator */
   this->mnNext++;
@@ -271,7 +281,9 @@ xGArr_tErr xGArr_Clear  ( xGrowableArrayRef this )
 
   eResult = xGArr_Verify( this );
   if ( xGArr_tErr_NoErr != eResult )
+  {
     goto error;
+  }
 
   /* free our storage and realloc it */
   free( this->mpData );
