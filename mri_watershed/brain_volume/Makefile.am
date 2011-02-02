@@ -11,6 +11,9 @@ mri_brain_volume_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_brain_volume_LDFLAGS=$(OS_LDFLAGS)
 
 check_PROGRAMS = test
+test_SOURCES=test.cpp TVector.h
+test_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+test_LDFLAGS=$(OS_LDFLAGS)
 
 TESTS = test
 
