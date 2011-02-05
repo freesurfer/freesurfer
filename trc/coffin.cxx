@@ -1239,8 +1239,21 @@ bool Coffin::JumpMCMC() {
   mAcceptTheta = false;
   mRejectPosterior = false;
 
-  if (!ProposePath())
+  if (!ProposePath()) {
+    if (mDebug)
+      mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
+           << "mAnatomicalPriorNew=NaN" << endl
+           << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
+           << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
+           << "mPathLengthNew=NaN" << endl
+           << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
+           << "mAnatomicalPrior=NaN" << endl
+           << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
+           << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
+           << "mPathLength=NaN" << endl;
+
     return false;
+  }
 
   ProposeDiffusionParameters();
 
@@ -1254,8 +1267,21 @@ bool Coffin::JumpMCMC() {
 // Perform a single MCMC jump (single point updates)
 //
 bool Coffin::JumpMCMC1(int ControlIndex) {
-  if (!ProposePath1(ControlIndex))
+  if (!ProposePath1(ControlIndex)) {
+    if (mDebug)
+      mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
+           << "mAnatomicalPriorNew=NaN" << endl
+           << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
+           << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
+           << "mPathLengthNew=NaN" << endl
+           << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
+           << "mAnatomicalPrior=NaN" << endl
+           << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
+           << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
+           << "mPathLength=NaN" << endl;
+
     return false;
+  }
 
   ProposeDiffusionParameters();
 
