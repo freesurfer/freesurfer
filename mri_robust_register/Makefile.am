@@ -5,6 +5,10 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include $(VXL_CFLAGS)
 
+if HAVE_MAC_OSX
+AM_LDFLAGS=-framework veclib
+endif
+
 BUILT_SOURCES=mri_robust_template.help.h mri_robust_register.help.h
 
 foodir=$(prefix)/docs/xml
