@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/12/08 20:59:42 $
- *    $Revision: 1.383 $
+ *    $Author: greve $
+ *    $Date: 2011/02/07 20:15:29 $
+ *    $Revision: 1.384 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -10003,7 +10003,7 @@ static MRI *nifti1Read(const char *fname, int read_volume)
 
   // Check for ico7 surface
   if(IsIco7){
-    printf("niiRead: reshaping\n");
+    //printf("niiRead: reshaping\n");
     mritmp = mri_reshape(mri,163842,1,1,mri->nframes);
     MRIfree(&mri);
     mri = mritmp;
@@ -10037,7 +10037,7 @@ static int nifti1Write(MRI *mri0, const char *fname)
 
   // Check for ico7 surface
   if(mri0->width == 163842 && mri0->height == 1 && mri0->depth == 1){
-    printf("nifit1Write: reshaping\n");
+    //printf("nifit1Write: reshaping\n");
     mri = mri_reshape(mri0,27307,1,6,mri0->nframes);
     FreeMRI=1;
   } else mri = mri0;
@@ -10820,7 +10820,7 @@ static MRI *niiRead(const char *fname, int read_volume)
 
   // Check for ico7 surface
   if(IsIco7){
-    printf("niiRead: reshaping\n");
+    //printf("niiRead: reshaping\n");
     mritmp = mri_reshape(mri,163842,1,1,mri->nframes);
     MRIfree(&mri);
     mri = mritmp;
@@ -10856,7 +10856,7 @@ static int niiWrite(MRI *mri0, const char *fname)
 
   // Check for ico7 surface
   if(mri0->width == 163842 && mri0->height == 1 && mri0->depth == 1){
-    printf("niiWrite: reshaping\n");
+    //printf("niiWrite: reshaping\n");
     mri = mri_reshape(mri0,27307,1,6,mri0->nframes);
     FreeMRI=1;
   } else mri = mri0;
