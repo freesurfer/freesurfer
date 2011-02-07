@@ -39,6 +39,8 @@ foo_DATA=mris_register.help.xml
 #PETSC install-exec-hook:
 #PETSC endif
 
+TESTS=$(top_builddir)/scripts/help_xml_validate
+
 EXTRA_DIST=make_mris_register_movie.tcl $(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
@@ -46,3 +48,6 @@ EXTRA_DIST=make_mris_register_movie.tcl $(foo_DATA)
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mris_register.help.xml.h
+

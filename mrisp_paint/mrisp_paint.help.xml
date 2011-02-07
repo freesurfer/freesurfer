@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>mrisp_paint</name>
 	<synopsis>mrisp_paint [options] &lt;template file&gt; &lt;input surface&gt; &lt;output name&gt;</synopsis>
@@ -18,10 +40,10 @@ Extra Notes:
       <argument>&lt;out_fname&gt;</argument>
       <explanation>Output file name. Can be full path, or if directory omitted then will save to same directory as surf_fname</explanation>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>None.</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>-SDIR &lt;subjects_dir&gt;</argument>
       <explanation>Set SUBJECTS_DIR. Default: use environment variable/</explanation>
       <argument>-A &lt;navgs&gt;</argument>
@@ -44,14 +66,13 @@ Extra Notes:
       <explanation>Prints version information</explanation>
       <argument>-W</argument>
       <explanation>Write some diagnostics (DIAG_WRITE)</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>&lt;output name&gt;</output>
     <explanation>the output specified as an argument. This is a file containing a surface-worth of per-vertex values, saved in "curvature" format. The per-vertex values are the selected variable from the template file, sampled to the given surface.</explanation>
   </outputs>
-	<example>***********************************************************************</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>mris_make_template</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mris_make_template</see-also>
 </help>
+

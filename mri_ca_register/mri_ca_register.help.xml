@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>mri_ca_register</name>
 	<synopsis>mri_ca_register &lt;invol&gt; &lt;template&gt; &lt;outvol&gt;</synopsis>
@@ -13,10 +35,10 @@
       <argument>outvol</argument>
       <explanation>output volume in m3d format</explanation>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>*******************************************************************************************</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>-tol</argument>
       <explanation>defines convergence of registration</explanation>
       <argument>-mask</argument>
@@ -56,7 +78,7 @@
       <argument>-&lt;no&gt;bigventricles</argument>
       <argument>-uncompress</argument>
       <argument>-secondpassrenorm</argument>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>outvol</output>
@@ -65,6 +87,6 @@
 	<example>mri_ca_register -levels 6 -mask subject1/mri/brain -T subject1/mri/transforms/talairach_one.lta subject1/mri/norm_one.mgh single_one.gca subject1/mri/transforms/talairach_one.m3d </example>
 	<example>mri_ca_register -tol 1 -mask subject1/mri/brain -T subject1/mri/transforms/talairach_multi.lta subject1/mri/norm_multi.mgh multi_one.gca subject1/mri/transforms/talairach_multi.m3d</example>
   <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>*****************************************************************************</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>*****************************************************************************</see-also>
 </help>

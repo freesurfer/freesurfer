@@ -42,6 +42,8 @@ mris_sphere_cuda_LINK = $(LIBTOOL) --tag=CC $(AM_LIBTOOLFLAGS) \
 
 endif
 
+TESTS=$(top_builddir)/scripts/help_xml_validate
+
 EXTRA_DIST=$(foo_DATA) make_mris_sphere_movie.tcl
 
 # Our release target. Include files to be excluded here. They will be
@@ -49,3 +51,6 @@ EXTRA_DIST=$(foo_DATA) make_mris_sphere_movie.tcl
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mris_sphere.help.xml.h
+

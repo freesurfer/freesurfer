@@ -47,7 +47,7 @@ foo:
 #		cp -v $(top_srcdir)/scripts/*_setup \
 #					$(top_builddir)/scripts/; fi;
 check_PROGRAMS=foo
-TESTS=test_mris_volmask
+TESTS=test_mris_volmask $(top_builddir)/scripts/help_xml_validate
 
 # CPPUNIT tests
 if HAVE_CPPUNIT
@@ -88,3 +88,6 @@ EXTRA_DIST=cmd_line_interface.h test_mris_volmask $(foo_DATA) \
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mris_volmask.help.xml.h
+

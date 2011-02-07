@@ -13,6 +13,8 @@ mris_euler_number_LDFLAGS=$(OS_LDFLAGS)
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_euler_number.help.xml
 
+TESTS=$(top_builddir)/scripts/help_xml_validate
+
 EXTRA_DIST=$(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
@@ -20,3 +22,6 @@ EXTRA_DIST=$(foo_DATA)
 # release' target.
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mris_euler_number.help.xml.h
+

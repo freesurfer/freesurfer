@@ -181,7 +181,7 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_libg2c test_talairach_avi
+TESTS=test_libg2c test_talairach_avi $(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=$(dist_bin_SCRIPTS) \
 	$(foo_DATA) \
@@ -238,3 +238,6 @@ copy_ffiles_from_src:
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=talairach_avi.help.xml.h
+

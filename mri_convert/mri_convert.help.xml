@@ -1,6 +1,26 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
-
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
 
 <help>
   <name>mri_convert</name>
@@ -25,10 +45,10 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <argument>outvolume</argument>
       <explanation>out volume</explanation>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>None</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>-ro, --read_only</argument>
       <argument>-nw, --no_write </argument>
       <argument>-ii, --in_info</argument>
@@ -236,7 +256,7 @@ if the input/output has extension .nii.gz, then compressed is used</explanation>
       <explanation>don't set c_s=0, even if a GE volume</explanation>
       <argument>--sphinx</argument>
       <explanation>reorient to sphinx the position. This function is applicable when the input geometry information is correct but the  subject was in the scanner in the 'sphinx' position (ie, AP in line with the bore) instead of head-first-supine (HFS). This is often the case with monkeys. Note that the assumption is that the geometry information in the input file is otherwise accurate. </explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>outvolume</output>
@@ -250,6 +270,7 @@ This properly accounts for the case where the input volume does not have it's co
 The main and aux volumes should overlap very closely. If they do not, use tkregister2 to fix it (run tkregister --help for docs).</example>
   <example>From the subject directory: mri_convert -at mri/transforms/talairach_one.m3z mri/norm.mgz mri/norm_transformed_by_gca_one.mgz</example>
   <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-  <see_also>mris_convert</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+  <see-also>mris_convert</see-also>
 </help>
+

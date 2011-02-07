@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>mri_ca_normalize</name>
 	<synopsis>mri_ca_normalize [&lt;options&gt;] &lt;inbrain1&gt; &lt;inbrain2&gt; ... &lt;atlas&gt; &lt;xform&gt; &lt;output1&gt; &lt;output2&gt; ...</synopsis>
@@ -19,10 +41,10 @@
       <argument>output2</argument>
       <explanation>output volume</explanation> 
    </positional>
-   <required_flagged>
+   <required-flagged>
       <intro>None</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>-seg &lt;filename&gt;</argument>
       <explanation>aseg file, to help normalization</explanation>
       <argument>-sigma &lt;bias sigma&gt;</argument>
@@ -67,7 +89,7 @@
       <explanation>does nothing as far as i can tell, but an option</explanation>
       <argument>-p &lt;float p&gt;</argument>
       <explanation>use top p percent(default=.25) white matter points as control points</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>outvol</output>
@@ -75,6 +97,6 @@
   </outputs>
 	<example>mri_ca_normalize -mask -p 0.25 subject1/mri/brain subject1/mri/nu single_one.gca subject1/mri/transforms/talairach_one.lta subject1/mri/norm_one.mgh</example>
   <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>***********************************************************************</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>***********************************************************************</see-also>
 </help>

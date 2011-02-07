@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)*>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>mris_anatomical_stats</name>
 	<synopsis>mris_anatomical_stats [options] &lt;subjectname&gt; &lt;hemi&gt; [&lt;surfacename&gt;]</synopsis>
@@ -11,10 +33,10 @@
       <argument>&lt;hemi&gt;</argument>
       <explanation>hemisphere</explanation>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>None.</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>-i &lt;low thresh&gt; &lt;hi thresh&gt;</argument>
       <explanation>only consider thicknesses in the specified range.</explanation>
       <argument>-l &lt;label file&gt;</argument>
@@ -33,7 +55,7 @@
       <explanation>Smooth thicknessmap # of iterations before using it</explanation>
       <argument>-c &lt;ctab file&gt;</argument>
       <explanation>Output annotation files's colortable to text file</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>Structure Name</output>
@@ -57,7 +79,7 @@
     <explanation>unitless, a la Van Essen</explanation>
   </outputs>
 	<example>mris_anatomical_stats -a subjid/label/lh.aparc.annot -b subjid lh</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>mris_curvature_stats</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mris_curvature_stats</see-also>
 </help>
+

@@ -2,7 +2,6 @@
 ## Makefile.am 
 ##
 
-
 foodir=$(prefix)/docs/xml
 foo_DATA=mris_pmake.help.xml
 
@@ -39,6 +38,7 @@ else # No OpenCL present
     mris_pmake_LDFLAGS = $(OS_LDFLAGS)
 endif
 
+TESTS=$(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=asynch.h c_label.h C_mpmProg.h c_SMessage.h c_SSocket.h \
 	c_surface.h c_vertex.h dijkstra.h env.h general.h help.h pathconvert.h \
@@ -49,3 +49,6 @@ EXTRA_DIST=asynch.h c_label.h C_mpmProg.h c_SMessage.h c_SSocket.h \
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mris_pmake.help.xml.h
+

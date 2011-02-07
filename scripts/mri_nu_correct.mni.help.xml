@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
 <help>
 	<name>mri_nu_correct.mni</name>
 	<synopsis>*********************************************</synopsis>
@@ -8,7 +29,7 @@
     <positional>
       <intro>*************************************************************</intro>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <argument>--i  invol</argument>
       <explanation>input volume. Input can be any format accepted by mri_convert.</explanation>
       <argument>--o  outvol</argument>
@@ -25,21 +46,16 @@
       <explanation>Do not use mri_make_uchar (default)</explanation>
       <argument>--cm</argument>
       <explanation>For use with data that is higher than 1mm resolution.</explanation>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>--help</argument>
       <explanation>print help and exit</explanation>
       <argument>--debug</argument>
       <explanation>turn on debugging</explanation>
       <argument>--version</argument>
       <explanation>print version and exit</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
-  <outputs>
-    <intro>******************************************************************</intro>
-  </outputs>
-	<example>***************************************************************</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>*************************************************************</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 </help>
+

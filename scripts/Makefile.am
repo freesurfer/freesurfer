@@ -63,6 +63,7 @@ fsfget \
 getfullpath \
 get_label_thickness \
 grad_unwarp \
+help_xml_validate \
 inflate_subject \
 inflate_subject3 \
 inflate_subject-lh \
@@ -280,6 +281,8 @@ install-exec-hook:
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
 	rm -f $(DESTDIR)$(bindir)/fsfget.tcl
+
+TESTS = help_xml_validate
 
 EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
 extract_talairach_avi_QA.awk $(foo_DATA) $(xml_DATA)

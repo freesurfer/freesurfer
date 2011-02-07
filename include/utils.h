@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/08/27 20:50:08 $
- *    $Revision: 1.42 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:44 $
+ *    $Revision: 1.43 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -114,8 +114,7 @@ float mad(float a[], int n);
 int nint( double f );
 
 /* Outputs the help files (found in utils/fsPrintHelp.c) */
-int outputHelp(const char *name);
-int outputHelpMemory(const unsigned char *text, unsigned int size);
+int outputHelpXml(const unsigned char *text, unsigned int size);
 
 #if defined(__cplusplus)
 };

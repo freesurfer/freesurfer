@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>mris_inflate - inflate cortical surface</name>
 	<synopsis>mris_inflate [&lt;options&gt;] insurfacefile outsurfacefile</synopsis>
@@ -11,10 +33,10 @@
       <argument>outsurfacefile</argument>
       <explanation>output surface file </explanation>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>None</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>-n &lt;# of iterations&gt;</argument>
       <explanation>set the maximum # of iterations (default = 10)</explanation>
       <argument>-w &lt;# of iterations&gt;</argument>
@@ -25,14 +47,12 @@
       <explanation>do not save ?h.sulc</explanation>
       <argument>-sulc sulcname</argument>
       <explanation>save to ?h.sulcname</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>outsurfacefile</output>
     <explanation>output surface file</explanation>
   </outputs>
-	<example>********************************************************</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>*********************************************************</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 </help>
+

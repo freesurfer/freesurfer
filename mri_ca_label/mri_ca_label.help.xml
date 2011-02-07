@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
 <help>
 	<name>mri_ca_label</name>
 	<synopsis>mri_ca_label [&lt;options&gt;] invol1 [invol2 ...] xform gcafile outvol</synopsis>
-	<description>****************************************************************************</description>
+	<description>**********************************************************</description>
   <arguments>
     <positional>
       <argument>invol1 [invol2 ...]</argument>
@@ -14,10 +35,10 @@
       <argument>outvol</argument>
       <explanation>output volume</explanation>
 </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>None</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>-cross-sequence</argument>  
       <explanation>label a volume acquired with sequence different than atlas</explanation>
       <argument>-nogibbs</argument>
@@ -88,14 +109,15 @@
       <explanation>longitudinal processing: mri_vol is label from tp1, LTA is registration from tp1 to current data</explanation>
       <argument>-RELABEL_UNLIKELY &lt;1/0&gt; &lt;wsize&gt; &lt;sigma&gt; &lt;thresh&gt;</argument>
       <explanation>reclassify voxels at least &lt;thresh&gt; std devs from the mean using a &lt;wsize&gt; Gaussian window (with &lt;sigma&gt; standard dev) to recompute priors and likelihoods</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>outvol</output>
     <explanation>output volume</explanation>
   </outputs>
-	<example>**************************************************************************************</example>
+	<example>******************************************************</example>
   <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>mri_cc</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mri_cc</see-also>
 </help>
+

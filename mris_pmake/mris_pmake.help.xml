@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
 
 <help>
   <name>mris_pmake</name>
@@ -41,14 +62,14 @@ An additional non-linear penalty is also available, and if 'b_transitionPenaltie
   </description>
   <arguments>
     <positional><intro>None</intro></positional>
-    <required_flagged>
+    <required-flagged>
       <intro>If no &lt;optionsFile&gt; is present. One will be created when 'mris_pmake' starts.</intro>
       <argument>--subject &lt;subj&gt;</argument>
       <explanation>Set the subject to &lt;subj&gt;. This is assumed relative to an env variable SUBJECTS_DIR.</explanation>
       <argument>--hemi &lt;hemi&gt;</argument>
       <explanation>The hemisphere to process.</explanation>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <intro>If an &lt;optionsFile&gt; is already present</intro>
       <argument>--optionsFile=&lt;fileName&gt;</argument>
       <explanation>The main configuration file that specifies the startup run-time behaviour of the program, including cost function variables, start and terminal vertex indices, cost function, input files, output files, etc. If the &lt;fileName&gt; contains a directory prefix, this directory will be assumed to be the working directory. Default is 'options.txt'.</explanation>
@@ -73,11 +94,8 @@ An additional non-linear penalty is also available, and if 'b_transitionPenaltie
       <explanation>The mpmProg to run.</explanation> 
       <argument>--mpmArgs &lt;argsForMpmProg&gt;</argument>
       <explanation>A semi-colon delimited list of arguments for the specified &lt;mpmProg&gt;. This list is of course dependent on the particular mpmProg being executed.</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
-  <outputs>
-    <intro>******************************************************************</intro>
-  </outputs>
 	<example>The best mechanism to run a 'mris_pmake' process is from a companion 'shell' called 'dsh'. The use of 'dsh' is beyond the scope of this help, but in the simplest case (and assuming a valid &lt;optionsFile&gt;), simply run 'dsh' and wait for it to provide a prompt. At the prompt type 'RUN' and wait for the next prompt, at which simply type 'quit'.
 
 Alternatively, 'mris_pmake' can be evoked in a more conventional FreeSurfer manner, specifying subject and hemisphere by using appropriate command line args. This is most useful when non-interactive behaviour is desired and typically implies running an embedded mpmProg.
@@ -96,7 +114,6 @@ This will run the created autodjik.
 If you do not have an options file:
 1. From the Linux prompt, make sure your SUBJECTS_DIR is properly set. 
 2. For a subject called '11' and using the rh.smoothwm.K1.crv file as main curvature function, type: &gt;mris_pmake --subject 11 --hemi rh --curv0 smoothwm.K1.crv --mpmProg autodijk  </example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>********************************************** </see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 </help>
+

@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>mris_calc</name>
 	<synopsis>mris_calc [OPTIONS] &lt;file1&gt; &lt;ACTION&gt; [&lt;file2&gt; | &lt;floatNumber&gt;]</synopsis>
@@ -47,7 +69,7 @@ will result in the 'black.mgz' volume having all its intensity values set to 0.
       <argument>atan2</argument>
       <explanation>2 inputs and 1 output. &lt;outputFile&gt; = atan2(&lt;file1&gt;,&lt;file2&gt;)</explanation>
       <argument>mag</argument>
-      <explanation>2 inputs and 1 output. &lt;outputFile&gt; = atan2(&lt;file1&gt;,&lt;file2&gt;)</explanation>&gt;
+      <explanation>2 inputs and 1 output. &lt;outputFile&gt; = atan2(&lt;file1&gt;,&lt;file2&gt;)</explanation>
       <argument>sqr</argument>
       <explanation>1 inputs and 1 output. &lt;outputFile&gt; = &lt;file1&gt; * &lt;file1&gt;</explanation>
       <argument>sqrt</argument>
@@ -112,10 +134,10 @@ If the comparison is valid for a point in &lt;file1&gt; compared to correspondin
       <intro>ARBITRARY FLOATS AS SECOND INPUT ARGUMENT</intro>
       <explanation>If a second input argument is specified, 'mris_calc' will attempt to open the argument following &lt;ACTION&gt; as if it were a curvature file. Should this file not exist, 'mris_calc' will attempt to parse the argument as if it were a float value. In such a case, 'mris_calc' will create a dummy internal array structure and set all its elements to this float value.</explanation>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>*******************************************************************</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>--output &lt;outputCurvFile&gt;,-o &lt;outputCurvFile&gt;</argument>
       <explanation>By default, 'mris_calc' will save the output of the calculation to a file in the current working directory with filestem 'out'. The file extension is automatically set to the appropriate filetype based on the input. For any volume type, the output defaults to '.mgz' and for curvature inputs, the output defaults to '.crv'.</explanation>
       <argument>--label &lt;FreeSurferLabelFile&gt;,-l &lt;FreeSurferLabelFile&gt;</argument>
@@ -124,11 +146,8 @@ If the comparison is valid for a point in &lt;file1&gt; compared to correspondin
       <explanation>Print out version number.</explanation>
       <argument>--verbosity &lt;value&gt;</argument>
       <explanation>Set the verbosity of the program. Any positive value will trigger verbose output, displaying intermediate results. The &lt;value&gt; can be set arbitrarily. Useful mostly for debugging.</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
-  <outputs>
-    <intro>******************************************************************</intro>
-  </outputs>
 	<example>$&gt;mris_calc rh.area mul rh.thickness
 Multiply each value in &lt;rh.area&gt; with the corresponding value in &lt;rh.thickness&gt;, creating a new file called 'out.crv' that contains the result.</example>
 	<example>$&gt;mris_calc --output rh.weightedCortex rh.area mul rh.thickness
@@ -149,7 +168,6 @@ Here the second &lt;ACTION&gt; argument is a number and not a curvature file.We 
 $&gt;cp rh.area rh.ICV
 $&gt;mris_calc rh.ICV set 100000
 $&gt;mris_calc -o rh.cortexVolICV rh.cortexVol div rh.ICV</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>********************************************************************************</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 </help>
+

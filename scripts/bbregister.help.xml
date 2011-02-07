@@ -1,5 +1,26 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
 
 <help>
 	<name>bbregister</name>
@@ -7,7 +28,7 @@
 	<description>This program performs within-subject, cross-modal registration using a boundary-based cost function. The registration is constrained to be 6 DOF (rigid). It is required that you have an anatomical scan of the subject that has been analyzed in freesurfer.</description>
   <arguments>
     <positional><intro>************************</intro></positional>
-    <required_flagged>
+    <required-flagged>
       <argument>--s subject</argument>
       <explanation>FreeSurfer subject name as found in $SUBJECTS_DIR.</explanation>
       <argument>--mov volid</argument>
@@ -32,8 +53,8 @@
       <explanation>Same as --t2</explanation>
       <argument>--dti</argument>
       <explanation>Same as --t2</explanation>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>--int intvol</argument>
       <explanation>Supply a volume to use an an intermediate volume when performing registration. This is useful for when the cross-modal is volume is a partial field-of-view (FoV). If you acquire in the same session a whole-head FoV, then pass the whole-head as the intermediate and the partial as the moveable.</explanation>
       <argument>--mid-frame</argument>
@@ -115,11 +136,8 @@
       <explanation>print version and exit</explanation>
       <argument>--help</argument>
       <explanation>print help and exit</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
-  <outputs>
-    <intro>******************************************************************</intro>
-  </outputs>
 	<example>Intialize with FLIRT, view result with tkregister2:
 bbregister --s bert --mov func.nii --init-fsl --reg register.dat
 tkregister2 --mov func.nii --reg register.dat --surf </example>
@@ -129,8 +147,6 @@ tkregister2 --mov func.nii --reg register.dat --surf</example>
   <example>Register a partial FoV using whole FoV as intermdediate:
 bbregister --s bert --mov partial.nii --init-fsl --int whole.nii --reg register.partial.dat
 tkregister2 --mov partial.nii --reg register.partial.dat --surf</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>******************************* </see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 </help>
 

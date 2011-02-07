@@ -4,14 +4,14 @@
  *
  * Uses the 4 surfaces of a scan to construct a mask volume showing the
  * position of each voxel with respect to the surfaces - GM, WM, LH or RH.
- * 
+ *
  * Uses the MRISOBBTree algorithm
  */
 /*
  * Original Author: Krish Subramaniam
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:55:36 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:51 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -65,7 +64,7 @@ class IoError : public std::exception
 {
 public:
   IoError(const std::string& what)
-      : m_what(what)
+    : m_what(what)
   {}
   virtual ~IoError() throw()
   {}
@@ -101,7 +100,7 @@ LoadInputFiles(const IoParams& params,
 MRI* ComputeSurfaceDistanceFunction
 (MRIS* mris, //input surface
  MRI* mriInOut, //output MRI structure
- float resolution); 
+ float resolution);
 
 MRI* CreateHemiMask(MRI* dpial, MRI* dwhite,
                     const unsigned char lblWhite,
@@ -118,7 +117,7 @@ MRI* FilterLabel(MRI* initialMask,
 
 /*
   IO structure
-  
+
   The user can either specify an input subject (thus implicitly
   setting the names of the in-out files)
   or use an advanced mode and manually specify the files
@@ -155,17 +154,18 @@ struct IoParams
 int
 main(int ac, char* av[])
 {
-
   // first, handle stuff for --version and --all-info args
   int nargs = 0;
   nargs =
     handle_version_option
     ( ac, av,
-      "$Id: mris_volmask.cpp,v 1.23 2010/08/12 17:55:36 gregt Exp $", 
+      "$Id: mris_volmask.cpp,v 1.24 2011/02/07 00:40:51 nicks Exp $",
       "$Name:  $"
-      );
+    );
   if (nargs && ac - nargs == 1)
+  {
     exit (0);
+  }
   ac -= nargs;
 
   // parse command-line
@@ -177,7 +177,7 @@ main(int ac, char* av[])
   catch (std::exception& excp)
   {
     std::cerr << " Exception caught while parsing the command-line\n"
-    << excp.what() << std::endl;
+              << excp.what() << std::endl;
     exit(1);
   }
 
@@ -204,7 +204,7 @@ main(int ac, char* av[])
   catch (std::exception& e)
   {
     std::cerr << " Exception caught while processing input files \n"
-    << e.what() << std::endl;
+              << e.what() << std::endl;
     exit(1);
   }
 
@@ -212,7 +212,7 @@ main(int ac, char* av[])
   {
     std::string subjDir = params.subjectsDir / params.subject;
     std::string pathSurf(subjDir / "surf"),
-    pathMriOutput = outputPath / "aseg.ribbon.mgz";
+        pathMriOutput = outputPath / "aseg.ribbon.mgz";
 
     printf("inserting LH into aseg...\n") ;
     insert_ribbon_into_aseg(mriTemplate, mriTemplate,
@@ -341,20 +341,20 @@ main(int ac, char* av[])
   MRIcopyHeader( mriTemplate, finalMask);
   // write final mask
 
-  std::cout << "writing volume " <<  
-    const_cast<char*>( (outputPath / (params.outRoot +
-                                      ".mgz")).c_str() ) << endl;
+  std::cout << "writing volume " <<
+            const_cast<char*>( (outputPath / (params.outRoot +
+                                ".mgz")).c_str() ) << endl;
 
   MRIwrite( finalMask,
             const_cast<char*>( (outputPath / (params.outRoot +
-                                              ".mgz")).c_str() )
+                                ".mgz")).c_str() )
           );
   // sanity-check: make sure location 0,0,0 is background (not brain)
   if ( MRIgetVoxVal(finalMask,0,0,0,0) != 0 )
   {
     cerr << "ERROR: ribbon has non-zero value at location 0,0,0"
          << endl;
-    exit(1);      
+    exit(1);
   }
 
   /*
@@ -376,7 +376,7 @@ main(int ac, char* av[])
     {
       cerr << "ERROR: lh ribbon has non-zero value at location 0,0,0"
            << endl;
-      exit(1);      
+      exit(1);
     }
     MRIfree(&ribbon);
 
@@ -392,7 +392,7 @@ main(int ac, char* av[])
     {
       cerr << "ERROR: rh ribbon has non-zero value at location 0,0,0"
            << endl;
-      exit(1);      
+      exit(1);
     }
     MRIfree(&ribbon);
   }
@@ -421,8 +421,14 @@ IoParams::IoParams()
   surfPialRoot = "pial";
 
   char *sd = FSENVgetSUBJECTS_DIR();
-  if (NULL == sd) subjectsDir = "";
-  else subjectsDir = sd;
+  if (NULL == sd)
+  {
+    subjectsDir = "";
+  }
+  else
+  {
+    subjectsDir = sd;
+  }
 }
 
 void
@@ -436,10 +442,10 @@ IoParams::parse(int ac, char* av[])
   std::string slbl = "label_";
 
   int iLeftWhite(labelLeftWhite),
-  iLeftRibbon(labelLeftRibbon),
-  iRightWhite(labelRightWhite),
-  iRightRibbon(labelRightRibbon),
-  iBackground(labelBackground);
+      iLeftRibbon(labelLeftRibbon),
+      iRightWhite(labelRightWhite),
+      iRightRibbon(labelRightRibbon),
+      iBackground(labelBackground);
 
   std::string strUse =  "surface root name (i.e. <subject>/surf/$hemi.<NAME>";
   CCmdLineInterface interface(av[0]);
@@ -513,19 +519,6 @@ IoParams::parse(int ac, char* av[])
   // if ac == 0, then print complete help
   if ( ac == 1 )
   {
-#ifdef GREGT
-    std::cout <<
-    "\n"
-    " Computes a volume mask, at the same resolution as the\n"
-    " <subject>/mri/brain.mgz.  The volume mask contains 4 values:\n"
-    "   LH_WM (default 10)\n"
-    "   LH_GM (default 100)\n"
-    "   RH_WM (default 20)\n"
-    "   RH_GM (default 200)\n"
-    " The algorithm uses the 4 surfaces situated in\n"
-    " <subject>/surf/[lh|rh].[white|pial].surf and labels voxels\n"
-    " based on the signed-distance function from the surface.\n";
-#endif
     interface.PrintHelp();
     exit(0);
   }
@@ -541,7 +534,6 @@ IoParams::parse(int ac, char* av[])
   labelRightWhite = (unsigned char)(iRightWhite);
   labelRightRibbon = (unsigned char)(iRightRibbon);
   labelBackground = (unsigned char)(iBackground);
-
 }
 
 
@@ -558,16 +550,16 @@ LoadInputFiles(const IoParams& params,
 
   // declare path objects
   std::string pathSurfLeftWhite,
-  pathSurfLeftPial,
-  pathSurfRightWhite,
-  pathSurfRightPial,
-  pathMriInput,
-  pathOutput;
+      pathSurfLeftPial,
+      pathSurfRightWhite,
+      pathSurfRightPial,
+      pathMriInput,
+      pathOutput;
 
   if ( params.subjectsDir.empty() )
   {
     cerr << "SUBJECTS_DIR not found. Use --sd <dir>, or set SUBJECTS_DIR"
-    << endl;
+         << endl;
     exit(1);
   }
   else
@@ -637,25 +629,25 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
                                float thickness)
 {
   int res;
-  MRI *mri_visited, *_mridist; 
+  MRI *mri_visited, *_mridist;
   _mridist  = MRIclone(mri_distfield, NULL);
   mri_visited  = MRIcloneDifferentType(mri_distfield, MRI_INT);
 
   // Convert surface vertices to vox space
   Math::ConvertSurfaceRASToVoxel(mris, mri_distfield);
-  
-  // Find the distance field 
+
+  // Find the distance field
   MRISDistanceField *distfield = new MRISDistanceField(mris, _mridist);
   distfield->SetMaxDistance(thickness);
-  distfield->Generate(); //mri_dist now has the distancefield 
+  distfield->Generate(); //mri_dist now has the distancefield
 
   // Construct the OBB Tree
   MRISOBBTree* OBBTree = new MRISOBBTree(mris);
   OBBTree->ConstructTree();
-  
+
   std::queue<Pointd* > ptsqueue;
-  // iterate through all the volume points 
-  // and apply sign 
+  // iterate through all the volume points
+  // and apply sign
   for(int i=0; i< mri_distfield->width; i++)
   {
     //std::cerr << i <<" ";
@@ -663,10 +655,15 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
     {
       for(int k=0; k< mri_distfield->depth; k++)
       {
-        if ( MRIIvox(mri_visited, i, j, k )) continue; 
+        if ( MRIIvox(mri_visited, i, j, k ))
+        {
+          continue;
+        }
         res = OBBTree->PointInclusionTest(i, j, k);
         Pointd *pt = new Pointd;
-        pt->v[0] = i; pt->v[1] = j; pt->v[2] = k;
+        pt->v[0] = i;
+        pt->v[1] = j;
+        pt->v[2] = k;
         ptsqueue.push( pt );
 
         // First serve all the points in the queue before going to the next voxel
@@ -680,7 +677,10 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
           delete p;
           ptsqueue.pop();
 
-          if ( MRIIvox(mri_visited, x, y, z) ) continue; 
+          if ( MRIIvox(mri_visited, x, y, z) )
+          {
+            continue;
+          }
           MRIIvox(mri_visited, x, y, z) =  res;
           const float dist = MRIFvox(_mridist, x, y, z);
           MRIFvox(_mridist, x, y, z) =  dist*res;
@@ -708,7 +708,7 @@ ComputeSurfaceDistanceFunction(MRIS* mris,
             }
             // front neighbor in z
             if ( z>0 && !MRIIvox(mri_visited, x, y, z-1))
-            { 
+            {
               Pointd *ptemp = new Pointd;
               ptemp->v[0]   = x;
               ptemp->v[1]   = y;
@@ -785,16 +785,24 @@ CreateHemiMask(MRI* dpial,
       for (unsigned int x(0), width(dpial->width);
            x<width; ++x)
       {
-        if (x == (unsigned int)Gx && 
-            y == (unsigned int)Gy && 
+        if (x == (unsigned int)Gx &&
+            y == (unsigned int)Gy &&
             z == (unsigned int)Gz)
+        {
           DiagBreak() ;
+        }
         if ( MRIFvox(dwhite,x,y,z) > 0 )
+        {
           MRIsetVoxVal(mri, x,y,z,0, lblWhite);
+        }
         else if ( MRIFvox(dpial,x,y,z) > 0 )
+        {
           MRIsetVoxVal(mri, x,y,z,0, lblRibbon);
+        }
         else
+        {
           MRIsetVoxVal(mri,x,y,z,0, lblBackground);
+        }
       } // next x,y,z
 
   return mri;
@@ -831,9 +839,13 @@ MRI* CombineMasks(MRI* maskOne,
           MRIsetVoxVal(mri,x,y,z,0,voxOne);
         }
         else if ( voxOne == lblBackground )
+        {
           MRIsetVoxVal(mri,x,y,z,0,voxTwo);
+        }
         else if ( voxTwo == lblBackground )
+        {
           MRIsetVoxVal(mri,x,y,z,0,voxOne);
+        }
       } // next x,y,z
 
   std::cout << " hemi masks overlap voxels = " << overlap << std::endl;
@@ -857,9 +869,13 @@ MRI* FilterLabel(MRI* initialMask,
            x<width; ++x)
       {
         if ( MRIvox(initialMask,x,y,z) == lbl )
+        {
           MRIsetVoxVal(mri, x,y,z,0, (unsigned char)(1) );
+        }
         else
+        {
           MRIsetVoxVal(mri, x,y,z,0, (unsigned char)(0) );
+        }
       } // next x,y,z
 
   return mri;

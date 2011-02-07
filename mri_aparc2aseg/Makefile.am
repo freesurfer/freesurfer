@@ -25,7 +25,7 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_mri_aparc2aseg
+TESTS=test_mri_aparc2aseg $(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz testdata2.tar.gz $(foo_DATA)
 
@@ -34,3 +34,6 @@ EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz testdata2.tar.gz $(foo_DATA)
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mri_aparc2aseg.help.xml.h
+

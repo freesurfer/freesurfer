@@ -1,21 +1,37 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
-
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis* , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
 
 <help>
 	<name>mri_motion_correct.fsl</name>
-	<synopsis>******************************************************************************************************************************</synopsis>
 	<description>Aligns and averages two or more volumes. Uses the FSL flirt program. Actually calls fsl_rigid_register which calls flirt. See fsl_rigid_register -help. This should basically do the same thing as mri_motion_correct and mri_motion_correct2. One difference is that mri_motion_correct.fsl forces the input data to be float when converting to ANALYZE, and so the final output is is also float. mri_motion_correct2 keeps the native precision. The target for the registration can be selected (the default is to register to the first specified input volume). If the passed target number is larger than the number of input volumes, the first volume is used as target. The inputs and output can be any format accepted by mri_convert.</description>
   <arguments>
-    <positional>
-      <intro>*******************************************************************************************</intro>
-    </positional>
-    <required_flagged>
+    <required-flagged>
       <argument>-o  output spec</argument>
       <explanation>output file or directory (for COR)</explanation>
       <argument>-i  input1 &lt;-i input2 &lt;-i input3&gt;&gt;</argument>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>--target #</argument>
       <explanation>spec # of target for registration (default = 1)s</explanation>
       <argument>-wild</argument>
@@ -34,17 +50,13 @@
       <explanation>do not create a log file</explanation>
       <argument>-debug</argument>
       <explanation>print lots of stuff to screen</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
-  <outputs>
-    <intro>******************************************************************</intro>
-  </outputs>
 	<example>mri_motion_correct.fsl -i 002.mgz  -i 003 -o mc4.img
 002.mgz is a volume in compressed MGH format. 003 is in COR format. mc4.img (the output) is in analyze format.</example>
   <example>Say you have many input volumes, eg, 001.mgh ... 010.mgh, and you do not want to list all of them on the command-line with a -i. Then you can:
 mri_motion_correct.fsl -o mc.mgh  -wild *.mgh
 Note that -wild must appear BEFORE the wildcard.</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>mri_motion_correct</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mri_motion_correct</see-also>
 </help>

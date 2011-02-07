@@ -6,12 +6,12 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2010/11/04 23:36:37 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:46 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010-2011,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -23,11 +23,6 @@
  *
  */
 
-
-//#include <stdio.h>
-//#include <stdlib.h>
-//#include <math.h>
-//#include <ctype.h>
 #include <string>
 #include <iostream>
 
@@ -37,11 +32,6 @@ extern "C"
 #endif
 #include "error.h"
 #include "macros.h"
-//#include "mri.h"
-//#include "matrix.h"
-//#include "timer.h"
-//#include "diag.h"
-//#include "mrimorph.h"
 #include "version.h"
 #include "transform.h"
 #include "ctrpoints.h"
@@ -64,62 +54,58 @@ static struct Parameters P =
 static int get_option(int argc, char *argv[], Parameters & P) ;
 static void  usage_exit(int code) ;
 
-static char vcid[] = "$Id: mri_map_cpdat.cpp,v 1.2 2010/11/04 23:36:37 mreuter Exp $";
+static char vcid[] =
+  "$Id: mri_map_cpdat.cpp,v 1.3 2011/02/07 00:40:46 nicks Exp $";
 char *Progname = NULL;
 
 int main(int argc, char *argv[])
 {
-
   int    nargs;
-
 
   // Default initialization
   nargs = handle_version_option(argc, argv,vcid,"$Name:  $");
-  if (nargs && argc - nargs == 1) exit (0);
+  if (nargs && argc - nargs == 1)
+  {
+    exit (0);
+  }
   argc -= nargs;
   Progname = argv[0] ;
-	argc--;
+  argc--;
   argv++;
   ErrorInit(NULL, NULL, NULL) ;
-  //DiagInit(NULL, NULL, NULL) ;
-	
-	
+
   for ( ; argc > 1 && ISOPTION(*argv[0]) ; argc--, argv++)
-	{
+  {
     nargs = get_option(argc, argv,P) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (P.cpin == "" || P.cpout== "" || P.lta == "")
+  {
     usage_exit(0) ;
-
-  // Timer
-  //struct timeb start ;
-  //int    msec,minutes,seconds;
-  //TimerStart(&start) ;
+  }
 
   int count = 0;
   int useRealRAS = 0;
-	
-	// read ctrl points
+
+  // read ctrl points
   MPoint *pArray = MRIreadControlPoints(P.cpin.c_str(), &count, &useRealRAS);
   // read lta
-	cout << "Reading LTA" << endl;
-	LTA* lta = LTAread(P.lta.c_str());
-	// map ctrl points
-	cout << "Mapping control points..." << endl;
-	MPoint *mappedArray = MRImapControlPoints(pArray,count,useRealRAS,NULL,lta);
-	// write ctrl points
-	cout << "Writing control points..." << endl;
-	MRIwriteControlPoints(mappedArray, count, useRealRAS, P.cpout.c_str());
+  cout << "Reading LTA" << endl;
+  LTA* lta = LTAread(P.lta.c_str());
+  // map ctrl points
+  cout << "Mapping control points..." << endl;
+  MPoint *mappedArray = MRImapControlPoints(pArray,count,useRealRAS,NULL,lta);
+  // write ctrl points
+  cout << "Writing control points..." << endl;
+  MRIwriteControlPoints(mappedArray, count, useRealRAS, P.cpout.c_str());
 
   //cleanup
-	free(pArray);
-	free(mappedArray);
+  free(pArray);
+  free(mappedArray);
 
   return(0) ;
-
 }
 
 static int
@@ -129,34 +115,34 @@ get_option(int argc, char *argv[], Parameters & P)
   char *option ;
 
   option = argv[0] + 1 ;            /* past '-' */
-  if (option[0] == '-') option = option +1;  // remove second '-'
+  if (option[0] == '-')
+  {
+    option = option +1;  // remove second '-'
+  }
   StrUpper(option) ;
-	
-//  if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
-//    usage_exit(0);
-//  } else 
-	
-	if (!strcmp(option, "IN"))
-	{
+
+  if (!strcmp(option, "IN"))
+  {
     P.cpin = string(argv[1]);
     nargs = 1;
     cout << "--in:  Using "<< P.cpin << " as input file." << endl;
   }
-	else if (!strcmp(option, "OUT"))
-	{
+  else if (!strcmp(option, "OUT"))
+  {
     P.cpout = string(argv[1]);
     nargs = 1;
     cout << "--out: Using "<< P.cpout << " as output file." << endl;
   }
-	else if (!strcmp(option, "LTA"))
-	{
+  else if (!strcmp(option, "LTA"))
+  {
     P.lta = string(argv[1]);
     nargs = 1;
     cout << "--lta: Using "<< P.lta << " as transform." << endl;
   }
-	else
-	{
-    cerr << endl << endl << "ERROR: Option: " << argv[0] << " unknown !! " << endl << endl;
+  else
+  {
+    cerr << endl << endl << "ERROR: Option: " 
+         << argv[0] << " unknown !! " << endl << endl;
     exit(1);
   }
 
@@ -166,15 +152,11 @@ get_option(int argc, char *argv[], Parameters & P)
 static void
 usage_exit(int code)
 {
-//  outputHelp(Progname);
-
-//#ifdef GREGT
   printf("\n%s <Required Arguments>\n\n", Progname) ;
-	printf("  Maps a control.dat file to a different space using an LTA\n\n");
+  printf("  Maps a control.dat file to a different space using an LTA\n\n");
   printf("  -in  <file>      input  control point txt file\n");
   printf("  -out <file>      output control point txt file\n");
   printf("  -lta <file>      lta transform file to be applied\n");
   printf("  \n");
-//#endif
   exit(code);
 }

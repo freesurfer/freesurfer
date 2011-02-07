@@ -19,7 +19,7 @@ foo:
 check_PROGRAMS=foo build_test_volume
 #build_MC_table
 
-TESTS=compare_test_volumes
+TESTS=compare_test_volumes $(top_builddir)/scripts/help_xml_validate
 
 build_test_volume_SOURCES=build_test_volume.c
 build_test_volume_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
@@ -41,3 +41,5 @@ EXTRA_DIST=compare_test_volumes test_volume_reference.mgz $(foo_DATA) \
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mri_pretess.help.xml.h mris_extract_main_component.help.xml.h

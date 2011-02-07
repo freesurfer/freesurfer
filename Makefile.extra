@@ -21,8 +21,9 @@ dist-hook:
 	done; \
 	extra_dist=( $(EXTRA_DIST) );
 
+if HAVE_XXD
 # A rule to create a header from an xml file in order to
 # include the file as a string at compilation time
-.xml.h:
-	xxd -i $< > $@
-	
+%.xml.h : %.xml
+	xxd -i $< $@
+endif

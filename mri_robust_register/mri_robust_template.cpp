@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/01/21 19:52:51 $
- *    $Revision: 1.33 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:47 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -40,7 +40,6 @@
 #include <time.h>
 
 #include "MultiRegistration.h"
-#include "mri_robust_template.help.h"
 
 // all other software are all in "C"
 #ifdef __cplusplus
@@ -116,55 +115,55 @@ struct Parameters
   int    average;
   int    inittp;
   bool   noit;
-	bool   quick;
-	int    subsamplesize;
-	bool   fixtp;
-	bool   satit;
-	string conform;
-	bool   doubleprec;
-	bool   oneminusweights;
-	vector < string > iscalein;
-	vector < string > iscaleout;
-	int    finalinterp;
-	int    highit;
-	int    seed;
+  bool   quick;
+  int    subsamplesize;
+  bool   fixtp;
+  bool   satit;
+  string conform;
+  bool   doubleprec;
+  bool   oneminusweights;
+  vector < string > iscalein;
+  vector < string > iscaleout;
+  int    finalinterp;
+  int    highit;
+  int    seed;
 };
 
 // Initializations:
 static struct Parameters P =
 {
   vector < string >(0),
-	"",
-	vector < string >(0),
-	vector < string >(0),
-	vector < string >(0),
-	false,
-	false,
-	false,
-	false,
-	false,
-	false,
-	false,
-	5,
-	-1.0,
-	SAT,
-	vector < string >(0),
-	0,
-	1,
-	-1,
-	false,
-	false,
-	SSAMPLE,
-	false,
-	false,
-	"",
-	false,
-	false,
+  "",
   vector < string >(0),
   vector < string >(0),
-	SAMPLE_TRILINEAR,
-	-1,
-	-1
+  vector < string >(0),
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  false,
+  5,
+  -1.0,
+  SAT,
+  vector < string >(0),
+  0,
+  1,
+  -1,
+  false,
+  false,
+  SSAMPLE,
+  false,
+  false,
+  "",
+  false,
+  false,
+  vector < string >(0),
+  vector < string >(0),
+  SAMPLE_TRILINEAR,
+  -1,
+  -1
 };
 
 
@@ -172,7 +171,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-"$Id: mri_robust_template.cpp,v 1.33 2011/01/21 19:52:51 mreuter Exp $";
+  "$Id: mri_robust_template.cpp,v 1.34 2011/02/07 00:40:47 nicks Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, int & seed)
@@ -180,13 +179,16 @@ int getRandomNumber(int start, int end, int & seed)
 // also return seed if it was -1
 {
 
-  if (seed == -1) seed = time(NULL);
+  if (seed == -1)
+  {
+    seed = time(NULL);
+  }
 
-  // initialize random seed: 
+  // initialize random seed:
   srand ( seed );
 
-  // generate random number: 
-	int range = end-start+1;
+  // generate random number:
+  int range = end-start+1;
   return rand() % range + start;
 }
 
@@ -200,13 +202,16 @@ int main(int argc, char *argv[])
   if (getenv("FS_USE_MRI_CHUNK") != NULL)
   {
     cerr <<
-      "Error: do not set FS_USE_MRI_CHUNK while it is still buggy!" << endl;
+         "Error: do not set FS_USE_MRI_CHUNK while it is still buggy!" << endl;
     exit(1);
   }
 
   // Default initialization
   int nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
-  if (nargs && argc - nargs == 1) exit (0);
+  if (nargs && argc - nargs == 1)
+  {
+    exit (0);
+  }
   argc -= nargs;
   Progname = argv[0] ;
   argc --;
@@ -221,7 +226,7 @@ int main(int argc, char *argv[])
     exit(1);
   }
 //  if (P.outdir[P.outdir.length()-1] != '/') P.outdir += "/";
-  
+
   // Randomly pick target (default):
   // Only if no inittp is passed and if no init transforms are given
   // In those cases we either fixed the target (--inittp)
@@ -238,104 +243,145 @@ int main(int argc, char *argv[])
   TimerStart(&start) ;
   ///////////////////////////////////////////////////////////////
 
-	MultiRegistration MR;
+  MultiRegistration MR;
 
-	// set parameters
+  // set parameters
   size_t  pos = P.mean.rfind("/");    // position of "." in str
-  if (pos!=string::npos) MR.setOutdir(P.mean.substr(0,pos-1));
-	else MR.setOutdir("./");
-	MR.setDebug(P.debug);
+  if (pos!=string::npos)
+  {
+    MR.setOutdir(P.mean.substr(0,pos-1));
+  }
+  else
+  {
+    MR.setOutdir("./");
+  }
+  MR.setDebug(P.debug);
   MR.setRigid(!P.affine);
   MR.setIscale(P.iscale);
   MR.setTransonly(P.transonly);
   MR.setRobust(!P.leastsquares);
   MR.setSaturation(P.sat);
   MR.setSatit(P.satit);
-	MR.setFixVoxel(P.fixvoxel);
-	MR.setKeepType(!P.floattype);
-	MR.setAverage(P.average);
-	MR.setDoublePrec(P.doubleprec);
-	MR.setSubsamplesize(P.subsamplesize);
-	MR.setHighit(P.highit);
+  MR.setFixVoxel(P.fixvoxel);
+  MR.setKeepType(!P.floattype);
+  MR.setAverage(P.average);
+  MR.setDoublePrec(P.doubleprec);
+  MR.setSubsamplesize(P.subsamplesize);
+  MR.setHighit(P.highit);
 
-	// init MultiRegistration and load movables
-	int nin = (int) P.mov.size();
-	assert (P.mov.size() >1);
-	assert (MR.loadMovables(P.mov)==nin);
-	
-	// load initial ltas if set:
-	assert (P.iltas.size () == 0 || P.iltas.size() == P.mov.size());
-	if (P.iltas.size() > 0) assert(MR.loadLTAs(P.iltas)==nin);
-	
-	// load initial iscales if set:
-	assert (P.iscalein.size () == 0 || P.iscalein.size() == P.mov.size());
-	if (P.iscalein.size() > 0) assert(MR.loadIntensities(P.iscalein)==nin);
+  // init MultiRegistration and load movables
+  int nin = (int) P.mov.size();
+  assert (P.mov.size() >1);
+  assert (MR.loadMovables(P.mov)==nin);
 
-	if (P.noit) // no registration to mean space, only averaging
-	{
+  // load initial ltas if set:
+  assert (P.iltas.size () == 0 || P.iltas.size() == P.mov.size());
+  if (P.iltas.size() > 0)
+  {
+    assert(MR.loadLTAs(P.iltas)==nin);
+  }
+
+  // load initial iscales if set:
+  assert (P.iscalein.size () == 0 || P.iscalein.size() == P.mov.size());
+  if (P.iscalein.size() > 0)
+  {
+    assert(MR.loadIntensities(P.iscalein)==nin);
+  }
+
+  if (P.noit) // no registration to mean space, only averaging
+  {
     // if no initial xforms are given, use initialization to median space
-		//   by registering everything first to inittp
-		//   res 0: up to highest resolution, eps 0.01: accurate
-    if(P.iltas.size() == 0 && P.inittp > 0) 
-		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
-	
-	  // create template:
+    //   by registering everything first to inittp
+    //   res 0: up to highest resolution, eps 0.01: accurate
+    if(P.iltas.size() == 0 && P.inittp > 0)
+    {
+      MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
+    }
+
+    // create template:
     MR.averageSet(0,P.finalinterp);
-	   
-	}
+
+  }
   // run registrations
   else if (nin == 2)
-	{
-	
-    if(P.iltas.size() == 0 && P.inittp > 0) 
-		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
+  {
 
-      // we are done here, since with 2TP the registration
-      // to the first mean space is allready accurate
-			
-  	  // create template:
-      MR.averageSet(0,P.finalinterp);
-	
-//	  // here default params are adjusted for just 2 images (if not passed):
-//	  if (P.iterate == -1) P.iterate = 5;
-//		if (P.epsit <= 0)    P.epsit   = 0.01;
-//	  MR.halfWayTemplate(0,P.iterate,P.epsit,P.lta_vox2vox);		
+    if(P.iltas.size() == 0 && P.inittp > 0)
+    {
+      MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
+    }
+
+    // we are done here, since with 2TP the registration
+    // to the first mean space is allready accurate
+
+    // create template:
+    MR.averageSet(0,P.finalinterp);
+
+//    // here default params are adjusted for just 2 images (if not passed):
+//    if (P.iterate == -1) P.iterate = 5;
+//    if (P.epsit <= 0)    P.epsit   = 0.01;
+//    MR.halfWayTemplate(0,P.iterate,P.epsit,P.lta_vox2vox);
   }
   else
   {
     // if no initial xforms are given, use initialization to median space
-		//   by registering everything first to inittp
-		//   a) res 1: up to second highest resolution, eps 0.05: not too accurate
-		//   b) res 0: up to highest res., eps 0.01 accurate reg.
-		//   turns out accurate b) performs better and saves us
-		//   from more global iterations (reg to template) later
-		// remains open if subsampling speeds up things w/o increasing iterations later
-    if(P.iltas.size() == 0 && P.inittp > 0) 
-		  MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
-		  //MR.initialXforms(P.inittp,1,5,0.05);
+    //   by registering everything first to inittp
+    //   a) res 1: up to second highest resolution, eps 0.05: not too accurate
+    //   b) res 0: up to highest res., eps 0.01 accurate reg.
+    //   turns out accurate b) performs better and saves us
+    //   from more global iterations (reg to template) later
+    // remains open if subsampling speeds up things w/o increasing iterations later
+    if(P.iltas.size() == 0 && P.inittp > 0)
+    {
+      MR.initialXforms(P.inittp,P.fixtp,0,5,0.01);
+    }
+    //MR.initialXforms(P.inittp,1,5,0.05);
 
     // here default is adjusted for several images (and real mean/median target):
-    if (P.iterate == -1) P.iterate = 6;
-		if (P.epsit <= 0)    P.epsit   = 0.03;
+    if (P.iterate == -1)
+    {
+      P.iterate = 6;
+    }
+    if (P.epsit <= 0)
+    {
+      P.epsit   = 0.03;
+    }
 
-		// P.iterate and P.epsit are used for terminating the template iterations
-		// while 5 and 0.01 are default for the individual registrations
+    // P.iterate and P.epsit are used for terminating the template iterations
+    // while 5 and 0.01 are default for the individual registrations
     MR.computeTemplate(P.iterate,P.epsit,5,0.01);
-		// if final interp not trilinear (=default), then:
+    // if final interp not trilinear (=default), then:
     if (P.finalinterp == SAMPLE_NEAREST)
-		   MR.averageSet(0,P.finalinterp);
+    {
+      MR.averageSet(0,P.finalinterp);
+    }
   }
 
   cout << "Writing final template: " << P.mean << endl;
-	MR.writeMean(P.mean);
-	if (P.conform != "") MR.writeConformMean(P.conform);
+  MR.writeMean(P.mean);
+  if (P.conform != "")
+  {
+    MR.writeConformMean(P.conform);
+  }
 
   // output transforms and warps
   cout << "Writing final transforms (warps etc.)..." << endl;
-	if (P.nltas.size() > 0) MR.writeLTAs(P.nltas,P.lta_vox2vox,P.mean);
-	if (P.nwarps.size() >0) MR.writeWarps(P.nwarps);
-  if (P.iscaleout.size() >0) MR.writeIntensities(P.iscaleout);
-  if (!P.leastsquares && P.nweights.size() > 0) MR.writeWeights(P.nweights,P.oneminusweights);
+  if (P.nltas.size() > 0)
+  {
+    MR.writeLTAs(P.nltas,P.lta_vox2vox,P.mean);
+  }
+  if (P.nwarps.size() >0)
+  {
+    MR.writeWarps(P.nwarps);
+  }
+  if (P.iscaleout.size() >0)
+  {
+    MR.writeIntensities(P.iscaleout);
+  }
+  if (!P.leastsquares && P.nweights.size() > 0)
+  {
+    MR.writeWeights(P.nweights,P.oneminusweights);
+  }
 
   ///////////////////////////////////////////////////////////////
   msec = TimerStop(&start) ;
@@ -343,7 +389,7 @@ int main(int argc, char *argv[])
   minutes = seconds / 60 ;
   seconds = seconds % 60 ;
   cout << "registration took "<<minutes<<" minutes and "<<
-    seconds<<" seconds." << endl;
+       seconds<<" seconds." << endl;
   //if (diag_fp) fclose(diag_fp) ;
 
   exit(0) ;
@@ -354,71 +400,11 @@ int main(int argc, char *argv[])
 
 /*----------------------------------------------------------------------
   ----------------------------------------------------------------------*/
+#include "mri_robust_template.help.xml.h"
 static void printUsage(void)
 {
-//  outputHelp("mri_robust_template");
-  outputHelpMemory(mri_robust_template_help_xml,mri_robust_template_help_xml_len);
-
-#ifdef GREGT
-  cout << endl << endl;
-  cout << "Usage: mri_robust_template <required arguments>" << endl <<endl;
-
-  cout << "Short description: constructs template and rigidly registers volumes (using robust statistics)" << endl;
-  cout << "                   will output the template volume and the transformations (lta)"<< endl << endl;
-
-  cout << "Required arguments" << endl << endl ;
-  cout << "  --mov tp1.mgz tp2.mgz ...  movable/source volumes to be registered" << endl;
-  cout << "  --template template.mgz    output template volume" << endl;
-	cout << "  Either --satit or --sat <real> for sensitivity" << endl ;
-  cout << endl;
-  cout << "Optional arguments" << endl << endl;
-//  cout << "      --outdir               output directory (default ./ )" << endl;
-  cout << "  --lta tp1.lta tp2.lta ...  output xforms to template (for each input)" << endl;
-  cout << "  --mapmov align1.mgz ...    map and resample each input to template" << endl;
-  cout << "  --weights weights1.mgz ... output weights in target space" << endl;
-  cout << "  --average #                construct template from: 0 Mean, 1 Median (default)" << endl;
-  cout << "  --inittp #                 use TP# for spatial init (default random), 0: no init" << endl;
-  cout << "  --fixtp                    map everthing to init TP# (init TP is not resampled)" << endl;
-	
-//  cout << "  -A, --affine (testmode)    find 12 parameter affine xform (default is 6-rigid)" << endl;
-  cout << "  --iscale                   allow also intensity scaling (default off)" << endl;
-  cout << "  --iscalein is1.txt ...     read in initial iscale values from txt files" << endl;
-	cout << "  --iscaleout is1.txt ...    output final iscale values (activates --iscale)" << endl;
-  cout << "  --ixforms t1.lta t2.lta .. use initial transforms (lta) on source  ('id'=identity)" << endl;
-  cout << "  --vox2vox                  output VOX2VOX lta file (default is RAS2RAS)" << endl;
-  cout << "  --leastsquares             use least squares instead of robust M-estimator" << endl;
-  cout << "  --noit                     do not iterate, just create first template" << endl;
-  cout << "  --maxit <#>                iterate max # times (if #tp>2 default 6, else 5 for 2tp reg.)"  << endl;
-  cout << "  --highit <#>               iterate max # times on highest resol. (default "<<P.iterate<<")"  << endl;
-  cout << "  --epsit <real>             stop iterations when all tp changes below <float> "<< endl;
-	cout << "                                (if #tp>2 default 0.03, else 0.01 for 2tp reg.)" << endl;
-//  cout << "      --nomulti              work on highest resolution (no multiscale)" << endl;
-  cout << "  --sat <real>               set outlier sensitivity manually (e.g. '--sat 4.685' )" << endl;
-	cout << "                                higher values mean less sensitivity" << endl;
-  cout << "  --satit                    auto-detect good sensitivity (for head scans)" << endl;
-  cout << "  --doubleprec               double precision (default: float) for intensities (!!memory!!)" << endl;
-  cout << "  --subsample <#>            subsample if dim > # on all axes (default no subs.)" << endl;
-//  cout << "      --maskmov mask.mgz     mask mov/src with mask.mgz" << endl;
-//  cout << "      --maskdst mask.mgz     mask dst/target with mask.mgz" << endl;
-//  cout << "  --conform conform.mgz      output conform template, 1mm vox (256^3)" << endl;
-  cout << "  --finalnearest             use nearest neighbor interpol. for final average" << endl;
-  cout << "  --floattype                use float intensities (default keep intput type)" << endl; 
-  cout << "  --debug                    show debug output (default no debug output)" << endl;
-//  cout << "      --test i mri         perform test number i on mri volume" << endl;
-
-  cout << endl;
-
-  cout << "Report bugs to: freesurfer@nmr.mgh.harvard.edu" << endl;
-
-	cout << endl << "References:" << endl<< endl;
-	cout << " Highly Accurate Inverse Consistent Registration: A Robust Approach," << endl;
-	cout << "   M. Reuter, H.D. Rosas, B. Fischl." << endl;
-	cout << "   NeuroImage 53 (4), pp. 1181-1196, 2010." << endl;
-	cout << "   http://reuter.mit.edu/lcount/click.php?id=13 " << endl;
-
-  cout << endl;
-
-#endif
+  outputHelpXml(mri_robust_template_help_xml,
+                mri_robust_template_help_xml_len);
 }
 
 
@@ -437,7 +423,10 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   char *option ;
 
   option = argv[0] + 1 ;                     // remove '-'
-  if (option[0] == '-') option = option +1;  // remove second '-'
+  if (option[0] == '-')
+  {
+    option = option +1;  // remove second '-'
+  }
   StrUpper(option) ;
 
   //cout << " option: " << option << endl;
@@ -453,7 +442,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
         nargs++;
         P.mov.push_back(string(argv[nargs]));
         cout << "--mov: Using "<< P.mov.back() <<
-          " as movable/source volume." << endl;
+             " as movable/source volume." << endl;
       }
     }
     while (nargs+1 < argc && option[0] != '-');
@@ -503,7 +492,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     }
     while (nargs+1 < argc && option[0] != '-');
     assert(nargs > 0);
-		P.iscale = true;
+    P.iscale = true;
     cout << "--iscaleout: Will perform intensity scaling and output results" << endl;
   }
   else if (!strcmp(option, "ISCALEIN")   )
@@ -531,7 +520,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
       if (option[0] != '-')
       {
         nargs++;
-	
+
         P.iltas.push_back(string(argv[nargs]));
         //cout << "Using "<< P.nltas.back() << " as LTA." << endl;
       }
@@ -545,7 +534,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.average = atoi(argv[1]);
     nargs = 1;
     cout << "--average: Using method " << P.average <<
-      " for template computation." <<  endl;
+         " for template computation." <<  endl;
   }
   else if (!strcmp(option, "VOX2VOX")   )
   {
@@ -577,7 +566,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.iterate = atoi(argv[1]);
     nargs = 1 ;
     cout << "--maxit: Performing maximal " << P.iterate <<
-      " iterations on each resolution" << endl;
+         " iterations on each resolution" << endl;
   }
   else if (!strcmp(option, "HIGHIT")  )
   {
@@ -590,7 +579,7 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
     P.epsit = atof(argv[1]);
     nargs = 1 ;
     cout << "--epsit: Stop iterations when change is less than " << P.epsit <<
-      " . " << endl;
+         " . " << endl;
   }
   else if (!strcmp(option, "SAT")  )
   {
@@ -602,8 +591,14 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
   {
     P.subsamplesize = atoi(argv[1]);
     nargs = 1 ;
-    if (P.subsamplesize >= 0) cout << "--subsample: Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
-    else cout << "--subsample -1: Will not subsample on any scale!" << endl;
+    if (P.subsamplesize >= 0)
+    {
+      cout << "--subsample: Will subsample if size is larger than " << P.subsamplesize << " on all axes!" << endl;
+    }
+    else
+    {
+      cout << "--subsample -1: Will not subsample on any scale!" << endl;
+    }
   }
   else if (!strcmp(option, "DEBUG") )
   {
@@ -691,22 +686,28 @@ static int parseNextCommand(int argc, char *argv[], Parameters & P)
 //   }
   else if (!strcmp(option, "FLOATTYPE") )
   {
-     P.floattype = true;
-     nargs = 0 ;
-     cout << "--floattype: Use float images internally (independent of input)!" << endl;
- 	}
+    P.floattype = true;
+    nargs = 0 ;
+    cout << "--floattype: Use float images internally (independent of input)!" << endl;
+  }
   else if (!strcmp(option, "FINALNEAREST") )
   {
-     P.finalinterp = SAMPLE_NEAREST;
-     nargs = 0 ;
-     cout << "--finalnearest: Use nearest neighbor interpolation for final average!" << endl;
- 	}
+    P.finalinterp = SAMPLE_NEAREST;
+    nargs = 0 ;
+    cout << "--finalnearest: Use nearest neighbor interpolation for final average!" << endl;
+  }
   else if (!strcmp(option, "INITTP") )
   {
     P.inittp = atoi(argv[1]);
     nargs = 1 ;
-    if (P.inittp ==0 ) cout<< "--inittp 0: No initialization, construct first mean from original TPs" << endl;
-    else cout << "--inittp: Using TP " <<P.inittp <<" as target for initialization" << endl;
+    if (P.inittp ==0 )
+    {
+      cout<< "--inittp 0: No initialization, construct first mean from original TPs" << endl;
+    }
+    else
+    {
+      cout << "--inittp: Using TP " <<P.inittp <<" as target for initialization" << endl;
+    }
   }
   else if (!strcmp(option, "ONEMINUSW") )
   {

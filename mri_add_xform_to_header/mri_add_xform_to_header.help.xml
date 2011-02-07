@@ -1,5 +1,28 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd"><help>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
 	<name>mri_add_xform_to_header</name>
 	<synopsis>mri_add_xform_to_header &lt;options&gt; xfmfile invol outvol</synopsis>
 	<description>this program adds specified xform to the volume header.</description>
@@ -8,22 +31,21 @@
       <argument>xfm file</argument>
       <argument>input volume</argument>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>**********************************************************</intro>
-    </required_flagged>
-    <optional_flagged> 
+    </required-flagged>
+    <optional-flagged> 
       <argument>-v</argument>
       <explanation>Be verbose</explanation>
       <argument>-c</argument>
       <explanation>Do not try to load the xfmfile, just copy name</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>output volume</output>
   </outputs>
 	<example>*******************************************</example>
   <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>*****************************************************</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>*****************************************************</see-also>
 </help>
-

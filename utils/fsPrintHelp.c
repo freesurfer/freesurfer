@@ -2,16 +2,17 @@
  * @file  fsPrintHelp.c
  * @brief utility to read an .xml file and output it in a readable format
  *
+ * routines for printing of help text formated in xml
  */
 /*
  * Original Author: Greg Terrono
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/01/05 03:18:18 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/02/07 00:40:52 $
+ *    $Revision: 1.7 $
  *
- * Copyright (C) 2010,
- * The General Hospital Corporation (Boston, MA). 
+ * Copyright (C) 2010-2011,
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -24,7 +25,7 @@
  */
 
 //-------------------------------------------------------------------
- 
+
 #include <libxml/parser.h>
 #include <libxml/tree.h>
 #include <libxml/xinclude.h>
@@ -32,21 +33,6 @@
 #include <string.h>
 #include <ctype.h>
 #include "utils.h"
-
-#ifdef BUILD_MAIN
-//-------------------------------------------------------------------
-int main(int argc, char *argv[])
-{
-  return outputHelp(argv[1]);
-  exit(0);
-}
-#endif
-
-/*-------------------------------------------------------------------
-
- routines for printing of help text formated in xml
-
--------------------------------------------------------------------*/
 
 static void toUpperCase(char *sPtr);
 static void printName(xmlNodePtr cur);
@@ -64,26 +50,26 @@ int outputHelpDoc(const xmlDocPtr doc)
   if (cur == NULL)
   {
     fprintf(stderr,"Empty document.\n");
-		xmlFreeDoc(doc);
-		return -1;
-	}
+    xmlFreeDoc(doc);
+    return -1;
+  }
 
   //Catches the error of passing a document with a different root tag
-  if (!tagNameIs("help",cur)) 
+  if (!tagNameIs("help",cur))
   {
-		fprintf(stderr,
+    fprintf(stderr,
             "Document id of the wrong type,the root node is not help.\n");
-		xmlFreeDoc(doc);
-		return -1;
-	}
+    xmlFreeDoc(doc);
+    return -1;
+  }
 
   cur=cur->xmlChildrenNode;
 
   printf("\t\t\t\tHelp");
-  
+
   int exampleNum=1;
   //Outputs the file
-  while (cur != NULL) 
+  while (cur != NULL)
   {
     //Outputs the arugments of the file
     if (tagNameIs("arguments",cur))
@@ -100,19 +86,23 @@ int outputHelpDoc(const xmlDocPtr doc)
           argumentElement=argumentType->xmlChildrenNode;
           int first=1;
           while (argumentElement!=NULL)
-          { 
+          {
             if (!tagNameIs("text",argumentElement))
             {
-              if (tagNameIs("intro",argumentElement) || 
+              if (tagNameIs("intro",argumentElement) ||
                   tagNameIs("argument",argumentElement))
               {
                 if (first==1)
+                {
                   first=0;
+                }
                 else
+                {
                   printf("\n");
+                }
               }
               printContents(doc,argumentElement);
-            } 
+            }
             argumentElement= argumentElement->next;
           }
         }
@@ -125,7 +115,9 @@ int outputHelpDoc(const xmlDocPtr doc)
       printName(cur);
 
       if (tagNameIs("EXAMPLE",cur))
+      {
         printf(" %d",exampleNum++);
+      }
       if (tagNameIs("outputs", cur))
       {
         xmlNodePtr outputElement;
@@ -139,9 +131,13 @@ int outputHelpDoc(const xmlDocPtr doc)
                 tagNameIs("output",outputElement))
             {
               if (first==1)
+              {
                 first=0;
+              }
               else
+              {
                 printf("\n");
+              }
             }
             printContents(doc,outputElement);
           }
@@ -149,11 +145,13 @@ int outputHelpDoc(const xmlDocPtr doc)
         }
       }
       else
+      {
         printContents(doc,cur);
+      }
     }
     cur=cur->next;
   }
-  
+
   printf("\n\n\n");
 
   return 0; // success
@@ -171,8 +169,12 @@ int outputHelp(const char *name)
     return -1;
   }
   char *fshome = getenv("FREESURFER_HOME");
-  if (NULL == fshome) return -1;
-  char *fullname = malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml")+1);
+  if (NULL == fshome)
+  {
+    return -1;
+  }
+  char *fullname =
+    malloc(strlen(name)+strlen(fshome)+strlen("/docs/xml/.help.xml")+1);
   strcpy(fullname,fshome);
   strcat(fullname,"/docs/xml/");
   strcat(fullname,name);
@@ -184,12 +186,12 @@ int outputHelp(const char *name)
   {
     fprintf(stderr,"Document not parsed successfully. \n");
     return -1;
-	}
+  }
 
   return outputHelpDoc(doc);
 }
 
-int outputHelpMemory(const unsigned char *text, unsigned int size)
+int outputHelpXml(const unsigned char *text, unsigned int size)
 // load and parse xml doc from memory
 {
   xmlDocPtr doc;
@@ -208,12 +210,12 @@ int outputHelpMemory(const unsigned char *text, unsigned int size)
   {
     fprintf(stderr,"Document not parsed successfully. \n");
     return -1;
-	}
+  }
 
   return outputHelpDoc(doc);
 }
 
-//Changes a string to unpper case
+//Changes a string to upper case
 static void toUpperCase(char *c)
 {
   int i;
@@ -238,7 +240,9 @@ static void replaceUnderscore(char *c)
 {
   char *pos=strchr(c, '_');
   if (pos!=NULL)
+  {
     *pos=' ';
+  }
 }
 
 //Prints the text of a tag in the corect format
@@ -258,12 +262,14 @@ static void printContents(xmlDocPtr doc, xmlNodePtr cur)
       tabNum=2;
     }
     if (*(contents+i)==' ')
+    {
       i++;
-    for(j=i; 
+    }
+    for(j=i;
         j< 78-tabNum*8+i &&
-          j<strlen((char *)contents) &&
-          (wrdLen((char *)(contents+j))>78-tabNum*8 ||
-           wrdLen((char *)(contents+j))<=78-tabNum*8+i-j); j++)
+        j<strlen((char *)contents) &&
+        (wrdLen((char *)(contents+j))>78-tabNum*8 ||
+         wrdLen((char *)(contents+j))<=78-tabNum*8+i-j); j++)
     {
       if (*(contents+j)=='\n')
       {
@@ -271,10 +277,14 @@ static void printContents(xmlDocPtr doc, xmlNodePtr cur)
         break;
       }
       else if (wrdLen((char *)(contents+j))>78-tabNum*8)
-        for(j=j;j<78-tabNum*8+i;j++)
+        for(j=j; j<78-tabNum*8+i; j++)
+        {
           printf("%c",*(contents+j));
+        }
       else
+      {
         printf("%c",*(contents+j));
+      }
     }
     i=j;
   }
@@ -295,8 +305,19 @@ static int wrdLen(char *c)
   int i;
   for (i=0; i<strlen(c); i++)
     if (*(c+i)==' '||*(c+i)=='_'||*(c+i)=='/')
+    {
       return i;
+    }
   return i;
 }
 
+
+#ifdef BUILD_MAIN
+//-------------------------------------------------------------------
+int main(int argc, char *argv[])
+{
+  return outputHelp(argv[1]);
+  exit(0);
+}
+#endif
 

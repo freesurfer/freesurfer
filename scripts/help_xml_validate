@@ -1,0 +1,5 @@
+#! /bin/tcsh -ef
+
+foreach f (`ls *.help.xml`)
+  xmllint --noout --postvalid $f
+end

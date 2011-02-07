@@ -26,7 +26,7 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_mri_ca_normalize
+TESTS=test_mri_ca_normalize $(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=testdata.tar.gz test_mri_ca_normalize $(foo_DATA)
 
@@ -35,3 +35,6 @@ EXTRA_DIST=testdata.tar.gz test_mri_ca_normalize $(foo_DATA)
 # release' target.
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mri_ca_normalize.help.xml.h
+

@@ -9,7 +9,8 @@ if HAVE_MAC_OSX
 AM_LDFLAGS=-framework veclib
 endif
 
-BUILT_SOURCES=mri_robust_template.help.h mri_robust_register.help.h
+BUILT_SOURCES=mri_robust_template.help.xml.h \
+	mri_robust_register.help.xml.h
 
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_robust_template.help.xml mri_robust_register.help.xml
@@ -60,6 +61,7 @@ foo:
 check_PROGRAMS=foo
 
 #TESTS=test_mri_robust_template
+TESTS=$(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=Regression.h Regression.cpp Registration.h RegistrationStep.h \
 	MultiRegistration.h Quaternion.h RobustGaussian.cpp RegPowell.cpp \

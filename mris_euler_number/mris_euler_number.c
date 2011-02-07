@@ -1,18 +1,17 @@
 /**
  * @file  mris_euler_number.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief calculates the Euler number of a surface (=2 if perfect)
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:30:21 $
- *    $Revision: 1.6 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:48 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,10 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
 
 
 #include <stdio.h>
@@ -42,7 +39,8 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_euler_number.c,v 1.6 2010/08/12 17:30:21 gregt Exp $";
+static char vcid[] =
+  "$Id: mris_euler_number.c,v 1.7 2011/02/07 00:40:48 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,15 +56,21 @@ static float curv_thresh = 2.0f ;
 static int patch_flag = 0 ;
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         **av, *in_fname, fname[100] ;
   int          ac, nargs, nvertices, nfaces, nedges, eno, dno ;
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_euler_number.c,v 1.6 2010/08/12 17:30:21 gregt Exp $", "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mris_euler_number.c,v 1.7 2011/02/07 00:40:48 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Progname = argv[0] ;
@@ -75,14 +79,17 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc < 2)
+  {
     usage_exit() ;
+  }
 
   in_fname = argv[1] ;
 
@@ -104,7 +111,8 @@ main(int argc, char *argv[]) {
   dno = MRIStopologicalDefectIndex(mris) ;
   fprintf(stderr, "\ntotal defect index = %d\n", dno) ;
 
-  if (patch_flag) {
+  if (patch_flag)
+  {
     MRISremoveTopologicalDefects(mris, curv_thresh) ;
     fprintf(stderr, "\nafter editing:\n") ;
 
@@ -136,16 +144,22 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     print_help() ;
+  }
   else if (!stricmp(option, "-version"))
+  {
     print_version() ;
-  else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'P':
       patch_flag = 1 ;
       break ;
@@ -169,33 +183,30 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
+  print_usage() ;
+  exit(1) ;
+}
+
+#include "mris_euler_number.help.xml.h"
+static void
+print_usage(void)
+{
+  outputHelpXml(mris_euler_number_help_xml,
+                mris_euler_number_help_xml_len);
+}
+
+static void
+print_help(void)
+{
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
-  outputHelp(Progname);
-
-#ifdef GREGT
-  fprintf(stderr, "usage: %s [options] <input surface file>\n", Progname) ;
-#endif
-}
-
-static void
-print_help(void) {
-  print_usage() ;
-#ifdef GREGT
-  fprintf(stderr,
-          "\nThis program will compute the euler number of a cortical surface.\n");
-  fprintf(stderr, "\nvalid options are:\n\n") ;
-#endif
-  exit(1) ;
-}
-
-static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

@@ -1,18 +1,17 @@
 /**
  * @file  mris_remove_intersection.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief removes surface intersections
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:41:48 $
- *    $Revision: 1.4 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:48 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,11 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -46,7 +42,7 @@
 #include "version.h"
 
 static char vcid[]=
-  "$Id: mris_remove_intersection.c,v 1.4 2010/08/12 17:41:48 gregt Exp $";
+  "$Id: mris_remove_intersection.c,v 1.5 2011/02/07 00:40:48 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -58,7 +54,8 @@ static void print_version(void) ;
 
 char *Progname ;
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   char         **av, *in_surf_fname, *out_fname ;
   int          ac, nargs, msec ;
   MRI_SURFACE  *mris ;
@@ -68,16 +65,18 @@ int main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_remove_intersection.c,v 1.4 2010/08/12 17:41:48 gregt Exp $",
+   "$Id: mris_remove_intersection.c,v 1.5 2011/02/07 00:40:48 nicks Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_remove_intersection.c,v 1.4 2010/08/12 17:41:48 gregt Exp $",
+           "$Id: mris_remove_intersection.c,v 1.5 2011/02/07 00:40:48 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Gdiag = DIAG_SHOW ;
@@ -89,14 +88,17 @@ int main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc < 3)
+  {
     usage_exit() ;
+  }
 
   in_surf_fname = argv[1] ;
   out_fname = argv[2] ;
@@ -128,16 +130,22 @@ int main(int argc, char *argv[]) {
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     print_help() ;
+  }
   else if (!stricmp(option, "-version"))
+  {
     print_version() ;
-  else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
@@ -158,35 +166,30 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
+  print_usage() ;
+  exit(1) ;
+}
+
+#include "mris_remove_intersection.help.xml.h"
+static void
+print_usage(void)
+{
+  outputHelpXml(mris_remove_intersection_help_xml,
+                mris_remove_intersection_help_xml_len);
+}
+
+static void
+print_help(void)
+{
   print_usage() ;
   exit(1) ;
 }
 
 static void
-print_usage(void) {
-  outputHelp(Progname);
-
-#ifdef GREGT
-  fprintf(stderr,
-          "usage: %s [options] <surface in-file> <corrected surface out-file>"
-          "\n", Progname) ;
-#endif
-}
-
-static void
-print_help(void) {
-  print_usage() ;
-#ifdef GREGT
-  fprintf(stderr,
-          "\nThis program will remove intersecting vertices, if any, "
-          "from the surface.\n");
-#endif
-  exit(1) ;
-}
-
-static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }

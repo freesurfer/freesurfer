@@ -9,12 +9,12 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/10/05 13:10:25 $
- *    $Revision: 1.38 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:47 $
+ *    $Revision: 1.39 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_SEGMENT_VERSION = "$Revision: 1.38 $";
+const char *MRI_SEGMENT_VERSION = "$Revision: 1.39 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,7 +108,8 @@ static int MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst,
 #endif
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   MRI     *mri_src, *mri_dst, *mri_tmp, *mri_labeled, *mri_labels;
   char    *input_file_name, *output_file_name ;
   int     nargs, i, msec ;
@@ -120,25 +121,31 @@ main(int argc, char *argv[]) {
   TAGmakeCommandLineString(argc, argv, cmdline) ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mri_segment.c,v 1.38 2010/10/05 13:10:25 fischl Exp $", 
-     "$Name:  $");
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mri_segment.c,v 1.39 2011/02/07 00:40:47 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Progname = argv[0] ;
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
-  if (argc < 3) usage_exit(1);
+  if (argc < 3)
+  {
+    usage_exit(1);
+  }
 
   TimerStart(&then) ;
   input_file_name = argv[1] ;
@@ -158,7 +165,8 @@ main(int argc, char *argv[]) {
     mri_src = mri_tmp ;
   }
 
-  if (thicken > 1) {
+  if (thicken > 1)
+  {
     mri_dst = MRIcopy(mri_src, NULL) ;
     /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
     fprintf(stderr, "removing 1-dimensional structures...\n") ;
@@ -174,20 +182,27 @@ main(int argc, char *argv[]) {
   }
 
   mri_labels = MRIclone(mri_src, NULL) ;
-  if (auto_detect_stats && !wm_low_set) /* widen range to allow 
+  if (auto_detect_stats && !wm_low_set) /* widen range to allow
                                            for more variability */
+  {
     wm_low -= 10 ;
+  }
   fprintf(stderr, "doing initial intensity segmentation...\n") ;
   mri_tmp = MRIintensitySegmentation(mri_src, NULL, wm_low, wm_hi, gray_hi);
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_tmp, "tmp1.mgz") ;
+  }
   fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
   MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_tmp, "tmp2.mgz") ;
+  }
 
-  if (auto_detect_stats) {
+  if (auto_detect_stats)
+  {
 
     fprintf(stderr, "computing class statistics for intensity windows...\n") ;
     MRIcomputeClassStatistics(mri_src, mri_tmp, gray_low, WHITE_MATTER_MEAN,
@@ -196,32 +211,42 @@ main(int argc, char *argv[]) {
     if (!finite(white_mean) || !finite(white_sigma) ||
         !finite(gray_mean) || !finite(gray_sigma))
       ErrorExit
-        (ERROR_BADPARM, 
-         "%s: class statistics not finite - check input volume!", 
-         Progname);
+      (ERROR_BADPARM,
+       "%s: class statistics not finite - check input volume!",
+       Progname);
 
-    if (!wm_low_set) {
+    if (!wm_low_set)
+    {
       if (FZERO(gray_sigma))
+      {
         wm_low = (white_mean+gray_mean) / 2 ;
+      }
       else
+      {
         wm_low = gray_mean + gray_sigma ;
+      }
     }
 
-    if (!gray_hi_set) {
+    if (!gray_hi_set)
+    {
       gray_hi = gray_mean + 2*gray_sigma ;
 #if 1
       if (gray_hi >= white_mean)
+      {
         gray_hi = white_mean-1 ;
+      }
 #endif
     }
     fprintf(stderr, "setting bottom of white matter range to %2.1f\n",wm_low);
     fprintf(stderr, "setting top of gray matter range to %2.1f\n", gray_hi) ;
 
-    if (log_stats) {
+    if (log_stats)
+    {
       FILE *fp ;
 
       fp = fopen("segment.dat", "w") ;
-      if (fp) {
+      if (fp)
+      {
         fprintf(fp, "WM: %2.1f +- %2.1f\n",white_mean, white_sigma) ;
         fprintf(fp, "GM: %2.1f +- %2.1f\n",gray_mean, gray_sigma) ;
         fprintf(fp, "setting bottom of white matter range to %2.1f\n",wm_low);
@@ -235,7 +260,9 @@ main(int argc, char *argv[]) {
 
     fprintf(stderr, "using local statistics to label ambiguous voxels...\n") ;
     MRIhistoSegment(mri_src, mri_tmp, wm_low, wm_hi, gray_hi, wsize, 3.0f) ;
-  } else {
+  }
+  else
+  {
     /* just some not-too-dopey defaults - won't really be used */
     white_mean =  110 ;
     white_sigma = 5.0 ;
@@ -255,7 +282,8 @@ main(int argc, char *argv[]) {
     classifier at each point in space and reclassify all voxels in the
     range [wm_low-5,gray_hi].
     */
-  for (i = 0 ; i < niter ; i++) {
+  for (i = 0 ; i < niter ; i++)
+  {
     MRIreclassify(mri_src, mri_labeled, mri_labeled, wm_low-5,gray_hi,wsize);
   }
   MRIfree(&mri_tmp) ;
@@ -272,7 +300,8 @@ main(int argc, char *argv[]) {
   MRIremoveWrongDirection(mri_dst, mri_dst, 3, wm_low-5, gray_hi, NULL) ;
 #endif
 
-  if (thicken) {
+  if (thicken)
+  {
     /*    MRIfilterMorphology(mri_dst, mri_dst) ;*/
     fprintf(stderr, "removing 1-dimensional structures...\n") ;
     MRIremove1dStructures(mri_dst, mri_dst, 10000, 2, mri_labels) ;
@@ -289,11 +318,13 @@ main(int argc, char *argv[]) {
   MRImaskLabels(mri_dst, mri_tmp, mri_dst) ;
   MRIfilterMorphology(mri_dst, mri_dst) ;
 
-  if (fill_bg) {
+  if (fill_bg)
+  {
     fprintf(stderr, "filling basal ganglia....\n") ;
     MRIfillBasalGanglia(mri_src, mri_dst) ;
   }
-  if (fill_ventricles) {
+  if (fill_ventricles)
+  {
     fprintf(stderr, "filling ventricles....\n") ;
     MRIfillVentricles(mri_dst, mri_dst) ;
   }
@@ -304,16 +335,20 @@ main(int argc, char *argv[]) {
   fprintf(stderr, "white matter segmentation took %2.1f minutes\n",
           (float)msec/(1000.0f*60.0f));
   fprintf(stderr, "writing output to %s...\n", output_file_name) ;
-  if (keep_edits) {
+  if (keep_edits)
+  {
     MRI *mri_old ;
 
     mri_old = MRIread(output_file_name) ;
-    if (!mri_old) {
+    if (!mri_old)
+    {
       ErrorPrintf
       (ERROR_NOFILE, "%s: could not read file %s to preserve edits",
        Progname, output_file_name) ;
       exit(1);
-    } else {
+    }
+    else
+    {
       MRIcopyLabel(mri_old, mri_dst, WM_EDITED_ON_VAL) ;
       MRIcopyLabel(mri_old, mri_dst, WM_EDITED_OFF_VAL) ;
       MRIfree(&mri_old) ;
@@ -334,98 +369,142 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  if (!strcasecmp(option, "-version")) {
+  if (!strcasecmp(option, "-version"))
+  {
     fprintf(stderr, "Version: %s\n", MRI_SEGMENT_VERSION);
     exit(0);
-  } else if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
+  }
+  else if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     usage_exit(0);
-  } else if (!stricmp(option, "MGH_MPRAGE") || !stricmp(option, "MPRAGE")) {
+  }
+  else if (!stricmp(option, "MGH_MPRAGE") || !stricmp(option, "MPRAGE"))
+  {
     scan_type = MRI_MGH_MPRAGE;
     printf("assuming input volume is MGH (Van der Kouwe) MP-RAGE\n") ;
     gray_hi = 99 ;
     wm_low = 89 ;
-  } else if (!stricmp(option, "WASHU_MPRAGE")) {
+  }
+  else if (!stricmp(option, "WASHU_MPRAGE"))
+  {
     scan_type = MRI_WASHU_MPRAGE;
     printf("assuming input volume is WashU MP-RAGE (dark GM)\n") ;
     gray_hi = 85 ;
     wm_low = 80 ;
-  } else if (!stricmp(option, "slope")) {
+  }
+  else if (!stricmp(option, "slope"))
+  {
     nslope = pslope = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using curvature slope = %2.2f\n", pslope) ;
-  } else if (!stricmp(option, "pslope")) {
+  }
+  else if (!stricmp(option, "pslope"))
+  {
     pslope = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using curvature pslope = %2.2f\n", pslope) ;
-  } else if (!stricmp(option, "debug_voxel")) {
+  }
+  else if (!stricmp(option, "debug_voxel"))
+  {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     fprintf(stderr, "debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
-  } else if (!stricmp(option, "auto")) {
+  }
+  else if (!stricmp(option, "auto"))
+  {
     auto_detect_stats = !auto_detect_stats ;
     fprintf(stderr, "%sautomatically detecting class statistics...\n",
             auto_detect_stats ? "" : "not ") ;
-  } else if (!stricmp(option, "noauto")) {
+  }
+  else if (!stricmp(option, "noauto"))
+  {
     auto_detect_stats = 0 ;
     fprintf(stderr, "%sautomatically detecting class statistics...\n",
             auto_detect_stats ? "" : "not ") ;
-  } else if (!stricmp(option, "log")) {
+  }
+  else if (!stricmp(option, "log"))
+  {
     log_stats = 1 ;
     fprintf(stderr, "logging class statistics and thresholds...\n") ;
-  } else if (!stricmp(option, "keep")) {
+  }
+  else if (!stricmp(option, "keep"))
+  {
     keep_edits = 1 ;
     fprintf(stderr, "preserving editing changes in output volume...\n");
-  } else if (!stricmp(option, "nslope")) {
+  }
+  else if (!stricmp(option, "nslope"))
+  {
     nslope = atof(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using curvature nslope = %2.2f\n", nslope) ;
-  } else if (!stricmp(option, "ghi") || !stricmp(option, "gray_hi")) {
+  }
+  else if (!stricmp(option, "ghi") || !stricmp(option, "gray_hi"))
+  {
     gray_hi = atof(argv[2]) ;
     gray_hi_set = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using gray hilim = %2.1f\n", gray_hi) ;
-  } else if (!stricmp(option, "glo") || !stricmp(option, "gray_low")) {
+  }
+  else if (!stricmp(option, "glo") || !stricmp(option, "gray_low"))
+  {
     gray_low = atof(argv[2]) ;
     gray_low_set = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using gray low limit = %2.1f\n", gray_low) ;
-  } else if (!stricmp(option, "wlo") || !stricmp(option, "wm_low")) {
+  }
+  else if (!stricmp(option, "wlo") || !stricmp(option, "wm_low"))
+  {
     wm_low = atof(argv[2]) ;
     wm_low_set = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using white lolim = %2.1f\n", wm_low) ;
-  } else if (!stricmp(option, "whi") || !stricmp(option, "wm_hi")) {
+  }
+  else if (!stricmp(option, "whi") || !stricmp(option, "wm_hi"))
+  {
     wm_hi = atof(argv[2]) ;
     wm_hi_set = 1 ;
     nargs = 1 ;
     fprintf(stderr, "using white hilim = %2.1f\n", wm_hi) ;
-  } else if (!stricmp(option, "nseg")) {
+  }
+  else if (!stricmp(option, "nseg"))
+  {
     nsegments = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"thickening the %d largest thin strands\n",
             nsegments) ;
-  } else if (!stricmp(option, "thicken")) {
+  }
+  else if (!stricmp(option, "thicken"))
+  {
     thicken = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"%sthickening thin strands\n", thicken ? "" : "not ") ;
-  } else if (!stricmp(option, "thickenonly")) {
+  }
+  else if (!stricmp(option, "thickenonly"))
+  {
     thicken = 2 ;
     fprintf(stderr,"%sthickening thin strands\n", thicken ? "" : "not ") ;
-  } else if (!stricmp(option, "fillbg") || !stricmp(option, "fill_bg")) {
+  }
+  else if (!stricmp(option, "fillbg") || !stricmp(option, "fill_bg"))
+  {
     fill_bg = !fill_bg ;
     fprintf(stderr,"%sfilling basal ganglia\n", fill_bg ? "" : "not ") ;
-  } else if (!stricmp(option, "fillv") || 
-             !stricmp(option, "fill_ventricles")) {
+  }
+  else if (!stricmp(option, "fillv") ||
+           !stricmp(option, "fill_ventricles"))
+  {
     fill_ventricles = !fill_ventricles ;
     fprintf(stderr,"%sfilling ventricles\n", fill_ventricles ? "" : "not ") ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'B':
       blur_sigma = atof(argv[1]) ;
       break ;
@@ -475,7 +554,8 @@ get_option(int argc, char *argv[]) {
 
 MRI *
 MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
-                        float low_thresh, float hi_thresh, MRI *mri_labels) {
+                        float low_thresh, float hi_thresh, MRI *mri_labels)
+{
   MRI  *mri_kernel, *mri_smooth ;
   int  x, y, z, width, height, depth, val, nchanged, ntested ;
   float dir /*, d2I_dg2*/ ;
@@ -487,26 +567,39 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
   MRIfree(&mri_kernel) ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIclone(mri_src, NULL) ;
+  }
 
   nchanged = ntested = 0 ;
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         if (z == 101 && y == 133 && x == 152)
+        {
           DiagBreak() ;
+        }
         if (z == 87 && y == 88 && x == 163)
+        {
           DiagBreak() ;
+        }
         if (z == 88 && y == 89 && x == 163)
+        {
           DiagBreak() ;
+        }
         val = MRIgetVoxVal(mri_src, x, y, z, 0) ;
-        if (val >= low_thresh && val <= hi_thresh) {
+        if (val >= low_thresh && val <= hi_thresh)
+        {
           ntested++ ;
           dir = MRIvoxelDirection(mri_smooth, x, y, z, wsize) ;
-          if (dir > 0.0) {
+          if (dir > 0.0)
+          {
 #if 0
             d2I_dg2 = MRIvoxelGradientDir2ndDerivative(mri_smooth,x,y,z,wsize);
             if (d2I_dg2 < 0)
@@ -515,7 +608,9 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
               nchanged++ ;
               val = 0 ;
               if (mri_labels)
+              {
                 MRIsetVoxVal(mri_labels, x, y, z, 0, 255) ;
+              }
             }
           }
         }
@@ -524,7 +619,8 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
     }
   }
 
-  if (Gdiag & DIAG_SHOW) {
+  if (Gdiag & DIAG_SHOW)
+  {
     fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
             ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
     fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
@@ -537,10 +633,11 @@ MRIremoveWrongDirection(MRI *mri_src, MRI *mri_dst, int wsize,
 
 
 MRI *
-MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
+MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst)
+{
   float  low_thresh, hi_thresh ;
   int    total_filled, depth, height, width, x, y, z,
-  xi, yi, zi, xk, yk, zk, fill, val0, val, i ;
+         xi, yi, zi, xk, yk, zk, fill, val0, val, i ;
   MRI    *mri_bg ;
   Real   tx, ty, tz ;
   MRI_SEGMENTATION  *mriseg ;
@@ -548,7 +645,9 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
   float  dx_left, dx_right, dy, dz, dist_left, dist_right ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIcopy(mri_src, NULL) ;
+  }
   mri_bg = MRIclone(mri_src, NULL) ;
 
   width = mri_src->width ;
@@ -557,11 +656,16 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
   low_thresh = 85 ;
   hi_thresh =  105 ;
   total_filled = 0 ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         if (x == 152 && y == 117 && z == 132)  /* 93 */
+        {
           DiagBreak() ;
+        }
         val0 = MRIgetVoxVal(mri_src, x, y, z, 0) ;
 #if 0
         if (val0 >= low_thresh && val0 <= hi_thresh &&
@@ -575,25 +679,36 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
 #define WSIZE   7
 #define WHALF  ((WSIZE-1)/2)
           fill = 1 ;
-          for (zk = -WHALF ; fill && zk <= WHALF ; zk++) {
+          for (zk = -WHALF ; fill && zk <= WHALF ; zk++)
+          {
             zi = mri_src->zi[z+zk] ;
-            for (yk = -WHALF ; fill && yk <= WHALF ; yk++) {
+            for (yk = -WHALF ; fill && yk <= WHALF ; yk++)
+            {
               yi = mri_src->yi[y+yk] ;
-              for (xk = -WHALF ; fill && xk <= WHALF ; xk++) {
+              for (xk = -WHALF ; fill && xk <= WHALF ; xk++)
+              {
                 xi = mri_src->xi[x+xk] ;
                 val = MRIgetVoxVal(mri_src, xi, yi, zi, 0) ;
                 if (val < 85 || val > 110)
-                  fill = 0 ;   /* not homogeneous enough */
+                {
+                  fill = 0 ;  /* not homogeneous enough */
+                }
               }
             }
           }
         }
         else
+        {
           fill = 0 ;
+        }
         if (fill)
+        {
           total_filled++ ;
+        }
         if (fill)
+        {
           MRIsetVoxVal(mri_bg, x, y, z, 0, BASAL_GANGLIA_FILL) ;
+        }
       }
     }
   }
@@ -607,11 +722,14 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
 
   /* dilate into regions that are not on */
   for (i = 0 ; i < 2*WSIZE ; i++)
+  {
     MRIsegmentDilateThreshold(mriseg, mri_src, mri_src, 80, 100) ;
+  }
 
   /* fill basal ganglia components */
   MRIclear(mri_bg) ;
-  for (total_filled = i = 0 ; i < mriseg->nsegments ; i++) {
+  for (total_filled = i = 0 ; i < mriseg->nsegments ; i++)
+  {
 #define TAL_BG_LEFT_X    -30
 #define TAL_BG_RIGHT_X   30
 #define TAL_BG_Y         5
@@ -627,7 +745,9 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
     dist_left = sqrt(dx_left*dx_left+dy*dy+dz*dz) ;
     dist_right = sqrt(dx_right*dx_right+dy*dy+dz*dz) ;
     if (dist_left > MAX_DIST && dist_right > MAX_DIST)
+    {
       continue ;
+    }
     fprintf(stderr, "filling segment %d with %d voxels\n\tc = "
             "(%2.1f,%2.1f,%2.1f) tal (%2.1f,%2.1f,%2.1f), dist %2.1f,%2.1f\n",
             i, mseg->nvoxels, mseg->cx, mseg->cy, mseg->cz,
@@ -645,19 +765,24 @@ MRIfillBasalGanglia(MRI *mri_src, MRI *mri_dst) {
   MRIunion(mri_dst, mri_bg, mri_dst) ;
   MRIfree(&mri_bg) ;
   if (Gdiag & DIAG_SHOW)
+  {
     fprintf(stderr, "%d basal ganglia points filled\n", total_filled);
+  }
 
   return(mri_dst) ;
 }
 
 MRI *
-MRIfilterMorphology(MRI *mri_src, MRI *mri_dst) {
+MRIfilterMorphology(MRI *mri_src, MRI *mri_dst)
+{
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, nsix, nvox,
-  total ;
+          total ;
   BUFTYPE val ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIclone(mri_src, NULL) ;
+  }
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -666,56 +791,95 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst) {
   /*  mri_dst = MRIremove1dStructures(mri_src, mri_dst, 10000, 2) ;*/
 
   total = 0 ;
-  do {
+  do
+  {
     nvox = 0 ;
-    for (z = 0 ; z < depth ; z++) {
-      for (y = 0 ; y < height ; y++) {
-        for (x = 0 ; x < width ; x++) {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
           val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
           if (x == 159 && y == 138 && z == 101)
+          {
             DiagBreak() ;
+          }
           if (val < WM_MIN_VAL)
+          {
             continue ;
+          }
           nsix = 0 ;
-          for (zk = -1 ; zk <= 1 ; zk++) {
-            for (yk = -1 ; yk <= 1 ; yk++) {
-              for (xk = -1 ; xk <= 1 ; xk++) {
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
                 if ((fabs(xk) + fabs(yk) + fabs(zk)) <= 1)
+                {
                   continue ;
+                }
                 xi = mri_dst->xi[x+xk] ;
                 yi = mri_dst->yi[y+yk] ;
                 zi = mri_dst->zi[z+zk] ;
                 if (xi == 159 && yi == 138 && zi == 101)
+                {
                   DiagBreak() ;
-                if (MRIgetVoxVal(mri_dst, xi, yi, zi, 0) >= WM_MIN_VAL) {
+                }
+                if (MRIgetVoxVal(mri_dst, xi, yi, zi, 0) >= WM_MIN_VAL)
+                {
                   if (xk && MRIgetVoxVal(mri_dst, xi, y, z, 0) >= WM_MIN_VAL)
+                  {
                     continue ;
+                  }
                   if (yk && MRIgetVoxVal(mri_dst, x, yi, z, 0) >= WM_MIN_VAL)
+                  {
                     continue ;
+                  }
                   if (zk && MRIgetVoxVal(mri_dst, x, y, zi, 0) >= WM_MIN_VAL)
+                  {
                     continue ;
-                  if (xk) {
+                  }
+                  if (xk)
+                  {
                     if (xi == 141 && y == 132 && z == 30)
+                    {
                       DiagBreak() ;
+                    }
                     MRIsetVoxVal(mri_dst, xi, y, z, 0, DIAGONAL_FILL) ;
                     if (is_diagonal(mri_dst, xi, y, z))
+                    {
                       MRIsetVoxVal(mri_dst, xi, y, z, 0, 0) ;
+                    }
                     else
+                    {
                       nvox++ ;
+                    }
                   }
-                  if (yk) {
+                  if (yk)
+                  {
                     MRIsetVoxVal(mri_dst, x, yi, z, 0, DIAGONAL_FILL) ;
                     if (is_diagonal(mri_dst, x, yi, z))
+                    {
                       MRIsetVoxVal(mri_dst, x, yi, z, 0, 0) ;
+                    }
                     else
+                    {
                       nvox++ ;
+                    }
                   }
-                  if (zk) {
+                  if (zk)
+                  {
                     MRIsetVoxVal(mri_dst, x, y, zi, 0, DIAGONAL_FILL) ;
                     if (is_diagonal(mri_dst, x, y, zi))
+                    {
                       MRIsetVoxVal(mri_dst, x, y, zi, 0, 0) ;
+                    }
                     else
+                    {
                       nvox++ ;
+                    }
                   }
                 }
               }
@@ -725,7 +889,8 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst) {
       }
     }
     total += nvox ;
-  } while (nvox > 0) ;
+  }
+  while (nvox > 0) ;
   fprintf(stderr, "%d diagonally connected voxels added...\n", total) ;
 
   return(mri_dst) ;
@@ -733,13 +898,16 @@ MRIfilterMorphology(MRI *mri_src, MRI *mri_dst) {
 
 MRI *
 MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh,
-                      MRI *mri_labels) {
+                      MRI *mri_labels)
+{
   int     width, height, depth, x, y, z, xk, yk, zk, xi, yi, zi, nsix, nvox,
-  total, niter ;
+          total, niter ;
   BUFTYPE val ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIclone(mri_src, NULL) ;
+  }
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -748,84 +916,129 @@ MRIremove1dStructures(MRI *mri_src, MRI *mri_dst, int max_iter, int thresh,
   MRIcopy(mri_src, mri_dst) ;
 
   if (max_iter == 0)
+  {
     max_iter = 1000 ;
+  }
 
   niter = total = 0 ;
-  do {
+  do
+  {
     nvox = 0 ;
-    for (z = 0 ; z < depth ; z++) {
-      for (y = 0 ; y < height ; y++) {
-        for (x = 0 ; x < width ; x++) {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
           val = MRIgetVoxVal(mri_dst, x, y, z, 0) ;
           nsix = 0 ;
           if (val < WM_MIN_VAL)
+          {
             continue ;
+          }
 
-          for (zk = -1 ; zk <= 1 ; zk++) {
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
             zi = z+zk ;
             if (zi < 0 || zi >= depth)
+            {
               continue ;
-            for (yk = -1 ; yk <= 1 ; yk++) {
+            }
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
               yi = y+yk ;
               if (yi < 0 || yi >= height)
+              {
                 continue ;
-              for (xk = -1 ; xk <= 1 ; xk++) {
+              }
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
 #if 0
                 if ((z == 124 || z == 125) && y == 162 && x == 158)
+                {
                   DiagBreak() ;
+                }
                 else
 #endif
                   if ((fabs(xk) + fabs(yk) + fabs(zk)) != 1)
+                  {
                     continue ;
+                  }
                 xi = x+xk ;
                 if (xi < 0 || xi >= width)
+                {
                   continue ;
+                }
                 if (MRIgetVoxVal(mri_dst, xi, yi, zi,0) >= WM_MIN_VAL)
+                {
                   nsix++ ;
+                }
               }
             }
           }
-          if (nsix < thresh && val >= WM_MIN_VAL) {
+          if (nsix < thresh && val >= WM_MIN_VAL)
+          {
             if ((z == 124 || z == 125) && y == 162 && x == 158)
+            {
               DiagBreak() ;
+            }
             nvox++ ;
             MRIsetVoxVal(mri_dst, x, y, z, 0, 0) ;
             if (mri_labels)
+            {
               MRIsetVoxVal(mri_labels,x,y,z,0,255) ;
+            }
           }
         }
       }
     }
     total += nvox ;
-  } while (nvox > 0 || ++niter > max_iter) ;
+  }
+  while (nvox > 0 || ++niter > max_iter) ;
 
   if (width == 256)
+  {
     fprintf(stderr, "%d sparsely connected voxels removed...\n", total) ;
+  }
 
   return(mri_dst) ;
 }
 
 static int
-is_diagonal(MRI *mri, int x, int y, int z) {
+is_diagonal(MRI *mri, int x, int y, int z)
+{
   int xk, yk, zk, xi, yi, zi ;
 
-  for (zk = -1 ; zk <= 1 ; zk++) {
-    for (yk = -1 ; yk <= 1 ; yk++) {
-      for (xk = -1 ; xk <= 1 ; xk++) {
+  for (zk = -1 ; zk <= 1 ; zk++)
+  {
+    for (yk = -1 ; yk <= 1 ; yk++)
+    {
+      for (xk = -1 ; xk <= 1 ; xk++)
+      {
         if ((fabs(xk) + fabs(yk) + fabs(zk)) <= 1)
+        {
           continue ;
+        }
         xi = mri->xi[x+xk] ;
         yi = mri->yi[y+yk] ;
         zi = mri->zi[z+zk] ;
         if (!MRIgetVoxVal(mri, xi, yi, zi, 0))
-          continue ;   /* not a diagonal */
+        {
+          continue ;  /* not a diagonal */
+        }
 
         if (xk && MRIgetVoxVal(mri, xi, y, z, 0) >= WM_MIN_VAL)
-          continue ;   /* not a diagonal */
+        {
+          continue ;  /* not a diagonal */
+        }
         if (yk && MRIgetVoxVal(mri, x, yi, z, 0) >= WM_MIN_VAL)
+        {
           continue ;  /* not a diagonal */
+        }
         if (zk && MRIgetVoxVal(mri, x, y, zi, 0) >= WM_MIN_VAL)
+        {
           continue ;  /* not a diagonal */
+        }
         return(1) ;   /* found a diagonal with no 4-connection */
       }
     }
@@ -835,7 +1048,8 @@ is_diagonal(MRI *mri, int x, int y, int z) {
 
 
 MRI *
-MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
+MRIfillVentricles(MRI *mri_src, MRI *mri_dst)
+{
   int     width, height, depth, x, y, z, xk, yk, xi, yi, nfilled, total, s ;
   MRI     *mri_filled, *mri_ventricles = NULL ;
   MRI_SEGMENTATION *mriseg ;
@@ -843,7 +1057,9 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
   Real    xt, yt, zt ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIclone(mri_src, NULL) ;
+  }
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -856,19 +1072,27 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
                    VENTRICLE_FILL-1) ;
 
   /* first fill each coronal slice starting from a background seed */
-  for (z = 0 ; z < depth ; z++) {
+  for (z = 0 ; z < depth ; z++)
+  {
     total = 0 ;
-    do {
+    do
+    {
       nfilled = 0 ;
       MRIsetVoxVal(mri_filled, 0, 0, z, 0, VENTRICLE_FILL) ;
-      for (y = 0 ; y < height ; y++) {
-        for (x = 0 ; x < width ; x++) {
-          if (MRIgetVoxVal(mri_filled, x, y, z, 0) == VENTRICLE_FILL) {
-            for (yk = -1 ; yk <= 1 ; yk++) {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
+          if (MRIgetVoxVal(mri_filled, x, y, z, 0) == VENTRICLE_FILL)
+          {
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
               yi = mri_src->yi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++) {
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
                 xi = mri_src->xi[x+xk] ;
-                if (!MRIgetVoxVal(mri_filled, xi, yi, z, 0)) {
+                if (!MRIgetVoxVal(mri_filled, xi, yi, z, 0))
+                {
                   nfilled++ ;
                   MRIsetVoxVal(mri_filled, xi, yi, z, 0, VENTRICLE_FILL) ;
                 }
@@ -878,7 +1102,8 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
         }
       }
       total += nfilled ;
-    } while (nfilled > 0) ;
+    }
+    while (nfilled > 0) ;
   }
 
   MRIcomplement(mri_filled, mri_filled) ;
@@ -886,12 +1111,17 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
   mriseg = MRIsegment(mri_filled, 1, 255) ;
   fprintf(stderr, "%d segments found...\n", mriseg->nsegments) ;
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_filled, "exterior_filled.mgh") ;
-  for (s = 0 ; s < mriseg->nsegments ; s++) {
+  }
+  for (s = 0 ; s < mriseg->nsegments ; s++)
+  {
     mseg = &mriseg->segments[s] ;
     if (mseg->nvoxels < 100 ||
         mseg->z1-mseg->z0 < 7)
+    {
       continue ;
+    }
     MRIvoxelToTalairach(mri_src, mseg->cx, mseg->cy, mseg->cz, &xt, &yt, &zt);
     fprintf(stderr, "added segment %d, nvox=%d, bbox [%d:%d, %d:%d, %d:%d]\n"
             "\tc = %2.1f, %2.1f, %2.1f (tal = %2.1f, %2.1f, %2.1f)\n",
@@ -904,18 +1134,25 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
   MRIsegmentFree(&mriseg) ;
 
   /* remove voxels close to the midline so that the cc can still be found */
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         MRIvoxelToTalairach(mri_src, x, y, z, &xt, &yt, &zt);
         if (fabs(xt) < 5)
+        {
           MRIsetVoxVal(mri_ventricles, x, y, z, 0, 0) ;
+        }
       }
     }
   }
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_ventricles, "ventricles.mgh") ;
+  }
   MRIunion(mri_ventricles, mri_dst, mri_dst) ;
 
   MRIfree(&mri_ventricles) ;
@@ -923,15 +1160,18 @@ MRIfillVentricles(MRI *mri_src, MRI *mri_dst) {
 }
 static MRI *
 MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
-                      float wm_low, float wm_hi, 
-                      float slack, float pct_thresh) {
+                      float wm_low, float wm_hi,
+                      float slack, float pct_thresh)
+{
   int     x, y, z, xk, yk, zk, xi, yi, zi, width, height, depth, nwhite,
-  ntested, nchanged ;
+          ntested, nchanged ;
   BUFTYPE val ;
   float   intensity_thresh, nvox_thresh ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIcopy(mri_src, NULL) ;
+  }
   width = mri_src->width ;
   height = mri_src->height ;
   depth = mri_src->depth ;
@@ -939,27 +1179,37 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
   ntested = nchanged = 0 ;
   intensity_thresh = wm_hi+slack ;
   nvox_thresh = (3*3*3-1)*pct_thresh ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         if (val > wm_hi && val <= intensity_thresh &&
-            MRIgetVoxVal(mri_src, x, y, z, 0) < WM_MIN_VAL) {
+            MRIgetVoxVal(mri_src, x, y, z, 0) < WM_MIN_VAL)
+        {
           ntested++ ;
           nwhite = 0 ;
-          for (zk = -1 ; zk <= 1 ; zk++) {
+          for (zk = -1 ; zk <= 1 ; zk++)
+          {
             zi = mri_src->zi[z+zk] ;
-            for (yk = -1 ; yk <= 1 ; yk++) {
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
               yi = mri_src->yi[y+yk] ;
-              for (xk = -1 ; xk <= 1 ; xk++) {
+              for (xk = -1 ; xk <= 1 ; xk++)
+              {
                 xi = mri_src->xi[x+xk] ;
                 val = MRIgetVoxVal(mri_T1, xi, yi, zi, 0);
                 if (val >= wm_low && val <= wm_hi)
+                {
                   nwhite++ ;
+                }
               }
             }
           }
-          if (nwhite >= nvox_thresh) {
+          if (nwhite >= nvox_thresh)
+          {
             nchanged++ ;
             MRIsetVoxVal(mri_dst, x, y, z, 0, MRIgetVoxVal(mri_T1, x, y, z,0)) ;
           }
@@ -968,7 +1218,8 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
     }
   }
 
-  if (Gdiag & DIAG_SHOW) {
+  if (Gdiag & DIAG_SHOW)
+  {
     fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
             ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
     fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
@@ -979,15 +1230,18 @@ MRIrecoverBrightWhite(MRI *mri_T1, MRI *mri_src, MRI *mri_dst,
 
 #if 0
 #define NPTS (sizeof(xpts) / sizeof(xpts[0]))
-static int xpts[] = {
-                      0,   1, 1, 1, 0, -1, -1, -1
-                    } ;
-static int ypts[] = {
-                      -1, -1, 0, 1, 1,  1,  0, -1
-                    } ;
+static int xpts[] =
+{
+  0,   1, 1, 1, 0, -1, -1, -1
+} ;
+static int ypts[] =
+{
+  -1, -1, 0, 1, 1,  1,  0, -1
+} ;
 
 static int
-MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
+MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize)
+{
   int    x, y, z, width, depth, height, whalf, ntested, nchanged, on, vertex;
   MRI    *mri_tmp, *mri_region, *mri_plane, *mri_binary_plane ;
   float  min_on ;
@@ -1006,41 +1260,68 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
 
   ntested = nchanged = 0 ;
   if (Gdiag == 99)
+  {
     MRIwrite(mri_tmp, "tmp.mgh") ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
+  }
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         if (z == 87 && y == 88 && x == 163)  /* test1 cs filled */
+        {
           DiagBreak() ;
+        }
         if (z == 88 && y == 89 && x == 163)  /* test1 cs filled */
+        {
           DiagBreak() ;
+        }
 
         if (z == 101 && y == 133 && x == 152)
+        {
           DiagBreak() ;
+        }
         if (x == 157 && y == 143 && z == 98)
+        {
           DiagBreak() ;
+        }
         if (x == 156 && y == 143 && z == 98)
+        {
           DiagBreak() ;
+        }
 
         if (x == 154 && y == 167 && z == 128)
+        {
           DiagBreak() ;
+        }
         if (x == 136 && y == 147 && z == 28)
+        {
           DiagBreak() ;
+        }
 
         if (x == 163 && y == 88 && z == 86)
+        {
           DiagBreak() ;
+        }
 
         if ((x == 140 && y == 141 && z == 54) ||
             (x == 140 && y == 141 && z == 53) ||
             (x == 140 && y == 142 && z == 53) ||
             (x == 140 && y == 142 && z == 54) ||
             (x == 140 && y == 140 && z == 53))
-          DiagBreak() ; /* test4 cerebellum */
+        {
+          DiagBreak() ;  /* test4 cerebellum */
+        }
         if (x == 142 && y == 139 && z == 54)   /* test4 */
+        {
           DiagBreak() ;
+        }
 
         if (!MRIgetVoxVal(mri_labels, x, y, z, 0))
+        {
           continue ;
+        }
         ntested++ ;
 
         MRIextract(mri_tmp, mri_region, x-whalf,y-whalf,z-whalf,
@@ -1054,7 +1335,8 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
         MRIremove1dStructures(mri_plane,mri_plane, 10000,2,NULL);
         mri_binary_plane = MRIfillFG(mri_plane, NULL, whalf, whalf, 0,
                                      50, 128, &on) ;
-        if (on > min_on) {
+        if (on > min_on)
+        {
           int  xk, yk, i, ntransitions, i_prev  ;
 
           /*
@@ -1063,16 +1345,21 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
           */
 
           ntransitions = 0 ;
-          for (i = 0 ; i < NPTS ; i++) {
+          for (i = 0 ; i < NPTS ; i++)
+          {
             xk = xpts[i] ;
             yk = ypts[i] ;
             i_prev = i-1 ;
             if (i_prev < 0)
+            {
               i_prev = NPTS-1 ;
+            }
             if (MRIgetVoxVal(mri_binary_plane, whalf+xpts[i], whalf+ypts[i], 0, 0) !=
                 MRIgetVoxVal(mri_binary_plane,whalf+xpts[i_prev],
-                       whalf+ypts[i_prev],0, 0))
+                             whalf+ypts[i_prev],0, 0))
+            {
               ntransitions++ ;
+            }
           }
           if (ntransitions > 2)   /* not planar */
           {
@@ -1080,7 +1367,8 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
             MRIsetVoxVal(mri_dst, x, y, z, 0, MRIgetVoxVal(mri_T1, x, y, z, 0)) ;
           }
         }
-        if (Gdiag & DIAG_WRITE) {
+        if (Gdiag & DIAG_WRITE)
+        {
           MRIwrite(mri_region, "region.mgh") ;
           MRIwrite(mri_plane, "plane.mgh") ;
           MRIwrite(mri_binary_plane, "binary_plane.mgh") ;
@@ -1092,7 +1380,8 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
   }
   MRIfree(&mri_tmp) ;
   MRIfree(&mri_region) ;
-  if (Gdiag & DIAG_SHOW) {
+  if (Gdiag & DIAG_SHOW)
+  {
     fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
             ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
     fprintf(stderr, "               %8d voxels restored (%2.2f%%)\n",
@@ -1104,25 +1393,32 @@ MRIcheckRemovals(MRI *mri_T1, MRI *mri_dst, MRI *mri_labels, int wsize) {
 
 MRI *
 MRIremoveFilledBrightStuff(MRI *mri_T1, MRI *mri_labeled, MRI *mri_dst,
-                           int filled_label, float thresh) {
+                           int filled_label, float thresh)
+{
   int     x, y, z, width, height, depth, nwhite, ntested, nchanged ;
   BUFTYPE val ;
   float   intensity_thresh ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIcopy(mri_labeled, NULL) ;
+  }
   width = mri_T1->width ;
   height = mri_T1->height ;
   depth = mri_T1->depth ;
 
   ntested = nchanged = 0 ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         ntested++ ;
         if (MRIgetVoxVal(mri_labeled, x, y, z, 0) == filled_label &&
-            val > thresh) {
+            val > thresh)
+        {
           MRIsetVoxVal(mri_labeled, x, y, z, 0) ;
           nchanged++ ;
         }
@@ -1130,7 +1426,8 @@ MRIremoveFilledBrightStuff(MRI *mri_T1, MRI *mri_labeled, MRI *mri_dst,
     }
   }
 
-  if (Gdiag & DIAG_SHOW) {
+  if (Gdiag & DIAG_SHOW)
+  {
     fprintf(stderr, "               %8d voxels tested (%2.2f%%)\n",
             ntested, 100.0f*(float)ntested/ (float)(width*height*depth));
     fprintf(stderr, "               %8d voxels changed (%2.2f%%)\n",
@@ -1141,9 +1438,10 @@ MRIremoveFilledBrightStuff(MRI *mri_T1, MRI *mri_labeled, MRI *mri_dst,
 
 #endif
 MRI *
-MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
+MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm)
+{
   int     width, height, depth, x, y, z, nlabeled, nwhite,
-  xk, yk, zk, xi, yi, zi;
+          xk, yk, zk, xi, yi, zi;
   BUFTYPE val, wm ;
   MRI     *mri_labeled, *mri_tmp ;
 
@@ -1152,31 +1450,44 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
   height = mri_T1->height ;
   depth = mri_T1->depth ;
 
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         val = MRIgetVoxVal(mri_T1, x, y, z, 0) ;
         wm = MRIgetVoxVal(mri_wm, x, y, z, 0) ;
 
         if (x == 110 && y == 125 && z == 172)  /* T1=148 */
+        {
           DiagBreak() ;
+        }
         /* not white matter and bright (e.g. eye sockets) */
-        if ((wm < WM_MIN_VAL) && (val > 125)) {
+        if ((wm < WM_MIN_VAL) && (val > 125))
+        {
           nwhite = 0 ;
-          for (xk = -1 ; xk <= 1 ; xk++) {
+          for (xk = -1 ; xk <= 1 ; xk++)
+          {
             xi = mri_T1->xi[x+xk] ;
-            for (yk = -1 ; yk <= 1 ; yk++) {
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
               yi = mri_T1->yi[y+yk] ;
-              for (zk = -1 ; zk <= 1 ; zk++) {
+              for (zk = -1 ; zk <= 1 ; zk++)
+              {
                 zi = mri_T1->zi[z+zk] ;
                 if (MRIgetVoxVal(mri_wm, xi, yi, zi, 0) >= WM_MIN_VAL)
+                {
                   nwhite++ ;
+                }
               }
             }
           }
 #define MIN_WHITE  ((3*3*3-1)/2)
           if (nwhite < MIN_WHITE)
+          {
             MRIsetVoxVal(mri_labeled, x, y, z, 0, BRIGHT_LABEL) ;
+          }
         }
       }
     }
@@ -1199,7 +1510,9 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
   MRIsoapBubbleLabel(mri_T1, mri_labeled, mri_T1, BRIGHT_LABEL, 200) ;
 #endif
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_labeled, "label.mgh") ;
+  }
   /*    MRIwrite(mri_tmp, "tmp.mgh") ;*/
   nlabeled = MRIvoxelsInLabel(mri_labeled, BRIGHT_LABEL) ;
   fprintf(stderr, "%d bright non-wm voxels segmented.\n", nlabeled) ;
@@ -1209,46 +1522,11 @@ MRIfindBrightNonWM(MRI *mri_T1, MRI *mri_wm) {
 }
 
 
+#include "mri_segment.help.xml.h"
 static void
-usage_exit(int code) {
-  char *name= malloc(strlen(Progname));
-  strcpy(name,Progname);
-  outputHelp(name);
-  free(name);
-
-#ifdef GREGT
-  printf("\nSegments white matter from the input volume.  The input\n"
-         "volume should be normalized such that white matter voxels are\n"
-         "~110-valued, and the volume is conformed to 256^3.  This can be\n"
-         "accomplished by:  mri_normalize invol outvol -conform\n\n");
-  printf("Usage: %s [options] <input volume> <output volume>\n\n", 
-         Progname) ;
-  printf("Options:\n");
-  printf("\t-slope <float s>  set the curvature slope (both n and p)\n");
-  printf("\t-pslope <float p> set the curvature pslope (default=%2.1f)\n", 
-         pslope);
-  printf("\t-nslope <float n> set the curvature nslope (default=%2.1f)\n", 
-         nslope);
-  printf("\t-debug_voxel <int x y z> set voxel for debugging\n");
-  printf("\t-auto             automatically detect class statistics (default)\n");
-  printf("\t-noauto           don't automatically detect class statistics\n");
-  printf("\t-log              log to ./segment.dat\n");
-  printf("\t-keep             keep wm edits. maintains all values of 0 and 255\n");
-  printf("\t-ghi, -gray_hi <int h> set the gray matter high limit (default=%2.3f)\n", gray_hi);
-  printf("\t-wlo, -wm_low  <int l> set the white matter low limit (default=%2.3f)\n", wm_low);
-  printf("\t-whi, -wm_hi <int h>   set the white matter high limit (default=%2.3f)\n", wm_hi);
-  printf("\t-nseg <int n>      thicken the n largest thin strands (default=%d)\n", nsegments);
-  printf("\t-thicken           toggle thickening step (default=ON)\n");
-  printf("\t-fillbg            toggle filling of the basal ganglia (default=OFF)\n");
-  printf("\t-fillv             toggle filling of the ventricles (default=OFF)\n");
-  printf("\t-b <float s>       set blur sigma (default=%2.2f)\n", blur_sigma);
-  printf("\t-n <int i>         set # iterations of border classification (default=%d)\n", niter);
-  printf("\t-t <int t>         set limit to thin strands in mm (default=%d)\n", thickness);
-  printf("\t-v                 verbose\n");
-  printf("\t-p <float p>       set %% threshold (default=%2.2f)\n", pct);
-  printf("\t-x <filename>      extract options from filename\n");
-  printf("\t-w <int w>         set wsize (default=%d)\n", wsize);
-  printf("\t-u, -help          usage\n");
-#endif
+usage_exit(int code)
+{
+  outputHelpXml(mri_segment_help_xml,
+                mri_segment_help_xml_len);
   exit(code);
 }

@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>mri_aparc2aseg</name>
 	<synopsis>mri_aparc2aseg [options]</synopsis>
@@ -10,10 +32,10 @@ Note: The volumes of the cortical labels will be different than reported by mris
     <positional>
       <intro>None.</intro>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>None.</intro>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>--s subject</argument>
       <explanation>Name of the subject as found in the SUBJECTS_DIR.</explanation>
       <argument>--o volfile</argument>
@@ -46,7 +68,7 @@ Note: The volumes of the cortical labels will be different than reported by mris
       <explanation>print out version and exit</explanation>
       <argument>--crs-test c r s</argument>
       <explanation>test mapping of col row slice</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
   <outputs>
     <output>volume1</output>
@@ -55,6 +77,7 @@ Note: The volumes of the cortical labels will be different than reported by mris
 	<example>mri_aparc2aseg --s bert
   tkmedit bert orig.mgz -segmentation mri/aparc+aseg.mgz $FREESURFER_HOME/FreeSurferColorLUT.txt</example>
   <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also> </see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also> </see-also>
 </help>
+

@@ -9,12 +9,12 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/12/08 20:59:40 $
- *    $Revision: 1.115 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:46 $
+ *    $Revision: 1.116 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -57,7 +57,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.115 2010/12/08 20:59:40 rge21 Exp $";
+  "$Id: mri_fill.c,v 1.116 2011/02/07 00:40:46 nicks Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -196,9 +196,9 @@ static char *atlas_name = NULL ;
 static float blur_sigma = 0.25f ;
 #endif
 
-static int mriRemoveEdgeConfiguration(MRI *mri_seg, 
-                                      MRI *mri_orig, 
-                                      int label, int f_label) 
+static int mriRemoveEdgeConfiguration(MRI *mri_seg,
+                                      MRI *mri_orig,
+                                      int label, int f_label)
 {
   static int niter=0;
   int i,j,k;
@@ -212,40 +212,65 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 0 ; k < mri_seg->depth ; k++)
       for (j = 0 ; j < mri_seg->height-1 ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i+1,j+1,k)!=label) continue;
-          if ((MRIvox(mri_seg,i,j+1,k)==label) || 
-              (MRIvox(mri_seg,i+1,j,k)==label)) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j+1,k)!=label)
+          {
+            continue;
+          }
+          if ((MRIvox(mri_seg,i,j+1,k)==label) ||
+              (MRIvox(mri_seg,i+1,j,k)==label))
+          {
+            continue;
+          }
 
           /* make sure we avoid the forbidden_label */
-          if ((MRIvox(mri_seg,i,j+1,k) == f_label) && 
+          if ((MRIvox(mri_seg,i,j+1,k) == f_label) &&
               (MRIvox(mri_seg,i+1,j,k)!=f_label))
+          {
             MRIvox(mri_seg,i+1,j,k)=label;
-          else if ((MRIvox(mri_seg,i,j+1,k) != f_label) && 
+          }
+          else if ((MRIvox(mri_seg,i,j+1,k) != f_label) &&
                    (MRIvox(mri_seg,i+1,j,k)==f_label))
+          {
             MRIvox(mri_seg,i,j+1,k)=label;
-          else {/* select the brigther voxel */
+          }
+          else  /* select the brigther voxel */
+          {
             if (MRIgetVoxVal(mri_orig,i,j+1,k,0) >
                 MRIgetVoxVal(mri_orig,i+1,j,k,0))
+            {
               MRIvox(mri_seg,i,j+1,k)=label;
+            }
             else
+            {
               MRIvox(mri_seg,i+1,j,k)=label;
-            if ((MRIvox(mri_seg,i,j+1,k) == f_label) && 
+            }
+            if ((MRIvox(mri_seg,i,j+1,k) == f_label) &&
                 (MRIvox(mri_seg,i+1,j,k)==f_label))
+            {
               detect_pbm++;
+            }
           }
           nfound++;
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (xy+): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -254,38 +279,64 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 0 ; k < mri_seg->depth ; k++)
       for (j = 0 ; j < mri_seg->height-1 ; j++)
-        for (i = 1 ; i < mri_seg->width ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i-1,j+1,k)!=label) continue;
-          if ((MRIvox(mri_seg,i,j+1,k)==label) || 
-              (MRIvox(mri_seg,i-1,j,k)==label)) continue;
+        for (i = 1 ; i < mri_seg->width ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i-1,j+1,k)!=label)
+          {
+            continue;
+          }
+          if ((MRIvox(mri_seg,i,j+1,k)==label) ||
+              (MRIvox(mri_seg,i-1,j,k)==label))
+          {
+            continue;
+          }
           /* make sure we avoid the forbidden_label */
-          if ((MRIvox(mri_seg,i,j+1,k) == f_label) && 
+          if ((MRIvox(mri_seg,i,j+1,k) == f_label) &&
               (MRIvox(mri_seg,i-1,j,k)!=f_label))
+          {
             MRIvox(mri_seg,i-1,j,k)=label;
-          else if ((MRIvox(mri_seg,i,j+1,k) != f_label) && 
+          }
+          else if ((MRIvox(mri_seg,i,j+1,k) != f_label) &&
                    (MRIvox(mri_seg,i-1,j,k)==f_label))
+          {
             MRIvox(mri_seg,i,j+1,k)=label;
-          else {/* select the brigther voxel */
+          }
+          else  /* select the brigther voxel */
+          {
             if (MRIgetVoxVal(mri_orig,i,j+1,k,0)>
                 MRIgetVoxVal(mri_orig,i-1,j,k,0))
+            {
               MRIvox(mri_seg,i,j+1,k)=label;
+            }
             else
+            {
               MRIvox(mri_seg,i-1,j,k)=label;
-            if ((MRIvox(mri_seg,i,j+1,k) == f_label) && 
-                (MRIvox(mri_seg,i-1,j,k)==f_label)) detect_pbm++;
+            }
+            if ((MRIvox(mri_seg,i,j+1,k) == f_label) &&
+                (MRIvox(mri_seg,i-1,j,k)==f_label))
+            {
+              detect_pbm++;
+            }
           }
           nfound++;
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (xy-): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -295,38 +346,64 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 0 ; k < mri_seg->depth-1 ; k++)
       for (j = 0 ; j < mri_seg->height-1 ; j++)
-        for (i = 0 ; i < mri_seg->width ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i,j+1,k+1)!=label) continue;
-          if ((MRIvox(mri_seg,i,j+1,k)==label) || 
-              (MRIvox(mri_seg,i,j,k+1)==label)) continue;
+        for (i = 0 ; i < mri_seg->width ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i,j+1,k+1)!=label)
+          {
+            continue;
+          }
+          if ((MRIvox(mri_seg,i,j+1,k)==label) ||
+              (MRIvox(mri_seg,i,j,k+1)==label))
+          {
+            continue;
+          }
           /* make sure we avoid the forbidden_label */
-          if ((MRIvox(mri_seg,i,j+1,k) == f_label) && 
+          if ((MRIvox(mri_seg,i,j+1,k) == f_label) &&
               (MRIvox(mri_seg,i,j,k+1)!=f_label))
+          {
             MRIvox(mri_seg,i,j,k+1)=label;
-          else if ((MRIvox(mri_seg,i,j+1,k) != f_label) && 
+          }
+          else if ((MRIvox(mri_seg,i,j+1,k) != f_label) &&
                    (MRIvox(mri_seg,i,j,k+1)==f_label))
+          {
             MRIvox(mri_seg,i,j+1,k)=label;
-          else {/* select the brigther voxel */
+          }
+          else  /* select the brigther voxel */
+          {
             if (MRIgetVoxVal(mri_orig,i,j+1,k,0)>
                 MRIgetVoxVal(mri_orig,i,j,k+1,0))
+            {
               MRIvox(mri_seg,i,j+1,k)=label;
+            }
             else
+            {
               MRIvox(mri_seg,i,j,k+1)=label;
-            if ((MRIvox(mri_seg,i,j+1,k) == f_label) && 
-                (MRIvox(mri_seg,i,j,k+1)==f_label)) detect_pbm++;
+            }
+            if ((MRIvox(mri_seg,i,j+1,k) == f_label) &&
+                (MRIvox(mri_seg,i,j,k+1)==f_label))
+            {
+              detect_pbm++;
+            }
           }
           nfound++;
         }
     nmodified+=nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (yz+): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -335,38 +412,64 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 1 ; k < mri_seg->depth ; k++)
       for (j = 0 ; j < mri_seg->height-1 ; j++)
-        for (i = 0 ; i < mri_seg->width ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i,j+1,k-1)!=label) continue;
-          if ((MRIvox(mri_seg,i,j+1,k)==label) || 
-              (MRIvox(mri_seg,i,j,k-1)==label)) continue;
+        for (i = 0 ; i < mri_seg->width ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i,j+1,k-1)!=label)
+          {
+            continue;
+          }
+          if ((MRIvox(mri_seg,i,j+1,k)==label) ||
+              (MRIvox(mri_seg,i,j,k-1)==label))
+          {
+            continue;
+          }
           /* make sure we avoid the forbidden_label */
-          if ((MRIvox(mri_seg,i,j+1,k) == f_label) && 
+          if ((MRIvox(mri_seg,i,j+1,k) == f_label) &&
               (MRIvox(mri_seg,i,j,k-1)!=f_label))
+          {
             MRIvox(mri_seg,i,j,k-1)=label;
-          else if ((MRIvox(mri_seg,i,j+1,k) != f_label) && 
+          }
+          else if ((MRIvox(mri_seg,i,j+1,k) != f_label) &&
                    (MRIvox(mri_seg,i,j,k-1)==f_label))
+          {
             MRIvox(mri_seg,i,j+1,k)=label;
-          else {/* select the brigther voxel */
+          }
+          else  /* select the brigther voxel */
+          {
             if (MRIgetVoxVal(mri_orig,i,j+1,k,0)>
                 MRIgetVoxVal(mri_orig,i,j,k-1,0))
+            {
               MRIvox(mri_seg,i,j+1,k)=label;
+            }
             else
+            {
               MRIvox(mri_seg,i,j,k-1)=label;
-            if ((MRIvox(mri_seg,i,j+1,k) == f_label) && 
-                (MRIvox(mri_seg,i,j,k-1)==f_label)) detect_pbm++;
+            }
+            if ((MRIvox(mri_seg,i,j+1,k) == f_label) &&
+                (MRIvox(mri_seg,i,j,k-1)==f_label))
+            {
+              detect_pbm++;
+            }
           }
           nfound++;
         }
     nmodified+=nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (yz-): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -376,38 +479,64 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 0 ; k < mri_seg->depth-1 ; k++)
       for (j = 0 ; j < mri_seg->height ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i+1,j,k+1)!=label) continue;
-          if ((MRIvox(mri_seg,i+1,j,k)==label) || 
-              (MRIvox(mri_seg,i,j,k+1)==label)) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j,k+1)!=label)
+          {
+            continue;
+          }
+          if ((MRIvox(mri_seg,i+1,j,k)==label) ||
+              (MRIvox(mri_seg,i,j,k+1)==label))
+          {
+            continue;
+          }
           /* make sure we avoid the forbidden_label */
-          if ((MRIvox(mri_seg,i+1,j,k) == f_label) && 
+          if ((MRIvox(mri_seg,i+1,j,k) == f_label) &&
               (MRIvox(mri_seg,i,j,k+1)!=f_label))
+          {
             MRIvox(mri_seg,i,j,k+1)=label;
-          else if ((MRIvox(mri_seg,i+1,j,k) != f_label) && 
+          }
+          else if ((MRIvox(mri_seg,i+1,j,k) != f_label) &&
                    (MRIvox(mri_seg,i,j,k+1)==f_label))
+          {
             MRIvox(mri_seg,i+1,j,k)=label;
-          else {/* select the brigther voxel */
+          }
+          else  /* select the brigther voxel */
+          {
             if (MRIgetVoxVal(mri_orig,i+1,j,k,0)>
                 MRIgetVoxVal(mri_orig,i,j,k+1,0))
+            {
               MRIvox(mri_seg,i+1,j,k)=label;
+            }
             else
+            {
               MRIvox(mri_seg,i,j,k+1)=label;
-            if ((MRIvox(mri_seg,i+1,j,k) == f_label) && 
-                (MRIvox(mri_seg,i,j,k+1)==f_label)) detect_pbm++;
+            }
+            if ((MRIvox(mri_seg,i+1,j,k) == f_label) &&
+                (MRIvox(mri_seg,i,j,k+1)==f_label))
+            {
+              detect_pbm++;
+            }
           }
           nfound++;
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (xz+): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -416,38 +545,64 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 0 ; k < mri_seg->depth-1 ; k++)
       for (j = 0 ; j < mri_seg->height ; j++)
-        for (i = 1 ; i < mri_seg->width ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i-1,j,k+1)!=label) continue;
-          if ((MRIvox(mri_seg,i-1,j,k)==label) || 
-              (MRIvox(mri_seg,i,j,k+1)==label)) continue;
+        for (i = 1 ; i < mri_seg->width ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i-1,j,k+1)!=label)
+          {
+            continue;
+          }
+          if ((MRIvox(mri_seg,i-1,j,k)==label) ||
+              (MRIvox(mri_seg,i,j,k+1)==label))
+          {
+            continue;
+          }
           /* make sure we avoid the forbidden_label */
-          if ((MRIvox(mri_seg,i-1,j,k) == f_label) && 
+          if ((MRIvox(mri_seg,i-1,j,k) == f_label) &&
               (MRIvox(mri_seg,i,j,k+1)!=f_label))
+          {
             MRIvox(mri_seg,i,j,k+1)=label;
-          else if ((MRIvox(mri_seg,i-1,j,k) != f_label) && 
+          }
+          else if ((MRIvox(mri_seg,i-1,j,k) != f_label) &&
                    (MRIvox(mri_seg,i,j,k+1)==f_label))
+          {
             MRIvox(mri_seg,i-1,j,k)=label;
-          else {/* select the brigther voxel */
+          }
+          else  /* select the brigther voxel */
+          {
             if (MRIgetVoxVal(mri_orig,i-1,j,k,0)>
                 MRIgetVoxVal(mri_orig,i,j,k+1,0))
+            {
               MRIvox(mri_seg,i-1,j,k)=label;
+            }
             else
+            {
               MRIvox(mri_seg,i,j,k+1)=label;
-            if ((MRIvox(mri_seg,i-1,j,k) == f_label) && 
-                (MRIvox(mri_seg,i,j,k+1)==f_label)) detect_pbm++;
+            }
+            if ((MRIvox(mri_seg,i-1,j,k) == f_label) &&
+                (MRIvox(mri_seg,i,j,k+1)==f_label))
+            {
+              detect_pbm++;
+            }
           }
           nfound++;
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (xz-): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -455,9 +610,9 @@ static int mriRemoveEdgeConfiguration(MRI *mri_seg,
   return ntotal;
 }
 
-static int mriRemoveCornerConfiguration(MRI *mri_seg, 
-                                        MRI *mri_orig, 
-                                        int label,int f_label) 
+static int mriRemoveCornerConfiguration(MRI *mri_seg,
+                                        MRI *mri_orig,
+                                        int label,int f_label)
 {
   static int niter=0;
   int i,j,k,p,refp,ind1_i[6],ind1_j[6],ind1_k[6],ind2_i[6],ind2_j[6],ind2_k[6];
@@ -473,14 +628,22 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
   nmodified=0;
   npass=0;
   detect_pbm=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     for (k = 0 ; k < mri_seg->depth-1; k++)
       for (j = 0 ; j < mri_seg->height-1 ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i+1,j+1,k+1)!=label) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j+1,k+1)!=label)
+          {
+            continue;
+          }
 
           /* find problematic configuration */
           if (((MRIvox(mri_seg,i+1,j,k)==label)
@@ -491,11 +654,14 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
                    ||(MRIvox(mri_seg,i+1,j+1,k)==label))) ||
               ((MRIvox(mri_seg,i,j,k+1)==label)
                && ((MRIvox(mri_seg,i+1,j,k+1)==label)
-                   ||(MRIvox(mri_seg,i,j+1,k+1)==label)))) continue;
+                   ||(MRIvox(mri_seg,i,j+1,k+1)==label))))
+          {
+            continue;
+          }
 
           /* select the brigther path */
-          dist[0]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j+1,k,0);
+          dist[0]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j+1,k,0);
           ind1_i[0]=i+1;
           ind1_j[0]=j;
           ind1_k[0]=k;
@@ -503,8 +669,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[0]=j+1;
           ind2_k[0]=k;
 
-          dist[1]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j,k+1,0);
+          dist[1]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j,k+1,0);
           ind1_i[1]=i+1;
           ind1_j[1]=j;
           ind1_k[1]=k;
@@ -512,8 +678,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[1]=j;
           ind2_k[1]=k+1;
 
-          dist[2]=MRIgetVoxVal(mri_orig,i,j+1,k,0)+ 
-            MRIgetVoxVal(mri_orig,i,j+1,k+1,0);
+          dist[2]=MRIgetVoxVal(mri_orig,i,j+1,k,0)+
+                  MRIgetVoxVal(mri_orig,i,j+1,k+1,0);
           ind1_i[2]=i;
           ind1_j[2]=j+1;
           ind1_k[2]=k;
@@ -521,8 +687,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[2]=j+1;
           ind2_k[2]=k+1;
 
-          dist[3]=MRIgetVoxVal(mri_orig,i,j+1,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j+1,k,0);
+          dist[3]=MRIgetVoxVal(mri_orig,i,j+1,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j+1,k,0);
           ind1_i[3]=i;
           ind1_j[3]=j+1;
           ind1_k[3]=k;
@@ -530,8 +696,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[3]=j+1;
           ind2_k[3]=k;
 
-          dist[4]=MRIgetVoxVal(mri_orig,i,j,k+1,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j,k+1,0);
+          dist[4]=MRIgetVoxVal(mri_orig,i,j,k+1,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j,k+1,0);
           ind1_i[4]=i;
           ind1_j[4]=j;
           ind1_k[4]=k+1;
@@ -539,8 +705,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[4]=j;
           ind2_k[4]=k+1;
 
-          dist[5]=MRIgetVoxVal(mri_orig,i,j,k+1,0)+ 
-            MRIgetVoxVal(mri_orig,i,j+1,k+1,0);
+          dist[5]=MRIgetVoxVal(mri_orig,i,j,k+1,0)+
+                  MRIgetVoxVal(mri_orig,i,j+1,k+1,0);
           ind1_i[5]=i;
           ind1_j[5]=j;
           ind1_k[5]=k+1;
@@ -549,45 +715,69 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_k[5]=k+1;
 
           /* check if some paths are forbidden */
-          for (p=0;p<6;p++) {
+          for (p=0; p<6; p++)
+          {
             forbidden_path[p]=0;
             if ((MRIvox(mri_seg,ind1_i[p],ind1_j[p],ind1_k[p])==f_label) ||
                 (MRIvox(mri_seg,ind2_i[p],ind2_j[p],ind2_k[p])==f_label))
+            {
               forbidden_path[p]=1;
+            }
           }
           /* check if all paths are forbidden! */
           detect_pbm=0;
-          for (p=0;p<6;p++) if (forbidden_path[p]) detect_pbm++;
-          if (detect_pbm == 6) {/* we have a problem : all paths are wrong ! */
+          for (p=0; p<6; p++) if (forbidden_path[p])
+            {
+              detect_pbm++;
+            }
+          if (detect_pbm == 6)  /* we have a problem : all paths are wrong ! */
+          {
             detect_pbm=1;
-            for (p=0;p<6;p++) forbidden_path[p]=0;
-          } else
+            for (p=0; p<6; p++)
+            {
+              forbidden_path[p]=0;
+            }
+          }
+          else
+          {
             detect_pbm=0;
+          }
 
           /* find max available path */
           refp=0;
-          while (forbidden_path[refp] && (refp<6)) refp++;
-          if (refp==6) { /* should not happen! */
+          while (forbidden_path[refp] && (refp<6))
+          {
+            refp++;
+          }
+          if (refp==6)   /* should not happen! */
+          {
             detect_pbm=1;
             refp=0;
           }
           maxdist=dist[refp];
-          for (p = refp+1 ; p < 6 ; p++) {
-            if (forbidden_path[p]) continue;
-            if (maxdist<dist[p]) {
+          for (p = refp+1 ; p < 6 ; p++)
+          {
+            if (forbidden_path[p])
+            {
+              continue;
+            }
+            if (maxdist<dist[p])
+            {
               maxdist=dist[p];
               refp=p;
             }
           }
           /* assign value */
 
-          if (MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])!=label) {
+          if (MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])!=label)
+          {
             MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])=label;
             //      fprintf(stderr,"(%d,%d,%d)&-(%d,%d,%d)",
             //i,j,k,ind1_i[refp],ind1_j[refp],ind1_k[refp]);
             nfound++;
           }
-          if (MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])!=label) {
+          if (MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])!=label)
+          {
             MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])=label;
             //      fprintf(stderr,"+(%d,%d,%d)&-(%d,%d,%d)-",
             //i,j,k,ind2_i[refp],ind2_j[refp],ind2_k[refp]);
@@ -597,7 +787,10 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (+++): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -608,14 +801,22 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
   nmodified=0;
   npass=0;
   detect_pbm=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     for (k = 1 ; k < mri_seg->depth; k++)
       for (j = 0 ; j < mri_seg->height-1 ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i+1,j+1,k-1)!=label) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j+1,k-1)!=label)
+          {
+            continue;
+          }
 
           /* find problematic configuration */
           if (((MRIvox(mri_seg,i+1,j,k)==label)
@@ -626,11 +827,14 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
                    ||(MRIvox(mri_seg,i+1,j+1,k)==label))) ||
               ((MRIvox(mri_seg,i,j,k-1)==label)
                && ((MRIvox(mri_seg,i+1,j,k-1)==label)
-                   ||(MRIvox(mri_seg,i,j+1,k-1)==label)))) continue;
+                   ||(MRIvox(mri_seg,i,j+1,k-1)==label))))
+          {
+            continue;
+          }
 
           /* select the brigther path */
-          dist[0]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j+1,k,0);
+          dist[0]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j+1,k,0);
           ind1_i[0]=i+1;
           ind1_j[0]=j;
           ind1_k[0]=k;
@@ -638,8 +842,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[0]=j+1;
           ind2_k[0]=k;
 
-          dist[1]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j,k-1,0);
+          dist[1]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j,k-1,0);
           ind1_i[1]=i+1;
           ind1_j[1]=j;
           ind1_k[1]=k;
@@ -647,8 +851,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[1]=j;
           ind2_k[1]=k-1;
 
-          dist[2]=MRIgetVoxVal(mri_orig,i,j+1,k,0)+ 
-            MRIgetVoxVal(mri_orig,i,j+1,k-1,0);
+          dist[2]=MRIgetVoxVal(mri_orig,i,j+1,k,0)+
+                  MRIgetVoxVal(mri_orig,i,j+1,k-1,0);
           ind1_i[2]=i;
           ind1_j[2]=j+1;
           ind1_k[2]=k;
@@ -656,8 +860,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[2]=j+1;
           ind2_k[2]=k-1;
 
-          dist[3]=MRIgetVoxVal(mri_orig,i,j+1,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j+1,k,0);
+          dist[3]=MRIgetVoxVal(mri_orig,i,j+1,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j+1,k,0);
           ind1_i[3]=i;
           ind1_j[3]=j+1;
           ind1_k[3]=k;
@@ -665,8 +869,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[3]=j+1;
           ind2_k[3]=k;
 
-          dist[4]=MRIgetVoxVal(mri_orig,i,j,k-1,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j,k-1,0);
+          dist[4]=MRIgetVoxVal(mri_orig,i,j,k-1,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j,k-1,0);
           ind1_i[4]=i;
           ind1_j[4]=j;
           ind1_k[4]=k-1;
@@ -674,8 +878,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[4]=j;
           ind2_k[4]=k-1;
 
-          dist[5]=MRIgetVoxVal(mri_orig,i,j,k-1,0)+ 
-            MRIgetVoxVal(mri_orig,i,j+1,k-1,0);
+          dist[5]=MRIgetVoxVal(mri_orig,i,j,k-1,0)+
+                  MRIgetVoxVal(mri_orig,i,j+1,k-1,0);
           ind1_i[5]=i;
           ind1_j[5]=j;
           ind1_k[5]=k-1;
@@ -685,32 +889,54 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
 
 
           /* check if some paths are forbidden */
-          for (p=0;p<6;p++) {
+          for (p=0; p<6; p++)
+          {
             forbidden_path[p]=0;
             if ((MRIvox(mri_seg,ind1_i[p],ind1_j[p],ind1_k[p])==f_label) ||
                 (MRIvox(mri_seg,ind2_i[p],ind2_j[p],ind2_k[p])==f_label))
+            {
               forbidden_path[p]=1;
+            }
           }
           /* check if all paths are forbidden! */
           detect_pbm=0;
-          for (p=0;p<6;p++) if (forbidden_path[p]) detect_pbm++;
-          if (detect_pbm == 6) {/* we have a problem : all paths are wrong ! */
+          for (p=0; p<6; p++) if (forbidden_path[p])
+            {
+              detect_pbm++;
+            }
+          if (detect_pbm == 6)  /* we have a problem : all paths are wrong ! */
+          {
             detect_pbm=1;
-            for (p=0;p<6;p++) forbidden_path[p]=0;
-          } else
+            for (p=0; p<6; p++)
+            {
+              forbidden_path[p]=0;
+            }
+          }
+          else
+          {
             detect_pbm=0;
+          }
 
           /* find max available path */
           refp=0;
-          while (forbidden_path[refp] && (refp<6)) refp++;
-          if (refp==6) { /* should not happen! */
+          while (forbidden_path[refp] && (refp<6))
+          {
+            refp++;
+          }
+          if (refp==6)   /* should not happen! */
+          {
             detect_pbm=1;
             refp=0;
           }
           maxdist=dist[refp];
-          for (p = refp+1 ; p < 6 ; p++) {
-            if (forbidden_path[p]) continue;
-            if (maxdist<dist[p]) {
+          for (p = refp+1 ; p < 6 ; p++)
+          {
+            if (forbidden_path[p])
+            {
+              continue;
+            }
+            if (maxdist<dist[p])
+            {
               maxdist=dist[p];
               refp=p;
             }
@@ -718,13 +944,15 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
 
           /* assign value */
 
-          if (MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])!=label) {
+          if (MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])!=label)
+          {
             MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])=label;
             //      fprintf(stderr,"(%d,%d,%d)&-(%d,%d,%d)",
             //i,j,k,ind1_i[refp],ind1_j[refp],ind1_k[refp]);
             nfound++;
           }
-          if (MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])!=label) {
+          if (MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])!=label)
+          {
             MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])=label;
             //      fprintf(stderr,"+(%d,%d,%d)&-(%d,%d,%d)-",
             //i,j,k,ind2_i[refp],ind2_j[refp],ind2_k[refp]);
@@ -734,7 +962,10 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (+++): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -747,14 +978,22 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
   nmodified=0;
   npass=0;
   detect_pbm=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     for (k = 1 ; k < mri_seg->depth; k++)
       for (j = 1 ; j < mri_seg->height ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i+1,j-1,k-1)!=label) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j-1,k-1)!=label)
+          {
+            continue;
+          }
 
           /* find problematic configuration */
           if (((MRIvox(mri_seg,i+1,j,k)==label)
@@ -765,11 +1004,14 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
                    ||(MRIvox(mri_seg,i+1,j-1,k)==label))) ||
               ((MRIvox(mri_seg,i,j,k-1)==label)
                && ((MRIvox(mri_seg,i+1,j,k-1)==label)
-                   ||(MRIvox(mri_seg,i,j-1,k-1)==label)))) continue;
+                   ||(MRIvox(mri_seg,i,j-1,k-1)==label))))
+          {
+            continue;
+          }
 
           /* select the brigther path */
-          dist[0]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j-1,k,0);
+          dist[0]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j-1,k,0);
           ind1_i[0]=i+1;
           ind1_j[0]=j;
           ind1_k[0]=k;
@@ -777,8 +1019,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[0]=j-1;
           ind2_k[0]=k;
 
-          dist[1]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j,k-1,0);
+          dist[1]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j,k-1,0);
           ind1_i[1]=i+1;
           ind1_j[1]=j;
           ind1_k[1]=k;
@@ -786,8 +1028,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[1]=j;
           ind2_k[1]=k-1;
 
-          dist[2]=MRIgetVoxVal(mri_orig,i,j-1,k,0)+ 
-            MRIgetVoxVal(mri_orig,i,j-1,k-1,0);
+          dist[2]=MRIgetVoxVal(mri_orig,i,j-1,k,0)+
+                  MRIgetVoxVal(mri_orig,i,j-1,k-1,0);
           ind1_i[2]=i;
           ind1_j[2]=j-1;
           ind1_k[2]=k;
@@ -795,8 +1037,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[2]=j-1;
           ind2_k[2]=k-1;
 
-          dist[3]=MRIgetVoxVal(mri_orig,i,j-1,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j-1,k,0);
+          dist[3]=MRIgetVoxVal(mri_orig,i,j-1,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j-1,k,0);
           ind1_i[3]=i;
           ind1_j[3]=j-1;
           ind1_k[3]=k;
@@ -804,8 +1046,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[3]=j-1;
           ind2_k[3]=k;
 
-          dist[4]=MRIgetVoxVal(mri_orig,i,j,k-1,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j,k-1,0);
+          dist[4]=MRIgetVoxVal(mri_orig,i,j,k-1,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j,k-1,0);
           ind1_i[4]=i;
           ind1_j[4]=j;
           ind1_k[4]=k-1;
@@ -813,8 +1055,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[4]=j;
           ind2_k[4]=k-1;
 
-          dist[5]=MRIgetVoxVal(mri_orig,i,j,k-1,0)+ 
-            MRIgetVoxVal(mri_orig,i,j-1,k-1,0);
+          dist[5]=MRIgetVoxVal(mri_orig,i,j,k-1,0)+
+                  MRIgetVoxVal(mri_orig,i,j-1,k-1,0);
           ind1_i[5]=i;
           ind1_j[5]=j;
           ind1_k[5]=k-1;
@@ -823,45 +1065,69 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_k[5]=k-1;
 
           /* check if some paths are forbidden */
-          for (p=0;p<6;p++) {
+          for (p=0; p<6; p++)
+          {
             forbidden_path[p]=0;
             if ((MRIvox(mri_seg,ind1_i[p],ind1_j[p],ind1_k[p])==f_label) ||
                 (MRIvox(mri_seg,ind2_i[p],ind2_j[p],ind2_k[p])==f_label))
+            {
               forbidden_path[p]=1;
+            }
           }
           /* check if all paths are forbidden! */
           detect_pbm=0;
-          for (p=0;p<6;p++) if (forbidden_path[p]) detect_pbm++;
-          if (detect_pbm == 6) {/* we have a problem : all paths are wrong ! */
+          for (p=0; p<6; p++) if (forbidden_path[p])
+            {
+              detect_pbm++;
+            }
+          if (detect_pbm == 6)  /* we have a problem : all paths are wrong ! */
+          {
             detect_pbm=1;
-            for (p=0;p<6;p++) forbidden_path[p]=0;
-          } else
+            for (p=0; p<6; p++)
+            {
+              forbidden_path[p]=0;
+            }
+          }
+          else
+          {
             detect_pbm=0;
+          }
 
           /* find max available path */
           refp=0;
-          while (forbidden_path[refp] && (refp<6)) refp++;
-          if (refp==6) { /* should not happen! */
+          while (forbidden_path[refp] && (refp<6))
+          {
+            refp++;
+          }
+          if (refp==6)   /* should not happen! */
+          {
             detect_pbm=1;
             refp=0;
           }
           maxdist=dist[refp];
-          for (p = refp+1 ; p < 6 ; p++) {
-            if (forbidden_path[p]) continue;
-            if (maxdist<dist[p]) {
+          for (p = refp+1 ; p < 6 ; p++)
+          {
+            if (forbidden_path[p])
+            {
+              continue;
+            }
+            if (maxdist<dist[p])
+            {
               maxdist=dist[p];
               refp=p;
             }
           }
           /* assign value */
 
-          if (MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])!=label) {
+          if (MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])!=label)
+          {
             MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])=label;
             //      fprintf(stderr,"(%d,%d,%d)&-(%d,%d,%d)",
             //i,j,k,ind1_i[refp],ind1_j[refp],ind1_k[refp]);
             nfound++;
           }
-          if (MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])!=label) {
+          if (MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])!=label)
+          {
             MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])=label;
             //      fprintf(stderr,"+(%d,%d,%d)&-(%d,%d,%d)-",
             //i,j,k,ind2_i[refp],ind2_j[refp],ind2_k[refp]);
@@ -871,7 +1137,10 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (+++): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -882,14 +1151,22 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
   nmodified=0;
   npass=0;
   detect_pbm=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     for (k = 0 ; k < mri_seg->depth-1; k++)
       for (j = 1 ; j < mri_seg->height ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)!=label) continue;
-          if (MRIvox(mri_seg,i+1,j-1,k+1)!=label) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)!=label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j-1,k+1)!=label)
+          {
+            continue;
+          }
 
           /* find problematic configuration */
           if (((MRIvox(mri_seg,i+1,j,k)==label)
@@ -900,11 +1177,14 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
                    ||(MRIvox(mri_seg,i+1,j-1,k)==label))) ||
               ((MRIvox(mri_seg,i,j,k+1)==label)
                && ((MRIvox(mri_seg,i+1,j,k+1)==label)
-                   ||(MRIvox(mri_seg,i,j-1,k+1)==label)))) continue;
+                   ||(MRIvox(mri_seg,i,j-1,k+1)==label))))
+          {
+            continue;
+          }
 
           /* select the brigther path */
-          dist[0]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j-1,k,0);
+          dist[0]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j-1,k,0);
           ind1_i[0]=i+1;
           ind1_j[0]=j;
           ind1_k[0]=k;
@@ -912,8 +1192,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[0]=j-1;
           ind2_k[0]=k;
 
-          dist[1]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j,k+1,0);
+          dist[1]=MRIgetVoxVal(mri_orig,i+1,j,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j,k+1,0);
           ind1_i[1]=i+1;
           ind1_j[1]=j;
           ind1_k[1]=k;
@@ -921,8 +1201,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[1]=j;
           ind2_k[1]=k+1;
 
-          dist[2]=MRIgetVoxVal(mri_orig,i,j-1,k,0)+ 
-            MRIgetVoxVal(mri_orig,i,j-1,k+1,0);
+          dist[2]=MRIgetVoxVal(mri_orig,i,j-1,k,0)+
+                  MRIgetVoxVal(mri_orig,i,j-1,k+1,0);
           ind1_i[2]=i;
           ind1_j[2]=j-1;
           ind1_k[2]=k;
@@ -930,8 +1210,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[2]=j-1;
           ind2_k[2]=k+1;
 
-          dist[3]=MRIgetVoxVal(mri_orig,i,j-1,k,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j-1,k,0);
+          dist[3]=MRIgetVoxVal(mri_orig,i,j-1,k,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j-1,k,0);
           ind1_i[3]=i;
           ind1_j[3]=j-1;
           ind1_k[3]=k;
@@ -939,8 +1219,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[3]=j-1;
           ind2_k[3]=k;
 
-          dist[4]=MRIgetVoxVal(mri_orig,i,j,k+1,0)+ 
-            MRIgetVoxVal(mri_orig,i+1,j,k+1,0);
+          dist[4]=MRIgetVoxVal(mri_orig,i,j,k+1,0)+
+                  MRIgetVoxVal(mri_orig,i+1,j,k+1,0);
           ind1_i[4]=i;
           ind1_j[4]=j;
           ind1_k[4]=k+1;
@@ -948,8 +1228,8 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_j[4]=j;
           ind2_k[4]=k+1;
 
-          dist[5]=MRIgetVoxVal(mri_orig,i,j,k+1,0)+ 
-            MRIgetVoxVal(mri_orig,i,j-1,k+1,0);
+          dist[5]=MRIgetVoxVal(mri_orig,i,j,k+1,0)+
+                  MRIgetVoxVal(mri_orig,i,j-1,k+1,0);
           ind1_i[5]=i;
           ind1_j[5]=j;
           ind1_k[5]=k+1;
@@ -958,45 +1238,69 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
           ind2_k[5]=k+1;
 
           /* check if some paths are forbidden */
-          for (p=0;p<6;p++) {
+          for (p=0; p<6; p++)
+          {
             forbidden_path[p]=0;
             if ((MRIvox(mri_seg,ind1_i[p],ind1_j[p],ind1_k[p])==f_label) ||
                 (MRIvox(mri_seg,ind2_i[p],ind2_j[p],ind2_k[p])==f_label))
+            {
               forbidden_path[p]=1;
+            }
           }
           /* check if all paths are forbidden! */
           detect_pbm=0;
-          for (p=0;p<6;p++) if (forbidden_path[p]) detect_pbm++;
-          if (detect_pbm == 6) {/* we have a problem : all paths are wrong ! */
+          for (p=0; p<6; p++) if (forbidden_path[p])
+            {
+              detect_pbm++;
+            }
+          if (detect_pbm == 6)  /* we have a problem : all paths are wrong ! */
+          {
             detect_pbm=1;
-            for (p=0;p<6;p++) forbidden_path[p]=0;
-          } else
+            for (p=0; p<6; p++)
+            {
+              forbidden_path[p]=0;
+            }
+          }
+          else
+          {
             detect_pbm=0;
+          }
 
           /* find max available path */
           refp=0;
-          while (forbidden_path[refp] && (refp<6)) refp++;
-          if (refp==6) { /* should not happen! */
+          while (forbidden_path[refp] && (refp<6))
+          {
+            refp++;
+          }
+          if (refp==6)   /* should not happen! */
+          {
             detect_pbm=1;
             refp=0;
           }
           maxdist=dist[refp];
-          for (p = refp+1 ; p < 6 ; p++) {
-            if (forbidden_path[p]) continue;
-            if (maxdist<dist[p]) {
+          for (p = refp+1 ; p < 6 ; p++)
+          {
+            if (forbidden_path[p])
+            {
+              continue;
+            }
+            if (maxdist<dist[p])
+            {
               maxdist=dist[p];
               refp=p;
             }
           }
           /* assign value */
 
-          if (MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])!=label) {
+          if (MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])!=label)
+          {
             MRIvox(mri_seg,ind1_i[refp],ind1_j[refp],ind1_k[refp])=label;
             //      fprintf(stderr,"(%d,%d,%d)&-(%d,%d,%d)",
             //i,j,k,ind1_i[refp],ind1_j[refp],ind1_k[refp]);
             nfound++;
           }
-          if (MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])!=label) {
+          if (MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])!=label)
+          {
             MRIvox(mri_seg,ind2_i[refp],ind2_j[refp],ind2_k[refp])=label;
             //      fprintf(stderr,"+(%d,%d,%d)&-(%d,%d,%d)-",
             //i,j,k,ind2_i[refp],ind2_j[refp],ind2_k[refp]);
@@ -1006,7 +1310,10 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm = 1;
+    if (detect_pbm)
+    {
+      topofix_pbm = 1;
+    }
     fprintf(stderr,"\npass %3d (+++): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -1015,9 +1322,9 @@ static int mriRemoveCornerConfiguration(MRI *mri_seg,
   return ntotal;
 }
 
-static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg, 
-                                                  MRI *mri_orig, 
-                                                  int label,int f_label) 
+static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg,
+    MRI *mri_orig,
+    int label,int f_label)
 {
   static int niter=0;
   int i,j,k;
@@ -1030,44 +1337,68 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 0 ; k < mri_seg->depth-1; k++)
       for (j = 0 ; j < mri_seg->height-1 ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)==label) continue;
-          if (MRIvox(mri_seg,i+1,j+1,k+1)==label) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)==label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j+1,k+1)==label)
+          {
+            continue;
+          }
           /* find problematic configuration */
-          if ((MRIvox(mri_seg,i+1,j,k)==label) && 
+          if ((MRIvox(mri_seg,i+1,j,k)==label) &&
               (MRIvox(mri_seg,i+1,j+1,k)==label) &&
-              (MRIvox(mri_seg,i,j+1,k)==label) && 
+              (MRIvox(mri_seg,i,j+1,k)==label) &&
               (MRIvox(mri_seg,i,j+1,k+1)==label) &&
               (MRIvox(mri_seg,i+1,j,k)==label) &&
-              (MRIvox(mri_seg,i+1,j,k+1)==label)) {
+              (MRIvox(mri_seg,i+1,j,k+1)==label))
+          {
             /* avoid f_label */
-            if ((MRIvox(mri_seg,i,j,k)==f_label) && 
+            if ((MRIvox(mri_seg,i,j,k)==f_label) &&
                 (MRIvox(mri_seg,i+1,j+1,k+1) != f_label))
+            {
               MRIvox(mri_seg,i+1,j+1,k+1)=label;
-            else if ((MRIvox(mri_seg,i,j,k)!=f_label) && 
+            }
+            else if ((MRIvox(mri_seg,i,j,k)!=f_label) &&
                      (MRIvox(mri_seg,i+1,j+1,k+1) == f_label))
+            {
               MRIvox(mri_seg,i,j,k)=label;
-            else {/* take the brighter voxel */
+            }
+            else  /* take the brighter voxel */
+            {
               if (MRIgetVoxVal(mri_orig,i,j,k,0)>
                   MRIgetVoxVal(mri_orig,i+1,j+1,k+1,0))
+              {
                 MRIvox(mri_seg,i,j,k)=label;
+              }
               else
+              {
                 MRIvox(mri_seg,i+1,j+1,k+1)=label;
-              if ((MRIvox(mri_seg,i,j,k)==f_label) && 
-                  (MRIvox(mri_seg,i+1,j+1,k+1) == f_label)) detect_pbm++;
+              }
+              if ((MRIvox(mri_seg,i,j,k)==f_label) &&
+                  (MRIvox(mri_seg,i+1,j+1,k+1) == f_label))
+              {
+                detect_pbm++;
+              }
             }
             nfound++;
           }
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm=1;
+    if (detect_pbm)
+    {
+      topofix_pbm=1;
+    }
     fprintf(stderr,"\npass %3d (++): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -1076,44 +1407,68 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 1 ; k < mri_seg->depth; k++)
       for (j = 0 ; j < mri_seg->height-1 ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)==label) continue;
-          if (MRIvox(mri_seg,i+1,j+1,k-1)==label) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)==label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j+1,k-1)==label)
+          {
+            continue;
+          }
           /* find problematic configuration */
-          if ((MRIvox(mri_seg,i+1,j,k)==label) && 
+          if ((MRIvox(mri_seg,i+1,j,k)==label) &&
               (MRIvox(mri_seg,i+1,j+1,k)==label) &&
-              (MRIvox(mri_seg,i,j+1,k)==label) && 
+              (MRIvox(mri_seg,i,j+1,k)==label) &&
               (MRIvox(mri_seg,i,j+1,k-1)==label) &&
               (MRIvox(mri_seg,i+1,j,k)==label) &&
-              (MRIvox(mri_seg,i+1,j,k-1)==label)) {
+              (MRIvox(mri_seg,i+1,j,k-1)==label))
+          {
             /* avoid f_label */
-            if ((MRIvox(mri_seg,i,j,k)==f_label) && 
+            if ((MRIvox(mri_seg,i,j,k)==f_label) &&
                 (MRIvox(mri_seg,i+1,j+1,k-1) != f_label))
+            {
               MRIvox(mri_seg,i+1,j+1,k-1)=label;
-            else if ((MRIvox(mri_seg,i,j,k)!=f_label) && 
+            }
+            else if ((MRIvox(mri_seg,i,j,k)!=f_label) &&
                      (MRIvox(mri_seg,i+1,j+1,k-1) == f_label))
+            {
               MRIvox(mri_seg,i,j,k)=label;
-            else {/* take the brighter voxel */
+            }
+            else  /* take the brighter voxel */
+            {
               if (MRIgetVoxVal(mri_orig,i,j,k,0)>
                   MRIgetVoxVal(mri_orig,i+1,j+1,k-1,0))
+              {
                 MRIvox(mri_seg,i,j,k)=label;
+              }
               else
+              {
                 MRIvox(mri_seg,i+1,j+1,k-1)=label;
-              if ((MRIvox(mri_seg,i,j,k)==f_label) && 
-                  (MRIvox(mri_seg,i+1,j+1,k-1) == f_label)) detect_pbm++;
+              }
+              if ((MRIvox(mri_seg,i,j,k)==f_label) &&
+                  (MRIvox(mri_seg,i+1,j+1,k-1) == f_label))
+              {
+                detect_pbm++;
+              }
             }
             nfound++;
           }
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm=1;
+    if (detect_pbm)
+    {
+      topofix_pbm=1;
+    }
     fprintf(stderr,"\npass %3d (+-): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -1122,44 +1477,68 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 1 ; k < mri_seg->depth; k++)
       for (j = 1 ; j < mri_seg->height ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)==label) continue;
-          if (MRIvox(mri_seg,i+1,j-1,k-1)==label) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)==label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j-1,k-1)==label)
+          {
+            continue;
+          }
           /* find problematic configuration */
-          if ((MRIvox(mri_seg,i+1,j,k)==label) && 
+          if ((MRIvox(mri_seg,i+1,j,k)==label) &&
               (MRIvox(mri_seg,i+1,j-1,k)==label) &&
-              (MRIvox(mri_seg,i,j-1,k)==label) && 
+              (MRIvox(mri_seg,i,j-1,k)==label) &&
               (MRIvox(mri_seg,i,j-1,k-1)==label) &&
               (MRIvox(mri_seg,i+1,j,k)==label) &&
-              (MRIvox(mri_seg,i+1,j,k-1)==label)) {
+              (MRIvox(mri_seg,i+1,j,k-1)==label))
+          {
             /* avoid f_label */
-            if ((MRIvox(mri_seg,i,j,k)==f_label) && 
+            if ((MRIvox(mri_seg,i,j,k)==f_label) &&
                 (MRIvox(mri_seg,i+1,j-1,k-1) != f_label))
+            {
               MRIvox(mri_seg,i+1,j-1,k-1)=label;
-            else if ((MRIvox(mri_seg,i,j,k)!=f_label) && 
+            }
+            else if ((MRIvox(mri_seg,i,j,k)!=f_label) &&
                      (MRIvox(mri_seg,i+1,j-1,k-1) == f_label))
+            {
               MRIvox(mri_seg,i,j,k)=label;
-            else {/* take the brighter voxel */
+            }
+            else  /* take the brighter voxel */
+            {
               if (MRIgetVoxVal(mri_orig,i,j,k,0)>
                   MRIgetVoxVal(mri_orig,i+1,j-1,k-1,0))
+              {
                 MRIvox(mri_seg,i,j,k)=label;
+              }
               else
+              {
                 MRIvox(mri_seg,i+1,j-1,k-1)=label;
-              if ((MRIvox(mri_seg,i,j,k)==f_label) && 
-                  (MRIvox(mri_seg,i+1,j-1,k-1) == f_label)) detect_pbm++;
+              }
+              if ((MRIvox(mri_seg,i,j,k)==f_label) &&
+                  (MRIvox(mri_seg,i+1,j-1,k-1) == f_label))
+              {
+                detect_pbm++;
+              }
             }
             nfound++;
           }
         }
     nmodified += nfound;
     ntotal += nfound;
-    if (detect_pbm) topofix_pbm=1;
+    if (detect_pbm)
+    {
+      topofix_pbm=1;
+    }
     fprintf(stderr,"\npass %3d (--): %3d found - %3d modified     "
             "|    TOTAL: %3d  (PBM=%d)",
             npass,nfound,nmodified,ntotal,detect_pbm);
@@ -1168,37 +1547,58 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg,
   nfound=1;
   nmodified=0;
   npass=0;
-  while (nfound) {
+  while (nfound)
+  {
     nfound=0;
     npass++;
     detect_pbm=0;
     for (k = 0 ; k < mri_seg->depth-1; k++)
       for (j = 1 ; j < mri_seg->height ; j++)
-        for (i = 0 ; i < mri_seg->width-1 ; i++) {
-          if (MRIvox(mri_seg,i,j,k)==label) continue;
-          if (MRIvox(mri_seg,i+1,j-1,k+1)==label) continue;
+        for (i = 0 ; i < mri_seg->width-1 ; i++)
+        {
+          if (MRIvox(mri_seg,i,j,k)==label)
+          {
+            continue;
+          }
+          if (MRIvox(mri_seg,i+1,j-1,k+1)==label)
+          {
+            continue;
+          }
           /* find problematic configuration */
-          if ((MRIvox(mri_seg,i+1,j,k)==label) && 
+          if ((MRIvox(mri_seg,i+1,j,k)==label) &&
               (MRIvox(mri_seg,i+1,j-1,k)==label) &&
-              (MRIvox(mri_seg,i,j-1,k)==label) && 
+              (MRIvox(mri_seg,i,j-1,k)==label) &&
               (MRIvox(mri_seg,i,j-1,k+1)==label) &&
               (MRIvox(mri_seg,i+1,j,k)==label) &&
-              (MRIvox(mri_seg,i+1,j,k+1)==label)) {
+              (MRIvox(mri_seg,i+1,j,k+1)==label))
+          {
             /* avoid f_label */
-            if ((MRIvox(mri_seg,i,j,k)==f_label) && 
+            if ((MRIvox(mri_seg,i,j,k)==f_label) &&
                 (MRIvox(mri_seg,i+1,j-1,k+1) != f_label))
+            {
               MRIvox(mri_seg,i+1,j-1,k+1)=label;
-            else if ((MRIvox(mri_seg,i,j,k)!=f_label) && 
+            }
+            else if ((MRIvox(mri_seg,i,j,k)!=f_label) &&
                      (MRIvox(mri_seg,i+1,j-1,k+1) == f_label))
+            {
               MRIvox(mri_seg,i,j,k)=label;
-            else {/* take the brighter voxel */
+            }
+            else  /* take the brighter voxel */
+            {
               if (MRIgetVoxVal(mri_orig,i,j,k,0)>
                   MRIgetVoxVal(mri_orig,i+1,j-1,k+1,0))
+              {
                 MRIvox(mri_seg,i,j,k)=label;
+              }
               else
+              {
                 MRIvox(mri_seg,i+1,j-1,k+1)=label;
-              if ((MRIvox(mri_seg,i,j,k)==f_label) && 
-                  (MRIvox(mri_seg,i+1,j-1,k+1) == f_label)) detect_pbm++;
+              }
+              if ((MRIvox(mri_seg,i,j,k)==f_label) &&
+                  (MRIvox(mri_seg,i+1,j-1,k+1) == f_label))
+              {
+                detect_pbm++;
+              }
             }
             nfound++;
           }
@@ -1214,7 +1614,8 @@ static int mriRemoveBackgroundCornerConfiguration(MRI *mri_seg,
 }
 
 
-static int mri_topofix(MRI *mri_seg, MRI *mri_orig) {
+static int mri_topofix(MRI *mri_seg, MRI *mri_orig)
+{
 
   int i,j,k,niter=100,ntotal=0,nmodified,label,forbidden_label,nvoxels;
   MRI_SEGMENTATION *segmentation;
@@ -1230,33 +1631,40 @@ static int mri_topofix(MRI *mri_seg, MRI *mri_orig) {
   forbidden_label = lh_fill_val;
   edge_pbm = fcorner_pbm = bcorner_pbm = 0;
   niter=100;
-  while (niter--) {
+  while (niter--)
+  {
     nmodified=0;
 
     topofix_pbm=0;
-    nmodified += 
+    nmodified +=
       mriRemoveEdgeConfiguration(mri_seg,mri_orig,label,forbidden_label);
     edge_pbm += topofix_pbm;
 
     topofix_pbm=0;
-    nmodified += 
+    nmodified +=
       mriRemoveCornerConfiguration(mri_seg,mri_orig,label,forbidden_label);
     fcorner_pbm += topofix_pbm;
 
     topofix_pbm=0;
-    nmodified += 
+    nmodified +=
       mriRemoveBackgroundCornerConfiguration(mri_seg,mri_orig,
-                                             label,forbidden_label);
+          label,forbidden_label);
     bcorner_pbm += topofix_pbm;
 
-    if (nmodified==0) break;
+    if (nmodified==0)
+    {
+      break;
+    }
     ntotal += nmodified;
   }
   nvoxels=0;
-  for (k=0;k<mri_seg->depth;k++)
-    for (j=0;j<mri_seg->height;j++)
-      for (i=0;i<mri_seg->width;i++)
-        if (MRIvox(mri_seg,i,j,k)==label) nvoxels++;
+  for (k=0; k<mri_seg->depth; k++)
+    for (j=0; j<mri_seg->height; j++)
+      for (i=0; i<mri_seg->width; i++)
+        if (MRIvox(mri_seg,i,j,k)==label)
+        {
+          nvoxels++;
+        }
   fprintf(stderr,"\nRight hemisphere: total Number of Modified Voxels "
           "= %d (out of %d: %f)\n",
           ntotal,nvoxels,100.0*ntotal/nvoxels);
@@ -1272,33 +1680,40 @@ static int mri_topofix(MRI *mri_seg, MRI *mri_orig) {
   forbidden_label = rh_fill_val;
   edge_pbm = fcorner_pbm = bcorner_pbm = 0;
   niter=100;
-  while (niter--) {
+  while (niter--)
+  {
     nmodified=0;
 
     topofix_pbm=0;
-    nmodified += 
+    nmodified +=
       mriRemoveEdgeConfiguration(mri_seg,mri_orig,label,forbidden_label);
     edge_pbm += topofix_pbm;
 
     topofix_pbm=0;
-    nmodified += 
+    nmodified +=
       mriRemoveCornerConfiguration(mri_seg,mri_orig,label,forbidden_label);
     fcorner_pbm += topofix_pbm;
 
     topofix_pbm=0;
-    nmodified += 
+    nmodified +=
       mriRemoveBackgroundCornerConfiguration(mri_seg,mri_orig,
-                                             label,forbidden_label);
+          label,forbidden_label);
     bcorner_pbm += topofix_pbm;
 
-    if (nmodified==0) break;
+    if (nmodified==0)
+    {
+      break;
+    }
     ntotal += nmodified;
   }
   nvoxels=0;
-  for (k=0;k<mri_seg->depth;k++)
-    for (j=0;j<mri_seg->height;j++)
-      for (i=0;i<mri_seg->width;i++)
-        if (MRIvox(mri_seg,i,j,k)==label) nvoxels++;
+  for (k=0; k<mri_seg->depth; k++)
+    for (j=0; j<mri_seg->height; j++)
+      for (i=0; i<mri_seg->width; i++)
+        if (MRIvox(mri_seg,i,j,k)==label)
+        {
+          nvoxels++;
+        }
 
   fprintf(stderr,"\nLeft hemisphere: "
           "total Number of Modified Voxels = %d (out of %d: %f)\n",
@@ -1314,28 +1729,56 @@ static int mri_topofix(MRI *mri_seg, MRI *mri_orig) {
   ncpts=0;
   segmentation = MRIsegment(mri_seg, 0, 0);
   max_segment= MRIsegmentMax(segmentation);
-  for (k = 0 ; k < segmentation->max_segments ; k++) {
-    if (k == max_segment) continue;
+  for (k = 0 ; k < segmentation->max_segments ; k++)
+  {
+    if (k == max_segment)
+    {
+      continue;
+    }
     segment = &segmentation->segments[k];
-    if (segment->nvoxels==0) continue;
+    if (segment->nvoxels==0)
+    {
+      continue;
+    }
     /* find neighboring label of segment */
     label = 0;
     nlabels=0;
-    for ( p = 0 ; p < segment->nvoxels ; p++) {
+    for ( p = 0 ; p < segment->nvoxels ; p++)
+    {
       x=segment->voxels[p].x;
       y=segment->voxels[p].y;
       z=segment->voxels[p].z;
-      for (a = -1 ; a < 2 ; a++) {
-        if (x+a < 0 || x+a>= mri_seg->width) continue;
-        for (b = -1 ; b < 2 ;  b++) {
-          if (y+b < 0 || y+b>= mri_seg->height) continue;
-          for (c = -1 ; c < 2 ; c++) {
-            if (z+c < 0 || z+c>= mri_seg->depth) continue;
-            if (abs(a)+abs(b)+abs(c)>1) continue;
+      for (a = -1 ; a < 2 ; a++)
+      {
+        if (x+a < 0 || x+a>= mri_seg->width)
+        {
+          continue;
+        }
+        for (b = -1 ; b < 2 ;  b++)
+        {
+          if (y+b < 0 || y+b>= mri_seg->height)
+          {
+            continue;
+          }
+          for (c = -1 ; c < 2 ; c++)
+          {
+            if (z+c < 0 || z+c>= mri_seg->depth)
+            {
+              continue;
+            }
+            if (abs(a)+abs(b)+abs(c)>1)
+            {
+              continue;
+            }
             val = MRIvox(mri_seg,x+a,y+b,z+c);
-            if (val == rh_fill_val || val == lh_fill_val) {
-              if (label > 0 && val != label) nlabels=2;
-              if (label==0) {
+            if (val == rh_fill_val || val == lh_fill_val)
+            {
+              if (label > 0 && val != label)
+              {
+                nlabels=2;
+              }
+              if (label==0)
+              {
                 label = val;
                 nlabels=1;
               }
@@ -1343,22 +1786,31 @@ static int mri_topofix(MRI *mri_seg, MRI *mri_orig) {
           }
         }
       }
-      if (nlabels==2) break;
+      if (nlabels==2)
+      {
+        break;
+      }
     }
-    if (label == 0 ) fprintf(stderr,"\ncould not find neighboring label!!\n");
-    else {//filling values
+    if (label == 0 )
+    {
+      fprintf(stderr,"\ncould not find neighboring label!!\n");
+    }
+    else  //filling values
+    {
       ncpts++;
       if (nlabels==2)
         fprintf(stderr,
                 "   keeping component %d, located in "
                 "(%3.1f,%3.1f,%3.1f) with %d voxels\n",
                 k,segment->cx,segment->cy,segment->cz,segment->nvoxels);
-      else {
+      else
+      {
         fprintf(stderr,
                 "   removing component %d, located in "
                 "(%3.1f,%3.1f,%3.1f) with %d voxels\n",
                 k,segment->cx,segment->cy,segment->cz,segment->nvoxels);
-        for ( p = 0 ; !label && p < segment->nvoxels ; p++) {
+        for ( p = 0 ; !label && p < segment->nvoxels ; p++)
+        {
           x=segment->voxels[p].x;
           y=segment->voxels[p].y;
           z=segment->voxels[p].z;
@@ -1382,7 +1834,8 @@ static int mri_topofix(MRI *mri_seg, MRI *mri_orig) {
 // use xform and its dst offset for Talairach volume
 static LTA *lta = 0;
 
-static int labels[] = {
+static int labels[] =
+{
   THICKEN_FILL, NBHD_FILL, VENTRICLE_FILL, DIAGONAL_FILL, DEGENERATE_FILL
 };
 #define NLABELS  sizeof(labels) / (sizeof(labels[0]))
@@ -1391,7 +1844,8 @@ static char *norm_fname = NULL;
 static char *segmentation_fname = NULL ;
 
 
-double findMinSize(MRI *mri) {
+double findMinSize(MRI *mri)
+{
   double xsize, ysize, zsize, minsize;
   xsize = mri->xsize;
   ysize = mri->ysize;
@@ -1406,9 +1860,13 @@ double findMinSize(MRI *mri) {
   // y > z > x    x min
   // z > y > x    x min
   if (xsize > ysize)
+  {
     minsize = (ysize > zsize) ? zsize : ysize;
+  }
   else
+  {
     minsize = (zsize > xsize) ? xsize : zsize;
+  }
 
   return minsize;
 }
@@ -1416,7 +1874,8 @@ double findMinSize(MRI *mri) {
 int verifyLRSplit(MRI *mri_fill,
                   LTA *lta,
                   Real cc_tal_x,
-                  int *pbadRH, int *pbadLH, int *ptotRH, int *ptotLH) {
+                  int *pbadRH, int *pbadLH, int *ptotRH, int *ptotLH)
+{
   int x, y, z;
   Real tal_x, tal_y, tal_z;
   unsigned char val;
@@ -1428,13 +1887,19 @@ int verifyLRSplit(MRI *mri_fill,
   int LH = 0;
   for (z =0; z < mri_fill->depth; ++z)
     for (y=0; y < mri_fill->height; ++y)
-      for (x=0; x < mri_fill->width; ++x) {
+      for (x=0; x < mri_fill->width; ++x)
+      {
         val = MRIvox(mri_fill, x, y, z);
-        if (val != 0) {
+        if (val != 0)
+        {
           if (val == rh_fill_val)
+          {
             RH++;
+          }
           else if (val==lh_fill_val)
+          {
             LH++;
+          }
           // get the talairach coordinate position
           MRIvoxelToTalairachEx
           (mri_fill, x, y, z, &tal_x, &tal_y, &tal_z, lta);
@@ -1442,7 +1907,8 @@ int verifyLRSplit(MRI *mri_fill,
           {
             // val must be lh_fill_val, except
             // the case when the brain bends
-            if (val == rh_fill_val) {
+            if (val == rh_fill_val)
+            {
               badRH++;
               // if (badRH < 10)
               //   fprintf(stderr, "badRH: (%d, %d, %d)\n", x, y, z);
@@ -1453,7 +1919,8 @@ int verifyLRSplit(MRI *mri_fill,
           {
             // val must be rh_fill_val,
             // except the case when the brain bends
-            if (val == lh_fill_val) {
+            if (val == lh_fill_val)
+            {
               badLH++;
               // if (badLH < 10)
               //   fprintf(stderr, "badLH: (%d, %d, %d)\n", x, y, z);
@@ -1526,15 +1993,16 @@ static int MRIfillDegenerateLocations(MRI *mri_fill, int fillval) ;
   FUNCTIONS
   -------------------------------------------------------------------*/
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   int     x, y, z, xd, yd, zd, xnew, ynew, znew, msec, i, found ;
   int     nargs, wm_rh_x, wm_rh_y, wm_rh_z, wm_lh_x, wm_lh_y, wm_lh_z ;
   char    input_fname[STRLEN],out_fname[STRLEN], fname[STRLEN] ;
   Real    xr, yr, zr, dist, min_dist ;
   MRI     *mri_cc = NULL, *mri_pons = NULL, *mri_norm = NULL,
-    *mri_lh_fill, *mri_rh_fill, *mri_lh_im,
-    *mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
-    *mri_saved_labels, *mri_seg ;
+           *mri_lh_fill, *mri_rh_fill, *mri_lh_im,
+           *mri_rh_im /*, *mri_blur*/, *mri_labels, *mri_tal, *mri_tmp, *mri_tmp2,
+           *mri_saved_labels, *mri_seg ;
   int     x_pons, y_pons, z_pons, x_cc, y_cc, z_cc, xi, yi, zi ;
   MORPH_3D  *m3d ;
   struct timeb  then ;
@@ -1553,7 +2021,7 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.115 2010/12/08 20:59:40 rge21 Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.116 2011/02/07 00:40:46 nicks Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -1561,10 +2029,12 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.115 2010/12/08 20:59:40 rge21 Exp $", 
+           "$Id: mri_fill.c,v 1.116 2011/02/07 00:40:46 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   TimerStart(&then) ;
@@ -1573,26 +2043,34 @@ main(int argc, char *argv[]) {
 
   Progname = argv[0] ;
 
-  for ( ; argc > 1 && (*argv[1] == '-') ; argc--, argv++) {
+  for ( ; argc > 1 && (*argv[1] == '-') ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc < 3)
-    print_help() ;   /* will exit */
+  {
+    print_help() ;  /* will exit */
+  }
 
   strcpy(input_fname, argv[1]) ;
   strcpy(out_fname, argv[2]) ;
 
   if (!Gdiag)
+  {
     fprintf(stderr, "reading input volume...") ;
+  }
 
   mri_im = MRIread(input_fname) ;
   if (!mri_im)
+  {
     ErrorExit(ERROR_NOFILE, "%s: could not read %s", Progname, input_fname) ;
+  }
   MRIaddCommandLine(mri_im, cmdline) ;
-  if (mri_im->type != MRI_UCHAR) {
+  if (mri_im->type != MRI_UCHAR)
+  {
     MRI *mri_tmp ;
 
     mri_tmp = MRIchangeType(mri_im, MRI_UCHAR, 0.0, 0.999, TRUE) ;
@@ -1600,12 +2078,16 @@ main(int argc, char *argv[]) {
     mri_im = mri_tmp ;
   }
 
-  if (find_rh_voxel) {
+  if (find_rh_voxel)
+  {
     find_rh_seed_point(mri_im, &rh_vol_x, &rh_vol_y, &rh_vol_z) ;
-  } else if (find_lh_voxel) {
+  }
+  else if (find_lh_voxel)
+  {
     find_rh_seed_point(mri_im, &lh_vol_x, &lh_vol_y, &lh_vol_z) ;
   }
-  if (fillonly) {
+  if (fillonly)
+  {
     mri_rh_fill = MRIclone(mri_im, NULL) ;
     mri_rh_im = MRIcopy(mri_im, NULL) ;
     if (find_rh_voxel || rhv)   // rh specified
@@ -1624,13 +2106,15 @@ main(int argc, char *argv[]) {
      and the pons. They will be restored later, before doing the fill.
   */
   mri_labels = MRIclone(mri_im, NULL) ;
-  for (i = 0 ; i < NLABELS ; i++) {
+  for (i = 0 ; i < NLABELS ; i++)
+  {
     MRIcopyLabel(mri_im, mri_labels, labels[i]) ;
     MRIreplaceValues(mri_im, mri_im, labels[i], 0) ;
   }
   mri_saved_labels = MRIcopy(mri_labels, NULL) ;
 
-  if (atlas_name && 0) {
+  if (atlas_name && 0)
+  {
     MRI *mri_p_wm ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
@@ -1663,11 +2147,15 @@ main(int argc, char *argv[]) {
     mri_p_wm =
       mriReadBinaryProbabilities(atlas_name, "wm", m3d, sname, NULL);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_p_wm, "p_wm.mgz") ;
+    }
 
     MRIprobabilityThresholdNeighborhoodOff(mri_im, mri_p_wm, mri_im, 0.0, 3);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_im, "wm_thresh.mgz") ;
+    }
 
 #if 0
     fprintf(stderr, "filling high probability white matter...\n") ;
@@ -1690,7 +2178,9 @@ main(int argc, char *argv[]) {
 
 
   if (!Gdiag)
+  {
     fprintf(stderr, "done.\nsearching for cutting planes...") ;
+  }
 
   ////////////////////////////////////////////////////////////////////////////
   // set up mri_talheader
@@ -1704,15 +2194,22 @@ main(int argc, char *argv[]) {
   // Make sure that we have lta
   /////////////////////////////////////////////////////////////////////////
   // if lta is loaded
-  if (lta) {
-    if (lta->type != LINEAR_RAS_TO_RAS) {
-      if (lta->xforms[0].src.valid && lta->xforms[0].dst.valid) {
+  if (lta)
+  {
+    if (lta->type != LINEAR_RAS_TO_RAS)
+    {
+      if (lta->xforms[0].src.valid && lta->xforms[0].dst.valid)
+      {
         LTAchangeType(lta, LINEAR_RAS_TO_RAS);
-      } else
+      }
+      else
+      {
         LTAvoxelTransformToCoronalRasTransform(lta);
+      }
     }
     ModifyTalairachCRAS(mri_talheader, lta);
-  } else // lta is not loaded and thus we create
+  }
+  else   // lta is not loaded and thus we create
   {
     lta = LTAalloc(1, NULL) ;
     lt = &lta->xforms[0] ;
@@ -1722,9 +2219,11 @@ main(int argc, char *argv[]) {
     lta->type = LINEAR_RAS_TO_RAS;
     // try getting from mri
     // transform is MNI transform (only COR volume reads transform)
-    if (mri_im->linear_transform) {
+    if (mri_im->linear_transform)
+    {
       // linear_transform is zero based column-major array
-      for (row = 1 ; row <= 3 ; row++) {
+      for (row = 1 ; row <= 3 ; row++)
+      {
         *MATRIX_RELT(m_L,row,1) = mri_im->linear_transform->m[0][row-1];
         *MATRIX_RELT(m_L,row,2) = mri_im->linear_transform->m[1][row-1];
         *MATRIX_RELT(m_L,row,3) = mri_im->linear_transform->m[2][row-1];
@@ -1737,8 +2236,11 @@ main(int argc, char *argv[]) {
       getVolGeom(mri_im, src);
       getVolGeom(mri_im, dst);
       if (getenv("NO_AVERAGE305")) // if this is set
+      {
         fprintf(stderr, "INFO: tal dst c_(r,a,s) not modified\n");
-      else {
+      }
+      else
+      {
         fprintf
         (stderr,
          "INFO: Modifying talairach volume c_(r,a,s) based "
@@ -1752,7 +2254,9 @@ main(int argc, char *argv[]) {
         mri_talheader->c_a = dst->c_a;
         mri_talheader->c_s = dst->c_s;
       }
-    } else {
+    }
+    else
+    {
       printf("INFO: volume does not have linear_transform "
              "set nor lta is given by option.-xform.\n") ;
       printf("INFO: use identity matrix as the talairach transform.\n");
@@ -1774,7 +2278,8 @@ main(int argc, char *argv[]) {
     SetAffineMatrix( mri_talheader->i_to_r__, tmp2 );
     MatrixFree( &tmp2 );
 
-    if (mri_talheader->r_to_i__) {
+    if (mri_talheader->r_to_i__)
+    {
       MatrixFree(&mri_talheader->r_to_i__);
     }
     mri_talheader->r_to_i__ = extract_r_to_i(mri_talheader);
@@ -1790,28 +2295,36 @@ main(int argc, char *argv[]) {
   MRIbinarize
   (mri_tal, mri_tal, DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
 
-  if (segmentation_fname) {
+  if (segmentation_fname)
+  {
     printf("reading segmented volume %s...\n", segmentation_fname) ;
     mri_seg = MRIread(segmentation_fname) ;
     if (!mri_seg)
       ErrorExit(ERROR_NOFILE, "%s: could not read segmentation from %s",
                 Progname, segmentation_fname) ;
 #if 0
-    if  (mri_im->linear_transform == 0) {
+    if  (mri_im->linear_transform == 0)
+    {
       if (find_cc_seed_with_segmentation
           (mri_tal, mri_seg, &cc_tal_x, &cc_tal_y, &cc_tal_z) == NO_ERROR)
+      {
         cc_seed_set = 1;
+      }
     }
 #endif
-  } else
+  }
+  else
+  {
     mri_seg = NULL;
+  }
 
 
   ///////////////////////////////////////////////////////////////////////////
   // find corpus callosum (work under the talairach volume)
   ///////////////////////////////////////////////////////////////////////////
   // cc_seed is given by tal position
-  if (cc_seed_set) {
+  if (cc_seed_set)
+  {
     Real xv, yv, zv;
     printf("Using the seed to calculate the cutting plane\n");
     printf("Verify whether the seed point is inside the volume first\n");
@@ -1819,7 +2332,8 @@ main(int argc, char *argv[]) {
     (mri_im, cc_tal_x, cc_tal_y, cc_tal_z, &xv, &yv, &zv, lta);
     if (xv > (mri_im->width-1) || xv < 0
         || yv > (mri_im->height-1) || yv < 0
-        || zv > (mri_im->depth-1) || zv < 0) {
+        || zv > (mri_im->depth-1) || zv < 0)
+    {
       fprintf(stderr,
               "The seed point (%.2f, %.2f, %.2f) "
               "is mapped to a voxel (%.2f, %.2f. %.2f).\n",
@@ -1836,19 +2350,23 @@ main(int argc, char *argv[]) {
        MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
   }
   // cc_seed is give by voxel position
-  else if (cc_seed_vol_set) {
+  else if (cc_seed_vol_set)
+  {
     /* bounds-check cc voxel coordinates */
-    if ((cc_vol_x >= mri_im->width) || (cc_vol_x < 0)) {
+    if ((cc_vol_x >= mri_im->width) || (cc_vol_x < 0))
+    {
       ErrorExit
       (ERROR_BADPARM,
        "ERROR: cc_vol_x voxel coordinate out-of-bounds!\n");
     }
-    if ((cc_vol_y >= mri_im->height) || (cc_vol_y < 0)) {
+    if ((cc_vol_y >= mri_im->height) || (cc_vol_y < 0))
+    {
       ErrorExit
       (ERROR_BADPARM,
        "ERROR: cc_vol_y voxel coordinate out-of-bounds!\n");
     }
-    if ((cc_vol_z >= mri_im->depth) || (cc_vol_z < 0)) {
+    if ((cc_vol_z >= mri_im->depth) || (cc_vol_z < 0))
+    {
       ErrorExit
       (ERROR_BADPARM,
        "ERROR: cc_vol_z voxel coordinate out-of-bounds!\n");
@@ -1867,9 +2385,11 @@ main(int argc, char *argv[]) {
       find_cutting_plane
       (mri_tal, cc_tal_x, cc_tal_y, cc_tal_z,
        MRI_SAGITTAL, &x_cc, &y_cc, &z_cc, cc_seed_set, lta) ;
-  } else // seed is not set
+  }
+  else   // seed is not set
   {
-    if (mri_seg) {
+    if (mri_seg)
+    {
       MRI *mri_seg_tal = MRIclone(mri_seg, NULL) ;
 
       MRIcopyHeader(mri_talheader, mri_seg_tal);
@@ -1879,7 +2399,8 @@ main(int argc, char *argv[]) {
 
       if (find_cc_seed_with_segmentation
           (mri_tal, mri_seg_tal, &cc_tal_x, &cc_tal_y, &cc_tal_z) ==
-          NO_ERROR) {
+          NO_ERROR)
+      {
         cc_seed_set = 1;
         mri_cc =
           find_cutting_plane
@@ -1888,14 +2409,19 @@ main(int argc, char *argv[]) {
 
         mri_erase_nonmidline_voxels(mri_cc, mri_seg_tal) ;
         if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        {
           MRIwrite(mri_cc, "cc.mgz") ;
+        }
       }
       MRIfree(&mri_seg_tal) ;
     }
-    if (mri_cc == NULL) {
+    if (mri_cc == NULL)
+    {
       if (find_corpus_callosum(mri_tal,&cc_tal_x,&cc_tal_y,&cc_tal_z, lta)
           != NO_ERROR)
-        mri_cc = NULL ; // could not find corpus_callosum
+      {
+        mri_cc = NULL ;  // could not find corpus_callosum
+      }
       else
         mri_cc =
           find_cutting_plane
@@ -1920,7 +2446,9 @@ main(int argc, char *argv[]) {
       if (find_cc_seed_with_segmentation
           (mri_tal, mri_seg_tal, &cc_tal_x, &cc_tal_y, &cc_tal_z) ==
           NO_ERROR)
+      {
         cc_seed_set = 1;
+      }
       MRIfree(&mri_seg_tal) ;
       mri_cc =
         find_cutting_plane
@@ -1947,7 +2475,9 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_cc) ;
     mri_cc = mri_tmp ;  // mri_cc is in the src volume space!
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_cc, "cc.mgz") ;
+    }
   }
 
   /* update tal coords of CC based on data (BUG FIX - BRF) */
@@ -1967,30 +2497,36 @@ main(int argc, char *argv[]) {
   if (log_fp)
     fprintf(log_fp, "CC:   %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
             x_cc, y_cc, z_cc, cc_tal_x, cc_tal_y, cc_tal_z) ;
-  if (alog_fp) {
+  if (alog_fp)
+  {
     fprintf(alog_fp, "CC-CRS %d %d %d\n",x_cc, y_cc, z_cc);
     fprintf(alog_fp, "CC-TAL %5.1f %5.1f %5.1f\n",
             cc_tal_x, cc_tal_y, cc_tal_z) ;
   }
 
 
-  if (mri_seg == NULL) {
+  if (mri_seg == NULL)
+  {
     //////////////////////////////////////////////////////////////////////
     // finding pons location
     //////////////////////////////////////////////////////////////////////
-    if (pons_seed_vol_set) {
+    if (pons_seed_vol_set)
+    {
       /* bounds-check pons voxel coordinates */
-      if ((pons_vol_x >= mri_im->width) || (pons_vol_x < 0)) {
+      if ((pons_vol_x >= mri_im->width) || (pons_vol_x < 0))
+      {
         ErrorExit
         (ERROR_BADPARM,
          "ERROR: pons_vol_x voxel coordinate out-of-bounds!\n");
       }
-      if ((pons_vol_y >= mri_im->height) || (pons_vol_y < 0)) {
+      if ((pons_vol_y >= mri_im->height) || (pons_vol_y < 0))
+      {
         ErrorExit
         (ERROR_BADPARM,
          "ERROR: pons_vol_y voxel coordinate out-of-bounds!\n");
       }
-      if ((pons_vol_z >= mri_im->depth) || (pons_vol_z < 0)) {
+      if ((pons_vol_z >= mri_im->depth) || (pons_vol_z < 0))
+      {
         ErrorExit
         (ERROR_BADPARM,
          "ERROR: pons_vol_z voxel coordinate out-of-bounds!\n");
@@ -2005,14 +2541,17 @@ main(int argc, char *argv[]) {
 
       // mark as cc_seed_set by the tal
       pons_seed_set = 1;
-    } else if (pons_seed_set) {
+    }
+    else if (pons_seed_set)
+    {
       Real xv, yv, zv;
       printf("Verify whether the seed point is inside the volume first\n");
       MRItalairachToVoxelEx
       (mri_im, pons_tal_x, pons_tal_y, pons_tal_z, &xv, &yv, &zv, lta);
       if (xv > (mri_im->width-1) || xv < 0
           || yv > (mri_im->height-1) || yv < 0
-          || zv > (mri_im->depth-1) || zv < 0) {
+          || zv > (mri_im->depth-1) || zv < 0)
+      {
         fprintf
         (stderr,
          "The seed point (%.2f, %.2f, %.2f) is mapped "
@@ -2024,7 +2563,8 @@ main(int argc, char *argv[]) {
          "in talaraich position or use -PV option\n");
         return -1;
       }
-    } else // automatic find pons
+    }
+    else   // automatic find pons
     {
       MRI  *mri_mask=NULL ;
 
@@ -2043,13 +2583,16 @@ main(int argc, char *argv[]) {
         extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
         MRImask(mri_tmp,mri_mask,mri_tmp,255,0);// in src volume space
         MRImask(mri_labels, mri_mask, mri_labels, 255, 0);
-        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        {
           MRIwrite(mri_tmp, "./erased.mgz") ;  // src volume space
           MRIwrite(mri_mask, "./mask.mgz") ;   // src volume space
         }
       }
       else
+      {
         mri_tmp = mri_im ;
+      }
 
       MRIfree(&mri_tal) ;
 
@@ -2062,7 +2605,9 @@ main(int argc, char *argv[]) {
       MRIcopyHeader(mri_talheader, mri_tal);
       MRItoTalairachEx(mri_tmp, mri_tal, lta);//erased volume to tal space
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      {
         MRIwrite(mri_tal, "./talponsearch.mgz");
+      }
 
       // binarize
       MRIbinarize(mri_tal, mri_tal,
@@ -2071,10 +2616,13 @@ main(int argc, char *argv[]) {
       find_pons(mri_tal,
                 &pons_tal_x, &pons_tal_y, &pons_tal_z,x_cc,y_cc,z_cc,0);
       /////////////////////////////////////////////    // up to here OK
-      if (mri_tmp != mri_im) {
+      if (mri_tmp != mri_im)
+      {
         MRIfree(&mri_tmp) ;
         if (mri_mask)
+        {
           MRIfree(&mri_mask) ;
+        }
       }
     }
     // now use pons_tal_? location
@@ -2092,7 +2640,8 @@ main(int argc, char *argv[]) {
       (stderr,
        "initial attempt at finding brainstem failed - initiating backup "
        "plan A....\n") ;
-      if (cc_mask) {
+      if (cc_mask)
+      {
         mri_tmp = MRIcopy(mri_im, NULL) ; // src volume
         mri_mask = MRIcopy(mri_cc, NULL) ; // in src volume space
         MRIdilate(mri_mask, mri_mask) ;
@@ -2103,12 +2652,16 @@ main(int argc, char *argv[]) {
         extend_to_lateral_borders(mri_mask, mri_mask, 0) ;
         MRImask(mri_tmp, mri_mask, mri_tmp, 255, 0) ;
         MRImask(mri_labels, mri_mask, mri_labels, 255, 0) ;
-        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+        if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+        {
           MRIwrite(mri_tmp, "./planA-erased.mgz") ;
           MRIwrite(mri_mask, "./planA-mask.mgz") ;
         }
-      } else
+      }
+      else
+      {
         mri_tmp = mri_im;
+      }
 
       MRIfree(&mri_tal) ; // mri_tal = MRItoTalairach(mri_tmp, NULL) ;
       // go to talairach space
@@ -2123,10 +2676,13 @@ main(int argc, char *argv[]) {
                   DEFAULT_DESIRED_WHITE_MATTER_VALUE/2-1, 0, 110) ;
       find_pons(mri_tmp, &pons_tal_x, &pons_tal_y, &pons_tal_z,
                 x_cc,y_cc,z_cc,1);
-      if (mri_tmp != mri_im) {
+      if (mri_tmp != mri_im)
+      {
         MRIfree(&mri_tmp) ;
         if (mri_mask)
+        {
           MRIfree(&mri_mask) ;
+        }
       }
       mri_pons =
         find_cutting_plane(mri_tal, pons_tal_x,pons_tal_y, pons_tal_z,
@@ -2145,17 +2701,22 @@ main(int argc, char *argv[]) {
                            MRI_HORIZONTAL, &x_pons, &y_pons, &z_pons,
                            pons_seed_set, lta);
       if (!mri_pons && !mri_seg)
+      {
         ErrorExit(ERROR_BADPARM, "%s: could not find pons", Progname);
+      }
     }
 
-    if (mri_pons) {
+    if (mri_pons)
+    {
 
-      if (log_fp) {
+      if (log_fp)
+      {
         fprintf(log_fp, "PONS: %d, %d, %d (TAL: %2.1f, %2.1f, %2.1f)\n",
                 x_pons, y_pons, z_pons, pons_tal_x, pons_tal_y, pons_tal_z) ;
         fclose(log_fp) ;
       }
-      if (alog_fp) {
+      if (alog_fp)
+      {
         fprintf(alog_fp, "PONS-CRS %d %d %d\n",x_pons, y_pons, z_pons);
         fprintf(alog_fp, "PONS-TAL %5.1f %5.1f %5.1f\n",
                 pons_tal_x, pons_tal_y, pons_tal_z) ;
@@ -2165,14 +2726,17 @@ main(int argc, char *argv[]) {
       mri_tmp2 = MRIcopy(mri_im, NULL); // cutting plane
       if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
         // talairached volume pons cutting plane
+      {
         MRIwrite(mri_pons, "./ponstal.mgz");
+      }
       MRIfromTalairachEx(mri_pons, mri_tmp2, lta) ;
       MRIbinarize(mri_tmp2, mri_tmp2, 1, 0, 1) ;
       MRIfree(&mri_pons) ;
       mri_pons = mri_tmp2 ;
       MRIdilate(mri_pons, mri_pons) ;
     }
-  } else // erase brain stem in any case
+  }
+  else   // erase brain stem in any case
   {
     printf("Erasing brainstem...") ;
     MRIsetLabelValues(mri_im, mri_seg, mri_im, Brain_Stem, 0) ;
@@ -2189,18 +2753,25 @@ main(int argc, char *argv[]) {
   /* make cuts in both image and labels image to avoid introducing a connection
      with one of the labels
   */
-  if (mri_seg == NULL) {
+  if (mri_seg == NULL)
+  {
     MRImask(mri_im, mri_cc, mri_im, 1, fill_val) ;
     if (mri_pons)
+    {
       MRImask(mri_im, mri_pons, mri_im, 1, fill_val) ;
+    }
   }
 
-  if (mri_saved_labels) {
+  if (mri_saved_labels)
+  {
     MRImask(mri_saved_labels, mri_cc, mri_saved_labels, 1, 0) ;
     if (mri_pons)
+    {
       MRImask(mri_saved_labels, mri_pons, mri_saved_labels, 1, 0) ;
+    }
   }
-  if (fill_val) {
+  if (fill_val)
+  {
     fprintf(stderr,
             "writing out image with cutting planes to 'planes.mgz'.\n");
     MRIwrite(mri_im, "planes.mgz") ;
@@ -2208,16 +2779,23 @@ main(int argc, char *argv[]) {
     exit(0) ;
   }
 
-  if (mri_saved_labels) {
+  if (mri_saved_labels)
+  {
     for (i = 0 ; i < NLABELS ; i++)
+    {
       MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
+    }
     MRIfree(&mri_saved_labels) ;
   }
   MRIfree(&mri_labels) ;
   if (mri_pons)
+  {
     MRIfree(&mri_pons) ;
+  }
   if (!Gdiag)
+  {
     fprintf(stderr, "done.\n") ;
+  }
 
   voxsize = findMinSize(mri_im);
   seed_search_size = ceil(SEED_SEARCH_SIZE/voxsize); // in voxel space
@@ -2225,8 +2803,10 @@ main(int argc, char *argv[]) {
          seed_search_size, MIN_NEIGHBORS);
 
   // rh side wm
-  if (rh_seed_set) {
-    if (rhv) {
+  if (rh_seed_set)
+  {
+    if (rhv)
+    {
       MRIvoxelToTalairachEx
       (mri_im, rh_vol_x, rh_vol_y,rh_vol_z,&xr,&yr,&zr, lta);
       rh_tal_x = xr ;
@@ -2235,14 +2815,18 @@ main(int argc, char *argv[]) {
       wm_rh_x = rh_vol_x ;
       wm_rh_y = rh_vol_y ;
       wm_rh_z = rh_vol_z ;
-    } else {
+    }
+    else
+    {
       MRItalairachToVoxelEx
       (mri_im,rh_tal_x,rh_tal_y,rh_tal_z,&xr,&yr,&zr,lta);
       wm_rh_x = nint(xr) ;
       wm_rh_y = nint(yr) ;
       wm_rh_z = nint(zr) ;
     }
-  } else {
+  }
+  else
+  {
     /* find white matter seed point for the right hemisphere */
     // search size is talairach and thus
     // SEED_SEARCH_SIZE should not be changed
@@ -2261,7 +2845,7 @@ main(int argc, char *argv[]) {
     if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
         wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
         wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
-      ErrorExit(ERROR_BADPARM, 
+      ErrorExit(ERROR_BADPARM,
                 "rh white matter seed point out of bounds (%d, %d, %d)\n",
                 wm_rh_x, wm_rh_y, wm_rh_z) ;
 
@@ -2272,27 +2856,34 @@ main(int argc, char *argv[]) {
       found = xnew = ynew = znew = 0 ;
       min_dist = 10000.0f/voxsize ; // change to voxel distance
       if (Gdiag & DIAG_SHOW)
+      {
         fprintf(stderr, "searching for rh wm seed...") ;
+      }
       for (z = wm_rh_z-seed_search_size ;
            z <= wm_rh_z+seed_search_size ;
-           z++) {
+           z++)
+      {
         zi = mri_im->zi[z] ;
         for (y = wm_rh_y-seed_search_size ;
              y <= wm_rh_y+seed_search_size ;
-             y++) {
+             y++)
+        {
           yi = mri_im->yi[y] ;
           for (x = wm_rh_x-seed_search_size ;
                x <= wm_rh_x+seed_search_size;
-               x++) {
+               x++)
+          {
             xi = mri_im->xi[x] ;
             if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
-                neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS) {
+                neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)
+            {
               found = 1 ;
               xd = (xi - wm_rh_x) ;
               yd = (yi - wm_rh_y) ;
               zd = (zi - wm_rh_z) ;
               dist = xd*xd + yd*yd + zd*zd ;
-              if (dist < min_dist) {
+              if (dist < min_dist)
+              {
                 xnew = xi ;
                 ynew = yi ;
                 znew = zi ;
@@ -2310,7 +2901,9 @@ main(int argc, char *argv[]) {
       wm_rh_y = ynew ;
       wm_rh_z = znew ;
       if (Gdiag & DIAG_SHOW)
+      {
         fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
+      }
     }
     if (Gdiag & DIAG_SHOW)
       fprintf(stderr, "rh seed point at (%d, %d, %d): %d neighbors on.\n",
@@ -2320,8 +2913,10 @@ main(int argc, char *argv[]) {
   }
 
   // lh side wm
-  if (lh_seed_set) {
-    if (lhv) {
+  if (lh_seed_set)
+  {
+    if (lhv)
+    {
       MRIvoxelToTalairachEx
       (mri_im, lh_vol_x, lh_vol_y,lh_vol_z,&xr,&yr,&zr, lta);
       lh_tal_x = xr ;
@@ -2330,14 +2925,18 @@ main(int argc, char *argv[]) {
       wm_lh_x = lh_vol_x ;
       wm_lh_y = lh_vol_y ;
       wm_lh_z = lh_vol_z ;
-    } else {
+    }
+    else
+    {
       MRItalairachToVoxelEx
       (mri_im, lh_tal_x, lh_tal_y,lh_tal_z,&xr,&yr,&zr, lta);
       wm_lh_x = nint(xr) ;
       wm_lh_y = nint(yr) ;
       wm_lh_z = nint(zr) ;
     }
-  } else {
+  }
+  else
+  {
     /* find white matter seed point for the left hemisphere */
     MRItalairachToVoxelEx(mri_im, cc_tal_x-2*SEED_SEARCH_SIZE,
                           cc_tal_y, cc_tal_z, &xr, &yr, &zr, lta);
@@ -2351,35 +2950,43 @@ main(int argc, char *argv[]) {
     if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
         wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
         wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
-      ErrorExit(ERROR_BADPARM, 
+      ErrorExit(ERROR_BADPARM,
                 "lh white matter seed point out of bounds (%d, %d, %d)\n",
                 wm_lh_x, wm_lh_y, wm_lh_z) ;
     if ((MRIvox(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) <= WM_MIN_VAL) ||
-        (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS)) {
+        (neighbors_on(mri_im, wm_lh_x, wm_lh_y, wm_lh_z) < MIN_NEIGHBORS))
+    {
       found = xnew = ynew = znew = 0 ;
       min_dist = 10000.0f/voxsize ;
       if (Gdiag & DIAG_SHOW)
+      {
         fprintf(stderr, "searching for lh wm seed...") ;
+      }
       for (z = wm_lh_z-seed_search_size ;
            z <= wm_lh_z+seed_search_size ;
-           z++) {
+           z++)
+      {
         zi = mri_im->zi[z] ;
         for (y = wm_lh_y-seed_search_size ;
              y <= wm_lh_y+seed_search_size ;
-             y++) {
+             y++)
+        {
           yi = mri_im->yi[y] ;
           for (x = wm_lh_x-seed_search_size ;
                x <= wm_lh_x+seed_search_size;
-               x++) {
+               x++)
+          {
             xi = mri_im->xi[x] ;
             if ((MRIvox(mri_im, xi, yi, zi) >= WM_MIN_VAL) &&
-                (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS)) {
+                (neighbors_on(mri_im, xi, yi, zi) >= MIN_NEIGHBORS))
+            {
               found = 1 ;
               xd = (xi - wm_lh_x) ;
               yd = (yi - wm_lh_y) ;
               zd = (zi - wm_lh_z) ;
               dist = xd*xd + yd*yd + zd*zd ;
-              if (dist < min_dist) {
+              if (dist < min_dist)
+              {
                 xnew = xi ;
                 ynew = yi ;
                 znew = zi ;
@@ -2394,7 +3001,9 @@ main(int argc, char *argv[]) {
                   "could not find lh seed point around (%d, %d, %d)",
                   wm_lh_x, wm_lh_y, wm_lh_z) ;
       if (Gdiag & DIAG_SHOW)
+      {
         fprintf(stderr, "found at (%d, %d, %d)\n", xnew, ynew, znew) ;
+      }
       wm_lh_x = xnew ;
       wm_lh_y = ynew ;
       wm_lh_z = znew ;
@@ -2407,7 +3016,8 @@ main(int argc, char *argv[]) {
   }
 
 #if 0
-  if (segmentation_fname) {
+  if (segmentation_fname)
+  {
     //    printf("x_cc = %g, y_cc = %g, z_cc = %g\n",
     // (float)x_cc, (float)y_cc, (float) z_cc);
     Real x_cc_img, y_cc_img, z_cc_img;
@@ -2427,50 +3037,62 @@ main(int argc, char *argv[]) {
      mri_seg->width, fill_val, lta);
     //    edit_segmentation(mri_im, mri_seg) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_seg,"mri_seg_erased.mgz");
+    }
     MRIeraseTalairachPlaneNewEx
     (mri_im, mri_cc, MRI_SAGITTAL, x_cc, y_cc, z_cc,
      mri_seg->width, fill_val, lta);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_im,"mri_im_erased.mgz");
+    }
   }
 #endif
 
   if (wm_rh_x < 0 || wm_rh_x >= mri_im->width ||
       wm_rh_y < 0 || wm_rh_y >= mri_im->height ||
       wm_rh_z < 0 || wm_rh_z >= mri_im->depth)
-    ErrorExit(ERROR_BADPARM, 
+    ErrorExit(ERROR_BADPARM,
               "rh white matter seed point out of bounds (%d, %d, %d)\n",
               wm_rh_x, wm_rh_y, wm_rh_z) ;
   if (wm_lh_x < 0 || wm_lh_x >= mri_im->width ||
       wm_lh_y < 0 || wm_lh_y >= mri_im->height ||
       wm_lh_z < 0 || wm_lh_z >= mri_im->depth)
-    ErrorExit(ERROR_BADPARM, 
+    ErrorExit(ERROR_BADPARM,
               "lh white matter seed point out of bounds (%d, %d, %d)\n",
               wm_lh_x, wm_lh_y, wm_lh_z) ;
   MRIfree(&mri_cc) ;
 
-  if (segmentation_fname && (mri_seg != NULL)) {
+  if (segmentation_fname && (mri_seg != NULL))
+  {
     /* This can be done in the beginning, and all the seed points
        are unnecessary for the usual fill; the reason the previous
        seed-computation is kept is to be consistent with the
        following atlas-based autofill of ventricles etc */
     printf("compute mri_fill using aseg\n");
-    if (mri_saved_labels) {
+    if (mri_saved_labels)
+    {
       for (i = 0 ; i < NLABELS ; i++)
+      {
         MRIcopyLabel(mri_saved_labels, mri_im, labels[i]) ;
+      }
       MRIfree(&mri_saved_labels) ;
     }
 
     mri_fill = fill_with_aseg(mri_im, mri_seg);
-  } else {
+  }
+  else
+  {
     mri_lh_fill = MRIclone(mri_im, NULL) ;
     mri_rh_fill = MRIclone(mri_im, NULL) ;
     mri_lh_im = MRIcopy(mri_im, NULL) ;
     mri_rh_im = MRIcopy(mri_im, NULL) ;
 
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_im, "fill0.mgz") ;
+    }
     fprintf(stderr, "filling left hemisphere...\n") ;
     MRIfillVolume
     (mri_lh_fill, mri_lh_im, wm_lh_x, wm_lh_y, wm_lh_z,lh_fill_val);
@@ -2518,7 +3140,8 @@ main(int argc, char *argv[]) {
                                      wm_lh_x, wm_lh_y, wm_lh_z,
                                      wm_rh_x, wm_rh_y, wm_rh_z) ;
 
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_lh_fill, "./lh_fill.mgz");
       MRIwrite(mri_rh_fill, "./rh_fill.mgz");
     }
@@ -2527,7 +3150,8 @@ main(int argc, char *argv[]) {
     MRIfree(&mri_rh_fill) ;
   }
 
-  if (atlas_name) {
+  if (atlas_name)
+  {
     MRI *mri_p_ventricle, *mri_fg, *mri_bg, *mri_T1, *mri_ventricle ;
     char subjects_dir[STRLEN], mri_dir[STRLEN], *cp ;
 
@@ -2558,7 +3182,9 @@ main(int argc, char *argv[]) {
       mriReadBinaryProbabilities
       (atlas_name, "left_ventricle",m3d,sname,NULL);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_p_ventricle, "p_left_ventricle.mgz") ;
+    }
 
     sprintf(fname, "%s/%s/mri/T1", subjects_dir,sname) ;
     mri_T1 = MRIread(fname) ;
@@ -2578,7 +3204,9 @@ main(int argc, char *argv[]) {
       MRIfillVentricle(mri_fill, mri_p_ventricle, mri_T1, NULL, 90.0f,
                        lh_fill_val, nint(xr), mri_fill->width-1) ;
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_ventricle, "left_ventricle.mgz") ;
+    }
     MRIdilate(mri_ventricle, mri_ventricle) ;
     MRIdilate(mri_ventricle, mri_ventricle) ;
     MRIunion(mri_fill, mri_ventricle, mri_fill) ;
@@ -2591,7 +3219,9 @@ main(int argc, char *argv[]) {
       mriReadBinaryProbabilities
       (atlas_name,"right_ventricle",m3d,sname,NULL);
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_p_ventricle, "p_right_ventricle.mgz") ;
+    }
 #if 0
     MRIprobabilityThreshold(mri_fill, mri_p_ventricle, mri_fill, 50.0,
                             TMP_FILL_VAL);
@@ -2626,7 +3256,7 @@ main(int argc, char *argv[]) {
     MRIturnOffBG(mri_fill, mri_bg) ;
   }
 
-  if (topofix) 
+  if (topofix)
   {
     MRI              *mri_lh, *mri_rh ;
     //    MRI_SEGMENTATION *mriseg ;
@@ -2636,9 +3266,12 @@ main(int argc, char *argv[]) {
     MRIcopyLabel(mri_fill, mri_lh, lh_fill_val) ;
     MRIcopyLabel(mri_fill, mri_rh, rh_fill_val) ;
     mri_norm = MRIread(norm_fname);
-    if (mri_norm == NULL) {
+    if (mri_norm == NULL)
+    {
       fprintf(stderr,"could not read volume %s\n",norm_fname);
-    } else {
+    }
+    else
+    {
       mri_topofix(mri_rh,mri_norm); //making sure to remove corner/edge configurations
       mri_topofix(mri_lh,mri_norm); //making sure to remove corner/edge configurations
       MRIfree(&mri_norm);
@@ -2653,7 +3286,9 @@ main(int argc, char *argv[]) {
         for (s = 0 ; s < mriseg->nsegments ; s++)
         {
           if (s == sno)
+          {
             continue ;
+          }
           MRIsegmentFill(mriseg, s, mri_lh, lh_fill_val) ;
         }
       }
@@ -2667,7 +3302,9 @@ main(int argc, char *argv[]) {
         for (s = 0 ; s < mriseg->nsegments ; s++)
         {
           if (s == sno)
+          {
             continue ;
+          }
           MRIsegmentFill(mriseg, s, mri_rh, rh_fill_val) ;
         }
       }
@@ -2685,15 +3322,19 @@ main(int argc, char *argv[]) {
   msec = TimerStop(&then) ;
   fprintf(stderr,"filling took %2.1f minutes\n", (float)msec/(60*1000.0f));
 
-  if (lta) {
+  if (lta)
+  {
     int totRH, totLH;
     totRH = 0;
     totLH = 0;
     verifyLRSplit(mri_fill, lta, cc_tal_x, &badRH, &badLH, &totRH, &totLH);
 
-    if ((badRH > 10000) || (badLH > 10000)) {
+    if ((badRH > 10000) || (badLH > 10000))
+    {
       if (lta)
+      {
         LTAfree(&lta);
+      }
       fprintf
       (stderr,
        "badRH = %d/%d, badLH=%d/%d\n", badRH, totRH, badLH, totLH);
@@ -2704,7 +3345,9 @@ main(int argc, char *argv[]) {
     }
   }
   if (lta)
+  {
     LTAfree(&lta);
+  }
   MRIfree(&mri_fill);
   MRIfree(&mri_talheader);
 
@@ -2712,13 +3355,15 @@ main(int argc, char *argv[]) {
 }
 
 static int
-fill_brain(MRI *mri_fill, MRI *mri_im, int threshold) {
+fill_brain(MRI *mri_fill, MRI *mri_im, int threshold)
+{
   int dir = -1, nfilled = 10000, ntotal = 0,iter = 0;
   int im0,im1,j0,j1,i0,i1,imnr,i,j;
   int v1,v2,v3,vmax ;
 
   mriFindBoundingBox(mri_im) ;
-  while (nfilled>min_filled && iter<MAX_ITERATIONS) {
+  while (nfilled>min_filled && iter<MAX_ITERATIONS)
+  {
     iter++;
     nfilled = 0;
     dir = -dir;
@@ -2729,7 +3374,8 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold) {
       i0=j0=1;
       i1=mri_fill->height ;
       j1=mri_fill->width ;
-    } else          /* filling background */
+    }
+    else            /* filling background */
     {
       im0=mri_fill->depth-2;
       im1= -1;
@@ -2737,11 +3383,16 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold) {
       j0 = mri_fill->width - 2 ;
       i1=j1= -1;
     }
-    for (imnr=im0;imnr!=im1;imnr+=dir) {
-      for (i=i0;i!=i1;i+=dir) {
-        for (j=j0;j!=j1;j+=dir) {
+    for (imnr=im0; imnr!=im1; imnr+=dir)
+    {
+      for (i=i0; i!=i1; i+=dir)
+      {
+        for (j=j0; j!=j1; j+=dir)
+        {
           if (j == Gx && i == Gy && imnr == Gz)
+          {
             DiagBreak() ;
+          }
           if (MRIvox(mri_fill, j, i, imnr) ==0)   /* not filled yet */
           {
             if ((threshold<0 &&   /* previous filled off */
@@ -2770,36 +3421,53 @@ fill_brain(MRI *mri_fill, MRI *mri_im, int threshold) {
       }
     }
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    {
       fprintf(stderr, "%d voxels filled\n",nfilled);
+    }
   }
   fprintf(stderr, "total of %d voxels filled...",ntotal);
   if (Gdiag & DIAG_SHOW)
+  {
     fprintf(stderr, "\n") ;
+  }
   return(NO_ERROR) ;
 }
 
 static int
-fill_holes(MRI *mri_fill) {
+fill_holes(MRI *mri_fill)
+{
   int  nfilled, ntotal = 0, cnt, cntmax= neighbor_threshold ;
   int im0,x0,i0,z,i,x;
   int v,vmax;
 
-  do {
+  do
+  {
     nfilled = 0;
-    for (z=1;z!=mri_fill->depth-1;z++)
-      for (i=1;i!=mri_fill->height-1;i++)
-        for (x=1;x!=mri_fill->width-1;x++)
+    for (z=1; z!=mri_fill->depth-1; z++)
+      for (i=1; i!=mri_fill->height-1; i++)
+        for (x=1; x!=mri_fill->width-1; x++)
           if (MRIvox(mri_fill, x, i, z)==0 &&
-              i>ylim0-10 && i<ylim1+10 && x>xlim0-10 && x<xlim1+10) {
+              i>ylim0-10 && i<ylim1+10 && x>xlim0-10 && x<xlim1+10)
+          {
             cnt = 0;
             vmax = 0;
-            for (im0= -1;im0<=1;im0++)
-              for (i0= -1;i0<=1;i0++)
-                for (x0= -1;x0<=1;x0++) {
+            for (im0= -1; im0<=1; im0++)
+              for (i0= -1; i0<=1; i0++)
+                for (x0= -1; x0<=1; x0++)
+                {
                   v = MRIvox(mri_fill, x+x0, i+i0, z+im0) ;
-                  if (v>vmax) vmax = v;
-                  if (v == 0) cnt++;/* count # of nbrs which are off */
-                  if (cnt>cntmax) im0=i0=x0=1;  /* break out
+                  if (v>vmax)
+                  {
+                    vmax = v;
+                  }
+                  if (v == 0)
+                  {
+                    cnt++;  /* count # of nbrs which are off */
+                  }
+                  if (cnt>cntmax)
+                  {
+                    im0=i0=x0=1;
+                  }  /* break out
                                                    of all 3 loops */
                 }
             if (cnt<=cntmax)   /* toggle pixel (off to on, or on to off) */
@@ -2810,11 +3478,16 @@ fill_holes(MRI *mri_fill) {
             }
           }
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    {
       fprintf(stderr, "%d holes filled\n",nfilled);
-  } while (nfilled > 0) ;
+    }
+  }
+  while (nfilled > 0) ;
 
   if (Gdiag & DIAG_SHOW)
+  {
     fprintf(stderr, "total of %d holes filled\n",ntotal);
+  }
   return(NO_ERROR) ;
 }
 
@@ -2824,42 +3497,60 @@ fill_holes(MRI *mri_fill) {
   Description:
   ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     print_help() ;
+  }
   else if (!stricmp(option, "-version"))
+  {
     print_version() ;
-  else if (!stricmp(option, "rval")) {
+  }
+  else if (!stricmp(option, "rval"))
+  {
     rh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr,"using %d as fill val for right hemisphere.\n",
             rh_fill_val);
-  } else if (!stricmp(option, "findrhv")) {
+  }
+  else if (!stricmp(option, "findrhv"))
+  {
     find_rh_voxel = 1 ;
     fprintf(stderr,"finding any rh seed point that has all 27 nbrs on\n") ;
-  } else if (!stricmp(option, "findlhv")) {
+  }
+  else if (!stricmp(option, "findlhv"))
+  {
     find_lh_voxel = 1 ;
     fprintf(stderr,"finding any lh seed point that has all 27 nbrs on\n") ;
-  } else if (!stricmp(option, "lval")) {
+  }
+  else if (!stricmp(option, "lval"))
+  {
     lh_fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf
     (stderr,"using %d as fill val for left hemisphere.\n",lh_fill_val);
-  } else if (!stricmp(option, "debug_voxel")) {
+  }
+  else if (!stricmp(option, "debug_voxel"))
+  {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d,  %d,  %d)\n", Gx, Gy, Gz)  ;
-  } else if (!stricmp(option, "fillven")) {
+  }
+  else if (!stricmp(option, "fillven"))
+  {
     fillven = atoi(argv[2]) ;
     printf("%sfilling ventricles\n", fillven == 0 ? "not " : "") ;
     nargs = 1 ;
-  } else if (!stricmp(option, "lh")) {
+  }
+  else if (!stricmp(option, "lh"))
+  {
     lh_seed_set = 1 ;
     lh_tal_x = atof(argv[2]) ;
     lh_tal_y = atof(argv[3]) ;
@@ -2868,19 +3559,27 @@ get_option(int argc, char *argv[]) {
             "using Talairach position (%2.1f, %2.1f, %2.1f) as lh seed\n",
             lh_tal_x, lh_tal_y, lh_tal_z) ;
     nargs = 3 ;
-  } else if (!stricmp(option, "segmentation")) {
+  }
+  else if (!stricmp(option, "segmentation"))
+  {
     segmentation_fname = argv[2] ;
     fprintf(stderr, "using segmentation %s...\n", segmentation_fname) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "fillonly")) {
+  }
+  else if (!stricmp(option, "fillonly"))
+  {
     fillonly = 1 ;
     printf("only filling volume...\n") ;
-  } else if (!stricmp(option, "topofix")) {
+  }
+  else if (!stricmp(option, "topofix"))
+  {
     topofix = 1 ;
     printf("fixing the topology of the volume...\n") ;
     norm_fname = argv[2];
     nargs=1;
-  } else if (!stricmp(option, "rh")) {
+  }
+  else if (!stricmp(option, "rh"))
+  {
     rh_seed_set = 1 ;
     rh_tal_x = atof(argv[2]) ;
     rh_tal_y = atof(argv[3]) ;
@@ -2889,7 +3588,9 @@ get_option(int argc, char *argv[]) {
             "using Talairach position (%2.1f, %2.1f, %2.1f) as rh seed\n",
             rh_tal_x, rh_tal_y, rh_tal_z) ;
     nargs = 3 ;
-  } else if (!stricmp(option, "rhv")) {
+  }
+  else if (!stricmp(option, "rhv"))
+  {
     rh_seed_set = 1 ;
     rhv = 1 ;
     rh_vol_x = atoi(argv[2]) ;
@@ -2898,7 +3599,9 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr, "using Volume position (%d, %d, %d) as rh seed\n",
             rh_vol_x, rh_vol_y, rh_vol_z) ;
     nargs = 3 ;
-  } else if (!stricmp(option, "lhv")) {
+  }
+  else if (!stricmp(option, "lhv"))
+  {
     lh_seed_set = 1 ;
     lhv = 1 ;
     lh_vol_x = atoi(argv[2]) ;
@@ -2907,17 +3610,23 @@ get_option(int argc, char *argv[]) {
     fprintf(stderr, "using Volume position (%d, %d, %d) as lh seed\n",
             lh_vol_x, lh_vol_y, lh_vol_z) ;
     nargs = 3 ;
-  } else if (!stricmp(option, "ccmask")) {
+  }
+  else if (!stricmp(option, "ccmask"))
+  {
     cc_mask = !cc_mask ;
     fprintf(stderr,
             "%susing corpus callosum to mask possible location of "
             "pons.\n", cc_mask ? "" : "not ");
-  } else if (!stricmp(option, "atlas")) {
+  }
+  else if (!stricmp(option, "atlas"))
+  {
     atlas_name = argv[2] ;
     sname = argv[3] ;
     nargs = 2 ;
     fprintf(stderr, "using atlas %s for auto filling...\n", atlas_name) ;
-  } else if (!stricmp(option,"xform")) {
+  }
+  else if (!stricmp(option,"xform"))
+  {
     struct stat stat_buf;
     if (stat(argv[2], &stat_buf) < 0)
       ErrorExit
@@ -2931,7 +3640,9 @@ get_option(int argc, char *argv[]) {
     (stderr,
      "INFO: Using %s and its offset for Talairach volume ...\n", argv[2]);
     nargs = 1; // consumed 1 args
-  } else if (!stricmp(option, "PV")) {
+  }
+  else if (!stricmp(option, "PV"))
+  {
     pons_vol_x = atof(argv[2]) ;
     pons_vol_y = atof(argv[3]) ;
     pons_vol_z = atof(argv[4]) ;
@@ -2941,7 +3652,9 @@ get_option(int argc, char *argv[]) {
      "using voxel position (%2.0f, %2.0f, %2.0f) as pons seed point\n",
      pons_vol_x, pons_vol_y, pons_vol_z) ;
     pons_seed_vol_set = 1 ;
-  } else if (!stricmp(option, "CV")) {
+  }
+  else if (!stricmp(option, "CV"))
+  {
     cc_vol_x = atof(argv[2]) ;
     cc_vol_y = atof(argv[3]) ;
     cc_vol_z = atof(argv[4]) ;
@@ -2952,7 +3665,9 @@ get_option(int argc, char *argv[]) {
      "corpus callosum seed point\n",
      cc_vol_x, cc_vol_y, cc_vol_z) ;
     cc_seed_vol_set = 1 ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'P':
       pons_tal_x = atof(argv[2]) ;
       pons_tal_y = atof(argv[3]) ;
@@ -2976,7 +3691,8 @@ get_option(int argc, char *argv[]) {
       cc_seed_set = 1 ;
       break ;
     case 'T':
-      if (sscanf(argv[2], "%d", &neighbor_threshold) < 1) {
+      if (sscanf(argv[2], "%d", &neighbor_threshold) < 1)
+      {
         fprintf(stderr,
                 "fill: could not scan threshold from '%s'", argv[2]) ;
         exit(1) ;
@@ -3035,56 +3751,17 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "fill version %s\n", vcid) ;
   exit(0) ;
 }
 
+#include "mri_fill.help.xml.h"
 static void
-print_help(void) {
-  outputHelp(Progname);
-
-#ifdef GREGT
-  fprintf(stderr,
-          "usage: %s [options] <input MR directory> <output MR directory>\n",
-          Progname) ;
-  fprintf(stderr, "where options are:\n") ;
-  fprintf(stderr,
-          "\t-T <threshold> - specify fill_holes threshold (default=%d)\n",
-          DEFAULT_NEIGHBOR_THRESHOLD) ;
-  fprintf(stderr,
-          "\t-xform <xformname> - use xform dst offset to get an "
-          "accurate Talairach volume\n");
-  fprintf(stderr,
-          "\t-segmentation <filename> - aseg volume used to perform fill\n");
-  fprintf(stderr,
-          "\t-atlas <filename> - specify atlas to use for auto-filling\n");
-  fprintf(stderr,
-          "\t-fillven - fill ventricles\n");
-  fprintf(stderr,
-          "Seed point options in Talairach coordinates:\n");
-  fprintf(stderr,
-          "\t-C <x> <y> <z> - the Talairach coords of the seed "
-          "for the corpus callosum\n") ;
-  fprintf(stderr,
-          "\t-P <x> <y> <z> - the Talairach coords of the seed "
-          "for the pons\n");
-  fprintf(stderr,
-          "\t-lh <x> <y> <z> - the Talairach coords of the white matter seed\n"
-          "\t                 for the left hemisphere\n") ;
-  fprintf(stderr,
-          "\t-rh <x> <y> <z> - the Talairach coords of the white matter seed\n"
-          "\t                 for the right hemisphere\n") ;
-  fprintf(stderr,
-          "Alternative seed point options in voxel coordinates:\n");
-  fprintf(stderr,
-          "\t-CV <x> <y> <z> - the voxel coords of the seed "
-          "for the corpus callosum\n") ;
-  fprintf(stderr,
-          "\t-PV <x> <y> <z> - the voxel coords of the seed for the pons\n");
-  fprintf(stderr,
-          "\n");
-#endif
+print_help(void)
+{
+  outputHelpXml(mri_fill_help_xml,mri_fill_help_xml_len);
   exit(0) ;
 }
 
@@ -3115,15 +3792,16 @@ print_help(void) {
 static MRI *
 find_cutting_plane
 (MRI *mri_tal, Real x_tal, Real y_tal,Real z_tal,int orientation,
- int *pxv, int *pyv, int *pzv, int seed_set, const LTA *lta) {
+ int *pxv, int *pyv, int *pzv, int seed_set, const LTA *lta)
+{
   // here is the limitation on the voxsize being up to .5 mm
   MRI        *mri_slices[MAX_SLICES*2], *mri_filled[MAX_SLICES*2],
-  *mri_cut=NULL, *mri_cut_vol ;
+             *mri_cut=NULL, *mri_cut_vol ;
   Real       dx, dy, dz, x, y, z, aspect,MIN_ASPECT,MAX_ASPECT,
-  aspects[MAX_SLICES*2] ;
+             aspects[MAX_SLICES*2] ;
   int        slice, offset, area[MAX_SLICES*2],
-  min_area0, min_slice,xo,yo,found,
-  xv, yv, zv, x0, y0, z0, xi, yi, zi, MIN_AREA, MAX_AREA, done, where ;
+             min_area0, min_slice,xo,yo,found,
+             xv, yv, zv, x0, y0, z0, xi, yi, zi, MIN_AREA, MAX_AREA, done, where ;
   FILE       *fp = NULL ;   /* for logging pons and cc statistics */
   char       fname[STRLEN], *name ;
   MRI_REGION region ;
@@ -3138,13 +3816,15 @@ find_cutting_plane
 
   // mri coming is a talairached volume
   /* search for valid seed point */
-  if (mri_tal->linear_transform || lta) {
+  if (mri_tal->linear_transform || lta)
+  {
     MRIworldToVoxel(mri_tal, x_tal, y_tal,  z_tal, &x, &y, &z) ;
     // talairach volume voxel position
     xv = nint(x) ;
     yv = nint(y) ;
     zv = nint(z) ;
-  } else // if no talairach, we don't know where to look
+  }
+  else   // if no talairach, we don't know where to look
   {
     MRIboundingBox(mri_tal, 1, &region) ;
     xv = region.x + region.dx/2;
@@ -3164,7 +3844,8 @@ find_cutting_plane
   min_slice = -1 ;
   // note that the following assumes that the volume is in coronal orientation
   ///////////////////////////////////////////////////////////////////////////
-  switch (orientation) {
+  switch (orientation)
+  {
   default:
     // used to find the corpus callosum
   case MRI_SAGITTAL:             // using the sagittal cutting plane
@@ -3176,7 +3857,9 @@ find_cutting_plane
     MIN_ASPECT = MIN_CC_ASPECT ;
     MAX_ASPECT = MAX_CC_ASPECT ;
     if (logging)
+    {
       fp = fopen(CC_LOG_FILE, "a") ;
+    }
     where = xv ;
     yo = yv ;
     xo = zv ; // sagital z-y plane regarded as x-y plane
@@ -3191,7 +3874,9 @@ find_cutting_plane
     MIN_ASPECT = MIN_PONS_ASPECT ;
     MAX_ASPECT = MAX_PONS_ASPECT ;
     if (logging)
+    {
       fp = fopen(PONS_LOG_FILE, "a") ;
+    }
     where = yv ;
     yo = zv ;
     xo = xv ;// horizontal z-x plane regarded as y-x plane
@@ -3214,7 +3899,9 @@ find_cutting_plane
   /////////////////////////////////////////////////////////////////
   min_area = floor(MIN_AREA/(voxsize*voxsize));
   if (min_area <= 0)
+  {
     min_area = 1;
+  }
   max_area = ceil(MAX_AREA/(voxsize*voxsize));
   max_slices = ceil(MAX_SLICES/voxsize);
   half_slices = (max_slices-1)/2;
@@ -3241,7 +3928,8 @@ find_cutting_plane
 #define DIAG_VERBOSE_ON  1
 #endif
 
-  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+  if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     // this works fine
     sprintf(fname,
             "cutting_plane_%s_slice0.mgz",
@@ -3299,21 +3987,28 @@ find_cutting_plane
     mri_cut = MRIcopy(mri_filled[0], NULL) ;
 
     // find the non-zero value location and paint with 1
-    for (xv = region.x ; xv < region.x+region.dx ; xv++) {
+    for (xv = region.x ; xv < region.x+region.dx ; xv++)
+    {
       found = 0 ;
-      for (yv = region.y ; yv < region.y+region.dy ; yv++) {
+      for (yv = region.y ; yv < region.y+region.dy ; yv++)
+      {
         if (!found)
+        {
           found  = (MRIvox(mri_cut, xv, yv, 0) > 0) ;
+        }
 
         if (found)
+        {
           MRIvox(mri_cut, xv, yv, 0) = 1 ;
+        }
       }
     }
     // initialize (xv, yv, zv) again from the cached value
     xv = *pxv ;
     yv = *pyv ;
     zv = *pzv ; //talairach voxel index position
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       sprintf(fname, "%s_filled.mgz",
               orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_slices[0], fname) ;
@@ -3344,7 +4039,8 @@ find_cutting_plane
                                                     sagittal    xo = zv,
                                                     yo = yv  -> zv = xi,
                                                     yv = yi */
-    switch (orientation) {
+    switch (orientation)
+    {
     default:
     case MRI_HORIZONTAL:
       xv += xi - xo ;
@@ -3370,22 +4066,29 @@ find_cutting_plane
   offset = 0 ;
   ///////// seed not set and not done yet ///////////////////////////////
   // now search the region for seed point which satisfy done condition
-  if (!seed_set) while (!done) {
+  if (!seed_set) while (!done)
+    {
       offset += search_step ;   /* search at a greater radius */
       if (offset >= max_offset)
+      {
         return(NULL) ;
+      }
       fprintf(stderr,
               "using +/- offset search region where offset is %d.....\n",
               offset);
       // looking around 3 dimensional area
       // note that loop contain xv, yv
-      for (z0 = zv-offset ; !done && z0 <= zv+offset ; z0 += offset) {
+      for (z0 = zv-offset ; !done && z0 <= zv+offset ; z0 += offset)
+      {
         zi = mri_tal->zi[z0] ; // safe way of getting the value
-        for (y0 = yv-offset ; !done && y0 <= yv+offset ; y0 += offset) {
+        for (y0 = yv-offset ; !done && y0 <= yv+offset ; y0 += offset)
+        {
           yi = mri_tal->yi[y0] ;
-          for (x0 = xv-offset ; !done && x0 <= xv+offset ; x0 += offset) {
+          for (x0 = xv-offset ; !done && x0 <= xv+offset ; x0 += offset)
+          {
             xi = mri_tal->xi[x0] ;
-            switch (orientation) {
+            switch (orientation)
+            {
             default:
             case MRI_HORIZONTAL:
               where = yi ;
@@ -3419,7 +4122,8 @@ find_cutting_plane
                0,WM_MIN_VAL,127, &area[0]);
             MRIboundingBox(mri_filled[0], 1, &region) ;
 
-            if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+            if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+            {
               sprintf(fname, "%s_seed.mgz",
                       orientation == MRI_SAGITTAL ? "cc":"pons");
               MRIwrite(mri_slices[0], fname) ;
@@ -3465,7 +4169,8 @@ find_cutting_plane
               find_slice_center
               (mri_filled[0],&xv,&yv); // center index in the plane
               // getting blob center
-              switch (orientation) {
+              switch (orientation)
+              {
               default:
               case MRI_HORIZONTAL:
                 /*xi += xv - xo ; zi += yv - yo*/
@@ -3496,7 +4201,8 @@ find_cutting_plane
         }
       }
     }
-  if (Gdiag & DIAG_SHOW) {
+  if (Gdiag & DIAG_SHOW)
+  {
     // Real  xnv, ynv, znv ;
 
     MRIvoxelToWorld(mri_tal, xv, yv, zv, &x, &y, &z) ;
@@ -3513,7 +4219,8 @@ find_cutting_plane
   // found the seed point look around the slice below and above
   if (!seed_set)   /* find slice with smallest cross-section */
   {
-    for (slice = 0 ; slice < max_slices ; slice++) {
+    for (slice = 0 ; slice < max_slices ; slice++)
+    {
       offset = slice - half_slices ;
       x = x_tal + dx*offset ;
       y = y_tal + dy*offset ;
@@ -3522,7 +4229,8 @@ find_cutting_plane
       xv = nint(x) ;
       yv = nint(y) ;
       zv = nint(z) ;
-      switch (orientation) {
+      switch (orientation)
+      {
       default:
       case MRI_HORIZONTAL:
         where = yv ;
@@ -3545,7 +4253,9 @@ find_cutting_plane
       /* don't trust slices that extend to the border of the image */
       if (!region.x || !region.y || region.x+region.dx >= SLICE_SIZE-1 ||
           region.y+region.dy >= SLICE_SIZE-1)
+      {
         area[slice] = 0 ;
+      }
 #endif
 
       if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
@@ -3556,21 +4266,30 @@ find_cutting_plane
 
       if (orientation == MRI_SAGITTAL)/* extend to top
                                          and bottom of slice */
-        region.dy = slice_size - region.y; //  SLICE_SIZE - region.y ;
+      {
+        region.dy = slice_size - region.y;  //  SLICE_SIZE - region.y ;
+      }
 
       /*    for (yv = region.y ; yv < region.y+region.dy ; yv++)*/
-      for (xv = region.x ; xv < region.x+region.dx ; xv++) {
+      for (xv = region.x ; xv < region.x+region.dx ; xv++)
+      {
         found = 0 ;
-        for (yv = region.y ; yv < region.y+region.dy ; yv++) {
+        for (yv = region.y ; yv < region.y+region.dy ; yv++)
+        {
           if (!found)
+          {
             found  = (MRIvox(mri_filled[slice], xv, yv, 0) > 0) ;
+          }
 
           if (found)
+          {
             MRIvox(mri_filled[slice], xv, yv, 0) = 1 ;
+          }
         }
       }
 
-      if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON) {
+      if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
+      {
         sprintf(fname, "cutting_plane_%s_slice%d.mgz",
                 orientation == MRI_SAGITTAL ? "cc":"pons", slice);
         MRIwrite(mri_slices[slice], fname) ;
@@ -3580,15 +4299,18 @@ find_cutting_plane
       }
     }
     // finding pons
-    if (orientation == MRI_HORIZONTAL) {
+    if (orientation == MRI_HORIZONTAL)
+    {
       min_area0 = floor(10000./(voxsize*voxsize)) ;
       min_slice = -1 ;
-      for (slice = 1 ; slice < max_slices-1 ; slice++) {
+      for (slice = 1 ; slice < max_slices-1 ; slice++)
+      {
         fprintf(stderr, "area[%d]=%d, min_area0 = %d, max_area = %d\n",
                 slice, area[slice], min_area0, max_area);
         // find smallest area which is between min_area and max_area
         if (area[slice] < min_area0 &&
-            (area[slice] >= min_area && area[slice] <= max_area)) {
+            (area[slice] >= min_area && area[slice] <= max_area))
+        {
           min_area0 = area[slice] ;
           min_slice = slice ;
         }
@@ -3599,12 +4321,14 @@ find_cutting_plane
         //    min_slice = slice;
         //  }
       }
-    } else    /* search for middle of corpus callosum */
+    }
+    else      /* search for middle of corpus callosum */
     {
       int valid[255]; // MAX_SLICES]
       /*, num_on, max_num_on, max_on_slice_start */
 
-      for (slice = 1 ; slice < max_slices-1 ; slice++) {
+      for (slice = 1 ; slice < max_slices-1 ; slice++)
+      {
         valid[slice] =
           ((area[slice]    >= min_area)   &&
            (area[slice]    <= max_area) &&
@@ -3615,27 +4339,36 @@ find_cutting_plane
 #if 1
       min_area0 =
         mri_slices[1]->width*mri_slices[1]->height*mri_slices[1]->depth;
-      for (slice = 1 ; slice < max_slices-1 ; slice++) {
+      for (slice = 1 ; slice < max_slices-1 ; slice++)
+      {
         float slice_area ;
         if (!valid[slice])
+        {
           continue ;
+        }
         slice_area = MRItotalVoxelsOn(mri_slices[slice], WM_MIN_VAL) ;
         fprintf(stderr,
                 "slice=%d, slice_area=%.1f, min_area0 = %d, "
                 "max_area = %d\n",
                 slice, slice_area, min_area0, max_area);
-        if (slice_area < min_area0) {
+        if (slice_area < min_area0)
+        {
           min_area0 = slice_area ;
           min_slice = slice ;
         }
       }
 #else
       max_on_slice_start = max_num_on = num_on = 0 ;
-      for (slice = 1 ; slice < max_slices-1 ; slice++) {
+      for (slice = 1 ; slice < max_slices-1 ; slice++)
+      {
         if (valid[slice])
+        {
           num_on++ ;
-        else {
-          if (num_on > max_num_on) {
+        }
+        else
+        {
+          if (num_on > max_num_on)
+          {
             max_num_on = num_on ;
             max_on_slice_start = slice - num_on ;
           }
@@ -3655,9 +4388,12 @@ find_cutting_plane
             min_slice, min_area0);
 
     if (min_slice < 0)
+    {
       return(NULL) ;
+    }
 
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       sprintf(fname, "cutting_plane_%s_minslice.mgz",
               orientation == MRI_SAGITTAL ? "cc":"pons");
       MRIwrite(mri_slices[min_slice], fname) ;
@@ -3666,7 +4402,8 @@ find_cutting_plane
       MRIwrite(mri_filled[min_slice], fname) ;
     }
 
-    if (logging) {
+    if (logging)
+    {
       fprintf(fp, "area %d, aspect %2.2f\n",
               area[min_slice],aspects[min_slice]);
       fclose(fp) ;
@@ -3687,16 +4424,18 @@ find_cutting_plane
               "%s: cutting at slice %d, area %d, (%d, %d, %d)\n",
               name, min_slice, min_area0, *pxv, *pyv, *pzv) ;
 
-    for (slice = 0 ; slice < max_slices ; slice++) {
+    for (slice = 0 ; slice < max_slices ; slice++)
+    {
       MRIfree(&mri_slices[slice]) ;
       MRIfree(&mri_filled[slice]) ;
     }
   }
   else   /* seed specified by user */
-  {}
+    {}
   // copy original volume
   mri_cut_vol = MRIclone(mri_tal, NULL) ;
-  switch (orientation) {
+  switch (orientation)
+  {
   default:
   case MRI_HORIZONTAL:
     where = *pyv ;
@@ -3714,31 +4453,39 @@ find_cutting_plane
 }
 
 static int
-find_slice_center(MRI *mri,  int *pxo, int *pyo) {
+find_slice_center(MRI *mri,  int *pxo, int *pyo)
+{
   int  x, y, dist, min_total_dist, total_dist, width, height, x1, y1, xo, yo,
-  border, xi, yi ;
+       border, xi, yi ;
 
   xo = yo = 0 ;
   width = mri->width ;
   height = mri->height ;
   min_total_dist = -1 ;
-  for (y = 0 ; y < height ; y++) {
-    for (x = 0 ; x < width ; x++) {
+  for (y = 0 ; y < height ; y++)
+  {
+    for (x = 0 ; x < width ; x++)
+    {
       /* find total distance to all other points */
-      if (MRIvox(mri, x, y, 0) >= WM_MIN_VAL) {
+      if (MRIvox(mri, x, y, 0) >= WM_MIN_VAL)
+      {
         // given a point (x,y) whose grey >= MIN_VAL
         // calculate the distance to all points whose grey >= MIN_VAL
         total_dist = 0 ;
-        for (y1 = 0 ; y1 < height ; y1++) {
-          for (x1 = 0 ; x1 < width ; x1++) {
-            if (MRIvox(mri, x1, y1, 0) >= WM_MIN_VAL) {
+        for (y1 = 0 ; y1 < height ; y1++)
+        {
+          for (x1 = 0 ; x1 < width ; x1++)
+          {
+            if (MRIvox(mri, x1, y1, 0) >= WM_MIN_VAL)
+            {
               dist = (x1-x)*(x1-x) + (y1-y)*(y1-y) ;
               total_dist += dist ;
             }
           }
         }
         // find the smallest point
-        if (min_total_dist < 0 || total_dist < min_total_dist) {
+        if (min_total_dist < 0 || total_dist < min_total_dist)
+        {
           min_total_dist = total_dist ;
           xo = x ;
           yo = y ;
@@ -3749,22 +4496,32 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo) {
   // (x0, y0) gives the total distance minimum.
   /* now find a point which is not on the border */
   border = 1 ;
-  for (y = yo-1 ; border && y <= yo+1 ; y++) {
+  for (y = yo-1 ; border && y <= yo+1 ; y++)
+  {
     if (y < 0 || y >= height)
+    {
       continue ;
-    for (x = xo-1 ; border && x <= xo+1 ; x++) {
+    }
+    for (x = xo-1 ; border && x <= xo+1 ; x++)
+    {
       if (x < 0 || x >= width)
+      {
         continue ;
+      }
       if (MRIvox(mri, x, y, 0) >= WM_MIN_VAL) /* see if it is
                                                  a border pixel */
       {
         border = 0 ;
-        for (y1 = y-1 ; y1 <= y+1 ; y1++) {
+        for (y1 = y-1 ; y1 <= y+1 ; y1++)
+        {
           yi = mri->yi[y1] ;
-          for (x1 = x-1 ; x1 <= x+1 ; x1++) {
+          for (x1 = x-1 ; x1 <= x+1 ; x1++)
+          {
             xi = mri->xi[x1] ;
             if (!MRIvox(mri, xi, yi, 0))
+            {
               border = 1 ;
+            }
           }
         }
       }
@@ -3790,7 +4547,8 @@ find_slice_center(MRI *mri,  int *pxo, int *pyo) {
 // i.e. x axis is along LR axis and y axis is along IS axis
 static int
 find_corpus_callosum
-(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta) {
+(MRI *mri_tal, Real *pccx, Real *pccy, Real *pccz, const LTA *lta)
+{
   int         xv, yv, zv, max_y, thickness, y1, xcc, ycc, x, y,x0 ;
   Real        xr, yr, zr ;
   MRI_REGION  region ;
@@ -3808,26 +4566,33 @@ find_corpus_callosum
 
   // this function is called with mri being talairached volume
   // get the talairach coords (0,0,0) in the voxel space
-  if (mri_tal->linear_transform || lta) {
+  if (mri_tal->linear_transform || lta)
+  {
     MRIworldToVoxel
     (mri_tal, 0.0, 0.0, 0.0, &xr, &yr, &zr);   /* everything is
                                                   now in tal coords */
     xv = nint(xr) ;
     yv = nint(yr) ;
     zv = nint(zr) ;
-  } else {
+  }
+  else
+  {
     xv = x0;
     yv = region.y+region.dy/2;
     zv = region.z+region.dz/2;
   }
   /* find the column with the lowest starting y value of any sign. thick. */
   xcc = ycc = max_y = 0 ;
-  for (x = x0-cc_spread ; x <= x0+cc_spread ; x++) {
+  for (x = x0-cc_spread ; x <= x0+cc_spread ; x++)
+  {
     /* search for first non-zero pixel */
     // in the talairach origin coronal slice from the top
-    for (y = 0 ; y < slice_size ; y++) {
+    for (y = 0 ; y < slice_size ; y++)
+    {
       if (MRIvox(mri_tal, x, y, zv) >= WM_MIN_VAL)
+      {
         break ;
+      }
     }
     // find y which is greater than WM_MIN_VAL
     /* check to make sure it as reasonably thick */
@@ -3836,9 +4601,12 @@ find_corpus_callosum
     {
       for (y1 = y, thickness = 0 ; y1 < slice_size ; y1++, thickness++)
         if (!MRIvox(mri_tal, x, y1, zv)) // if becomes zero, then break out
+        {
           break ;
+        }
       // found the zero voxel at y1 -> thinckness
-      if ((thickness > min_thickness) && (thickness < max_thickness)) {
+      if ((thickness > min_thickness) && (thickness < max_thickness))
+      {
         xcc = x ;
         ycc = y+thickness/2 ;  /* in middle of cc */
         max_y = y ;            // mark starting y position
@@ -3852,7 +4620,9 @@ find_corpus_callosum
   }
 
   if (!max_y)
+  {
     return(ERROR_BADPARM) ;
+  }
 
   /* now convert the in-plane coords to Talairach coods */
   MRIvoxelToWorld(mri_tal, xcc, ycc, zv, pccx, pccy, pccz) ;
@@ -3875,11 +4645,12 @@ find_corpus_callosum
 
 static int
 find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
-          int x_cc, int y_cc, int z_cc, int method) {
+          int x_cc, int y_cc, int z_cc, int method)
+{
   MRI   *mri_slice, *mri_filled, *mri_closed ;
   Real  xr, yr, zr ;
   int   xv, yv, zv, x, y, width, height, thickness, xstart, area,xmax,
-  bheight ;
+        bheight ;
   MRI_REGION region ;
   int max_brainstem_thickness, min_brainstem_thickness;
   int min_brainstem_height, min_delta_thickness;
@@ -3927,14 +4698,19 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
   /* (xv,yv,zv) are the coordinates of the center of the slice */
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_slice, "brainstem_slice.mgz") ;
+  }
 
   // first time method = 0 (default)
-  switch (method) {
+  switch (method)
+  {
   case 1:
     mri_closed = MRIclose(mri_slice, NULL) ;  /* remove small holes */
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_closed, "brainstem_closed.mgz") ;
+    }
 
     /*
       search from the front of the head at the bottom of a sagittal slice
@@ -3946,27 +4722,42 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
     width = mri_slice->width ;
     height = mri_slice->height ;
     bheight = 0 ;
-    for (y = height-1 ; y >= 0 ; y--) {
-      for (x = width-1 ; x >= 0 ; x--) {
+    for (y = height-1 ; y >= 0 ; y--)
+    {
+      for (x = width-1 ; x >= 0 ; x--)
+      {
         thickness = 0 ;
-        while (MRIvox(mri_closed, x, y, 0) && x >= 0) {
+        while (MRIvox(mri_closed, x, y, 0) && x >= 0)
+        {
           if (!thickness)
+          {
             xstart = x ;
+          }
           thickness++ ;
           x-- ;
         }
         if (thickness >= min_cont_brainstem_thickness &&
             thickness <= max_brainstem_thickness)
+        {
           break ;
+        }
         else
+        {
           thickness = 0 ;
+        }
       }
       if (thickness > 0)   /* found the slice */
+      {
         bheight++ ;
+      }
       else
+      {
         bheight = 0 ;
+      }
       if (bheight >= min_cont_brainstem_height)
+      {
         break ;  /* found it */
+      }
     }
     MRIfree(&mri_closed) ;
     break ;
@@ -3985,26 +4776,37 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
     width = mri_slice->width ;
     height = mri_slice->height ;
     // start from the bottom
-    for (y = height-1 ; y >= 0 ; y--) {
+    for (y = height-1 ; y >= 0 ; y--)
+    {
       // from face to back
-      for (x = width-1 ; x >= 0 ; x--) {
+      for (x = width-1 ; x >= 0 ; x--)
+      {
         thickness = 0 ;
         // grey scale non-zero and
-        while (MRIvox(mri_slice, x, y, 0) && x >= 0) {
+        while (MRIvox(mri_slice, x, y, 0) && x >= 0)
+        {
           if (!thickness) // if thickness = 0, then
+          {
             xstart = x ;  // mark sthe position
+          }
           thickness++ ;
           x-- ;
         }
         // if in-between min and max braistem thickness
         if (thickness >= min_brainstem_thickness &&
             thickness <= max_brainstem_thickness)
-          break ; // break
+        {
+          break ;  // break
+        }
         else
+        {
           thickness = 0 ;
+        }
       }
       if (thickness > 0)   /* found the slice */
+      {
         break ;
+      }
     }
     break ;
   }
@@ -4022,7 +4824,9 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
             y, xstart, xstart-thickness+1, area) ;
 
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_filled, "brainstem_filled.mgz") ;
+  }
   // working up to here
   /*
      now, starting from that slice, proceed upwards until we find a
@@ -4030,14 +4834,15 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
   */
   xmax = x = xstart ;  /* needed for initialization */
   bheight = 0 ;
-  do {
+  do
+  {
     xstart = x ;
     y-- ;
     bheight++ ;
     if (y < 0)
       ErrorReturn(ERROR_BADPARM,
                   (ERROR_BADPARM, "could not find bottom of brainstem")) ;
-  for (x = width-1 ; !MRIvox(mri_filled,x,y,0) && (x >= 0) ; x--) {}
+    for (x = width-1 ; !MRIvox(mri_filled,x,y,0) && (x >= 0) ; x--) {}
 
     if (x < 0)/* sometimes pons is disconnected
                                            at cleft: assume prior slice */
@@ -4049,17 +4854,22 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
     }
 
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
+    {
       fprintf(stderr, "slice %d, xstart %d\n", y, x) ;
-    if (x > xmax) {
+    }
+    if (x > xmax)
+    {
       /* check to see if we've gone too far */
       if ((bheight > min_brainstem_height) &&
-          (x-xmax >= min_delta_thickness)) {
+          (x-xmax >= min_delta_thickness))
+      {
         y-- ;   /* gone too far */
         break ;
       }
       xmax = x ;
     }
-  } while ((xmax - x < min_delta_thickness) && (y >0)) ;
+  }
+  while ((xmax - x < min_delta_thickness) && (y >0)) ;
 
   /* now search forward to find center of slice */
   for (thickness = 0, xstart = x ;
@@ -4067,7 +4877,9 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
        (thickness < max_brainstem_thickness) &&
        MRIvox(mri_slice, x, y, 0) ;
        x--)
+  {
     thickness++ ;
+  }
   x = xstart - (thickness-1)/2 ;
   // we were working on the sagittal slice i.e. x -> z, y-> y
   zv = x ;
@@ -4092,13 +4904,13 @@ find_pons(MRI *mri, Real *p_ponsx, Real *p_ponsy, Real *p_ponsz,
   NOTE: mri is already in talairach coords.
 */
 static int
-find_cc_slice(MRI *mri_tal, 
-              Real *pccx, Real *pccy, Real *pccz, 
-              const LTA *lta) 
+find_cc_slice(MRI *mri_tal,
+              Real *pccx, Real *pccy, Real *pccz,
+              const LTA *lta)
 {
   // here we can handle only up to .5 mm voxel size
   int         area[MAX_SLICES*2], min_area, min_slice, slice, offset,xv,yv,zv,
-  xo, yo ;
+              xo, yo ;
   MRI         *mri_slice, *mri_filled ;
   Real        aspect, x_tal, y_tal, z_tal, x, y, z, xvv, yvv, zvv;
   MRI_REGION  region ;
@@ -4112,14 +4924,17 @@ find_cc_slice(MRI *mri_tal,
 
   half_slices = floor(HALF_SLICES/voxsize);
   if ( half_slices <= 0)
+  {
     half_slices = 1;
+  }
 
   x_tal = *pccx ;
   y_tal = *pccy ;
   z_tal = *pccz ;
   offset = 0 ;
   xo = yo = (slice_size-1)/2 ;  /* center point of the slice */
-  for (slice = 0 ; slice < max_slices ; slice++) {
+  for (slice = 0 ; slice < max_slices ; slice++)
+  {
     offset = slice - half_slices ;
     x = x_tal + offset ;
     y = y_tal ;
@@ -4137,13 +4952,16 @@ find_cc_slice(MRI *mri_tal,
     /* don't trust slices that extend to the border of the image */
     if (!region.x || !region.y || region.x+region.dx >= slice_size -1 ||
         region.y+region.dy >= slice_size-1)
+    {
       area[slice] = 0 ;
+    }
 
     if (Gdiag & DIAG_SHOW && DIAG_VERBOSE_ON)
       fprintf(stderr, "slice[%d] @ (%d, %d, %d): area = %d\n",
               slice, xv, yv, zv, area[slice]) ;
 
-    if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON) {
+    if ((Gdiag & DIAG_WRITE) && !(slice % 1) && DIAG_VERBOSE_ON)
+    {
       sprintf(fname, "cc_slice%d.mgz", slice);
       MRIwrite(mri_slice, fname) ;
       sprintf(fname, "cc_filled%d.mgz", slice);
@@ -4155,9 +4973,11 @@ find_cc_slice(MRI *mri_tal,
 
   min_area = 10000 ;
   min_slice = -1 ;
-  for (slice = 1 ; slice < max_slices-1 ; slice++) {
+  for (slice = 1 ; slice < max_slices-1 ; slice++)
+  {
     if (area[slice] < min_area &&
-        (area[slice] >= min_cc_area && area[slice] <= max_cc_area)) {
+        (area[slice] >= min_cc_area && area[slice] <= max_cc_area))
+    {
       min_area = area[slice] ;
       min_slice = slice ;
     }
@@ -4176,7 +4996,8 @@ find_cc_slice(MRI *mri_tal,
 
   // just for debugging
   MRIworldToVoxel(mri_tal, x, y,  z, &xvv, &yvv, &zvv) ;
-  if (Gdiag & DIAG_SHOW) {
+  if (Gdiag & DIAG_SHOW)
+  {
     // Real xv, yv, zv ;
     // you cannot call this function without knowing the src volume
     // MRItalairachVoxelToVoxelEx(mri_tal, x, y, z, &xv, &yv, &zv, lta) ;
@@ -4193,28 +5014,42 @@ find_cc_slice(MRI *mri_tal,
 }
 
 static int
-neighbors_on(MRI *mri, int x0, int y0, int z0) {
+neighbors_on(MRI *mri, int x0, int y0, int z0)
+{
   int   nbrs = 0 ;
 
   if (MRIvox(mri,x0-1,y0,z0) >= WM_MIN_VAL)
+  {
     nbrs++ ;
+  }
   if (MRIvox(mri,x0+1,y0,z0) >= WM_MIN_VAL)
+  {
     nbrs++ ;
+  }
   if (MRIvox(mri,x0,y0+1,z0) >= WM_MIN_VAL)
+  {
     nbrs++ ;
+  }
   if (MRIvox(mri,x0,y0-1,z0) >= WM_MIN_VAL)
+  {
     nbrs++ ;
+  }
   if (MRIvox(mri,x0,y0,z0+1) >= WM_MIN_VAL)
+  {
     nbrs++ ;
+  }
   if (MRIvox(mri,x0,y0,z0-1) >= WM_MIN_VAL)
+  {
     nbrs++ ;
+  }
   return(nbrs) ;
 }
 
 #if 0
 static int mriExtendMaskDownward(MRI *mri) ;
 static int
-mriExtendMaskDownward(MRI *mri) {
+mriExtendMaskDownward(MRI *mri)
+{
   int     width, height, depth, x, y, z, y1 ;
   BUFTYPE *psrc, val ;
 
@@ -4222,13 +5057,19 @@ mriExtendMaskDownward(MRI *mri) {
   height = mri->height ;
   depth = mri->depth ;
 
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
       psrc = &MRIvox(mri, 0, y, z) ;
-      for (x = 0 ; x < width ; x++) {
-        if ((val = *psrc++) > 0) {
+      for (x = 0 ; x < width ; x++)
+      {
+        if ((val = *psrc++) > 0)
+        {
           for (y1 = y ; y1 < mri->height ; y1++)
+          {
             MRIvox(mri, x, y1, z) = val ;
+          }
         }
       }
     }
@@ -4246,12 +5087,15 @@ mriExtendMaskDownward(MRI *mri) {
 
 static int
 MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
-              int fill_val) {
+              int fill_val)
+{
   int   x, y, z ;
 
   MRIvox(mri_fill, x_seed, y_seed, z_seed) = fill_val ;
   if (!Gdiag)
+  {
     fprintf(stderr, "filling volume: pass 1 of 3...") ;
+  }
   /* fill from 2 seeds in wm outwards */
   fill_brain(mri_fill, mri_im, WM_MIN_VAL);
 
@@ -4262,11 +5106,15 @@ MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
 
   /* fill in connected component of background */
   if (!Gdiag)
+  {
     fprintf(stderr, "\rfilling volume: pass 2 of 3...") ;
+  }
   fill_brain(mri_fill, mri_im, -WM_MIN_VAL);
 
   if (fill_holes_flag)
-    fill_holes(mri_fill);   /* fill in islands with fewer than 10 nbrs on */
+  {
+    fill_holes(mri_fill);  /* fill in islands with fewer than 10 nbrs on */
+  }
 
   /* put complement into im (im==on means part of background) */
   MRIcopy(mri_fill, mri_im) ;
@@ -4276,21 +5124,30 @@ MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
 
   /* fill in background of complement (also sometimes called the foreground) */
   if (!Gdiag)
+  {
     fprintf(stderr, "\rfilling volume: pass 3 of 3...") ;
+  }
   fill_brain(mri_fill, mri_im, -WM_MIN_VAL);
 
   mriFindBoundingBox(mri_fill) ;
 
   if (fill_holes_flag)
+  {
     fill_holes(mri_fill);
+  }
 
   if (!Gdiag)
+  {
     fprintf(stderr, "done.\n") ;
+  }
   for (z = 0 ; z < mri_fill->depth ; z++)
     for (y = 0; y < mri_fill->height ; y++)
-      for (x = 0; x < mri_fill->width ; x++) {
+      for (x = 0; x < mri_fill->width ; x++)
+      {
         if (z==0||z==mri_fill->depth-1)
+        {
           MRIvox(mri_fill, x, y, z) = 0;
+        }
       }
   return(NO_ERROR) ;
 }
@@ -4301,21 +5158,38 @@ MRIfillVolume(MRI *mri_fill, MRI *mri_im, int x_seed, int y_seed, int z_seed,
   it was from Anders' and Marty's original code....
 */
 static int
-mriFindBoundingBox(MRI *mri_im) {
+mriFindBoundingBox(MRI *mri_im)
+{
   int  x, y, z ;
 
   /* find bounding box for valid data */
   ylim0 = mri_im->height ;
   xlim0 = mri_im->width ;
   ylim1 = xlim1 = 0;
-  for (z = 0 ; z < mri_im->depth ; z++) {
-    for (y = 0 ; y < mri_im->height; y++) {
-      for (x = 0 ; x < mri_im->width ; x++) {
-        if (MRIvox(mri_im, x, y, z) >= WM_MIN_VAL) {
-          if (y<ylim0) ylim0=y;
-          if (y>ylim1) ylim1=y;
-          if (x<xlim0) xlim0=x;
-          if (x>xlim1) xlim1=x;
+  for (z = 0 ; z < mri_im->depth ; z++)
+  {
+    for (y = 0 ; y < mri_im->height; y++)
+    {
+      for (x = 0 ; x < mri_im->width ; x++)
+      {
+        if (MRIvox(mri_im, x, y, z) >= WM_MIN_VAL)
+        {
+          if (y<ylim0)
+          {
+            ylim0=y;
+          }
+          if (y>ylim1)
+          {
+            ylim1=y;
+          }
+          if (x<xlim0)
+          {
+            xlim0=x;
+          }
+          if (x>xlim1)
+          {
+            xlim1=x;
+          }
         }
       }
     }
@@ -4335,9 +5209,10 @@ mriFindBoundingBox(MRI *mri_im) {
 MRI *
 MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
                       int wm_lh_x, int wm_lh_y, int wm_lh_z,
-                      int wm_rh_x, int wm_rh_y, int wm_rh_z) {
+                      int wm_rh_x, int wm_rh_y, int wm_rh_z)
+{
   int     width, height, depth, x, y, z, v, ncorrected, ambiguous, lh, rh,
-  nfilled, xi, yi, zi, xk, yk, zk, nleft, nright, nambiguous, i ;
+          nfilled, xi, yi, zi, xk, yk, zk, nleft, nright, nambiguous, i ;
   BUFTYPE *plh, *prh, *pdst, vlh, vrh ;
 
   width = mri_lh->width ;
@@ -4345,21 +5220,27 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
   depth = mri_lh->depth ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIclone(mri_lh, NULL) ;
+  }
 
   ambiguous = rh = lh = 0 ;
-  for (ncorrected = z = 0 ; z < depth && !ambiguous ; z++) {
-    for (y = 0 ; y < height && !ambiguous ; y++) {
+  for (ncorrected = z = 0 ; z < depth && !ambiguous ; z++)
+  {
+    for (y = 0 ; y < height && !ambiguous ; y++)
+    {
       pdst = &MRIvox(mri_dst, 0, y, z) ;
       plh = &MRIvox(mri_lh, 0, y, z) ;
       prh = &MRIvox(mri_rh, 0, y, z) ;
-      for (x = 0 ; x < width && !ambiguous ; x++) {
+      for (x = 0 ; x < width && !ambiguous ; x++)
+      {
         vlh = *plh++ ;
         vrh = *prh++ ;
 
         /* if any are ambiguous, mark them all as ambiguous -
            will set seed points later */
-        if (vlh >= WM_MIN_VAL && vrh >= WM_MIN_VAL) {
+        if (vlh >= WM_MIN_VAL && vrh >= WM_MIN_VAL)
+        {
           ambiguous = (vlh + vrh)/2 ;
           lh = vlh ;
           rh = vrh ;
@@ -4376,18 +5257,25 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
     MRI *mri_tmp = NULL ;
     int max_on = 0, min_on = (3*3*3)-1 ;
 
-    for (z = 0 ; z < depth ; z++) {
-      for (y = 0 ; y < height ; y++) {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
         pdst = &MRIvox(mri_dst, 0, y, z) ;
         plh = &MRIvox(mri_lh, 0, y, z) ;
         prh = &MRIvox(mri_rh, 0, y, z) ;
-        for (x = 0 ; x < width ; x++) {
+        for (x = 0 ; x < width ; x++)
+        {
           vlh = *plh++ ;
           vrh = *prh++ ;
           if (vlh >= WM_MIN_VAL || vrh >= WM_MIN_VAL)
+          {
             v = ambiguous ;
+          }
           else
+          {
             v = 0 ;
+          }
           *pdst++ = v ;
         }
       }
@@ -4398,83 +5286,121 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
             "to correct hemispheric overlap...\n") ;
 
     /* set left hemisphere seed point and nbrs */
-    for (zk = -3 ; zk <= 3 ; zk++) {
+    for (zk = -3 ; zk <= 3 ; zk++)
+    {
       zi = mri_dst->zi[wm_lh_z+zk] ;
-      for (yk = -3 ; yk <= 3 ; yk++) {
+      for (yk = -3 ; yk <= 3 ; yk++)
+      {
         yi = mri_dst->yi[wm_lh_y+yk] ;
-        for (xk = -3 ; xk <= 3 ; xk++) {
+        for (xk = -3 ; xk <= 3 ; xk++)
+        {
           xi = mri_dst->xi[wm_lh_x+xk] ;
           v = MRIvox(mri_dst, xi, yi, zi) ;
           if (v >= WM_MIN_VAL)
+          {
             MRIvox(mri_dst, xi, yi, zi) = lh ;
+          }
         }
       }
     }
     /* set right hemisphere seed point and nbrs */
-    for (zk = -3 ; zk <= 3 ; zk++) {
+    for (zk = -3 ; zk <= 3 ; zk++)
+    {
       zi = mri_dst->zi[wm_rh_z+zk] ;
-      for (yk = -3 ; yk <= 3 ; yk++) {
+      for (yk = -3 ; yk <= 3 ; yk++)
+      {
         yi = mri_dst->yi[wm_rh_y+yk] ;
-        for (xk = -3 ; xk <= 3 ; xk++) {
+        for (xk = -3 ; xk <= 3 ; xk++)
+        {
           xi = mri_dst->xi[wm_rh_x+xk] ;
           v = MRIvox(mri_dst, xi, yi, zi) ;
           if (v >= WM_MIN_VAL)
+          {
             MRIvox(mri_dst, xi, yi, zi) = rh ;
+          }
         }
       }
     }
 
-    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) {
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       fprintf(stderr, "writing ambiguous voxel image to amb.mgz\n") ;
       MRIwrite(mri_dst, "amb.mgz") ;
     }
     mri_tmp = MRIcopy(mri_dst, mri_tmp) ;
-    do {
+    do
+    {
       max_on = i = nambiguous = nfilled = 0 ;
-      for (z = 0 ; z < depth ; z++) {
-        for (y = 0 ; y < height ; y++) {
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
           pdst = &MRIvox(mri_dst, 0, y, z) ;
-          for (x = 0 ; x < width ; x++) {
+          for (x = 0 ; x < width ; x++)
+          {
             if (x == 144 && y == 73 && z == 128)
+            {
               DiagBreak() ;
+            }
             v = *pdst++ ;
-            if (v == ambiguous) {
+            if (v == ambiguous)
+            {
               nleft = nright = 0 ;
-              for (zk = -1 ; zk <= 1 ; zk++) {
+              for (zk = -1 ; zk <= 1 ; zk++)
+              {
                 zi = mri_dst->zi[z+zk] ;
-                for (yk = -1 ; yk <= 1 ; yk++) {
+                for (yk = -1 ; yk <= 1 ; yk++)
+                {
                   yi = mri_dst->yi[y+yk] ;
-                  for (xk = -1 ; xk <= 1 ; xk++) {
+                  for (xk = -1 ; xk <= 1 ; xk++)
+                  {
                     xi = mri_dst->xi[x+xk] ;
                     v = MRIvox(mri_dst, xi, yi, zi) ;
                     if (v == lh)
+                    {
                       nleft++ ;
+                    }
                     else if (v == rh)
+                    {
                       nright++ ;
+                    }
                   }
                 }
               }
               if (MAX(nright,nleft) > max_on)
+              {
                 max_on = MIN(min_on, MAX(nright,nleft)) ;
+              }
               if (nright >= min_on &&
                   nleft >= min_on &&
-                  nright == nleft) {
+                  nright == nleft)
+              {
                 if (ODD(i))
+                {
                   nleft-- ;
+                }
                 else
+                {
                   nright-- ;
+                }
                 i++ ;
               }
-              if (nright > nleft && nright >= min_on) {
+              if (nright > nleft && nright >= min_on)
+              {
                 nfilled++ ;
                 MRIvox(mri_tmp, x, y, z) = rh ;
                 MRIvox(mri_lh, x, y, z) = 0 ;
-              } else if (nleft > nright && nleft >= min_on) {
+              }
+              else if (nleft > nright && nleft >= min_on)
+              {
                 nfilled++ ;
                 MRIvox(mri_tmp, x, y, z) = lh ;
                 MRIvox(mri_rh, x, y, z) = 0 ;
-              } else
+              }
+              else
+              {
                 nambiguous++ ;
+              }
             }
           }
         }
@@ -4484,17 +5410,21 @@ MRIcombineHemispheres(MRI *mri_lh, MRI *mri_rh, MRI *mri_dst,
         fprintf(stderr, "%d:  %d ambiguous voxels remaining\n",
                 min_on, nambiguous) ;
       min_on = max_on ;
-    } while ((nfilled > 0) || (min_on > 0)) ;
+    }
+    while ((nfilled > 0) || (min_on > 0)) ;
   }
 
   if (Gdiag & DIAG_SHOW && ncorrected > 0)
+  {
     fprintf(stderr, "%d overlapping voxels corrected\n", ncorrected) ;
+  }
   return(mri_dst) ;
 }
 
 static MRI *
 mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
-                                int offset, M3D *m3d, MRI *mri_dst) {
+                                int offset, M3D *m3d, MRI *mri_dst)
+{
   MRI  *mri_mean, *mri_std, *mri_tmp ;
   char *mri_dir, fname[STRLEN] ;
 
@@ -4505,7 +5435,9 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
      "%s: could not read FREESURFER_HOME from environment\n") ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIclone(mri_T1, NULL) ;
+  }
 
   /* read and transform the mean volume */
   sprintf(fname, "%s/average/%s_%s.mgz#%d",
@@ -4515,7 +5447,8 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
   if (!mri_mean)
     ErrorExit(ERROR_NOFILE, "%s: could not read mean file %s",
               Progname, fname) ;
-  if (m3d) {
+  if (m3d)
+  {
     mri_tmp = MRIapplyInverse3DMorph(mri_mean, m3d, NULL) ;
     MRIfree(&mri_mean) ;
     mri_mean = mri_tmp ;
@@ -4529,7 +5462,8 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
   if (!mri_std)
     ErrorExit(ERROR_NOFILE, "%s: could not read std file %s",
               Progname, fname) ;
-  if (m3d) {
+  if (m3d)
+  {
     mri_tmp = MRIapplyInverse3DMorph(mri_std, m3d, NULL) ;
     MRIfree(&mri_std) ;
     mri_std = mri_tmp ;
@@ -4543,9 +5477,10 @@ mriReadConditionalProbabilities(MRI *mri_T1, char *atlas_name, char *suffix,
 
 static MRI *
 mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d,
-                           char *subject_name, MRI *mri_dst) {
+                           char *subject_name, MRI *mri_dst)
+{
   MRI  *mri_priors, *mri_T1, *mri_on_conditional,
-  *mri_off_conditional, *mri_tmp ;
+       *mri_off_conditional, *mri_tmp ;
   char *mri_dir, *subjects_dir, fname[STRLEN] ;
 
   mri_dir = getenv("FREESURFER_HOME") ;
@@ -4573,7 +5508,8 @@ mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d,
   if (!mri_priors)
     ErrorExit(ERROR_NOFILE, "%s: could not read priors file %s",
               Progname, fname) ;
-  if (m3d) {
+  if (m3d)
+  {
     mri_tmp = MRIapplyInverse3DMorph(mri_priors, m3d, NULL) ;
     MRIfree(&mri_priors) ;
     mri_priors = mri_tmp ;
@@ -4594,18 +5530,21 @@ mriReadBinaryProbabilities(char *atlas_name, char *suffix, M3D *m3d,
 
 static MRI *
 MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
-                 float threshold, int out_label, int xabs_min, int xabs_max) {
+                 float threshold, int out_label, int xabs_min, int xabs_max)
+{
   BUFTYPE   *pprob, *pdst, *psrc, out_val, prob, in_val ;
   int       width, height, depth, x, y, z, ymin, ymax, zmin, zmax,
-  nfilled, xk, yk, zk, niter, xmin, xmax, expanded, expansions,
-  xi, yi, zi, ventricle_voxels, total_expanded ;
+            nfilled, xk, yk, zk, niter, xmin, xmax, expanded, expansions,
+            xi, yi, zi, ventricle_voxels, total_expanded ;
 
   if (mri_prob->type != MRI_UCHAR)
     ErrorReturn(NULL, (ERROR_UNSUPPORTED,
                        "MRI3Dthreshold: prob must be MRI_UCHAR")) ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIclone(mri_src, NULL) ;
+  }
 
   width = mri_src->width ;
   height = mri_src->height ;
@@ -4616,24 +5555,35 @@ MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
 
 
   total_expanded = ventricle_voxels = 0 ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
       pprob = &MRIvox(mri_prob, 0, y, z) ;
       psrc = &MRIvox(mri_src, 0, y, z) ;
       pdst = &MRIvox(mri_dst, 0, y, z) ;
-      for (x = 0 ; x < width ; x++) {
+      for (x = 0 ; x < width ; x++)
+      {
         if (DEBUG_POINT(x,y,z))
+        {
           DiagBreak() ;
+        }
         out_val = 0 ;
         prob = *pprob++ ;   /* value from inverse morphed volume */
         in_val = *psrc++ ;
         if (prob >= threshold)        /* probably on */
+        {
           out_val = out_label ;
+        }
         else                         /* not sure, use original val */
+        {
           out_val = 0 ;
+        }
 
         if (out_val)
+        {
           ventricle_voxels++ ;
+        }
         *pdst++ = out_val ;
       }
     }
@@ -4644,7 +5594,8 @@ MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
   ymin = height ;
   zmin = depth ;
   xmax = ymax = zmax = 0 ;
-  do {
+  do
+  {
     expansions = expanded = 0 ;
 
     /* compute bounding box */
@@ -4654,32 +5605,53 @@ MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
       ymin = height ;
       zmin = depth ;
       xmax = ymax = zmax = 0 ;
-      for (z = 0 ; z < depth ; z++) {
-        for (y = 0 ; y < height ; y++) {
-          for (x = 0 ; x < width ; x++) {
+      for (z = 0 ; z < depth ; z++)
+      {
+        for (y = 0 ; y < height ; y++)
+        {
+          for (x = 0 ; x < width ; x++)
+          {
             if (x == 151 && y == 139 && z == 69)
+            {
               DiagBreak() ;
-            if (MRIvox(mri_dst, x, y, z) == out_label) {
+            }
+            if (MRIvox(mri_dst, x, y, z) == out_label)
+            {
               if (x < xmin)
+              {
                 xmin = x ;
+              }
               if (y < ymin)
+              {
                 ymin = y ;
+              }
               if (z < zmin)
+              {
                 zmin = z ;
+              }
               if (x > xmax)
+              {
                 xmax = x ;
+              }
               if (y > ymax)
+              {
                 ymax = y ;
+              }
               if (z > zmax)
+              {
                 zmax = z ;
+              }
             }
           }
         }
       }
       expanded = 1 ;
       expansions++ ;
-    } else
+    }
+    else
+    {
       expanded = 0 ;
+    }
 
     nfilled = 0 ;
 
@@ -4688,26 +5660,38 @@ MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
        and escaping into the third ventricle.
     */
     if (xmin < xabs_min)
+    {
       xmin = xabs_min ;
+    }
     if (xmax > xabs_max)
+    {
       xmax = xabs_max ;
+    }
 
     if (!niter++)  /* first time through - shrink filled region */
     {
 #define MAX_EXPANSIONS 5
 #define BUFFER         10
 
-      for (z = zmin ; z <= zmax ; z++) {
-        for (y = ymin ; y <= ymax ; y++) {
-          for (x = xmin ; x <= xmax ; x++) {
+      for (z = zmin ; z <= zmax ; z++)
+      {
+        for (y = ymin ; y <= ymax ; y++)
+        {
+          for (x = xmin ; x <= xmax ; x++)
+          {
             /* if close to one of the borders */
             if ((((x-xmin) <= BUFFER) || ((xmax-x) <= BUFFER)) ||
                 (((z-zmin) <= BUFFER) || ((zmax-z) <= BUFFER)) ||
-                (((y-ymin) <= BUFFER) || ((ymax-y) <= BUFFER))) {
+                (((y-ymin) <= BUFFER) || ((ymax-y) <= BUFFER)))
+            {
               if (x == 151 && y == 139 && z == 69)
+              {
                 DiagBreak() ;
+              }
               if (MRIvox(mri_dst, x, y, z) == out_label)
+              {
                 MRIvox(mri_dst, x, y, z) = 0 ;
+              }
             }
           }
         }
@@ -4720,32 +5704,49 @@ MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
       zmax -= BUFFER ;
 #if 1
       if (out_label == lh_fill_val)
+      {
         MRIwrite(mri_dst, "left_ventricle_p_fill.mgz") ;
+      }
       else
+      {
         MRIwrite(mri_dst, "right_ventricle_p_fill.mgz") ;
+      }
 #endif
     }
 
     fprintf(stderr, "ventricle bounding box [%d, %d, %d] --> [%d, %d, %d]\n",
             xmin, ymin, zmin, xmax, ymax, zmax) ;
-    for (z = zmin ; z <= zmax ; z++) {
-      for (y = ymin ; y <= ymax ; y++) {
-        for (x = xmin ; x <= xmax ; x++) {
+    for (z = zmin ; z <= zmax ; z++)
+    {
+      for (y = ymin ; y <= ymax ; y++)
+      {
+        for (x = xmin ; x <= xmax ; x++)
+        {
           if (x == 122 && y == 109 && z == 117)
+          {
             DiagBreak() ;
-          if (MRIvox(mri_dst, x, y, z) == out_label) {   /* a filled voxel - 
-                                                            expand fill */
-            for (zk = -1 ; zk <= 1 ; zk++) {
+          }
+          if (MRIvox(mri_dst, x, y, z) == out_label)
+          {
+            /* a filled voxel -
+                                                              expand fill */
+            for (zk = -1 ; zk <= 1 ; zk++)
+            {
               zi = mri_dst->zi[z+zk] ;
-              for (yk = -1 ; yk <= 1 ; yk++) {
+              for (yk = -1 ; yk <= 1 ; yk++)
+              {
                 yi = mri_dst->yi[y+yk] ;
-                for (xk = -1 ; xk <= 1 ; xk++) {
+                for (xk = -1 ; xk <= 1 ; xk++)
+                {
                   xi = mri_dst->xi[x+xk] ;
                   if (x == 122 && y == 108 && z == 117)
+                  {
                     DiagBreak() ;
+                  }
                   if ((MRIvox(mri_T1, xi, yi, zi) < 50) &&
                       (MRIvox(mri_dst, xi, yi, zi) !=
-                       out_label)) {
+                       out_label))
+                  {
                     MRIvox(mri_dst, xi, yi, zi) = out_label ;
                     nfilled++ ;
                   }
@@ -4761,9 +5762,12 @@ MRIfillVentricle(MRI *mri_src, MRI *mri_prob, MRI *mri_T1, MRI *mri_dst,
 
     if ((ventricle_voxels + total_expanded > 20000) ||
         (++expansions >= MAX_EXPANSIONS))
+    {
       break ;
+    }
 
-  } while (!expanded || (nfilled > 0)) ;
+  }
+  while (!expanded || (nfilled > 0)) ;
 
   ventricle_voxels += total_expanded ;
   fprintf(stderr, "%5d ventricular voxels, %5d from atlas %5d from fill.\n",
@@ -4778,61 +5782,80 @@ static int count_voxel_diagonals(MRI *mri, int x0, int y0, int z0) ;
 static int fillDiagonals(MRI *mri, int fillval) ;
 
 static int
-MRIfillDegenerateLocations(MRI *mri, int fillval) {
+MRIfillDegenerateLocations(MRI *mri, int fillval)
+{
   int nfilled, total_filled ;
 
   total_filled = 0 ;
-  do {
+  do
+  {
     nfilled = fillDiagonals(mri, fillval) ;
     total_filled += nfilled ;
     fprintf(stderr, "%d voxels filled\n", nfilled) ;
-  } while (nfilled > 0) ;
+  }
+  while (nfilled > 0) ;
 
   return(NO_ERROR) ;
 }
 
 static int
-fillDiagonals(MRI *mri, int fillval) {
+fillDiagonals(MRI *mri, int fillval)
+{
   int  nfilled, x, y, z, width, height, depth, block[2][2][2], xk, yk, zk,
-  x1, y1, z1, mxk, myk, mzk, diagonals, min_diagonals, filled ;
+       x1, y1, z1, mxk, myk, mzk, diagonals, min_diagonals, filled ;
 
   nfilled = 0 ;
 
   width = mri->width ;
   height = mri->height ;
   depth = mri->depth ;
-  for (z = 1 ; z < (depth-1) ; z++) {
-    for (y = 1 ; y < (height-1) ; y++) {
-      for (x = 1 ; x < (width-1) ; x++) {
-        while (is_diagonal(mri, x, y, z, block)) {
+  for (z = 1 ; z < (depth-1) ; z++)
+  {
+    for (y = 1 ; y < (height-1) ; y++)
+    {
+      for (x = 1 ; x < (width-1) ; x++)
+      {
+        while (is_diagonal(mri, x, y, z, block))
+        {
           /* find one voxel to fill */
           min_diagonals = 10000 ;
           mxk = myk = mzk = 0 ;
-          for (zk = 0 ; zk <= 1 ; zk++) {
+          for (zk = 0 ; zk <= 1 ; zk++)
+          {
             z1 = z + zk ;
-            for (yk = 0 ; yk <= 1 ; yk++) {
+            for (yk = 0 ; yk <= 1 ; yk++)
+            {
               y1 = y + yk ;
-              for (xk = 0 ; xk <= 1 ; xk++) {
+              for (xk = 0 ; xk <= 1 ; xk++)
+              {
 
                 /* should arbitrate here -
                    try to find non-diagonal fill */
-                if (block[xk][yk][zk]) {
+                if (block[xk][yk][zk])
+                {
                   x1 = x + xk ;
-                  if (MRIvox(mri, x1, y1, z1) != fillval) {
+                  if (MRIvox(mri, x1, y1, z1) != fillval)
+                  {
                     MRIvox(mri, x1, y1, z1) = fillval ;
                     filled = 1 ;
-                  } else
+                  }
+                  else
+                  {
                     filled = 0 ;
+                  }
                   diagonals = count_voxel_diagonals
                               (mri, x1, y1, z1) ;
-                  if (diagonals <= min_diagonals) {
+                  if (diagonals <= min_diagonals)
+                  {
                     min_diagonals = diagonals ;
                     mxk = xk ;
                     myk = yk ;
                     mzk = zk ;
                   }
                   if (filled)
+                  {
                     MRIvox(mri, x1, y1, z1) = 0 ;
+                  }
                 }
               }
             }
@@ -4847,7 +5870,8 @@ fillDiagonals(MRI *mri, int fillval) {
 }
 
 static int
-is_diagonal(MRI *mri, int x0, int y0, int z0, int block[2][2][2]) {
+is_diagonal(MRI *mri, int x0, int y0, int z0, int block[2][2][2])
+{
   int   non, x, y, z, d, dsign, diagonal = 0 ;
 
   /* do quick check to see if it is possible */
@@ -4855,67 +5879,108 @@ is_diagonal(MRI *mri, int x0, int y0, int z0, int block[2][2][2]) {
     for (y = y0 ; y <= y0+1 ; y++)
       for (x = x0 ; x <= x0+1 ; x++)
         if (MRIvox(mri,x,y,z))
+        {
           non++ ;
+        }
 
   if (non < 2 || non > 6)
+  {
     return(0) ;
+  }
 
   /* now compute x derivatives for potential filling locations */
-  for (dsign = 0, z = z0 ; z <= z0+1 ; z++) {
-    for (y = y0 ; y <= y0+1 ; y++) {
-      for (x = x0 ; x <= x0+1 ; x++) {
-        if (MRIvox(mri,x,y,z) < WM_MIN_VAL) {
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
           d = MRIvox(mri, x0+1,y,z) - MRIvox(mri, x0,y,z) ;
           block[x-x0][y-y0][z-z0] = d ;
           if (d*dsign < 0)
-            diagonal = 1 ;  /* opposite sign spatial
+          {
+            diagonal = 1 ;
+          }  /* opposite sign spatial
                                derivatives - diagonal */
           else
+          {
             dsign = d ;
-        } else
+          }
+        }
+        else
+        {
           block[x-x0][y-y0][z-z0] = 0 ;
+        }
       }
     }
   }
 
   if (diagonal)
+  {
     return(1) ;
+  }
 
   /* now compute y derivatives for potential filling locations */
-  for (dsign = 0, z = z0 ; z <= z0+1 ; z++) {
-    for (y = y0 ; y <= y0+1 ; y++) {
-      for (x = x0 ; x <= x0+1 ; x++) {
-        if (MRIvox(mri,x,y,z) < WM_MIN_VAL) {
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
           d = MRIvox(mri, x,y0+1,z) - MRIvox(mri, x,y0,z) ;
           block[x-x0][y-y0][z-z0] = d ;
           if (d*dsign < 0)
-            diagonal = 1 ;  /* opposite sign spatial
+          {
+            diagonal = 1 ;
+          }  /* opposite sign spatial
                                derivatives - diagonal */
           else
+          {
             dsign = d ;
-        } else
+          }
+        }
+        else
+        {
           block[x-x0][y-y0][z-z0] = 0 ;
+        }
       }
     }
   }
 
   if (diagonal)
+  {
     return(1) ;
+  }
 
   /* now compute y derivatives for potential filling locations */
-  for (dsign = 0, z = z0 ; z <= z0+1 ; z++) {
-    for (y = y0 ; y <= y0+1 ; y++) {
-      for (x = x0 ; x <= x0+1 ; x++) {
-        if (MRIvox(mri,x,y,z) < WM_MIN_VAL) {
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
           d = MRIvox(mri, x,y,z0+1) - MRIvox(mri, x,y,z0+1) ;
           block[x-x0][y-y0][z-z0] = d ;
           if (d*dsign < 0)
-            diagonal = 1 ;  /* opposite sign spatial
+          {
+            diagonal = 1 ;
+          }  /* opposite sign spatial
                                derivatives - diagonal */
           else
+          {
             dsign = d ;
-        } else
+          }
+        }
+        else
+        {
           block[x-x0][y-y0][z-z0] = 0 ;
+        }
       }
     }
   }
@@ -4924,18 +5989,22 @@ is_diagonal(MRI *mri, int x0, int y0, int z0, int block[2][2][2]) {
 }
 
 static int
-count_voxel_diagonals(MRI *mri, int x0, int y0, int z0) {
+count_voxel_diagonals(MRI *mri, int x0, int y0, int z0)
+{
   int diagonals = 0, xk, yk, zk ;
 
   for (zk = -1 ; zk <= 0 ; zk++)
     for (yk = -1 ; yk <= 0 ; yk++)
       for (xk = -1 ; xk <= 0 ; xk++)
+      {
         diagonals += count_diagonals(mri, x0+xk, y0+yk, z0+zk) ;
+      }
   return(diagonals) ;
 }
 
 static int
-count_diagonals(MRI *mri, int x0, int y0, int z0) {
+count_diagonals(MRI *mri, int x0, int y0, int z0)
+{
   int   non, x, y, z, d, dsign, diagonals = 0 ;
 
   /* do quick check to see if it is possible */
@@ -4943,54 +6012,82 @@ count_diagonals(MRI *mri, int x0, int y0, int z0) {
     for (y = y0 ; y <= y0+1 ; y++)
       for (x = x0 ; x <= x0+1 ; x++)
         if (MRIvox(mri,x,y,z))
+        {
           non++ ;
+        }
 
   if (non < 2 || non > 6)
+  {
     return(0) ;
+  }
 
   /* now compute x derivatives for potential filling locations */
-  for (dsign = 0, z = z0 ; z <= z0+1 ; z++) {
-    for (y = y0 ; y <= y0+1 ; y++) {
-      for (x = x0 ; x <= x0+1 ; x++) {
-        if (MRIvox(mri,x,y,z) < WM_MIN_VAL) {
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
           d = MRIvox(mri, x0+1,y,z) - MRIvox(mri, x0,y,z) ;
           if (d*dsign < 0)
-            diagonals++ ;  /* opposite sign spatial
+          {
+            diagonals++ ;
+          }  /* opposite sign spatial
                               derivatives - diagonal */
           else
+          {
             dsign = d ;
+          }
         }
       }
     }
   }
 
   /* now compute y derivatives for potential filling locations */
-  for (dsign = 0, z = z0 ; z <= z0+1 ; z++) {
-    for (y = y0 ; y <= y0+1 ; y++) {
-      for (x = x0 ; x <= x0+1 ; x++) {
-        if (MRIvox(mri,x,y,z) < WM_MIN_VAL) {
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
           d = MRIvox(mri, x,y0+1,z) - MRIvox(mri, x,y0,z) ;
           if (d*dsign < 0)
-            diagonals++ ;  /* opposite sign spatial
+          {
+            diagonals++ ;
+          }  /* opposite sign spatial
                               derivatives - diagonal */
           else
+          {
             dsign = d ;
+          }
         }
       }
     }
   }
 
   /* now compute y derivatives for potential filling locations */
-  for (dsign = 0, z = z0 ; z <= z0+1 ; z++) {
-    for (y = y0 ; y <= y0+1 ; y++) {
-      for (x = x0 ; x <= x0+1 ; x++) {
-        if (MRIvox(mri,x,y,z) < WM_MIN_VAL) {
+  for (dsign = 0, z = z0 ; z <= z0+1 ; z++)
+  {
+    for (y = y0 ; y <= y0+1 ; y++)
+    {
+      for (x = x0 ; x <= x0+1 ; x++)
+      {
+        if (MRIvox(mri,x,y,z) < WM_MIN_VAL)
+        {
           d = MRIvox(mri, x,y,z0+1) - MRIvox(mri, x,y,z0+1) ;
           if (d*dsign < 0)
-            diagonals++ ;  /* opposite sign spatial
+          {
+            diagonals++ ;
+          }  /* opposite sign spatial
                               derivatives - diagonal */
           else
+          {
             dsign = d ;
+          }
         }
       }
     }
@@ -5001,9 +6098,10 @@ count_diagonals(MRI *mri, int x0, int y0, int z0) {
 
 #if 0
 static int
-edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
+edit_segmentation(MRI *mri_wm, MRI *mri_seg)
+{
   int   width, height, depth, x, y, z, label,
-  non, noff, xi, yi, zi,  xk, yk, zk, nchanged, wsize ;
+        non, noff, xi, yi, zi,  xk, yk, zk, nchanged, wsize ;
   MRI   *mri_filled ;
 
   mri_filled =  MRIclone(mri_wm,  NULL);
@@ -5013,20 +6111,28 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
   depth = mri_wm->depth ;
 
   non = noff = 0 ;
-  for (z = 0 ; z < depth ; z++) {
-    for (y = 0 ; y < height ; y++) {
-      for (x = 0 ; x < width ; x++) {
+  for (z = 0 ; z < depth ; z++)
+  {
+    for (y = 0 ; y < height ; y++)
+    {
+      for (x = 0 ; x < width ; x++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         label = MRIvox(mri_seg, x, y, z) ;
 
-        switch (label) {
+        switch (label)
+        {
         case Unknown:
           wsize=5 ;
           if (MRIlabelsInNbhd
               (mri_seg, x, y, z, (wsize-1)/2, Unknown) <
               (wsize*wsize*wsize-1))
+          {
             break ;
+          }
 
           /* !!! no break - erase unknown
              if it is surrounded by only  unknowns */
@@ -5047,8 +6153,10 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
           if ((neighborLabel
                (mri_seg, x,y,z,1,Left_Cerebral_Cortex) == 0) &&
               (neighborLabel
-               (mri_seg, x,y,z,1,Right_Cerebral_Cortex) == 0)) {
-            if (MRIvox(mri_im, x, y, z)) {
+               (mri_seg, x,y,z,1,Right_Cerebral_Cortex) == 0))
+          {
+            if (MRIvox(mri_im, x, y, z))
+            {
               MRIvox(mri_wm, x, y, z) = 0 ;
               noff++ ;
             }
@@ -5068,7 +6176,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
                (mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
               (neighborLabel
                (mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)) {
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+          {
             MRIvox(mri_wm, x, y, z) = 255 ;
             MRIvox(mri_filled, x, y, z) = 255 ;
             non++ ;
@@ -5077,7 +6186,9 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
         case Left_Lateral_Ventricle:
         case Right_Lateral_Ventricle:
           if (fillven == 0)
+          {
             break ;
+          }
           MRIvox(mri_wm, x, y, z) = 255 ;
           MRIvox(mri_filled, x, y, z) = 255 ;
           non++ ;
@@ -5087,7 +6198,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
                (mri_seg, x, y, z,1,Left_Cerebral_Cortex) >= 0) &&
               (neighborLabel
                (mri_seg, x, y, z,1,Right_Cerebral_Cortex) >= 0) &&
-              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)) {
+              (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL))
+          {
             MRIvox(mri_wm, x, y, z) = 255 ;
             MRIvox(mri_filled, x, y, z) = 255 ;
             non++ ;
@@ -5099,7 +6211,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
                (label == Left_Cerebral_White_Matter ||
                 label == Right_Cerebral_White_Matter) ||
                (label == Unknown))
-              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)) {
+              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+          {
             MRIvox(mri_wm, x, yi, z) = 255 ;
             MRIvox(mri_filled, x, yi, z) = 255 ;
             non++ ;
@@ -5126,7 +6239,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
                   label == Right_Cerebral_Cortex) ||
                  (label == Left_Cerebral_White_Matter ||
                   label == Right_Cerebral_White_Matter))
-                && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)) {
+                && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+            {
               MRIvox(mri_wm, x, yi, z) = 255 ;
               MRIvox(mri_filled, x, yi, z) = 255 ;
               yi = mri_wm->yi[y+2] ;
@@ -5137,14 +6251,15 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
           }
           break ;
         case Left_Hippocampus:
-        case Right_Hippocampus: {
+        case Right_Hippocampus:
+        {
           int xi,  olabel ;
 
           xi = label == Right_Hippocampus ?
                mri_wm->xi[x-1] :  mri_wm->xi[x+1] ;
           olabel = MRIvox(mri_seg, xi, y, z) ;
           if (olabel != label)  /* voxel lateral to this
-                                   one is not hippocampus   */
+                               one is not hippocampus   */
           {
             MRIvox(mri_wm, xi, y, z) = 255 ;
             MRIvox(mri_filled, xi, y, z) = 255 ;
@@ -5157,7 +6272,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
                 label == Right_Cerebral_Cortex) ||
                (label == Left_Cerebral_White_Matter ||
                 label == Right_Cerebral_White_Matter))
-              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL)) {
+              && (MRIvox(mri_wm, x, yi, z) < WM_MIN_VAL))
+          {
             MRIvox(mri_wm, x, yi, z) = 255 ;
             MRIvox(mri_filled, x, yi, z) = 255 ;
             yi = mri_wm->yi[y+2] ;
@@ -5175,7 +6291,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
         case Right_Putamen:
         case Left_Pallidum:
         case Right_Pallidum:
-          if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL) {
+          if (MRIvox(mri_wm, x, y, z) < WM_MIN_VAL)
+          {
             MRIvox(mri_wm, x, y, z) = 255 ;
             MRIvox(mri_filled, x, y, z) = 255 ;
             non++ ;
@@ -5193,26 +6310,40 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
     by the aseg, but not by  wmfilter, and are
     neighbors  of  voxels that  have been already been filled .
   */
-  do {
+  do
+  {
     nchanged = 0 ;
-    for (z = 0 ; z < depth ; z++) {
-      for (y = 0 ; y < height ; y++) {
-        for (x = 0 ; x < width ; x++) {
+    for (z = 0 ; z < depth ; z++)
+    {
+      for (y = 0 ; y < height ; y++)
+      {
+        for (x = 0 ; x < width ; x++)
+        {
           if (x == Gx && y == Gy && z == Gz)
+          {
             DiagBreak() ;
+          }
           if  (MRIvox(mri_filled, x,  y, z) == 0)
+          {
             continue  ;
-          for (xk = -1 ; xk <= 1 ; xk++) {
+          }
+          for (xk = -1 ; xk <= 1 ; xk++)
+          {
             xi = mri_filled->xi[x+xk] ;
-            for (yk = -1 ; yk <= 1 ; yk++) {
+            for (yk = -1 ; yk <= 1 ; yk++)
+            {
               yi = mri_filled->yi[y+yk] ;
-              for (zk = -1 ; zk <= 1 ; zk++) {
+              for (zk = -1 ; zk <= 1 ; zk++)
+              {
                 zi = mri_filled->zi[z+zk] ;
                 if (xi == Gx && yi == Gy && zi == Gz)
+                {
                   DiagBreak() ;
+                }
                 label = MRIvox(mri_seg, xi, yi, zi) ;
                 if (IS_WM(label) &&
-                    (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL)) {
+                    (MRIvox(mri_wm, xi, yi, zi) < WM_MIN_VAL))
+                {
                   nchanged++ ;
                   MRIvox(mri_wm, xi, yi, zi) = 255 ;
 #if 0
@@ -5227,7 +6358,8 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
       }
     }
     printf("%d additional wm voxels added\n", nchanged)  ;
-  } while (nchanged >  0) ;
+  }
+  while (nchanged >  0) ;
 
   printf("SEG EDIT: %d voxels turned on, %d voxels turned off.\n", non, noff) ;
   MRIfree(&mri_filled) ;
@@ -5237,19 +6369,27 @@ edit_segmentation(MRI *mri_wm, MRI *mri_seg) {
 
 #if 0
 static int
-neighbors(MRI *mri, int x, int y,int z,int whalf,int label) {
+neighbors(MRI *mri, int x, int y,int z,int whalf,int label)
+{
   int xi, yi, zi, xk, yk, zk, nbrs ;
 
-  for (nbrs = 0, zk = -whalf ; zk <= whalf ; zk++) {
+  for (nbrs = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
     zi = mri->zi[z+zk] ;
-    for (yk = -whalf ; yk <= whalf ; yk++) {
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
       yi = mri->yi[y+yk] ;
-      for (xk = -whalf ; xk <= whalf ; xk++) {
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
         if (abs(xk)+abs(yk)+abs(zk) > 1) /* only 6-connected neighbors */
+        {
           continue ;
+        }
         xi = mri->xi[x+xk] ;
         if (MRIvox(mri, xi, yi, zi) == label)
+        {
           nbrs++ ;
+        }
       }
     }
   }
@@ -5257,19 +6397,27 @@ neighbors(MRI *mri, int x, int y,int z,int whalf,int label) {
 }
 
 static int
-neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label) {
+neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label)
+{
   int xi, yi, zi, xk, yk, zk ;
 
-  for (zk = -whalf ; zk <= whalf ; zk++) {
+  for (zk = -whalf ; zk <= whalf ; zk++)
+  {
     zi = mri->zi[z+zk] ;
-    for (yk = -whalf ; yk <= whalf ; yk++) {
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
       yi = mri->yi[y+yk] ;
-      for (xk = -whalf ; xk <= whalf ; xk++) {
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
         if (abs(xk)+abs(yk)+abs(zk) > 1) /* only 6-connected neighbors */
+        {
           continue ;
+        }
         xi = mri->xi[x+xk] ;
         if (MRIvox(mri, xi, yi, zi) == label)
+        {
           return(1) ;
+        }
       }
     }
   }
@@ -5277,17 +6425,23 @@ neighborLabel(MRI *mri, int x, int y, int z, int whalf, int label) {
 }
 
 static int
-MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) {
+MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label)
+{
   int xi, yi, zi, xk, yk, zk, count ;
 
-  for (count = 0, zk = -whalf ; zk <= whalf ; zk++) {
+  for (count = 0, zk = -whalf ; zk <= whalf ; zk++)
+  {
     zi = mri->zi[z+zk] ;
-    for (yk = -whalf ; yk <= whalf ; yk++) {
+    for (yk = -whalf ; yk <= whalf ; yk++)
+    {
       yi = mri->yi[y+yk] ;
-      for (xk = -whalf ; xk <= whalf ; xk++) {
+      for (xk = -whalf ; xk <= whalf ; xk++)
+      {
         xi = mri->xi[x+xk] ;
         if (MRIvox(mri, xi, yi, zi) == label)
+        {
           count++;
+        }
       }
     }
   }
@@ -5296,24 +6450,32 @@ MRIlabelsInNbhd(MRI *mri, int x, int y, int z, int whalf, int label) {
 #endif
 
 static MRI *
-extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask) {
+extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask)
+{
   int   x, y, z, found ;
 
   if (!mri_dst)
+  {
     mri_dst = MRIclone(mri_src, NULL) ;
+  }
 
-  for (y = 0 ; y < mri_dst->height ; y++) {
-    for (z = 0 ; z < mri_dst->depth ; z++) {
+  for (y = 0 ; y < mri_dst->height ; y++)
+  {
+    for (z = 0 ; z < mri_dst->depth ; z++)
+    {
       // look for mask value
-      for (found = x = 0 ; x < mri_dst->width ; x++) {
+      for (found = x = 0 ; x < mri_dst->width ; x++)
+      {
         if (MRIvox(mri_dst, x, y, z) == mask)  /* fill in whole line */
         {
           found = 1 ;
           break ;
         }
       }
-      if (found) {
-        for (x = 0 ; x < mri_dst->width ; x++) {
+      if (found)
+      {
+        for (x = 0 ; x < mri_dst->width ; x++)
+        {
           MRIvox(mri_dst, x, y, z) = mask ;
         }
       }
@@ -5326,45 +6488,60 @@ extend_to_lateral_borders(MRI *mri_src, MRI *mri_dst, int mask) {
 #define WHALF ((11-1)/2)
 static int
 find_cc_seed_with_segmentation
-(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z) {
+(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z)
+{
   int  x,  y, z, label, yi, zi, yk, zk, xl, xr, rlabel, llabel, num, max_num;
   Real xcc, ycc,  zcc ;
 
   xcc = ycc = zcc = 0.0  ;
   max_num = 0 ;
-  for (x = 0 ; x  < mri->width ; x++) {
-    for (y = 0 ; y  < mri->height ; y++) {
-      for (z = 0 ; z  < mri->width ; z++) {
+  for (x = 0 ; x  < mri->width ; x++)
+  {
+    for (y = 0 ; y  < mri->height ; y++)
+    {
+      for (z = 0 ; z  < mri->width ; z++)
+      {
         label = MRIvox(mri_seg, x,  y, z) ;
         if (!IS_WM(label))
+        {
           continue  ;
+        }
         xr = mri_seg->xi[x+1] ;
         xl = mri_seg->xi[x-1] ;
         rlabel = MRIvox(mri_seg, xr, y, z) ;
         llabel = MRIvox(mri_seg, xl, y, z) ;
         if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
             ((rlabel == label) && (llabel == label)))
-          continue ;   /* find places where left/right
+        {
+          continue ;
+        }   /* find places where left/right
                           wm has different label */
 
         /* look in sagittal plane and count
            how many midline voxels there are */
-        for (num = 0, yk = -WHALF ; yk <= WHALF ; yk++) {
+        for (num = 0, yk = -WHALF ; yk <= WHALF ; yk++)
+        {
           yi = mri_seg->yi[y+yk] ;
-          for (zk = -WHALF ; zk <= WHALF ; zk++) {
+          for (zk = -WHALF ; zk <= WHALF ; zk++)
+          {
             zi = mri_seg->zi[z+zk] ;
             rlabel = MRIvox(mri_seg, xr, yi, zi) ;
             llabel = MRIvox(mri_seg, xl, yi, zi) ;
             label = MRIvox(mri_seg, x, yi, zi) ;
             if (MRIvox(mri, x, yi, zi) < MIN_WM_VAL)
-              continue ;   // must be labeled in wm volume
+            {
+              continue ;  // must be labeled in wm volume
+            }
 
             if ((IS_WM(rlabel) && IS_WM(llabel)) && IS_WM(label) &&
                 ((rlabel != label) || (llabel != label)))
+            {
               num++ ;
+            }
           }
         }
-        if (num > max_num) {
+        if (num > max_num)
+        {
           xcc = x ;
           ycc = y ;
           zcc = z ;
@@ -5388,13 +6565,18 @@ find_cc_seed_with_segmentation
 }
 
 static int
-find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z) {
+find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z)
+{
   int   x, y, z ;
 
-  for (x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z< mri->depth ; z++) {
-        if (MRIneighborsOn3x3(mri, x, y, z, WM_MIN_VAL) >= 26) {
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z< mri->depth ; z++)
+      {
+        if (MRIneighborsOn3x3(mri, x, y, z, WM_MIN_VAL) >= 26)
+        {
           *prh_vol_x = x ;
           *prh_vol_y = y ;
           *prh_vol_z = z ;
@@ -5410,15 +6592,19 @@ find_rh_seed_point(MRI *mri, int *prh_vol_x, int *prh_vol_y, int *prh_vol_z) {
 }
 
 static int
-mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg) {
+mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg)
+{
   int  x, y, z, label, xl, xr, rlabel, llabel ;
   MRI *mri_mid ;
 
   mri_mid = MRIcopy(mri_cc, NULL) ;
 
-  for (x = 0 ; x < mri_cc->width ; x++) {
-    for (y = 0 ; y < mri_cc->height ; y++) {
-      for (z = 0 ; z < mri_cc->depth ; z++) {
+  for (x = 0 ; x < mri_cc->width ; x++)
+  {
+    for (y = 0 ; y < mri_cc->height ; y++)
+    {
+      for (z = 0 ; z < mri_cc->depth ; z++)
+      {
         xr = mri_seg->xi[x+1] ;
         xl = mri_seg->xi[x-1] ;
         label = MRIvox(mri_seg, x, y, z) ;
@@ -5426,26 +6612,34 @@ mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg) {
         llabel = MRIvox(mri_seg, xl, y, z) ;
         if ((IS_WM(rlabel) && !IS_WM(llabel)) &&
             ((rlabel != label) || (llabel != label)))
+        {
           MRIvox(mri_mid, x, y, z) = 128 ;
+        }
 
         if (MRIvox(mri_cc, x, y, z) == 0)
+        {
           continue ;
+        }
         xr = mri_seg->xi[x+1] ;
         xl = mri_seg->xi[x-1] ;
         label = MRIvox(mri_seg, x, y, z) ;
         rlabel = MRIvox(mri_seg, xr, y, z) ;
         llabel = MRIvox(mri_seg, xl, y, z) ;
         if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
-            ((rlabel == label) && (llabel == label))) { /* not a  place where 
-                                                           left/right wm has 
-                                                           different label */
+            ((rlabel == label) && (llabel == label)))
+        {
+          /* not a  place where
+                                                         left/right wm has
+                                                         different label */
           MRIvox(mri_cc, x, y, z) = 0 ;
         }
       }
     }
   }
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_mid, "mid.mgz") ;
+  }
   MRIfree(&mri_mid) ;
   return(NO_ERROR) ;
 }
@@ -5455,7 +6649,8 @@ mri_erase_nonmidline_voxels(MRI *mri_cc, MRI *mri_seg) {
 // maximally separates lh and rh - not done
 static int
 find_cc_seed_with_segmentation
-(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z) {
+(MRI *mri, MRI *mri_seg, Real *pcc_tal_x, Real *pcc_tal_y, Real *pcc_tal_z)
+{
   int  x,  y, z, label, yi, zi, yk, zk, xl, xr, rlabel, llabel, num, max_num;
   Real xcc, ycc,  zcc, xn, yn, zn, theta, phi, xncc, yncc, zncc ;
 
@@ -5468,25 +6663,33 @@ find_cc_seed_with_segmentation
   xncc = yncc = zncc = xcc = ycc = zcc = 0.0  ;
   max_num = 0 ;
 
-  for (x = 0 ; x  < mri->width ; x++) {
-    for (y = 0 ; y  < mri->height ; y++) {
-      for (z = 0 ; z  < mri->width ; z++) {
+  for (x = 0 ; x  < mri->width ; x++)
+  {
+    for (y = 0 ; y  < mri->height ; y++)
+    {
+      for (z = 0 ; z  < mri->width ; z++)
+      {
         label = MRIvox(mri_seg, x,  y, z) ;
         if (!IS_WM(label))
+        {
           continue  ;
+        }
         xr = mri_seg->xi[x+1] ;
         xl = mri_seg->xi[x-1] ;
         rlabel = MRIvox(mri_seg, xr, y, z) ;
         llabel = MRIvox(mri_seg, xl, y, z) ;
         if ((!IS_WM(rlabel) || !IS_WM(llabel)) ||
             ((rlabel == label) && (llabel == label)))
-          continue ;   /* find places where left/right wm
+        {
+          continue ;
+        }   /* find places where left/right wm
                           has different label */
 
         // look for optimal separating plane
         for (phi = RADIANS(90)-MAX_ANGLE ;
              phi <= RADIANS(90)+MAX_ANGLE ;
-             phi += DELTA_ANGLE) {
+             phi += DELTA_ANGLE)
+        {
 #if 0
           for (theta = -MAX_ANGLE ;
                theta <= MAX_ANGLE ;
@@ -5501,7 +6704,8 @@ find_cc_seed_with_segmentation
             num =
               count_hemisphere_separation
               (mri_seg, xn, yn, zn, x, y, z) ;
-            if (num > max_num) {
+            if (num > max_num)
+            {
               xcc = x ;
               ycc = y ;
               zcc = z ;
@@ -5517,22 +6721,29 @@ find_cc_seed_with_segmentation
 #if 0
         /* look in sagittal plane and count
            how many midline voxels there are */
-        for (num = 0, yk = -WHALF ; yk <= WHALF ; yk++) {
+        for (num = 0, yk = -WHALF ; yk <= WHALF ; yk++)
+        {
           yi = mri_seg->yi[y+yk] ;
-          for (zk = -WHALF ; zk <= WHALF ; zk++) {
+          for (zk = -WHALF ; zk <= WHALF ; zk++)
+          {
             zi = mri_seg->zi[z+zk] ;
             rlabel = MRIvox(mri_seg, xr, yi, zi) ;
             llabel = MRIvox(mri_seg, xl, yi, zi) ;
             label = MRIvox(mri_seg, x, yi, zi) ;
             if (MRIvox(mri, x, yi, zi) < MIN_WM_VAL)
-              continue ;   // must be labeled in wm volume
+            {
+              continue ;  // must be labeled in wm volume
+            }
 
             if ((IS_WM(rlabel) && IS_WM(llabel)) && IS_WM(label) &&
                 ((rlabel != label) || (llabel != label)))
+            {
               num++ ;
+            }
           }
         }
-        if (num > max_num) {
+        if (num > max_num)
+        {
           xcc = x ;
           ycc = y ;
           zcc = z ;
@@ -5563,30 +6774,46 @@ static int count_hemisphere_separation
  int x, int y, int z);
 static int
 count_hemisphere_separation
-(MRI *mri, double xn, double yn, double zn, int x0, int y0, int z0) {
+(MRI *mri, double xn, double yn, double zn, int x0, int y0, int z0)
+{
   int num, x, y, z, label, lh_neg, lh_pos, rh_neg, rh_pos ;
   double  dot ;
 
   lh_neg = lh_pos = rh_neg = rh_pos = 0 ;
-  for (x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->width ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->width ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
         label = MRIvox(mri, x, y, z) ;
         if (!IS_WHITE_CLASS(label) && !IS_GM(label))
+        {
           continue ;
+        }
         dot = (x-x0)*xn + (y-y0)*yn + (z-z0)*zn ;
         if (label == Left_Cerebral_Cortex ||
-            label == Left_Cerebral_White_Matter) {
-          if (dot < 0)
-            lh_neg++ ;
-          else
-            lh_pos++ ;
-        } else  // right hemisphere
+            label == Left_Cerebral_White_Matter)
         {
           if (dot < 0)
-            rh_neg++ ;
+          {
+            lh_neg++ ;
+          }
           else
+          {
+            lh_pos++ ;
+          }
+        }
+        else    // right hemisphere
+        {
+          if (dot < 0)
+          {
+            rh_neg++ ;
+          }
+          else
+          {
             rh_pos++ ;
+          }
         }
       }
     }
@@ -5599,7 +6826,8 @@ count_hemisphere_separation
 #endif
 
 
-MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg) {
+MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg)
+{
   int x, y, z;
   MRI *mri_fill;
   MRI *mri_ctrl;
@@ -5634,9 +6862,12 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg) {
   printf("Define left and right masks using aseg:\n");
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++) {
+      for (x=0; x < width; x++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         MRIvox(mri_ctrl,x,y,z) = 0;
         MRIvox(mri_fill, x, y, z) = 0;
         MRIvox(mri_fill_lh, x, y, z) = 0;
@@ -5644,7 +6875,8 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg) {
 
         label = MRIvox(mri_seg,x, y,z);
 
-        switch (label) {
+        switch (label)
+        {
         case Unknown:
           break;
 
@@ -5720,13 +6952,21 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg) {
 
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++) {
-        if (MRIgetVoxVal(mri_img, x, y, z, 0) < WM_MIN_VAL) continue;
+      for (x=0; x < width; x++)
+      {
+        if (MRIgetVoxVal(mri_img, x, y, z, 0) < WM_MIN_VAL)
+        {
+          continue;
+        }
 
         if (MRIvox(mri_fill, x, y, z) == rh_fill_val)
+        {
           MRIvox(mri_fill_rh,x,y,z) = 1;
+        }
         else
+        {
           MRIvox(mri_fill_lh,x,y,z) = 1;
+        }
       }
 
   printf("Find the largest connected component for each hemisphere ...\n");
@@ -5739,12 +6979,17 @@ MRI *fill_with_aseg(MRI *mri_img, MRI *mri_seg) {
 
   for (z=0; z < depth; z++)
     for (y=0; y< height; y++)
-      for (x=0; x < width; x++) {
+      for (x=0; x < width; x++)
+      {
         MRIvox(mri_fill, x, y, z) = 0;
         if (MRIvox(mri_fill_lh, x, y, z) > 0)
+        {
           MRIvox(mri_fill, x, y, z) = lh_fill_val;
+        }
         else if (MRIvox(mri_fill_rh, x, y, z) > 0)
+        {
           MRIvox(mri_fill, x, y, z) = rh_fill_val;
+        }
       }
 
   MRIfree(&mri_ctrl);

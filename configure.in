@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/02/01 23:36:18 $
-#    $Revision: 1.510 $
+#    $Date: 2011/02/07 00:40:44 $
+#    $Revision: 1.511 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -394,6 +394,16 @@ fi
 # latex is optionally used to regenerate some fsfast docs
 AC_CHECK_PROG(LATEX, latex, latex)
 AM_CONDITIONAL(HAVE_LATEX, ! test -z "$LATEX")
+
+#
+# xxd is optionally used to convert .xml to a .h, for .c data incorporation
+AC_CHECK_PROG(XXD, xxd, xxd)
+AM_CONDITIONAL(HAVE_XXD, ! test -z "$XXD")
+
+#
+# xmllint is optionally used to check the help.xml files for correctness
+AC_CHECK_PROG(XMLLINT, xmllint, xmllint)
+AM_CONDITIONAL(HAVE_XMLLINT, ! test -z "$XMLLINT")
 
 ################################################################
 # set platform related variable defaults for (Teem) NrrdIO

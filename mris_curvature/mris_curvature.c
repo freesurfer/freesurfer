@@ -1,19 +1,19 @@
 /**
  * @file  mris_curvature.c
- * @brief program for computing various curvature metrics of a surface (e.g. gaussian, mean, etc...)
+ * @brief program for computing various curvature metrics of a surface
  *
- * program for computing various curvature metrics of a surface. This includes gaussian, mean, 1st
- * and 2nd principle ones, and various others.
+ * program for computing various curvature metrics of a surface.
+ * This includes gaussian, mean, 1st and 2nd principle ones, and others.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:26:02 $
- *    $Revision: 1.29 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:48 $
+ *    $Revision: 1.30 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -22,7 +22,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -41,15 +40,13 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = "$Id: mris_curvature.c,v 1.29 2010/08/12 17:26:02 gregt Exp $";
+static char vcid[] =
+  "$Id: mris_curvature.c,v 1.30 2011/02/07 00:40:48 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
 static int  get_option(int argc, char *argv[]) ;
 static void usage_exit(void) ;
-#ifdef GREGT
-static void print_usage(void) ;
-#endif
 static void print_help(void) ;
 static void print_version(void) ;
 
@@ -83,17 +80,23 @@ static int which_norm = NORM_MEAN;
 int MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)  ;
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         **av, *in_fname,fname[STRLEN],hemi[10], path[STRLEN],
-  name[STRLEN],*cp ;
+               name[STRLEN],*cp ;
   int          ac, nargs, nhandles ;
   MRI_SURFACE  *mris ;
   double       ici, fi, var ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_curvature.c,v 1.29 2010/08/12 17:26:02 gregt Exp $", "$Name:  $");
+  nargs = handle_version_option
+    (argc, argv,
+     "$Id: mris_curvature.c,v 1.30 2011/02/07 00:40:48 nicks Exp $",
+     "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Progname = argv[0] ;
@@ -102,14 +105,17 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc < 2)
+  {
     usage_exit() ;
+  }
 
   in_fname = argv[1] ;
 
@@ -130,12 +136,15 @@ main(int argc, char *argv[]) {
       ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s",
                 Progname, in_fname) ;
     if (Gdiag & DIAG_SHOW)
+    {
       fprintf(stderr, "reading patch file %s...\n", in_fname) ;
+    }
     if (MRISreadPatch(mris, in_fname) != NO_ERROR)
       ErrorExit(ERROR_NOFILE, "%s: could not read patch file %s",
                 Progname, in_fname) ;
 
-  } else   /* just read the surface normally */
+  }
+  else     /* just read the surface normally */
   {
     mris = MRISread(in_fname) ;
     if (!mris)
@@ -146,14 +155,20 @@ main(int argc, char *argv[]) {
   MRISsetNeighborhoodSize(mris, nbrs) ;
 
   if (nbhd_size > 0)
+  {
     MRISsampleAtEachDistance(mris, nbhd_size, nbrs_per_distance) ;
+  }
   if (max_mm > 0)
   {
     float ratio ;
 
     MRISstoreMetricProperties(mris) ;
     if (MRISreadCanonicalCoordinates(mris, "sphere") != NO_ERROR)
-      ErrorExit(ERROR_NOFILE, "%s: could not read canonical coordinates from ?h.sphere",Progname);
+    {
+      ErrorExit(ERROR_NOFILE,
+                "%s: could not read canonical coordinates from ?h.sphere",
+                Progname);
+    }
 
     MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
     MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
@@ -167,21 +182,30 @@ main(int argc, char *argv[]) {
     MRIScomputeNeighbors(mris, max_mm) ;
   }
 
-  if (param_file) {
+  if (param_file)
+  {
     MRI_SP *mrisp ;
     mrisp = MRISPread(param_file) ;
     if (normalize_param)
+    {
       MRISnormalizeFromParameterization(mrisp, mris, param_no) ;
+    }
     else
+    {
       MRISfromParameterization(mrisp, mris, param_no) ;
+    }
     MRISPfree(&mrisp) ;
     if (normalize)
+    {
       MRISnormalizeCurvature(mris,which_norm) ;
+    }
     sprintf(fname, "%s/%s%s.param", path,name,suffix) ;
     fprintf(stderr, "writing parameterized curvature to %s...", fname) ;
     MRISwriteCurvature(mris, fname) ;
     fprintf(stderr, "done.\n") ;
-  } else {
+  }
+  else
+  {
     MRIScomputeSecondFundamentalFormThresholded(mris, cthresh) ;
     nhandles = nint(1.0 - mris->Ktotal / (4.0*M_PI)) ;
     fprintf(stderr, "total integrated curvature = %2.3f*4pi (%2.3f) --> "
@@ -200,7 +224,8 @@ main(int argc, char *argv[]) {
     var = MRIStotalVariation(mris) ;
     fprintf(stderr,"ICI = %2.1f, FI = %2.1f, variation=%2.3f\n", ici, fi, var);
 
-    if (diff_flag) {
+    if (diff_flag)
+    {
       MRISuseCurvatureDifference(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s%s.diff", path,name,suffix) ;
@@ -208,30 +233,39 @@ main(int argc, char *argv[]) {
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
     }
-    if (ratio_flag) {
+    if (ratio_flag)
+    {
       MRISuseCurvatureRatio(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
+      {
         MRISnormalizeCurvature(mris,which_norm) ;
+      }
       sprintf(fname, "%s/%s%s.ratio", path,name,suffix) ;
       fprintf(stderr, "writing curvature ratio to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
     }
-    if (contrast_flag) {
+    if (contrast_flag)
+    {
       MRISuseCurvatureContrast(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
+      {
         MRISnormalizeCurvature(mris,which_norm) ;
+      }
       sprintf(fname, "%s/%s%s.contrast", path,name,suffix) ;
       fprintf(stderr, "writing curvature contrast to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
     }
-    if (neg_flag) {
+    if (neg_flag)
+    {
       int neg ;
       if (mris->patch)
+      {
         mris->status = MRIS_PLANE ;
+      }
       MRIScomputeMetricProperties(mris) ;
       neg = MRIScountNegativeTriangles(mris) ;
       MRISuseNegCurvature(mris) ;
@@ -245,72 +279,98 @@ main(int argc, char *argv[]) {
         int    vno, fno ;
         VERTEX *v ;
         FACE   *f ;
-        for (vno = 0 ; vno < mris->nvertices ; vno++) {
+        for (vno = 0 ; vno < mris->nvertices ; vno++)
+        {
           v = &mris->vertices[vno] ;
           if (v->ripflag)
+          {
             continue ;
+          }
           neg = 0 ;
-          for (fno = 0 ; fno < v->num ; fno++) {
+          for (fno = 0 ; fno < v->num ; fno++)
+          {
             f = &mris->faces[v->f[fno]] ;
             if (f->area < 0.0f)
+            {
               neg = 1 ;
+            }
           }
           if (neg)
+          {
             fprintf(stdout, "%d\n", vno) ;
+          }
         }
       }
     }
 
-    if (max_flag) {
+    if (max_flag)
+    {
       MRISuseCurvatureMax(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
+      {
         MRISnormalizeCurvature(mris,which_norm) ;
+      }
       sprintf(fname, "%s/%s%s.max", path,name,suffix) ;
       fprintf(stderr, "writing curvature maxima to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
     }
 
-    if (min_flag) {
+    if (min_flag)
+    {
       MRISuseCurvatureMin(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
+      {
         MRISnormalizeCurvature(mris,which_norm) ;
+      }
       sprintf(fname, "%s/%s%s.min", path,name,suffix) ;
       fprintf(stderr, "writing curvature minima to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
     }
 
-    if (stretch_flag) {
+    if (stretch_flag)
+    {
       MRISreadOriginalProperties(mris, NULL) ;
       MRISuseCurvatureStretch(mris) ;
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
+      {
         MRISnormalizeCurvature(mris,which_norm) ;
+      }
       sprintf(fname, "%s/%s%s.stretch", path,name,suffix) ;
       fprintf(stderr, "writing curvature stretch to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
       fprintf(stderr, "done.\n") ;
     }
 
-    if (write_flag) {
+    if (write_flag)
+    {
       MRISuseGaussianCurvature(mris) ;
       if (cthresh > 0)
+      {
         MRIShistoThresholdCurvature(mris, cthresh) ;
+      }
       MRISaverageCurvatures(mris, navgs) ;
       sprintf(fname, "%s/%s%s.K", path,name, suffix) ;
       fprintf(stderr, "writing Gaussian curvature to %s...", fname) ;
       if (normalize)
+      {
         MRISnormalizeCurvature(mris,which_norm) ;
+      }
       MRISwriteCurvature(mris, fname) ;
       MRISuseMeanCurvature(mris) ;
       if (cthresh > 0)
+      {
         MRIShistoThresholdCurvature(mris, cthresh) ;
+      }
       MRISaverageCurvatures(mris, navgs) ;
       if (normalize)
+      {
         MRISnormalizeCurvature(mris,which_norm) ;
+      }
       sprintf(fname, "%s/%s%s.H", path,name, suffix) ;
       fprintf(stderr, "done.\nwriting mean curvature to %s...", fname) ;
       MRISwriteCurvature(mris, fname) ;
@@ -327,30 +387,42 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     print_help() ;
-  else if (!stricmp(option, "distances") || !stricmp(option, "vnum")) {
+  }
+  else if (!stricmp(option, "distances") || !stricmp(option, "vnum"))
+  {
     nbhd_size = atoi(argv[2]) ;
     nbrs_per_distance = atoi(argv[3]) ;
     fprintf(stderr, "sampling %d neighbors out to a distance of %d mm\n",
             nbrs_per_distance, nbhd_size) ;
     nargs = 2 ;
   }
-  else if (!stricmp(option, "distance")){
+  else if (!stricmp(option, "distance"))
+  {
     max_mm = atof(argv[2]) ;
     fprintf(stderr, "sampling neighbors out to %f mm\n", max_mm) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "diff"))
+  }
+  else if (!stricmp(option, "diff"))
+  {
     diff_flag = 1 ;
+  }
   else if (!stricmp(option, "ratio") || !stricmp(option, "defect"))
+  {
     ratio_flag = 1 ;
+  }
   else if (!stricmp(option, "contrast"))
+  {
     contrast_flag = 1 ;
+  }
   else if (!stricmp(option, "suffix"))
   {
     suffix = argv[2] ;
@@ -358,13 +430,21 @@ get_option(int argc, char *argv[]) {
     printf("appending suffix %s to output names\n", suffix) ;
   }
   else if (!stricmp(option, "neg"))
+  {
     neg_flag = 1 ;
+  }
   else if (!stricmp(option, "max"))
+  {
     max_flag = 1 ;
+  }
   else if (!stricmp(option, "min"))
+  {
     min_flag = 1 ;
+  }
   else if (!stricmp(option, "stretch"))
+  {
     stretch_flag = 1 ;
+  }
   else if (!stricmp(option, "median"))
   {
     which_norm = NORM_MEDIAN ;
@@ -372,31 +452,44 @@ get_option(int argc, char *argv[]) {
   }
   else if (!stricmp(option, "thresh"))
   {
-    cthresh = atof(argv[2]) ; nargs = 1 ;
+    cthresh = atof(argv[2]) ;
+    nargs = 1 ;
     printf("thresholding curvature at %2.2f%% level\n",
            cthresh*100) ;
   }
-  else if (!stricmp(option, "param")) {
+  else if (!stricmp(option, "param"))
+  {
     param_file = argv[2] ;
     nargs = 1 ;
     fprintf(stderr, "using parameterization file %s\n", param_file) ;
-  } else if (!stricmp(option, "nparam")) {
+  }
+  else if (!stricmp(option, "nparam"))
+  {
     char *cp ;
     cp = strchr(argv[2], '#') ;
     if (cp)   /* # explicitly given */
     {
       param_no = atoi(cp+1) ;
       *cp = 0 ;
-    } else
+    }
+    else
+    {
       param_no = 0 ;
+    }
     normalize_param = 1 ;
-  } else if (!stricmp(option, "-version"))
+  }
+  else if (!stricmp(option, "-version"))
+  {
     print_version() ;
-  else if (!stricmp(option, "nbrs")) {
+  }
+  else if (!stricmp(option, "nbrs"))
+  {
     nbrs = atoi(argv[2]) ;
     nargs = 1 ;
     fprintf(stderr, "using neighborhood size=%d\n", nbrs) ;
-  } else switch (toupper(*option)) {
+  }
+  else switch (toupper(*option))
+    {
     case 'N':
       fprintf(stderr, "normalizing curvature values.\n") ;
       normalize = 1 ;
@@ -432,39 +525,24 @@ get_option(int argc, char *argv[]) {
 }
 
 static void
-usage_exit(void) {
+usage_exit(void)
+{
   print_help() ;
   exit(1) ;
 }
 
-#ifdef GREGT
+#include "mris_curvature.help.xml.h"
 static void
-print_usage(void) {
-  fprintf(stderr, "usage: %s [options] <input surface file>\n", Progname) ;
-  print_help() ;
-}
-#endif
-
-static void
-print_help(void) {
-  outputHelp(Progname);
-
-#ifdef GREGT
-  fprintf(stderr,
-          "\nThis program will compute the second fundamental form of a cortical surface."
-          "\nIt will create two new files <hemi>.<surface>.H and <hemi>.<surface>.K with the\n"
-          "mean and Gaussian curvature respectively.");
-  fprintf(stderr, "\nvalid options are:\n\n") ;
-  fprintf(stderr, "\t-w\t\t save curvature files (will only generate screen output without this option)\n") ;
-  fprintf(stderr, "\t-max\t\t save  1st (max) principal curvature in ?h.<surface>.max file\n") ;
-  fprintf(stderr, "\t-min\t\t save  2nd (min) principal curvature in ?h.<surface>.min file\n") ;
-  fprintf(stderr, "\t-a <avgs>\t perform <avgs> iterative averages of curvature measure before saving\n") ;
-#endif
+print_help(void)
+{
+  outputHelpXml(mris_curvature_help_xml,
+                mris_curvature_help_xml_len);
   exit(1) ;
 }
 
 static void
-print_version(void) {
+print_version(void)
+{
   fprintf(stderr, "%s\n", vcid) ;
   exit(1) ;
 }
@@ -477,15 +555,19 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
   VERTEX *v, *vn, *vn2 ;
   float  dist, dx, dy, dz ;
 
-  
+
   MRISresetNeighborhoodSize(mris, -1) ;  /* back to max */
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
 
     for (n = 0 ; n < v->vtotal ; n++)
     {
@@ -505,8 +587,12 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
         {
           vn2 = &mris->vertices[vn->v[m]] ;
           if (vn2->marked)  // already in the nbhd list
+          {
             continue ;
-          dx = vn2->cx - v->cx ; dy = vn2->cy - v->cy ; dz = vn2->cz - v->cz ;
+          }
+          dx = vn2->cx - v->cx ;
+          dy = vn2->cy - v->cy ;
+          dz = vn2->cz - v->cz ;
           dist = sqrt(dx*dx + dy*dy + dz*dz) ;
           if (dist < max_mm)
           {
@@ -517,7 +603,9 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
             if (nbrs >= MAX_NBHD_SIZE)
             {
               if (first)
+              {
                 printf("max nbrs %d exceeded at vertex %d\n", nbrs, vno) ;
+              }
               first = 0 ;
               break ;
             }
@@ -525,16 +613,20 @@ MRIScomputeNeighbors(MRI_SURFACE *mris, float max_mm)
         }
       }
       done = ((found == 0) || (nbrs >= MAX_NBHD_SIZE)) ;
-    } while (!done) ;
+    }
+    while (!done) ;
     free(v->v) ;
     v->v = (int *)calloc(nbrs, sizeof(int)) ;
     if (v->v == NULL)
-      ErrorExit(ERROR_NOMEMORY, "%s: vno %d could not allocate %d vertex array", 
+      ErrorExit(ERROR_NOMEMORY,
+                "%s: vno %d could not allocate %d vertex array",
                 Progname, vno, nbrs) ;
     memmove(v->v, vlist, sizeof(vlist[0])*nbrs) ;
     v->vtotal = nbrs ;
     for (n = 0 ; n < nbrs ; n++)
+    {
       mris->vertices[vlist[n]].marked = 0 ;
+    }
   }
 
   return(NO_ERROR) ;

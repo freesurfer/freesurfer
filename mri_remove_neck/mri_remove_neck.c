@@ -1,18 +1,17 @@
 /**
  * @file  mri_remove_neck.c
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ * @brief removes neck fromm t1 (stuff below brain)
  *
- * REPLACE_WITH_LONG_DESCRIPTION_OR_REFERENCE
  */
 /*
- * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
+ * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:23:29 $
- *    $Revision: 1.8 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:46 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -21,12 +20,8 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
-
-
-
 
 #include <math.h>
 #include <stdlib.h>
@@ -73,7 +68,8 @@ static void usage_exit(int code);
 
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char         *gca_fname, *in_fname, *out_fname, **av, *transform_fname ;
   MRI          *mri_in, *mri_out ;
   GCA          *gca ;
@@ -87,21 +83,26 @@ main(int argc, char *argv[]) {
   DiagInit(NULL, NULL, NULL) ;
   ErrorInit(NULL, NULL, NULL) ;
 
-  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.8 2010/08/12 17:23:29 gregt Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_remove_neck.c,v 1.9 2011/02/07 00:40:46 nicks Exp $", "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
+  {
     exit (0);
+  }
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc < 5)
+  {
     usage_exit(0);
+  }
 
   in_fname = argv[1] ;
   transform_fname = argv[2] ;
@@ -113,19 +114,25 @@ main(int argc, char *argv[]) {
   fflush(stdout) ;
   gca = GCAread(gca_fname) ;
   if (gca == NULL)
+  {
     ErrorExit(ERROR_NOFILE, "%s: could not open GCA %s.\n", Progname, gca_fname) ;
+  }
 
   printf("reading input volume '%s'...\n", in_fname) ;
   fflush(stdout) ;
   mri_in = MRIread(in_fname) ;
   if (!mri_in)
+  {
     ErrorExit(ERROR_NOFILE, "%s: could not open input volume %s.\n", Progname, in_fname) ;
+  }
 
   printf("reading transform '%s'...\n", transform_fname) ;
   fflush(stdout) ;
   transform = TransformRead(transform_fname) ;
   if (!transform)
+  {
     ErrorExit(ERROR_NOFILE, "%s: could not open transform %s.\n", Progname, transform_fname) ;
+  }
   TransformInvert(transform, mri_in) ;
 
   printf("removing structures at least %d mm from brain...\n", radius) ;
@@ -138,7 +145,10 @@ main(int argc, char *argv[]) {
   MRIfree(&mri_in) ;
 
   err=MRIwrite(mri_out, out_fname);
-  if (err) exit(1);
+  if (err)
+  {
+    exit(1);
+  }
 
   MRIfree(&mri_out)  ;
   msec = TimerStop(&start) ;
@@ -156,45 +166,63 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
   StrUpper(option) ;
-  if (!stricmp(option, "FILL")) {
+  if (!stricmp(option, "FILL"))
+  {
     fill_val = atoi(argv[2]) ;
     nargs = 1 ;
     printf("filling defaced regions with %d\n", fill_val) ;
-  }else if (!stricmp(option, "-help")||!stricmp(option, "-usage")) {
+  }
+  else if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     usage_exit(0);
-  }else if (!stricmp(option, "RADIUS")) {
+  }
+  else if (!stricmp(option, "RADIUS"))
+  {
     radius = atoi(argv[2]) ;
     nargs = 1 ;
     printf("erasing everything more than %d mm from possible brain\n", radius) ;
-  } else if (!stricmp(option, "DEBUG_LABEL")) {
+  }
+  else if (!stricmp(option, "DEBUG_LABEL"))
+  {
     Ggca_label = atoi(argv[2]) ;
     printf("debugging label %s (%d)\n", cma_label_to_name(Ggca_label), Ggca_label) ;
     nargs = 1 ;
-  } else if (!stricmp(option, "DEBUG_VOXEL")) {
+  }
+  else if (!stricmp(option, "DEBUG_VOXEL"))
+  {
     Gx = atoi(argv[2]) ;
     Gy = atoi(argv[3]) ;
     Gz = atoi(argv[4]) ;
     nargs = 3 ;
     printf("debugging voxel (%d, %d, %d)\n", Gx,Gy,Gz) ;
-  } else if (!stricmp(option, "TR")) {
+  }
+  else if (!stricmp(option, "TR"))
+  {
     TR = atof(argv[2]) ;
     nargs = 1 ;
     printf("using TR=%2.1f msec\n", TR) ;
-  } else if (!stricmp(option, "TE")) {
+  }
+  else if (!stricmp(option, "TE"))
+  {
     TE = atof(argv[2]) ;
     nargs = 1 ;
     printf("using TE=%2.1f msec\n", TE) ;
-  } else if (!stricmp(option, "ALPHA")) {
+  }
+  else if (!stricmp(option, "ALPHA"))
+  {
     nargs = 1 ;
     alpha = RADIANS(atof(argv[2])) ;
     printf("using alpha=%2.0f degrees\n", DEGREES(alpha)) ;
-  } else switch (*option) {
+  }
+  else switch (*option)
+    {
     case 'V':
       Gdiag_no = atoi(argv[2]) ;
       nargs = 1 ;
@@ -214,7 +242,8 @@ get_option(int argc, char *argv[]) {
 }
 
 MRI *
-MRIremoveNonBrain(MRI *mri_src, MRI *mri_dst, TRANSFORM *transform, GCA *gca, int radius, int fill_val) {
+MRIremoveNonBrain(MRI *mri_src, MRI *mri_dst, TRANSFORM *transform, GCA *gca, int radius, int fill_val)
+{
   int       x, y, z, frame, nerased = 0 ;
   MRI       *mri_brain ;
 
@@ -222,16 +251,25 @@ MRIremoveNonBrain(MRI *mri_src, MRI *mri_dst, TRANSFORM *transform, GCA *gca, in
 
   mri_brain = fill_brain_volume(mri_dst, gca, transform, radius) ;
 
-  for (x = 0 ; x < mri_src->width ; x++) {
-    for (y = 0 ; y < mri_src->height ; y++) {
-      for (z = 0 ; z < mri_src->depth ; z++) {
+  for (x = 0 ; x < mri_src->width ; x++)
+  {
+    for (y = 0 ; y < mri_src->height ; y++)
+    {
+      for (z = 0 ; z < mri_src->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         if (MRIvox(mri_brain, x, y, z)  > 0)
+        {
           continue ;
+        }
 
         for (frame = 0 ; frame < mri_dst->nframes ; frame++)
+        {
           MRIseq_vox(mri_dst, x, y, z, frame) = fill_val ;
+        }
         nerased++ ;
       }
     }
@@ -243,24 +281,34 @@ MRIremoveNonBrain(MRI *mri_src, MRI *mri_dst, TRANSFORM *transform, GCA *gca, in
 }
 
 static MRI *
-fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius) {
+fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius)
+{
   int       i, x, y, z, n ;
   MRI       *mri_brain ;
   GCA_PRIOR *gcap ;
 
   mri_brain = MRIclone(mri, NULL) ;
 
-  for (x = 0 ; x < mri->width ; x++) {
-    for (y = 0 ; y < mri->height ; y++) {
-      for (z = 0 ; z < mri->depth ; z++) {
+  for (x = 0 ; x < mri->width ; x++)
+  {
+    for (y = 0 ; y < mri->height ; y++)
+    {
+      for (z = 0 ; z < mri->depth ; z++)
+      {
         if (x == Gx && y == Gy && z == Gz)
+        {
           DiagBreak() ;
+        }
         MRIvox(mri_brain, x, y, z) = 0 ;
         gcap = getGCAP(gca, mri, transform, x, y, z) ;
         if (gcap == NULL)
+        {
           continue ;
-        for (n = 0 ; n < gcap->nlabels ; n++) {
-          if (IS_BRAIN(gcap->labels[n]) && (gcap->labels[n] != Brain_Stem)) {
+        }
+        for (n = 0 ; n < gcap->nlabels ; n++)
+        {
+          if (IS_BRAIN(gcap->labels[n]) && (gcap->labels[n] != Brain_Stem))
+          {
             MRIvox(mri_brain, x, y, z) = 128 ;
             break ;
           }
@@ -269,14 +317,20 @@ fill_brain_volume(MRI *mri, GCA *gca, TRANSFORM *transform, int radius) {
     }
   }
   if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+  {
     MRIwrite(mri_brain, "brain_mask.mgz") ;
+  }
   for (i = 0 ; i < radius ; i++)
+  {
     MRIdilate(mri_brain, mri_brain) ;
+  }
   return(mri_brain) ;
 }
 
+#include "mri_remove_neck.help.xml.h"
 static void
-usage_exit(int code) {
-  outputHelp(Progname);
+usage_exit(int code)
+{
+  outputHelpXml(mri_remove_neck_help_xml,mri_remove_neck_help_xml_len);
   exit(code) ;
 }

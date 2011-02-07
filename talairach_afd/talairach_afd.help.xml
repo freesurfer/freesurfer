@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>talairach_afd</name>
 	<synopsis>talairach_afd -subj &lt;subject_name&gt; [-T &lt;p-value threshold&gt;] or talairach_afd -xfm &lt;xfm_fname&gt; [-T &lt;p-value threshold&gt;]</synopsis>
@@ -8,27 +30,21 @@
     <positional>
       <intro>****************************************************************</intro>
     </positional>
-    <required_flagged>
+    <required-flagged>
       <intro>Only one of the following is required.</intro>
       <argument>-subj %s</argument>
       <explanation>specify subject's name</explanation>
       <argument>-xfm %s</argument>
       <explanation>specify the talairach.xfm file to check</explanation>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>-T #threshold the p-values at #</argument>
       <explanation>Talairach transforms for subjects with p-values &lt;= T are considered as very unlikely default=0.010</explanation>
       <argument>-afd %s</argument>
       <explanation>specify directory containing .afd data files</explanation>
       <argument>-V</argument>
       <explanation>verbose</explanation>
- </optional_flagged>
+ </optional-flagged>
   </arguments>
-  <outputs>
-    <intro>********************************************************************</intro>
-  </outputs>
-	<example>********************************************************************</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>**********************************************************************</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 </help>

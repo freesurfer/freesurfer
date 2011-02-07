@@ -13,6 +13,8 @@ mri_edit_wm_with_aseg_LDFLAGS=$(OS_LDFLAGS)
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_edit_wm_with_aseg.help.xml
 
+TESTS=$(top_builddir)/scripts/help_xml_validate
+
 EXTRA_DIST=$(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
@@ -20,3 +22,6 @@ EXTRA_DIST=$(foo_DATA)
 # release' target.
 EXCLUDE_FILES=""
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mri_edit_wm_with_aseg.help.xml.h
+

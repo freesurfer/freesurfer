@@ -6,12 +6,12 @@
 /*
  * Original Author: Florent Segonne
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:14:16 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:46 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
+ * The General Hospital Corporation (Boston, MA).
  * All rights reserved.
  *
  * Distribution, usage and copying of this software is covered under the
@@ -20,7 +20,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -47,29 +46,28 @@ char *Progname;
 
 static void usage_exit(int code);
 
-int main(int argc, char *argv[]) {
+int main(int argc, char *argv[])
+{
   MRIS *mris_in,*mris_out;
-
   Progname=argv[0];
-
-  if (argc < 3) {
+  if (argc < 3)
+  {
     usage_exit(-1);
   }
-
   mris_in=MRISread(argv[1]);
-
   mris_out=MRISextractMainComponent(mris_in,0,1,0);
-
   MRISwrite(mris_out,argv[2]);
-
   MRISfree(&mris_out);
   MRISfree(&mris_in);
   fprintf(stderr,"\ndone\n\n");
   return 0;
 }
 
+#include "mris_extract_main_component.help.xml.h"
 static void
-usage_exit(int code) {
-  outputHelp(Progname);
+usage_exit(int code)
+{
+  outputHelpXml(mris_extract_main_component_help_xml,
+                mris_extract_main_component_help_xml_len);
   exit(code) ;
 }

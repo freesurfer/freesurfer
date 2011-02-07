@@ -5,9 +5,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:44:08 $
- *    $Revision: 1.8 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:48 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -19,7 +19,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -39,8 +38,8 @@
 #include "macros.h"
 #include "version.h"
 
-static char vcid[] = 
-"$Id: mris_jacobian.c,v 1.8 2010/08/12 17:44:08 gregt Exp $";
+static char vcid[] =
+  "$Id: mris_jacobian.c,v 1.9 2011/02/07 00:40:48 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -67,12 +66,14 @@ main(int argc, char *argv[])
   MRI_SURFACE  *mris ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mris_jacobian.c,v 1.8 2010/08/12 17:44:08 gregt Exp $", 
-     "$Name:  $");
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mris_jacobian.c,v 1.9 2011/02/07 00:40:48 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Gdiag = DIAG_SHOW ;
@@ -90,7 +91,9 @@ main(int argc, char *argv[])
   }
 
   if (argc < 4)
+  {
     usage_exit() ;
+  }
 
   orig_surf = argv[1] ;
   mapped_surf = argv[2] ;
@@ -105,16 +108,20 @@ main(int argc, char *argv[])
   MRISstoreMetricProperties(mris) ;
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (MRISreadVertexPositions(mris, mapped_surf) != NO_ERROR)
-    ErrorExit(ERROR_BADPARM, 
+    ErrorExit(ERROR_BADPARM,
               "%s: could not read target surface %s",
               Progname,mapped_surf) ;
   MRIScomputeMetricProperties(mris) ;
 
   compute_area_ratios(mris, noscale) ;  /* will put results in v->curv */
   if (log_flag)
+  {
     log_ratios(mris) ;
+  }
   if (invert_flag)
+  {
     invert_ratios(mris) ;
+  }
   MRISwriteCurvature(mris, out_fname) ;
 
 
@@ -136,9 +143,13 @@ get_option(int argc, char *argv[])
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     print_help() ;
+  }
   else if (!stricmp(option, "-version"))
+  {
     print_version() ;
+  }
   else if (!stricmp(option, "log"))
   {
     log_flag = 1 ;
@@ -181,36 +192,17 @@ usage_exit(void)
   exit(1) ;
 }
 
+#include "mris_jacobian.help.xml.h"
 static void
 print_usage(void)
 {
-  outputHelp(Progname);
-
-#ifdef GREGT
-  fprintf
-    (stderr,
-     "Usage:\n"
-     "%s [options] <original surface> <mapped surface> <jacobian file name>\n",
-     Progname) ;
-#endif
+  outputHelpXml(mris_jacobian_help_xml,mris_jacobian_help_xml_len);
 }
 
 static void
 print_help(void)
 {
   print_usage() ;
-#ifdef GREGT
-  fprintf(stderr,
-          "\nThis program computes the Jacobian of a surface mapping.\n") ;
-  fprintf(stderr, 
-          "\nOptions:\n\n") ;
-  fprintf(stderr, 
-          "  -log     : compute and write out log of jacobian\n") ;
-  fprintf(stderr, 
-          "  -noscale : don't scale jacobian by total surface areas\n") ;
-  fprintf(stderr, 
-          "  -invert  : compute -1/jacobian for jacobian<1\n") ;
-#endif
   exit(1) ;
 }
 
@@ -229,24 +221,32 @@ compute_area_ratios(MRI_SURFACE *mris, int noscale)
   float   area_scale ;
 
   if (noscale)
+  {
     area_scale = 1 ;
+  }
   else
+  {
     area_scale = mris->total_area / mris->orig_area  ;
+  }
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
 
 #define SMALL 0.00001
     if (v->origarea < SMALL)
+    {
       v->origarea = SMALL ;
+    }
     v->curv = v->area / (v->origarea*area_scale) ;
     if (!finite(v->curv))
       ErrorPrintf
-        (ERROR_BADPARM, 
-         "vertex %d not finite (area %2.1f, origarea %2.1f, scale %2.1f", 
-         vno, v->area, v->origarea, area_scale) ;
+      (ERROR_BADPARM,
+       "vertex %d not finite (area %2.1f, origarea %2.1f, scale %2.1f",
+       vno, v->area, v->origarea, area_scale) ;
   }
 
   return(NO_ERROR) ;
@@ -265,13 +265,19 @@ log_ratios(MRI_SURFACE *mris)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
 
     if (v->curv < SMALL)
+    {
       v->curv = SMALL ;
+    }
     v->curv = log10(v->curv) ;
     if (!finite(v->curv))
+    {
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
+    }
   }
 
   return(NO_ERROR) ;
@@ -290,14 +296,22 @@ invert_ratios(MRI_SURFACE *mris)
   {
     v = &mris->vertices[vno] ;
     if (v->ripflag)
+    {
       continue ;
+    }
 
     if (v->curv < SMALL)
+    {
       v->curv = SMALL ;
+    }
     if (v->curv < 1)
+    {
       v->curv = -1/v->curv ;
+    }
     if (!finite(v->curv))
+    {
       ErrorPrintf(ERROR_BADPARM, "vertex %d log not finite", vno) ;
+    }
   }
 
   return(NO_ERROR) ;

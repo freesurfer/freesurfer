@@ -1,5 +1,27 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
-<!DOCTYPE template SYSTEM "template.dtd">
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
 <help>
 	<name>mri_segstats</name>
 	<synopsis>mri_segstats --seg segvol --annot  subject hemi parc --slabel subject hemi label --sum file</synopsis>
@@ -8,7 +30,7 @@
     <positional>
 
     </positional>
-    <required_flagged>
+    <required-flagged>
       <argument>--seg segvol</argument>
       <explanation>Input segmentation volume. A segmentation is a volume whose voxel values indicate a segmentation or class. This can be as complicaated as a FreeSurfer automatic cortical or subcortial segmentation or as simple as a binary mask. The format of segvol can be anything that mri_convert accepts as input (eg, analyze, nifti, mgh, bhdr, bshort, bfloat).
 
@@ -38,8 +60,8 @@ The summary file is an ascii file in which the segmentation statistics are repor
       <explanation>Create a segmentation from the given surface label. The points in the label are given a value of 1; 0 for outside.</explanation>
       <argument>--sum file</argument>
       <explanation>ASCII file in which summary statistics are saved. See SUMMARY FILE below for more information.</explanation>
-    </required_flagged>
-    <optional_flagged>
+    </required-flagged>
+    <optional-flagged>
       <argument>--pv pvvol</argument>
       <explanation>Use pvvol to compensate for partial voluming. This should result in more accurate volumes. Usually, this is only done when computing anatomical statistics. Usually, the mri/norm.mgz volume is used. Not with --annot.</explanation>
       <argument>--i invol</argument>
@@ -121,11 +143,8 @@ white surface. This is more accurate than from the aseg. The aseg values for the
       <explanation>print out information on how to use this program</explanation>
       <argument>--version</argument>
       <explanation>print out version and exit</explanation>
-    </optional_flagged>
+    </optional-flagged>
   </arguments>
-  <outputs>
-    <intro>*************************************************************************************************************</intro>
-  </outputs>
 	<example>mri_segstats --seg $SUBJECTS_DIR/bert/mri/aseg --ctab $FREESURFER_HOME/FreeSurferColorLUT.txt --excludeid 0 --sum bert.aseg.sum
 
 This will compute the segmentation statistics from the automatic FreeSurfer subcortical segmentation for non-empty segmentations and excluding segmentation 0 (UNKNOWN). The results are stored in bert.aseg.sum.</example>
@@ -144,7 +163,7 @@ This uses mri_label2vol to resample the automatic cortical segmentation to the f
 	<example>mri_segstats --annot bert lh aparc --i lh.thickness --sum lh.thickness.sum
 
 Produce a summary of the thickness in each parcellation of aparc. This will give the same mean thicknesses as that created by mris_anatomical_stats and found in stats/lh.aparc.stats.</example>
-  <bugs>None</bugs>
-  <reporting_bugs>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting_bugs>
-	<see_also>mri_label2vol, tkregister2, mri_vol2roi.</see_also>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mri_label2vol, tkregister2, mri_vol2roi.</see-also>
 </help>
+

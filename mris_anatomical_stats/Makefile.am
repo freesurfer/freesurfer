@@ -25,7 +25,7 @@ foo:
 
 check_PROGRAMS=foo
 
-TESTS=test_mris_anatomical_stats
+TESTS=test_mris_anatomical_stats $(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=test_mris_anatomical_stats test1.expected test2.expected \
 test2_logfile.expected test3.expected test4.expected \
@@ -40,3 +40,6 @@ clean:
 # release' target.
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
+
+BUILT_SOURCES=mris_anatomical_stats.help.xml.h
+

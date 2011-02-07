@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: gregt $
- *    $Date: 2010/08/12 17:25:17 $
- *    $Revision: 1.33 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/07 00:40:48 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -50,7 +50,7 @@
 #include "cma.h"
 
 static char vcid[] =
-  "$Id: mris_ca_label.c,v 1.33 2010/08/12 17:25:17 gregt Exp $";
+  "$Id: mris_ca_label.c,v 1.34 2011/02/07 00:40:48 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 static int get_option(int argc, char *argv[]) ;
@@ -58,9 +58,6 @@ static int postprocess(GCSA *gcsa, MRI_SURFACE *mris) ;
 
 char *Progname ;
 static void usage_exit(int code) ;
-#ifdef GREGT
-static void print_usage(void) ;
-#endif
 static void print_help(void) ;
 static void print_version(void) ;
 
@@ -89,18 +86,14 @@ static int refine = 0;
 
 static LABEL *cortex_label = NULL ;
 static int relabel_unknowns_with_cortex_label(GCSA *gcsa,
-                                              MRI_SURFACE *mris,
-                                              LABEL *cortex_label);
+    MRI_SURFACE *mris,
+    LABEL *cortex_label);
 
 int
 main(int argc, char *argv[])
 {
-
-
-
-  
   char         **av, fname[STRLEN], *out_fname, *subject_name, *cp,*hemi,
-  *canon_surf_name ;
+               *canon_surf_name ;
   int          ac, nargs, i ;
   int          msec, minutes, seconds ;
   struct timeb start ;
@@ -110,7 +103,9 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Progname = argv[0] ;
@@ -138,7 +133,9 @@ main(int argc, char *argv[])
     strcpy(subjects_dir, cp) ;
   }
   if (argc < 6)
+  {
     usage_exit(1) ;
+  }
 
   subject_name = argv[1] ;
   hemi = argv[2] ;
@@ -157,7 +154,9 @@ main(int argc, char *argv[])
 
   sprintf(fname, "%s/%s/surf/%s.%s", subjects_dir,subject_name,hemi,orig_name);
   if (DIAG_VERBOSE_ON)
+  {
     printf("reading surface from %s...\n", fname) ;
+  }
   mris = MRISread(fname) ;
   if (!mris)
     ErrorExit(ERROR_NOFILE, "%s: could not read surface file %s for %s",
@@ -200,12 +199,18 @@ main(int argc, char *argv[])
       break ;
     }
     if (gcsa->inputs[i].flags & GCSA_NORMALIZE)
+    {
       MRISnormalizeCurvature(mris, which_norm) ;
+    }
     MRIScopyCurvatureToValues(mris) ;
     if (i == 2)
+    {
       MRIScopyCurvatureToImagValues(mris) ;
+    }
     else if (i == 1)
+    {
       MRIScopyValToVal2(mris) ;
+    }
   }
 #else
   if (gcsa->ninputs > 2)
@@ -231,15 +236,17 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE, "%s: could not read curv file %s for %s",
                 Progname, sulc_name, subject_name) ;
 #else
-  MRISuseMeanCurvature(mris) ;
-  MRISaverageCurvatures(mris, navgs) ;
+    MRISuseMeanCurvature(mris) ;
+    MRISaverageCurvatures(mris, navgs) ;
 #endif
     MRIScopyCurvatureToValues(mris) ;
   }
 #endif
 
   if (novar)
+  {
     GCSAsetCovariancesToIdentity(gcsa) ;
+  }
 
   MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ;
   MRISprojectOntoSphere(mris, mris, DEFAULT_RADIUS) ;
@@ -254,7 +261,9 @@ main(int argc, char *argv[])
              Gdiag_no,
              annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     if (mri_aseg)
+    {
       GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
+    }
     printf("relabeling using gibbs priors...\n") ;
     GCSAreclassifyUsingGibbsPriors(gcsa, mris) ;
     if (Gdiag_no >= 0)
@@ -262,7 +271,9 @@ main(int argc, char *argv[])
              Gdiag_no,
              annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
     if (mri_aseg)
+    {
       GCSArelabelWithAseg(gcsa, mris, mri_aseg) ;
+    }
     postprocess(gcsa, mris) ;
     if (Gdiag_no >= 0)
       printf("vertex %d: label %s\n",
@@ -308,7 +319,9 @@ main(int argc, char *argv[])
            annotation_to_name(mris->vertices[Gdiag_no].annotation, NULL)) ;
 
   if (cortex_label)
+  {
     relabel_unknowns_with_cortex_label(gcsa, mris, cortex_label) ;
+  }
 
   printf("writing output to %s...\n", out_fname) ;
   if (MRISwriteAnnotation(mris, out_fname) != NO_ERROR)
@@ -345,9 +358,13 @@ get_option(int argc, char *argv[])
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "-help")||!stricmp(option, "-usage"))
+  {
     print_help() ;
+  }
   else if (!stricmp(option, "-version"))
+  {
     print_version() ;
+  }
   else if (!stricmp(option, "ml-annot"))
   {
     // Compute most-likely annotation labeling on ico, save, and exit
@@ -363,19 +380,28 @@ get_option(int argc, char *argv[])
     outannot = argv[4];  // absolute path to output
     printf("ML Label: %s %d %s\n",gcsfile,icoorder,outannot);
     ico = ReadIcoByOrder(icoorder, 100);
-    if (ico == NULL) exit(1);
+    if (ico == NULL)
+    {
+      exit(1);
+    }
     fsh = getenv("FREESURFER_HOME");
     sprintf(tmpstr,"%s/average/%s",fsh,gcsfile);
     printf("Reading gcsa from %s\n",tmpstr);
     gcsa = GCSAread(tmpstr);
-    if (gcsa == NULL) exit(1);
+    if (gcsa == NULL)
+    {
+      exit(1);
+    }
     ico->ct = gcsa->ct;
     printf("Building most likely labels\n");
     GCSAbuildMostLikelyLabels(gcsa,ico);
     printf("Filtering labels\n");
     MRISmodeFilterAnnotations(ico, 2);
     err = MRISwriteAnnotation(ico, outannot);
-    if (err) exit(1);
+    if (err)
+    {
+      exit(1);
+    }
     MRISfree(&ico);
     GCSAfree(&gcsa);
     exit(0);
@@ -391,7 +417,9 @@ get_option(int argc, char *argv[])
     mri_aseg = MRIread(argv[2]) ;
     nargs = 1 ;
     if (mri_aseg == NULL)
+    {
       ErrorExit(ERROR_BADFILE, "%s: could not open %s", Progname, argv[2]);
+    }
     printf("using %s aseg volume to correct midline\n", argv[2]) ;
   }
   else if (!stricmp(option, "MINAREA"))
@@ -401,7 +429,9 @@ get_option(int argc, char *argv[])
     printf("setting minimum area threshold for connectivity to %2.2f\n",
            MIN_AREA_PCT) ;
     if (MIN_AREA_PCT < 0 || MIN_AREA_PCT > 1)
+    {
       ErrorExit(ERROR_BADPARM, "%s: MIN_AREA_PCT must be in [0,1]\n",Progname);
+    }
   }
   else if (!stricmp(option, "ORIG"))
   {
@@ -460,7 +490,9 @@ get_option(int argc, char *argv[])
     case 'L':
       cortex_label = LabelRead(NULL, argv[2]) ;
       if (cortex_label == NULL)
+      {
         ErrorExit(ERROR_NOFILE, "") ;
+      }
       nargs = 1 ;
       break ;
     case 'T':
@@ -506,41 +538,6 @@ get_option(int argc, char *argv[])
 
   Description:
   ----------------------------------------------------------------------*/
-#ifdef GREGT
-static void
-print_usage(void)
-{
-
-
-  printf("mris_ca_label [options] <subject> <hemi> "
-         "<canon surf> <classifier> <output file>\n");
-  printf("\n");
-  printf("   subject    - freesurfer subject id\n");
-  printf("   hemi       - lh or rh\n");
-  printf("   canonsurf  - canonical surface, usually ?h.sphere.reg\n");
-  printf("   classifier - $FREESURFER_HOME/average/?h.curvature."
-         "buckner40.filled.desikan_killiany.gcs\n");
-  printf("   outputfile - ?h.aparc.annot\n");
-  printf("\n");
-  printf(" Options:\n");
-  printf("\n");
-  printf("  -ml-annot gcs icoorder annot - "
-         "Compute most-likely annotation labeling on ico, save, and exit\n");
-  printf("  -orig orig_name\n");
-  printf("  -long\n");
-  printf("  -nbrs\n");
-  printf("  -l <label file> - specify cortex label file to use\n") ;
-  printf("  -a navgs\n");
-  printf("  -f filter\n");
-  printf("  -t annottable\n");
-  printf("  -v diagno\n");
-  printf("  -w fname\n");
-  printf("  -r fname - precomputed parcellations\n");
-  printf("  -seed N  - set random number generator to seed N\n");
-  printf("\n");
-}
-#endif
-
 static void
 usage_exit(int code)
 {
@@ -548,72 +545,12 @@ usage_exit(int code)
   exit(code) ;
 }
 
+#include "mris_ca_label.help.xml.h"
 static void
 print_help(void)
 {
-  outputHelp(Progname);
-
-#ifdef GREGT
-  print_usage() ;
-  fprintf(stderr,
-          "\n"
-          "Automatically assigns a neuroanatomical label to each location \n"
-          "on a cortical surface model. This procedure incorporates both \n"
-          "geometric information derived from the cortical model (sulcus \n"
-          "and curvature), and neuroanatomical convention, as found in a \n"
-          "training set (see mris_ca_train).\n\n");
-  fprintf(stderr,
-          "Required args:\n"
-          "--------------\n\n") ;
-  fprintf(stderr,
-          "  <subject>          the subject id\n\n");
-  fprintf(stderr,
-          "  <hemi>             hemisphere: rh or lh\n\n");
-  fprintf(stderr,
-          "  <canonsurf>        canonical surface filename\n\n");
-  fprintf(stderr,
-          "  <classifier>       classifier array input filename\n\n");
-  fprintf(stderr,
-          "  <outputfile>       annotated surface output file\n\n");
-  fprintf(stderr,
-          "Optional args:\n"
-          "--------------\n\n");
-  fprintf(stderr,
-          "  -sdir <directory>  use <directory> as subjects directory \n"
-          "                     (default: $SUBJECTS_DIR)\n\n");
-  fprintf(stderr,
-          "  -orig <filename>   specify filename of original surface \n"
-          "                     (default=smoothwm)\n\n");
-  fprintf(stderr,
-          "  -long              refines the initial labeling read-in \n"
-          "                     from -r (default: disabled)\n\n");
-  fprintf(stderr,
-          "  -r <filename>      file containing precomputed parcellation\n\n");
-  fprintf(stderr,
-          "  -novar             sets all covariance matrices to the identify\n"
-          "                     (default: disabled)\n\n");
-  fprintf(stderr,
-          "  -nbrs <number>     neighborhood size (default=2)\n\n");
-  fprintf(stderr,
-          "  -f <number>        applies mode filter <number> times before \n"
-          "                     writing output (default=10)\n\n");
-  fprintf(stderr,
-          "  -l <label file>    specify a cortex label file \n"
-          "                     (typically ?h.cortex.label)\n\n");
-  fprintf(stderr,
-          "  -t <filename>      specify parcellation table input file \n"
-          "                     (default: none)\n\n");
-  fprintf(stderr,
-          "  -v <number>        diagnostic level (default=0)\n\n");
-  fprintf(stderr,
-          "  -w <number> <filename>  writes-out snapshots of gibbs process \n"
-          "                          every <number> iterations to <filename>\n"
-          "                          (default=disabled)\n\n");
-  fprintf(stderr,
-          "  --help             print help info\n\n");
-  fprintf(stderr,
-          "  --version          print version info\n");
-#endif
+  outputHelpXml(mris_ca_label_help_xml,
+                mris_ca_label_help_xml_len);
   exit(1) ;
 }
 
@@ -643,7 +580,9 @@ postprocess(GCSA *gcsa, MRI_SURFACE *mris)
     {
       area = larray[i] ;
       if (!area)   /* already processed */
+      {
         continue ;
+      }
       annotation = mris->vertices[area->lv[0].vno].annotation ;
 
       /* find label with this annotation with max area */
@@ -651,14 +590,20 @@ postprocess(GCSA *gcsa, MRI_SURFACE *mris)
       for (n = 1, j = i+1 ; j < nlabels ; j++)
       {
         if (!larray[j])
+        {
           continue ;
+        }
         if (annotation !=
             mris->vertices[larray[j]->lv[0].vno].annotation)
+        {
           continue ;
+        }
         n++ ;
         label_area = LabelArea(larray[j], mris) ;
         if (label_area > max_area)
+        {
           max_area = label_area ;
+        }
       }
 #if 0
       printf("%03d: annotation %s (%d): %d segments, max area %2.1f\n",
@@ -668,10 +613,14 @@ postprocess(GCSA *gcsa, MRI_SURFACE *mris)
       for (j = i ; j < nlabels ; j++)
       {
         if (!larray[j])
+        {
           continue ;
+        }
         if (annotation !=
             mris->vertices[larray[j]->lv[0].vno].annotation)
+        {
           continue ;
+        }
 
         label_area = LabelArea(larray[j], mris) ;
         if (label_area < MIN_AREA_PCT*max_area)
@@ -738,10 +687,14 @@ relabel_unknowns_with_cortex_label(GCSA *gcsa,
   for (vno = 0 ; vno < mris->nvertices ; vno++)
   {
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     v = &mris->vertices[vno] ;
     if (v->marked == 0)  // cortex label says it's not in cortex
-      v->annotation = 0; // replace with empty (transparent) annotation
+    {
+      v->annotation = 0;  // replace with empty (transparent) annotation
+    }
     else // cortex label says it is in cortex
     {
       if (v->annotation <= 0) // annotation is Unknown or invalid
