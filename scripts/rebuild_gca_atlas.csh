@@ -26,8 +26,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/11/11 20:57:49 $
-#    $Revision: 1.18 $
+#    $Date: 2011/02/07 22:26:00 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2008,
 # The General Hospital Corporation (Boston, MA).
@@ -43,7 +43,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.18 2009/11/11 20:57:49 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.19 2011/02/07 22:26:00 nicks Exp $';
 
 #set echo=1
 
@@ -60,7 +60,11 @@ endif
 set DATE=(`date +%F`)
 
 # pbs special configure options:
-set PBCONF="-l nodes=1:opteron -m $USER"
+if ( `hostname` == "seychelles") then
+    set PBCONF="-l nodes=1:opteron -m $USER"
+else
+    set PBCONF="-m $USER"
+endif
 
 # optionally choose to not run commands (but commands are echoed
 # in logfile) by setting RunIt=0
