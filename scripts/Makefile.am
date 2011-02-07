@@ -256,7 +256,8 @@ foodir=$(prefix)/bin
 foo_DATA=mri_cvs_requiredfiles.txt
 
 xmldir=$(prefix)/docs/xml
-xml_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml mri_nu_correct.mni.help.xml
+xml_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml \
+	mri_nu_correct.mni.help.xml template.help.xml
 
 # these utilities should use our local build of tclsh, as that
 # has the bug fix to allow usage on 64bit NFS file systems

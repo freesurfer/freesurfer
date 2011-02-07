@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+<help>
+	<name>mris_inflate - inflate cortical surface</name>
+	<synopsis>mris_inflate [&lt;options&gt;] insurfacefile outsurfacefile</synopsis>
+	<description>This program will inflate a cortical surface.</description>
+	<arguments>
+		<positional>
+			<argument>insurfacefile</argument>
+			<explanation>input surface file</explanation>
+			<argument>outsurfacefile</argument>
+			<explanation>output surface file </explanation>
+		</positional>
+		<required-flagged>
+			<intro>None</intro>
+		</required-flagged>
+		<optional-flagged>
+			<argument>-n &lt;# of iterations&gt;</argument>
+			<explanation>set the maximum # of iterations (default = 10)</explanation>
+			<argument>-w &lt;# of iterations&gt;</argument>
+			<explanation>write out a snapshot of the inflation every #th time step.</explanation>
+			<argument>-dist &lt;distance coefficient&gt;</argument>
+			<explanation>specify the relative strength of the metric preserving term in the cost functional versus the smoothing term (default = 0.100000).</explanation>
+			<argument>-no-save-sulc</argument>
+			<explanation>do not save ?h.sulc</explanation>
+			<argument>-sulc sulcname</argument>
+			<explanation>save to ?h.sulcname</explanation>
+		</optional-flagged>
+	</arguments>
+	<outputs>
+		<output>outsurfacefile</output>
+		<explanation>output surface file</explanation>
+	</outputs>
+	<reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+</help>
