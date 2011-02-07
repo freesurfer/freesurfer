@@ -1,5 +1,5 @@
 # Original author - Krish Subramaniam
-# $Id: fsutils.py,v 1.3 2011/01/02 05:24:00 krish Exp $
+# $Id: fsutils.py,v 1.4 2011/02/07 18:48:46 krish Exp $
 import os
 import logging
 from misc import *
@@ -148,9 +148,11 @@ class AsegStatsParser(StatsParser):
                         ('# Measure Cortex, CortexVol,', 'CortexVol'),
                         ('# Measure lhCorticalWhiteMatter, lhCorticalWhiteMatterVol,','lhCorticalWhiteMatterVol'),
                         ('# Measure rhCorticalWhiteMatter, rhCorticalWhiteMatterVol,','rhCorticalWhiteMatterVol'),
+                        ('# Measure CorticalWhiteMatter, CorticalWhiteMatterVol,','CorticalWhiteMatterVol'),
                         ('# Measure SubCortGray, SubCortGrayVol,','SubCortGrayVol'),
                         ('# Measure TotalGray, TotalGrayVol,','TotalGrayVol'),
                         ('# Measure SuperTentorial, SuperTentorialVol,','SuperTentorialVol'),
+                        ('# Measure SupraTentorial, SupraTentorialVol,','SupraTentorialVol'),
                         ('# Measure IntraCranialVol, ICV,','IntraCranialVol'),
                         ('# Measure BrainSeg, BrainSegVol,','BrainSegVol'),)
                 c = 0
@@ -200,5 +202,17 @@ class AparcStatsParser(StatsParser):
                 else:
                     tmp_parc_measure_map[oparc] = 0.0
             self.parc_measure_map = tmp_parc_measure_map
+
+        # measures which are found at the beginning of files. 
+        self.fp.seek(0)
+        for line in self.fp:
+            if measure == 'area':
+                beg_struct_tuple = (
+                    ('# Measure Cortex, WhiteSurfArea,', 'WhiteSurfArea'),
+                )
+                for start, structn in beg_struct_tuple:
+                    if line.startswith(start):
+                        strlst = line.split(',')
+                        self.parc_measure_map[structn] = float( strlst[3])
 
         return self.parc_measure_map
