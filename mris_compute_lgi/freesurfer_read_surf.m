@@ -60,30 +60,15 @@ function [vertices, faces] = freesurfer_read_surf(fname)
 %          freesurfer_read_wfile
 %
 
-% $Revision: 1.1 $ $Date: 2007/11/16 02:53:53 $
+% $Revision: 1.2 $ $Date: 2011/02/07 21:47:40 $
 
 % Copyright (C) 2000  Darren L. Weber
-% 
-% This program is free software; you can redistribute it and/or
-% modify it under the terms of the GNU General Public License
-% as published by the Free Software Foundation; either version 2
-% of the License, or (at your option) any later version.
-% 
-% This program is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-% 
-% You should have received a copy of the GNU General Public License
-% along with this program; if not, write to the Free Software
-% Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307,
-% USA.
 
 % History:  08/2000, Darren.Weber_at_radiology.ucsf.edu
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-ver = '$Revision: 1.1 $ $Date: 2007/11/16 02:53:53 $';
+ver = '$Revision: 1.2 $ $Date: 2011/02/07 21:47:40 $';
 fprintf('FREESURFER_READ_SURF [v %s]\n',ver(11:15));
 
 if(nargin < 1)
