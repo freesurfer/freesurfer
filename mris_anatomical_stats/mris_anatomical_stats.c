@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl and Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/07 00:40:47 $
- *    $Revision: 1.70 $
+ *    $Author: greve $
+ *    $Date: 2011/02/07 15:25:38 $
+ *    $Revision: 1.71 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -42,7 +42,7 @@
 #include "colortab.h"
 
 static char vcid[] =
-  "$Id: mris_anatomical_stats.c,v 1.70 2011/02/07 00:40:47 nicks Exp $";
+  "$Id: mris_anatomical_stats.c,v 1.71 2011/02/07 15:25:38 greve Exp $";
 
 int main(int argc, char *argv[]) ;
 static int  get_option(int argc, char *argv[]) ;
@@ -121,7 +121,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_anatomical_stats.c,v 1.70 2011/02/07 00:40:47 nicks Exp $",
+           "$Id: mris_anatomical_stats.c,v 1.71 2011/02/07 15:25:38 greve Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -545,7 +545,7 @@ main(int argc, char *argv[])
             "# Measure Cortex, NumVert, Number of Vertices, %d, unitless\n",
             num_cortex_vertices);
     fprintf(fp,
-            "# Measure Cortex, SurfArea, Surface Area, %g, mm^2\n",
+            "# Measure Cortex, WhiteSurfArea, White Surface Total Area, %g, mm^2\n",
             total_cortex_area);
     if (cortex_label)
     {
