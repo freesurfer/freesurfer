@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/02/07 00:40:44 $
-#    $Revision: 1.511 $
+#    $Date: 2011/02/07 22:17:00 $
+#    $Revision: 1.512 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -769,8 +769,8 @@ if test "$CPUTYPE" = "NO"; then
   Linux)
     case "${target}" in
     i*86-*-linux-gnu*)
-      cpu386=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
-      case "$cpu386" in
+      CPUCAPS=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
+      case "$CPUCAPS" in
         PentiumIII*)
         CPUTYPE=pentium3
         ;;
@@ -786,9 +786,9 @@ if test "$CPUTYPE" = "NO"; then
       esac
       ;;
     x86_64-*)
-      cpu386=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
+      CPUCAPS=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
       CPUTYPE=x86_64
-      case "$cpu386" in
+      case "$CPUCAPS" in
         AMDAthlon64)
         CPUTYPE=athlon64
         ;;
@@ -810,6 +810,8 @@ fi
 
 AC_MSG_NOTICE(CPUTYPE is $CPUTYPE)
 AC_MSG_CHECKING(CPU optimization...)
+AC_SUBST(CPUCAPS)
+AC_SUBST(CPUTYPE)
 
 # now set the flags
 case "$CPUTYPE" in
