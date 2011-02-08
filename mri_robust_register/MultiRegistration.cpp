@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/05 01:01:32 $
- *    $Revision: 1.31 $
+ *    $Date: 2011/02/08 22:31:43 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -80,6 +80,45 @@ void MultiRegistration::clear()
 
 }
 
+unsigned int MultiRegistration::getSeed()
+// computes a seed for randomization based on the input images
+// takes the middle slice 
+{
+  int n = (int) mri_mov.size();
+
+  assert(n > 1);
+  
+  unsigned int seed = 0;
+  int x,y,z,i,p,xup,xdown,yup,ydown,zup,zdown;
+  for (i = 0;i<n;i++)
+  {
+    // center voxel:
+    x = mri_mov[i]->width / 2;
+    y = mri_mov[i]->height / 2;
+    z = mri_mov[i]->depth / 2;
+    
+    // sum up crossair
+    for (p = 0; p<20; p++)
+    {
+      xup   = x+p;
+      xdown = x-p;
+      yup   = y+p;
+      ydown = y-p;
+      zup   = z+p;
+      zdown = z-p;
+      
+      if (xdown >= 0 ) seed+= MRIvox(mri_mov[i],xdown,y,z);
+      if (ydown >= 0 ) seed+= MRIvox(mri_mov[i],x,ydown,z);
+      if (zdown >= 0 ) seed+= MRIvox(mri_mov[i],x,y,zdown);
+      if (xdown < mri_mov[i]->width ) seed+= MRIvox(mri_mov[i],xup,y,z);
+      if (ydown < mri_mov[i]->height) seed+= MRIvox(mri_mov[i],x,yup,z);
+      if (zdown < mri_mov[i]->depth ) seed+= MRIvox(mri_mov[i],x,y,zup);
+      
+    }
+  }
+  return seed;
+}
+
 /*!
   \fn int loadMovables(const std::vector < std::string > mov)
   \brief Loads the movable volumes as specified on command line
@@ -90,7 +129,7 @@ int MultiRegistration::loadMovables(const std::vector < std::string > pmov)
 
   assert (mri_mov.size () == 0);
   int n = (int) pmov.size();
-  assert(n>0);
+  assert(n>1);
   mri_mov.resize(n);
   mov = pmov; // copy of input filenames
   vector < double > msize (pmov.size());
@@ -774,8 +813,10 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
   for (int i = 1;i<nin;i++) 
   {
 	  int j = index[i]; // use new index
-    cout << endl << "  computing initial registration of TP "<< j+1 <<" ( "<<mov[j]<<" )" << endl;
-		cout << "   wrt to TP "<<tpi+1<<" ( "<<mov[tpi]<<" )" << endl;
+    cout << endl 
+		     << "[init] ========================= TP "<< j+1 <<" to TP "<<tpi+1<<" ==============================" << endl;
+		cout << "         Register TP "<< j+1 <<" ( "<<mov[j]<<" )" << endl;
+		cout << "          to      TP "<<tpi+1<<" ( "<<mov[tpi]<<" )" << endl << endl;
 
     ostringstream oss;
     oss << outdir << "tp" << j+1 << "_to_tp" << tpi;
@@ -826,67 +867,52 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 //     }
   } // end for loop (initial registration to inittp)
 	
+  // copy results in correct order back to global members
+	// lta (transforms) and intensities:
 	assert(ltas.size() == mri_mov.size());
-	if (fixtp) // we are basically done, as we maped to this (itp) TP
-	{
-			
-    for (int i = 0;i<nin;i++) 
-    {
-  	  int j = index[i]; // use new index
+  for (int i = 0;i<nin;i++) 
+  {
+    int j = index[i]; // use new index
       
-      assert(ltas[j] == NULL);
-      ltas[j] = MyMatrix::VOXmatrix2LTA(Md[i].first,mri_mov[j],mri_mov[tpi]); // use geometry of tpi
-    	intensities[j] = Md[i].second;
-			
-      if (debug)
+    assert(ltas[j] == NULL);
+    ltas[j] = MyMatrix::VOXmatrix2LTA(Md[i].first,mri_mov[j],mri_mov[tpi]); // use geometry of tpi
+    intensities[j] = Md[i].second;
+
+    if (debug && fixtp)
+    {
+      ostringstream oss;
+      oss << outdir << "tp" << j+1 << "_to_mcoord";
+      LTAwriteEx(ltas[j], (oss.str()+".lta").c_str()) ;
+      MRI * warped = LTAtransform(mri_mov[j],NULL, ltas[j]);
+      if (iscale)
       {
-        ostringstream oss;
-        oss << outdir << "tp" << j+1 << "_to_mcoord";
-        LTAwriteEx(ltas[j], (oss.str()+".lta").c_str()) ;
-        MRI * warped = LTAtransform(mri_mov[j],NULL, ltas[j]);
-        if (iscale)
-        {
-          string fn = oss.str() + "-intensity.txt";
-          ofstream f(fn.c_str(),ios::out);
-          f << Md[i].second;
-          f.close();
+        string fn = oss.str() + "-intensity.txt";
+        ofstream f(fn.c_str(),ios::out);
+        f << Md[i].second;
+        f.close();
 	
-          warped = MyMRI::MRIvalscale(warped,warped, Md[i].second);
-        }
-        MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
-        MRIfree(&warped);     
+	      warped = MyMRI::MRIvalscale(warped,warped, Md[i].second);
       }
-    
-      // cleanup
-      //MatrixFree(&Md[i].first);
-	  }
-		
-		return true;
-	} // end fixtp
-	
-	
-	// find geometric mean intensity scale
-	if (iscale)
-	{
-	  double mint = 1.0;
-	  for (int i = 0; i<nin;i++)
-	  {
-	     int j = index[i];
-       if (i==0) intensities[j] = 1.0;
-       else
-  	   {
-  		    assert (Md[i].second > 0);
-    		  intensities[j] = Md[i].second;
-  				mint *=  intensities[j];
-    	 }
+      MRIwrite(warped, (oss.str()+".mgz").c_str()) ;
+      MRIfree(&warped);     
     }
-	  // geometric mean
-	  mint = pow(mint,1.0/nin);
-	
-	  // set intenstiy factors so that geo-mean is 1:
-	  for (int i = 0;i<nin;i++)
-	    intensities[i] *= (1.0 / mint);
+    
 	}
+		
+	if (fixtp) // we are done, as we maped to this (itp) TP
+	{
+		return true;
+	} 
+	
+ 	// find geometric mean intensity scale
+ 	if (iscale)
+ 	{
+		// here normalize scales to geometric mean:
+		normalizeIntensities();
+ 	}
+	
+	
+	assert(rigid);	
 	
   // find mean translation and rotation (in RAS coordinates)
   vector < vnl_matrix_fixed < double, 4, 4> > mras(nin);
@@ -896,6 +922,7 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
   vnl_vector_fixed < double, 3 > trans;
   vnl_vector_fixed < double, 3 > meant(0.0);
   vnl_matrix_fixed < double, 3, 3> meanr; meanr.set_identity();
+//  std::vector < vnl_matrix < double > > rotinv(nin-1);
   for (int i = 1;i<nin;i++) 
   {
 	  int j = index[i];
@@ -931,53 +958,40 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 //     }
     meant -= trans;
     meanr += roti;
+//		rotinv[i-1] = roti;
   }
   
 
   //average
   meant = (1.0/nin) * meant;
 	//cout << "meant: "<< endl << meant << endl;
+	
+//	meanr = MyMatrix::GeometricMean(rotinv,nin);
+  // Project meanr back to SO(3) via polar decomposition:	
   meanr = (1.0/nin) *meanr;
-	//cout << "meanr: " << endl << meanr << endl;
-  
-  // project meanr back to SO(3) (using polar decomposition)
-	assert(rigid);	
-// 	{
-//      VECTOR * vz = VectorAlloc(3,MATRIX_REAL);
-// 		 MATRIX * meanro = MyMatrix::convertVNL2MATRIX(meanr,NULL);
-//      MATRIX * mv = MatrixSVD(meanro,vz,NULL); // setting meanr = U
-//      MatrixPrintFmt(stdout,"% 2.8f",meanro); cout << endl;
-//      //MatrixPrintFmt(stdout,"% 2.8f",vz); cout << endl;
-//      MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
-//      mv = MatrixTranspose(mv,mv);
-//      //MatrixPrintFmt(stdout,"% 2.8f",mv); cout << endl;
-//      meanro = MatrixMultiply(meanro,mv,meanro);
-//      cout << " meanr.proj: " << endl;MatrixPrintFmt(stdout,"% 2.8f",meanro); cout << endl;
-//      MatrixFree(&mv);
-//      MatrixFree(&vz);
-//      // Mm is the matrix from tpi ras to mean ras:
-//      //MATRIX * Mm = MyMatrix::getMfromRT(meanro,meant,NULL);
-//   	 //cout << " mm : " << endl; MatrixPrintFmt(stdout, "% 2.8f",Mm); cout << endl;
-// 		 cout << " -----------------------------------------------" << endl;
+	vnl_matrix < double > PolR(3,3), PolS(3,3);
+	MyMatrix::PolarDecomposition(meanr,PolR,PolS);
+	meanr=PolR;
+// 	//cout << "meanr: " << endl << meanr << endl;  
+//   // project meanr back to SO(3) (using polar decomposition)
+//   vnl_svd < double > svd_decomp(meanr);
+//   if ( svd_decomp.valid() )
+//   {
+// 	    vnl_matrix < double > mu = svd_decomp.U();
+// 			//cout << " mu   : " << mu << endl;
+//       vnl_matrix < double > mv = svd_decomp.V();
+// 			//cout << " mv   : " << mv << endl;
+// 			mv.inplace_transpose();
+// 			meanr = mu * mv;
+// 			//cout << " meanr: " << meanr << endl;
+// 			//cout << " meant: " << meant << endl;
+// 			//cout << " mm   : " << MyMatrix::getMfromRT(meanr,meant) << endl;
 //   }
-  vnl_svd < double > svd_decomp(meanr);
-  if ( svd_decomp.valid() )
-  {
-	    vnl_matrix < double > mu = svd_decomp.U();
-			//cout << " mu   : " << mu << endl;
-      vnl_matrix < double > mv = svd_decomp.V();
-			//cout << " mv   : " << mv << endl;
-			mv.inplace_transpose();
-			meanr = mu * mv;
-			//cout << " meanr: " << meanr << endl;
-			//cout << " meant: " << meant << endl;
-			//cout << " mm   : " << MyMatrix::getMfromRT(meanr,meant) << endl;
-  }
-  else
-  {
-     cerr << "MultiRegistration::initialXforms ERROR: SVD not possible?" << endl;
-		 exit(1);
-  }
+//   else
+//   {
+//      cerr << "MultiRegistration::initialXforms ERROR: SVD not possible?" << endl;
+// 		 exit(1);
+//   }
   vnl_matrix_fixed < double, 4, 4 > Mm(MyMatrix::getMfromRT(meanr,meant));
 
   // construct target geometry for the mean space by centering
@@ -1018,11 +1032,71 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
     // from right to left, first mras[j] (aligns to T1)
     // then do the mean rot and move to mean location
     M = Mm * mras[i];
+		
+// 			{
+// 			  vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
+// 				I.set_identity();
+// 				M.extract(A);
+// 				MyMatrix::PolarDecomposition(A,R,S);
+// 				if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
+// 				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error:  produced reflection.\n") ;
+//         double eps = 0.00000000000001;
+// 				
+// 				double fnorm1 = (S-I).frobenius_norm();
+// 				if (fnorm1 > eps)
+// 				{
+// 	        std::cerr << "Internal Error: " << std::endl;
+// 		      std::cerr << " Rotation should not scale ( "<< fnorm1 << " )" << std::endl;
+// 			    std::cerr << " Debug Info: " << std::endl;
+//           vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
+//           vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
+//           vnl_matlab_print(vcl_cerr,S,"S",vnl_matlab_print_format_long);std::cerr << std::endl;
+// 				  
+// 				
+// 				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt of Rotation should not scale.\n") ;
+// 				}
+// 	  	}
     
     // make lta from M (M is RAS to RAS)
     assert(ltas.size() == mri_mov.size());
-    assert(ltas[j] == NULL);
+    //assert(ltas[j] == NULL);
+		if (ltas[j] != NULL) LTAfree(&ltas[j]);
     ltas[j] = MyMatrix::RASmatrix2LTA(M,mri_mov[j],template_geo); // use geometry of template_geo
+    LTAchangeType(ltas[j], LINEAR_VOX_TO_VOX);
+
+    if (rigid) // map back to Rotation (RAS2RAS->VOX2VOX introduces scaling!)
+    {
+      vnl_matrix < double > MM(MyMatrix::convertMATRIX2VNL(ltas[j]->xforms[0].m_L));
+			vnl_matrix < double > R(3,3),S(3,3),A(3,3),I(3,3);
+			I.set_identity();
+			MM.extract(A);
+			MyMatrix::PolarDecomposition(A,R,S);
+			if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
+			  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal InitialXforms Error:  produced reflection.\n") ;
+				
+		  
+//         double eps = 0.0000001;				
+      double fnorm1 = (S-I).frobenius_norm();
+			cout << "   mapping back to rot, err = " << fnorm1 << endl;
+// 				if (fnorm1 > eps)
+// 				{
+// 	        std::cerr << "Internal Error: " << std::endl;
+// 		      std::cerr << " Rotation should not scale ( "<< fnorm1 << " )" << std::endl;
+// 			    std::cerr << " Debug Info: " << std::endl;
+//           vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
+//           vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
+//           vnl_matlab_print(vcl_cerr,S,"S",vnl_matlab_print_format_long);std::cerr << std::endl;
+// 				  
+// 				
+// 				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Sqrt of Rotation should not scale.\n") ;
+// 				}
+      
+			MM.update(R);
+			MM.set_row(3,0.0); MM[3][3] = 1.0;
+			ltas[j]->xforms[0].m_L = MyMatrix::convertVNL2MATRIX(MM,ltas[j]->xforms[0].m_L);
+
+    }
+    
 			
     if (debug)
     {
@@ -1048,6 +1122,25 @@ bool MultiRegistration::initialXforms(int tpi, bool fixtp, int maxres, int itera
 	MRIfree(&template_geo);
 
   return true;
+}
+
+void MultiRegistration::normalizeIntensities()
+// normalizes class member intensities:
+// computes the geometric mean intensity and sets the intensity scale factors so that 
+// their geometric mean is equal to 1
+{
+	double mint = 1.0;
+	int nin = (int) intensities.size();
+	for (int i = 0; i<nin;i++)
+    mint *=  intensities[i];
+	
+	// geometric mean
+  mint = pow(mint,1.0/nin);
+	
+	// set intenstiy factors so that geo-mean is 1:
+	for (int i = 0;i<nin;i++)
+	  intensities[i] *= (1.0 / mint);
+		
 }
 
 bool MultiRegistration::writeMean(const std::string& mean)

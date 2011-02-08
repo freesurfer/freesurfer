@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2010/12/17 23:36:07 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/02/08 22:31:43 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -84,6 +84,8 @@ public:
   int loadLTAs(const std::vector < std::string > nltas);
   int loadIntensities(const std::vector < std::string > nintens);
   void clear();
+  
+  unsigned int getSeed();
 	 
   // Set parameters:
   void setOutdir(const std::string & s)
@@ -153,7 +155,9 @@ public:
                               MRI* mean, int method, double sat);
 
 private:
-  
+
+  void normalizeIntensities(void);
+
   void initRegistration(Registration & R);
   
   // copy of input filenames

@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/26 22:31:45 $
- *    $Revision: 1.16 $
+ *    $Date: 2011/02/08 22:31:43 $
+ *    $Revision: 1.17 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -2067,8 +2067,9 @@ LTA* MyMatrix::VOXmatrix2LTA(const vnl_matrix_fixed < double, 4 , 4 >& m, MRI* s
 {
   LTA* ret =  LTAalloc(1,src);
   ret->xforms[0].m_L = convertVNL2MATRIX(m,ret->xforms[0].m_L);
-  ret->xforms[0].m_L = MRIvoxelXformToRasXform (src,dst,ret->xforms[0].m_L,ret->xforms[0].m_L) ;
-  ret->type = LINEAR_RAS_TO_RAS ;
+//  ret->xforms[0].m_L = MRIvoxelXformToRasXform (src,dst,ret->xforms[0].m_L,ret->xforms[0].m_L) ;
+//  ret->type = LINEAR_RAS_TO_RAS ;
+  ret->type = LINEAR_VOX_TO_VOX ;
   getVolGeom(src, &ret->xforms[0].src);
   getVolGeom(dst, &ret->xforms[0].dst);
 

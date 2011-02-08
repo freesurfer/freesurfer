@@ -9,9 +9,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/07 00:40:47 $
- *    $Revision: 1.34 $
+ *    $Author: mreuter $
+ *    $Date: 2011/02/08 22:31:43 $
+ *    $Revision: 1.35 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -126,7 +126,7 @@ struct Parameters
   vector < string > iscaleout;
   int    finalinterp;
   int    highit;
-  int    seed;
+  unsigned int    seed;
 };
 
 // Initializations:
@@ -163,7 +163,7 @@ static struct Parameters P =
   vector < string >(0),
   SAMPLE_TRILINEAR,
   -1,
-  -1
+  0
 };
 
 
@@ -171,15 +171,15 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.34 2011/02/07 00:40:47 nicks Exp $";
+  "$Id: mri_robust_template.cpp,v 1.35 2011/02/08 22:31:43 mreuter Exp $";
 char *Progname = NULL;
 
-int getRandomNumber(int start, int end, int & seed)
+int getRandomNumber(int start, int end, unsigned int & seed)
 // return n in [start,end]
 // also return seed if it was -1
 {
 
-  if (seed == -1)
+  if (seed == 0)
   {
     seed = time(NULL);
   }
@@ -187,8 +187,9 @@ int getRandomNumber(int start, int end, int & seed)
   // initialize random seed:
   srand ( seed );
 
-  // generate random number:
+  // generate random number: 
   int range = end-start+1;
+  
   return rand() % range + start;
 }
 
@@ -227,16 +228,6 @@ int main(int argc, char *argv[])
   }
 //  if (P.outdir[P.outdir.length()-1] != '/') P.outdir += "/";
 
-  // Randomly pick target (default):
-  // Only if no inittp is passed and if no init transforms are given
-  // In those cases we either fixed the target (--inittp)
-  // or we won't need to compute ixforms when they are passed (--ixforms)
-  if (P.inittp < 0 && P.iltas.size() == 0 )
-  {
-    P.inittp = getRandomNumber(1,P.mov.size(),P.seed);
-    //cout << "Will use TP " << P.inittp << " as random initial target." << endl;
-  }
-
   // Timer
   struct timeb start ;
   int    msec,minutes,seconds;
@@ -262,6 +253,7 @@ int main(int argc, char *argv[])
   MR.setRobust(!P.leastsquares);
   MR.setSaturation(P.sat);
   MR.setSatit(P.satit);
+
   MR.setFixVoxel(P.fixvoxel);
   MR.setKeepType(!P.floattype);
   MR.setAverage(P.average);
@@ -288,6 +280,20 @@ int main(int argc, char *argv[])
     assert(MR.loadIntensities(P.iscalein)==nin);
   }
 
+  // Randomly pick target (default):
+  // Only if no inittp is passed and if no init transforms are given
+  // In those cases we either fixed the target (--inittp)
+  // or we won't need to compute ixforms when they are passed (--ixforms)
+  if (P.inittp < 0 && P.iltas.size() == 0 )
+  {
+    // compute seed based on input images if not set:
+    if ( P.seed == 0 ) P.seed = MR.getSeed();
+    // inittp randomly
+    P.inittp = getRandomNumber(1,P.mov.size(),P.seed);
+    //cout << "Will use TP " << P.inittp << " as random initial target." << endl;
+  }
+
+
   if (P.noit) // no registration to mean space, only averaging
   {
     // if no initial xforms are given, use initialization to median space
@@ -300,7 +306,6 @@ int main(int argc, char *argv[])
 
     // create template:
     MR.averageSet(0,P.finalinterp);
-
   }
   // run registrations
   else if (nin == 2)
