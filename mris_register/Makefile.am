@@ -15,7 +15,7 @@ LIBS_PETSC=
 #PETSC endif
 
 bin_PROGRAMS = mris_register
-mris_register_SOURCES=mris_register.c
+mris_register_SOURCES=mris_register.c mris_register.help.xml.h
 mris_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	-L$(top_builddir)/tetgen -ltetgen $(LIBS_PETSC)
 mris_register_LDFLAGS=$(OS_LDFLAGS)
@@ -41,7 +41,7 @@ foo_DATA=mris_register.help.xml
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=make_mris_register_movie.tcl $(foo_DATA)
+EXTRA_DIST=make_mris_register_movie.tcl $(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

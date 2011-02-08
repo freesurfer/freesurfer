@@ -6,7 +6,8 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include
 
 bin_PROGRAMS = mri_aparc2aseg
-mri_aparc2aseg_SOURCES=mri_aparc2aseg.c
+
+mri_aparc2aseg_SOURCES=mri_aparc2aseg.c mri_aparc2aseg.help.xml.h
 mri_aparc2aseg_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_aparc2aseg_LDFLAGS=$(OS_LDFLAGS)
 
@@ -27,7 +28,8 @@ check_PROGRAMS=foo
 
 TESTS=test_mri_aparc2aseg $(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz testdata2.tar.gz $(foo_DATA)
+EXTRA_DIST=test_mri_aparc2aseg testdata.tar.gz testdata2.tar.gz \
+	$(BUILT_SOURCES) $(foo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

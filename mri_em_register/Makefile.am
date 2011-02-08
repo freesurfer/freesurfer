@@ -34,7 +34,7 @@ bin_PROGRAMS += mri_em_register_cuda
 
 
 mri_em_register_cuda_SOURCES = mri_em_register.c \
-                               em_register_cuda.cu em_register_cuda.h
+  em_register_cuda.cu em_register_cuda.h
 mri_em_register_cuda_CFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
 mri_em_register_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
 mri_em_register_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
@@ -46,7 +46,7 @@ endif
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA)
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

@@ -6,7 +6,8 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mris_sphere mris_remove_negative_vertices
-mris_sphere_SOURCES=mris_sphere.c
+
+mris_sphere_SOURCES=mris_sphere.c mris_sphere.help.xml.h
 mris_sphere_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_sphere_LDFLAGS=$(OS_LDFLAGS)
 
@@ -44,7 +45,7 @@ endif
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA) make_mris_sphere_movie.tcl
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES) make_mris_sphere_movie.tcl
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

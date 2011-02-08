@@ -6,7 +6,8 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mris_ca_label
-mris_ca_label_SOURCES=mris_ca_label.c
+
+mris_ca_label_SOURCES=mris_ca_label.c mris_ca_label.help.xml.h
 mris_ca_label_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_ca_label_LDFLAGS=$(OS_LDFLAGS)
 
@@ -27,7 +28,7 @@ check_PROGRAMS=foo
 
 TESTS=test_mris_ca_label $(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=test_mris_ca_label testdata.tar.gz $(foo_DATA)
+EXTRA_DIST=test_mris_ca_label testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

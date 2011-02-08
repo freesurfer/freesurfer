@@ -32,7 +32,8 @@ mris_volmask_novtk_SOURCES=mris_volmask_old.cpp cmd_line_interface.cpp
 mris_volmask_novtk_CPPFLAGS=-DNO_VTK
 mris_volmask_novtk_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 
-mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp
+mris_volmask_SOURCES=mris_volmask.cpp cmd_line_interface.cpp \
+	mris_volmask.help.xml.h
 mris_volmask_CPPFLAGS=-DNO_VTK
 mris_volmask_CXXFLAGS=$(AM_CFLAGS) $(VXL_CFLAGS) -Wno-non-virtual-dtor
 mris_volmask_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) 
@@ -81,7 +82,7 @@ uninstall-hook:
 endif
 
 EXTRA_DIST=cmd_line_interface.h test_mris_volmask $(foo_DATA) \
-	TestMRISOBBTree.cpp TestMRISDistanceField.cpp
+	TestMRISOBBTree.cpp TestMRISDistanceField.cpp $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

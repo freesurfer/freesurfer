@@ -6,7 +6,9 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mris_anatomical_stats
-mris_anatomical_stats_SOURCES=mris_anatomical_stats.c
+
+mris_anatomical_stats_SOURCES=mris_anatomical_stats.c \
+	mris_anatomical_stats.help.xml.h
 mris_anatomical_stats_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_anatomical_stats_LDFLAGS=$(OS_LDFLAGS)
 
@@ -29,7 +31,7 @@ TESTS=test_mris_anatomical_stats $(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=test_mris_anatomical_stats test1.expected test2.expected \
 test2_logfile.expected test3.expected test4.expected \
-test6.expected $(foo_DATA)
+test6.expected $(foo_DATA) $(BUILT_SOURCES)
 
 clean:
 	rm -f mris_anatomical_stats *.o

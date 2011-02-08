@@ -24,17 +24,18 @@ TESTS=compare_test_volumes $(top_builddir)/scripts/help_xml_validate
 build_test_volume_SOURCES=build_test_volume.c
 build_test_volume_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
-mri_pretess_SOURCES=mri_pretess.c
+mri_pretess_SOURCES=mri_pretess.c mri_pretess.help.xml.h
 mri_pretess_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
-mris_extract_main_component_SOURCES=mris_extract_main_component.c
+mris_extract_main_component_SOURCES=mris_extract_main_component.c \
+	mris_extract_main_component.help.xml.h
 mris_extract_main_component_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 #build_MC_table_SOURCES=build_MC_table.c
 #build_MC_table_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH))
 
 EXTRA_DIST=compare_test_volumes test_volume_reference.mgz $(foo_DATA) \
-	build_MC_table.c mc_table.gif
+	build_MC_table.c mc_table.gif $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

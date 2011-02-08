@@ -6,7 +6,7 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mri_tessellate ico_supersample
-mri_tessellate_SOURCES=mri_tessellate.c
+mri_tessellate_SOURCES=mri_tessellate.c mri_tessellate.help.xml.h
 mri_tessellate_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_tessellate_LDFLAGS=$(OS_LDFLAGS)
 
@@ -19,7 +19,7 @@ foo_DATA=mri_tessellate.help.xml
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA)
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

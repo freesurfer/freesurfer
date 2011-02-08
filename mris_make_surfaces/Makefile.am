@@ -5,8 +5,12 @@
 AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
-bin_PROGRAMS = mris_make_surfaces mris_refine_surfaces mris_mef_surfaces mris_exvivo_surfaces
-mris_make_surfaces_SOURCES=mris_make_surfaces.c
+bin_PROGRAMS = mris_make_surfaces \
+	mris_refine_surfaces \
+	mris_mef_surfaces \
+	mris_exvivo_surfaces
+
+mris_make_surfaces_SOURCES=mris_make_surfaces.c mris_make_surfaces.help.xml.h
 mris_make_surfaces_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_make_surfaces_LDFLAGS= $(OS_LDFLAGS)
 
@@ -27,7 +31,7 @@ foo_DATA=mris_make_surfaces.help.xml
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA)
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

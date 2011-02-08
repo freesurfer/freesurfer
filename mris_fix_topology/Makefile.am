@@ -6,7 +6,8 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mris_fix_topology mris_remove_intersection
-mris_fix_topology_SOURCES=mris_fix_topology.c
+
+mris_fix_topology_SOURCES=mris_fix_topology
 mris_fix_topology_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_fix_topology_LDFLAGS=$(OS_LDFLAGS)
 
@@ -44,7 +45,7 @@ endif
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA)
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

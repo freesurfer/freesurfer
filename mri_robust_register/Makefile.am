@@ -23,14 +23,15 @@ bin_PROGRAMS = mri_robust_register \
 
 mri_robust_register_SOURCES= \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp \
-	Quaternion.cpp Registration.cpp RegPowell.cpp mri_robust_register.cpp
+	Quaternion.cpp Registration.cpp RegPowell.cpp \
+	mri_robust_register.cpp mri_robust_register.help.xml.h
 mri_robust_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 mri_robust_register_LDFLAGS=$(OS_LDFLAGS)
 
 mri_robust_template_SOURCES= Registration.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp Quaternion.cpp \
-	MultiRegistration.cpp mri_robust_template.cpp 
+	MultiRegistration.cpp mri_robust_template.cpp mri_robust_template.help.xml.h
 mri_robust_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
 mri_robust_template_LDFLAGS=$(OS_LDFLAGS)
@@ -67,7 +68,7 @@ EXTRA_DIST=Regression.h Regression.cpp Registration.h RegistrationStep.h \
 	MultiRegistration.h Quaternion.h RobustGaussian.cpp RegPowell.cpp \
 	CostFunctions.h RobustGaussian.h RegPowell.h MyMatrix.h MyMRI.h \
 	testdata.tar.gz $(foo_DATA) Registration.cpp test_mri_robust_template \
-	mri_robust_register.help.h mri_robust_template.help.h
+	mri_robust_register.help.h mri_robust_template.help.h $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

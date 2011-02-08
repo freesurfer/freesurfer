@@ -6,7 +6,8 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_LDFLAGS=
 
 bin_PROGRAMS = mris_inflate
-mris_inflate_SOURCES=mris_inflate.c
+
+mris_inflate_SOURCES=mris_inflate.c mris_inflate.help.xml.h
 mris_inflate_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mris_inflate_LDFLAGS=$(OS_LDFLAGS)
 
@@ -40,7 +41,7 @@ endif
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA)
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

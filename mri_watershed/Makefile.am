@@ -6,7 +6,8 @@ AM_CXXFLAGS=-I$(top_srcdir)/include -D$(target_cpu)
 AM_LDFLAGS=
 
 bin_PROGRAMS = mri_watershed  mri_validate_skull_stripped
-mri_watershed_SOURCES=mri_watershed.cpp
+
+mri_watershed_SOURCES=mri_watershed.cpp mri_watershed.help.xml.h
 mri_watershed_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_watershed_LDFLAGS=$(OS_LDFLAGS)
 
@@ -21,7 +22,7 @@ SUBDIRS=brain_volume
 
 TESTS=$(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=$(foo_DATA)
+EXTRA_DIST=$(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

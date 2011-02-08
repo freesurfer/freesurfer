@@ -5,7 +5,7 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 
 bin_PROGRAMS = mri_convert mri_make_uchar
-mri_convert_SOURCES=mri_convert.c
+mri_convert_SOURCES=mri_convert.c mri_convert.help.xml.h
 mri_convert_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_convert_LDFLAGS=$(OS_LDFLAGS)
 
@@ -27,7 +27,7 @@ check_PROGRAMS=foo
 
 TESTS=test_mri_convert $(top_builddir)/scripts/help_xml_validate
 
-EXTRA_DIST=test_mri_convert testdata.tar.gz $(foo_DATA)
+EXTRA_DIST=test_mri_convert testdata.tar.gz $(foo_DATA) $(BUILT_SOURCES)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
