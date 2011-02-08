@@ -34,12 +34,14 @@ install-exec-hook:
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
 		>> $(DESTDIR)$(bindir)/tkregister2
 	echo "tkregister2.bin \$$argv" >> $(DESTDIR)$(bindir)/tkregister2
-	chmod a+x $(DESTDIR)$(bindir)/tkregister2
+	cp $(DESTDIR)$(bindir)/tkregister2 \
+		$(DESTDIR)$(bindir)/tkregister
+	chmod a+x $(DESTDIR)$(bindir)/tkregister
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/tkregister2.bin; fi
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(bindir)/tkregister2.bin
+	rm -f $(DESTDIR)$(bindir)/tkregister*
 
 else
 all:
