@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2010/12/27 17:49:17 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/02/08 20:25:11 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_track";
 
-int nin = 0, nout = 0, nvol = 0;
+int doFill = 0, nin = 0, nout = 0, nvol = 0;
 char *inFile[100], *outFile[100], *outVolFile[100],
      *inRefFile = NULL, *outRefFile = NULL,
      *affineXfmFile = NULL, *nonlinXfmFile = NULL;
@@ -85,7 +85,7 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
-  vector<float> point(3);
+  vector<float> point(3), step(3, 0);
   MRI *inref = 0, *outref = 0, *outvol = 0;
   AffineReg affinereg;
 #ifndef NO_CVS_UP_IN_HERE
@@ -143,8 +143,8 @@ int main(int argc, char **argv) {
 
     // Open input .trk file
     if (!trkreader.Open(inFile[itrk], &trkheadin)) {
-      cout << "ERROR: Cannot open input " << inFile[itrk] << endl;
-      cout << trkreader.GetLastErrorMessage() << endl;
+      cout << "ERROR: Cannot open input file " << inFile[itrk] << endl;
+      cout << "ERROR: " << trkreader.GetLastErrorMessage() << endl;
       exit(1);
     }
 
@@ -157,8 +157,8 @@ int main(int argc, char **argv) {
 
       // Open output .trk file
       if (!trkwriter.Initialize(outFile[itrk], trkheadout)) {
-        cout << "ERROR: Cannot open output " << outFile[itrk] << endl;
-        cout << trkwriter.GetLastErrorMessage() << endl;
+        cout << "ERROR: Cannot open output file " << outFile[itrk] << endl;
+        cout << "ERROR: " << trkwriter.GetLastErrorMessage() << endl;
         exit(1);
       }
     }
@@ -168,6 +168,7 @@ int main(int argc, char **argv) {
 
     while (trkreader.GetNextPointCount(&npts)) {
       float *iraw, *rawpts = new float[npts*3];
+      vector<float> newpts;
 
       // Read a streamline from input file
       trkreader.GetNextTrackData(npts, rawpts);
@@ -190,34 +191,65 @@ int main(int argc, char **argv) {
           nonlinreg.ApplyXfm(point, point.begin());
 #endif
 
-        // Write transformed point to volume
-        if (nvol > 0) {
-          int ix = (int) round(point[0]),
-              iy = (int) round(point[1]),
-              iz = (int) round(point[2]);
+        copy(point.begin(), point.end(), iraw-3);
+      }
 
-          if (ix < 0)			ix = 0;
-          if (ix >= outvol->width)	ix = outvol->width-1;
-          if (iy < 0)			iy = 0;
-          if (iy >= outvol->height)	iy = outvol->height-1;
-          if (iz < 0)			iz = 0;
-          if (iz >= outvol->depth)	iz = outvol->depth-1;
+      iraw = rawpts;
+      for (int ipt = npts; ipt > 0; ipt--) {
+        float dmax = 1;		// This will not remove duplicate points
 
-          MRIsetVoxVal(outvol, ix, iy, iz, 0,
-                       MRIgetVoxVal(outvol, ix, iy, iz, 0) + 1);
+        if (doFill && ipt > 1) {
+          // Calculate step for filling in gap between points
+          // Gaps could result when mapping to a higher-resolution space
+          for (int k = 0; k < 3; k++) {
+            float dist = iraw[k+3] - iraw[k];
+
+            step[k] = dist;
+            dist = fabs(dist);
+
+            if (dist > dmax)
+              dmax = dist;
+          }
+
+          if (dmax > 0)
+            for (int k = 0; k < 3; k++)
+              step[k] /= dmax;
         }
 
-        // Multiply back by output voxel size
-        iraw -= 3;
-        for (int k = 0; k < 3; k++) {
-          *iraw = point[k] * trkheadout.voxel_size[k];
-          iraw++;
+        copy(iraw, iraw+3, point.begin());
+
+        for (int istep = (int) round(dmax); istep > 0; istep--) {
+          // Write transformed point to volume
+          if (nvol > 0) {
+            int ix = (int) round(point[0]),
+                iy = (int) round(point[1]),
+                iz = (int) round(point[2]);
+
+            if (ix < 0)			ix = 0;
+            if (ix >= outvol->width)	ix = outvol->width-1;
+            if (iy < 0)			iy = 0;
+            if (iy >= outvol->height)	iy = outvol->height-1;
+            if (iz < 0)			iz = 0;
+            if (iz >= outvol->depth)	iz = outvol->depth-1;
+
+            MRIsetVoxVal(outvol, ix, iy, iz, 0,
+                         MRIgetVoxVal(outvol, ix, iy, iz, 0) + 1);
+          }
+
+          for (int k = 0; k < 3; k++) {
+            // Multiply back by output voxel size
+            newpts.push_back(point[k] * trkheadout.voxel_size[k]);
+
+            point[k] += step[k];
+          }
         }
+
+        iraw += 3;
       }
 
       // Write transformed streamline to .trk file
       if (nout > 0)
-        trkwriter.WriteNextTrack(npts, rawpts);
+        trkwriter.WriteNextTrack(newpts.size()/3, &newpts[0]);
 
       delete[] rawpts;
     }
@@ -306,6 +338,8 @@ static int parse_commandline(int argc, char **argv) {
       nonlinXfmFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcasecmp(option, "--fill"))
+      doFill = 1;
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -332,6 +366,8 @@ static void print_usage(void)
   printf("   --outref <file>: output reference volume\n");
   printf("   --reg   <file>: affine registration (.mat), applied first\n");
   printf("   --regnl <file>: nonlinear registration (.tm3d), applied second\n");
+  printf("   --fill:         fill gaps b/w mapped points by linear interpolation\n");
+  printf("                   (default: don't fill)\n");
   printf("\n");
   printf("Other options\n");
   printf("   --debug:     turn on debugging\n");
