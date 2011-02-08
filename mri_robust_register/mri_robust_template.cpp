@@ -10,8 +10,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/02/08 22:31:43 $
- *    $Revision: 1.35 $
+ *    $Date: 2011/02/08 23:26:18 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -171,7 +171,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 
 static char vcid[] =
-  "$Id: mri_robust_template.cpp,v 1.35 2011/02/08 22:31:43 mreuter Exp $";
+  "$Id: mri_robust_template.cpp,v 1.36 2011/02/08 23:26:18 mreuter Exp $";
 char *Progname = NULL;
 
 int getRandomNumber(int start, int end, unsigned int & seed)
@@ -290,7 +290,7 @@ int main(int argc, char *argv[])
     if ( P.seed == 0 ) P.seed = MR.getSeed();
     // inittp randomly
     P.inittp = getRandomNumber(1,P.mov.size(),P.seed);
-    //cout << "Will use TP " << P.inittp << " as random initial target." << endl;
+    cout << "Will use TP " << P.inittp << " as random initial target (seed "<<P.seed<<" )." << endl;
   }
 
 
