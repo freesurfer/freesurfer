@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/02/01 18:58:08 $
-#    $Revision: 1.357 $
+#    $Author: mreuter $
+#    $Date: 2011/02/08 19:47:04 $
+#    $Revision: 1.358 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.357 2011/02/01 18:58:08 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.358 2011/02/08 19:47:04 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -501,6 +501,37 @@ echo "#######################################" >> $LF
 skip_all_info:
 
 if($DoVersionsOnly) exit 0;
+
+
+# ------------ Sanity Checks (base and long) --------- #
+
+if ( -e $subjdir/$BaseSubjsListFname ) then
+  # we are processing a base subject, make sure -base etc is passed
+  if ( ! $DoCreateBaseSubj  )  then 
+    echo ""
+    echo "ERROR: It appears that this subject id is an existing"
+    echo "       base/template from longitudinal processing."
+    echo "       Please make sure you pass all necessary flags: "
+    echo "       ( -base <templateid> -tp <tpNid> ... )!"
+    echo ""
+    exit 1;
+  endif
+endif
+
+# if $subjid contains .long.
+set haslong = `echo $subjid | grep ".long."`
+if ( "$haslong" == "$subjid" ) then
+    echo ""
+    echo "ERROR: The subject id may not contain .long. as this is reserved"
+    echo "       for a longitudinal run. If you are trying to rerun a"
+    echo "       longitudinal, please specify all necessary parameters: "
+    echo "       ( -long  <tpNid> <templateid> )!"
+    echo ""
+    exit 1;
+  endif
+endif
+
+
 
 # Delete the error file. This is created when error_exit is run.
 set ErrorFile = $subjdir/scripts/recon-all.error
