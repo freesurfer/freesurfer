@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/02/08 19:47:04 $
-#    $Revision: 1.358 $
+#    $Date: 2011/02/08 22:24:53 $
+#    $Revision: 1.359 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.358 2011/02/08 19:47:04 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.359 2011/02/08 22:24:53 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -953,7 +953,6 @@ if ($DoCreateBaseInput && $DoCreateBaseSubj) then
   set cmd = ($cmd --average ${robust_template_avg_arg})
   set cmd = ($cmd --template ${subjdir}/mri/norm_template.mgz)
   set cmd = ($cmd --sat 4.685 )
-  if ($NoRandomness) set cmd = ($cmd -seed $RngSeed)
   echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
   if($RunIt) then
     $fs_time $cmd |& tee -a $LF
