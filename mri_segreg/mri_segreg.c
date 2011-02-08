@@ -7,8 +7,8 @@
  * Original Author: Greg Grev
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/01/25 16:55:08 $
- *    $Revision: 1.101 $
+ *    $Date: 2011/02/08 21:49:08 $
+ *    $Revision: 1.102 $
  *
  * Copyright (C) 2007-2009
  * The General Hospital Corporation (Boston, MA).
@@ -218,7 +218,7 @@ double VertexCost(double vctx, double vwm, double slope,
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_segreg.c,v 1.101 2011/01/25 16:55:08 greve Exp $";
+"$Id: mri_segreg.c,v 1.102 2011/02/08 21:49:08 greve Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -297,6 +297,9 @@ char *surfconbase=NULL, *lhconfile=NULL, *rhconfile=NULL;
 char *surfcost0base=NULL, *lhcost0file=NULL, *rhcost0file=NULL;
 char *surfcostdiffbase=NULL;
 
+char *TargConLHFile=NULL,*TargConRHFile=NULL;
+MRI *TargConLH=NULL,*TargConRH=NULL;
+
 int UseLH = 1;
 int UseRH = 1;
 
@@ -362,13 +365,13 @@ int main(int argc, char **argv) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.101 2011/01/25 16:55:08 greve Exp $",
+     "$Id: mri_segreg.c,v 1.102 2011/02/08 21:49:08 greve Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_segreg.c,v 1.101 2011/01/25 16:55:08 greve Exp $",
+     "$Id: mri_segreg.c,v 1.102 2011/02/08 21:49:08 greve Exp $",
      "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -1327,11 +1330,17 @@ static int parse_commandline(int argc, char **argv) {
       PenaltySign = +1;
       sscanf(pargv[0],"%lf",&PenaltySlope);
       nargsused = 1;
-    } else if (istringnmatch(option, "--penalty-abs",0)) {
+    } 
+    else if (istringnmatch(option, "--penalty-abs",0)) {
       // no direction of contrast expected
       PenaltySign = 0;
       nargsused = 1;
-    } else if (istringnmatch(option, "--fwhm",0)) {
+    } 
+    else if (istringnmatch(option, "--ignore-neg",0)) {
+      PenaltySign = -2;
+      nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--fwhm",0)) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%lf",&fwhm);
       gstd = fwhm/sqrt(log(256.0));
@@ -1429,10 +1438,19 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&gdiagno);
       nargsused = 1;
-    } else if (istringnmatch(option, "--cost",0)) {
+    } 
+    else if (istringnmatch(option, "--cost",0)) {
       if (nargc < 1) argnerr(option,1);
       SegRegCostFile = pargv[0];
       nargsused = 1;
+    } 
+    else if (istringnmatch(option, "--targ-con",0)) {
+      if(nargc < 2) argnerr(option,2);
+      TargConLHFile = pargv[0];
+      TargConRHFile = pargv[1];
+      TargConLH = MRIread(TargConLHFile);
+      TargConRH = MRIread(TargConRHFile);
+      nargsused = 2;
     } 
     else if (istringnmatch(option, "--mincost",0)) {
       if (nargc < 1) argnerr(option,1);
@@ -2028,6 +2046,10 @@ double VertexCost(double vctx, double vwm, double slope,
   if(sign ==  0) a = -fabs(slope*(d-center)); // not sure this is useful
   if(sign == -1) a = -(slope*(d-center));
   if(sign == +1) a = +(slope*(d-center));
+  if(sign == -2){
+    if(d >= 0) a = -(slope*(d-center));
+    else       a = 0;
+  }
   c = 1+tanh(a);
   *pct = d;
   return(c);
@@ -2050,7 +2072,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   extern double PenaltySlope;
   extern int nsubsamp;
   extern int interpcode;
-  double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean;
+  double angles[3],d,dsum,dsum2,dstd,dmean,vwm,vctx,c,csum,csum2,cstd,cmean,val;
   MATRIX *Mrot=NULL, *Mtrans=NULL, *Mscale=NULL, *Mshear=NULL;
   int nhits,n;
   //FILE *fp;
@@ -2126,8 +2148,7 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
   //fp = fopen("tmp.dat","w");
   if(UseLH){
     for(n = 0; n < lhwm->nvertices; n += nsubsamp){
-      if (lhwm->vertices[n].ripflag != 0)
-        continue ;
+      if (lhwm->vertices[n].ripflag != 0) continue ;
       if(lhcostfile || lhcost0file) MRIsetVoxVal(lhcost,n,0,0,0,0.0);
       if(lhconfile)  MRIsetVoxVal(lhcon,n,0,0,0,0.0);
       if(lhCortexLabel && MRIgetVoxVal(lhCortexLabel,n,0,0,0) < 0.5) continue;
@@ -2143,6 +2164,10 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       costs[4] += vctx;
       costs[5] += (vctx*vctx);
       c = VertexCost(vctx, vwm, PenaltySlope, PenaltyCenter, PenaltySign, &d);
+      if(TargConLH){
+	val = MRIgetVoxVal(TargConLH,n,0,0,0);
+	c = (d-val)*(d-val);
+      }
       dsum += d;
       dsum2 += (d*d);
       csum += c;
@@ -2171,6 +2196,10 @@ double *GetSurfCosts(MRI *mov, MRI *notused, MATRIX *R0, MATRIX *R,
       costs[4] += vctx;
       costs[5] += (vctx*vctx);
       c = VertexCost(vctx, vwm, PenaltySlope, PenaltyCenter, PenaltySign, &d);
+      if(TargConRH){
+	val = MRIgetVoxVal(TargConRH,n,0,0,0);
+	c = (d-val)*(d-val);
+      }
       dsum += d;
       dsum2 += (d*d);
       csum += c;
