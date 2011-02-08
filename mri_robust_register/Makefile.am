@@ -61,8 +61,7 @@ foo:
 
 check_PROGRAMS=foo
 
-#TESTS=test_mri_robust_template
-TESTS=$(top_builddir)/scripts/help_xml_validate
+TESTS=test_mri_robust_template $(top_builddir)/scripts/help_xml_validate
 
 EXTRA_DIST=Regression.h Regression.cpp Registration.h RegistrationStep.h \
 	MultiRegistration.h Quaternion.h RobustGaussian.cpp RegPowell.cpp \
