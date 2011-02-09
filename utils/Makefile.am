@@ -423,6 +423,13 @@ fsPrintHelp_CFLAGS=-DBUILD_MAIN
 fsPrintHelp_LDADD=$(top_builddir)/xml2/libxml2.a -lz
 fsPrintHelp_LDFLAGS=$(OS_LDFLAGS)
 
+install-exec-hook:
+	cp $(DESTDIR)$(bindir)/fsPrintHelp $(DESTDIR)$(bindir)/fshelp
+	cp $(DESTDIR)$(bindir)/fsPrintHelp $(DESTDIR)$(bindir)/fsman
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/fs*
+
 if USE_SSE_MATHFUN
 check_PROGRAMS = sse_mathfun_test
 sse_mathfun_test_SOURCES = sse_mathfun_test.c
