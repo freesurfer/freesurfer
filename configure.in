@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/02/07 22:17:00 $
-#    $Revision: 1.512 $
+#    $Date: 2011/02/09 21:11:30 $
+#    $Revision: 1.513 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2341,12 +2341,19 @@ GTS_CFLAGS=""
 GTS_LIBS=""
 GTS_DIR=""
 
-AC_MSG_CHECKING(gts config)
+AC_MSG_CHECKING(GTS config)
 
 AC_ARG_WITH(gts-dir,
   [  --with-gts-dir=DIR where the root of GTS is installed.],
   [  GTS_DIR="$withval" ])
 
+if test "x$GTS_DIR" = "x"; then
+  # if a gts root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/gts/current" ; then
+    GTS_DIR=/usr/pubsw/packages/gts/current
+  fi
+fi
 
 # use the handy wx-config utility to get the compiler and linker flags
 if test ! "x$GTS_DIR" = "x"; then
@@ -2356,8 +2363,7 @@ if test ! "x$GTS_DIR" = "x"; then
   # we want to use the local / static jpeg, tiff and expat libs
   GTS_LIBS="`${GTSCONFIG} --libs`"
 else
-  AC_MSG_RESULT([Not building of GTS apps.])
-
+  AC_MSG_RESULT([Not building GTS apps.])
 fi
 
 AM_CONDITIONAL(HAVE_GTS_LIBS, test ! "x$GTS_DIR" = "x")
