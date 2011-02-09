@@ -7,9 +7,9 @@
 /*
  * Original Author: Martin Reuter
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2011/02/08 22:31:43 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/09 15:10:52 $
+ *    $Revision: 1.18 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -21,11 +21,10 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 #include <cassert>
-
+#include <algorithm>
 #include "MyMatrix.h"
 #include "Quaternion.h"
 #include "utils.h" //nint
