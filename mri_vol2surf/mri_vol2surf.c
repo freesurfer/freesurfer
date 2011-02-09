@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/01/03 19:20:42 $
- *    $Revision: 1.60 $
+ *    $Author: jonp $
+ *    $Date: 2011/02/09 23:45:51 $
+ *    $Revision: 1.61 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -84,7 +84,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.60 2011/01/03 19:20:42 greve Exp $";
+"$Id: mri_vol2surf.c,v 1.61 2011/02/09 23:45:51 jonp Exp $";
 
 char *Progname = NULL;
 
@@ -218,7 +218,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.60 2011/01/03 19:20:42 greve Exp $", 
+     "$Id: mri_vol2surf.c,v 1.61 2011/02/09 23:45:51 jonp Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -640,7 +640,7 @@ int main(int argc, char **argv) {
   }
 
   if(surf_fwhm > 0){
-    nSmoothSteps = MRISfwhm2nitersSubj(surf_fwhm,trgsubject,hemi,"white");
+    nSmoothSteps = MRISfwhm2nitersSubj(surf_fwhm,trgsubject,hemi,surfname);
     if(nSmoothSteps == -1) exit(1);
     printf("Surface smoothing by fwhm = %g (n=%d)\n",surf_fwhm,nSmoothSteps);
     fflush(stdout);
