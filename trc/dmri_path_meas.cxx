@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2010/12/16 06:56:46 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2011/02/09 15:12:46 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -21,7 +21,6 @@
  * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
  * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -34,7 +33,8 @@ double round(double x);
 #include <sys/utsname.h>
 #include <unistd.h>
 #include <float.h>
-
+#include <limits.h>
+#include <limits>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
