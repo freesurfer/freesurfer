@@ -13,7 +13,11 @@ AM_CPPFLAGS=\
 	$(PETSC_CFLAGS) \
 	$(BOOST_CFLAGS)
 
+if HAVE_MAC_OSX
+AM_LDFLAGS=$(OS_LDFLAGS)
+else
 AM_LDFLAGS=$(OS_LDFLAGS) -z muldefs
+endif
 
 common3d_SOURCES=\
 	fem_3d.cpp fem_3d.h solver.h \
