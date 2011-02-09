@@ -7,6 +7,8 @@ AM_CXXFLAGS=-I$(top_srcdir)/include $(VXL_CFLAGS)
 
 if HAVE_MAC_OSX
 AM_LDFLAGS=-framework veclib
+else
+AM_LDFLAGS=-z muldefs
 endif
 
 BUILT_SOURCES=mri_robust_template.help.xml.h \

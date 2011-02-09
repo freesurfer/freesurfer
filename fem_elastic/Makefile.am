@@ -13,7 +13,7 @@ AM_CPPFLAGS=\
 	$(PETSC_CFLAGS) \
 	$(BOOST_CFLAGS)
 
-AM_LDFLAGS=$(OS_LDFLAGS)
+AM_LDFLAGS=$(OS_LDFLAGS) -z muldefs
 
 common3d_SOURCES=\
 	fem_3d.cpp fem_3d.h solver.h \
