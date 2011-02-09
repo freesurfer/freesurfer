@@ -6,9 +6,9 @@ AM_CFLAGS=-I$(top_srcdir)/include
 AM_CXXFLAGS=-I$(top_srcdir)/include $(VXL_CFLAGS)
 
 if HAVE_MAC_OSX
-AM_LDFLAGS=-framework veclib
+OTHERLDFLAGS=-framework veclib
 else
-AM_LDFLAGS=-z muldefs
+OTHERLDFLAGS=-z muldefs
 endif
 
 BUILT_SOURCES=mri_robust_template.help.xml.h \
@@ -29,30 +29,30 @@ mri_robust_register_SOURCES= \
 	mri_robust_register.cpp mri_robust_register.help.xml.h
 mri_robust_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
-mri_robust_register_LDFLAGS=$(OS_LDFLAGS)
+mri_robust_register_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)
 
 mri_robust_template_SOURCES= Registration.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp Quaternion.cpp \
 	MultiRegistration.cpp mri_robust_template.cpp mri_robust_template.help.xml.h
 mri_robust_template_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
-mri_robust_template_LDFLAGS=$(OS_LDFLAGS)
+mri_robust_template_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)
 
 lta_diff_SOURCES=lta_diff.cpp Registration.cpp \
 	CostFunctions.cpp MyMatrix.cpp MyMRI.cpp Quaternion.cpp
 lta_diff_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
-lta_diff_LDFLAGS=$(OS_LDFLAGS)
+lta_diff_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)
 
 mri_create_tests_SOURCES=mri_create_tests.cpp Quaternion.cpp \
 	MyMatrix.cpp MyMRI.cpp
 mri_create_tests_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
   $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
-mri_create_tests_LDFLAGS=$(OS_LDFLAGS)
+mri_create_tests_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)
 
 mri_gradient_info_SOURCES=mri_gradient_info.cpp
 mri_gradient_info_LDADD = $(addprefix $(top_builddir)/, $(LIBS_MGH))
-mri_gradient_info_LDFLAGS=$(OS_LDFLAGS)
+mri_gradient_info_LDFLAGS=$(OS_LDFLAGS) $(OTHERLDFLAGS)
 
 # trick to get test data into the build directory
 foo_SOURCES=
