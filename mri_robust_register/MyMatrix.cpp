@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/02/09 15:10:52 $
- *    $Revision: 1.18 $
+ *    $Date: 2011/02/09 20:01:17 $
+ *    $Revision: 1.19 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -729,8 +729,8 @@ void MyMatrix::OrdSchurComplexLogical (const vnl_matrix < vcl_complex < double >
 	vnl_vector < vcl_complex < double > > work(lwork);
 	long info = 100;
   ztrsen_ (
-	         "N",                      // JOB (no condition numbers)
-					 "V",                      // COMPQ (update the schur vectors also)
+    (char*)"N",                      // JOB (no condition numbers)
+		(char*)"V",                      // COMPQ (update the schur vectors also)
 					 selecti,                  // SELECT (logical array)
 					 &n,                       // N
 					 TS.data_block(),          // T (input/output)
@@ -1677,8 +1677,8 @@ void MyMatrix::SchurComplex( const vnl_matrix < double > & M,
 
   T.inplace_transpose(); // for fortran call switch col and rows
   zgees_ (
-	        "V",                       // JOBVS
-          "N",                       // SORT
+    (char*)"V",                       // JOBVS
+    (char*)"N",                       // SORT
           0,                         // SELECT
           &n,                        // N
           T.data_block(), &n,        // T, LDA
