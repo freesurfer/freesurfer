@@ -24,10 +24,11 @@
 
 <help>
 	<name>bbregister</name>
-	<synopsis>****************** </synopsis>
+	<synopsis>bbregister --s &lt;subj&gt; --mov &lt;volid&gt; --reg &lt;regfile&gt; \
+&#09;--init-&lt;type&gt; --&lt;contrast&gt;</synopsis>
 	<description>This program performs within-subject, cross-modal registration using a boundary-based cost function. The registration is constrained to be 6 DOF (rigid). It is required that you have an anatomical scan of the subject that has been analyzed in freesurfer.</description>
   <arguments>
-    <positional><intro>************************</intro></positional>
+    <positional><intro>None</intro></positional>
     <required-flagged>
       <argument>--s subject</argument>
       <explanation>FreeSurfer subject name as found in $SUBJECTS_DIR.</explanation>

@@ -260,7 +260,8 @@ xml_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml \
 	mri_nu_correct.mni.help.xml template.help.xml
 
 # these utilities should use our local build of tclsh, as that
-# has the bug fix to allow usage on 64bit NFS file systems
+# has the bug fix to allow usage on 64bit NFS file systems.
+# for scripts, append .help.xml to the end
 install-exec-hook:
 	cp $(srcdir)/unpacksdcmdir $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
 	echo "#!/bin/tcsh -ef" \
@@ -278,6 +279,7 @@ install-exec-hook:
 	echo "\$$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 \$$FREESURFER_HOME/bin/fsfget.tcl \$$argv" \
 		>> $(DESTDIR)$(bindir)/fsfget
 	chmod a+x $(DESTDIR)$(bindir)/fsfget
+	cat bbregister.help.xml >> $(DESTDIR)$(bindir)/bbregister
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
@@ -287,13 +289,6 @@ TESTS = help_xml_validate
 
 EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
 extract_talairach_avi_QA.awk $(foo_DATA) $(xml_DATA)
-
-# notes: 
-# recon-all.2005 is the renamed recon-all-nmr, which is no longer used.
-# recon-all is the official recon-all.
-# recon-all-dev is the 'development' version of recon-all, which,
-#               when changes are tested, get merged into recon-all.
-
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
