@@ -74,6 +74,8 @@ end
 
 -- The script to run
 script = [[
+      $(submit JOBNAME="$(id)", TIME="01:00:00" )
+
       export MAINCMDS=" --mov $(input) --targ $(input) --fsl $(testDir)/$(transform) --interp $(interp) --precision $(outputPrecision)"
       export CPUOUT="$(outputDir)/$(id).cpu.mgz"
       export GPUOUT="$(outputDir)/$(id).gpu.mgz"

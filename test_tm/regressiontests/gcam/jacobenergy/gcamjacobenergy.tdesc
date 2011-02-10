@@ -41,6 +41,8 @@ testdescript = {
 
    -- The script to run the test case
    runScript = [[
+         $(submit JOBNAME="$(id)", TIME="00:15:00" )
+
 	 export GCAMINPUT="$(input)"
 	 export MRIINPUT="${SCRATCHDIR}/gcam/mri00000.mgz"
 	 export CPUOUT="$(outputDir)/$(id).cpu"

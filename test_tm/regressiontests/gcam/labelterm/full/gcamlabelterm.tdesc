@@ -78,6 +78,8 @@ testdescript = {
 
    -- The script to run the test case
    runScript = [[
+         $(submit JOBNAME="$(id)", TIME="00:15:00" )
+
 	 export INPUT="$(input)"
 	 export CPUOUT="$(outputDir)/$(id).cpu"
 	 export GPUOUT="$(outputDir)/$(id).gpu"

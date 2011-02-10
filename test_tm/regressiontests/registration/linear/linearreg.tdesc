@@ -83,6 +83,8 @@ testdescript = {
 
    -- The script to run the test case
    runScript = [[
+         $(submit JOBNAME="$(id)", TIME="01:00:00" )
+
 
 	 if [ -e $(inputDir)/$(mri).cpu.lta ]; then
             echo

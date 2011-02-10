@@ -52,6 +52,9 @@ end
 
 -- Script to run
 script = [[
+      $(submit JOBNAME="$(id)", TIME="00:15:00" )
+
+
       export MAINCMDS=" --input=$(input) --sigma=$(sigma) --repeats=1"
       export CPUOUT="$(outputDir)/$(id).cpu.mgz"
       export GPUOUT="$(outputDir)/$(id).gpu.mgz"

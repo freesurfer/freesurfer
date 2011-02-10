@@ -56,6 +56,8 @@ testdescript = {
 
    -- The script to run the test case
    runScript = [[
+         $(submit JOBNAME="$(id)", TIME="04:00:00" )
+
 	 export MRI="$(mri)"
 	 export MRI_VALS="$(mrivals)"
 
