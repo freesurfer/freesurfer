@@ -46,7 +46,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
 
   if (argc < 2)
     {
-    Tcl_SetResult(interp,(char *)("Could not find requested method."), TCL_VOLATILE);
+    Tcl_SetResult(interp,const_cast<char *>("Could not find requested method."), TCL_VOLATILE);
     return TCL_ERROR;
     }
   if (!interp)
@@ -68,7 +68,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
 
   if (!strcmp("GetSuperClassName",argv[1]))
     {
-    Tcl_SetResult(interp,(char *)("vtkKWWindow"), TCL_VOLATILE);
+    Tcl_SetResult(interp,const_cast<char *>("vtkKWWindow"), TCL_VOLATILE);
     return TCL_OK;
     }
 
@@ -124,7 +124,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     vtkKWQdecWindow  *temp20;
     error = 0;
 
-    temp0 = (vtkObject *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkObject"),interp,error));
+    temp0 = (vtkObject *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkObject"),interp,error));
     if (!error)
     {
     temp20 = (op)->SafeDownCast(temp0);
@@ -1132,7 +1132,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     error = 0;
 
     temp0 = argv[2];
-    temp1 = (vtkKWMenu *)(vtkTclGetPointerFromObject(argv[3],(char *)("vtkKWMenu"),interp,error));
+    temp1 = (vtkKWMenu *)(vtkTclGetPointerFromObject(argv[3],const_cast<char *>("vtkKWMenu"),interp,error));
     if (!error)
     {
     op->ScatterPlotGraphSetUpContextualMenu(temp0,temp1);
@@ -1445,7 +1445,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
   if (!strcmp("DescribeMethods",argv[1]))
     {
     if(argc>3) {
-      Tcl_SetResult ( interp, (char*)"Wrong number of arguments: object DescribeMethods <MethodName>", TCL_VOLATILE ); 
+      Tcl_SetResult ( interp, const_cast<char*>("Wrong number of arguments: object DescribeMethods <MethodName>"), TCL_VOLATILE ); 
       return TCL_ERROR;
  }
     if(argc==2) {
@@ -3685,7 +3685,7 @@ int VTKTCL_EXPORT vtkKWQdecWindowCppCommand(vtkKWQdecWindow *op, Tcl_Interp *int
     Tcl_DStringFree ( &dString );
     return TCL_OK;
     }
-   Tcl_SetResult ( interp, (char*)"Could not find method", TCL_VOLATILE ); 
+   Tcl_SetResult ( interp, const_cast<char*>("Could not find method"), TCL_VOLATILE ); 
    return TCL_ERROR;
    }
  }
