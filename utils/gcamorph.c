@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/03 18:48:41 $
- *    $Revision: 1.236 $
+ *    $Date: 2011/02/10 19:17:28 $
+ *    $Revision: 1.237 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -5091,8 +5091,8 @@ int boundsCheckf(float x, float y, float z, int width, int height, int depth)
   volume. This should produce the inverse of GCAMsampleInverseMorph().
   ---------------------------------------------------------------------------*/
 int
-GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
-                float *pxd, float *pyd, float *pzd)
+GCAMsampleMorph( const GCA_MORPH *gcam, float x, float y, float z,
+                 float *pxd, float *pyd, float *pzd)
 {
   int            xm, xp, ym, yp, zm, zp, width, height, depth ;
   float          xmd, ymd, zmd, xpd, ypd, zpd ;  /* d's are distances */
@@ -9242,6 +9242,7 @@ gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   mri_warp = GCAMwriteWarpToMRI(gcam, mri_warp) ;
   GCAMremoveSingularitiesAndReadWarpFromMRI(gcam, mri_warp) ;
   MRIfree(&mri_warp) ;
+
   if (gcam->neg <= 0)
     return(NO_ERROR) ;
   parms->noneg = 0 ;
@@ -16038,7 +16039,7 @@ GCAMcompose(GCA_MORPH *gcam, MRI *mri_warp)
   return(NO_ERROR) ;
 }
 int
-GCAMreadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
+GCAMreadWarpFromMRI( GCA_MORPH *gcam, const MRI *mri_warp )
 {
   int             xp, yp, zp, xv, yv, zv ;
   double          dx, dy, dz ;
@@ -16306,7 +16307,7 @@ MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_warp)
   return(sse) ;
 }
 MRI *
-GCAMwriteWarpToMRI(GCA_MORPH *gcam, MRI *mri_warp)
+GCAMwriteWarpToMRI( const GCA_MORPH *gcam, MRI *mri_warp)
 {
   int    x, y, z; 
   double xp, yp, zp ;

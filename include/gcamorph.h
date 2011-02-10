@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/03 18:48:45 $
- *    $Revision: 1.97 $
+ *    $Date: 2011/02/10 19:17:32 $
+ *    $Revision: 1.98 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -296,8 +296,8 @@ int       GCAMregisterWithSubcorticalConnectionsLevel(GCA_MORPH *gcam, MRI *mri,
 //int       GCAMregisterLevel_wdiff(GCA_MORPH *gcam, MRI *mri, MRI *mri_smooth, 
 //                                  MRI *diff_mri, GCA_MORPH_PARMS *parms);
 
-int       GCAMsampleMorph(GCA_MORPH *gcam, float x, float y, float z,
-                          float *pxd, float *pyd, float *pzd) ;
+int       GCAMsampleMorph( const GCA_MORPH *gcam, float x, float y, float z,
+                           float *pxd, float *pyd, float *pzd );
 int       GCAMsampleInverseMorph(GCA_MORPH *gcam,
                                  float  cAnat,  float  rAnat,  float  sAnat,
                                  float *cMorph, float *rMorph, float *sMorph);
@@ -467,8 +467,10 @@ int GCAMwriteDistanceTransforms(GCA_MORPH *gcam,
                                 MRI *mri_source_dist_map, 
                                 MRI *mri_atlas_dist_map, 
                                 const char *write_dist_name) ;
-int GCAMreadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;
-MRI *GCAMwriteWarpToMRI(GCA_MORPH *gcam, MRI *mri_warp);
+
+int GCAMreadWarpFromMRI( GCA_MORPH *gcam, const MRI *mri_warp );
+MRI *GCAMwriteWarpToMRI( const GCA_MORPH *gcam, MRI *mri_warp );
+
 int GCAMreadInverseWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp) ;
 MRI *GCAMwriteInverseWarpToMRI(GCA_MORPH *gcam, MRI *mri_warp);
 int GCAMcompose(GCA_MORPH *gcam, MRI *mri_warp);

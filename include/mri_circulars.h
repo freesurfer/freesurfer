@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:36 $
- *    $Revision: 1.3 $
+ *    $Author: rge21 $
+ *    $Date: 2011/02/10 19:17:32 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -60,7 +60,7 @@ HISTOGRAM  *MRIhistogramLabelStruct(MRI *mri,
                                     LABEL *label) ;
 
 #include "transform.h" // VOL_GEOM
-int MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg) ;
-int MRIcopyVolGeomFromMRI(MRI *mri, VOL_GEOM *vg) ;
+int MRIcopyVolGeomToMRI( MRI *mri, const VOL_GEOM *vg ) ;
+int MRIcopyVolGeomFromMRI( const MRI *mri, VOL_GEOM *vg ) ;
 
 #endif // MRI_CIRCULARS_H

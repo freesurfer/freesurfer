@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/07 20:45:36 $
- *    $Revision: 1.478 $
+ *    $Date: 2011/02/10 19:17:29 $
+ *    $Revision: 1.479 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.478 $";
+const char *MRI_C_VERSION = "$Revision: 1.479 $";
 
 
 /*-----------------------------------------------------
@@ -16871,7 +16871,7 @@ MRIlabelBoundingBox(MRI *mri, int label, MRI_REGION *region)
   structure.
   -------------------------------------------------------------------*/
 int
-MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg)
+MRIcopyVolGeomToMRI(MRI *mri, const VOL_GEOM *vg)
 {
   mri->xsize = vg->xsize ;
   mri->ysize = vg->ysize ;
@@ -16895,7 +16895,7 @@ MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg)
   structure.
   -------------------------------------------------------------------*/
 int
-MRIcopyVolGeomFromMRI(MRI *mri, VOL_GEOM *vg)
+MRIcopyVolGeomFromMRI( const MRI *mri, VOL_GEOM *vg)
 {
   vg->xsize = mri->xsize ;
   vg->ysize = mri->ysize ;

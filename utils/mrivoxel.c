@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:46 $
- *    $Revision: 1.11 $
+ *    $Author: rge21 $
+ *    $Date: 2011/02/10 19:17:29 $
+ *    $Revision: 1.12 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -181,7 +181,7 @@ MRIvoxelGradient(MRI *mri, int x,int y,int z,float *pdx,float *pdy,float *pdz)
         Description
 ------------------------------------------------------*/
 float
-MRIvoxelMean(MRI *mri, int x0, int y0, int z0, int wsize, int frame)
+MRIvoxelMean( const MRI *mri, int x0, int y0, int z0, int wsize, int frame)
 {
   float   mean, total  ;
   int     whalf, width, height, depth, x, y, z, npix, xmin, xmax,
