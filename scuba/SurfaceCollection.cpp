@@ -8,9 +8,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2008/02/29 20:45:17 $
- *    $Revision: 1.31 $
+ *    $Author: rge21 $
+ *    $Date: 2011/02/10 20:36:40 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -97,7 +97,7 @@ SurfaceCollection::~SurfaceCollection() {
   }
 }
 
-extern int MRIcopyVolGeomToMRI(MRI *mri, VOL_GEOM *vg) ;
+
 void
 SurfaceCollection::SetSurfaceFileName ( string& ifnMRIS ) {
 
