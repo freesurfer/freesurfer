@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/02/08 22:31:43 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/02/10 17:30:50 $
+ *    $Revision: 1.33 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -1186,7 +1186,10 @@ bool MultiRegistration::writeLTAs(const std::vector < std::string > & nltas, boo
       {
         error += (LTAchangeType(ltas[i], LINEAR_VOX_TO_VOX)==NULL);
       }
-      else assert(ltas[i]->type == LINEAR_RAS_TO_RAS);
+      else
+			{
+        error += (LTAchangeType(ltas[i], LINEAR_RAS_TO_RAS)==NULL);
+			}
       strncpy(ltas[i]->xforms[0].dst.fname, mean.c_str(),STRLEN);
       strncpy(ltas[i]->xforms[0].src.fname, mov[i].c_str(),STRLEN);
       LTAwriteEx(ltas[i], nltas[i].c_str()) ;	 
