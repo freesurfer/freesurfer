@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 19:47:04 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/02/11 20:22:54 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,6 +25,8 @@
  */
 
 #include <iostream>
+
+#include "gcamorphgpu.hpp"
 
 #ifndef VEC_VOL_GPU_CUDA_HPP
 #define VEC_VOL_GPU_CUDA_HPP
@@ -153,9 +155,9 @@ namespace GPU {
         size_t nxVals = this->d_x.pitch / sizeof(float);
 
         VecVolArgGPU vvag( this->dims,
-                           static_cast<float *const>(this->d_x.ptr),
-                           static_cast<float *const>(this->d_y.ptr),
-                           static_cast<float *const>(this->d_z.ptr),
+                           static_cast<float *>(this->d_x.ptr),
+                           static_cast<float *>(this->d_y.ptr),
+                           static_cast<float *>(this->d_z.ptr),
                            nxVals );
 
         return( vvag );
@@ -201,6 +203,14 @@ namespace GPU {
       void RecvBuffers( float* const h_x,
                         float* const h_y,
                         float* const h_z ) const;
+
+
+
+      //! Copy data from a GCAmorphGPU
+      void CopyFromGCAmorphGPU( const GCAmorphGPU& src );
+
+      //! Send data to a GCAmorphGPU
+      void CopyToGCAmorphGPU( GCAmorphGPU& dst ) const;
 
     protected:
       //! Dimensions of the volume
