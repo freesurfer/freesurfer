@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 19:12:55 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/02/11 20:23:00 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -169,6 +169,68 @@ namespace GPU {
 					    this->dims.y );
       CUDA_SAFE_CALL( cudaMemcpy3D( &cpyPrms ) );
 
+    }
+
+
+    // ----
+
+    void VecVolGPU::CopyFromGCAmorphGPU( const GCAmorphGPU& src ) {
+      /*!
+        Copies the d_rx, d_ry and d_rz fields from a GCAmorphGPU
+        into this volume.
+        Really, the GCAmorphGPU should include this class
+      */
+      this->Allocate( src.d_rx.GetDims() );
+
+      cudaMemcpy3DParms copyParams = {0};
+
+      copyParams.srcPtr = src.d_rx.d_data;
+      copyParams.dstPtr = this->d_x;
+      copyParams.extent = ExtentFromDims( this->dims );
+      copyParams.extent.width *= sizeof(float);
+      copyParams.kind = cudaMemcpyDeviceToDevice;
+      CUDA_SAFE_CALL( cudaMemcpy3D( &copyParams ) );
+      
+      copyParams.srcPtr = src.d_ry.d_data;
+      copyParams.dstPtr = this->d_y;
+      CUDA_SAFE_CALL( cudaMemcpy3D( &copyParams ) );
+
+      copyParams.srcPtr = src.d_rz.d_data;
+      copyParams.dstPtr = this->d_z;
+      CUDA_SAFE_CALL( cudaMemcpy3D( &copyParams ) );
+    }
+
+
+    // ----
+
+    void VecVolGPU::CopyToGCAmorphGPU( GCAmorphGPU& dst ) const {
+
+      // Sanity checks
+      dst.CheckIntegrity();
+
+      if( this->GetDims() != dst.d_rx.GetDims() ) {
+        std::cerr << __FUNCTION__
+                  << ": Volume size mismatch"
+                  << std::endl;
+        abort();
+      }
+
+      // Do the copies
+      cudaMemcpy3DParms copyParams = {0};
+      copyParams.srcPtr = this->d_x;
+      copyParams.dstPtr = dst.d_rx.d_data;
+      copyParams.extent = ExtentFromDims( this->dims );
+      copyParams.extent.width *= sizeof(float);
+      copyParams.kind = cudaMemcpyDeviceToDevice;
+      CUDA_SAFE_CALL( cudaMemcpy3D( &copyParams ) );
+
+      copyParams.srcPtr = this->d_y;
+      copyParams.dstPtr = dst.d_ry.d_data;
+      CUDA_SAFE_CALL( cudaMemcpy3D( &copyParams ) );
+
+      copyParams.srcPtr = this->d_z;
+      copyParams.dstPtr = dst.d_rz.d_data;
+      CUDA_SAFE_CALL( cudaMemcpy3D( &copyParams ) );
     }
 
   }
