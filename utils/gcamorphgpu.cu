@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/23 19:21:28 $
- *    $Revision: 1.48 $
+ *    $Date: 2011/02/11 19:12:55 $
+ *    $Revision: 1.49 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -319,6 +319,7 @@ namespace GPU {
       this->exp_k = src->exp_k;
       this->neg = src->neg;
       this->gca = src->gca;
+      this->spacing = src->spacing;
 
       // Extract the dimensions
       const dim3 dims = make_uint3( src->width,
@@ -494,6 +495,7 @@ namespace GPU {
       std::cerr << __FUNCTION__
 		<< ": Did not reset gca in dst"
 		<< std::endl;
+      dst->spacing = this->spacing;
 
       // Extract the dimensions
       const dim3 dims = this->d_rx.GetDims();

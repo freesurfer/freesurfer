@@ -10,8 +10,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/01/05 20:15:23 $
- *    $Revision: 1.7 $
+ *    $Date: 2011/02/11 19:12:50 $
+ *    $Revision: 1.8 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -139,7 +139,7 @@ namespace GPU {
 	This routine supplies the number of bytes required
 	by the current class.
       */
-      unsigned int nElements;
+      size_t nElements;
       
       nElements = this->dims.x * this->dims.y * this->dims.z;
       

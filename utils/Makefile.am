@@ -336,7 +336,8 @@ CUDA_DEPS = ../include/volumegpu.hpp\
             ../include/mrimean_cuda.hpp\
             ../include/gcamorphenergy.hpp\
             ../include/gcamorphtermgpu.hpp\
-            ../include/fixedmap.hpp
+            ../include/fixedmap.hpp\
+            ../include/vecvolgpu.hpp
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \
@@ -368,7 +369,8 @@ libutils_cuda_a_SOURCES=\
         gcamregisterpipeline_cuda.cu\
         mrilabels_cuda.cu\
         gcanodegpu.cu\
-        gcapriorgpu.cu
+        gcapriorgpu.cu\
+        vecvolgpu.cu
 
 libutils_cuda_a_CFLAGS=-DFS_CUDA $(CUDA_CFLAGS) $(CUDA_GCA_CFLAGS)
 

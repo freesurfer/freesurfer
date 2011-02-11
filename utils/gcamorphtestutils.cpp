@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/23 19:21:28 $
- *    $Revision: 1.27 $
+ *    $Date: 2011/02/11 19:12:55 $
+ *    $Revision: 1.28 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -50,6 +50,9 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
   std::cout << __FUNCTION__
 	    << ": Will not write out saved, saved2 and saved original positions"
 	    << std::endl;
+  std::cout << __FUNCTION__
+            << ": Will not write out spacing scalar value"
+            << std::endl;
   
   // Sanity check
   if( this->nVars != 24 ) {
@@ -61,7 +64,7 @@ GCAMorphUtils::GCAMorphUtils( void ) : varTypeMap(),
     exit( EXIT_FAILURE );
   }
   if( this->nScalars != 2 ) {
-    cerr << __FUNCTION__ << ": Invalid nDoubleScalars!" << endl;
+    cerr << __FUNCTION__ << ": Invalid nScalars!" << endl;
   }
   
   // Create the variable type map
