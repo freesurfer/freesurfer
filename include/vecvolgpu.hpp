@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 19:12:50 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/02/11 19:47:04 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -49,7 +49,7 @@ namespace GPU {
                                           x(d_x),
                                           y(d_y),
                                           z(d_z),
-                                          nxDim(mynx) {};
+                                          nxRow(mynx) {};
 
       // ----------------------------
 
@@ -153,9 +153,9 @@ namespace GPU {
         size_t nxVals = this->d_x.pitch / sizeof(float);
 
         VecVolArgGPU vvag( this->dims,
-                           this->d_x.ptr,
-                           this->d_y.ptr,
-                           this->d_z.ptr,
+                           static_cast<float *const>(this->d_x.ptr),
+                           static_cast<float *const>(this->d_y.ptr),
+                           static_cast<float *const>(this->d_z.ptr),
                            nxVals );
 
         return( vvag );
