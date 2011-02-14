@@ -30,6 +30,9 @@
 #include <string>
 #include <iostream>
 #include <fstream>
+#include <algorithm>
+#include <limits>
+#include <limits.h>
 #include <math.h>
 #include "mri.h"
 
