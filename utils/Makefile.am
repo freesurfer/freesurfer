@@ -224,7 +224,6 @@ libutils_main_SOURCES=\
 	xUndoList.c \
 	xUtilities.c \
 	xVoxel.c \
-	xmlToHtml.c \
 	znzlib.c \
 	fs_cost_function.cpp \
 	fs_lbfgs.cpp \
@@ -282,13 +281,11 @@ libutils_nrrdio_SOURCES=\
 	$(srcdir)/$(NrrdIO_dir)/parseNrrd.c \
 	$(srcdir)/$(NrrdIO_dir)/encoding.c \
 	$(srcdir)/$(NrrdIO_dir)/encodingGzip.c \
-	$(srcdir)/$(NrrdIO_dir)/qnanhibit.c \
 	$(srcdir)/$(NrrdIO_dir)/encodingHex.c \
 	$(srcdir)/$(NrrdIO_dir)/read.c \
 	$(srcdir)/$(NrrdIO_dir)/encodingRaw.c \
 	$(srcdir)/$(NrrdIO_dir)/reorder.c \
 	$(srcdir)/$(NrrdIO_dir)/endianAir.c \
-	$(srcdir)/$(NrrdIO_dir)/sampleIO.c \
 	$(srcdir)/$(NrrdIO_dir)/endianNrrd.c \
 	$(srcdir)/$(NrrdIO_dir)/sane.c \
 	$(srcdir)/$(NrrdIO_dir)/enum.c \
@@ -410,7 +407,7 @@ endif
 
 
 
-bin_PROGRAMS=gifti_tool gifti_test fsPrintHelp
+bin_PROGRAMS=gifti_tool gifti_test fsPrintHelp xmlToHtml
 
 gifti_tool_SOURCES=gifti_tool.c gifti_tool.h \
 	gifti_io.c gifti_xml.c nifti1_io.c znzlib.c
@@ -424,6 +421,9 @@ fsPrintHelp_SOURCES=fsPrintHelp.c
 fsPrintHelp_CFLAGS=-DBUILD_MAIN
 fsPrintHelp_LDADD=$(top_builddir)/xml2/libxml2.a -lz
 fsPrintHelp_LDFLAGS=$(OS_LDFLAGS)
+
+xmlToHtml_SOURCES=xmlToHtml.c
+xmlToHtml_LDADD=$(top_builddir)/xml2/libxml2.a -lz
 
 install-exec-hook:
 	cp $(DESTDIR)$(bindir)/fsPrintHelp $(DESTDIR)$(bindir)/fshelp

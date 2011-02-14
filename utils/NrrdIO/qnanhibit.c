@@ -26,6 +26,7 @@
 #include <float.h>
 #include <string.h>
 
+#ifdef BUILD_MAIN
 int
 main(int argc, char *argv[])
 {
@@ -50,3 +51,4 @@ main(int argc, char *argv[])
   printf("-DTEEM_QNANHIBIT=%d\n", (i >> 22) & 1);
   return (int)((i >> 22) & 1);
 }
+#endif

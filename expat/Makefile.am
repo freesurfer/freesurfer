@@ -17,7 +17,7 @@ libexpat_a_SOURCES=\
 	xmltok.c xmltok.h xmltok_impl.h \
 	nametab.h asciitab.h utf8tab.h iasciitab.h latin1tab.h \
 	xmlrole.c xmlrole.h \
-	xmlwf.c xmltchar.h \
+	xmltchar.h \
 	xmlfile.c xmlfile.h \
 	codepage.c codepage.h \
 	unixfilemap.c filemap.h \

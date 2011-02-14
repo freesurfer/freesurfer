@@ -24,6 +24,7 @@
 
 #include "NrrdIO.h"
 
+#ifdef BUILD_MAIN
 void
 demoIO(char *filename)
 {
@@ -115,3 +116,4 @@ main(int argc, char **argv)
 
   return 0;
 }
+#endif

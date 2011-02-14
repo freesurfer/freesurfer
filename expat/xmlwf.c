@@ -2,6 +2,8 @@
    See the file COPYING for copying permission.
 */
 
+#ifdef BUILD_MAIN
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -639,6 +641,7 @@ usage(const XML_Char *prog, int rc)
   exit(rc);
 }
 
+
 int
 tmain(int argc, XML_Char **argv)
 {
@@ -857,3 +860,4 @@ tmain(int argc, XML_Char **argv)
   }
   return 0;
 }
+#endif
