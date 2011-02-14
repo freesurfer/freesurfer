@@ -26,10 +26,10 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/02/07 22:26:00 $
-#    $Revision: 1.19 $
+#    $Date: 2011/02/14 18:48:51 $
+#    $Revision: 1.20 $
 #
-# Copyright (C) 2002-2008,
+# Copyright (C) 2002-2011,
 # The General Hospital Corporation (Boston, MA).
 # All rights reserved.
 #
@@ -39,11 +39,10 @@
 # https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
 #
 # General inquiries: freesurfer@nmr.mgh.harvard.edu
-# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.19 2011/02/07 22:26:00 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.20 2011/02/14 18:48:51 nicks Exp $';
 
 #set echo=1
 
@@ -93,14 +92,10 @@ endif
 #
 # Binaries needed:
 #
-set emreg=(mri_em_register)
-set careg=(mri_ca_register)
-set canorm=(mri_ca_normalize)
-set train=(mri_ca_train)
-$emreg  --all-info >>& $LF
-$careg  --all-info >>& $LF
-$canorm --all-info >>& $LF
-$train  --all-info >>& $LF
+mri_em_register  --all-info >>& $LF
+mri_ca_register  --all-info >>& $LF
+mri_ca_normalize --all-info >>& $LF
+mri_ca_train  --all-info >>& $LF
 echo "\n\n" >>& $LF
 ##########################################################################
 
@@ -119,6 +114,7 @@ set INPUTS=(${SEG_VOL} ${ORIG_VOL} ${MASK_VOL} ${T1_NONECK})
 set ALL_SUBJS=(${SUBJECTS} ${ONE_SUBJECT})
 foreach subject (${ALL_SUBJS}) # check for existence of required inputs
     foreach input (${INPUTS})
+        echo "Checking $subject $input ..."
         if ( ! -e ${SUBJECTS_DIR}/$subject/mri/$input ) then
             echo "Missing ${SUBJECTS_DIR}/$subject/mri/$input!"
             exit 1
@@ -169,19 +165,19 @@ if ("$1" == "2") goto stage2
 #
 # Normalize brains:
 #
-echo "$canorm each subject using its ${SEG_VOL}, producing ${T1_VOL}..."
+echo "mri_ca_normalize each subject using its ${SEG_VOL}, producing ${T1_VOL}..."
 foreach subject (${SUBJECTS})
     set mridir=(${SUBJECTS_DIR}/$subject/mri)
     if($RunIt & -e $mridir/${T1_VOL}) rm -f $mridir/${T1_VOL}
 
-    set cmd=($canorm -mask $mridir/${MASK_VOL})
+    set cmd=(mri_ca_normalize -mask $mridir/${MASK_VOL})
     set cmd=($cmd -seg $mridir/${SEG_VOL})
     set cmd=($cmd $mridir/${ORIG_VOL} noatlas noxform $mridir/${T1_VOL})
     echo $cmd >>& $LF
     if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 end
 echo "\n\n" >>& $LF
-# wait until $canorm has finished each subject
+# wait until mri_ca_normalize has finished each subject
 foreach subject (${SUBJECTS})
     set TEST = 0
     if ($RunIt) set TEST = 1
@@ -192,7 +188,7 @@ foreach subject (${SUBJECTS})
             sleep 30
         endif
     end
-    echo "\t...finished $canorm on subject $subject" >>& $LF
+    echo "\t...finished mri_ca_normalize on subject $subject" >>& $LF
 end
 ##########################################################################
 
@@ -215,8 +211,8 @@ else
     set MAN_TAL=
   endif
 endif
-echo "$train using one subject: $ONE_SUBJECT, producing ${GCA_ONE}..."
-set cmd=($train -prior_spacing 2 -node_spacing 8 -mask ${MASK_VOL})
+echo "mri_ca_train using one subject: $ONE_SUBJECT, producing ${GCA_ONE}..."
+set cmd=(mri_ca_train -prior_spacing 2 -node_spacing 8 -mask ${MASK_VOL})
 set cmd=($cmd -parc_dir ${SEG_VOL} ${MAN_TAL} -T1 ${T1_VOL} -check)
 set cmd=($cmd $ONE_SUBJECT ${GCA_ONE})
 echo $cmd >>& $LF
@@ -229,7 +225,7 @@ while($TEST)
     if(-e ${GCA_ONE}) set TEST = 0
     sleep 30
 end
-echo "\t...finished $train, produced $GCA_ONE" >>& $LF
+echo "\t...finished mri_ca_train, produced $GCA_ONE" >>& $LF
 ##########################################################################
 
 
@@ -238,14 +234,14 @@ echo "\t...finished $train, produced $GCA_ONE" >>& $LF
 #
 # EM_registration by GCA_ONE
 #
-echo "$emreg each subject to one-subj GCA, producing transforms/${LTA_ONE}..."
+echo "mri_em_register each subject to one-subj GCA, producing transforms/${LTA_ONE}..."
 foreach subject (${SUBJECTS})
     set mridir=(${SUBJECTS_DIR}/$subject/mri)
     mkdir -p $mridir/transforms
     set tdir=($mridir/transforms)
     if ( $RunIt & -e $tdir/${LTA_ONE} ) rm -f $tdir/${LTA_ONE}
 
-    set cmd=($emreg -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
+    set cmd=(mri_em_register -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${LTA_ONE})
 
 ##########################################################################
@@ -258,7 +254,8 @@ foreach subject (${SUBJECTS})
 #
     if ($RunIt &  -e $mridir/${T1_VOL} ) rm -f $mridir/${T1_VOL}
 
-    set cmd=($cmd; $canorm -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
+    set cmd=($cmd |& tee -a $mridir/mri_em_register.log)
+    set cmd=($cmd; mri_ca_normalize -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${LTA_ONE})
     set cmd=($cmd $mridir/${T1_VOL})
 
@@ -272,9 +269,11 @@ foreach subject (${SUBJECTS})
 #
     if ($RunIt &  -e  $mridir/transforms/${M3D_ONE}) rm -f $mridir/transforms/${M3D_ONE}
 
-    set cmd=($cmd; $careg -align-after -smooth 1.0 -levels 2 -mask $mridir/${MASK_VOL})
+    set cmd=($cmd |& tee -a $mridir/mri_ca_normalize.log)
+    set cmd=($cmd; mri_ca_register -align-after -smooth 1.0 -levels 2 -mask $mridir/${MASK_VOL})
     set cmd=($cmd -T $mridir/transforms/${LTA_ONE} $mridir/${T1_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${M3D_ONE})
+    set cmd=($cmd |& tee -a $mridir/mri_ca_register.log)
     echo $cmd >>& $LF
     if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 end
@@ -290,7 +289,7 @@ foreach subject (${SUBJECTS})
             sleep 30
         endif
     end
-    echo "\t...finished $careg on subject $subject" >>& $LF
+    echo "\t...finished mri_ca_register on subject $subject" >>& $LF
 end
 ##########################################################################
 
@@ -311,10 +310,11 @@ stage2:
 #
 if ($RunIt & -e ${GCA} ) rm -f ${GCA}
 
-echo "$train using all subjects, using ${M3D_ONE}, producing ${GCA}..."
-set cmd=($train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
+echo "mri_ca_train using all subjects, using ${M3D_ONE}, producing ${GCA}..."
+set cmd=(mri_ca_train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
 set cmd=($cmd -parc_dir ${SEG_VOL} -xform ${M3D_ONE} -T1 ${T1_VOL} -check)
 set cmd=($cmd ${SUBJECTS} ${GCA})
+set cmd=($cmd |& tee -a $mridir/mri_ca_train.log)
 echo $cmd >>& $LF
 if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 echo "\n\n" >>& $LF
@@ -325,7 +325,7 @@ while($TEST)
     if(-e ${GCA}) set TEST = 0
     sleep 30
 end
-echo "\t...finished $train, produced ${GCA}" >>& $LF
+echo "\t...finished mri_ca_train, produced ${GCA}" >>& $LF
 ##########################################################################
 
 
@@ -343,13 +343,13 @@ stage3:
 # REGISTER ALL BRAINS TO GCA
 # EM_registration by GCA
 #
-echo "$emreg each subject to GCA, producing transforms/${LTA}..."
+echo "mri_em_register each subject to GCA, producing transforms/${LTA}..."
 foreach subject (${SUBJECTS})
     set mridir=(${SUBJECTS_DIR}/$subject/mri)
     set tdir=($mridir/transforms)
     if ($RunIt & -e $tdir/${LTA} ) rm -f $tdir/${LTA}
 
-    set cmd=($emreg -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
+    set cmd=(mri_em_register -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA})
     set cmd=($cmd $mridir/transforms/${LTA})
 ##########################################################################
@@ -362,7 +362,8 @@ foreach subject (${SUBJECTS})
 #
     if ($RunIt &  -e $mridir/${T1_VOL} ) rm -f $mridir/${T1_VOL}
 
-    set cmd=($cmd ; $canorm -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
+    set cmd=($cmd |& tee -a $mridir/mri_em_register.log)
+    set cmd=($cmd ; mri_ca_normalize -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA} $mridir/transforms/${LTA})
     set cmd=($cmd $mridir/${T1_VOL})
 ##########################################################################
@@ -375,9 +376,11 @@ foreach subject (${SUBJECTS})
 #
     if ($RunIt & -e $mridir/transforms/${M3D} ) rm -f $mridir/transforms/${M3D}
 
-    set cmd=($cmd ; $careg -align-after -smooth 1.0 -mask $mridir/${MASK_VOL})
+    set cmd=($cmd |& tee -a $mridir/mri_ca_normalize.log)
+    set cmd=($cmd ; mri_ca_register -align-after -smooth 1.0 -mask $mridir/${MASK_VOL})
     set cmd=($cmd -T $mridir/transforms/${LTA} $mridir/${T1_VOL})
     set cmd=($cmd ${GCA} $mridir/transforms/${M3D})
+    set cmd=($cmd |& tee -a $mridir/mri_ca_register.log)
     echo $cmd >>& $LF
     if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 end
@@ -393,7 +396,7 @@ foreach subject (${SUBJECTS})
             sleep 30
         endif
     end
-    echo "\t...finished $careg on subject $subject" >>& $LF
+    echo "\t...finished mri_ca_register on subject $subject" >>& $LF
 end
 ##########################################################################
 
@@ -405,10 +408,11 @@ end
 #
 if ($RunIt) rm -f ${GCA}
 
-echo "$train, using ${M3D}, producing ${GCA}..."
-set cmd=($train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
+echo "mri_ca_train, using ${M3D}, producing ${GCA}..."
+set cmd=(mri_ca_train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
 set cmd=($cmd -parc_dir ${SEG_VOL} -xform ${M3D} -T1 ${T1_VOL})
 set cmd=($cmd ${SUBJECTS} ${GCA})
+set cmd=($cmd |& tee -a $mridir/mri_ca_train.log)
 echo $cmd >>& $LF
 if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 echo "\n\n" >>& $LF
@@ -419,14 +423,15 @@ while($TEST)
     if(-e ${GCA}) set TEST = 0
     sleep 30
 end
-echo "\t...finished $train, produced final $GCA" >>& $LF
+echo "\t...finished mri_ca_train, produced final $GCA" >>& $LF
 
 if ($RunIt) rm -f ${GCA_SKULL}
 
-echo "$train, using ${LTA}, producing ${GCA_SKULL}..."
-set cmd=($train -prior_spacing 2 -node_spacing 4)
+echo "mri_ca_train, using ${LTA}, producing ${GCA_SKULL}..."
+set cmd=(mri_ca_train -prior_spacing 2 -node_spacing 4)
 set cmd=($cmd -parc_dir ${SEG_VOL} -xform ${LTA} -T1 ${T1_NONECK})
 set cmd=($cmd ${SUBJECTS} ${GCA_SKULL})
+set cmd=($cmd |& tee -a $mridir/mri_ca_train.log)
 echo $cmd >>& $LF
 if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 echo "\n\n" >>& $LF
@@ -437,7 +442,7 @@ while($TEST)
     if(-e ${GCA_SKULL}) set TEST = 0
     sleep 30
 end
-echo "\t...finished $train, produced final $GCA_SKULL" >>& $LF
+echo "\t...finished mri_ca_train, produced final $GCA_SKULL" >>& $LF
 ##########################################################################
 
 echo "Finished `date`" >>& $LF
