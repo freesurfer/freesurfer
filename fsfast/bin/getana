@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/08/25 18:55:06 $
-#    $Revision: 1.4 $
+#    $Date: 2011/02/15 20:36:35 $
+#    $Revision: 1.5 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.4 2010/08/25 18:55:06 greve Exp $';
+set VERSION = '$Id: getana,v 1.5 2011/02/15 20:36:35 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -116,6 +116,17 @@ switch ($tag)
 
   case "TR":
     set result = `cat $info | awk '{if($1 == "TR") print $2}'`
+    breaksw;
+
+  case "ACFBins":
+  case "acfbins":
+    set result = `cat $info | awk '{if($1 == "acfbins") print $2}'`
+    breaksw;
+
+  case "whiten":
+    set ACFBins = `cat $info | awk '{if($1 == "acfbins") print $2}'`
+    if($ACFBins > 0)  set result = 1;
+    if($ACFBins == 0) set result = 0;
     breaksw;
 
   case "RawFWHM":
