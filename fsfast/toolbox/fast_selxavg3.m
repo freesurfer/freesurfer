@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.95 2010/12/02 19:16:11 greve Exp $
+% $Id: fast_selxavg3.m,v 1.96 2011/02/15 20:39:31 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/12/02 19:16:11 $
-%    $Revision: 1.95 $
+%    $Date: 2011/02/15 20:39:31 $
+%    $Revision: 1.96 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.95 2010/12/02 19:16:11 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.96 2011/02/15 20:39:31 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -60,7 +60,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.95 2010/12/02 19:16:11 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.96 2011/02/15 20:39:31 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -367,15 +367,14 @@ if(DoGLMFit)
 
     fprintf('    Global Mean %8.2f\n',flac.globalmean);
     gmean = gmean + flac.globalmean;
-    
     clear yrun;
     %pack; % not good with matlab 7.4
   end % loop over run
-  gmean = gmean/nruns;
+  gmean = gmean/length(nthrunlist);
   
   % Compute raw sfnr
-  rawbeta = rawbeta/nruns;
-  rawrvar = rawrvar/nruns;
+  rawbeta = rawbeta/length(nthrunlist);
+  rawrvar = rawrvar/length(nthrunlist);
   indtmp = find(rawrvar == 0);
   rawsfnr = rawbeta(1,:)./sqrt(rawrvar);
   rawsfnr(indtmp) = 0;
@@ -414,7 +413,7 @@ if(DoGLMFit)
   tic;
   rsse = 0;
   rho1 = mri; 
-  rho1.vol = zeros([mri.volsize nruns]);
+  rho1.vol = zeros([mri.volsize length(nthrunlist)]);
   ErrCovMtx = 0;
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
