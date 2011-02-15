@@ -26,8 +26,8 @@
 # Original author: Xiao Han
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/02/14 18:48:51 $
-#    $Revision: 1.20 $
+#    $Date: 2011/02/15 22:56:13 $
+#    $Revision: 1.21 $
 #
 # Copyright (C) 2002-2011,
 # The General Hospital Corporation (Boston, MA).
@@ -42,7 +42,7 @@
 #
 
 
-set VERSION='$Id: rebuild_gca_atlas.csh,v 1.20 2011/02/14 18:48:51 nicks Exp $';
+set VERSION='$Id: rebuild_gca_atlas.csh,v 1.21 2011/02/15 22:56:13 nicks Exp $';
 
 #set echo=1
 
@@ -254,7 +254,6 @@ foreach subject (${SUBJECTS})
 #
     if ($RunIt &  -e $mridir/${T1_VOL} ) rm -f $mridir/${T1_VOL}
 
-    set cmd=($cmd |& tee -a $mridir/mri_em_register.log)
     set cmd=($cmd; mri_ca_normalize -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${LTA_ONE})
     set cmd=($cmd $mridir/${T1_VOL})
@@ -269,11 +268,9 @@ foreach subject (${SUBJECTS})
 #
     if ($RunIt &  -e  $mridir/transforms/${M3D_ONE}) rm -f $mridir/transforms/${M3D_ONE}
 
-    set cmd=($cmd |& tee -a $mridir/mri_ca_normalize.log)
     set cmd=($cmd; mri_ca_register -align-after -smooth 1.0 -levels 2 -mask $mridir/${MASK_VOL})
     set cmd=($cmd -T $mridir/transforms/${LTA_ONE} $mridir/${T1_VOL})
     set cmd=($cmd ${GCA_ONE} $mridir/transforms/${M3D_ONE})
-    set cmd=($cmd |& tee -a $mridir/mri_ca_register.log)
     echo $cmd >>& $LF
     if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 end
@@ -314,7 +311,6 @@ echo "mri_ca_train using all subjects, using ${M3D_ONE}, producing ${GCA}..."
 set cmd=(mri_ca_train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
 set cmd=($cmd -parc_dir ${SEG_VOL} -xform ${M3D_ONE} -T1 ${T1_VOL} -check)
 set cmd=($cmd ${SUBJECTS} ${GCA})
-set cmd=($cmd |& tee -a $mridir/mri_ca_train.log)
 echo $cmd >>& $LF
 if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 echo "\n\n" >>& $LF
@@ -362,7 +358,6 @@ foreach subject (${SUBJECTS})
 #
     if ($RunIt &  -e $mridir/${T1_VOL} ) rm -f $mridir/${T1_VOL}
 
-    set cmd=($cmd |& tee -a $mridir/mri_em_register.log)
     set cmd=($cmd ; mri_ca_normalize -mask $mridir/${MASK_VOL} $mridir/${ORIG_VOL})
     set cmd=($cmd ${GCA} $mridir/transforms/${LTA})
     set cmd=($cmd $mridir/${T1_VOL})
@@ -376,11 +371,9 @@ foreach subject (${SUBJECTS})
 #
     if ($RunIt & -e $mridir/transforms/${M3D} ) rm -f $mridir/transforms/${M3D}
 
-    set cmd=($cmd |& tee -a $mridir/mri_ca_normalize.log)
     set cmd=($cmd ; mri_ca_register -align-after -smooth 1.0 -mask $mridir/${MASK_VOL})
     set cmd=($cmd -T $mridir/transforms/${LTA} $mridir/${T1_VOL})
     set cmd=($cmd ${GCA} $mridir/transforms/${M3D})
-    set cmd=($cmd |& tee -a $mridir/mri_ca_register.log)
     echo $cmd >>& $LF
     if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 end
@@ -412,7 +405,6 @@ echo "mri_ca_train, using ${M3D}, producing ${GCA}..."
 set cmd=(mri_ca_train -prior_spacing 2 -node_spacing 4 -mask ${MASK_VOL})
 set cmd=($cmd -parc_dir ${SEG_VOL} -xform ${M3D} -T1 ${T1_VOL})
 set cmd=($cmd ${SUBJECTS} ${GCA})
-set cmd=($cmd |& tee -a $mridir/mri_ca_train.log)
 echo $cmd >>& $LF
 if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 echo "\n\n" >>& $LF
@@ -431,7 +423,6 @@ echo "mri_ca_train, using ${LTA}, producing ${GCA_SKULL}..."
 set cmd=(mri_ca_train -prior_spacing 2 -node_spacing 4)
 set cmd=($cmd -parc_dir ${SEG_VOL} -xform ${LTA} -T1 ${T1_NONECK})
 set cmd=($cmd ${SUBJECTS} ${GCA_SKULL})
-set cmd=($cmd |& tee -a $mridir/mri_ca_train.log)
 echo $cmd >>& $LF
 if ($RunIt) pbsubmit ${PBCONF} -c "$cmd"
 echo "\n\n" >>& $LF
