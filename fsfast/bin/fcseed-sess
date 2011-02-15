@@ -1,14 +1,14 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-sess,v 1.8 2011/01/24 15:25:55 greve Exp $';
+set VERSION    = '$Id: fcseed-sess,v 1.9 2011/02/15 20:37:00 greve Exp $';
 set cmdargs = ($argv);
 
 set segstem    = "aparc+aseg"; 
 set segidlist  = ()
 set outfile = ();
 set rlf = ()
-set fsd = bold
+set fsd = ();
 set RegDOF = 6;
 set FillThresh = .5;
 set DoMean = 1;
@@ -357,6 +357,10 @@ check_params:
     echo "ERROR: no output specified"
     exit 1
   endif
+  if($#fsd == 0) then
+    echo "ERROR: you must specify a functional subdirectory (-fsd), eg, bold or rest"
+    exit 1
+  endif
   if($#segidlist == 0 && $#roicfg == 0) then
     echo "ERROR: no segmentations IDs (-segid) or ROI (-roi) specified"
     exit 1
@@ -411,7 +415,7 @@ usage_exit:
   echo "   -df srchdirfile "
   echo "   -s  sessid      "
   echo "   -d  srchdir     "
-  echo "   -fsd FSD "
+  echo "   -fsd FSD : rest or bold (required)"
   echo ""
   echo "   -m maskfile : output mask (no ext) for segmentation-based. Good for checking"
   echo "   -wm-erode N : erode WM mask by N anat voxels (default is $WMErode) "
