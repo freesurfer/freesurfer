@@ -14,8 +14,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/02/10 17:30:50 $
- *    $Revision: 1.33 $
+ *    $Date: 2011/02/15 20:24:55 $
+ *    $Revision: 1.34 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -522,6 +522,7 @@ bool MultiRegistration::computeTemplate(int itmax, double eps , int iterate, dou
       if (lastlta)
       {
         LTAchangeType(lastlta,LINEAR_RAS_TO_RAS); //measure dist in RAS coords
+        LTAchangeType(ltas[i],LINEAR_RAS_TO_RAS); //measure dist in RAS coords
         dists[i] = sqrt(MyMatrix::AffineTransDistSq(lastlta->xforms[0].m_L,
                                                 ltas[i]->xforms[0].m_L));
         LTAfree(&lastlta);
