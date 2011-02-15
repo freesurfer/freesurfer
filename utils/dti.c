@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:49 $
- *    $Revision: 1.25 $
+ *    $Author: greve $
+ *    $Date: 2011/02/15 19:45:09 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -26,7 +26,7 @@
  */
 
 
-// $Id: dti.c,v 1.25 2009/03/04 19:20:49 mreuter Exp $
+// $Id: dti.c,v 1.26 2011/02/15 19:45:09 greve Exp $
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@
 // Return the CVS version of this file.
 const char *DTIsrcVersion(void)
 {
-  return("$Id: dti.c,v 1.25 2009/03/04 19:20:49 mreuter Exp $");
+  return("$Id: dti.c,v 1.26 2011/02/15 19:45:09 greve Exp $");
 }
 /* --------------------------------------------- */
 int DTIfree(DTI **pdti)
@@ -132,19 +132,21 @@ int DTIloadGradients(DTI *dti, const char *GradFile)
   fsenv = FSENVgetenv();
 
   if (GradFile) dti->GradFile = strcpyalloc(GradFile);
-  if (dti->GradFile == NULL)
-  {
-    //sprintf(tmpstr,"%s/diffusion/graddir/gradient_mgh_dti%02d.gdt",
-    //fsenv->FREESURFER_HOME,dti->nDir);
+  if (dti->GradFile == NULL) {
     sprintf(tmpstr,"%s/diffusion/mgh-dti-seqpack/gradient_mgh_dti%02d.gdt",
             getenv("FREESURFER_HOME"),dti->nDir);
+    // If it does not exist, try using %d instead of %02d
+    fp = fopen(tmpstr,"r");
+    if(fp == NULL)
+      sprintf(tmpstr,"%s/diffusion/mgh-dti-seqpack/gradient_mgh_dti%0d.gdt",
+	      getenv("FREESURFER_HOME"),dti->nDir);
+    else fclose(fp);
     dti->GradFile = strcpyalloc(tmpstr);
     printf("GradFile %s\n",dti->GradFile);
   }
 
   fp = fopen(dti->GradFile,"r");
-  if (fp == NULL)
-  {
+  if (fp == NULL){
     printf("ERROR: cannot open %s\n",dti->GradFile);
     return(1);
   }
