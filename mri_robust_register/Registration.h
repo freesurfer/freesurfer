@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/26 22:30:23 $
- *    $Revision: 1.35 $
+ *    $Date: 2011/02/15 20:24:05 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -291,8 +291,9 @@ private:
   void findSatMultiRes(const vnl_matrix < double > &mi, double scaleinit );
 
   // gaussian pyramid:
-  std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int min = 16);
+  std::vector < MRI* > buildGaussianPyramid (MRI * mri_in, int min = 16, int max = -1);
   void freeGaussianPyramid(std::vector< MRI* >& p);
+  void saveGaussianPyramid(std::vector< MRI* >& p, const std::string & prefix);
 
   MRI * mri_weights;
   MRI * mri_hweights;
@@ -380,13 +381,13 @@ void Registration::iterativeRegistrationHelper( int nmax,double epsit, MRI * mri
 				MyMatrix::PolarDecomposition(A,R,S);
 				if (S[0][0] < 0.0 || S[1][1] < 0.0 || S[2][2] < 0.0)
 				  ErrorExit(ERROR_OUT_OF_BOUNDS, "Internal Error: Matrix Sqrt produced reflection.\n") ;
-        double eps = 0.0000001; // cannot be smaller due to scaling in ras2ras -> vox2vox conversion
+        double eps = 0.000001; // cannot be smaller due to scaling in ras2ras -> vox2vox conversion
 				
 				double fnorm1 = (S-I).frobenius_norm();
 				if (fnorm1 > eps)
 				{
 	        std::cerr << "Internal Error: " << std::endl;
-		      std::cerr << " Sqrt of Rotation should not scale ( "<< fnorm1 << " )" << std::endl;
+		      std::cerr << " Sqrt of Rotation should not scale ( fnorm(S-I) = "<< fnorm1 << " )" << std::endl;
 			    std::cerr << " Debug Info: " << std::endl;
           vnl_matlab_print(vcl_cerr,A,"A",vnl_matlab_print_format_long);std::cerr << std::endl;
           vnl_matlab_print(vcl_cerr,R,"R",vnl_matlab_print_format_long);std::cerr << std::endl;
