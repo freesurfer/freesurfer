@@ -191,6 +191,7 @@ FSF_FILES=\
 	plot-twf-sess \
 	ppcheck-sess \
 	preproc-sess \
+	prmerge-sess \
 	qmedit \
 	qsurfer \
 	rawavg-sess \
