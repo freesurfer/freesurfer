@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: mreuter $
- *    $Date: 2011/01/25 23:17:17 $
- *    $Revision: 1.64 $
+ *    $Date: 2011/02/15 21:46:18 $
+ *    $Revision: 1.65 $
  *
  * Copyright (C) 2008-2009
  * The General Hospital Corporation (Boston, MA).
@@ -720,15 +720,12 @@ void Registration::computeMultiresRegistration (int stopres, int n,double epsit)
 	gpT.resize(resolution);
 
 
-// debug : save pyramid
-//  for (uint i = 0;i<gpS.size();i++)
-//  {
-//   char fn[40];
-//   sprintf(fn, "pyramid-%d.mgz", i+1);
-//   MRIwrite(gpS[i],fn);
-//  }
+  if (debug)
+  {
+    saveGaussianPyramid(gpS, "pyramidS");
+    saveGaussianPyramid(gpT, "pyramidT");
+  }
 
-	//vnl_matrix_fixed <double, 4, 4> m; m.set_identity();
 
   // variables to store matrix m and scaling factor d:
   pair < vnl_matrix_fixed <double, 4, 4> , double > cmd;
@@ -2906,12 +2903,15 @@ pair < MATRIX*, double > Registration::convertP2MATRIXd(MATRIX* p)
 
 
 
-vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min)
+vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min, int max )
 // min: no dimension should get smaller than min voxels, default 16
 {
 
   if (verbose >0) cout << "   - Gaussian Pyramid " << endl;
 
+  // if max not passed allow pyramid to go up to highest resolution:
+  if (max == -1 ) max = mri_in->width + mri_in->height + mri_in->depth;
+  
 	int n=mri_in->depth; // choose n too large and adjust below
 	
   vector <MRI* > p (n);
@@ -2929,11 +2929,28 @@ vector < MRI* > Registration::buildGaussianPyramid (MRI * mri_in, int min)
   MRIFvox(mri_kernel, 3, 0, 0) =  0.25 ;
   MRIFvox(mri_kernel, 4, 0, 0) =  0.0625 ;
 
-  mri_tmp = mri_in;
    
 	// smooth high res:
   p[0] = MRIconvolveGaussian(mri_in, NULL, mri_kernel);
-	
+  mri_tmp = mri_in;
+  
+  // if max passed subsample until highest resolution is below max
+  if (max != -1 )
+  {
+  
+    // subsample if p[0] too large:
+    while (p[0]->width > max || p[0]->height > max || p[0]->depth > max)
+    {
+      //subsample:
+      mri_tmp = MRIconvolveGaussian(mri_tmp, NULL, mri_kernel) ;
+      MRIfree(&p[0]);
+      p[0] = MRIdownsample2(mri_tmp,NULL);
+      MRIfree(&mri_tmp);
+      mri_tmp = p[0];
+    
+    }
+	}
+  
 	//cout << " w[0]: " << p[0]->width << endl;
   int i;
   for (i = 1;i<n;i++)
@@ -2962,12 +2979,25 @@ void Registration::freeGaussianPyramid(vector< MRI* >& p)
   p.clear();
 }
 
+void Registration::saveGaussianPyramid(std::vector< MRI* >& p, const std::string & prefix)
+{
+  cout << "  Saving Pyramid " << prefix << endl;
+  std::string name;
+  for (uint i = 0;i<p.size();i++)
+  {
+    std::stringstream out;
+    out << i;
+    name = prefix+"-r"+out.str()+".mgz";
+    MRIwrite(p[i],name.c_str());
+  }
+}
+
 
 // ---------------------- Initial Transform using Moments -----------------------------
 
 vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *mriT)
 {
-  cout << "   - computing initial Transform\n" ;
+  cout << "   - computing centroids \n" ;
 
 // removed: do not trust RAS coordinates
 //  it can happen that SRC is outside of Target frame
@@ -2996,6 +3026,9 @@ vnl_matrix_fixed <double,4,4> Registration::initializeTransform(MRI *mriS, MRI *
 	}
 
   if (!inittransform) return myinit;
+
+  cout << "   - computing initial transform\n" ;
+
 
   //bool initorient = false; // do not use orientation (can be off due to different cropping)
   //bool initorient = true;
@@ -3192,6 +3225,9 @@ void Registration::setSourceAndTarget (MRI * s,MRI * t, bool keeptype)
   for (uint i = 0;i<3;i++)
 	  if (s_dim[i] < t_dim[i]) s_dim[i] = t_dim[i];
 
+  cout << "   Mov: (" << s->xsize << ", " << s->ysize << ", " << s->zsize << ")mm  and dim (" << s->width << ", " << s->height << ", " << s->depth << ")" <<endl;
+  cout << "   Dst: (" << t->xsize << ", " << t->ysize << ", " << t->zsize << ")mm  and dim (" << t->width << ", " << t->height << ", " << t->depth << ")" <<endl;
+
   cout << "   Asserting both images: " << isosize <<"mm isotropic and (" << s_dim[0] << ", " << s_dim[1] << ", " << s_dim[2] <<") voxels" <<endl;
 
   // source
@@ -3301,6 +3337,7 @@ void Registration::setName(const std::string &n)
 
 bool Registration::needReslice(MRI *mri,  double vsize, int xdim, int ydim, int zdim, bool keeptype)
 {
+  //cout << "Registration::needReslice(mri , "<< vsize << ", " << xdim << ", " << ydim << ", " << zdim << ", " << keeptype << ")" <<endl;
   // don't change type if keeptype or if already float:
   bool notypeconvert = (keeptype || mri->type == MRI_FLOAT);
 //	if (notypeconvert && verbose > 1) cout << "     - no TYPE conversion necessary" << endl;
@@ -3309,7 +3346,8 @@ bool Registration::needReslice(MRI *mri,  double vsize, int xdim, int ydim, int 
 	bool novoxconvert  = (vsize < 0 && mri->xsize == mri->ysize && mri->ysize == mri->zsize );
 //	if (novoxconvert && verbose > 1) cout << "     - no vsize and allready conform "<< mri->xsize << endl;
 	// if conform like vsize and no dims specified:
-	bool conformvsize = (mri->xsize == vsize && mri->ysize == vsize && mri->zsize== vsize);
+  double eps = 0.0001;
+	bool conformvsize = (fabs(mri->xsize - vsize)<eps && fabs(mri->ysize - vsize) <eps && fabs(mri->zsize- vsize) < eps);
 //	if (conformvsize && verbose > 1) cout << "     - allready conform to "<< vsize << endl;
 	novoxconvert = novoxconvert || (xdim < 0 && ydim < 0 && zdim < 0  && conformvsize);
 //	if (novoxconvert && verbose > 1) cout << "     - no voxel conversion necessary (dimensions not passed)" << endl;
