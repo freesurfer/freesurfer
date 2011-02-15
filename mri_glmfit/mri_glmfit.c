@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2010/07/26 15:54:16 $
- *    $Revision: 1.188 $
+ *    $Date: 2011/02/15 19:56:53 $
+ *    $Revision: 1.189 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA).
@@ -560,7 +560,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.188 2010/07/26 15:54:16 greve Exp $";
+"$Id: mri_glmfit.c,v 1.189 2011/02/15 19:56:53 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -584,7 +584,7 @@ int   nmask, nvoxels;
 float maskfraction, voxelsize;
 int   prunemask = 1;
 
-MRI *mritmp=NULL, *sig=NULL, *rstd, *fsnr;
+MRI *mritmp=NULL, *mritmp2=NULL, *sig=NULL, *rstd, *fsnr;
 
 int debug = 0, checkoptsonly = 0;
 char tmpstr[2000];
@@ -714,11 +714,15 @@ int  nSignList = 3, nthSign;
 int SignList[3] = {-1,0,1};
 CSD *csdList[5][3];
 
+int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
+MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
+MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex);
+
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs,n, m;
+  int nargs, n,m,nframesNew;
   int msecFitTime;
-  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL;
+  MATRIX *wvect=NULL, *Mtmp=NULL, *Xselfreg=NULL, *Ex=NULL, *XgNew=NULL;
   MATRIX *Ct, *CCt;
   FILE *fp;
   double Ccond, dtmp, threshadj;
@@ -957,8 +961,43 @@ int main(int argc, char **argv) {
     mriglm->Xg = MatrixConstVal(1.0,mriglm->y->nframes,1,NULL);
   }
 
-  if (! DontSave) {
-    if (GLMDir != NULL) {
+  // Randomly create frames to exclude
+  if(nRandExclude > 0){
+    ExcludeFrames = (int *) calloc(sizeof(int),nRandExclude);
+    Ex = MatrixConstVal(0,mriglm->y->nframes,1,NULL);
+    for(n=0; n<nRandExclude; n++) Ex->rptr[n+1][1] = 1;
+    MatrixRandPermRows(Ex);
+    nExclude = 0;
+    for(n=0; n<mriglm->y->nframes; n++){
+      if(Ex->rptr[n+1][1]){
+	ExcludeFrames[nExclude] = n;
+	nExclude++;
+      }
+    }
+    MatrixFree(&Ex);
+  }
+  // Exclude frames from both design matrix and data
+  if(ExcludeFrames){
+    sprintf(tmpstr,"%s/exclude-frames.dat",GLMDir);
+    fp = fopen(tmpstr,"w");
+    for(m=0; m<nExclude; m++) fprintf(fp,"%d\n",ExcludeFrames[m]);
+    fclose(fp);
+    nframesNew = mriglm->y->nframes - nExclude;
+    XgNew = MatrixExcludeFrames(mriglm->Xg, ExcludeFrames,nExclude);
+    MatrixFree(&mriglm->Xg);
+    mriglm->Xg = XgNew; 
+    mritmp = fMRIexcludeFrames(mriglm->y, ExcludeFrames,nExclude,NULL);
+    MRIfree(&mriglm->y);
+    mriglm->y = mritmp;
+    if(mriglm->w){
+      mritmp = fMRIexcludeFrames(mriglm->w, ExcludeFrames,nExclude,NULL);
+      MRIfree(&mriglm->w);
+      mriglm->w = mritmp;
+    }
+  }
+
+  if(! DontSave) {
+    if(GLMDir != NULL) {
       sprintf(tmpstr,"%s/Xg.dat",GLMDir);
       printf("Saving design matrix to %s\n",tmpstr);
       MatrixWriteTxt(tmpstr, mriglm->Xg);
@@ -2000,6 +2039,8 @@ static int parse_commandline(int argc, char **argv) {
     }
     else if (!strcasecmp(option, "--nii")) format = "nii";
     else if (!strcasecmp(option, "--nii.gz")) format = "nii.gz";
+    else if (!strcasecmp(option, "--mgh")) format = "mgh";
+    else if (!strcasecmp(option, "--mgz")) format = "mgz";
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
@@ -2050,7 +2091,8 @@ static int parse_commandline(int argc, char **argv) {
       sscanf(pargv[1],"%lf",&UniformMax);
       UseUniform = 1;
       nargsused = 2;
-    } else if (!strcasecmp(option, "--sim-sign")) {
+    } 
+    else if (!strcasecmp(option, "--sim-sign")) {
       // this applies only to t-tests
       if (nargc < 1) CMDargNErr(option,1);
       if (!strcmp(pargv[0],"abs"))      tSimSign = 0;
@@ -2061,7 +2103,13 @@ static int parse_commandline(int argc, char **argv) {
         exit(1);
       }
       nargsused = 1;
-    } else if (!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
+    } 
+    else if (!strcasecmp(option, "--rand-exclude")) {
+      if(nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%d",&nRandExclude);
+      nargsused = 1;
+    } 
+    else if (!strcmp(option, "--really-use-average7")) ReallyUseAverage7 = 1;
     else if (!strcasecmp(option, "--surf") || !strcasecmp(option, "--surface")) {
       if (nargc < 2) CMDargNErr(option,1);
       SUBJECTS_DIR = getenv("SUBJECTS_DIR");
@@ -3191,4 +3239,3 @@ int PrintStatTable(FILE *fp, STAT_TABLE *st)
   }
   return(0);
 }
-
