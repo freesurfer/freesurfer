@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/01/21 23:20:26 $
-#    $Revision: 1.9 $
+#    $Date: 2011/02/15 21:01:54 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -21,7 +21,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: funcroi-config,v 1.9 2011/01/21 23:20:26 greve Exp $';
+set VERSION = '$Id: funcroi-config,v 1.10 2011/02/15 21:01:54 greve Exp $';
 
 set roiconfig = ();
 set label = ();
@@ -272,9 +272,9 @@ check_params:
     endif
     if($#thresh && $#pct) then
       echo "ERROR: you cannot specify both -thresh and -pct"
-      exti 1;
+      exit 1;
     endif
-    if($#thresh == 0 && $pct == 0) then
+    if($#thresh == 0 && $#pct == 0) then
       echo "ERROR: must specify a threshold or percent with a contrast"
       exit 1;
     endif
