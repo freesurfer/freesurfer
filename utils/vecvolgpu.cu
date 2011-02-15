@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 20:23:00 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/02/15 14:32:00 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -173,7 +173,7 @@ namespace GPU {
 
 
     // ----
-
+#ifdef GCAMORPH_ON_GPU
     void VecVolGPU::CopyFromGCAmorphGPU( const GCAmorphGPU& src ) {
       /*!
         Copies the d_rx, d_ry and d_rz fields from a GCAmorphGPU
@@ -232,6 +232,7 @@ namespace GPU {
       copyParams.dstPtr = dst.d_rz.d_data;
       CUDA_SAFE_CALL( cudaMemcpy3D( &copyParams ) );
     }
+#endif
 
   }
 }

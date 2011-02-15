@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 20:22:54 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/02/15 14:31:56 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -205,12 +205,13 @@ namespace GPU {
                         float* const h_z ) const;
 
 
-
+#ifdef GCAMORPH_ON_GPU
       //! Copy data from a GCAmorphGPU
       void CopyFromGCAmorphGPU( const GCAmorphGPU& src );
 
       //! Send data to a GCAmorphGPU
       void CopyToGCAmorphGPU( GCAmorphGPU& dst ) const;
+#endif
 
     protected:
       //! Dimensions of the volume
