@@ -1,0 +1,296 @@
+#! /bin/csh -f
+
+#
+# prmerge-sess
+#
+# Original Author: Doug Greve
+# CVS Revision Info:
+#    $Author: greve $
+#    $Date: 2011/02/15 20:38:17 $
+#    $Revision: 1.1 $
+#
+# Copyright (C) 2002-2007,
+# The General Hospital Corporation (Boston, MA). 
+# All rights reserved.
+#
+# Distribution, usage and copying of this software is covered under the
+# terms found in the License Agreement file named 'COPYING' found in the
+# FreeSurfer source code root directory, and duplicated here:
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+#
+# General inquiries: freesurfer@nmr.mgh.harvard.edu
+# Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+#
+
+set VERSION = '$Id: prmerge-sess,v 1.1 2011/02/15 20:38:17 greve Exp $';
+set inputargs = ($argv);
+
+set analysis     = ();
+set nolog        = 0;
+set UpdateOnly = 0;
+set PrintHelp = 0;
+
+if($?FSF_OUTPUT_FORMAT) then
+  setenv FSF_OUTPUT_FORMAT nii
+endif
+
+## If there are no options, just print the usage ##
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e  -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;  
+  goto usage_exit;
+endif
+goto parse_args;
+parse_args_return:
+set SessList = `getsesspath $inputargs`;
+if($status || $#SessList == 0) then
+  getsesspath $inputargs 
+  echo "ERROR: cannot find any sessions"
+  exit 1;
+endif
+goto check_params;
+check_params_return:
+
+set ProjectDir = `pwd`;
+
+mkdir -p log
+set LF = log/prmerge-sess.log
+echo "prmerge-sess log file" >> $LF
+echo $VERSION >> $LF
+uname -a >> $LF
+date >> $LF
+pwd >> $LF
+echo UpdateOnly $UpdateOnly >> $LF 
+echo $0 $inputargs  >> $LF 
+
+set framefile = /tmp/tmp.prmerge-sess.$$
+
+## Loop through each session ##
+foreach sess ($SessList)
+  set sessid = `basename $sess`
+
+  set anadir = $sess/$fsd/$analysis
+  if(! -e $anadir) then
+    echo "ERROR: cannot find $anadir, you may need to run:"
+    echo "    selxavg3-sess -s $sess -a $analysis -per-run"
+    exit 1
+  endif
+
+  set RunList = `getrunlist $sess/$fsd $RunListFile`;
+  if($status) then
+    echo "$RunList" |& tee -a $LF
+    exit 1;
+  endif
+  set Run1 = $RunList[1];
+
+  # DOF
+  @ dof = 0;
+  foreach Run ($RunList)
+    set pranadir = $sess/$fsd/$analysis/pr$Run/
+    @ dof = $dof + `cat $pranadir/dof`
+  end 
+
+  # Ana Level Maps
+  set maplist = (rvar fsnr meanfunc )
+  if($Whiten) set maplist = ($maplist rho1mn.sm nrho1mn)
+  foreach map ($maplist)
+    set prmap = $anadir/pr.$map.$FSF_OUTPUT_FORMAT
+    set cmd = (mri_concat --o $prmap $anadir/pr???/$map.{nii,nii.gz,mgh,mgz})
+    echo $cmd
+    $cmd
+    if($status) exit 1;
+  end
+
+  # Contrasts
+  foreach Con ($conlist)
+    set ces = `stem2fname $sess/$fsd/$analysis/pr$Run1/$Con/ces`;
+    mri_info --nframes --o $framefile $ces
+    set nframes = (`cat $framefile`);
+    if($nframes != 1) continue;
+    set condir = $sess/$fsd/$analysis/$Con
+    mkdir -p $condir
+    foreach map (ces cesvar cespct cesvarpct sig t)
+      set prmap = $condir/pr.$map.$FSF_OUTPUT_FORMAT
+      set cmd = (mri_concat --o $prmap $anadir/pr???/$Con/$map.{nii,nii.gz,mgh,mgz})
+      echo $cmd
+      $cmd
+      if($status) exit 1;
+    end
+
+    # Perform analyese
+    set cespr    = $condir/pr.ces.$FSF_OUTPUT_FORMAT
+    set cesvarpr = $condir/pr.cesvar.$FSF_OUTPUT_FORMAT
+
+    set glmdir = $condir/osgm.ffx
+    set cmd = (mri_glmfit --y $cespr --yffxvar $cesvarpr --ffxdof $dof \
+      --glmdir $glmdir --osgm --$FSF_OUTPUT_FORMAT)
+    if($IsSurface) set cmd = ($cmd --surface $subject $hemi);
+    echo $cmd
+    $cmd
+    if($status) exit 1;
+
+    if($#RunList > 1) then
+      set glmdir = $condir/osgm.rfx
+      set cmd = (mri_glmfit --y $cespr --glmdir $glmdir --osgm --$FSF_OUTPUT_FORMAT)
+      if($IsSurface) set cmd = ($cmd --surface $subject $hemi);
+      echo $cmd
+      $cmd
+      if($status) exit 1;
+      set glmdir = $condir/osgm.wrfx
+      set cmd = (mri_glmfit --y $cespr --wls $cesvarpr \
+        --glmdir $glmdir --osgm --$FSF_OUTPUT_FORMAT)
+      if($IsSurface) set cmd = ($cmd --surface $subject $hemi);
+      echo $cmd
+      $cmd
+      if($status) exit 1;
+    endif
+
+  end  # contrasts
+
+end  # sessions
+
+
+rm -f $framefile
+
+
+date |& tee -a $LF
+echo "prmerge-sess completed " |& tee -a $LF
+
+exit 0;
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-a":
+      if ( $#argv == 0) goto arg1err;
+      set analysis = $argv[1]; shift;
+      if(! -e $analysis) then
+        echo "ERROR: cannot find $analysis"
+        exit 1;
+      endif
+      breaksw
+
+    case "-update":
+      set UpdateOnly = 1;
+      breaksw
+
+    case "-force":
+      set UpdateOnly = 0;
+      breaksw
+
+    case "-umask":
+      if ( $#argv == 0) goto arg1err;
+      umask $argv[1]; shift;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    case "-cwd":
+      breaksw
+
+    case "-s":
+    case "-sf":
+    case "-df":
+    case "-d":
+    case "-g":
+      shift;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#SessList == 0) then
+  echo "ERROR: no sessions specified" |& tee -a $LF
+  exit 1;
+endif
+
+if($#analysis == 0) then
+  echo "ERROR: must spec analysis"
+  exit 1;
+endif
+
+set conlist = (`getana -a $analysis -t contrasts`);
+set fsd     = (`getana -a $analysis -t fsd`);
+set Whiten  = (`getana -a $analysis -t whiten`);
+set RunListFile = (`getana -a $analysis -t rlf`);
+set IsSurface   = (`getana -a $analysis -t IsSurface`);
+set subject = ()
+set hemi = ()
+if($IsSurface) then
+  set hemi = (`getana -a $analysis -t hemi`);
+  set subject = (`getana -a $analysis -t subject`);
+endif
+
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo "USAGE: prmerge-sess"
+  echo ""
+  echo " -a analysis"
+  echo ""
+  echo " Session Arguments (some required)"
+  echo "  -sf sessidfile  ..."
+  echo "  -df srchdirfile ..."
+  echo "  -s  sessid      ..."
+  echo "  -d  srchdir     ..."
+  echo ""
+  echo ""
+#  echo "  -update : only run if update is needed"
+#  echo "  -force : force an update (default)"
+  echo ""
+  echo "  -version       : print version and exit"
+  echo "  -debug"
+  echo ""
+  if(! $PrintHelp ) exit 1;
+
+  echo " "
+  echo "$VERSION "
+  echo " "
+
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+For merging across runs when selxavg3-sess was run with the -per-run option.
