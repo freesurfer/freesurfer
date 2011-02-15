@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/01/28 18:49:50 $
-#    $Revision: 1.56 $
+#    $Date: 2011/02/15 22:46:51 $
+#    $Revision: 1.57 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.56 2011/01/28 18:49:50 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.57 2011/02/15 22:46:51 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -97,6 +97,41 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
+
+# If the output exists, check consistency with group
+set grouplistfile = $outtop/grouplist.txt 
+if( -e $grouplistfile) then
+  set grouplist = (`cat $grouplistfile`)
+  if($#grouplist != $#SessList) then
+    echo "ERROR: there is an inconsistency between the sessions already"
+    echo "processed in $outtop and the current list of sesssions."
+    echo "The previous group had $#grouplist sessions."
+    echo "The current group has $#SessList sessions."
+    echo "There are three things that you can do:"
+    echo "  1. Specify a different output directory for the new group"
+    echo "  2. Re-run with consistent group definition"
+    echo "  3. Delete the output directory and re-run"
+    exit 1;
+  endif
+  @ nth = 0
+  foreach sess ($SessList)
+    @ nth = $nth + 1
+    set newsessid = `basename $sess`;
+    set oldsessid = $grouplist[$nth];
+    if($newsessid != $oldsessid) then
+      echo "ERROR: there is an inconsistency between the sessions already"
+      echo "processed in $outtop and the current list of sessions."
+      echo "Session number $nth is $oldsessid in the previous analysis and "
+      echo "  $newsessid in the current analysis"
+      echo "There are three things that you can do:"
+      echo "  1. Specify a different output directory for the new group"
+      echo "  2. Re-run with consistent group definition"
+      echo "  3. Delete the output directory and re-run"
+      exit 1;
+    endif
+  end
+endif
+
 set outdir = $outtop/$analysis
 mkdir -p $outdir/log
 
@@ -124,9 +159,12 @@ set sesslistfile = $outdir/sessid.txt
 rm -f $sesslistfile
 set subjlistfile = $outdir/subjectlist.txt
 rm -f $subjlistfile
+set grouplistfiletmp = $outtop/grouplist.tmp.txt 
+rm -f $grouplistfiletmp
 @ DOF = 0;
 foreach sess ($SessList)
   set sessid = `basename $sess`;
+  echo $sessid >> $grouplistfiletmp
 
   set doffile = $sess/$fsd/$analysis/dof
   if(! -e $doffile) then
@@ -152,6 +190,8 @@ end
 set ffxdofdat = $outdir/ffxdof.dat
 echo $DOF > $ffxdofdat
 set sess0 = $sess[1];
+if(! -e $grouplistfile) cp $grouplistfiletmp $grouplistfile
+rm -f $grouplistfiletmp
 
 #-------------------------------------------------
 foreach hemi ($hemilist)
@@ -676,7 +716,7 @@ check_params:
     if($#GetHRF == 0) set GetHRF = `getana -a $analysis -t IsFIR`;
     if($GetHRF) set anamaplist = ($anamaplist h);
   endif
-  echo "DoResample $DoResample"
+  #echo "DoResample $DoResample"
 
   if($#flac) then
     set analysis = `basename $flac .flac`
