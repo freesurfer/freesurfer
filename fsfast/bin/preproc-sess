@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/01/10 17:05:35 $
-#    $Revision: 1.37 $
+#    $Date: 2011/02/15 22:24:59 $
+#    $Revision: 1.38 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.37 2011/01/10 17:05:35 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.38 2011/02/15 22:24:59 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -42,7 +42,7 @@ set UseSmoothMask = 0;
 set fwhm     = ();
 set surffwhm = ();
 set SliceOrder = ();
-set fsd     = bold;
+set fsd      = ();
 set mcrun    = ();
 set mctargstem = ();
 set mctargframe = ();
@@ -615,6 +615,12 @@ goto parse_args_return;
 ############--------------##################
 check_params:
   if($#instem == 0) set instem = "f";
+
+  if($#fsd == 0) then
+    echo "ERROR: you must specify a functional subdirectory with -fsd"
+    echo "       eg, -fsd bold or -fsd rest"
+    exit 1
+  endif
 
   if($DoMC || $DoReg) then
     if($PerRun == 0 && $PerSess == 0) then

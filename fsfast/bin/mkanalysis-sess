@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/01/18 17:08:03 $
-#    $Revision: 1.57 $
+#    $Date: 2011/02/15 22:27:12 $
+#    $Revision: 1.58 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.57 2011/01/18 17:08:03 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.58 2011/02/15 22:27:12 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -41,7 +41,7 @@ set ExpKey = ();
 set mcstem = ();
 set funcstem = ();
 set maskstem = brain;
-set fsd = bold;
+set fsd = ();
 set RunListFile = ();
 set NConditions = ();
 set PreStim = ();
@@ -573,6 +573,11 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
+  if($#fsd == 0) then
+    echo "ERROR: you must specify a functional subdirectory with -fsd"
+    echo "       eg, -fsd bold or -fsd rest"
+    exit 1
+  endif
   if($#analysis == 0) then
     echo "ERROR: must specify an analysis name"
     exit 1;
@@ -694,7 +699,8 @@ usage_exit:
   echo "  -native               : leave raw data in native functional space"
   echo "  -fwhm FWHMmm : spatially smooth input by FWHM (in mm) in proper space"
   echo "  -stc SliceOrder : slice-time correct using the name of the SliceOrder (default none)"
-  echo "  -reg-dof DOF : use given DOF when performing registration (default is $RegDOF)"
+  echo "  -reg-dof DOF    : use given DOF when performing registration (default is $RegDOF)"
+  echo "  -fsd FSD        : functional subdirectory (eg, bold)"
   echo ""
   echo "Basic Design Arguments"
   echo "  -event-related          : event-related or blocked design"
@@ -734,7 +740,6 @@ usage_exit:
   echo "   -fsv3-whiten   : perform whitening like FreeSurfer Version 3 (and -no-)"
   echo ""
   echo "Other Optional Arguments"
-  echo "  -fsd FSD              : functional subdirectory (default is bold)"
   echo "  -runlistfile filename : file with list of runs to include in analysis"
   echo "  -funcstem stem  : override default"
   echo "  -mask  maskid : use masks/maskid to compute autocor and whitening"
