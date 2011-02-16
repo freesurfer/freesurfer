@@ -325,16 +325,16 @@ endif
 
 G++FLAGS = -Wall -Wextra -Weffc++
 
-CUDA_DEPS = ../include/volumegpu.hpp\
-            ../include/volumegpu_impl.hpp\
-            ../include/mriframegpu.hpp\
-            ../include/gcamorphgpu.hpp\
-            ../include/mriconvolve_cuda.hpp\
-            ../include/mrimean_cuda.hpp\
-            ../include/gcamorphenergy.hpp\
-            ../include/gcamorphtermgpu.hpp\
-            ../include/fixedmap.hpp\
-            ../include/vecvolgpu.hpp
+CUDA_DEPS = $(top_srcdir)/include/volumegpu.hpp\
+            $(top_srcdir)/include/volumegpu_impl.hpp\
+            $(top_srcdir)/include/mriframegpu.hpp\
+            $(top_srcdir)/include/gcamorphgpu.hpp\
+            $(top_srcdir)/include/mriconvolve_cuda.hpp\
+            $(top_srcdir)/include/mrimean_cuda.hpp\
+            $(top_srcdir)/include/gcamorphenergy.hpp\
+            $(top_srcdir)/include/gcamorphtermgpu.hpp\
+            $(top_srcdir)/include/fixedmap.hpp\
+            $(top_srcdir)/include/vecvolgpu.hpp
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \
@@ -378,14 +378,14 @@ mrimean_cuda.o: $(CUDA_DEPS)
 mrivol2vol_cuda.o: $(CUDA_DEPS)
 affinegpu.o: $(CUDA_DEPS)
 gcasgpu.o: $(CUDA_DEPS)
-gcamorphgpu.o: $(CUDA_DEPS) ../include/volumegpucompare.hpp
-cudatypeutils.o: ../include/cudatypeutils.hpp
+gcamorphgpu.o: $(CUDA_DEPS) $(top_srcdir)/include/volumegpucompare.hpp
+cudatypeutils.o: $(top_srcdir)/include/cudatypeutils.hpp
 gcamorphenergygpu.o: $(CUDA_DEPS)
-gcamorphtermgpu.o: $(CUDA_DEPS)  ../include/volumecpu.hpp
-gcamorphcpu.o: ../include/gcamorphcpu.hpp $(CUDA_DEPS)
-mrilabels_cuda.o: $(CUDA_DEPS) ../include/mrilabels_cuda.hpp
-gcanodegpu.o: $(CUDA_DEPS) ../include/gcanodegpu.hpp ../include/gcalinearnode.hpp
-gcapriorgpu.o: $(CUDA_DEPS) ../include/gcapriorgpu.hpp ../include/gcalinearprior.hpp
+gcamorphtermgpu.o: $(CUDA_DEPS)  $(top_srcdir)/include/volumecpu.hpp
+gcamorphcpu.o: $(top_srcdir)/include/gcamorphcpu.hpp $(CUDA_DEPS)
+mrilabels_cuda.o: $(CUDA_DEPS) $(top_srcdir)/include/mrilabels_cuda.hpp
+gcanodegpu.o: $(CUDA_DEPS) $(top_srcdir)/include/gcanodegpu.hpp $(top_srcdir)/include/gcalinearnode.hpp
+gcapriorgpu.o: $(CUDA_DEPS) $(top_srcdir)/include/gcapriorgpu.hpp $(top_srcdir)/include/gcalinearprior.hpp
 
 CALLDEPTH ?= -1
 
