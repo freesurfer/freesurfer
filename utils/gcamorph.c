@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/10 19:17:28 $
- *    $Revision: 1.237 $
+ *    $Date: 2011/02/16 19:57:41 $
+ *    $Revision: 1.238 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -16703,6 +16703,10 @@ GCAMMSgibbsImageLogPosterior(GCAM_MS *gcam_ms, MRI *mri_labels, MRI *mri_inputs,
   }
   return(total_log_posterior) ;
 }
+
+#define GCAM_REMOVE_SINGULARITIES_OUTPUT 0
+
+
 int
 GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
 {
@@ -16711,6 +16715,23 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
   double          dx, dy, dz, max_nbhd ;
   GCA_MORPH_NODE  *gcamn ;
   MRI             *mri_warp_tmp = NULL ;
+
+
+#if GCAM_REMOVE_SINGULARITIES_OUTPUT
+  const unsigned int outputFreq = 10;
+  static unsigned int nCalls = 0;
+
+  if( (nCalls%outputFreq)==0 ) {
+    char fname[STRLEN];
+    const unsigned int nOut = nCalls/outputFreq;
+    
+    snprintf( fname, STRLEN-1, "gcamRemoveSingularitiesInput%04u", nOut );
+    fname[STRLEN-1] = '\0';
+    WriteGCAMoneInput( gcam, fname );
+  }
+
+  nCalls++;
+#endif
 
   wsize = 2*gcam->spacing+1 ; wsize = 3 ;
   GCAMreadWarpFromMRI(gcam, mri_warp) ;
