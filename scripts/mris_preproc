@@ -10,9 +10,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2010/10/21 19:15:05 $
-#    $Revision: 1.57 $
+#    $Author: mreuter $
+#    $Date: 2011/02/16 22:15:53 $
+#    $Revision: 1.58 $
 #
 # Copyright (C) 2002-2009,
 # The General Hospital Corporation (Boston, MA).
@@ -30,7 +30,7 @@
 #
 setenv FIX_VERTEX_AREA
 
-set VERSION = '$Id: mris_preproc,v 1.57 2010/10/21 19:15:05 greve Exp $';
+set VERSION = '$Id: mris_preproc,v 1.58 2011/02/16 22:15:53 mreuter Exp $';
 
 set PrintHelp = 0;
 set subjlist = ();
@@ -1162,7 +1162,7 @@ if any individual is 0.
 --paired-diff-norm
 
 Same as --paired-diff, but normalizes by average of time points, ie,
-(Input1-Input2)/((Input1-Input2)/2).
+(Input1-Input2)/((Input1+Input2)/2).
 
 --paired-diff-norm1
 
