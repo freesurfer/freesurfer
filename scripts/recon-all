@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/02/16 17:20:16 $
-#    $Revision: 1.361 $
+#    $Author: mreuter $
+#    $Date: 2011/02/17 16:47:36 $
+#    $Revision: 1.362 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.361 2011/02/16 17:20:16 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.362 2011/02/17 16:47:36 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -500,37 +500,6 @@ echo "#######################################" >> $LF
 skip_all_info:
 
 if($DoVersionsOnly) exit 0;
-
-
-# ------------ Sanity Checks (base and long) --------- #
-
-if ( -e $subjdir/$BaseSubjsListFname ) then
-  # we are processing a base subject, make sure -base etc is passed
-  if ( ! $DoCreateBaseSubj  )  then 
-    echo ""
-    echo "ERROR: It appears that this subject id is an existing"
-    echo "       base/template from longitudinal processing."
-    echo "       Please make sure you pass all necessary flags: "
-    echo "       ( -base <templateid> -tp <tpNid> ... )!"
-    echo ""
-    exit 1;
-  endif
-endif
-
-# if $tpNid contains .long.
-set haslong = `echo $tpNid | grep ".long."`
-if ( "$haslong" == "$tpNid" ) then
-    echo ""
-    echo "ERROR: The subject id may not contain .long. as this is reserved"
-    echo "       for a longitudinal run. If you are trying to rerun a"
-    echo "       longitudinal, please specify all necessary parameters: "
-    echo "       ( -long  <tpNid> <templateid> )!"
-    echo ""
-    exit 1;
-  endif
-endif
-
-
 
 # Delete the error file. This is created when error_exit is run.
 set ErrorFile = $subjdir/scripts/recon-all.error
@@ -5149,13 +5118,52 @@ check_params:
 
     #------------ Longitudinal -----------------------------------#
     if($longitudinal) then
-      if($#longbaseid != 1) then
-        echo "ERROR: must specify a subject id for the long-base subject"
+    
+      # assert that $tpNid does not contain .long.
+      set haslong = `echo $tpNid | grep "\.long\."`
+      if ( "$haslong" != "" ) then
+        echo ""
+        echo "ERROR: The <tpNid> may not contain .long. as this is reserved"
+        echo "       for the output in the longitudinal stream. Please specify"
+        echo "       the cross sectional directory of this time point as <tpNid>:"
+        echo "       ( -long  <tpNid> <templateid> )!"
+        echo ""
         exit 1;
       endif
+      
+      #make sure cross sectional tpNid exists:
+      if ( ! -e ${SUBJECTS_DIR}/${tpNid} ) then
+        echo ""
+        echo "ERROR: Cross sectional tpNid: ${SUBJECTS_DIR}/${tpNid}"
+        echo "       does not exist!"
+        echo ""
+        exit 1;
+      endif
+      
+      # check if base/template specified
+      if($#longbaseid != 1) then
+        echo ""
+        echo "ERROR: must specify the templateID for the subject template/base:"
+        echo "       ( -long  <tpNid> <templateid> )!"
+        echo ""
+        exit 1;
+      endif
+      
+      # Error if longbaseid contains .long.
+      set haslong = `echo $longbaseid | grep "\.long\."`
+      if ( "$haslong" != "" ) then
+        echo ""
+        echo "ERROR: The <templateid> may not contain .long. (reserved for"
+        echo "       a longitudinal time point). Please specify a different"
+        echo "       <templateid> for the subject template to be created:"
+        echo "       ( -long  <tpNid> <templateid> )!"
+        echo ""
+        exit 1;
+      endif
+      
       set longbasedir = $SUBJECTS_DIR/$longbaseid
       if(! -e $longbasedir) then
-        echo "ERROR: cannot find $longbasedir"
+        echo "ERROR: cannot find base/template dir: $longbasedir"
         exit 1;
       endif
       if ( ! -e ${longbasedir}/${BaseSubjsListFname}) then
@@ -5177,7 +5185,37 @@ check_params:
           exit 1
         endif
       endif
+      
+    else # ================= if cross run or base ==========================    
+
+      # make sure $subjid does not contain .long. 
+      set haslong = `echo $subjid | grep "\.long\."`
+      if ( "$haslong" != "" ) then
+        echo ""
+        echo "ERROR: The subject id may not contain .long. as this is reserved"
+        echo "       for a longitudinal run. If you are trying to rerun a"
+        echo "       longitudinal, please specify all necessary parameters: "
+        echo "       ( -long  <tpNid> <templateid> )!"
+        echo ""
+        exit 1;
+      endif
+         
     endif
+    
+    # error if base subject is run as a regular subject:
+    if ( ! $DoCreateBaseSubj  )  then 
+      if ( -e $subjdir/$BaseSubjsListFname ) then
+        echo ""
+        echo "ERROR: It appears that this subject id is an existing"
+        echo "       base/template from longitudinal processing."
+        echo "       Please make sure you pass all necessary flags: "
+        echo "       ( -base <templateid> -tp <tpNid> ... )!"
+        echo ""
+        exit 1;
+      endif
+    endif
+
+    
 
     #----------------------------------------------------------------#
     if(($#InputList == 0) && (! $DoCreateBaseSubj)) then
