@@ -51,6 +51,7 @@ fname2ext \
 fname2stem \
 fscalc \
 fscalc.fsl \
+fsgd_parser.py \
 fsl_sub_seychelles \
 fsutils.py \
 stem2fname \
