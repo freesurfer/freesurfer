@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # meanval
 
-set VERSION = '$Id: meanval,v 1.2 2010/07/23 22:52:47 greve Exp $';
+set VERSION = '$Id: meanval,v 1.3 2011/02/17 19:55:08 greve Exp $';
 
 set meanval = ();
 set avgwf = ();
@@ -38,7 +38,7 @@ pushd $outdir > /dev/null
 set outdir = `pwd`;
 popd > /dev/null
 
-if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.meanval
+if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.meanval.$$
 mkdir -p $tmpdir
 
 if($#LF == 0) set LF = $tmpdir/meanval.log
