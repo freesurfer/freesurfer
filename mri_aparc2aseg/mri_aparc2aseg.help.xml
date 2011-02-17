@@ -40,7 +40,7 @@ Note: The volumes of the cortical labels will be different than reported by mris
       <explanation>Name of the subject as found in the SUBJECTS_DIR.</explanation>
       <argument>--o volfile</argument>
       <explanation>Full path of file to save the output segmentation in. Default is mri/aparc+aseg.mgz</explanation>
-      <argument>--ribbon</argument>
+      <argument>--old-ribbon</argument>
       <explanation>use mri/hemi.ribbon.mgz as a mask for the cortex</explanation>
       <argument>--new-ribbon</argument>
       <explanation>Mask cortical voxels with mri/ribbon.mgz. Same as --volmask</explanation>
