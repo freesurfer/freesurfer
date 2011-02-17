@@ -57,6 +57,7 @@ mfiles_DATA=\
 	MRIread.m \
 	MRIseg2labelxyz.m \
 	MRIsegReg.m \
+        mri_surfrft_jlbr.m \
 	MRIvol2vol.m \
 	MRIvote.m \
 	MRIwrite.m \
