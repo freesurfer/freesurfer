@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2009/06/10 18:59:24 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/02/17 16:08:06 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2009,
  * The General Hospital Corporation (Boston, MA).
@@ -69,6 +69,7 @@ static MRI *MRIfuseSegmentations(MRI *mri_in,
                                  double std) ;
 
 #define MAX_VOLUMES 1000
+static int use_identity = 0 ;
 int
 main(int argc, char *argv[])
 {
@@ -86,7 +87,7 @@ main(int argc, char *argv[])
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_fuse_segmentations.c,v 1.6 2009/06/10 18:59:24 fischl Exp $",
+     "$Id: mri_fuse_segmentations.c,v 1.7 2011/02/17 16:08:06 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -152,12 +153,17 @@ main(int argc, char *argv[])
       ErrorExit(ERROR_NOFILE,
                 "%s: could not read input volume %s", Progname, fname) ;
 
-    sprintf(fname, "%s/%s/mri/transforms/%s_to_%s.lta",
-            sdir, subject, argv[i+2], subject) ;
-    xforms[i] = LTAread(fname) ;
-    if (xforms[i] == NULL)
-      ErrorExit(ERROR_NOFILE,
-                "%s: could not read input transform %s", Progname, fname) ;
+    if (use_identity)
+      xforms[i] = LTAalloc(1, NULL) ;
+    else
+    {
+      sprintf(fname, "%s/%s/mri/transforms/%s_to_%s.lta",
+              sdir, subject, argv[i+2], subject) ;
+      xforms[i] = LTAread(fname) ;
+      if (xforms[i] == NULL)
+        ErrorExit(ERROR_NOFILE,
+                  "%s: could not read input transform %s", Progname, fname) ;
+    }
   }
 
   printf("fusing...\n");
@@ -214,6 +220,11 @@ static int get_option(int argc, char *argv[])
     Gz = atoi(argv[4]) ;
     printf("debugging voxel (%d, %d, %d)\n", Gx, Gy, Gz) ;
     nargs = 3 ;
+  }
+  else if (!stricmp(option, "identity"))
+  {
+    use_identity = 1 ;
+    printf("using identity matrix as xform\n") ;
   }
   else switch (toupper(*option))
     {
