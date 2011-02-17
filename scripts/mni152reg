@@ -1,12 +1,12 @@
 #!/bin/tcsh -f
 # mni152reg
 
-set VERSION = '$Id: mni152reg,v 1.1 2010/02/25 03:16:48 greve Exp $';
+set VERSION = '$Id: mni152reg,v 1.2 2011/02/17 19:56:51 greve Exp $';
 
 set subject = ();
 set res = 2;
+set outreg = ();
 
-set tmpdir = ();
 set cleanup = 1;
 set LF = ();
 
@@ -44,9 +44,9 @@ echo $0 $inputargs | tee -a $LF
 echo "" | tee -a $LF
 uname -a  | tee -a $LF
 
-set mni152reg = $sd/mri/transforms/reg.mni152.$res"mm.dat"
+if($#outreg == 0 ) set outreg = $sd/mri/transforms/reg.mni152.$res"mm.dat"
 
-set cmd = (fslregister --mov $mni152 --s $subject --reg $mni152reg --dof 12)
+set cmd = (fslregister --mov $mni152 --s $subject --reg $outreg --dof 12)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
@@ -67,6 +67,11 @@ while( $#argv != 0 )
     case "--s":
       if($#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set outreg = $argv[1]; shift;
       breaksw
 
     case "--1":
