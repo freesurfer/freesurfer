@@ -129,6 +129,8 @@
       <explanation>save initial reg</explanation>
       <argument>--spm-nii</argument>
       <explanation>Use NIFTI format as input to SPM when using --init-spm (spmregister). Ordinarily, it uses ANALYZE images to be compatible with older versions of SPM, but this has caused some left-right reversals in SPM8.</explanation>
+      <argument>--feat featdir</argument>
+      <explanation>FSL FEAT directory. Sets mov to featdir/example_func, uses --init-fsl, --bold, sets reg to featdir/reg/freesurfer/anat2exf.register.dat. This replaces reg-feat2anat.</explanation>
       <argument>--tmp tmpdir</argument>
       <explanation>temporary dir (implies --nocleanup)</explanation>
       <argument>--nocleanup</argument>

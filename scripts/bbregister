@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/02/09 22:29:28 $
-#    $Revision: 1.44 $
+#    $Author: greve $
+#    $Date: 2011/02/17 20:05:02 $
+#    $Revision: 1.45 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.44 2011/02/09 22:29:28 nicks Exp $';
+set VERSION = '$Id: bbregister,v 1.45 2011/02/17 20:05:02 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -44,6 +44,7 @@ set Brute1Delta = 4;
 set SubSamp1 = 100;
 set DoAbs = 0;
 set SaveCurReg = 1;
+set featdir = ();
 
 set LHOnly = 0;
 set RHOnly = 0;
@@ -273,6 +274,15 @@ if($#outfsl) then
   if($status) exit 1;
 endif
 
+if($#featdir) then
+  cp $outreg $featdir/reg/freesurfer/register.dat
+  set reg152 = $featdir/reg/freesurfer/anat2std.register.dat
+  set cmd = (mni152reg --s $subject --o $reg152)
+  echo $cmd | tee -a $LF
+  $cmd | tee -a $LF
+  if($status) exit 1;
+endif
+
 # Cleanup
 if($cleanup) then
   echo "Cleaning up" |& tee -a $LF
@@ -323,6 +333,28 @@ while( $#argv != 0 )
     case "--s":
       if ( $#argv < 1) goto arg1err;
       set subject = $argv[1]; shift;
+      breaksw
+
+    case "--feat":
+      if ( $#argv < 1) goto arg1err;
+      set featdir = $argv[1]; shift;
+      if(! -e $featdir) then
+        echo "ERROR: cannot find $featdir"
+        exit 1;
+      endif
+      set movvol = `stem2fname $featdir/example_func`
+      if($status) then
+        echo "$movvol"
+        exit 1;
+      endif
+      mkdir -p $featdir/reg/freesurfer
+      if($status) exit 1;
+      set outreg = $featdir/reg/freesurfer/anat2exf.register.dat
+      set InitFSL = 1;
+      set InitSPM = 0;
+      set InitHeader = 0;
+      set InitReg = ();
+      set Contrast = +1;
       breaksw
 
     case "--s-from-reg":
