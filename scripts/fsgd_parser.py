@@ -1,22 +1,11 @@
 # Original author - Martin Reuter
-# $Id: fsgd_parser.py,v 1.1 2011/02/17 22:39:36 mreuter Exp $
+# $Id: fsgd_parser.py,v 1.2 2011/02/17 23:10:39 mreuter Exp $
 import os
 import logging
+import sys
 #from misc import *
 #from subject_info import *
 from datastruct_utils import *
-
-## logging for both stats2table
-#
-#ch = logging.StreamHandler()
-##create logger
-#aseglogger = logging.getLogger("asegstats2table")
-#aseglogger.setLevel(logging.INFO)
-#aseglogger.addHandler(ch)
-#
-#aparclogger = logging.getLogger("aparcstats2table")
-#aparclogger.setLevel(logging.INFO)
-#aparclogger.addHandler(ch)
 
 class BadFileError(Exception):
     def __init__(self, filename):
@@ -60,17 +49,31 @@ class FsgdParser:
                     self.variables= strlst[1:]
                    
                 if strlst[0].upper() == 'INPUT':
-                    # check if key exists
+                    # check if class exists
                     key = strlst[2]
                     tp  = strlst[1]
                     if not key in self.subjects_tp_map:
-                        print 'ERROR: Subject {0} was not defined as "Class"!'.format(key)
+                        print 'ERROR: Subject \''+key+'\' was not defined as "Class"!'
                         sys.exit(1)
+                    # check if time point already exists:
+                    for tpdata in self.subjects_tp_map[key]:
+                        if tpdata[0] == tp:
+                            print 'ERROR: Multiple occurence of \''+tp+'\' in '+key+'!'
+                            sys.exit(1)
                     # append tp and data to this subject
-                    self.subjects_tp_map[key].append([ tp ] + strlst[3:]  );                 
+                    self.subjects_tp_map[key].append([ tp ] + strlst[3:]  )
                     
                 if strlst[0].upper() == 'DEFAULTVARIABLE':
                     self.defaultvar = strlst[1]
+                    
+        if not self.defaultvar == '':
+            index=-1
+            for index in (i for i in xrange(len(self.variables)) if self.variables[i].upper()==self.defaultvar.upper()):
+                break
+            if index == -1 or not self.variables[index].upper()==self.defaultvar.upper():
+                print 'ERROR: DefaultVariable \''+str(self.defaultvar)+'\' not found in Variables: '+str(self.variables)
+                sys.exit(1)
+
 
 
         # return
