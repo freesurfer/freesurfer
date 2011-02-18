@@ -7,6 +7,10 @@
 #include <fstream>
 using namespace std;
 
+#ifdef TRAP_NAN
+#include <fenv.h>
+#endif
+
 #include <boost/program_options.hpp>
 namespace bpo = boost::program_options;
 
@@ -32,6 +36,9 @@ const string outFileDefault = "cpuOutput";
 #endif
 
 
+const int spacingDefault = 1;
+int spacing;
+
 string inFilename;
 string outFilename;
 
@@ -51,6 +58,7 @@ void ReadCommandLine( int ac, char* av[] ) {
       ("help", "Produce help message" )
       ("input", bpo::value<string>(&inFilename)->default_value(inFileDefault), "Input gcam filename (.nc will be appended)" )
       ("output", bpo::value<string>(&outFilename)->default_value(outFileDefault), "Output filename (.nc will be appended)" )
+      ("spacing", bpo::value<int>(&spacing)->default_value(spacingDefault), "Spacing value in gcam" )
       ;
 
     
@@ -82,6 +90,10 @@ int main( int argc, char *argv[] ) {
   SciGPU::Utilities::Chronometer tTotal;
   GCAMorphUtils myUtils;
 
+#ifdef TRAP_NAN
+  feenableexcept( FE_INVALID );
+#endif
+
   cout << "GCAM Remove Singularities Tester" << endl;
   cout << "================================" << endl << endl;
 
@@ -104,6 +116,8 @@ int main( int argc, char *argv[] ) {
   // ============================================
   // Perform the calculation
   
+  gcam->spacing = spacing;
+
   tTotal.Start();
 #ifdef FS_CUDA
 #ifdef GCAMORPH_ON_GPU
