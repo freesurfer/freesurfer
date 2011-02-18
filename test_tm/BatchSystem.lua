@@ -12,6 +12,7 @@ BatchSystems = {
                #PBS -M rge21@nmr.mgh.harvard.edu
                #PBS -m a
                cd $PBS_O_WORKDIR
+               echo $HOSTNAME
          ]],
          maxCoresPerNode = 8,
       },
