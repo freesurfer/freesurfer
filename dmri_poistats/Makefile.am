@@ -4,6 +4,7 @@
 
 #itk is required for building poistats
 # add ITK
+if ! HAVE_MAC_OSX
 if HAVE_ITK_LIBS
 
 ITK_THINGS=$(ITK_CFLAGS) -DHAVE_ITK_LIBS
@@ -197,4 +198,4 @@ EXCLUDE_FILES=io/CVS datamodel/CVS datamodel/utils/CVS datamodel/events/CVS \
 datamodel/data/CVS test/CVS test/data/CVS
 
 include $(top_srcdir)/Makefile.extra
-
+endif
