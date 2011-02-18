@@ -65,11 +65,20 @@ surf2vol_SOURCES=\
 	pbCluster_mesh_crop.cpp pbCluster_mesh_crop.h mesh_bfs.h \
 	untangler.cpp untangler.h pbmesh_crop.h
 
+if HAVE_MAC_OSX
 surf2vol_LDADD=\
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/tetgen/libtetgen.a \
 	$(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
-	-lpetscvec -lpetsc -lmpich  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
+	-lpetscvec -lpetsc -lpmpich -lmpich -llmpe -lmpe -lflapack -lfblas \
+	$(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
+else
+surf2vol_LDADD=\
+    $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+    $(top_builddir)/tetgen/libtetgen.a \
+    $(PETSC_LIBS) -lpetscts -lpetscsnes -lpetscksp -lpetscdm -lpetscmat \
+    -lpetscvec -lpetsc -lmpich  $(LIB_GFORTRAN) $(LIB_LAPACK_A) $(LIB_BLAS_A) $(LIB_G2C_A) $(LIB_GFORTRAN)
+endif
 
 exportGcam_SOURCES=\
 	$(common3d_SOURCES) \
