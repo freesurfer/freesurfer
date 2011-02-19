@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/02/10 19:17:29 $
- *    $Revision: 1.479 $
+ *    $Author: fischl $
+ *    $Date: 2011/02/19 18:23:21 $
+ *    $Revision: 1.480 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.479 $";
+const char *MRI_C_VERSION = "$Revision: 1.480 $";
 
 
 /*-----------------------------------------------------
@@ -11296,17 +11296,17 @@ MRIneighborsOn(MRI *mri, int x0, int y0, int z0, int min_val)
 {
   int   nbrs = 0 ;
 
-  if (MRIvox(mri,mri->xi[x0-1],y0,z0) >= min_val)
+  if (MRIgetVoxVal(mri,mri->xi[x0-1],y0,z0, 0) >= min_val)
     nbrs++ ;
-  if (MRIvox(mri,mri->xi[x0+1],y0,z0) >= min_val)
+  if (MRIgetVoxVal(mri,mri->xi[x0+1],y0,z0, 0) >= min_val)
     nbrs++ ;
-  if (MRIvox(mri,x0,mri->yi[y0+1],z0) >= min_val)
+  if (MRIgetVoxVal(mri,x0,mri->yi[y0+1],z0, 0) >= min_val)
     nbrs++ ;
-  if (MRIvox(mri,x0,mri->yi[y0-1],z0) >= min_val)
+  if (MRIgetVoxVal(mri,x0,mri->yi[y0-1],z0, 0) >= min_val)
     nbrs++ ;
-  if (MRIvox(mri,x0,y0,mri->zi[z0+1]) >= min_val)
+  if (MRIgetVoxVal(mri,x0,y0,mri->zi[z0+1], 0) >= min_val)
     nbrs++ ;
-  if (MRIvox(mri,x0,y0,mri->zi[z0-1]) >= min_val)
+  if (MRIgetVoxVal(mri,x0,y0,mri->zi[z0-1], 0) >= min_val)
     nbrs++ ;
   return(nbrs) ;
 }
@@ -11333,7 +11333,7 @@ MRIneighborsOn3x3(MRI *mri, int x, int y, int z, int min_val)
         xi = mri->xi[x+xk] ;
         if (!zk && !yk && !xk)
           continue ;
-        if (MRIvox(mri, xi, yi, zi) > min_val)
+        if (MRIgetVoxVal(mri, xi, yi, zi, 0) > min_val)
           nbrs++ ;
       }
     }
@@ -11365,7 +11365,7 @@ MRIneighborsInWindow(MRI *mri, int x, int y, int z, int wsize, int val)
         xi = mri->xi[x+xk] ;
         if (!zk && !yk && !xk)
           continue ;
-        if (MRIvox(mri, xi, yi, zi) == val)
+        if (MRIgetVoxVal(mri, xi, yi, zi, 0) == val)
           nbrs++ ;
       }
     }
@@ -17210,4 +17210,63 @@ const char* MRItype2str(int type)
     return("tensor");
   }
   return("unknown data type");
+}
+#define MAX_VOX 5000
+#define MAX_FOV 300
+int
+MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label)
+{
+  int     max_slice, max_vox, cor_vox[MAX_VOX], hor_vox[MAX_VOX], sag_vox[MAX_VOX], x, y, z, i, vox ;
+  float   r, a, s, vsize ;
+  VECTOR  *v_ras, *v_vox ;
+  MATRIX  *m_ras2vox ;
+
+  v_ras = VectorAlloc(4, MATRIX_REAL) ;
+  v_vox = VectorAlloc(4, MATRIX_REAL) ;
+  VECTOR_ELT(v_vox, 4) = 1.0 ; 
+  VECTOR_ELT(v_ras, 4) = 1.0 ; 
+  m_ras2vox = MRIgetRasToVoxelXform(mri_aseg) ;
+  memset(cor_vox, 0, sizeof(cor_vox)) ; memset(sag_vox, 0, sizeof(sag_vox)) ; memset(hor_vox, 0, sizeof(hor_vox)) ;
+  
+  vsize = MIN(mri_aseg->xsize, MIN(mri_aseg->ysize, mri_aseg->zsize)) ;
+  for (r = -MAX_FOV ; r <= MAX_FOV ; r += vsize)
+  {
+    V3_X(v_ras) = r ;
+    for (a = -MAX_FOV ; a <= MAX_FOV ; a += vsize)
+    {
+      V3_Y(v_ras) = a ;
+      for (s = -MAX_FOV ; s <= MAX_FOV ; s += vsize)
+      {
+        V3_Z(v_ras) = s ;
+        MatrixMultiply(m_ras2vox, v_ras, v_vox) ;
+        x = nint(V3_X(v_vox)) ; y = nint(V3_Y(v_vox)) ; z = nint(V3_Z(v_vox)) ;
+        if (x < 0 || x >= mri_aseg->width ||
+            y < 0 || y >= mri_aseg->height ||
+            z < 0 || z >= mri_aseg->depth)
+          continue ;
+        if (MRIgetVoxVal(mri_aseg, x, y, z, 0) != label)
+          continue ;
+        cor_vox[z]++ ;
+        sag_vox[x]++ ;
+        hor_vox[y]++ ;
+      }
+    }
+  }
+  VectorFree(&v_ras) ; VectorFree(&v_vox) ; MatrixFree(&m_ras2vox) ;
+  
+  for (max_vox = max_slice =i = 0 ; i < MAX_VOX ; i++)
+  {
+    switch (slice_direction)
+    {
+    case MRI_CORONAL:    vox = cor_vox[i] ; break ; 
+    case MRI_SAGITTAL:   vox = sag_vox[i] ; break ; 
+    case MRI_HORIZONTAL: vox = hor_vox[i] ; break ; 
+    }
+    if (vox > max_vox)
+    {
+      max_vox = vox ;
+      max_slice = i ;
+    }
+  }
+  return(max_slice) ;
 }
