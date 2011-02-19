@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/02/10 19:17:32 $
- *    $Revision: 1.417 $
+ *    $Author: fischl $
+ *    $Date: 2011/02/19 18:23:26 $
+ *    $Revision: 1.418 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1268,6 +1268,7 @@ int MRIcountThreshInNbhd(MRI *mri, int wsize, int x,int y,int z, float thresh);
 MRI *MRImatchMeanIntensity(MRI *mri_source,
                            MRI *mri_target,
                            MRI *mri_source_scaled) ;
+MRI *MRIsqrt(MRI *mri_src, MRI *mri_dst)  ;
 double MRImaxInLabelInRegion(MRI *mri_src,
                              MRI *mri_labeled,
                              int label,
@@ -1283,6 +1284,7 @@ int MRInormalizeFramesMean(MRI *mri);
 int MRInormalizeFramesFirst(MRI *mri);
 MRI *MRIsort(MRI *in, MRI *mask, MRI *sorted);
 int CompareDoubles(const void *a, const void *b);
+int MRIlabeledVoxels(MRI *mri_src, int label) ;
 int MRIlabelInVolume(MRI *mri_src, int label) ;
 #define MRI_MEAN_MIN_DISTANCE 0
 double MRIcomputeLabelAccuracy(MRI *mri_src, MRI *mri_ref, 
@@ -1337,6 +1339,7 @@ MRI *MRInormalizeInteriorDistanceTransform(MRI *mri_src_dist,
                                            MRI *mri_dst_dist);
 
 const char* MRItype2str(int type);
+int MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label) ;
 
 #ifdef FS_CUDA
   void MRImarkLabelBorderVoxelsGPU( const MRI* mri_src,
