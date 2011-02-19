@@ -5,7 +5,12 @@
 AM_CFLAGS=-I$(top_srcdir)/include -I$(top_srcdir)/include/dicom
 AM_LDFLAGS=
 
-bin_PROGRAMS = mri_ca_normalize
+bin_PROGRAMS = mri_cal_normalize mri_ca_normalize
+mri_cal_normalize_SOURCES=mri_cal_normalize.c
+mri_cal_normalize_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
+mri_cal_normalize_LDFLAGS=$(OS_LDFLAGS)
+
+
 mri_ca_normalize_SOURCES=mri_ca_normalize.c
 mri_ca_normalize_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_ca_normalize_LDFLAGS=$(OS_LDFLAGS)
