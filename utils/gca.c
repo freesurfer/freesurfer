@@ -14,8 +14,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/01/30 15:20:16 $
- *    $Revision: 1.288 $
+ *    $Date: 2011/02/19 14:58:54 $
+ *    $Revision: 1.289 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -4507,6 +4507,101 @@ GCAcomputeLogSampleProbability(GCA *gca,
                 "total log p not finite at (%d, %d, %d)\n",
                 x, y, z) ;
         DiagBreak() ;
+      }
+    }
+    else  // outside the voxel
+    {
+      log_p = -1000000; // BIG_AND_NEGATIVE;
+      // log(VERY_UNLIKELY); // BIG_AND_NEGATIVE;
+      total_log_p += log_p;
+      gcas[i].log_p = log_p;
+      outside_log_p += log_p;
+      countOutside++;
+    }
+  }
+
+#ifndef __OPTIMIZE__
+#if 0
+  if (nsamples > 3000)
+    fprintf(stdout, "good samples %d (outside %d) log_p = %.1f "
+            "(outside %.1f)\n",
+            nsamples-countOutside, countOutside, total_log_p, outside_log_p);
+#endif
+#endif
+  fflush(stdout) ;
+
+  return((float)total_log_p) ;
+}
+
+float
+GCAcomputeLogSampleProbabilityLongitudinal(GCA *gca,
+                                           GCA_SAMPLE *gcas,
+                                           MRI *mri_inputs,
+                                           TRANSFORM *transform,
+                                           int nsamples)
+{
+  int        x, y, z, width, height, depth, i, xp, yp, zp ;
+  float      vals[MAX_GCA_INPUTS] ;
+  double     total_log_p, log_p ;
+  int        countOutside = 0, frame;
+  double     outside_log_p = 0.;
+  /* go through each GC in the sample and compute the probability of
+     the image at that point.
+  */
+  width = mri_inputs->width ; height = mri_inputs->height; depth = mri_inputs->depth ;
+  // store inverse transformation .. forward:input->gca template,
+  // inv: gca template->input
+  TransformInvert(transform, mri_inputs) ;
+
+  // go through all sample points
+  for (total_log_p = 0.0, i = 0 ; i < nsamples ; i++)
+  {
+    /////////////////// diag code /////////////////////////////
+    if (i == Gdiag_no)
+      DiagBreak() ;
+    if (Gdiag_no == gcas[i].label)
+      DiagBreak() ;
+    if (i == Gdiag_no ||
+        (gcas[i].xp == Gxp && gcas[i].yp == Gyp && gcas[i].zp == Gzp))
+      DiagBreak() ;
+    ///////////////////////////////////////////////////////////
+
+    // get prior coordinates
+    xp = gcas[i].xp ; yp = gcas[i].yp ; zp = gcas[i].zp ;
+    // if it is inside the source voxel
+    if (!GCApriorToSourceVoxel(gca, mri_inputs, transform,
+                               xp, yp, zp, &x, &y, &z))
+    {
+      if (x == Gx && y == Gy && z == Gz)
+        DiagBreak() ;
+
+      // (x,y,z) is the source voxel position
+      gcas[i].x = x ; gcas[i].y = y ; gcas[i].z = z ;
+      // get values from all inputs
+      load_vals(mri_inputs, x, y, z, vals, mri_inputs->nframes) ;
+      for (frame = 0 ; frame < mri_inputs->nframes ; frame++)
+      {
+        log_p = gcaComputeSampleLogDensity(&gcas[i], &vals[frame], 1) ;
+        if (FZERO(vals[0]) && gcas[i].label == Gdiag_no)
+        {
+          if (fabs(log_p) < 5)
+            DiagBreak() ;
+          DiagBreak() ;
+        }
+#if 1
+        if (log_p < -3)
+          log_p = -3 ;
+#endif
+        total_log_p += log_p ;
+        gcas[i].log_p = log_p ;
+        
+        if (!check_finite("2", total_log_p))
+        {
+          fprintf(stdout,
+                  "total log p not finite at (%d, %d, %d)\n",
+                  x, y, z) ;
+          DiagBreak() ;
+        }
       }
     }
     else  // outside the voxel
@@ -13395,6 +13490,199 @@ GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull)
     MRIscalarMulFrame(mri, mri, scales[r], r);
   }
 #endif
+  MRIfree(&mri_mask) ;
+  return(NO_ERROR) ;
+}
+
+/*
+  each input frame is a different time point for the same subject.
+*/
+int
+GCAhistoScaleImageIntensitiesLongitudinal(GCA *gca, MRI *mri, int noskull)
+{
+  float      x0, y0, z0, fmin, fmax, min_real_val, val ;
+  int        mri_peak, r, max_T1_weighted_image = 0, min_real_bin, peak, frame ;
+  float      wm_means[MAX_GCA_INPUTS], tmp[MAX_GCA_INPUTS],
+  scales[MAX_GCA_INPUTS], max_wm/*, scale*/ ;
+  HISTOGRAM *h_mri, *h_smooth, *h_gca ;
+  MRI_REGION box, tbox ;
+  MRI        *mri_frame, *mri_mask, *mri_tmp ;
+
+  float      gm_means[MAX_GCA_INPUTS], gray_white_CNR;
+
+  GCAlabelMean(gca, Left_Cerebral_White_Matter, wm_means) ;
+  GCAlabelMean(gca, Right_Cerebral_White_Matter, tmp) ;
+
+  GCAlabelMean(gca, Left_Cerebral_Cortex, gm_means) ;
+  for (r = 0 ; r < gca->ninputs ; r++)
+  {
+    // use modes instead of means
+    h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_White_Matter, r, 0) ;
+    peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
+    printf("resetting wm mean[%d]: %2.0f --> %2.0f\n",
+           r, wm_means[r], h_gca->bins[peak]) ;
+    wm_means[r] = h_gca->bins[peak] ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      HISTOplot(h_gca, "wm.plt") ;
+    HISTOfree(&h_gca) ;
+
+    h_gca = gcaGetLabelHistogram(gca, Left_Cerebral_Cortex, r, 0) ;
+    peak = HISTOfindHighestPeakInRegion(h_gca, 0, h_gca->nbins) ;
+    gm_means[r] = h_gca->bins[peak] ;
+    printf("resetting gm mean[%d]: %2.0f --> %2.0f\n",
+           r, gm_means[r], h_gca->bins[peak]) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      HISTOplot(h_gca, "gm.plt") ;
+    HISTOfree(&h_gca) ;
+  }
+  gray_white_CNR = wm_means[0] - gm_means[0];
+  for (r = 0 ; r < gca->ninputs ; r++)
+  {
+    //                wm_means[r] = (wm_means[r] + tmp[r]) / 2 ;
+    if ((wm_means[r] - gm_means[r]) > gray_white_CNR)
+    {
+      max_T1_weighted_image = r ;
+      gray_white_CNR = (wm_means[r] - gm_means[r]);
+    }
+  }
+  printf("input volume #%d is the most T1-like\n",
+         max_T1_weighted_image +1);
+
+
+  max_wm = wm_means[max_T1_weighted_image];
+
+  min_real_val = 0 ;
+  box.x = box.y = box.z = box.dx = box.dy = box.dz = 0 ;
+  for (frame = 0 ; frame < mri->nframes ; frame++)
+  {
+    mri_tmp = MRIcopyFrame(mri, NULL, frame, 0) ;
+    mri_frame = MRImean(mri_tmp, NULL, 5) ;
+    MRIvalRange(mri_frame, &fmin, &fmax) ;
+    h_mri = MRIhistogram(mri_frame, nint(fmax-fmin+1)) ;
+    HISTOclearZeroBin(h_mri) ; /* ignore background */
+    h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+    mri_peak = HISTOfindFirstPeak(h_smooth, 5, .1) ;
+    min_real_bin = HISTOfindEndOfPeak(h_smooth, mri_peak, .25) ;
+#define MAX_PEAK_BINS 40
+    if (min_real_bin - mri_peak > MAX_PEAK_BINS)
+      min_real_bin = HISTOfindNextValley(h_smooth, mri_peak) ;
+    if (min_real_bin - mri_peak > MAX_PEAK_BINS)
+      min_real_bin = mri_peak + MAX_PEAK_BINS-1;
+    val = h_smooth->bins[min_real_bin] ;
+    if (noskull)
+    {
+      if (val > 0.25*fmax)   /* for skull-stripped images */
+        val = 0.25*fmax ;
+    }
+    else
+    {
+      if (val > 0.5*fmax)   /* for non skull-stripped images */
+        val = 0.5*fmax ;
+    }
+    min_real_val += val ;
+
+    printf("using real data threshold=%2.1f\n", val) ;
+    MRIfindApproximateSkullBoundingBox(mri_frame, val, &tbox) ;
+    printf("skull bounding box = (%d, %d, %d) --> (%d, %d, %d)\n",
+           tbox.x, tbox.y, tbox.z, tbox.x+tbox.dx-1, tbox.y+tbox.dy-1,tbox.z+tbox.dz-1);
+    box.x += tbox.x ; box.y += tbox.y ; box.z += tbox.z ;
+    box.dx += tbox.dx ; box.dy += tbox.dy ; box.dz += tbox.dz ;
+    mri_mask = MRIbinarize(mri_frame, NULL, min_real_val, 0, 1) ;
+    MRIfree(&mri_frame) ;
+    HISTOfree(&h_mri) ;
+    HISTOfree(&h_smooth) ;
+  }
+
+  min_real_val /= mri->nframes ;
+  box.x /= mri->nframes ; box.y /= mri->nframes ; box.z /= mri->nframes ; 
+  box.dx /= mri->nframes ; box.dy /= mri->nframes ; box.dz /= mri->nframes ; 
+  for (frame = 0 ; frame < mri->nframes ; frame++)
+  {
+    // divide by 3 to avoid midline
+    x0 = box.x+box.dx/3 ; y0 = box.y+box.dy/3 ; z0 = box.z+box.dz/2 ;
+    printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
+    box.dx /= 4 ; box.x = x0 - box.dx/2;
+    box.dy /= 4 ; box.y = y0 - box.dy/2;
+    box.dz /= 4 ; box.z = z0 - box.dz/2;
+    mri_frame = MRIcopyFrame(mri, NULL, frame, 0) ;
+    MRImask(mri_frame, mri_mask, mri_frame, 0,0) ;  /* remove stuff that is 
+                                                       background or csf */
+
+    printf("mean wm in atlas = %2.0f, using box (%d,%d,%d) --> (%d, %d,%d) "
+           "to find MRI wm\n", wm_means[max_T1_weighted_image], box.x, box.y, box.z,
+           box.x+box.dx-1,box.y+box.dy-1, box.z+box.dz-1) ;
+
+    h_mri = MRIhistogramRegion(mri_frame, 0, NULL, &box) ;
+    if (gca->ninputs == 1)
+      HISTOclearBins(h_mri, h_mri, 0, min_real_val) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      HISTOplot(h_mri, "mri.histo") ;
+    HISTOclearZeroBin(h_mri) ;
+    if (gca->ninputs == 1)   /* assume it is T1-weighted */
+    {
+#define MIN_CONFORMED_WM_VAL  50   // assume wm greater than this
+#define MAX_CONFORMED_WM_VAL  240   // assume wm than this
+      if (mriConformed(mri))  // use strong priors on where wm should be
+      {
+        HISTOclearBins(h_mri, h_mri, 0, MIN_CONFORMED_WM_VAL) ;
+        HISTOclearBins(h_mri, h_mri, MAX_CONFORMED_WM_VAL+1, 255) ;
+      }
+      mri_peak = HISTOfindLastPeak(h_mri, 2*HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+    }
+    else
+      mri_peak = HISTOfindHighestPeakInRegion(h_mri, 1, h_mri->nbins);
+    if ((h_mri->nbins <= mri_peak) || (mri_peak < 0))
+    {
+      printf("WARNING: gca.c::GCAhistoScaleImageIntensities: "
+             "h_mri->nbins=%d, mri_peak=%d\n",h_mri->nbins,mri_peak);
+      mri_peak = 0;
+    }
+    else
+    {
+      mri_peak = h_mri->bins[mri_peak] ;
+    }
+    printf("before smoothing, mri peak at %d\n", mri_peak) ;
+    h_smooth = HISTOsmooth(h_mri, NULL, 2) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      HISTOplot(h_smooth, "mri_smooth.histo") ;
+    /* assume it is the right-most peak of image
+       is supposed to be T1-weighted */
+    if (gca->ninputs == 1 &&
+        (gca->type == GCA_UNKNOWN || gca->type == GCA_NORMAL ||
+         (gca->type == GCA_FLASH && (DEGREES(mri->flip_angle)>15))))
+      mri_peak =
+        HISTOfindLastPeak(h_smooth, HISTO_WINDOW_SIZE,MIN_HISTO_PCT);
+    else
+      mri_peak = HISTOfindHighestPeakInRegion(h_smooth, 1, h_mri->nbins);
+    if ((h_mri->nbins <= mri_peak) || (mri_peak < 0))
+    {
+      printf("WARNING2: gca.c::GCAhistoScaleImageIntensities: "
+             "h_mri->nbins=%d, mri_peak=%d\n",h_mri->nbins,mri_peak);
+      mri_peak = 0;
+    }
+    else
+    {
+      mri_peak = h_smooth->bins[mri_peak] ;
+    }
+    printf("after smoothing, mri peak at %d, scaling input intensities "
+           "by %2.3f\n", mri_peak, wm_means[max_T1_weighted_image]/mri_peak) ;
+    if (mri_peak == 0)
+      ErrorExit(ERROR_BADPARM,
+                "GCAhistoScaleImageIntensities: could not find wm peak") ;
+    scales[frame] = wm_means[max_T1_weighted_image]/mri_peak ;
+
+    MRIfree(&mri_frame) ;
+    HISTOfree(&h_mri) ;
+    HISTOfree(&h_smooth) ;
+
+  }
+
+  // scale each frame independently -xhan
+  for (r = 0 ; r < mri->nframes ; r++)
+  {
+    printf("scaling channel %d by %g\n", r, scales[r]);
+    MRIscalarMulFrame(mri, mri, scales[r], r);
+  }
   MRIfree(&mri_mask) ;
   return(NO_ERROR) ;
 }
