@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/01/11 18:23:34 $
- *    $Revision: 1.112 $
+ *    $Author: fischl $
+ *    $Date: 2011/02/19 14:58:48 $
+ *    $Revision: 1.113 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA). 
@@ -245,6 +245,9 @@ float GCAcomputeNumberOfGoodFittingSamples(GCA *gca, GCA_SAMPLE *gcas,
 float  GCAcomputeLogSampleProbability(GCA *gca, GCA_SAMPLE *gcas,
                                       MRI *mri_inputs,
                                       TRANSFORM *transform,int nsamples);
+float  GCAcomputeLogSampleProbabilityLongitudinal(GCA *gca, GCA_SAMPLE *gcas,
+                                                  MRI *mri_inputs,
+                                                  TRANSFORM *transform,int nsamples);
 float  GCAcomputeLogSampleProbabilityUsingCoords(GCA *gca, GCA_SAMPLE *gcas,
     MRI *mri_inputs,
     TRANSFORM *transform,int nsamples);
@@ -384,6 +387,7 @@ int     GCAregularizeConditionalDensities(GCA *gca, float smooth) ;
 int     GCAmeanFilterConditionalDensities(GCA *gca, float navgs) ;
 int     GCArenormalizeToFlash(GCA *gca, char *tissue_parms_fname, MRI *mri) ;
 int     GCAhistoScaleImageIntensities(GCA *gca, MRI *mri, int noskull) ;
+int     GCAhistoScaleImageIntensitiesLongitudinal(GCA *gca, MRI *mri, int noskull) ;
 int     GCAhisto(GCA *gca, int nbins, int **pcounts) ;
 int     GCAcomputeVoxelLikelihoods(GCA *gca, MRI *mri_in, int x, int y, int z,
                                    TRANSFORM *transform, int *labels, double *likelihoods);
