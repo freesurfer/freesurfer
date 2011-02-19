@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/02/19 03:09:48 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/02/19 03:11:58 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2007,
  * The General Hospital Corporation (Boston, MA).
@@ -162,13 +162,13 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.1 2011/02/19 03:09:48 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.2 2011/02/19 03:11:58 fischl Exp $",
      "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_cal_normalize.c,v 1.1 2011/02/19 03:09:48 fischl Exp $",
+     "$Id: mri_cal_normalize.c,v 1.2 2011/02/19 03:11:58 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1208,6 +1208,7 @@ normalize_timepoints_with_samples(MRI *mri, GCA_SAMPLE *gcas, int nsamples, int 
     MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, nsoap) ;
     mri_frame = MRIcopyFrame(mri, NULL, frame, 0) ;
     MRImultiply(mri_frame, mri_bias, mri_frame) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       char fname[STRLEN] ;
       sprintf(fname, "frame%d.mgz", frame) ;
@@ -1283,6 +1284,7 @@ normalize_timepoints(MRI *mri, double thresh, int nsoap)
     //    MRIsoapBubble(mri_bias, mri_ctrl, mri_bias, nsoap) ;
     mri_frame = MRIcopyFrame(mri, NULL, frame, 0) ;
     MRImultiply(mri_frame, mri_bias, mri_frame) ;
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
     {
       char fname[STRLEN] ;
       sprintf(fname, "frame%d.mgz", frame) ;
