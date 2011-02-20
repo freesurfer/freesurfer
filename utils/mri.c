@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/02/19 18:23:21 $
- *    $Revision: 1.480 $
+ *    $Date: 2011/02/20 01:01:26 $
+ *    $Revision: 1.481 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.480 $";
+const char *MRI_C_VERSION = "$Revision: 1.481 $";
 
 
 /*-----------------------------------------------------
@@ -17216,7 +17216,7 @@ const char* MRItype2str(int type)
 int
 MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label)
 {
-  int     max_slice, max_vox, cor_vox[MAX_VOX], hor_vox[MAX_VOX], sag_vox[MAX_VOX], x, y, z, i, vox ;
+  int     max_slice, max_vox, cor_vox[MAX_VOX], hor_vox[MAX_VOX], sag_vox[MAX_VOX], x, y, z, i, vox = 0 ;
   float   r, a, s, vsize ;
   VECTOR  *v_ras, *v_vox ;
   MATRIX  *m_ras2vox ;
@@ -17258,6 +17258,8 @@ MRIfindSliceWithMostStructure(MRI *mri_aseg, int slice_direction, int label)
   {
     switch (slice_direction)
     {
+    default:
+      ErrorExit(ERROR_UNSUPPORTED, "MRIfindSliceWithMostStructure: unknown slice direction %d", slice_direction);
     case MRI_CORONAL:    vox = cor_vox[i] ; break ; 
     case MRI_SAGITTAL:   vox = sag_vox[i] ; break ; 
     case MRI_HORIZONTAL: vox = hor_vox[i] ; break ; 
