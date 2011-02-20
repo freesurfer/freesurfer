@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/02/08 20:25:11 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/02/20 04:17:13 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -73,7 +73,8 @@ static char vcid[] = "";
 const char *Progname = "dmri_track";
 
 int doFill = 0, nin = 0, nout = 0, nvol = 0;
-char *inFile[100], *outFile[100], *outVolFile[100],
+char *inDir = NULL, *inFile[100],
+     *outDir = NULL, *outFile[100], *outVolFile[100],
      *inRefFile = NULL, *outRefFile = NULL,
      *affineXfmFile = NULL, *nonlinXfmFile = NULL;
 
@@ -85,6 +86,7 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
+  char fname[PATH_MAX];
   vector<float> point(3), step(3, 0);
   MRI *inref = 0, *outref = 0, *outvol = 0;
   AffineReg affinereg;
@@ -142,8 +144,13 @@ int main(int argc, char **argv) {
     TimerStart(&cputimer);
 
     // Open input .trk file
-    if (!trkreader.Open(inFile[itrk], &trkheadin)) {
-      cout << "ERROR: Cannot open input file " << inFile[itrk] << endl;
+    if (inDir)
+      sprintf(fname, "%s/%s", inDir, inFile[itrk]);
+    else
+      strcpy(fname, inFile[itrk]);
+
+    if (!trkreader.Open(fname, &trkheadin)) {
+      cout << "ERROR: Cannot open input file " << fname << endl;
       cout << "ERROR: " << trkreader.GetLastErrorMessage() << endl;
       exit(1);
     }
@@ -156,8 +163,13 @@ int main(int argc, char **argv) {
       trkheadout.voxel_size[2] = outref->zsize;
 
       // Open output .trk file
-      if (!trkwriter.Initialize(outFile[itrk], trkheadout)) {
-        cout << "ERROR: Cannot open output file " << outFile[itrk] << endl;
+      if (outDir)
+        sprintf(fname, "%s/%s", outDir, outFile[itrk]);
+      else
+        strcpy(fname, outFile[itrk]);
+
+      if (!trkwriter.Initialize(fname, trkheadout)) {
+        cout << "ERROR: Cannot open output file " << fname << endl;
         cout << "ERROR: " << trkwriter.GetLastErrorMessage() << endl;
         exit(1);
       }
@@ -175,9 +187,9 @@ int main(int argc, char **argv) {
 
       iraw = rawpts;
       for (int ipt = npts; ipt > 0; ipt--) {
-        // Divide by input voxel size to get voxel coords
+        // Divide by input voxel size and make 0-based to get voxel coords
         for (int k = 0; k < 3; k++) {
-          point[k] = *iraw / trkheadin.voxel_size[k];
+          point[k] = *iraw / trkheadin.voxel_size[k] - .5;
           iraw++;
         }
 
@@ -237,8 +249,8 @@ int main(int argc, char **argv) {
           }
 
           for (int k = 0; k < 3; k++) {
-            // Multiply back by output voxel size
-            newpts.push_back(point[k] * trkheadout.voxel_size[k]);
+            // Make .5-based and multiply back by output voxel size
+            newpts.push_back((point[k] + .5) * trkheadout.voxel_size[k]);
 
             point[k] += step[k];
           }
@@ -257,8 +269,14 @@ int main(int argc, char **argv) {
     if (nout > 0)
       trkwriter.Close();
 
-    if (nvol > 0)
-      MRIwrite(outvol, outVolFile[itrk]);
+    if (nvol > 0) {
+      if (outDir)
+        sprintf(fname, "%s/%s", outDir, outVolFile[itrk]);
+      else
+        strcpy(fname, outVolFile[itrk]);
+
+      MRIwrite(outvol, fname);
+    }
 
     cputime = TimerStop(&cputimer);
     printf("Done in %g sec.\n", cputime/1000.0);
@@ -291,20 +309,30 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcmp(option, "--indir")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      inDir = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--in")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (strncmp(pargv[nargsused], "--", 2)) {
-        inFile[nin] = fio_fullpath(pargv[nargsused]);
+        inFile[nin] = pargv[nargsused];
         nargsused++;
         nin++;
       }
+    } 
+    else if (!strcmp(option, "--outdir")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outDir = fio_fullpath(pargv[0]);
+      nargsused = 1;
     } 
     else if (!strcmp(option, "--out")) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (strncmp(pargv[nargsused], "--", 2)) {
-        outFile[nout] = fio_fullpath(pargv[nargsused]);
+        outFile[nout] = pargv[nargsused];
         nargsused++;
         nout++;
       }
@@ -313,7 +341,7 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       nargsused = 0;
       while (strncmp(pargv[nargsused], "--", 2)) {
-        outVolFile[nvol] = fio_fullpath(pargv[nargsused]);
+        outVolFile[nvol] = pargv[nargsused];
         nargsused++;
         nvol++;
       }
@@ -360,8 +388,12 @@ static void print_usage(void)
   printf("\n");
   printf("Basic inputs\n");
   printf("   --in  <file> [...]: input .trk file(s)\n");
+  printf("   --indir  <dir> [...]: input directory (if specified, input\n");
+  printf("                         .trk file names are relative to this)");
   printf("   --out <file> [...]: output .trk file(s), as many as inputs\n");
   printf("   --outvol <file> [...]: output volume(s), as many as inputs\n");
+  printf("   --outdir  <dir> [...]: output directory (if specified, output\n");
+  printf("                          .trk/volume names are relative to this)");
   printf("   --inref  <file>: input reference volume\n");
   printf("   --outref <file>: output reference volume\n");
   printf("   --reg   <file>: affine registration (.mat), applied first\n");
@@ -438,10 +470,14 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
 
+  if (inDir)
+    fprintf(fp, "Input directory: %s\n", inDir);
   fprintf(fp, "Input files:");
   for (int k = 0; k < nin; k++)
     fprintf(fp, " %s", inFile[k]);
   fprintf(fp, "\n");
+  if (outDir)
+    fprintf(fp, "Output directory: %s\n", outDir);
   if (nout > 0) {
     fprintf(fp, "Output files:");
     for (int k = 0; k < nout; k++)
