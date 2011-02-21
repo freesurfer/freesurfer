@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/02/20 04:17:13 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/02/21 20:46:22 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -387,19 +387,29 @@ static void print_usage(void)
   printf("USAGE: ./dmri_trk2trk\n");
   printf("\n");
   printf("Basic inputs\n");
-  printf("   --in  <file> [...]: input .trk file(s)\n");
-  printf("   --indir  <dir> [...]: input directory (if specified, input\n");
-  printf("                         .trk file names are relative to this)");
-  printf("   --out <file> [...]: output .trk file(s), as many as inputs\n");
-  printf("   --outvol <file> [...]: output volume(s), as many as inputs\n");
-  printf("   --outdir  <dir> [...]: output directory (if specified, output\n");
-  printf("                          .trk/volume names are relative to this)");
-  printf("   --inref  <file>: input reference volume\n");
-  printf("   --outref <file>: output reference volume\n");
-  printf("   --reg   <file>: affine registration (.mat), applied first\n");
-  printf("   --regnl <file>: nonlinear registration (.tm3d), applied second\n");
-  printf("   --fill:         fill gaps b/w mapped points by linear interpolation\n");
-  printf("                   (default: don't fill)\n");
+  printf("   --in <file> [...]:\n");
+  printf("     Input .trk file(s)\n");
+  printf("   --indir <dir>:\n");
+  printf("     Input directory (optional)\n");
+  printf("     If specified, names of input .trk files are relative to this\n");
+  printf("   --out <file> [...]:\n");
+  printf("     Output .trk file(s), as many as inputs\n");
+  printf("   --outvol <file> [...]:\n");
+  printf("     Output volume(s), as many as inputs\n");
+  printf("   --outdir <dir>:\n");
+  printf("     Output directory (optional)\n");
+  printf("     If specified, names of output .trk files and volumes are relative to this)\n");
+  printf("   --inref <file>:\n");
+  printf("     Input reference volume\n");
+  printf("   --outref <file>:\n");
+  printf("     Output reference volume\n");
+  printf("   --reg <file>:\n");
+  printf("     Affine registration (.mat), applied first\n");
+  printf("   --regnl <file>:\n");
+  printf("     Nonlinear registration (.tm3d), applied second\n");
+  printf("   --fill:\n");
+  printf("     Fill gaps b/w mapped points by linear interpolation\n");
+  printf("     (Default: don't fill)\n");
   printf("\n");
   printf("Other options\n");
   printf("   --debug:     turn on debugging\n");
