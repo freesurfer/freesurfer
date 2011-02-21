@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/02/21 20:37:33 $
-#    $Revision: 1.46 $
+#    $Date: 2011/02/21 21:28:42 $
+#    $Revision: 1.47 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.46 2011/02/21 20:37:33 nicks Exp $';
+set VERSION = '$Id: bbregister,v 1.47 2011/02/21 21:28:42 nicks Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -773,6 +773,9 @@ usage_exit:
 if($PrintHelp) then
   cat $0 | \
     awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+else
+  echo "Usage: bbregister --s <subj> --mov <volid> --reg <regfile> --init-<type> --<contrast>"
+  echo "Help:  bbregister --help"
 endif
 
 exit 1;
