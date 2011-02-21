@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2011/02/17 20:05:02 $
-#    $Revision: 1.45 $
+#    $Author: nicks $
+#    $Date: 2011/02/21 20:37:33 $
+#    $Revision: 1.46 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.45 2011/02/17 20:05:02 greve Exp $';
+set VERSION = '$Id: bbregister,v 1.46 2011/02/21 20:37:33 nicks Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -772,12 +772,12 @@ usage_exit:
 
 if($PrintHelp) then
   cat $0 | \
-    awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }' | \
-    fsPrintHelp
+    awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
 endif
 
 exit 1;
 
-#---- Everything below BEGINHELP is printed out as part of help -----#
-#-- During make install, bbregister.help.xml is concatenated to this file --#
+#---- Everything below is printed out as part of help -----#
+#-- During make install, the output of 'fsPrintHelp bbregister.help.xml' -- #
+#-- is concatenated to this file --#
 BEGINHELP
