@@ -127,9 +127,11 @@ static char * gifti_history[] =
   "     - gifti_xml.h: made NITRC gifti.dtd link that will not change\n"
   "1.08 08 March, 2010: GIfTI LabelTable format change: Index to Key\n",
   "     - both Index and Key work on read, Key is written out\n"
+  "1.09 28 June, 2010: verify that num_dim is not too big\n",
+  "     - the most significant dimension cannot be 1 (req by N Schmansky)\n"
 };
 
-static char gifti_version[] = "gifti library version 1.08, 8 March, 2010";
+static char gifti_version[] = "gifti library version 1.09, 28 June, 2010";
 
 /* ---------------------------------------------------------------------- */
 /*! global lists of XML strings */
@@ -896,7 +898,7 @@ int gifti_valid_nbyper(int nbyper, int whine)
  *      - num_dim is in range
  *      - each dims[c] is postive (c < num_dim)
  *      - nvals is product of dims
- *      - datatype is valie (required to check nbyper)
+ *      - datatype is valid (required to check nbyper)
  *      - nbyper is correct
 *//*-------------------------------------------------------------------*/
 int gifti_valid_dims(const giiDataArray * da, int whine)
@@ -936,6 +938,16 @@ int gifti_valid_dims(const giiDataArray * da, int whine)
     if( nbyper != da->nbyper ) {
         fprintf(stderr,"** nbyper %d not correct for type %s\n",
                 da->nbyper, gifti_datatype2str(da->datatype));
+        return 0;
+    }
+
+    /* verify that num_dim is not too big, the most significant dimension
+     * is not allowed to be 1
+     * (requested by N Schmansky)                       11 Mar 2010 */
+    if( da->num_dim > 1 && da->dims[da->num_dim-1] < 2 ) {
+        fprintf(stderr,"** num_dim violation: num_dim = %d, yet dim[%d] = %d\n",
+                       da->num_dim, da->num_dim-1, da->dims[da->num_dim-1]);
+        return 0;
     }
 
     return 1;
