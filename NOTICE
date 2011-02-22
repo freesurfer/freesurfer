@@ -1,0 +1,116 @@
+FreeSurfer. 
+Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+
+This product includes software developed at the
+Athinoula A. Martinos Center for Biomedical Imaging
+149 Thirteenth Street, Suite 2301
+Charlestown, Massachusetts 02129
+
+FreeSurfer is based on other software packages:
+
+Tck/Tk.
+Parts of this software are based on the Tcl/Tk software copyrighted by the
+Regents of the University of California, Sun Microsystems, Inc., and other
+parties. The original license terms of the Tcl/Tk software distribution is
+included in the file docs/license.tcltk.txt
+
+Tix.
+Parts of this software are based on the Tix software copyrighted by the Ioi Kim
+Lam, and Expert Interface Technologies. The original license terms of the Tix
+software distribution is included in the file docs/license.tix.txt
+
+BLT.
+Parts of this software are based on the BLT software copyrighted by Lucent
+Technologies. The original license terms of the BLT software distribution is 
+included in the file docs/license.blt.txt
+
+Tiff.
+Parts of this software are based on the Tiff software. The original license 
+terms of the Tiff software distribution is included in the file 
+docs/license.tiff.txt
+
+JPEG.
+Parts of this software are based on the JPEG software. The original license 
+terms of the JPEG software distribution is included in the file 
+docs/license.jpeg.txt
+
+GLUT.
+Parts of this software are based on the GLUT software. The original license 
+terms of the GLUT software distribution is included in the file 
+docs/license.glut.txt
+
+VXL.
+Parts of this software are based on the VXL software. The original license 
+terms of the VXL software distribution is included in the file 
+docs/license.vxl.txt
+
+MINC.
+Parts of this software are based on the MINC software. The original license 
+terms of the MINC software distribution is included in the file 
+docs/license.minc.txt
+
+FSL.
+Parts of this software are based on the FSL software. The original license 
+terms of the FSL software distribution is included in the file 
+docs/license.fsl.txt
+
+VTK/KWWidgets.
+Parts of this software are based on the VTK/KWWidgets software. The original 
+license terms of the VTK/KWWidgets software distribution is included in the 
+file docs/license.vtk.txt
+
+ITK.
+Parts of this software are based on the ITK software. The original license 
+terms of the ITK software distribution is included in the file 
+docs/license.itk.txt
+
+Qt.
+Parts of this software are based on the Qt software. The original license 
+terms of the Qt software distribution is included in the file 
+docs/license.qt.html.
+
+Expat.
+Parts of this software are based on the Expat software. The original license 
+terms of the Expat software distribution is included in the file 
+docs/license.expat.txt
+
+XML2.
+Parts of this software are based on the XML2 software. The original license 
+terms of the XML2 software distribution is included in the file 
+docs/license.xml2.txt
+
+Boost.
+Parts of this software are based on the Boost software. The original license 
+terms of the Boost software distribution is included in the file 
+docs/license.boost.txt
+
+Thrust.
+Parts of this software are based on the Thrust software. The original license 
+terms of the Thrust software distribution is included in the file 
+docs/license.thrust.txt
+
+PETSc.
+Parts of this software are based on the PETSc software. The original license 
+terms of the PETSc software distribution is included in the file 
+docs/license.petsc.txt
+
+NrrdIO.
+Parts of this software are based on the NrrdIO software. The original license 
+terms of the NrrdIO software distribution is included in the file 
+docs/license.nrrdio.txt
+
+NIfTI.
+Parts of this software are based on the NIfTI software. The original license 
+terms of the NIfTI software distribution is included in the file 
+docs/license.nifti.txt
+
+GIfTI.
+Parts of this software are based on the GIfTI software. The original license 
+terms of the GIfTI software distribution is included in the file 
+docs/license.gifti.txt
+
+CUDA.
+Parts of this software are based on the CUDA software from NVIDIA. 
+The original license terms of the CUDA DSK software distribution is included 
+in the file docs/license.cuda.txt
+

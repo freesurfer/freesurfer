@@ -3,17 +3,25 @@
 #
 
 foodir=$(prefix)/docs
-foo_DATA=license.freesurfer \
-	license.freesurfer_opensource \
-	license.minc \
-	license.fsl \
-	license.tcltk \
-	license.tix \
-	license.slicer \
-	license.swig \
-	license.togl \
-	license.vxl \
-	license.thrust
+foo_DATA=\
+	license.freesurfer_SLA.txt \
+	license.minc.txt \
+	license.fsl.txt \
+	license.tcltk.txt \
+	license.tix.txt \
+	license.blt.txt \
+	license.swig.txt \
+	license.vxl.txt \
+	license.thrust.txt \
+	license.qt.html \
+	license.vtk.txt \
+	license.itk.txt \
+	license.petsc.txt \
+	license.boost.txt \
+	license.nrrdio.txt \
+	license.nifti.txt \
+	license.gifti.txt \
+	license.cuda.txt
 
 EXTRA_DIST=$(foo_DATA)
 

@@ -3,7 +3,7 @@
 ##
 
 foodir=$(prefix)
-foo_DATA=README COPYING NEWS AUTHORS
+foo_DATA=LICENSE NOTICE README NEWS AUTHORS
 
 DMRISUBDIRS=\
 	dmri_poistats \

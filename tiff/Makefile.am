@@ -82,13 +82,13 @@ test_tiff_LDADD=$(top_builddir)/tiff/libtiff.a \
 TESTS=tiff_test
 
 foodir=$(prefix)/docs
-foo_DATA=license.tiff
+foo_DATA=license.tiff.txt
 
 EXTRA_DIST=\
 	tiff_test \
 	icon_folder.tif \
 	VERSION \
-	license.tiff
+	license.tiff.txt
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

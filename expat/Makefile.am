@@ -34,13 +34,13 @@ runtestspp_LDADD=$(top_builddir)/expat/libexpat.a
 TESTS=runtests runtestspp
 
 foodir=$(prefix)/docs
-foo_DATA=license.expat
+foo_DATA=license.expat.txt
 
 EXTRA_DIST=\
 	xmltok_impl.c \
 	xmltok_ns.c \
 	README \
-	license.expat
+	license.expat.txt
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

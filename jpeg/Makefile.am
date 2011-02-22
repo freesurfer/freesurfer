@@ -109,7 +109,7 @@ clean-local:
 	rm -f testout*
 
 foodir=$(prefix)/docs
-foo_DATA=license.jpeg
+foo_DATA=license.jpeg.txt
 
 EXTRA_DIST=\
 	cderror.h  \
@@ -135,7 +135,7 @@ EXTRA_DIST=\
 	usage.doc  \
 	wizard.doc \
 	README \
-	license.jpeg \
+	license.jpeg.txt \
 	test_jpeg \
 	testorig.jpg \
 	testimg.ppm \

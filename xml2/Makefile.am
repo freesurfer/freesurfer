@@ -163,9 +163,9 @@ testrecurse_LDADD=$(top_builddir)/xml2/libxml2.a -lz
 TESTS=runtest testapi testchar testdict testrecurse
 
 foodir=$(prefix)/docs
-foo_DATA=license.xml2
+foo_DATA=license.xml2.txt
 
-EXTRA_DIST=trionan.c license.xml2 $(LIBXML_H) $(TESTSTUFF)
+EXTRA_DIST=trionan.c license.xml2.txt $(LIBXML_H) $(TESTSTUFF)
 
 
 # Our release target. Include files to be excluded here. They will be

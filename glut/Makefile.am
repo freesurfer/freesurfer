@@ -75,11 +75,11 @@ test_glut_LDADD=$(addprefix $(top_builddir)/, $(LIBS_MGH)) $(LIBS_VXL) -lz \
 #TESTS=test_glut
 
 foodir=$(prefix)/docs
-foo_DATA=license.glut
+foo_DATA=license.glut.txt
 
 EXTRA_DIST=\
 	VERSION \
-	license.glut
+	license.glut.txt
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
