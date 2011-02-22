@@ -291,7 +291,6 @@ MISCDIRS=\
 	test_window_env \
 	dngtester \
 	test_makevol \
-	scripts \
 	images \
 	dummy \
 	fem_elastic \
@@ -299,7 +298,7 @@ MISCDIRS=\
 	hiam_make_template\
 	hiam_register
 
-# ordering is important here for proper 'make check' function
+# ordering is important here for proper 'make check' and 'make distcheck' function
 SUBDIRS=\
 	include \
 	unix \
@@ -323,6 +322,7 @@ SUBDIRS=\
 	connectgraph \
 	qdecproject \
 	svm-lib \
+	scripts \
 	distribution \
 	$(FSGDF) \
 	$(GLSUBDIRS) \
