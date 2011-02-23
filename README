@@ -1,11 +1,14 @@
-FreeSurfer - Copyright 2002 - 2010, CorTechs Labs, Inc.
-and The General Hospital Corporation.  All rights reserved.
+FreeSurfer © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 
-FreeSurfer is under an Open Source License Agreement. 
-Please see the license in full in the file named COPYING.
+Terms and conditions for use, reproduction, distribution and contribution
+are found in the 'FreeSurfer Software License Agreement' contained
+in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 
-For instructions on how to use build the source code, 
-see the INSTALL file.
+https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+
+For instructions on how to obtain and build the source code, see:
+
+https://surfer.nmr.mgh.harvard.edu/fswiki/DevelopersGuide
 
 FreeSurfer documentation is found online at:
 

@@ -3,7 +3,7 @@
 ##
 
 foodir=$(prefix)
-foo_DATA=LICENSE NOTICE README NEWS AUTHORS
+foo_DATA=LICENSE NOTICE README AUTHORS
 
 DMRISUBDIRS=\
 	dmri_poistats \
@@ -403,7 +403,7 @@ uninstall-hook:
 	rm -f $(DESTDIR)$(prefix)/build-stamp.txt
 	rm -f $(DESTDIR)$(bindir)/flirt.fsl
 
-EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
+EXTRA_DIST=setup_configure Makefile.extra x86cpucaps \
 	doxy-file-header Doxyfile $(foo_DATA)
 
 DISTCLEANFILES=cpuflags.mak
