@@ -10,10 +10,7 @@ freesurfer/numaris4-protocols.unpackcfg
 freesurfer/surface_labels.txt
 freesurfer/Simple_surface_labels2002.txt
 freesurfer/Simple_surface_labels2005.txt
-freesurfer/README
 freesurfer/COPYING
-freesurfer/INSTALL
-freesurfer/NEWS
 freesurfer/bin-new
 freesurfer/bin-old
 freesurfer/bin-old-old
@@ -26,6 +23,7 @@ freesurfer/bin/recon-all-long
 freesurfer/bin/recon-all-nmr
 freesurfer/bin/recon-all-dev
 freesurfer/bin/dngtester
+freesurfer/bin/dummy
 freesurfer/bin/plotter
 freesurfer/bin/plotter.app
 freesurfer/bin/paint
