@@ -1,5 +1,10 @@
 #! /bin/tcsh -ef
 
-foreach f (`ls *.help.xml`)
-  xmllint --noout --postvalid $f
+# $srcdir is defined in make check runtime environment
+set SRCDIR=$PWD
+if ($?srcdir) then
+  set SRCDIR=$srcdir
+endif
+foreach f (`ls ${SRCDIR}/*.help.xml`)
+  xmllint --noout --postvalid --walker --timing $f
 end
