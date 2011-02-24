@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2009/04/02 19:01:02 $
-#    $Revision: 1.9 $
+#    $Date: 2011/02/24 20:19:03 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: stc-sess,v 1.9 2009/04/02 19:01:02 greve Exp $';
+set VERSION = '$Id: stc-sess,v 1.10 2011/02/24 20:19:03 greve Exp $';
 
 set cmdargs = ($argv);
 
@@ -59,8 +59,14 @@ goto check_params;
 check_params_return:
 
 if(! $nolog) then
-  mkdir -p log
-  set LF = log/stc-sess.log
+  set logdir = log
+  mkdir -p $logdir
+  if($#SessList > 1) then
+    set LF = $logdir/stc-sess.$$.log
+  else
+    set sb = `basename $SessList`
+    set LF = $logdir/stc-sess.$sb.log
+  endif
   if(-e $LF) mv $LF $LF.bak
 else
   set LF = /dev/null
