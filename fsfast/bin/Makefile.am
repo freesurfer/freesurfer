@@ -55,6 +55,7 @@ FSF_FILES=\
 	extract-roi-tc-sess \
 	fast_getext \
 	fast-log-preamble.csh \
+	fcseed-config \
 	fcseed-sess \
 	fcreg-sess \
 	feat.fsfast-patch \
