@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/15 22:24:59 $
-#    $Revision: 1.38 $
+#    $Date: 2011/02/24 21:08:58 $
+#    $Revision: 1.39 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: preproc-sess,v 1.38 2011/02/15 22:24:59 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.39 2011/02/24 21:08:58 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -112,7 +112,12 @@ else
     echo "WARNING: could not create $logdir"
     set LF = /dev/null
   else
-    set LF = $logdir/preproc-sess.log
+    if($#SessList > 1) then
+      set LF = $logdir/preproc-sess.$$.log
+    else
+      set sb = `basename $SessList`
+      set LF = $logdir/preproc-sess.$sb.log
+    endif
     if(-e $LF) mv $LF $LF.old
   endif
 endif
