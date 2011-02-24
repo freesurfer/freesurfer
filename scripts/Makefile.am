@@ -280,7 +280,7 @@ install-exec-hook:
 	echo "\$$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 \$$FREESURFER_HOME/bin/fsfget.tcl \$$argv" \
 		>> $(DESTDIR)$(bindir)/fsfget
 	chmod a+x $(DESTDIR)$(bindir)/fsfget
-	$(top_builddir)/utils/fsPrintHelp bbregister.help.xml >> $(DESTDIR)$(bindir)/bbregister
+	$(top_builddir)/utils/fsPrintHelp $(srcdir)/bbregister.help.xml >> $(DESTDIR)$(bindir)/bbregister
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
