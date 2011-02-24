@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/24 21:12:13 $
-#    $Revision: 1.59 $
+#    $Date: 2011/02/24 23:21:50 $
+#    $Revision: 1.60 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.59 2011/02/24 21:12:13 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.60 2011/02/24 23:21:50 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -79,7 +79,7 @@ set notask = 0;
 set PrintHelp = 0;
 set RegDOF = 6;
 set DoMCExtReg = 0;
-set DoHeteroGCor = 0;
+set HeteroGCor = 0;
 
 set force = 0;
 set UseGUI = 0;
@@ -172,7 +172,7 @@ if($#TPExcludeFile) echo "tpexclude $TPExcludeFile" | tee -a $flac
 echo "nskip $NSkip" | tee -a $flac
 if($#PolyFit) echo "polyfit $PolyFit" | tee -a $flac
 echo "HPFCutoffHz $HPFCutoffHz" | tee -a $flac
-echo "DoHeteroGCor $DoHeteroGCor" | tee -a $flac
+echo "HeteroGCor $HeteroGCor" | tee -a $flac
 # LPF is Experimental
 if($#LPFCutoffHz) echo "TFILTER lpf $LPFCutoffHz 5" | tee -a $flac
 # ------------ Event Task Modeling -----------
@@ -524,11 +524,11 @@ while( $#argv != 0 )
 
     case "-ghc":
     case "-hetero-gcor":
-      set DoHeteroGCor = 1;
+      set HeteroGCor = 1;
       breaksw
     case "-no-ghc":
     case "-no-hetero-gcor":
-      set DoHeteroGCor = 0;
+      set HeteroGCor = 0;
       breaksw
 
     case "-overwrite":
