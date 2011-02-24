@@ -27,7 +27,7 @@ function r = mri_surfrft_jlbr(yfile,glmdir,vwthresh,sgn,subject,hemi)
 % Limitations: does not work with per-voxel regressors, weighted-least
 % squares, fixed effects, or multi-variate contrasts.
 %
-% $Id: mri_surfrft_jlbr.m,v 1.1 2011/02/17 21:25:58 greve Exp $
+% $Id: mri_surfrft_jlbr.m,v 1.2 2011/02/24 21:13:31 greve Exp $
 
 %
 % MRIread.m
@@ -35,8 +35,8 @@ function r = mri_surfrft_jlbr(yfile,glmdir,vwthresh,sgn,subject,hemi)
 % Original Author: Jorge Louis Bernal-Rusiel and Douglas Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/02/17 21:25:58 $
-%    $Revision: 1.1 $
+%    $Date: 2011/02/24 21:13:31 $
+%    $Revision: 1.2 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -50,6 +50,12 @@ function r = mri_surfrft_jlbr(yfile,glmdir,vwthresh,sgn,subject,hemi)
 % General inquiries: freesurfer@nmr.mgh.harvard.edu
 % Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 %
+
+r = 1;
+if(nargin < 3 | nargin > 6)
+  fprintf('r = mri_surfrft_jlbr(yfile,glmdir,vwthresh,<sgn>,<subject>,<hemi>)\n');
+  return;
+end
 
 r = 0;
 
@@ -87,7 +93,8 @@ Xfile = sprintf('%s/Xg.dat',glmdir);
 X = load(Xfile);
 
 % Solve the linear model
-slm = SurfStatLinMod(y, X, surf);
+tX = term(X,'X');
+slm = SurfStatLinMod(y, tX, surf);
 slm.k = 1;
 
 % Get a list of contrasts
