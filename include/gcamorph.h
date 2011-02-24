@@ -15,8 +15,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/10 19:17:32 $
- *    $Revision: 1.98 $
+ *    $Date: 2011/02/24 20:37:13 $
+ *    $Revision: 1.99 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -648,6 +648,9 @@ double MRIlabelMorphSSE(MRI *mri_source, MRI *mri_atlas, MRI *mri_morph) ;
 
   int gcamLabelTermGPU( GCA_MORPH *gcam, const MRI *mri,
 			double l_label, double label_dist );
+
+
+  void GCAMremoveSingularitiesGPU( GCA_MORPH *gcam );
 
   //! Accessor for (probably unused) global
   void SetInconsistentLabelNodes( const int val );

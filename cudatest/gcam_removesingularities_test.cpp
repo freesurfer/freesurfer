@@ -121,7 +121,7 @@ int main( int argc, char *argv[] ) {
   tTotal.Start();
 #ifdef FS_CUDA
 #ifdef GCAMORPH_ON_GPU
-  cerr << "Not yet implemented!" << endl;
+  GCAMremoveSingularitiesGPU( gcam );
 #else
   cerr << "GCAMORPH_ON_GPU is not defined." << endl;
   cerr << "Test meaningless" << endl;
@@ -130,6 +130,10 @@ int main( int argc, char *argv[] ) {
 #else
   MRI *mri_warp = NULL;
   mri_warp = GCAMwriteWarpToMRI(gcam, mri_warp);
+  printf( "mri_warp : %i %i %i\n",
+          mri_warp->width, mri_warp->height, mri_warp->depth );
+  printf( "gcam : %i %i %i\n",
+          gcam->width, gcam->height, gcam->depth );
   GCAMremoveSingularitiesAndReadWarpFromMRI( gcam, mri_warp );
   MRIfree( &mri_warp);
 #endif

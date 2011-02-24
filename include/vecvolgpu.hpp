@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/15 14:31:56 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/02/24 20:37:13 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -25,8 +25,6 @@
  */
 
 #include <iostream>
-
-#include "gcamorphgpu.hpp"
 
 #ifndef VEC_VOL_GPU_CUDA_HPP
 #define VEC_VOL_GPU_CUDA_HPP
@@ -205,13 +203,10 @@ namespace GPU {
                         float* const h_z ) const;
 
 
-#ifdef GCAMORPH_ON_GPU
-      //! Copy data from a GCAmorphGPU
-      void CopyFromGCAmorphGPU( const GCAmorphGPU& src );
 
-      //! Send data to a GCAmorphGPU
-      void CopyToGCAmorphGPU( GCAmorphGPU& dst ) const;
-#endif
+      //! Copy data from another VecVolGPU
+      void Copy( const VecVolGPU& src );
+
 
     protected:
       //! Dimensions of the volume
@@ -236,6 +231,8 @@ namespace GPU {
                   << ": Please do not copy"
                   << std::endl;
         abort();
+        dim3 tmp = src.GetDims();
+        tmp.x = 1;
       }
 
       //! Hide assignment operator
@@ -244,6 +241,8 @@ namespace GPU {
                   << ": Please do not copy"
                   << std::endl;
         abort();
+        dim3 tmp = src.GetDims();
+        tmp.x = 1;
       }
     };
 

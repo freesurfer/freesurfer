@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 20:22:54 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/02/24 20:37:13 $
+ *    $Revision: 1.25 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,9 +40,6 @@ namespace GPU {
 
   //! Namespace to hold the datatypes used by the GPU
   namespace Classes {
-
-    // Forward declaration
-    class VecVolGPU;
 
 
     //! Templated ancilliary class for use in kernel calls
@@ -207,8 +204,6 @@ namespace GPU {
     template<typename T>
     class VolumeGPU {
     public:
-      // Needed to dig vector volumes out of a GCAmorphGPU
-      friend class VecVolGPU;
 
       // -------------------------------------------
       // Constructors and destructor
@@ -245,7 +240,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.24 2011/02/11 20:22:54 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.25 2011/02/24 20:37:13 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray

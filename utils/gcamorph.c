@@ -11,8 +11,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/16 19:57:41 $
- *    $Revision: 1.238 $
+ *    $Date: 2011/02/24 20:37:14 $
+ *    $Revision: 1.239 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -16748,16 +16748,13 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
 
   nbhd = MAX(1,gcam->spacing-1) ;
   printf("iter %d, gcam->neg = %d\n", iter, gcam->neg) ;
-  do
-  {
+
+  do {
     mri_warp_tmp = MRIcopy(mri_warp, mri_warp_tmp) ;
     last_neg = gcam->neg ;
-    for (xp = 0 ; xp < gcam->width; xp++)
-    {
-      for (yp = 0 ; yp < gcam->height ; yp++)
-      {
-        for (zp = 0 ; zp < gcam->depth ; zp++)
-        {
+    for (xp = 0 ; xp < gcam->width; xp++) {
+      for (yp = 0 ; yp < gcam->height ; yp++) {
+        for (zp = 0 ; zp < gcam->depth ; zp++) {
           if (xp == Gx && yp == Gy && zp == Gz)
             DiagBreak() ;
           xv = (xp * gcam->spacing) ;
@@ -16765,16 +16762,14 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
           zv = (zp * gcam->spacing) ;
           //        GCApriorToVoxel(gcam->gca, mri_warp, xp, yp, zp, &xv, &yv, &zv) ;
           gcamn = &gcam->nodes[xp][yp][zp] ;
-          if ((gcamn->area1 <= 0 || gcamn->area2 <= 0) && gcamn->invalid == GCAM_VALID)
-          {
-            for (xk = -nbhd ; xk <= nbhd ; xk++)
-              for (yk = -nbhd ; yk <= nbhd ; yk++)
-                for (zk = -nbhd ; zk <= nbhd ; zk++)
-                {
+          if ((gcamn->area1 <= 0 || gcamn->area2 <= 0) && gcamn->invalid == GCAM_VALID) {
+            for (xk = -nbhd ; xk <= nbhd ; xk++) {
+              for (yk = -nbhd ; yk <= nbhd ; yk++) {
+                for (zk = -nbhd ; zk <= nbhd ; zk++) {
                   xv = mri_warp->xi[(xp * gcam->spacing) + xk] ;
                   yv = mri_warp->yi[(yp * gcam->spacing) + yk] ;
                   zv = mri_warp->zi[(zp * gcam->spacing) + zk] ;
-
+                  
                   dx = MRIvoxelMean(mri_warp_tmp, xv, yv, zv, wsize, 0) ;
                   dy = MRIvoxelMean(mri_warp_tmp, xv, yv, zv, wsize, 1);
                   dz = MRIvoxelMean(mri_warp_tmp, xv, yv, zv, wsize, 2) ;
@@ -16782,39 +16777,53 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
                   MRIsetVoxVal(mri_warp, xv, yv, zv, 1, dy) ;
                   MRIsetVoxVal(mri_warp, xv, yv, zv, 2, dz) ;
                 }
+              }
+            }
+          
           }
+          
         }
       }
     }
+
     GCAMreadWarpFromMRI(gcam, mri_warp) ;
     gcamComputeMetricProperties(gcam) ;
-    if (Gdiag & DIAG_SHOW)
+
+    if (Gdiag & DIAG_SHOW || 1) {
       printf("iter %d, gcam->neg = %d, nbhd=%d\n", iter+1, gcam->neg, nbhd) ;
-    if (gcam->neg >= min_neg)
-    {
-      if (noprogress++ >= max_noprogress)
-      {
+    }
+
+    if (gcam->neg >= min_neg) {
+      if (noprogress++ >= max_noprogress) {
         nbhd++ ;
-        if (nbhd > max_nbhd)  // try it starting iwth just nearest nbrs again
-        {
+        if (nbhd > max_nbhd) {
+          // try it starting iwth just nearest nbrs again
           nbhd = 1 ; 
           max_nbhd++ ;
         }
+
         noprogress = 0 ;
+
         if (Gdiag & DIAG_SHOW)
           printf("neg = %d, increasing nbhd size to %d\n", gcam->neg,nbhd) ;
       }
-    }
-    else
-    {
+    } else {
       noprogress = 0 ;
       min_neg = gcam->neg ;
     }
-  } while (gcam->neg > 0 && (++iter < max_iter || gcam->neg < last_neg)) ;
+  } while (gcam->neg > 0 && (++iter < max_iter || gcam->neg < last_neg));
+
+
   printf("after %d iterations, nbhd size=%d, neg = %d\n", iter, nbhd, gcam->neg) ;
   MRIfree(&mri_warp_tmp) ;
   return(NO_ERROR) ;
 }
+
+
+
+
+
+
 MRI *
 replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels, 
                int combine_labels[8][2], int ncombine_labels, 

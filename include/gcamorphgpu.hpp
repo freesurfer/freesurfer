@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 19:12:50 $
- *    $Revision: 1.35 $
+ *    $Date: 2011/02/24 20:37:13 $
+ *    $Revision: 1.36 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,7 @@
 #include "chronometer.hpp"
 
 #include "volumegpu.hpp"
+#include "vecvolgpu.hpp"
 
 
 // ==================================================================
@@ -259,6 +260,18 @@ namespace GPU {
 
       //! Copies positions around
       void CopyNodePositions( const int from, const int to );
+
+
+      //! Copies warp to a VecVolGPU
+      void WriteWarpToVecVol( VecVolGPU& vecVol ) const;
+
+      //! Copies warp from a VecVolGPU
+      void ReadWarpFromVecVol( const VecVolGPU& vecVol );
+
+
+      //! Removes negative nodes through averaging
+      void RemoveSingularities( void );
+
 
       // -------------------------------------------
       static void ShowTimings( void );

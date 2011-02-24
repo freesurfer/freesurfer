@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 19:12:55 $
- *    $Revision: 1.49 $
+ *    $Date: 2011/02/24 20:37:15 $
+ *    $Revision: 1.50 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1233,6 +1233,319 @@ namespace GPU {
       GCAmorphGPU::tSmoothGradient.Stop();
     }
 
+
+    // -------------------------------------------------------------
+
+    const unsigned int kWriteWarpToVecVolKernelSize = 16;
+
+    __global__
+    void WriteWarpToVecVolKernel( VecVolArgGPU vv,
+                                  const VolumeArgGPU<float> x,
+                                  const VolumeArgGPU<float> y,
+                                  const VolumeArgGPU<float> z ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      for( unsigned int iz = 0; iz<x.dims.z; iz++ ) {
+        if( x.InVolume(ix,iy,iz) ) {
+          float3 res;
+          res.x = x(ix,iy,iz) - ix;
+          res.y = y(ix,iy,iz) - iy;
+          res.z = z(ix,iy,iz) - iz;
+
+          vv.Set( res, ix, iy, iz );
+        }
+      }
+
+    }
+
+    void GCAmorphGPU::WriteWarpToVecVol( VecVolGPU& vecVol ) const {
+      /*!
+        This is a reimplementation of GCAMwriteWarpToMRI.
+        We don't have to worry about the transforms or the sampling
+        in this case, since we directly copy (with slight modification)
+        the rx, ry and rz fields into the VecVolGPU
+      */
+      this->CheckIntegrity();
+
+      // Allocate space
+      vecVol.Allocate( this->d_rx.GetDims() );
+
+      // Run the computation
+      dim3 grid, threads;
+      
+      threads.x = threads.y = kWriteWarpToVecVolKernelSize;
+      threads.z = 1;
+
+      grid = this->d_rx.CoverBlocks( kWriteWarpToVecVolKernelSize );
+      grid.z = 1;
+
+      WriteWarpToVecVolKernel<<<grid,threads>>>( vecVol,
+                                                 this->d_rx, this->d_ry, this->d_rz );
+      CUDA_CHECK_ERROR( "WriteWarpToVecVolKernel failed!" );
+      
+    }
+
+
+
+
+
+    const unsigned int kReadWarpFromVecVolKernelSize = 16;
+
+    __global__
+    void ReadWarpFromVecVolKernel( VolumeArgGPU<float> x,
+                                   VolumeArgGPU<float> y,
+                                   VolumeArgGPU<float> z,
+                                   const VecVolArgGPU vv ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      for( unsigned int iz = 0; iz<x.dims.z; iz++ ) {
+        if( x.InVolume(ix,iy,iz) ) {
+          const float3 vec = vv(ix,iy,iz);
+          x(ix,iy,iz) = ix + vec.x;
+          y(ix,iy,iz) = iy + vec.y;
+          z(ix,iy,iz) = iz + vec.z;
+        }
+      }
+    }
+
+
+    void GCAmorphGPU::ReadWarpFromVecVol( const VecVolGPU& vecVol ) {
+      /*
+        This reimplements GCAMreadWarpFromMRI.
+        But again, we don't have to worry about 'spacing' and sampling
+      */
+
+      this->CheckIntegrity();
+      if( vecVol.GetDims() != this->d_rx.GetDims() ) {
+        std::cerr << __FUNCTION__
+                  << ": Volume size mismatch"
+                  << std::endl;
+        abort();
+      }
+
+      // Run the computation
+      dim3 grid, threads;
+      threads.x = threads.y = kReadWarpFromVecVolKernelSize;
+      threads.z = 1;
+      
+      grid = this->d_rx.CoverBlocks( kReadWarpFromVecVolKernelSize );
+      grid.z = 1;
+
+      ReadWarpFromVecVolKernel<<<grid,threads>>>( this->d_rx,
+                                                  this->d_ry,
+                                                  this->d_rz,
+                                                  vecVol );
+      CUDA_CHECK_ERROR( "ReadWarpFromVecVolKernel failed!" );
+
+    }
+
+
+
+
+    // --------------------------------------------
+
+    const unsigned int kRemoveSingularitiesKernelSize = 16;
+
+    __device__
+    int ClampRange( const int val, unsigned int maxVal ) {
+      int res;
+      if( val < 0 ) {
+        res = 0;
+      } else if( val >= static_cast<int>(maxVal) ) {
+        res = maxVal-1;
+      } else {
+        res = val;
+      }
+
+      return( res );
+    }
+
+    
+    //! Mean of vectors around location
+    __device__
+    float3 VoxelMean( const VecVolArgGPU volume,
+                      const unsigned int x0,
+                      const unsigned int y0,
+                      const unsigned int z0,
+                      const int wsize ) {
+      /*!
+        Implementation of MRIvoxelMean for the
+        RemoveSingularities kernel
+      */
+      float3 res = make_float3(0,0,0);
+
+      const int whalf = wsize / 2;
+      const int xmin = max( 0, x0-whalf );
+      const int xmax = min( volume.dims.x-1, x0+whalf );
+      const int ymin = max( 0, y0-whalf );
+      const int ymax = min( volume.dims.y-1, y0+whalf );
+      const int zmin = max( 0, z0-whalf );
+      const int zmax = min( volume.dims.z-1, z0+whalf );
+
+      const int npix = (zmax-zmin+1) * (ymax-ymin+1) * (xmax-xmin+1);
+      
+      for( int z=zmin; z<=zmax; z++ ) {
+        for( int y=ymin; y<=ymax; y++ ) {
+          for( int x=xmin; x<=xmax; x++ ) {
+            res += volume(x,y,z);
+          }
+        }
+      }
+
+      if( npix >= 0 ) {
+        res /= static_cast<float>(npix);
+      } else {
+        res = make_float3(0,0,0);
+      }
+
+      return( res );
+    }
+
+
+    __global__
+    void RemoveSingularitiesKernel( VecVolArgGPU warp,
+                                    const VecVolArgGPU tmpWarp,
+                                    const VolumeArgGPU<float> area1,
+                                    const VolumeArgGPU<float> area2,
+                                    const VolumeArgGPU<char> invalid,
+                                    const int wsize,
+                                    const int nbhd ) {
+      const unsigned int bx = ( blockIdx.x * blockDim.x );
+      const unsigned int by = ( blockIdx.y * blockDim.y );
+      const unsigned int ix = threadIdx.x + bx;
+      const unsigned int iy = threadIdx.y + by;
+
+      for( unsigned int iz = 0; iz< invalid.dims.z; iz++ ) {
+	if( invalid.InVolume(ix,iy,iz) ) {
+
+          const bool neg1 = ( area1(ix,iy,iz) <= 0 );
+          const bool neg2 = ( area2(ix,iy,iz) <= 0 );
+          const bool valid = ( invalid(ix,iy,iz) == GCAM_VALID );
+
+          if( ( neg1 || neg2 ) && valid ) {
+    
+            const dim3 dims = invalid.dims;
+
+            for( int zk=-nbhd; zk<=nbhd; zk++ ) {
+              for( int yk=-nbhd; yk<nbhd; yk++ ) {
+                for( int xk=-nbhd; xk<=nbhd; xk++ ) {
+
+                  const int xv = ClampRange( ix+xk, dims.x );
+                  const int yv = ClampRange( iy+yk, dims.y );
+                  const int zv = ClampRange( iz+zk, dims.z );
+                  
+                  float3 sv = VoxelMean( tmpWarp, xv, yv, zv, wsize );
+
+                  // This is potentially a race condition (I think....)
+                  warp.Set( sv, xv, yv, zv );
+                }
+              }
+            }
+               
+    
+          }
+
+        }
+      }
+    }
+
+    void GCAmorphGPU::RemoveSingularities( void ) {
+      /*!
+        An implementation of GCAMremoveSingularitiesAndReadWarpFromMRI
+        for the GPU.
+        We drop the mri_warp, and handle it internally.
+      */
+
+      int invalid, wsize;
+
+      VecVolGPU warp, tmpWarp;
+
+      this->CheckIntegrity();
+      
+      this->WriteWarpToVecVol( warp );
+
+      wsize = 3;
+
+      // See if anything has to be done
+      this->ReadWarpFromVecVol( warp );
+      this->ComputeMetricProperties( invalid );
+      if( this->neg == 0 ) {
+        return;
+      }
+      
+      int iter = 0;
+      int noprogress = 0;
+      const int max_iter = 500;
+      const int max_noprogress = 4;
+      int min_neg = this->neg;
+      int max_nbhd = 3;
+
+      int nbhd = 1;
+      if( this->spacing-1 > nbhd ) {
+        nbhd = this->spacing-1;
+      }
+
+      printf("iter %d, gcam->neg = %d\n", iter, this->neg );
+
+
+      int last_neg;
+
+      // Main loop
+      do {
+        tmpWarp.Copy( warp );
+        last_neg = this->neg;
+
+        // GPU smoothing
+        dim3 grid, threads;
+        threads.x = threads.y = kRemoveSingularitiesKernelSize;
+        threads.z = 1;
+
+        grid = this->d_rx.CoverBlocks( kRemoveSingularitiesKernelSize );
+        grid.z = 1;
+
+        RemoveSingularitiesKernel<<<grid,threads>>>( warp, tmpWarp,
+                                                     this->d_area1, this->d_area2,
+                                                     this->d_invalid,
+                                                     wsize,
+                                                     nbhd );
+        CUDA_CHECK_ERROR( "RemoveSingularitiesKernel failed!" );
+
+        // Check for negatives
+        this->ReadWarpFromVecVol( warp );
+        this->ComputeMetricProperties( invalid );
+
+        printf("iter %d, gcam->neg = %d, nbhd=%d\n", iter+1, this->neg, nbhd) ;
+
+        // Determine next step
+        if( this->neg >= min_neg ) {
+          if( noprogress++ >= max_noprogress ) {
+            nbhd++;
+            if( nbhd > max_nbhd ) {
+              nbhd = 1;
+              max_nbhd++;
+            }
+
+            noprogress = 0;
+          }
+        } else {
+          noprogress = 0;
+          min_neg = this->neg;
+        }
+
+      } while( (this->neg>0) && ( (++iter < max_iter) || (this->neg < last_neg ) ) );
+
+      printf("after %d iterations, nbhd size=%d, neg = %d\n", iter, nbhd, this->neg) ;
+    }
+
+
+
+
     // --------------------------------------------
 
     void GCAmorphGPU::CopyNodePositions( const int from, const int to ) {
@@ -1799,5 +2112,16 @@ void GCAMcopyNodePositionsGPU( GCA_MORPH *gcam,
   gcamGPU.CopyNodePositions( from, to );
   gcamGPU.RecvAll( gcam );
 }
+
+
+
+void GCAMremoveSingularitiesGPU( GCA_MORPH *gcam ) {
+  GPU::Classes::GCAmorphGPU gcamGPU;
+  
+  gcamGPU.SendAll( gcam );
+  gcamGPU.RemoveSingularities();
+  gcamGPU.RecvAll( gcam );
+}
+
 
 #endif
