@@ -206,7 +206,7 @@ G_SYNOPSIS = """
 """
 
 Gstr_SELF	= sys.argv[0]
-Gstr_VERSION	= "$Id: dsh,v 1.3 2009/11/30 20:09:29 rudolph Exp $"
+Gstr_VERSION	= "$Id: dsh,v 1.4 2011/02/24 21:11:41 rudolph Exp $"
 G_dieNow	= 0
 
 class dijkResultLogHandler(SocketServer.BaseRequestHandler) :
@@ -288,9 +288,9 @@ def dijkstra_spawn(str_port):
 	
 	global verbose
 	
-	str_start	= '%s --listen' % Gstr_exec
+	str_start	= '%s' 		% Gstr_exec
         str_cmd         = '%s'          % Gstr_exec
-        str_arg         = '--listen'
+        str_arg         = ''
 	if(verbose): print "Starting " + str_start
 	#(dijkstra_stdout, dijkstra_stdin, dijkstra_stderr)	= popen2.popen3(str_start)
         p       = Popen([str_cmd, str_arg], bufsize=-1,                 \
@@ -543,9 +543,9 @@ def dijkstra_isRunning():
             #alreadyRunningListen	= os.system("ps -A | grep -e --listen | grep -v grep >/dev/null")
             #alreadyRunning		= os.system("ps -A|grep mris_pmake|grep -v python|grep -v grep >/dev/null")
 	#else:
-        alreadyRunningListen	= os.system("ps -Af | grep -e --listen | grep -v grep >/dev/null")
+#        alreadyRunningListen	= os.system("ps -Af | grep -e --listen | grep -v grep >/dev/null")
         alreadyRunning		= os.system("ps -Af|grep mris_pmake|grep -v python|grep -v grep>/dev/null")
-	dijkstraRunning		= alreadyRunningListen & alreadyRunning
+	dijkstraRunning		= alreadyRunning
 	return dijkstraRunning
 	
 # main 
@@ -613,7 +613,7 @@ if Gstr_host == 'localhost':
 	dijkstraRunning = dijkstra_isRunning()
 	if(dijkstraRunning == 256):
             str_msg  = "\n\tIt seems as though 'mris_pmake' is not already running.\n"
-            str_msg += "\tI will attempt to start it as 'mris_pmake --listen'.\n"
+            str_msg += "\tI will now attempt to start it on '%s'.\n" % Gstr_optionsFile
             str_msg += "\tThere might be a delay of a few seconds as the program\n"
             str_msg += "\tstarts and parses its initial environment.\n\n"
             str_msg += "\tPlease be patient..."
