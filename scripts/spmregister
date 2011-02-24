@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2009/04/15 18:09:01 $
-#    $Revision: 1.37 $
+#    $Author: mreuter $
+#    $Date: 2011/02/24 23:37:57 $
+#    $Revision: 1.38 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA).
@@ -23,7 +23,7 @@
 #
 
 #
-set VERSION = '$Id: spmregister,v 1.37 2009/04/15 18:09:01 greve Exp $';
+set VERSION = '$Id: spmregister,v 1.38 2011/02/24 23:37:57 mreuter Exp $';
 set inputargs = ($argv);
 
 set subjid = ();
@@ -132,15 +132,20 @@ if($fsvol == rawavg.cor) then
 endif
 
 # Convert reference to analyze
-set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
-if(! -e $refvol/COR-.info) then
-  set MGZ = .mgz
-  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol$MGZ
-  if(! -e $refvol) then
-    echo "ERROR: $refvol not found in either COR or MGZ formats"
-    exit 1;
+if ( $subjid != "" ) then
+  set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol
+  if(! -e $refvol/COR-.info) then
+    set MGZ = .mgz
+    set refvol = $SUBJECTS_DIR/$subjid/mri/$fsvol$MGZ
+    if(! -e $refvol) then
+      echo "ERROR: $refvol not found in either COR or MGZ formats"
+      exit 1;
+    endif
   endif
+else
+  set refvol = $fsvol
 endif
+
 set refvolbase = $tmpdir/refvol.spmregister
 set refvolimg  = $refvolbase.$fmt
 set cmd = (mri_convert $refvol $refvolimg)
@@ -330,6 +335,12 @@ set TKR2 = tkregister2_cmdl
 set cmd = ($TKR2 --s $subjid --mov $movvolimg \
            --regheader --noedit --reg $regfile \
            --targ $refvolimg );
+if ($subjid == "") then
+   set cmd = ($TKR2 --mov $movvolimg \
+           --regheader --noedit --reg $regfile \
+           --targ $refvolimg );
+endif
+
 if($#MGZ) set cmd = ($cmd --mgz);
 echo "--------------------------------------------------" |& tee -a $LF
 pwd        |& tee -a $LF
@@ -365,8 +376,13 @@ endif
 if($#OutVol) then
   set v2vreg = $regfile
   if($DoSegReg) set v2vreg = $segregfile
-  set cmd = (mri_vol2vol --mov $movvolimg --fstarg \
-    --o $OutVol --reg $v2vreg --no-save-reg)
+	if($subjid == "") then
+	  set cmd = (mri_vol2vol --mov $movvolimg --targ $refvolimg \
+		         --o $OutVol --reg $v2vreg --no-save-reg)
+	else
+      set cmd = (mri_vol2vol --mov $movvolimg --fstarg \
+                 --o $OutVol --reg $v2vreg --no-save-reg)
+	endif
   echo $cmd | tee -a $LF
   $cmd |& tee -a $LF
   if($status) then
@@ -577,14 +593,14 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#subjid == 0) then
-    echo "ERROR: must spec a subject id"
-    exit 1;
-  endif
-  if(! -e $SUBJECTS_DIR/$subjid) then
-    echo "ERROR: cannot find $subjid in $SUBJECTS_DIR"
-    exit 1;
-  endif
+#  if($#subjid == 0) then
+#    echo "ERROR: must spec a subject id"
+#    exit 1;
+#  endif
+#  if(! -e $SUBJECTS_DIR/$subjid) then
+#    echo "ERROR: cannot find $subjid in $SUBJECTS_DIR"
+#    exit 1;
+#  endif
 
   if($#movvol == 0) then
     echo "ERROR: must spec an movput vol"
@@ -622,7 +638,7 @@ usage_exit:
   echo "USAGE: spmregister"
   echo ""
   echo "Required Arguments:";
-  echo "   --s subjid"
+  echo "   --s subjid   or  --fsvol full/path/to.mgz "
   echo "   --mov volid  : input/movable volume"
   echo "   --reg register.dat"
   echo ""
