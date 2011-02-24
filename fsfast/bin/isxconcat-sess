@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/15 22:46:51 $
-#    $Revision: 1.57 $
+#    $Date: 2011/02/24 21:08:38 $
+#    $Revision: 1.58 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.57 2011/02/15 22:46:51 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.58 2011/02/24 21:08:38 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -317,7 +317,7 @@ foreach hemi ($hemilist)
          if(! $DoPercent) set glmdir = $outcondir/osgm.wrfx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.wrfx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
-         set cmd = ($cmd --mask $maskvol --wls $yffxvar)
+         set cmd = ($cmd --mask $maskvol --wls $yffxvar --kurtosis)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
          if($ToVol)  set cmd = ($cmd --nii);
          echo $cmd |& tee -a $LF
@@ -328,7 +328,7 @@ foreach hemi ($hemilist)
        if($DoRFX) then
          if(! $DoPercent) set glmdir = $outcondir/osgm.rfx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.rfx.pct"$SpStr2"
-         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
          set cmd = ($cmd --mask $maskvol)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
          if($ToVol)  set cmd = ($cmd --nii);
@@ -340,7 +340,7 @@ foreach hemi ($hemilist)
        if($DoFFX) then
          if(! $DoPercent) set glmdir = $outcondir/osgm.ffx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.ffx.pct"$SpStr2"
-         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
          set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
          set cmd = ($cmd --ffxdofdat $ffxdofdat)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
