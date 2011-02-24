@@ -1,0 +1,373 @@
+#!/bin/csh -f
+# fcseed-sess
+#
+set VERSION    = '$Id: fcseed-config,v 1.1 2011/02/24 21:10:03 greve Exp $';
+set cmdargs = ($argv);
+
+set fcconfig = ();
+set fcname = ();
+set fsd = ();
+set rlf = ()
+set segstem    = "aparc+aseg"; 
+set segidlist  = ()
+set RegDOF = 6;
+set FillThresh = .5;
+set DoMean = 1;
+set DoSVD = 0;
+set roicfg = ();
+set MakeMask = 0;
+set DoWM = 0;
+set WMErode = 0;
+set SVDSynth = 0;
+
+set Overwrite = 0;
+set cleanup = 1;
+set nolog = 0;
+
+set PrintHelp = 0;
+if($#argv == 0)  goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+goto parse_args;
+parse_args_return:
+goto check_params;
+check_params_return:
+
+set ProjectDir = `pwd`;
+
+rm -f $fcconfig
+echo "# $0 $cmdargs"      >> $fcconfig
+echo "# ProjectDir $ProjectDir" >> $fcconfig
+echo "# $VERSION "      >> $fcconfig
+echo "# `date`"         >> $fcconfig
+echo ""                 >> $fcconfig
+echo "fcname $fcname"   >> $fcconfig
+echo "fsd $fsd"         >> $fcconfig
+echo "segstem $segstem" >> $fcconfig
+echo "RegDOF $RegDOF"   >> $fcconfig
+echo "FillThresh $FillThresh" >> $fcconfig
+echo "DoMean $DoMean"     >> $fcconfig
+echo "DoSVD $DoSVD"       >> $fcconfig
+echo "MakeMask $MakeMask" >> $fcconfig
+echo "WMErode $WMErode"   >> $fcconfig
+echo "SVDSynth $SVDSynth" >> $fcconfig
+echo "DoWM $DoWM"         >> $fcconfig
+if($#rlf)       echo "RunListFile $rlf"     >> $fcconfig
+if($#roicfg)    echo "roicfg $roicfg"       >> $fcconfig
+if($#segidlist) echo "segidlist $segidlist" >> $fcconfig
+
+echo "fcseed-config done" 
+
+exit 0;
+###############################################
+
+
+############--------------##################
+parse_args:
+set cmdline = "$argv";
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "-config":
+    case "-cfg":
+      if ( $#argv < 1) goto arg1err;
+      set fcconfig = $argv[1]; shift;
+      breaksw
+
+    case "-fcname":
+      if ( $#argv < 1) goto arg1err;
+      set fcname = $argv[1]; shift;
+      breaksw
+
+    case "-m":
+      if ( $#argv < 1) goto arg1err;
+      set maskfile = $argv[1]; shift;
+      breaksw
+
+    case "-fsd":
+      if ( $#argv < 1) goto arg1err;
+      set fsd = $argv[1]; shift;
+      breaksw
+
+    case "-segid":
+      if ( $#argv < 1) goto arg1err;
+      set segidlist = ($segidlist $argv[1]); shift;
+      breaksw
+
+    case "-seg":
+      if ( $#argv < 1) goto arg1err;
+      set segstem = $argv[1]; shift;
+      set segstem = `basename $segstem .mgz`
+      breaksw
+
+    case "-roi":
+      if ( $#argv < 1) goto arg1err;
+      set roicfg = $argv[1]; shift;
+      if(! -e $roicfg) then
+        echo "ERROR: cannot find $roicfg"
+        exit 1;
+      endif
+      breaksw
+
+    case "-fillthresh":
+      if ( $#argv < 1) goto arg1err;
+      set FillThresh = $argv[1]; shift;
+      breaksw
+
+    case "-wm":
+      #set segidlist = ($segidlist 2 41); # Not used
+      set FillThresh = .95;
+      set DoWM = 1;
+      breaksw
+
+    case "-wm-erode":
+      if ( $#argv < 1) goto arg1err;
+      set WMErode = $argv[1]; shift;
+      breaksw
+
+    case "-vcsf":
+      set segidlist = ($segidlist 4 5 43 44 31 63) 
+      set FillThresh = .95;
+      #set segidlist = ($segidlist 4 5 14 43 44 72);
+      breaksw
+
+    case "-pca":
+    case "-svd":
+      set DoMean = 0;
+      set DoSVD  = 1;
+      breaksw
+
+    case "-pca-synth":
+    case "-svd-synth":
+      set SVDSynth = 1;
+      breaksw
+
+    case "-mean":
+      set DoMean = 1;
+      set DoSVD  = 0;
+      breaksw
+
+    case "-nolog":
+      set nolog = 1;
+      breaksw
+
+    case "-force":
+    case "-overwrite":
+      set Overwrite = 1;
+      breaksw
+
+    case "-cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "-no-cleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "-debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+  if($#fcconfig == 0) then
+    echo "ERROR: no configure file output specified"
+    exit 1
+  endif
+  if(-e $fcconfig && ! $Overwrite) then
+    echo "ERROR: $fcconfig exists, choose a different name or run with -overwrite"
+    exit 1
+  endif
+  if($#fsd == 0) then
+    echo "ERROR: you must specify a functional subdirectory (-fsd), eg, bold or rest"
+    exit 1
+  endif
+  if(! $DoWM && $#segidlist == 0 && $#roicfg == 0) then
+    echo "ERROR: no segmentations IDs (-segid) or ROI (-roi) specified"
+    exit 1
+  endif
+  if($#segidlist != 0 && $#roicfg != 0) then
+    echo "ERROR: cannot specify both segmentation ID (-segid) and ROI (-roi)"
+    exit 1
+  endif
+
+  if($#fcname == 0) then
+    set fcname = `basename $fcconfig .fccfg`
+    set fcname = `basename $fcname .cfg`
+    set fcname = `basename $fcname .config`
+    set fcname = `basename $fcname .dat`
+  endif
+  echo "fcname is $fcname"
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "USAGE: fcseed-config"
+  echo ""
+  echo "  -cfg fc.config : configuration file"
+  echo ""
+  echo "Segmentation-based options"
+  echo "  -segid segid  <-segid segid2 ...>"
+  echo "  -wm : white matter "
+  echo "  -vcsf : ventricular CSF"
+  echo "  -seg segmentation : default is aparc+aseg"
+  echo "  -fillthresh thresh : value between 0 and 1 (default is .5)"
+  echo "    only applies to analyses using segmentation-based"
+  echo ""
+  echo "  -fsd FSD : rest or bold (required)"
+  echo ""
+  echo "Functional ROI-based options"
+  echo "  -roi fcconfig : as created by funcroi-confg"
+  echo ""
+  echo "   -m  : create a mask for segmentation-based. Good for checking"
+  echo "   -wm-erode N : erode WM mask by N anat voxels (default is $WMErode) "
+  echo "   -overwrite : delete and overwrite any existing files"
+  echo "   -pca       : compute pca instead of a spatial mean"
+  echo "   -mean      : compute spatial mean instead of PCA"
+  echo ""
+  echo "   -help      : "
+  echo "   -version   : print version and exit"
+  echo "   -debug"
+  echo ""
+
+  if(! $PrintHelp) exit 1;
+
+  echo $VERSION
+
+  echo "------------------------------------------------------------"
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+NOTE: this program is still experimental. Use at your own risk!
+
+Computes seeds (regressors) that can be used for functional
+connectivity analysis or for use as nuisance regressors. Seed regions
+can be defined in two ways: (1) as an anatomical region in a
+segmentation such as aparc+aseg, or (2) as an ROI created with
+funcroi-config. The seed regions are always subject-specific.  The
+output is a text file in the same directory as the raw data. This file
+will be named based on the -o flag.
+
+======================================================
+Segmentation-based Seed Regions
+
+For segmentation-based, the segmentation must exist in
+$SUBJECTS_DIR/$subject/mri. By default the segmentation is aparc+aseg.
+This can be changed with -seg (eg, -seg aparc+aseg would be the same
+as the default). You must specify a segmentation index with
+-segid. Eg, if you are using aparc+aseg, then 17 would be left
+hippocampus (this is defined in
+$FREEESURFER_HOME/FreeSurferColorLUT.txt). You can specify any number
+of segmentations; they will be combined into one seed region (eg,
+(-segid 17 -segid 53 would produce one seed region from both
+hippocampi).
+
+The segmentation will be converted from the 1mm anatomical space into
+the native functional space.  For this, you can specify a fill
+threshold. This governs how much an anatomical segmentation must fill
+a functional voxel must be in order for it to be considered part of
+the seed region. This is a number between 0 (the smallest part of a
+voxel) to 1 (all of the voxel). To avoid quatifification artifacts, it
+is recommended that this not be set above .8. Default is .5.
+
+There are two default segmentations: (1) white matter (-wm) and (2)
+ventricular CSF (-vcsf). The white matter option first creates a mask
+of the WM in the anatomical space by finding the voxels in the
+aparc+aseg.mgz with indices 2 41 7 46 251 252 253 254 255 77 78 and
+79. It then converts the mask to native functional space with
+fillthresh=0.95 The CSF segmentation uses segmentation indices 4 5 43
+44 31 and 63 with fillthresh=.95. Both use a PCA output. These are
+good to use as nuisance regressors.
+
+
+======================================================
+ROI-based Seed Regions
+
+The ROI-based seed region is the result of a functional ROI analysis
+(see funcroi-config). Note that the functional ROI may have a
+different FSD than the functional connectivity analysis. This can be
+helpful when creating an ROI from a task but applying it to rest data.
+
+
+
+=====================================================
+Examples
+
+1. Create a seed waveform by spatially averaging the entire left
+   hemisphere hippocampus:
+
+     fcseed-sess -o lh.hippo.dat -segid 17 -s session -fsd rest
+
+   This will create files called lh.hippo.dat in session/rest/RRR
+   where RRR is the run directory.
+
+2. Create white matter and ventricular CSF nuisance regressors
+   
+     fcseed-sess -o wm.dat   -wm   -s session -fsd rest
+     fcseed-sess -o vcsf.dat -vcsf -s session -fsd rest
+
+3. Analyze:
+   
+     mkanalysis-sess -a fc-lh.hippo.rhemi 
+       -notask 
+       -taskreg lh.hippo.dat 1 
+       -nuisreg wm.dat 3 
+       -nuisreg vcsf.dat 3 
+       -surface fsaverage rh -fwhm 5 -fsd rest -TR 2 
+
+   This analysis is called "fc-lh.hippo.rhemi". It uses the single
+   waveform found in lh.hippo.dat as the "task regressor". It also
+   adds 3 PCA waveforms from both the white matter and the CSF
+   as nuisance regressors. Note that a contrast does not need to 
+   be made because one is automatically created with an -taskreg.
+   This data can be analyzed with selxavg3-sess and isxconcat-sess
+   just as if it were any task-based analysis.
+
+
+======================================================
+Segmentation Ids for some common ROIs. See 
+$FREEESURFER_HOME/FreeSurferColorLUT.txt for more.
+
+Left-Hippocampus  17
+Right-Hippocampus  53
+Left-Amygdala  18
+Right-Amygdala 54
+
