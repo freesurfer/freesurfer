@@ -1,26 +1,18 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-sess,v 1.9 2011/02/15 20:37:00 greve Exp $';
+set VERSION    = '$Id: fcseed-sess,v 1.10 2011/02/24 21:09:26 greve Exp $';
 set cmdargs = ($argv);
 
-set segstem    = "aparc+aseg"; 
-set segidlist  = ()
-set outfile = ();
-set rlf = ()
-set fsd = ();
-set RegDOF = 6;
-set FillThresh = .5;
-set DoMean = 1;
-set DoSVD = 0;
-set roicfg = ();
-set maskfile = ();
-set Overwrite = 0;
-set DoWM = 0;
-set WMErode = 0;
-set SVDSynth = 0;
-set cleanup = 1;
+set fcconfig = ();
+set MakeMask = ();
+set funcstem = fmcpr
 
+set maskfile = ();
+set segidlist = ();
+set UpdateOnly = 1;
+
+set cleanup = 1;
 set nolog = 0;
 
 set PrintHelp = 0;
@@ -35,16 +27,13 @@ if($n != 0) then
   echo $VERSION
   exit 0;
 endif
-
 set SessList = `getsesspath $argv`;
 if($status || $#SessList == 0) then
   echo $SessList
   exit 1;
 endif
-
 goto parse_args;
 parse_args_return:
-
 goto check_params;
 check_params_return:
 
@@ -53,7 +42,7 @@ set ProjectDir = `pwd`;
 # Create a log file #
 if(! $nolog ) then
   mkdir -p log
-  set LF = $ProjectDir/log/fcseed-sess.$outfile.log
+  set LF = $ProjectDir/log/fcseed-sess.$fcname.log
   # Below to help prevent collisions when parallel
   if($#SessList == 1) then
     set sessid = `basename $SessList`;
@@ -72,8 +61,7 @@ echo "cd `pwd`" | tee -a $LF
 echo $0 | tee -a $LF
 echo $cmdargs | tee -a $LF
 cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
-
-set outstem = `basename $outfile .dat`
+cat $fcconfig >> $LF
 
 ## go through each session ##
 foreach sess ($SessList)
@@ -83,19 +71,7 @@ foreach sess ($SessList)
   foreach Run ($RunList)
     set rundir = $sess/$fsd/$Run
 
-    set outpath = $rundir/$outfile
-    if(-e $outpath && $Overwrite == 0) then
-      echo "ERROR: output file $outpath already exists"
-      echo "Choose a different name or run with -overwrite"
-      exit 1;
-    endif
-    rm -f $outpath
-
-    set tmpdir = $rundir/tmp.fcseed-sess.$$
-    rm -rf $tmpdir
-    mkdir -p $tmpdir
-
-    set LLF = $rundir/$outstem.log
+    set LLF = $rundir/$fcname.log
     rm -f $LLF
     date | tee -a $LLF
     uname -a | tee -a $LLF
@@ -106,12 +82,49 @@ foreach sess ($SessList)
     cat $FREESURFER_HOME/build-stamp.txt | tee -a $LLF
     echo "" | tee -a $LLF
 
-    if($#segidlist) then
-      # Segmentation
-      set f   = $rundir/fmcpr.nii
-      set template = $rundir/template.nii
-      set reg = $rundir/register.dof$RegDOF.dat
+    set outfile = $rundir/$fcname
+    set UpdateNeeded = 0;
+    if(! -e $outfile) set UpdateNeeded = 1;
+    if($UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $outfile $fcconfig`
 
+    # Check dependencies
+    if($#segidlist || $DoWM) then
+      set f = $rundir/$funcstem.nii
+      set reg = $rundir/register.dof$RegDOF.dat
+      if($UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $outfile $f`
+      if($UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $outfile $reg`
+    else
+      # ROI configuration
+      # funcstem must be the same to match the mask
+      set f = `stem2fname $rundir/$ROIfuncstem`
+      if($status) then
+        echo "$f" | tee -a $LLF | tee -a $LF
+        exit 1;
+      endif
+      set mask = `stem2fname $sess/$ROIfsd/$ROIanalysis/$ROIname`
+      if($status) then
+        echo "$mask" | tee -a $LLF | tee -a $LF
+        exit 1;
+      endif
+      if($UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $outfile $f`
+      if($UpdateNeeded == 0) set UpdateNeeded = `UpdateNeeded $outfile $mask`
+    endif
+
+    if($UpdateOnly && ! $UpdateNeeded) then
+      echo "$sessid Update not needed" | tee -a $LLF | tee -a $LF
+      continue;
+    endif
+    rm -f $outfile
+
+    set tmpdir = $rundir/tmp.fcseed-sess.$$
+    rm -rf $tmpdir
+    mkdir -p $tmpdir
+
+    if($#segidlist || $DoWM) then
+      # Segmentation
+      #set f = $rundir/$funcstem.nii
+      #set reg = $rundir/register.dof$RegDOF.dat
+      set template = $rundir/template.nii
       if($DoWM) then
         # treat white matter special
         set apas = $SUBJECTS_DIR/$subject/mri/aparc+aseg.mgz
@@ -129,7 +142,7 @@ foreach sess ($SessList)
 
       # Convert segmentation to native functional space
       set seg = $tmpdir/seg.nii
-      set pvf = $tmpdir/pvf.nii
+      set pvf = $tmpdir/pvf.nii; # output
       set cmd = (mri_label2vol --seg $seganat \
          --reg $reg --temp $template --fillthresh $FillThresh \
          --o $seg --pvf $pvf);
@@ -181,11 +194,10 @@ foreach sess ($SessList)
 
       # Convert to ascii/text
       set cmd = (mri_convert $tmpdir/glm/eres.mgh \
-        --ascii $rundir/$outfile)
+        --ascii $rundir/$fcname)
       echo $cmd | tee -a $LLF
       $cmd | tee -a $LLF
       if($status) exit 1;
-
     endif
 
     if($DoSVD) then
@@ -198,10 +210,10 @@ foreach sess ($SessList)
       if($status) exit 1;
 
       # Copy the temporal principal components
-      cp $tmpdir/glm/pca-eres/u.mtx $rundir/$outfile
+      cp $tmpdir/glm/pca-eres/u.mtx $rundir/$fcname
 
       # Copy pca stats
-      set statsfile = $rundir/$outstem.pca-stats.dat
+      set statsfile = $rundir/$fcname.pca-stats.dat
       cp $tmpdir/glm/pca-eres/stats.dat $statsfile
     endif
 
@@ -226,90 +238,34 @@ while( $#argv != 0 )
   
   switch($flag)
 
-    case "-o":
+    case "-cfg":
       if ( $#argv < 1) goto arg1err;
-      set outfile = $argv[1]; shift;
-      breaksw
-
-    case "-m":
-      if ( $#argv < 1) goto arg1err;
-      set maskfile = $argv[1]; shift;
-      breaksw
-
-    case "-fsd":
-      if ( $#argv < 1) goto arg1err;
-      set fsd = $argv[1]; shift;
-      breaksw
-
-    case "-segid":
-      if ( $#argv < 1) goto arg1err;
-      set segidlist = ($segidlist $argv[1]); shift;
-      breaksw
-
-    case "-seg":
-      if ( $#argv < 1) goto arg1err;
-      set segstem = $argv[1]; shift;
-      set segstem = `basename $segstem .mgz`
-      breaksw
-
-    case "-roi":
-      if ( $#argv < 1) goto arg1err;
-      set roicfg = $argv[1]; shift;
-      if(! -e $roicfg) then
-        echo "ERROR: cannot find $roicfg"
-        exit 1;
+      set fcconfig = $argv[1]; shift;
+      if(! -e $fcconfig) then
+        echo "ERROR: cannot find $fcconfig"
+        exit 1
       endif
       breaksw
 
-    case "-fillthresh":
-      if ( $#argv < 1) goto arg1err;
-      set FillThresh = $argv[1]; shift;
+    case "-mask":
+    case "-make-mask":
+      set MakeMask = 1;
       breaksw
 
-    case "-wm":
-      set segidlist = ($segidlist 2 41);
-      set FillThresh = .95;
-      set DoMean = 0;
-      set DoSVD  = 1;
-      set DoWM = 1;
-      breaksw
-
-    case "-wm-erode":
-      if ( $#argv < 1) goto arg1err;
-      set WMErode = $argv[1]; shift;
-      breaksw
-
-    case "-vcsf":
-      set segidlist = ($segidlist 4 5 43 44 31 63) 
-      set FillThresh = .95;
-      set DoMean = 0;
-      set DoSVD  = 1;
-      #set segidlist = ($segidlist 4 5 14 43 44 72);
-      breaksw
-
-    case "-pca":
-    case "-svd":
-      set DoMean = 0;
-      set DoSVD  = 1;
-      breaksw
-
-    case "-pca-synth":
-    case "-svd-synth":
-      set SVDSynth = 1;
-      breaksw
-
-    case "-mean":
-      set DoMean = 1;
-      set DoSVD  = 0;
+    case "-no-mask":
+    case "-no-make-mask":
+      set MakeMask = 0;
       breaksw
 
     case "-nolog":
       set nolog = 1;
       breaksw
 
+    case "-noupdate":
+    case "-no-update":
     case "-force":
     case "-overwrite":
-      set Overwrite = 1;
+      set UpdateOnly = 0;
       breaksw
 
     case "-cleanup":
@@ -353,22 +309,29 @@ goto parse_args_return;
 ############--------------##################
 check_params:
 
-  if($#outfile == 0) then
-    echo "ERROR: no output specified"
+  if($#fcconfig == 0) then
+    echo "ERROR: no FC configuration specified"
     exit 1
   endif
-  if($#fsd == 0) then
-    echo "ERROR: you must specify a functional subdirectory (-fsd), eg, bold or rest"
-    exit 1
-  endif
-  if($#segidlist == 0 && $#roicfg == 0) then
-    echo "ERROR: no segmentations IDs (-segid) or ROI (-roi) specified"
-    exit 1
-  endif
-  if($#segidlist != 0 && $#roicfg != 0) then
-    echo "ERROR: cannot specify both segmentation ID (-segid) and ROI (-roi)"
-    exit 1
-  endif
+
+  set fcname = `cat $fcconfig | awk '{if($1 == "fcname") print $2}'`
+  set fsd    = `cat $fcconfig | awk '{if($1 == "fsd") print $2}'`
+  set segstem = `cat $fcconfig | awk '{if($1 == "segstem") print $2}'`
+  set RegDOF  = `cat $fcconfig | awk '{if($1 == "RegDOF") print $2}'`
+  set FillThresh  = `cat $fcconfig | awk '{if($1 == "FillThresh") print $2}'`
+  set DoMean  = `cat $fcconfig | awk '{if($1 == "DoMean") print $2}'`
+  set DoSVD   = `cat $fcconfig | awk '{if($1 == "DoSVD") print $2}'`
+  if($#MakeMask == 0) set MakeMask = `cat $fcconfig | awk '{if($1 == "MakeMask") print $2}'`
+  set WMErode = `cat $fcconfig | awk '{if($1 == "WMErode") print $2}'`
+  set SVDSynth = `cat $fcconfig | awk '{if($1 == "SVDSynth") print $2}'`
+  set DoWM   = `cat $fcconfig | awk '{if($1 == "DoWM") print $2}'`
+  set rlf = `cat $fcconfig | awk '{if($1 == "RunListFile") print $2}'`
+  set roicfg = `cat $fcconfig | awk '{if($1 == "roicfg") print $2}'`
+  set tmp = `cat $fcconfig | awk '{if($1 == "segidlist") print $0}'`
+  if($#tmp) set segidlist = ($tmp[2-$#tmp]);
+
+  if($MakeMask) set maskfile = $fcname.mask
+
   if($#roicfg) then
     set ROIname     = `cat $roicfg | awk '{if($1 == "roiname") print $2}'`
     set ROIanalysis = `cat $roicfg | awk '{if($1 == "analysis") print $2}'`
@@ -397,31 +360,18 @@ usage_exit:
   echo ""
   echo "USAGE: fcseed-sess"
   echo ""
-  echo "  -o outfile "
-  echo ""
-  echo "Segmentation-based options"
-  echo "  -segid segid  <-segid segid2 ...>"
-  echo "  -wm : white matter "
-  echo "  -vcsf : ventricular CSF"
-  echo "  -seg segmentation : default is aparc+aseg"
-  echo "  -fillthresh thresh : value between 0 and 1 (default is .5)"
-  echo "    only applies to analyses using segmentation-based"
-  echo ""
-  echo "Functional ROI-based options"
-  echo "  -roi roiconfig : as created by funcroi-confg"
+  echo "  -cfg fcconfig : as created by fcseed-config"
   echo ""
   echo "Session Arguments (Required)"
   echo "   -sf sessidfile  "
   echo "   -df srchdirfile "
   echo "   -s  sessid      "
   echo "   -d  srchdir     "
-  echo "   -fsd FSD : rest or bold (required)"
   echo ""
-  echo "   -m maskfile : output mask (no ext) for segmentation-based. Good for checking"
-  echo "   -wm-erode N : erode WM mask by N anat voxels (default is $WMErode) "
+  echo "   -make-mask : create an output mask of the seed region"
+  echo "   -no-make-mask : do not create an output mask of the seed region"
   echo "   -overwrite : delete and overwrite any existing files"
-  echo "   -pca       : compute pca instead of a spatial mean"
-  echo "   -mean      : compute spatial mean instead of PCA"
+  echo ""
   echo "   -help      : yea, as if"
   echo "   -version   : print version and exit"
   echo "   -debug"
