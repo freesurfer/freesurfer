@@ -6,9 +6,9 @@
 /*
  * Original Author: Rudolph Pienaar / Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/02/07 00:40:49 $
- *    $Revision: 1.12 $
+ *    $Author: rudolph $
+ *    $Date: 2011/02/24 21:14:30 $
+ *    $Revision: 1.13 $
  *
  * Copyright (C) 2011,
  * The General Hospital Corporation (Boston, MA).
@@ -72,23 +72,28 @@ mpmProg_check(
   }
   if(str_mpmProg == "NULL")
   {
-    b_validMpmProg        = true;
-    st_env.empmProg_current = emp_NULL;
+    b_validMpmProg        	= true;
+    st_env.empmProg_current 	= emp_NULL;
   }
   if(str_mpmProg == "NOP")
   {
-    b_validMpmProg        = true;
-    st_env.empmProg_current = emp_NOP;
+    b_validMpmProg        	= true;
+    st_env.empmProg_current 	= emp_NOP;
+  }
+  if(str_mpmProg == "pathFind")
+  {
+    b_validMpmProg        	= true;
+    st_env.empmProg_current 	= emp_pathFind;
   }
   if(str_mpmProg == "autodijk")
   {
-    b_validMpmProg        = true;
-    st_env.empmProg_current = emp_autodijk;
+    b_validMpmProg        	= true;
+    st_env.empmProg_current 	= emp_autodijk;
   }
   if(str_mpmProg == "autodijk_fast")
   {
-    b_validMpmProg        = true;
-    st_env.empmProg_current = emp_autodijk_fast;
+    b_validMpmProg        	= true;
+    st_env.empmProg_current 	= emp_autodijk_fast;
   }
   return b_validMpmProg;
 }
@@ -153,6 +158,18 @@ commandLineOptions_process(
   s_env&      st_env
 )
 {
+
+    //
+    // PRECONDITIONS
+    // o An 'options.txt' file if no command line arguments are
+    //	 specified.
+    //
+    // POSTCONDITIONS
+    // o If any "trigger" command line argument is passed, the 'options.txt'
+    //   file is regenerated (and overwritten if it already exists). 
+    //
+    
+    
   bool        b_optionsFileUse                = true;
   bool        b_useAbsCurvs                   = false;
 
@@ -164,7 +181,7 @@ commandLineOptions_process(
 
   string      str_mpmProg                     = "";
   string      str_mpmArgs                     = "-x";
-  string  str_mpmOverlay      = "";
+  string      str_mpmOverlay         	      = "";
 
   string      str_mainSurfaceFileName         = "inflated";
   string      str_auxSurfaceFileName          = "smoothwm";
@@ -187,23 +204,11 @@ commandLineOptions_process(
 
     switch (opt)
     {
-    case 'a':
-      b_useAbsCurvs           = true;
-      b_optionsFileUse        = true;
-      break;
     case 'o':
       st_env.str_optionsFileName.assign(optarg, strlen(optarg));
       break;
     case 'D':
       st_env.str_workingDir.assign(optarg, strlen(optarg));
-      break;
-    case 'l':
-      str_asynchComms         = "LISTEN";
-      break;
-    case 'L':
-      str_asynchComms         = "LISTENPORT";
-      st_env.port             = atoi(optarg);
-      st_env.timeoutSec       = 60;
       break;
     case '?':
     case 'u':
@@ -212,6 +217,13 @@ commandLineOptions_process(
       break;
     case 'v':
       version_show();
+      break;
+	    
+    // All the following options trigger a regeneration of the 'options.txt'
+    // file. If it already exsts, it will be overwritten.
+    case 'a':
+      b_useAbsCurvs           	      = true;
+      b_optionsFileUse        	      = false;
       break;
     case 'h':
       str_hemi                        = optarg;
@@ -276,7 +288,6 @@ commandLineOptions_process(
     }
     st_env.b_mpmProgUse                     = true;
     st_env.str_mpmArgs                      = str_mpmArgs;
-    s_env_optionsFile_write(st_env);
     st_env.b_optionsFileUse                 = true;
     st_env.b_exitOnDone                     = true;
 
@@ -289,6 +300,7 @@ commandLineOptions_process(
                  "I didn't recognize the <mpmOverlay>.",
                  20);
     }
+    s_env_optionsFile_write(st_env);
 
     str_asynchComms                         = "HUP";
   }

@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: asynch.cpp,v 1.13 2010/07/14 17:56:46 rudolph Exp $
+// $Id: asynch.cpp,v 1.14 2011/02/24 21:14:30 rudolph Exp $
 
 #include <string>
 #include <sstream>
@@ -312,7 +312,7 @@ asynchEvent_processVERTEX(
 
   if (str_object == "start") {
     if (str_verb == "get") {
-      CW(lw, "start vertex");
+      CW(lw, "start vertex: ");
       CWn(rw, st_env.startVertex);
     } else if (str_verb == "set") {
       if (!str_modifier.length())
@@ -326,7 +326,7 @@ asynchEvent_processVERTEX(
   }
   if (str_object == "end") {
     if (str_verb == "get") {
-      CW(lw, "end vertex");
+      CW(lw, "end vertex: ");
       CWn(rw, st_env.endVertex);
     } else if (str_verb == "set") {
       if (!str_modifier.length())

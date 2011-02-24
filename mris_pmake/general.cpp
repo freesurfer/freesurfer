@@ -448,7 +448,7 @@ error_exit(
   //
 
   cerr << endl << G_SELF;
-  cerr << endl << "\tI'm sorry, but an error condition has occured.";
+  cerr << endl << "\tI'm sorry, but an error condition has occurred.";
   cerr << endl << "\tWhile I was "    << str_action;
   cerr << endl << "\t"                << str_errorMsg;
   cerr << endl;

@@ -17,7 +17,7 @@
  *   Free Software Foundation, Inc.,                                       *
  *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
  ***************************************************************************/
-// $Id: env.cpp,v 1.24 2010/07/14 20:53:41 rudolph Exp $
+// $Id: env.cpp,v 1.25 2011/02/24 21:14:30 rudolph Exp $
 
 #include "env.h"
 #include "pathconvert.h"
@@ -481,19 +481,26 @@ s_env_HUP(
 	  
     // Parse the options file
     s_env_scan(st_env);
-    // Initialize the "overlay" module that determines edge costs
+    // Initialize the mpmOverlay and mpmProg modules:
+    // The mpmOverlay module determines edge costs
     s_env_mpmOverlaySetIndex(&st_env, st_env.empmOverlay_current);
-    // Legacy cost machinery	
+    // The mpmProg module executes "programs" on the mesh based on 
+    // costs
+    s_env_mpmProgSetIndex(&st_env, st_env.empmProg_current);
+
+    // start legacy
+    // WARNING!!
+    s_env_costFctSetIndex (&st_env, st_env.empmOverlay_current);
     s_weights_scan(   st_costWeight,  *(st_env.pcso_options));
     s_Dweights_scan(  st_DcostWeight, *(st_env.pcso_options));
     st_env.pSTw                         = new s_weights;
     st_env.pSTDw                        = new s_Dweights;
     s_weights_copy(*(st_env.pSTw), 	st_costWeight);
     s_Dweights_copy(*(st_env.pSTDw),	st_DcostWeight);
-
     // LEGACY DEBUGGING!!
     st_env.b_mpmOverlayUse		= false;
-
+    // end legacy
+    
     if(st_env.port != oldport) {
 	if(*pCSSocketReceive) {
 	    delete *pCSSocketReceive;
@@ -677,11 +684,15 @@ s_env_optionsFile_write(
     // Writes a "quick-and-dirty" options file to disk.
     // 
     // POSTCONDITIONS
-    // o a new options file is written to disk.
+    // o the old options files is closed.
+    // o a new options file is written to disk (overwriting the old).
     //
     // HISTORY
     // 04 December 2009
     // o Initial design and coding.
+    //
+    // 17 February 2011
+    // o Closed/open of options file (to force overwrite).
     //
 
     C_SMessage*                 O;
@@ -690,6 +701,13 @@ s_env_optionsFile_write(
 
     O                           = st_env.pcsm_optionsFile;
     if(O) {
+	delete O;
+	O             		= new C_SMessage( "",
+                                                eSM_raw,
+                                                st_env.str_optionsFileName,
+                                                eSM_c,
+                                                eOverwrite);
+
         O->pprintf("\n#\n# auto-generated optionsFile\n#\n\n");
 
         O->pprintf("\n# Input surfaces and curvature functions\n");
@@ -785,6 +803,11 @@ s_env_optionsFile_write(
         O->pprintf("\n# mpmOverlay\n");
         O->pcolprintf("mpmOverlayID",          " = %d\n",
                         st_env.empmOverlay_current);
+        O->pprintf("\n# Debugging -- change at your own risk!\n");
+        O->pcolprintf("b_mpmProgUse",		" = %d\n",
+                        st_env.b_mpmProgUse);
+        O->pcolprintf("b_mpmOverlayUse",	" = %d\n",
+                        st_env.b_mpmOverlayUse);
 
         O->dump();
     }
@@ -853,6 +876,7 @@ s_env_scan(
   bool          b_patchFile_save        = true;
   bool          b_syslogPrepend         = true;
   bool          b_mpmProgUse            = false;
+  bool          b_mpmOverlayUse		= false;
   bool          b_exitOnDone            = false;
   bool          b_costPathSave          = true;
 
@@ -1007,6 +1031,8 @@ s_env_scan(
       str_costCurvFile  =  str_value;
   if (cso_options.scanFor("b_mpmProgUse",       &str_value))
       b_mpmProgUse      = atoi(str_value.c_str());
+  if (cso_options.scanFor("b_mpmOverlayUse",	&str_value))
+      b_mpmOverlayUse      = atoi(str_value.c_str());
   if (cso_options.scanFor("mpmProgID",          &str_value))
       mpmProgID         = atoi(str_value.c_str());
   if (cso_options.scanFor("mpmArgs",            &str_value))
@@ -1188,7 +1214,7 @@ s_env_scan(
             str_surfaceFile = v_dir.at(tokens-1);
         str_tokenize(str_surfaceFile, v_surface, ".");
         st_env.str_hemi                 = v_surface.at(0);
-        st_env.str_mainSurfaceFileName  = v_surface.at(1);
+        //st_env.str_mainSurfaceFileName  = v_surface.at(1);
         st_env.str_subject              = v_dir.at(tokens-3);
     }
 
@@ -1496,8 +1522,8 @@ s_env_mpmProgSetIndex(
 	    						apst_env->endVertex);
           // Check for any command-line spec'd args for the 'pathFind' mpmProg:
           if(apst_env->str_mpmArgs != "-x") {
-            C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
-                                                e_EquLink, "--", " ", ":");
+            C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ",",
+                                                e_EquLink, "", ":");
             string      str_startVertex = "0";
 	    string	str_endVertex	= "0";
             int         startVertex     = 0;
@@ -1523,7 +1549,7 @@ s_env_mpmProgSetIndex(
           // Check for any command-line spec'd args for the 'autodijk' mpmProg:
           if(apst_env->str_mpmArgs != "-x") {
             C_scanopt                   cso_mpm(apst_env->str_mpmArgs, ";",
-                                                e_EquLink, "--", " ", ":");
+                                                e_EquLink, "--", ":");
             string      str_polarVertex         = "0";
             string      str_costCurvStem        = "";
             int         polarVertex             = 0;
@@ -1895,18 +1921,33 @@ costFunc_distanceReturn(
     // 09 March 2005
     // o Initial development
     //
+    // 24 February 2011
+    // o For "absolute" references, determine the relative neighbor.
+    //
 
-    float       f_cost      = 0.0;
-    float       f_distance  = 0.0;
-    s_weights*  pSTw        = st_env.pSTw;
-    float       wd          = pSTw->wd;
-    VERTEX*     v_c         = NULL;
-    MRIS*       surf        = st_env.pMS_curvature;
-    const char*       pch_proc    = "costFunc_distanceReturn(...)";
-    char        pch_txt[65536];
-    static bool b_warned    = false;
+    float       	f_cost      = 0.0;
+    float       	f_distance  = 0.0;
+    s_weights*  	pSTw        = st_env.pSTw;
+    float       	wd          = pSTw->wd;
+    VERTEX*     	v_c         = NULL;
+    MRIS*    		surf        = st_env.pMS_curvature;
+    const char*       	pch_proc    = "costFunc_distanceReturn(...)";
+    char        	pch_txt[65536];
+    static bool 	b_warned    = false;
 
     v_c         = &surf->vertices[vno_c];
+
+    if(!b_relNextReference) {
+	int 	jrelcount;
+	int 	jrel = 0;
+	for(jrelcount=0; jrelcount< v_c->vnum; jrelcount++) {
+	    if(v_c->v[jrelcount] == j) {
+		jrel = jrelcount;
+		break;
+	    }
+	}
+	j = jrel;
+    }
     f_distance  = v_c->dist[j];
 
     f_cost  = f_distance * wd;

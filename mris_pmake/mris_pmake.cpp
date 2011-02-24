@@ -94,7 +94,7 @@ bool    Gb_stdout       = true;         // Global flag controlling output to
                                         //+stdout
 string  G_SELF          = "";           // "My" name
 string  G_VERSION       =               // version
-  "$Id: mris_pmake.cpp,v 1.13 2010/07/14 17:56:46 rudolph Exp $";
+  "$Id: mris_pmake.cpp,v 1.14 2011/02/24 21:14:30 rudolph Exp $";
 char 	pch_buffer[65536];
 
 // "Class"-like globals...
@@ -127,7 +127,8 @@ main(
                                                 //+ auxillary surface.
 
   // Set the default cost function in the enviroment
-  s_env_costFctSet(&st_env, costFunc_defaultDetermine, e_default);
+  // -- Cost function is set when mpmOverlay initialized
+  //s_env_costFctSet(&st_env, costFunc_defaultDetermine, e_default);
 
   // Process command line options
   str_asynchComms       = commandLineOptions_process(argc, ppch_argv, st_env);
@@ -136,7 +137,6 @@ main(
   while (str_asynchComms != "TERM") {
 
     if ( str_asynchComms == "HUP"               || \
-         str_asynchComms == "INITMPMPROG"       || \
          str_asynchComms == "RUNPROG") {
 
       system("echo > lock");            // signal a "lock"
@@ -147,8 +147,6 @@ main(
 	str_asynchComms = s_env_HUP(st_env, &pCSSocketReceive);
       
       if (str_asynchComms	== "RUNPROG") {
-          if(!st_env.b_mpmProgUse) 
-              s_env_mpmProgSetIndex(&st_env, st_env.empmProg_current);
 	  ULOUT(lsprintf(st_env.lw, pch_buffer, 
 	  	"Running embedded program '%s'\n",
 	        st_env.vstr_mpmProgName[st_env.empmProg_current].c_str()));

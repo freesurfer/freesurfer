@@ -31,7 +31,7 @@
 ///
 /// \b HISTORY
 /// 15 March 2005 - Initial consolidation from several other sources.
-/// $Id: help.h,v 1.4 2010/07/14 17:56:46 rudolph Exp $
+/// $Id: help.h,v 1.5 2011/02/24 21:14:30 rudolph Exp $
 ///
 ///
 
@@ -66,8 +66,6 @@ static struct option const longopts[] = {
     {"optionsFile",     required_argument,      NULL, 'o'},
     {"dir",             required_argument,      NULL, 'D'},
     {"version",         no_argument,            NULL, 'v'},
-    {"listen",          no_argument,            NULL, 'l'},
-    {"listenOnPort",    required_argument,      NULL, 'L'},
     {"subject",         required_argument,      NULL, 'S'},
     {"hemi",            required_argument,      NULL, 'h'},
     {"surface0",        required_argument,      NULL, 's'},

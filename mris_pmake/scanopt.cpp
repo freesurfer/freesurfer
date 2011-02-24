@@ -21,7 +21,7 @@
 //
 // VERSION
 //
-// $Id: scanopt.cpp,v 1.3 2010/01/20 21:43:13 rudolph Exp $
+// $Id: scanopt.cpp,v 1.4 2011/02/24 21:14:30 rudolph Exp $
 //
 // DESC
 //
@@ -84,7 +84,7 @@ C_scanopt::debug_pop() {
 
 void
 C_scanopt::error(
-  string          astr_msg        /*= "Some error has occured"    */,
+  string          astr_msg        /*= "Some error has occurred"    */,
   int             code            /*= -1                          */) {
   //
   // ARGS
@@ -154,7 +154,7 @@ C_scanopt::function_trace(
     for (int i = 0; i < stackDepth_get(); i++)
       str_tab += "\t";
     if (str_objectName != str_name_get() )
-      cerr << "\nStochastic World `" << str_name_get();
+      cerr << "\nC_scanopt `" << str_name_get();
     cerr << "' (id: " << id_get() << ")\n";
     if (str_funcName != str_proc_get()) {
       cerr << "\n" << str_tab << "Current function: " << astr_class;
@@ -206,7 +206,6 @@ C_scanopt::core_construct(
   str_obj     = "C_scanopt";
 
   str_optDes  = "--";
-  str_optSep  = "";
   str_equ     = "=";
 
 }
@@ -275,7 +274,7 @@ C_scanopt::map_opt_build(
     str_argvA   = *(Lstr_iter);
     if (str_argvA.find(str_optDes) == b_found) {
       str_argvA.erase(0, str_optDes.length());
-      map_opt.insert(pair<string, string>(str_argvA, str_NONCOUPLET));
+      map_opt.insert(pair<string, string>(str_trim(str_argvA), str_NONCOUPLET));
     }
     break;
   case e_EquLink:
@@ -286,7 +285,10 @@ C_scanopt::map_opt_build(
       str_argvB       = *(++Lstr_iter);       // linked by an equal sign
       //cout << i << "\t" << argc << "\t" << str_argvA << "\t" << str_Equ << "\t" << str_argvB << endl;
       if (str_Equ.find(str_equ) == b_found) {
-        map_opt.insert(pair<string, string>(str_argvA, str_argvB));
+	// Strip the str_optDes tag from the first string (if found)
+        if (str_argvA.find(str_optDes) == b_found) 
+	    str_argvA.erase(0, str_optDes.length());
+        map_opt.insert(pair<string, string>(str_trim(str_argvA), str_trim(str_argvB)));
       }
       --Lstr_iter;
     }
@@ -295,16 +297,15 @@ C_scanopt::map_opt_build(
 }
 
 C_scanopt::C_scanopt(
-  int             a_argc,
-  char**          appch_argv,
-  string          astr_optDes             /*= "--"                */,
-  string          astr_optSep             /*= " "                 */,
-  string          astr_equ                /*= "="                 */                   
+  int             	a_argc,
+  char**          	appch_argv,
+  string          	astr_optDes             /*= "--"                */
 ) {
   //
   // ARGS
-  //  a_argc           in              number of char* "strings"
-  //  appch_argv       in              array of char* "strings"
+  //  a_argc            in		numbe of char* "strings"
+  //  appch_argv        in              array of char* "strings"
+  //  astr_optDes	in		option designator string
   //
   // DESC
   //  Constructor
@@ -312,14 +313,8 @@ C_scanopt::C_scanopt(
   //  string for future processing.
   //
   // NOTE
-  //  The a_argc and appch_argv that are passed to this routine should
-  //  *NOT* be the same as the program argc and argv! It is assumed that
-  //  appch_argv[0] is the first of the command line options that were
-  //  passed to the main program (usually argv[0] contains the program
-  //  name and argv[1] is the first option that was passed).
-  //
-  //  This method will still work, though, even if the external argc and
-  //  argv are passed :-)
+  //  This method can process command line options in the e_DesTag
+  //  format.
   //
   // HISTORY
   // 07 September 2000
@@ -328,31 +323,33 @@ C_scanopt::C_scanopt(
   // 08 September 2000
   //  o Fleshing out - budded off map_opt_build method
   //
+  // 22 February 2011
+  //  o Explicit limiting to e_DesTag type specification.
+  //
 
-  core_construct();
-  str_optDes_set(     astr_optDes);
-  str_optSep_set(     astr_optSep);
-  str_equ_set(        astr_equ);
+    core_construct();
+    str_optDes_set(     astr_optDes);
 
-  argc_set(   a_argc);
-  for (int i=0; i<a_argc; i++)
-    Lstr_body.push_back(appch_argv[i]);
+    argc_set(   a_argc);
+    for (int i=0; i<a_argc; i++)
+        Lstr_body.push_back(appch_argv[i]);
 
-  map_opt_build();
+    map_opt_build(e_DesTag);
 }
 
 C_scanopt::C_scanopt(
   string                  astr_filename,
   e_SCANOPT_tokType       e_tokType               /*= e_DesTag    */,
   string                  astr_optDes             /*= "--"        */,
-  string                  astr_optSep             /*= " "         */,
   string                  astr_equ                /*= "="         */
 ) {
   //
   // ARGS
-  //  astr_filename            in              file containing options
-  //  astr_optDes              in              option DESignator
-  //  astr_optSep              in              option separator
+  //  astr_filename             in              file containing options
+  //  e_tokType                 in              token link type
+  //  astr_optDes               in              option DESignator
+  //  astr_equ                  in              the "equal" string for 
+  //                                            e_EquLink
   //
   // DESC
   //  Constructor
@@ -362,6 +359,9 @@ C_scanopt::C_scanopt(
   // 08 September 2000
   //  o Initial design and coding.
   //  
+  // 18 February 2011
+  //  o Cleanup.
+  //
 
   core_construct();
 
@@ -371,7 +371,6 @@ C_scanopt::C_scanopt(
 
 
   str_optDes_set(     astr_optDes);
-  str_optSep_set(     astr_optSep);
   str_equ_set(        astr_equ);
 
   ifstream    istream_optFile(astr_filename.c_str());
@@ -419,29 +418,57 @@ str_tokenize(
     return tokenCount;
 }
 
+string 
+str_trim(
+    string 			astr_toTrim) {
+ 
+    size_t found;
+    found = astr_toTrim.find(" ");
+ 
+    while(astr_toTrim.length() != 0 && found != string::npos) {
+	astr_toTrim.erase(found,1);		
+	found = astr_toTrim.find(" ");
+    }
+    return astr_toTrim;
+}
+
 C_scanopt::C_scanopt(
     string                      astr_options,
     string                      astr_delimiter          /*= ";"         */,
     e_SCANOPT_tokType           e_tokType               /*= e_EquLink   */,
     string                      astr_optDes             /*= "--"        */,
-    string                      astr_optSep             /*= " "         */,
     string                      astr_equ                /*= "="         */
 ) {
     //
     // ARGS
     //  astr_options            in                      string with all options
     //  astr_delimiter          in                      delimited string
+    //  e_tokType               in                      token type
     //  astr_optDes             in                      option DESignator
-    //  astr_optSep             in                      option separator
+    //  astr_equ                in                      "equal" string for 
+    //                                                  e_EqulLink.
     //
     // DESC
     //  Constructor
     //  Parses the <astr_options> into tokens delimited by <astr_delimiter>, and
     //  builds internal map.
     //
+    // PRECONDITIONS
+    // o Valid <tag> <value> pairs in astr_options.
+    //
+    // POSTCONDITIONS
+    // o <tag> <value> pairs are pushed to internal map:
+    // 	+ if <astr_optDes> is specified and non-zero, only <tag>s that start
+    //	  with <astr_optDes> are pushed.
+    //  + if e_EquLink is specified, then the astr_equ is also pushed:
+    //	   	<astr_optDes><tag> = <val>
+    //
     // HISTORY
     // 21 December 2009
     //  o Initial design and coding.
+    //
+    // February 2011
+    // 	o Updated / corrected
     //
 
     core_construct();
@@ -451,9 +478,9 @@ C_scanopt::C_scanopt(
     int                 size            = 0;
     vector<string>      v_lines;
     vector<string>      v_option;
+    string 		str_token("");
 
     str_optDes_set(     astr_optDes);
-    str_optSep_set(     astr_optSep);
     str_equ_set(        astr_equ);
 
     v_lines.clear();
@@ -465,20 +492,31 @@ C_scanopt::C_scanopt(
             // Now tokenizing each line on the <astr_eq>
             // cout << "Tokenizing " << *i << endl;
             v_option.clear();
-            if( str_tokenize(*i, v_option, astr_equ) ) {
+	    str_token = e_tokType == e_EquLink ? astr_equ : " ";
+  	    if( str_tokenize(*i, v_option, str_token) ) {
                 // Push the option and its value into the internal
                 // Lstr_body...
-                for(vector<string>::iterator j = v_option.begin();
-                    j != v_option.end(); j++) {
-                    // cout << "\tPushing " << *j << endl;
-                    Lstr_body.push_back(*j);
-                    if(j==v_option.begin()) {
+		bool b_canPush = true;
+		//printf("length optDes: %d\n", (int)astr_optDes.length());
+		if(astr_optDes.length()) {
+		    if(v_option.begin()->find(astr_optDes)!=0)
+		        b_canPush = false;
+		}
+		if(b_canPush) {
+                    for(vector<string>::iterator j = v_option.begin();
+                        j != v_option.end(); j++) {
+                        // cout << "\tPushing " << *j << endl;
+                        Lstr_body.push_back(*j);
+                        if(j==v_option.begin() && e_tokType == e_EquLink) {
+			    // Need to explicitly push the astr_equ into the
+			    // body for the e_EquLink case.
+                            size++;
+			    Lstr_body.push_back(astr_equ);
+                        }
                         size++;
-                        Lstr_body.push_back(astr_equ);
                     }
-                    size++;
                 }
-            }
+	    }
         }
     }
 
@@ -525,7 +563,6 @@ C_scanopt::print() {
   }
   cout                                                << endl;
   cout << "\tstr_optDes\t"    << "->" << str_optDes_get() << "<-" << endl;
-  cout << "\tstr_optSep\t"    << "->" << str_optSep_get() << "<-" << endl;
   cout << "\tstr_equ\t\t"     << "->" << str_equ_get()    << "<-" << endl;
 }
 

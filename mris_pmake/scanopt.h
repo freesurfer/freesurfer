@@ -22,7 +22,7 @@
 //
 // VERSION
 //
-// $Id: scanopt.h,v 1.4 2010/01/20 21:43:13 rudolph Exp $
+// $Id: scanopt.h,v 1.5 2011/02/24 21:14:30 rudolph Exp $
 //
 //
 // DESCRIPTION
@@ -39,7 +39,11 @@
 //      "single mindedness" (i.e. stupidity). It understands only the most
 //      basic syntax, caring little for structure or semantics of the files
 //      it parses. Everything that does not conform to its basic syntax is
-//      simply ignored as noise.
+//      simply ignored as noise. 
+//
+//	NOTE: When processing option files, the parser does not honor 
+//	"comment" characters. On the other hand, it will parse any text
+//	based file, even if valid options are interspersed with free text.
 //
 //      Token:value pairs can be stipulated in one of two ways. The first
 //      harkens back to the class's origin as a command line parser and
@@ -81,7 +85,6 @@
 //      map<string, string> which can be rapidly searched for target tokens
 //      and their values.
 //
-//
 // HISTORY
 // 07 September 2000
 // o Initial design and coding
@@ -96,6 +99,9 @@
 // 21 December 2009
 // o Construct with aribrary string; EquLink == <any>
 // 
+// February 2011
+// o Pruned optSep, cleaned up behavior.
+//
 
 #include <iostream>
 #include <string>
@@ -156,10 +162,6 @@ protected:
                                                     //+ a string as an option.
                                                     //+ Typically this will be
                                                     //+ either "-" or "--".
-  string                          str_optSep;       // separator string that links
-                                                    //+ an option to its value.
-                                                    //+ Typically this will be
-                                                    //+ whitespace.
   string                          str_equ;          // The string for the
                                                     //+ EquLink. Defaults to
                                                     //+ "="
@@ -176,22 +178,18 @@ public:
   // conventional constructor using passed command line args
   C_scanopt(      int                     a_argc,
                   char**                  appch_argv,
-                  string                  astr_optDes     = "--",
-                  string                  astr_optSep     = " ",
-                  string                  astr_equ        = "=");
+                  string                  astr_optDes     = "--");
 
   // constructor reading options from file
   C_scanopt(      string                  astr_filename,
                   e_SCANOPT_tokType       e_tokType       = e_DesTag,
                   string                  astr_optDes     = "--",
-                  string                  astr_optSep     = " ",
                   string                  astr_equ        = "=");
 
   C_scanopt(      string                  astr_options,
                   string                  astr_delimiter  = ";",
                   e_SCANOPT_tokType       e_tokType       = e_EquLink,
                   string                  astr_optDes     = "--",
-                  string                  astr_optSep     = " ",
                   string                  astr_equ        = "=");
                   
   void    core_construct( string astr_name    = "unnamed",
@@ -244,8 +242,6 @@ public:
     void    argc_set(int anum)      {argc = anum;};
     string  str_optDes_get() const  {return str_optDes;};
     void    str_optDes_set(string astr) {str_optDes = astr;};
-    string  str_optSep_get() const  {return str_optSep;};
-    void    str_optSep_set(string astr) {str_optSep = astr;};
     string  str_equ_get() const  {return str_equ;};
     void    str_equ_set(string astr) {str_equ = astr;};
 
@@ -263,6 +259,7 @@ public:
                   string* apstr_value);
 };
 
+string 	str_trim(string		astr_toTrim);
 int     str_tokenize(
             const string&       str,
             vector<string>&     tokens,

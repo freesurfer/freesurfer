@@ -19,7 +19,7 @@
 // NAME
 //
 //      c_SSocket.cpp
-// $Id: c_SSocket.cpp,v 1.1 2009/09/08 22:39:27 nicks Exp $
+// $Id: c_SSocket.cpp,v 1.2 2011/02/24 21:14:30 rudolph Exp $
 //
 // DESCRIPTION
 //
@@ -317,7 +317,7 @@ c_SSocket_UDP::sendStr(
                (struct sockaddr*) &STsin_name, sizeof(STsin_name));
 
   if (ret < 0)
-    error("Some error occured while writing on stream socket");
+    error("Some error occurred while writing on stream socket");
 
   if (ab_localecho)
     cout << astr_text << endl;

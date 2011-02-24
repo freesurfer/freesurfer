@@ -35,7 +35,7 @@
 ///
 /// \b HISTORY
 /// 08 March 2005 - Initial consolidation from several other sources.
-/// $Id: env.h,v 1.14 2010/07/14 17:56:46 rudolph Exp $
+/// $Id: env.h,v 1.15 2011/02/24 21:14:30 rudolph Exp $
 ///
 ///
 
@@ -191,8 +191,8 @@ typedef enum _e_mpmOverlay {
     emo_NULL 		= -1,	// NULL overlay -- for debugging
     emo_NOP		= 0,	// NOP overlay -- for debugging 
     emo_unity		= 1,	// returns '1' for each internode distance	
-    emo_distance	= 2,	// returns distance between nodes (read)
-    emo_euclidean	= 3,	// returns distance between nodes (calculated)
+    emo_euclidean	= 2,	// returns distance between nodes (calculated)
+    emo_distance	= 3,	// returns distance between nodes (read)
     emo_fscurvs		= 4,	// returns weighted cost function of curvs
     empmoverlay
 } e_MPMOVERLAY;
