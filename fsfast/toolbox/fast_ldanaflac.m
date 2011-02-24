@@ -10,8 +10,8 @@ function flac = fast_ldanaflac(anadir)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/12/02 19:13:42 $
-%    $Revision: 1.60 $
+%    $Date: 2011/02/24 21:12:14 $
+%    $Revision: 1.61 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -107,7 +107,8 @@ while(1)
    case 'acfsvd',      flac.acfsvd      = sscanf(tline,'%*s %d',1);
    case 'fixacf',      flac.fixacf      = sscanf(tline,'%*s %d',1);
    case 'fsv3-whiten', flac.fsv3_whiten = sscanf(tline,'%*s %d',1);
-   case 'HPFCutoffHz',flac.hpfCutoffHz = sscanf(tline,'%*s %f',1);
+   case 'HPFCutoffHz', flac.hpfCutoffHz = sscanf(tline,'%*s %f',1);
+   case 'HeteroGCor',  flac.HeteroGCor  = sscanf(tline,'%*s %f',1);
    case 'polyfit',     PolyOrder        = sscanf(tline,'%*s %d',1);
    case 'tpexclude',   flac.tpexcfile   = sscanf(tline,'%*s %s',1);
    case 'nskip',       flac.nskip       = sscanf(tline,'%*s %d',1);

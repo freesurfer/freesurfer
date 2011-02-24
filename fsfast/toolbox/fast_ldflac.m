@@ -14,8 +14,8 @@ function flac = fast_ldflac(flacfile,flac)
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2010/12/02 19:13:42 $
-%    $Revision: 1.53 $
+%    $Date: 2011/02/24 21:12:14 $
+%    $Revision: 1.54 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -73,6 +73,7 @@ if(isempty(flac))
   flac.acffwhm = 0; % Set to 0 for no smoothing
   flac.acfsvd = 2; % Preproc residuals with svd before ar1 calc
   flac.hpfCutoffHz = [];
+  flac.HeteroGCor = 0;
   % Allows flac TR and data TR to be different (will use flac TR).
   flac.OverrideTR = 0; 
   flac.fsv3_st2fir = 0;

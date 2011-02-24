@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.96 2011/02/15 20:39:31 greve Exp $
+% $Id: fast_selxavg3.m,v 1.97 2011/02/24 21:12:14 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/02/15 20:39:31 $
-%    $Revision: 1.96 $
+%    $Date: 2011/02/24 21:12:14 $
+%    $Revision: 1.97 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.96 2011/02/15 20:39:31 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.97 2011/02/24 21:12:14 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -60,7 +60,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.96 2011/02/15 20:39:31 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.97 2011/02/24 21:12:14 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -415,6 +415,7 @@ if(DoGLMFit)
   rho1 = mri; 
   rho1.vol = zeros([mri.volsize length(nthrunlist)]);
   ErrCovMtx = 0;
+  sstd = [];
   for nthrun = nthrunlist
     fprintf('  run %d    t=%4.1f\n',nthrun,toc);
     flac = runflac(nthrun).flac;
@@ -431,11 +432,24 @@ if(DoGLMFit)
     yhatrun = Xrun*betamat0;
     rrun = yrun - yhatrun;
     clear yhatrun;
+
+    tmp =  sum(rrun.^2);
+    indz  = find(tmp == 0); % keep zeros from screwing stuff up
+    indnz = find(tmp ~= 0); % keep zeros from screwing stuff up
+    
+    sstdrun = std(rrun(:,indnz),[],2); % spatial stddev at each TP
+    indtp0 = find(sstdrun < 10^-5); % set tps that are 0 to 1
+    sstdrun(indtp0) = 1;
+    sstd = [sstd; sstdrun];
+    if(flac0.HeteroGCor) 
+      rrun = rrun./repmat(sstdrun,[1 nvox]); 
+    end
+
     rsserun = sum(rrun.^2);
-    indz = find(rsserun == 0); % keep zeros from screwing stuff up
     rsserun(indz) = max(rsserun);
     rsse = rsse + rsserun;
-    
+
+
     if(flac0.acfsvd > 0 & flac0.acfbins > 0)
       % For rho1/ar1 calculation, remove 1st two principle components
       % from residual. This is only for the calculation of rho1/ar1
@@ -627,6 +641,8 @@ if(DoGLMFit)
     end % if acfbins > 1
     fclose(fp);
 
+    if(flac0.HeteroGCor) X = X./repmat(sstd,[1 nX]); end
+
     % First pass thru the data to compute beta
     fprintf('GLS Beta Pass \n');
     tic;
@@ -637,6 +653,7 @@ if(DoGLMFit)
       indrun = find(tpindrun == nthrun);
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
+      if(flac0.HeteroGCor) yrun = yrun./repmat(sstd(indrun),[1 nvox]); end
       if(~isempty(flac.TFmtx))
 	% Temporal filter
 	fprintf('Temporally filtering\n');
@@ -669,6 +686,7 @@ if(DoGLMFit)
       indrun = find(tpindrun == nthrun);
       yrun = MRIread(flac.funcfspec);
       yrun = fast_vol2mat(yrun);
+      if(flac0.HeteroGCor) yrun = yrun./repmat(sstd(indrun),[1 nvox]); end
       if(~isempty(flac.TFmtx))
 	% Temporal filter
 	fprintf('Temporally filtering\n');
@@ -719,7 +737,7 @@ if(DoGLMFit)
   
   save(xfile,'X','DOF','flac0','runflac','RescaleFactor',...
        'rfm','acfseg','nrho1segmn','acfsegmn','ErrCovMtx',...
-       'yrun_randn','DoMCFit','mcAll','betamc','rvarmc');
+       'yrun_randn','DoMCFit','mcAll','betamc','rvarmc','sstd');
 
   if(DoFWHM)
     fprintf('Concatenating residuals\n');
