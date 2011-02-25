@@ -11,8 +11,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/04/26 17:17:19 $
-#    $Revision: 1.3 $
+#    $Date: 2011/02/25 20:02:42 $
+#    $Revision: 1.4 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -35,15 +35,15 @@ if($#argv != 1) then
   exit 1;
 endif
 
-set string = $argv[1]; shift;
-set tmp = `echo $string | cut -c1-1`
+set string = "$argv[1]"; shift;
+set tmp = `echo "$string" | cut -c1-1`
 if("$tmp" == "-") then
   set r = 1;
 else
   set r = 0;
 endif
 
-if($string == "-1") set r = 0;
+if("$string" == "-1") set r = 0;
 
 echo $r;
 
