@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/02/22 19:40:29 $
-#    $Revision: 1.12 $
+#    $Date: 2011/02/25 04:15:34 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.12 2011/02/22 19:40:29 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.13 2011/02/25 04:15:34 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -121,7 +121,7 @@ set cvstemp = avg35rerun
 set usemaskanat = 1
 set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.ilf_AS rh.ilf_AS \
-                 lh.uncinate_AS rh.uncinate_AS \
+                 lh.unc_AS rh.unc_AS \
                  fmajor_PP fminor_PP \
                  lh.atr_PP rh.atr_PP \
                  lh.ccg_PP rh.ccg_PP \
@@ -132,6 +132,7 @@ set ncpts = 5
 set xspace = mni
 set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
 set ntrainlist = ()
+set usetrunc = 0
 set do1out = 0
 set doprior = 0
 set dosegprior = 1
@@ -402,6 +403,7 @@ foreach isubj ($runlist)
   echo "set ncptlist = ($ncptlist)"					>> $RCF
   echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
   echo "set ntrainlist = ($ntrainlist)"					>> $RCF
+  echo "set usetrunc = ($usetrunc)"					>> $RCF
   echo "set doprior = ($doprior)"					>> $RCF
   echo "set dosegprior = ($dosegprior)"					>> $RCF
   echo "set dopathsubdirs = ($dopathsubdirs)"				>> $RCF

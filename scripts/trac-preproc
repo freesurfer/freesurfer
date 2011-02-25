@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/02/22 19:40:29 $
-#    $Revision: 1.9 $
+#    $Date: 2011/02/25 04:15:34 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.9 2011/02/22 19:40:29 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.10 2011/02/25 04:15:34 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -1081,22 +1081,48 @@ if ($dopriors) then
       foreach reg ($reglist)
         set avgmode = avg${ntrain}_${xspace}_$reg
 
-        set outlist = `printf "$labdir/$xspace/%s_$avgmode " $pathlist`
+        set outdir = $labdir/$xspace
+        set outlist = `printf "%s_$avgmode " $pathlist`
+
         set trklist = `printf "dlabel/$xspace/%s.$reg.trk " $pathlist`
+
+        set roilist = ()
+        set lablist = ()
+        foreach pathname ($pathlist)
+          set roilist = ($roilist \
+                         dlabel/$xspace/${pathname}_roi1.$reg.nii.gz \
+                         dlabel/$xspace/${pathname}_roi2.$reg.nii.gz)
+
+          if ($pathname =~ *cst*) then
+            set lablist = ($lablist 16)		# Add brainstem
+          else if ($pathname =~ lh.atr*) then
+            set lablist = ($lablist 10)		# Add left thalamus proper
+          else if ($pathname =~ rh.atr*) then
+            set lablist = ($lablist 49)		# Add right thalamus proper
+          else
+            set lablist = ($lablist 0)		# Add nothing
+          endif
+        end
 
         # Compute priors, end ROIs, and initial control points from training set
         set cmd = $trcdir/dmri_train
-        set cmd = ($cmd --out   $outlist)
-        set cmd = ($cmd --slist $slistfile)
-        set cmd = ($cmd --trk   $trklist)
-        set cmd = ($cmd --seg   dlabel/$xspace/aparc+aseg.nii.gz)
-        set cmd = ($cmd --cmask dlabel/$xspace/cortex+2mm+bs.nii.gz)
+        set cmd = ($cmd --outdir $outdir)
+        set cmd = ($cmd --out    $outlist)
+        set cmd = ($cmd --slist  $slistfile)
+        set cmd = ($cmd --trk    $trklist)
+        set cmd = ($cmd --seg    dlabel/$xspace/aparc+aseg.nii.gz)
+        set cmd = ($cmd --cmask  dlabel/$xspace/cortex+2mm.nii.gz)
+        set cmd = ($cmd --lmask  $lablist)
+        set cmd = ($cmd --rois   $roilist)
         if ($usemaskanat) then
           set cmd = ($cmd --bmask $labdir/$xspace/anat_brain_mask-vent.nii.gz)
         else
           set cmd = ($cmd --bmask $labdir/$xspace/lowb_brain_mask.$reg.nii.gz)
         endif
         set cmd = ($cmd --ncpts $ncptlist)
+        if ($usetrunc) then
+          set cmd = ($cmd --trunc)
+        endif
         set cmd = ($cmd --debug)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then

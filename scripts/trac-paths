@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/02/22 19:40:29 $
-#    $Revision: 1.7 $
+#    $Date: 2011/02/25 04:15:34 $
+#    $Revision: 1.8 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.7 2011/02/22 19:40:29 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.8 2011/02/25 04:15:34 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -228,12 +228,20 @@ foreach ntrain ($ntrainlist)
             $labdir/$xspace/${pathname}_${avgmode}_fsnnids)
         end
 
+        if ($usetrunc) then
+          set npriorlist = `printf "%s_all " $npriorlist`
+        endif
+
         set lpriorlist = ()
         foreach pathname ($pathlist)
           set lpriorlist = ($lpriorlist \
             $labdir/$xspace/${pathname}_${avgmode}_fsprior \
             $labdir/$xspace/${pathname}_${avgmode}_fsids)
         end
+
+        if ($usetrunc) then
+          set lpriorlist = `printf "%s_all " $lpriorlist`
+        endif
 
         set sdplist = \
           `printf "$labdir/diff/%s_${mnimode}_cpts_${ncpts}_std.txt " $pathlist`
