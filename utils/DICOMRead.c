@@ -7,8 +7,8 @@
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/02/01 15:55:16 $
- *    $Revision: 1.131 $
+ *    $Date: 2011/02/25 17:45:30 $
+ *    $Revision: 1.132 $
  *
  * Copyright (C) 2002-2011,
  * The General Hospital Corporation (Boston, MA). 
@@ -933,7 +933,7 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
         *p = '\0';
 
       // check the region
-      if (strncmp(buf, "### ASCCONV BEGIN ###", 21)==0)
+      if (strncmp(buf, "### ASCCONV BEGIN", 17)==0)
         startOfAscii = 1;
       else if (strncmp(buf, "### ASCCONV END ###", 19)==0)
         startOfAscii = 0;
@@ -999,7 +999,7 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
   block of ASCII text. Each line in the block has the form:
   VariableName = VariableValue
   The begining of the block is delineated by the line
-  ### ASCCONV BEGIN ###
+  ### ASCCONV BEGIN
   The end of the block is delineated by the line
   ### ASCCONV END ###
   This function searches this block for a variable named TagString
@@ -1012,6 +1012,12 @@ char *SiemensAsciiTagEx(const char *dcmfile, const char *TagString, int cleanup)
 
   Note: flag does not do anything. Just there to make compatible 
   with SiemensAsciiTagEx(). If flag=1, returns NULL;
+
+  Note: Prior to Feb 25, 2011, the beginning of the ascii header 
+  was coded by the string "### ASCCONV BEGIN ###" -- same as
+  now but with three hash symbols. The Skyra DICOMS changed this
+  convention, but it was easily fixed by removing the three hash
+  marks.
 
   Author: Douglas N. Greve, 9/6/2001
   -----------------------------------------------------------------*/
@@ -1036,7 +1042,7 @@ char *SiemensAsciiTag(const char *dcmfile, const char *TagString, int flag)
   fflush(stdout);
   fflush(stderr);
 
-  BeginStr = "### ASCCONV BEGIN ###";
+  BeginStr = "### ASCCONV BEGIN";
   LenBeginStr = strlen(BeginStr);
   TestStr = (char *) calloc(LenBeginStr+1,sizeof(char));
 
