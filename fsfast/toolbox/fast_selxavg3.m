@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.97 2011/02/24 21:12:14 greve Exp $
+% $Id: fast_selxavg3.m,v 1.98 2011/02/25 20:04:06 greve Exp $
 
 
 %
@@ -9,8 +9,8 @@
 % Original Author: Doug Greve
 % CVS Revision Info:
 %    $Author: greve $
-%    $Date: 2011/02/24 21:12:14 $
-%    $Revision: 1.97 $
+%    $Date: 2011/02/25 20:04:06 $
+%    $Revision: 1.98 $
 %
 % Copyright (C) 2002-2007,
 % The General Hospital Corporation (Boston, MA). 
@@ -33,7 +33,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.97 2011/02/24 21:12:14 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.98 2011/02/25 20:04:06 greve Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -60,7 +60,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.97 2011/02/24 21:12:14 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.98 2011/02/25 20:04:06 greve Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;
@@ -437,7 +437,10 @@ if(DoGLMFit)
     indz  = find(tmp == 0); % keep zeros from screwing stuff up
     indnz = find(tmp ~= 0); % keep zeros from screwing stuff up
     
-    sstdrun = std(rrun(:,indnz),[],2); % spatial stddev at each TP
+    yrunmn = mean(yrun,1);
+    yrundm = yrun - repmat(yrunmn,[size(yrun,1) 1]);
+    sstdrun = std(yrundm(:,indnz),[],2); % spatial stddev at each TP
+    %sstdrun = std(rrun(:,indnz),[],2); % spatial stddev at each TP
     indtp0 = find(sstdrun < 10^-5); % set tps that are 0 to 1
     sstdrun(indtp0) = 1;
     sstd = [sstd; sstdrun];
