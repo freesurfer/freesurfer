@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/24 23:21:50 $
-#    $Revision: 1.60 $
+#    $Date: 2011/02/25 20:02:27 $
+#    $Revision: 1.61 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.60 2011/02/24 23:21:50 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.61 2011/02/25 20:02:27 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -347,6 +347,11 @@ while( $#argv != 0 )
 
     case "-nuisreg": # External regressor file
       if($#argv < 2) goto arg2err;
+      set isflag = `isargflag "$argv[2]"`
+      if($isflag) then
+        echo "ERROR: $flag requires two arguments"
+        exit 1;
+      endif
       set NuisRegList  = ($NuisRegList $argv[1]); shift;
       set nNuisRegList = ($nNuisRegList $argv[1]); shift;
       breaksw
@@ -357,12 +362,22 @@ while( $#argv != 0 )
 
     case "-taskreg": # External regressor file
       if($#argv < 2) goto arg2err;
+      set isflag = `isargflag $argv[2]`
+      if($isflag) then
+        echo "ERROR: $flag requires two arguments"
+        exit 1;
+      endif
       set TaskRegList  = ($TaskRegList $argv[1]); shift;
       set nTaskRegList = ($nTaskRegList $argv[1]); shift;
       breaksw
 
     case "-fir":
       if($#argv < 2) goto arg2err;
+      set isflag = `isargflag "$argv[2]"`
+      if($isflag) then
+        echo "ERROR: $flag requires two arguments"
+        exit 1;
+      endif
       set PreStim = $argv[1]; shift;
       set TimeWindow = $argv[1]; shift;
       set HRFModel = "fir";
@@ -371,6 +386,11 @@ while( $#argv != 0 )
     case "-gamma":
     case "-gammafit":
       if ( $#argv < 2) goto arg2err;
+      set isflag = `isargflag "$argv[2]"`
+      if($isflag) then
+        echo "ERROR: $flag requires two arguments"
+        exit 1;
+      endif
       set GammaDelta = $argv[1]; shift;
       set GammaTau   = $argv[1]; shift;
       set TimeWindow = $IdealTimeWindow;
@@ -437,6 +457,11 @@ while( $#argv != 0 )
     case "-surface":
     case "-surf":
       if($#argv < 2) goto arg2err;
+      set isflag = `isargflag "$argv[2]"`
+      if($isflag) then
+        echo "ERROR: $flag requires two arguments"
+        exit 1;
+      endif
       set RawSpace = $argv[1]; shift; # subjectname
       set RawHemi = $argv[1]; shift;
       set RawSpaceType = surface
