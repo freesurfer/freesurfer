@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/24 20:37:13 $
- *    $Revision: 1.36 $
+ *    $Date: 2011/02/25 15:52:11 $
+ *    $Revision: 1.37 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -288,6 +288,12 @@ namespace GPU {
 
       static SciGPU::Utilities::Chronometer tCMPtot;
       static SciGPU::Utilities::Chronometer tCMPcompute;
+
+      static SciGPU::Utilities::Chronometer tWriteWarp;
+      static SciGPU::Utilities::Chronometer tReadWarp;
+
+      static SciGPU::Utilities::Chronometer tRStot;
+      static SciGPU::Utilities::Chronometer tRScompute;
 
       static SciGPU::Utilities::Chronometer tSmoothGradient;
     };

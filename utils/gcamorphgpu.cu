@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/24 20:37:15 $
- *    $Revision: 1.50 $
+ *    $Date: 2011/02/25 15:52:08 $
+ *    $Revision: 1.51 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -1268,6 +1268,8 @@ namespace GPU {
         in this case, since we directly copy (with slight modification)
         the rx, ry and rz fields into the VecVolGPU
       */
+      GCAmorphGPU::tWriteWarp.Start();
+
       this->CheckIntegrity();
 
       // Allocate space
@@ -1285,7 +1287,7 @@ namespace GPU {
       WriteWarpToVecVolKernel<<<grid,threads>>>( vecVol,
                                                  this->d_rx, this->d_ry, this->d_rz );
       CUDA_CHECK_ERROR( "WriteWarpToVecVolKernel failed!" );
-      
+      GCAmorphGPU::tWriteWarp.Stop();
     }
 
 
@@ -1320,6 +1322,7 @@ namespace GPU {
         This reimplements GCAMreadWarpFromMRI.
         But again, we don't have to worry about 'spacing' and sampling
       */
+      GCAmorphGPU::tReadWarp.Start();
 
       this->CheckIntegrity();
       if( vecVol.GetDims() != this->d_rx.GetDims() ) {
@@ -1343,6 +1346,7 @@ namespace GPU {
                                                   vecVol );
       CUDA_CHECK_ERROR( "ReadWarpFromVecVolKernel failed!" );
 
+      GCAmorphGPU::tReadWarp.Stop();
     }
 
 
@@ -1370,9 +1374,9 @@ namespace GPU {
     //! Mean of vectors around location
     __device__
     float3 VoxelMean( const VecVolArgGPU volume,
-                      const unsigned int x0,
-                      const unsigned int y0,
-                      const unsigned int z0,
+                      const int x0,
+                      const int y0,
+                      const int z0,
                       const int wsize ) {
       /*!
         Implementation of MRIvoxelMean for the
@@ -1461,6 +1465,7 @@ namespace GPU {
         for the GPU.
         We drop the mri_warp, and handle it internally.
       */
+      GCAmorphGPU::tRStot.Start();
 
       int invalid, wsize;
 
@@ -1509,12 +1514,14 @@ namespace GPU {
         grid = this->d_rx.CoverBlocks( kRemoveSingularitiesKernelSize );
         grid.z = 1;
 
+        GCAmorphGPU::tRScompute.Start();
         RemoveSingularitiesKernel<<<grid,threads>>>( warp, tmpWarp,
                                                      this->d_area1, this->d_area2,
                                                      this->d_invalid,
                                                      wsize,
                                                      nbhd );
         CUDA_CHECK_ERROR( "RemoveSingularitiesKernel failed!" );
+        GCAmorphGPU::tRScompute.Stop();
 
         // Check for negatives
         this->ReadWarpFromVecVol( warp );
@@ -1541,6 +1548,8 @@ namespace GPU {
       } while( (this->neg>0) && ( (++iter < max_iter) || (this->neg < last_neg ) ) );
 
       printf("after %d iterations, nbhd size=%d, neg = %d\n", iter, nbhd, this->neg) ;
+
+      GCAmorphGPU::tRStot.Stop();
     }
 
 
@@ -1764,6 +1773,15 @@ namespace GPU {
       std::cout << "Total         : " << GCAmorphGPU::tSmoothGradient << std::endl;
       std::cout << std::endl;
 
+      std::cout << "Remove Singularities:" << std::endl;
+      std::cout << "   Compute : " << GCAmorphGPU::tRScompute << std::endl;
+      std::cout << "Total      : " << GCAmorphGPU::tRStot << std::endl;
+      std::cout << std::endl;
+
+
+      std::cout << "WriteWarp   : " << GCAmorphGPU::tWriteWarp << std::endl;
+      std::cout << "ReadWarp    : " << GCAmorphGPU::tReadWarp << std::endl;
+
       std::cout << "==================================" << std::endl;
 #endif
     }
@@ -1783,6 +1801,10 @@ namespace GPU {
     SciGPU::Utilities::Chronometer GCAmorphGPU::tCMPtot;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tCMPcompute;
     SciGPU::Utilities::Chronometer GCAmorphGPU::tSmoothGradient;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tWriteWarp;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tReadWarp;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tRStot;
+    SciGPU::Utilities::Chronometer GCAmorphGPU::tRScompute;
 
 
     dim3 GCAmorphGPU::hostDims = make_uint3(0,0,0);
