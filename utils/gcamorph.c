@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2011/02/24 20:37:14 $
- *    $Revision: 1.239 $
+ *    $Author: fischl $
+ *    $Date: 2011/02/25 14:44:54 $
+ *    $Revision: 1.240 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -116,6 +116,7 @@
 extern const char* Progname;
 
 MRI *MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst) ;
+static int fix_borders(GCA_MORPH *gcam)  ;
 
 int gcam_write_grad = 0 ;
 
@@ -3405,19 +3406,19 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
           if (i > 0 && j > 0 && k > 0&&
               i < gcam->width-1 && j < gcam->height-1 && k < gcam->depth-1) {
             DiagBreak() ;
-	  }
-
+          }
+          
           if (gcam->neg == 0 && getenv("SHOW_NEG")) {
             printf("node (%d, %d, %d), label %s (%d) - NEGATIVE!\n",
                    i, j, k, cma_label_to_name(gcamn->label), gcamn->label) ;
-	  }
+          }
           gcam->neg++ ;
         }
-
-	// Add to count of invalid locations
+        
+        // Add to count of invalid locations
         if (gcamn->invalid) {
           Ginvalid++ ;
-	}
+        }
       }
     }
   }
@@ -5584,6 +5585,7 @@ gcamComputeGradient
   }
 
   gcamSmoothGradient(gcam, parms->navgs) ;
+  fix_borders(gcam) ;
 
   if (parms->write_iterations > 0 && 
       (Gdiag & DIAG_WRITE) && 
@@ -6849,8 +6851,17 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   double           xf, yf, zf ;
   float          num ;
 
+#if 0
   if (gcam->mri_xind)   /* already inverted */
     return(NO_ERROR) ;
+#else
+  if (gcam->mri_xind)
+    MRIfree(&gcam->mri_xind) ;
+  if (gcam->mri_yind)
+    MRIfree(&gcam->mri_yind) ;
+  if (gcam->mri_zind)
+    MRIfree(&gcam->mri_zind) ;
+#endif
 
   // verify the volume size ////////////////////////////////////////////
   if (mri->width != gcam->image.width
@@ -16703,10 +16714,6 @@ GCAMMSgibbsImageLogPosterior(GCAM_MS *gcam_ms, MRI *mri_labels, MRI *mri_inputs,
   }
   return(total_log_posterior) ;
 }
-
-#define GCAM_REMOVE_SINGULARITIES_OUTPUT 0
-
-
 int
 GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
 {
@@ -16714,47 +16721,35 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
                   xk, yk, zk, nbhd = 1, max_noprogress, noprogress, min_neg ;
   double          dx, dy, dz, max_nbhd ;
   GCA_MORPH_NODE  *gcamn ;
-  MRI             *mri_warp_tmp = NULL ;
-
-
-#if GCAM_REMOVE_SINGULARITIES_OUTPUT
-  const unsigned int outputFreq = 10;
-  static unsigned int nCalls = 0;
-
-  if( (nCalls%outputFreq)==0 ) {
-    char fname[STRLEN];
-    const unsigned int nOut = nCalls/outputFreq;
-    
-    snprintf( fname, STRLEN-1, "gcamRemoveSingularitiesInput%04u", nOut );
-    fname[STRLEN-1] = '\0';
-    WriteGCAMoneInput( gcam, fname );
-  }
-
-  nCalls++;
-#endif
+  MRI             *mri_warp_tmp = NULL, *mri_neg ;
 
   wsize = 2*gcam->spacing+1 ; wsize = 3 ;
   GCAMreadWarpFromMRI(gcam, mri_warp) ;
   gcamComputeMetricProperties(gcam) ;
   if (gcam->neg == 0)
     return(NO_ERROR) ;
-
+  mri_neg = MRIalloc(mri_warp->width, mri_warp->height, mri_warp->depth, MRI_UCHAR) ;
+  MRIcopyHeader(mri_warp, mri_neg) ;
   iter = 0 ;
-  max_iter = 500 ;
+  max_iter = 200 ;
   max_noprogress = 4 ;
   noprogress = 0 ;
   min_neg = gcam->neg ;
-  max_nbhd = 3 ;
+  max_nbhd = 4 ;
 
-  nbhd = MAX(1,gcam->spacing-1) ;
+  nbhd = MAX(0,gcam->spacing-2) ;
   printf("iter %d, gcam->neg = %d\n", iter, gcam->neg) ;
-
-  do {
+  do
+  {
+    MRIclear(mri_neg) ;
     mri_warp_tmp = MRIcopy(mri_warp, mri_warp_tmp) ;
     last_neg = gcam->neg ;
-    for (xp = 0 ; xp < gcam->width; xp++) {
-      for (yp = 0 ; yp < gcam->height ; yp++) {
-        for (zp = 0 ; zp < gcam->depth ; zp++) {
+    for (xp = 0 ; xp < gcam->width; xp++)
+    {
+      for (yp = 0 ; yp < gcam->height ; yp++)
+      {
+        for (zp = 0 ; zp < gcam->depth ; zp++)
+        {
           if (xp == Gx && yp == Gy && zp == Gz)
             DiagBreak() ;
           xv = (xp * gcam->spacing) ;
@@ -16762,14 +16757,34 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
           zv = (zp * gcam->spacing) ;
           //        GCApriorToVoxel(gcam->gca, mri_warp, xp, yp, zp, &xv, &yv, &zv) ;
           gcamn = &gcam->nodes[xp][yp][zp] ;
-          if ((gcamn->area1 <= 0 || gcamn->area2 <= 0) && gcamn->invalid == GCAM_VALID) {
-            for (xk = -nbhd ; xk <= nbhd ; xk++) {
-              for (yk = -nbhd ; yk <= nbhd ; yk++) {
-                for (zk = -nbhd ; zk <= nbhd ; zk++) {
-                  xv = mri_warp->xi[(xp * gcam->spacing) + xk] ;
-                  yv = mri_warp->yi[(yp * gcam->spacing) + yk] ;
-                  zv = mri_warp->zi[(zp * gcam->spacing) + zk] ;
-                  
+          if (gcamn->area1 <= 0 || gcamn->area2 <= 0)
+          {
+            int xv, yv, zv ;
+            xv = nint(gcamn->x) ; yv = nint(gcamn->y) ; zv = nint(gcamn->z) ;
+            if (xv >= 0 && xv < mri_neg->width &&
+                yv >= 0 && yv < mri_neg->height &&
+                zv >= 0 && zv < mri_neg->depth)
+              MRIsetVoxVal(mri_neg, nint(gcamn->x), nint(gcamn->y), nint(gcamn->z), 0, 128) ;
+          }
+
+          if ((gcamn->area1 <= 0 || gcamn->area2 <= 0) && gcamn->invalid == GCAM_VALID)
+          {
+            for (xk = -nbhd ; xk <= nbhd ; xk++)
+            {
+              xv = nint(xp * gcam->spacing + xk) ;
+              if (xv < 0 || xv >= mri_warp->width)
+                continue ;
+              for (yk = -nbhd ; yk <= nbhd ; yk++)
+              {
+                yv = nint(yp * gcam->spacing + yk) ;
+                if (yv < 0 || yv >= mri_warp->height)
+                  continue ;
+                for (zk = -nbhd ; zk <= nbhd ; zk++)
+                {
+                  zv = nint((zp * gcam->spacing) + zk) ;
+                  if (zv < 0 || zv >= mri_warp->depth)
+                    continue ;
+
                   dx = MRIvoxelMean(mri_warp_tmp, xv, yv, zv, wsize, 0) ;
                   dy = MRIvoxelMean(mri_warp_tmp, xv, yv, zv, wsize, 1);
                   dz = MRIvoxelMean(mri_warp_tmp, xv, yv, zv, wsize, 2) ;
@@ -16779,51 +16794,50 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
                 }
               }
             }
-          
           }
-          
         }
       }
     }
-
+    
+    if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+      MRIwrite(mri_neg, "neg.mgz") ;
     GCAMreadWarpFromMRI(gcam, mri_warp) ;
     gcamComputeMetricProperties(gcam) ;
-
-    if (Gdiag & DIAG_SHOW || 1) {
+    if (Gdiag & DIAG_SHOW)
       printf("iter %d, gcam->neg = %d, nbhd=%d\n", iter+1, gcam->neg, nbhd) ;
-    }
-
-    if (gcam->neg >= min_neg) {
-      if (noprogress++ >= max_noprogress) {
+    if (gcam->neg >= min_neg)
+    {
+      if (noprogress++ >= max_noprogress)
+      {
+        min_neg = gcam->neg+1 ; // reset min neg found
         nbhd++ ;
-        if (nbhd > max_nbhd) {
-          // try it starting iwth just nearest nbrs again
+        if (nbhd > max_nbhd)  // try it starting with just nearest nbrs again
+        {
           nbhd = 1 ; 
-          max_nbhd++ ;
+#if 0
+          if (max_nbhd < 7) // bigger than 7-nbrs takes forever
+            max_nbhd++ ;
+          else
+#endif
+            DiagBreak() ;
         }
-
         noprogress = 0 ;
-
         if (Gdiag & DIAG_SHOW)
           printf("neg = %d, increasing nbhd size to %d\n", gcam->neg,nbhd) ;
       }
-    } else {
+    }
+    else
+    {
       noprogress = 0 ;
       min_neg = gcam->neg ;
     }
-  } while (gcam->neg > 0 && (++iter < max_iter || gcam->neg < last_neg));
-
-
+  } while (gcam->neg > 0 && (++iter < max_iter || gcam->neg < last_neg)) ;
   printf("after %d iterations, nbhd size=%d, neg = %d\n", iter, nbhd, gcam->neg) ;
-  MRIfree(&mri_warp_tmp) ;
+  if (gcam->neg > 0)
+    DiagBreak() ;
+  MRIfree(&mri_warp_tmp) ; MRIfree(&mri_neg) ;
   return(NO_ERROR) ;
 }
-
-
-
-
-
-
 MRI *
 replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels, 
                int combine_labels[8][2], int ncombine_labels, 
@@ -16864,4 +16878,53 @@ replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels,
     parms->dtrans_labels = dtrans_labels ;
   }
   return(mri_dst_labels) ;
+}
+
+static int
+fix_borders(GCA_MORPH *gcam) 
+{
+  int              x, y, z ;
+  GCA_MORPH_NODE   *gcamn0, *gcamn1 ;
+
+  for (x = 0 ; x < gcam->width ; x++)
+    for (y = 0 ; y < gcam->height ; y++)
+    {
+      gcamn0 = &gcam->nodes[x][y][0] ;
+      gcamn1 = &gcam->nodes[x][y][1] ;
+      gcamn0->dx = gcamn1->dx ; gcamn0->dy = gcamn1->dy ; gcamn0->dz = gcamn1->dz ;
+
+      gcamn0 = &gcam->nodes[x][y][gcam->depth-1] ;
+      gcamn1 = &gcam->nodes[x][y][gcam->depth-2] ;
+      gcamn0->dx = gcamn1->dx ;
+      gcamn0->dy = gcamn1->dy ;
+      gcamn0->dz = gcamn1->dz ;
+    }
+
+
+  for (x = 0 ; x < gcam->width ; x++)
+    for (z = 0 ; z < gcam->depth ; z++)
+    {
+      gcamn0 = &gcam->nodes[x][0][z] ;
+      gcamn1 = &gcam->nodes[x][1][z] ;
+      gcamn0->dx = gcamn1->dx ; gcamn0->dy = gcamn1->dy ; gcamn0->dz = gcamn1->dz ;
+
+      gcamn0 = &gcam->nodes[x][gcam->height-1][z] ;
+      gcamn1 = &gcam->nodes[x][gcam->height-2][z] ;
+      gcamn0->dx = gcamn1->dx ; gcamn0->dy = gcamn1->dy ; gcamn0->dz = gcamn1->dz ;
+    }
+
+
+  for (y = 0 ; y < gcam->height ; y++)
+    for (z = 0 ; z < gcam->depth ; z++)
+    {
+      gcamn0 = &gcam->nodes[0][y][z] ;
+      gcamn1 = &gcam->nodes[1][y][z] ;
+      gcamn0->dx = gcamn1->dx ; gcamn0->dy = gcamn1->dy ; gcamn0->dz = gcamn1->dz ;
+
+      gcamn0 = &gcam->nodes[gcam->width-1][y][z] ;
+      gcamn1 = &gcam->nodes[gcam->width-2][y][z] ;
+      gcamn0->dx = gcamn1->dx ; gcamn0->dy = gcamn1->dy ; gcamn0->dz = gcamn1->dz ;
+    }
+
+  return(NO_ERROR) ;
 }
