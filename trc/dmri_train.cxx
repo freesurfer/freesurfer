@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2010/12/16 06:54:09 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/02/25 03:52:35 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -71,10 +71,12 @@ int main(int argc, char *argv[]) ;
 static char vcid[] = "";
 const char *Progname = "dmri_train";
 
-int nControl[100], nout = 0, ntrk = 0, ncpt = 0;
-char *outBase[100], *trainListFile = NULL,
-     *trainTrkList[100], *trainAsegFile = NULL,
-     *trainMaskFile = NULL, *testMaskFile = NULL;
+bool useTrunc = false;
+int nControl[100], nout = 0, ntrk = 0, nroi1 = 0, nroi2 = 0, nlab = 0, ncpt = 0;
+float trainMaskLabel[100];
+char *outDir = NULL, *outBase[100], *trainListFile = NULL,
+     *trainTrkList[100], *trainRoi1List[100], *trainRoi2List[100],
+     *trainAsegFile = NULL, *trainMaskFile = NULL, *testMaskFile = NULL;
 
 struct utsname uts;
 char *cmdline, cwd[2000];
@@ -84,6 +86,7 @@ struct timeb cputimer;
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
   int nargs, cputime;
+  char fbase[PATH_MAX];
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv, vcid, "$Name:  $");
@@ -108,12 +111,16 @@ int main(int argc, char **argv) {
   dump_options(stdout);
 
   Blood myblood(trainListFile, trainTrkList[0],
-                trainAsegFile, trainMaskFile,
-                testMaskFile);
+                nroi1 ? trainRoi1List[0] : 0, nroi2 ? trainRoi2List[0] : 0,
+                trainAsegFile, trainMaskFile, nlab ? trainMaskLabel[0] : 0,
+                testMaskFile, useTrunc);
 
   for (int itrk = 0; itrk < ntrk; itrk++) {
     if (itrk > 0)
-      myblood.ReadStreamlines(trainListFile, trainTrkList[itrk]);
+      myblood.ReadStreamlines(trainListFile, trainTrkList[itrk],
+                              nroi1 ? trainRoi1List[itrk] : 0,
+                              nroi2 ? trainRoi2List[itrk] : 0,
+                              nlab ? trainMaskLabel[itrk] : 0);
 
     printf("Processing pathway %d of %d...\n", itrk+1, ntrk);
     TimerStart(&cputimer);
@@ -123,7 +130,12 @@ int main(int argc, char **argv) {
     for (int icpt = 0; icpt < ncpt; icpt++)
       myblood.SelectControlPoints(nControl[icpt]);
 
-    myblood.WriteOutputs(outBase[itrk]);
+    if (outDir)
+      sprintf(fbase, "%s/%s", outDir, outBase[itrk]);
+    else
+      strcpy(fbase, outBase[itrk]);
+
+    myblood.WriteOutputs(fbase);
 
     cputime = TimerStop(&cputimer);
     printf("Done in %g sec.\n", cputime/1000.0);
@@ -156,11 +168,15 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--checkopts"))   checkoptsonly = 1;
     else if (!strcasecmp(option, "--nocheckopts")) checkoptsonly = 0;
+    else if (!strcmp(option, "--outdir")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      outDir = fio_fullpath(pargv[0]);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--out")) {
       if (nargc < 1) CMDargNErr(option,1);
-      nargsused = 0;
       while (strncmp(pargv[nargsused], "--", 2)) {
-        outBase[nout] = fio_fullpath(pargv[nargsused]);
+        outBase[nout] = pargv[nargsused];
         nargsused++;
         nout++;
       }
@@ -169,40 +185,60 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) CMDargNErr(option,1);
       trainListFile = fio_fullpath(pargv[0]);
       nargsused = 1;
-    } 
+    }
     else if (!strcmp(option, "--trk")) {
       if (nargc < 1) CMDargNErr(option,1);
-      nargsused = 0;
       while (strncmp(pargv[nargsused], "--", 2)) {
         trainTrkList[ntrk] = pargv[nargsused];
         nargsused++;
         ntrk++;
       }
-    } 
-    else if (!strcmp(option, "--cmask")) {
-      if (nargc < 1) CMDargNErr(option,1);
-      trainMaskFile = pargv[0];
-      nargsused = 1;
-    } 
+    }
+    else if (!strcmp(option, "--rois")) {
+      if (nargc < 2) CMDargNErr(option,1);
+      while (strncmp(pargv[nargsused], "--", 2)) {
+        trainRoi1List[nroi1] = pargv[nargsused];
+        nargsused++;
+        nroi1++;
+        trainRoi2List[nroi2] = pargv[nargsused];
+        nargsused++;
+        nroi2++;
+      }
+    }
     else if (!strcmp(option, "--seg")) {
       if (nargc < 1) CMDargNErr(option,1);
       trainAsegFile = pargv[0];
       nargsused = 1;
-    } 
-    else if (!strcmp(option, "--ncpts")) {
+    }
+    else if (!strcmp(option, "--cmask")) {
       if (nargc < 1) CMDargNErr(option,1);
-      nargsused = 0;
+      trainMaskFile = pargv[0];
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--lmask")) {
+      if (nargc < 1) CMDargNErr(option,1);
       while (strncmp(pargv[nargsused], "--", 2)) {
-        sscanf(pargv[nargsused],"%u",&nControl[ncpt]);
+        sscanf(pargv[nargsused],"%f",&trainMaskLabel[nlab]);
         nargsused++;
-        ncpt++;
+        nlab++;
       }
     }
     else if (!strcmp(option, "--bmask")) {
       if (nargc < 1) CMDargNErr(option,1);
       testMaskFile = fio_fullpath(pargv[0]);
       nargsused = 1;
-    } 
+    }
+    else if (!strcmp(option, "--ncpts")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      while (strncmp(pargv[nargsused], "--", 2)) {
+        sscanf(pargv[nargsused],"%u",&nControl[ncpt]);
+        nargsused++;
+        ncpt++;
+      }
+    }
+    else if (!strcmp(option, "--trunc"))
+      useTrunc = true;
+
     nargc -= nargsused;
     pargv += nargsused;
   }
@@ -216,17 +252,34 @@ static void print_usage(void)
   printf("USAGE: ./dmri_train\n");
   printf("\n");
   printf("Basic inputs\n");
-  printf("   --out <base> [...]:  base name(s) of output(s), one per path\n");
-  printf("   --slist <file>:      text file with list of training subject\n");
-  printf("                        directories\n");
-  printf("   --trk <file> [...]:  name(s) of input .trk file(s), one per path\n");
-  printf("                        (relative to training subject directory)\n");
-  printf("   --seg <file>:        name of input aparc+aseg volume\n");
-  printf("                        (relative to training subject directory)\n");
-  printf("   --cmask <file>:      name of input cortex mask volume\n");
-  printf("                        (relative to training subject directory)\n");
-  printf("   --bmask <file>:      input brain mask volume for test subject\n");
-  printf("   --ncpts <num> [...]: number of control points for initial spline\n");
+  printf("   --out <base> [...]:\n");
+  printf("     Base name(s) of output(s), one per path\n");
+  printf("   --outdir <dir>:\n");
+  printf("     Output directory (optional)\n");
+  printf("     If specified, base names of outputs are relative to this\n");
+  printf("   --slist <file>:\n");
+  printf("     Text file with list of training subject directories\n");
+  printf("   --trk <file> [...]:\n");
+  printf("     Name(s) of input .trk file(s), one per path\n");
+  printf("     (Names relative to training subject directory)\n");
+  printf("   --rois <file1> <file2> [...]:\n");
+  printf("     Optional, names of input tract labeling ROIs, two per path\n");
+  printf("     (Names relative to training subject directory)\n");
+  printf("   --seg <file>:\n");
+  printf("     Name of input aparc+aseg volume\n");
+  printf("     (Name relative to training subject directory)\n");
+  printf("   --cmask <file>:\n");
+  printf("     Name of input cortex mask volume\n");
+  printf("   --lmask <id> [...]:\n");
+  printf("     Add a label ID from aparc+aseg to cortex mask, one per path\n");
+  printf("     (0 doesn't add any label)\n");
+  printf("   --bmask <file>:\n");
+  printf("     Input brain mask volume for test subject\n");
+  printf("   --ncpts <num> [...]:\n");
+  printf("     Number of control points for initial spline\n");
+  printf("   --trunc:\n");
+  printf("     Also save results using all streamlines, truncated or not\n");
+  printf("     (Default: Only save results using non-truncated streamlines)\n");
   printf("\n");
   printf("Other options\n");
   printf("   --debug:     turn on debugging\n");
@@ -283,6 +336,18 @@ static void check_options(void) {
     printf("ERROR: must specify location of cortex mask volume\n");
     exit(1);
   }
+  if(nroi1 > 0 && nroi1 != ntrk) {
+    printf("ERROR: numbers of input .trk files and start ROIs must match\n");
+    exit(1);
+  }
+  if(nroi2 > 0 && nroi2 != ntrk) {
+    printf("ERROR: numbers of input .trk files and end ROIs must match\n");
+    exit(1);
+  }
+  if(nlab > 0 && nlab != ntrk) {
+    printf("ERROR: numbers of input .trk files and label IDs must match\n");
+    exit(1);
+  }
   if(!testMaskFile) {
     printf("ERROR: must specify brain mask volume for output subject\n");
     exit(1);
@@ -305,6 +370,8 @@ static void dump_options(FILE *fp) {
   fprintf(fp,"machine  %s\n",uts.machine);
   fprintf(fp,"user     %s\n",VERuser());
 
+  if (outDir)
+    fprintf(fp, "Output directory: %s\n", outDir);
   fprintf(fp, "Output base:");
   for (int k = 0; k < nout; k++)
     fprintf(fp, " %s", outBase[k]);
@@ -314,13 +381,30 @@ static void dump_options(FILE *fp) {
   for (int k = 0; k < ntrk; k++)
     fprintf(fp, " %s", trainTrkList[k]);
   fprintf(fp, "\n");
+  if (nroi1 > 0) {
+    fprintf(fp, "Location of start ROI files relative to base:");
+    for (int k = 0; k < nroi1; k++)
+      fprintf(fp, " %s", trainRoi1List[k]);
+    fprintf(fp, "\n");
+    fprintf(fp, "Location of end ROI files relative to base:");
+    for (int k = 0; k < nroi2; k++)
+      fprintf(fp, " %s", trainRoi2List[k]);
+    fprintf(fp, "\n");
+  }
   fprintf(fp, "Location of cortex masks relative to base: %s\n", trainMaskFile);
+  if (nlab > 0) {
+    fprintf(fp, "Label ID's from aparc+aseg to add to cortex mask:");
+    for (int k = 0; k < nlab; k++)
+      fprintf(fp, " %1.0f ", trainMaskLabel[k]);
+    fprintf(fp, "\n");
+  }
   fprintf(fp, "Location of aparc+aseg's relative to base: %s\n", trainAsegFile);
   fprintf(fp, "Brain mask for output subject: %s\n", testMaskFile);
   fprintf(fp, "Number of control points for initial spline:");
   for (int k = 0; k < ncpt; k++)
     fprintf(fp, " %d ", nControl[k]);
   fprintf(fp, "\n");
+  fprintf(fp, "Use truncated streamlines: %d\n", useTrunc);
 
   return;
 }

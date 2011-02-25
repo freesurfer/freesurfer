@@ -1257,8 +1257,21 @@ bool Coffin::JumpMCMC() {
 
   ProposeDiffusionParameters();
 
-  if (!AcceptPath())
+  if (!AcceptPath()) {
+    if (mDebug && !mRejectPosterior)
+      mLog << "mLikelihoodOnPathNew=NaN mPriorOnPathNew=NaN" << endl
+           << "mAnatomicalPriorNew=NaN" << endl
+           << "mLikelihoodOffPathNew=NaN mPriorOffPathNew=NaN" << endl
+           << "mLikelihoodOn-OffPathNew=NaN mPriorOn-OffPathNew=NaN" << endl
+           << "mPathLengthNew=NaN" << endl
+           << "mLikelihoodOnPath=NaN mPriorOnPath=NaN" << endl
+           << "mAnatomicalPrior=NaN" << endl
+           << "mLikelihoodOffPath=NaN mPriorOffPath=NaN" << endl
+           << "mLikelihoodOff-OnPath=NaN mPriorOff-OnPath=NaN" << endl
+           << "mPathLength=NaN" << endl;
+
     return false;
+  }
 
   return true;
 }
