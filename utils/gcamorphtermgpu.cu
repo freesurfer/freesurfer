@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/03 14:12:49 $
- *    $Revision: 1.31 $
+ *    $Date: 2011/02/25 17:35:35 $
+ *    $Revision: 1.32 $
  *
  * Copyright (C) 2009-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -1011,6 +1011,11 @@ namespace GPU {
       case MRI_UCHAR:
 	this->LLtermDispatch<T,unsigned char>( gcam, mri, mri_smooth,
 					       l_log_likelihood );
+	break;
+
+      case MRI_FLOAT:
+        this->LLtermDispatch<T,float>( gcam, mri, mri_smooth,
+                                       l_log_likelihood );
 	break;
 
       default:

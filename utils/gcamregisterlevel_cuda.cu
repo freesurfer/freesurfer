@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/12/03 18:48:41 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/02/25 17:35:35 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -43,6 +43,8 @@
 
 #include "gcamcomputegradient_cuda.hpp"
 #include "gcamfots_cuda.hpp"
+
+#include "gcamremovenegativenodes_cuda.hpp"
 
 #include "gcamregisterlevel_cuda.hpp"
 
@@ -201,10 +203,8 @@ int RegisterLevel( GPU::Classes::GCAmorphGPU& gcam,
     }
     min_dt = parms->dt;
 
-    //gcamRemoveNegativeNodes( gcam, mri, parms );
-    std::cerr << __FUNCTION__
-	      << ": gcamRemoveNegativeNodes not yet implemented"
-	      << std::endl;
+    RemoveNegativeNodes( gcam, mri, parms );
+    
 
     if( parms->uncompress ) {
       //gcamRemoveCompressedNodes(gcam, mri, parms, parms->ratio_thresh);

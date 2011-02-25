@@ -348,10 +348,10 @@ libutils_cuda_a_SOURCES=\
 	$(libutils_cephes_SOURCES) \
 	$(libutils_nrrdio_SOURCES) \
         mriframegpu.cu \
-				devicemanagement.cu \
-				mriconvolve_cuda.cu \
+	devicemanagement.cu \
+	mriconvolve_cuda.cu \
         mrivol2vol_cuda.cu \
-				mrisurf_cuda.cu \
+	mrisurf_cuda.cu \
         affinegpu.cu\
         mrimean_cuda.cu\
         gcasgpu.cu\
@@ -386,6 +386,7 @@ gcamorphcpu.o: $(top_srcdir)/include/gcamorphcpu.hpp $(CUDA_DEPS)
 mrilabels_cuda.o: $(CUDA_DEPS) $(top_srcdir)/include/mrilabels_cuda.hpp
 gcanodegpu.o: $(CUDA_DEPS) $(top_srcdir)/include/gcanodegpu.hpp $(top_srcdir)/include/gcalinearnode.hpp
 gcapriorgpu.o: $(CUDA_DEPS) $(top_srcdir)/include/gcapriorgpu.hpp $(top_srcdir)/include/gcalinearprior.hpp
+gcamregisterlevel_cuda.o : $(CUDA_DEPS) $(top_srcdir)/include/gcamremovenegativenodes_cuda.hpp
 
 CALLDEPTH ?= -1
 

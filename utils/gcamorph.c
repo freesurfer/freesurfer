@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/02/25 14:44:54 $
- *    $Revision: 1.240 $
+ *    $Author: rge21 $
+ *    $Date: 2011/02/25 17:35:35 $
+ *    $Revision: 1.241 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -116,7 +116,7 @@
 extern const char* Progname;
 
 MRI *MRIcomposeWarps(MRI *mri_warp1, MRI *mri_warp2, MRI *mri_dst) ;
-static int fix_borders(GCA_MORPH *gcam)  ;
+int fix_borders(GCA_MORPH *gcam)  ;
 
 int gcam_write_grad = 0 ;
 
@@ -16880,7 +16880,7 @@ replace_labels(MRI *mri_src_labels, MRI *mri_dst_labels,
   return(mri_dst_labels) ;
 }
 
-static int
+int
 fix_borders(GCA_MORPH *gcam) 
 {
   int              x, y, z ;

@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/30 16:25:55 $
- *    $Revision: 1.6 $
+ *    $Date: 2011/02/25 17:35:35 $
+ *    $Revision: 1.7 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -224,6 +224,10 @@ gcamCGSmoothDispatch( GCA_MORPH *gcam,
 
   case MRI_UCHAR:
     gcamCGFinalDispatch<T,unsigned char>( gcam, mri, mri_smooth, parms );
+    break;
+
+  case MRI_FLOAT:
+    gcamCGFinalDispatch<T,float>( gcam, mri, mri_smooth, parms );
     break;
 
   default:
