@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/02/25 04:15:34 $
-#    $Revision: 1.8 $
+#    $Date: 2011/02/26 01:08:38 $
+#    $Revision: 1.9 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.8 2011/02/25 04:15:34 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.9 2011/02/26 01:08:38 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -257,7 +257,7 @@ foreach ntrain ($ntrainlist)
         set cmd = ($cmd --grad $dwidir/bvecs)
         set cmd = ($cmd --bval $dwidir/bvals)
         if ($usemaskanat) then
-          if (-e $labdir/diff/anat_brain_mask.bbr.nii.gz) then
+          if ($doregbbr && -e $labdir/diff/anat_brain_mask.bbr.nii.gz) then
             set cmd = ($cmd --mask $labdir/diff/anat_brain_mask.bbr.nii.gz)
           else
             set cmd = ($cmd --mask $labdir/diff/anat_brain_mask.flt.nii.gz)
@@ -306,7 +306,7 @@ foreach ntrain ($ntrainlist)
             set cmd = $trcdir/dmri_path_meas
             set cmd = ($cmd --cpts $outdir/$pathpre/CONTROLS_1_1.txt)
             if ($usemaskanat) then
-              if (-e $labdir/diff/anat_brain_mask.bbr.nii.gz) then
+              if ($doregbbr && -e $labdir/diff/anat_brain_mask.bbr.nii.gz) then
                 set cmd = ($cmd --mask $labdir/diff/anat_brain_mask.bbr.nii.gz)
               else
                 set cmd = ($cmd --mask $labdir/diff/anat_brain_mask.flt.nii.gz)
