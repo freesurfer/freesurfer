@@ -65,10 +65,10 @@ class Blood {
     int GetLengthMin();
     int GetLengthMax();
     float GetLengthAvg();
-    int GetNumStrMask();
-    int GetLengthMinMask();
-    int GetLengthMaxMask();
-    float GetLengthAvgMask();
+    int GetNumStrEnds();
+    int GetLengthMinEnds();
+    int GetLengthMaxEnds();
+    float GetLengthAvgEnds();
 
   private:
     static const int mDistThresh;
@@ -79,9 +79,9 @@ class Blood {
     const bool mUseTruncated;
     int mNx, mNy, mNz, mNumTrain,
         mNumStr, mLengthMin, mLengthMax,
-        mNumStrMask, mLengthMinMask, mLengthMaxMask,
+        mNumStrEnds, mLengthMinEnds, mLengthMaxEnds,
         mNumArc, mNumLocal, mNumNear;
-    float mMaskLabel, mDx, mLengthAvg, mLengthAvgMask;
+    float mMaskLabel, mDx, mLengthAvg, mLengthAvgEnds;
     std::vector<bool> mIsInEnd1, mIsInEnd2;
     std::vector<int> mNumLines, mLengths, mTruncatedLengths, mCenterStreamline,
                      mDirLocal, mDirNear;
@@ -103,7 +103,7 @@ class Blood {
     MRI *mTestMask, *mHistoStr, *mHistoSubj;
 
     void ComputeStats();
-    void ComputeStatsMask();
+    void ComputeStatsEnds();
     bool IsInMask(std::vector<int>::const_iterator Point);
     bool IsInMask(float *Point);
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);

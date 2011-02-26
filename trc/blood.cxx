@@ -629,54 +629,54 @@ void Blood::ComputeStats() {
   }
 
   if (!mTestMask) {
-    mNumStrMask = mNumStr;
-    mLengthMinMask = mLengthMin;
-    mLengthMaxMask = mLengthMax;
-    mLengthAvgMask = mLengthAvg;
+    mNumStrEnds = mNumStr;
+    mLengthMinEnds = mLengthMin;
+    mLengthMaxEnds = mLengthMax;
+    mLengthAvgEnds = mLengthAvg;
   }
 }
 
 //
-// Get info on input streamlines that have both end points in mask:
+// Get info on input streamlines that don't have truncated end points:
 // - Total number
 // - Average, min, and max length
 //
-void Blood::ComputeStatsMask() {
-  if (! (mIsInEnd1.empty() && mIsInEnd2.empty()) ) {
+void Blood::ComputeStatsEnds() {
+  if (!mIsInEnd1.empty() && !mIsInEnd2.empty()) {
     int lsum = 0;
     vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
                                  ivalid2 = mIsInEnd2.begin();
 
-    mNumStrMask = 0;
-    mLengthMinMask = mLengthMax;
-    mLengthMaxMask = 0;
+    mNumStrEnds = 0;
+    mLengthMinEnds = mLengthMax;
+    mLengthMaxEnds = 0;
 
     for (vector<int>::const_iterator ilen = mLengths.begin();
                                      ilen < mLengths.end(); ilen++) {
-      if (*ivalid1 && *ivalid2) {
+      if (*ivalid1 && *ivalid2) {	// Neither end is truncated
         // Number of streamlines
-        mNumStrMask++;
+        mNumStrEnds++;
 
         // Streamline length
         lsum += *ilen;
 
-        if (*ilen < mLengthMinMask)
-          mLengthMinMask = *ilen;
+        if (*ilen < mLengthMinEnds)
+          mLengthMinEnds = *ilen;
 
-        if (*ilen > mLengthMaxMask)
-          mLengthMaxMask = *ilen;
+        if (*ilen > mLengthMaxEnds)
+          mLengthMaxEnds = *ilen;
       }
 
       ivalid1++;
       ivalid2++;
     }
 
-    if (mNumStrMask == 0) {
-      mLengthMinMask = 0;
-      mLengthAvgMask = 0;
+    if (mNumStrEnds == 0) {
+      mLengthMinEnds = 0;
+      mLengthAvgEnds = 0;
     }
     else
-      mLengthAvgMask = lsum / (float) mNumStrMask;
+      mLengthAvgEnds = lsum / (float) mNumStrEnds;
   }
 }
 
@@ -1062,12 +1062,12 @@ void Blood::MatchStreamlineEnds() {
     }
   }
 
-  ComputeStatsMask();
+  ComputeStatsEnds();
 
-  cout << "INFO: Have " << mNumStrMask
+  cout << "INFO: Have " << mNumStrEnds
        << " non-truncated streamlines (min/mean/max length: "
-       << mLengthMinMask << "/" << round(mLengthAvgMask) << "/"
-       << mLengthMaxMask << ")" << endl;
+       << mLengthMinEnds << "/" << round(mLengthAvgEnds) << "/"
+       << mLengthMaxEnds << ")" << endl;
 
   // Map each truncated streamline to its nearest streamline that has
   // both start and end point in mask
@@ -1075,11 +1075,13 @@ void Blood::MatchStreamlineEnds() {
   fill(mTruncatedLengths.begin(), mTruncatedLengths.end(), 0);
 
   if (mUseTruncated) {
+    const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
+
     ivalid1 = mIsInEnd1.begin();
     ivalid2 = mIsInEnd2.begin();
     itrlen  = mTruncatedLengths.begin();
 
-    for (istr = mStreamlines.begin(); istr != mStreamlines.end(); istr++) {
+    for (istr = mStreamlines.begin(); istr < mStreamlines.end(); istr++) {
       if ((*ivalid1 && !*ivalid2) || (!*ivalid1 && *ivalid2)) {
         double hdmin = numeric_limits<double>::infinity();
         vector<bool>::iterator jvalid1 = mIsInEnd1.begin(),
@@ -1087,16 +1089,16 @@ void Blood::MatchStreamlineEnds() {
         vector< vector<int> >::const_iterator jstr, jstrnear;
 
         // Find nearest streamline that has both start and end point in mask
-        for (jstr = mStreamlines.begin(); jstr != mStreamlines.end(); jstr++) {
+        for (jstr = mStreamlines.begin(); jstr < mStreamlines.end(); jstr++) {
           if (*jvalid1 && *jvalid2) {
             double hd = 0;
 
             for (vector<int>::const_iterator ipt = istr->begin();
-                                             ipt != istr->end(); ipt += 3) {
+                                             ipt < istr->end(); ipt += 3) {
               double dmin = numeric_limits<double>::infinity();
 
               for (vector<int>::const_iterator jpt = jstr->begin();
-                                               jpt != jstr->end(); jpt += 3) {
+                                               jpt < jstr->end(); jpt += lag) {
                 const int dx = ipt[0] - jpt[0],
                           dy = ipt[1] - jpt[1],
                           dz = ipt[2] - jpt[2];
@@ -1125,7 +1127,7 @@ void Blood::MatchStreamlineEnds() {
 
           // Find point on whole streamline nearest to truncated end point
           for (vector<int>::const_iterator jpt = jstrnear->begin();
-                                           jpt != jstrnear->end(); jpt += 3) {
+                                           jpt < jstrnear->end(); jpt += 3) {
             const int dx = iend2[0] - jpt[0],
                       dy = iend2[1] - jpt[1],
                       dz = iend2[2] - jpt[2],
@@ -1147,7 +1149,7 @@ void Blood::MatchStreamlineEnds() {
 
           // Find point on whole streamline nearest to truncated start point
           for (vector<int>::const_iterator jpt = jstrnear->begin();
-                                           jpt != jstrnear->end(); jpt += 3) {
+                                           jpt < jstrnear->end(); jpt += 3) {
             const int dx = iend1[0] - jpt[0],
                       dy = iend1[1] - jpt[1],
                       dz = iend1[2] - jpt[2];
@@ -1730,7 +1732,7 @@ void Blood::ComputeCurvaturePrior(bool UseTruncated) {
 // Find central streamline among streamlines with valid end points
 //
 void Blood::FindCenterStreamline() {
-  const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgMask)) * 3;
+  const int lag = max(1, (int) round(mHausStepRatio * mLengthAvgEnds)) * 3;
   double hdmin = numeric_limits<double>::infinity();
   vector<bool>::const_iterator ivalid1 = mIsInEnd1.begin(),
                                ivalid2 = mIsInEnd2.begin();
@@ -2119,10 +2121,10 @@ void Blood::ComputeStreamlineSpread(vector<int> &ControlPoints) {
       ivalid2++;
     }
 
-    if (mNumStrMask > 2)
+    if (mNumStrEnds > 2)
       for (int k = 0; k < 3; k++)
-        sumsq[k] = sqrt((sumsq[k] - sum[k] * sum[k] / (mNumStrMask-1))
-                        / (mNumStrMask-2));
+        sumsq[k] = sqrt((sumsq[k] - sum[k] * sum[k] / (mNumStrEnds-1))
+                        / (mNumStrEnds-2));
     else
       copy(sum.begin(), sum.end(), sumsq.begin());
 
@@ -2734,11 +2736,11 @@ int Blood::GetLengthMax() { return mLengthMax; }
 
 float Blood::GetLengthAvg() { return mLengthAvg; }
 
-int Blood::GetNumStrMask() { return mNumStrMask; }
+int Blood::GetNumStrEnds() { return mNumStrEnds; }
 
-int Blood::GetLengthMinMask() { return mLengthMinMask; }
+int Blood::GetLengthMinEnds() { return mLengthMinEnds; }
 
-int Blood::GetLengthMaxMask() { return mLengthMaxMask; }
+int Blood::GetLengthMaxEnds() { return mLengthMaxEnds; }
 
-float Blood::GetLengthAvgMask() { return mLengthAvgMask; }
+float Blood::GetLengthAvgEnds() { return mLengthAvgEnds; }
 
