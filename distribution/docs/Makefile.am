@@ -23,7 +23,10 @@ foo_DATA=\
 	license.gifti.txt \
 	license.cuda.txt
 
-EXTRA_DIST=$(foo_DATA)
+poodir=$(prefix)/tktools
+poo_DATA=license.cortechs.txt
+
+EXTRA_DIST=$(foo_DATA) $(poo_DATA)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

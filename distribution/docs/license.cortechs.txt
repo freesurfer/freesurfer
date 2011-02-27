@@ -1,0 +1,106 @@
+
+------------------------------------------------------------------------------
+        FreeSurfer Open Source Software License Agreement ("Agreement")
+        Copyright 2002 - 2006, CorTechs Labs, Inc. 
+        and The General Hospital Corporation (each a "Licensor").
+        All rights reserved.
+------------------------------------------------------------------------------
+
+1.      Downloading, copying and/or use of the software and accompanying
+documentation, if any, that is the subject of this Agreement (the "Software")
+constitutes acceptance of all of the terms and conditions of this Agreement.
+If you do not accept and agree to such terms and conditions, you have no right
+to download, copy or use the Software.
+
+2.      Licensor hereby grants you (as used herein "you" shall mean the
+individual downloading and/or using this Software and the institution or other
+entity which employs or is otherwise affiliated with such individual in
+connection with his or her use of the Software) with respect to Licensor's
+rights in the Software a royalty-free, non-exclusive license to use, reproduce,
+make derivative works of, display and distribute the Software, provided that:
+
+  (a) you accept and adhere to all of the terms and conditions of this
+      Agreement;
+
+  (b) the above copyright notice(s), the acknowledgment "This product includes
+      FreeSurfer developed by CorTechs Labs, Inc. and The General Hospital
+      Corporation" and the six numbered paragraphs of this Agreement appear
+      on and shall apply to all copies of complete or substantial portions
+      of the Software, including without limitation all source and executable
+      forms, and on any user documentation;
+
+  (c) modified versions of the Software must be clearly identified and marked
+      as such, and must not be misrepresented as being the original Software;
+      and
+
+  (d) such use, reproduction,  making of derivative works, display and
+      distribution of the software is  limited to non-commercial internal
+      research and educational purposes by not-for-profit entities;
+
+  (e) you may not use FreeSurfer in research that is sponsored by a commercial
+      entity;
+
+  (f) you make the source code to any modifications to the Software freely
+      available under terms consistent with and no more restrictive than those
+      in this Agreement;
+
+  (g) you agree that this License Agreement may be terminated at any time by
+      notice posted on Licensor applicable website if any contributor to
+      FreeSurfer with the legal right to do so demands that or compels
+      Licensor to terminate this license.
+
+The license granted in this Agreement includes without limitation the right to
+(i) incorporate the Software into your proprietary programs and into any third
+party proprietary programs, (ii) add your own copyright statement to your
+modifications of the Software, and (iii) provide additional or different
+license terms and conditions in your sublicenses of modifications of the
+Software; provided that your use, reproduction and distribution of such
+modifications otherwise complies with the conditions stated in this Agreement.
+This Agreement does not grant any rights with respect to third party programs,
+therefore, you agree that you are solely responsible for obtaining any
+permission from third parties that are required to incorporate the Software
+into third party proprietary programs and for informing your sublicensees,
+including without limitation your end-users, of their obligations to secure
+any such required permissions.  Except to the extent prohibited by law, you
+further agree to and shall indemnify Licensor for any claims against Licensor
+by any such third parties resulting from your failure to obtain such
+permissions.
+
+3.      The Software has been designed for research purposes only and has not
+been reviewed, market cleared, or approved by the Food and Drug Administration
+or by any other agency, and does not meet existing Federal QSR requirements.
+YOU ACKNOWLEDGE AND AGREE THAT YOU WILL NOT USE OR PERMIT USE OF THIS
+SOFTWARE IN THE EVALUATION AND/OR TREATMENT OF A PATIENT UNDER THE SUPERVISION
+OF A LICENSED PHYSICIAN.
+
+4.      The software is provided "AS IS" and neither licensor nor any
+contributor to the software (a "Contributor") shall have any obligation to
+provide maintenance, support, updates, enhancements or modifications thereto.
+LICENSOR AND ALL CONTRIBUTORS SPECIFICALLY DISCLAIM ALL EXPRESS AND IMPLIED
+WARRANTIES OF ANY KIND including, but not limited to, any warranties of
+merchantability, fitness for a particular purpose, and non-infringement.
+IN NO EVENT SHALL LICENSOR OR ANY CONTRIBUTOR BE LIABLE TO ANY PARTY FOR
+DIRECT, INDIRECT, SPECIAL, INCIDENTAL, EXEMPLARY OR CONSEQUENTIAL DAMAGES
+however caused and on any theory of liability arising in any way out of the
+use of the Software, even if Licensor or any Contributor has been advised of
+the possibility of such damages.  To the maximum extent not prohibited by law
+or regulation, YOU FURTHER ASSUME ALL LIABILITY FOR YOUR USE, REPRODUCTION,
+MAKING OF DERIVATIVE WORKS OF, DISPLAY AND DISTRIBUTION OF THE SOFTWARE AND
+AGREE TO INDEMNIFY LICENSORAND CONTRIBUTORS FOR ANY AND ALL CLAIMS, SUITS,
+ACTIONS, DEMANDS AND JUDGMENTS ARISING THEREFROM.
+
+5.      None of the names or logos of any Licensor or any of Licensor's
+affiliates or any of the Contributors may be used to endorse or promote
+products produced in whole or in part by operation of the Software or derived
+from or based on the Software without specific prior written permission from
+the applicable party.
+
+6.      Any use, modification, reproduction or distribution of the Software or
+any part thereof which is not in accordance with this Agreement shall
+automatically revoke all rights granted to you under this Agreement and render
+this Agreement null and void.  This Agreement does not grant any rights in or
+to any intellectual property owned by Licensor or any Contributor except those
+rights expressly granted hereunder.  This Agreement shall be governed by and
+construed in accordance with the laws of the Commonwealth of Massachusetts
+without regard to principles of conflicts of law.
+
