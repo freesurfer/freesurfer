@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/02/26 01:08:38 $
-#    $Revision: 1.14 $
+#    $Date: 2011/02/27 07:49:59 $
+#    $Revision: 1.15 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.14 2011/02/26 01:08:38 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.15 2011/02/27 07:49:59 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -132,6 +132,7 @@ set ncpts = 5
 set xspace = mni
 set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
 set ntrainlist = ()
+set avgname = ()
 set usetrunc = 0
 set do1out = 0
 set doprior = 0
@@ -318,7 +319,7 @@ foreach isubj ($runlist)
   mri_cvs_register --version	>> $LF
   $trcdir/dmri_train --all-info		>> $LF
   $trcdir/dmri_track --all-info		>> $LF
-  $trcdir/dmri_path_meas --all-info	>> $LF
+  $trcdir/dmri_pathstats --all-info	>> $LF
 
   if ($DoVersionsOnly) continue
 
@@ -403,6 +404,7 @@ foreach isubj ($runlist)
   echo "set ncptlist = ($ncptlist)"					>> $RCF
   echo "set trainsubjlist = ($trainsubjlist)"				>> $RCF
   echo "set ntrainlist = ($ntrainlist)"					>> $RCF
+  echo "set avgname = ($avgname)"					>> $RCF
   echo "set usetrunc = ($usetrunc)"					>> $RCF
   echo "set doprior = ($doprior)"					>> $RCF
   echo "set dosegprior = ($dosegprior)"					>> $RCF
@@ -783,6 +785,10 @@ check_params:
       # The file lists the training subjects
       # Info on the test subjects comes from dmrirc
       set ntrainlist = `wc -w $trainfile | awk '{print $1}'`
+    endif
+
+    if (! $#avgname) then
+      set avgname = avg
     endif
 
     if (! $?subjlist) then
