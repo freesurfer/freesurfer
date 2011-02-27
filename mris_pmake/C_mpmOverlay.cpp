@@ -1,24 +1,36 @@
-/***************************************************************************
- *   Copyright (C) 2009 by Rudolph Pienaar                                 *
- *   Childrens Hospital Boston                                             *
- *   rudolph.pienaar@childrens.harvard.edu                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
-// $Id: C_mpmOverlay.cpp,v 1.1 2010/07/14 17:56:46 rudolph Exp $
+/**
+ * @file  C_mpmOverlay.cpp
+ * @brief The internal 'program' API
+ *
+ *  The C_mpmOverlay class (and derivatives) presents an encapsulated
+ *  interface to 'overlays' which are the 'curv' field component of
+ *  of FreeSurfer meshes.
+ * 
+ *  The class also maintains cost function evaluation and weight vector
+ *  structures.
+ * 
+ *  Since the class contains a pointed to the mris_pmake 'env' structure,
+ *  its name is prefixed by 'mpm'.
+ */
+/*
+ * Original Author: Rudolph Pienaar
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 
 #include "C_mpmOverlay.h"
 #include "dijkstra.h"

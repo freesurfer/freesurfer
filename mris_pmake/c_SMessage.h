@@ -1,66 +1,35 @@
-/***************************************************************************
-                          c_SMessage.h  -  description
-                             -------------------
-    begin                : Wed Sep 13 2000
-    copyright            : (C) 2000 by Rudolph Pienaar
-    email                : pienaar@bme.ri.ccf.org
- ***************************************************************************/
+/**
+ * @file  c_SMessage.h
+ * @brief simple "messaging" class
+ *
+ *  `c_SMessage' is a simple "messaging" class that contains a string
+ *  payload (the message body), an optional stream specifier and an
+ *  optional formatting enumeration.
+ *
+ *  Typically, c_SMessage is embedded within other objects, and allows
+ *  a convenient way to encapsulate string-type data that might be
+ *  ultimately displayed in a terminal or parsed by some GUI display
+ *  method.
+ */
+/*
+ * Original Author: Rudolph Pienaar
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-//
-// NAME
-//
-//      c_SMessage.h
-// $Id: c_SMessage.h,v 1.5 2009/12/09 22:30:02 rudolph Exp $
-//
-// DESCRIPTION
-//
-//      `c_SMessage' is a simple "messaging" class that contains a string
-//      payload (the message body), an optional stream specifier and an
-//      optional formatting enumeration.
-//
-//      Typically, c_SMessage is embedded within other objects, and allows
-//      a convenient way to encapsulate string-type data that might be
-//      ultimately displayed in a terminal or parsed by some GUI display
-//      method.
-//
-// HISTORY
-// 13 September 2000
-// o Initial design and coding
-//
-// 27 June 2001
-// o Began expanding class to accommodate both C and C++ style IO
-//
-// 02 July 2001
-// o Added `str_payload_prepend()'
-//
-// 24 September 2001
-// o Added syslog_prepend()
-// o Added timer-type methods
-//
-// 15 March 2002
-// o Changed the C++ output handling system. Now dump() makes the
-//   final access to output stream. Necessitated by difficulties
-//   in compiling with g++-3.x
-//
-// 17 March 2002
-// o Synchronised default parameters in constructor arguments between
-//   header declaration and source definition.
-//
-// 06 April 2005
-// o Added c_SSocket.h and related code.
-//
-// 01 December 2009
-// o Added lprintf and colprintf methods -- NOT FULLY INTEGRATED with Sockets
-// o Added b_canPrint -- NOT FULLY INTEGRATED YET!
-// 
 
 #ifndef __C_SMESSAGE_H__
 #define __C_SMESSAGE_H__

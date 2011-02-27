@@ -1,33 +1,35 @@
-/***************************************************************************
-                          c_SMessage.cpp  -  description
-                             -------------------
-    begin                : Wed Sep 13 2000
-    copyright            : (C) 2000 by Rudolph Pienaar
-    email                : pienaar@bme.ri.ccf.org
- ***************************************************************************/
+/**
+ * @file  c_SMessage.cpp
+ * @brief simple "messaging" class
+ *
+ *  `c_SMessage' is a simple "messaging" class that contains a string
+ *  payload (the message body), an optional stream specifier and an
+ *  optional formatting enumeration.
+ *
+ *  Typically, c_SMessage is embedded within other objects, and allows
+ *  a convenient way to encapsulate string-type data that might be
+ *  ultimately displayed in a terminal or parsed by some GUI display
+ *  method.
+ */
+/*
+ * Original Author: Rudolph Pienaar
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.11 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-//
-// NAME
-//
-//      c_SMessage.cpp
-// $Id: c_SMessage.cpp,v 1.10 2009/12/14 16:21:51 rudolph Exp $
-//
-// DESC
-//
-//      See header file
-//
-// HISTORY
-//      See header file for generic history. Specific methods have their
-//      own history log.
-//
 
 #include <iostream>
 #include <sstream>

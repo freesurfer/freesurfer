@@ -1,43 +1,28 @@
-/***************************************************************************
- *   Copyright (C) 2004 by Rudolph Pienaar / Christian Haselgrove          *
- *    Center for Morphometric Analysis       *
- *    Massachusetts General Hospital        *
- *    Building 149, 13th St.         *
- *    Charlestown, MA 02129         *
- *    {ch|rudolph}@nmr.mgh.harvard.edu      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
+/**
+ * @file  dijkstra.h
+ * @brief API for dijkstra related processing.
+ *
+ * Provides an API for dijkstra search through freesurfer structures.
+ */
+/*
+ * Original Author: Rudolph Pienaar / Christian Haselgrove
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 
-/// \file dijkstra.h
-///
-/// \brief
-/// API for dijkstra related processing.
-///
-///
-/// \b DESCRIPTION
-///
-/// Provides an API for dijkstra search through freesurfer structures.
-///
-/// \b HISTORY
-///
-///  Week of 20 September 2004 - kdevelop integration / cvs setup
-/// 09 November 2004
-/// o Added s_iterInfo
-///
 
 using namespace std;
 

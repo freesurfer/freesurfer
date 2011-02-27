@@ -41,11 +41,11 @@ else # No OpenCL present
     mris_pmake_LDFLAGS = $(OS_LDFLAGS)
 endif
 
-TESTS=$(top_builddir)/scripts/help_xml_validate
+TESTS=$(top_builddir)/scripts/help_xml_validate test_mris_pmake
 
 EXTRA_DIST=asynch.h c_label.h C_mpmProg.h c_SMessage.h c_SSocket.h \
 	c_surface.h c_vertex.h dijkstra.h env.h general.h help.h pathconvert.h \
-	pstream.h scanopt.h surface.h $(foo_DATA) $(BUILT_SOURCES)
+	pstream.h scanopt.h surface.h $(foo_DATA) $(BUILT_SOURCES) test_mris_pmake
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

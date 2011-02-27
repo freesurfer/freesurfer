@@ -1,32 +1,29 @@
-/* $Id: pstream.h,v 1.1 2009/09/08 22:39:27 nicks Exp $
-PStreams - POSIX Process I/O for C++
-Copyright (C) 2001,2002,2003,2004 Jonathan Wakely
-
-This file is part of PStreams.
-
-PStreams is free software; you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License as
-published by the Free Software Foundation; either version 2.1 of
-the License, or (at your option) any later version.
-
-PStreams is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with PStreams; if not, write to the Free Software Foundation, Inc.,
-59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-*/
-
 /**
- * @file pstream.h
- * @brief Declares all PStreams classes.
- * @author Jonathan Wakely
+ * @file  pstream.h
+ * @brief PStreams - POSIX Process I/O for C++
  *
  * Defines classes redi::ipstream, redi::opstream, redi::pstream
  * and redi::rpstream.
  */
+/*
+ * Original Author: Jonathan Wakely
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 
 #ifndef REDI_PSTREAM_H_SEEN
 #define REDI_PSTREAM_H_SEEN

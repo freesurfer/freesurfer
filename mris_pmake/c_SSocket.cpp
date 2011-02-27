@@ -1,38 +1,26 @@
-/***************************************************************************
-                          c_SSocket.cpp  -  description
-                             -------------------
-    begin                : Sat Mar 18 2000
-    copyright            : (C) 2000-2004 by Rudolph Pienaar
-    email                : rudolph@nmr.mgh.harvard.edu
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-
-//
-// NAME
-//
-//      c_SSocket.cpp
-// $Id: c_SSocket.cpp,v 1.2 2011/02/24 21:14:30 rudolph Exp $
-//
-// DESCRIPTION
-//
-//      Class definition for c_SSocket.h
-//
-// HISTORY
-//
-// 03-18-2000
-// o Initial development
-//
-// 16 November 2004
-// o Re-import / build into kdevelop-3.x
-//
+/**
+ * @file  c_SSocket.cpp
+ * @brief defines a simple wrapper class around standard Berkeley sockets.
+ *
+ */
+/*
+ * Original Author: Rudolph Pienaar
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 
 
 #include <iostream>

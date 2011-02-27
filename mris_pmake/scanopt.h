@@ -1,107 +1,81 @@
-/***************************************************************************
-                          scanopt.h  -  description
-                             -------------------
-    begin                : Thu Sep 7 2000
-    copyright            : (C) 2000 by Rudolph Pienaar
-    email                : pienaar@bme.ri.ccf.org
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-
-//
-// NAME
-//
-//      scanopt.h
-//
-// VERSION
-//
-// $Id: scanopt.h,v 1.5 2011/02/24 21:14:30 rudolph Exp $
-//
-//
-// DESCRIPTION
-//
-//      `scanopt.h' provides the header definition for the C_scanopt class.
-//      This class does option processing, similar (at least conceptually)
-//      to the getopt family of functions bundled with the C-library.
-//
-//      Although the original design of the class was to process command
-//      line arguments, it has been used increasingly to parse "option"
-//      files, extracting specific tokens and their corresponding values.
-//
-//      The class is surprising adept at this parsing, mostly due to its dogged
-//      "single mindedness" (i.e. stupidity). It understands only the most
-//      basic syntax, caring little for structure or semantics of the files
-//      it parses. Everything that does not conform to its basic syntax is
-//      simply ignored as noise. 
-//
-//	NOTE: When processing option files, the parser does not honor 
-//	"comment" characters. On the other hand, it will parse any text
-//	based file, even if valid options are interspersed with free text.
-//
-//      Token:value pairs can be stipulated in one of two ways. The first
-//      harkens back to the class's origin as a command line parser and
-//      consists of the following syntax:
-//
-//              [tokenPrefix][token]<whitespace>[value]
-//
-//      where [tokenPrefix] is by default '--' (however I have often used
-//      the ":" character as well). The following example illustrates
-//      this syntax:
-//
-//              --colourValue1          Red
-//              --colourValue2          Blue
-//
-//      Note that ANY (7-bit ASCII )token and ANY (7-bit ASCII) value pair
-//      can be specified with this syntax. The class triggers on the presence
-//      of the "--" tokenPrefix.
-//
-//      The second token:value paring can be presented as:
-//
-//              [token]<[whitespace]>=<[whitespace]>[value]
-//
-//      for example
-//
-//              colourValue1    =       Red
-//              colourValue2    =       Blue
-//
-//      Here, the presence of the equals character "=" links a token:value
-//      pair. This link character defaults to "=" but can be set to 
-//      meaningful character.
-//
-//      If constructed with a filename argument (and assuming a valid file),
-//      the class creates a bi-directional linked list of strings containing
-//      the file's contents. A linked list is used simply because it allows
-//      for an easy means of dynamically recording a file's contents
-//      internally.
-//
-//      This list is then parsed to construct a STL-type
-//      map<string, string> which can be rapidly searched for target tokens
-//      and their values.
-//
-// HISTORY
-// 07 September 2000
-// o Initial design and coding
-//
-// 02 May 2003
-// o "Updated" to g++ 3.x format
-// o Expanded to accommodate "equal linked" parameters
-//
-// 27 October 2009
-// o Resurrection and "beautifying".
-// 
-// 21 December 2009
-// o Construct with aribrary string; EquLink == <any>
-// 
-// February 2011
-// o Pruned optSep, cleaned up behavior.
-//
+/**
+ * @file  scanopt.h
+ * @brief This class does option processing
+ *
+ *
+ *   `scanopt.h' provides the header definition for the C_scanopt class.
+ *   This class does option processing, similar (at least conceptually)
+ *   to the getopt family of functions bundled with the C-library.
+ *
+ *   Although the original design of the class was to process command
+ *   line arguments, it has been used increasingly to parse "option"
+ *   files, extracting specific tokens and their corresponding values.
+ *
+ *   The class is surprising adept at this parsing, mostly due to its dogged
+ *   "single mindedness" (i.e. stupidity). It understands only the most
+ *   basic syntax, caring little for structure or semantics of the files
+ *   it parses. Everything that does not conform to its basic syntax is
+ *   simply ignored as noise.
+ *
+ *   Token:value pairs can be stipulated in one of two ways. The first
+ *   harkens back to the class's origin as a command line parser and
+ *   consists of the following syntax:
+ *
+ *           [tokenPrefix][token]<whitespace>[value]
+ *
+ *   where [tokenPrefix] is by default '--' (however I have often used
+ *   the ":" character as well). The following example illustrates
+ *   this syntax:
+ *
+ *           --colourValue1          Red
+ *           --colourValue2          Blue
+ *
+ *   Note that ANY (7-bit ASCII )token and ANY (7-bit ASCII) value pair
+ *   can be specified with this syntax. The class triggers on the presence
+ *   of the "--" tokenPrefix.
+ *
+ *   The second token:value paring can be presented as:
+ *
+ *           [token]<[whitespace]>=<[whitespace]>[value]
+ *
+ *   for example
+ *
+ *           colourValue1    =       Red
+ *           colourValue2    =       Blue
+ *
+ *   Here, the presence of the equals character "=" links a token:value
+ *   pair. This link character defaults to "=" but can be set to 
+ *   meaningful character.
+ *
+ *   If constructed with a filename argument (and assuming a valid file),
+ *   the class creates a bi-directional linked list of strings containing
+ *   the file's contents. A linked list is used simply because it allows
+ *   for an easy means of dynamically recording a file's contents
+ *   internally.
+ *
+ *   This list is then parsed to construct a STL-type
+ *   map<string, string> which can be rapidly searched for target tokens
+ *   and their values.
+ *
+ */
+/*
+ * Original Author: Rudolph Pienaar
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.6 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 
 #include <iostream>
 #include <string>

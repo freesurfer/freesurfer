@@ -1,23 +1,29 @@
-/***************************************************************************
- *   Copyright (C) 2004 by Rudolph Pienaar / Christian Haselgrove          *
- *   {ch|rudolph}@nmr.mgh.harvard.edu                                      *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
-// $Id: c_vertex.cpp,v 1.2 2009/10/29 15:30:49 rudolph Exp $
+/**
+ * @file  c_vertex.cpp
+ * @brief The vertex related object API.
+ *
+ * Vertex type functions include conditional checks as well as functional
+ * modifications on vertex fields.
+ */
+/*
+ * Original Author: Rudolph Pienaar / Christian Haselgrove
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.3 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 
 #include "c_vertex.h"
 #include "dijkstra.h"

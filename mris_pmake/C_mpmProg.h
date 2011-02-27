@@ -1,41 +1,33 @@
-/***************************************************************************
- *   Copyright (C) 2009 by Rudolph Pienaar                                 *
- *   Childrens Hospital Boston                                             *
- *   rudolph.pienaar@childrens.harvard.edu                                 *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.             *
- ***************************************************************************/
-/// \file C_mpmProg.h
-///
-/// \brief Brief description
-/// The internal 'program' API.
-///
-/// \b DESCRIPTION
-/// C_mpmProgs are overloaded classes that perform specific functions in the
-/// context of the Dijkstra system. The default contol system allows an
-/// external network-based program to drive the core dijkstra search. This
-/// process can be very slow on large-scale problems. To alleviate that, 
-/// mpm_programs can be written. These map directly to external dsh scripts
-/// but without any of the network overhead.
-///
-/// \b HISTORY
-/// 16 November 2009 - Initial consolidation from several other sources.
-/// $Id: C_mpmProg.h,v 1.9 2010/07/14 17:56:46 rudolph Exp $
-///
-///
+/**
+ * @file  C_mpmProg.h
+ * @brief The internal 'program' API.
+ *
+ *  C_mpmProgs are overloaded classes that perform specific functions in the
+ *  context of the Dijkstra system. The default contol system allows an
+ *  external network-based program to drive the core dijkstra search. This
+ *  process can be very slow on large-scale problems. To alleviate that, 
+ *  mpm_programs can be written. These map directly to external dsh scripts
+ *  but without any of the network overhead.
+ */
+/*
+ * Original Author: Rudolph Pienaar
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.10 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 
 #ifndef __C_MPM_PROG_H__
 #define __C_MPM_PROG_H__

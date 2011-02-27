@@ -1,45 +1,26 @@
-/***************************************************************************
-                          c_SSocket.h  -  description
-                             -------------------
-    begin                : Sat Mar 18 2000
-    copyright            : (C) 2000-2004 by Rudolph Pienaar
-    email                : rudolph@nmr.mgh.harvard.edu
- ***************************************************************************/
-
-/***************************************************************************
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License as published by  *
- *   the Free Software Foundation; either version 2 of the License, or     *
- *   (at your option) any later version.                                   *
- *                                                                         *
- ***************************************************************************/
-
-//
-// NAME
-//
-//      c_SSocket.h
-// $Id: c_SSocket.h,v 1.1 2009/09/08 22:39:27 nicks Exp $
-//
-// DESCRIPTION
-//
-//      `c_SSocket.h' defines a simple wrapper class around standard
-//      Berkeley sockets.
-//
-// HISTORY
-// 28 August 2001
-// o Resurrected code from old OS course for experimental use in
-//   rl_agent system.
-// o Changed inheritance structure: split into UDP and TCP sockets.
-//   Inheritance structure loosely based on CommonC++ socket structure
-//
-// 16 November 2004
-// o Re-import / build into kdevelop-3.x
-//
-// TODO
-// o Standardize error/warn blocks
-// o Add a timeout to server sockets
-//
+/**
+ * @file  c_SSocket.h
+ * @brief defines a simple wrapper class around standard Berkeley sockets.
+ *
+ */
+/*
+ * Original Author: Rudolph Pienaar
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/02/27 21:18:07 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 
 #ifndef __C_SOCK_H__
 #define __C_SOCK_H__
