@@ -46,21 +46,29 @@ class Blood {
           const char *TrainAsegFile, const char *TrainMaskFile,
           float TrainMaskLabel, const char *TestMaskFile,
           bool UseTruncated);
-    Blood(const char *TrainTrkFile);
+    Blood(const char *TrainTrkFile, const char *TrainRoi1File,
+          const char *TrainRoi2File);
     ~Blood();
     void ReadStreamlines(const char *TrainListFile, const char *TrainTrkFile,
                          const char *TrainRoi1File, const char *TrainRoi2File,
                          float TrainMaskLabel);
-    void ReadStreamlines(const char *TrainTrkFile);
     void ReadAnatomy(const char *TrainListFile, const char *TrainAsegFile,
                                                 const char *TrainMaskFile);
-    void FindCenterStreamline();
+    void MatchStreamlineEnds();
+    void ComputeHistogram();
     void ComputePriors();
+    void FindCenterStreamline();
     void SelectControlPoints(int NumControls);
     void WriteOutputs(const char *OutBase);
     void WriteCenterStreamline(const char *CenterTrkFile,
                                const char *RefTrkFile);
     void PrintStreamline(int SubjIndex, int LineIndex);
+    std::vector<float> ComputeAvgPath(std::vector<MRI *> &ValueVolumes);
+    std::vector<float> ComputeWeightAvgPath(std::vector<MRI *> &ValueVolumes);
+    std::vector<float> ComputeAvgCenter(std::vector<MRI *> &ValueVolumes);
+    void WriteValuesCenter(std::vector<MRI *> &ValueVolumes,
+                           const char *TextFile);
+    int GetVolume();
     int GetNumStr();
     int GetLengthMin();
     int GetLengthMax();
@@ -69,6 +77,7 @@ class Blood {
     int GetLengthMinEnds();
     int GetLengthMaxEnds();
     float GetLengthAvgEnds();
+    int GetLengthCenter();
 
   private:
     static const int mDistThresh;
@@ -77,7 +86,7 @@ class Blood {
                        mHausStepRatio, mControlStepRatio;
 
     const bool mUseTruncated;
-    int mNx, mNy, mNz, mNumTrain,
+    int mNx, mNy, mNz, mNumTrain, mVolume,
         mNumStr, mLengthMin, mLengthMax,
         mNumStrEnds, mLengthMinEnds, mLengthMaxEnds,
         mNumArc, mNumLocal, mNumNear;
@@ -107,9 +116,7 @@ class Blood {
     bool IsInMask(std::vector<int>::const_iterator Point);
     bool IsInMask(float *Point);
     bool IsInRoi(std::vector<int>::const_iterator Point, MRI *Roi);
-    void MatchStreamlineEnds();
     void SetArcSegments();
-    void ComputeHistogram();
     void ComputeAnatomyPrior(bool UseTruncated);
     void ComputeCurvaturePrior(bool UseTruncated);
     void FindPointsOnStreamline(std::vector<int> &Streamline, int NumPoints);

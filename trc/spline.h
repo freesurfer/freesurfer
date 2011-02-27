@@ -46,7 +46,8 @@ class Spline {
     void ReadMask(const char *MaskFile);
     void SetControlPoints(const std::vector<int> &ControlPoints);
     void WriteVolume(const char *VolumeFile, const bool ShowControls=false);
-    void WriteValues(MRI **ValueVolumes, int NumVols, const char *TextFile);
+    void WriteValues(std::vector<MRI *> &ValueVolumes, const char *TextFile);
+    std::vector<float> ComputeAvg(std::vector<MRI *> &ValueVolumes);
     void PrintControlPoints();
     void PrintAllPoints();
     void PrintTangent();

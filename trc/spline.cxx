@@ -281,8 +281,7 @@ void Spline::WriteVolume(const char *VolumeFile, const bool ShowControls) {
   MRIwrite(mVolume, VolumeFile);
 }
 
-void Spline::WriteValues(MRI **ValueVolumes, int NumVols,
-                                             const char *TextFile) {
+void Spline::WriteValues(vector<MRI *> &ValueVolumes, const char *TextFile) {
   ofstream outfile(TextFile, ios::app);
   if (!outfile) {
     cout << "ERROR: Could not open " << TextFile << " for writing" << endl;
@@ -292,15 +291,37 @@ void Spline::WriteValues(MRI **ValueVolumes, int NumVols,
   cout << "Writing values along spline to " << TextFile << endl;
 
   for (vector<int>::const_iterator ipt = mAllPoints.begin();
-                                   ipt != mAllPoints.end(); ipt += 3) {
+                                   ipt < mAllPoints.end(); ipt += 3) {
     outfile << ipt[0] << " " << ipt[1] << " " << ipt[2];
 
-    for (int k = 0; k < NumVols; k++)
-      outfile << " "
-              << MRIgetVoxVal(ValueVolumes[k], ipt[0], ipt[1], ipt[2], 0);
+    for (vector<MRI *>::const_iterator ivol = ValueVolumes.begin();
+                                       ivol < ValueVolumes.end(); ivol++)
+      outfile << " " << MRIgetVoxVal(*ivol, ipt[0], ipt[1], ipt[2], 0);
 
     outfile << endl;
   }
+}
+
+vector<float> Spline::ComputeAvg(vector<MRI *> &ValueVolumes) {
+  int nvox = (int) mAllPoints.size()/3;
+  vector<float> avg(ValueVolumes.size(), 0);
+  vector<float>::iterator iavg;
+
+  for (vector<int>::const_iterator ipt = mAllPoints.begin();
+                                   ipt < mAllPoints.end(); ipt += 3) {
+    iavg = avg.begin();
+
+    for (vector<MRI *>::const_iterator ivol = ValueVolumes.begin();
+                                       ivol < ValueVolumes.end(); ivol++) {
+      *iavg += MRIgetVoxVal(*ivol, ipt[0], ipt[1], ipt[2], 0);
+      iavg++;
+    }
+  }
+
+  for (iavg = avg.begin(); iavg < avg.end(); iavg++)
+    *iavg /= nvox;
+
+  return avg;
 }
 
 void Spline::PrintControlPoints() {
