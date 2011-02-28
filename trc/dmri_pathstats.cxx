@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/02/27 07:42:19 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/02/28 01:56:08 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -140,27 +140,26 @@ int main(int argc, char **argv) {
   if (outFile) {
     fout.open(outFile, ios::out);
 
-    fout << "Count" << "\t"
-         << "Volume" << "\t"
-         << "Length_Min" << "\t"
-         << "Length_Max" << "\t"
-         << "Length_Avg" << "\t"
-         << "Length_Center";
+    fout << "Count "
+         << "Volume "
+         << "Len_Min "
+         << "Len_Max "
+         << "Len_Avg "
+         << "Len_Center";
 
     if (dtBase)
-      fout << "\t"
-           << "AD_Avg" << "\t"
-           << "AD_Avg_Weight" << "\t"
-           << "AD_Avg_Center" << "\t"
-           << "RD_Avg" << "\t"
-           << "RD_Avg_Weight" << "\t"
-           << "RD_Avg_Center" << "\t"
-           << "MD_Avg" << "\t"
-           << "MD_Avg_Weight" << "\t"
-           << "MD_Avg_Center" << "\t"
-           << "FA_Avg" << "\t"
-           << "FA_Avg_Weight" << "\t"
-           << "FA_Avg_Center";
+      fout << " AD_Avg"
+           << " AD_Avg_Weight"
+           << " AD_Avg_Center"
+           << " RD_Avg"
+           << " RD_Avg_Weight"
+           << " RD_Avg_Center"
+           << " MD_Avg"
+           << " MD_Avg_Weight"
+           << " MD_Avg_Center"
+           << " FA_Avg"
+           << " FA_Avg_Weight"
+           << " FA_Avg_Center";
 
     fout << endl;
   }
@@ -168,12 +167,12 @@ int main(int argc, char **argv) {
   if (outVoxFile) {
     ofstream fvox(outVoxFile, ios::out);
 
-    fvox << "x" << "\t"
-         << "y" << "\t"
-         << "z" << "\t"
-         << "AD" << "\t"
-         << "RD" << "\t"
-         << "MD" << "\t"
+    fvox << "x "
+         << "y "
+         << "z "
+         << "AD "
+         << "RD "
+         << "MD "
          << "FA" << endl;
   }
 
@@ -250,11 +249,13 @@ int main(int argc, char **argv) {
           }
         }
 
-    for (iavg = avg.begin(); iavg < avg.end(); iavg++)
-      *iavg /= nvox;
+    if (nvox > 0)
+      for (iavg = avg.begin(); iavg < avg.end(); iavg++)
+        *iavg /= nvox;
 
-    for (iwavg = wavg.begin(); iwavg < wavg.end(); iwavg++)
-      *iwavg /= wtot;
+    if (wtot > 0)
+      for (iwavg = wavg.begin(); iwavg < wavg.end(); iwavg++)
+        *iwavg /= wtot;
 
     // Read control points of MAP path sample
     sprintf(fname, "%s/CONTROLS_1_1.txt", inTrcDir);
@@ -264,21 +265,24 @@ int main(int argc, char **argv) {
 
     // Overall measures
     if (outFile) {
-      fout << lengths.size() << "\t"
-           << nvox << "\t"
-           << *min_element(lengths.begin(), lengths.end()) << "\t"
-           << *max_element(lengths.begin(), lengths.end()) << "\t"
-           << len / (float) lengths.size() << "\t"
+      fout << lengths.size() << " "
+           << nvox << " "
+           << *min_element(lengths.begin(), lengths.end()) << " "
+           << *max_element(lengths.begin(), lengths.end()) << " "
+           << ( (len > 0) ? (len / (float) lengths.size()) : 0 ) << " "
            << (myspline.GetAllPointsEnd() - myspline.GetAllPointsBegin()) / 3;
 
       if (dtBase) {
         vector<float> avgmap = myspline.ComputeAvg(meas);
 
         for (unsigned int k = 0; k < meas.size(); k++)
-          fout << "\t" << avg[k]
-               << "\t" << wavg[k]
-               << "\t" << avgmap[k];
+          fout << " " << avg[k]
+               << " " << wavg[k]
+               << " " << avgmap[k];
       }
+
+      fout << endl;
+      fout.close();
     }
 
     // Measures by voxel on MAP streamline
@@ -295,11 +299,11 @@ int main(int argc, char **argv) {
 
     // Overall measures
     if (outFile) {
-      fout << myblood.GetNumStr() << "\t"
-           << myblood.GetVolume() << "\t"
-           << myblood.GetLengthMin() << "\t"
-           << myblood.GetLengthMax() << "\t"
-           << myblood.GetLengthAvg() << "\t"
+      fout << myblood.GetNumStr() << " "
+           << myblood.GetVolume() << " "
+           << myblood.GetLengthMin() << " "
+           << myblood.GetLengthMax() << " "
+           << myblood.GetLengthAvg() << " "
            << myblood.GetLengthCenter();
 
       if (dtBase) {
@@ -308,10 +312,13 @@ int main(int argc, char **argv) {
                       avgcenter = myblood.ComputeAvgCenter(meas);
 
         for (unsigned int k = 0; k < meas.size(); k++)
-          fout << "\t" << avgpath[k]
-               << "\t" << wavgpath[k]
-               << "\t" << avgcenter[k];
+          fout << " " << avgpath[k]
+               << " " << wavgpath[k]
+               << " " << avgcenter[k];
       }
+
+      fout << endl;
+      fout.close();
     }
 
     // Measures by voxel on center streamline
