@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/02/28 01:56:08 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/02/28 04:42:38 $
+ *    $Revision: 1.3 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -424,7 +424,7 @@ static void print_usage(void)
   printf("   --outvox <file>:\n");
   printf("     Output text file for voxel-by-voxel measures along path (optional)\n");
   printf("   --outstr <file>:\n");
-  printf("     Output volume of center streamline (optional)\n");
+  printf("     Output .trk file of center streamline (optional)\n");
   printf("\n");
   printf("\n");
   printf("   --debug:     turn on debugging\n");
