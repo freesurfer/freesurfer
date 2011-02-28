@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/02/23 20:41:53 $
-#    $Revision: 1.363 $
+#    $Author: mreuter $
+#    $Date: 2011/02/28 21:15:18 $
+#    $Revision: 1.364 $
 #
 # Copyright (C) 2002-2010,
 # The General Hospital Corporation (Boston, MA).
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.363 2011/02/23 20:41:53 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.364 2011/02/28 21:15:18 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5128,10 +5128,15 @@ check_params:
       set haslong = `echo $tpNid | grep "\.long\."`
       if ( "$haslong" != "" ) then
         echo ""
-        echo "ERROR: The <tpNid> may not contain .long. as this is reserved"
-        echo "       for the output in the longitudinal stream. Please specify"
-        echo "       the cross sectional directory of this time point as <tpNid>:"
-        echo "       ( -long  <tpNid> <templateid> )!"
+        echo "ERROR: Are you trying to run or re-run a longitudinal time point?"
+        echo "       If so, please specify the following parameters:"
+        echo ""
+        echo "       \' -long <tpNid> <templateid> \'"
+        echo ""
+        echo "       where <tpNid> is the time point id (SAME as cross sectional"
+        echo "       ID) and <templateid> is the ID created in the -base run."
+        echo "       The directory <tpNid>.long.<templateid> will be created"
+        echo "       automatically or used for output, if it already exists."
         echo ""
         exit 1;
       endif
@@ -5148,8 +5153,10 @@ check_params:
       # check if base/template specified
       if($#longbaseid != 1) then
         echo ""
-        echo "ERROR: must specify the templateID for the subject template/base:"
-        echo "       ( -long  <tpNid> <templateid> )!"
+        echo "ERROR: Specify the <templateid> for this subject template "
+        echo "       (created during the -base run):"
+        echo ""
+        echo "       \' -long  <tpNid> <templateid> \'"
         echo ""
         exit 1;
       endif
@@ -5159,9 +5166,11 @@ check_params:
       if ( "$haslong" != "" ) then
         echo ""
         echo "ERROR: The <templateid> may not contain .long. (reserved for"
-        echo "       a longitudinal time point). Please specify a different"
-        echo "       <templateid> for the subject template to be created:"
-        echo "       ( -long  <tpNid> <templateid> )!"
+        echo "       automatic output of a longitudinal time point)."
+        echo "       Specify the <templateid> for this subject template "
+        echo "       (created during the -base run):"
+        echo ""
+        echo "       \' -long  <tpNid> <templateid> \'"
         echo ""
         exit 1;
       endif
@@ -5169,24 +5178,29 @@ check_params:
       set longbasedir = $SUBJECTS_DIR/$longbaseid
       if(! -e $longbasedir) then
         echo "ERROR: cannot find base/template dir: $longbasedir"
+        echo ""
         exit 1;
       endif
       if ( ! -e ${longbasedir}/${BaseSubjsListFname}) then
         echo "ERROR: file ${longbasedir}/${BaseSubjsListFname} does not exist!"
+        echo ""
         exit 1;
       else
         grep -w $tpNid ${longbasedir}/${BaseSubjsListFname} >& /dev/null
         if ($status) then
           echo "ERROR: $tpNid is not in ${longbasedir}/${BaseSubjsListFname}"
+        echo ""
           exit 1
         endif
         # check that baseid is not the same as any of the timepoint subj IDs
         grep -w $longbaseid ${longbasedir}/${BaseSubjsListFname} >& /dev/null
         if ( ! $status) then
-          echo "ERROR: longitudinal base ID cannot be the same as a timepoint"
-          echo "subject ID (in ${longbasedir}/${BaseSubjsListFname})"
-          echo "Find more info at:"
-          echo "http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalProcessing"
+          echo "ERROR: Template/base ID cannot be the same as a time point ID"
+          echo "       (in ${longbasedir}/${BaseSubjsListFname})"
+          echo ""
+          echo "       Find more info at:"
+          echo "       http://surfer.nmr.mgh.harvard.edu/fswiki/LongitudinalProcessing"
+          echo ""
           exit 1
         endif
       endif
@@ -5197,10 +5211,15 @@ check_params:
       set haslong = `echo $subjid | grep "\.long\."`
       if ( "$haslong" != "" ) then
         echo ""
-        echo "ERROR: The subject id may not contain .long. as this is reserved"
-        echo "       for a longitudinal run. If you are trying to rerun a"
-        echo "       longitudinal, please specify all necessary parameters: "
-        echo "       ( -long  <tpNid> <templateid> )!"
+        echo "ERROR: Are you trying to run or re-run a longitudinal time point?"
+        echo "       If so, please specify the following parameters:"
+        echo ""
+        echo "       \' -long <tpNid> <templateid> \'"
+        echo ""
+        echo "       where <tpNid> is the time point id (SAME as cross sectional"
+        echo "       ID) and <templateid> is the ID created in the -base run."
+        echo "       The directory <tpNid>.long.<templateid> will be created"
+        echo "       automatically or used for output, if it already exists."
         echo ""
         exit 1;
       endif
@@ -5211,10 +5230,12 @@ check_params:
     if ( ! $DoCreateBaseSubj  )  then 
       if ( -e $subjdir/$BaseSubjsListFname ) then
         echo ""
-        echo "ERROR: It appears that this subject id is an existing"
-        echo "       base/template from longitudinal processing."
-        echo "       Please make sure you pass all necessary flags: "
-        echo "       ( -base <templateid> -tp <tpNid> ... )!"
+        echo "ERROR: It appears that this subject ID is an existing"
+        echo "       base/template from longitudinal processing (-base)."
+        echo "       Please make sure you pass all necessary flags. "
+        echo "       For example, if you are trying to re-run a -base:"
+        echo ""
+        echo "       \' -base <templateid> -tp <tpNid> ... \'"
         echo ""
         exit 1;
       endif
