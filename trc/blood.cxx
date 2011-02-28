@@ -88,7 +88,7 @@ Blood::Blood(const char *TrainListFile, const char *TrainTrkFile,
 
 Blood::Blood(const char *TrainTrkFile, const char *TrainRoi1File,
                                        const char *TrainRoi2File) : 
-             mUseTruncated(true),
+             mUseTruncated(false),
              mNx(0), mNy(0), mNz(0),
              mTestMask(0) {
   // Read single input streamline file
@@ -1707,7 +1707,7 @@ void Blood::FindCenterStreamline() {
                                ivalid2 = mIsInEnd2.begin();
   vector< vector<int> >::const_iterator icenter;
 
-  if (mStreamlines.empty())
+  if (mStreamlines.empty() || mNumStrEnds == 0)
     return;
 
   cout << "INFO: Step is " << lag/3 << " voxels" << endl;
