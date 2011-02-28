@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/02/27 07:49:59 $
-#    $Revision: 1.15 $
+#    $Date: 2011/02/28 04:52:19 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2010
 # The General Hospital Corporation (Boston, MA).
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.15 2011/02/27 07:49:59 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.16 2011/02/28 04:52:19 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -487,31 +487,29 @@ end
 
 if ($onpbs && $RunIt) then
   if ($dopreproc) then
-    setenv MYPBSMAXJOBS 10
-    setenv MYPBSWAIT 15
+    if (! $?MYPBSWAIT) setenv MYPBSWAIT 15
     if ($doregcvs) then
-      setenv MYPBSMAXJOBS 15
+      if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 15
       if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
       if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
     else
-      setenv MYPBSMAXJOBS 30
+      if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
     endif
     echo Queueing pre-processing
     set preid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
-    setenv MYPBSMAXJOBS 30
-    setenv MYPBSWAIT 0
+    if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
+    if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
     bedpostx_seychelles $dmdirlist
   else if ($dopaths) then
-    setenv MYPBSMAXJOBS 10
-    setenv MYPBSWAIT 15
+    if (! $?MYPBSWAIT) setenv MYPBSWAIT 15
     if ($doregcvs) then
-      setenv MYPBSMAXJOBS 15
+      if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 15
       if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
       if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
     else
-      setenv MYPBSMAXJOBS 30
+      if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
     endif
     echo Queueing path reconstruction
     set trcid = `fsl_sub_seychelles \
