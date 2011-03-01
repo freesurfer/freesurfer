@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2009/05/17 19:08:45 $
-#    $Revision: 1.5 $
+#    $Date: 2011/03/01 15:31:45 $
+#    $Revision: 1.6 $
 #
 # Copyright (C) 2009,
 # The General Hospital Corporation (Boston, MA). 
@@ -24,7 +24,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_talairach_avi,v 1.5 2009/05/17 19:08:45 nicks Exp $'
+set VERSION='$Id: test_talairach_avi,v 1.6 2011/03/01 15:31:45 nicks Exp $'
 
 umask 002
 
@@ -38,9 +38,9 @@ rm -f average
 ln -s . average
 rm -f mni305.cor.mgz
 ln -s ../distribution/average/mni305.cor.mgz
-rm -Rf lib
-mkdir -p lib/tcl
-cp ../scripts/tkregister2.tcl lib/tcl/
+rm -Rf tktools
+mkdir -p tktools
+cp ../scripts/tkregister2.tcl tktools/
 
 set cmd=(talairach_avi --i nu.mgz --xfm tal.xfm)
 echo "test_talairach_avi: output logged to test_talairach_avi.log..."
