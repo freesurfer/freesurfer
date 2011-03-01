@@ -1,0 +1,456 @@
+#!/usr/bin/env python
+import warnings
+warnings.filterwarnings('ignore', '.*negative int.*')
+import os
+import sys
+import shlex
+import optparse
+import logging
+import subprocess
+import tempfile
+import shutil
+from Numeric import *
+from subject_info import *
+from fsgd_parser import *
+from qdectable_parser import *
+
+# Original Version - Martin Reuter, MGH
+# $Id: long_mris_slopes,v 1.1 2011/03/01 00:11:25 mreuter Exp $
+
+# logging 
+ch = logging.StreamHandler()
+#create logger
+slopelogger = logging.getLogger("mris_long_slopes")
+slopelogger.setLevel(logging.INFO)
+slopelogger.addHandler(ch)
+
+
+HELPTEXT = """
+
+SUMMARY
+
+Computes slope maps (e.g. of thickness) in a longitudinal study.
+The slope is computed within subject from the longitudinally processed
+results (taken from the <tpNid>.long.<template> directories) and the
+output is written into the subjects <template>/surf directory for further
+processing (e.g. group analysis). Will also output the intersections of
+all cortex labels in <tamplate>/label/?h.long.cortex.label
+
+REQUIRED ARGUMENTS
+
+--qdec <name>    qdec.table.dat file with first columns: fsid  fsid-base
+
+--meas <name>    Input curv file, e.g. thickness
+
+--out  <name>    Output filename, created in each <template>/surf/<hemi>.name
+
+--hemi ?h        Hemisphere (lh or rh)
+
+OPTIONAL ARGUMENTS
+
+--fwhm <int>     Smooth the data (recommended for percent change maps)
+
+--type <char>    Type can be R (rate) (default), PC1 (pct change), SPC (sym. pct change)
+
+--time <name>    Variable name of time variable (e.g. age)
+
+--label <name>   Use pre-defined label for smoothing (default: intersect cortex labels)
+
+DETAILS
+
+QDEC.TABLE
+Pass a qdec table file, where the first 2 columns need
+to be 'fsid  fsid-base'. fsid is the id of the individual time points an
+'fsid-base' the template/base id (grouping the timepoints that belong to the
+same subject). By default the third column is taken as the time variable, but
+this can be overwritten with --time <name>. 
+
+QDEC.TABLE-EXAMPLE:
+fsid    fsid-base  age   Weight   IQ
+Elmo_1   Elmo       3      10    1000        
+#Elmo_2  Elmo       3.5    15    1100
+Elmo_3   Elmo       4      20    1300 
+Snuffy_1 Snuffy    20      40    1100
+Snuffy_2 Snuffy    21      45    1200
+Bert_1   Bert       8      25    2000
+Bert_2   Bert       9      30    2500
+
+
+TYPE:
+For the type you have three different options:
+1. 'R' for rate, this will fit the slope and depending on the time variable,
+   yield e.g. the thinning in mm/year (if the time variable is measured in
+   years, such as age). 
+2. 'PC1' is the percent change, this is the rate normalized by the measure
+   at the first time point, e.g. percent thinning per year.
+3. 'SPC' for symmetrized percent change. Here we normalize by the average
+   measure instead of taking it from the first time point. The average is
+   computed from the linear fit at the middle of the time interval.
+
+Note that for percent change prior smoothing (--fwhm) is recommended as the
+division can produce large outliers.
+"""
+
+# not encouraged, therefore removed from helptext above:
+HELPTEXTFSGD = """
+FSGD:
+The fsgd input file is a text file described below.
+(see also surfer.nmr.mgh.harvard.edu/docs/fsgdf.txt for more info). 
+Create a 'Class StemplateId' for each subject containing the subject's
+template/base id. Then create a 'Input' line for each time point containing:
+'Input tpId STemplateId Time'
+Here Time can be the age or the time of the scan. Time will be used to fit the
+slopes. If you have several variables, specify e.g. 'DefaultVariable Age',
+else the first column variable is chosen by default. You can have differently
+many time points per subject, but at least two! You can remove individual time
+points by commenting them out with '#'.
+
+FSGD-EXAMPLE:
+GroupDescriptorFile 1
+Title MyLongStudy
+Class Elmo
+Class Snuffy
+Class Bert
+Variables             Age   Weight   IQ
+Input Elmo_1 Elmo       3      10    1000               
+#Input Elmo_2 Elmo      3.5    15    1100
+Input Elmo_3 Elmo       4      20    1300 
+Input Snuffy_1 Snuffy  20      40    1100
+Input Snuffy_2 Snuffy  21      45    1200
+Input Bert_1 Bert       8      25    2000
+Input Bert_2 Bert       9      30    2500
+DefaultVariable Age
+"""
+
+def options_parse():
+    """
+    Command Line Options Parser for mris_long_slopes
+    initiate the option parser and return the parsed object
+    """
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.1 2011/03/01 00:11:25 mreuter Exp $', usage=HELPTEXT)
+    
+    # help text
+#    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
+    h_qdec = '(REQUIRED) qdec table file specifying the subjects and time points'
+    h_meas = '(REQUIRED) the surface measure of type curv (e.g. thickness)'
+    h_hemi = '(REQUIRED) Run one hemisphere: lh or rh'
+    h_out  = '(REQUIRED) filename (without hemi ?h) to store slope in <STemplate>/surf/<hemi>.<filename>'
+    h_fwhm = 'Smoothing the data, usefull if percent change maps are created'
+    h_type = 'Type can be R (rate), PC1 (pct change), SPC (sym. pct change), default: R'    
+    h_time = 'Variable name for time variable (e.g. age)'    
+    h_label= 'Use pre-defined label to use with smoothing'
+ 
+    # Add options 
+#    parser.add_option('--fsgd', dest='fsgd', help=h_fsgd)
+    parser.add_option('--qdec', dest='qdec', help=h_qdec)
+
+    parser.add_option('--meas', dest='meas', help=h_meas)
+    parser.add_option('--hemi', dest='hemi', choices=('lh','rh'), help=h_hemi)
+    parser.add_option('--out' , dest='out' , help=h_out)
+
+    parser.add_option('--fwhm', dest='fwhm', help=h_fwhm)
+    parser.add_option('--type', dest='type', choices=('R','PC1','SPC'), default='R', help=h_type)
+    parser.add_option('--time', dest='time', help=h_time)
+    parser.add_option('--label', dest='label', help=h_label)
+                      
+    (options, args) = parser.parse_args()
+    
+    # extensive error checks
+#    if options.fsgd is None and 
+    if options.qdec is None:
+#        print 'ERROR: Specify --fsgd or --qedc'
+        print 'ERROR: Specify --qedc'
+        print '       or run with --help for help.'
+        sys.exit(1)
+
+#    if options.fsgd is not None and options.qdec is not None:
+#        print 'ERROR: Specify either --fsgd or --qedc, not both'
+#        sys.exit(1)
+        
+    if options.meas is None:
+        print 'ERROR: Specify --meas (e.g. \'thickness\')'
+        sys.exit(1)
+
+    if options.hemi is None:
+        print 'ERROR: Specify --hemi (e.g. \'lh\')'
+        sys.exit(1)
+    
+    if not options.out:
+        print 'ERROR: output file name should be specified, use --out (e.g. \'thickslope\')'
+        sys.exit(1)
+    
+#    if not options.hemi:
+#        print 'ERROR: hemi should be specified, use --hemi (lh or rh)'
+#        sys.exit(1)
+        
+    return options
+
+def write_fsgd(filename,subjects_tp_map,subject,timeidx):
+    """
+    Write the fsgd to disk. Initialize the writer class.
+    """
+    fp = open(filename, 'w')
+    fp.write('GroupDescriptorFile 1\n')
+    fp.write('Title MyLongStudy\n')
+    fp.write('Class '+subject)
+    fp.write('Variables            Time')
+    
+    for tp in subjects_tp_map[subject]:
+        fp.write('Input '+tp[0]+' '+subject+' '+tp[timeidx]+'\n')
+        
+    fp.write('\n')
+    fp.close()    
+
+
+
+if __name__=="__main__":
+    # Command Line options and error checking done here
+    options = options_parse()
+    slopelogger.debug('-- The options you entered --')
+    slopelogger.debug(options) 
+
+    defaultvar  = ''
+    subjectsdir = ''
+    # Parse the stats files 
+#    if options.fsgd is not None:
+#        print 'Parsing the fsgd file: '+options.fsgd
+#        try:
+#            slopelogger.debug('Processing file ' + options.fsgd)
+#            fsgdparse = FsgdParser(options.fsgd)
+#            subjects_tp_map, variables, defaultvar = fsgdparse.parse()
+#        except BadFileError, e:
+#            print 'ERROR: fsgd file '+str(e)+' not found!'
+#            sys.exit(1)
+#    else:
+    print 'Parsing the qdec table: '+options.qdec
+    try:
+        slopelogger.debug('Processing file ' + options.qdec)
+        qdecparse = QdecTableParser(options.qdec)
+        subjects_tp_map, variables, subjectdir = qdecparse.parse()
+    except BadFileError, e:
+        print 'ERROR: qdec table '+str(e)+' not found!'
+        sys.exit(1)
+    
+
+    # use the first column by default for time variable
+    varidx = 1
+    # if time variable is passed on command line, overwrite
+    if not options.time is None:
+        defaultvar = options.time
+    # if defaultvar, make sure it is part of variables
+    # compute correct index (starting with 1, 0 is the tpID)
+    if not defaultvar == '':
+        for index in (i for i in xrange(len(variables)) if variables[i].upper()==defaultvar.upper()):
+            varidx = index
+            #print 'found: '+str(varidx)+' '+variables[varidx]
+            break
+        if not variables[varidx].upper()==defaultvar.upper():
+            print 'ERROR: DefaultVariable \''+str(defaultvar)+'\' not found in Variables: '+str(variables)
+            sys.exit(1)
+        varidx = varidx +1;
+
+    # if env is set, overwrite info from file (if it was passed in qdec)
+    sdir = os.getenv('SUBJECTS_DIR')
+    if sdir is not None:
+        subjectsdir = sdir
+    
+    # process
+    retcode = 0
+    for subjectid, tplist in subjects_tp_map.items():
+        print '\nSubject-Template: '+subjectid
+        i = 0
+        
+        basedir = os.path.join(subjectsdir,subjectid)
+        if not os.path.exists(basedir):
+            print 'ERROR: Template dir '+str(basedir)+' does not exist!'
+            sys.exit(1)
+            
+        label = options.hemi+'.long.cortex.label'
+        ctx_target  = os.path.join(basedir,'label',label)
+        meas_target = os.path.join(basedir,'surf',options.hemi+'.longstack.'+options.meas+'.mgh')
+        x_target    = os.path.join(basedir,'surf','X-long.mat')
+        times = zeros([len(tplist)], Float)
+        all = ''
+        meant = 0.0
+        tp1meas = ''
+        tp1id = ''
+        
+        # collect inputs and intersect cortex labels:
+        for tpdata in tplist:
+            i = i+1
+            
+            #make sure subjectsdir exists
+            sdir = os.path.join(subjectsdir,tpdata[0]+'.long.'+subjectid)
+            if not os.path.exists(sdir):
+                print 'ERROR: TP dir '+str(sdir)+' does not exist!'
+                sys.exit(1)
+            
+            # echo:
+            print '\nTP '+str(i)+' : '+tpdata[0]+' time: '+tpdata[varidx]
+            
+            #init target file names
+            measure = os.path.join(sdir,'surf',options.hemi+'.'+options.meas)
+            cortex  = os.path.join(sdir,'label',options.hemi+'.cortex.label')
+            
+            # concat all measure file names
+            all = all+' '+measure
+            
+            # meant
+            meant = meant + float(tpdata[varidx])
+            times[i-1] = float(tpdata[varidx])
+            
+            # intersect cortex labels:
+            if i == 1 :
+                cmd = 'cp '+cortex+' '+ctx_target
+                # also store tp1 measure for TYPE PC1:
+                tp1meas = measure
+                tp1id   = tpdata[0]+'.long.'+subjectid
+            else:
+                cmd = 'mris_label_calc intersect '+cortex+' '+ctx_target+' '+ctx_target
+            print cmd
+            args = shlex.split(cmd)
+#            retcode = subprocess.call(args)
+            if retcode != 0 :
+                print 'ERROR: mris_label_calc intersect did not work?'
+                sys.exit(1)
+        
+        # avearge age:
+        meant = meant / i
+        
+        print '\n\nINFO: '+str(i)+' TPs in '+subjectid+' mean age: '+str(meant)+'\n'
+        
+        print 'Writing '+x_target+' ...\n'
+        
+        #write X-matrix:
+        if os.path.exists(x_target):
+            os.remove(x_target)
+        xfp = open(x_target, 'w')
+        for time in times:
+            xfp.write('1 '+str(time-meant)+'\n')
+        xfp.close()    
+        
+        # stack measure maps:
+        cmd = 'mri_concat '+all+' --o '+meas_target
+        print cmd
+        args = shlex.split(cmd)
+#        retcode = subprocess.call(args)
+        if retcode != 0 :
+            print 'ERROR: mri_concat stacking did not work?'
+            sys.exit(1)
+        print "\n"
+        
+        # run glm in tmp dir:
+        prefix = './'+subjectid+'_'+options.hemi+'_'
+        dirname = tempfile.mkdtemp('',prefix,'')        
+        cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+' --label '+ctx_target+' --glmdir '+dirname
+        print cmd
+        args = shlex.split(cmd)
+        retcode = subprocess.call(args)
+        if retcode != 0 :
+            print 'ERROR: mri_glmfit did not work?'
+            sys.exit(1)
+        print "\n"
+        
+        # harvest results (in beta.mgh)
+        betafn = os.path.join(dirname,'beta.mgh' )  
+        beta0  = os.path.join(dirname,'beta0.mgh')  
+        beta1  = os.path.join(dirname,'beta1.mgh') 
+        if not os.path.exists(betafn):
+            print 'ERROR: GLM results '+str(betafn)+' does not exist!'
+            sys.exit(1)
+            
+        # split beta
+        cmd = 'mri_convert --frame 0 '+betafn+' '+beta0 
+        print cmd
+        args = shlex.split(cmd)
+        retcode = subprocess.call(args)
+        if retcode != 0 :
+            print 'ERROR: mri_convert split frames did not work?'
+            sys.exit(1)
+        print "\n"
+        
+        cmd = 'mri_convert --frame 1 '+betafn+' '+beta1 
+        print cmd
+        args = shlex.split(cmd)
+        retcode = subprocess.call(args)
+        if retcode != 0 :
+            print 'ERROR: mri_convert split frames did not work?'
+            sys.exit(1)
+        print "\n"
+        
+        
+        # set label from options instead of intersected cortex
+        if options.label is not None:
+            label = options.label
+        
+        
+        # possibly smooth them:
+        smooth = ''
+        if options.fwhm is not None:
+            smooth = ' --fwhm-trg '+options.fwhm+' --label-src '+label
+        
+        beta0old = beta0
+        beta0 = os.path.join(dirname,'beta0') 
+        beta1old = beta1  
+        beta1 = os.path.join(dirname,'beta1')   
+        tp1old = tp1meas
+        tp1meas = os.path.join(dirname,'tp1')  
+
+        if options.type == 'SPC':
+            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type mgh '+' --tval '+beta0+' --trg_type curv '+smooth
+            print cmd
+            args = shlex.split(cmd)
+            retcode = subprocess.call(args)
+            if retcode != 0 :
+                print 'ERROR: mri_surf2surf smoothing did not work?'
+                sys.exit(1)
+            print "\n"
+                    
+        if options.type == 'PC1':
+            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tp1id+' --sval '+tp1old+' --src_type curv '+' --tval '+tp1meas+' --trg_type curv '+smooth
+            print cmd
+            args = shlex.split(cmd)
+            retcode = subprocess.call(args)
+            if retcode != 0 :
+                print 'ERROR: mri_surf2surf smoothing did not work?'
+                sys.exit(1)
+            print "\n"
+            
+        cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta1old+' --src_type mgh '+' --tval '+beta1+' --trg_type curv '+smooth
+        print cmd
+        args = shlex.split(cmd)
+        retcode = subprocess.call(args)
+        if retcode != 0 :
+            print 'ERROR: mri_surf2surf smoothing did not work?'
+            sys.exit(1)
+        print "\n"
+            
+        
+        # create ouput (depending on type)
+        outname = os.path.join(basedir,'surf',options.hemi+'.'+options.out)
+        if options.type == 'R':
+            cmd = 'cp '+beta1+' '+outname     
+        elif options.type == 'PC1':
+            cmd = 'mris_calc -o '+outname+' '+beta1+' div '+tp1meas
+        elif options.type == 'SPC':
+            cmd = 'mris_calc -o '+outname+' '+beta1+' div '+beta0
+        
+        print cmd
+        args = shlex.split(cmd)
+        retcode = subprocess.call(args)
+        if retcode != 0 :
+            print 'ERROR: trouble writing output...'
+            sys.exit(1)
+        print "\n"
+           
+        # cleanup tmp dir:    
+        shutil.rmtree(dirname)
+    
+            
+    print 'You can look at the result with:'
+    print '  tksurfer '+subjectid+' '+options.hemi+' pial -overlay '+outname
+    print
+          
+            
+    # always exit with 0 exit code
+    sys.exit(0)
