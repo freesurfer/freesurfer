@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/15 20:38:17 $
-#    $Revision: 1.1 $
+#    $Date: 2011/03/01 22:24:06 $
+#    $Revision: 1.2 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: prmerge-sess,v 1.1 2011/02/15 20:38:17 greve Exp $';
+set VERSION = '$Id: prmerge-sess,v 1.2 2011/03/01 22:24:06 greve Exp $';
 set inputargs = ($argv);
 
 set analysis     = ();
@@ -96,62 +96,105 @@ foreach sess ($SessList)
     @ dof = $dof + `cat $pranadir/dof`
   end 
 
-  # Ana Level Maps
-  set maplist = (rvar fsnr meanfunc )
-  if($Whiten) set maplist = ($maplist rho1mn.sm nrho1mn)
-  foreach map ($maplist)
-    set prmap = $anadir/pr.$map.$FSF_OUTPUT_FORMAT
-    set cmd = (mri_concat --o $prmap $anadir/pr???/$map.{nii,nii.gz,mgh,mgz})
-    echo $cmd
-    $cmd
-    if($status) exit 1;
-  end
+  if($IsNative) then
+    foreach Run ($RunList)
+      set reg = $sess/$fsd/$Run/register.dof6.dat
+      foreach Con ($conlist)
+       foreach map (ces cesvar)
+        set ces = `stem2fname $sess/$fsd/$analysis/pr$Run/$Con/$map`;
+        set out = $sess/$fsd/$analysis/pr$Run/$Con/$map.mni305.mgh
+        set cmd = (mri_vol2vol --mov $ces --tal --talres 2\
+          --reg $reg --o $out --no-save-reg)
+        echo $cmd 
+        $cmd 
+        if($status) exit 1;
+        foreach hemi (lh rh)
+          set out = $sess/$fsd/$analysis/pr$Run/$Con/$map.$hemi.mgh
+          set cmd = (mri_vol2surf --mov $ces --hemi $hemi --projfrac 0.5 \
+            --reg $reg --o $out --trgsubject fsaverage)
+          echo $cmd 
+          $cmd 
+          if($status) exit 1;
+        end # hemi
+       end # map ces cesvar
+      end # Con
+    end # Run
+  endif
 
-  # Contrasts
-  foreach Con ($conlist)
-    set ces = `stem2fname $sess/$fsd/$analysis/pr$Run1/$Con/ces`;
-    mri_info --nframes --o $framefile $ces
-    set nframes = (`cat $framefile`);
-    if($nframes != 1) continue;
-    set condir = $sess/$fsd/$analysis/$Con
-    mkdir -p $condir
-    foreach map (ces cesvar cespct cesvarpct sig t)
-      set prmap = $condir/pr.$map.$FSF_OUTPUT_FORMAT
-      set cmd = (mri_concat --o $prmap $anadir/pr???/$Con/$map.{nii,nii.gz,mgh,mgz})
-      echo $cmd
-      $cmd
-      if($status) exit 1;
-    end
+  if($IsNative) then
+    set spacelist = (lh rh mni305)
+  else
+    set spacelist = (noconv)
+  endif
 
-    # Perform analyese
-    set cespr    = $condir/pr.ces.$FSF_OUTPUT_FORMAT
-    set cesvarpr = $condir/pr.cesvar.$FSF_OUTPUT_FORMAT
+  foreach space ($spacelist)
 
-    set glmdir = $condir/osgm.ffx
-    set cmd = (mri_glmfit --y $cespr --yffxvar $cesvarpr --ffxdof $dof \
-      --glmdir $glmdir --osgm --$FSF_OUTPUT_FORMAT)
-    if($IsSurface) set cmd = ($cmd --surface $subject $hemi);
-    echo $cmd
-    $cmd
-    if($status) exit 1;
+    if($IsNative) then
+      set apx = ".$space."
+    else
+      set apx = ".";
+    endif
 
-    if($#RunList > 1) then
-      set glmdir = $condir/osgm.rfx
-      set cmd = (mri_glmfit --y $cespr --glmdir $glmdir --osgm --$FSF_OUTPUT_FORMAT)
-      if($IsSurface) set cmd = ($cmd --surface $subject $hemi);
-      echo $cmd
-      $cmd
-      if($status) exit 1;
-      set glmdir = $condir/osgm.wrfx
-      set cmd = (mri_glmfit --y $cespr --wls $cesvarpr \
+    # Contrasts
+    foreach Con ($conlist)
+      set ces = `stem2fname $sess/$fsd/$analysis/pr$Run1/$Con/ces`;
+      mri_info --nframes --o $framefile $ces
+      set nframes = (`cat $framefile`);
+      if($nframes != 1) continue;
+      set condir = $sess/$fsd/$analysis/$Con
+      mkdir -p $condir
+      foreach map (ces cesvar)
+        set prmap = $condir/pr.$map$apx$FSF_OUTPUT_FORMAT
+        set cmd = (mri_concat --o $prmap \
+          $anadir/pr???/$Con/$map$apx{nii,nii.gz,mgh,mgz})
+        echo $cmd
+        $cmd
+        if($status) exit 1;
+      end
+
+      # Perform analyses
+      set cespr    = $condir/pr.ces$apx$FSF_OUTPUT_FORMAT
+      set cesvarpr = $condir/pr.cesvar$apx$FSF_OUTPUT_FORMAT
+
+      set glmdir = $condir/osgm$apx"ffx"
+      set cmd = (mri_glmfit --y $cespr --yffxvar $cesvarpr --ffxdof $dof \
         --glmdir $glmdir --osgm --$FSF_OUTPUT_FORMAT)
       if($IsSurface) set cmd = ($cmd --surface $subject $hemi);
       echo $cmd
       $cmd
       if($status) exit 1;
-    endif
 
-  end  # contrasts
+      if($#RunList > 1) then
+        set glmdir = $condir/osgm$apx"rfx"
+        set cmd = (mri_glmfit --y $cespr --glmdir $glmdir --osgm --$FSF_OUTPUT_FORMAT)
+        if($IsSurface) set cmd = ($cmd --surface $subject $hemi);
+        echo $cmd
+        $cmd
+        if($status) exit 1;
+        set glmdir = $condir/osgm$apx"wrfx"
+        set cmd = (mri_glmfit --y $cespr --wls $cesvarpr \
+          --glmdir $glmdir --osgm --$FSF_OUTPUT_FORMAT)
+        if($IsSurface) set cmd = ($cmd --surface $subject $hemi);
+        echo $cmd
+        $cmd
+        if($status) exit 1;
+      endif
+    end  # contrasts
+
+    if($IsNative) continue;
+
+    # Ana Level Maps
+    set maplist = (rvar fsnr meanfunc )
+    if($Whiten) set maplist = ($maplist rho1mn.sm nrho1mn)
+    foreach map ($maplist)
+      set prmap = $anadir/pr.$map.$FSF_OUTPUT_FORMAT
+      set cmd = (mri_concat --o $prmap $anadir/pr???/$map.{nii,nii.gz,mgh,mgz})
+      echo $cmd
+      $cmd
+      if($status) exit 1;
+    end
+
+  end # spacelist
 
 end  # sessions
 
@@ -188,11 +231,6 @@ while( $#argv != 0 )
 
     case "-force":
       set UpdateOnly = 0;
-      breaksw
-
-    case "-umask":
-      if ( $#argv == 0) goto arg1err;
-      umask $argv[1]; shift;
       breaksw
 
     case "-nolog":
@@ -245,6 +283,7 @@ set fsd     = (`getana -a $analysis -t fsd`);
 set Whiten  = (`getana -a $analysis -t whiten`);
 set RunListFile = (`getana -a $analysis -t rlf`);
 set IsSurface   = (`getana -a $analysis -t IsSurface`);
+set IsNative   = (`getana -a $analysis -t IsNative`);
 set subject = ()
 set hemi = ()
 if($IsSurface) then
