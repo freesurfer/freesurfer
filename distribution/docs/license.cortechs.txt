@@ -1,7 +1,7 @@
 
 ------------------------------------------------------------------------------
-        FreeSurfer Open Source Software License Agreement ("Agreement")
-        Copyright 2002 - 2006, CorTechs Labs, Inc. 
+        FreeSurfer / CorTechs Software License Agreement ("Agreement")
+        Copyright 2002 - 2011, CorTechs Labs, Inc. 
         and The General Hospital Corporation (each a "Licensor").
         All rights reserved.
 ------------------------------------------------------------------------------

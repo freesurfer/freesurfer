@@ -238,6 +238,14 @@ saveflat.tcl \
 saveviews.tcl \
 setdefpatchview.tcl \
 solmovie-flat.tcl \
+twocond-flat.tcl \
+twocond-masked-views.tcl \
+twocond-views.tcl \
+wrappers.tcl \
+fsgdfPlot.tcl
+
+tktoolsdir = $(prefix)/tktools
+tktools_SCRIPTS= \
 tkanalyse.tcl \
 tkm_common.tcl \
 tkm_dialog.tcl \
@@ -249,10 +257,6 @@ tkregister.tcl \
 tkregister2.tcl \
 tksurfer.tcl \
 tkUtils.tcl \
-twocond-flat.tcl \
-twocond-masked-views.tcl \
-twocond-views.tcl \
-wrappers.tcl \
 fsgdfPlot.tcl
 
 foodir=$(prefix)/bin
@@ -291,7 +295,7 @@ uninstall-hook:
 TESTS = help_xml_validate
 
 EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
-extract_talairach_avi_QA.awk $(foo_DATA) $(xml_DATA)
+extract_talairach_avi_QA.awk $(foo_DATA) $(xml_DATA) $(tktools_SCRIPTS)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

@@ -7,10 +7,10 @@
 # Note:    The csh/tcsh equivalent script is FreeSurferEnv.csh, and should
 #          be maintained to operate the same way.
 #
-# $Id: FreeSurferEnv.sh,v 1.49 2010/02/26 19:32:45 nicks Exp $
+# $Id: FreeSurferEnv.sh,v 1.50 2011/03/01 01:41:21 nicks Exp $
 #############################################################################
 
-VERSION='$Id: FreeSurferEnv.sh,v 1.49 2010/02/26 19:32:45 nicks Exp $'
+VERSION='$Id: FreeSurferEnv.sh,v 1.50 2011/03/01 01:41:21 nicks Exp $'
 
 ## Print help if --help or -help is specified
 if [[ "$1" == "--help" || "$1" == "-help" ]]; then
@@ -427,6 +427,10 @@ fi
 
 
 ### ----------- Freesurfer Bin and Lib Paths  ------------ ####
+if [ -d $FREESURFER_HOME/tktools ]; then
+    # tktools dir could be deleted to remove Cortech license dependency
+    PATH=$FREESURFER_HOME/tktools:$PATH
+fi
 export PATH=$FREESURFER_HOME/bin:$FSFAST_HOME/bin:$PATH
 
 # This turns on "fixing" of group surface area. A group subject made

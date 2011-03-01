@@ -7,20 +7,21 @@
 /*
  * Original Authors: Martin Sereno and Anders Dale, 1996; Doug Greve, 2002
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/11/22 22:57:32 $
- *    $Revision: 1.120 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/01 01:41:22 $
+ *    $Revision: 1.121 $
  *
- * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+ * in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+ * and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -34,7 +35,7 @@
 
 #ifndef lint
 static char vcid[] =
-"$Id: tkregister2.c,v 1.120 2010/11/22 22:57:32 greve Exp $";
+"$Id: tkregister2.c,v 1.121 2011/03/01 01:41:22 nicks Exp $";
 #endif /* lint */
 
 #ifdef HAVE_TCL_TK_GL
@@ -4862,7 +4863,7 @@ int main(argc, argv)   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tkregister2.c,v 1.120 2010/11/22 22:57:32 greve Exp $", "$Name:  $");
+     "$Id: tkregister2.c,v 1.121 2011/03/01 01:41:22 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -4879,7 +4880,7 @@ int main(argc, argv)   /* new main */
     exit(1);
   }
   if(tkregister_tcl == NULL){
-    sprintf(tmpstr,"%s/lib/tcl/%s",envptr,"tkregister2.tcl");
+    sprintf(tmpstr,"%s/tktools/%s",envptr,"tkregister2.tcl");
     tkregister_tcl = strcpyalloc(tmpstr);
   }
   printf("tkregister_tcl %s\n",tkregister_tcl);

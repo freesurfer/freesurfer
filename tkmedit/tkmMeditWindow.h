@@ -8,21 +8,21 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: kteich $
- *    $Date: 2007/10/18 18:27:04 $
- *    $Revision: 1.41 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/01 01:41:22 $
+ *    $Revision: 1.42 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
+ * The General Hospital Corporation (Boston, MA).
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+ * in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+ * and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 

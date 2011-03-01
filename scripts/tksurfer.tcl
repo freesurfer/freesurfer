@@ -2,21 +2,21 @@
 ## tksurfer.tcl
 ##
 ## CVS Revision Info:
-##    $Author: krish $
-##    $Date: 2009/10/29 21:21:30 $
-##    $Revision: 1.166 $
+##    $Author: nicks $
+##    $Date: 2011/03/01 01:41:22 $
+##    $Revision: 1.167 $
 ##
-## Copyright (C) 2002-2007,
-## The General Hospital Corporation (Boston, MA). 
-## All rights reserved.
+## Copyright (C) 2000-2011, CorTechs Labs, Inc. (La Jolla, CA) and
+## The General Hospital Corporation (Boston, MA).
 ##
-## Distribution, usage and copying of this software is covered under the
-## terms found in the License Agreement file named 'COPYING' found in the
-## FreeSurfer source code root directory, and duplicated here:
-## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+## Terms and conditions for use, reproduction, distribution and contribution
+## are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+## in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+## and here:
 ##
-## General inquiries: freesurfer@nmr.mgh.harvard.edu
-## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+##
+## Reporting: freesurfer@nmr.mgh.harvard.edu
 ##
 
 package require BLT;
@@ -37,6 +37,8 @@ proc FindFile { ifnFile ilDirs } {
 # Try to get some default script locations from environment variables.
 set sDefaultScriptsDir ""
 catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
+set sTkToolsDir ""
+catch { set sTkToolsDir "$env(FREESURFER_HOME)/tktools" }
 set sTksurferScriptsDir ""
 catch { set sTksurferScriptsDir "$env(TKSURFER_SCRIPTS_DIR)" }
 set sFsgdfDir ""
@@ -45,19 +47,19 @@ catch { set sFsgdfDir "$env(FSGDF_DIR)" }
 # Find the right file names and source them.
 set fnCommon \
     [FindFile tkm_common.tcl \
-	 [list $sTksurferScriptsDir "." "../scripts" $sDefaultScriptsDir]]
+	 [list $sTksurferScriptsDir "." "../scripts" $sDefaultScriptsDir $sTkToolsDir]]
 if { [string compare $fnCommon ""] == 0 } { exit }
 source $fnCommon
 
 set fnWrappers \
     [FindFile tkm_wrappers.tcl \
-	 [list $sTksurferScriptsDir "." "../scripts" $sDefaultScriptsDir]]
+	 [list $sTksurferScriptsDir "." "../scripts" $sDefaultScriptsDir $sTkToolsDir]]
 if { [string compare $fnWrappers ""] == 0 } { exit }
 source $fnWrappers
 
 set fnFsgdf \
     [FindFile fsgdfPlot.tcl \
-	 [list $sFsgdfDir "." "../scripts" $sDefaultScriptsDir]]
+	 [list $sFsgdfDir "." "../scripts" $sDefaultScriptsDir $sTkToolsDir]]
 if { [string compare $fnFsgdf ""] == 0 } { exit }
 source $fnFsgdf
 
@@ -6395,13 +6397,13 @@ FsgdfPlot_Init
 dputs "Successfully parsed tksurfer.tcl"
 
 # now try parsing the prefs files. first look in
-# $FREESURFER_HOME/lib/tcl/tksurfer_init.tcl, then
+# $FREESURFER_HOME/tktools/tksurfer_init.tcl, then
 # $SUBJECTS_DIR/scripts/tksurfer_init.tcl, then
 # $subject/scripts/tksurfer_init.tcl, then
 # ~/scripts/tksurfer_init.tcl.
 set lUserScripts {}
 if { [info exists env(FREESURFER_HOME)] } {
-    lappend lUserScripts $env(FREESURFER_HOME)/lib/tcl/tksurfer_init.tcl
+    lappend lUserScripts $env(FREESURFER_HOME)/tktools/tksurfer_init.tcl
 }
 if { [info exists env(SUBJECTS_DIR)] } {
     lappend lUserScripts $env(SUBJECTS_DIR)/scripts/tksurfer_init.tcl

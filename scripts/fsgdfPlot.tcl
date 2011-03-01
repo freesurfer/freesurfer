@@ -3,8 +3,8 @@
 ##
 ## CVS Revision Info:
 ##    $Author: nicks $
-##    $Date: 2010/08/11 20:42:30 $
-##    $Revision: 1.31 $
+##    $Date: 2011/03/01 01:41:21 $
+##    $Revision: 1.32 $
 ##
 ## Original Author: Kevin Teich
 ##
@@ -47,12 +47,14 @@ proc FindFile { ifnFile ilDirs } {
 # Also look for tkUtils.tcl.
 set sDefaultScriptsDir ""
 catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
+set sTkToolsDir ""
+catch { set sTkToolsDir "$env(FREESURFER_HOME)/tktools" }
 set sUtilsDir ""
 catch { set sUtilsDir "$env(TKUTILS_SCRIPTS_DIR)" }
 
 set fnUtils \
   [FindFile tkUtils.tcl \
-     [list $sUtilsDir "." "../scripts" $sDefaultScriptsDir]]
+     [list $sUtilsDir "." "../scripts" $sDefaultScriptsDir $sTkToolsDir]]
 if { [string compare $fnUtils ""] == 0 } { exit }
 source $fnUtils
 

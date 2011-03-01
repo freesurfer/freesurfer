@@ -11,20 +11,21 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/08/04 20:46:55 $
- *    $Revision: 1.342 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/01 01:41:22 $
+ *    $Revision: 1.343 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+ * in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+ * and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -34,7 +35,7 @@
 #endif /* HAVE_CONFIG_H */
 #undef VERSION
 
-char *VERSION = "$Revision: 1.342 $";
+char *VERSION = "$Revision: 1.343 $";
 
 #define TCL
 #define TKMEDIT
@@ -1190,7 +1191,7 @@ void ParseCmdLineArgs ( int argc, char *argv[] ) {
   nNumProcessedVersionArgs =
     handle_version_option
     (argc, argv,
-     "$Id: tkmedit.c,v 1.342 2010/08/04 20:46:55 greve Exp $",
+     "$Id: tkmedit.c,v 1.343 2011/03/01 01:41:22 nicks Exp $",
      "$Name:  $");
   if (nNumProcessedVersionArgs && argc - nNumProcessedVersionArgs == 1)
     exit (0);
@@ -5936,7 +5937,7 @@ int main ( int argc, char** argv ) {
   DebugPrint
     (
       (
-        "$Id: tkmedit.c,v 1.342 2010/08/04 20:46:55 greve Exp $ $Name:  $\n"
+        "$Id: tkmedit.c,v 1.343 2011/03/01 01:41:22 nicks Exp $ $Name:  $\n"
         )
       );
 
@@ -6031,7 +6032,7 @@ int main ( int argc, char** argv ) {
 
   /* if there is no interface name, i.e. if they didn't pass one in on
      the command line, look in the local directory for the script, then
-     in FREESURFER_HOME/lib/tcl. if we can't fine, we have to exit. */
+     in FREESURFER_HOME/tktools. if we can't find it, exit. */
   pFile = NULL;
   bFoundInterface = FALSE;
 
@@ -6094,7 +6095,7 @@ int main ( int argc, char** argv ) {
 
   if ( !bFoundInterface ) {
 
-    /* finally try in FREESURFER_HOME/lib/tcl.
+    /* finally try in FREESURFER_HOME/tktools.
        make sure we have FREESURFER_HOME
        defined */
     DebugNote( ("Getting FREESURFER_HOME env var") );
@@ -6113,7 +6114,7 @@ int main ( int argc, char** argv ) {
     }
 
     xUtil_snprintf( sInterfaceFileName, sizeof(sInterfaceFileName),
-                    "%s/lib/tcl/%s", pEnvVar, "tkmedit.tcl");
+                    "%s/tktools/%s", pEnvVar, "tkmedit.tcl");
     DebugNote( ( "Trying to open %s", sInterfaceFileName ) );
     pFile = fopen( sInterfaceFileName,"r" );
     if ( NULL != pFile ) {
@@ -6121,7 +6122,6 @@ int main ( int argc, char** argv ) {
       fclose( pFile );
     }
   }
-
 
   /* if file still not found bail out. */
   if ( !bFoundInterface ) {

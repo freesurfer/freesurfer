@@ -12,21 +12,21 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/10/14 21:45:35 $
- *    $Revision: 1.65 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/01 01:41:22 $
+ *    $Revision: 1.66 $
  *
- * Copyright (C) 2002-2007, CorTechs Labs, Inc. (La Jolla, CA) and
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
+ * The General Hospital Corporation (Boston, MA).
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+ * in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+ * and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -46,7 +46,7 @@
 #define ksEnvVariable_UseLocalDirectoryForScript "DONT_USE_LOCAL_TKMFUNCTIONAL_TCL"
 #define ksFileName_InterfaceScript "tkm_functional.tcl"
 #define ksDir_LibraryPath          getenv ( "FREESURFER_HOME" )
-#define ksDir_LibrarySubPath       "/lib/tcl/"
+#define ksDir_LibrarySubPath       "/tktools/"
 
 #define knLengthOfGraphDataItem              18 // for "100.1 1000.12345 "
 #define knLengthOfGraphDataHeader            20 // for header + cond + {}

@@ -33,18 +33,22 @@ bin_PROGRAMS=
 endif
 
 if ENABLE_TCLTK_APPS
+# put a wrapper around the bin, used to setup tcltktixblt enviro vars
+# and install in 'tktools' dir instead of 'bin' (to allow easy deletion
+# of all cortech-licensed software)
 install-exec-hook:
-	cp $(top_builddir)/tksurfer/tksurfer $(DESTDIR)$(bindir)/tksurfer.bin
-	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tksurfer
+	rm -fv $(DESTDIR)$(bindir)/tksurfer
+	cp $(top_builddir)/tksurfer/tksurfer $(DESTDIR)$(prefix)/tktools/tksurfer.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tksurfer
 	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
-		>> $(DESTDIR)$(bindir)/tksurfer
-	echo "tksurfer.bin \$$argv" >> $(DESTDIR)$(bindir)/tksurfer
-	chmod a+x $(DESTDIR)$(bindir)/tksurfer
+		>> $(DESTDIR)$(prefix)/tktools/tksurfer
+	echo "tksurfer.bin \$$argv" >> $(DESTDIR)$(prefix)/tktools/tksurfer
+	chmod a+x $(DESTDIR)$(prefix)/tktools/tksurfer
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/tksurfer.bin; fi
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tksurfer.bin; fi
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(bindir)/tksurfer.bin
+	rm -f $(DESTDIR)$(prefix)/tktools/tksurfer.bin
 
 else
 all:

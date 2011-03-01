@@ -40,17 +40,21 @@ endif
 
 if ENABLE_TCLTK_APPS
 # put a wrapper around the bin, used to setup tcltktixblt enviro vars
+# and install in 'tktools' dir instead of 'bin' (to allow easy deletion
+# of all cortech-licensed software)
 install-exec-hook:
-	cp $(top_builddir)/tkmedit/tkmedit $(DESTDIR)$(bindir)/tkmedit.bin
-	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/tkmedit
-	echo "source \$$FREESURFER_HOME/bin/tcl_setup" >> $(DESTDIR)$(bindir)/tkmedit
-	echo "exec tkmedit.bin \$$argv" >> $(DESTDIR)$(bindir)/tkmedit
-	chmod a+x $(DESTDIR)$(bindir)/tkmedit
+	rm -vf $(DESTDIR)$(bindir)/tkmedit
+	cp $(top_builddir)/tkmedit/tkmedit $(DESTDIR)$(prefix)/tktools/tkmedit.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(prefix)/tktools/tkmedit
+	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(prefix)/tktools/tkmedit
+	echo "exec tkmedit.bin \$$argv" >> $(DESTDIR)$(prefix)/tktools/tkmedit
+	chmod a+x $(DESTDIR)$(prefix)/tktools/tkmedit
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/tkmedit.bin; fi
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tkmedit.bin; fi
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(bindir)/tkmedit.bin
+	rm -f $(DESTDIR)$(prefix)/tktools/tkmedit.bin
 
 else
 all:

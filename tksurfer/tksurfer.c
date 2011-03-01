@@ -11,20 +11,21 @@
 /*
  * Original Author: Martin Sereno and Anders Dale, 1996
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2010/10/13 16:27:35 $
- *    $Revision: 1.345 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/01 01:41:23 $
+ *    $Revision: 1.346 $
  *
- * Copyright (C) 2002-2010, CorTechs Labs, Inc. (La Jolla, CA) and
+ * Copyright (C) 2002-2011, CorTechs Labs, Inc. (La Jolla, CA) and
  * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+ * in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+ * and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -21352,7 +21353,7 @@ int main(int argc, char *argv[])   /* new main */
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: tksurfer.c,v 1.345 2010/10/13 16:27:35 fischl Exp $", "$Name:  $");
+     "$Id: tksurfer.c,v 1.346 2011/03/01 01:41:23 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -21404,8 +21405,8 @@ int main(int argc, char *argv[])   /* new main */
      2) tksurfer.tcl in TKSURFER_SCRIPTS_DIR
      3) tksurfer.new.tcl in local dir
      4) tksurfer.tcl in local dir
-     5) tksurfer.new.tcl in FREESURFER_HOME/lib/tcl
-     6) tksurfer.tcl in FREESURFER_HOME/lib/tcl
+     5) tksurfer.new.tcl in FREESURFER_HOME/tktools
+     6) tksurfer.tcl in FREESURFER_HOME/tktools
   */
 
   found_script = FALSE;
@@ -21449,7 +21450,7 @@ int main(int argc, char *argv[])   /* new main */
   }
   if (!found_script && envptr)
   {
-    sprintf (tksurfer_tcl, "%s/lib/tcl/tksurfer.new.tcl", envptr);
+    sprintf (tksurfer_tcl, "%s/tktools/tksurfer.new.tcl", envptr);
     if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
     {
       fclose(fp);
@@ -21458,7 +21459,7 @@ int main(int argc, char *argv[])   /* new main */
   }
   if (!found_script && envptr)
   {
-    sprintf (tksurfer_tcl, "%s/lib/tcl/tksurfer.tcl", envptr);
+    sprintf (tksurfer_tcl, "%s/tktools/tksurfer.tcl", envptr);
     if ((fp=fopen(tksurfer_tcl,"r"))!=NULL)
     {
       fclose(fp);
@@ -21495,32 +21496,37 @@ int main(int argc, char *argv[])   /* new main */
       {
         sprintf(script_tcl,"%s/lib/tcl/%s",envptr,argv[5]);
         fp = fopen(script_tcl,"r");
-        if (fp == NULL)            /* then TKSURFER_TCL_SCRIPTS dir */
+        if (fp == NULL)            /* then FREESURFER_HOME/tktools dir */
         {
-          cp = getenv("TKSURFER_TCL_SCRIPTS") ;
-          if (cp)
-            /* see if script is in users has own scripts directory */
+          sprintf(script_tcl,"%s/tktools/%s",envptr,argv[5]);
+          fp = fopen(script_tcl,"r");
+          if (fp == NULL)            /* then TKSURFER_TCL_SCRIPTS dir */
           {
-            sprintf(script_tcl,"%s/%s",cp,argv[5]);
-            fp = fopen(script_tcl,"r");
-          } else
-            fp = NULL ;
-          if (fp==NULL)              /* then aliases */
-          {
-            aliasflag = TRUE;
-            sprintf(script_tcl,"%s/lib/tcl/alias.tcl",envptr);
-            fp = fopen(script_tcl,"r");
-            if (fp==NULL)            /* couldn't find it anywhere */
+            cp = getenv("TKSURFER_TCL_SCRIPTS") ;
+            if (cp)
+              /* see if script is in users has own scripts directory */
             {
-              printf("tksurfer: (1) File ./%s not found\n",
-                     argv[5]);
-              printf("          (2) File %s/lib/tcl/%s "
-                     "not found\n",
-                     envptr,argv[5]);
-              printf("          (3) File %s/lib/tcl/alias.tcl "
-                     "not found\n",
-                     envptr);
-              exit(0);
+              sprintf(script_tcl,"%s/%s",cp,argv[5]);
+              fp = fopen(script_tcl,"r");
+            } else
+              fp = NULL ;
+            if (fp==NULL)              /* then aliases */
+            {
+              aliasflag = TRUE;
+              sprintf(script_tcl,"%s/lib/tcl/alias.tcl",envptr);
+              fp = fopen(script_tcl,"r");
+              if (fp==NULL)            /* couldn't find it anywhere */
+              {
+                printf("tksurfer: (1) File ./%s not found\n",
+                       argv[5]);
+                printf("          (2) File %s/lib/tcl/%s "
+                       "not found\n",
+                       envptr,argv[5]);
+                printf("          (3) File %s/lib/tcl/alias.tcl "
+                       "not found\n",
+                       envptr);
+                exit(0);
+              }
             }
           }
         }

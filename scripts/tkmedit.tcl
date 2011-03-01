@@ -2,24 +2,24 @@
 ## tkmedit.tcl
 ##
 ## CVS Revision Info:
-##    $Author: fischl $
-##    $Date: 2008/03/04 15:52:43 $
-##    $Revision: 1.129 $
+##    $Author: nicks $
+##    $Date: 2011/03/01 01:41:22 $
+##    $Revision: 1.130 $
 ##
-## Copyright (C) 2002-2007,
-## The General Hospital Corporation (Boston, MA). 
-## All rights reserved.
+## Copyright (C) 2000-2011, CorTechs Labs, Inc. (La Jolla, CA) and
+## The General Hospital Corporation (Boston, MA).
 ##
-## Distribution, usage and copying of this software is covered under the
-## terms found in the License Agreement file named 'COPYING' found in the
-## FreeSurfer source code root directory, and duplicated here:
-## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+## Terms and conditions for use, reproduction, distribution and contribution
+## are found in the 'FreeSurfer/CorTechs Software License Agreement' contained
+## in the file 'license.cortechs.txt' found in the FreeSurfer distribution,
+## and here:
 ##
-## General inquiries: freesurfer@nmr.mgh.harvard.edu
-## Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+## https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferCorTechsLicense
+##
+## Reporting: freesurfer@nmr.mgh.harvard.edu
 ##
 
-source $env(FREESURFER_HOME)/lib/tcl/tkm_common.tcl
+source $env(FREESURFER_HOME)/tktools/tkm_common.tcl
 
 # This function finds a file from a list of directories.
 proc FindFile { ifnFile ilDirs } {
@@ -37,6 +37,8 @@ proc FindFile { ifnFile ilDirs } {
 # Try to get some default script locations from environment variables.
 set sDefaultScriptsDir ""
 catch { set sDefaultScriptsDir "$env(FREESURFER_HOME)/lib/tcl" }
+set sTkToolsDir ""
+catch { set sTkToolsDir "$env(FREESURFER_HOME)/tktools" }
 set sTkmeditScriptsDir ""
 catch { set sTkmeditScriptsDir "$env(TKMEDIT_SCRIPTS_DIR)" }
 set sFsgdfDir ""
@@ -46,19 +48,19 @@ catch { set sFsgdfDir "$env(FSGDF_DIR)" }
 # Source the tkm_common.tcl and tkm_wrappers.tcl
 set fnCommon \
     [FindFile tkm_common.tcl \
-	 [list $sTkmeditScriptsDir "." "../scripts" $sDefaultScriptsDir]]
+	 [list $sTkmeditScriptsDir "." "../scripts" $sDefaultScriptsDir $sTkToolsDir]]
 if { [string compare $fnCommon ""] == 0 } { exit }
 source $fnCommon
 
 set fnWrappers \
     [FindFile tkm_wrappers.tcl \
-	 [list $sTkmeditScriptsDir "." "../scripts" $sDefaultScriptsDir]]
+	 [list $sTkmeditScriptsDir "." "../scripts" $sDefaultScriptsDir $sTkToolsDir]]
 if { [string compare $fnWrappers ""] == 0 } { exit }
 source $fnWrappers
 
 set fnFsgdf \
     [FindFile fsgdfPlot.tcl \
-	 [list $sFsgdfDir "." "../scripts" $sDefaultScriptsDir]]
+	 [list $sFsgdfDir "." "../scripts" $sDefaultScriptsDir $sTkToolsDir]]
 if { [string compare $fnFsgdf ""] == 0 } { exit }
 source $fnFsgdf
 
@@ -5290,13 +5292,13 @@ dputs "Successfully parsed tkmedit.tcl"
 
 
 # now try parsing the prefs files. first look in
-# $FREESURFER_HOME/lib/tcl/tkmedit_init.tcl, then
+# $FREESURFER_HOME/tktools/tkmedit_init.tcl, then
 # $SUBJECTS_DIR/scripts/tkmedit_init.tcl, then
 # $subject/scripts/tkmedit_init.tcl, then
 # ~/scripts/tkmedit_init.tcl.
 set lUserScripts {}
 if { [info exists env(FREESURFER_HOME)] } {
-    lappend lUserScripts $env(FREESURFER_HOME)/lib/tcl/tkmedit_init.tcl
+    lappend lUserScripts $env(FREESURFER_HOME)/tktools/tkmedit_init.tcl
 }
 if { [info exists env(SUBJECTS_DIR)] } {
     lappend lUserScripts $env(SUBJECTS_DIR)/scripts/tkmedit_init.tcl
