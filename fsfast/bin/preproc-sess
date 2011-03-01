@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/24 21:08:58 $
-#    $Revision: 1.39 $
+#    $Date: 2011/03/01 00:37:04 $
+#    $Revision: 1.40 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,8 +22,12 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
+# To get per-run reg with smoothing, make sure -fwhm is after -per-run:
+# preproc-sess -s risk001 -per-run -fwhm 5 -fsd bold 
+# This creates fmcpr.sm5, then
+# mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.39 2011/02/24 21:08:58 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.40 2011/03/01 00:37:04 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -257,7 +261,7 @@ foreach sess ($SessList)
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
-    echo "$sessid To Surface -----------------------------" |& tee -a $LF
+    echo "$sessid To MNI305 -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -639,7 +643,7 @@ check_params:
     if($#mcoutstem == 0) then
       if($PerRun) then
         set mcoutstem = $mcinstem"mcpr"
-      else
+      else # PerSess
         set mcoutstem = $mcinstem"mc"
       endif    
     endif    
