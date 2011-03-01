@@ -85,6 +85,7 @@ label_subject_mixed \
 labels_union \
 labels_intersect \
 labels_disjoint \
+long_mris_slopes \
 lpcregister \
 make_average_surface \
 make_average_volume \
@@ -142,6 +143,7 @@ plot_structure_stats.tcl \
 progressbar.tcl \
 fsr-checkxopts \
 fsr-getxopts \
+qdectable_parser.py \
 rcbf-prep \
 rebuild_gca_atlas.csh \
 recon-all \
