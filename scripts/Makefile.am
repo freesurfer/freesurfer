@@ -9,6 +9,7 @@ aparcstats2table \
 asegstats2table \
 aparcstatsdiff \
 asegstatsdiff \
+avi2talxfm \
 batchjobs \
 beta2sxa \
 bblabel \
