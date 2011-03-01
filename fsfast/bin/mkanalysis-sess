@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/25 20:02:27 $
-#    $Revision: 1.61 $
+#    $Date: 2011/03/01 22:23:32 $
+#    $Revision: 1.62 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.61 2011/02/25 20:02:27 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.62 2011/03/01 22:23:32 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -80,6 +80,7 @@ set PrintHelp = 0;
 set RegDOF = 6;
 set DoMCExtReg = 0;
 set HeteroGCor = 0;
+set UseFSLGamma = 0;
 
 set force = 0;
 set UseGUI = 0;
@@ -408,6 +409,19 @@ while( $#argv != 0 )
       set nGammaDeriv = $argv[1]; shift;
       breaksw
 
+    case "-fslhrf":
+      if($#argv < 1) goto arg1err;
+      set nGammaDeriv = $argv[1]; shift;
+      set UseFSLGamma = 1;
+      set GammaDelta = 0; # Reset to -TR/2 below
+      set GammaTau   = 1.6;
+      set GammaAlpha = 3.1;
+      set TimeWindow = $IdealTimeWindow;
+      set PreStim = 0;
+      set HRFModel = "gamma";
+      # Note: StimulusDelay will be reset to -TR/2
+      breaksw
+
     case "-spmhrf":
       if ( $#argv < 1) goto arg1err;
       set nSPMHRF = $argv[1]; shift;
@@ -682,6 +696,10 @@ check_params:
       echo "  event-related and blocked designs. Use the -refeventdur flag."
       exit 1;
     endif
+    if($UseFSLGamma) then
+      # Set delay to -TR/2
+      set GammaDelta = `echo "-$TR/2" | bc -l`
+    endif
     if($#TER == 0 && $HRFModel == "fir") set TER = $TR;
     if($#TER == 0 && $HRFModel != "fir") then
       set TER = `perl -e "print sprintf('%f',$TR/int($TR/$IdealTER+0.5))"`
@@ -754,6 +772,7 @@ usage_exit:
   echo "   -TER TER             : temporal estimation resolution (sec)"
   echo "        ------------- Assume a shape ----------------"
   echo "   -spmhrf nderiv    : assume SPM HRF with nderiv derivatives"
+  echo "   -fslhrf nderiv    : assume FSL HRF with nderiv derivatives"
   echo "   -gammafit gfDelta gfTau : assume IRF is a gamma function"
   echo "   -gammaexp gfAlpha : gamma exponent (default is 2) "
   echo "   -ngammaderiv N   : number of derivatives to gamma function "
