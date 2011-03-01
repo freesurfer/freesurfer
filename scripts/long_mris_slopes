@@ -15,7 +15,7 @@ from fsgd_parser import *
 from qdectable_parser import *
 
 # Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.1 2011/03/01 00:11:25 mreuter Exp $
+# $Id: long_mris_slopes,v 1.2 2011/03/01 01:13:40 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -82,13 +82,15 @@ For the type you have three different options:
    yield e.g. the thinning in mm/year (if the time variable is measured in
    years, such as age). 
 2. 'PC1' is the percent change, this is the rate normalized by the measure
-   at the first time point, e.g. percent thinning per year.
+   at the first time point times 100, e.g. percent thinning per year.
 3. 'SPC' for symmetrized percent change. Here we normalize by the average
    measure instead of taking it from the first time point. The average is
    computed from the linear fit at the middle of the time interval.
+   This is a more robust 'percent thinning per year' as TP1 can be an
+   outlier.
 
 Note that for percent change prior smoothing (--fwhm) is recommended as the
-division can produce large outliers.
+division can produce very large values.
 """
 
 # not encouraged, therefore removed from helptext above:
@@ -127,7 +129,7 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.1 2011/03/01 00:11:25 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.2 2011/03/01 01:13:40 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -202,6 +204,18 @@ def write_fsgd(filename,subjects_tp_map,subject,timeidx):
     fp.close()    
 
 
+def run_cmd(cmd,err_msg):
+    """
+    execute the comand
+    """
+    print cmd+'\n'
+    args = shlex.split(cmd)
+    retcode = subprocess.call(args)
+    if retcode != 0 :
+        print 'ERROR: '+err_msg
+        sys.exit(1)
+    print '\n'
+    
 
 if __name__=="__main__":
     # Command Line options and error checking done here
@@ -307,12 +321,8 @@ if __name__=="__main__":
                 tp1id   = tpdata[0]+'.long.'+subjectid
             else:
                 cmd = 'mris_label_calc intersect '+cortex+' '+ctx_target+' '+ctx_target
-            print cmd
-            args = shlex.split(cmd)
-#            retcode = subprocess.call(args)
-            if retcode != 0 :
-                print 'ERROR: mris_label_calc intersect did not work?'
-                sys.exit(1)
+            run_cmd(cmd,'mris_label_calc intersect did not work?')
+
         
         # avearge age:
         meant = meant / i
@@ -331,25 +341,19 @@ if __name__=="__main__":
         
         # stack measure maps:
         cmd = 'mri_concat '+all+' --o '+meas_target
-        print cmd
-        args = shlex.split(cmd)
-#        retcode = subprocess.call(args)
-        if retcode != 0 :
-            print 'ERROR: mri_concat stacking did not work?'
-            sys.exit(1)
-        print "\n"
+        run_cmd(cmd,'mri_concat stacking did not work?')
+
+        # set label from options instead of intersected cortex, if passed
+        label = ctx_target
+        if options.label is not None:
+            label = options.label
         
         # run glm in tmp dir:
         prefix = './'+subjectid+'_'+options.hemi+'_'
         dirname = tempfile.mkdtemp('',prefix,'')        
-        cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+' --label '+ctx_target+' --glmdir '+dirname
-        print cmd
-        args = shlex.split(cmd)
-        retcode = subprocess.call(args)
-        if retcode != 0 :
-            print 'ERROR: mri_glmfit did not work?'
-            sys.exit(1)
-        print "\n"
+        cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+' --label '+label+' --glmdir '+dirname
+        run_cmd(cmd,'mri_glmfit did not work?')
+
         
         # harvest results (in beta.mgh)
         betafn = os.path.join(dirname,'beta.mgh' )  
@@ -361,28 +365,12 @@ if __name__=="__main__":
             
         # split beta
         cmd = 'mri_convert --frame 0 '+betafn+' '+beta0 
-        print cmd
-        args = shlex.split(cmd)
-        retcode = subprocess.call(args)
-        if retcode != 0 :
-            print 'ERROR: mri_convert split frames did not work?'
-            sys.exit(1)
-        print "\n"
+        run_cmd(cmd,'mri_convert split frames 0 did not work?')
         
         cmd = 'mri_convert --frame 1 '+betafn+' '+beta1 
-        print cmd
-        args = shlex.split(cmd)
-        retcode = subprocess.call(args)
-        if retcode != 0 :
-            print 'ERROR: mri_convert split frames did not work?'
-            sys.exit(1)
-        print "\n"
+        run_cmd(cmd,'mri_convert split frames 1 did not work?')
         
-        
-        # set label from options instead of intersected cortex
-        if options.label is not None:
-            label = options.label
-        
+                
         
         # possibly smooth them:
         smooth = ''
@@ -398,58 +386,43 @@ if __name__=="__main__":
 
         if options.type == 'SPC':
             cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type mgh '+' --tval '+beta0+' --trg_type curv '+smooth
-            print cmd
-            args = shlex.split(cmd)
-            retcode = subprocess.call(args)
-            if retcode != 0 :
-                print 'ERROR: mri_surf2surf smoothing did not work?'
-                sys.exit(1)
-            print "\n"
+            run_cmd(cmd,'mri_surf2surf smoothing did not work?')
                     
         if options.type == 'PC1':
             cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tp1id+' --sval '+tp1old+' --src_type curv '+' --tval '+tp1meas+' --trg_type curv '+smooth
-            print cmd
-            args = shlex.split(cmd)
-            retcode = subprocess.call(args)
-            if retcode != 0 :
-                print 'ERROR: mri_surf2surf smoothing did not work?'
-                sys.exit(1)
-            print "\n"
+            run_cmd(cmd,'mri_surf2surf smoothing did not work?')
             
         cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta1old+' --src_type mgh '+' --tval '+beta1+' --trg_type curv '+smooth
         print cmd
-        args = shlex.split(cmd)
-        retcode = subprocess.call(args)
-        if retcode != 0 :
-            print 'ERROR: mri_surf2surf smoothing did not work?'
-            sys.exit(1)
-        print "\n"
+        run_cmd(cmd,'mri_surf2surf smoothing did not work?')
             
         
         # create ouput (depending on type)
         outname = os.path.join(basedir,'surf',options.hemi+'.'+options.out)
         if options.type == 'R':
-            cmd = 'cp '+beta1+' '+outname     
+            cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1+' mul 1'
+            run_cmd(cmd,'mris_calc masking with label')    
         elif options.type == 'PC1':
             cmd = 'mris_calc -o '+outname+' '+beta1+' div '+tp1meas
+            run_cmd(cmd,'mris_calc compute percent change (1) problem?')
+            cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
+            run_cmd(cmd,'mris_calc compute percent change (1) problem?')
         elif options.type == 'SPC':
             cmd = 'mris_calc -o '+outname+' '+beta1+' div '+beta0
-        
-        print cmd
-        args = shlex.split(cmd)
-        retcode = subprocess.call(args)
-        if retcode != 0 :
-            print 'ERROR: trouble writing output...'
+            run_cmd(cmd,'mris_calc compute sym. pct. change problem?')    
+            cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
+            run_cmd(cmd,'mris_calc compute sym. pct. change problem?')    
+        else:
+            print 'ERROR: type option '+options.type+' unknown!'
             sys.exit(1)
-        print "\n"
+                
            
         # cleanup tmp dir:    
         shutil.rmtree(dirname)
-    
-            
-    print 'You can look at the result with:'
-    print '  tksurfer '+subjectid+' '+options.hemi+' pial -overlay '+outname
-    print
+                
+        print 'You can look at the result with:'
+        print '  tksurfer '+subjectid+' '+options.hemi+' pial -overlay '+outname
+        print
           
             
     # always exit with 0 exit code
