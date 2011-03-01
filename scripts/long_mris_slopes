@@ -15,7 +15,7 @@ from fsgd_parser import *
 from qdectable_parser import *
 
 # Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.3 2011/03/01 01:30:09 mreuter Exp $
+# $Id: long_mris_slopes,v 1.4 2011/03/01 02:13:10 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -129,7 +129,7 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.3 2011/03/01 01:30:09 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.4 2011/03/01 02:13:10 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -278,7 +278,12 @@ if __name__=="__main__":
         if not os.path.exists(basedir):
             print 'ERROR: Template dir '+str(basedir)+' does not exist!'
             sys.exit(1)
-            
+        
+        if len(tplist) < 2 :
+            print 'ERROR: '+str(basedir)+' must have at least 2 time points!'
+            sys.exit(1)
+        
+        
         label = options.hemi+'.long.cortex.label'
         ctx_target  = os.path.join(basedir,'label',label)
         meas_target = os.path.join(basedir,'surf',options.hemi+'.longstack.'+options.meas+'.mgh')
@@ -288,6 +293,8 @@ if __name__=="__main__":
         meant = 0.0
         tp1meas = ''
         tp1id = ''
+        tp2meas = ''
+        tp2id = ''
         
         # collect inputs and intersect cortex labels:
         for tpdata in tplist:
@@ -321,56 +328,101 @@ if __name__=="__main__":
                 tp1id   = tpdata[0]+'.long.'+subjectid
             else:
                 cmd = 'mris_label_calc intersect '+cortex+' '+ctx_target+' '+ctx_target
+            if i== 2 : #remember for the 2 tp case below
+                tp2meas = measure
+                tp2id   =  tpdata[0]+'.long.'+subjectid
+                
             run_cmd(cmd,'mris_label_calc intersect did not work?')
 
-        
-        # avearge age:
-        meant = meant / i
-        
-        print '\n\nINFO: '+str(i)+' TPs in '+subjectid+' mean age: '+str(meant)+'\n'
-        
-        print 'Writing '+x_target+' ...\n'
-        
-        #write X-matrix:
-        if os.path.exists(x_target):
-            os.remove(x_target)
-        xfp = open(x_target, 'w')
-        for time in times:
-            xfp.write('1 '+str(time-meant)+'\n')
-        xfp.close()    
-        
-        # stack measure maps:
-        cmd = 'mri_concat '+all+' --o '+meas_target
-        run_cmd(cmd,'mri_concat stacking did not work?')
-
+        prefix = './'+subjectid+'_'+options.hemi+'_'
+        dirname = tempfile.mkdtemp('',prefix,'')
+                
         # set label from options instead of intersected cortex, if passed
         label = ctx_target
         if options.label is not None:
             label = options.label
         
-        # run glm in tmp dir:
-        prefix = './'+subjectid+'_'+options.hemi+'_'
-        dirname = tempfile.mkdtemp('',prefix,'')        
-        cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+' --label '+label+' --glmdir '+dirname
-        run_cmd(cmd,'mri_glmfit did not work?')
+        if i == 2 :  # 2 tps, direct computation
+        
+            # sort
+            if times[0] > times[1] :
+                temp = times[1]
+                times[1] = times[0]
+                times[0] = temp
+                temp = tp1meas
+                tp1meas = tp2meas
+                tp2meas = temp
+                temp = tp1id
+                tp1id = tp2id
+                tp2id = temp
+        
+            # create difference:
+            beta1 = os.path.join(dirname,options.hemi+'.rate.'+options.meas)
+            cmd = 'mris_calc -o '+beta1+' '+tp2meas+' sub '+tp1meas
+            run_cmd(cmd,'mri_calc difference did not work?')
+            cmd = 'mris_calc -o '+beta1+' '+beta1+' div '+str(times[1]-times[0])
+            run_cmd(cmd,'mri_calc div did not work?')
+            
+            ftype = 'curv'
+        
+            # create average for SPC
+            beta0 = ''
+            if options.type == 'SPC':
+                beta0 = os.path.join(dirname,options.hemi+'.avg.'+options.meas)
+                cmd = 'mris_calc -o '+beta0+' '+tp1meas+' add '+tp2meas
+                run_cmd(cmd,'mri_calc sum did not work?')
+                cmd = 'mris_calc -o '+beta0+' '+beta0+' mul 0.5'
+                run_cmd(cmd,'mri_calc mul 0.5 did not work?')
+        
+        
+        else: # more than 2 time points, run GLM
+        
+        
+            # avearge age:
+            meant = meant / i
+        
+            print '\n\nINFO: '+str(i)+' TPs in '+subjectid+' mean age: '+str(meant)+'\n'
+        
+       
+            #write X-matrix:
+            print 'Writing '+x_target+' ...\n'
+            if os.path.exists(x_target):
+                os.remove(x_target)
+            xfp = open(x_target, 'w')
+            for time in times:
+                xfp.write('1 '+str(time-meant)+'\n')
+            xfp.close()    
+        
+            # stack measure maps:
+            cmd = 'mri_concat '+all+' --o '+meas_target
+            run_cmd(cmd,'mri_concat stacking did not work?')
 
         
-        # harvest results (in beta.mgh)
-        betafn = os.path.join(dirname,'beta.mgh' )  
-        beta0  = os.path.join(dirname,'beta0.mgh')  
-        beta1  = os.path.join(dirname,'beta1.mgh') 
-        if not os.path.exists(betafn):
-            print 'ERROR: GLM results '+str(betafn)+' does not exist!'
-            sys.exit(1)
+            # run glm in tmp dir:
+            prefix = './'+subjectid+'_'+options.hemi+'_'
+            dirname = tempfile.mkdtemp('',prefix,'')        
+            cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+' --label '+label+' --glmdir '+dirname
+            run_cmd(cmd,'mri_glmfit did not work?')
+
+            ftype = 'mgh'
+        
+            # harvest results (in beta.mgh)
+            betafn = os.path.join(dirname,'beta.mgh' )  
+            beta0  = os.path.join(dirname,'beta0.mgh')  
+            beta1  = os.path.join(dirname,'beta1.mgh') 
+            if not os.path.exists(betafn):
+                print 'ERROR: GLM results '+str(betafn)+' does not exist!'
+                sys.exit(1)
             
-        # split beta
-        cmd = 'mri_convert --frame 0 '+betafn+' '+beta0 
-        run_cmd(cmd,'mri_convert split frames 0 did not work?')
+            # split beta
+            cmd = 'mri_convert --frame 0 '+betafn+' '+beta0 
+            run_cmd(cmd,'mri_convert split frames 0 did not work?')
         
-        cmd = 'mri_convert --frame 1 '+betafn+' '+beta1 
-        run_cmd(cmd,'mri_convert split frames 1 did not work?')
+            cmd = 'mri_convert --frame 1 '+betafn+' '+beta1 
+            run_cmd(cmd,'mri_convert split frames 1 did not work?')
         
-                
+        
+        # either of the cases:        
         
         # possibly smooth them:
         smooth = ''
@@ -385,15 +437,14 @@ if __name__=="__main__":
         tp1meas = os.path.join(dirname,'tp1')  
 
         if options.type == 'SPC':
-            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type mgh '+' --tval '+beta0+' --trg_type curv '+smooth
+            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type '+ftype+' --tval '+beta0+' --trg_type curv '+smooth
             run_cmd(cmd,'mri_surf2surf smoothing did not work?')
                     
-        if options.type == 'PC1':
-            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tp1id+' --sval '+tp1old+' --src_type curv '+' --tval '+tp1meas+' --trg_type curv '+smooth
+        elif options.type == 'PC1':
+            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tp1id+' --sval '+tp1old+' --src_type curv --tval '+tp1meas+' --trg_type curv '+smooth
             run_cmd(cmd,'mri_surf2surf smoothing did not work?')
             
-        cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta1old+' --src_type mgh '+' --tval '+beta1+' --trg_type curv '+smooth
-        print cmd
+        cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta1old+' --src_type '+ftype+' --tval '+beta1+' --trg_type curv '+smooth
         run_cmd(cmd,'mri_surf2surf smoothing did not work?')
             
         
