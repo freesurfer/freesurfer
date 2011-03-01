@@ -31,6 +31,7 @@ if ENABLE_TCLTK_APPS
 # and install in 'tktools' dir instead of 'bin' (to allow easy deletion
 # of all cortech-licensed software)
 install-exec-hook:
+	mv -v $(DESTDIR)$(bindir)/tkregister2_cmdl $(DESTDIR)$(prefix)/tktools/
 	rm -vf $(DESTDIR)$(bindir)/tkregister*
 	cp $(top_builddir)/tkregister2/tkregister2 \
 		$(DESTDIR)$(prefix)/tktools/tkregister2.bin
