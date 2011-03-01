@@ -49,11 +49,6 @@ Parts of this software are based on the MINC software. The original license
 terms of the MINC software distribution is included in the file 
 docs/license.minc.txt
 
-FSL.
-Parts of this software are based on the FSL software. The original license 
-terms of the FSL software distribution is included in the file 
-docs/license.fsl.txt
-
 VTK/KWWidgets.
 Parts of this software are based on the VTK/KWWidgets software. The original 
 license terms of the VTK/KWWidgets software distribution is included in the 
@@ -113,4 +108,9 @@ CUDA.
 Parts of this software are based on the CUDA software from NVIDIA. 
 The original license terms of the CUDA DSK software distribution is included 
 in the file docs/license.cuda.txt
+
+FSL.
+Parts of this software make use of the FSL software package, eg. 'flirt' is 
+redistributed as 'flirt.fsl'. The original license terms of the FSL software 
+distribution is included in the file docs/license.fsl.txt
 
