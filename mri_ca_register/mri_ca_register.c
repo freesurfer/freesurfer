@@ -23,9 +23,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.77 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/02 14:27:40 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -221,7 +221,7 @@ main(int argc, char *argv[])
 
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_register.c,v 1.77 2011/03/02 00:04:14 nicks Exp $",
+           "$Id: mri_ca_register.c,v 1.78 2011/03/02 14:27:40 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1190,13 +1190,17 @@ main(int argc, char *argv[])
       printf("writing normalized gca to %s...\n", write_gca_fname) ;
       GCAwrite(gcam->gca, write_gca_fname) ;
     }
-    parms.tol /= 5 ;  // reset parameters to previous level
-    parms.l_smoothness /= 5 ;
-    GCAMregister(gcam, mri_inputs, &parms) ;
-    parms.noneg = 0 ;
-    parms.tol = 0.25 ;
-    parms.navgs = 16 ;
-    GCAMregister(gcam, mri_inputs, &parms) ;
+    if (parms.noneg < 2)
+    {
+      parms.tol /= 5 ;  // reset parameters to previous level
+      parms.l_smoothness /= 5 ;
+      GCAMregister(gcam, mri_inputs, &parms) ;
+      parms.noneg = 0 ;
+      parms.tol = 0.25 ;
+      parms.orig_dt = 1e-6 ;
+      parms.navgs = 16 ;
+      GCAMregister(gcam, mri_inputs, &parms) ;
+    }
   }
 
   if (parms.l_label > 0)
