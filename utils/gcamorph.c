@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.242 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/02 14:27:22 $
+ *    $Revision: 1.243 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3302,29 +3302,29 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
         if (i == Gx && j == Gy && k == Gz)
           DiagBreak() ;
 
-	// Test to see if current location is valid
+        // Test to see if current location is valid
         if (gcamn->invalid == GCAM_POSITION_INVALID)
         {
           Ginvalid++ ;
           continue;
         }
-
+        
         neg = num = 0 ;
         gcamn->area = 0.0 ;
-
-
+        
+        
         // Compute Jacobean determinants on the 'right'
         if ((i < width-1) && (j < height-1) && (k < depth-1))
         {
           gcamni = &gcam->nodes[i+1][j][k] ;
           gcamnj = &gcam->nodes[i][j+1][k] ;
           gcamnk = &gcam->nodes[i][j][k+1] ;
-
+          
           if (gcamni->invalid != GCAM_POSITION_INVALID &&
               gcamnj->invalid != GCAM_POSITION_INVALID &&
               gcamnk->invalid != GCAM_POSITION_INVALID)
           {
-
+            
             num++ ;
             GCAMN_SUB(gcamni, gcamn, v_i) ;
             GCAMN_SUB(gcamnj, gcamn, v_j) ;
@@ -3336,26 +3336,26 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
               neg = 1 ;
               DiagBreak() ;
             }
-
-	    // Store the 'right' Jacobean determinant
+            
+            // Store the 'right' Jacobean determinant
             gcamn->area1 = area1 ;
-
-	    // Accumulate onto common determinant
+            
+            // Accumulate onto common determinant
             gcamn->area += area1 ;
           }
         } else {
-	  // Going to the 'right' would fall out of the volume
+          // Going to the 'right' would fall out of the volume
           gcamn->area1 = 0 ;
-	}
-
-
+        }
+        
+        
         // Compute Jacobean determinants on the 'left'
         if ((i > 0) && (j > 0) && (k > 0))  /* left-hand coordinate system */
         {
           gcamni = &gcam->nodes[i-1][j][k] ;
           gcamnj = &gcam->nodes[i][j-1][k] ;
           gcamnk = &gcam->nodes[i][j][k-1] ;
-
+          
           if (gcamni->invalid != GCAM_POSITION_INVALID &&
               gcamnj->invalid != GCAM_POSITION_INVALID &&
               gcamnk->invalid != GCAM_POSITION_INVALID)
@@ -3367,41 +3367,41 @@ gcamComputeMetricProperties(GCA_MORPH *gcam)
             GCAMN_SUB(gcamnk, gcamn, v_k) ;
             // add two volume
             area2 = VectorTripleProduct(v_j, v_k, v_i);
-
-	    // Store the 'left' Jacobean determinant
+            
+            // Store the 'left' Jacobean determinant
             gcamn->area2 = area2 ;
-
+            
             if (area2 <= 0)
             {
               neg = 1 ;
               DiagBreak() ;
             }
 
-	    // Accumulate onto common determinant
+            // Accumulate onto common determinant
             gcamn->area += area2 ;
           }
         } else {
-	  // Going to the 'left' would fall out of the volume
+          // Going to the 'left' would fall out of the volume
           gcamn->area2 = 0 ;
-	}
-
-	// Check if at least one Jacobean determinant was computed
+        }
+        
+        // Check if at least one Jacobean determinant was computed
         if (num > 0) {
-	  // Store the average of computed determinants in the common determinant
+          // Store the average of computed determinants in the common determinant
           gcamn->area = gcamn->area / (float)num ; // average volume
         } else {
-	  // If no determinants computed, this node becomes invalid
+          // If no determinants computed, this node becomes invalid
           if (i == Gx && j == Gy && k == Gz) {
             DiagBreak() ;
-	  }
+          }
           gcamn->invalid = GCAM_AREA_INVALID ;
           gcamn->area = 0 ;
         }
-
-	// Keep track of determinants which have become negative
+        
+        // Keep track of determinants which have become negative
         if ((gcamn->invalid == GCAM_VALID) && neg && (gcamn->orig_area > 0))
         {
-
+          
           if (i > 0 && j > 0 && k > 0&&
               i < gcam->width-1 && j < gcam->height-1 && k < gcam->depth-1) {
             DiagBreak() ;
@@ -5564,11 +5564,11 @@ gcamComputeGradient
   gcamLimitGradientMagnitude(gcam, parms, mri) ;
 
 
-  if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && (i<10)))
+  if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && i<10) || (gcam_write_grad>1))
   {
     char fname[STRLEN] ;
     MRI *mri ;
-    printf("writing gradients...\n") ;
+    printf("writing gradients to ...%s_d[xyz]b_%4.4d.mgz\n", parms->base_name, i) ;
     mri = GCAMwriteMRI(gcam, NULL, GCAM_X_GRAD) ;
     sprintf(fname, "%s_dxb_%4.4d.mgz", parms->base_name, i) ;
     MRIwrite(mri, fname) ;
@@ -5606,7 +5606,7 @@ gcamComputeGradient
   }
 
 
-  if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && i<10))
+  if ((Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON) || (gcam_write_grad && i<10) || (gcam_write_grad>1))
   {
     MRI *mri ;
     char fname[STRLEN] ;
@@ -9238,6 +9238,8 @@ gcamRemoveCompressedNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms,
 }
 
 
+#define MAX_NEG_ITER 100
+
 int
 gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
 {
@@ -9262,6 +9264,7 @@ gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
   parms->l_area = 0.0 ;
   parms->l_jacobian = 1 ;
   parms->dt = 0.1 ;
+  parms->tol = 0.01 ;
 
   last_rms = rms = GCAMcomputeRMS(gcam, mri, parms) ;
   printf("starting rms=%2.3f, neg=%d, removing folds in lattice....\n", rms, gcam->neg) ;
@@ -9279,10 +9282,10 @@ gcamRemoveNegativeNodes(GCA_MORPH *gcam, MRI *mri, GCA_MORPH_PARMS *parms)
     parms->dt = orig_dt ;
     new_neg = gcam->neg ;
     pct_change = 100.0*(last_rms-rms)/(last_rms) ;
-    printf("iter %d, dt=%2.6f: new neg %d, old_neg %d, delta %d, rms=%2.3f\n", \
-           ++i, min_dt, new_neg, old_neg, old_neg-new_neg, rms) ;
+    printf("iter %d, dt=%2.6f: new neg %d, old_neg %d, delta %d, rms=%2.3f (%2.3f%%)\n", 
+           ++i, min_dt, new_neg, old_neg, old_neg-new_neg, rms, pct_change) ;
   }
-  while ((new_neg > 0) && (pct_change > parms->tol) && (i < 5)) ;
+  while ((new_neg > 0) && (pct_change > parms->tol) && (i < MAX_NEG_ITER)) ;
 
   *parms = *(&saved_parms) ;
   return(NO_ERROR) ;
@@ -16055,6 +16058,25 @@ GCAMreadWarpFromMRI( GCA_MORPH *gcam, const MRI *mri_warp )
   double          dx, dy, dz ;
   GCA_MORPH_NODE  *gcamn ;
 
+  if (gcam->width  == mri_warp->width &&
+      gcam->height == mri_warp->height &&
+      gcam->depth  == mri_warp->depth)
+  {
+    for (xp = 0 ; xp < gcam->width ; xp++)
+      for (yp = 0 ; yp < gcam->height ; yp++)
+        for (zp = 0 ; zp < gcam->depth ; zp++)
+        {
+          if (xp == Gx && yp == Gy && zp == Gz)
+            DiagBreak() ;
+          gcamn = &gcam->nodes[xp][yp][zp] ;
+          dx = MRIgetVoxVal(mri_warp, xp, yp, zp, 0) ;
+          dy = MRIgetVoxVal(mri_warp, xp, yp, zp, 1) ;
+          dz = MRIgetVoxVal(mri_warp, xp, yp, zp, 2) ;
+          gcamn->x = gcamn->origx+dx ; gcamn->y = gcamn->origy+dy ; gcamn->z = gcamn->origz+dz ;
+        }
+    return(NO_ERROR) ;
+  }
+
   for (xp = 0 ; xp < gcam->width; xp++)
   {
     xv = (xp * gcam->spacing) ;
@@ -16323,8 +16345,26 @@ GCAMwriteWarpToMRI( const GCA_MORPH *gcam, MRI *mri_warp)
   double xp, yp, zp ;
   float  xw, yw, zw ;
 
-  if (mri_warp == NULL)
-    mri_warp = MRIallocSequence(gcam->atlas.width, gcam->atlas.height, gcam->atlas.depth, MRI_FLOAT, 3) ;
+  if (mri_warp == NULL)  // warp is same dimensions as gcam by construction
+  {
+    GCA_MORPH_NODE *gcamn ;
+
+    mri_warp = MRIallocSequence(gcam->width, gcam->height, gcam->depth, MRI_FLOAT, 3) ;
+    MRIcopyVolGeomToMRI(mri_warp, &gcam->atlas) ;
+    for (x = 0 ; x < mri_warp->width ; x++)
+      for (y = 0 ; y < mri_warp->height ; y++)
+        for (z = 0 ; z < mri_warp->depth ; z++)
+        {
+          gcamn = &gcam->nodes[x][y][z] ;
+          MRIsetVoxVal(mri_warp, x, y, z, 0, gcamn->x - gcamn->origx) ;
+          MRIsetVoxVal(mri_warp, x, y, z, 1, gcamn->y - gcamn->origy) ;
+          MRIsetVoxVal(mri_warp, x, y, z, 2, gcamn->z - gcamn->origz) ;
+          if (x == Gx && y == Gy && z == Gz)
+            printf("voxel (%2.1f, %2.1f, %2.1f) --> (%2.1f, %2.1f, %2.1f)\n",
+                   gcamn->origx, gcamn->origy, gcamn->origz, gcamn->x, gcamn->y, gcamn->z) ;
+        }
+    return(mri_warp) ;
+  }
 
   MRIcopyVolGeomToMRI(mri_warp, &gcam->atlas) ;
   for (x = 0 ; x < mri_warp->width ; x++)
@@ -16720,15 +16760,19 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
                   xk, yk, zk, nbhd = 1, max_noprogress, noprogress, min_neg ;
   double          dx, dy, dz, max_nbhd ;
   GCA_MORPH_NODE  *gcamn ;
-  MRI             *mri_warp_tmp = NULL, *mri_neg ;
+  MRI             *mri_warp_tmp = NULL, *mri_neg, *mri_neg_orig, *mri_neg_atlas ;
 
   wsize = 2*gcam->spacing+1 ; wsize = 3 ;
   GCAMreadWarpFromMRI(gcam, mri_warp) ;
   gcamComputeMetricProperties(gcam) ;
   if (gcam->neg == 0)
     return(NO_ERROR) ;
-  mri_neg = MRIalloc(mri_warp->width, mri_warp->height, mri_warp->depth, MRI_UCHAR) ;
-  MRIcopyHeader(mri_warp, mri_neg) ;
+  mri_neg = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_UCHAR) ;
+  MRIcopyVolGeomToMRI(mri_warp, &gcam->image);
+  mri_neg_orig = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_UCHAR) ;
+  MRIcopyVolGeomToMRI(mri_neg_orig, &gcam->image);
+  mri_neg_atlas = MRIalloc(mri_warp->width, mri_warp->height, mri_warp->depth, MRI_UCHAR) ;
+  MRIcopyVolGeomToMRI(mri_neg_atlas, &gcam->atlas);
   iter = 0 ;
   max_iter = 200 ;
   max_noprogress = 4 ;
@@ -16756,7 +16800,7 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
           zv = (zp * gcam->spacing) ;
           //        GCApriorToVoxel(gcam->gca, mri_warp, xp, yp, zp, &xv, &yv, &zv) ;
           gcamn = &gcam->nodes[xp][yp][zp] ;
-          if (gcamn->area1 <= 0 || gcamn->area2 <= 0)
+          if (gcamn->area1 < 0 || gcamn->area2 < 0)
           {
             int xv, yv, zv ;
             xv = nint(gcamn->x) ; yv = nint(gcamn->y) ; zv = nint(gcamn->z) ;
@@ -16764,23 +16808,30 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
                 yv >= 0 && yv < mri_neg->height &&
                 zv >= 0 && zv < mri_neg->depth)
               MRIsetVoxVal(mri_neg, nint(gcamn->x), nint(gcamn->y), nint(gcamn->z), 0, 128) ;
+
+            xv = nint(gcamn->origx) ; yv = nint(gcamn->origy) ; zv = nint(gcamn->origz) ;
+            if (xv >= 0 && xv < mri_neg->width &&
+                yv >= 0 && yv < mri_neg->height &&
+                zv >= 0 && zv < mri_neg->depth)
+              MRIsetVoxVal(mri_neg_orig, xv, yv, zv, 0, 128) ;
+            MRIsetVoxVal(mri_neg_atlas, xp, yp, zp, 0, 128) ;
           }
 
-          if ((gcamn->area1 <= 0 || gcamn->area2 <= 0) && gcamn->invalid == GCAM_VALID)
+          if ((gcamn->area1 < 0 || gcamn->area2 < 0) && gcamn->invalid == GCAM_VALID)
           {
             for (xk = -nbhd ; xk <= nbhd ; xk++)
             {
-              xv = nint(xp * gcam->spacing + xk) ;
+              xv = xp + xk ;
               if (xv < 0 || xv >= mri_warp->width)
                 continue ;
               for (yk = -nbhd ; yk <= nbhd ; yk++)
               {
-                yv = nint(yp * gcam->spacing + yk) ;
+                yv = yp + yk ;
                 if (yv < 0 || yv >= mri_warp->height)
                   continue ;
                 for (zk = -nbhd ; zk <= nbhd ; zk++)
                 {
-                  zv = nint((zp * gcam->spacing) + zk) ;
+                  zv = zp + zk ;
                   if (zv < 0 || zv >= mri_warp->depth)
                     continue ;
 
@@ -16799,7 +16850,11 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
     }
     
     if (Gdiag & DIAG_WRITE && DIAG_VERBOSE_ON)
+    {
       MRIwrite(mri_neg, "neg.mgz") ;
+      MRIwrite(mri_neg_atlas, "neg.atlas.mgz") ;
+      MRIwrite(mri_neg_orig, "neg.orig.mgz") ;
+    }
     GCAMreadWarpFromMRI(gcam, mri_warp) ;
     gcamComputeMetricProperties(gcam) ;
     if (Gdiag & DIAG_SHOW)
@@ -16834,7 +16889,7 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
   printf("after %d iterations, nbhd size=%d, neg = %d\n", iter, nbhd, gcam->neg) ;
   if (gcam->neg > 0)
     DiagBreak() ;
-  MRIfree(&mri_warp_tmp) ; MRIfree(&mri_neg) ;
+  MRIfree(&mri_warp_tmp) ; MRIfree(&mri_neg) ; MRIfree(&mri_neg_atlas) ; MRIfree(&mri_neg_orig) ;
   return(NO_ERROR) ;
 }
 MRI *
