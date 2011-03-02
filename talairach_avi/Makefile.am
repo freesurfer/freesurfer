@@ -161,8 +161,8 @@ foo:
 	then \
 		cp -v $(top_srcdir)/distribution/average/mni305.cor.mgz \
 					$(top_builddir)/distribution/average/; fi;
-	if ! test -f "$(top_builddir)/scripts/tkregister2.tcl"; then \
-		cp -v $(top_srcdir)/scripts/tkregister2.tcl \
+	if ! test -f "$(top_builddir)/scripts/avi2talxfm"; then \
+		cp -v $(top_srcdir)/scripts/avi2talxfm \
 					$(top_builddir)/scripts/; fi;
 	if ! test -f "$(top_builddir)/talairach_avi/nu.mgz"; then \
 		cp -v $(top_srcdir)/talairach_avi/nu.mgz \
