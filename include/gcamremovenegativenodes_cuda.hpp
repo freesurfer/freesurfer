@@ -11,8 +11,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/25 17:35:32 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/02 18:36:57 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -37,6 +37,9 @@
 #include "gcamfots_cuda.hpp"
 #include "gcamorphenergy.hpp"
 #include "gcamcomputegradient_cuda.hpp"
+
+
+const int kMaxNegIter = 100;
 
 //! Implement gcamRemoveNegativeNodes
 template<typename T>
@@ -75,6 +78,7 @@ void RemoveNegativeNodes( GPU::Classes::GCAmorphGPU& gcam,
   parms->l_area = 0.0;
   parms->l_jacobian = 1;
   parms->dt = 0.1;
+  parms->tol = 0.01;
 
   last_rms = rms = gcamEnergy.ComputeRMS( gcam, mri, parms );
   new_neg = gcam.neg;
@@ -99,9 +103,9 @@ void RemoveNegativeNodes( GPU::Classes::GCAmorphGPU& gcam,
     pct_change = 100.0*(last_rms-rms)/(last_rms);
 
     printf( "iter %d, dt=%2.6f: new neg %d, old_neg %d, delta %d, rms=%2.3f\n",
-            ++i, min_dt, new_neg, old_neg, old_neg-new_neg, rms) ;
+            ++i, min_dt, new_neg, old_neg, old_neg-new_neg, rms, pct_change );
   }
-  while( (new_neg>0) && (pct_change > parms->tol) && (i < 5) );
+  while( (new_neg>0) && (pct_change > parms->tol) && (i < kMaxNegIter) );
 
   *parms = saved_parms;
 }

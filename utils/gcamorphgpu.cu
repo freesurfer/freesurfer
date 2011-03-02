@@ -7,9 +7,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.52 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/02 18:37:00 $
+ *    $Revision: 1.53 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1241,7 +1241,10 @@ namespace GPU {
     void WriteWarpToVecVolKernel( VecVolArgGPU vv,
                                   const VolumeArgGPU<float> x,
                                   const VolumeArgGPU<float> y,
-                                  const VolumeArgGPU<float> z ) {
+                                  const VolumeArgGPU<float> z,
+                                  const VolumeArgGPU<float> origx,
+                                  const VolumeArgGPU<float> origy,
+                                  const VolumeArgGPU<float> origz ) {
       const unsigned int bx = ( blockIdx.x * blockDim.x );
       const unsigned int by = ( blockIdx.y * blockDim.y );
       const unsigned int ix = threadIdx.x + bx;
@@ -1250,9 +1253,9 @@ namespace GPU {
       for( unsigned int iz = 0; iz<x.dims.z; iz++ ) {
         if( x.InVolume(ix,iy,iz) ) {
           float3 res;
-          res.x = x(ix,iy,iz) - ix;
-          res.y = y(ix,iy,iz) - iy;
-          res.z = z(ix,iy,iz) - iz;
+          res.x = x(ix,iy,iz) - origx(ix,iy,iz);
+          res.y = y(ix,iy,iz) - origy(ix,iy,iz);
+          res.z = z(ix,iy,iz) - origz(ix,iy,iz);
 
           vv.Set( res, ix, iy, iz );
         }
@@ -1284,7 +1287,12 @@ namespace GPU {
       grid.z = 1;
 
       WriteWarpToVecVolKernel<<<grid,threads>>>( vecVol,
-                                                 this->d_rx, this->d_ry, this->d_rz );
+                                                 this->d_rx,
+                                                 this->d_ry,
+                                                 this->d_rz,
+                                                 this->d_origx,
+                                                 this->d_origy,
+                                                 this->d_origz );
       CUDA_CHECK_ERROR( "WriteWarpToVecVolKernel failed!" );
       GCAmorphGPU::tWriteWarp.Stop();
     }
@@ -1299,6 +1307,9 @@ namespace GPU {
     void ReadWarpFromVecVolKernel( VolumeArgGPU<float> x,
                                    VolumeArgGPU<float> y,
                                    VolumeArgGPU<float> z,
+                                   const VolumeArgGPU<float> origx,
+                                   const VolumeArgGPU<float> origy,
+                                   const VolumeArgGPU<float> origz,
                                    const VecVolArgGPU vv ) {
       const unsigned int bx = ( blockIdx.x * blockDim.x );
       const unsigned int by = ( blockIdx.y * blockDim.y );
@@ -1308,9 +1319,9 @@ namespace GPU {
       for( unsigned int iz = 0; iz<x.dims.z; iz++ ) {
         if( x.InVolume(ix,iy,iz) ) {
           const float3 vec = vv(ix,iy,iz);
-          x(ix,iy,iz) = ix + vec.x;
-          y(ix,iy,iz) = iy + vec.y;
-          z(ix,iy,iz) = iz + vec.z;
+          x(ix,iy,iz) = origx(ix,iy,iz) + vec.x;
+          y(ix,iy,iz) = origy(ix,iy,iz) + vec.y;
+          z(ix,iy,iz) = origz(ix,iy,iz) + vec.z;
         }
       }
     }
@@ -1342,6 +1353,9 @@ namespace GPU {
       ReadWarpFromVecVolKernel<<<grid,threads>>>( this->d_rx,
                                                   this->d_ry,
                                                   this->d_rz,
+                                                  this->d_origx,
+                                                  this->d_origy,
+                                                  this->d_origz,
                                                   vecVol );
       CUDA_CHECK_ERROR( "ReadWarpFromVecVolKernel failed!" );
 
@@ -1427,22 +1441,37 @@ namespace GPU {
       for( unsigned int iz = 0; iz< invalid.dims.z; iz++ ) {
 	if( invalid.InVolume(ix,iy,iz) ) {
 
-          const bool neg1 = ( area1(ix,iy,iz) <= 0 );
-          const bool neg2 = ( area2(ix,iy,iz) <= 0 );
+          const bool neg1 = ( area1(ix,iy,iz) < 0 );
+          const bool neg2 = ( area2(ix,iy,iz) < 0 );
           const bool valid = ( invalid(ix,iy,iz) == GCAM_VALID );
 
           if( ( neg1 || neg2 ) && valid ) {
     
             const dim3 dims = invalid.dims;
 
+            // Loop over neighbourhood
             for( int zk=-nbhd; zk<=nbhd; zk++ ) {
+              
+              const int zv = iz+zk;
+              if( (zv<0) || (zv>=dims.z) ) {
+                continue;
+              }
+              
               for( int yk=-nbhd; yk<nbhd; yk++ ) {
+
+                const int yv = iy+yk;
+                if( (yv<0) || (yv>=dims.y) ) {
+                  continue;
+                }
+
                 for( int xk=-nbhd; xk<=nbhd; xk++ ) {
 
-                  const int xv = ClampRange( ix+xk, dims.x );
-                  const int yv = ClampRange( iy+yk, dims.y );
-                  const int zv = ClampRange( iz+zk, dims.z );
+                  const int xv = ix+xk;
+                  if( (xv<0) || (xv>=dims.x) ) {
+                    continue;
+                  }
                   
+                  // Neighbouring voxel in the volume
                   float3 sv = VoxelMean( tmpWarp, xv, yv, zv, wsize );
 
                   // This is potentially a race condition (I think....)

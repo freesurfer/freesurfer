@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/02 14:27:22 $
- *    $Revision: 1.243 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/02 18:36:59 $
+ *    $Revision: 1.244 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -16765,14 +16765,19 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
   wsize = 2*gcam->spacing+1 ; wsize = 3 ;
   GCAMreadWarpFromMRI(gcam, mri_warp) ;
   gcamComputeMetricProperties(gcam) ;
-  if (gcam->neg == 0)
+  if (gcam->neg == 0) {
     return(NO_ERROR) ;
+  }
+
   mri_neg = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_UCHAR) ;
   MRIcopyVolGeomToMRI(mri_warp, &gcam->image);
+
   mri_neg_orig = MRIalloc(gcam->image.width, gcam->image.height, gcam->image.depth, MRI_UCHAR) ;
   MRIcopyVolGeomToMRI(mri_neg_orig, &gcam->image);
+
   mri_neg_atlas = MRIalloc(mri_warp->width, mri_warp->height, mri_warp->depth, MRI_UCHAR) ;
   MRIcopyVolGeomToMRI(mri_neg_atlas, &gcam->atlas);
+
   iter = 0 ;
   max_iter = 200 ;
   max_noprogress = 4 ;
@@ -16806,15 +16811,17 @@ GCAMremoveSingularitiesAndReadWarpFromMRI(GCA_MORPH *gcam, MRI *mri_warp)
             xv = nint(gcamn->x) ; yv = nint(gcamn->y) ; zv = nint(gcamn->z) ;
             if (xv >= 0 && xv < mri_neg->width &&
                 yv >= 0 && yv < mri_neg->height &&
-                zv >= 0 && zv < mri_neg->depth)
+                zv >= 0 && zv < mri_neg->depth) {
               MRIsetVoxVal(mri_neg, nint(gcamn->x), nint(gcamn->y), nint(gcamn->z), 0, 128) ;
+            }
 
             xv = nint(gcamn->origx) ; yv = nint(gcamn->origy) ; zv = nint(gcamn->origz) ;
             if (xv >= 0 && xv < mri_neg->width &&
                 yv >= 0 && yv < mri_neg->height &&
                 zv >= 0 && zv < mri_neg->depth)
-              MRIsetVoxVal(mri_neg_orig, xv, yv, zv, 0, 128) ;
+              MRIsetVoxVal(mri_neg_orig, xv, yv, zv, 0, 128) ; {
             MRIsetVoxVal(mri_neg_atlas, xp, yp, zp, 0, 128) ;
+            }
           }
 
           if ((gcamn->area1 < 0 || gcamn->area2 < 0) && gcamn->invalid == GCAM_VALID)
