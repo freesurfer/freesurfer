@@ -54,7 +54,7 @@ install-exec-hook:
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tkmedit.bin; fi
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(prefix)/tktools/tkmedit.bin
+	rm -f $(DESTDIR)$(prefix)/tktools/tkmedit*
 
 else
 all:

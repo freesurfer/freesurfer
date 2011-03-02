@@ -401,6 +401,7 @@ install-data-hook:
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(prefix)/build-stamp.txt
+	rm -f $(DESTDIR)$(prefix)/VERSION
 	rm -f $(DESTDIR)$(bindir)/flirt.fsl
 
 EXTRA_DIST=setup_configure Makefile.extra x86cpucaps \

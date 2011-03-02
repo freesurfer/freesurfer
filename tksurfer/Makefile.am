@@ -48,7 +48,7 @@ install-exec-hook:
 	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(prefix)/tktools/tksurfer.bin; fi
 
 uninstall-hook:
-	rm -f $(DESTDIR)$(prefix)/tktools/tksurfer.bin
+	rm -f $(DESTDIR)$(prefix)/tktools/tksurfer*
 
 else
 all:
