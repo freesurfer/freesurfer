@@ -15,7 +15,7 @@ from fsgd_parser import *
 from qdectable_parser import *
 
 # Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.4 2011/03/01 02:13:10 mreuter Exp $
+# $Id: long_mris_slopes,v 1.5 2011/03/02 23:55:35 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -129,7 +129,7 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.4 2011/03/01 02:13:10 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.5 2011/03/02 23:55:35 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -141,6 +141,7 @@ def options_parse():
     h_type = 'Type can be R (rate), PC1 (pct change), SPC (sym. pct change), default: R'    
     h_time = 'Variable name for time variable (e.g. age)'    
     h_label= 'Use pre-defined label to use with smoothing'
+#    h_outformat = 'Output format can be either mgh (default) or curv'
  
     # Add options 
 #    parser.add_option('--fsgd', dest='fsgd', help=h_fsgd)
@@ -154,6 +155,7 @@ def options_parse():
     parser.add_option('--type', dest='type', choices=('R','PC1','SPC'), default='R', help=h_type)
     parser.add_option('--time', dest='time', help=h_time)
     parser.add_option('--label', dest='label', help=h_label)
+#    parser.add_option('--outformat', dest='outformat', choices=('curv','mgh'), default='mgh', help=h_outformat);
                       
     (options, args) = parser.parse_args()
     
@@ -424,27 +426,36 @@ if __name__=="__main__":
         
         # either of the cases:        
         
-        # possibly smooth them:
+        # possibly smooth them and convert to mgh (in case of the tp1 data):
         smooth = ''
         if options.fwhm is not None:
             smooth = ' --fwhm-trg '+options.fwhm+' --label-src '+label
         
+        outending = ''
+        outtype = 'curv'
+        if options.out[-4:] == '.mgh':
+           outending = '.mgh'
+           outtype = 'mgh'
+        elif options.out[-4:] == '.mgz':
+           outending = '.mgz'
+           outtype = 'mgz'
+                   
         beta0old = beta0
-        beta0 = os.path.join(dirname,'beta0') 
+        beta0 = os.path.join(dirname,'beta0-fwhm'+options.fwhm+outending) 
         beta1old = beta1  
-        beta1 = os.path.join(dirname,'beta1')   
+        beta1 = os.path.join(dirname,'beta1-fwhm'+options.fwhm+outending)   
         tp1old = tp1meas
-        tp1meas = os.path.join(dirname,'tp1')  
+        tp1meas = os.path.join(dirname,'tp1-fwhm'+options.fwhm+outending)  
 
         if options.type == 'SPC':
-            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type '+ftype+' --tval '+beta0+' --trg_type curv '+smooth
+            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type '+ftype+' --tval '+beta0+' --trg_type '+outtype+' '+smooth
             run_cmd(cmd,'mri_surf2surf smoothing did not work?')
                     
         elif options.type == 'PC1':
-            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tp1id+' --sval '+tp1old+' --src_type curv --tval '+tp1meas+' --trg_type curv '+smooth
+            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tp1id+' --sval '+tp1old+' --src_type curv --tval '+tp1meas+' --trg_type '+outtype+' '+smooth
             run_cmd(cmd,'mri_surf2surf smoothing did not work?')
             
-        cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta1old+' --src_type '+ftype+' --tval '+beta1+' --trg_type curv '+smooth
+        cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta1old+' --src_type '+ftype+' --tval '+beta1+' --trg_type '+outtype+' '+smooth
         run_cmd(cmd,'mri_surf2surf smoothing did not work?')
             
         
