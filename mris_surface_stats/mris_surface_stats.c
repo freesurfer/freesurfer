@@ -12,20 +12,18 @@
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/12/11 18:54:26 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/03/02 00:04:34 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -86,7 +84,7 @@ static int nSmoothSteps = 0;
 #define MAX_SURFACES 200
 
 static char vcid[] =
-  "$Id: mris_surface_stats.c,v 1.9 2007/12/11 18:54:26 nicks Exp $";
+  "$Id: mris_surface_stats.c,v 1.10 2011/03/02 00:04:34 nicks Exp $";
 
 int
 main(int argc, char *argv[])
@@ -108,7 +106,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_surface_stats.c,v 1.9 2007/12/11 18:54:26 nicks Exp $",
+           "$Id: mris_surface_stats.c,v 1.10 2011/03/02 00:04:34 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);

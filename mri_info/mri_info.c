@@ -7,25 +7,23 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2010/07/21 20:21:23 $
- *    $Revision: 1.72 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/02 00:04:19 $
+ *    $Revision: 1.73 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.72 $";
+char *MRI_INFO_VERSION = "$Revision: 1.73 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +56,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.72 2010/07/21 20:21:23 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.73 2011/03/02 00:04:19 nicks Exp $";
 
 char *Progname ;
 static char *inputlist[100];

@@ -1,6 +1,6 @@
 % fast_selxavg3.m
 %
-% $Id: fast_selxavg3.m,v 1.98 2011/02/25 20:04:06 greve Exp $
+% $Id: fast_selxavg3.m,v 1.99 2011/03/02 00:04:05 nicks Exp $
 
 
 %
@@ -8,21 +8,19 @@
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2011/02/25 20:04:06 $
-%    $Revision: 1.98 $
+%    $Author: nicks $
+%    $Date: 2011/03/02 00:04:05 $
+%    $Revision: 1.99 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 sessname = basename(sess);
@@ -33,7 +31,7 @@ fprintf('%s\n',sess);
 
 
 fprintf('-------------------------\n');
-fprintf('$Id: fast_selxavg3.m,v 1.98 2011/02/25 20:04:06 greve Exp $\n');
+fprintf('$Id: fast_selxavg3.m,v 1.99 2011/03/02 00:04:05 nicks Exp $\n');
 which fast_selxavg3
 which fast_ldanaflac
 which MRIread
@@ -60,7 +58,7 @@ if(isempty(flac0))
   if(~monly) quit; end
   return; 
 end
-flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.98 2011/02/25 20:04:06 greve Exp $';
+flac0.sxaversion = '$Id: fast_selxavg3.m,v 1.99 2011/03/02 00:04:05 nicks Exp $';
 
 flac0.sess = sess;
 flac0.nthrun = 1;

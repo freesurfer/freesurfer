@@ -8,25 +8,23 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/04/28 20:18:14 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/02 00:04:16 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
-char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.12 $";
+char *MRI_HAUSDORFF_DIST_VERSION = "$Revision: 1.13 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -58,7 +56,7 @@ static void print_usage(void) ;
 static void usage_exit(void);
 static void print_help(void) ;
 static double compute_hdist(MRI **mri, int nvolumes, int index, double *hdists, int which);
-static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.12 2010/04/28 20:18:14 lzollei Exp $";
+static char vcid[] = "$Id: mri_hausdorff_dist.c,v 1.13 2011/03/02 00:04:16 nicks Exp $";
 static int fromFile = 0;
 
 char *Progname ;

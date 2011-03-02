@@ -7,20 +7,18 @@
 % Original Author: Laurence Wastiaux
 % CVS Revision Info:
 %    $Author: nicks $
-%    $Date: 2007/01/10 22:55:09 $
-%    $Revision: 1.5 $
+%    $Date: 2011/03/02 00:04:12 $
+%    $Revision: 1.6 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 
@@ -35,7 +33,7 @@ labmapfile=('/space/lyon/1/fsdev/freesurfer_dev/Simple_surface_labels2002.txt');
 [label name val1 val2 val3 val4]=textread(labmapfile,'%d %s %d %d %d %d',85);
 fp=fopen('~/cortlab_table_lh.txt', 'w');
 sz=size(Dl);
-fprintf(fp,'# FSAFD CorticalLabelingCheck 1\n# date 20050516\n# $Id: cortical_labeling_table.m,v 1.5 2007/01/10 22:55:09 nicks Exp $\n# Buckner data set\n# info_file /label/lh.parc.txt\n# hemi lh\n# ncols 84\n# nrows %d\n', sz(1));
+fprintf(fp,'# FSAFD CorticalLabelingCheck 1\n# date 20050516\n# $Id: cortical_labeling_table.m,v 1.6 2011/03/02 00:04:12 nicks Exp $\n# Buckner data set\n# info_file /label/lh.parc.txt\n# hemi lh\n# ncols 84\n# nrows %d\n', sz(1));
 for u=1:(length(label)-1)
     fprintf(fp, '# label_col %d %s\n', u, char(name(u+1)));
 end
@@ -52,7 +50,7 @@ end
 fclose(fp)
 fp=fopen('cortlab_table_rh.txt', 'w');
 sz=size(Dr);
-fprintf(fp2,'# FSAFD CorticalLabelingCheck 1\n# date 20050516\n# $Id: cortical_labeling_table.m,v 1.5 2007/01/10 22:55:09 nicks Exp $\n# Buckner data set\n# info_file /label/rh.parc.txt\n# hemi rh\n# ncols 84\n# nrows %d\n', sz(1));
+fprintf(fp2,'# FSAFD CorticalLabelingCheck 1\n# date 20050516\n# $Id: cortical_labeling_table.m,v 1.6 2011/03/02 00:04:12 nicks Exp $\n# Buckner data set\n# info_file /label/rh.parc.txt\n# hemi rh\n# ncols 84\n# nrows %d\n', sz(1));
 for u=1:(length(label)-1)
     fprintf(fp, '# label_col %d %s\n', u, char(name(u+1)));
 end

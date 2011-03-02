@@ -5,21 +5,19 @@
 /*
  * Original Author: Fischl, B.
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2010/04/14 16:31:54 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/02 00:04:20 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -73,7 +71,7 @@ main(int argc, char *argv[])
   MRI       *mri, *mri_jacobian, *mri_area, *mri_orig_area ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.9 2010/04/14 16:31:54 lzollei Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_jacobian.c,v 1.10 2011/03/02 00:04:20 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;

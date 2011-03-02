@@ -7,19 +7,18 @@
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/02/07 00:40:45 $
- *    $Revision: 1.175 $
+ *    $Date: 2011/03/02 00:04:14 $
+ *    $Revision: 1.176 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -196,7 +195,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.175 2011/02/07 00:40:45 nicks Exp $",
+   "$Id: mri_convert.c,v 1.176 2011/03/02 00:04:14 nicks Exp $",
    "$Name:  $",
    cmdline);
 
@@ -312,7 +311,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.175 2011/02/07 00:40:45 nicks Exp $",
+      "$Id: mri_convert.c,v 1.176 2011/03/02 00:04:14 nicks Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1612,7 +1611,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.175 2011/02/07 00:40:45 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.176 2011/03/02 00:04:14 nicks Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)

@@ -10,21 +10,19 @@
 /*
  * Original Author: Greg Grev
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2008/08/26 15:54:26 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/02 00:04:33 $
+ *    $Revision: 1.10 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -165,7 +163,7 @@ static int istringnmatch(char *str1, char *str2, int n);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mris_register_to_volume.c,v 1.9 2008/08/26 15:54:26 fischl Exp $";
+static char vcid[] = "$Id: mris_register_to_volume.c,v 1.10 2011/03/02 00:04:33 nicks Exp $";
 char *Progname = NULL;
 
 static double tscale = 5.0 ;
@@ -270,12 +268,12 @@ main(int argc, char **argv)
   struct timeb  then ;
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mris_register_to_volume.c,v 1.9 2008/08/26 15:54:26 fischl Exp $",
+                          "$Id: mris_register_to_volume.c,v 1.10 2011/03/02 00:04:33 nicks Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mris_register_to_volume.c,v 1.9 2008/08/26 15:54:26 fischl Exp $",
+                                "$Id: mris_register_to_volume.c,v 1.10 2011/03/02 00:04:33 nicks Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 

@@ -20,7 +20,7 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %     but it is a good idea.
 %  6. If two stimuli fall within the sam TR bin, the Xfir
 %     matrix will have a 2 instead of a 1.
-% $Id: fast_st2fir.m,v 1.20 2011/01/18 15:38:13 greve Exp $
+% $Id: fast_st2fir.m,v 1.21 2011/03/02 00:04:05 nicks Exp $
 
 
 %
@@ -28,21 +28,19 @@ function Xfir = fast_st2fir(st,ntp,TR,psdwin,usew)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2011/01/18 15:38:13 $
-%    $Revision: 1.20 $
+%    $Author: nicks $
+%    $Date: 2011/03/02 00:04:05 $
+%    $Revision: 1.21 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
 Xfir = [];

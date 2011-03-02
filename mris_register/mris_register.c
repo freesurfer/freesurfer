@@ -9,20 +9,18 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/02/07 00:40:50 $
- *    $Revision: 1.58 $
+ *    $Date: 2011/03/02 00:04:33 $
+ *    $Revision: 1.59 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -46,7 +44,7 @@
 #include "gcsa.h"
 
 static char vcid[] =
-  "$Id: mris_register.c,v 1.58 2011/02/07 00:40:50 nicks Exp $";
+  "$Id: mris_register.c,v 1.59 2011/03/02 00:04:33 nicks Exp $";
 
 int main(int argc, char *argv[]) ;
 
@@ -142,14 +140,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mris_register.c,v 1.58 2011/02/07 00:40:50 nicks Exp $",
+   "$Id: mris_register.c,v 1.59 2011/03/02 00:04:33 nicks Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_register.c,v 1.58 2011/02/07 00:40:50 nicks Exp $",
+           "$Id: mris_register.c,v 1.59 2011/03/02 00:04:33 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {

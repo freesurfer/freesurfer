@@ -46,7 +46,7 @@ int VTKTCL_EXPORT vtkKWQdecAppCppCommand(vtkKWQdecApp *op, Tcl_Interp *interp,
 
   if (argc < 2)
     {
-    Tcl_SetResult(interp,(char *)("Could not find requested method."), TCL_VOLATILE);
+    Tcl_SetResult(interp,const_cast<char *>("Could not find requested method."), TCL_VOLATILE);
     return TCL_ERROR;
     }
   if (!interp)
@@ -68,7 +68,7 @@ int VTKTCL_EXPORT vtkKWQdecAppCppCommand(vtkKWQdecApp *op, Tcl_Interp *interp,
 
   if (!strcmp("GetSuperClassName",argv[1]))
     {
-    Tcl_SetResult(interp,(char *)("vtkKWApplication"), TCL_VOLATILE);
+    Tcl_SetResult(interp,const_cast<char *>("vtkKWApplication"), TCL_VOLATILE);
     return TCL_OK;
     }
 
@@ -124,7 +124,7 @@ int VTKTCL_EXPORT vtkKWQdecAppCppCommand(vtkKWQdecApp *op, Tcl_Interp *interp,
     vtkKWQdecApp  *temp20;
     error = 0;
 
-    temp0 = (vtkObject *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkObject"),interp,error));
+    temp0 = (vtkObject *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkObject"),interp,error));
     if (!error)
     {
     temp20 = (op)->SafeDownCast(temp0);
@@ -291,7 +291,7 @@ int VTKTCL_EXPORT vtkKWQdecAppCppCommand(vtkKWQdecApp *op, Tcl_Interp *interp,
     vtkKWTopLevel  *temp0;
     error = 0;
 
-    temp0 = (vtkKWTopLevel *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkKWTopLevel"),interp,error));
+    temp0 = (vtkKWTopLevel *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkKWTopLevel"),interp,error));
     if (!error)
     {
     op->DisplayHelpDialog(temp0);
@@ -335,7 +335,7 @@ int VTKTCL_EXPORT vtkKWQdecAppCppCommand(vtkKWQdecApp *op, Tcl_Interp *interp,
   if (!strcmp("DescribeMethods",argv[1]))
     {
     if(argc>3) {
-      Tcl_SetResult ( interp, (char*)"Wrong number of arguments: object DescribeMethods <MethodName>", TCL_VOLATILE ); 
+      Tcl_SetResult ( interp, const_cast<char*>("Wrong number of arguments: object DescribeMethods <MethodName>"), TCL_VOLATILE ); 
       return TCL_ERROR;
  }
     if(argc==2) {
@@ -697,7 +697,7 @@ int VTKTCL_EXPORT vtkKWQdecAppCppCommand(vtkKWQdecApp *op, Tcl_Interp *interp,
     Tcl_DStringFree ( &dString );
     return TCL_OK;
     }
-   Tcl_SetResult ( interp, (char*)"Could not find method", TCL_VOLATILE ); 
+   Tcl_SetResult ( interp, const_cast<char*>("Could not find method"), TCL_VOLATILE ); 
    return TCL_ERROR;
    }
  }

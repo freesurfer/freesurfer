@@ -50,16 +50,16 @@
  *    $Date: Feb. 2010
  *    $Revision: 1.4
  *
- * Copyright (C) 2009-2010
- * Nanyang Technological University, Singapore
- * All rights reserved.
+ * Copyright © 2009-2010 Nanyang Technological University, Singapore
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -84,7 +84,7 @@ extern "C"
 
 const char *Progname;
 static char vcid[] =
-  "$Id: mri_gcut.cpp,v 1.13 2011/02/07 00:40:46 nicks Exp $";
+  "$Id: mri_gcut.cpp,v 1.14 2011/03/02 00:04:16 nicks Exp $";
 static char in_filename[STRLEN];
 static char out_filename[STRLEN];
 static char mask_filename[STRLEN];
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
   /* check for and handle version tag */
   int nargs = handle_version_option
               (argc, argv,
-               "$Id: mri_gcut.cpp,v 1.13 2011/02/07 00:40:46 nicks Exp $",
+               "$Id: mri_gcut.cpp,v 1.14 2011/03/02 00:04:16 nicks Exp $",
                "$Name:  $");
   if (nargs && argc - nargs == 1)
   {

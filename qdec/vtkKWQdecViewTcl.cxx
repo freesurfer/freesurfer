@@ -46,7 +46,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
 
   if (argc < 2)
     {
-    Tcl_SetResult(interp,(char *)("Could not find requested method."), TCL_VOLATILE);
+    Tcl_SetResult(interp,const_cast<char *>("Could not find requested method."), TCL_VOLATILE);
     return TCL_ERROR;
     }
   if (!interp)
@@ -68,7 +68,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
 
   if (!strcmp("GetSuperClassName",argv[1]))
     {
-    Tcl_SetResult(interp,(char *)("vtkKWRenderWidget"), TCL_VOLATILE);
+    Tcl_SetResult(interp,const_cast<char *>("vtkKWRenderWidget"), TCL_VOLATILE);
     return TCL_OK;
     }
 
@@ -124,7 +124,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     vtkKWQdecView  *temp20;
     error = 0;
 
-    temp0 = (vtkObject *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkObject"),interp,error));
+    temp0 = (vtkObject *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkObject"),interp,error));
     if (!error)
     {
     temp20 = (op)->SafeDownCast(temp0);
@@ -199,7 +199,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     vtkFSSurfaceSource  *temp0;
     error = 0;
 
-    temp0 = (vtkFSSurfaceSource *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkFSSurfaceSource"),interp,error));
+    temp0 = (vtkFSSurfaceSource *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkFSSurfaceSource"),interp,error));
     if (!error)
     {
     op->SetSurface(temp0);
@@ -212,7 +212,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     vtkFloatArray  *temp0;
     error = 0;
 
-    temp0 = (vtkFloatArray *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkFloatArray"),interp,error));
+    temp0 = (vtkFloatArray *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkFloatArray"),interp,error));
     if (!error)
     {
     op->SetSurfaceScalars(temp0);
@@ -225,7 +225,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     vtkScalarsToColors  *temp0;
     error = 0;
 
-    temp0 = (vtkScalarsToColors *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkScalarsToColors"),interp,error));
+    temp0 = (vtkScalarsToColors *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkScalarsToColors"),interp,error));
     if (!error)
     {
     op->SetSurfaceScalarsColors(temp0);
@@ -238,7 +238,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     vtkFloatArray  *temp0;
     error = 0;
 
-    temp0 = (vtkFloatArray *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkFloatArray"),interp,error));
+    temp0 = (vtkFloatArray *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkFloatArray"),interp,error));
     if (!error)
     {
     op->SetSurfaceLookupScalars(temp0);
@@ -252,8 +252,8 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     vtkScalarsToColors  *temp1;
     error = 0;
 
-    temp0 = (vtkFloatArray *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkFloatArray"),interp,error));
-    temp1 = (vtkScalarsToColors *)(vtkTclGetPointerFromObject(argv[3],(char *)("vtkScalarsToColors"),interp,error));
+    temp0 = (vtkFloatArray *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkFloatArray"),interp,error));
+    temp1 = (vtkScalarsToColors *)(vtkTclGetPointerFromObject(argv[3],const_cast<char *>("vtkScalarsToColors"),interp,error));
     if (!error)
     {
     op->SetSurfaceOverlayScalarsAndColors(temp0,temp1);
@@ -289,7 +289,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     vtkScalarsToColors  *temp0;
     error = 0;
 
-    temp0 = (vtkScalarsToColors *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkScalarsToColors"),interp,error));
+    temp0 = (vtkScalarsToColors *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkScalarsToColors"),interp,error));
     if (!error)
     {
     op->SetSurfaceLegendColors(temp0);
@@ -302,7 +302,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     vtkPolyData  *temp0;
     error = 0;
 
-    temp0 = (vtkPolyData *)(vtkTclGetPointerFromObject(argv[2],(char *)("vtkPolyData"),interp,error));
+    temp0 = (vtkPolyData *)(vtkTclGetPointerFromObject(argv[2],const_cast<char *>("vtkPolyData"),interp,error));
     if (!error)
     {
     op->SetROI(temp0);
@@ -449,7 +449,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
   if (!strcmp("DescribeMethods",argv[1]))
     {
     if(argc>3) {
-      Tcl_SetResult ( interp, (char*)"Wrong number of arguments: object DescribeMethods <MethodName>", TCL_VOLATILE ); 
+      Tcl_SetResult ( interp, const_cast<char*>("Wrong number of arguments: object DescribeMethods <MethodName>"), TCL_VOLATILE ); 
       return TCL_ERROR;
  }
     if(argc==2) {
@@ -1030,7 +1030,7 @@ int VTKTCL_EXPORT vtkKWQdecViewCppCommand(vtkKWQdecView *op, Tcl_Interp *interp,
     Tcl_DStringFree ( &dString );
     return TCL_OK;
     }
-   Tcl_SetResult ( interp, (char*)"Could not find method", TCL_VOLATILE ); 
+   Tcl_SetResult ( interp, const_cast<char*>("Could not find method"), TCL_VOLATILE ); 
    return TCL_ERROR;
    }
  }

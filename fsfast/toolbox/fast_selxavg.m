@@ -1,6 +1,6 @@
 function r = fast_selxavg(varargin)
 % r = fast_selxavg(varargin)
-% '$Id: fast_selxavg.m,v 1.44 2010/04/15 16:54:39 greve Exp $'
+% '$Id: fast_selxavg.m,v 1.45 2011/03/02 00:04:05 nicks Exp $'
 
 
 %
@@ -8,24 +8,22 @@ function r = fast_selxavg(varargin)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: greve $
-%    $Date: 2010/04/15 16:54:39 $
-%    $Revision: 1.44 $
+%    $Author: nicks $
+%    $Date: 2011/03/02 00:04:05 $
+%    $Revision: 1.45 $
 %
-% Copyright (C) 2002-2007,
-% The General Hospital Corporation (Boston, MA). 
-% All rights reserved.
+% Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
-% Distribution, usage and copying of this software is covered under the
-% terms found in the License Agreement file named 'COPYING' found in the
-% FreeSurfer source code root directory, and duplicated here:
-% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+% Terms and conditions for use, reproduction, distribution and contribution
+% are found in the 'FreeSurfer Software License Agreement' contained
+% in the file 'LICENSE' found in the FreeSurfer distribution, and here:
 %
-% General inquiries: freesurfer@nmr.mgh.harvard.edu
-% Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+% https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+%
+% Reporting: freesurfer@nmr.mgh.harvard.edu
 %
 
-version = '$Id: fast_selxavg.m,v 1.44 2010/04/15 16:54:39 greve Exp $';
+version = '$Id: fast_selxavg.m,v 1.45 2011/03/02 00:04:05 nicks Exp $';
 fprintf(1,'%s\n',version);
 r = 1;
 

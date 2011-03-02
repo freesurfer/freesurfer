@@ -9,20 +9,18 @@
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2007/11/18 03:03:33 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/03/02 00:04:25 $
+ *    $Revision: 1.5 $
  *
- * Copyright (C) 2003,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -173,7 +171,7 @@ int main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   int nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_surfacemask.cpp,v 1.4 2007/11/18 03:03:33 nicks Exp $", 
+     "$Id: mri_surfacemask.cpp,v 1.5 2011/03/02 00:04:25 nicks Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
