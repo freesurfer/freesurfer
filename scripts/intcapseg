@@ -1,0 +1,257 @@
+#!/bin/tcsh -f
+# intcapseg
+
+set VERSION = '$Id: intcapseg,v 1.1 2011/03/02 18:15:47 greve Exp $';
+
+set out = ();
+set seg = ();
+set subject = ();
+set ndil = 6;
+set nerode = ();
+
+set tmpdir = ();
+set cleanup = 1;
+set LF = ();
+
+set inputargs = ($argv);
+set PrintHelp = 0;
+
+if($#argv == 0) goto usage_exit;
+set n = `echo $argv | grep -e -help | wc -l` 
+if($n != 0) then
+  set PrintHelp = 1;
+  goto usage_exit;
+endif
+set n = `echo $argv | grep -e -version | wc -l` 
+if($n != 0) then
+  echo $VERSION
+  exit 0;
+endif
+
+goto parse_args;
+parse_args_return:
+
+goto check_params;
+check_params_return:
+
+set outdir = `dirname $out`
+mkdir -p $outdir
+pushd $outdir > /dev/null
+set outdir = `pwd`;
+popd > /dev/null
+
+if($#tmpdir == 0) set tmpdir = $outdir/tmpdir.intcapseg.$$
+mkdir -p $tmpdir
+
+set LF = /dev/null
+if($#LF == 0) set LF = $outdir/intcapseg.log
+if($LF != /dev/null) rm -f $LF
+
+echo "Log file for intcapseg" >> $LF
+date  | tee -a $LF
+echo "" | tee -a $LF
+echo "setenv SUBJECTS_DIR $SUBJECTS_DIR" | tee -a $LF
+echo "cd `pwd`"  | tee -a $LF
+echo $0 $inputargs | tee -a $LF
+echo "" | tee -a $LF
+cat $FREESURFER_HOME/build-stamp.txt | tee -a $LF
+echo $VERSION | tee -a $LF
+uname -a  | tee -a $LF
+
+
+# Make a mask of WM
+mri_binarize --i $seg --wm  --o $tmpdir/wm.nii 
+
+foreach hemi (lh rh)
+  if($hemi == lh) then
+    set match = (10 13)
+    set id = 155
+  else
+    set match = (49 52)
+    set id = 156
+  endif
+  # Make a binary mask of Thalamus and Pallidum
+  mri_binarize --i $seg --match $match --o $tmpdir/bin00.nii 
+  if($status) exit 1;
+  # Dilate ThalPal mask 
+  mri_binarize --i $tmpdir/bin00.nii --min 0.5 --dilate $ndil --o $tmpdir/bin.dil.nii 
+  if($status) exit 1;
+  # Erode ThalPal mask 
+  mri_binarize --i $tmpdir/bin.dil.nii --min 0.5 --erode $nerode --o $tmpdir/bin.dil.ero.nii 
+  if($status) exit 1;
+  # Constrain to WM
+  mri_mask $tmpdir/bin.dil.ero.nii  $tmpdir/wm.nii $tmpdir/bin.dil.ero.mask.nii 
+  if($status) exit 1;
+  # Scale to give proper ID number
+  fscalc $tmpdir/bin.dil.ero.mask.nii -mul $id -o $tmpdir/bin.dil.ero.mask.$hemi.nii
+  if($status) exit 1;
+
+end
+
+mri_concat $tmpdir/bin.dil.ero.mask.lh.nii $tmpdir/bin.dil.ero.mask.rh.nii \
+  --sum --o $out
+if($status) exit 1;
+
+if($cleanup) rm -r $tmpdir
+
+date
+echo "intcapseg done"
+
+exit 0
+
+###############################################
+
+############--------------##################
+parse_args:
+set cmdline = ($argv);
+while( $#argv != 0 )
+
+  set flag = $argv[1]; shift;
+  
+  switch($flag)
+
+    case "--o":
+      if($#argv < 1) goto arg1err;
+      set out = $argv[1]; shift;
+      breaksw
+
+    case "--seg":
+      if($#argv < 1) goto arg1err;
+      set seg = $argv[1]; shift;
+      breaksw
+
+    case "--ndil":
+      if($#argv < 1) goto arg1err;
+      set ndil = $argv[1]; shift;
+      breaksw
+
+    case "--nero":
+      if($#argv < 1) goto arg1err;
+      set nerode = $argv[1]; shift;
+      breaksw
+
+    case "--s":
+      if($#argv < 1) goto arg1err;
+      set subject = $argv[1]; shift;
+      if(! -e $SUBJECTS_DIR/$subject) then
+        echo "ERROR: cannot find $subject"
+        exit 1;
+      endif
+      set seg = $SUBJECTS_DIR/$subject/mri/aseg.mgz
+      set out = $SUBJECTS_DIR/$subject/mri/intcap.seg.mgz
+      breaksw
+
+    case "--lh":
+      set hemilist = (lh)
+      breaksw
+
+    case "--rh":
+      set hemilist = (rh)
+      breaksw
+
+    case "--log":
+      if($#argv < 1) goto arg1err;
+      set LF = $argv[1]; shift;
+      breaksw
+
+    case "--nolog":
+    case "--no-log":
+      set LF = /dev/null
+      breaksw
+
+    case "--tmpdir":
+      if($#argv < 1) goto arg1err;
+      set tmpdir = $argv[1]; shift;
+      set cleanup = 0;
+      breaksw
+
+    case "--nocleanup":
+      set cleanup = 0;
+      breaksw
+
+    case "--cleanup":
+      set cleanup = 1;
+      breaksw
+
+    case "--debug":
+      set verbose = 1;
+      set echo = 1;
+      breaksw
+
+    default:
+      echo ERROR: Flag $flag unrecognized. 
+      echo $cmdline
+      exit 1
+      breaksw
+  endsw
+
+end
+
+goto parse_args_return;
+############--------------##################
+
+############--------------##################
+check_params:
+
+if($#out == 0) then
+  echo "ERROR: must spec output"
+  exit 1;
+endif
+if($#seg == 0) set seg = aseg.mgz
+if(! -e $seg) then
+  echo "ERROR: cannot find $seg"
+  exit 1;
+endif
+if($#nerode == 0) @ nerode = $ndil + 1;
+
+goto check_params_return;
+############--------------##################
+
+############--------------##################
+arg1err:
+  echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
+  exit 1
+############--------------##################
+
+############--------------##################
+usage_exit:
+  echo ""
+  echo "intcapseg --s subject"
+  echo ""
+  echo "  --ndil ndil : default is 6"
+  echo "  --nero nerodes : default is ndil + 1"
+  #echo ""
+  #echo "  --o output : eg, intcap.seg.mgz"
+  #echo "  --seg aseg.mgz"
+  #echo ""
+
+  if(! $PrintHelp) exit 1;
+  echo $VERSION
+  cat $0 | awk 'BEGIN{prt=0}{if(prt) print $0; if($1 == "BEGINHELP") prt = 1 }'
+exit 1;
+
+#---- Everything below here is printed out as part of help -----#
+BEGINHELP
+
+This is program segments the internal capsule as the white matter
+between the thalamus and the pallidum based on the aseg.mgz. The
+underlying algorithm is very crude, simply using dialations and
+erosions of the thalamus and the pallidum segmentations. 
+
+The output segmentation (intcap.seg.mgz) is of the left and right
+intenal capsules. The segmentations are given codes 155 and 156 that
+correspond to {Left,Right}-IntCapsule-Ant in
+$FREESURFER_HOME/FreeSurferColorLUT.txt.
+
+To run:
+
+intcapseg --s subject
+
+To view:
+
+tkmedit subject orig.mgz -aparc+aseg -aux-seg intcap.seg.mgz
+
