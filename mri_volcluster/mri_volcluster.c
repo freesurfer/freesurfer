@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.44 $
+ *    $Author: greve $
+ *    $Date: 2011/03/03 23:49:47 $
+ *    $Revision: 1.45 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,7 +96,7 @@ double round(double); // why is this never defined?!?
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-  "$Id: mri_volcluster.c,v 1.44 2011/03/02 00:04:25 nicks Exp $";
+  "$Id: mri_volcluster.c,v 1.45 2011/03/03 23:49:47 greve Exp $";
 char *Progname = NULL;
 
 static char tmpstr[2000];
@@ -185,10 +185,13 @@ double fwhm = -1;
 int nmask;
 double searchspace;
 int FixMNI = 1;
-MATRIX *Tin, *invTin, *Ttemp, *vox2vox;
+MATRIX *vox2vox;
 int UseFSAverage = 0;
 struct utsname uts;
 char *cmdline, cwd[2000];
+char *segctabfile = NULL;
+COLOR_TABLE *segctab = NULL;
+
 
 /*--------------------------------------------------------------*/
 /*--------------------- MAIN -----------------------------------*/
@@ -205,7 +208,7 @@ int main(int argc, char **argv) {
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_volcluster.c,v 1.44 2011/03/02 00:04:25 nicks Exp $",
+     "$Id: mri_volcluster.c,v 1.45 2011/03/03 23:49:47 greve Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -317,21 +320,24 @@ int main(int argc, char **argv) {
   printf("Search Space = %g mm3\n",searchspace);
 
   if (segvolpath != NULL) {
-    // Only half-way thru getting this implemented. It might not be helpful.
     segvol0 = MRIread(segvolpath);
     if(segvol0 == NULL) exit(1);
-    Tin     = MRIxfmCRS2XYZtkreg(segvol0);
-    invTin  = MatrixInverse(Tin,NULL);
-    Ttemp   = MRIxfmCRS2XYZtkreg(vol);
-    vox2vox = MatrixMultiply(invTin,FSA2Func,NULL);
     segvol  = MRIcloneBySpace(vol,-1,1);
+    vox2vox = MRIvoxToVoxFromTkRegMtx(vol, segvol0, FSA2Func);
+    vox2vox = MatrixInverse(vox2vox,NULL);
     MRIvol2Vol(segvol0,segvol,vox2vox,SAMPLE_NEAREST,0);
-    MatrixMultiply(vox2vox,Ttemp,vox2vox);
-    MatrixFree(&Tin);
-    MatrixFree(&invTin);
-    MatrixFree(&Ttemp);
     MatrixFree(&vox2vox);
     MRIfree(&segvol0);
+    if(segctabfile == NULL){
+      segctabfile = (char *) calloc(sizeof(char),1000);
+      sprintf(segctabfile,"%s/FreeSurferColorLUT.txt",getenv("FREESURFER_HOME"));
+    }
+    printf("Using ctab %s\n",segctabfile);
+    segctab = CTABreadASCII(segctabfile);
+    if (segctab == NULL) {
+      printf("ERROR: reading %s\n",segctabfile);
+      exit(1);
+    }
   }
 
   if (sizethresh == 0) sizethresh = sizethreshvox*voxsize;
@@ -581,7 +587,7 @@ int main(int argc, char **argv) {
       fprintf(fpsum,"  %7.5lf",ClusterList[n]->pval_clusterwise);
     if(segvolfile){
       ctabindex = MRIgetVoxVal(segvol,col,row,slc,0);
-      fprintf(fpsum,"  %s",ctab->entries[ctabindex]->name);
+      fprintf(fpsum,"  %s",segctab->entries[ctabindex]->name);
     }
     fprintf(fpsum,"\n");
   }
