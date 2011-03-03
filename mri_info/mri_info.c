@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/03 20:41:58 $
- *    $Revision: 1.74 $
+ *    $Date: 2011/03/03 20:46:42 $
+ *    $Revision: 1.75 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.74 $";
+char *MRI_INFO_VERSION = "$Revision: 1.75 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -56,7 +56,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.74 2011/03/03 20:41:58 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.75 2011/03/03 20:46:42 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -75,7 +75,7 @@ static int PrintVoxVol  = 0;
 static int PrintNCols = 0;
 static int PrintNRows = 0;
 static int PrintNSlices = 0;
-static int PrintDim = 1;
+static int PrintDim = 0;
 static int PrintDOF = 0;
 static int PrintNFrames = 0;
 static int PrintMidFrame = 0;
