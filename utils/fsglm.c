@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.23 $
+ *    $Author: greve $
+ *    $Date: 2011/03/03 16:12:43 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.23 2011/03/02 00:04:44 nicks Exp $
+// $Id: fsglm.c,v 1.24 2011/03/03 16:12:43 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -150,7 +150,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.23 2011/03/02 00:04:44 nicks Exp $");
+  return("$Id: fsglm.c,v 1.24 2011/03/03 16:12:43 greve Exp $");
 }
 
 
@@ -467,7 +467,7 @@ int GLMtest(GLMMAT *glm)
     glm->gammat[n] = MatrixTranspose(glm->gamma[n],glm->gammat[n]);
     glm->gCVM[n]   = MatrixScalarMul(glm->CiXtXCt[n],dtmp,glm->gCVM[n]);
     mtmp           = MatrixInverse(glm->CiXtXCt[n],glm->igCVM[n]);
-    if (mtmp != NULL)  {
+    if (mtmp != NULL && glm->rvar > FLT_MIN)  {
       glm->igCVM[n]    =
         MatrixScalarMul(glm->igCVM[n],1.0/dtmp,glm->igCVM[n]);
       glm->gtigCVM[n]  =
