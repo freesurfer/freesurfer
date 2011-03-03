@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/02/24 21:08:38 $
-#    $Revision: 1.58 $
+#    $Date: 2011/03/03 19:19:16 $
+#    $Revision: 1.59 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: isxconcat-sess,v 1.58 2011/02/24 21:08:38 greve Exp $'
+set VERSION = '$Id: isxconcat-sess,v 1.59 2011/03/03 19:19:16 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -316,10 +316,9 @@ foreach hemi ($hemilist)
        if($DoWRFX) then
          if(! $DoPercent) set glmdir = $outcondir/osgm.wrfx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.wrfx.pct"$SpStr2"
-         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir)
+         set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --nii)
          set cmd = ($cmd --mask $maskvol --wls $yffxvar --kurtosis)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
-         if($ToVol)  set cmd = ($cmd --nii);
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
@@ -329,9 +328,8 @@ foreach hemi ($hemilist)
          if(! $DoPercent) set glmdir = $outcondir/osgm.rfx"$SpStr2"
          if($DoPercent) set glmdir = $outcondir/osgm.rfx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
-         set cmd = ($cmd --mask $maskvol)
+         set cmd = ($cmd --mask $maskvol --nii --kurtosis)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
-         if($ToVol)  set cmd = ($cmd --nii);
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
@@ -342,9 +340,8 @@ foreach hemi ($hemilist)
          if($DoPercent) set glmdir = $outcondir/osgm.ffx.pct"$SpStr2"
          set cmd = (mri_glmfit --osgm --y $y --glmdir $glmdir --kurtosis)
          set cmd = ($cmd --mask $maskvol --yffxvar $yffxvar)
-         set cmd = ($cmd --ffxdofdat $ffxdofdat)
+         set cmd = ($cmd --ffxdofdat $ffxdofdat --nii)
          if($ToSurf) set cmd = ($cmd --surf $trgsubject $hemi --cortex)
-         if($ToVol)  set cmd = ($cmd --nii);
          echo $cmd |& tee -a $LF
          $cmd |& tee -a $LF
          if($status) exit 1;
