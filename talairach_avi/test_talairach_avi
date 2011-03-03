@@ -8,8 +8,8 @@
 # Original Author: Nick Schmansky
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/02 18:38:06 $
-#    $Revision: 1.7 $
+#    $Date: 2011/03/03 04:04:39 $
+#    $Revision: 1.8 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,11 +22,11 @@
 # Reporting: freesurfer@nmr.mgh.harvard.edu
 #
 
-set VERSION='$Id: test_talairach_avi,v 1.7 2011/03/02 18:38:06 nicks Exp $'
+set VERSION='$Id: test_talairach_avi,v 1.8 2011/03/03 04:04:39 nicks Exp $'
 
 umask 002
 
-set path=(. ../mri_convert ../scripts $path)
+set path=(. ../mri_convert ../scripts ../mri_info ../mri_matrix_multiply $path)
 rehash
 
 # fake-out an installation:
