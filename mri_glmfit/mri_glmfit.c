@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:16 $
- *    $Revision: 1.193 $
+ *    $Author: greve $
+ *    $Date: 2011/03/03 19:18:24 $
+ *    $Revision: 1.194 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -559,7 +559,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.193 2011/03/02 00:04:16 nicks Exp $";
+"$Id: mri_glmfit.c,v 1.194 2011/03/03 19:18:24 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -818,6 +818,10 @@ int main(int argc, char **argv) {
     mriglm->y = MRIread(yFile);
     if (mriglm->y == NULL) {
       printf("ERROR: loading y %s\n",yFile);
+      exit(1);
+    }
+    if(mriglm->y->width == 163842 && surf == NULL){
+      printf("ERROR: you must use '--surface subject hemi' with surface data\n");
       exit(1);
     }
   }
