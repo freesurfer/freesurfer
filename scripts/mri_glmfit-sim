@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.31 2011/01/24 17:06:47 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.32 2011/03/03 19:06:57 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -23,6 +23,7 @@ set DiagCluster = 0;
 set PBNodeType = ();
 set UseCache = 0;
 set PermForce = 0;
+set UseGRF = 0;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -165,6 +166,8 @@ while($#glmfitcmd)
   case "--debug"
   case "--synth"
   case "--cortex"
+  case "--kurtosis"
+  case "--nii"
   case "dods"
     breaksw
   # Ignore these options that have one args
@@ -179,7 +182,6 @@ while($#glmfitcmd)
   case "--yffxvar"
   case "--ffxdof"
   case "--ffxdofdat"
-  case "--nii"
     shift glmfitcmd;
     breaksw
   default
@@ -191,6 +193,12 @@ while($#glmfitcmd)
     breaksw 
   endsw
 end
+
+if($UseGRF && $anattype != volume) then
+  echo "ERROR: can only use --grf with volume"
+  exit 1;
+endif
+if($UseGRF) set csdbase = "grf.$simsign.th$thresh"
 
 # Make sure the subject exists
 if($#subject != 0) then
@@ -454,27 +462,31 @@ endif
 # -------------- now run clustering -------------------- #
 foreach conname ($conlist)
 
-  if($UseCache) then
-    set csdfiles = ($csdCache)
-  else
-    ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
-    if($status) then
-      echo "ERROR: cannot find any csd files"| tee -a $LF
-      exit 1; 
+  set csdlist = ();
+  if(! $UseGRF) then
+    if($UseCache) then
+      set csdfiles = ($csdCache)
+    else
+      ls $glmdir/csd/$csdbase.j???-$conname.csd >& /dev/null
+      if($status) then
+        echo "ERROR: cannot find any csd files"| tee -a $LF
+        exit 1; 
+      endif
+      set csdfiles = ($glmdir/csd/$csdbase.j???-$conname.csd)
     endif
-    set csdfiles = ($glmdir/csd/$csdbase.j???-$conname.csd)
+
+    set csdlist = ();
+    foreach csd ($csdfiles)
+      set csdlist = ($csdlist --csd $csd);
+    end
   endif
 
-  set csdlist = ();
-  foreach csd ($csdfiles)
-    set csdlist = ($csdlist --csd $csd);
-  end
-
   set sig = `stem2fname $glmdir/$conname/sig`
-  set vwsig = $glmdir/$conname/$csdbase.sig.voxel.mgh
-  set cwsig = $glmdir/$conname/$csdbase.sig.cluster.mgh
-  set msig  = $glmdir/$conname/$csdbase.sig.masked.mgh
-  set ocn   = $glmdir/$conname/$csdbase.sig.ocn.mgh
+  set ext = `fname2ext $sig`
+  set vwsig = $glmdir/$conname/$csdbase.sig.voxel.$ext
+  set cwsig = $glmdir/$conname/$csdbase.sig.cluster.$ext
+  set msig  = $glmdir/$conname/$csdbase.sig.masked.$ext
+  set ocn   = $glmdir/$conname/$csdbase.sig.ocn.$ext
   set annot = $glmdir/$conname/$csdbase.sig.ocn.annot
   set sum   = $glmdir/$conname/$csdbase.sig.cluster.summary
   set csdpdf = $glmdir/$conname/$csdbase.pdf.dat
@@ -499,12 +511,24 @@ foreach conname ($conlist)
   endif
 
   if($anattype == volume) then
-    set cmd = (mri_volcluster --in $sig $csdlist --mask $mask \
-      --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
-      --csdpdf $csdpdf --cwpvalthresh $cwpvalthresh)
+    set cmd = (mri_volcluster --in $sig --mask $mask \
+      --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh)
+    if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig )
+    if($UseGRF)   set cmd = ($cmd --fwhmdat $glmdir/fwhm.dat --sign $simsign --thmin $thresh)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
+
+    if($UseGRF) then
+      set ocnanat = $glmdir/$conname/$csdbase.sig.ocn.anat.$ext
+      set cmd = (mri_vol2vol --interp nearest --mov $ocn --regheader \
+        --targ $SUBJECTS_DIR/fsaverage/mri/orig.mgz \
+        --o $ocnanat --no-save-reg)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    endif
+
   endif
 
   # For some reason cwsig has 4 frames, just take 1st
@@ -546,6 +570,7 @@ while( $#argv != 0 )
       set simsign = $argv[1]; shift;
       set UseCache = 1;
       set DoSim = 0;
+      set thresh = `printf %2.1f $thresh`
       if($thresh != 1.3 && $thresh != 2.0 && $thresh != 2.3 && \
          $thresh != 3.0 && $thresh != 3.3 && $thresh != 4.0) then
          echo "ERROR: thresh = $thresh, must be 1.3, 2.0, 2.3, 3.0, 3.3, 4.0"
@@ -561,6 +586,18 @@ while( $#argv != 0 )
     case "--cache-label":
       if( $#argv < 1) goto arg1err;
       set CacheLabel = $argv[1]; shift;
+      breaksw
+
+    case "--grf":
+      if( $#argv < 2) goto arg2err;
+      set thresh = $argv[1]; shift;
+      set simsign = $argv[1]; shift;
+      if($simsign != pos && $simsign != neg) then
+        echo "ERROR: must use pos or neg with --grf"
+        exit 1;
+      endif
+      set UseGRF = 1;
+      set DoSim = 0;
       breaksw
 
     case "--sim":
@@ -738,7 +775,9 @@ usage_exit:
   echo "   --cache-dir dir : default is FREESURFER_HOME/average/mult-comp-cor"
   echo "   --cache-label label : default is cortex"
   echo ""
-  echo " --sim nulltype nsim threshhold csdbase"
+  echo " --grf threshold sign : -log10(p) and pos or neg (volumes only)"
+  echo ""
+  echo " --sim nulltype nsim threshold csdbase"
   echo " --sim-sign sign : <abs>,pos,neg"
   echo ""
   echo " --overwrite : delete previous CSDs"
