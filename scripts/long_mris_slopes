@@ -11,11 +11,11 @@ import tempfile
 import shutil
 from Numeric import *
 from subject_info import *
-from fsgd_parser import *
+#from fsgd_parser import *
 from qdectable_parser import *
 
 # Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.6 2011/03/03 19:24:14 mreuter Exp $
+# $Id: long_mris_slopes,v 1.7 2011/03/03 19:36:30 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -129,7 +129,7 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.6 2011/03/03 19:24:14 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.7 2011/03/03 19:36:30 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -428,8 +428,10 @@ if __name__=="__main__":
         
         # possibly smooth them and convert to mgh (in case of the tp1 data):
         smooth = ''
+        fwhmstr = ''
         if options.fwhm is not None:
             smooth = ' --fwhm-trg '+options.fwhm+' --label-src '+label
+            fwhmstr = '-fwhm'+str(options.fwhm)
         
         outending = ''
         outtype = 'curv'
@@ -441,11 +443,11 @@ if __name__=="__main__":
            outtype = 'mgz'
                    
         beta0old = beta0
-        beta0 = os.path.join(dirname,'beta0-fwhm'+str(options.fwhm)+outending) 
+        beta0 = os.path.join(dirname,'beta0'+fwhmstr+outending) 
         beta1old = beta1  
-        beta1 = os.path.join(dirname,'beta1-fwhm'+str(options.fwhm)+outending)   
+        beta1 = os.path.join(dirname,'beta1'+fwhmstr+outending)   
         tp1old = tp1meas
-        tp1meas = os.path.join(dirname,'tp1-fwhm'+str(options.fwhm)+outending)  
+        tp1meas = os.path.join(dirname,'tp1'+fwhmstr+outending)  
 
         if options.type == 'SPC':
             cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type '+ftype+' --tval '+beta0+' --trg_type '+outtype+' '+smooth
