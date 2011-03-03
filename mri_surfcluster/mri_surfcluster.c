@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.49 $
+ *    $Author: greve $
+ *    $Date: 2011/03/03 23:02:02 $
+ *    $Revision: 1.50 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.49 2011/03/02 00:04:25 nicks Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.50 2011/03/03 23:02:02 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.49 2011/03/02 00:04:25 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.50 2011/03/03 23:02:02 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -664,6 +664,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--debug"))   debug = 1;
     else if (!strcasecmp(option, "--fixmni"))   FixMNI = 1;
     else if (!strcasecmp(option, "--nofixmni")) FixMNI = 0;
+    else if (!strcasecmp(option, "--no-fixmni")) FixMNI = 0;
     else if (!strcasecmp(option, "--clabelinv")) clabelinv = 1;
     else if (!strcasecmp(option, "--mask-inv")) clabelinv = 1;
     else if (!strcasecmp(option, "--no-adjust")) AdjustThreshWhenOneTail=0;
@@ -1159,7 +1160,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.49 2011/03/02 00:04:25 nicks Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.50 2011/03/03 23:02:02 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
