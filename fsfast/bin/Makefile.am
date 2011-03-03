@@ -75,19 +75,18 @@ FSF_FILES=\
 	fsf-kmnacf \
 	fsf-kmracf \
 	fslregister-sess \
-        fsl2par \
+	fsl2par \
 	func2acf \
 	func2label \
 	func2roi-sess \
 	func2roi-sess-mrun \
 	func2sph-sess \
 	func2sph-sess-new \
-	func2sph-sess-vss \
 	func2tal \
 	func2tal-sess \
-        funcroi-config \
-        funcroi-sess \
-        funcroi-table-sess \
+  funcroi-config \
+  funcroi-sess \
+  funcroi-table-sess \
 	functcvm \
 	functcvm-sess \
 	functwf-sess \

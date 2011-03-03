@@ -248,7 +248,6 @@ EXTRA_DIST=\
 	volumegpucompare.hpp \
 	volumecpu.hpp \
 	voxlist.h \
-	vss.h \
 	windiag.h \
 	x3DList.h \
 	xDebug.h \
