@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-config,v 1.2 2011/02/25 19:59:20 greve Exp $';
+set VERSION    = '$Id: fcseed-config,v 1.3 2011/03/03 20:14:17 greve Exp $';
 set cmdargs = ($argv);
 
 set fcconfig = ();
@@ -14,6 +14,7 @@ set RegDOF = 6;
 set FillThresh = .5;
 set DoMean = 1;
 set DoSVD = 0;
+set DoSqr = 0;
 set roicfg = ();
 set MakeMask = 0;
 set DoWM = 0;
@@ -56,6 +57,7 @@ echo "RegDOF $RegDOF"   >> $fcconfig
 echo "FillThresh $FillThresh" >> $fcconfig
 echo "DoMean $DoMean"     >> $fcconfig
 echo "DoSVD $DoSVD"       >> $fcconfig
+echo "DoSqr $DoSqr"       >> $fcconfig
 echo "MakeMask $MakeMask" >> $fcconfig
 echo "WMErode $WMErode"   >> $fcconfig
 echo "SVDSynth $SVDSynth" >> $fcconfig
@@ -141,12 +143,6 @@ while( $#argv != 0 )
       #set segidlist = ($segidlist 4 5 14 43 44 72);
       breaksw
 
-    case "-pca":
-    case "-svd":
-      set DoMean = 0;
-      set DoSVD  = 1;
-      breaksw
-
     case "-pca-synth":
     case "-svd-synth":
       set SVDSynth = 1;
@@ -155,6 +151,20 @@ while( $#argv != 0 )
     case "-mean":
       set DoMean = 1;
       set DoSVD  = 0;
+      set DoSqr  = 0;
+      breaksw
+
+    case "-pca":
+    case "-svd":
+      set DoMean = 0;
+      set DoSVD  = 1;
+      set DoSqr  = 0;
+      breaksw
+
+    case "-sqr":
+      set DoMean = 0;
+      set DoSVD  = 0;
+      set DoSqr  = 1;
       breaksw
 
     case "-nolog":

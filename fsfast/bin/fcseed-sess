@@ -1,7 +1,7 @@
 #!/bin/csh -f
 # fcseed-sess
 #
-set VERSION    = '$Id: fcseed-sess,v 1.10 2011/02/24 21:09:26 greve Exp $';
+set VERSION    = '$Id: fcseed-sess,v 1.11 2011/03/03 20:14:17 greve Exp $';
 set cmdargs = ($argv);
 
 set fcconfig = ();
@@ -200,6 +200,22 @@ foreach sess ($SessList)
       if($status) exit 1;
     endif
 
+    if($DoSqr) then
+      # Remove trends
+      set cmd = (mri_glmfit --y $f --mask $mask --qa \
+         --glmdir $tmpdir/glm  --save-eres --no-est-fwhm)
+      echo $cmd | tee -a $LLF
+      $cmd | tee -a $LLF
+      if($status) exit 1;
+      # Compute mean of the Square
+      set cmd = (mri_segstats --sqr --i $tmpdir/glm/eres.mgh  \
+        --seg $mask --id 1  --sum $tmpdir/junk.sum \
+        --avgwf $rundir/$fcname)
+      echo $cmd | tee -a $LLF
+      $cmd | tee -a $LLF
+      if($status) exit 1;
+    endif
+
     if($DoSVD) then
       # Remove trends, take PCA only in mask
       set cmd = (mri_glmfit --y $f --mask $mask --qa \
@@ -321,6 +337,7 @@ check_params:
   set FillThresh  = `cat $fcconfig | awk '{if($1 == "FillThresh") print $2}'`
   set DoMean  = `cat $fcconfig | awk '{if($1 == "DoMean") print $2}'`
   set DoSVD   = `cat $fcconfig | awk '{if($1 == "DoSVD") print $2}'`
+  set DoSqr   = `cat $fcconfig | awk '{if($1 == "DoSqr") print $2}'`
   if($#MakeMask == 0) set MakeMask = `cat $fcconfig | awk '{if($1 == "MakeMask") print $2}'`
   set WMErode = `cat $fcconfig | awk '{if($1 == "WMErode") print $2}'`
   set SVDSynth = `cat $fcconfig | awk '{if($1 == "SVDSynth") print $2}'`
