@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # mni152reg
 
-set VERSION = '$Id: mni152reg,v 1.2 2011/02/17 19:56:51 greve Exp $';
+set VERSION = '$Id: mni152reg,v 1.3 2011/03/03 17:51:00 greve Exp $';
 
 set subject = ();
 set res = 2;
@@ -50,6 +50,14 @@ set cmd = (fslregister --mov $mni152 --s $subject --reg $outreg --dof 12)
 echo $cmd | tee -a $LF
 $cmd | tee -a $LF
 if($status) exit 1;
+
+set orig = $SUBJECTS_DIR/$subject/mri/orig.mgz
+set mni152orig = $SUBJECTS_DIR/$subject/mri/orig.mni152.mgz
+set cmd = (mri_vol2vol --mov $mni152 --targ $orig --reg $outreg --inv --o $mni152orig)
+echo $cmd | tee -a $LF
+$cmd | tee -a $LF
+if($status) exit 1;
+
 
 exit 0
 
