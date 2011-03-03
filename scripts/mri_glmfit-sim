@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.33 2011/03/03 19:10:08 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.34 2011/03/03 23:50:50 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -24,6 +24,7 @@ set PBNodeType = ();
 set UseCache = 0;
 set PermForce = 0;
 set UseGRF = 0;
+set volsubject = fsaverage;
 
 set nJobs = 1;
 set DoBackground = 0;
@@ -495,7 +496,7 @@ foreach conname ($conlist)
     set cmd = (mri_surfcluster --in $sig $csdlist --mask $mask \
       --cwsig $cwsig --vwsig $vwsig --sum $sum --ocn $ocn \
       --oannot $annot --annot aparc --csdpdf $csdpdf \
-      --cwpvalthresh $cwpvalthresh --o $msig)
+      --cwpvalthresh $cwpvalthresh --o $msig --no-fixmni)
     set cmd = ($cmd --surf $surf); # bug to have to do this
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
@@ -511,8 +512,12 @@ foreach conname ($conlist)
   endif
 
   if($anattype == volume) then
-    set cmd = (mri_volcluster --in $sig --mask $mask \
-      --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh)
+    set reg = $FREESURFER_HOME/subjects/$volsubject/mri.2mm/reg.2mm.dat 
+    set aseg = aparc+aseg.mgz
+    if(! -e $FREESURFER_HOME/subjects/$volsubject/mri/$aseg) set aseg = aseg.mgz
+    set cmd = (mri_volcluster --in $sig --mask $mask --reg $reg --no-fixmni\
+      --cwsig $cwsig --sum $sum --ocn $ocn --cwpvalthresh $cwpvalthresh \
+      --seg $volsubject $aseg)
     if(! $UseGRF) set cmd = ($cmd --csdpdf $csdpdf $csdlist --vwsig $vwsig )
     if($UseGRF)   set cmd = ($cmd --fwhmdat $glmdir/fwhm.dat --sign $simsign --thmin $thresh)
     echo $cmd | tee -a $LF
@@ -595,6 +600,11 @@ while( $#argv != 0 )
     case "--cache-label":
       if( $#argv < 1) goto arg1err;
       set CacheLabel = $argv[1]; shift;
+      breaksw
+
+    case "--vol-subject":
+      if( $#argv < 1) goto arg1err;
+      set volsubject = $argv[1]; shift;
       breaksw
 
     case "--grf":
