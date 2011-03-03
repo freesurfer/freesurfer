@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:19 $
- *    $Revision: 1.73 $
+ *    $Author: greve $
+ *    $Date: 2011/03/03 20:41:58 $
+ *    $Revision: 1.74 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.73 $";
+char *MRI_INFO_VERSION = "$Revision: 1.74 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -56,7 +56,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.73 2011/03/02 00:04:19 nicks Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.74 2011/03/03 20:41:58 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -75,6 +75,7 @@ static int PrintVoxVol  = 0;
 static int PrintNCols = 0;
 static int PrintNRows = 0;
 static int PrintNSlices = 0;
+static int PrintDim = 1;
 static int PrintDOF = 0;
 static int PrintNFrames = 0;
 static int PrintMidFrame = 0;
@@ -189,6 +190,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--height"))    PrintNRows = 1;
     else if (!strcasecmp(option, "--nslices"))   PrintNSlices = 1;
     else if (!strcasecmp(option, "--depth"))     PrintNSlices = 1;
+    else if (!strcasecmp(option, "--dim"))       PrintDim = 1;
     else if (!strcasecmp(option, "--dof"))       PrintDOF = 1;
 
     else if (!strcasecmp(option, "--cdc"))       PrintColDC = 1;
@@ -265,7 +267,8 @@ static void print_usage(void) {
   printf("   --voxvol : print voxel volume\n");
   printf("   --ncols : print number of columns (width) to stdout\n");
   printf("   --nrows : print number of rows (height) to stdout\n");
-  printf("   --nslices : print number of columns (depth) to stdout\n");
+  printf("   --nslices : print number of slices (depth) to stdout\n");
+  printf("   --dim : print number of columns, rows, slices, and frames \n");
   printf("   --cdc : print column direction cosine (x_{r,a,s})\n");
   printf("   --rdc : print row    direction cosine (y_{r,a,s})\n");
   printf("   --sdc : print slice  direction cosine (z_{r,a,s})\n");
@@ -463,6 +466,10 @@ static void do_file(char *fname) {
   }
   if (PrintNSlices) {
     fprintf(fpout,"%d\n",mri->depth);
+    return;
+  }
+  if (PrintDim) {
+    fprintf(fpout,"%d %d %d %d\n",mri->width,mri->height,mri->depth,mri->nframes);
     return;
   }
   if (PrintDOF) {
