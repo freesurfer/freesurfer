@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/04 23:02:31 $
-#    $Revision: 1.367 $
+#    $Date: 2011/03/04 23:30:06 $
+#    $Revision: 1.368 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.367 2011/03/04 23:02:31 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.368 2011/03/04 23:30:06 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2250,12 +2250,12 @@ if($DoSegmentation) then
   if(! $DoCleanWM && -e wm.mgz) then
     # test if edits were made
     # count 255 edits:
-    set cmd = (mri_binarize -i wm.mgz --min 255 --max 255 --o wm255.mgz --count wm255.txt)
+    set cmd = (mri_binarize --i wm.mgz --min 255 --max 255 --o wm255.mgz --count wm255.txt)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
     # count 1 edits:
-    set cmd = (mri_binarize -i wm.mgz --min 1 --max 1 --o wm1.mgz --count wm1.txt)
+    set cmd = (mri_binarize --i wm.mgz --min 1 --max 1 --o wm1.mgz --count wm1.txt)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -2275,7 +2275,7 @@ if($DoSegmentation) then
     endif
     
     # if edits exist:
-    if ( wm1 != "" || wm255 != "" ) then
+    if ( "$wm1" != "0" || "$wm255" != "0" ) then
       set cmd = (cp wm.mgz wm.seg.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
