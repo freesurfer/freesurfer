@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2011/03/04 17:15:27 $
-#    $Revision: 1.366 $
+#    $Author: mreuter $
+#    $Date: 2011/03/04 23:02:31 $
+#    $Revision: 1.367 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.366 2011/03/04 17:15:27 greve Exp $';
+set VERSION = '$Id: recon-all,v 1.367 2011/03/04 23:02:31 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2248,13 +2248,42 @@ if($DoSegmentation) then
 
   set AllowLongWMtransfers = "1"
   if(! $DoCleanWM && -e wm.mgz) then
-    set cmd = (cp wm.mgz wm.seg.mgz)
+    # test if edits were made
+    # count 255 edits:
+    set cmd = (mri_binarize -i wm.mgz --min 255 --max 255 --o wm255.mgz --count wm255.txt)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
-    # wm.mgz was available (probably edited):
-    # don't allow transfers in long below
-    set AllowLongWMtransfers = "0"
+    # count 1 edits:
+    set cmd = (mri_binarize -i wm.mgz --min 1 --max 1 --o wm1.mgz --count wm1.txt)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # remove unnecessary mgz's
+    set cmd = (rm wm1.mgz wm255.mgz)
+    echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    if($RunIt) $cmd |& tee -a $LF
+    if($status) goto error_exit;
+    # get number of edits:
+    set wm255=""
+    if ( -e wm255.txt )  then
+      set wm255 = `cat wm255.txt | awk ' { print $1 } '`
+    endif
+    set wm1=""
+    if ( -e wm1.txt ) then
+      set wm1 = `cat wm1.txt | awk ' { print $1 } '`
+    endif
+    
+    # if edits exist:
+    if ( wm1 != "" || wm255 != "" ) then
+      set cmd = (cp wm.mgz wm.seg.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $cmd |& tee -a $LF
+      if($status) goto error_exit;
+      # wm.mgz was available (probably edited):
+      # don't allow transfers in long below
+      set AllowLongWMtransfers = "0"
+    endif
   endif
   # ----------- Segment -------------------------
   set xopts = `fsr-getxopts mri_segment $XOptsFile`;
