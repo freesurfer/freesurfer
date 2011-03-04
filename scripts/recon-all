@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.365 $
+#    $Author: greve $
+#    $Date: 2011/03/04 17:15:27 $
+#    $Revision: 1.366 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.365 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.366 2011/03/04 17:15:27 greve Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4764,6 +4764,8 @@ while( $#argv != 0 )
       breaksw
 
     case "-force":
+      echo "ERROR: -force is no longer used. If you want to "
+      exit 1;
       set Force = 1;
       breaksw
 
@@ -5244,27 +5246,25 @@ check_params:
     
 
     #----------------------------------------------------------------#
-    if(($#InputList == 0) && (! $DoCreateBaseSubj)) then
-      if($longitudinal) mkdir -p ${subjdir}
-      if(! -e $subjdir) then
-        echo "ERROR: cannot find $subjdir"
-        exit 1;
-      endif
-      if(! -w $subjdir) then
-        echo "ERROR: you do not have write permission to $subjdir"
-        exit 1;
-      endif
-    else
-      if( -e $subjdir) then
-        if(! $Force) then
-          echo "ERROR: $subjdir exists, delete or re-run with -force"
+    if($#InputList == 0) then
+      if(! $DoCreateBaseSubj) then
+        if($longitudinal) mkdir -p ${subjdir}
+        if(! -e $subjdir) then
+          echo "ERROR: cannot find $subjdir"
           exit 1;
-        else
-          echo "INFO: $subjdir exists with -i, but -force specified."
-          echo "Deleting any previous source volumes"
-          rm -f $subjdir/src/[0-9][0-9][0-9].mgz >& /dev/null
-          rm -f $subjdir/mri/orig/[0-9][0-9][0-9].mgz >& /dev/null
         endif
+        if(! -w $subjdir) then
+          echo "ERROR: you do not have write permission to $subjdir"
+          exit 1;
+        endif
+      endif
+    else # An input was passed
+      if( -e $subjdir) then
+        echo "ERROR: You are trying to re-run an existing subject with (possibly) new "
+             "input data.  If this is truly new input data, you should delete the subject"
+             "folder and re-run.  If you are just continuing an anlysis of a subject,"
+             "then do not use -i"
+        exit 1;
       endif
       mkdir -p $subjdir
     endif
@@ -5571,7 +5571,6 @@ usage_exit:
   echo "  -no-isrunning : do not check whether this subject is currently being processed"
   echo ""
   echo " Other Arguments (Optional)"
-  echo "  -force          : with -i, allows pre-existing subjdir. Deletes source."
   echo "  -sd subjectsdir : specify subjects dir (default env SUBJECTS_DIR)"
   echo "  -mail username  : mail user when done"
   echo "  -umask umask    : set unix file permission mask (default 002)"
