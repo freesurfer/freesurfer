@@ -7,8 +7,8 @@
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/03 23:02:02 $
- *    $Revision: 1.50 $
+ *    $Date: 2011/03/04 00:01:30 $
+ *    $Revision: 1.51 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ static int  stringmatch(char *str1, char *str2);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_surfcluster.c,v 1.50 2011/03/03 23:02:02 greve Exp $";
+static char vcid[] = "$Id: mri_surfcluster.c,v 1.51 2011/03/04 00:01:30 greve Exp $";
 char *Progname = NULL;
 
 char *subjectdir = NULL;
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
   double cmaxsize;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.50 2011/03/03 23:02:02 greve Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mri_surfcluster.c,v 1.51 2011/03/04 00:01:30 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -529,7 +529,8 @@ int main(int argc, char **argv) {
     fprintf(fp,"# Total Cortical Surface Area %g (mm^2)\n",totarea);
     fprintf(fp,"# FixMNI = %d\n",FixMNI);
     fprintf(fp,"# \n");
-    fprintf(fp,"# ClusterNo  Max   VtxMax   Size(mm^2)  TalX   TalY   TalZ ");
+    if(FixMNI) fprintf(fp,"# ClusterNo  Max   VtxMax   Size(mm^2)  TalX   TalY   TalZ ");
+    else       fprintf(fp,"# ClusterNo  Max   VtxMax   Size(mm^2)  MNIX   MNIY   MNIZ ");
 
     if(csd != NULL)  fprintf(fp,"   CWP    CWPLow    CWPHi");
     else if(fwhm > 0) fprintf(fp,"  GRFCWP");
@@ -1160,7 +1161,7 @@ static void print_help(void) {
     "summary file is shown below.\n"
     "\n"
     "Cluster Growing Summary (mri_surfcluster)\n"
-    "$Id: mri_surfcluster.c,v 1.50 2011/03/03 23:02:02 greve Exp $\n"
+    "$Id: mri_surfcluster.c,v 1.51 2011/03/04 00:01:30 greve Exp $\n"
     "Input :      minsig-0-lh.w\n"
     "Frame Number:      0\n"
     "Minimum Threshold: 5\n"
