@@ -6,9 +6,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.45 $
+ *    $Author: greve $
+ *    $Date: 2011/03/04 17:41:17 $
+ *    $Revision: 1.46 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,7 +62,7 @@ static int  isflag(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_volsynth.c,v 1.45 2011/03/02 00:04:25 nicks Exp $";
+"$Id: mri_volsynth.c,v 1.46 2011/03/04 17:41:17 greve Exp $";
 
 char *Progname = NULL;
 
@@ -91,6 +91,7 @@ long seed = -1; /* < 0 for auto */
 char *seedfile = NULL;
 float fwhm = 0, gstd = 0, gmnnorm = 1;
 int nframes = -1;
+double TR = -1;
 int delta_crsf[4];
 int delta_crsf_speced = 0;
 double delta_value = 1, delta_off_value = 0;
@@ -332,7 +333,9 @@ int main(int argc, char **argv)
   if (tempid != NULL) {
     MRIcopyHeader(mritemp,mri);
     mri->type = MRI_FLOAT;
-    if (nframes > 0) mri->nframes = nframes;
+    // Override
+    if(nframes > 0) mri->nframes = nframes;
+    if(TR > 0) mri->tr = TR;
   } else {
     if(mri == NULL) {
       usage_exit();
@@ -507,11 +510,18 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 4) argnerr(option,4);
       for (i=0;i<4;i++) sscanf(pargv[i],"%d",&dim[i]);
       nargsused = 4;
-    } else if ( !strcmp(option, "--nframes") ) {
+    } 
+    else if ( !strcmp(option, "--nframes") ) {
       if (nargc < 1) argnerr(option,1);
       sscanf(pargv[0],"%d",&nframes);
       nargsused = 1;
-    } else if ( !strcmp(option, "--res") ) {
+    } 
+    else if ( !strcmp(option, "--TR") || !strcmp(option, "--tr") ) {
+      if (nargc < 1) argnerr(option,1);
+      sscanf(pargv[0],"%lf",&TR);
+      nargsused = 1;
+    } 
+    else if ( !strcmp(option, "--res") ) {
       if (nargc < 4) argnerr(option,4);
       for (i=0;i<4;i++) sscanf(pargv[i],"%f",&res[i]);
       nargsused = 4;
@@ -652,7 +662,8 @@ static void print_usage(void) {
   printf("\n");
   printf(" Specify geometry explicitly\n");
   printf("   --dim nc nr ns nf  (required)\n");
-  printf("   --res dc dr ds df  (df is TR)\n");
+  printf("   --res dc dr ds df  (df is TR, use msec)\n");
+  printf("   --tr TR : time between frames in msec \n");
   printf("   --cdircos x y z\n");
   printf("   --rdircos x y z\n");
   printf("   --sdircos x y z\n");
