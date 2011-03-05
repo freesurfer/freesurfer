@@ -10,9 +10,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.66 $
+ *    $Author: lzollei $
+ *    $Date: 2011/03/05 22:04:55 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -462,7 +462,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.66 2011/03/02 00:04:25 nicks Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.67 2011/03/05 22:04:55 lzollei Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -558,6 +558,8 @@ int useold = 1;
 MRI *vsm = NULL;
 char *vsmvolfile=NULL;
 
+int defM3zPath = 1; // use deafult path to the m3z file
+
 /*---------------------------------------------------------------*/
 int main(int argc, char **argv) {
   char regfile0[1000];
@@ -574,12 +576,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.66 2011/03/02 00:04:25 nicks Exp $",
+                          "$Id: mri_vol2vol.c,v 1.67 2011/03/05 22:04:55 lzollei Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.66 2011/03/02 00:04:25 nicks Exp $",
+                                "$Id: mri_vol2vol.c,v 1.67 2011/03/05 22:04:55 lzollei Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -884,8 +886,12 @@ int main(int argc, char **argv) {
     Rtransform->xform = (void *)TransformRegDat2LTA(template, mov, R);
 
     printf("Reading gcam\n");
-    sprintf(gcamfile,"%s/%s/mri/transforms/%s",
-	    SUBJECTS_DIR,subject,m3zfile);
+    if (defM3zPath)
+      sprintf(gcamfile,"%s/%s/mri/transforms/%s",
+	      SUBJECTS_DIR,subject,m3zfile);
+    else
+      sprintf(gcamfile,"%s", m3zfile);
+
     if(! InvertMorph){
       //mri_vol2vol --mov orig.mgz --morph --s subject --o orig.morphed.mgz
       gcam = GCAMread(gcamfile);
@@ -912,7 +918,7 @@ int main(int argc, char **argv) {
 			      in->width, in->height,
 			      in->depth,
 			      0, 0) ;
-      out = GCAMmorphFromAtlas(in, gcam, NULL, interpcode); 
+      out = GCAMmorphFromAtlas(in, gcam, NULL, interpcode);
     }
     if(out == NULL) exit(1);
     
@@ -1056,6 +1062,10 @@ static int parse_commandline(int argc, char **argv) {
       if (nargc < 1) argnerr(option,1);
       m3zfile = pargv[0]; DoMorph = 1;
       nargsused = 1;
+    } else if (istringnmatch(option, "--noDefM3zPath",0)) {
+      defM3zPath = 0; // use the m3z file as it is; no assumed location
+      R = MatrixIdentity(4,NULL); // as subjid is not neccesary any more
+      printf("Using the m3z file as it is; no assumed location.\n");
     } else if (istringnmatch(option, "--mov",0)) {
       if (nargc < 1) argnerr(option,1);
       movvolfile = pargv[0];
