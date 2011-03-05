@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/01 00:37:04 $
-#    $Revision: 1.40 $
+#    $Date: 2011/03/05 00:38:45 $
+#    $Revision: 1.41 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.40 2011/03/01 00:37:04 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.41 2011/03/05 00:38:45 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -710,6 +710,10 @@ goto check_params_return;
 ############--------------##################
 arg1err:
   echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
   exit 1
 ############--------------##################
 
