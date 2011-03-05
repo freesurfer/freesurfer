@@ -14,9 +14,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.100 $
+ *    $Author: lzollei $
+ *    $Date: 2011/03/05 22:04:19 $
+ *    $Revision: 1.101 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -254,12 +254,16 @@ int       GCAMinit(GCA_MORPH *gcam, MRI *mri_image, GCA *gca,
 int       GCAMinitLookupTables(GCA_MORPH *gcam) ;
 int       GCAMwrite( const GCA_MORPH *gcam, const char *fname );
 int       GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam);
+int       GCAMwriteInverseNonTal(const char *gcamfname, GCA_MORPH *gcam);
 GCA_MORPH *GCAMread(const char *fname) ;
 GCA_MORPH *GCAMreadAndInvert(const char *gcamfname);
+GCA_MORPH *GCAMreadAndInvertNonTal(const char *gcamfname);
 int       GCAMfree(GCA_MORPH **pgcam) ;
 int       GCAMfreeContents(GCA_MORPH *gcam) ;
 
 MRI       *GCAMmorphFromAtlas(MRI *mri_src, GCA_MORPH *gcam, MRI *mri_dst, int sample_type) ;
+int GCAMmorphPlistFromAtlas(int N, float *points_in, GCA_MORPH *gcam, float *points_out) ;
+  //int       GCAMmorphPointlistFromAtlas(float *points_in, int N, GCA_MORPH *gcam, float *points_out, float thickness) ;
 MRI_SUBCORTCONN *
 SubcortConn_alloc(int nLHLines, int nLHConnections, int nRHLines, int nRHConnections);
 

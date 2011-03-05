@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.290 $
+ *    $Author: lzollei $
+ *    $Date: 2011/03/05 22:04:20 $
+ *    $Revision: 1.291 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1067,18 +1067,25 @@ int GCAvoxelToPriorReal( const GCA *gca, const MRI *mri,
 			 double *pxp, double *pyp, double *pzp )
 {
 
+  //printf("GCAvoxelToPriorReal1\n");
 #if 0
   MATRIX *rasFromVoxel = mri->i_to_r__; //extract_i_to_r(mri);
+  //printf("GCAvoxelToPriorReal2\n");
   MATRIX *priorFromRAS = gca->prior_r_to_i__;
   //extract_r_to_i(gca->mri_prior__);
+  //printf("GCAvoxelToPriorReal3\n");
   MATRIX *voxelToPrior = gca->tmp__; // GCA const except for this....
+  
+  //printf("GCAvoxelToPriorReal4\n");
   MatrixMultiply(priorFromRAS, rasFromVoxel, gca->tmp__);
-
+  //MatrixPrint(stdout, voxelToPrior);
   /*!
     @bugs gca->tmp__ used as temporary workspace
   */
 
+  //printf("GCAvoxelToPriorReal: (xv,yv,zv) = (%f,%f,%f).\n", xv, yv, zv);
   TransformWithMatrix(voxelToPrior, xv, yv, zv, pxp, pyp, pzp);
+  //printf("GCAvoxelToPriorReal: (pxp,pyp,pzp) = (%f,%f,%f).\n", *pxp, *pyp, *pzp);
 
   // MatrixFree(&rasFromVoxel);
   // MatrixFree(&priorFromRAS);
@@ -14671,7 +14678,7 @@ GCAmahDist( const GC1D *gc,
     dsq = v*v / gc->covars[0] ;
     return(dsq) ;
   }
-
+  //printf("In GCAMahDist...ninputs = %d\n", ninputs);
   if (v_vals && ninputs != v_vals->rows)
     VectorFree(&v_vals) ;
   if (v_means && ninputs != v_means->rows)
@@ -14682,14 +14689,18 @@ GCAmahDist( const GC1D *gc,
     MatrixFree(&m_cov_inv) ;
   }
   v_means = load_mean_vector(gc, v_means, ninputs) ;
+  //  MatrixPrint(stdout,v_means); //lz
   m_cov = load_covariance_matrix(gc, m_cov, ninputs) ;
+  //  MatrixPrint(stdout,m_cov); //lz
   if (v_vals == NULL)
     v_vals = VectorClone(v_means) ;
   for (i = 0 ; i < ninputs ; i++)
     VECTOR_ELT(v_vals, i+1) = vals[i] ;
 
   VectorSubtract(v_means, v_vals, v_vals) ;  /* v_vals now has mean removed */
+  //MatrixPrint(stdout,v_vals); //lz
   m_cov_inv = MatrixInverse(m_cov, m_cov_inv) ;
+  //MatrixPrint(stdout,m_cov_inv); //lz
   if (!m_cov_inv)
     ErrorExit(ERROR_BADPARM, "singular covariance matrix!") ;
   MatrixSVDInverse(m_cov, m_cov_inv) ;
@@ -14773,9 +14784,10 @@ MATRIX *
 load_covariance_matrix( const GC1D *gc, MATRIX *m_cov, const int ninputs)
 {
   int n, m, i ;
-
+  //printf("In load cov matrix; ninpupts = %d \n", ninputs);
   if (m_cov == NULL)
     m_cov = MatrixAlloc(ninputs, ninputs, MATRIX_REAL) ;
+  //MatrixPrint(stdout,m_cov);
 
   for (i = n = 0 ; n < ninputs ; n++)
     for (m = n ; m < ninputs ; m++, i++)
@@ -14785,6 +14797,7 @@ load_covariance_matrix( const GC1D *gc, MATRIX *m_cov, const int ninputs)
         *MATRIX_RELT(m_cov, m+1, n+1) = gc->covars[i] ;
     }
 
+  //MatrixPrint(stdout,m_cov);
   return(m_cov) ;
 }
 
@@ -24169,9 +24182,26 @@ GCAsourceVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
   }
   else // morph 3d type can go directly from source to template
   {
+    //printf("GCAsourcevoxelToPriorReal: (xv,yv,zv) = (%d,%d,%d).\n", xv, yv, zv);
     TransformSample(transform, xv, yv, zv, &xt, &yt, &zt);
+    //printf("GCAsourcevoxelToPriorReal: (xt,yt,zt) = (%f,%f,%f).\n", xt, yt, zt); //LZ
   }
   // get the position in gca from talairach volume
+  //printf("GCAsourcevoxelToPriorReal: printing mri_tal\n");
+  if(!gca->mri_tal__)
+    {
+      gca->mri_tal__ = MRIallocHeader(gca->width, gca->height, gca->depth, MRI_UCHAR);
+      gca->mri_tal__->xsize = gca->xsize;
+      gca->mri_tal__->ysize = gca->ysize;
+      gca->mri_tal__->zsize = gca->zsize;
+      
+      GCAcopyDCToMRI(gca, gca->mri_tal__);
+      
+      gca->tal_i_to_r__ = extract_i_to_r(gca->mri_tal__);
+      gca->tal_r_to_i__ = extract_r_to_i(gca->mri_tal__);
+    }
+  
+  //LZ : MRIprintStats(gca->mri_tal__, stdout);
   GCAvoxelToPriorReal(gca, gca->mri_tal__, xt, yt, zt, pxp, pyp, pzp) ;
   if (*pxp < 0 || *pyp < 0 || *pzp < 0 ||
       *pxp >= gca->prior_width ||
