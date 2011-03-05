@@ -26,9 +26,9 @@
 /*
  * Original Author: Doug Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.62 $
+ *    $Author: jonp $
+ *    $Date: 2011/03/05 01:11:14 $
+ *    $Revision: 1.63 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -82,7 +82,7 @@ static int  singledash(char *flag);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = 
-"$Id: mri_vol2surf.c,v 1.62 2011/03/02 00:04:25 nicks Exp $";
+"$Id: mri_vol2surf.c,v 1.63 2011/03/05 01:11:14 jonp Exp $";
 
 char *Progname = NULL;
 
@@ -216,7 +216,7 @@ int main(int argc, char **argv) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option 
     (argc, argv, 
-     "$Id: mri_vol2surf.c,v 1.62 2011/03/02 00:04:25 nicks Exp $", 
+     "$Id: mri_vol2surf.c,v 1.63 2011/03/05 01:11:14 jonp Exp $", 
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -924,7 +924,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcmp(option, "--cortex")) UseCortexLabel = 1;
     else if (!strcmp(option, "--mask")) {
       if (nargc < 1) argnerr(option,1);
-      mask_label_name = argv[1] ;
+      mask_label_name = pargv[0] ;
       printf("masking output with label %s\n", mask_label_name) ;
       nargsused = 1;
     } 
