@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/01/06 16:53:03 $
-#    $Revision: 1.17 $
+#    $Date: 2011/03/05 00:40:54 $
+#    $Revision: 1.18 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.17 2011/01/06 16:53:03 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.18 2011/03/05 00:40:54 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -162,7 +162,9 @@ foreach sess ($SessList)
         echo "Try running register-sess with -per-run" | tee -a $LF
         exit 1;
       endif
+      # Use only one mask for all runs so no pruning necessary
       set maskstempath = $sess/$fsd/$maskdir/$maskname
+      #set maskstempath = $sess/$fsd/$Run/$maskdir/$maskname
       set mask = `stem2fname $maskstempath`
       if($status) then
         echo "$mask" | tee -a $LF
