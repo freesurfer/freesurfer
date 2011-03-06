@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:38 $
-#    $Revision: 1.48 $
+#    $Author: greve $
+#    $Date: 2011/03/06 23:38:41 $
+#    $Revision: 1.49 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: bbregister,v 1.48 2011/03/02 20:16:38 nicks Exp $';
+set VERSION = '$Id: bbregister,v 1.49 2011/03/06 23:38:41 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -751,6 +751,23 @@ check_params:
     echo "ERROR: must spec an init method"
     exit 1;
   endif
+
+  if($?BBR_TEST_TOLERANCE) then
+    # This allows a program at a much higher level to set the tolerances.
+    # This is useful in the case where only the execution needs to be
+    # tested (and the output itself is not important). Setting the tolerances
+    # to be high makes BBR run faster.
+    set TolF  = $BBR_TEST_TOLERANCE
+    set Tol1D = $BBR_TEST_TOLERANCE
+    echo ""
+    echo "WARNING: using BBR_TEST_TOLERANCE $BBR_TEST_TOLERANCE"
+    echo ""
+    sleep 2
+  endif
+
+endif
+
+
 
 goto check_params_return;
 ############--------------##################
