@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/03/04 23:30:06 $
-#    $Revision: 1.368 $
+#    $Author: nicks $
+#    $Date: 2011/03/06 21:06:21 $
+#    $Revision: 1.369 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.368 2011/03/04 23:30:06 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.369 2011/03/06 21:06:21 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -118,7 +118,7 @@ set NoRandomness = 1 # if 1, seed critical binaries with identical seeds, to
                      # default is to seed with current time and date,
                      # resulting in slightly different surfaces each run.
                      # affects: mris_smooth, mris_sphere, mris_topology_fixer,
-                     # mris_topo_fixer, mris_ca_label, 
+                     # mris_topo_fixer, mris_ca_label,
                      # mri_robust_template (1st-base-call-only)
 set RngSeed = 1234   # seed for random number generator, used only when
                      # -norandomness flag is used, and can be overriden by
@@ -157,7 +157,7 @@ set UseCuda = 0; # if 1 (-use-cuda), then use GPU versions of tools:
                  # mri_em_register_cuda, mri_ca_register_cuda,
                  # mris_inflate_cuda, mris_sphere_cuda
                  # mri_segstats_cuda
-set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to 
+set PialNoAparc = 0; # if 1 (-pial-noaparc), then add -noaparc flag to
                      # mris_make_surfaces to bypass usage of parcellation
 set DoNuMakeUchar = 1; # if 1, then run mri_nu_correct.mni using talairach.xfm
                        # to run mri_make_uchar to correct histogram problem
@@ -835,18 +835,18 @@ if($longitudinal) then
 
   # map control.dat file from the cross-sectional data for this subj
   if ( -e ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat && ! $UseLongbaseCtrlVol ) then
-	  # only if it does not already exist:
-	  if ( ! -e ${subjdir}/tmp/control.dat ) then
+    # only if it does not already exist:
+    if ( ! -e ${subjdir}/tmp/control.dat ) then
       set cmd = (mkdir -p ${subjdir}/tmp)
       echo "\n $cmd"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
       set cmd = (mri_map_cpdat -in ${SUBJECTS_DIR}/${tpNid}/tmp/control.dat)
       set cmd = ($cmd -out ${subjdir}/tmp/control.dat)
-		  set cmd = ($cmd -lta $tpNtobase_regfile)
+      set cmd = ($cmd -lta $tpNtobase_regfile)
       echo " $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
       if($status) goto error_exit;
-	  endif
+    endif
   endif
 endif
 
@@ -1430,7 +1430,7 @@ if($DoNuIntensityCor) then
   # to fix a problem with mri_nu_correct.mni messing with the histogramming
   # in some odd subjects (due to voxels outside the brain, which has the
   # effect of altering white matter intensity interpretation downstream),
-  # the inclusion of talairach.xfm with mri_nu_correct.mni causes 
+  # the inclusion of talairach.xfm with mri_nu_correct.mni causes
   # mri_make_uchar to run, which uses the Tal xform to find a ball of voxels
   # that are mostly brain. The top of the intensity histogram in this ball
   # will then be white matter, which allows us to center it at the desired
@@ -1503,10 +1503,10 @@ if($DoNormalization) then
       endif
       rm -f $longbasedir/mri/T1_tmp.mgz
     endif
-		# use ctrl_vol.mgz from base for normalization:
+    # use ctrl_vol.mgz from base for normalization:
     set cmd = (mri_normalize \
-		  -w $subjdir/mri/ctrl_vol.mgz $subjdir/mri/bias_vol.mgz \
-			-l $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
+      -w $subjdir/mri/ctrl_vol.mgz $subjdir/mri/bias_vol.mgz \
+      -l $longbasedir/mri/ctrl_vol.mgz $longbasedir/mri/bias_vol.mgz \
       $subjdir/mri/nu.mgz \
       $subjdir/mri/T1.mgz)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -1591,7 +1591,7 @@ skullstrip:
       if($status) goto error_exit;
     endif
     # create brainmask.auto by applying brainmask_template to T1
-		# first apply mask and keep deletion edits (1)
+    # first apply mask and keep deletion edits (1)
     set cmd = (mri_mask -keep_mask_deletion_edits)
     set cmd = ($cmd T1.mgz brainmask_template.mgz $BMA)
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
@@ -2250,12 +2250,14 @@ if($DoSegmentation) then
   if(! $DoCleanWM && -e wm.mgz) then
     # test if edits were made
     # count 255 edits:
-    set cmd = (mri_binarize --i wm.mgz --min 255 --max 255 --o wm255.mgz --count wm255.txt)
+    set cmd = (mri_binarize --i wm.mgz --min 255 --max 255 \
+        --o wm255.mgz --count wm255.txt)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
     # count 1 edits:
-    set cmd = (mri_binarize --i wm.mgz --min 1 --max 1 --o wm1.mgz --count wm1.txt)
+    set cmd = (mri_binarize --i wm.mgz --min 1 --max 1 \
+        --o wm1.mgz --count wm1.txt)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $cmd |& tee -a $LF
     if($status) goto error_exit;
@@ -2273,9 +2275,10 @@ if($DoSegmentation) then
     if ( -e wm1.txt ) then
       set wm1 = `cat wm1.txt | awk ' { print $1 } '`
     endif
-    
+
     # if edits exist:
     if ( "$wm1" != "0" || "$wm255" != "0" ) then
+      echo "Found wm edits: $wm1 deletes, $wm255 fills" |& tee -a $LF 
       set cmd = (cp wm.mgz wm.seg.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
@@ -3636,9 +3639,9 @@ error_exit:
   echo "recon-all -s $subjid exited with ERRORS at `date`" \
     |& tee -a $LF |& tee -a $SF
   echo "" |& tee -a $LF |& tee -a $SF
-  echo "For more details, see the log file $LF" 
+  echo "For more details, see the log file $LF"
   echo "To report a problem, see http://surfer.nmr.mgh.harvard.edu/fswiki/BugReporting"|& tee -a $LF
-  echo "" 
+  echo ""
   # Handle IsRunningFile
   if($DoIsRunning && $#IsRunningFile) rm -f $IsRunningFile
   # Mail the user
@@ -5099,7 +5102,7 @@ while( $#argv != 0 )
           setenv LD_LIBRARY_PATH $CUDA_LIB
         else
           setenv LD_LIBRARY_PATH "$CUDA_LIB":"$LD_LIBRARY_PATH"
-        endif        
+        endif
       endif
       breaksw;
 
@@ -5154,7 +5157,7 @@ check_params:
 
     #------------ Longitudinal -----------------------------------#
     if($longitudinal) then
-    
+
       # assert that $tpNid does not contain .long.
       set haslong = `echo $tpNid | grep "\.long\."`
       if ( "$haslong" != "" ) then
@@ -5171,7 +5174,7 @@ check_params:
         echo ""
         exit 1;
       endif
-      
+
       #make sure cross sectional tpNid exists:
       if ( ! -e ${SUBJECTS_DIR}/${tpNid} ) then
         echo ""
@@ -5180,7 +5183,7 @@ check_params:
         echo ""
         exit 1;
       endif
-      
+
       # check if base/template specified
       if($#longbaseid != 1) then
         echo ""
@@ -5191,7 +5194,7 @@ check_params:
         echo ""
         exit 1;
       endif
-      
+
       # Error if longbaseid contains .long.
       set haslong = `echo $longbaseid | grep "\.long\."`
       if ( "$haslong" != "" ) then
@@ -5205,7 +5208,7 @@ check_params:
         echo ""
         exit 1;
       endif
-      
+
       set longbasedir = $SUBJECTS_DIR/$longbaseid
       if(! -e $longbasedir) then
         echo "ERROR: cannot find base/template dir: $longbasedir"
@@ -5235,10 +5238,10 @@ check_params:
           exit 1
         endif
       endif
-      
-    else # ================= if cross run or base ==========================    
 
-      # make sure $subjid does not contain .long. 
+    else # ================= if cross run or base ==========================
+
+      # make sure $subjid does not contain .long.
       set haslong = `echo $subjid | grep "\.long\."`
       if ( "$haslong" != "" ) then
         echo ""
@@ -5254,11 +5257,11 @@ check_params:
         echo ""
         exit 1;
       endif
-         
+
     endif
-    
+
     # error if base subject is run as a regular subject:
-    if ( ! $DoCreateBaseSubj  )  then 
+    if ( ! $DoCreateBaseSubj  )  then
       if ( -e $subjdir/$BaseSubjsListFname ) then
         echo ""
         echo "ERROR: It appears that this subject ID is an existing"
@@ -5272,7 +5275,7 @@ check_params:
       endif
     endif
 
-    
+
 
     #----------------------------------------------------------------#
     if($#InputList == 0) then
@@ -5928,8 +5931,8 @@ See also: http://surfer.nmr.mgh.harvard.edu/fswiki/Qdec
 -smooth-cortex-only
 
 Only applies with -qcache. Only smooth data if it is part of the ?h.cortex.label.
-This prevents values in the medial wall (which are meaningless) from being 
-smoothed into cortical areas. This is the default and you will have to turn 
+This prevents values in the medial wall (which are meaningless) from being
+smoothed into cortical areas. This is the default and you will have to turn
 it off with -no-smooth-cortex-only.
 
 -no-smooth-cortex-only
