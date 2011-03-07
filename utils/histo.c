@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.69 $
+ *    $Author: mreuter $
+ *    $Date: 2011/03/07 18:29:54 $
+ *    $Revision: 1.70 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1474,12 +1474,13 @@ HISTOfillHoles(HISTO *h)
 }
 
 
-int
+float
 HISTOtotalInRegion(HISTO *h, int b0, int b1)
 {
-  int b, total ;
+  int b;
+  float total =0.0 ;
 
-  for (total = 0, b = b0 ; b <= b1 ; b++)
+  for (b = b0 ; b <= b1 ; b++)
   {
     total += h->counts[b] ;
   }
@@ -1487,7 +1488,7 @@ HISTOtotalInRegion(HISTO *h, int b0, int b1)
   return(total) ;
 }
 
-int
+float
 HISTOtotal(HISTO *h)
 {
   return HISTOtotalInRegion(h,0,h->nbins-1);	
