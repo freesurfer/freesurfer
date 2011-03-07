@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/01 22:23:32 $
-#    $Revision: 1.62 $
+#    $Date: 2011/03/07 23:13:50 $
+#    $Revision: 1.63 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,14 +23,14 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.62 2011/03/01 22:23:32 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.63 2011/03/07 23:13:50 greve Exp $';
 
 set analysis = ();
 set TR = ();
 set DesignType = ();
 set Period = ();
 set ParName = ();
-set StimulusDelay = 0;
+set StimulusDelay = ();
 set RawSpaceType = ();
 set RawSpace = ();
 set RawHemi = ();
@@ -80,7 +80,6 @@ set PrintHelp = 0;
 set RegDOF = 6;
 set DoMCExtReg = 0;
 set HeteroGCor = 0;
-set UseFSLGamma = 0;
 
 set force = 0;
 set UseGUI = 0;
@@ -412,8 +411,7 @@ while( $#argv != 0 )
     case "-fslhrf":
       if($#argv < 1) goto arg1err;
       set nGammaDeriv = $argv[1]; shift;
-      set UseFSLGamma = 1;
-      set GammaDelta = 0; # Reset to -TR/2 below
+      set GammaDelta = 0; 
       set GammaTau   = 1.6;
       set GammaAlpha = 3.1;
       set TimeWindow = $IdealTimeWindow;
@@ -696,9 +694,12 @@ check_params:
       echo "  event-related and blocked designs. Use the -refeventdur flag."
       exit 1;
     endif
-    if($UseFSLGamma) then
-      # Set delay to -TR/2
-      set GammaDelta = `echo "-$TR/2" | bc -l`
+    if($#StimulusDelay == 0) then
+      if($HRFModel != fir) then
+        set StimulusDelay = `echo "-$TR/2" | bc -l`
+      else
+        set StimulusDelay = 0;
+      endif
     endif
     if($#TER == 0 && $HRFModel == "fir") set TER = $TR;
     if($#TER == 0 && $HRFModel != "fir") then
@@ -767,6 +768,7 @@ usage_exit:
   echo "Event-Related and Blocked Design Arguments "
   echo "   -nconditions Nc      : number of conditions (excluding fixation)"
   echo "   -delay Delay : delay (add) Delay sec to time in each paradigm file"
+  echo "      Default is -TR/2"
   echo "        ------------- FIR - do not assume a shape ----------------"
   echo "   -fir PreStim TimeWindow : event prestimulus and total time window (sec) for FIR designs"
   echo "   -TER TER             : temporal estimation resolution (sec)"
@@ -941,6 +943,9 @@ and returns an error if they differ.
 -delay DelaySec
 
 Value to add to stimulus onset times in the paradigm file. 
+Default is -TR/2 for non-FIR models and 0 for FIR. Applies only to
+event-related and blocked designs.
+
 
 -fir PreStim TimeWindow 
 
