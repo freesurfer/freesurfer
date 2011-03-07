@@ -28,6 +28,8 @@
 	<synopsis>mri_robust_template --mov &lt;tp1.mgz&gt; &lt;tp2.mgz&gt; ... --template &lt;template.mgz&gt; [options]</synopsis>
 	<description>This program constructs an unbiased robust template for longitudinal volumes (within modality, 6-7 DOF). It uses an iterative method to construct a mean/median volume and the robust rigid registration of all input images to the current mean/median.
 
+  It is used for the MotionCorrection step in recon-all and for creating a within-subject template in the longitudinal stream (-base) in FreeSurfer.
+
 Important Note: For best performance the input images should all have the same intensity level! Good images are, for example, the T1.mgz and norm.mgz from the FreeSurfer stream. </description>
   <arguments>
     <positional>
@@ -89,15 +91,22 @@ Important Note: For best performance the input images should all have the same i
       <explanation>show debug output (default no debug output)</explanation>
     </optional-flagged>
   </arguments>
-	<example>mri_robust_template --mov tp1.mgz tp2.mgz tp3.mgz --template mean.mgz --lta tp1.lta tp2.lta tp3.lta --mapmov tp1tomean.mgz tp2tomean.mgz tp3tomean.mgz --average 0 --iscale
+	<example>mri_robust_template --mov tp1.mgz tp2.mgz tp3.mgz --template mean.mgz --lta tp1.lta tp2.lta tp3.lta --mapmov tp1tomean.mgz tp2tomean.mgz tp3tomean.mgz --average 0 --iscale --satit
 
-Constructs a mean template from tp1,tp2 and tp3 and outputs the mean.mgz, the corresponding transforms (tp?.lta) and aligned images (tp?tomean.mgz). Intensity scaling is allowed (on highest resolution, once the images are well aligned).
+Constructs a mean (--average 0) template from tp1,tp2 and tp3 and outputs the mean.mgz, the corresponding transforms (tp?.lta) and aligned images (tp?tomean.mgz). Intensity scaling is allowed, the saturation/sensitivity for outliers is automatically computed (only possible for
+full head or full brain images). 
 
 View results:
 
 tkmedit -f mean.mgz -aux tp1tomean.mgz </example>
+<example>
+mri_robust_template --mov 001.mgz 002.mgz --average 1 --template rawavg.mgz --satit --inittp 1 --fixtp --noit --iscale --subsample 200
+
+Is used in the recon-all stream for motion correction of several (here two: 001.mgz and 002.mgz) inputs. In this case all follow-ups are registered to the first input (as specified with --inittp 1 --fixtp --noit) and the rawavg.mgz is output as the median image (--average 1). 
+</example>
+
 	<references>Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl. NeuroImage 53 (4), pp. 1181-1196, 2010.
-	http://reuter.mit.edu/lcount/click.php?id=13 </references>
+	http://reuter.mit.edu/papers/reuter-robreg10.pdf </references>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
 	<see-also>mri_robust_register</see-also>
 </help>
