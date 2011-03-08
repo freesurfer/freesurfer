@@ -15,7 +15,7 @@ from subject_info import *
 from qdectable_parser import *
 
 # Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.7 2011/03/03 19:36:30 mreuter Exp $
+# $Id: long_mris_slopes,v 1.8 2011/03/08 21:55:28 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -38,23 +38,33 @@ all cortex labels in <tamplate>/label/?h.long.cortex.label
 
 REQUIRED ARGUMENTS
 
---qdec <name>    qdec.table.dat file with first columns: fsid  fsid-base
+--qdec <name>     qdec.table.dat file with first columns: fsid  fsid-base
 
---meas <name>    Input curv file, e.g. thickness
+--meas <name>     Input curv file, e.g. thickness
 
---out  <name>    Output filename, created in each <template>/surf/<hemi>.name
+--hemi ?h         Hemisphere (lh or rh)
 
---hemi ?h        Hemisphere (lh or rh)
+One or more of the following to specify the output in
+<template>/surf/<hemi>.<name> :
+
+--out-avg <name>  Output filename (without hemi ?h) for temporal average
+
+--out-rate <name> Output filename for the rate (diff per time)
+
+--out-pc1 <name>  Output filename for percent change (w.r.t. time 1)
+
+--out-spc <name>  Output filename for sym. pct. change (w.r.t. average)
+
 
 OPTIONAL ARGUMENTS
 
---fwhm <int>     Smooth the data (recommended for percent change maps)
+--fwhm <int>      Smooth the data (recommended for percent change maps)
 
---type <char>    Type can be R (rate) (default), PC1 (pct change), SPC (sym. pct change)
+--nosmooth        Do not smooth (to overwrite smoothing requirement for pc1 or spc)
 
---time <name>    Variable name of time variable (e.g. age)
+--time <name>     Variable name of time variable (e.g. age)
 
---label <name>   Use pre-defined label for smoothing (default: intersect cortex labels)
+--label <name>    Use pre-defined label for smoothing (default: intersect cortex labels)
 
 DETAILS
 
@@ -76,21 +86,27 @@ Bert_1   Bert       8      25    2000
 Bert_2   Bert       9      30    2500
 Bert_3   Bert       9.9    34    2400
 
-TYPE:
-For the type you have three different options:
-1. 'R' for rate, this will fit the slope and depending on the time variable,
-   yield e.g. the thinning in mm/year (if the time variable is measured in
-   years, such as age). 
-2. 'PC1' is the percent change, this is the rate normalized by the measure
-   at the first time point times 100, e.g. percent thinning per year.
-3. 'SPC' for symmetrized percent change. Here we normalize by the average
-   measure instead of taking it from the first time point. The average is
+
+Output Type:
+
+The output will be written into the template surf directory:
+<template>/surf/<hemi>.<name>
+
+For the output type you have the following options:
+*  'out-rate' for rate, this will fit the slope and depending on the time
+   variable yield e.g. the thinning in mm/year (if the time variable is
+   measured in years, such as age).
+*  'out-pc1' is the percent change, this is the rate normalized by the
+   measure at the first time point times 100, e.g. percent thinning per year.
+*  'out-spc' for symmetrized percent change. Here we normalize by the temporal
+   average instead of taking it from the first time point. The average is
    computed from the linear fit at the middle of the time interval.
    This is a more robust 'percent thinning per year' as TP1 can be an
    outlier.
+*  'out-avg' for output of the temporal average (linear fit at mid time).
 
-Note that for percent change prior smoothing (--fwhm) is recommended as the
-division can produce very large values.
+NOTE that for percent change prior smoothing (--fwhm) is recommended as the
+division can produce very large values!
 """
 
 # not encouraged, therefore removed from helptext above:
@@ -129,16 +145,20 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.7 2011/03/03 19:36:30 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.8 2011/03/08 21:55:28 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
     h_qdec = '(REQUIRED) qdec table file specifying the subjects and time points'
     h_meas = '(REQUIRED) the surface measure of type curv (e.g. thickness)'
     h_hemi = '(REQUIRED) Run one hemisphere: lh or rh'
-    h_out  = '(REQUIRED) filename (without hemi ?h) to store slope in <STemplate>/surf/<hemi>.<filename>'
+    h_out_rate  = 'filename (without hemi ?h) to store rate in <STemplate>/surf/<hemi>.<OUT_RATE>'
+    h_out_pc1   = 'filename (without hemi ?h) to store pct. change (to TP1) in <STemplate>/surf/<hemi>.<OUT_PC1>'
+    h_out_spc   = 'filename (without hemi ?h) to store sym. pct. change in <STemplate>/surf/<hemi>.<OUT_SPC>'
+    h_out_avg   = 'filename (without hemi ?h) to store temporal average in <STemplate>/surf/<hemi>.<AVG>'
     h_fwhm = 'Smoothing the data, usefull if percent change maps are created'
-    h_type = 'Type can be R (rate), PC1 (pct change), SPC (sym. pct change), default: R'    
+    h_nosmooth = 'Do not smooth the data (overwrite requirement to smooth for pct change computations)'
+#    h_type = 'Type can be R (rate), PC1 (pct change), SPC (sym. pct change), default: R'    
     h_time = 'Variable name for time variable (e.g. age)'    
     h_label= 'Use pre-defined label to use with smoothing'
 #    h_outformat = 'Output format can be either mgh (default) or curv'
@@ -149,10 +169,15 @@ def options_parse():
 
     parser.add_option('--meas', dest='meas', help=h_meas)
     parser.add_option('--hemi', dest='hemi', choices=('lh','rh'), help=h_hemi)
-    parser.add_option('--out' , dest='out' , help=h_out)
+#    parser.add_option('--out' , dest='out' , help=h_out)
+    parser.add_option('--out-avg' , dest='out_avg' , help=h_out_avg)
+    parser.add_option('--out-rate' , dest='out_rate' , help=h_out_rate)
+    parser.add_option('--out-pc1' , dest='out_pc1' , help=h_out_pc1)
+    parser.add_option('--out-spc' , dest='out_spc' , help=h_out_spc)
 
     parser.add_option('--fwhm', dest='fwhm', help=h_fwhm)
-    parser.add_option('--type', dest='type', choices=('R','PC1','SPC'), default='R', help=h_type)
+    parser.add_option('--nosmooth', action='store_true', dest='nofwhm', help=h_nosmooth, default=False)
+#    parser.add_option('--type', dest='type', choices=('R','PC1','SPC'), default='R', help=h_type)
     parser.add_option('--time', dest='time', help=h_time)
     parser.add_option('--label', dest='label', help=h_label)
 #    parser.add_option('--outformat', dest='outformat', choices=('curv','mgh'), default='mgh', help=h_outformat);
@@ -179,9 +204,18 @@ def options_parse():
         print 'ERROR: Specify --hemi (e.g. \'lh\')'
         sys.exit(1)
     
-    if not options.out:
-        print 'ERROR: output file name should be specified, use --out (e.g. \'thickslope\')'
+    if options.out_avg is None and options.out_rate is None and options.out_pc1 is None and options.out_spc is None:
+        print 'ERROR: output file name should be specified, use one or more of --out-avg, --out-rate, --out-pc1 or --out-spc'
         sys.exit(1)
+    
+    if options.fwhm is not None and options.nofwhm is not None:
+        print 'ERROR: either specify --fwhm <int> or --nofwhm'
+        sys.exit(1)
+        
+    if (options.out_pc1 is not None or options.out_spc is not None) and options.fwhm is None and not options.nofwhm:
+        print 'ERROR: when computing SPC or PC1 (pct. change) you should specify smoothing --fwhm <int>. If you really do not want to smooth path --nosmooth'
+        sys.exit(1)
+    
     
 #    if not options.hemi:
 #        print 'ERROR: hemi should be specified, use --hemi (lh or rh)'
@@ -367,14 +401,12 @@ if __name__=="__main__":
             
             ftype = 'curv'
         
-            # create average for SPC
-            beta0 = ''
-            if options.type == 'SPC':
-                beta0 = os.path.join(dirname,options.hemi+'.avg.'+options.meas)
-                cmd = 'mris_calc -o '+beta0+' '+tp1meas+' add '+tp2meas
-                run_cmd(cmd,'mri_calc sum did not work?')
-                cmd = 'mris_calc -o '+beta0+' '+beta0+' mul 0.5'
-                run_cmd(cmd,'mri_calc mul 0.5 did not work?')
+            # create average for SPC or avg
+            beta0 = os.path.join(dirname,options.hemi+'.avg.'+options.meas)
+            cmd = 'mris_calc -o '+beta0+' '+tp1meas+' add '+tp2meas
+            run_cmd(cmd,'mri_calc sum did not work?')
+            cmd = 'mris_calc -o '+beta0+' '+beta0+' mul 0.5'
+            run_cmd(cmd,'mri_calc mul 0.5 did not work?')
         
         
         else: # more than 2 time points, run GLM
@@ -433,14 +465,14 @@ if __name__=="__main__":
             smooth = ' --fwhm-trg '+options.fwhm+' --label-src '+label
             fwhmstr = '-fwhm'+str(options.fwhm)
         
-        outending = ''
-        outtype = 'curv'
-        if options.out[-4:] == '.mgh':
-           outending = '.mgh'
-           outtype = 'mgh'
-        elif options.out[-4:] == '.mgz':
-           outending = '.mgz'
-           outtype = 'mgz'
+#        outending = ''
+#        outtype = 'curv'
+#        if options.out[-4:] == '.mgh':
+        outending = '.mgh'
+        outtype = 'mgh'
+#        elif options.out[-4:] == '.mgz':
+#           outending = '.mgz'
+#           outtype = 'mgz'
                    
         beta0old = beta0
         beta0 = os.path.join(dirname,'beta0'+fwhmstr+outending) 
@@ -449,42 +481,57 @@ if __name__=="__main__":
         tp1old = tp1meas
         tp1meas = os.path.join(dirname,'tp1'+fwhmstr+outending)  
 
-        if options.type == 'SPC':
-            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type '+ftype+' --tval '+beta0+' --trg_type '+outtype+' '+smooth
-            run_cmd(cmd,'mri_surf2surf smoothing did not work?')
-                    
-        elif options.type == 'PC1':
-            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tp1id+' --sval '+tp1old+' --src_type curv --tval '+tp1meas+' --trg_type '+outtype+' '+smooth
-            run_cmd(cmd,'mri_surf2surf smoothing did not work?')
-            
-        cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta1old+' --src_type '+ftype+' --tval '+beta1+' --trg_type '+outtype+' '+smooth
-        run_cmd(cmd,'mri_surf2surf smoothing did not work?')
-            
+        cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta0old+' --src_type '+ftype+' --tval '+beta0+' --trg_type '+outtype+' '+smooth
+        run_cmd(cmd,'mri_surf2surf smoothing/converting did not work?')
         
+        cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+subjectid+' --sval '+beta1old+' --src_type '+ftype+' --tval '+beta1+' --trg_type '+outtype+' '+smooth
+        run_cmd(cmd,'mri_surf2surf smoothing/converting did not work?')
+
         # create ouput (depending on type)
-        outname = os.path.join(basedir,'surf',options.hemi+'.'+options.out)
-        if options.type == 'R':
-            cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1+' mul 1'
-            run_cmd(cmd,'mris_calc masking with label')    
-        elif options.type == 'PC1':
-            cmd = 'mris_calc -o '+outname+' '+beta1+' div '+tp1meas
-            run_cmd(cmd,'mris_calc compute percent change (1) problem?')
-            cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
-            run_cmd(cmd,'mris_calc compute percent change (1) problem?')
-        elif options.type == 'SPC':
+        if options.out_spc is not None:
+            outname = os.path.join(basedir,'surf',options.hemi+'.'+options.out_spc)
+            if outname[-4:] != '.mgh':
+                outname=outname+'.mgh'
+            # compute symmetrized pct change:
             cmd = 'mris_calc -o '+outname+' '+beta1+' div '+beta0
-            run_cmd(cmd,'mris_calc compute sym. pct. change problem?')    
+            run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
             cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
-            run_cmd(cmd,'mris_calc compute sym. pct. change problem?')    
-        else:
-            print 'ERROR: type option '+options.type+' unknown!'
-            sys.exit(1)
-                
+            run_cmd(cmd,'mris_calc compute sym. pct. change (spc) problem?')    
+                    
+        if options.out_pc1 is not None:
+            outname = os.path.join(basedir,'surf',options.hemi+'.'+options.out_pc1)
+            if outname[-4:] != '.mgh':
+                outname=outname+'.mgh'
+            # convert/smooth tp1:
+            cmd = 'mri_surf2surf --hemi '+options.hemi+' --s '+tp1id+' --sval '+tp1old+' --src_type curv --tval '+tp1meas+' --trg_type '+outtype+' '+smooth
+            run_cmd(cmd,'mri_surf2surf smoothing/converting did not work?')
+            # compute pct change:
+            cmd = 'mris_calc -o '+outname+' '+beta1+' div '+tp1meas
+            run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
+            cmd = 'mris_calc -o '+outname+' --label '+label+' '+outname+' mul 100'
+            run_cmd(cmd,'mris_calc compute percent change (pc1) problem?')
+            
+        if options.out_rate is not None: 
+            outname = os.path.join(basedir,'surf',options.hemi+'.'+options.out_rate)
+            if outname[-4:] != '.mgh':
+                outname=outname+'.mgh'
+            # mul 1 to remove everything outside the label:
+            cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1+' mul 1'
+            run_cmd(cmd,'mris_calc masking with label') 
+            
+        if  options.out_avg is not None:
+            outname = os.path.join(basedir,'surf',options.hemi+'.'+options.out_avg)
+            if outname[-4:] != '.mgh':
+                outname=outname+'.mgh'
+            # mul 1 to remove everything outside the label:
+            cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta0+' mul 1'
+            run_cmd(cmd,'mris_calc masking with label') 
+        
            
         # cleanup tmp dir:    
         shutil.rmtree(dirname)
                 
-        print 'You can look at the result with:'
+        print 'You can look at the result with, e.g.:'
         print '  tksurfer '+subjectid+' '+options.hemi+' pial -overlay '+outname
         print
           
