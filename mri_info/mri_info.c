@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/03 20:46:42 $
- *    $Revision: 1.75 $
+ *    $Date: 2011/03/08 21:08:45 $
+ *    $Revision: 1.76 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.75 $";
+char *MRI_INFO_VERSION = "$Revision: 1.76 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -56,7 +56,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.75 2011/03/03 20:46:42 greve Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.76 2011/03/08 21:08:45 greve Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -76,6 +76,7 @@ static int PrintNCols = 0;
 static int PrintNRows = 0;
 static int PrintNSlices = 0;
 static int PrintDim = 0;
+static int PrintRes = 0;
 static int PrintDOF = 0;
 static int PrintNFrames = 0;
 static int PrintMidFrame = 0;
@@ -191,6 +192,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--nslices"))   PrintNSlices = 1;
     else if (!strcasecmp(option, "--depth"))     PrintNSlices = 1;
     else if (!strcasecmp(option, "--dim"))       PrintDim = 1;
+    else if (!strcasecmp(option, "--res"))       PrintRes = 1;
     else if (!strcasecmp(option, "--dof"))       PrintDOF = 1;
 
     else if (!strcasecmp(option, "--cdc"))       PrintColDC = 1;
@@ -261,6 +263,7 @@ static void print_usage(void) {
   printf("   --ti : print TI to stdout\n");
   printf("   --fa : print flip angle to stdout\n");
   printf("   --pedir : print phase encode direction\n");
+  printf("   --res : print col row slice and frame resolution \n");
   printf("   --cres : print column voxel size (xsize)\n");
   printf("   --rres : print row    voxel size (ysize)\n");
   printf("   --sres : print slice  voxel size (zsize)\n");
@@ -470,6 +473,10 @@ static void do_file(char *fname) {
   }
   if (PrintDim) {
     fprintf(fpout,"%d %d %d %d\n",mri->width,mri->height,mri->depth,mri->nframes);
+    return;
+  }
+  if (PrintRes) {
+    fprintf(fpout,"%5.3f %5.3f %5.3f %5.3f\n",mri->xsize,mri->ysize,mri->zsize,mri->tr);
     return;
   }
   if (PrintDOF) {
