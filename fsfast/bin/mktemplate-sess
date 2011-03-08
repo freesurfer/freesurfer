@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/08/05 16:33:52 $
-#    $Revision: 1.9 $
+#    $Date: 2011/03/08 03:37:59 $
+#    $Revision: 1.10 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mktemplate-sess,v 1.9 2010/08/05 16:33:52 greve Exp $';
+set VERSION = '$Id: mktemplate-sess,v 1.10 2011/03/08 03:37:59 greve Exp $';
 set inputargs = ($argv);
 
 set fsd          = bold;
@@ -38,7 +38,7 @@ set DoView = 0;
 set DoConcat = 0;
 set PrintHelp = 0;
 
-if($?FSF_OUTPUT_FORMAT) then
+if($?FSF_OUTPUT_FORMAT == 0) then
   setenv FSF_OUTPUT_FORMAT nii
 endif
 
