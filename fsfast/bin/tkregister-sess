@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 15:35:44 $
-#    $Revision: 1.34 $
+#    $Date: 2011/03/08 23:22:35 $
+#    $Revision: 1.35 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.34 2010/07/26 15:35:44 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.35 2011/03/08 23:22:35 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -82,7 +82,7 @@ check_params_return:
 #-----------------------------------------------
 if($#BBRSumFile) then
   # Print out a summary of BBR costs and exit
-  rm -f $BBRSumFile
+  if($BBRSumFile != /dev/null) rm -f $BBRSumFile
   foreach sess ($SessList)
     set sessid = `basename $sess`
     if($PerSess) then
@@ -337,8 +337,14 @@ while( $#argv != 0 )
       breaksw
 
     case "-bbr-sum":
-      if ( $#argv == 0) goto arg1err;
-      set BBRSumFile = $argv[1]; shift;
+      set isarg = 0;
+      if($#argv > 0) then
+        set isarg = `isargflag $argv[1]`
+        if(! $isarg) then
+          set BBRSumFile = $argv[1]; shift;
+        endif
+      endif
+      if(! $isarg) set BBRSumFile = /dev/null
       breaksw
 
     case "-regheader":
