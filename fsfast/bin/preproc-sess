@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/05 00:38:45 $
-#    $Revision: 1.41 $
+#    $Date: 2011/03/08 02:59:19 $
+#    $Revision: 1.42 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.41 2011/03/05 00:38:45 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.42 2011/03/08 02:59:19 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -513,6 +513,17 @@ while( $#argv != 0 )
       set ToMNI305 = 1;
       set PerRun = 1;
       set PerSess = 0;
+      breaksw
+
+    case "-usual":
+      set subject = fsaverage;
+      set hemi = lhrh
+      set ToSurf = 1;
+      set RawRes = 2;
+      set ToMNI305 = 1;
+      set PerRun = 1;
+      set PerSess = 0;
+      set fwhm = 5;
       breaksw
 
     case "-mni305-1mm":
