@@ -1,5 +1,5 @@
 #!/bin/tcsh -f
-set VERSION = '$Id: mri_glmfit-sim,v 1.34 2011/03/03 23:50:50 greve Exp $';
+set VERSION = '$Id: mri_glmfit-sim,v 1.35 2011/03/08 16:13:25 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -112,6 +112,7 @@ while($#glmfitcmd)
   #echo $flag
   switch($flag)
   case "--surf"
+  case "--surface"
     set subject = $glmfitcmd[1]; shift glmfitcmd;
     set hemi    = $glmfitcmd[1]; shift glmfitcmd;
     set anattype = surface;
@@ -171,8 +172,9 @@ while($#glmfitcmd)
   case "--nii"
   case "dods"
     breaksw
-  # Ignore these options that have one args
+  # Ignore these options that have one arg
   case "--glmdir"
+  case "--o"
   case "--C"
   case "--X"
   case "--w"
@@ -199,7 +201,12 @@ if($UseGRF && $anattype != volume) then
   echo "ERROR: can only use --grf with volume"
   exit 1;
 endif
-if($UseGRF) set csdbase = "grf.$simsign.th$thresh"
+if($UseGRF) then
+  set csdbase = "grf.th$thresh.$simsign"
+  #set tmp = `echo "$thresh*10"|bc -l`
+  #set tmp = `printf %02d $tmp`
+  #set csdbase = "grf.th$tmp.$simsign"
+endif
 
 # Make sure the subject exists
 if($#subject != 0) then
