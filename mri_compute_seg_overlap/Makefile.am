@@ -11,6 +11,8 @@ mri_compute_seg_overlap_SOURCES=mri_compute_seg_overlap.c \
 mri_compute_seg_overlap_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_compute_seg_overlap_LDFLAGS=$(OS_LDFLAGS)
 
+TESTS=$(top_builddir)/scripts/help_xml_validate
+
 foodir=$(prefix)/docs/xml
 foo_DATA=mri_compute_seg_overlap.help.xml
 
