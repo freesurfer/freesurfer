@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/21 17:11:28 $
-#    $Revision: 1.15 $
+#    $Date: 2011/03/09 16:36:22 $
+#    $Revision: 1.16 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.15 2010/07/21 17:11:28 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.16 2011/03/09 16:36:22 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -435,10 +435,7 @@ check_params:
       echo "ERROR: no active conditions or wcond specified"
       exit 1;
     endif
-    if($#ctrlcond == 0) then
-      echo "ERROR: no control conditions or wcond specified"
-      exit 1;
-    endif
+    if($#ctrlcond == 0) set ctrlcond = 0;
     foreach a ($actcond)
       foreach c ($ctrlcond)
         if($a == $c) then
@@ -448,6 +445,7 @@ check_params:
       end
     end
   else
+    # wcond set
     if($#actcond != 0 || $#ctrlcond != 0) then
       echo "ERROR: cannot specify -wcond with -a or -c"
       exit 1;
@@ -508,21 +506,20 @@ BEGINHELP
 
 This program creates a contrast matrix that is then used as input to 
 test hypotheses. The actual voxel-by-voxel statistical test is performed
-by stxgrinder-sess. 
+by selxavg3-sess.
 
 -analysis analysisname (or use -an)
 
 Name of the analysis to create the contrast for. The analysis must
-have been defined by mkanalysis-sess. Also, selxavg-sess must have
-been run at least once.
+have been defined by mkanalysis-sess. 
 
 -contrast contrastname (or use -co)
 
-The name of the contrast. This name is then used in later programes (eg,
-stxgrinder-sess). mkcontrast-sess will create a matlab file in the
-study analysis directory. This file will be called contrastname.mat.
-When stxgrinder-sess is run, it will create a subdirectory called
-contrastname under the analysis directory for each sessions.
+The name of the contrast. This name is then used in later programs.
+mkcontrast-sess will create a matlab file in the study analysis
+directory. This file will be called contrastname.mat.  When
+selxavg3-sess is run, it will create a subdirectory called
+contrastname under the analysis directory for each session.
 
 -a a1 <-a a2 ...>
 -c c1 <-c c2 ...>
@@ -530,8 +527,9 @@ contrastname under the analysis directory for each sessions.
 These specify which conditions to use in the contrast, where a1, a2,
 c1, c2, etc, are the condition numbers as found in the paradigm
 file. The -a conditions will be weighted positively. The -c conditions
-will be weighted negatively. Eg, -a 2 -c 1 -c 3 will weight conditions
-1 and 3 by -0.5 and condition 2 by +1.
+will be weighted negatively. The positives and negative weights will
+be normalized to 1. Eg, -a 2 -c 1 -c 3 will weight conditions 1 and 3
+by -0.5 and condition 2 by +1.
 
 -ncond Nconditions
 -wcond w1 w2 w3 ...
@@ -544,21 +542,21 @@ flags. Eg: -ncond 3 -wcond 0.5 0.5
 
 -setwdelay
 
-For FIR designs, allows the user to set the weight for each
-post-stimulus delay. When the program runs, it will prompt the
-user to enter the weights (eg, if there are 10 points in the FIR,
-then the user will enter a list of 10 numbers). If you do not
-want to include a point, set its weight to 0. Eg, if there are
-10 points, but you only want to consider points 3-7, then enter
-0 0 1 1 1 1 1 0 0 0. These weights are applied on a condition-by-
-condtion basis. See also -sumdelays.
+For FIR (and other multivariate) designs, allows the user to set the
+weight for each post-stimulus delay. When the program runs, it will
+prompt the user to enter the weights (eg, if there are 10 points in
+the FIR, then the user will enter a list of 10 numbers). If you do not
+want to include a point, set its weight to 0. Eg, if there are 10
+points, but you only want to consider points 3-7, then enter 0 0 1 1 1
+1 1 0 0 0. These weights are applied on a condition-by-condtion
+basis. See also -sumdelays.
 
 -sumdelays
 
-For FIR designs, sum the points inside the FIR window so that each
-condition is represented by a single number (ie, the sum). If delay
-weights have been specified (see -setwdelay), then the weighted sum is
-computed. Automatic with -setwdelay.
+For FIR (and other multivariate) designs, sum the points inside the
+FIR window so that each condition is represented by a single number
+(ie, the sum). If delay weights have been specified (see -setwdelay),
+then the weighted sum is computed. Automatic with -setwdelay.
 
 -rmprestim
 
