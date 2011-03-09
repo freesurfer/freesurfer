@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/03/09 20:35:41 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/03/09 21:47:12 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.32 2011/03/09 20:35:41 rudolph Exp $";
+  "$Id: mris_calc.c,v 1.33 2011/03/09 21:47:12 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -85,6 +85,15 @@ char*   Gppch_filetype[] =
 };
 
 char* Gppch_fileExt[] =
+{
+  "null",
+  "mgz",
+  "crv",
+  "surf",
+  "dummy"
+};
+
+char* Gppch_fileDotExt[] =
 {
   ".null",
   ".mgz",
@@ -756,7 +765,7 @@ output_init(void)
   }
   if(!Gb_file3)
   {
-    strcat(G_pch_curvFile3, Gppch_fileExt[G_eFILETYPE1]);
+    strcat(G_pch_curvFile3, Gppch_fileDotExt[G_eFILETYPE1]);
   }
 }
 
@@ -890,12 +899,12 @@ fileWrite(
       } else {
     	  G_eFILETYPE3 = fileType_find(apch_fileName, &G_FSFILETYPE3);
     	  if(G_eFILETYPE3 == e_Unknown) {
-      	      strcat(apch_fileName, Gppch_fileExt[G_eFILETYPE1]);
+      	      strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
       	      G_eFILETYPE3 = fileType_find(apch_fileName, &G_FSFILETYPE3);
     	  }
       }
   } else {
-      strcat(apch_fileName, Gppch_fileExt[G_eFILETYPE1]);
+      strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
       if(G_eFILETYPE1 == e_CurvatureFile) { 
 	  G_eFILETYPE3 	= e_CurvatureFile;
 	  G_FSFILETYPE3 = MRI_CURV_FILE;
@@ -1282,7 +1291,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.32 2011/03/09 20:35:41 rudolph Exp $",
+           "$Id: mris_calc.c,v 1.33 2011/03/09 21:47:12 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1719,7 +1728,7 @@ VOL_fileWrite(
           CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
           MRIsetVoxVal(out, i, j, k, f, (float) apf_data[I++]);
         }
-  sprintf(pch_readMessage, "Saving result to '%s' (type=%s)", 
+  sprintf(pch_readMessage, "Saving result to '%s' (type= %s )", 
           apch_volFileName, type_to_string (out->type));
   cprints(pch_readMessage, "");
   ret = MRIwrite(out, apch_volFileName);
@@ -1812,11 +1821,15 @@ ascii_fileWrite(
     return(e_WRITEACCESSERROR);
   }
   sprintf(pch_readMessage, "Writing %s", apch_fileName);
+  sprintf(pch_readMessage, "Saving result to '%s' (type = ASCII)", 
+          apch_fileName);
+  cprints(pch_readMessage, "");    
   for(i=0; i<G_sizeCurv1; i++)
   {
     CURV_arrayProgress_print(G_sizeCurv1, i, pch_readMessage);
     fprintf(FP_curv, "%f\n", apf_data[i]);
   }
+  cprints("", "ok");
   fclose(FP_curv);
   return(e_OK);
 }
@@ -1850,11 +1863,15 @@ CURV_fileWrite(
   fwriteInt(G_nfaces, FP_curv);
   fwriteInt(G_valsPerVertex, FP_curv);
   sprintf(pch_readMessage, "Writing %s", apch_curvFileName);
+  sprintf(pch_readMessage, "Saving result to '%s' (type = MRI_CURV_FILE)", 
+          apch_curvFileName);
+  cprints(pch_readMessage, "");    
   for(i=0; i<a_vectorSize; i++)
   {
     CURV_arrayProgress_print(a_vectorSize, i, pch_readMessage);
     fwriteFloat(apf_curv[i], FP_curv);
   }
+  cprints("", "ok");
   fclose(FP_curv);
   return(e_OK);
 }
@@ -2212,7 +2229,6 @@ CURV_process(void)
     {
       strcat(G_pch_curvFile3, ".ascii");
     }
-    printf("Write : %s", G_pch_curvFile3);
 
     if((ascii_fileWrite(G_pch_curvFile3, G_pf_arrayCurv1))==e_WRITEACCESSERROR)
     {
