@@ -10,8 +10,8 @@
  * Original Authors: Xiao Han, Nick Schmansky 
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.11 $
+ *    $Date: 2011/03/09 19:46:00 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -126,11 +126,11 @@ int main(int argc, char *argv[]) {
   nargs = 
     handle_version_option
     (argc, argv,
-     "$Id: mri_compute_seg_overlap.c,v 1.11 2011/03/02 00:04:14 nicks Exp $",
+     "$Id: mri_compute_seg_overlap.c,v 1.12 2011/03/09 19:46:00 nicks Exp $",
      "$Name:  $");
   argc -= nargs ;
   if (1 == argc)
-    exit (0);
+    usage (-1);
 
   ac = argc ;
   av = argv ;
@@ -307,31 +307,11 @@ int main(int argc, char *argv[]) {
 }  /*  end main()  */
 
 
+#include "mri_compute_seg_overlap.help.xml.h"
 static void usage(int exit_val) {
-  FILE *fout;
-
-  fout = (exit_val ? stderr : stdout);
-
-  fprintf(fout, "usage: %s <seg vol1> <seg vol2>\n", Progname);
-  fprintf(fout, "This program compares two segmentation volumes and \n"
-          "computes the Dice and Jaccard Coefficients. \n"
-          "It considers only 9 major structures:\n"
-          "  L/R Hippocampus\n"
-          "  L/R Caudate\n"
-          "  L/R Putamen\n"
-          "  L/R Pallidum\n"
-          "  L/R Amygdala\n"
-          "  L/R Thalamus_Proper\n"
-          "  L/R Lateral_Ventricle\n"
-          "  Third and Fourth Ventricles\n"
-          "  L/R Inf_Lat_Vent\n");
-  fprintf(fout, "Options:\n");
-  fprintf(fout, "   -log %%s   log_file for individual Dice \n");
-  fprintf(fout, "   -mlog %%s  log_file for mean Dice \n");
-  fprintf(fout, "   -slog %%s  log_file for std Dice \n");
-  fprintf(fout, "   -olog %%s  log_file for overall Dice \n");
+  outputHelpXml(mri_compute_seg_overlap_help_xml,
+                mri_compute_seg_overlap_help_xml_len);
   exit(exit_val);
-
 }  /*  end usage()  */
 
 
