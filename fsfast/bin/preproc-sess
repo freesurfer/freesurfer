@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/08 02:59:19 $
-#    $Revision: 1.42 $
+#    $Date: 2011/03/09 00:11:30 $
+#    $Revision: 1.43 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.42 2011/03/08 02:59:19 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.43 2011/03/09 00:11:30 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -508,6 +508,7 @@ while( $#argv != 0 )
       endif
       breaksw
 
+    case "-mni305-2mm":
     case "-mni305":
       set RawRes = 2;
       set ToMNI305 = 1;
@@ -742,7 +743,7 @@ usage_exit:
   echo "  -no-update     : same as -force"
   echo "  -sliceorder so : turn on slice timing correction with the given slice order"
   echo "  -surface subject hemi : set hemi to lhrh to do both"
-  echo "  -mni305        : sample raw data to mni305 at 2mm"
+  echo "  -mni305-2mm    : sample raw data to mni305 at 2mm (same as -mni305)"
   echo "  -mni305-1mm    : sample raw data to mni305 at 1mm"
   echo ""
   echo "Session Arguments (some combination required)"
