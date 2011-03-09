@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/03/09 21:47:12 $
- *    $Revision: 1.33 $
+ *    $Date: 2011/03/09 21:53:24 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.33 2011/03/09 21:47:12 rudolph Exp $";
+  "$Id: mris_calc.c,v 1.34 2011/03/09 21:53:24 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -1291,7 +1291,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.33 2011/03/09 21:47:12 rudolph Exp $",
+           "$Id: mris_calc.c,v 1.34 2011/03/09 21:53:24 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1721,9 +1721,9 @@ VOL_fileWrite(
   out = MRIallocSequence(Gp_MRI->width, Gp_MRI->height, Gp_MRI->depth, MRI_FLOAT, Gp_MRI->nframes);
   MRIcopyHeader(Gp_MRI,out);
   for(f=0; f<Gp_MRI->nframes; f++)              // number of frames
-    for(i=0; i<Gp_MRI->width; i++)    // 'x', i.e. columns in slice
-      for(j=0; j<Gp_MRI->height; j++)   // 'y', i.e. rows in slice
-        for(k=0; k<Gp_MRI->depth; k++)    // 'z', i.e. # of slices
+    for(i=0; i<Gp_MRI->width; i++)    		// 'x', i.e. columns in slice
+      for(j=0; j<Gp_MRI->height; j++)   	// 'y', i.e. rows in slice
+        for(k=0; k<Gp_MRI->depth; k++)    	// 'z', i.e. # of slices
         {
           CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
           MRIsetVoxVal(out, i, j, k, f, (float) apf_data[I++]);
