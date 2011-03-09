@@ -19,9 +19,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.67 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/09 17:35:34 $
+ *    $Revision: 1.68 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,7 +189,7 @@ int
 main(int argc, char *argv[]) {
   char   **av, fname[STRLEN] ;
   int    ac, nargs, i ;
-  MRI    *mri_T1, *mri_PD = NULL, *mri_sse, *mri_T2star ;
+  MRI    *mri_T1 = NULL, *mri_PD = NULL, *mri_sse, *mri_T2star ;
   char   *in_fname, *out_dir ;
   int    msec, minutes, seconds, nvolumes, nvolumes_total ;
   struct timeb start ;
@@ -217,14 +217,14 @@ main(int argc, char *argv[]) {
 
   make_cmd_version_string
     (argc, argv,
-     "$Id: mri_ms_fitparms.c,v 1.67 2011/03/02 00:04:23 nicks Exp $",
+     "$Id: mri_ms_fitparms.c,v 1.68 2011/03/09 17:35:34 fischl Exp $",
      "$Name:  $",
      cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (
     argc, argv,
-    "$Id: mri_ms_fitparms.c,v 1.67 2011/03/02 00:04:23 nicks Exp $",
+    "$Id: mri_ms_fitparms.c,v 1.68 2011/03/09 17:35:34 fischl Exp $",
     "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
