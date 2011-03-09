@@ -11,7 +11,7 @@
 # Edited : 08-10-2010: added --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.10 2010/10/15 23:35:35 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.11 2011/03/09 00:51:22 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -310,12 +310,15 @@ if ($UseAseg) then
   endif
   
 ## COMBINE the elastic and aseg nonlinear morphs and APPLY the outcome to the norm volume (for the next registration step)
+## CREATE also the m3z version of the combined morph
   set combined = combined_elreg_$voltype.tm3d  
   set voltype  = norm
   if (!(-e $outdir/$combined) || $CleanElReg || $CleanVolReg) then
     set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
                             --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
                             morph $outdir/${input}.tm3d )  
+    set cmd = ($cmd; exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+                                --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -356,15 +359,19 @@ if (!(-e $outdir/nlalign-$prefix${voltype}.m3z) || $CleanVolReg) then
   if($status) exit 1;
 endif
 ## COMBINE the el_reg and the aseg morphs and APPLY it to the norm volumes (next registration step)
+## CREATE also the m3z version of the combined morph
 if (!(-e $outdir/combined_elreg_$prefix$voltype.tm3d  ) || $CleanElReg || $CleanVolReg) then 
   set combined = combined_elreg_$prefix$voltype.tm3d  
   set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
                           --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
                           morph $outdir/$basemorph )  
+  set cmd = ($cmd; exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+                              --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
 endif
+
 ## APPLY the morph to the aseg volume; just for visualization
 set voltype = aseg
 if (!(-e  $outdir/${combined:r}-${voltype}.mgz ) || $CleanElReg || $CleanVolReg) then 
@@ -424,6 +431,7 @@ while( $#argv != 0 )
 
     case "--templatedir":
       if ( $#argv < 1) goto arg1err;
+      unsetenv $TEMPLATE_DIR
       setenv TEMPLATE_DIR $argv[1]; shift;
       breaksw
 
@@ -650,9 +658,11 @@ If you ran the mri_cvs_registration script with the "--nocleanup" option then yo
 el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
 combined_elreg_aseg.tm3d            : the morph that combines correspondences recovered in steps (1), (2) and (3) (i)
 combined_elreg_afteraseg-norm.tm3d  : the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)
+combined_elreg_afteraseg-norm.m3z   : the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)
 (b)
 el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
 combined_elreg_norm.tm3d            : the morph that combines correspondences recovered in steps (1), (2) and (3) (ii)
+combined_elreg_norm.m3z             : the morph that combines correspondences recovered in steps (1), (2) and (3) (ii) 
 
 BUGS:
 
