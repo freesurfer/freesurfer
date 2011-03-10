@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:40 $
-#    $Revision: 1.13 $
+#    $Author: ayendiki $
+#    $Date: 2011/03/10 23:20:22 $
+#    $Revision: 1.14 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.13 2011/03/02 20:16:40 nicks Exp $'
+set VERSION = '$Id: trac-preproc,v 1.14 2011/03/10 23:20:22 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -596,7 +596,7 @@ if ($dointer) then
       else
         # Create morph of anatomical to CVS template if it doesn't exist
         if (-e $fsdir/cvs/el_reg_to$cvstemp.mgz) then
-          set cmd = (ln -sf $fsdir/cvs $xfmdir/cvs)
+          set cmd = (ln -sfn $fsdir/cvs $xfmdir/cvs)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
             $cmd |& tee -a $LF
@@ -605,7 +605,7 @@ if ($dointer) then
         else
           mkdir -p $fsdir/cvs/$cvstemp
 
-          set cmd = (ln -sf $fsdir/cvs/$cvstemp $xfmdir/cvs)
+          set cmd = (ln -sfn $fsdir/cvs/$cvstemp $xfmdir/cvs)
           echo $cmd |& tee -a $LF |& tee -a $CF
           if ($RunIt) then
             $cmd |& tee -a $LF
@@ -687,201 +687,82 @@ if ($domasks) then
 
   set cvswarp = combined_elreg_afteraseg-norm
 
-  mkdir -p $labdir/anatorig $labdir/anat $labdir/diff
+  mkdir -p $labdir/diff
+  if (-e $fsdir/mri/aparc+aseg.mgz) mkdir -p $labdir/anatorig $labdir/anat
   if ($doregmni && -e $xfmdir/anat2mni.mat) mkdir -p $labdir/mni
   if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) mkdir -p $labdir/cvs
-  if ($subj == $cvstemp) ln -sf $labdir/anatorig $labdir/cvs
+  if ($subj == $cvstemp) ln -sfn $labdir/anatorig $labdir/cvs
 
-  set wmlist = ( Left-Cerebral-White-Matter \
-                 Left-Cerebellum-White-Matter \
-                 Right-Cerebral-White-Matter \
-                 Right-Cerebellum-White-Matter \
-                 WM-hypointensities \
-                 Left-VentralDC \
-                 Right-VentralDC \
-                 Brain-Stem )
+  if (-e $fsdir/mri/aparc+aseg.mgz) then
+    set wmlist = ( Left-Cerebral-White-Matter \
+                   Left-Cerebellum-White-Matter \
+                   Right-Cerebral-White-Matter \
+                   Right-Cerebellum-White-Matter \
+                   WM-hypointensities \
+                   Left-VentralDC \
+                   Right-VentralDC \
+                   Brain-Stem )
 
-  set ventlist = ( Left-Lateral-Ventricle \
-                   Right-Lateral-Ventricle )
+    set ventlist = ( Left-Lateral-Ventricle \
+                     Right-Lateral-Ventricle )
 
-  # Make mask including cerebral WM, cerebellar WM, and WM hypointensities
-  set cmd = mri_binarize
-  set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
-  foreach label ($wmlist[1-5])
-    set id = `grep -i " ${label}[ \t]" $FREESURFER_HOME/FreeSurferColorLUT.txt`
-    set id = $id[1]
-    set cmd = ($cmd --match $id)
-  end
-  set cmd = ($cmd --o $labdir/anatorig/White-Matter.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
+    set fslut = $FREESURFER_HOME/FreeSurferColorLUT.txt
 
-  # As above, plus ventral DC and brainstem
-  set cmd = mri_binarize
-  set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
-  foreach label ($wmlist)
-    set id = `grep -i " ${label}[ \t]" $FREESURFER_HOME/FreeSurferColorLUT.txt`
-    set id = $id[1]
-    set cmd = ($cmd --match $id)
-  end
-  set cmd = ($cmd --o $labdir/anatorig/White-Matter++.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Make mask excluding lateral ventricles
-  set cmd = mri_binarize
-  set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
-  foreach label ($ventlist)
-    set id = `grep -i " ${label}[ \t]" $FREESURFER_HOME/FreeSurferColorLUT.txt`
-    set id = $id[1]
-    set cmd = ($cmd --match $id)
-  end
-  set cmd = ($cmd --binval 0 --binvalnot 1)
-  set cmd = ($cmd --o $labdir/anatorig/notventricles.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Map cortical parcellation to volume, growing 2mm into the WM
-  set gmgrow = 2
-  if (! -e $fsdir/label/aparc+${gmgrow}mm.mgz) then
-    set cmd = mri_aparc2aseg
-    set cmd = ($cmd --s $subj)
-    set cmd = ($cmd --annot aparc)
-    set cmd = ($cmd --wmparc-dmax $gmgrow)
-    set cmd = ($cmd --labelwm --hypo-as-wm)
-    set cmd = ($cmd --o $fsdir/label/aparc+${gmgrow}mm.mgz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-  endif
-
-  # Make mask of cortex
-  set cmd = mri_binarize
-  set cmd = ($cmd --i $fsdir/label/aparc+${gmgrow}mm.mgz)
-  set cmd = ($cmd --min 1000 --max 2999)
-  set cmd = ($cmd --o $labdir/anatorig/cortex.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Make mask of grown cortex
-  set cmd = mri_binarize
-  set cmd = ($cmd --i $fsdir/label/aparc+${gmgrow}mm.mgz)
-  set cmd = ($cmd --min 1000 --max 4999)
-  set cmd = ($cmd --o $labdir/anatorig/cortex+${gmgrow}mm.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Make mask of grown cortex plus brainstem
-  set id = `grep -i " Brain-Stem[ \t]" $FREESURFER_HOME/FreeSurferColorLUT.txt`
-  set id = $id[1]
-
-  set cmd = mri_binarize
-  set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
-  set cmd = ($cmd --match $id)
-  set cmd = ($cmd --o $labdir/anatorig/Brain-Stem.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  set cmd = fslmaths
-  set cmd = ($cmd      $labdir/anatorig/cortex+${gmgrow}mm.nii.gz)
-  set cmd = ($cmd -add $labdir/anatorig/Brain-Stem.nii.gz)
-  set cmd = ($cmd      $labdir/anatorig/cortex+${gmgrow}mm+bs.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Copy T1 brain mask
-  set cmd = mri_convert
-  set cmd = ($cmd $fsdir/mri/brainmask.mgz)
-  set cmd = ($cmd $labdir/anatorig/anat_brain_mask.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Exclude ventricles from brain mask
-  set cmd = fslmaths
-  set cmd = ($cmd      $labdir/anatorig/anat_brain_mask.nii.gz)
-  set cmd = ($cmd -mul $labdir/anatorig/notventricles.nii.gz)
-  set cmd = ($cmd      $labdir/anatorig/anat_brain_mask-vent.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Copy T1 segmentation
-  set cmd = mri_convert
-  set cmd = ($cmd $fsdir/mri/aparc+aseg.mgz)
-  set cmd = ($cmd $labdir/anatorig/aparc+aseg.nii.gz)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  # Transform anatomical masks
-  foreach label ( White-Matter White-Matter++ notventricles \
-                  cortex cortex+${gmgrow}mm cortex+${gmgrow}mm+bs \
-                  anat_brain_mask anat_brain_mask-vent aparc+aseg )
-    # Change orientation to make FSL happy
-    set cmd = flip4fsl
-    set cmd = ($cmd $labdir/anatorig/$label.nii.gz)
-    set cmd = ($cmd $labdir/anat/$label.nii.gz)
-    echo $cmd |& tee -a $LF |& tee -a $CF
-    if ($RunIt) then
-      $cmd |& tee -a $LF
-      if ($status) goto error_exit
-    endif
-
-    # Map label to diffusion space
-    foreach reg (flt bbr)
-      if (-e $xfmdir/anat2diff.$reg.mat) then
-        set cmd = flirt
-        set cmd = ($cmd -in $labdir/anat/$label.nii.gz)
-        set cmd = ($cmd -ref $dwidir/lowb.nii.gz)
-        set cmd = ($cmd -out $labdir/diff/$label.$reg.nii.gz)
-        set cmd = ($cmd -applyxfm -init $xfmdir/anat2diff.$reg.mat)
-        set cmd = ($cmd -interp nearestneighbour)		# Binary masks!
-        echo $cmd |& tee -a $LF |& tee -a $CF
-        if ($RunIt) then
-          $cmd |& tee -a $LF
-          if ($status) goto error_exit
-        endif
-      endif
+    # Make mask including cerebral WM, cerebellar WM, and WM hypointensities
+    set cmd = mri_binarize
+    set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
+    foreach label ($wmlist[1-5])
+      set id = `grep -i " ${label}[ \t]" $fslut`
+      set id = $id[1]
+      set cmd = ($cmd --match $id)
     end
+    set cmd = ($cmd --o $labdir/anatorig/White-Matter.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
 
-    # Map label to MNI space
-    if ($doregmni && -e $xfmdir/anat2mni.mat) then
-      set cmd = flirt
-      set cmd = ($cmd -in $labdir/anat/$label.nii.gz)
-      set cmd = ($cmd -ref $mnitemp)
-      set cmd = ($cmd -out $labdir/mni/$label.nii.gz)
-      set cmd = ($cmd -applyxfm -init $xfmdir/anat2mni.mat)
-      set cmd = ($cmd -interp nearestneighbour)			# Binary masks!
+    # As above, plus ventral DC and brainstem
+    set cmd = mri_binarize
+    set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
+    foreach label ($wmlist)
+      set id = `grep -i " ${label}[ \t]" $fslut`
+      set id = $id[1]
+      set cmd = ($cmd --match $id)
+    end
+    set cmd = ($cmd --o $labdir/anatorig/White-Matter++.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Make mask excluding lateral ventricles
+    set cmd = mri_binarize
+    set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
+    foreach label ($ventlist)
+      set id = `grep -i " ${label}[ \t]" $fslut`
+      set id = $id[1]
+      set cmd = ($cmd --match $id)
+    end
+    set cmd = ($cmd --binval 0 --binvalnot 1)
+    set cmd = ($cmd --o $labdir/anatorig/notventricles.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Map cortical parcellation to volume, growing 2mm into the WM
+    set gmgrow = 2
+    if (! -e $fsdir/label/aparc+${gmgrow}mm.mgz) then
+      set cmd = mri_aparc2aseg
+      set cmd = ($cmd --s $subj)
+      set cmd = ($cmd --annot aparc)
+      set cmd = ($cmd --wmparc-dmax $gmgrow)
+      set cmd = ($cmd --labelwm --hypo-as-wm)
+      set cmd = ($cmd --o $fsdir/label/aparc+${gmgrow}mm.mgz)
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
         $cmd |& tee -a $LF
@@ -889,21 +770,160 @@ if ($domasks) then
       endif
     endif
 
-    # Map label to CVS space
-    if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) then
-      set cmd = applyMorph
-      set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
-      set cmd = ($cmd --transform $xfmdir/cvs/$cvswarp.tm3d)
-      set cmd = ($cmd   vol $labdir/anatorig/$label.nii.gz)
-      set cmd = ($cmd       $labdir/cvs/$label.nii.gz)
-      set cmd = ($cmd   nearest)				# Binary masks!
+    # Make mask of cortex
+    set cmd = mri_binarize
+    set cmd = ($cmd --i $fsdir/label/aparc+${gmgrow}mm.mgz)
+    set cmd = ($cmd --min 1000 --max 2999)
+    set cmd = ($cmd --o $labdir/anatorig/cortex.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Make mask of grown cortex
+    set cmd = mri_binarize
+    set cmd = ($cmd --i $fsdir/label/aparc+${gmgrow}mm.mgz)
+    set cmd = ($cmd --min 1000 --max 4999)
+    set cmd = ($cmd --o $labdir/anatorig/cortex+${gmgrow}mm.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Make mask of grown cortex plus brainstem
+    set id = `grep -i " Brain-Stem[ \t]" $fslut`
+    set id = $id[1]
+
+    set cmd = mri_binarize
+    set cmd = ($cmd --i $fsdir/mri/aparc+aseg.mgz)
+    set cmd = ($cmd --match $id)
+    set cmd = ($cmd --o $labdir/anatorig/Brain-Stem.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    set cmd = fslmaths
+    set cmd = ($cmd      $labdir/anatorig/cortex+${gmgrow}mm.nii.gz)
+    set cmd = ($cmd -add $labdir/anatorig/Brain-Stem.nii.gz)
+    set cmd = ($cmd      $labdir/anatorig/cortex+${gmgrow}mm+bs.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Copy T1 brain mask
+    set cmd = mri_convert
+    set cmd = ($cmd $fsdir/mri/brainmask.mgz)
+    set cmd = ($cmd $labdir/anatorig/anat_brain_mask.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Exclude ventricles from brain mask
+    set cmd = fslmaths
+    set cmd = ($cmd      $labdir/anatorig/anat_brain_mask.nii.gz)
+    set cmd = ($cmd -mul $labdir/anatorig/notventricles.nii.gz)
+    set cmd = ($cmd      $labdir/anatorig/anat_brain_mask-vent.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Copy T1 segmentation
+    set cmd = mri_convert
+    set cmd = ($cmd $fsdir/mri/aparc+aseg.mgz)
+    set cmd = ($cmd $labdir/anatorig/aparc+aseg.nii.gz)
+    echo $cmd |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      $cmd |& tee -a $LF
+      if ($status) goto error_exit
+    endif
+
+    # Transform anatomical masks
+    foreach label ( White-Matter White-Matter++ notventricles \
+                    cortex cortex+${gmgrow}mm cortex+${gmgrow}mm+bs \
+                    anat_brain_mask anat_brain_mask-vent aparc+aseg )
+      # Change orientation to make FSL happy
+      set cmd = flip4fsl
+      set cmd = ($cmd $labdir/anatorig/$label.nii.gz)
+      set cmd = ($cmd $labdir/anat/$label.nii.gz)
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
-        $fs_time $cmd |& tee -a $LF
+        $cmd |& tee -a $LF
         if ($status) goto error_exit
       endif
+
+      # Map label to diffusion space
+      foreach reg (flt bbr)
+        if (-e $xfmdir/anat2diff.$reg.mat) then
+          set cmd = flirt
+          set cmd = ($cmd -in $labdir/anat/$label.nii.gz)
+          set cmd = ($cmd -ref $dwidir/lowb.nii.gz)
+          set cmd = ($cmd -out $labdir/diff/$label.$reg.nii.gz)
+          set cmd = ($cmd -applyxfm -init $xfmdir/anat2diff.$reg.mat)
+          set cmd = ($cmd -interp nearestneighbour)		# Binary masks!
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+        endif
+      end
+
+      # Map label to MNI space
+      if ($doregmni && -e $xfmdir/anat2mni.mat) then
+        set cmd = flirt
+        set cmd = ($cmd -in $labdir/anat/$label.nii.gz)
+        set cmd = ($cmd -ref $mnitemp)
+        set cmd = ($cmd -out $labdir/mni/$label.nii.gz)
+        set cmd = ($cmd -applyxfm -init $xfmdir/anat2mni.mat)
+        set cmd = ($cmd -interp nearestneighbour)		# Binary masks!
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+      endif
+
+      # Map label to CVS space
+      if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) then
+        set cmd = applyMorph
+        set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+        set cmd = ($cmd --transform $xfmdir/cvs/$cvswarp.tm3d)
+        set cmd = ($cmd   vol $labdir/anatorig/$label.nii.gz)
+        set cmd = ($cmd       $labdir/cvs/$label.nii.gz)
+        set cmd = ($cmd   nearest)				# Binary masks!
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $fs_time $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
+      endif
+    end
+
+    # Calculate SNR of DWIs in WM mask
+    set cmd = fslstats
+    set cmd = ($cmd -t $dwidir/dwi.nii.gz)
+    if ($doregbbr && -e $labdir/diff/White-Matter++.bbr.nii.gz) then
+      set cmd = ($cmd -k $labdir/diff/White-Matter++.bbr.nii.gz)
+    else
+      set cmd = ($cmd -k $labdir/diff/White-Matter++.flt.nii.gz)
     endif
-  end
+    set cmd = ($cmd -m -s)
+    echo "$cmd | awk '{print "'$1/$2'"}' > $dwidir/dwi_snr.txt" \
+      |& tee -a $LF |& tee -a $CF
+    if ($RunIt) then
+      ($cmd | awk '{print $1/$2}' > $dwidir/dwi_snr.txt) >>& $LF
+    endif
+  endif
 
   # Transform diffusion brain mask
   foreach reg (flt bbr)
@@ -952,21 +972,6 @@ if ($domasks) then
       endif
     endif
   end
-
-  # Calculate SNR of DWIs in WM mask
-  set cmd = fslstats
-  set cmd = ($cmd -t $dwidir/dwi.nii.gz)
-  if ($doregbbr && -e $labdir/diff/White-Matter++.bbr.nii.gz) then
-    set cmd = ($cmd -k $labdir/diff/White-Matter++.bbr.nii.gz)
-  else
-    set cmd = ($cmd -k $labdir/diff/White-Matter++.flt.nii.gz)
-  endif
-  set cmd = ($cmd -m -s)
-  echo "$cmd | awk '{print "'$1/$2'"}' > $dwidir/dwi_snr.txt" \
-    |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    ($cmd | awk '{print $1/$2}' > $dwidir/dwi_snr.txt) >>& $LF
-  endif
 endif
 
 #------------ Tensor fit --------------------------------------------------#
