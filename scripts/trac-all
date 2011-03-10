@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:40 $
-#    $Revision: 1.17 $
+#    $Author: ayendiki $
+#    $Date: 2011/03/10 23:19:16 $
+#    $Revision: 1.18 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.17 2011/03/02 20:16:40 nicks Exp $'
+set VERSION = '$Id: trac-all,v 1.18 2011/03/10 23:19:16 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -131,6 +131,7 @@ set pathlist = ( lh.cst_AS rh.cst_AS \
 set ncpts = 5
 set xspace = mni
 set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
+set trainsubjlist = ()
 set ntrainlist = ()
 set avgname = ()
 set usetrunc = 0
@@ -196,11 +197,17 @@ foreach isubj ($runlist)
     set dtdir = $subj
     set dtroot = `dirname $dtdir`
     set subj = `basename $dtdir`
-    set trainsubjlist = `cat $trainfile | sed -n "$isubj p"`
-    shift trainsubjlist
+
+    if (-e $trainfile) then
+      set trainsubjlist = `cat $trainfile | sed -n "$isubj p"`
+      shift trainsubjlist
+    endif
   else
     set dtdir = $dtroot/$subj
-    set trainsubjlist = `cat $trainfile`
+
+    if (-e $trainfile) then
+      set trainsubjlist = `cat $trainfile`
+    endif
 
     # Check freesurfer directory
     set fsdir = $SUBJECTS_DIR/$subj
@@ -769,20 +776,25 @@ arg1err:
 ############--------------##################
 check_params:
   if (! $DoVersionsOnly) then
-    if ($do1out) then
-      # Leave-one-out training file:
-      # The first subject of each line is the test subject,
-      # the remaining subjects of the line are the training subjects
-      set subjlist = `cat $trainfile | awk '{print $1}'`
-      set runlist = `jot - 1 $#subjlist 1`
-      if (! $#ntrainlist) then
-        set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
+    if (-e $trainfile) then
+      if ($do1out) then
+        # Leave-one-out training file:
+        # The first subject of each line is the test subject,
+        # the remaining subjects of the line are the training subjects
+        set subjlist = `cat $trainfile | awk '{print $1}'`
+        set runlist = `jot - 1 $#subjlist 1`
+        if (! $#ntrainlist) then
+          set ntrainlist = `head -1 $trainfile | wc -w | awk '{print $1 - 1}'`
+        endif
+      else
+        # Simple training file:
+        # The file lists the training subjects
+        # Info on the test subjects comes from dmrirc
+        set ntrainlist = `wc -w $trainfile | awk '{print $1}'`
       endif
-    else
-      # Simple training file:
-      # The file lists the training subjects
-      # Info on the test subjects comes from dmrirc
-      set ntrainlist = `wc -w $trainfile | awk '{print $1}'`
+    else if ($dopriors || $dopaths) then
+      echo "ERROR: Cannot find list of training subjects $trainfile"
+      exit 1
     endif
 
     if (! $#avgname) then
@@ -857,7 +869,7 @@ check_params:
   if ((! $dopreproc || (! $docorr && ! $dointra && ! $dointer && \
                         ! $domasks && ! $dotensor && ! $dopriors)) && \
        ! $dobedpost && ! $dopaths) then
-    echo "ERROR: no analysis step has been selected"
+    echo "ERROR: no analysis step (-{prep,bedp,path}) has been selected"
     exit 1
   endif
 
