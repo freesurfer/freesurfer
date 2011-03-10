@@ -6,9 +6,9 @@
 /*
  * Original Author: Thomas Witzel
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:54 $
- *    $Revision: 1.8 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/10 16:34:09 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,6 +50,7 @@
 /* Note mrisurf.h cannot be before thrust libraries .... */
 #include "mrisurf.h"
 #include "mrisurf_cuda.h"
+#include "devicemanagement.h"
 
 #include <cuda.h>
 #include <cuda_runtime.h>
@@ -98,9 +99,12 @@ static int timeval_subtract (struct timeval *result,
    from the freesurfer environment
 */
 void MRISCdeviceInfo() {
-  cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp, 0);
-  printf ("      CUDA device %d: %s\n", 0,deviceProp.name);
+  /*
+    cudaDeviceProp deviceProp;
+    cudaGetDeviceProperties(&deviceProp, 0);
+    printf ("      CUDA device %d: %s\n", 0,deviceProp.name);
+  */
+  AcquireCUDADevice();
 }
 
 void MRISCcheckCUDAError(const char *msg) {
