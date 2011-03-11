@@ -9,9 +9,9 @@ function flac = fast_ldanaflac(anadir)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:04 $
-%    $Revision: 1.62 $
+%    $Author: greve $
+%    $Date: 2011/03/11 23:48:16 $
+%    $Revision: 1.63 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -163,6 +163,8 @@ while(1)
     nnuisreg = sscanf(tline,'%*s %*s %d',1);
     nuisregList = strvcat(nuisregList,nuisreg);
     nnuisregList = [nnuisregList nnuisreg];
+   case 'UseB0DC'
+    UseB0DC = sscanf(tline,'%*s %d',1);
    otherwise
     fprintf('INFO: key %s unrecognized, line %d, skipping\n',key,nthline);
   end
