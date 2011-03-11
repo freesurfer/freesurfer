@@ -15,7 +15,7 @@ from subject_info import *
 from qdectable_parser import *
 
 # Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.9 2011/03/11 21:35:12 mreuter Exp $
+# $Id: long_mris_slopes,v 1.10 2011/03/11 22:36:02 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -145,7 +145,7 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.9 2011/03/11 21:35:12 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.10 2011/03/11 22:36:02 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -319,11 +319,18 @@ if __name__=="__main__":
             print 'ERROR: '+str(basedir)+' must have at least 2 time points!'
             sys.exit(1)
         
+        # tmpdir:
+        prefix = './'+subjectid+'_'+options.hemi+'_'
+        dirname = tempfile.mkdtemp('',prefix,'')
+        if not os.path.exists(dirname):
+            print 'ERROR: tmp dir '+str(dirname)+' cannot be created (write permissions?)!'
+            sys.exit(1)
         
+        
+        # ouput written to base: /label/<hemi>.long.cortex.label
         label = options.hemi+'.long.cortex.label'
         ctx_target  = os.path.join(basedir,'label',label)
-        meas_target = os.path.join(basedir,'surf',options.hemi+'.longstack.'+options.meas+'.mgh')
-        x_target    = os.path.join(basedir,'surf','X-long.mat')
+
         times = zeros([len(tplist)], Float)
         all = ''
         meant = 0.0
@@ -364,21 +371,31 @@ if __name__=="__main__":
                 tp1id   = tpdata[0]+'.long.'+subjectid
             else:
                 cmd = 'mris_label_calc intersect '+cortex+' '+ctx_target+' '+ctx_target
-            if i== 2 : #remember for the 2 tp case below
+
+            if i == 2 : #remember for the 2 tp case below
                 tp2meas = measure
                 tp2id   =  tpdata[0]+'.long.'+subjectid
-                
-            run_cmd(cmd,'mris_label_calc intersect did not work?')
+               
+            if options.label is None: 
+                # create base/label/<hemi>.long.cortex.label if not passed
+                run_cmd(cmd,'mris_label_calc intersect did not work?')
+                if not os.path.exists(ctx_target):
+                    print 'ERROR: Cannot write '+str(dirname)+' (write permissions?)!'
+                    sys.exit(1)
 
-        prefix = './'+subjectid+'_'+options.hemi+'_'
-        dirname = tempfile.mkdtemp('',prefix,'')
-                
+
         # set label from options instead of intersected cortex, if passed
         label = ctx_target
         if options.label is not None:
             label = options.label
+
+        # avearge age:
+        meant = meant / i
         
-        if i == 2 :  # 2 tps, direct computation
+        print '\n\nINFO: '+str(i)+' TPs in '+subjectid+' mean age: '+str(meant)+'\n'
+        
+        # 2 tps, direct computation
+        if i == 2 :  
         
             # sort
             if times[0] > times[1] :
@@ -412,13 +429,8 @@ if __name__=="__main__":
         else: # more than 2 time points, run GLM
         
         
-            # avearge age:
-            meant = meant / i
-        
-            print '\n\nINFO: '+str(i)+' TPs in '+subjectid+' mean age: '+str(meant)+'\n'
-        
-       
-            #write X-matrix:
+            #write X-matrix (times):
+            x_target    = os.path.join(dirname,'X-long.mat')
             print 'Writing '+x_target+' ...\n'
             if os.path.exists(x_target):
                 os.remove(x_target)
@@ -428,13 +440,12 @@ if __name__=="__main__":
             xfp.close()    
         
             # stack measure maps:
+            meas_target = os.path.join(dirname,options.hemi+'.longstack.'+options.meas+'.mgh')
             cmd = 'mri_concat '+all+' --o '+meas_target
             run_cmd(cmd,'mri_concat stacking did not work?')
 
         
             # run glm in tmp dir:
-            prefix = './'+subjectid+'_'+options.hemi+'_'
-            dirname = tempfile.mkdtemp('',prefix,'')        
             cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+' --label '+label+' --glmdir '+dirname
             run_cmd(cmd,'mri_glmfit did not work?')
 
