@@ -1,0 +1,7 @@
+#! /bin/tcsh -f
+
+# simple test of freeview: run screen snapshot option
+
+source ../scripts/tcl_setup
+source ../scripts/vtk_setup
+./freeview --screenshot /tmp/freeview.snapshot.jpg
