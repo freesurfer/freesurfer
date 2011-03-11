@@ -15,7 +15,7 @@ from subject_info import *
 from qdectable_parser import *
 
 # Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.8 2011/03/08 21:55:28 mreuter Exp $
+# $Id: long_mris_slopes,v 1.9 2011/03/11 21:35:12 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -145,7 +145,7 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.8 2011/03/08 21:55:28 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.9 2011/03/11 21:35:12 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -176,7 +176,7 @@ def options_parse():
     parser.add_option('--out-spc' , dest='out_spc' , help=h_out_spc)
 
     parser.add_option('--fwhm', dest='fwhm', help=h_fwhm)
-    parser.add_option('--nosmooth', action='store_true', dest='nofwhm', help=h_nosmooth, default=False)
+    parser.add_option('--nosmooth', action='store_true', dest='nosmooth', help=h_nosmooth, default=False)
 #    parser.add_option('--type', dest='type', choices=('R','PC1','SPC'), default='R', help=h_type)
     parser.add_option('--time', dest='time', help=h_time)
     parser.add_option('--label', dest='label', help=h_label)
@@ -208,12 +208,12 @@ def options_parse():
         print 'ERROR: output file name should be specified, use one or more of --out-avg, --out-rate, --out-pc1 or --out-spc'
         sys.exit(1)
     
-    if options.fwhm is not None and options.nofwhm is not None:
-        print 'ERROR: either specify --fwhm <int> or --nofwhm'
+    if options.fwhm is not None and options.nosmooth:
+        print 'ERROR: either specify --fwhm <int> or --nosmooth'
         sys.exit(1)
         
-    if (options.out_pc1 is not None or options.out_spc is not None) and options.fwhm is None and not options.nofwhm:
-        print 'ERROR: when computing SPC or PC1 (pct. change) you should specify smoothing --fwhm <int>. If you really do not want to smooth path --nosmooth'
+    if (options.out_pc1 is not None or options.out_spc is not None) and options.fwhm is None and not options.nosmooth:
+        print 'ERROR: when computing SPC or PC1 (pct. change) you should specify smoothing --fwhm <int>. If you really do not want to smooth pass --nosmooth'
         sys.exit(1)
     
     
