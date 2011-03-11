@@ -15,7 +15,7 @@ from subject_info import *
 from qdectable_parser import *
 
 # Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.10 2011/03/11 22:36:02 mreuter Exp $
+# $Id: long_mris_slopes,v 1.11 2011/03/11 22:50:48 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -34,7 +34,8 @@ The slope is computed within subject from the longitudinally processed
 results (taken from the <tpNid>.long.<template> directories) and the
 output is written into the subjects <template>/surf directory for further
 processing (e.g. group analysis). Will also output the intersections of
-all cortex labels in <tamplate>/label/?h.long.cortex.label
+all cortex labels in <tamplate>/label/?h.long.cortex.label if a
+pre-defined label is not specified with --label <name>.
 
 REQUIRED ARGUMENTS
 
@@ -66,14 +67,15 @@ OPTIONAL ARGUMENTS
 
 --label <name>    Use pre-defined label for smoothing (default: intersect cortex labels)
 
+
 DETAILS
 
 QDEC.TABLE
-Pass a qdec table file, where the first 2 columns need
-to be 'fsid  fsid-base'. fsid is the id of the individual time points an
-'fsid-base' the template/base id (grouping the timepoints that belong to the
-same subject). By default the third column is taken as the time variable, but
-this can be overwritten with --time <name>. 
+Pass a qdec table file, where the first 2 columns need to be 'fsid  fsid-base'.
+fsid is the id of the individual time points an 'fsid-base' the template/base
+id (grouping the timepoints that belong to the same subject). By default the
+third column is taken as the time variable, but this can be overwritten with
+--time <name>. 
 
 QDEC.TABLE-EXAMPLE:
 fsid    fsid-base  age   weight   IQ
@@ -87,26 +89,26 @@ Bert_2   Bert       9      30    2500
 Bert_3   Bert       9.9    34    2400
 
 
-Output Type:
+OUTPUT:
 
 The output will be written into the template surf directory:
 <template>/surf/<hemi>.<name>
 
-For the output type you have the following options:
-*  'out-rate' for rate, this will fit the slope and depending on the time
-   variable yield e.g. the thinning in mm/year (if the time variable is
-   measured in years, such as age).
+For the output choose one or more of the following options:
+*  'out-rate' for rate, this will compute the slope of a linear fit.
+   Depending on the time variable will yield the thinning in mm/time
+   (if the time variable is measured in years, such as age: mm/year).
 *  'out-pc1' is the percent change, this is the rate normalized by the
    measure at the first time point times 100, e.g. percent thinning per year.
 *  'out-spc' for symmetrized percent change. Here we normalize by the temporal
    average instead of taking it from the first time point. The average is
    computed from the linear fit at the middle of the time interval.
-   This is a more robust 'percent thinning per year' as TP1 can be an
-   outlier.
+   This is a symmetric 'percent thinning per year' and more robust, as TP1
+   can be an outlier.
 *  'out-avg' for output of the temporal average (linear fit at mid time).
 
-NOTE that for percent change prior smoothing (--fwhm) is recommended as the
-division can produce very large values!
+NOTE that for percent change (pc1 and spc) prior smoothing (--fwhm) is
+highly recommended as the division can produce very large values!
 """
 
 # not encouraged, therefore removed from helptext above:
@@ -145,7 +147,7 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.10 2011/03/11 22:36:02 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.11 2011/03/11 22:50:48 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -160,7 +162,7 @@ def options_parse():
     h_nosmooth = 'Do not smooth the data (overwrite requirement to smooth for pct change computations)'
 #    h_type = 'Type can be R (rate), PC1 (pct change), SPC (sym. pct change), default: R'    
     h_time = 'Variable name for time variable (e.g. age)'    
-    h_label= 'Use pre-defined label to use with smoothing'
+    h_label= 'Use pre-defined label with smoothing and to mask the output'
 #    h_outformat = 'Output format can be either mgh (default) or curv'
  
     # Add options 
