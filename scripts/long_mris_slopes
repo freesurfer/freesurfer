@@ -1,4 +1,28 @@
 #!/usr/bin/env python
+
+#
+# long_mris_slopes
+#
+# script to fit within-subject slopes into longitudinal data
+#
+# Original Author: Martin Reuter
+# CVS Revision Info:
+#    $Author: mreuter $
+#    $Date: 2011/03/11 23:11:33 $
+#    $Revision: 1.12 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
 import warnings
 warnings.filterwarnings('ignore', '.*negative int.*')
 import os
@@ -13,9 +37,6 @@ from Numeric import *
 from subject_info import *
 #from fsgd_parser import *
 from qdectable_parser import *
-
-# Original Version - Martin Reuter, MGH
-# $Id: long_mris_slopes,v 1.11 2011/03/11 22:50:48 mreuter Exp $
 
 # logging 
 ch = logging.StreamHandler()
@@ -147,20 +168,19 @@ def options_parse():
     Command Line Options Parser for mris_long_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.11 2011/03/11 22:50:48 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.12 2011/03/11 23:11:33 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
-    h_qdec = '(REQUIRED) qdec table file specifying the subjects and time points'
-    h_meas = '(REQUIRED) the surface measure of type curv (e.g. thickness)'
-    h_hemi = '(REQUIRED) Run one hemisphere: lh or rh'
+    h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
+    h_meas      = '(REQUIRED) the surface measure of type curv (e.g. thickness)'
+    h_hemi      = '(REQUIRED) Run one hemisphere: lh or rh'
     h_out_rate  = 'filename (without hemi ?h) to store rate in <STemplate>/surf/<hemi>.<OUT_RATE>'
     h_out_pc1   = 'filename (without hemi ?h) to store pct. change (to TP1) in <STemplate>/surf/<hemi>.<OUT_PC1>'
     h_out_spc   = 'filename (without hemi ?h) to store sym. pct. change in <STemplate>/surf/<hemi>.<OUT_SPC>'
     h_out_avg   = 'filename (without hemi ?h) to store temporal average in <STemplate>/surf/<hemi>.<AVG>'
     h_fwhm = 'Smoothing the data, usefull if percent change maps are created'
     h_nosmooth = 'Do not smooth the data (overwrite requirement to smooth for pct change computations)'
-#    h_type = 'Type can be R (rate), PC1 (pct change), SPC (sym. pct change), default: R'    
     h_time = 'Variable name for time variable (e.g. age)'    
     h_label= 'Use pre-defined label with smoothing and to mask the output'
 #    h_outformat = 'Output format can be either mgh (default) or curv'
@@ -171,7 +191,6 @@ def options_parse():
 
     parser.add_option('--meas', dest='meas', help=h_meas)
     parser.add_option('--hemi', dest='hemi', choices=('lh','rh'), help=h_hemi)
-#    parser.add_option('--out' , dest='out' , help=h_out)
     parser.add_option('--out-avg' , dest='out_avg' , help=h_out_avg)
     parser.add_option('--out-rate' , dest='out_rate' , help=h_out_rate)
     parser.add_option('--out-pc1' , dest='out_pc1' , help=h_out_pc1)
@@ -179,7 +198,6 @@ def options_parse():
 
     parser.add_option('--fwhm', dest='fwhm', help=h_fwhm)
     parser.add_option('--nosmooth', action='store_true', dest='nosmooth', help=h_nosmooth, default=False)
-#    parser.add_option('--type', dest='type', choices=('R','PC1','SPC'), default='R', help=h_type)
     parser.add_option('--time', dest='time', help=h_time)
     parser.add_option('--label', dest='label', help=h_label)
 #    parser.add_option('--outformat', dest='outformat', choices=('curv','mgh'), default='mgh', help=h_outformat);
@@ -218,12 +236,8 @@ def options_parse():
         print 'ERROR: when computing SPC or PC1 (pct. change) you should specify smoothing --fwhm <int>. If you really do not want to smooth pass --nosmooth'
         sys.exit(1)
     
-    
-#    if not options.hemi:
-#        print 'ERROR: hemi should be specified, use --hemi (lh or rh)'
-#        sys.exit(1)
-        
     return options
+
 
 def write_fsgd(filename,subjects_tp_map,subject,timeidx):
     """
