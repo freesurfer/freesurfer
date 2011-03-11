@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/03/11 16:12:49 $
- *    $Revision: 1.35 $
+ *    $Date: 2011/03/11 16:49:51 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.35 2011/03/11 16:12:49 rudolph Exp $";
+  "$Id: mris_calc.c,v 1.36 2011/03/11 16:49:51 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -908,11 +908,11 @@ fileWrite(
 	      if(strcmp(pch_fileExt, Gppch_fileExt[G_eFILETYPE3]) && 
 	         Gb_strictExtensions)
       	          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE3]);
+	      b_fileID_OK	= 1;
 	      }
       }
   } else {
-      if(Gb_strictExtensions)
-	  strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
+	strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
   }
 
   if(!b_fileID_OK) {
@@ -1298,7 +1298,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.35 2011/03/11 16:12:49 rudolph Exp $",
+           "$Id: mris_calc.c,v 1.36 2011/03/11 16:49:51 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
