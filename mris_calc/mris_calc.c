@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/03/11 16:49:51 $
- *    $Revision: 1.36 $
+ *    $Date: 2011/03/11 21:13:13 $
+ *    $Revision: 1.37 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.36 2011/03/11 16:49:51 rudolph Exp $";
+  "$Id: mris_calc.c,v 1.37 2011/03/11 21:13:13 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -906,9 +906,12 @@ fileWrite(
       	          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
     	  } else {
 	      if(strcmp(pch_fileExt, Gppch_fileExt[G_eFILETYPE3]) && 
-	         Gb_strictExtensions)
+	         Gb_strictExtensions) {
       	          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE3]);
+		  G_eFILETYPE3	= G_eFILETYPE1;
+		 }
 	      b_fileID_OK	= 1;
+//	      G_FSFILETYPE3	= G_FSFILETYPE1;
 	      }
       }
   } else {
@@ -919,7 +922,7 @@ fileWrite(
 	G_eFILETYPE3	= G_eFILETYPE1;
         G_FSFILETYPE3	= G_FSFILETYPE1;
   }    
-  if(G_FSFILETYPE3 != G_FSFILETYPE1)
+  if(G_eFILETYPE3 != G_eFILETYPE1)
 	error_incompatibleOutputFileType();
   switch(G_eFILETYPE1)
   {
@@ -1298,7 +1301,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.36 2011/03/11 16:49:51 rudolph Exp $",
+           "$Id: mris_calc.c,v 1.37 2011/03/11 21:13:13 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1739,8 +1742,8 @@ VOL_fileWrite(
           CURV_arrayProgress_print(a_vectorSize, I, pch_readMessage);
           MRIsetVoxVal(out, i, j, k, f, (float) apf_data[I++]);
         }
-  sprintf(pch_readMessage, "Saving result to '%s' (type= %s )", 
-          apch_volFileName, type_to_string (out->type));
+  sprintf(pch_readMessage, "Saving result to '%s' (type = %s )", 
+          apch_volFileName, type_to_string (G_FSFILETYPE3));
   cprints(pch_readMessage, "");
   ret = MRIwrite(out, apch_volFileName);
   if(!ret)
