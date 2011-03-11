@@ -208,6 +208,7 @@ unpacksdcmdir \
 UpdateNeeded \
 usbtree \
 vno_match_check \
+qt_setup \
 vtk_setup \
 wfilemask \
 wm-anat-snr \

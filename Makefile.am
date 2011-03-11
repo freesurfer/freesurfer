@@ -336,6 +336,7 @@ SUBDIRS=\
 	matlab \
 	scuba \
 	scuba2 \
+	freeview_wx \
 	freeview \
 	qdec_glmfit \
 	cudatest \

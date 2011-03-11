@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/02/09 21:11:30 $
-#    $Revision: 1.513 $
+#    $Author: krish $
+#    $Date: 2011/03/11 23:20:25 $
+#    $Revision: 1.514 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -500,7 +500,7 @@ case "${target}" in
  # Mac OS X
  OS=Darwin
  OS_CPPFLAGS=
- OS_LDFLAGS="$DEADCODE_STRIP_MAC"
+ OS_LDFLAGS="$DEADCODE_STRIP_MAC -framework Cocoa -framework IOKit"
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
@@ -1859,44 +1859,8 @@ AC_DEFINE([XML_CONTEXT_BYTES], 1024,
 ################################################################
 # Qt
 ################################################################
-ac_qt_includes="NO"
-ac_qt_libraries="NO"
-ac_qt_dir="NO"
-QT_CFLAGS=""
-QT_LIBS=""
-
-AC_MSG_CHECKING(Qt directory)
-
-AC_ARG_WITH(qt-dir,
-  [  --with-qt-dir=DIR       where the root of Qt is installed.],
-  [  ac_qt_includes="$withval"/include
-     ac_qt_libraries="$withval"/lib
-     ac_qt_dir="$withval"
-  ])
-
-if test ! "$ac_qt_includes" = "NO"; then
-  AC_MSG_RESULT(Qt directory is $withval)
-  QT_CFLAGS=-I$ac_qt_includes
-  QTDIR=$ac_qt_dir
-  AC_SUBST(QTDIR)
-else
-  AC_MSG_RESULT(Qt directory is not supplied. \
-Not building unsupported Qt apps.)
-fi
-if test ! "$ac_qt_libraries" = "NO"; then
-  QT_LIBS=-L$ac_qt_libraries
-  # enable testing for OpenGL libs:
-  need_opengl=yes
-else
-  QTDIR=""
-  AC_SUBST(QTDIR)
-fi
-
-AM_CONDITIONAL(ENABLE_QT_APPS, test ! "x$ac_qt_libraries" = "xNO")
-
-AC_SUBST(QT_CFLAGS)
-AC_SUBST(QT_LIBS)
-
+m4_include([m4/autotroll.m4])
+AT_WITH_QT([opengl])
 
 #################################################################
 # If on a Mac, make scuba and qdec, bundles (Qt apps)
@@ -2082,92 +2046,91 @@ AC_SUBST(VTK_DIR)
 ################################################################
 # VTK for Freeview in Mac
 ################################################################
-# This is essentially a different VTK because a Carbon build in Leopard doesn't compile when 
-# TCL is on. However TCL is a requirement for other binaries. So freeview is built with separate
-# VTK which has TCL turned off. 
-ac_vtk_carbon_includes="NO"
-ac_vtk_carbon_libraries="NO"
-ac_vtk_carbon_dir="NO"
-VTK_CARBON_CFLAGS=""
-VTK_CARBON_CXXFLAGS=""
-VTK_CARBON_LIBS=""
-VTK_CARBON_LIB=""
-VTK_CARBON_LIB_VTK=""
-VTK_CARBON_DIR=""
+# This is a static build of Cocoa VTK because KWWidgets doesn't play
+# nice with this VTK. Hence different VTK for different things
+ac_vtk_cocoa_includes="NO"
+ac_vtk_cocoa_libraries="NO"
+ac_vtk_cocoa_dir="NO"
+VTK_COCOA_CFLAGS=""
+VTK_COCOA_CXXFLAGS=""
+VTK_COCOA_LIBS=""
+VTK_COCOA_LIB=""
+VTK_COCOA_LIB_VTK=""
+VTK_COCOA_DIR=""
 
-AC_MSG_CHECKING(Carbon VTK config)
+AC_MSG_CHECKING(Cocoa VTK config)
 
-AC_ARG_WITH(vtk-carbon-dir,
-  [  --with-vtk-carbon-dir=DIR      where the root of VTK is installed.],
-  [  ac_vtk_carbon_includes="$withval/include"
-     ac_vtk_carbon_libraries="$withval"/lib
-     ac_vtk_carbon_dir="$withval"
-     VTK_CARBON_DIR=$ac_vtk_carbon_dir
+AC_ARG_WITH(vtk-cocoa-dir,
+  [  --with-vtk-cocoa-dir=DIR      where the root of VTK is installed.],
+  [  ac_vtk_cocoa_includes="$withval/include"
+     ac_vtk_cocoa_libraries="$withval"/lib
+     ac_vtk_cocoa_dir="$withval"
+     VTK_COCOA_DIR=$ac_vtk_cocoa_dir
   ])
 
-if test ! "$ac_vtk_carbon_includes" = "NO"; then
-  AC_MSG_RESULT(VTK Carbon directory is $withval)
-  if test -e $ac_vtk_carbon_includes/vtk-5.6 ; then
-    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.6"
-  elif test -e $ac_vtk_carbon_includes/vtk-5.5 ; then
-    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.5"
-  elif test -e $ac_vtk_carbon_includes/vtk-5.4 ; then
-    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.4"
-  elif test -e $ac_vtk_carbon_includes/vtk-5.3 ; then
-    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.3"
-  elif test -e $ac_vtk_carbon_includes/vtk-5.2 ; then
-    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.2"
-  elif test -e $ac_vtk_carbon_includes/vtk-5.1 ; then
-    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.1"
-  elif test -e $ac_vtk_carbon_includes/vtk-5.0 ; then
-    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk-5.0"
-  elif test -e $ac_vtk_carbon_includes/vtk ; then
-    ac_vtk_carbon_includes="$ac_vtk_carbon_includes/vtk"
+if test ! "$ac_vtk_cocoa_includes" = "NO"; then
+  AC_MSG_RESULT(VTK cocoa directory is $withval)
+  if test -e $ac_vtk_cocoa_includes/vtk-5.6 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.6"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.5 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.5"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.4 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.4"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.3 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.3"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.2 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.2"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.1 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.1"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.0 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.0"
+  elif test -e $ac_vtk_cocoa_includes/vtk ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk"
   fi
-  VTK_CARBON_CFLAGS="${VTK_CARBON_CFLAGS} -I$ac_vtk_carbon_includes"
-  VTK_CARBON_CXXFLAGS="${VTK_CARBON_CXXFLAGS} -I$ac_vtk_carbon_includes"
+  VTK_COCOA_CFLAGS="${VTK_COCOA_CFLAGS} -I$ac_vtk_cocoa_includes"
+  VTK_COCOA_CXXFLAGS="${VTK_COCOA_CXXFLAGS} -I$ac_vtk_cocoa_includes"
 fi
 
 if test ! "$ac_vtk_libraries" = "NO"; then
-  VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries
-  VTK_CARBON_LIB=$ac_vtk_carbon_libraries
-  if test -e $ac_vtk_carbon_libraries/vtk-5.6 ; then
-    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.6"
-    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.6
-    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.6
-  elif test -e $ac_vtk_carbon_libraries/vtk-5.5 ; then
-    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.5"
-    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.5
-    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.5
-  elif test -e $ac_vtk_carbon_libraries/vtk-5.4 ; then
-    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.4"
-    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.4
-    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.4
-  elif test -e $ac_vtk_carbon_libraries/vtk-5.3 ; then
-    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.3"
-    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.3
-    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.3
-  elif test -e $ac_vtk_carbon_libraries/vtk-5.2 ; then
-    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.2"
-    VTK_CARBON_LIBS=-L$ac_vtk_carbon_libraries/vtk-5.2
-    VTK_CARBON_LIB=$ac_vtk_carbon_libraries/vtk-5.2
-  elif test -e $ac_vtk_carbon_libraries/vtk-5.1 ; then
-    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.1"
-  elif test -e $ac_vtk_carbon_libraries/vtk-5.0 ; then
-    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk-5.0"
-  elif test -e $ac_vtk_carbon_libraries/vtk ; then
-    VTK_CARBON_LIB_VTK="$ac_vtk_carbon_libraries/vtk"
+  VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries
+  VTK_COCOA_LIB=$ac_vtk_cocoa_libraries
+  if test -e $ac_vtk_cocoa_libraries/vtk-5.6 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.6"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.6
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.6
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.5 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.5"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.5
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.5
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.4 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.4"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.4
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.4
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.3 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.3"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.3
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.3
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.2 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.2"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.2
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.2
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.1 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.1"
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.0 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.0"
+  elif test -e $ac_vtk_cocoa_libraries/vtk ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk"
   fi
 fi
 
-AM_CONDITIONAL(HAVE_CARBON_VTK_LIBS, test ! "x$VTK_CARBON_DIR" = "x")
+AM_CONDITIONAL(HAVE_COCOA_VTK_LIBS, test ! "x$VTK_COCOA_DIR" = "x")
 
-AC_SUBST(VTK_CARBON_CFLAGS)
-AC_SUBST(VTK_CARBON_CXXFLAGS)
-AC_SUBST(VTK_CARBON_LIBS)
-AC_SUBST(VTK_CARBON_LIB)
-AC_SUBST(VTK_CARBON_LIB_VTK)
-AC_SUBST(VTK_CARBON_DIR)
+AC_SUBST(VTK_COCOA_CFLAGS)
+AC_SUBST(VTK_COCOA_CXXFLAGS)
+AC_SUBST(VTK_COCOA_LIBS)
+AC_SUBST(VTK_COCOA_LIB)
+AC_SUBST(VTK_COCOA_LIB_VTK)
+AC_SUBST(VTK_COCOA_DIR)
 
 
 ################################################################
@@ -3466,6 +3429,7 @@ AC_OUTPUT([Makefile
            scripts/Makefile
            scuba/Makefile
            scuba2/Makefile
+           freeview_wx/Makefile
            freeview/Makefile
            connectgraph/Makefile
            spherical_stats/Makefile
