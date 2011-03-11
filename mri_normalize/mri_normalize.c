@@ -12,9 +12,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:23 $
- *    $Revision: 1.72 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/11 20:55:38 $
+ *    $Revision: 1.73 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -129,14 +129,14 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_normalize.c,v 1.72 2011/03/02 00:04:23 nicks Exp $",
+   "$Id: mri_normalize.c,v 1.73 2011/03/11 20:55:38 fischl Exp $",
    "$Name:  $",
    cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_normalize.c,v 1.72 2011/03/02 00:04:23 nicks Exp $",
+           "$Id: mri_normalize.c,v 1.73 2011/03/11 20:55:38 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -570,7 +570,7 @@ main(int argc, char *argv[])
           }
           else if (long_flag == 0)  // no initial normalization specified
           {
-            mri_dst = MRIclone(mri_src, NULL) ;
+            mri_dst = MRIcopy(mri_src, NULL) ;
           }
         }
         else
