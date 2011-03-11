@@ -12,8 +12,8 @@
  * Original Author: Rudolph Pienaar
  * CVS Revision Info:
  *    $Author: rudolph $
- *    $Date: 2011/03/09 21:53:24 $
- *    $Revision: 1.34 $
+ *    $Date: 2011/03/11 16:12:49 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -60,7 +60,7 @@
 #define  START_i      	3
 
 static const char vcid[] =
-  "$Id: mris_calc.c,v 1.34 2011/03/09 21:53:24 rudolph Exp $";
+  "$Id: mris_calc.c,v 1.35 2011/03/11 16:12:49 rudolph Exp $";
 
 // ----------------------------------------------------------------------------
 // DECLARATION
@@ -203,6 +203,7 @@ char*             Progname ;
 
 static int        G_verbosity             = 0;
 static FILE*      G_FP                    = NULL;
+static int 	  Gb_strictExtensions	  = 0;
 
 // Input 1
 static int        G_sizeCurv1             = 0;
@@ -266,7 +267,7 @@ static void version_print(void);
 
 // Setup functions
 static int  options_parse(
-  int argc,
+  int 	argc,
   char* apchv[]
 );
 static int  options_print(void);
@@ -890,28 +891,34 @@ fileWrite(
     
   e_FILEACCESS  eACCESS   	= e_UNSPECIFIED;
   char*		pch_fileExt;
+  int 		b_fileID_OK	= 0;
 
   pch_fileExt = fio_extension(apch_fileName);
   if(pch_fileExt) {
       if(!strcmp(pch_fileExt, Gppch_fileExt[e_CurvatureFile])) {
           G_eFILETYPE3 	= e_CurvatureFile;
           G_FSFILETYPE3	= MRI_CURV_FILE;
+	  b_fileID_OK		= 1;
       } else {
     	  G_eFILETYPE3 = fileType_find(apch_fileName, &G_FSFILETYPE3);
     	  if(G_eFILETYPE3 == e_Unknown) {
-      	      strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
-      	      G_eFILETYPE3 = fileType_find(apch_fileName, &G_FSFILETYPE3);
-    	  }
+	      if(Gb_strictExtensions)
+      	          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
+    	  } else {
+	      if(strcmp(pch_fileExt, Gppch_fileExt[G_eFILETYPE3]) && 
+	         Gb_strictExtensions)
+      	          strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE3]);
+	      }
       }
   } else {
-      strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
-      if(G_eFILETYPE1 == e_CurvatureFile) { 
-	  G_eFILETYPE3 	= e_CurvatureFile;
-	  G_FSFILETYPE3 = MRI_CURV_FILE;
-      } else
-	  G_eFILETYPE3 = fileType_find(apch_fileName, &G_FSFILETYPE3);  
+      if(Gb_strictExtensions)
+	  strcat(apch_fileName, Gppch_fileDotExt[G_eFILETYPE1]);
   }
-    
+
+  if(!b_fileID_OK) {
+	G_eFILETYPE3	= G_eFILETYPE1;
+        G_FSFILETYPE3	= G_FSFILETYPE1;
+  }    
   if(G_FSFILETYPE3 != G_FSFILETYPE1)
 	error_incompatibleOutputFileType();
   switch(G_eFILETYPE1)
@@ -1291,7 +1298,7 @@ main(
   init();
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mris_calc.c,v 1.34 2011/03/09 21:53:24 rudolph Exp $",
+           "$Id: mris_calc.c,v 1.35 2011/03/11 16:12:49 rudolph Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1412,8 +1419,12 @@ options_parse(int argc, char *argv[])
   if (!stricmp(option, "-output") || (toupper(*option) == 'O'))
   {
     strcpy(G_pch_curvFile3, (argv[2]));
-    Gb_file3    = 1;
-    nargs         = 1;
+    Gb_file3    	= 1;
+    nargs         	= 1;
+  }
+  else if (!stricmp(option, "-strictExtensions") || (toupper(*option) == 'E'))
+  {
+      Gb_strictExtensions = 1;
   }
   else if (!stricmp(option, "-version") || (toupper(*option) == 'V'))
   {
