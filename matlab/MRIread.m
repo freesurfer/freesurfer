@@ -46,9 +46,9 @@ function mri = MRIread(fstring,headeronly)
 %
 % Original Author: Doug Greve
 % CVS Revision Info:
-%    $Author: nicks $
-%    $Date: 2011/03/02 00:04:12 $
-%    $Revision: 1.21 $
+%    $Author: greve $
+%    $Date: 2011/03/11 23:48:45 $
+%    $Revision: 1.22 $
 %
 % Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 %
@@ -72,7 +72,8 @@ if(exist('headeronly')~=1) headeronly = 0; end
 
 [fspec fstem fmt] = MRIfspec(fstring);
 if(isempty(fspec))
-  fprintf('ERROR: cannot determine format of %s\n',fstring);
+  err = sprintf('ERROR: cannot determine format of %s (%s)\n',fstring,mfilename);
+  error(err);
   return;
 end
 
