@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/07 23:13:50 $
-#    $Revision: 1.63 $
+#    $Date: 2011/03/11 20:16:21 $
+#    $Revision: 1.64 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.63 2011/03/07 23:13:50 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.64 2011/03/11 20:16:21 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -80,9 +80,9 @@ set PrintHelp = 0;
 set RegDOF = 6;
 set DoMCExtReg = 0;
 set HeteroGCor = 0;
+set UseB0DC = 0;
 
 set force = 0;
-set UseGUI = 0;
 
 set cmdargs = ($argv);
 #### If no arguments, print usage and exit ####
@@ -114,28 +114,6 @@ parse_args_return:
 goto check_params;
 check_params_return:
 
-#-----------------------------------------
-if($UseGUI) then
-setenv FSF_PROC_GUI_BUG 1
-if($#mfile == 0) set mfile = /tmp/mkanalysis-sess.gui.m
-rm -f $mfile
-tee $mfile > /dev/null <<EOF
-monly = $monly;
-global MkAnalysisName;
-global MkAnalysisClone;
-MkAnalysisName = '$analysis';
-MkAnalysisClone = '$cloneanalysis';
-h = mkanalysis_gui;
-uiwait(h);
-if(~monly) quit; end
-EOF
-if(! $monly) then
-  cat $mfile | matlab
-endif
-exit 0;
-endif
-#-----------------------------------------
-
 mkdir -p $analysis
 set flac = $analysis/analysis.info
 rm -f $flac
@@ -161,6 +139,7 @@ echo "mask $maskstem" | tee -a $flac
 echo "RawFWHM $RawFWHM" | tee -a $flac
 if($#RawSTC) echo "RawSTC $RawSTC" | tee -a $flac
 if($#ExpKey) echo "ExpKey $ExpKey" | tee -a $flac
+echo "UseB0DC $UseB0DC" | tee -a $flac
 echo "inorm $RescaleTarget" | tee -a $flac
 # -- Noise and drift modeling, temporal filtering ------
 echo "acfbins $ACFBins" | tee -a $flac
@@ -496,6 +475,11 @@ while( $#argv != 0 )
       set RawSpaceType = volume
       set RawSpace = native
       set mcstem = fmc
+      breaksw
+
+    case "-b0dc":
+      set UseB0DC = 1;
+      set ExpKey = b0dc
       breaksw
 
     case "-expkey":

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/09/13 16:19:47 $
-#    $Revision: 1.12 $
+#    $Date: 2011/03/11 20:17:31 $
+#    $Revision: 1.13 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: register-sess,v 1.12 2010/09/13 16:19:47 greve Exp $';
+set VERSION = '$Id: register-sess,v 1.13 2011/03/11 20:17:31 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -49,6 +49,8 @@ set DoPBSub = 0;
 set DoBackground = 0;
 set RunListFile = ();
 set FSLSwapTrans = 0;
+set UseB0DC = 0;
+set b0dcmapstem = b0dcmap
 
 set UpdateOnly = 0;
 
@@ -149,6 +151,15 @@ foreach sess ($SessList)
     exit 1;
   endif
 
+  set b0dcmap = ();
+  if($UseB0DC) then
+    set b0dcmap = `stem2fname $sess/$fsd/$b0dcmapstem`;
+    if($status) then
+      echo "$b0dcmap"|& tee -a $LF
+      exit 1;
+    endif
+  endif
+
   pushd $sess > /dev/null
 
   set RunList = `getrunlist $fsd $RunListFile`
@@ -185,6 +196,7 @@ foreach sess ($SessList)
     if($#IntermediateFSD) set cmd = ($cmd --int $Intermediate)
     if($FSLSwapTrans) set cmd = ($cmd --fsl-swap-trans)
     set XOpts = ($BBRXOpts)
+    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
   else if($regmethod == fslregister) then
     set cmd = ($cmd --dof $RegDOF --fsvol $fstargvol)
     if($FSLSwapTrans) set cmd = ($cmd --allow-swap --trans)
@@ -316,6 +328,12 @@ while( $#argv != 0 )
 
     case "-bbr":
       set regmethod = bbregister
+      breaksw
+
+    case "-b0dc":
+    case "-b0dcor":
+    case "-vsm":
+      set UseB0DC = 1;
       breaksw
 
     case "-init-fsl":
@@ -507,7 +525,10 @@ if($PerRun == 0 && $PerSess == 0) then
   exit 1;
 endif
 
-if($#regfilename == 0) set regfilename  = register.dof$RegDOF.dat
+if($#regfilename == 0) then
+  if(! $UseB0DC) set regfilename  = register.dof$RegDOF.dat
+  if($UseB0DC)   set regfilename  = register.dof$RegDOF.b0dc.dat
+endif
 
 goto check_params_return;
 ############--------------##################

@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/05 00:40:54 $
-#    $Revision: 1.18 $
+#    $Date: 2011/03/11 20:17:30 $
+#    $Revision: 1.19 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2surf-sess,v 1.18 2011/03/05 00:40:54 greve Exp $';
+set VERSION = '$Id: rawfunc2surf-sess,v 1.19 2011/03/11 20:17:30 greve Exp $';
 
 set inputargs = ($argv);
 
@@ -51,6 +51,8 @@ set ExpKey = ();
 set ExpKeyNeeded = 0;
 set SliceOrder = ();
 set SaveUnsmoothed = 0;
+set UseB0DC = 0;
+set b0dcmapstem = b0dcmap
 
 set outfmt = nii
 if($?FSF_OUTPUT_FORMAT) then
@@ -118,6 +120,15 @@ foreach sess ($SessList)
 
   set subject = `cat $sess/subjectname`;
   if($DoSelf) set trgsubject = $subject
+
+  set b0dcmap = ();
+  if($UseB0DC) then
+    set b0dcmap = `stem2fname $sess/$fsd/$b0dcmapstem`;
+    if($status) then
+      echo "$b0dcmap"|& tee -a $LF
+      exit 1;
+    endif
+  endif
 
   foreach hemi ($hemilist)
 
@@ -198,6 +209,7 @@ foreach sess ($SessList)
       --trgsubject $trgsubject --interp nearest --projfrac $ProjFrac\
       --hemi $hemi --o $outmask --noreshape --cortex)
     if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
+    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -210,6 +222,7 @@ foreach sess ($SessList)
       --trgsubject $trgsubject --interp $interp --projfrac $ProjFrac\
       --hemi $hemi --o $outvol --noreshape --cortex)
     if($trgsubject != $subject) set cmd = ($cmd --surfreg $SurfReg)
+    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -323,6 +336,13 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set regfile = $argv[1]; shift;
       set ExpKeyNeeded = 1;
+      breaksw
+
+    case "-b0dc":
+    case "-b0dcor":
+    case "-vsm":
+      set UseB0DC = 1;
+      set ExpKey = ".b0dc"
       breaksw
 
     case "-projfrac":
@@ -441,7 +461,10 @@ if($#hemilist == 0) set hemilist = (lh rh);
 echo "instem $instem"
 echo "outstem $outstem.hemi"
 
-if($#regfile == 0) set regfile  = register.dof$RegDOF.dat
+if($#regfile == 0) then
+  if(! $UseB0DC) set regfile = register.dof$RegDOF.dat
+  if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.dat
+endif
 
 goto check_params_return;
 ############--------------##################

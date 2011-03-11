@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/09 00:11:30 $
-#    $Revision: 1.43 $
+#    $Date: 2011/03/11 20:17:30 $
+#    $Revision: 1.44 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.43 2011/03/09 00:11:30 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.44 2011/03/11 20:17:30 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -73,6 +73,7 @@ set ToMNI305 = 0;
 set RawRes = 2;
 set RegDOF = 6;
 set regfile = ();
+set UseB0DC = 0;
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -204,6 +205,7 @@ foreach sess ($SessList)
     if($PerSess) set cmd = ($cmd -per-session)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
+    if($UseB0DC)    set cmd = ($cmd -b0dc)
     echo "$sessid Registration -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -247,6 +249,7 @@ foreach sess ($SessList)
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
+    if($UseB0DC)    set cmd = ($cmd -b0dc)
     echo "$sessid To Surface -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -261,6 +264,7 @@ foreach sess ($SessList)
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
+    if($UseB0DC)    set cmd = ($cmd -b0dc)
     echo "$sessid To MNI305 -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -534,6 +538,10 @@ while( $#argv != 0 )
       set PerSess = 0;
       breaksw
 
+    case "-b0dc":
+      set UseB0DC = 1;
+      breaksw
+
     case "-a":
     case "-analysis":
       if($#argv< 1) goto arg1err;
@@ -547,6 +555,8 @@ while( $#argv != 0 )
       set RegDOF = `getana -a $analysis -t RegDOF`;
       set PerRun = `getana -a $analysis -t IsPerRun`;
       set PerSess = `getana -a $analysis -t IsPerSession`;
+      set UseB0DC = `getana -a $analysis -t UseB0DC`;
+      if($#UseBODC == 0) set UseBODC = 0;
       set fwhm = `getana -a $analysis -t RawFWHM`;
       if($fwhm == 0 || $PerRun) set DoVolSmooth = 0;
       set SliceOrder = `getana -a $analysis -t stc`;
@@ -714,7 +724,10 @@ check_params:
     exit 1;
   endif
 
-  if($#regfile == 0) set regfile = register.dof$RegDOF.dat
+  if($#regfile == 0) then
+    if(! $UseB0DC) set regfile = register.dof$RegDOF.dat
+    if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.dat
+  endif
 
 goto check_params_return;
 ############--------------##################

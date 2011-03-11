@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/08 23:22:35 $
-#    $Revision: 1.35 $
+#    $Date: 2011/03/11 20:17:31 $
+#    $Revision: 1.36 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: tkregister-sess,v 1.35 2011/03/08 23:22:35 greve Exp $';
+set VERSION = '$Id: tkregister-sess,v 1.36 2011/03/11 20:17:31 greve Exp $';
 set inputargs = ($argv);
 set DateString = "`date '+%y%m%d%H%M'`"
 
@@ -54,6 +54,7 @@ set DoWMparc = 0;
 set DoTag = 0;
 set Size = ();
 set RunListFile = ();
+set UseB0DC = 0;
 
 set PrintHelp = 0;
 if($#argv == 0)  goto usage_exit;
@@ -337,14 +338,27 @@ while( $#argv != 0 )
       breaksw
 
     case "-bbr-sum":
-      set isarg = 0;
-      if($#argv > 0) then
-        set isarg = `isargflag $argv[1]`
+      if($#argv == 0) then
+        set BBRSumFile = /dev/null
+      else
+        set isarg = `isargflag "$argv[1]"`
+        if($isarg) set BBRSumFile = /dev/null
         if(! $isarg) then
           set BBRSumFile = $argv[1]; shift;
         endif
       endif
-      if(! $isarg) set BBRSumFile = /dev/null
+      breaksw
+
+    case "-b0dc":
+    case "-b0dcor":
+    case "-vsm":
+      set UseB0DC = 1;
+      breaksw
+
+    case "-no-b0dc":
+    case "-no-b0dcor":
+    case "-no-vsm":
+      set UseB0DC = 0;
       breaksw
 
     case "-regheader":
@@ -427,7 +441,10 @@ if($PerRun == 0 && $PerSess == 0) then
   echo "ERROR: You must specify -per-run or -per-session"
   exit 1;
 endif
-if($#regfilename == 0) set regfilename = register.dof$RegDOF.dat
+if($#regfilename == 0) then
+  if(! $UseB0DC) set regfilename  = register.dof$RegDOF.dat
+  if($UseB0DC)   set regfilename  = register.dof$RegDOF.b0dc.dat
+endif
 goto check_params_return;
 ############--------------##################
 arg1err:
