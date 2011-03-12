@@ -351,7 +351,7 @@ AM_CXXFLAGS=\
 	-Wno-sign-compare \
 	-I$(top_srcdir)/include \
 	$(GL_CFLAGS) \
-	$(VTK_CXXFLAGS) \
+	$(VTK_COCOA_CXXFLAGS) \
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
@@ -416,7 +416,7 @@ AM_CXXFLAGS=\
 	-Wno-sign-compare \
 	-I$(top_srcdir)/include \
 	$(GL_CFLAGS) \
-	$(VTK_COCOA_CXXFLAGS) \
+	$(VTK_CXXFLAGS) \
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
