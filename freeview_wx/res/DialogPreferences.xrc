@@ -1,0 +1,354 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_PREFERENCES">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>423,356</size>
+    <title>Preferences</title>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND|wxALL</flag>
+        <border>5</border>
+        <object class="wxNotebook" name="m_notebook2">
+          <object class="notebookpage">
+            <label>View</label>
+            <selected>1</selected>
+            <object class="wxPanel" name="m_panel2">
+              <style>wxTAB_TRAVERSAL</style>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>5,5</size>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="spacer">
+                      <option>0</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,5</size>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <object class="wxFlexGridSizer">
+                        <rows>3</rows>
+                        <cols>2</cols>
+                        <vgap>0</vgap>
+                        <hgap>0</hgap>
+                        <growablecols>1</growablecols>
+                        <growablerows></growablerows>
+                        <object class="sizeritem">
+                          <option>0</option>
+                          <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                          <border>5</border>
+                          <object class="wxStaticText" name="m_staticText2">
+                            <label>Background color</label>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <option>0</option>
+                          <flag>wxALIGN_CENTER|wxALL|wxEXPAND</flag>
+                          <border>5</border>
+                          <object class="wxColourPickerCtrl" name="ID_COLORPICKER_BACKGROUND">
+                            <value>#000000</value>
+                            <style>wxCLRP_DEFAULT_STYLE|wxCLRP_USE_TEXTCTRL</style>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <option>0</option>
+                          <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                          <border>5</border>
+                          <object class="wxStaticText" name="Cursorcolor">
+                            <label>Cursor color</label>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <option>0</option>
+                          <flag>wxALIGN_CENTER|wxALL|wxEXPAND</flag>
+                          <border>5</border>
+                          <object class="wxColourPickerCtrl" name="ID_COLORPICKER_CURSOR">
+                            <value>#000000</value>
+                            <style>wxCLRP_DEFAULT_STYLE|wxCLRP_USE_TEXTCTRL</style>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <option>0</option>
+                          <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                          <border>5</border>
+                          <object class="wxStaticText" name="m_staticText4">
+                            <label>Cursor style</label>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <option>0</option>
+                          <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                          <border>5</border>
+                          <object class="wxChoice" name="ID_CHOICE_CURSOR_STYLE">
+                            <selection>0</selection>
+                            <content>
+                              <item>Short</item>
+                              <item>Long</item>
+                            </content>
+                          </object>
+                        </object>
+                      </object>
+                    </object>
+                    <object class="spacer">
+                      <option>1</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,0</size>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>5,0</size>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="notebookpage">
+            <label>Edit</label>
+            <selected>0</selected>
+            <object class="wxPanel" name="m_panel222">
+              <style>wxTAB_TRAVERSAL</style>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>5,5</size>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="spacer">
+                      <option>0</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,5</size>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxCheckBox" name="ID_CHECK_SAVE_COPY">
+                        <label>Save a copy when overwriting an existing file</label>
+                        <checked>0</checked>
+                      </object>
+                    </object>
+                    <object class="spacer">
+                      <option>1</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,0</size>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>5,0</size>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="notebookpage">
+            <label>2D Display</label>
+            <selected>0</selected>
+            <object class="wxPanel" name="m_panel22">
+              <style>wxTAB_TRAVERSAL</style>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>5,5</size>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="spacer">
+                      <option>0</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,5</size>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxCheckBox" name="ID_CHECK_SYNC_ZOOM">
+                        <label>Sync zoom factor of 2D views</label>
+                        <checked>0</checked>
+                      </object>
+                    </object>
+                    <object class="spacer">
+                      <option>1</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,0</size>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>5,0</size>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="notebookpage">
+            <label>Screenshot</label>
+            <selected>0</selected>
+            <object class="wxPanel" name="m_panel221">
+              <style>wxTAB_TRAVERSAL</style>
+              <enabled>0</enabled>
+              <hidden>1</hidden>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>5,5</size>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxVERTICAL</orient>
+                    <object class="spacer">
+                      <option>0</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,5</size>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxEXPAND|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxBoxSizer">
+                        <orient>wxHORIZONTAL</orient>
+                        <object class="sizeritem">
+                          <option>0</option>
+                          <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                          <border>5</border>
+                          <object class="wxStaticText" name="m_staticText3">
+                            <label>Magnification factor</label>
+                          </object>
+                        </object>
+                        <object class="sizeritem">
+                          <option>0</option>
+                          <flag>wxALL</flag>
+                          <border>5</border>
+                          <object class="wxSpinCtrl" name="ID_SPIN_MAGNIFICATION">
+                            <style>wxSP_ARROW_KEYS</style>
+                            <value>0</value>
+                            <min>1</min>
+                            <max>100</max>
+                          </object>
+                        </object>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxCheckBox" name="ID_CHECK_HIDE_CURSOR">
+                        <label>Hide cursor when taking screenshot</label>
+                        <checked>0</checked>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxCheckBox" name="ID_CHECK_HIDE_COORDS">
+                        <label>Hide coordinates when taking screenshot</label>
+                        <checked>0</checked>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxCheckBox" name="ID_CHECK_ANTIALIASING">
+                        <label>Enable anti-aliasing </label>
+                        <checked>0</checked>
+                      </object>
+                    </object>
+                    <object class="spacer">
+                      <option>0</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,10</size>
+                    </object>
+                    <object class="spacer">
+                      <option>1</option>
+                      <flag>wxEXPAND</flag>
+                      <border>5</border>
+                      <size>0,0</size>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>5,0</size>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <option>0</option>
+        <flag>wxEXPAND|wxALL</flag>
+        <border>5</border>
+        <object class="wxStdDialogButtonSizer">
+          <object class="button">
+            <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxButton" name="wxID_OK">
+              <label>&amp;OK</label>
+            </object>
+          </object>
+          <object class="button">
+            <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxButton" name="wxID_CANCEL">
+              <label>&amp;Cancel</label>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

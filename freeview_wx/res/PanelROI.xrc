@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="ID_PANEL_ROI">
+    <style>wxTAB_TRAVERSAL</style>
+    <size>384,532</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <option>0</option>
+        <flag>wxEXPAND|wxRIGHT|wxLEFT</flag>
+        <border>3</border>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxToolBar" name="m_toolBar1">
+              <bitmapsize>24,24</bitmapsize>
+              <margins></margins>
+              <packing>1</packing>
+              <separation>5</separation>
+              <object class="tool" name="ID_FILE_NEW_ROI">
+                <label>New ROI</label>
+                <tooltip>New ROI</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/roi_new.png</bitmap>
+              </object>
+              <object class="tool" name="ID_FILE_LOAD_ROI">
+                <label>Load ROI</label>
+                <tooltip>Load ROI</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/roi_load.png</bitmap>
+              </object>
+              <object class="tool" name="ID_FILE_SAVE_ROI">
+                <label>Save ROI</label>
+                <tooltip>Save ROI</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/roi_save.png</bitmap>
+              </object>
+              <object class="tool" name="ID_ROI_CLOSE">
+                <label>Close ROI</label>
+                <tooltip>Close ROI</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/roi_delete.png</bitmap>
+              </object>
+              <object class="separator" />
+              <object class="tool" name="ID_ROI_MOVE_UP">
+                <label>Move Up</label>
+                <tooltip>Move Up</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/move_up.png</bitmap>
+              </object>
+              <object class="tool" name="ID_ROI_MOVE_DOWN">
+                <label>Move Down</label>
+                <tooltip>Move Down</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/move_down.png</bitmap>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <option>0</option>
+        <flag>wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT</flag>
+        <border>5</border>
+        <object class="wxCheckListBox" name="ID_LISTBOX_ROIS">
+          <size>-1,145</size>
+          <content />
+        </object>
+      </object>
+      <object class="sizeritem">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>0</border>
+        <object class="wxBoxSizer">
+          <orient>wxHORIZONTAL</orient>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER|wxLEFT</flag>
+            <border>5</border>
+            <object class="wxBitmapButton" name="ID_BUTTON_NEW">
+              <style>wxBU_AUTODRAW</style>
+              <hidden>1</hidden>
+              <tooltip>New ROI</tooltip>
+              <bitmap>images/roi_new.png</bitmap>
+              <default>0</default>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER</flag>
+            <border>5</border>
+            <object class="wxBitmapButton" name="ID_BUTTON_LOAD">
+              <style>wxBU_AUTODRAW</style>
+              <hidden>1</hidden>
+              <tooltip>Load ROI</tooltip>
+              <bitmap>images/roi_load.png</bitmap>
+              <default>0</default>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag></flag>
+            <border>5</border>
+            <object class="wxBitmapButton" name="ID_BUTTON_SAVE">
+              <style>wxBU_AUTODRAW</style>
+              <hidden>1</hidden>
+              <tooltip>Save ROI</tooltip>
+              <bitmap>images/roi_save.png</bitmap>
+              <default>0</default>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER</flag>
+            <border>5</border>
+            <object class="wxBitmapButton" name="ID_BUTTON_DELETE">
+              <style>wxBU_AUTODRAW</style>
+              <hidden>1</hidden>
+              <tooltip>Close ROI</tooltip>
+              <bitmap>images/roi_delete.png</bitmap>
+              <default>0</default>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,0</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER</flag>
+            <border>5</border>
+            <object class="wxBitmapButton" name="ID_BUTTON_MOVE_UP">
+              <style>wxBU_AUTODRAW</style>
+              <hidden>1</hidden>
+              <tooltip>Move Up</tooltip>
+              <bitmap>images/move_up.png</bitmap>
+              <default>0</default>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER|wxRIGHT</flag>
+            <border>5</border>
+            <object class="wxBitmapButton" name="ID_BUTTON_MOVE_DOWN">
+              <style>wxBU_AUTODRAW</style>
+              <hidden>1</hidden>
+              <tooltip>Move Down</tooltip>
+              <bitmap>images/move_down.png</bitmap>
+              <default>0</default>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxFlexGridSizer">
+          <rows>3</rows>
+          <cols>2</cols>
+          <vgap>0</vgap>
+          <hgap>0</hgap>
+          <growablecols>1</growablecols>
+          <growablerows></growablerows>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText31">
+              <label>File name</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxTextCtrl" name="ID_TEXT_FILENAME">
+              <style>wxTE_READONLY</style>
+              <value></value>
+              <maxlength>0</maxlength>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText3">
+              <label>Opacity</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxSlider" name="ID_SLIDER_OPACITY">
+              <style>wxSL_HORIZONTAL</style>
+              <value>100</value>
+              <min>0</min>
+              <max>100</max>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText4">
+              <label>Color</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxColourPickerCtrl" name="ID_COLOR_PICKER">
+              <value>#000000</value>
+              <style>wxCLRP_DEFAULT_STYLE|wxCLRP_USE_TEXTCTRL</style>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

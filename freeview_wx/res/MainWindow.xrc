@@ -1,0 +1,525 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxFrame" name="ID_MAIN_WINDOW">
+    <style>wxDEFAULT_FRAME_STYLE|wxTAB_TRAVERSAL</style>
+    <size>944,799</size>
+    <title>freeview</title>
+    <object class="wxMenuBar" name="ID_MENU_BAR">
+      <label>Standard</label>
+      <object class="wxMenu" name="ID_MENU_FILE">
+        <label>File</label>
+        <object class="wxMenuItem" name="ID_FILE_NEW">
+          <label>New Volume...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_OPEN">
+          <label>Load Volume...\tCtrl+O</label>
+          <help></help>
+          <bitmap>images/volume_load_16.png</bitmap>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE">
+          <label>Save Volume\tCtrl+S</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE_AS">
+          <label>Save Volume As...</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_FILE_LOAD_DTI">
+          <label>Load DTI Volume...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_LOAD_PVOLUMES">
+          <label>Load P-Label Volumes...</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_FILE_NEW_WAYPOINTS">
+          <label>New Point Set...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_LOAD_WAYPOINTS">
+          <label>Load Point Set...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE_WAYPOINTS">
+          <label>Save Point Set</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE_WAYPOINTS_AS">
+          <label>Save Point Set As...</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_FILE_NEW_ROI">
+          <label>New ROI...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_LOAD_ROI">
+          <label>Load ROI...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE_ROI">
+          <label>Save ROI</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE_ROI_AS">
+          <label>Save ROI As...</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_FILE_LOAD_SURFACE">
+          <label>Load Surface...</label>
+          <help></help>
+          <bitmap>images/surface_load_16.png</bitmap>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE_SURFACE">
+          <label>Save Surface</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE_SURFACE_AS">
+          <label>Save Surface As...</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_FILE_SCREENSHOT">
+          <label>Save Screenshot As...</label>
+          <help></help>
+          <bitmap>images/file_screenshot_16.png</bitmap>
+        </object>
+        <object class="wxMenuItem" name="ID_FILE_SAVE_MOVIE_FRAMES">
+          <label>Save Movie Frames...</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenu" name="ID_FILE_SUBMENU_RECENT">
+          <label>Recent Files</label>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_FILE_EXIT">
+          <label>Exit\tCtrl+Q</label>
+          <help></help>
+        </object>
+      </object>
+      <object class="wxMenu" name="ID_MENU_EDIT">
+        <label>Edit</label>
+        <object class="wxMenuItem" name="ID_EDIT_COPY">
+          <label>Copy\tCtrl+C</label>
+          <help></help>
+          <bitmap>images/edit_copy_16.png</bitmap>
+        </object>
+        <object class="wxMenuItem" name="ID_EDIT_COPY_STRUCTURE">
+          <label>Copy Structure\tCtrl+Alt+C</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_EDIT_PASTE">
+          <label>Paste\tCtrl+V</label>
+          <help></help>
+          <bitmap>images/edit_paste_16.png</bitmap>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_EDIT_UNDO">
+          <label>Undo\tCtrl+Z</label>
+          <help></help>
+          <bitmap>images/edit_undo_16.png</bitmap>
+        </object>
+        <object class="wxMenuItem" name="ID_EDIT_REDO">
+          <label>Redo\tCtrl+Shift+Z</label>
+          <help></help>
+          <bitmap>images/edit_redo_16.png</bitmap>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_EDIT_RENAME">
+          <label>Rename Layer...\tCtrl+Alt+N</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_EDIT_PREFERENCES">
+          <label>Preferences...</label>
+          <help></help>
+        </object>
+      </object>
+      <object class="wxMenu" name="ID_MENU_VIEW">
+        <label>View</label>
+        <object class="wxMenu" name="ID_VIEW_LAYOUT">
+          <label>Image View Layout</label>
+          <object class="wxMenuItem" name="ID_VIEW_LAYOUT_1X1">
+            <label>1 x 1</label>
+            <help></help>
+            <checkable>1</checkable>
+          </object>
+          <object class="wxMenuItem" name="ID_VIEW_LAYOUT_2X2">
+            <label>2 x 2</label>
+            <help></help>
+            <checkable>1</checkable>
+          </object>
+          <object class="wxMenuItem" name="ID_VIEW_LAYOUT_1N3">
+            <label>1 &amp;&amp; 3</label>
+            <help></help>
+            <checkable>1</checkable>
+          </object>
+          <object class="wxMenuItem" name="ID_VIEW_LAYOUT_1N3_H">
+            <label>1 &amp;&amp; 3 Horizontal</label>
+            <help></help>
+            <checkable>1</checkable>
+          </object>
+          <object class="separator" />
+          <object class="wxMenuItem" name="ID_VIEW_SAGITTAL">
+            <label>Sagittal\tAlt+X</label>
+            <help></help>
+            <checkable>1</checkable>
+          </object>
+          <object class="wxMenuItem" name="ID_VIEW_CORONAL">
+            <label>Coronal\tAlt+Y</label>
+            <help></help>
+            <checkable>1</checkable>
+          </object>
+          <object class="wxMenuItem" name="ID_VIEW_AXIAL">
+            <label>Axial\tAlt+Z</label>
+            <help></help>
+            <checkable>1</checkable>
+          </object>
+          <object class="wxMenuItem" name="ID_VIEW_3D">
+            <label>3D\tAlt+3</label>
+            <help></help>
+            <checkable>1</checkable>
+          </object>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_CONTROL_PANEL">
+          <label>Show Control Panel\tCtrl+P</label>
+          <help></help>
+          <checkable>1</checkable>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_RESET">
+          <label>Reset View\tCtrl+R</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_SNAP_TO_AXIS">
+          <label>Reset View to Nearest Axis (3D View)\tAlt+R</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_VIEW_COORDINATE">
+          <label>Show Coordinate Annotation</label>
+          <help></help>
+          <checkable>1</checkable>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_SCALAR_BAR">
+          <label>Show Color Scale</label>
+          <help></help>
+          <checkable>1</checkable>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_SLICE_FRAMES">
+          <label>Show Slice Frames (3D View)</label>
+          <help></help>
+          <checked>1</checked>
+          <checkable>1</checkable>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_VIEW_TOGGLE_CURSOR">
+          <label>Toggle Cursor Visibility\tAlt+U</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_TOGGLE_VOXEL_COORDS">
+          <label>Toggle Voxel Coordinate Display\tAlt+D</label>
+          <help></help>
+        </object>
+      </object>
+      <object class="wxMenu" name="m_menu7">
+        <label>Layer</label>
+        <object class="wxMenuItem" name="ID_LAYER_SHOW_ALL">
+          <label>Show All Layers\tCtrl+Alt+S</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_LAYER_HIDE_ALL">
+          <label>Hide All Layers\tCtrl+Alt+H</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_VIEW_CYCLE_LAYER">
+          <label>Cycle Through Layer List\tAlt+C</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_REVERSE_CYCLE_LAYER">
+          <label>Reverse Cycle Through Layer List\tShift+Alt+C</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_VIEW_TOGGLE_VOLUME">
+          <label>Toggle Volume Visibility\tAlt+V</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_TOGGLE_ROI">
+          <label>Toggle ROI Visibility\tAlt+R</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_TOGGLE_SURFACE">
+          <label>Toggle Surface Visibility\tAlt+F</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_VIEW_TOGGLE_WAYPOINTS">
+          <label>Toggle Point Set Visibility\tAlt+W</label>
+          <help></help>
+        </object>
+      </object>
+      <object class="wxMenu" name="ID_MENU_ACTION">
+        <label>Action</label>
+        <object class="wxMenuItem" name="ID_MODE_NAVIGATE">
+          <label>Navigate\tAlt+N</label>
+          <help></help>
+          <checkable>1</checkable>
+        </object>
+        <object class="wxMenuItem" name="ID_MODE_MEASURE">
+          <label>Measure</label>
+          <help></help>
+          <checkable>1</checkable>
+        </object>
+        <object class="wxMenuItem" name="ID_MODE_VOXEL_EDIT">
+          <label>Voxel Edit\tAlt+E</label>
+          <help></help>
+          <checkable>1</checkable>
+        </object>
+        <object class="wxMenuItem" name="ID_MODE_ROI_EDIT">
+          <label>ROI Edit</label>
+          <help></help>
+          <checkable>1</checkable>
+        </object>
+        <object class="wxMenuItem" name="ID_MODE_WAYPOINTS_EDIT">
+          <label>Point Set Edit</label>
+          <help></help>
+          <checkable>1</checkable>
+        </object>
+      </object>
+      <object class="wxMenu" name="ID_MENU_TOOLS">
+        <label>Tools</label>
+        <object class="wxMenu" name="m_menu4">
+          <label>Volume Filter</label>
+          <object class="wxMenuItem" name="ID_FILTER_MEAN">
+            <label>Mean...</label>
+            <help></help>
+          </object>
+          <object class="wxMenuItem" name="ID_FILTER_MEDIAN">
+            <label>Median...</label>
+            <help></help>
+          </object>
+          <object class="wxMenuItem" name="ID_FILTER_CONVOLVE">
+            <label>Convolve...</label>
+            <help></help>
+          </object>
+          <object class="wxMenuItem" name="ID_FILTER_GRADIENT">
+            <label>Gradient</label>
+            <help></help>
+          </object>
+        </object>
+        <object class="wxMenuItem" name="ID_TOOL_ROTATE_VOLUME">
+          <label>Transform Volume...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_TOOL_CROP_VOLUME">
+          <label>Crop Volume...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_TOOL_OPTIMAL_VOLUME">
+          <label>Create Optimal Combine Volume...</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_TOOL_REPOSITION_SURFACE">
+          <label>Reposition Surface...</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_TOOL_SAVE_POINT">
+          <label>Save Point</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_TOOL_GOTO_POINT">
+          <label>Go to Saved Point</label>
+          <help></help>
+        </object>
+        <object class="separator" />
+        <object class="wxMenuItem" name="ID_TOOL_LABEL_STATS">
+          <label>Show Label Stats...\tAlt+T</label>
+          <help></help>
+        </object>
+      </object>
+      <object class="wxMenu" name="ID_MENU_HELP">
+        <label>Help</label>
+        <object class="wxMenuItem" name="ID_HELP_QUICK_REF">
+          <label>Quick Reference...</label>
+          <help></help>
+        </object>
+        <object class="wxMenuItem" name="ID_HELP_ABOUT">
+          <label>About freeview...</label>
+          <help></help>
+        </object>
+      </object>
+    </object>
+    <object class="wxToolBar" name="ID_TOOLBAR_MAIN">
+      <bitmapsize>24,24</bitmapsize>
+      <margins></margins>
+      <packing>1</packing>
+      <separation>5</separation>
+      <object class="tool" name="ID_MODE_NAVIGATE">
+        <label>Navigate</label>
+        <tooltip>Navigate (Alt+N)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/navigate.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_MODE_MEASURE">
+        <label>Measure</label>
+        <tooltip>Measure</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/measure.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_MODE_VOXEL_EDIT">
+        <label>Voxel Edit</label>
+        <tooltip>Voxel Edit (Alt+E)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/voxel_edit.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_MODE_ROI_EDIT">
+        <label>ROI Edit</label>
+        <tooltip>ROI Edit</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/roi_edit.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_MODE_WAYPOINTS_EDIT">
+        <label>Point Set Edit</label>
+        <tooltip>Point Set Edit</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/waypoints_edit.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="separator" />
+      <object class="tool" name="ID_EDIT_UNDO">
+        <label>Undo</label>
+        <tooltip>Undo (Ctrl+Z)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/edit_undo.png</bitmap>
+      </object>
+      <object class="tool" name="ID_EDIT_REDO">
+        <label>Redo</label>
+        <tooltip>Redo (Shift+Ctrl+Z)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/edit_redo.png</bitmap>
+      </object>
+      <object class="separator" />
+      <object class="tool" name="ID_VIEW_CONTROL_PANEL">
+        <label>Show Control Panel</label>
+        <tooltip>Show Control Panel (Ctrl+P)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/view_control_panel.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="separator" />
+      <object class="tool" name="ID_VIEW_LAYOUT_1X1">
+        <label>1 X 1</label>
+        <tooltip>1 X 1</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/layout_1x1.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_VIEW_LAYOUT_2X2">
+        <label>2 X 2</label>
+        <tooltip>2 X 2</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/layout_2x2.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_VIEW_LAYOUT_1N3">
+        <label>1 _ 3</label>
+        <tooltip>1 _ 3</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/layout_1n3.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_VIEW_LAYOUT_1N3_H">
+        <label>1 _ 3 Horizontal</label>
+        <tooltip>1 _ 3 Horizontal</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/layout_1n3_h.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="separator" />
+      <object class="tool" name="ID_VIEW_SAGITTAL">
+        <label>Sagittal</label>
+        <tooltip>Sagittal (Alt+X)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/view_sagittal.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_VIEW_CORONAL">
+        <label>Coronal</label>
+        <tooltip>Coronal (Alt+Y)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/view_coronal.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_VIEW_AXIAL">
+        <label>Axial</label>
+        <tooltip>Axial (Alt+Z)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/view_axial.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_VIEW_3D">
+        <label>3D</label>
+        <tooltip>3D (Alt+3)</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/view_3d.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="separator" />
+      <object class="tool" name="ID_VIEW_COORDINATE">
+        <label>Show Coordinate Annotations</label>
+        <tooltip>Show Coordinate Annotation</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/view_coordinate.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="tool" name="ID_VIEW_SCALAR_BAR">
+        <label>Show Color Scale Bar</label>
+        <tooltip>Show Color Scale Bar</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/view_scalar_bar.png</bitmap>
+        <toggle>1</toggle>
+      </object>
+      <object class="separator" />
+      <object class="tool" name="ID_FILE_SCREENSHOT">
+        <label>Screenshot</label>
+        <tooltip>Screenshot</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/file_screenshot.png</bitmap>
+      </object>
+      <object class="separator" />
+      <object class="tool" name="ID_TOOL_SAVE_POINT">
+        <label>Save Point</label>
+        <tooltip>Save Point</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/tool_save_point.png</bitmap>
+      </object>
+      <object class="tool" name="ID_TOOL_GOTO_POINT">
+        <label>Go to Saved Point</label>
+        <tooltip>Goto Saved Point</tooltip>
+        <longhelp></longhelp>
+        <bitmap>images/tool_goto_point.png</bitmap>
+      </object>
+    </object>
+    <object class="wxSplitterWindow" name="ID_SPLITTER_MAIN">
+      <style>wxSP_3D</style>
+      <sashpos>0</sashpos>
+      <gravity>0</gravity>
+      <minsize>0</minsize>
+      <orientation>vertical</orientation>
+      <object class="wxPanel" name="m_panel2">
+        <style>wxTAB_TRAVERSAL</style>
+      </object>
+    </object>
+  </object>
+</resource>

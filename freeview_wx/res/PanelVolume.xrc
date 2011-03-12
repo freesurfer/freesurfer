@@ -1,0 +1,989 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="ID_PANEL_VOLUME">
+    <style>wxTAB_TRAVERSAL</style>
+    <size>348,1450</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND|wxALL</flag>
+        <border>0</border>
+        <object class="wxScrolledWindow" name="ID_SCROLL_WINDOW">
+          <style>wxVSCROLL</style>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND|wxRIGHT|wxLEFT</flag>
+              <border>3</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag></flag>
+                  <border>5</border>
+                  <object class="wxToolBar" name="m_toolBar2">
+                    <style>wxTB_HORIZONTAL</style>
+                    <bitmapsize>24,24</bitmapsize>
+                    <margins></margins>
+                    <packing>1</packing>
+                    <separation>5</separation>
+                    <object class="tool" name="ID_FILE_NEW">
+                      <label>New Volume</label>
+                      <tooltip>New Volume</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/volume_new.png</bitmap>
+                    </object>
+                    <object class="tool" name="ID_FILE_OPEN">
+                      <label>Load Volume</label>
+                      <tooltip>Load Volume (Ctrl+O)</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/volume_load.png</bitmap>
+                    </object>
+                    <object class="tool" name="ID_FILE_SAVE">
+                      <label>Save Volume</label>
+                      <tooltip>Save Volume (Ctrl+S)</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/volume_save.png</bitmap>
+                    </object>
+                    <object class="tool" name="ID_VOLUME_CLOSE">
+                      <label>Close Volume</label>
+                      <tooltip>Close Volume</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/volume_delete.png</bitmap>
+                    </object>
+                    <object class="separator" />
+                    <object class="tool" name="ID_VOLUME_MOVE_UP">
+                      <label>Move Up</label>
+                      <tooltip>Move Up</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/move_up.png</bitmap>
+                    </object>
+                    <object class="tool" name="ID_VOLUME_MOVE_DOWN">
+                      <label>Move Down</label>
+                      <tooltip>Move Down</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/move_down.png</bitmap>
+                    </object>
+                    <object class="tool" name="ID_VOLUME_LOCK">
+                      <label>Lock Layer</label>
+                      <tooltip>Lock</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/volume_lock.png</bitmap>
+                      <toggle>1</toggle>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND|wxRIGHT|wxLEFT</flag>
+              <border>5</border>
+              <object class="wxCheckListBox" name="ID_LISTBOX_VOLUMES">
+                <size>-1,145</size>
+                <content />
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND|wxRIGHT|wxLEFT</flag>
+              <border>3</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag></flag>
+                  <border>5</border>
+                  <object class="wxToolBar" name="m_toolBar31">
+                    <style>wxTB_HORIZONTAL|wxTB_NODIVIDER</style>
+                    <bitmapsize></bitmapsize>
+                    <margins></margins>
+                    <packing>1</packing>
+                    <separation>5</separation>
+                    <object class="tool" name="ID_VOLUME_COPY_SETTING">
+                      <label>Copy Setting</label>
+                      <tooltip>Copy Setting</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/volume_copy_setting.png</bitmap>
+                    </object>
+                    <object class="tool" name="ID_VOLUME_PASTE_SETTING">
+                      <label>Paste Setting</label>
+                      <tooltip>Paste Setting</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/volume_paste_setting.png</bitmap>
+                    </object>
+                    <object class="tool" name="ID_VOLUME_PASTE_SETTING_ALL">
+                      <label>Paste Setting to All Similar</label>
+                      <tooltip>Paste Setting to All Similar</tooltip>
+                      <longhelp></longhelp>
+                      <bitmap>images/volume_paste_setting_all.png</bitmap>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxFlexGridSizer">
+                <rows>25</rows>
+                <cols>2</cols>
+                <vgap>0</vgap>
+                <hgap>0</hgap>
+                <growablecols>1</growablecols>
+                <growablerows></growablerows>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="m_staticText7">
+                    <label>File name</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxTextCtrl" name="ID_TEXT_FILENAME">
+                    <style>wxTE_READONLY</style>
+                    <value></value>
+                    <maxlength>0</maxlength>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_FRAME">
+                    <label>Frame</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_FRAME">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>1</value>
+                        <min>1</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_FRAME_CTRL">
+                        <size>50,-1</size>
+                        <value>1</value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxCheckBox" name="ID_CHECKBOX_DISPLAY_VECTOR">
+                    <label>Display as vectors</label>
+                    <checked>0</checked>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL</flag>
+                  <border>5</border>
+                  <object class="wxCheckBox" name="ID_CHECKBOX_DISPLAY_TENSOR">
+                    <label>Display as tensors</label>
+                    <checked>0</checked>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_REPRESENTATION">
+                    <label>Render</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxEXPAND|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxChoice" name="ID_CHOICE_REPRESENTATION">
+                    <selection>0</selection>
+                    <content>
+                      <item>Simple line</item>
+                      <item>3D bar (slow!)</item>
+                    </content>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_INVERSION">
+                    <label>Inversion</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxEXPAND|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxChoice" name="ID_CHOICE_INVERSION">
+                    <selection>0</selection>
+                    <content>
+                      <item>None</item>
+                      <item>Invert X</item>
+                      <item>Invert Y</item>
+                      <item>Invert Z</item>
+                    </content>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_MASK">
+                    <label>Mask</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxEXPAND|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxChoice" name="ID_CHOICE_MASK">
+                    <selection>0</selection>
+                    <content>
+                      <item>None</item>
+                    </content>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_OPACITY">
+                    <label>Opacity</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_OPACITY">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>100</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_OPACITY_CTRL">
+                        <size>50,-1</size>
+                        <value>1</value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="m_staticText24">
+                    <hidden>1</hidden>
+                    <label>Up Sample </label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL|wxEXPAND|wxALIGN_CENTER_VERTICAL</flag>
+                  <border>5</border>
+                  <object class="wxChoice" name="ID_CHOICE_UPSAMPLE_METHOD">
+                    <hidden>1</hidden>
+                    <selection>0</selection>
+                    <content>
+                      <item>None</item>
+                      <item>Nearest Neighbor</item>
+                      <item>Bilinear</item>
+                    </content>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag></flag>
+                  <border>0</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                      <border>5</border>
+                      <object class="wxCheckBox" name="ID_CHECKBOX_SMOOTH">
+                        <label>Smooth display</label>
+                        <checked>0</checked>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>0</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxCheckBox" name="ID_CHECKBOX_UPSAMPLE">
+                    <label>Upsample display</label>
+                    <checked>0</checked>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_COLORMAP">
+                    <label>Color map</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxChoice" name="ID_CHOICE_COLORMAP">
+                    <selection>0</selection>
+                    <content />
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_LUT">
+                    <label>Lookup table</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxChoice" name="ID_CHOICE_LUT">
+                    <selection>0</selection>
+                    <content />
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_DIRECTION_CODE">
+                    <label>Direction code</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxChoice" name="ID_CHOICE_DIRECTION_CODE">
+                    <selection>0</selection>
+                    <content>
+                      <item>RAS -&gt; RGB</item>
+                      <item>RAS -&gt; RBG</item>
+                      <item>RAS -&gt; GRB</item>
+                      <item>RAS -&gt; GBR</item>
+                      <item>RAS -&gt; BRG</item>
+                      <item>RAS -&gt; BGR</item>
+                    </content>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_WINDOW">
+                    <label>Window</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_WINDOW">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>50</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_WINDOW">
+                        <size>75,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_LEVEL">
+                    <label>Level</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_LEVEL">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>50</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_LEVEL">
+                        <size>75,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_COLORMAP_MIN">
+                    <label>Min</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_COLORMAP_MIN">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>50</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_COLORMAP_MIN">
+                        <size>75,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_HEATSCALE_MID">
+                    <label>Mid</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_HEATSCALE_MID">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>50</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_HEATSCALE_MID">
+                        <size>75,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_COLORMAP_MAX">
+                    <label>Max</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_COLORMAP_MAX">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>50</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_COLORMAP_MAX">
+                        <size>75,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_HEATSCALE_OFFSET">
+                    <label>Offset</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_HEATSCALE_OFFSET">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>50</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_HEATSCALE_OFFSET">
+                        <size>75,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag></flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxCheckBox" name="ID_CHECKBOX_HEATSCALE_TRUNCATE">
+                        <label>Truncate</label>
+                        <checked>0</checked>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxCheckBox" name="ID_CHECKBOX_HEATSCALE_INVERT">
+                        <label>Invert</label>
+                        <checked>0</checked>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxCheckBox" name="ID_CHECKBOX_HEATSCALE_CLEAR_HIGH">
+                    <label>Clear higher values</label>
+                    <checked>0</checked>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag></flag>
+                  <border>0</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxCheckBox" name="ID_CHECKBOX_CLEAR_BACKGROUND">
+                    <label>Clear background</label>
+                    <checked>0</checked>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_BRUSH_VALUE">
+                    <label>Brush value</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxEXPAND|wxRIGHT</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALIGN_CENTER_VERTICAL|wxEXPAND|wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_DRAW_VALUE">
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALIGN_CENTER_VERTICAL|wxEXPAND|wxTOP|wxBOTTOM|wxRIGHT</flag>
+                      <border>3</border>
+                      <object class="wxPanel" name="ID_COLOR_INDICATOR_PANEL">
+                        <style>wxTAB_TRAVERSAL</style>
+                        <size>40,-1</size>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>1</option>
+              <flag>wxEXPAND|wxRIGHT|wxLEFT</flag>
+              <border>5</border>
+              <object class="wxListBox" name="ID_LISTBOX_COLORTABLE">
+                <style>wxLB_SINGLE</style>
+                <content />
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxCheckBox" name="ID_CHECKBOX_LABEL_OUTLINE">
+                <label>Show label outline only (Alt+L)</label>
+                <checked>1</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxCheckBox" name="ID_CHECKBOX_CONTOUR">
+                <label>Show as isosurface in 3D view</label>
+                <checked>0</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxFlexGridSizer">
+                <rows>7</rows>
+                <cols>2</cols>
+                <vgap>0</vgap>
+                <hgap>0</hgap>
+                <growablecols>1</growablecols>
+                <growablerows></growablerows>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxTOP|wxRIGHT|wxLEFT|wxALIGN_RIGHT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_CONTOUR_MIN">
+                    <label> Low Threshold</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxTOP|wxRIGHT|wxLEFT</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_CONTOUR_MIN">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>0</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALIGN_CENTER_VERTICAL|wxTOP|wxRIGHT|wxLEFT</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_CONTOUR_MIN">
+                        <style>wxTE_PROCESS_ENTER</style>
+                        <size>50,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxTOP|wxRIGHT|wxLEFT|wxALIGN_RIGHT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_CONTOUR_MAX">
+                    <label> High Threshold</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxEXPAND|wxALIGN_CENTER_VERTICAL|wxTOP|wxRIGHT|wxLEFT</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_CONTOUR_MAX">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>100</value>
+                        <min>0</min>
+                        <max>100</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALIGN_CENTER_VERTICAL|wxTOP|wxRIGHT|wxLEFT</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_CONTOUR_MAX">
+                        <style>wxTE_PROCESS_ENTER</style>
+                        <size>50,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxCheckBox" name="ID_CHECK_CONTOUR_EXTRACT_ALL">
+                    <label>Extract all regions</label>
+                    <checked>0</checked>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL|wxALIGN_RIGHT|wxALIGN_CENTER_VERTICAL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_SMOOTH_SURFACE">
+                    <label>Smooth iterations</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <object class="wxBoxSizer">
+                    <orient>wxHORIZONTAL</orient>
+                    <object class="sizeritem">
+                      <option>1</option>
+                      <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                      <border>5</border>
+                      <object class="wxSlider" name="ID_SLIDER_SMOOTH_ITERATIONS">
+                        <style>wxSL_HORIZONTAL</style>
+                        <value>0</value>
+                        <min>0</min>
+                        <max>50</max>
+                      </object>
+                    </object>
+                    <object class="sizeritem">
+                      <option>0</option>
+                      <flag>wxALL</flag>
+                      <border>5</border>
+                      <object class="wxTextCtrl" name="ID_TEXT_SMOOTH_ITERATIONS">
+                        <size>50,-1</size>
+                        <value></value>
+                        <maxlength>0</maxlength>
+                      </object>
+                    </object>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxTOP|wxRIGHT|wxLEFT|wxALIGN_RIGHT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_CONTOUR_COLOR">
+                    <label>Surface color</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxEXPAND|wxTOP|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxColourPickerCtrl" name="ID_COLORPICKER_CONTOUR">
+                    <value>#000000</value>
+                    <style>wxCLRP_DEFAULT_STYLE|wxCLRP_USE_TEXTCTRL</style>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxCheckBox" name="ID_CHECK_USE_IMAGE_COLORMAP">
+                    <label>Use image color map</label>
+                    <checked>0</checked>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>0,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL</flag>
+                  <border>5</border>
+                  <object class="wxButton" name="ID_BUTTON_SAVE_ISOSURFACE">
+                    <label>Save</label>
+                    <default>0</default>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxCheckBox" name="ID_CHECKBOX_HIDE_INFO">
+                <label>Do not show in Info Panel</label>
+                <checked>0</checked>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

@@ -1,0 +1,405 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxFrame" name="ID_TOOLWINDOW_EDIT">
+    <style>wxCAPTION|wxCLOSE_BOX|wxFRAME_FLOAT_ON_PARENT|wxFRAME_NO_TASKBAR|wxFRAME_TOOL_WINDOW</style>
+    <size>343,680</size>
+    <title>Drawing</title>
+    <object class="wxPanel" name="ID_PANEL_HOLDER">
+      <style>wxTAB_TRAVERSAL</style>
+      <object class="wxBoxSizer">
+        <orient>wxVERTICAL</orient>
+        <object class="sizeritem">
+          <option>0</option>
+          <flag>wxEXPAND</flag>
+          <border>0</border>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <option>1</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxToolBar" name="ID_TOOLBAR_VOXEL_EDIT">
+                <bitmapsize></bitmapsize>
+                <margins></margins>
+                <packing>1</packing>
+                <separation>5</separation>
+                <object class="tool" name="ID_ACTION_VOXEL_FREEHAND">
+                  <label>Freehand</label>
+                  <tooltip>Freehand</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_freehand.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_VOXEL_POLYLINE">
+                  <label>Polyline</label>
+                  <tooltip>Polyline</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_polyline.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_VOXEL_LIVEWIRE">
+                  <label>Livewire</label>
+                  <tooltip>Livewire</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_livewire.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_VOXEL_FILL">
+                  <label>Fill</label>
+                  <tooltip>Fill</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_fill.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_VOXEL_CONTOUR">
+                  <label>Contour</label>
+                  <tooltip>Intensity Contour</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_contour.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="separator" />
+                <object class="tool" name="ID_ACTION_VOXEL_EYEDROP">
+                  <label>Color Picker</label>
+                  <tooltip>Color Picker</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_colorpicker.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>1</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxToolBar" name="ID_TOOLBAR_ROI_EDIT">
+                <style>wxTB_FLAT|wxTB_HORIZONTAL</style>
+                <bitmapsize></bitmapsize>
+                <margins></margins>
+                <packing>1</packing>
+                <separation>5</separation>
+                <object class="tool" name="ID_ACTION_ROI_FREEHAND">
+                  <label>Freehand</label>
+                  <tooltip>Freehand</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_freehand.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_ROI_POLYLINE">
+                  <label>Polyline</label>
+                  <tooltip>Polyline</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_polyline.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_ROI_LIVEWIRE">
+                  <label>Livewire</label>
+                  <tooltip>Livewire</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_livewire.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_ROI_FILL">
+                  <label>Fill</label>
+                  <tooltip>Fill</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/voxel_draw_fill.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <option>0</option>
+          <flag>wxEXPAND|wxTOP|wxBOTTOM</flag>
+          <border>5</border>
+          <object class="wxFlexGridSizer">
+            <rows>4</rows>
+            <cols>2</cols>
+            <vgap>0</vgap>
+            <hgap>0</hgap>
+            <growablecols>1</growablecols>
+            <growablerows></growablerows>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+              <border>5</border>
+              <object class="wxStaticText" name="ID_STATIC_BRUSH_SIZE">
+                <label>Brush size</label>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>1</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxSpinCtrl" name="ID_SPIN_BRUSH_SIZE">
+                <style>wxSP_ARROW_KEYS</style>
+                <size>60,-1</size>
+                <value>1</value>
+                <min>1</min>
+                <max>10</max>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+              <border>5</border>
+              <object class="wxStaticText" name="ID_STATIC_REFERENCE">
+                <label>Reference</label>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>1</option>
+              <flag>wxALIGN_CENTER_VERTICAL|wxEXPAND|wxALL</flag>
+              <border>5</border>
+              <object class="wxChoice" name="ID_CHOICE_REFERENCE">
+                <selection>0</selection>
+                <content />
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+              <border>5</border>
+              <object class="wxStaticText" name="ID_STATIC_TOLERANCE">
+                <label>Tolerance</label>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>1</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL</flag>
+                  <border>5</border>
+                  <object class="wxSpinCtrl" name="ID_SPIN_BRUSH_TOLERANCE">
+                    <style>wxSP_ARROW_KEYS</style>
+                    <size>60,-1</size>
+                    <value>0</value>
+                    <min>0</min>
+                    <max>100</max>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>1</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM|wxRIGHT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_PERCENTAGE">
+                    <label>%</label>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+              <border>5</border>
+              <object class="wxStaticText" name="ID_STATIC_CONTOUR_VALUE">
+                <label>Contour Value</label>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxTextCtrl" name="ID_EDIT_CONTOUR_VALUE">
+                <value></value>
+                <maxlength>0</maxlength>
+              </object>
+            </object>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <option>1</option>
+          <flag>wxEXPAND|wxBOTTOM</flag>
+          <border>5</border>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxCheckBox" name="ID_CHECK_DRAW_CONNECTED">
+                <label>Constrain drawings to only voxels that \r\nare connected to old labels</label>
+                <checked>0</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxCheckBox" name="ID_CHECK_DRAW_RANGE">
+                <label>Only draw on pixels in the range of</label>
+                <checked>0</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_DRAW_LOW">
+                    <label> Low</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxTextCtrl" name="ID_EDIT_DRAW_RANGE_LOW">
+                    <value></value>
+                    <maxlength>0</maxlength>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_DRAW_HIGH">
+                    <label>   High</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxTextCtrl" name="ID_EDIT_DRAW_RANGE_HIGH">
+                    <value></value>
+                    <maxlength>0</maxlength>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxCheckBox" name="ID_CHECK_EXCLUDE_RANGE">
+                <label>Do not draw on pixel in the range of</label>
+                <checked>0</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND|wxBOTTOM</flag>
+              <border>5</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_EXCLUDE_LOW">
+                    <label> Low</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxTextCtrl" name="ID_EDIT_EXCLUDE_RANGE_LOW">
+                    <value></value>
+                    <maxlength>0</maxlength>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_EXCLUDE_HIGH">
+                    <label>   High</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxTextCtrl" name="ID_EDIT_EXCLUDE_RANGE_HIGH">
+                    <value></value>
+                    <maxlength>0</maxlength>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL</flag>
+              <border>5</border>
+              <object class="wxCheckBox" name="ID_CHECK_SMOOTH">
+                <label>Apply Gaussian smoothing</label>
+                <checked>0</checked>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_SMOOTH_SD">
+                    <label>Standard Deviation</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxBOTTOM|wxRIGHT|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxTextCtrl" name="ID_EDIT_SMOOTH_SD">
+                    <value>1.0</value>
+                    <maxlength>0</maxlength>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND|wxTOP</flag>
+              <border>5</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_CONTOUR_COLOR">
+                    <label>Contour color</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL</flag>
+                  <border>5</border>
+                  <object class="wxColourPickerCtrl" name="ID_COLORPICKER_CONTOUR">
+                    <value>#000000</value>
+                    <style>wxCLRP_DEFAULT_STYLE|wxCLRP_SHOW_LABEL|wxCLRP_USE_TEXTCTRL</style>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxALL|wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxStaticText" name="ID_STATIC_NOTES_CONTOUR">
+                <label>Tips:\nCtrl + Alt + Left button to adjust contour.\nLeft button to add pixels to contour.\nShift + Left button to break contour.\nCtrl + Left button to fill isolated contour.\nShift + Ctrl + Left button to move cursor.\nAlt + H to show/hide contour.\nAlt + L to turn on/off label outline display mode.</label>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

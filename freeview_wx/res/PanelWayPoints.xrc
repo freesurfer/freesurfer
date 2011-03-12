@@ -1,0 +1,393 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxPanel" name="ID_PANEL_WAYPOINTS">
+    <style>wxTAB_TRAVERSAL</style>
+    <size>365,759</size>
+    <object class="wxBoxSizer">
+      <orient>wxVERTICAL</orient>
+      <object class="sizeritem">
+        <option>0</option>
+        <flag>wxEXPAND|wxRIGHT|wxLEFT</flag>
+        <border>3</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxToolBar" name="m_toolBar1">
+              <style>wxTB_HORIZONTAL</style>
+              <bitmapsize>24,24</bitmapsize>
+              <margins></margins>
+              <packing>1</packing>
+              <separation>5</separation>
+              <object class="tool" name="ID_FILE_NEW_WAYPOINTS">
+                <label>New Point Set</label>
+                <tooltip>New Point Set</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/waypoints_new.png</bitmap>
+              </object>
+              <object class="tool" name="ID_FILE_LOAD_WAYPOINTS">
+                <label>Load Point Sets</label>
+                <tooltip>Load Point Set</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/waypoints_load.png</bitmap>
+              </object>
+              <object class="tool" name="ID_FILE_SAVE_WAYPOINTS">
+                <label>Save Point Sets</label>
+                <tooltip>Save Point Set</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/waypoints_save.png</bitmap>
+              </object>
+              <object class="tool" name="ID_WAYPOINTS_CLOSE">
+                <label>Close Point Set</label>
+                <tooltip>Close Point Set</tooltip>
+                <longhelp></longhelp>
+                <bitmap>images/waypoints_delete.png</bitmap>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="sizeritem">
+        <option>0</option>
+        <flag>wxEXPAND|wxBOTTOM|wxRIGHT|wxLEFT</flag>
+        <border>5</border>
+        <object class="wxCheckListBox" name="ID_LISTBOX_WAYPOINTS">
+          <size>-1,145</size>
+          <content />
+        </object>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxFlexGridSizer">
+          <rows>14</rows>
+          <cols>2</cols>
+          <vgap>0</vgap>
+          <hgap>0</hgap>
+          <growablecols>1</growablecols>
+          <growablerows></growablerows>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText31">
+              <label>File name</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxTextCtrl" name="ID_TEXT_FILENAME">
+              <style>wxTE_READONLY</style>
+              <value></value>
+              <maxlength>0</maxlength>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText3">
+              <label>Opacity</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxSlider" name="ID_SLIDER_OPACITY">
+              <style>wxSL_HORIZONTAL</style>
+              <value>100</value>
+              <min>0</min>
+              <max>100</max>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText4">
+              <label>Color</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxColourPickerCtrl" name="ID_COLOR_PICKER">
+              <value>#ff4040</value>
+              <style>wxCLRP_DEFAULT_STYLE|wxCLRP_USE_TEXTCTRL</style>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText5">
+              <label>Radius</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxTextCtrl" name="ID_TEXT_RADIUS">
+              <value></value>
+              <maxlength>0</maxlength>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,0</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxCheckBox" name="ID_CHECK_SNAP_VOXEL_CENTER">
+              <label>Snap to voxel center</label>
+              <checked>0</checked>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,0</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxCheckBox" name="ID_CHECK_SHOW_SPLINE">
+              <label>Show spline</label>
+              <checked>1</checked>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="ID_STATIC_SPLINE_COLOR">
+              <label>Spline color</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxChoice" name="ID_CHOICE_COLOR_MAP">
+              <selection>0</selection>
+              <content />
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="ID_STATIC_SPACE_FILLER">
+              <label></label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxColourPickerCtrl" name="ID_COLOR_PICKER_SPLINE">
+              <value>#ffff00</value>
+              <style>wxCLRP_DEFAULT_STYLE|wxCLRP_USE_TEXTCTRL</style>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="ID_STATIC_SCALAR_MAP">
+              <label>Scalar map</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxChoice" name="ID_CHOICE_SCALAR_MAP">
+              <selection>0</selection>
+              <content />
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="ID_STATIC_HEATSCALE_MIN">
+              <label>Min</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxEXPAND|wxALL</flag>
+                <border>5</border>
+                <object class="wxSlider" name="ID_SLIDER_HEATSCALE_MIN">
+                  <style>wxSL_HORIZONTAL</style>
+                  <value>50</value>
+                  <min>0</min>
+                  <max>100</max>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_HEATSCALE_MIN">
+                  <size>60,-1</size>
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="ID_STATIC_HEATSCALE_MID">
+              <label>MId</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxEXPAND|wxALL</flag>
+                <border>5</border>
+                <object class="wxSlider" name="ID_SLIDER_HEATSCALE_MID">
+                  <style>wxSL_HORIZONTAL</style>
+                  <value>50</value>
+                  <min>0</min>
+                  <max>100</max>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_HEATSCALE_MID">
+                  <size>60,-1</size>
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="ID_STATIC_HEATSCALE_MAX">
+              <label>Max</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxEXPAND|wxALL</flag>
+                <border>5</border>
+                <object class="wxSlider" name="ID_SLIDER_HEATSCALE_MAX">
+                  <style>wxSL_HORIZONTAL</style>
+                  <value>50</value>
+                  <min>0</min>
+                  <max>100</max>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_HEATSCALE_MAX">
+                  <size>60,-1</size>
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="ID_STATIC_HEATSCALE_OFFSET">
+              <label>Offset</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxEXPAND|wxALL</flag>
+                <border>5</border>
+                <object class="wxSlider" name="ID_SLIDER_HEATSCALE_OFFSET">
+                  <style>wxSL_HORIZONTAL</style>
+                  <value>50</value>
+                  <min>0</min>
+                  <max>100</max>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_HEATSCALE_OFFSET">
+                  <size>60,-1</size>
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="ID_STATIC_SPLINE_RADIUS">
+              <label>Spline radius</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxTextCtrl" name="ID_TEXT_SPLINE_RADIUS">
+              <value></value>
+              <maxlength>0</maxlength>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

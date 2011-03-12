@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_LOAD_DTI">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>479,356</size>
+    <title>Load DTI Volume</title>
+    <object class="wxBoxSizer">
+      <orient>wxHORIZONTAL</orient>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText2">
+              <label>Select FA data file</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxComboBox" name="ID_COMBO_FA_FILE">
+                  <value></value>
+                  <content />
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxBOTTOM|wxTOP</flag>
+                <border>5</border>
+                <object class="wxBitmapButton" name="ID_BUTTON_FA_FILE">
+                  <style>wxBU_AUTODRAW</style>
+                  <bitmap>images/file_open_16.png</bitmap>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText17">
+              <label>Select DTI vector data file</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_VECTOR_FILE">
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxBOTTOM|wxTOP</flag>
+                <border>5</border>
+                <object class="wxBitmapButton" name="ID_BUTTON_VECTOR_FILE">
+                  <style>wxBU_AUTODRAW</style>
+                  <bitmap>images/file_open_16.png</bitmap>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxCheckBox" name="ID_CHECK_RESAMPLE">
+              <label>Resample to standard RAS space</label>
+              <checked>0</checked>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxCheckBox" name="ID_CHECK_REG">
+              <label>Apply registration file</label>
+              <checked>0</checked>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_REG_FILE">
+                  <enabled>0</enabled>
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxBOTTOM|wxTOP</flag>
+                <border>5</border>
+                <object class="wxBitmapButton" name="ID_BUTTON_REG_FILE">
+                  <style>wxBU_AUTODRAW</style>
+                  <enabled>0</enabled>
+                  <bitmap>images/file_open_16.png</bitmap>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxStdDialogButtonSizer">
+              <object class="button">
+                <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="wxID_OK">
+                  <label>&amp;OK</label>
+                </object>
+              </object>
+              <object class="button">
+                <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="wxID_CANCEL">
+                  <label>&amp;Cancel</label>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+    </object>
+  </object>
+</resource>

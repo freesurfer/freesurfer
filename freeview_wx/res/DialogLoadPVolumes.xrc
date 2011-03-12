@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_LOAD_PVOLUMES">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>412,320</size>
+    <title>Load P-Label Volumes</title>
+    <object class="wxBoxSizer">
+      <orient>wxHORIZONTAL</orient>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText17">
+              <label>Select volumes (must select all of them at once)</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_VOLUME_FILES">
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxBOTTOM|wxTOP</flag>
+                <border>5</border>
+                <object class="wxBitmapButton" name="ID_BUTTON_OPEN">
+                  <style>wxBU_AUTODRAW</style>
+                  <bitmap>images/file_open_16.png</bitmap>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText3">
+              <label>Enter filename prefix (path name not needed)</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL|wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxTextCtrl" name="ID_TEXT_FILENAME_PREFIX">
+              <value></value>
+              <maxlength>0</maxlength>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText2">
+              <label>Select Lookup Table</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL|wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxChoice" name="ID_CHOICE_LUT">
+              <selection>0</selection>
+              <content />
+            </object>
+          </object>
+          <object class="spacer">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxStdDialogButtonSizer">
+              <object class="button">
+                <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="wxID_OK">
+                  <label>&amp;OK</label>
+                </object>
+              </object>
+              <object class="button">
+                <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="wxID_CANCEL">
+                  <label>&amp;Cancel</label>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+    </object>
+  </object>
+</resource>

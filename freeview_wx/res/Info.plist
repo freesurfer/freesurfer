@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist SYSTEM "file://localhost/System/Library/DTDs/PropertyList.dtd">
+<plist version="0.9">
+<dict>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleIdentifier</key>
+	<string>org.freeview..</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>freeview</string>
+	<key>CFBundleName</key>
+	<string>freeview</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>(internal latest dev)</string>
+	<key>CFBundleShortVersionString</key>
+	<string>(internal latest dev)</string>
+	<key>CFBundleGetInfoString</key>
+	<string>freeview version (internal latest dev), (c) NMR Center</string>
+	<key>CFBundleLongVersionString</key>
+	<string>1.0(internal latest dev), (c) NMR Center</string>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright NMR Center</string>
+	<key>LSRequiresCarbon</key>
+	<true/>
+	<key>CSResourcesFileMapped</key>
+	<true/>
+</dict>
+</plist>

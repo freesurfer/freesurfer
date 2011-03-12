@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_SAVE_POINT">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>376,189</size>
+    <title>Save Point</title>
+    <object class="wxBoxSizer">
+      <orient>wxHORIZONTAL</orient>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText17">
+              <label>Enter or select group name and point name.</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxFlexGridSizer">
+              <rows>2</rows>
+              <cols>2</cols>
+              <vgap>0</vgap>
+              <hgap>0</hgap>
+              <growablecols>1</growablecols>
+              <growablerows></growablerows>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText3">
+                  <label>Group name</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxComboBox" name="ID_COMBO_GROUP_NAME">
+                  <value></value>
+                  <content />
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText4">
+                  <label>Point name</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxComboBox" name="ID_COMBO_POINT_NAME">
+                  <value></value>
+                  <content />
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,15</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>0</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_DELETE">
+                  <label>Delete</label>
+                  <default>0</default>
+                </object>
+              </object>
+              <object class="spacer">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_SAVE">
+                  <label>Save</label>
+                  <default>1</default>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_CLOSE">
+                  <label>Close</label>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+    </object>
+  </object>
+</resource>

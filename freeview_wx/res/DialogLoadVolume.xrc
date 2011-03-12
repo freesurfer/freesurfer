@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_LOAD_VOLUME">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>435,441</size>
+    <title>Load Volume</title>
+    <object class="wxBoxSizer">
+      <orient>wxHORIZONTAL</orient>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText17">
+              <label>Select volume file</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxComboBox" name="ID_COMBO_FILENAME">
+                  <value>Combo!</value>
+                  <content />
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxBOTTOM|wxTOP</flag>
+                <border>5</border>
+                <object class="wxBitmapButton" name="ID_BUTTON_FILE">
+                  <style>wxBU_AUTODRAW</style>
+                  <tooltip>Open</tooltip>
+                  <bitmap>images/file_open_16.png</bitmap>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxCheckBox" name="ID_CHECK_RESAMPLE">
+              <label>Resample to standard RAS space</label>
+              <checked>0</checked>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxCheckBox" name="ID_CHECK_APPLY_REG">
+              <label>Appy Registration file</label>
+              <checked>0</checked>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_REG_FILE">
+                  <enabled>0</enabled>
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxBOTTOM|wxTOP</flag>
+                <border>5</border>
+                <object class="wxBitmapButton" name="ID_BUTTON_REG_FILE">
+                  <style>wxBU_AUTODRAW</style>
+                  <enabled>0</enabled>
+                  <tooltip>Open</tooltip>
+                  <bitmap>images/file_open_16.png</bitmap>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxStaticBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <label>Sample Method</label>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL</flag>
+                    <border>5</border>
+                    <object class="wxRadioButton" name="ID_RADIO_NEAREST">
+                      <style>wxRB_GROUP</style>
+                      <label>Nearest Neighbor</label>
+                      <value>1</value>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL</flag>
+                    <border>5</border>
+                    <object class="wxRadioButton" name="ID_RADIO_TRILINEAR">
+                      <label>Trilinear</label>
+                      <value>0</value>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText2">
+                  <label>ALWAYS choose &apos;Nearest Neighbor&apos; if you are loading a label \nvolume.</label>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxFlexGridSizer">
+              <rows>2</rows>
+              <cols>2</cols>
+              <vgap>0</vgap>
+              <hgap>0</hgap>
+              <growablecols>1</growablecols>
+              <growablerows></growablerows>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText3">
+                  <label>Color map</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxChoice" name="ID_CHOICE_COLORMAP">
+                  <selection>0</selection>
+                  <content>
+                    <item>Grayscale</item>
+                    <item>Lookup Table</item>
+                    <item>Heat</item>
+                    <item>Jet</item>
+                    <item>GE Color</item>
+                    <item>NIH</item>
+                  </content>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="ID_STATIC_LUT">
+                  <enabled>0</enabled>
+                  <label>Lookup table</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxChoice" name="ID_CHOICE_LUT">
+                  <enabled>0</enabled>
+                  <selection>0</selection>
+                  <content />
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,15</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxStdDialogButtonSizer">
+              <object class="button">
+                <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="wxID_OK">
+                  <label>&amp;OK</label>
+                </object>
+              </object>
+              <object class="button">
+                <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="wxID_CANCEL">
+                  <label>&amp;Cancel</label>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,7</size>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+    </object>
+  </object>
+</resource>

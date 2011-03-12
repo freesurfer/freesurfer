@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_VOLUME_FILTER">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>285,143</size>
+    <title>Apply Volume Filter</title>
+    <object class="wxBoxSizer">
+      <orient>wxHORIZONTAL</orient>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="spacer">
+                <option>0</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>30,1</size>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxFlexGridSizer">
+                  <rows>2</rows>
+                  <cols>2</cols>
+                  <vgap>0</vgap>
+                  <hgap>0</hgap>
+                  <growablecols></growablecols>
+                  <growablerows></growablerows>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                    <border>5</border>
+                    <object class="wxStaticText" name="m_staticText3">
+                      <label>Kernel size</label>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                    <border>5</border>
+                    <object class="wxSpinCtrl" name="ID_SPIN_KERNEL_SIZE">
+                      <style>wxSP_ARROW_KEYS</style>
+                      <size>50,-1</size>
+                      <value>3</value>
+                      <min>3</min>
+                      <max>100</max>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                    <border>5</border>
+                    <object class="wxStaticText" name="ID_STATIC_SIGMA">
+                      <label>Gaussian Sigma</label>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                    <border>5</border>
+                    <object class="wxTextCtrl" name="ID_TEXT_SIGMA">
+                      <value>1.0</value>
+                      <maxlength>0</maxlength>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,5</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="spacer">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_APPLY">
+                  <label>Apply</label>
+                  <default>0</default>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_CANCEL">
+                  <label>Cancel</label>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+    </object>
+  </object>
+</resource>

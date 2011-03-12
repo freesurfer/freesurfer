@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_REPOSITION_SURFACE">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>305,300</size>
+    <title>Reposition Surface</title>
+    <object class="wxBoxSizer">
+      <orient>wxHORIZONTAL</orient>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText17">
+              <label>Enter required parameters:</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxFlexGridSizer">
+              <rows>4</rows>
+              <cols>3</cols>
+              <vgap>0</vgap>
+              <hgap>0</hgap>
+              <growablecols>1</growablecols>
+              <growablerows></growablerows>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL|wxALIGN_RIGHT</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText3">
+                  <label>Vertex</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_VERTEX">
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxCheckBox" name="ID_CHECK_UPDATE_VERTEX">
+                  <hidden>1</hidden>
+                  <label>Update to cursor</label>
+                  <checked>1</checked>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL|wxALIGN_RIGHT</flag>
+                <border>5</border>
+                <object class="wxChoice" name="ID_CHOICE_TARGET">
+                  <selection>0</selection>
+                  <content>
+                    <item>Intensity</item>
+                    <item>Coordinate</item>
+                  </content>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_TARGET">
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="spacer">
+                <option>0</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALIGN_RIGHT|wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText41">
+                  <label>Size</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_SIZE">
+                  <value>1</value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="spacer">
+                <option>0</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL|wxALIGN_RIGHT</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText5">
+                  <label>Sigma</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_SIGMA">
+                  <value>2.0</value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="spacer">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>1</option>
+            <flag>wxALIGN_CENTER_HORIZONTAL</flag>
+            <border>5</border>
+            <size>0,15</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>0</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_APPLY">
+                  <label>Apply</label>
+                  <default>1</default>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_SAVE">
+                  <enabled>0</enabled>
+                  <label>Save</label>
+                  <default>0</default>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_SAVE_AS">
+                  <label>Save As</label>
+                  <default>0</default>
+                </object>
+              </object>
+              <object class="spacer">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>0</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="spacer">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_UNDO">
+                  <enabled>0</enabled>
+                  <label>Undo</label>
+                  <default>0</default>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_CLOSE">
+                  <label>Close</label>
+                  <default>0</default>
+                </object>
+              </object>
+              <object class="spacer">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,5</size>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

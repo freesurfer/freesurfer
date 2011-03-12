@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxFrame" name="ID_TOOLWINDOW_MEASURE">
+    <style>wxCAPTION|wxCLOSE_BOX|wxFRAME_FLOAT_ON_PARENT|wxFRAME_NO_TASKBAR|wxFRAME_TOOL_WINDOW|wxRESIZE_BORDER</style>
+    <size>278,352</size>
+    <title>Measure</title>
+    <object class="wxPanel" name="ID_PANEL_HOLDER">
+      <style>wxTAB_TRAVERSAL</style>
+      <object class="wxBoxSizer">
+        <orient>wxVERTICAL</orient>
+        <object class="sizeritem">
+          <option>0</option>
+          <flag>wxEXPAND</flag>
+          <border>0</border>
+          <object class="wxBoxSizer">
+            <orient>wxHORIZONTAL</orient>
+            <object class="sizeritem">
+              <option>1</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxToolBar" name="ID_TOOLBAR_MEASURE">
+                <bitmapsize>24,24</bitmapsize>
+                <margins></margins>
+                <packing>1</packing>
+                <separation>5</separation>
+                <object class="tool" name="ID_ACTION_MEASURE_LINE">
+                  <label>Line</label>
+                  <tooltip>Line</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/measure_line.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_MEASURE_POLYLINE">
+                  <label>Polyline</label>
+                  <tooltip>Polyline</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/measure_polyline.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_MEASURE_SPLINE">
+                  <label>Spline</label>
+                  <tooltip>Spline</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/measure_spline.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_MEASURE_RECT">
+                  <label>Rectangle</label>
+                  <tooltip>Rectangle</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/measure_rectangle.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_MEASURE_LABEL">
+                  <label>Labels</label>
+                  <tooltip>Labels</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/measure_label.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+                <object class="tool" name="ID_ACTION_MEASURE_SURFACE">
+                  <label>IsoSurface Region</label>
+                  <tooltip>IsoSurface Region (3D)</tooltip>
+                  <longhelp></longhelp>
+                  <bitmap>images/measure_surface_region.png</bitmap>
+                  <toggle>1</toggle>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+        <object class="sizeritem">
+          <option>1</option>
+          <flag>wxEXPAND</flag>
+          <border>0</border>
+          <object class="wxBoxSizer">
+            <orient>wxVERTICAL</orient>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_ID">
+                    <label>Id</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxTOP|wxBOTTOM|wxRIGHT|wxALIGN_CENTER_VERTICAL</flag>
+                  <border>5</border>
+                  <object class="wxSpinCtrl" name="ID_SPIN_ID">
+                    <style>wxSP_ARROW_KEYS</style>
+                    <size>45,-1</size>
+                    <value>0</value>
+                    <min>1</min>
+                    <max>1000</max>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>0</option>
+                  <flag>wxEXPAND</flag>
+                  <border>0</border>
+                  <size>5,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                  <border>5</border>
+                  <object class="wxStaticText" name="ID_STATIC_GROUP">
+                    <label>Group</label>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM|wxRIGHT</flag>
+                  <border>5</border>
+                  <object class="wxSpinCtrl" name="ID_SPIN_GROUP">
+                    <style>wxSP_ARROW_KEYS</style>
+                    <size>45,-1</size>
+                    <value>0</value>
+                    <min>1</min>
+                    <max>100</max>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALIGN_CENTER_VERTICAL|wxTOP|wxBOTTOM</flag>
+                  <border>5</border>
+                  <object class="wxColourPickerCtrl" name="ID_COLORPICKER_GROUP">
+                    <value>#000000</value>
+                    <size>60,-1</size>
+                  </object>
+                </object>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>1</option>
+              <flag>wxEXPAND</flag>
+              <border>5</border>
+              <object class="wxTextCtrl" name="ID_TEXT_STATS">
+                <style>wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL</style>
+                <value></value>
+                <maxlength>0</maxlength>
+              </object>
+            </object>
+            <object class="sizeritem">
+              <option>0</option>
+              <flag>wxEXPAND</flag>
+              <border>2</border>
+              <object class="wxBoxSizer">
+                <orient>wxHORIZONTAL</orient>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>1,0</size>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxTOP|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxButton" name="ID_BUTTON_LOAD">
+                    <size>50,-1</size>
+                    <hidden>1</hidden>
+                    <label>Load</label>
+                    <default>0</default>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxTOP|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxButton" name="ID_BUTTON_SAVE">
+                    <size>50,-1</size>
+                    <hidden>1</hidden>
+                    <label>Save</label>
+                    <default>0</default>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxTOP|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxButton" name="ID_BUTTON_SAVE_ALL">
+                    <hidden>1</hidden>
+                    <label>Save All</label>
+                    <default>0</default>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxALL</flag>
+                  <border>5</border>
+                  <object class="wxButton" name="ID_BUTTON_UPDATE">
+                    <size>60,-1</size>
+                    <hidden>1</hidden>
+                    <label>Update</label>
+                    <default>0</default>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxTOP|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxButton" name="ID_BUTTON_COPY">
+                    <size>60,-1</size>
+                    <enabled>0</enabled>
+                    <label>Copy</label>
+                    <default>0</default>
+                  </object>
+                </object>
+                <object class="sizeritem">
+                  <option>0</option>
+                  <flag>wxTOP|wxLEFT</flag>
+                  <border>5</border>
+                  <object class="wxButton" name="ID_BUTTON_EXPORT">
+                    <size>60,-1</size>
+                    <enabled>0</enabled>
+                    <label>Export</label>
+                    <default>0</default>
+                  </object>
+                </object>
+                <object class="spacer">
+                  <option>1</option>
+                  <flag>wxEXPAND</flag>
+                  <border>5</border>
+                  <size>1,0</size>
+                </object>
+              </object>
+            </object>
+          </object>
+        </object>
+      </object>
+    </object>
+  </object>
+</resource>

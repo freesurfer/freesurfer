@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_WRITE_MOVIE_FRAMES">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>444,284</size>
+    <title>Save Movie Frames</title>
+    <object class="wxBoxSizer">
+      <orient>wxHORIZONTAL</orient>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText5">
+              <label>Move this window out of the main view before starting to write.</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxFlexGridSizer">
+              <rows>3</rows>
+              <cols>2</cols>
+              <vgap>0</vgap>
+              <hgap>0</hgap>
+              <growablecols>1</growablecols>
+              <growablerows></growablerows>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText3">
+                  <label>Output location</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <option>1</option>
+                    <flag>wxALIGN_CENTER_VERTICAL|wxEXPAND|wxTOP|wxBOTTOM|wxLEFT</flag>
+                    <border>5</border>
+                    <object class="wxTextCtrl" name="ID_TEXT_OUTPUT_LOCATION">
+                      <value>/tmp/frames/</value>
+                      <maxlength>0</maxlength>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                    <border>5</border>
+                    <object class="wxBitmapButton" name="ID_BUTTON_OPEN">
+                      <style>wxBU_AUTODRAW</style>
+                      <bitmap>images/file_open_16.png</bitmap>
+                      <default>0</default>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText4">
+                  <label>File extension</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxChoice" name="ID_CHOICE_EXTENSION">
+                  <selection>0</selection>
+                  <content>
+                    <item>png</item>
+                    <item>jpeg</item>
+                    <item>tiff</item>
+                  </content>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                <border>5</border>
+                <object class="wxStaticText" name="m_staticText41">
+                  <label>Angle step</label>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL</flag>
+                    <border>5</border>
+                    <object class="wxTextCtrl" name="ID_TEXT_ANGLE_STEP">
+                      <value>1.0</value>
+                      <maxlength>0</maxlength>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                    <border>5</border>
+                    <object class="wxStaticText" name="m_staticText42">
+                      <label>degrees</label>
+                    </object>
+                  </object>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL|wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText6">
+              <label>NOTE: Angle step is for spinning in 3D view only. If the main \nviewport is 2D slice view, it will be ignored. A slice fly-through \nwill be saved instead.</label>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,15</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>0</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_ABORT">
+                  <enabled>0</enabled>
+                  <label>Abort</label>
+                  <default>0</default>
+                </object>
+              </object>
+              <object class="spacer">
+                <option>1</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <size>0,0</size>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_WRITE">
+                  <label>Write</label>
+                  <default>1</default>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxTOP|wxRIGHT|wxLEFT</flag>
+                <border>5</border>
+                <object class="wxButton" name="ID_BUTTON_CLOSE">
+                  <label>Close</label>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+    </object>
+  </object>
+</resource>

@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxDialog" name="ID_DIALOG_SAVE_SCREENSHOT">
+    <style>wxDEFAULT_DIALOG_STYLE</style>
+    <size>417,384</size>
+    <title>Save Snapshot</title>
+    <object class="wxBoxSizer">
+      <orient>wxHORIZONTAL</orient>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+      <object class="sizeritem">
+        <option>1</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <object class="wxBoxSizer">
+          <orient>wxVERTICAL</orient>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText3">
+              <label>For best result, move this window out of the view that you \nare taking the snapshot of.</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticText" name="m_staticText17">
+              <label>Selec file name</label>
+            </object>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxBoxSizer">
+              <orient>wxHORIZONTAL</orient>
+              <object class="sizeritem">
+                <option>1</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxTextCtrl" name="ID_TEXT_FILENAME">
+                  <value></value>
+                  <maxlength>0</maxlength>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxBOTTOM|wxTOP</flag>
+                <border>5</border>
+                <object class="wxBitmapButton" name="ID_BUTTON_FILENAME">
+                  <style>wxBU_AUTODRAW</style>
+                  <tooltip>Open</tooltip>
+                  <bitmap>images/file_open_16.png</bitmap>
+                  <default>0</default>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,8</size>
+          </object>
+          <object class="sizeritem">
+            <option>1</option>
+            <flag>wxEXPAND|wxALL</flag>
+            <border>5</border>
+            <object class="wxStaticBoxSizer">
+              <orient>wxVERTICAL</orient>
+              <label>Options</label>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxEXPAND</flag>
+                <border>5</border>
+                <object class="wxBoxSizer">
+                  <orient>wxHORIZONTAL</orient>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALIGN_CENTER_VERTICAL|wxALL</flag>
+                    <border>5</border>
+                    <object class="wxStaticText" name="m_staticText2">
+                      <label>Magnification factor</label>
+                    </object>
+                  </object>
+                  <object class="sizeritem">
+                    <option>0</option>
+                    <flag>wxALL|wxALIGN_CENTER_VERTICAL</flag>
+                    <border>5</border>
+                    <object class="wxSpinCtrl" name="ID_SPINBOX_MAGNIFICATION">
+                      <style>wxSP_ARROW_KEYS</style>
+                      <size>60,-1</size>
+                      <value>1</value>
+                      <min>1</min>
+                      <max>10</max>
+                    </object>
+                  </object>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxCheckBox" name="ID_CHECK_HIDE_COORDINATES">
+                  <label>Hide coordinates</label>
+                  <checked>1</checked>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxCheckBox" name="ID_CHECK_HIDE_CURSOR">
+                  <label>Hide cursor</label>
+                  <checked>1</checked>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxCheckBox" name="ID_CHECK_ANTIALIASING">
+                  <label>Enable anti-aliasing (for 3D)</label>
+                  <checked>0</checked>
+                </object>
+              </object>
+              <object class="sizeritem">
+                <option>0</option>
+                <flag>wxALL</flag>
+                <border>5</border>
+                <object class="wxCheckBox" name="ID_CHECK_KEEP_WINDOW">
+                  <label>Do not close this window after save</label>
+                  <checked>0</checked>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,15</size>
+          </object>
+          <object class="sizeritem">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <object class="wxStdDialogButtonSizer">
+              <object class="button">
+                <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="wxID_SAVE">
+                  <label>&amp;Save</label>
+                </object>
+              </object>
+              <object class="button">
+                <flag>wxALIGN_CENTER_HORIZONTAL|wxALL</flag>
+                <border>5</border>
+                <object class="wxButton" name="wxID_CANCEL">
+                  <label>&amp;Cancel</label>
+                </object>
+              </object>
+            </object>
+          </object>
+          <object class="spacer">
+            <option>0</option>
+            <flag>wxEXPAND</flag>
+            <border>5</border>
+            <size>0,10</size>
+          </object>
+        </object>
+      </object>
+      <object class="spacer">
+        <option>0</option>
+        <flag>wxEXPAND</flag>
+        <border>5</border>
+        <size>10,0</size>
+      </object>
+    </object>
+  </object>
+</resource>

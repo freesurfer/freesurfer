@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<resource xmlns="http://www.wxwindows.org/wxxrc" version="2.3.0.1">
+  <object class="wxFrame" name="ID_FRAME_QUICK_REFERENCE">
+    <style>wxCAPTION|wxCLOSE_BOX|wxFRAME_FLOAT_ON_PARENT|wxFRAME_NO_TASKBAR|wxRESIZE_BORDER</style>
+    <size>280,514</size>
+    <title>Quick Reference</title>
+    <centered>1</centered>
+    <object class="wxHtmlWindow" name="ID_HTML_WINDOW">
+      <style>wxHW_SCROLLBAR_AUTO</style>
+    </object>
+  </object>
+</resource>
