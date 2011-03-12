@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: krish $
-#    $Date: 2011/03/12 03:24:01 $
-#    $Revision: 1.515 $
+#    $Date: 2011/03/12 04:37:02 $
+#    $Revision: 1.516 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -500,7 +500,7 @@ case "${target}" in
  # Mac OS X
  OS=Darwin
  OS_CPPFLAGS=
- OS_LDFLAGS="$DEADCODE_STRIP_MAC -framework Cocoa -framework IOKit"
+ OS_LDFLAGS="$DEADCODE_STRIP_MAC"
  DYNAMIC_LIB_EXT=".dylib"
  SHARED_CFLAGS="-fno-common"
  SHARED_LDFLAGS="-dynamiclib"
