@@ -382,6 +382,14 @@ install-data-hook:
 			fi; \
 		fi; \
 	fi;
+	if test ! "x$(QT_DIR)" = "x" ; then \
+		if test ! "$(QT_DIR)" = "$(DESTDIR)$(prefix)/lib/qt" ; then \
+			if test -e $(QT_DIR) ; then \
+				rm -Rf $(DESTDIR)$(prefix)/lib/qt ; \
+				ln -s $(QT_DIR) $(DESTDIR)$(prefix)/lib/qt ; \
+			fi; \
+		fi; \
+	fi;
 	if test ! "x$(KWWIDGETS_DIR)" = "x" ; then \
 		if test ! "$(KWWIDGETS_DIR)" = "$(DESTDIR)$(prefix)/lib/KWWidgets" ; then \
 			if test -e $(KWWIDGETS_DIR) ; then \

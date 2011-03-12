@@ -144,6 +144,7 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
   for _qt_ignored in once; do
 
   # Find Qt.
+  AC_ARG_VAR([QT_DIR], [Root directory of Qt Installation])
   AC_ARG_VAR([QT_PATH], [Path to the Qt installation])
   if test -d /usr/local/Trolltech; then
     # Try to find the latest version.
@@ -215,6 +216,13 @@ dnl Memo: AC_ARG_WITH(package, help-string, [if-given], [if-not-given])
     break
   fi
   AC_SUBST([QT_PATH])
+
+  # QT_DIR is the parent directory to QT_PATH because 
+  # QT_PATH points to $QT_DIR/bin (where qmake is)
+  if test x"$QT_DIR" = x; then
+    QT_DIR=$QT_PATH/..
+  fi
+  AC_SUBST([QT_DIR])
 
   # Get ready to build a test-app with Qt.
   if mkdir conftest.dir && cd conftest.dir; then :; else
