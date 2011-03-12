@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: krish $
-#    $Date: 2011/03/11 23:20:25 $
-#    $Revision: 1.514 $
+#    $Date: 2011/03/12 03:24:01 $
+#    $Revision: 1.515 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3429,7 +3429,6 @@ AC_OUTPUT([Makefile
            scripts/Makefile
            scuba/Makefile
            scuba2/Makefile
-           freeview_wx/Makefile
            freeview/Makefile
            connectgraph/Makefile
            spherical_stats/Makefile
