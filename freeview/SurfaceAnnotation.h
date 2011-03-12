@@ -9,28 +9,28 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.9 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:53 $
+ *    $Revision: 1.10 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2007-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 #ifndef SurfaceAnnotation_h
 #define SurfaceAnnotation_h
 
-#include "Broadcaster.h"
-#include "Listener.h"
-#include <string>
+#include <QObject>
 
 extern "C"
 {
@@ -39,10 +39,9 @@ extern "C"
 
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
-class LayerSurface;
-class SurfaceAnnotationProperties;
+class LayerSurface;;
 
-class SurfaceAnnotation  : public Broadcaster, public Listener
+class SurfaceAnnotation  : public QObject
 {
 public:
   SurfaceAnnotation ( LayerSurface* surf );
@@ -50,11 +49,11 @@ public:
 
   void SetSurface( LayerSurface* surf );
   
-  const char* GetName();
+  QString GetName();
   
-  void SetName( const char* name );
+  void SetName( const QString& name );
   
-  bool LoadAnnotation( const char* fn );
+  bool LoadAnnotation( const QString& fn );
     
   int* GetIndices()
   { 
@@ -80,15 +79,14 @@ public:
   
   void GetAnnotationPoint( int nIndex, double* pt_out );
   
-  std::string GetAnnotationNameAtIndex( int nIndex );
+  QString GetAnnotationNameAtIndex( int nIndex );
   
-  std::string GetAnnotationNameAtVertex( int nVertex );
+  QString GetAnnotationNameAtVertex( int nVertex );
   
   void GetAnnotationColorAtIndex( int nIndex, int* rgb );
    
 protected:
   void Reset();
-  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
   
 private:
   int*          m_nIndices;
@@ -96,7 +94,7 @@ private:
   int*          m_nCenterVertices;  // center vertex of each annotation
   int           m_nAnnotations;     // number of valid annotations
   
-  std::string   m_strName;
+  QString       m_strName;
   COLOR_TABLE*  m_lut;
   LayerSurface* m_surface;
 };

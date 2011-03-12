@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.11 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:45 $
+ *    $Revision: 1.12 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -40,12 +42,12 @@
 #define IMAGE_RESAMPLE_FACTOR     4.0     // must be multiples of 2
 
 Contour2D::Contour2D( RenderView2D* view ) :
-    Broadcaster( "Contour2D" ),
-    Listener( "Contour2D" ),
+    QObject( view ),
     m_view( view )
 {
   m_nPlane = view->GetViewPlane();
   m_imageInput = NULL;
+  m_dContourValue = 0;
   
   m_actorContour = vtkSmartPointer<vtkImageActor>::New();
   m_actorContour->VisibilityOff();
@@ -69,12 +71,14 @@ Contour2D::Contour2D( RenderView2D* view ) :
   m_filterResample->SetInterpolationModeToNearestNeighbor();
   m_filterEdge = vtkSmartPointer<vtkSimpleLabelEdgeFilter>::New();
   m_colormap = vtkSmartPointer<vtkImageMapToColors>::New();
-//  m_colormap->SetLookupTable( GetProperties()->GetGrayScaleTable() );
   m_colormap->SetOutputFormatToRGBA();
   m_colormap->PassAlphaToOutputOn();
   
-  SetContourColor( 1, 1, 1 );
+  SetColor( 1, 1, 1 );
   
+  connect(this, SIGNAL(ValueChanged()), view, SLOT(RequestRedraw()));
+  connect(this, SIGNAL(ColorChanged()), view, SLOT(RequestRedraw()));
+
   Reset();
 }
 
@@ -83,7 +87,7 @@ Contour2D::~Contour2D()
 
 vtkImageActor* Contour2D::GetActor()
 {
-  return m_actorContour.GetPointer();
+  return m_actorContour;
 }
 
 void Contour2D::Reset()
@@ -258,7 +262,7 @@ void Contour2D::SetContourValue( double dContourValue )
   m_dContourValue = dContourValue;
   m_filterThreshold->ThresholdByUpper( dContourValue );
   m_filterThreshold->Update();
-  this->SendBroadcast( "ContourValueChanged", this );
+  emit ValueChanged();
 }
 
 bool Contour2D::IsVisible()
@@ -292,7 +296,7 @@ void Contour2D::SetSmoothSD( double sd )
   m_filterSmooth->SetStandardDeviations( sd, sd, sd );
 }
 
-void Contour2D::SetContourColor( double r, double g, double b )
+void Contour2D::SetColor( double r, double g, double b )
 {
   m_dContourColor[0] = r;
   m_dContourColor[1] = g;
@@ -305,6 +309,6 @@ void Contour2D::SetContourColor( double r, double g, double b )
   m_colormap->SetLookupTable( lut );
   
   if ( IsVisible() )
-    m_view->NeedRedraw();
+    emit ColorChanged();
 }
 

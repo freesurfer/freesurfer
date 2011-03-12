@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.5 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:48 $
+ *    $Revision: 1.6 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -27,39 +29,44 @@
 #include "RenderView3D.h"
 #include "MainWindow.h"
 #include "LayerCollection.h"
-#include "LayerCollectionManager.h"
-#include "LayerPropertiesMRI.h"
+#include "LayerPropertyMRI.h"
 #include "LayerMRI.h"
 #include "SurfaceRegion.h"
 #include "CursorFactory.h"
+#include <QDebug>
 
-Interactor3DMeasure::Interactor3DMeasure() :
-    Interactor3D(),
+Interactor3DMeasure::Interactor3DMeasure(QObject* parent) :
+    Interactor3D(parent),
     m_bSelectRegion( false )
 {}
 
 Interactor3DMeasure::~Interactor3DMeasure()
 {}
 
-bool Interactor3DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor3DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
   bool ret = Interactor3D::ProcessMouseDownEvent( event, renderview );
-
-  if ( m_nAction == MM_SurfaceRegion && !Interactor3D::IsInAction() && event.LeftDown() )
+#ifdef Q_WS_MAC
+  if ( m_nAction == MM_SurfaceRegion && !Interactor3D::IsInAction() &&
+       (event->button() == Qt::LeftButton || ( event->button() == Qt::RightButton && (event->buttons() & Qt::LeftButton) ) ) )
+#else
+  if ( m_nAction == MM_SurfaceRegion && !Interactor3D::IsInAction() &&
+           event->button() == Qt::LeftButton )
+#endif
   {
-    if ( event.CmdDown() && !event.ShiftDown() )
+    if ( event->modifiers() & CONTROL_MODIFIER && !(event->modifiers() & Qt::ShiftModifier) )
     {
-      if ( view->InitializeSelectRegion( event.GetX(), event.GetY() ) )
+      if ( view->InitializeSelectRegion( event->x(), event->y() ) )
       {
         m_bSelectRegion = true;
         return false;   // do not pass down the event
       }
     }
-    else if ( event.CmdDown() && event.ShiftDown() )
+    else if ( event->modifiers() & CONTROL_MODIFIER && event->modifiers() & Qt::ShiftModifier )
     {
-      LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
+      LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
       if ( mri && mri->GetCurrentSurfaceRegion() )
       {
         mri->GetCurrentSurfaceRegion()->ResetOutline();
@@ -67,13 +74,13 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
         return false;
       }
     }
-    else if ( !event.CmdDown() && event.ShiftDown() )
+    else if ( !(event->modifiers() & CONTROL_MODIFIER) && event->modifiers() & Qt::ShiftModifier )
     {
-      LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
+      LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
       if ( mri && mri->GetCurrentSurfaceRegion() )
       {
-        if ( mri->GetCurrentSurfaceRegion()->DeleteCell( view, event.GetX(), event.GetY() ) )
-          view->NeedRedraw();
+        if ( mri->GetCurrentSurfaceRegion()->DeleteCell( view, event->x(), event->y() ) )
+          view->RequestRedraw();
         return false;
       }
     }
@@ -82,7 +89,7 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( wxMouseEvent& event, RenderView
   return ret;
 }
 
-bool Interactor3DMeasure::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor3DMeasure::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
@@ -95,13 +102,13 @@ bool Interactor3DMeasure::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* 
   return Interactor3D::ProcessMouseUpEvent( event, renderview );
 }
 
-bool Interactor3DMeasure::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor3DMeasure::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
   if ( m_bSelectRegion )
   {
-    view->AddSelectRegionLoopPoint( event.GetX(), event.GetY() );
+    view->AddSelectRegionLoopPoint( event->x(), event->y() );
     return false;
   }
   else
@@ -110,12 +117,11 @@ bool Interactor3DMeasure::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView
   }
 }
 
-bool Interactor3DMeasure::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* renderview )
+bool Interactor3DMeasure::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
- 
-  int nKeyCode = event.GetKeyCode();
-  if ( nKeyCode == WXK_DELETE )
+
+  if ( event->key() == Qt::Key_Delete )
   {
     view->DeleteCurrentSelectRegion();
     return false;
@@ -124,52 +130,56 @@ bool Interactor3DMeasure::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* re
     return Interactor3D::ProcessKeyDownEvent( event, view );
 }
 
-void Interactor3DMeasure::UpdateCursor( wxEvent& event, wxWindow* wnd )
+void Interactor3DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
 {
-  if ( event.IsKindOf( CLASSINFO( wxMouseEvent ) ) )
+    if ( event->type() == QEvent::MouseButtonPress ||
+         event->type() == QEvent::MouseButtonRelease ||
+         event->type() == QEvent::MouseMove)
   {
-    wxMouseEvent* e = ( wxMouseEvent* )&event;
-    if ( !e->RightDown() && !e->MiddleDown() )
+    QMouseEvent* e = ( QMouseEvent* )event;
+#ifdef Q_WS_MAC
+    if ( (e->button() != Qt::RightButton && e->button() != Qt::MidButton) ||
+         ( e->button() == Qt::RightButton && (e->buttons() & Qt::LeftButton) ) )
+#else
+    if (e->button() != Qt::RightButton && e->button() != Qt::MidButton)
+#endif
     {
-      if ( e->CmdDown() && !e->ShiftDown() )
+      if ( e->modifiers() & CONTROL_MODIFIER && !(e->modifiers() & Qt::ShiftModifier) )
       {
-        wnd->SetCursor( CursorFactory::CursorContour );
+        wnd->setCursor( CursorFactory::CursorContour );
         return;
       }
-      else if ( e->CmdDown() && e->ShiftDown() )
+      else if ( e->modifiers() & CONTROL_MODIFIER && e->modifiers() & Qt::ShiftModifier )
       {
-        wnd->SetCursor( CursorFactory::CursorAdd );
+        wnd->setCursor( CursorFactory::CursorAdd );
         return;
       }
-      else if ( !e->CmdDown() && e->ShiftDown() )
+      else if ( !(e->modifiers() & CONTROL_MODIFIER) && e->modifiers() & Qt::ShiftModifier )
       {
-        wnd->SetCursor( CursorFactory::CursorRemove );
+        wnd->setCursor( CursorFactory::CursorRemove );
         return;
       }
     }
   }
-  else if ( event.IsKindOf( CLASSINFO( wxKeyEvent ) ) )
+  else if ( event->type() == QEvent::KeyPress )
   {
-    wxKeyEvent* e = ( wxKeyEvent* )&event;
-    if ( e->GetEventType() != wxEVT_KEY_UP )
-    {
-      if ( e->GetKeyCode() == WXK_CONTROL && !e->ShiftDown() )
+    QKeyEvent* e = ( QKeyEvent* )&event;
+      if ( e->key() == CONTROL_KEY && !(e->modifiers() & Qt::ShiftModifier) )
       {
-        wnd->SetCursor( CursorFactory::CursorContour );
+        wnd->setCursor( CursorFactory::CursorContour );
         return;
       }
-      else if ( ( e->GetKeyCode() == WXK_CONTROL && e->ShiftDown() ) ||
-                  ( e->GetKeyCode() == WXK_SHIFT && e->CmdDown() ) )
+      else if ( ( e->key() == CONTROL_KEY && e->modifiers() & Qt::ShiftModifier ) ||
+                ( e->key() == Qt::Key_Shift && e->modifiers() & CONTROL_MODIFIER ) )
       {
-        wnd->SetCursor( CursorFactory::CursorAdd );
+        wnd->setCursor( CursorFactory::CursorAdd );
         return;
       }
-      else if ( e->GetKeyCode() == WXK_SHIFT && !e->CmdDown() )
+      else if ( e->key() == Qt::Key_Shift && !(e->modifiers() & CONTROL_MODIFIER) )
       {
-        wnd->SetCursor( CursorFactory::CursorRemove );
+        wnd->setCursor( CursorFactory::CursorRemove );
         return;
       }
-    }
   }
   
   Interactor3D::UpdateCursor( event, wnd );

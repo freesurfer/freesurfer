@@ -10,36 +10,35 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.10 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:53 $
+ *    $Revision: 1.11 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2007-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 
-#include <assert.h>
 #include "SurfaceAnnotation.h"
 #include "vtkLookupTable.h"
 #include "vtkRGBAColorTransferFunction.h"
 #include "vtkMath.h"
 #include "LayerSurface.h"
-//#include "SurfaceAnnotationProperties.h"
 #include "FSSurface.h"
-#include <wx/filename.h>
+#include <QFileInfo>
 
 SurfaceAnnotation::SurfaceAnnotation ( LayerSurface* surf ) :
-    Broadcaster( "SurfaceAnnotation" ),
-    Listener( "SurfaceAnnotation" ),
+    QObject( surf ),
     m_nIndices( NULL ),
     m_nCenterVertices( NULL ),
     m_lut( NULL ),
@@ -65,6 +64,7 @@ void SurfaceAnnotation::Reset()
   m_nCenterVertices = NULL;
 }
 
+/*
 void SurfaceAnnotation::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
@@ -72,17 +72,18 @@ void SurfaceAnnotation::DoListenToMessage ( std::string const iMessage, void* iD
     this->SendBroadcast( "AnnotationChanged", this );
   }
 }
+*/
 
-bool SurfaceAnnotation::LoadAnnotation( const char* fn )
+bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
 {
   if ( m_surface )
   {
     MRIS* mris = m_surface->GetSourceSurface()->GetMRIS();
     m_nIndices = NULL;
 
-    if ( MRISreadAnnotation( mris, fn ) != 0 )
+    if ( MRISreadAnnotation( mris, fn.toAscii().data() ) != 0 )
     {
-      cerr << "Could not load annotation from file " << fn << endl;
+      cerr << "Could not load annotation from file " << qPrintable(fn) << ".\n";
       return false;
     }
     else
@@ -160,12 +161,12 @@ void SurfaceAnnotation::GetAnnotationPoint( int nIndex, double* pt_out )
   m_surface->GetTargetAtVertex( m_nCenterVertices[nIndex], pt_out );
 }
 
-const char* SurfaceAnnotation::GetName()
+QString SurfaceAnnotation::GetName()
 {
-  return m_strName.c_str();
+  return m_strName;
 }
 
-void SurfaceAnnotation::SetName( const char* name )
+void SurfaceAnnotation::SetName( const QString& name )
 {
   m_strName = name;
 }
@@ -175,12 +176,12 @@ int SurfaceAnnotation::GetIndexAtVertex( int nVertex )
   return m_nIndices[nVertex];
 }
 
-std::string SurfaceAnnotation::GetAnnotationNameAtVertex( int nVertex )
+QString SurfaceAnnotation::GetAnnotationNameAtVertex( int nVertex )
 {
   return GetAnnotationNameAtIndex( m_nIndices[nVertex] );
 }
 
-std::string SurfaceAnnotation::GetAnnotationNameAtIndex( int nIndex )
+QString SurfaceAnnotation::GetAnnotationNameAtIndex( int nIndex )
 {
   char name[128];
   int nValid = 0;

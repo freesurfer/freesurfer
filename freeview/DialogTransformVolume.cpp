@@ -1,423 +1,64 @@
-/**
- * @file  DialogTransformVolume.h
- * @brief Dialog to transform volume.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.7 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
-
-
 #include "DialogTransformVolume.h"
-#include <wx/xrc/xmlres.h>
-#include <wx/filedlg.h>
-#include <wx/filename.h>
-#include <wx/scrolbar.h>
-#include <wx/notebook.h>
+#include "ui_DialogTransformVolume.h"
 #include "MainWindow.h"
-#include "LayerMRI.h"
 #include "LayerCollection.h"
-#include "CommonDataStruct.h"
-
-#if wxVERSION_NUMBER > 2900
-#include <wx/bookctrl.h>
-#endif
-
+#include "LayerMRI.h"
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QFileInfo>
 extern "C"
 {
 #include "mri.h"
 }
 
-BEGIN_EVENT_TABLE( DialogTransformVolume, wxDialog )
-    EVT_BUTTON      ( XRCID( "ID_BUTTON_APPLY" ),     DialogTransformVolume::OnApply )
-    EVT_BUTTON      ( XRCID( "ID_BUTTON_RESTORE" ),   DialogTransformVolume::OnRestore )
-    EVT_BUTTON      ( XRCID( "ID_BUTTON_SAVEAS" ),    DialogTransformVolume::OnSaveAs )
-    EVT_BUTTON      ( XRCID( "ID_BUTTON_SAVE_REG" ),  DialogTransformVolume::OnSaveReg )
-    EVT_CHECKBOX    ( XRCID( "ID_CHECK_1" ),          DialogTransformVolume::OnCheck1 )
-    EVT_CHECKBOX    ( XRCID( "ID_CHECK_2" ),          DialogTransformVolume::OnCheck2 )
-    EVT_CHECKBOX    ( XRCID( "ID_CHECK_3" ),          DialogTransformVolume::OnCheck3 )
-    EVT_TEXT        ( XRCID( "ID_TEXT_X" ),           DialogTransformVolume::OnTextTranslateX )
-    EVT_TEXT        ( XRCID( "ID_TEXT_Y" ),           DialogTransformVolume::OnTextTranslateY )
-    EVT_TEXT        ( XRCID( "ID_TEXT_Z" ),           DialogTransformVolume::OnTextTranslateZ )
-    EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_X" ),    DialogTransformVolume::OnScrollTranslateX )
-    EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_Y" ),    DialogTransformVolume::OnScrollTranslateY )
-    EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_Z" ),    DialogTransformVolume::OnScrollTranslateZ )    
-    EVT_TEXT        ( XRCID( "ID_TEXT_SCALE_X" ),         DialogTransformVolume::OnTextScaleX )
-    EVT_TEXT        ( XRCID( "ID_TEXT_SCALE_Y" ),         DialogTransformVolume::OnTextScaleY )
-    EVT_TEXT        ( XRCID( "ID_TEXT_SCALE_Z" ),         DialogTransformVolume::OnTextScaleZ )
-    EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_SCALE_X" ),    DialogTransformVolume::OnScrollScaleX )
-    EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_SCALE_Y" ),    DialogTransformVolume::OnScrollScaleY )
-    EVT_COMMAND_SCROLL        ( XRCID( "ID_SCROLLBAR_SCALE_Z" ),    DialogTransformVolume::OnScrollScaleZ )   
-    EVT_NOTEBOOK_PAGE_CHANGED ( XRCID( "ID_NOTEBOOK" ),       DialogTransformVolume::OnPageChanged )
-END_EVENT_TABLE()
-
-
-DialogTransformVolume::DialogTransformVolume( wxWindow* parent ) : Listener( "DialogTransformVolume" )
+DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
+    QDialog(parent),
+    UIUpdateHelper(),
+    ui(new Ui::DialogTransformVolume)
 {
-  wxXmlResource::Get()->LoadDialog( this, 
-				    parent, 
-				    wxT("ID_DIALOG_TRANSFORM_VOLUME") );
-  m_check[0] = XRCCTRL( *this, "ID_CHECK_1", wxCheckBox );
-  m_check[1] = XRCCTRL( *this, "ID_CHECK_2", wxCheckBox );
-  m_check[2] = XRCCTRL( *this, "ID_CHECK_3", wxCheckBox );
-  m_check[0]->SetValue( true );
-  m_choice[0] = XRCCTRL( *this, "ID_CHOICE_1", wxChoice );
-  m_choice[1] = XRCCTRL( *this, "ID_CHOICE_2", wxChoice );
-  m_choice[2] = XRCCTRL( *this, "ID_CHOICE_3", wxChoice );
-  m_textAngle[0]  = XRCCTRL( *this, "ID_TEXT_ANGLE_1", wxTextCtrl );
-  m_textAngle[1]  = XRCCTRL( *this, "ID_TEXT_ANGLE_2", wxTextCtrl );
-  m_textAngle[2]  = XRCCTRL( *this, "ID_TEXT_ANGLE_3", wxTextCtrl );
-  m_btnRestoreOriginal  = XRCCTRL( *this, "ID_BUTTON_RESTORE", wxButton );
-  m_btnSaveAs     = XRCCTRL( *this, "ID_BUTTON_SAVEAS", wxButton );
-  m_btnSaveReg    = XRCCTRL( *this, "ID_BUTTON_SAVE_REG", wxButton );
-  
-  m_radioAroundCenter = XRCCTRL( *this, "ID_RADIO_AROUND_CENTER", wxRadioButton );
-  m_radioAroundCursor = XRCCTRL( *this, "ID_RADIO_AROUND_CURSOR", wxRadioButton );
-  m_radioNearest      = XRCCTRL( *this, "ID_RADIO_NEAREST",       wxRadioButton );
-  m_radioTrilinear    = XRCCTRL( *this, "ID_RADIO_TRILINEAR",     wxRadioButton );
-  m_radioSinc         = XRCCTRL( *this, "ID_RADIO_SINC",          wxRadioButton );
-  m_radioActiveVolume = XRCCTRL( *this, "ID_RADIO_ACTIVE_LAYER",  wxRadioButton );
-  m_radioAllVolumes   = XRCCTRL( *this, "ID_RADIO_ALL_LAYERS",    wxRadioButton );
-  
-  m_notebook    = XRCCTRL( *this, "ID_NOTEBOOK", wxNotebook );
-  m_textTranslate[0] =  XRCCTRL( *this, "ID_TEXT_X", wxTextCtrl );
-  m_textTranslate[1] =  XRCCTRL( *this, "ID_TEXT_Y", wxTextCtrl );
-  m_textTranslate[2] =  XRCCTRL( *this, "ID_TEXT_Z", wxTextCtrl );
-  m_scrollTranslate[0] =  XRCCTRL( *this, "ID_SCROLLBAR_X", wxScrollBar );
-  m_scrollTranslate[1] =  XRCCTRL( *this, "ID_SCROLLBAR_Y", wxScrollBar );
-  m_scrollTranslate[2] =  XRCCTRL( *this, "ID_SCROLLBAR_Z", wxScrollBar );
-  m_textScale[0] =  XRCCTRL( *this, "ID_TEXT_SCALE_X", wxTextCtrl );
-  m_textScale[1] =  XRCCTRL( *this, "ID_TEXT_SCALE_Y", wxTextCtrl );
-  m_textScale[2] =  XRCCTRL( *this, "ID_TEXT_SCALE_Z", wxTextCtrl );
-  m_scrollScale[0] =  XRCCTRL( *this, "ID_SCROLLBAR_SCALE_X", wxScrollBar );
-  m_scrollScale[1] =  XRCCTRL( *this, "ID_SCROLLBAR_SCALE_Y", wxScrollBar );
-  m_scrollScale[2] =  XRCCTRL( *this, "ID_SCROLLBAR_SCALE_Z", wxScrollBar );
-  
-  UpdateUI();
+    ui->setupUi(this);
+    m_checkRotate[0] = ui->checkBoxRotateX;
+    m_checkRotate[1] = ui->checkBoxRotateY;
+    m_checkRotate[2] = ui->checkBoxRotateZ;
+    m_comboRotate[0] = ui->comboBoxRotateX;
+    m_comboRotate[1] = ui->comboBoxRotateY;
+    m_comboRotate[2] = ui->comboBoxRotateZ;
+    m_textAngle[0] = ui->lineEditRotateX;
+    m_textAngle[1] = ui->lineEditRotateY;
+    m_textAngle[2] = ui->lineEditRotateZ;
+    m_scrollTranslate[0] = ui->scrollBarTranslateX;
+    m_scrollTranslate[1] = ui->scrollBarTranslateY;
+    m_scrollTranslate[2] = ui->scrollBarTranslateZ;
+    m_textTranslate[0] = ui->lineEditTranslateX;
+    m_textTranslate[1] = ui->lineEditTranslateY;
+    m_textTranslate[2] = ui->lineEditTranslateZ;
+    m_scrollScale[0] = ui->scrollBarScaleX;
+    m_scrollScale[1] = ui->scrollBarScaleY;
+    m_scrollScale[2] = ui->scrollBarScaleZ;
+    m_textScale[0] = ui->lineEditScaleX;
+    m_textScale[1] = ui->lineEditScaleY;
+    m_textScale[2] = ui->lineEditScaleZ;
+
+    connect(MainWindow::GetMainWindow()->GetLayerCollection("MRI"), SIGNAL(ActiveLayerChanged(Layer*)),
+            this, SLOT(OnActiveLayerChanged()));
+    connect(ui->pushButtonSaveVolumeAs, SIGNAL(clicked()),
+            MainWindow::GetMainWindow(), SLOT(SaveVolumeAs()));
 }
 
 DialogTransformVolume::~DialogTransformVolume()
-{}
-
-bool DialogTransformVolume::GetRotation( int nIndex_in, 
-				      int& plane_out, 
-				      double& angle_out )
 {
-  if ( nIndex_in < 0 || 
-       nIndex_in > 2 || 
-       !m_check[ nIndex_in ]->IsChecked() )
-    return false;
-
-  plane_out = m_choice[ nIndex_in ]->GetSelection();
-  return m_textAngle[ nIndex_in ]->GetValue().ToDouble( &angle_out );
-}
-
-void DialogTransformVolume::OnApply( wxCommandEvent& event )
-{
-  int plane;
-  double angle;
-  if ( !m_check[0]->IsChecked() && 
-       !m_check[1]->IsChecked() && 
-       !m_check[2]->IsChecked() )
-  {
-    wxMessageDialog dlg( this, 
-			 _("Must at least select one rotation."), 
-			 _("Error"), 
-			 wxOK | wxICON_ERROR );
-    dlg.ShowModal();
-    return;
-  }
-  else if ( ( m_check[0]->IsChecked() && !GetRotation( 0, plane, angle ) ) ||
-            ( m_check[1]->IsChecked() && !GetRotation( 1, plane, angle ) ) ||
-            ( m_check[2]->IsChecked() && !GetRotation( 2, plane, angle ) ) )
-  {
-    wxMessageDialog dlg( this, 
-			 _("Please enter correct rotation angle."), 
-			 _("Error"), 
-			 wxOK | wxICON_ERROR );
-    dlg.ShowModal();
-    return;
-  }
-
-  DoRotate();
-  
-  UpdateUI();
-}
-
-void DialogTransformVolume::OnSaveAs( wxCommandEvent& event )
-{
-  MainWindow::GetMainWindowPointer()->SaveVolumeAs();
-}
-
-void DialogTransformVolume::OnSaveReg( wxCommandEvent& event )
-{
-  MainWindow::GetMainWindowPointer()->SaveRegistrationAs();
-}
-
-void DialogTransformVolume::OnRestore( wxCommandEvent& event )
-{
-  LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-  if ( layer )
-  {
-    layer->Restore();
-    UpdateUI();
-  }
-}
-
-void DialogTransformVolume::DoRotate()
-{
-  LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-  if ( layer )
-  {
-    RotationElement re;
-    if ( m_radioAroundCursor->GetValue() )
-    {
-      MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->
-        GetSlicePosition( re.Point );
-      layer->RemapPositionToRealRAS( re.Point, re.Point );
-    }
-    else
-    {
-    // use center of the volume to rotate
-      layer->GetRASCenter( re.Point );
-    }
-    re.SampleMethod = SAMPLE_TRILINEAR;
-    if ( m_radioNearest->GetValue() )
-      re.SampleMethod = SAMPLE_NEAREST;
-    else if ( m_radioSinc->GetValue() )
-      re.SampleMethod = SAMPLE_SINC;
-    
-    std::vector<RotationElement> rotations;
-    for ( int i = 0; i < 3; i++ )
-    {
-      if ( GetRotation( i, re.Plane, re.Angle ) )
-      {
-        rotations.push_back( re );
-      }
-    }
-    MainWindow::GetMainWindowPointer()->RotateVolume( rotations, m_radioAllVolumes->GetValue() );
-  }
-}
-
-void DialogTransformVolume::OnCheck1( wxCommandEvent& event )
-{
-  m_choice[0]->Enable( event.IsChecked() );
-  m_textAngle[0]->Enable( event.IsChecked() );
-}
-
-
-void DialogTransformVolume::OnCheck2( wxCommandEvent& event )
-{
-  m_choice[1]->Enable( event.IsChecked() );
-  m_textAngle[1]->Enable( event.IsChecked() );
-}
-
-
-void DialogTransformVolume::OnCheck3( wxCommandEvent& event )
-{
-  m_choice[2]->Enable( event.IsChecked() );
-  m_textAngle[2]->Enable( event.IsChecked() );
-}
-
-void DialogTransformVolume::OnTextTranslateX( wxCommandEvent& event )
-{
-  RespondTextTranslate( 0 ); 
-}
-
-void DialogTransformVolume::OnTextTranslateY( wxCommandEvent& event )
-{
-  RespondTextTranslate( 1 ); 
-}
-
-void DialogTransformVolume::OnTextTranslateZ( wxCommandEvent& event )
-{
-  RespondTextTranslate( 2 ); 
-}
-
-void DialogTransformVolume::OnScrollTranslateX( wxScrollEvent& event )
-{
-  RespondScrollTranslate( 0 );
-}
-
-void DialogTransformVolume::OnScrollTranslateY( wxScrollEvent& event )
-{
-  RespondScrollTranslate( 1 );
-}
-
-void DialogTransformVolume::OnScrollTranslateZ( wxScrollEvent& event )
-{
-  RespondScrollTranslate( 2 );
-}
-
-void DialogTransformVolume::RespondTextTranslate( int n )
-{
-  if ( IsShown() )
-  {
-    double dvalue;
-    if ( m_textTranslate[n]->GetValue().ToDouble( &dvalue ) )
-    {
-      LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-      if ( layer )
-      {
-        double pos[3];
-        layer->GetTranslate( pos );
-        pos[n] = dvalue;
-        layer->Translate( pos );
-        MainWindow::GetMainWindowPointer()->NeedRedraw();
-        
-        double* vs = layer->GetWorldVoxelSize();
-        int range = m_scrollTranslate[n]->GetRange();
-        m_scrollTranslate[n]->SetThumbPosition( range/2 + (int)( pos[n] / vs[n] ) );
-        m_btnRestoreOriginal->Enable();
-        UpdateUI( 1 );
-      }
-    }
-  }
-}
-
-void DialogTransformVolume::RespondScrollTranslate( int n )
-{
-  if ( IsShown() )
-  {
-    LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-    if ( layer )
-    {
-      double pos[3];
-      layer->GetTranslate( pos );
-      int range = m_scrollTranslate[n]->GetRange();
-      int npos = m_scrollTranslate[n]->GetThumbPosition();
-      double* vs = layer->GetWorldVoxelSize();
-      pos[n] = ( npos - range/2 ) * vs[n];    
-      layer->Translate( pos );
-      MainWindow::GetMainWindowPointer()->NeedRedraw();
-      
-      m_textTranslate[n]->ChangeValue( wxString() << pos[n] );
-      m_btnRestoreOriginal->Enable();
-      UpdateUI( 1 );
-    }
-  }
-}
-
-
-void DialogTransformVolume::OnTextScaleX( wxCommandEvent& event )
-{
-  RespondTextScale( 0 ); 
-}
-
-void DialogTransformVolume::OnTextScaleY( wxCommandEvent& event )
-{
-  RespondTextScale( 1 ); 
-}
-
-void DialogTransformVolume::OnTextScaleZ( wxCommandEvent& event )
-{
-  RespondTextScale( 2 ); 
-}
-
-void DialogTransformVolume::OnScrollScaleX( wxScrollEvent& event )
-{
-  RespondScrollScale( 0 );
-}
-
-void DialogTransformVolume::OnScrollScaleY( wxScrollEvent& event )
-{
-  RespondScrollScale( 1 );
-}
-
-void DialogTransformVolume::OnScrollScaleZ( wxScrollEvent& event )
-{
-  RespondScrollScale( 2 );
-}
-
-void DialogTransformVolume::RespondTextScale( int n )
-{
-  if ( IsShown() )
-  {
-    double dvalue;
-    if ( m_textScale[n]->GetValue().ToDouble( &dvalue ) && dvalue > 0 )
-    {
-      LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-      if ( layer )
-      {
-        double scale[3];
-        layer->GetScale( scale );
-        scale[n] = dvalue;
-        layer->Scale( scale );
-        MainWindow::GetMainWindowPointer()->NeedRedraw();
-        
-        if ( dvalue >= 1 )
-          m_scrollScale[n]->SetThumbPosition( 50 + (int)( (dvalue-1.0)*50 ) );
-        else        
-          m_scrollScale[n]->SetThumbPosition( 50 - (int)( (1.0-dvalue)*100 ) );
-          
-        m_btnRestoreOriginal->Enable();
-        UpdateUI( 0 );
-      }
-    }
-  }
-}
-
-void DialogTransformVolume::RespondScrollScale( int n )
-{
-  LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-  if ( layer )
-  {
-    double scale[3];
-    layer->GetScale( scale );
-    int npos = m_scrollScale[n]->GetThumbPosition();
-    if ( npos >= 50 )
-      scale[n] = ( npos - 50 ) / 50.0 + 1.0;
-    else 
-      scale[n] = ( npos - 50 ) / 100.0 + 1.0;    
-    layer->Scale( scale );
-    MainWindow::GetMainWindowPointer()->NeedRedraw();
-    
-    m_textScale[n]->ChangeValue( wxString() << scale[n] );
-    m_btnRestoreOriginal->Enable();
-    UpdateUI( 0 );
-  }
-}
-
-//#if wxCHECK_VERSION( 2, 9, 0 )
-#if wxVERSION_NUMBER > 2900
-void DialogTransformVolume::OnPageChanged( wxBookCtrlEvent& event )
-#else
-void DialogTransformVolume::OnPageChanged( wxNotebookEvent& event )
-#endif
-{
-}
-
-void DialogTransformVolume::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
-{
-  if ( iMessage == "ActiveLayerChanged" )
-  {
-    if ( IsVisible() )
-      UpdateUI();
-  }
+    delete ui;
 }
 
 // scope: 0 => translate related, 1 => scale related, 2 => both
 void DialogTransformVolume::UpdateUI( int scope )
 {
-  LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
+  LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( layer )
   {
+      QList<QWidget*> allwidgets = this->findChildren<QWidget*>();
+      for ( int i = 0; i < allwidgets.size(); i++ )
+        allwidgets[i]->blockSignals( true );
     if ( scope == 0 || scope == 2 )
     {
       double* vs = layer->GetWorldVoxelSize();
@@ -428,8 +69,9 @@ void DialogTransformVolume::UpdateUI( int scope )
       {
         int range = (int)( ws[i] / vs[i] + 0.5 ) * 2;
         int npos = (int)(pos[i] / vs[i]) + range/2;
-        m_scrollTranslate[i]->SetScrollbar( npos, 0, range, 2, true );
-        m_textTranslate[i]->ChangeValue( wxString() << pos[i] );
+        m_scrollTranslate[i]->setRange(0, range);
+        m_scrollTranslate[i]->setValue(npos);
+        ChangeLineEditNumber(m_textTranslate[i], pos[i]);
       }
     }
     if ( scope == 1 || scope == 2 )
@@ -439,16 +81,289 @@ void DialogTransformVolume::UpdateUI( int scope )
       for ( int i = 0; i < 3; i++ )
       {
         if ( scale[i] >= 1 )
-          m_scrollScale[i]->SetThumbPosition( 50 + (int)( (scale[i]-1.0)*50 ) );
-        else        
-          m_scrollScale[i]->SetThumbPosition( 50 - (int)( (1.0-scale[i])*100 ) );
-          
-        m_textScale[i]->ChangeValue( wxString() << scale[i] );
+          m_scrollScale[i]->setValue( 50 + (int)( (scale[i]-1.0)*50 ) );
+        else
+          m_scrollScale[i]->setValue( 50 - (int)( (1.0-scale[i])*100 ) );
+
+        ChangeLineEditNumber(m_textScale[i], scale[i]);
       }
     }
-    
-    m_btnRestoreOriginal->Enable( layer->IsTransformed() );
-    m_btnSaveReg->Enable( layer->IsTransformed() );
-    m_btnSaveAs->Enable( layer->IsTransformed() );
+
+    ui->pushButtonRestore->setEnabled( layer->IsTransformed() );
+    ui->pushButtonSaveReg->setEnabled( layer->IsTransformed() );
+    ui->pushButtonSaveVolumeAs->setEnabled( layer->IsTransformed() );
+    for ( int i = 0; i < allwidgets.size(); i++ )
+      allwidgets[i]->blockSignals( false );
+  }
+}
+
+bool DialogTransformVolume::GetRotation( int nIndex_in,
+                      int& plane_out,
+                      double& angle_out )
+{
+  if ( nIndex_in < 0 ||
+       nIndex_in > 2 ||
+       !m_checkRotate[ nIndex_in ]->isChecked() )
+    return false;
+
+  plane_out = m_comboRotate[ nIndex_in ]->currentIndex();
+  bool bOK;
+  double dVal = m_textAngle[ nIndex_in ]->text().toDouble(&bOK);
+  if ( bOK)
+      angle_out = dVal;
+  return bOK;
+}
+
+void DialogTransformVolume::OnApply()
+{
+  int plane;
+  double angle;
+  if ( !m_checkRotate[0]->isChecked() &&
+       !m_checkRotate[1]->isChecked() &&
+       !m_checkRotate[2]->isChecked() )
+  {
+      QMessageBox::warning( this, "Error",
+             "Must at least select one rotation.");
+    return;
+  }
+  else if ( ( m_checkRotate[0]->isChecked() && !GetRotation( 0, plane, angle ) ) ||
+            ( m_checkRotate[1]->isChecked() && !GetRotation( 1, plane, angle ) ) ||
+            ( m_checkRotate[2]->isChecked() && !GetRotation( 2, plane, angle ) ) )
+  {
+      QMessageBox::warning( this, "Error",
+             "Please enter correct rotation angle.");
+    return;
+  }
+
+  DoRotate();
+
+  UpdateUI();
+}
+
+void DialogTransformVolume::OnSaveReg()
+{
+    LayerMRI* layer_mri = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+    if ( !layer_mri)
+    {
+      return;
+    }
+
+    QString filename = QFileDialog::getSaveFileName(this, "Save Registration",
+                      QFileInfo( layer_mri->GetFileName() ).absolutePath(),
+                      "LTA files (*.lta);;All files (*.*)");
+    if ( !filename.isEmpty() )
+    {
+      layer_mri->SaveRegistration( filename );
+    }
+}
+
+void DialogTransformVolume::OnRestore()
+{
+  LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( layer )
+  {
+    layer->Restore();
+    UpdateUI();
+  }
+}
+
+void DialogTransformVolume::DoRotate()
+{
+  LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( layer )
+  {
+    RotationElement re;
+    if ( ui->radioButtonAroundCursor->isChecked() )
+    {
+      MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->
+        GetSlicePosition( re.Point );
+      layer->RemapPositionToRealRAS( re.Point, re.Point );
+    }
+    else
+    {
+    // use center of the volume to rotate
+      layer->GetRASCenter( re.Point );
+    }
+    re.SampleMethod = SAMPLE_TRILINEAR;
+    if ( ui->radioButtonNearestNeighbor->isChecked() )
+      re.SampleMethod = SAMPLE_NEAREST;
+//    else if ( m_radioSinc->GetValue() )
+//      re.SampleMethod = SAMPLE_SINC;
+
+    std::vector<RotationElement> rotations;
+    for ( int i = 0; i < 3; i++ )
+    {
+      if ( GetRotation( i, re.Plane, re.Angle ) )
+      {
+        rotations.push_back( re );
+      }
+    }
+    MainWindow::GetMainWindow()->RotateVolume( rotations, false );
+  }
+}
+
+void DialogTransformVolume::OnActiveLayerChanged()
+{
+    if ( isVisible() )
+        UpdateUI();
+}
+
+
+void DialogTransformVolume::OnLineEditTranslateX(const QString& text)
+{
+  RespondTextTranslate( 0 );
+}
+
+void DialogTransformVolume::OnLineEditTranslateY(const QString& text)
+{
+  RespondTextTranslate( 1 );
+}
+
+void DialogTransformVolume::OnLineEditTranslateZ(const QString& text)
+{
+  RespondTextTranslate( 2 );
+}
+
+void DialogTransformVolume::OnScrollBarTranslateX(int nVal)
+{
+  RespondScrollTranslate( 0 );
+}
+
+void DialogTransformVolume::OnScrollBarTranslateY(int nVal)
+{
+  RespondScrollTranslate( 1 );
+}
+
+void DialogTransformVolume::OnScrollBarTranslateZ(int nVal)
+{
+  RespondScrollTranslate( 2 );
+}
+
+void DialogTransformVolume::RespondTextTranslate( int n )
+{
+  if ( isVisible() )
+  {
+      bool bOK;
+    double dvalue =m_textTranslate[n]->text().toDouble(&bOK);
+    if ( bOK )
+    {
+      LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+      if ( layer )
+      {
+        double pos[3];
+        layer->GetTranslate( pos );
+        pos[n] = dvalue;
+        layer->Translate( pos );
+        MainWindow::GetMainWindow()->RequestRedraw();
+
+        double* vs = layer->GetWorldVoxelSize();
+        int range = m_scrollTranslate[n]->maximum();
+        m_scrollTranslate[n]->blockSignals(true);
+        m_scrollTranslate[n]->setValue(range/2 + (int)( pos[n] / vs[n] ) );
+        m_scrollTranslate[n]->blockSignals(false);
+        UpdateUI( 1 );
+      }
+    }
+  }
+}
+
+void DialogTransformVolume::RespondScrollTranslate( int n )
+{
+  if ( isVisible() )
+  {
+    LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+    if ( layer )
+    {
+      double pos[3];
+      layer->GetTranslate( pos );
+      int range = m_scrollTranslate[n]->maximum();
+      int npos = m_scrollTranslate[n]->value();
+      double* vs = layer->GetWorldVoxelSize();
+      pos[n] = ( npos - range/2 ) * vs[n];
+      layer->Translate( pos );
+      MainWindow::GetMainWindow()->RequestRedraw();
+      ChangeLineEditNumber(m_textTranslate[n], pos[n] );
+      UpdateUI( 1 );
+    }
+  }
+}
+
+
+void DialogTransformVolume::OnLineEditScaleX(const QString& text)
+{
+  RespondTextScale( 0 );
+}
+
+void DialogTransformVolume::OnLineEditScaleY(const QString& text)
+{
+  RespondTextScale( 1 );
+}
+
+void DialogTransformVolume::OnLineEditScaleZ(const QString& text)
+{
+  RespondTextScale( 2 );
+}
+
+void DialogTransformVolume::OnScrollBarScaleX(int nVal)
+{
+  RespondScrollScale( 0 );
+}
+
+void DialogTransformVolume::OnScrollBarScaleY(int nVal)
+{
+  RespondScrollScale( 1 );
+}
+
+void DialogTransformVolume::OnScrollBarScaleZ(int nVal)
+{
+  RespondScrollScale( 2 );
+}
+
+void DialogTransformVolume::RespondTextScale( int n )
+{
+  if ( isVisible() )
+  {
+      bool bOK;
+    double dvalue = m_textScale[n]->text().toDouble(&bOK);
+    if ( bOK && dvalue > 0 )
+    {
+      LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+      if ( layer )
+      {
+        double scale[3];
+        layer->GetScale( scale );
+        scale[n] = dvalue;
+        layer->Scale( scale );
+        MainWindow::GetMainWindow()->RequestRedraw();
+
+        m_scrollScale[n]->blockSignals(true);
+        if ( dvalue >= 1 )
+          m_scrollScale[n]->setValue( 50 + (int)( (dvalue-1.0)*50 ) );
+        else
+          m_scrollScale[n]->setValue( 50 - (int)( (1.0-dvalue)*100 ) );
+        m_scrollScale[n]->blockSignals(false);
+        UpdateUI( 0 );
+      }
+    }
+  }
+}
+
+void DialogTransformVolume::RespondScrollScale( int n )
+{
+  LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( layer )
+  {
+    double scale[3];
+    layer->GetScale( scale );
+    int npos = m_scrollScale[n]->value();
+    if ( npos >= 50 )
+      scale[n] = ( npos - 50 ) / 50.0 + 1.0;
+    else
+      scale[n] = ( npos - 50 ) / 100.0 + 1.0;
+    layer->Scale( scale );
+    MainWindow::GetMainWindow()->RequestRedraw();
+
+    ChangeLineEditNumber( m_textScale[n], scale[n] );
+    UpdateUI( 0 );
   }
 }

@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.8 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:46 $
+ *    $Revision: 1.9 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -27,14 +29,16 @@
 
 #include "RenderView.h"
 #include "vtkSmartPointer.h"
-#include <wx/colour.h>
+#include <QColor>
+#include <QObject>
 
 class vtkRenderer;
 class vtkActor;
 class RenderView3D;
 
-class Cursor3D
+class Cursor3D : public QObject
 {
+    Q_OBJECT
 public:
   Cursor3D( RenderView3D* view );
   virtual ~Cursor3D();
@@ -47,8 +51,7 @@ public:
   void GetColor( double* rgb );
   void SetColor( double r, double g, double b );
 
-  wxColour GetColor();
-  void SetColor( const wxColour& color );
+  QColor GetColor();
 
   void Update();
 
@@ -57,6 +60,12 @@ public:
   void Show( bool bShow = true );
 
   bool IsShown();
+
+public slots:
+  void SetColor( const QColor& color );
+
+Q_SIGNALS:
+  void Updated();
 
 private:
   void RebuildActor();

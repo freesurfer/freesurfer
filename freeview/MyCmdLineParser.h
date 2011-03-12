@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.8 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:52 $
+ *    $Revision: 1.9 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -27,6 +29,7 @@
 
 #include <string>
 #include <vector>
+#include <QStringList>
 
 using namespace std;
 
@@ -89,12 +92,15 @@ public:
   void SetProgramDescription( string text );
 
   bool Parse( int argc, char* argv[] );
+  bool Parse( const string_array& args );
+  bool Parse( const QString& cmd);
 
   bool Found( const char* ch );
 //  bool Found( const char* ch, string* strg);
 //  bool Found( const char* ch, int* value );
 //  bool Found( const char* ch, double* value );
   bool Found( const char* ch, string_array* sa, int nIndex = -1  ); // -1 means last one
+  bool Found( const QString flag, QStringList* sa, int nIndex = -1 );
   
   int GetNumberOfRepeats( const char* ch );
 

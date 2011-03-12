@@ -1,50 +1,22 @@
-/**
- * @file  WindowQuickReference.h
- * @brief Main window.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:37 $
- *    $Revision: 1.6 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
+#ifndef WINDOWQUICKREFERENCE_H
+#define WINDOWQUICKREFERENCE_H
 
-#ifndef WindowQuickReference_h
-#define WindowQuickReference_h
+#include <QWidget>
 
-#include <wx/frame.h>
+namespace Ui {
+    class WindowQuickReference;
+}
 
-class wxHtmlWindow;
-
-class WindowQuickReference : public wxFrame
+class WindowQuickReference : public QWidget
 {
+    Q_OBJECT
+
 public:
-  WindowQuickReference( wxWindow* parent );
-  virtual ~WindowQuickReference()
-  {}
+    explicit WindowQuickReference(QWidget *parent = 0);
+    ~WindowQuickReference();
 
-  void OnClose( wxCloseEvent& event );
-
-protected:
-  wxHtmlWindow* m_wndHtml;
-
-  // any class wishing to process wxWindows events must use this macro
-  DECLARE_EVENT_TABLE()
+private:
+    Ui::WindowQuickReference *ui;
 };
 
-#endif
-
-
+#endif // WINDOWQUICKREFERENCE_H

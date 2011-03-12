@@ -6,25 +6,26 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.13 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:49 $
+ *    $Revision: 1.14 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-#include <wx/wx.h>
 #include "LayerDTI.h"
-#include "LayerPropertiesDTI.h"
+#include "LayerPropertyDTI.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
 #include "vtkFloatArray.h"
@@ -33,15 +34,15 @@
 #include "vtkLookupTable.h"
 #include "vtkMath.h"
 
-LayerDTI::LayerDTI( LayerMRI* ref ) : LayerMRI( ref ),
+LayerDTI::LayerDTI( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
     m_vectorSource( NULL)
 {
   m_strTypeNames.push_back( "DTI" );
-  if ( mProperties )
-    delete mProperties;
+  if ( mProperty )
+    delete mProperty;
 
-  mProperties = new LayerPropertiesDTI();
-  mProperties->AddListener( this );
+  mProperty = new LayerPropertyDTI( this );
+  LayerMRI::ConnectProperty();
 
   SetEditable( false );
 }
@@ -52,9 +53,9 @@ LayerDTI::~LayerDTI()
     delete m_vectorSource;
 }
 
-bool LayerDTI::LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event )
+bool LayerDTI::LoadDTIFromFile( )
 {
-  if ( !LayerMRI::LoadVolumeFromFile( wnd, event ) )
+  if ( !LayerMRI::LoadVolumeFromFile() )
     return false;
 
   if ( m_vectorSource )
@@ -62,30 +63,23 @@ bool LayerDTI::LoadDTIFromFile( wxWindow* wnd, wxCommandEvent& event )
 
   m_vectorSource = new FSVolume( m_volumeRef );
   m_vectorSource->SetResampleToRAS( m_bResampleToRAS );
-  event.SetInt( 25 );
 
-  if ( !m_vectorSource->MRIRead(  m_sVectorFileName.c_str(),
-                                  m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL,
-                                  wnd,
-                                  event ) )
+  if ( !m_vectorSource->MRIRead(  m_sVectorFileName,
+                                  m_sRegFilename.isEmpty() ? NULL : m_sRegFilename ) )
     return false;
 
   if ( m_vectorSource->GetNumberOfFrames() < 3 )
   {
-    SetErrorString( "Vector data file is not valid." );
-    return false;
+      std::cerr << "Vector data file is not valid.";
+      return false;
   }
 
-  event.SetInt( 50 );
-  InitializeDTIColorMap( wnd, event );
-
-  event.SetInt( 100 );
-  wxPostEvent( wnd, event );
+  InitializeDTIColorMap();
 
   return true;
 }
 
-void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
+void LayerDTI::InitializeDTIColorMap()
 {
   vtkImageData* rasDTI = m_vectorSource->GetImageOutput();
   int* dim = rasDTI->GetDimensions();
@@ -97,7 +91,6 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
   fas->DeepCopy( m_imageData->GetPointData()->GetScalars() );
   m_imageData->SetNumberOfScalarComponents( 2 );
   m_imageData->AllocateScalars();
-  int nProgressStep = ( 99-event.GetInt() ) / 5;
   vtkMatrix4x4* rotation_mat = vtkMatrix4x4::New();
   rotation_mat->Identity();
   MATRIX* reg = m_vectorSource->GetRegMatrix();
@@ -129,11 +122,13 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
     int z = i/(dim[0]*dim[1]);
     m_imageData->SetScalarComponentFromFloat( x, y, z, 0, fa );
     m_imageData->SetScalarComponentFromFloat( x, y, z, 1, scalar );
+    /*
     if ( wnd && nSize >= 5 && i%(nSize/5) == 0 )
     {
       event.SetInt( event.GetInt() + nProgressStep );
       wxPostEvent( wnd, event );
     }
+    */
   }
   rotation_mat->Delete();
   fas->Delete();
@@ -141,11 +136,11 @@ void LayerDTI::InitializeDTIColorMap( wxWindow* wnd, wxCommandEvent& event )
 
 void LayerDTI::UpdateColorMap()
 {
-  if ( GetProperties()->GetColorMap() == LayerPropertiesMRI::DirectionCoded )
+  if ( GetProperty()->GetColorMap() == LayerPropertyMRI::DirectionCoded )
   {
     for ( int i = 0; i < 3; i++ )
     {
-      mColorMap[i]->SetLookupTable( GetProperties()->GetDirectionCodedTable() );
+      mColorMap[i]->SetLookupTable( GetProperty()->GetDirectionCodedTable() );
       mColorMap[i]->SetActiveComponent( 1 );
     }
   }
@@ -182,15 +177,15 @@ bool LayerDTI::GetVectorValue( double* pos, double* v_out )
   }
 }
 
-bool LayerDTI::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+bool LayerDTI::DoRotate( std::vector<RotationElement>& rotations )
 {
   m_bResampleToRAS = false;
   m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
   m_vectorSource->SetResampleToRAS( m_bResampleToRAS );
 
-  bool ret = LayerMRI::DoRotate( rotations, wnd, event ) && m_vectorSource->Rotate( rotations, wnd, event );
+  bool ret = LayerMRI::DoRotate( rotations ) && m_vectorSource->Rotate( rotations );
 
-  InitializeDTIColorMap( wnd, event );
+  InitializeDTIColorMap();
   return ret;
 }
 
@@ -199,8 +194,7 @@ void LayerDTI::DoRestore()
   std::vector<RotationElement> rotations;
   
   LayerMRI::DoRestore();
-  wxCommandEvent e;
-  m_vectorSource->Rotate( rotations, NULL, e );
+  m_vectorSource->Rotate( rotations );
 }
 
 void LayerDTI::UpdateVectorActor( int nPlane )

@@ -10,65 +10,64 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.7 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:53 $
+ *    $Revision: 1.8 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2007-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 
-#include <assert.h>
 #include "SurfaceOverlay.h"
 #include "vtkLookupTable.h"
 #include "vtkRGBAColorTransferFunction.h"
 #include "vtkMath.h"
 #include "LayerSurface.h"
-#include "SurfaceOverlayProperties.h"
+#include "SurfaceOverlayProperty.h"
 #include "FSSurface.h"
-#include <wx/filename.h>
-
+#include <QDebug>
 
 SurfaceOverlay::SurfaceOverlay ( LayerSurface* surf ) :
-    Broadcaster( "SurfaceOverlay" ),
-    Listener( "SurfaceOverlay" ),
+    QObject(),
     m_fData( NULL ),
+    m_dMaxValue(0),
+    m_dMinValue(0),
     m_surface( surf ),
     m_bCorrelationData( false ),
-    m_mriCorrelation( NULL )
+    m_mriCorrelation(0),
+    m_overlayPaired(0)
 {
   InitializeData();  
   
-  m_properties =  new SurfaceOverlayProperties( this );
-  m_properties->AddListener( this );
+  m_property =  new SurfaceOverlayProperty( this );
+  connect( m_property, SIGNAL(ColorMapChanged()), surf, SLOT(UpdateOverlay()), Qt::UniqueConnection);
 }
 
 SurfaceOverlay::~SurfaceOverlay ()
 {
   if ( m_fData )
     delete[] m_fData;
-  
-  delete m_properties;
-  if ( m_mriCorrelation )
-  {
-    MRIfree( &m_mriCorrelation );
-  }
-}
 
-void SurfaceOverlay::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
-{
-  if ( iMessage == "ColorMapChanged" )
+  if (m_overlayPaired)
   {
-    this->SendBroadcast( "OverlayChanged", this );
+      m_overlayPaired->m_overlayPaired = 0;
+  }
+  else
+  {
+    delete m_property;
+    if (m_mriCorrelation)
+        MRIfree(&m_mriCorrelation);
   }
 }
 
@@ -96,25 +95,39 @@ void SurfaceOverlay::InitializeData()
   }
 }
 
-bool SurfaceOverlay::LoadCorrelationData( const char* filename )
+void SurfaceOverlay::CopyCorrelationData(SurfaceOverlay *overlay)
 {
-  MRI* mri = ::MRIreadHeader( filename, -1 ); 
+    if (!overlay->HasCorrelationData())
+        return;
+    delete m_property;
+    m_property = overlay->m_property;
+    connect( m_property, SIGNAL(ColorMapChanged()), m_surface, SLOT(UpdateOverlay()), Qt::UniqueConnection);
+    m_mriCorrelation = overlay->m_mriCorrelation;
+    m_overlayPaired = overlay;
+    overlay->m_overlayPaired = this;
+    m_bCorrelationData = true;
+}
+
+bool SurfaceOverlay::LoadCorrelationData( const QString& filename )
+{
+  MRI* mri = ::MRIreadHeader( filename.toAscii().data(), -1 );
   if ( mri == NULL )
   {
-    cerr << "MRIread failed" << endl;
+    cerr << "MRIread failed: unable to read from " << qPrintable(filename) << "\n";
     return false;
   }
-  if ( mri->width != m_nDataSize*2 || mri->height != m_nDataSize*2 )
+  if ( mri->width != m_nDataSize*2 || (mri->height != 1 && mri->height != m_nDataSize*2) ||
+       (mri->nframes != 1 && mri->nframes != m_nDataSize*2))
   {
-    cerr << "Correlation data does not match with surface" << endl;
+    cerr << "Correlation data does not match with surface\n";
     MRIfree( &mri );
     return false;
   }
   MRIfree( &mri );
-  mri = ::MRIread( filename );      // long process
+  mri = ::MRIread( filename.toAscii().data() );      // long process
   if ( mri == NULL )
   {
-    cerr << "MRIread failed" << endl;
+    cerr << "MRIread failed: Unable to read from " << qPrintable(filename) << "\n";
     return false;
   }
   m_mriCorrelation = mri;
@@ -124,27 +137,51 @@ bool SurfaceOverlay::LoadCorrelationData( const char* filename )
   return true;
 }
 
-void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex )
+void SurfaceOverlay::UpdateCorrelationAtVertex( int nVertex, int nHemisphere )
 {
-  int nOffset = m_surface->GetHemisphere() * m_nDataSize;
-  m_dMaxValue = m_dMinValue = MRIFseq_vox( m_mriCorrelation, nOffset, nVertex + nOffset, 0, 0 );
+  if ( nHemisphere == -1)
+      nHemisphere = m_surface->GetHemisphere();
+  int nVertexOffset = nHemisphere * m_nDataSize;
+  int nDataOffset = m_surface->GetHemisphere() * m_nDataSize;
+  double old_range = m_dMaxValue - m_dMinValue;
+  if (m_mriCorrelation->height > 1)
+    m_dMaxValue = m_dMinValue =
+                  MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, nDataOffset, 0, 0 );
+  else
+    m_dMaxValue = m_dMinValue =
+                    MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, 0, 0, nDataOffset );
   for ( int i = 0; i < m_nDataSize; i++ )
   {
-    m_fData[i] = MRIFseq_vox( m_mriCorrelation, i + nOffset, nVertex + nOffset, 0, 0 );
+    if (m_mriCorrelation->height > 1)
+        m_fData[i] = MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, i + nDataOffset, 0, 0 );
+    else
+        m_fData[i] = MRIFseq_vox( m_mriCorrelation, nVertex + nVertexOffset, 0, 0, i + nDataOffset );
     if ( m_dMaxValue < m_fData[i] )
       m_dMaxValue = m_fData[i];
     else if ( m_dMinValue > m_fData[i] )
       m_dMinValue = m_fData[i];
   }
   m_bCorrelationDataReady = true;
+  if (old_range <= 0)
+      m_property->Reset();
+
+  if (m_overlayPaired && nHemisphere == m_surface->GetHemisphere())
+  {
+      m_overlayPaired->blockSignals(true);
+      m_overlayPaired->UpdateCorrelationAtVertex(nVertex, nHemisphere);
+      m_overlayPaired->blockSignals(false);
+  }
+
+  m_surface->UpdateOverlay(true);
+  emit DataUpdated();
 }
 
-const char* SurfaceOverlay::GetName()
+QString SurfaceOverlay::GetName()
 {
-  return m_strName.c_str();
+  return m_strName;
 }
 
-void SurfaceOverlay::SetName( const char* name )
+void SurfaceOverlay::SetName( const QString& name )
 {
   m_strName = name;
 }
@@ -152,7 +189,7 @@ void SurfaceOverlay::SetName( const char* name )
 void SurfaceOverlay::MapOverlay( unsigned char* colordata )
 {
   if ( !m_bCorrelationData || m_bCorrelationDataReady )
-    m_properties->MapOverlayColor( colordata, m_nDataSize );
+    m_property->MapOverlayColor( m_fData, colordata, m_nDataSize );
 }
 
 double SurfaceOverlay::GetDataAtVertex( int nVertex )

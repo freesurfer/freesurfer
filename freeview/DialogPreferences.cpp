@@ -1,115 +1,97 @@
-/**
- * @file  DialogPreferences.h
- * @brief Preferences dialog.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.13 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
-
-
 #include "DialogPreferences.h"
+#include "ui_DialogPreferences.h"
 #include "MainWindow.h"
-#include <wx/wx.h>
-#include <wx/clrpicker.h>
-#include <wx/xrc/xmlres.h>
-#include <wx/spinctrl.h>
-#include "stdlib.h"
-#include "stdio.h"
+#include "RenderView2D.h"
+#include "RenderView3D.h"
+#include "Cursor2D.h"
+#include "Cursor3D.h"
+#include "TermWidget.h"
 
-BEGIN_EVENT_TABLE( DialogPreferences, wxDialog )
-EVT_BUTTON     ( wxID_OK,         DialogPreferences::OnOK )
-END_EVENT_TABLE()
-
-
-DialogPreferences::DialogPreferences( wxWindow* parent )
+DialogPreferences::DialogPreferences(QWidget *parent) :
+    QDialog(parent),
+    UIUpdateHelper(),
+    ui(new Ui::DialogPreferences)
 {
-  wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_PREFERENCES") );
-  m_colorPickerBackground   = XRCCTRL( *this, "ID_COLORPICKER_BACKGROUND", wxColourPickerCtrl );
-  m_colorPickerBackground->SetFocus();
-  m_colorPickerCursor       = XRCCTRL( *this, "ID_COLORPICKER_CURSOR", wxColourPickerCtrl );
-  m_choiceCursorStyle       = XRCCTRL( *this, "ID_CHOICE_CURSOR_STYLE", wxChoice );
-  m_checkSaveCopy           = XRCCTRL( *this, "ID_CHECK_SAVE_COPY", wxCheckBox );
-  m_checkSyncZoomFactor     = XRCCTRL( *this, "ID_CHECK_SYNC_ZOOM", wxCheckBox );
+    ui->setupUi(this);
+    ui->buttonBox->button(QDialogButtonBox::Close)->setDefault(true);
+    MainWindow* mainwnd = MainWindow::GetMainWindow();
+    for (int i = 0; i < 4; i++)
+    {
+        connect(ui->colorPickerBackground, SIGNAL(colorChanged(QColor)),
+                mainwnd->GetRenderView(i), SLOT(SetBackgroundColor(QColor)));
+    }
+    for (int i = 0; i < 3; i++)
+    {
+        connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
+                ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetColor(QColor)));
+        connect(ui->comboBoxCursorStyle, SIGNAL(currentIndexChanged(int)),
+                ((RenderView2D*)mainwnd->GetRenderView(i))->GetCursor2D(), SLOT(SetStyle(int)));
+    }
+    connect(ui->colorPickerCursor, SIGNAL(colorChanged(QColor)),
+            ((RenderView3D*)mainwnd->GetRenderView(3))->GetCursor3D(), SLOT(SetColor(QColor)));
+    connect(ui->checkBoxSyncZoom, SIGNAL(toggled(bool)),
+            mainwnd, SLOT(SyncZoom(bool)));
+    connect(ui->radioButtonThemeDark, SIGNAL(toggled(bool)),
+            mainwnd->GetCommandConsole(), SLOT(SetDarkTheme(bool)));
 
-  m_checkHideCursor   = XRCCTRL( *this, "ID_CHECK_HIDE_CURSOR", wxCheckBox );
-  m_checkHideCoords   = XRCCTRL( *this, "ID_CHECK_HIDE_COORDS", wxCheckBox );
-  m_checkAntiAliasing = XRCCTRL( *this, "ID_CHECK_ANTIALIASING", wxCheckBox );  
-  m_spinMagnification = XRCCTRL( *this, "ID_SPIN_MAGNIFICATION", wxSpinCtrl );
+#ifdef Q_WS_MAC
+    ui->groupBoxMac->setEnabled(true);
+    ui->groupBoxMac->show();
+    connect(ui->checkBoxMacUnified, SIGNAL(toggled(bool)), mainwnd, SLOT(SetUnifiedTitleAndToolBar(bool)));
+    connect(ui->checkBoxCommandKey, SIGNAL(toggled(bool)), mainwnd, SLOT(SetUseCommandControl(bool)));
+#else
+    ui->groupBoxMac->setEnabled(false);
+    ui->groupBoxMac->hide();
+#endif
 }
 
 DialogPreferences::~DialogPreferences()
-{}
-
-void DialogPreferences::OnOK( wxCommandEvent& event )
 {
-  event.Skip();
+    delete ui;
 }
 
-void DialogPreferences::SetGeneralSettings( const SettingsGeneral& s )
+void DialogPreferences::SetSettings(const QVariantMap &map)
 {
-  m_colorPickerBackground->SetColour( s.BackgroundColor );
-  m_colorPickerCursor->SetColour( s.CursorColor );
-  m_choiceCursorStyle->SetSelection( s.CursorStyle );
-  m_checkSaveCopy->SetValue( s.SaveCopy );
+    BlockAllSignals(this, true);
+    ui->colorPickerBackground->setCurrentColor(map["BackgroundColor"].value<QColor>());
+    ui->colorPickerCursor->setCurrentColor(map["CursorColor"].value<QColor>());
+    ui->comboBoxCursorStyle->setCurrentIndex(map["CursorStyle"].toInt());
+    ui->checkBoxSaveCopy->setChecked(map["SaveCopy"].toBool());
+    ui->checkBoxSyncZoom->setChecked(map["SyncZoom"].toBool());
+    ui->checkBoxCommandKey->setChecked(map["MacUseCommand"].toBool());
+    ui->checkBoxMacUnified->setChecked(map["MacUnifiedTitleBar"].toBool());
+    ui->radioButtonThemeDark->setChecked(map["DarkConsole"].toBool());
+    ui->radioButtonThemeLight->setChecked(!map["DarkConsole"].toBool());
+    BlockAllSignals(this, false);
 }
 
-SettingsGeneral DialogPreferences::GetGeneralSettings()
+QVariantMap DialogPreferences::GetSettings()
 {
-  SettingsGeneral s;
-  s.BackgroundColor = m_colorPickerBackground->GetColour();
-  s.CursorColor = m_colorPickerCursor->GetColour();
-  s.CursorStyle = m_choiceCursorStyle->GetSelection();
-  s.SaveCopy    = m_checkSaveCopy->GetValue();
-
-  return s;
+    QVariantMap map;
+    map["BackgroundColor"] = ui->colorPickerBackground->currentColor();
+    map["CursorColor"] = ui->colorPickerCursor->currentColor();
+    map["CursorStyle"] = ui->comboBoxCursorStyle->currentIndex();
+    map["SaveCopy"] = ui->checkBoxSaveCopy->isChecked();
+    map["SyncZoom"] = ui->checkBoxSyncZoom->isChecked();
+    map["MacUseCommand"] = ui->checkBoxCommandKey->isChecked();
+    map["MacUnifiedTitleBar"] = ui->checkBoxMacUnified->isChecked();
+    map["DarkConsole"] = ui->radioButtonThemeDark->isChecked();
+    return map;
 }
 
-
-void DialogPreferences::Set2DSettings( const Settings2D& s )
+void DialogPreferences::OnClicked(QAbstractButton* btn)
 {
-  m_checkSyncZoomFactor->SetValue( s.SyncZoomFactor );
-}
-
-Settings2D DialogPreferences::Get2DSettings()
-{
-  Settings2D s;
-  s.SyncZoomFactor = m_checkSyncZoomFactor->IsChecked();
-
-  return s;
-}
-
-void DialogPreferences::SetScreenshotSettings( const SettingsScreenshot& s )
-{
-  m_spinMagnification ->SetValue( s.Magnification );
-  m_checkHideCursor   ->SetValue( s.HideCursor );
-  m_checkHideCoords   ->SetValue( s.HideCoords );
-  m_checkAntiAliasing ->SetValue( s.AntiAliasing );
-}
-
-SettingsScreenshot DialogPreferences::GetScreenshotSettings()
-{
-  SettingsScreenshot s;
-  s.HideCursor = m_checkHideCursor->IsChecked();
-  s.HideCoords = m_checkHideCoords->IsChecked();
-  s.Magnification = m_spinMagnification->GetValue();
-  s.AntiAliasing = m_checkAntiAliasing->IsChecked();
-
-  return s;
+    if (ui->buttonBox->buttonRole(btn) == QDialogButtonBox::ResetRole)
+    {
+        ui->colorPickerBackground->setCurrentColor(Qt::black);
+        ui->colorPickerCursor->setCurrentColor(Qt::red);
+        ui->comboBoxCursorStyle->setCurrentIndex(0);
+        ui->checkBoxSaveCopy->setChecked(true);
+        ui->checkBoxSyncZoom->setChecked(true);
+        ui->radioButtonThemeDark->setChecked(true);
+#ifdef Q_WS_MAC
+        ui->checkBoxCommandKey->setChecked(false);
+        ui->checkBoxMacUnified->setChecked(false);
+#endif
+    }
 }

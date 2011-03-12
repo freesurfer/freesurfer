@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.3 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:54 $
+ *    $Revision: 1.4 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -27,9 +29,8 @@
 #include "LayerMRI.h"
 #include <vtkImageData.h>
 
-VolumeFilter::VolumeFilter( LayerMRI* input, LayerMRI* output ) : 
-    Listener( "VolumeFilter" ), 
-    Broadcaster( "VolumeFilter" ),
+VolumeFilter::VolumeFilter( LayerMRI* input, LayerMRI* output, QObject* parent ) :
+    QObject( parent ),
     m_nKernelSize( 3 )
 {
   SetInputOutputVolumes( input, output );
@@ -44,20 +45,23 @@ void VolumeFilter::SetInputOutputVolumes( LayerMRI* input, LayerMRI* output )
   m_volumeInput = input;
   m_volumeOutput = output;
   if ( m_volumeInput )
-    m_volumeInput->AddListener( this );
+  {
+      connect(m_volumeInput, SIGNAL(destroyed()),
+              this, SLOT(OnLayerObjectDeleted()), Qt::UniqueConnection);
+  }
   if ( m_volumeOutput )
-    m_volumeOutput->AddListener( this );
+  {
+    connect(m_volumeOutput, SIGNAL(destroyed()),
+            this, SLOT(OnLayerObjectDeleted()), Qt::UniqueConnection);
+  }
 }
 
-void VolumeFilter::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
+void VolumeFilter::OnLayerObjectDeleted()
 {
-  if ( iMessage == "LayerObjectDeleted" )
-  {
-    if ( sender == m_volumeInput || iData == m_volumeInput )
+   if ( sender() == m_volumeInput )
       m_volumeInput = NULL;
-    else if ( sender == m_volumeOutput || iData == m_volumeOutput )
+    else if ( sender() == m_volumeOutput)
       m_volumeOutput = NULL;
-  }
 }
 
 bool VolumeFilter::ReadyToUpdate()
@@ -69,14 +73,17 @@ bool VolumeFilter::Update()
 {
   if ( !ReadyToUpdate() )
   {
-    cerr << "Volume has been removed. Please start over." << endl;
+    cerr << "Volume has been removed. Please start over.\n";
     return false;
   }
   
+  if (m_volumeInput == m_volumeOutput)
+      m_volumeInput->SaveForUndo(-1);
+
   if ( Execute() )
   {
     m_volumeOutput->SetModified();
-    m_volumeOutput->SendBroadcast( "LayerActorUpdated", m_volumeOutput );
+    m_volumeOutput->SendActorUpdated();
     return true;
   }
   else
@@ -115,7 +122,7 @@ MRI* VolumeFilter::CreateMRIFromVolume( LayerMRI* layer )
   MRI* mri = MRIallocSequence( dim[0], dim[1], dim[2], mri_type, zFrames );
   if ( !mri )
   {
-    cerr << "Can not allocate memory for MRI" << endl;
+    cerr << "Can not allocate memory for MRI.\n";
     return NULL;
   }
   

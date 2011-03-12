@@ -1,470 +1,367 @@
-# The logic is divided into 2 parts based on whether we are building for 
-# OSX or not. The VTK for OSX doesn't compile when Carbon is enabled and 
-# TCL is enabled. However, a TCL enabled VTK is essential for FreeSurfer
-# suite. Hence Freeview uses a special static build of VTK which has 
-# Carbon=ON, TCL=OFF, Static=ON. So depending on whether the platform is 
-# OSX or not, we use different versions of the VTK. 
+include $(top_srcdir)/build-aux/autotroll.mk
 
-if ENABLE_WXWIDGETS_APPS
 bin_PROGRAMS = freeview
-freeview_SOURCES=\
-	Annotation2D.cpp \
-	Annotation2D.h \
-	BuildContourThread.cpp \
-	BuildContourThread.h \
-	Broadcaster.cpp \
-	Broadcaster.h \
-	BrushProperty.cpp \
-	BrushProperty.h \
-	CommonDataStruct.h \
-	ConnectivityData.cpp \
-	ConnectivityData.h \
-	ControlPanel.cpp \
-	ControlPanel.h \
-	Contour2D.cpp \
-	Contour2D.h \
-	Cursor2D.cpp \
-	Cursor2D.h \
-	Cursor3D.cpp \
-	Cursor3D.h \
-	CursorFactory.cpp \
-	CursorFactory.h \
-	DialogCropVolume.cpp \
-	DialogCropVolume.h \
-	DialogEditLookupTable.cpp \
-	DialogEditLookupTable.h \
-	DialogGradientVolume.cpp \
-	DialogGradientVolume.h \
-	DialogLoadDTI.cpp \
-	DialogLoadDTI.h \
-	DialogLoadROI.cpp \
-	DialogLoadROI.h \
-	DialogLoadPointSet.cpp \
-	DialogLoadPointSet.h \
-	DialogLoadPVolumes.cpp \
-	DialogLoadPVolumes.h \
-	DialogLoadVolume.cpp \
-	DialogLoadVolume.h \
-	DialogNewROI.cpp \
-	DialogNewROI.h \
-	DialogNewVolume.cpp \
-	DialogNewVolume.h \
-	DialogNewWayPoints.cpp \
-	DialogNewWayPoints.h \
-	DialogOptimalVolume.cpp \
-	DialogOptimalVolume.h \
-	DialogPreferences.cpp \
-	DialogPreferences.h \
-	DialogRepositionSurface.cpp \
-	DialogRepositionSurface.h \
-	DialogSavePoint.cpp \
-	DialogSavePoint.h \
-	DialogSavePointSetAs.cpp \
-	DialogSavePointSetAs.h \
-	DialogSaveScreenshot.cpp \
-	DialogSaveScreenshot.h \
-	DialogSaveVolumeAs.cpp \
-	DialogSaveVolumeAs.h \
-	DialogTransformVolume.cpp \
-	DialogTransformVolume.h \
-	DialogVolumeFilter.cpp \
-	DialogVolumeFilter.h \
-	DialogWriteMovieFrames.cpp \
-	DialogWriteMovieFrames.h \
-	FSLabel.cpp \
-	FSLabel.h \
-	FSSurface.cpp \
-	FSSurface.h \
-	FSVolume.cpp \
-	FSVolume.h \
-	FSWayPoints.cpp \
-	FSWayPoints.h \
-	Interactor.cpp \
-	Interactor.h \
-	Interactor2D.cpp \
-	Interactor2D.h \
-	Interactor2DCropVolume.cpp \
-	Interactor2DCropVolume.h \
-	Interactor2DNavigate.cpp \
-	Interactor2DNavigate.h \
-	Interactor2DMeasure.cpp \
-	Interactor2DMeasure.h \
-	Interactor2DRegionEdit.cpp \
-	Interactor2DRegionEdit.h \
-	Interactor2DROIEdit.cpp \
-	Interactor2DROIEdit.h \
-	Interactor2DVolumeEdit.cpp \
-	Interactor2DVolumeEdit.h \
-	Interactor2DVoxelEdit.cpp \
-	Interactor2DVoxelEdit.h \
-	Interactor2DWayPointsEdit.cpp \
-	Interactor2DWayPointsEdit.h \
-	Interactor3D.cpp \
-	Interactor3D.h \
-	Interactor3DCropVolume.cpp \
-	Interactor3DCropVolume.h \
-	Interactor3DMeasure.cpp \
-	Interactor3DMeasure.h \
-	Interactor3DNavigate.cpp \
-	Interactor3DNavigate.h \
-	LayerCollection.cpp \
-	LayerCollection.h \
-	LayerCollectionManager.cpp \
-	LayerCollectionManager.h \
-	Layer.cpp \
-	Layer.h \
-	LayerDTI.cpp \
-	LayerDTI.h \
-	LayerEditable.cpp \
-	LayerEditable.h \
-	LayerMRI.cpp \
-	LayerMRI.h \
-	LayerOptimal.cpp \
-	LayerOptimal.h \
-	LayerPLabel.cpp \
-	LayerPLabel.h \
-	LayerProperties.cpp \
-	LayerProperties.h \
-	LayerPropertiesDTI.cpp \
-	LayerPropertiesDTI.h \
-	LayerPropertiesMRI.cpp \
-	LayerPropertiesMRI.h \
-	LayerPropertiesROI.cpp \
-	LayerPropertiesROI.h \
-	LayerPropertiesSurface.cpp \
-	LayerPropertiesSurface.h \
-	LayerPropertiesWayPoints.cpp \
-	LayerPropertiesWayPoints.h \
-	LayerROI.cpp \
-	LayerROI.h \
-	LayerSurface.cpp \
-	LayerSurface.h \
-	LayerVolumeBase.cpp \
-	LayerVolumeBase.h \
-	LayerWayPoints.cpp \
-	LayerWayPoints.h \
-	Listener.cpp \
-	Listener.h \
-	LivewireTool.cpp \
-	LivewireTool.h \
-	LUTDataHolder.cpp \
-	LUTDataHolder.h \
-	MainApp.cpp \
-	MainApp.h \
-	MainWindow.cpp \
-	MainWindow.h \
-	MyUtils.cpp \
-	MyUtils.h \
-	MyCmdLineParser.cpp \
-	MyCmdLineParser.h \
-	PanelROI.cpp \
-	PanelROI.h \
-	PanelSceneSetting.cpp \
-	PanelSceneSetting.h \
-	PanelSurface.cpp \
-	PanelSurface.h \
-	PanelVolume.cpp \
-	PanelVolume.h \
-	PanelWayPoints.cpp \
-	PanelWayPoints.h \
-	PixelInfoPanel.cpp \
-	PixelInfoPanel.h \
-	Region2D.cpp \
-	Region2D.h \
-	Region2DLine.cpp \
-	Region2DLine.h \
-	Region2DPolyline.cpp \
-	Region2DPolyline.h \
-	Region2DRectangle.cpp \
-	Region2DRectangle.h \
-	RenderView2D.cpp \
-	RenderView2D.h \
-	RenderView3D.cpp \
-	RenderView3D.h \
-	RenderView.cpp \
-	RenderView.h \
-	StatusBar.cpp \
-	StatusBar.h \
-	string_fixed.h \
-	SurfaceAnnotation.h \
-	SurfaceAnnotation.cpp \
-	SurfaceLabel.h \
-	SurfaceLabel.cpp \
-	SurfaceOverlay.cpp \
-	SurfaceOverlay.h \
-	SurfaceOverlayProperties.cpp \
-	SurfaceOverlayProperties.h \
-	SurfaceRegion.cpp \
-	SurfaceRegion.h \
-	SurfaceRegionGroups.cpp \
-	SurfaceRegionGroups.h \
-	ToolWindowEdit.cpp \
-	ToolWindowEdit.h \
-	ToolWindowMeasure.cpp \
-	ToolWindowMeasure.h \
-	VolumeCropper.cpp \
-	VolumeCropper.h \
-	VolumeFilter.cpp \
-	VolumeFilter.h \
-	VolumeFilterConvolve.cpp \
-	VolumeFilterConvolve.h \
-	VolumeFilterGradient.cpp \
-	VolumeFilterGradient.h \
-	VolumeFilterMean.cpp \
-	VolumeFilterMean.h \
-	VolumeFilterMedian.cpp \
-	VolumeFilterMedian.h \
-	vtkSimpleLabelEdgeFilter.cpp \
-	vtkSimpleLabelEdgeFilter.h \
-	WindowConnectivityConfiguration.cpp \
-	WindowConnectivityConfiguration.h \
-	WindowHistogram.cpp \
-	WindowHistogram.h \
-	WindowQuickReference.cpp \
-	WindowQuickReference.h \
-	WindowOverlayConfiguration.cpp \
-	WindowOverlayConfiguration.h \
-	WorkerThread.cpp \
-	WorkerThread.h \
-	wxColorIndicator.cpp \
-	wxColorIndicator.h \
-	wxColorIndicatorXmlHandler.cpp \
-	wxColorIndicatorXmlHandler.h \
-	wxHistogramWidget.cpp \
-	wxHistogramWidget.h \
-	wxHistogramWidgetXmlHandler.cpp \
-	wxHistogramWidgetXmlHandler.h \
-	wxVTKRenderWindowInteractor.cpp \
-	wxVTKRenderWindowInteractor.h \
-	res/resource.cpp \
-	res/resource.h \
-	res/QuickRef.h
 
-RESOURCES=\
-	res/DialogLoadDTI.xrc \
-	res/DialogVolumeFilter.xrc \
-	res/CursorFill_png.h \
-	res/CursorAdd_png.h \
-	res/DialogNewVolume.xrc \
-	res/DialogPreferences.xrc \
-	res/DialogLoadROI.xrc \
-	res/DialogRepositionSurface.xrc \
-	res/DialogSavePoint.xrc \
-	res/PanelSurface.xrc \
-	res/CursorZoom_png.h \
-	res/QuickRef.html \
-	res/QuickRef.h \
-	res/DialogOptimalVolume.xrc \
-	res/DialogSavePointSetAs.xrc \
-	res/DialogEditLookupTable.xrc \
-	res/ToolWindowMeasure.xrc \
-	res/ToolWindowEdit.xrc \
-	res/PanelVolume.xrc \
-	res/FreeSurferColorLUT.h \
-	res/DialogTransformVolume.xrc \
-	res/CursorMeasure_png.h \
-	res/resource.cpp \
-	res/DialogLoadConnectivityData.xrc \
-	res/CursorPolyline_png.h \
-	res/DialogSaveVolumeAs.xrc \
-	res/CursorMeasurePolyline_png.h \
-	res/DialogGradientVolume.xrc \
-	res/DialogSaveScreenshot.xrc \
-	res/CursorMeasureLine_png.h \
-	res/CursorPan_png.h \
-	res/DialogNewROI.xrc \
-	res/res2c.sh \
-	res/DialogLoadPVolumes.xrc \
-	res/WindowQuickReference.xrc \
-	res/CursorColorPicker_png.h \
-	res/CursorGrab_png.h \
-	res/CursorRemove_png.h \
-	res/PanelSceneSetting.xrc \
-	res/MainWindow.xrc \
-	res/DialogWriteMovieFrames.xrc \
-	res/resource.h \
-	res/PanelROI.xrc \
-	res/DialogLoadPointSet.xrc \
-	res/CursorPencil_png.h \
-	res/DialogNewWayPoints.xrc \
-	res/images/surface_inflated.png \
-	res/images/tool_save_point.png \
-	res/images/view_histogram.png \
-	res/images/surface_main.png \
-	res/images/edit_undo.png \
-	res/images/surface_pial.png \
-	res/images/voxel_draw_freehand.png \
-	res/images/view_control_panel.png \
-	res/images/surface_load_16.png \
-	res/images/cursor_zoom.png \
-	res/images/waypoints_load.png \
-	res/images/surface_load.png \
-	res/images/cursor_fill.png \
-	res/images/view_coordinate.png \
-	res/images/view_sagittal.png \
-	res/images/cursor_measure_polyline.png \
-	res/images/voxel_draw_livewire.png \
-	res/images/move_up.png \
-	res/images/measure_line.png \
-	res/images/roi_save.png \
-	res/images/edit_paste_16.png \
-	res/images/waypoints_save.png \
-	res/images/edit_redo_16.png \
-	res/images/surface_curvature.png \
-	res/images/view_scalar_bar.png \
-	res/images/layout_1n3_h.png \
-	res/images/measure_label.png \
-	res/images/tool_goto_point.png \
-	res/images/navigate.png \
-	res/images/volume_paste_setting.png \
-	res/images/cursor_polyline.png \
-	res/images/volume_lock.png \
-	res/images/edit_copy_16.png \
-	res/images/view_3d.png \
-	res/images/surface_original.png \
-	res/images/file_open.png \
-	res/images/volume_paste_setting_all.png \
-	res/images/view_coronal.png \
-	res/images/view_coronal_old.png \
-	res/images/edit_redo.png \
-	res/images/voxel_draw_fill.png \
-	res/images/roi_load.png \
-	res/images/measure_polyline.png \
-	res/images/volume_save.png \
-	res/images/move_down.png \
-	res/images/surface_delete.png \
-	res/images/cursor_measure_rectangle.png \
-	res/images/view_3d_old.png \
-	res/images/view_axial_old.png \
-	res/images/cursor_remove.png \
-	res/images/view_axial.png \
-	res/images/volume_delete.png \
-	res/images/layout_2x2.png \
-	res/images/measure_rectangle.png \
-	res/images/layout_1n3.png \
-	res/images/edit_paste.png \
-	res/images/measure.png \
-	res/images/waypoints_new.png \
-	res/images/view_sagittal_old.png \
-	res/images/roi_draw_freehand.png \
-	res/images/voxel_edit.png \
-	res/images/cursor_colorpicker.png \
-	res/images/measure_spline.png \
-	res/images/roi_delete.png \
-	res/images/layout_1x1.png \
-	res/images/volume_new.png \
-	res/images/file_screenshot_16.png \
-	res/images/cursor_pan.png \
-	res/images/cursor_contour.png \
-	res/images/voxel_draw_colorpicker.png \
-	res/images/surface_white.png \
-	res/images/cursor_grab.png \
-	res/images/voxel_draw_contour.png \
-	res/images/cursor_measure_line.png \
-	res/images/roi_draw_polyline.png \
-	res/images/voxel_draw_polyline.png \
-	res/images/file_open_16.png \
-	res/images/volume_load.png \
-	res/images/edit_copy.png \
-	res/images/tool_rotate_volume.png \
-	res/images/file_screenshot.png \
-	res/images/measure_surface_region.png \
-	res/images/roi_new.png \
-	res/images/cursor_pencil.png \
-	res/images/volume_load_16.png \
-	res/images/roi_draw_fill.png \
-	res/images/waypoints_edit.png \
-	res/images/volume_copy_setting.png \
-	res/images/edit_undo_16.png \
-	res/images/roi_edit.png \
-	res/images/cursor_add.png \
-	res/images/waypoints_delete.png \
-	res/PanelWayPoints.xrc \
-	res/DialogLoadVolume.xrc \
-	res/CursorMeasureRectangle_png.h \
-	res/CursorContour_png.h \
-	res/WindowOverlayConfiguration.xrc \
-	res/WindowHistogram.xrc \
-	res/WindowConnectivityConfiguration.xrc \
-	res/Info.plist \
-	res/DialogCropVolume.xrc
+BUILT_SOURCES = ui_MainWindow.h \
+    ui_PanelVolume.h \
+    ui_PanelSurface.h \
+    ui_PanelROI.h \
+    ui_PanelPointSet.h \
+    ui_DialogLoadVolume.h \
+    ui_DialogPreferences.h \
+    ui_ToolWindowMeasure.h \
+    ui_ToolWindowEdit.h \
+    ui_DialogNewVolume.h \
+    ui_DialogNewROI.h \
+    ui_DialogNewPointSet.h \
+    ui_ToolWindowROIEdit.h \
+    ui_DialogLoadPointSet.h \
+    ui_DialogLoadDTI.h \
+    ui_WindowConfigureOverlay.h \
+    ui_DialogTransformVolume.h \
+    ui_DialogCropVolume.h \
+    ui_DialogSaveScreenshot.h \
+    ui_DialogVolumeFilter.h \
+    ui_DialogAbout.h \
+    ui_DialogWriteMovieFrames.h \
+    ui_DialogGradientFilter.h \
+    ui_WindowQuickReference.h \
+    ui_FloatingStatusBar.h \
+    ui_TermWidget.h \
+    ui_PanelTrack.h \
+    ui_DialogSavePointSet.h \
+    ui_DialogSaveVolume.h \
+	qtcolorpicker.moc \
+	moc_BrushProperty.cpp \
+	moc_CommandEdit.cpp \
+	moc_Contour2D.cpp \
+	moc_Cursor2D.cpp \
+	moc_Cursor3D.cpp \
+	moc_DialogAbout.cpp \
+	moc_DialogCropVolume.cpp \
+	moc_DialogGradientFilter.cpp \
+	moc_DialogLoadDTI.cpp \
+	moc_DialogLoadPointSet.cpp \
+	moc_DialogLoadVolume.cpp \
+	moc_DialogPreferences.cpp \
+	moc_DialogNewPointSet.cpp \
+	moc_DialogNewROI.cpp \
+	moc_DialogNewVolume.cpp \
+	moc_DialogSavePointSet.cpp \
+	moc_DialogSaveScreenshot.cpp \
+	moc_DialogTransformVolume.cpp \
+	moc_DialogVolumeFilter.cpp \
+	moc_DialogWriteMovieFrames.cpp \
+	moc_FloatingStatusBar.cpp \
+	moc_FSLabel.cpp \
+	moc_FSSurface.cpp \
+	moc_FSVolume.cpp \
+	moc_GenericRenderView.cpp \
+	moc_InfoTreeWidget.cpp \
+	moc_Interactor.cpp \
+	moc_Interactor2D.cpp \
+	moc_Interactor2DMeasure.cpp \
+	moc_Interactor2DVolumeCrop.cpp \
+	moc_Interactor2DVolumeEdit.cpp \
+	moc_Interactor3D.cpp \
+	moc_Interactor3DMeasure.cpp \
+	moc_Layer.cpp \
+	moc_LayerCollection.cpp \
+	moc_LayerDTI.cpp \
+	moc_LayerEditable.cpp \
+	moc_LayerPLabel.cpp \
+	moc_LayerPointSet.cpp \
+	moc_LayerProperty.cpp \
+	moc_LayerPropertyDTI.cpp \
+	moc_LayerPropertyMRI.cpp \
+	moc_LayerPropertyPointSet.cpp \
+	moc_LayerPropertyROI.cpp \
+	moc_LayerPropertySurface.cpp \
+	moc_LayerROI.cpp \
+	moc_LayerSurface.cpp \
+	moc_LayerTreeWidget.cpp \
+	moc_LayerVolumeBase.cpp \
+	moc_LayerMRI.cpp \
+	moc_MainWindow.cpp \
+	moc_PanelLayer.cpp \
+	moc_PanelPointSet.cpp \
+	moc_PanelROI.cpp \
+	moc_PanelSurface.cpp \
+	moc_PanelVolume.cpp \
+	moc_qtcolorpicker.cpp \
+	moc_QVTKWidget.cpp \
+	moc_Region2D.cpp \
+	moc_RenderView.cpp \
+	moc_RenderView2D.cpp \
+	moc_RenderView3D.cpp \
+	moc_SurfaceLabel.cpp \
+	moc_SurfaceOverlay.cpp \
+	moc_SurfaceOverlayProperty.cpp \
+	moc_SurfaceRegion.cpp \
+	moc_SurfaceRegionGroups.cpp \
+	moc_TermWidget.cpp \
+	moc_ThreadBuildContour.cpp \
+	moc_ThreadIOWorker.cpp \
+	moc_ToolWindowEdit.cpp \
+	moc_ToolWindowMeasure.cpp \
+	moc_ToolWindowROIEdit.cpp \
+	moc_VolumeCropper.cpp \
+	moc_VolumeFilter.cpp \
+	moc_WidgetHistogram.cpp \
+	moc_WindowConfigureOverlay.cpp \
+	moc_WindowQuickReference.cpp \
+	moc_FSTrack.cpp \
+	moc_TrackData.cpp \
+	moc_LayerTrack.cpp \
+	moc_TrackGroup.cpp \
+	moc_PanelTrack.cpp \
+	moc_LayerPropertyTrack.cpp \
+	moc_DialogSaveVolume.cpp \
+	freeview.qrc.cpp 
+
+freeview_SOURCES = $(BUILT_SOURCES) \
+    Annotation2D.cpp \
+    CommandEdit.cpp \
+    Contour2D.cpp \
+    Cursor2D.cpp \
+    Cursor3D.cpp \
+    CursorFactory.cpp \
+    BrushProperty.cpp  \
+    DialogAbout.cpp \
+    DialogCropVolume.cpp \
+    DialogGradientFilter.cpp \
+    DialogLoadDTI.cpp \
+    DialogLoadPointSet.cpp \
+    DialogLoadVolume.cpp \
+    DialogNewROI.cpp \
+    DialogNewPointSet.cpp \
+    DialogNewVolume.cpp \
+    DialogPreferences.cpp \
+    DialogSavePointSet.cpp \
+    DialogSaveScreenshot.cpp \
+    DialogTransformVolume.cpp \
+    DialogVolumeFilter.cpp \
+    DialogWriteMovieFrames.cpp \
+    FloatingStatusBar.cpp \
+    FSLabel.cpp\
+    FSPointSet.cpp \
+    FSSurface.cpp \
+    FSVolume.cpp \
+    GenericRenderView.cpp \
+    InfoTreeWidget.cpp \
+    Interactor.cpp \
+    Interactor2D.cpp \
+    Interactor2DMeasure.cpp \
+    Interactor2DNavigate.cpp \
+    Interactor2DPointSetEdit.cpp \
+    Interactor2DROIEdit.cpp \
+    Interactor2DVolumeCrop.cpp \
+    Interactor2DVolumeEdit.cpp \
+    Interactor2DVoxelEdit.cpp \
+    Interactor3D.cpp \
+    Interactor3DMeasure.cpp \
+    Interactor3DNavigate.cpp \
+    Interactor3DVolumeCrop.cpp \
+    Layer.cpp \
+    LayerCollection.cpp \
+    LayerDTI.cpp \
+    LayerEditable.cpp \
+    LayerMRI.cpp \
+    LayerPLabel.cpp \
+    LayerPointSet.cpp \
+    LayerProperty.cpp \
+    LayerPropertyDTI.cpp \
+    LayerPropertyMRI.cpp \
+    LayerPropertyPointSet.cpp \
+    LayerPropertyROI.cpp \
+    LayerPropertySurface.cpp \
+    LayerROI.cpp \
+    LayerSurface.cpp \
+    LayerTreeWidget.cpp \
+    LayerVolumeBase.cpp \
+    LivewireTool.cpp \
+    LUTDataHolder.cpp \
+    main.cpp \
+    MyCmdLineParser.cpp \
+    MyUtils.cpp \
+    MyVTKUtils.cpp \
+    PanelLayer.cpp \
+    PanelPointSet.cpp \
+    PanelROI.cpp \
+    PanelSurface.cpp \
+    PanelVolume.cpp \
+    qtcolorpicker.cpp \
+    QVTKWidget.cxx \
+    QVTKPaintEngine.cxx \
+    Region2D.cpp \
+    Region2DLine.cpp \
+    Region2DPolyline.cpp \
+    Region2DRectangle.cpp \
+    RenderView.cpp \
+    RenderView2D.cpp \
+    RenderView3D.cpp \
+    SurfaceAnnotation.cpp \
+    SurfaceLabel.cpp \
+    SurfaceOverlay.cpp \
+    SurfaceOverlayProperty.cpp \
+    SurfaceRegion.cpp \
+    SurfaceRegionGroups.cpp \
+    TermWidget.cpp \
+    ThreadBuildContour.cpp \
+    ThreadIOWorker.cpp \
+    ToolWindowEdit.cpp \
+    ToolWindowMeasure.cpp \
+    ToolWindowROIEdit.cpp \
+    UIUpdateHelper.cpp \
+    VolumeCropper.cpp \
+    VolumeFilter.cpp \
+    VolumeFilterConvolve.cpp \
+    VolumeFilterGradient.cpp \
+    VolumeFilterMean.cpp \
+    VolumeFilterMedian.cpp \
+    VolumeFilterSobel.cpp \
+    vtkSimpleLabelEdgeFilter.cpp \
+    WidgetHistogram.cpp \
+    WindowConfigureOverlay.cpp \
+    WindowQuickReference.cpp \
+    FSTrack.cpp \
+    track_io/TrackIO.cpp \
+    TrackData.cpp \
+    Track.cpp \
+    LayerTrack.cpp \
+    TrackGroup.cpp \
+    PanelTrack.cpp \
+    LayerPropertyTrack.cpp \
+    DialogSaveVolume.cpp \
+    MainWindow.cpp \
+    Annotation2D.h \
+    BrushProperty.h \
+    CommandEdit.h \
+    Contour2D.h \
+    Cursor2D.h \
+    Cursor3D.h \
+    CursorFactory.h \
+    DialogAbout.h \
+    DialogCropVolume.h \
+    DialogGradientFilter.h \
+    DialogLoadDTI.h \
+    DialogLoadPointSet.h \
+    DialogLoadVolume.h \
+    DialogPreferences.h \
+    DialogNewPointSet.h \
+    DialogNewROI.h \
+    DialogNewVolume.h \
+    DialogSavePointSet.h \
+    DialogSaveScreenshot.h \
+    DialogTransformVolume.h \
+    DialogVolumeFilter.h \
+    DialogWriteMovieFrames.h \
+    FloatingStatusBar.h \
+    FSLabel.h\
+    FSPointSet.h \
+    FSSurface.h \
+    FSVolume.h \
+    GenericRenderView.h \
+    InfoTreeWidget.h \
+    Interactor.h \
+    Interactor2D.h \
+    Interactor2DMeasure.h \
+    Interactor2DNavigate.h \
+    Interactor2DPointSetEdit.h \
+    Interactor2DROIEdit.h \
+    Interactor2DVolumeCrop.h \
+    Interactor2DVolumeEdit.h \
+    Interactor2DVoxelEdit.h \
+    Interactor3D.h \
+    Interactor3DMeasure.h \
+    Interactor3DNavigate.h \
+    Interactor3DVolumeCrop.h \
+    Layer.h \
+    LayerCollection.h \
+    LayerDTI.h \
+    LayerEditable.h \
+    LayerPLabel.h \
+    LayerPointSet.h \
+    LayerProperty.h \
+    LayerPropertyDTI.h \
+    LayerPropertyMRI.h \
+    LayerPropertyPointSet.h \
+    LayerPropertyROI.h \
+    LayerPropertySurface.h \
+    LayerROI.h \
+    LayerSurface.h \
+    LayerTreeWidget.h \
+    LayerVolumeBase.h \
+    LayerMRI.h \
+    LivewireTool.h \
+    LUTDataHolder.h \
+    MainWindow.h \
+    MyCmdLineParser.h \
+    MyUtils.h \
+    PanelLayer.h \
+    PanelPointSet.h \
+    PanelROI.h \
+    PanelSurface.h \
+    PanelVolume.h \
+    qtcolorpicker.h \
+    QVTKWidget.h \
+    Region2D.h \
+    Region2DLine.h \
+    Region2DPolyline.h \
+    Region2DRectangle.h \
+    RenderView.h \
+    RenderView2D.h \
+    RenderView3D.h \
+    SurfaceLabel.h \
+    SurfaceAnnotation.h \
+    SurfaceOverlay.h \
+    SurfaceOverlayProperty.h \
+    SurfaceRegion.h \
+    SurfaceRegionGroups.h \
+    TermWidget.h \
+    ThreadBuildContour.h \
+    ThreadIOWorker.h \
+    ToolWindowEdit.h \
+    ToolWindowMeasure.h \
+    ToolWindowROIEdit.h \
+    UIUpdateHelper.h \
+    VolumeCropper.h \
+    VolumeFilter.h \
+    VolumeFilterSobel.h \
+    vtkSimpleLabelEdgeFilter.h \
+    WidgetHistogram.h \
+    WindowConfigureOverlay.h \
+    WindowQuickReference.h \
+    FSTrack.h \
+    TrackData.h \
+    LayerTrack.h \
+    TrackGroup.h \
+    PanelTrack.h \
+    LayerPropertyTrack.h \
+    DialogSaveVolume.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\
 	-fno-strict-aliasing \
 	-Wno-deprecated \
+	-Wno-unused \
+	-Wno-uninitialized \
+	-Wno-return-type \
+	-Wno-reorder \
+	-Wno-sign-compare \
 	-I$(top_srcdir)/include \
-	$(TCL_CFLAGS) \
-	$(GL_CFLAGS) \
-	$(VTK_CARBON_CXXFLAGS) \
-	-I$(top_srcdir)/vtkfsio \
-	-I$(top_srcdir)/vtkutils \
-	$(WXWIDGETS_CXXFLAGS) \
-	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
-	$(VXL_CFLAGS)
-
-freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
-
-# put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
-# and if the OS is MACOSX have a different install-hook to create a bundle
-freeview_LDADD=\
-	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
-	$(top_builddir)/vtkfsio/libvtkfsio.a \
-	$(top_builddir)/vtkutils/libvtkutils.a \
-	$(VTK_CARBON_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
-	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
-	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
-	$(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) \
-	$(VTK_SQLITE_LIB) \
-	-lvtkImaging -lvtkFiltering \
-	-lvtkCommon -lvtksys -lvtkGenericFiltering \
-	-lvtkexoIIc -lvtkNetCDF \
-	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
-	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
-	$(WXWIDGETS_LIBS) $(WXGTK2GL) $(WXWIDGETS_OPTIONAL_LIBS)
-
-install-exec-hook:freeview
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
-	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
-#	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks
-	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
-	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
-	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
-	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
-#	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
-		>> $(DESTDIR)$(bindir)/freeview
-#	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
-		>> $(DESTDIR)$(bindir)/freeview
-	echo "exec $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
-	chmod a+x $(DESTDIR)$(bindir)/freeview
-#	./mac_package_dylibs.sh $(WXWIDGETS_DIR)lib $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
-	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
-	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
-
-uninstall-hook:
-	rm -f $(DESTDIR)$(bindir)/freeview
-	rm -rf $(DESTDIR)$(bindir)/Freeview.app
-else
-AM_CXXFLAGS=\
-	-fno-strict-aliasing \
-	-Wno-deprecated \
-	-I$(top_srcdir)/include \
-	$(TCL_CFLAGS) \
 	$(GL_CFLAGS) \
 	$(VTK_CXXFLAGS) \
 	-I$(top_srcdir)/vtkfsio \
 	-I$(top_srcdir)/vtkutils \
-	$(WXWIDGETS_CXXFLAGS) \
 	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
 	$(VXL_CFLAGS)
 
-freeview_LDFLAGS=$(OS_LDFLAGS) $(LDFLAGS_TCL)
 
-freeview_LDADD=\
+freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
+freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
+freeview_LDFLAGS  = $(QT_LDFLAGS) $(OS_LDFLAGS) 
+freeview_LDADD    = $(QT_LIBS)  \
 	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
 	$(top_builddir)/vtkfsio/libvtkfsio.a \
 	$(top_builddir)/vtkutils/libvtkutils.a \
@@ -478,8 +375,72 @@ freeview_LDADD=\
 	-lvtkexoIIc -lvtkNetCDF \
 	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
 	-lvtkWidgets -lvtkHybrid \
-	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) \
-	$(WXWIDGETS_LIBS) $(WXGTK2GL) $(WXWIDGETS_OPTIONAL_LIBS)
+	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) 
+   
+
+# need to create a bundle for Macs
+install-exec-hook:freeview
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources
+	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Resources/English.lproj
+#	mkdir -p $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks
+	cp $(top_builddir)/freeview/Info.plist $(DESTDIR)$(bindir)/Freeview.app/Contents
+	echo -n 'APPL????' > $(DESTDIR)$(bindir)/Freeview.app/Contents/PkgInfo
+	cp $(top_builddir)/freeview/freeview $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
+	echo "#!/bin/tcsh -ef" > $(DESTDIR)$(bindir)/freeview
+#	echo "source \$$FREESURFER_HOME/bin/tcl_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "source \$$FREESURFER_HOME/bin/qt_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
+	echo "exec $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin \$$*" >> $(DESTDIR)$(bindir)/freeview
+	chmod a+x $(DESTDIR)$(bindir)/freeview
+#	./mac_package_dylibs.sh $(WXWIDGETS_DIR)lib $(DESTDIR)$(bindir)/Freeview.app/Contents/Frameworks $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin
+	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
+	/usr/pubsw/bin/chrpath -d $(DESTDIR)$(bindir)/Freeview.app/Contents/MacOS/freeview.bin; fi
+
+uninstall-hook:
+	rm -f $(DESTDIR)$(bindir)/freeview
+	rm -rf $(DESTDIR)$(bindir)/Freeview.app
+
+else
+
+AM_CXXFLAGS=\
+	-fno-strict-aliasing \
+	-Wno-deprecated \
+	-Wno-unused \
+	-Wno-uninitialized \
+	-Wno-return-type \
+	-Wno-reorder \
+	-Wno-sign-compare \
+	-I$(top_srcdir)/include \
+	$(GL_CFLAGS) \
+	$(VTK_COCOA_CXXFLAGS) \
+	-I$(top_srcdir)/vtkfsio \
+	-I$(top_srcdir)/vtkutils \
+	$(ITK_CFLAGS) -DHAVE_ITK_LIBS \
+	$(VXL_CFLAGS)
+
+
+freeview_CXXFLAGS = $(QT_CXXFLAGS) $(AM_CXXFLAGS)
+freeview_CPPFLAGS = $(QT_CPPFLAGS) $(AM_CPPFLAGS)
+freeview_LDFLAGS  = $(QT_LDFLAGS) $(OS_LDFLAGS) 
+freeview_LDADD    = $(QT_LIBS)  \
+	$(addprefix $(top_builddir)/, $(LIBS_MGH)) \
+	$(top_builddir)/vtkfsio/libvtkfsio.a \
+	$(top_builddir)/vtkutils/libvtkutils.a \
+	$(VTK_LIBS) $(VTK_VERDICT_LIB) -lvtkGraphics \
+	$(VTK_EXPAT_LIB) $(VTK_FREETYPE_LIB) \
+	$(VTK_TIFF_LIB) $(VTK_JPEG_LIB) \
+	$(VTK_METAIO_LIB) $(VTK_PNG_LIB) $(VTK_Z_LIB) \
+	$(VTK_SQLITE_LIB) \
+	-lvtkImaging -lvtkFiltering \
+	-lvtkCommon -lvtksys -lvtkGenericFiltering \
+	-lvtkexoIIc -lvtkNetCDF \
+	-lvtkVolumeRendering -lvtkRendering -lvtkftgl \
+	-lvtkWidgets -lvtkHybrid \
+	-lvtkIO	-lvtkDICOMParser $(VTK_MPEG2ENCODE_LIB) 
 
 # put a wrapper around the bin, used to setup tcltktixblt,vtk,kww enviro vars
 # and if the OS is MACOSX have a different install-hook to create a bundle
@@ -490,6 +451,8 @@ install-exec-hook:freeview
 		>> $(DESTDIR)$(bindir)/freeview
 	echo "source \$$FREESURFER_HOME/bin/vtk_setup" \
 		>> $(DESTDIR)$(bindir)/freeview
+	echo "source \$$FREESURFER_HOME/bin/qt_setup" \
+		>> $(DESTDIR)$(bindir)/freeview
 	echo "freeview.bin \$$argv" >> $(DESTDIR)$(bindir)/freeview
 	chmod a+x $(DESTDIR)$(bindir)/freeview
 	if [[ -f /usr/pubsw/bin/chrpath ]]; then \
@@ -498,23 +461,3 @@ install-exec-hook:freeview
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/freeview.bin
 endif
-
-else
-bin_PROGRAMS =
-
-all:
-	@echo "Building wxWidgets apps not enabled."
-	@echo "Run configure with either --enable-wxw-apps or --with-wxwidgets-dir=DIR"
-
-endif
-
-# NJS commented-out till a virtual-screen way of testing is implemented
-#TESTS=test_freeview
-
-EXTRA_DIST=test_freeview $(RESOURCES) StockColorMap.h Info.plist
-
-# Our release target. Include files to be excluded here. They will be
-# found and removed after 'make install' is run during the 'make
-# release' target.
-EXCLUDE_FILES=
-include $(top_srcdir)/Makefile.extra

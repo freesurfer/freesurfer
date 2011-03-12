@@ -1,66 +1,38 @@
-/**
- * @file  DialogNewVolume.h
- * @brief Dialog to create new volume.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.9 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-#ifndef DialogNewVolume_h
-#define DialogNewVolume_h
+#ifndef DIALOGNEWVOLUME_H
+#define DIALOGNEWVOLUME_H
 
-#include <wx/wx.h>
+#include <QDialog>
 
+namespace Ui {
+    class DialogNewVolume;
+}
 
-class wxCheckBox;
-class wxChoice;
-class wxTextCtrl;
 class LayerMRI;
-class LayerCollection;
 
-class DialogNewVolume : public wxDialog
+class DialogNewVolume : public QDialog
 {
+    Q_OBJECT
+
 public:
-  DialogNewVolume( wxWindow* parent, LayerCollection* col );
-  virtual ~DialogNewVolume();
+    explicit DialogNewVolume(QWidget *parent = 0);
+    ~DialogNewVolume();
 
-  wxString GetVolumeName();
-  void SetVolumeName( const wxString& name );
+    QString GetVolumeName();
+    void SetVolumeName( const QString& name );
 
-  bool GetCopyVoxel();
-  void SetCopyVoxel( bool bVoxel );
-  
-  int GetDataType();
+    bool GetCopyVoxel();
+    void SetCopyVoxel( bool bVoxel );
 
-  LayerMRI* GetTemplate();
+    int GetDataType();
 
-  void OnOK( wxCommandEvent& event );
+    LayerMRI* GetTemplate();
 
-  void OnTextEnter( wxCommandEvent& event );
+protected slots:
+    void OnOK();
+    void OnToggleCopyVoxelData(bool bCopy);
 
 private:
-  wxCheckBox*   m_checkCopyVoxel;
-  wxChoice*     m_choiceTemplate;
-  wxTextCtrl*   m_textName;
-  wxChoice*     m_choiceDataType;
-
-  DECLARE_EVENT_TABLE()
+    Ui::DialogNewVolume *ui;
 };
 
-#endif
-
+#endif // DIALOGNEWVOLUME_H

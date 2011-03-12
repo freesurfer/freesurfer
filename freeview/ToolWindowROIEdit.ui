@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>ToolWindowROIEdit</class>
+ <widget class="QWidget" name="ToolWindowROIEdit">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>172</width>
+    <height>40</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>ROI Edit</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <property name="spacing">
+    <number>0</number>
+   </property>
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
+   <property name="margin">
+    <number>0</number>
+   </property>
+   <item>
+    <widget class="QToolBar" name="toolbar">
+     <property name="iconSize">
+      <size>
+       <width>24</width>
+       <height>24</height>
+      </size>
+     </property>
+     <property name="floatable">
+      <bool>false</bool>
+     </property>
+     <addaction name="actionFreeHand"/>
+     <addaction name="actionPolyLine"/>
+     <addaction name="actionLiveWire"/>
+     <addaction name="actionFill"/>
+    </widget>
+   </item>
+  </layout>
+  <action name="actionFreeHand">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_freehand.png</normaloff>:/resource/icons/voxel_draw_freehand.png</iconset>
+   </property>
+   <property name="text">
+    <string>FreeHand</string>
+   </property>
+   <property name="toolTip">
+    <string>Freehand</string>
+   </property>
+  </action>
+  <action name="actionPolyLine">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_polyline.png</normaloff>:/resource/icons/voxel_draw_polyline.png</iconset>
+   </property>
+   <property name="text">
+    <string>PolyLine</string>
+   </property>
+   <property name="toolTip">
+    <string>Polyline</string>
+   </property>
+  </action>
+  <action name="actionLiveWire">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_livewire.png</normaloff>:/resource/icons/voxel_draw_livewire.png</iconset>
+   </property>
+   <property name="text">
+    <string>LiveWire</string>
+   </property>
+   <property name="toolTip">
+    <string>Livewire</string>
+   </property>
+  </action>
+  <action name="actionFill">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_fill.png</normaloff>:/resource/icons/voxel_draw_fill.png</iconset>
+   </property>
+   <property name="text">
+    <string>Fill</string>
+   </property>
+   <property name="toolTip">
+    <string>Fill</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="freeview.qrc"/>
+ </resources>
+ <connections/>
+</ui>

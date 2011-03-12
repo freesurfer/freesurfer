@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.25 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:48 $
+ *    $Revision: 1.26 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -26,15 +28,15 @@
 #include "RenderView3D.h"
 #include "MainWindow.h"
 #include "LayerCollection.h"
-#include "LayerCollectionManager.h"
-#include "LayerPropertiesMRI.h"
+#include "CursorFactory.h"
+#include "LayerPropertyMRI.h"
 #include "LayerMRI.h"
 #include "CursorFactory.h"
 #include "VolumeCropper.h"
 #include <vtkRenderer.h>
 
-Interactor3D::Interactor3D() :
-    Interactor(),
+Interactor3D::Interactor3D(QObject* parent) :
+    Interactor(parent),
     m_nMousePosX( -1 ),
     m_nMousePosY( -1 ),
     m_bWindowLevel( false ),
@@ -44,16 +46,16 @@ Interactor3D::Interactor3D() :
 Interactor3D::~Interactor3D()
 {}
 
-bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor3D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  m_nMousePosX = event.GetX();
-  m_nMousePosY = event.GetY();
+  m_nMousePosX = event->x();
+  m_nMousePosY = event->y();
 
   view->CancelUpdateMouseRASPosition();
 
-  if ( event.MiddleDown() && event.CmdDown() )
+  if ( event->button() == Qt::MidButton && event->modifiers() & CONTROL_MODIFIER )
   {
     m_bWindowLevel = true;
   }
@@ -69,22 +71,22 @@ bool Interactor3D::ProcessMouseDownEvent( wxMouseEvent& event, RenderView* rende
   return false; // do not pass down the event
 }
 
-bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  if ( event.GetX() == m_nMousePosX && event.GetY() == m_nMousePosY )
+  if ( event->x() == m_nMousePosX && event->y() == m_nMousePosY )
   {
-    if ( event.LeftUp() )
+      if ( event->button() == Qt::LeftButton )
     {
-      view->UpdateCursorRASPosition( event.GetX(), event.GetY() );
+      view->UpdateCursorRASPosition( event->x(), event->y() );
       view->UpdateConnectivityDisplay();
     }
   }
   else
   {
-    m_nMousePosX = event.GetX();
-    m_nMousePosY = event.GetY();
+    m_nMousePosX = event->x();
+    m_nMousePosY = event->y();
   }
   
   m_bWindowLevel = false;
@@ -93,37 +95,37 @@ bool Interactor3D::ProcessMouseUpEvent( wxMouseEvent& event, RenderView* renderv
   return Interactor::ProcessMouseUpEvent( event, renderview );
 }
 
-bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* renderview )
+bool Interactor3D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
-  if ( !lcm->HasAnyLayer() )
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  if ( mainwnd->IsEmpty() )
   {
     return Interactor::ProcessMouseMoveEvent( event, renderview );
   }
 
-  int posX = event.GetX();
-  int posY = event.GetY();
+  int posX = event->x();
+  int posY = event->y();
 
   if ( m_bWindowLevel )
   {
-    LayerMRI* layer = ( LayerMRI* )(lcm->GetLayerCollection( "MRI" )->GetActiveLayer());
+    LayerMRI* layer = ( LayerMRI* )mainwnd->GetActiveLayer( "MRI" );
     if ( layer && layer->IsVisible() )
     {
       double scaleX = 0.002;
       double scaleY = 0.002;
       double w = ( posX - m_nMousePosX ) * scaleX;
       double l = ( posY - m_nMousePosY ) * scaleY;
-      double scaleOverall = layer->GetProperties()->GetMaxValue() -
-                            layer->GetProperties()->GetMinValue();
+      double scaleOverall = layer->GetProperty()->GetMaxValue() -
+                            layer->GetProperty()->GetMinValue();
       w *= scaleOverall;
       l *= scaleOverall;
-      w += layer->GetProperties()->GetWindow();
-      l += layer->GetProperties()->GetLevel();
+      w += layer->GetProperty()->GetWindow();
+      l += layer->GetProperty()->GetLevel();
       if ( w < 0 )
         w = 0;
-      layer->GetProperties()->SetWindowLevel( w, l );
+      layer->GetProperty()->SetWindowLevel( w, l );
     }
   }
   else if ( m_bMoveSlice )
@@ -132,7 +134,9 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
   }
   else
   {
-    if ( event.MiddleIsDown() || event.RightIsDown() || event.LeftIsDown() )
+      if ( event->buttons() & Qt::MidButton ||
+           event->buttons() & Qt::RightButton ||
+           event->buttons() & Qt::LeftButton )
     {
       view->CancelUpdateMouseRASPosition();
     }
@@ -149,38 +153,37 @@ bool Interactor3D::ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* rende
   return false;
 }
 
-bool Interactor3D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* renderview )
+bool Interactor3D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview )
 {
   RenderView3D* view = ( RenderView3D* )renderview;
 
-  LayerCollectionManager* lcm = MainWindow::GetMainWindowPointer()->GetLayerCollectionManager();
-  if ( !lcm->HasAnyLayer() )
+  if ( MainWindow::GetMainWindow()->IsEmpty() )
   {
     return Interactor::ProcessKeyDownEvent( event, renderview );
   }
 
-  int nKeyCode = event.GetKeyCode();
-  if  ( nKeyCode == WXK_UP )
+  int nKeyCode = event->key();
+  if  ( nKeyCode == Qt::Key_Up )
   {
     view->MoveUp();
   }
-  else if ( nKeyCode == WXK_DOWN )
+  else if ( nKeyCode == Qt::Key_Down )
   {
     view->MoveDown();
   }
-  else if ( nKeyCode == WXK_LEFT )
+  else if ( nKeyCode == Qt::Key_Left )
   {
     view->MoveLeft();
   }
-  else if ( nKeyCode == WXK_RIGHT )
+  else if ( nKeyCode == Qt::Key_Right )
   {
     view->MoveRight();
   }
-  else if ( nKeyCode == 'R' ) //|| nKeyCode == 'F' || nKeyCode == 'S' || nKeyCode == 'W' )
+  else if ( nKeyCode == Qt::Key_R ) //|| nKeyCode == 'F' || nKeyCode == 'S' || nKeyCode == 'W' )
   {
     // do nothing, just intercept these keycodes
   }
-  else if ( nKeyCode == WXK_DELETE )
+  else if ( nKeyCode == Qt::Key_Delete )
   {
     view->DeleteCurrentSelectRegion();
   }
@@ -190,12 +193,12 @@ bool Interactor3D::ProcessKeyDownEvent( wxKeyEvent& event, RenderView* rendervie
   return false;
 }
 
-void Interactor3D::UpdateCursor( wxEvent& event, wxWindow* wnd )
+void Interactor3D::UpdateCursor( QEvent* event, QWidget* wnd )
 {
   RenderView3D* view = ( RenderView3D* )wnd;
   if ( view->GetHighlightedSlice() >= 0 )
   {
-    wnd->SetCursor( CursorFactory::CursorGrab );
+    wnd->setCursor( CursorFactory::CursorGrab );
   }
   else
     Interactor::UpdateCursor( event, wnd );

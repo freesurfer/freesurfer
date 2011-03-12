@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.13 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:50 $
+ *    $Revision: 1.14 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -27,8 +29,6 @@
 
 #include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
-#include <string>
-#include <vector>
 
 class FSLabel;
 class vtkImageReslice;
@@ -41,45 +41,44 @@ class vtkImageActor;
 class vtkImageData;
 class vtkProp;
 class LayerMRI;
-class LayerPropertiesROI;
-class wxWindow;
-class wxCommandEvent;
+class LayerPropertyROI;
 
 class LayerROI : public LayerVolumeBase
 {
+    Q_OBJECT
 public:
-  LayerROI( LayerMRI* layerMRI );
+  LayerROI( LayerMRI* layerMRI, QObject* parent = NULL  );
   virtual ~LayerROI();
 
-  bool LoadROIFromFile( std::string filename );
+  bool LoadROIFromFile( const QString& filename );
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL );
 
   bool HasProp( vtkProp* prop );
 
-  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
-
   void SetVisible( bool bVisible = true );
   bool IsVisible();
 
-  inline LayerPropertiesROI* GetProperties()
+  inline LayerPropertyROI* GetProperty()
   {
-    return (LayerPropertiesROI*)mProperties;
+    return (LayerPropertyROI*)mProperty;
   }
 
-  bool SaveROI( wxWindow* wnd, wxCommandEvent& event );
+  bool SaveROI();
 
-  void UpdateLabelData( wxWindow* wnd, wxCommandEvent& event );
+  void UpdateLabelData();
 
   virtual void SetModified();
-  
-protected:
-  bool DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
-  void DoRestore();
-  void InitializeActors();
+
+protected slots:
   void UpdateOpacity();
   void UpdateColorMap();
+
+protected:
+  bool DoRotate( std::vector<RotationElement>& rotations );
+  void DoRestore();
+  void InitializeActors();
 
   virtual void OnSlicePositionChanged( int nPlane );
 

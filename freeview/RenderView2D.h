@@ -1,146 +1,114 @@
-/**
- * @file  RenderView2D.h
- * @brief View class for 2D image rendering.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:37 $
- *    $Revision: 1.22 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
-#ifndef RenderView2D_h
-#define RenderView2D_h
+#ifndef RENDERVIEW2D_H
+#define RENDERVIEW2D_H
 
 #include "RenderView.h"
-#include <vector>
+#include <QList>
 
-class Annotation2D;
+class Region2D;
+class Region2DRectangle;
+class Contour2D;
 class Cursor2D;
+class Annotation2D;
 class Interactor2DNavigate;
 class Interactor2DMeasure;
 class Interactor2DVoxelEdit;
 class Interactor2DROIEdit;
-class Interactor2DWayPointsEdit;
-class Interactor2DCropVolume;
-class Region2DRectangle;
-class Region2D;
-class Contour2D;
+class Interactor2DPointSetEdit;
+class Interactor2DVolumeCrop;
 class LayerMRI;
 
-class VTK_RENDERING_EXPORT RenderView2D : public RenderView
+class RenderView2D : public RenderView
 {
-  friend class Interactor2D;
+//    friend class Interactor2D;
 
-  DECLARE_DYNAMIC_CLASS(RenderView2D)
-
+    Q_OBJECT
 public:
-  RenderView2D( int nPlane = 0 );
-  RenderView2D( int nPlane, wxWindow *parent, int id = wxID_ANY );
-  virtual ~RenderView2D();
+    RenderView2D( QWidget* parent );
 
-  void OnSize( wxSizeEvent& event );
+    void SetViewPlane( int nPlane );
 
-  static RenderView2D * New();
-  void PrintSelf(ostream& os, vtkIndent indent);
+    int GetViewPlane()
+    {
+        return m_nViewPlane;
+    }
 
-  virtual void RefreshAllActors();
+    void UpdateViewByWorldCoordinate();
 
-  virtual void TriggerContextMenu( const wxPoint& pos );
+    Contour2D* GetContour2D()
+    {
+      return m_contour2D;
+    }
 
-  int GetViewPlane();
+    Cursor2D* GetCursor2D()
+    {
+      return m_cursor2D;
+    }
 
-  void UpdateViewByWorldCoordinate();
+    void UpdateMouseRASPosition( int posX, int posY );
+    void UpdateCursorRASPosition( int posX, int posY );
+    void MoveSlice( int nStep );
 
-  void UpdateMouseRASPosition( int nX, int nY );
-  void UpdateCursorRASPosition( int nX, int nY, bool bConnectPrevious = false );
+    void SetInteractionMode( int nMode );
 
-  void SetInteractionMode( int nMode );
+    void MousePositionToRAS( int posX, int posY, double* pos );
+    LayerMRI* GetFirstNonLabelVolume();
 
-  void MousePositionToRAS( int nX, int nY, double* ras );
+    void StartSelection( int nX, int nY );
+    void UpdateSelection( int nX, int nY );
 
-  Cursor2D* GetCursor2D()
-  {
-    return m_cursor2D;
-  }
+    Region2D* GetRegion( int nX, int nY, int* index_out = NULL );
+    void AddRegion( Region2D* region );
+    void DeleteRegion( Region2D* region );
 
-  void Update2DOverlay();
-  bool EnsureCursor2DVisible();
+    void EmitZooming()
+    {
+        emit Zooming(this);
+    }
 
-  void MoveLeft();
-  void MoveRight();
-  void MoveUp();
-  void MoveDown();
-  void MoveSlice( int nStep );
-  void ZoomAtCursor( int nX, int nY, bool ZoomIn, double factor = 2 );
-  void PanToWorld( double* pos );
-  void SyncZoomTo( RenderView2D* view );
+    void EmitRegionSelected(Region2D* reg)
+    {
+        emit RegionSelected(reg);
+    }
 
-  bool SetSliceNumber( int nSliceNumber );
-  
-  void PreScreenshot();
-  void PostScreenshot();
+    bool GetShowCoordinateAnnotation();
 
-  void ShowCoordinateAnnotation( bool bShow );
-  bool GetShowCoordinateAnnotation();
-  
-  void StartSelection( int nX, int nY );
-  void UpdateSelection( int nX, int nY );
-  void StopSelection();
-  
-  Region2D* GetRegion( int nX, int nY, int* index_out = NULL );
-  void AddRegion( Region2D* region );
-  void DeleteRegion( Region2D* region );
-  
-  LayerMRI* GetFirstNonLabelVolume();
-  
-  Contour2D* GetContour2D()
-  {
-    return m_contour2D;
-  }
-  
+    void ZoomAtCursor( int nX, int nY, double factor);
+
+public slots:
+    void RefreshAllActors(bool bForScreenShot = false);
+    void StopSelection();
+    void UpdateAnnotation();
+    void Update2DOverlay();
+    void ShowCoordinateAnnotation( bool bShow );
+
+signals:
+    void RegionSelected( Region2D* );
+    void RegionRemoved( Region2D* );
+    void Zooming(RenderView2D* view);
+
+protected slots:
+    virtual void OnSlicePositionChanged();
+    void SyncZoomTo(RenderView2D* view);
+
 protected:
-  void Initialize2D();
-  void UpdateAnnotation();
-  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
+    virtual void resizeEvent(QResizeEvent *event);
+    bool EnsureCursor2DVisible();
+    void PanToWorld( double* pos );
 
-  int  m_nViewPlane;
+private:
+    int m_nViewPlane;
+    Cursor2D*       m_cursor2D;
+    Contour2D*      m_contour2D;
+    Annotation2D*   m_annotation2D;
+    Region2DRectangle*    m_selection2D;
+    QList<Region2D*>      m_regions;
 
-  int  m_nCursorPosX;
-  int  m_nCursorPosY;
-
-  Annotation2D*   m_annotation2D;
-  Cursor2D*       m_cursor2D;
-  Contour2D*      m_contour2D;
-  Region2DRectangle*     m_selection2D;
-  
-  Interactor2DNavigate*       m_interactorNavigate;
-  Interactor2DMeasure*        m_interactorMeasure;
-  Interactor2DVoxelEdit*      m_interactorVoxelEdit;
-  Interactor2DROIEdit*        m_interactorROIEdit;
-  Interactor2DWayPointsEdit*  m_interactorWayPointsEdit;
-  Interactor2DCropVolume*     m_interactorCropVolume;
-
-  std::vector<Region2D*>      m_regions;
-  
-  // any class wishing to process wxWindows events must use this macro
-  DECLARE_EVENT_TABLE()
-
+    Interactor2DNavigate*   m_interactorNavigate;
+    Interactor2DMeasure*    m_interactorMeasure;
+    Interactor2DVoxelEdit*  m_interactorVoxelEdit;
+    Interactor2DROIEdit*    m_interactorROIEdit;
+    Interactor2DPointSetEdit*   m_interactorPointSetEdit;
+    Interactor2DVolumeCrop* m_interactorVolumeCrop;
 };
 
-#endif
-
-
+#endif // RENDERVIEW2D_H

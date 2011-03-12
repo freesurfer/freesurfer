@@ -1,68 +1,38 @@
-/**
- * @file  DialogVolumeFilter.h
- * @brief Dialog to create gradient volume.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.3 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-#ifndef DialogVolumeFilter_h
-#define DialogVolumeFilter_h
+#ifndef DIALOGVOLUMEFILTER_H
+#define DIALOGVOLUMEFILTER_H
 
-#include <wx/wx.h>
+#include <QDialog>
 
-class wxTextCtrl;
-class wxSpinCtrl;
-class LayerMRI;
+namespace Ui {
+    class DialogVolumeFilter;
+}
+
 class VolumeFilter;
 
-class DialogVolumeFilter : public wxDialog
+class DialogVolumeFilter : public QDialog
 {
+    Q_OBJECT
+
 public:
-  DialogVolumeFilter( wxWindow* parent );
-  virtual ~DialogVolumeFilter();
+    explicit DialogVolumeFilter(QWidget *parent = 0);
+    ~DialogVolumeFilter();
 
-  void SetFilter( VolumeFilter* filter );
-  
-  void OnApply( wxCommandEvent& event );
-  void OnClose( wxCommandEvent& event )
-  {
-    Close();
-  }
-  
-  int GetKernelSize();
-  
-  double GetSigma();
-  
-  void SetSigma( double dvalue );
-  
-  void ShowSigma( bool bShow );
+    void SetFilter( VolumeFilter* filter );
 
-protected:
+    int GetKernelSize();
 
-  wxSpinCtrl*   m_spinKernelSize;
-  wxButton*     m_btnApply;
-  wxTextCtrl*   m_textSigma;
-  
-  VolumeFilter* m_filter;
+    double GetSigma();
 
-  DECLARE_EVENT_TABLE()
+    void SetSigma( double dvalue );
+
+    void ShowSigma( bool bShow );
+
+protected slots:
+    void OnOK();
+
+private:
+    Ui::DialogVolumeFilter *ui;
+    VolumeFilter* m_filter;
 };
 
-#endif
-
+#endif // DIALOGVOLUMEFILTER_H

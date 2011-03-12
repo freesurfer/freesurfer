@@ -1,791 +1,372 @@
-/**
- * @file  PanelSurface.h
- * @brief Main control panel.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.35 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
-#include "wx/wx.h"
-#include <wx/clrpicker.h>
 #include "PanelSurface.h"
-#include <wx/xrc/xmlres.h>
-#include <wx/spinctrl.h>
 #include "MainWindow.h"
-#include "LayerCollection.h"
-#include "Layer.h"
+#include "ui_PanelSurface.h"
+#include "ui_MainWindow.h"
+#include <QToolBar>
 #include "LayerSurface.h"
-#include "LayerPropertiesSurface.h"
+#include "LayerPropertySurface.h"
+#include "LayerCollection.h"
 #include "FSSurface.h"
-#include "SurfaceOverlay.h"
 #include "SurfaceAnnotation.h"
+#include "SurfaceOverlay.h"
 #include "SurfaceLabel.h"
+#include "WindowConfigureOverlay.h"
 #include "MyUtils.h"
+#include <QMessageBox>
 
-BEGIN_EVENT_TABLE( PanelSurface, wxPanel )
-  EVT_MENU            ( XRCID( "ID_SURFACE_CLOSE" ),            PanelSurface::OnSurfaceClose )
-  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_CLOSE" ),            PanelSurface::OnSurfaceCloseUpdateUI )  
-  EVT_MENU            ( XRCID( "ID_SURFACE_LOCK" ),             PanelSurface::OnSurfaceLock )
-  EVT_UPDATE_UI       ( XRCID( "ID_SURFACE_LOCK" ),             PanelSurface::OnSurfaceLockUpdateUI )  
-  EVT_LISTBOX         ( XRCID( "ID_LISTBOX_SURFACE" ),          PanelSurface::OnLayerSelectionChanged )
-  EVT_CHECKLISTBOX    ( XRCID( "ID_LISTBOX_SURFACE" ),          PanelSurface::OnLayerVisibilityChanged )
-
-  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER" ),        PanelSurface::OnColorChanged )
-  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_EDGE" ),   PanelSurface::OnEdgeColorChanged )
-  EVT_SPINCTRL        ( XRCID( "ID_SPIN_EDGE_THICKNESS" ),      PanelSurface::OnSpinEdgeThickness )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_VECTORS" ),           PanelSurface::OnChoiceVector )
-  EVT_SPINCTRL        ( XRCID( "ID_SPIN_VECTOR_POINT_SIZE" ),   PanelSurface::OnSpinVectorPointSize )
-  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_VECTOR" ), PanelSurface::OnVectorColorChanged )
-  
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_OVERLAY" ),           PanelSurface::OnChoiceOverlay )
-  EVT_BUTTON          ( XRCID( "ID_BUTTON_OVERLAY" ),           PanelSurface::OnButtonConfigureOverlay )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_RENDER_MODE" ),       PanelSurface::OnChoiceRenderMode )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_MESH_COLORMAP" ),     PanelSurface::OnChoiceMeshColorMap )
-
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_ANNOTATION" ),        PanelSurface::OnChoiceAnnotation )
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_LABEL" ),             PanelSurface::OnChoiceLabel )
-  EVT_COLOURPICKER_CHANGED  ( XRCID( "ID_COLORPICKER_LABEL_COLOR" ),  PanelSurface::OnLabelColorChanged )
-  
-  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_SHOW_VERTICES" ),       PanelSurface::OnCheckShowVertices )
-  EVT_COLOURPICKER_CHANGED ( XRCID( "ID_COLOR_PICKER_VERTEX" ),     PanelSurface::OnColorVertex )
-  EVT_SPINCTRL        ( XRCID( "ID_SPIN_VERTEX_POINT_SIZE" ),       PanelSurface::OnSpinVertexPointSize )
-  
-  EVT_CHECKBOX        ( XRCID( "ID_CHECKBOX_HIDE_INFO" ),           PanelSurface::OnCheckHideInfo )
-
-  EVT_CHOICE          ( XRCID( "ID_CHOICE_CURVATURE_MAP" ),         PanelSurface::OnChoiceCurvatureMap )
-  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_MID_POINT" ),   PanelSurface::OnSliderMidPointChanging )
-  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_MID_POINT" ),   PanelSurface::OnSliderMidPoint )
-  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_MID_POINT" ),   PanelSurface::OnSliderMidPoint )
-  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_MID_POINT" ), PanelSurface::OnSliderMidPoint )
-  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_SLOPE" ),       PanelSurface::OnSliderSlopeChanging )
-  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_SLOPE" ),       PanelSurface::OnSliderSlope )
-  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_SLOPE" ),       PanelSurface::OnSliderSlope )
-  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_SLOPE" ),     PanelSurface::OnSliderSlope )
-  EVT_TEXT_ENTER      ( XRCID( "ID_TEXT_SLOPE" ),                   PanelSurface::OnTextSlope )
-  EVT_TEXT_ENTER      ( XRCID( "ID_TEXT_MID_POINT" ),               PanelSurface::OnTextMidPoint )
-
-  EVT_COMMAND_SCROLL_THUMBTRACK ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacityChanging )
-  EVT_COMMAND_SCROLL_PAGEDOWN   ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacity )
-  EVT_COMMAND_SCROLL_PAGEUP     ( XRCID( "ID_SLIDER_OPACITY" ),     PanelSurface::OnSliderOpacity )
-  EVT_COMMAND_SCROLL_THUMBRELEASE ( XRCID( "ID_SLIDER_OPACITY" ),   PanelSurface::OnSliderOpacity )
-  EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_OPACITY_CTRL" ),       PanelSurface::OnTextOpacity )
-  
-  EVT_TEXT_ENTER                ( XRCID( "ID_TEXT_POSITION" ),      PanelSurface::OnTextPosition )
-END_EVENT_TABLE()
-
-
-PanelSurface::PanelSurface( wxWindow* parent ) :
-    Listener( "PanelSurface" ),
-    Broadcaster( "PanelSurface" ),
-    m_bUINeedUpdate( false )
+PanelSurface::PanelSurface(QWidget *parent) :
+    PanelLayer(parent),
+    ui(new Ui::PanelSurface)
 {
-  wxXmlResource::Get()->LoadPanel( this, parent, _("ID_PANEL_SURFACE") );
-  m_listBoxLayers = XRCCTRL( *this, "ID_LISTBOX_SURFACE", wxCheckListBox );
-  m_sliderOpacity = XRCCTRL( *this, "ID_SLIDER_OPACITY", wxSlider );
-  m_textOpacity   = XRCCTRL( *this, "ID_TEXT_OPACITY_CTRL", wxTextCtrl );
-  
-  /*
-  m_btnNew   = XRCCTRL( *this, "ID_BUTTON_NEW", wxButton );
-  m_btnLoad   = XRCCTRL( *this, "ID_BUTTON_LOAD", wxButton );
-  m_btnSave   = XRCCTRL( *this, "ID_BUTTON_SAVE", wxButton );
-  m_btnDelete  = XRCCTRL( *this, "ID_BUTTON_DELETE", wxButton );
+    ui->setupUi(this);
+    MainWindow* mainwnd = MainWindow::GetMainWindow();
+    ui->toolbar->insertAction(ui->actionSurfaceMain, mainwnd->ui->actionLoadSurface);
+    ui->toolbar->insertAction(ui->actionSurfaceMain, mainwnd->ui->actionCloseSurface);
+    ui->toolbar->insertSeparator(ui->actionSurfaceMain);
 
-  m_btnSurfaceMain   = XRCCTRL( *this, "ID_BUTTON_SURFACE_MAIN", wxButton );
-  m_btnSurfaceInflated  = XRCCTRL( *this, "ID_BUTTON_SURFACE_INFLATED", wxButton );
-  m_btnSurfaceWhite   = XRCCTRL( *this, "ID_BUTTON_SURFACE_WHITE", wxButton );
-  m_btnSurfacePial   = XRCCTRL( *this, "ID_BUTTON_SURFACE_PIAL", wxButton );
-  m_btnSurfaceOriginal  = XRCCTRL( *this, "ID_BUTTON_SURFACE_ORIGINAL", wxButton );
-  */
+    m_widgetsSlope << ui->sliderSlope
+        << ui->lineEditSlope
+        << ui->labelSlope;
 
-  m_colorPicker         = XRCCTRL( *this, "ID_COLOR_PICKER",          wxColourPickerCtrl );
-  m_colorPickerEdge     = XRCCTRL( *this, "ID_COLOR_PICKER_EDGE",     wxColourPickerCtrl );
-  m_textFileName        = XRCCTRL( *this, "ID_TEXT_FILENAME",         wxTextCtrl );
-  m_spinEdgeThickness   = XRCCTRL( *this, "ID_SPIN_EDGE_THICKNESS",   wxSpinCtrl );
+    m_widgetsMidPoint << ui->sliderMidPoint
+        << ui->lineEditMidPoint
+        << ui->labelMidPoint;
 
-  m_choiceVector        = XRCCTRL( *this, "ID_CHOICE_VECTORS",          wxChoice );
-  m_colorPickerVector   = XRCCTRL( *this, "ID_COLOR_PICKER_VECTOR",     wxColourPickerCtrl );
-  m_spinVectorPointSize = XRCCTRL( *this, "ID_SPIN_VECTOR_POINT_SIZE",  wxSpinCtrl );
+    m_widgetsVector << ui->colorpickerVectorColor
+        << ui->spinBoxVectorPointSize
+        << ui->labelVectorColor
+        << ui->labelVectorPointSize;
 
-  m_sliderOpacity       = XRCCTRL( *this, "ID_SLIDER_OPACITY",          wxSlider );
+    m_widgetsVertex << ui->colorpickerVertexColor
+        << ui->spinBoxVertexPointSize
+        << ui->labelVertexColor
+        << ui->labelVertexPointSize;
 
-  m_choiceCurvatureMap  = XRCCTRL( *this, "ID_CHOICE_CURVATURE_MAP",    wxChoice );
-  m_sliderMidPoint      = XRCCTRL( *this, "ID_SLIDER_MID_POINT",        wxSlider );
-  m_sliderSlope         = XRCCTRL( *this, "ID_SLIDER_SLOPE",            wxSlider );
-  m_textMidPoint        = XRCCTRL( *this, "ID_TEXT_MID_POINT",          wxTextCtrl );
-  m_textSlope           = XRCCTRL( *this, "ID_TEXT_SLOPE",              wxTextCtrl );
-  
-  m_choiceRenderMode    = XRCCTRL( *this, "ID_CHOICE_RENDER_MODE",      wxChoice );
-  m_choiceMeshColorMap  = XRCCTRL( *this, "ID_CHOICE_MESH_COLORMAP",    wxChoice );
-  m_checkShowVertices   = XRCCTRL( *this, "ID_CHECKBOX_SHOW_VERTICES",  wxCheckBox );
-  m_colorPickerVertex   = XRCCTRL( *this, "ID_COLOR_PICKER_VERTEX",     wxColourPickerCtrl );
-  m_spinVertexPointSize = XRCCTRL( *this, "ID_SPIN_VERTEX_POINT_SIZE",  wxSpinCtrl );
-  
-  m_choiceOverlay       = XRCCTRL( *this, "ID_CHOICE_OVERLAY",        wxChoice );
-  m_btnOverlayConfiguration 
-      = XRCCTRL( *this, "ID_BUTTON_OVERLAY",        wxButton );
-  
-  m_choiceAnnotation    = XRCCTRL( *this, "ID_CHOICE_ANNOTATION",     wxChoice );
-  m_choiceLabel         = XRCCTRL( *this, "ID_CHOICE_LABEL",          wxChoice );
-  m_colorPickerLabel    = XRCCTRL( *this, "ID_COLORPICKER_LABEL_COLOR", wxColourPickerCtrl );
-  
-  m_textPosition        = XRCCTRL( *this, "ID_TEXT_POSITION",         wxTextCtrl );
-  
-  m_checkHideInfo       = XRCCTRL( *this, "ID_CHECKBOX_HIDE_INFO",    wxCheckBox );
+    m_widgetsMesh << ui->comboBoxMeshColor
+        << ui->labelMeshColor;
 
-  m_widgetsSlope.push_back( m_sliderSlope );
-  m_widgetsSlope.push_back( m_textSlope );
-  m_widgetsSlope.push_back( XRCCTRL( *this, "ID_STATIC_SLOPE", wxStaticText ) );
+    m_widgetsLabel << ui->colorpickerLabelColor
+        << ui->labelLabelColor;
 
-  m_widgetsMidPoint.push_back( m_sliderMidPoint );
-  m_widgetsMidPoint.push_back( m_textMidPoint );
-  m_widgetsMidPoint.push_back( XRCCTRL( *this, "ID_STATIC_MID_POINT", wxStaticText ) );
+    ui->actionSurfaceMain->setData( FSSurface::SurfaceMain );
+    ui->actionSurfaceInflated->setData( FSSurface::SurfaceInflated );
+    ui->actionSurfaceOriginal->setData( FSSurface::SurfaceOriginal );
+    ui->actionSurfacePial->setData( FSSurface::SurfacePial );
+    ui->actionSurfaceWhite->setData( FSSurface::SurfaceWhite );
+    QActionGroup* ag = new QActionGroup( this );
+    ag->addAction(ui->actionSurfaceMain);
+    ag->addAction(ui->actionSurfaceInflated);
+    ag->addAction(ui->actionSurfaceWhite);
+    ag->addAction(ui->actionSurfacePial);
+    ag->addAction(ui->actionSurfaceOriginal);
+    ag->setExclusive( true );
+    connect( ag, SIGNAL(triggered(QAction*)), this, SLOT(OnChangeSurfaceType(QAction*)));
 
-  m_widgetsVector.push_back( m_colorPickerVector );
-  m_widgetsVector.push_back( m_spinVectorPointSize );
-  m_widgetsVector.push_back( XRCCTRL( *this, "ID_STATIC_VECTOR_COLOR", wxStaticText ) );
-  m_widgetsVector.push_back( XRCCTRL( *this, "ID_STATIC_VECTOR_POINT_SIZE", wxStaticText ) );
-  
-  m_widgetsVertex.push_back( m_colorPickerVertex );
-  m_widgetsVertex.push_back( m_spinVertexPointSize );
-  m_widgetsVertex.push_back( XRCCTRL( *this, "ID_STATIC_VERTEX_COLOR", wxStaticText ) );
-  m_widgetsVertex.push_back( XRCCTRL( *this, "ID_STATIC_VERTEX_POINT_SIZE", wxStaticText ) );
+    LayerCollection* lc = mainwnd->GetLayerCollection("Surface");
+    PanelLayer::InitializeLayerList( ui->treeWidgetLayers, lc );
+    connect( ui->actionLockLayer, SIGNAL(toggled(bool)), lc, SLOT(LockCurrent(bool)) );
 
-  m_widgetsMesh.push_back( m_choiceMeshColorMap );
-  m_widgetsMesh.push_back( XRCCTRL( *this, "ID_STATIC_MESH_COLORMAP", wxStaticText ) );
-  
-  m_widgetsLabel.push_back( m_colorPickerLabel );
-  m_widgetsLabel.push_back( XRCCTRL( *this, "ID_STATIC_LABEL_COLOR", wxStaticText ) );
-  
-  wxScrolledWindow* sw = XRCCTRL( *this, "ID_SCROLL_WINDOW", wxScrolledWindow );
-  sw->SetScrollRate( 5, 5 );
-  sw->SetMaxSize( wxSize( -1, 10000 ) );
-  
-  MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->AddListener( this );
-
-  UpdateUI( true );
+    m_wndConfigureOverlay = new WindowConfigureOverlay( this );
+    m_wndConfigureOverlay->hide();
+    connect( mainwnd->GetLayerCollection("Surface"), SIGNAL(ActiveLayerChanged(Layer*)),
+             m_wndConfigureOverlay, SLOT(OnActiveSurfaceChanged(Layer*)));
 }
 
 PanelSurface::~PanelSurface()
-{}
-
-void PanelSurface::DoListenToMessage( std::string const iMsg, void* iData, void* sender )
 {
-// MainWindow* mainwnd = MainWindow::GetMainWindow();
-// LayerCollection* lc = mainwnd->GetLayerCollection();
-  if ( iMsg == "LayerAdded" )
-  {
-    Layer* layer = ( Layer* )iData;
-    if ( layer && layer->IsTypeOf( "Surface" ) )
-    {
-      m_listBoxLayers->Insert( wxString::FromAscii( layer->GetName() ), 0, (void*)layer );
-      m_listBoxLayers->Check( 0 );
-      m_listBoxLayers->SetSelection( 0 );
-    }
-
-    UpdateUI();
-  }
-  else if ( iMsg == "LayerMoved" || iMsg == "LayerNameChanged" )
-  {
-    Layer* layer = ( Layer* )iData;
-    if ( layer && layer->IsTypeOf( "Surface" ) )
-    {
-      UpdateLayerList( layer );
-    }
-  }
-  else if ( iMsg == "LayerModified" || iMsg == "LayerActorUpdated" )
-  {
-    UpdateUI();
-  }
+    delete ui;
 }
 
-void PanelSurface::OnLayerSelectionChanged( wxCommandEvent& event )
+void PanelSurface::ConnectLayer( Layer* layer_in )
 {
-  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
-  {
-    LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
-    lc->SetActiveLayer( ( Layer* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() ) );
-  }
-  UpdateUI();
-}
+  PanelLayer::ConnectLayer( layer_in );
 
-void PanelSurface::UpdateUI( bool bForce )
-{
-  if ( bForce )
-    DoUpdateUI();
-  else
-    m_bUINeedUpdate = true;
-}
-
-void PanelSurface::DoUpdateUI()
-{
-  if ( !IsShown() )
+  LayerSurface* layer = qobject_cast<LayerSurface*>(layer_in);
+  if ( !layer )
     return;
-  
-  bool bHasSurface = ( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
-  wxWindowList children = XRCCTRL( *this, "ID_SCROLL_WINDOW", wxScrolledWindow )->GetChildren();
-  wxWindowList::iterator it = children.begin(), end = children.end();
-  for (; it != end; it++)
-  {
-    if ( !(*it)->IsKindOf(CLASSINFO(wxToolBar) ) && *it != m_listBoxLayers )
-      (*it)->Enable( bHasSurface );
-  }
 
-  LayerSurface* layer = NULL;
-  FSSurface* surf = NULL;
-  if ( bHasSurface )
-  {
-    LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
-    for ( int i = 0; i < (int)m_listBoxLayers->GetCount() && i < lc->GetNumberOfLayers(); i++ )
-      m_listBoxLayers->Check( i, lc->GetLayer( i )->IsVisible() );
-    layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+  LayerPropertySurface* p = layer->GetProperty();
+  connect( p, SIGNAL(PropertyChanged()), this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( layer, SIGNAL(SurfaceAnnotationAdded(SurfaceAnnotation*)),
+           this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( layer, SIGNAL(SurfaceLabelAdded(SurfaceLabel*)),
+           this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( layer, SIGNAL(SurfaceAnnotationAdded(SurfaceAnnotation*)),
+           this, SLOT(UpdateWidgets()), Qt::UniqueConnection );
+  connect( layer, SIGNAL(SurfaceCurvatureLoaded()), this, SLOT(UpdateWidgets()) );
+  connect( layer, SIGNAL(SurfaceVectorLoaded()), this, SLOT(UpdateWidgets()) );
+  connect( layer, SIGNAL(SurfaceOverlayAdded(SurfaceOverlay*)), this, SLOT(UpdateWidgets()) );
+  connect( ui->doubleSpinBoxOpacity, SIGNAL(valueChanged(double)), p, SLOT(SetOpacity(double)) );
+  connect( ui->checkBoxShowInfo, SIGNAL(toggled(bool)), p, SLOT(SetShowInfo(bool)) );
+  connect( ui->checkBoxShowVertices, SIGNAL(toggled(bool)), p, SLOT(ShowVertices(bool)) );
+  connect( ui->colorpickerEdgeColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetEdgeColor(QColor)) );
+  connect( ui->colorpickerVectorColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetVectorColor(QColor)) );
+  connect( ui->colorpickerSurfaceColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetBinaryColor(QColor)) );
+  connect( ui->colorpickerVertexColor, SIGNAL(colorChanged(QColor)), p, SLOT(SetVertexColor(QColor)) );
+  connect( ui->comboBoxMeshColor, SIGNAL(currentIndexChanged(int)), p, SLOT(SetMeshColorMap(int)) );
+  connect( ui->comboBoxRender, SIGNAL(currentIndexChanged(int)), p, SLOT(SetSurfaceRenderMode(int)) );
+  connect( ui->spinBoxEdgeThickness, SIGNAL(valueChanged(int)), p, SLOT(SetEdgeThickness(int)) );
+  connect( ui->spinBoxVectorPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVectorPointSize(int)) );
+  connect( ui->spinBoxVertexPointSize, SIGNAL(valueChanged(int)), p, SLOT(SetVertexPointSize(int)) );
+}
+
+void PanelSurface::DoIdle()
+{
+  // update action status
+  BlockAllSignals( true );
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  FSSurface* surf = ( layer ? layer->GetSourceSurface() : NULL );
+  ui->actionLockLayer->setEnabled( layer );
+  ui->actionLockLayer->setChecked( layer && layer->IsLocked() );
+  ui->actionSurfaceMain->setEnabled( layer );
+  ui->actionSurfaceMain->setChecked( layer && layer->GetActiveSurface() == FSSurface::SurfaceMain );
+  ui->actionSurfaceInflated->setEnabled( surf && surf->IsSurfaceLoaded( FSSurface::SurfaceInflated ) );
+  ui->actionSurfaceInflated->setChecked( layer && layer->GetActiveSurface() == FSSurface::SurfaceInflated );
+  ui->actionSurfaceOriginal->setEnabled( surf && surf->IsSurfaceLoaded( FSSurface::SurfaceOriginal ) );
+  ui->actionSurfaceOriginal->setChecked( layer && layer->GetActiveSurface() == FSSurface::SurfaceOriginal );
+  ui->actionSurfaceWhite->setEnabled( surf && surf->IsSurfaceLoaded( FSSurface::SurfaceWhite ) );
+  ui->actionSurfaceWhite->setChecked( layer && layer->GetActiveSurface() == FSSurface::SurfaceWhite );
+  ui->actionSurfacePial->setEnabled( surf && surf->IsSurfaceLoaded( FSSurface::SurfacePial ) );
+  ui->actionSurfacePial->setChecked( layer && layer->GetActiveSurface() == FSSurface::SurfacePial );
+  BlockAllSignals( false );
+}
+
+void PanelSurface::DoUpdateWidgets()
+{
+    BlockAllSignals( true );
+    for ( int i = 0; i < ui->treeWidgetLayers->topLevelItemCount(); i++ )
+    {
+        QTreeWidgetItem* item = ui->treeWidgetLayers->topLevelItem( i );
+        Layer* layer = qobject_cast<Layer*>( item->data(0, Qt::UserRole).value<QObject*>() );
+        if ( layer )
+        {
+            item->setCheckState( 0, (layer->IsVisible() ? Qt::Checked : Qt::Unchecked) );
+        }
+    }
+
+    LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+    for ( int i = 0; i < this->allWidgets.size(); i++ )
+    {
+        if ( allWidgets[i] != ui->toolbar && allWidgets[i]->parentWidget() != ui->toolbar )
+            allWidgets[i]->setEnabled(layer);
+    }
+    FSSurface* surf = NULL;
+    ui->lineEditFileName->clear();
     if ( layer )
     {
-      m_sliderOpacity->SetValue( (int)( layer->GetProperties()->GetOpacity() * 100 ) );
-      UpdateTextValue( m_textOpacity, layer->GetProperties()->GetOpacity() );
-      double* rgb = layer->GetProperties()->GetBinaryColor();
-      m_colorPicker->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
-      rgb = layer->GetProperties()->GetEdgeColor();
-      m_colorPickerEdge->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
-      rgb = layer->GetProperties()->GetVectorColor();
-      m_colorPickerVector->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
-      m_textFileName->ChangeValue( wxString::FromAscii( layer->GetFileName() ) );
-      m_textFileName->SetInsertionPointEnd();
-      m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
-      m_spinEdgeThickness->SetValue( layer->GetProperties()->GetEdgeThickness() );
-      m_spinVectorPointSize->SetValue( layer->GetProperties()->GetVectorPointSize() );
+      ui->sliderOpacity->setValue( (int)( layer->GetProperty()->GetOpacity() * 100 ) );
+      ChangeDoubleSpinBoxValue( ui->doubleSpinBoxOpacity, layer->GetProperty()->GetOpacity() );
 
-      m_choiceCurvatureMap->SetSelection( layer->GetProperties()->GetCurvatureMap() );
+      double* rgb = layer->GetProperty()->GetBinaryColor();
+      ui->colorpickerSurfaceColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+      rgb = layer->GetProperty()->GetEdgeColor();
+      ui->colorpickerEdgeColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+      rgb = layer->GetProperty()->GetVectorColor();
+      ui->colorpickerVectorColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+      ui->lineEditFileName->setText( MyUtils::Win32PathProof(layer->GetFileName()) );
+      ui->lineEditFileName->setCursorPosition( ui->lineEditFileName->text().size() );
+      ui->spinBoxEdgeThickness->setValue( layer->GetProperty()->GetEdgeThickness() );
+      ui->spinBoxVectorPointSize->setValue( layer->GetProperty()->GetVectorPointSize() );
 
-      UpdateTextValue( m_textMidPoint,  layer->GetProperties()->GetThresholdMidPoint()  );
-      UpdateTextValue( m_textSlope,   layer->GetProperties()->GetThresholdSlope()  );
+      ui->comboBoxCurvature->setCurrentIndex( layer->GetProperty()->GetCurvatureMap() );
+      ChangeLineEditNumber( ui->lineEditMidPoint, layer->GetProperty()->GetThresholdMidPoint() );
+      ChangeLineEditNumber( ui->lineEditSlope, layer->GetProperty()->GetThresholdSlope() );
       double range[2];
       layer->GetCurvatureRange( range );
-      m_sliderMidPoint->SetValue( (int) ( ( layer->GetProperties()->GetThresholdMidPoint() - range[0] ) / ( range[1] - range[0] ) * 100 ) );
-      m_sliderSlope->SetValue( (int) ( layer->GetProperties()->GetThresholdSlope() ) );
+      ui->sliderMidPoint->setValue( (int) ( ( layer->GetProperty()->GetThresholdMidPoint() - range[0] ) / ( range[1] - range[0] ) * 100 ) );
+      ui->sliderSlope->setValue( (int) ( layer->GetProperty()->GetThresholdSlope() ) );
 
-      surf = layer->GetSourceSurface();     
-       
-      m_choiceRenderMode->SetSelection( layer->GetProperties()->GetSurfaceRenderMode() );
-      m_choiceMeshColorMap->SetSelection( layer->GetProperties()->GetMeshColorMap() );
-      m_checkShowVertices->SetValue( layer->GetProperties()->GetShowVertices() );
-      rgb = layer->GetProperties()->GetVertexColor();
-      m_colorPickerVertex->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );     
-      m_spinVertexPointSize->SetValue( layer->GetProperties()->GetVertexPointSize() );
-      
-      double* dPos = layer->GetProperties()->GetPosition();
-      wxString value_strg = ( (wxString)_("") << dPos [0] << _(" ") << dPos[1] << _(" ") << dPos[2] );
-      m_textPosition->ChangeValue( value_strg );
-      
-      m_checkHideInfo->SetValue( !layer->GetProperties()->GetShowInfo() );
+      surf = layer->GetSourceSurface();
+      ui->comboBoxRender->setCurrentIndex( layer->GetProperty()->GetSurfaceRenderMode() );
+      ui->comboBoxMeshColor->setCurrentIndex( layer->GetProperty()->GetMeshColorMap() );
+      ui->checkBoxShowVertices->setChecked( layer->GetProperty()->GetShowVertices() );
+      rgb = layer->GetProperty()->GetVertexColor();
+      ui->colorpickerVertexColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
+      ChangeSpinBoxValue( ui->spinBoxVertexPointSize, layer->GetProperty()->GetVertexPointSize() );
+
+      double* dPos = layer->GetProperty()->GetPosition();
+      ChangeLineEditText( ui->lineEditPositionOffset, QString("%1 %2 %3").arg(dPos[0]).arg(dPos[1]).arg(dPos[2]) );
+      ui->checkBoxShowInfo->setChecked( layer->GetProperty()->GetShowInfo() );
     }
 
-    lc->SetActiveLayer( ( Layer* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() ) );
-  }
-
-  m_choiceVector->Clear();
-  m_choiceVector->Append( _("Off") );
-  if ( surf )
-  {
-    for ( int i = 0; i < surf->GetNumberOfVectorSets(); i++ )
+    // update vector controls
+    ui->comboBoxVectorDisplay->clear();
+    ui->comboBoxVectorDisplay->addItem( "Off" );
+    if ( surf )
     {
-      m_choiceVector->Append( wxString::FromAscii( surf->GetVectorSetName( i ) ) );
-    }
-  }
-  m_choiceVector->Append( _("Load vector data...") );
-  m_choiceVector->SetSelection( surf ? 1 + surf->GetActiveVector() : 0 );
-  
-  // update overlay controls
-  m_choiceOverlay->Clear();
-  m_choiceOverlay->Append( _("Off") );
-  if ( layer )
-  {
-    for ( int i = 0; i < layer->GetNumberOfOverlays(); i++ )
-    {
-      m_choiceOverlay->Append( wxString::FromAscii( layer->GetOverlay( i )->GetName() ) );
-    }
-  }
-  m_choiceOverlay->Append( _("Load from file...") );
-  m_choiceOverlay->SetSelection( layer ? 1 + layer->GetActiveOverlayIndex() : 0 );
-  
-  m_btnOverlayConfiguration->Show( layer && layer->GetActiveOverlayIndex() >= 0 );
-  
-  // update annotation controls
-  m_choiceAnnotation->Clear();
-  m_choiceAnnotation->Append( _("Off") );
-  if ( layer )
-  {
-    for ( int i = 0; i < layer->GetNumberOfAnnotations(); i++ )
-    {
-      m_choiceAnnotation->Append( wxString::FromAscii( layer->GetAnnotation( i )->GetName() ) );
-    }
-  }
-  m_choiceAnnotation->Append( _("Load from file...") );
-  m_choiceAnnotation->SetSelection( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
-  
-  // update label controls
-  m_choiceLabel->Clear();
-  if ( layer )
-  {
-    if ( layer->GetNumberOfLabels() > 0 )
-    {
-      for ( int i = 0; i < layer->GetNumberOfLabels(); i++ )
+      for ( int i = 0; i < surf->GetNumberOfVectorSets(); i++ )
       {
-        m_choiceLabel->Append( wxString::FromAscii( layer->GetLabel( i )->GetName() ) );
+        ui->comboBoxVectorDisplay->addItem( surf->GetVectorSetName( i ) );
       }
     }
-    else
-      m_choiceLabel->Append( _("None") );
-  }
-  m_choiceLabel->Append( _("Load from file...") );
-  if ( layer && layer->GetActiveLabelIndex() >= 0 )
-    m_choiceLabel->SetSelection( layer->GetActiveLabelIndex() );
-  else
-    m_choiceLabel->SetSelection( 0 );  
-  if ( layer && layer->GetActiveLabel() )
-  {
-    double* rgb = layer->GetActiveLabel()->GetColor();
-    m_colorPickerLabel->SetColour( wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );  
-  }   
+    ui->comboBoxVectorDisplay->addItem( "Load vector data..." );
+    ui->comboBoxVectorDisplay->setCurrentIndex( surf ? 1 + surf->GetActiveVector() : 0 );
 
-  int nCurvatureMap = layer ? layer->GetProperties()->GetCurvatureMap() : 0;
-  for ( size_t i = 0; i < m_widgetsMidPoint.size(); i++ )
-  {
-    m_widgetsMidPoint[i]->Show( nCurvatureMap != LayerPropertiesSurface::CM_Off );
-  }
-  for ( size_t i = 0; i < m_widgetsSlope.size(); i++ )
-  {
-    m_widgetsSlope[i]->Show( nCurvatureMap == LayerPropertiesSurface::CM_Threshold );
-  }
-  for ( size_t i = 0; i < m_widgetsVector.size(); i++ )
-  {
-    m_widgetsVector[i]->Show( m_choiceVector->GetSelection() > 0 );
-  }
-  for ( size_t i = 0; i < m_widgetsVertex.size(); i++ )
-  {
-    m_widgetsVertex[i]->Show( m_checkShowVertices->GetValue() );
-  }
-  for ( size_t i = 0; i < m_widgetsMesh.size(); i++ )
-  {
-    m_widgetsMesh[i]->Show( layer && layer->GetProperties()->GetSurfaceRenderMode() != LayerPropertiesSurface::SM_Surface );
-  }
-  for ( size_t i = 0; i < m_widgetsLabel.size(); i++ )
-  {
-    m_widgetsLabel[i]->Show( layer && layer->GetActiveLabelIndex() >= 0 );
-  }
-  m_colorPicker->Enable( layer ); // && nCurvatureMap != LayerPropertiesSurface::CM_Threshold );
-
-  // hack to force resize of these controls in scrolled window
-  for ( size_t i = 0; i < m_widgetsResize.size(); i++ )
-  {
-    wxSize sz = m_widgetsResize[i]->GetMinSize();
-    m_widgetsResize[i]->SetMinSize( wxSize( 100, sz.GetHeight() ) );
-  }
- 
-  Layout();
-}
-
-void PanelSurface::UpdateTextValue( wxTextCtrl* ctrl, double dvalue )
-{
-  wxString value_strg = ( (wxString)_("") << dvalue );
-  if ( value_strg != ctrl->GetValue() && (value_strg + _(".")) != ctrl->GetValue() )
-    ctrl->ChangeValue( value_strg );
-}
-
-void PanelSurface::OnLayerVisibilityChanged( wxCommandEvent& event )
-{
-  int nItem = event.GetInt();
-  Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nItem );
-  if ( layer )
-  {
-    layer->SetVisible( m_listBoxLayers->IsChecked( nItem ) );
-  }
-}
-
-/*
-void PanelSurface::OnButtonMoveUp( wxCommandEvent& event )
-{
- LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
- int nSel = m_listBoxLayers->GetSelection();
- if ( lc && nSel != wxNOT_FOUND )
- {
-  Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
-
-  if ( layer )
-   lc->MoveLayerUp( layer );
- }
-}
-
-void PanelSurface::OnButtonMoveDown( wxCommandEvent& event )
-{
- LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
- int nSel = m_listBoxLayers->GetSelection();
- if ( lc && nSel != wxNOT_FOUND )
- {
-  Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );
-
-  if ( layer )
-   lc->MoveLayerDown( layer );
- }
-}
-*/
-
-void PanelSurface::OnSurfaceLock( wxCommandEvent& event )
-{
-  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
-  {
-    LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
+    // update overlay controls
+    ui->comboBoxOverlay->clear();
+    ui->comboBoxOverlay->addItem( "Off" );
     if ( layer )
     {
-      layer->Lock( event.IsChecked() );
+      for ( int i = 0; i < layer->GetNumberOfOverlays(); i++ )
+      {
+        ui->comboBoxOverlay->addItem( layer->GetOverlay( i )->GetName() );
+      }
     }
-  }
-}
+    ui->comboBoxOverlay->addItem( "Load generic..." );
+    ui->comboBoxOverlay->addItem( "Load correlation..." );
+    ui->comboBoxOverlay->setCurrentIndex( layer ? 1 + layer->GetActiveOverlayIndex() : 0 );
+    ui->pushButtonConfigureOverlay->setVisible( layer && layer->GetActiveOverlayIndex() >= 0 );
+    if ( ui->comboBoxOverlay->currentIndex() == 0 )
+        this->m_wndConfigureOverlay->hide();
 
-void PanelSurface::OnSurfaceLockUpdateUI( wxUpdateUIEvent& event )
-{
-  event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
-  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
-  {
-    LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    event.Check( layer && layer->IsLocked() );
-  }
-}
-
-void PanelSurface::OnSurfaceClose( wxCommandEvent& event )
-{
-  LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
-  int nSel = m_listBoxLayers->GetSelection();
-  if ( lc && nSel != wxNOT_FOUND )
-  {
-    Layer* layer = ( Layer* )( void* )m_listBoxLayers->GetClientData( nSel );    
-
-    m_listBoxLayers->Delete( nSel );   
-
-    if ( (int)m_listBoxLayers->GetCount() > nSel )
-      m_listBoxLayers->SetSelection( nSel );
-    else if ( nSel >= 1 )
-      m_listBoxLayers->SetSelection( nSel - 1 );        
-
+    // update annotation controls
+    ui->comboBoxAnnotation->clear();
+    ui->comboBoxAnnotation->addItem( "Off" );
     if ( layer )
-      lc->RemoveLayer( layer );
-
-    UpdateUI();
-  }
-}
-
-void PanelSurface::OnSurfaceCloseUpdateUI( wxUpdateUIEvent& event )
-{
-  event.Enable( m_listBoxLayers->GetSelection() != wxNOT_FOUND );
-}
-
-void PanelSurface::UpdateLayerList( Layer* layer )
-{
-  LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" );
-  int nIndex = lc->GetLayerIndex( layer );
-  std::vector<Layer*> layers = lc->GetLayers();
-  if ( nIndex != -1 )
-  {
-    m_listBoxLayers->Clear();
-    int nSel = 0;
-    for ( size_t i = 0; i < layers.size(); i++ )
     {
-      m_listBoxLayers->Append( wxString::FromAscii( layers[i]->GetName() ), layers[i] );
-      m_listBoxLayers->Check( i, layers[i]->IsVisible() );
-      if ( lc->GetActiveLayer() == layers[i] )
-        nSel = i;
+      for ( int i = 0; i < layer->GetNumberOfAnnotations(); i++ )
+      {
+        ui->comboBoxAnnotation->addItem( layer->GetAnnotation( i )->GetName() );
+      }
     }
-    m_listBoxLayers->SetSelection( nSel );
+    ui->comboBoxAnnotation->addItem( "Load from file..." );
+    ui->comboBoxAnnotation->setCurrentIndex( layer ? 1 + layer->GetActiveAnnotationIndex() : 0 );
 
-    UpdateUI();
-  }
-}
-
-void PanelSurface::OnInternalIdle()
-{
-  if ( m_bUINeedUpdate )
-  {
-    DoUpdateUI();
-    m_bUINeedUpdate = false;
-  }
-  wxPanel::OnInternalIdle();
-}
-
-void PanelSurface::OnColorChanged( wxColourPickerEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    wxColour c = event.GetColour();
-    surf->GetProperties()->SetBinaryColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
-  }
-}
-
-void PanelSurface::OnEdgeColorChanged( wxColourPickerEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    wxColour c = event.GetColour();
-    surf->GetProperties()->SetEdgeColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
-  }
-}
-
-void PanelSurface::OnSpinEdgeThickness( wxSpinEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    surf->GetProperties()->SetEdgeThickness( event.GetInt() );
-  }
-}
-
-void PanelSurface::OnCheckShowVertices( wxCommandEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    surf->GetProperties()->ShowVertices( event.IsChecked() );
-  }
-}
-
-
-void PanelSurface::OnColorVertex( wxColourPickerEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    wxColour c = event.GetColour();
-    surf->GetProperties()->SetVertexColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
-  }
-}
-
-
-void PanelSurface::OnSpinVertexPointSize( wxSpinEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    surf->GetProperties()->SetVertexPointSize( event.GetInt() );
-  }
-}
-
-
-void PanelSurface::OnChoiceVector( wxCommandEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    int nVector = event.GetSelection() - 1;
-    if ( nVector < surf->GetNumberOfVectorSets() )
-      surf->SetActiveVector( nVector );
+    // update label controls
+    ui->comboBoxLabel->clear();
+    if ( layer )
+    {
+      if ( layer->GetNumberOfLabels() > 0 )
+      {
+        for ( int i = 0; i < layer->GetNumberOfLabels(); i++ )
+        {
+          ui->comboBoxLabel->addItem( layer->GetLabel( i )->GetName() );
+        }
+      }
+      else
+        ui->comboBoxLabel->addItem( "None" );
+    }
+    ui->comboBoxLabel->addItem( "Load from file..." );
+    if ( layer && layer->GetActiveLabelIndex() >= 0 )
+      ui->comboBoxLabel->setCurrentIndex( layer->GetActiveLabelIndex() );
     else
+      ui->comboBoxLabel->setCurrentIndex( 0 );
+    if ( layer && layer->GetActiveLabel() )
     {
-      // load new
-      MainWindow::GetMainWindowPointer()->LoadSurfaceVector();
-      UpdateUI();
+      double* rgb = layer->GetActiveLabel()->GetColor();
+      ui->colorpickerLabelColor->setCurrentColor( QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) ) );
     }
-  }
+
+    int nCurvatureMap = layer ? layer->GetProperty()->GetCurvatureMap() : 0;
+    ShowWidgets( m_widgetsMidPoint, nCurvatureMap != LayerPropertySurface::CM_Off );
+    ShowWidgets( m_widgetsSlope,    nCurvatureMap == LayerPropertySurface::CM_Threshold );
+    ShowWidgets( m_widgetsVector,   ui->comboBoxVectorDisplay->currentIndex() > 0 );
+    ShowWidgets( m_widgetsVertex,   ui->checkBoxShowVertices->isChecked() );
+    ShowWidgets( m_widgetsMesh,     layer && layer->GetProperty()->GetSurfaceRenderMode() != LayerPropertySurface::SM_Surface );
+    ShowWidgets( m_widgetsLabel,    layer && layer->GetActiveLabelIndex() >= 0 );
+    ui->colorpickerSurfaceColor->setEnabled( layer ); // && nCurvatureMap != LayerPropertySurface::CM_Threshold );
+
+    BlockAllSignals( false );
 }
 
-void PanelSurface::OnSpinVectorPointSize( wxSpinEvent& event )
+void PanelSurface::OnChangeSurfaceType( QAction* act )
 {
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  if ( layer )
+    layer->SetActiveSurface( act->data().toInt() );
+}
+
+void PanelSurface::OnSliderOpacity( int nVal )
+{
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  if ( layer )
+    layer->GetProperty()->SetOpacity( nVal / 100.0 );
+}
+
+void PanelSurface::OnSliderMidPoint( int nVal )
+{
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  if ( layer )
   {
-    surf->GetProperties()->SetVectorPointSize( event.GetInt() );
+    double range[2];
+    layer->GetCurvatureRange( range );
+    layer->GetProperty()->SetThresholdMidPoint( nVal / 100.0 * ( range[1] - range[0] ) + range[0] );
   }
 }
 
-void PanelSurface::OnVectorColorChanged( wxColourPickerEvent& event )
+void PanelSurface::OnSliderSlope( int nVal )
 {
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    wxColour c = event.GetColour();
-    surf->GetProperties()->SetVectorColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
-  }
-}
-
-void PanelSurface::OnChoiceCurvatureMap( wxCommandEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    if ( event.GetSelection() < 3 )
-      surf->GetProperties()->SetCurvatureMap( event.GetSelection() );
-    else
-    {
-      // load new curvature maps
-      MainWindow::GetMainWindowPointer()->LoadSurfaceCurvature();
-    }
-    UpdateUI();
-  }
-}
-
-void PanelSurface::OnTextMidPoint( wxCommandEvent& event )
-{
-  double dvalue;
-  if ( m_textMidPoint->GetValue().ToDouble( &dvalue ) )
-  {
-    LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer && layer->GetProperties()->GetThresholdMidPoint() != dvalue )
-    {
-      layer->GetProperties()->SetThresholdMidPoint( dvalue );
-    }
-  }
-}
-
-void PanelSurface::OnSliderSlope( wxScrollEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  if ( layer )
   {
     double fMin = 0;
     double fMax = 100;
-    surf->GetProperties()->SetThresholdSlope( (double)m_sliderSlope->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
+    layer->GetProperty()->SetThresholdSlope( nVal / 100.0 * ( fMax - fMin ) + fMin );
   }
 }
 
-void PanelSurface::OnTextSlope( wxCommandEvent& event )
+void PanelSurface::OnComboCurvature( int nSel )
 {
-  double dvalue;
-  if ( m_textSlope->GetValue().ToDouble( &dvalue ) )
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  if ( layer )
   {
-    LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer && layer->GetProperties()->GetThresholdSlope() != dvalue )
-    {
-      layer->GetProperties()->SetThresholdSlope( dvalue );
-    }
-  }
+    if ( nSel < 3 )
+       layer->GetProperty()->SetCurvatureMap( nSel );
+     else
+     {
+       // load new curvature maps
+       MainWindow::GetMainWindow()->LoadSurfaceCurvature();
+     }
+   }
 }
 
-void PanelSurface::OnSliderMidPointChanging( wxScrollEvent& event )
+void PanelSurface::OnLineEditMidPoint( const QString& text )
 {
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {  
-    double range[2];
-    surf->GetCurvatureRange( range );
-    UpdateTextValue( m_textMidPoint, (double)m_sliderMidPoint->GetValue() / 100.0 * ( range[1] - range[0] ) + range[0] );
-  }
-}
-
-void PanelSurface::OnSliderMidPoint( wxScrollEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  bool bOK;
+  double dval = text.toDouble( &bOK );
+  if ( layer && dval && dval != layer->GetProperty()->GetThresholdMidPoint() )
   {
-    double range[2];
-    surf->GetCurvatureRange( range );
-    surf->GetProperties()->SetThresholdMidPoint( (double)m_sliderMidPoint->GetValue() / 100.0 * ( range[1] - range[0] ) + range[0] );
+    layer->GetProperty()->SetThresholdMidPoint( dval );
   }
 }
 
-void PanelSurface::OnSliderSlopeChanging( wxScrollEvent& event )
+void PanelSurface::OnLineEditSlope( const QString& text )
 {
-  double fMin = 0;
-  double fMax = 100;
-  UpdateTextValue( m_textSlope, (double)m_sliderSlope->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
-}
-
-
-void PanelSurface::OnSliderOpacity( wxScrollEvent& event )
-{
-  if ( m_listBoxLayers->GetSelection() != wxNOT_FOUND )
+  LayerSurface* layer = GetCurrentLayer<LayerSurface*>();
+  bool bOK;
+  double dval = text.toDouble( &bOK );
+  if ( layer && dval && dval != layer->GetProperty()->GetThresholdSlope() )
   {
-    LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer )
-      layer->GetProperties()->SetOpacity( event.GetPosition() / 100.0 );
+    layer->GetProperty()->SetThresholdSlope( dval );
   }
 }
 
-void PanelSurface::OnSliderOpacityChanging( wxScrollEvent& event )
+void PanelSurface::OnComboOverlay( int nSel_in )
 {
-  double fMin = 0;
-  double fMax = 1;
-  UpdateTextValue( m_textOpacity, (double)m_sliderOpacity->GetValue() / 100.0 * ( fMax - fMin ) + fMin );
-}
-
-void PanelSurface::OnTextOpacity( wxCommandEvent& event )
-{
-  double dvalue;
-  if ( m_textOpacity->GetValue().ToDouble( &dvalue ) )
-  {
-    LayerSurface* layer = ( LayerSurface* )( void* )m_listBoxLayers->GetClientData( m_listBoxLayers->GetSelection() );
-    if ( layer && layer->GetProperties()->GetOpacity() != dvalue )
-    {
-      layer->GetProperties()->SetOpacity( dvalue );
-    }
-  }
-}
-
-void PanelSurface::OnButtonConfigureOverlay( wxCommandEvent& event )
-{
-  MainWindow::GetMainWindowPointer()->ConfigureOverlay();
-}
-
-void PanelSurface::OnChoiceOverlay( wxCommandEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if ( surf )
   {
-    int nSel = event.GetSelection() - 1;
+    int nSel = nSel_in - 1;
     if ( nSel < surf->GetNumberOfOverlays() )
     {
       surf->SetActiveOverlay( nSel );
     }
-    else 
+    else
     {
-      // load new overlay map
-       MainWindow::GetMainWindowPointer()->LoadSurfaceOverlay();
+       // load new overlay map
+       MainWindow::GetMainWindow()->LoadSurfaceOverlay(nSel > surf->GetNumberOfOverlays());
     }
-
-    UpdateUI();
-  }  
+    UpdateWidgets();
+  }
 }
 
-void PanelSurface::OnChoiceRenderMode( wxCommandEvent& event )
+void PanelSurface::OnComboAnnotation( int nSel_in )
 {
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if ( surf )
   {
-    surf->GetProperties()->SetSurfaceRenderMode( event.GetSelection() );
-  }  
-}
-
-
-void PanelSurface::OnChoiceMeshColorMap( wxCommandEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    surf->GetProperties()->SetMeshColorMap( event.GetSelection() );
-  }  
-}
-
-
-void PanelSurface::OnChoiceAnnotation( wxCommandEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    int nSel = event.GetSelection() - 1;
+    int nSel = nSel_in - 1;
     if ( nSel < surf->GetNumberOfAnnotations() )
     {
       surf->SetActiveAnnotation( nSel );
@@ -793,67 +374,70 @@ void PanelSurface::OnChoiceAnnotation( wxCommandEvent& event )
     else
     {
       // load new overlay map
-      MainWindow::GetMainWindowPointer()->LoadSurfaceAnnotation();
+      MainWindow::GetMainWindow()->LoadSurfaceAnnotation();
     }
-    UpdateUI();
-  }  
+    UpdateWidgets();
+  }
 }
 
-void PanelSurface::OnChoiceLabel( wxCommandEvent& event )
+void PanelSurface::OnComboLabel( int nSel )
 {
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
   if ( surf )
   {
-    int nSel = event.GetSelection();
     if ( nSel >= surf->GetNumberOfLabels() )
     {
-      MainWindow::GetMainWindowPointer()->LoadSurfaceLabel();
+      MainWindow::GetMainWindow()->LoadSurfaceLabel();
     }
     else
     {
       surf->SetActiveLabel( nSel );
     }
-    UpdateUI();
-  }  
-}
-
-void PanelSurface::OnLabelColorChanged( wxColourPickerEvent& event )
-{
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    wxColour c = event.GetColour();
-    surf->GetActiveLabel()->SetColor( c.Red()/255.0, c.Green()/255.0, c.Blue()/255.0 );
+    UpdateWidgets();
   }
 }
 
-void PanelSurface::OnTextPosition( wxCommandEvent& event )
+void PanelSurface::OnComboVector( int nSel )
 {
-  wxArrayString sa = MyUtils::SplitString( m_textPosition->GetValue(), _(",") );
-  if ( sa.Count() < 3 )
-    sa = MyUtils::SplitString( m_textPosition->GetValue(), _(" ") );
-  
-  double pos[3];
-  if ( sa.Count() < 3 || !sa[0].ToDouble( pos ) || !sa[1].ToDouble( pos+1 ) || !sa[2].ToDouble( pos+2 ) )
+  LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+  if ( surf )
   {
-    cerr << "Please enter 3 numbers." << endl;
-    return;
+    int nVector = nSel - 1;
+    if ( nVector < surf->GetNumberOfVectorSets() )
+      surf->SetActiveVector( nVector );
+    else
+    {
+      // load new
+      MainWindow::GetMainWindow()->LoadSurfaceVector();
+    }
+    UpdateWidgets();
   }
-      
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    surf->GetProperties()->SetPosition( pos );
-    UpdateUI();
-  }  
 }
 
-void PanelSurface::OnCheckHideInfo( wxCommandEvent& event )
+void PanelSurface::OnButtonConfigureOverlay()
 {
-  LayerSurface* surf = ( LayerSurface* )MainWindow::GetMainWindowPointer()->GetLayerCollection( "Surface" )->GetActiveLayer();
-  if ( surf )
-  {
-    surf->GetProperties()->SetShowInfo( !event.IsChecked() );
-  }  
+    m_wndConfigureOverlay->show();
 }
 
+void PanelSurface::OnEditPositionOffset()
+{
+    LayerSurface* surf = GetCurrentLayer<LayerSurface*>();
+    if ( surf )
+    {
+        QStringList args = ui->lineEditPositionOffset->text().trimmed().split(" ", QString::SkipEmptyParts);
+        args << "n/a" << "n/a" << "n/a";
+        bool bOK;
+        double pos[3];
+        pos[0] = args[0].toDouble(&bOK);
+        if (bOK)
+            pos[1] = args[1].toDouble(&bOK);
+        if (bOK)
+            pos[2] = args[2].toDouble(&bOK);
+        if (bOK)
+        {
+            surf->GetProperty()->SetPosition( pos );
+        }
+        else
+            QMessageBox::information(this, "Error", "Please enter 3 values for position offset.");
+    }
+}

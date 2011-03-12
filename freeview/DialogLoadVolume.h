@@ -1,88 +1,53 @@
-/**
- * @file  DialogLoadVolume.h
- * @brief Dialog to load volume data.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.14 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-#ifndef DialogLoadVolume_h
-#define DialogLoadVolume_h
+#ifndef DIALOGLOADVOLUME_H
+#define DIALOGLOADVOLUME_H
 
-#include <wx/wx.h>
+#include <QDialog>
+#include <QStringList>
 
-class wxButton;
-class wxComboBox;
-class wxTextCtrl;
-class wxRadioButton;
+namespace Ui {
+    class DialogLoadVolume;
+}
 
-class DialogLoadVolume : public wxDialog
+class DialogLoadVolume : public QDialog
 {
+    Q_OBJECT
+
 public:
-  DialogLoadVolume( wxWindow* parent, bool bEnableResample = true );
-  virtual ~DialogLoadVolume();
+    explicit DialogLoadVolume(QWidget *parent = 0);
+    ~DialogLoadVolume();
 
-  wxArrayString GetVolumeFileNames();
+    QStringList GetVolumeFileNames();
 
-  wxString GetRegFileName();
+    QString GetRegFileName();
 
-  bool IsToResample();
-  
-  int GetSampleMethod();
+    bool IsToResample();
 
-  void OnOK( wxCommandEvent& event );
+    int GetSampleMethod();
 
-  void SetLastDir( const wxString& dir )
-  {
-    m_strLastDir = dir;
-  }
+    QString GetColorMap();
 
-  void SetRecentFiles( const wxArrayString& list );
-  
-  wxString GetColorMap();
-  wxString GetLUT();
+    QString GetLUT();
 
-protected:
-  void OnButtonOpen           ( wxCommandEvent& event );
-  void OnFileSelectionChanged ( wxCommandEvent& event );
-  void OnButtonRegFile        ( wxCommandEvent& event );
-  void OnCheckApplyReg        ( wxCommandEvent& event );
-  void OnChoiceColorMap       ( wxCommandEvent& event );
-  void OnChoiceLUT            ( wxCommandEvent& event );
-  
-  void UpdateLUT();
+    void SetLastDir( const QString& dir )
+    {
+        m_strLastDir = dir;
+    }
 
-  wxButton*     m_btnOpen;
-  wxComboBox*   m_comboFileName;
-  wxCheckBox*   m_checkResample;
-  wxCheckBox*   m_checkApplyReg;
-  wxTextCtrl*   m_textRegFile;
-  wxButton*     m_btnRegFile;
-  wxRadioButton*  m_radioNearest;
-  wxRadioButton*  m_radioTrilinear;
-  wxChoice*     m_choiceColorMap;
-  wxChoice*     m_choiceLUT;
-  wxStaticText* m_staticLUT;
+    void SetRecentFiles( const QStringList& filenames );
 
-  wxString  m_strLastDir;
+protected slots:
+    void OnOpen();
+    void OnOpenRegistration();
+    void OnColorMap( int nSel );
+    void OnLUT( int nSel );
+    void OnOK();
 
-  DECLARE_EVENT_TABLE()
+private:
+    void UpdateLUT();
+
+    Ui::DialogLoadVolume *ui;
+
+    QString m_strLastDir;
 };
 
-#endif
-
+#endif // DIALOGLOADVOLUME_H

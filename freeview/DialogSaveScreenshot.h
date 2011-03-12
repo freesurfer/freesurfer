@@ -1,82 +1,39 @@
-/**
- * @file  DialogSaveScreenshot.h
- * @brief Dialog to save screenshot of the current view.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.3 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-#ifndef DialogSaveScreenshot_h
-#define DialogSaveScreenshot_h
+#ifndef DIALOGSAVESCREENSHOT_H
+#define DIALOGSAVESCREENSHOT_H
 
-#include <wx/wx.h>
+#include <QDialog>
 #include "CommonDataStruct.h"
 
-class wxTextCtrl;
-class wxCheckBox;
-class wxSpinCtrl;
+namespace Ui {
+    class DialogSaveScreenshot;
+}
 
-class DialogSaveScreenshot : public wxDialog
+class DialogSaveScreenshot : public QDialog
 {
+    Q_OBJECT
+
 public:
-  DialogSaveScreenshot( wxWindow* parent );
-  virtual ~DialogSaveScreenshot();
+    explicit DialogSaveScreenshot(QWidget *parent = 0);
+    ~DialogSaveScreenshot();
 
-  wxString GetFileName();
-  void SetFileName( const wxString& filename );
+    QString GetFileName();
 
-  void SetSettings( SettingsScreenshot s );
-  
-  SettingsScreenshot GetSettings();
-  
-  void OnOK( wxCommandEvent& event );
+    void SetSettings( SettingsScreenshot s );
 
-  void SetLastDir( const wxString& dir )
-  {
-    m_strLastDir = dir;
-  }
-  
-  int GetFilterIndex()
-  {
-    return m_nScreenshotFilterIndex;
-  }
-  
-  void SetFilterIndex( int nIndex )
-  {
-    m_nScreenshotFilterIndex = nIndex;
-  }
-  
-protected:
-  void OnButtonOpen( wxCommandEvent& event );
+    SettingsScreenshot GetSettings();
 
-  wxButton*     m_btnOpen;
-  wxTextCtrl*   m_textFilename;
-  wxCheckBox*   m_checkAntiAliasing;
-  wxCheckBox*   m_checkHideCursor;
-  wxCheckBox*   m_checkHideCoords;
-  wxCheckBox*   m_checkKeepWindow;
-  wxSpinCtrl*   m_spinMagnification;
-  
-  int       m_nScreenshotFilterIndex;
-  wxString  m_strLastDir;
+    void SetLastDir( const QString& dir )
+    {
+      m_strLastDir = dir;
+    }
 
-  DECLARE_EVENT_TABLE()
+protected slots:
+    void OnSave();
+    void OnOpen();
+
+private:
+    Ui::DialogSaveScreenshot *ui;
+    QString m_strLastDir;
 };
 
-#endif
-
+#endif // DIALOGSAVESCREENSHOT_H

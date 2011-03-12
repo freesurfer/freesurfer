@@ -1,0 +1,1064 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>DialogTransformVolume</class>
+ <widget class="QDialog" name="DialogTransformVolume">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>463</width>
+    <height>490</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout_4">
+   <property name="spacing">
+    <number>8</number>
+   </property>
+   <property name="sizeConstraint">
+    <enum>QLayout::SetFixedSize</enum>
+   </property>
+   <property name="margin">
+    <number>8</number>
+   </property>
+   <item>
+    <widget class="QTabWidget" name="tabWidget">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <widget class="QWidget" name="tabRotate">
+      <attribute name="title">
+       <string>Rotate</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <widget class="QGroupBox" name="groupBox">
+         <property name="title">
+          <string>Rotations</string>
+         </property>
+         <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0,0">
+          <property name="horizontalSpacing">
+           <number>6</number>
+          </property>
+          <item row="0" column="0">
+           <widget class="QCheckBox" name="checkBoxRotateX">
+            <property name="text">
+             <string/>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboBoxRotateX">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <item>
+             <property name="text">
+              <string>Rotate X</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Rotate Y</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Rotate Z</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLineEdit" name="lineEditRotateX">
+            <property name="maximumSize">
+             <size>
+              <width>65</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QLabel" name="label_8">
+            <property name="text">
+             <string>degrees</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QCheckBox" name="checkBoxRotateY">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QComboBox" name="comboBoxRotateY">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="currentIndex">
+             <number>1</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>Rotate X</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Rotate Y</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Rotate Z</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="2">
+           <widget class="QLineEdit" name="lineEditRotateY">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>65</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="3">
+           <widget class="QLabel" name="label_9">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>degrees</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QCheckBox" name="checkBoxRotateZ">
+            <property name="text">
+             <string/>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QComboBox" name="comboBoxRotateZ">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="currentIndex">
+             <number>2</number>
+            </property>
+            <item>
+             <property name="text">
+              <string>Rotate X</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Rotate Y</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Rotate Z</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="2" column="2">
+           <widget class="QLineEdit" name="lineEditRotateZ">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>65</width>
+              <height>16777215</height>
+             </size>
+            </property>
+            <property name="text">
+             <string>0</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="3">
+           <widget class="QLabel" name="label_10">
+            <property name="enabled">
+             <bool>false</bool>
+            </property>
+            <property name="text">
+             <string>degrees</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_2">
+         <property name="title">
+          <string>Axis Point</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout">
+          <property name="spacing">
+           <number>9</number>
+          </property>
+          <item>
+           <widget class="QRadioButton" name="radioButtonAroundCenter">
+            <property name="text">
+             <string>Rotate around the center of the volume</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QRadioButton" name="radioButtonAroundCursor">
+            <property name="text">
+             <string>Rotate around the cursor</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBox_3">
+         <property name="title">
+          <string>Sample Method</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <item>
+           <layout class="QHBoxLayout" name="horizontalLayout_2">
+            <item>
+             <widget class="QRadioButton" name="radioButtonNearestNeighbor">
+              <property name="text">
+               <string>Nearest Neighbor</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QRadioButton" name="radioButtonTrilinear">
+              <property name="text">
+               <string>Trilinear</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_2">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="text">
+             <string>Interpolation method on label volumes will always be nearest neighbor. Therefore, there is risk to lose voxels after rotation.</string>
+            </property>
+            <property name="scaledContents">
+             <bool>false</bool>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_4">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QPushButton" name="pushButtonApply">
+           <property name="text">
+            <string>Apply</string>
+           </property>
+           <property name="default">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_3">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="verticalSpacer">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab_2">
+      <attribute name="title">
+       <string>Translate</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_5">
+       <item>
+        <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0">
+         <property name="horizontalSpacing">
+          <number>8</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_2">
+           <property name="text">
+            <string>X (L-R)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QScrollBar" name="scrollBarTranslateX">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>50</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLineEdit" name="lineEditTranslateX">
+           <property name="maximumSize">
+            <size>
+             <width>65</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_3">
+           <property name="text">
+            <string>Y (P-A)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QScrollBar" name="scrollBarTranslateY">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>50</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="lineEditTranslateY">
+           <property name="maximumSize">
+            <size>
+             <width>65</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_4">
+           <property name="text">
+            <string>Z (I-S)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QScrollBar" name="scrollBarTranslateZ">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>50</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLineEdit" name="lineEditTranslateZ">
+           <property name="maximumSize">
+            <size>
+             <width>65</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>0</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>13</width>
+           <height>283</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+     <widget class="QWidget" name="tab">
+      <attribute name="title">
+       <string>Scale</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_6">
+       <item>
+        <layout class="QGridLayout" name="gridLayout_3" columnstretch="0,1,0">
+         <property name="horizontalSpacing">
+          <number>8</number>
+         </property>
+         <property name="verticalSpacing">
+          <number>6</number>
+         </property>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_5">
+           <property name="text">
+            <string>X (L-R)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="1">
+          <widget class="QScrollBar" name="scrollBarScaleX">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>50</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QLineEdit" name="lineEditScaleX">
+           <property name="maximumSize">
+            <size>
+             <width>65</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>1</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="0">
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>Y (P-A)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="1">
+          <widget class="QScrollBar" name="scrollBarScaleY">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>50</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="1" column="2">
+          <widget class="QLineEdit" name="lineEditScaleY">
+           <property name="maximumSize">
+            <size>
+             <width>65</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>1</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="0">
+          <widget class="QLabel" name="label_7">
+           <property name="text">
+            <string>Z (I-S)</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <widget class="QScrollBar" name="scrollBarScaleZ">
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>50</number>
+           </property>
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLineEdit" name="lineEditScaleZ">
+           <property name="maximumSize">
+            <size>
+             <width>65</width>
+             <height>16777215</height>
+            </size>
+           </property>
+           <property name="text">
+            <string>1</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <spacer name="verticalSpacer_3">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>13</width>
+           <height>283</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
+      </layout>
+     </widget>
+    </widget>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QPushButton" name="pushButtonRestore">
+       <property name="text">
+        <string>Restore To Original</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>0</width>
+         <height>0</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonSaveReg">
+       <property name="text">
+        <string>Save Reg...</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButtonSaveVolumeAs">
+       <property name="text">
+        <string>Save Volume As...</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+       <property name="default">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>checkBoxRotateY</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>comboBoxRotateY</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>68</x>
+     <y>108</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>139</x>
+     <y>111</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRotateY</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditRotateY</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>73</x>
+     <y>108</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>356</x>
+     <y>107</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRotateY</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>label_9</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>73</x>
+     <y>108</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>416</x>
+     <y>107</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRotateX</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>comboBoxRotateX</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>70</x>
+     <y>80</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>91</x>
+     <y>83</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRotateX</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditRotateX</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>67</x>
+     <y>80</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>356</x>
+     <y>79</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRotateX</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>label_8</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>73</x>
+     <y>80</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>416</x>
+     <y>79</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRotateZ</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>comboBoxRotateZ</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>71</x>
+     <y>136</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>142</x>
+     <y>139</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRotateZ</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>lineEditRotateZ</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>71</x>
+     <y>136</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>356</x>
+     <y>135</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>checkBoxRotateZ</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>label_10</receiver>
+   <slot>setEnabled(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>70</x>
+     <y>136</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>416</x>
+     <y>135</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonApply</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnApply()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>85</x>
+     <y>408</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>489</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonRestore</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnRestore()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>127</x>
+     <y>465</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>428</x>
+     <y>489</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonSaveReg</sender>
+   <signal>clicked()</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnSaveReg()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>232</x>
+     <y>471</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>260</x>
+     <y>489</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>scrollBarTranslateX</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnScrollBarTranslateX(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>216</x>
+     <y>58</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>341</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>scrollBarTranslateY</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnScrollBarTranslateY(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>285</x>
+     <y>92</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>196</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>scrollBarTranslateZ</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnScrollBarTranslateZ(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>314</x>
+     <y>126</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>270</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditTranslateX</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditTranslateX(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>430</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>130</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditTranslateY</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditTranslateY(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>430</x>
+     <y>96</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>115</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditTranslateZ</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditTranslateZ(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>430</x>
+     <y>130</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>432</x>
+     <y>186</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>scrollBarScaleX</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnScrollBarScaleX(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>207</x>
+     <y>58</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>209</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>scrollBarScaleY</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnScrollBarScaleY(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>303</x>
+     <y>86</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>155</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>scrollBarScaleZ</sender>
+   <signal>valueChanged(int)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnScrollBarScaleZ(int)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>245</x>
+     <y>114</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>421</x>
+     <y>324</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditScaleX</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditScaleX(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>430</x>
+     <y>62</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>75</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditScaleY</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditScaleY(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>430</x>
+     <y>90</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>462</x>
+     <y>110</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>lineEditScaleZ</sender>
+   <signal>textEdited(QString)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnLineEditScaleZ(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>430</x>
+     <y>118</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>416</x>
+     <y>178</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>OnApply()</slot>
+  <slot>OnRestore()</slot>
+  <slot>OnSaveReg()</slot>
+  <slot>OnSaveVolumeAs()</slot>
+  <slot>OnCurrentPageChanged(int)</slot>
+  <slot>OnScrollBarTranslateX(int)</slot>
+  <slot>OnScrollBarTranslateY(int)</slot>
+  <slot>OnScrollBarTranslateZ(int)</slot>
+  <slot>OnScrollBarScaleX(int)</slot>
+  <slot>OnScrollBarScaleY(int)</slot>
+  <slot>OnScrollBarScaleZ(int)</slot>
+  <slot>OnLineEditTranslateX(QString)</slot>
+  <slot>OnLineEditTranslateY(QString)</slot>
+  <slot>OnLineEditTranslateZ(QString)</slot>
+  <slot>OnLineEditScaleX(QString)</slot>
+  <slot>OnLineEditScaleY(QString)</slot>
+  <slot>OnLineEditScaleZ(QString)</slot>
+ </slots>
+</ui>

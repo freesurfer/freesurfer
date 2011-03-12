@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.14 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:50 $
+ *    $Revision: 1.15 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -28,18 +30,19 @@
 #include "LayerEditable.h"
 #include "vtkSmartPointer.h"
 #include "vtkImageData.h"
-#include <string>
 #include <vector>
+#include <QFile>
+#include <QVariantMap>
 
 class vtkImageData;
 class BrushProperty;
 class LivewireTool;
-class Contour2D;
 
 class LayerVolumeBase : public LayerEditable
 {
+    Q_OBJECT
 public:
-  LayerVolumeBase();
+  LayerVolumeBase( QObject* parent = NULL );
   virtual ~LayerVolumeBase();
 
   void SetVoxelByRAS( double* ras, int nPlane, bool bAdd = true );
@@ -69,12 +72,6 @@ public:
 
   int GetBrushRadius();
   void SetBrushRadius( int nRadius );
-
-  virtual void Append2DProps( vtkRenderer* renderer, int nPlane ) = 0;
-  virtual void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL ) = 0;
-
-  virtual void SetVisible( bool bVisible = true ) = 0;
-  virtual bool IsVisible() = 0;
   
   virtual void UpdateVoxelValueRange( double fValue ) {}
 
@@ -108,6 +105,9 @@ public:
   double GetMinimumVoxelSize();
   
   virtual void GetDisplayBounds( double* bounds );
+
+signals:
+  void FillValueChanged( double );
   
 protected:
   bool SetVoxelByIndex( int* n, int nPlane, bool bAdd = true ); // true is to add, false is to remove
@@ -119,13 +119,30 @@ protected:
 
   struct UndoRedoBufferItem
   {
-    int  plane;
-    int  slice;
-    char* data;
+        UndoRedoBufferItem() { data = 0; }
+        void Clear()
+        {
+            if (data)
+                delete[] data;
+            data = 0;
+
+            if (!cache_filename.isEmpty())
+            {
+                if (QFile::exists(cache_filename))
+                    QFile::remove(cache_filename);
+            }
+        }
+
+        int  plane;                 // -1 means whole 3d volume
+        int  slice;
+        char* data;
+        QString cache_filename;     // if not empty, ignore data and read from cache file.
+        QVariantMap mri_settings;
   };
 
-  void SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice, const char* mask = NULL );
+  void SaveBufferItem( UndoRedoBufferItem& item, int nPlane = -1, int nSlice = 0, const char* mask = NULL );
   void LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZeros = false );
+  QString GenerateCacheFileName();
 
   vtkSmartPointer<vtkImageData> m_imageData;
   vtkSmartPointer<vtkImageData> m_imageDataRef;

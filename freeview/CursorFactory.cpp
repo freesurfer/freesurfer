@@ -6,54 +6,40 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.13 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:46 $
+ *    $Revision: 1.14 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-#include <wx/xrc/xmlres.h>
-#include <wx/image.h>
-#include <wx/mstream.h>
 #include "CursorFactory.h"
+#include <QPixmap>
 
-#include "res/CursorFill_png.h"
-#include "res/CursorPencil_png.h"
-#include "res/CursorPolyline_png.h"
-#include "res/CursorPan_png.h"
-#include "res/CursorZoom_png.h"
-#include "res/CursorColorPicker_png.h"
-#include "res/CursorMeasureLine_png.h"
-#include "res/CursorMeasureRectangle_png.h"
-#include "res/CursorMeasurePolyline_png.h"
-#include "res/CursorGrab_png.h"
-#include "res/CursorContour_png.h"
-#include "res/CursorAdd_png.h"
-#include "res/CursorRemove_png.h"
-
-wxCursor CursorFactory::CursorPencil    = wxCursor();
-wxCursor CursorFactory::CursorFill      = wxCursor();
-wxCursor CursorFactory::CursorPolyline  = wxCursor();
-wxCursor CursorFactory::CursorPan       = wxCursor();
-wxCursor CursorFactory::CursorZoom      = wxCursor();
-wxCursor CursorFactory::CursorGrab      = wxCursor();
-wxCursor CursorFactory::CursorColorPicker  = wxCursor();
-wxCursor CursorFactory::CursorMeasureLine  = wxCursor();
-wxCursor CursorFactory::CursorMeasureRectangle = wxCursor();
-wxCursor CursorFactory::CursorMeasurePolyline  = wxCursor();
-wxCursor CursorFactory::CursorContour   = wxCursor();
-wxCursor CursorFactory::CursorAdd       = wxCursor();
-wxCursor CursorFactory::CursorRemove    = wxCursor();
+QCursor CursorFactory::CursorPencil    = QCursor();
+QCursor CursorFactory::CursorFill      = QCursor();
+QCursor CursorFactory::CursorPolyline  = QCursor();
+QCursor CursorFactory::CursorPan       = QCursor();
+QCursor CursorFactory::CursorZoom      = QCursor();
+QCursor CursorFactory::CursorGrab      = QCursor();
+QCursor CursorFactory::CursorColorPicker  = QCursor();
+QCursor CursorFactory::CursorMeasureLine  = QCursor();
+QCursor CursorFactory::CursorMeasureRectangle = QCursor();
+QCursor CursorFactory::CursorMeasurePolyline  = QCursor();
+QCursor CursorFactory::CursorContour   = QCursor();
+QCursor CursorFactory::CursorAdd       = QCursor();
+QCursor CursorFactory::CursorRemove    = QCursor();
 
 CursorFactory::CursorFactory()
 {
@@ -62,81 +48,17 @@ CursorFactory::CursorFactory()
 
 void CursorFactory::Initialize()
 {
-  wxMemoryInputStream s1( CursorPencil_png, CursorPencil_png_LEN );
-  wxImage img( s1, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-  CursorPencil = wxCursor( img );
-
-  wxMemoryInputStream s2( CursorFill_png, CursorFill_png_LEN );
-  img = wxImage( s2, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 2 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 23 );
-  CursorFill = wxCursor( img );
-
-  wxMemoryInputStream s3( CursorPolyline_png, CursorPolyline_png_LEN );
-  img = wxImage( s3, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-  CursorPolyline = wxCursor( img );
-
-  wxMemoryInputStream s4( CursorPan_png, CursorPan_png_LEN );
-  img = wxImage( s4, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
-  CursorPan = wxCursor( img );
-
-  wxMemoryInputStream s5( CursorZoom_png, CursorZoom_png_LEN );
-  img = wxImage( s5, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
-  CursorZoom = wxCursor( img );
-  
-  wxMemoryInputStream s6( CursorColorPicker_png, CursorColorPicker_png_LEN );
-  img = wxImage( s6, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 23 );
-  CursorColorPicker = wxCursor( img );
-  
-  wxMemoryInputStream s7( CursorMeasureLine_png, CursorMeasureLine_png_LEN );
-  img = wxImage( s7, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-  CursorMeasureLine = wxCursor( img );
-  
-  wxMemoryInputStream s8( CursorGrab_png, CursorGrab_png_LEN );
-  img = wxImage( s8, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 11 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 11 );
-  CursorGrab = wxCursor( img );
-    
-  wxMemoryInputStream s9( CursorMeasureRectangle_png, CursorMeasureRectangle_png_LEN );
-  img = wxImage( s9, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-  CursorMeasureRectangle = wxCursor( img );
-  
-  wxMemoryInputStream s10( CursorContour_png, CursorContour_png_LEN );
-  img = wxImage( s10, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-  CursorContour = wxCursor( img );
-  
-  wxMemoryInputStream s11( CursorMeasurePolyline_png, CursorMeasurePolyline_png_LEN );
-  img = wxImage( s11, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-  CursorMeasurePolyline = wxCursor( img );
-  
-  wxMemoryInputStream s12( CursorAdd_png, CursorAdd_png_LEN );
-  img = wxImage( s12, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-  CursorAdd = wxCursor( img );
-  
-  wxMemoryInputStream s13( CursorRemove_png, CursorRemove_png_LEN );
-  img = wxImage( s13, wxBITMAP_TYPE_PNG );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_X, 0 );
-  img.SetOption( wxIMAGE_OPTION_CUR_HOTSPOT_Y, 0 );
-  CursorRemove = wxCursor( img );
+  CursorPencil = QCursor( QPixmap(":resource/icons/cursor_pencil.png"), 0, 0 );
+  CursorFill = QCursor( QPixmap(":resource/icons/cursor_fill.png"), 2, 23 );
+  CursorPolyline = QCursor( QPixmap(":resource/icons/cursor_polyline.png"), 0, 0 );
+  CursorPan = QCursor( QPixmap(":resource/icons/cursor_pan.png"), 11, 11 );
+  CursorZoom = QCursor( QPixmap(":resource/icons/cursor_zoom.png"), 11, 11 );
+  CursorColorPicker = QCursor( QPixmap(":resource/icons/cursor_colorpicker.png"), 0, 23 );
+  CursorMeasureLine = QCursor( QPixmap(":resource/icons/cursor_measure_line.png"), 0, 0 );
+  CursorGrab = QCursor( QPixmap(":resource/icons/cursor_grab.png"), 11, 11 );
+  CursorMeasureRectangle = QCursor( QPixmap(":resource/icons/cursor_measure_rectangle.png"), 0, 0 );
+  CursorContour = QCursor( QPixmap(":resource/icons/cursor_contour.png"), 0, 0 );
+  CursorMeasurePolyline = QCursor( QPixmap(":resource/icons/cursor_measure_polyline.png"), 0, 0 );
+  CursorAdd = QCursor( QPixmap(":resource/icons/cursor_add.png"), 0, 0 );
+  CursorRemove = QCursor( QPixmap(":resource/icons/cursor_remove.png"), 0, 0 );
 }

@@ -6,24 +6,24 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:01 $
- *    $Revision: 1.43 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:47 $
+ *    $Revision: 1.44 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-#include <wx/wx.h>
-#include <wx/filename.h>
 #include "FSSurface.h"
 #include <stdexcept>
 #include "vtkShortArray.h"
@@ -45,12 +45,20 @@
 #include "vtkLine.h"
 #include "vtkPlane.h"
 #include "vtkCutter.h"
+#include "vtkSelectEnclosedPoints.h"
+#include "vtkDelaunay3D.h"
+#include "vtkUnstructuredGrid.h"
 #include "FSVolume.h"
 #include "MyUtils.h"
-
+#include <QFileInfo>
+#include <QDebug>
+extern "C"
+{
+#include "mri_identify.h"
+}
 using namespace std;
 
-FSSurface::FSSurface( FSVolume* ref ) :
+FSSurface::FSSurface( FSVolume* ref, QObject* parent ) : QObject( parent ),
     m_MRIS( NULL ),
     m_MRISTarget( NULL ),
     m_bBoundsCacheDirty( true ),
@@ -104,32 +112,27 @@ FSSurface::~FSSurface()
   m_vertexVectors.clear();
 }
 
-bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, 
-                          const char* vector_filename,
-                          const char* patch_filename,
-                          const char* target_filename )
+bool FSSurface::MRISRead( const QString& filename,
+                          const QString& vector_filename,
+                          const QString& patch_filename,
+                          const QString& target_filename )
 {
   if ( m_MRIS )
     ::MRISfree( &m_MRIS );
 
-  event.SetInt( event.GetInt() + 1 );
-  wxPostEvent( wnd, event );
-
-  char* fn = strdup( filename );
-  m_MRIS = ::MRISread( fn );
-  free( fn );
+  m_MRIS = ::MRISread( filename.toAscii().data() );
 
   if ( m_MRIS == NULL )
   {
-    cerr << "MRISread failed" << endl;
+    cerr << "MRISread failed\n";
     return false;
   }
   
-  if ( patch_filename )
+  if ( !patch_filename.isEmpty() )
   {
-    if ( ::MRISreadPatch( m_MRIS, patch_filename ) != 0 )
+    if ( ::MRISreadPatch( m_MRIS, patch_filename.toAscii().data() ) != 0 )
     {
-      cerr << "Can not load patch file " << patch_filename << endl;
+      cerr << "Can not load patch file " << qPrintable(patch_filename) << "\n";
     }
   }
   // Get some info from the MRIS. This can either come from the volume
@@ -170,7 +173,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
     m_SurfaceToRASMatrix[11] = -m_MRIS->lta->xforms[0].src.c_s;
   }
   */
-  m_bHasVolumeGeometry = false;
+  m_bValidVolumeGeometry = false;
   if ( m_MRIS->vg.valid )
   {
     MRI* tmp = MRIallocHeader(m_MRIS->vg.width, m_MRIS->vg.height, m_MRIS->vg.depth, MRI_UCHAR);
@@ -189,7 +192,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
     MatrixFree( &vo2rasTkReg );
     MatrixFree( &vox2rasTkReg_inv );
     MatrixFree( &M );
-    m_bHasVolumeGeometry = true;
+    m_bValidVolumeGeometry = true;
   }  
 
   // Make our transform object and set the matrix.
@@ -208,7 +211,7 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   SaveNormals ( m_MRIS, SurfaceMain );
   m_bSurfaceLoaded[SurfaceMain] = true;
 
-  if ( !patch_filename )
+  if ( patch_filename.isEmpty() )
   {
     LoadSurface ( "white",    SurfaceWhite );
     LoadSurface ( "pial",     SurfacePial );
@@ -219,63 +222,55 @@ bool FSSurface::MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& e
   RestoreVertices( m_MRIS, SurfaceMain );
   RestoreNormals( m_MRIS, SurfaceMain );
 
-  if ( target_filename != NULL )
-    LoadTargetSurface( target_filename, wnd, event );
+  if ( !target_filename.isEmpty() )
+    LoadTargetSurface( target_filename );
   
-  if ( vector_filename != NULL )
+  if ( !vector_filename.isEmpty() )
     LoadVectors ( vector_filename );
 
   LoadCurvature();
-// cout << "MRISread finished" << endl;
+// cout << "MRISread finished\n";
 
   return true;
 }
 
-void FSSurface::LoadTargetSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event )
+void FSSurface::LoadTargetSurface( const QString& filename )
 {
-  event.SetInt( event.GetInt() + 1 );
-  wxPostEvent( wnd, event );
-
   if ( m_MRISTarget )
     ::MRISfree( &m_MRISTarget );
   
-  char* fn = strdup( filename );
-  m_MRISTarget = ::MRISread( fn );
-  free( fn );
+  m_MRISTarget = ::MRISread( filename.toAscii().data() );
 
   if ( m_MRISTarget == NULL )
   {
-    cerr << "MRISread failed. Can not load target surface." << endl;
+    cerr << "MRISread failed. Can not load target surface.\n";
     return;
   }
   
   UpdatePolyData( m_MRISTarget, m_polydataTarget );
 }
 
-bool FSSurface::MRISWrite( const char* filename, wxWindow* wnd, wxCommandEvent& event )
+bool FSSurface::MRISWrite( const QString& filename )
 {
   if ( m_MRIS == NULL )
   {
-    cerr << "No MRIS to write." << endl;
+    cerr << "No MRIS to write.\n";
     return false;
   }  
    
-  return ( ::MRISwrite( m_MRIS, filename ) == 0 );
+  return ( ::MRISwrite( m_MRIS, filename.toAscii().data() ) == 0 );
 }
 
-bool FSSurface::MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event )
+bool FSSurface::MRISReadVectors( const QString& filename )
 {
-  event.SetInt( event.GetInt() + 1 );
-  wxPostEvent( wnd, event );
-
   return LoadVectors( filename );
 }
 
-bool FSSurface::LoadSurface( const char* filename, int nSet )
+bool FSSurface::LoadSurface( const QString& filename, int nSet )
 {
-  if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename ) != 0 )
+  if ( ::MRISreadVertexPositions( m_MRIS, filename.toAscii().data() ) != 0 )
   {
-    cerr << "could not load surface from " << filename << endl;
+    cerr << "could not load surface from " << qPrintable(filename) << "\n";
     m_bSurfaceLoaded[nSet] = false;
     return false;
   }
@@ -292,11 +287,11 @@ bool FSSurface::LoadSurface( const char* filename, int nSet )
   }
 }
 
-bool FSSurface::LoadCurvature( const char* filename )
+bool FSSurface::LoadCurvature( const QString& filename )
 {
-  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)(filename ? filename : "curv" ) ) != 0 )
+  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)(filename.isEmpty() ? "curv" : filename.toAscii().data() ) ) != 0 )
   {
-    cerr << "could not read curvature from " << (filename ? filename : "curv") << endl;
+    cerr << "could not read curvature from " << qPrintable(filename.isEmpty() ? "curv" : filename) << "\n";
     m_bCurvatureLoaded = false;
     return false;
   }
@@ -321,11 +316,13 @@ bool FSSurface::LoadCurvature( const char* filename )
   }
 }
 
-bool FSSurface::LoadOverlay( const char* filename )
+bool FSSurface::LoadOverlay( const QString& filename )
 {
-  if ( ::MRISreadValues( m_MRIS, (char*)( filename ) ) != 0 )
+//    int mritype = mri_identify((char*)( filename.toAscii().data() ));
+//    qDebug() << "mritype " << mritype;
+  if ( ::MRISreadValues( m_MRIS, (char*)( filename.toAscii().data() ) ) != 0 )
   {
-    cerr << "could not read overlay data from " << filename << endl;
+    cerr << "could not read overlay data from " << qPrintable(filename) << "\n";
     return false;
   }
   else
@@ -335,7 +332,7 @@ bool FSSurface::LoadOverlay( const char* filename )
 }
 
 /*
-bool FSSurface::LoadOverlay( const char* filename )
+bool FSSurface::LoadOverlay( const QString& filename )
 {
   // user read curvature routine because read values does not handle filename properly
   int nCount = m_MRIS->nvertices;
@@ -344,9 +341,9 @@ bool FSSurface::LoadOverlay( const char* filename )
   float fMin = m_MRIS->min_curv;
   float fMax = m_MRIS->max_curv;
   
-  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)( filename ) ) != 0 )
+  if ( ::MRISreadCurvatureFile( m_MRIS, (char*)( filename.toAscii().data()) ) != 0 )
   {
-    cerr << "could not read overlay data from " << filename << endl;
+    cerr << "could not read overlay data from " << filename.toAscii().data() << "\n";
     return false;
   }
   else
@@ -367,20 +364,17 @@ bool FSSurface::LoadOverlay( const char* filename )
 }
 */
 
-bool FSSurface::LoadVectors( const char* filename )
+bool FSSurface::LoadVectors( const QString& filename )
 {
-  char* ch = strdup( filename );
-  MRI* mri = ::MRIread( ch );  
-  free( ch );
+  MRI* mri = ::MRIread( filename.toAscii().data() );
     
   VertexVectorItem vector;
-  std::string fn = filename;
-  vector.name = fn.substr( fn.find_last_of("/\\")+1);
+  vector.name = QFileInfo( filename ).fileName();
   if ( mri )
   {
     if ( mri->type != MRI_FLOAT )
     {
-      cerr << "Vector volume must be in type of MRI_FLOAT." << endl;
+      cerr << "Vector volume must be in type of MRI_FLOAT.\n";
     }
     else if ( SaveVertices( mri, vector.data ) )
     {
@@ -388,11 +382,11 @@ bool FSSurface::LoadVectors( const char* filename )
       m_nActiveVector = m_vertexVectors.size() - 1;
       UpdateVectors();
       ::MRIfree( &mri );
-      cout << "vector data loaded for surface from " << filename << endl;
+      cout << "vector data loaded for surface from " << qPrintable(filename) << "\n";
       return true;
     }
   }
-  else if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename ) == 0 )
+  else if ( ::MRISreadVertexPositions( m_MRIS, (char*)filename.toAscii().data() ) == 0 )
   {
     // compute vectors
     if ( ComputeVectors( m_MRIS, vector.data ) )
@@ -405,7 +399,7 @@ bool FSSurface::LoadVectors( const char* filename )
       
       UpdateVectors();
 
-      cout << "vector data loaded for surface from " << filename << endl;
+      cout << "vector data loaded for surface from " << qPrintable(filename) << "\n";
       return true;
     }
   }
@@ -447,7 +441,7 @@ bool FSSurface::SaveVertices( MRIS* mris, VertexItem*& buffer )
     buffer = new VertexItem[nvertices];
     if ( !buffer )
     {
-      cerr << "Can not allocate memory for vertex sets." << endl;
+      cerr << "Can not allocate memory for vertex sets.\n";
       return false;
     }
   }
@@ -471,7 +465,7 @@ bool FSSurface::SaveVertices( MRI* mri, VertexItem*& buffer )
     buffer = new VertexItem[nvertices];
     if ( !buffer )
     {
-      cerr << "Can not allocate memory for vertex sets." << endl;
+      cerr << "Can not allocate memory for vertex sets.\n";
       return false;
     }
   }
@@ -514,7 +508,7 @@ void FSSurface::SaveNormals( MRIS* mris, int nSet )
     m_fNormalSets[nSet] = new VertexItem[nvertices];
     if ( !m_fNormalSets[nSet] )
     {
-      cerr << "Can not allocate memory for normal sets." << endl;
+      cerr << "Can not allocate memory for normal sets.\n";
       return;
     }
   }
@@ -706,11 +700,14 @@ void FSSurface::UpdateVectors()
     VertexItem* vectors = m_vertexVectors[m_nActiveVector].data;
     int cVertices = m_MRIS->nvertices;
     vtkPoints* oldPoints = m_polydata->GetPoints();
+    vtkFloatArray* normals = vtkFloatArray::SafeDownCast(m_polydata->GetPointData()->GetNormals());
     float point[3], surfaceRAS[3];
     vtkIdType n = 0;
     vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
     vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
     vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
+    vtkSmartPointer<vtkPoints> testPoints = vtkSmartPointer<vtkPoints>::New();
+    double v_normal[3], v[3];
     for ( int vno = 0; vno < cVertices; vno++ )
     {
       if ( vectors[vno].x != 0 || vectors[vno].y != 0 || vectors[vno].z != 0 )
@@ -721,9 +718,30 @@ void FSSurface::UpdateVectors()
         this->ConvertSurfaceToRAS( surfaceRAS, point );
         if ( m_volumeRef )
           m_volumeRef->RASToTarget( point, point );
-  
-        points->InsertNextPoint( oldPoints->GetPoint( vno ) );
+        double* p0 = oldPoints->GetPoint( vno );
+        if (normals)
+        {
+            // flip the vector if it is pointing inward
+            normals->GetTuple(vno, v_normal);
+            v[0] = point[0] - p0[0];
+            v[1] = point[1] - p0[1];
+            v[2] = point[2] - p0[2];
+            vtkMath::Normalize(v);
+            if (vtkMath::Dot(v_normal, v) < 0)
+            {
+                point[0] = p0[0]-(point[0]-p0[0]);
+                point[1] = p0[1]-(point[1]-p0[1]);
+                point[2] = p0[2]-(point[2]-p0[2]);
+            }
+        }
+        points->InsertNextPoint( p0 );
         points->InsertNextPoint( point );
+
+        /*
+        testPoints->InsertNextPoint(p0[0]+(point[0]-p0[0])/5,
+                                    p0[1]+(point[1]-p0[1])/5,
+                                    p0[2]+(point[2]-p0[2])/5);
+        */
   
         verts->InsertNextCell( 1, &n );
   
@@ -732,6 +750,32 @@ void FSSurface::UpdateVectors()
         lines->InsertCellPoint( n++ );
       }
     }
+    /*
+    vtkSmartPointer<vtkPolyData> testPolydata = vtkSmartPointer<vtkPolyData>::New();
+    testPolydata->SetPoints(testPoints);
+    vtkSmartPointer<vtkDelaunay3D> selectEnclosedPoints = vtkSmartPointer<vtkDelaunay3D>::New();
+    selectEnclosedPoints->SetInput(testPolydata);
+    selectEnclosedPoints->Update();
+
+    double p0[3], p1[3];
+    double pcoords[3], weights[3];
+    vtkIdType cellId;
+    int subId;
+    for(vtkIdType i = 0; i < testPoints->GetNumberOfPoints(); i++)
+    {
+        cellId = selectEnclosedPoints->GetOutput()->FindCell(testPoints->GetPoint(i), NULL, 0, .0001,
+                                            subId, pcoords, weights);
+        if (cellId >= 0)
+        {
+            points->GetPoint(i*2, p0);
+            points->GetPoint(i*2+1, p1);
+            points->SetPoint(i*2+1, p0[0]-(p1[0]-p0[0]),
+                             p0[1]-(p1[1]-p0[1]),
+                             p0[2]-(p1[2]-p0[2]));
+        }
+    }
+    */
+
     m_polydataVector->SetPoints( points );
     m_polydataVector->SetLines( lines );
     m_polydataVector->SetVerts( verts );
@@ -860,9 +904,9 @@ bool FSSurface::ProjectVectorPoint2D( double* pt_in,
   int n0 = 0;
   double* old_pt = pt_in;
   
-//  cout << contour_pts << " " << contour_lines << endl; fflush(0); 
+//  cout << contour_pts << " " << contour_lines << "\n"; fflush(0);
 //  cout << contour_pts->GetNumberOfPoints() << " " << 
-//      contour_lines->GetNumberOfCells() << endl;
+//      contour_lines->GetNumberOfCells() << "\n";
   for ( int i = 0; i < contour_pts->GetNumberOfPoints(); i++ )
   {
     contour_pts->GetPoint( i, pt0 );
@@ -1246,7 +1290,7 @@ int FSSurface::FindVertexAtSurfaceRAS ( float const iSurfaceRAS[3],
 
   if ( -1 == nClosestVertex )
   {
-    // cerr << "No vertices found." << endl;
+    // cerr << "No vertices found.\n";
     return -1;
   }
 
@@ -1356,12 +1400,12 @@ bool FSSurface::GetSurfaceRASAtVertex ( int inVertex, double ioRAS[3] )
   return true;
 }
 
-const char* FSSurface::GetVectorSetName( int nSet )
+QString FSSurface::GetVectorSetName( int nSet )
 {
   if ( nSet >= 0 )
-    return m_vertexVectors[nSet].name.c_str();
+    return m_vertexVectors[nSet].name;
   else
-    return NULL;
+    return "";
 }
 
 double FSSurface::GetCurvatureValue( int nVertex )

@@ -6,82 +6,88 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.14 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:48 $
+ *    $Revision: 1.15 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-#include <wx/wx.h>
-#include <wx/filename.h>
-#include <iostream>
 #include "LUTDataHolder.h"
+#include <QFileInfo>
+#include <QFile>
+#include <QDebug>
+#include <QProcessEnvironment>
+#include <QDir>
+#include "MyUtils.h"
 #include <iostream>
-#include <wx/xrc/xmlres.h>
-#include <wx/file.h>
-#include "res/FreeSurferColorLUT.h"
 
 LUTDataHolder::LUTDataHolder()
 {
-  ColorTableData ctd;  
-  wxFileName fn = wxFileName::FileName
-    ( _("$FREESURFER_HOME/FreeSurferColorLUT.txt") );
-  fn.Normalize();
-  ctd.filename = fn.GetFullPath().char_str();
-  ctd.table = CTABreadASCII( ctd.filename.c_str() );
-  ctd.name = "FreeSurferColorLUT";
-  if ( ctd.table )
-    m_tables.push_back( ctd );
-
-  fn = wxFileName::FileName
-    ( _("$FREESURFER_HOME/tkmeditParcColorsCMA") );
-  fn.Normalize();
-  ctd.filename = fn.GetFullPath().char_str();
-  ctd.table = CTABreadASCII( ctd.filename.c_str() );
-  ctd.name = "tkmeditParcColorsCMA";
-  if ( ctd.table )
-    m_tables.push_back( ctd );
-
-  fn = wxFileName::FileName
-    ( _("$FREESURFER_HOME/Simple_surface_labels2009.txt") );
-  fn.Normalize();
-  ctd.filename = fn.GetFullPath().char_str();
-  ctd.table = CTABreadASCII( ctd.filename.c_str() );
-  ctd.name = "Simple_surface_labels2009";
-  if ( ctd.table )
-  m_tables.push_back( ctd );
-  
-  // did not find any stock tables, load build-in one
-  if ( m_tables.size() == 0)
+  ColorTableData ctd;
+  QString fs_home = QProcessEnvironment::systemEnvironment().value( "FREESURFER_HOME" );
+  QFileInfo fi( fs_home + "/FreeSurferColorLUT.txt" );
+  if (fi.exists())
   {
-
-    wxString tempfn = wxFileName::GetTempDir() + "/FreeSurferColorLUT.txt";
-    wxFile file;
-    if ( file.Open( tempfn, wxFile::write) )
-    {
-      file.Write( FreeSurferColorLUT_binary, FreeSurferColorLUT_binary_LEN );
-      file.Flush();
-      file.Close();
-      ctd.filename = "FreeSurferColorLUT.txt";
-      ctd.table = CTABreadASCII( tempfn.c_str() );
+      ctd.filename = fi.absoluteFilePath();
+      ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
       ctd.name = "FreeSurferColorLUT";
       if ( ctd.table )
         m_tables.push_back( ctd );
-    }
+  }
+
+  fi.setFile( fs_home + "/tkmeditParcColorsCMA" );
+  if (fi.exists())
+  {
+      ctd.filename = fi.absoluteFilePath();
+      ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
+      ctd.name = "tkmeditParcColorsCMA";
+      if ( ctd.table )
+        m_tables.push_back( ctd );
+  }
+
+  fi.setFile( fs_home + "/Simple_surface_labels2009.txt" );
+  if (fi.exists())
+  {
+      ctd.filename = fi.absoluteFilePath();
+      ctd.table = CTABreadASCII( ctd.filename.toAscii().data() );
+      ctd.name = "Simple_surface_labels2009";
+      if ( ctd.table )
+        m_tables.push_back( ctd );
+  }
+
+  if ( m_tables.isEmpty() )
+  {
+    QFile file_in( ":/FreeSurferColorLUT.txt" );
+    file_in.open(QIODevice::ReadOnly | QIODevice::Text);
+    QString tempfn = QDir::tempPath() + "/FreeSurferColorLUT.txt";
+#ifdef Q_CYGWIN_WIN
+    tempfn = MyUtils::NormalizeCygwinPath(tempfn);
+#endif
+    QFile file_out( tempfn );
+    file_out.open(QIODevice::WriteOnly | QIODevice::Text);
+    file_out.write( file_in.readAll() );
+    file_out.flush();
+    file_out.close();
+
+    ctd.filename = "FreeSurferColorLUT.txt";
+    ctd.table = CTABreadASCII( tempfn.toAscii().constData() );
+    ctd.name = "FreeSurferColorLUT";
+    if ( ctd.table )
+       m_tables.push_back( ctd );
     else
-    {
-      std::cerr << "Can not load any stock look up tables." << std::endl;
-    }
+        std::cerr << "Error: Did not find any look up table files.\n";
   }
 }
 
@@ -93,12 +99,12 @@ LUTDataHolder::~LUTDataHolder()
   }
 }
 
-const char* LUTDataHolder::GetName( int i )
+QString LUTDataHolder::GetName( int i )
 {
   if ( i < GetCount() )
-    return m_tables[i].name.c_str();
+    return m_tables[i].name;
   else
-    return NULL;
+    return "";
 }
 
 COLOR_TABLE* LUTDataHolder::GetColorTable( int i )
@@ -109,36 +115,35 @@ COLOR_TABLE* LUTDataHolder::GetColorTable( int i )
     return NULL;
 }
 
-COLOR_TABLE* LUTDataHolder::GetColorTable( const char* name )
+COLOR_TABLE* LUTDataHolder::GetColorTable( const QString& name )
 {
   for ( int i = 0; i < GetCount(); i++ )
   {
-    if ( m_tables[i].name == name || m_tables[i].filename == name )
+    if ( m_tables[i].name == name ||
+         QFileInfo(m_tables[i].filename).canonicalFilePath() == QFileInfo(name).canonicalFilePath() )
       return m_tables[i].table;
   }
   
   // if input is an index number instead of name, may still be valid
-  wxString str = wxString::FromAscii(name);
-  long n;
-  if ( str.ToLong( &n ) && n < GetCount() )
+  bool bOK;
+  int n = name.toInt( &bOK );
+  if ( bOK && n < GetCount() )
     return m_tables[n].table;
   
   return NULL;
 }
 
-COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
+COLOR_TABLE* LUTDataHolder::LoadColorTable( const QString& filename )
 {
   // first trying to see if we've already loaded the lut from the same file
-  wxFileName fn = wxFileName::FileName( wxString::FromAscii(filename) );
-  fn.Normalize();
-  COLOR_TABLE* ct = GetColorTable( fn.GetFullPath().ToAscii() );
-  std::string filename_full = fn.GetFullPath().ToAscii();
+  COLOR_TABLE* ct = GetColorTable( filename );
+  QString filename_full = filename;
   if ( !ct )
   {
-    if ( !fn.FileExists() )
-      fn = wxFileName::FileName( wxString( _("$FREESURFER_HOME/") ) + wxString::FromAscii(filename) );
-    fn.Normalize();
-    filename_full = fn.GetFullPath().char_str();
+    QFileInfo fi( filename );
+    if ( !fi.exists() )
+      fi.setFile( QString("$FREESURFER_HOME/") + filename );
+    filename_full = fi.canonicalFilePath();
     
     for ( int i = 0; i < GetCount(); i++ )
     {
@@ -163,7 +168,7 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
       }
     }
     
-    ct = CTABreadASCII( m_tables[nId].filename.c_str() );
+    ct = CTABreadASCII( m_tables[nId].filename.toAscii().data() );
     if ( ct )
     {
       CTABfree( &m_tables[nId].table );
@@ -171,31 +176,31 @@ COLOR_TABLE* LUTDataHolder::LoadColorTable( const char* filename )
     }
     else
     {
-      std::cerr << "Can not load color table from '" << filename << "'." << std::endl;
+        std::cerr << "Can not load color table from '" << qPrintable(filename) << "'.\n";
     }
   }
   // otherwise, load and create a new lut entry
   else
   {  
-    ct = CTABreadASCII( filename_full.c_str() );
+    ct = CTABreadASCII( filename_full.toAscii().data() );
     if ( ct )
     {
       ColorTableData ctd;
       ctd.table = ct;
       ctd.filename = filename_full;
-      wxFileName fn = wxFileName::FileName( wxString::FromAscii( filename_full.c_str() ) );
-      ctd.name = fn.GetName().char_str();
+      QFileInfo fi( filename_full );
+      ctd.name = fi.completeBaseName();
       int n = 2;
-      while ( GetColorTable( ctd.name.c_str() ) )
+      while ( GetColorTable( ctd.name ) )
       {
-        ctd.name = (fn.GetName() << _("_") << n).char_str();
+        ctd.name = fi.completeBaseName() + "_" + QString::number( n );
         n++;
       }
       m_tables.push_back( ctd );
     }
     else
     {
-      std::cerr << "Can not load color table from '" << filename << "'." << std::endl;
+        std::cerr << "Can not load color table from '" << qPrintable(filename) << "'.\n";
     }
   }
   

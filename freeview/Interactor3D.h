@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.11 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:48 $
+ *    $Revision: 1.12 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -29,19 +31,20 @@
 
 class Interactor3D : public Interactor
 {
+    Q_OBJECT
 public:
-  Interactor3D();
+  Interactor3D(QObject* parent = 0);
   virtual ~Interactor3D();
 
   // return true if to have parent Interactor3D continue processing the event
   // return false to stop event from further processing
-  virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
+  virtual bool ProcessMouseDownEvent ( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessKeyDownEvent( QKeyEvent* event, RenderView* view );
 
 protected:
-  virtual void UpdateCursor( wxEvent& event, wxWindow* wnd );
+  virtual void UpdateCursor( QEvent* event, QWidget* wnd );
   bool IsInAction()
   {
     return m_bWindowLevel || m_bMoveSlice;

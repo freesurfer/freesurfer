@@ -6,23 +6,26 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:37 $
- *    $Revision: 1.14 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:53 $
+ *    $Revision: 1.15 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 #include "SurfaceRegion.h"
+#include "SurfaceRegionGroups.h"
 #include "vtkRenderer.h"
 #include "vtkActor2D.h"
 #include "vtkProperty.h"
@@ -43,15 +46,13 @@
 #include "vtkMath.h"
 #include "MyUtils.h"
 #include "LayerMRI.h"
-#include "LayerPropertiesMRI.h"
+#include "LayerPropertyMRI.h"
 #include "vtkCleanPolyData.h"
 #include "vtkAppendPolyData.h"
-#include "SurfaceRegionGroups.h"
-#include <wx/ffile.h>
+#include <QFile>
 
 SurfaceRegion::SurfaceRegion( LayerMRI* owner ) : 
-    Broadcaster( "SurfaceRegion" ),
-    Listener( "SurfaceRegion" )
+    QObject( owner )
 {
   m_actorMesh = vtkSmartPointer<vtkActor>::New();
   m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
@@ -77,7 +78,7 @@ SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   m_cleanerPost->SetInputConnection( m_selector->GetOutputPort() );
   m_mri = owner;
   m_nGroup = 1;
-  m_color = wxColour( "blue" );
+  m_color = Qt::blue;
 }
 
 SurfaceRegion::~SurfaceRegion()
@@ -211,14 +212,14 @@ void SurfaceRegion::AppendProps( vtkRenderer* renderer )
   renderer->AddViewProp( m_actorOutline );
 }
 
-void SurfaceRegion::SetColor( const wxColour& color )
+void SurfaceRegion::SetColor( const QColor& color )
 {
   m_color = color;
-  m_actorMesh->GetProperty()->SetColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
-  SendBroadcast( "SurfaceRegionColorChanged", this, this );
+  m_actorMesh->GetProperty()->SetColor( color.redF(), color.greenF(), color.blueF() );
+  emit ColorChanged( color );
 }
 
-wxColour SurfaceRegion::GetColor()
+QColor SurfaceRegion::GetColor()
 {
   return m_color;
 }
@@ -236,15 +237,15 @@ bool SurfaceRegion::HasPoint( double* pos )
   
 void SurfaceRegion::Highlight( bool bHighlight )
 {
-  if ( bHighlight )
-    m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
-  else
-    m_actorMesh->GetProperty()->SetColor( m_color.Red()/255.0, m_color.Green()/255.0, m_color.Blue()/255.0 );
+    if ( bHighlight )
+      m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
+    else
+      m_actorMesh->GetProperty()->SetColor( m_color.redF(), m_color.greenF(), m_color.blueF() );
 }
 
-bool SurfaceRegion::Write( wxString& fn )
+bool SurfaceRegion::Write( const QString& fn )
 {
-  FILE* fp = fopen( fn.c_str(), "w" );
+  FILE* fp = fopen( fn.toAscii().data(), "w" );
   if ( !fp )
     return false;
   
@@ -256,17 +257,16 @@ bool SurfaceRegion::Write( wxString& fn )
 
 bool SurfaceRegion::WriteHeader( FILE* fp, LayerMRI* mri_ref, int nNum )
 {
-  wxString strg = _("VOLUME_PATH ");
-  strg << mri_ref->GetFileName() << _("\n")
-      << _("VOLUME_THRESHOLD ") << mri_ref->GetProperties()->GetContourMinThreshold() << _(" ") 
-      << mri_ref->GetProperties()->GetContourMaxThreshold() << _("\n") 
-      << _( "SURFACE_REGIONS " ) << nNum << _("\n");
-  wxFFile file( fp );
-  file.SeekEnd();
-  bool ret = file.Write( strg );
-  file.Flush();
-  file.Detach();
-  return ret;
+  QString strg = QString( "VOLUME_PATH %1\nVOLUME_THRESHOLD %2 %3\nSURFACE_REGIONS %4\n" )
+                 .arg( mri_ref->GetFileName() )
+                 .arg( mri_ref->GetProperty()->GetContourMinThreshold() )
+                 .arg( mri_ref->GetProperty()->GetContourMaxThreshold() )
+                 .arg( nNum );
+  QFile file;
+  file.open( fp, QIODevice::Append );
+  QByteArray ba = strg.toAscii();
+  int nsize = file.write( ba );
+  return nsize == ba.size();
 }
 
 bool SurfaceRegion::WriteBody( FILE* fp )
@@ -278,52 +278,50 @@ bool SurfaceRegion::WriteBody( FILE* fp )
   vtkPolyData* polydata = cleaner->GetOutput();
   vtkPoints* points = polydata->GetPoints();
   vtkCellArray* polys = polydata->GetPolys();
-  wxString strg = _("SURFACE_REGION\n");
-  strg << _( "ID " ) << m_nId << _("\n")
-      << _( "GROUP_ID " ) << m_nGroup << _("\n")
-      << _( "POINTS " ) << points->GetNumberOfPoints() << _("\n");
+  QString strg = QString( "SURFACE_REGION\nID %1\nGROUP_ID %2\nPOINTS %3\n" )
+                 .arg(m_nId )
+                 .arg(m_nGroup)
+                 .arg(points->GetNumberOfPoints());
   double pt[3];
   for ( vtkIdType i = 0; i < points->GetNumberOfPoints(); i++ )
   {
     points->GetPoint( i, pt );
     m_mri->TargetToRAS( pt, pt );
-    strg << pt[0] << " " << pt[1] << " " << pt[2] << _("\n");
+    strg += QString("%1 %2 %3\n").arg( pt[0] ).arg( pt[1] ).arg( pt[2] );
   }
-  strg << _( "POLYGONS " ) << polys->GetNumberOfCells() << _("\n");
+  strg += QString( "POLYGONS %1\n" ).arg( polys->GetNumberOfCells() );
   vtkIdType nPts;
   vtkIdType* pts = NULL;
   polys->InitTraversal();
   while ( polys->GetNextCell( nPts, pts ) )
   {
-    strg << nPts << " ";
+    strg += QString::number( nPts ) + " ";
     for ( vtkIdType j = 0; j < nPts; j++ )
-      strg << pts[j] << " ";
-    strg << _("\n");
+        strg += QString::number( pts[j] ) + " ";
+    strg += "\n";
   }
-  wxFFile file( fp );
-  file.SeekEnd();
-  bool ret = file.Write( strg );
-  file.Flush();
-  file.Detach();
-  
-  return ret;
+  QFile file;
+  file.open( fp, QIODevice::Append );
+  QByteArray ba = strg.toAscii();
+  int nsize = file.write( ba );
+  return nsize == ba.size();
 }
 
 bool SurfaceRegion::Load( FILE* fp )
 {
   char tmp_strg[1000];
-  wxString id_strg = _("SURFACE_REGION");
+  QString id_strg = "SURFACE_REGION";
   while ( fscanf( fp, "%s\n", tmp_strg ) != EOF && id_strg != tmp_strg );
   if ( id_strg != tmp_strg )
     return false;
   
-  int nId, nGroup = 1, nPts = 0;
+  int nId, nPts = 0, nGroup;
   float x, y, z;
   char ch[100] = {0};
-  if ( fscanf( fp, "ID %d", &nId ) == EOF || fscanf( fp, "%s", ch ) == EOF ) 
+  if ( fscanf( fp, "ID %d", &nId ) == EOF || fscanf( fp, "%s", ch ) == EOF )
     return false;
-  
-  wxString strg = ch;
+
+  QString strg = ch;
   if ( strg == "GROUP_ID" )
     fscanf( fp, "%d\nPOINTS %d", &nGroup, &nPts );
   else
@@ -332,7 +330,7 @@ bool SurfaceRegion::Load( FILE* fp )
     return false;
   if ( nGroup <= 0 )
     nGroup = 1;
-  
+
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   double pt[3];
   for ( int i = 0; i < nPts; i++ )
@@ -372,8 +370,8 @@ bool SurfaceRegion::Load( FILE* fp )
   mapper->ScalarVisibilityOff();
   m_actorMesh->SetMapper( mapper );
   
+  // set group after actor is set
   SetGroup( nGroup );
-  
   return true;
 }
 
@@ -409,4 +407,3 @@ void SurfaceRegion::SetGroup( int nGroup )
   m_nGroup = nGroup;
   SetColor( m_mri->GetSurfaceRegionGroups()->GetGroupColor( nGroup ) );
 }
-

@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.13 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:49 $
+ *    $Revision: 1.14 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -26,13 +28,13 @@
 #define LayerEditable_h
 
 #include "Layer.h"
-#include "vtkSmartPointer.h"
-#include <string>
+#include <QString>
 
 class LayerEditable : public Layer
 {
+    Q_OBJECT
 public:
-  LayerEditable();
+  LayerEditable( QObject* parent = NULL );
   virtual ~LayerEditable();
 
   virtual bool HasUndo()
@@ -48,12 +50,6 @@ public:
   {}
   virtual void Redo()
   {}
-
-  virtual void Append2DProps( vtkRenderer* renderer, int nPlane ) = 0;
-  virtual void Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility = NULL ) = 0;
-
-  virtual void SetVisible( bool bVisible = true ) = 0;
-  virtual bool IsVisible() = 0;
 
   void ResetModified()
   {
@@ -75,28 +71,21 @@ public:
     return m_bEditable;
   }
 
-  const char* GetFileName()
+  QString GetRegFileName()
   {
-    return m_sFilename.c_str();
+    return m_sRegFilename;
   }
 
-  void SetFileName( const char* fn )
-  {
-    m_sFilename = fn;
-  }
-
-  const char* GetRegFileName()
-  {
-    return m_sRegFilename.c_str();
-  }
-
-  void SetRegFileName( const char* fn )
+  void SetRegFileName( const QString& fn )
   {
     m_sRegFilename = fn;
   }
 
   virtual void SetModified();
   
+Q_SIGNALS:
+  void Modified();
+
 protected:
 
   int   m_nMaxUndoSteps;
@@ -104,8 +93,7 @@ protected:
 
   bool   m_bEditable;
 
-  std::string m_sFilename;
-  std::string m_sRegFilename;
+  QString m_sRegFilename;
 };
 
 #endif

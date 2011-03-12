@@ -1,78 +1,42 @@
-/**
- * @file  DialogLoadDTI.h
- * @brief Dialog to load DTI data.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.10 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-#ifndef DialogLoadDTI_h
-#define DialogLoadDTI_h
+#ifndef DIALOGLOADDTI_H
+#define DIALOGLOADDTI_H
 
-#include <wx/wx.h>
+#include <QDialog>
 
-class wxTextCtrl;
-class wxCheckBox;
-class wxComboBox;
+namespace Ui {
+    class DialogLoadDTI;
+}
 
-class DialogLoadDTI : public wxDialog
+class DialogLoadDTI : public QDialog
 {
+    Q_OBJECT
+
 public:
-  DialogLoadDTI( wxWindow* parent );
-  virtual ~DialogLoadDTI();
+    explicit DialogLoadDTI(QWidget *parent = 0);
+    ~DialogLoadDTI();
 
-  wxString GetVectorFileName();
-  wxString GetFAFileName();
-  wxString GetRegFileName();
+    QString GetVectorFileName();
+     QString GetFAFileName();
+     QString GetRegFileName();
 
-  bool IsToResample();
+     bool IsToResample();
 
-  void OnOK( wxCommandEvent& event );
+     void SetLastDir( const QString& dir )
+     {
+       m_strLastDir = dir;
+     }
 
-  void SetLastDir( const wxString& dir )
-  {
-    m_strLastDir = dir;
-  }
+     void Initialize( bool bResample, bool bEnableCheckBox );
 
-  void Initialize( bool bResample, bool bEnableCheckBox );
+ protected slots:
+     void OnOK();
+     void OnButtonVector();
+     void OnButtonFA();
+     void OnButtonRegistration();
 
-  void SetRecentFiles( const wxArrayString& list );
-
-protected:
-  void OnButtonVector( wxCommandEvent& event );
-  void OnButtonFA( wxCommandEvent& event );
-  void OnComboFASelectionChanged( wxCommandEvent& event );
-  void OnButtonReg( wxCommandEvent& event );
-  void OnCheckApplyReg( wxCommandEvent& event );
-
-  wxButton*  m_btnVector;
-  wxButton*  m_btnFA;
-  wxButton*  m_btnReg;
-  wxTextCtrl*  m_textVector;
-  wxTextCtrl*  m_textReg;
-  wxComboBox*  m_comboFA;
-  wxCheckBox*  m_checkResample;
-  wxCheckBox*  m_checkReg;
-
-  wxString  m_strLastDir;
-
-  DECLARE_EVENT_TABLE()
+private:
+    Ui::DialogLoadDTI *ui;
+    QString m_strLastDir;
 };
 
-#endif
-
+#endif // DIALOGLOADDTI_H

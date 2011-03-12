@@ -6,25 +6,27 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.4 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:49 $
+ *    $Revision: 1.5 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-#include <wx/wx.h>
 #include "LayerPLabel.h"
-#include "LayerPropertiesDTI.h"
+#include "MainWindow.h"
+#include "LayerPropertyMRI.h"
 #include "MyUtils.h"
 #include "FSVolume.h"
 #include "vtkFloatArray.h"
@@ -32,14 +34,14 @@
 #include "vtkImageMapToColors.h"
 #include "vtkLookupTable.h"
 #include "vtkMath.h"
-#include "vtkAbstractTransform.h"
-#include "MainWindow.h"
 #include "LUTDataHolder.h"
 #include <vtkImageActor.h>
 #include <vtkImageReslice.h>
-#include <wx/filename.h>
+#include <vtkAbstractTransform.h>
+#include <QFileInfo>
+#include <QDebug>
 
-LayerPLabel::LayerPLabel( LayerMRI* ref ) : LayerMRI( ref ),
+LayerPLabel::LayerPLabel( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
     m_volumeTemp( NULL)
 {
   m_strTypeNames.push_back( "PLabel" );
@@ -53,27 +55,26 @@ LayerPLabel::~LayerPLabel()
     delete m_volumeTemp;
 }
 
-bool LayerPLabel::LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event )
+bool LayerPLabel::LoadVolumeFiles()
 {
-  if ( m_sFilenames.size() == 0 )
+  if ( m_sFilenames.isEmpty() )
     return false;
-  
-  m_sFilename = m_sFilenames[0].c_str();
-  if ( !LayerMRI::LoadVolumeFromFile( wnd, event ) )
+
+  m_sFilename = m_sFilenames[0];
+  if ( !LayerMRI::LoadVolumeFromFile() )
     return false;
   
   if ( m_volumeTemp )
     delete m_volumeTemp;
   m_volumeTemp = NULL;
   
-  LUTDataHolder* luts = MainWindow::GetMainWindowPointer()->GetLUTData();
+  LUTDataHolder* luts = MainWindow::GetMainWindow()->GetLUTData();
   COLOR_TABLE* ct = luts->GetColorTable( m_sLUT );
   if ( !ct )
   {
-    cerr << "Can not find look up table." << endl;
+    cerr << "Can not find look up table.\n";
+    return false;
   }
-  
-  event.SetInt( 0 );
 
   m_imageData = vtkSmartPointer<vtkImageData>::New();
   m_imageData->SetScalarTypeToUnsignedChar();
@@ -81,30 +82,28 @@ bool LayerPLabel::LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event )
   m_imageIndex = vtkSmartPointer<vtkImageData>::New();
   m_imageIndex->SetScalarTypeToFloat();
   m_imageIndex->SetNumberOfScalarComponents(2);
-  for ( size_t i = 0; i < m_sFilenames.size(); i++ )
+  for ( int i = 0; i < m_sFilenames.size(); i++ )
   {
-    wxString fn = wxFileName( m_sFilenames[i] ).GetName();
-    if ( !m_sFilenamePrefix.IsEmpty() )
+    QString fn = QFileInfo( m_sFilenames[i] ).completeBaseName();
+    if ( !m_sFilenamePrefix.isEmpty() )
     {
-      fn = fn.Mid( m_sFilenamePrefix.Len() );
-      SetName( m_sFilenamePrefix.char_str() );
+      fn = fn.mid( m_sFilenamePrefix.length() );
+      SetName( m_sFilenamePrefix );
     }
     
     int r, g, b;
-    if ( CTABrgbAtIndexi( ct, CTABentryNameToIndex( fn.char_str(), ct ), &r, &g, &b ) != 0 )
+    if ( CTABrgbAtIndexi( ct, CTABentryNameToIndex( fn.toAscii().data(), ct ), &r, &g, &b ) != 0 )
     {
-      cerr << "Can not find index for color name " << fn.c_str() << endl;
+      cerr << "Can not find index for color name " << qPrintable(fn) << "\n";
       return false;
     }
-    
+
     int color[4] = { r, g, b, 255 };
     m_volumeTemp = new FSVolume( m_volumeRef );
-    if ( !m_volumeTemp->MRIRead( m_sFilenames[i].c_str(),
-                                   m_sRegFilename.size() > 0 ? m_sRegFilename.c_str() : NULL,
-                                   wnd,
-                                   event ) )
+    if ( !m_volumeTemp->MRIRead( m_sFilenames[i],
+                                   m_sRegFilename.size() > 0 ? m_sRegFilename : NULL ) )
     {
-      cerr << "Can not load volume file " << m_sFilenames[i].c_str() << endl;
+      cerr << "Can not load volume file " << qPrintable(m_sFilenames[i]) << "\n";
       return false;
     }
     
@@ -133,28 +132,28 @@ bool LayerPLabel::LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event )
           float pvalue = imageData->GetScalarComponentAsFloat( ni, nj, nk, 0 );
           if ( i == 0)
           {
-            m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 0, 0);
-            m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 1, pvalue);
+              m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 0, 0);
+              m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 1, pvalue);
           }
           else
           {
-            float old_pvalue = m_imageIndex->GetScalarComponentAsFloat( ni, nj, nk, 0 );
-            if ( old_pvalue < pvalue)
-            {
-              m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 0, i);  
-              m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 1, pvalue);
-            }
+             float old_pvalue = m_imageIndex->GetScalarComponentAsFloat( ni, nj, nk, 0 );
+             if ( old_pvalue < pvalue)
+             {
+                m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 0, i);
+                m_imageIndex->SetScalarComponentFromFloat(ni, nj, nk, 1, pvalue);
+             }
           }
           for ( int m = 0; m < 4; m++ )
-          { 
-            float fvalue = 0;
-            if ( i != 0 )
-              fvalue = m_imageData->GetScalarComponentAsFloat( ni, nj, nk, m );
-            
-            fvalue += color[m]*pvalue/255;
-            if ( fvalue > 255 )
-              fvalue = 255;
-            m_imageData->SetScalarComponentFromFloat( ni, nj, nk, m, fvalue );
+          {
+              float fvalue = 0;
+              if ( i != 0 )
+                  fvalue = m_imageData->GetScalarComponentAsFloat( ni, nj, nk, m );
+
+              fvalue += color[m]*pvalue/255;
+              if ( fvalue > 255 )
+                  fvalue = 255;
+              m_imageData->SetScalarComponentFromFloat( ni, nj, nk, m, fvalue );
           }
         }
       }
@@ -170,12 +169,6 @@ bool LayerPLabel::LoadVolumeFiles( wxWindow* wnd, wxCommandEvent& event )
     m_sliceActor2D[i]->SetInput( mReslice[i]->GetOutput() );
     m_sliceActor3D[i]->SetInput( mReslice[i]->GetOutput() );
   }
-  
-  event.SetInt( 90 );
-
-  event.SetInt( 100 );
-  wxPostEvent( wnd, event );
-
   return true;
 }
 
@@ -184,81 +177,66 @@ void LayerPLabel::UpdateColorMap()
   // over-ride parent class, do nothing
 }
 
-double LayerPLabel::GetVoxelValue( double* pos )
+double LayerPLabel::GetVoxelValue(double* pos)
 {
-  if ( m_imageIndex.GetPointer() == NULL )
-    return 0;
+    if ( m_imageIndex == NULL )
+      return 0;
 
-  vtkAbstractTransform* tr = mReslice[0]->GetResliceTransform();
-  double pos_new[3];
-  tr->TransformPoint( pos, pos_new );
-  
-  double* orig = m_imageIndex->GetOrigin();
-  double* vsize = m_imageIndex->GetSpacing();
-  int* ext = m_imageIndex->GetExtent();
-  
-  int n[3];
-  for ( int i = 0; i < 3; i++ )
-  {
-    n[i] = (int)( ( pos_new[i] - orig[i] ) / vsize[i] + 0.5 );
-  }
+    vtkAbstractTransform* tr = mReslice[0]->GetResliceTransform();
+    double pos_new[3];
+    tr->TransformPoint( pos, pos_new );
 
-  if ( n[0] < ext[0] || n[0] > ext[1] ||
-       n[1] < ext[2] || n[1] > ext[3] ||
-       n[2] < ext[4] || n[2] > ext[5] )
-    return 0;
-  else
-    return m_imageIndex->GetScalarComponentAsDouble( n[0], n[1], n[2], 1 );
+    double* orig = m_imageData->GetOrigin();
+    double* vsize = m_imageData->GetSpacing();
+    int* ext = m_imageData->GetExtent();
+
+    int n[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      n[i] = (int)( ( pos_new[i] - orig[i] ) / vsize[i] + 0.5 );
+    }
+
+    if ( n[0] < ext[0] || n[0] > ext[1] ||
+         n[1] < ext[2] || n[1] > ext[3] ||
+         n[2] < ext[4] || n[2] > ext[5] )
+      return 0;
+    else
+      return m_imageIndex->GetScalarComponentAsDouble( n[0], n[1], n[2], 1 );
 }
 
-std::string LayerPLabel::GetLabelName( double* pos )
+QString LayerPLabel::GetLabelName(double *pos)
 {
-  if ( m_imageIndex.GetPointer() == NULL )
-    return 0;
+    if ( m_imageIndex == NULL )
+      return "";
 
-  vtkAbstractTransform* tr = mReslice[0]->GetResliceTransform();
-  double pos_new[3];
-  tr->TransformPoint( pos, pos_new );
-  
-  double* orig = m_imageIndex->GetOrigin();
-  double* vsize = m_imageIndex->GetSpacing();
-  int* ext = m_imageIndex->GetExtent();
-  
-  int n[3];
-  for ( int i = 0; i < 3; i++ )
-  {
-    n[i] = (int)( ( pos_new[i] - orig[i] ) / vsize[i] + 0.5 );
-  }
+    vtkAbstractTransform* tr = mReslice[0]->GetResliceTransform();
+    double pos_new[3];
+    tr->TransformPoint( pos, pos_new );
 
-  int nIndex = 0;
-  if ( n[0] < ext[0] || n[0] > ext[1] ||
-       n[1] < ext[2] || n[1] > ext[3] ||
-       n[2] < ext[4] || n[2] > ext[5] )
-  {
-    return "";
-  }
-  else
-  {
-    nIndex = (int)m_imageIndex->GetScalarComponentAsDouble( n[0], n[1], n[2], 0 ); 
-    wxString strg = m_sFilenames[nIndex].Mid( m_sFilenamePrefix.Len() );
-    int n = strg.Find('.', true);
-    if (n >= 0 )
-      strg = strg.Left(n);
-    return strg.c_str();
-  }
+    double* orig = m_imageIndex->GetOrigin();
+    double* vsize = m_imageIndex->GetSpacing();
+    int* ext = m_imageIndex->GetExtent();
+
+    int n[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      n[i] = (int)( ( pos_new[i] - orig[i] ) / vsize[i] + 0.5 );
+    }
+
+    int nIndex = 0;
+    if ( n[0] < ext[0] || n[0] > ext[1] ||
+         n[1] < ext[2] || n[1] > ext[3] ||
+         n[2] < ext[4] || n[2] > ext[5] )
+    {
+      return "";
+    }
+    else
+    {
+      nIndex = (int)m_imageIndex->GetScalarComponentAsDouble( n[0], n[1], n[2], 0 );
+      QString strg = m_sFilenames[nIndex].mid( m_sFilenamePrefix.length() );
+      int n = strg.lastIndexOf('.');
+      if (n >= 0 )
+        strg = strg.left(n);
+      return strg;
+    }
 }
-
-bool LayerPLabel::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
-{
-  /* 
-  m_bResampleToRAS = false;
-  m_volumeSource->SetResampleToRAS( m_bResampleToRAS );
-  m_vectorSource->SetResampleToRAS( m_bResampleToRAS );
-
-  bool ret = LayerMRI::Rotate( rotations, wnd, event ) && m_vectorSource->Rotate( rotations, wnd, event );
-
-  InitializeDTIColorMap( wnd, event );
-  return ret;*/
-  return true;
-}
-

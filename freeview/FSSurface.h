@@ -6,25 +6,28 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.28 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:47 $
+ *    $Revision: 1.29 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 #ifndef FSSurface_h
 #define FSSurface_h
 
+#include <QObject>
 #include "vtkSmartPointer.h"
 #include "vtkImageData.h"
 #include "vtkPolyData.h"
@@ -41,27 +44,26 @@ extern "C"
 
 #define NUM_OF_VSETS 5
 
-class wxWindow;
-class wxCommandEvent;
 class vtkTransform;
 class FSVolume;
 
-class FSSurface
+class FSSurface : public QObject
 {
+    Q_OBJECT
 public:
-  FSSurface( FSVolume* ref = NULL );
+  FSSurface( FSVolume* ref, QObject* parent = NULL );
   virtual ~FSSurface();
 
   enum ACTIVE_SURFACE { SurfaceMain = 0, SurfaceInflated, SurfaceWhite, SurfacePial, SurfaceOriginal };
 
-  bool MRISRead( const char* filename, wxWindow* wnd, wxCommandEvent& event, 
-                 const char* vector_filename = NULL,
-                 const char* patch_filename = NULL,
-                 const char* target_filename = NULL );
+  bool MRISRead( const QString& filename,
+                 const QString& vector_filename = QString(),
+                 const QString& patch_filename = QString(),
+                 const QString& target_filename = QString() );
 
-  bool MRISWrite( const char* filename, wxWindow* wnd, wxCommandEvent& event );
+  bool MRISWrite( const QString& filename );
   
-  bool MRISReadVectors( const char* filename, wxWindow* wnd, wxCommandEvent& event );
+  bool MRISReadVectors( const QString& filename );
 
   void GetBounds ( float oRASBounds[6] );
 
@@ -97,9 +99,9 @@ public:
 
   int GetNumberOfVertices () const;
 
-  bool LoadSurface    ( const char* filename, int nSet );
-  bool LoadCurvature  ( const char* filename = NULL );
-  bool LoadOverlay    ( const char* filename );
+  bool LoadSurface    ( const QString& filename, int nSet );
+  bool LoadCurvature  ( const QString& filename = NULL );
+  bool LoadOverlay    ( const QString& filename );
 
   bool IsSurfaceLoaded( int nSet )
   {
@@ -130,7 +132,7 @@ public:
     return m_vertexVectors.size();
   }
 
-  const char* GetVectorSetName( int nSet );
+  QString GetVectorSetName( int nSet );
 
   int GetActiveVector()
   {
@@ -186,10 +188,10 @@ public:
   void Reposition( FSVolume* volume, int target_vnos, double* coord, int nsize, double sigma );
   
   void UndoReposition();
-  
-  bool HasVolumeGeometry()
+
+  bool HasValidVolumeGeometry()
   {
-    return m_bHasVolumeGeometry;
+      return m_bValidVolumeGeometry;
   }
 
 protected:
@@ -203,8 +205,8 @@ protected:
   float TriangleArea( int fac, int n );
   void Normalize( float v[3] );
 
-  bool LoadVectors( const char* filename );
-  void LoadTargetSurface( const char* filename, wxWindow* wnd, wxCommandEvent& event );
+  bool LoadVectors( const QString& filename );
+  void LoadTargetSurface( const QString& filename );
   void UpdateVectors();
   void UpdateVertices();
 
@@ -262,7 +264,7 @@ protected:
 
   struct VertexVectorItem
   {
-    std::string  name;
+    QString  name;
     VertexItem*  data;
 
     VertexVectorItem()
@@ -273,8 +275,8 @@ protected:
 
   std::vector<VertexVectorItem>  m_vertexVectors;
   int      m_nActiveVector;
-  
-  bool     m_bHasVolumeGeometry;
+
+  bool     m_bValidVolumeGeometry;
 };
 
 #endif

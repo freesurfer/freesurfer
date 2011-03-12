@@ -1,110 +1,65 @@
-/**
- * @file  DialogTransformVolume.h
- * @brief Dialog to transform volume.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.6 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-#ifndef DialogTransformVolume_h
-#define DialogTransformVolume_h
+#ifndef DIALOGTRANSFORMVOLUME_H
+#define DIALOGTRANSFORMVOLUME_H
 
-#include <wx/wx.h>
-#include "Listener.h"
+#include <QDialog>
+#include "UIUpdateHelper.h"
 
-class wxNotebook;
-class wxNotebookEvent;
-class wxBookCtrlEvent;
+namespace Ui {
+    class DialogTransformVolume;
+}
 
-class DialogTransformVolume : public wxDialog, public Listener
+class QCheckBox;
+class QComboBox;
+class QLineEdit;
+class QScrollBar;
+
+class DialogTransformVolume : public QDialog, public UIUpdateHelper
 {
+    Q_OBJECT
+
 public:
-  DialogTransformVolume( wxWindow* parent );
-  virtual ~DialogTransformVolume();
+    explicit DialogTransformVolume(QWidget *parent = 0);
+    ~DialogTransformVolume();
 
-  void OnApply  ( wxCommandEvent& event );
-  void OnRestore( wxCommandEvent& event );
-  void OnSaveAs ( wxCommandEvent& event );
-  void OnSaveReg( wxCommandEvent& event );
+    bool GetRotation( int nID_in, int& plane_out, double& angle_out );
+    void UpdateUI( int scope = 2 );
 
-  bool GetRotation( int nID_in, int& plane_out, double& angle_out );
+protected slots:
+    void OnApply();
+    void OnRestore();
+    void OnSaveReg();
 
-  void UpdateUI( int scope = 2 );
-  
-protected:
-  void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
-  
-  void OnCheck1( wxCommandEvent& event );
-  void OnCheck2( wxCommandEvent& event );
-  void OnCheck3( wxCommandEvent& event );
-  
-  void OnTextTranslateX   ( wxCommandEvent& event );
-  void OnTextTranslateY   ( wxCommandEvent& event );
-  void OnTextTranslateZ   ( wxCommandEvent& event );
-  void OnScrollTranslateX ( wxScrollEvent& event );
-  void OnScrollTranslateY ( wxScrollEvent& event );
-  void OnScrollTranslateZ ( wxScrollEvent& event );
-  
-//#if wxCHECK_VERSION( 2, 9, 0 )
-#if wxVERSION_NUMBER > 2900
-  void OnPageChanged      ( wxBookCtrlEvent& event );
-#else  
-  void OnPageChanged      ( wxNotebookEvent& event );
-#endif
-  
-  void RespondTextTranslate   ( int n );
-  void RespondScrollTranslate ( int n );
-  
-  void OnTextScaleX       ( wxCommandEvent& event );
-  void OnTextScaleY       ( wxCommandEvent& event );
-  void OnTextScaleZ       ( wxCommandEvent& event );
-  void OnScrollScaleX     ( wxScrollEvent& event );
-  void OnScrollScaleY     ( wxScrollEvent& event );
-  void OnScrollScaleZ     ( wxScrollEvent& event );
-  void RespondTextScale   ( int n );
-  void RespondScrollScale ( int n );
+    void OnScrollBarTranslateX(int nVal);
+    void OnScrollBarTranslateY(int nVal);
+    void OnScrollBarTranslateZ(int nVal);
+    void OnLineEditTranslateX(const QString& text);
+    void OnLineEditTranslateY(const QString& text);
+    void OnLineEditTranslateZ(const QString& text);
+    void OnScrollBarScaleX(int nVal);
+    void OnScrollBarScaleY(int nVal);
+    void OnScrollBarScaleZ(int nVal);
+    void OnLineEditScaleX(const QString& text);
+    void OnLineEditScaleY(const QString& text);
+    void OnLineEditScaleZ(const QString& text);
 
-  void DoRotate();
+    void OnActiveLayerChanged();
 
-  wxCheckBox*   m_check[3];
-  wxChoice*     m_choice[3];
-  wxTextCtrl*   m_textAngle[3];
-  wxButton*     m_btnRestoreOriginal;
-  wxButton*     m_btnSaveAs;
-  wxButton*     m_btnSaveReg;
-  
-  wxRadioButton*  m_radioAroundCenter;
-  wxRadioButton*  m_radioAroundCursor;
-  wxRadioButton*  m_radioNearest;
-  wxRadioButton*  m_radioTrilinear;
-  wxRadioButton*  m_radioSinc; 
-  wxRadioButton*  m_radioActiveVolume;
-  wxRadioButton*  m_radioAllVolumes;
-  
-  wxScrollBar*    m_scrollTranslate[3];
-  wxTextCtrl*     m_textTranslate[3];
-  wxScrollBar*    m_scrollScale[3];
-  wxTextCtrl*     m_textScale[3];
-  
-  wxNotebook*     m_notebook;
+private:
+    void DoRotate();
+    void RespondTextTranslate   ( int n );
+    void RespondScrollTranslate ( int n );
+    void RespondTextScale   ( int n );
+    void RespondScrollScale ( int n );
 
-  DECLARE_EVENT_TABLE()
+    Ui::DialogTransformVolume *ui;
+
+    QCheckBox*   m_checkRotate[3];
+    QComboBox*   m_comboRotate[3];
+    QLineEdit*   m_textAngle[3];
+    QScrollBar*    m_scrollTranslate[3];
+    QLineEdit*     m_textTranslate[3];
+    QScrollBar*    m_scrollScale[3];
+    QLineEdit*     m_textScale[3];
 };
 
-#endif
-
+#endif // DIALOGTRANSFORMVOLUME_H

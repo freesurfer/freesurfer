@@ -6,23 +6,24 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.9 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:46 $
+ *    $Revision: 1.10 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-#include <wx/xrc/xmlres.h>
 #include "Cursor3D.h"
 #include "vtkRenderer.h"
 #include "vtkActor2D.h"
@@ -39,10 +40,10 @@
 #include <vtkProperty.h>
 #include "MyUtils.h"
 #include "LayerMRI.h"
-#include "LayerPropertiesMRI.h"
+#include "LayerPropertyMRI.h"
 
 
-Cursor3D::Cursor3D( RenderView3D* view ) :
+Cursor3D::Cursor3D( RenderView3D* view ) : QObject( view ),
     m_view( view )
 {
   m_actorCursor = vtkSmartPointer<vtkActor>::New();
@@ -93,6 +94,7 @@ void Cursor3D::RebuildActor()
   mapper->SetInputConnection( tube->GetOutputPort() );
 
   m_actorCursor->SetMapper( mapper );
+  emit Updated();
 }
 
 
@@ -117,11 +119,12 @@ void Cursor3D::AppendActor( vtkRenderer* renderer )
 void Cursor3D::SetColor( double r, double g, double b )
 {
   m_actorCursor->GetProperty()->SetColor( r, g, b );
+  emit Updated();
 }
 
-void Cursor3D::SetColor( const wxColour& color )
+void Cursor3D::SetColor( const QColor& color )
 {
-  m_actorCursor->GetProperty()->SetColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+  SetColor( color.redF(), color.greenF(), color.blueF() );
 }
 
 void Cursor3D::GetColor( double* rgb )
@@ -129,10 +132,10 @@ void Cursor3D::GetColor( double* rgb )
   m_actorCursor->GetProperty()->GetColor( rgb );
 }
 
-wxColour Cursor3D::GetColor()
+QColor Cursor3D::GetColor()
 {
   double* rgb = m_actorCursor->GetProperty()->GetColor();
-  return wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) );
+  return QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) );
 }
 
 double* Cursor3D::GetPosition()

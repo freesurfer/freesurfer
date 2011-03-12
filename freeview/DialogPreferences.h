@@ -1,70 +1,33 @@
-/**
- * @file  DialogPreferences.h
- * @brief Preferences Dialog.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.12 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-#ifndef DialogPreferences_h
-#define DialogPreferences_h
+#ifndef DIALOGPREFERENCES_H
+#define DIALOGPREFERENCES_H
 
-#include <wx/wx.h>
+#include <QDialog>
+#include <QVariantMap>
+#include "UIUpdateHelper.h"
 
+namespace Ui {
+    class DialogPreferences;
+}
 
-class wxColourPickerCtrl;
-class wxCheckBox;
-class wxSpinCtrl;
-struct SettingsGeneral;
-struct Settings2D;
-struct SettingsScreenshot;
+class QAbstractButton;
 
-class DialogPreferences : public wxDialog
+class DialogPreferences : public QDialog, public UIUpdateHelper
 {
+    Q_OBJECT
+
 public:
-  DialogPreferences(wxWindow* parent);
-  virtual ~DialogPreferences();
+    explicit DialogPreferences(QWidget *parent = 0);
+    ~DialogPreferences();
 
-  SettingsGeneral GetGeneralSettings();
-  void SetGeneralSettings( const SettingsGeneral& s );
+    void SetSettings(const QVariantMap& map);
 
-  Settings2D Get2DSettings();
-  void Set2DSettings( const Settings2D& s );
+    QVariantMap GetSettings();
 
-  SettingsScreenshot GetScreenshotSettings();
-  void SetScreenshotSettings( const SettingsScreenshot& s );
-
-  void OnOK( wxCommandEvent& event );
+protected slots:
+    void OnClicked(QAbstractButton* btn);
 
 private:
-  wxColourPickerCtrl* m_colorPickerBackground;
-  wxColourPickerCtrl* m_colorPickerCursor;
-  wxChoice*           m_choiceCursorStyle;
-  wxCheckBox*         m_checkSaveCopy;
-  wxCheckBox*         m_checkSyncZoomFactor;
-
-  wxCheckBox*         m_checkHideCursor;
-  wxCheckBox*         m_checkHideCoords;
-  wxCheckBox*         m_checkAntiAliasing;
-  wxSpinCtrl*         m_spinMagnification;
-
-  DECLARE_EVENT_TABLE()
+    Ui::DialogPreferences *ui;
 };
 
-#endif
-
+#endif // DIALOGPREFERENCES_H

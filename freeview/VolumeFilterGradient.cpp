@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.4 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:54 $
+ *    $Revision: 1.5 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -31,38 +33,19 @@
 #include <vtkImageChangeInformation.h>
 #include <vtkImageAnisotropicDiffusion3D.h>
 #include <vtkImageGaussianSmooth.h>
+#include <vtkPointData.h>
+#include <vtkDataArray.h>
+#include <vtkImageShiftScale.h>
 
-VolumeFilterGradient::VolumeFilterGradient( LayerMRI* input, LayerMRI* output ) : 
-    VolumeFilter( input, output ),
+VolumeFilterGradient::VolumeFilterGradient( LayerMRI* input, LayerMRI* output, QObject* parent ) :
+    VolumeFilter( input, output, parent ),
     m_bSmoothing( false ),
     m_dSD( 1.0 )
 {
 }
 
-VolumeFilterGradient::~VolumeFilterGradient()
-{
-}
-
 bool VolumeFilterGradient::Execute()
 {
-  
-  /*
-  vtkSmartPointer<vtkImageClip> clip = vtkSmartPointer<vtkImageClip>::New();
-  clip->SetInput( image_in );
-  int ext[6];
-  image_in->GetExtent( ext );
-  ext[m_nPlane*2] = ext[m_nPlane*2 + 1] = m_nSlice;
-  clip->SetOutputWholeExtent( ext );
-  clip->ClipDataOn();
-  clip->ReleaseDataFlagOff();
-  
-  vtkSmartPointer<vtkImageAnisotropicDiffusion3D> smooth = vtkSmartPointer<vtkImageAnisotropicDiffusion3D>::New();
-  smooth->SetInput( m_MRIInput->GetImageData() );
-  smooth->SetDiffusionFactor( 0.75 );
-  smooth->SetDiffusionThreshold( 50.0 );
-  smooth->SetNumberOfIterations( 5 );
-*/
-  
   vtkSmartPointer<vtkImageGradientMagnitude> grad = vtkSmartPointer<vtkImageGradientMagnitude>::New();
   grad->SetDimensionality( 3 );
   grad->HandleBoundariesOn();
@@ -79,7 +62,19 @@ bool VolumeFilterGradient::Execute()
     grad->SetInput( m_volumeInput->GetImageData() );
   
   grad->Update();
-  m_volumeOutput->GetImageData()->DeepCopy( grad->GetOutput() );
+  double* orig_range = m_volumeInput->GetImageData()->GetPointData()->GetScalars()->GetRange();
+  vtkImageData* img = grad->GetOutput();
+  double* range = img->GetPointData()->GetScalars()->GetRange();
+  double scale = orig_range[1]/range[1];
+  if (scale < 0)
+      scale = -scale;
+  vtkSmartPointer<vtkImageShiftScale> scaler = vtkSmartPointer<vtkImageShiftScale>::New();
+  scaler->SetInput(img);
+  scaler->SetShift(0);
+  scaler->SetScale(scale);
+  scaler->SetOutputScalarType(m_volumeInput->GetImageData()->GetScalarType());
+  scaler->Update();
+  m_volumeOutput->GetImageData()->DeepCopy( scaler->GetOutput() );
   
   return true;
 }

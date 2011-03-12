@@ -9,57 +9,58 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.6 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:53 $
+ *    $Revision: 1.7 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2007-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 #ifndef SurfaceOverlay_h
 #define SurfaceOverlay_h
 
-#include "vtkSmartPointer.h"
-#include "Broadcaster.h"
-#include "Listener.h"
-#include <string>
-
 extern "C"
 {
 #include "mri.h"
 }
 
+#include <QObject>
+#include <QString>
+
 class vtkLookupTable;
 class vtkRGBAColorTransferFunction;
 class LayerSurface;
-class SurfaceOverlayProperties;
+class SurfaceOverlayProperty;
 
-class SurfaceOverlay  : public Broadcaster, public Listener
+class SurfaceOverlay  : public QObject
 {
-  friend class SurfaceOverlayProperties;
+  friend class SurfaceOverlayProperty;
+  Q_OBJECT
 public:
   SurfaceOverlay ( LayerSurface* surf );
   ~SurfaceOverlay ();
 
   void SetSurface( LayerSurface* surf );
   
-  SurfaceOverlayProperties* GetProperties()
+  SurfaceOverlayProperty* GetProperty()
   {
-    return m_properties;
+    return m_property;
   }
   
-  const char* GetName();
+  QString GetName();
   
-  void SetName( const char* name );
+  void SetName( const QString& name );
   
   void InitializeData();
   
@@ -83,17 +84,36 @@ public:
     range[1] = m_dMaxValue;
   }
   
-  bool LoadCorrelationData( const char* filename );
+  bool LoadCorrelationData( const QString& filename );
   
   bool HasCorrelationData()
   {
     return m_bCorrelationData;
   }
   
-  void UpdateCorrelationAtVertex( int nVertex );
+  void UpdateCorrelationAtVertex( int nVertex, int hemisphere = -1 );
+
+  void CopyCorrelationData(SurfaceOverlay* overlay);
+
+  bool HasSharedCorrelationData()
+  {
+      return m_overlayPaired != 0;
+  }
+
+  void SetFileName(const QString& fn)
+  {
+      m_strFileName = fn;
+  }
+
+  QString GetFileName()
+  {
+      return m_strFileName;
+  }
   
+signals:
+  void DataUpdated();
+
 protected:
-  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
   
 private:
   float*        m_fData;
@@ -101,13 +121,17 @@ private:
   double        m_dMaxValue;
   double        m_dMinValue;
   
-  std::string   m_strName;
-  SurfaceOverlayProperties* m_properties;
+  QString       m_strName;
+  QString       m_strFileName;
   LayerSurface* m_surface;
   
   bool        m_bCorrelationData;
   bool        m_bCorrelationDataReady;
-  MRI*        m_mriCorrelation;
+
+  MRI*      m_mriCorrelation;
+  SurfaceOverlayProperty* m_property;
+  // indicate there is a paired overlay sharing correlation data and property
+  SurfaceOverlay*  m_overlayPaired;
 };
 
 #endif

@@ -1,0 +1,38 @@
+#ifndef COMMANDEDIT_H
+#define COMMANDEDIT_H
+
+#include <QPlainTextEdit>
+#include <QStringList>
+
+class CommandEdit : public QTextEdit
+{
+    Q_OBJECT
+public:
+    explicit CommandEdit(QWidget *parent = 0);
+    ~CommandEdit();
+
+    QString GetPrompt()
+    {
+        return m_strPrompt;
+    }
+
+signals:
+    void CommandTriggered(const QString& cmd);
+
+protected slots:
+    void OnSelectionChanged();
+
+protected:
+    virtual void keyPressEvent(QKeyEvent *e);
+    virtual void mousePressEvent(QMouseEvent *e);
+    virtual void mouseMoveEvent(QMouseEvent *e);
+
+private:
+    void ProcessCommandInput();
+    QStringList m_listHistory;
+    int         m_nPosInHistory;
+    QString     m_strPrompt;
+    QString     m_strTempCommand;
+};
+
+#endif // COMMANDEDIT_H

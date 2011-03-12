@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.14 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:45 $
+ *    $Revision: 1.15 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -27,7 +29,6 @@
 
 #include "RenderView.h"
 #include "vtkSmartPointer.h"
-#include <wx/colour.h>
 #include <vector>
 
 class vtkActor2D;
@@ -36,8 +37,9 @@ class vtkActor;
 class vtkCursor2D;
 class RenderView2D;
 
-class Cursor2D
+class Cursor2D : public QObject
 {
+    Q_OBJECT
 public:
   Cursor2D( RenderView2D* view );
   virtual ~Cursor2D();
@@ -65,11 +67,9 @@ public:
   void GetColor( double* rgb );
   void SetColor( double r, double g, double b );
 
-  wxColour GetColor();
-  void SetColor( const wxColour& color );
+  QColor GetColor();
 
   int GetRadius();
-  void SetRadius( int nPixels );
 
   void Update( bool bConnectPrevious = false );
 
@@ -83,8 +83,14 @@ public:
   {
     return m_nStyle;
   }
-  
+
+public slots:
+  void SetColor( const QColor& color );
+  void SetRadius( int nPixels );
   void SetStyle( int nStyle );
+
+Q_SIGNALS:
+  void Updated();
 
 private:
   vtkSmartPointer<vtkActor2D> m_actorCursor;

@@ -10,33 +10,32 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.2 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:53 $
+ *    $Revision: 1.3 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2007-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 
-#include <wx/wx.h>
-#include <wx/ffile.h>
 #include "SurfaceLabel.h"
 #include "LayerSurface.h"
 #include "FSSurface.h"
-#include <wx/filename.h>
+#include <QFile>
 
 SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
-    Broadcaster( "SurfaceLabel" ),
-    Listener( "SurfaceLabel" ),
+    QObject( surf ),
     m_label( NULL ),
     m_surface( surf )
 {
@@ -44,7 +43,7 @@ SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
   m_rgbColor[1] = 1.0;
   m_rgbColor[2] = 0.0;
   
-  this->AddListener( surf );
+  //this->AddListener( surf );
 }
 
 SurfaceLabel::~SurfaceLabel ()
@@ -53,6 +52,7 @@ SurfaceLabel::~SurfaceLabel ()
     ::LabelFree( &m_label );
 }
 
+/*
 void SurfaceLabel::DoListenToMessage ( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
@@ -60,25 +60,24 @@ void SurfaceLabel::DoListenToMessage ( std::string const iMessage, void* iData, 
     this->SendBroadcast( "OverlayChanged", this );
   }
 }
+*/
 
-const char* SurfaceLabel::GetName()
+QString SurfaceLabel::GetName()
 {
-  return m_strName.c_str();
+  return m_strName;
 }
 
-void SurfaceLabel::SetName( const char* name )
+void SurfaceLabel::SetName( const QString& name )
 {
   m_strName = name;
 }
 
-bool SurfaceLabel::LoadLabel( const char* filename )
+bool SurfaceLabel::LoadLabel( const QString& filename )
 {
   if ( m_label )
     ::LabelFree( &m_label );
 
-  char* fn = strdup( filename );
-  m_label = ::LabelRead( NULL, fn );
-  free( fn );
+  m_label = ::LabelRead( NULL, filename.toAscii().data() );
 
   if ( m_label == NULL )
   {
@@ -86,14 +85,17 @@ bool SurfaceLabel::LoadLabel( const char* filename )
     return false;
   }
 
-  wxFFile file( wxString::FromAscii(filename) );
-  wxString strg;
-  if ( file.ReadAll( &strg ) )
-  {
-    if ( strg.Find( _("vox2ras=") ) >= 0 && 
-         strg.Find( _("vox2ras=TkReg") ) < 0 )
+  QFile file( filename );
+  if ( !file.open( QIODevice::ReadOnly | QIODevice::Text ) )
+      return false;
+
+  QString strg;
+  while (!file.atEnd())
+      strg += file.readLine();
+
+  if ( strg.contains( "vox2ras=", Qt::CaseInsensitive ) &&
+       !strg.contains( "vox2ras=TkReg", Qt::CaseInsensitive ) )
       m_bTkReg = false;
-  }
 
   return true;
 }
@@ -104,7 +106,7 @@ void SurfaceLabel::SetColor( double r, double g, double b )
   m_rgbColor[1] = g;
   m_rgbColor[2] = b;
   
-  this->SendBroadcast( "SurfaceLabelChanged", this );
+  emit SurfaceLabelChanged();
 }
 
 void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )

@@ -6,23 +6,24 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.15 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:45 $
+ *    $Revision: 1.16 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-#include <wx/xrc/xmlres.h>
 #include "Cursor2D.h"
 #include "vtkRenderer.h"
 #include "vtkActor2D.h"
@@ -39,10 +40,9 @@
 #include <vtkCursor2D.h>
 #include "MyUtils.h"
 #include "LayerMRI.h"
-#include "LayerPropertiesMRI.h"
+#include "LayerPropertyMRI.h"
 
-
-Cursor2D::Cursor2D( RenderView2D* view ) :
+Cursor2D::Cursor2D( RenderView2D* view ) : QObject( view ),
     m_view( view ),
     m_nRadius( 5 ),
     m_nStyle( CS_Short )
@@ -130,7 +130,8 @@ void Cursor2D::Update( bool bConnectPrevious )
   if ( m_nStyle == CS_Short )
   {
     int w, h;
-    m_view->GetClientSize( &w, &h );
+    w = m_view->rect().width();
+    h = m_view->rect().height();
     int nd = 9;
     points->InsertNextPoint( 0, pos[1], pos[2] );
     points->InsertNextPoint( nd, pos[1], pos[2] );   
@@ -164,6 +165,7 @@ void Cursor2D::Update( bool bConnectPrevious )
   mapper->SetTransformCoordinate( coords );
 
   m_actorCursor->SetMapper( mapper );
+  emit Updated();
 }
     
 /*
@@ -230,11 +232,12 @@ void Cursor2D::AppendActor( vtkRenderer* renderer )
 void Cursor2D::SetColor( double r, double g, double b )
 {
   m_actorCursor->GetProperty()->SetColor( r, g, b );
+  emit Updated();
 }
 
-void Cursor2D::SetColor( const wxColour& color )
+void Cursor2D::SetColor( const QColor& color )
 {
-  m_actorCursor->GetProperty()->SetColor( color.Red()/255.0, color.Green()/255.0, color.Blue()/255.0 );
+ SetColor( color.redF(), color.greenF(), color.blueF() );
 }
 
 void Cursor2D::GetColor( double* rgb )
@@ -242,10 +245,10 @@ void Cursor2D::GetColor( double* rgb )
   m_actorCursor->GetProperty()->GetColor( rgb );
 }
 
-wxColour Cursor2D::GetColor()
+QColor Cursor2D::GetColor()
 {
   double* rgb = m_actorCursor->GetProperty()->GetColor();
-  return wxColour( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) );
+  return QColor( (int)(rgb[0]*255), (int)(rgb[1]*255), (int)(rgb[2]*255) );
 }
 
 int Cursor2D::GetRadius()

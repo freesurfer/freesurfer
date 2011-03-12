@@ -6,34 +6,31 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.4 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:54 $
+ *    $Revision: 1.5 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 #include "VolumeFilterMean.h"
-#include <math.h>
 #include "LayerMRI.h"
 #include <vtkImageData.h>
 #include <vtkImageMedian3D.h>
 
-VolumeFilterMean::VolumeFilterMean( LayerMRI* input, LayerMRI* output ) : 
-    VolumeFilter( input, output )
-{
-}
-
-VolumeFilterMean::~VolumeFilterMean()
+VolumeFilterMean::VolumeFilterMean( LayerMRI* input, LayerMRI* output, QObject* parent ) :
+    VolumeFilter( input, output, parent )
 {
 }
 

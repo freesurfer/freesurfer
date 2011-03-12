@@ -6,25 +6,27 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:03 $
- *    $Revision: 1.9 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:54 $
+ *    $Revision: 1.10 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 #include "VolumeCropper.h"
 #include "LayerMRI.h"
-#include "LayerPropertiesMRI.h"
+#include "LayerPropertyMRI.h"
 #include "RenderView2D.h"
 #include <vtkBox.h>
 #include <vtkCubeSource.h>
@@ -40,9 +42,8 @@
 #include <vtkMath.h>
 #include <vtkPlaneSource.h>
 
-VolumeCropper::VolumeCropper() : 
-    Broadcaster( "VolumeCropper" ), 
-    Listener( "VolumeCropper" ),
+VolumeCropper::VolumeCropper( QObject* parent ) :
+    QObject( parent ),
     m_mri( NULL ),
     m_bEnabled( false ),
     m_nActivePlane( -1 )
@@ -158,8 +159,10 @@ void VolumeCropper::SetVolume( LayerMRI* mri)
 {
   if ( m_mri != mri )
   {
+    if (m_mri)
+        disconnect(m_mri, SIGNAL(IsoSurfaceUpdated()), this, SLOT(Apply()));
     m_mri = mri;
-    m_mri->AddListener( this );
+    connect(m_mri, SIGNAL(IsoSurfaceUpdated()), this, SLOT(Apply()), Qt::UniqueConnection);
     Reset();
   }
 }
@@ -207,9 +210,9 @@ void VolumeCropper::UpdateProps()
   m_boxSource->SetBounds( m_bounds );
   
   int nScale = 1;
-  if ( m_mri->GetProperties()->GetShowLabelOutline() )
+  if ( m_mri->GetProperty()->GetShowLabelOutline() )
     nScale = 4;
-  else if ( m_mri->GetProperties()->GetUpSampleMethod() )
+  else if ( m_mri->GetProperty()->GetUpSampleMethod() )
     nScale = 2;
   int ext[6];
   for ( int i = 0; i < 6; i++ )
@@ -227,7 +230,7 @@ void VolumeCropper::UpdateProps()
     mapper->SetInput( m_clipper->GetOutput() );
   }
   
-  this->SendBroadcast( "CropBoundChanged", m_mri );
+  emit CropBoundChanged( m_mri );
 }
 
 void VolumeCropper::UpdateExtent()
@@ -332,14 +335,14 @@ bool VolumeCropper::PickActiveBound2D( RenderView2D* view, int x, int y )
       m_nActivePlane = n;
       UpdateActivePlane();
       m_actorActivePlane2D[nPlane]->VisibilityOn();
-      view->NeedRedraw();
+      view->RequestRedraw();
       return true;
     }
   }
   m_nActivePlane = -1;
   m_actorActivePlane2D[nPlane]->VisibilityOff();
   if ( m_nActivePlane != nOldActivePlane )
-    view->NeedRedraw();
+    view->RequestRedraw();
   return false;
 }
 
@@ -443,6 +446,7 @@ void VolumeCropper::SetExtent( int nComp, int nValue )
   UpdateProps();
 }
 
+/*
 void VolumeCropper::DoListenToMessage( std::string const iMsg, void* iData, void* sender )
 {
   if ( iMsg == "SlicePositionChanged" )
@@ -457,6 +461,7 @@ void VolumeCropper::DoListenToMessage( std::string const iMsg, void* iData, void
     }
   }
 }
+*/
 
 void VolumeCropper::UpdateSliceActorVisibility()
 {

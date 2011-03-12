@@ -1,64 +1,35 @@
-/**
- * @file  DialogLoadPointSet.h
- * @brief Dialog to load DTI data.
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 22:00:36 $
- *    $Revision: 1.3 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-#ifndef DialogLoadPointSet_h
-#define DialogLoadPointSet_h
+#ifndef DIALOGLOADPOINTSET_H
+#define DIALOGLOADPOINTSET_H
 
-#include <wx/wx.h>
+#include <QDialog>
 
-class wxTextCtrl;
-class wxCheckBox;
-class wxRadioButton;
+namespace Ui {
+    class DialogLoadPointSet;
+}
 
-class DialogLoadPointSet : public wxDialog
+class DialogLoadPointSet : public QDialog
 {
+    Q_OBJECT
 public:
-  DialogLoadPointSet( wxWindow* parent );
-  virtual ~DialogLoadPointSet();
+    explicit DialogLoadPointSet(QWidget *parent = 0);
+    ~DialogLoadPointSet();
 
-  wxString GetFileName();
+    QStringList GetFileNames();
 
-  int GetPointSetType();
+    int GetPointSetType();
 
-  void OnOK( wxCommandEvent& event );
+    void SetLastDir( const QString& dir )
+    {
+      m_strLastDir = dir;
+    }
 
-  void SetLastDir( const wxString& dir )
-  {
-    m_strLastDir = dir;
-  }
+protected slots:
+    void OnOK();
+    void OnButtonOpen();
 
-protected:
-  void OnButtonOpen( wxCommandEvent& event );
-
-  wxButton*       m_btnOpen;
-  wxTextCtrl*     m_textFileName;
-  wxRadioButton*  m_radioWayPoints;
-  wxRadioButton*  m_radioControlPoints;
-
-  wxString  m_strLastDir;
-
-  DECLARE_EVENT_TABLE()
+private:
+    Ui::DialogLoadPointSet *ui;
+    QString m_strLastDir;
 };
 
-#endif
-
+#endif // DIALOGLOADPOINTSET_H

@@ -6,27 +6,29 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.6 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:48 $
+ *    $Revision: 1.7 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 #ifndef LUTDataHolder_h
 #define LUTDataHolder_h
 
-#include <string>
-#include <vector>
+#include <QList>
+#include <QString>
 
 extern "C"
 {
@@ -39,27 +41,27 @@ public:
   LUTDataHolder();
   virtual ~LUTDataHolder();
 
-  const char* GetName( int i );
+  QString GetName( int i );
 
   COLOR_TABLE* GetColorTable( int i );
   
-  COLOR_TABLE* GetColorTable( const char* name );
+  COLOR_TABLE* GetColorTable( const QString& name );
 
   int GetIndex( COLOR_TABLE* ct );
 
   int GetCount();
   
-  COLOR_TABLE* LoadColorTable( const char* fn );
+  COLOR_TABLE* LoadColorTable( const QString& fn );
 
 protected:
   struct ColorTableData
   {
     COLOR_TABLE* table;
-    std::string  name;
-    std::string  filename;
+    QString  name;
+    QString  filename;
   };
 
-  std::vector<ColorTableData> m_tables;
+  QList<ColorTableData> m_tables;
 };
 
 #endif

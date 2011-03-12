@@ -6,25 +6,25 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.16 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:50 $
+ *    $Revision: 1.17 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
-#include <wx/wx.h>
 #include "LayerROI.h"
-#include "vtkFSVolumeSource.h"
 #include "vtkRenderer.h"
 #include "vtkImageReslice.h"
 #include "vtkImageActor.h"
@@ -44,31 +44,27 @@
 #include "vtkProperty.h"
 #include "vtkFreesurferLookupTable.h"
 #include "vtkImageChangeInformation.h"
-#include "LayerPropertiesROI.h"
+#include "LayerPropertyROI.h"
 #include "MyUtils.h"
 #include "LayerMRI.h"
 #include "FSLabel.h"
 #include <stdlib.h>
 
-LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerVolumeBase()
+LayerROI::LayerROI( LayerMRI* layerMRI, QObject* parent ) : LayerVolumeBase( parent )
 {
   m_strTypeNames.push_back( "ROI" );
 
-  m_label = new FSLabel();
+  m_label = new FSLabel( this );
   for ( int i = 0; i < 3; i++ )
   {
     m_dSlicePosition[i] = 0;
     m_sliceActor2D[i] = vtkImageActor::New();
     m_sliceActor3D[i] = vtkImageActor::New();
-    /* m_sliceActor2D[i]->GetProperty()->SetAmbient( 1 );
-     m_sliceActor2D[i]->GetProperty()->SetDiffuse( 0 );
-     m_sliceActor3D[i]->GetProperty()->SetAmbient( 1 );
-     m_sliceActor3D[i]->GetProperty()->SetDiffuse( 0 );*/
     m_sliceActor2D[i]->InterpolateOff();
     m_sliceActor3D[i]->InterpolateOff();
   }
-  mProperties = new LayerPropertiesROI();
-  mProperties->AddListener( this );
+
+  mProperty = new LayerPropertyROI( this );
 
   m_layerSource = layerMRI;
   m_imageDataRef = layerMRI->GetImageData();
@@ -95,6 +91,9 @@ LayerROI::LayerROI( LayerMRI* layerMRI ) : LayerVolumeBase()
     memset( ptr, 0, m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
     InitializeActors();
   }
+
+  connect( mProperty, SIGNAL(ColorMapChanged()), this, SLOT(UpdateColorMap()) );
+  connect( mProperty, SIGNAL(OpacityChanged(double)), this, SLOT(UpdateOpacity()) );
 }
 
 LayerROI::~LayerROI()
@@ -104,14 +103,11 @@ LayerROI::~LayerROI()
     m_sliceActor2D[i]->Delete();
     m_sliceActor3D[i]->Delete();
   }
-
-  if ( m_label )
-    delete m_label;
 }
 
-bool LayerROI::LoadROIFromFile( std::string filename )
+bool LayerROI::LoadROIFromFile( const QString& filename )
 {
-  if ( !m_label->LabelRead( filename.c_str() ) )
+  if ( !m_label->LabelRead( filename.toAscii().data() ) )
     return false;
 
   m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
@@ -149,7 +145,7 @@ void LayerROI::InitializeActors()
     // Image to colors using color table.
     //
     mColorMap[i] = vtkSmartPointer<vtkImageMapToColors>::New();
-    mColorMap[i]->SetLookupTable( GetProperties()->GetLookupTable() );
+    mColorMap[i]->SetLookupTable( GetProperty()->GetLookupTable() );
     mColorMap[i]->SetInputConnection( mReslice[i]->GetOutputPort() );
     mColorMap[i]->SetOutputFormatToRGBA();
     mColorMap[i]->PassAlphaToOutputOn();
@@ -173,24 +169,24 @@ void LayerROI::UpdateOpacity()
 {
   for ( int i = 0; i < 3; i++ )
   {
-    m_sliceActor2D[i]->SetOpacity( GetProperties()->GetOpacity() );
-    m_sliceActor3D[i]->SetOpacity( GetProperties()->GetOpacity() );
+    m_sliceActor2D[i]->SetOpacity( GetProperty()->GetOpacity() );
+    m_sliceActor3D[i]->SetOpacity( GetProperty()->GetOpacity() );
   }
+
+  emit ActorUpdated();
 }
 
 void LayerROI::UpdateColorMap ()
 {
-  assert( GetProperties() );
-
   for ( int i = 0; i < 3; i++ )
-    mColorMap[i]->SetLookupTable( GetProperties()->GetLookupTable() );
+    mColorMap[i]->SetLookupTable( GetProperty()->GetLookupTable() );
   // m_sliceActor2D[i]->GetProperty()->SetColor(1, 0, 0);
+
+  emit ActorUpdated();
 }
 
 void LayerROI::Append2DProps( vtkRenderer* renderer, int nPlane )
 {
-  wxASSERT ( nPlane >= 0 && nPlane <= 2 );
-
   renderer->AddViewProp( m_sliceActor2D[nPlane] );
 }
 
@@ -207,8 +203,6 @@ void LayerROI::OnSlicePositionChanged( int nPlane )
 {
   if ( !m_layerSource )
     return;
-
-  assert( GetProperties() );
 
   vtkSmartPointer<vtkMatrix4x4> matrix =
     vtkSmartPointer<vtkMatrix4x4>::New();
@@ -266,6 +260,7 @@ void LayerROI::OnSlicePositionChanged( int nPlane )
   }
 }
 
+/*
 void LayerROI::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
 {
   if ( iMessage == "ColorMapChanged" )
@@ -280,6 +275,7 @@ void LayerROI::DoListenToMessage( std::string const iMessage, void* iData, void*
   }
   LayerVolumeBase::DoListenToMessage( iMessage, iData, sender );
 }
+*/
 
 void LayerROI::SetVisible( bool bVisible )
 {
@@ -288,7 +284,7 @@ void LayerROI::SetVisible( bool bVisible )
     m_sliceActor2D[i]->SetVisibility( bVisible ? 1 : 0 );
     m_sliceActor3D[i]->SetVisibility( bVisible ? 1 : 0 );
   }
-  this->SendBroadcast( "LayerActorUpdated", this, this );
+  LayerVolumeBase::SetVisible(bVisible);
 }
 
 bool LayerROI::IsVisible()
@@ -305,14 +301,14 @@ void LayerROI::SetModified()
   LayerVolumeBase::SetModified();
 }
 
-bool LayerROI::SaveROI( wxWindow* wnd, wxCommandEvent& event )
+bool LayerROI::SaveROI( )
 {
   if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
     return false;
 
-  m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume(), wnd, event );
+  m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
 
-  bool bSaved = m_label->LabelWrite( m_sFilename.c_str() );
+  bool bSaved = m_label->LabelWrite( m_sFilename.toAscii().data() );
   if ( !bSaved )
     m_bModified = true;
 
@@ -329,7 +325,7 @@ bool LayerROI::HasProp( vtkProp* prop )
   return false;
 }
 
-bool LayerROI::DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+bool LayerROI::DoRotate( std::vector<RotationElement>& rotations )
 {
   m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
 
@@ -341,8 +337,8 @@ void LayerROI::DoRestore()
   m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
 }
 
-void LayerROI::UpdateLabelData( wxWindow* wnd, wxCommandEvent& event )
+void LayerROI::UpdateLabelData( )
 {
   if ( IsModified() )
-    m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume(), wnd, event );
+    m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
 }

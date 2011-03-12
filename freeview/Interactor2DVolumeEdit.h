@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.9 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:48 $
+ *    $Revision: 1.10 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -26,35 +28,33 @@
 #define Interactor2DVolumeEdit_h
 
 #include "Interactor2D.h"
-#include <wx/wx.h>
-#include <vector>
-#include <string>
 
-class wxWindow;
+class Layer;
 
 class Interactor2DVolumeEdit : public Interactor2D
 {
+  Q_OBJECT
 public:
-  Interactor2DVolumeEdit( const char* layerTypeName );
+  Interactor2DVolumeEdit( const QString& layerTypeName, QObject* parent );
   virtual ~Interactor2DVolumeEdit();
 
   // return true if to have parent Interactor2D continue processing the event
   // return false to stop event from further processing
-  virtual bool ProcessMouseDownEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseUpEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessMouseMoveEvent( wxMouseEvent& event, RenderView* view );
-  virtual bool ProcessKeyDownEvent( wxKeyEvent& event, RenderView* view );
-  virtual bool ProcessKeyUpEvent( wxKeyEvent& event, RenderView* view );
+  virtual bool ProcessMouseDownEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessKeyDownEvent( QKeyEvent* event, RenderView* view );
+  virtual bool ProcessKeyUpEvent( QKeyEvent* event, RenderView* view );
 
 protected:
-  void UpdateCursor( wxEvent& event, wxWindow* wnd );
-  void ProcessContextMenu( wxMouseEvent& event );
+  void UpdateCursor( QEvent* event, QWidget* wnd );
+  void ProcessContextMenu( QMouseEvent* event );
 
   bool m_bEditing;
 
-  std::string m_strLayerTypeName;
+  QString m_strLayerTypeName;
 
-  std::vector<double>  m_dPolylinePoints;
+  QList<double>  m_dPolylinePoints;
 };
 
 #endif

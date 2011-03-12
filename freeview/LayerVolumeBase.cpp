@@ -6,46 +6,49 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.18 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:50 $
+ *    $Revision: 1.19 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
 
-#include <wx/wx.h>
 #include "LayerVolumeBase.h"
+#include "LayerMRI.h"
+#include "LayerPropertyMRI.h"
 #include "vtkImageData.h"
 #include "vtkSmartPointer.h"
 #include "vtkPoints.h"
 #include "MyUtils.h"
-#include "LayerMRI.h"
 #include "BrushProperty.h"
 #include "MainWindow.h"
 #include "LivewireTool.h"
-#include "Contour2D.h"
 #include <stdlib.h>
+#include <QFile>
+#include <QDir>
+#include <QDebug>
 
-LayerVolumeBase::LayerVolumeBase() : LayerEditable()
+LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
 {
   m_strTypeNames.push_back( "VolumeBase" );
 
   m_fFillValue = 1;
   m_fBlankValue = 0;
   m_nBrushRadius = 1;
-  m_bufferClipboard.data = NULL;
   m_nActiveFrame = 0;
-  m_propertyBrush = MainWindow::GetMainWindowPointer()->GetBrushProperty();
+  m_propertyBrush = MainWindow::GetMainWindow()->GetBrushProperty();
   m_livewire = new LivewireTool();
   m_imageData = NULL;
   m_imageDataRef = NULL;
@@ -54,15 +57,14 @@ LayerVolumeBase::LayerVolumeBase() : LayerEditable()
 LayerVolumeBase::~LayerVolumeBase()
 {
   for ( size_t i = 0; i < m_bufferUndo.size(); i++ )
-    delete[] m_bufferUndo[i].data;
+    m_bufferUndo[i].Clear();
 
   m_bufferUndo.clear();
 
   for ( size_t i = 0; i < m_bufferRedo.size(); i++ )
-    delete[] m_bufferRedo[i].data;
+    m_bufferRedo[i].Clear();
 
-  if ( m_bufferClipboard.data )
-    delete[] m_bufferClipboard.data;
+  m_bufferClipboard.Clear();
 
   m_bufferUndo.clear();
 
@@ -178,7 +180,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
   if ( SetVoxelByIndex( n, nPlane, bAdd ) )
   {
     SetModified();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    emit ActorUpdated();
   }
   else
   {
@@ -200,7 +202,7 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras1, double* ras2, int nPlane, boo
   if ( SetVoxelByIndex( n1, n2, nPlane, bAdd ) )
   {
     SetModified();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    emit ActorUpdated();
   }
   else
   {
@@ -275,7 +277,7 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, char* 
   {
     if ( !mask_out )
       SetModified();
-    this->SendBroadcast( "LayerActorUpdated", this );
+    emit ActorUpdated();
     return true;
   }
   else
@@ -527,7 +529,7 @@ void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
   }
 
   SetModified();
-  this->SendBroadcast( "LayerActorUpdated", this );
+  emit ActorUpdated();
 }
 
 std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double* pt2, int nPlane )
@@ -593,11 +595,11 @@ void LayerVolumeBase::Undo()
     m_bufferRedo.push_back( item2 );
 
     LoadBufferItem( item );
-    delete[] item.data;
+    item.Clear();
 
     SetModified();
-    this->SendBroadcast( "LayerActorUpdated", this );
-    this->SendBroadcast( "LayerEdited", this );
+    emit ActorUpdated();
+    emit Modified();
   }
 }
 
@@ -613,11 +615,11 @@ void LayerVolumeBase::Redo()
     m_bufferUndo.push_back( item2 );
 
     LoadBufferItem( item );
-    delete[] item.data;
+    item.Clear();
 
     SetModified();
-    this->SendBroadcast( "LayerActorUpdated", this );
-    this->SendBroadcast( "LayerEdited", this );
+    emit ActorUpdated();
+    emit Modified();
   }
 }
 
@@ -625,11 +627,13 @@ void LayerVolumeBase::SaveForUndo( int nPlane )
 {
   double* origin = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
-  int nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
+  int nSlice = 0;
+  if ( nPlane >= 0 )
+      nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
 
   if ( (int)m_bufferUndo.size() >= m_nMaxUndoSteps )
   {
-    delete[] m_bufferUndo[0].data;
+    m_bufferUndo[0].Clear();
     m_bufferUndo.erase( m_bufferUndo.begin() );
   }
 
@@ -639,7 +643,7 @@ void LayerVolumeBase::SaveForUndo( int nPlane )
 
   // clear redo buffer
   for ( size_t i = 0; i < m_bufferRedo.size(); i++ )
-    delete[] m_bufferRedo[i].data;
+    m_bufferRedo[i].Clear();
   m_bufferRedo.clear();
 }
 
@@ -653,8 +657,7 @@ void LayerVolumeBase::Copy( int nPlane )
   double* origin = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
   int nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
-  if ( m_bufferClipboard.data )
-    delete m_bufferClipboard.data;
+  m_bufferClipboard.Clear();
   SaveBufferItem( m_bufferClipboard, nPlane, nSlice );
 }
 
@@ -680,8 +683,7 @@ bool LayerVolumeBase::CopyStructure( int nPlane, double* ras )
   
   if ( FloodFillByRAS( ras, nPlane, true, mask ) )
   {
-    if ( m_bufferClipboard.data )
-      delete m_bufferClipboard.data;
+    m_bufferClipboard.Clear();
 
     SaveBufferItem( m_bufferClipboard, nPlane, nSlice[nPlane], mask );
     return true;
@@ -701,62 +703,103 @@ void LayerVolumeBase::Paste( int nPlane )
   LoadBufferItem( m_bufferClipboard, true );   // ignore zeros
 
   SetModified();
-  this->SendBroadcast( "LayerActorUpdated", this );
+  emit ActorUpdated();
 }
 
 void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice, const char* mask )
 {
-  int nDim[3], nStart[3] = { 0, 0, 0 };
-  m_imageData->GetDimensions( nDim );
-  nDim[nPlane] = 1;
-  nStart[nPlane] = nSlice;
-  item.plane = nPlane;
-  item.slice = nSlice;
-  int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
-  item.data = new char[nSize];
-  memset( item.data, 0, nSize );
-  int n = 0;
-  for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
-  {
-    for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
+    item.plane = nPlane;
+    item.slice = nSlice;
+    if ( nPlane >= 0 )
     {
-      for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+      int nDim[3], nStart[3] = { 0, 0, 0 };
+      m_imageData->GetDimensions( nDim );
+      nDim[nPlane] = 1;
+      nStart[nPlane] = nSlice;
+      int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+      item.data = new char[nSize];
+      memset( item.data, 0, nSize );
+      int n = 0;
+      for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
       {
-        if ( !mask || mask[n] > 0 )
+        for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
         {
-          memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
-                m_imageData->GetScalarPointer( i, j, k ),
-                m_imageData->GetScalarSize() );
+          for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+          {
+            if ( !mask || mask[n] > 0 )
+            {
+              memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
+                    m_imageData->GetScalarPointer( i, j, k ),
+                    m_imageData->GetScalarSize() );
+            }
+            n++;
+          }
         }
-        n++;
       }
+   }
+    else    // save whole volume in cache file
+    {
+        int nDim[3];
+        m_imageData->GetDimensions( nDim );
+        int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+        QFile file(this->GenerateCacheFileName());
+        if (!file.open(QIODevice::WriteOnly))
+            return;
+        file.write((char*)m_imageData->GetScalarPointer() + nSize*m_nActiveFrame, nSize);
+        file.close();
+        item.cache_filename = file.fileName();
+        if (this->IsTypeOf("MRI"))
+        {
+            LayerMRI* mri = qobject_cast<LayerMRI*>(this);
+            item.mri_settings = mri->GetProperty()->GetSettings();
+        }
     }
-  }
 }
 
 void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZeros )
 {
-  int nDim[3], nStart[3] = { 0, 0, 0 };
-  m_imageData->GetDimensions( nDim );
-  nDim[item.plane] = 1;
-  nStart[item.plane] = item.slice;
-  for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
-  {
-    for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
+  if (item.plane >= 0)
     {
-      for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+      int nDim[3], nStart[3] = { 0, 0, 0 };
+      m_imageData->GetDimensions( nDim );
+      nDim[item.plane] = 1;
+      nStart[item.plane] = item.slice;
+      for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
       {
-        double dValue = m_imageData->GetScalarComponentAsDouble( i, j, k, 0 );
-        memcpy( m_imageData->GetScalarPointer( i, j, k ),
-                item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
-                m_imageData->GetScalarSize() );
-        if ( bIgnoreZeros )
+        for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
         {
-          if ( m_imageData->GetScalarComponentAsDouble( i, j, k, 0 ) == 0 )
-            m_imageData->SetScalarComponentFromDouble( i, j, k, 0, dValue );
+          for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+          {
+            double dValue = m_imageData->GetScalarComponentAsDouble( i, j, k, 0 );
+            memcpy( m_imageData->GetScalarPointer( i, j, k ),
+                    item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
+                    m_imageData->GetScalarSize() );
+            if ( bIgnoreZeros )
+            {
+              if ( m_imageData->GetScalarComponentAsDouble( i, j, k, 0 ) == 0 )
+                m_imageData->SetScalarComponentFromDouble( i, j, k, 0, dValue );
+            }
+          }
         }
       }
-    }
+  }
+  else if (!item.cache_filename.isEmpty())
+  {
+      QFile file(item.cache_filename);
+      if (!file.open(QIODevice::ReadOnly))
+          return;
+      int nDim[3];
+      m_imageData->GetDimensions( nDim );
+      int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+      char* p = (char*)m_imageData->GetScalarPointer() + nSize*m_nActiveFrame;
+      file.read(p, nSize);
+      file.close();
+      if (this->IsTypeOf("MRI"))
+      {
+          LayerMRI* mri = qobject_cast<LayerMRI*>(this);
+          mri->GetProperty()->RestoreSettings(item.mri_settings);
+      }
+      m_imageData->Modified();
   }
 }
 
@@ -768,6 +811,7 @@ float LayerVolumeBase::GetFillValue()
 void LayerVolumeBase::SetFillValue( float fFill )
 {
   m_fFillValue = fFill;
+  emit FillValueChanged( fFill );
 }
 
 float LayerVolumeBase::GetBlankValue()
@@ -806,3 +850,15 @@ void LayerVolumeBase::GetDisplayBounds( double* bounds )
   m_imageData->GetBounds( bounds );
 }
 
+QString LayerVolumeBase::GenerateCacheFileName()
+{
+    QString strg = QDir::tempPath() + "/freeview-cache-" + QString::number(qrand());
+    while (QFile::exists(strg))
+    {
+        strg = QDir::tempPath() + "/freeview-cache-" + QString::number(qrand());
+    }
+#ifdef Q_CYGWIN_WIN
+    strg = MyUtils::NormalizeCygwinPath(strg);
+#endif
+    return strg;
+}

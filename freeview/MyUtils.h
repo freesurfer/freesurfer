@@ -6,19 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:02 $
- *    $Revision: 1.23 $
+ *    $Author: krish $
+ *    $Date: 2011/03/12 00:28:52 $
+ *    $Revision: 1.24 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -26,15 +28,8 @@
 #define MyUtils_h
 
 #include <math.h>
-#include <wx/wx.h>
 #include <vector>
-
-class vtkRenderer;
-class vtkRenderWindow;
-class vtkImageData;
-class vtkActor;
-class vtkVolume;
-class vtkPoints;
+#include <QStringList>
 
 class MyUtils
 {
@@ -45,7 +40,7 @@ public:
   static void FloodFill( char** data, int x, int y, int min_x, int min_y, int max_x, int max_y, int fill_value, int border_value );
   static void FloodFill( char* data, int x, int y, int dim_x, int dim_y, int fill_value, int border_value );
 
-  template <class T> static double GetDistance( T* pt1, T* pt2 );
+  template <class T> static double GetDistance( const T* pt1, const T* pt2 );
   template <class T> static void GetVector( T* pt1, T* pt2, double* v_out );
   template <class T> static bool Equal( T* pt1, T* p2, int n = 3 );
   template <class T> static T** AllocateMatrix(int ny, int nx);
@@ -54,32 +49,6 @@ public:
   
   static double RoundToGrid( double dvalue );
 
-  static bool HasExtension( const wxString& filename, const wxString& ext );
-
-  static wxString GetNormalizedPath( const wxString& filename );
-  static wxString GetNormalizedFullPath( const wxString& filename );
-
-  static wxString GetDateAndTime();
-
-  static wxArrayString SplitString( const wxString& strg, const wxString& divider, int nIgnoreStart = 0, int nIgnoreLength = 0 );
-  static wxString JoinStrings( const wxArrayString& strglist, const wxString& glue );
-
-  static bool VTKScreenCapture( vtkRenderWindow* renderWindow, vtkRenderer* renderer,
-                                const char* filename, bool bAntiAliasing = false, int nMag = 1 );
-  static void ViewportToWorld( vtkRenderer* renderer, double x, double y,
-                               double& world_x, double& world_y, double& world_z );
-  
-  static void ViewportToWorld( vtkRenderer* renderer, double x, double y, double z, 
-                               double& world_x, double& world_y, double& world_z );
-  
-  static void NormalizedViewportToWorld( vtkRenderer* renderer, double x, double y,
-                                         double& world_x, double& world_y, double& world_z );
-  
-  static void NormalizedViewportToWorld( vtkRenderer* renderer, double x, double y, double z,
-                                         double& world_x, double& world_y, double& world_z );
-
-  static void WorldToViewport( vtkRenderer* renderer, double world_x, double world_y,
-                               double world_z, double& x, double& y, double& z );
 
   static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
                                       std::vector<void*> input_volumes, float* output_volume, int vol_size );
@@ -93,20 +62,26 @@ public:
                                       std::vector<void*> input_volumes, unsigned char* output_volume, int vol_size );
   static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
                                       std::vector<void*> input_volumes, long* output_volume, int vol_size );
-
-  static bool BuildContourActor( vtkImageData* data_in, double dTh1, double dTh2, vtkActor* actor_out, int nSmoothIterations = 0,
-                                 int* ext = NULL, bool bAllRegion = false );
-
-  static bool BuildVolume( vtkImageData* data_in, double dTh1, double dTh2, vtkVolume* vol_out );
-
-  static void GetLivewirePoints( vtkImageData* image_in, int nPlane_in, int nSlice_in,
-                                 double* pt1_in, double* pt2_in, vtkPoints* pts_out );
   
   static bool IsIdentity( double m[4][4] );
+
+  static bool IsOblique( double m[4][4] );
+
+  static QStringList SplitString( const QString& strg, const QString& divider, int nIgnoreStart = 0, int nIgnoreLength = 0 );
+
+  static QString CygwinPathToWin32Path(const QString& path_in);
+
+  static QString Win32PathToCygwinPath(const QString& path_in);
+
+  static QString NormalizeCygwinPath(const QString& path_in);
+
+  static QString CygwinPathProof(const QString& path_in);
+
+  static QString Win32PathProof(const QString& path_in);
 };
 
 template <class T>
-double MyUtils::GetDistance( T* pt1, T* pt2 )
+double MyUtils::GetDistance( const T* pt1, const T* pt2 )
 {
   double dRes = 0;
   for ( int i = 0; i < 3; i++ )
@@ -194,6 +169,20 @@ inline bool MyUtils::IsIdentity( double m[4][4] )
       m[1][0] == 0 && m[1][1] == 1 && m[1][2] == 0 && m[1][3] == 0 &&
       m[2][0] == 0 && m[2][1] == 0 && m[2][2] == 1 && m[2][3] == 0 &&
       m[3][0] == 0 && m[3][1] == 0 && m[3][2] == 0 && m[3][3] == 1 );
+}
+
+inline bool MyUtils::IsOblique( double m[4][4] )
+{
+    double near_zero = 1e-10;
+    for (int i = 0; i < 3; i++)
+    {
+        for (int j = 0; j < 3; j++)
+        {
+            if (fabs(m[i][j]) > near_zero && fabs(fabs(m[i][j])-1) > near_zero)
+                return true;
+        }
+    }
+    return false;
 }
 
 #endif
