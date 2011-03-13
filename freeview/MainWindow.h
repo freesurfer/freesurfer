@@ -1,3 +1,27 @@
+/**
+ * @file  MainWindow.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.88 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -31,8 +55,9 @@ class LayerSurface;
 
 #define MAX_RECENT_FILES    10
 
-namespace Ui {
-    class MainWindow;
+namespace Ui
+{
+class MainWindow;
 }
 
 class MainWindow : public QMainWindow
@@ -55,10 +80,14 @@ public:
 
   bool GetSaveCopy()
   {
-      if (m_settings.contains("SaveCopy"))
-          return m_settings["SaveCopy"].toBool();
-      else
-          return true;
+    if (m_settings.contains("SaveCopy"))
+    {
+      return m_settings["SaveCopy"].toBool();
+    }
+    else
+    {
+      return true;
+    }
   }
 
   bool IsBusy();
@@ -114,7 +143,7 @@ public:
 
   RenderView* GetMainView()
   {
-      return m_views[m_nMainView];
+    return m_views[m_nMainView];
   }
 
   void RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes );
@@ -126,19 +155,19 @@ public:
 
   SettingsScreenshot GetScreenShotSettings()
   {
-      return m_settingsScreenshot;
+    return m_settingsScreenshot;
   }
 
   void SetScreenShotSettings(SettingsScreenshot s)
   {
-      m_settingsScreenshot = s;
+    m_settingsScreenshot = s;
   }
 
   bool ParseCommand(int argc, char* argv[], bool bAutoQuit = false);
 
   TermWidget* GetCommandConsole()
   {
-      return m_term;
+    return m_term;
   }
 
 Q_SIGNALS:
@@ -159,7 +188,7 @@ public slots:
   void SaveVolumeAs();
   void SetSaveCopy(bool bSaveCopy)
   {
-      m_settings["SaveCopy"] = bSaveCopy;
+    m_settings["SaveCopy"] = bSaveCopy;
   }
   void SyncZoom(bool bSync);
   void SetUseCommandControl(bool b);
@@ -168,7 +197,8 @@ public slots:
   void HideAllLayers();
   bool ParseCommand(const QString& cmd, bool bAutoQuit = false);
 
-protected:;
+protected:
+  ;
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
   void moveEvent    (QMoveEvent * event);
@@ -181,9 +211,9 @@ protected:;
                         bool bConform = false );
 
   void LoadDTIFile( const QString& fn_vector,
-            const QString& fn_fa,
-            const QString& reg_fn = "",
-            bool Resample = true );
+                    const QString& fn_fa,
+                    const QString& reg_fn = "",
+                    bool Resample = true );
   void LoadSurfaceFile( const QString& filename,
                         const QString& fn_patch = "",
                         const QString& fn_target = "" );
@@ -302,13 +332,13 @@ protected slots:
 
   void SetSlicePosition(double x, double y, double z)
   {
-      double ras[3] = {x, y, z};
-      SetSlicePosition(ras);
+    double ras[3] = {x, y, z};
+    SetSlicePosition(ras);
   }
 
   void SetProcessing( bool bProcessing = true )
   {
-      m_bProcessing = bProcessing;
+    m_bProcessing = bProcessing;
   }
 
   void ReassureGeometry();
@@ -327,7 +357,7 @@ private:
   int m_nMainView;
 
 public:
-    Ui::MainWindow *ui;
+  Ui::MainWindow *ui;
 
 private:
   RenderView*   m_views[4];

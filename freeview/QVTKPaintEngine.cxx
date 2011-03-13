@@ -1,3 +1,27 @@
+/**
+ * @file  QVTKPaintEngine.cxx
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 
 
 #include "QVTKPaintEngine.h"
@@ -18,9 +42,9 @@ public:
   QCache<qint64, vtkSmartPointer<vtkImageData> > mImageCache;
 };
 
-QVTKPaintEngine::QVTKPaintEngine() 
-    : QPaintEngine(QPaintEngine::PaintOutsidePaintEvent |
-                   QPaintEngine::AlphaBlend)
+QVTKPaintEngine::QVTKPaintEngine()
+  : QPaintEngine(QPaintEngine::PaintOutsidePaintEvent |
+                 QPaintEngine::AlphaBlend)
 {
   this->Internal = new QVTKPaintEngineInternal;
 }
@@ -51,25 +75,25 @@ void QVTKPaintEngine::updateState(const QPaintEngineState&)
 {
 }
 
-  // at a minimum, we only need to re-implement this drawPixmap function.
-  // Qt can do all other drawing to create a pixmap and then we draw it here.
+// at a minimum, we only need to re-implement this drawPixmap function.
+// Qt can do all other drawing to create a pixmap and then we draw it here.
 void QVTKPaintEngine::drawPixmap(const QRectF& r, const QPixmap& pm, const QRectF& sr)
 {
   if(!this->Widget)
-    {
+  {
     return;
-    }
+  }
   QRect ri = r.toRect();
   QRect sri = sr.toRect();
 
   QPixmap pix = pm.copy(sri);
   if(sri.size() != ri.size())
-    {
+  {
     pix = pix.scaled(ri.size());
-    }
+  }
 
   QImage img = pix.toImage().mirrored().rgbSwapped();
-  
+
   // blend the pixels from QImage into the vtkRenderWindow's buffer
   vtkRenderWindow* renWin = this->Widget->GetRenderWindow();
   renWin->SetRGBACharPixelData(ri.left(), this->Widget->height() - ri.top() - ri.height(),

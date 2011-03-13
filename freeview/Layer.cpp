@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:48 $
- *    $Revision: 1.20 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.21 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -35,9 +34,9 @@ int Layer::m_nLastID = 0;
 
 Layer::Layer( QObject* parent ) : QObject( parent )
 {
-    // assign unique ID
-    m_nID = m_nLastID + 1;
-    m_nLastID++;
+  // assign unique ID
+  m_nID = m_nLastID + 1;
+  m_nLastID++;
 
   for ( int i = 0; i < 3; i++ )
   {
@@ -54,7 +53,7 @@ Layer::Layer( QObject* parent ) : QObject( parent )
 }
 
 Layer::~Layer()
-{  
+{
 }
 
 void Layer::SetName( const QString& name )
@@ -74,9 +73,13 @@ bool Layer::IsTypeOf( const QString& tname )
 QString Layer::GetEndType() const
 {
   if ( m_strTypeNames.size() > 0 )
+  {
     return m_strTypeNames[ m_strTypeNames.size()-1 ];
+  }
   else
+  {
     return "";
+  }
 }
 
 double* Layer::GetWorldOrigin()
@@ -87,13 +90,17 @@ double* Layer::GetWorldOrigin()
 void Layer::GetWorldOrigin( double* origin )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     origin[i] = m_dWorldOrigin[i];
+  }
 }
 
 void Layer::SetWorldOrigin( double* origin )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldOrigin[i] = origin[i];
+  }
 }
 
 double* Layer::GetWorldSize()
@@ -104,13 +111,17 @@ double* Layer::GetWorldSize()
 void Layer::GetWorldSize( double* size )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     size[i] = m_dWorldSize[i];
+  }
 }
 
 void Layer::SetWorldSize( double* size )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldSize[i] = size[i];
+  }
 }
 
 double* Layer::GetWorldVoxelSize()
@@ -121,13 +132,17 @@ double* Layer::GetWorldVoxelSize()
 void Layer::GetWorldVoxelSize( double* vs )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     vs[i] = m_dWorldVoxelSize[i];
+  }
 }
 
 void Layer::SetWorldVoxelSize( double* vs )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldVoxelSize[i] = vs[i];
+  }
 }
 
 double* Layer::GetSlicePosition()
@@ -191,7 +206,7 @@ bool Layer::Rotate( std::vector<RotationElement>& rotations )
   if ( ret )
   {
     ResetTranslate();
-    ResetScale();   
+    ResetScale();
     emit Transformed();
   }
   return ret;
@@ -202,21 +217,25 @@ bool Layer::Translate( double x, double y, double z )
   double pos[3] = { x, y, z };
   return Translate( pos );
 }
-  
+
 bool Layer::Translate( double* dPos )
 {
   double offset[3];
   for ( int i = 0; i < 3; i++ )
+  {
     offset[i] = dPos[i] - m_dTranslate[i];
-  
+  }
+
   DoTranslate( offset );
-  
+
   for ( int i = 0; i < 3; i++ )
+  {
     m_dTranslate[i] = dPos[i];
-  
+  }
+
   ResetScale();
   emit Transformed();
-  
+
   return true;
 }
 
@@ -224,13 +243,17 @@ void Layer::Scale( double* scale, int nSampleMethod )
 {
   double rscale[3];
   for ( int i = 0; i < 3; i++ )
+  {
     rscale[i] = scale[i] / m_dScale[i];
-  
+  }
+
   DoScale( rscale, nSampleMethod );
-  
+
   for ( int i = 0; i < 3; i++ )
+  {
     m_dScale[i] = scale[i];
-  
+  }
+
   ResetTranslate();
   emit Transformed();
 }
@@ -239,7 +262,7 @@ void Layer::Scale( double* scale, int nSampleMethod )
 void Layer::Restore()
 {
   DoRestore();
-  
+
   for ( int i = 0; i < 3; i++ )
   {
     m_dTranslate[i] = 0;

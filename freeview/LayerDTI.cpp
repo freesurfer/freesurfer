@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:49 $
- *    $Revision: 1.14 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.15 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -35,11 +34,13 @@
 #include "vtkMath.h"
 
 LayerDTI::LayerDTI( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
-    m_vectorSource( NULL)
+  m_vectorSource( NULL)
 {
   m_strTypeNames.push_back( "DTI" );
   if ( mProperty )
+  {
     delete mProperty;
+  }
 
   mProperty = new LayerPropertyDTI( this );
   LayerMRI::ConnectProperty();
@@ -50,28 +51,36 @@ LayerDTI::LayerDTI( LayerMRI* ref, QObject* parent ) : LayerMRI( ref, parent ),
 LayerDTI::~LayerDTI()
 {
   if ( m_vectorSource )
+  {
     delete m_vectorSource;
+  }
 }
 
 bool LayerDTI::LoadDTIFromFile( )
 {
   if ( !LayerMRI::LoadVolumeFromFile() )
+  {
     return false;
+  }
 
   if ( m_vectorSource )
+  {
     delete m_vectorSource;
+  }
 
   m_vectorSource = new FSVolume( m_volumeRef );
   m_vectorSource->SetResampleToRAS( m_bResampleToRAS );
 
   if ( !m_vectorSource->MRIRead(  m_sVectorFileName,
                                   m_sRegFilename.isEmpty() ? NULL : m_sRegFilename ) )
+  {
     return false;
+  }
 
   if ( m_vectorSource->GetNumberOfFrames() < 3 )
   {
-      std::cerr << "Vector data file is not valid.";
-      return false;
+    std::cerr << "Vector data file is not valid.";
+    return false;
   }
 
   InitializeDTIColorMap();
@@ -114,7 +123,9 @@ void LayerDTI::InitializeDTIColorMap()
     {
       c[j] = (int)(fabs(v[j]) * fa * 64);
       if ( c[j] > 63 )
+      {
         c[j] = 63;
+      }
     }
     float scalar = c[0]*64*64 + c[1]*64 + c[2];
     int x = i%dim[0];
@@ -145,14 +156,18 @@ void LayerDTI::UpdateColorMap()
     }
   }
   else
+  {
     LayerMRI::UpdateColorMap();
+  }
 }
 
 bool LayerDTI::GetVectorValue( double* pos, double* v_out )
 {
   vtkImageData* rasDTI = m_vectorSource->GetImageOutput();
   if ( rasDTI == NULL )
+  {
     return 0;
+  }
 
   double* orig = rasDTI->GetOrigin();
   double* vsize = rasDTI->GetSpacing();
@@ -167,7 +182,9 @@ bool LayerDTI::GetVectorValue( double* pos, double* v_out )
   if ( n[0] < ext[0] || n[0] > ext[1] ||
        n[1] < ext[2] || n[1] > ext[3] ||
        n[2] < ext[4] || n[2] > ext[5] )
+  {
     return false;
+  }
   else
   {
     v_out[0] = rasDTI->GetScalarComponentAsDouble( n[0], n[1], n[2], 0 );
@@ -192,7 +209,7 @@ bool LayerDTI::DoRotate( std::vector<RotationElement>& rotations )
 void LayerDTI::DoRestore()
 {
   std::vector<RotationElement> rotations;
-  
+
   LayerMRI::DoRestore();
   m_vectorSource->Rotate( rotations );
 }

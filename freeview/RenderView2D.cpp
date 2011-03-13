@@ -1,3 +1,27 @@
+/**
+ * @file  RenderView2D.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.42 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #include "RenderView2D.h"
 #include "LayerCollection.h"
 #include "MainWindow.h"
@@ -43,8 +67,8 @@ RenderView2D::RenderView2D( QWidget* parent ) : RenderView( parent )
 
 void RenderView2D::SetViewPlane( int nPlane )
 {
-    m_nViewPlane = nPlane;
-    m_contour2D->SetPlane( nPlane );
+  m_nViewPlane = nPlane;
+  m_contour2D->SetPlane( nPlane );
 }
 
 void RenderView2D::SetInteractionMode( int nMode )
@@ -94,9 +118,13 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
 
     // add annotation and cursor
     if (!bForScreenShot || !setting.HideCursor)
-        m_cursor2D->AppendActor( m_renderer );
+    {
+      m_cursor2D->AppendActor( m_renderer );
+    }
     if (!bForScreenShot || !setting.HideCoords)
-        m_annotation2D->AppendAnnotations( m_renderer );
+    {
+      m_annotation2D->AppendAnnotations( m_renderer );
+    }
     m_selection2D->AppendProp( m_renderer );
 
     // add scalar bar
@@ -111,39 +139,43 @@ void RenderView2D::RefreshAllActors(bool bForScreenShot)
 
   // add regions
   for ( int i = 0; i < m_regions.size(); i++ )
+  {
     m_regions[i]->AppendProp( m_renderer );
+  }
 
   // add focus frame
   if (!bForScreenShot)
-      m_renderer->AddViewProp( m_actorFocusFrame );
+  {
+    m_renderer->AddViewProp( m_actorFocusFrame );
+  }
 
   RenderView::RefreshAllActors(bForScreenShot);
 }
 
 void RenderView2D::UpdateViewByWorldCoordinate()
 {
-    vtkCamera* cam = m_renderer->GetActiveCamera();
-    double wcenter[3];
-    for ( int i = 0; i < 3; i++ )
-    {
-      wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
-    }
-    cam->SetFocalPoint( wcenter );
-    switch ( m_nViewPlane )
-    {
-    case 0:
-      cam->SetPosition( wcenter[0] + m_dWorldSize[0], wcenter[1], wcenter[2] );
-      cam->SetViewUp( 0, 0, 1 );
-      break;
-    case 1:
-      cam->SetPosition( wcenter[0], wcenter[1] + m_dWorldSize[1], wcenter[2] );
-      cam->SetViewUp( 0, 0, 1 );
-      break;
-    case 2:
-      cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - m_dWorldSize[2] );
-      break;
-    }
-    cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) / 2 );
+  vtkCamera* cam = m_renderer->GetActiveCamera();
+  double wcenter[3];
+  for ( int i = 0; i < 3; i++ )
+  {
+    wcenter[i] = m_dWorldOrigin[i] + m_dWorldSize[i] / 2;
+  }
+  cam->SetFocalPoint( wcenter );
+  switch ( m_nViewPlane )
+  {
+  case 0:
+    cam->SetPosition( wcenter[0] + m_dWorldSize[0], wcenter[1], wcenter[2] );
+    cam->SetViewUp( 0, 0, 1 );
+    break;
+  case 1:
+    cam->SetPosition( wcenter[0], wcenter[1] + m_dWorldSize[1], wcenter[2] );
+    cam->SetViewUp( 0, 0, 1 );
+    break;
+  case 2:
+    cam->SetPosition( wcenter[0], wcenter[1], wcenter[2] - m_dWorldSize[2] );
+    break;
+  }
+  cam->SetParallelScale( qMax( qMax(m_dWorldSize[0], m_dWorldSize[1]), m_dWorldSize[2]) / 2 );
   //  m_renderer->ResetCameraClippingRange();
 }
 
@@ -155,20 +187,24 @@ void RenderView2D::UpdateAnnotation()
 void RenderView2D::UpdateMouseRASPosition( int posX, int posY )
 {
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
-   if ( !lc )
-     return;
+  if ( !lc )
+  {
+    return;
+  }
 
-   double pos[3];
-   MousePositionToRAS( posX, posY, pos );
+  double pos[3];
+  MousePositionToRAS( posX, posY, pos );
 
-   lc->SetCurrentRASPosition( pos );
+  lc->SetCurrentRASPosition( pos );
 }
 
 void RenderView2D::UpdateCursorRASPosition( int posX, int posY )
 {
   LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
   if ( !lc )
+  {
     return;
+  }
 
   double pos[3];
   MousePositionToRAS( posX, posY, pos );
@@ -182,7 +218,9 @@ void RenderView2D::Update2DOverlay()
   m_cursor2D->Update();
   m_selection2D->Update();
   for ( int i = 0; i < m_regions.size(); i++ )
+  {
     m_regions[i]->Update();
+  }
 
   double slicePos[3];
   MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->GetSlicePosition( slicePos );
@@ -225,7 +263,9 @@ LayerMRI* RenderView2D::GetFirstNonLabelVolume( )
   {
     LayerMRI* layer = ( LayerMRI*)layers[i];
     if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
+    {
       return layer;
+    }
   }
   return NULL;
 }
@@ -255,15 +295,15 @@ void RenderView2D::StopSelection()
     {
       switch ( layer->GetProperty()->GetColorMap() )
       {
-        case LayerPropertyMRI::Grayscale:
-          layer->GetProperty()->SetMinMaxGrayscaleWindow( range[0], range[1] );
-          break;
-        case LayerPropertyMRI::Heat:
-          layer->GetProperty()->SetHeatScale( range[0], (range[1]-range[0])/2, range[1] );
-          break;
-        default:
-          layer->GetProperty()->SetMinMaxGenericThreshold( range[0], range[1] );
-          break;
+      case LayerPropertyMRI::Grayscale:
+        layer->GetProperty()->SetMinMaxGrayscaleWindow( range[0], range[1] );
+        break;
+      case LayerPropertyMRI::Heat:
+        layer->GetProperty()->SetHeatScale( range[0], (range[1]-range[0])/2, range[1] );
+        break;
+      default:
+        layer->GetProperty()->SetMinMaxGenericThreshold( range[0], range[1] );
+        break;
       }
     }
   }
@@ -275,7 +315,7 @@ Region2D* RenderView2D::GetRegion( int nX, int nY, int* index_out )
   {
     if ( m_regions[i]->Contains( nX, nY, index_out ) )
     {
-        return m_regions[i];
+      return m_regions[i];
     }
   }
   return NULL;
@@ -286,7 +326,9 @@ void RenderView2D::AddRegion( Region2D* region )
   for ( int i = 0; i < m_regions.size(); i++ )
   {
     if ( m_regions[i] == region )
+    {
       return;
+    }
   }
 
   m_regions.push_back( region );
@@ -393,10 +435,10 @@ void RenderView2D::ZoomAtCursor( int nX, int nY, double factor )
 
 void RenderView2D::resizeEvent(QResizeEvent *event)
 {
-    RenderView::resizeEvent(event);
+  RenderView::resizeEvent(event);
 
-    Update2DOverlay();
-    UpdateAnnotation();
+  Update2DOverlay();
+  UpdateAnnotation();
 }
 
 void RenderView2D::ShowCoordinateAnnotation( bool bShow )

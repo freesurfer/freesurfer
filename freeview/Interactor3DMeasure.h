@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:48 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -31,21 +30,21 @@
 
 class Interactor3DMeasure : public Interactor3D
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
   Interactor3DMeasure(QObject* parent);
   ~Interactor3DMeasure();
-  
+
   // return true if to have parent Interactor3D continue processing the event
   // return false to stop event from further processing
   virtual bool ProcessMouseDownEvent( QMouseEvent* event, RenderView* view );
   virtual bool ProcessMouseUpEvent  ( QMouseEvent* event, RenderView* view );
   virtual bool ProcessMouseMoveEvent( QMouseEvent* event, RenderView* view );
   virtual bool ProcessKeyDownEvent  ( QKeyEvent* event, RenderView* view );
-  
+
 protected:
   virtual void UpdateCursor( QEvent* event, QWidget* wnd );
-  
+
   int  m_nMousePosX;
   int  m_nMousePosY;
 

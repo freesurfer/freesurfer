@@ -10,21 +10,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:50 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2007 - 2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -41,7 +40,7 @@
 //using namespace std;
 
 LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
-    LayerProperty(parent)
+  LayerProperty(parent)
 {
   mOpacity = 0.7;
   mRGB[0] = 1;
@@ -68,15 +67,15 @@ LayerPropertyPointSet::LayerPropertyPointSet (QObject* parent) :
 
   m_bShowSpline = true;
   m_bSnapToVoxelCenter = false;
-  
+
   m_lutHeatScale = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
-    connect(this, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SIGNAL(PropertyChanged()));
-    connect(this, SIGNAL(SplineVisibilityChanged(bool)), this, SIGNAL(PropertyChanged()));
-    connect(this, SIGNAL(ColorMapChanged()), this, SIGNAL(PropertyChanged()));
-    connect(this, SIGNAL(OpacityChanged(double)), this, SIGNAL(PropertyChanged()));
-    connect(this, SIGNAL(RadiusChanged(double)), this, SIGNAL(PropertyChanged()));
-    connect(this, SIGNAL(SplineRadiusChanged(double)), this, SIGNAL(PropertyChanged()));
+  connect(this, SIGNAL(SnapToVoxelCenterChanged(bool)), this, SIGNAL(PropertyChanged()));
+  connect(this, SIGNAL(SplineVisibilityChanged(bool)), this, SIGNAL(PropertyChanged()));
+  connect(this, SIGNAL(ColorMapChanged()), this, SIGNAL(PropertyChanged()));
+  connect(this, SIGNAL(OpacityChanged(double)), this, SIGNAL(PropertyChanged()));
+  connect(this, SIGNAL(RadiusChanged(double)), this, SIGNAL(PropertyChanged()));
+  connect(this, SIGNAL(SplineRadiusChanged(double)), this, SIGNAL(PropertyChanged()));
 }
 
 LayerPropertyPointSet::~LayerPropertyPointSet ()
@@ -84,7 +83,9 @@ LayerPropertyPointSet::~LayerPropertyPointSet ()
   for ( size_t i = 0; i < m_scalarSets.size(); i++ )
   {
     if ( m_scalarSets[i].dValue )
+    {
       delete[] m_scalarSets[i].dValue;
+    }
   }
 }
 
@@ -152,7 +153,9 @@ void LayerPropertyPointSet::SetOpacity( double opacity )
   {
     mOpacity = opacity;
     if ( mOpacity >= 1 )
-      mOpacity = 0.99999;   // strange vtk behavior. If set to 1, it will be transparent!
+    {
+      mOpacity = 0.99999;  // strange vtk behavior. If set to 1, it will be transparent!
+    }
     emit OpacityChanged( opacity );
   }
 }
@@ -226,8 +229,8 @@ void LayerPropertyPointSet::SetScalarLayer( LayerMRI* layer )
   {
     m_nScalarType = ScalarLayer;
     m_layerScalar = layer;
- //   if ( layer )
- //     layer->AddListener( this );
+//   if ( layer )
+//     layer->AddListener( this );
     UpdateScalarValues();
     this->SetColorMapChanged();
     emit ScalarLayerChanged( layer );
@@ -260,9 +263,13 @@ double LayerPropertyPointSet::GetScalarMinValue()
 {
   double min = 0;
   if ( (m_nScalarType == ScalarLayer) && m_layerScalar )
+  {
     min = m_layerScalar->GetSourceVolume()->GetMinValue();
+  }
   else if ( m_nScalarType == ScalarSet )
+  {
     min = GetActiveScalarSet().dMin;
+  }
 
   return min;
 }
@@ -271,15 +278,19 @@ double LayerPropertyPointSet::GetScalarMaxValue()
 {
   double max = 1;
   if ( (m_nScalarType == ScalarLayer) && m_layerScalar )
+  {
     max = m_layerScalar->GetSourceVolume()->GetMaxValue();
+  }
   else if ( m_nScalarType == ScalarSet )
+  {
     max = GetActiveScalarSet().dMax;
-  
+  }
+
   return max;
 }
 /*
 void LayerPropertyPointSet::DoListenToMessage ( std::string const iMessage,
-						   void* iData, void* sender )
+               void* iData, void* sender )
 {
   if ( iMessage == "LayerObjectDeleted" && iData == m_layerScalar )
   {
@@ -291,17 +302,19 @@ bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
 {
   QFile file(filename);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-     return false;
+  {
+    return false;
+  }
 
   QTextStream in(&file);
   std::vector<double> values;
   while (!in.atEnd())
   {
-     QStringList strgs = in.readLine().split( " ", QString::SkipEmptyParts );
-     for ( int i = 0; i < strgs.size(); i++ )
-     {
-         values.push_back( strgs[i].toDouble() );
-     }
+    QStringList strgs = in.readLine().split( " ", QString::SkipEmptyParts );
+    for ( int i = 0; i < strgs.size(); i++ )
+    {
+      values.push_back( strgs[i].toDouble() );
+    }
   }
 
   ScalarValues sv;
@@ -313,14 +326,20 @@ bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
   {
     sv.dValue[i] = values[i];
     if ( sv.dValue[i] < sv.dMin )
+    {
       sv.dMin = sv.dValue[i];
+    }
     else if ( sv.dValue[i] > sv.dMax )
+    {
       sv.dMax = sv.dValue[i];
+    }
   }
   sv.strName = filename;
 
   if ( sv.nNum < 2 )
+  {
     return false;
+  }
 
   m_scalarSets.push_back( sv );
   SetScalarSet( m_scalarSets.size() - 1 );
@@ -331,14 +350,14 @@ bool LayerPropertyPointSet::LoadScalarsFromFile( const QString& filename )
 void LayerPropertyPointSet::SetSnapToVoxelCenter( bool bSnag )
 {
   m_bSnapToVoxelCenter = bSnag;
-  
+
   emit SnapToVoxelCenterChanged( bSnag );
 }
 
 void LayerPropertyPointSet::SetShowSpline( bool bSpline )
 {
   m_bShowSpline = bSpline;
-  
+
   emit SplineVisibilityChanged( bSpline );
 }
 

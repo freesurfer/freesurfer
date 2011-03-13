@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:47 $
- *    $Revision: 1.29 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.30 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -49,7 +48,7 @@ class FSVolume;
 
 class FSSurface : public QObject
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
   FSSurface( FSVolume* ref, QObject* parent = NULL );
   virtual ~FSSurface();
@@ -62,7 +61,7 @@ public:
                  const QString& target_filename = QString() );
 
   bool MRISWrite( const QString& filename );
-  
+
   bool MRISReadVectors( const QString& filename );
 
   void GetBounds ( float oRASBounds[6] );
@@ -114,7 +113,7 @@ public:
   }
 
   double GetCurvatureValue( int nVertex );
-  
+
   bool SetActiveSurface( int nIndex );
 
   int GetActiveSurface()
@@ -150,12 +149,12 @@ public:
   {
     return m_polydataTarget;
   }
-  
+
   vtkPolyData* GetVectorPolyData()
   {
     return m_polydataVector;
   }
-  
+
   vtkPolyData* GetVector2DPolyData( int n )
   {
     return m_polydataVector2D[n];
@@ -165,39 +164,39 @@ public:
   {
     return m_polydataVertices;
   }
-  
+
   void GetVectorAtVertex( int nVertex, double* vec_out, int nVector = -1 );
-  
+
   vtkPolyData* GetWireframePolyData()
   {
     return m_polydataWireframes;
   }
-  
+
   MRIS* GetMRIS()
   {
     return m_MRIS;
   }
-  
+
   void GetNormalAtVertex( int nVertex, double* vec_out );
-  
-  void UpdateVector2D( int nPlane, double slice_pos, 
+
+  void UpdateVector2D( int nPlane, double slice_pos,
                        vtkPolyData* contour_polydata = NULL );
-  
+
   void Reposition( FSVolume* volume, int target_vnos, double target_val, int nsize, double sigma );
-  
+
   void Reposition( FSVolume* volume, int target_vnos, double* coord, int nsize, double sigma );
-  
+
   void UndoReposition();
 
   bool HasValidVolumeGeometry()
   {
-      return m_bValidVolumeGeometry;
+    return m_bValidVolumeGeometry;
   }
 
 protected:
   void UpdatePolyData();
-  void UpdatePolyData( MRIS* mris, vtkPolyData* polydata, 
-                       vtkPolyData* polydata_verts = NULL, 
+  void UpdatePolyData( MRIS* mris, vtkPolyData* polydata,
+                       vtkPolyData* polydata_verts = NULL,
                        vtkPolyData* polydata_wireframe = NULL );
   void UpdateVerticesAndNormals();
   void ComputeNormals();
@@ -214,10 +213,10 @@ protected:
   void RestoreNormals ( MRIS* mris, int nSet );
   void SaveVertices ( MRIS* mris, int nSet );
   void RestoreVertices( MRIS* mris, int nSet );
-  
-  bool ProjectVectorPoint2D( double* pt_in, 
-                             vtkPoints* contour_pts, 
-                             vtkCellArray* contour_lines, 
+
+  bool ProjectVectorPoint2D( double* pt_in,
+                             vtkPoints* contour_pts,
+                             vtkCellArray* contour_lines,
                              double* pt_out );
 
   MRIS*   m_MRIS;

@@ -1,3 +1,27 @@
+/**
+ * @file  WidgetHistogram.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #ifndef WIDGETHISTOGRAM_H
 #define WIDGETHISTOGRAM_H
 
@@ -23,44 +47,44 @@ struct LineMarker
 
 class WidgetHistogram : public QWidget
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit WidgetHistogram(QWidget *parent = 0);
-    ~WidgetHistogram();
+  explicit WidgetHistogram(QWidget *parent = 0);
+  ~WidgetHistogram();
 
-    template <class T> void SetInputData( T* data, long size );
+  template <class T> void SetInputData( T* data, long size );
 
-    void GetOutputRange( double* dRange );
+  void GetOutputRange( double* dRange );
 
-    void SetOutputRange( double* dRange );
+  void SetOutputRange( double* dRange );
 
-    bool GetAutoRange();
+  bool GetAutoRange();
 
 
-    int GetNumberOfBins();
+  int GetNumberOfBins();
 
-    void SetNumberOfBins( int nBins );
+  void SetNumberOfBins( int nBins );
 
-    int GetOutputSize();
+  int GetOutputSize();
 
-    void GetOutputData( int* buffer_out );
+  void GetOutputData( int* buffer_out );
 
-    int GetMaximumCount()
-      {
-        return m_nMaxCount;
-      }
+  int GetMaximumCount()
+  {
+    return m_nMaxCount;
+  }
 
 
   void SetMarkers( const LineMarkers& markers, bool bRefresh = true );
 
   void SetSymmetricMarkers(bool bFlag)
   {
-      m_bSymmetricMarkers = bFlag;
+    m_bSymmetricMarkers = bFlag;
   }
 
   void SetMarkerEditable(bool bFlag)
   {
-      m_bMarkerEditable = bFlag;
+    m_bMarkerEditable = bFlag;
   }
 
   void SetColorTableData( unsigned char* colortable, bool bRefresh = true );
@@ -69,7 +93,7 @@ public:
 
   LineMarkers GetMarkers()
   {
-      return m_markers;
+    return m_markers;
   }
 
 signals:
@@ -97,53 +121,59 @@ protected:
   bool MarkerHit(int x, int y, LineMarker marker);
   QPolygon MakeMarkerThumb(int x, int y);
 
-    double*	    m_dInputData;
-    long		    m_nInputSize;
-    double	    m_dInputRange[2];
+  double*     m_dInputData;
+  long        m_nInputSize;
+  double      m_dInputRange[2];
 
-    int*		    m_nOutputData;
-    int			    m_nOutputSize;
-    double		  m_dOutputRange[2];
-    bool		    m_bAutoRange;
-    int			    m_nNumberOfBins;
+  int*        m_nOutputData;
+  int         m_nOutputSize;
+  double      m_dOutputRange[2];
+  bool        m_bAutoRange;
+  int         m_nNumberOfBins;
   unsigned char* m_nColorTable;       // color table for histogram drawing as RGBA
 
-    double      m_dBinWidth;
+  double      m_dBinWidth;
   int         m_nMaxCount;
 
-    QColor	  m_colorBackground;
-    QColor    m_colorForeground;
+  QColor    m_colorBackground;
+  QColor    m_colorForeground;
 
-    QRect      m_rectGraph;
+  QRect      m_rectGraph;
 
-    LineMarkers m_markers;
-    bool        m_bSymmetricMarkers;
-    bool        m_bMarkerEditable;
-    int         m_nActiveMarker;
-    bool        m_bActiveMarkerMirrored;
+  LineMarkers m_markers;
+  bool        m_bSymmetricMarkers;
+  bool        m_bMarkerEditable;
+  int         m_nActiveMarker;
+  bool        m_bActiveMarkerMirrored;
 };
 
 template <class T> void WidgetHistogram::SetInputData( T* data, long size )
 {
-    if ( m_dInputData )
-        delete[] m_dInputData;
+  if ( m_dInputData )
+  {
+    delete[] m_dInputData;
+  }
 
-    m_dInputData = new double[size];
-    if ( m_dInputData )
+  m_dInputData = new double[size];
+  if ( m_dInputData )
+  {
+    m_dInputRange[0] = m_dInputRange[1] = data[0];
+    for ( long i = 0; i < size; i++ )
     {
-        m_dInputRange[0] = m_dInputRange[1] = data[0];
-        for ( long i = 0; i < size; i++ )
-        {
-            m_dInputData[i] = data[i];
-            if ( m_dInputRange[0] > m_dInputData[i] )
-                m_dInputRange[0] = m_dInputData[i];
-            else if ( m_dInputRange[1] < m_dInputData[i] )
-                m_dInputRange[1] = m_dInputData[i];
-        }
-        m_nInputSize = size;
+      m_dInputData[i] = data[i];
+      if ( m_dInputRange[0] > m_dInputData[i] )
+      {
+        m_dInputRange[0] = m_dInputData[i];
+      }
+      else if ( m_dInputRange[1] < m_dInputData[i] )
+      {
+        m_dInputRange[1] = m_dInputData[i];
+      }
+    }
+    m_nInputSize = size;
     m_dOutputRange[0] = m_dInputRange[0];
     m_dOutputRange[1] = m_dInputRange[1];
-    }
+  }
 
   UpdateData();
 }

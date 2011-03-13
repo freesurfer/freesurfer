@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:47 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -34,13 +33,15 @@
 
 
 FSPointSet::FSPointSet( QObject* parent ) : QObject( parent ),
-    m_label( NULL )
+  m_label( NULL )
 {}
 
 FSPointSet::~FSPointSet()
 {
   if ( m_label )
+  {
     ::LabelFree( &m_label );
+  }
 }
 
 bool FSPointSet::IsLabelFormat( const QString& filename )
@@ -61,7 +62,9 @@ bool FSPointSet::IsLabelFormat( const QString& filename )
 bool FSPointSet::ReadAsLabel( const QString& filename )
 {
   if ( m_label )
+  {
     ::LabelFree( &m_label );
+  }
 
   m_label = ::LabelRead( NULL, filename.toAscii().data() );
 
@@ -77,17 +80,21 @@ bool FSPointSet::ReadAsLabel( const QString& filename )
 bool FSPointSet::ReadAsControlPoints( const QString& filename )
 {
   if ( m_label )
+  {
     ::LabelFree( &m_label );
-  
+  }
+
   QFile file( filename );
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-     return false;
+  {
+    return false;
+  }
 
   QStringList ar;
   QTextStream in(&file);
   while (!in.atEnd())
   {
-      ar << in.readLine();
+    ar << in.readLine();
   }
   int nCount = 0;
   QList<float> values;
@@ -137,7 +144,9 @@ bool FSPointSet::WriteAsControlPoints( const QString& filename )
 {
   QFile file( filename );
   if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-     return false;
+  {
+    return false;
+  }
 
   QTextStream out(&file);
   for ( int i = 0; i < m_label->n_points; i++ )
@@ -145,7 +154,7 @@ bool FSPointSet::WriteAsControlPoints( const QString& filename )
     out << m_label->lv[i].x << " " << m_label->lv[i].y << " " << m_label->lv[i].z << "\n";
   }
   out << QString("info\nnumpoints %1\nuseRealRAS 1\n").arg( m_label->n_points );
-  
+
   return true;
 }
 
@@ -153,7 +162,9 @@ bool FSPointSet::WriteAsControlPoints( const QString& filename )
 void FSPointSet::UpdateLabel( PointSet& points_in, FSVolume* ref_vol )
 {
   if ( m_label )
+  {
     ::LabelFree( &m_label );
+  }
 
   int nCount = 0;
   double pos[3];

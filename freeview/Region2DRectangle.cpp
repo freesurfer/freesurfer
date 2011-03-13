@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:53 $
- *    $Revision: 1.8 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.9 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -43,20 +42,20 @@ Region2DRectangle::Region2DRectangle( RenderView2D* view ) :
   Region2D( view )
 {
   m_bEnableStats = true;
-  
+
   m_actorRect = vtkSmartPointer<vtkActor2D>::New();
   m_actorRect->GetProperty()->SetColor( 1, 0, 0 );
   m_actorRect->GetProperty()->SetOpacity( 0.6 );
 //  m_actorRect->VisibilityOff();
-  
+
   m_actorText = vtkSmartPointer<vtkTextActor>::New();
   m_actorText->SetTextScaleModeToNone();
   m_actorText->GetTextProperty()->SetColor( 1, 1, 1 );
-  m_actorText->GetTextProperty()->ShadowOn(); 
-  m_actorText->GetTextProperty()->SetFontSize( 16 );  
+  m_actorText->GetTextProperty()->ShadowOn();
+  m_actorText->GetTextProperty()->SetFontSize( 16 );
   m_actorText->GetTextProperty()->SetFontFamilyToTimes();
   m_actorText->GetTextProperty()->SetJustificationToCentered();
-  
+
   Highlight( true );
 }
 
@@ -69,25 +68,25 @@ void Region2DRectangle::SetRect( int left, int top, int w, int h )
   m_nX1 = left;
   m_nY1 = top;
   m_nX2 = left+w;
-  m_nY2 = top+h;  
-  
+  m_nY2 = top+h;
+
   UpdateWorldCoords();
   Update();
 }
 
 void Region2DRectangle::UpdateWorldCoords()
 {
-  m_view->MousePositionToRAS( m_nX1, m_nY1, m_dPt[0] ); 
-  m_view->MousePositionToRAS( m_nX1, m_nY2, m_dPt[1] ); 
-  m_view->MousePositionToRAS( m_nX2, m_nY2, m_dPt[2] ); 
-  m_view->MousePositionToRAS( m_nX2, m_nY1, m_dPt[3] ); 
+  m_view->MousePositionToRAS( m_nX1, m_nY1, m_dPt[0] );
+  m_view->MousePositionToRAS( m_nX1, m_nY2, m_dPt[1] );
+  m_view->MousePositionToRAS( m_nX2, m_nY2, m_dPt[2] );
+  m_view->MousePositionToRAS( m_nX2, m_nY1, m_dPt[3] );
 }
 
 void Region2DRectangle::SetTopLeft( int left, int top )
 {
   m_nX1 = left;
   m_nY1 = top;
-  
+
   UpdateWorldCoords();
   Update();
 }
@@ -96,7 +95,7 @@ void Region2DRectangle::SetBottomRight( int right, int bottom )
 {
   m_nX2 = right;
   m_nY2 = bottom;
-  
+
   UpdateWorldCoords();
   Update();
 }
@@ -104,15 +103,17 @@ void Region2DRectangle::SetBottomRight( int right, int bottom )
 void Region2DRectangle::Update()
 {
   if ( !m_actorRect->GetVisibility() )
+  {
     return;
-  
+  }
+
   double pt0[3], pt1[3], pt2[3], pt3[3];
- 
+
   m_view->WorldToViewport( m_dPt[0][0], m_dPt[0][1], m_dPt[0][2], pt0[0], pt0[1], pt0[2] );
   m_view->WorldToViewport( m_dPt[1][0], m_dPt[1][1], m_dPt[1][2], pt1[0], pt1[1], pt1[2] );
   m_view->WorldToViewport( m_dPt[2][0], m_dPt[2][1], m_dPt[2][2], pt2[0], pt2[1], pt2[2] );
   m_view->WorldToViewport( m_dPt[3][0], m_dPt[3][1], m_dPt[3][2], pt3[0], pt3[1], pt3[2] );
-  
+
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> poly = vtkSmartPointer<vtkCellArray>::New();
   pts->InsertNextPoint( pt0 );
@@ -121,25 +122,27 @@ void Region2DRectangle::Update()
   pts->InsertNextPoint( pt3 );
   vtkIdType face[4] = { 0, 1, 2, 3 };
   poly->InsertNextCell( 4, face );
-  
+
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( pts );
   polydata->SetPolys( poly );
   vtkSmartPointer<vtkPolyDataMapper2D> mapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
   mapper->SetInput( polydata );
-  
+
   vtkSmartPointer<vtkCoordinate> coords = vtkSmartPointer<vtkCoordinate>::New();
   coords->SetCoordinateSystemToViewport();
   mapper->SetTransformCoordinate( coords );
   m_actorRect->SetMapper( mapper );
-  
+
   if ( m_bEnableStats )
   {
     UpdateStats();
-    
+
     double pt[3];
     for ( int i = 0; i < 3; i++ )
+    {
       pt[i] = ( pt0[i] + pt2[i] ) / 2;
+    }
     m_actorText->SetInput( m_strShortStats.toAscii().constData() );
     m_actorText->SetPosition( pt );
   }
@@ -157,12 +160,12 @@ void Region2DRectangle::UpdateStats()
     sprintf( ch, "%.2f +/-%.2f", mean, sd );
     m_actorText->SetInput( ch );
     m_strShortStats = ch;
-    
+
     m_strsLongStats.clear();
     m_strsLongStats.push_back( QString("Number of voxels: %1").arg(count) );
     m_strsLongStats.push_back( QString("Mean: ") + m_strShortStats );
   }
-    
+
   Region2D::UpdateStats();
 }
 
@@ -195,28 +198,32 @@ bool Region2DRectangle::Contains( int nX, int nY, int* nIndexOut )
   m_view->MousePositionToRAS( 0, 0, pt1 );
   m_view->MousePositionToRAS( 5, 5, pt2 );
   double dTh2 = vtkMath::Distance2BetweenPoints( pt1, pt2 );
-  
+
   // calculate the hit point in world space
   double pt[3];
   m_view->MousePositionToRAS( nX, nY, pt );
   int nPlane = m_view->GetViewPlane();
   pt[nPlane] = m_dPt[0][nPlane];
-  
+
   for ( int i = 0; i < 4; i++ )
   {
     if ( vtkMath::Distance2BetweenPoints( pt, m_dPt[i] ) < dTh2 )
     {
       if ( nIndexOut )
+      {
         *nIndexOut = i;
+      }
       return true;
     }
   }
-  
+
   if ( nIndexOut )
+  {
     *nIndexOut = -1;
-  
+  }
+
   double range[3][2];
-  GetRange( range );  
+  GetRange( range );
   if ( pt[0] >= range[0][0] && pt[0] <= range[0][1] &&
        pt[1] >= range[1][0] && pt[1] <= range[1][1] &&
        pt[2] >= range[2][0] && pt[2] <= range[2][1] )
@@ -224,7 +231,9 @@ bool Region2DRectangle::Contains( int nX, int nY, int* nIndexOut )
     return true;
   }
   else
+  {
     return false;
+  }
 }
 
 // return the index of the screen depth dimension
@@ -234,24 +243,30 @@ int Region2DRectangle::GetRange( double range[3][2] )
   {
     range[i][0] = range[i][1] = m_dPt[0][i];
   }
-  
+
   for ( int i = 0; i < 4; i++ )
   {
     for ( int j = 0; j < 3; j++ )
     {
       if ( range[j][0] > m_dPt[i][j] )
+      {
         range[j][0] = m_dPt[i][j];
+      }
       else if ( range[j][1] < m_dPt[i][j] )
+      {
         range[j][1] = m_dPt[i][j];
+      }
     }
-  }  
-  
+  }
+
   for ( int i = 0; i < 3; i++ )
   {
     if ( fabs( range[i][0] - range[i][1] ) < 0.000001 )
+    {
       return i;
+    }
   }
-  
+
   return 0;
 }
 
@@ -272,19 +287,19 @@ void Region2DRectangle::Offset( int x, int y )
       m_dPt[j][i] += ( pt[i] - pt0[i] );
     }
   }
-  Update(); 
+  Update();
 }
-  
+
 void Region2DRectangle::UpdatePoint( int nIndex, int x, int y )
 {
-   /* 
+  /*
   if ( nIndex >= 0 && nIndex < 4 )
   {
-    m_view->MousePositionToRAS( nX, nY, m_dPt[nIndex] );
-    
-    Update();
+   m_view->MousePositionToRAS( nX, nY, m_dPt[nIndex] );
+
+   Update();
   }
-*/
+  */
   if ( nIndex >= 0 && nIndex < 4 )
   {
     int nDiag = (nIndex+2)%4;
@@ -293,32 +308,42 @@ void Region2DRectangle::UpdatePoint( int nIndex, int x, int y )
     int nX1, nY1, nX2, nY2;
     if ( nIndex == 0 )
     {
-      nX1 = x;  nY1 = y;
-      nX2 = xp; nY2 = yp;
+      nX1 = x;
+      nY1 = y;
+      nX2 = xp;
+      nY2 = yp;
     }
     else if ( nIndex == 1 )
     {
-      nX1 = x;  nY1 = yp;
-      nX2 = xp; nY2 = y;
+      nX1 = x;
+      nY1 = yp;
+      nX2 = xp;
+      nY2 = y;
     }
     else if ( nIndex == 2 )
     {
-      nX1 = xp; nY1 = yp;
-      nX2 = x;  nY2 = y;
+      nX1 = xp;
+      nY1 = yp;
+      nX2 = x;
+      nY2 = y;
     }
     else
     {
-      nX1 = xp; nY1 = y;
-      nX2 = x;  nY2 = yp;
+      nX1 = xp;
+      nY1 = y;
+      nX2 = x;
+      nY2 = yp;
     }
     SetRect( nX1, nY1, nX2-nX1, nY2-nY1 );
-  }  
+  }
 }
 
 void Region2DRectangle::UpdateSlicePosition( int nPlane, double pos )
 {
   for ( int i = 0; i < 4; i++ )
+  {
     m_dPt[i][nPlane] = pos;
+  }
 
   Region2D::UpdateSlicePosition( nPlane, pos );
 }

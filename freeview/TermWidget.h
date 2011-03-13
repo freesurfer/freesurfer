@@ -1,57 +1,82 @@
+/**
+ * @file  TermWidget.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #ifndef TERMWIDGET_H
 #define TERMWIDGET_H
 
 #include <QWidget>
 
-namespace Ui {
-    class TermWidget;
+namespace Ui
+{
+class TermWidget;
 }
 
 template< class Elem = char, class Tr = std::char_traits< Elem > >
 class StdRedirector : public std::basic_streambuf< Elem, Tr >
 {
-    /**
-      * Callback Function.
-      */
+  /**
+    * Callback Function.
+    */
   typedef void (*pfncb) ( const Elem*, std::streamsize _Count, void* pUsrData );
 
 public:
-    /**
-      * Constructor.
-      * @param a_Stream the stream to redirect
-      * @param a_Cb the callback function
-      * @param a_pUsrData user data passed to callback
-      */
+  /**
+    * Constructor.
+    * @param a_Stream the stream to redirect
+    * @param a_Cb the callback function
+    * @param a_pUsrData user data passed to callback
+    */
   StdRedirector( std::ostream& a_Stream, pfncb a_Cb, void* a_pUsrData ) :
     m_Stream( a_Stream ),
     m_pCbFunc( a_Cb ),
     m_pUserData( a_pUsrData )
   {
-      //redirect stream
+    //redirect stream
     m_pBuf = m_Stream.rdbuf( this );
   };
 
-    /**
-      * Destructor.
-      * Restores the original stream.
-      */
+  /**
+    * Destructor.
+    * Restores the original stream.
+    */
   ~StdRedirector()
   {
     m_Stream.rdbuf( m_pBuf );
   }
 
-    /**
-      * Override xsputn and make it forward data to the callback function.
-      */
+  /**
+    * Override xsputn and make it forward data to the callback function.
+    */
   std::streamsize xsputn( const Elem* _Ptr, std::streamsize _Count )
   {
     m_pCbFunc( _Ptr, _Count, m_pUserData );
     return _Count;
   }
 
-    /**
-      * Override overflow and make it forward data to the callback function.
-      */
+  /**
+    * Override overflow and make it forward data to the callback function.
+    */
   typename Tr::int_type overflow( typename Tr::int_type v )
   {
     Elem ch = Tr::to_char_type( v );
@@ -68,45 +93,45 @@ protected:
 
 class TermWidget : public QWidget
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit TermWidget(QWidget *parent = 0);
-    ~TermWidget();
+  explicit TermWidget(QWidget *parent = 0);
+  ~TermWidget();
 
-    bool GetDarkTheme();
+  bool GetDarkTheme();
 
-    bool GetRedirectStdOutput()
-    {
-        return m_bRedirectStdOutput;
-    }
+  bool GetRedirectStdOutput()
+  {
+    return m_bRedirectStdOutput;
+  }
 
 public slots:
-    void SetDarkTheme(bool bDark = true);
-    void SetRedirectStdOutput(bool bRedir = true);
-    void SetDuplicateStdOutput(bool bDup = true)
-    {
-        m_bDuplicateStdOutput = bDup;
-    }
+  void SetDarkTheme(bool bDark = true);
+  void SetRedirectStdOutput(bool bRedir = true);
+  void SetDuplicateStdOutput(bool bDup = true)
+  {
+    m_bDuplicateStdOutput = bDup;
+  }
 
 protected slots:
-    void OnCommandTriggered(const QString& cmd);
-    void OnTimeOut();
+  void OnCommandTriggered(const QString& cmd);
+  void OnTimeOut();
 
 private:
-    void ScrollToBottom();
-    void AppendErrorString(const QString& strg);
+  void ScrollToBottom();
+  void AppendErrorString(const QString& strg);
 
-    Ui::TermWidget  *ui;
-    StdRedirector<>*  m_stdOut;
-    StdRedirector<>*  m_stdErr;
-    QString           m_bufferStdOut;
-    QString           m_bufferStdErr;
-    QString           m_strLogColor;
-    QString           m_strErrorColor;
+  Ui::TermWidget  *ui;
+  StdRedirector<>*  m_stdOut;
+  StdRedirector<>*  m_stdErr;
+  QString           m_bufferStdOut;
+  QString           m_bufferStdErr;
+  QString           m_strLogColor;
+  QString           m_strErrorColor;
 
-    bool    m_bRedirectStdOutput;
-    bool    m_bDuplicateStdOutput;
+  bool    m_bRedirectStdOutput;
+  bool    m_bDuplicateStdOutput;
 };
 
 #endif // TERMWIDGET_H

@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:48 $
- *    $Revision: 1.20 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.21 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -39,8 +38,8 @@
 #include <QDebug>
 
 Interactor2DVolumeEdit::Interactor2DVolumeEdit( const QString& layerTypeName, QObject* parent ) :
-    Interactor2D( parent ),
-    m_bEditing( false )
+  Interactor2D( parent ),
+  m_bEditing( false )
 {
   m_strLayerTypeName = layerTypeName;
 }
@@ -53,7 +52,9 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
   RenderView2D* view = ( RenderView2D* )renderview;
 
   if ( !view->hasFocus() )
-      return Interactor2D::ProcessMouseDownEvent( event, renderview );
+  {
+    return Interactor2D::ProcessMouseDownEvent( event, renderview );
+  }
 
   if ( event->button() == Qt::LeftButton ||
        ( event->button() == Qt::RightButton && (event->buttons() & Qt::LeftButton) ) )
@@ -121,9 +122,13 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           if ( m_dPolylinePoints.size() > 0 )
           {
             if ( m_nAction == EM_Polyline )
+            {
               mri->SetVoxelByRAS( ras, ras2, view->GetViewPlane(), bCondition );
+            }
             else
+            {
               mri->SetLiveWireByRAS( ras, ras2, view->GetViewPlane() );
+            }
           }
           else
           {
@@ -133,7 +138,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
             m_dPolylinePoints.push_back( ras[2] );
             view->GetCursor2D()->SetPosition( ras );
           }
-  
+
           view->grabMouse();
         }
       }
@@ -161,7 +166,7 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
           emit Error( "LayerReferenceNotSet" );
           return false;
         }
-          
+
         Contour2D* c2d = view->GetContour2D();
         if ( (event->modifiers() & CONTROL_MODIFIER) && (event->modifiers() & Qt::AltModifier) )
         {
@@ -197,7 +202,9 @@ bool Interactor2DVolumeEdit::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
         }
       }
       else
+      {
         return Interactor2D::ProcessMouseDownEvent( event, renderview );
+      }
     }
 
     return false;
@@ -256,11 +263,13 @@ bool Interactor2DVolumeEdit::ProcessMouseUpEvent( QMouseEvent* event, RenderView
     if ( event->button() != Qt::LeftButton ||
          (m_nAction != EM_Polyline && m_nAction != EM_Livewire ) ||
          m_dPolylinePoints.size() == 0 )
+    {
       m_bEditing = false;
+    }
 
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( m_strLayerTypeName );
     LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
- //   mri->SendBroadcast( "LayerEdited", mri );
+//   mri->SendBroadcast( "LayerEdited", mri );
 
     return false;
   }
@@ -328,14 +337,14 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
         }
         c2d->SetContourValue( c2d->GetContourValue() + scale * ( posY - m_nMousePosY ) );
       }
-      else 
+      else
       {
         double ras1[3], ras2[3];
         view->MousePositionToRAS( m_nMousePosX, m_nMousePosY, ras1 );
         view->MousePositionToRAS( posX, posY, ras2 );
         c2d->AddLine( ras1, ras2 );
       }
-      
+
       view->RequestRedraw();
     }
 
@@ -353,7 +362,7 @@ bool Interactor2DVolumeEdit::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
 bool Interactor2DVolumeEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview )
 {
   UpdateCursor( event, renderview );
-  
+
   RenderView2D* view = ( RenderView2D* )renderview;
   if ( event->modifiers() & Qt::AltModifier && event->key() == Qt::Key_H )
   {
@@ -362,11 +371,15 @@ bool Interactor2DVolumeEdit::ProcessKeyDownEvent( QKeyEvent* event, RenderView* 
     view->RequestRedraw();
     return false;
   }
-  
+
   if ( !m_bEditing )
+  {
     return Interactor2D::ProcessKeyDownEvent( event, renderview );
+  }
   else
+  {
     return false;
+  }
 }
 
 bool Interactor2DVolumeEdit::ProcessKeyUpEvent( QKeyEvent* event, RenderView* renderview )
@@ -380,10 +393,10 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
 {
   if ( wnd->hasFocus() )
   {
-      bool bMouseEvent = false;
-     if ( event->type() == QEvent::MouseButtonPress ||
-           event->type() == QEvent::MouseButtonRelease ||
-           event->type() == QEvent::MouseMove)
+    bool bMouseEvent = false;
+    if ( event->type() == QEvent::MouseButtonPress ||
+         event->type() == QEvent::MouseButtonRelease ||
+         event->type() == QEvent::MouseMove)
     {
       QMouseEvent* e = ( QMouseEvent* )event;
       bMouseEvent = true;
@@ -397,7 +410,7 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
 
     if ( m_nAction != EM_Fill )
     {
-        if ( event->type() == QEvent::KeyPress )
+      if ( event->type() == QEvent::KeyPress )
       {
         QKeyEvent* e = ( QKeyEvent* )event;
         if ( e->key() == CONTROL_KEY && !(e->modifiers() & Qt::ShiftModifier) && !(e->modifiers() & Qt::AltModifier) )
@@ -409,31 +422,37 @@ void Interactor2DVolumeEdit::UpdateCursor( QEvent* event, QWidget* wnd )
 
       if ( bMouseEvent && (( QMouseEvent* )event)->modifiers() & CONTROL_MODIFIER
            && !((( QMouseEvent* )event)->modifiers() & Qt::ShiftModifier)
-          && !((( QMouseEvent* )event)->modifiers() & Qt::AltModifier) )
+           && !((( QMouseEvent* )event)->modifiers() & Qt::AltModifier) )
       {
         wnd->setCursor( CursorFactory::CursorFill );
       }
       else if ( m_nAction == EM_ColorPicker )
+      {
         wnd->setCursor( CursorFactory::CursorColorPicker );
+      }
       else //if ( bMouseEvent )
       {
         switch ( m_nAction )
         {
-          case EM_Freehand:
-            wnd->setCursor( CursorFactory::CursorPencil );
-            break;
-          case EM_Polyline:
-            wnd->setCursor( CursorFactory::CursorPolyline );
-            break;
-          case EM_Contour:
-            wnd->setCursor( CursorFactory::CursorContour );
-            break;
+        case EM_Freehand:
+          wnd->setCursor( CursorFactory::CursorPencil );
+          break;
+        case EM_Polyline:
+          wnd->setCursor( CursorFactory::CursorPolyline );
+          break;
+        case EM_Contour:
+          wnd->setCursor( CursorFactory::CursorContour );
+          break;
         }
       }
     }
-    else 
+    else
+    {
       wnd->setCursor( CursorFactory::CursorFill );
+    }
   }
   else
+  {
     Interactor2D::UpdateCursor( event, wnd );
+  }
 }

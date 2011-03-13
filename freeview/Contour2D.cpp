@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:45 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -42,17 +41,17 @@
 #define IMAGE_RESAMPLE_FACTOR     4.0     // must be multiples of 2
 
 Contour2D::Contour2D( RenderView2D* view ) :
-    QObject( view ),
-    m_view( view )
+  QObject( view ),
+  m_view( view )
 {
   m_nPlane = view->GetViewPlane();
   m_imageInput = NULL;
   m_dContourValue = 0;
-  
+
   m_actorContour = vtkSmartPointer<vtkImageActor>::New();
   m_actorContour->VisibilityOff();
   m_actorContour->InterpolateOff();
-  
+
   m_filterSmooth = vtkSmartPointer<vtkImageGaussianSmooth>::New();
   m_filterSmooth->SetStandardDeviations( 1, 1, 1 );
   m_filterThreshold = vtkSmartPointer<vtkImageThreshold>::New();
@@ -73,9 +72,9 @@ Contour2D::Contour2D( RenderView2D* view ) :
   m_colormap = vtkSmartPointer<vtkImageMapToColors>::New();
   m_colormap->SetOutputFormatToRGBA();
   m_colormap->PassAlphaToOutputOn();
-  
+
   SetColor( 1, 1, 1 );
-  
+
   connect(this, SIGNAL(ValueChanged()), view, SLOT(RequestRedraw()));
   connect(this, SIGNAL(ColorChanged()), view, SLOT(RequestRedraw()));
 
@@ -111,11 +110,13 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
     m_imageInput = extract->GetOutput();
   }
   else
-   m_imageInput = imagedata;
-  
+  {
+    m_imageInput = imagedata;
+  }
+
   m_filterThreshold->SetInput( m_imageInput );
   SetContourValue( dContourValue );
-  
+
   // create two masks and initialize them.
   m_imageMaskAdd = vtkSmartPointer<vtkImageData>::New();
   m_imageMaskAdd->DeepCopy( m_filterThreshold->GetOutput() );
@@ -126,8 +127,10 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   memset( m_imageMaskAdd->GetScalarPointer(), 0, size );
   unsigned char* ptr = (unsigned char*)m_imageMaskRemove->GetScalarPointer();
   for ( int i = 0; i < size; i++ )
+  {
     ptr[i] = 1;
-  
+  }
+
   m_filterLogic->SetInput1( m_filterThreshold->GetOutput() );
   m_filterLogic->SetInput2( m_imageMaskAdd );
   m_filterMask->SetInputConnection( m_filterLogic->GetOutputPort() );
@@ -135,8 +138,8 @@ void Contour2D::SetInput( vtkImageData* imagedata, double dContourValue, double 
   m_filterResample->SetInputConnection( m_filterMask->GetOutputPort() );
   m_filterEdge->SetInputConnection( m_filterResample->GetOutputPort() );
   m_colormap->SetInputConnection( m_filterEdge->GetOutputPort() );
-  m_actorContour->SetInput( m_colormap->GetOutput() ); 
-  
+  m_actorContour->SetInput( m_colormap->GetOutput() );
+
   SetSmooth( m_bSmooth );
   UpdateSliceLocation( dSliceLocation );
 }
@@ -152,35 +155,37 @@ void Contour2D::RemoveLine( double* ras1, double* ras2 )
 {
   DrawPatchLineOnMask( m_imageMaskRemove, ras1, ras2, 0 );
 }
-    
+
 void Contour2D::DrawPatchLineOnMask( vtkImageData* image, double* ras1, double* ras2, int nDrawValue )
 {
   if ( !image )
+  {
     return;
-  
+  }
+
   int n1[2], n2[2];
   double* origin = image->GetOrigin();    // 2D image!
   double* vsize = image->GetSpacing();
   int* dim = image->GetDimensions();
-  
+
   int nx = 0, ny = 1;
   switch ( m_nPlane )
   {
-    case 0:
-      nx = 1;
-      ny = 2;
-      break;
-    case 1:
-      nx = 0;
-      ny = 2;
-      break;
+  case 0:
+    nx = 1;
+    ny = 2;
+    break;
+  case 1:
+    nx = 0;
+    ny = 2;
+    break;
   }
   n1[0] = (int)( (ras1[nx] - origin[0]) / vsize[0] + 0.5 );
   n1[1] = (int)( (ras1[ny] - origin[1]) / vsize[1] + 0.5 );
   n2[0] = (int)( (ras2[nx] - origin[0]) / vsize[0] + 0.5 );
   n2[1] = (int)( (ras2[ny] - origin[1]) / vsize[1] + 0.5 );
-  
-  nx = 0; 
+
+  nx = 0;
   ny = 1;
   unsigned char* ptr = (unsigned char*)image->GetScalarPointer();
   int x0 = n1[nx], y0 = n1[ny], x1 = n2[nx], y1 = n2[ny];
@@ -219,7 +224,7 @@ void Contour2D::DrawPatchLineOnMask( vtkImageData* image, double* ras1, double* 
       ptr[n[ny]*dim[0]+n[nx]] = nDrawValue;
     }
   }
-  
+
   image->Modified();
 }
 
@@ -227,33 +232,37 @@ void Contour2D::UpdateSliceLocation( double dSliceLocation )
 {
   vtkImageData* imagedata = vtkImageData::SafeDownCast( m_filterThreshold->GetInput() );
   if ( !imagedata )
+  {
     return;
-  
+  }
+
   if ( fabs( dSliceLocation - m_dSliceLocation ) < 1e-6 )
+  {
     return;
-  
+  }
+
   m_dSliceLocation = dSliceLocation;
   vtkSmartPointer<vtkMatrix4x4> matrix =
-      vtkSmartPointer<vtkMatrix4x4>::New();
+    vtkSmartPointer<vtkMatrix4x4>::New();
   matrix->Identity();
   double* vsize = imagedata->GetSpacing();    // 2D spacing!
   double pos[2] = { vsize[0]/IMAGE_RESAMPLE_FACTOR/2, vsize[1]/IMAGE_RESAMPLE_FACTOR/2 };
   switch ( m_nPlane )
   {
-    case 0:
-      m_actorContour->PokeMatrix( matrix );
-      m_actorContour->SetPosition( dSliceLocation, pos[0], pos[1] );
-      m_actorContour->RotateX( 90 );
-      m_actorContour->RotateY( 90 );
-      break;
-    case 1:
-      m_actorContour->PokeMatrix( matrix );
-      m_actorContour->SetPosition( pos[0], dSliceLocation, pos[1] );
-      m_actorContour->RotateX( 90 );
-      break;
-    case 2:
-      m_actorContour->SetPosition( pos[0], pos[1], dSliceLocation );
-      break;
+  case 0:
+    m_actorContour->PokeMatrix( matrix );
+    m_actorContour->SetPosition( dSliceLocation, pos[0], pos[1] );
+    m_actorContour->RotateX( 90 );
+    m_actorContour->RotateY( 90 );
+    break;
+  case 1:
+    m_actorContour->PokeMatrix( matrix );
+    m_actorContour->SetPosition( pos[0], dSliceLocation, pos[1] );
+    m_actorContour->RotateX( 90 );
+    break;
+  case 2:
+    m_actorContour->SetPosition( pos[0], pos[1], dSliceLocation );
+    break;
   }
 }
 
@@ -284,13 +293,13 @@ void Contour2D::SetSmooth( bool bSmooth )
     m_filterThreshold->SetInput( bSmooth ? m_filterSmooth->GetOutput() : m_imageInput );
   }
 }
-  
+
 double Contour2D::GetSmoothSD()
 {
   double* sd = m_filterSmooth->GetStandardDeviations();
   return sd[0];
 }
-  
+
 void Contour2D::SetSmoothSD( double sd )
 {
   m_filterSmooth->SetStandardDeviations( sd, sd, sd );
@@ -301,14 +310,16 @@ void Contour2D::SetColor( double r, double g, double b )
   m_dContourColor[0] = r;
   m_dContourColor[1] = g;
   m_dContourColor[2] = b;
-  
+
   vtkSmartPointer<vtkRGBAColorTransferFunction> lut = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   lut->AddRGBAPoint( 0, 0, 0, 0, 0 );
   lut->AddRGBAPoint( 1, r, g, b, 1 );
   lut->Build();
   m_colormap->SetLookupTable( lut );
-  
+
   if ( IsVisible() )
+  {
     emit ColorChanged();
+  }
 }
 

@@ -10,21 +10,20 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:49 $
- *    $Revision: 1.1 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.2 $
  *
- * Copyright (C) 2007-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -50,30 +49,35 @@ class QString;
 
 class LayerPropertyMRI : public LayerProperty
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
   LayerPropertyMRI ( QObject* parent = NULL );
   ~LayerPropertyMRI ();
 
   // Description:
   // The color map types in which a volume can be drawn.
-  enum ColorMapType {
-    NoColorMap=-1, Grayscale, LUT, Heat, Jet, GEColor, NIH, DirectionCoded 
+  enum ColorMapType
+  {
+    NoColorMap=-1, Grayscale, LUT, Heat, Jet, GEColor, NIH, DirectionCoded
   };
-  
-  enum VectorInversion {
+
+  enum VectorInversion
+  {
     VI_None = 0, VI_X, VI_Y, VI_Z
   };
 
-  enum VectorRepresentation {
-    VR_Line = 0, VR_Bar 
+  enum VectorRepresentation
+  {
+    VR_Line = 0, VR_Bar
   };
-  
-  enum TensorRepresentation {
-    TR_Boxoid = 0, TR_Ellipsoid 
+
+  enum TensorRepresentation
+  {
+    TR_Boxoid = 0, TR_Ellipsoid
   };
-  
-  enum UpSampleMethod {
+
+  enum UpSampleMethod
+  {
     UM_None = 0, UM_NearestNeighbor, UM_BiLinear
   };
 
@@ -82,7 +86,7 @@ public:
   void RestoreSettings(const QVariantMap& map);
   void RestoreSettings( const QString& filename );
   void SaveSettings   ( const QString& filename );
-  
+
   void SetVolumeSource( FSVolume* source );
 
   double  GetOpacity() const;
@@ -92,7 +96,7 @@ public:
   vtkRGBAColorTransferFunction*  GetHeatScaleTable () const;
   vtkRGBAColorTransferFunction*  GetColorMapTable () const;
   vtkLookupTable*           GetDirectionCodedTable () const;
-  
+
   COLOR_TABLE*  GetLUTCTAB () const;
   void          SetLUTCTAB ( COLOR_TABLE* ct );
 
@@ -154,7 +158,7 @@ public:
   void    SetHeatScaleOffset ( double iValue );
   double  GetHeatScaleOffset ();
   void    SetHeatScale( double dMin, double dMid, double dMax );
-  
+
   bool GetHeatScaleClearHigh()
   {
     return m_bHeatScaleClearHigh;
@@ -164,12 +168,12 @@ public:
   {
     return m_bHeatScaleTruncate;
   }
-   
+
   bool GetHeatScaleInvert()
   {
     return m_bHeatScaleInvert;
   }
-  
+
   // Description:
   // Various heat scale characterists.
   void SetReverseHeatScale ( bool ib );
@@ -190,8 +194,8 @@ public:
   double GetMinValue();
   double GetMaxValue();
 
-  bool UpdateValueRange( double dValue ); 
-  
+  bool UpdateValueRange( double dValue );
+
   double* GetWindowRange()
   {
     return mWindowRange;
@@ -246,9 +250,9 @@ public:
   {
     return mMaxContourThreshold;
   }
-  
+
   void SetContourThreshold( double dMin, double dMax );
-  
+
   void SetContourColor( double r, double g, double b );
   void GetContourColor( double* c )
   {
@@ -261,22 +265,22 @@ public:
   {
     return m_rgbContour;
   }
-  
+
   bool GetContourUseImageColorMap()
   {
     return m_bContourUseImageColorMap;
   }
-  
+
   bool GetContourExtractAllRegions()
   {
     return m_bContourExtractAll;
   }
-  
+
   bool GetShowLabelOutline()
   {
     return m_bShowLabelOutline;
   }
-  
+
   int GetUpSampleMethod()
   {
     return m_nUpSampleMethod;
@@ -311,7 +315,7 @@ public slots:
   void SetContourExtractAllRegions( bool bExtractAll );
   void SetContourColor(const QColor& c)
   {
-      SetContourColor(c.redF(), c.greenF(), c.blueF());
+    SetContourColor(c.redF(), c.greenF(), c.blueF());
   }
 
 signals:
@@ -332,7 +336,7 @@ private:
 
   void UpdateLUTTable();
   void BuildGenericLUT( const int colors[256][3] );
-  
+
   //BTX
 
   // Color tables --------------------------------------------------------
@@ -353,7 +357,7 @@ private:
 
   bool    mbClearZero;
   double  mMinVoxelValue, mMaxVoxelValue;
-  
+
   double  mMinVisibleValue, mMaxVisibleValue;
 
   // For grayscale drawing.
@@ -368,7 +372,7 @@ private:
   bool    m_bHeatScaleClearHigh;
   bool    m_bHeatScaleTruncate;
   bool    m_bHeatScaleInvert;
-  
+
   double  mMinGenericThreshold;
   double  mMaxGenericThreshold;
 
@@ -383,15 +387,15 @@ private:
   bool    mbShowAsContour;
   double  mMinContourThreshold;
   double  mMaxContourThreshold;
-  
+
   bool    m_bDisplayVector;
   int     m_nVectorInversion;
   int     m_nVectorRepresentation;
-  
+
   bool    m_bDisplayTensor;
   int     m_nTensorInversion;
   int     m_nTensorRepresentation;
-  
+
   double  m_rgbContour[3];
   bool    m_bContourUseImageColorMap;
   bool    m_bContourExtractAll;
@@ -399,7 +403,7 @@ private:
 
   bool    m_bShowLabelOutline;
   int     m_nUpSampleMethod;
-  
+
   // ---------------------------------------------------------------------
 
   FSVolume*   mSource;

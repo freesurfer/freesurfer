@@ -1,3 +1,27 @@
+/**
+ * @file  ThreadIOWorker.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.2 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #ifndef ThreadIOWorker_H
 #define ThreadIOWorker_H
 
@@ -9,34 +33,34 @@ class Layer;
 
 class ThreadIOWorker : public QThread
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
-    explicit ThreadIOWorker(QObject *parent = 0);
+  explicit ThreadIOWorker(QObject *parent = 0);
 
-    enum JobType { JT_LoadVolume = 0, JT_SaveVolume, JT_LoadSurface, JT_LoadSurfaceOverlay, JT_LoadTrack };
+  enum JobType { JT_LoadVolume = 0, JT_SaveVolume, JT_LoadSurface, JT_LoadSurfaceOverlay, JT_LoadTrack };
 
-    void LoadVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
-    void SaveVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
-    void LoadSurface( Layer* layer, const QVariantMap& args = QVariantMap() );
-    void LoadSurfaceOverlay( Layer* layer, const QVariantMap& args = QVariantMap() );
-    void LoadTrack( Layer* layer, const QVariantMap& args = QVariantMap() );
+  void LoadVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
+  void SaveVolume( Layer* layer, const QVariantMap& args = QVariantMap() );
+  void LoadSurface( Layer* layer, const QVariantMap& args = QVariantMap() );
+  void LoadSurfaceOverlay( Layer* layer, const QVariantMap& args = QVariantMap() );
+  void LoadTrack( Layer* layer, const QVariantMap& args = QVariantMap() );
 
 signals:
-    void Progress( int n );
-    void Error( Layer*, int jobtype );
-    void Finished( Layer*, int jobtype );
+  void Progress( int n );
+  void Error( Layer*, int jobtype );
+  void Finished( Layer*, int jobtype );
 
 public slots:
 
 protected:
-    void run();
+  void run();
 
 private:
-    QMutex 		mutex;
-    // to abort
-    int         m_nJobType;
-    Layer*      m_layer;
-    QVariantMap m_args;
+  QMutex    mutex;
+  // to abort
+  int         m_nJobType;
+  Layer*      m_layer;
+  QVariantMap m_args;
 };
 
 #endif // ThreadIOWorker_H

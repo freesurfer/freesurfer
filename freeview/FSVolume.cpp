@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:47 $
- *    $Revision: 1.57 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.58 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -58,21 +57,21 @@ extern "C"
 using namespace std;
 
 FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
-    m_MRI( NULL ),
-    m_MRITarget( NULL ),
-    m_MRIRef( NULL ),
-    m_MRIOrigTarget( NULL ),
-    m_MRITemp( NULL ),
-    m_matReg( NULL ),
-    m_ctabEmbedded( NULL ),
-    m_volumeRef( ref ),
-    m_fMinValue( 0 ),
-    m_fMaxValue( 1 ),
-    m_bResampleToRAS( false ),
-    m_bBoundsCacheDirty( true ),
-    m_nInterpolationMethod( SAMPLE_NEAREST ),
-    m_bConform( false ),
-    m_bCrop( false )
+  m_MRI( NULL ),
+  m_MRITarget( NULL ),
+  m_MRIRef( NULL ),
+  m_MRIOrigTarget( NULL ),
+  m_MRITemp( NULL ),
+  m_matReg( NULL ),
+  m_ctabEmbedded( NULL ),
+  m_volumeRef( ref ),
+  m_fMinValue( 0 ),
+  m_fMaxValue( 1 ),
+  m_bResampleToRAS( false ),
+  m_bBoundsCacheDirty( true ),
+  m_nInterpolationMethod( SAMPLE_NEAREST ),
+  m_bConform( false ),
+  m_bCrop( false )
 {
   m_imageData = NULL;
   if ( ref )
@@ -89,25 +88,39 @@ FSVolume::FSVolume( FSVolume* ref, QObject* parent ) : QObject( parent ),
 FSVolume::~FSVolume()
 {
   if ( m_MRI )
+  {
     ::MRIfree( &m_MRI );
+  }
 
   if ( m_MRITarget )
+  {
     ::MRIfree( &m_MRITarget );
+  }
 
   if ( m_MRIRef )
+  {
     ::MRIfree( &m_MRIRef );
+  }
 
   if ( m_MRIOrigTarget )
+  {
     ::MRIfree( &m_MRIOrigTarget );
+  }
 
   if ( m_MRITemp )
+  {
     ::MRIfree( &m_MRITemp );
+  }
 
   if ( m_matReg )
+  {
     ::MatrixFree( &m_matReg );
-  
+  }
+
   if ( m_ctabEmbedded )
+  {
     ::CTABfree( &m_ctabEmbedded );
+  }
 }
 
 bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
@@ -121,20 +134,26 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
   {
     cerr << "MRIread failed: Unable to read from " << qPrintable(filename) << "\n";
     if ( tempMRI )
+    {
       m_MRI = tempMRI;
+    }
     return false;
   }
-  
+
   // if m_MRI successfully loaded, release old header.
   if ( tempMRI )
+  {
     ::MRIfree( &tempMRI );
+  }
 
   if ( m_MRI->ct != NULL )
+  {
     m_ctabEmbedded = CTABdeepCopy( m_MRI->ct );
-  
+  }
+
   // update orientation index
   MRIdircosToOrientationString( m_MRI, m_strOrientation );
-  
+
   /*
   if ( m_MRI->AutoAlign != NULL )
   {
@@ -145,13 +164,13 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
         << M->rptr[4][1] << " " << M->rptr[4][2] << " " << M->rptr[4][3] << " " << M->rptr[4][4] << endl;
   }
   */
-  
+
   if ( !reg_filename.isEmpty() && !m_MRIRef )
   {
     cerr << "Error: A target volume must be loaded first to apply registration matrix.\n";
     return false;
   }
-  
+
   // read registration matrix
   if ( !reg_filename.isEmpty() && !LoadRegistrationMatrix( reg_filename ) )
   {
@@ -167,49 +186,55 @@ bool FSVolume::LoadMRI( const QString& filename, const QString& reg_filename )
 bool FSVolume::MRIRead( const QString& filename, const QString& reg_filename )
 {
   if ( LoadMRI( filename, reg_filename ) )
-  {  
+  {
     this->CopyMatricesFromMRI();
     if ( !this->MapMRIToImage() )
+    {
       return false;
-  
+    }
+
     if ( m_volumeRef && m_volumeRef->m_MRIOrigTarget && !m_MRIOrigTarget )
     {
       m_MRIOrigTarget = CreateTargetMRI( m_MRI, m_volumeRef->m_MRIOrigTarget, false, m_bConform );
-    } 
-  
+    }
+
     // free MRI pixel space
     /*
-    MRI* mri = MRIallocHeader( m_MRI->width, 
-                              m_MRI->height, 
-                              m_MRI->depth, 
+    MRI* mri = MRIallocHeader( m_MRI->width,
+                              m_MRI->height,
+                              m_MRI->depth,
                               m_MRI->type );
     MRIcopyHeader( m_MRI, mri );
     MRIfree( &m_MRI );
     m_MRI = mri;
     */
-  
+
     return true;
   }
   else
+  {
     return false;
+  }
 }
 
 bool FSVolume::Restore( const QString& filename, const QString& reg_filename )
 {
   if ( LoadMRI( filename, reg_filename ) )
-  {  
+  {
     // create m_MRITemp for save/rotate
     if ( m_MRITemp )
+    {
       MRIfree( &m_MRITemp );
-    
-    MRI* mri = MRIallocHeader( m_MRI->width, 
-                               m_MRI->height, 
-                               m_MRI->depth, 
+    }
+
+    MRI* mri = MRIallocHeader( m_MRI->width,
+                               m_MRI->height,
+                               m_MRI->depth,
                                m_MRI->type );
     MRIcopyHeader( m_MRI, mri );
     m_MRITemp = m_MRI;
     m_MRI = mri;
-  
+
     return true;
   }
   else
@@ -223,7 +248,9 @@ bool FSVolume::Restore( const QString& filename, const QString& reg_filename )
 bool FSVolume::LoadRegistrationMatrix( const QString& filename )
 {
   if ( m_matReg )
+  {
     ::MatrixFree( &m_matReg );
+  }
   m_matReg = NULL;
 
   QString ext = QFileInfo( filename ).suffix();
@@ -231,7 +258,9 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
   {
     MATRIX* m = NULL;
     if ( regio_read_mincxfm( filename.toAscii().data(), &m, NULL ) != 0 )
+    {
       return false;
+    }
 
     m_matReg = MRItkRegMtx( m_MRIRef, m_MRI, m );
     MatrixFree( &m );
@@ -240,23 +269,27 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
   {
     QFile file( filename );
     if ( !file.open( QIODevice::ReadOnly | QIODevice::Text ) )
-        return false;
+    {
+      return false;
+    }
 
     QTextStream in(&file);
     QString line = in.readLine();
     QStringList values;
     while ( !line.isNull() )
     {
-        values += line.split( " ", QString::SkipEmptyParts );
-        line = in.readLine();
+      values += line.split( " ", QString::SkipEmptyParts );
+      line = in.readLine();
     }
     if ( values.size() < 16 )
+    {
       return false;
+    }
 
     MATRIX* m = MatrixAlloc( 4, 4, MATRIX_REAL );
     for ( int i = 0; i < 16; i++ )
     {
-        *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = values[i].toDouble();
+      *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = values[i].toDouble();
     }
     m_matReg = MRIfsl2TkReg( m_MRIRef, m_MRI, m );
     MatrixFree( &m );
@@ -267,13 +300,15 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
     float inplaneres, betplaneres, intensity;
     int float2int;
     if ( regio_read_register( filename.toAscii().data(),
-			      &subject, 
-			      &inplaneres, 
-			      &betplaneres, 
-			      &intensity, 
-			      &m_matReg, 
-			      &float2int ) != 0 )
+                              &subject,
+                              &inplaneres,
+                              &betplaneres,
+                              &intensity,
+                              &m_matReg,
+                              &float2int ) != 0 )
+    {
       return false;
+    }
 
     free( subject );
   }
@@ -281,7 +316,9 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
   {
     TRANSFORM* FSXform = TransformRead( (char*)filename.toAscii().data() );
     if ( FSXform == NULL )
+    {
       return false;
+    }
     LTA* lta = (LTA*) FSXform->xform;
     if ( lta->type != LINEAR_RAS_TO_RAS )
     {
@@ -294,7 +331,7 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
       TransformFree( &FSXform );
       return false;
     }
-    
+
     // Assume RAS2RAS and uses vox2ras from input volumes:
     // Note: This ignores the volume geometry in the LTA file.
     m_matReg = MRItkRegMtx( m_MRIRef, m_MRI, lta->xforms[0].m_L );
@@ -307,29 +344,33 @@ bool FSVolume::LoadRegistrationMatrix( const QString& filename )
 bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
 {
   if ( m_MRI )
+  {
     ::MRIfree( &m_MRI );
+  }
   if ( m_matReg )
+  {
     ::MatrixFree( &m_matReg );
+  }
 
   SetMRI( m_MRIRef, src_vol->GetMRI() );
-  memcpy( m_RASToVoxelMatrix, 
-	  src_vol->m_RASToVoxelMatrix, 
-	  16 * sizeof( double ) );
-  memcpy( m_VoxelToRASMatrix, 
-	  src_vol->m_VoxelToRASMatrix, 
-	  16 * sizeof( double ) );
-  memcpy( m_MRIToImageMatrix, 
-	  src_vol->m_MRIToImageMatrix, 
-	  16 * sizeof( double ) );
-  memcpy( m_VoxelToVoxelMatrix, 
-	  src_vol->m_VoxelToVoxelMatrix, 
-	  16 * sizeof( double ) );
-  memcpy( m_RASToRASMatrix, 
-	  src_vol->m_RASToRASMatrix, 
-	  16 * sizeof( double ) );
-  memcpy( m_RASToTkRegMatrix, 
-	  src_vol->m_RASToTkRegMatrix, 
-	  16 * sizeof( double ) );
+  memcpy( m_RASToVoxelMatrix,
+          src_vol->m_RASToVoxelMatrix,
+          16 * sizeof( double ) );
+  memcpy( m_VoxelToRASMatrix,
+          src_vol->m_VoxelToRASMatrix,
+          16 * sizeof( double ) );
+  memcpy( m_MRIToImageMatrix,
+          src_vol->m_MRIToImageMatrix,
+          16 * sizeof( double ) );
+  memcpy( m_VoxelToVoxelMatrix,
+          src_vol->m_VoxelToVoxelMatrix,
+          16 * sizeof( double ) );
+  memcpy( m_RASToRASMatrix,
+          src_vol->m_RASToRASMatrix,
+          16 * sizeof( double ) );
+  memcpy( m_RASToTkRegMatrix,
+          src_vol->m_RASToTkRegMatrix,
+          16 * sizeof( double ) );
 
   m_matReg = MatrixCopy( src_vol->m_matReg, NULL );
 
@@ -340,38 +381,42 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
 // SetOriginalOrigin( src_vol->m_fOriginalOrigin );
 
   if ( data_type == -1 )
+  {
     data_type = src_vol->m_MRI->type;
-  
-  m_MRI = MRIallocSequence( src_vol->m_MRI->width, 
-                            src_vol->m_MRI->height, 
+  }
+
+  m_MRI = MRIallocSequence( src_vol->m_MRI->width,
+                            src_vol->m_MRI->height,
                             src_vol->m_MRI->depth,
                             data_type, 1 );
   if ( NULL == m_MRI )
   {
     cerr << "Could not allocate new mri volume.\n";
     return false;
-  }  
-  
+  }
+
   if ( bCopyVoxelData )
   {
     MRIcopy( src_vol->m_MRI, m_MRI );
   }
-  
+
   SetMRITarget( src_vol->m_MRITarget );
 
   if ( src_vol->m_MRIOrigTarget )
   {
     MRI* mri = src_vol->m_MRIOrigTarget;
-    m_MRIOrigTarget = MRIallocHeader( mri->width, 
-				      mri->height, 
-				      mri->depth, 
-				      data_type );
+    m_MRIOrigTarget = MRIallocHeader( mri->width,
+                                      mri->height,
+                                      mri->depth,
+                                      data_type );
     MRIcopyHeader( mri, m_MRIOrigTarget );
   }
 
   // Copy the header from the template into the new mri.
   if ( !bCopyVoxelData )
+  {
     MRIcopyHeader( src_vol->m_MRI, m_MRI );
+  }
 
 // if ( !m_imageData.GetPointer() )
   if ( m_imageData == NULL )
@@ -379,13 +424,17 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     m_imageData = vtkSmartPointer<vtkImageData>::New();
   }
 
-  if ( bCopyVoxelData )   
+  if ( bCopyVoxelData )
   {
     if ( data_type != src_vol->GetDataType() )
+    {
       cerr << "Can not copy voxel data with different data type.\n";
+    }
     else
+    {
       m_imageData->DeepCopy( src_vol->m_imageData );
-    
+    }
+
     if ( !m_imageData->GetScalarPointer() )
     {
       cerr << "Unable to allocate voxel data.\n";
@@ -429,31 +478,35 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     }
     if ( !bCopyVoxelData )
     {
-      memset( ptr, 
-	       0, 
-	       m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
+      memset( ptr,
+              0,
+              m_imageData->GetScalarSize() * nDim[0] * nDim[1] * nDim[2] );
     }
   }
-  
+
   for ( int i = 0; i < 3; i++ )
+  {
     m_strOrientation[i] = src_vol->m_strOrientation[i];
-  
+  }
+
   m_transform->DeepCopy( src_vol->m_transform );
-  
+
   return true;
 }
 
 void FSVolume::SetMRI( MRI*& mri_out, MRI* mri_in )
 {
   if ( mri_out )
+  {
     ::MRIfree( &mri_out );
+  }
 
   if ( mri_in )
   {
-    mri_out = MRIallocHeader( mri_in->width, 
-			      mri_in->height, 
-			      mri_in->depth, 
-			      mri_in->type );
+    mri_out = MRIallocHeader( mri_in->width,
+                              mri_in->height,
+                              mri_in->depth,
+                              mri_in->type );
     MRIcopyHeader( mri_in, mri_out );
   }
   else
@@ -467,13 +520,15 @@ void FSVolume::SetMRITarget( MRI* mri )
   if ( mri )
   {
     if ( m_MRITarget )
+    {
       ::MRIfree( &m_MRITarget );
+    }
 
     // must use source data type!
-    m_MRITarget = MRIallocHeader( mri->width, 
-				  mri->height, 
-				  mri->depth, 
-          m_MRI->type );    
+    m_MRITarget = MRIallocHeader( mri->width,
+                                  mri->height,
+                                  mri->depth,
+                                  m_MRI->type );
     MRIcopyHeader( mri, m_MRITarget );
   }
 }
@@ -490,7 +545,7 @@ bool FSVolume::SaveRegistration( const QString& filename )
   for ( int i = 0; i < 16; i++ )
   {
     *MATRIX_RELT(m, (i/4)+1, (i%4)+1) = mat->Element[i/4][i%4];
-  }  
+  }
   MATRIX* voxel_xform = MRIrasXformToVoxelXform( m_MRI, NULL, m, NULL );
   LINEAR_TRANSFORM *lt;
   VOL_GEOM srcG, dstG;
@@ -499,7 +554,7 @@ bool FSVolume::SaveRegistration( const QString& filename )
   lt->sigma = 1.0f ;
   lt->x0 = lt->y0 = lt->z0 = 0;
   lta->type = LINEAR_VOX_TO_VOX;
-  lt->m_L = voxel_xform; 
+  lt->m_L = voxel_xform;
 
   getVolGeom( m_MRI, &srcG );
   getVolGeom( m_MRI, &dstG );
@@ -518,9 +573,9 @@ bool FSVolume::SaveRegistration( const QString& filename )
     LTAprint(fp, lta);
     fclose( fp );
   }
-  
+
   LTAfree(&lta);
-  
+
   return ret;
 }
 
@@ -544,71 +599,89 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     }
     if ( resample && MyUtils::IsOblique(mat->Element))
     {
-        // find out the output voxel bounds
-        float cornerFactor[3];
-        Real RAS[3], index[3];
-        Real indexBounds[6];
-        indexBounds[0] = indexBounds[2] = indexBounds[4] = 1e10;
-        indexBounds[1] = indexBounds[3] = indexBounds[5] = -1e10;
-        for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ )
+      // find out the output voxel bounds
+      float cornerFactor[3];
+      Real RAS[3], index[3];
+      Real indexBounds[6];
+      indexBounds[0] = indexBounds[2] = indexBounds[4] = 1e10;
+      indexBounds[1] = indexBounds[3] = indexBounds[5] = -1e10;
+      for ( cornerFactor[2] = 0; cornerFactor[2] <= 1; cornerFactor[2]++ )
+      {
+        for ( cornerFactor[1] = 0; cornerFactor[1] <= 1; cornerFactor[1]++ )
         {
-          for ( cornerFactor[1] = 0; cornerFactor[1] <= 1; cornerFactor[1]++ )
+          for ( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ )
           {
-            for ( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ )
-            {
-                ::MRIvoxelToWorld( m_MRITemp,
-                                   cornerFactor[0]*m_MRITemp->width-0.5,
-                                   cornerFactor[1]*m_MRITemp->height-0.5,
-                                   cornerFactor[2]*m_MRITemp->depth-0.5,
-                                   &RAS[0], &RAS[1], &RAS[2] );
-                mat->MultiplyPoint(RAS, RAS);
-                ::MRIworldToVoxel( m_MRITemp,
-                                   RAS[0], RAS[1], RAS[2],
-                                   &index[0], &index[1], &index[2] );
+            ::MRIvoxelToWorld( m_MRITemp,
+                               cornerFactor[0]*m_MRITemp->width-0.5,
+                               cornerFactor[1]*m_MRITemp->height-0.5,
+                               cornerFactor[2]*m_MRITemp->depth-0.5,
+                               &RAS[0], &RAS[1], &RAS[2] );
+            mat->MultiplyPoint(RAS, RAS);
+            ::MRIworldToVoxel( m_MRITemp,
+                               RAS[0], RAS[1], RAS[2],
+                               &index[0], &index[1], &index[2] );
 
-                if ( index[0] < indexBounds[0] ) indexBounds[0] = index[0];
-                if ( index[0] > indexBounds[1] ) indexBounds[1] = index[0];
-                if ( index[1] < indexBounds[2] ) indexBounds[2] = index[1];
-                if ( index[1] > indexBounds[3] ) indexBounds[3] = index[1];
-                if ( index[2] < indexBounds[4] ) indexBounds[4] = index[2];
-                if ( index[2] > indexBounds[5] ) indexBounds[5] = index[2];
+            if ( index[0] < indexBounds[0] )
+            {
+              indexBounds[0] = index[0];
+            }
+            if ( index[0] > indexBounds[1] )
+            {
+              indexBounds[1] = index[0];
+            }
+            if ( index[1] < indexBounds[2] )
+            {
+              indexBounds[2] = index[1];
+            }
+            if ( index[1] > indexBounds[3] )
+            {
+              indexBounds[3] = index[1];
+            }
+            if ( index[2] < indexBounds[4] )
+            {
+              indexBounds[4] = index[2];
+            }
+            if ( index[2] > indexBounds[5] )
+            {
+              indexBounds[5] = index[2];
             }
           }
         }
-       // qDebug() << indexBounds[0] << indexBounds[1] << indexBounds[2] << indexBounds[3] << indexBounds[4] << indexBounds[5];
-        // calculate dimension of the converted target volume
-        int dim[3];
-        dim[0] = (int)( indexBounds[1] - indexBounds[0] + 0.5 );
-        dim[1] = (int)( indexBounds[3] - indexBounds[2] + 0.5 );
-        dim[2] = (int)( indexBounds[5] - indexBounds[4] + 0.5 );
+      }
+      // qDebug() << indexBounds[0] << indexBounds[1] << indexBounds[2] << indexBounds[3] << indexBounds[4] << indexBounds[5];
+      // calculate dimension of the converted target volume
+      int dim[3];
+      dim[0] = (int)( indexBounds[1] - indexBounds[0] + 0.5 );
+      dim[1] = (int)( indexBounds[3] - indexBounds[2] + 0.5 );
+      dim[2] = (int)( indexBounds[5] - indexBounds[4] + 0.5 );
 
-        MRI* mri = MRIallocSequence( dim[0], dim[1], dim[2], m_MRITemp->type, m_MRITemp->nframes );
-        if ( mri == NULL )
-        {
-            MatrixFree( &m );
-            cerr << "Can not allocate mri.\n";
-            return false;
-        }
+      MRI* mri = MRIallocSequence( dim[0], dim[1], dim[2], m_MRITemp->type, m_MRITemp->nframes );
+      if ( mri == NULL )
+      {
+        MatrixFree( &m );
+        cerr << "Can not allocate mri.\n";
+        return false;
+      }
 
-        MRIcopyHeader( m_MRITemp, mri );
-        mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, m, nSampleMethod );
-        if ( !mri )
-        {
-          MatrixFree( &m );
-          cerr << "MRIapplyRASlinearTransformInterp failed.\n";
-          return false;
-        }
-        MRIfree( &m_MRITemp );
-        m_MRITemp = mri;
+      MRIcopyHeader( m_MRITemp, mri );
+      mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, m, nSampleMethod );
+      if ( !mri )
+      {
+        MatrixFree( &m );
+        cerr << "MRIapplyRASlinearTransformInterp failed.\n";
+        return false;
+      }
+      MRIfree( &m_MRITemp );
+      m_MRITemp = mri;
     }   // oblique
     else
     {
-        // rotation is not oblique, just modify the header
-        MATRIX* old_v2r = extract_i_to_r(m_MRITemp);
-        MATRIX* new_v2r = MatrixMultiply(m, old_v2r, 0);
-        MRIsetVoxelToRasXform(m_MRITemp, new_v2r);
-        MatrixFree(&old_v2r);
-        MatrixFree(&new_v2r);
+      // rotation is not oblique, just modify the header
+      MATRIX* old_v2r = extract_i_to_r(m_MRITemp);
+      MATRIX* new_v2r = MatrixMultiply(m, old_v2r, 0);
+      MRIsetVoxelToRasXform(m_MRITemp, new_v2r);
+      MatrixFree(&old_v2r);
+      MatrixFree(&new_v2r);
     }
     MatrixFree( &m );
     bTransformed = true;
@@ -630,22 +703,58 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
         {
           this->TargetToRAS( m_dBounds[i], m_dBounds[j], m_dBounds[k], rx, ry, rz );
           this->RASToOriginalIndex( rx, ry, rz, x, y, z );
-          if ( nmin[0] > x ) nmin[0] = x;
-          if ( nmin[1] > y ) nmin[1] = y;
-          if ( nmin[2] > z ) nmin[2] = z;
-          if ( nmax[0] < x ) nmax[0] = x;
-          if ( nmax[1] < y ) nmax[1] = y;
-          if ( nmax[2] < z ) nmax[2] = z;
+          if ( nmin[0] > x )
+          {
+            nmin[0] = x;
+          }
+          if ( nmin[1] > y )
+          {
+            nmin[1] = y;
+          }
+          if ( nmin[2] > z )
+          {
+            nmin[2] = z;
+          }
+          if ( nmax[0] < x )
+          {
+            nmax[0] = x;
+          }
+          if ( nmax[1] < y )
+          {
+            nmax[1] = y;
+          }
+          if ( nmax[2] < z )
+          {
+            nmax[2] = z;
+          }
         }
       }
     }
-    if ( nmin[0] < 0 ) nmin[0] = 0;
-    if ( nmin[1] < 0 ) nmin[1] = 0;
-    if ( nmin[2] < 0 ) nmin[2] = 0;
-    if ( nmax[0] >= m_MRITemp->width ) nmax[0] = m_MRITemp->width - 1;
-    if ( nmax[1] >= m_MRITemp->height ) nmax[1] = m_MRITemp->height - 1;
-    if ( nmax[2] >= m_MRITemp->depth ) nmax[2] = m_MRITemp->depth - 1;
-    
+    if ( nmin[0] < 0 )
+    {
+      nmin[0] = 0;
+    }
+    if ( nmin[1] < 0 )
+    {
+      nmin[1] = 0;
+    }
+    if ( nmin[2] < 0 )
+    {
+      nmin[2] = 0;
+    }
+    if ( nmax[0] >= m_MRITemp->width )
+    {
+      nmax[0] = m_MRITemp->width - 1;
+    }
+    if ( nmax[1] >= m_MRITemp->height )
+    {
+      nmax[1] = m_MRITemp->height - 1;
+    }
+    if ( nmax[2] >= m_MRITemp->depth )
+    {
+      nmax[2] = m_MRITemp->depth - 1;
+    }
+
     int dx = nmax[0]-nmin[0]+1;
     int dy = nmax[1]-nmin[1]+1;
     int dz = nmax[2]-nmin[2]+1;
@@ -654,13 +763,13 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       cerr << "Bad cropping range. \n";
       return false;
     }
-    
+
     if ( nmin[0] != 0 || nmin[1] != 0 || nmin[2] != 0 ||
          dx != m_MRITemp->width || dy != m_MRITemp->height ||
          dz != m_MRITemp->depth )
     {
       MRI* mri = MRIextract( m_MRITemp, NULL, nmin[0], nmin[1], nmin[2],
-                            dx, dy, dz );
+                             dx, dy, dz );
       if ( !mri )
       {
         cerr << "MRIextract failed.\n";
@@ -682,7 +791,9 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     return false;
   }
   else
+  {
     fclose( fp );
+  }
 
   int err;
   err = ::MRIwrite( m_MRITemp, filename.toAscii().data() );
@@ -698,7 +809,7 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
 
   MRIfree( &m_MRITemp );
   m_MRITemp = NULL;
-  
+
   return err == 0;
 }
 
@@ -710,7 +821,7 @@ bool FSVolume::MRIWrite()
     cerr << "Volume not ready for save.\n";
     return false;
   }
-  
+
   int err = ::MRIwrite( m_MRITemp, m_MRI->fname );
   if ( err != 0 )
   {
@@ -718,7 +829,7 @@ bool FSVolume::MRIWrite()
   }
   MRIfree( &m_MRITemp );
   m_MRITemp = NULL;
-   
+
   return err == 0;*/
   return MRIWrite( m_MRI->fname );
 }
@@ -734,17 +845,17 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
   }
 
   // create a target volume
-  MRI* mri = MRIallocSequence( m_MRITarget->width, 
-			       m_MRITarget->height, 
-			       m_MRITarget->depth, 
-			       m_MRITarget->type, 
-			       m_MRI->nframes );
+  MRI* mri = MRIallocSequence( m_MRITarget->width,
+                               m_MRITarget->height,
+                               m_MRITarget->depth,
+                               m_MRITarget->type,
+                               m_MRI->nframes );
   if ( mri == NULL )
   {
     cout << "Can not allocate mri volume for buffering.\n";
     return false;
   }
-  
+
   MRIcopyHeader( m_MRITarget, mri );
 
   int nProgress = 0;
@@ -782,23 +893,25 @@ bool FSVolume::UpdateMRIFromImage( vtkImageData* rasImage, bool resampleToOrigin
 
       if ( mri->depth >= 5 && k%(mri->depth/5) == 0 )
       {
-          nProgress += nProgressStep;
-          emit ProgressChanged( nProgress );
-      }  
+        nProgress += nProgressStep;
+        emit ProgressChanged( nProgress );
+      }
     }
   }
-  
+
   // create m_MRItemp for writing or rotation
   if ( m_MRITemp )
+  {
     MRIfree( &m_MRITemp );
-   
+  }
+
   if ( resampleToOriginal )
   {
-    m_MRITemp = MRIallocSequence( m_MRI->width, 
-                                m_MRI->height, 
-                                m_MRI->depth, 
-                                m_MRI->type,
-                                m_MRI->nframes );
+    m_MRITemp = MRIallocSequence( m_MRI->width,
+                                  m_MRI->height,
+                                  m_MRI->depth,
+                                  m_MRI->type,
+                                  m_MRI->nframes );
     if ( m_MRITemp == NULL )
     {
       cout << "Can not allocate mri volume for buffering.\n";
@@ -824,9 +937,13 @@ double FSVolume::GetVoxelValue( int i, int j, int k, int frame )
   if ( i < 0 || i >= m_MRI->width ||
        j < 0 || j >= m_MRI->height ||
        k < 0 || k >= m_MRI->depth )
+  {
     return 0;
+  }
   else
+  {
     return MRIgetVoxVal( m_MRI, i, j, k, frame );
+  }
 }
 
 int FSVolume::OriginalIndexToRAS( float iIdxX, float iIdxY, float iIdxZ,
@@ -910,21 +1027,39 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     {
       for ( cornerFactor[0] = 0; cornerFactor[0] <= 1; cornerFactor[0]++ )
       {
-          ::MRIvoxelToWorld( src,
-                             cornerFactor[0]*src->width-0.5,
-                             cornerFactor[1]*src->height-0.5,
-                             cornerFactor[2]*src->depth-0.5,
-                             &RAS[0], &RAS[1], &RAS[2] );
-          ::MRIworldToVoxel( refTarget,
-                             RAS[0], RAS[1], RAS[2],
-                             &index[0], &index[1], &index[2] );
-            
-          if ( index[0] < indexBounds[0] ) indexBounds[0] = index[0];
-          if ( index[0] > indexBounds[1] ) indexBounds[1] = index[0];
-          if ( index[1] < indexBounds[2] ) indexBounds[2] = index[1];
-          if ( index[1] > indexBounds[3] ) indexBounds[3] = index[1];
-          if ( index[2] < indexBounds[4] ) indexBounds[4] = index[2];
-          if ( index[2] > indexBounds[5] ) indexBounds[5] = index[2];
+        ::MRIvoxelToWorld( src,
+                           cornerFactor[0]*src->width-0.5,
+                           cornerFactor[1]*src->height-0.5,
+                           cornerFactor[2]*src->depth-0.5,
+                           &RAS[0], &RAS[1], &RAS[2] );
+        ::MRIworldToVoxel( refTarget,
+                           RAS[0], RAS[1], RAS[2],
+                           &index[0], &index[1], &index[2] );
+
+        if ( index[0] < indexBounds[0] )
+        {
+          indexBounds[0] = index[0];
+        }
+        if ( index[0] > indexBounds[1] )
+        {
+          indexBounds[1] = index[0];
+        }
+        if ( index[1] < indexBounds[2] )
+        {
+          indexBounds[2] = index[1];
+        }
+        if ( index[1] > indexBounds[3] )
+        {
+          indexBounds[3] = index[1];
+        }
+        if ( index[2] < indexBounds[4] )
+        {
+          indexBounds[4] = index[2];
+        }
+        if ( index[2] > indexBounds[5] )
+        {
+          indexBounds[5] = index[2];
+        }
       }
     }
   }
@@ -932,24 +1067,32 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
   {
     int dim[3];
     for ( int i = 0; i < 3; i++ )
+    {
       dim[i] = (int)(indexBounds[i*2+1] - indexBounds[i*2] + 0.5 );
+    }
     if ( bAllocatePixel )
+    {
       mri = MRIallocSequence( dim[0], dim[1], dim[2], src->type, src->nframes );
+    }
     else
+    {
       mri = MRIallocHeader( dim[0], dim[1], dim[2], src->type );
-    
+    }
+
     if ( mri == NULL )
+    {
       return NULL;
-    
+    }
+
     MRIcopyHeader( refTarget, mri );
     /*
     Real p_c[3];
     int n0[3];
     for ( int i = 0; i < 3; i++ )
       n0[i] = (int)(indexBounds[i*2]+0.5);
-    ::MRIvoxelToWorld( refTarget, 
-                       n0[0] + mri->width/2.0, 
-                       n0[1] + mri->height/2.0, 
+    ::MRIvoxelToWorld( refTarget,
+                       n0[0] + mri->width/2.0,
+                       n0[1] + mri->height/2.0,
                        n0[2] + mri->depth/2.0,
                        &p_c[0], &p_c[1], &p_c[2] );
     mri->c_r = p_c[0];
@@ -967,16 +1110,16 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     mri->r_to_i__ = extract_r_to_i(mri);
     */
     Real p0[3];
-    ::MRIvoxelToWorld( refTarget, 
-                         (int)(indexBounds[0]), 
-                         (int)(indexBounds[2]),  
-                         (int)(indexBounds[4]), 
-                         &p0[0], &p0[1], &p0[2] );
+    ::MRIvoxelToWorld( refTarget,
+                       (int)(indexBounds[0]),
+                       (int)(indexBounds[2]),
+                       (int)(indexBounds[4]),
+                       &p0[0], &p0[1], &p0[2] );
     MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
     return mri;
   }
   else
-  { 
+  {
     // find out the voxelsize of the converted target volume
     MATRIX* mat = MRIgetVoxelToVoxelXform( src, refTarget );
     double m[16];
@@ -986,48 +1129,72 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     }
     double pixelSize[3] = { src->xsize, src->ysize, src->zsize };
     if ( fabs( m[0] ) > fabs( m[4] ) && fabs( m[0] ) > fabs( m[8] ) )
+    {
       pixelSize[0] = src->xsize;
+    }
     else if ( fabs( m[4] ) > fabs( m[8] ) )
+    {
       pixelSize[1] = src->xsize;
+    }
     else
+    {
       pixelSize[2] = src->xsize;
-  
+    }
+
     if ( fabs( m[1] ) > fabs( m[5] ) && fabs( m[1] ) > fabs( m[9] ) )
+    {
       pixelSize[0] = src->ysize;
+    }
     else if ( fabs( m[5] ) > fabs( m[9] ) )
+    {
       pixelSize[1] = src->ysize;
+    }
     else
+    {
       pixelSize[2] = src->ysize;
-  
+    }
+
     if ( fabs( m[2] ) > fabs( m[6] ) && fabs( m[2] ) > fabs( m[10] ) )
+    {
       pixelSize[0] = src->zsize;
+    }
     else if ( fabs( m[6] ) > fabs( m[10] ) )
+    {
       pixelSize[1] = src->zsize;
+    }
     else
+    {
       pixelSize[2] = src->zsize;
-    
+    }
+
     // calculate dimension of the converted target volume
     int dim[3];
     dim[0] = (int)( ( indexBounds[1] - indexBounds[0] ) * refTarget->xsize / pixelSize[0] + 0.5 );
     dim[1] = (int)( ( indexBounds[3] - indexBounds[2] ) * refTarget->ysize / pixelSize[1] + 0.5 );
     dim[2] = (int)( ( indexBounds[5] - indexBounds[4] ) * refTarget->zsize / pixelSize[2] + 0.5 );
-    
+
     if ( bAllocatePixel )
+    {
       mri = MRIallocSequence( dim[0], dim[1], dim[2], src->type, src->nframes );
+    }
     else
+    {
       mri = MRIallocHeader( dim[0], dim[1], dim[2], src->type );
-    
+    }
+
     if ( mri == NULL )
+    {
       return NULL;
-    
+    }
+
     MRIcopyHeader( refTarget, mri );
     MRIsetResolution( mri, pixelSize[0], pixelSize[1], pixelSize[2] );
     Real p0[3];
-    ::MRIvoxelToWorld( refTarget, 
-                      indexBounds[0]+0.5*pixelSize[0]/refTarget->xsize, 
-                      indexBounds[2]+0.5*pixelSize[1]/refTarget->ysize, 
-                      indexBounds[4]+0.5*pixelSize[2]/refTarget->zsize,
-                      &p0[0], &p0[1], &p0[2] );
+    ::MRIvoxelToWorld( refTarget,
+                       indexBounds[0]+0.5*pixelSize[0]/refTarget->xsize,
+                       indexBounds[2]+0.5*pixelSize[1]/refTarget->ysize,
+                       indexBounds[4]+0.5*pixelSize[2]/refTarget->zsize,
+                       &p0[0], &p0[1], &p0[2] );
     MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
   }
 
@@ -1048,11 +1215,11 @@ bool FSVolume::MapMRIToImage( )
   {
     // if there is registration matrix, set target as the reference's target
     MRI* mri = m_volumeRef->m_MRITarget;
-    rasMRI = MRIallocSequence( mri->width, 
-			       mri->height, 
-			       mri->depth, 
-			       m_MRI->type, 
-			       m_MRI->nframes );
+    rasMRI = MRIallocSequence( mri->width,
+                               mri->height,
+                               mri->depth,
+                               m_MRI->type,
+                               m_MRI->nframes );
     if ( rasMRI == NULL )
     {
       cerr << "Can not allocate memory for volume transformation\n";
@@ -1065,10 +1232,12 @@ bool FSVolume::MapMRIToImage( )
   {
     this->GetBounds( bounds );
     for ( int i = 0; i < 3; i++ )
+    {
       dim[i] = (int) ( ( bounds[i*2+1] - bounds[i*2] ) / voxelSize[i] + 0.5 );
+    }
 
-    rasMRI = MRIallocSequence( dim[0], dim[1], dim[2], 
-			       m_MRI->type, m_MRI->nframes );
+    rasMRI = MRIallocSequence( dim[0], dim[1], dim[2],
+                               m_MRI->type, m_MRI->nframes );
     if ( rasMRI == NULL )
     {
       cerr << "Can not allocate memory for volume transformation\n";
@@ -1092,8 +1261,8 @@ bool FSVolume::MapMRIToImage( )
     {
       double* rtv = this->GetVoxelToRASMatrix();
       int odim[3] = { m_MRI->width, m_MRI->height, m_MRI->depth };
-      if ( fabs( rtv[0] ) > fabs( rtv[4] ) && 
-	   fabs( rtv[0] ) > fabs( rtv[8] ) )
+      if ( fabs( rtv[0] ) > fabs( rtv[4] ) &&
+           fabs( rtv[0] ) > fabs( rtv[8] ) )
       {
         *MATRIX_RELT( m, 1, 1 ) = ( rtv[0] > 0 ? 1 : -1 );
         *MATRIX_RELT( m, 1, 4 ) = ( rtv[0] > 0 ? 0 : odim[0] - 1 );
@@ -1112,8 +1281,8 @@ bool FSVolume::MapMRIToImage( )
         dim[2] = odim[0];
       }
 
-      if ( fabs( rtv[1] ) > fabs( rtv[5] ) && 
-	   fabs( rtv[1] ) > fabs( rtv[9] ) )
+      if ( fabs( rtv[1] ) > fabs( rtv[5] ) &&
+           fabs( rtv[1] ) > fabs( rtv[9] ) )
       {
         *MATRIX_RELT( m, 1, 2 ) = ( rtv[1] > 0 ? 1 : -1 );
         *MATRIX_RELT( m, 1, 4 ) = ( rtv[1] > 0 ? 0 : odim[1] - 1 );
@@ -1132,8 +1301,8 @@ bool FSVolume::MapMRIToImage( )
         dim[2] = odim[1];
       }
 
-      if ( fabs( rtv[2] ) > fabs( rtv[6] ) && 
-	   fabs( rtv[2] ) > fabs( rtv[10] ) )
+      if ( fabs( rtv[2] ) > fabs( rtv[6] ) &&
+           fabs( rtv[2] ) > fabs( rtv[10] ) )
       {
         *MATRIX_RELT( m, 1, 3 ) = ( rtv[2] > 0 ? 1 : -1 );
         *MATRIX_RELT( m, 1, 4 ) = ( rtv[2] > 0 ? 0 : odim[2] - 1 );
@@ -1153,8 +1322,8 @@ bool FSVolume::MapMRIToImage( )
       }
 
       *MATRIX_RELT( m, 4, 4 ) = 1;
-      rasMRI = MRIallocSequence( dim[0], dim[1], dim[2], 
-				 m_MRI->type, m_MRI->nframes );
+      rasMRI = MRIallocSequence( dim[0], dim[1], dim[2],
+                                 m_MRI->type, m_MRI->nframes );
       if ( rasMRI == NULL )
       {
         cerr << "Can not allocate memory for volume transformation\n";
@@ -1167,7 +1336,7 @@ bool FSVolume::MapMRIToImage( )
 
       MATRIX* m_inv = MatrixInverse( m, NULL );
       MATRIX* m2 = MatrixMultiply( m1, m_inv, NULL );
-      
+
       MRIsetVoxelToRasXform( rasMRI, m2 );
 
       MatrixFree( &m1 );
@@ -1214,8 +1383,8 @@ bool FSVolume::MapMRIToImage( )
       MatrixInverse( t2r, vox2vox );
       for ( int i = 0; i < 16; i++ )
       {
-        m_VoxelToVoxelMatrix[i] = 
-	  (double) *MATRIX_RELT((vox2vox),(i/4)+1,(i%4)+1);
+        m_VoxelToVoxelMatrix[i] =
+          (double) *MATRIX_RELT((vox2vox),(i/4)+1,(i%4)+1);
       }
 
       MatrixFree( &vox2vox );
@@ -1226,13 +1395,13 @@ bool FSVolume::MapMRIToImage( )
     }
   }
   else
-  {  
+  {
     MRIvol2Vol( m_MRI, rasMRI, NULL, m_nInterpolationMethod, 0 );
     MATRIX* vox2vox = MRIgetVoxelToVoxelXform( m_MRI, rasMRI );
     for ( int i = 0; i < 16; i++ )
     {
-      m_VoxelToVoxelMatrix[i] = 
-	(double) *MATRIX_RELT((vox2vox),(i/4)+1,(i%4)+1);
+      m_VoxelToVoxelMatrix[i] =
+        (double) *MATRIX_RELT((vox2vox),(i/4)+1,(i%4)+1);
     }
     MatrixFree( &vox2vox );
   }
@@ -1241,7 +1410,9 @@ bool FSVolume::MapMRIToImage( )
   UpdateRASToRASMatrix();
 
   if ( !CreateImage( rasMRI ) )
+  {
     return false;
+  }
 
   // copy mri pixel data to vtkImage we will use for display
   CopyMRIDataToImage( rasMRI, m_imageData );
@@ -1250,7 +1421,7 @@ bool FSVolume::MapMRIToImage( )
   m_bBoundsCacheDirty = true;
 
   ::MRIfree( &rasMRI );
-  
+
   return true;
 }
 
@@ -1319,24 +1490,26 @@ bool FSVolume::CreateImage( MRI* rasMRI )
   }
   else if ( m_volumeRef )
   {
-    Real ras[3], cindex[3];       
-   
+    Real ras[3], cindex[3];
+
     ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
-    ::MRIworldToVoxel( m_volumeRef->m_MRITarget, 
-                       ras[0], ras[1], ras[2], 
+    ::MRIworldToVoxel( m_volumeRef->m_MRITarget,
+                       ras[0], ras[1], ras[2],
                        &cindex[0], &cindex[1], &cindex[2] );
-    
+
     m_volumeRef->GetImageOutput()->GetOrigin( origin );
     for ( int i = 0; i < 3; i++ )
     {
       if ( fabs(cindex[i]-nint(cindex[i])) < 1e-4 )
+      {
         cindex[i] = nint(cindex[i]);
-    } 
-    
+      }
+    }
+
     origin[0] += cindex[0] * m_volumeRef->m_MRITarget->xsize;
     origin[1] += cindex[1] * m_volumeRef->m_MRITarget->ysize;
     origin[2] += cindex[2] * m_volumeRef->m_MRITarget->zsize;
-    
+
     /*
     Real ras[3], ras2[3];
     ::MRIvoxelToWorld( rasMRI, 0., 0., 0., &ras[0], &ras[1], &ras[2] );
@@ -1450,7 +1623,7 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
 
   double origin[3] = { 0, 0, 0 };
   refImageData->GetOrigin( origin );
-  
+
   /*
   float cornerFactor[3];
   Real RAS[3], index[3];
@@ -1471,7 +1644,7 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
           ::MRIworldToVoxel( refTarget,
                              RAS[0], RAS[1], RAS[2],
                              &index[0], &index[1], &index[2] );
-          
+
           if ( index[0] < indexBounds[0] ) indexBounds[0] = index[0];
           if ( index[0] > indexBounds[1] ) indexBounds[1] = index[0];
           if ( index[1] < indexBounds[2] ) indexBounds[2] = index[1];
@@ -1480,13 +1653,13 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
           if ( index[2] > indexBounds[5] ) indexBounds[5] = index[2];
       }
     }
-  } 
-  
+  }
+
   origin[0] += indexBounds[0] * refTarget->xsize;;
   origin[1] += indexBounds[2] * refTarget->ysize;
-  origin[2] += indexBounds[4] * refTarget->zsize;  
+  origin[2] += indexBounds[4] * refTarget->zsize;
   */
-  
+
   Real vox[3], tvox[3];
   ::MRIworldToVoxel( rasMRI,
                      rasPoint[0], rasPoint[1], rasPoint[2],
@@ -1498,9 +1671,9 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   origin[0] -= ( vox[0] * rasMRI->xsize - tvox[0] * refTarget->xsize );
   origin[1] -= ( vox[1] * rasMRI->ysize - tvox[1] * refTarget->ysize );
   origin[2] -= ( vox[2] * rasMRI->zsize - tvox[2] * refTarget->zsize );
-  
+
 //  cout << "new: " << origin[0] << " " << origin[1] << " " << origin[2] << endl; fflush(0);
- 
+
   imageData->SetSpacing( rasMRI->xsize, rasMRI->ysize, rasMRI->zsize );
   imageData->SetOrigin( origin[0], origin[1], origin[2] );
 
@@ -1511,38 +1684,38 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
   // for the data we will read.
   switch ( rasMRI->type )
   {
-    case MRI_UCHAR:
-      imageData->SetScalarTypeToUnsignedChar();
-      ucharScalars = vtkUnsignedCharArray::New();
-      scalars = (vtkDataArray*) ucharScalars;
-      zElement = sizeof( unsigned char );
-      break;
-    case MRI_INT:
-      imageData->SetScalarTypeToInt();
-      intScalars = vtkIntArray::New();
-      scalars = (vtkDataArray*) intScalars;
-      zElement = sizeof( int );
-      break;
-    case MRI_LONG:
-      imageData->SetScalarTypeToLong();
-      longScalars = vtkLongArray::New();
-      scalars = (vtkDataArray*) longScalars;
-      zElement = sizeof( long );
-      break;
-    case MRI_FLOAT:
-      imageData->SetScalarTypeToFloat();
-      floatScalars = vtkFloatArray::New();
-      scalars = (vtkDataArray*) floatScalars;
-      zElement = sizeof( float );
-      break;
-    case MRI_SHORT:
-      imageData->SetScalarTypeToShort();
-      shortScalars = vtkShortArray::New();
-      scalars = (vtkDataArray*) shortScalars;
-      zElement = sizeof( short );
-      break;
-    default:
-      break ;
+  case MRI_UCHAR:
+    imageData->SetScalarTypeToUnsignedChar();
+    ucharScalars = vtkUnsignedCharArray::New();
+    scalars = (vtkDataArray*) ucharScalars;
+    zElement = sizeof( unsigned char );
+    break;
+  case MRI_INT:
+    imageData->SetScalarTypeToInt();
+    intScalars = vtkIntArray::New();
+    scalars = (vtkDataArray*) intScalars;
+    zElement = sizeof( int );
+    break;
+  case MRI_LONG:
+    imageData->SetScalarTypeToLong();
+    longScalars = vtkLongArray::New();
+    scalars = (vtkDataArray*) longScalars;
+    zElement = sizeof( long );
+    break;
+  case MRI_FLOAT:
+    imageData->SetScalarTypeToFloat();
+    floatScalars = vtkFloatArray::New();
+    scalars = (vtkDataArray*) floatScalars;
+    zElement = sizeof( float );
+    break;
+  case MRI_SHORT:
+    imageData->SetScalarTypeToShort();
+    shortScalars = vtkShortArray::New();
+    scalars = (vtkDataArray*) shortScalars;
+    zElement = sizeof( short );
+    break;
+  default:
+    break ;
   }
 
   if ( NULL == scalars )
@@ -1569,11 +1742,13 @@ bool FSVolume::ResizeRotatedImage( MRI* rasMRI, MRI* refTarget, vtkImageData* re
 }
 
 bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
-           int nSampleMethod )
+                       int nSampleMethod )
 {
   if ( rotations.size() == 0 )
+  {
     return false;
-  
+  }
+
   if ( !m_MRITemp )
   {
     cerr << "Volume not ready for rotation\n";
@@ -1609,26 +1784,26 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
     MATRIX* m_r = MatrixIdentity( 4, NULL ) ;
     for ( size_t i = 0; i < rotations.size(); i++ )
     {
-      MATRIX* m_tmp = GetRotationMatrix( rotations[i].Plane, 
-					 rotations[i].Angle, 
-           rotations[i].Point );
+      MATRIX* m_tmp = GetRotationMatrix( rotations[i].Plane,
+                                         rotations[i].Angle,
+                                         rotations[i].Point );
       MATRIX* m_tmp1 = MatrixMultiply( m_tmp, m_r, NULL );
 
       MatrixCopy( m_tmp1, m_r );
       MatrixFree( &m_tmp );
       MatrixFree( &m_tmp1 );
     }
-    
+
     MATRIX* m_new = MatrixMultiply( m_r, m, NULL );
 
     rasMRI = MRIallocHeader( m_MRITarget->width,
-                               m_MRITarget->height,
-                               m_MRITarget->depth,
-                               m_MRI->type );
-    MRIsetResolution( rasMRI, 
-		      m_MRITarget->xsize, 
-		      m_MRITarget->ysize, 
-		      m_MRITarget->zsize );
+                             m_MRITarget->height,
+                             m_MRITarget->depth,
+                             m_MRI->type );
+    MRIsetResolution( rasMRI,
+                      m_MRITarget->xsize,
+                      m_MRITarget->ysize,
+                      m_MRITarget->zsize );
     MRIsetVoxelToRasXform( rasMRI, m_new );
 
     MatrixFree( &m );
@@ -1637,16 +1812,16 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
 
     if ( !m_MRIOrigTarget )  // never rotated before, so save it as original
     {
-      m_MRIOrigTarget = MRIallocHeader( m_MRITarget->width, 
-					m_MRITarget->height, 
-					m_MRITarget->depth, 
-					m_MRITarget->type );
+      m_MRIOrigTarget = MRIallocHeader( m_MRITarget->width,
+                                        m_MRITarget->height,
+                                        m_MRITarget->depth,
+                                        m_MRITarget->type );
       MRIcopyHeader( m_MRITarget, m_MRIOrigTarget );
     }
   }
 
   /*
-  MATRIX* v2v = 
+  MATRIX* v2v =
     MRIgetVoxelToVoxelXform( m_MRITarget, rasMRI ); // old target to new target
   MATRIX* vm = MatrixAlloc( 4, 4, v2v->type );
   for ( int i = 0; i < 16; i++ )
@@ -1658,22 +1833,28 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
   MatrixFree( &vm );
   MatrixFree( &v2v );
   */
-  
+
   // change the field of view of the new target to full coverage of the image data
   if ( rotations[0].Plane != -1 )
   {
-    MRI* mri = rasMRI;    
+    MRI* mri = rasMRI;
     rasMRI = CreateTargetMRI( m_MRIOrigTarget, mri );
     ::MRIfree( &mri );
   }
-    
+
   if ( nSampleMethod < 0 )
+  {
     nSampleMethod = rotations[0].SampleMethod;
+  }
   if ( rotations[0].Plane == -1 ) // restore
+  {
     MRIvol2Vol( m_MRITemp, rasMRI, NULL, m_nInterpolationMethod, 0 );
+  }
   else
+  {
     MRIvol2Vol( m_MRITemp, rasMRI, NULL, nSampleMethod, 0 );
-  
+  }
+
   MRIfree( &m_MRITemp );
   m_MRITemp = NULL;
 
@@ -1684,21 +1865,25 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
     m_VoxelToVoxelMatrix[i] = (double) *MATRIX_RELT((vox2vox),(i/4)+1,(i%4)+1);
   }
   MatrixFree( &vox2vox );
-  
+
   bool bUpdateImage;
   if ( rotations[0].Plane == -1 )
+  {
     bUpdateImage = CreateImage( rasMRI );
+  }
   else
     // copy mri pixel data to vtkImage we will use for display
+  {
     bUpdateImage = ResizeRotatedImage( rasMRI, m_MRITarget, m_imageData, rotations[0].Point );
-  
+  }
+
   if ( !bUpdateImage )
   {
     return false;
   }
 
   CopyMRIDataToImage( rasMRI, m_imageData );
-  
+
   SetMRITarget( rasMRI );
   UpdateRASToRASMatrix();
 
@@ -1719,7 +1904,7 @@ MATRIX* FSVolume::GetRotationMatrix( int nPlane, double angle, double* origin )
   p1[nPlane] = 1;
   TargetToRAS( p0, p0 );
   TargetToRAS( p1, p1 );
-  
+
   vtkSmartPointer<vtkTransform> tr = vtkSmartPointer<vtkTransform>::New();
   tr->Translate( origin );
   tr->RotateWXYZ( angle, p1[0]-p0[0], p1[1]-p0[1], p1[2]-p0[2] );
@@ -1728,17 +1913,19 @@ MATRIX* FSVolume::GetRotationMatrix( int nPlane, double angle, double* origin )
 
   vtkSmartPointer<vtkMatrix4x4> m = vtkSmartPointer<vtkMatrix4x4>::New();
   tr->GetTranspose( m );
-  
+
   MATRIX* m_r = MatrixZero( 4, 4, NULL );
   for ( int i = 0; i < 4; i++ )
     for ( int j = 0; j < 4; j++ )
+    {
       *MATRIX_RELT( m_r, i+1, j+1 ) = m->GetElement( i, j );
-  
+    }
+
   return m_r;
 }
 
-void FSVolume::CopyMRIDataToImage( MRI* mri, 
-                   vtkImageData* image )
+void FSVolume::CopyMRIDataToImage( MRI* mri,
+                                   vtkImageData* image )
 {
   // Copy the slice data into the scalars.
   int zX = mri->width;
@@ -1804,7 +1991,9 @@ vtkImageData* FSVolume::GetImageOutput()
 void FSVolume::CopyMatricesFromMRI ()
 {
   if ( NULL == m_MRI )
+  {
     return;
+  }
 
   MATRIX* m = MRIgetVoxelToRasXform( m_MRI );
   for ( int i = 0; i < 16; i++ )
@@ -1836,7 +2025,7 @@ void FSVolume::GetBounds ( float oRASBounds[6] )
   {
 
     oRASBounds[0] = oRASBounds[1] = oRASBounds[2] =
-      oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
+                                      oRASBounds[3] = oRASBounds[4] = oRASBounds[5] = 0;
 
     return;
   }
@@ -1905,12 +2094,30 @@ void FSVolume::GetBounds ( float oRASBounds[6] )
                                     cornerFactor[2]*m_MRI->depth,
                                     RAS[0], RAS[1], RAS[2] );
 
-          if ( RAS[0] < m_RASBounds[0] ) m_RASBounds[0] = RAS[0];
-          if ( RAS[0] > m_RASBounds[1] ) m_RASBounds[1] = RAS[0];
-          if ( RAS[1] < m_RASBounds[2] ) m_RASBounds[2] = RAS[1];
-          if ( RAS[1] > m_RASBounds[3] ) m_RASBounds[3] = RAS[1];
-          if ( RAS[2] < m_RASBounds[4] ) m_RASBounds[4] = RAS[2];
-          if ( RAS[2] > m_RASBounds[5] ) m_RASBounds[5] = RAS[2];
+          if ( RAS[0] < m_RASBounds[0] )
+          {
+            m_RASBounds[0] = RAS[0];
+          }
+          if ( RAS[0] > m_RASBounds[1] )
+          {
+            m_RASBounds[1] = RAS[0];
+          }
+          if ( RAS[1] < m_RASBounds[2] )
+          {
+            m_RASBounds[2] = RAS[1];
+          }
+          if ( RAS[1] > m_RASBounds[3] )
+          {
+            m_RASBounds[3] = RAS[1];
+          }
+          if ( RAS[2] < m_RASBounds[4] )
+          {
+            m_RASBounds[4] = RAS[2];
+          }
+          if ( RAS[2] > m_RASBounds[5] )
+          {
+            m_RASBounds[5] = RAS[2];
+          }
         }
       }
     }
@@ -1946,12 +2153,30 @@ void FSVolume::GetBounds( MRI* mri, float oRASBounds[6] )
                            cornerFactor[2]*(mri->depth-1),
                            &RAS[0], &RAS[1], &RAS[2] );
 
-        if ( RAS[0] < oRASBounds[0] ) oRASBounds[0] = RAS[0];
-        if ( RAS[0] > oRASBounds[1] ) oRASBounds[1] = RAS[0];
-        if ( RAS[1] < oRASBounds[2] ) oRASBounds[2] = RAS[1];
-        if ( RAS[1] > oRASBounds[3] ) oRASBounds[3] = RAS[1];
-        if ( RAS[2] < oRASBounds[4] ) oRASBounds[4] = RAS[2];
-        if ( RAS[2] > oRASBounds[5] ) oRASBounds[5] = RAS[2];
+        if ( RAS[0] < oRASBounds[0] )
+        {
+          oRASBounds[0] = RAS[0];
+        }
+        if ( RAS[0] > oRASBounds[1] )
+        {
+          oRASBounds[1] = RAS[0];
+        }
+        if ( RAS[1] < oRASBounds[2] )
+        {
+          oRASBounds[2] = RAS[1];
+        }
+        if ( RAS[1] > oRASBounds[3] )
+        {
+          oRASBounds[3] = RAS[1];
+        }
+        if ( RAS[2] < oRASBounds[4] )
+        {
+          oRASBounds[4] = RAS[2];
+        }
+        if ( RAS[2] > oRASBounds[5] )
+        {
+          oRASBounds[5] = RAS[2];
+        }
       }
     }
   }
@@ -2005,25 +2230,43 @@ void FSVolume::GetPixelSize( double* pixelSize )
   pixelSize[1] = m_MRI->ysize;
   pixelSize[2] = m_MRI->zsize;
   if ( fabs( m[0] ) > fabs( m[4] ) && fabs( m[0] ) > fabs( m[8] ) )
+  {
     pixelSize[0] = m_MRI->xsize;
+  }
   else if ( fabs( m[4] ) > fabs( m[8] ) )
+  {
     pixelSize[1] = m_MRI->xsize;
+  }
   else
+  {
     pixelSize[2] = m_MRI->xsize;
+  }
 
   if ( fabs( m[1] ) > fabs( m[5] ) && fabs( m[1] ) > fabs( m[9] ) )
+  {
     pixelSize[0] = m_MRI->ysize;
+  }
   else if ( fabs( m[5] ) > fabs( m[9] ) )
+  {
     pixelSize[1] = m_MRI->ysize;
+  }
   else
+  {
     pixelSize[2] = m_MRI->ysize;
+  }
 
   if ( fabs( m[2] ) > fabs( m[6] ) && fabs( m[2] ) > fabs( m[10] ) )
+  {
     pixelSize[0] = m_MRI->zsize;
+  }
   else if ( fabs( m[6] ) > fabs( m[10] ) )
+  {
     pixelSize[1] = m_MRI->zsize;
+  }
   else
+  {
     pixelSize[2] = m_MRI->zsize;
+  }
 }
 
 void FSVolume::TargetToRAS( double x_in, double y_in, double z_in,
@@ -2042,12 +2285,14 @@ void FSVolume::TargetToRAS( const double* pos_in, double* pos_out )
   double* vs = m_imageData->GetSpacing();
   double* origin = m_imageData->GetOrigin();
   for ( int i = 0; i < 3; i++ )
+  {
     pos[i] = ( pos_in[i] - origin[i] ) / vs[i];
+  }
 
   Real fpos[3];
-  ::MRIvoxelToWorld( m_MRITarget, 
-		       (float)pos[0], (float)pos[1], (float)pos[2], 
-		       &fpos[0], &fpos[1], &fpos[2] );
+  ::MRIvoxelToWorld( m_MRITarget,
+                     (float)pos[0], (float)pos[1], (float)pos[2],
+                     &fpos[0], &fpos[1], &fpos[2] );
 //  cout << "out: " << fpos[0] << " " << fpos[1] << " " << fpos[2] << endl;
   for ( int i = 0; i < 3; i++ )
   {
@@ -2068,13 +2313,13 @@ MATRIX* FSVolume::GetTargetToRASMatrix()
   *MATRIX_RELT( m, 2, 4 ) = origin[1];
   *MATRIX_RELT( m, 3, 4 ) = origin[2];
   MATRIX* m_invert = MatrixInverse( m, NULL );
-  
+
   MATRIX* v2r = MRIgetVoxelToRasXform( m_MRITarget );
   MATRIX* t2r = MatrixMultiply( m_invert, v2r, NULL );
   MatrixFree( &m );
   MatrixFree( &v2r );
   MatrixFree( &m_invert );
-  
+
   return t2r;
 }
 
@@ -2090,13 +2335,13 @@ void FSVolume::TargetToRAS( const float* pos_in, float* pos_out )
 void FSVolume::RASToTarget( const double* pos_in, double* pos_out )
 {
   Real pos[4] = { 0 };
-  ::MRIworldToVoxel( m_MRITarget, 
-	         (float)pos_in[0], 
-		       (float)pos_in[1], 
-		       (float)pos_in[2],
-           &pos[0], 
-		       &pos[1], 
-		       &pos[2] );
+  ::MRIworldToVoxel( m_MRITarget,
+                     (float)pos_in[0],
+                     (float)pos_in[1],
+                     (float)pos_in[2],
+                     &pos[0],
+                     &pos[1],
+                     &pos[2] );
   double* vs = m_imageData->GetSpacing();
   double* origin = m_imageData->GetOrigin();
   for ( int i = 0; i < 3; i++ )
@@ -2180,17 +2425,23 @@ void FSVolume::SetConform( bool bConform )
 int FSVolume::GetDataType()
 {
   if ( m_MRI )
+  {
     return m_MRI->type;
+  }
   else
+  {
     return -1;
+  }
 }
 
 void FSVolume::SetCroppingBounds( double* bounds )
 {
   for ( int i = 0; i < 6; i++ )
+  {
     m_dBounds[i] = bounds[i];
-  
+  }
+
   m_bCrop = true;
 }
 
-  
+

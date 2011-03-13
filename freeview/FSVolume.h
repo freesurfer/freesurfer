@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:47 $
- *    $Revision: 1.32 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.33 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -44,7 +43,7 @@ class vtkTransform;
 
 class FSVolume : public QObject
 {
-    Q_OBJECT
+  Q_OBJECT
 public:
   FSVolume( FSVolume* ref, QObject* parent = NULL );
   virtual ~FSVolume();
@@ -63,9 +62,9 @@ public:
                            float& oIdxX, float& oIdxY, float& oIdxZ );
   int RASToOriginalIndex ( float iRASX, float iRASY, float iRASZ,
                            int& oIdxX, int& oIdxY, int& oIdxZ );
-  
+
   double GetVoxelValue( int i, int j, int k, int frame );
-  
+
   bool UpdateMRIFromImage( vtkImageData* rasImage,
                            bool resampleToOriginal = true );
 
@@ -122,7 +121,7 @@ public:
   void RASToTargetIndex( const double* pos_in, int* index_out );
 
   void RASToNativeRAS( const double* pos_in, double* pos_out ); // when there is registration/transformation involved,
-                                                                // ras is not native ras!
+  // ras is not native ras!
   void NativeRASToRAS( const double* pos_in, double* pos_out );
 
   void TkRegToNativeRAS( const double* pos_in, double* pos_out );
@@ -154,34 +153,34 @@ public:
   }
 
   bool Rotate( std::vector<RotationElement>& rotations, int nSampleMethod = -1 );
-  
+
   int GetInterpolationMethod()
   {
     return m_nInterpolationMethod;
   }
-  
+
   void SetInterpolationMethod( int nMethod );
 
   int GetDataType();
-  
+
   MATRIX* GetTargetToRASMatrix();
-  
+
   COLOR_TABLE*  GetEmbeddedColorTable()
   {
     return m_ctabEmbedded;
   }
-  
+
   QString GetOrientationString()
   {
     return m_strOrientation;
   }
-  
+
   void SetCroppingBounds( double* bound );
-  
+
   vtkTransform* GetTransform();
-  
+
   void SetConform( bool bConform );
-  
+
 Q_SIGNALS:
   void ProgressChanged( int n );
 
@@ -206,9 +205,9 @@ protected:
   MRI*      m_MRIRef;         // reference target space, can also serve as the registration target. header only
   MRI*      m_MRIOrigTarget;  // orignal target space, header only
   MRI*      m_MRITemp;        // temp mri for saving
-  MATRIX*   m_matReg;   
+  MATRIX*   m_matReg;
   COLOR_TABLE*  m_ctabEmbedded;
-  
+
   FSVolume* m_volumeRef;
 
   double    m_RASToVoxelMatrix[16];
@@ -226,11 +225,11 @@ protected:
   // RAS bounds.
   bool      m_bBoundsCacheDirty;
   float     m_RASBounds[6];
-  
+
   int       m_nInterpolationMethod;
   bool      m_bConform;
   char      m_strOrientation[4];
-  
+
   double    m_dBounds[6];
   bool      m_bCrop;
 };

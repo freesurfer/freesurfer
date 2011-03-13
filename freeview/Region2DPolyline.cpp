@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:53 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -54,11 +53,11 @@ Region2DPolyline::Region2DPolyline( RenderView2D* view, bool bSpline ) :
   m_actorPoints->GetProperty()->SetPointSize( 5 );
 
   m_actorText = vtkSmartPointer<vtkTextActor>::New();
-  m_actorText->SetTextScaleMode( vtkTextActor::TEXT_SCALE_MODE_NONE ); 
+  m_actorText->SetTextScaleMode( vtkTextActor::TEXT_SCALE_MODE_NONE );
   m_actorText->GetTextProperty()->SetColor( 1, 1, 1 );
-  m_actorText->GetTextProperty()->ShadowOn(); 
+  m_actorText->GetTextProperty()->ShadowOn();
   m_actorText->GetTextProperty()->SetShadowOffset( 1, 1 );
-  m_actorText->GetTextProperty()->SetFontSize( 15 );  
+  m_actorText->GetTextProperty()->SetFontSize( 15 );
   Highlight( true );
 }
 
@@ -72,7 +71,7 @@ void Region2DPolyline::AddPoint( int x, int y )
   pt.pos[0] = x;
   pt.pos[1] = y;
   m_screenPts.push_back( pt );
-  
+
   UpdateWorldCoords();
   Update();
 }
@@ -89,7 +88,7 @@ void Region2DPolyline::UpdateWorldCoords()
   WorldPoint wp;
   for ( size_t i = m_worldPts.size(); i < m_screenPts.size(); i++ )
   {
-    m_view->MousePositionToRAS( m_screenPts[i].pos[0], m_screenPts[i].pos[1], wp.pos ); 
+    m_view->MousePositionToRAS( m_screenPts[i].pos[0], m_screenPts[i].pos[1], wp.pos );
     if ( i > 0 && vtkMath::Distance2BetweenPoints( wp.pos, m_worldPts[i-1].pos ) < 1e-8 )
     {
       wp.pos[0] += 0.00001;
@@ -103,8 +102,10 @@ void Region2DPolyline::UpdateWorldCoords()
 void Region2DPolyline::Update()
 {
   if ( !m_actorPolyline->GetVisibility() || m_worldPts.size() < 2 )
+  {
     return;
-  
+  }
+
   double pt[3];
   vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
@@ -115,7 +116,7 @@ void Region2DPolyline::Update()
     pts->InsertNextPoint( pt );
     lines->InsertCellPoint( i );
   }
-  
+
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( pts );
   polydata->SetLines( lines );
@@ -131,18 +132,18 @@ void Region2DPolyline::Update()
     LayerMRI* layer = m_view->GetFirstNonLabelVolume();
     if ( layer )
     {
-      spline->SetSubdivideToLength(); 
+      spline->SetSubdivideToLength();
       spline->SetLength( 3*layer->GetMinimumVoxelSize() );
     }
     spline->Update();
     mapper->SetInputConnection( spline->GetOutputPort() );
   }
-    
+
   vtkSmartPointer<vtkCoordinate> coords = vtkSmartPointer<vtkCoordinate>::New();
   coords->SetCoordinateSystemToViewport();
   mapper->SetTransformCoordinate( coords );
   m_actorPolyline->SetMapper( mapper );
-  
+
   vtkSmartPointer<vtkPolyData> polydata2 = vtkSmartPointer<vtkPolyData>::New();
   polydata2->SetPoints( pts );
   vtkSmartPointer<vtkCellArray> verts = vtkSmartPointer<vtkCellArray>::New();
@@ -157,9 +158,9 @@ void Region2DPolyline::Update()
   mapper->SetInput( polydata2 );
   mapper->SetTransformCoordinate( coords );
   m_actorPoints->SetMapper( mapper );
-  
+
 //  m_actorText->SetInput( GetShortStats().c_str() );
-//  double mid_pt[3];  
+//  double mid_pt[3];
   m_actorText->SetPosition( pts->GetPoint( 0 ) );
   UpdateStats();
 }
@@ -167,8 +168,10 @@ void Region2DPolyline::Update()
 void Region2DPolyline::UpdateStats()
 {
   if ( m_worldPts.size() < 2 )
+  {
     return;
-  
+  }
+
   double dist = 0;
   char ch[1000];
   LayerMRI* layer = m_view->GetFirstNonLabelVolume();
@@ -177,10 +180,12 @@ void Region2DPolyline::UpdateStats()
   {
     vtkSmartPointer<vtkPoints> pts = vtkSmartPointer<vtkPoints>::New();
     for ( size_t i = 0; i < m_worldPts.size(); i++ )
+    {
       pts->InsertNextPoint( m_worldPts[i].pos );
+    }
     vtkSmartPointer<vtkParametricSpline> spline = vtkSmartPointer<vtkParametricSpline>::New();
     spline->SetPoints( pts );
-    
+
     int nSteps = 100;
     double* values = NULL;
     int* indices = NULL;
@@ -229,11 +234,11 @@ void Region2DPolyline::UpdateStats()
       }
     }
   }
-    
+
   sprintf( ch, "%.2f mm", dist );
   m_strShortStats = ch;
   m_actorText->SetInput( ch );
-  
+
   Region2D::UpdateStats();
 }
 
@@ -286,32 +291,38 @@ bool Region2DPolyline::Contains( int x, int y, int* indexOut )
   m_view->MousePositionToRAS( 0, 0, pt1 );
   m_view->MousePositionToRAS( 5, 5, pt2 );
   double dTh2 = vtkMath::Distance2BetweenPoints( pt1, pt2 );
-  
+
   // calculate the hit point in world space
   double pt[3];
   m_view->MousePositionToRAS( x, y, pt );
   int nPlane = m_view->GetViewPlane();
-  
+
   for ( size_t i = 0; i < m_worldPts.size(); i++ )
   {
     pt[nPlane] = m_worldPts[i].pos[nPlane];
     if ( vtkMath::Distance2BetweenPoints( pt, m_worldPts[i].pos ) < dTh2 )
     {
       if ( indexOut )
+      {
         *indexOut = i;
+      }
       return true;
     }
   }
   if ( indexOut )
+  {
     *indexOut = -1;
-  
+  }
+
   double closestPt[3], t;
   for ( size_t i = 0; i < m_worldPts.size()-1; i++ )
   {
     if ( vtkLine::DistanceToLine( pt, m_worldPts[i].pos, m_worldPts[i+1].pos, t, closestPt ) < dTh2 )
     {
       if ( t >= 0 && t <= 1 )
+      {
         return true;
+      }
     }
   }
   return false;
@@ -326,8 +337,10 @@ void Region2DPolyline::Highlight( bool bHighlight )
 void Region2DPolyline::UpdatePoint( int nIndex, int nX, int nY )
 {
   if ( nIndex < 0 )
+  {
     nIndex = m_worldPts.size() - 1;
-  
+  }
+
   if ( nIndex < (int)m_worldPts.size() )
   {
     m_view->MousePositionToRAS( nX, nY, m_worldPts[nIndex].pos );
@@ -338,7 +351,9 @@ void Region2DPolyline::UpdatePoint( int nIndex, int nX, int nY )
 void Region2DPolyline::UpdateSlicePosition( int nPlane, double pos )
 {
   for ( size_t i = 0; i < m_worldPts.size(); i++ )
+  {
     m_worldPts[i].pos[nPlane] = pos;
-  
+  }
+
   Region2D::UpdateSlicePosition( nPlane, pos );
 }

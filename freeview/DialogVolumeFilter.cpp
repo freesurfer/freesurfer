@@ -1,18 +1,42 @@
+/**
+ * @file  DialogVolumeFilter.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:17 $
+ *    $Revision: 1.5 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
+
 #include "DialogVolumeFilter.h"
 #include "ui_DialogVolumeFilter.h"
 #include "VolumeFilter.h"
 #include <QMessageBox>
 
 DialogVolumeFilter::DialogVolumeFilter(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogVolumeFilter)
+  QDialog(parent),
+  ui(new Ui::DialogVolumeFilter)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 }
 
 DialogVolumeFilter::~DialogVolumeFilter()
 {
-    delete ui;
+  delete ui;
 }
 
 void DialogVolumeFilter::SetFilter( VolumeFilter* filter )
@@ -31,7 +55,7 @@ int DialogVolumeFilter::GetKernelSize()
 
 void DialogVolumeFilter::SetSigma( double dvalue )
 {
-    ui->lineEditSigma->setText( QString::number(dvalue ) );
+  ui->lineEditSigma->setText( QString::number(dvalue ) );
 }
 
 double DialogVolumeFilter::GetSigma()
@@ -51,12 +75,12 @@ void DialogVolumeFilter::OnOK()
 {
   if ( GetKernelSize() <= 0 )
   {
-      QMessageBox::warning( this, "Error", "Kernel size must be greater than 0.");
+    QMessageBox::warning( this, "Error", "Kernel size must be greater than 0.");
     return;
   }
   else if ( ui->labelSigma->isVisible() && GetSigma() <= 0 )
   {
-      QMessageBox::warning(this, "Error", "Sigma must be greater than 0.");
+    QMessageBox::warning(this, "Error", "Sigma must be greater than 0.");
     return;
   }
   accept();

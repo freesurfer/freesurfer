@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: krish $
- *    $Date: 2011/03/12 00:28:52 $
- *    $Revision: 1.24 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/13 23:04:18 $
+ *    $Revision: 1.25 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -46,7 +45,7 @@ public:
   template <class T> static T** AllocateMatrix(int ny, int nx);
   template <class T> static void FreeMatrix(T** p, int ny);
   template <class T> static double Dot( T* v1, T* v2 );
-  
+
   static double RoundToGrid( double dvalue );
 
 
@@ -62,7 +61,7 @@ public:
                                       std::vector<void*> input_volumes, unsigned char* output_volume, int vol_size );
   static bool CalculateOptimalVolume( int* vox, int nsize1, int* vox2, int nsize2,
                                       std::vector<void*> input_volumes, long* output_volume, int vol_size );
-  
+
   static bool IsIdentity( double m[4][4] );
 
   static bool IsOblique( double m[4][4] );
@@ -110,7 +109,9 @@ void MyUtils::GetVector( T* pt1_in, T* pt2_in, double* v_out )
 
   double dist = GetDistance( pt1, pt2 );
   if ( dist == 0 )
+  {
     return;
+  }
 
   for ( int i = 0; i < 3; i++ )
   {
@@ -124,7 +125,9 @@ bool MyUtils::Equal( T* pt1, T* pt2, int nLength )
   for ( int i = 0; i < nLength; i++ )
   {
     if ( pt1[i] != pt2[i] )
+    {
       return false;
+    }
   }
 
   return true;
@@ -135,7 +138,9 @@ T** MyUtils::AllocateMatrix(int ny, int nx)
 {
   T** p = new T*[ny];
   if (!p)
+  {
     return 0;
+  }
 
   for (int i = 0; i < ny; i++)
   {
@@ -143,7 +148,9 @@ T** MyUtils::AllocateMatrix(int ny, int nx)
     if (!p[i])
     {
       for (int j = 0; j < i; j++)
+      {
         delete[] p[j];
+      }
       delete[] p;
       return 0;
     }
@@ -156,9 +163,13 @@ template <class T>
 void MyUtils::FreeMatrix(T** p, int ny)
 {
   if (p == 0)
+  {
     return;
+  }
   for (int i = 0; i < ny; i++)
+  {
     delete[] p[i];
+  }
   delete[] p;
   p = 0;
 }
@@ -166,23 +177,25 @@ void MyUtils::FreeMatrix(T** p, int ny)
 inline bool MyUtils::IsIdentity( double m[4][4] )
 {
   return ( m[0][0] == 1 && m[0][1] == 0 && m[0][2] == 0 && m[0][3] == 0 &&
-      m[1][0] == 0 && m[1][1] == 1 && m[1][2] == 0 && m[1][3] == 0 &&
-      m[2][0] == 0 && m[2][1] == 0 && m[2][2] == 1 && m[2][3] == 0 &&
-      m[3][0] == 0 && m[3][1] == 0 && m[3][2] == 0 && m[3][3] == 1 );
+           m[1][0] == 0 && m[1][1] == 1 && m[1][2] == 0 && m[1][3] == 0 &&
+           m[2][0] == 0 && m[2][1] == 0 && m[2][2] == 1 && m[2][3] == 0 &&
+           m[3][0] == 0 && m[3][1] == 0 && m[3][2] == 0 && m[3][3] == 1 );
 }
 
 inline bool MyUtils::IsOblique( double m[4][4] )
 {
-    double near_zero = 1e-10;
-    for (int i = 0; i < 3; i++)
+  double near_zero = 1e-10;
+  for (int i = 0; i < 3; i++)
+  {
+    for (int j = 0; j < 3; j++)
     {
-        for (int j = 0; j < 3; j++)
-        {
-            if (fabs(m[i][j]) > near_zero && fabs(fabs(m[i][j])-1) > near_zero)
-                return true;
-        }
+      if (fabs(m[i][j]) > near_zero && fabs(fabs(m[i][j])-1) > near_zero)
+      {
+        return true;
+      }
     }
-    return false;
+  }
+  return false;
 }
 
 #endif
