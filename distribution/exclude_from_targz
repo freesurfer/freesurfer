@@ -11,6 +11,8 @@ freesurfer/surface_labels.txt
 freesurfer/Simple_surface_labels2002.txt
 freesurfer/Simple_surface_labels2005.txt
 freesurfer/COPYING
+freesurfer/INSTALL
+freesurfer/NEWS
 freesurfer/bin-new
 freesurfer/bin-old
 freesurfer/bin-old-old
@@ -35,7 +37,13 @@ freesurfer/lib/tcltktixblt/share
 freesurfer/lib/tcltktixblt/lib/tk8.4/demos
 freesurfer/lib/tcltktixblt/lib/tix8.1/demos
 freesurfer/lib/tcltktixblt/lib/blt2.4/demos
-freesurfer/lib/qt
+freesurfer/lib/qt/src
+freesurfer/lib/qt/demos
+freesurfer/lib/qt/examples
+freesurfer/lib/qt/imports
+freesurfer/lib/qt/mkspecs
+freesurfer/lib/qt/plugins
+freesurfer/lib/qt/translations
 freesurfer/lib/vtk/src
 freesurfer/lib/vtk/VTK
 freesurfer/lib/itk/src
