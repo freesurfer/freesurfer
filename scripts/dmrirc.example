@@ -12,9 +12,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.2 $
+#    $Author: ayendiki $
+#    $Date: 2011/03/14 23:46:53 $
+#    $Revision: 1.3 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -150,20 +150,22 @@ set cvstemp = donald
 set cvstempdir = /path/to/cvs/atlases/of/ducks
 
 # Paths to reconstruct
-# Default: All paths
+# Default: All paths in the atlas
 #
-set pathlist = ( lh.cst_AS lh.uncinate_AS lh.ilf_AS \
-                 rh.cst_AS rh.uncinate_AS rh.ilf_AS )
+set pathlist = ( lh.cst_AS rh.cst_AS \
+                 lh.unc_AS rh.unc_AS \
+                 lh.ilf_AS rh.ilf_AS \
+                 fmajor_PP fminor_PP \
+                 lh.atr_PP rh.atr_PP \
+                 lh.ccg_PP rh.ccg_PP \
+                 lh.cab_PP rh.cab_PP \
+                 lh.slf_PP rh.slf_PP \
+                 lh.slft_PP rh.slft_PP )
 
 # Number of path control points
 # Default: 5
 #
 set ncpts = 5
-
-# Path atlas (mni or cvs)
-# Default: mni
-#
-set xspace = mni
 
 # Location of trc executables
 # Default: $FREESURFER_HOME/bin
