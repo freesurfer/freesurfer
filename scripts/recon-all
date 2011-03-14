@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/14 19:44:24 $
-#    $Revision: 1.371 $
+#    $Author: mreuter $
+#    $Date: 2011/03/14 22:01:07 $
+#    $Revision: 1.372 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.371 2011/03/14 19:44:24 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.372 2011/03/14 22:01:07 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2236,6 +2236,19 @@ if($DoMaskBFS) then
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
+  else
+    if ( $longitudinal && -e ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz )
+      # transfer edits from cross
+      set cmd = (mri_mask -transfer 255)
+      set cmd = ($cmd -keep_mask_deletion_edits)
+      set cmd = ($cmd -xform $tpNtobase_regfile)
+      set cmd = ($cmd brain.finalsurfs.mgz)
+      set cmd = ($cmd ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz)
+      set cmd = ($cmd brain.finalsurfs.mgz)
+      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+      if($RunIt) $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;      
+    endif
   endif
 endif
 
