@@ -36,7 +36,7 @@
       <explanation>output transform</explanation>
     </positional>
     <required-flagged>
-      <intro>**************************************************************************************</intro>
+      <intro>None</intro>
     </required-flagged>
     <optional-flagged> 
       <argument>-dist distance</argument>
@@ -140,5 +140,4 @@
 	<example>mri_em_register -mask subject1/mri/brain subject1/mri/nu single_one.gca subject1/mri/transforms/talairach_one.lta</example>
   <bugs>None</bugs>
   <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
-	<see-also>**********************************************************************************</see-also>
 </help>
