@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/06 21:06:21 $
-#    $Revision: 1.369 $
+#    $Date: 2011/03/14 18:15:30 $
+#    $Revision: 1.370 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.369 2011/03/06 21:06:21 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.370 2011/03/14 18:15:30 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -88,7 +88,7 @@ set WSAtlas     = 0;    # 0=don't use atlas, 1=use atlas (for skull strip)
 set WSGcaAtlas  = 1;    # 1=use GCA atlas and registration to do skull strip
 set WSUseTalXfm = 0;    # 1=use talairach.xfm instead of talairach_with_skull
                         # to do atlas alignment during mri_watershed
-set DoGcut = 1;         # 1=run mri_gcut after mri_watershed
+set DoGcut = 0;         # 1=run mri_gcut after mri_watershed
 set NuIterations = 2;   # Number of iterations for nu intensity correction
 set ConformMin = 0;     # 1=conformed to min dimension
 set HiRes = 0;          # 1=hires option (conformed to min dimension)
