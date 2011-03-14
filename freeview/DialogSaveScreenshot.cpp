@@ -1,3 +1,26 @@
+/**
+ * @file  DialogSaveScreenshot.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.8 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 #include "DialogSaveScreenshot.h"
 #include "ui_DialogSaveScreenshot.h"
 #include "MainWindow.h"
@@ -9,25 +32,25 @@
 #include <QSettings>
 
 DialogSaveScreenshot::DialogSaveScreenshot(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogSaveScreenshot)
+  QDialog(parent),
+  ui(new Ui::DialogSaveScreenshot)
 {
-    ui->setupUi(this);
-    QSettings settings;
-    ui->lineEditFileName->setText(settings.value("ScreenShot/LastSavedFile").toString());
+  ui->setupUi(this);
+  QSettings settings;
+  ui->lineEditFileName->setText(settings.value("ScreenShot/LastSavedFile").toString());
 }
 
 DialogSaveScreenshot::~DialogSaveScreenshot()
 {
-    QSettings settings;
-    settings.setValue("ScreenShot/LastSavedFile", GetFileName());
-    delete ui;
+  QSettings settings;
+  settings.setValue("ScreenShot/LastSavedFile", GetFileName());
+  delete ui;
 }
 
 
 QString DialogSaveScreenshot::GetFileName()
 {
-    return MyUtils::CygwinPathProof(ui->lineEditFileName->text().trimmed());
+  return MyUtils::CygwinPathProof(ui->lineEditFileName->text().trimmed());
 }
 
 void DialogSaveScreenshot::SetSettings( SettingsScreenshot s )
@@ -51,34 +74,38 @@ SettingsScreenshot DialogSaveScreenshot::GetSettings()
 
 void DialogSaveScreenshot::OnOpen()
 {
-    QString dir = m_strLastDir;
-    if (!GetFileName().isEmpty())
-        dir = QFileInfo(GetFileName()).absolutePath();
-    QString fn = QFileDialog::getSaveFileName( this, "Save Screenshot", dir, "All Files (*.*)" );
-    if ( !fn.isEmpty() )
-    {
-        ui->lineEditFileName->setText(MyUtils::Win32PathProof(fn));
-        ui->lineEditFileName->setCursorPosition(ui->lineEditFileName->text().size());
-    }
+  QString dir = m_strLastDir;
+  if (!GetFileName().isEmpty())
+  {
+    dir = QFileInfo(GetFileName()).absolutePath();
+  }
+  QString fn = QFileDialog::getSaveFileName( this, "Save Screenshot", dir, "All Files (*.*)" );
+  if ( !fn.isEmpty() )
+  {
+    ui->lineEditFileName->setText(MyUtils::Win32PathProof(fn));
+    ui->lineEditFileName->setCursorPosition(ui->lineEditFileName->text().size());
+  }
 }
 
 void DialogSaveScreenshot::OnSave()
 {
-    if ( GetFileName().isEmpty() )
-    {
-        QMessageBox::warning(this, "Error", "Please enter file name to be saved.");
-        return;
-    }
+  if ( GetFileName().isEmpty() )
+  {
+    QMessageBox::warning(this, "Error", "Please enter file name to be saved.");
+    return;
+  }
 
-    MainWindow* mainwnd = MainWindow::GetMainWindow();
-    mainwnd->SetScreenShotSettings(GetSettings());
-    if (!mainwnd->GetMainView()->
-        SaveScreenShot(GetFileName(), ui->checkBoxAntiAliasing, ui->spinBoxMagnification->value()))
-    {
-        QMessageBox::warning(this, "Error", "Failed to save screenshot. Please make sure the directory exists and writable.");
-        return;
-    }
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  mainwnd->SetScreenShotSettings(GetSettings());
+  if (!mainwnd->GetMainView()->
+      SaveScreenShot(GetFileName(), ui->checkBoxAntiAliasing, ui->spinBoxMagnification->value()))
+  {
+    QMessageBox::warning(this, "Error", "Failed to save screenshot. Please make sure the directory exists and writable.");
+    return;
+  }
 
-    if (!ui->checkBoxKeepWindow->isChecked())
-        hide();
+  if (!ui->checkBoxKeepWindow->isChecked())
+  {
+    hide();
+  }
 }

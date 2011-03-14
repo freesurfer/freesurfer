@@ -1,3 +1,26 @@
+/**
+ * @file  WindowConfigureOverlay.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:48 $
+ *    $Revision: 1.4 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 #ifndef WINDOWCONFIGUREOVERLAY_H
 #define WINDOWCONFIGUREOVERLAY_H
 
@@ -5,8 +28,9 @@
 #include "UIUpdateHelper.h"
 #include "WidgetHistogram.h"
 
-namespace Ui {
-    class WindowConfigureOverlay;
+namespace Ui
+{
+class WindowConfigureOverlay;
 }
 
 class Layer;
@@ -16,17 +40,17 @@ class QAbstractButton;
 
 class WindowConfigureOverlay : public QWidget, public UIUpdateHelper
 {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit WindowConfigureOverlay(QWidget *parent = 0);
-    ~WindowConfigureOverlay();
+  explicit WindowConfigureOverlay(QWidget *parent = 0);
+  ~WindowConfigureOverlay();
 
-    virtual void showEvent(QShowEvent *);
+  virtual void showEvent(QShowEvent *);
 
 public slots:
-    void UpdateGraph();
-    void UpdateUI();
+  void UpdateGraph();
+  void UpdateUI();
 
 protected slots:
   void OnActiveSurfaceChanged(Layer* layer);
@@ -40,10 +64,10 @@ protected slots:
   void OnHistogramMarkerChanged();
 
 private:
-    Ui::WindowConfigureOverlay *ui;
+  Ui::WindowConfigureOverlay *ui;
 
-    LineMarkers   m_markers;    // custom gradient markers
-    LayerSurface* m_layerSurface;
+  LineMarkers   m_markers;    // custom gradient markers
+  LayerSurface* m_layerSurface;
 };
 
 #endif // WINDOWCONFIGUREOVERLAY_H

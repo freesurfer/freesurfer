@@ -1,3 +1,26 @@
+/**
+ * @file  DialogNewVolume.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.16 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 #include "DialogNewVolume.h"
 #include "ui_DialogNewVolume.h"
 #include "LayerMRI.h"
@@ -6,27 +29,29 @@
 #include <QMessageBox>
 
 DialogNewVolume::DialogNewVolume(QWidget *parent) :
-    QDialog(parent),
-    ui(new Ui::DialogNewVolume)
+  QDialog(parent),
+  ui(new Ui::DialogNewVolume)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 
-    LayerCollection* col_mri = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
-    QList<Layer*> layers = col_mri->GetLayers();
-    int nSel = 0;
-    for ( int i = 0; i < layers.size(); i++ )
+  LayerCollection* col_mri = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
+  QList<Layer*> layers = col_mri->GetLayers();
+  int nSel = 0;
+  for ( int i = 0; i < layers.size(); i++ )
+  {
+    ui->comboBoxTemplate->addItem(layers[i]->GetName(), QVariant::fromValue((QObject*)layers[i]));
+    if ( layers[i] == col_mri->GetActiveLayer() )
     {
-        ui->comboBoxTemplate->addItem(layers[i]->GetName(), QVariant::fromValue((QObject*)layers[i]));
-        if ( layers[i] == col_mri->GetActiveLayer() )
-            nSel = i;
+      nSel = i;
     }
-    ui->comboBoxTemplate->setCurrentIndex(nSel);
-    ui->lineEditName->setFocus();
+  }
+  ui->comboBoxTemplate->setCurrentIndex(nSel);
+  ui->lineEditName->setFocus();
 }
 
 DialogNewVolume::~DialogNewVolume()
 {
-    delete ui;
+  delete ui;
 }
 
 QString DialogNewVolume::GetVolumeName()
@@ -52,30 +77,36 @@ void DialogNewVolume::SetCopyVoxel( bool bVoxel )
 LayerMRI* DialogNewVolume::GetTemplate()
 {
   return qobject_cast<LayerMRI*>(
-          ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
+           ui->comboBoxTemplate->itemData(ui->comboBoxTemplate->currentIndex()).value<QObject*>());
 }
 
 int DialogNewVolume::GetDataType()
 {
   if ( ui->comboBoxDataType->currentIndex() == ui->comboBoxDataType->count()-1 )
+  {
     return GetTemplate()->GetDataType();
+  }
   else
+  {
     return ui->comboBoxDataType->currentIndex();
+  }
 }
 
 void DialogNewVolume::OnOK()
 {
-    if ( GetVolumeName().isEmpty())
-    {
-        QMessageBox::warning( this, "Error", "Volume name can not be empty." );
-        return;
-    }
-    accept();
+  if ( GetVolumeName().isEmpty())
+  {
+    QMessageBox::warning( this, "Error", "Volume name can not be empty." );
+    return;
+  }
+  accept();
 }
 
 void DialogNewVolume::OnToggleCopyVoxelData(bool bCopy)
 {
-    if (bCopy)
-        ui->comboBoxDataType->setCurrentIndex(ui->comboBoxDataType->count()-1);
-    ui->comboBoxDataType->setDisabled(bCopy);
+  if (bCopy)
+  {
+    ui->comboBoxDataType->setCurrentIndex(ui->comboBoxDataType->count()-1);
+  }
+  ui->comboBoxDataType->setDisabled(bCopy);
 }

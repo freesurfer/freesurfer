@@ -9,21 +9,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:59 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:48 $
+ *    $Revision: 1.6 $
  *
- * Copyright (C) 2007-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -47,27 +46,27 @@ public:
   ~SurfaceLabel ();
 
 //  void SetSurface( LayerSurface* surf );
-  
+
   QString GetName();
-  
+
   void SetName( const QString& name );
-  
+
   bool LoadLabel( const QString& filename );
-  
+
   void SetColor( double r, double g, double b );
-  
+
   double* GetColor()
   {
     return m_rgbColor;
   }
-  
+
   void MapLabel( unsigned char* colordata, int nVertexCount );
-  
+
 Q_SIGNALS:
   void SurfaceLabelChanged();
 
 private:
-  LABEL*        m_label;  
+  LABEL*        m_label;
   QString       m_strName;
   LayerSurface* m_surface;
   double        m_rgbColor[3];

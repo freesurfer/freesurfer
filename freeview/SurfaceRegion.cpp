@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:59 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:48 $
+ *    $Revision: 1.18 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -51,8 +50,8 @@
 #include "vtkAppendPolyData.h"
 #include <QFile>
 
-SurfaceRegion::SurfaceRegion( LayerMRI* owner ) : 
-    QObject( owner )
+SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
+  QObject( owner )
 {
   m_actorMesh = vtkSmartPointer<vtkActor>::New();
   m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
@@ -62,11 +61,11 @@ SurfaceRegion::SurfaceRegion( LayerMRI* owner ) :
   m_actorOutline = vtkSmartPointer<vtkActor>::New();
   m_actorOutline->GetProperty()->SetColor( 0, 1, 0 );
   m_actorOutline->GetProperty()->SetLineWidth( 3 );
-  
+
   m_points = vtkSmartPointer<vtkPoints>::New();
   m_selector = vtkSmartPointer<vtkSelectPolyData>::New();
   m_selector->SetSelectionModeToSmallestRegion();
-  
+
   // use a clipper to pre-clip the big surface for faster selecting
   m_clipbox = vtkSmartPointer<vtkBox>::New();
   m_clipperPre = vtkSmartPointer<vtkClipPolyData>::New();
@@ -92,7 +91,9 @@ vtkActor* SurfaceRegion::GetMeshActor()
 void SurfaceRegion::ResetOutline()
 {
   if ( !m_polydataHolder.GetPointer() )
+  {
     m_polydataHolder = vtkSmartPointer<vtkPolyData>::New();
+  }
   m_polydataHolder->DeepCopy( m_actorMesh->GetMapper()->GetInput() );
   m_actorOutline->VisibilityOn();
   m_points->Reset();
@@ -103,10 +104,14 @@ void SurfaceRegion::RebuildOutline( bool bClose )
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   vtkSmartPointer<vtkCellArray> lines = vtkSmartPointer<vtkCellArray>::New();
   if ( bClose && m_points->GetNumberOfPoints() > 0 )
+  {
     m_points->InsertNextPoint( m_points->GetPoint( 0 ) );
+  }
   lines->InsertNextCell( m_points->GetNumberOfPoints() );
   for ( int i = 0; i < m_points->GetNumberOfPoints(); i++ )
+  {
     lines->InsertCellPoint( i );
+  }
   polydata->SetPoints( m_points );
   polydata->SetLines( lines );
   vtkSmartPointer<vtkPolyDataMapper> mapper = vtkSmartPointer<vtkPolyDataMapper>::New();
@@ -162,7 +167,7 @@ bool SurfaceRegion::Close()
       cleaner->ToleranceIsAbsoluteOn();
       cleaner->SetAbsoluteTolerance( 0.0001 );
       cleaner->Update();
-      
+
       // merge duplicate cells
       vtkPolyData* polydata = cleaner->GetOutput();
       std::vector<vtkIdType> idList;
@@ -177,7 +182,9 @@ bool SurfaceRegion::Close()
         for ( size_t i = 0; i < idList.size() && !bFound; i+=3 )
         {
           if ( pts[0] == idList[i] && pts[1] == idList[i+1] && pts[2] == idList[i+2] )
+          {
             bFound = true;
+          }
         }
         if ( !bFound )
         {
@@ -188,7 +195,7 @@ bool SurfaceRegion::Close()
         }
       }
       polydata->SetPolys( new_polys );
-          
+
       mapper->SetInput( polydata );
       return true;
     }
@@ -200,7 +207,9 @@ bool SurfaceRegion::Close()
     }
   }
   else
+  {
     return false;
+  }
 }
 
 void SurfaceRegion::Update()
@@ -234,24 +243,30 @@ bool SurfaceRegion::HasPoint( double* pos )
   double delta[3] = { 0, 0, 0 };
   return vtkMath::PointIsWithinBounds( pos, m_actorMesh->GetBounds(), delta );
 }
-  
+
 void SurfaceRegion::Highlight( bool bHighlight )
 {
-    if ( bHighlight )
-      m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
-    else
-      m_actorMesh->GetProperty()->SetColor( m_color.redF(), m_color.greenF(), m_color.blueF() );
+  if ( bHighlight )
+  {
+    m_actorMesh->GetProperty()->SetColor( 0, 1, 0 );
+  }
+  else
+  {
+    m_actorMesh->GetProperty()->SetColor( m_color.redF(), m_color.greenF(), m_color.blueF() );
+  }
 }
 
 bool SurfaceRegion::Write( const QString& fn )
 {
   FILE* fp = fopen( fn.toAscii().data(), "w" );
   if ( !fp )
+  {
     return false;
-  
+  }
+
   bool ret = WriteHeader( fp, m_mri ) && WriteBody( fp );
   fclose( fp );
-  
+
   return ret;
 }
 
@@ -297,7 +312,9 @@ bool SurfaceRegion::WriteBody( FILE* fp )
   {
     strg += QString::number( nPts ) + " ";
     for ( vtkIdType j = 0; j < nPts; j++ )
-        strg += QString::number( pts[j] ) + " ";
+    {
+      strg += QString::number( pts[j] ) + " ";
+    }
     strg += "\n";
   }
   QFile file;
@@ -311,25 +328,40 @@ bool SurfaceRegion::Load( FILE* fp )
 {
   char tmp_strg[1000];
   QString id_strg = "SURFACE_REGION";
-  while ( fscanf( fp, "%s\n", tmp_strg ) != EOF && id_strg != tmp_strg );
+  while ( fscanf( fp, "%s\n", tmp_strg ) != EOF && id_strg != tmp_strg )
+  {
+    ;
+  }
   if ( id_strg != tmp_strg )
+  {
     return false;
-  
+  }
+
   int nId, nPts = 0, nGroup;
   float x, y, z;
   char ch[100] = {0};
   if ( fscanf( fp, "ID %d", &nId ) == EOF || fscanf( fp, "%s", ch ) == EOF )
+  {
     return false;
+  }
 
   QString strg = ch;
   if ( strg == "GROUP_ID" )
+  {
     fscanf( fp, "%d\nPOINTS %d", &nGroup, &nPts );
+  }
   else
+  {
     fscanf( fp, "%d", &nPts );
+  }
   if ( nPts <= 0 )
+  {
     return false;
+  }
   if ( nGroup <= 0 )
+  {
     nGroup = 1;
+  }
 
   vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
   double pt[3];
@@ -342,11 +374,13 @@ bool SurfaceRegion::Load( FILE* fp )
     m_mri->RASToTarget( pt, pt );
     points->InsertNextPoint( pt );
   }
-  
+
   int nPolys = 0;
   if ( fscanf( fp, "\nPOLYGONS %d", &nPolys ) == EOF || nPolys == 0 )
+  {
     return false;
-  
+  }
+
   vtkSmartPointer<vtkCellArray> polys = vtkSmartPointer<vtkCellArray>::New();
   vtkIdType n[3];
   int nInts[3], nIds = 0;
@@ -358,7 +392,7 @@ bool SurfaceRegion::Load( FILE* fp )
     n[2] = nInts[2];
     polys->InsertNextCell( nIds, n );
   }
-  
+
   // clean the polydata after loading
   vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
   polydata->SetPoints( points );
@@ -369,7 +403,7 @@ bool SurfaceRegion::Load( FILE* fp )
   mapper->SetInputConnection( cleaner->GetOutputPort() );
   mapper->ScalarVisibilityOff();
   m_actorMesh->SetMapper( mapper );
-  
+
   // set group after actor is set
   SetGroup( nGroup );
   return true;
@@ -399,7 +433,9 @@ bool SurfaceRegion::DeleteCell( RenderView3D* view, int pos_x, int pos_y )
     return true;
   }
   else
+  {
     return false;
+  }
 }
 
 void SurfaceRegion::SetGroup( int nGroup )

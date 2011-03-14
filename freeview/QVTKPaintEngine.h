@@ -43,7 +43,7 @@ public:
   // Description:
   // begin painting on device (QVTKWidget)
   bool begin(QPaintDevice* dev);
-  
+
   // Description:
   // end painting on device
   bool end();
@@ -51,7 +51,7 @@ public:
   // Description:
   // returns type User
   QPaintEngine::Type type() const;
-  
+
   // Description:
   // updateState
   void updateState(const QPaintEngineState&);
@@ -59,7 +59,7 @@ public:
   // Description:
   // draw a pixmap
   void drawPixmap(const QRectF& r, const QPixmap& pm, const QRectF& sr);
-  
+
   // Description:
   // draw a path
   void drawPath(const QPainterPath& path);

@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:57 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -33,8 +32,8 @@
 #include <vtkRenderer.h>
 
 Interactor2DVolumeCrop::Interactor2DVolumeCrop(QObject* parent) :
-    Interactor2D(parent),
-    m_bSelected( false )
+  Interactor2D(parent),
+  m_bSelected( false )
 {
 }
 
@@ -44,7 +43,7 @@ Interactor2DVolumeCrop::~Interactor2DVolumeCrop()
 bool Interactor2DVolumeCrop::ProcessMouseDownEvent( QMouseEvent* event, RenderView* renderview )
 {
   RenderView2D* view = ( RenderView2D* )renderview;
- 
+
   if ( event->button() == Qt::LeftButton &&
        MainWindow::GetMainWindow()->GetVolumeCropper()
        ->PickActiveBound2D( view, event->x(), event->y() ) )
@@ -53,8 +52,10 @@ bool Interactor2DVolumeCrop::ProcessMouseDownEvent( QMouseEvent* event, RenderVi
     m_bSelected = true;
     return false;
   }
-  else 
-    return Interactor2D::ProcessMouseDownEvent( event, renderview ); // pass down the event
+  else
+  {
+    return Interactor2D::ProcessMouseDownEvent( event, renderview );  // pass down the event
+  }
 }
 
 bool Interactor2DVolumeCrop::ProcessMouseUpEvent( QMouseEvent* event, RenderView* renderview )
@@ -66,8 +67,10 @@ bool Interactor2DVolumeCrop::ProcessMouseUpEvent( QMouseEvent* event, RenderView
     m_bSelected = false;
     return false;
   }
-  else 
+  else
+  {
     return Interactor2D::ProcessMouseUpEvent( event, renderview );
+  }
 }
 
 bool Interactor2DVolumeCrop::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* renderview )
@@ -79,8 +82,8 @@ bool Interactor2DVolumeCrop::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
     UpdateCursor( event, view );
 
     MainWindow::GetMainWindow()->GetVolumeCropper()
-        ->MoveActiveBound2D( view, event->x(), event->y() );
-    
+    ->MoveActiveBound2D( view, event->x(), event->y() );
+
     return false;
   }
   else if ( !(event->buttons() & Qt::LeftButton) && !(event->buttons() & Qt::RightButton) &&
@@ -91,7 +94,7 @@ bool Interactor2DVolumeCrop::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
     UpdateCursor( event, view );
     return false;
   }
-  else 
+  else
   {
     return Interactor2D::ProcessMouseMoveEvent( event, renderview );
   }
@@ -100,7 +103,11 @@ bool Interactor2DVolumeCrop::ProcessMouseMoveEvent( QMouseEvent* event, RenderVi
 void Interactor2DVolumeCrop::UpdateCursor( QEvent* event, QWidget* wnd )
 {
   if ( MainWindow::GetMainWindow()->GetVolumeCropper()->GetActivePlane() >= 0 )
+  {
     wnd->setCursor( CursorFactory::CursorGrab );
+  }
   else
+  {
     Interactor2D::UpdateCursor( event, wnd );
+  }
 }

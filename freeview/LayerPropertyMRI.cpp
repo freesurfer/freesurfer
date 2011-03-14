@@ -11,21 +11,20 @@
  * Original Author: Kevin Teich
  * Reimplemented by: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:58 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2007-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -46,43 +45,43 @@
 //using namespace std;
 
 LayerPropertyMRI::LayerPropertyMRI (QObject* parent) : LayerProperty( parent ),
-    mColorMapType( LayerPropertyMRI::Grayscale ),
-    mResliceInterpolation( 0 ),
-    mTextureSmoothing( 0 ),
-    mbClearZero( false ),
-    mMinVoxelValue( 0 ),
-    mMaxVoxelValue( 0 ),
-    mMinVisibleValue( 0 ),
-    mMaxVisibleValue( 0 ),
-    mMinGrayscaleWindow( 0 ),
-    mMaxGrayscaleWindow( 0 ),
-    mHeatScaleMinThreshold( 0 ),
-    mHeatScaleMidThreshold( 0 ),
-    mHeatScaleMaxThreshold( 0 ),
-    mHeatScaleOffset( 0 ),
-    mbReverseHeatScale( false ),
-    mbShowPositiveHeatScaleValues( true ),
-    mbShowNegativeHeatScaleValues( true ),
-    m_bHeatScaleClearHigh( false ),
-    m_bHeatScaleTruncate( false ),
-    m_bHeatScaleInvert( false ),
-    mOpacity( 1 ),
-    mFreeSurferCTAB( NULL ),
-    mbShowAsContour( false ),
-    mMinContourThreshold( 0 ),
-    mMaxContourThreshold( 0 ),
-    m_bDisplayVector( false ),
-    m_nVectorInversion( VI_None ),
-    m_nVectorRepresentation( VR_Line ),
-    m_bDisplayTensor( false ),
-    m_nTensorInversion( VI_None ),
-    m_nTensorRepresentation( TR_Boxoid ), 
-    m_bContourUseImageColorMap( false ),
-    m_bContourExtractAll( false ),
-    m_bShowLabelOutline( false ),
-    m_nUpSampleMethod( UM_None ),
-    m_nContourSmoothIterations( 0 ),
-    mSource( NULL )
+  mColorMapType( LayerPropertyMRI::Grayscale ),
+  mResliceInterpolation( 0 ),
+  mTextureSmoothing( 0 ),
+  mbClearZero( false ),
+  mMinVoxelValue( 0 ),
+  mMaxVoxelValue( 0 ),
+  mMinVisibleValue( 0 ),
+  mMaxVisibleValue( 0 ),
+  mMinGrayscaleWindow( 0 ),
+  mMaxGrayscaleWindow( 0 ),
+  mHeatScaleMinThreshold( 0 ),
+  mHeatScaleMidThreshold( 0 ),
+  mHeatScaleMaxThreshold( 0 ),
+  mHeatScaleOffset( 0 ),
+  mbReverseHeatScale( false ),
+  mbShowPositiveHeatScaleValues( true ),
+  mbShowNegativeHeatScaleValues( true ),
+  m_bHeatScaleClearHigh( false ),
+  m_bHeatScaleTruncate( false ),
+  m_bHeatScaleInvert( false ),
+  mOpacity( 1 ),
+  mFreeSurferCTAB( NULL ),
+  mbShowAsContour( false ),
+  mMinContourThreshold( 0 ),
+  mMaxContourThreshold( 0 ),
+  m_bDisplayVector( false ),
+  m_nVectorInversion( VI_None ),
+  m_nVectorRepresentation( VR_Line ),
+  m_bDisplayTensor( false ),
+  m_nTensorInversion( VI_None ),
+  m_nTensorRepresentation( TR_Boxoid ),
+  m_bContourUseImageColorMap( false ),
+  m_bContourExtractAll( false ),
+  m_bShowLabelOutline( false ),
+  m_nUpSampleMethod( UM_None ),
+  m_nContourSmoothIterations( 0 ),
+  mSource( NULL )
 {
   mGrayScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
   mHeatScaleTable = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
@@ -148,72 +147,94 @@ void LayerPropertyMRI::CopySettings( const LayerPropertyMRI* p )
 
 void LayerPropertyMRI::RestoreSettings( const QString& filename )
 {
-    QSettings settings;
-    QVariantMap rootmap = settings.value( "VolumeProperties" ).toMap();
-    if ( !rootmap.contains( filename ) )
-        return;
+  QSettings settings;
+  QVariantMap rootmap = settings.value( "VolumeProperties" ).toMap();
+  if ( !rootmap.contains( filename ) )
+  {
+    return;
+  }
 
-    QVariantMap map = rootmap[filename].toMap();
-    RestoreSettings(map);
+  QVariantMap map = rootmap[filename].toMap();
+  RestoreSettings(map);
 }
 
 void LayerPropertyMRI::RestoreSettings(const QVariantMap& map)
 {
-    if ( map.contains("MinGrayscaleWindow") )
-        mMinGrayscaleWindow = map["MinGrayscaleWindow"].toDouble();
+  if ( map.contains("MinGrayscaleWindow") )
+  {
+    mMinGrayscaleWindow = map["MinGrayscaleWindow"].toDouble();
+  }
 
-    if ( map.contains("MaxGrayscaleWindow") )
-        mMaxGrayscaleWindow = map["MaxGrayscaleWindow"].toDouble();
+  if ( map.contains("MaxGrayscaleWindow") )
+  {
+    mMaxGrayscaleWindow = map["MaxGrayscaleWindow"].toDouble();
+  }
 
-    if ( map.contains("HeatScaleMinThreshold") )
-        mHeatScaleMinThreshold = map["HeatScaleMinThreshold"].toDouble();
+  if ( map.contains("HeatScaleMinThreshold") )
+  {
+    mHeatScaleMinThreshold = map["HeatScaleMinThreshold"].toDouble();
+  }
 
-    if ( map.contains("HeatScaleMidThreshold") )
-        mHeatScaleMidThreshold = map["HeatScaleMidThreshold"].toDouble();
+  if ( map.contains("HeatScaleMidThreshold") )
+  {
+    mHeatScaleMidThreshold = map["HeatScaleMidThreshold"].toDouble();
+  }
 
-    if ( map.contains("HeatScaleMaxThreshold") )
-        mHeatScaleMaxThreshold = map["HeatScaleMaxThreshold"].toDouble();
+  if ( map.contains("HeatScaleMaxThreshold") )
+  {
+    mHeatScaleMaxThreshold = map["HeatScaleMaxThreshold"].toDouble();
+  }
 
-    if ( map.contains("HeatScaleOffset") )
-        mHeatScaleOffset = map["HeatScaleOffset"].toDouble();
+  if ( map.contains("HeatScaleOffset") )
+  {
+    mHeatScaleOffset = map["HeatScaleOffset"].toDouble();
+  }
 
-    if ( map.contains("MinGenericThreshold") )
-        mMinGenericThreshold = map["MinGenericThreshold"].toDouble();
+  if ( map.contains("MinGenericThreshold") )
+  {
+    mMinGenericThreshold = map["MinGenericThreshold"].toDouble();
+  }
 
-    if ( map.contains("MaxGenericThreshold") )
-        mMaxGenericThreshold = map["MaxGenericThreshold"].toDouble();
+  if ( map.contains("MaxGenericThreshold") )
+  {
+    mMaxGenericThreshold = map["MaxGenericThreshold"].toDouble();
+  }
 
-    if ( map.contains("MinContourThreshold") )
-        mMinContourThreshold = map["MinContourThreshold"].toDouble();
+  if ( map.contains("MinContourThreshold") )
+  {
+    mMinContourThreshold = map["MinContourThreshold"].toDouble();
+  }
 
-    if ( map.contains("MaxContourThreshold") )
-        mMaxContourThreshold = map["MaxContourThreshold"].toDouble();
+  if ( map.contains("MaxContourThreshold") )
+  {
+    mMaxContourThreshold = map["MaxContourThreshold"].toDouble();
+  }
 
-   this->OnColorMapChanged();
+  this->OnColorMapChanged();
 }
 
 void LayerPropertyMRI::SaveSettings( const QString& filename )
 {
-    QSettings settings;
-    QVariantMap rootmap = settings.value( "VolumeProperties" ).toMap();
-    rootmap[filename] = GetSettings();
-    settings.setValue( "VolumeProperties", rootmap );
+  QSettings settings;
+  QVariantMap rootmap = settings.value( "VolumeProperties" ).toMap();
+  rootmap[filename] = GetSettings();
+  settings.setValue( "VolumeProperties", rootmap );
 }
 
 QVariantMap LayerPropertyMRI::GetSettings()
 {
-    QVariantMap map;
-    map["MinGrayscaleWindow"] = mMinGrayscaleWindow;
-    map["MaxGrayscaleWindow"] = mMaxGrayscaleWindow;
-    map["HeatScaleMinThreshold"] = mHeatScaleMinThreshold;
-    map["HeatScaleMidThreshold"] = mHeatScaleMidThreshold;
-    map["HeatScaleMaxThreshold"] = mHeatScaleMaxThreshold;
-    map["HeatScaleOffset"] = mHeatScaleOffset;
-    map["MinGenericThreshold"] = mMinGenericThreshold;
-    map["MaxGenericThreshold"] = mMaxGenericThreshold;
-    map["MinContourThreshold"] = mMinContourThreshold;
-    map["MaxContourThreshold"] = mMaxContourThreshold;
-    return map;
+  QVariantMap map;
+  map["MinGrayscaleWindow"] = mMinGrayscaleWindow;
+  map["MaxGrayscaleWindow"] = mMaxGrayscaleWindow;
+  map["HeatScaleMinThreshold"] = mHeatScaleMinThreshold;
+  map["HeatScaleMidThreshold"] = mHeatScaleMidThreshold;
+  map["HeatScaleMaxThreshold"] = mHeatScaleMaxThreshold;
+  map["HeatScaleOffset"] = mHeatScaleOffset;
+  map["MinGenericThreshold"] = mMinGenericThreshold;
+  map["MaxGenericThreshold"] = mMaxGenericThreshold;
+  map["MinContourThreshold"] = mMinContourThreshold;
+  map["MaxContourThreshold"] = mMaxContourThreshold;
+  return map;
 }
 
 vtkRGBAColorTransferFunction* LayerPropertyMRI::GetLUTTable () const
@@ -272,7 +293,9 @@ void LayerPropertyMRI::SetLUTCTAB( COLOR_TABLE* ct )
     mFreeSurferCTAB = ct;
     UpdateLUTTable();
     if ( ct )
+    {
       emit ColorMapChanged();
+    }
 
   }
 }
@@ -286,11 +309,11 @@ void LayerPropertyMRI::UpdateLUTTable()
     mLUTTable->AddRGBAPoint( 0, 0, 0, 0, 0 );
     int cEntries;
     CTABgetNumberOfTotalEntries( mFreeSurferCTAB, &cEntries );
-    for ( int nEntry = 1; nEntry < cEntries; nEntry++ ) 
+    for ( int nEntry = 1; nEntry < cEntries; nEntry++ )
     {
       int bValid;
       CTABisEntryValid( mFreeSurferCTAB, nEntry, &bValid );
-      if ( bValid ) 
+      if ( bValid )
       {
         float red, green, blue, alpha;
         CTABrgbaAtIndexf( mFreeSurferCTAB, nEntry, &red, &green, &blue, &alpha );
@@ -304,9 +327,11 @@ void LayerPropertyMRI::UpdateLUTTable()
 void LayerPropertyMRI::OnColorMapChanged ()
 {
   if ( !mSource )
+  {
     return;
+  }
 
-  double tiny_fraction = ( mMaxVoxelValue - mMinVoxelValue ) * 1e-12; 
+  double tiny_fraction = ( mMaxVoxelValue - mMinVoxelValue ) * 1e-12;
   switch ( mColorMapType )
   {
   case NoColorMap:
@@ -317,9 +342,13 @@ void LayerPropertyMRI::OnColorMapChanged ()
     // Check the color map variables and update range sliders if
     // necessary.
     if ( mMinGrayscaleWindow < mMinVisibleValue )
+    {
       mMinVisibleValue = mMinGrayscaleWindow;
+    }
     if ( mMaxGrayscaleWindow > mMaxVisibleValue )
+    {
       mMaxVisibleValue = mMaxGrayscaleWindow;
+    }
 
     // Build our lookup table.
     assert( mGrayScaleTable.GetPointer() );
@@ -349,7 +378,9 @@ void LayerPropertyMRI::OnColorMapChanged ()
     if ( m_bHeatScaleTruncate && m_bHeatScaleInvert )
     {
       if ( m_bHeatScaleClearHigh )
+      {
         mHeatScaleTable->AddRGBAPoint( -mHeatScaleMaxThreshold + mHeatScaleOffset - tiny_fraction, 1, 1, 0, 0 );
+      }
       mHeatScaleTable->AddRGBAPoint( -mHeatScaleMaxThreshold + mHeatScaleOffset, 1, 1, 0, 1 );
       mHeatScaleTable->AddRGBAPoint( -mHeatScaleMidThreshold + mHeatScaleOffset, 1, 0, 0, 1 );
       mHeatScaleTable->AddRGBAPoint( -mHeatScaleMinThreshold + mHeatScaleOffset, 1, 0, 0, 0 );
@@ -362,7 +393,9 @@ void LayerPropertyMRI::OnColorMapChanged ()
       mHeatScaleTable->AddRGBAPoint(  mHeatScaleMidThreshold + mHeatScaleOffset, 1, 0, 0, 1 );
       mHeatScaleTable->AddRGBAPoint(  mHeatScaleMaxThreshold + mHeatScaleOffset, 1, 1, 0, 1 );
       if ( m_bHeatScaleClearHigh )
+      {
         mHeatScaleTable->AddRGBAPoint(  mHeatScaleMaxThreshold + mHeatScaleOffset + tiny_fraction, 1, 1, 0, 0 );
+      }
     }
     else if ( m_bHeatScaleInvert )
     {
@@ -374,9 +407,11 @@ void LayerPropertyMRI::OnColorMapChanged ()
       mHeatScaleTable->AddRGBAPoint(  mHeatScaleMidThreshold + mHeatScaleOffset, 0, 0, 1, 1 );
       mHeatScaleTable->AddRGBAPoint(  mHeatScaleMaxThreshold + mHeatScaleOffset, 0, 1, 1, 1 );
       if ( m_bHeatScaleClearHigh )
+      {
         mHeatScaleTable->AddRGBAPoint(  mHeatScaleMaxThreshold + mHeatScaleOffset + tiny_fraction, 0, 1, 1, 0 );
+      }
     }
-    else 
+    else
     {
       mHeatScaleTable->AddRGBAPoint( -mHeatScaleMaxThreshold + mHeatScaleOffset, 0, 1, 1, 1 );
       mHeatScaleTable->AddRGBAPoint( -mHeatScaleMidThreshold + mHeatScaleOffset, 0, 0, 1, 1 );
@@ -386,11 +421,13 @@ void LayerPropertyMRI::OnColorMapChanged ()
       mHeatScaleTable->AddRGBAPoint(  mHeatScaleMidThreshold + mHeatScaleOffset, 1, 0, 0, 1 );
       mHeatScaleTable->AddRGBAPoint(  mHeatScaleMaxThreshold + mHeatScaleOffset, 1, 1, 0, 1 );
       if ( m_bHeatScaleClearHigh )
+      {
         mHeatScaleTable->AddRGBAPoint(  mHeatScaleMaxThreshold + mHeatScaleOffset + tiny_fraction, 1, 1, 0, 0 );
+      }
     }
     mHeatScaleTable->Build();
-    break;   
-       
+    break;
+
   case Jet:
     mColorMapTable->RemoveAllPoints();
     mColorMapTable->AddRGBAPoint( qMin( 0.0, mMinGenericThreshold), 0, 0, 0, 0 );
@@ -405,12 +442,12 @@ void LayerPropertyMRI::OnColorMapChanged ()
 
   case GEColor:
     BuildGenericLUT( stock_ge_color );
-    break;  
-    
+    break;
+
   case NIH:
     BuildGenericLUT( stock_nih );
     break;
-      
+
   case LUT:
     break;
 
@@ -431,14 +468,14 @@ void LayerPropertyMRI::BuildGenericLUT( const int colors[256][3] )
     double stepsize = ( mMaxGenericThreshold - mMinGenericThreshold ) / 256;
     for ( int i = 0; i < 256; i++ )
     {
-      mColorMapTable->AddRGBAPoint( mMinGenericThreshold + stepsize*i, 
-                                    colors[i][0]/255.0, 
-                                    colors[i][1]/255.0, 
-                                    colors[i][2]/255.0, 
+      mColorMapTable->AddRGBAPoint( mMinGenericThreshold + stepsize*i,
+                                    colors[i][0]/255.0,
+                                    colors[i][1]/255.0,
+                                    colors[i][2]/255.0,
                                     1 );
     }
   }
-  mColorMapTable->Build();  
+  mColorMapTable->Build();
 }
 
 void LayerPropertyMRI::SetDisplayVector( bool b )
@@ -492,7 +529,9 @@ void LayerPropertyMRI::SetColorMap ( int iType )
   {
     mColorMapType = iType;
     if ( iType == LUT )
+    {
       SetUpSampleMethod( UM_None );
+    }
     this->OnColorMapChanged();
   }
 }
@@ -813,20 +852,26 @@ double LayerPropertyMRI::GetMaxValue()
 bool LayerPropertyMRI::UpdateValueRange( double dValue )
 {
   if ( mMinVoxelValue <= dValue && mMaxVoxelValue >= dValue )
+  {
     return false;
-  
+  }
+
   if ( mMinVoxelValue > dValue )
+  {
     mMinVoxelValue = dValue;
+  }
   else if ( mMaxVoxelValue < dValue )
+  {
     mMaxVoxelValue = dValue;
-  
+  }
+
   mMinVisibleValue = mMinVoxelValue - ( mMaxVoxelValue - mMinVoxelValue );
   mMaxVisibleValue = mMaxVoxelValue + ( mMaxVoxelValue - mMinVoxelValue );
   mWindowRange[0] = 0;
   mWindowRange[1] = (mMaxVoxelValue - mMinVoxelValue) * 2;
   mLevelRange[0] = mMinVoxelValue;
   mLevelRange[1] = mMaxVoxelValue;
-  
+
 //  this->OnColorMapChanged();
   return true;
 }
@@ -889,7 +934,7 @@ void LayerPropertyMRI::SetVolumeSource ( FSVolume* source )
     SetColorMap( LUT );
     SetLUTCTAB( source->GetEmbeddedColorTable() );
   }
-  
+
   // Set up our initial tables.
   this->OnColorMapChanged();
 }
@@ -991,7 +1036,7 @@ void LayerPropertyMRI::SetContourColor( double r, double g, double b )
   m_rgbContour[0] = r;
   m_rgbContour[1] = g;
   m_rgbContour[2] = b;
-  
+
   emit ContourColorChanged();
 }
 
@@ -1008,12 +1053,14 @@ void LayerPropertyMRI::SetContourUseImageColorMap( bool bFlag )
 void LayerPropertyMRI::SetShowLabelOutline( bool bOutline )
 {
   if ( bOutline )
+  {
     SetUpSampleMethod( 0 );
-  
+  }
+
   if ( m_bShowLabelOutline != bOutline )
   {
     m_bShowLabelOutline = bOutline;
-    
+
     emit LabelOutlineChanged( bOutline );
 
   }
@@ -1022,12 +1069,14 @@ void LayerPropertyMRI::SetShowLabelOutline( bool bOutline )
 void LayerPropertyMRI::SetUpSampleMethod( int nSampleMethod )
 {
   if ( nSampleMethod > 0 )
+  {
     this->SetShowLabelOutline( false );
-  
+  }
+
   if ( nSampleMethod != m_nUpSampleMethod )
   {
     m_nUpSampleMethod = nSampleMethod;
-    
+
     emit UpSampleMethodChanged( nSampleMethod );
 
   }

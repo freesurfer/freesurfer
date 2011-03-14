@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:57 $
- *    $Revision: 1.8 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.9 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -36,8 +35,8 @@
 #include <QDebug>
 
 Interactor3DMeasure::Interactor3DMeasure(QObject* parent) :
-    Interactor3D(parent),
-    m_bSelectRegion( false )
+  Interactor3D(parent),
+  m_bSelectRegion( false )
 {}
 
 Interactor3DMeasure::~Interactor3DMeasure()
@@ -53,7 +52,7 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
        (event->button() == Qt::LeftButton || ( event->button() == Qt::RightButton && (event->buttons() & Qt::LeftButton) ) ) )
 #else
   if ( m_nAction == MM_SurfaceRegion && !Interactor3D::IsInAction() &&
-           event->button() == Qt::LeftButton )
+       event->button() == Qt::LeftButton )
 #endif
   {
     if ( event->modifiers() & CONTROL_MODIFIER && !(event->modifiers() & Qt::ShiftModifier) )
@@ -80,12 +79,14 @@ bool Interactor3DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
       if ( mri && mri->GetCurrentSurfaceRegion() )
       {
         if ( mri->GetCurrentSurfaceRegion()->DeleteCell( view, event->x(), event->y() ) )
+        {
           view->RequestRedraw();
+        }
         return false;
       }
     }
   }
-   
+
   return ret;
 }
 
@@ -95,8 +96,8 @@ bool Interactor3DMeasure::ProcessMouseUpEvent( QMouseEvent* event, RenderView* r
 
   if ( m_bSelectRegion )
   {
-     view->CloseSelectRegion();
-     m_bSelectRegion = false;
+    view->CloseSelectRegion();
+    m_bSelectRegion = false;
   }
 
   return Interactor3D::ProcessMouseUpEvent( event, renderview );
@@ -127,14 +128,16 @@ bool Interactor3DMeasure::ProcessKeyDownEvent( QKeyEvent* event, RenderView* ren
     return false;
   }
   else
+  {
     return Interactor3D::ProcessKeyDownEvent( event, view );
+  }
 }
 
 void Interactor3DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
 {
-    if ( event->type() == QEvent::MouseButtonPress ||
-         event->type() == QEvent::MouseButtonRelease ||
-         event->type() == QEvent::MouseMove)
+  if ( event->type() == QEvent::MouseButtonPress ||
+       event->type() == QEvent::MouseButtonRelease ||
+       event->type() == QEvent::MouseMove)
   {
     QMouseEvent* e = ( QMouseEvent* )event;
 #ifdef Q_WS_MAC
@@ -164,23 +167,23 @@ void Interactor3DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
   else if ( event->type() == QEvent::KeyPress )
   {
     QKeyEvent* e = ( QKeyEvent* )&event;
-      if ( e->key() == CONTROL_KEY && !(e->modifiers() & Qt::ShiftModifier) )
-      {
-        wnd->setCursor( CursorFactory::CursorContour );
-        return;
-      }
-      else if ( ( e->key() == CONTROL_KEY && e->modifiers() & Qt::ShiftModifier ) ||
-                ( e->key() == Qt::Key_Shift && e->modifiers() & CONTROL_MODIFIER ) )
-      {
-        wnd->setCursor( CursorFactory::CursorAdd );
-        return;
-      }
-      else if ( e->key() == Qt::Key_Shift && !(e->modifiers() & CONTROL_MODIFIER) )
-      {
-        wnd->setCursor( CursorFactory::CursorRemove );
-        return;
-      }
+    if ( e->key() == CONTROL_KEY && !(e->modifiers() & Qt::ShiftModifier) )
+    {
+      wnd->setCursor( CursorFactory::CursorContour );
+      return;
+    }
+    else if ( ( e->key() == CONTROL_KEY && e->modifiers() & Qt::ShiftModifier ) ||
+              ( e->key() == Qt::Key_Shift && e->modifiers() & CONTROL_MODIFIER ) )
+    {
+      wnd->setCursor( CursorFactory::CursorAdd );
+      return;
+    }
+    else if ( e->key() == Qt::Key_Shift && !(e->modifiers() & CONTROL_MODIFIER) )
+    {
+      wnd->setCursor( CursorFactory::CursorRemove );
+      return;
+    }
   }
-  
+
   Interactor3D::UpdateCursor( event, wnd );
 }

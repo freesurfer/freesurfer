@@ -1,3 +1,26 @@
+/**
+ * @file  MainWindow.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.159 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 #include "MainWindow.h"
 #include "ui_MainWindow.h"
 #include "LayerMRI.h"
@@ -56,1073 +79,1159 @@
 #include "DialogWriteMovieFrames.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
-    QMainWindow( parent ),
-    ui(new Ui::MainWindow),
-    m_bResampleToRAS(false),
-    m_nDefaultSampleMethod( SAMPLE_NEAREST ),
-    m_bDefaultConform( false ),
-    m_layerVolumeRef( NULL ),
-    m_bScriptRunning(false),
-    m_bProcessing(false),
-    m_cmdParser(cmdParser)
+  QMainWindow( parent ),
+  ui(new Ui::MainWindow),
+  m_bResampleToRAS(false),
+  m_nDefaultSampleMethod( SAMPLE_NEAREST ),
+  m_bDefaultConform( false ),
+  m_layerVolumeRef( NULL ),
+  m_bScriptRunning(false),
+  m_bProcessing(false),
+  m_cmdParser(cmdParser)
 {
-    // must create layer collections first before setupui()
-    m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
-    m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
-    m_layerCollections["Surface"] = new LayerCollection( "Surface", this );
-    m_layerCollections["PointSet"] = new LayerCollection( "PointSet", this );
-    m_layerCollections["Track"] = new LayerCollection( "Track", this );
+  // must create layer collections first before setupui()
+  m_layerCollections["MRI"] = new LayerCollection( "MRI", this );
+  m_layerCollections["ROI"] = new LayerCollection( "ROI", this );
+  m_layerCollections["Surface"] = new LayerCollection( "Surface", this );
+  m_layerCollections["PointSet"] = new LayerCollection( "PointSet", this );
+  m_layerCollections["Track"] = new LayerCollection( "Track", this );
 
-    m_luts = new LUTDataHolder();
-    m_propertyBrush = new BrushProperty();
-    m_volumeCropper = new VolumeCropper( this );
-    connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)), this, SLOT(RequestRedraw()));
-    connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)),
-            m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));
+  m_luts = new LUTDataHolder();
+  m_propertyBrush = new BrushProperty();
+  m_volumeCropper = new VolumeCropper( this );
+  connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)), this, SLOT(RequestRedraw()));
+  connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)),
+          m_propertyBrush, SLOT(OnLayerRemoved(Layer*)));
 
-    ui->setupUi(this);
+  ui->setupUi(this);
 #ifndef DEVELOPMENT
-    ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
+  ui->tabWidgetControlPanel->removeTab(ui->tabWidgetControlPanel->indexOf(ui->tabTrack));
 #endif
 
-    m_statusBar = new FloatingStatusBar(this);
-    m_statusBar->hide();
+  m_statusBar = new FloatingStatusBar(this);
+  m_statusBar->hide();
 
-    ui->viewSagittal->SetViewPlane( 0 );
-    ui->viewCoronal ->SetViewPlane( 1 );
-    ui->viewAxial   ->SetViewPlane( 2 );
-    ui->viewSagittal->SetFocusFrameColor( 1, 0, 0 );
-    ui->viewCoronal ->SetFocusFrameColor( 0, 1, 0 );
-    ui->viewAxial   ->SetFocusFrameColor( 0, 0, 1 );
-    m_views[0] = ui->viewSagittal;
-    m_views[1] = ui->viewCoronal;
-    m_views[2] = ui->viewAxial;
-    m_views[3] = ui->view3D;
-    m_nMainView = MV_Sagittal;
-    m_nViewLayout = VL_2x2;
+  ui->viewSagittal->SetViewPlane( 0 );
+  ui->viewCoronal ->SetViewPlane( 1 );
+  ui->viewAxial   ->SetViewPlane( 2 );
+  ui->viewSagittal->SetFocusFrameColor( 1, 0, 0 );
+  ui->viewCoronal ->SetFocusFrameColor( 0, 1, 0 );
+  ui->viewAxial   ->SetFocusFrameColor( 0, 0, 1 );
+  m_views[0] = ui->viewSagittal;
+  m_views[1] = ui->viewCoronal;
+  m_views[2] = ui->viewAxial;
+  m_views[3] = ui->view3D;
+  m_nMainView = MV_Sagittal;
+  m_nViewLayout = VL_2x2;
 
-    m_toolWindowMeasure = new ToolWindowMeasure( this );
-    m_toolWindowMeasure->hide();
-    m_toolWindowEdit = new ToolWindowEdit( this );
-    m_toolWindowEdit->hide();
+  m_toolWindowMeasure = new ToolWindowMeasure( this );
+  m_toolWindowMeasure->hide();
+  m_toolWindowEdit = new ToolWindowEdit( this );
+  m_toolWindowEdit->hide();
 
-    m_toolWindowROIEdit = new ToolWindowROIEdit( this );
-    m_toolWindowROIEdit->hide();
+  m_toolWindowROIEdit = new ToolWindowROIEdit( this );
+  m_toolWindowROIEdit->hide();
 
-    m_dlgTransformVolume = new DialogTransformVolume( this );
-    m_dlgTransformVolume->hide();
+  m_dlgTransformVolume = new DialogTransformVolume( this );
+  m_dlgTransformVolume->hide();
 
-    m_dlgCropVolume = new DialogCropVolume(this);
-    m_dlgCropVolume->hide();
-    connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)),
-            m_dlgCropVolume, SLOT(OnCropBoundChanged(LayerMRI*)));
-    connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)),
-            m_dlgCropVolume, SLOT(OnLayerRemoved(Layer*)));
-    m_dlgSaveScreenshot = NULL;
-    m_dlgPreferences = NULL;
+  m_dlgCropVolume = new DialogCropVolume(this);
+  m_dlgCropVolume->hide();
+  connect(m_volumeCropper, SIGNAL(CropBoundChanged(LayerMRI*)),
+          m_dlgCropVolume, SLOT(OnCropBoundChanged(LayerMRI*)));
+  connect(m_layerCollections["MRI"], SIGNAL(LayerRemoved(Layer*)),
+          m_dlgCropVolume, SLOT(OnLayerRemoved(Layer*)));
+  m_dlgSaveScreenshot = NULL;
+  m_dlgPreferences = NULL;
 
-    m_wndQuickRef = new WindowQuickReference(this);
-    m_wndQuickRef->hide();
+  m_wndQuickRef = new WindowQuickReference(this);
+  m_wndQuickRef->hide();
 
-    m_dlgWriteMovieFrames = new DialogWriteMovieFrames(this);
-    m_dlgWriteMovieFrames->hide();
-    connect(m_dlgWriteMovieFrames, SIGNAL(Started()),
-            m_statusBar, SLOT(ShowProgress()));
-    connect(m_dlgWriteMovieFrames, SIGNAL(Stopped()),
-            m_statusBar, SLOT(HideProgress()));
-    connect(m_dlgWriteMovieFrames, SIGNAL(Progress(int)),
-            m_statusBar, SLOT(SetProgress(int)));
+  m_dlgWriteMovieFrames = new DialogWriteMovieFrames(this);
+  m_dlgWriteMovieFrames->hide();
+  connect(m_dlgWriteMovieFrames, SIGNAL(Started()),
+          m_statusBar, SLOT(ShowProgress()));
+  connect(m_dlgWriteMovieFrames, SIGNAL(Stopped()),
+          m_statusBar, SLOT(HideProgress()));
+  connect(m_dlgWriteMovieFrames, SIGNAL(Progress(int)),
+          m_statusBar, SLOT(SetProgress(int)));
 
-    m_term = new TermWidget(this);
-    m_term->hide();
-    connect(ui->actionShowCommandConsole, SIGNAL(toggled(bool)),
-            m_term, SLOT(setVisible(bool)));
-    connect(ui->actionRunCommand, SIGNAL(triggered()),
-            m_term, SLOT(show()));
+  m_term = new TermWidget(this);
+  m_term->hide();
+  connect(ui->actionShowCommandConsole, SIGNAL(toggled(bool)),
+          m_term, SLOT(setVisible(bool)));
+  connect(ui->actionRunCommand, SIGNAL(triggered()),
+          m_term, SLOT(show()));
 
-    QStringList keys = m_layerCollections.keys();
-    for ( int i = 0; i < keys.size(); i++ )
+  QStringList keys = m_layerCollections.keys();
+  for ( int i = 0; i < keys.size(); i++ )
+  {
+    for ( int j = 0; j < 4; j++ )
     {
-        for ( int j = 0; j < 4; j++ )
-        {
-            connect( m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
-                     m_views[j], SLOT(RefreshAllActors()) );
-            connect( m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
-                     m_views[j], SLOT(RefreshAllActors()) );
-            connect( m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
-                     m_views[j], SLOT(RefreshAllActors()) );
-            connect( m_layerCollections[keys[i]], SIGNAL(LayerActorChanged()),
-                     m_views[j], SLOT(RefreshAllActors()) );
-            connect( m_layerCollections[keys[i]], SIGNAL(LayerActorUpdated()),
-                     m_views[j], SLOT(RequestRedraw()) );
+      connect( m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
+               m_views[j], SLOT(RefreshAllActors()) );
+      connect( m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
+               m_views[j], SLOT(RefreshAllActors()) );
+      connect( m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
+               m_views[j], SLOT(RefreshAllActors()) );
+      connect( m_layerCollections[keys[i]], SIGNAL(LayerActorChanged()),
+               m_views[j], SLOT(RefreshAllActors()) );
+      connect( m_layerCollections[keys[i]], SIGNAL(LayerActorUpdated()),
+               m_views[j], SLOT(RequestRedraw()) );
 
-            // 2D view only
-            if ( j < 3 )
-            {
-              connect( m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
-                     m_views[j], SLOT(UpdateAnnotation()) );
-              connect( m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
-                     m_views[j], SLOT(UpdateAnnotation()) );
-            }
-            // 3D view only
-            else
-            {
-                connect( m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
-                         m_views[j], SLOT(UpdateBounds()) );
-                connect( m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
-                         m_views[j], SLOT(UpdateBounds()) );
-            }
-        }
-        connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
-                ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
-        connect(m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
-                ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
-        connect(m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
-                ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
-
-        connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
-                ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
-        connect(m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
-                ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
-        connect(m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
-                ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
-
-        connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
-                this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
+      // 2D view only
+      if ( j < 3 )
+      {
+        connect( m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
+                 m_views[j], SLOT(UpdateAnnotation()) );
+        connect( m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
+                 m_views[j], SLOT(UpdateAnnotation()) );
+      }
+      // 3D view only
+      else
+      {
+        connect( m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
+                 m_views[j], SLOT(UpdateBounds()) );
+        connect( m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
+                 m_views[j], SLOT(UpdateBounds()) );
+      }
     }
-    for ( int i = 0; i < 4; i++ )
-    {
-      connect( this, SIGNAL(SlicePositionChanged()), m_views[i], SLOT(OnSlicePositionChanged()) );
-    }
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
+            ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
+            ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
+            ui->treeWidgetCursorInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
 
-    QActionGroup* actionGroupMode = new QActionGroup( this );
-    actionGroupMode->addAction( ui->actionNavigate );
-    actionGroupMode->addAction( ui->actionMeasure );
-    actionGroupMode->addAction( ui->actionVoxelEdit );
-    actionGroupMode->addAction( ui->actionROIEdit );
-    actionGroupMode->addAction( ui->actionPointSetEdit );
-    actionGroupMode->setExclusive( true );
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerAdded(Layer*)),
+            ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerRemoved(Layer*)),
+            ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
+    connect(m_layerCollections[keys[i]], SIGNAL(LayerMoved(Layer*)),
+            ui->treeWidgetMouseInfo, SLOT(UpdateAll()), Qt::QueuedConnection);
 
-    QActionGroup* actionGroupView = new QActionGroup( this );
-    actionGroupView->addAction( ui->actionViewAxial );
-    actionGroupView->addAction( ui->actionViewSagittal );
-    actionGroupView->addAction( ui->actionViewCoronal );
-    actionGroupView->addAction( ui->actionView3D );
-    actionGroupView->setExclusive( true );
+    connect(m_layerCollections[keys[i]], SIGNAL(ActiveLayerChanged(Layer*)),
+            this, SLOT(OnActiveLayerChanged(Layer*)), Qt::QueuedConnection);
+  }
+  for ( int i = 0; i < 4; i++ )
+  {
+    connect( this, SIGNAL(SlicePositionChanged()), m_views[i], SLOT(OnSlicePositionChanged()) );
+  }
 
-    QActionGroup* actionGroupLayout = new QActionGroup( this );
-    actionGroupLayout->addAction( ui->actionLayout1x1 );
-    actionGroupLayout->addAction( ui->actionLayout2x2 );
-    actionGroupLayout->addAction( ui->actionLayout1n3 );
-    actionGroupLayout->addAction( ui->actionLayout1n3h );
-    actionGroupLayout->setExclusive( true );
+  QActionGroup* actionGroupMode = new QActionGroup( this );
+  actionGroupMode->addAction( ui->actionNavigate );
+  actionGroupMode->addAction( ui->actionMeasure );
+  actionGroupMode->addAction( ui->actionVoxelEdit );
+  actionGroupMode->addAction( ui->actionROIEdit );
+  actionGroupMode->addAction( ui->actionPointSetEdit );
+  actionGroupMode->setExclusive( true );
 
-    for ( int i = 0; i < MAX_RECENT_FILES; i++ )
-    {
-        QAction* act = new QAction( this );
-        act->setVisible(false);
-        connect( act, SIGNAL(triggered()),
-                this, SLOT(OnRecentVolumeFile()) );
-        m_actionRecentVolumes << act;
-        act = new QAction( this );
-        act->setVisible(false);
-        connect( act, SIGNAL(triggered()),
-                this, SLOT(OnRecentSurfaceFile()) );
-        m_actionRecentSurfaces << act;
-    }
-    ui->menuRecentFiles->insertActions( ui->actionSurfaces, m_actionRecentVolumes );
-    ui->menuRecentFiles->insertActions( 0, m_actionRecentSurfaces );
-    UpdateRecentFileActions();
+  QActionGroup* actionGroupView = new QActionGroup( this );
+  actionGroupView->addAction( ui->actionViewAxial );
+  actionGroupView->addAction( ui->actionViewSagittal );
+  actionGroupView->addAction( ui->actionViewCoronal );
+  actionGroupView->addAction( ui->actionView3D );
+  actionGroupView->setExclusive( true );
 
-    connect( actionGroupView, SIGNAL( triggered(QAction*) ),
-             this, SLOT(OnSetMainView(QAction*)), Qt::QueuedConnection );
-    connect( actionGroupLayout, SIGNAL( triggered(QAction*) ),
-             this, SLOT(OnSetViewLayout(QAction*)), Qt::QueuedConnection );
+  QActionGroup* actionGroupLayout = new QActionGroup( this );
+  actionGroupLayout->addAction( ui->actionLayout1x1 );
+  actionGroupLayout->addAction( ui->actionLayout2x2 );
+  actionGroupLayout->addAction( ui->actionLayout1n3 );
+  actionGroupLayout->addAction( ui->actionLayout1n3h );
+  actionGroupLayout->setExclusive( true );
 
-    connect( ui->actionQuickReference, SIGNAL(triggered()), this->m_wndQuickRef, SLOT(show()));
-    connect( ui->actionShowSlices, SIGNAL(toggled(bool)),
-             this->ui->view3D, SLOT(SetShowSlices(bool)));
+  for ( int i = 0; i < MAX_RECENT_FILES; i++ )
+  {
+    QAction* act = new QAction( this );
+    act->setVisible(false);
+    connect( act, SIGNAL(triggered()),
+             this, SLOT(OnRecentVolumeFile()) );
+    m_actionRecentVolumes << act;
+    act = new QAction( this );
+    act->setVisible(false);
+    connect( act, SIGNAL(triggered()),
+             this, SLOT(OnRecentSurfaceFile()) );
+    m_actionRecentSurfaces << act;
+  }
+  ui->menuRecentFiles->insertActions( ui->actionSurfaces, m_actionRecentVolumes );
+  ui->menuRecentFiles->insertActions( 0, m_actionRecentSurfaces );
+  UpdateRecentFileActions();
 
-    m_threadIOWorker = new ThreadIOWorker( this );
-    connect( m_threadIOWorker, SIGNAL(Error(Layer*, int)), this, SLOT(OnIOError(Layer*, int)), Qt::QueuedConnection );
-    connect( m_threadIOWorker, SIGNAL(Finished(Layer*, int )), this, SLOT(OnIOFinished(Layer*, int)) );
-    connect( m_threadIOWorker, SIGNAL(started()), this, SLOT(SetProcessing()));
+  connect( actionGroupView, SIGNAL( triggered(QAction*) ),
+           this, SLOT(OnSetMainView(QAction*)), Qt::QueuedConnection );
+  connect( actionGroupLayout, SIGNAL( triggered(QAction*) ),
+           this, SLOT(OnSetViewLayout(QAction*)), Qt::QueuedConnection );
 
-    connect( m_threadIOWorker, SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)) );
-    connect( m_threadIOWorker, SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
-    connect( m_threadIOWorker, SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
+  connect( ui->actionQuickReference, SIGNAL(triggered()), this->m_wndQuickRef, SLOT(show()));
+  connect( ui->actionShowSlices, SIGNAL(toggled(bool)),
+           this->ui->view3D, SLOT(SetShowSlices(bool)));
 
-    connect(this, SIGNAL(SlicePositionChanged()),
-            ui->treeWidgetCursorInfo, SLOT(OnCursorPositionChanged()), Qt::QueuedConnection);
-    connect(ui->treeWidgetCursorInfo, SIGNAL(RASChangeTriggered(double,double,double)),
-            this, SLOT(SetSlicePosition(double,double,double)));
-    connect(m_layerCollections["MRI"], SIGNAL(MouseRASPositionChanged()),
-            ui->treeWidgetMouseInfo, SLOT(OnMousePositionChanged()), Qt::QueuedConnection);
-    connect(ui->treeWidgetMouseInfo, SIGNAL(RASChangeTriggered(double,double,double)),
-            m_layerCollections["MRI"], SLOT(SetMouseRASPosition(double,double,double)));
+  m_threadIOWorker = new ThreadIOWorker( this );
+  connect( m_threadIOWorker, SIGNAL(Error(Layer*, int)), this, SLOT(OnIOError(Layer*, int)), Qt::QueuedConnection );
+  connect( m_threadIOWorker, SIGNAL(Finished(Layer*, int )), this, SLOT(OnIOFinished(Layer*, int)) );
+  connect( m_threadIOWorker, SIGNAL(started()), this, SLOT(SetProcessing()));
 
-    this->LoadSettings();
+  connect( m_threadIOWorker, SIGNAL(Progress(int)), m_statusBar, SLOT(SetProgress(int)) );
+  connect( m_threadIOWorker, SIGNAL(started()), m_statusBar, SLOT(ShowProgress()));
+  connect( m_threadIOWorker, SIGNAL(finished()), m_statusBar, SLOT(HideProgress()));
 
-    // timer served as idle loop to update action status
-    QTimer* timer = new QTimer( this );
-    connect( timer, SIGNAL( timeout() ), this, SLOT( OnIdle() ), Qt::QueuedConnection );
-    timer->start( 500 );
+  connect(this, SIGNAL(SlicePositionChanged()),
+          ui->treeWidgetCursorInfo, SLOT(OnCursorPositionChanged()), Qt::QueuedConnection);
+  connect(ui->treeWidgetCursorInfo, SIGNAL(RASChangeTriggered(double,double,double)),
+          this, SLOT(SetSlicePosition(double,double,double)));
+  connect(m_layerCollections["MRI"], SIGNAL(MouseRASPositionChanged()),
+          ui->treeWidgetMouseInfo, SLOT(OnMousePositionChanged()), Qt::QueuedConnection);
+  connect(ui->treeWidgetMouseInfo, SIGNAL(RASChangeTriggered(double,double,double)),
+          m_layerCollections["MRI"], SLOT(SetMouseRASPosition(double,double,double)));
+
+  this->LoadSettings();
+
+  // timer served as idle loop to update action status
+  QTimer* timer = new QTimer( this );
+  connect( timer, SIGNAL( timeout() ), this, SLOT( OnIdle() ), Qt::QueuedConnection );
+  timer->start( 500 );
 }
 
 MainWindow::~MainWindow()
 {
-    delete m_propertyBrush;
-    delete m_luts;
+  delete m_propertyBrush;
+  delete m_luts;
 }
 
 MainWindow* MainWindow::GetMainWindow()
 {
-    foreach ( QWidget* w, QApplication::topLevelWidgets() )
+  foreach ( QWidget* w, QApplication::topLevelWidgets() )
+  {
+    if ( w->objectName() == "MainWindow" )
     {
-        if ( w->objectName() == "MainWindow" )
-            return (MainWindow*)w;
+      return (MainWindow*)w;
     }
-    return NULL;
+  }
+  return NULL;
 }
 
 void MainWindow::LoadSettings()
 {
-    QSettings settings;
-    restoreGeometry ( settings.value("MainWindow/Geometry").toByteArray() );
-    restoreState    ( settings.value("MainWindow/WindowState").toByteArray() );
-    ui->splitterMain->restoreState( settings.value("MainWindow/SplitterState").toByteArray() );
-    ui->splitterInfoPanel->restoreState( settings.value("InfoPanel/SplitterState").toByteArray() );
-    SetViewLayout( settings.value( "MainWindow/ViewLayout", VL_2x2 ).toInt() );
-    SetMainView( settings.value( "MainWindow/MainView", MV_Sagittal ).toInt() );
-    m_strLastDir = settings.value( "MainWindow/LastDir").toString();
-    m_settingsScreenshot.Magnification = settings.value("ScreenShot/Magnification", 1).toInt();
-    m_settingsScreenshot.AntiAliasing = settings.value("ScreenShot/AntiAliasing", false).toBool();
-    m_settingsScreenshot.HideCoords = settings.value("ScreenShot/HideAnnotation", true).toBool();
-    m_settingsScreenshot.HideCursor = settings.value("ScreenShot/HideCursor", true).toBool();
-    m_settings = settings.value("Settings/General").toMap();
-    if (!m_settings.contains("SaveCopy"))
-        m_settings["SaveCopy"] = true;
-    if (!m_settings.contains("BackgroundColor"))
-        m_settings["BackgroundColor"] = Qt::black;
-    if (!m_settings.contains("CursorColor"))
-        m_settings["CursorColor"] = Qt::red;
-    if (!m_settings.contains("CursorStyle"))
-        m_settings["CursorStyle"] = 0;
-    if (!m_settings.contains("SyncZoom"))
-        m_settings["SyncZoom"] = true;
-    if (!m_settings.contains("MacUseCommand"))
-        m_settings["MacUseCommand"] = false;
-    if (!m_settings.contains("MacUnifiedTitleBar"))
-        m_settings["MacUnifiedTitleBar"] = false;
-    if (!m_settings.contains("DarkConsole"))
-        m_settings["DarkConsole"] = true;
+  QSettings settings;
+  restoreGeometry ( settings.value("MainWindow/Geometry").toByteArray() );
+  restoreState    ( settings.value("MainWindow/WindowState").toByteArray() );
+  ui->splitterMain->restoreState( settings.value("MainWindow/SplitterState").toByteArray() );
+  ui->splitterInfoPanel->restoreState( settings.value("InfoPanel/SplitterState").toByteArray() );
+  SetViewLayout( settings.value( "MainWindow/ViewLayout", VL_2x2 ).toInt() );
+  SetMainView( settings.value( "MainWindow/MainView", MV_Sagittal ).toInt() );
+  m_strLastDir = settings.value( "MainWindow/LastDir").toString();
+  m_settingsScreenshot.Magnification = settings.value("ScreenShot/Magnification", 1).toInt();
+  m_settingsScreenshot.AntiAliasing = settings.value("ScreenShot/AntiAliasing", false).toBool();
+  m_settingsScreenshot.HideCoords = settings.value("ScreenShot/HideAnnotation", true).toBool();
+  m_settingsScreenshot.HideCursor = settings.value("ScreenShot/HideCursor", true).toBool();
+  m_settings = settings.value("Settings/General").toMap();
+  if (!m_settings.contains("SaveCopy"))
+  {
+    m_settings["SaveCopy"] = true;
+  }
+  if (!m_settings.contains("BackgroundColor"))
+  {
+    m_settings["BackgroundColor"] = Qt::black;
+  }
+  if (!m_settings.contains("CursorColor"))
+  {
+    m_settings["CursorColor"] = Qt::red;
+  }
+  if (!m_settings.contains("CursorStyle"))
+  {
+    m_settings["CursorStyle"] = 0;
+  }
+  if (!m_settings.contains("SyncZoom"))
+  {
+    m_settings["SyncZoom"] = true;
+  }
+  if (!m_settings.contains("MacUseCommand"))
+  {
+    m_settings["MacUseCommand"] = false;
+  }
+  if (!m_settings.contains("MacUnifiedTitleBar"))
+  {
+    m_settings["MacUnifiedTitleBar"] = false;
+  }
+  if (!m_settings.contains("DarkConsole"))
+  {
+    m_settings["DarkConsole"] = true;
+  }
 
-    for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 4; i++)
+  {
+    m_views[i]->SetBackgroundColor(m_settings["BackgroundColor"].value<QColor>());
+    if ( i < 3 )
     {
-        m_views[i]->SetBackgroundColor(m_settings["BackgroundColor"].value<QColor>());
-        if ( i < 3 )
-        {
-            ((RenderView2D*)m_views[i])->GetCursor2D()->SetColor(m_settings["CursorColor"].value<QColor>());
-            ((RenderView2D*)m_views[i])->GetCursor2D()->SetStyle(m_settings["CursorStyle"].toInt());
-        }
-        else
-            ((RenderView3D*)m_views[i])->GetCursor3D()->SetColor(m_settings["CursorColor"].value<QColor>());
+      ((RenderView2D*)m_views[i])->GetCursor2D()->SetColor(m_settings["CursorColor"].value<QColor>());
+      ((RenderView2D*)m_views[i])->GetCursor2D()->SetStyle(m_settings["CursorStyle"].toInt());
     }
-    SyncZoom(m_settings["SyncZoom"].toBool());
-    m_term->SetDarkTheme(m_settings["DarkConsole"].toBool());
+    else
+    {
+      ((RenderView3D*)m_views[i])->GetCursor3D()->SetColor(m_settings["CursorColor"].value<QColor>());
+    }
+  }
+  SyncZoom(m_settings["SyncZoom"].toBool());
+  m_term->SetDarkTheme(m_settings["DarkConsole"].toBool());
 
-    // restore panel order from last time
-    QStringList tabs = settings.value("ControlPanel/TabOrder").toStringList();
-    if ( tabs.size() == ui->tabWidgetControlPanel->count())
+  // restore panel order from last time
+  QStringList tabs = settings.value("ControlPanel/TabOrder").toStringList();
+  if ( tabs.size() == ui->tabWidgetControlPanel->count())
+  {
+    QMap<QWidget*, QString> tabWidgets;
+    for (int i = 0; i < ui->tabWidgetControlPanel->count(); i++)
     {
-        QMap<QWidget*, QString> tabWidgets;
-        for (int i = 0; i < ui->tabWidgetControlPanel->count(); i++)
-            tabWidgets[ui->tabWidgetControlPanel->widget(i)] = ui->tabWidgetControlPanel->tabText(i);
-        ui->tabWidgetControlPanel->clear();
-        for (int i = 0; i < tabs.size(); i++)
-        {
-            QWidget* w = this->findChild<QWidget*>(tabs[i]);
-            if (w && tabWidgets.contains(w))
-                ui->tabWidgetControlPanel->addTab(w, tabWidgets[w]);
-        }
-        // double-check if any stock widgets were left unattached mistakenly
-        // (should not happen unless lightening strikes and configure file messes up)
-        QList<QWidget*> keys = tabWidgets.keys();
-        for (int i = 0; i < keys.size(); i++)
-        {
-            if (ui->tabWidgetControlPanel->indexOf(keys[i]) < 0)
-                ui->tabWidgetControlPanel->addTab(keys[i], tabWidgets[keys[i]]);
-        }
+      tabWidgets[ui->tabWidgetControlPanel->widget(i)] = ui->tabWidgetControlPanel->tabText(i);
     }
-    ui->tabWidgetControlPanel->setCurrentIndex(0);
+    ui->tabWidgetControlPanel->clear();
+    for (int i = 0; i < tabs.size(); i++)
+    {
+      QWidget* w = this->findChild<QWidget*>(tabs[i]);
+      if (w && tabWidgets.contains(w))
+      {
+        ui->tabWidgetControlPanel->addTab(w, tabWidgets[w]);
+      }
+    }
+    // double-check if any stock widgets were left unattached mistakenly
+    // (should not happen unless lightening strikes and configure file messes up)
+    QList<QWidget*> keys = tabWidgets.keys();
+    for (int i = 0; i < keys.size(); i++)
+    {
+      if (ui->tabWidgetControlPanel->indexOf(keys[i]) < 0)
+      {
+        ui->tabWidgetControlPanel->addTab(keys[i], tabWidgets[keys[i]]);
+      }
+    }
+  }
+  ui->tabWidgetControlPanel->setCurrentIndex(0);
 
 #ifdef Q_WS_MAC
-    this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
-    this->SetUseCommandControl(m_settings["MacUseCommand"].toBool());
+  this->SetUnifiedTitleAndToolBar(m_settings["MacUnifiedTitleBar"].toBool());
+  this->SetUseCommandControl(m_settings["MacUseCommand"].toBool());
 #endif
 }
 
 void MainWindow::SaveSettings()
 {
-    QSettings settings;
-    settings.setValue( "MainWindow/Geometry",       saveGeometry() );
-    settings.setValue( "MainWindow/WindowState",    saveState() );
-    settings.setValue( "MainWindow/SplitterState",  ui->splitterMain->saveState() );
-    settings.setValue( "InfoPanel/SplitterState",   ui->splitterInfoPanel->saveState() );
-    settings.setValue( "MainWindow/MainView",       this->m_nMainView );
-    settings.setValue( "MainWindow/ViewLayout",     this->m_nViewLayout);
-    settings.setValue( "MainWindow/LastDir",        m_strLastDir );
-    if (m_dlgSaveScreenshot)
-    {
-        SettingsScreenshot s = m_dlgSaveScreenshot->GetSettings();
-        settings.setValue("ScreenShot/Magnification", s.Magnification);
-        settings.setValue("ScreenShot/AntiAliasing", s.AntiAliasing);
-        settings.setValue("ScreenShot/HideAnnotation", s.HideCoords);
-        settings.setValue("ScreenShot/HideCursor", s.HideCursor);
-    }
-    if (m_dlgPreferences)
-    {
-        settings.setValue("Settings/General", m_dlgPreferences->GetSettings());
-    }
-    QStringList tabs;
-    for (int i = 0; i < ui->tabWidgetControlPanel->count(); i++)
-        tabs << ui->tabWidgetControlPanel->widget(i)->objectName();
-    settings.setValue("ControlPanel/TabOrder", tabs);
+  QSettings settings;
+  settings.setValue( "MainWindow/Geometry",       saveGeometry() );
+  settings.setValue( "MainWindow/WindowState",    saveState() );
+  settings.setValue( "MainWindow/SplitterState",  ui->splitterMain->saveState() );
+  settings.setValue( "InfoPanel/SplitterState",   ui->splitterInfoPanel->saveState() );
+  settings.setValue( "MainWindow/MainView",       this->m_nMainView );
+  settings.setValue( "MainWindow/ViewLayout",     this->m_nViewLayout);
+  settings.setValue( "MainWindow/LastDir",        m_strLastDir );
+  if (m_dlgSaveScreenshot)
+  {
+    SettingsScreenshot s = m_dlgSaveScreenshot->GetSettings();
+    settings.setValue("ScreenShot/Magnification", s.Magnification);
+    settings.setValue("ScreenShot/AntiAliasing", s.AntiAliasing);
+    settings.setValue("ScreenShot/HideAnnotation", s.HideCoords);
+    settings.setValue("ScreenShot/HideCursor", s.HideCursor);
+  }
+  if (m_dlgPreferences)
+  {
+    settings.setValue("Settings/General", m_dlgPreferences->GetSettings());
+  }
+  QStringList tabs;
+  for (int i = 0; i < ui->tabWidgetControlPanel->count(); i++)
+  {
+    tabs << ui->tabWidgetControlPanel->widget(i)->objectName();
+  }
+  settings.setValue("ControlPanel/TabOrder", tabs);
 }
 
 void MainWindow::closeEvent( QCloseEvent * event )
 {
-    if (this->IsBusy())
+  if (this->IsBusy())
+  {
+    if (QMessageBox::question(this, "Warning",
+                              "There is on-going data processing. If you force quit, any data that is being saved can be lost. Do you really want to force quit?",
+                              QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No)
     {
-        if (QMessageBox::question(this, "Warning",
-                                  "There is on-going data processing. If you force quit, any data that is being saved can be lost. Do you really want to force quit?",
-                                  QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No)
-        {
-            event->ignore();
-            return;
-        }
+      event->ignore();
+      return;
     }
+  }
 
-    QList<LayerEditable*> layers;
-    QStringList keys = m_layerCollections.keys();
-    for ( int i = 0; i < keys.size(); i++ )
+  QList<LayerEditable*> layers;
+  QStringList keys = m_layerCollections.keys();
+  for ( int i = 0; i < keys.size(); i++ )
+  {
+    for ( int j = 0; j < m_layerCollections[keys[i]]->GetNumberOfLayers(); j++ )
     {
-        for ( int j = 0; j < m_layerCollections[keys[i]]->GetNumberOfLayers(); j++ )
-        {
-            LayerEditable* layer = qobject_cast<LayerEditable*>(m_layerCollections[keys[i]]->GetLayer(j));
-            if ( layer && layer->IsModified() )
-                layers << layer;
-        }
+      LayerEditable* layer = qobject_cast<LayerEditable*>(m_layerCollections[keys[i]]->GetLayer(j));
+      if ( layer && layer->IsModified() )
+      {
+        layers << layer;
+      }
     }
-    if ( !layers.isEmpty() )
+  }
+  if ( !layers.isEmpty() )
+  {
+    QString msg = "The following layers have been modified but not saved:\n\n";
+    for (int i = 0; i < layers.size(); i++)
     {
-        QString msg = "The following layers have been modified but not saved:\n\n";
-        for (int i = 0; i < layers.size(); i++)
-            msg += layers[i]->GetName() + " (" + layers[i]->GetFileName() + ")\n";
-        msg += "\nDo you still want to quit?";
-        if ( QMessageBox::question( this, "Warning", msg, QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
-        {
-            event->ignore();
-            return;
-        }
+      msg += layers[i]->GetName() + " (" + layers[i]->GetFileName() + ")\n";
     }
+    msg += "\nDo you still want to quit?";
+    if ( QMessageBox::question( this, "Warning", msg, QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
+    {
+      event->ignore();
+      return;
+    }
+  }
 
-    SaveSettings();
-    QMainWindow::closeEvent( event );
+  SaveSettings();
+  QMainWindow::closeEvent( event );
 }
 
 void MainWindow::ReassureGeometry()
 {
-    // hack to reassure X11 geometry
-    if (pos() == QPoint(0,0))
-        move(m_ptBackUpPos);
+  // hack to reassure X11 geometry
+  if (pos() == QPoint(0,0))
+  {
+    move(m_ptBackUpPos);
+  }
 }
 
 void MainWindow::showEvent(QShowEvent *event)
 {
-    QMainWindow::showEvent(event);
+  QMainWindow::showEvent(event);
 #ifdef Q_WS_X11
-    m_ptBackUpPos = this->pos();
-    QTimer::singleShot(500, this, SLOT(ReassureGeometry()));
+  m_ptBackUpPos = this->pos();
+  QTimer::singleShot(500, this, SLOT(ReassureGeometry()));
 #endif
 }
 
 void MainWindow::resizeEvent(QResizeEvent *event)
 {
-    if (m_statusBar->isVisible())
-        m_statusBar->Reposition();
+  if (m_statusBar->isVisible())
+  {
+    m_statusBar->Reposition();
+  }
 
-    QMainWindow::resizeEvent(event);
+  QMainWindow::resizeEvent(event);
 }
 
 void MainWindow::moveEvent(QMoveEvent *event)
 {
-    if (m_statusBar->isVisible())
-        m_statusBar->Reposition();
+  if (m_statusBar->isVisible())
+  {
+    m_statusBar->Reposition();
+  }
 
-    QMainWindow::moveEvent(event);
+  QMainWindow::moveEvent(event);
 }
 
 bool MainWindow::ParseCommand(int argc, char *argv[], bool bAutoQuit)
 {
-    return (m_cmdParser->Parse(argc, argv) &&
-        DoParseCommand(bAutoQuit));
+  return (m_cmdParser->Parse(argc, argv) &&
+          DoParseCommand(bAutoQuit));
 }
 
 bool MainWindow::ParseCommand(const QString& cmd, bool bAutoQuit)
 {
-    QString strg = cmd;
-    strg.replace("~", QDir::homePath());
-    return (m_cmdParser->Parse(strg) &&
-            DoParseCommand(bAutoQuit));
+  QString strg = cmd;
+  strg.replace("~", QDir::homePath());
+  return (m_cmdParser->Parse(strg) &&
+          DoParseCommand(bAutoQuit));
 }
 
 bool MainWindow::DoParseCommand(bool bAutoQuit)
 {
-    QStringList sa;
-    QStringList floatingArgs;
-    string_array tmp_ar = m_cmdParser->GetFloatingArguments();
-    for ( size_t i = 0; i < tmp_ar.size(); i++)
-        floatingArgs << tmp_ar[i].c_str();
+  QStringList sa;
+  QStringList floatingArgs;
+  string_array tmp_ar = m_cmdParser->GetFloatingArguments();
+  for ( size_t i = 0; i < tmp_ar.size(); i++)
+  {
+    floatingArgs << tmp_ar[i].c_str();
+  }
 
-    if ( m_cmdParser->Found("cmd", &sa))
+  if ( m_cmdParser->Found("cmd", &sa))
+  {
+    this->AddScript( QString("loadcommand ") + sa[0]);
+  }
+  if ( m_cmdParser->Found( "trilinear" ) )
+  {
+    this->SetDefaultSampleMethod( SAMPLE_TRILINEAR );
+  }
+  if ( m_cmdParser->Found( "conform" ) )
+  {
+    this->SetDefaultConform( true );
+  }
+  if ( m_cmdParser->Found( "viewport", &sa ) )
+  {
+    QString strg = sa[0].toLower();
+    QString script = "setviewport ";
+    if ( strg == "sagittal" || strg == "x" )
     {
-      this->AddScript( QString("loadcommand ") + sa[0]);
+      script += "x";
     }
-    if ( m_cmdParser->Found( "trilinear" ) )
+    else if ( strg == "coronal" || strg == "y" )
     {
-      this->SetDefaultSampleMethod( SAMPLE_TRILINEAR );
+      script += "y";
     }
-    if ( m_cmdParser->Found( "conform" ) )
+    else if ( strg == "axial" || strg == "z" )
     {
-      this->SetDefaultConform( true );
+      script += "z";
     }
-    if ( m_cmdParser->Found( "viewport", &sa ) )
+    else if ( strg == "3d" )
     {
-      QString strg = sa[0].toLower();
-      QString script = "setviewport ";
-      if ( strg == "sagittal" || strg == "x" )
-        script += "x";
-      else if ( strg == "coronal" || strg == "y" )
-        script += "y";
-      else if ( strg == "axial" || strg == "z" )
-        script += "z";
-      else if ( strg == "3d" )
-        script += "3d";
-      else
+      script += "3d";
+    }
+    else
+    {
+      std::cerr << "Unrecognized viewport name '" << qPrintable(sa[0]) << "'.\n";
+      return false;
+    }
+    this->AddScript( script );
+  }
+
+  if ( m_cmdParser->Found( "viewsize", &sa ) )
+  {
+    this->AddScript( QString("setviewsize ") + sa[0] + " " + sa[1] );
+  }
+
+  if ( floatingArgs.size() > 0 )
+  {
+    for ( int i = 0; i < floatingArgs.size(); i++ )
+    {
+      QString script = QString("loadvolume ") + floatingArgs[i];
+      if ( m_cmdParser->Found( "r" ) )
       {
-          std::cerr << "Unrecognized viewport name '" << qPrintable(sa[0]) << "'.\n";
-        return false;
+        script += " r";
       }
       this->AddScript( script );
     }
+  }
 
-    if ( m_cmdParser->Found( "viewsize", &sa ) )
+  int nRepeats = m_cmdParser->GetNumberOfRepeats( "v" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    m_cmdParser->Found( "v", &sa, n );
+    for ( int i = 0; i < sa.size(); i++ )
     {
-      this->AddScript( QString("setviewsize ") + sa[0] + " " + sa[1] );
-    }
-
-    if ( floatingArgs.size() > 0 )
-    {
-      for ( int i = 0; i < floatingArgs.size(); i++ )
+      QString script = QString("loadvolume ") + sa[i];
+      if ( m_cmdParser->Found( "r" ) )
       {
-        QString script = QString("loadvolume ") + floatingArgs[i];
-        if ( m_cmdParser->Found( "r" ) )
-          script += " r";
-        this->AddScript( script );
+        script += " r";
       }
-    }
-
-    int nRepeats = m_cmdParser->GetNumberOfRepeats( "v" );
-    for ( int n = 0; n < nRepeats; n++ )
-    {
-      m_cmdParser->Found( "v", &sa, n );
-      for ( int i = 0; i < sa.size(); i++ )
-      {
-          QString script = QString("loadvolume ") + sa[i];
-          if ( m_cmdParser->Found( "r" ) )
-            script += " r";
-          this->AddScript( script );
-      }
-    }
-
-    nRepeats = m_cmdParser->GetNumberOfRepeats( "dti" );
-    for ( int n = 0; n < nRepeats; n++ )
-    {
-      m_cmdParser->Found( "dti", &sa, n );
-      for ( int i = 0; i < sa.size()/2; i++ )
-      {
-        QString script = "loaddti ";
-        script += sa[i*2] + " " + sa[i*2+1];
-        if ( m_cmdParser->Found( "r" ) )
-            script += " r";
-        this->AddScript( script );
-      }
-    }
-
-    nRepeats = m_cmdParser->GetNumberOfRepeats( "l" );
-    for ( int n = 0; n < nRepeats; n++ )
-    {
-      m_cmdParser->Found( "l", &sa, n );
-      for (int i = 0; i < sa.size(); i++ )
-      {
-        this->AddScript( QString("loadroi ") + sa[i] );
-      }
-    }
-
-    nRepeats = m_cmdParser->GetNumberOfRepeats( "f" );
-    for ( int n = 0; n < nRepeats; n++ )
-    {
-      m_cmdParser->Found( "f", &sa, n );
-      for (int i = 0; i < sa.size(); i++ )
-      {
-        QString script = "loadsurface ";
-        script += sa[i];
-        if ( m_cmdParser->Found( "r" ) )
-            script += " r";
-        this->AddScript( script );
-      }
-    }
-
-    nRepeats = m_cmdParser->GetNumberOfRepeats( "track" );
-    for ( int n = 0; n < nRepeats; n++ )
-    {
-      m_cmdParser->Found( "track", &sa, n );
-      for (int i = 0; i < sa.size(); i++ )
-      {
-        this->AddScript( QString("loadtrack ") + sa[i] );
-      }
-    }
-
-
-    nRepeats = m_cmdParser->GetNumberOfRepeats( "w" );
-    for ( int n = 0; n < nRepeats; n++ )
-    {
-      m_cmdParser->Found( "w", &sa, n );
-      for ( int i = 0; i < sa.size(); i++ )
-      {
-        QString script = "loadwaypoints ";
-        script += sa[i];
-        if ( m_cmdParser->Found( "r" ) )
-            script += " r";
-        this->AddScript( script );
-      }
-    }
-
-    nRepeats = m_cmdParser->GetNumberOfRepeats( "c" );
-    for ( int n = 0; n < nRepeats; n++ )
-    {
-      m_cmdParser->Found( "c", &sa, n );
-      for ( int i = 0; i < sa.size(); i++ )
-      {
-        QString script = "loadcontrolpoints ";
-        script += sa[i];
-        if ( m_cmdParser->Found( "r" ) )
-            script += " r";
-        this->AddScript( script );
-      }
-    }
-
-    if ( m_cmdParser->Found( "p-labels", &sa ) )
-    {
-      QString filenames = sa.join(";");
-      QString script = "loadpvolumes ";
-      script += filenames;
-      sa.clear();
-      if ( m_cmdParser->Found( "p-prefix", &sa ) )
-        script += " " + sa[0];
-      else
-        script += " n/a";
-      sa.clear();
-      if ( m_cmdParser->Found( "p-lut", &sa ) )
-        script += " " + sa[0];
       this->AddScript( script );
     }
+  }
 
-    if ( m_cmdParser->Found( "conn", &sa ) )
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "dti" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    m_cmdParser->Found( "dti", &sa, n );
+    for ( int i = 0; i < sa.size()/2; i++ )
     {
-      this->AddScript( QString("loadconnectivity ") + sa[0] + " " + sa[1] );
-    }
-
-    if ( m_cmdParser->Found( "ras", &sa ) )
-    {
-        bool bOK;
-      double ras[3];
-      ras[0] = sa[0].toDouble(&bOK);
-      ras[1] = sa[1].toDouble(&bOK);
-      ras[2] = sa[2].toDouble(&bOK);
-      if ( !bOK )
+      QString script = "loaddti ";
+      script += sa[i*2] + " " + sa[i*2+1];
+      if ( m_cmdParser->Found( "r" ) )
       {
-          std::cerr << "Invalid argument for 'ras'. Arguments must be valid float values.\n";
-        return false;
+        script += " r";
       }
-      this->AddScript( QString("ras %1 %2 %3").arg(sa[0]).arg(sa[1]).arg(sa[2]) );
+      this->AddScript( script );
     }
+  }
 
-    if ( m_cmdParser->Found( "slice", &sa ) )
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "l" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    m_cmdParser->Found( "l", &sa, n );
+    for (int i = 0; i < sa.size(); i++ )
     {
-        bool bOK;
-      int slice[3];
-      slice[0] = sa[0].toInt(&bOK);
-      slice[1] = sa[1].toInt(&bOK);
-      slice[2] = sa[2].toInt(&bOK);
-      if ( !bOK )
+      this->AddScript( QString("loadroi ") + sa[i] );
+    }
+  }
+
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "f" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    m_cmdParser->Found( "f", &sa, n );
+    for (int i = 0; i < sa.size(); i++ )
+    {
+      QString script = "loadsurface ";
+      script += sa[i];
+      if ( m_cmdParser->Found( "r" ) )
       {
-          std::cerr << "Invalid argument for 'slice'. Arguments must be valid integers.\n";
-        return false;
+        script += " r";
       }
-
-      this->AddScript( QString("slice %1 %2 %3").arg(sa[0]).arg(sa[1]).arg(sa[2]) );
+      this->AddScript( script );
     }
+  }
 
-    if ( m_cmdParser->Found( "zoom", &sa ) )
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "track" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    m_cmdParser->Found( "track", &sa, n );
+    for (int i = 0; i < sa.size(); i++ )
     {
-        bool bOK;
-      double dValue = sa[0].toDouble(&bOK);
-      if ( !bOK || dValue == 0 )
+      this->AddScript( QString("loadtrack ") + sa[i] );
+    }
+  }
+
+
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "w" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    m_cmdParser->Found( "w", &sa, n );
+    for ( int i = 0; i < sa.size(); i++ )
+    {
+      QString script = "loadwaypoints ";
+      script += sa[i];
+      if ( m_cmdParser->Found( "r" ) )
       {
-          std::cerr << "Invalid argument for 'zoom'. Argument must be a valid float value.\n";
-        return false;
+        script += " r";
       }
-      this->AddScript( QString("zoom ") + sa[0] );
+      this->AddScript( script );
+    }
+  }
+
+  nRepeats = m_cmdParser->GetNumberOfRepeats( "c" );
+  for ( int n = 0; n < nRepeats; n++ )
+  {
+    m_cmdParser->Found( "c", &sa, n );
+    for ( int i = 0; i < sa.size(); i++ )
+    {
+      QString script = "loadcontrolpoints ";
+      script += sa[i];
+      if ( m_cmdParser->Found( "r" ) )
+      {
+        script += " r";
+      }
+      this->AddScript( script );
+    }
+  }
+
+  if ( m_cmdParser->Found( "p-labels", &sa ) )
+  {
+    QString filenames = sa.join(";");
+    QString script = "loadpvolumes ";
+    script += filenames;
+    sa.clear();
+    if ( m_cmdParser->Found( "p-prefix", &sa ) )
+    {
+      script += " " + sa[0];
+    }
+    else
+    {
+      script += " n/a";
+    }
+    sa.clear();
+    if ( m_cmdParser->Found( "p-lut", &sa ) )
+    {
+      script += " " + sa[0];
+    }
+    this->AddScript( script );
+  }
+
+  if ( m_cmdParser->Found( "conn", &sa ) )
+  {
+    this->AddScript( QString("loadconnectivity ") + sa[0] + " " + sa[1] );
+  }
+
+  if ( m_cmdParser->Found( "ras", &sa ) )
+  {
+    bool bOK;
+    double ras[3];
+    ras[0] = sa[0].toDouble(&bOK);
+    ras[1] = sa[1].toDouble(&bOK);
+    ras[2] = sa[2].toDouble(&bOK);
+    if ( !bOK )
+    {
+      std::cerr << "Invalid argument for 'ras'. Arguments must be valid float values.\n";
+      return false;
+    }
+    this->AddScript( QString("ras %1 %2 %3").arg(sa[0]).arg(sa[1]).arg(sa[2]) );
+  }
+
+  if ( m_cmdParser->Found( "slice", &sa ) )
+  {
+    bool bOK;
+    int slice[3];
+    slice[0] = sa[0].toInt(&bOK);
+    slice[1] = sa[1].toInt(&bOK);
+    slice[2] = sa[2].toInt(&bOK);
+    if ( !bOK )
+    {
+      std::cerr << "Invalid argument for 'slice'. Arguments must be valid integers.\n";
+      return false;
     }
 
-    if ( m_cmdParser->Found( "camera", &sa ) )
-    {
-        if ( sa.size()%2 > 0)
-        {
-            std::cerr << "Invalid arguments for 'cam'. Arguments must be in pairs.\n";
-            return false;
-        }
-        this->AddScript( QString("setcamera ") + sa.join(" ") );
-    }
+    this->AddScript( QString("slice %1 %2 %3").arg(sa[0]).arg(sa[1]).arg(sa[2]) );
+  }
 
-    if ( m_cmdParser->Found( "ss", &sa ) )
+  if ( m_cmdParser->Found( "zoom", &sa ) )
+  {
+    bool bOK;
+    double dValue = sa[0].toDouble(&bOK);
+    if ( !bOK || dValue == 0 )
     {
-      this->AddScript( QString("screencapture ")+sa[0] );
-      if (bAutoQuit)
-          this->AddScript( "quit" );
+      std::cerr << "Invalid argument for 'zoom'. Argument must be a valid float value.\n";
+      return false;
     }
-    return true;
+    this->AddScript( QString("zoom ") + sa[0] );
+  }
+
+  if ( m_cmdParser->Found( "camera", &sa ) )
+  {
+    if ( sa.size()%2 > 0)
+    {
+      std::cerr << "Invalid arguments for 'cam'. Arguments must be in pairs.\n";
+      return false;
+    }
+    this->AddScript( QString("setcamera ") + sa.join(" ") );
+  }
+
+  if ( m_cmdParser->Found( "ss", &sa ) )
+  {
+    this->AddScript( QString("screencapture ")+sa[0] );
+    if (bAutoQuit)
+    {
+      this->AddScript( "quit" );
+    }
+  }
+  return true;
 }
 
 int MainWindow::GetActiveViewId()
 {
-    for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 4; i++)
+  {
+    if (m_views[i]->hasFocus())
     {
-      if (m_views[i]->hasFocus())
-          return i;
+      return i;
     }
-    return m_nMainView;
+  }
+  return m_nMainView;
 }
 
 void MainWindow::SyncZoom(bool bSync)
 {
-    for (int i = 0; i < 3; i++)
+  for (int i = 0; i < 3; i++)
+  {
+    for (int j = 0; j < 3; j++)
     {
-        for (int j = 0; j < 3; j++)
-        {
-            if ( i != j)
-            {
-                disconnect(m_views[i], SIGNAL(Zooming(RenderView2D*)), m_views[j], SLOT(SyncZoomTo(RenderView2D*)));
-                if ( bSync )
-                    connect(m_views[i], SIGNAL(Zooming(RenderView2D*)),
-                            m_views[j], SLOT(SyncZoomTo(RenderView2D*)), Qt::UniqueConnection);
-            }
-        }
+      if ( i != j)
+      {
+        disconnect(m_views[i], SIGNAL(Zooming(RenderView2D*)), m_views[j], SLOT(SyncZoomTo(RenderView2D*)));
+        if ( bSync )
+          connect(m_views[i], SIGNAL(Zooming(RenderView2D*)),
+                  m_views[j], SLOT(SyncZoomTo(RenderView2D*)), Qt::UniqueConnection);
+      }
     }
+  }
 }
 
 void MainWindow::SetUseCommandControl(bool b)
 {
-    Interactor::SetUseCommandControl(b);
+  Interactor::SetUseCommandControl(b);
 }
 
 void MainWindow::SetUnifiedTitleAndToolBar(bool b)
 {
-    this->setUnifiedTitleAndToolBarOnMac(b);
+  this->setUnifiedTitleAndToolBarOnMac(b);
 }
 
 bool MainWindow::IsEmpty()
 {
-    QStringList keys = m_layerCollections.keys();
-    for ( int i = 0; i < keys.size(); i++ )
+  QStringList keys = m_layerCollections.keys();
+  for ( int i = 0; i < keys.size(); i++ )
+  {
+    if ( !m_layerCollections[keys[i]]->IsEmpty() )
     {
-        if ( !m_layerCollections[keys[i]]->IsEmpty() )
-            return false;
+      return false;
     }
-    return true;
+  }
+  return true;
 }
 
 void MainWindow::AddScript(const QString & command)
 {
-    m_scripts << command;
+  m_scripts << command;
 }
 
 void MainWindow::OnIdle()
 {
-    if ( !IsBusy() && !m_bScriptRunning && !m_scripts.isEmpty() )
-        RunScript();
+  if ( !IsBusy() && !m_bScriptRunning && !m_scripts.isEmpty() )
+  {
+    RunScript();
+  }
 
-    ui->actionViewSagittal->setChecked( m_nMainView == this->MV_Sagittal );
-    ui->actionViewCoronal->setChecked( m_nMainView == this->MV_Coronal );
-    ui->actionViewAxial->setChecked( m_nMainView == this->MV_Axial );
-    ui->actionView3D->setChecked( m_nMainView == this->MV_3D );
+  ui->actionViewSagittal->setChecked( m_nMainView == this->MV_Sagittal );
+  ui->actionViewCoronal->setChecked( m_nMainView == this->MV_Coronal );
+  ui->actionViewAxial->setChecked( m_nMainView == this->MV_Axial );
+  ui->actionView3D->setChecked( m_nMainView == this->MV_3D );
 
-    ui->actionLayout1x1->setChecked( m_nViewLayout == this->VL_1x1 );
-    ui->actionLayout2x2->setChecked( m_nViewLayout == this->VL_2x2 );
-    ui->actionLayout1n3->setChecked( m_nViewLayout == this->VL_1n3 );
-    ui->actionLayout1n3h->setChecked( m_nViewLayout == this->VL_1n3h );
+  ui->actionLayout1x1->setChecked( m_nViewLayout == this->VL_1x1 );
+  ui->actionLayout2x2->setChecked( m_nViewLayout == this->VL_2x2 );
+  ui->actionLayout1n3->setChecked( m_nViewLayout == this->VL_1n3 );
+  ui->actionLayout1n3h->setChecked( m_nViewLayout == this->VL_1n3h );
 
-    RenderView* view = GetMainView();
-    int nMode = view->GetInteractionMode();
-    ui->actionNavigate->setChecked( nMode == RenderView::IM_Navigate );
-    ui->actionVoxelEdit->setChecked( nMode == RenderView::IM_VoxelEdit );
-    ui->actionROIEdit->setChecked( nMode == RenderView::IM_ROIEdit );
-    ui->actionMeasure->setChecked( nMode == RenderView::IM_Measure );
-    ui->actionCropVolume->setChecked( nMode == RenderView::IM_VolumeCrop );
-    ui->actionPointSetEdit->setChecked( nMode == RenderView::IM_PointSetEdit );
+  RenderView* view = GetMainView();
+  int nMode = view->GetInteractionMode();
+  ui->actionNavigate->setChecked( nMode == RenderView::IM_Navigate );
+  ui->actionVoxelEdit->setChecked( nMode == RenderView::IM_VoxelEdit );
+  ui->actionROIEdit->setChecked( nMode == RenderView::IM_ROIEdit );
+  ui->actionMeasure->setChecked( nMode == RenderView::IM_Measure );
+  ui->actionCropVolume->setChecked( nMode == RenderView::IM_VolumeCrop );
+  ui->actionPointSetEdit->setChecked( nMode == RenderView::IM_PointSetEdit );
 
-    if ( nMode == RenderView::IM_ROIEdit )
-    {
-      LayerROI* roi = ( LayerROI* )GetActiveLayer("ROI");
-      ui->actionUndo->setEnabled( roi && roi->IsVisible() && roi->HasUndo() );
-      ui->actionRedo->setEnabled( roi && roi->IsVisible() && roi->HasRedo() );
-    }
-    else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_Navigate )
-      {
-        LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
-        ui->actionUndo->setEnabled( mri && mri->IsVisible() && mri->HasUndo() );
-        ui->actionRedo->setEnabled( mri && mri->IsVisible() && mri->HasRedo() );
-      }
-      else if ( nMode == RenderView::IM_PointSetEdit )
-      {
-        LayerPointSet* wp = ( LayerPointSet* )GetActiveLayer("PointSet");
-        ui->actionUndo->setEnabled( wp && wp->IsVisible() && wp->HasUndo() );
-        ui->actionRedo->setEnabled( wp && wp->IsVisible() && wp->HasRedo() );
-      }
-      else
-      {
-        ui->actionUndo->setEnabled( false );
-        ui->actionRedo->setEnabled( false );
-      }
+  if ( nMode == RenderView::IM_ROIEdit )
+  {
+    LayerROI* roi = ( LayerROI* )GetActiveLayer("ROI");
+    ui->actionUndo->setEnabled( roi && roi->IsVisible() && roi->HasUndo() );
+    ui->actionRedo->setEnabled( roi && roi->IsVisible() && roi->HasRedo() );
+  }
+  else if ( nMode == RenderView::IM_VoxelEdit || nMode == RenderView::IM_Navigate )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI");
+    ui->actionUndo->setEnabled( mri && mri->IsVisible() && mri->HasUndo() );
+    ui->actionRedo->setEnabled( mri && mri->IsVisible() && mri->HasRedo() );
+  }
+  else if ( nMode == RenderView::IM_PointSetEdit )
+  {
+    LayerPointSet* wp = ( LayerPointSet* )GetActiveLayer("PointSet");
+    ui->actionUndo->setEnabled( wp && wp->IsVisible() && wp->HasUndo() );
+    ui->actionRedo->setEnabled( wp && wp->IsVisible() && wp->HasRedo() );
+  }
+  else
+  {
+    ui->actionUndo->setEnabled( false );
+    ui->actionRedo->setEnabled( false );
+  }
 
-    bool bBusy = IsBusy();
-    LayerMRI* layerVolume       = (LayerMRI*)GetActiveLayer( "MRI");
-    LayerSurface* layerSurface  = (LayerSurface*)GetActiveLayer( "Surface");
-    LayerROI* layerROI  = (LayerROI*)GetActiveLayer( "ROI");
-    LayerPointSet* layerPointSet  = (LayerPointSet*)GetActiveLayer( "PointSet");
-    LayerCollection* lc = GetCurrentLayerCollection();
-    bool bHasLayer = !IsEmpty();
-    ui->actionVoxelEdit       ->setEnabled( layerVolume && layerVolume->IsEditable() );
-    ui->actionROIEdit         ->setEnabled( layerROI && layerROI->IsEditable() );
-    ui->actionMeasure         ->setEnabled( layerVolume );
-    ui->actionPointSetEdit    ->setEnabled( layerPointSet && layerPointSet->IsEditable() );
-    ui->actionCropVolume      ->setEnabled( layerVolume && layerVolume->IsEditable() );
-    ui->actionClosePointSet   ->setEnabled( !bBusy && layerPointSet );
-    ui->actionCloseROI        ->setEnabled( !bBusy && layerROI );
-    ui->actionCloseSurface    ->setEnabled( !bBusy && layerSurface );
-    ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume );
-    ui->actionCreateOptimalCombinedVolume->setEnabled( GetLayerCollection("MRI")->GetNumberOfLayers() > 1 );
-    ui->actionCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
-    ui->actionReverseCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
-    ui->actionHideAllLayers   ->setEnabled( lc && !lc->IsEmpty() );
-    ui->actionShowAllLayers   ->setEnabled( lc && !lc->IsEmpty() );
-    ui->actionLoadDTIVolumes  ->setEnabled( !bBusy );
-    ui->actionLoadVolume      ->setEnabled( !bBusy );
-    ui->actionLoadROI         ->setEnabled( !bBusy && layerVolume );
-    ui->actionLoadPointSet    ->setEnabled( !bBusy && layerVolume );
-    ui->actionLoadSurface     ->setEnabled( !bBusy );
-    ui->actionNewVolume       ->setEnabled( layerVolume );
-    ui->actionNewROI          ->setEnabled( layerVolume );
-    ui->actionNewPointSet     ->setEnabled( layerVolume );
-    ui->actionRepositionSurface->setEnabled( layerSurface );
-    ui->actionResetView       ->setEnabled( bHasLayer );
-    ui->actionResetViewNearestAxis->setEnabled( bHasLayer && ui->view3D->isVisible() );
-    ui->actionSaveMovieFrames ->setEnabled( bHasLayer );
-    ui->actionSaveScreenshot  ->setEnabled( bHasLayer );
-    ui->actionSavePoint       ->setEnabled( bHasLayer );
-    ui->actionGoToPoint       ->setEnabled( bHasLayer );
-    ui->actionSaveVolume      ->setEnabled( !bBusy && layerVolume && layerVolume->IsModified() );
-    ui->actionSaveVolumeAs    ->setEnabled( layerVolume );
-    ui->actionSaveROI         ->setEnabled( layerROI && layerROI->IsModified() );
-    ui->actionSaveROIAs       ->setEnabled( layerROI );
-    ui->actionSavePointSet    ->setEnabled( layerPointSet && layerPointSet->IsModified() );
-    ui->actionSavePointSetAs  ->setEnabled( layerPointSet );
-    ui->actionSaveSurface     ->setEnabled( !bBusy && layerSurface && layerSurface->IsModified() );
-    ui->actionSaveSurfaceAs   ->setEnabled( layerSurface );
+  bool bBusy = IsBusy();
+  LayerMRI* layerVolume       = (LayerMRI*)GetActiveLayer( "MRI");
+  LayerSurface* layerSurface  = (LayerSurface*)GetActiveLayer( "Surface");
+  LayerROI* layerROI  = (LayerROI*)GetActiveLayer( "ROI");
+  LayerPointSet* layerPointSet  = (LayerPointSet*)GetActiveLayer( "PointSet");
+  LayerCollection* lc = GetCurrentLayerCollection();
+  bool bHasLayer = !IsEmpty();
+  ui->actionVoxelEdit       ->setEnabled( layerVolume && layerVolume->IsEditable() );
+  ui->actionROIEdit         ->setEnabled( layerROI && layerROI->IsEditable() );
+  ui->actionMeasure         ->setEnabled( layerVolume );
+  ui->actionPointSetEdit    ->setEnabled( layerPointSet && layerPointSet->IsEditable() );
+  ui->actionCropVolume      ->setEnabled( layerVolume && layerVolume->IsEditable() );
+  ui->actionClosePointSet   ->setEnabled( !bBusy && layerPointSet );
+  ui->actionCloseROI        ->setEnabled( !bBusy && layerROI );
+  ui->actionCloseSurface    ->setEnabled( !bBusy && layerSurface );
+  ui->actionCloseVolume     ->setEnabled( !bBusy && layerVolume );
+  ui->actionCreateOptimalCombinedVolume->setEnabled( GetLayerCollection("MRI")->GetNumberOfLayers() > 1 );
+  ui->actionCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
+  ui->actionReverseCycleLayer      ->setEnabled( lc && lc->GetNumberOfLayers() > 1 );
+  ui->actionHideAllLayers   ->setEnabled( lc && !lc->IsEmpty() );
+  ui->actionShowAllLayers   ->setEnabled( lc && !lc->IsEmpty() );
+  ui->actionLoadDTIVolumes  ->setEnabled( !bBusy );
+  ui->actionLoadVolume      ->setEnabled( !bBusy );
+  ui->actionLoadROI         ->setEnabled( !bBusy && layerVolume );
+  ui->actionLoadPointSet    ->setEnabled( !bBusy && layerVolume );
+  ui->actionLoadSurface     ->setEnabled( !bBusy );
+  ui->actionNewVolume       ->setEnabled( layerVolume );
+  ui->actionNewROI          ->setEnabled( layerVolume );
+  ui->actionNewPointSet     ->setEnabled( layerVolume );
+  ui->actionRepositionSurface->setEnabled( layerSurface );
+  ui->actionResetView       ->setEnabled( bHasLayer );
+  ui->actionResetViewNearestAxis->setEnabled( bHasLayer && ui->view3D->isVisible() );
+  ui->actionSaveMovieFrames ->setEnabled( bHasLayer );
+  ui->actionSaveScreenshot  ->setEnabled( bHasLayer );
+  ui->actionSavePoint       ->setEnabled( bHasLayer );
+  ui->actionGoToPoint       ->setEnabled( bHasLayer );
+  ui->actionSaveVolume      ->setEnabled( !bBusy && layerVolume && layerVolume->IsModified() );
+  ui->actionSaveVolumeAs    ->setEnabled( layerVolume );
+  ui->actionSaveROI         ->setEnabled( layerROI && layerROI->IsModified() );
+  ui->actionSaveROIAs       ->setEnabled( layerROI );
+  ui->actionSavePointSet    ->setEnabled( layerPointSet && layerPointSet->IsModified() );
+  ui->actionSavePointSetAs  ->setEnabled( layerPointSet );
+  ui->actionSaveSurface     ->setEnabled( !bBusy && layerSurface && layerSurface->IsModified() );
+  ui->actionSaveSurfaceAs   ->setEnabled( layerSurface );
   //  ui->actionShowColorScale  ->setEnabled( bHasLayer );
-    ui->actionShowSliceFrames  ->setEnabled(bHasLayer && ui->view3D->GetShowSlices());
-    ui->actionShowSliceFrames  ->setChecked(ui->view3D->GetShowSliceFrames());
-    ui->actionShowSlices        ->setEnabled(bHasLayer);
-    ui->actionShowSlices        ->setChecked(ui->view3D->GetShowSlices());
-    ui->actionShowLabelStats  ->setEnabled( layerVolume && layerVolume->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT );
-    ui->actionToggleCursorVisibility  ->setEnabled( bHasLayer );
-    ui->actionTogglePointSetVisibility->setEnabled( layerPointSet );
-    ui->actionToggleROIVisibility     ->setEnabled( layerROI );
-    ui->actionToggleSurfaceVisibility ->setEnabled( layerSurface );
-    ui->actionToggleVolumeVisibility  ->setEnabled( layerVolume );
-    ui->actionToggleVoxelCoordinateDisplay->setEnabled( bHasLayer );
-    ui->actionTransformVolume ->setEnabled( layerVolume );
-    ui->actionVolumeFilterConvolve->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
-    ui->actionVolumeFilterMean    ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
-    ui->actionVolumeFilterMedian  ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
-    ui->actionVolumeFilterGradient->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
-    ui->actionVolumeFilterSobel->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionShowSliceFrames  ->setEnabled(bHasLayer && ui->view3D->GetShowSlices());
+  ui->actionShowSliceFrames  ->setChecked(ui->view3D->GetShowSliceFrames());
+  ui->actionShowSlices        ->setEnabled(bHasLayer);
+  ui->actionShowSlices        ->setChecked(ui->view3D->GetShowSlices());
+  ui->actionShowLabelStats  ->setEnabled( layerVolume && layerVolume->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT );
+  ui->actionToggleCursorVisibility  ->setEnabled( bHasLayer );
+  ui->actionTogglePointSetVisibility->setEnabled( layerPointSet );
+  ui->actionToggleROIVisibility     ->setEnabled( layerROI );
+  ui->actionToggleSurfaceVisibility ->setEnabled( layerSurface );
+  ui->actionToggleVolumeVisibility  ->setEnabled( layerVolume );
+  ui->actionToggleVoxelCoordinateDisplay->setEnabled( bHasLayer );
+  ui->actionTransformVolume ->setEnabled( layerVolume );
+  ui->actionVolumeFilterConvolve->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterMean    ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterMedian  ->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterGradient->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
+  ui->actionVolumeFilterSobel->setEnabled( !bBusy && layerVolume && layerVolume->IsEditable() );
 
-    ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
-    ui->actionShowColorScale->setChecked(view->GetShowScalarBar());
+  ui->actionShowCoordinateAnnotation->setChecked(ui->viewAxial->GetShowCoordinateAnnotation());
+  ui->actionShowColorScale->setChecked(view->GetShowScalarBar());
 
-    ui->actionCopy->setEnabled(false);
-    ui->actionCopyStructure->setEnabled(false);
-    ui->actionPaste->setEnabled(false);
-    int nWnd = GetActiveViewId();
-    if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_ROIEdit )
-    {
-       LayerROI* roi = ( LayerROI* )GetActiveLayer("ROI");
-       ui->actionCopy->setEnabled( roi && roi->IsVisible() && nWnd >= 0 && nWnd < 3 );
-       ui->actionPaste->setEnabled( roi && roi->IsVisible() && roi->IsEditable() &&
-                                    nWnd >= 0 && nWnd < 3 && roi->IsValidToPaste( nWnd ) );
-    }
-    else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
-    {
-      LayerMRI* mri = ( LayerMRI* )GetActiveLayer("MRI");
-      ui->actionCopy->setEnabled( mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3 );
-      ui->actionCopyStructure->setEnabled(mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3);
-      ui->actionPaste->setEnabled( mri && mri->IsVisible() && mri->IsEditable() &&
-                                     nWnd >= 0 && nWnd < 3 && mri->IsValidToPaste( nWnd ) );
-    }
+  ui->actionCopy->setEnabled(false);
+  ui->actionCopyStructure->setEnabled(false);
+  ui->actionPaste->setEnabled(false);
+  int nWnd = GetActiveViewId();
+  if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_ROIEdit )
+  {
+    LayerROI* roi = ( LayerROI* )GetActiveLayer("ROI");
+    ui->actionCopy->setEnabled( roi && roi->IsVisible() && nWnd >= 0 && nWnd < 3 );
+    ui->actionPaste->setEnabled( roi && roi->IsVisible() && roi->IsEditable() &&
+                                 nWnd >= 0 && nWnd < 3 && roi->IsValidToPaste( nWnd ) );
+  }
+  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetActiveLayer("MRI");
+    ui->actionCopy->setEnabled( mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3 );
+    ui->actionCopyStructure->setEnabled(mri && mri->IsVisible() && nWnd >= 0 && nWnd < 3);
+    ui->actionPaste->setEnabled( mri && mri->IsVisible() && mri->IsEditable() &&
+                                 nWnd >= 0 && nWnd < 3 && mri->IsValidToPaste( nWnd ) );
+  }
 
-    for ( int i = 0; i < m_actionRecentVolumes.size(); i++ )
-      m_actionRecentVolumes[i]->setEnabled( !bBusy );
-    for ( int i = 0; i < m_actionRecentSurfaces.size(); i++ )
-      m_actionRecentSurfaces[i]->setEnabled( !bBusy );
+  for ( int i = 0; i < m_actionRecentVolumes.size(); i++ )
+  {
+    m_actionRecentVolumes[i]->setEnabled( !bBusy );
+  }
+  for ( int i = 0; i < m_actionRecentSurfaces.size(); i++ )
+  {
+    m_actionRecentSurfaces[i]->setEnabled( !bBusy );
+  }
 
-    m_toolWindowMeasure->setVisible( nMode == RenderView::IM_Measure );
-    m_toolWindowEdit->setVisible( nMode == RenderView::IM_VoxelEdit );
-    m_toolWindowROIEdit->setVisible( nMode == RenderView::IM_ROIEdit );
+  m_toolWindowMeasure->setVisible( nMode == RenderView::IM_Measure );
+  m_toolWindowEdit->setVisible( nMode == RenderView::IM_VoxelEdit );
+  m_toolWindowROIEdit->setVisible( nMode == RenderView::IM_ROIEdit );
 
-    if ( !m_dlgCropVolume->isVisible() && nMode == RenderView::IM_VolumeCrop )
-        SetMode(RenderView::IM_Navigate);
-    else if ( m_dlgCropVolume->isVisible() && nMode != RenderView::IM_VolumeCrop )
-        m_dlgCropVolume->hide();
+  if ( !m_dlgCropVolume->isVisible() && nMode == RenderView::IM_VolumeCrop )
+  {
+    SetMode(RenderView::IM_Navigate);
+  }
+  else if ( m_dlgCropVolume->isVisible() && nMode != RenderView::IM_VolumeCrop )
+  {
+    m_dlgCropVolume->hide();
+  }
 
-    ui->actionShowCommandConsole->setChecked(m_term->isVisible());
+  ui->actionShowCommandConsole->setChecked(m_term->isVisible());
 }
 
 bool MainWindow::IsBusy()
 {
-    return m_threadIOWorker->isRunning() || m_bProcessing;
+  return m_threadIOWorker->isRunning() || m_bProcessing;
 }
 
 void MainWindow::RequestRedraw()
 {
-    for ( int i = 0; i < 4; i++ )
+  for ( int i = 0; i < 4; i++ )
+  {
+    if ( m_views[i]->isVisible())
     {
-        if ( m_views[i]->isVisible())
-            m_views[i]->RequestRedraw();
+      m_views[i]->RequestRedraw();
     }
+  }
 }
 
 void MainWindow::RunScript()
 {
-    if (m_scripts.isEmpty())
-        return;
+  if (m_scripts.isEmpty())
+  {
+    return;
+  }
 
-    QStringList sa = m_scripts[0].split(" ", QString::SkipEmptyParts);
-    m_scripts.removeAt(0);
-    m_bScriptRunning = true;
-    if (sa[0] == "loadcommand")
-    {
-        CommandLoadCommand(sa);
-    }
-    else if ( sa[0] == "loadvolume" )
-    {
-      CommandLoadVolume( sa );
-    }
-    else if ( sa[0] == "loaddti" )
-    {
-      CommandLoadDTI( sa );
-    }
-    else if ( sa[0] == "loadsurface" )
-    {
-      CommandLoadSurface( sa );
-    }
-    else if ( sa[0] == "loadsurfacevector" )
-    {
-      CommandLoadSurfaceVector( sa );
-    }
-    else if ( sa[0] == "loadsurfacecurvature" )
-    {
-      CommandLoadSurfaceCurvature( sa );
-    }
-    else if ( sa[0] == "loadsurfaceoverlay" )
-    {
-      CommandLoadSurfaceOverlay( sa );
-    }
-    else if ( sa[0] == "loadsurfaceannotation" )
-    {
-      CommandLoadSurfaceAnnotation( sa );
-    }
-    else if ( sa[0] == "loadsurfacelabel" )
-    {
-      CommandLoadSurfaceLabel( sa );
-    }
-    else if ( sa[0] == "loadconnectivity" )
-    {
-      CommandLoadConnectivityData( sa );
-    }
-    else if ( sa[0] == "loadroi" || sa[0] == "loadlabel" )
-    {
-      CommandLoadROI( sa );
-    }
-    else if ( sa[0] == "loadwaypoints" )
-    {
-      CommandLoadWayPoints( sa );
-    }
-    else if ( sa[0] == "loadcontrolpoints" )
-    {
-      CommandLoadControlPoints( sa );
-    }
-    else if ( sa[0] == "loadpvolumes" )
-    {
-      CommandLoadPVolumes( sa );
-    }
-    else if ( sa[0] == "loadtrack")
-    {
-        CommandLoadTrack(sa);
-    }
-    else if ( sa[0] == "screencapture" )
-    {
-      CommandScreenCapture( sa );
-    }
-    else if ( sa[0] == "quit" || sa[0] == "exit" )
-    {
-      close();
-    }
-    else if ( sa[0] == "setviewport" )
-    {
-      CommandSetViewport( sa );
-    }
-    else if ( sa[0] == "setviewsize" )
-    {
-      CommandSetViewSize( sa );
-    }
-    else if ( sa[0] == "zoom" )
-    {
-      CommandZoom( sa );
-    }
-    else if ( sa[0] == "setcamera")
-    {
-        CommandSetCamera(sa);
-    }
-    else if ( sa[0] == "ras" )
-    {
-      CommandSetRAS( sa );
-    }
-    else if ( sa[0] == "slice" )
-    {
-      CommandSetSlice( sa );
-    }
-    else if ( sa[0] == "setcolormap" )
-    {
-      CommandSetColorMap( sa );
-    }
-    else if ( sa[0] == "setheatscaleoptions" )
-    {
-      CommandSetHeadScaleOptions( sa );
-    }
-    else if ( sa[0] == "setlut" )
-    {
-      CommandSetLUT( sa );
-    }
-    else if ( sa[0] == "setopacity" )
-    {
-      CommandSetOpacity( sa );
-    }
-    else if ( sa[0] == "setdisplayisosurface" )
-    {
-      CommandSetDisplayIsoSurface( sa );
-    }
-    else if ( sa[0] == "setisosurfacecolor" )
-    {
-      CommandSetIsoSurfaceColor( sa );
-    }
-    else if ( sa[0] == "loadisosurfaceregion" )
-    {
-      CommandLoadIsoSurfaceRegion( sa );
-    }
-    else if ( sa[0] == "setsurfaceoverlaymethod" )
-    {
-      CommandSetSurfaceOverlayMethod( sa );
-    }
-    else if ( sa[0] == "setsurfaceoffset" )
-    {
-      CommandSetSurfaceOffset( sa );
-    }
-    else if ( sa[0] == "setPointSetcolor" )
-    {
-      CommandSetPointSetColor( sa );
-    }
-    else if ( sa[0] == "setPointSetradius" )
-    {
-      CommandSetPointSetRadius( sa );
-    }
-    else if ( sa[0] == "setdisplayvector" )
-    {
-      CommandSetDisplayVector( sa );
-    }
-    else if ( sa[0] == "setdisplaytensor" )
-    {
-      CommandSetDisplayTensor( sa );
-    }
-    else if ( sa[0] == "setsurfacecolor" )
-    {
-      CommandSetSurfaceColor( sa );
-    }
-    else if ( sa[0] == "setsurfaceedgecolor" )
-    {
-      CommandSetSurfaceEdgeColor( sa );
-    }
-    else if ( sa[0] == "setsurfaceedgethickness" )
-    {
-      CommandSetSurfaceEdgeThickness( sa );
-    }
-    else if ( sa[0] == "setlayername" )
-    {
-      CommandSetLayerName( sa );
-    }
-    else if ( sa[0] == "locklayer" )
-    {
-      CommandLockLayer( sa );
-    }
-    else if ( sa[0] == "showlayer" )
-    {
-      CommandShowLayer( sa );
-    }
-    else if ( sa[0] == "gotolabel" || sa[1] == "gotostructure")
-    {
-        CommandGotoLabel( sa );
-    }
-    m_bScriptRunning = false;
+  QStringList sa = m_scripts[0].split(" ", QString::SkipEmptyParts);
+  m_scripts.removeAt(0);
+  m_bScriptRunning = true;
+  if (sa[0] == "loadcommand")
+  {
+    CommandLoadCommand(sa);
+  }
+  else if ( sa[0] == "loadvolume" )
+  {
+    CommandLoadVolume( sa );
+  }
+  else if ( sa[0] == "loaddti" )
+  {
+    CommandLoadDTI( sa );
+  }
+  else if ( sa[0] == "loadsurface" )
+  {
+    CommandLoadSurface( sa );
+  }
+  else if ( sa[0] == "loadsurfacevector" )
+  {
+    CommandLoadSurfaceVector( sa );
+  }
+  else if ( sa[0] == "loadsurfacecurvature" )
+  {
+    CommandLoadSurfaceCurvature( sa );
+  }
+  else if ( sa[0] == "loadsurfaceoverlay" )
+  {
+    CommandLoadSurfaceOverlay( sa );
+  }
+  else if ( sa[0] == "loadsurfaceannotation" )
+  {
+    CommandLoadSurfaceAnnotation( sa );
+  }
+  else if ( sa[0] == "loadsurfacelabel" )
+  {
+    CommandLoadSurfaceLabel( sa );
+  }
+  else if ( sa[0] == "loadconnectivity" )
+  {
+    CommandLoadConnectivityData( sa );
+  }
+  else if ( sa[0] == "loadroi" || sa[0] == "loadlabel" )
+  {
+    CommandLoadROI( sa );
+  }
+  else if ( sa[0] == "loadwaypoints" )
+  {
+    CommandLoadWayPoints( sa );
+  }
+  else if ( sa[0] == "loadcontrolpoints" )
+  {
+    CommandLoadControlPoints( sa );
+  }
+  else if ( sa[0] == "loadpvolumes" )
+  {
+    CommandLoadPVolumes( sa );
+  }
+  else if ( sa[0] == "loadtrack")
+  {
+    CommandLoadTrack(sa);
+  }
+  else if ( sa[0] == "screencapture" )
+  {
+    CommandScreenCapture( sa );
+  }
+  else if ( sa[0] == "quit" || sa[0] == "exit" )
+  {
+    close();
+  }
+  else if ( sa[0] == "setviewport" )
+  {
+    CommandSetViewport( sa );
+  }
+  else if ( sa[0] == "setviewsize" )
+  {
+    CommandSetViewSize( sa );
+  }
+  else if ( sa[0] == "zoom" )
+  {
+    CommandZoom( sa );
+  }
+  else if ( sa[0] == "setcamera")
+  {
+    CommandSetCamera(sa);
+  }
+  else if ( sa[0] == "ras" )
+  {
+    CommandSetRAS( sa );
+  }
+  else if ( sa[0] == "slice" )
+  {
+    CommandSetSlice( sa );
+  }
+  else if ( sa[0] == "setcolormap" )
+  {
+    CommandSetColorMap( sa );
+  }
+  else if ( sa[0] == "setheatscaleoptions" )
+  {
+    CommandSetHeadScaleOptions( sa );
+  }
+  else if ( sa[0] == "setlut" )
+  {
+    CommandSetLUT( sa );
+  }
+  else if ( sa[0] == "setopacity" )
+  {
+    CommandSetOpacity( sa );
+  }
+  else if ( sa[0] == "setdisplayisosurface" )
+  {
+    CommandSetDisplayIsoSurface( sa );
+  }
+  else if ( sa[0] == "setisosurfacecolor" )
+  {
+    CommandSetIsoSurfaceColor( sa );
+  }
+  else if ( sa[0] == "loadisosurfaceregion" )
+  {
+    CommandLoadIsoSurfaceRegion( sa );
+  }
+  else if ( sa[0] == "setsurfaceoverlaymethod" )
+  {
+    CommandSetSurfaceOverlayMethod( sa );
+  }
+  else if ( sa[0] == "setsurfaceoffset" )
+  {
+    CommandSetSurfaceOffset( sa );
+  }
+  else if ( sa[0] == "setPointSetcolor" )
+  {
+    CommandSetPointSetColor( sa );
+  }
+  else if ( sa[0] == "setPointSetradius" )
+  {
+    CommandSetPointSetRadius( sa );
+  }
+  else if ( sa[0] == "setdisplayvector" )
+  {
+    CommandSetDisplayVector( sa );
+  }
+  else if ( sa[0] == "setdisplaytensor" )
+  {
+    CommandSetDisplayTensor( sa );
+  }
+  else if ( sa[0] == "setsurfacecolor" )
+  {
+    CommandSetSurfaceColor( sa );
+  }
+  else if ( sa[0] == "setsurfaceedgecolor" )
+  {
+    CommandSetSurfaceEdgeColor( sa );
+  }
+  else if ( sa[0] == "setsurfaceedgethickness" )
+  {
+    CommandSetSurfaceEdgeThickness( sa );
+  }
+  else if ( sa[0] == "setlayername" )
+  {
+    CommandSetLayerName( sa );
+  }
+  else if ( sa[0] == "locklayer" )
+  {
+    CommandLockLayer( sa );
+  }
+  else if ( sa[0] == "showlayer" )
+  {
+    CommandShowLayer( sa );
+  }
+  else if ( sa[0] == "gotolabel" || sa[1] == "gotostructure")
+  {
+    CommandGotoLabel( sa );
+  }
+  m_bScriptRunning = false;
 }
 
 void MainWindow::CommandLoadCommand(const QStringList &sa)
 {
-    QFile file(sa[1]);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
-        cerr << "Can not open for read: " << qPrintable(sa[1]) << ".\n";
-        return;
-    }
-    QStringList args = QString(file.readAll()).trimmed().split(QRegExp("\\s+"), QString::SkipEmptyParts);
-    if (args.size() > 0 &&
-        ( args[0].toLower() == "freeview" || args[0].toLower() == "fv"))
-    {
-        args.removeFirst();
-    }
-    args.prepend("freeview");
-    ParseCommand(args.join(" "));
+  QFile file(sa[1]);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+  {
+    cerr << "Can not open for read: " << qPrintable(sa[1]) << ".\n";
+    return;
+  }
+  QStringList args = QString(file.readAll()).trimmed().split(QRegExp("\\s+"), QString::SkipEmptyParts);
+  if (args.size() > 0 &&
+      ( args[0].toLower() == "freeview" || args[0].toLower() == "fv"))
+  {
+    args.removeFirst();
+  }
+  args.prepend("freeview");
+  ParseCommand(args.join(" "));
 }
 
 void MainWindow::CommandLoadVolume( const QStringList& sa )
@@ -1135,10 +1244,10 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   QString colormap_scale = "grayscale";
   QString lut_name;
   QString vector_display = "no",
-           vector_inversion = "none",
-           vector_render = "line",
-           tensor_display = "no",
-           tensor_render = "boxoid";
+          vector_inversion = "none",
+          vector_render = "line",
+          tensor_display = "no",
+          tensor_render = "boxoid";
   int nSampleMethod = m_nDefaultSampleMethod;
   bool bConform = m_bDefaultConform;
   for ( int i = 1; i < sa_vol.size(); i++ )
@@ -1220,9 +1329,13 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       else if ( subOption == "sample" )
       {
         if ( subArgu.toLower() == "nearest" )
+        {
           nSampleMethod = SAMPLE_NEAREST;
+        }
         else if ( subArgu.toLower() == "trilinear" )
+        {
           nSampleMethod = SAMPLE_TRILINEAR;
+        }
       }
       else if ( subOption == "opacity" )
       {
@@ -1269,7 +1382,7 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
       }
       else if ( subOption == "gotolabel" || subOption == "structure")
       {
-          m_scripts.insert(0, QString("gotolabel ")+subArgu);
+        m_scripts.insert(0, QString("gotolabel ")+subArgu);
       }
       else
       {
@@ -1285,7 +1398,9 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   }
   bool bResample = false;
   if ( sa[sa.size()-1] == "r")
+  {
     bResample = true;
+  }
 
   if ( scales.size() > 0 || colormap != "grayscale" )
   {
@@ -1303,9 +1418,9 @@ void MainWindow::CommandLoadVolume( const QStringList& sa )
   if ( !tensor_display.isEmpty() && tensor_display != "no" )
   {
     QString script = "setdisplaytensor " +
-                         tensor_display + " " +
-                         tensor_render + " " +
-                         vector_inversion;
+                     tensor_display + " " +
+                     tensor_render + " " +
+                     vector_inversion;
     m_scripts.insert( 0, script );
   }
   else if ( !vector_display.isEmpty() && vector_display != "no" )
@@ -1325,26 +1440,44 @@ void MainWindow::CommandSetColorMap( const QStringList& sa )
   int nColorMap = LayerPropertyMRI::Grayscale;;
   QString strg = sa[1];
   if ( strg == "heat" || strg == "heatscale" )
+  {
     nColorMap = LayerPropertyMRI::Heat;
+  }
   else if ( strg == "jet" || strg == "jetscale" )
+  {
     nColorMap = LayerPropertyMRI::Jet;
+  }
   else if ( strg == "lut" )
+  {
     nColorMap = LayerPropertyMRI::LUT;
+  }
   else if ( strg == "gecolor" || strg == "ge_color" )
+  {
     nColorMap = LayerPropertyMRI::GEColor;
+  }
   else if ( strg == "nih" )
+  {
     nColorMap = LayerPropertyMRI::NIH;
+  }
   else if ( strg != "grayscale" )
+  {
     cerr << "Unrecognized colormap name '" << strg.toAscii().constData() << "'.\n";
+  }
 
   int nColorMapScale = LayerPropertyMRI::Grayscale;
   strg = sa[2];
   if ( strg == "heatscale" )
+  {
     nColorMapScale = LayerPropertyMRI::Heat;
+  }
   else if ( strg == "colorscale" )
+  {
     nColorMapScale = LayerPropertyMRI::Jet;
+  }
   else if ( strg == "lut" )
+  {
     nColorMapScale = LayerPropertyMRI::LUT;
+  }
 
   QList<double> pars;
   for ( int i = 3; i < sa.size(); i++ )
@@ -1373,9 +1506,13 @@ void MainWindow::CommandSetHeadScaleOptions( const QStringList& sa )
     for ( int i = 1; i < sa.size(); i++ )
     {
       if ( sa[i] == "invert" )
+      {
         p->SetHeatScaleInvert( true );
+      }
       else if ( sa[i] == "truncate" )
+      {
         p->SetHeatScaleTruncate( true );
+      }
     }
   }
 }
@@ -1448,13 +1585,21 @@ void MainWindow::CommandSetDisplayVector( const QStringList& cmd )
         if ( cmd[3].toLower() != "none" )
         {
           if ( cmd[3].toLower() == "x" )
+          {
             mri->GetProperty()->SetVectorInversion( LayerPropertyMRI::VI_X );
+          }
           else if ( cmd[3].toLower() == "y" )
+          {
             mri->GetProperty()->SetVectorInversion( LayerPropertyMRI::VI_Y );
+          }
           else if ( cmd[3].toLower() == "z" )
+          {
             mri->GetProperty()->SetVectorInversion( LayerPropertyMRI::VI_Z );
+          }
           else
+          {
             cerr << "Unknown inversion flag '" << cmd[2].toAscii().constData() << "'.\n";
+          }
         }
       }
     }
@@ -1493,13 +1638,21 @@ void MainWindow::CommandSetDisplayTensor( const QStringList& cmd )
         if ( cmd[3].toLower() != "none" )
         {
           if ( cmd[3].toLower() == "x" )
+          {
             mri->GetProperty()->SetVectorInversion( LayerPropertyMRI::VI_X );
+          }
           else if ( cmd[3].toLower() == "y" )
+          {
             mri->GetProperty()->SetVectorInversion( LayerPropertyMRI::VI_Y );
+          }
           else if ( cmd[3].toLower() == "z" )
+          {
             mri->GetProperty()->SetVectorInversion( LayerPropertyMRI::VI_Z );
+          }
           else
+          {
             cerr << "Unknown inversion flag '" << cmd[2].toAscii().constData() << "'.\n";
+          }
         }
       }
     }
@@ -1526,7 +1679,7 @@ void MainWindow::CommandSetOpacity( const QStringList& sa )
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
   if ( mri )
   {
-      bool bOK;
+    bool bOK;
     double dValue = sa[1].toDouble(&bOK);
     if ( bOK )
     {
@@ -1544,11 +1697,11 @@ void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa )
   LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
   if ( mri )
   {
-      bool bOK;
+    bool bOK;
     double dValue;
     if ( sa.size() > 1 )
     {
-        dValue = sa[1].toDouble(&bOK);
+      dValue = sa[1].toDouble(&bOK);
       if ( bOK )
       {
         mri->GetProperty()->SetContourMinThreshold( dValue );
@@ -1560,7 +1713,7 @@ void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa )
     }
     if ( sa.size() > 2 )
     {
-        dValue = sa[2].toDouble(&bOK);
+      dValue = sa[2].toDouble(&bOK);
       if ( bOK )
       {
         mri->GetProperty()->SetContourMaxThreshold( dValue );
@@ -1576,36 +1729,44 @@ void MainWindow::CommandSetDisplayIsoSurface( const QStringList& sa )
 
 void MainWindow::CommandSetIsoSurfaceColor(const QStringList &cmd)
 {
-    LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
-    if ( mri )
+  LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
+  if ( mri )
+  {
+    QColor color( cmd[1] );
+    if ( !color.isValid() )
     {
-        QColor color( cmd[1] );
-        if ( !color.isValid() )
-        {
-          int rgb[3];
-          QStringList rgb_strs = cmd[1].split(",");
-          rgb_strs << "n/a" << "n/a";
-          bool bOK;
-          rgb[0] = rgb_strs[0].toInt(&bOK);
-          if (bOK)
-              rgb[1] = rgb_strs[1].toInt(&bOK);
-          if (bOK)
-              rgb[2] = rgb_strs[2].toInt(&bOK);
-          if ( !bOK )
-          {
-            cerr << "Invalid color name or value " << qPrintable(cmd[1]) << ".\n";
-          }
-          else
-          {
-            color.setRgb(rgb[0], rgb[1], rgb[2]);
-          }
-        }
-
-        if ( color.isValid() )
-          mri->GetProperty()->SetContourColor( color.redF(), color.greenF(), color.blueF() );
-        else
-          cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+      int rgb[3];
+      QStringList rgb_strs = cmd[1].split(",");
+      rgb_strs << "n/a" << "n/a";
+      bool bOK;
+      rgb[0] = rgb_strs[0].toInt(&bOK);
+      if (bOK)
+      {
+        rgb[1] = rgb_strs[1].toInt(&bOK);
+      }
+      if (bOK)
+      {
+        rgb[2] = rgb_strs[2].toInt(&bOK);
+      }
+      if ( !bOK )
+      {
+        cerr << "Invalid color name or value " << qPrintable(cmd[1]) << ".\n";
+      }
+      else
+      {
+        color.setRgb(rgb[0], rgb[1], rgb[2]);
+      }
     }
+
+    if ( color.isValid() )
+    {
+      mri->GetProperty()->SetContourColor( color.redF(), color.greenF(), color.blueF() );
+    }
+    else
+    {
+      cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+    }
+  }
 }
 
 void MainWindow::CommandLoadIsoSurfaceRegion( const QStringList& sa )
@@ -1627,7 +1788,9 @@ void MainWindow::CommandLoadDTI( const QStringList& sa )
 {
   bool bResample = false;
   if ( sa.size() > 3 && sa[3] == "r" )
+  {
     bResample = true;
+  }
 
   if ( sa.size() > 2 )
   {
@@ -1635,8 +1798,8 @@ void MainWindow::CommandLoadDTI( const QStringList& sa )
     QString fn = sa_vol[0];
     QString strg, reg_fn;
     QString vector_display = "no",
-             vector_inversion = "none",
-             vector_render = "line";
+            vector_inversion = "none",
+            vector_render = "line";
 
     for ( int i = 1; i < sa_vol.size(); i++ )
     {
@@ -1708,7 +1871,9 @@ void MainWindow::CommandLoadPVolumes( const QStringList& cmd )
   }
   QString prefix = cmd[2];
   if (prefix == "n/a")
-      prefix = "";
+  {
+    prefix = "";
+  }
   this->LoadPVolumeFiles( files, prefix, lut );
 }
 
@@ -1747,8 +1912,8 @@ void MainWindow::CommandLoadROI( const QStringList& cmd )
 
 void MainWindow::CommandLoadTrack(const QStringList &cmd)
 {
-    QString fn = cmd[1];
-    LoadTrackFile( fn );
+  QString fn = cmd[1];
+  LoadTrackFile( fn );
 }
 
 void MainWindow::CommandLoadSurface( const QStringList& cmd )
@@ -1795,19 +1960,29 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           int nSubStart = overlay_fns[i].indexOf( "#" );
           int nSubEnd = overlay_fns[i].indexOf( "#", nSubStart+1 );
           if ( nSubEnd == -1 )
+          {
             nSubEnd = overlay_fns[i].length() - 1;
+          }
           if ( nSubStart != -1 )
+          {
             script += overlay_fns[i].left( nSubStart );
+          }
           else
+          {
             script += overlay_fns[i];
+          }
           if (subOption == "correlation")
-              script += QString(" correlation");
+          {
+            script += QString(" correlation");
+          }
           m_scripts.insert( 0, script );
 
           // if there are sub-options attached with overlay file, parse them
           QString opt_strg;
           if ( nSubStart != -1 )
+          {
             opt_strg = overlay_fns[i].mid( nSubStart+1, nSubEnd - nSubStart - 1 );
+          }
 
           QStringList overlay_opts = opt_strg.split(":");
 
@@ -1829,7 +2004,7 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
           if ( method != "linearopaque" || !thresholds.isEmpty() )
           {
             script = QString("setsurfaceoverlaymethod ") + method + " " +
-                             thresholds.join(" ");
+                     thresholds.join(" ");
             // insert right AFTER loadsurfaceoverlay command
             m_scripts.insert( 1, script );
           }
@@ -1865,13 +2040,17 @@ void MainWindow::CommandLoadSurface( const QStringList& cmd )
       else if ( subOption == "patch" )
       {
         if ( subArgu.contains( "/" ) )
+        {
           subArgu = QFileInfo( subArgu ).absoluteFilePath();
+        }
         fn_patch = subArgu;
       }
       else if ( subOption == "target" || subOption == "target_surf")
       {
         if ( subArgu.contains( "/" ) )
-            subArgu = QFileInfo( subArgu ).absoluteFilePath();
+        {
+          subArgu = QFileInfo( subArgu ).absoluteFilePath();
+        }
         fn_target = subArgu;
       }
       else if ( subOption == "name" )
@@ -1912,9 +2091,13 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
     {
       int nMethod = SurfaceOverlayProperty::CM_LinearOpaque;
       if ( cmd[1] == "linear" )
+      {
         nMethod = SurfaceOverlayProperty::CM_Linear;
+      }
       else if ( cmd[1] == "piecewise" )
+      {
         nMethod = SurfaceOverlayProperty::CM_Piecewise;
+      }
       else if ( cmd[1] != "linearopaque" )
       {
         cerr << "Unrecognized overlay method name '" << cmd[1].toAscii().constData() << "'.\n";
@@ -1926,10 +2109,10 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
       double values[3];
       if ( cmd.size() - 2 >= 3 )   // 3 values
       {
-          bool bOK;
-          values[0] = cmd[2].toDouble(&bOK);
-          values[1] = cmd[3].toDouble(&bOK);
-          values[2] = cmd[4].toDouble(&bOK);
+        bool bOK;
+        values[0] = cmd[2].toDouble(&bOK);
+        values[1] = cmd[3].toDouble(&bOK);
+        values[2] = cmd[4].toDouble(&bOK);
         if ( bOK )
         {
           overlay->GetProperty()->SetMinPoint( values[0] );
@@ -1943,9 +2126,9 @@ void MainWindow::CommandSetSurfaceOverlayMethod( const QStringList& cmd )
       }
       else if ( cmd.size() - 2 == 2 )   // 2 values
       {
-          bool bOK;
-          values[0] = cmd[2].toDouble(&bOK);
-          values[1] = cmd[3].toDouble(&bOK);
+        bool bOK;
+        values[0] = cmd[2].toDouble(&bOK);
+        values[1] = cmd[3].toDouble(&bOK);
         if ( bOK )
         {
           overlay->GetProperty()->SetMinPoint( values[0] );
@@ -1977,9 +2160,13 @@ void MainWindow::CommandSetSurfaceColor( const QStringList& cmd )
       bool bOK;
       rgb[0] = rgb_strs[0].toInt(&bOK);
       if (bOK)
-          rgb[1] = rgb_strs[1].toInt(&bOK);
+      {
+        rgb[1] = rgb_strs[1].toInt(&bOK);
+      }
       if (bOK)
-          rgb[2] = rgb_strs[2].toInt(&bOK);
+      {
+        rgb[2] = rgb_strs[2].toInt(&bOK);
+      }
       if ( !bOK )
       {
         cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
@@ -1991,9 +2178,13 @@ void MainWindow::CommandSetSurfaceColor( const QStringList& cmd )
     }
 
     if ( color.isValid() )
+    {
       surf->GetProperty()->SetBinaryColor( color.redF(), color.greenF(), color.blueF() );
+    }
     else
+    {
       cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+    }
   }
 }
 
@@ -2011,9 +2202,13 @@ void MainWindow::CommandSetSurfaceEdgeColor( const QStringList& cmd )
       bool bOK;
       rgb[0] = rgb_strs[0].toInt(&bOK);
       if (bOK)
-          rgb[1] = rgb_strs[1].toInt(&bOK);
+      {
+        rgb[1] = rgb_strs[1].toInt(&bOK);
+      }
       if (bOK)
-          rgb[2] = rgb_strs[2].toInt(&bOK);
+      {
+        rgb[2] = rgb_strs[2].toInt(&bOK);
+      }
       if ( !bOK )
       {
         cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
@@ -2025,9 +2220,13 @@ void MainWindow::CommandSetSurfaceEdgeColor( const QStringList& cmd )
     }
 
     if ( color.isValid() )
+    {
       surf->GetProperty()->SetEdgeColor( color.redF(), color.greenF(), color.blueF() );
+    }
     else
+    {
       cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+    }
   }
 }
 
@@ -2036,12 +2235,16 @@ void MainWindow::CommandSetSurfaceEdgeThickness( const QStringList& cmd )
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf )
   {
-      bool bOK;
+    bool bOK;
     int thickness = cmd[1].toInt(&bOK);
     if ( !bOK )
+    {
       cerr << "Invalid edge thickness value. Must be a integer.\n";
+    }
     else
+    {
       surf->GetProperty()->SetEdgeThickness( thickness );
+    }
   }
 }
 
@@ -2050,70 +2253,78 @@ void MainWindow::CommandSetSurfaceOffset( const QStringList& cmd )
   LayerSurface* surf = (LayerSurface*)GetLayerCollection( "Surface" )->GetActiveLayer();
   if ( surf )
   {
-      bool bOK;
+    bool bOK;
     double pos[3];
     if (cmd.size() < 4 )
-        cerr << "Invalid surface offset inputs. Need 3 numbers.\n";
+    {
+      cerr << "Invalid surface offset inputs. Need 3 numbers.\n";
+    }
     else
     {
-        pos[0] = cmd[1].toDouble(&bOK);
-        pos[1] = cmd[2].toDouble(&bOK);
-        pos[2] = cmd[3].toDouble(&bOK);
-        if ( !bOK )
-        {
-          cerr << "Invalid surface offset inputs. Need 3 numbers.\n";
-        }
-        else
-        {
-          surf->GetProperty()->SetPosition( pos );
-        }
+      pos[0] = cmd[1].toDouble(&bOK);
+      pos[1] = cmd[2].toDouble(&bOK);
+      pos[2] = cmd[3].toDouble(&bOK);
+      if ( !bOK )
+      {
+        cerr << "Invalid surface offset inputs. Need 3 numbers.\n";
+      }
+      else
+      {
+        surf->GetProperty()->SetPosition( pos );
+      }
     }
   }
 }
 
 void MainWindow::CommandGotoLabel(const QStringList &cmd)
 {
-    LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
-    if ( mri )
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer("MRI");
+  if ( mri )
+  {
+    int nView = this->GetMainViewId();
+    if (nView > 2)
     {
-        int nView = this->GetMainViewId();
-        if (nView > 2)
-            nView = 0;
-        int orientation = nView;
-        if (orientation == 0 )
-            orientation = 1;
-        else if (orientation == 1)
-            orientation = 0;
-        int nSlice = mri->GoToLabel(orientation, cmd[1]);
-        if (nSlice >= 0)
-        {
-            double pos[3];
-            int n[3];
-            mri->GetSlicePosition(pos);
-            mri->TargetToRAS(pos, pos);
-            mri->RASToOriginalIndex(pos, n);
-            QString ostr = mri->GetOrientationString();
-            int nOrigPlane = nView;
-            char ch[3][3] = {"RL", "AP", "IS"};
-            for (int i = 0; i < 3; i++)
-            {
-                if (ostr[i] == ch[nView][0] || ostr[i] == ch[nView][1])
-                {
-                    nOrigPlane = i;
-                    break;
-                }
-            }
-            n[nOrigPlane] = nSlice;
-            mri->OriginalIndexToRAS(n, pos);
-            mri->RASToTarget(pos, pos);
-            GetLayerCollection("MRI")->SetCursorRASPosition( pos );
-            SetSlicePosition(pos);
-        }
-        else
-        {
-            cerr << "Did not find slice with most structure of " << qPrintable(cmd[1]);
-        }
+      nView = 0;
     }
+    int orientation = nView;
+    if (orientation == 0 )
+    {
+      orientation = 1;
+    }
+    else if (orientation == 1)
+    {
+      orientation = 0;
+    }
+    int nSlice = mri->GoToLabel(orientation, cmd[1]);
+    if (nSlice >= 0)
+    {
+      double pos[3];
+      int n[3];
+      mri->GetSlicePosition(pos);
+      mri->TargetToRAS(pos, pos);
+      mri->RASToOriginalIndex(pos, n);
+      QString ostr = mri->GetOrientationString();
+      int nOrigPlane = nView;
+      char ch[3][3] = {"RL", "AP", "IS"};
+      for (int i = 0; i < 3; i++)
+      {
+        if (ostr[i] == ch[nView][0] || ostr[i] == ch[nView][1])
+        {
+          nOrigPlane = i;
+          break;
+        }
+      }
+      n[nOrigPlane] = nSlice;
+      mri->OriginalIndexToRAS(n, pos);
+      mri->RASToTarget(pos, pos);
+      GetLayerCollection("MRI")->SetCursorRASPosition( pos );
+      SetSlicePosition(pos);
+    }
+    else
+    {
+      cerr << "Did not find slice with most structure of " << qPrintable(cmd[1]);
+    }
+  }
 }
 
 
@@ -2227,7 +2438,7 @@ void MainWindow::CommandLoadControlPoints( const QStringList& cmd )
       }
       else if ( option == "name" )
       {
-          m_scripts.insert( 0, QString("setlayername PointSet ")+argu );
+        m_scripts.insert( 0, QString("setlayername PointSet ")+argu );
       }
       else if ( option == "visible" )
       {
@@ -2259,62 +2470,78 @@ void MainWindow::CommandSetPointSetColor( const QStringList& cmd )
   {
     if ( cmd[1] != "null" )
     {
-        QColor color( cmd[1] );
-        if ( !color.isValid() )
+      QColor color( cmd[1] );
+      if ( !color.isValid() )
+      {
+        int rgb[3];
+        QStringList rgb_strs = cmd[1].split(",");
+        rgb_strs << "n/a" << "n/a";
+        bool bOK;
+        rgb[0] = rgb_strs[0].toInt(&bOK);
+        if (bOK)
         {
-          int rgb[3];
-          QStringList rgb_strs = cmd[1].split(",");
-          rgb_strs << "n/a" << "n/a";
-          bool bOK;
-          rgb[0] = rgb_strs[0].toInt(&bOK);
-          if (bOK)
-              rgb[1] = rgb_strs[1].toInt(&bOK);
-          if (bOK)
-              rgb[2] = rgb_strs[2].toInt(&bOK);
-          if ( !bOK )
-          {
-            cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
-          }
-          else
-          {
-            color.setRgb( rgb[0], rgb[1], rgb[2] );
-          }
+          rgb[1] = rgb_strs[1].toInt(&bOK);
         }
+        if (bOK)
+        {
+          rgb[2] = rgb_strs[2].toInt(&bOK);
+        }
+        if ( !bOK )
+        {
+          cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+        }
+        else
+        {
+          color.setRgb( rgb[0], rgb[1], rgb[2] );
+        }
+      }
 
       if ( color.isValid() )
+      {
         wp->GetProperty()->SetColor( color.redF(), color.greenF(), color.blueF() );
+      }
       else
+      {
         cerr << "Invalid color name or value " << cmd[1].toAscii().constData() << ".\n";
+      }
     }
 
     if ( cmd.size() > 2 && cmd[2] != "null" )
     {
-        QColor color( cmd[2] );
-        if ( !color.isValid() )
+      QColor color( cmd[2] );
+      if ( !color.isValid() )
+      {
+        int rgb[3];
+        QStringList rgb_strs = cmd[2].split(",");
+        rgb_strs << "n/a" << "n/a";
+        bool bOK;
+        rgb[0] = rgb_strs[0].toInt(&bOK);
+        if (bOK)
         {
-          int rgb[3];
-          QStringList rgb_strs = cmd[2].split(",");
-          rgb_strs << "n/a" << "n/a";
-          bool bOK;
-          rgb[0] = rgb_strs[0].toInt(&bOK);
-          if (bOK)
-              rgb[1] = rgb_strs[1].toInt(&bOK);
-          if (bOK)
-              rgb[2] = rgb_strs[2].toInt(&bOK);
-          if ( !bOK )
-          {
-            cerr << "Invalid color name or value " << cmd[2].toAscii().constData() << ".\n";
-          }
-          else
-          {
-            color.setRgb( rgb[0], rgb[1], rgb[2] );
-          }
+          rgb[1] = rgb_strs[1].toInt(&bOK);
         }
+        if (bOK)
+        {
+          rgb[2] = rgb_strs[2].toInt(&bOK);
+        }
+        if ( !bOK )
+        {
+          cerr << "Invalid color name or value " << cmd[2].toAscii().constData() << ".\n";
+        }
+        else
+        {
+          color.setRgb( rgb[0], rgb[1], rgb[2] );
+        }
+      }
 
       if ( color.isValid() )
+      {
         wp->GetProperty()->SetSplineColor( color.redF(), color.greenF(), color.blueF() );
+      }
       else
+      {
         cerr << "Invalid color name or value " << cmd[2].toAscii().constData() << ".\n";
+      }
     }
   }
 }
@@ -2326,22 +2553,30 @@ void MainWindow::CommandSetPointSetRadius( const QStringList& cmd )
   {
     if ( cmd[1] != "0" )
     {
-        bool bOK;
+      bool bOK;
       double dvalue = cmd[1].toDouble(&bOK);
       if ( bOK)
+      {
         wp->GetProperty()->SetRadius( dvalue );
+      }
       else
+      {
         cerr << "Invalid way points radius.\n";
+      }
     }
 
     if ( cmd.size() > 2 && cmd[2] != "0" )
     {
-        bool bOK;
+      bool bOK;
       double dvalue = cmd[2].toDouble(&bOK);
       if ( bOK )
+      {
         wp->GetProperty()->SetSplineRadius( dvalue );
+      }
       else
+      {
         cerr << "Invalid spline radius.\n";
+      }
     }
   }
 }
@@ -2349,8 +2584,8 @@ void MainWindow::CommandSetPointSetRadius( const QStringList& cmd )
 void MainWindow::CommandScreenCapture( const QStringList& cmd )
 {
   if (!m_views[m_nMainView]->SaveScreenShot( cmd[1],
-                                   m_settingsScreenshot.AntiAliasing,
-                                   m_settingsScreenshot.Magnification ))
+      m_settingsScreenshot.AntiAliasing,
+      m_settingsScreenshot.Magnification ))
   {
     cerr << "Failed to save screen shot to " << cmd[1].toAscii().constData() << ".\n";
   }
@@ -2359,18 +2594,26 @@ void MainWindow::CommandScreenCapture( const QStringList& cmd )
 void MainWindow::CommandSetViewport( const QStringList& cmd )
 {
   if ( cmd[1].toLower() == "x" )
+  {
     SetMainView( MV_Sagittal );
+  }
   else if ( cmd[1].toLower() == "y" )
+  {
     SetMainView( MV_Coronal );
+  }
   else if ( cmd[1].toLower() == "z" )
+  {
     SetMainView( MV_Axial );
+  }
   else if ( cmd[1].toLower() == "3d" )
+  {
     SetMainView( MV_3D );
+  }
 }
 
 void MainWindow::CommandSetViewSize( const QStringList& cmd )
 {
-    bool bOK;
+  bool bOK;
   int x = cmd[1].toInt(&bOK);
   int y = cmd[2].toInt(&bOK);
   if ( !bOK )
@@ -2383,18 +2626,18 @@ void MainWindow::CommandSetViewSize( const QStringList& cmd )
   int offsetx = x - sz.width(), offsety = y - sz.height();
   switch( m_nViewLayout )
   {
-    case VL_2x2:
-      offsetx *= 2;
-      offsety *= 2;
-      break;
-    case VL_1n3:
-      offsety += (int)(offsety/2.0+0.5);
-      break;
-    case VL_1n3h:
-      offsetx += (int)(offsetx/2.0+0.5);
-      break;
-    default:
-      break;
+  case VL_2x2:
+    offsetx *= 2;
+    offsety *= 2;
+    break;
+  case VL_1n3:
+    offsety += (int)(offsety/2.0+0.5);
+    break;
+  case VL_1n3h:
+    offsetx += (int)(offsetx/2.0+0.5);
+    break;
+  default:
+    break;
   }
   this->resize( this->size() + QSize(offsetx,offsety) );
 
@@ -2405,7 +2648,7 @@ void MainWindow::CommandSetViewSize( const QStringList& cmd )
 
 void MainWindow::CommandZoom( const QStringList& cmd )
 {
-    bool bOK;
+  bool bOK;
   double dValue = cmd[1].toDouble(&bOK);
   if ( bOK && m_nMainView >= 0 )
   {
@@ -2415,35 +2658,39 @@ void MainWindow::CommandZoom( const QStringList& cmd )
 
 void MainWindow::CommandSetCamera(const QStringList &cmd)
 {
-    bool bOK;
-    CameraOperations ops;
-    for (int i = 1; i < cmd.size(); i+=2)
+  bool bOK;
+  CameraOperations ops;
+  for (int i = 1; i < cmd.size(); i+=2)
+  {
+    double dValue = cmd[i+1].toDouble(&bOK);
+    if (!bOK)
     {
-        double dValue = cmd[i+1].toDouble(&bOK);
-        if (!bOK)
-        {
-            cerr << "Invalid input value for " << cmd[i].toAscii().constData() << ".\n";
-            return;
-        }
-        else
-        {
-            ops << CameraOperation(cmd[i], dValue);
-        }
+      cerr << "Invalid input value for " << cmd[i].toAscii().constData() << ".\n";
+      return;
     }
-    m_views[3]->SetCameraOperations(ops);
-    m_views[3]->ResetCameraClippingRange();
-    m_views[3]->RequestRedraw();
+    else
+    {
+      ops << CameraOperation(cmd[i], dValue);
+    }
+  }
+  m_views[3]->SetCameraOperations(ops);
+  m_views[3]->ResetCameraClippingRange();
+  m_views[3]->RequestRedraw();
 }
 
 void MainWindow::CommandSetRAS( const QStringList& cmd )
 {
-    bool bOK;
+  bool bOK;
   double ras[3];
   ras[0] = cmd[1].toDouble(&bOK);
   if (bOK)
-      ras[1] = cmd[2].toDouble(&bOK);
+  {
+    ras[1] = cmd[2].toDouble(&bOK);
+  }
   if (bOK)
-      ras[2] = cmd[3].toDouble(&bOK);
+  {
+    ras[2] = cmd[3].toDouble(&bOK);
+  }
   if ( bOK )
   {
     LayerCollection* lc = GetLayerCollection( "MRI" );
@@ -2451,7 +2698,9 @@ void MainWindow::CommandSetRAS( const QStringList& cmd )
     if ( layer )
     {
       if ( cmd.size() > 4 && cmd[4] == "tkreg" )
+      {
         layer->TkRegToNativeRAS( ras, ras );
+      }
       layer->RASToTarget( ras, ras );
     }
     lc->SetCursorRASPosition( ras );
@@ -2499,37 +2748,47 @@ void MainWindow::CommandSetSlice( const QStringList& cmd )
 
 void MainWindow::SetCurrentFile( const QString &fileName, int type )
 {
-    QString key = "MainWindow/RecentVolumeFiles";
-    if ( type == 1 )
-        key = "MainWindow/RecentSurfaceFiles";
-    QSettings settings;
-    QStringList files = settings.value( key ).toStringList();
-    files.removeAll(fileName);
-    files.prepend(fileName);
-    while ( files.size() > MAX_RECENT_FILES )
-        files.removeLast();
+  QString key = "MainWindow/RecentVolumeFiles";
+  if ( type == 1 )
+  {
+    key = "MainWindow/RecentSurfaceFiles";
+  }
+  QSettings settings;
+  QStringList files = settings.value( key ).toStringList();
+  files.removeAll(fileName);
+  files.prepend(fileName);
+  while ( files.size() > MAX_RECENT_FILES )
+  {
+    files.removeLast();
+  }
 
-    settings.setValue( key, files);
+  settings.setValue( key, files);
 
-    foreach (QWidget *widget, QApplication::topLevelWidgets())
+  foreach (QWidget *widget, QApplication::topLevelWidgets())
+  {
+    MainWindow *mainWin = qobject_cast<MainWindow *>(widget);
+    if (mainWin)
     {
-        MainWindow *mainWin = qobject_cast<MainWindow *>(widget);
-        if (mainWin)
-            mainWin->UpdateRecentFileActions();
+      mainWin->UpdateRecentFileActions();
     }
+  }
 }
 
 void MainWindow::SetAction( int nAction )
 {
   for ( int i = 0; i < 4; i++ )
+  {
     m_views[i]->SetAction( nAction );
+  }
 
   if ( m_views[0]->GetInteractionMode() == RenderView::IM_VoxelEdit && nAction == Interactor::EM_Contour )
   {
     BrushProperty* bp =GetBrushProperty();
     LayerMRI* layer = (LayerMRI*)GetActiveLayer( "MRI" );
     if ( layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT )
+    {
       layer->GetProperty()->SetShowLabelOutline( true );
+    }
 
     if ( !bp->GetReferenceLayer() )
     {
@@ -2549,184 +2808,220 @@ void MainWindow::SetAction( int nAction )
 
 void MainWindow::UpdateRecentFileActions()
 {
-    QSettings settings;
-    QStringList files = settings.value("MainWindow/RecentVolumeFiles").toStringList();
+  QSettings settings;
+  QStringList files = settings.value("MainWindow/RecentVolumeFiles").toStringList();
 
-    int numRecentFiles = qMin(files.size(), (int)MAX_RECENT_FILES);
-    for (int i = 0; i < numRecentFiles; ++i)
-    {
-        QString text = tr("&%1 %2").arg(i + 1).arg(MyUtils::Win32PathProof(files[i]));
-        m_actionRecentVolumes[i]->setText(text);
-        m_actionRecentVolumes[i]->setData(files[i]);
-        m_actionRecentVolumes[i]->setVisible(true);
-    }
-    for (int j = numRecentFiles; j < MAX_RECENT_FILES; ++j)
-        m_actionRecentVolumes[j]->setVisible(false);
+  int numRecentFiles = qMin(files.size(), (int)MAX_RECENT_FILES);
+  for (int i = 0; i < numRecentFiles; ++i)
+  {
+    QString text = tr("&%1 %2").arg(i + 1).arg(MyUtils::Win32PathProof(files[i]));
+    m_actionRecentVolumes[i]->setText(text);
+    m_actionRecentVolumes[i]->setData(files[i]);
+    m_actionRecentVolumes[i]->setVisible(true);
+  }
+  for (int j = numRecentFiles; j < MAX_RECENT_FILES; ++j)
+  {
+    m_actionRecentVolumes[j]->setVisible(false);
+  }
 
-    files = settings.value("MainWindow/RecentSurfaceFiles").toStringList();
-    numRecentFiles = qMin(files.size(), (int)MAX_RECENT_FILES);
-    for (int i = 0; i < numRecentFiles; ++i)
-    {
-        QString text = tr("&%1 %2").arg(i + 1).arg(MyUtils::Win32PathProof(files[i]));
-        m_actionRecentSurfaces[i]->setText(text);
-        m_actionRecentSurfaces[i]->setData(files[i]);
-        m_actionRecentSurfaces[i]->setVisible(true);
-    }
-    for (int j = numRecentFiles; j < MAX_RECENT_FILES; ++j)
-        m_actionRecentSurfaces[j]->setVisible(false);
+  files = settings.value("MainWindow/RecentSurfaceFiles").toStringList();
+  numRecentFiles = qMin(files.size(), (int)MAX_RECENT_FILES);
+  for (int i = 0; i < numRecentFiles; ++i)
+  {
+    QString text = tr("&%1 %2").arg(i + 1).arg(MyUtils::Win32PathProof(files[i]));
+    m_actionRecentSurfaces[i]->setText(text);
+    m_actionRecentSurfaces[i]->setData(files[i]);
+    m_actionRecentSurfaces[i]->setVisible(true);
+  }
+  for (int j = numRecentFiles; j < MAX_RECENT_FILES; ++j)
+  {
+    m_actionRecentSurfaces[j]->setVisible(false);
+  }
 
-    bool bHasVolumes = m_actionRecentVolumes[0]->isVisible();
-    ui->actionVolumes->setVisible( bHasVolumes );
-    bool bHasSurfaces = m_actionRecentSurfaces[0]->isVisible();
-    ui->actionSurfaces->setVisible( bHasSurfaces );
+  bool bHasVolumes = m_actionRecentVolumes[0]->isVisible();
+  ui->actionVolumes->setVisible( bHasVolumes );
+  bool bHasSurfaces = m_actionRecentSurfaces[0]->isVisible();
+  ui->actionSurfaces->setVisible( bHasSurfaces );
 }
 
 
 void MainWindow::OnRecentVolumeFile()
 {
-    QAction* action = qobject_cast<QAction*>(sender());
-    if ( !action )
-        return;
-    QString filename = action->data().toString();
-    if ( !filename.isEmpty() )
-        LoadVolumeFile( filename );
+  QAction* action = qobject_cast<QAction*>(sender());
+  if ( !action )
+  {
+    return;
+  }
+  QString filename = action->data().toString();
+  if ( !filename.isEmpty() )
+  {
+    LoadVolumeFile( filename );
+  }
 }
 
 void MainWindow::OnRecentSurfaceFile()
 {
   QAction* action = qobject_cast<QAction*>(sender());
   if ( !action )
-      return;
+  {
+    return;
+  }
   QString filename = action->data().toString();
   if ( !filename.isEmpty() )
-      LoadSurfaceFile( filename );
+  {
+    LoadSurfaceFile( filename );
+  }
 }
 
 LayerCollection* MainWindow::GetLayerCollection( const QString& strType )
 {
-    if ( m_layerCollections.contains( strType ) )
-        return m_layerCollections[strType];
-    else
-        return NULL;
+  if ( m_layerCollections.contains( strType ) )
+  {
+    return m_layerCollections[strType];
+  }
+  else
+  {
+    return NULL;
+  }
 }
 
 Layer* MainWindow::GetActiveLayer( const QString& strType )
 {
-    return GetLayerCollection( strType )->GetActiveLayer();
+  return GetLayerCollection( strType )->GetActiveLayer();
 }
 
 void MainWindow::OnSetViewLayout( QAction* action )
 {
-    if ( action == ui->actionLayout1x1 )
-        SetViewLayout( VL_1x1 );
-    else if ( action == ui->actionLayout2x2 )
-        SetViewLayout( VL_2x2 );
-    else if ( action == ui->actionLayout1n3 )
-        SetViewLayout( VL_1n3 );
-    else if ( action == ui->actionLayout1n3h )
-        SetViewLayout( VL_1n3h );
+  if ( action == ui->actionLayout1x1 )
+  {
+    SetViewLayout( VL_1x1 );
+  }
+  else if ( action == ui->actionLayout2x2 )
+  {
+    SetViewLayout( VL_2x2 );
+  }
+  else if ( action == ui->actionLayout1n3 )
+  {
+    SetViewLayout( VL_1n3 );
+  }
+  else if ( action == ui->actionLayout1n3h )
+  {
+    SetViewLayout( VL_1n3h );
+  }
 }
 
 void MainWindow::OnSetMainView( QAction* action )
 {
-    if ( action == ui->actionViewSagittal )
-        SetMainView( MV_Sagittal );
-    else if ( action == ui->actionViewCoronal )
-        SetMainView( MV_Coronal );
-    else if ( action == ui->actionViewAxial )
-        SetMainView( MV_Axial );
-    else if ( action == ui->actionView3D )
-        SetMainView( MV_3D );
+  if ( action == ui->actionViewSagittal )
+  {
+    SetMainView( MV_Sagittal );
+  }
+  else if ( action == ui->actionViewCoronal )
+  {
+    SetMainView( MV_Coronal );
+  }
+  else if ( action == ui->actionViewAxial )
+  {
+    SetMainView( MV_Axial );
+  }
+  else if ( action == ui->actionView3D )
+  {
+    SetMainView( MV_3D );
+  }
 }
 
 void MainWindow::SetMainView( int nView )
 {
-    if ( nView == m_nMainView )
-        return;
-    m_nMainView = nView;
-    emit MainViewChanged( nView );
-    SetViewLayout( m_nViewLayout );
+  if ( nView == m_nMainView )
+  {
+    return;
+  }
+  m_nMainView = nView;
+  emit MainViewChanged( nView );
+  SetViewLayout( m_nViewLayout );
 }
 
 void MainWindow::SetViewLayout( int nLayout )
 {
-    RenderView* view[4] = { 0 };
-    switch ( m_nMainView )
-    {
-      case MV_Coronal:
-        view[0] = ui->viewCoronal;
-        view[1] = ui->viewSagittal;
-        view[2] = ui->viewAxial;
-        view[3] = ui->view3D;
-        break;
-      case MV_Axial:
-        view[0] = ui->viewAxial;
-        view[1] = ui->viewSagittal;
-        view[2] = ui->viewCoronal;
-        view[3] = ui->view3D;
-        break;
-      case MV_3D:
-        view[0] = ui->view3D;
-        view[1] = ui->viewSagittal;
-        view[2] = ui->viewCoronal;
-        view[3] = ui->viewAxial;
-        break;
-      default:
-        view[0] = ui->viewSagittal;
-        view[1] = ui->viewCoronal;
-        view[2] = ui->viewAxial;
-        view[3] = ui->view3D;
-        break;
-    }
+  RenderView* view[4] = { 0 };
+  switch ( m_nMainView )
+  {
+  case MV_Coronal:
+    view[0] = ui->viewCoronal;
+    view[1] = ui->viewSagittal;
+    view[2] = ui->viewAxial;
+    view[3] = ui->view3D;
+    break;
+  case MV_Axial:
+    view[0] = ui->viewAxial;
+    view[1] = ui->viewSagittal;
+    view[2] = ui->viewCoronal;
+    view[3] = ui->view3D;
+    break;
+  case MV_3D:
+    view[0] = ui->view3D;
+    view[1] = ui->viewSagittal;
+    view[2] = ui->viewCoronal;
+    view[3] = ui->viewAxial;
+    break;
+  default:
+    view[0] = ui->viewSagittal;
+    view[1] = ui->viewCoronal;
+    view[2] = ui->viewAxial;
+    view[3] = ui->view3D;
+    break;
+  }
 
-    ui->gridLayoutViewport->setRowStretch( 0, 0 );
-    ui->gridLayoutViewport->setRowStretch( 1, 0 );
-    ui->gridLayoutViewport->setColumnStretch( 0, 0 );
-    ui->gridLayoutViewport->setColumnStretch( 1, 0 );
+  ui->gridLayoutViewport->setRowStretch( 0, 0 );
+  ui->gridLayoutViewport->setRowStretch( 1, 0 );
+  ui->gridLayoutViewport->setColumnStretch( 0, 0 );
+  ui->gridLayoutViewport->setColumnStretch( 1, 0 );
 
+  for ( int i = 0; i < 4; i++ )
+  {
+    ui->gridLayoutViewport->removeWidget( view[i] );
+  }
+
+  switch ( nLayout )
+  {
+  case VL_2x2:
     for ( int i = 0; i < 4; i++ )
     {
-        ui->gridLayoutViewport->removeWidget( view[i] );
+      ui->gridLayoutViewport->addWidget( view[i], i/2, i%2 );
     }
+    break;
+  case VL_1n3:
+    ui->gridLayoutViewport->addWidget( view[0], 0, 0, 1, 3 );
+    ui->gridLayoutViewport->addWidget( view[1], 1, 0 );
+    ui->gridLayoutViewport->addWidget( view[2], 1, 1 );
+    ui->gridLayoutViewport->addWidget( view[3], 1, 2 );
+    ui->gridLayoutViewport->setRowStretch( 0, 2 );
+    ui->gridLayoutViewport->setRowStretch( 1, 1 );
+    break;
+  case VL_1n3h:
+    ui->gridLayoutViewport->addWidget( view[0], 0, 0, 3, 1 );
+    ui->gridLayoutViewport->addWidget( view[1], 0, 1 );
+    ui->gridLayoutViewport->addWidget( view[2], 1, 1 );
+    ui->gridLayoutViewport->addWidget( view[3], 2, 1 );
+    ui->gridLayoutViewport->setColumnStretch( 0, 2 );
+    ui->gridLayoutViewport->setColumnStretch( 1, 1 );
+    break;
+  default:
+    ui->gridLayoutViewport->addWidget( view[0], 0, 0 );
+    break;
+  }
 
-    switch ( nLayout )
-    {
-    case VL_2x2:
-        for ( int i = 0; i < 4; i++ )
-            ui->gridLayoutViewport->addWidget( view[i], i/2, i%2 );
-        break;
-    case VL_1n3:
-        ui->gridLayoutViewport->addWidget( view[0], 0, 0, 1, 3 );
-        ui->gridLayoutViewport->addWidget( view[1], 1, 0 );
-        ui->gridLayoutViewport->addWidget( view[2], 1, 1 );
-        ui->gridLayoutViewport->addWidget( view[3], 1, 2 );
-        ui->gridLayoutViewport->setRowStretch( 0, 2 );
-        ui->gridLayoutViewport->setRowStretch( 1, 1 );
-        break;
-    case VL_1n3h:
-        ui->gridLayoutViewport->addWidget( view[0], 0, 0, 3, 1 );
-        ui->gridLayoutViewport->addWidget( view[1], 0, 1 );
-        ui->gridLayoutViewport->addWidget( view[2], 1, 1 );
-        ui->gridLayoutViewport->addWidget( view[3], 2, 1 );
-        ui->gridLayoutViewport->setColumnStretch( 0, 2 );
-        ui->gridLayoutViewport->setColumnStretch( 1, 1 );
-        break;
-    default:
-        ui->gridLayoutViewport->addWidget( view[0], 0, 0 );
-        break;
-    }
+  view[0]->show();
+  for ( int i = 1; i < 4; i++ )
+  {
+    view[i]->setVisible( nLayout != VL_1x1 );
+  }
 
-    view[0]->show();
-    for ( int i = 1; i < 4; i++ )
-    {
-        view[i]->setVisible( nLayout != VL_1x1 );
-    }
-
-    if ( m_nViewLayout != nLayout )
-    {
-        m_nViewLayout = nLayout;
-        emit ViewLayoutChanged( nLayout );
-    }
+  if ( m_nViewLayout != nLayout )
+  {
+    m_nViewLayout = nLayout;
+    emit ViewLayoutChanged( nLayout );
+  }
 }
 
 LayerCollection* MainWindow::GetCurrentLayerCollection()
@@ -2734,15 +3029,25 @@ LayerCollection* MainWindow::GetCurrentLayerCollection()
   LayerCollection* lc = NULL;
   QString name = ui->tabWidgetControlPanel->tabText( ui->tabWidgetControlPanel->currentIndex() );
   if ( name == "Volumes" )
+  {
     lc = GetLayerCollection( "MRI" );
+  }
   else if ( name == "ROIs" )
+  {
     lc = GetLayerCollection( "ROI" );
+  }
   else if ( name == "Surfaces" )
+  {
     lc = GetLayerCollection( "Surface" );
+  }
   else if ( name == "Point Sets" )
+  {
     lc = GetLayerCollection( "PointSet" );
+  }
   else if ( name == "Tracks" )
+  {
     lc = GetLayerCollection( "Track");
+  }
 
   return lc;
 }
@@ -2755,7 +3060,9 @@ bool MainWindow::SetSlicePosition( int nPlane, double dPos, bool bRoundToGrid )
   {
     m_layerCollections[keys[i]]->blockSignals( true );
     if ( m_layerCollections[keys[i]]->SetSlicePosition( nPlane, dPos, bRoundToGrid ) )
+    {
       bRet = true;
+    }
     m_layerCollections[keys[i]]->blockSignals( false );
   }
   if ( bRet )
@@ -2774,7 +3081,9 @@ bool MainWindow::SetSlicePosition( double* pos )
   {
     m_layerCollections[keys[i]]->blockSignals( true );
     if ( m_layerCollections[keys[i]]->SetSlicePosition( pos ) )
+    {
       bRet = true;
+    }
     m_layerCollections[keys[i]]->blockSignals( false );
   }
   if ( bRet )
@@ -2793,7 +3102,9 @@ bool MainWindow::OffsetSlicePosition( int nPlane, double dPosDiff, bool bRoundTo
   {
     m_layerCollections[keys[i]]->blockSignals( true );
     if ( m_layerCollections[keys[i]]->OffsetSlicePosition( nPlane, dPosDiff, bRoundToGrid ) )
+    {
       bRet = true;
+    }
     m_layerCollections[keys[i]]->blockSignals( false );
   }
   if ( bRet )
@@ -2806,43 +3117,53 @@ bool MainWindow::OffsetSlicePosition( int nPlane, double dPosDiff, bool bRoundTo
 
 void MainWindow::OnLoadVolume()
 {
-    DialogLoadVolume dlg( this );
-    dlg.SetLastDir( m_strLastDir );
-    QStringList recentFiles;
-    for ( int i = 0; i < m_actionRecentVolumes.size(); i++ )
+  DialogLoadVolume dlg( this );
+  dlg.SetLastDir( m_strLastDir );
+  QStringList recentFiles;
+  for ( int i = 0; i < m_actionRecentVolumes.size(); i++ )
+  {
+    if ( m_actionRecentVolumes[i]->isVisible() )
     {
-        if ( m_actionRecentVolumes[i]->isVisible() )
-            recentFiles << m_actionRecentVolumes[i]->data().toString();
+      recentFiles << m_actionRecentVolumes[i]->data().toString();
     }
-    dlg.SetRecentFiles( recentFiles );
-    if ( dlg.exec() == QDialog::Accepted )
+  }
+  dlg.SetRecentFiles( recentFiles );
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    QStringList filenames = dlg.GetVolumeFileNames();
+    QString reg_fn =  dlg.GetRegFileName();
+    bool bHasVolume = !GetLayerCollection( "MRI" )->IsEmpty();
+    bool bHasSurface = !GetLayerCollection( "Surface" )->IsEmpty();
+    for (int i = 0; i < filenames.size(); i++)
     {
-        QStringList filenames = dlg.GetVolumeFileNames();
-        QString reg_fn =  dlg.GetRegFileName();
-        bool bHasVolume = !GetLayerCollection( "MRI" )->IsEmpty();
-        bool bHasSurface = !GetLayerCollection( "Surface" )->IsEmpty();
-        for (int i = 0; i < filenames.size(); i++)
-        {
-            QString script = "loadvolume ";
-            QString fn = filenames[i];
-            if ( !reg_fn.isEmpty() )
-                fn += ":reg=" + reg_fn;
+      QString script = "loadvolume ";
+      QString fn = filenames[i];
+      if ( !reg_fn.isEmpty() )
+      {
+        fn += ":reg=" + reg_fn;
+      }
 
-            if ( dlg.GetSampleMethod() != SAMPLE_NEAREST )
-                fn += ":sample=trilinear";
+      if ( dlg.GetSampleMethod() != SAMPLE_NEAREST )
+      {
+        fn += ":sample=trilinear";
+      }
 
-            fn += ":colormap=" + dlg.GetColorMap();
-            if ( dlg.GetColorMap() == "lut" )
-                fn += ":lut=" + dlg.GetLUT();
+      fn += ":colormap=" + dlg.GetColorMap();
+      if ( dlg.GetColorMap() == "lut" )
+      {
+        fn += ":lut=" + dlg.GetLUT();
+      }
 
-            script += fn;
+      script += fn;
 
-            if ( (!bHasVolume && bHasSurface) || (!bHasVolume && dlg.IsToResample()) || m_bResampleToRAS )
-                script += " r";
+      if ( (!bHasVolume && bHasSurface) || (!bHasVolume && dlg.IsToResample()) || m_bResampleToRAS )
+      {
+        script += " r";
+      }
 
-            AddScript( script );
-        }
+      AddScript( script );
     }
+  }
 }
 
 void MainWindow::LoadVolumeFile( const QString& filename,
@@ -2850,114 +3171,124 @@ void MainWindow::LoadVolumeFile( const QString& filename,
                                  bool bResample_in, int nSampleMethod,
                                  bool bConform )
 {
-    QFileInfo fi(filename);
-    bool bResample = bResample_in;
-    if ( GetLayerCollection( "MRI")->IsEmpty() && !GetLayerCollection( "Surface" )->IsEmpty() )
-      bResample = true;
+  QFileInfo fi(filename);
+  bool bResample = bResample_in;
+  if ( GetLayerCollection( "MRI")->IsEmpty() && !GetLayerCollection( "Surface" )->IsEmpty() )
+  {
+    bResample = true;
+  }
 
-    m_bResampleToRAS = bResample;
-    LayerMRI* layer = new LayerMRI( m_layerVolumeRef );
-    layer->SetResampleToRAS( bResample );
-    layer->SetSampleMethod( nSampleMethod );
-    layer->SetConform( bConform );
-    layer->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
-    layer->SetName( fi.completeBaseName() );
-    QString fullpath = fi.absoluteFilePath();
-    if ( fullpath.isEmpty() )
-        fullpath = filename;
-    layer->SetFileName( fullpath );
-    if ( !reg_filename.isEmpty() )
-    {
-        layer->SetRegFileName( QFileInfo( QDir(fi.canonicalPath()), reg_filename ).absoluteFilePath() );
-    }
+  m_bResampleToRAS = bResample;
+  LayerMRI* layer = new LayerMRI( m_layerVolumeRef );
+  layer->SetResampleToRAS( bResample );
+  layer->SetSampleMethod( nSampleMethod );
+  layer->SetConform( bConform );
+  layer->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
+  layer->SetName( fi.completeBaseName() );
+  QString fullpath = fi.absoluteFilePath();
+  if ( fullpath.isEmpty() )
+  {
+    fullpath = filename;
+  }
+  layer->SetFileName( fullpath );
+  if ( !reg_filename.isEmpty() )
+  {
+    layer->SetRegFileName( QFileInfo( QDir(fi.canonicalPath()), reg_filename ).absoluteFilePath() );
+  }
 
-    if ( !bResample )
+  if ( !bResample )
+  {
+    LayerMRI* mri = (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 );
+    if ( mri )
     {
-        LayerMRI* mri = (LayerMRI* )GetLayerCollection( "MRI" )->GetLayer( 0 );
-        if ( mri )
-        {
-            layer->SetRefVolume( mri->GetSourceVolume() );
-        }
+      layer->SetRefVolume( mri->GetSourceVolume() );
     }
-    m_threadIOWorker->LoadVolume( layer );
+  }
+  m_threadIOWorker->LoadVolume( layer );
 }
 
 void MainWindow::OnCloseVolume()
 {
-    LayerMRI* layer = (LayerMRI*)GetActiveLayer( "MRI" );
-    if ( !layer )
-        return;
-    if ( layer->IsModified() )
+  LayerMRI* layer = (LayerMRI*)GetActiveLayer( "MRI" );
+  if ( !layer )
+  {
+    return;
+  }
+  if ( layer->IsModified() )
+  {
+    if ( QMessageBox::question( this, "Volume Not Saved",
+                                "Volume has been modifed and not been saved. Do you still want to continue?",
+                                QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
     {
-        if ( QMessageBox::question( this, "Volume Not Saved",
-                                    "Volume has been modifed and not been saved. Do you still want to continue?",
-                                    QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
-            return;
+      return;
     }
-    GetLayerCollection( "MRI" )->RemoveLayer( layer );
-    m_layerVolumeRef = (LayerMRI*)GetActiveLayer( "MRI" );
+  }
+  GetLayerCollection( "MRI" )->RemoveLayer( layer );
+  m_layerVolumeRef = (LayerMRI*)GetActiveLayer( "MRI" );
 }
 
 void MainWindow::OnNewVolume()
 {
-    LayerCollection* col_mri = GetLayerCollection( "MRI" );
-    if ( !col_mri->GetActiveLayer() )
+  LayerCollection* col_mri = GetLayerCollection( "MRI" );
+  if ( !col_mri->GetActiveLayer() )
+  {
+    QMessageBox::warning(this, "Error", "Can not create new volume without any visible template volume." );
+    return;
+  }
+  DialogNewVolume dlg( this );
+  dlg.SetVolumeName( "New Volume");
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    LayerMRI* layer_new = new LayerMRI( dlg.GetTemplate() );
+    if ( !layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel(), dlg.GetDataType() ) )
     {
-        QMessageBox::warning(this, "Error", "Can not create new volume without any visible template volume." );
+      QMessageBox::warning( this, "Error", "Can not create new volume." );
+      delete layer_new;
       return;
     }
-    DialogNewVolume dlg( this );
-    dlg.SetVolumeName( "New Volume");
-    if ( dlg.exec() == QDialog::Accepted )
-    {
-        LayerMRI* layer_new = new LayerMRI( dlg.GetTemplate() );
-         if ( !layer_new->Create( dlg.GetTemplate(), dlg.GetCopyVoxel(), dlg.GetDataType() ) )
-         {
-             QMessageBox::warning( this, "Error", "Can not create new volume." );
-           delete layer_new;
-           return;
-         }
-         layer_new->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
-         layer_new->SetName( dlg.GetVolumeName() );
-         col_mri->AddLayer( layer_new );
+    layer_new->GetProperty()->SetLUTCTAB( m_luts->GetColorTable( 0 ) );
+    layer_new->SetName( dlg.GetVolumeName() );
+    col_mri->AddLayer( layer_new );
 
-         ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
-    }
+    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
+  }
 }
 
 void MainWindow::OnSaveVolume()
 {
-    LayerMRI* layer = (LayerMRI*)GetActiveLayer( "MRI" );
-    if ( !layer )
-        return;
-    else if ( !layer->IsVisible() )
+  LayerMRI* layer = (LayerMRI*)GetActiveLayer( "MRI" );
+  if ( !layer )
+  {
+    return;
+  }
+  else if ( !layer->IsVisible() )
+  {
+    QMessageBox::warning( this, "Error", "Current volume layer is not visible. Please turn it on before saving." );
+    return;
+  }
+
+  QString fn = layer->GetFileName();
+  if ( fn.isEmpty() )
+  {
+    QString name = layer->GetName().trimmed();
+    name.replace(" ", "_");
+    fn = QFileDialog::getSaveFileName( this, "Save volume file",
+                                       AutoSelectLastDir( "mri" ),
+                                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+  }
+
+  if ( !fn.isEmpty() )
+  {
+    QFileInfo fi(fn);
+    if ( fi.suffix() != "nii" && fi.suffix() != "img" &&
+         fi.suffix() != "mgz" && fi.suffix() != "mgh" &&
+         !fi.completeSuffix().contains("nii.gz"))
     {
-        QMessageBox::warning( this, "Error", "Current volume layer is not visible. Please turn it on before saving." );
-        return;
+      fn += ".mgz";
     }
-
-      QString fn = layer->GetFileName();
-      if ( fn.isEmpty() )
-      {
-        QString name = layer->GetName().trimmed();
-        name.replace(" ", "_");
-        fn = QFileDialog::getSaveFileName( this, "Save volume file",
-                                      AutoSelectLastDir( "mri" ),
-                                      "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
-      }
-
-      if ( !fn.isEmpty() )
-      {
-          QFileInfo fi(fn);
-        if ( fi.suffix() != "nii" && fi.suffix() != "img" &&
-             fi.suffix() != "mgz" && fi.suffix() != "mgh" &&
-             !fi.completeSuffix().contains("nii.gz"))
-        {
-          fn += ".mgz";
-        }
-        layer->SetFileName( fn );
-        m_threadIOWorker->SaveVolume( layer );
-      }
+    layer->SetFileName( fn );
+    m_threadIOWorker->SaveVolume( layer );
+  }
 }
 
 void MainWindow::SaveVolumeAs()
@@ -2970,7 +3301,7 @@ void MainWindow::SaveVolumeAs()
   }
   else if ( !layer_mri->IsVisible() )
   {
-      QMessageBox::warning( this, "Error", "Current volume layer is not visible. Please turn it on before saving." );
+    QMessageBox::warning( this, "Error", "Current volume layer is not visible. Please turn it on before saving." );
     return;
   }
 
@@ -2980,14 +3311,14 @@ void MainWindow::SaveVolumeAs()
     DialogSaveVolume dlg(this, layer_mri->GetFileName());
     if (dlg.exec() == QDialog::Accepted)
     {
-        fn = dlg.GetFileName();
-        layer_mri->SetWriteResampled(dlg.GetResample());
+      fn = dlg.GetFileName();
+      layer_mri->SetWriteResampled(dlg.GetResample());
     }
   }
   else
     fn = QFileDialog::getSaveFileName( this, "Save volume",
-                    QFileInfo( layer_mri->GetFileName() ).absolutePath(),
-                    "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+                                       QFileInfo( layer_mri->GetFileName() ).absolutePath(),
+                                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
   if ( !fn.isEmpty() )
   {
     layer_mri->SetFileName( fn );
@@ -2998,36 +3329,40 @@ void MainWindow::SaveVolumeAs()
 
 void MainWindow::OnLoadDTI()
 {
-    DialogLoadDTI dlg(this);
-    dlg.Initialize( m_bResampleToRAS, GetLayerCollection( "MRI" )->IsEmpty() );
-    dlg.SetLastDir( m_strLastDir );;
+  DialogLoadDTI dlg(this);
+  dlg.Initialize( m_bResampleToRAS, GetLayerCollection( "MRI" )->IsEmpty() );
+  dlg.SetLastDir( m_strLastDir );;
 
-    if ( dlg.exec() != QDialog::Accepted )
-      return;
-
-    this->LoadDTIFile( dlg.GetVectorFileName(), dlg.GetFAFileName(), dlg.GetRegFileName(), dlg.IsToResample() );
+  if ( dlg.exec() != QDialog::Accepted )
+  {
+    return;
   }
 
-void MainWindow::LoadDTIFile( const QString& fn_vector,
-                                const QString& fn_fa,
-                                const QString& reg_filename,
-                                bool bResample )
-{
-    m_bResampleToRAS = bResample;
+  this->LoadDTIFile( dlg.GetVectorFileName(), dlg.GetFAFileName(), dlg.GetRegFileName(), dlg.IsToResample() );
+}
 
-    LayerDTI* layer = new LayerDTI( m_layerVolumeRef );
-    layer->SetResampleToRAS( bResample );
-    QString layerName = QFileInfo( fn_vector ).completeBaseName();
-    if ( QFileInfo( fn_vector ).suffix() == "gz" )
-      layerName = QFileInfo( layerName ).completeBaseName();
-    layer->SetName( layerName );
-    layer->SetFileName( fn_fa );
-    layer->SetVectorFileName( fn_vector );
-    if ( !reg_filename.isEmpty() )
-    {
-      layer->SetRegFileName( QFileInfo(reg_filename).absoluteFilePath() );
-    }
-    m_threadIOWorker->LoadVolume( layer );
+void MainWindow::LoadDTIFile( const QString& fn_vector,
+                              const QString& fn_fa,
+                              const QString& reg_filename,
+                              bool bResample )
+{
+  m_bResampleToRAS = bResample;
+
+  LayerDTI* layer = new LayerDTI( m_layerVolumeRef );
+  layer->SetResampleToRAS( bResample );
+  QString layerName = QFileInfo( fn_vector ).completeBaseName();
+  if ( QFileInfo( fn_vector ).suffix() == "gz" )
+  {
+    layerName = QFileInfo( layerName ).completeBaseName();
+  }
+  layer->SetName( layerName );
+  layer->SetFileName( fn_fa );
+  layer->SetVectorFileName( fn_vector );
+  if ( !reg_filename.isEmpty() )
+  {
+    layer->SetRegFileName( QFileInfo(reg_filename).absoluteFilePath() );
+  }
+  m_threadIOWorker->LoadVolume( layer );
 }
 
 void MainWindow::LoadPVolumeFiles( const QStringList& filenames, const QString& prefix, const QString& lut )
@@ -3041,46 +3376,46 @@ void MainWindow::LoadPVolumeFiles( const QStringList& filenames, const QString& 
 
 void MainWindow::OnNewROI()
 {
-    LayerCollection* col_mri = GetLayerCollection( "MRI" );
-    LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
-    if ( !layer_mri)
-    {
-        QMessageBox::warning( this, "Error", "Can not create new ROI without volume template.");
-      return;
-    }
+  LayerCollection* col_mri = GetLayerCollection( "MRI" );
+  LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
+  if ( !layer_mri)
+  {
+    QMessageBox::warning( this, "Error", "Can not create new ROI without volume template.");
+    return;
+  }
 
-    // enter the name of the new ROI
-    DialogNewROI dlg( this );
-    dlg.SetROIName( "New ROI" );
-    if ( dlg.exec() == QDialog::Accepted )
+  // enter the name of the new ROI
+  DialogNewROI dlg( this );
+  dlg.SetROIName( "New ROI" );
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    // finally we are about to create new ROI.
+    LayerCollection* col_roi = GetLayerCollection( "ROI" );
+    if ( col_roi->IsEmpty() )
     {
-        // finally we are about to create new ROI.
-        LayerCollection* col_roi = GetLayerCollection( "ROI" );
-        if ( col_roi->IsEmpty() )
-        {
-          col_roi->SetWorldOrigin( col_mri->GetWorldOrigin() );
-          col_roi->SetWorldSize( col_mri->GetWorldSize() );
-          col_roi->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
-          col_roi->SetSlicePosition( col_mri->GetSlicePosition() );
-        }
-        LayerROI* layer_roi = new LayerROI( dlg.GetTemplate() );
-        layer_roi->SetName( dlg.GetROIName() );
-        col_roi->AddLayer( layer_roi );
-
-        ui->tabWidgetControlPanel->setCurrentWidget( ui->tabROI );
-        SetMode( RenderView::IM_ROIEdit );
+      col_roi->SetWorldOrigin( col_mri->GetWorldOrigin() );
+      col_roi->SetWorldSize( col_mri->GetWorldSize() );
+      col_roi->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
+      col_roi->SetSlicePosition( col_mri->GetSlicePosition() );
     }
+    LayerROI* layer_roi = new LayerROI( dlg.GetTemplate() );
+    layer_roi->SetName( dlg.GetROIName() );
+    col_roi->AddLayer( layer_roi );
+
+    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabROI );
+    SetMode( RenderView::IM_ROIEdit );
+  }
 }
 
 void MainWindow::OnLoadROI()
 {
-    QStringList filenames = QFileDialog::getOpenFileNames( this, "Select label file",
-                                AutoSelectLastDir( "label" ),
-                                "Label files (*.*)");
-    for ( int i = 0; i < filenames.size(); i++)
-    {
-        this->AddScript( QString("loadroi ")+filenames[i] );
-    }
+  QStringList filenames = QFileDialog::getOpenFileNames( this, "Select label file",
+                          AutoSelectLastDir( "label" ),
+                          "Label files (*.*)");
+  for ( int i = 0; i < filenames.size(); i++)
+  {
+    this->AddScript( QString("loadroi ")+filenames[i] );
+  }
 }
 
 void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol )
@@ -3111,7 +3446,7 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol )
     if ( ref == NULL )
     {
       cerr << "Can not find given template volume: " << ref_vol.toAscii().constData()
-          << ". Using current volume as template for ROI " << fn.toAscii().constData() << ".\n";
+           << ". Using current volume as template for ROI " << fn.toAscii().constData() << ".\n";
       ref = (LayerMRI*)col_mri->GetActiveLayer();
     }
   }
@@ -3134,91 +3469,95 @@ void MainWindow::LoadROIFile( const QString& fn, const QString& ref_vol )
   }
   else
   {
-      delete roi;
-      QMessageBox::warning( this, "Error", QString("Can not load ROI from %1").arg(fn) );
+    delete roi;
+    QMessageBox::warning( this, "Error", QString("Can not load ROI from %1").arg(fn) );
   }
 }
 
 
 void MainWindow::OnSaveROI()
 {
-    LayerCollection* col_roi = GetLayerCollection( "ROI" );
-      LayerROI* layer_roi = ( LayerROI* )col_roi->GetActiveLayer();
-      if ( !layer_roi )
-      {
-        return;
-      }
-      else if ( !layer_roi->IsVisible() )
-      {
-          QMessageBox::warning( this, "Error", "Current ROI layer is not visible. Please turn it on before saving.");
-        return;
-      }
-      QString fn = layer_roi->GetFileName();
-      if ( fn.isEmpty() )
-      {
-         fn = QFileDialog::getSaveFileName( this, "Select label file",
-                                      AutoSelectLastDir( "label" ),
-                                      "Label files (*.*)");
-      }
+  LayerCollection* col_roi = GetLayerCollection( "ROI" );
+  LayerROI* layer_roi = ( LayerROI* )col_roi->GetActiveLayer();
+  if ( !layer_roi )
+  {
+    return;
+  }
+  else if ( !layer_roi->IsVisible() )
+  {
+    QMessageBox::warning( this, "Error", "Current ROI layer is not visible. Please turn it on before saving.");
+    return;
+  }
+  QString fn = layer_roi->GetFileName();
+  if ( fn.isEmpty() )
+  {
+    fn = QFileDialog::getSaveFileName( this, "Select label file",
+                                       AutoSelectLastDir( "label" ),
+                                       "Label files (*.*)");
+  }
 
-      if ( !fn.isEmpty() )
-      {
-        if ( QFileInfo(fn).suffix() != "label" )
-        {
-          fn += ".label";
-        }
-        layer_roi->SetFileName( fn );
-        layer_roi->ResetModified();
-        layer_roi->SaveROI();
-      }
+  if ( !fn.isEmpty() )
+  {
+    if ( QFileInfo(fn).suffix() != "label" )
+    {
+      fn += ".label";
+    }
+    layer_roi->SetFileName( fn );
+    layer_roi->ResetModified();
+    layer_roi->SaveROI();
+  }
 }
 
 void MainWindow::OnCloseROI()
 {
-    LayerROI* layer = (LayerROI*)GetActiveLayer( "ROI" );
-    if ( !layer )
-        return;
-    if ( layer->IsModified() )
+  LayerROI* layer = (LayerROI*)GetActiveLayer( "ROI" );
+  if ( !layer )
+  {
+    return;
+  }
+  if ( layer->IsModified() )
+  {
+    if ( QMessageBox::question( this, "ROI Not Saved",
+                                "ROI has been modifed and not been saved. Do you still want to continue?",
+                                QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
     {
-        if ( QMessageBox::question( this, "ROI Not Saved",
-                                    "ROI has been modifed and not been saved. Do you still want to continue?",
-                                    QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
-            return;
+      return;
     }
-    GetLayerCollection( "ROI" )->RemoveLayer( layer );
+  }
+  GetLayerCollection( "ROI" )->RemoveLayer( layer );
 }
 
 void MainWindow::OnNewPointSet()
 {
-    LayerCollection* col_mri = GetLayerCollection( "MRI" );
-     LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
-     if ( !layer_mri)
-     {
-         QMessageBox::warning( this, "Error", "Can not create new ROI without volume template.");
-       return;
-     }
+  LayerCollection* col_mri = GetLayerCollection( "MRI" );
+  LayerMRI* layer_mri = ( LayerMRI* )col_mri->GetActiveLayer();
+  if ( !layer_mri)
+  {
+    QMessageBox::warning( this, "Error", "Can not create new ROI without volume template.");
+    return;
+  }
 
-     // enter the name of the new point set
-     DialogNewPointSet dlg( this );
-     dlg.SetPointSetName( "New Point Set");
-     if ( dlg.exec() == QDialog::Accepted )
-     {
-         // finally we are about to create new point set.
-         LayerCollection* col_wp = GetLayerCollection( "PointSet" );
-         if ( col_wp->IsEmpty() )
-         {
-           col_wp->SetWorldOrigin( col_mri->GetWorldOrigin() );
-           col_wp->SetWorldSize( col_mri->GetWorldSize() );
-           col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
-           col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
-         }
-         LayerPointSet* layer_wp = new LayerPointSet( dlg.GetTemplate(), dlg.GetType() );
-         layer_wp->SetName( dlg.GetPointSetName() );
-         col_wp->AddLayer( layer_wp );
+  // enter the name of the new point set
+  DialogNewPointSet dlg( this );
+  dlg.SetPointSetName( "New Point Set");
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    // finally we are about to create new point set.
+    LayerCollection* col_wp = GetLayerCollection( "PointSet" );
+    if ( col_wp->IsEmpty() )
+    {
+      col_wp->SetWorldOrigin( col_mri->GetWorldOrigin() );
+      col_wp->SetWorldSize( col_mri->GetWorldSize() );
+      col_wp->SetWorldVoxelSize( col_mri->GetWorldVoxelSize() );
+      col_wp->SetSlicePosition( col_mri->GetSlicePosition() );
+    }
+    LayerPointSet* layer_wp = new LayerPointSet( dlg.GetTemplate(), dlg.GetType() );
+    layer_wp->SetName( dlg.GetPointSetName() );
+    col_wp->AddLayer( layer_wp );
 
-         ui->tabWidgetControlPanel->setCurrentWidget( ui->tabPointSet );
-         SetMode( RenderView::IM_PointSetEdit );
-     }
+    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabPointSet );
+    SetMode( RenderView::IM_PointSetEdit );
+  }
 }
 
 void MainWindow::LoadWayPointsFile( const QString& fn )
@@ -3262,148 +3601,164 @@ void MainWindow::LoadPointSetFile( const QString& fn, int type )
 
 void MainWindow::OnLoadPointSet()
 {
-    DialogLoadPointSet dlg( this );
-    dlg.SetLastDir(m_strLastDir);
-    if ( dlg.exec() == QDialog::Accepted )
+  DialogLoadPointSet dlg( this );
+  dlg.SetLastDir(m_strLastDir);
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    QStringList fns = dlg.GetFileNames();
+    for ( int i = 0; i < fns.size(); i++ )
     {
-        QStringList fns = dlg.GetFileNames();
-        for ( int i = 0; i < fns.size(); i++ )
+      int nType = dlg.GetPointSetType();
+      if ( nType == -1 )  // auto
+      {
+        if ( FSPointSet::IsLabelFormat( fns[i] ) )
         {
-            int nType = dlg.GetPointSetType();
-            if ( nType == -1 )  // auto
-            {
-              if ( FSPointSet::IsLabelFormat( fns[i] ) )
-                nType = LayerPropertyPointSet::WayPoint;
-              else
-                nType = LayerPropertyPointSet::ControlPoint;
-            }
-            if ( nType == LayerPropertyPointSet::WayPoint )
-                AddScript(QString("loadwaypoints ")+fns[i]);
-            else if ( nType == LayerPropertyPointSet::ControlPoint )
-                AddScript(QString("loadcontrolpoints ")+fns[i]);
+          nType = LayerPropertyPointSet::WayPoint;
         }
+        else
+        {
+          nType = LayerPropertyPointSet::ControlPoint;
+        }
+      }
+      if ( nType == LayerPropertyPointSet::WayPoint )
+      {
+        AddScript(QString("loadwaypoints ")+fns[i]);
+      }
+      else if ( nType == LayerPropertyPointSet::ControlPoint )
+      {
+        AddScript(QString("loadcontrolpoints ")+fns[i]);
+      }
     }
+  }
 }
 
 void MainWindow::OnSavePointSet()
 {
-    LayerPointSet* layer = (LayerPointSet*)GetActiveLayer("PointSet");
-    if ( !layer )
-    {
-      return;
-    }
-    else if ( !layer->IsVisible() )
-    {
-        QMessageBox::information( this, "Error", "Current Way Points layer is not visible. Please turn it on before saving.");
-      return;
-    }
+  LayerPointSet* layer = (LayerPointSet*)GetActiveLayer("PointSet");
+  if ( !layer )
+  {
+    return;
+  }
+  else if ( !layer->IsVisible() )
+  {
+    QMessageBox::information( this, "Error", "Current Way Points layer is not visible. Please turn it on before saving.");
+    return;
+  }
 
-    QString fn = layer->GetFileName();
-    if ( fn.isEmpty() )
+  QString fn = layer->GetFileName();
+  if ( fn.isEmpty() )
+  {
+    OnSavePointSetAs();
+  }
+  else
+  {
+    if ( layer->GetProperty()->GetType() == LayerPropertyPointSet::WayPoint &&
+         QFileInfo(fn).suffix() != "label")
     {
-      OnSavePointSetAs();
+      fn += ".label";
     }
-    else
+    if ( layer->GetProperty()->GetType() == LayerPropertyPointSet::ControlPoint &&
+         QFileInfo(fn).suffix() != "dat" )
     {
-        if ( layer->GetProperty()->GetType() == LayerPropertyPointSet::WayPoint &&
-           QFileInfo(fn).suffix() != "label")
-      {
-        fn += ".label";
-      }
-      if ( layer->GetProperty()->GetType() == LayerPropertyPointSet::ControlPoint &&
-           QFileInfo(fn).suffix() != "dat" )
-      {
-        fn += ".dat";
-      }
-      layer->SetFileName( fn );
+      fn += ".dat";
+    }
+    layer->SetFileName( fn );
+    layer->ResetModified();
+    if (layer->Save())
+    {
       layer->ResetModified();
-      if (layer->Save())
-          layer->ResetModified();
     }
+  }
 }
 
 void MainWindow::OnSavePointSetAs()
 {
-    LayerPointSet* layer = (LayerPointSet*)GetActiveLayer("PointSet");
-    if ( !layer )
-    {
-      return;
-    }
-    else if ( !layer->IsVisible() )
-    {
-        QMessageBox::information( this, "Error", "Current Way Points layer is not visible. Please turn it on before saving.");
-      return;
-    }
+  LayerPointSet* layer = (LayerPointSet*)GetActiveLayer("PointSet");
+  if ( !layer )
+  {
+    return;
+  }
+  else if ( !layer->IsVisible() )
+  {
+    QMessageBox::information( this, "Error", "Current Way Points layer is not visible. Please turn it on before saving.");
+    return;
+  }
 
-    DialogSavePointSet dlg( this );
-    dlg.SetType( layer->GetProperty()->GetType() );
-    dlg.SetFileName( layer->GetFileName() );
-    dlg.SetLastDir(m_strLastDir);
-    if ( dlg.exec() == QDialog::Accepted )
-    {
-      layer->SetFileName( dlg.GetFileName() );
-      layer->GetProperty()->SetType( dlg.GetType() );
-      OnSavePointSet();
-      ui->tabPointSet->UpdateWidgets();
-    }
+  DialogSavePointSet dlg( this );
+  dlg.SetType( layer->GetProperty()->GetType() );
+  dlg.SetFileName( layer->GetFileName() );
+  dlg.SetLastDir(m_strLastDir);
+  if ( dlg.exec() == QDialog::Accepted )
+  {
+    layer->SetFileName( dlg.GetFileName() );
+    layer->GetProperty()->SetType( dlg.GetType() );
+    OnSavePointSet();
+    ui->tabPointSet->UpdateWidgets();
+  }
 }
 
 void MainWindow::OnClosePointSet()
 {
-    LayerPointSet* layer = (LayerPointSet*)GetActiveLayer( "PointSet" );
-    if ( !layer )
-        return;
-    if ( layer->IsModified() )
+  LayerPointSet* layer = (LayerPointSet*)GetActiveLayer( "PointSet" );
+  if ( !layer )
+  {
+    return;
+  }
+  if ( layer->IsModified() )
+  {
+    if ( QMessageBox::question( this, "Point Set Not Saved",
+                                "Point set has been modifed and not been saved. Do you still want to continue?",
+                                QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
     {
-        if ( QMessageBox::question( this, "Point Set Not Saved",
-                                    "Point set has been modifed and not been saved. Do you still want to continue?",
-                                    QMessageBox::Yes, QMessageBox::No ) == QMessageBox::No )
-            return;
+      return;
     }
-    GetLayerCollection( "PointSet" )->RemoveLayer( layer );
+  }
+  GetLayerCollection( "PointSet" )->RemoveLayer( layer );
 }
 
 void MainWindow::OnLoadTrack()
 {
-    QStringList filenames = QFileDialog::getOpenFileNames( this, "Select track file",
-                                m_strLastDir,
-                                "Track files (*.trk);;All files (*.*)");
-    if ( !filenames.isEmpty() )
+  QStringList filenames = QFileDialog::getOpenFileNames( this, "Select track file",
+                          m_strLastDir,
+                          "Track files (*.trk);;All files (*.*)");
+  if ( !filenames.isEmpty() )
+  {
+    for ( int i = 0; i < filenames.size(); i++ )
     {
-        for ( int i = 0; i < filenames.size(); i++ )
-        {
-          AddScript(QString("loadtrack ") + filenames[i]);
-        }
+      AddScript(QString("loadtrack ") + filenames[i]);
     }
+  }
 }
 
 void MainWindow::LoadTrackFile(const QString &fn)
 {
-    LayerTrack* layer = new LayerTrack( m_layerVolumeRef );
-    layer->SetFileName( fn );
-    m_threadIOWorker->LoadTrack( layer );
+  LayerTrack* layer = new LayerTrack( m_layerVolumeRef );
+  layer->SetFileName( fn );
+  m_threadIOWorker->LoadTrack( layer );
 }
 
 void MainWindow::OnCloseTrack()
 {
-    LayerTrack* layer = (LayerTrack*)GetActiveLayer( "Track" );
-    if ( !layer )
-        return;
+  LayerTrack* layer = (LayerTrack*)GetActiveLayer( "Track" );
+  if ( !layer )
+  {
+    return;
+  }
 
-    GetLayerCollection( "Track" )->RemoveLayer( layer );
+  GetLayerCollection( "Track" )->RemoveLayer( layer );
 }
 
 void MainWindow::OnLoadSurface()
 {
   QStringList filenames = QFileDialog::getOpenFileNames( this, "Select surface file",
-                              AutoSelectLastDir( "surf" ),
-                              "Surface files (*.*)");
+                          AutoSelectLastDir( "surf" ),
+                          "Surface files (*.*)");
   if ( !filenames.isEmpty() )
   {
-      for ( int i = 0; i < filenames.size(); i++ )
-      {
-        AddScript(QString("loadsurface ") + filenames[i]);
-      }
+    for ( int i = 0; i < filenames.size(); i++ )
+    {
+      AddScript(QString("loadsurface ") + filenames[i]);
+    }
   }
 }
 
@@ -3415,7 +3770,9 @@ void MainWindow::LoadSurfaceFile( const QString& filename, const QString& fn_pat
   layer->SetName( fi.fileName() );
   QString fullpath = fi.absoluteFilePath();
   if ( fullpath.isEmpty() )
-      fullpath = filename;
+  {
+    fullpath = filename;
+  }
   layer->SetFileName( fullpath );
   layer->SetPatchFileName( fn_patch );
   layer->SetTargetFileName( fn_target );
@@ -3427,185 +3784,213 @@ void MainWindow::OnCloseSurface()
 {
   Layer* layer = GetActiveLayer( "Surface" );
   if ( !layer )
+  {
     return;
+  }
 
   GetLayerCollection( "Surface" )->RemoveLayer( layer );
 }
 
 void MainWindow::OnIOError( Layer* layer, int jobtype )
 {
-    QString msg = "Failed to load ";
-    if (jobtype != ThreadIOWorker::JT_LoadSurfaceOverlay)
+  QString msg = "Failed to load ";
+  if (jobtype != ThreadIOWorker::JT_LoadSurfaceOverlay)
+  {
+    if ( jobtype == ThreadIOWorker::JT_SaveVolume )
     {
-        if ( jobtype == ThreadIOWorker::JT_SaveVolume )
-            msg = "Failed to save ";
-        QMessageBox::warning( this, "Error", msg + layer->GetFileName() );
-        delete layer;
+      msg = "Failed to save ";
     }
-    else
-    {
-        QMessageBox::warning( this, "Error", msg + "overlay." );
-    }
-    m_bProcessing = false;
+    QMessageBox::warning( this, "Error", msg + layer->GetFileName() );
+    delete layer;
+  }
+  else
+  {
+    QMessageBox::warning( this, "Error", msg + "overlay." );
+  }
+  m_bProcessing = false;
 }
 
 void MainWindow::OnIOFinished( Layer* layer, int jobtype )
 {
-    LayerCollection* lc_mri = GetLayerCollection( "MRI" );
-    LayerCollection* lc_surface = GetLayerCollection( "Surface" );
-    LayerCollection* lc_track = GetLayerCollection( "Track" );
-    if ( jobtype == ThreadIOWorker::JT_LoadVolume && layer->IsTypeOf( "MRI" ) )
+  LayerCollection* lc_mri = GetLayerCollection( "MRI" );
+  LayerCollection* lc_surface = GetLayerCollection( "Surface" );
+  LayerCollection* lc_track = GetLayerCollection( "Track" );
+  if ( jobtype == ThreadIOWorker::JT_LoadVolume && layer->IsTypeOf( "MRI" ) )
+  {
+    LayerMRI* mri = qobject_cast<LayerMRI*>( layer );
+    if ( lc_mri->IsEmpty() )
     {
-        LayerMRI* mri = qobject_cast<LayerMRI*>( layer );
-        if ( lc_mri->IsEmpty() )
-        {
-            double worigin[3], wsize[3];
-            mri->GetWorldOrigin( worigin );
-            mri->GetWorldSize( wsize );
-            if ( lc_surface->IsEmpty() )
-            {
-                mri->SetSlicePositionToWorldCenter();
-                for ( int i = 0; i < 4; i++ )
-                    this->m_views[i]->SetWorldCoordinateInfo( worigin, wsize );
-            }
-            else
-            {
-                mri->SetSlicePosition( lc_surface->GetSlicePosition() );
-                lc_surface->SetWorldVoxelSize( mri->GetWorldVoxelSize() );
-                lc_surface->SetWorldOrigin( mri->GetWorldOrigin() );
-                lc_surface->SetWorldSize( mri->GetWorldSize() );
-            }
-
-            lc_mri->AddLayer( layer, true );
-            lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
-            SetSlicePosition( lc_mri->GetSlicePosition() );
-            m_layerVolumeRef = mri;
-
-            if ( lc_surface->IsEmpty() )
-            {
-                for ( int i = 0; i < 4; i++ )
-                    this->m_views[i]->SetWorldCoordinateInfo( worigin, wsize );
-            }
-        }
-        else
-            lc_mri->AddLayer( layer );
-
-        m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
-        SetCurrentFile( layer->GetFileName(), 0 );
-        ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
-    }
-    else if ( jobtype == ThreadIOWorker::JT_SaveVolume && layer->IsTypeOf( "MRI" ) )
-    {
-        SetCurrentFile( layer->GetFileName(), 0 );
-    }
-    else if ( jobtype == ThreadIOWorker::JT_LoadSurface && layer->IsTypeOf( "Surface" ) )
-    {
-      LayerSurface* sf = qobject_cast<LayerSurface*>( layer );
+      double worigin[3], wsize[3];
+      mri->GetWorldOrigin( worigin );
+      mri->GetWorldSize( wsize );
       if ( lc_surface->IsEmpty() )
       {
-        double worigin[3], wsize[3];
-        sf->GetWorldOrigin( worigin );
-        sf->GetWorldSize( wsize );
-        sf->SetSlicePositionToWorldCenter();
-        if ( lc_mri->IsEmpty() )
+        mri->SetSlicePositionToWorldCenter();
+        for ( int i = 0; i < 4; i++ )
         {
-          for ( int i = 0; i < 4; i++ )
-            this->m_views[i]->SetWorldCoordinateInfo( worigin, wsize );
-          lc_surface->AddLayer( sf, true );
-          SetSlicePosition( sf->GetSlicePosition() );
-        }
-        else
-        {
-           lc_surface->SetWorldOrigin( lc_mri->GetWorldOrigin() );
-           lc_surface->SetWorldSize( lc_mri->GetWorldSize() );
-           lc_surface->SetWorldVoxelSize( lc_mri->GetWorldVoxelSize() );
-           lc_surface->SetSlicePosition( lc_mri->GetSlicePosition() );
-           lc_surface->AddLayer( sf );
+          this->m_views[i]->SetWorldCoordinateInfo( worigin, wsize );
         }
       }
       else
-        lc_surface->AddLayer( layer );
+      {
+        mri->SetSlicePosition( lc_surface->GetSlicePosition() );
+        lc_surface->SetWorldVoxelSize( mri->GetWorldVoxelSize() );
+        lc_surface->SetWorldOrigin( mri->GetWorldOrigin() );
+        lc_surface->SetWorldSize( mri->GetWorldSize() );
+      }
 
-      if ( !sf->HasValidVolumeGeometry() )
-          QMessageBox::warning( this, "Warning", "Surface does not contain valid volume geometry information. It may not align with volumes and other surfaces.");
+      lc_mri->AddLayer( layer, true );
+      lc_mri->SetCursorRASPosition( lc_mri->GetSlicePosition() );
+      SetSlicePosition( lc_mri->GetSlicePosition() );
+      m_layerVolumeRef = mri;
 
-      m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
-      SetCurrentFile( layer->GetFileName(), 1 );
-      ui->tabWidgetControlPanel->setCurrentWidget( ui->tabSurface );
-      if (UpdateSurfaceCorrelation((LayerSurface*)layer) )
-          emit SlicePositionChanged();
+      if ( lc_surface->IsEmpty() )
+      {
+        for ( int i = 0; i < 4; i++ )
+        {
+          this->m_views[i]->SetWorldCoordinateInfo( worigin, wsize );
+        }
+      }
     }
-    else if ( jobtype == ThreadIOWorker::JT_LoadSurfaceOverlay && layer->IsTypeOf("Surface") )
+    else
     {
-      UpdateSurfaceCorrelation((LayerSurface*)layer);
-      lc_surface->SetActiveLayer(layer);
-      m_strLastDir = QFileInfo(((LayerSurface*)layer)->GetActiveOverlay()->GetFileName()).absolutePath();
+      lc_mri->AddLayer( layer );
+    }
+
+    m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
+    SetCurrentFile( layer->GetFileName(), 0 );
+    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabVolume );
+  }
+  else if ( jobtype == ThreadIOWorker::JT_SaveVolume && layer->IsTypeOf( "MRI" ) )
+  {
+    SetCurrentFile( layer->GetFileName(), 0 );
+  }
+  else if ( jobtype == ThreadIOWorker::JT_LoadSurface && layer->IsTypeOf( "Surface" ) )
+  {
+    LayerSurface* sf = qobject_cast<LayerSurface*>( layer );
+    if ( lc_surface->IsEmpty() )
+    {
+      double worigin[3], wsize[3];
+      sf->GetWorldOrigin( worigin );
+      sf->GetWorldSize( wsize );
+      sf->SetSlicePositionToWorldCenter();
+      if ( lc_mri->IsEmpty() )
+      {
+        for ( int i = 0; i < 4; i++ )
+        {
+          this->m_views[i]->SetWorldCoordinateInfo( worigin, wsize );
+        }
+        lc_surface->AddLayer( sf, true );
+        SetSlicePosition( sf->GetSlicePosition() );
+      }
+      else
+      {
+        lc_surface->SetWorldOrigin( lc_mri->GetWorldOrigin() );
+        lc_surface->SetWorldSize( lc_mri->GetWorldSize() );
+        lc_surface->SetWorldVoxelSize( lc_mri->GetWorldVoxelSize() );
+        lc_surface->SetSlicePosition( lc_mri->GetSlicePosition() );
+        lc_surface->AddLayer( sf );
+      }
+    }
+    else
+    {
+      lc_surface->AddLayer( layer );
+    }
+
+    if ( !sf->HasValidVolumeGeometry() )
+    {
+      QMessageBox::warning( this, "Warning", "Surface does not contain valid volume geometry information. It may not align with volumes and other surfaces.");
+    }
+
+    m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
+    SetCurrentFile( layer->GetFileName(), 1 );
+    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabSurface );
+    if (UpdateSurfaceCorrelation((LayerSurface*)layer) )
+    {
       emit SlicePositionChanged();
     }
-    else if ( jobtype == ThreadIOWorker::JT_LoadTrack && layer->IsTypeOf("Track"))
-    {
-        LayerTrack* track = qobject_cast<LayerTrack*>( layer );
-        lc_track->AddLayer( track );
-        m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
-        ui->tabWidgetControlPanel->setCurrentWidget( ui->tabTrack );
-    }
-    m_bProcessing = false;
+  }
+  else if ( jobtype == ThreadIOWorker::JT_LoadSurfaceOverlay && layer->IsTypeOf("Surface") )
+  {
+    UpdateSurfaceCorrelation((LayerSurface*)layer);
+    lc_surface->SetActiveLayer(layer);
+    m_strLastDir = QFileInfo(((LayerSurface*)layer)->GetActiveOverlay()->GetFileName()).absolutePath();
+    emit SlicePositionChanged();
+  }
+  else if ( jobtype == ThreadIOWorker::JT_LoadTrack && layer->IsTypeOf("Track"))
+  {
+    LayerTrack* track = qobject_cast<LayerTrack*>( layer );
+    lc_track->AddLayer( track );
+    m_strLastDir = QFileInfo( layer->GetFileName() ).canonicalPath();
+    ui->tabWidgetControlPanel->setCurrentWidget( ui->tabTrack );
+  }
+  m_bProcessing = false;
 
-    if ( jobtype == ThreadIOWorker::JT_SaveVolume)
-    {
-        std::cout << qPrintable(qobject_cast<LayerMRI*>(layer)->GetFileName()) << " saved successfully.\n";
-    }
+  if ( jobtype == ThreadIOWorker::JT_SaveVolume)
+  {
+    std::cout << qPrintable(qobject_cast<LayerMRI*>(layer)->GetFileName()) << " saved successfully.\n";
+  }
 }
 
 bool MainWindow::UpdateSurfaceCorrelation(LayerSurface *layer)
 {
-    QList<Layer*> layers = GetLayerCollection("Surface")->GetLayers();
-    SurfaceOverlay* overlay = layer->GetActiveOverlay();
-    LayerSurface* src = 0;
-    if (overlay && overlay->HasCorrelationData())
-        src = layer;
-    else
-    {
-        for (int i = 0; i < layers.size(); i++)
-        {
-            overlay = ((LayerSurface*)layers[i])->GetActiveOverlay();
-            if (overlay && overlay->HasCorrelationData())
-            {
-                src = (LayerSurface*)layers[i];
-                break;
-            }
-        }
-    }
-    if (!src)
-        return false;
-    overlay = src->GetActiveOverlay();
-    if ( overlay->HasSharedCorrelationData() )
-        return false;
-
+  QList<Layer*> layers = GetLayerCollection("Surface")->GetLayers();
+  SurfaceOverlay* overlay = layer->GetActiveOverlay();
+  LayerSurface* src = 0;
+  if (overlay && overlay->HasCorrelationData())
+  {
+    src = layer;
+  }
+  else
+  {
     for (int i = 0; i < layers.size(); i++)
     {
-        LayerSurface* pair = (LayerSurface*)layers[i];
-        if (src != pair && src->GetHemisphere() != pair->GetHemisphere() &&
-            src->GetNumberOfVertices() == pair->GetNumberOfVertices())
-        {
-            pair->CopyCorrelationOverlay(src);
-        }
+      overlay = ((LayerSurface*)layers[i])->GetActiveOverlay();
+      if (overlay && overlay->HasCorrelationData())
+      {
+        src = (LayerSurface*)layers[i];
+        break;
+      }
     }
-    return true;
+  }
+  if (!src)
+  {
+    return false;
+  }
+  overlay = src->GetActiveOverlay();
+  if ( overlay->HasSharedCorrelationData() )
+  {
+    return false;
+  }
+
+  for (int i = 0; i < layers.size(); i++)
+  {
+    LayerSurface* pair = (LayerSurface*)layers[i];
+    if (src != pair && src->GetHemisphere() != pair->GetHemisphere() &&
+        src->GetNumberOfVertices() == pair->GetNumberOfVertices())
+    {
+      pair->CopyCorrelationOverlay(src);
+    }
+  }
+  return true;
 }
 
 void MainWindow::OnCycleLayer()
 {
   LayerCollection* lc = GetCurrentLayerCollection();
   if ( lc )
+  {
     lc->CycleLayer();
+  }
 }
 
 void MainWindow::OnReverseCycleLayer()
 {
   LayerCollection* lc = GetCurrentLayerCollection();
   if ( lc )
+  {
     lc->CycleLayer( false );
+  }
 }
 
 void MainWindow::OnEditUndo()
@@ -3614,20 +3999,26 @@ void MainWindow::OnEditUndo()
   {
     LayerROI* roi = ( LayerROI* )GetLayerCollection( "ROI" )->GetActiveLayer();
     if ( roi )
+    {
       roi->Undo();
+    }
   }
   else if ( ui->viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
             ui->viewAxial->GetInteractionMode() == RenderView2D::IM_Navigate )
   {
     LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
     if ( mri )
+    {
       mri->Undo();
+    }
   }
   else if ( ui->viewAxial->GetInteractionMode() == RenderView2D::IM_PointSetEdit )
   {
     LayerPointSet* wp = ( LayerPointSet* )GetLayerCollection( "PointSet" )->GetActiveLayer();
     if ( wp )
+    {
       wp->Undo();
+    }
   }
 }
 
@@ -3637,20 +4028,26 @@ void MainWindow::OnEditRedo()
   {
     LayerROI* roi = ( LayerROI* )GetLayerCollection( "ROI" )->GetActiveLayer();
     if ( roi )
+    {
       roi->Redo();
+    }
   }
   else if ( ui->viewAxial->GetInteractionMode() == RenderView2D::IM_VoxelEdit ||
             ui->viewAxial->GetInteractionMode() == RenderView2D::IM_Navigate)
   {
     LayerMRI* mri = ( LayerMRI* )GetLayerCollection( "MRI" )->GetActiveLayer();
     if ( mri )
+    {
       mri->Redo();
+    }
   }
   else if ( ui->viewAxial->GetInteractionMode() == RenderView2D::IM_PointSetEdit )
   {
     LayerPointSet* wp = ( LayerPointSet* )GetLayerCollection( "PointSet" )->GetActiveLayer();
     if ( wp )
+    {
       wp->Redo();
+    }
   }
 }
 
@@ -3669,7 +4066,9 @@ QString MainWindow::AutoSelectLastDir( const QString& lastDir, const QString& su
     while ( dir.cdUp() )
     {
       if ( stockdirs.contains( dir.dirName() ) )
+      {
         break;
+      }
     }
   }
 
@@ -3677,7 +4076,9 @@ QString MainWindow::AutoSelectLastDir( const QString& lastDir, const QString& su
   {
     dir.cdUp();
     if ( !dir.cd( subdir ) )
+    {
       dir.setPath( lastDir );
+    }
   }
   else
   {
@@ -3692,8 +4093,8 @@ QString MainWindow::AutoSelectLastDir( const QString& lastDir, const QString& su
 void MainWindow::LoadSurfaceCurvature()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select curvature file",
-                                  AutoSelectLastDir( "surf" ),
-                                  "Curvature files (*.*)");
+                     AutoSelectLastDir( "surf" ),
+                     "Curvature files (*.*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceCurvatureFile( filename );
@@ -3714,8 +4115,8 @@ void MainWindow::LoadSurfaceCurvatureFile( const QString& filename )
 void MainWindow::LoadSurfaceOverlay(bool bCorrelation)
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select overlay file",
-                                  AutoSelectLastDir( "surf" ),
-                                  "Overlay files (*.*)");
+                     AutoSelectLastDir( "surf" ),
+                     "Overlay files (*.*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceOverlayFile( filename, bCorrelation );
@@ -3731,15 +4132,15 @@ void MainWindow::LoadSurfaceOverlayFile( const QString& filename, bool bCorrelat
     args["FileName"] = filename;
     args["Correlation"] = bCorrelation;
     this->m_threadIOWorker->LoadSurfaceOverlay(layer, args);
- //   m_strLastDir = QFileInfo(filename).absoluteFilePath();
+//   m_strLastDir = QFileInfo(filename).absoluteFilePath();
   }
 }
 
 void MainWindow::LoadSurfaceAnnotation()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select annotation file",
-                                  AutoSelectLastDir( "label" ),
-                                  "Annotation files (*.*)");
+                     AutoSelectLastDir( "label" ),
+                     "Annotation files (*.*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceAnnotationFile( filename );
@@ -3759,8 +4160,8 @@ void MainWindow::LoadSurfaceAnnotationFile( const QString& filename )
 void MainWindow::LoadSurfaceLabel()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select label file",
-                                  m_strLastDir,
-                                  "Label files (*.*)");
+                     m_strLastDir,
+                     "Label files (*.*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceLabelFile( filename );
@@ -3779,8 +4180,8 @@ void MainWindow::LoadSurfaceLabelFile( const QString& filename )
 void MainWindow::LoadSurfaceVector()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select surface vector file",
-                                  AutoSelectLastDir( "surf" ),
-                                  "All files (*.*)");
+                     AutoSelectLastDir( "surf" ),
+                     "All files (*.*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceVectorFile( filename );
@@ -3795,15 +4196,17 @@ void MainWindow::LoadSurfaceVectorFile( const QString& filename )
     layer->SetVectorFileName( filename );
 
     if ( !layer->LoadVectorFromFile() )
+    {
       QMessageBox::warning( this, "Error", "Can not load vector file." );
+    }
   }
 }
 
 void MainWindow::LoadLUT()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select lookup table file",
-                                  m_strLastDir,
-                                  "LUT files (*.*)");
+                     m_strLastDir,
+                     "LUT files (*.*)");
   if ( !filename.isEmpty() )
   {
     LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
@@ -3822,11 +4225,13 @@ void MainWindow::SetMode( int nMode )
 {
   int nOldMode = m_views[0]->GetInteractionMode();
   for ( int i = 0; i < 4; i++ )
+  {
     m_views[i]->SetInteractionMode( nMode );
+  }
   if (nOldMode == RenderView::IM_VolumeCrop && nMode != nOldMode)
   {
-      m_volumeCropper->SetEnabled(false);
-      RequestRedraw();
+    m_volumeCropper->SetEnabled(false);
+    RequestRedraw();
   }
 }
 
@@ -3857,12 +4262,12 @@ void MainWindow::OnSetModePointSetEdit()
 
 void MainWindow::OnPreferences()
 {
-    if (!m_dlgPreferences)
-    {
-      m_dlgPreferences = new DialogPreferences( this );
-      m_dlgPreferences->SetSettings(m_settings);
-    }
-    m_dlgPreferences->show();
+  if (!m_dlgPreferences)
+  {
+    m_dlgPreferences = new DialogPreferences( this );
+    m_dlgPreferences->SetSettings(m_settings);
+  }
+  m_dlgPreferences->show();
 }
 
 void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QList<double>& scales )
@@ -3873,52 +4278,60 @@ void MainWindow::SetVolumeColorMap( int nColorMap, int nColorMapScale, const QLi
     p->SetColorMap( (LayerPropertyMRI::ColorMapType) nColorMap );
     switch ( nColorMapScale )
     {
-      case LayerPropertyMRI::Grayscale:
-        if ( scales.size() >= 2 )
-        {
-          p->SetMinMaxGrayscaleWindow( scales[0], scales[1] );
-        }
-        else if ( !scales.empty() )
-          cerr << "Need 2 values for grayscale.\n";
-        break;
-      case LayerPropertyMRI::Heat:
-        if ( scales.size() >= 3 )
-        {
-          p->SetHeatScaleMinThreshold( scales[0] );
-          p->SetHeatScaleMidThreshold( scales[1] );
-          p->SetHeatScaleMaxThreshold( scales[2] );
-        }
-        else if ( !scales.empty() )
-          cerr << "Need 3 values for heatscale.\n";
-        break;
-      case LayerPropertyMRI::LUT:
-        if ( scales.size() >= 1 )
-        {
-        }
-        else if ( !scales.empty() )
-          cerr << "Need a value for lut.\n";
-        break;
-      default:
-        if ( scales.size() >= 2 )
-        {
-          p->SetMinMaxGenericThreshold( scales[0], scales[1] );
-        }
-        else if ( !scales.empty() )
-          cerr << "Need 2 values for colorscale.\n";
-        break;
+    case LayerPropertyMRI::Grayscale:
+      if ( scales.size() >= 2 )
+      {
+        p->SetMinMaxGrayscaleWindow( scales[0], scales[1] );
+      }
+      else if ( !scales.empty() )
+      {
+        cerr << "Need 2 values for grayscale.\n";
+      }
+      break;
+    case LayerPropertyMRI::Heat:
+      if ( scales.size() >= 3 )
+      {
+        p->SetHeatScaleMinThreshold( scales[0] );
+        p->SetHeatScaleMidThreshold( scales[1] );
+        p->SetHeatScaleMaxThreshold( scales[2] );
+      }
+      else if ( !scales.empty() )
+      {
+        cerr << "Need 3 values for heatscale.\n";
+      }
+      break;
+    case LayerPropertyMRI::LUT:
+      if ( scales.size() >= 1 )
+      {
+      }
+      else if ( !scales.empty() )
+      {
+        cerr << "Need a value for lut.\n";
+      }
+      break;
+    default:
+      if ( scales.size() >= 2 )
+      {
+        p->SetMinMaxGenericThreshold( scales[0], scales[1] );
+      }
+      else if ( !scales.empty() )
+      {
+        cerr << "Need 2 values for colorscale.\n";
+      }
+      break;
     }
   }
 }
 
 void MainWindow::OnTransformVolume()
 {
-    if ( !m_dlgTransformVolume->isVisible() )
-     {
-        QMessageBox::warning( this, "Warning",
-                              "Transformation can only apply to volumes for now. If your data includes ROI/Surface/Way Points, please do not use this feature yet.");
-       m_dlgTransformVolume->show();
-       m_dlgTransformVolume->UpdateUI();
-     }
+  if ( !m_dlgTransformVolume->isVisible() )
+  {
+    QMessageBox::warning( this, "Warning",
+                          "Transformation can only apply to volumes for now. If your data includes ROI/Surface/Way Points, please do not use this feature yet.");
+    m_dlgTransformVolume->show();
+    m_dlgTransformVolume->UpdateUI();
+  }
 }
 
 void MainWindow::OnCropVolume()
@@ -3935,7 +4348,7 @@ void MainWindow::OnCropVolume()
 void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes )
 {
   // first update ROI and waypoints before their reference volume is rotated
-    QList<Layer*> layers = GetLayerCollection("ROI")->GetLayers();
+  QList<Layer*> layers = GetLayerCollection("ROI")->GetLayers();
   bool bSuccess = true;
   for ( int i = 0; i < layers.size(); i++ )
   {
@@ -3979,18 +4392,20 @@ void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAl
     }
   }
   if ( !bSuccess )
-      QMessageBox::warning( this, "Error", "Error occured while rotating volumes.");
+  {
+    QMessageBox::warning( this, "Error", "Error occured while rotating volumes.");
+  }
 }
 
 void MainWindow::OnSaveScreenshot()
 {
-    if (!m_dlgSaveScreenshot)
-    {
-        m_dlgSaveScreenshot = new DialogSaveScreenshot(this);
-        m_dlgSaveScreenshot->SetLastDir(m_strLastDir);
-        m_dlgSaveScreenshot->SetSettings(m_settingsScreenshot);
-    }
-    m_dlgSaveScreenshot->show();
+  if (!m_dlgSaveScreenshot)
+  {
+    m_dlgSaveScreenshot = new DialogSaveScreenshot(this);
+    m_dlgSaveScreenshot->SetLastDir(m_strLastDir);
+    m_dlgSaveScreenshot->SetSettings(m_settingsScreenshot);
+  }
+  m_dlgSaveScreenshot->show();
 }
 
 void MainWindow::OnVolumeFilterMean()
@@ -4013,7 +4428,7 @@ void MainWindow::OnVolumeFilterMean()
 
 void MainWindow::OnVolumeFilterMedian()
 {
-    LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
   if ( mri )
   {
     VolumeFilterMedian* filter = new VolumeFilterMedian( mri, mri );
@@ -4031,7 +4446,7 @@ void MainWindow::OnVolumeFilterMedian()
 
 void MainWindow::OnVolumeFilterConvolve()
 {
-    LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
   if ( mri )
   {
     VolumeFilterConvolve* filter = new VolumeFilterConvolve( mri, mri );
@@ -4059,10 +4474,10 @@ void MainWindow::OnVolumeFilterGradient()
     dlg.SetSD(filter->GetStandardDeviation());
     if ( dlg.exec() == QDialog::Accepted )
     {
-        filter->SetSmoothing(dlg.GetSmoothing());
-        filter->SetStandardDeviation(dlg.GetSD());
-        filter->Update();
-        mri->ResetWindowLevel();
+      filter->SetSmoothing(dlg.GetSmoothing());
+      filter->SetStandardDeviation(dlg.GetSD());
+      filter->Update();
+      mri->ResetWindowLevel();
     }
     delete filter;
   }
@@ -4070,7 +4485,7 @@ void MainWindow::OnVolumeFilterGradient()
 
 void MainWindow::OnVolumeFilterSobel()
 {
-    LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
+  LayerMRI* mri = (LayerMRI*)GetActiveLayer( "MRI" );
   if ( mri )
   {
     VolumeFilterSobel* filter = new VolumeFilterSobel( mri, mri );
@@ -4082,96 +4497,104 @@ void MainWindow::OnVolumeFilterSobel()
 
 void MainWindow::OnResetView()
 {
-    for (int i = 0; i < 4; i++)
-        m_views[i]->Reset();
+  for (int i = 0; i < 4; i++)
+  {
+    m_views[i]->Reset();
+  }
 }
 
 void MainWindow::OnSavePoint()
 {
-    QString fn;
-    LayerCollection* lc = GetLayerCollection( "MRI" );
-    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
-    {
-      fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
-      if ( !fn.isEmpty() )
-        break;
-    }
-    if ( fn.isEmpty() )
-    {
-      lc = GetLayerCollection( "Surface" );
-      for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
-      {
-        fn = ( (LayerSurface*)lc->GetLayer( i ) )->GetFileName();
-        if ( !fn.isEmpty() )
-          break;
-      }
-    }
-
-    bool bError = false;
-    QString msg;
+  QString fn;
+  LayerCollection* lc = GetLayerCollection( "MRI" );
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  {
+    fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
     if ( !fn.isEmpty() )
     {
-      QString dir = AutoSelectLastDir( QFileInfo(fn).absolutePath(), "tmp" );
-      if ( QDir(dir).exists() )
+      break;
+    }
+  }
+  if ( fn.isEmpty() )
+  {
+    lc = GetLayerCollection( "Surface" );
+    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+    {
+      fn = ( (LayerSurface*)lc->GetLayer( i ) )->GetFileName();
+      if ( !fn.isEmpty() )
       {
-        double ras[3];
-        GetCursorRAS( ras, true );  // in tkReg coordinate
-        QFile file( dir + "/edit.dat");
-        if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
-        {
-            bError = true;
-            msg = QString("Can not write to file ") + file.fileName();
-        }
-        else
-        {
-             QTextStream out(&file);
-             out << ras[0] << " " << ras[1] << " " << ras[2] << "\n";
-             file.close();
-         }
+        break;
+      }
+    }
+  }
+
+  bool bError = false;
+  QString msg;
+  if ( !fn.isEmpty() )
+  {
+    QString dir = AutoSelectLastDir( QFileInfo(fn).absolutePath(), "tmp" );
+    if ( QDir(dir).exists() )
+    {
+      double ras[3];
+      GetCursorRAS( ras, true );  // in tkReg coordinate
+      QFile file( dir + "/edit.dat");
+      if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+      {
+        bError = true;
+        msg = QString("Can not write to file ") + file.fileName();
       }
       else
       {
-        bError = true;
-        msg = QString("Directory ") + dir + " does not exist.";
+        QTextStream out(&file);
+        out << ras[0] << " " << ras[1] << " " << ras[2] << "\n";
+        file.close();
       }
     }
     else
     {
       bError = true;
-      msg = "Layer file name is empty. Can not decide where to save.";
+      msg = QString("Directory ") + dir + " does not exist.";
     }
-    if ( bError )
-    {
-        QMessageBox::warning(this, "Error", msg);
-    }
+  }
+  else
+  {
+    bError = true;
+    msg = "Layer file name is empty. Can not decide where to save.";
+  }
+  if ( bError )
+  {
+    QMessageBox::warning(this, "Error", msg);
+  }
 }
 
 void MainWindow::OnGoToPoint()
 {
-    LayerCollection* lc = GetLayerCollection( "MRI" );
-    QString fn;
-    for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  LayerCollection* lc = GetLayerCollection( "MRI" );
+  QString fn;
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  {
+    fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
+    fn = AutoSelectLastDir( QFileInfo(fn).absolutePath(), "tmp") + "/edit.dat";
+    if ( !QFile::exists( fn ) )
     {
-      fn = ( (LayerMRI*)lc->GetLayer( i ) )->GetFileName();
-      fn = AutoSelectLastDir( QFileInfo(fn).absolutePath(), "tmp") + "/edit.dat";
-      if ( !QFile::exists( fn ) )
-        fn = "";
+      fn = "";
     }
+  }
 
-    if ( !fn.isEmpty() )
-    {
-      QFile file( fn );
-      file.open(QIODevice::ReadOnly | QIODevice::Text);
-      QString strg = file.readAll();
-      QStringList args = strg.trimmed().split(" ", QString::SkipEmptyParts);
-      args.insert( args.begin(), "setras" );
-      args << "tkreg";
-      CommandSetRAS( args );
-    }
-    else
-    {
-        QMessageBox::warning( this, "Error", "Could not find saved point.");
-    }
+  if ( !fn.isEmpty() )
+  {
+    QFile file( fn );
+    file.open(QIODevice::ReadOnly | QIODevice::Text);
+    QString strg = file.readAll();
+    QStringList args = strg.trimmed().split(" ", QString::SkipEmptyParts);
+    args.insert( args.begin(), "setras" );
+    args << "tkreg";
+    CommandSetRAS( args );
+  }
+  else
+  {
+    QMessageBox::warning( this, "Error", "Could not find saved point.");
+  }
 }
 
 bool MainWindow::GetCursorRAS( double* ras_out, bool tkReg )
@@ -4184,7 +4607,9 @@ bool MainWindow::GetCursorRAS( double* ras_out, bool tkReg )
     LayerMRI* mri = ( LayerMRI* )lc_mri->GetLayer( 0 );
     mri->RemapPositionToRealRAS( lc_mri->GetCursorRASPosition(), ras_out );
     if ( tkReg )
+    {
       mri->NativeRASToTkReg( ras_out, ras_out );
+    }
     return true;
   }
   else if ( !lc_surf->IsEmpty() )
@@ -4193,160 +4618,180 @@ bool MainWindow::GetCursorRAS( double* ras_out, bool tkReg )
     return true;
   }
   else
+  {
     return false;
+  }
 }
 
 void MainWindow::ShowAllLayers()
 {
-    LayerCollection* lc = GetCurrentLayerCollection();
-    if (lc)
+  LayerCollection* lc = GetCurrentLayerCollection();
+  if (lc)
+  {
+    for (int i = 0; i < lc->GetNumberOfLayers(); i++)
     {
-        for (int i = 0; i < lc->GetNumberOfLayers(); i++)
-            lc->GetLayer(i)->SetVisible(true);
+      lc->GetLayer(i)->SetVisible(true);
     }
+  }
 }
 
 void MainWindow::HideAllLayers()
 {
-    LayerCollection* lc = GetCurrentLayerCollection();
-    if (lc)
+  LayerCollection* lc = GetCurrentLayerCollection();
+  if (lc)
+  {
+    for (int i = 0; i < lc->GetNumberOfLayers(); i++)
     {
-        for (int i = 0; i < lc->GetNumberOfLayers(); i++)
-            lc->GetLayer(i)->SetVisible(false);
+      lc->GetLayer(i)->SetVisible(false);
     }
+  }
 }
 
 void MainWindow::OnShowAnnotation(bool bShow)
 {
-    for ( int i = 0; i < 3; i++ )
-    {
-      ( (RenderView2D*)m_views[i] )->ShowCoordinateAnnotation(bShow);
-    }
+  for ( int i = 0; i < 3; i++ )
+  {
+    ( (RenderView2D*)m_views[i] )->ShowCoordinateAnnotation(bShow);
+  }
 
-    RequestRedraw();
+  RequestRedraw();
 }
 
 void MainWindow::OnShowColorBar(bool bShow)
 {
-    for ( int i = 0; i < 4; i++ )
+  for ( int i = 0; i < 4; i++ )
+  {
+    if ( i != m_nMainView )
     {
-      if ( i != m_nMainView )
-        m_views[i]->ShowScalarBar( false );
+      m_views[i]->ShowScalarBar( false );
     }
-    m_views[m_nMainView]->ShowScalarBar( bShow );
-    m_views[m_nMainView]->UpdateScalarBar();
+  }
+  m_views[m_nMainView]->ShowScalarBar( bShow );
+  m_views[m_nMainView]->UpdateScalarBar();
 
-    RequestRedraw();
+  RequestRedraw();
 }
 
 void MainWindow::OnCopy()
 {
-    int nWnd = GetActiveViewId();
-    if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_ROIEdit )
+  int nWnd = GetActiveViewId();
+  if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_ROIEdit )
+  {
+    LayerROI* roi = ( LayerROI* )GetActiveLayer( "ROI" );
+    if ( roi && nWnd >= 0 && nWnd < 3 )
     {
-      LayerROI* roi = ( LayerROI* )GetActiveLayer( "ROI" );
-      if ( roi && nWnd >= 0 && nWnd < 3 )
-        roi->Copy( nWnd );
+      roi->Copy( nWnd );
     }
-    else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  }
+  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
+    if ( mri && nWnd >= 0 && nWnd < 3 )
     {
-      LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
-      if ( mri && nWnd >= 0 && nWnd < 3 )
-        mri->Copy( nWnd );
+      mri->Copy( nWnd );
     }
+  }
 }
 
 void MainWindow::OnCopyStructure()
 {
-    int nWnd = GetActiveViewId();
-    if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  int nWnd = GetActiveViewId();
+  if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
+    if ( mri && nWnd >= 0 && nWnd < 3 )
     {
-      LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
-      if ( mri && nWnd >= 0 && nWnd < 3 )
+      double* pos = mri->GetSlicePosition();
+      if ( !mri->CopyStructure( nWnd, pos ) )
       {
-        double* pos = mri->GetSlicePosition();
-        if ( !mri->CopyStructure( nWnd, pos ) )
-        {
-            QMessageBox::warning( this, "Copy Structure Failed",
-                               "Please move the cursor to the structure you want to copy and try again." );
-        }
+        QMessageBox::warning( this, "Copy Structure Failed",
+                              "Please move the cursor to the structure you want to copy and try again." );
       }
     }
+  }
 }
 
 void MainWindow::OnPaste()
 {
-    int nWnd = GetActiveViewId();
-    if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_ROIEdit )
+  int nWnd = GetActiveViewId();
+  if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_ROIEdit )
+  {
+    LayerROI* roi = ( LayerROI* )GetActiveLayer( "ROI" );
+    if ( roi && nWnd >= 0 && nWnd < 3 )
     {
-      LayerROI* roi = ( LayerROI* )GetActiveLayer( "ROI" );
-      if ( roi && nWnd >= 0 && nWnd < 3 )
-        roi->Paste( nWnd );
+      roi->Paste( nWnd );
     }
-    else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  }
+  else if ( ui->viewAxial->GetInteractionMode() == RenderView::IM_VoxelEdit )
+  {
+    LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
+    if ( mri && nWnd >= 0 && nWnd < 3 )
     {
-      LayerMRI* mri = ( LayerMRI* )GetActiveLayer( "MRI" );
-      if ( mri && nWnd >= 0 && nWnd < 3 )
-        mri->Paste( nWnd );
+      mri->Paste( nWnd );
     }
+  }
 }
 
 void MainWindow::ToggleShowLayer(const QString& type )
 {
-    Layer* layer = GetActiveLayer(type);
-    if (layer)
-        layer->SetVisible(!layer->IsVisible());
+  Layer* layer = GetActiveLayer(type);
+  if (layer)
+  {
+    layer->SetVisible(!layer->IsVisible());
+  }
 }
 
 void MainWindow::OnToggleShowVolume()
 {
-    ToggleShowLayer("MRI");
+  ToggleShowLayer("MRI");
 }
 
 void MainWindow::OnToggleShowSurface()
 {
-    ToggleShowLayer("Surface");
+  ToggleShowLayer("Surface");
 }
 
 void MainWindow::OnToggleShowROI()
 {
-     ToggleShowLayer("ROI");
+  ToggleShowLayer("ROI");
 }
 
 void MainWindow::OnToggleShowPointSet()
 {
-     ToggleShowLayer("PointSet");
+  ToggleShowLayer("PointSet");
 }
 
 void MainWindow::OnAbout()
 {
-    DialogAbout dlg(this);
-    dlg.exec();
+  DialogAbout dlg(this);
+  dlg.exec();
 }
 
 void MainWindow::OnActiveLayerChanged(Layer* layer)
 {
-    if (!layer)
-        this->setWindowTitle("FreeView");
-    else
-    {
-        this->setWindowTitle(QString("FreeView (%1)")
-                             .arg(MyUtils::Win32PathProof(layer->GetFileName())));
-    }
+  if (!layer)
+  {
+    this->setWindowTitle("FreeView");
+  }
+  else
+  {
+    this->setWindowTitle(QString("FreeView (%1)")
+                         .arg(MyUtils::Win32PathProof(layer->GetFileName())));
+  }
 }
 
 void MainWindow::OnLoadCommand()
 {
-    QString filename = QFileDialog::getOpenFileName( this, "Select command file",
-                                m_strLastDir,
-                                "Command files (*.*)");
-    if (!filename.isEmpty())
-    {
-        AddScript(QString("loadcommand ") + filename);
-    }
+  QString filename = QFileDialog::getOpenFileName( this, "Select command file",
+                     m_strLastDir,
+                     "Command files (*.*)");
+  if (!filename.isEmpty())
+  {
+    AddScript(QString("loadcommand ") + filename);
+  }
 }
 
 void MainWindow::OnWriteMovieFrames()
 {
-    m_dlgWriteMovieFrames->show();
+  m_dlgWriteMovieFrames->show();
 }

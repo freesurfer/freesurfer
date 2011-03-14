@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:57 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -39,11 +38,11 @@
 #include <vtkRenderer.h>
 
 Interactor2DMeasure::Interactor2DMeasure( QObject* parent ) :
-    Interactor2D( parent ),
-    m_bEditing( false ),
-    m_bDrawing( false ),
-    m_nPointIndex( -1 ),
-    m_region( NULL )
+  Interactor2D( parent ),
+  m_bEditing( false ),
+  m_bDrawing( false ),
+  m_nPointIndex( -1 ),
+  m_region( NULL )
 {
 }
 
@@ -56,12 +55,16 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
 // UpdateCursor( event, view );
 
   if ( m_region && !m_bDrawing && !m_bEditing )
+  {
     m_region->Highlight( false );
-  
+  }
+
   if ( event->button() == Qt::LeftButton )
   {
     if ( ( event->modifiers() & CONTROL_MODIFIER ) && ( event->modifiers() & Qt::ShiftModifier ) )
+    {
       return Interactor2D::ProcessMouseDownEvent( event, renderview );
+    }
 
     LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
     LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
@@ -69,48 +72,48 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
     {
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
-      
+
       if ( m_region && m_bDrawing ) // drawing
-      {       
+      {
         ((Region2DPolyline*)m_region)->AddPoint( m_nMousePosX, m_nMousePosY );
       }
       else
       {
-          Region2D* reg = view->GetRegion( m_nMousePosX, m_nMousePosY, &m_nPointIndex );
-          if ( !reg ) // new region
+        Region2D* reg = view->GetRegion( m_nMousePosX, m_nMousePosY, &m_nPointIndex );
+        if ( !reg ) // new region
+        {
+          if ( m_nAction == MM_Line )
           {
-            if ( m_nAction == MM_Line )
-            {
-              Region2DLine* reg_line = new Region2DLine( view );
-              reg_line->SetLine( m_nMousePosX, m_nMousePosY, m_nMousePosX, m_nMousePosY );
-              view->AddRegion( reg_line );
-              m_region = reg_line;
-            }
-            else if ( m_nAction == MM_Spline || m_nAction == MM_Polyline )
-            {
-              Region2DPolyline* reg_polyline = new Region2DPolyline( view, m_nAction == MM_Spline );
-              reg_polyline->AddPoint( m_nMousePosX, m_nMousePosY );
-              reg_polyline->AddPoint( m_nMousePosX, m_nMousePosY ); // add second point
-              view->AddRegion( reg_polyline );
-              m_region = reg_polyline;
-            }
-            else if ( m_nAction == MM_Rectangle )
-            {
-              Region2DRectangle* reg_rect = new Region2DRectangle( view );
-              reg_rect->SetRect( m_nMousePosX, m_nMousePosY, 1, 1 );
-              view->AddRegion( reg_rect );
-              m_region = reg_rect;
-            }
-            m_bDrawing = true;
+            Region2DLine* reg_line = new Region2DLine( view );
+            reg_line->SetLine( m_nMousePosX, m_nMousePosY, m_nMousePosX, m_nMousePosY );
+            view->AddRegion( reg_line );
+            m_region = reg_line;
           }
-          else      // editing
+          else if ( m_nAction == MM_Spline || m_nAction == MM_Polyline )
           {
-            m_region = reg;
-            m_bEditing = true;
-            m_region->Highlight();
-            view->EmitRegionSelected( reg );
-            view->RequestRedraw();
+            Region2DPolyline* reg_polyline = new Region2DPolyline( view, m_nAction == MM_Spline );
+            reg_polyline->AddPoint( m_nMousePosX, m_nMousePosY );
+            reg_polyline->AddPoint( m_nMousePosX, m_nMousePosY ); // add second point
+            view->AddRegion( reg_polyline );
+            m_region = reg_polyline;
           }
+          else if ( m_nAction == MM_Rectangle )
+          {
+            Region2DRectangle* reg_rect = new Region2DRectangle( view );
+            reg_rect->SetRect( m_nMousePosX, m_nMousePosY, 1, 1 );
+            view->AddRegion( reg_rect );
+            m_region = reg_rect;
+          }
+          m_bDrawing = true;
+        }
+        else      // editing
+        {
+          m_region = reg;
+          m_bEditing = true;
+          m_region->Highlight();
+          view->EmitRegionSelected( reg );
+          view->RequestRedraw();
+        }
       }
       return false;
     }
@@ -122,12 +125,14 @@ bool Interactor2DMeasure::ProcessMouseDownEvent( QMouseEvent* event, RenderView*
       m_bDrawing = false;
       m_bEditing = false;
       if ( m_nAction == MM_Spline || m_nAction == MM_Polyline )
+      {
         ((Region2DPolyline*)m_region)->RemoveLastPoint();
+      }
       view->RequestRedraw();
       return false;
     }
   }
-  
+
   return Interactor2D::ProcessMouseDownEvent( event, renderview ); // pass down the event
 }
 
@@ -139,24 +144,26 @@ bool Interactor2DMeasure::ProcessMouseUpEvent( QMouseEvent* event, RenderView* r
   if ( m_bDrawing )
   {
     if ( ( m_nAction == MM_Spline || m_nAction == MM_Polyline ) && m_region )
+    {
       return false;
-    
+    }
+
     if ( m_nMousePosX != event->x() || m_nMousePosY != event->y() )
     {
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
-  
-  //    if ( event->LeftUp() )
-  
- //     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
- //     LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
- //     mri->SendBroadcast( "LayerEdited", mri );
+
+      //    if ( event->LeftUp() )
+
+//     LayerCollection* lc = MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" );
+//     LayerVolumeBase* mri = ( LayerVolumeBase* )lc->GetActiveLayer();
+//     mri->SendBroadcast( "LayerEdited", mri );
       if ( m_region )
       {
         if ( m_nAction == MM_Line )
         {
           ((Region2DLine*)m_region)->SetPoint2( m_nMousePosX, m_nMousePosY );
-        }       
+        }
         else if ( m_nAction == MM_Rectangle )
         {
           ((Region2DRectangle*)m_region)->SetBottomRight( m_nMousePosX, m_nMousePosY );
@@ -170,8 +177,8 @@ bool Interactor2DMeasure::ProcessMouseUpEvent( QMouseEvent* event, RenderView* r
         view->DeleteRegion( m_region );
         m_region = NULL;
       }
-    } 
-    
+    }
+
     m_bEditing = false;
     m_bDrawing = false;
     return false;
@@ -221,7 +228,7 @@ bool Interactor2DMeasure::ProcessMouseMoveEvent( QMouseEvent* event, RenderView*
     return false;
   }
   else if ( m_bEditing )
-  {    
+  {
     UpdateCursor( event, view );
     int offsetX = event->x() - m_nMousePosX;
     int offsetY = event->y() - m_nMousePosY;
@@ -230,12 +237,16 @@ bool Interactor2DMeasure::ProcessMouseMoveEvent( QMouseEvent* event, RenderView*
       m_nMousePosX = event->x();
       m_nMousePosY = event->y();
       if ( m_nPointIndex >= 0 )
+      {
         m_region->UpdatePoint( m_nPointIndex, m_nMousePosX, m_nMousePosY );
+      }
       else
+      {
         m_region->Offset( offsetX, offsetY );
+      }
       view->RequestRedraw();
     }
-    
+
     return false;
   }
   else
@@ -273,9 +284,9 @@ void Interactor2DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
   RenderView2D* view = ( RenderView2D* )wnd;
   if ( wnd->hasFocus() )
   {
-      if ( event->type() == QEvent::MouseButtonPress ||
-           event->type() == QEvent::MouseButtonRelease ||
-           event->type() == QEvent::MouseMove)
+    if ( event->type() == QEvent::MouseButtonPress ||
+         event->type() == QEvent::MouseButtonRelease ||
+         event->type() == QEvent::MouseMove)
     {
       QMouseEvent* e = ( QMouseEvent* )event;
       if ( ( ( e->button() == Qt::MidButton || e->button() == Qt::RightButton ) && !m_bEditing ) ||
@@ -291,15 +302,23 @@ void Interactor2DMeasure::UpdateCursor( QEvent* event, QWidget* wnd )
       }
       else
       {
-        if ( m_nAction == MM_Line ) 
+        if ( m_nAction == MM_Line )
+        {
           wnd->setCursor( CursorFactory::CursorMeasureLine );
+        }
         else if ( m_nAction == MM_Rectangle )
+        {
           wnd->setCursor( CursorFactory::CursorMeasureRectangle );
+        }
         else if ( m_nAction == MM_Polyline || m_nAction == MM_Spline )
+        {
           wnd->setCursor( CursorFactory::CursorMeasurePolyline );
+        }
       }
-    }   
+    }
   }
   else
+  {
     Interactor2D::UpdateCursor( event, wnd );
+  }
 }

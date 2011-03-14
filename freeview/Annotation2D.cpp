@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:57 $
- *    $Revision: 1.18 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:46 $
+ *    $Revision: 1.19 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -52,7 +51,7 @@ Annotation2D::Annotation2D( QObject* parent ) : QObject( parent )
   {
     m_actorCoordinates[i] = vtkSmartPointer<vtkTextActor>::New();
     m_actorCoordinates[i]->GetPositionCoordinate()->
-      SetCoordinateSystemToNormalizedViewport();
+    SetCoordinateSystemToNormalizedViewport();
     m_actorCoordinates[i]->GetTextProperty()->ShadowOff();
     m_actorCoordinates[i]->GetTextProperty()->SetFontSize(11);
     m_actorCoordinates[i]->GetTextProperty()->ItalicOff();
@@ -62,14 +61,14 @@ Annotation2D::Annotation2D( QObject* parent ) : QObject( parent )
   m_actorCoordinates[0]->SetPosition( 0.01, 0.5 );
   m_actorCoordinates[0]->GetTextProperty()->SetJustificationToLeft();
   m_actorCoordinates[0]->GetTextProperty()->
-    SetVerticalJustificationToCentered();
+  SetVerticalJustificationToCentered();
   m_actorCoordinates[1]->SetPosition( 0.5, 0.99 );
   m_actorCoordinates[1]->GetTextProperty()->SetJustificationToCentered();
   m_actorCoordinates[1]->GetTextProperty()->SetVerticalJustificationToTop();
   m_actorCoordinates[2]->SetPosition( 0.99, 0.5 );
   m_actorCoordinates[2]->GetTextProperty()->SetJustificationToRight();
   m_actorCoordinates[2]->GetTextProperty()->
-    SetVerticalJustificationToCentered();
+  SetVerticalJustificationToCentered();
   m_actorCoordinates[3]->SetPosition( 0.5, 0.01 );
   m_actorCoordinates[3]->GetTextProperty()->SetJustificationToCentered();
   m_actorCoordinates[3]->GetTextProperty()->SetVerticalJustificationToBottom();
@@ -89,13 +88,13 @@ Annotation2D::Annotation2D( QObject* parent ) : QObject( parent )
   m_actorScaleLine->SetMapper( vtkSmartPointer<vtkPolyDataMapper2D>::New() );
   m_actorScaleLine->GetProperty()->SetLineWidth( 1 );
   m_actorScaleLine->GetPositionCoordinate()->
-    SetCoordinateSystemToNormalizedViewport();
+  SetCoordinateSystemToNormalizedViewport();
   m_actorScaleLine->SetPosition( 0.05, 0.05 );
   m_actorsAll->AddItem( m_actorScaleLine );
 
   m_actorScaleTitle = vtkSmartPointer<vtkTextActor>::New();
   m_actorScaleTitle->GetPositionCoordinate()->
-    SetCoordinateSystemToNormalizedViewport();
+  SetCoordinateSystemToNormalizedViewport();
   m_actorScaleTitle->GetTextProperty()->ShadowOff();
   m_actorScaleTitle->GetTextProperty()->SetFontSize(11);
   m_actorScaleTitle->GetTextProperty()->ItalicOff();
@@ -110,7 +109,7 @@ Annotation2D::~Annotation2D()
 void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
 {
   double slicePos[3] = { 0, 0, 0 };
-  LayerCollection* lc = 
+  LayerCollection* lc =
     MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
   lc->GetSlicePosition( slicePos );
   bool bHasLayer = ( lc->GetNumberOfLayers() > 0 );
@@ -125,10 +124,10 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
   double ras[3];
   if ( mri )
   {
-   mri->RemapPositionToRealRAS( slicePos, ras );
-   mri->RASToOriginalIndex( ras, nSliceNumber );
+    mri->RemapPositionToRealRAS( slicePos, ras );
+    mri->RASToOriginalIndex( ras, nSliceNumber );
   }
-  
+
   double centPos[3];
   double* worigin = mri->GetWorldOrigin();
   double* wsize = mri->GetWorldSize();
@@ -137,7 +136,9 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
   {
     centPos[i] = worigin[i] + wsize[i]/2;
     if ( !mri )
+    {
       nSliceNumber[i] = (int)( ( slicePos[i] - worigin[i] ) / wvoxel[i] );
+    }
   }
 
   double pos[4] = { 0, 1, 1, 0 }, tpos = 0;
@@ -156,46 +157,46 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     pos[3] = tpos;
 
     tpos = slicePos[0];
-    mri->RemapPositionToRealRAS( tpos, pos[0], pos[1], 
-				 slicePos[0], pos[0], pos[1] );
+    mri->RemapPositionToRealRAS( tpos, pos[0], pos[1],
+                                 slicePos[0], pos[0], pos[1] );
     if ( pos[0] >= 0 )
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("A %.2f", pos[0]).toAscii().constData() );
+      ( strg.sprintf("A %.2f", pos[0]).toAscii().constData() );
     else
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("P %.2f", -pos[0]).toAscii().constData() );
+      ( strg.sprintf("P %.2f", -pos[0]).toAscii().constData() );
 
     if ( pos[1] >= 0 )
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("S %.2f", pos[1]).toAscii().constData() );
+      ( strg.sprintf("S %.2f", pos[1]).toAscii().constData() );
     else
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("I  %.2f", -pos[1]).toAscii().constData() );
+      ( strg.sprintf("I  %.2f", -pos[1]).toAscii().constData() );
 
-    mri->RemapPositionToRealRAS( tpos, pos[2], pos[3], 
-				 slicePos[0], pos[2], pos[3] );
+    mri->RemapPositionToRealRAS( tpos, pos[2], pos[3],
+                                 slicePos[0], pos[2], pos[3] );
     if ( pos[2] >= 0 )
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("A %.2f", pos[2]).toAscii().constData() );
+      ( strg.sprintf("A %.2f", pos[2]).toAscii().constData() );
     else
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("P %.2f", -pos[2]).toAscii().constData() );
+      ( strg.sprintf("P %.2f", -pos[2]).toAscii().constData() );
 
     if ( pos[3] >= 0 )
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("S %.2f", pos[3]).toAscii().constData() );
+      ( strg.sprintf("S %.2f", pos[3]).toAscii().constData() );
     else
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("I  %.2f", -pos[3]).toAscii().constData() );
+      ( strg.sprintf("I  %.2f", -pos[3]).toAscii().constData() );
 
-    mri->RemapPositionToRealRAS( tpos, centPos[1], centPos[2], 
-				 slicePos[0], centPos[1], centPos[2] );
+    mri->RemapPositionToRealRAS( tpos, centPos[1], centPos[2],
+                                 slicePos[0], centPos[1], centPos[2] );
     if ( slicePos[0] >= 0 )
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("R %.2f", slicePos[0]).toAscii().constData() );
+      ( strg.sprintf("R %.2f", slicePos[0]).toAscii().constData() );
     else
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("L %.2f", -slicePos[0]).toAscii().constData() );
+      ( strg.sprintf("L %.2f", -slicePos[0]).toAscii().constData() );
 
     break;
   case 1:
@@ -207,47 +208,47 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     pos[3] = tpos;
 
     tpos = slicePos[1];
-    mri->RemapPositionToRealRAS( pos[0], tpos, pos[1], pos[0], 
-				 slicePos[1], pos[1] );
+    mri->RemapPositionToRealRAS( pos[0], tpos, pos[1], pos[0],
+                                 slicePos[1], pos[1] );
     if ( pos[0] >= 0 )
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("R %.2f", pos[0]).toAscii().constData() );
+      ( strg.sprintf("R %.2f", pos[0]).toAscii().constData() );
     else
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("L %.2f", -pos[0]).toAscii().constData() );
+      ( strg.sprintf("L %.2f", -pos[0]).toAscii().constData() );
 
     if ( pos[1] >= 0 )
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("S %.2f", pos[1]).toAscii().constData() );
+      ( strg.sprintf("S %.2f", pos[1]).toAscii().constData() );
     else
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("I  %.2f", -pos[1]).toAscii().constData() );
+      ( strg.sprintf("I  %.2f", -pos[1]).toAscii().constData() );
 
-    mri->RemapPositionToRealRAS( pos[2], tpos, pos[3], pos[2], 
-				 slicePos[1], pos[3] );
+    mri->RemapPositionToRealRAS( pos[2], tpos, pos[3], pos[2],
+                                 slicePos[1], pos[3] );
 
     if ( pos[2] >= 0 )
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("R %.2f", pos[2]).toAscii().constData() );
+      ( strg.sprintf("R %.2f", pos[2]).toAscii().constData() );
     else
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("L %.2f", -pos[2]).toAscii().constData() );
+      ( strg.sprintf("L %.2f", -pos[2]).toAscii().constData() );
 
     if ( pos[3] >= 0 )
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("S %.2f", pos[3]).toAscii().constData() );
+      ( strg.sprintf("S %.2f", pos[3]).toAscii().constData() );
     else
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("I  %.2f", -pos[3]).toAscii().constData() );
+      ( strg.sprintf("I  %.2f", -pos[3]).toAscii().constData() );
 
-    mri->RemapPositionToRealRAS( centPos[0], tpos, centPos[2], centPos[0], 
-				 slicePos[1], centPos[2] );
+    mri->RemapPositionToRealRAS( centPos[0], tpos, centPos[2], centPos[0],
+                                 slicePos[1], centPos[2] );
     if ( slicePos[1] >= 0 )
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("A %.2f", slicePos[1]).toAscii().constData() );
+      ( strg.sprintf("A %.2f", slicePos[1]).toAscii().constData() );
     else
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("P %.2f", -slicePos[1]).toAscii().constData() );
+      ( strg.sprintf("P %.2f", -slicePos[1]).toAscii().constData() );
 
     break;
   case 2:
@@ -258,48 +259,48 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     renderer->ViewToWorld( pos[2], pos[3], tpos );
 
     tpos = slicePos[2];
-    mri->RemapPositionToRealRAS( pos[0], pos[1], tpos, 
-				 pos[0], pos[1], slicePos[2] );
+    mri->RemapPositionToRealRAS( pos[0], pos[1], tpos,
+                                 pos[0], pos[1], slicePos[2] );
 
     if ( pos[0] >= 0 )
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("R %.2f", pos[0]).toAscii().constData() );
+      ( strg.sprintf("R %.2f", pos[0]).toAscii().constData() );
     else
       m_actorCoordinates[0]->SetInput
-          ( strg.sprintf("L %.2f", -pos[0]).toAscii().constData() );
+      ( strg.sprintf("L %.2f", -pos[0]).toAscii().constData() );
 
     if ( pos[1] >= 0 )
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("A %.2f", pos[1]).toAscii().constData() );
+      ( strg.sprintf("A %.2f", pos[1]).toAscii().constData() );
     else
       m_actorCoordinates[1]->SetInput
-          ( strg.sprintf("P %.2f", -pos[1]).toAscii().constData() );
+      ( strg.sprintf("P %.2f", -pos[1]).toAscii().constData() );
 
-    mri->RemapPositionToRealRAS( pos[2], pos[3], tpos, 
-				 pos[2], pos[3], slicePos[2] );
+    mri->RemapPositionToRealRAS( pos[2], pos[3], tpos,
+                                 pos[2], pos[3], slicePos[2] );
 
     if ( pos[2] >= 0 )
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("R %.2f", pos[2]).toAscii().constData() );
+      ( strg.sprintf("R %.2f", pos[2]).toAscii().constData() );
     else
       m_actorCoordinates[2]->SetInput
-          ( strg.sprintf("L %.2f", -pos[2]).toAscii().constData() );
+      ( strg.sprintf("L %.2f", -pos[2]).toAscii().constData() );
 
     if ( pos[3] >= 0 )
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("A %.2f", pos[3]).toAscii().constData() );
+      ( strg.sprintf("A %.2f", pos[3]).toAscii().constData() );
     else
       m_actorCoordinates[3]->SetInput
-          ( strg.sprintf("P %.2f", -pos[3]).toAscii().constData() );
+      ( strg.sprintf("P %.2f", -pos[3]).toAscii().constData() );
 
-    mri->RemapPositionToRealRAS( centPos[0], centPos[1], tpos, 
-				 centPos[0], centPos[1], slicePos[2] );
+    mri->RemapPositionToRealRAS( centPos[0], centPos[1], tpos,
+                                 centPos[0], centPos[1], slicePos[2] );
     if ( slicePos[2] >= 0 )
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("S %.2f", slicePos[2]).toAscii().constData() );
+      ( strg.sprintf("S %.2f", slicePos[2]).toAscii().constData() );
     else
       m_actorCoordinates[4]->SetInput
-          ( strg.sprintf("I  %.2f", -slicePos[2]).toAscii().constData() );
+      ( strg.sprintf("I  %.2f", -slicePos[2]).toAscii().constData() );
 
     break;
   }
@@ -312,35 +313,35 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
     char ch[3][3] = {"RL", "AP", "IS"};
     for (int i = 0; i < 3; i++)
     {
-        if (ostr[i] == ch[nPlane][0] || ostr[i] == ch[nPlane][1])
-        {
-            nOrigPlane = i;
-            break;
-        }
+      if (ostr[i] == ch[nPlane][0] || ostr[i] == ch[nPlane][1])
+      {
+        nOrigPlane = i;
+        break;
+      }
     }
   }
   m_actorCoordinates[5]->SetInput
-      ( mri ?  QString::number( nSliceNumber[nOrigPlane] ).toAscii().constData() : "" );
+  ( mri ?  QString::number( nSliceNumber[nOrigPlane] ).toAscii().constData() : "" );
 
   // update scale line
   double* xy_pos = m_actorScaleLine->GetPosition();
   double w_pos[3], w_pos2[3];
   int nNumOfTicks = 5;
   MyVTKUtils::NormalizedViewportToWorld( renderer,
-				      xy_pos[0], 
-				      xy_pos[1], 
-				      w_pos[0], 
-				      w_pos[1], 
-				      w_pos[2] );
+                                         xy_pos[0],
+                                         xy_pos[1],
+                                         w_pos[0],
+                                         w_pos[1],
+                                         w_pos[2] );
   MyVTKUtils::NormalizedViewportToWorld( renderer,
-				      xy_pos[0] + 0.5, 
-				      xy_pos[1], 
-				      w_pos2[0], 
-				      w_pos2[1], 
-				      w_pos2[2] );
+                                         xy_pos[0] + 0.5,
+                                         xy_pos[1],
+                                         w_pos2[0],
+                                         w_pos2[1],
+                                         w_pos2[2] );
   w_pos[ nPlane ] = w_pos2[ nPlane ] = 0;
-  double d = 0.5 / 
-    sqrt( vtkMath::Distance2BetweenPoints( w_pos, w_pos2 ) ) * 10;
+  double d = 0.5 /
+             sqrt( vtkMath::Distance2BetweenPoints( w_pos, w_pos2 ) ) * 10;
   QString title = "1 cm";
   if ( d >= 0.5 - xy_pos[0] )
   {
@@ -381,9 +382,9 @@ void Annotation2D::Update( vtkRenderer* renderer, int nPlane )
   UpdateScaleActors( d, nNumOfTicks,  title.toAscii().constData() );
 }
 
-void Annotation2D::UpdateScaleActors( double length, 
-				      int nNumOfTicks, 
-				      const char* title )
+void Annotation2D::UpdateScaleActors( double length,
+                                      int nNumOfTicks,
+                                      const char* title )
 {
   // scale line
   double* pos = m_actorScaleLine->GetPosition();
@@ -436,7 +437,9 @@ void Annotation2D::UpdateScaleActors( double length,
 void Annotation2D::AppendAnnotations( vtkRenderer* renderer )
 {
   for ( int i = 0; i < NUMBER_OF_COORD_ANNOTATIONS; i++ )
+  {
     renderer->AddViewProp( m_actorCoordinates[i] );
+  }
 
   renderer->AddViewProp( m_actorScaleLine );
   renderer->AddViewProp( m_actorScaleTitle );
@@ -468,8 +471,12 @@ bool Annotation2D::IsVisible()
   m_actorsAll->InitTraversal();
   vtkProp* prop = m_actorsAll->GetNextProp();
   if ( prop )
+  {
     return (prop->GetVisibility() > 0);
+  }
   else
+  {
     return false;
+  }
 }
 

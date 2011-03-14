@@ -86,7 +86,7 @@ BUILT_SOURCES = \
 	moc_MainWindow.cpp \
 	moc_PanelLayer.cpp \
 	moc_PanelPointSet.cpp \
-    moc_PanelROI.cpp \
+  moc_PanelROI.cpp \
 	moc_PanelSurface.cpp \
 	moc_PanelVolume.cpp \
 	moc_qtcolorpicker.cpp \
@@ -117,8 +117,8 @@ BUILT_SOURCES = \
 	moc_TrackGroup.cpp \
 	moc_PanelTrack.cpp \
 	moc_LayerPropertyTrack.cpp \
-    moc_DialogSaveVolume.cpp \
-    qrc_freeview.cpp
+  moc_DialogSaveVolume.cpp \
+  qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
 	Annotation2D.cpp \

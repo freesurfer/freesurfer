@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:58 $
- *    $Revision: 1.21 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.22 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -57,12 +56,16 @@ LayerVolumeBase::LayerVolumeBase( QObject* parent ) : LayerEditable( parent )
 LayerVolumeBase::~LayerVolumeBase()
 {
   for ( size_t i = 0; i < m_bufferUndo.size(); i++ )
+  {
     m_bufferUndo[i].Clear();
+  }
 
   m_bufferUndo.clear();
 
   for ( size_t i = 0; i < m_bufferRedo.size(); i++ )
+  {
     m_bufferRedo[i].Clear();
+  }
 
   m_bufferClipboard.Clear();
 
@@ -121,7 +124,9 @@ bool LayerVolumeBase::SetVoxelByIndex( int* n_in, int nPlane, bool bAdd )
                    ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) ||
                  ( m_propertyBrush->GetDrawConnectedOnly() &&
                    ( !GetConnectedToOld( m_imageData, nActiveComp, n, nPlane ) ) ) )
+            {
               ;
+            }
             else
             {
               m_imageData->SetScalarComponentFromFloat( n[0], n[1], n[2], nActiveComp, m_fFillValue );
@@ -161,7 +166,9 @@ bool LayerVolumeBase::GetConnectedToOld( vtkImageData* img, int nFrame, int* n_i
         {
           double fvalue = img->GetScalarComponentAsDouble( n[0], n[1], n[2], nFrame );
           if ( fvalue > 0 )
+          {
             return true;
+          }
         }
       }
     }
@@ -175,7 +182,9 @@ void LayerVolumeBase::SetVoxelByRAS( double* ras, int nPlane, bool bAdd )
   double* origin = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
   for ( int i = 0; i < 3; i++ )
+  {
     n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
+  }
 
   if ( SetVoxelByIndex( n, nPlane, bAdd ) )
   {
@@ -271,17 +280,23 @@ bool LayerVolumeBase::FloodFillByRAS( double* ras, int nPlane, bool bAdd, char* 
   double* origin = m_imageData->GetOrigin();
   double* voxel_size = m_imageData->GetSpacing();
   for ( int i = 0; i < 3; i++ )
+  {
     n[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
+  }
 
   if ( FloodFillByIndex( n, nPlane, bAdd, mask_out ) )
   {
     if ( !mask_out )
+    {
       SetModified();
+    }
     emit ActorUpdated();
     return true;
   }
   else
+  {
     return false;
+  }
 }
 
 // when mask_out is not null, do not fill the actual image data. instead, fill the mask_out buffer
@@ -348,7 +363,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
         for ( j = 0; j < ny; j++ )
         {
           mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveComp ) <= 0  &&
-              fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
+                         fabs( ref->GetScalarComponentAsFloat( n[nPlane], i, j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -373,7 +388,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
         for ( int j = 0; j < ny; j++ )
         {
           mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveComp ) <= 0  &&
-              fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
+                         fabs( ref->GetScalarComponentAsFloat( i, n[nPlane], j, nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -398,7 +413,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
         for ( j = 0; j < ny; j++ )
         {
           mask[j][i] = ( m_imageData->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveComp ) <= 0  &&
-              fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= fTolerance
+                         fabs( ref->GetScalarComponentAsFloat( i, j, n[nPlane], nActiveCompRef ) - fVoxelValue ) <= fTolerance
                          ? 1 : 0 );
         }
       }
@@ -406,7 +421,7 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
     break;
   }
 
-  MyUtils::FloodFill( mask, x, y, 0, 0, nx-1, ny-1, 2, 0 ); 
+  MyUtils::FloodFill( mask, x, y, 0, 0, nx-1, ny-1, 2, 0 );
 
   int ncnt;
   switch ( nPlane )
@@ -424,13 +439,19 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
                ( m_propertyBrush->GetExcludeRangeEnabled() &&
                  ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
+          {
             ;
+          }
           else
           {
             if ( mask_out )
+            {
               mask_out[ncnt] = 1;
+            }
             else
+            {
               m_imageData->SetScalarComponentFromFloat( n[nPlane], i, j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+            }
           }
         }
         ncnt++;
@@ -450,13 +471,19 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
                ( m_propertyBrush->GetExcludeRangeEnabled() &&
                  ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
+          {
             ;
+          }
           else
           {
             if ( mask_out )
+            {
               mask_out[ncnt] = 1;
+            }
             else
+            {
               m_imageData->SetScalarComponentFromFloat( i, n[nPlane], j, nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+            }
           }
         }
         ncnt++;
@@ -476,13 +503,19 @@ bool LayerVolumeBase::FloodFillByIndex( int* n, int nPlane, bool bAdd, char* mas
                  ( fvalue < draw_range[0] || fvalue > draw_range[1] ) ) ||
                ( m_propertyBrush->GetExcludeRangeEnabled() &&
                  ( fvalue >= exclude_range[0] && fvalue <= exclude_range[1] ) ) )
+          {
             ;
+          }
           else
           {
             if ( mask_out )
+            {
               mask_out[ncnt] = 1;
+            }
             else
+            {
               m_imageData->SetScalarComponentFromFloat( i, j, n[nPlane], nActiveComp, bAdd ? m_fFillValue : m_fBlankValue );
+            }
           }
         }
         ncnt++;
@@ -511,10 +544,14 @@ void LayerVolumeBase::SetLiveWireByRAS( double* pt1, double* pt2, int nPlane )
   vtkImageData* image = m_imageData;
   LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
   if ( ref_layer != NULL )
+  {
     image = ref_layer->GetImageData();
+  }
 // else if ( m_imageDataRef.GetPointer() != NULL )
   else if ( m_imageDataRef != NULL )
+  {
     image = m_imageDataRef;
+  }
 
   m_livewire->GetLivewirePoints( image, nPlane, n1[nPlane], pt1, pt2, pts );
   int n[3];
@@ -537,10 +574,14 @@ std::vector<double> LayerVolumeBase::GetLiveWirePointsByRAS( double* pt1, double
   vtkImageData* image = m_imageData;
   LayerVolumeBase* ref_layer = m_propertyBrush->GetReferenceLayer();
   if ( ref_layer != NULL )
+  {
     image = ref_layer->GetImageData();
+  }
 // else if ( m_imageDataRef.GetPointer() != NULL )
   else if ( m_imageDataRef != NULL )
+  {
     image = m_imageDataRef;
+  }
 
   int n1[3], n2[3];
   double* orig = image->GetOrigin();
@@ -629,7 +670,9 @@ void LayerVolumeBase::SaveForUndo( int nPlane )
   double* voxel_size = m_imageData->GetSpacing();
   int nSlice = 0;
   if ( nPlane >= 0 )
-      nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
+  {
+    nSlice = ( int )( ( m_dSlicePosition[nPlane] - origin[nPlane] ) / voxel_size[nPlane] + 0.5 );
+  }
 
   if ( (int)m_bufferUndo.size() >= m_nMaxUndoSteps )
   {
@@ -643,7 +686,9 @@ void LayerVolumeBase::SaveForUndo( int nPlane )
 
   // clear redo buffer
   for ( size_t i = 0; i < m_bufferRedo.size(); i++ )
+  {
     m_bufferRedo[i].Clear();
+  }
   m_bufferRedo.clear();
 }
 
@@ -672,15 +717,19 @@ bool LayerVolumeBase::CopyStructure( int nPlane, double* ras )
   {
     nSlice[i] = ( int )( ( ras[i] - origin[i] ) / voxel_size[i] + 0.5 );
     if ( nSlice[i] < 0 || nSlice[i] >= dim[i] )
+    {
       return false;
+    }
   }
   if ( m_imageData->GetScalarComponentAsDouble( nSlice[0], nSlice[1], nSlice[2], 0 ) == 0 )
+  {
     return false;
-  
+  }
+
   dim[nPlane] = 1;
   char* mask = new char[dim[0]*dim[1]*dim[2]];
   memset( mask, 0, dim[0]*dim[1]*dim[2] );
-  
+
   if ( FloodFillByRAS( ras, nPlane, true, mask ) )
   {
     m_bufferClipboard.Clear();
@@ -689,7 +738,9 @@ bool LayerVolumeBase::CopyStructure( int nPlane, double* ras )
     return true;
   }
   else
+  {
     return false;
+  }
 }
 
 void LayerVolumeBase::Paste( int nPlane )
@@ -708,98 +759,104 @@ void LayerVolumeBase::Paste( int nPlane )
 
 void LayerVolumeBase::SaveBufferItem( UndoRedoBufferItem& item, int nPlane, int nSlice, const char* mask )
 {
-    item.plane = nPlane;
-    item.slice = nSlice;
-    if ( nPlane >= 0 )
+  item.plane = nPlane;
+  item.slice = nSlice;
+  if ( nPlane >= 0 )
+  {
+    int nDim[3], nStart[3] = { 0, 0, 0 };
+    m_imageData->GetDimensions( nDim );
+    nDim[nPlane] = 1;
+    nStart[nPlane] = nSlice;
+    int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+    item.data = new char[nSize];
+    memset( item.data, 0, nSize );
+    int n = 0;
+    for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
     {
-      int nDim[3], nStart[3] = { 0, 0, 0 };
-      m_imageData->GetDimensions( nDim );
-      nDim[nPlane] = 1;
-      nStart[nPlane] = nSlice;
-      int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
-      item.data = new char[nSize];
-      memset( item.data, 0, nSize );
-      int n = 0;
-      for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
+      for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
       {
-        for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
+        for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
         {
-          for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+          if ( !mask || mask[n] > 0 )
           {
-            if ( !mask || mask[n] > 0 )
-            {
-              memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
+            memcpy( item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
                     m_imageData->GetScalarPointer( i, j, k ),
                     m_imageData->GetScalarSize() );
-            }
-            n++;
           }
+          n++;
         }
       }
-   }
-    else    // save whole volume in cache file
-    {
-        int nDim[3];
-        m_imageData->GetDimensions( nDim );
-        int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
-        QFile file(this->GenerateCacheFileName());
-        if (!file.open(QIODevice::WriteOnly))
-            return;
-        file.write((char*)m_imageData->GetScalarPointer() + nSize*m_nActiveFrame, nSize);
-        file.close();
-        item.cache_filename = file.fileName();
-        if (this->IsTypeOf("MRI"))
-        {
-            LayerMRI* mri = qobject_cast<LayerMRI*>(this);
-            item.mri_settings = mri->GetProperty()->GetSettings();
-        }
     }
+  }
+  else    // save whole volume in cache file
+  {
+    int nDim[3];
+    m_imageData->GetDimensions( nDim );
+    int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+    QFile file(this->GenerateCacheFileName());
+    if (!file.open(QIODevice::WriteOnly))
+    {
+      return;
+    }
+    file.write((char*)m_imageData->GetScalarPointer() + nSize*m_nActiveFrame, nSize);
+    file.close();
+    item.cache_filename = file.fileName();
+    if (this->IsTypeOf("MRI"))
+    {
+      LayerMRI* mri = qobject_cast<LayerMRI*>(this);
+      item.mri_settings = mri->GetProperty()->GetSettings();
+    }
+  }
 }
 
 void LayerVolumeBase::LoadBufferItem( UndoRedoBufferItem& item, bool bIgnoreZeros )
 {
   if (item.plane >= 0)
+  {
+    int nDim[3], nStart[3] = { 0, 0, 0 };
+    m_imageData->GetDimensions( nDim );
+    nDim[item.plane] = 1;
+    nStart[item.plane] = item.slice;
+    for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
     {
-      int nDim[3], nStart[3] = { 0, 0, 0 };
-      m_imageData->GetDimensions( nDim );
-      nDim[item.plane] = 1;
-      nStart[item.plane] = item.slice;
-      for ( int i = nStart[0]; i < nStart[0] + nDim[0]; i++ )
+      for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
       {
-        for ( int j = nStart[1]; j < nStart[1] + nDim[1]; j++ )
+        for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
         {
-          for ( int k = nStart[2]; k < nStart[2] + nDim[2]; k++ )
+          double dValue = m_imageData->GetScalarComponentAsDouble( i, j, k, 0 );
+          memcpy( m_imageData->GetScalarPointer( i, j, k ),
+                  item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
+                  m_imageData->GetScalarSize() );
+          if ( bIgnoreZeros )
           {
-            double dValue = m_imageData->GetScalarComponentAsDouble( i, j, k, 0 );
-            memcpy( m_imageData->GetScalarPointer( i, j, k ),
-                    item.data + ( (k-nStart[2])*nDim[1]*nDim[0] + (j-nStart[1])*nDim[0] + (i-nStart[0]) ) * m_imageData->GetScalarSize(),
-                    m_imageData->GetScalarSize() );
-            if ( bIgnoreZeros )
+            if ( m_imageData->GetScalarComponentAsDouble( i, j, k, 0 ) == 0 )
             {
-              if ( m_imageData->GetScalarComponentAsDouble( i, j, k, 0 ) == 0 )
-                m_imageData->SetScalarComponentFromDouble( i, j, k, 0, dValue );
+              m_imageData->SetScalarComponentFromDouble( i, j, k, 0, dValue );
             }
           }
         }
       }
+    }
   }
   else if (!item.cache_filename.isEmpty())
   {
-      QFile file(item.cache_filename);
-      if (!file.open(QIODevice::ReadOnly))
-          return;
-      int nDim[3];
-      m_imageData->GetDimensions( nDim );
-      int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
-      char* p = (char*)m_imageData->GetScalarPointer() + nSize*m_nActiveFrame;
-      file.read(p, nSize);
-      file.close();
-      if (this->IsTypeOf("MRI"))
-      {
-          LayerMRI* mri = qobject_cast<LayerMRI*>(this);
-          mri->GetProperty()->RestoreSettings(item.mri_settings);
-      }
-      m_imageData->Modified();
+    QFile file(item.cache_filename);
+    if (!file.open(QIODevice::ReadOnly))
+    {
+      return;
+    }
+    int nDim[3];
+    m_imageData->GetDimensions( nDim );
+    int nSize = nDim[0]*nDim[1]*nDim[2]*m_imageData->GetScalarSize();
+    char* p = (char*)m_imageData->GetScalarPointer() + nSize*m_nActiveFrame;
+    file.read(p, nSize);
+    file.close();
+    if (this->IsTypeOf("MRI"))
+    {
+      LayerMRI* mri = qobject_cast<LayerMRI*>(this);
+      mri->GetProperty()->RestoreSettings(item.mri_settings);
+    }
+    m_imageData->Modified();
   }
 }
 
@@ -838,11 +895,17 @@ double LayerVolumeBase::GetMinimumVoxelSize()
 {
   double* vs = m_imageData->GetSpacing();
   if ( vs[0] < vs[1] && vs[0] < vs[2] )
+  {
     return vs[0];
+  }
   else if ( vs[1] < vs[2] )
+  {
     return vs[1];
+  }
   else
+  {
     return vs[2];
+  }
 }
 
 void LayerVolumeBase::GetDisplayBounds( double* bounds )
@@ -852,13 +915,13 @@ void LayerVolumeBase::GetDisplayBounds( double* bounds )
 
 QString LayerVolumeBase::GenerateCacheFileName()
 {
-    QString strg = QDir::tempPath() + "/freeview-cache-" + QString::number(qrand());
-    while (QFile::exists(strg))
-    {
-        strg = QDir::tempPath() + "/freeview-cache-" + QString::number(qrand());
-    }
+  QString strg = QDir::tempPath() + "/freeview-cache-" + QString::number(qrand());
+  while (QFile::exists(strg))
+  {
+    strg = QDir::tempPath() + "/freeview-cache-" + QString::number(qrand());
+  }
 #ifdef Q_CYGWIN_WIN
-    strg = MyUtils::NormalizeCygwinPath(strg);
+  strg = MyUtils::NormalizeCygwinPath(strg);
 #endif
-    return strg;
+  return strg;
 }

@@ -10,21 +10,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:58 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2007-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -39,18 +38,18 @@
 using namespace std;
 
 LayerPropertySurface::LayerPropertySurface ( QObject* parent ) :
-    LayerProperty( parent ),
-    m_dOpacity( 1 ),
-    m_nEdgeThickness( 2 ),
-    m_nVectorPointSize( 3 ),
-    m_dThresholdMidPoint( 0 ),
-    m_dThresholdSlope( 10 ),
-    m_nCurvatureMap( CM_Threshold ),
-    m_nSurfaceRenderMode( SM_Surface ),
-    m_bShowVertices( false ),
-    m_nVertexPointSize( 3 ),
-    m_nMeshColorMap( 0 ),
-    m_surface( NULL )
+  LayerProperty( parent ),
+  m_dOpacity( 1 ),
+  m_nEdgeThickness( 2 ),
+  m_nVectorPointSize( 3 ),
+  m_dThresholdMidPoint( 0 ),
+  m_dThresholdSlope( 10 ),
+  m_nCurvatureMap( CM_Threshold ),
+  m_nSurfaceRenderMode( SM_Surface ),
+  m_bShowVertices( false ),
+  m_nVertexPointSize( 3 ),
+  m_nMeshColorMap( 0 ),
+  m_surface( NULL )
 {
   m_lutCurvature = vtkSmartPointer<vtkRGBAColorTransferFunction>::New();
 
@@ -64,7 +63,9 @@ LayerPropertySurface::LayerPropertySurface ( QObject* parent ) :
   SetMeshColor( 0.75, 0.75, 0.75 );
   blockSignals( false );
   for ( int i = 0; i < 3; i++ )
+  {
     m_dPosition[i] = 0;
+  }
 
   connect( this, SIGNAL(ColorMapChanged()), this, SIGNAL(PropertyChanged()) );
   connect( this, SIGNAL(DisplayModeChanged()), this, SIGNAL(PropertyChanged()) );
@@ -93,35 +94,37 @@ void LayerPropertySurface::BuildCurvatureLUT( vtkRGBAColorTransferFunction* lut,
   vtkMath::RGBToHSV( m_dRGB, hiRGB );
   hiRGB[2] *= 1.5;
   if ( hiRGB[2] > 1 )
+  {
     hiRGB[2] /= (1.5*1.5);
+  }
   vtkMath::HSVToRGB( hiRGB, hiRGB );
   lut->RemoveAllPoints();
   double dSlope = ( m_dThresholdSlope == 0 ? 1e8 : ( 1.0 / m_dThresholdSlope ) );
   switch ( nMap )
   {
-    case CM_Threshold:
-      lut->AddRGBAPoint( -dSlope + m_dThresholdMidPoint,
-                                     m_dRGBThresholdLow[0],
-                                     m_dRGBThresholdLow[1],
-                                     m_dRGBThresholdLow[2],
-                                     1 );
-      lut->AddRGBAPoint( m_dThresholdMidPoint, m_dRGB[0], m_dRGB[1], m_dRGB[2], 1 );
-      lut->AddRGBAPoint( dSlope + m_dThresholdMidPoint,
-                                    m_dRGBThresholdHigh[0],
-                                    m_dRGBThresholdHigh[1],
-                                    m_dRGBThresholdHigh[2],
-                                    1 );
-      break;
-    case CM_Binary:
-      lut->AddRGBAPoint( m_dThresholdMidPoint,    hiRGB[0], hiRGB[1], hiRGB[2], 1 );
-      lut->AddRGBAPoint( m_dThresholdMidPoint + 1e-8,    m_dRGB[0], m_dRGB[1], m_dRGB[2], 1 );
-      break;
-    default:
-      lut->AddRGBAPoint( 0, m_dRGB[0], m_dRGB[1], m_dRGB[2], 1 );
-      break;
+  case CM_Threshold:
+    lut->AddRGBAPoint( -dSlope + m_dThresholdMidPoint,
+                       m_dRGBThresholdLow[0],
+                       m_dRGBThresholdLow[1],
+                       m_dRGBThresholdLow[2],
+                       1 );
+    lut->AddRGBAPoint( m_dThresholdMidPoint, m_dRGB[0], m_dRGB[1], m_dRGB[2], 1 );
+    lut->AddRGBAPoint( dSlope + m_dThresholdMidPoint,
+                       m_dRGBThresholdHigh[0],
+                       m_dRGBThresholdHigh[1],
+                       m_dRGBThresholdHigh[2],
+                       1 );
+    break;
+  case CM_Binary:
+    lut->AddRGBAPoint( m_dThresholdMidPoint,    hiRGB[0], hiRGB[1], hiRGB[2], 1 );
+    lut->AddRGBAPoint( m_dThresholdMidPoint + 1e-8,    m_dRGB[0], m_dRGB[1], m_dRGB[2], 1 );
+    break;
+  default:
+    lut->AddRGBAPoint( 0, m_dRGB[0], m_dRGB[1], m_dRGB[2], 1 );
+    break;
   }
 
-  lut->Build();  
+  lut->Build();
 }
 
 void LayerPropertySurface::SetSurfaceSource( FSSurface* surf )
@@ -182,7 +185,7 @@ void LayerPropertySurface::SetBinaryColor ( double r, double g, double b )
   if ( m_surface )
   {
     if ( m_surface->IsCurvatureLoaded() )
-    {}
+      {}
     this->SetColorMapChanged();
   }
 }
@@ -287,8 +290,10 @@ void LayerPropertySurface::SetMeshColorMap( int nMap )
 void LayerPropertySurface::SetPosition( double* p )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dPosition[i] = p[i];
-  
+  }
+
   emit PositionChanged();
 }
 

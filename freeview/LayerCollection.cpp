@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:58 $
- *    $Revision: 1.27 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.28 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -32,9 +31,9 @@
 #include <iostream>
 
 LayerCollection::LayerCollection( const QString& strType, QObject* parent ) :
-    QObject( parent ),
-    m_layerActive( NULL ),
-    m_strType( strType )
+  QObject( parent ),
+  m_layerActive( NULL ),
+  m_strType( strType )
 {
   for ( int i = 0; i < 3; i++ )
   {
@@ -47,7 +46,9 @@ LayerCollection::LayerCollection( const QString& strType, QObject* parent ) :
 LayerCollection::~LayerCollection()
 {
   for ( int i = 0; i < m_layers.size(); i++ )
+  {
     delete m_layers[i];
+  }
 }
 
 bool LayerCollection::IsEmpty()
@@ -60,7 +61,9 @@ int LayerCollection::GetLayerIndex( Layer* layer )
   for ( int i = 0; i < m_layers.size(); i++ )
   {
     if ( m_layers[i] == layer )
+    {
       return i;
+    }
   }
   return -1;
 }
@@ -69,15 +72,17 @@ bool LayerCollection::AddLayer( Layer* layer, bool initializeCoordinate )
 {
   if ( !layer->IsTypeOf( m_strType ) )
   {
-      std::cerr << "Can not add layer type of " << qPrintable(layer->GetEndType())
-            << " to layer collection type of " <<  qPrintable(m_strType) << "\n";
+    std::cerr << "Can not add layer type of " << qPrintable(layer->GetEndType())
+              << " to layer collection type of " <<  qPrintable(m_strType) << "\n";
     return false;
   }
 
   for ( int i = 0; i < m_layers.size(); i++ )
   {
     if ( m_layers[i] == layer )
+    {
       return false;
+    }
   }
 
   if ( initializeCoordinate)
@@ -114,19 +119,27 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
       m_layers.erase( m_layers.begin() + i );
 
       if ( m_layers.size() == 0 )
+      {
         SetActiveLayer( NULL );
+      }
       else
       {
         if ( i == m_layers.size() )
+        {
           SetActiveLayer( m_layers[m_layers.size()-1] );
+        }
         else
+        {
           SetActiveLayer( m_layers[i] );
+        }
       }
 
       emit LayerRemoved( layer );
-      
+
       if (deleteObject)
+      {
         delete layer;
+      }
 
       return true;
     }
@@ -138,13 +151,17 @@ bool LayerCollection::RemoveLayer( Layer* layer, bool deleteObject )
 void LayerCollection::MoveLayerUp()
 {
   if ( this->m_layerActive )
+  {
     MoveLayerUp( this->m_layerActive );
+  }
 }
 
 void LayerCollection::MoveLayerDown()
 {
   if ( this->m_layerActive )
+  {
     MoveLayerDown( this->m_layerActive );
+  }
 }
 
 bool LayerCollection::MoveLayerUp( Layer* layer )
@@ -153,7 +170,9 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
   for ( int i = 0; i < m_layers.size(); i++ )
   {
     if ( !m_layers[i]->IsLocked() )
+    {
       unlocked_layers << m_layers[i];
+    }
   }
 
   for ( int i = 1; i < unlocked_layers.size(); i++)
@@ -170,9 +189,13 @@ bool LayerCollection::MoveLayerUp( Layer* layer )
         if ( m_layers[j]->IsLocked() )
         {
           if ( j < unlocked_layers.size() )
+          {
             unlocked_layers.insert( unlocked_layers.begin() + j, m_layers[j] );
+          }
           else
+          {
             unlocked_layers.push_back( m_layers[j] );
+          }
         }
       }
       m_layers = unlocked_layers;
@@ -191,7 +214,9 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
   for ( int i = 0; i < m_layers.size(); i++ )
   {
     if ( !m_layers[i]->IsLocked() )
+    {
       unlocked_layers.push_back( m_layers[i] );
+    }
   }
 
   for ( int i = 0; i < unlocked_layers.size()-1; i++)
@@ -208,9 +233,13 @@ bool LayerCollection::MoveLayerDown( Layer* layer )
         if ( m_layers[j]->IsLocked() )
         {
           if ( j < unlocked_layers.size() )
+          {
             unlocked_layers.insert( unlocked_layers.begin() + j, m_layers[j] );
+          }
           else
+          {
             unlocked_layers.push_back( m_layers[j] );
+          }
         }
       }
       m_layers = unlocked_layers;
@@ -229,7 +258,9 @@ bool LayerCollection::MoveToTop( Layer* layer )
   for ( int i = 0; i < m_layers.size(); i++ )
   {
     if ( !m_layers[i]->IsLocked() )
+    {
       unlocked_layers.push_back( m_layers[i] );
+    }
   }
 
   for ( int i = 0; i < unlocked_layers.size(); i++)
@@ -248,9 +279,13 @@ bool LayerCollection::MoveToTop( Layer* layer )
         if ( m_layers[j]->IsLocked() )
         {
           if ( j < unlocked_layers.size() )
+          {
             unlocked_layers.insert( unlocked_layers.begin() + j, m_layers[j] );
+          }
           else
+          {
             unlocked_layers.push_back( m_layers[j] );
+          }
         }
       }
       m_layers = unlocked_layers;
@@ -268,13 +303,15 @@ bool LayerCollection::CycleLayer( bool bMoveUp )
   if ( (int)m_layers.size() > 1 )
   {
     int nActive = GetLayerIndex( m_layerActive );
-    
+
     // first get unlocked layers only
     QList<Layer*> unlocked_layers;
     for ( int i = 0; i < m_layers.size(); i++ )
     {
       if ( !m_layers[i]->IsLocked() )
+      {
         unlocked_layers.push_back( m_layers[i] );
+      }
     }
 
     // record the visibilities of each layer before cycling
@@ -316,9 +353,13 @@ bool LayerCollection::CycleLayer( bool bMoveUp )
       if ( m_layers[i]->IsLocked() )
       {
         if ( i < unlocked_layers.size() )
+        {
           unlocked_layers.insert( unlocked_layers.begin() + i, m_layers[i] );
+        }
         else
+        {
           unlocked_layers.push_back( m_layers[i] );
+        }
       }
     }
     m_layers = unlocked_layers;
@@ -332,7 +373,9 @@ bool LayerCollection::CycleLayer( bool bMoveUp )
     delete[] bVisibility;
 
     if ( nActive >= 0 )
+    {
       SetActiveLayer( m_layers[nActive] );
+    }
 
     emit LayerCycled( layer_buf );
     emit LayerMoved ( layer_buf );
@@ -340,7 +383,9 @@ bool LayerCollection::CycleLayer( bool bMoveUp )
     return true;
   }
   else
+  {
     return false;
+  }
 }
 
 bool LayerCollection::Contains( Layer* layer )
@@ -391,9 +436,13 @@ int LayerCollection::GetNumberOfLayers()
 Layer* LayerCollection::GetLayer( int n )
 {
   if ( n < (int)m_layers.size() )
+  {
     return m_layers[n];
+  }
   else
+  {
     return NULL;
+  }
 }
 
 void LayerCollection::SetActiveLayer( Layer* layer )
@@ -421,11 +470,15 @@ bool LayerCollection::SetSlicePosition( int nPlane, double dPos_in, bool bRoundT
     if ( m_dSlicePosition[nPlane] <= m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] &&
          m_dSlicePosition[nPlane] >= m_dWorldOrigin[nPlane] &&
          ( dPos >  m_dWorldOrigin[nPlane] + m_dWorldSize[nPlane] || dPos < m_dWorldOrigin[nPlane] ) )
+    {
       return false;
+    }
   }
 
   if ( fabs( dPos - m_dSlicePosition[nPlane] ) < 1e-8 )
+  {
     return false;
+  }
 
   m_dSlicePosition[nPlane] = dPos;
   this->blockSignals( true );
@@ -447,7 +500,9 @@ bool LayerCollection::OffsetSlicePosition( int nPlane, double dPosDiff, bool bRo
 bool LayerCollection::SetSlicePosition( double* slicePos )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dSlicePosition[i] = slicePos[i];
+  }
 
   this->blockSignals( true );
   for ( int i = 0; i < m_layers.size(); i++ )
@@ -473,7 +528,9 @@ double* LayerCollection::GetSlicePosition()
 void LayerCollection::GetSlicePosition( double* slicePos )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     slicePos[i] = m_dSlicePosition[i];
+  }
 }
 
 double* LayerCollection::GetCurrentRASPosition()
@@ -484,13 +541,17 @@ double* LayerCollection::GetCurrentRASPosition()
 void LayerCollection::GetCurrentRASPosition( double* pos )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     pos[i] = m_dCurrentRASPosition[i];
+  }
 }
 
 void LayerCollection::SetCurrentRASPosition( double* pos )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dCurrentRASPosition[i] = pos[i];
+  }
 
   emit MouseRASPositionChanged();
 }
@@ -503,13 +564,17 @@ double* LayerCollection::GetCursorRASPosition()
 void LayerCollection::GetCursorRASPosition( double* pos )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     pos[i] = m_dCursorRASPosition[i];
+  }
 }
 
 void LayerCollection::SetCursorRASPosition( double* pos )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dCursorRASPosition[i] = pos[i];
+  }
 
   emit CursorRASPositionChanged();
 }
@@ -517,7 +582,9 @@ void LayerCollection::SetCursorRASPosition( double* pos )
 void LayerCollection::GetCurrentRASIndex( int* nIdx )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     nIdx[i] = m_nCurrentRASIndex[i];
+  }
 }
 
 QList<Layer*> LayerCollection::GetLayers()
@@ -538,7 +605,9 @@ double* LayerCollection::GetWorldOrigin()
 void LayerCollection::SetWorldOrigin( double* dWorldOrigin )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldOrigin[i] = dWorldOrigin[i];
+  }
 }
 
 double* LayerCollection::GetWorldSize()
@@ -549,7 +618,9 @@ double* LayerCollection::GetWorldSize()
 void LayerCollection::SetWorldSize( double* dWorldSize )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldSize[i] = dWorldSize[i];
+  }
 }
 
 double* LayerCollection::GetWorldVoxelSize()
@@ -560,13 +631,17 @@ double* LayerCollection::GetWorldVoxelSize()
 void LayerCollection::SetWorldVoxelSize( double* dVoxelSize )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldVoxelSize[i] = dVoxelSize[i];
+  }
 }
 
 void LayerCollection::GetWorldCenter( double* pos )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     pos[i] = ( m_dWorldSize[i] + m_dWorldOrigin[i] ) / 2;
+  }
 }
 
 Layer* LayerCollection::HasProp( vtkProp* prop )
@@ -574,13 +649,17 @@ Layer* LayerCollection::HasProp( vtkProp* prop )
   for ( int i = 0; i < m_layers.size(); i++ )
   {
     if ( m_layers[i]->HasProp( prop ) )
+    {
       return m_layers[i];
+    }
   }
   return NULL;
 }
 
 void LayerCollection::LockCurrent( bool bLock )
 {
-    if ( m_layerActive )
-        m_layerActive->Lock( bLock );
+  if ( m_layerActive )
+  {
+    m_layerActive->Lock( bLock );
+  }
 }

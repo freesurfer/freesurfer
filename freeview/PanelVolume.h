@@ -1,3 +1,26 @@
+/**
+ * @file  PanelVolume.h
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:48 $
+ *    $Revision: 1.37 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 #ifndef PANELVOLUME_H
 #define PANELVOLUME_H
 
@@ -9,8 +32,9 @@ extern "C"
 #include "colortab.h"
 }
 
-namespace Ui {
-  class PanelVolume;
+namespace Ui
+{
+class PanelVolume;
 }
 
 class LUTDataHolder;
@@ -24,41 +48,41 @@ public:
   ~PanelVolume();
 
 protected slots:
-    void OnCheckShowContour( bool bShow );
-    void OnSliderOpacity( int nVal );
-    void OnComboColorMap( int nSel );
-    void OnComboLookupTable( int nSel );
-    void OnColorTableCurrentItemChanged( QTreeWidgetItem* item );
-    void OnLineEditBrushValue( const QString& strg );
+  void OnCheckShowContour( bool bShow );
+  void OnSliderOpacity( int nVal );
+  void OnComboColorMap( int nSel );
+  void OnComboLookupTable( int nSel );
+  void OnColorTableCurrentItemChanged( QTreeWidgetItem* item );
+  void OnLineEditBrushValue( const QString& strg );
 
-    void OnSliderWindow( int );
-    void OnSliderLevel( int );
-    void OnSliderMin( int );
-    void OnSliderMid( int );
-    void OnSliderMax( int );
-    void OnSliderOffset( int );
-    void OnLineEditWindow( const QString& text );
-    void OnLineEditLevel( const QString& text );
-    void OnLineEditMin( const QString& text );
-    void OnLineEditMid( const QString& text );
-    void OnLineEditMax( const QString& text );
-    void OnLineEditOffset( const QString& text );
-    void OnSliderContourMin(int);
-    void OnSliderContourMax(int);
-    void OnSliderContourSmooth(int);
-    void OnContourValueChanged();
-    void OnContourSave();
-    void OnCopySettings();
-    void OnPasteSettings();
-    void OnPasteSettingsToAll();
+  void OnSliderWindow( int );
+  void OnSliderLevel( int );
+  void OnSliderMin( int );
+  void OnSliderMid( int );
+  void OnSliderMax( int );
+  void OnSliderOffset( int );
+  void OnLineEditWindow( const QString& text );
+  void OnLineEditLevel( const QString& text );
+  void OnLineEditMin( const QString& text );
+  void OnLineEditMid( const QString& text );
+  void OnLineEditMax( const QString& text );
+  void OnLineEditOffset( const QString& text );
+  void OnSliderContourMin(int);
+  void OnSliderContourMax(int);
+  void OnSliderContourSmooth(int);
+  void OnContourValueChanged();
+  void OnContourSave();
+  void OnCopySettings();
+  void OnPasteSettings();
+  void OnPasteSettingsToAll();
 
-    void UpdateColorLabel();
+  void UpdateColorLabel();
 
 protected:
-    void PopulateColorTable( COLOR_TABLE* ctab );
-    void DoUpdateWidgets();
-    void DoIdle();
-    virtual void ConnectLayer( Layer* layer );
+  void PopulateColorTable( COLOR_TABLE* ctab );
+  void DoUpdateWidgets();
+  void DoIdle();
+  virtual void ConnectLayer( Layer* layer );
 
 private:
   Ui::PanelVolume *ui;

@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:57 $
- *    $Revision: 1.18 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:46 $
+ *    $Revision: 1.19 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -43,9 +42,9 @@
 #include "LayerPropertyMRI.h"
 
 Cursor2D::Cursor2D( RenderView2D* view ) : QObject( view ),
-    m_view( view ),
-    m_nRadius( 5 ),
-    m_nStyle( CS_Short )
+  m_view( view ),
+  m_nRadius( 5 ),
+  m_nStyle( CS_Short )
 {
   m_actorCursor = vtkSmartPointer<vtkActor2D>::New();
   m_actorCursor->GetProperty()->SetColor( 1, 0, 0 );
@@ -115,7 +114,9 @@ void Cursor2D::Update( bool bConnectPrevious )
     lines->InsertCellPoint( n++ );
   }
   else
+  {
     m_view->WorldToViewport( m_dPosition[0], m_dPosition[1], m_dPosition[2], pos[0], pos[1], pos[2] );
+  }
 
   points->InsertNextPoint( pos[0] + dLen, pos[1], pos[2] );
   points->InsertNextPoint( pos[0] - dLen, pos[1], pos[2] );
@@ -134,12 +135,12 @@ void Cursor2D::Update( bool bConnectPrevious )
     h = m_view->rect().height();
     int nd = 9;
     points->InsertNextPoint( 0, pos[1], pos[2] );
-    points->InsertNextPoint( nd, pos[1], pos[2] );   
+    points->InsertNextPoint( nd, pos[1], pos[2] );
     lines->InsertNextCell( 2 );
     lines->InsertCellPoint( n++ );
     lines->InsertCellPoint( n++ );
     points->InsertNextPoint( w-nd, pos[1], pos[2] );
-    points->InsertNextPoint( w, pos[1], pos[2] );   
+    points->InsertNextPoint( w, pos[1], pos[2] );
     lines->InsertNextCell( 2 );
     lines->InsertCellPoint( n++ );
     lines->InsertCellPoint( n++ );
@@ -167,7 +168,7 @@ void Cursor2D::Update( bool bConnectPrevious )
   m_actorCursor->SetMapper( mapper );
   emit Updated();
 }
-    
+
 /*
 void Cursor2D::Update( bool bConnectPrevious )
 {
@@ -215,7 +216,7 @@ void Cursor2D::Update( bool bConnectPrevious )
   polydata->SetLines( lines );
   vtkSmartPointer<vtkPolyDataMapper2D> mapper = vtkSmartPointer<vtkPolyDataMapper2D>::New();
   mapper->SetInput( polydata );
-  
+
   vtkSmartPointer<vtkCoordinate> coords = vtkSmartPointer<vtkCoordinate>::New();
   coords->SetCoordinateSystemToWorld();
   mapper->SetTransformCoordinate( coords );
@@ -237,7 +238,7 @@ void Cursor2D::SetColor( double r, double g, double b )
 
 void Cursor2D::SetColor( const QColor& color )
 {
- SetColor( color.redF(), color.greenF(), color.blueF() );
+  SetColor( color.redF(), color.greenF(), color.blueF() );
 }
 
 void Cursor2D::GetColor( double* rgb )
@@ -273,7 +274,9 @@ double* Cursor2D::GetPosition()
 void Cursor2D::GetPosition( double* pos )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     pos[i] = m_dPosition[i];
+  }
 }
 
 void Cursor2D::SetInterpolationPoints( std::vector<double> pts )

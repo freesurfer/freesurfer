@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:57 $
- *    $Revision: 1.12 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.13 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -59,16 +58,16 @@ void Interactor::SetAction( int nAction )
 void Interactor::SetUseCommandControl(bool b)
 {
 #ifdef Q_WS_MAC
-    if (b)
-    {
-        CONTROL_MODIFIER = Qt::ControlModifier;
-        CONTROL_KEY = Qt::Key_Control;
-    }
-    else
-    {
-       CONTROL_MODIFIER = Qt::MetaModifier;
-       CONTROL_KEY = Qt::Key_Meta;
-    }
+  if (b)
+  {
+    CONTROL_MODIFIER = Qt::ControlModifier;
+    CONTROL_KEY = Qt::Key_Control;
+  }
+  else
+  {
+    CONTROL_MODIFIER = Qt::MetaModifier;
+    CONTROL_KEY = Qt::Key_Meta;
+  }
 #endif
 }
 
@@ -144,13 +143,13 @@ bool Interactor::ProcessMouseLeaveEvent( QEvent* event, RenderView* view )
 
 void Interactor::UpdateCursor( QEvent* event, QWidget* wnd )
 {
-    if ( (event->type() == QEvent::MouseButtonPress && ((QMouseEvent*)event)->button() == Qt::MidButton) ||
-         (event->type() == QEvent::MouseMove && ((QMouseEvent*)event)->buttons() & Qt::MidButton ))
+  if ( (event->type() == QEvent::MouseButtonPress && ((QMouseEvent*)event)->button() == Qt::MidButton) ||
+       (event->type() == QEvent::MouseMove && ((QMouseEvent*)event)->buttons() & Qt::MidButton ))
   {
     wnd->setCursor( CursorFactory::CursorPan );
   }
   else if ((event->type() == QEvent::MouseButtonPress && ((QMouseEvent*)event)->button() == Qt::RightButton) ||
-          (event->type() == QEvent::MouseMove && ((QMouseEvent*)event)->buttons() & Qt::RightButton ))
+           (event->type() == QEvent::MouseMove && ((QMouseEvent*)event)->buttons() & Qt::RightButton ))
   {
     wnd->setCursor( CursorFactory::CursorZoom );
   }
@@ -159,5 +158,7 @@ void Interactor::UpdateCursor( QEvent* event, QWidget* wnd )
     wnd->setCursor( CursorFactory::CursorZoom );
   }
   else
+  {
     wnd->unsetCursor();
+  }
 }

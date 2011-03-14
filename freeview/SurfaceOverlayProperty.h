@@ -9,21 +9,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:59 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:48 $
+ *    $Revision: 1.4 $
  *
- * Copyright (C) 2007-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -54,42 +53,48 @@ public:
 
   enum COLOR_SCALE  { CS_Heat = 0, CS_GreenRed, CS_BlueRed, CS_ColorWheel, CS_Custom };
   enum COLOR_METHOD { CM_Linear = 0, CM_LinearOpaque, CM_Piecewise };
-  
+
   double GetOpacity() const;
   void SetOpacity( double opacity );
-  
+
   int GetColorScale() const;
   void SetColorScale( int nScale );
 
   void SetSurfaceOverlay( SurfaceOverlay* overlay );
-  
+
   void SetMinPoint( double dValue );
   double GetMinPoint();
-  
+
   void SetMidPoint( double dValue );
   double GetMidPoint();
-  
+
   void SetMaxPoint( double dValue );
   double GetMaxPoint();
-  
+
   int GetColorMethod();
   void SetColorMethod( int n );
-  
+
   bool GetColorInverse();
   void SetColorInverse( bool bInverse );
-  
+
   bool GetColorTruncate();
   void SetColorTruncate( bool bTruncate );
 
-  bool GetClearLower() { return m_bClearLower; }
+  bool GetClearLower()
+  {
+    return m_bClearLower;
+  }
   void SetClearLower( bool bClear );
 
-  bool GetClearHigher() { return m_bClearHigher; }
+  bool GetClearHigher()
+  {
+    return m_bClearHigher;
+  }
   void SetClearHigher(bool bClear);
 
   QGradientStops GetCustomColorScale()
   {
-      return m_customScale;
+    return m_customScale;
   }
   void SetCustomColorScale(QGradientStops stops);
 
@@ -97,17 +102,17 @@ public:
   void MapOverlayColor( float* data, unsigned char* colordata, int nPoints );
   void MapOverlayColorSymmetric( float* data, unsigned char* colordata, int nPoints );
   void MapOverlayColorFullScale( float* data, unsigned char* colordata, int nPoints );
-  
+
   vtkRGBAColorTransferFunction* GetLookupTable()
   {
     return m_lut;
   }
-  
+
   void Reset();
 
   void EmitColorMapChanged()
   {
-      emit ColorMapChanged();
+    emit ColorMapChanged();
   }
 
 Q_SIGNALS:
@@ -131,9 +136,9 @@ private:
   double      m_dMaxStop;
   bool        m_bClearLower;
   bool        m_bClearHigher;
-  
+
   vtkRGBAColorTransferFunction* m_lut;
-  
+
   SurfaceOverlay* m_overlay;
 };
 

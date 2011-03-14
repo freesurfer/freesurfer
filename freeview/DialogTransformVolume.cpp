@@ -1,3 +1,26 @@
+/**
+ * @file  DialogTransformVolume.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
+ *
+ */
+/*
+ * Original Author: Ruopeng Wang
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:47 $
+ *    $Revision: 1.11 $
+ *
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ *
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ *
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
+ */
 #include "DialogTransformVolume.h"
 #include "ui_DialogTransformVolume.h"
 #include "MainWindow.h"
@@ -12,42 +35,42 @@ extern "C"
 }
 
 DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
-    QDialog(parent),
-    UIUpdateHelper(),
-    ui(new Ui::DialogTransformVolume)
+  QDialog(parent),
+  UIUpdateHelper(),
+  ui(new Ui::DialogTransformVolume)
 {
-    ui->setupUi(this);
-    m_checkRotate[0] = ui->checkBoxRotateX;
-    m_checkRotate[1] = ui->checkBoxRotateY;
-    m_checkRotate[2] = ui->checkBoxRotateZ;
-    m_comboRotate[0] = ui->comboBoxRotateX;
-    m_comboRotate[1] = ui->comboBoxRotateY;
-    m_comboRotate[2] = ui->comboBoxRotateZ;
-    m_textAngle[0] = ui->lineEditRotateX;
-    m_textAngle[1] = ui->lineEditRotateY;
-    m_textAngle[2] = ui->lineEditRotateZ;
-    m_scrollTranslate[0] = ui->scrollBarTranslateX;
-    m_scrollTranslate[1] = ui->scrollBarTranslateY;
-    m_scrollTranslate[2] = ui->scrollBarTranslateZ;
-    m_textTranslate[0] = ui->lineEditTranslateX;
-    m_textTranslate[1] = ui->lineEditTranslateY;
-    m_textTranslate[2] = ui->lineEditTranslateZ;
-    m_scrollScale[0] = ui->scrollBarScaleX;
-    m_scrollScale[1] = ui->scrollBarScaleY;
-    m_scrollScale[2] = ui->scrollBarScaleZ;
-    m_textScale[0] = ui->lineEditScaleX;
-    m_textScale[1] = ui->lineEditScaleY;
-    m_textScale[2] = ui->lineEditScaleZ;
+  ui->setupUi(this);
+  m_checkRotate[0] = ui->checkBoxRotateX;
+  m_checkRotate[1] = ui->checkBoxRotateY;
+  m_checkRotate[2] = ui->checkBoxRotateZ;
+  m_comboRotate[0] = ui->comboBoxRotateX;
+  m_comboRotate[1] = ui->comboBoxRotateY;
+  m_comboRotate[2] = ui->comboBoxRotateZ;
+  m_textAngle[0] = ui->lineEditRotateX;
+  m_textAngle[1] = ui->lineEditRotateY;
+  m_textAngle[2] = ui->lineEditRotateZ;
+  m_scrollTranslate[0] = ui->scrollBarTranslateX;
+  m_scrollTranslate[1] = ui->scrollBarTranslateY;
+  m_scrollTranslate[2] = ui->scrollBarTranslateZ;
+  m_textTranslate[0] = ui->lineEditTranslateX;
+  m_textTranslate[1] = ui->lineEditTranslateY;
+  m_textTranslate[2] = ui->lineEditTranslateZ;
+  m_scrollScale[0] = ui->scrollBarScaleX;
+  m_scrollScale[1] = ui->scrollBarScaleY;
+  m_scrollScale[2] = ui->scrollBarScaleZ;
+  m_textScale[0] = ui->lineEditScaleX;
+  m_textScale[1] = ui->lineEditScaleY;
+  m_textScale[2] = ui->lineEditScaleZ;
 
-    connect(MainWindow::GetMainWindow()->GetLayerCollection("MRI"), SIGNAL(ActiveLayerChanged(Layer*)),
-            this, SLOT(OnActiveLayerChanged()));
-    connect(ui->pushButtonSaveVolumeAs, SIGNAL(clicked()),
-            MainWindow::GetMainWindow(), SLOT(SaveVolumeAs()));
+  connect(MainWindow::GetMainWindow()->GetLayerCollection("MRI"), SIGNAL(ActiveLayerChanged(Layer*)),
+          this, SLOT(OnActiveLayerChanged()));
+  connect(ui->pushButtonSaveVolumeAs, SIGNAL(clicked()),
+          MainWindow::GetMainWindow(), SLOT(SaveVolumeAs()));
 }
 
 DialogTransformVolume::~DialogTransformVolume()
 {
-    delete ui;
+  delete ui;
 }
 
 // scope: 0 => translate related, 1 => scale related, 2 => both
@@ -56,9 +79,11 @@ void DialogTransformVolume::UpdateUI( int scope )
   LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( layer )
   {
-      QList<QWidget*> allwidgets = this->findChildren<QWidget*>();
-      for ( int i = 0; i < allwidgets.size(); i++ )
-        allwidgets[i]->blockSignals( true );
+    QList<QWidget*> allwidgets = this->findChildren<QWidget*>();
+    for ( int i = 0; i < allwidgets.size(); i++ )
+    {
+      allwidgets[i]->blockSignals( true );
+    }
     if ( scope == 0 || scope == 2 )
     {
       double* vs = layer->GetWorldVoxelSize();
@@ -81,9 +106,13 @@ void DialogTransformVolume::UpdateUI( int scope )
       for ( int i = 0; i < 3; i++ )
       {
         if ( scale[i] >= 1 )
+        {
           m_scrollScale[i]->setValue( 50 + (int)( (scale[i]-1.0)*50 ) );
+        }
         else
+        {
           m_scrollScale[i]->setValue( 50 - (int)( (1.0-scale[i])*100 ) );
+        }
 
         ChangeLineEditNumber(m_textScale[i], scale[i]);
       }
@@ -93,24 +122,30 @@ void DialogTransformVolume::UpdateUI( int scope )
     ui->pushButtonSaveReg->setEnabled( layer->IsTransformed() );
     ui->pushButtonSaveVolumeAs->setEnabled( layer->IsTransformed() );
     for ( int i = 0; i < allwidgets.size(); i++ )
+    {
       allwidgets[i]->blockSignals( false );
+    }
   }
 }
 
 bool DialogTransformVolume::GetRotation( int nIndex_in,
-                      int& plane_out,
-                      double& angle_out )
+    int& plane_out,
+    double& angle_out )
 {
   if ( nIndex_in < 0 ||
        nIndex_in > 2 ||
        !m_checkRotate[ nIndex_in ]->isChecked() )
+  {
     return false;
+  }
 
   plane_out = m_comboRotate[ nIndex_in ]->currentIndex();
   bool bOK;
   double dVal = m_textAngle[ nIndex_in ]->text().toDouble(&bOK);
   if ( bOK)
-      angle_out = dVal;
+  {
+    angle_out = dVal;
+  }
   return bOK;
 }
 
@@ -122,16 +157,16 @@ void DialogTransformVolume::OnApply()
        !m_checkRotate[1]->isChecked() &&
        !m_checkRotate[2]->isChecked() )
   {
-      QMessageBox::warning( this, "Error",
-             "Must at least select one rotation.");
+    QMessageBox::warning( this, "Error",
+                          "Must at least select one rotation.");
     return;
   }
   else if ( ( m_checkRotate[0]->isChecked() && !GetRotation( 0, plane, angle ) ) ||
             ( m_checkRotate[1]->isChecked() && !GetRotation( 1, plane, angle ) ) ||
             ( m_checkRotate[2]->isChecked() && !GetRotation( 2, plane, angle ) ) )
   {
-      QMessageBox::warning( this, "Error",
-             "Please enter correct rotation angle.");
+    QMessageBox::warning( this, "Error",
+                          "Please enter correct rotation angle.");
     return;
   }
 
@@ -142,19 +177,19 @@ void DialogTransformVolume::OnApply()
 
 void DialogTransformVolume::OnSaveReg()
 {
-    LayerMRI* layer_mri = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
-    if ( !layer_mri)
-    {
-      return;
-    }
+  LayerMRI* layer_mri = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( !layer_mri)
+  {
+    return;
+  }
 
-    QString filename = QFileDialog::getSaveFileName(this, "Save Registration",
-                      QFileInfo( layer_mri->GetFileName() ).absolutePath(),
-                      "LTA files (*.lta);;All files (*.*)");
-    if ( !filename.isEmpty() )
-    {
-      layer_mri->SaveRegistration( filename );
-    }
+  QString filename = QFileDialog::getSaveFileName(this, "Save Registration",
+                     QFileInfo( layer_mri->GetFileName() ).absolutePath(),
+                     "LTA files (*.lta);;All files (*.*)");
+  if ( !filename.isEmpty() )
+  {
+    layer_mri->SaveRegistration( filename );
+  }
 }
 
 void DialogTransformVolume::OnRestore()
@@ -176,17 +211,19 @@ void DialogTransformVolume::DoRotate()
     if ( ui->radioButtonAroundCursor->isChecked() )
     {
       MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->
-        GetSlicePosition( re.Point );
+      GetSlicePosition( re.Point );
       layer->RemapPositionToRealRAS( re.Point, re.Point );
     }
     else
     {
-    // use center of the volume to rotate
+      // use center of the volume to rotate
       layer->GetRASCenter( re.Point );
     }
     re.SampleMethod = SAMPLE_TRILINEAR;
     if ( ui->radioButtonNearestNeighbor->isChecked() )
+    {
       re.SampleMethod = SAMPLE_NEAREST;
+    }
 //    else if ( m_radioSinc->GetValue() )
 //      re.SampleMethod = SAMPLE_SINC;
 
@@ -204,8 +241,10 @@ void DialogTransformVolume::DoRotate()
 
 void DialogTransformVolume::OnActiveLayerChanged()
 {
-    if ( isVisible() )
-        UpdateUI();
+  if ( isVisible() )
+  {
+    UpdateUI();
+  }
 }
 
 
@@ -243,7 +282,7 @@ void DialogTransformVolume::RespondTextTranslate( int n )
 {
   if ( isVisible() )
   {
-      bool bOK;
+    bool bOK;
     double dvalue =m_textTranslate[n]->text().toDouble(&bOK);
     if ( bOK )
     {
@@ -323,7 +362,7 @@ void DialogTransformVolume::RespondTextScale( int n )
 {
   if ( isVisible() )
   {
-      bool bOK;
+    bool bOK;
     double dvalue = m_textScale[n]->text().toDouble(&bOK);
     if ( bOK && dvalue > 0 )
     {
@@ -338,9 +377,13 @@ void DialogTransformVolume::RespondTextScale( int n )
 
         m_scrollScale[n]->blockSignals(true);
         if ( dvalue >= 1 )
+        {
           m_scrollScale[n]->setValue( 50 + (int)( (dvalue-1.0)*50 ) );
+        }
         else
+        {
           m_scrollScale[n]->setValue( 50 - (int)( (1.0-dvalue)*100 ) );
+        }
         m_scrollScale[n]->blockSignals(false);
         UpdateUI( 0 );
       }
@@ -357,9 +400,13 @@ void DialogTransformVolume::RespondScrollScale( int n )
     layer->GetScale( scale );
     int npos = m_scrollScale[n]->value();
     if ( npos >= 50 )
+    {
       scale[n] = ( npos - 50 ) / 50.0 + 1.0;
+    }
     else
+    {
       scale[n] = ( npos - 50 ) / 100.0 + 1.0;
+    }
     layer->Scale( scale );
     MainWindow::GetMainWindow()->RequestRedraw();
 

@@ -8,21 +8,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2011/03/14 21:20:57 $
- *    $Revision: 1.13 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/14 23:44:46 $
+ *    $Revision: 1.14 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -32,42 +31,42 @@
 #include <QSettings>
 
 BrushProperty::BrushProperty (QObject* parent) : QObject(parent),
-    m_nBrushSize( 1 ),
-    m_nBrushTolerance( 0 ),
-    m_bEnableDrawRange( false ),
-    m_bEnableExcludeRange( false ),
-    m_bDrawConnectedOnly( false ),
-    m_layerRef( NULL )
+  m_nBrushSize( 1 ),
+  m_nBrushTolerance( 0 ),
+  m_bEnableDrawRange( false ),
+  m_bEnableExcludeRange( false ),
+  m_bDrawConnectedOnly( false ),
+  m_layerRef( NULL )
 {
-    m_dDrawRange[0] = 0;
-    m_dDrawRange[1] = 1000000;
-    m_dExcludeRange[0] = 0;
-    m_dExcludeRange[1] = 0;
-    QSettings settings;
-    m_nBrushSize = settings.value("/BrushProperty/Size", 1 ).toInt();
-    // config->Read( _T("/BrushProperty/Tolerance"), &m_nBrushTolerance, 0L );
-    m_nBrushTolerance = 0;
-    m_bEnableDrawRange      = settings.value( "/BrushProperty/EnableDrawRange", false ).toBool();
-    m_bEnableExcludeRange   = settings.value( "/BrushProperty/EnableExcludeRange", false ).toBool();
-    m_bDrawConnectedOnly    = settings.value( "/BrushProperty/DrawConnected", false ).toBool();
-    m_dDrawRange[0] = settings.value( "/BrushProperty/DrawRangeLow", 0 ).toDouble();
-    m_dDrawRange[1] = settings.value( "/BrushProperty/DrawRangeHigh", 1000000 ).toDouble();
-    m_dExcludeRange[0] = settings.value( "/BrushProperty/ExcludeRangeLow", 0 ).toDouble();
-    m_dExcludeRange[1] = settings.value( "/BrushProperty/ExcludeRangeHigh", 0 ).toDouble();
+  m_dDrawRange[0] = 0;
+  m_dDrawRange[1] = 1000000;
+  m_dExcludeRange[0] = 0;
+  m_dExcludeRange[1] = 0;
+  QSettings settings;
+  m_nBrushSize = settings.value("/BrushProperty/Size", 1 ).toInt();
+  // config->Read( _T("/BrushProperty/Tolerance"), &m_nBrushTolerance, 0L );
+  m_nBrushTolerance = 0;
+  m_bEnableDrawRange      = settings.value( "/BrushProperty/EnableDrawRange", false ).toBool();
+  m_bEnableExcludeRange   = settings.value( "/BrushProperty/EnableExcludeRange", false ).toBool();
+  m_bDrawConnectedOnly    = settings.value( "/BrushProperty/DrawConnected", false ).toBool();
+  m_dDrawRange[0] = settings.value( "/BrushProperty/DrawRangeLow", 0 ).toDouble();
+  m_dDrawRange[1] = settings.value( "/BrushProperty/DrawRangeHigh", 1000000 ).toDouble();
+  m_dExcludeRange[0] = settings.value( "/BrushProperty/ExcludeRangeLow", 0 ).toDouble();
+  m_dExcludeRange[1] = settings.value( "/BrushProperty/ExcludeRangeHigh", 0 ).toDouble();
 }
 
 BrushProperty::~BrushProperty()
 {
-    QSettings settings;
-    settings.setValue( "/BrushProperty/Size", m_nBrushSize );
-    settings.setValue( "/BrushProperty/Tolerance", m_nBrushTolerance );
-    settings.setValue( "/BrushProperty/EnableDrawRange", m_bEnableDrawRange );
-    settings.setValue( "/BrushProperty/EnableExcludeRange", m_bEnableExcludeRange );
-    settings.setValue( "/BrushProperty/DrawConnected", m_bDrawConnectedOnly );
-    settings.setValue( "/BrushProperty/DrawRangeLow", m_dDrawRange[0] );
-    settings.setValue( "/BrushProperty/DrawRangeHigh", m_dDrawRange[1] );
-    settings.setValue( "/BrushProperty/ExcludeRangeLow", m_dExcludeRange[0] );
-    settings.setValue( "/BrushProperty/ExcludeRangeHigh", m_dExcludeRange[1] );
+  QSettings settings;
+  settings.setValue( "/BrushProperty/Size", m_nBrushSize );
+  settings.setValue( "/BrushProperty/Tolerance", m_nBrushTolerance );
+  settings.setValue( "/BrushProperty/EnableDrawRange", m_bEnableDrawRange );
+  settings.setValue( "/BrushProperty/EnableExcludeRange", m_bEnableExcludeRange );
+  settings.setValue( "/BrushProperty/DrawConnected", m_bDrawConnectedOnly );
+  settings.setValue( "/BrushProperty/DrawRangeLow", m_dDrawRange[0] );
+  settings.setValue( "/BrushProperty/DrawRangeHigh", m_dDrawRange[1] );
+  settings.setValue( "/BrushProperty/ExcludeRangeLow", m_dExcludeRange[0] );
+  settings.setValue( "/BrushProperty/ExcludeRangeHigh", m_dExcludeRange[1] );
 }
 
 int BrushProperty::GetBrushSize()
@@ -165,6 +164,8 @@ void BrushProperty::SetDrawConnectedOnly( bool bEnable )
 
 void BrushProperty::OnLayerRemoved(Layer* layer)
 {
-    if (layer == m_layerRef)
-        SetReferenceLayer(NULL);
+  if (layer == m_layerRef)
+  {
+    SetReferenceLayer(NULL);
+  }
 }
