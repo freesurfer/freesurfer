@@ -8,9 +8,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.33 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/14 19:49:43 $
+ *    $Revision: 1.34 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -690,73 +690,44 @@ namespace GPU {
     // ---
     
     template<typename T>
-    void GCAmorphTerm::BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const {
+    GPU::Classes::CTfactory* GCAmorphTerm::BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const {
       std::cerr << __PRETTY_FUNCTION__
 		<< ": Unrecognised MRI type" << std::endl;
-      exit( EXIT_FAILURE );
+      abort();
+      return( NULL );
     }
 
     template<>
-    void GCAmorphTerm::BindMRI<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
-      dt_mri_uchar.normalized = false;
-      dt_mri_uchar.addressMode[0] = cudaAddressModeClamp;
-      dt_mri_uchar.addressMode[1] = cudaAddressModeClamp;
-      dt_mri_uchar.addressMode[2] = cudaAddressModeClamp;
-      dt_mri_uchar.filterMode = cudaFilterModeLinear;
-      
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri_uchar,
-					      mri.GetArray() ) );
+    GPU::Classes::CTfactory* GCAmorphTerm::BindMRI<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
+      GPU::Classes::CTfactory *tmp ;
+      tmp = new GPU::Classes::CTfactory( mri, dt_mri_uchar,
+                                         cudaFilterModeLinear );
+
+      return( tmp );
     }
 
-    // ---
-
-    template<typename T>
-    void GCAmorphTerm::UnbindMRI( void ) const {
-      std::cerr << __PRETTY_FUNCTION__
-		<< ": Unrecognised MRI type" << std::endl;
-      exit( EXIT_FAILURE );
-    }
-
-    template<>
-    void GCAmorphTerm::UnbindMRI<unsigned char>( void ) const {
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_uchar ) );
-    }
-
+   
     // ---
     
     template<typename T>
-    void GCAmorphTerm::BindMRIsmooth( const GPU::Classes::MRIframeGPU<T>& mri ) const {
+    GPU::Classes::CTfactory* GCAmorphTerm::BindMRIsmooth( const GPU::Classes::MRIframeGPU<T>& mri ) const {
       std::cerr << __PRETTY_FUNCTION__
 		<< ": Unrecognised MRI type" << std::endl;
-      exit( EXIT_FAILURE );
+      abort();
+      return( NULL );
     }
 
     template<>
-    void GCAmorphTerm::BindMRIsmooth<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
-      dt_mri_smooth_uchar.normalized = false;
-      dt_mri_smooth_uchar.addressMode[0] = cudaAddressModeClamp;
-      dt_mri_smooth_uchar.addressMode[1] = cudaAddressModeClamp;
-      dt_mri_smooth_uchar.addressMode[2] = cudaAddressModeClamp;
-      dt_mri_smooth_uchar.filterMode = cudaFilterModeLinear;
-      
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri_smooth_uchar,
-					      mri.GetArray() ) );
+    GPU::Classes::CTfactory* GCAmorphTerm::BindMRIsmooth<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
+      GPU::Classes::CTfactory *tmp ;
+      tmp = new GPU::Classes::CTfactory( mri, dt_mri_smooth_uchar,
+                                         cudaFilterModeLinear );
+
+      return( tmp );
     }
 
 
-    // ---
-
-    template<typename T>
-    void GCAmorphTerm::UnbindMRIsmooth( void ) const {
-      std::cerr << __PRETTY_FUNCTION__
-		<< ": Unrecognised MRI type" << std::endl;
-      exit( EXIT_FAILURE );
-    }
-
-    template<>
-    void GCAmorphTerm::UnbindMRIsmooth<unsigned char>( void ) const {
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_smooth_uchar ) );
-    }
+    
 
 
     // ---
@@ -929,7 +900,9 @@ namespace GPU {
       GCAmorphTerm::tLogLikelihoodTot.Start();
 
       // Get the MRI textures set up (assumes MRIs already in cudaArrays)
-      this->BindMRI( mri );
+      GPU::Classes::CTfactory *mriCT, *mri_smoothCT;
+      mriCT = mri_smoothCT = NULL;
+      mriCT = this->BindMRI( mri );
       this->BindMRIsmooth( mri_smooth );
 
       // Run the computation
@@ -958,8 +931,8 @@ namespace GPU {
       GCAmorphTerm::tLogLikelihoodCompute.Stop();
 
       // Release the MRI textures
-      this->UnbindMRI<T>();
-      this->UnbindMRIsmooth<U>();
+      delete mriCT;
+      delete mri_smoothCT;
 
       GCAmorphTerm::tLogLikelihoodTot.Stop();
     }
@@ -981,13 +954,9 @@ namespace GPU {
       // Handle the MRIs
       myMRI.Allocate( mri );
       myMRI.Send( mri, 0 );
-      myMRI.AllocateArray();
-      myMRI.SendArray();
       
       myMRIsmooth.Allocate( mri_smooth );
       myMRIsmooth.Send( mri_smooth, 0 );
-      myMRIsmooth.AllocateArray();
-      myMRIsmooth.SendArray();
 
 
       // Run the computation

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/11/09 20:08:38 $
- *    $Revision: 1.22 $
+ *    $Date: 2011/03/14 19:49:35 $
+ *    $Revision: 1.23 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,8 @@
 #include "chronometer.hpp"
 
 #include "mriframegpu.hpp"
+#include "ctfactory.hpp"
+
 #include "gcamorphgpu.hpp"
 #include "gcamorphcpu.hpp"
 
@@ -88,16 +90,11 @@ namespace GPU {
 
 
       template<typename T>
-      void BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const;
+      GPU::Classes::CTfactory* BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const;
 
       template<typename T>
-      void UnbindMRI( void ) const;
+      GPU::Classes::CTfactory* BindMRIsmooth( const GPU::Classes::MRIframeGPU<T>& mri ) const;
 
-      template<typename T>
-      void BindMRIsmooth( const GPU::Classes::MRIframeGPU<T>& mri ) const;
-
-      template<typename T>
-      void UnbindMRIsmooth( void ) const;
 
 
       //! Posterior/Anterior consistency check for Label term

@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/24 20:37:13 $
- *    $Revision: 1.25 $
+ *    $Date: 2011/03/14 19:49:35 $
+ *    $Revision: 1.26 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -40,7 +40,6 @@ namespace GPU {
 
   //! Namespace to hold the datatypes used by the GPU
   namespace Classes {
-
 
     //! Templated ancilliary class for use in kernel calls
     /*!
@@ -189,6 +188,8 @@ namespace GPU {
     };
 
 
+    // Forward declaration
+    class CTfactory;
 
     //! Templated class to hold volume data on the GPU
     /*!
@@ -204,6 +205,8 @@ namespace GPU {
     template<typename T>
     class VolumeGPU {
     public:
+
+      friend class CTfactory;
 
       // -------------------------------------------
       // Constructors and destructor
@@ -240,7 +243,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.25 2011/02/24 20:37:13 rge21 Exp $";
+	return "$Id: volumegpu.hpp,v 1.26 2011/03/14 19:49:35 rge21 Exp $";
       }
       
       //! Return pointer to the cudaArray

@@ -334,7 +334,8 @@ CUDA_DEPS = $(top_srcdir)/include/volumegpu.hpp\
             $(top_srcdir)/include/gcamorphenergy.hpp\
             $(top_srcdir)/include/gcamorphtermgpu.hpp\
             $(top_srcdir)/include/fixedmap.hpp\
-            $(top_srcdir)/include/vecvolgpu.hpp
+            $(top_srcdir)/include/vecvolgpu.hpp\
+            $(top_srcdir)/include/ctfactory.hpp
 
 .cu.o:
 	$(NVCC) -o $@ -c $< $(NVCCFLAGS) $(NVCCINCLUDES) $(NVCC_ARCH) \
