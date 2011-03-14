@@ -4,7 +4,7 @@ BatchSystems = {
          submitHeader= [[
                #PBS -N tm-$(JOBNAME)
                #PBS -l walltime="$(TIME)"
-               #PBS -l nodes=1:ppn=8
+               #PBS -l nodes=1:ppn=8:GPU
                #PBS -o std.out
                #PBS -e std.err
                #PBS -V
