@@ -657,6 +657,31 @@ EXTRA_DIST=\
 	thrust/detail/sort.inl \
 	thrust/detail/raw_buffer.inl
 
+if BUILDCUDA
+if HAVE_XXD
+
+# creates a file containing the output of nvcc --version,
+# for use in printing info on the nvidia compiler for diagnostics.
+BUILT_SOURCES=nvcc_version.h
+
+nvcc_version.h:
+	$(NVCC) --version > nvcc_version
+	echo "/* output of nvcc --version */" > nvcc_version.h
+	echo "/* example usage:" >> nvcc_version.h
+	echo "#include <strings.h>" >> nvcc_version.h
+	echo "#include \"nvcc_version.h\"" >> nvcc_version.h
+	echo "char buf[nvcc_version_len+1];" >> nvcc_version.h
+	echo "bcopy(nvcc_version,buf,nvcc_version_len);" >> nvcc_version.h
+	echo "buf[nvcc_version_len]=0;" >> nvcc_version.h
+	echo "printf(buf);" >> nvcc_version.h
+	echo "*/" >> nvcc_version.h
+	xxd -i nvcc_version >> nvcc_version.h
+
+clean-local:
+	rm -f $(BUILT_SOURCES) nvcc_version
+endif
+endif
+
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
 # release' target.
