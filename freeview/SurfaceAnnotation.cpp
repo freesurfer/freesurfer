@@ -10,20 +10,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.12 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:59 $
+ *    $Revision: 1.13 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2007-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -37,11 +38,11 @@
 #include <QFileInfo>
 
 SurfaceAnnotation::SurfaceAnnotation ( LayerSurface* surf ) :
-  QObject( surf ),
-  m_nIndices( NULL ),
-  m_nCenterVertices( NULL ),
-  m_lut( NULL ),
-  m_surface( surf )
+    QObject( surf ),
+    m_nIndices( NULL ),
+    m_nCenterVertices( NULL ),
+    m_lut( NULL ),
+    m_surface( surf )
 {
 }
 
@@ -53,15 +54,11 @@ SurfaceAnnotation::~SurfaceAnnotation ()
 void SurfaceAnnotation::Reset()
 {
   if ( m_nIndices )
-  {
     delete[] m_nIndices;
-  }
-
+  
   if ( m_nCenterVertices )
-  {
     delete[] m_nCenterVertices;
-  }
-
+   
   m_nIndices = NULL;
   m_lut = NULL;
   m_nCenterVertices = NULL;
@@ -94,14 +91,14 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
       Reset();
       m_lut = mris->ct;
       m_nIndexSize = mris->nvertices;
-      m_nIndices = new int[m_nIndexSize];
-      CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations );
-      m_nCenterVertices = new int[m_nAnnotations];
+      m_nIndices = new int[m_nIndexSize]; 
+      CTABgetNumberOfValidEntries( m_lut, &m_nAnnotations ); 
+      m_nCenterVertices = new int[m_nAnnotations]; 
       for ( int i = 0; i < m_nAnnotations; i++ )
       {
         m_nCenterVertices[i] = -1;
-      }
-
+      }      
+      
       // convert annotations to lookup table indices
       // also find the "center vertex"
       double** pts = new double*[m_nAnnotations];
@@ -112,14 +109,14 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
         pts[i] = new double[3];
         memset( pts[i], 0, sizeof( double ) * 3 );
       }
-
+      
       int n;
       for ( int i = 0; i < m_nIndexSize; i++ )
       {
         if ( CTABfindAnnotation( m_lut, mris->vertices[i].annotation, &n ) == 0 )
         {
           m_nIndices[i] = n;
-
+          
           if ( mris->vertices[i].ripflag == 0 &&
                m_nIndices[i] != -1 )
           {
@@ -131,11 +128,9 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
           }
         }
         else
-        {
           m_nIndices[i] = -1;
-        }
-      }
-
+      }  
+      
       for ( int i = 0; i < m_nAnnotations; i++ )
       {
         if ( vcount[i] > 0 )
@@ -143,22 +138,18 @@ bool SurfaceAnnotation::LoadAnnotation( const QString& fn )
           pts[i][0] /= vcount[i];
           pts[i][1] /= vcount[i];
           pts[i][2] /= vcount[i];
-
+          
           int nVertex = m_surface->GetSourceSurface()->FindVertexAtSurfaceRAS( pts[i], NULL );
           if ( nVertex >=0 && m_nIndices[nVertex] == i )
-          {
             m_nCenterVertices[i] = nVertex;
-          }
         }
       }
-
+      
       delete[] vcount;
       for ( int i = 0; i < m_nAnnotations; i++ )
-      {
         delete[] pts[i];
-      }
       delete[] pts;
-
+      
       return true;
     }
   }
@@ -197,15 +188,13 @@ QString SurfaceAnnotation::GetAnnotationNameAtIndex( int nIndex )
   int nTotalCount = 0;
   CTABgetNumberOfTotalEntries( m_lut, &nTotalCount );
   if ( nIndex < nTotalCount )
-  {
     CTABisEntryValid( m_lut, nIndex, &nValid );
-  }
   if ( nValid && CTABcopyName( m_lut, nIndex, name, 128 ) == 0 )
   {
     return name;
   }
-
-  return "";
+  
+  return ""; 
 }
 
 void SurfaceAnnotation::GetAnnotationColorAtIndex( int nIndex, int* rgb )
@@ -214,11 +203,7 @@ void SurfaceAnnotation::GetAnnotationColorAtIndex( int nIndex, int* rgb )
   int nTotalCount = 0;
   CTABgetNumberOfTotalEntries( m_lut, &nTotalCount );
   if ( nIndex < nTotalCount )
-  {
     CTABisEntryValid( m_lut, nIndex, &nValid );
-  }
   if ( nValid )
-  {
     CTABrgbAtIndexi( m_lut, nIndex, rgb, rgb+1, rgb+2 );
-  }
 }

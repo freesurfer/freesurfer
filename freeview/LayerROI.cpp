@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.18 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:58 $
+ *    $Revision: 1.19 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -107,9 +108,7 @@ LayerROI::~LayerROI()
 bool LayerROI::LoadROIFromFile( const QString& filename )
 {
   if ( !m_label->LabelRead( filename.toAscii().data() ) )
-  {
     return false;
-  }
 
   m_label->UpdateRASImage( m_imageData, m_layerSource->GetSourceVolume() );
 
@@ -121,9 +120,7 @@ bool LayerROI::LoadROIFromFile( const QString& filename )
 void LayerROI::InitializeActors()
 {
   if ( m_layerSource == NULL )
-  {
     return;
-  }
 
   for ( int i = 0; i < 3; i++ )
   {
@@ -182,9 +179,7 @@ void LayerROI::UpdateOpacity()
 void LayerROI::UpdateColorMap ()
 {
   for ( int i = 0; i < 3; i++ )
-  {
     mColorMap[i]->SetLookupTable( GetProperty()->GetLookupTable() );
-  }
   // m_sliceActor2D[i]->GetProperty()->SetColor(1, 0, 0);
 
   emit ActorUpdated();
@@ -200,18 +195,14 @@ void LayerROI::Append3DProps( vtkRenderer* renderer, bool* bSliceVisibility )
   for ( int i = 0; i < 3; i++ )
   {
     if ( bSliceVisibility == NULL || bSliceVisibility[i] )
-    {
       renderer->AddViewProp( m_sliceActor3D[i] );
-    }
   }
 }
 
 void LayerROI::OnSlicePositionChanged( int nPlane )
 {
   if ( !m_layerSource )
-  {
     return;
-  }
 
   vtkSmartPointer<vtkMatrix4x4> matrix =
     vtkSmartPointer<vtkMatrix4x4>::New();
@@ -313,17 +304,13 @@ void LayerROI::SetModified()
 bool LayerROI::SaveROI( )
 {
   if ( m_sFilename.size() == 0 || m_imageData.GetPointer() == NULL )
-  {
     return false;
-  }
 
   m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
 
   bool bSaved = m_label->LabelWrite( m_sFilename.toAscii().data() );
   if ( !bSaved )
-  {
     m_bModified = true;
-  }
 
   return bSaved;
 }
@@ -333,9 +320,7 @@ bool LayerROI::HasProp( vtkProp* prop )
   for ( int i = 0; i < 3; i++ )
   {
     if ( m_sliceActor2D[i] == prop || m_sliceActor3D[i] == prop )
-    {
       return true;
-    }
   }
   return false;
 }
@@ -355,7 +340,5 @@ void LayerROI::DoRestore()
 void LayerROI::UpdateLabelData( )
 {
   if ( IsModified() )
-  {
     m_label->UpdateLabelFromImage( m_imageData, m_layerSource->GetSourceVolume() );
-  }
 }

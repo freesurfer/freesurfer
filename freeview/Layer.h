@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.20 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:58 $
+ *    $Revision: 1.21 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -38,7 +39,7 @@ class LayerProperty;
 
 class Layer : public QObject
 {
-  Q_OBJECT
+    Q_OBJECT
 public:
   Layer( QObject* parent = 0 );
   virtual ~Layer();
@@ -57,27 +58,27 @@ public:
 
   virtual void SetVisible( bool bVisible = true )
   {
-    emit VisibilityChanged(bVisible);
+      emit VisibilityChanged(bVisible);
   }
 
   virtual bool IsVisible() = 0;
 
   bool Rotate( std::vector<RotationElement>& rotations );
-
-  bool Translate( double x, double y, double z );
+  
+  bool Translate( double x, double y, double z );  
   bool Translate( double* dPos );
-
+  
   void Scale( double* scale, int nSampleMethod = 1 /* SAMPLE_TRILINEAR */ );
-
+  
   void Restore();
-
+  
   void ResetTranslate()
   {
     m_dTranslate[0] = 0;
     m_dTranslate[1] = 0;
     m_dTranslate[2] = 0;
   }
-
+  
   void GetTranslate( double* pos )
   {
     pos[0] = m_dTranslate[0];
@@ -91,14 +92,14 @@ public:
     m_dScale[1] = 1;
     m_dScale[2] = 1;
   }
-
+  
   void GetScale( double* scale )
   {
     scale[0] = m_dScale[0];
     scale[1] = m_dScale[1];
     scale[2] = m_dScale[2];
   }
-
+  
   double* GetWorldOrigin();
   void GetWorldOrigin( double* origin );
   void SetWorldOrigin( double* origin );
@@ -129,26 +130,26 @@ public:
   void Lock( bool bLock );
 
   QString GetEndType() const;
-
+  
   inline LayerProperty* GetProperty()
   {
     return mProperty;
   }
-
+  
   virtual void GetBounds( double* bounds );
-
+  
   virtual void GetDisplayBounds( double* bounds );
 
   void Show()
   {
     SetVisible( true );
   }
-
-  void Hide()
+  
+  void Hide() 
   {
     SetVisible( false );
   }
-
+  
   QString GetFileName()
   {
     return m_sFilename;
@@ -161,7 +162,7 @@ public:
 
   void SendActorUpdated()
   {
-    emit ActorUpdated();
+      emit ActorUpdated();
   }
 
 Q_SIGNALS:
@@ -174,15 +175,15 @@ Q_SIGNALS:
 
 protected:
   virtual bool DoRotate( std::vector<RotationElement>& rotations )
-  {
-    return true;
+  { 
+    return true; 
   }
 
   virtual void DoRestore() {}
-
+  
   virtual void DoTranslate( double* offset ) {}
   virtual void DoScale( double* scale, int nSampleMethod ) {}
-
+  
   QString   m_strName;
   double    m_dSlicePosition[3];
   double    m_dWorldOrigin[3];
@@ -192,11 +193,11 @@ protected:
   // translate and scale are for volume transformation
   double    m_dTranslate[3];
   double    m_dScale[3];
-
+  
   bool      m_bLocked;
 
   LayerProperty*  mProperty;
-
+      
   QString   m_sFilename;
   QStringList m_strTypeNames;
 

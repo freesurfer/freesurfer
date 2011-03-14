@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.27 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:57 $
+ *    $Revision: 1.28 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -35,11 +36,11 @@
 #include <vtkRenderer.h>
 
 Interactor3D::Interactor3D(QObject* parent) :
-  Interactor(parent),
-  m_nMousePosX( -1 ),
-  m_nMousePosY( -1 ),
-  m_bWindowLevel( false ),
-  m_bMoveSlice( false )
+    Interactor(parent),
+    m_nMousePosX( -1 ),
+    m_nMousePosY( -1 ),
+    m_bWindowLevel( false ),
+    m_bMoveSlice( false )
 {}
 
 Interactor3D::~Interactor3D()
@@ -76,7 +77,7 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
 
   if ( event->x() == m_nMousePosX && event->y() == m_nMousePosY )
   {
-    if ( event->button() == Qt::LeftButton )
+      if ( event->button() == Qt::LeftButton )
     {
       view->UpdateCursorRASPosition( event->x(), event->y() );
       view->UpdateConnectivityDisplay();
@@ -87,7 +88,7 @@ bool Interactor3D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
     m_nMousePosX = event->x();
     m_nMousePosY = event->y();
   }
-
+  
   m_bWindowLevel = false;
   m_bMoveSlice = false;
 
@@ -123,9 +124,7 @@ bool Interactor3D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
       w += layer->GetProperty()->GetWindow();
       l += layer->GetProperty()->GetLevel();
       if ( w < 0 )
-      {
         w = 0;
-      }
       layer->GetProperty()->SetWindowLevel( w, l );
     }
   }
@@ -135,20 +134,18 @@ bool Interactor3D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
   }
   else
   {
-    if ( event->buttons() & Qt::MidButton ||
-         event->buttons() & Qt::RightButton ||
-         event->buttons() & Qt::LeftButton )
+      if ( event->buttons() & Qt::MidButton ||
+           event->buttons() & Qt::RightButton ||
+           event->buttons() & Qt::LeftButton )
     {
       view->CancelUpdateMouseRASPosition();
     }
     else
-    {
       view->UpdateMouseRASPosition( posX, posY );
-    }
 
     return Interactor::ProcessMouseMoveEvent( event, view );
   }
-
+  
   m_nMousePosX = posX;
   m_nMousePosY = posY;
 
@@ -191,9 +188,7 @@ bool Interactor3D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
     view->DeleteCurrentSelectRegion();
   }
   else
-  {
     return Interactor::ProcessKeyDownEvent( event, view );
-  }
 
   return false;
 }
@@ -206,8 +201,6 @@ void Interactor3D::UpdateCursor( QEvent* event, QWidget* wnd )
     wnd->setCursor( CursorFactory::CursorGrab );
   }
   else
-  {
     Interactor::UpdateCursor( event, wnd );
-  }
 }
 

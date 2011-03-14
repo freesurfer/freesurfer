@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.7 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:57 $
+ *    $Revision: 1.8 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -45,7 +46,7 @@ class vtkImageLogic;
 
 class Contour2D : public QObject
 {
-  Q_OBJECT
+    Q_OBJECT
 public:
   Contour2D( RenderView2D* view );
   virtual ~Contour2D();
@@ -54,14 +55,14 @@ public:
   {
     return m_imageInput;
   }
-
+  
   void SetInput( vtkImageData* imagedata, double dContourValue, double dSliceLocation, int active_frame = 0 );
 
   double GetContourValue()
   {
     return m_dContourValue;
   }
-
+  
   int GetPlane()
   {
     return m_nPlane;
@@ -71,37 +72,37 @@ public:
   {
     m_nPlane = nPlane;
   }
-
+  
   void UpdateSliceLocation( double slice_location );
-
+  
   void Reset();
 
   vtkImageActor* GetActor();
-
+  
   vtkImageData* GetThresholdedImage();
-
+  
   void SetVisible ( bool visible );
-
+  
   bool IsVisible();
-
+  
   void AddLine( double* ras1, double* ras2 );
-
+  
   void RemoveLine( double* ras1, double* ras2 );
-
+  
   bool GetSmooth()
   {
     return m_bSmooth;
   }
-
+  
   double GetSmoothSD();
-
+  
   void SetColor( double r, double g, double b );
-
+  
   double* GetColor()
   {
     return m_dContourColor;
   }
-
+  
 Q_SIGNALS:
   void ValueChanged();
   void ColorChanged();
@@ -112,12 +113,12 @@ public slots:
   void SetSmoothSD( double sd );
   void SetColor(const QColor& color)
   {
-    SetColor(color.redF(), color.greenF(), color.blueF());
+      SetColor(color.redF(), color.greenF(), color.blueF());
   }
 
 protected:
   void DrawPatchLineOnMask( vtkImageData* image, double* ras1, double* ras2, int nDrawValue );
-
+  
   RenderView2D*   m_view;
   int             m_nPlane;
   double          m_dSliceLocation;
@@ -125,7 +126,7 @@ protected:
   bool            m_bSmooth;
   vtkImageData*   m_imageInput;
   double          m_dContourColor[3];
-
+  
   vtkSmartPointer<vtkImageActor>      m_actorContour;
   vtkSmartPointer<vtkImageThreshold>  m_filterThreshold;
   vtkSmartPointer<vtkImageResample>   m_filterResample;

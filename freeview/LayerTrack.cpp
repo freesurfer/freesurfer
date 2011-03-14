@@ -1,27 +1,3 @@
-/**
- * @file  LayerTrack.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.2 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
 #include "LayerTrack.h"
 #include "FSTrack.h"
 #include "LayerMRI.h"
@@ -32,45 +8,39 @@
 #include <QDebug>
 
 LayerTrack::LayerTrack(LayerMRI* ref, QObject* parent) : Layer(parent),
-  m_trackData(0),
-  m_layerMRIRef(ref)
+    m_trackData(0),
+    m_layerMRIRef(ref)
 {
-  this->m_strTypeNames << "Track";
+    this->m_strTypeNames << "Track";
 
-  mProperty = new LayerPropertyTrack( this );
+    mProperty = new LayerPropertyTrack( this );
 }
 
 LayerTrack::~LayerTrack()
 {
-  if (m_trackData)
-  {
-    delete m_trackData;
-  }
+    if (m_trackData)
+        delete m_trackData;
 }
 
 bool LayerTrack::LoadTrackFromFile()
 {
-  if (this->m_sFilename.isEmpty())
-  {
-    return false;
-  }
-  FSVolume* refVol = NULL;
-  if (m_layerMRIRef)
-  {
-    refVol = m_layerMRIRef->GetSourceVolume();
-  }
-  m_trackData = new FSTrack(refVol);
-  connect(m_trackData, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)));
-  if (!m_trackData->LoadFromFile(m_sFilename))
-  {
-    delete m_trackData;
-    m_trackData = 0;
-    qDebug() << "Failed to load from file " << m_sFilename << ".";
-    return false;
-  }
-  SetName(QFileInfo(m_sFilename).completeBaseName());
+    if (this->m_sFilename.isEmpty())
+        return false;
+    FSVolume* refVol = NULL;
+    if (m_layerMRIRef)
+        refVol = m_layerMRIRef->GetSourceVolume();
+    m_trackData = new FSTrack(refVol);
+    connect(m_trackData, SIGNAL(Progress(int)), this, SIGNAL(Progress(int)));
+    if (!m_trackData->LoadFromFile(m_sFilename))
+    {
+        delete m_trackData;
+        m_trackData = 0;
+        qDebug() << "Failed to load from file " << m_sFilename << ".";
+        return false;
+    }
+    SetName(QFileInfo(m_sFilename).completeBaseName());
 
-  return true;
+    return true;
 }
 
 void LayerTrack::Append2DProps(vtkRenderer *renderer, int nPlane)
@@ -85,12 +55,12 @@ void LayerTrack::Append3DProps(vtkRenderer *renderer, bool *bPlaneVisibility)
 
 bool LayerTrack::HasProp(vtkProp *prop)
 {
-  return true;
+    return true;
 }
 
 bool LayerTrack::IsVisible()
 {
-  return true;
+    return true;
 }
 
 void LayerTrack::OnSlicePositionChanged(int nPlane)

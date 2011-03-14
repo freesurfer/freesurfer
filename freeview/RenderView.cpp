@@ -1,27 +1,3 @@
-/**
- * @file  RenderView.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.38 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
 #include "RenderView.h"
 #include "Interactor.h"
 #include "MainWindow.h"
@@ -118,26 +94,22 @@ void RenderView::SetInteractionMode( int nMode )
 
 void RenderView::RequestRedraw(bool bForce)
 {
-  if ( bForce )
-  {
-    Render();
-  }
-  else
-  {
-    m_bNeedRedraw = true;
-  }
+    if ( bForce )
+        Render();
+    else
+        m_bNeedRedraw = true;
 }
 
 void RenderView::OnIdle()
 {
-//   if ( qApp->hasPendingEvents() )
-//       return;
+ //   if ( qApp->hasPendingEvents() )
+ //       return;
 
-  if ( m_bNeedRedraw )
-  {
-    Render();
-    m_bNeedRedraw = false;
-  }
+    if ( m_bNeedRedraw )
+    {
+        Render();
+        m_bNeedRedraw = false;
+    }
 }
 
 void RenderView::SetFocusFrameColor( double r, double g, double b )
@@ -147,7 +119,7 @@ void RenderView::SetFocusFrameColor( double r, double g, double b )
 
 void RenderView::paintEvent(QPaintEvent *event)
 {
-  GenericRenderView::paintEvent( event );
+    GenericRenderView::paintEvent( event );
 }
 
 void RenderView::focusInEvent( QFocusEvent* event )
@@ -173,26 +145,20 @@ void RenderView::mousePressEvent( QMouseEvent* event )
   {
     this->setFocus();
     // if left button down, do not pass along mouse event further down
-    //  if ( MainWindow::GetMainWindowPointer()->GetPreviousActiveView() != this && event.LeftDown() )
-    //    return;
+  //  if ( MainWindow::GetMainWindowPointer()->GetPreviousActiveView() != this && event.LeftDown() )
+  //    return;
   }
 
   if ( m_interactor->ProcessMouseDownEvent( event, this ) )
-  {
     GenericRenderView::mousePressEvent( event );
-  }
   else
-  {
-    event->ignore();
-  }
+      event->ignore();
 }
 
 void RenderView::mouseReleaseEvent( QMouseEvent* event )
 {
   if ( m_interactor->ProcessMouseUpEvent( event, this ) )
-  {
     GenericRenderView::mouseReleaseEvent( event );
-  }
 }
 
 void RenderView::mouseMoveEvent( QMouseEvent* event )
@@ -201,13 +167,9 @@ void RenderView::mouseMoveEvent( QMouseEvent* event )
 //  this->SetFocus();
 
   if ( m_interactor->ProcessMouseMoveEvent( event, this ) )
-  {
     GenericRenderView::mouseMoveEvent( event );
-  }
   else
-  {
-    event->ignore();
-  }
+      event->ignore();
 
   m_interactor->ProcessPostMouseMoveEvent( event, this );
 }
@@ -215,9 +177,7 @@ void RenderView::mouseMoveEvent( QMouseEvent* event )
 void RenderView::wheelEvent( QWheelEvent* event )
 {
   if ( m_interactor->ProcessMouseWheelEvent( event, this ) )
-  {
     GenericRenderView::wheelEvent( event );
-  }
 
   m_interactor->ProcessPostMouseWheelEvent( event, this );
 }
@@ -230,33 +190,25 @@ void RenderView::enterEvent( QEvent* event )
   }
 
   if ( m_interactor->ProcessMouseEnterEvent( event, this ) )
-  {
     GenericRenderView::enterEvent( event );
-  }
 }
 
 void RenderView::leaveEvent( QEvent* event )
 {
   if ( m_interactor->ProcessMouseLeaveEvent( event, this ) )
-  {
     GenericRenderView::leaveEvent( event );
-  }
 }
 
 void RenderView::keyPressEvent( QKeyEvent* event )
 {
   if ( m_interactor->ProcessKeyDownEvent( event, this ) )
-  {
     GenericRenderView::keyPressEvent( event );
-  }
 }
 
 void RenderView::keyReleaseEvent( QKeyEvent* event )
 {
   if ( m_interactor->ProcessKeyUpEvent( event, this ) )
-  {
     GenericRenderView::keyReleaseEvent( event );
-  }
 }
 
 void RenderView::SetWorldCoordinateInfo( const double* origin, const double* size )
@@ -401,8 +353,8 @@ void RenderView::SetAction( int nAction )
 
 void RenderView::Reset()
 {
-  UpdateViewByWorldCoordinate();
-  RequestRedraw();
+    UpdateViewByWorldCoordinate();
+    RequestRedraw();
 }
 
 void RenderView::ShowScalarBar( bool bShow )
@@ -419,17 +371,15 @@ void RenderView::UpdateScalarBar()
 {
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( mri )
-  {
     m_actorScalarBar->SetLookupTable( mri->GetProperty()->GetActiveLookupTable() );
-  }
 }
 
 bool RenderView::SaveScreenShot(const QString& filename, bool bAntiAliasing, int nMag)
 {
-  blockSignals(true);
-  RefreshAllActors(true);
-  blockSignals(false);
-  bool ret = SaveImage(filename, bAntiAliasing, nMag);
-  RefreshAllActors(false);
-  return ret;
+    blockSignals(true);
+    RefreshAllActors(true);
+    blockSignals(false);
+    bool ret = SaveImage(filename, bAntiAliasing, nMag);
+    RefreshAllActors(false);
+    return ret;
 }

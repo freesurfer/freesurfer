@@ -1,27 +1,3 @@
-/**
- * @file  DialogLoadDTI.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.14 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
 #include "DialogLoadDTI.h"
 #include "ui_DialogLoadDTI.h"
 #include "MainWindow.h"
@@ -31,60 +7,56 @@
 #include "MyUtils.h"
 
 DialogLoadDTI::DialogLoadDTI(QWidget *parent) :
-  QDialog(parent),
-  ui(new Ui::DialogLoadDTI)
+    QDialog(parent),
+    ui(new Ui::DialogLoadDTI)
 {
-  ui->setupUi(this);
+    ui->setupUi(this);
 }
 
 DialogLoadDTI::~DialogLoadDTI()
 {
-  delete ui;
+    delete ui;
 }
 
 QString DialogLoadDTI::GetVectorFileName()
 {
-  return MyUtils::CygwinPathProof(ui->lineEditVector->text().trimmed());
+    return MyUtils::CygwinPathProof(ui->lineEditVector->text().trimmed());
 }
 
 QString DialogLoadDTI::GetFAFileName()
 {
-  return MyUtils::CygwinPathProof(ui->lineEditFA->text().trimmed());
+    return MyUtils::CygwinPathProof(ui->lineEditFA->text().trimmed());
 }
 
 QString DialogLoadDTI::GetRegFileName()
 {
   if ( ui->checkBoxRegistration->isChecked() )
-  {
     return MyUtils::CygwinPathProof(ui->lineEditRegistration->text().trimmed());
-  }
   else
-  {
     return "";
-  }
 }
 
 void DialogLoadDTI::OnOK()
 {
   if ( GetVectorFileName().isEmpty() )
   {
-    QMessageBox::warning(
+      QMessageBox::warning(
       this, "Error",
-      "Vector file name can not be empty.");
+    "Vector file name can not be empty.");
     return;
   }
   else if ( GetFAFileName().isEmpty() )
   {
-    QMessageBox::warning(
+      QMessageBox::warning(
       this, "Error",
-      "FA file name can not be empty.");
+    "FA file name can not be empty.");
     return;
   }
   else if ( ui->checkBoxRegistration->isChecked() && GetRegFileName().isEmpty() )
   {
-    QMessageBox::warning(
+      QMessageBox::warning(
       this, "Error",
-      "Registration file name can not be empty.");
+    "Registration file name can not be empty.");
     return;
   }
 
@@ -93,46 +65,46 @@ void DialogLoadDTI::OnOK()
 
 void DialogLoadDTI::OnButtonVector()
 {
-  QString filename = QFileDialog::getOpenFileName(
-                       this,
-                       "Select vector file",
-                       MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
-                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+    QString filename = QFileDialog::getOpenFileName(
+      this,
+      "Select vector file",
+      MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
+      "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
   if ( !filename.isEmpty() )
   {
-    ui->lineEditVector->setText( MyUtils::Win32PathProof(filename) );
-    ui->lineEditVector->setCursorPosition( ui->lineEditVector->text().size() );
-    m_strLastDir = QFileInfo(filename).canonicalPath();
+      ui->lineEditVector->setText( MyUtils::Win32PathProof(filename) );
+      ui->lineEditVector->setCursorPosition( ui->lineEditVector->text().size() );
+      m_strLastDir = QFileInfo(filename).canonicalPath();
   }
 }
 
 void DialogLoadDTI::OnButtonFA()
 {
-  QString filename = QFileDialog::getOpenFileName(
-                       this,
-                       "Select FA file",
-                       MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
-                       "FA files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+    QString filename = QFileDialog::getOpenFileName(
+      this,
+      "Select FA file",
+      MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
+      "FA files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
   if ( !filename.isEmpty() )
   {
-    ui->lineEditFA->setText( MyUtils::Win32PathProof(filename) );
-    ui->lineEditFA->setCursorPosition( ui->lineEditFA->text().size() );
-    m_strLastDir = QFileInfo(filename).canonicalPath();
+      ui->lineEditFA->setText( MyUtils::Win32PathProof(filename) );
+      ui->lineEditFA->setCursorPosition( ui->lineEditFA->text().size() );
+      m_strLastDir = QFileInfo(filename).canonicalPath();
   }
 }
 
 void DialogLoadDTI::OnButtonRegistration()
 {
-  QString filename = QFileDialog::getOpenFileName(
-                       this,
-                       "Select registration file",
-                       MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
-                       "Registration files (*.*)" );
-  if ( !filename.isEmpty() )
-  {
-    ui->lineEditRegistration->setText( MyUtils::Win32PathProof(filename) );
-    ui->lineEditRegistration->setCursorPosition( ui->lineEditRegistration->text().size() );
-  }
+    QString filename = QFileDialog::getOpenFileName(
+      this,
+      "Select registration file",
+      MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
+                    "Registration files (*.*)" );
+    if ( !filename.isEmpty() )
+    {
+        ui->lineEditRegistration->setText( MyUtils::Win32PathProof(filename) );
+        ui->lineEditRegistration->setCursorPosition( ui->lineEditRegistration->text().size() );
+    }
 }
 
 

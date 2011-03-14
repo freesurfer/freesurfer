@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.2 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:58 $
+ *    $Revision: 1.3 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -82,10 +83,10 @@
 #include <QFileInfo>
 
 bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
-                                   vtkRenderer* renderer,
-                                   const char* filename,
-                                   bool bAntiAliasing,
-                                   int nMag )
+                                vtkRenderer* renderer,
+                                const char* filename,
+                                bool bAntiAliasing,
+                                int nMag )
 {
   QString fn = filename;
   vtkImageWriter* writer = 0;
@@ -99,28 +100,18 @@ bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
     exporter->Delete();
   }
   else if ( ext == "jpg" || ext == "jpeg" )
-  {
     writer = vtkJPEGWriter::New();
-  }
   else if ( ext == "bmp" )
-  {
     writer = vtkBMPWriter::New();
-  }
   else if ( ext == "ps" )
-  {
     writer = vtkPostScriptWriter::New();
-  }
   else if ( ext == "tif" || ext == "tiff" )
-  {
     writer = vtkTIFFWriter::New();
-  }
   else
   {
     writer = vtkPNGWriter::New();
     if ( ext != "png" )
-    {
       fn += ".png";
-    }
   }
 
   bool ret = true;
@@ -135,9 +126,7 @@ bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
     writer->SetFileName( fn.toUtf8().data() );
     writer->Write();
     if ( writer->GetErrorCode() != 0 )
-    {
       ret = false;
-    }
     image->Delete();
     writer->Delete();
     // SetAntialiasing(bCurrentAA, false);
@@ -147,7 +136,7 @@ bool MyVTKUtils::VTKScreenCapture( vtkRenderWindow* renderWnd,
 
 
 void MyVTKUtils::ViewportToWorld( vtkRenderer* renderer, double x, double y, double z,
-                                  double& world_x, double& world_y, double& world_z )
+                               double& world_x, double& world_y, double& world_z )
 {
   world_x = x;
   world_y = y;
@@ -157,10 +146,10 @@ void MyVTKUtils::ViewportToWorld( vtkRenderer* renderer, double x, double y, dou
 }
 
 void MyVTKUtils::ViewportToWorld( vtkRenderer* renderer,
-                                  double x, double y,
-                                  double& world_x,
-                                  double& world_y,
-                                  double& world_z )
+                               double x, double y,
+                               double& world_x,
+                               double& world_y,
+                               double& world_z )
 {
   world_x = x;
   world_y = y;
@@ -170,10 +159,10 @@ void MyVTKUtils::ViewportToWorld( vtkRenderer* renderer,
 }
 
 void MyVTKUtils::NormalizedViewportToWorld( vtkRenderer* renderer,
-    double x, double y, double z,
-    double& world_x,
-    double& world_y,
-    double& world_z )
+                                         double x, double y, double z,
+                                         double& world_x,
+                                         double& world_y,
+                                         double& world_z )
 {
   world_x = x;
   world_y = y;
@@ -183,17 +172,17 @@ void MyVTKUtils::NormalizedViewportToWorld( vtkRenderer* renderer,
 }
 
 void MyVTKUtils::NormalizedViewportToWorld( vtkRenderer* renderer,
-    double x, double y,
-    double& world_x,
-    double& world_y,
-    double& world_z )
+                                         double x, double y,
+                                         double& world_x,
+                                         double& world_y,
+                                         double& world_z )
 {
   NormalizedViewportToWorld( renderer, x, y, 0.0, world_x, world_y, world_z );
 }
 
 void MyVTKUtils::WorldToViewport( vtkRenderer* renderer,
-                                  double world_x, double world_y, double world_z,
-                                  double& x, double& y, double& z )
+                               double world_x, double world_y, double world_z,
+                               double& x, double& y, double& z )
 {
   x = world_x;
   y = world_y;
@@ -275,8 +264,8 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
 */
 
 bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
-                                    double dTh1, double dTh2,
-                                    vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions )
+                                 double dTh1, double dTh2,
+                                 vtkActor* actor_out, int nSmoothIterations, int* ext, bool bAllRegions )
 {
   double nValue = 1;
   int nSwell = 2;
@@ -290,9 +279,7 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
     threshold->SetInputConnection( clipper->GetOutputPort() );
   }
   else
-  {
     threshold->SetInput( data_in );
-  }
   threshold->ThresholdByLower( dTh2 );
   threshold->ReplaceOutOn();
   threshold->SetOutValue( dTh1-0.00001 );
@@ -332,13 +319,9 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
     conn->SetExtractionModeToLargestRegion();
     vtkSmartPointer<vtkSmoothPolyDataFilter> smoother = vtkSmartPointer<vtkSmoothPolyDataFilter>::New();
     if ( bAllRegions )
-    {
       smoother->SetInputConnection( contour->GetOutputPort() );
-    }
     else
-    {
       smoother->SetInputConnection( conn->GetOutputPort() );
-    }
     smoother->SetNumberOfIterations( nSmoothIterations );
     smoother->FeatureEdgeSmoothingOn();
     smoother->SetEdgeAngle( 90 );
@@ -357,8 +340,8 @@ bool MyVTKUtils::BuildContourActor( vtkImageData* data_in,
 }
 
 bool MyVTKUtils::BuildVolume( vtkImageData* data_in,
-                              double dTh1, double dTh2,
-                              vtkVolume* vol_out )
+                           double dTh1, double dTh2,
+                           vtkVolume* vol_out )
 {
   vtkSmartPointer<vtkPiecewiseFunction> tfun =
     vtkSmartPointer<vtkPiecewiseFunction>::New();
@@ -410,9 +393,9 @@ bool MyVTKUtils::BuildVolume( vtkImageData* data_in,
 }
 
 void MyVTKUtils::GetLivewirePoints( vtkImageData* image_in,
-                                    int nPlane_in, int nSlice_in,
-                                    double* pt1_in, double* pt2_in,
-                                    vtkPoints* pts_out )
+                                 int nPlane_in, int nSlice_in,
+                                 double* pt1_in, double* pt2_in,
+                                 vtkPoints* pts_out )
 {
   vtkSmartPointer<vtkImageClip> m_imageClip =
     vtkSmartPointer<vtkImageClip>::New();

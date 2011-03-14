@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:58 $
+ *    $Revision: 1.11 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -61,9 +62,7 @@ struct CmdLineEntry
                 int nMaxArguments = 1 )
   {
     if ( nMaxArguments < nMinArguments )
-    {
       nMaxArguments = nMinArguments;
-    }
 
     type = nType;
     shortName = sShortName;
@@ -102,7 +101,7 @@ public:
 //  bool Found( const char* ch, double* value );
   bool Found( const char* ch, string_array* sa, int nIndex = -1  ); // -1 means last one
   bool Found( const QString flag, QStringList* sa, int nIndex = -1 );
-
+  
   int GetNumberOfRepeats( const char* ch );
 
   int GetNumberOfArguments( const char* ch );
@@ -111,7 +110,7 @@ public:
   string_array GetArguments( const char* ch, int nIndex = -1 );
 
   string_array GetFloatingArguments();
-
+  
   void PrintHelp();
 
   void PrintErrorMessage( string msg );
@@ -131,7 +130,7 @@ protected:
   int       m_nNumberOfPureArguments;
   string    m_strProgramName;
   string    m_strProgramDescription;
-
+  
   bool      m_bNewLineStyle;
 };
 

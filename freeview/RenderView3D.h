@@ -1,27 +1,3 @@
-/**
- * @file  RenderView3D.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.31 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
 #ifndef RENDERVIEW3D_H
 #define RENDERVIEW3D_H
 
@@ -40,77 +16,77 @@ class vtkAnnotatedCubeActor;
 
 class RenderView3D : public RenderView
 {
-  Q_OBJECT
+    Q_OBJECT
 public:
-  RenderView3D( QWidget* parent );
+    RenderView3D( QWidget* parent );
 
-  void SetInteractionMode(int nMode);
+    void SetInteractionMode(int nMode);
 
-  int PickCell( vtkProp* prop, int posX, int posY, double* pos_out = NULL );
+    int PickCell( vtkProp* prop, int posX, int posY, double* pos_out = NULL );
 
-  void UpdateViewByWorldCoordinate();
+    void UpdateViewByWorldCoordinate();
 
-  bool GetShowSliceFrames();
+    bool GetShowSliceFrames();
 
-  void CancelUpdateMouseRASPosition()
-  {
-    m_bToUpdateRASPosition = false;
-  }
+    void CancelUpdateMouseRASPosition()
+    {
+      m_bToUpdateRASPosition = false;
+    }
 
-  inline int GetHighlightedSlice()
-  {
-    return m_nSliceHighlighted;
-  }
+    inline int GetHighlightedSlice()
+    {
+      return m_nSliceHighlighted;
+    }
 
-  void UpdateConnectivityDisplay()
-  {
-    m_bToUpdateConnectivity = true;
-  }
+    void UpdateConnectivityDisplay()
+    {
+      m_bToUpdateConnectivity = true;
+    }
 
-  void MoveSliceToScreenCoord( int x, int y );
+    void MoveSliceToScreenCoord( int x, int y );
 
-  void UpdateCursorRASPosition( int posX, int posY );
-  void UpdateMouseRASPosition( int posX, int posY );
-  bool InitializeSelectRegion( int posX, int posY );
+    void UpdateCursorRASPosition( int posX, int posY );
+    void UpdateMouseRASPosition( int posX, int posY );
+    bool InitializeSelectRegion( int posX, int posY );
 
-  void AddSelectRegionLoopPoint( int posX, int posY );
+    void AddSelectRegionLoopPoint( int posX, int posY );
 
-  void CloseSelectRegion();
+    void CloseSelectRegion();
 
-  void DeleteCurrentSelectRegion();
+    void DeleteCurrentSelectRegion();
 
-  bool PickSelectRegion( int nId );
+    bool PickSelectRegion( int nId );
 
-  bool PickCroppingBound( int nX, int nY );
-  void MoveCroppingBound( int nX, int nY );
+    bool PickCroppingBound( int nX, int nY );
+    void MoveCroppingBound( int nX, int nY );
 
-  Cursor3D* GetCursor3D()
-  {
-    return m_cursor3D;
-  }
+    Cursor3D* GetCursor3D()
+    {
+      return m_cursor3D;
+    }
 
-  void UpdateScalarBar();
+    void UpdateScalarBar();
 
-  void TriggerContextMenu( QMouseEvent* event );
+    void TriggerContextMenu( QMouseEvent* event );
 
-  bool GetShowSlices()
-  {
-    return m_bShowSlices;
-  }
+    bool GetShowSlices()
+    {
+        return m_bShowSlices;
+    }
 
 signals:
-  void SurfaceVertexClicked();
-  void SurfaceRegionSelected(SurfaceRegion*);
-  void SurfaceRegionRemoved(SurfaceRegion*);
+    void SurfaceVertexClicked();
+    void SurfaceRegionSelected(SurfaceRegion*);
+    void SurfaceRegionRemoved(SurfaceRegion*);
 
 public slots:
-  void RefreshAllActors(bool bForScreenShot = false);
-  void SetShowSliceFrames( bool bShow );
-  void UpdateSliceFrames();
-  bool UpdateBounds();
-  void SnapToNearestAxis();
-  void UpdateSurfaceCorrelationData();
-  void SetShowSlices(bool bShow = true);
+    void RefreshAllActors(bool bForScreenShot = false);
+    void SetShowSliceFrames( bool bShow );
+    void UpdateSliceFrames();
+    bool UpdateBounds();
+    void SnapToNearestAxis();
+    void UpdateSurfaceCorrelationData();
+    void SetShowSlices(bool bShow = true);
 
 protected:
   void DoUpdateRASPosition( int posX, int posY, bool bCursor = false );
@@ -124,29 +100,29 @@ protected:
   vtkProp* PickProp( int posX, int posY, double* pos_out = NULL );
 
 private:
-  int  m_nPickCoord[2];
-  int  m_nCursorCoord[2];
-  bool m_bToUpdateRASPosition;
-  bool m_bToUpdateCursorPosition;
-  bool m_bToUpdateConnectivity;
+    int  m_nPickCoord[2];
+    int  m_nCursorCoord[2];
+    bool m_bToUpdateRASPosition;
+    bool m_bToUpdateCursorPosition;
+    bool m_bToUpdateConnectivity;
 
-  Cursor3D* m_cursor3D;
-  bool m_bSliceVisibility[3];
-  vtkSmartPointer<vtkActor> m_actorSliceFrames[3];
-  vtkSmartPointer<vtkActor> m_actorSliceBoundingBox[3];
-  vtkSmartPointer<vtkCubeSource>  m_cubeSliceBoundingBox[3];
-  vtkSmartPointer<vtkAnnotatedCubeActor> m_actorAnnotatedCube;
+    Cursor3D* m_cursor3D;
+    bool m_bSliceVisibility[3];
+    vtkSmartPointer<vtkActor> m_actorSliceFrames[3];
+    vtkSmartPointer<vtkActor> m_actorSliceBoundingBox[3];
+    vtkSmartPointer<vtkCubeSource>  m_cubeSliceBoundingBox[3];
+    vtkSmartPointer<vtkAnnotatedCubeActor> m_actorAnnotatedCube;
 
-  double  m_dBounds[6];
-  double  m_dBoundingTolerance;
-  int     m_nSliceHighlighted;
+    double  m_dBounds[6];
+    double  m_dBoundingTolerance;
+    int     m_nSliceHighlighted;
 
-  bool    m_bShowSlices;
+    bool    m_bShowSlices;
 
-  double  m_dIntersectPoint[3];
-  Interactor3DNavigate*   m_interactorNavigate;
-  Interactor3DMeasure*    m_interactorMeasure;
-  Interactor3DVolumeCrop* m_interactorVolumeCrop;
+    double  m_dIntersectPoint[3];
+    Interactor3DNavigate*   m_interactorNavigate;
+    Interactor3DMeasure*    m_interactorMeasure;
+    Interactor3DVolumeCrop* m_interactorVolumeCrop;
 };
 
 #endif // RENDERVIEW3D_H

@@ -10,20 +10,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.2 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:59 $
+ *    $Revision: 1.3 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2007-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -38,16 +39,16 @@
 #include <QDebug>
 
 SurfaceOverlayProperty::SurfaceOverlayProperty ( SurfaceOverlay* overlay) :
-  QObject( ),
-  m_dOpacity( 1 ),
-  m_bColorInverse( false ),
-  m_bColorTruncate( false ),
-  m_bClearLower(true),
-  m_bClearHigher(false),
-  m_overlay( overlay )
-{
+    QObject( ),
+    m_dOpacity( 1 ),
+    m_bColorInverse( false ),
+    m_bColorTruncate( false ),
+    m_bClearLower(true),
+    m_bClearHigher(false),
+    m_overlay( overlay )
+{ 
   m_lut = vtkRGBAColorTransferFunction::New();
-
+  
   Reset();
   SetColorScale( CS_Heat );
   SetColorMethod( CM_LinearOpaque );
@@ -60,16 +61,16 @@ SurfaceOverlayProperty::~SurfaceOverlayProperty ()
 
 void SurfaceOverlayProperty::Reset()
 {
-  if ( m_overlay )
-  {
-    m_dMinPoint = fabs( m_overlay->m_dMinValue + m_overlay->m_dMaxValue ) / 2;
-    m_dMaxPoint = m_overlay->m_dMaxValue;
-    m_dMidPoint = ( m_dMinPoint + m_dMaxPoint ) / 2;
-    m_customScale.clear();
-    m_customScale << QGradientStop(m_dMinPoint, Qt::red) << QGradientStop(m_dMaxPoint, Qt::yellow);
-    m_dMinStop = m_dMinPoint;
-    m_dMaxStop = m_dMaxPoint;
-  }
+    if ( m_overlay )
+    {
+      m_dMinPoint = fabs( m_overlay->m_dMinValue + m_overlay->m_dMaxValue ) / 2;
+      m_dMaxPoint = m_overlay->m_dMaxValue;
+      m_dMidPoint = ( m_dMinPoint + m_dMaxPoint ) / 2;
+      m_customScale.clear();
+      m_customScale << QGradientStop(m_dMinPoint, Qt::red) << QGradientStop(m_dMaxPoint, Qt::yellow);
+      m_dMinStop = m_dMinPoint;
+      m_dMaxStop = m_dMaxPoint;
+    }
 }
 
 double SurfaceOverlayProperty::GetOpacity() const
@@ -95,147 +96,127 @@ void SurfaceOverlayProperty::SetColorScale( int nScale )
   m_nColorScale = nScale;
   switch ( nScale )
   {
-  case CS_GreenRed:
-    m_colorMin[0] = 0;
-    m_colorMin[1] = 255;
-    m_colorMin[2] = 0;
-    m_colorMax[0] = 255;
-    m_colorMax[1] = 0;
-    m_colorMax[2] = 0;
-    break;
-  case CS_Heat:
-    m_colorMin[0] = 255;
-    m_colorMin[1] = 0;
-    m_colorMin[2] = 0;
-    m_colorMax[0] = 255;
-    m_colorMax[1] = 255;
-    m_colorMax[2] = 0;
-    break;
-  case CS_BlueRed:
-    m_colorMin[0] = 0;
-    m_colorMin[1] = 0;
-    m_colorMin[2] = 255;
-    m_colorMax[0] = 255;
-    m_colorMax[1] = 0;
-    m_colorMax[2] = 0;
-    break;
+    case CS_GreenRed:
+      m_colorMin[0] = 0;
+      m_colorMin[1] = 255;
+      m_colorMin[2] = 0;
+      m_colorMax[0] = 255;
+      m_colorMax[1] = 0;
+      m_colorMax[2] = 0;
+      break;
+    case CS_Heat:
+      m_colorMin[0] = 255;
+      m_colorMin[1] = 0;
+      m_colorMin[2] = 0;
+      m_colorMax[0] = 255;
+      m_colorMax[1] = 255;
+      m_colorMax[2] = 0;
+      break;
+    case CS_BlueRed:
+      m_colorMin[0] = 0;
+      m_colorMin[1] = 0;
+      m_colorMin[2] = 255;
+      m_colorMax[0] = 255;
+      m_colorMax[1] = 0;
+      m_colorMax[2] = 0;
+      break;  
   }
-
+  
   m_lut->RemoveAllPoints();
   if ( nScale <= CS_BlueRed )
   {
-    if ( !m_bColorTruncate || m_bColorInverse )
-    {
-      if ( m_bColorInverse )
+      if ( !m_bColorTruncate || m_bColorInverse )
       {
-        m_lut->AddRGBAPoint( -m_dMaxPoint, m_colorMax[0]/255.0, m_colorMax[1]/255.0, m_colorMax[2]/255.0, 1 );
-        m_lut->AddRGBAPoint( -m_dMidPoint, m_colorMin[0]/255.0, m_colorMin[1]/255.0, m_colorMin[2]/255.0, 1 );
-        if ( m_nColorMethod == CM_LinearOpaque )
+        if ( m_bColorInverse )
         {
-          m_lut->AddRGBAPoint( -m_dMinPoint, m_colorMin[0]/255.0, m_colorMin[1]/255.0, m_colorMin[2]/255.0, 1 );
+          m_lut->AddRGBAPoint( -m_dMaxPoint, m_colorMax[0]/255.0, m_colorMax[1]/255.0, m_colorMax[2]/255.0, 1 );
+          m_lut->AddRGBAPoint( -m_dMidPoint, m_colorMin[0]/255.0, m_colorMin[1]/255.0, m_colorMin[2]/255.0, 1 );
+          if ( m_nColorMethod == CM_LinearOpaque )
+            m_lut->AddRGBAPoint( -m_dMinPoint, m_colorMin[0]/255.0, m_colorMin[1]/255.0, m_colorMin[2]/255.0, 1 );
+          else
+            m_lut->AddRGBAPoint( -m_dMinPoint, 0.4, 0.4, 0.4, 1 );
         }
         else
         {
-          m_lut->AddRGBAPoint( -m_dMinPoint, 0.4, 0.4, 0.4, 1 );
+          m_lut->AddRGBAPoint( -m_dMaxPoint, 1-m_colorMax[0]/255.0, m_colorMax[1]/255.0, 1-m_colorMax[2]/255.0, 1 );
+          m_lut->AddRGBAPoint( -m_dMidPoint, 1-m_colorMin[0]/255.0, m_colorMin[1]/255.0, 1-m_colorMin[2]/255.0, 1 );
+          if ( m_nColorMethod == CM_LinearOpaque )
+            m_lut->AddRGBAPoint( -m_dMinPoint, 1-m_colorMin[0]/255.0, m_colorMin[1]/255.0, 1-m_colorMin[2]/255.0, 1 );
+          else
+            m_lut->AddRGBAPoint( -m_dMinPoint, 0.4, 0.4, 0.4, 1 );
         }
+        m_lut->AddRGBAPoint( -m_dMinPoint+0.0000000001, 0.4, 0.4, 0.4, 1 );
       }
-      else
-      {
-        m_lut->AddRGBAPoint( -m_dMaxPoint, 1-m_colorMax[0]/255.0, m_colorMax[1]/255.0, 1-m_colorMax[2]/255.0, 1 );
-        m_lut->AddRGBAPoint( -m_dMidPoint, 1-m_colorMin[0]/255.0, m_colorMin[1]/255.0, 1-m_colorMin[2]/255.0, 1 );
-        if ( m_nColorMethod == CM_LinearOpaque )
-        {
-          m_lut->AddRGBAPoint( -m_dMinPoint, 1-m_colorMin[0]/255.0, m_colorMin[1]/255.0, 1-m_colorMin[2]/255.0, 1 );
-        }
-        else
-        {
-          m_lut->AddRGBAPoint( -m_dMinPoint, 0.4, 0.4, 0.4, 1 );
-        }
-      }
-      m_lut->AddRGBAPoint( -m_dMinPoint+0.0000000001, 0.4, 0.4, 0.4, 1 );
-    }
 
-    m_lut->AddRGBAPoint( 0, 0.4, 0.4, 0.4, 1 );
+      m_lut->AddRGBAPoint( 0, 0.4, 0.4, 0.4, 1 );
 
-    if ( ! (m_bColorTruncate && m_bColorInverse) )
-    {
-      m_lut->AddRGBAPoint( m_dMinPoint-0.0000000001, 0.4, 0.4, 0.4, 1 );
-      if ( m_bColorInverse )
+      if ( ! (m_bColorTruncate && m_bColorInverse) )
       {
-        if ( m_nColorMethod == CM_LinearOpaque )
+        m_lut->AddRGBAPoint( m_dMinPoint-0.0000000001, 0.4, 0.4, 0.4, 1 );
+        if ( m_bColorInverse )
         {
-          m_lut->AddRGBAPoint( m_dMinPoint, 1-m_colorMin[0]/255.0, m_colorMin[1]/255.0, 1-m_colorMin[2]/255.0, 1 );
+          if ( m_nColorMethod == CM_LinearOpaque )
+            m_lut->AddRGBAPoint( m_dMinPoint, 1-m_colorMin[0]/255.0, m_colorMin[1]/255.0, 1-m_colorMin[2]/255.0, 1 );
+          else
+            m_lut->AddRGBAPoint( m_dMinPoint, 0.4, 0.4, 0.4, 1 );
+          m_lut->AddRGBAPoint( m_dMidPoint, 1-m_colorMin[0]/255.0, m_colorMin[1]/255.0, 1-m_colorMin[2]/255.0, 1 );
+          m_lut->AddRGBAPoint( m_dMaxPoint, m_colorMax[0]/255.0, m_colorMax[1]/255.0, m_colorMax[2]/255.0, 1 );
         }
         else
         {
-          m_lut->AddRGBAPoint( m_dMinPoint, 0.4, 0.4, 0.4, 1 );
+          if ( m_nColorMethod == CM_LinearOpaque )
+            m_lut->AddRGBAPoint( m_dMinPoint, m_colorMin[0]/255.0, m_colorMin[1]/255.0, m_colorMin[2]/255.0, 1 );
+          else
+            m_lut->AddRGBAPoint( m_dMinPoint, 0.4, 0.4, 0.4, 1 );
+          m_lut->AddRGBAPoint( m_dMidPoint, m_colorMin[0]/255.0, m_colorMin[1]/255.0, m_colorMin[2]/255.0, 1 );
+          m_lut->AddRGBAPoint( m_dMaxPoint, m_colorMax[0]/255.0, m_colorMax[1]/255.0, m_colorMax[2]/255.0, 1 );
         }
-        m_lut->AddRGBAPoint( m_dMidPoint, 1-m_colorMin[0]/255.0, m_colorMin[1]/255.0, 1-m_colorMin[2]/255.0, 1 );
-        m_lut->AddRGBAPoint( m_dMaxPoint, m_colorMax[0]/255.0, m_colorMax[1]/255.0, m_colorMax[2]/255.0, 1 );
       }
-      else
-      {
-        if ( m_nColorMethod == CM_LinearOpaque )
-        {
-          m_lut->AddRGBAPoint( m_dMinPoint, m_colorMin[0]/255.0, m_colorMin[1]/255.0, m_colorMin[2]/255.0, 1 );
-        }
-        else
-        {
-          m_lut->AddRGBAPoint( m_dMinPoint, 0.4, 0.4, 0.4, 1 );
-        }
-        m_lut->AddRGBAPoint( m_dMidPoint, m_colorMin[0]/255.0, m_colorMin[1]/255.0, m_colorMin[2]/255.0, 1 );
-        m_lut->AddRGBAPoint( m_dMaxPoint, m_colorMax[0]/255.0, m_colorMax[1]/255.0, m_colorMax[2]/255.0, 1 );
-      }
-    }
   }
   else if ( nScale == CS_ColorWheel)
   {
-    if ( !m_bColorInverse )
-    {
-      m_lut->AddRGBAPoint( m_dMinPoint, 1, 0, 0, 1);
-      m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.25, 1, 1, 0, 1);
-      m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.5, 0, 1, 0, 1);
-      m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.75, 0, 1, 1, 1);
-      m_lut->AddRGBAPoint( m_dMaxPoint, 0, 0, 1, 1);
-    }
-    else
-    {
-      m_lut->AddRGBAPoint( m_dMinPoint, 0, 0, 1, 1);
-      m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.25, 0, 1, 1, 1);
-      m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.5, 0, 1, 0, 1);
-      m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.75, 1, 1, 0, 1);
-      m_lut->AddRGBAPoint( m_dMaxPoint, 1, 0, 0, 1);
-    }
+      if ( !m_bColorInverse )
+      {
+        m_lut->AddRGBAPoint( m_dMinPoint, 1, 0, 0, 1);
+        m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.25, 1, 1, 0, 1);
+        m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.5, 0, 1, 0, 1);
+        m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.75, 0, 1, 1, 1);
+        m_lut->AddRGBAPoint( m_dMaxPoint, 0, 0, 1, 1);
+      }
+      else
+      {
+          m_lut->AddRGBAPoint( m_dMinPoint, 0, 0, 1, 1);
+          m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.25, 0, 1, 1, 1);
+          m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.5, 0, 1, 0, 1);
+          m_lut->AddRGBAPoint( m_dMinPoint + (m_dMaxPoint-m_dMinPoint)*.75, 1, 1, 0, 1);
+          m_lut->AddRGBAPoint( m_dMaxPoint, 1, 0, 0, 1);
+      }
   }
   else if ( nScale == CS_Custom)
   {
-    for (int i = 0; i < m_customScale.size(); i++)
-    {
-      QColor c = m_customScale.at(i).second;
-      m_lut->AddRGBAPoint(m_customScale.at(i).first, c.redF(), c.greenF(), c.blueF(), 1);
-    }
+      for (int i = 0; i < m_customScale.size(); i++)
+      {
+        QColor c = m_customScale.at(i).second;
+        m_lut->AddRGBAPoint(m_customScale.at(i).first, c.redF(), c.greenF(), c.blueF(), 1);
+      }
   }
-
+ 
   m_lut->Build();
 }
 
 void SurfaceOverlayProperty::SetCustomColorScale(QGradientStops stops)
 {
-  m_customScale = stops;
-  m_dMinStop = stops[0].first;
-  m_dMaxStop = m_dMinStop;
-  for (int i = 0; i < stops.size(); i++)
-  {
-    if ( m_dMinStop > stops[i].first )
+    m_customScale = stops;
+    m_dMinStop = stops[0].first;
+    m_dMaxStop = m_dMinStop;
+    for (int i = 0; i < stops.size(); i++)
     {
-      m_dMinStop = stops[i].first;
+        if ( m_dMinStop > stops[i].first )
+            m_dMinStop = stops[i].first;
+        if (m_dMaxStop < stops[i].first )
+            m_dMaxStop = stops[i].first;
     }
-    if (m_dMaxStop < stops[i].first )
-    {
-      m_dMaxStop = stops[i].first;
-    }
-  }
-  SetColorScale(m_nColorScale);
+    SetColorScale(m_nColorScale);
 }
 
 int SurfaceOverlayProperty::GetColorMethod()
@@ -255,13 +236,13 @@ void SurfaceOverlayProperty::SetMinPoint( double dValue )
     m_dMinPoint = dValue;
   }
 }
-
+  
 double SurfaceOverlayProperty::GetMinPoint()
 {
   return m_dMinPoint;
 }
-
-
+  
+  
 void SurfaceOverlayProperty::SetMidPoint( double dValue )
 {
   if ( dValue != m_dMidPoint )
@@ -269,12 +250,12 @@ void SurfaceOverlayProperty::SetMidPoint( double dValue )
     m_dMidPoint = dValue;
   }
 }
-
+  
 double SurfaceOverlayProperty::GetMidPoint()
 {
   return m_dMidPoint;
 }
-
+  
 void SurfaceOverlayProperty::SetMaxPoint( double dValue )
 {
   if ( dValue != m_dMaxPoint )
@@ -282,7 +263,7 @@ void SurfaceOverlayProperty::SetMaxPoint( double dValue )
     m_dMaxPoint = dValue;
   }
 }
-
+  
 double SurfaceOverlayProperty::GetMaxPoint()
 {
   return m_dMaxPoint;
@@ -319,14 +300,10 @@ void SurfaceOverlayProperty::MapOverlayColor( unsigned char* colordata, int nPoi
 
 void SurfaceOverlayProperty::MapOverlayColor( float* data, unsigned char* colordata, int nPoints )
 {
-  if ( m_nColorScale <= CS_BlueRed )
-  {
-    MapOverlayColorSymmetric(data, colordata, nPoints);
-  }
-  else
-  {
-    MapOverlayColorFullScale(data, colordata, nPoints);
-  }
+    if ( m_nColorScale <= CS_BlueRed )
+        MapOverlayColorSymmetric(data, colordata, nPoints);
+    else
+        MapOverlayColorFullScale(data, colordata, nPoints);
 }
 
 void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned char* colordata, int nPoints )
@@ -341,18 +318,12 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
       {
         double r = 0;
         if (m_dMaxPoint != m_dMidPoint)
-        {
-          r = ( m_dMaxPoint - data[i] ) / ( m_dMaxPoint - m_dMidPoint );
-        }
+            r = ( m_dMaxPoint - data[i] ) / ( m_dMaxPoint - m_dMidPoint );
         if ( r < 0 )
-        {
           r = 0;
-        }
         else if ( r > 1 )
-        {
           r = 1;
-        }
-
+       
         if ( !m_bColorInverse )
         {
           c[0] = m_colorMin[0] * r + m_colorMax[0] * ( 1 - r );
@@ -365,42 +336,36 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
           c[1] = m_colorMin[1] * r + m_colorMax[1] * ( 1 - r );
           c[2] = m_colorMin[0] * r + m_colorMax[0] * ( 1 - r );
         }
-        colordata[i*4]    = ( int )( colordata[i*4]   * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
-        colordata[i*4+1]  = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
-        colordata[i*4+2]  = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+        colordata[i*4]    = ( int )( colordata[i*4]   * ( 1 - m_dOpacity ) + c[0] * m_dOpacity ); 
+        colordata[i*4+1]  = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity ); 
+        colordata[i*4+2]  = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity ); 
       }
       // map negative values
       else if ( data[i] <= -m_dMinPoint && !( m_bColorTruncate && !m_bColorInverse ) )
       {
         double r = 0;
         if (m_dMaxPoint != m_dMidPoint)
-        {
-          r = ( data[i] + m_dMaxPoint ) / ( m_dMaxPoint - m_dMidPoint );
-        }
+            r = ( data[i] + m_dMaxPoint ) / ( m_dMaxPoint - m_dMidPoint );
         if ( r < 0 )
-        {
           r = 0;
-        }
         else if ( r > 1 )
-        {
           r = 1;
-        }
-
-        if ( !m_bColorInverse )
+              
+        if ( !m_bColorInverse )  
         {
           c[0] = m_colorMin[2] * r + m_colorMax[2] * ( 1 - r );
           c[1] = m_colorMin[1] * r + m_colorMax[1] * ( 1 - r );
           c[2] = m_colorMin[0] * r + m_colorMax[0] * ( 1 - r );
         }
-        else
+        else 
         {
           c[0] = m_colorMin[0] * r + m_colorMax[0] * ( 1 - r );
           c[1] = m_colorMin[1] * r + m_colorMax[1] * ( 1 - r );
           c[2] = m_colorMin[2] * r + m_colorMax[2] * ( 1 - r );
         }
-        colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
-        colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
-        colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+        colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity ); 
+        colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity ); 
+        colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity ); 
       }
     }
   }
@@ -415,17 +380,11 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
         {
           double r = 0;
           if (m_dMidPoint != m_dMinPoint)
-          {
-            r = ( m_dMidPoint - data[i] ) / ( m_dMidPoint - m_dMinPoint );
-          }
+              r = ( m_dMidPoint - data[i] ) / ( m_dMidPoint - m_dMinPoint );
           if ( r < 0 )
-          {
-            r = 0;
-          }
+              r = 0;
           else if ( r > 1 )
-          {
-            r = 1;
-          }
+              r = 1;
           if ( !m_bColorInverse )
           {
             c[0] = colordata[i*4] * r + m_colorMin[0] * ( 1 - r );
@@ -443,17 +402,11 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
         {
           double r = 0;
           if (m_dMaxPoint != m_dMidPoint)
-          {
-            r = ( m_dMaxPoint - data[i] ) / ( m_dMaxPoint - m_dMidPoint );
-          }
+              r = ( m_dMaxPoint - data[i] ) / ( m_dMaxPoint - m_dMidPoint );
           if ( r < 0 )
-          {
-            r = 0;
-          }
+              r = 0;
           else if ( r > 1 )
-          {
-            r = 1;
-          }
+              r = 1;
           if ( !m_bColorInverse )
           {
             c[0] = m_colorMin[0] * r + m_colorMax[0] * ( 1 - r );
@@ -482,28 +435,22 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
             c[2] = m_colorMax[0];
           }
         }
-        colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
-        colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
-        colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+        colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity ); 
+        colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity ); 
+        colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity ); 
       }
-      // map negative value
+      // map negative value 
       else if ( data[i] <= -m_dMinPoint && !( m_bColorTruncate && !m_bColorInverse ) )
       {
         if ( data[i] >= -m_dMidPoint )
         {
           double r = 0;
           if (m_dMinPoint != m_dMidPoint)
-          {
-            r = ( m_dMidPoint + data[i] ) / ( m_dMidPoint - m_dMinPoint );
-          }
+              r = ( m_dMidPoint + data[i] ) / ( m_dMidPoint - m_dMinPoint );
           if ( r < 0 )
-          {
             r = 0;
-          }
           else if ( r > 1 )
-          {
             r = 1;
-          }
           if ( !m_bColorInverse )
           {
             c[0] = colordata[i*4] * r + m_colorMin[2] * ( 1 - r );
@@ -515,23 +462,17 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
             c[0] = colordata[i*4] * r + m_colorMin[0] * ( 1 - r );
             c[1] = colordata[i*4+1] * r + m_colorMin[1] * ( 1 - r );
             c[2] = colordata[i*4+2] * r + m_colorMin[2] * ( 1 - r );
-          }
+          } 
         }
         else if ( data[i] >= -m_dMaxPoint )
         {
           double r = 0;
           if (m_dMaxPoint != m_dMidPoint)
-          {
-            r = ( m_dMaxPoint + data[i] ) / ( m_dMaxPoint - m_dMidPoint );
-          }
+              r = ( m_dMaxPoint + data[i] ) / ( m_dMaxPoint - m_dMidPoint );
           if ( r < 0 )
-          {
             r = 0;
-          }
           else if ( r > 1 )
-          {
             r = 1;
-          }
           if ( !m_bColorInverse )
           {
             c[0] = m_colorMin[2] * r + m_colorMax[2] * ( 1 - r );
@@ -560,9 +501,9 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
             c[2] = m_colorMax[2];
           }
         }
-        colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity );
-        colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity );
-        colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity );
+        colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0] * m_dOpacity ); 
+        colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1] * m_dOpacity ); 
+        colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2] * m_dOpacity ); 
       }
     }
   }
@@ -570,48 +511,40 @@ void SurfaceOverlayProperty::MapOverlayColorSymmetric( float* data, unsigned cha
 
 void SurfaceOverlayProperty::MapOverlayColorFullScale( float* data, unsigned char* colordata, int nPoints )
 {
-  if (!m_overlay)
-  {
-    return;
-  }
-  double c[4];
-  double dThLow = m_dMinPoint;
-  double dThHigh = m_overlay->m_dMaxValue+1e10;
-  if ( m_nColorScale == CS_Custom)
-  {
-    if ( m_bClearLower )
+    if (!m_overlay)
+        return;
+    double c[4];
+    double dThLow = m_dMinPoint;
+    double dThHigh = m_overlay->m_dMaxValue+1e10;
+    if ( m_nColorScale == CS_Custom)
     {
-      dThLow = m_dMinStop;
+        if ( m_bClearLower )
+            dThLow = m_dMinStop;
+        else
+            dThLow = m_overlay->m_dMinValue-1e10;
+        if (m_bClearHigher)
+            dThHigh = m_dMaxStop;
     }
-    else
+    for ( int i = 0; i < nPoints; i++ )
     {
-      dThLow = m_overlay->m_dMinValue-1e10;
+        if (data[i] >= dThLow && data[i] <= dThHigh)
+        {
+            m_lut->GetColor( data[i], c );
+            colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0]*255 * m_dOpacity );
+            colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1]*255 * m_dOpacity );
+            colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2]*255 * m_dOpacity );
+        }
     }
-    if (m_bClearHigher)
-    {
-      dThHigh = m_dMaxStop;
-    }
-  }
-  for ( int i = 0; i < nPoints; i++ )
-  {
-    if (data[i] >= dThLow && data[i] <= dThHigh)
-    {
-      m_lut->GetColor( data[i], c );
-      colordata[i*4] = ( int )( colordata[i*4] * ( 1 - m_dOpacity ) + c[0]*255 * m_dOpacity );
-      colordata[i*4+1] = ( int )( colordata[i*4+1] * ( 1 - m_dOpacity ) + c[1]*255 * m_dOpacity );
-      colordata[i*4+2] = ( int )( colordata[i*4+2] * ( 1 - m_dOpacity ) + c[2]*255 * m_dOpacity );
-    }
-  }
 }
 
 void SurfaceOverlayProperty::SetClearLower(bool bClear)
 {
-  m_bClearLower = bClear;
-  SetColorScale(m_nColorScale);
+    m_bClearLower = bClear;
+    SetColorScale(m_nColorScale);
 }
 
 void SurfaceOverlayProperty::SetClearHigher(bool bClear)
 {
-  m_bClearHigher = bClear;
-  SetColorScale(m_nColorScale);
+    m_bClearHigher = bClear;
+    SetColorScale(m_nColorScale);
 }

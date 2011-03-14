@@ -10,20 +10,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:59 $
+ *    $Revision: 1.5 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2007-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -34,23 +35,21 @@
 #include <QFile>
 
 SurfaceLabel::SurfaceLabel ( LayerSurface* surf ) :
-  QObject( surf ),
-  m_label( NULL ),
-  m_surface( surf )
+    QObject( surf ),
+    m_label( NULL ),
+    m_surface( surf )
 {
   m_rgbColor[0] = 1.0;
   m_rgbColor[1] = 1.0;
   m_rgbColor[2] = 0.0;
-
+  
   //this->AddListener( surf );
 }
 
 SurfaceLabel::~SurfaceLabel ()
 {
   if ( m_label )
-  {
     ::LabelFree( &m_label );
-  }
 }
 
 /*
@@ -76,9 +75,7 @@ void SurfaceLabel::SetName( const QString& name )
 bool SurfaceLabel::LoadLabel( const QString& filename )
 {
   if ( m_label )
-  {
     ::LabelFree( &m_label );
-  }
 
   m_label = ::LabelRead( NULL, filename.toAscii().data() );
 
@@ -90,21 +87,15 @@ bool SurfaceLabel::LoadLabel( const QString& filename )
 
   QFile file( filename );
   if ( !file.open( QIODevice::ReadOnly | QIODevice::Text ) )
-  {
-    return false;
-  }
+      return false;
 
   QString strg;
   while (!file.atEnd())
-  {
-    strg += file.readLine();
-  }
+      strg += file.readLine();
 
   if ( strg.contains( "vox2ras=", Qt::CaseInsensitive ) &&
        !strg.contains( "vox2ras=TkReg", Qt::CaseInsensitive ) )
-  {
-    m_bTkReg = false;
-  }
+      m_bTkReg = false;
 
   return true;
 }
@@ -114,17 +105,15 @@ void SurfaceLabel::SetColor( double r, double g, double b )
   m_rgbColor[0] = r;
   m_rgbColor[1] = g;
   m_rgbColor[2] = b;
-
+  
   emit SurfaceLabelChanged();
 }
 
 void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
 {
   if ( !m_label )
-  {
     return;
-  }
-
+  
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     int vno = m_label->lv[i].vno;
@@ -132,17 +121,13 @@ void SurfaceLabel::MapLabel( unsigned char* colordata, int nVertexCount )
     {
       double opacity = m_label->lv[i].stat;
       if ( opacity > 1 )
-      {
         opacity = 1;
-      }
       else if ( opacity < 0 )
-      {
         opacity = 0;
-      }
       opacity = 1;    // ignore opacity for now
-      colordata[vno*4]    = ( int )( colordata[vno*4]   * ( 1 - opacity ) + m_rgbColor[0] * 255 * opacity );
-      colordata[vno*4+1]  = ( int )( colordata[vno*4+1] * ( 1 - opacity ) + m_rgbColor[1] * 255 * opacity );
-      colordata[vno*4+2]  = ( int )( colordata[vno*4+2] * ( 1 - opacity ) + m_rgbColor[2] * 255 * opacity );
+      colordata[vno*4]    = ( int )( colordata[vno*4]   * ( 1 - opacity ) + m_rgbColor[0] * 255 * opacity ); 
+      colordata[vno*4+1]  = ( int )( colordata[vno*4+1] * ( 1 - opacity ) + m_rgbColor[1] * 255 * opacity ); 
+      colordata[vno*4+2]  = ( int )( colordata[vno*4+2] * ( 1 - opacity ) + m_rgbColor[2] * 255 * opacity ); 
     }
   }
 }

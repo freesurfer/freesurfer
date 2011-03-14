@@ -2178,6 +2178,22 @@
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionSaveMovieFrames</sender>
+   <signal>triggered()</signal>
+   <receiver>MainWindow</receiver>
+   <slot>OnWriteMovieFrames()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>606</x>
+     <y>435</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnLoadVolume()</slot>
@@ -2233,5 +2249,6 @@
   <slot>OnLoadTrack()</slot>
   <slot>OnCloseTrack()</slot>
   <slot>OnSavePointSetAs()</slot>
+  <slot>OnWriteMovieFrames()</slot>
  </slots>
 </ui>

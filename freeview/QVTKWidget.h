@@ -96,15 +96,15 @@ public:
   // Description:
   // Set the vtk render window, if you wish to use your own vtkRenderWindow
   virtual void SetRenderWindow(vtkRenderWindow*);
-
+    
   // Description:
   // Get the vtk render window.
   virtual vtkRenderWindow* GetRenderWindow();
-
+    
   // Description:
   // Get the Qt/vtk interactor that was either created by default or set by the user
   virtual QVTKInteractor* GetInteractor();
-
+    
   // Description:
   // Enum for additional event types supported.
   // These events can be picked up by command observers on the interactor
@@ -138,13 +138,13 @@ public:
   // Returns the current image in the window.  If the image cache is up
   // to date, that is returned to avoid grabbing other windows.
   virtual vtkImageData* cachedImage();
-
+    
   // Description:
   // Handle showing of the Widget
   virtual void showEvent(QShowEvent*);
 
   virtual QPaintEngine* paintEngine() const;
-
+  
   // Description:
   // Use a 3DConnexion device. Initial value is false.
   // If VTK is not build with the TDx option, this is no-op.
@@ -154,7 +154,7 @@ public:
   // it is ignored.
   void SetUseTDx(bool useTDx);
   bool GetUseTDx() const;
-
+  
 
 Q_SIGNALS:
   // Description:
@@ -217,7 +217,7 @@ protected:
   virtual void focusOutEvent(QFocusEvent*);
   // overload Qt's event() to capture more keys
   bool event( QEvent* e );
-
+    
   // overload context menu event
   virtual void contextMenuEvent(QContextMenuEvent*);
   // overload drag enter event
@@ -235,7 +235,7 @@ protected:
 
   // the paint engine
   QPaintEngine* mPaintEngine;
-
+    
   // set up an X11 window based on a visual and colormap
   // that VTK chooses
   void x11_setup_window();
@@ -247,12 +247,12 @@ protected:
 #endif
 
 protected:
-
+    
   vtkImageData* mCachedImage;
   bool cachedImageCleanFlag;
   bool automaticImageCache;
   double maxImageCacheRenderRate;
-
+  
 private:
   //! unimplemented operator=
   QVTKWidget const& operator=(QVTKWidget const&);
@@ -278,24 +278,24 @@ public:
   // Overloaded terminiate app, which does nothing in Qt.
   // Use qApp->exit() instead.
   virtual void TerminateApp();
-
+  
   // Description:
   // Overloaded start method does nothing.
   // Use qApp->exec() instead.
   virtual void Start();
   virtual void Initialize();
-
+ 
   // Description:
   // Start listening events on 3DConnexion device.
   virtual void StartListening();
-
+  
   // Description:
   // Stop listening events on 3DConnexion device.
   virtual void StopListening();
 
 public Q_SLOTS:
 // timer event slot
-  virtual void TimerEvent(int timerId);
+virtual void TimerEvent(int timerId);
 
 protected:
   // constructor
@@ -313,7 +313,7 @@ protected:
 #if defined(VTK_USE_TDX) && defined(Q_WS_MAC)
   vtkTDxMacDevice *Device;
 #endif
-
+  
 private:
 
   QVTKInteractorInternal* Internal;

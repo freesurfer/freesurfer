@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.26 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:57 $
+ *    $Revision: 1.27 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -33,12 +34,12 @@
 #include <QDebug>
 
 Interactor2D::Interactor2D( QObject* parent ) : Interactor( parent ),
-  m_nMousePosX( -1 ),
-  m_nMousePosY( -1 ),
-  m_bWindowLevel( false ),
-  m_bChangeSlice( false ),
-  m_bMovingCursor( false ),
-  m_bSelecting( false )
+    m_nMousePosX( -1 ),
+    m_nMousePosY( -1 ),
+    m_bWindowLevel( false ),
+    m_bChangeSlice( false ),
+    m_bMovingCursor( false ),
+    m_bSelecting( false )
 {}
 
 Interactor2D::~Interactor2D()
@@ -89,8 +90,8 @@ bool Interactor2D::ProcessMouseDownEvent( QMouseEvent* event, RenderView* render
   }
   else if ( event->button() == Qt::MidButton && ( event->modifiers() & Qt::ShiftModifier ) )
   {
-    m_bSelecting = true;
-    view->StartSelection( m_nMousePosX, m_nMousePosY );
+      m_bSelecting = true;
+      view->StartSelection( m_nMousePosX, m_nMousePosY );
   }
   else if ( event->button() == Qt::RightButton &&
             !( event->modifiers() & CONTROL_MODIFIER ) &&
@@ -125,7 +126,7 @@ bool Interactor2D::ProcessMouseUpEvent( QMouseEvent* event, RenderView* rendervi
     view->StopSelection();
     view->RequestRedraw();
   }
-
+  
   m_nMousePosX = event->x();
   m_nMousePosY = event->y();
   m_bWindowLevel = false;
@@ -167,7 +168,7 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
     double dPosDiff =  ( ( (int)( dPixelPer * ( posY - m_nDownPosY ) ) ) / dPixelPer -
                          ( (int)( dPixelPer * ( m_nMousePosY - m_nDownPosY ) ) ) / dPixelPer )
                        * dPixelPer * voxelSize[nPlane];
-    //  if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
+  //  if ( lcm->OffsetSlicePosition( nPlane, dPosDiff ) )
     {
       m_nMousePosX = posX;
       m_nMousePosY = posY;
@@ -183,20 +184,14 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
     QList<Layer*> layers = mainwnd->GetLayerCollection( "MRI" )->GetLayers();
     LayerMRI* layer = (LayerMRI*)mainwnd->GetActiveLayer("MRI");
     if (layer && layer->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT)
-    {
-      layer = NULL;
-    }
+        layer = NULL;
     for ( int i = 0; i < layers.size(); i++ )
     {
-      layer = ( LayerMRI*)layers[i];
-      if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
-      {
-        break;
-      }
-      else
-      {
-        layer = NULL;
-      }
+        layer = ( LayerMRI*)layers[i];
+        if ( layer->IsVisible() && layer->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
+            break;
+        else
+            layer = NULL;
     }
     if ( layer )
     {
@@ -210,33 +205,27 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
       l *= scaleOverall;
       switch ( layer->GetProperty()->GetColorMap() )
       {
-      case LayerPropertyMRI::Grayscale:
-        w += layer->GetProperty()->GetWindow();
-        l += layer->GetProperty()->GetLevel();
-        if ( w < 0 )
-        {
-          w = 0;
-        }
-        layer->GetProperty()->SetWindowLevel(w, l);
-        break;
-      case LayerPropertyMRI::Heat:
-        w += layer->GetProperty()->GetHeatScaleMaxThreshold() - layer->GetProperty()->GetHeatScaleMinThreshold();
-        l += (layer->GetProperty()->GetHeatScaleMaxThreshold() + layer->GetProperty()->GetHeatScaleMinThreshold())/2;
-        if ( w < 0 )
-        {
-          w = 0;
-        }
-        layer->GetProperty()->SetHeatScale( l-w/2, l, l+w/2 );
-        break;
-      default:
-        w += layer->GetProperty()->GetMaxGenericThreshold() - layer->GetProperty()->GetMinGenericThreshold();
-        l += (layer->GetProperty()->GetMaxGenericThreshold() + layer->GetProperty()->GetMinGenericThreshold())/2;
-        if ( w < 0 )
-        {
-          w = 0;
-        }
-        layer->GetProperty()->SetMinMaxGenericThreshold( l-w/2, l+w/2 );
-        break;
+        case LayerPropertyMRI::Grayscale:
+          w += layer->GetProperty()->GetWindow();
+          l += layer->GetProperty()->GetLevel();
+          if ( w < 0 )
+            w = 0;
+          layer->GetProperty()->SetWindowLevel(w, l);
+          break;
+        case LayerPropertyMRI::Heat:
+          w += layer->GetProperty()->GetHeatScaleMaxThreshold() - layer->GetProperty()->GetHeatScaleMinThreshold();
+          l += (layer->GetProperty()->GetHeatScaleMaxThreshold() + layer->GetProperty()->GetHeatScaleMinThreshold())/2;
+          if ( w < 0 )
+            w = 0;
+          layer->GetProperty()->SetHeatScale( l-w/2, l, l+w/2 );
+          break;
+        default:
+          w += layer->GetProperty()->GetMaxGenericThreshold() - layer->GetProperty()->GetMinGenericThreshold();
+          l += (layer->GetProperty()->GetMaxGenericThreshold() + layer->GetProperty()->GetMinGenericThreshold())/2;
+          if ( w < 0 )
+            w = 0;
+          layer->GetProperty()->SetMinMaxGenericThreshold( l-w/2, l+w/2 );
+          break;
       }
     }
     m_nMousePosX = posX;
@@ -254,14 +243,10 @@ bool Interactor2D::ProcessMouseMoveEvent( QMouseEvent* event, RenderView* render
       view->UpdateAnnotation();
       view->Update2DOverlay();
       if ( event->buttons() & Qt::RightButton )
-      {
         view->EmitZooming();
-      }
     }
     else
-    {
       view->UpdateMouseRASPosition( posX, posY );
-    }
 
     return Interactor::ProcessMouseMoveEvent( event, renderview );
   }
@@ -331,9 +316,7 @@ bool Interactor2D::ProcessKeyDownEvent( QKeyEvent* event, RenderView* renderview
     // do nothing, just intercept these vtk default keycodes
   }
   else
-  {
     return Interactor::ProcessKeyDownEvent( event, view );
-  }
 
   return false;
 }

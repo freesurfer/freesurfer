@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:59 $
+ *    $Revision: 1.5 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 // .NAME vtkSimpleLabelEdgeFilter - Simple example of an image-image filter.
@@ -35,7 +36,7 @@
 #include "vtkImageData.h"
 #include "vtkObjectFactory.h"
 
-vtkCxxRevisionMacro(vtkSimpleLabelEdgeFilter, "$Revision: 1.4 $");
+vtkCxxRevisionMacro(vtkSimpleLabelEdgeFilter, "$Revision: 1.5 $");
 vtkStandardNewMacro(vtkSimpleLabelEdgeFilter);
 
 // The switch statement in Execute will call this method with
@@ -43,16 +44,16 @@ vtkStandardNewMacro(vtkSimpleLabelEdgeFilter);
 // that the output data type is the same as the input data type.
 // This is not always the case.
 template <class IT>
-void vtkSimpleLabelEdgeFilterExecute(vtkImageData* input,
-                                     vtkImageData* output,
-                                     IT* inPtr, IT* outPtr)
+    void vtkSimpleLabelEdgeFilterExecute(vtkImageData* input,
+                                            vtkImageData* output,
+                                            IT* inPtr, IT* outPtr)
 {
   int dim[3];
   input->GetDimensions(dim);
   if (input->GetScalarType() != output->GetScalarType())
   {
     vtkGenericWarningMacro(<< "Execute: input ScalarType, " << input->GetScalarType()
-                           << ", must match out ScalarType " << output->GetScalarType());
+        << ", must match out ScalarType " << output->GetScalarType());
     return;
   }
   if ( dim[2] > 1 )
@@ -91,11 +92,11 @@ void vtkSimpleLabelEdgeFilter::SimpleExecute(vtkImageData* input,
     // This is simply a #define for a big case list. It handles all
     // data types VTK supports.
     vtkTemplateMacro(
-      vtkSimpleLabelEdgeFilterExecute(input, output,
-                                      static_cast<VTK_TT *>(inPtr),
-                                      static_cast<VTK_TT *>(outPtr)));
-  default:
-    vtkGenericWarningMacro("Execute: Unknown input ScalarType");
-    return;
+        vtkSimpleLabelEdgeFilterExecute(input, output,
+                                           static_cast<VTK_TT *>(inPtr), 
+                                           static_cast<VTK_TT *>(outPtr)));
+    default:
+      vtkGenericWarningMacro("Execute: Unknown input ScalarType");
+      return;
   }
 }

@@ -1,58 +1,34 @@
-/**
- * @file  DialogGradientFilter.cpp
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.2 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
 #include "DialogGradientFilter.h"
 #include "ui_DialogGradientFilter.h"
 
 DialogGradientFilter::DialogGradientFilter(QWidget *parent) :
-  QDialog(parent),
-  ui(new Ui::DialogGradientFilter)
+    QDialog(parent),
+    ui(new Ui::DialogGradientFilter)
 {
-  ui->setupUi(this);
+    ui->setupUi(this);
 }
 
 DialogGradientFilter::~DialogGradientFilter()
 {
-  delete ui;
+    delete ui;
 }
 
 void DialogGradientFilter::SetSmoothing(bool smooth)
 {
-  ui->checkBoxSmooth->setChecked(smooth);
+    ui->checkBoxSmooth->setChecked(smooth);
 }
 
 bool DialogGradientFilter::GetSmoothing()
 {
-  return ui->checkBoxSmooth->isChecked();
+    return ui->checkBoxSmooth->isChecked();
 }
 
 void DialogGradientFilter::SetSD(double val)
 {
-  ui->doubleSpinBoxSD->setValue(val);
+    ui->doubleSpinBoxSD->setValue(val);
 }
 
 double DialogGradientFilter::GetSD()
 {
-  return ui->doubleSpinBoxSD->value();
+    return ui->doubleSpinBoxSD->value();
 }

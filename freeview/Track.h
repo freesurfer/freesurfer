@@ -1,88 +1,60 @@
-/**
- * @file  Track.h
- * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
- *
- */
-/*
- * Original Author: Ruopeng Wang
- * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.2 $
- *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
- *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
- *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
- */
-
 #ifndef _Track_h
 #define _Track_h
 #include <QList>
 
-struct Track
+struct Track  
 {
-  int   nNum;
-  float*  fPts;
-  QList<float*> fScalars;
-  float*  fProperty;
+	int		nNum;
+	float*	fPts;
+    QList<float*> fScalars;
+    float*  fProperty;
 
-  float fLength;
+    float	fLength;
 
-  short* nVoxels;
-  int    nNumberOfVoxels;
+    short* nVoxels;
+    int    nNumberOfVoxels;
 
-  Track()
-  {
-    Reset();
-  }
+	Track()
+		{ Reset(); }
 
-  // NOTE: destructor does NOT delete allocated data
-  //       Have to call Delete() explicitly to free the allocated data
-  void Delete();
+	// NOTE: destructor does NOT delete allocated data
+	//       Have to call Delete() explicitly to free the allocated data
+	void Delete();
+	
+	void Reset();
+	
+    bool Update(const short* dim, const float* voxel_size);
 
-  void Reset();
+    bool AddScalars(const short* dim, const float* voxel_size, const float* value_ptr);
 
-  bool Update(const short* dim, const float* voxel_size);
+	bool RemoveScalars(int nIndex);
+	
+    static float GetTrackLength(const float* track_pts, int n);
 
-  bool AddScalars(const short* dim, const float* voxel_size, const float* value_ptr);
+    static void GetVoxels(const float* track_pts_in, int n_pts_in, const short* dim, const float* voxel_size,
+                                short** indices_out, int* num_out);
 
-  bool RemoveScalars(int nIndex);
+    void GetVoxels(const short* dim, const float* voxel_size, short** indices_out, int* num_out);
 
-  static float GetTrackLength(const float* track_pts, int n);
-
-  static void GetVoxels(const float* track_pts_in, int n_pts_in, const short* dim, const float* voxel_size,
-                        short** indices_out, int* num_out);
-
-  void GetVoxels(const short* dim, const float* voxel_size, short** indices_out, int* num_out);
-
-  float GetMeanScalar(int nIndex);
-
-  inline float GetProperty(int nIndex)
-  {
-    return fProperty[nIndex];
-  }
+	float GetMeanScalar(int nIndex);
+	
+    inline float GetProperty(int nIndex)
+		{ return fProperty[nIndex]; }
 
 
-  static double DistanceBetween2Points( float* track_pts, int n1, int n2 );
+    static double DistanceBetween2Points( float* track_pts, int n1, int n2 );
 
-  /*
-  static bool IntersectWithPlane(float* track_pts, int nNum, double* normal, double* pt,
-              double* x, int* index = 0);
-  static bool IntersectWithDisk(float* track_pts, int nNum, double* normal, double* pt, double r,
-                 double* x, int* indices, double angle_end, double angle_start);
-
-  bool IntersectWithPlane(double* normal, double* pt, double* x, int* index);
-
-  bool IntersectWithDisk(double* normal, double* pt, double r,
-                 double* x, double angle_end, double angle_start);
-  */
+    /*
+	static bool IntersectWithPlane(float* track_pts, int nNum, double* normal, double* pt, 
+								double* x, int* index = 0);
+	static bool IntersectWithDisk(float* track_pts, int nNum, double* normal, double* pt, double r,  
+								   double* x, int* indices, double angle_end, double angle_start);
+	
+	bool IntersectWithPlane(double* normal, double* pt, double* x, int* index);
+	
+	bool IntersectWithDisk(double* normal, double* pt, double r,  
+								   double* x, double angle_end, double angle_start);
+    */
 };
 
 

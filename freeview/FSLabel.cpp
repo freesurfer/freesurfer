@@ -6,20 +6,21 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:17 $
- *    $Revision: 1.17 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:57 $
+ *    $Revision: 1.18 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -35,24 +36,20 @@
 using namespace std;
 
 FSLabel::FSLabel( QObject* parent ) : QObject( parent ),
-  m_label( NULL ),
-  m_bTkReg( true )
+    m_label( NULL ),
+    m_bTkReg( true )
 {}
 
 FSLabel::~FSLabel()
 {
   if ( m_label )
-  {
     ::LabelFree( &m_label );
-  }
 }
 
 bool FSLabel::LabelRead( const QString& filename )
 {
   if ( m_label )
-  {
     ::LabelFree( &m_label );
-  }
 
   m_label = ::LabelRead( NULL, filename.toAscii().data() );
   if ( m_label == NULL )
@@ -63,32 +60,28 @@ bool FSLabel::LabelRead( const QString& filename )
 
   QFile file( filename );
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-  {
-    return false;
-  }
+      return false;
 
   QTextStream in(&file);
   while (!in.atEnd())
   {
-    QString line = in.readLine();
-    if ( line.contains( "vox2ras=" ) &&
-         !line.contains( "vox2ras=TkReg" ) )
-    {
-      m_bTkReg = false;
-      break;
-    }
+      QString line = in.readLine();
+      if ( line.contains( "vox2ras=" ) &&
+          !line.contains( "vox2ras=TkReg" ) )
+      {
+         m_bTkReg = false;
+         break;
+      }
   }
 
   return true;
 }
 
-void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage,
-                                    FSVolume* ref_vol )
+void FSLabel::UpdateLabelFromImage( vtkImageData* rasImage, 
+                    FSVolume* ref_vol )
 {
   if ( m_label )
-  {
     ::LabelFree( &m_label );
-  }
 
   int nCount = 0;
   int* dim = rasImage->GetDimensions();
@@ -245,18 +238,16 @@ void FSLabel::UpdateRASImage( vtkImageData* rasImage, FSVolume* ref_vol )
   int n[3];
   double pos[3];
   int* dim = rasImage->GetDimensions();
-  memset( rasImage->GetScalarPointer(),
-          0,
-          dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
+  memset( rasImage->GetScalarPointer(), 
+	  0, 
+	  dim[0] * dim[1] * dim[2] * rasImage->GetScalarSize() );
   for ( int i = 0; i < m_label->n_points; i++ )
   {
     pos[0] = m_label->lv[i].x;
     pos[1] = m_label->lv[i].y;
     pos[2] = m_label->lv[i].z;
     if ( m_bTkReg )
-    {
       ref_vol->TkRegToNativeRAS( pos, pos );
-    }
     ref_vol->NativeRASToRAS( pos, pos );
     ref_vol->RASToTargetIndex( pos, n );
     if ( n[0] >= 0 && n[0] < dim[0] && n[1] >= 0 && n[1] < dim[1] &&

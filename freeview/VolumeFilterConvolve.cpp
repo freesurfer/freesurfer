@@ -1,25 +1,26 @@
 /**
  * @file  VolumeFilterConvolve.cpp
- * @brief Base VolumeFilterConvolve class.
+ * @brief Base VolumeFilterConvolve class. 
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/13 23:04:18 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/14 21:20:59 $
+ *    $Revision: 1.5 $
  *
- * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+ * Copyright (C) 2008-2009,
+ * The General Hospital Corporation (Boston, MA).
+ * All rights reserved.
  *
- * Terms and conditions for use, reproduction, distribution and contribution
- * are found in the 'FreeSurfer Software License Agreement' contained
- * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+ * Distribution, usage and copying of this software is covered under the
+ * terms found in the License Agreement file named 'COPYING' found in the
+ * FreeSurfer source code root directory, and duplicated here:
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
  *
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
- *
- * Reporting: freesurfer@nmr.mgh.harvard.edu
- *
+ * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
  *
  */
 
@@ -30,8 +31,8 @@
 #include <vtkImageMedian3D.h>
 
 VolumeFilterConvolve::VolumeFilterConvolve( LayerMRI* input, LayerMRI* output, QObject* parent ) :
-  VolumeFilter( input, output, parent ),
-  m_dSigma( 1.0 )
+    VolumeFilter( input, output, parent ),
+    m_dSigma( 1.0 )
 {
 }
 
@@ -39,22 +40,18 @@ bool VolumeFilterConvolve::Execute()
 {
   MRI* mri_src = CreateMRIFromVolume( m_volumeInput );
   MRI* mri_g = MRIgaussian1d( m_dSigma, m_nKernelSize );
-  if ( !mri_src || !mri_g )
-  {
+  if ( !mri_src || !mri_g ) 
     return false;
-  }
 
   MRI* mri_dest = MRIconvolveGaussian( mri_src, NULL, mri_g );
   if ( !mri_dest )
-  {
     return false;
-  }
-
+  
   MapMRIToVolume( mri_dest, m_volumeOutput );
   MRIfree( &mri_src );
   MRIfree( &mri_g );
   MRIfree( &mri_dest );
-
+  
   return true;
 }
 
