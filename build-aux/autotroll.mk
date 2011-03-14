@@ -116,4 +116,7 @@ ui_%.h: %.ui
 .qrc.qrc.C:
 	$(RCC) -name `echo "$<" | sed 's|^.*/\(.*\)\.qrc$$|\1|'` $< -o $@
 
+qrc_%.cpp: %.qrc
+	$(RCC) $<  -o $@
+
 DISTCLEANFILES = $(BUILT_SOURCES)
