@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/03/05 22:04:19 $
- *    $Revision: 1.245 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/03/14 23:11:19 $
+ *    $Revision: 1.246 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -570,7 +570,7 @@ int GCAMwriteInverse(const char *gcamfname, GCA_MORPH *gcam)
     // Need a template MRI in order to compute inverse
     mridir   = fio_dirname(gcamdir);
     //sprintf(tmpstr,"%s/orig.mgz",mridir);
-    sprintf(tmpstr, (gcam->image).fname);
+    sprintf(tmpstr, "%s", (gcam->image).fname);
     mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
     if (mri==NULL)
     {
@@ -617,7 +617,7 @@ int GCAMwriteInverseNonTal(const char *gcamfname, GCA_MORPH *gcam)
   if (gcam->mri_xind == NULL)
   {
     // Need a template MRI in order to compute inverse
-    sprintf(tmpstr, (gcam->image).fname);
+    sprintf(tmpstr, "%s", (gcam->image).fname);
     mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
     if (mri==NULL)
     {
@@ -700,7 +700,7 @@ GCA_MORPH *GCAMreadAndInvert(const char *gcamfname)
     mridir   = fio_dirname(gcamdir);
     //  sprintf(tmpstr,"%s/orig.mgz",mridir);
     // Need template mri
-    sprintf(tmpstr, (gcam->image).fname); 
+    sprintf(tmpstr, "%s", (gcam->image).fname); 
     mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
     if (mri==NULL)
     {
@@ -763,7 +763,7 @@ GCA_MORPH *GCAMreadAndInvertNonTal(const char *gcamfname)
     // Must invert explicitly
     printf("Inverting Morph\n");
     // Need template mri
-    sprintf(tmpstr, (gcam->image).fname);
+    sprintf(tmpstr, "%s", (gcam->image).fname);
     mri = MRIreadHeader(tmpstr,MRI_VOLUME_TYPE_UNKNOWN);
     if (mri==NULL)
     {
