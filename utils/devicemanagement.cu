@@ -6,6 +6,8 @@
 #include <cstdlib>
 using namespace std;
 
+#include "nvcc_version.h"
+
 #include "cudacheck.h"
 
 #include "devicemanagement.h"
@@ -34,6 +36,18 @@ void AcquireCUDADevice( void ) {
   */
   char *devString;
   int iDevice;
+
+  cout << nvcc_version << endl;
+  int driverVersion, runtimeVersion;
+  cudaDriverGetVersion( &driverVersion );
+  cudaRuntimeGetVersion( &runtimeVersion );
+  cout << "Driver : "
+       << driverVersion/1000 << "." << driverVersion%1000
+       << endl;
+  cout << "Runtime : "
+       << runtimeVersion/1000 << "." << runtimeVersion%1000
+       << endl;
+  cout << endl;
 
   cout << "Acquiring CUDA device" << endl;
 
