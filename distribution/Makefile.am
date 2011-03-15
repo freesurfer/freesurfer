@@ -3,7 +3,7 @@
 #
 
 SUBDIRS=average lib docs grad_unwarp_tables \
-	fsafd subjects sessions diffusion fsl-extra
+	fsafd subjects sessions diffusion fsl-extra trctrain
 
 foodir=$(prefix)
 foo_DATA= \

@@ -1,20 +1,28 @@
 #
 # Makefile.am
 #
+
 foodir=$(prefix)/trctrain
 
-all:
-	cd $(top_srcdir)/distribution/trctrain
-	rm -Rf README trainlist.txt trc???
-	gunzip -c trctraindata.tar.gz | tar xvf -
-
-install:
+install: trctraindata.tar.gz
 	rm -Rf $(DESTDIR)$(prefix)/trctrain
-	cp -R $(top_srcdir)/distribution/trctrain $(DESTDIR)$(prefix)
+	rm -Rf $(top_builddir)/distribution/trctrain/trc???
+	rm -Rf $(top_builddir)/distribution/trctrain/README
+	rm -Rf $(top_builddir)/distribution/trctrain/trainlist.txt
+	gunzip -c $(top_srcdir)/distribution/trctrain/trctraindata.tar.gz | tar xvf -
+	mkdir -p $(DESTDIR)$(prefix)/trctrain
+	mv -v $(top_builddir)/distribution/trctrain/trc??? \
+		$(DESTDIR)$(prefix)/trctrain
+	mv -v $(top_builddir)/distribution/trctrain/README \
+		$(DESTDIR)$(prefix)/trctrain
+	mv -v $(top_builddir)/distribution/trctrain/trainlist.txt \
+		$(DESTDIR)$(prefix)/trctrain
 	chmod -R 775 $(DESTDIR)$(prefix)/trctrain
 
 uninstall-hook:
 	rm -Rf $(DESTDIR)$(prefix)/trctrain
+
+EXTRA_DIST=trctraindata.tar.gz
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
