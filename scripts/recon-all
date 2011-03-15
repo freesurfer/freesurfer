@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/15 00:43:47 $
-#    $Revision: 1.373 $
+#    $Date: 2011/03/15 16:38:08 $
+#    $Revision: 1.374 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.373 2011/03/15 00:43:47 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.374 2011/03/15 16:38:08 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -4810,7 +4810,8 @@ while( $#argv != 0 )
       breaksw
 
     case "-force":
-      echo "ERROR: -force is no longer used. If you want to "
+      echo "ERROR: -force is no longer used. You can continue an analysis on an"
+      echo " existing subject by omitting -force AND all -i flags."
       exit 1;
       set Force = 1;
       breaksw
@@ -5306,10 +5307,11 @@ check_params:
       endif
     else # An input was passed
       if( -e $subjdir) then
-        echo "ERROR: You are trying to re-run an existing subject with (possibly) new "
-             "input data.  If this is truly new input data, you should delete the subject"
-             "folder and re-run.  If you are just continuing an anlysis of a subject,"
-             "then do not use -i"
+        echo "ERROR: You are trying to re-run an existing subject with (possibly)"
+        echo " new input data (-i). If this is truly new input data, you should delete"
+        echo " the subject folder and re-run, or specify a different subject name."
+        echo " If you are just continuing an analysis of an existing subject, then "
+        echo " omit all -i flags."
         exit 1;
       endif
       mkdir -p $subjdir
