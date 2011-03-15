@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/15 18:38:35 $
-#    $Revision: 1.376 $
+#    $Author: mreuter $
+#    $Date: 2011/03/15 20:24:34 $
+#    $Revision: 1.377 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.376 2011/03/15 18:38:35 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.377 2011/03/15 20:24:34 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1028,7 +1028,7 @@ if($DoMotionCor) then
         if($status) goto error_exit;
       endif
     else
-      # else the ltas don't exist (mabye because 5.0 or fsl was used, they are created by 5.1+)
+      # else the ltas don't exist (maybe because 5.0 or fsl was used, they are created by 5.1+)
       # if more than one input, re-receate the ltas:
       if($#CrossList > 1) then
         # set output names for ltas and iscales in long dir
@@ -1098,6 +1098,14 @@ if($DoMotionCor) then
     endif
     set cmd = ($cmd --noit)
     set cmd = ($cmd --template ${origvol})
+    echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
+    if($RunIt) then
+      $fs_time $cmd |& tee -a $LF
+      if($status) goto error_exit;
+    endif
+
+    # make sure it is uchar:
+    set cmd = (mri_convert -odt uchar ${origvol} ${origvol})
     echo "\n $cmd \n" |& tee -a $LF |& tee -a $CF
     if($RunIt) then
       $fs_time $cmd |& tee -a $LF
