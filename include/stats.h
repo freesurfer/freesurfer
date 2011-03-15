@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.18 $
+ *    $Author: greve $
+ *    $Date: 2011/03/15 22:20:15 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,19 @@
 #include "minc_volume_io.h"
 #include "matrix.h"
 #include "mri.h"
+
+// This is the table structure that can represent the output
+// of asegstats2table and aparcstats2table.
+typedef struct {
+  char *measure;
+  int nrows, ncols;
+  char **colnames;
+  char **rownames;
+  double **data;
+  char *filename;
+  MRI *mri;
+}
+STAT_TABLE;
 
 typedef struct
 {
@@ -144,5 +157,10 @@ int       StatAccumulateSurfaceVolume(SV *sv_tal,
 int       StatReadTransform(STAT_VOLUME *sv,
                             const char *name) ;
 int       StatVolumeExists(const char *prefix) ;
+
+STAT_TABLE *LoadStatTable(char *statfile);
+STAT_TABLE *AllocStatTable(int nrows, int ncols);
+int PrintStatTable(FILE *fp, STAT_TABLE *st);
+int WriteStatTable(char *fname, STAT_TABLE *st);
 
 #endif
