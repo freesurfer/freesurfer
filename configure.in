@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2011/03/12 04:37:02 $
-#    $Revision: 1.516 $
+#    $Author: ayendiki $
+#    $Date: 2011/03/15 18:16:25 $
+#    $Revision: 1.517 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -3128,6 +3128,7 @@ AC_OUTPUT([Makefile
            distribution/docs/Makefile
            distribution/diffusion/Makefile
            distribution/diffusion/mgh-dti-seqpack/Makefile
+           distribution/trctrain/Makefile
            distribution/fsafd/Makefile
            distribution/grad_unwarp_tables/Makefile
            distribution/lib/Makefile
