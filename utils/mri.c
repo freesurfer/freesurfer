@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/15 01:14:16 $
- *    $Revision: 1.484 $
+ *    $Date: 2011/03/15 19:16:53 $
+ *    $Revision: 1.485 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.484 $";
+const char *MRI_C_VERSION = "$Revision: 1.485 $";
 
 
 /*-----------------------------------------------------
@@ -6173,6 +6173,10 @@ MRI *MRIallocHeader(int width, int height, int depth, int type)
   if (!mri)
     ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n") ;
 
+  mri->frames = (MRI_FRAME *)calloc(1, sizeof(MRI_FRAME)) ;
+  if (!mri->frames)
+    ErrorExit(ERROR_NO_MEMORY,
+              "MRIalloc: could not allocate 1 frame\n") ;
   mri->imnr0 = 1 ;
   mri->imnr1 = depth;
   mri->fov = width ;
