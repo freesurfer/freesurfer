@@ -7,9 +7,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: mreuter $
-#    $Date: 2011/03/15 16:38:08 $
-#    $Revision: 1.374 $
+#    $Author: nicks $
+#    $Date: 2011/03/15 16:59:47 $
+#    $Revision: 1.375 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.374 2011/03/15 16:38:08 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.375 2011/03/15 16:59:47 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1820,6 +1820,15 @@ skullstrip:
     set xopts = `fsr-getxopts mri_gcut $XOptsFile`;
     set cmd = (mri_gcut $xopts -110 -mult $BMA T1.mgz $BMA $BGC)
     echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
+    echo "" |& tee -a $LF
+    echo "INFO: Care must be taken to thoroughly inspect your data" \
+        |& tee -a $LF
+    echo "      when using mri_gcut. In particular, inspect the edges of" \
+        |& tee -a $LF
+    echo "      gm and cerebellum for over-aggressive cutting." |& tee -a $LF
+    echo "      Add -segmentation brainmask.gcuts.mgz to tkmedit" |& tee -a $LF
+    echo "      to view the voxels which gcut has removed." |& tee -a $LF
+    echo "" |& tee -a $LF
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
     # binarize the gcuts file, setting vals to label 999 which appears as red
@@ -4121,6 +4130,10 @@ while( $#argv != 0 )
       set WSUseTalXfm = 1; breaksw
     case "-no-wstalxfm":
       set WSUseTalXfm = 0; breaksw
+
+    case "-gcut":
+      set DoGcut = 1;
+      breaksw
 
     case "-no-gcut":
     case "-nogcut":
