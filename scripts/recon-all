@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/14 22:01:07 $
-#    $Revision: 1.372 $
+#    $Date: 2011/03/15 00:43:47 $
+#    $Revision: 1.373 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.372 2011/03/14 22:01:07 mreuter Exp $';
+set VERSION = '$Id: recon-all,v 1.373 2011/03/15 00:43:47 mreuter Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -2228,7 +2228,7 @@ if($DoMaskBFS) then
   if($RunIt) $fs_time $cmd |& tee -a $LF
   if($status) goto error_exit;
   # if they exist, transfer finalsurfs edits (voxels=255 and voxels=1)
-  if( -e brain.finalsurfs.manedit.mgz) then
+  if( -e brain.finalsurfs.manedit.mgz ) then
     set cmd = (mri_mask -transfer 255)
     set cmd = ($cmd -keep_mask_deletion_edits)
     set cmd = ($cmd brain.finalsurfs.mgz brain.finalsurfs.manedit.mgz \
@@ -2237,7 +2237,7 @@ if($DoMaskBFS) then
     if($RunIt) $fs_time $cmd |& tee -a $LF
     if($status) goto error_exit;
   else
-    if ( $longitudinal && -e ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz )
+    if ( $longitudinal && -e ${SUBJECTS_DIR}/${tpNid}/mri/brain.finalsurfs.manedit.mgz ) then
       # transfer edits from cross
       set cmd = (mri_mask -transfer 255)
       set cmd = ($cmd -keep_mask_deletion_edits)
