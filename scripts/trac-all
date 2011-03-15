@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/10 23:19:16 $
-#    $Revision: 1.18 $
+#    $Date: 2011/03/15 00:38:06 $
+#    $Revision: 1.19 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.18 2011/03/10 23:19:16 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.19 2011/03/15 00:38:06 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -129,7 +129,6 @@ set pathlist = ( lh.cst_AS rh.cst_AS \
                  lh.slf_PP rh.slf_PP \
                  lh.slft_PP rh.slft_PP )
 set ncpts = 5
-set xspace = mni
 set trainfile = $FREESURFER_HOME/trctrain/trainlist.txt
 set trainsubjlist = ()
 set ntrainlist = ()
