@@ -41,11 +41,13 @@ testdescript = {
 
    -- Lengthier description of the test
    description = [[
-	 Testing of gcamSmoothnessTerm
+	 Testing of gcamSmoothnessTerm.
+         Suffers very bad error, since subtractions
+         are subtracted in the kernel (vx-myvx etc.)
    ]],
 
    -- Keywords (for subtest selection)
-   keywords = { "gcam", "basic" },
+   keywords = { "gcam", "basic", "query" },
 
    -- Designate the test as active
    active = 1,
