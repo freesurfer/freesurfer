@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/09 16:36:22 $
-#    $Revision: 1.16 $
+#    $Date: 2011/03/15 16:50:48 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 #
 
 
-set VERSION = '$Id: mkcontrast-sess,v 1.16 2011/03/09 16:36:22 greve Exp $'
+set VERSION = '$Id: mkcontrast-sess,v 1.17 2011/03/15 16:50:48 greve Exp $'
 set cmdargs = ($argv);
 
 set contrast   = ();
@@ -289,6 +289,10 @@ while( $#argv != 0 )
       set sumdelays = "-sumdelays";
       breaksw
 
+    case "-no-sumdelays":
+      set sumdelays = ();
+      breaksw
+
     case "-ircorr":
       if ( $#argv == 0) goto arg1err;
       set nircorr =  $argv[1]; shift;
@@ -481,8 +485,9 @@ usage_exit:
   echo "   -c c1 <-c c2> ... : negative contrast conditions"
   echo "   -ncond Nconditinos: specify number of conditions (needed with -wcond)"
   echo "   -wcond w1 w2 ...  : set weights for each condition (needs -ncond)"
-  echo "   -setwdelay        : prompt for setting of delay weights "
+  echo "   -setwdelay        : prompt for setting of delay weights (implies -sumdelays)"
   echo "   -sumdelays        : sum weighted delays"
+  echo "   -no-sumdelays     : do not sum weighted delays"
   echo "   -rmprestim        : subtract prestimulus baseline"
   echo "   -nosumconds       : don't sum conditions (for f-test)"
   echo "   -ircorr nircorr   : correlate with gamma function"
@@ -542,14 +547,15 @@ flags. Eg: -ncond 3 -wcond 0.5 0.5
 
 -setwdelay
 
-For FIR (and other multivariate) designs, allows the user to set the
-weight for each post-stimulus delay. When the program runs, it will
-prompt the user to enter the weights (eg, if there are 10 points in
-the FIR, then the user will enter a list of 10 numbers). If you do not
-want to include a point, set its weight to 0. Eg, if there are 10
-points, but you only want to consider points 3-7, then enter 0 0 1 1 1
-1 1 0 0 0. These weights are applied on a condition-by-condtion
-basis. See also -sumdelays.
+For FIR designs and other models with multiple regressors for each
+event type, this allows the user to set the weight for each
+post-stimulus delay. When the program runs, it will prompt the user to
+enter the weights (eg, if there are 10 points in the FIR, then the
+user will enter a list of 10 numbers). If you do not want to include a
+point, set its weight to 0. Eg, if there are 10 points, but you only
+want to consider points 3-7, then enter 0 0 1 1 1 1 1 0 0 0. These
+weights are applied on a condition-by-condtion basis. This will turn
+on -sumdelays (so use -no-sumdelays to turn off if needed).
 
 -sumdelays
 
@@ -557,6 +563,10 @@ For FIR (and other multivariate) designs, sum the points inside the
 FIR window so that each condition is represented by a single number
 (ie, the sum). If delay weights have been specified (see -setwdelay),
 then the weighted sum is computed. Automatic with -setwdelay.
+
+-no-sumdelays
+
+Turn off -sumdelays.
 
 -rmprestim
 
