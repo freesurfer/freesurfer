@@ -8,10 +8,10 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/15 16:59:47 $
-#    $Revision: 1.375 $
+#    $Date: 2011/03/15 18:38:35 $
+#    $Revision: 1.376 $
 #
-# Copyright Â© 2011 The General Hospital Corporation (Boston, MA) "MGH"
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
 # Terms and conditions for use, reproduction, distribution and contribution
 # are found in the 'FreeSurfer Software License Agreement' contained
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.375 2011/03/15 16:59:47 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.376 2011/03/15 18:38:35 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -3358,10 +3358,11 @@ if ($DoQdecCache) then
           |& tee -a $LF |& tee -a $CF
         echo "INFO: Creating symlink to fsaverage subject..." \
           |& tee -a $LF |& tee -a $CF
-        set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage \
-          $SUBJECTS_DIR/fsaverage)
-        echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-        if($RunIt) $fs_time $cmd |& tee -a $LF
+        set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage)
+        echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
+        cd $SUBJECTS_DIR
+        if($RunIt && ! -e fsaverage) $fs_time $cmd |& tee -a $LF
+        cd -
       endif
 
       # now check that the measure file exists, print only warning if not
@@ -3456,10 +3457,11 @@ if ($DoBaLabels) then
         |& tee -a $LF |& tee -a $CF
       echo "INFO: Creating symlink to fsaverage subject..." \
         |& tee -a $LF |& tee -a $CF
-      set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage \
-        $SUBJECTS_DIR/fsaverage)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
+      set cmd=(ln -s $FREESURFER_HOME/subjects/fsaverage)
+      echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
+      cd $SUBJECTS_DIR
+      if($RunIt && ! -e fsaverage) $fs_time $cmd |& tee -a $LF
+      cd -
     endif
 
     # generate labels
@@ -3532,10 +3534,11 @@ if ($DoLabelExvivoEC) then
         |& tee -a $LF |& tee -a $CF
       echo "INFO: Creating symlink to ${hemi}.EC_average subject..." \
         |& tee -a $LF |& tee -a $CF
-      set cmd=(ln -s $FREESURFER_HOME/subjects/${hemi}.EC_average \
-        $SUBJECTS_DIR/${hemi}.EC_average)
-      echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
-      if($RunIt) $fs_time $cmd |& tee -a $LF
+      set cmd=(ln -s $FREESURFER_HOME/subjects/${hemi}.EC_average)
+      echo "\n cd $SUBJECTS_DIR; $cmd; cd - \n"|& tee -a $LF |& tee -a $CF
+      cd $SUBJECTS_DIR
+      if($RunIt && ! -e ${hemi}.EC_average) $fs_time $cmd |& tee -a $LF
+      cd -
     endif
 
     # generate label
