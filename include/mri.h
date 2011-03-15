@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:03:20 $
- *    $Revision: 1.419 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/15 01:09:53 $
+ *    $Revision: 1.420 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,6 +57,34 @@ extern "C" {
 #define MRI_DOUBLE_COMPLEX  8
 
 #define MAX_CMDS 1000
+
+#define SEQUENCE_MPRAGE      1
+#define SEQUENCE_EPI         2
+
+typedef struct
+{
+  int     type ;           // code for what is stored in this frame
+  float   TE ;             // echo time
+  float   TR ;             // recovery time
+  float   flip ;           // flip angle
+  float   TI ;             // time-to-inversion
+  float   TD ;             // delay time
+  float   TM;              // mixing time (for stimulluated echo sequences)
+  int     sequence_type ;  // see SEQUENCE* constants
+  float   echo_spacing ;
+  float   echo_train_len ; // length of the echo train
+  float   read_dir[3] ;    // read-out direction in RAS coords
+  float   pe_dir[3] ;      // phase-encode direction in RAS coords
+  float   slice_dir[3] ;   // slice direction in RAS coords
+  int     color ;          // index into CLUT
+  char    name[STRLEN] ;   // human-readable description of frame contents
+  int     dof ;            // for stat maps (e.g. # of subjects)
+  MATRIX  m_ras2vox ;      
+  float   thresh ;
+  int     units ;          // e.g. UNITS_PPM,  UNITS_RAD_PER_SEC, ...         
+} MRI_FRAME ;
+
+
 
 typedef struct
 {
@@ -160,6 +188,7 @@ typedef struct
   size_t    bytes_per_vol; // # bytes per volume/timepoint
   size_t    bytes_total; // # total number of pixel bytes in the struct
   COLOR_TABLE *ct ;
+  MRI_FRAME   *frames ;
 }
 MRI_IMAGE, MRI ;
 
@@ -648,6 +677,9 @@ double *MRItrilinKernel(MRI *mri,
 int   MRIinterpolateIntoVolume(MRI *mri,
                                double x, double y, double z,
                                double val) ;
+int   MRIinterpolateIntoVolumeFrame(MRI *mri,
+                               double x, double y, double z,
+                                    int frame, double val) ;
 int   MRIsampleVolumeSlice(MRI *mri,
                            double x, double y, double z,
                            double *pval,
