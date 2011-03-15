@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.20 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/15 01:14:53 $
+ *    $Revision: 1.21 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -49,6 +49,7 @@
 
 #define TAG_SCALAR_DOUBLE           40
 #define TAG_PEDIR                   41
+#define TAG_MRI_FRAME               42
 
 int TAGreadStart(FILE *fp, long long *plen) ;
 int TAGwriteStart(FILE *fp, int tag, long long *phere, long long len) ;
