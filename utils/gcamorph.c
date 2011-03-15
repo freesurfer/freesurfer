@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: ayendiki $
- *    $Date: 2011/03/14 23:11:19 $
- *    $Revision: 1.246 $
+ *    $Author: lzollei $
+ *    $Date: 2011/03/15 21:02:14 $
+ *    $Revision: 1.247 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4193,14 +4193,13 @@ GCAMmorphFromAtlas(MRI *mri_in, GCA_MORPH *gcam, MRI *mri_morphed, int sample_ty
 }
 
 /*
-  GCAMmorphFromAtlas:
-  Applied inverse gcam morph to input. Currently NN and non-NN interpolation 
-  cases are treated differently.
+  GCAMmorphPlistFromAtlas:
+  Applies inverse gcam morph to input point list. 
 */
 int
 GCAMmorphPlistFromAtlas(int N, float *points_in, GCA_MORPH *gcam, float *points_out)
 {
-  int sample_type = 0;
+  int sample_type = 0; // more options for sampling types: on the to do list
   int counter = 0;
 
   if (!sample_type) { // NN interpolation
@@ -4208,13 +4207,9 @@ GCAMmorphPlistFromAtlas(int N, float *points_in, GCA_MORPH *gcam, float *points_
     double      x, y, z;
     double      xr, yr, zr, scale;
     
-    MRI*  mri_morphed = MRIallocSequence(gcam->image.width, gcam->image.height, 
-					 gcam->image.depth, 0, 1);
-    
-    useVolGeomToMRI(&gcam->image, mri_morphed);
     transform->type = MORPH_3D_TYPE ;
     transform->xform = (void *)gcam ;
-    TransformInvert(transform, mri_morphed) ; //NOTE: if inverse exists, it does nothing
+    TransformInvert(transform, NULL) ; //NOTE: if inverse exists / mri = NULL, it does nothing
     scale = 1; 
     //scale = gcam->spacing / mri_in->xsize ;
     
@@ -4223,292 +4218,18 @@ GCAMmorphPlistFromAtlas(int N, float *points_in, GCA_MORPH *gcam, float *points_
 	x = points_in[counter*3];
 	y = points_in[counter*3+1];
 	z = points_in[counter*3+2];
-	//fprintf(stdout, "In: %f %f %f\n", x, y, z);
-	
 	if (x == Gx && y == Gy && z == Gz)
 	  DiagBreak() ;
-	if (GCAsourceVoxelToPriorReal(gcam->gca, mri_morphed, transform, 
-				      x, y, z, &xr, &yr, &zr) // could do without mri_morphed??? 
-	    != NO_ERROR)
+	if (GCAsourceVoxelToPriorReal(gcam->gca, NULL, transform, 
+				      x, y, z, &xr, &yr, &zr) != NO_ERROR)
 	  continue ;
 	xr *= scale ; yr *= scale ; zr *= scale ;
-	// fprintf(stdout, "Out: %f %f %f\n", xr, yr, zr);
 	points_out[counter*3] = xr;
 	points_out[counter*3+1] = yr;
 	points_out[counter*3+2] = zr;
       }
   }
-  return(1) ;
-  /*  else{
-#if 0
-  MRI *mri_warp ;
-
-  mri_warp = MRIallocSequence(mri_in->width, mri_in->height, mri_in->depth, MRI_FLOAT, 3) ;
-  GCAMwriteInverseWarpToMRI(gcam, mri_warp) ;
-
-  mri_morphed = MRIapplyMorph(mri_in, mri_warp, NULL, sample_type) ;
-  useVolGeomToMRI(&gcam->image, mri_morphed);
-
-  MRIfree(&mri_warp) ;
-  return(mri_morphed) ;
-#else
-  int        width, height, depth, frames, x, y, z, f,
-             xm1, ym1, zm1, xp1, yp1, zp1 ;
-  float      xd, yd, zd, dx, dy, dz, thick ;
-  double     weight;
-  MRI        *mri_weights, *mri_ctrl, *mri_s_morphed ;
-
-  // GCAM is a non-linear voxel-to-voxel transform
-  // it also assumes that the uniform voxel size
-  if ( (mri_in->xsize != mri_in->ysize)
-       || (mri_in->xsize != mri_in->zsize)
-       || (mri_in->ysize != mri_in->zsize))
-  {
-    ErrorExit
-      (ERROR_BADPARM, 
-       "non-uniform volumes cannot be used for GCAMmorphFromAtlas()\n");
-  }
-
-  width = mri_in->width ;
-  height = mri_in->height ;
-  depth = mri_in->depth ;
-  frames = mri_in->nframes ;
-  thick = mri_in->thick ;
-
-  float orig_vals[frames];
-  float vals[frames];
-
-  // uses the input volume size
-  mri_weights = MRIalloc(width, height, depth, MRI_FLOAT) ;
-  MRIcopyHeader(mri_in, mri_weights);
-  //mri_s_morphed = MRIalloc(width, height, depth, MRI_FLOAT) ;
-  mri_s_morphed = MRIallocSequence(width, height, depth, MRI_FLOAT, frames) ;
-  MRIcopyHeader(mri_in, mri_s_morphed);
-
-  // loop over input volume indices
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
-     
-	if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-
-        //compute voxel coordinates of this morph point 
-        if (!GCAMsampleMorph(gcam, 
-                             (float)x*thick, (float)y*thick, (float)z*thick,
-                             &xd, &yd, &zd))
-        {
-          xd /= thick ;
-          yd /= thick ;
-          zd /= thick ;  // voxel coords 
-
-          // now use trilinear interpolation
-          xm1 = (int)floor(xd) ;
-          ym1 = (int)floor(yd) ;
-          zm1 = (int)floor(zd) ;
-          xp1 = xm1 + 1 ;
-          yp1 = ym1 + 1 ;
-          zp1 = zm1 + 1 ;
-
-          // make sure they are within bounds
-          xm1 = mri_in->xi[xm1] ;
-          ym1 = mri_in->yi[ym1] ;
-          zm1 = mri_in->zi[zm1] ;
-          xp1 = mri_in->xi[xp1] ;
-          yp1 = mri_in->yi[yp1] ;
-          zp1 = mri_in->zi[zp1] ;
-
-
-          dx = xd - xm1 ;
-          dy = yd - ym1 ;
-          dz = zd - zm1 ;
-
-#if 1
-	  MRIsampleSeqVolumeType(mri_in, x, y, z, orig_vals, 0, frames-1, sample_type); 
-#else
-	  //orig_val = MRIgetVoxVal(mri_in, x, y, z, 0) ; 
-	  MRIsampleSeqVolume(mri_in, x, y, z, orig_vals, 0, frames-1) ; 
-#endif
-	  
-          // now compute contribution to each of 8 nearest voxels
-	  if (xm1 == Gx && ym1 == Gy && zm1 == Gz)
-	    DiagBreak() ;
-	  weight = (1-dx) * (1-dy) * (1-dz) ;
-	  MRIFvox(mri_weights,xm1,ym1,zm1) += weight ;
-	  for (f = 0 ; f < frames ; f++)
-	    MRIFseq_vox(mri_s_morphed,xm1,ym1,zm1,f) += weight * orig_vals[f] ;
-	  
-
-	  if (xp1 == Gx && ym1 == Gy && zm1 == Gz)
-	    DiagBreak() ;
-	  weight = (dx) * (1-dy) * (1-dz) ;
-	  MRIFvox(mri_weights,xp1,ym1,zm1) += weight ;
-	  for (f = 0 ; f < frames ; f++)
-	    MRIFseq_vox(mri_s_morphed,xp1,ym1,zm1,f) += weight * orig_vals[f] ;
-
-	  
-	  if (xm1 == Gx && yp1 == Gy && zm1 == Gz)
-	    DiagBreak() ;
-	  weight = (1-dx) * (dy) * (1-dz) ;
-	  MRIFvox(mri_weights,xm1,yp1,zm1) += weight ;
-	  for (f = 0 ; f < frames ; f++)
-	    MRIFseq_vox(mri_s_morphed,xm1,yp1,zm1,f) += weight * orig_vals[f] ;
-
-	    
-	  if (xm1 == Gx && ym1 == Gy && zp1 == Gz)
-	    DiagBreak() ;
-	  weight = (1-dx) * (1-dy) * (dz) ;
-	  MRIFvox(mri_weights,xm1,ym1,zp1) += weight ;
-	  for (f = 0 ; f < frames ; f++)
-	    MRIFseq_vox(mri_s_morphed,xm1,ym1,zp1,f) += weight * orig_vals[f] ;
-
-	      
-	  if (xp1 == Gx && yp1 == Gy && zm1 == Gz)
-	    DiagBreak() ;
-	  weight = (dx) * (dy) * (1-dz) ;
-	  MRIFvox(mri_weights,xp1,yp1,zm1) += weight ;
-	  for (f = 0 ; f < frames ; f++)
-	    MRIFseq_vox(mri_s_morphed,xp1,yp1,zm1,f) += weight * orig_vals[f] ;
-
-	      
-	  if (xp1 == Gx && ym1 == Gy && zp1 == Gz)
-	    DiagBreak() ;
-	  weight = (dx) * (1-dy) * (dz) ;
-	  MRIFvox(mri_weights,xp1,ym1,zp1) += weight ;
-	  for (f = 0 ; f < frames ; f++)
-	    MRIFseq_vox(mri_s_morphed,xp1,ym1,zp1,f) += weight * orig_vals[f] ;
-	  
-	      
-	  if (xm1 == Gx && yp1 == Gy && zp1 == Gz)
-	    DiagBreak() ;
-	  weight = (1-dx) * (dy) * (dz) ;
-	  MRIFvox(mri_weights,xm1,yp1,zp1) += weight ;
-	  for (f = 0 ; f < frames ; f++)
-	    MRIFseq_vox(mri_s_morphed,xm1,yp1,zp1,f) += weight * orig_vals[f] ;
-
-	      
-	  if (xp1 == Gx && yp1 == Gy && zp1 == Gz)
-	    DiagBreak() ;
-	  weight = (dx) * (dy) * (dz) ;
-	  MRIFvox(mri_weights,xp1,yp1,zp1) += weight ;
-	  for (f = 0 ; f < frames ; f++)
-	    MRIFseq_vox(mri_s_morphed,xp1,yp1,zp1,f) += weight * orig_vals[f] ;
-	  
-        }
-      }
-    }
-  }
-  
-// now normalize weights and values 
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        weight = (float)MRIFvox(mri_weights,x,y,z) ;
-        if (!FZERO(weight))
-	  {
-	    MRIsampleSeqVolume(mri_s_morphed, x, y, z, vals, 0, frames-1);	  
-	    for (f = 0 ; f < frames ; f++)
-	      MRIFseq_vox(mri_s_morphed,x,y,z,f) = (float)((double)vals[f]/weight) ;
-	  }
-      }
-    }
-  }
-  
-  // copy from short image to BUFTYPE one 
-  if (!mri_morphed)
-    mri_morphed = MRIclone(mri_in, NULL) ;
-  else
-    MRIclear(mri_morphed) ;
-
-  for (x = 0 ; x < width ; x++)
-    {
-      for (y = 0 ; y < height ; y++)
-	{
-	  for (z = 0 ; z < depth ; z++)
-	    {
-	      if (x == Gx && y == Gy && z == Gz)
-		DiagBreak() ;
-
-	      switch (mri_morphed->type)
-		{
-		case MRI_UCHAR:
-		  for (f = 0 ; f < frames ; f++)
-		    MRIseq_vox(mri_morphed,x,y,z,f) = (uchar)MRIFseq_vox(mri_s_morphed,x,y,z,f) ;
-		  break ;
-		case MRI_SHORT:
-		  for (f = 0 ; f < frames ; f++)
-		    MRISseq_vox(mri_morphed,x,y,z,f) = (short)MRIFseq_vox(mri_s_morphed,x,y,z,f) ;
-		  break ;
-		case MRI_FLOAT:
-		  for (f = 0 ; f < frames ; f++)
-		    MRIFseq_vox(mri_morphed,x,y,z,f) = MRIFseq_vox(mri_s_morphed,x,y,z,f) ;
-		  break ;
-		default:
-		  ErrorReturn(NULL,
-			      (ERROR_UNSUPPORTED,
-			       "GCAMmorphFromAtlas: unsupported volume type %d",
-			       mri_morphed->type)) ;
-		  break ;
-		  
-		}
-	    }
-	}
-    }
-  
-  MRIfree(&mri_s_morphed) ;
-
-// run soap bubble to fill in remaining holes 
-#if 1
-  //mri_ctrl = MRIcloneDifferentType(mri_in, MRI_UCHAR) ;
-  mri_ctrl = MRIcloneDifferentType(mri_weights, MRI_UCHAR) ;
-#else
-  mri_ctrl = mri_weights ;
-#endif
-  
-  for (x = 0 ; x < width ; x++)
-  {
-    for (y = 0 ; y < height ; y++)
-    {
-      for (z = 0 ; z < depth ; z++)
-      {
-        if (x == Gx && y == Gy && z == Gz)
-          DiagBreak() ;
-        weight = (float)MRIFvox(mri_weights,x,y,z) ;
-        if (weight > .1)
-          MRIvox(mri_ctrl, x, y, z) = 1 ;
-        else
-          MRIvox(mri_ctrl, x, y, z) = 0 ;
-      }
-    }
-  }
-
-#if 1
-  MRIfree(&mri_weights) ;
-#endif
-  
-//  disable Voronoi stuff - it will extrapolate morph in regions
-//  that won't be accurate anyway.
-//  MRIbuildVoronoiDiagram(mri_morphed, mri_ctrl, mri_morphed) ;
- 
-  
-  if( sample_type != 0) // non-NN interpolation
-    MRIsoapBubble(mri_morphed, mri_ctrl, mri_morphed, 3*gcam->spacing) ;
-  MRIfree(&mri_ctrl) ;
-
-  // use gcam src information to the morphed image
-  useVolGeomToMRI(&gcam->image, mri_morphed);
-  return(mri_morphed) ;
-#endif
-  }*/
-  return 1;
+  return(1);
 }
 
 MRI *
@@ -7285,7 +7006,7 @@ GCAMinvert(GCA_MORPH *gcam, MRI *mri)
   double           xf, yf, zf ;
   float          num ;
 
-#if 0
+#if 1
   if (gcam->mri_xind)   /* already inverted */
     return(NO_ERROR) ;
 #else
