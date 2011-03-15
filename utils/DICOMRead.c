@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:41 $
- *    $Revision: 1.133 $
+ *    $Author: greve $
+ *    $Date: 2011/03/15 15:20:17 $
+ *    $Revision: 1.134 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -4568,7 +4568,9 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   printf("dcmdir = %s\n",dcmdir);
   if (!IsDICOM(dcmfile))
   {
-    printf("ERROR: %s is not a dicom file\n",dcmfile);
+    setenv("FS_DICOM_DEBUG","1",1);
+    IsDICOM(dcmfile);
+    printf("ERROR: %s is not a dicom file or some other problem\n",dcmfile);
     exit(1);
   }
   // Get info from the reference file
