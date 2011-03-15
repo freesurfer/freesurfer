@@ -2019,7 +2019,7 @@ void Coffin::WriteOutputs() {
   mLog << "Writing output files to " << mOutDir << endl;
 
   // Save volume of path samples
-  sprintf(fname, "%s/Fsamples_1_1.nii.gz", mOutDir);
+  sprintf(fname, "%s/path.pd.nii.gz", mOutDir);
   MRIwrite(mPathSamples, fname);
 
   // Save volumes of end point samples
@@ -2040,14 +2040,14 @@ void Coffin::WriteOutputs() {
     MRIsetVoxVal(out2, ix, iy, iz, 0, MRIgetVoxVal(out2, ix, iy, iz, 0) + 1);
   }
 
-  sprintf(fname, "%s/Lsamples_1_1.nii.gz", mOutDir);
+  sprintf(fname, "%s/endpt1.pd.nii.gz", mOutDir);
   MRIwrite(out1, fname);
 
-  sprintf(fname, "%s/Tsamples_1_1.nii.gz", mOutDir);
+  sprintf(fname, "%s/endpt2.pd.nii.gz", mOutDir);
   MRIwrite(out2, fname);
 
   // Save control point samples
-  sprintf(fname, "%s/SAMPLES_1_1.txt", mOutDir);
+  sprintf(fname, "%s/cpts.samples.txt", mOutDir);
   ofstream sampfile(fname, ios::out);
 
   if (!sampfile) {
@@ -2060,7 +2060,7 @@ void Coffin::WriteOutputs() {
     sampfile << icpt[0] << " " << icpt[1] << " " << icpt[2] << endl;
 
   // Save length of path samples
-  sprintf(fname, "%s/LENGTH_1_1.txt", mOutDir);
+  sprintf(fname, "%s/length.samples.txt", mOutDir);
   ofstream lenfile(fname, ios::out);
 
   if (!lenfile) {
@@ -2073,7 +2073,7 @@ void Coffin::WriteOutputs() {
     lenfile << *ilen << endl;
 
   // Save likelihood and prior of path samples
-  sprintf(fname, "%s/FOLLOW_LIKELIHOOD_1_1.txt", mOutDir);
+  sprintf(fname, "%s/pd.samples.txt", mOutDir);
   ofstream likefile(fname, ios::out);
 
   if (!likefile) {
@@ -2089,7 +2089,7 @@ void Coffin::WriteOutputs() {
   }
 
   // Save MAP control point sample
-  sprintf(fname, "%s/CONTROLS_1_1.txt", mOutDir);
+  sprintf(fname, "%s/cpts.map.txt", mOutDir);
   ofstream mapfile(fname, ios::out);
 
   if (!mapfile) {
@@ -2109,7 +2109,7 @@ void Coffin::WriteOutputs() {
     MRIsetVoxVal(out1, ix, iy, iz, 0, MRIgetVoxVal(out1, ix, iy, iz, 0) + 1);
   }
 
-  sprintf(fname, "%s/CONTROLS_1_1_spline.nii.gz", mOutDir);
+  sprintf(fname, "%s/path.map.nii.gz", mOutDir);
   MRIwrite(out1, fname);
 
   MRIfree(&out1);

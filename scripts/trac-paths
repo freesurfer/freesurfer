@@ -7,9 +7,9 @@
 #
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:40 $
-#    $Revision: 1.11 $
+#    $Author: ayendiki $
+#    $Date: 2011/03/15 02:29:50 $
+#    $Revision: 1.12 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.11 2011/03/02 20:16:40 nicks Exp $'
+set VERSION = '$Id: trac-paths,v 1.12 2011/03/15 02:29:50 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -251,7 +251,7 @@ foreach ntrain ($ntrainlist)
           rm -rf $dname
         end
 
-        set cmd = $trcdir/dmri_track
+        set cmd = $trcdir/dmri_paths
         set cmd = ($cmd --outdir $outlist)
         set cmd = ($cmd --dwi  $dwidir/dwi.nii.gz)
         set cmd = ($cmd --grad $dwidir/bvecs)
@@ -302,7 +302,7 @@ foreach ntrain ($ntrainlist)
         foreach pathname ($pathlist)
           set pathpre = ${pathname}_$avgmode
 
-          if (-e $outdir/$pathpre/CONTROLS_1_1.txt) then
+          if (-e $outdir/$pathpre/cpts.map.txt) then
             set cmd = $trcdir/dmri_pathstats
             set cmd = ($cmd --intrc  $outdir/$pathpre)
             set cmd = ($cmd --dtbase $dwidir/dtifit)

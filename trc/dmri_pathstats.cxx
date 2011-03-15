@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/02/28 04:42:38 $
- *    $Revision: 1.3 $
+ *    $Date: 2011/03/15 02:34:44 $
+ *    $Revision: 1.4 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -187,7 +187,7 @@ int main(int argc, char **argv) {
     ifstream infile;
 
     // Read lengths of path samples
-    sprintf(fname, "%s/LENGTH_1_1.txt", inTrcDir);
+    sprintf(fname, "%s/length.samples.txt", inTrcDir);
     infile.open(fname, ios::in);
     if (!infile) {
       cout << "ERROR: Could not open " << fname << " for reading" << endl;
@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
       len += *ilen;
 
     // Read path posterior distribution
-    sprintf(fname, "%s/Fsamples_1_1.nii.gz", inTrcDir);
+    sprintf(fname, "%s/path.pd.nii.gz", inTrcDir);
     post = MRIread(fname);
     nx = post->width;
     ny = post->height;
@@ -258,8 +258,8 @@ int main(int argc, char **argv) {
         *iwavg /= wtot;
 
     // Read control points of MAP path sample
-    sprintf(fname, "%s/CONTROLS_1_1.txt", inTrcDir);
-    sprintf(mname, "%s/Fsamples_1_1.nii.gz", inTrcDir);
+    sprintf(fname, "%s/cpts.map.txt", inTrcDir);
+    sprintf(mname, "%s/path.pd.nii.gz", inTrcDir);
     Spline myspline(fname, mname);
     myspline.InterpolateSpline();
 
