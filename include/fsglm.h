@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:09 $
- *    $Revision: 1.13 $
+ *    $Author: greve $
+ *    $Date: 2011/03/15 22:34:32 $
+ *    $Revision: 1.14 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.h - include file for fsglm.c
-// $Id: fsglm.h,v 1.13 2011/03/02 00:04:09 nicks Exp $
+// $Id: fsglm.h,v 1.14 2011/03/15 22:34:32 greve Exp $
 
 #ifndef FSGLM_H
 #define FSGLM_H
@@ -42,6 +42,7 @@ typedef struct {
   // Note: weighted GLM not included here. To do weighted,
   // weight y and X prior to analysis.
   double dof;  // nrows of X - ncols
+  int AllowZeroDOF; 
   int ill_cond_flag;
 
   MATRIX *beta;

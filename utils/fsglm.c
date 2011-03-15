@@ -8,8 +8,8 @@
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/03 16:12:43 $
- *    $Revision: 1.24 $
+ *    $Date: 2011/03/15 22:34:15 $
+ *    $Revision: 1.25 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,7 +25,7 @@
 
 
 // fsglm.c - routines to perform GLM analysis.
-// $Id: fsglm.c,v 1.24 2011/03/03 16:12:43 greve Exp $
+// $Id: fsglm.c,v 1.25 2011/03/15 22:34:15 greve Exp $
 /*
   y = X*beta + n;                      Forward Model
   beta = inv(X'*X)*X'*y;               Fit beta
@@ -150,7 +150,7 @@
 // Return the CVS version of this file.
 const char *GLMSrcVersion(void)
 {
-  return("$Id: fsglm.c,v 1.24 2011/03/03 16:12:43 greve Exp $");
+  return("$Id: fsglm.c,v 1.25 2011/03/15 22:34:15 greve Exp $");
 }
 
 
@@ -187,6 +187,7 @@ GLMMAT *GLMalloc(void)
   glm->eres = NULL;
   glm->rvar = 0;
   glm->dof  = 0;
+  glm->AllowZeroDOF = 0;
   glm->ill_cond_flag  = 0;
 
   glm->yffxvar = NULL;
@@ -235,6 +236,7 @@ GLMMAT *GLMalloc(void)
 int GLMdof(GLMMAT *glm)
 {
   glm->dof = glm->X->rows - glm->X->cols;
+  if(glm->dof == 0 && glm->AllowZeroDOF) glm->dof = 1;
   return(glm->dof);
 }
 
@@ -365,6 +367,7 @@ int GLMxMatrices(GLMMAT *glm)
   MATRIX *Mtmp;
 
   glm->dof = glm->X->rows - glm->X->cols;
+  if(glm->dof == 0 && glm->AllowZeroDOF) glm->dof = 1;
 
   glm->Xt   = MatrixTranspose(glm->X,glm->Xt);
   glm->XtX  = MatrixMultiply(glm->Xt,glm->X,glm->XtX);

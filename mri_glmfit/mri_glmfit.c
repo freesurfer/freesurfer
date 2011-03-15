@@ -14,8 +14,8 @@
  * Original Author: Douglas N Greve
  * CVS Revision Info:
  *    $Author: greve $
- *    $Date: 2011/03/15 22:20:16 $
- *    $Revision: 1.195 $
+ *    $Date: 2011/03/15 22:34:15 $
+ *    $Revision: 1.196 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -105,6 +105,7 @@ USAGE: ./mri_glmfit
    --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)
    --allowsubjrep allow subject names to repeat in the fsgd file (must appear
                   before --fsgd)
+   --allow-zero-dof : mostly for very special purposes
    --illcond : allow ill-conditioned design matrices
    --sim-done SimDoneFile : create DoneFile when simulation finished 
 
@@ -545,7 +546,7 @@ static int SmoothSurfOrVol(MRIS *surf, MRI *mri, MRI *mask, double SmthLevel);
 int main(int argc, char *argv[]) ;
 
 static char vcid[] =
-"$Id: mri_glmfit.c,v 1.195 2011/03/15 22:20:16 greve Exp $";
+"$Id: mri_glmfit.c,v 1.196 2011/03/15 22:34:15 greve Exp $";
 const char *Progname = "mri_glmfit";
 
 int SynthSeed = -1;
@@ -702,6 +703,7 @@ CSD *csdList[5][3];
 int nRandExclude=0,  *ExcludeFrames=NULL, nExclude=0;
 MATRIX *MatrixExcludeFrames(MATRIX *Src, int *ExcludeFrames, int nExclude);
 MRI *fMRIexcludeFrames(MRI *f, int *ExcludeFrames, int nExclude, MRI *fex);
+int AllowZeroDOF=0;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
@@ -1308,8 +1310,14 @@ int main(int argc, char **argv) {
     printf("DOF = %g\n",mriglm->glm->dof);
     if(mriglm->glm->dof < 1) {
       if(!usedti || mriglm->glm->dof < 0){
-	printf("ERROR: DOF = %g\n",mriglm->glm->dof);
-	exit(1);
+	if(! AllowZeroDOF){
+	  printf("ERROR: DOF = %g\n",mriglm->glm->dof);
+	  exit(1);
+	} 
+	else {
+	  mriglm->glm->AllowZeroDOF = 1;
+	  mriglm->glm->dof = 1;
+	}
       } else
 	printf("WARNING: DOF = %g\n",mriglm->glm->dof);
     }
@@ -2027,6 +2035,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--logy")) logflag = 1;
     else if (!strcasecmp(option, "--no-logy")) logflag = 0;
     else if (!strcasecmp(option, "--kurtosis")) DoKurtosis = 1;
+    else if (!strcasecmp(option, "--allow-zero-dof")) AllowZeroDOF = 1;
     else if (!strcasecmp(option, "--prune_thr")){
       if (nargc < 1) CMDargNErr(option,1);
       sscanf(pargv[0],"%f",&prune_thr); 
@@ -2039,6 +2048,7 @@ static int parse_commandline(int argc, char **argv) {
     else if (!strcasecmp(option, "--allowsubjrep"))
       fsgdf_AllowSubjRep = 1; /* external, see fsgdf.h */
     else if (!strcasecmp(option, "--tar1")) DoTemporalAR1 = 1;
+    else if (!strcasecmp(option, "--no-tar1")) DoTemporalAR1 = 0;
     else if (!strcasecmp(option, "--qa")) {
       useqa = 1;
       DoTemporalAR1 = 1;
@@ -2458,6 +2468,7 @@ printf("   --version   print out version and exit\n");
 printf("   --no-fix-vertex-area : turn off fixing of vertex area (for back comapt only)\n");
 printf("   --allowsubjrep allow subject names to repeat in the fsgd file (must appear\n");
 printf("                  before --fsgd)\n");
+printf("   --allow-zero-dof : mostly for very special purposes\n");
 printf("   --illcond : allow ill-conditioned design matrices\n");
 printf("   --sim-done SimDoneFile : create DoneFile when simulation finished \n");
 printf("\n");
