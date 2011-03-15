@@ -11,7 +11,7 @@
 # Edited : 08-10-2010: added --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.11 2011/03/09 00:51:22 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.12 2011/03/15 03:56:41 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -317,11 +317,17 @@ if ($UseAseg) then
     set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
                             --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
                             morph $outdir/${input}.tm3d )  
-    set cmd = ($cmd; exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
-                                --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
+
+    set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+                          --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
+
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+
   endif
   if (!(-e $outdir/${combined:r}_${voltype}.mgz) || $CleanElReg || $CleanVolReg) then
     set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
@@ -364,12 +370,17 @@ if (!(-e $outdir/combined_elreg_$prefix$voltype.tm3d  ) || $CleanElReg || $Clean
   set combined = combined_elreg_$prefix$voltype.tm3d  
   set cmd = ( createMorph --out $outdir/$combined --template $tmri/$voltype.mgz \
                           --subject $mmri/$voltype.mgz --in gcam $outdir/${nl_regresult} \
-                          morph $outdir/$basemorph )  
-  set cmd = ($cmd; exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
-                              --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
+                          morph $outdir/$basemorph ) 
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
+
+  set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
+                        --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
+ echo $cmd |& tee -a $LF
+  $cmd |& tee -a $LF
+  if($status) exit 1;
+
 endif
 
 ## APPLY the morph to the aseg volume; just for visualization
