@@ -7,9 +7,9 @@
 /*
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:41 $
- *    $Revision: 1.7 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/03/15 02:40:06 $
+ *    $Revision: 1.8 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,7 +68,7 @@ int debug = 0, checkoptsonly = 0;
 int main(int argc, char *argv[]) ;
 
 static char vcid[] = "";
-const char *Progname = "dmri_track";
+const char *Progname = "dmri_trk2trk";
 
 int doFill = 0, nin = 0, nout = 0, nvol = 0;
 char *inDir = NULL, *inFile[100],
