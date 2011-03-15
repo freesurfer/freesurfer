@@ -31,17 +31,13 @@ dmri_pathstats_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 dmri_pathstats_LDFLAGS=$(OS_LDFLAGS)
 
 dmri_paths_SOURCES=dmri_paths.cxx coffin.cxx coffin.h \
-                   bite.cxx bite.h spline.cxx spline.h vial.cxx vial.h \
-                   $(top_builddir)/utils/gcamorph.c \
-                   $(top_builddir)/utils/gcamorph.h
+                   bite.cxx bite.h spline.cxx spline.h vial.cxx vial.h
 dmri_paths_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
                   $(top_builddir)/fem_elastic/libfem_elastic.a \
                   $(top_builddir)/tetgen/libtetgen.a 
 dmri_paths_LDFLAGS=$(OS_LDFLAGS)
 
-dmri_trk2trk_SOURCES=dmri_trk2trk.cxx vial.cxx vial.h TrackIO.cxx TrackIO.h \
-                     $(top_builddir)/utils/gcamorph.c \
-                     $(top_builddir)/utils/gcamorph.h
+dmri_trk2trk_SOURCES=dmri_trk2trk.cxx vial.cxx vial.h TrackIO.cxx TrackIO.h
 dmri_trk2trk_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH)) \
                   $(top_builddir)/fem_elastic/libfem_elastic.a \
                   $(top_builddir)/tetgen/libtetgen.a 
