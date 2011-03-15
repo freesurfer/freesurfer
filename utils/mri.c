@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/15 01:09:43 $
- *    $Revision: 1.483 $
+ *    $Date: 2011/03/15 01:14:16 $
+ *    $Revision: 1.484 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.483 $";
+const char *MRI_C_VERSION = "$Revision: 1.484 $";
 
 
 /*-----------------------------------------------------
@@ -6278,6 +6278,7 @@ MRIfree(MRI **pmri)
   if (!mri)
     ErrorReturn(ERROR_BADPARM, (ERROR_BADPARM, "MRIfree: null pointer\n")) ;
 
+  if (mri->frames)free(mri->frames) ;
   if (mri->xi)    free(mri->xi-MAX_INDEX) ;
   if (mri->yi)    free(mri->yi-MAX_INDEX) ;
   if (mri->zi)    free(mri->zi-MAX_INDEX) ;
