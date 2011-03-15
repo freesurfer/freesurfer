@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: ayendiki $
-#    $Date: 2011/03/15 18:16:25 $
-#    $Revision: 1.517 $
+#    $Author: greve $
+#    $Date: 2011/03/15 23:34:27 $
+#    $Revision: 1.518 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -2578,6 +2578,7 @@ AC_SUBST(LIBDIRS_MGH)
 # stupid circular dependency on iopen swapInt etc.
 LIBS_MGH="\
   utils/libutils.a \
+  fsgdf/libfsgdf.a \
   rgb/librgb.a \
   unix/libunix.a \
   dicom/libdicom.a \
