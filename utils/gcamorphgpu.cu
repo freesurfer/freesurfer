@@ -8,8 +8,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/02 18:37:00 $
- *    $Revision: 1.53 $
+ *    $Date: 2011/03/15 20:03:29 $
+ *    $Revision: 1.54 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -33,6 +33,8 @@
 
 #include "mriframegpu.hpp"
 #include "mriconvolve_cuda.hpp"
+
+#include "ctfactory.hpp"
 
 #include "gcamorphgpu.hpp"
 
@@ -792,35 +794,9 @@ namespace GPU {
       CUDA_SAFE_CALL( cudaMemset( d_globals, 0, 2*sizeof(int) ) );
 
       // Get the d_rx, d_ry and d_rz fields bound to textures
-      this->d_rx.AllocateArray();
-      this->d_ry.AllocateArray();
-      this->d_rz.AllocateArray();
-      this->d_rx.SendArray();
-      this->d_ry.SendArray();
-      this->d_rz.SendArray();
-
-      dt_rx.normalized = false;
-      dt_rx.addressMode[0] = cudaAddressModeClamp;
-      dt_rx.addressMode[1] = cudaAddressModeClamp;
-      dt_rx.addressMode[2] = cudaAddressModeClamp;
-      dt_rx.filterMode = cudaFilterModePoint;
-
-      dt_ry.normalized = false;
-      dt_ry.addressMode[0] = cudaAddressModeClamp;
-      dt_ry.addressMode[1] = cudaAddressModeClamp;
-      dt_ry.addressMode[2] = cudaAddressModeClamp;
-      dt_ry.filterMode = cudaFilterModePoint;
-
-      dt_rz.normalized = false;
-      dt_rz.addressMode[0] = cudaAddressModeClamp;
-      dt_rz.addressMode[1] = cudaAddressModeClamp;
-      dt_rz.addressMode[2] = cudaAddressModeClamp;
-      dt_rz.filterMode = cudaFilterModePoint;
-      
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_rx, this->d_rx.GetArray() ) );
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_ry, this->d_ry.GetArray() ) );
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_rz, this->d_rz.GetArray() ) );
-      
+      GPU::Classes::CTfactory rxArray( this->d_rx, dt_rx );
+      GPU::Classes::CTfactory ryArray( this->d_ry, dt_ry );
+      GPU::Classes::CTfactory rzArray( this->d_rz, dt_rz );   
 
       // Run the kernel
       dim3 grid, threads;
@@ -849,12 +825,6 @@ namespace GPU {
 
       // Release device temporary
       CUDA_SAFE_CALL( cudaFree( d_globals ) );
-
-      // Unbind the textures
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_rx ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_ry ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_rz ) );
-
 
 
       GCAmorphGPU::tCMPtot.Stop();
@@ -946,36 +916,11 @@ namespace GPU {
       this->CheckIntegrity();
 
       // Put dx, dy and dz into textures
-      this->d_dx.AllocateArray();
-      this->d_dy.AllocateArray();
-      this->d_dz.AllocateArray();
-      this->d_dx.SendArray();
-      this->d_dy.SendArray();
-      this->d_dz.SendArray();
-
-      dt_dx.normalized = false;
-      dt_dx.addressMode[0] = cudaAddressModeClamp;
-      dt_dx.addressMode[1] = cudaAddressModeClamp;
-      dt_dx.addressMode[2] = cudaAddressModeClamp;
-      dt_dx.filterMode = cudaFilterModePoint;
-
-      dt_dy.normalized = false;
-      dt_dy.addressMode[0] = cudaAddressModeClamp;
-      dt_dy.addressMode[1] = cudaAddressModeClamp;
-      dt_dy.addressMode[2] = cudaAddressModeClamp;
-      dt_dy.filterMode = cudaFilterModePoint;
-
-      dt_dz.normalized = false;
-      dt_dz.addressMode[0] = cudaAddressModeClamp;
-      dt_dz.addressMode[1] = cudaAddressModeClamp;
-      dt_dz.addressMode[2] = cudaAddressModeClamp;
-      dt_dz.filterMode = cudaFilterModePoint;
+      GPU::Classes::CTfactory dxArray( this->d_dx, dt_dx );
+      GPU::Classes::CTfactory dyArray( this->d_dy, dt_dy );
+      GPU::Classes::CTfactory dzArray( this->d_dz, dt_dz );
       
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_dx, this->d_dx.GetArray() ) );
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_dy, this->d_dy.GetArray() ) );
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_dz, this->d_dz.GetArray() ) );
-      
-      
+     
 
       // Run the computation
       dim3 grid, threads;
@@ -993,11 +938,6 @@ namespace GPU {
 	  parms->dt, parms->momentum );
       CUDA_CHECK_ERROR( "ApplyGradientKernel failed!\n" );
 
-
-      // Unbind the textures
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_dx ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_dy ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_dz ) );
 
 
       // Something we can't do yet....
@@ -1046,7 +986,7 @@ namespace GPU {
 	  // Update x, y z
 	  rx(ix,iy,iz) -= ldx;
 	  ry(ix,iy,iz) -= ldy;
-	    rz(ix,iy,iz) -= ldz;
+          rz(ix,iy,iz) -= ldz;
 	}
       }
     }

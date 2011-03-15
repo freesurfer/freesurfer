@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/14 19:49:43 $
- *    $Revision: 1.34 $
+ *    $Date: 2011/03/15 20:03:29 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,8 @@
  */
 
 #ifdef GCAMORPH_ON_GPU
+
+#include <memory>
 
 #include <thrust/device_new_allocator.h>
 #include <thrust/device_ptr.h>
@@ -253,17 +255,7 @@ namespace GPU {
 
      
       // Also have to get the 'invalid' field to its texture
-      dt_smooth_invalid.normalized = false;
-      dt_smooth_invalid.addressMode[0] = cudaAddressModeClamp;
-      dt_smooth_invalid.addressMode[1] = cudaAddressModeClamp;
-      dt_smooth_invalid.addressMode[2] = cudaAddressModeClamp;
-      dt_smooth_invalid.filterMode = cudaFilterModePoint;
-      
-      gcam.d_invalid.AllocateArray();
-      gcam.d_invalid.SendArray();
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_invalid,
-					      gcam.d_invalid.GetArray() ) );
-      
+      GPU::Classes::CTfactory( gcam.d_invalid, dt_smooth_invalid );
 
       // Run the main kernel
       GCAmorphTerm::tSmoothCompute.Start();
@@ -271,11 +263,6 @@ namespace GPU {
 	( vx, vy, vz, gcam.d_dx, gcam.d_dy, gcam.d_dz, l_smoothness );
       CUDA_CHECK_ERROR( "SmoothnessTermKernelFailed!" );
       GCAmorphTerm::tSmoothCompute.Stop();
-
-
-
-      // Unbind textures
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_invalid ) );
 
 
       GCAmorphTerm::tSmoothTot.Stop();
@@ -900,10 +887,8 @@ namespace GPU {
       GCAmorphTerm::tLogLikelihoodTot.Start();
 
       // Get the MRI textures set up (assumes MRIs already in cudaArrays)
-      GPU::Classes::CTfactory *mriCT, *mri_smoothCT;
-      mriCT = mri_smoothCT = NULL;
-      mriCT = this->BindMRI( mri );
-      this->BindMRIsmooth( mri_smooth );
+      std::auto_ptr<GPU::Classes::CTfactory> mriCT( this->BindMRI( mri ) );
+      std::auto_ptr<GPU::Classes::CTfactory> mri_smoothCT( this->BindMRIsmooth( mri_smooth ) );
 
       // Run the computation
       dim3 threads, grid;
@@ -930,9 +915,6 @@ namespace GPU {
       CUDA_CHECK_ERROR( "LogLikelihoodKernel failed!" );
       GCAmorphTerm::tLogLikelihoodCompute.Stop();
 
-      // Release the MRI textures
-      delete mriCT;
-      delete mri_smoothCT;
 
       GCAmorphTerm::tLogLikelihoodTot.Stop();
     }

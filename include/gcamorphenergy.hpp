@@ -8,9 +8,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2010/10/22 20:56:11 $
- *    $Revision: 1.5 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/15 20:03:26 $
+ *    $Revision: 1.6 $
  *
  * Copyright (C) 2010,
  * The General Hospital Corporation (Boston, MA). 
@@ -34,6 +34,8 @@
 
 #include "mriframegpu.hpp"
 #include "gcamorphgpu.hpp"
+
+#include "ctfactory.hpp"
 
 namespace GPU {
   namespace Algorithms {
@@ -153,11 +155,8 @@ namespace GPU {
 
       //! Templated texture binding wrapper
       template<typename T>
-      void BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const;
+      GPU::Classes::CTfactory* BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const;
 
-      //! Templated texture unbinding
-      template<typename T>
-      void UnbindMRI( void ) const;
 
 
     };

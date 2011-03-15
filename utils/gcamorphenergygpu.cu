@@ -8,9 +8,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.42 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/15 20:03:29 $
+ *    $Revision: 1.43 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,8 @@
  */
 
 #ifdef GCAMORPH_ON_GPU
+
+#include <memory>
 
 #include <thrust/device_new_allocator.h>
 #include <thrust/device_ptr.h>
@@ -591,6 +593,7 @@ namespace GPU {
       
       GCAmorphEnergy::tLLEtot.Start();
 
+
       // Make sure the GCAM is sane
       gcam.CheckIntegrity();
       
@@ -605,7 +608,7 @@ namespace GPU {
       d_energies = thrust::device_new<float>( nVoxels );
       
       // Get the MRI into a texture
-      this->BindMRI( mri );
+      std::auto_ptr<GPU::Classes::CTfactory> mri_texture( this->BindMRI( mri ) );
       
       
       // Run the computation
@@ -635,9 +638,6 @@ namespace GPU {
       GCAmorphEnergy::tLLEcompute.Stop();
 
       CUDA_SAFE_CALL( cudaStreamSynchronize( this->stream ) );
-
-      // Release the MRI texture
-      this->UnbindMRI<T>();
       
       // Get the sum of the energies
       float energy = thrust::reduce( d_energies, d_energies+nVoxels );
@@ -666,8 +666,6 @@ namespace GPU {
       GPU::Classes::MRIframeGPU<T> myMRI;
       myMRI.Allocate( mri );
       myMRI.Send( mri, 0 );
-      myMRI.AllocateArray();
-      myMRI.SendArray( this->stream );
       
       energy = this->LogLikelihoodEnergy( myGCAM, myMRI );
       
@@ -804,9 +802,6 @@ namespace GPU {
       vx.Allocate( gcamDims );
       vy.Allocate( gcamDims );
       vz.Allocate( gcamDims );
-      vx.AllocateArray();
-      vy.AllocateArray();
-      vz.AllocateArray();
       
       dim3 grid, threads;
       threads.x = threads.y = kGCAmorphSmoothEnergyKernelSize;
@@ -833,47 +828,12 @@ namespace GPU {
       GCAmorphEnergy::tSmoothSubtract.Stop();
       
       // Get vx, vy and vz into CUDA arrays
-      vx.SendArray();
-      vy.SendArray();
-      vz.SendArray();
-      
-      // Bind vx, vy and vz to their textures
-      dt_smooth_vx.normalized = false;
-      dt_smooth_vx.addressMode[0] = cudaAddressModeClamp;
-      dt_smooth_vx.addressMode[1] = cudaAddressModeClamp;
-      dt_smooth_vx.addressMode[2] = cudaAddressModeClamp;
-      dt_smooth_vx.filterMode = cudaFilterModePoint;
-      
-      dt_smooth_vy.normalized = false;
-      dt_smooth_vy.addressMode[0] = cudaAddressModeClamp;
-      dt_smooth_vy.addressMode[1] = cudaAddressModeClamp;
-      dt_smooth_vy.addressMode[2] = cudaAddressModeClamp;
-      dt_smooth_vy.filterMode = cudaFilterModePoint;
-      
-      dt_smooth_vz.normalized = false;
-      dt_smooth_vz.addressMode[0] = cudaAddressModeClamp;
-      dt_smooth_vz.addressMode[1] = cudaAddressModeClamp;
-      dt_smooth_vz.addressMode[2] = cudaAddressModeClamp;
-      dt_smooth_vz.filterMode = cudaFilterModePoint;
-      
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vx,
-					      vx.GetArray() ) );
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vy,
-					      vy.GetArray() ) );
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_vz,
-					      vz.GetArray() ) );
-      
-      // Also have to get the 'invalid' field to its texture
-      dt_smooth_invalid.normalized = false;
-      dt_smooth_invalid.addressMode[0] = cudaAddressModeClamp;
-      dt_smooth_invalid.addressMode[1] = cudaAddressModeClamp;
-      dt_smooth_invalid.addressMode[2] = cudaAddressModeClamp;
-      dt_smooth_invalid.filterMode = cudaFilterModePoint;
-      
-      gcam.d_invalid.AllocateArray();
-      gcam.d_invalid.SendArray();
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_smooth_invalid,
-					      gcam.d_invalid.GetArray() ) );
+      GPU::Classes::CTfactory vxArray( vx, dt_smooth_vx );
+      GPU::Classes::CTfactory vyArray( vy, dt_smooth_vy );
+      GPU::Classes::CTfactory vzArray( vz, dt_smooth_vz );
+
+      GPU::Classes::CTfactory invalidArray( gcam.d_invalid,
+                                            dt_smooth_invalid );
       
       // Run the main kernel
       GCAmorphEnergy::tSmoothCompute.Start();
@@ -888,13 +848,7 @@ namespace GPU {
       
       // Release thrust arrays
       thrust::device_delete( d_energies );
-      
-      // Unbind textures
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vx ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vy ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_vz ) );
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_smooth_invalid ) );
-      
+   
       
       GCAmorphEnergy::tSmoothTot.Stop();
 
@@ -1056,8 +1010,6 @@ namespace GPU {
       
       mriGPU.Allocate( mri );
       mriGPU.Send( mri, 0 );
-      mriGPU.AllocateArray();
-      mriGPU.SendArray();
       
       float rms = this->ComputeRMS( gcam, mriGPU, parms );
       
@@ -1070,41 +1022,23 @@ namespace GPU {
 
     
     template<typename T>
-    void GCAmorphEnergy::BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const {
+    GPU::Classes::CTfactory* GCAmorphEnergy::BindMRI( const GPU::Classes::MRIframeGPU<T>& mri ) const {
       std::cerr << __PRETTY_FUNCTION__
 		<< ": Unrecognised MRI type" << std::endl;
-      exit( EXIT_FAILURE );
+      abort();
     }
-    
-    //! Templated texture unbinding
-    template<typename T>
-    void GCAmorphEnergy::UnbindMRI( void ) const {
-      std::cerr << __PRETTY_FUNCTION__
-		<< ": Unrecognised MRI type" << std::endl;
-      exit( EXIT_FAILURE );
-    }
-    
     
     // Texture binding specialisations
     
     template<>
-    void GCAmorphEnergy::BindMRI<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
+    GPU::Classes::CTfactory* GCAmorphEnergy::BindMRI<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& mri ) const {
 
-      dt_mri_uchar.normalized = false;
-      dt_mri_uchar.addressMode[0] = cudaAddressModeClamp;
-      dt_mri_uchar.addressMode[1] = cudaAddressModeClamp;
-      dt_mri_uchar.addressMode[2] = cudaAddressModeClamp;
-      dt_mri_uchar.filterMode = cudaFilterModeLinear;
-      
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri_uchar,
-					      mri.GetArray() ) );
-    }
+      GPU::Classes::CTfactory* tmp = NULL;
+      tmp = new GPU::Classes::CTfactory( mri, dt_mri_uchar,
+                                         cudaFilterModeLinear );
 
-    template<>
-    void GCAmorphEnergy::UnbindMRI<unsigned char>( void ) const {
-      CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_uchar ) );
+      return( tmp );
     }
-    
 
 
     // --------------------------------------------------------

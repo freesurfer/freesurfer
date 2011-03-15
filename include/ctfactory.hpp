@@ -7,8 +7,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/14 19:49:34 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/15 20:03:25 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -36,6 +36,14 @@ namespace GPU {
 
   namespace Classes {
 
+    //! Class to encapsulate a cudaArray and texture binding
+    /*!
+      This is a helper class, which copies a given VolumeGPU 
+      into a cudaArray, and binds that array to the designated
+      texture.
+      The cudaArray is held internally to the class, and deleted
+      by the destructor.
+    */
     class CTfactory {
     public:
 
