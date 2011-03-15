@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.385 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/15 01:09:43 $
+ *    $Revision: 1.386 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12315,6 +12315,16 @@ mghRead(const char *fname, int read_volume, int frame)
     {
       switch (tag)
       {
+      case TAG_MRI_FRAME:
+#if 0
+        mri->frames = (MRI_FRAME *)calloc(mri->nframes, sizeof(MRI_FRAME)) ;
+        if (mri->frames == NULL)
+          ErrorExit(ERROR_NOMEMORY, "mghRead(%s): could not allocate %d MRI_FRAMEs", fname, mri->nframes) ;
+#endif
+        printf("reading MRI_FRAME structure from file...\n") ;
+        if (znzread(mri->frames, mri->nframes*sizeof(MRI_FRAME), 1, fp) != 1)
+          fprintf(stderr, "couldn't read frame structure from file\n") ;
+        break ;
       case TAG_OLD_COLORTABLE:
         /* We have a color table, read it with CTABreadFromBinary. If it
            fails, it will print its own error message. */
@@ -12614,6 +12624,8 @@ mghWrite(MRI *mri, const char *fname, int frame)
   if(mri->AutoAlign) znzTAGwriteAutoAlign(fp, mri->AutoAlign);
   if(mri->pedir) znzTAGwrite(fp, TAG_PEDIR, mri->pedir, strlen(mri->pedir)+1);
   else znzTAGwrite(fp, TAG_PEDIR, "UNKNOWN", strlen("UNKNOWN"));
+
+  znzTAGwrite(fp, TAG_MRI_FRAME, mri->frames, mri->nframes*sizeof(MRI_FRAME));
 
   if (mri->ct)
   {

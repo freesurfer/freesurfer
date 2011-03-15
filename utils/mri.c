@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.482 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/15 01:09:43 $
+ *    $Revision: 1.483 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.482 $";
+const char *MRI_C_VERSION = "$Revision: 1.483 $";
 
 
 /*-----------------------------------------------------
@@ -6048,6 +6048,10 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
   mri->nframes = nframes ;
   MRIallocIndices(mri) ;
   mri->outside_val = 0 ;
+  mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
+  if (!mri->frames)
+    ErrorExit(ERROR_NO_MEMORY,
+              "MRIalloc: could not allocate %d frames\n", nframes) ;
   mri->slices = (BUFTYPE ***)calloc(depth*nframes, sizeof(BUFTYPE **)) ;
   if (!mri->slices)
     ErrorExit(ERROR_NO_MEMORY,
@@ -9692,9 +9696,13 @@ MRIsampleVolumeFrameType
   return(NO_ERROR) ;
 }
 
-
 int
 MRIinterpolateIntoVolume(MRI *mri, double x, double y, double z, double val)
+{
+  return(MRIinterpolateIntoVolumeFrame(mri, x, y, z,  0, val)) ;
+}
+int
+MRIinterpolateIntoVolumeFrame(MRI *mri, double x, double y, double z, int frame, double val)
 {
   int  OutOfBounds;
   int  xm, xp, ym, yp, zm, zp, width, height, depth ;
@@ -9736,54 +9744,54 @@ MRIinterpolateIntoVolume(MRI *mri, double x, double y, double z, double val)
   switch (mri->type)
   {
   case MRI_UCHAR:
-    MRIvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
-    MRIvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
-    MRIvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
-    MRIvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
-    MRIvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
-    MRIvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
-    MRIvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
-    MRIvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    MRIseq_vox(mri, xm, ym, zm, frame) += nint(xpd * ypd * zpd * val) ;
+    MRIseq_vox(mri, xm, ym, zp, frame) += nint(xpd * ypd * zmd * val) ;
+    MRIseq_vox(mri, xm, yp, zm, frame) += nint(xpd * ymd * zpd * val) ;
+    MRIseq_vox(mri, xm, yp, zp, frame) += nint(xpd * ymd * zmd * val) ;
+    MRIseq_vox(mri, xp, ym, zm, frame) += nint(xmd * ypd * zpd * val) ;
+    MRIseq_vox(mri, xp, ym, zp, frame) += nint(xmd * ypd * zmd * val) ;
+    MRIseq_vox(mri, xp, yp, zm, frame) += nint(xmd * ymd * zpd * val) ;
+    MRIseq_vox(mri, xp, yp, zp, frame) += nint(xmd * ymd * zmd * val) ;
     break ;
   case MRI_FLOAT:
-    MRIFvox(mri, xm, ym, zm) += (xpd * ypd * zpd * val) ;
-    MRIFvox(mri, xm, ym, zp) += (xpd * ypd * zmd * val) ;
-    MRIFvox(mri, xm, yp, zm) += (xpd * ymd * zpd * val) ;
-    MRIFvox(mri, xm, yp, zp) += (xpd * ymd * zmd * val) ;
-    MRIFvox(mri, xp, ym, zm) += (xmd * ypd * zpd * val) ;
-    MRIFvox(mri, xp, ym, zp) += (xmd * ypd * zmd * val) ;
-    MRIFvox(mri, xp, yp, zm) += (xmd * ymd * zpd * val) ;
-    MRIFvox(mri, xp, yp, zp) += (xmd * ymd * zmd * val) ;
+    MRIFseq_vox(mri, xm, ym, zm, frame) += (xpd * ypd * zpd * val) ;
+    MRIFseq_vox(mri, xm, ym, zp, frame) += (xpd * ypd * zmd * val) ;
+    MRIFseq_vox(mri, xm, yp, zm, frame) += (xpd * ymd * zpd * val) ;
+    MRIFseq_vox(mri, xm, yp, zp, frame) += (xpd * ymd * zmd * val) ;
+    MRIFseq_vox(mri, xp, ym, zm, frame) += (xmd * ypd * zpd * val) ;
+    MRIFseq_vox(mri, xp, ym, zp, frame) += (xmd * ypd * zmd * val) ;
+    MRIFseq_vox(mri, xp, yp, zm, frame) += (xmd * ymd * zpd * val) ;
+    MRIFseq_vox(mri, xp, yp, zp, frame) += (xmd * ymd * zmd * val) ;
     break ;
   case MRI_SHORT:
-    MRISvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
-    MRISvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
-    MRISvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
-    MRISvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
-    MRISvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
-    MRISvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
-    MRISvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
-    MRISvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    MRISseq_vox(mri, xm, ym, zm, frame) += nint(xpd * ypd * zpd * val) ;
+    MRISseq_vox(mri, xm, ym, zp, frame) += nint(xpd * ypd * zmd * val) ;
+    MRISseq_vox(mri, xm, yp, zm, frame) += nint(xpd * ymd * zpd * val) ;
+    MRISseq_vox(mri, xm, yp, zp, frame) += nint(xpd * ymd * zmd * val) ;
+    MRISseq_vox(mri, xp, ym, zm, frame) += nint(xmd * ypd * zpd * val) ;
+    MRISseq_vox(mri, xp, ym, zp, frame) += nint(xmd * ypd * zmd * val) ;
+    MRISseq_vox(mri, xp, yp, zm, frame) += nint(xmd * ymd * zpd * val) ;
+    MRISseq_vox(mri, xp, yp, zp, frame) += nint(xmd * ymd * zmd * val) ;
     break ;
   case MRI_INT:
-    MRIIvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
-    MRIIvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
-    MRIIvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
-    MRIIvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
-    MRIIvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
-    MRIIvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
-    MRIIvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
-    MRIIvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    MRIIseq_vox(mri, xm, ym, zm, frame) += nint(xpd * ypd * zpd * val) ;
+    MRIIseq_vox(mri, xm, ym, zp, frame) += nint(xpd * ypd * zmd * val) ;
+    MRIIseq_vox(mri, xm, yp, zm, frame) += nint(xpd * ymd * zpd * val) ;
+    MRIIseq_vox(mri, xm, yp, zp, frame) += nint(xpd * ymd * zmd * val) ;
+    MRIIseq_vox(mri, xp, ym, zm, frame) += nint(xmd * ypd * zpd * val) ;
+    MRIIseq_vox(mri, xp, ym, zp, frame) += nint(xmd * ypd * zmd * val) ;
+    MRIIseq_vox(mri, xp, yp, zm, frame) += nint(xmd * ymd * zpd * val) ;
+    MRIIseq_vox(mri, xp, yp, zp, frame) += nint(xmd * ymd * zmd * val) ;
     break ;
   case MRI_LONG:
-    MRILvox(mri, xm, ym, zm) += nint(xpd * ypd * zpd * val) ;
-    MRILvox(mri, xm, ym, zp) += nint(xpd * ypd * zmd * val) ;
-    MRILvox(mri, xm, yp, zm) += nint(xpd * ymd * zpd * val) ;
-    MRILvox(mri, xm, yp, zp) += nint(xpd * ymd * zmd * val) ;
-    MRILvox(mri, xp, ym, zm) += nint(xmd * ypd * zpd * val) ;
-    MRILvox(mri, xp, ym, zp) += nint(xmd * ypd * zmd * val) ;
-    MRILvox(mri, xp, yp, zm) += nint(xmd * ymd * zpd * val) ;
-    MRILvox(mri, xp, yp, zp) += nint(xmd * ymd * zmd * val) ;
+    MRILseq_vox(mri, xm, ym, zm, frame) += nint(xpd * ypd * zpd * val) ;
+    MRILseq_vox(mri, xm, ym, zp, frame) += nint(xpd * ypd * zmd * val) ;
+    MRILseq_vox(mri, xm, yp, zm, frame) += nint(xpd * ymd * zpd * val) ;
+    MRILseq_vox(mri, xm, yp, zp, frame) += nint(xpd * ymd * zmd * val) ;
+    MRILseq_vox(mri, xp, ym, zm, frame) += nint(xmd * ypd * zpd * val) ;
+    MRILseq_vox(mri, xp, ym, zp, frame) += nint(xmd * ypd * zmd * val) ;
+    MRILseq_vox(mri, xp, yp, zm, frame) += nint(xmd * ymd * zpd * val) ;
+    MRILseq_vox(mri, xp, yp, zp, frame) += nint(xmd * ymd * zmd * val) ;
     break ;
   default:
     ErrorReturn(ERROR_UNSUPPORTED,
