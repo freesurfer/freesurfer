@@ -53,8 +53,10 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <argument>-nw, --no_write </argument>
       <argument>-ii, --in_info</argument>
       <argument>-oi, --out_info</argument>
-      <argument>-is, --in_stats print statistics on input volume</argument>
-      <argument>-os, --out_stats print statistics on output volume</argument>
+      <argument>-is, --in_stats</argument>
+      <explanation>print statistics on input volume</explanation>
+      <argument>-os, --out_stats</argument>
+      <explanation>print statistics on output volume</explanation>
       <argument>-im, --in_matrix</argument>
       <argument>-om, --out_matrix</argument>
       <argument>-iis, --in_i_size &lt;size&gt;</argument>
