@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.176 $
+ *    $Author: greve $
+ *    $Date: 2011/03/16 15:21:36 $
+ *    $Revision: 1.177 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -40,6 +40,9 @@
 #include "utils.h"
 #include "macros.h"
 #include "fmriutils.h"
+#include "stats.h"
+#include "fsgdf.h"
+
 
 /* ----- determines tolerance of non-orthogonal basis vectors ----- */
 #define CLOSE_ENOUGH  (5e-3)
@@ -189,13 +192,14 @@ int main(int argc, char *argv[])
   MATRIX *AutoAlign = NULL;
   MATRIX *cras = NULL, *vmid = NULL;
   int ascii_flag = FALSE, c=0,r=0,s=0,f=0,c2=0;
+  int StatTableFlag=0;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.176 2011/03/02 00:04:14 nicks Exp $",
+   "$Id: mri_convert.c,v 1.177 2011/03/16 15:21:36 greve Exp $",
    "$Name:  $",
    cmdline);
 
@@ -305,13 +309,15 @@ int main(int argc, char *argv[])
   fwhm = -1;
   gstd = -1;
   in_type_string[0] = 0;
+  StatTableFlag=0;
+  STAT_TABLE *StatTable=NULL;
 
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.176 2011/03/02 00:04:14 nicks Exp $",
+      "$Id: mri_convert.c,v 1.177 2011/03/16 15:21:36 greve Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -366,6 +372,11 @@ int main(int argc, char *argv[])
     {
       ascii_flag = 3;
       force_out_type_flag = TRUE;
+    }
+    else if(strcmp(argv[i], "--stat-table") == 0)
+    {
+      // Input is a stat table
+      StatTableFlag=1;
     }
     else if(strcmp(argv[i], "--invert_contrast") == 0)
     {
@@ -1570,37 +1581,24 @@ int main(int argc, char *argv[])
   }
 
   /* ----- read the volume ----- */
-  if (force_in_type_flag)
-  {
-    in_volume_type = forced_in_type;
-  }
-  else
-  {
-    in_volume_type = mri_identify(in_name_only);
-  }
-
-  if (in_volume_type == MRI_VOLUME_TYPE_UNKNOWN)
-  {
-    errno = 0;
-    ErrorPrintf(ERROR_BADFILE,
-                "file not found or unknown file type for file %s",
-                in_name_only);
-    if (in_like_flag)
-    {
-      MRIfree(&mri_in_like);
+  in_volume_type = MRI_VOLUME_TYPE_UNKNOWN;
+  if(! StatTableFlag) {
+    if(force_in_type_flag) in_volume_type = forced_in_type;
+    else                   in_volume_type = mri_identify(in_name_only);
+    if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN){
+      errno = 0;
+      ErrorPrintf(ERROR_BADFILE,
+		  "file not found or unknown file type for file %s",
+		  in_name_only);
+      if (in_like_flag) MRIfree(&mri_in_like);
+      exit(1);
     }
-    exit(1);
   }
 
-
-  if (roi_flag && in_volume_type != GENESIS_FILE)
-  {
+  if(roi_flag && in_volume_type != GENESIS_FILE) {
     errno = 0;
     ErrorPrintf(ERROR_BADPARM, "rois must be in GE format");
-    if (in_like_flag)
-    {
-      MRIfree(&mri_in_like);
-    }
+    if(in_like_flag) MRIfree(&mri_in_like);
     exit(1);
   }
 
@@ -1611,7 +1609,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.176 2011/03/02 00:04:14 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.177 2011/03/16 15:21:36 greve Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -1769,16 +1767,20 @@ int main(int argc, char *argv[])
         //printf("MRIreadType()\n");
         mri = MRIreadType(in_name, in_volume_type);
       }
-      else
-      {
-        if (nthframe < 0)
-        {
-          mri = MRIread(in_name);
+      else {
+        if(nthframe < 0) {
+	  if(StatTableFlag == 0)  mri = MRIread(in_name);
+	  else {
+	    printf("Loading in stat table %s\n",in_name);
+	    StatTable = LoadStatTable(in_name);
+	    if(StatTable == NULL) {
+	      printf("ERROR: loading y %s as a stat table\n",in_name);
+	      exit(1);
+	    }
+	    mri = StatTable->mri;
+	  }
         }
-        else
-        {
-          mri = MRIreadEx(in_name, nthframe);
-        }
+        else mri = MRIreadEx(in_name, nthframe);
       }
     }
   }
@@ -2165,10 +2167,7 @@ int main(int argc, char *argv[])
   }
 
   /* ----- catch the in stats flag ----- */
-  if (in_stats_flag)
-  {
-    MRIprintStats(mri, stdout);
-  }
+  if(in_stats_flag) MRIprintStats(mri, stdout);
 
   // Load the transform
   if (transform_flag)

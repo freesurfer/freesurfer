@@ -53,8 +53,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <argument>-nw, --no_write </argument>
       <argument>-ii, --in_info</argument>
       <argument>-oi, --out_info</argument>
-      <argument>-is, --in_stats</argument>
-      <argument>-os, --out_stats</argument>
+      <argument>-is, --in_stats print statistics on input volume</argument>
+      <argument>-os, --out_stats print statistics on output volume</argument>
       <argument>-im, --in_matrix</argument>
       <argument>-om, --out_matrix</argument>
       <argument>-iis, --in_i_size &lt;size&gt;</argument>
@@ -85,6 +85,8 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>see SETTING ORIENTATION</explanation>
       <argument>-oc, --out_center &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
       <argument>-odt, --out_data_type &lt;uchar|short|int|float&gt;</argument>
+      <argument>--stat-table input data is a stats table as produced
+      by asegstats2table or aparcstats2table</argument>
       <argument>-rt, --resample_type &lt;interpolate|weighted|nearest|sinc|cubic&gt;</argument>
       <explanation>default is interpolate</explanation>
       <argument>--no_scale flag &lt;-ns&gt;</argument>
