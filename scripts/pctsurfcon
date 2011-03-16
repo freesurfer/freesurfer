@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2011/03/16 15:09:08 $
-#    $Revision: 1.9 $
+#    $Author: mreuter $
+#    $Date: 2011/03/16 16:30:08 $
+#    $Revision: 1.10 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.9 2011/03/16 15:09:08 greve Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.10 2011/03/16 16:30:08 mreuter Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -42,7 +42,7 @@ set WMProjAbs = 1;
 
 set Interp = trilinear
 set OutBase = w-g.pct;
-set ConSign = +100;
+set ConSign = 100;
 
 set debug = 0;
 set tmpdir = ();
