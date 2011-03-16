@@ -5,9 +5,9 @@
 #
 # Original Author: Doug Greve
 # CVS Revision Info:
-#    $Author: nicks $
-#    $Date: 2011/03/02 20:16:39 $
-#    $Revision: 1.8 $
+#    $Author: greve $
+#    $Date: 2011/03/16 15:09:08 $
+#    $Revision: 1.9 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.8 2011/03/02 20:16:39 nicks Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.9 2011/03/16 15:09:08 greve Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -38,7 +38,7 @@ set Reshape = (--noreshape);
 
 set GMProjFrac = ();
 set GMProjAbs = ();
-set WMProjAbs = 2;
+set WMProjAbs = 1;
 
 set Interp = trilinear
 set OutBase = w-g.pct;
@@ -288,7 +288,7 @@ check_params:
     exit 1;
   endif
 
-  if($#GMProjFrac == 0 && $#GMProjAbs == 0) set GMProjFrac = 0.5;
+  if($#GMProjFrac == 0 && $#GMProjAbs == 0) set GMProjFrac = 0.3;
 
 goto check_params_return;
 ############--------------##################
@@ -320,7 +320,7 @@ usage_exit:
   echo "  --b outbase : use outbase instead of $OutBase (?h.$OutBase.mgh)"
   echo "  --lh-only, --no-rh : compute lh only"
   echo "  --rh-only, --no-lh : compute rh only"
-  echo "  --gm-proj-frac frac : GM projection fraction (default, 0.5)"
+  echo "  --gm-proj-frac frac : GM projection fraction (default, 0.3)"
   echo "  --gm-proj-abs  dist : GM projection distance (default is to use frac)"
   echo "  --wm-proj-abs  dist : WM projection distance (default is $WMProjAbs mm)"
   echo "  --neg : compute G-W instead of W-G"
@@ -348,7 +348,7 @@ matter. The computation is:
    pct = ---------
          0.5*(W+G)
 
-The white matter is sampled 2mm below the white surface. This distance
+The white matter is sampled 1mm below the white surface. This distance
 is changeable with --wm-proj-abs. The gray matter is sampled half the
 thickness into the cortex. This fraction is changeable with
 --gm-proj-frac. The volume that is sampled is rawavg.mgz, but this
