@@ -10,9 +10,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.63 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 19:27:36 $
+ *    $Revision: 1.64 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -128,7 +128,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_ca_train.c,v 1.63 2011/03/02 00:04:14 nicks Exp $",
+           "$Id: mri_ca_train.c,v 1.64 2011/03/16 19:27:36 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -1316,7 +1316,7 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca)
   mri_buf = MRIallocHeader(mri_inputs->width,
                            mri_inputs->height,
                            mri_inputs->depth,
-                           mri_inputs->type);
+                           mri_inputs->type,1);
   MRIcopyHeader(mri_inputs, mri_buf);
 
   //////////////////////////////////////////////////////////////////////////
