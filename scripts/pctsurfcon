@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/16 16:30:08 $
-#    $Revision: 1.10 $
+#    $Date: 2011/03/16 16:32:11 $
+#    $Revision: 1.11 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -22,7 +22,7 @@
 #
 
 #
-set VERSION = '$Id: pctsurfcon,v 1.10 2011/03/16 16:30:08 mreuter Exp $';
+set VERSION = '$Id: pctsurfcon,v 1.11 2011/03/16 16:32:11 mreuter Exp $';
 set inputargs = ($argv);
 
 set subject = ();
@@ -230,7 +230,7 @@ while( $#argv != 0 )
       breaksw
 
     case "--pos":
-      set ConSign = +100;
+      set ConSign = 100;
       breaksw
 
     case "--tmp":
