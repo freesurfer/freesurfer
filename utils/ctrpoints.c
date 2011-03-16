@@ -6,9 +6,9 @@
 /*
  * Original Author: Y. Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:42 $
- *    $Revision: 1.9 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:46 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -173,9 +173,9 @@ MPoint *MRImapControlPoints(const MPoint *pointArray, int count, int useRealRAS,
     ErrorExit(ERROR_BADPARM,"MRImapControlPoints LTA dst geometry not valid!\n");
 
   // create face src and target mri from lta:
-	MRI* mri_src = MRIallocHeader(1,1,1,MRI_UCHAR);
+	MRI* mri_src = MRIallocHeader(1,1,1,MRI_UCHAR,1);
 	useVolGeomToMRI(&lta->xforms[0].src,mri_src);
-	MRI* mri_trg = MRIallocHeader(1,1,1,MRI_UCHAR);
+	MRI* mri_trg = MRIallocHeader(1,1,1,MRI_UCHAR,1);
 	useVolGeomToMRI(&lta->xforms[0].dst,mri_trg);
 
   // set vox ras transforms depending on flag:

@@ -7,8 +7,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/15 19:16:53 $
- *    $Revision: 1.485 $
+ *    $Date: 2011/03/16 17:31:48 $
+ *    $Revision: 1.486 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  */
 
 extern const char* Progname;
-const char *MRI_C_VERSION = "$Revision: 1.485 $";
+const char *MRI_C_VERSION = "$Revision: 1.486 $";
 
 
 /*-----------------------------------------------------
@@ -310,7 +310,7 @@ MATRIX *MRIxfmCRS2XYZtkreg(MRI *mri)
   MRI *tmp;
   MATRIX *K;
 
-  tmp = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
+  tmp = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type, 1);
 
   /* Set tkregister defaults */
   /* column         row           slice          center      */
@@ -5666,7 +5666,7 @@ MRIcopy(MRI *mri_src, MRI *mri_dst)
       mri_dst = MRIallocSequence(width, height, depth, mri_src->type,
                                  mri_src->nframes) ;
     else{
-      mri_dst = MRIallocHeader(width, height, depth, mri_src->type);
+      mri_dst = MRIallocHeader(width, height, depth, mri_src->type, 1);
       mri_dst->nframes = mri_src->nframes ;
     }
   }
@@ -5958,7 +5958,7 @@ MRI *MRIallocChunk(int width, int height, int depth, int type, int nframes)
     ErrorReturn(NULL,
                 (ERROR_BADPARM, "MRIallocChunk(%d, %d, %d): bad parm",
                  width, height, depth)) ;
-  mri = MRIallocHeader(width, height, depth, type) ;
+  mri = MRIallocHeader(width, height, depth, type, 1) ;
   mri->nframes = nframes ;
   MRIinitHeader(mri) ;
 
@@ -6031,7 +6031,7 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
                 (ERROR_BADPARM, "MRIalloc(%d, %d, %d): bad parm",
                  width, height, depth)) ;
 #if 1
-  mri = MRIallocHeader(width, height, depth, type) ;
+  mri = MRIallocHeader(width, height, depth, type, 1) ;
   MRIinitHeader(mri) ;
 #else
   mri = (MRI *)calloc(1, sizeof(MRI)) ;
@@ -6162,10 +6162,10 @@ MRI *MRIallocSequence(int width, int height, int depth, int type, int nframes)
 }
 /*-----------------------------------------------------*/
 /*!
-  \fn MRI *MRIallocHeader(int width, int height, int depth, int type)
+  \fn MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
   \brief allocate an MRI data structure but not space for  the image data
 */
-MRI *MRIallocHeader(int width, int height, int depth, int type)
+MRI *MRIallocHeader(int width, int height, int depth, int type, int nframes)
 {
   MRI  *mri ;
 
@@ -6173,10 +6173,10 @@ MRI *MRIallocHeader(int width, int height, int depth, int type)
   if (!mri)
     ErrorExit(ERROR_NO_MEMORY, "MRIalloc: could not allocate MRI\n") ;
 
-  mri->frames = (MRI_FRAME *)calloc(1, sizeof(MRI_FRAME)) ;
+  mri->frames = (MRI_FRAME *)calloc(nframes, sizeof(MRI_FRAME)) ;
   if (!mri->frames)
     ErrorExit(ERROR_NO_MEMORY,
-              "MRIalloc: could not allocate 1 frame\n") ;
+              "MRIalloc: could not allocate %d frame\n", nframes) ;
   mri->imnr0 = 1 ;
   mri->imnr1 = depth;
   mri->fov = width ;
@@ -6188,7 +6188,7 @@ MRI *MRIallocHeader(int width, int height, int depth, int type)
   mri->yinvert = 1 ;
   mri->xsize = mri->ysize = mri->zsize = 1 ;
   mri->type = type ;
-  mri->nframes = 1 ;
+  mri->nframes = nframes ;
   mri->xi = mri->yi = mri->zi = NULL ;
   mri->slices = NULL ;
   mri->ps = 1 ;
@@ -6636,7 +6636,7 @@ MRIcopyHeader( const MRI *mri_src, MRI *mri_dst )
   int i ;
 
   if (mri_dst == NULL)
-    mri_dst = MRIallocHeader(mri_src->width, mri_src->height, mri_src->depth, mri_src->type) ;
+    mri_dst = MRIallocHeader(mri_src->width, mri_src->height, mri_src->depth, mri_src->type, mri_src->nframes) ;
 
   mri_dst->dof = mri_src->dof ;
   mri_dst->mean = mri_src->mean ;

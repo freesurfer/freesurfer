@@ -6,9 +6,9 @@
 /*
  * Original Authors: Sebastien Gicquel and Douglas Greve, 06/04/2001
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/03/15 15:20:17 $
- *    $Revision: 1.134 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:47 $
+ *    $Revision: 1.135 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -227,7 +227,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume, int nthonly)
   }
   else
   {
-    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT);
+    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT,nframes);
     if (vol==NULL)
     {
       fprintf(stderr,"ERROR: could not alloc MRI header \n");
@@ -4676,7 +4676,7 @@ MRI *DICOMRead2(const char *dcmfile, int LoadVolume)
   else
   {
     mri = MRIallocHeader(RefDCMInfo.Columns,RefDCMInfo.Rows,
-                         nslices,mritype);
+                         nslices,mritype,nframes);
     mri->nframes = nframes;
   }
   if (mri==NULL)
@@ -5655,7 +5655,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume)
   }
   else
   {
-    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT);
+    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT,nframes);
     if (vol==NULL)
     {
       fprintf(stderr,"ERROR: could not alloc MRI header \n");
@@ -5949,7 +5949,7 @@ MRI * sdcmLoadVolume(const char *dcmfile, int LoadVolume)
   }
   else
   {
-    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT);
+    vol = MRIallocHeader(ncols,nrows,nslices,MRI_SHORT,nframes);
     if (vol==NULL)
     {
       fprintf(stderr,"ERROR: could not alloc MRI header \n");

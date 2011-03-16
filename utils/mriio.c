@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/15 01:09:43 $
- *    $Revision: 1.386 $
+ *    $Date: 2011/03/16 17:31:48 $
+ *    $Revision: 1.387 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1616,7 +1616,7 @@ static MRI *corRead(const char *fname, int read_volume)
   if (read_volume)
     mri = MRIalloc(x, y, imnr1 - imnr0 + 1, MRI_UCHAR);
   else
-    mri = MRIallocHeader(x, y, imnr1 - imnr0 + 1, MRI_UCHAR);
+    mri = MRIallocHeader(x, y, imnr1 - imnr0 + 1, MRI_UCHAR, 1);
 
   /* hack */
   /*
@@ -2180,7 +2180,7 @@ static MRI *siemensRead(const char *fname, int read_volume_flag)
   {
     mri = MRIallocHeader(base_raw_matrix_size, 
                          base_raw_matrix_size, 
-                         n_slices, MRI_SHORT);
+                         n_slices, MRI_SHORT, n_t);
     mri->nframes = n_t;
   }
 
@@ -2508,7 +2508,7 @@ static MRI *mincRead(const char *fname, int read_volume)
                            dtype, dim_sizes[3]);
   else
   {
-    mri = MRIallocHeader(dim_sizes[0], dim_sizes[1], dim_sizes[2], dtype);
+    mri = MRIallocHeader(dim_sizes[0], dim_sizes[1], dim_sizes[2], dtype, dim_sizes[3]);
     mri->nframes = dim_sizes[3];
   }
 
@@ -2753,7 +2753,7 @@ static MRI *mincRead2(const char *fname, int read_volume)
                            dtype, dim_sizes[3]);
   else
   {
-    mri = MRIallocHeader(dim_sizes[0], dim_sizes[1], dim_sizes[2], dtype);
+    mri = MRIallocHeader(dim_sizes[0], dim_sizes[1], dim_sizes[2], dtype, dim_sizes[3]);
     mri->nframes = dim_sizes[3];
   }
 
@@ -4242,7 +4242,7 @@ static MRI *get_b_info
       }
       else
       {
-        mri = MRIallocHeader(nx, ny, nslices, MRI_SHORT);
+        mri = MRIallocHeader(nx, ny, nslices, MRI_SHORT, nt);
         mri->nframes = nt;
       }
 
@@ -4295,7 +4295,7 @@ static MRI *get_b_info
   }
 #endif
 
-  mri = MRIallocHeader(1, 1, 1, type);
+  mri = MRIallocHeader(1, 1, 1, type, 1);
 
   /* ----- try to read the stem.bhdr ----- */
   sprintf(bhdr_name, "%s/%s.bhdr", directory, stem);
@@ -4311,6 +4311,10 @@ static MRI *get_b_info
     }
     fscanf(fp, "%d %d %d %*d", &ny, &nx, &nt);
     mri->nframes = nt;
+    free(mri->frames) ;
+    mri->frames = (MRI_FRAME *)calloc(nt, sizeof(MRI_FRAME)) ;
+    if (mri->frames == NULL)
+      ErrorExit(ERROR_NOMEMORY, "get_b_info: could not allocate %d frames", nt) ;
     fclose(fp);
 
     strcpy(mri->fname, fname_passed);
@@ -4564,7 +4568,7 @@ static int orient_with_register(MRI *mri)
     errno = 0;
     ErrorPrintf(ERROR_BADPARM, "guessing at COR- orientation...\n");
 
-    subject_mri = MRIallocHeader(256, 256, 256, MRI_UCHAR);
+    subject_mri = MRIallocHeader(256, 256, 256, MRI_UCHAR, 1);
     subject_mri->fov = 256.0;
     subject_mri->thick = subject_mri->ps = 1.0;
     subject_mri->xsize = subject_mri->ysize = subject_mri->zsize = 1.0;
@@ -5319,7 +5323,7 @@ static MRI *genesisRead(const char *fname, int read_volume)
   // otherwise the same
 
   /* ----- allocate the mri structure ----- */
-  header = MRIallocHeader(1, 1, 1, MRI_SHORT);
+  header = MRIallocHeader(1, 1, 1, MRI_SHORT, header->nframes);
 
   if (odd_only || even_only)
     header->depth = (im_high - im_low)/2 + 1;
@@ -5491,7 +5495,7 @@ static MRI *genesisRead(const char *fname, int read_volume)
                            header->depth, header->type, header->nframes);
   else
     mri = MRIallocHeader(header->width, header->height,
-                         header->depth, header->type);
+                         header->depth, header->type, header->nframes);
 
   MRIcopyHeader(header, mri);
   MRIfree(&header);
@@ -5660,7 +5664,7 @@ static MRI *gelxRead(const char *fname, int read_volume)
   im_high--;
 
   /* ----- allocate the mri structure ----- */
-  header = MRIallocHeader(1, 1, 1, MRI_SHORT);
+  header = MRIallocHeader(1, 1, 1, MRI_SHORT, header->nframes);
 
   header->depth = im_high - im_low + 1;
   header->imnr0 = 1;
@@ -5787,7 +5791,7 @@ static MRI *gelxRead(const char *fname, int read_volume)
           (header->width, header->height, header->depth, MRI_SHORT);
   else
     mri = MRIallocHeader
-          (header->width, header->height, header->depth, MRI_SHORT);
+      (header->width, header->height, header->depth, MRI_SHORT, header->nframes);
 
   MRIcopyHeader(header, mri);
   MRIfree(&header);
@@ -6146,7 +6150,7 @@ static MRI *analyzeRead(const char *fname, int read_volume)
     mri = MRIallocSequence(ncols, nrows, nslcs, mritype, nframes);
   else
   {
-    mri = MRIallocHeader(ncols, nrows, nslcs, mritype);
+    mri = MRIallocHeader(ncols, nrows, nslcs, mritype, nframes);
     mri->nframes = nframes;
   }
 
@@ -7632,7 +7636,7 @@ static MRI *gdfRead(const char *fname, int read_volume)
   if (read_volume)
     mri = MRIallocSequence(size[0], size[1], n_files, data_type, 1);
   else
-    mri = MRIallocHeader(size[0], size[1], n_files, data_type);
+    mri = MRIallocHeader(size[0], size[1], n_files, data_type, 1);
 
   mri->xsize = ipr[0];
   mri->ysize = ipr[1];
@@ -8942,7 +8946,7 @@ MRI *MRIreadOtl
 
   if (!read_volume_flag)
   {
-    mri = MRIallocHeader(width, height, slices, MRI_SHORT);
+    mri = MRIallocHeader(width, height, slices, MRI_SHORT, 1);
     if (mri == NULL)
     {
       errno = 0;
@@ -9137,7 +9141,7 @@ static MRI *ximgRead(const char *fname, int read_volume)
   im_high--;
 
   /* ----- allocate the mri structure ----- */
-  header = MRIallocHeader(1, 1, 1, MRI_SHORT);
+  header = MRIallocHeader(1, 1, 1, MRI_SHORT, 1);
 
   header->depth = im_high - im_low + 1;
   header->imnr0 = 1;
@@ -9304,7 +9308,7 @@ static MRI *ximgRead(const char *fname, int read_volume)
           (header->width, header->height, header->depth, header->type);
   else
     mri = MRIallocHeader
-          (header->width, header->height, header->depth, header->type);
+      (header->width, header->height, header->depth, header->type, 1);
 
   MRIcopyHeader(header, mri);
   MRIfree(&header);
@@ -9394,7 +9398,7 @@ static MRI *MRISreadCurvAsMRI(const char *curvfile, int read_volume)
 
   if (!read_volume)
   {
-    curvmri = MRIallocHeader(vnum, 1,1,MRI_FLOAT);
+    curvmri = MRIallocHeader(vnum, 1,1,MRI_FLOAT, 1);
     curvmri->nframes = 1;
     fclose(fp) ;
     return(curvmri);
@@ -9628,9 +9632,9 @@ static MRI *nifti1Read(const char *fname, int read_volume)
     mri = MRIallocSequence(ncols, hdr.dim[2], hdr.dim[3], fs_type, nslices);
   else{
     if(! IsIco7)
-      mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type);
+      mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type, nslices);
     else
-      mri = MRIallocHeader(163842, 1, 1, fs_type);
+      mri = MRIallocHeader(163842, 1, 1, fs_type, nslices);
       mri->nframes = nslices;
   }
   if(mri == NULL) return(NULL);
@@ -10421,9 +10425,9 @@ static MRI *niiRead(const char *fname, int read_volume)
     mri = MRIallocSequence(ncols,hdr.dim[2],hdr.dim[3],fs_type,nslices);
   else{
     if(! IsIco7)
-      mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type);
+      mri = MRIallocHeader(ncols, hdr.dim[2], hdr.dim[3], fs_type, nslices);
     else
-      mri = MRIallocHeader(163842, 1, 1, fs_type);
+      mri = MRIallocHeader(163842, 1, 1, fs_type, nslices);
       mri->nframes = nslices;
   }
   if (mri == NULL) return(NULL);
@@ -11724,7 +11728,7 @@ static MRI *sdtRead(const char *fname, int read_volume)
   }
   else
   {
-    mri = MRIallocHeader(dim[0], dim[1], dim[2], data_type);
+    mri = MRIallocHeader(dim[0], dim[1], dim[2], data_type, dim[3]);
     if (mri == NULL)
       return(NULL);
   }
@@ -12145,7 +12149,7 @@ mghRead(const char *fname, int read_volume, int frame)
   bytes = width * height * bpv ;  /* bytes per slice */
   if (!read_volume)
   {
-    mri = MRIallocHeader(width, height, depth, type) ;
+    mri = MRIallocHeader(width, height, depth, type, nframes) ;
     mri->dof = dof ;
     mri->nframes = nframes ;
     if (gzipped)

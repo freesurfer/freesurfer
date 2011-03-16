@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.25 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:44 $
+ *    $Revision: 1.26 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -473,7 +473,7 @@ regio_write_surfacexform_to_register_dat(MATRIX *B, char *fname,
 {
   MATRIX *Ta, *Sa, *invTa, *A, *R, *S, *invS, *T, *m1, *m2 ;
   MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
-                                 mris->vg.depth, MRI_UCHAR) ;
+                                 mris->vg.depth, MRI_UCHAR,1) ;
 
   MRIcopyVolGeomToMRI(mri_surf, &mris->vg) ;
 
@@ -505,7 +505,7 @@ regio_read_surfacexform_from_register_dat(char *fname, MRI_SURFACE *mris,
   float  pres, bres, intensity ;
   int    float2int ;
   MRI *mri_surf = MRIallocHeader(mris->vg.width, mris->vg.height, 
-                                 mris->vg.depth, MRI_UCHAR) ;
+                                 mris->vg.depth, MRI_UCHAR,1) ;
 
   if (regio_read_register(fname, subject, &pres, &bres, &intensity,&B,&float2int) != 0)
     ErrorReturn(NULL, (ERROR_NOFILE, 

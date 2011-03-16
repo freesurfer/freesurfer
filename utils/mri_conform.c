@@ -6,9 +6,9 @@
 /*
  * Original Author: Christian Haselgrove
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.35 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:48 $
+ *    $Revision: 1.36 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -47,7 +47,7 @@ MATRIX *MRIgetConformMatrix(MRI *mri)
     setDirectionCosine(mri, MRI_CORONAL);
   }
 
-  templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
+  templ = MRIallocHeader(256, 256, 256, MRI_UCHAR, mri->nframes);
 
   templ->imnr0 = 1;
   templ->imnr1 = 256;
@@ -86,7 +86,7 @@ MRI *MRIconform(MRI *mri)
     setDirectionCosine(res, MRI_CORONAL);
   }
 
-  templ = MRIallocHeader(256, 256, 256, MRI_UCHAR);
+  templ = MRIallocHeader(256, 256, 256, MRI_UCHAR, mri->nframes);
 
   templ->imnr0 = 1;
   templ->imnr1 = 256;

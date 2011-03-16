@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.152 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:44 $
+ *    $Revision: 1.153 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -312,7 +312,7 @@ MATRIX *vg_i_to_r(const VOL_GEOM *vg)
 {
   MATRIX *mat =0;
   MRI *tmp = 0;
-  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR, 1);
   useVolGeomToMRI(vg, tmp);
   mat = extract_i_to_r(tmp);
   MRIfree(&tmp);
@@ -322,7 +322,7 @@ MATRIX *vg_r_to_i(const VOL_GEOM *vg)
 {
   MATRIX *mat =0;
   MRI *tmp = 0;
-  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR, 1);
   useVolGeomToMRI(vg, tmp);
   mat = extract_r_to_i(tmp);
   MRIfree(&tmp);
@@ -333,7 +333,7 @@ MATRIX *TkrVox2RASfromVolGeom(const VOL_GEOM *vg)
 {
   MATRIX *mat = NULL;
   MRI *tmp = 0;
-  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR);
+  tmp = MRIallocHeader(vg->width, vg->height, vg->depth, MRI_UCHAR, 1);
   useVolGeomToMRI(vg, tmp);
   mat = MRIxfmCRS2XYZtkreg(tmp);
   MRIfree(&tmp);
@@ -1495,12 +1495,12 @@ ltaMNIwrite(LTA *lta, const char *fname)
     src = MRIallocHeader(lt->src.width,
                          lt->src.height,
                          lt->src.depth,
-                         MRI_UCHAR);
+                         MRI_UCHAR,1);
     useVolGeomToMRI(&lt->src, src);
     dst = MRIallocHeader(lt->dst.width,
                          lt->dst.height,
                          lt->dst.depth,
-                         MRI_UCHAR);
+                         MRI_UCHAR,1);
     useVolGeomToMRI(&lt->dst, dst);
     voxFromRAS = extract_r_to_i(src);
     tmp = MatrixMultiply(lta->xforms[0].m_L, voxFromRAS, NULL);
@@ -3603,9 +3603,9 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
     m_L = lt->m_L;
     switch (ltatype){
     case LINEAR_RAS_TO_RAS:
-      mriSrc = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR) ;
+      mriSrc = MRIallocHeader(lt->src.width, lt->src.height, lt->src.depth, MRI_UCHAR,1) ;
       MRIcopyVolGeomToMRI(mriSrc, &lt->src) ;
-      mriDst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR) ;
+      mriDst = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR,1) ;
       MRIcopyVolGeomToMRI(mriDst, &lt->dst) ;
       lt->m_L = MRItkReg2Native(mriDst,mriSrc,m_L);
       MRIfree(&mriSrc) ;
@@ -3633,7 +3633,7 @@ LTA *LTAchangeType(LTA *lta, int ltatype)
     switch (ltatype)
     {
     case LINEAR_RAS_TO_RAS:
-      mri_tmp = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR) ;
+      mri_tmp = MRIallocHeader(lt->dst.width, lt->dst.height, lt->dst.depth, MRI_UCHAR,1) ;
       MRIcopyVolGeomToMRI(mri_tmp, &lt->dst) ;
       m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
       MRIfree(&mri_tmp) ;

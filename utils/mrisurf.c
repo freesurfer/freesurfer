@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:47 $
- *    $Revision: 1.692 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:45 $
+ *    $Revision: 1.693 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.692 2011/03/02 00:04:47 nicks Exp $");
+  return("$Id: mrisurf.c,v 1.693 2011/03/16 17:31:45 fischl Exp $");
 }
 
 /*-----------------------------------------------------
@@ -1043,8 +1043,13 @@ MRI_SURFACE *MRISreadOverAlloc(const char *fname, double pct_over)
       surf_name++ ;  /* past the last slash */
     if (toupper(*surf_name) == 'R')
       mris->hemisphere = RIGHT_HEMISPHERE ;
-    else
+    else if (toupper(*surf_name) == 'L')
       mris->hemisphere = LEFT_HEMISPHERE ;
+    else if (toupper(*surf_name) == 'B')
+      mris->hemisphere = BOTH_HEMISPHERES ;
+    else
+      mris->hemisphere = NO_HEMISPHERE ;
+
   }
 
   /***********************************************************************/
@@ -10904,17 +10909,23 @@ MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
 {
   int    k, mritype ;
   float  curv;
-  char   fname[STRLEN], *cp, path[STRLEN], name[STRLEN] ;
+  char   fname[STRLEN], *cp, path[STRLEN], name[STRLEN], *hemi ;
   FILE   *fp;
 
+  switch (mris->hemisphere)
+  {
+  case LEFT_HEMISPHERE:   hemi = "lh" ; break ;
+  case BOTH_HEMISPHERES:  hemi = "both" ; break ;
+  case RIGHT_HEMISPHERE:  hemi = "rh" ; break ;
+  default:                hemi = "unknown" ; break ;
+  }
   cp = strchr(sname, '/') ;
   if (!cp)                 /* no path - use same one as mris was read from */
   {
     FileNamePath(mris->fname, path) ;
     cp = strchr(sname, '.') ;
     if (!cp)
-      sprintf(fname, "%s/%s.%s", path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", sname) ;
+      sprintf(fname, "%s/%s.%s", path, hemi, sname) ;
     else
       sprintf(fname, "%s/%s", path, sname) ;
   }
@@ -10924,8 +10935,7 @@ MRISwriteCurvature(MRI_SURFACE *mris, const char *sname)
     FileNameOnly(sname, name) ;
     cp = strchr(sname, '.') ;
     if (!cp)
-      sprintf(fname, "%s/%s.%s", path,
-              mris->hemisphere == LEFT_HEMISPHERE ? "lh" : "rh", name) ;
+      sprintf(fname, "%s/%s.%s", path, hemi, name) ;
     else
       sprintf(fname, "%s/%s", path, name) ;
   }
@@ -19186,11 +19196,17 @@ mrisWriteSnapshots(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
 static int
 mrisWriteSnapshot(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, int t)
 {
-  char fname[STRLEN], path[STRLEN], base_name[STRLEN], *cp ;
+  char fname[STRLEN], path[STRLEN], base_name[STRLEN], *cp, *hemi ;
 
+  switch (mris->hemisphere)
+  {
+  case LEFT_HEMISPHERE:   hemi = "lh" ; break ;
+  case BOTH_HEMISPHERES:  hemi = "both" ; break ;
+  case RIGHT_HEMISPHERE:  hemi = "rh" ; break ;
+  default:                hemi = "unknown" ; break ;
+  }
   FileNamePath(mris->fname, path) ;
-  sprintf(base_name, "%s/%s.%s", path,
-          mris->hemisphere == LEFT_HEMISPHERE ? "lh":"rh", parms->base_name);
+  sprintf(base_name, "%s/%s.%s", path, hemi, parms->base_name);
   if ((cp = strstr(base_name, ".geo")) != NULL)
   {
     *cp = 0;
@@ -27899,7 +27915,7 @@ MRISsurfaceRASToTalairachVoxel(MRI_SURFACE *mris, MRI *mri, double xw, double yw
   ///////////////////////////////////////////////////
   talgeom=lt->dst;
   talVol =
-    MRIallocHeader(talgeom.width, talgeom.height, talgeom.depth, MRI_UCHAR);
+    MRIallocHeader(talgeom.width, talgeom.height, talgeom.depth, MRI_UCHAR,1);
   useVolGeomToMRI(&talgeom, talVol);
   talRASToTalVol = extract_r_to_i(talVol);
   //////////////////////////////////////////////////
@@ -36695,7 +36711,7 @@ MRISexpandSurface(MRI_SURFACE *mris,
                   int use_thick,
                   int nsurfaces)
 {
-  int    vno, n, niter, avgs, nrounds, surf_no ;
+  int    vno, n, niter, avgs, nrounds, surf_no, orig_start_t = parms->start_t ;
   VERTEX *v ;
   double dist, dx=0., dy=0., dz=0.0, dtotal, *pial_x, *pial_y, *pial_z ;
   char fname[STRLEN], *hemi, *cp ;
@@ -36752,6 +36768,7 @@ MRISexpandSurface(MRI_SURFACE *mris,
       memset(&thick_parms, 0, sizeof(thick_parms)) ; 
       thick_parms.dt = 0.2 ; thick_parms.momentum = .5; thick_parms.l_nlarea = 1 ;
       thick_parms.l_thick_min = 0 ; thick_parms.tol = 1e-1 ; thick_parms.l_thick_parallel = 1 ;
+      thick_parms.remove_neg = 1 ;
       cp = getenv("FREESURFER_HOME");
       if (cp == NULL)
         ErrorExit(ERROR_BADPARM, "%s: FREESURFER_HOME not defined in environment", cp) ;
@@ -36829,7 +36846,7 @@ MRISexpandSurface(MRI_SURFACE *mris,
       {
         for (n = parms->start_t ; n < parms->start_t+niter ; n++)
         {
-          printf("\rstep %d of %d     ", n+1, parms->start_t+nrounds*niter) ;
+          printf("\rstep %d of %d     ", n+1, orig_start_t+nrounds*niter) ;
           fflush(stdout) ;
           MRIScomputeMetricProperties(mris) ;
           if (!(parms->flags & IPFLAG_NO_SELF_INT_TEST))
@@ -37137,7 +37154,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
         MRIallocHeader(lt->src.width,
                        lt->src.height,
                        lt->src.depth,
-                       MRI_UCHAR);
+                       MRI_UCHAR,1);
       mri->x_r = lt->src.x_r;
       mri->y_r = lt->src.y_r;
       mri->z_r = lt->src.z_r;
@@ -37164,7 +37181,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
       mri = MRIallocHeader(mris->vg.width,
                            mris->vg.height,
                            mris->vg.depth,
-                           MRI_UCHAR);
+                           MRI_UCHAR,1);
       mri->x_r = mris->vg.x_r;
       mri->y_r = mris->vg.y_r;
       mri->z_r = mris->vg.z_r;
@@ -37203,7 +37220,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
       mri_dst = MRIallocHeader(lt->dst.width,
                                lt->dst.height,
                                lt->dst.depth,
-                               MRI_UCHAR);
+                               MRI_UCHAR,1);
       mri_dst->x_r = lt->dst.x_r;
       mri_dst->y_r = lt->dst.y_r;
       mri_dst->z_r = lt->dst.z_r;
@@ -37230,7 +37247,7 @@ MRIStransform(MRI_SURFACE *mris, MRI *mri, TRANSFORM *transform, MRI *mri_dst)
       mri_dst = MRIallocHeader(lt->dst.width,
                                lt->dst.height,
                                lt->dst.depth,
-                               MRI_UCHAR);
+                               MRI_UCHAR,1);
       mri_dst->x_r = -1;
       mri_dst->y_r = 0;
       mri_dst->z_r = 0;
@@ -64491,7 +64508,7 @@ MRISsurf2surf(MRIS *mris, MRI *dst, LTA *lta)
   }
   src =
     MRIallocHeader
-    (mris->vg.width, mris->vg.height, mris->vg.depth, MRI_VOLUME_TYPE_UNKNOWN);
+    (mris->vg.width, mris->vg.height, mris->vg.depth, MRI_VOLUME_TYPE_UNKNOWN,1);
   if (mris->vg.valid ==0)
   {
     fprintf
@@ -64561,7 +64578,7 @@ MRISsurf2surfAll(MRIS *mris, MRI *dst, LTA *lta)
     }
   }
   src = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth,
-                       MRI_VOLUME_TYPE_UNKNOWN);
+                       MRI_VOLUME_TYPE_UNKNOWN,1);
   if (mris->vg.valid ==0)
   {
     fprintf
@@ -67526,7 +67543,7 @@ MRISsurfaceRASToVoxel(MRI_SURFACE *mris, MRI *mri, double r, double a, double s,
   }
   if (mris->vg.valid)
   {
-    mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
     m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
     MRIfree(&mri_tmp) ;
@@ -67572,7 +67589,7 @@ MRISsurfaceRASToVoxelCached(MRI_SURFACE *mris, MRI *mri, double r, double a, dou
 
     if (mris->vg.valid)
     {
-      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
       m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
       MRIfree(&mri_tmp) ;
@@ -67608,8 +67625,8 @@ MRISsurfaceRASFromVoxel(MRI_SURFACE *mris, MRI *mri, double x, double y, double 
   }
   if (mris->vg.valid)
   {
-      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
-    MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+    mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
+    MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
     MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
     m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
     MRIfree(&mri_tmp) ;
@@ -67644,7 +67661,7 @@ MRISsurfaceRASFromVoxelCached(MRI_SURFACE *mris, MRI *mri, double x, double y,
 
     if (mris->vg.valid)
     {
-      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR) ;
+      mri_tmp = MRIallocHeader(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_UCHAR,1) ;
       MRIcopyVolGeomToMRI(mri_tmp, &mris->vg) ;
       m_sras2ras =  RASFromSurfaceRAS_(mri_tmp) ;
       MRIfree(&mri_tmp) ;
@@ -68781,7 +68798,7 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
   }  
 
   MRISstoreMetricProperties(mris) ;
-  mris->status = MRIS_SPHERE ;
+  //  mris->status = MRIS_SPHERE ;
   mris->mht = parms->mht = (void *)MHTfillTableAtResolution(mris, NULL, CANONICAL_VERTICES, 1.0); // to lookup closest face
 
   if (Gdiag & DIAG_WRITE)
@@ -68809,8 +68826,12 @@ MRISminimizeThicknessFunctional(MRI_SURFACE *mris, INTEGRATION_PARMS *parms, flo
     the first time through if we don't care about negative vertices, start things
     out with min dist (which will cause negative triangles)
   */
+#if 0
   if (parms->start_t == 0 && parms->remove_neg == 0)
     MRISfindClosestPialVerticesCanonicalCoords(mris, mris->nsize) ;
+  else
+#endif
+    MRISrestoreVertexPositions(mris, CANONICAL_VERTICES) ; // start with pial coord of this vtx
   MRIScomputeSecondFundamentalForm(mris) ;
   MRISrestoreRipFlags(mris) ;
   mrisClearMomentum(mris) ;

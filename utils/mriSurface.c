@@ -6,9 +6,9 @@
 /*
  * Original Author: Kevin Teich
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.38 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:48 $
+ *    $Revision: 1.39 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -829,7 +829,7 @@ Surf_tErr Surf_TransformToVolumeGeometry ( mriSurfaceRef this,
   DebugNote( ("Allocting fake header.") );
   mri = MRIallocHeader( iVolumeGeometry->width,
                         iVolumeGeometry->height,
-                        iVolumeGeometry->depth, MRI_VOLUME_TYPE_UNKNOWN);
+                        iVolumeGeometry->depth, MRI_VOLUME_TYPE_UNKNOWN, 1);
   DebugAssertThrowX( (NULL != mri),
                      eResult, Surf_tErr_AllocationFailed );
 

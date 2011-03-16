@@ -9,9 +9,9 @@
 /*
  * Original Authors: Kevin Teich and Nick Schmansky
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.27 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:48 $
+ *    $Revision: 1.28 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1136,7 +1136,7 @@ MRI *MRISreadGiftiAsMRI(const char *fname, int read_volume)
   MRI *mri;
   if (!read_volume)
   {
-    mri = MRIallocHeader(num_vertices,1,1,MRI_FLOAT);
+    mri = MRIallocHeader(num_vertices,1,1,MRI_FLOAT,frame_count);
     mri->nframes = frame_count;
     return(mri);
   }

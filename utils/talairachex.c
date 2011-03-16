@@ -8,9 +8,9 @@
 /*
  * Original Author: Yasunari Tosa
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:55 $
- *    $Revision: 1.18 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:44 $
+ *    $Revision: 1.19 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -160,7 +160,7 @@ MATRIX *MtalVoxelFromVoxel(MRI *mri_src, const LTA *lta)
 
   talRASFromVoxel = MtalairachFromVoxel(mri_src, lta);
   // use lta->xform[0].dst to construct the talairach volume matrix
-  mri_talvol = MRIallocHeader(mri_src->width, mri_src->height, mri_src->depth, mri_src->type);
+  mri_talvol = MRIallocHeader(mri_src->width, mri_src->height, mri_src->depth, mri_src->type,1);
   MRIcopyHeader(mri_src,mri_talvol);
   ModifyTalairachCRAS(mri_talvol, lta);
 
@@ -195,7 +195,7 @@ MATRIX *MvoxelFromTalVoxel(MRI *mri_dst, const LTA *lta)
   MATRIX *res = 0;
   MRI *mri_talvol = 0;
 
-  mri_talvol = MRIallocHeader(mri_dst->width, mri_dst->height, mri_dst->depth, mri_dst->type);
+  mri_talvol = MRIallocHeader(mri_dst->width, mri_dst->height, mri_dst->depth, mri_dst->type,1);
   MRIcopyHeader(mri_dst,mri_talvol);
   ModifyTalairachCRAS(mri_talvol, lta);
 
@@ -215,7 +215,7 @@ MATRIX *MRASFromTalVoxel(MRI *mri, const LTA *lta)
   MATRIX *RASfromTalRAS = 0;
   MATRIX *res = 0;
 
-  mriTal = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
+  mriTal = MRIallocHeader(mri->width, mri->height, mri->depth, mri->type,1);
   MRIcopyHeader(mri, mriTal);
   ModifyTalairachCRAS(mriTal, lta);
 

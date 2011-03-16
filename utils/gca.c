@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: lzollei $
- *    $Date: 2011/03/05 22:04:20 $
- *    $Revision: 1.291 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 17:31:47 $
+ *    $Revision: 1.292 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -455,7 +455,7 @@ void GCAsetup(GCA *gca)
                     MRIallocHeader(gca->node_width,
                                    gca->node_height,
                                    gca->node_depth,
-                                   MRI_UCHAR);
+                                   MRI_UCHAR,1);
   /* Copy the voxel resolutions.  Set the defaults */
   gca->mri_node__->xsize = gca->xsize * gca->node_spacing;
   gca->mri_node__->ysize = gca->ysize * gca->node_spacing;
@@ -480,7 +480,7 @@ void GCAsetup(GCA *gca)
     MRIallocHeader(gca->prior_width,
                    gca->prior_height,
                    gca->prior_depth,
-                   MRI_UCHAR);
+                   MRI_UCHAR,1);
 
   /* Copy the voxel resolutions.  Set the defaults */
   gca->mri_prior__->xsize = gca->xsize * gca->prior_spacing;
@@ -501,7 +501,7 @@ void GCAsetup(GCA *gca)
     gca->mri_tal__ = 0;
   }
   gca->mri_tal__ = 
-    MRIallocHeader(gca->width, gca->height, gca->depth, MRI_UCHAR);
+    MRIallocHeader(gca->width, gca->height, gca->depth, MRI_UCHAR,1);
 
   /* Copy the voxel resolutions.  Set the defaults */
   gca->mri_tal__->xsize = gca->xsize;
@@ -13593,23 +13593,25 @@ GCAhistoScaleImageIntensitiesLongitudinal(GCA *gca, MRI *mri, int noskull)
            tbox.x, tbox.y, tbox.z, tbox.x+tbox.dx-1, tbox.y+tbox.dy-1,tbox.z+tbox.dz-1);
     box.x += tbox.x ; box.y += tbox.y ; box.z += tbox.z ;
     box.dx += tbox.dx ; box.dy += tbox.dy ; box.dz += tbox.dz ;
-    mri_mask = MRIbinarize(mri_frame, NULL, min_real_val, 0, 1) ;
-    MRIfree(&mri_frame) ;
-    HISTOfree(&h_mri) ;
-    HISTOfree(&h_smooth) ;
+    MRIfree(&mri_frame) ; HISTOfree(&h_mri) ; HISTOfree(&h_smooth) ;
   }
 
   min_real_val /= mri->nframes ;
   box.x /= mri->nframes ; box.y /= mri->nframes ; box.z /= mri->nframes ; 
   box.dx /= mri->nframes ; box.dy /= mri->nframes ; box.dz /= mri->nframes ; 
+  // divide by 3 to avoid midline
+  x0 = box.x+box.dx/3 ; y0 = box.y+box.dy/3 ; z0 = box.z+box.dz/2 ;
+  printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
+  box.dx /= 4 ; box.x = x0 - box.dx/2;
+  box.dy /= 4 ; box.y = y0 - box.dy/2;
+  box.dz /= 4 ; box.z = z0 - box.dz/2;
+
+  mri_tmp = MRIcopyFrame(mri, NULL, 0, 0) ;
+  mri_frame = MRImean(mri_tmp, NULL, 5) ;
+  mri_mask = MRIbinarize(mri_frame, NULL, min_real_val, 0, 1) ;
+  MRIfree(&mri_frame) ; MRIfree(&mri_tmp) ;
   for (frame = 0 ; frame < mri->nframes ; frame++)
   {
-    // divide by 3 to avoid midline
-    x0 = box.x+box.dx/3 ; y0 = box.y+box.dy/3 ; z0 = box.z+box.dz/2 ;
-    printf("using (%.0f, %.0f, %.0f) as brain centroid...\n",x0, y0, z0) ;
-    box.dx /= 4 ; box.x = x0 - box.dx/2;
-    box.dy /= 4 ; box.y = y0 - box.dy/2;
-    box.dz /= 4 ; box.z = z0 - box.dz/2;
     mri_frame = MRIcopyFrame(mri, NULL, frame, 0) ;
     MRImask(mri_frame, mri_mask, mri_frame, 0,0) ;  /* remove stuff that is 
                                                        background or csf */
@@ -24190,7 +24192,7 @@ GCAsourceVoxelToPriorReal(GCA *gca, MRI *mri, TRANSFORM *transform,
   //printf("GCAsourcevoxelToPriorReal: printing mri_tal\n");
   if(!gca->mri_tal__)
     {
-      gca->mri_tal__ = MRIallocHeader(gca->width, gca->height, gca->depth, MRI_UCHAR);
+      gca->mri_tal__ = MRIallocHeader(gca->width, gca->height, gca->depth, MRI_UCHAR,1);
       gca->mri_tal__->xsize = gca->xsize;
       gca->mri_tal__->ysize = gca->ysize;
       gca->mri_tal__->zsize = gca->zsize;
