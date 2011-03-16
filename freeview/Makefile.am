@@ -1,3 +1,5 @@
+if ENABLE_QT_APPS
+
 include $(top_srcdir)/build-aux/autotroll.mk
 
 bin_PROGRAMS = freeview
@@ -476,3 +478,4 @@ EXTRA_DIST=$(freeview_SOURCES)
 EXCLUDE_FILES=
 include $(top_srcdir)/Makefile.extra
 
+endif 

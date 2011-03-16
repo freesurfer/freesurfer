@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: greve $
-#    $Date: 2011/03/15 23:34:27 $
-#    $Revision: 1.518 $
+#    $Author: krish $
+#    $Date: 2011/03/16 20:14:59 $
+#    $Revision: 1.519 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -1861,6 +1861,7 @@ AC_DEFINE([XML_CONTEXT_BYTES], 1024,
 ################################################################
 m4_include([m4/autotroll.m4])
 AT_WITH_QT([opengl])
+AM_CONDITIONAL(ENABLE_QT_APPS, test "$qt_enabled" = "yes")
 
 #################################################################
 # If on a Mac, make scuba and qdec, bundles (Qt apps)
