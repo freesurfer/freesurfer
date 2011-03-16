@@ -1,5 +1,5 @@
 /**
- * @file  SurfaceOverlay.cxx
+ * @file  SurfaceOverlay.cpp
  * @brief Implementation for surface layer properties.
  *
  * In 2D, the MRI is viewed as a single slice, and controls are
@@ -10,9 +10,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.11 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/16 22:07:51 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *

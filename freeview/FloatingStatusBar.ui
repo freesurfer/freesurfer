@@ -16,6 +16,9 @@
     <height>0</height>
    </size>
   </property>
+  <property name="focusPolicy">
+   <enum>Qt::ClickFocus</enum>
+  </property>
   <property name="windowTitle">
    <string/>
   </property>
@@ -60,6 +63,9 @@
           <width>16777215</width>
           <height>15</height>
          </size>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::StrongFocus</enum>
         </property>
         <property name="value">
          <number>24</number>

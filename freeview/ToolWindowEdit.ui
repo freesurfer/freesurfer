@@ -42,8 +42,9 @@
      <addaction name="actionLiveWire"/>
      <addaction name="actionFill"/>
      <addaction name="actionContour"/>
-     <addaction name="separator"/>
      <addaction name="actionColorPicker"/>
+     <addaction name="separator"/>
+     <addaction name="actionReplaceLabel"/>
     </widget>
    </item>
    <item>
@@ -583,6 +584,18 @@ Alt + L to turn on/off label outline display mode.</string>
     <string>Color picker</string>
    </property>
   </action>
+  <action name="actionReplaceLabel">
+   <property name="icon">
+    <iconset resource="freeview.qrc">
+     <normaloff>:/resource/icons/voxel_draw_replace_color.png</normaloff>:/resource/icons/voxel_draw_replace_color.png</iconset>
+   </property>
+   <property name="text">
+    <string>Replace Label</string>
+   </property>
+   <property name="toolTip">
+    <string>Replace Label</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
@@ -872,6 +885,22 @@ Alt + L to turn on/off label outline display mode.</string>
     </hint>
    </hints>
   </connection>
+  <connection>
+   <sender>actionReplaceLabel</sender>
+   <signal>triggered()</signal>
+   <receiver>ToolWindowEdit</receiver>
+   <slot>OnReplaceLabel()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>-1</x>
+     <y>-1</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>161</x>
+     <y>294</y>
+    </hint>
+   </hints>
+  </connection>
  </connections>
  <slots>
   <slot>OnSpinBrushSize(int)</slot>
@@ -880,5 +909,6 @@ Alt + L to turn on/off label outline display mode.</string>
   <slot>OnDrawRangeChanged(QString)</slot>
   <slot>OnExcludeRangeChanged(QString)</slot>
   <slot>OnLineEditSmoothSD(QString)</slot>
+  <slot>OnReplaceLabel()</slot>
  </slots>
 </ui>

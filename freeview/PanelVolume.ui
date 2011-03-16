@@ -665,6 +665,12 @@
             <height>16777215</height>
            </size>
           </property>
+          <property name="focusPolicy">
+           <enum>Qt::WheelFocus</enum>
+          </property>
+          <property name="toolTip">
+           <string>Enter partial name to search</string>
+          </property>
          </widget>
         </item>
         <item>

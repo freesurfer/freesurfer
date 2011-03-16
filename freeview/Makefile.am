@@ -34,6 +34,7 @@ BUILT_SOURCES = \
 	ui_PanelTrack.h \
 	ui_DialogSavePointSet.h \
 	ui_DialogSaveVolume.h \
+  ui_DialogReplaceLabel.h \
 	qtcolorpicker.moc \
 	moc_BrushProperty.cpp \
 	moc_CommandEdit.cpp \
@@ -120,6 +121,7 @@ BUILT_SOURCES = \
 	moc_PanelTrack.cpp \
 	moc_LayerPropertyTrack.cpp \
   moc_DialogSaveVolume.cpp \
+  moc_DialogReplaceLabel.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -343,7 +345,9 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	TrackGroup.h \
 	PanelTrack.h \
 	LayerPropertyTrack.h \
-	DialogSaveVolume.h
+  DialogSaveVolume.h \
+  DialogReplaceLabel.cpp \
+  DialogReplaceLabel.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/16 21:23:48 $
- *    $Revision: 1.48 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/16 22:07:51 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -189,11 +189,7 @@ bool FSSurface::MRISRead( const QString& filename,
   m_bValidVolumeGeometry = false;
   if ( m_MRIS->vg.valid )
   {
-    MRI* tmp = MRIallocHeader(m_MRIS->vg.width,
-                              m_MRIS->vg.height,
-                              m_MRIS->vg.depth,
-                              MRI_UCHAR,
-                              1);
+    MRI* tmp = MRIallocHeader(m_MRIS->vg.width, m_MRIS->vg.height, m_MRIS->vg.depth, MRI_UCHAR, 1);
     useVolGeomToMRI(&m_MRIS->vg, tmp);
     MATRIX* vox2rasScanner = MRIxfmCRS2XYZ(tmp, 0);
     MATRIX* vo2rasTkReg = MRIxfmCRS2XYZtkreg(tmp);

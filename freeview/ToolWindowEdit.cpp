@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.29 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/16 22:07:51 $
+ *    $Revision: 1.30 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,6 +30,7 @@
 #include "LayerCollection.h"
 #include "LayerMRI.h"
 #include "RenderView2D.h"
+#include "DialogReplaceLabel.h"
 #include <QTimer>
 #include <QSettings>
 #include <QDebug>
@@ -320,4 +321,18 @@ void ToolWindowEdit::OnComboReference(int sel)
   LayerVolumeBase* layer = qobject_cast<LayerVolumeBase*>(ui->comboBoxReference->itemData(sel).value<QObject*>());
   BrushProperty* bp = MainWindow::GetMainWindow()->GetBrushProperty();
   bp->SetReferenceLayer( layer );
+}
+
+void ToolWindowEdit::OnReplaceLabel()
+{
+  DialogReplaceLabel dlg(this);
+  if (dlg.exec() == QDialog::Accepted)
+  {
+    LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer("MRI");
+    int nPlane = MainWindow::GetMainWindow()->GetMainViewId();
+    if (nPlane == 3 || !dlg.ReplaceSingleSlice())
+      nPlane = -1;
+    if (mri)
+      mri->ReplaceVoxelValue(dlg.GetOriginalValue(), dlg.GetNewValue(), nPlane);
+  }
 }

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.60 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/16 22:07:51 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -238,6 +238,8 @@ public:
   }
 
   int GoToLabel(int orientation, const QString& label_name);
+
+  void ReplaceVoxelValue(double orig_value, double new_value, int nPlane = -1);
 
 public slots:
   void SetActiveFrame( int nFrame );

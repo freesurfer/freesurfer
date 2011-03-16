@@ -117,7 +117,8 @@ SOURCES += \
     TrackGroup.cpp \
     PanelTrack.cpp \
     LayerPropertyTrack.cpp \
-    DialogSaveVolume.cpp
+    DialogSaveVolume.cpp \
+    DialogReplaceLabel.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -224,7 +225,8 @@ HEADERS  += \
     TrackGroup.h \
     PanelTrack.h \
     LayerPropertyTrack.h \
-    DialogSaveVolume.h
+    DialogSaveVolume.h \
+    DialogReplaceLabel.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -254,7 +256,8 @@ FORMS    += MainWindow.ui \
     TermWidget.ui \
     PanelTrack.ui \
     DialogSavePointSet.ui \
-    DialogSaveVolume.ui
+    DialogSaveVolume.ui \
+    DialogReplaceLabel.ui
 
 RESOURCES += \
     freeview.qrc
@@ -269,11 +272,11 @@ QMAKE_CXXFLAGS += -Wno-deprecated -DUNICODE -D_FILE_OFFSET_BITS=64 -D_LARGE_FILE
                                   -Wno-write-strings  #-DDEVELOPMENT
 
 # set this to your local dev directory
-FREESURFER_DEV_DIR = $$(FREESURFER_HOME)/dev
+FREESURFER_DEV_DIR = /homes/5/rpwang/freesurfer/dev
 
 # set this to your local install bin directory
 # freeview.bin will be copied to that directory
-FREESURFER_BIN = $$(FREESURFER_HOME)/bin
+FREESURFER_BIN = /homes/5/rpwang/freesurfer/bin
 
 # for linux
 unix {
@@ -285,7 +288,7 @@ INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 \
 LIBS += -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -lX11 -lXext -lXt -lSM -lICE -lGLU -lm -ldl \
     -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
-    $$FREESURFER_DEV_DIR/utils/libutils.a \
+    $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
     $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
     $$FREESURFER_DEV_DIR/hipsstubs/libhipsstubs.a $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
     $$FREESURFER_DEV_DIR/rgb/librgb.a $$FREESURFER_DEV_DIR/unix/libunix.a $$FREESURFER_DEV_DIR/dicom/libdicom.a \
@@ -323,7 +326,7 @@ INCLUDEPATH += /usr/pubsw/packages/vtk/current/include/vtk-5.6 $$FREESURFER_DEV_
 
 LIBS -= -L/usr/pubsw/packages/vtk/current/lib/vtk-5.6 -L/usr/X11R6/lib \
     -L/usr/pubsw/packages/vxl/current/lib -L/usr/pubsw/packages/itk/current/lib/InsightToolkit \
-    $$FREESURFER_DEV_DIR/utils/libutils.a \
+    $$FREESURFER_DEV_DIR/utils/libutils.a $$FREESURFER_DEV_DIR/fsgdf/libfsgdf.a \
     $$FREESURFER_DEV_DIR/hipsstubs/libhipsstubs.a $$FREESURFER_DEV_DIR/vtkutils/libvtkutils.a \
     $$FREESURFER_DEV_DIR/rgb/librgb.a $$FREESURFER_DEV_DIR/unix/libunix.a $$FREESURFER_DEV_DIR/dicom/libdicom.a \
     $$FREESURFER_DEV_DIR/jpeg/libjpeg.a $$FREESURFER_DEV_DIR/tiff/libtiff.a $$FREESURFER_DEV_DIR/expat/libexpat.a \

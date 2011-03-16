@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/16 22:07:51 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,6 +24,7 @@
 #include "FloatingStatusBar.h"
 #include "ui_FloatingStatusBar.h"
 #include <QDebug>
+#include <QDesktopServices>
 
 FloatingStatusBar::FloatingStatusBar(QWidget *parent) :
   QWidget(parent),
@@ -75,10 +76,10 @@ void FloatingStatusBar::Reposition()
 
 void FloatingStatusBar::HideProgress()
 {
+  setWindowFlags(Qt::Popup);
   m_timer->stop();
   this->hide();
   ui->progressBar->hide();
-  parentWidget()->activateWindow();
 }
 
 void FloatingStatusBar::OnProgressTimer()

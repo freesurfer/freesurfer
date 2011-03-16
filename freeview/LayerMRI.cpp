@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.95 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/16 22:07:51 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -2329,4 +2329,46 @@ int LayerMRI::GoToLabel(int orientation, const QString& label_name)
   {
     return -1;
   }
+}
+
+void LayerMRI::ReplaceVoxelValue(double orig_value, double new_value, int nPlane)
+{
+  this->SaveForUndo(-1);
+  int* dim = m_imageData->GetDimensions();
+  int range[3][2];
+  range[0][0] = range[1][0] = range[2][0] = 0;
+  range[0][1] = dim[0]-1;
+  range[1][1] = dim[1]-1;
+  range[2][1] = dim[2]-1;
+  if (nPlane >= 0)
+  {
+    double* pos = GetSlicePosition();
+    double* orig = m_imageData->GetOrigin();
+    double* voxel_size = m_imageData->GetSpacing();
+    int n[3];
+    for ( int i = 0; i < 3; i++ )
+    {
+      n[i] = (int)( ( pos[i] - orig[i] ) / voxel_size[i] + 0.5 );
+    }
+    if (n[nPlane] >= 0 && n[nPlane] < dim[nPlane])
+    {
+      range[nPlane][0] = range[nPlane][1] = n[nPlane];
+    }
+    else
+      range[nPlane][1] = range[nPlane][0]-1;
+  }
+  for (int i = range[0][0]; i <= range[0][1]; i++)
+  {
+    for (int j = range[1][0]; j <= range[1][1]; j++)
+    {
+      for (int k = range[2][0]; k <= range[2][1]; k++)
+      {
+        double val = m_imageData->GetScalarComponentAsDouble(i, j, k, m_nActiveFrame);
+        if (val == orig_value)
+          m_imageData->SetScalarComponentFromDouble(i, j, k, m_nActiveFrame, new_value);
+      }
+    }
+  }
+  SetModified();
+  emit ActorUpdated();
 }

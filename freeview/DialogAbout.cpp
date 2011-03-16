@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/16 22:07:51 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,7 +30,7 @@ DialogAbout::DialogAbout(QWidget *parent) :
 {
   ui->setupUi(this);
   QString strg = ui->labelVersion->text();
-  strg.replace("xxx", QString(__DATE__) + " " + __TIME__);
+  strg.replace("xxx", QString("%1 %2").arg(__DATE__).arg(__TIME__));
   ui->labelVersion->setText(strg);
 }
 
