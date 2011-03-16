@@ -6,9 +6,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:46 $
- *    $Revision: 1.6 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/16 19:22:03 $
+ *    $Revision: 1.7 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -32,6 +32,7 @@
 #include "chronometer.hpp"
 #include "cudacheck.h"
 #include "mriframegpu.hpp"
+#include "ctfactory.hpp"
 
 #include "fixedmap.hpp"
 
@@ -121,24 +122,15 @@ namespace GPU {
 					   const int label,
 					   const int mark,
 					   const int sixConnect ) const {
-      cudaArray* srcArr = NULL;
-
+     
+      
       MRIlabels::tMarkLabelBorderVoxelsTot.Start();
 
       // Verify we have output allocated
       dst.Allocate( src );
 
-      // Send the input to a cuda Array
-      srcArr = src.CreateArray();
-
-      // Bind the array to the texture
-      dt_src_uchar.normalized = false;
-      dt_src_uchar.addressMode[0] = cudaAddressModeClamp;
-      dt_src_uchar.addressMode[1] = cudaAddressModeClamp;
-      dt_src_uchar.addressMode[2] = cudaAddressModeClamp;
-      dt_src_uchar.filterMode = cudaFilterModePoint;
-
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_src_uchar, srcArr ) );
+      // Get the input into a texture
+      GPU::Classes::CTfactory srcArray( src, dt_src_uchar );
 
       // Run the kernel
       const unsigned int kKernelSize = 16;
@@ -160,9 +152,6 @@ namespace GPU {
 
       // Release the texture
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_src_uchar ) );
-
-      // Release the cudaArray
-      CUDA_SAFE_CALL( cudaFreeArray( srcArr ) );
 
       MRIlabels::tMarkLabelBorderVoxelsTot.Stop();
     }
@@ -281,7 +270,7 @@ namespace GPU {
 	    
 	    GPU::Classes::FixedMap<int,int,32> nbr_label_counts( -1, 0 );
 	    GPU::Classes::FixedMap<int,int,1024> label_counts( -1, 0 );
-	    GPU::Classes::FixedMap<int,float,1024> label_means(-1, 0 );;
+	    GPU::Classes::FixedMap<int,float,1024> label_means(-1, 0 );
 
 	    ComputeLabelNbhd( ix, iy, iz, nbr_label_counts, label_means, 1 );
 	    ComputeLabelNbhd( ix, iy, iz, label_counts, label_means, 7 );
@@ -442,28 +431,9 @@ namespace GPU {
       this->MarkLabelBorderVoxels( mri, mriBorder, label, 1, 1 );
 
 
-      // Set up the cuda Arrays
-      cudaArray* mriArr, *mri_valsArr;
-      mriArr = mri_valsArr = NULL;
-
-      mriArr = mri.CreateArray();
-      mri_valsArr = mri_vals.CreateArray();
-
-      
       // Set up the textures
-      dt_mri_uchar.normalized = false;
-      dt_mri_uchar.addressMode[0] = cudaAddressModeClamp;
-      dt_mri_uchar.addressMode[1] = cudaAddressModeClamp;
-      dt_mri_uchar.addressMode[2] = cudaAddressModeClamp;
-      dt_mri_uchar.filterMode = cudaFilterModePoint;
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri_uchar, mriArr ) );
-
-      dt_mri_vals_uchar.normalized = false;
-      dt_mri_vals_uchar.addressMode[0] = cudaAddressModeClamp;
-      dt_mri_vals_uchar.addressMode[1] = cudaAddressModeClamp;
-      dt_mri_vals_uchar.addressMode[2] = cudaAddressModeClamp;
-      dt_mri_vals_uchar.filterMode = cudaFilterModePoint;
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri_vals_uchar, mri_valsArr ) );
+      GPU::Classes::CTfactory mriArray( mri, dt_mri_uchar );
+      GPU::Classes::CTfactory mri_valsArray( mri_vals, dt_mri_vals_uchar );
 
       
       // Run the computation
@@ -488,10 +458,6 @@ namespace GPU {
       // Unbind textures
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_uchar ) );
       CUDA_SAFE_CALL( cudaUnbindTexture( dt_mri_vals_uchar ) );
-
-      // Release cudaArrays
-      CUDA_SAFE_CALL( cudaFreeArray( mriArr ) );
-      CUDA_SAFE_CALL( cudaFreeArray( mri_valsArr ) );
 
 
       // Retrieve the volume global and release
