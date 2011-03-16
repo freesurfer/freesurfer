@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/16 13:58:27 $
-#    $Revision: 1.16 $
+#    $Date: 2011/03/16 14:48:43 $
+#    $Revision: 1.17 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.16 2011/03/16 13:58:27 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.17 2011/03/16 14:48:43 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -616,30 +616,28 @@ if ($dointer) then
         set cvswarp = combined_elreg_afteraseg-norm
 
         if (! -e $xfmdir/cvs/$cvswarp.m3z) then
-          # Create .tm3d file first
-          if (! -e $xfmdir/cvs/$cvswarp.tm3d) then
-            if (! -e $SUBJECTS_DIR/$cvstemp) then
-              set cmd = (ln -s $cvstempdir/$cvstemp $SUBJECTS_DIR)
-              echo $cmd |& tee -a $LF |& tee -a $CF
-              if ($RunIt) then
-                $cmd |& tee -a $LF
-                if ($status) goto error_exit
-              endif
+          if (! -e $SUBJECTS_DIR/$cvstemp) then
+            set cmd = (ln -s $cvstempdir/$cvstemp $SUBJECTS_DIR)
+            echo $cmd |& tee -a $LF |& tee -a $CF
+            if ($RunIt) then
+              $cmd |& tee -a $LF
+              if ($status) goto error_exit
             endif
+          endif
 
-            if (! -e $xfmdir/cvs/nlalign-afteraseg-norm.m3z) then
-              # Register anatomical to CVS template
-              set cmd = mri_cvs_register
-              set cmd = ($cmd --mov $subj)
-              set cmd = ($cmd --template $cvstemp)
-              set cmd = ($cmd --outdir $xfmdir/cvs)
-              set cmd = ($cmd --nocleanup)	# Don't delete full morph .tm3d!
-              echo $cmd |& tee -a $LF |& tee -a $CF
-              if ($RunIt) then
-                $fs_time $cmd |& tee -a $LF
-                if ($status) goto error_exit
-              endif
-            else
+          if (! -e $xfmdir/cvs/nlalign-afteraseg-norm.m3z) then
+            # Register anatomical to CVS template
+            set cmd = mri_cvs_register
+            set cmd = ($cmd --mov $subj)
+            set cmd = ($cmd --template $cvstemp)
+            set cmd = ($cmd --outdir $xfmdir/cvs)
+            echo $cmd |& tee -a $LF |& tee -a $CF
+            if ($RunIt) then
+              $fs_time $cmd |& tee -a $LF
+              if ($status) goto error_exit
+            endif
+          else			# Old-school mri_cvs_register has been run
+            if (! -e $xfmdir/cvs/$cvswarp.tm3d) then
               # Recreate full morph .tm3d from its components
               set cmd = createMorph
               set cmd = ($cmd --out $xfmdir/cvs/$cvswarp.tm3d)
@@ -653,17 +651,17 @@ if ($dointer) then
                 if ($status) goto error_exit
               endif
             endif
-          endif
 
-          # Convert .tm3d to .m3z
-          set cmd = exportGcam
-          set cmd = ($cmd --morph    $xfmdir/cvs/$cvswarp.tm3d)
-          set cmd = ($cmd --fixed    $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
-          set cmd = ($cmd --moving   $fsdir/mri/norm.mgz)
-          set cmd = ($cmd --out_gcam $xfmdir/cvs/$cvswarp.m3z)
-          if ($RunIt) then
-            $fs_time $cmd |& tee -a $LF
-            if ($status) goto error_exit
+            # Convert .tm3d to .m3z
+            set cmd = exportGcam
+            set cmd = ($cmd --morph    $xfmdir/cvs/$cvswarp.tm3d)
+            set cmd = ($cmd --fixed    $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+            set cmd = ($cmd --moving   $fsdir/mri/norm.mgz)
+            set cmd = ($cmd --out_gcam $xfmdir/cvs/$cvswarp.m3z)
+            if ($RunIt) then
+              $fs_time $cmd |& tee -a $LF
+              if ($status) goto error_exit
+            endif
           endif
         endif
       endif
@@ -704,8 +702,14 @@ if ($domasks) then
   mkdir -p $labdir/diff
   if (-e $fsdir/mri/aparc+aseg.mgz) mkdir -p $labdir/anatorig $labdir/anat
   if ($doregmni && -e $xfmdir/anat2mni.mat) mkdir -p $labdir/mni
-  if ($doregcvs && -e $xfmdir/cvs/$cvswarp.m3z) mkdir -p $labdir/cvs
-  if ($subj == $cvstemp) ln -sfn $labdir/anatorig $labdir/cvs
+  if ($doregcvs) then
+    if ($subj == $cvstemp) then
+      ln -sfn $labdir/anatorig $labdir/cvs
+    else
+      if (-l $labdir/cvs) rm -f $labdir/cvs
+      if (-e $xfmdir/cvs/$cvswarp.m3z) mkdir -p $labdir/cvs
+    endif
+  endif
 
   if (-e $fsdir/mri/aparc+aseg.mgz) then
     set wmlist = ( Left-Cerebral-White-Matter \
@@ -1051,7 +1055,12 @@ if ($dotensor) then
 
   # Map scalar outputs of tensor fit to CVS template
   if ($doregcvs) then
-    mkdir -p $dwidir/cvs
+    if ($subj == $cvstemp) then
+      ln -sfn $dwidir/anatorig $dwidir/cvs
+    else
+      if (-l $dwidir/cvs) rm -f $dwidir/cvs
+      if (-e $xfmdir/cvs/$cvswarp.m3z) mkdir -p $dwidir/cvs
+    endif
 
     set cvswarp = combined_elreg_afteraseg-norm
 
