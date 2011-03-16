@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/15 02:29:50 $
-#    $Revision: 1.12 $
+#    $Date: 2011/03/16 03:48:13 $
+#    $Revision: 1.13 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.12 2011/03/15 02:29:50 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.13 2011/03/16 03:48:13 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -275,7 +275,7 @@ foreach ntrain ($ntrainlist)
         else if ($xspace == cvs) then
           set cmd = ($cmd --reg $xfmdir/diff2anatorig.$reg.mat)
           if ($subj != $cvstemp) then
-            set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.tm3d)
+            set cmd = ($cmd --regnl $xfmdir/cvs/$cvswarp.m3z)
           endif
         endif
         set cmd = ($cmd --init $initlist)

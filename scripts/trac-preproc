@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/10 23:20:22 $
-#    $Revision: 1.14 $
+#    $Date: 2011/03/16 03:48:13 $
+#    $Revision: 1.15 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.14 2011/03/10 23:20:22 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.15 2011/03/16 03:48:13 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -615,41 +615,55 @@ if ($dointer) then
 
         set cvswarp = combined_elreg_afteraseg-norm
 
-        if (! -e $xfmdir/cvs/$cvswarp.tm3d) then
-          if (! -e $SUBJECTS_DIR/$cvstemp) then
-            set cmd = (ln -s $cvstempdir/$cvstemp $SUBJECTS_DIR)
-            echo $cmd |& tee -a $LF |& tee -a $CF
-            if ($RunIt) then
-              $cmd |& tee -a $LF
-              if ($status) goto error_exit
+        if (! -e $xfmdir/cvs/$cvswarp.m3z) then
+          # Create .tm3d file first
+          if (! -e $xfmdir/cvs/$cvswarp.tm3d) then
+            if (! -e $SUBJECTS_DIR/$cvstemp) then
+              set cmd = (ln -s $cvstempdir/$cvstemp $SUBJECTS_DIR)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
+            endif
+
+            if (! -e $xfmdir/cvs/nlalign-afteraseg-norm.m3z) then
+              # Register anatomical to CVS template
+              set cmd = mri_cvs_register
+              set cmd = ($cmd --mov $subj)
+              set cmd = ($cmd --template $cvstemp)
+              set cmd = ($cmd --outdir $xfmdir/cvs)
+              set cmd = ($cmd --nocleanup)	# Don't delete full morph .tm3d!
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $fs_time $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
+            else
+              # Recreate full morph .tm3d from its components
+              set cmd = createMorph
+              set cmd = ($cmd --out $xfmdir/cvs/$cvswarp.tm3d)
+              set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+              set cmd = ($cmd --subject $fsdir/mri/norm.mgz)
+              set cmd = ($cmd --in gcam $xfmdir/cvs/nlalign-afteraseg-norm.m3z)
+              set cmd = ($cmd      morph $xfmdir/cvs/el_reg_to$cvstemp.tm3d)
+              echo $cmd |& tee -a $LF |& tee -a $CF
+              if ($RunIt) then
+                $fs_time $cmd |& tee -a $LF
+                if ($status) goto error_exit
+              endif
             endif
           endif
 
-          if (! -e $xfmdir/cvs/nlalign-afteraseg-norm.m3z) then
-            # Register anatomical to CVS template
-            set cmd = mri_cvs_register
-            set cmd = ($cmd --mov $subj)
-            set cmd = ($cmd --template $cvstemp)
-            set cmd = ($cmd --outdir $xfmdir/cvs)
-            set cmd = ($cmd --nocleanup)	# Don't delete full morph .tm3d!
-            echo $cmd |& tee -a $LF |& tee -a $CF
-            if ($RunIt) then
-              $fs_time $cmd |& tee -a $LF
-              if ($status) goto error_exit
-            endif
-          else
-            # Recreate full morph .tm3d from its components
-            set cmd = createMorph
-            set cmd = ($cmd --out $xfmdir/cvs/$cvswarp.tm3d)
-            set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
-            set cmd = ($cmd --subject $fsdir/mri/norm.mgz)
-            set cmd = ($cmd --in gcam $xfmdir/cvs/nlalign-afteraseg-norm.m3z)
-            set cmd = ($cmd      morph $xfmdir/cvs/el_reg_to$cvstemp.tm3d)
-            echo $cmd |& tee -a $LF |& tee -a $CF
-            if ($RunIt) then
-              $fs_time $cmd |& tee -a $LF
-              if ($status) goto error_exit
-            endif
+          # Convert .tm3d to .m3z
+          set cmd = exportGcam
+          set cmd = ($cmd --morph    $xfmdir/cvs/$cvswarp.tm3d)
+          set cmd = ($cmd --fixed    $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+          set cmd = ($cmd --moving   $fsdir/mri/norm.mgz)
+          set cmd = ($cmd --out_gcam $xfmdir/cvs/$cvswarp.m3z)
+          if ($RunIt) then
+            $fs_time $cmd |& tee -a $LF
+            if ($status) goto error_exit
           endif
         endif
       endif
@@ -690,7 +704,7 @@ if ($domasks) then
   mkdir -p $labdir/diff
   if (-e $fsdir/mri/aparc+aseg.mgz) mkdir -p $labdir/anatorig $labdir/anat
   if ($doregmni && -e $xfmdir/anat2mni.mat) mkdir -p $labdir/mni
-  if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) mkdir -p $labdir/cvs
+  if ($doregcvs && -e $xfmdir/cvs/$cvswarp.m3z) mkdir -p $labdir/cvs
   if ($subj == $cvstemp) ln -sfn $labdir/anatorig $labdir/cvs
 
   if (-e $fsdir/mri/aparc+aseg.mgz) then
@@ -894,13 +908,15 @@ if ($domasks) then
       endif
 
       # Map label to CVS space
-      if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) then
-        set cmd = applyMorph
-        set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
-        set cmd = ($cmd --transform $xfmdir/cvs/$cvswarp.tm3d)
-        set cmd = ($cmd   vol $labdir/anatorig/$label.nii.gz)
-        set cmd = ($cmd       $labdir/cvs/$label.nii.gz)
-        set cmd = ($cmd   nearest)				# Binary masks!
+      if ($doregcvs && -e $xfmdir/cvs/$cvswarp.m3z) then
+        set cmd = mri_vol2vol
+        set cmd = ($cmd --mov  $labdir/anatorig/$label.nii.gz)
+        set cmd = ($cmd --targ $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+        set cmd = ($cmd --o    $labdir/cvs/$label.nii.gz)
+        set cmd = ($cmd --m3z  $xfmdir/cvs/$cvswarp.m3z)
+        set cmd = ($cmd --noDefM3zPath)
+        set cmd = ($cmd --interp nearest)			# Binary masks!
+        set cmd = ($cmd --no-save-reg)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
           $fs_time $cmd |& tee -a $LF
@@ -956,14 +972,16 @@ if ($domasks) then
         if ($status) goto error_exit
       endif
 
-      if ($doregcvs && -e $xfmdir/cvs/$cvswarp.tm3d) then
+      if ($doregcvs && -e $xfmdir/cvs/$cvswarp.m3z) then
         # Map diffusion brain mask to CVS space
-        set cmd = applyMorph
-        set cmd = ($cmd --template $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
-        set cmd = ($cmd --transform $xfmdir/cvs/$cvswarp.tm3d)
-        set cmd = ($cmd   vol $labdir/anatorig/lowb_brain_mask.$reg.nii.gz)
-        set cmd = ($cmd       $labdir/cvs/lowb_brain_mask.$reg.nii.gz)
-        set cmd = ($cmd   nearest)				# Binary masks!
+        set cmd = mri_vol2vol
+        set cmd = ($cmd --mov  $labdir/anatorig/lowb_brain_mask.$reg.nii.gz)
+        set cmd = ($cmd --targ $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+        set cmd = ($cmd --o    $labdir/cvs/lowb_brain_mask.$reg.nii.gz)
+        set cmd = ($cmd --m3z  $xfmdir/cvs/$cvswarp.m3z)
+        set cmd = ($cmd --noDefM3zPath)
+        set cmd = ($cmd --interp nearest)			# Binary masks!
+        set cmd = ($cmd --no-save-reg)
         echo $cmd |& tee -a $LF |& tee -a $CF
         if ($RunIt) then
           $cmd |& tee -a $LF
