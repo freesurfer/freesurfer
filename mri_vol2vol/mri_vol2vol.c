@@ -11,8 +11,8 @@
  * Original Author: Doug Greve
  * CVS Revision Info:
  *    $Author: lzollei $
- *    $Date: 2011/03/15 22:50:43 $
- *    $Revision: 1.68 $
+ *    $Date: 2011/03/16 21:56:31 $
+ *    $Revision: 1.69 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -462,7 +462,7 @@ MATRIX *LoadRfsl(char *fname);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_vol2vol.c,v 1.68 2011/03/15 22:50:43 lzollei Exp $";
+static char vcid[] = "$Id: mri_vol2vol.c,v 1.69 2011/03/16 21:56:31 lzollei Exp $";
 char *Progname = NULL;
 
 int debug = 0, gdiagno = -1;
@@ -576,12 +576,12 @@ int main(int argc, char **argv) {
 
 
   make_cmd_version_string(argc, argv,
-                          "$Id: mri_vol2vol.c,v 1.68 2011/03/15 22:50:43 lzollei Exp $",
+                          "$Id: mri_vol2vol.c,v 1.69 2011/03/16 21:56:31 lzollei Exp $",
                           "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option(argc, argv,
-                                "$Id: mri_vol2vol.c,v 1.68 2011/03/15 22:50:43 lzollei Exp $",
+                                "$Id: mri_vol2vol.c,v 1.69 2011/03/16 21:56:31 lzollei Exp $",
                                 "$Name:  $");
   if(nargs && argc - nargs == 1) exit (0);
 
@@ -968,8 +968,6 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  sprintf(regfile0,"%s.reg",outvolfile);
-  printf("INFO: writing registration matrix to %s\n",regfile0);
   if(fstal) {
     R = Rtal;
     subject_outreg = "fsaverage";
@@ -982,6 +980,8 @@ int main(int argc, char **argv) {
   }
 
   if(SaveReg) {
+    sprintf(regfile0,"%s.reg",outvolfile);
+    printf("INFO: wAriting registration matrix to %s\n",regfile0);
     regio_write_register(regfile0,subject_outreg,out->xsize,
                          out->zsize,1,R,FLT2INT_ROUND);
     printf("To check registration, run:\n");
