@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/03/16 15:21:36 $
- *    $Revision: 1.177 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 20:37:13 $
+ *    $Revision: 1.178 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -199,7 +199,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.177 2011/03/16 15:21:36 greve Exp $",
+   "$Id: mri_convert.c,v 1.178 2011/03/16 20:37:13 fischl Exp $",
    "$Name:  $",
    cmdline);
 
@@ -317,7 +317,7 @@ int main(int argc, char *argv[])
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.177 2011/03/16 15:21:36 greve Exp $",
+      "$Id: mri_convert.c,v 1.178 2011/03/16 20:37:13 fischl Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -1609,7 +1609,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.177 2011/03/16 15:21:36 greve Exp $\n");
+  printf("$Id: mri_convert.c,v 1.178 2011/03/16 20:37:13 fischl Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -2323,7 +2323,7 @@ int main(int argc, char *argv[])
   else
   {
     template =
-    MRIallocHeader(mri->width, mri->height, mri->depth, mri->type);
+    MRIallocHeader(mri->width, mri->height, mri->depth, mri->type, mri->nframes);
     MRIcopyHeader(mri, template);
 
     // if we loaded a transform above, set the target geometry:
@@ -2385,7 +2385,7 @@ int main(int argc, char *argv[])
       template = MRIallocHeader(mri->width,
                                 mri->height,
                                 mri->depth,
-                                mri->type );
+                                mri->type, mri->nframes );
 
       MRIcopyHeader( mri, template );
 
