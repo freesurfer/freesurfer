@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/16 03:48:13 $
-#    $Revision: 1.15 $
+#    $Date: 2011/03/16 13:58:27 $
+#    $Revision: 1.16 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.15 2011/03/16 03:48:13 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.16 2011/03/16 13:58:27 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -963,8 +963,8 @@ if ($domasks) then
       set cmd = flirt
       set cmd = ($cmd -in  $labdir/diff/lowb_brain_mask.nii.gz)
       set cmd = ($cmd -ref $dwidir/brain_anat_orig.nii.gz)
-      set cmd = ($cmd -applyxfm -init $xfmdir/diff2anatorig.$reg.mat)
       set cmd = ($cmd -out $labdir/anatorig/lowb_brain_mask.$reg.nii.gz)
+      set cmd = ($cmd -applyxfm -init $xfmdir/diff2anatorig.$reg.mat)
       set cmd = ($cmd -interp nearestneighbour)			# Binary masks!
       echo $cmd |& tee -a $LF |& tee -a $CF
       if ($RunIt) then
@@ -1018,67 +1018,74 @@ if ($dotensor) then
     $fs_time $cmd |& tee -a $LF
     if ($status) goto error_exit
   endif
-endif
 
-#------------ Tensor fit in MNI space -------------------------------------#
-
-if ($dotensormni) then
-  echo "#-------------------------------------" |& tee -a $LF
-  echo "#@# Tensor fit in MNI space `date`" |& tee -a $LF
-
-  mkdir -p $dwidir/mni
-
-  # Copy bvals
-  set cmd = (cp $dwidir/bvals $dwidir/mni/bvals)
-  echo $cmd |& tee -a $LF |& tee -a $CF
-  if ($RunIt) then
-    $cmd |& tee -a $LF
-    if ($status) goto error_exit
-  endif
-
-  foreach reg (flt bbr)
-    if (-e $xfmdir/diff2anat.$reg.mat) then
-      # Map DWIs from diffusion to MNI space
-      set cmd = flirt
-      set cmd = ($cmd -in $dwidir/dwi.nii.gz)
-      set cmd = ($cmd -ref $mnitemp)
-      set cmd = ($cmd -out $dwidir/mni/dwi.$reg.nii.gz)
-      set cmd = ($cmd -applyxfm -init $xfmdir/diff2mni.$reg.mat)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $cmd |& tee -a $LF
-        if ($status) goto error_exit
-      endif
-
-      # Rotate bvecs
-      set cmd = xfmrot
-      set cmd = ($cmd $xfmdir/diff2mni.$reg.mat)
-      set cmd = ($cmd $dwidir/bvecs)
-      set cmd = ($cmd $dwidir/mni/bvecs.$reg)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $cmd |& tee -a $LF
-        if ($status) goto error_exit
-      endif
-
-      # LS tensor estimation
-      set cmd = dtifit
-      set cmd = ($cmd -k $dwidir/mni/dwi.$reg.nii.gz)
-      if ($usemaskanat) then
-        set cmd = ($cmd -m $labdir/mni/anat_brain_mask.nii.gz)
-      else
-        set cmd = ($cmd -m $labdir/mni/lowb_brain_mask.$reg.nii.gz)
-      endif
-      set cmd = ($cmd -r $dwidir/mni/bvecs.$reg)
-      set cmd = ($cmd -b $dwidir/mni/bvals)
-      set cmd = ($cmd -o $dwidir/mni/dtifit.$reg)
-      echo $cmd |& tee -a $LF |& tee -a $CF
-      if ($RunIt) then
-        $fs_time $cmd |& tee -a $LF
-        if ($status) goto error_exit
-      endif
+  # Check for scalar outputs of tensor fit
+  set maplist = ()
+  foreach fname ( `cd $dwidir; ls dtifit_*` )
+    if (`mri_info --nframes $dwidir/$fname` == 1) then
+      set maplist = ($maplist `echo $fname | sed 's/.nii.gz//'`)
     endif
   end
+
+  # Map scalar outputs of tensor fit to MNI template
+  if ($doregmni) then
+    mkdir -p $dwidir/mni
+
+    foreach reg (flt bbr)
+      if (-e $xfmdir/diff2mni.$reg.mat) then
+        foreach fname ($maplist)
+          set cmd = flirt
+          set cmd = ($cmd -in $dwidir/$fname.nii.gz)
+          set cmd = ($cmd -ref $mnitemp)
+          set cmd = ($cmd -out $dwidir/mni/$fname.$reg.nii.gz)
+          set cmd = ($cmd -applyxfm -init $xfmdir/diff2mni.$reg.mat)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+        end
+      endif
+    end
+  endif
+
+  # Map scalar outputs of tensor fit to CVS template
+  if ($doregcvs) then
+    mkdir -p $dwidir/cvs
+
+    set cvswarp = combined_elreg_afteraseg-norm
+
+    foreach reg (flt bbr)
+      if (-e $xfmdir/diff2anatorig.$reg.mat && -e $xfmdir/cvs/$cvswarp.m3z) then
+        foreach fname ($maplist)
+          set cmd = flirt
+          set cmd = ($cmd -in  $dwidir/$fname.nii.gz)
+          set cmd = ($cmd -ref $dwidir/brain_anat_orig.nii.gz)
+          set cmd = ($cmd -out $dwidir/cvs/$fname.$reg.nii.gz)
+          set cmd = ($cmd -applyxfm -init $xfmdir/diff2anatorig.$reg.mat)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+
+          set cmd = mri_vol2vol
+          set cmd = ($cmd --mov  $dwidir/cvs/$fname.$reg.nii.gz)
+          set cmd = ($cmd --targ $SUBJECTS_DIR/$cvstemp/mri/norm.mgz)
+          set cmd = ($cmd --o    $dwidir/cvs/$fname.$reg.nii.gz)
+          set cmd = ($cmd --m3z  $xfmdir/cvs/$cvswarp.m3z)
+          set cmd = ($cmd --noDefM3zPath)
+          set cmd = ($cmd --interp nearest)			# Binary masks!
+          set cmd = ($cmd --no-save-reg)
+          echo $cmd |& tee -a $LF |& tee -a $CF
+          if ($RunIt) then
+            $cmd |& tee -a $LF
+            if ($status) goto error_exit
+          endif
+        end
+      endif
+    end
+  endif
 endif
 
 #------------ Combine training data ---------------------------------------#

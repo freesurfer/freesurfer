@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/15 02:29:50 $
-#    $Revision: 1.20 $
+#    $Date: 2011/03/16 13:58:26 $
+#    $Revision: 1.21 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.20 2011/03/15 02:29:50 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.21 2011/03/16 13:58:26 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -67,7 +67,6 @@ set dointra = 0
 set dointer = 0
 set domasks = 0
 set dotensor = 0
-set dotensormni = 0
 set dopriors = 0
 
 set rcfile = ()		# Run command file
@@ -367,7 +366,6 @@ foreach isubj ($runlist)
   echo "set dointer = ($dointer)"					>> $RCF
   echo "set domasks = ($domasks)"					>> $RCF
   echo "set dotensor = ($dotensor)"					>> $RCF
-  echo "set dotensormni = ($dotensormni)"				>> $RCF
   echo "set dopriors = ($dopriors)"					>> $RCF
   echo "#"							 	>> $RCF
   echo "# Options for image corrections and tensor fit"		 	>> $RCF
