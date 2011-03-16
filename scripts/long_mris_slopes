@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/14 17:17:06 $
-#    $Revision: 1.14 $
+#    $Date: 2011/03/16 16:04:43 $
+#    $Revision: 1.15 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -42,7 +42,7 @@ from qdectable_parser import *
 # logging 
 ch = logging.StreamHandler()
 #create logger
-slopelogger = logging.getLogger("mris_long_slopes")
+slopelogger = logging.getLogger("long_mris_slopes")
 slopelogger.setLevel(logging.INFO)
 slopelogger.addHandler(ch)
 
@@ -168,10 +168,10 @@ DefaultVariable Age
 
 def options_parse():
     """
-    Command Line Options Parser for mris_long_slopes
+    Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.14 2011/03/14 17:17:06 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.15 2011/03/16 16:04:43 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -324,6 +324,7 @@ if __name__=="__main__":
     sdir = os.getenv('SUBJECTS_DIR')
     if sdir is not None:
         subjectsdir = sdir
+    print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
     
     # process
     retcode = 0
