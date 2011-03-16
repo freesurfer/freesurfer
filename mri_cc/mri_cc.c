@@ -9,9 +9,9 @@
 /*
  * Original Authors: Bruce Fischl and Peng Yu
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.32 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 20:28:43 $
+ *    $Revision: 1.33 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -175,13 +175,13 @@ main(int argc, char *argv[])
   char cmdline[CMD_LINE_LEN] ;
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_cc.c,v 1.32 2011/03/02 00:04:14 nicks Exp $",
+   "$Id: mri_cc.c,v 1.33 2011/03/16 20:28:43 fischl Exp $",
    "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_cc.c,v 1.32 2011/03/02 00:04:14 nicks Exp $",
+           "$Id: mri_cc.c,v 1.33 2011/03/16 20:28:43 fischl Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -297,7 +297,7 @@ main(int argc, char *argv[])
       MRIallocHeader(mri_wm->width,
                      mri_wm->height,
                      mri_wm->depth,
-                     mri_wm->type);
+                     mri_wm->type,1);
     MRIcopyHeader(mri_wm, mri_talheader); // not allocate memory, though
 
     ModifyTalairachCRAS(mri_talheader, lta);
@@ -342,7 +342,7 @@ main(int argc, char *argv[])
     mri_header = MRIallocHeader(mri_wm->width,
                                 mri_wm->height,
                                 mri_wm->depth,
-                                mri_wm->type);
+                                mri_wm->type,1);
     MRIcopyHeader(mri_wm, mri_header);
     ModifyTalairachCRAS(mri_header, lta2);
     mri_cc = MRIcopy(mri_wm, NULL) ;
