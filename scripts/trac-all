@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/16 13:58:26 $
-#    $Revision: 1.21 $
+#    $Date: 2011/03/16 15:31:33 $
+#    $Revision: 1.22 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-all,v 1.21 2011/03/16 13:58:26 ayendiki Exp $'
+set VERSION = '$Id: trac-all,v 1.22 2011/03/16 15:31:33 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -490,31 +490,26 @@ foreach isubj ($runlist)
 end
 
 if ($onpbs && $RunIt) then
+  if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
+
   if ($dopreproc) then
-    if (! $?MYPBSWAIT) setenv MYPBSWAIT 15
-    if ($doregcvs) then
-      if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 15
-      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
-      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
-    else
-      if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
-    endif
+    if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
+#    if ($doregcvs) then
+#      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
+#      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+#    endif
     echo Queueing pre-processing
     set preid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trcpre -t $submitfile`
   else if ($dobedpost) then
-    if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
     if (! $?MYPBSWAIT) setenv MYPBSWAIT 0
     bedpostx_seychelles $dmdirlist
   else if ($dopaths) then
-    if (! $?MYPBSWAIT) setenv MYPBSWAIT 15
-    if ($doregcvs) then
-      if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 15
-      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
-      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
-    else
-      if (! $?MYPBSMAXJOBS) setenv MYPBSMAXJOBS 30
-    endif
+    if (! $?MYPBSWAIT) setenv MYPBSWAIT 30
+#    if ($doregcvs) then
+#      if ($hname == launchpad)  setenv MYPBSARCH "ppn=2"
+#      if ($hname == seychelles)	setenv MYPBSARCH "bigmem:ppn=2"
+#    endif
     echo Queueing path reconstruction
     set trcid = `fsl_sub_seychelles \
                  -l $pbslogdir/log -m a -N trc -t $submitfile`
