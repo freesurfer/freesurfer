@@ -114,6 +114,7 @@ void AffineReg::ApplyXfm(vector<float> &OutPoint,
 }
 
 #ifndef NO_CVS_UP_IN_HERE
+	/*
 //
 // Non-linear registration class
 //
@@ -167,6 +168,48 @@ void NonlinReg::ApplyXfm(vector<float> &OutPoint,
 
   for (int k = 0; k < 3; k++)
     OutPoint[k] = (float) outpt(k);
+}
+	*/
+
+//
+// Non-linear registration class
+//
+NonlinReg::NonlinReg() : mMorph(0) {}
+
+NonlinReg::~NonlinReg() {}
+
+bool NonlinReg::IsEmpty() { return (mMorph == 0); }
+
+//
+// Read a non-linear transform from file
+//
+void NonlinReg::ReadXfm(const char *XfmFile, MRI *OutRefVol) {
+  ifstream xfile(XfmFile, ios::in);	// Just to check if file exists
+  if (!xfile) {
+    cout << "ERROR: Could not open " << XfmFile << endl;
+    exit(1);
+  }
+  xfile.close();
+
+  cout << "Loading non-linear registration from " << XfmFile << endl;
+  //mMorph = GCAMreadAndInvert(XfmFile);
+  mMorph = GCAMreadAndInvertNonTal(XfmFile);
+  if (mMorph == NULL) exit(1);
+
+  mMorph->gca = gcaAllocMax(1, 1, 1, OutRefVol->width, OutRefVol->height,
+                                                       OutRefVol->depth, 0, 0);
+}
+
+//
+// Apply a non-linear transform to a single point
+//
+void NonlinReg::ApplyXfm(vector<float> &OutPoint,
+                         vector<float>::const_iterator InPoint) {
+  float inpoint[3];
+
+  copy(InPoint, InPoint+3, inpoint);
+
+  GCAMmorphPlistFromAtlas(1, inpoint, mMorph, &OutPoint[0]);
 }
 #endif
 

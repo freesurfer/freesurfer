@@ -37,6 +37,11 @@
 #include "../fem_elastic/morph.h"
 #include "../fem_elastic/surf_utils.h"
 #include "../fem_elastic/morph_utils.h"
+#include "gcamorph.h"
+	/*
+#include "../fem_elastic/morph.h"
+#include "../fem_elastic/morph_utils.h"
+	*/
 #endif
 
 #include <vector>
@@ -70,7 +75,8 @@ class NonlinReg {
                   std::vector<float>::const_iterator InPoint);
 
   private:
-    boost::shared_ptr<gmp::VolumeMorph> mMorph;
+//    boost::shared_ptr<gmp::VolumeMorph> mMorph;
+    GCAM *mMorph;
 };
 #endif
 
