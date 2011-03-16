@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/15 01:09:53 $
- *    $Revision: 1.420 $
+ *    $Date: 2011/03/16 17:31:56 $
+ *    $Revision: 1.421 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -295,7 +295,7 @@ int   MRIfree(MRI **pmri) ;
 int   MRIfreeFrames(MRI *mri, int start_frame) ;
 MRI   *MRIalloc(int width, int height, int depth, int type) ;
 MRI   *MRIallocSequence(int width, int height,int depth,int type,int nframes);
-MRI   *MRIallocHeader(int width, int height, int depth, int type) ;
+MRI   *MRIallocHeader(int width, int height, int depth, int type, int nframes) ;
 int   MRIallocIndices(MRI *mri) ;
 int   MRIsetResolution(MRI *mri, float xres, float yres, float zres) ;
 int   MRIsetTransform(MRI *mri,   General_transform *transform) ;
