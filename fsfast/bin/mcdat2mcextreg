@@ -1,7 +1,7 @@
 #!/bin/tcsh -f
 # mcdat2extreg
 
-set VERSION = '$Id: mcdat2mcextreg,v 1.1 2010/04/09 23:06:38 greve Exp $';
+set VERSION = '$Id: mcdat2mcextreg,v 1.2 2011/03/16 15:43:50 greve Exp $';
 
 set mcdat = ();
 set extreg = ();
@@ -10,6 +10,7 @@ set tmpdir = ();
 set cleanup = 1;
 set LF = ();
 set PrintHelp = 0;
+set fmt = nii
 
 set inputargs = ($argv);
 if($#argv == 0) goto usage_exit;
@@ -63,13 +64,13 @@ cat $mcdat | awk '{print $1" "$2" "$3" "$4" "$5" "$6" "$7}' >> $tblfile
 
 set glmdir = $tmpdir/glm
 set cmd = (mri_glmfit --table $tblfile --glmdir $glmdir --osgm)
-set cmd = ($cmd --y-out $tmpdir/y.out.mgh --pca)
+set cmd = ($cmd --y-out $tmpdir/y.out.$fmt --pca)
 echo $cmd
 $cmd
 if($status) exit 1;
 
 if($Demean == 0) then
-  mri_concat $tmpdir/y.out.mgh --pca --o $tmpdir/pca.mgh
+  mri_concat $tmpdir/y.out.$fmt --pca --o $tmpdir/pca.$fmt
   if($status) exit 1;
   set u = $tmpdir/pca.u.mtx
 else
@@ -114,6 +115,10 @@ while( $#argv != 0 )
 
     case "--no-demean":
       set Demean = 0;
+      breaksw
+
+    case "--mgh":
+      set fmt = mgh;
       breaksw
 
     case "--log":
