@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:10 $
- *    $Revision: 1.350 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 18:03:59 $
+ *    $Revision: 1.351 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1023,6 +1023,7 @@ int MRISsaveNormals(MRI_SURFACE *mris, int which) ;
 #define LEFT_HEMISPHERE         0
 #define RIGHT_HEMISPHERE        1
 #define NO_HEMISPHERE           2
+#define BOTH_HEMISPHERES        3
 
 #if 0
 #define DEFAULT_A  44.0f
