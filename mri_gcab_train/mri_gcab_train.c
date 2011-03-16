@@ -8,9 +8,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/16 20:23:33 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,9 +30,9 @@
 /* by Bruce Fischl                                                     */
 /*                                                                     */
 /* Warning: Do not edit the following four lines.  CVS maintains them. */
-/* Revision Author: $Author: nicks $                                  */
-/* Revision Date  : $Date: 2011/03/02 00:04:15 $                       */
-/* Revision       : $Revision: 1.3 $                                  */
+/* Revision Author: $Author: fischl $                                  */
+/* Revision Date  : $Date: 2011/03/16 20:23:33 $                       */
+/* Revision       : $Revision: 1.4 $                                  */
 /***********************************************************************/
 
 #include <stdio.h>
@@ -118,7 +118,7 @@ main(int argc, char *argv[]) {
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
     (argc, argv,
-     "$Id: mri_gcab_train.c,v 1.3 2011/03/02 00:04:15 nicks Exp $",
+     "$Id: mri_gcab_train.c,v 1.4 2011/03/16 20:23:33 fischl Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
@@ -621,7 +621,7 @@ static void modify_transform(TRANSFORM *transform, MRI *mri_inputs, GCA *gca) {
   mri_buf = MRIallocHeader(mri_inputs->width,
                            mri_inputs->height,
                            mri_inputs->depth,
-                           mri_inputs->type);
+                           mri_inputs->type,1);
   MRIcopyHeader(mri_inputs, mri_buf);
 
   //////////////////////////////////////////////////////////////////////////
