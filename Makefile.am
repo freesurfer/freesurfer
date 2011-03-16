@@ -319,12 +319,12 @@ SUBDIRS=\
 	itkio \
 	itkutils \
 	tetgen \
+	$(FSGDF) \
 	connectgraph \
 	qdecproject \
 	svm-lib \
 	scripts \
 	distribution \
-	$(FSGDF) \
 	$(GLSUBDIRS) \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \
