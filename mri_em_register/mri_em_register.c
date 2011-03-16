@@ -8,7 +8,10 @@
 /*
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
- * CVS Revision Info: $Id: mri_em_register.c,v 1.83 2011/03/02 00:04:15 nicks Exp $
+ * CVS Revision Info:
+ *    $Author: nicks $
+ *    $Date: 2011/03/16 21:23:48 $
+ *    $Revision: 1.84 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -201,7 +204,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.83 2011/03/02 00:04:15 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.84 2011/03/16 21:23:48 nicks Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -773,7 +776,11 @@ main(int argc, char *argv[])
   fflush(stdout);
   // writing transform section here
   // create gca volume for outputting dirction cosines and c_(ras)
-  mri_dst = MRIallocHeader(gca->width, gca->height, gca->depth, mri_in->type);
+  mri_dst = MRIallocHeader(gca->width,
+                           gca->height,
+                           gca->depth,
+                           mri_in->type,
+                           mri_in->nframes);
   GCAcopyDCToMRI(gca, mri_dst);
   strcpy(mri_dst->fname,gca_fname); // copy gca name
   if (!stricmp(out_fname+strlen(out_fname)-3, "XFM"))

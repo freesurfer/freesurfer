@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.60 $
+ *    $Date: 2011/03/16 21:23:48 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -230,7 +230,8 @@ bool FSVolume::Restore( const QString& filename, const QString& reg_filename )
     MRI* mri = MRIallocHeader( m_MRI->width,
                                m_MRI->height,
                                m_MRI->depth,
-                               m_MRI->type );
+                               m_MRI->type,
+                               m_MRI->nframes);
     MRIcopyHeader( m_MRI, mri );
     m_MRITemp = m_MRI;
     m_MRI = mri;
@@ -408,7 +409,8 @@ bool FSVolume::Create( FSVolume* src_vol, bool bCopyVoxelData, int data_type )
     m_MRIOrigTarget = MRIallocHeader( mri->width,
                                       mri->height,
                                       mri->depth,
-                                      data_type );
+                                      data_type,
+                                      mri->nframes);
     MRIcopyHeader( mri, m_MRIOrigTarget );
   }
 
@@ -506,7 +508,8 @@ void FSVolume::SetMRI( MRI*& mri_out, MRI* mri_in )
     mri_out = MRIallocHeader( mri_in->width,
                               mri_in->height,
                               mri_in->depth,
-                              mri_in->type );
+                              mri_in->type,
+                              mri_in->nframes);
     MRIcopyHeader( mri_in, mri_out );
   }
   else
@@ -528,7 +531,8 @@ void FSVolume::SetMRITarget( MRI* mri )
     m_MRITarget = MRIallocHeader( mri->width,
                                   mri->height,
                                   mri->depth,
-                                  m_MRI->type );
+                                  m_MRI->type,
+                                  m_MRI->nframes);
     MRIcopyHeader( mri, m_MRITarget );
   }
 }
@@ -1076,7 +1080,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     }
     else
     {
-      mri = MRIallocHeader( dim[0], dim[1], dim[2], src->type );
+      mri = MRIallocHeader( dim[0], dim[1], dim[2], src->type, src->nframes );
     }
 
     if ( mri == NULL )
@@ -1179,7 +1183,7 @@ MRI* FSVolume::CreateTargetMRI( MRI* src, MRI* refTarget, bool bAllocatePixel, b
     }
     else
     {
-      mri = MRIallocHeader( dim[0], dim[1], dim[2], src->type );
+      mri = MRIallocHeader( dim[0], dim[1], dim[2], src->type, src->nframes );
     }
 
     if ( mri == NULL )
@@ -1799,7 +1803,8 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
     rasMRI = MRIallocHeader( m_MRITarget->width,
                              m_MRITarget->height,
                              m_MRITarget->depth,
-                             m_MRI->type );
+                             m_MRI->type,
+                             m_MRI->nframes);
     MRIsetResolution( rasMRI,
                       m_MRITarget->xsize,
                       m_MRITarget->ysize,
@@ -1815,7 +1820,8 @@ bool FSVolume::Rotate( std::vector<RotationElement>& rotations,
       m_MRIOrigTarget = MRIallocHeader( m_MRITarget->width,
                                         m_MRITarget->height,
                                         m_MRITarget->depth,
-                                        m_MRITarget->type );
+                                        m_MRITarget->type,
+                                        m_MRITarget->nframes);
       MRIcopyHeader( m_MRITarget, m_MRIOrigTarget );
     }
   }

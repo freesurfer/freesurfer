@@ -10,8 +10,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.117 $
+ *    $Date: 2011/03/16 21:23:49 $
+ *    $Revision: 1.118 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -55,7 +55,7 @@
 #include "mrisegment.h"
 
 static char vcid[] =
-  "$Id: mri_fill.c,v 1.117 2011/03/02 00:04:15 nicks Exp $";
+  "$Id: mri_fill.c,v 1.118 2011/03/16 21:23:49 nicks Exp $";
 
 /*-------------------------------------------------------------------
   CONSTANTS
@@ -2019,7 +2019,7 @@ main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_fill.c,v 1.117 2011/03/02 00:04:15 nicks Exp $", "$Name:  $",
+   "$Id: mri_fill.c,v 1.118 2011/03/16 21:23:49 nicks Exp $", "$Name:  $",
    cmdline);
 
   // Gdiag = 0xFFFFFFFF;
@@ -2027,7 +2027,7 @@ main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_fill.c,v 1.117 2011/03/02 00:04:15 nicks Exp $",
+           "$Id: mri_fill.c,v 1.118 2011/03/16 21:23:49 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -2183,8 +2183,11 @@ main(int argc, char *argv[])
   ////////////////////////////////////////////////////////////////////////////
   // set up mri_talheader
   ////////////////////////////////////////////////////////////////////////////
-  mri_talheader = MRIallocHeader
-                  (mri_im->width, mri_im->height, mri_im->depth, mri_im->type);
+  mri_talheader = MRIallocHeader(mri_im->width,
+                                 mri_im->height,
+                                 mri_im->depth,
+                                 mri_im->type,
+                                 mri_im->nframes);
   MRIcopyHeader(mri_im, mri_talheader); // not allocate memory, though
   // modify c_(r,a,s) depending on the xfm dst value
 

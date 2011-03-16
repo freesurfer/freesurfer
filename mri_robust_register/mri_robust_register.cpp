@@ -7,11 +7,11 @@
  */
 
 /*
- * Original Author: Martin Reuter
+ * Original Author: Martin Reuter, Nov. 4th ,2008
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.51 $
+ *    $Date: 2011/03/16 21:23:49 $
+ *    $Revision: 1.52 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,15 +24,6 @@
  * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
-
-//
-// mri_robust_register.cpp
-//
-// written by Martin Reuter
-// Nov. 4th ,2008
-//
-////////////////////////////////////////////////////////////////////
 
 #include <string>
 #include <iostream>
@@ -134,7 +125,7 @@ static void printUsage(void);
 static bool parseCommandLine(int argc, char *argv[],Parameters & P) ;
 static void initRegistration(Registration & R, Parameters & P) ;
 
-static char vcid[] = "$Id: mri_robust_register.cpp,v 1.51 2011/03/02 00:04:24 nicks Exp $";
+static char vcid[] = "$Id: mri_robust_register.cpp,v 1.52 2011/03/16 21:23:49 nicks Exp $";
 char *Progname = NULL;
 
 //static MORPH_PARMS  parms ;

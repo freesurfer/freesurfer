@@ -12,8 +12,8 @@
  * Original Authors: Florent Segonne & Bruce Fischl
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:25 $
- *    $Revision: 1.95 $
+ *    $Date: 2011/03/16 21:23:49 $
+ *    $Revision: 1.96 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,7 +27,7 @@
  *
  */
 
-const char *MRI_WATERSHED_VERSION = "$Revision: 1.95 $";
+const char *MRI_WATERSHED_VERSION = "$Revision: 1.96 $";
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -838,7 +838,7 @@ int main(int argc, char *argv[])
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_watershed.cpp,v 1.95 2011/03/02 00:04:25 nicks Exp $",
+   "$Id: mri_watershed.cpp,v 1.96 2011/03/16 21:23:49 nicks Exp $",
    "$Name:  $",
    cmdline);
 
@@ -851,7 +851,7 @@ int main(int argc, char *argv[])
   /* rkt: check for and handle version tag */
   nargs = handle_version_option
           (argc, argv,
-           "$Id: mri_watershed.cpp,v 1.95 2011/03/02 00:04:25 nicks Exp $",
+           "$Id: mri_watershed.cpp,v 1.96 2011/03/16 21:23:49 nicks Exp $",
            "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -968,7 +968,8 @@ int main(int argc, char *argv[])
       MRI *mri_buf = MRIallocHeader(mri_with_skull->width,
                                     mri_with_skull->height,
                                     mri_with_skull->depth,
-                                    mri_with_skull->type);
+                                    mri_with_skull->type,
+                                    mri_with_skull->nframes);
       LTA *lta = (LTA *) (parms->transform->xform);
 
       // modify using the xform dst

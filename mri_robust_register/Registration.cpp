@@ -8,8 +8,8 @@
  * Original Author: Martin Reuter
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:24 $
- *    $Revision: 1.66 $
+ *    $Date: 2011/03/16 21:23:49 $
+ *    $Revision: 1.67 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3410,7 +3410,11 @@ Registration::makeIsotropic(MRI *mri, MRI *out, double vsize, int xdim, int ydim
 
 	
  // MRI * temp = MRIallocHeader(conform_dimensions[0], conform_dimensions[1], conform_dimensions[2], MRI_UCHAR);
-  MRI * temp = MRIallocHeader(conform_dimensions[0], conform_dimensions[1], conform_dimensions[2], MRI_FLOAT);
+  MRI * temp = MRIallocHeader(conform_dimensions[0],
+                              conform_dimensions[1],
+                              conform_dimensions[2],
+                              MRI_FLOAT,
+                              1);
   MRIcopyHeader(mri, temp);
   temp->width  = conform_dimensions[0];
 	temp->height = conform_dimensions[1];

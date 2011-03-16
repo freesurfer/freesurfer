@@ -1,18 +1,18 @@
 /**
  * @file  mri_concatenate_lta.c
- * @brief Concatenate two (or more?) LTAs into one final LTA 
+ * @brief Concatenate two (or more?) LTAs into one final LTA
  *
- * This program concatenate two consecutive LTA transformations into one 
+ * This program concatenate two consecutive LTA transformations into one
  * overall transformation.  The combined LTA maps src1 to dst2.
- * If lta2 is talairach.xfm, use -tal file1 file2 to specify src (file1) and 
+ * If lta2 is talairach.xfm, use -tal file1 file2 to specify src (file1) and
  * template (file2) for the talairach xfm.
  */
 /*
  * Original Author: Xiao Han
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:14 $
- *    $Revision: 1.9 $
+ *    $Date: 2011/03/16 21:23:48 $
+ *    $Revision: 1.10 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -73,12 +73,14 @@ int main(int argc, char *argv[])
 
   Progname = argv[0];
 
-  nargs = handle_version_option 
-    (argc, argv, 
-     "$Id: mri_concatenate_lta.c,v 1.9 2011/03/02 00:04:14 nicks Exp $", 
-     "$Name:  $");
+  nargs = handle_version_option
+          (argc, argv,
+           "$Id: mri_concatenate_lta.c,v 1.10 2011/03/16 21:23:48 nicks Exp $",
+           "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs ;
 
   ac = argc ;
@@ -91,7 +93,9 @@ int main(int argc, char *argv[])
   }
 
   if (argc != 4)
+  {
     usage(1);
+  }
 
   ltafn1 = argv[1];
   ltafn2 = argv[2];
@@ -101,9 +105,11 @@ int main(int argc, char *argv[])
   //lta1 = ltaReadFileEx(ltafn1);
   TRANSFORM * trans = TransformRead(ltafn1);
   lta1 =  (LTA *)trans->xform ;
-	
+
   if (!lta1)
+  {
     ErrorExit(ERROR_BADFILE, "%s: can't read file %s",Progname, ltafn1);
+  }
 
   if (invert1)
   {
@@ -116,14 +122,14 @@ int main(int argc, char *argv[])
     if (lt->dst.valid == 0 || lt->src.valid == 0)
     {
       fprintf
-        (stderr, 
-         "WARNING:********************************************************\n");
+      (stderr,
+       "WARNING:********************************************************\n");
       fprintf
-        (stderr, 
-         "WARNING:dst or src volume is invalid.  Inverse likely wrong.\n");
+      (stderr,
+       "WARNING:dst or src volume is invalid.  Inverse likely wrong.\n");
       fprintf
-        (stderr, 
-         "WARNING:********************************************************\n");
+      (stderr,
+       "WARNING:********************************************************\n");
     }
     copyVolGeom(&lt->dst, &vgtmp);
     copyVolGeom(&lt->src, &lt->dst);
@@ -138,16 +144,18 @@ int main(int argc, char *argv[])
       ltaMNIwrite(lta1, ltafn_total);
     }
     else
-    { 
+    {
       //change type to VOXEL_VOXEL
       if (lta1->type != out_type)
+      {
         LTAchangeType(lta1, out_type);
+      }
 
       printf("Writing  LTA to file %s...\n", ltafn_total);
       fo = fopen(ltafn_total,"w");
       if (fo==NULL)
-      ErrorExit(ERROR_BADFILE, 
-                "%s: can't create file %s",Progname, ltafn_total);
+        ErrorExit(ERROR_BADFILE,
+                  "%s: can't create file %s",Progname, ltafn_total);
 
       LTAprint(fo, lta1);
 
@@ -164,9 +172,9 @@ int main(int argc, char *argv[])
   {
     if (invert2 != 0)
       ErrorExit
-        (ERROR_BADFILE, 
-         "%s: LTA2 is talairach.xfm, and shouldn't be inverted ",
-         Progname);
+      (ERROR_BADFILE,
+       "%s: LTA2 is talairach.xfm, and shouldn't be inverted ",
+       Progname);
 
     lta2 = ltaMNIreadEx(ltafn2) ;
     //the talairach xform is supposed to be linear_RAS_TO_RAS, right? Yes
@@ -174,29 +182,35 @@ int main(int argc, char *argv[])
 
     if (tal_src_file == 0 && lta2->xforms[0].src.valid == 0)
       ErrorExit
-        (ERROR_BADFILE, 
-         "%s: pls use -tal option to give talairach src and "
-         "template filenames",Progname);
+      (ERROR_BADFILE,
+       "%s: pls use -tal option to give talairach src and "
+       "template filenames",Progname);
     if (tal_dst_file == 0 && lta2->xforms[0].dst.valid == 0)
       ErrorExit
-        (ERROR_BADFILE, 
-         "%s: pls use -tal option to give talairach src and "
-         "template filenames",Progname);
+      (ERROR_BADFILE,
+       "%s: pls use -tal option to give talairach src and "
+       "template filenames",Progname);
 
     if (tal_src_file != 0)
-      LTAmodifySrcDstGeom(lta2, tal_src, NULL); // add src and dst information
+    {
+      LTAmodifySrcDstGeom(lta2, tal_src, NULL);  // add src and dst information
+    }
     if (tal_dst_file != 0)
-      LTAmodifySrcDstGeom(lta2, NULL, tal_dst); // add src and dst information
+    {
+      LTAmodifySrcDstGeom(lta2, NULL, tal_dst);  // add src and dst information
+    }
   }
   else
   {
-     TRANSFORM * trans = TransformRead(ltafn2);
-     lta2 =  (LTA *)trans->xform ;
-     //lta2 = ltaReadFileEx(ltafn2);
+    TRANSFORM * trans = TransformRead(ltafn2);
+    lta2 =  (LTA *)trans->xform ;
+    //lta2 = ltaReadFileEx(ltafn2);
   }
 
   if (!lta2)
+  {
     ErrorExit(ERROR_BADFILE, "%s: can't read file %s",Progname, ltafn2);
+  }
 
   if (invert2)
   {
@@ -209,14 +223,14 @@ int main(int argc, char *argv[])
     if (lt->dst.valid == 0 || lt->src.valid == 0)
     {
       fprintf
-        (stderr, 
-         "WARNING:********************************************************\n");
+      (stderr,
+       "WARNING:********************************************************\n");
       fprintf
-        (stderr, 
-         "WARNING:dst or src volume is invalid.  Inverse likely wrong.\n");
+      (stderr,
+       "WARNING:dst or src volume is invalid.  Inverse likely wrong.\n");
       fprintf
-        (stderr, 
-         "WARNING:********************************************************\n");
+      (stderr,
+       "WARNING:********************************************************\n");
     }
     copyVolGeom(&lt->dst, &vgtmp);
     copyVolGeom(&lt->src, &lt->dst);
@@ -225,8 +239,8 @@ int main(int argc, char *argv[])
 
   if (vg_isEqual(&lta1->xforms[0].dst, &lta2->xforms[0].src) == 0)
   {
-    /*    ErrorExit(ERROR_BADFILE, 
-          "%s: dst volume of lta1 doesn't match src 
+    /*    ErrorExit(ERROR_BADFILE,
+          "%s: dst volume of lta1 doesn't match src
           volume of lta2",Progname);*/
     printf("Warning: dst volume of lta1 doesn't match src volume of lta2\n");
     printf("Volume geometry for lta1-dst: \n");
@@ -247,7 +261,7 @@ int main(int argc, char *argv[])
     r_to_i_1 = vg_r_to_i(&lta1->xforms[0].src);
     i_to_r_1 = vg_i_to_r(&lta1->xforms[0].dst);
     if (!r_to_i_1 || !i_to_r_1)
-      ErrorExit(ERROR_BADFILE, 
+      ErrorExit(ERROR_BADFILE,
                 "%s: failed to convert LTA1 to RAS_to_RAS",Progname);
     m_tmp = MatrixMultiply(lta1->xforms[0].m_L, r_to_i_1, NULL);
     RAS_1_to_1 = MatrixMultiply(i_to_r_1, m_tmp, NULL);
@@ -255,7 +269,7 @@ int main(int argc, char *argv[])
   }
   else
   {
-    ErrorExit(ERROR_BADFILE, 
+    ErrorExit(ERROR_BADFILE,
               "%s: unknown transform type for LTA1",Progname);
   }
 
@@ -268,7 +282,7 @@ int main(int argc, char *argv[])
     r_to_i_2 = vg_r_to_i(&lta2->xforms[0].src);
     i_to_r_2 = vg_i_to_r(&lta2->xforms[0].dst);
     if (!r_to_i_2 || !i_to_r_2)
-      ErrorExit(ERROR_BADFILE, 
+      ErrorExit(ERROR_BADFILE,
                 "%s: failed to convert LTA1 to RAS_to_RAS",Progname);
     m_tmp = MatrixMultiply(lta2->xforms[0].m_L, r_to_i_2, NULL);
     RAS_2_to_2 = MatrixMultiply(i_to_r_2, m_tmp, NULL);
@@ -298,12 +312,14 @@ int main(int argc, char *argv[])
   {
     //change type to VOXEL_VOXEL
     if (lta_total->type != out_type)
+    {
       LTAchangeType(lta_total, out_type);
+    }
 
     printf("Writing combined LTA to file %s...\n", ltafn_total);
     fo = fopen(ltafn_total,"w");
     if (fo==NULL)
-      ErrorExit(ERROR_BADFILE, 
+      ErrorExit(ERROR_BADFILE,
                 "%s: can't create file %s",Progname, ltafn_total);
 
     LTAprint(fo, lta_total);
@@ -317,8 +333,14 @@ int main(int argc, char *argv[])
   MatrixFree(&RAS_1_to_1);
   MatrixFree(&RAS_2_to_2);
 
-  if (tal_src) MRIfree(&tal_src);
-  if (tal_dst) MRIfree(&tal_dst);
+  if (tal_src)
+  {
+    MRIfree(&tal_src);
+  }
+  if (tal_dst)
+  {
+    MRIfree(&tal_dst);
+  }
 
   printf("%s successful.\n", Progname);
 
@@ -333,31 +355,31 @@ static void usage(int exit_val)
 
   fout = (exit_val ? stderr : stdout);
 
-  fprintf(fout, 
+  fprintf(fout,
           "\nUsage: %s <options> lta_1 lta_2 lta_final \n\n", Progname);
-  fprintf(fout, 
+  fprintf(fout,
           "Short description: concatenates two consecutive LTA transformations \n") ;
-  fprintf(fout, 
+  fprintf(fout,
           "                   into one overall transformation.\n\n") ;
   fprintf(fout,
           "Required arguments\n\n");
   fprintf(fout,
           "  lta_1              maps some src1 to dst1 \n");
-  fprintf(fout, 
+  fprintf(fout,
           "  lta_2              maps dst1(src2) to dst2 \n") ;
-  fprintf(fout, 
+  fprintf(fout,
           "  lta_final          the combined LTA maps: src1 to dst2.\n\n") ;
   fprintf(fout, "Optional arguments\n\n");
-  fprintf(fout, 
+  fprintf(fout,
           "  -tal file1 file2   if lta2 is talairach.xfm specify src (file1) and\n"
           "                        template (file2) for the talairach xfm.\n") ;
-  fprintf(fout, 
+  fprintf(fout,
           "  -invert1           invert lta_1 before applying it\n") ;
-  fprintf(fout, 
+  fprintf(fout,
           "  -invert2           invert lta_2 before applying it\n") ;
-  fprintf(fout, 
+  fprintf(fout,
           "  -out_type          set final LTA type: 0 VOX2VOX (default)\n") ;
-  fprintf(fout, 
+  fprintf(fout,
           "                                         1 RAS2RAS\n\n") ;
   fprintf(fout, "You can use 'identity.nofile' as the filename for lta2\n") ;
   fprintf(fout, "  e.g.: %s -invert1 lta1.lta identity.nofile inv1.lta\n\n",Progname) ;
@@ -382,7 +404,7 @@ static void usage(int exit_val)
   if (cp == NULL)
   {
     fclose(fp) ;
-    ErrorReturn(NULL, 
+    ErrorReturn(NULL,
                 (ERROR_BADFILE, "ltaReadFile(%s): can't read data",fname));
   }
   sscanf(cp, "type      = %d\n", &type) ;
@@ -424,7 +446,9 @@ get_option(int argc, char *argv[])
 
   option = argv[1] + 1 ;            /* past '-' */
   if (!stricmp(option, "help"))
+  {
     usage(0) ;
+  }
   else if (!stricmp(option, "invert1"))
   {
     invert1 = 1;
@@ -493,13 +517,15 @@ static LTA *ltaMNIreadEx(const char *fname)
   fgetl(line, 900, fp) ;   /* MNI Transform File */
   if (strncmp("MNI Transform File", line, 18))
     ErrorReturn(NULL,
-                (ERROR_NOFILE, 
+                (ERROR_NOFILE,
                  "ltMNIreadEx:%s does not start as 'MNI Transform File'",
                  fname));
 
   fgetl(line, 900, fp) ;   /* fileinfo line */
   if (line[0] == '%')
+  {
     strcpy(infoline, line);
+  }
   else
   {
     no_volinfo = 1;
@@ -515,7 +541,9 @@ static LTA *ltaMNIreadEx(const char *fname)
   {
     strcpy(infoline2, line);
     while (line[0] == '%')
-      fgetl(line, 900, fp) ; /* variable # of comments */
+    {
+      fgetl(line, 900, fp) ;  /* variable # of comments */
+    }
     fgetl(line, 900, fp) ;
     if (!strncmp("Transform_Type", line, 14))
     {
@@ -531,7 +559,9 @@ static LTA *ltaMNIreadEx(const char *fname)
       goto get_transform;
     }
     while (line[0] == '%')
-      fgetl(line, 900, fp) ; /* variable # of comments */
+    {
+      fgetl(line, 900, fp) ;  /* variable # of comments */
+    }
   }
 
 get_transform:
@@ -543,9 +573,9 @@ get_transform:
     {
       LTAfree(&lta) ;
       ErrorReturn
-        (NULL,
-         (ERROR_BADFILE, "ltMNIreadEx: could not read row %d from %s (%s)",
-          row, fname, line)) ;
+      (NULL,
+       (ERROR_BADFILE, "ltMNIreadEx: could not read row %d from %s (%s)",
+        row, fname, line)) ;
     }
     sscanf(cp, "%f %f %f %f",
            MATRIX_RELT(m_L,row,1), MATRIX_RELT(m_L,row,2),
@@ -560,9 +590,9 @@ get_transform:
 
   // add original src and dst information
   if (no_volinfo == 0)
-    mincGetVolInfo(infoline, 
-                   infoline2, 
-                   &lta->xforms[0].src, 
+    mincGetVolInfo(infoline,
+                   infoline2,
+                   &lta->xforms[0].src,
                    &lta->xforms[0].dst);
   lta->type = LINEAR_RAS_TO_RAS;
   return lta;
@@ -599,7 +629,9 @@ static int  ltaMNIwrite(LTA *lta, char *fname)
               *MATRIX_RELT(m_L,row,1), *MATRIX_RELT(m_L,row,2),
               *MATRIX_RELT(m_L,row,3), *MATRIX_RELT(m_L,row,4)) ;
       if (row == 3)
+      {
         fprintf(fp, ";") ;
+      }
       fprintf(fp, "\n") ;
     }
   }
@@ -614,15 +646,17 @@ static int  ltaMNIwrite(LTA *lta, char *fname)
     MRI *dst = 0;
     LT  *lt = 0;
     lt = &lta->xforms[0];
-    src = MRIallocHeader(lt->src.width, 
-                         lt->src.height, 
-                         lt->src.depth, 
-                         MRI_UCHAR);
+    src = MRIallocHeader(lt->src.width,
+                         lt->src.height,
+                         lt->src.depth,
+                         MRI_UCHAR,
+                         1);
     useVolGeomToMRI(&lt->src, src);
-    dst = MRIallocHeader(lt->dst.width, 
-                         lt->dst.height, 
-                         lt->dst.depth, 
-                         MRI_UCHAR);
+    dst = MRIallocHeader(lt->dst.width,
+                         lt->dst.height,
+                         lt->dst.depth,
+                         MRI_UCHAR,
+                         1);
     useVolGeomToMRI(&lt->dst, dst);
     voxFromRAS = extract_r_to_i(src);
     tmp = MatrixMultiply(lta->xforms[0].m_L, voxFromRAS, NULL);
@@ -634,7 +668,9 @@ static int  ltaMNIwrite(LTA *lta, char *fname)
               *MATRIX_RELT(rasToRAS,row,1), *MATRIX_RELT(rasToRAS,row,2),
               *MATRIX_RELT(rasToRAS,row,3), *MATRIX_RELT(rasToRAS,row,4)) ;
       if (row == 3)
+      {
         fprintf(fp, ";") ;
+      }
       fprintf(fp, "\n") ;
     }
     MatrixFree(&voxFromRAS);
