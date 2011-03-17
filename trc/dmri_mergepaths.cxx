@@ -1,5 +1,5 @@
 /**
- * @file  dmri_mergepaths.c
+ * @file  dmri_mergepaths.cxx
  * @brief Merge posterior distributions from multiple paths into a 4D file
  *
  * Merge posterior distributions from multiple paths into a 4D file
@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/03/17 04:25:19 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/17 17:21:29 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -68,6 +68,7 @@ static char vcid[] = "";
 const char *Progname = "dmri_mergepaths";
 
 int nframe = 0;
+float dispThresh = 0;
 char *inDir = NULL, *inFile[100], *outFile = NULL, *ctabFile = NULL;
 
 struct utsname uts;
@@ -106,7 +107,9 @@ int main(int argc, char **argv) {
   TimerStart(&cputimer);
 
   for (int iframe = 0; iframe < nframe; iframe++) {
-    cout << "Merging volume " << iframe+1 << " of " << nframe << "... ";
+    float inmax = 0;
+
+    cout << "Merging volume " << iframe+1 << " of " << nframe << "... " << endl;
 
     // Read input volume
     if (inDir)
@@ -126,21 +129,34 @@ int main(int argc, char **argv) {
       }
 
       MRIcopyFrame(invol, outvol, 0, iframe);
+
+      if (dispThresh > 0)
+        for (int iz = 0; iz < invol->depth; iz++)
+          for (int iy = 0; iy < invol->height; iy++)
+            for (int ix = 0; ix < invol->width; ix++) {
+              const float inval = MRIgetVoxVal(invol, ix, iy, iz, 0);
+
+              if (inval > inmax)
+                inmax = inval;
+            }
     }
 
-    outvol->frames[iframe].color = 0;
+    outvol->frames[iframe].thresh = dispThresh * inmax;
+
+    outvol->frames[iframe].label = 0;
 
     for (int ict = outvol->ct->nentries; ict > 0; ict--) {
       CTE *cte = outvol->ct->entries[ict];
 
       if (cte != NULL && strstr(inFile[iframe], cte->name)) {
-        outvol->frames[iframe].color = ict;
+        outvol->frames[iframe].label = ict;
         strcpy(outvol->frames[iframe].name, cte->name);
-
-        cout << cte->name << endl;
         continue;
       }
     }
+
+    cout << "Threshold: " << outvol->frames[iframe].thresh
+         << " Name: "     << outvol->frames[iframe].name << endl;
   }
 
   // Write output file
@@ -200,6 +216,11 @@ static int parse_commandline(int argc, char **argv) {
       ctabFile = fio_fullpath(pargv[0]);
       nargsused = 1;
     } 
+    else if (!strcmp(option, "--thresh")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      sscanf(pargv[0],"%f",&dispThresh);
+      nargsused = 1;
+    }
     else {
       fprintf(stderr,"ERROR: Option %s unknown\n",option);
       if (CMDsingleDash(option))
@@ -228,6 +249,8 @@ static void print_usage(void)
   printf("     Output volume\n");
   printf("   --ctab <file>:\n");
   printf("     Color table file\n");
+  printf("   --thresh <num>:\n");
+  printf("     Lower threshold for display (0<=num<=1, as fraction of max)\n");
   printf("\n");
   printf("Other options\n");
   printf("   --debug:     turn on debugging\n");
@@ -294,6 +317,7 @@ static void dump_options(FILE *fp) {
   fprintf(fp, "\n");
   fprintf(fp, "Output file: %s\n", outFile);
   fprintf(fp, "Color table file: %s\n", ctabFile);
+  fprintf(fp, "Lower threshold for display: %f\n", dispThresh);
 
   return;
 }
