@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2010/06/02 14:45:22 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/17 17:18:55 $
+ *    $Revision: 1.2 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -42,6 +42,7 @@
 #include "mriframegpu.hpp"
 #include "affinegpu.hpp"
 
+#include "ctfactory.hpp"
 
 namespace GPU {
 
@@ -80,7 +81,7 @@ namespace GPU {
       // Timers
       static SciGPU::Utilities::Chronometer tVol2VolMem, tVol2VolMemHost;
       static SciGPU::Utilities::Chronometer tVol2VolMRISendFrame, tVol2VolMRIRecvFrame;
-      static SciGPU::Utilities::Chronometer tVol2VolMRISendArray, tVol2VolCompute;
+      static SciGPU::Utilities::Chronometer tVol2VolCompute;
       static SciGPU::Utilities::Chronometer tVol2VolTotal;
 
       // --------------------------------------
@@ -103,14 +104,16 @@ namespace GPU {
 
       //! Templated texture binding wrapper
       template<typename T>
-      void BindSourceTexture( const GPU::Classes::MRIframeGPU<T>& src,
-			      const int InterpMode ) {
+      GPU::Classes::CTfactory* BindSourceTexture( const GPU::Classes::MRIframeGPU<T>& src,
+                                                  const int InterpMode ) {
 	/*!
 	  Will bind the CUDA array of the source frame to the appropriate
 	  texture, with correct filtering set
 	  Unspecialised version aborts
 	*/
 	std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
+        abort();
+        return(NULL);
       }
 
       //! Templated texture unbinding
@@ -121,6 +124,7 @@ namespace GPU {
 	  Unspecialised version aborts
 	*/
 	std::cerr << __PRETTY_FUNCTION__ << ": Unrecognised type" << std::endl;
+        abort();
       }
 
       // --------------------------------------------

@@ -7,9 +7,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:54 $
- *    $Revision: 1.22 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/17 17:19:00 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -29,6 +29,7 @@
 #include <iostream>
 #include <iomanip>
 
+#include <memory>
 
 #include "chronometer.hpp"
 #include "cudacheck.h"
@@ -36,6 +37,7 @@
 
 #include "mriframegpu.hpp"
 #include "affinegpu.hpp"
+
 
 #include "mrivol2vol_cuda.h"
 #include "mrivol2vol_cuda.hpp"
@@ -61,25 +63,23 @@ namespace GPU {
 
 
     template<>
-    void MRIvol2vol::BindSourceTexture<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& src,
-					   const int InterpMode ) {
+    GPU::Classes::CTfactory* MRIvol2vol::BindSourceTexture<unsigned char>( const GPU::Classes::MRIframeGPU<unsigned char>& src,
+                                                                           const int InterpMode ) {
       /*!
 	Binds the unsigned char texture
       */
-
-      dt_src_uchar.normalized = false;
-      dt_src_uchar.addressMode[0] = cudaAddressModeClamp;
-      dt_src_uchar.addressMode[1] = cudaAddressModeClamp;
-      dt_src_uchar.addressMode[2] = cudaAddressModeClamp;
+      GPU::Classes::CTfactory *tmp;
 
       // Set the interpolation
       switch( InterpMode ) {
       case SAMPLE_NEAREST:
-	dt_src_uchar.filterMode = cudaFilterModePoint;
+	tmp = new GPU::Classes::CTfactory( src, dt_src_uchar,
+                                           cudaFilterModePoint );
 	break;
 
       case SAMPLE_TRILINEAR:
-	dt_src_uchar.filterMode = cudaFilterModeLinear;
+	tmp = new GPU::Classes::CTfactory( src, dt_src_uchar,
+                                           cudaFilterModeLinear );
 	break;
 
       default:
@@ -88,31 +88,30 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_src_uchar, src.GetArray() ) );
-
+     
+      return( tmp );
     }
 
     
     template<>
-    void MRIvol2vol::BindSourceTexture<float>( const GPU::Classes::MRIframeGPU<float>& src,
+    GPU::Classes::CTfactory* MRIvol2vol::BindSourceTexture<float>( const GPU::Classes::MRIframeGPU<float>& src,
 				   const int InterpMode ) {
       /*!
 	Binds the float texture
       */
 
-      dt_src_float.normalized = false;
-      dt_src_float.addressMode[0] = cudaAddressModeClamp;
-      dt_src_float.addressMode[1] = cudaAddressModeClamp;
-      dt_src_float.addressMode[2] = cudaAddressModeClamp;
+      GPU::Classes::CTfactory *tmp;
 
       // Set the interpolation
       switch( InterpMode ) {
       case SAMPLE_NEAREST:
-	dt_src_float.filterMode = cudaFilterModePoint;
+	tmp = new GPU::Classes::CTfactory( src, dt_src_float,
+                                           cudaFilterModePoint );
 	break;
 
       case SAMPLE_TRILINEAR:
-	dt_src_float.filterMode = cudaFilterModeLinear;
+	tmp = new GPU::Classes::CTfactory( src, dt_src_float,
+                                           cudaFilterModeLinear );
 	break;
 
       default:
@@ -121,30 +120,28 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_src_float, src.GetArray() ) );
-
+     
+      return( tmp );
     }
 
     template<>
-    void MRIvol2vol::BindSourceTexture<short>( const GPU::Classes::MRIframeGPU<short>& src,
+    GPU::Classes::CTfactory* MRIvol2vol::BindSourceTexture<short>( const GPU::Classes::MRIframeGPU<short>& src,
 				   const int InterpMode ) {
       /*!
 	Binds the short texture
       */
-
-      dt_src_short.normalized = false;
-      dt_src_short.addressMode[0] = cudaAddressModeClamp;
-      dt_src_short.addressMode[1] = cudaAddressModeClamp;
-      dt_src_short.addressMode[2] = cudaAddressModeClamp;
+      GPU::Classes::CTfactory *tmp;
 
       // Set the interpolation
       switch( InterpMode ) {
       case SAMPLE_NEAREST:
-	dt_src_short.filterMode = cudaFilterModePoint;
+	tmp = new GPU::Classes::CTfactory( src, dt_src_short,
+                                           cudaFilterModePoint );
 	break;
 
       case SAMPLE_TRILINEAR:
-	dt_src_short.filterMode = cudaFilterModeLinear;
+	tmp = new GPU::Classes::CTfactory( src, dt_src_short,
+                                           cudaFilterModeLinear );
 	break;
 
       default:
@@ -153,7 +150,8 @@ namespace GPU {
 	exit( EXIT_FAILURE );
       }
 
-      CUDA_SAFE_CALL( cudaBindTextureToArray( dt_src_short, src.GetArray() ) );
+     
+      return( tmp );
 
     }
 
@@ -295,15 +293,11 @@ namespace GPU {
       */
 
       // Run through a couple of sanity checks
-      if( !src.HasArray() ) {
-	std::cerr << __FUNCTION__ <<
-	  ": Source array must be in CUDA array" << std::endl;
-	exit( EXIT_FAILURE );
-      }
+      
 
       
       // Bind the texture and array
-      this->BindSourceTexture( src, InterpMode );
+      std::auto_ptr<GPU::Classes::CTfactory> srcCT( this->BindSourceTexture( src, InterpMode ) );
 
 
       const dim3 dstDims = dst.GetDims();
@@ -361,7 +355,6 @@ namespace GPU {
       // Allocate GPU arrays
       tVol2VolMem.Start();
       srcGPU.Allocate( src );
-      srcGPU.AllocateArray();
       dstGPU.Allocate( targ );
       tVol2VolMem.Stop();
 
@@ -391,11 +384,6 @@ namespace GPU {
 	tVol2VolMRISendFrame.Start();
 	srcGPU.SendFrame( src, iFrame, h_workspace );
 	tVol2VolMRISendFrame.Stop();
-	
-	// Put it into a CUDA array
-	tVol2VolMRISendArray.Start();
-	srcGPU.SendArray();
-	tVol2VolMRISendArray.Stop();
 
 	// Run the convolution
 	tVol2VolCompute.Start();
@@ -504,7 +492,6 @@ namespace GPU {
     SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMemHost;
     SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMRISendFrame;
     SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMRIRecvFrame;
-    SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolMRISendArray;
     SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolCompute;
     SciGPU::Utilities::Chronometer MRIvol2vol::tVol2VolTotal;
 
@@ -523,7 +510,6 @@ namespace GPU {
       std::cout << "Host Memory : " << MRIvol2vol::tVol2VolMemHost << std::endl;
       std::cout << "GPU Memory  : " << MRIvol2vol::tVol2VolMem << std::endl;
       std::cout << "Send Frame  : " << MRIvol2vol::tVol2VolMRISendFrame << std::endl;
-      std::cout << "Send Array  : " << MRIvol2vol::tVol2VolMRISendArray << std::endl;
       std::cout << "Compute     : " << MRIvol2vol::tVol2VolCompute << std::endl;
       std::cout << "Recv Frame  : " << MRIvol2vol::tVol2VolMRIRecvFrame << std::endl;
       std::cout << "---------------------" << std::endl;
