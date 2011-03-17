@@ -1,4 +1,4 @@
-#$Id: FreeSurferColorLUT.txt,v 1.69 2011/03/06 23:01:31 nicks Exp $
+#$Id: FreeSurferColorLUT.txt,v 1.70 2011/03/17 04:18:51 ayendiki Exp $
 
 #No. Label Name:                            R   G   B   A
 
@@ -859,82 +859,29 @@
 5001    Left-UnsegmentedWhiteMatter                     20  30  40  0
 5002    Right-UnsegmentedWhiteMatter                    20  30  40  0
 
-# Below is the color table for creating DTI tract waypoints. Each tract has
-# a different color for its start point, its end point, and its waypoints.
+# Color table for white-matter pathways
 
 #No.   Label Name:                                      R   G   B   A
-5050   Left-SLF1_waypoint                               120 19  134 0
-5051   Left-SLF1-Start                                  197 58  250 0
-5052   Left-SLF1-End                                    198 58  250 0
-5053   Right-SLF1_waypoint                              120 20  134 0
-5054   Right-SLF1-Start                                 199 58  250 0
-5055   Right-SLF1-End                                   200 58  250 0
+5100   lh.cst                                           120 20  134 0
+5101   rh.cst                                           120 20  134 0
+5102   lh.ilf                                           236 15  176 0
+5103   rh.ilf                                           236 15  176 0
+5104   lh.unc                                           12  50  255 0
+5105   rh.unc                                           12  50  255 0
+5106   fmajor                                           255 167 0   0
+5107   fminor                                           255 167 0   0
+5108   lh.atr                                           232 147 33  0
+5109   rh.atr                                           232 148 33  0
+5110   lh.ccg                                           121 185 220 0
+5111   rh.ccg                                           121 186 220 0
+5112   lh.cab                                           220 252 163 0
+5113   rh.cab                                           220 253 163 0
+5114   lh.slf_                                          3   148 6   0
+5115   rh.slf_                                          3   149 6   0
+5116   lh.slft                                          42  205 167 0
+5117   rh.slft                                          42  206 167 0
 
-5056   Left-SLF2_waypoint                               236 14  176 0
-5057   Left-SLF2-Start                                  206 62  78  0
-5058   Left-SLF2-End                                    207 62  78  0
-5059   Right-SLF2_waypoint                              236 15  176 0
-5060   Right-SLF2-Start                                 208 62  78  0
-5061   Right-SLF2-End                                   209 62  78  0
-
-5062   Left-SLF3_waypoint                               12  49  255 0
-5063   Left-SLF3-Start                                  123 186 220 0
-5064   Left-SLF3-End                                    124 186 220 0
-5065   Right-SLF3_waypoint                              12  50  255 0
-5066   Right-SLF3-Start                                 125 186 220 0
-5067   Right-SLF3-End                                   126 186 220 0
-
-5068   Left-CST_waypoint                                255 166 0   0
-5069   Left-CST-Start                                   221 216 20  0
-5070   Left-CST-End                                     222 216 20  0
-5071   Right-CST_waypoint                               255 167 0   0
-5072   Right-CST-Start                                  223 216 20  0
-5073   Right-CST-End                                    224 216 20  0
-
-5074   Left-Cingulum_Body_waypoint                      232 147 33  0
-5075   Left-Cingulum_Body-Start                         243 241 240 0
-5076   Left-Cingulum_Body-End                           244 241 240 0
-5077   Right-Cingulum_Body_waypoint                     232 148 33  0
-5078   Right-Cingulum_Body-Start                        245 241 240 0
-5079   Right-Cingulum_Body-End                          246 241 240 0
-5080   Left-Uncinate_Fasciculus_waypoint                121 185 220 0
-5081   Left-Uncinate_Fasciculus-Start                   13  46  250 0
-5082   Left-Uncinate_Fasciculus-End                     14  46  250 0
-5083   Right-Uncinate_Fasciculus_waypoint               121 186 220 0
-5084   Right-Uncinate_Fasciculus-Start                  15  46  250 0
-5085   Right-Uncinate_Fasciculus-End                    16  46  250 0
-5086   Left-Inf-Fronto-occ-Fasc_waypoint                220 252 163 0
-5087   Left-Inf-Fronto-occ-Fasc-Start                   5   114 14  0
-5088   Left-Inf-Fronto-occ-Fasc-End                     6   114 14  0
-5089   Right-Inf-Fronto-occ-Fasc_waypoint               220 253 163 0
-5090   Right-Inf-Fronto-occ-Fasc-Start                  7   114 14  0
-5091   Right-Inf-Fronto-occ-Fasc-End                    8   114 14  0
-5092   Left-Sup-Fronto-occ-Fasc_waypoint                3   148 6   0
-5093   Left-Sup-Fronto-occ-Fasc-Start                   75  130 181 0
-5094   Left-Sup-Fronto-occ-Fasc-End                     76  130 181 0
-5095   Right-Sup-Fronto-occ-Fasc_waypoint               3   149 6   0
-5096   Right-Sup-Fronto-occ-Fasc-Start                  77  130 181 0
-5097   Right-Sup-Fronto-occ-Fasc-End                    78  130 181 0
-5098   Left-Inf-Longitudinal-Fasc_waypoint              42  205 167 0
-5099   Left-Inf-Longitudinal-Fasc-Start                 236 11  175 0
-5100   Left-Inf-Longitudinal-Fasc-End                   237 11  175 0
-5101   Right-Inf-Longitudinal-Fasc_waypoint             42  206 167 0
-5102   Right-Inf-Longitudinal-Fasc-Start                238 11  175 0
-5103   Right-Inf-Longitudinal-Fasc-End                  239 11  175 0
-
-5104   Right-Occipital-optic-radiation-Start            70  130 180 0
-5105   Right-Occipital-optic-radiation-waypoint         245 245 245 0
-5106   Right-Occipital-optic-radiation-End              232 147 33  0
-5107   Left-Occipital-optic-radiation-Start             72  130 180 0
-5108   Left-Occipital-optic-radiation-waypoint          244 245 245 0
-5109   Left-Occipital-optic-radiation-End               233 147 33  0
-5110   Right-Temporal-optic-radiation-start             15  46  250 0
-5111   Right-Temporal-optic-radiation-waypoint          238 10  175 0
-5112   Right-Temporal-optic-radiation-end               41  255 167 0
-5113   Left-Temporal-optic-radiation-start              16  46  250 0
-5114   Left-Temporal-optic-radiation-waypoint           239 10  75  0
-5115   Left-Temporal-optic-radiation-end                40  255 167 0
-
+########################################
 
 6000   CST-orig                                         0   255 0   0
 6001   CST-hammer                                       255 255 0   0
