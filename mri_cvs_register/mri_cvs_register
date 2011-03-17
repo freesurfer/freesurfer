@@ -11,12 +11,13 @@
 # Edited : 08-10-2010: added --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.13 2011/03/17 15:32:55 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.14 2011/03/17 16:24:27 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
 #set outdir = ();
 set cleanup = 1;
+set keepelreg = 0;
 set nolog = 0;
 set UseAseg = 1;
 set PrintHelp = 0;
@@ -237,11 +238,16 @@ setenv OUTDIR $outdir
 set mmri = $SUBJECTS_DIR/$movingid/mri/
 set tmri = $TEMPLATE_DIR/$templateid/mri/
 
+grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
+source tmp.txt
+rm -f tmp.txt
+set elasticmorph = ${out_root}_to$templateid.tm3d
+
 if ($DoAllSteps || $OnlyStep2) then 
 
 ## Run the elastic registration
 pushd $cvsdir
-if (!(-e $outdir/el_reg_to$templateid.tm3d) || $CleanElReg) then
+if (!(-e $outdir/$elasticmorph) || $CleanElReg) then
  if ($BothHemis) then
   set cmd = (perl $cvsdir/elastic_registration_CVS.pl --fixed $templateid --moving $movingid --settings $settingsfile --exe surf2vol --pial )
   if ($UseMpi) then 
@@ -268,12 +274,6 @@ endif #--step2
 if ($DoAllSteps || $OnlyStep3) then 
 
 ## Apply results of elastic registration to aseg 
-
-grep -n out_root $settingsfile | sed 's/[0-9]:/set /' > tmp.txt
-source tmp.txt
-rm -f tmp.txt
-
-set elasticmorph = ${out_root}_to$templateid.tm3d
 
 if ($UseAseg) then 
   set voltype = aseg
@@ -322,21 +322,32 @@ if ($UseAseg) then
     if($status) exit 1;
 
     set cmd = (exportGcam --fixed $tmri/$voltype.mgz --moving $mmri/$voltype.mgz \
-                          --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)
+                          --morph $outdir/$combined --out_gcam $outdir/${combined:r}.m3z)			  
 
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
+
+    if ($cleanup) then # deleting tm3d file! 
+      set cmd = ( rm -f $outdir/$combined)
+      echo $cmd |& tee -a $LF
+      $cmd |& tee -a $LF
+      if($status) exit 1;
+    endif
 
   endif
   if (!(-e $outdir/${combined:r}_${voltype}.mgz) || $CleanElReg || $CleanVolReg) then
-    set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
-                           vol $mmri/${voltype}.mgz $outdir/${combined:r}_${voltype}.mgz linear )
+#    set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
+#                           vol $mmri/${voltype}.mgz $outdir/${combined:r}_${voltype}.mgz linear )
+
+    set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $$outdir/${combined:r}.m3z --noDefM3zPath \
+                            --mov $$mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
+                            --interp linear --no-save-reg )
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
-  set oldcombined = $combined
+#  set oldcombined = $combined
   set input = ${combined:r}_${voltype}.mgz # input from aseg registration
   set basemorph = ${combined}
 endif # (aseg registration)
@@ -381,20 +392,23 @@ if (!(-e $outdir/combined_elreg_$prefix$voltype.tm3d  ) || $CleanElReg || $Clean
   $cmd |& tee -a $LF
   if($status) exit 1;
 
+  if ($cleanup) then # deleting tm3d file!
+    set cmd = ( rm -f $outdir/$combined)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+  endif
+
 endif
 
 ## APPLY the morph to the aseg volume; just for visualization
 set voltype = aseg
 if (!(-e  $outdir/${combined:r}-${voltype}.mgz ) || $CleanElReg || $CleanVolReg) then 
-  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
-                         vol $mmri/$voltype.mgz $outdir/${combined:r}-${voltype}.mgz nearest )
-  echo $cmd |& tee -a $LF
-  $cmd |& tee -a $LF
-  if($status) exit 1;
-endif
-
-if ($cleanup) then
-  set cmd = ( rm -f $outdir/$oldcombined $outdir/$combined)
+#  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
+#                         vol $mmri/$voltype.mgz $outdir/${combined:r}-${voltype}.mgz nearest )
+  set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $$outdir/${combined:r}.m3z --noDefM3zPath \
+                           --mov $$mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
+                           --interp nearest --no-save-reg )
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
   if($status) exit 1;
@@ -405,6 +419,14 @@ echo "freeview -v $outdir/${nl_regresult:r}.mgz $tmri/norm.mgz $outdir/${combine
 echo " "
 
 endif #--step3
+
+if (!($keepelreg)) then # deleting elreg.tm3d file!
+    set cmd = ( rm -f $outdir/$elasticmorph)
+    echo $cmd |& tee -a $LF
+    $cmd |& tee -a $LF
+    if($status) exit 1;
+endif
+
 
 echo " " |& tee -a $LF
 echo "Started at $StartTime " |& tee -a $LF
@@ -461,6 +483,10 @@ while( $#argv != 0 )
 
     case "--nocleanup":
       set cleanup = 0;
+      breaksw
+
+    case "--keepelreg":
+      set keepelreg = 1;
       breaksw
 
     case "--cleanall":
@@ -571,6 +597,7 @@ usage_exit:
   echo "   --templatedir directory : template's SUBJECTS_DIR directory where all the relevant FS recon files are located (default is SUBJECTS_DIR)"
   echo "   --noaseg       : do not use aseg volumes in the registration pipeline (default is 0)"
   echo "   --nocleanup    : do not delete temporary files (default is 0)"
+  echo "   --keepelreg    : do not delete elastic registration (default is 0)"
   echo "   --nolog        : do not produce a log file (default is 0)"
   echo "   --step1        : only do step 1 (spherical registration)"
   echo "   --step2        : only do step 2 (elastic registration)"
@@ -638,40 +665,53 @@ order to speed computations up. The deafult value is 0.
 
 --cleanall, --cleansurfreg, --cleanelreg, --cleanvolreg
 
+--keepelreg
+Do not delete the elastic registration output tm3d morph file. By default this file 
+gets deleted after the full registration is done as it takes up a lot of disk space.
+
 DETAILS:
 
-The CVS registration stream consists of 3 steps: (1) surface-based registration, (2) elastic registration and (3) volumetric regsitration. By default, in the current implementation of the script, step (3) consists of two steps: (i) registration using aseg volumes and (ii) registration using intensity volumes. This combination of the non-linear volumetric registrations proved to be very robust and accurate, butthe (i) step could be eliminated if quicker execution time is required by using the "--noaseg" flag.
+The CVS registration stream consists of 3 steps: (1) surface-based registration, (2) elastic registration and (3) volumetric regsitration. By default, in the current implementation of the script, step (3) consists of two steps: (i) registration using aseg volumes and (ii) registration using intensity volumes. This combination of the non-linear volumetric registrations proved to be very robust and accurate, but the (i) step could be eliminated if quicker execution time is required by using the "--noaseg" flag.
 
 Relevant files that you should have in your directory (most recent on the top and the oldest in the bottom):
 
 (a) Full CVS (with both (i) and (ii))
+combined_elreg_afteraseg-norm.m3z   : the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)
+
 nlalign-afteraseg-norm.m3z : the morph resulting from (ii) of step (3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph
 nlalign-afteraseg-norm.mgz : the morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the two m3z files)
 
+combined_elreg_aseg.m3z    : the morph that combines correspondences recovered in steps (1), (2) and (3) (i)
 nlalign-aseg.m3z           : the morph resulting from (i) of step (3) (aseg-based non-linear registration); it is NOT combined with the elastic registration morph
 nlalign-aseg.mgz           : the morphed aseg.mgz file; it is the result of CVS up to (i) of step (3) and contains contributions from registration steps of the elatic morph and the above m3z file
 
 el_reg_toTEMPLATE_aseg.mgz : the elastic morph applied to aseg.mgz
-el_reg_toTEMPLATE.tm3d     : the elastic morph that combines correspondences recovered in steps (1) and (2)
 el_reg_toTEMPLATE.mgz      : the elastic morph applied to norm.mgz
 
 (b) shorter version of CVS (using only (ii) in step (3) of the algorithm):
 
+combined_elreg_norm.m3z             : the morph that combines correspondences recovered in steps (1), (2) and (3) (ii) 
+
 nlalign-norm.m3z           : the morph resulting from step(3) (intensity-based non-linear registration); it is NOT combined with the elastic registration morph
 nlalign-norm.mgz           : the morphed norm.mgz file; it is the final result of CVS and contains contributions from ALL registration steps (combination of the elatic morph and the above m3z file)
 
-el_reg_toTEMPLATE.tm3d     : the elastic morph that combines correspondences recovered in steps (1) and (2)
 el_reg_toTEMPLATE.mgz      : the elastic morph applied to norm.mgz
 
 If you ran the mri_cvs_registration script with the "--nocleanup" option then you will see two more files called combined*tm3d. These files take up a lot of memory so by default are deleted. They can be recreated in case the cvs morph needs to be applied to another volume at a later time.  The morphs left behind when using the "--nocleanup" option are:
 
 (a)
-el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
-combined_elreg_aseg.m3z             : the morph that combines correspondences recovered in steps (1), (2) and (3) (i)
+combined_elreg_aseg.tm3d            : the morph that combines correspondences recovered in steps (1), (2) and (3) (i)
+combined_elreg_afteraseg-norm.tm3d  : the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)
 combined_elreg_afteraseg-norm.m3z   : the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)
 (b)
-el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
+combined_elreg_norm.tm3d            : the morph that combines correspondences recovered in steps (1), (2) and (3) (ii)
 combined_elreg_norm.m3z             : the morph that combines correspondences recovered in steps (1), (2) and (3) (ii) 
+
+If you ran the mri_cvs_registration script with the "--keepelreg" option then you will also see the output morph from the elastic registration step:
+
+el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
+
+This file takes up a lot of memory so, by default, is deleted. It can only be recreated if the elastic registration step (--step 2) is re-run.
 
 BUGS:
 
