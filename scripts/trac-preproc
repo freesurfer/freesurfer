@@ -1,4 +1,4 @@
-#! /bin/tcsh -f
+#! /BIN/tcsh -f
 
 #
 # trac-preproc
@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/16 14:48:43 $
-#    $Revision: 1.17 $
+#    $Date: 2011/03/17 18:14:22 $
+#    $Revision: 1.18 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-preproc,v 1.17 2011/03/16 14:48:43 ayendiki Exp $'
+set VERSION = '$Id: trac-preproc,v 1.18 2011/03/17 18:14:22 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -613,10 +613,15 @@ if ($dointer) then
           endif
         endif
 
-        set cvswarp = combined_elreg_afteraseg-norm
+        set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
 
         if (! -e $xfmdir/cvs/$cvswarp.m3z) then
           if (! -e $SUBJECTS_DIR/$cvstemp) then
+            if (! -e $cvstempdir/$cvstemp) then
+              echo "ERROR: Could not find CVS template $cvstempdir/$cvstemp"
+              goto error_exit
+            endif
+
             set cmd = (ln -s $cvstempdir/$cvstemp $SUBJECTS_DIR)
             echo $cmd |& tee -a $LF |& tee -a $CF
             if ($RunIt) then
@@ -697,7 +702,7 @@ if ($domasks) then
   echo "#-------------------------------------" |& tee -a $LF
   echo "#@# Masks `date`" |& tee -a $LF
 
-  set cvswarp = combined_elreg_afteraseg-norm
+  set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
 
   mkdir -p $labdir/diff
   if (-e $fsdir/mri/aparc+aseg.mgz) mkdir -p $labdir/anatorig $labdir/anat
@@ -1062,7 +1067,7 @@ if ($dotensor) then
       if (-e $xfmdir/cvs/$cvswarp.m3z) mkdir -p $dwidir/cvs
     endif
 
-    set cvswarp = combined_elreg_afteraseg-norm
+    set cvswarp = combined_to${cvstemp}_elreg_afteraseg-norm
 
     foreach reg (flt bbr)
       if (-e $xfmdir/diff2anatorig.$reg.mat && -e $xfmdir/cvs/$cvswarp.m3z) then
