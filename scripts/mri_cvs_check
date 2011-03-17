@@ -9,11 +9,12 @@
 # Created: 07-14-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_check,v 1.2 2010/09/27 13:45:45 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_check,v 1.3 2011/03/17 19:26:38 lzollei Exp $';
 set PrintHelp = 0;
 
 set movingid = ();
 set templateid = ();
+set cvstemplate = 0;
 
 # Parsing and checking the input arguments
 if($#argv == 0) goto usage_exit;
@@ -40,7 +41,12 @@ set cvsdir =  $FREESURFER_HOME/bin
 
 set missing = ()
 
-foreach s ($movingid $templateid)
+set allids = $movingid
+if !($cvstemplate) then 
+  set allids = [$allids $templateid]
+endif 
+
+foreach s ($allids)
   set surfdir = $SUBJECTS_DIR/$s/surf
   foreach hemi (lh rh)
     foreach f (inflated  pial  sphere  white  smoothwm sulc) 
@@ -52,7 +58,7 @@ foreach s ($movingid $templateid)
   end
 end
 
-foreach s ($movingid $templateid)
+foreach s ($allids)
   set surfdir = $SUBJECTS_DIR/$s/surf
   foreach hemi (lh rh)
     foreach f (inflated.H inflated.K)
@@ -64,7 +70,7 @@ foreach s ($movingid $templateid)
   end
 end
 
-foreach s ($movingid $templateid)
+foreach s ($allids)
   set labeldir = $SUBJECTS_DIR/$s/label
   foreach hemi (lh rh)
     foreach f (aparc.annot) 
@@ -76,7 +82,7 @@ foreach s ($movingid $templateid)
   end
 end
 
-foreach s ($movingid $templateid)
+foreach s ($allids)
   set mridir = $SUBJECTS_DIR/$s/mri
     foreach f (norm aseg) 
       set file = $mridir/$f.mgz
@@ -149,8 +155,8 @@ check_params:
   endif
 
   if($#templateid == 0) then
-    echo "ERROR: must spec a template subject id"
-    exit 1;
+    echo "Using the CVS template as registration target."
+    set cvstemplate = 1
   endif
 
   if($templateid == $movingid) then
@@ -167,7 +173,7 @@ usage_exit:
   echo ""
   echo "Required Arguments:"
   echo "   --mov subjid       : subjid for subject to be moved / registered (SUBJECTS_DIR needs to be set)"
-  echo "   --template subjid  : subjid for subject to be kept fixed (template)"
+  echo "   --template subjid  : subjid for subject to be kept fixed (template). If missing, CVS template is assumed as a target."
   echo ""
   echo "Optional Arguments"
   echo ""
@@ -196,4 +202,5 @@ be moved in registration with that of the template.
 --template subjid
 
 Subject id of the subject (as found in SUBJECTS_DIR) whose scan is to 
-be used and the template / target for the registration. 
+be used and the template / target for the registration. If missing, CVS 
+template is assumed as a target and no checks are done.
