@@ -11,7 +11,7 @@
 # Edited : 08-10-2010: added --mpi option
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.12 2011/03/15 03:56:41 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.13 2011/03/17 15:32:55 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -667,12 +667,10 @@ If you ran the mri_cvs_registration script with the "--nocleanup" option then yo
 
 (a)
 el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
-combined_elreg_aseg.tm3d            : the morph that combines correspondences recovered in steps (1), (2) and (3) (i)
-combined_elreg_afteraseg-norm.tm3d  : the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)
+combined_elreg_aseg.m3z             : the morph that combines correspondences recovered in steps (1), (2) and (3) (i)
 combined_elreg_afteraseg-norm.m3z   : the morph that combines correspondences recovered in steps (1), (2), (3) (i) and (3) (ii)
 (b)
 el_reg_toTEMPLATE.tm3d              : the elastic morph that combines correspondences recovered in steps (1) and (2)
-combined_elreg_norm.tm3d            : the morph that combines correspondences recovered in steps (1), (2) and (3) (ii)
 combined_elreg_norm.m3z             : the morph that combines correspondences recovered in steps (1), (2) and (3) (ii) 
 
 BUGS:
