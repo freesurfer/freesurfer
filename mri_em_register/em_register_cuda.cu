@@ -7,9 +7,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.5 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/17 18:45:06 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -25,6 +25,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <memory>
 using namespace std;
 
 
@@ -38,6 +39,7 @@ using namespace std;
 #include "mriframegpu.hpp"
 #include "affinegpu.hpp"
 #include "gcasgpu.hpp"
+#include "ctfactory.hpp"
 
 #include "generators.hpp"
 #include "cudatypeutils.hpp"
@@ -50,7 +52,9 @@ using namespace std;
 
 
 static GPU::Classes::MRIframeGPU<unsigned char> src_uchar;
+static std::auto_ptr<GPU::Classes::CTfactory> srcFactory;
 texture<unsigned char, 3, cudaReadModeElementType> dt_mri;  // 3D texture
+
 
 static GPU::Classes::GCASampleGPU myGCAS;
 
@@ -624,18 +628,9 @@ void CUDA_em_register_Prepare( GCA *gca,
   const unsigned int nFrame = 0;
   
   src_uchar.Allocate( mri );
-  src_uchar.AllocateArray();
   src_uchar.Send( mri, nFrame );
-  src_uchar.SendArray();
 
-  // Bind to texture
-  dt_mri.normalized = false;
-  dt_mri.addressMode[0] = cudaAddressModeClamp;
-  dt_mri.addressMode[1] = cudaAddressModeClamp;
-  dt_mri.addressMode[2] = cudaAddressModeClamp;
-  dt_mri.filterMode = cudaFilterModePoint;
-
-  CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri, src_uchar.GetArray() ) );
+  srcFactory.reset( new GPU::Classes::CTfactory( src_uchar, dt_mri ) );
 
   // Send the GCAS
 
