@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:45 $
- *    $Revision: 1.693 $
+ *    $Author: greve $
+ *    $Date: 2011/03/17 20:37:46 $
+ *    $Revision: 1.694 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -735,7 +735,7 @@ int (*gMRISexternalReduceSSEIncreasedGradients)(MRI_SURFACE *mris,
   ---------------------------------------------------------------*/
 const char *MRISurfSrcVersion(void)
 {
-  return("$Id: mrisurf.c,v 1.693 2011/03/16 17:31:45 fischl Exp $");
+  return("$Id: mrisurf.c,v 1.694 2011/03/17 20:37:46 greve Exp $");
 }
 
 /*-----------------------------------------------------
@@ -62397,8 +62397,7 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   int msecTime;
 
   nvox = Src->width * Src->height * Src->depth;
-  if (Surf->nvertices != nvox)
-  {
+  if (Surf->nvertices != nvox){
     printf("ERROR: MRISsmooth: Surf/Src dimension mismatch\n");
     return(NULL);
   }
@@ -62406,28 +62405,24 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   //Build LUT to map from col,row,slice to vertex
   crslut = MRIScrsLUT(Surf, Src);
 
-  if (Targ == NULL)
-  {
+  if(Targ == NULL){
     Targ = MRIallocSequence(Src->width, Src->height, Src->depth,
                             MRI_FLOAT, Src->nframes);
-    if (Targ==NULL)    {
+    if (Targ==NULL){
       printf("ERROR: MRISsmooth: could not alloc\n");
       return(NULL);
     }
     MRIcopyHeader(Src,Targ);
   }
-  else
-  {
-    if (Src->width   != Targ->width  ||
+  else{
+    if(Src->width   != Targ->width  ||
         Src->height  != Targ->height ||
         Src->depth   != Targ->depth  ||
-        Src->nframes != Targ->nframes)
-    {
+        Src->nframes != Targ->nframes){
       printf("ERROR: MRISsmooth: output dimension mismatch\n");
       return(NULL);
     }
-    if (Targ->type != MRI_FLOAT)
-    {
+    if(Targ->type != MRI_FLOAT){
       printf("ERROR: MRISsmooth: structure passed is not MRI_FLOAT\n");
       return(NULL);
     }
@@ -62436,38 +62431,35 @@ MRI *MRISsmoothMRI(MRIS *Surf,
   /*------------------------------------------------------------*/
   TimerStart(&mytimer) ;
   SrcTmp = MRIcopy(Src,NULL);
-  for (nthstep = 0; nthstep < nSmoothSteps; nthstep ++)
-  {
-    if (Gdiag_no > 0)
-    {
+  for (nthstep = 0; nthstep < nSmoothSteps; nthstep ++){
+    if (Gdiag_no > 0){
       msecTime = TimerStop(&mytimer) ;
       printf("Step = %d, tsec = %g\n",nthstep,msecTime/1000.0);
       fflush(stdout);
     }
 
-    for (vtx = 0; vtx < Surf->nvertices; vtx++)
-    {
+    for (vtx = 0; vtx < Surf->nvertices; vtx++){
       nnbrs = Surf->vertices[vtx].vnum;
       c = crslut[0][vtx];
       r = crslut[1][vtx];
       s = crslut[2][vtx];
-      if (BinMask){
-  m = MRIgetVoxVal(BinMask,crslut[0][vtx],
-       crslut[1][vtx],crslut[2][vtx],0);
-  if (m < 0.5) continue;
+      if(BinMask){
+	m = MRIgetVoxVal(BinMask,c,r,s,0);
+	if (m < 0.5) {
+	  for (frame = 0; frame < Targ->nframes; frame ++) 
+	    MRIFseq_vox(Targ,c,r,s,frame) = 0;
+	  continue;
+	}
       }
-      for (frame = 0; frame < Targ->nframes; frame ++)
-      {
+      for(frame = 0; frame < Targ->nframes; frame ++) {
         val = MRIFseq_vox(SrcTmp,c,r,s,frame);
 
         nnbrs_actual = 0;
-        for (nthnbr = 0; nthnbr < nnbrs; nthnbr++)
-        {
+        for(nthnbr = 0; nthnbr < nnbrs; nthnbr++){
           nbrvtx = Surf->vertices[vtx].v[nthnbr];
-          if (Surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
+          if(Surf->vertices[nbrvtx].ripflag) continue; //skip ripped vtxs
           // check mask
-          if (BinMask)
-          {
+          if(BinMask){
             m = MRIgetVoxVal(BinMask,crslut[0][nbrvtx],
                              crslut[1][nbrvtx],crslut[2][nbrvtx],0);
             if (m < 0.5) continue;
@@ -62475,7 +62467,7 @@ MRI *MRISsmoothMRI(MRIS *Surf,
           val += MRIFseq_vox(SrcTmp,crslut[0][nbrvtx],
                              crslut[1][nbrvtx],crslut[2][nbrvtx],frame);
           nnbrs_actual++;
-        }/* end loop over neighbor */
+	  }/* end loop over neighbor */
 
         MRIFseq_vox(Targ,c,r,s,frame) = (val/(nnbrs_actual+1));
       }/* end loop over frame */
