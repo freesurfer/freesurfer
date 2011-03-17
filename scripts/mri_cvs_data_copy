@@ -9,7 +9,7 @@
 # Created: 07-15-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_data_copy,v 1.1 2010/07/19 19:18:39 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_data_copy,v 1.2 2011/03/17 19:27:55 lzollei Exp $';
 set PrintHelp = 0;
 
 set subjid = ();
@@ -37,17 +37,23 @@ check_params_return:
 ############--------------##################
 ############--------------##################
 
-set cvsdir =  $FREESURFER_HOME/scripts; 
+set cvsdir =  $FREESURFER_HOME/bin; 
 set inputfilelist = $cvsdir/mri_cvs_requiredfiles.txt;
 
 set cmd = (mkdir -p $newdir/$subjid);
 set cmd = ($cmd; pushd $olddir/$subjid);
-$cmd
-set cmd = (tar cvfz -T $inputfilelist $newdir/$subjid/$subjid.cvsrequiredfiles.tar);
 echo $cmd
-$cmd
+eval $cmd
+set cmd = (tar cvfz $newdir/$subjid/$subjid.cvsrequiredfiles.tar `cat  $inputfilelist` );
+echo $cmd
+eval $cmd
 set cmd = (popd);
-$cmd
+eval $cmd
+
+echo "mri_cvs_data_copy Done"
+echo " "
+
+exit 0;
 
 ############--------------##################
 ############--------------##################
@@ -113,8 +119,8 @@ usage_exit:
   echo ""
   echo "Required Arguments:";
   echo "   --subjid subjid       : subjid for subject to be moved / registered"
-  echo "   --olddir dir          : directory where data (FS reconned output files for the subject) is currently located in"
-  echo "   --newdir dir          : directory where data (FS reconned output files for the subject) should be moved to"
+  echo "   --olddir dir          : directory where data (FS reconned output files for the subject) is currently located in -- use full path"
+  echo "   --newdir dir          : directory where data (FS reconned output files for the subject) should be moved to -- use full path"
   echo ""
   echo "Optional Arguments"
   echo ""
