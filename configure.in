@@ -9,12 +9,12 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2010/07/22 16:58:45 $
-#    $Revision: 1.486 $
+#    $Date: 2011/03/17 19:48:38 $
+#    $Revision: 1.519.2.1 $
 #
 ########################################################################
 AC_PREREQ(2.57)
-AC_INIT(Freesurfer, dev4, freesurfer@nmr.mgh.harvard.edu)
+AC_INIT(Freesurfer, stable5, freesurfer@nmr.mgh.harvard.edu)
 # if $FREESURFER_HOME is defined, then use that as default install dir:
 if test ! "x${FREESURFER_HOME}" = "x"; then
   ac_default_prefix=${FREESURFER_HOME}
@@ -395,6 +395,16 @@ fi
 AC_CHECK_PROG(LATEX, latex, latex)
 AM_CONDITIONAL(HAVE_LATEX, ! test -z "$LATEX")
 
+#
+# xxd is optionally used to convert .xml to a .h, for .c data incorporation
+AC_CHECK_PROG(XXD, xxd, xxd)
+AM_CONDITIONAL(HAVE_XXD, ! test -z "$XXD")
+
+#
+# xmllint is optionally used to check the help.xml files for correctness
+AC_CHECK_PROG(XMLLINT, xmllint, xmllint)
+AM_CONDITIONAL(HAVE_XMLLINT, ! test -z "$XMLLINT")
+
 ################################################################
 # set platform related variable defaults for (Teem) NrrdIO
 # in utils
@@ -448,6 +458,7 @@ DEADCODE_STRIP=""
 # and on the Mac:
 DEADCODE_STRIP_MAC="-dead_strip"
 
+ac_have_sse_mathfun=no
 FCLIBS=""
 AC_MSG_NOTICE(Setting OS from target...)
 case "${target}" in
@@ -460,6 +471,7 @@ case "${target}" in
  SHARED_LDFLAGS="-shared "
  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR $LFS_CFLAGS"
  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ ac_have_sse_mathfun=yes
  ;;
  x86_64-*)
  OS=Linux
@@ -471,6 +483,7 @@ case "${target}" in
  SHARED_LDFLAGS="-shared"
  CPPFLAGS="-g -O3 -msse2 -mfpmath=sse $WALL $WERROR"
  FFLAGS="-g -O3 -msse2 -mfpmath=sse"
+ ac_have_sse_mathfun=yes
  TEEM_32BIT=0
  ;;
  ia64-*)
@@ -550,14 +563,19 @@ AM_CONDITIONAL(HAVE_MAC_OSX, test "x$OS" = "xDarwin" )
 
 
 ################################################################
-# SSE math functions (sin_ps, cos_ps, sincos_ps, exp_ps, log_ps)
+# SSE matrix and math functions (affine.h, sse_mathfun.h)
 ################################################################
-ac_have_sse_mathfun=no
+#ac_have_sse_mathfun is initialized in OS target section above
 AC_ARG_ENABLE(sse_mathfun,
- [  --enable-sse_mathfun    enable SSE math function support],
- [ ac_have_sse_mathfun=yes
-   AC_MSG_NOTICE(Using SSE math functions)
+ [  --disable-sse_mathfun   disable SSE math function support],
+ [ ac_have_sse_mathfun=no
+   AC_MSG_NOTICE(Disabling usage of SSE math functions)
  ])
+# note that if compiling with x86, ac_have_sse_mathfun is set to 'yes'
+# (see OS target stuff), so --disable-sse_mathfun is used to disable for testing
+if test "x$ac_have_sse_mathfun" = "xyes"; then
+  CPPFLAGS="$CPPFLAGS -DUSE_SSE_MATHFUN"
+fi  
 AM_CONDITIONAL(USE_SSE_MATHFUN, test "x$ac_have_sse_mathfun" = "xyes")
 
 
@@ -673,12 +691,26 @@ AC_ARG_ENABLE([emu],
    [EMULATION=false]
 )
 
-# setup  nvcc flags
-if  test x$DEBUG = xtrue
+# default is to support tesla-class, this enables building for fermi-class
+ac_have_fermi_gpu=no
+AC_ARG_ENABLE(fermi-gpu,
+ [  --enable-fermi-gpu      enable NVidia Fermi GPU support],
+ [ ac_have_fermi_gpu=yes
+   AC_MSG_NOTICE(Building for Fermi-class GPU)
+ ])
+AM_CONDITIONAL(HAVE_FERMI_GPU, test "x$ac_have_fermi_gpu" = "xyes")
+
+# setup nvcc flags (default is for tesla-class, --enable-fermi-gpu overrides)
+NVIDIA_ARCH="sm_11"
+if test x$ac_have_fermi_gpu = xyes
 then
-   NVCCFLAGS="-g -arch sm_20 --ptxas-options=-v"
+  NVIDIA_ARCH="sm_20"
+fi
+if test x$DEBUG = xtrue
+then
+   NVCCFLAGS="-g -arch $NVIDIA_ARCH --ptxas-options=-v"
 else
-   NVCCFLAGS="-arch sm_20 --ptxas-options=-v -g"
+   NVCCFLAGS="-arch $NVIDIA_ARCH --ptxas-options=-v -g"
 fi
 if test x$EMULATION = xtrue
 then
@@ -737,8 +769,8 @@ if test "$CPUTYPE" = "NO"; then
   Linux)
     case "${target}" in
     i*86-*-linux-gnu*)
-      cpu386=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
-      case "$cpu386" in
+      CPUCAPS=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
+      case "$CPUCAPS" in
         PentiumIII*)
         CPUTYPE=pentium3
         ;;
@@ -754,9 +786,9 @@ if test "$CPUTYPE" = "NO"; then
       esac
       ;;
     x86_64-*)
-      cpu386=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
+      CPUCAPS=`${srcdir}/x86cpucaps/cpucaps -m | sed 's/ //g'`
       CPUTYPE=x86_64
-      case "$cpu386" in
+      case "$CPUCAPS" in
         AMDAthlon64)
         CPUTYPE=athlon64
         ;;
@@ -778,6 +810,8 @@ fi
 
 AC_MSG_NOTICE(CPUTYPE is $CPUTYPE)
 AC_MSG_CHECKING(CPU optimization...)
+AC_SUBST(CPUCAPS)
+AC_SUBST(CPUTYPE)
 
 # now set the flags
 case "$CPUTYPE" in
@@ -1338,6 +1372,22 @@ AC_ARG_WITH(boost-dir,
      ac_boost_dir="$withval"
   ])
 
+if test "x$BOOST_DIR" = "x"; then
+  # if a Boost root was not supplied, but one exists in the
+  # default packages path at the NMR Center, AND this is a mac,
+  # then use that:
+  if test "$OS" = "Darwin"; then
+    if test -d "/usr/pubsw/packages/boost/current" ; then
+      withval=/usr/pubsw/packages/boost/current
+      BOOST_DIR="$withval"
+      ac_boost_dir="$withval"
+      boost_i="$withval"/include
+      ac_boost_includes="$boost_i"
+      ac_boost_libraries="$withval"/lib
+    fi
+  fi
+fi
+
 AC_ARG_WITH(boost-include,
   [  --with-boost-include=DIR    root of BOOST include directory.],
   [  ac_boost_includes="$withval"
@@ -1809,44 +1859,9 @@ AC_DEFINE([XML_CONTEXT_BYTES], 1024,
 ################################################################
 # Qt
 ################################################################
-ac_qt_includes="NO"
-ac_qt_libraries="NO"
-ac_qt_dir="NO"
-QT_CFLAGS=""
-QT_LIBS=""
-
-AC_MSG_CHECKING(Qt directory)
-
-AC_ARG_WITH(qt-dir,
-  [  --with-qt-dir=DIR       where the root of Qt is installed.],
-  [  ac_qt_includes="$withval"/include
-     ac_qt_libraries="$withval"/lib
-     ac_qt_dir="$withval"
-  ])
-
-if test ! "$ac_qt_includes" = "NO"; then
-  AC_MSG_RESULT(Qt directory is $withval)
-  QT_CFLAGS=-I$ac_qt_includes
-  QTDIR=$ac_qt_dir
-  AC_SUBST(QTDIR)
-else
-  AC_MSG_RESULT(Qt directory is not supplied. \
-Not building unsupported Qt apps.)
-fi
-if test ! "$ac_qt_libraries" = "NO"; then
-  QT_LIBS=-L$ac_qt_libraries
-  # enable testing for OpenGL libs:
-  need_opengl=yes
-else
-  QTDIR=""
-  AC_SUBST(QTDIR)
-fi
-
-AM_CONDITIONAL(ENABLE_QT_APPS, test ! "x$ac_qt_libraries" = "xNO")
-
-AC_SUBST(QT_CFLAGS)
-AC_SUBST(QT_LIBS)
-
+m4_include([m4/autotroll.m4])
+AT_WITH_QT([opengl])
+AM_CONDITIONAL(ENABLE_QT_APPS, test "$qt_enabled" = "yes")
 
 #################################################################
 # If on a Mac, make scuba and qdec, bundles (Qt apps)
@@ -1966,7 +1981,9 @@ AC_ARG_WITH(vtk-libraries,
 
 if test ! "$ac_vtk_includes" = "NO"; then
   AC_MSG_RESULT(VTK directory is $withval)
-  if test -e $ac_vtk_includes/vtk-5.5 ; then
+  if test -e $ac_vtk_includes/vtk-5.6 ; then
+    ac_vtk_includes="$ac_vtk_includes/vtk-5.6"
+  elif test -e $ac_vtk_includes/vtk-5.5 ; then
     ac_vtk_includes="$ac_vtk_includes/vtk-5.5"
   elif test -e $ac_vtk_includes/vtk-5.4 ; then
     ac_vtk_includes="$ac_vtk_includes/vtk-5.4"
@@ -1988,7 +2005,11 @@ fi
 if test ! "$ac_vtk_libraries" = "NO"; then
   VTK_LIBS=-L$ac_vtk_libraries
   VTK_LIB=$ac_vtk_libraries
-  if test -e $ac_vtk_libraries/vtk-5.5 ; then
+  if test -e $ac_vtk_libraries/vtk-5.6 ; then
+    VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.6"
+    VTK_LIBS=-L$ac_vtk_libraries/vtk-5.6
+    VTK_LIB=$ac_vtk_libraries/vtk-5.6
+  elif test -e $ac_vtk_libraries/vtk-5.5 ; then
     VTK_LIB_VTK="$ac_vtk_libraries/vtk-5.5"
     VTK_LIBS=-L$ac_vtk_libraries/vtk-5.5
     VTK_LIB=$ac_vtk_libraries/vtk-5.5
@@ -2021,6 +2042,96 @@ AC_SUBST(VTK_LIBS)
 AC_SUBST(VTK_LIB)
 AC_SUBST(VTK_LIB_VTK)
 AC_SUBST(VTK_DIR)
+
+
+################################################################
+# VTK for Freeview in Mac
+################################################################
+# This is a static build of Cocoa VTK because KWWidgets doesn't play
+# nice with this VTK. Hence different VTK for different things
+ac_vtk_cocoa_includes="NO"
+ac_vtk_cocoa_libraries="NO"
+ac_vtk_cocoa_dir="NO"
+VTK_COCOA_CFLAGS=""
+VTK_COCOA_CXXFLAGS=""
+VTK_COCOA_LIBS=""
+VTK_COCOA_LIB=""
+VTK_COCOA_LIB_VTK=""
+VTK_COCOA_DIR=""
+
+AC_MSG_CHECKING(Cocoa VTK config)
+
+AC_ARG_WITH(vtk-cocoa-dir,
+  [  --with-vtk-cocoa-dir=DIR      where the root of VTK is installed.],
+  [  ac_vtk_cocoa_includes="$withval/include"
+     ac_vtk_cocoa_libraries="$withval"/lib
+     ac_vtk_cocoa_dir="$withval"
+     VTK_COCOA_DIR=$ac_vtk_cocoa_dir
+  ])
+
+if test ! "$ac_vtk_cocoa_includes" = "NO"; then
+  AC_MSG_RESULT(VTK cocoa directory is $withval)
+  if test -e $ac_vtk_cocoa_includes/vtk-5.6 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.6"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.5 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.5"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.4 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.4"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.3 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.3"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.2 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.2"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.1 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.1"
+  elif test -e $ac_vtk_cocoa_includes/vtk-5.0 ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk-5.0"
+  elif test -e $ac_vtk_cocoa_includes/vtk ; then
+    ac_vtk_cocoa_includes="$ac_vtk_cocoa_includes/vtk"
+  fi
+  VTK_COCOA_CFLAGS="${VTK_COCOA_CFLAGS} -I$ac_vtk_cocoa_includes"
+  VTK_COCOA_CXXFLAGS="${VTK_COCOA_CXXFLAGS} -I$ac_vtk_cocoa_includes"
+fi
+
+if test ! "$ac_vtk_libraries" = "NO"; then
+  VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries
+  VTK_COCOA_LIB=$ac_vtk_cocoa_libraries
+  if test -e $ac_vtk_cocoa_libraries/vtk-5.6 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.6"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.6
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.6
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.5 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.5"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.5
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.5
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.4 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.4"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.4
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.4
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.3 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.3"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.3
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.3
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.2 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.2"
+    VTK_COCOA_LIBS=-L$ac_vtk_cocoa_libraries/vtk-5.2
+    VTK_COCOA_LIB=$ac_vtk_cocoa_libraries/vtk-5.2
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.1 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.1"
+  elif test -e $ac_vtk_cocoa_libraries/vtk-5.0 ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk-5.0"
+  elif test -e $ac_vtk_cocoa_libraries/vtk ; then
+    VTK_COCOA_LIB_VTK="$ac_vtk_cocoa_libraries/vtk"
+  fi
+fi
+
+AM_CONDITIONAL(HAVE_COCOA_VTK_LIBS, test ! "x$VTK_COCOA_DIR" = "x")
+
+AC_SUBST(VTK_COCOA_CFLAGS)
+AC_SUBST(VTK_COCOA_CXXFLAGS)
+AC_SUBST(VTK_COCOA_LIBS)
+AC_SUBST(VTK_COCOA_LIB)
+AC_SUBST(VTK_COCOA_LIB_VTK)
+AC_SUBST(VTK_COCOA_DIR)
 
 
 ################################################################
@@ -2102,6 +2213,8 @@ AC_SUBST(KWWIDGETS_DIR)
 WXWIDGETS_CFLAGS=""
 WXWIDGETS_CXXFLAGS=""
 WXWIDGETS_LIBS=""
+WXWIDGETS_GL_LIBS=""
+WXWIDGETS_OPTIONAL_LIBS=""
 WXWIDGETS_DIR=""
 
 AC_MSG_CHECKING(wxWidgets config)
@@ -2128,6 +2241,7 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   WXWIDGETS_CXXFLAGS="`${WXCONFIG} --cxxflags`"
   # we want to use the local / static jpeg, tiff and expat libs
   WXWIDGETS_LIBS="`${WXCONFIG} --libs | sed 's/-ljpeg/..\/jpeg\/libjpeg.a/g' | sed 's/-ltiff/..\/tiff\/libtiff.a/g' | sed 's/-lexpat/..\/expat\/libexpat.a/g'`"
+  WXWIDGETS_GL_LIBS="`${WXCONFIG} --libs gl | sed 's/-ljpeg/..\/jpeg\/libjpeg.a/g' | sed 's/-ltiff/..\/tiff\/libtiff.a/g' | sed 's/-lexpat/..\/expat\/libexpat.a/g'`"
 
   # except wx-config isn't so handy in including some header paths on Linux:
   if test -d /usr/include/gtk-2.0 ; then
@@ -2143,6 +2257,22 @@ if test ! "x$WXWIDGETS_DIR" = "x"; then
   WXWIDGETS_GTK_CFLAGS="$WXWIDGETS_GTK_CFLAGS	-I/usr/include/atk-1.0"
   WXWIDGETS_CFLAGS="$WXWIDGETS_CFLAGS	$WXWIDGETS_GTK_CFLAGS"
   WXWIDGETS_CXXFLAGS="$WXWIDGETS_CXXFLAGS	$WXWIDGETS_GTK_CFLAGS"
+  fi
+
+  # seems like we gotta manually check for these...
+  if test -e ${WXWIDGETS_DIR}/lib/libwx_gtk2_gl-2.8.a ; then
+    WXWIDGETS_LIBS="$WXWIDGETS_LIBS -lwx_gtk2_gl-2.8"
+  fi
+  if test -e ${WXWIDGETS_DIR}/lib/libwx_gtk2u_gl-2.9.a ; then
+    WXWIDGETS_LIBS="$WXWIDGETS_LIBS -lwx_gtk2u_gl-2.9"
+  fi
+  WXWIDGETS_OPTIONAL_LIBS=
+  if test -e ${WXWIDGETS_DIR}/lib/libwx_gtk2u_aui-2.9.a ; then
+    WXWIDGETS_LIBS="$WXWIDGETS_LIBS -lwx_gtk2u_aui-2.9"
+    WXWIDGETS_OPTIONAL_LIBS="`${WXCONFIG} --optional-libs aui`"
+  fi
+  if test -e ${WXWIDGETS_DIR}/lib/libwx_gtk2u_core-2.9.a ; then
+    WXWIDGETS_LIBS="$WXWIDGETS_LIBS -lwx_gtk2u_core-2.9"
   fi
 fi
 
@@ -2164,8 +2294,47 @@ AM_CONDITIONAL(ENABLE_WXWIDGETS_APPS, test "$wxw_apps" = "yes")
 AC_SUBST(WXWIDGETS_CFLAGS)
 AC_SUBST(WXWIDGETS_CXXFLAGS)
 AC_SUBST(WXWIDGETS_LIBS)
+AC_SUBST(WXWIDGETS_GL_LIBS)
+AC_SUBST(WXWIDGETS_OPTIONAL_LIBS)
 AC_SUBST(WXWIDGETS_DIR)
 
+################################################################
+# GTS
+################################################################
+GTS_CFLAGS=""
+GTS_LIBS=""
+GTS_DIR=""
+
+AC_MSG_CHECKING(GTS config)
+
+AC_ARG_WITH(gts-dir,
+  [  --with-gts-dir=DIR where the root of GTS is installed.],
+  [  GTS_DIR="$withval" ])
+
+if test "x$GTS_DIR" = "x"; then
+  # if a gts root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/gts/current" ; then
+    GTS_DIR=/usr/pubsw/packages/gts/current
+  fi
+fi
+
+# use the handy wx-config utility to get the compiler and linker flags
+if test ! "x$GTS_DIR" = "x"; then
+  AC_MSG_RESULT([Enabled building of GTS apps.])
+  GTSCONFIG="${GTS_DIR}/bin/gts-config"
+  GTS_CFLAGS="`${GTSCONFIG} --cflags`"
+  # we want to use the local / static jpeg, tiff and expat libs
+  GTS_LIBS="`${GTSCONFIG} --libs`"
+else
+  AC_MSG_RESULT([Not building GTS apps.])
+fi
+
+AM_CONDITIONAL(HAVE_GTS_LIBS, test ! "x$GTS_DIR" = "x")
+
+AC_SUBST(GTS_CFLAGS)
+AC_SUBST(GTS_LIBS)
+AC_SUBST(GTS_DIR)
 
 ################################################################
 # ITK
@@ -2410,6 +2579,7 @@ AC_SUBST(LIBDIRS_MGH)
 # stupid circular dependency on iopen swapInt etc.
 LIBS_MGH="\
   utils/libutils.a \
+  fsgdf/libfsgdf.a \
   rgb/librgb.a \
   unix/libunix.a \
   dicom/libdicom.a \
@@ -2551,6 +2721,11 @@ if test ! "x$ac_boost_dir" = "xNO"; then
   if test -e ${BOOST_LIB}/libboost_program_options-mt.a ; then
     BOOST_PO_LIB=${BOOST_LIB}/libboost_program_options-mt.a
     AC_MSG_RESULT([found '$BOOST_PO_LIB'])
+  else
+    if test -e ${BOOST_LIB}/libboost_program_options.a ; then
+      BOOST_PO_LIB=${BOOST_LIB}/libboost_program_options.a
+      AC_MSG_RESULT([found '$BOOST_PO_LIB'])
+    fi
   fi
 else
   # else check for native install of boost program options lib
@@ -2945,6 +3120,9 @@ AC_SUBST(TESTS_ENVIRONMENT)
 AC_OUTPUT([Makefile
            check_siemens_dir/Makefile
            cudatest/Makefile
+           cudatest/gcatest/Makefile
+           cudatest/volumecopy/Makefile
+           cudatest/mrilabeltest/Makefile
            dicom/Makefile
            distribution/Makefile
            distribution/average/Makefile
@@ -2952,6 +3130,7 @@ AC_OUTPUT([Makefile
            distribution/docs/Makefile
            distribution/diffusion/Makefile
            distribution/diffusion/mgh-dti-seqpack/Makefile
+           distribution/trctrain/Makefile
            distribution/fsafd/Makefile
            distribution/grad_unwarp_tables/Makefile
            distribution/lib/Makefile
@@ -3074,10 +3253,10 @@ AC_OUTPUT([Makefile
            mri_label_volume/Makefile
            mri_linear_register/Makefile
            mri_compute_structure_transforms/Makefile
-           mri_make_bem_surfaces/Makefile
            mri_make_density_map/Makefile
            mri_make_register/Makefile
            mri_make_template/Makefile
+           mri_map_cpdat/Makefile
            mri_mark_temporal_lobe/Makefile
            mri_mask/Makefile
            mri_matrix_multiply/Makefile
@@ -3119,7 +3298,6 @@ AC_OUTPUT([Makefile
            mri_segstats/Makefile
            mri_stats2seg/Makefile
            mri_strip_nonwhite/Makefile
-           mri_strip_skull/Makefile
            mri_strip_subject_info/Makefile
            mri_surf2surf/Makefile
            mri_surf2vol/Makefile
@@ -3177,7 +3355,7 @@ AC_OUTPUT([Makefile
            mris_curvature/Makefile
            mris_curvature_stats/Makefile
            mris_decimate/Makefile
-           mris_decimate/gui/Makefile
+           mris_decimate_gui/Makefile
            mris_diff/Makefile
            mris_distance_to_label/Makefile
            mris_entropy/Makefile
@@ -3230,6 +3408,7 @@ AC_OUTPUT([Makefile
            mris_surface_to_vol_distances/Makefile
            mris_talairach/Makefile
            mris_thickness/Makefile
+           mris_surface_change/Makefile
            mris_BA_segment/Makefile
            mris_compute_optimal_kernel/Makefile
            mris_thickness_comparison/Makefile
@@ -3257,7 +3436,6 @@ AC_OUTPUT([Makefile
            connectgraph/Makefile
            spherical_stats/Makefile
            stat_normalize/Makefile
-           stim/Makefile
            stim_polar/Makefile
            svm-lib/Makefile
            talairach_afd/Makefile
@@ -3270,6 +3448,7 @@ AC_OUTPUT([Makefile
            tkregister2/Makefile
            tkregister2/cmdl/Makefile
            tksurfer/Makefile
+           trc/Makefile
            tridec/Makefile
            unix/Makefile
            utils/Makefile

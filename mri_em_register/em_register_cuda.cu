@@ -7,25 +7,25 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: rge21 $
- *    $Date: 2010/02/12 19:27:38 $
- *    $Revision: 1.3 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/17 19:49:06 $
+ *    $Revision: 1.5.2.1 $
  *
- * Copyright (C) 2002-2008,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
 #include <iostream>
 #include <iomanip>
+#include <memory>
 using namespace std;
 
 
@@ -39,6 +39,7 @@ using namespace std;
 #include "mriframegpu.hpp"
 #include "affinegpu.hpp"
 #include "gcasgpu.hpp"
+#include "ctfactory.hpp"
 
 #include "generators.hpp"
 #include "cudatypeutils.hpp"
@@ -51,7 +52,9 @@ using namespace std;
 
 
 static GPU::Classes::MRIframeGPU<unsigned char> src_uchar;
+static std::auto_ptr<GPU::Classes::CTfactory> srcFactory;
 texture<unsigned char, 3, cudaReadModeElementType> dt_mri;  // 3D texture
+
 
 static GPU::Classes::GCASampleGPU myGCAS;
 
@@ -419,6 +422,8 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 
   // Construct the generator which will give the required translations
   TranslationGenerator myGen( minTrans, maxTrans, nTrans );
+  
+  
 
   // Extract the 'base' transform, inverting
   MATRIX *invBaseTransform = NULL;
@@ -442,7 +447,18 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
 				      myGCAS,
 				      thrust::raw_pointer_cast( d_logps ) );
   CUDA_CHECK_ERROR( "TranslationLogps failed!" );
-  
+ 
+#if 0
+  for( unsigned int i=0; i<totalTrans; i++ ) {
+    float3 translation = myGen(i);
+    cout << __FUNCTION__  << " "
+	 << setw(8) << setprecision(4) << translation.x << " "
+	 << setw(8) << setprecision(4) << translation.y << " "
+	 << setw(8) << setprecision(4) << translation.z << " "
+	 << setw(12) << setprecision(8) << d_logps[i] << endl;
+  }
+#endif
+
   // Extract the maximum location
   thrust::device_ptr<float> maxLoc;
   maxLoc = thrust::max_element( d_logps, d_logps+totalTrans );
@@ -453,6 +469,7 @@ void CUDA_FindOptimalTranslation( const MATRIX *baseTransform,
   // Convert the location to the required translation
   const int index = (maxLoc - d_logps);
   const float3 trans = myGen(index);
+
 
   *dx = trans.x;
   *dy = trans.y;
@@ -611,18 +628,9 @@ void CUDA_em_register_Prepare( GCA *gca,
   const unsigned int nFrame = 0;
   
   src_uchar.Allocate( mri );
-  src_uchar.AllocateArray();
   src_uchar.Send( mri, nFrame );
-  src_uchar.SendArray();
 
-  // Bind to texture
-  dt_mri.normalized = false;
-  dt_mri.addressMode[0] = cudaAddressModeClamp;
-  dt_mri.addressMode[1] = cudaAddressModeClamp;
-  dt_mri.addressMode[2] = cudaAddressModeClamp;
-  dt_mri.filterMode = cudaFilterModePoint;
-
-  CUDA_SAFE_CALL( cudaBindTextureToArray( dt_mri, src_uchar.GetArray() ) );
+  srcFactory.reset( new GPU::Classes::CTfactory( src_uchar, dt_mri ) );
 
   // Send the GCAS
 
