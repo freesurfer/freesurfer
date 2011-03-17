@@ -10,9 +10,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.10 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/17 18:00:32 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -292,8 +292,6 @@ float FindOptimalTimestepDispatch( GCA_MORPH *gcam,
   GPU::Classes::MRIframeGPU<T> myMRI;
   myMRI.Allocate( mri );
   myMRI.Send( mri, 0 );
-  myMRI.AllocateArray();
-  myMRI.SendArray();
 
 
   float dt = FindOptimalTimestep( myGCAM, parms, myMRI );

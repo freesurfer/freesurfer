@@ -10,9 +10,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:44 $
- *    $Revision: 1.2 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/17 18:00:32 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -83,13 +83,9 @@ gcamRPfinalDispatch( GCA_MORPH *gcam,
   // Handle the MRIs
   myMRI.Allocate( mri );
   myMRI.Send( mri, 0 );
-  myMRI.AllocateArray();
-  myMRI.SendArray();
 
   myMRIsmooth.Allocate( mri_smooth );
   myMRIsmooth.Send( mri_smooth, 0 );
-  myMRIsmooth.AllocateArray();
-  myMRIsmooth.SendArray();
 
   // Put the GCAM on the GPU
   myGCAM.CheckIntegrity(); // Shouldn't be necessary....

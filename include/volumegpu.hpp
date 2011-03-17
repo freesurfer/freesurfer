@@ -9,8 +9,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/03/14 19:49:35 $
- *    $Revision: 1.26 $
+ *    $Date: 2011/03/17 18:00:30 $
+ *    $Revision: 1.27 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -195,8 +195,7 @@ namespace GPU {
     /*!
       This templated class provides a container for volume data.
       It provides a simple interface to padded arrays on the
-      device, as well as the ability to copy data into a CUDA
-      array (for texturing).
+      device.
       Although it should not (and cannot) be used directly as
       a kernel argument, the VolumeArgGPU is provided for
       this purpose.
@@ -213,8 +212,7 @@ namespace GPU {
       
       //! Default constructor
       VolumeGPU( void ) : dims(make_uint3(0,0,0)),
-			  d_data(make_cudaPitchedPtr(NULL,0,0,0)),
-			  dca_data(NULL) {};
+			  d_data(make_cudaPitchedPtr(NULL,0,0,0)) {};
 
       //! Destructor
       ~VolumeGPU( void ) {
@@ -243,17 +241,7 @@ namespace GPU {
 
       //! Return information about the file version
       const char* VersionString( void ) const {
-	return "$Id: volumegpu.hpp,v 1.26 2011/03/14 19:49:35 rge21 Exp $";
-      }
-      
-      //! Return pointer to the cudaArray
-      const cudaArray* GetArray( void ) const {
-	return( this->dca_data );
-      }
-
-      //! Checks to see if CUDA array is allocated
-      bool HasArray( void ) const {
-	return( this->dca_data != NULL );
+	return "$Id: volumegpu.hpp,v 1.27 2011/03/17 18:00:30 rge21 Exp $";
       }
 
       // -------------------------------------------
@@ -276,16 +264,9 @@ namespace GPU {
       }
 
 
-      //! Allocates the CUDA array member
-      void AllocateArray( void );
-
-
       //! Releases all data on GPU
       void Release( void );
 
-
-      //! Releases CUDA array member
-      void ReleaseArray( void );
 
       //! Supplies the size of buffer required on the host
       size_t BufferSize( void ) const;
@@ -317,12 +298,6 @@ namespace GPU {
 		       const cudaStream_t stream = 0 ) const;
 
 
-      //! Copies data into a CUDA array for texturing
-      void SendArray( const cudaStream_t myStream = 0 );
-      
-      //! Creates a cudaArray, copies data to it, and returns the array
-      cudaArray* CreateArray( void ) const;
-
       // --------------------------------------
       // Other routines
 
@@ -347,8 +322,6 @@ namespace GPU {
       dim3 dims;
       //! Pointer to the allocated device memory
       cudaPitchedPtr d_data;
-      //! CUDA array pointer for texturing
-      cudaArray *dca_data;
 
 
       // ============================================
@@ -359,8 +332,7 @@ namespace GPU {
 
       //! Hidden copy constructor
       VolumeGPU( const VolumeGPU& src ) : dims(make_uint3(0,0,0)),
-					  d_data(make_cudaPitchedPtr(NULL,0,0,0)),
-					  dca_data(NULL) {
+					  d_data(make_cudaPitchedPtr(NULL,0,0,0)) {
 	std::cerr << __FUNCTION__
 		  << ": Please don't use copy constructor"
 		  << std::endl;

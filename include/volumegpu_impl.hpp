@@ -10,8 +10,8 @@
  * Original Author: Richard Edgar
  * CVS Revision Info:
  *    $Author: rge21 $
- *    $Date: 2011/02/11 19:12:50 $
- *    $Revision: 1.8 $
+ *    $Date: 2011/03/17 18:00:30 $
+ *    $Revision: 1.9 $
  *
  * Copyright (C) 2002-2008,
  * The General Hospital Corporation (Boston, MA). 
@@ -67,50 +67,11 @@ namespace GPU {
     }
 
 
-    // ---------------------------------
-
-    template<typename T>
-    void VolumeGPU<T>::AllocateArray( void ) {
-      /*!
-	Allocates the CUDA array member based on the existing
-	data stored in the class.
-	Checks to see that the sizes are non-zero by
-	examining the d_data pointer
-      */
-      
-      // Check for initialisation
-      if( this->d_data.ptr == NULL ) {
-	std::cerr << __FUNCTION__
-		  << ": d_data is NULL!"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      // See if array is already allocated
-      if( this->HasArray() ) {
-	/*
-	  We don't need to do anything.
-	  The current dimensions can only be set
-	  via the Allocate method, and this will
-	  release everything is there's a mismatch
-	*/
-	return;
-      }
-
-      cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
-      
-      cudaExtent tmp = ExtentFromDims( this->dims );
-      
-      CUDA_SAFE_CALL( cudaMalloc3DArray( &(this->dca_data),
-					 &cd,
-					 tmp ) );
-    }
     
     // ---------------------------------
 
     template<typename T>
     void VolumeGPU<T>::Release( void ) {
-      this->ReleaseArray();
       if( this->d_data.ptr != NULL ) {
 	CUDA_SAFE_CALL( cudaFree( d_data.ptr ) );
       }
@@ -118,16 +79,6 @@ namespace GPU {
       this->d_data = make_cudaPitchedPtr(NULL,0,0,0);
     }
 
-
-    // ---------------------------------
-
-    template<typename T>
-    void VolumeGPU<T>::ReleaseArray( void ) {
-      if( this->dca_data != NULL ) {
-	CUDA_SAFE_CALL( cudaFreeArray( this->dca_data ) );
-	this->dca_data = NULL;
-      }
-    }
 
     // ---------------------------------
 
@@ -298,76 +249,8 @@ namespace GPU {
     }
     
 
-    // ---------------------------------
-    
-    template<typename T>
-    void VolumeGPU<T>::SendArray( const cudaStream_t myStream ) {
-      /*!
-	Method to copy the data currently on the GPU
-	into a CUDA array, which can then be used in a
-	texture.
-	Copy is done asynchronously within the (optionally)
-	given stream.
-	If no stream is given, it defaults to stream 0.
-	@param[in] myStream The CUDA stream in which the copy should occur
-      */
-      if( this->d_data.ptr == NULL ) {
-	std::cerr << __FUNCTION__
-		  << ": GPU data not available!"
-		  << std::endl;
-      }
-      
-      if( this->dca_data == NULL ) {
-	std::cerr << __FUNCTION__
-		  << ": CUDA array not allocated!"
-		  << std::endl;
-	exit( EXIT_FAILURE );
-      }
-      
-      cudaMemcpy3DParms cp = {0};
-      
-      cp.srcPtr = this->d_data;
-      cp.dstArray = this->dca_data;
-      cp.extent = ExtentFromDims( this->dims );
-      cp.kind = cudaMemcpyDeviceToDevice;
-      
-      CUDA_SAFE_CALL_ASYNC( cudaMemcpy3DAsync( &cp, myStream ) );
-    }
-
-
     // ================================================================
     // Other routines
-
-    template<typename T>
-    cudaArray* VolumeGPU<T>::CreateArray( void ) const {
-      /*!
-	Creates a cudaArray, and copies contents to it.
-	Does not take ownership of the array
-      */
-
-      cudaArray* myArr;
-
-      // Allocate the array
-      cudaChannelFormatDesc cd = cudaCreateChannelDesc<T>();
-      cudaExtent tmp = ExtentFromDims( this->dims );
-      
-      CUDA_SAFE_CALL( cudaMalloc3DArray( &myArr, &cd, tmp ) );
-
-      // Copy the data to it
-      cudaMemcpy3DParms cp = {0};
-      
-      cp.srcPtr = this->d_data;
-      cp.dstArray = myArr;
-      cp.extent = ExtentFromDims( this->dims );
-      cp.kind = cudaMemcpyDeviceToDevice;
-
-      CUDA_SAFE_CALL( cudaMemcpy3D( &cp ) );
-
-      return( myArr );
-    }
-
-
-    // -------------------------------
 
     template<typename T>
     dim3 VolumeGPU<T>::CoverBlocks( const unsigned int threadCount ) const {
