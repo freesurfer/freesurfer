@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:56 $
- *    $Revision: 1.421 $
+ *    $Date: 2011/03/17 15:19:53 $
+ *    $Revision: 1.422 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,7 @@ typedef struct
   float   read_dir[3] ;    // read-out direction in RAS coords
   float   pe_dir[3] ;      // phase-encode direction in RAS coords
   float   slice_dir[3] ;   // slice direction in RAS coords
-  int     color ;          // index into CLUT
+  int     label ;          // index into CLUT
   char    name[STRLEN] ;   // human-readable description of frame contents
   int     dof ;            // for stat maps (e.g. # of subjects)
   MATRIX  m_ras2vox ;      
