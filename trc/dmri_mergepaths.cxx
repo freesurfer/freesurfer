@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/03/17 17:21:29 $
- *    $Revision: 1.2 $
+ *    $Date: 2011/03/17 17:29:07 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -160,7 +160,12 @@ int main(int argc, char **argv) {
   }
 
   // Write output file
-  MRIwrite(outvol, outFile);
+  if (outvol)
+    MRIwrite(outvol, outFile);
+  else {
+    cout << "ERROR: could not open any of the input files" << endl;
+    exit(1);
+  }
 
   cputime = TimerStop(&cputimer);
   printf("Done in %g sec.\n", cputime/1000.0);
@@ -293,6 +298,10 @@ static void check_options(void) {
   }
   if(!ctabFile) {
     printf("ERROR: must specify color table file\n");
+    exit(1);
+  }
+  if(dispThresh < 0 || dispThresh > 1) {
+    printf("ERROR: display threshold must a number between 0 and 1\n");
     exit(1);
   }
   return;
