@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/16 03:48:13 $
-#    $Revision: 1.13 $
+#    $Date: 2011/03/17 05:09:38 $
+#    $Revision: 1.14 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.13 2011/03/16 03:48:13 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.14 2011/03/17 05:09:38 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -315,6 +315,24 @@ foreach ntrain ($ntrainlist)
             endif
           endif
         end
+
+        set mergelist = ()
+        foreach dname ($outdir/*_$avgmode)
+          if (-e $dname/path.pd.nii.gz) then
+            set mergelist = ($mergelist `basename $dname`/path.pd.nii.gz)
+          endif
+        end
+
+        set cmd = $trcdir/dmri_mergepaths
+        set cmd = ($cmd --indir $outdir)
+        set cmd = ($cmd --in    $mergelist)
+        set cmd = ($cmd --out   $outdir/merged_$avgmode.nii.gz)
+        set cmd = ($cmd --ctab  $FREESURFER_HOME/FreeSurferColorLUT.txt)
+        echo $cmd |& tee -a $LF |& tee -a $CF
+        if ($RunIt) then
+          $cmd |& tee -a $LF
+          if ($status) goto error_exit
+        endif
       end
     end
   end
