@@ -13,8 +13,8 @@ my( $configFile, $outFile );
 
 my( $rcs, $rev, $rcsdate );
 $rcs = '$RCSfile: ltaMultiDiff.pl,v $';
-$rev = '$Revision: 1.2 $';
-$rcsdate = '$Date: 2010/08/27 14:01:34 $';
+$rev = '$Revision: 1.3 $';
+$rcsdate = '$Date: 2011/03/17 18:28:35 $';
 
 print "LTA Multi-Diff\n";
 print "==============\n\n";
@@ -147,6 +147,10 @@ sub RunCompare{
 	printf "Child died with signal %d, %s coredump\n",
 	($? & 127), ($? & 128) ? 'with' : 'without';
 	return( "failed" );
+    }
+    my $exitVal = ( $? >> 8 );
+    if( $exitVal != 0 ) {
+        return( "failed" );
     }
 
     my $result;
