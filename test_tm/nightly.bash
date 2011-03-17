@@ -61,19 +61,19 @@ source $SCRIPTSDIR/build.bash
 
 # Run the tests
 
-cd $NIGHTLYDIR/test_tm
-echo
-pwd
-echo
-echo "NIGHTLY: Cleaning up old tests" >> $LOGFILE
-testcleanup
+#cd $NIGHTLYDIR/test_tm
+#echo
+#pwd
+#echo
+#echo "NIGHTLY: Cleaning up old tests" >> $LOGFILE
+#testcleanup
 
-echo "NIGHTLY: Running tm" >> $LOGFILE
-echo
-tm . > $TMOUTPUT
-echo
+#echo "NIGHTLY: Running tm" >> $LOGFILE
+#echo
+#tm . > $TMOUTPUT
+#echo
 
-grep --after-context=25 -e "Finished Tests" $TMOUTPUT
+#grep --after-context=25 -e "Finished Tests" $TMOUTPUT
 
 echo
 echo "NIGHTLY: Tests complete @ `date`"
