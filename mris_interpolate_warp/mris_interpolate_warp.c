@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/17 19:28:04 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/18 13:10:50 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -193,10 +193,10 @@ main(int argc, char *argv[]) {
   struct timeb start ;
   MRI_SURFACE  *mris ;
   GCA_MORPH    *gcam ;
-  MRI          *mri ;
+  MRI          *mri = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_interpolate_warp.c,v 1.1 2011/03/17 19:28:04 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_interpolate_warp.c,v 1.2 2011/03/18 13:10:50 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
