@@ -9,7 +9,7 @@
 # Created: 07-14-2010
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_check,v 1.3 2011/03/17 19:26:38 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_check,v 1.4 2011/03/18 22:09:49 lzollei Exp $';
 set PrintHelp = 0;
 
 set movingid = ();
@@ -43,7 +43,7 @@ set missing = ()
 
 set allids = $movingid
 if !($cvstemplate) then 
-  set allids = [$allids $templateid]
+  set allids = ($allids $templateid)
 endif 
 
 foreach s ($allids)
