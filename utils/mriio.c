@@ -9,8 +9,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/16 17:31:48 $
- *    $Revision: 1.387 $
+ *    $Date: 2011/03/18 00:30:13 $
+ *    $Revision: 1.388 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -12325,7 +12325,6 @@ mghRead(const char *fname, int read_volume, int frame)
         if (mri->frames == NULL)
           ErrorExit(ERROR_NOMEMORY, "mghRead(%s): could not allocate %d MRI_FRAMEs", fname, mri->nframes) ;
 #endif
-        printf("reading MRI_FRAME structure from file...\n") ;
         if (znzread(mri->frames, mri->nframes*sizeof(MRI_FRAME), 1, fp) != 1)
           fprintf(stderr, "couldn't read frame structure from file\n") ;
         break ;
