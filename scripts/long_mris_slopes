@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/17 22:29:37 $
-#    $Revision: 1.16 $
+#    $Date: 2011/03/18 20:01:41 $
+#    $Revision: 1.17 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -37,7 +37,7 @@ import shutil
 from Numeric import *
 from subject_info import *
 #from fsgd_parser import *
-from qdectable_parser import *
+from LongQdecTable import *
 
 # logging 
 ch = logging.StreamHandler()
@@ -219,7 +219,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.16 2011/03/17 22:29:37 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.17 2011/03/18 20:01:41 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -455,8 +455,8 @@ if __name__=="__main__":
     print 'Parsing the qdec table: '+options.qdec
     try:
         slopelogger.debug('Processing file ' + options.qdec)
-        qdecparse = QdecTableParser(options.qdec)
-        subjects_tp_map, variables, subjectdir = qdecparse.parse()
+        qdectable = LongQdecTable(options.qdec)
+        #subjects_tp_map, variables, subjectdir = qdecparse.parse()
     except BadFileError, e:
         print 'ERROR: qdec table '+str(e)+' not found!'
         sys.exit(1)
@@ -464,6 +464,7 @@ if __name__=="__main__":
 
     # use the first column by default for time variable
     varidx = 1
+    variables=qdectable.variables
     # if time variable is passed on command line, overwrite
     if not options.time is None:
         defaultvar = options.time
@@ -480,6 +481,7 @@ if __name__=="__main__":
         varidx = varidx +1;
 
     # if env is set, overwrite info from file (if it was passed in qdec)
+    subjectsdir = qdectable.subjectsdir
     sdir = os.getenv('SUBJECTS_DIR')
     if sdir is not None:
         subjectsdir = sdir
@@ -494,7 +496,7 @@ if __name__=="__main__":
     
     # process
     retcode = 0
-    for subjectid, tplist in subjects_tp_map.items():
+    for subjectid, tplist in qdectable.subjects_tp_map.items():
         print '\nSubject-Template: '+subjectid
         
         # check if basedir exists
