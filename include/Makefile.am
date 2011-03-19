@@ -678,7 +678,9 @@ nvcc_version.h:
 	xxd -i nvcc_version >> nvcc_version.h
 
 clean-local:
-	rm -f $(BUILT_SOURCES) nvcc_version
+	rm -f nvcc_version
+
+EXTRA_DIST += nvcc_version.h
 endif
 endif
 
