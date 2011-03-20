@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.15 2011/03/17 17:35:08 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.16 2011/03/20 22:00:25 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -343,7 +343,7 @@ if ($UseAseg) then
 
     set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $$outdir/${combined:r}.m3z --noDefM3zPath \
                             --mov $$mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
-                            --interp linear --no-save-reg )
+                            --interp trilin --no-save-reg )
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -560,8 +560,14 @@ check_params:
   endif
 
   if($#templateid == 0) then
-    echo "ERROR: must spec a template subject id"
-    exit 1;
+    unsetenv $TEMPLATE_DIR
+    #setenv TEMPLATE_DIR $FREESURFER_HOME/subjects/
+    #set templateid = cvs_avg35
+    setenv TEMPLATE_DIR /autofs/cluster/con_001/users/lilla/CVS_atlas/buckner35rerun/
+    set templateid = avg35rerun
+    echo "Using the CVS template as registration target..."
+    # echo "ERROR: must spec a template subject id"
+    # exit 1;
   endif
 
   if($templateid == $movingid) then
@@ -590,7 +596,7 @@ usage_exit:
   echo ""
   echo "Required Arguments:";
   echo "   --mov subjid       : subjid for subject to be moved / registered"
-  echo "   --template subjid  : subjid for subject to be kept fixed (template)"
+  echo "   --template subjid  : subjid for subject to be kept fixed (template). If missing, the CVS template is used."
   echo ""
   echo "Optional Arguments"
   echo ""
@@ -636,7 +642,7 @@ be moved in registration with that of the template.
 Subject id of the subject (as found, by default, in SUBJECTS_DIR) whose 
 scan is to be used and the template / target for the registration. If the
 template is in another dir, you need to use the --templatedir flag to
-point to it.
+point to it. If this argument is missing, the CVS template is used.
 
 Optional Arguments:
 
