@@ -245,6 +245,7 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	Annotation2D.h \
 	BrushProperty.h \
 	CommandEdit.h \
+	CommonDataStruct.h \
 	Contour2D.h \
 	Cursor2D.h \
 	Cursor3D.h \
