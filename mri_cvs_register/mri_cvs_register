@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.16 2011/03/20 22:00:25 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.17 2011/03/20 22:51:37 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -341,8 +341,8 @@ if ($UseAseg) then
 #    set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
 #                           vol $mmri/${voltype}.mgz $outdir/${combined:r}_${voltype}.mgz linear )
 
-    set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $$outdir/${combined:r}.m3z --noDefM3zPath \
-                            --mov $$mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
+    set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.m3z --noDefM3zPath \
+                            --mov $mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
                             --interp trilin --no-save-reg )
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -407,8 +407,8 @@ set voltype = aseg
 if (!(-e  $outdir/${combined:r}_${voltype}.mgz ) || $CleanElReg || $CleanVolReg) then 
 #  set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
 #                         vol $mmri/$voltype.mgz $outdir/${combined:r}_${voltype}.mgz nearest )
-  set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $$outdir/${combined:r}.m3z --noDefM3zPath \
-                           --mov $$mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
+  set cmd = ( mri_vol2vol  --targ $tmri/$voltype.mgz --m3z $outdir/${combined:r}.m3z --noDefM3zPath \
+                           --mov $mmri/${voltype}.mgz --o $outdir/${combined:r}_${voltype}.mgz \
                            --interp nearest --no-save-reg )
   echo $cmd |& tee -a $LF
   $cmd |& tee -a $LF
