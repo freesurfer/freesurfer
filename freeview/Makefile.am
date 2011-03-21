@@ -63,7 +63,8 @@ BUILT_SOURCES = \
 	moc_GenericRenderView.cpp \
 	moc_InfoTreeWidget.cpp \
 	moc_Interactor.cpp \
-	moc_Interactor2D.cpp \
+  moc_Interactor2D.cpp \
+  moc_Interactor2DNavigate.cpp \
 	moc_Interactor2DMeasure.cpp \
 	moc_Interactor2DVolumeCrop.cpp \
 	moc_Interactor2DVolumeEdit.cpp \
@@ -122,6 +123,8 @@ BUILT_SOURCES = \
 	moc_LayerPropertyTrack.cpp \
   moc_DialogSaveVolume.cpp \
   moc_DialogReplaceLabel.cpp \
+  moc_LayerVolumeTracks.cpp \
+  moc_LayerLandmarks.cpp \
   qrc_freeview.cpp
 
 freeview_SOURCES = $(BUILT_SOURCES) \
@@ -267,7 +270,7 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	DialogVolumeFilter.h \
 	DialogWriteMovieFrames.h \
 	FloatingStatusBar.h \
-	FSLabel.h\
+  FSLabel.h \
 	FSPointSet.h \
 	FSSurface.h \
 	FSVolume.h \
@@ -350,7 +353,11 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	LayerPropertyTrack.h \
   DialogSaveVolume.h \
   DialogReplaceLabel.cpp \
-  DialogReplaceLabel.h
+  DialogReplaceLabel.h \
+  LayerVolumeTracks.cpp \
+  LayerVolumeTracks.h \
+  LayerLandmarks.cpp \
+  LayerLandmarks.h
 
 if HAVE_MAC_OSX
 AM_CXXFLAGS=\

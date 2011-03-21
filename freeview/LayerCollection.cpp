@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.28 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.29 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,7 +101,8 @@ bool LayerCollection::AddLayer( Layer* layer, bool initializeCoordinate )
   connect( layer, SIGNAL(ActorUpdated()), this, SIGNAL(LayerActorUpdated()) );
   connect( layer, SIGNAL(Transformed()), this, SIGNAL(LayerActorUpdated()) );
   connect( layer, SIGNAL(ActorChanged()), this, SIGNAL(LayerActorChanged()) );
-  connect( layer->GetProperty(), SIGNAL(PropertyChanged()), this, SIGNAL(LayerPropertyChanged()));
+  if (layer->GetProperty())
+    connect( layer->GetProperty(), SIGNAL(PropertyChanged()), this, SIGNAL(LayerPropertyChanged()));
   connect( layer, SIGNAL(VisibilityChanged(bool)), this, SIGNAL(LayerVisibilityChanged()));
 
   this->SetActiveLayer( layer );
@@ -662,4 +663,14 @@ void LayerCollection::LockCurrent( bool bLock )
   {
     m_layerActive->Lock( bLock );
   }
+}
+
+Layer* LayerCollection::GetLayer(const QString& type)
+{
+  for (int i = 0; i < m_layers.size(); i++)
+  {
+    if (m_layers[i]->IsTypeOf(type))
+      return m_layers[i];
+  }
+  return NULL;
 }

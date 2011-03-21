@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -30,10 +30,25 @@
 
 class Interactor2DNavigate : public Interactor2D
 {
+  Q_OBJECT
 public:
-  Interactor2DNavigate( QObject* parent ) : Interactor2D( parent )
-  {}
+  Interactor2DNavigate( QObject* parent );
 
+  // return true if to have parent Interactor2DPointSetEdit continue processing the event
+  // return false to stop event from further processing
+  virtual bool ProcessMouseDownEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessKeyDownEvent( QKeyEvent* event, RenderView* view );
+
+public slots:
+  void SetCurrentLandmark(int n);
+
+protected:
+  void UpdateCursor( QEvent* event, QWidget* wnd );
+
+  bool m_bEditing;
+  int  m_nCurrentLandmark;
 };
 
 #endif

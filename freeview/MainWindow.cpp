@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.159 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.160 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,6 +77,8 @@
 #include "DialogSavePointSet.h"
 #include "DialogSaveVolume.h"
 #include "DialogWriteMovieFrames.h"
+#include "LayerLandmarks.h"
+#include "Interactor2DNavigate.h"
 
 MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   QMainWindow( parent ),
@@ -95,6 +97,10 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
   m_layerCollections["Surface"] = new LayerCollection( "Surface", this );
   m_layerCollections["PointSet"] = new LayerCollection( "PointSet", this );
   m_layerCollections["Track"] = new LayerCollection( "Track", this );
+  // supplemental layers will not show on control panel
+  m_layerCollections["Supplement"] = new LayerCollection( "Supplement", this);
+  LayerLandmarks* landmarks = new LayerLandmarks(this);
+  m_layerCollections["Supplement"]->AddLayer(landmarks);
 
   m_luts = new LUTDataHolder();
   m_propertyBrush = new BrushProperty();
@@ -134,6 +140,12 @@ MainWindow::MainWindow( QWidget *parent, MyCmdLineParser* cmdParser ) :
 
   m_dlgTransformVolume = new DialogTransformVolume( this );
   m_dlgTransformVolume->hide();
+  for (int i = 0; i < 3; i++)
+  {
+    connect(m_dlgTransformVolume, SIGNAL(CurrentLandmarkChanged(int)),
+            ((RenderView2D*)m_views[i])->GetInteractorNavigate(),
+            SLOT(SetCurrentLandmark(int)));
+  }
 
   m_dlgCropVolume = new DialogCropVolume(this);
   m_dlgCropVolume->hide();
@@ -4181,7 +4193,7 @@ void MainWindow::LoadSurfaceVector()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select surface vector file",
                      AutoSelectLastDir( "surf" ),
-                     "All files (*.*)");
+                     "All files (*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceVectorFile( filename );
@@ -4206,7 +4218,7 @@ void MainWindow::LoadLUT()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select lookup table file",
                      m_strLastDir,
-                     "LUT files (*.*)");
+                     "LUT files (*)");
   if ( !filename.isEmpty() )
   {
     LayerMRI* mri = (LayerMRI*)GetLayerCollection( "MRI" )->GetActiveLayer();
@@ -4395,6 +4407,27 @@ void MainWindow::RotateVolume( std::vector<RotationElement>& rotations, bool bAl
   {
     QMessageBox::warning( this, "Error", "Error occured while rotating volumes.");
   }
+}
+
+void MainWindow::TransformVolume(double *mat, int sample_method)
+{
+  // first update ROI and waypoints before their reference volume is rotated
+  QList<Layer*> layers = GetLayerCollection("ROI")->GetLayers();
+  for ( int i = 0; i < layers.size(); i++ )
+  {
+    ( (LayerROI*)layers[i] )->UpdateLabelData();
+  }
+  layers = GetLayerCollection("PointSet")->GetLayers();
+  for ( int i = 0; i < layers.size(); i++ )
+  {
+    ( (LayerPointSet*)layers[i] )->UpdateLabelData();
+  }
+
+  LayerMRI* layer = (LayerMRI*) GetActiveLayer( "MRI" );
+  if (layer)
+    layer->Transform(mat, sample_method);
+  LayerLandmarks* lm = (LayerLandmarks*)GetSupplementLayer("Landmarks");
+  lm->Transform(mat, sample_method);
 }
 
 void MainWindow::OnSaveScreenshot()
@@ -4794,4 +4827,9 @@ void MainWindow::OnLoadCommand()
 void MainWindow::OnWriteMovieFrames()
 {
   m_dlgWriteMovieFrames->show();
+}
+
+Layer* MainWindow::GetSupplementLayer(const QString &type)
+{
+  return m_layerCollections["Supplement"]->GetLayer(type);
 }

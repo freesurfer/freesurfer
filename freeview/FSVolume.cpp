@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/16 21:23:48 $
- *    $Revision: 1.61 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -668,6 +668,14 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
       }
 
       MRIcopyHeader( m_MRITemp, mri );
+      Real p0[3];
+      ::MRIvoxelToWorld( m_MRITemp,
+                         (int)indexBounds[0],
+                         (int)indexBounds[2],
+                         (int)indexBounds[4],
+                         &p0[0], &p0[1], &p0[2] );
+      MRIp0ToCRAS( mri, p0[0], p0[1], p0[2] );
+
       mri = MRIapplyRASlinearTransformInterp( m_MRITemp, mri, m, nSampleMethod );
       if ( !mri )
       {
@@ -682,6 +690,16 @@ bool FSVolume::MRIWrite( const QString& filename, int nSampleMethod, bool resamp
     {
       // rotation is not oblique, just modify the header
       MATRIX* old_v2r = extract_i_to_r(m_MRITemp);
+      /*
+      Real p0[4] = {0, 0, 0, 1};
+      ::MRIvoxelToWorld( m_MRITemp,
+                         0, 0, 0,
+                         &p0[0], &p0[1], &p0[2] );
+      MATRIX* new_v2r = MatrixMultiply(m, old_v2r, 0);
+      MRIsetVoxelToRasXform(m_MRITemp, new_v2r);
+      mat->MultiplyPoint(p0, p0);
+      MRIp0ToCRAS( m_MRITemp, p0[0], p0[1], p0[2] );
+      */
       MATRIX* new_v2r = MatrixMultiply(m, old_v2r, 0);
       MRIsetVoxelToRasXform(m_MRITemp, new_v2r);
       MatrixFree(&old_v2r);

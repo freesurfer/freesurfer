@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.22 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -62,11 +62,10 @@ public:
 
   virtual bool IsVisible() = 0;
 
+  bool Transform (double* mat, int sample_method);
   bool Rotate( std::vector<RotationElement>& rotations );
-
   bool Translate( double x, double y, double z );
   bool Translate( double* dPos );
-
   void Scale( double* scale, int nSampleMethod = 1 /* SAMPLE_TRILINEAR */ );
 
   void Restore();
@@ -182,6 +181,7 @@ protected:
 
   virtual void DoTranslate( double* offset ) {}
   virtual void DoScale( double* scale, int nSampleMethod ) {}
+  virtual void DoTransform( double* mat, int sample_method ) {}
 
   QString   m_strName;
   double    m_dSlicePosition[3];

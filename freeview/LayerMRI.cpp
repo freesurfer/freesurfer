@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/16 22:07:51 $
- *    $Revision: 1.96 $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.97 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -292,7 +292,7 @@ bool LayerMRI::SaveVolume()
     return false;
   }
 
-  // now first save a copy of the old file if required
+  // now first save a copy of the old file if requested
   if ( MainWindow::GetMainWindow()->GetSaveCopy() )
   {
     QString new_fn = m_sFilename + "~";
@@ -324,6 +324,47 @@ void LayerMRI::DoRestore()
   {
     mReslice[i]->Modified();
   }
+}
+
+void LayerMRI::DoTransform(double *m, int sample_method)
+{
+  for ( int i = 0; i < 3; i++ )
+  {
+    if ( GetProperty()->GetColorMap() == LayerPropertyMRI::LUT || sample_method == SAMPLE_NEAREST )
+    {
+      mReslice[i]->SetInterpolationModeToNearestNeighbor();
+    }
+    else
+    {
+      mReslice[i]->SetInterpolationModeToLinear();
+    }
+  }
+
+  vtkSmartPointer<vtkTransform> slice_tr = vtkTransform::SafeDownCast( mReslice[0]->GetResliceTransform() );
+  vtkSmartPointer<vtkMatrix4x4> mat = vtkSmartPointer<vtkMatrix4x4>::New();
+  mat->DeepCopy(m);
+  vtkSmartPointer<vtkMatrix4x4> mat_inv = vtkSmartPointer<vtkMatrix4x4>::New();
+  mat_inv->DeepCopy(mat);
+  mat_inv->Invert();
+  slice_tr->Concatenate(mat_inv); // reslice uses inverse transformation matrix
+
+  // also record transformation in RAS space
+  vtkTransform* ras_tr = m_volumeSource->GetTransform();
+  MATRIX* t2ras = GetSourceVolume()->GetTargetToRASMatrix();
+  double m_t2r[16], m_a[16];
+  for ( int i = 0; i < 16; i++ )
+  {
+    m_t2r[i] = (double) *MATRIX_RELT((t2ras),(i/4)+1,(i%4)+1);
+  }
+  vtkMatrix4x4::Multiply4x4(m_t2r, m, m_a);
+  vtkMatrix4x4::Invert(m_t2r, m_t2r);
+  vtkMatrix4x4::Multiply4x4(m_a, m_t2r, m_a);
+  mat->DeepCopy(m_a);
+  ras_tr->Concatenate(mat);
+
+  MatrixFree(&t2ras);
+  for ( int i = 0; i < 3; i++ )
+    mReslice[i]->Modified();
 }
 
 bool LayerMRI::DoRotate( std::vector<RotationElement>& rotations )

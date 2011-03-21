@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/16 22:07:51 $
- *    $Revision: 1.5 $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.6 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -76,7 +76,6 @@ void FloatingStatusBar::Reposition()
 
 void FloatingStatusBar::HideProgress()
 {
-  setWindowFlags(Qt::Popup);
   m_timer->stop();
   this->hide();
   ui->progressBar->hide();

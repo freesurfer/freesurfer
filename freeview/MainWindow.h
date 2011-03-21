@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.90 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.91 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -148,6 +148,8 @@ public:
 
   void RotateVolume( std::vector<RotationElement>& rotations, bool bAllVolumes );
 
+  void TransformVolume(double* mat, int sample_method);
+
   void AddScript(const QString& command);
 
   QString AutoSelectLastDir( const QString& subdir );
@@ -170,12 +172,15 @@ public:
     return m_term;
   }
 
+  Layer* GetSupplementLayer(const QString& type);
+
 Q_SIGNALS:
   void MainViewChanged( int n );
   void ViewLayoutChanged( int n );
   void SlicePositionChanged();
 
 public slots:
+  void SetMode( int nMode );
   void SetViewLayout( int n );
   void SetMainView  ( int n );
   void LoadSurfaceCurvature();
@@ -198,12 +203,10 @@ public slots:
   bool ParseCommand(const QString& cmd, bool bAutoQuit = false);
 
 protected:
-  ;
   void closeEvent   ( QCloseEvent * event );
   void resizeEvent  (QResizeEvent * event);
   void moveEvent    (QMoveEvent * event);
   void showEvent    (QShowEvent * event);
-  void SetMode( int nMode );
   void LoadVolumeFile(  const QString& filename,
                         const QString& reg_filename = "",
                         bool bResample = false,

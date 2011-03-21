@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.26 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.27 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -98,6 +98,11 @@ public:
   void ZoomAtCursor( int nX, int nY, double factor);
 
   bool SetSliceNumber( int nNum );
+
+  Interactor2DNavigate* GetInteractorNavigate()
+  {
+    return m_interactorNavigate;
+  }
 
 public slots:
   void RefreshAllActors(bool bForScreenShot = false);

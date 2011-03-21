@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/16 22:07:51 $
- *    $Revision: 1.61 $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.62 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -282,6 +282,7 @@ protected slots:
   void OnContourThreadFinished(int thread_id);
 
 protected:
+  virtual void DoTransform(double *mat, int sample_method);
   virtual bool DoRotate( std::vector<RotationElement>& rotations );
   virtual void DoTranslate( double* offset );
   virtual void DoScale( double* rscale, int nSampleMethod );

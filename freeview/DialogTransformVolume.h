@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.10 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.11 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,8 @@
 
 #include <QDialog>
 #include "UIUpdateHelper.h"
+#include <QList>
+#include <QIcon>
 
 namespace Ui
 {
@@ -36,6 +38,8 @@ class QCheckBox;
 class QComboBox;
 class QLineEdit;
 class QScrollBar;
+class QtColorPicker;
+class QPushButton;
 
 class DialogTransformVolume : public QDialog, public UIUpdateHelper
 {
@@ -47,6 +51,11 @@ public:
 
   bool GetRotation( int nID_in, int& plane_out, double& angle_out );
   void UpdateUI( int scope = 2 );
+
+  void closeEvent(QCloseEvent * e);
+
+signals:
+  void CurrentLandmarkChanged(int n);
 
 protected slots:
   void OnApply();
@@ -68,12 +77,20 @@ protected slots:
 
   void OnActiveLayerChanged();
 
+  void OnRadioButtonLandmark(bool bChecked);
+
+  void OnButtonLandmarkPick();
+
+  void UpdateLandmarkColors();
+
 private:
   void DoRotate();
   void RespondTextTranslate   ( int n );
   void RespondScrollTranslate ( int n );
   void RespondTextScale   ( int n );
   void RespondScrollScale ( int n );
+
+  QIcon MakeIcon(const QColor& color, int size);
 
   Ui::DialogTransformVolume *ui;
 
@@ -84,6 +101,9 @@ private:
   QLineEdit*     m_textTranslate[3];
   QScrollBar*    m_scrollScale[3];
   QLineEdit*     m_textScale[3];
+  QList<QtColorPicker*> m_colorPickerLandmark;
+  QList<QPushButton*>   m_btnPickLandmark;
+  QList<QComboBox*> m_comboLandmark;
 };
 
 #endif // DIALOGTRANSFORMVOLUME_H

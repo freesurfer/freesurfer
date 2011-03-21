@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.22 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.23 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -315,7 +315,7 @@ void ToolWindowMeasure::OnLoad()
   QString filename = QFileDialog::getOpenFileName( this,
                      "Load region(s) from file",
                      "",
-                     "All files (*.*)");
+                     "All files (*)");
 
   LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( mri && !filename.isEmpty() )
@@ -333,7 +333,7 @@ void ToolWindowMeasure::OnSave()
   QString filename = QFileDialog::getSaveFileName( this,
                      "Save region",
                      "",
-                     "All files (*.*)");
+                     "All files (*)");
   if ( m_surfaceRegion && !filename.isEmpty() )
   {
     if ( !m_surfaceRegion->Write( filename ) )
@@ -348,7 +348,7 @@ void ToolWindowMeasure::OnSaveAll()
   QString filename = QFileDialog::getSaveFileName( this,
                      "Save region",
                      "",
-                     "All files (*.*)");
+                     "All files (*)");
   if ( m_surfaceRegion && !filename.isEmpty() )
   {
     LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
@@ -374,7 +374,7 @@ void ToolWindowMeasure::OnExport()
   QString filename = QFileDialog::getSaveFileName( this,
                      "Export stats to file",
                      "",
-                     "All files (*.*)");
+                     "All files (*)");
   if (!filename.isEmpty())
   {
     QFile file(filename);

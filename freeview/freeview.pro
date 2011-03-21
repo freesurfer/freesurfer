@@ -118,7 +118,9 @@ SOURCES += \
     PanelTrack.cpp \
     LayerPropertyTrack.cpp \
     DialogSaveVolume.cpp \
-    DialogReplaceLabel.cpp
+    DialogReplaceLabel.cpp \
+    LayerVolumeTracks.cpp \
+    LayerLandmarks.cpp
 
 HEADERS  += \
     Annotation2D.h \
@@ -226,7 +228,9 @@ HEADERS  += \
     PanelTrack.h \
     LayerPropertyTrack.h \
     DialogSaveVolume.h \
-    DialogReplaceLabel.h
+    DialogReplaceLabel.h \
+    LayerVolumeTracks.h \
+    LayerLandmarks.h
 
 FORMS    += MainWindow.ui \
     PanelVolume.ui \
@@ -312,6 +316,13 @@ DESTDIR = $$FREESURFER_BIN
 
 # for mac
 macx {
+
+FREESURFER_DEV_DIR = /Users/rpwang/freesurfer/dev
+
+# set this to your local install bin directory
+# freeview.bin will be copied to that directory
+FREESURFER_BIN = /Users/rpwang/freesurfer/bin
+
 TARGET = FreeView
 RC_FILE = resource/icons/freeview.icns
 

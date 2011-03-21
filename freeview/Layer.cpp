@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.23 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.24 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -210,6 +210,14 @@ bool Layer::Rotate( std::vector<RotationElement>& rotations )
     emit Transformed();
   }
   return ret;
+}
+
+bool Layer::Transform(double *mat, int sample_method)
+{
+  DoTransform(mat, sample_method);
+  emit Transformed();
+
+  return true;
 }
 
 bool Layer::Translate( double x, double y, double z )

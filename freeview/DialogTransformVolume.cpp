@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.11 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/21 21:27:40 $
+ *    $Revision: 1.12 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,9 +26,17 @@
 #include "MainWindow.h"
 #include "LayerCollection.h"
 #include "LayerMRI.h"
+#include "LayerLandmarks.h"
+#include "RenderView.h"
+#include "vtkMatrix4x4.h"
+#include "vtkTransform.h"
+#include "vtkMath.h"
 #include <QMessageBox>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QPixmap>
+#include <QDebug>
+
 extern "C"
 {
 #include "mri.h"
@@ -40,6 +48,7 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   ui(new Ui::DialogTransformVolume)
 {
   ui->setupUi(this);
+  ui->groupBoxLandmarks->hide();
   m_checkRotate[0] = ui->checkBoxRotateX;
   m_checkRotate[1] = ui->checkBoxRotateY;
   m_checkRotate[2] = ui->checkBoxRotateZ;
@@ -61,16 +70,44 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
   m_textScale[0] = ui->lineEditScaleX;
   m_textScale[1] = ui->lineEditScaleY;
   m_textScale[2] = ui->lineEditScaleZ;
+  m_btnPickLandmark << ui->pushButtonLandmarkPick1
+                    << ui->pushButtonLandmarkPick2
+                    << ui->pushButtonLandmarkPick3
+                    << ui->pushButtonLandmarkPick4;
+  m_colorPickerLandmark << ui->colorPickerLandmark1
+                        << ui->colorPickerLandmark2
+                        << ui->colorPickerLandmark3
+                        << ui->colorPickerLandmark4;
+  m_comboLandmark << ui->comboBoxAxis11
+                  << ui->comboBoxAxis12
+                  << ui->comboBoxAxis21
+                  << ui->comboBoxAxis22;
 
   connect(MainWindow::GetMainWindow()->GetLayerCollection("MRI"), SIGNAL(ActiveLayerChanged(Layer*)),
           this, SLOT(OnActiveLayerChanged()));
   connect(ui->pushButtonSaveVolumeAs, SIGNAL(clicked()),
           MainWindow::GetMainWindow(), SLOT(SaveVolumeAs()));
+
+  LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
+                              ->GetSupplementLayer("Landmarks");
+  landmarks->SetLandmarkColor(0, Qt::red);
+  landmarks->SetLandmarkColor(1, Qt::green);
+  landmarks->SetLandmarkColor(2, Qt::blue);
+  landmarks->SetLandmarkColor(3, Qt::yellow);
+  for (int i = 0; i < m_colorPickerLandmark.size(); i++)
+    m_colorPickerLandmark[i]->setCurrentColor(landmarks->GetLandmark(i).color);
+  UpdateLandmarkColors();
 }
 
 DialogTransformVolume::~DialogTransformVolume()
 {
   delete ui;
+}
+
+void DialogTransformVolume::closeEvent(QCloseEvent *e)
+{
+
+  QDialog::closeEvent(e);
 }
 
 // scope: 0 => translate related, 1 => scale related, 2 => both
@@ -151,23 +188,42 @@ bool DialogTransformVolume::GetRotation( int nIndex_in,
 
 void DialogTransformVolume::OnApply()
 {
-  int plane;
-  double angle;
-  if ( !m_checkRotate[0]->isChecked() &&
-       !m_checkRotate[1]->isChecked() &&
-       !m_checkRotate[2]->isChecked() )
+  if (ui->radioButtonRotateManual->isChecked())
   {
-    QMessageBox::warning( this, "Error",
-                          "Must at least select one rotation.");
-    return;
+    int plane;
+    double angle;
+    if ( !m_checkRotate[0]->isChecked() &&
+         !m_checkRotate[1]->isChecked() &&
+         !m_checkRotate[2]->isChecked() )
+    {
+      QMessageBox::warning( this, "Error",
+                            "Must at least select one rotation.");
+      return;
+    }
+    else if ( ( m_checkRotate[0]->isChecked() && !GetRotation( 0, plane, angle ) ) ||
+              ( m_checkRotate[1]->isChecked() && !GetRotation( 1, plane, angle ) ) ||
+              ( m_checkRotate[2]->isChecked() && !GetRotation( 2, plane, angle ) ) )
+    {
+      QMessageBox::warning( this, "Error",
+                            "Please enter correct rotation angle.");
+      return;
+    }
   }
-  else if ( ( m_checkRotate[0]->isChecked() && !GetRotation( 0, plane, angle ) ) ||
-            ( m_checkRotate[1]->isChecked() && !GetRotation( 1, plane, angle ) ) ||
-            ( m_checkRotate[2]->isChecked() && !GetRotation( 2, plane, angle ) ) )
+  else
   {
-    QMessageBox::warning( this, "Error",
-                          "Please enter correct rotation angle.");
-    return;
+    if (ui->comboBoxAxis11->currentIndex() == ui->comboBoxAxis12->currentIndex() ||
+        ui->comboBoxAxis21->currentIndex() == ui->comboBoxAxis22->currentIndex() ||
+        ui->comboBoxAxisTarget1->currentIndex() == ui->comboBoxAxisTarget2->currentIndex() ||
+        (ui->comboBoxAxis11->currentIndex() == ui->comboBoxAxis21->currentIndex() &&
+         ui->comboBoxAxis12->currentIndex() == ui->comboBoxAxis22->currentIndex()) ||
+        (ui->comboBoxAxis11->currentIndex() == ui->comboBoxAxis22->currentIndex() &&
+         ui->comboBoxAxis12->currentIndex() == ui->comboBoxAxis21->currentIndex()))
+    {
+      QMessageBox::warning(this, "Error", "Something is wrong on the mapping settings. Please correct it.");
+      return;
+    }
+    for (int i = 0; i < this->m_btnPickLandmark.size(); i++)
+      m_btnPickLandmark[i]->setChecked(false);
   }
 
   DoRotate();
@@ -185,7 +241,7 @@ void DialogTransformVolume::OnSaveReg()
 
   QString filename = QFileDialog::getSaveFileName(this, "Save Registration",
                      QFileInfo( layer_mri->GetFileName() ).absolutePath(),
-                     "LTA files (*.lta);;All files (*.*)");
+                     "LTA files (*.lta);;All files (*)");
   if ( !filename.isEmpty() )
   {
     layer_mri->SaveRegistration( filename );
@@ -200,6 +256,8 @@ void DialogTransformVolume::OnRestore()
     layer->Restore();
     UpdateUI();
   }
+  LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()->GetSupplementLayer("Landmarks");
+  landmarks->Restore();
 }
 
 void DialogTransformVolume::DoRotate()
@@ -207,35 +265,98 @@ void DialogTransformVolume::DoRotate()
   LayerMRI* layer = ( LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
   if ( layer )
   {
+    std::vector<RotationElement> rotations;
     RotationElement re;
-    if ( ui->radioButtonAroundCursor->isChecked() )
-    {
-      MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->
-      GetSlicePosition( re.Point );
-      layer->RemapPositionToRealRAS( re.Point, re.Point );
-    }
-    else
-    {
-      // use center of the volume to rotate
-      layer->GetRASCenter( re.Point );
-    }
     re.SampleMethod = SAMPLE_TRILINEAR;
     if ( ui->radioButtonNearestNeighbor->isChecked() )
     {
       re.SampleMethod = SAMPLE_NEAREST;
     }
-//    else if ( m_radioSinc->GetValue() )
-//      re.SampleMethod = SAMPLE_SINC;
-
-    std::vector<RotationElement> rotations;
-    for ( int i = 0; i < 3; i++ )
+    if (ui->radioButtonRotateManual->isChecked())
     {
-      if ( GetRotation( i, re.Plane, re.Angle ) )
+      if ( ui->radioButtonAroundCursor->isChecked() )
       {
-        rotations.push_back( re );
+        MainWindow::GetMainWindow()->GetLayerCollection( "MRI" )->
+        GetSlicePosition( re.Point );
+        layer->RemapPositionToRealRAS( re.Point, re.Point );
       }
+      else
+      {
+        // use center of the volume to rotate
+        layer->GetRASCenter( re.Point );
+      }
+  //    else if ( m_radioSinc->GetValue() )
+  //      re.SampleMethod = SAMPLE_SINC;
+
+      for ( int i = 0; i < 3; i++ )
+      {
+        if ( GetRotation( i, re.Plane, re.Angle ) )
+        {
+          rotations.push_back( re );
+        }
+      }
+      MainWindow::GetMainWindow()->RotateVolume( rotations, false );
     }
-    MainWindow::GetMainWindow()->RotateVolume( rotations, false );
+    else
+    {
+      layer->GetRASCenter( re.Point );
+      LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()->GetSupplementLayer("Landmarks");
+      double* p[4];
+      for (int i = 0; i < 4; i++)
+        p[i] = landmarks->GetLandmark(i).pos;
+
+      // first figure out landmark vectors
+      double v[3][3], ax[3][3];
+      int n0 = ui->comboBoxAxis11->currentIndex();
+      int n1 = ui->comboBoxAxis12->currentIndex();
+      for (int i = 0; i < 3; i++)
+        v[0][i] = p[n1][i] - p[n0][i];
+      vtkMath::Normalize(v[0]);
+
+      n0 = ui->comboBoxAxis21->currentIndex();
+      n1 = ui->comboBoxAxis22->currentIndex();
+      for (int i = 0; i < 3; i++)
+        v[1][i] = p[n1][i] - p[n0][i];
+      vtkMath::Normalize(v[1]);
+      vtkMath::Cross(v[0], v[1], v[2]);
+      vtkMath::Normalize(v[2]);
+      vtkMath::Cross(v[2], v[0], v[1]);
+
+      int n[3];
+      n[0] = ui->comboBoxAxisTarget1->currentIndex();
+      n[1] = ui->comboBoxAxisTarget2->currentIndex();
+      if (n[0] == 0)
+        n[2] = (n[1] == 1 ? 2 : 1);
+      else if (n[0] == 1)
+        n[2] = (n[1] == 0 ? 2 : 0);
+      else
+        n[2] = (n[1] == 0 ? 1 : 0);
+
+      for (int i = 0; i < 3; i++)
+      {
+        for (int j = 0; j < 3; j++)
+          ax[n[i]][j] = v[i][j];
+      }
+
+      double m[16];
+      memset(m, 0, sizeof(double)*16);
+      for (int i = 0; i < 16; i++)
+      {
+        if (i/4 < 3 && i%4 < 3)
+          m[i] = ax[i/4][i%4];
+      }
+      m[15] = 1;
+
+      vtkSmartPointer<vtkTransform> tf = vtkSmartPointer<vtkTransform>::New();
+      tf->Identity();
+      double pt[3];
+      layer->RASToTarget( re.Point, pt );
+      tf->Translate(pt[0], pt[1], pt[2]);
+      tf->Concatenate(m);
+      tf->Translate(-pt[0], -pt[1], -pt[2]);
+      vtkMatrix4x4::DeepCopy(m, tf->GetMatrix());
+      MainWindow::GetMainWindow()->TransformVolume(m, re.SampleMethod);
+    }
   }
 }
 
@@ -245,6 +366,9 @@ void DialogTransformVolume::OnActiveLayerChanged()
   {
     UpdateUI();
   }
+  LayerMRI* layer = (LayerMRI* )MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()->GetSupplementLayer( "Landmarks" );
+  landmarks->SetMRIRef(layer);
 }
 
 
@@ -412,5 +536,81 @@ void DialogTransformVolume::RespondScrollScale( int n )
 
     ChangeLineEditNumber( m_textScale[n], scale[n] );
     UpdateUI( 0 );
+  }
+}
+
+void DialogTransformVolume::OnButtonLandmarkPick()
+{
+  for (int i = 0; i < m_btnPickLandmark.size(); i++)
+    m_btnPickLandmark[i]->blockSignals(true);
+
+  for (int i = 0; i < m_btnPickLandmark.size(); i++)
+  {
+    if (qobject_cast<QPushButton*>(sender()) == m_btnPickLandmark[i])
+    {
+      for (int j = 0; j < m_btnPickLandmark.size(); j++)
+      {
+        if (i != j)
+          m_btnPickLandmark[j]->setChecked(false);
+      }
+    }
+  }
+
+  int n = -1;
+  for (int i = 0; i < m_btnPickLandmark.size(); i++)
+  {
+    if (m_btnPickLandmark[i]->isChecked())
+    {
+      n = i;
+      break;
+    }
+  }
+  if (n >= 0)
+  {
+    // switch to landmark mode
+    MainWindow::GetMainWindow()->SetMode(RenderView::IM_Navigate);
+  }
+
+  for (int i = 0; i < m_btnPickLandmark.size(); i++)
+    m_btnPickLandmark[i]->blockSignals(false);
+
+  emit CurrentLandmarkChanged(n);
+}
+
+void DialogTransformVolume::UpdateLandmarkColors()
+{
+  LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
+                              ->GetSupplementLayer("Landmarks");
+  for (int i = 0; i < m_colorPickerLandmark.size(); i++)
+  {
+    if (qobject_cast<QtColorPicker*>(sender()) == m_colorPickerLandmark[i])
+    {
+      landmarks->SetLandmarkColor(i, m_colorPickerLandmark[i]->currentColor());
+      break;
+    }
+  }
+  QList<QColor> colors;
+  for (int i = 0; i < m_colorPickerLandmark.size(); i++)
+    colors << landmarks->GetLandmark(i).color;
+  foreach (QComboBox* cbox, m_comboLandmark)
+  {
+    for (int i = 0; i < m_colorPickerLandmark.size(); i++)
+      cbox->setItemIcon(i, MakeIcon(colors[i], 12));
+  }
+}
+
+QIcon DialogTransformVolume::MakeIcon(const QColor& color, int size)
+{
+  QPixmap pix( size, size );
+  pix.fill( color );
+  return QIcon(pix);
+}
+
+void DialogTransformVolume::OnRadioButtonLandmark(bool bChecked)
+{
+  if (!bChecked)
+  {
+    for (int i = 0; i < m_btnPickLandmark.size(); i++)
+      this->m_btnPickLandmark[i]->setChecked(false);
   }
 }

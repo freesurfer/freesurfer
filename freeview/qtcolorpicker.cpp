@@ -278,7 +278,8 @@ QtColorPicker::QtColorPicker(QWidget *parent,
   setIconSize( QSize( 16, 16 ) );
 
   // Set text
-  setText(tr("Black"));
+//  setText(tr("Black"));
+  setText("");
   firstInserted = false;
 
   // Create and set icon
@@ -461,7 +462,8 @@ void QtColorPicker::setCurrentColor(const QColor &color)
   }
 
   col = color;
-  setText(item->text());
+//  setText(item->text());
+  setText("");
 
   dirty = true;
 
@@ -484,7 +486,8 @@ void QtColorPicker::insertColor(const QColor &color, const QString &text, int in
   if (!firstInserted)
   {
     col = color;
-    setText(text);
+  //  setText(text);
+    setText("");
     firstInserted = true;
   }
 }

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>463</width>
-    <height>490</height>
+    <width>558</width>
+    <height>836</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -33,6 +33,43 @@
        <string>Rotate</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QRadioButton" name="radioButtonRotateManual">
+           <property name="text">
+            <string>Manual</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QRadioButton" name="radioButtonRotateLandmarks">
+           <property name="text">
+            <string>Use Landmarks</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer_4">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+        </layout>
+       </item>
        <item>
         <widget class="QGroupBox" name="groupBox">
          <property name="title">
@@ -241,6 +278,462 @@
              <string>Rotate around the cursor</string>
             </property>
            </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QGroupBox" name="groupBoxLandmarks">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="title">
+          <string>Landmarks</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_7">
+          <item>
+           <widget class="QLabel" name="label_14">
+            <property name="text">
+             <string>First click Pick button to pick landmark positions on the slice view. Need to pick at least 3 landmarks.</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QGridLayout" name="gridLayout_4">
+            <item row="0" column="0">
+             <widget class="QLabel" name="label_11">
+              <property name="text">
+               <string>#1</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QPushButton" name="pushButtonLandmarkPick1">
+              <property name="text">
+               <string>Pick</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="autoExclusive">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="3">
+             <spacer name="horizontalSpacer_5">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>5</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="0" column="4">
+             <widget class="QLabel" name="label_12">
+              <property name="text">
+               <string>#2</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="5">
+             <widget class="QtColorPicker" name="colorPickerLandmark2" native="true"/>
+            </item>
+            <item row="0" column="6">
+             <widget class="QPushButton" name="pushButtonLandmarkPick2">
+              <property name="text">
+               <string>Pick</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="autoExclusive">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="7">
+             <spacer name="horizontalSpacer_6">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="1" column="0">
+             <widget class="QLabel" name="label_13">
+              <property name="text">
+               <string>#3</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QPushButton" name="pushButtonLandmarkPick3">
+              <property name="text">
+               <string>Pick</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="autoExclusive">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="3">
+             <spacer name="horizontalSpacer_7">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>20</width>
+                <height>5</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="1" column="4">
+             <widget class="QLabel" name="label_18">
+              <property name="text">
+               <string>#4</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="5">
+             <widget class="QtColorPicker" name="colorPickerLandmark4" native="true"/>
+            </item>
+            <item row="1" column="6">
+             <widget class="QPushButton" name="pushButtonLandmarkPick4">
+              <property name="text">
+               <string>Pick</string>
+              </property>
+              <property name="checkable">
+               <bool>true</bool>
+              </property>
+              <property name="autoExclusive">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QtColorPicker" name="colorPickerLandmark3" native="true"/>
+            </item>
+            <item row="0" column="1">
+             <widget class="QtColorPicker" name="colorPickerLandmark1" native="true"/>
+            </item>
+           </layout>
+          </item>
+          <item>
+           <spacer name="verticalSpacer_4">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeType">
+             <enum>QSizePolicy::Fixed</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>5</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_15">
+            <property name="text">
+             <string>Then set how to map landmarks to coordinate axis vectors</string>
+            </property>
+            <property name="wordWrap">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <layout class="QGridLayout" name="gridLayout_6">
+            <property name="horizontalSpacing">
+             <number>10</number>
+            </property>
+            <item row="0" column="0">
+             <widget class="QComboBox" name="comboBoxAxis11">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="currentIndex">
+               <number>0</number>
+              </property>
+              <item>
+               <property name="text">
+                <string>#1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#3</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#4</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="0" column="1">
+             <widget class="QLabel" name="label_16">
+              <property name="text">
+               <string>-&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="2">
+             <widget class="QComboBox" name="comboBoxAxis12">
+              <property name="minimumSize">
+               <size>
+                <width>55</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="currentIndex">
+               <number>1</number>
+              </property>
+              <item>
+               <property name="text">
+                <string>#1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#3</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#4</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="0" column="3">
+             <widget class="QLabel" name="label_17">
+              <property name="text">
+               <string>=</string>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="4">
+             <widget class="QComboBox" name="comboBoxAxisTarget1">
+              <property name="minimumSize">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>50</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <item>
+               <property name="text">
+                <string>R</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>A</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>S</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="0" column="5">
+             <spacer name="horizontalSpacer_11">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item row="1" column="0">
+             <widget class="QComboBox" name="comboBoxAxis21">
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="currentIndex">
+               <number>2</number>
+              </property>
+              <item>
+               <property name="text">
+                <string>#1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#3</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#4</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="1">
+             <widget class="QLabel" name="label_25">
+              <property name="text">
+               <string>-&gt;</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="2">
+             <widget class="QComboBox" name="comboBoxAxis22">
+              <property name="maximumSize">
+               <size>
+                <width>80</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="currentIndex">
+               <number>3</number>
+              </property>
+              <item>
+               <property name="text">
+                <string>#1</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#2</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#3</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>#4</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="3">
+             <widget class="QLabel" name="label_26">
+              <property name="text">
+               <string>=</string>
+              </property>
+             </widget>
+            </item>
+            <item row="1" column="4">
+             <widget class="QComboBox" name="comboBoxAxisTarget2">
+              <property name="maximumSize">
+               <size>
+                <width>50</width>
+                <height>16777215</height>
+               </size>
+              </property>
+              <property name="currentIndex">
+               <number>1</number>
+              </property>
+              <item>
+               <property name="text">
+                <string>R</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>A</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>S</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item row="1" column="5">
+             <spacer name="horizontalSpacer_12">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
           </item>
          </layout>
         </widget>
@@ -655,6 +1148,17 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QtColorPicker</class>
+   <extends>QWidget</extends>
+   <header>qtcolorpicker.h</header>
+   <container>1</container>
+   <slots>
+    <signal>colorChanged(QColor)</signal>
+   </slots>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections>
   <connection>
@@ -664,12 +1168,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>68</x>
-     <y>108</y>
+     <x>53</x>
+     <y>158</y>
     </hint>
     <hint type="destinationlabel">
      <x>139</x>
-     <y>111</y>
+     <y>141</y>
     </hint>
    </hints>
   </connection>
@@ -680,12 +1184,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>73</x>
-     <y>108</y>
+     <x>53</x>
+     <y>158</y>
     </hint>
     <hint type="destinationlabel">
-     <x>356</x>
-     <y>107</y>
+     <x>451</x>
+     <y>137</y>
     </hint>
    </hints>
   </connection>
@@ -696,12 +1200,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>73</x>
-     <y>108</y>
+     <x>53</x>
+     <y>158</y>
     </hint>
     <hint type="destinationlabel">
-     <x>416</x>
-     <y>107</y>
+     <x>511</x>
+     <y>137</y>
     </hint>
    </hints>
   </connection>
@@ -712,12 +1216,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>70</x>
-     <y>80</y>
+     <x>53</x>
+     <y>125</y>
     </hint>
     <hint type="destinationlabel">
      <x>91</x>
-     <y>83</y>
+     <y>113</y>
     </hint>
    </hints>
   </connection>
@@ -728,12 +1232,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>67</x>
-     <y>80</y>
+     <x>53</x>
+     <y>125</y>
     </hint>
     <hint type="destinationlabel">
-     <x>356</x>
-     <y>79</y>
+     <x>451</x>
+     <y>109</y>
     </hint>
    </hints>
   </connection>
@@ -744,12 +1248,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>73</x>
-     <y>80</y>
+     <x>53</x>
+     <y>125</y>
     </hint>
     <hint type="destinationlabel">
-     <x>416</x>
-     <y>79</y>
+     <x>511</x>
+     <y>109</y>
     </hint>
    </hints>
   </connection>
@@ -760,12 +1264,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>71</x>
-     <y>136</y>
+     <x>53</x>
+     <y>191</y>
     </hint>
     <hint type="destinationlabel">
      <x>142</x>
-     <y>139</y>
+     <y>169</y>
     </hint>
    </hints>
   </connection>
@@ -776,12 +1280,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>71</x>
-     <y>136</y>
+     <x>53</x>
+     <y>191</y>
     </hint>
     <hint type="destinationlabel">
-     <x>356</x>
-     <y>135</y>
+     <x>471</x>
+     <y>195</y>
     </hint>
    </hints>
   </connection>
@@ -792,12 +1296,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>70</x>
-     <y>136</y>
+     <x>53</x>
+     <y>191</y>
     </hint>
     <hint type="destinationlabel">
-     <x>416</x>
-     <y>135</y>
+     <x>529</x>
+     <y>195</y>
     </hint>
    </hints>
   </connection>
@@ -809,7 +1313,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>85</x>
-     <y>408</y>
+     <y>656</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -825,7 +1329,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>127</x>
-     <y>465</y>
+     <y>811</y>
     </hint>
     <hint type="destinationlabel">
      <x>428</x>
@@ -840,8 +1344,8 @@
    <slot>OnSaveReg()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>232</x>
-     <y>471</y>
+     <x>327</x>
+     <y>817</y>
     </hint>
     <hint type="destinationlabel">
      <x>260</x>
@@ -856,8 +1360,8 @@
    <slot>OnScrollBarTranslateX(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>216</x>
-     <y>58</y>
+     <x>92</x>
+     <y>55</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -872,8 +1376,8 @@
    <slot>OnScrollBarTranslateY(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>285</x>
-     <y>92</y>
+     <x>155</x>
+     <y>102</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -888,8 +1392,8 @@
    <slot>OnScrollBarTranslateZ(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>314</x>
-     <y>126</y>
+     <x>155</x>
+     <y>135</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -904,8 +1408,8 @@
    <slot>OnLineEditTranslateX(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>430</x>
-     <y>62</y>
+     <x>537</x>
+     <y>75</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -920,8 +1424,8 @@
    <slot>OnLineEditTranslateY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>430</x>
-     <y>96</y>
+     <x>537</x>
+     <y>108</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -936,8 +1440,8 @@
    <slot>OnLineEditTranslateZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>430</x>
-     <y>130</y>
+     <x>537</x>
+     <y>141</y>
     </hint>
     <hint type="destinationlabel">
      <x>432</x>
@@ -952,8 +1456,8 @@
    <slot>OnScrollBarScaleX(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>207</x>
-     <y>58</y>
+     <x>92</x>
+     <y>55</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -968,8 +1472,8 @@
    <slot>OnScrollBarScaleY(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>303</x>
-     <y>86</y>
+     <x>155</x>
+     <y>102</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -984,8 +1488,8 @@
    <slot>OnScrollBarScaleZ(int)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>245</x>
-     <y>114</y>
+     <x>155</x>
+     <y>135</y>
     </hint>
     <hint type="destinationlabel">
      <x>421</x>
@@ -1000,8 +1504,8 @@
    <slot>OnLineEditScaleX(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>430</x>
-     <y>62</y>
+     <x>537</x>
+     <y>75</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1016,8 +1520,8 @@
    <slot>OnLineEditScaleY(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>430</x>
-     <y>90</y>
+     <x>537</x>
+     <y>108</y>
     </hint>
     <hint type="destinationlabel">
      <x>462</x>
@@ -1032,12 +1536,204 @@
    <slot>OnLineEditScaleZ(QString)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>430</x>
-     <y>118</y>
+     <x>537</x>
+     <y>141</y>
     </hint>
     <hint type="destinationlabel">
      <x>416</x>
      <y>178</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonRotateManual</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>groupBox</receiver>
+   <slot>setShown(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>62</x>
+     <y>58</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>78</x>
+     <y>86</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonRotateManual</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>groupBox_2</receiver>
+   <slot>setShown(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>41</x>
+     <y>59</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>84</x>
+     <y>224</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonRotateManual</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>groupBoxLandmarks</receiver>
+   <slot>setHidden(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>50</x>
+     <y>64</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>69</x>
+     <y>327</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLandmarkPick2</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnButtonLandmarkPick()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>300</x>
+     <y>371</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>637</x>
+     <y>426</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLandmarkPick3</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnButtonLandmarkPick()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>148</x>
+     <y>406</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>600</x>
+     <y>459</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLandmarkPick1</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnButtonLandmarkPick()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>126</x>
+     <y>360</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>611</x>
+     <y>394</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>colorPickerLandmark1</sender>
+   <signal>colorChanged(QColor)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>UpdateLandmarkColors()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>62</x>
+     <y>370</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>278</x>
+     <y>417</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>colorPickerLandmark2</sender>
+   <signal>colorChanged(QColor)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>UpdateLandmarkColors()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>220</x>
+     <y>370</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>278</x>
+     <y>417</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>colorPickerLandmark3</sender>
+   <signal>colorChanged(QColor)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>UpdateLandmarkColors()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>62</x>
+     <y>403</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>278</x>
+     <y>417</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>radioButtonRotateLandmarks</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnRadioButtonLandmark(bool)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>154</x>
+     <y>60</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>620</x>
+     <y>49</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>pushButtonLandmarkPick4</sender>
+   <signal>toggled(bool)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>OnButtonLandmarkPick()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>278</x>
+     <y>403</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>278</x>
+     <y>417</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>colorPickerLandmark4</sender>
+   <signal>colorChanged(QColor)</signal>
+   <receiver>DialogTransformVolume</receiver>
+   <slot>UpdateLandmarkColors()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>224</x>
+     <y>403</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>278</x>
+     <y>417</y>
     </hint>
    </hints>
   </connection>
@@ -1060,5 +1756,8 @@
   <slot>OnLineEditScaleX(QString)</slot>
   <slot>OnLineEditScaleY(QString)</slot>
   <slot>OnLineEditScaleZ(QString)</slot>
+  <slot>OnButtonLandmarkPick()</slot>
+  <slot>UpdateLandmarkColors()</slot>
+  <slot>OnRadioButtonLandmark(bool)</slot>
  </slots>
 </ui>
