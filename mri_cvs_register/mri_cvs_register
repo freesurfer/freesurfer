@@ -12,7 +12,7 @@
 # Edited : 03-17-2011: replaces applyMorph with mri_vol2vol
 
 set inputargs = ($argv);
-set VERSION = '$Id: mri_cvs_register,v 1.17 2011/03/20 22:51:37 lzollei Exp $';
+set VERSION = '$Id: mri_cvs_register,v 1.18 2011/03/21 13:46:34 lzollei Exp $';
 
 set movingid = ();
 set templateid = ();
@@ -329,13 +329,6 @@ if ($UseAseg) then
     $cmd |& tee -a $LF
     if($status) exit 1;
 
-    if ($cleanup) then # deleting tm3d file! 
-      set cmd = ( rm -f $outdir/$combined)
-      echo $cmd |& tee -a $LF
-      $cmd |& tee -a $LF
-      if($status) exit 1;
-    endif
-
   endif
   if (!(-e $outdir/${combined:r}_${voltype}.mgz) || $CleanElReg || $CleanVolReg) then
 #    set cmd = ( applyMorph --template $tmri/$voltype.mgz --transform $outdir/$combined \
@@ -348,7 +341,7 @@ if ($UseAseg) then
     $cmd |& tee -a $LF
     if($status) exit 1;
   endif
-#  set oldcombined = $combined
+  set oldcombined = $combined
   set input = ${combined:r}_${voltype}.mgz # input from aseg registration
   set basemorph = ${combined}
 endif # (aseg registration)
@@ -394,7 +387,7 @@ if (!(-e $outdir/combined_to${templateid}_elreg_$prefix$voltype.tm3d  ) || $Clea
   if($status) exit 1;
 
   if ($cleanup) then # deleting tm3d file!
-    set cmd = ( rm -f $outdir/$combined)
+    set cmd = ( rm -f $outdir/$combined $outdir/$oldcombined)
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
