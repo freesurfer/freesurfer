@@ -87,8 +87,11 @@ Supply the orientation information in the form of an orientation string  (ostrin
       <explanation>see SETTING ORIENTATION</explanation>
       <argument>-oc, --out_center &lt;R direction&gt; &lt;A direction&gt; &lt;S direction&gt;</argument>
       <argument>-odt, --out_data_type &lt;uchar|short|int|float&gt;</argument>
-      <argument>--stat-table input data is a stats table as produced
-      by asegstats2table or aparcstats2table</argument>
+      <argument>--in_stats_table</argument>
+      <explanation>input data is a stats table as produced
+      by asegstats2table or aparcstats2table</explanation>
+      <argument>--out_stats_table</argument>
+      <explanation>output data is a stats table (use --like to pass template table for measure, columns and rows header)</explanation>
       <argument>-rt, --resample_type &lt;interpolate|weighted|nearest|sinc|cubic&gt;</argument>
       <explanation>default is interpolate</explanation>
       <argument>--no_scale flag &lt;-ns&gt;</argument>
@@ -124,8 +127,8 @@ The main and aux volumes should overlap very closely. If they do not, use tkregi
       <argument>--apply_inverse_transform xfmfile (-ait) </argument>
       <explanation>apply inverse of tranform given by xfm or m3z files </explanation> 
       <argument>--devolvexfm subjectid</argument>
-      <argument>--like vol</argument>
-      <explanation>output is embedded in a volume like vol</explanation> 
+      <argument>--like name</argument>
+      <explanation>output is embedded in a volume like name, or in stats-table like name (measure, columns, rows)</explanation> 
       <argument>--crop &lt;x&gt; &lt;y&gt; &lt;z&gt; </argument>
       <explanation>crop to 256 around center (x,y,z) </explanation> 
       <argument>--cropsize &lt;dx&gt; &lt;dy&gt; &lt;dz&gt;</argument> 

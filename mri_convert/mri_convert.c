@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl (Apr 16, 1997)
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/16 21:23:48 $
- *    $Revision: 1.179 $
+ *    $Author: mreuter $
+ *    $Date: 2011/03/21 23:37:29 $
+ *    $Revision: 1.180 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -192,14 +192,15 @@ int main(int argc, char *argv[])
   MATRIX *AutoAlign = NULL;
   MATRIX *cras = NULL, *vmid = NULL;
   int ascii_flag = FALSE, c=0,r=0,s=0,f=0,c2=0;
-  int StatTableFlag=0;
+  int InStatTableFlag=0;
+  int OutStatTableFlag=0;
 
   ErrorInit(NULL, NULL, NULL) ;
   DiagInit(NULL, NULL, NULL) ;
 
   make_cmd_version_string
   (argc, argv,
-   "$Id: mri_convert.c,v 1.179 2011/03/16 21:23:48 nicks Exp $",
+   "$Id: mri_convert.c,v 1.180 2011/03/21 23:37:29 mreuter Exp $",
    "$Name:  $",
    cmdline);
 
@@ -309,15 +310,17 @@ int main(int argc, char *argv[])
   fwhm = -1;
   gstd = -1;
   in_type_string[0] = 0;
-  StatTableFlag=0;
+  InStatTableFlag=0;
+  OutStatTableFlag=0;
   STAT_TABLE *StatTable=NULL;
+  STAT_TABLE *OutStatTable=NULL;
 
   /* rkt: check for and handle version tag */
   nargs =
     handle_version_option
     (
       argc, argv,
-      "$Id: mri_convert.c,v 1.179 2011/03/16 21:23:48 nicks Exp $",
+      "$Id: mri_convert.c,v 1.180 2011/03/21 23:37:29 mreuter Exp $",
       "$Name:  $"
     );
   if (nargs && argc - nargs == 1)
@@ -373,10 +376,15 @@ int main(int argc, char *argv[])
       ascii_flag = 3;
       force_out_type_flag = TRUE;
     }
-    else if(strcmp(argv[i], "--stat-table") == 0)
+    else if(strcmp(argv[i], "--in_stats_table") == 0)
     {
       // Input is a stat table
-      StatTableFlag=1;
+      InStatTableFlag=1;
+    }
+    else if(strcmp(argv[i], "--out_stats_table") == 0)
+    {
+      // Input is a stat table
+      OutStatTableFlag=1;
     }
     else if(strcmp(argv[i], "--invert_contrast") == 0)
     {
@@ -1433,6 +1441,14 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
+  /* ---- catch no --like flag for OutStatTableFlag ----- */
+  if (OutStatTableFlag && out_like_flag == 0)
+  {
+    fprintf(stderr, "\n%s: pass example (or empty) stats-table with --like to specify measure, column and row headers\n", Progname);
+    usage_message(stdout);
+    exit(1);
+  }
+  
   /* ----- copy file name (only -- strip '@' and '#') ----- */
   MRIgetVolumeName(in_name, in_name_only);
 
@@ -1483,7 +1499,7 @@ int main(int argc, char *argv[])
   /* ----- get the type of the output ----- */
   if(!read_only_flag)
   {
-    if(!force_out_type_flag)
+    if(!force_out_type_flag && ! OutStatTableFlag )
     {
       // if(!read_only_flag && !no_write_flag)
       // because conform_flag value changes depending on type below
@@ -1582,7 +1598,7 @@ int main(int argc, char *argv[])
 
   /* ----- read the volume ----- */
   in_volume_type = MRI_VOLUME_TYPE_UNKNOWN;
-  if(! StatTableFlag) {
+  if(! InStatTableFlag) {
     if(force_in_type_flag) in_volume_type = forced_in_type;
     else                   in_volume_type = mri_identify(in_name_only);
     if(in_volume_type == MRI_VOLUME_TYPE_UNKNOWN){
@@ -1609,7 +1625,7 @@ int main(int argc, char *argv[])
             "= --zero_ge_z_offset option ignored.\n");
   }
 
-  printf("$Id: mri_convert.c,v 1.179 2011/03/16 21:23:48 nicks Exp $\n");
+  printf("$Id: mri_convert.c,v 1.180 2011/03/21 23:37:29 mreuter Exp $\n");
   printf("reading from %s...\n", in_name_only);
 
   if (in_volume_type == OTL_FILE)
@@ -1769,7 +1785,7 @@ int main(int argc, char *argv[])
       }
       else {
         if(nthframe < 0) {
-	  if(StatTableFlag == 0)  mri = MRIread(in_name);
+	  if(InStatTableFlag == 0)  mri = MRIread(in_name);
 	  else {
 	    printf("Loading in stat table %s\n",in_name);
 	    StatTable = LoadStatTable(in_name);
@@ -2666,7 +2682,7 @@ int main(int argc, char *argv[])
       exit(1);
     }
   }
-  else if (out_like_flag)     // flag set but no transform
+  else if (out_like_flag && ! OutStatTableFlag )     // flag set but no transform
   {
     // modify direction cosines to use the
     // out-like volume direction cosines
@@ -2985,6 +3001,18 @@ int main(int argc, char *argv[])
   }
 
   /*------ Finally, write the output -----*/
+  
+  if(OutStatTableFlag)
+  {
+    printf("Writing as Stats-Table to %s using template %s\n",out_name,out_like_name);
+        
+    OutStatTable = InitStatTableFromMRI(mri,out_like_name);
+    WriteStatTable(out_name,OutStatTable);    
+    
+    printf("done\n");
+    exit(0);
+  }
+  
   if(ascii_flag)
   {
     printf("Writing as ASCII to %s\n",out_name);
