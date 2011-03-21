@@ -236,6 +236,7 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	track_io/TrackIO.cpp \
 	TrackData.cpp \
 	Track.cpp \
+	Track.h \
 	LayerTrack.cpp \
 	TrackGroup.cpp \
 	PanelTrack.cpp \
