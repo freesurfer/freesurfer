@@ -308,6 +308,7 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	MainWindow.h \
 	MyCmdLineParser.h \
 	MyUtils.h \
+	MyVTKUtils.h \
 	PanelLayer.h \
 	PanelPointSet.h \
 	PanelROI.h \
