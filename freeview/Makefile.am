@@ -301,6 +301,7 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	LayerPropertyPointSet.h \
 	LayerPropertyROI.h \
 	LayerPropertySurface.h \
+	StockColorMap.h \
 	LayerROI.h \
 	LayerSurface.h \
 	LayerTreeWidget.h \
