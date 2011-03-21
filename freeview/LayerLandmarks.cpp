@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/21 22:20:38 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -101,6 +101,19 @@ bool LayerLandmarks::IsVisible()
   else
     return m_landmarks[0].actorSphere->GetVisibility() > 0;
 }
+
+void LayerLandmarks::SetVisible(bool bVisible)
+{
+  for (int i = 0; i < m_landmarks.size(); i++)
+  {
+    m_landmarks[i].actorSlice[0]->SetVisibility(bVisible);
+    m_landmarks[i].actorSlice[1]->SetVisibility(bVisible);
+    m_landmarks[i].actorSlice[2]->SetVisibility(bVisible);
+    m_landmarks[i].actorSphere->SetVisibility(bVisible);
+  }
+  LayerEditable::SetVisible(bVisible);
+}
+
 
 void LayerLandmarks::OnSlicePositionChanged(int nPlane)
 {

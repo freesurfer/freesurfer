@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/21 22:20:38 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -70,6 +70,8 @@ public:
   Landmark& GetLandmark(int n);
 
   void SetRadius(double dRadius);
+
+  void SetVisible( bool bVisible = true );
 
 signals:
   void LandmarkChanged(int n, const Landmark& lm);

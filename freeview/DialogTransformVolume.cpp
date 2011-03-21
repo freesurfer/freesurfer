@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.12 $
+ *    $Date: 2011/03/21 22:20:38 $
+ *    $Revision: 1.13 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -104,9 +104,18 @@ DialogTransformVolume::~DialogTransformVolume()
   delete ui;
 }
 
+void DialogTransformVolume::showEvent(QShowEvent *e)
+{
+  OnRadioButtonLandmark(ui->radioButtonRotateLandmarks->isChecked());
+  QDialog::showEvent(e);
+}
+
 void DialogTransformVolume::closeEvent(QCloseEvent *e)
 {
-
+  LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
+                              ->GetSupplementLayer("Landmarks");
+  if (landmarks)
+    landmarks->SetVisible(false);
   QDialog::closeEvent(e);
 }
 
@@ -613,4 +622,8 @@ void DialogTransformVolume::OnRadioButtonLandmark(bool bChecked)
     for (int i = 0; i < m_btnPickLandmark.size(); i++)
       this->m_btnPickLandmark[i]->setChecked(false);
   }
+  LayerLandmarks* landmarks = (LayerLandmarks*)MainWindow::GetMainWindow()
+                              ->GetSupplementLayer("Landmarks");
+  if (landmarks)
+    landmarks->SetVisible(bChecked);
 }
