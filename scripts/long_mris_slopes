@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/18 20:01:41 $
-#    $Revision: 1.17 $
+#    $Date: 2011/03/21 19:08:00 $
+#    $Revision: 1.18 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -188,9 +188,9 @@ It will also work on different smoothing levels if --fwhm is NOT specified:
 If --fwhm is specified it will only work on the specified level.
 Smoothing will be done in the subject space before the division (spc or pc1).
 
-Output can be found in <template>/surf/qcache folder under each subject template.
-<template>/surf/qcache/<HEMI>.<NAME>(.fwhm<fwhm>).mgh  (for subject space)
-<template>/surf/qcache/<hemi>.<NAME>(.fwhm<fwhm>).<QTARGET>.mgh
+Output can be found in <template>/surf folder under each subject template.
+<template>/surf/<HEMI>.<NAME>(.fwhm<fwhm>).mgh  (for subject space)
+<template>/surf/<hemi>.<NAME>(.fwhm<fwhm>).<QTARGET>.mgh
 
 If cortex labels are intersected (--do-label), it will also be mapped to
 the qtarget and output as:
@@ -219,7 +219,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.17 2011/03/18 20:01:41 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.18 2011/03/21 19:08:00 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -506,10 +506,10 @@ if __name__=="__main__":
             sys.exit(1)
 
         basesurfdir=os.path.join(basedir,'surf')
-        if options.qcache is not None:
-            basesurfdir=os.path.join(basedir,'surf','qcache')
-            if not os.path.exists(basesurfdir):
-                os.mkdir(basesurfdir)
+        #if options.qcache is not None:
+        #    basesurfdir=os.path.join(basedir,'surf','qcache')
+        #    if not os.path.exists(basesurfdir):
+        #        os.mkdir(basesurfdir)
             
         
         # check if 2 or more time points
@@ -518,7 +518,7 @@ if __name__=="__main__":
             sys.exit(1)
         
         # create tmpdir:
-        prefix = './'+subjectid+'_'+options.hemi+'_'
+        prefix = './tmp-'+subjectid+'_'+options.hemi+'_'
         dirname = tempfile.mkdtemp('',prefix,'')
         if not os.path.exists(dirname):
             print 'ERROR: tmp dir '+str(dirname)+' cannot be created (write permissions?)!'
