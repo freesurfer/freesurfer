@@ -7,9 +7,9 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: greve $
- *    $Date: 2011/03/15 22:20:15 $
- *    $Revision: 1.19 $
+ *    $Author: mreuter $
+ *    $Date: 2011/03/21 23:36:07 $
+ *    $Revision: 1.20 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -158,9 +158,10 @@ int       StatReadTransform(STAT_VOLUME *sv,
                             const char *name) ;
 int       StatVolumeExists(const char *prefix) ;
 
-STAT_TABLE *LoadStatTable(char *statfile);
+STAT_TABLE *LoadStatTable(const char *statfile);
 STAT_TABLE *AllocStatTable(int nrows, int ncols);
+STAT_TABLE *InitStatTableFromMRI(MRI* mri_in, const char* tablefile);
 int PrintStatTable(FILE *fp, STAT_TABLE *st);
-int WriteStatTable(char *fname, STAT_TABLE *st);
+int WriteStatTable(const char *fname, STAT_TABLE *st);
 
 #endif
