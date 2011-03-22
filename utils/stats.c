@@ -7,19 +7,18 @@
  * Original Authors: Bruce Fischl and Doug Greve
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2010/03/13 01:32:46 $
- *    $Revision: 1.32 $
+ *    $Date: 2011/03/22 16:37:02 $
+ *    $Revision: 1.34.2.1 $
  *
- * Copyright (C) 2002-2010,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -43,6 +42,7 @@
 #include "mghendian.h"
 #include "mri_identify.h"
 #include "stats.h"
+#include "fsgdf.h"
 
 extern const char* Progname;
 
@@ -51,6 +51,218 @@ extern const char* Progname;
 #define STRUCT_DIM    256
 
 MATRIX *StatLoadTalairachXFM(const char *subjid, const char *xfmfile);
+
+/*--------------------------------------------------------------------*/
+// Load output of asegstats2table or aparcstats2table.
+STAT_TABLE *LoadStatTable(const char *statfile) 
+{
+  STAT_TABLE *st;
+  FILE *fp;
+  char tmpstr[100000];
+  int r,c,n;
+
+  fp = fopen(statfile,"r");
+  if (fp == NULL) {
+    printf("ERROR: could not open %s\n",statfile);
+    return(NULL);
+  }
+
+  st = (STAT_TABLE *) calloc(sizeof(STAT_TABLE),1);
+  st->filename = strcpyalloc(statfile);
+
+  // Read in the first line
+  fgets(tmpstr,100000,fp);
+  st->ncols = gdfCountItemsInString(tmpstr) - 1;
+  if (st->ncols < 1) {
+    printf("ERROR: format:  %s\n",statfile);
+    return(NULL);
+  }
+  printf("Found %d data colums\n",st->ncols);
+
+  // Count the number of rows
+  st->nrows = 0;
+  while (fgets(tmpstr,100000,fp) != NULL) st->nrows ++;
+  printf("Found %d data rows\n",st->nrows);
+  fclose(fp);
+
+  st->colnames = (char **) calloc(st->ncols,sizeof(char*));
+  st->rownames = (char **) calloc(st->nrows,sizeof(char*));
+
+  // OK, now read everything in
+  fp = fopen(statfile,"r");
+
+  // Read the measure
+  fscanf(fp,"%s",tmpstr);
+  st->measure = strcpyalloc(tmpstr);
+
+  // Read the column headers
+  for (c=0; c < st->ncols; c++) {
+    fscanf(fp,"%s",tmpstr);
+    st->colnames[c] = strcpyalloc(tmpstr);
+  }
+
+  // Alloc the data
+  st->data = (double **) calloc(st->nrows,sizeof(double *));
+  for (r=0; r < st->nrows; r++)
+    st->data[r] = (double *) calloc(st->ncols,sizeof(double));
+
+  // Read each row
+  for(r=0; r < st->nrows; r++) {
+    fscanf(fp,"%s",tmpstr);
+    st->rownames[r] = strcpyalloc(tmpstr);
+    for(c=0; c < st->ncols; c++) {
+      n = fscanf(fp,"%lf", &(st->data[r][c]) );
+      if(n != 1) {
+        printf("ERROR: format: %s at row %d, col %d\n",
+               statfile,r,c);
+        return(NULL);
+      }
+    }
+    //printf("%s %lf\n",st->rownames[r],st->data[r][st->ncols-1]);
+  }
+  fclose(fp);
+
+  st->mri = MRIallocSequence(st->ncols,1,1,MRI_FLOAT,st->nrows);
+  st->mri->xsize = 1; st->mri->ysize = 1; st->mri->zsize = 1;
+  st->mri->x_r = 1; st->mri->x_a = 0; st->mri->x_s = 0;
+  st->mri->y_r = 0; st->mri->y_a = 1; st->mri->y_s = 0;
+  st->mri->z_r = 0; st->mri->z_a = 0; st->mri->z_s = 1;
+
+  for(r=0; r < st->nrows; r++)
+    for(c=0; c < st->ncols; c++)
+      MRIsetVoxVal(st->mri,c,0,0,r,st->data[r][c]);
+
+  return(st);
+}
+
+STAT_TABLE *AllocStatTable(int nrows, int ncols)
+{
+  STAT_TABLE * st;
+  int r;
+
+  st = (STAT_TABLE *) calloc(sizeof(STAT_TABLE),1);
+  st->nrows = nrows;
+  st->ncols = ncols;
+  st->colnames = (char **) calloc(st->ncols,sizeof(char*));
+  st->rownames = (char **) calloc(st->nrows,sizeof(char*));
+
+  st->data = (double **) calloc(st->nrows,sizeof(double *));
+  for (r=0; r < st->nrows; r++)
+    st->data[r] = (double *) calloc(st->ncols,sizeof(double));
+
+  return(st);
+}
+
+// Write output equivalant of asegstats2table or aparcstats2table.
+int WriteStatTable(const char *fname, STAT_TABLE *st)
+{
+  FILE *fp;
+  int err;
+
+  fp = fopen(fname,"w");
+  if(fp == NULL){
+    printf("ERROR: cannot open %s\n",fname);
+    exit(1);
+  }
+  err = PrintStatTable(fp, st);
+  return(err);
+}
+
+
+int PrintStatTable(FILE *fp, STAT_TABLE *st)
+{
+  int r, c;
+
+  fprintf(fp,"%-33s ",st->measure);
+  for(c=0; c < st->ncols; c++)   
+    fprintf(fp,"%s ",st->colnames[c]);
+  fprintf(fp,"\n");
+  for(r=0; r < st->nrows; r++){
+    fprintf(fp,"%-33s ",st->rownames[r]);
+    for(c=0; c < st->ncols; c++)   
+      fprintf(fp,"%7.3lf ",st->data[r][c]);
+    fprintf(fp,"\n");
+  }
+  return(0);
+}
+
+STAT_TABLE *InitStatTableFromMRI(MRI* mri_in, const char* tablefile)
+// sets data from mri
+// also (if passed) reads in cols, rows and measure from tablefile (but not the data)
+{
+  int r,c,ncols,nrows;
+  FILE *fp;
+  char tmpstr[100000];
+
+  STAT_TABLE * st = AllocStatTable(mri_in->nframes,mri_in->width);
+  st->mri = MRIcopy(mri_in,NULL);
+
+  for(r=0; r < st->nrows; r++)
+    for(c=0; c < st->ncols; c++)
+      st->data[r][c]=MRIgetVoxVal(st->mri,c,0,0,r);
+
+  if (tablefile == NULL || strcmp(tablefile, "")==0)
+     return st;
+
+  // Process template table file:
+  fp = fopen(tablefile,"r");
+  if (fp == NULL)
+  {
+    printf("ERROR: could not open %s\n",tablefile);
+    return(NULL);
+  }
+  // Read in the first line
+  fgets(tmpstr,100000,fp);
+  ncols = gdfCountItemsInString(tmpstr) - 1;
+  printf("Found %d data colums\n",ncols);
+  if (ncols != st->ncols)
+  {
+    printf("ERROR: Col numbers do not agree in MRI and:  %s\n",tablefile);
+    return(NULL);
+  }
+  
+  // Count the number of rows
+  nrows = 0;
+  while (fgets(tmpstr,100000,fp) != NULL) nrows ++;
+  printf("Found %d data rows\n",nrows);
+  if (nrows < st->nrows)
+  {
+    printf("ERROR: Not enough row headers for MRI in:  %s\n",tablefile);
+    return(NULL);
+  }
+  if (nrows > st->nrows)
+  {
+    printf("WARNING: Too many row headers for MRI in:  %s, will crop ...\n",tablefile);
+  }
+  fclose(fp);
+
+  // OK, now read everything in
+  fp = fopen(tablefile,"r");
+
+  // Read the measure
+  fscanf(fp,"%s",tmpstr);
+  st->measure = strcpyalloc(tmpstr);
+
+  // Read the column headers
+  for (c=0; c < st->ncols; c++)
+  {
+    fscanf(fp,"%s",tmpstr);
+    st->colnames[c] = strcpyalloc(tmpstr);
+  }
+
+  // Read each row header
+  for(r=0; r < st->nrows; r++)
+  {
+    fscanf(fp,"%s",tmpstr);
+    st->rownames[r] = strcpyalloc(tmpstr);
+  }
+  fclose(fp);
+
+  return st;
+}
+
+// Stuff below here is not used anymore
+
 
 /*------------------------------------------------------------------------
   ------------------------------------------------------------------------*/

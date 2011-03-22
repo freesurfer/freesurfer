@@ -7,21 +7,19 @@
 /*
  * Original Author: REPLACE_WITH_FULL_NAME_OF_CREATING_AUTHOR 
  * CVS Revision Info:
- *    $Author: mreuter $
- *    $Date: 2009/03/04 19:20:37 $
- *    $Revision: 1.17 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 16:37:02 $
+ *    $Revision: 1.19.2.1 $
  *
- * Copyright (C) 2002-2007,
- * The General Hospital Corporation (Boston, MA). 
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
 
@@ -32,6 +30,19 @@
 #include "minc_volume_io.h"
 #include "matrix.h"
 #include "mri.h"
+
+// This is the table structure that can represent the output
+// of asegstats2table and aparcstats2table.
+typedef struct {
+  char *measure;
+  int nrows, ncols;
+  char **colnames;
+  char **rownames;
+  double **data;
+  char *filename;
+  MRI *mri;
+}
+STAT_TABLE;
 
 typedef struct
 {
@@ -146,5 +157,11 @@ int       StatAccumulateSurfaceVolume(SV *sv_tal,
 int       StatReadTransform(STAT_VOLUME *sv,
                             const char *name) ;
 int       StatVolumeExists(const char *prefix) ;
+
+STAT_TABLE *LoadStatTable(const char *statfile);
+STAT_TABLE *AllocStatTable(int nrows, int ncols);
+STAT_TABLE *InitStatTableFromMRI(MRI* mri_in, const char* tablefile);
+int PrintStatTable(FILE *fp, STAT_TABLE *st);
+int WriteStatTable(const char *fname, STAT_TABLE *st);
 
 #endif
