@@ -13,9 +13,9 @@
 /*
  * Original Author: Douglas N. Greve
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:22 $
- *    $Revision: 1.34 $
+ *    $Author: greve $
+ *    $Date: 2011/03/22 18:08:44 $
+ *    $Revision: 1.35 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -52,6 +52,7 @@
 #include "annotation.h"
 #include "macros.h"
 #include "colortab.h"
+#include "cmdargs.h"
 
 #define PROJ_TYPE_NONE 0
 #define PROJ_TYPE_ABS  1
@@ -76,7 +77,7 @@ static int *NthLabelMap(MRI *aseg, int *nlabels);
 
 int main(int argc, char *argv[]) ;
 
-static char vcid[] = "$Id: mri_label2vol.c,v 1.34 2011/03/02 00:04:22 nicks Exp $";
+static char vcid[] = "$Id: mri_label2vol.c,v 1.35 2011/03/22 18:08:44 greve Exp $";
 char *Progname = NULL;
 
 char *LabelList[100];
@@ -144,11 +145,11 @@ int main(int argc, char **argv) {
   char cmdline[CMD_LINE_LEN] ;
 
   make_cmd_version_string (argc, argv,
-                           "$Id: mri_label2vol.c,v 1.34 2011/03/02 00:04:22 nicks Exp $", "$Name:  $", cmdline);
+                           "$Id: mri_label2vol.c,v 1.35 2011/03/22 18:08:44 greve Exp $", "$Name:  $", cmdline);
 
   /* rkt: check for and handle version tag */
   nargs = handle_version_option (argc, argv,
-                                 "$Id: mri_label2vol.c,v 1.34 2011/03/02 00:04:22 nicks Exp $", "$Name:  $");
+                                 "$Id: mri_label2vol.c,v 1.35 2011/03/22 18:08:44 greve Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -566,10 +567,18 @@ static int parse_commandline(int argc, char **argv) {
       RegIdentity = 1;
     }
     else if (!strcmp(option, "--regheader")) {
-      if (nargc < 1) argnerr(option,1);
-      LabelVolFile = pargv[0];
+      if(CMDnthIsArg(nargc, pargv, 0)){
+	LabelVolFile = pargv[0];
+	nargsused = 1;
+      } else {
+	if(ASegFSpec) LabelVolFile = ASegFSpec;
+	else{
+	  printf("ERROR: --regheader requires one argument unless you\n");
+	  printf("are going to use a --seg. If so specify that before --regheader\n");
+	  exit(1);
+	}
+      }
       RegHeader = 1;
-      nargsused = 1;
     } 
     else if (!strcmp(option, "--hemi")) {
       if (nargc < 1) argnerr(option,1);
@@ -621,7 +630,8 @@ static void print_usage(void) {
   printf("   --temp tempvolid : output template volume\n");
   printf("\n");
   printf("   --reg regmat : VolXYZ = R*LabelXYZ\n");
-  printf("   --regheader volid : label template volume\n");
+  printf("   --regheader volid : label template volume (needed with --label or --annot)\n");
+  printf("       for --seg, use the segmentation volume\n");
   printf("   --identity : set R=I\n");
   printf("   --invertmtx : Invert the registration matrix\n");
   printf("\n");
