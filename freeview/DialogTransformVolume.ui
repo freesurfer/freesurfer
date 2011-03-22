@@ -43,6 +43,9 @@
            <property name="text">
             <string>Manual</string>
            </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
            <property name="checked">
             <bool>true</bool>
            </property>
@@ -52,6 +55,9 @@
           <widget class="QRadioButton" name="radioButtonRotateLandmarks">
            <property name="text">
             <string>Use Landmarks</string>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -77,7 +83,7 @@
          </property>
          <layout class="QGridLayout" name="gridLayout" columnstretch="0,1,0,0">
           <property name="horizontalSpacing">
-           <number>6</number>
+           <number>-1</number>
           </property>
           <item row="0" column="0">
            <widget class="QCheckBox" name="checkBoxRotateX">
@@ -324,6 +330,9 @@
               <property name="autoExclusive">
                <bool>false</bool>
               </property>
+              <property name="autoDefault">
+               <bool>false</bool>
+              </property>
              </widget>
             </item>
             <item row="0" column="3">
@@ -363,6 +372,9 @@
               <property name="autoExclusive">
                <bool>false</bool>
               </property>
+              <property name="autoDefault">
+               <bool>false</bool>
+              </property>
              </widget>
             </item>
             <item row="0" column="7">
@@ -394,6 +406,9 @@
                <bool>true</bool>
               </property>
               <property name="autoExclusive">
+               <bool>false</bool>
+              </property>
+              <property name="autoDefault">
                <bool>false</bool>
               </property>
              </widget>
@@ -433,6 +448,9 @@
                <bool>true</bool>
               </property>
               <property name="autoExclusive">
+               <bool>false</bool>
+              </property>
+              <property name="autoDefault">
                <bool>false</bool>
               </property>
              </widget>
@@ -976,7 +994,7 @@
           <number>8</number>
          </property>
          <property name="verticalSpacing">
-          <number>6</number>
+          <number>-1</number>
          </property>
          <item row="0" column="0">
           <widget class="QLabel" name="label_5">
