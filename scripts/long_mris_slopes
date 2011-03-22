@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/22 18:16:43 $
-#    $Revision: 1.19 $
+#    $Date: 2011/03/22 23:21:26 $
+#    $Revision: 1.20 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -190,7 +190,7 @@ Smoothing will be done in the subject space before the division (spc or pc1).
 
 Output can be found in <template>/surf folder under each subject template.
 <template>/surf/<HEMI>.<NAME>(.fwhm<fwhm>).mgh  (for subject space)
-<template>/surf/<hemi>.<NAME>(.fwhm<fwhm>).<QTARGET>.mgh
+<template>/surf/<HEMI>.<NAME>(.fwhm<fwhm>).<QTARGET>.mgh
 
 If cortex labels are intersected (--do-label), it will also be mapped to
 the qtarget and output as:
@@ -202,13 +202,17 @@ EXAMPLES
 Simply create avg, rate, pc1, spc for each subject. Also will output
 the stacked thickness files and will intersect the cortex label. Here we
 work on the left hemisphere (lh) and use smoothing of 15 fwhm. Note that
-'age' is the column secifying the age in the longqdec.table.dat file:
+'age' is the column secifying the age in the long.qdec.table.dat file:
 
-long_mris_slopes --qdec ./longqdec.table.dat --meas thickness --hemi lh \
+long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \
   --do-avg --do-rate --do-pc1 --do-spc --do-stack --do-label \
   --fwhm 15 --time age
 
+or to create Qdec cache on fsaverage:
 
+long_mris_slopes --qdec ./long.qdec.table.dat --meas thickness --hemi lh \
+  --do-avg --do-rate --do-pc1 --do-spc --do-stack --do-label \
+  --time age --qcache fsaverage
 
 """
 
@@ -219,7 +223,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.19 2011/03/22 18:16:43 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.20 2011/03/22 23:21:26 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
