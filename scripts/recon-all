@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/16 16:20:27 $
-#    $Revision: 1.379 $
+#    $Date: 2011/03/22 21:01:34 $
+#    $Revision: 1.380 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.379 2011/03/16 16:20:27 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.380 2011/03/22 21:01:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -1073,7 +1073,7 @@ if($DoMotionCor) then
           $fs_time $cmd |& tee -a $LF
           if($status) goto error_exit;
         endif
-        
+
       else
         # we should never get here, this case hase been dealt with above
         echo Only single run - should not get here
@@ -2274,7 +2274,7 @@ if($DoMaskBFS) then
       set cmd = ($cmd brain.finalsurfs.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $fs_time $cmd |& tee -a $LF
-      if($status) goto error_exit;      
+      if($status) goto error_exit;
     endif
   endif
 endif
@@ -2318,7 +2318,7 @@ if($DoSegmentation) then
 
     # if edits exist:
     if ( "$wm1" != "0" || "$wm255" != "0" ) then
-      echo "Found wm edits: $wm1 deletes, $wm255 fills" |& tee -a $LF 
+      echo "Found wm edits: $wm1 deletes, $wm255 fills" |& tee -a $LF
       set cmd = (cp wm.mgz wm.seg.mgz)
       echo "\n $cmd \n"|& tee -a $LF |& tee -a $CF
       if($RunIt) $cmd |& tee -a $LF
@@ -5143,9 +5143,22 @@ while( $#argv != 0 )
     case "-use-gpu":
     case "-use_gpu":
       set UseCuda = 1;
+      # look for default path to cuda libs
+      if ( -e /usr/local/cuda/lib) then
+        if( ! $?CUDA_LIB) then # dont override user setting
+          setenv CUDA_LIB /usr/local/cuda/lib
+        endif
+      endif
       # for NMR Center launchpad cluster GPU usage, declare path to libs...
-      if ( -e /usr/pubsw/packages/CUDA/current/lib) then
-        setenv CUDA_LIB /usr/pubsw/packages/CUDA/current/lib
+      if ("`hostname`" == "launchpad") then
+        if ( -e /usr/pubsw/packages/CUDA/current/lib) then
+          if( ! $?CUDA_LIB) then
+            setenv CUDA_LIB /usr/pubsw/packages/CUDA/current/lib
+          endif
+        endif
+      endif
+      # if CUDA_LIB was defined above, or elsewhere, then set LD_LIBRARY_PATH
+      if ($?CUDA_LIB) then
         echo "Setting LD_LIBRARY_PATH to $CUDA_LIB"
         if(! $?LD_LIBRARY_PATH ) then
           setenv LD_LIBRARY_PATH $CUDA_LIB
