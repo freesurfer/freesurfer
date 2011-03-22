@@ -1,0 +1,76 @@
+#!/bin/csh -f
+#
+# avi2talxfm
+#
+# converts the vox2vox from talairach_avi to a talairach.xfm file
+#
+# Original Author: Douglas N. Greve
+# CVS Revision Info:
+#    $Author: nicks $
+#    $Date: 2011/03/22 12:45:02 $
+#    $Revision: 1.2.2.1 $
+#
+# Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
+#
+# Terms and conditions for use, reproduction, distribution and contribution
+# are found in the 'FreeSurfer Software License Agreement' contained
+# in the file 'LICENSE' found in the FreeSurfer distribution, and here:
+#
+# https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+#
+# Reporting: freesurfer@nmr.mgh.harvard.edu
+#
+#
+
+# This is a script that converts the vox2vox from talairach_avi to a 
+# talairach.xfm file. It is meant to replace the following cmd line:
+#
+# tkregister2_cmdl \
+#     --mov $InVol \
+#     --targ $FREESURFER_HOME/average/mni305.cor.mgz \
+#     --xfmout ${XFM} \
+#     --vox2vox talsrcimg_to_${target}_t4_vox2vox.txt \
+#     --noedit \
+#     --reg talsrcimg.reg.tmp.dat
+
+#set targ = $FREESURFER_HOME/average/mni305.cor.mgz
+#set subject = mgh-02407836-v2
+#set InVol = $SUBJECTS_DIR/$subject/mri/orig.mgz
+#set vox2vox = $SUBJECTS_DIR/$subject/mri/transforms/talsrcimg_to_711-2C_as_mni_average_305_t4_vox2vox.txt
+
+if($#argv != 4) then
+  echo "av2talxfm InVol Targ Vox2Vox XFMOut"
+  exit 1;
+endif
+
+set InVol = $argv[1]; shift
+set targ = $argv[1]; shift
+set Vox2Vox = $argv[1]; shift
+set XFMOut = $argv[1]; shift
+
+set tmpdir = /tmp/calcxfm.$$
+
+mkdir -p $tmpdir
+set St = $tmpdir/St.fsl
+mri_info --vox2ras --o $St $targ
+set Si = $tmpdir/Si.fsl
+mri_info --vox2ras --o $Si $InVol
+set V = $tmpdir/V.fsl
+cat $Vox2Vox | grep -v \# > $V
+set X = $tmpdir/X.fsl
+mri_matrix_multiply -fsl -im $St -iim $V -iim $Si -om $X
+if($status) exit 1;
+
+rm -f $XFMOut
+echo "MNI Transform File"  >> $XFMOut
+echo "% avi2talxfm" >> $XFMOut
+echo "" >> $XFMOut
+echo "Transform_Type = Linear;" >> $XFMOut
+echo "Linear_Transform = " >> $XFMOut
+head -n 3 $X | awk '{if(NR != 3) print $0; if(NR == 3) print $0";" }'>> $XFMOut
+
+rm -r $tmpdir
+
+echo "avi2talxfm done"
+
+exit 0
