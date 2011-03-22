@@ -179,7 +179,6 @@ MRISSUBDIRS=\
 	spherical_stats \
 	tridec \
 	mris_register_to_volume \
-	mris_interpolate_warp \
 	mris_parcellate_connectivity \
 	mris_map_cuts \
 	mris_hausdorff_dist \
@@ -249,7 +248,6 @@ MRISSUBDIRS=\
 	mris_sample_label \
 	mris_sample_parc \
 	mris_segment_vals \
-	mris_segment \
 	mris_seg2annot \
 	mris_smooth \
 	mris_make_face_parcellation \
