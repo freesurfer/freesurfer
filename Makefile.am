@@ -3,7 +3,7 @@
 ##
 
 foodir=$(prefix)
-foo_DATA=README COPYING NEWS AUTHORS
+foo_DATA=LICENSE NOTICE README AUTHORS INSTALL COPYING
 
 DMRISUBDIRS=\
 	dmri_poistats \
@@ -14,7 +14,6 @@ GLSUBDIRS=\
 	mris2rgb \
 	nmovie \
 	mris_show \
-	stim \
 	stim_polar \
 	tkmedit \
 	tkregister2 \
@@ -95,9 +94,9 @@ MRISUBDIRS=\
 	mri_label2label \
 	mri_label2vol \
 	mri_linear_register \
-	mri_make_bem_surfaces \
 	mri_make_register \
 	mri_make_template \
+	mri_map_cpdat \
 	mri_mark_temporal_lobe \
 	mri_mask mri_ms_fitparms \
 	mri_mcsim \
@@ -125,7 +124,6 @@ MRISUBDIRS=\
 	mri_segment \
 	mri_seghead \
 	mri_surfacemask \
-	mri_strip_skull \
 	mri_strip_subject_info \
 	mri_strip_nonwhite \
 	mri_surf2surf \
@@ -181,6 +179,7 @@ MRISSUBDIRS=\
 	spherical_stats \
 	tridec \
 	mris_register_to_volume \
+	mris_interpolate_warp \
 	mris_parcellate_connectivity \
 	mris_map_cuts \
 	mris_hausdorff_dist \
@@ -208,6 +207,7 @@ MRISSUBDIRS=\
 	mris_compute_parc_overlap \
 	mris_convert \
 	mris_decimate \
+	mris_decimate_gui \
 	mris_distance_map \
 	mris_curvature \
 	mris_curvature_stats \
@@ -249,6 +249,7 @@ MRISSUBDIRS=\
 	mris_sample_label \
 	mris_sample_parc \
 	mris_segment_vals \
+	mris_segment \
 	mris_seg2annot \
 	mris_smooth \
 	mris_make_face_parcellation \
@@ -258,6 +259,7 @@ MRISSUBDIRS=\
 	mris_surface_to_vol_distances \
 	mrisp_paint \
 	mris_talairach \
+	mris_surface_change \
 	mris_thickness \
 	mris_BA_segment \
 	mris_compute_optimal_kernel \
@@ -291,7 +293,6 @@ MISCDIRS=\
 	test_window_env \
 	dngtester \
 	test_makevol \
-	scripts \
 	images \
 	dummy \
 	fem_elastic \
@@ -299,7 +300,7 @@ MISCDIRS=\
 	hiam_make_template\
 	hiam_register
 
-# ordering is important here for proper 'make check' function
+# ordering is important here for proper 'make check' and 'make distcheck' function
 SUBDIRS=\
 	include \
 	unix \
@@ -320,11 +321,12 @@ SUBDIRS=\
 	itkio \
 	itkutils \
 	tetgen \
+	$(FSGDF) \
 	connectgraph \
 	qdecproject \
 	svm-lib \
+	scripts \
 	distribution \
-	$(FSGDF) \
 	$(GLSUBDIRS) \
 	$(MRISUBDIRS) \
 	$(MRISSUBDIRS) \
@@ -338,13 +340,16 @@ SUBDIRS=\
 	scuba2 \
 	freeview \
 	qdec_glmfit \
-	cudatest
+	cudatest \
+	trc
 
 # build stamp and symlinks to necessary 3rd-party packages.
 # in the case of FSL, just copy the 'flirt' utility to our bin
 install-data-hook:
 	echo "$(PACKAGE)-$(target_triplet)-$(VERSION)-`date +%Y%m%d`" \
 		> $(DESTDIR)$(prefix)/build-stamp.txt ;
+	cp -f $(DESTDIR)$(prefix)/build-stamp.txt \
+		$(DESTDIR)$(prefix)/VERSION
 	if test ! "x$(MNI_DIR)" = "x" ; then \
 		if test ! "$(MNI_DIR)" = "$(DESTDIR)$(prefix)/mni" ; then \
 			if test -e $(MNI_DIR) ; then \
@@ -355,7 +360,7 @@ install-data-hook:
 	fi;
 	if test ! "x$(FSLDIR)" = "x" ; then \
 		if test -e $(FSLDIR) ; then \
-			cp -f $(FSLDIR)/bin/flirt $(DESTDIR)$(bindir) ; \
+			cp -f $(FSLDIR)/bin/flirt $(DESTDIR)$(bindir)/flirt.fsl ; \
 		fi; \
 	fi;
 	if test ! "x$(ANFIDIR)" = "x" ; then \
@@ -379,6 +384,14 @@ install-data-hook:
 			fi; \
 		fi; \
 	fi;
+	if test ! "x$(QT_DIR)" = "x" ; then \
+		if test ! "$(QT_DIR)" = "$(DESTDIR)$(prefix)/lib/qt" ; then \
+			if test -e $(QT_DIR) ; then \
+				rm -Rf $(DESTDIR)$(prefix)/lib/qt ; \
+				ln -s $(QT_DIR) $(DESTDIR)$(prefix)/lib/qt ; \
+			fi; \
+		fi; \
+	fi;
 	if test ! "x$(KWWIDGETS_DIR)" = "x" ; then \
 		if test ! "$(KWWIDGETS_DIR)" = "$(DESTDIR)$(prefix)/lib/KWWidgets" ; then \
 			if test -e $(KWWIDGETS_DIR) ; then \
@@ -395,12 +408,22 @@ install-data-hook:
 			fi; \
 		fi; \
 	fi;
+	if test ! "x$(CUDA_DIR)" = "x" ; then \
+		if test ! "$(CUDA_DIR)" = "$(DESTDIR)$(prefix)/lib/cuda" ; then \
+			if test -e $(CUDA_DIR) ; then \
+				rm -Rf $(DESTDIR)$(prefix)/lib/cuda ; \
+				ln -s $(CUDA_DIR) $(DESTDIR)$(prefix)/lib/cuda ; \
+			fi; \
+		fi; \
+	fi;
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(prefix)/build-stamp.txt
+	rm -f $(DESTDIR)$(prefix)/VERSION
+	rm -f $(DESTDIR)$(bindir)/flirt.fsl
 
-EXTRA_DIST=setup_configure Makefile.extra x86cpucaps INSTALL \
-	doxy-file-header Doxyfile
+EXTRA_DIST=setup_configure Makefile.extra x86cpucaps \
+	doxy-file-header Doxyfile $(foo_DATA)
 
 DISTCLEANFILES=cpuflags.mak
 

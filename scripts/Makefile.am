@@ -1,6 +1,7 @@
 #
 # Makefile.am for scripts
 #
+
 dist_bin_SCRIPTS = \
 aparc2feat \
 aseg2feat \
@@ -8,6 +9,7 @@ aparcstats2table \
 asegstats2table \
 aparcstatsdiff \
 asegstatsdiff \
+avi2talxfm \
 batchjobs \
 beta2sxa \
 bblabel \
@@ -23,12 +25,14 @@ compute_interrater_variability.csh \
 compute_label_volumes.csh \
 cor_to_minc \
 cp-dicom \
+cuda_setup \
 datastruct_utils.py \
 dcmdir-info-mgh \
 dcmunpack \
 deface_subject \
 defect-seg \
 dicom-rename \
+dmrirc.example \
 dsh \
 dt_recon \
 epidewarp.fsl\
@@ -49,6 +53,7 @@ fname2ext \
 fname2stem \
 fscalc \
 fscalc.fsl \
+fsgd_parser.py \
 fsl_sub_seychelles \
 fsutils.py \
 stem2fname \
@@ -61,6 +66,7 @@ fsfget \
 getfullpath \
 get_label_thickness \
 grad_unwarp \
+help_xml_validate \
 inflate_subject \
 inflate_subject3 \
 inflate_subject-lh \
@@ -80,6 +86,10 @@ label_subject_flash \
 label_subject_mixed \
 labels_union \
 labels_intersect \
+labels_disjoint \
+long_mris_slopes \
+long_qdec_table \
+LongQdecTable.py \
 lpcregister \
 make_average_surface \
 make_average_volume \
@@ -90,6 +100,7 @@ make-segvol-table \
 map_all_labels \
 map_all_labels-lh \
 map_central_sulcus \
+map_to_base \
 meanval \
 minc2seqinfo \
 misc.py \
@@ -139,8 +150,6 @@ fsr-getxopts \
 rcbf-prep \
 rebuild_gca_atlas.csh \
 recon-all \
-recon-all-dev \
-recon-all.2005 \
 recon-all.makefile \
 reg-feat2anat \
 register_child \
@@ -188,6 +197,9 @@ tcl_setup \
 test_recon-all.csh \
 test_fs_tutorial.csh \
 thickdiffmap \
+trac-all \
+trac-paths \
+trac-preproc \
 unpack_ima1.tcl \
 unpackimadir \
 unpackimadir2 \
@@ -198,8 +210,11 @@ unpacksdcmdir \
 UpdateNeeded \
 usbtree \
 vno_match_check \
+qt_setup \
 vtk_setup \
 wfilemask \
+wm-anat-snr \
+xfmrot \
 xhemireg \
 xsanatreg
 
@@ -227,6 +242,14 @@ saveflat.tcl \
 saveviews.tcl \
 setdefpatchview.tcl \
 solmovie-flat.tcl \
+twocond-flat.tcl \
+twocond-masked-views.tcl \
+twocond-views.tcl \
+wrappers.tcl \
+fsgdfPlot.tcl
+
+tktoolsdir = $(prefix)/tktools
+tktools_SCRIPTS= \
 tkanalyse.tcl \
 tkm_common.tcl \
 tkm_dialog.tcl \
@@ -238,17 +261,18 @@ tkregister.tcl \
 tkregister2.tcl \
 tksurfer.tcl \
 tkUtils.tcl \
-twocond-flat.tcl \
-twocond-masked-views.tcl \
-twocond-views.tcl \
-wrappers.tcl \
 fsgdfPlot.tcl
 
 foodir=$(prefix)/bin
 foo_DATA=mri_cvs_requiredfiles.txt
 
+xmldir=$(prefix)/docs/xml
+xml_DATA=bbregister.help.xml mri_motion_correct.fsl.help.xml \
+	mri_nu_correct.mni.help.xml template.help.xml
+
 # these utilities should use our local build of tclsh, as that
-# has the bug fix to allow usage on 64bit NFS file systems
+# has the bug fix to allow usage on 64bit NFS file systems.
+# for scripts, append processed .help.xml help text to the end of script
 install-exec-hook:
 	cp $(srcdir)/unpacksdcmdir $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
 	echo "#!/bin/tcsh -ef" \
@@ -266,20 +290,16 @@ install-exec-hook:
 	echo "\$$FREESURFER_HOME/lib/tcltktixblt/bin/tclsh8.4 \$$FREESURFER_HOME/bin/fsfget.tcl \$$argv" \
 		>> $(DESTDIR)$(bindir)/fsfget
 	chmod a+x $(DESTDIR)$(bindir)/fsfget
+	$(top_builddir)/utils/fsPrintHelp $(srcdir)/bbregister.help.xml >> $(DESTDIR)$(bindir)/bbregister
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(bindir)/unpacksdcmdir.tcl
 	rm -f $(DESTDIR)$(bindir)/fsfget.tcl
 
-EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
-extract_talairach_avi_QA.awk $(foo_DATA)
+TESTS = help_xml_validate
 
-# notes: 
-# recon-all.2005 is the renamed recon-all-nmr, which is no longer used.
-# recon-all is the official recon-all.
-# recon-all-dev is the 'development' version of recon-all, which,
-#               when changes are tested, get merged into recon-all.
-
+EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup qt_setup cuda_setup \
+extract_talairach_avi_QA.awk $(foo_DATA) $(xml_DATA) $(tktools_SCRIPTS)
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make

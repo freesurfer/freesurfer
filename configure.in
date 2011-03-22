@@ -9,8 +9,8 @@
 #
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/17 19:48:38 $
-#    $Revision: 1.519.2.1 $
+#    $Date: 2011/03/22 22:59:37 $
+#    $Revision: 1.519.2.2 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -649,26 +649,29 @@ fi
 #############################################################
 AC_ARG_WITH([cuda],
    [  --with-cuda=PATH        prefix where cuda is installed [default=auto]])
-if test -n "$with_cuda"
-then
-   CUDA_CFLAGS="-I$with_cuda/include"
-   CUDA_LIBS="-L$with_cuda/lib -lcuda -lcudart"
-   if test -e /usr/lib64 ; then
-      CUDA_LIBS="-L$with_cuda/lib64 -lcuda -lcudart"
-   fi
-   NVCC="$with_cuda/bin/nvcc"
+if test -n "$with_cuda"; then
+  CUDA_DIR="$with_cuda"
 else
-   if test -e /usr/local/cuda ; then
-      CUDA_CFLAGS="-I/usr/local/cuda/include"
-      CUDA_LIBS="-L/usr/local/cuda/lib -lcuda -lcudart"
-      if test -e /usr/lib64 ; then
-         CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcudart"
-      fi
-      NVCC="/usr/local/cuda/bin/nvcc"
-   fi
+  if test -e /usr/pubsw/packages/CUDA/current ; then
+    CUDA_DIR="/usr/pubsw/packages/CUDA/current"
+  else
+    if test -e /usr/local/cuda ; then
+      CUDA_DIR="/usr/local/cuda"
+    fi
+  fi
 fi
+if( test ! "x$CUDA_DIR" = "xno" ) then
+  CUDA_CFLAGS="-I$CUDA_DIR/include"
+  CUDA_LIBS="-L$CUDA_DIR/lib -lcuda -lcudart"
+  if test -e /usr/lib64 ; then
+    CUDA_LIBS="-L$CUDA_DIR/lib64 -lcuda -lcudart"
+  fi
+  NVCC="$CUDA_DIR/bin/nvcc"
+fi
+
 AC_SUBST(CUDA_CFLAGS)
 AC_SUBST(CUDA_LIBS)
+AC_SUBST(CUDA_DIR)
 AC_SUBST(NVCC)
 
 # if --without-cuda was specified, disable cuda build
@@ -1227,6 +1230,84 @@ AC_SUBST(VXL_LIBS)
 AC_SUBST(VXL_LIB)
 AC_SUBST(LIBS_VXL)
 
+################################################################
+# FLTK 
+################################################################
+ac_fltk_includes="NO"
+ac_fltk_libraries="NO"
+ac_fltk_bindir="NO"
+ac_fltk_dir="NO"
+FLTK_CXXFLAGS=""
+FLTK_LDFLAGS=""
+FLTK_LIBS=""
+FLTK_LIB=""
+FLTK_DIR=""
+
+AC_MSG_CHECKING(FLTK directory)
+
+AC_ARG_WITH(fltk-dir,
+  [  --with-fltk-dir=DIR    where the root of FLTK is installed.],
+  [  fltk_i="$withval"/include
+     ac_fltk_includes="$fltk_i"
+     ac_fltk_libraries="$withval"/lib
+     ac_fltk_bindir="$withval"/bin
+     ac_fltk_dir="$withval"
+     FLTK_DIR="$withval"
+     AC_SUBST(FLTK_DIR)
+  ])
+
+if test "x$FLTK_DIR" = "x"; then
+  # if a FLTK root was not supplied, but one exists in the
+  # default packages path at the NMR Center, then use that:
+  if test -d "/usr/pubsw/packages/fltk/current" ; then
+    withval=/usr/pubsw/packages/fltk/current
+    FLTK_DIR="$withval"
+    ac_fltk_dir="$withval"
+    fltk_i="$withval"/include
+    ac_fltk_includes="$fltk_i"
+    ac_fltk_libraries="$withval"/lib
+  fi
+fi
+
+AC_ARG_WITH(fltk-include,
+  [  --with-fltk-include=DIR    root of FLTK include directory.],
+  [  ac_fltk_includes="$withval"
+  ])
+
+AC_ARG_WITH(fltk-libraries,
+  [  --with-fltk-libraries=DIR  root of FLTK lib directory.],
+  [  ac_fltk_libraries="$withval"
+  ])
+
+# if --enable-atlas3d was specified:
+#AC_ARG_ENABLE(atlas3d,
+#  [  --enable-atlas3d Enable Atlas3D building.],
+#  )
+
+if test ! "$ac_fltk_includes" = "NO"; then
+  AC_MSG_RESULT(FLTK directory is $withval)
+  #for item in $ac_fltk_includes; do
+  #  FLTK_CFLAGS="${FLTK_CFLAGS} -I${item}"
+  FLTK_CXXFLAGS=`"$withval"/bin/fltk-config --cxxflags --use-gl --use-glut --use-forms --use-images`
+  FLTK_LDFLAGS=`"$withval"/bin/fltk-config --ldstaticflags --use-gl --use-glut --use-forms --use-images`
+  FLTK_DIR=$ac_fltk_dir
+else
+  AC_MSG_RESULT(FLTK directory is not supplied)
+fi
+
+if test ! "$ac_fltk_libraries" = "NO"; then
+  FLTK_LIB=$ac_fltk_libraries
+  FLTK_LIBS=-L$ac_fltk_libraries
+fi
+
+AC_SUBST(FLTK_CXXFLAGS)
+AC_SUBST(FLTK_LDFLAGS)
+AC_SUBST(FLTK_LIBS)
+AC_SUBST(FLTK_LIB)
+AC_SUBST(FLTK_DIR)
+
+#AM_CONDITIONAL(ENABLE_ATLAS3D, [test "x$enable_atlas3d" = "xyes"])
+AM_CONDITIONAL(HAVE_FLTK_LIBS, ! test "x$ac_FLTK_dir" = "xNO")
 
 ################################################################
 # PETSc
@@ -2351,7 +2432,7 @@ AC_MSG_CHECKING(ITK directory)
 AC_ARG_WITH(itk-dir,
   [  --with-itk-dir=DIR      where the root of ITK is installed.],
   [  itk_i="$withval/include/InsightToolkit"
-     ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/SpatialObject $itk_i/Utilities"
+     ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/Numerics/Statistics $itk_i/Review $itk_i/SpatialObject $itk_i/Utilities"
      ac_itk_libraries="$withval"/lib/InsightToolkit
      ITK_DIR="$withval"
      itk_apps="yes"
@@ -2382,7 +2463,7 @@ if test "x$ITK_DIR" = "x"; then
   if test -d "/usr/pubsw/packages/itk/current" ; then
     withval=/usr/pubsw/packages/itk/current
     itk_i="$withval/include/InsightToolkit"
-    ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/SpatialObject $itk_i/Utilities"
+    ac_itk_includes="$itk_i $itk_i/Algorithms $itk_i/BasicFilters $itk_i/Common $itk_i/IO $itk_i/Numerics $itk_i/Numerics/Statistics $itk_i/Review $itk_i/SpatialObject $itk_i/Utilities"
     ac_itk_libraries="$withval"/lib/InsightToolkit
     ITK_DIR="$withval"
     itk_apps="yes"
@@ -2415,6 +2496,7 @@ if test "$itk_apps" = "yes"; then
   LIBS_ITK="$ac_itk_libraries/libITKIO.a \
   $ac_itk_libraries/libITKAlgorithms.a \
   $ac_itk_libraries/libITKCommon.a \
+  $ac_itk_libraries/libITKNumerics.a \
   $ac_itk_libraries/libITKMetaIO.a \
   $ac_itk_libraries/libITKniftiio.a \
   $ac_itk_libraries/libITKNrrdIO.a \
