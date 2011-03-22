@@ -1,26 +1,25 @@
 /**
  * @file  Interactor2DNavigate.h
  * @brief Interactor for navigating (zoom, pan, etc.) in 2D render view.
- * 
+ *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/06/17 20:41:17 $
- *    $Revision: 1.5 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 15:55:25 $
+ *    $Revision: 1.10.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -31,10 +30,25 @@
 
 class Interactor2DNavigate : public Interactor2D
 {
+  Q_OBJECT
 public:
-  Interactor2DNavigate() : Interactor2D()
-  {}
+  Interactor2DNavigate( QObject* parent );
 
+  // return true if to have parent Interactor2DPointSetEdit continue processing the event
+  // return false to stop event from further processing
+  virtual bool ProcessMouseDownEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseUpEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessMouseMoveEvent( QMouseEvent* event, RenderView* view );
+  virtual bool ProcessKeyDownEvent( QKeyEvent* event, RenderView* view );
+
+public slots:
+  void SetCurrentLandmark(int n);
+
+protected:
+  void UpdateCursor( QEvent* event, QWidget* wnd );
+
+  bool m_bEditing;
+  int  m_nCurrentLandmark;
 };
 
 #endif

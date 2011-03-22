@@ -6,41 +6,39 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/05/17 20:06:22 $
- *    $Revision: 1.16 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 15:55:25 $
+ *    $Revision: 1.21.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef LayerCollection_h
 #define LayerCollection_h
 
-#include <string>
-#include <vector>
-#include "Listener.h"
-#include "Broadcaster.h"
+#include <QObject>
+#include <QString>
+#include <QList>
 
 class Layer;
-class LayerMRI;
 class vtkRenderer;
 class vtkProp;
 
-class LayerCollection : public Listener, public Broadcaster
+class LayerCollection : public QObject
 {
+  Q_OBJECT
 public:
-  LayerCollection( std::string type );
+  LayerCollection( const QString& type, QObject* parent = NULL );
   virtual ~LayerCollection();
 
   int GetNumberOfLayers();
@@ -59,13 +57,13 @@ public:
 
   bool Contains( Layer* layer );
   bool IsEmpty();
-  
-  void ClearAll();
 
   void SetActiveLayer( Layer* layer );
   Layer* GetActiveLayer();
 
   Layer* GetFirstVisibleLayer();
+
+  Layer* GetLayer(const QString& type);
 
   double* GetSlicePosition();
   void GetSlicePosition( double* slicePos );
@@ -95,16 +93,37 @@ public:
 
   void GetWorldCenter( double* pos );
 
-  std::vector<Layer*> GetLayers();
+  QList<Layer*> GetLayers();
 
   Layer* HasProp( vtkProp* prop );
 
-  virtual void DoListenToMessage( std::string const iMsg, void* iData, void* sender );
+  QString GetType();
 
-  std::string GetType();
+signals:
+  void ActiveLayerChanged( Layer* );
+  void LayerAdded   ( Layer* );
+  void LayerRemoved ( Layer* );
+  void LayerCycled  ( Layer* );
+  void LayerMoved   ( Layer* );
+  void LayerActorUpdated();
+  void LayerActorChanged();
+  void LayerPropertyChanged();
+  void LayerVisibilityChanged();
+  void MouseRASPositionChanged();
+  void CursorRASPositionChanged();
+
+public slots:
+  void LockCurrent( bool bLock );
+  void MoveLayerUp();
+  void MoveLayerDown();
+  void SetMouseRASPosition(double x, double y, double z)
+  {
+    double ras[3] = {x, y, z};
+    SetCurrentRASPosition(ras);
+  }
 
 protected:
-  std::vector<Layer*> m_layers;
+  QList<Layer*> m_layers;
 
   double      m_dSlicePosition[3];
   double      m_dWorldOrigin[3];
@@ -117,7 +136,7 @@ protected:
   double      m_dCursorRASPosition[3];
 
   Layer*      m_layerActive;
-  std::string m_strType;
+  QString     m_strType;
 };
 
 #endif

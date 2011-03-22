@@ -6,76 +6,77 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:16 $
- *    $Revision: 1.16 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 15:55:25 $
+ *    $Revision: 1.22.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
 #ifndef Layer_h
 #define Layer_h
 
-#include "Listener.h"
-#include "Broadcaster.h"
-#include "CommonDataStruct.h"
-#include <string>
+#include <QObject>
+#include <QString>
+#include <QStringList>
 #include <vector>
+#include "CommonDataStruct.h"
 
 class vtkRenderer;
 class vtkProp;
-class wxWindow;
-class wxCommandEvent;
-class LayerProperties;
+class LayerProperty;
 
-class Layer : public Listener, public Broadcaster
+class Layer : public QObject
 {
+  Q_OBJECT
 public:
-  Layer();
+  Layer( QObject* parent = 0 );
   virtual ~Layer();
 
-  const char* GetName()
+  QString GetName() const
   {
-    return m_strName.c_str();
+    return m_strName;
   }
 
-  void SetName( const char* name );
+  void SetName( const QString& name );
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane ) = 0;
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL ) = 0;
 
   virtual bool HasProp( vtkProp* prop ) = 0;
 
-  virtual void SetVisible( bool bVisible = true ) = 0;
+  virtual void SetVisible( bool bVisible = true )
+  {
+    emit VisibilityChanged(bVisible);
+  }
+
   virtual bool IsVisible() = 0;
 
-  bool Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event );
-  
-  bool Translate( double x, double y, double z );  
+  bool Transform (double* mat, int sample_method);
+  bool Rotate( std::vector<RotationElement>& rotations );
+  bool Translate( double x, double y, double z );
   bool Translate( double* dPos );
-  
   void Scale( double* scale, int nSampleMethod = 1 /* SAMPLE_TRILINEAR */ );
-  
+
   void Restore();
-  
+
   void ResetTranslate()
   {
     m_dTranslate[0] = 0;
     m_dTranslate[1] = 0;
     m_dTranslate[2] = 0;
   }
-  
+
   void GetTranslate( double* pos )
   {
     pos[0] = m_dTranslate[0];
@@ -89,14 +90,14 @@ public:
     m_dScale[1] = 1;
     m_dScale[2] = 1;
   }
-  
+
   void GetScale( double* scale )
   {
     scale[0] = m_dScale[0];
     scale[1] = m_dScale[1];
     scale[2] = m_dScale[2];
   }
-  
+
   double* GetWorldOrigin();
   void GetWorldOrigin( double* origin );
   void SetWorldOrigin( double* origin );
@@ -114,22 +115,10 @@ public:
   void SetSlicePosition( double* slicePos );
   void SetSlicePosition( int nPlane, double slicePos );
 
-  void RASToVoxel( const double* pos, int* n );
-  void VoxelToRAS( const int* n, double* pos );
 
   virtual void OnSlicePositionChanged( int nPlane ) = 0;
 
-  bool IsTypeOf( std::string tname );
-
-  std::string GetErrorString()
-  {
-    return m_strError;
-  }
-
-  void SetErrorString( std::string msg )
-  {
-    m_strError = msg;
-  }
+  bool IsTypeOf( const QString& tname );
 
   bool IsLocked()
   {
@@ -138,29 +127,63 @@ public:
 
   void Lock( bool bLock );
 
-  std::string GetEndType();
-  
-  inline LayerProperties* GetProperties()
+  QString GetEndType() const;
+
+  inline LayerProperty* GetProperty()
   {
-    return mProperties;
+    return mProperty;
   }
-  
+
   virtual void GetBounds( double* bounds );
-  
+
   virtual void GetDisplayBounds( double* bounds );
 
-protected:
-  virtual void DoListenToMessage( std::string const iMessage, void* iData, void* sender );
-  virtual bool DoRotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event ) 
-  { 
-    return true; 
+  void Show()
+  {
+    SetVisible( true );
   }
+
+  void Hide()
+  {
+    SetVisible( false );
+  }
+
+  QString GetFileName()
+  {
+    return m_sFilename;
+  }
+
+  void SetFileName( const QString& fn )
+  {
+    m_sFilename = fn;
+  }
+
+  void SendActorUpdated()
+  {
+    emit ActorUpdated();
+  }
+
+Q_SIGNALS:
+  void NameChanged( const QString& name );
+  void Transformed();
+  void Locked( bool bLock );
+  void ActorUpdated();
+  void ActorChanged();
+  void VisibilityChanged(bool bVisible);
+
+protected:
+  virtual bool DoRotate( std::vector<RotationElement>& rotations )
+  {
+    return true;
+  }
+
   virtual void DoRestore() {}
-  
+
   virtual void DoTranslate( double* offset ) {}
   virtual void DoScale( double* scale, int nSampleMethod ) {}
-  
-  std::string  m_strName;
+  virtual void DoTransform( double* mat, int sample_method ) {}
+
+  QString   m_strName;
   double    m_dSlicePosition[3];
   double    m_dWorldOrigin[3];
   double    m_dWorldVoxelSize[3];
@@ -169,13 +192,16 @@ protected:
   // translate and scale are for volume transformation
   double    m_dTranslate[3];
   double    m_dScale[3];
-  
-  bool   m_bLocked;
 
-  LayerProperties*  mProperties;  
-      
-  std::string  m_strError;
-  std::vector<std::string> m_strTypeNames;
+  bool      m_bLocked;
+
+  LayerProperty*  mProperty;
+
+  QString   m_sFilename;
+  QStringList m_strTypeNames;
+
+  int       m_nID;
+  static int m_nLastID;
 };
 
 #endif

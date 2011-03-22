@@ -1,106 +1,110 @@
 /**
  * @file  DialogTransformVolume.h
- * @brief Dialog to transform volume.
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/07/15 19:51:47 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 15:55:25 $
+ *    $Revision: 1.10.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-#ifndef DialogTransformVolume_h
-#define DialogTransformVolume_h
+#ifndef DIALOGTRANSFORMVOLUME_H
+#define DIALOGTRANSFORMVOLUME_H
 
-#include <wx/wx.h>
-#include "Listener.h"
+#include <QDialog>
+#include "UIUpdateHelper.h"
+#include <QList>
+#include <QIcon>
 
-class wxNotebook;
-class wxNotebookEvent;
-
-class DialogTransformVolume : public wxDialog, public Listener
+namespace Ui
 {
-public:
-  DialogTransformVolume( wxWindow* parent );
-  virtual ~DialogTransformVolume();
+class DialogTransformVolume;
+}
 
-  void OnApply  ( wxCommandEvent& event );
-  void OnRestore( wxCommandEvent& event );
-  void OnSaveAs ( wxCommandEvent& event );
-  void OnSaveReg( wxCommandEvent& event );
+class QCheckBox;
+class QComboBox;
+class QLineEdit;
+class QScrollBar;
+class QtColorPicker;
+class QPushButton;
+
+class DialogTransformVolume : public QDialog, public UIUpdateHelper
+{
+  Q_OBJECT
+
+public:
+  explicit DialogTransformVolume(QWidget *parent = 0);
+  ~DialogTransformVolume();
 
   bool GetRotation( int nID_in, int& plane_out, double& angle_out );
-
   void UpdateUI( int scope = 2 );
-  
-protected:
-  void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
-  
-  void OnCheck1( wxCommandEvent& event );
-  void OnCheck2( wxCommandEvent& event );
-  void OnCheck3( wxCommandEvent& event );
-  
-  void OnTextTranslateX   ( wxCommandEvent& event );
-  void OnTextTranslateY   ( wxCommandEvent& event );
-  void OnTextTranslateZ   ( wxCommandEvent& event );
-  void OnScrollTranslateX ( wxScrollEvent& event );
-  void OnScrollTranslateY ( wxScrollEvent& event );
-  void OnScrollTranslateZ ( wxScrollEvent& event );
-  
-  void OnPageChanged      ( wxNotebookEvent& event );
-  
+
+  void closeEvent(QCloseEvent * e);
+  void showEvent(QShowEvent * e);
+
+signals:
+  void CurrentLandmarkChanged(int n);
+
+protected slots:
+  void OnApply();
+  void OnRestore();
+  void OnSaveReg();
+
+  void OnScrollBarTranslateX(int nVal);
+  void OnScrollBarTranslateY(int nVal);
+  void OnScrollBarTranslateZ(int nVal);
+  void OnLineEditTranslateX(const QString& text);
+  void OnLineEditTranslateY(const QString& text);
+  void OnLineEditTranslateZ(const QString& text);
+  void OnScrollBarScaleX(int nVal);
+  void OnScrollBarScaleY(int nVal);
+  void OnScrollBarScaleZ(int nVal);
+  void OnLineEditScaleX(const QString& text);
+  void OnLineEditScaleY(const QString& text);
+  void OnLineEditScaleZ(const QString& text);
+
+  void OnActiveLayerChanged();
+
+  void OnRadioButtonLandmark(bool bChecked);
+
+  void OnButtonLandmarkPick();
+
+  void UpdateLandmarkColors();
+
+private:
+  void DoRotate();
   void RespondTextTranslate   ( int n );
   void RespondScrollTranslate ( int n );
-  
-  void OnTextScaleX       ( wxCommandEvent& event );
-  void OnTextScaleY       ( wxCommandEvent& event );
-  void OnTextScaleZ       ( wxCommandEvent& event );
-  void OnScrollScaleX     ( wxScrollEvent& event );
-  void OnScrollScaleY     ( wxScrollEvent& event );
-  void OnScrollScaleZ     ( wxScrollEvent& event );
   void RespondTextScale   ( int n );
   void RespondScrollScale ( int n );
 
-  void DoRotate();
+  QIcon MakeIcon(const QColor& color, int size);
 
-  wxCheckBox*   m_check[3];
-  wxChoice*     m_choice[3];
-  wxTextCtrl*   m_textAngle[3];
-  wxButton*     m_btnRestoreOriginal;
-  wxButton*     m_btnSaveAs;
-  wxButton*     m_btnSaveReg;
-  
-  wxRadioButton*  m_radioAroundCenter;
-  wxRadioButton*  m_radioAroundCursor;
-  wxRadioButton*  m_radioNearest;
-  wxRadioButton*  m_radioTrilinear;
-  wxRadioButton*  m_radioSinc; 
-  wxRadioButton*  m_radioActiveVolume;
-  wxRadioButton*  m_radioAllVolumes;
-  
-  wxScrollBar*    m_scrollTranslate[3];
-  wxTextCtrl*     m_textTranslate[3];
-  wxScrollBar*    m_scrollScale[3];
-  wxTextCtrl*     m_textScale[3];
-  
-  wxNotebook*     m_notebook;
+  Ui::DialogTransformVolume *ui;
 
-  DECLARE_EVENT_TABLE()
+  QCheckBox*   m_checkRotate[3];
+  QComboBox*   m_comboRotate[3];
+  QLineEdit*   m_textAngle[3];
+  QScrollBar*    m_scrollTranslate[3];
+  QLineEdit*     m_textTranslate[3];
+  QScrollBar*    m_scrollScale[3];
+  QLineEdit*     m_textScale[3];
+  QList<QtColorPicker*> m_colorPickerLandmark;
+  QList<QPushButton*>   m_btnPickLandmark;
+  QList<QComboBox*> m_comboLandmark;
 };
 
-#endif
-
+#endif // DIALOGTRANSFORMVOLUME_H

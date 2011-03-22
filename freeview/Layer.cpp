@@ -6,33 +6,38 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/07/14 19:03:16 $
- *    $Revision: 1.18 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 15:55:25 $
+ *    $Revision: 1.23.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
-#include "wx/wx.h"
+
 #include "Layer.h"
-#include "LayerProperties.h"
+#include "LayerProperty.h"
 #include <math.h>
 
 #define CLOSE_DISTANCE 1e-6
 
-Layer::Layer() : Listener( "Layer" ), Broadcaster( "Layer" )
+int Layer::m_nLastID = 0;
+
+Layer::Layer( QObject* parent ) : QObject( parent )
 {
+  // assign unique ID
+  m_nID = m_nLastID + 1;
+  m_nLastID++;
+
   for ( int i = 0; i < 3; i++ )
   {
     m_dSlicePosition[i] = 0;
@@ -43,42 +48,38 @@ Layer::Layer() : Listener( "Layer" ), Broadcaster( "Layer" )
     m_dScale[i] = 1;
   }
   m_bLocked = false;
-  mProperties = NULL;
+  mProperty = NULL;
+  connect(this, SIGNAL(VisibilityChanged(bool)), this, SIGNAL(ActorUpdated()));
 }
 
 Layer::~Layer()
 {
-  if ( mProperties )
-    delete mProperties;
-  
-  SendBroadcast( "LayerObjectDeleted", this );
 }
 
-void Layer::SetName( const char* name )
+void Layer::SetName( const QString& name )
 {
   if ( m_strName != name )
   {
     m_strName = name;
-    SendBroadcast( "LayerNameChanged", this );
+    emit NameChanged( name );
   }
 }
 
-bool Layer::IsTypeOf( std::string tname )
+bool Layer::IsTypeOf( const QString& tname )
 {
-  for ( size_t i = 0; i < m_strTypeNames.size(); i++ )
-  {
-    if ( m_strTypeNames[i] == tname )
-      return true;
-  }
-  return false;
+  return m_strTypeNames.contains( tname );
 }
 
-std::string Layer::GetEndType()
+QString Layer::GetEndType() const
 {
   if ( m_strTypeNames.size() > 0 )
+  {
     return m_strTypeNames[ m_strTypeNames.size()-1 ];
+  }
   else
+  {
     return "";
+  }
 }
 
 double* Layer::GetWorldOrigin()
@@ -89,13 +90,17 @@ double* Layer::GetWorldOrigin()
 void Layer::GetWorldOrigin( double* origin )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     origin[i] = m_dWorldOrigin[i];
+  }
 }
 
 void Layer::SetWorldOrigin( double* origin )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldOrigin[i] = origin[i];
+  }
 }
 
 double* Layer::GetWorldSize()
@@ -106,13 +111,17 @@ double* Layer::GetWorldSize()
 void Layer::GetWorldSize( double* size )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     size[i] = m_dWorldSize[i];
+  }
 }
 
 void Layer::SetWorldSize( double* size )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldSize[i] = size[i];
+  }
 }
 
 double* Layer::GetWorldVoxelSize()
@@ -123,13 +132,17 @@ double* Layer::GetWorldVoxelSize()
 void Layer::GetWorldVoxelSize( double* vs )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     vs[i] = m_dWorldVoxelSize[i];
+  }
 }
 
 void Layer::SetWorldVoxelSize( double* vs )
 {
   for ( int i = 0; i < 3; i++ )
+  {
     m_dWorldVoxelSize[i] = vs[i];
+  }
 }
 
 double* Layer::GetSlicePosition()
@@ -147,55 +160,27 @@ void Layer::GetSlicePosition( double* slicePos )
 
 void Layer::SetSlicePosition( double* slicePos )
 {
-  this->BlockBroadcast( true );
+  this->blockSignals( true );
   for ( int i = 0; i < 3; i++ )
   {
     SetSlicePosition( i, slicePos[i] );
   }
-  this->BlockBroadcast( false );
-//  this->SendBroadcast( "SlicePositionChanged", this );
-//  this->SendBroadcast( "LayerActorUpdated", this );
+  this->blockSignals( false );;
 }
 
 void Layer::SetSlicePosition( int nPlane, double slicePos )
 {
-  wxASSERT( nPlane >= 0 && nPlane <= 2 );
-
   if ( fabs( slicePos - m_dSlicePosition[ nPlane ] ) > CLOSE_DISTANCE )
   {
     m_dSlicePosition[nPlane] = slicePos;
-//    this->SendBroadcast( "SlicePositionChanged", this );
     OnSlicePositionChanged( nPlane );
-//    this->SendBroadcast( "LayerActorUpdated", this );
-  }
-}
-
-void Layer::RASToVoxel( const double* pos, int* n )
-{
-  for ( int i = 0; i < 3; i++ )
-  {
-    n[i] = ( int )( ( pos[i] - m_dWorldOrigin[i] ) / m_dWorldVoxelSize[i] + 0.5 );
-  }
-}
-
-void Layer::VoxelToRAS( const int* n, double* pos )
-{
-  for ( int i = 0; i < 3; i++ )
-  {
-    pos[i] = m_dWorldOrigin[i] + m_dWorldVoxelSize[i] * n[i];
   }
 }
 
 void Layer::Lock( bool bLock )
 {
   m_bLocked = bLock;
-  this->SendBroadcast( "LayerLockChanged", this );
-}
-
-void Layer::DoListenToMessage( std::string const iMessage, void* iData, void* sender )
-{
-  if ( iMessage == _( "ShowInfoChanged" ) )
-    this->SendBroadcast( "LayerShowInfoChanged", iData, this );
+  emit Locked( bLock );
 }
 
 void Layer::GetBounds( double* bounds )
@@ -214,16 +199,25 @@ void Layer::GetDisplayBounds( double* bounds )
   this->GetBounds( bounds );
 }
 
-bool Layer::Rotate( std::vector<RotationElement>& rotations, wxWindow* wnd, wxCommandEvent& event )
+
+bool Layer::Rotate( std::vector<RotationElement>& rotations )
 {
-  bool ret = DoRotate( rotations, wnd, event ); 
+  bool ret = DoRotate( rotations );
   if ( ret )
   {
     ResetTranslate();
-    ResetScale();   
-    this->SendBroadcast( "LayerTransformed", this, this );
+    ResetScale();
+    emit Transformed();
   }
   return ret;
+}
+
+bool Layer::Transform(double *mat, int sample_method)
+{
+  DoTransform(mat, sample_method);
+  emit Transformed();
+
+  return true;
 }
 
 bool Layer::Translate( double x, double y, double z )
@@ -231,21 +225,25 @@ bool Layer::Translate( double x, double y, double z )
   double pos[3] = { x, y, z };
   return Translate( pos );
 }
-  
+
 bool Layer::Translate( double* dPos )
 {
   double offset[3];
   for ( int i = 0; i < 3; i++ )
+  {
     offset[i] = dPos[i] - m_dTranslate[i];
-  
+  }
+
   DoTranslate( offset );
-  
+
   for ( int i = 0; i < 3; i++ )
+  {
     m_dTranslate[i] = dPos[i];
-  
+  }
+
   ResetScale();
-  this->SendBroadcast( "LayerTransformed", this, this );
-  
+  emit Transformed();
+
   return true;
 }
 
@@ -253,27 +251,31 @@ void Layer::Scale( double* scale, int nSampleMethod )
 {
   double rscale[3];
   for ( int i = 0; i < 3; i++ )
+  {
     rscale[i] = scale[i] / m_dScale[i];
-  
+  }
+
   DoScale( rscale, nSampleMethod );
-  
+
   for ( int i = 0; i < 3; i++ )
+  {
     m_dScale[i] = scale[i];
-  
+  }
+
   ResetTranslate();
-  this->SendBroadcast( "LayerTransformed", this, this );
+  emit Transformed();
 }
 
 // reset transformations
 void Layer::Restore()
 {
   DoRestore();
-  
+
   for ( int i = 0; i < 3; i++ )
   {
     m_dTranslate[i] = 0;
     m_dScale[i] = 1;
   }
-  
-  this->SendBroadcast( "LayerTransformed", this, this );
+
+  emit Transformed();
 }

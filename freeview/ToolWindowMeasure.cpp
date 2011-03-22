@@ -1,145 +1,163 @@
 /**
- * @file  ToolWindowMeasure.h
- * @brief Preferences dialog.
+ * @file  ToolWindowMeasure.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/06/28 20:09:41 $
- *    $Revision: 1.9 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 15:55:26 $
+ *    $Revision: 1.22.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
-
-
 #include "ToolWindowMeasure.h"
-#include <wx/wx.h>
-#include <wx/config.h>
-#include <wx/xrc/xmlres.h>
-#include <wx/filedlg.h>
-#include <wx/filename.h>
-#include <wx/spinctrl.h>
-#include <wx/listbox.h>
-#include <wx/clipbrd.h>
-#include <wx/ffile.h>
-#include "MainWindow.h"
+#include "ui_ToolWindowMeasure.h"
 #include "RenderView2D.h"
 #include "RenderView3D.h"
-#include "BrushProperty.h"
-#include "Interactor2DMeasure.h"
-#include "LayerCollection.h"
-#include "LayerMRI.h"
-#include "LayerPropertiesMRI.h"
+#include "MainWindow.h"
+#include <QTimer>
 #include "Region2D.h"
 #include "SurfaceRegion.h"
+#include "SurfaceRegionGroups.h"
+#include "LayerCollection.h"
+#include "LayerMRI.h"
+#include "LayerPropertyMRI.h"
+#include "Interactor.h"
+#include <QSettings>
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QClipboard>
+#include <QFile>
+#include <QTextStream>
+#include <QDebug>
 
-BEGIN_EVENT_TABLE( ToolWindowMeasure, wxFrame )
-  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_LINE" ),      ToolWindowMeasure::OnActionMeasureLine )
-  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_LINE" ),      ToolWindowMeasure::OnActionMeasureLineUpdateUI )
-  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_RECT" ),      ToolWindowMeasure::OnActionMeasureRectangle )
-  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_RECT" ),      ToolWindowMeasure::OnActionMeasureRectangleUpdateUI )
-  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_POLYLINE" ),  ToolWindowMeasure::OnActionMeasurePolyline )
-  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_POLYLINE" ),  ToolWindowMeasure::OnActionMeasurePolylineUpdateUI )
-  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_SPLINE" ),    ToolWindowMeasure::OnActionMeasureSpline )
-  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_SPLINE" ),    ToolWindowMeasure::OnActionMeasureSplineUpdateUI )
-  EVT_MENU      ( XRCID( "ID_ACTION_MEASURE_SURFACE" ),   ToolWindowMeasure::OnActionMeasureSurfaceRegion )
-  EVT_UPDATE_UI ( XRCID( "ID_ACTION_MEASURE_SURFACE" ),   ToolWindowMeasure::OnActionMeasureSurfaceRegionUpdateUI )
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_COPY" ),              ToolWindowMeasure::OnButtonCopy )
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_EXPORT" ),            ToolWindowMeasure::OnButtonExport )
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_SAVE" ),              ToolWindowMeasure::OnButtonSave )
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_SAVE_ALL" ),          ToolWindowMeasure::OnButtonSaveAll )
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_LOAD" ),              ToolWindowMeasure::OnButtonLoad )
-  EVT_SPINCTRL  ( XRCID( "ID_SPIN_ID"),                   ToolWindowMeasure::OnSpinId )      
-  
-  EVT_SHOW      ( ToolWindowMeasure::OnShow )
-
-END_EVENT_TABLE()
-
-
-ToolWindowMeasure::ToolWindowMeasure( wxWindow* parent ) : Listener( "ToolWindowMeasure" )
+ToolWindowMeasure::ToolWindowMeasure(QWidget *parent) :
+  QWidget(parent),
+  UIUpdateHelper(),
+  ui(new Ui::ToolWindowMeasure)
 {
-  wxXmlResource::Get()->LoadFrame( this, parent, wxT("ID_TOOLWINDOW_MEASURE") );
-  m_toolbar     = XRCCTRL( *this, "ID_TOOLBAR_MEASURE", wxToolBar );
-  m_textStats   = XRCCTRL( *this, "ID_TEXT_STATS",      wxTextCtrl );
-  m_btnCopy     = XRCCTRL( *this, "ID_BUTTON_COPY",     wxButton );
-  m_btnExport   = XRCCTRL( *this, "ID_BUTTON_EXPORT",   wxButton );
-  m_btnSave     = XRCCTRL( *this, "ID_BUTTON_SAVE",     wxButton );
-  m_btnSaveAll  = XRCCTRL( *this, "ID_BUTTON_SAVE_ALL",   wxButton );
-  m_btnLoad     = XRCCTRL( *this, "ID_BUTTON_LOAD",     wxButton );
-  m_spinId      = XRCCTRL( *this, "ID_SPIN_ID",         wxSpinCtrl );
-  
-  m_widgets2D.push_back( m_btnCopy );
-  m_widgets2D.push_back( m_btnExport );
-  
-  m_widgets3D.push_back( m_btnSave );
-  m_widgets3D.push_back( m_btnSaveAll );
-  m_widgets3D.push_back( m_btnLoad );
-  m_widgets3D.push_back( m_spinId );
-  m_widgets3D.push_back( XRCCTRL( *this, "ID_STATIC_ID",    wxStaticText ) );
-  
+  ui->setupUi(this);
+  this->setWindowFlags( Qt::Tool | Qt::WindowTitleHint | Qt::CustomizeWindowHint );
+
+  QActionGroup* actGroup = new QActionGroup( this );
+  actGroup->addAction( ui->actionContour );
+  actGroup->addAction( ui->actionLabel );
+  actGroup->addAction( ui->actionLine );
+  actGroup->addAction( ui->actionPolyLine );
+  actGroup->addAction( ui->actionRectangle );
+  actGroup->addAction( ui->actionSpline );
+  ui->actionContour ->setData( Interactor::MM_SurfaceRegion );
+  ui->actionLabel   ->setData( Interactor::MM_Label );
+  ui->actionLine    ->setData( Interactor::MM_Line );
+  ui->actionPolyLine->setData( Interactor::MM_Polyline );
+  ui->actionRectangle->setData( Interactor::MM_Rectangle );
+  ui->actionSpline->setData( Interactor::MM_Spline);
+  actGroup->setExclusive( true );
+  connect(actGroup, SIGNAL(triggered(QAction*)), this, SLOT(OnAction(QAction*)) );
+
+  m_widgets2D << ui->pushButtonCopy << ui->pushButtonExport;
+
+  m_widgets3D << ui->pushButtonSave
+              << ui->pushButtonLoad
+              << ui->pushButtonSaveAll
+              << ui->spinBoxId
+              << ui->spinBoxGroup
+              << ui->labelId
+              << ui->labelGroup
+              << ui->colorPickerGroup
+              << ui->lineSeparator;
+
   m_region = NULL;
   m_surfaceRegion = NULL;
   m_bToUpdateWidgets = true;
+
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  for ( int i = 0; i < 4; i++ )
+  {
+    RenderView* view = mainwnd->GetRenderView(i);
+    if (i < 3)
+    {
+      connect( ((RenderView2D*)view), SIGNAL(RegionRemoved(Region2D*)),
+               this, SLOT(SetRegion()));
+      connect( ((RenderView2D*)view), SIGNAL(RegionSelected(Region2D*)),
+               this, SLOT(SetRegion(Region2D*)));
+    }
+    else
+    {
+      connect( ((RenderView3D*)view), SIGNAL(SurfaceRegionSelected(SurfaceRegion*)),
+               this, SLOT(SetSurfaceRegion(SurfaceRegion*)));
+      connect( ((RenderView3D*)view), SIGNAL(SurfaceRegionRemoved(SurfaceRegion*)),
+               this, SLOT(SetSurfaceRegion()));
+    }
+  }
+  LayerCollection* col_mri = mainwnd->GetLayerCollection("MRI");
+  connect( col_mri, SIGNAL(LayerAdded(Layer*)), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+  connect( col_mri, SIGNAL(LayerRemoved(Layer*)), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+  connect( col_mri, SIGNAL(LayerPropertyChanged()), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+
+  QTimer* timer = new QTimer( this );
+  connect( timer, SIGNAL(timeout()), this, SLOT(OnIdle()) );
+  timer->start( 50 );
 }
 
 ToolWindowMeasure::~ToolWindowMeasure()
-{}
-
-void ToolWindowMeasure::OnShow( wxShowEvent& event )
 {
-  if ( event.GetShow() )
+  QSettings settings;
+  settings.setValue("ToolWindowMeasure/Position", pos()-this->parentWidget()->pos());
+
+  delete ui;
+}
+
+void ToolWindowMeasure::showEvent(QShowEvent* event)
+{
+  static bool bFirstTime = true;
+  if ( bFirstTime )
   {
-    wxConfigBase* config = wxConfigBase::Get();
-    if ( config )
-    {
-      int x = config->Read( _T("/ToolWindowMeasure/PosX"), 0L );
-      int y = config->Read( _T("/ToolWindowMeasure/PosY"), 0L );
-      if ( x == 0 && y == 0 )
-        Center();
-      else
-        Move( x, y );
-    }
-    
- //   SetClientSize( GetClientSize().GetWidth(), m_toolbar->GetSize().GetHeight() );
+    QSettings settings;
+    QVariant v = settings.value( "ToolWindowMeasure/Position", QPoint( 200, 20 ) );
+    this->move( parentWidget()->pos() + v.toPoint() );
+    bFirstTime = false;
   }
-  else
-  {
-    wxConfigBase* config = wxConfigBase::Get();
-    if ( config )
-    {
-      int x, y;
-      GetPosition( &x, &y );
-      config->Write( _T("/ToolWindowMeasure/PosX"), (long) x );
-      config->Write( _T("/ToolWindowMeasure/PosY"), (long) y );
-    }
-  }
+}
+
+void ToolWindowMeasure::OnAction(QAction *act)
+{
+  MainWindow::GetMainWindow()->SetAction( act->data().toInt() );
+  UpdateWidgets();
 }
 
 void ToolWindowMeasure::SetRegion( Region2D* reg )
 {
+  if ( m_region )
+  {
+    m_region->disconnect( this );
+  }
   m_region = reg;
   if ( m_region )
   {
-    m_region->AddListener( this );
-    m_surfaceRegion = NULL;
-    RenderView* view = MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
+    connect( m_region, SIGNAL(StatsUpdated()), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+    if ( m_surfaceRegion )
+    {
+      m_surfaceRegion->disconnect( this );
+      m_surfaceRegion = NULL;
+    }
+    RenderView* view = MainWindow::GetMainWindow()->GetRenderView( 0 );
     if ( view->GetAction() == Interactor::MM_SurfaceRegion )
-      MainWindow::GetMainWindowPointer()->SetAction( Interactor::MM_Line );
-  }  
+    {
+      MainWindow::GetMainWindow()->SetAction( Interactor::MM_Line );
+    }
+  }
   UpdateWidgets();
 }
 
@@ -148,9 +166,13 @@ void ToolWindowMeasure::SetSurfaceRegion( SurfaceRegion* reg )
   m_surfaceRegion = reg;
   if ( m_surfaceRegion )
   {
-    m_surfaceRegion->AddListener( this );
-    m_region = NULL;
-    MainWindow::GetMainWindowPointer()->SetAction( Interactor::MM_SurfaceRegion );
+    connect(m_surfaceRegion, SIGNAL(ColorChanged(QColor)), this, SLOT(UpdateWidgets()), Qt::QueuedConnection);
+    if ( m_region )
+    {
+      m_region->disconnect( this );
+      m_region = NULL;
+    }
+    MainWindow::GetMainWindow()->SetAction( Interactor::MM_SurfaceRegion );
   }
   UpdateWidgets();
 }
@@ -160,238 +182,235 @@ void ToolWindowMeasure::UpdateWidgets( )
   m_bToUpdateWidgets = true;
 }
 
-void ToolWindowMeasure::DoUpdateWidgets()
+QString ToolWindowMeasure::GetLabelStats()
 {
-  wxString strg;
-  if ( m_region )
+  QString strg;
+  LayerCollection* lc = MainWindow::GetMainWindow()->GetLayerCollection( "MRI" );
+  LayerMRI* label = NULL, *mri = NULL;
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
   {
-    wxArrayString strgs = m_region->GetLongStats();
-    for ( size_t i = 0; i < strgs.size(); i++ )
-      strg += strgs[i] + "\n";   
+    if ( ( (LayerMRI*)lc->GetLayer( i ) )->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT )
+    {
+      label = ( (LayerMRI*)lc->GetLayer( i ) );
+      break;
+    }
   }
-  m_textStats->ChangeValue( strg ); 
-  m_btnCopy->Enable( !strg.IsEmpty() );
-  m_btnExport->Enable( !strg.IsEmpty() );
-  
-  RenderView3D* view = (RenderView3D*)MainWindow::GetMainWindowPointer()->GetRenderView( 3 );
-  for ( size_t i = 0; i < m_widgets3D.size(); i++ )
-    m_widgets3D[i]->Show( view->GetAction() == Interactor::MM_SurfaceRegion );
-  
-  for ( size_t i = 0; i < m_widgets2D.size(); i++ )
-    m_widgets2D[i]->Show( view->GetAction() != Interactor::MM_SurfaceRegion );
-  
+  for ( int i = 0; i < lc->GetNumberOfLayers(); i++ )
+  {
+    if ( ( (LayerMRI*)lc->GetLayer( i ) )->GetProperty()->GetColorMap() != LayerPropertyMRI::LUT )
+    {
+      mri = ( (LayerMRI*)lc->GetLayer( i ) );
+      break;
+    }
+  }
+  if ( label && mri )
+  {
+    int nPlane = MainWindow::GetMainWindow()->GetMainViewId();
+    if ( nPlane < 3 )
+    {
+      std::vector<int> ids, numbers;
+      std::vector<double> means, sds;
+      mri->GetLabelStats( label, nPlane, ids, numbers, means, sds );
+      strg = "Id \tCount \tMean \t+/-SD\n";
+      for ( size_t i = 0; i < ids.size(); i++ )
+      {
+        QString snum = QString("%1").arg(numbers[i], -4);
+        QString smean = QString("%1").arg(means[i], -4);
+        strg += QString("%1 \t%2 \t%3 \t%4\n").arg(ids[i]).arg(snum).arg(smean).arg(sds[i]);
+      }
+    }
+  }
+
+  return strg;
+}
+
+void ToolWindowMeasure::OnIdle()
+{
+  if ( !m_bToUpdateWidgets || false ) // qApp->hasPendingEvents() )
+  {
+    return;
+  }
+
+  // update all widgets and actions
+  QList<QWidget*> allwidgets = this->findChildren<QWidget*>();
+  for ( int i = 0; i < allwidgets.size(); i++ )
+  {
+    allwidgets[i]->blockSignals( true );
+  }
+  RenderView* view = MainWindow::GetMainWindow()->GetRenderView( 0 );
+  ui->actionLine->setChecked( view->GetAction() == Interactor::MM_Line );
+  ui->actionPolyLine->setChecked( view->GetAction() == Interactor::MM_Polyline );
+  ui->actionSpline->setChecked( view->GetAction() == Interactor::MM_Spline );
+  ui->actionRectangle->setChecked( view->GetAction() == Interactor::MM_Rectangle );
+  ui->actionLabel->setChecked( view->GetAction() == Interactor::MM_Label );
+  ui->actionContour->setChecked( view->GetAction() == Interactor::MM_SurfaceRegion );
+  bool bLabelExist = false;
+  LayerCollection* col_mri = MainWindow::GetMainWindow()->GetLayerCollection("MRI");
+  for ( int i = 0; i < col_mri->GetNumberOfLayers(); i++ )
+  {
+    if ( ( (LayerMRI*)col_mri->GetLayer( i ) )->GetProperty()->GetColorMap() == LayerPropertyMRI::LUT )
+    {
+      bLabelExist = true;
+      break;
+    }
+  }
+  ui->actionLabel->setEnabled( MainWindow::GetMainWindow()->GetMainViewId() < 3 &&
+                               col_mri->GetNumberOfLayers() > 1 && bLabelExist );
+
+  QString strg;
+  if ( view->GetAction() == Interactor::MM_Label )
+  {
+    strg = GetLabelStats();
+  }
+  else if ( m_region )
+  {
+    QStringList strgs = m_region->GetLongStats();
+    for ( int i = 0; i < strgs.size(); i++ )
+    {
+      strg += strgs[i] + "\n";
+    }
+  }
+  ui->textBrowserInfo->setText( strg );
+  ui->pushButtonCopy->setEnabled( !strg.isEmpty() );
+  ui->pushButtonExport->setEnabled( !strg.isEmpty() );
+  ui->pushButtonUpdate->setVisible( view->GetAction() == Interactor::MM_Label );
+
+  ShowWidgets( m_widgets3D, view->GetAction() == Interactor::MM_SurfaceRegion );
+  ShowWidgets( m_widgets2D, view->GetAction() != Interactor::MM_SurfaceRegion );
+
   if ( m_surfaceRegion )
-    m_spinId->SetValue( m_surfaceRegion->GetId() );
-  
-  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-  bool bSurfaceRegionValid = ( mri && mri->GetProperties()->GetShowAsContour() && mri->GetNumberOfSurfaceRegions() > 0 );
+  {
+    ui->spinBoxId->setValue( m_surfaceRegion->GetId() );
+    ui->spinBoxGroup->setValue( m_surfaceRegion->GetGroup() );
+    ui->spinBoxGroup->setRange( 1,
+                                m_surfaceRegion->GetMRI()->GetSurfaceRegionGroups()
+                                ->GetGroupIdRange( m_surfaceRegion ) );
+    ui->colorPickerGroup->setCurrentColor( m_surfaceRegion->GetColor() );
+  }
+
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  ui->actionContour->setEnabled(mri &&  mri->GetProperty()->GetShowAsContour());
+  bool bSurfaceRegionValid = ( mri && mri->GetProperty()->GetShowAsContour() && mri->GetNumberOfSurfaceRegions() > 0 );
   if ( bSurfaceRegionValid )
-    m_spinId->SetRange( 1, mri->GetNumberOfSurfaceRegions() );
-  
-  m_btnSave->Enable( m_surfaceRegion && bSurfaceRegionValid );
-  m_spinId->Enable( m_surfaceRegion && bSurfaceRegionValid );
-  m_btnSaveAll->Enable( bSurfaceRegionValid );
-  
-  XRCCTRL( *this, "ID_PANEL_HOLDER",  wxPanel )->Layout();
-  Layout();
+  {
+    ui->spinBoxId->setRange( 1, mri->GetNumberOfSurfaceRegions() );
+  }
+
+  ui->pushButtonSave->setEnabled( m_surfaceRegion && bSurfaceRegionValid );
+  ui->spinBoxId->setEnabled( m_surfaceRegion && bSurfaceRegionValid );
+  ui->spinBoxGroup->setEnabled( m_surfaceRegion && bSurfaceRegionValid );
+  ui->colorPickerGroup->setEnabled( m_surfaceRegion && bSurfaceRegionValid );
+  ui->pushButtonSaveAll->setEnabled( bSurfaceRegionValid );
+
   m_bToUpdateWidgets = false;
-}
 
-void ToolWindowMeasure::OnInternalIdle()
-{
-  wxFrame::OnInternalIdle();
-  
-  if ( m_bToUpdateWidgets )
-    DoUpdateWidgets();
-}
-
-void ToolWindowMeasure::DoListenToMessage ( std::string const iMsg, void* iData, void* sender )
-{
-  if ( iMsg == "RegionStatsUpdated" )
+  for ( int i = 0; i < allwidgets.size(); i++ )
   {
-    if ( m_region == iData || m_region == sender )
-      UpdateWidgets();
-  }
-  else if ( iMsg == "RegionSelected" )
-  {
-    SetRegion( (Region2D*)iData );
-  }
-  else if ( iMsg == "RegionRemoved" )
-  {
-    if ( m_region == iData )
-      SetRegion( NULL );
-  }
-  else if ( iMsg == "SurfaceRegionSelected" )
-  {
-    SetSurfaceRegion( (SurfaceRegion*)iData );
-  }
-  else if ( iMsg == "SurfaceRegionRemoved" )
-  {
-    if ( m_surfaceRegion == iData )
-      SetSurfaceRegion( NULL );
+    allwidgets[i]->blockSignals( false );
   }
 }
 
-void ToolWindowMeasure::OnActionMeasureLine( wxCommandEvent& event )
+void ToolWindowMeasure::OnLoad()
 {
-  MainWindow::GetMainWindowPointer()->SetAction( Interactor::MM_Line );
-  UpdateWidgets();
-}
+  QString filename = QFileDialog::getOpenFileName( this,
+                     "Load region(s) from file",
+                     "",
+                     "All files (*)");
 
-void ToolWindowMeasure::OnActionMeasureLineUpdateUI( wxUpdateUIEvent& event)
-{
-  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
-  event.Check( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && view->GetAction() == Interactor::MM_Line );
-  event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
-                && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
-}
-
-
-void ToolWindowMeasure::OnActionMeasureRectangle( wxCommandEvent& event )
-{
-  MainWindow::GetMainWindowPointer()->SetAction( Interactor::MM_Rectangle );
-  UpdateWidgets();
-}
-
-void ToolWindowMeasure::OnActionMeasureRectangleUpdateUI( wxUpdateUIEvent& event)
-{
-  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
-  event.Check( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && view->GetAction() == Interactor::MM_Rectangle );
-  event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
-}
-
-void ToolWindowMeasure::OnActionMeasurePolyline( wxCommandEvent& event )
-{
-  MainWindow::GetMainWindowPointer()->SetAction( Interactor::MM_Polyline );
-  UpdateWidgets();
-}
-
-void ToolWindowMeasure::OnActionMeasurePolylineUpdateUI( wxUpdateUIEvent& event)
-{
-  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
-  event.Check( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && view->GetAction() == Interactor::MM_Polyline );
-  event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
-}
-
-void ToolWindowMeasure::OnActionMeasureSpline( wxCommandEvent& event )
-{
-  MainWindow::GetMainWindowPointer()->SetAction( Interactor::MM_Spline );
-  UpdateWidgets();
-}
-
-void ToolWindowMeasure::OnActionMeasureSplineUpdateUI( wxUpdateUIEvent& event)
-{
-  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
-  event.Check( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && view->GetAction() == Interactor::MM_Spline );
-  event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
-}
-
-void ToolWindowMeasure::OnActionMeasureSurfaceRegion( wxCommandEvent& event )
-{
-  MainWindow::GetMainWindowPointer()->SetAction( Interactor::MM_SurfaceRegion );
-  UpdateWidgets();
-}
-
-void ToolWindowMeasure::OnActionMeasureSurfaceRegionUpdateUI( wxUpdateUIEvent& event)
-{
-  RenderView2D* view = ( RenderView2D* )MainWindow::GetMainWindowPointer()->GetRenderView( 0 );
-  event.Check( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && view->GetAction() == Interactor::MM_SurfaceRegion );
-  event.Enable( view->GetInteractionMode() == RenderView2D::IM_Measure
-      && !MainWindow::GetMainWindowPointer()->GetLayerCollection( "MRI" )->IsEmpty() );
-}
-
-void ToolWindowMeasure::OnButtonCopy( wxCommandEvent& event )
-{
-  wxString output = m_textStats->GetValue();
-  if (wxTheClipboard->Open())
+  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+  if ( mri && !filename.isEmpty() )
   {
-    wxTheClipboard->SetData( new wxTextDataObject( output ) );
-    wxTheClipboard->Close();
-  }
-}
-
-void ToolWindowMeasure::OnButtonExport( wxCommandEvent& event )
-{
-  wxFileDialog dlg( this, _("Export to file"), _(""), _(""),
-                    _("All files (*.*)|*.*"),
-                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
-  if ( dlg.ShowModal() == wxID_OK )
-  {
-    wxString fn = dlg.GetPath();
-    if ( !m_textStats->SaveFile( fn ) )
+    if ( !mri->LoadSurfaceRegions( filename ) )
     {
-      wxMessageDialog msg_dlg( this, wxString("Can not write to file ") + fn, 
-                           _("Error"), wxOK );
-      msg_dlg.ShowModal();
-    } 
+      QMessageBox::warning(this, "Error", QString("Can not load file ") + filename);
+    }
+    UpdateWidgets();
   }
 }
 
-void ToolWindowMeasure::OnSpinId( wxSpinEvent& event )
+void ToolWindowMeasure::OnSave()
 {
-  RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindowPointer()->GetRenderView( 3 );
-  view->PickSelectRegion( event.GetInt() );
-}
-
-void ToolWindowMeasure::OnButtonSave( wxCommandEvent& event )
-{
-  wxFileDialog dlg( this, _("Save region to file"), _(""), _(""),
-                    _("All files (*.*)|*.*"),
-                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
-  if ( m_surfaceRegion && dlg.ShowModal() == wxID_OK )
+  QString filename = QFileDialog::getSaveFileName( this,
+                     "Save region",
+                     "",
+                     "All files (*)");
+  if ( m_surfaceRegion && !filename.isEmpty() )
   {
-    wxString fn = dlg.GetPath();
-    if ( !m_surfaceRegion->Write( fn ) )
+    if ( !m_surfaceRegion->Write( filename ) )
     {
-      wxMessageDialog msg_dlg( this, wxString("Can not write to file ") + fn, 
-                               _("Error"), wxOK );
-      msg_dlg.ShowModal();
-    } 
+      QMessageBox::warning(this, "Error", QString("Can not write to file ") + filename);
+    }
   }
 }
 
-void ToolWindowMeasure::OnButtonSaveAll( wxCommandEvent& event )
+void ToolWindowMeasure::OnSaveAll()
 {
-  wxFileDialog dlg( this, _("Save all regions to file"), _(""), _(""),
-                    _("All files (*.*)|*.*"),
-                    wxFD_SAVE | wxFD_OVERWRITE_PROMPT );
-  if ( dlg.ShowModal() == wxID_OK )
+  QString filename = QFileDialog::getSaveFileName( this,
+                     "Save region",
+                     "",
+                     "All files (*)");
+  if ( m_surfaceRegion && !filename.isEmpty() )
   {
-    wxString fn = dlg.GetPath();
-    LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-    if ( mri && !mri->SaveAllSurfaceRegions( fn ) )
+    LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindow()->GetActiveLayer( "MRI" );
+    if ( !mri->SaveAllSurfaceRegions( filename ) )
     {
-      wxMessageDialog msg_dlg( this, wxString("Can not write to file ") + fn, 
-                               _("Error"), wxOK );
-      msg_dlg.ShowModal();
-    } 
+      QMessageBox::warning(this, "Error", QString("Can not write to file ") + filename);
+    }
   }
 }
 
-void ToolWindowMeasure::OnButtonLoad( wxCommandEvent& event )
+void ToolWindowMeasure::OnUpdate()
 {
-  wxFileDialog dlg( this, _("Load region(s) from file"), _(""), _(""),
-                    _("All files (*.*)|*.*"),
-                    wxFD_OPEN );
-  
-  LayerMRI* mri = (LayerMRI*)MainWindow::GetMainWindowPointer()->GetActiveLayer( "MRI" );
-  if ( mri && dlg.ShowModal() == wxID_OK )
+  UpdateWidgets();
+}
+
+void ToolWindowMeasure::OnCopy()
+{
+  QApplication::clipboard()->setText(ui->textBrowserInfo->toPlainText());
+}
+
+void ToolWindowMeasure::OnExport()
+{
+  QString filename = QFileDialog::getSaveFileName( this,
+                     "Export stats to file",
+                     "",
+                     "All files (*)");
+  if (!filename.isEmpty())
   {
-    wxString fn = dlg.GetPath();
-    if ( !mri->LoadRegionSurfaces( fn ) )
+    QFile file(filename);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
     {
-      wxMessageDialog msg_dlg( this, wxString("Can not load file ") + fn, 
-                               _("Error"), wxOK );
-      msg_dlg.ShowModal();
-    } 
+      QMessageBox::warning(this, "Error", QString("Unable to write to file ") + filename);
+      return;
+    }
+
+    QTextStream out(&file);
+    out << ui->textBrowserInfo->toPlainText();
+  }
+}
+
+void ToolWindowMeasure::OnSpinBoxId(int val)
+{
+  RenderView3D* view = ( RenderView3D* )MainWindow::GetMainWindow()->GetRenderView( 3 );
+  view->PickSelectRegion( val );
+  view->RequestRedraw();
+}
+
+void ToolWindowMeasure::OnSpinBoxGroup(int val)
+{
+  if ( m_surfaceRegion )
+  {
+    m_surfaceRegion->SetGroup( val );
+    UpdateWidgets();
+  }
+}
+
+void ToolWindowMeasure::OnColorGroup( const QColor& color )
+{
+  if ( m_surfaceRegion )
+  {
+    m_surfaceRegion->GetMRI()->GetSurfaceRegionGroups()
+    ->SetGroupColor( m_surfaceRegion->GetGroup(), color );
     UpdateWidgets();
   }
 }

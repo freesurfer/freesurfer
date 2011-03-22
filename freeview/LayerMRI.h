@@ -6,21 +6,20 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/07/21 19:00:06 $
- *    $Revision: 1.51 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 15:55:25 $
+ *    $Revision: 1.61.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
+ *
  *
  */
 
@@ -29,14 +28,13 @@
 
 #include "LayerVolumeBase.h"
 #include "vtkSmartPointer.h"
-#include "CommonDataStruct.h"
-#include <string>
-#include <vector>
+#include <QString>
+#include <QList>
 
 extern "C"
 {
 #include "colortab.h"
-} 
+}
 
 class vtkImageReslice;
 class vtkImageMapToColors;
@@ -53,54 +51,55 @@ class vtkPolyData;
 class vtkPolyDataAlgorithm;
 class vtkImageResample;
 class vtkUnsignedCharArray;
-class LayerPropertiesMRI;
+class LayerPropertyMRI;
 class FSVolume;
-class wxWindow;
-class wxCommandEvent;
 class BuildContourThread;
 class Contour2D;
 class SurfaceRegion;
+class SurfaceRegionGroups;
 
 class LayerMRI : public LayerVolumeBase
 {
-  friend class BuildContourThread;
+  friend class ThreadBuildContour;
   friend class VolumeCropper;
-  
+  friend class SurfaceRegionGroups;
+
+  Q_OBJECT
 public:
-  LayerMRI( LayerMRI* ref );
+  LayerMRI( LayerMRI* ref, QObject* parent = NULL );
   virtual ~LayerMRI();
 
-//  bool LoadVolumeFromFile( std::string filename );
-  bool LoadVolumeFromFile( wxWindow* wnd, wxCommandEvent& event );
+  inline LayerPropertyMRI* GetProperty()
+  {
+    return (LayerPropertyMRI*)mProperty;
+  }
+
+  bool LoadVolumeFromFile();
   bool Create( LayerMRI* mri, bool bCopyVoxel, int data_type = -1 );
 
   virtual void Append2DProps( vtkRenderer* renderer, int nPlane );
   virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
   bool HasProp( vtkProp* prop );
-  
+
   void Remove2DProps( vtkRenderer* render, int nPlane );
 
 //  void SetSliceNumber( int* sliceNumber );
   void SetSlicePositionToWorldCenter();
 
   virtual double GetVoxelValue( double* pos );
-  double GetVoxelValueByOriginalIndex( int i, int j, int k );
-  
-  virtual std::string GetLabelName( double value );
+  virtual double GetVoxelValueByOriginalIndex( int i, int j, int k );
+
+  virtual QString GetLabelName( double value );
 
   void RASToOriginalIndex( const double* pos, int* n );
   void OriginalIndexToRAS( const int* n, double* pos );
 
-  inline LayerPropertiesMRI* GetProperties()
-  {
-    return (LayerPropertiesMRI*)mProperties;
-  }
 
-  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
+//  virtual void DoListenToMessage ( std::string const iMessage, void* iData, void* sender );
 
   virtual void SetVisible( bool bVisible = true );
   virtual bool IsVisible();
-  
+
   virtual void UpdateVoxelValueRange( double dValue );
 
   FSVolume* GetSourceVolume()
@@ -112,13 +111,13 @@ public:
   {
     return m_volumeRef;
   }
-  
+
   void SetRefVolume( FSVolume* ref )
   {
     m_volumeRef = ref;
   }
 
-  bool SaveVolume( wxWindow* wnd, wxCommandEvent& event );
+  bool SaveVolume();
 
   void SetResampleToRAS( bool bResample );
 
@@ -129,110 +128,137 @@ public:
 
   void RemapPositionToRealRAS( const double* pos_in, double* pos_out );
 
+  void RemapPositionToRealRAS( double x_in, double y_in, double z_in,
+                               double& x_out, double& y_out, double& z_out );
+
   void TargetToRAS( const double* pos_in, double* pos_out )
   {
     RemapPositionToRealRAS( pos_in, pos_out );
   }
-  
-  void RemapPositionToRealRAS( double x_in, double y_in, double z_in,
-                               double& x_out, double& y_out, double& z_out );
+
   void RASToTarget( const double* pos_in, double* pos_out );
 
   void NativeRASToTkReg( const double* pos_in, double* pos_out );
-  
+
   void TkRegToNativeRAS( const double* pos_in, double* pos_out );
-  
+
   int GetNumberOfFrames();
 
-  void SetActiveFrame( int nFrame );
-
   void GetRASCenter( double* pt );
-  
+
   bool IsTransformed();
-  
+
   void SetReorient( bool bReorient );
-  
+
   void SetSampleMethod( int nSampleMethod )
   {
     m_nSampleMethod = nSampleMethod;
   }
 
   void SetConform( bool bConform );
-  
-  bool GetVoxelValueRange( const double* pt0, const double* pt1, 
+
+  bool GetVoxelValueRange( const double* pt0, const double* pt1,
                            int nPlane, double* range_out );
-  
-  bool GetVoxelStatsRectangle( const double* pt0, const double* pt1, 
-                           int nPlane, double* mean_out, double* sd_out = NULL, int* cnt_out = NULL );
-  
+
+  bool GetVoxelStatsRectangle( const double* pt0, const double* pt1,
+                               int nPlane, double* mean_out, double* sd_out = NULL, int* cnt_out = NULL );
+
   bool GetVoxelsOnLine( const double* pt0, const double* pt1, int nPlane, int*& indice_out, double*& value_out, int* cnt_out );
-  
+
   void ResetWindowLevel();
-  
+
   int GetDataType();
-  
+
   COLOR_TABLE* GetEmbeddedColorTable();
-  
-  void SnagToVoxelCenter( const double* pt_in, double* pt_out );
-  
-  int GetBuildContourThreadID()
-  {
-    return m_nThreadID;
-  }
-  
-  void RealizeContourActor();
-  
+
+  void SnapToVoxelCenter( const double* pt_in, double* pt_out );
+
   void GetCurrentLabelStats( int nPlane, float* label_out, int* count_out, float* area_out );
-  
+
   vtkImageData* GetSliceImageData( int nPlane );
-  
+
   bool FloodFillByContour2D( double* ras, Contour2D* c2d );
-  
+
   virtual void SetModified();
-  
+
+  bool SaveContourToFile(const QString& fn);
+
   SurfaceRegion* CreateNewSurfaceRegion( double* pt );
-  
+
   void AddSurfaceRegionLoopPoint( double* pt );
-  
+
   void CloseSurfaceRegion();
-  
+
   SurfaceRegion* SelectSurfaceRegion( double* pos );
   SurfaceRegion* SelectSurfaceRegion( int nId );
-  
+
   SurfaceRegion* GetCurrentSurfaceRegion()
   {
     return m_currentSurfaceRegion;
   }
-  
+
   bool DeleteCurrentSurfaceRegion();
-  
+
   int GetNumberOfSurfaceRegions()
   {
     return m_surfaceRegions.size();
   }
-  
-  bool SaveAllSurfaceRegions( wxString& fn );
-  
-  bool LoadRegionSurfaces( wxString& fn );
-  
-  const char* GetOrientationString();
-  
+
+  bool SaveAllSurfaceRegions( const QString& fn );
+
+  bool LoadSurfaceRegions( const QString& fn );
+
+  QString GetOrientationString();
+
   void SetCroppingBounds( double* bounds );
-  
+
   virtual void GetDisplayBounds( double* bounds );
-  
-  bool SaveRegistration( const char* filename );
-  
-protected:
-  virtual bool DoRotate( std::vector<RotationElement>& rotations, 
-                       wxWindow* wnd, 
-                       wxCommandEvent& event );
-  virtual void DoTranslate( double* offset );
-  virtual void DoScale( double* rscale, int nSampleMethod );
-  virtual void DoRestore();
-  
-  void InitializeVolume();
-  void InitializeActors();
+
+  bool SaveRegistration( const QString& filename );
+
+  void GetLabelStats( LayerMRI* label, int nPlane,
+                      std::vector<int>& id,
+                      std::vector<int>& number,
+                      std::vector<double>& mean,
+                      std::vector<double>& std );
+
+  SurfaceRegionGroups* GetSurfaceRegionGroups()
+  {
+    return m_surfaceRegionGroups;
+  }
+
+  void SetWriteResampled(bool bResample)
+  {
+    m_bWriteResampled = bResample;
+  }
+
+  bool GetWriteResampled()
+  {
+    return m_bWriteResampled;
+  }
+
+  int GoToLabel(int orientation, const QString& label_name);
+
+  void ReplaceVoxelValue(double orig_value, double new_value, int nPlane = -1);
+
+public slots:
+  void SetActiveFrame( int nFrame );
+  void SetActiveFrameOneBase( int nFrame )
+  {
+    SetActiveFrame( nFrame-1 );
+  }
+
+Q_SIGNALS:
+  void ResampleFactorChanged();
+//  void ColorMapChanged();
+  void ActiveFrameChanged( int nFrame );
+  void SurfaceRegionAdded();
+  void SurfaceRegionUpdated();
+  void SurfaceRegionRemoved();
+  void IsoSurfaceUpdated();
+
+protected slots:
+  void UpdateDisplayMode();
   void UpdateOpacity();
   void UpdateResliceInterpolation();
   void UpdateTextureSmoothing();
@@ -244,27 +270,40 @@ protected:
   void UpdateVectorActor();
   void UpdateVectorActor( int nPlane, vtkImageData* imagedata );
   virtual void UpdateVectorActor( int nPlane );
-  
+
   void ResetSurfaceRegionIds();
-  
-  std::vector<int> GetVoxelIndicesBetweenPoints( int* n0, int* n1 );
-  
+
   void UpdateLabelOutline();
   void UpdateUpSampleMethod();
-  
+
   void UpdateTensorActor();
-  void UpdateTensorActor( int nPlane, vtkImageData* imagedata = NULL );
-  
-  void BuildTensorGlyph( vtkImageData* imagedata,
-                                 int i, int j, int k, 
-                                 double* pt, double scale, 
-                                 vtkPolyData* sourcepolydata,
-                                 vtkUnsignedCharArray* scalars,
-                                 vtkPolyDataAlgorithm* a);
-  
   virtual void UpdateColorMap();
 
+  void OnContourThreadFinished(int thread_id);
+
+protected:
+  virtual void DoTransform(double *mat, int sample_method);
+  virtual bool DoRotate( std::vector<RotationElement>& rotations );
+  virtual void DoTranslate( double* offset );
+  virtual void DoScale( double* rscale, int nSampleMethod );
+  virtual void DoRestore();
+
+  void InitializeVolume();
+  void InitializeActors();
+  void ConnectProperty();
+  void UpdateTensorActor( int nPlane, vtkImageData* imagedata = NULL );
+
+  std::vector<int> GetVoxelIndicesBetweenPoints( int* n0, int* n1 );
+  void BuildTensorGlyph( vtkImageData* imagedata,
+                         int i, int j, int k,
+                         double* pt, double scale,
+                         vtkPolyData* sourcepolydata,
+                         vtkUnsignedCharArray* scalars,
+                         vtkPolyDataAlgorithm* a);
+
+
   virtual void OnSlicePositionChanged( int nPlane );
+
 
   // Pipeline ------------------------------------------------------------
   vtkSmartPointer<vtkImageReslice>      mReslice[3];
@@ -278,35 +317,37 @@ protected:
   bool    m_bReorient;
   int     m_nSampleMethod;
   bool    m_bConform;
-  
+  bool    m_bWriteResampled;
+
   vtkImageActor*  m_sliceActor2D[3];
   vtkImageActor*  m_sliceActor3D[3];
-  
+
   vtkActor*       m_glyphActor2D[3];
   vtkActor*       m_glyphActor3D[3];
-  
+
   struct SegmentationActor
   {
     int id;
     vtkActor* actor;
   };
-        
-  std::vector<SegmentationActor>  m_segActors;              
-  
+
+  QList<SegmentationActor>    m_segActors;
+
   vtkSmartPointer<vtkActor>   m_actorContour;
   vtkSmartPointer<vtkVolume>  m_propVolume;
-  
+
   int         m_nThreadID;
   vtkSmartPointer<vtkActor>       m_actorContourTemp;
-  
-  std::vector<SurfaceRegion*>     m_surfaceRegions;
+
+  QList<SurfaceRegion*>           m_surfaceRegions;
   SurfaceRegion*                  m_currentSurfaceRegion;
-  
+  SurfaceRegionGroups*            m_surfaceRegionGroups;
+
   int         m_nOrientationIndex[3];
-  
+
 private:
   double**    private_buf1_3x3;
-  double**    private_buf2_3x3;    
+  double**    private_buf2_3x3;
 };
 
 #endif
