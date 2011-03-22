@@ -295,6 +295,8 @@ int main(int argc, char *argv[]) {
   int rslt = 0; // default to OK
   purpose_t purpose = PURPOSE;
 
+  msg[0]=0;
+
   if (getenv("SKIP_MRISHASH_TEST")) exit(77); // bypass
 
   Progname = argv[0];
