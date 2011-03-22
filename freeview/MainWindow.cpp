@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.160 $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.161 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -3286,7 +3286,7 @@ void MainWindow::OnSaveVolume()
     name.replace(" ", "_");
     fn = QFileDialog::getSaveFileName( this, "Save volume file",
                                        AutoSelectLastDir( "mri" ),
-                                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+                                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   }
 
   if ( !fn.isEmpty() )
@@ -3330,7 +3330,7 @@ void MainWindow::SaveVolumeAs()
   else
     fn = QFileDialog::getSaveFileName( this, "Save volume",
                                        QFileInfo( layer_mri->GetFileName() ).absolutePath(),
-                                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+                                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !fn.isEmpty() )
   {
     layer_mri->SetFileName( fn );
@@ -3423,7 +3423,7 @@ void MainWindow::OnLoadROI()
 {
   QStringList filenames = QFileDialog::getOpenFileNames( this, "Select label file",
                           AutoSelectLastDir( "label" ),
-                          "Label files (*.*)");
+                          "Label files (*)");
   for ( int i = 0; i < filenames.size(); i++)
   {
     this->AddScript( QString("loadroi ")+filenames[i] );
@@ -3505,7 +3505,7 @@ void MainWindow::OnSaveROI()
   {
     fn = QFileDialog::getSaveFileName( this, "Select label file",
                                        AutoSelectLastDir( "label" ),
-                                       "Label files (*.*)");
+                                       "Label files (*)");
   }
 
   if ( !fn.isEmpty() )
@@ -3732,7 +3732,7 @@ void MainWindow::OnLoadTrack()
 {
   QStringList filenames = QFileDialog::getOpenFileNames( this, "Select track file",
                           m_strLastDir,
-                          "Track files (*.trk);;All files (*.*)");
+                          "Track files (*.trk);;All files (*)");
   if ( !filenames.isEmpty() )
   {
     for ( int i = 0; i < filenames.size(); i++ )
@@ -3764,7 +3764,7 @@ void MainWindow::OnLoadSurface()
 {
   QStringList filenames = QFileDialog::getOpenFileNames( this, "Select surface file",
                           AutoSelectLastDir( "surf" ),
-                          "Surface files (*.*)");
+                          "Surface files (*)");
   if ( !filenames.isEmpty() )
   {
     for ( int i = 0; i < filenames.size(); i++ )
@@ -4106,7 +4106,7 @@ void MainWindow::LoadSurfaceCurvature()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select curvature file",
                      AutoSelectLastDir( "surf" ),
-                     "Curvature files (*.*)");
+                     "Curvature files (*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceCurvatureFile( filename );
@@ -4128,7 +4128,7 @@ void MainWindow::LoadSurfaceOverlay(bool bCorrelation)
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select overlay file",
                      AutoSelectLastDir( "surf" ),
-                     "Overlay files (*.*)");
+                     "Overlay files (*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceOverlayFile( filename, bCorrelation );
@@ -4152,7 +4152,7 @@ void MainWindow::LoadSurfaceAnnotation()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select annotation file",
                      AutoSelectLastDir( "label" ),
-                     "Annotation files (*.*)");
+                     "Annotation files (*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceAnnotationFile( filename );
@@ -4173,7 +4173,7 @@ void MainWindow::LoadSurfaceLabel()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select label file",
                      m_strLastDir,
-                     "Label files (*.*)");
+                     "Label files (*)");
   if ( !filename.isEmpty() )
   {
     this->LoadSurfaceLabelFile( filename );
@@ -4817,7 +4817,7 @@ void MainWindow::OnLoadCommand()
 {
   QString filename = QFileDialog::getOpenFileName( this, "Select command file",
                      m_strLastDir,
-                     "Command files (*.*)");
+                     "Command files (*)");
   if (!filename.isEmpty())
   {
     AddScript(QString("loadcommand ") + filename);

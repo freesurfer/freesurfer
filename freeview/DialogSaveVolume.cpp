@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -77,7 +77,7 @@ void DialogSaveVolume::OnOpen()
 {
   QString fn = QFileDialog::getSaveFileName( this, "Save volume",
                GetFileName(),
-               "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+               "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !fn.isEmpty() )
   {
     ui->lineEditFileName->setText(fn);

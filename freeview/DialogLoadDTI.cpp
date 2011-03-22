@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.16 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.17 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -96,7 +96,7 @@ void DialogLoadDTI::OnButtonVector()
                        this,
                        "Select vector file",
                        MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
-                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+                       "Volume files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !filename.isEmpty() )
   {
     ui->lineEditVector->setText( MyUtils::Win32PathProof(filename) );
@@ -111,7 +111,7 @@ void DialogLoadDTI::OnButtonFA()
                        this,
                        "Select FA file",
                        MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
-                       "FA files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*.*)");
+                       "FA files (*.mgz *.mgh *.nii *.nii.gz *.img *.mnc);;All files (*)");
   if ( !filename.isEmpty() )
   {
     ui->lineEditFA->setText( MyUtils::Win32PathProof(filename) );
@@ -126,7 +126,7 @@ void DialogLoadDTI::OnButtonRegistration()
                        this,
                        "Select registration file",
                        MainWindow::AutoSelectLastDir( m_strLastDir, "mri" ),
-                       "Registration files (*.*)" );
+                       "Registration files (*)" );
   if ( !filename.isEmpty() )
   {
     ui->lineEditRegistration->setText( MyUtils::Win32PathProof(filename) );

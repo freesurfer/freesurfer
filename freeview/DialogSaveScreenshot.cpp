@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -50,7 +50,8 @@ DialogSaveScreenshot::~DialogSaveScreenshot()
 
 QString DialogSaveScreenshot::GetFileName()
 {
-  return MyUtils::CygwinPathProof(ui->lineEditFileName->text().trimmed());
+  QString filename = MyUtils::CygwinPathProof(ui->lineEditFileName->text().trimmed());;
+  return QFileInfo(QDir::current(), filename).absoluteFilePath();
 }
 
 void DialogSaveScreenshot::SetSettings( SettingsScreenshot s )

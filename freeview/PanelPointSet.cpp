@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -353,7 +353,7 @@ void PanelPointSet::LoadScalarValues()
   {
     QString fn = QFileDialog::getOpenFileName( this, "Select scalar file",
                  "",
-                 "All files (*.*)");
+                 "All files (*)");
     if ( !fn.isEmpty() )
     {
       if ( !layer->GetProperty()->LoadScalarsFromFile( fn ) )

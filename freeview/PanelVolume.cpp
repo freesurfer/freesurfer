@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:48 $
- *    $Revision: 1.60 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.61 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -881,7 +881,7 @@ void PanelVolume::OnContourSave()
     QString fn = QFileDialog::getSaveFileName( this,
                  "Save iso-surface",
                  MainWindow::GetMainWindow()->AutoSelectLastDir("mri") + "/" + layer->GetName() + ".vtk",
-                 "VTK files (*.vtk);;All files (*.*)");
+                 "VTK files (*.vtk);;All files (*)");
     if ( !fn.isEmpty() )
     {
       if ( !layer->SaveContourToFile( fn ) )

@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:46 $
- *    $Revision: 1.8 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.9 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -59,7 +59,7 @@ void DialogLoadPointSet::OnButtonOpen()
                       this,
                       "Select point set files",
                       m_strLastDir,
-                      "All files (*.*)" );
+                      "All files (*)" );
   if ( !fns.isEmpty())
   {
     m_strLastDir = QFileInfo(fns[0]).canonicalPath();

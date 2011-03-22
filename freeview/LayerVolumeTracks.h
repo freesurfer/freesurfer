@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: rpwang $
- *    $Date: 2011/03/21 21:27:40 $
- *    $Revision: 1.1 $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -27,11 +27,26 @@
 #define LAYERVOLUMETRACKS_H
 
 #include "LayerMRI.h"
+#include <QList>
+
+class vtkActor;
 
 class LayerVolumeTracks : public LayerMRI
 {
+  Q_OBJECT
 public:
-    LayerVolumeTracks( LayerMRI* ref, QObject* parent = NULL );
+  LayerVolumeTracks( LayerMRI* ref, QObject* parent = NULL );
+  virtual ~LayerVolumeTracks();
+
+  bool LoadFromFile();
+
+  virtual void Append3DProps( vtkRenderer* renderer, bool* bPlaneVisibility = NULL );
+
+protected:
+  void UpdateColorMap();
+  void UpdateData();
+
+  QList<vtkActor*>  m_actors;
 };
 
 #endif // LAYERVOLUMETRACKS_H

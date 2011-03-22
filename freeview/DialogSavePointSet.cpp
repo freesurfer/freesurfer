@@ -6,9 +6,9 @@
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/14 23:44:47 $
- *    $Revision: 1.4 $
+ *    $Author: rpwang $
+ *    $Date: 2011/03/22 21:21:26 $
+ *    $Revision: 1.5 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -67,7 +67,7 @@ void DialogSavePointSet::OnOpen()
 {
   QString old_fn = GetFileName();
   QString fn = QFileDialog::getSaveFileName(this, "Select File To Save",
-               (old_fn.isEmpty()?m_strLastDir:old_fn),                                              "All Files (*.*)");
+               (old_fn.isEmpty()?m_strLastDir:old_fn),                                              "All Files (*)");
   if (!fn.isEmpty())
   {
     SetFileName(fn);
