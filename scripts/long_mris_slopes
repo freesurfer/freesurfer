@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/21 19:08:00 $
-#    $Revision: 1.18 $
+#    $Date: 2011/03/22 18:16:43 $
+#    $Revision: 1.19 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -219,7 +219,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.18 2011/03/21 19:08:00 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_mris_slopes,v 1.19 2011/03/22 18:16:43 mreuter Exp $', usage=HELPTEXT)
     
     # help text
 #    h_fsgd = '(REQUIRED) fsdg file specifying the subjects and time points'
@@ -488,7 +488,7 @@ if __name__=="__main__":
     print '\nWorking in SUBJECTS_DIR: '+subjectsdir+'\n'
 
     if options.qcache is not None:
-        # check if basedir exists
+        # check if qcache target exists
         qsdir = os.path.join(subjectsdir,options.qcache)
         if not os.path.exists(qsdir):
             print 'ERROR: Qcache Target dir '+str(qsdir)+' not found!'
@@ -518,7 +518,7 @@ if __name__=="__main__":
             sys.exit(1)
         
         # create tmpdir:
-        prefix = './tmp-'+subjectid+'_'+options.hemi+'_'
+        prefix = './tmp-'+subjectid+'_'+options.hemi+'_'+options.meas+'_'
         dirname = tempfile.mkdtemp('',prefix,'')
         if not os.path.exists(dirname):
             print 'ERROR: tmp dir '+str(dirname)+' cannot be created (write permissions?)!'
@@ -616,12 +616,6 @@ if __name__=="__main__":
                 xfp.write('1 '+str(time-meant)+'\n')
             xfp.close()    
         
-            # stack measure maps:
-            meas_target = os.path.join(dirname,options.hemi+'.long.'+options.meas+'-stack.mgh')
-            cmd = 'mri_concat '+all+' --o '+meas_target
-            run_cmd(cmd,'mri_concat stacking did not work?')
-
-        
             # run glm in tmp dir:
             zerodof=""
             if num==2:
@@ -629,13 +623,12 @@ if __name__=="__main__":
             labelpara=""
             if label != "" :
                 labelpara  = ' --label '+label
-            cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+zerodof+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+labelpara+' --glmdir '+dirname
+            glmdir=os.path.join(dirname,'glm')
+            cmd = 'mri_glmfit --y '+meas_target+' --X '+x_target+zerodof+' --no-contrasts-ok --surf '+subjectid+' '+options.hemi+labelpara+' --glmdir '+glmdir
             run_cmd(cmd,'mri_glmfit did not work?')
-
-            ftype = 'mgh'
         
             # harvest results (in beta.mgh)
-            betafn = os.path.join(dirname,'beta.mgh' )  
+            betafn = os.path.join(glmdir,'beta.mgh' )  
             beta0  = os.path.join(dirname,'beta0.mgh')  
             beta1  = os.path.join(dirname,'beta1.mgh') 
             if not os.path.exists(betafn):
@@ -722,7 +715,7 @@ if __name__=="__main__":
             if options.out_rate is not None: 
                 outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_rate+fwhmstr+'.mgh')
                 # mul 1 to remove everything outside the label:
-                cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1+' mul 1'
+                cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta1fwhm+' mul 1'
                 run_cmd(cmd,'mris_calc masking with label') 
                 allout.append(outname)
                 if options.qcache is not None:
@@ -732,7 +725,7 @@ if __name__=="__main__":
             if  options.out_avg is not None:
                 outname = os.path.join(basesurfdir,options.hemi+'.'+options.out_avg+fwhmstr+'.mgh')
                 # mul 1 to remove everything outside the label:
-                cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta0+' mul 1'
+                cmd = 'mris_calc -o '+outname+' --label '+label+' '+beta0fwhm+' mul 1'
                 run_cmd(cmd,'mris_calc masking with label') 
                 allout.append(outname)
                 if options.qcache is not None:
