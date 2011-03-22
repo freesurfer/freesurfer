@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/11 20:17:30 $
-#    $Revision: 1.16 $
+#    $Date: 2011/03/22 17:15:45 $
+#    $Revision: 1.17 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.16 2011/03/11 20:17:30 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.17 2011/03/22 17:15:45 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -48,6 +48,7 @@ set ExpKeyNeeded = 0;
 set SliceOrder = ();
 set UseB0DC = 0;
 set b0dcmapstem = b0dcmap
+set ApplySubCortMask = 1;
 
 set nolog = 0;
 set debug = 0;
@@ -205,6 +206,18 @@ foreach sess ($SessList)
     $cmd | tee -a $LF
     if($status) exit 1;
 
+    if($ApplySubCortMask) then
+      set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri.2mm/subcort.mask.mgz
+      if(! -e $subcortmask) then
+        echo "ERROR: cannot find $subcortmask"      
+        exit 1;
+      endif
+      set cmd = (mri_mask $outmask $subcortmask $outmask)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    endif
+
     # Convert the native functional space data
     set cmd = (mri_vol2vol --mov $invol --reg $reg \
       --tal --talres $res --talxfm $talxfm --interp $interp \
@@ -293,6 +306,15 @@ while( $#argv != 0 )
     case "-nearest":
       set interp = "nearest"
       set ExpKeyNeeded = 1;
+      breaksw
+
+    case "-subcort-mask":
+    case "-subcort":
+      set ApplySubCortMask = 1;
+      breaksw
+    case "-no-subcort-mask":
+    case "-no-subcort":
+      set ApplySubCortMask = 0;
       breaksw
 
     case "-trilin":
@@ -448,6 +470,7 @@ usage_exit:
   echo "  -xfm tal.xfm : xfm file found in subject/mri/transforms (default is $talxfm)"
   echo "  -reg regfile : default is register.dof$regdof.dat"
   echo "  -per-session : use session-level registration and mask instead of -per-run"
+  echo "  -no-subcort-mask : do not apply MNI305 subcortical mask"
   echo ""
   echo "Other options"
   echo "  -update : only run if update is needed"

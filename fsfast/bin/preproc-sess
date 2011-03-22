@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/11 20:33:18 $
-#    $Revision: 1.45 $
+#    $Date: 2011/03/22 17:15:45 $
+#    $Revision: 1.46 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -27,7 +27,7 @@
 # This creates fmcpr.sm5, then
 # mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.45 2011/03/11 20:33:18 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.46 2011/03/22 17:15:45 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -74,6 +74,7 @@ set RawRes = 2;
 set RegDOF = 6;
 set regfile = ();
 set UseB0DC = 0;
+set ApplySubCortMask = 1;
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -265,6 +266,8 @@ foreach sess ($SessList)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
     if($UseB0DC)    set cmd = ($cmd -b0dc)
+    if($ApplySubCortMask)   set cmd = ($cmd -subcort-mask)
+    if(! $ApplySubCortMask) set cmd = ($cmd -no-subcort-mask)
     echo "$sessid To MNI305 -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -536,6 +539,15 @@ while( $#argv != 0 )
       set ToMNI305 = 1;
       set PerRun = 1;
       set PerSess = 0;
+      breaksw
+
+    case "-subcort-mask":
+    case "-subcort":
+      set ApplySubCortMask = 1;
+      breaksw
+    case "-no-subcort-mask":
+    case "-no-subcort":
+      set ApplySubCortMask = 0;
       breaksw
 
     case "-b0dc":
