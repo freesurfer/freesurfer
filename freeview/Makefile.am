@@ -226,11 +226,17 @@ freeview_SOURCES = $(BUILT_SOURCES) \
 	UIUpdateHelper.cpp \
 	VolumeCropper.cpp \
 	VolumeFilter.cpp \
+	VolumeFilter.h \
 	VolumeFilterConvolve.cpp \
+	VolumeFilterConvolve.h \
 	VolumeFilterGradient.cpp \
+	VolumeFilterGradient.h \
 	VolumeFilterMean.cpp \
+	VolumeFilterMean.h \
 	VolumeFilterMedian.cpp \
+	VolumeFilterMedian.h \
 	VolumeFilterSobel.cpp \
+	VolumeFilterSobel.h \
 	vtkSimpleLabelEdgeFilter.cpp \
 	WidgetHistogram.cpp \
 	WindowConfigureOverlay.cpp \
