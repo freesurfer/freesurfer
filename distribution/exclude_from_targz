@@ -51,6 +51,12 @@ freesurfer/lib/petsc/src
 freesurfer/lib/KWWidgets/src
 freesurfer/lib/KWWidgets/KWWidgets
 freesurfer/lib/dev
+freesurfer/lib/cuda/bin
+freesurfer/lib/cuda/open64
+freesurfer/lib/cuda/src
+freesurfer/lib/cuda/computeprof
+freesurfer/lib/cuda/doc
+freesurfer/lib/cuda/include
 freesurfer/include
 freesurfer/mni/src
 freesurfer/mni/man

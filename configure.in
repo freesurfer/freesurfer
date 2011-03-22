@@ -8,9 +8,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # CVS Revision Info:
-#    $Author: krish $
-#    $Date: 2011/03/18 23:05:54 $
-#    $Revision: 1.521 $
+#    $Author: nicks $
+#    $Date: 2011/03/22 22:58:33 $
+#    $Revision: 1.522 $
 #
 ########################################################################
 AC_PREREQ(2.57)
@@ -649,26 +649,29 @@ fi
 #############################################################
 AC_ARG_WITH([cuda],
    [  --with-cuda=PATH        prefix where cuda is installed [default=auto]])
-if test -n "$with_cuda"
-then
-   CUDA_CFLAGS="-I$with_cuda/include"
-   CUDA_LIBS="-L$with_cuda/lib -lcuda -lcudart"
-   if test -e /usr/lib64 ; then
-      CUDA_LIBS="-L$with_cuda/lib64 -lcuda -lcudart"
-   fi
-   NVCC="$with_cuda/bin/nvcc"
+if test -n "$with_cuda"; then
+  CUDA_DIR="$with_cuda"
 else
-   if test -e /usr/local/cuda ; then
-      CUDA_CFLAGS="-I/usr/local/cuda/include"
-      CUDA_LIBS="-L/usr/local/cuda/lib -lcuda -lcudart"
-      if test -e /usr/lib64 ; then
-         CUDA_LIBS="-L/usr/local/cuda/lib64 -lcuda -lcudart"
-      fi
-      NVCC="/usr/local/cuda/bin/nvcc"
-   fi
+  if test -e /usr/pubsw/packages/CUDA/current ; then
+    CUDA_DIR="/usr/pubsw/packages/CUDA/current"
+  else
+    if test -e /usr/local/cuda ; then
+      CUDA_DIR="/usr/local/cuda"
+    fi
+  fi
 fi
+if( test ! "x$CUDA_DIR" = "xno" ) then
+  CUDA_CFLAGS="-I$CUDA_DIR/include"
+  CUDA_LIBS="-L$CUDA_DIR/lib -lcuda -lcudart"
+  if test -e /usr/lib64 ; then
+    CUDA_LIBS="-L$CUDA_DIR/lib64 -lcuda -lcudart"
+  fi
+  NVCC="$CUDA_DIR/bin/nvcc"
+fi
+
 AC_SUBST(CUDA_CFLAGS)
 AC_SUBST(CUDA_LIBS)
+AC_SUBST(CUDA_DIR)
 AC_SUBST(NVCC)
 
 # if --without-cuda was specified, disable cuda build

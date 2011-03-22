@@ -408,6 +408,14 @@ install-data-hook:
 			fi; \
 		fi; \
 	fi;
+	if test ! "x$(CUDA_DIR)" = "x" ; then \
+		if test ! "$(CUDA_DIR)" = "$(DESTDIR)$(prefix)/lib/cuda" ; then \
+			if test -e $(CUDA_DIR) ; then \
+				rm -Rf $(DESTDIR)$(prefix)/lib/cuda ; \
+				ln -s $(CUDA_DIR) $(DESTDIR)$(prefix)/lib/cuda ; \
+			fi; \
+		fi; \
+	fi;
 
 uninstall-hook:
 	rm -f $(DESTDIR)$(prefix)/build-stamp.txt

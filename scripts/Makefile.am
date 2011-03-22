@@ -25,6 +25,7 @@ compute_interrater_variability.csh \
 compute_label_volumes.csh \
 cor_to_minc \
 cp-dicom \
+cuda_setup \
 datastruct_utils.py \
 dcmdir-info-mgh \
 dcmunpack \
@@ -297,7 +298,7 @@ uninstall-hook:
 
 TESTS = help_xml_validate
 
-EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup \
+EXTRA_DIST = $(tcl_SCRIPTS) tcl_setup vtk_setup kww_setup qt_setup cuda_setup \
 extract_talairach_avi_QA.awk $(foo_DATA) $(xml_DATA) $(tktools_SCRIPTS)
 
 # Our release target. Include files to be excluded here. They will be

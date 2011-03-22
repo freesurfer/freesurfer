@@ -1,6 +1,6 @@
 #!/bin/tcsh -f
 
-set ID='$Id: build_release_type.csh,v 1.139 2010/11/09 15:59:05 nicks Exp $'
+set ID='$Id: build_release_type.csh,v 1.140 2011/03/22 22:58:33 nicks Exp $'
 
 unsetenv echo
 if ($?SET_ECHO_1) set echo=1
@@ -27,15 +27,15 @@ set FAILURE_MAIL_LIST=(\
     krish@nmr.mgh.harvard.edu \
     rpwang@nmr.mgh.harvard.edu \
     rge21@nmr.mgh.harvard.edu)
-#set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
-if ("$HOSTNAME" == "hima") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
-endif
+set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+#if ("$HOSTNAME" == "hima") then
+#  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
+#endif
 if ("$HOSTNAME" == "sleet") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "mist") then
-  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
+  set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu krish@nmr.mgh.harvard.edu)
 endif
 if ("$HOSTNAME" == "storm") then
   set FAILURE_MAIL_LIST=(nicks@nmr.mgh.harvard.edu)
@@ -53,11 +53,6 @@ if ("$OSTYPE" == "Darwin") then
   set change_flags=(-RL)
 else
   set change_flags=(-R)
-endif
-
-# on minerva, use gcc v4.1
-if ("$HOSTNAME" == "minerva") then
-#  setenv PATH "/space/minerva/1/users/nicks/pkgs/gcc4.1/install/bin":"$PATH"
 endif
 
 #
@@ -771,11 +766,11 @@ chmod ${change_flags} g+rw ${LOG_DIR} >>& $OUTPUTF
 # runs make, then make check, make install, and make uninstall.
 #goto make_distcheck_done
 if ("$RELEASE_TYPE" == "dev") then
-# HACK: just run on minerva
-if ("$HOSTNAME" == "minerva") then
+# just run on swan
+if ("$HOSTNAME" == "swan") then
 # just do this once a week, as it takes a few hours to run
-date | grep "Sat " >& /dev/null
-if ( ! $status ) then
+#date | grep "Sat " >& /dev/null
+#if ( ! $status ) then
   echo "########################################################" >>& $OUTPUTF
   echo "Make distcheck $BUILD_DIR" >>& $OUTPUTF
   echo "" >>& $OUTPUTF
@@ -799,9 +794,12 @@ if ( ! $status ) then
     chmod g+rw ${BUILD_DIR}/autom4te.cache >>& $OUTPUTF
     chgrp fsdev ${BUILD_DIR}/config.h.in >>& $OUTPUTF
 # HACK: dont exit:
-#    exit 1  
+#    exit 1
+  else
+    set msg="$HOSTNAME $RELEASE_TYPE build PASSED make distcheck"
+    tail -n 20 $OUTPUTF | mail -s "$msg" nicks@nmr.mgh.harvard.edu
   endif
-endif
+#endif
 endif
 endif
 make_distcheck_done:
@@ -888,14 +886,16 @@ endif
 if (("$RELEASE_TYPE" == "stable-pub") || \
     ("$RELEASE_TYPE" == "dev") || \
     ( -e ${BUILD_HOSTNAME_DIR}/TARBALL)) then
-  set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
-  echo "$cmd" >>& $OUTPUTF
-  $cmd >>& $OUTPUTF
-  if ($status) then
-    echo "create_targz.csh failed to create tarball!"
-    # don't exit with error, since create_targz can be re-run manually
+  if ( ! $?SKIP_CREATE_TARBALL) then
+    set cmd=($SCRIPT_DIR/create_targz.csh $PLATFORM $RELEASE_TYPE)
+    echo "$cmd" >>& $OUTPUTF
+    $cmd >>& $OUTPUTF
+    if ($status) then
+      echo "create_targz.csh failed to create tarball!"
+      # don't exit with error, since create_targz can be re-run manually
+    endif
+    rm -f ${BUILD_HOSTNAME_DIR}/TARBALL >& /dev/null
   endif
-  rm -f ${BUILD_HOSTNAME_DIR}/TARBALL >& /dev/null
 endif
 
 

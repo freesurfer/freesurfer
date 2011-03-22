@@ -8,8 +8,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: nicks $
-#    $Date: 2011/03/22 21:01:34 $
-#    $Revision: 1.380 $
+#    $Date: 2011/03/22 22:58:34 $
+#    $Revision: 1.381 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -26,7 +26,7 @@
 #
 umask 002;
 
-set VERSION = '$Id: recon-all,v 1.380 2011/03/22 21:01:34 nicks Exp $';
+set VERSION = '$Id: recon-all,v 1.381 2011/03/22 22:58:34 nicks Exp $';
 set ProgName = `basename $0`;
 
 set inputargs = ($argv);
@@ -5143,29 +5143,8 @@ while( $#argv != 0 )
     case "-use-gpu":
     case "-use_gpu":
       set UseCuda = 1;
-      # look for default path to cuda libs
-      if ( -e /usr/local/cuda/lib) then
-        if( ! $?CUDA_LIB) then # dont override user setting
-          setenv CUDA_LIB /usr/local/cuda/lib
-        endif
-      endif
-      # for NMR Center launchpad cluster GPU usage, declare path to libs...
-      if ("`hostname`" == "launchpad") then
-        if ( -e /usr/pubsw/packages/CUDA/current/lib) then
-          if( ! $?CUDA_LIB) then
-            setenv CUDA_LIB /usr/pubsw/packages/CUDA/current/lib
-          endif
-        endif
-      endif
-      # if CUDA_LIB was defined above, or elsewhere, then set LD_LIBRARY_PATH
-      if ($?CUDA_LIB) then
-        echo "Setting LD_LIBRARY_PATH to $CUDA_LIB"
-        if(! $?LD_LIBRARY_PATH ) then
-          setenv LD_LIBRARY_PATH $CUDA_LIB
-        else
-          setenv LD_LIBRARY_PATH "$CUDA_LIB":"$LD_LIBRARY_PATH"
-        endif
-      endif
+      # then set LD_LIBRARY_PATH to distributed cuda libs
+      source $FREESURFER_HOME/bin/cuda_setup
       breaksw;
 
     default:
@@ -5478,6 +5457,13 @@ check_params:
     popd > /dev/null;
   endif
 
+  if($UseCuda) then
+    # test a binary
+    echo "Testing for CUDA device:"
+    $FREESURFER_HOME/bin/mri_em_register_cuda --version
+    if ($status) goto error_exit;
+  endif
+
   if(! $DoCleanTal && ! $DoCleanCP && ! $DoCleanBM && ! $DoConvertInput && \
      ! $DoCleanASeg && ! $DoCleanWM && ! $DoCleanSeed && ! $DoCleanCW256 && \
      ! $DoCortParc && ! $DoCortParc2 && ! $DoGCAReg && ! $DoCARegInv && \
@@ -5536,7 +5522,6 @@ check_params:
       echo "ERROR: cannot find $AvgTif"
       exit 1;
     endif
-
   endif
 
 goto check_params_return;
