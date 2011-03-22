@@ -9,9 +9,9 @@
  * Original Author: Bruce Fischl
  * CUDA version : Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/16 21:23:48 $
- *    $Revision: 1.84 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/22 15:47:05 $
+ *    $Revision: 1.85 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -44,10 +44,12 @@
 #include "mrinorm.h"
 #include "version.h"
 
+#include "emregisterutils.h"
+#include "findtranslation.h"
+
 #ifdef FS_CUDA
 #include "devicemanagement.h"
 #include "em_register_cuda.h"
-#define FAST_TRANSLATION 0
 #define FAST_TRANSFORM 0
 #endif // FS_CUDA
 
@@ -65,7 +67,7 @@ static int rigid = 0 ;
 #define MAX_SCALE_PCT 0.15
 static float max_scale_pct = MAX_SCALE_PCT ;
 static int Gscale_samples = 0 ;
-static int robust = 0 ;
+int robust = 0 ;
 /*
   allowable distance from an unknown sample to one in brain. Default
   is 1 implying just a ring of unknowns alloowed outside brain. If aligning
@@ -103,7 +105,7 @@ static double alpha = -1 ;
 static double TE = -1 ;
 static int baby = 0 ;
 
-static float G_wm_mean, G_gm_mean, G_fluid_mean ;
+float G_wm_mean, G_gm_mean, G_fluid_mean ;
 static int nomap = 0 ;
 
 static char *sample_fname = NULL ;
@@ -126,7 +128,7 @@ static double rzrot = 0.0 ;
 static double rxrot = 0.0 ;
 static double ryrot = 0.0 ;
 
-static int exvivo = 0 ;
+int exvivo = 0 ;
 static int remove_lh = 0 ;
 static int remove_rh = 0 ;
 
@@ -160,14 +162,8 @@ static MATRIX *find_optimal_transform
 (MRI *mri_in, GCA *gca, GCA_SAMPLE *gcas,
  int nsamples, MATRIX *m_L, int passno,
  int write_iterations, int spacing) ;
-static double find_optimal_translation
-(GCA *gca, GCA_SAMPLE *gcas, MRI *mri,
- int nsamples, MATRIX *m_L,
- float min_trans, float max_trans,
- float trans_steps, int nreductions) ;
+
 static double blur_sigma = 0.0f ;
-double local_GCAcomputeLogSampleProbability
-(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, MATRIX *m_L, int nsamples, int exvivo);
 
 /*
    command line consists of three inputs:
@@ -204,7 +200,7 @@ main(int argc, char *argv[])
   nargs =
     handle_version_option
     (argc, argv,
-     "$Id: mri_em_register.c,v 1.84 2011/03/16 21:23:48 nicks Exp $",
+     "$Id: mri_em_register.c,v 1.85 2011/03/22 15:47:05 rge21 Exp $",
      "$Name:  $");
   if (nargs && argc - nargs == 1)
   {
@@ -1545,160 +1541,6 @@ find_optimal_transform
 
 
 
-static double
-find_optimal_translation
-(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, int nsamples,
- MATRIX *m_L, float min_trans, float max_trans,
- float trans_steps, int nreductions)
-{
-  MATRIX   *m_trans, *m_L_tmp ;
-  double   x_trans, y_trans, z_trans, x_max, y_max, z_max, delta,
-           log_p, max_log_p, mean_trans ;
-  int      i ;
-
-  log_p = 0;
-  x_trans = 0;
-  y_trans = 0;
-  z_trans = 0;
-
-
-#ifdef FS_CUDA
-  CUDA_em_register_Prepare( gca, gcas, mri, nsamples );
-#endif // FS_CUDA
-
-  delta = (max_trans-min_trans) / trans_steps ;
-  m_L_tmp = NULL ;
-  m_trans = MatrixIdentity(4, NULL) ;
-  x_max = y_max = z_max = 0.0 ;
-  max_log_p = local_GCAcomputeLogSampleProbability
-              (gca, gcas, mri, m_L,nsamples, exvivo) ;
-
-  for (i = 0 ; i <= nreductions ; i++)
-  {
-    delta = (max_trans-min_trans) / trans_steps ;
-    if (FZERO(delta))
-    {
-      return(max_log_p) ;
-    }
-    if (Gdiag & DIAG_SHOW)
-    {
-      printf(
-        "scanning translations %2.2f->%2.2f (step %2.1f) ",
-        min_trans,max_trans, delta) ;
-      fflush(stdout) ;
-    }
-
-#if defined(FS_CUDA) && FAST_TRANSLATION
-    unsigned int nTrans = 1+((max_trans-min_trans)/delta);
-    float myMaxLogP, mydx, mydy, mydz;
-    CUDA_FindOptimalTranslation( m_L, min_trans, max_trans, nTrans,
-                                 &myMaxLogP, &mydx, &mydy, &mydz );
-    if( myMaxLogP > max_log_p )
-    {
-      max_log_p = myMaxLogP;
-      x_max = mydx;
-      y_max = mydy;
-      z_max = mydz;
-    }
-#else
-    for (x_trans = min_trans ; x_trans <= max_trans ; x_trans += delta)
-    {
-      *MATRIX_RELT(m_trans, 1, 4) = x_trans ;
-      for (y_trans = min_trans ; y_trans <= max_trans ; y_trans += delta)
-      {
-        *MATRIX_RELT(m_trans, 2, 4) = y_trans ;
-        for (z_trans= min_trans ;
-             z_trans <= max_trans ;
-             z_trans += delta)
-        {
-          *MATRIX_RELT(m_trans, 3, 4) = z_trans ;
-          if (nint((x_trans)) == -9 && nint((y_trans)) == -5 &&
-              nint((z_trans)) == -7)
-          {
-            DiagBreak() ;
-          }
-          // get the transform
-          m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
-          // calculate the LogSample probability
-#ifdef FS_CUDA
-          log_p = CUDA_ComputeLogSampleProbability( m_L_tmp );
-#else
-          log_p =
-            local_GCAcomputeLogSampleProbability
-            (gca, gcas, mri, m_L_tmp,nsamples, exvivo) ;
-#endif
-
-#if 0
-          printf( "%s: %8.3f %8.3f %8.3f %12.6f\n",
-                  __FUNCTION__,
-                  x_trans, y_trans, z_trans,
-                  log_p );
-#endif
-
-          if (log_p > max_log_p)
-          {
-            max_log_p = log_p ;
-            x_max = x_trans ;
-            y_max = y_trans ;
-            z_max = z_trans ;
-#if 0
-            printf("new max p %2.1f found at "
-                   "(%2.1f, %2.1f, %2.1f)\n",
-                   max_log_p, x_trans, y_trans, z_trans) ;
-#endif
-          }
-        }
-      }
-    }
-#endif
-
-    if( Gdiag & DIAG_SHOW )
-    {
-      printf(
-        "max log p = %12.6f @ (%4.3f, %4.3f, %4.3f)\n",
-        max_log_p, x_max, y_max, z_max) ;
-    }
-
-
-    /* update L to reflect new maximum and search around it */
-    *MATRIX_RELT(m_trans, 1, 4) = x_max ;
-    *MATRIX_RELT(m_trans, 2, 4) = y_max ;
-    *MATRIX_RELT(m_trans, 3, 4) = z_max ;
-    // create a new transform by multiplying the previous one.
-    m_L_tmp = MatrixMultiply(m_trans, m_L, m_L_tmp) ;
-    MatrixCopy(m_L_tmp, m_L) ;
-#ifdef FS_CUDA
-    max_log_p = CUDA_ComputeLogSampleProbability( m_L_tmp );
-#else
-    max_log_p = local_GCAcomputeLogSampleProbability
-                (gca, gcas, mri, m_L,nsamples, exvivo) ;
-#endif
-
-#if 0
-    // Repeat for debugging
-    printf(
-      "max log p = %12.6f @ (%4.3f, %4.3f, %4.3f)\n",
-      max_log_p, x_max, y_max, z_max) ;
-#endif
-
-
-    x_max = y_max = z_max = 0.0 ;
-    /* we've translated transform by old maxs */
-
-    mean_trans = (max_trans + min_trans) / 2 ;
-    delta = (max_trans-min_trans)/4 ;
-    min_trans = mean_trans - delta ;
-    max_trans = mean_trans + delta ;
-  }
-
-  MatrixFree(&m_trans) ;
-
-#ifdef FS_CUDA
-  CUDA_em_register_Release();
-#endif
-
-  return(max_log_p) ;
-}
 
 /*----------------------------------------------------------------------
   ----------------------------------------------------------------------*/
@@ -2192,154 +2034,8 @@ get_option(int argc, char *argv[])
   return(nargs) ;
 }
 
-int
-compute_tissue_modes(MRI *mri_inputs,GCA *gca, GCA_SAMPLE *gcas, TRANSFORM *transform, int nsamples,
-                     double *pwm, double *pgm, double *pfluid )
-{
-  int        x, y, z, width, height, depth, i, xp, yp, zp ;
-  float      vals[MAX_GCA_INPUTS] ;
-  int        countOutside = 0, ngm, nwm, nfluid;
-  double     gm, wm, fluid ;
-
-  /* go through each GC in the sample and compute the probability of
-     the image at that point.
-  */
-  width = mri_inputs->width ;
-  height = mri_inputs->height;
-  depth = mri_inputs->depth ;
-  // store inverse transformation .. forward:input->gca template,
-  // inv: gca template->input
-  TransformInvert(transform, mri_inputs) ;
-
-  // go through all sample points
-  for (ngm = nwm = nfluid = 0, wm = gm = fluid = 0.0, i = 0 ; i < nsamples ; i++)
-  {
-    /////////////////// diag code /////////////////////////////
-    if (i == Gdiag_no)
-    {
-      DiagBreak() ;
-    }
-    if (Gdiag_no == gcas[i].label)
-    {
-      DiagBreak() ;
-    }
-    if (i == Gdiag_no ||
-        (gcas[i].xp == Gxp && gcas[i].yp == Gyp && gcas[i].zp == Gzp))
-    {
-      DiagBreak() ;
-    }
-    ///////////////////////////////////////////////////////////
-
-    // get prior coordinates
-    xp = gcas[i].xp ;
-    yp = gcas[i].yp ;
-    zp = gcas[i].zp ;
-    // if it is inside the source voxel
-    if (!GCApriorToSourceVoxel(gca, mri_inputs, transform,
-                               xp, yp, zp, &x, &y, &z))
-    {
-      if (x == Gx && y == Gy && z == Gz)
-      {
-        DiagBreak() ;
-      }
-
-      // (x,y,z) is the source voxel position
-      gcas[i].x = x ;
-      gcas[i].y = y ;
-      gcas[i].z = z ;
-
-      // get values from all inputs
-      load_vals(mri_inputs, x, y, z, vals, gca->ninputs) ;
-      if (FZERO(vals[0]) && gcas[i].label == Gdiag_no)
-      {
-        DiagBreak() ;
-      }
-
-      if (gcas[i].tissue_class == GM_CLASS)
-      {
-        ngm++ ;
-        gm += vals[0] ;
-      }
-      else if (gcas[i].tissue_class == WM_CLASS)
-      {
-        nwm++ ;
-        wm += vals[0] ;
-      }
-      else if (gcas[i].tissue_class == FLUID_CLASS)
-      {
-        nfluid++ ;
-        fluid += vals[0] ;
-      }
 
 
-      if (!FZERO(vals[0]))
-      {
-        DiagBreak() ;
-      }
-      if (gcas[i].label != Unknown)
-      {
-        DiagBreak() ;
-      }
-      if (i == Gdiag_no)
-      {
-        DiagBreak() ;
-      }
-    }
-    else  // outside the volume
-    {
-      countOutside++;
-    }
-  }
-
-  if (nfluid == 0)
-  {
-    nfluid = 1 ;
-  }
-  if (ngm == 0)
-  {
-    ngm = 1 ;
-  }
-  if (nwm == 0)
-  {
-    nwm = 1 ;
-  }
-  wm /= nwm ;
-  gm /= ngm ;
-  fluid /= nfluid ;
-  G_wm_mean = *pwm = wm ;
-  G_gm_mean = *pgm = gm ;
-  G_fluid_mean = *pfluid = fluid ;
-
-  return(NO_ERROR) ;
-}
-
-double
-local_GCAcomputeLogSampleProbability
-(GCA *gca, GCA_SAMPLE *gcas, MRI *mri, MATRIX *m_L, int nsamples, int exvivo)
-{
-  static TRANSFORM *transform = NULL ;
-
-  if (!transform)
-  {
-    transform = TransformAlloc(LINEAR_VOX_TO_VOX, NULL) ;
-  }
-  ((LTA *)transform->xform)->xforms[0].m_L = m_L ;
-
-  if (exvivo)
-  {
-    double gm, wm, fluid ;
-
-    compute_tissue_modes(mri, gca, gcas, transform, nsamples, &wm, &gm, &fluid ) ;
-    return( (SQR(gm - wm) + SQR(gm-fluid) + SQR(fluid - wm) + SQR(gm) - SQR(fluid))) ;
-  }
-
-  if (robust) // Defined 0 at the top of the file
-    return(GCAcomputeNumberOfGoodFittingSamples
-           (gca, gcas, mri, transform, nsamples)) ;
-  else
-    return(GCAcomputeLogSampleProbability
-           (gca, gcas, mri, transform, nsamples)) ;
-}
 
 
 /*/////////////////////////////////////////////////////////////

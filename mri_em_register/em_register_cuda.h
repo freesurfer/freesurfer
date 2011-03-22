@@ -7,9 +7,9 @@
 /*
  * Original Author: Richard Edgar
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:15 $
- *    $Revision: 1.2 $
+ *    $Author: rge21 $
+ *    $Date: 2011/03/22 15:47:05 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -26,6 +26,10 @@
 
 #ifndef EM_REGISTER_CUDA_H
 #define EM_REGISTER_CUDA_H
+
+#include "gca.h"
+#include "mri.h"
+#include "matrix.h"
 
 #if defined(__cplusplus)
 extern "C" {
