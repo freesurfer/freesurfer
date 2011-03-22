@@ -1,132 +1,112 @@
 /**
- * @file  DialogSaveScreenshot.h
- * @brief Dialog to load DTI data.
+ * @file  DialogSaveScreenshot.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2009/12/08 22:21:21 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 23:38:45 $
+ *    $Revision: 1.8.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
-
-
 #include "DialogSaveScreenshot.h"
-#include <wx/xrc/xmlres.h>
-#include <wx/filedlg.h>
-#include <wx/filename.h>
-#include <wx/file.h>
-#include <wx/spinctrl.h>
+#include "ui_DialogSaveScreenshot.h"
 #include "MainWindow.h"
+#include "RenderView.h"
+#include "MyUtils.h"
+#include <QFileDialog>
+#include <QMessageBox>
+#include <QFileInfo>
+#include <QSettings>
 
-BEGIN_EVENT_TABLE( DialogSaveScreenshot, wxDialog )
-  EVT_BUTTON    ( wxID_SAVE,  DialogSaveScreenshot::OnOK )
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_FILENAME" ),    DialogSaveScreenshot::OnButtonOpen )
-END_EVENT_TABLE()
-
-
-DialogSaveScreenshot::DialogSaveScreenshot( wxWindow* parent )
+DialogSaveScreenshot::DialogSaveScreenshot(QWidget *parent) :
+  QDialog(parent),
+  ui(new Ui::DialogSaveScreenshot)
 {
-  wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_SAVE_SCREENSHOT") );
-  m_textFilename        = XRCCTRL( *this, "ID_TEXT_FILENAME",           wxTextCtrl );
-  m_btnOpen             = XRCCTRL( *this, "ID_BUTTON_FILENAME",         wxButton );
-  m_checkAntiAliasing   = XRCCTRL( *this, "ID_CHECK_ANTIALIASING",      wxCheckBox );
-  m_checkHideCursor     = XRCCTRL( *this, "ID_CHECK_HIDE_CURSOR",       wxCheckBox );
-  m_checkHideCoords     = XRCCTRL( *this, "ID_CHECK_HIDE_COORDINATES",  wxCheckBox );
-  m_checkKeepWindow     = XRCCTRL( *this, "ID_CHECK_KEEP_WINDOW",       wxCheckBox );
-  m_spinMagnification   = XRCCTRL( *this, "ID_SPINBOX_MAGNIFICATION",   wxSpinCtrl );
-  
-  m_textFilename->SetFocus();
+  ui->setupUi(this);
+  QSettings settings;
+  ui->lineEditFileName->setText(settings.value("ScreenShot/LastSavedFile").toString());
 }
 
 DialogSaveScreenshot::~DialogSaveScreenshot()
-{}
-
-wxString DialogSaveScreenshot::GetFileName()
 {
-  return m_textFilename->GetValue().Trim( true ).Trim( false );
+  QSettings settings;
+  settings.setValue("ScreenShot/LastSavedFile", GetFileName());
+  delete ui;
 }
 
-void DialogSaveScreenshot::SetFileName( const wxString& filename )
-{
-  m_textFilename->ChangeValue( filename );
-}
 
-void DialogSaveScreenshot::OnOK( wxCommandEvent& event )
+QString DialogSaveScreenshot::GetFileName()
 {
-  if ( GetFileName().IsEmpty() )
-  {
-    wxMessageDialog dlg( this, 
-	                       _("File name can not be empty."), 
-	                       _("Error"), wxOK | wxICON_ERROR );
-    dlg.ShowModal();
-    return;
-  }
-  else 
-  {
-    if ( wxFile::Exists( GetFileName() ) )
-    {
-      wxMessageDialog dlg( this, 
-                          _("File exists. Do you want to overwrite it?"), 
-                          _("Warning"), 
-                          wxYES_NO | wxNO_DEFAULT );
-      if ( dlg.ShowModal() == wxID_NO )
-        return;
-    }
-  }
-  
-  if ( !MainWindow::GetMainWindowPointer()->SaveScreenshot() || m_checkKeepWindow->IsChecked() )
-    return;
-  
-  Hide();
-}
-
-void DialogSaveScreenshot::OnButtonOpen( wxCommandEvent& event )
-{
-  wxFileDialog dlg( this, _("Save screenshot as"), m_strLastDir, _(""),
-                    _("PNG files (*.png)|*.png|JPEG files (*.jpg;*.jpeg)|*.jpg;*.jpeg|TIFF files (*.tif;*.tiff)|*.tif;*.tiff|Bitmap files (*.bmp)|*.bmp|PostScript files (*.ps)|*.ps|VRML files (*.wrl)|*.wrl|All files (*.*)|*.*"),
-                    wxFD_SAVE );
-  dlg.SetFilterIndex( m_nScreenshotFilterIndex );
-  if ( dlg.ShowModal() == wxID_OK )
-  {
-    m_textFilename->ChangeValue( dlg.GetPath() );
-    m_textFilename->ShowPosition( m_textFilename->GetLastPosition() );
-    m_nScreenshotFilterIndex = dlg.GetFilterIndex();
-  }
+  QString filename = MyUtils::CygwinPathProof(ui->lineEditFileName->text().trimmed());;
+  return QFileInfo(QDir::current(), filename).absoluteFilePath();
 }
 
 void DialogSaveScreenshot::SetSettings( SettingsScreenshot s )
 {
-  m_checkAntiAliasing->SetValue( s.AntiAliasing );
-  m_checkHideCursor->SetValue( s.HideCursor );
-  m_checkHideCoords->SetValue( s.HideCoords );
-  m_spinMagnification->SetValue( s.Magnification );
+  ui->checkBoxAntiAliasing->setChecked( s.AntiAliasing );
+  ui->checkBoxHideCursor->setChecked( s.HideCursor );
+  ui->checkBoxHideAnnotation->setChecked( s.HideCoords );
+  ui->spinBoxMagnification->setValue( s.Magnification );
 }
-  
+
 SettingsScreenshot DialogSaveScreenshot::GetSettings()
 {
   SettingsScreenshot s;
-  s.AntiAliasing  = m_checkAntiAliasing->IsChecked();
-  s.HideCursor    = m_checkHideCursor->IsChecked();
-  s.HideCoords    = m_checkHideCoords->IsChecked();
-  s.Magnification = m_spinMagnification->GetValue();
-  
+  s.AntiAliasing  = ui->checkBoxAntiAliasing->isChecked();
+  s.HideCursor    = ui->checkBoxHideCursor->isChecked();
+  s.HideCoords    = ui->checkBoxHideAnnotation->isChecked();
+  s.Magnification = ui->spinBoxMagnification->value();
+
   return s;
 }
 
+void DialogSaveScreenshot::OnOpen()
+{
+  QString dir = m_strLastDir;
+  if (!GetFileName().isEmpty())
+  {
+    dir = QFileInfo(GetFileName()).absolutePath();
+  }
+  QString fn = QFileDialog::getSaveFileName( this, "Save Screenshot", dir, "All Files (*.*)" );
+  if ( !fn.isEmpty() )
+  {
+    ui->lineEditFileName->setText(MyUtils::Win32PathProof(fn));
+    ui->lineEditFileName->setCursorPosition(ui->lineEditFileName->text().size());
+  }
+}
 
+void DialogSaveScreenshot::OnSave()
+{
+  if ( GetFileName().isEmpty() )
+  {
+    QMessageBox::warning(this, "Error", "Please enter file name to be saved.");
+    return;
+  }
+
+  MainWindow* mainwnd = MainWindow::GetMainWindow();
+  mainwnd->SetScreenShotSettings(GetSettings());
+  if (!mainwnd->GetMainView()->
+      SaveScreenShot(GetFileName(), ui->checkBoxAntiAliasing, ui->spinBoxMagnification->value()))
+  {
+    QMessageBox::warning(this, "Error", "Failed to save screenshot. Please make sure the directory exists and writable.");
+    return;
+  }
+
+  if (!ui->checkBoxKeepWindow->isChecked())
+  {
+    hide();
+  }
+}

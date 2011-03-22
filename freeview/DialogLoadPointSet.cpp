@@ -1,99 +1,99 @@
 /**
- * @file  DialogLoadPointSet.h
- * @brief Dialog to load DTI data.
+ * @file  DialogLoadPointSet.cpp
+ * @brief REPLACE_WITH_ONE_LINE_SHORT_DESCRIPTION
  *
  */
 /*
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
- *    $Author: rpwang $
- *    $Date: 2010/02/16 20:49:01 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 23:38:45 $
+ *    $Revision: 1.8.2.1 $
  *
- * Copyright (C) 2008-2009,
- * The General Hospital Corporation (Boston, MA).
- * All rights reserved.
+ * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
- * Distribution, usage and copying of this software is covered under the
- * terms found in the License Agreement file named 'COPYING' found in the
- * FreeSurfer source code root directory, and duplicated here:
- * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferOpenSourceLicense
+ * Terms and conditions for use, reproduction, distribution and contribution
+ * are found in the 'FreeSurfer Software License Agreement' contained
+ * in the file 'LICENSE' found in the FreeSurfer distribution, and here:
  *
- * General inquiries: freesurfer@nmr.mgh.harvard.edu
- * Bug reports: analysis-bugs@nmr.mgh.harvard.edu
+ * https://surfer.nmr.mgh.harvard.edu/fswiki/FreeSurferSoftwareLicense
+ *
+ * Reporting: freesurfer@nmr.mgh.harvard.edu
  *
  */
-
-
-
 #include "DialogLoadPointSet.h"
-#include <wx/xrc/xmlres.h>
-#include <wx/filedlg.h>
-#include <wx/filename.h>
-#include "LayerPropertiesWayPoints.h"
+#include "ui_DialogLoadPointSet.h"
+#include "LayerPropertyPointSet.h"
+#include "MyUtils.h"
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QFileInfo>
 
-BEGIN_EVENT_TABLE( DialogLoadPointSet, wxDialog )
-  EVT_BUTTON    ( wxID_OK, DialogLoadPointSet::OnOK )
-  EVT_BUTTON    ( XRCID( "ID_BUTTON_OPEN" ),        DialogLoadPointSet::OnButtonOpen )
-END_EVENT_TABLE()
-
-
-DialogLoadPointSet::DialogLoadPointSet( wxWindow* parent )
+DialogLoadPointSet::DialogLoadPointSet(QWidget *parent) :
+  QDialog(parent),
+  ui(new Ui::DialogLoadPointSet)
 {
-  wxXmlResource::Get()->LoadDialog( this, parent, wxT("ID_DIALOG_LOAD_POINTSET") );
-  m_textFileName        = XRCCTRL( *this, "ID_TEXT_FILENAME", wxTextCtrl );
-  m_radioWayPoints      = XRCCTRL( *this, "ID_RADIO_WAY_POINTS",      wxRadioButton );
-  m_radioControlPoints  = XRCCTRL( *this, "ID_RADIO_CONTROL_POINTS",  wxRadioButton );
+  ui->setupUi(this);
 }
 
 DialogLoadPointSet::~DialogLoadPointSet()
-{}
-
-wxString DialogLoadPointSet::GetFileName()
 {
-  return m_textFileName->GetValue().Trim( true ).Trim( false );
+  delete ui;
 }
 
-
-void DialogLoadPointSet::OnOK( wxCommandEvent& event )
+void DialogLoadPointSet::OnOK()
 {
-  if ( GetFileName().IsEmpty() )
+  if ( GetFileNames().isEmpty() )
   {
-    wxMessageDialog dlg
-      ( this, 
-	_("Point set file name can not be empty."), 
-	_("Error"), wxOK | wxICON_ERROR );
-    dlg.ShowModal();
+    QMessageBox::warning(
+      this, "Error",
+      "Point set file name can not be empty." );
     return;
   }
-
-  event.Skip();
+  accept();
 }
 
-void DialogLoadPointSet::OnButtonOpen( wxCommandEvent& event )
+void DialogLoadPointSet::OnButtonOpen()
 {
-  wxFileDialog dlg
-    ( this, 
-      _("Select point set file"), 
-      m_strLastDir, 
-      _(""),
-      _("All files (*.*)|*.*"),
-      wxFD_OPEN );
-  if ( dlg.ShowModal() == wxID_OK )
+  QStringList fns = QFileDialog::getOpenFileNames(
+                      this,
+                      "Select point set files",
+                      m_strLastDir,
+                      "All files (*)" );
+  if ( !fns.isEmpty())
   {
-    m_textFileName->ChangeValue( dlg.GetPath() );
-    m_textFileName->SetInsertionPointEnd();
-    m_textFileName->ShowPosition( m_textFileName->GetLastPosition() );
-    m_strLastDir = wxFileName( dlg.GetPath() ).GetPath();
+    m_strLastDir = QFileInfo(fns[0]).canonicalPath();
+    for (int i = 0; i < fns.size(); i++)
+    {
+      fns[i] = MyUtils::Win32PathProof(fns[i]);
+    }
+    ui->lineEditFileName->setText( fns.join(";") );
+    ui->lineEditFileName->setCursorPosition(ui->lineEditFileName->text().size());
   }
 }
 
 int DialogLoadPointSet::GetPointSetType()
 {
-  if (m_radioControlPoints->GetValue() )
-    return LayerPropertiesWayPoints::ControlPoints;
-  else if ( m_radioWayPoints->GetValue() )
-    return LayerPropertiesWayPoints::WayPoints;
+  if (ui->radioButtonControlPoint->isChecked() )
+  {
+    return LayerPropertyPointSet::ControlPoint;
+  }
+  else if ( ui->radioButtonWayPoint->isChecked() )
+  {
+    return LayerPropertyPointSet::WayPoint;
+  }
   else
+  {
     return -1;
+  }
+}
+
+QStringList DialogLoadPointSet::GetFileNames()
+{
+  QStringList fns = ui->lineEditFileName->text().trimmed().split(";", QString::SkipEmptyParts);
+  for (int i = 0; i < fns.size(); i++)
+  {
+    fns[i] = MyUtils::CygwinPathProof(fns[i]);
+  }
+  return fns;
 }

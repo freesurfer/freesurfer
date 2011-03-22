@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/22 15:55:25 $
- *    $Revision: 1.11.2.1 $
+ *    $Date: 2011/03/22 23:38:45 $
+ *    $Revision: 1.11.2.2 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -36,6 +36,7 @@
 #include <QFileInfo>
 #include <QPixmap>
 #include <QDebug>
+#include <QButtonGroup>
 
 extern "C"
 {
@@ -49,6 +50,12 @@ DialogTransformVolume::DialogTransformVolume(QWidget *parent) :
 {
   ui->setupUi(this);
   ui->groupBoxLandmarks->hide();
+
+  QButtonGroup* bg = new QButtonGroup(this);
+  bg->addButton(ui->radioButtonRotateLandmarks);
+  bg->addButton(ui->radioButtonRotateManual);
+  bg->setExclusive(true);
+
   m_checkRotate[0] = ui->checkBoxRotateX;
   m_checkRotate[1] = ui->checkBoxRotateY;
   m_checkRotate[2] = ui->checkBoxRotateZ;

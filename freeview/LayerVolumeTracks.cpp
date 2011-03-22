@@ -7,8 +7,8 @@
  * Original Author: Ruopeng Wang
  * CVS Revision Info:
  *    $Author: nicks $
- *    $Date: 2011/03/22 15:55:25 $
- *    $Revision: 1.1.2.2 $
+ *    $Date: 2011/03/22 23:38:45 $
+ *    $Revision: 1.1.2.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -24,8 +24,47 @@
  */
 
 #include "LayerVolumeTracks.h"
+#include "vtkRenderer.h"
+#include "vtkActor.h"
+#include "FSVolume.h"
+#include <QDebug>
 
 LayerVolumeTracks::LayerVolumeTracks( LayerMRI* ref, QObject* parent ) :
     LayerMRI( ref, parent )
 {
+  m_strTypeNames.push_back( "VolumeTracks" );
+}
+
+LayerVolumeTracks::~LayerVolumeTracks()
+{
+
+}
+
+bool LayerVolumeTracks::LoadFromFile()
+{
+  if ( !LayerMRI::LoadVolumeFromFile() )
+  {
+    return false;
+  }
+
+  UpdateData();
+
+  return true;
+}
+
+void LayerVolumeTracks::UpdateData()
+{
+  if (!m_volumeSource->GetEmbeddedColorTable())
+    cerr << "Did not find color table in track volume.\n";
+}
+
+void LayerVolumeTracks::Append3DProps(vtkRenderer *renderer, bool *bPlaneVisibility)
+{
+  for (int i = 0; i < m_actors.size(); i++)
+    renderer->AddViewProp(m_actors[i]);
+}
+
+void LayerVolumeTracks::UpdateColorMap()
+{
+  LayerMRI::UpdateColorMap();
 }

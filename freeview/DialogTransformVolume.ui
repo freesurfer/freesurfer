@@ -43,6 +43,9 @@
            <property name="text">
             <string>Manual</string>
            </property>
+           <property name="checkable">
+            <bool>true</bool>
+           </property>
            <property name="checked">
             <bool>true</bool>
            </property>
@@ -52,6 +55,9 @@
           <widget class="QRadioButton" name="radioButtonRotateLandmarks">
            <property name="text">
             <string>Use Landmarks</string>
+           </property>
+           <property name="autoExclusive">
+            <bool>true</bool>
            </property>
           </widget>
          </item>
@@ -324,6 +330,9 @@
               <property name="autoExclusive">
                <bool>false</bool>
               </property>
+              <property name="autoDefault">
+               <bool>false</bool>
+              </property>
              </widget>
             </item>
             <item row="0" column="3">
@@ -363,6 +372,9 @@
               <property name="autoExclusive">
                <bool>false</bool>
               </property>
+              <property name="autoDefault">
+               <bool>false</bool>
+              </property>
              </widget>
             </item>
             <item row="0" column="7">
@@ -394,6 +406,9 @@
                <bool>true</bool>
               </property>
               <property name="autoExclusive">
+               <bool>false</bool>
+              </property>
+              <property name="autoDefault">
                <bool>false</bool>
               </property>
              </widget>
@@ -433,6 +448,9 @@
                <bool>true</bool>
               </property>
               <property name="autoExclusive">
+               <bool>false</bool>
+              </property>
+              <property name="autoDefault">
                <bool>false</bool>
               </property>
              </widget>
@@ -578,23 +596,23 @@
               </property>
               <property name="maximumSize">
                <size>
-                <width>50</width>
+                <width>60</width>
                 <height>16777215</height>
                </size>
               </property>
               <item>
                <property name="text">
-                <string>R</string>
+                <string>L-&gt;R</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string>A</string>
+                <string>P-&gt;A</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string>S</string>
+                <string>I-&gt;S</string>
                </property>
               </item>
              </widget>
@@ -696,7 +714,7 @@
              <widget class="QComboBox" name="comboBoxAxisTarget2">
               <property name="maximumSize">
                <size>
-                <width>50</width>
+                <width>60</width>
                 <height>16777215</height>
                </size>
               </property>
@@ -705,17 +723,17 @@
               </property>
               <item>
                <property name="text">
-                <string>R</string>
+                <string>L-&gt;R</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string>A</string>
+                <string>P-&gt;A</string>
                </property>
               </item>
               <item>
                <property name="text">
-                <string>S</string>
+                <string>I-&gt;S</string>
                </property>
               </item>
              </widget>
