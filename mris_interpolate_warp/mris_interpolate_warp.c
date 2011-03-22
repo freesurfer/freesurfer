@@ -2,15 +2,15 @@
  * @file  mris_interpolate_warp.c
  * @brief interpolate a surface warp into the volume
  *
- * take two surfaces and interpret the spatial difference in their vertex locations as a warp field, 
- * then interpolate that into a volume warp.
+ * take two surfaces and interpret the spatial difference in their
+ * vertex locations as a warp field, then interpolate that into a volume warp.
  */
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/18 13:10:50 $
- *    $Revision: 1.2 $
+ *    $Author: nicks $
+ *    $Date: 2011/03/22 22:57:17 $
+ *    $Revision: 1.3 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -57,7 +57,7 @@ static void usage_exit(int code) ;
 static int niter = 50 ;
 
 static int
-write_surface_warp_into_volume(MRI_SURFACE *mris, MRI *mri, int niter) 
+write_surface_warp_into_volume(MRI_SURFACE *mris, MRI *mri, int niter)
 {
   int    vno, xvi, yvi, zvi, frame ;
   VERTEX *v ;
@@ -73,16 +73,26 @@ write_surface_warp_into_volume(MRI_SURFACE *mris, MRI *mri, int niter)
   {
     v = &mris->vertices[vno] ;
     if (vno == Gdiag_no)
+    {
       DiagBreak() ;
+    }
     if (v->ripflag)
+    {
       continue ;
+    }
     MRISsurfaceRASToVoxelCached(mris, mri, v->origx, v->origy, v->origz, &xv, &yv, &zv) ;
     MRISsurfaceRASToVoxelCached(mris, mri, v->x, v->y, v->z, &xv1, &yv1, &zv1) ;
-    dx = xv1-xv ; dy = yv1-yv ; dz = zv1-zv ;
+    dx = xv1-xv ;
+    dy = yv1-yv ;
+    dz = zv1-zv ;
     //    dx = xv1 ; dy = yv1 ; dz = zv1 ;
-    xvi = nint(xv) ; yvi = nint(yv) ; zvi = nint(zv) ;
+    xvi = nint(xv) ;
+    yvi = nint(yv) ;
+    zvi = nint(zv) ;
     if (xvi < 0 || xvi >= mri->width || yv < 0 || yv >= mri->height || zv < 0 || zv >= mri->depth)
+    {
       continue ;
+    }
     MRIinterpolateIntoVolumeFrame(mri, xv, yv, zv, 0, dx) ;
     MRIinterpolateIntoVolumeFrame(mri, xv, yv, zv, 1, dy) ;
     MRIinterpolateIntoVolumeFrame(mri, xv, yv, zv, 2, dz) ;
@@ -136,14 +146,20 @@ write_surface_warp_into_volume(MRI_SURFACE *mris, MRI *mri, int niter)
       for (zvi = 0 ; zvi < mri->depth ; zvi++)
       {
         if (xvi == Gx && yvi == Gy && zvi == Gz)
+        {
           DiagBreak() ;
+        }
         wt = MRIgetVoxVal(mri_weights, xvi, yvi, zvi, 0) ;
         dx = MRIgetVoxVal(mri, xvi, yvi, zvi, 0) ;
         dy = MRIgetVoxVal(mri, xvi, yvi, zvi, 1) ;
         dz = MRIgetVoxVal(mri, xvi, yvi, zvi, 2) ;
         if (FZERO(wt))
+        {
           continue ;
-        dx /= wt ; dy /= wt ; dz /= wt ;
+        }
+        dx /= wt ;
+        dy /= wt ;
+        dz /= wt ;
         MRIsetVoxVal(mri, xvi, yvi, zvi, 0, dx) ;
         MRIsetVoxVal(mri, xvi, yvi, zvi, 1, dy) ;
         MRIsetVoxVal(mri, xvi, yvi, zvi, 2, dz) ;
@@ -158,7 +174,7 @@ write_surface_warp_into_volume(MRI_SURFACE *mris, MRI *mri, int niter)
     mri_frame = MRIcopyFrame(mri, NULL, frame, 0) ;
     MRIbuildVoronoiDiagram(mri_frame, mri_ctrl, mri_frame) ;
     MRIsoapBubble(mri_frame, mri_ctrl, mri_frame, niter) ;
-    
+
     {
       int x, y, z ;
       float val ;
@@ -170,23 +186,31 @@ write_surface_warp_into_volume(MRI_SURFACE *mris, MRI *mri, int niter)
             switch (frame)
             {
             default:
-            case 0: val += x ; break ;
-            case 1: val += y ; break ;
-            case 2: val += z ; break ;
+            case 0:
+              val += x ;
+              break ;
+            case 1:
+              val += y ;
+              break ;
+            case 2:
+              val += z ;
+              break ;
             }
-            
+
             MRIsetVoxVal(mri_frame, x, y, z, 0, val) ;
           }
     }
     MRIcopyFrame(mri_frame, mri, 0, frame) ;
     MRIfree(&mri_frame) ;
   }
-  MRIfree(&mri_weights) ; MRIfree(&mri_ctrl) ;
+  MRIfree(&mri_weights) ;
+  MRIfree(&mri_ctrl) ;
   return(NO_ERROR) ;
 }
 
 int
-main(int argc, char *argv[]) {
+main(int argc, char *argv[])
+{
   char        **av, *out_name ;
   int          ac, nargs ;
   int          msec, minutes, seconds ;
@@ -196,9 +220,11 @@ main(int argc, char *argv[]) {
   MRI          *mri = NULL ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: mris_interpolate_warp.c,v 1.2 2011/03/18 13:10:50 fischl Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: mris_interpolate_warp.c,v 1.3 2011/03/22 22:57:17 nicks Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
+  {
     exit (0);
+  }
   argc -= nargs;
 
   Progname = argv[0] ;
@@ -209,21 +235,28 @@ main(int argc, char *argv[]) {
 
   ac = argc ;
   av = argv ;
-  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++) {
+  for ( ; argc > 1 && ISOPTION(*argv[1]) ; argc--, argv++)
+  {
     nargs = get_option(argc, argv) ;
     argc -= nargs ;
     argv += nargs ;
   }
 
   if (argc < 3)
+  {
     usage_exit(1) ;
+  }
 
   mris = MRISread(argv[2]) ;
   if (mris == NULL)
+  {
     ErrorExit(ERROR_NOFILE, "%s: could not read source surface %s\n", Progname,argv[2]) ;
+  }
   MRISsaveVertexPositions(mris, ORIGINAL_VERTICES) ;
   if (MRISreadVertexPositions(mris, argv[1]) != NO_ERROR)
+  {
     ErrorExit(ERROR_NOFILE, "%s: could not read target surface %s\n", Progname,argv[1]) ;
+  }
   if (like_vol_name == NULL)
   {
     mri = MRIallocSequence(mris->vg.width, mris->vg.height, mris->vg.depth, MRI_FLOAT, 3) ;
@@ -234,7 +267,9 @@ main(int argc, char *argv[]) {
     MRI *mri_tmp ;
     mri_tmp = MRIread(like_vol_name) ;
     if (mri_tmp == NULL)
+    {
       ErrorExit(ERROR_NOFILE, "%s: could not like volume %s\n", like_vol_name) ;
+    }
     mri = MRIallocSequence(mri->width, mri->height, mri->depth, MRI_FLOAT, 3) ;
     MRIcopyHeader(mri_tmp, mri) ;
     MRIfree(&mri_tmp) ;
@@ -262,12 +297,13 @@ main(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static int
-get_option(int argc, char *argv[]) {
+get_option(int argc, char *argv[])
+{
   int  nargs = 0 ;
   char *option ;
 
   option = argv[1] + 1 ;            /* past '-' */
-  switch (toupper(*option)) 
+  switch (toupper(*option))
   {
   case 'I':
     niter = atoi(argv[2]) ;
@@ -297,7 +333,8 @@ get_option(int argc, char *argv[]) {
            Description:
 ----------------------------------------------------------------------*/
 static void
-usage_exit(int code) {
+usage_exit(int code)
+{
   printf("usage: %s [options] <start surface> <end surface> <warp field>.m3z\n", Progname) ;
   exit(code) ;
 }
