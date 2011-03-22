@@ -62,6 +62,7 @@ int TestIntersectionDistance(int repnum) {
   double jump = 70;
   int intersect;
   MRI_SURFACE * mris = NULL;
+  msg[0]=0;
 
 #define pctspheredevMAX 0.125
 
