@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 15:35:44 $
-#    $Revision: 1.15 $
+#    $Date: 2011/03/22 17:16:19 $
+#    $Revision: 1.16.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: rawfunc2tal-sess,v 1.15 2010/07/26 15:35:44 greve Exp $'
+set VERSION = '$Id: rawfunc2tal-sess,v 1.16.2.1 2011/03/22 17:16:19 greve Exp $'
 
 set inputargs = ($argv);
 
@@ -46,6 +46,9 @@ set UpdateOnly = 0;
 set ExpKey = ();
 set ExpKeyNeeded = 0;
 set SliceOrder = ();
+set UseB0DC = 0;
+set b0dcmapstem = b0dcmap
+set ApplySubCortMask = 1;
 
 set nolog = 0;
 set debug = 0;
@@ -113,6 +116,15 @@ foreach sess ($SessList)
   if(! -e $sess/$fsd) then
     echo "ERROR: $sess/$fsd does not exist" |& tee -a $LF
     exit 1;
+  endif
+
+  set b0dcmap = ();
+  if($UseB0DC) then
+    set b0dcmap = `stem2fname $sess/$fsd/$b0dcmapstem`;
+    if($status) then
+      echo "$b0dcmap"|& tee -a $LF
+      exit 1;
+    endif
   endif
 
   if(! $PerRun) then
@@ -189,14 +201,28 @@ foreach sess ($SessList)
     set cmd = (mri_vol2vol --mov $mask --reg $reg \
       --tal --talres $res --talxfm $talxfm --nearest \
       --no-save-reg --o $outmask)
+    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
+
+    if($ApplySubCortMask) then
+      set subcortmask = $FREESURFER_HOME/subjects/fsaverage/mri.2mm/subcort.mask.mgz
+      if(! -e $subcortmask) then
+        echo "ERROR: cannot find $subcortmask"      
+        exit 1;
+      endif
+      set cmd = (mri_mask $outmask $subcortmask $outmask)
+      echo $cmd | tee -a $LF
+      $cmd | tee -a $LF
+      if($status) exit 1;
+    endif
 
     # Convert the native functional space data
     set cmd = (mri_vol2vol --mov $invol --reg $reg \
       --tal --talres $res --talxfm $talxfm --interp $interp \
       --no-save-reg --o $outvol)
+    if($UseB0DC) set cmd = ($cmd --vsm $b0dcmap)
     echo $cmd | tee -a $LF
     $cmd | tee -a $LF
     if($status) exit 1;
@@ -282,6 +308,15 @@ while( $#argv != 0 )
       set ExpKeyNeeded = 1;
       breaksw
 
+    case "-subcort-mask":
+    case "-subcort":
+      set ApplySubCortMask = 1;
+      breaksw
+    case "-no-subcort-mask":
+    case "-no-subcort":
+      set ApplySubCortMask = 0;
+      breaksw
+
     case "-trilin":
       set interp = "trilin"
       breaksw
@@ -318,6 +353,13 @@ while( $#argv != 0 )
       if($#argv < 1) goto arg1err;
       set ExpKey = $argv[1]; shift;
       set ExpKey = (.$ExpKey); # prepend a dot
+      breaksw
+
+    case "-b0dc":
+    case "-b0dcor":
+    case "-vsm":
+      set UseB0DC = 1;
+      set ExpKey = ".b0dc"
       breaksw
 
     # these should not be used
@@ -390,7 +432,10 @@ set outstem = $outstem.sm$fwhm.$target.$res"mm"
 if($#maskstem == 0) set maskstem = $maskname
 set maskstem = $maskstem.$target.$res"mm"
 
-if($#regfile == 0) set regfile  = register.dof$RegDOF.dat
+if($#regfile == 0) then
+  if(! $UseB0DC) set regfile = register.dof$RegDOF.dat
+  if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.dat
+endif
 
 goto check_params_return;
 ############--------------##################
@@ -425,6 +470,7 @@ usage_exit:
   echo "  -xfm tal.xfm : xfm file found in subject/mri/transforms (default is $talxfm)"
   echo "  -reg regfile : default is register.dof$regdof.dat"
   echo "  -per-session : use session-level registration and mask instead of -per-run"
+  echo "  -no-subcort-mask : do not apply MNI305 subcortical mask"
   echo ""
   echo "Other options"
   echo "  -update : only run if update is needed"

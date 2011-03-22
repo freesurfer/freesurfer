@@ -6,8 +6,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2010/07/26 15:55:06 $
-#    $Revision: 1.35 $
+#    $Date: 2011/03/22 17:16:19 $
+#    $Revision: 1.45.2.1 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,8 +22,12 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
+# To get per-run reg with smoothing, make sure -fwhm is after -per-run:
+# preproc-sess -s risk001 -per-run -fwhm 5 -fsd bold 
+# This creates fmcpr.sm5, then
+# mkanalysis-sess -native -funcstem fmcpr.sm5 ...
 
-set VERSION = '$Id: preproc-sess,v 1.35 2010/07/26 15:55:06 greve Exp $';
+set VERSION = '$Id: preproc-sess,v 1.45.2.1 2011/03/22 17:16:19 greve Exp $';
 
 set inputargs = ($argv);
 set DateStr = "`date '+%y%m%d%H%M'`"
@@ -42,7 +46,7 @@ set UseSmoothMask = 0;
 set fwhm     = ();
 set surffwhm = ();
 set SliceOrder = ();
-set fsd     = bold;
+set fsd      = ();
 set mcrun    = ();
 set mctargstem = ();
 set mctargframe = ();
@@ -69,6 +73,8 @@ set ToMNI305 = 0;
 set RawRes = 2;
 set RegDOF = 6;
 set regfile = ();
+set UseB0DC = 0;
+set ApplySubCortMask = 1;
 
 set nskip = 0; # for inorm
 set nolog = 0;
@@ -112,7 +118,12 @@ else
     echo "WARNING: could not create $logdir"
     set LF = /dev/null
   else
-    set LF = $logdir/preproc-sess.log
+    if($#SessList > 1) then
+      set LF = $logdir/preproc-sess.$$.log
+    else
+      set sb = `basename $SessList`
+      set LF = $logdir/preproc-sess.$sb.log
+    endif
     if(-e $LF) mv $LF $LF.old
   endif
 endif
@@ -195,6 +206,7 @@ foreach sess ($SessList)
     if($PerSess) set cmd = ($cmd -per-session)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
+    if($UseB0DC)    set cmd = ($cmd -b0dc)
     echo "$sessid Registration -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -232,12 +244,13 @@ foreach sess ($SessList)
     set cmd = (rawfunc2surf-sess -fwhm $fwhm)
     set cmd = ($cmd -s $sessid -d $sessparent -fsd $fsd)
     # By default it will do both, so set -hemi to anything
-    if($hemi == lh || $hemi == rh) set cmd = ($cmd -hemi $hemi)
+    if("$hemi" == lh || "$hemi" == rh) set cmd = ($cmd -hemi $hemi)
     if($subject == self) set cmd = ($cmd -self)
     if($#RunListFile != 0)  set cmd = ($cmd -rlf $RunListFile);
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
+    if($UseB0DC)    set cmd = ($cmd -b0dc)
     echo "$sessid To Surface -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
@@ -252,7 +265,10 @@ foreach sess ($SessList)
     if($#SliceOrder) set cmd = ($cmd -stc $SliceOrder)
     if($nolog)      set cmd = ($cmd -nolog);
     if($UpdateOnly) set cmd = ($cmd -update);
-    echo "$sessid To Surface -----------------------------" |& tee -a $LF
+    if($UseB0DC)    set cmd = ($cmd -b0dc)
+    if($ApplySubCortMask)   set cmd = ($cmd -subcort-mask)
+    if(! $ApplySubCortMask) set cmd = ($cmd -no-subcort-mask)
+    echo "$sessid To MNI305 -----------------------------" |& tee -a $LF
     echo $cmd |& tee -a $LF
     $cmd |& tee -a $LF
     if($status) exit 1;
@@ -493,8 +509,13 @@ while( $#argv != 0 )
       set ToSurf = 1;
       set PerRun = 1;
       set PerSess = 0;
+      if($subject != self && ! -e $SUBJECTS_DIR/$subject) then
+        echo "ERROR: cannot find $subject in $SUBJECTS_DIR"
+        exit 1;
+      endif
       breaksw
 
+    case "-mni305-2mm":
     case "-mni305":
       set RawRes = 2;
       set ToMNI305 = 1;
@@ -502,11 +523,35 @@ while( $#argv != 0 )
       set PerSess = 0;
       breaksw
 
+    case "-usual":
+      set subject = fsaverage;
+      set hemi = lhrh
+      set ToSurf = 1;
+      set RawRes = 2;
+      set ToMNI305 = 1;
+      set PerRun = 1;
+      set PerSess = 0;
+      set fwhm = 5;
+      breaksw
+
     case "-mni305-1mm":
       set RawRes = 1;
       set ToMNI305 = 1;
       set PerRun = 1;
       set PerSess = 0;
+      breaksw
+
+    case "-subcort-mask":
+    case "-subcort":
+      set ApplySubCortMask = 1;
+      breaksw
+    case "-no-subcort-mask":
+    case "-no-subcort":
+      set ApplySubCortMask = 0;
+      breaksw
+
+    case "-b0dc":
+      set UseB0DC = 1;
       breaksw
 
     case "-a":
@@ -522,6 +567,8 @@ while( $#argv != 0 )
       set RegDOF = `getana -a $analysis -t RegDOF`;
       set PerRun = `getana -a $analysis -t IsPerRun`;
       set PerSess = `getana -a $analysis -t IsPerSession`;
+      set UseB0DC = `getana -a $analysis -t UseB0DC`;
+      if($#UseB0DC == 0) set UseB0DC = 0;
       set fwhm = `getana -a $analysis -t RawFWHM`;
       if($fwhm == 0 || $PerRun) set DoVolSmooth = 0;
       set SliceOrder = `getana -a $analysis -t stc`;
@@ -612,6 +659,12 @@ goto parse_args_return;
 check_params:
   if($#instem == 0) set instem = "f";
 
+  if($#fsd == 0) then
+    echo "ERROR: you must specify a functional subdirectory with -fsd"
+    echo "       eg, -fsd bold or -fsd rest"
+    exit 1
+  endif
+
   if($DoMC || $DoReg) then
     if($PerRun == 0 && $PerSess == 0) then
       echo "ERROR: You must specify -per-run or -per-session"
@@ -624,7 +677,7 @@ check_params:
     if($#mcoutstem == 0) then
       if($PerRun) then
         set mcoutstem = $mcinstem"mcpr"
-      else
+      else # PerSess
         set mcoutstem = $mcinstem"mc"
       endif    
     endif    
@@ -683,7 +736,10 @@ check_params:
     exit 1;
   endif
 
-  if($#regfile == 0) set regfile = register.dof$RegDOF.dat
+  if($#regfile == 0) then
+    if(! $UseB0DC) set regfile = register.dof$RegDOF.dat
+    if($UseB0DC)   set regfile = register.dof$RegDOF.b0dc.dat
+  endif
 
 goto check_params_return;
 ############--------------##################
@@ -691,6 +747,10 @@ goto check_params_return;
 ############--------------##################
 arg1err:
   echo "ERROR: flag $flag requires one argument"
+  exit 1
+############--------------##################
+arg2err:
+  echo "ERROR: flag $flag requires two arguments"
   exit 1
 ############--------------##################
 
@@ -708,7 +768,7 @@ usage_exit:
   echo "  -no-update     : same as -force"
   echo "  -sliceorder so : turn on slice timing correction with the given slice order"
   echo "  -surface subject hemi : set hemi to lhrh to do both"
-  echo "  -mni305        : sample raw data to mni305 at 2mm"
+  echo "  -mni305-2mm    : sample raw data to mni305 at 2mm (same as -mni305)"
   echo "  -mni305-1mm    : sample raw data to mni305 at 1mm"
   echo ""
   echo "Session Arguments (some combination required)"
