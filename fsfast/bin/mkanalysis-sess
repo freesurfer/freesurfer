@@ -7,8 +7,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/11 20:16:21 $
-#    $Revision: 1.64 $
+#    $Date: 2011/03/22 16:58:42 $
+#    $Revision: 1.65 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -23,7 +23,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: mkanalysis-sess,v 1.64 2011/03/11 20:16:21 greve Exp $';
+set VERSION = '$Id: mkanalysis-sess,v 1.65 2011/03/22 16:58:42 greve Exp $';
 
 set analysis = ();
 set TR = ();
@@ -464,8 +464,10 @@ while( $#argv != 0 )
       breaksw
 
     case "-mni305":
-      if($#argv < 1) goto arg1err;
-      set RawRes = $argv[1]; shift;
+      set RawRes = 2;
+      if(! `isargflag $argv`) then
+        set RawRes = $argv[1]; shift;
+      endif
       set RawSpaceType = volume;
       set RawSpace = mni305;
       set mcstem = fmcpr
