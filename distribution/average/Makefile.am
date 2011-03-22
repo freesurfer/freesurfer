@@ -87,7 +87,6 @@ install: install-fooDATA
 	gunzip -c $(top_srcdir)/distribution/average/cvs_avg35.tar.gz | tar xvf -
 	mv $(top_builddir)/distribution/average/cvs_avg35 \
 		$(DESTDIR)$(prefix)/subjects
-	chmod -R 775 $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(DESTDIR)$(prefix)/subjects/fsaverage
 	rm -Rf $(top_builddir)/distribution/average/fsaverage
 	gunzip -c $(top_srcdir)/distribution/average/fsaverage.tar.gz | tar xvf -
