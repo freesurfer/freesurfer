@@ -9,8 +9,8 @@
 # Original Author: Martin Reuter
 # CVS Revision Info:
 #    $Author: mreuter $
-#    $Date: 2011/03/22 18:04:13 $
-#    $Revision: 1.1 $
+#    $Date: 2011/03/22 18:17:28 $
+#    $Revision: 1.2 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -145,7 +145,7 @@ def options_parse():
     Command Line Options Parser for long_mris_slopes
     initiate the option parser and return the parsed object
     """
-    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.1 2011/03/22 18:04:13 mreuter Exp $', usage=HELPTEXT)
+    parser = optparse.OptionParser(version='$Id: long_stats_slopes,v 1.2 2011/03/22 18:17:28 mreuter Exp $', usage=HELPTEXT)
     
     # help text
     h_qdec      = '(REQUIRED) qdec table file specifying the subjects and time points'
@@ -359,26 +359,14 @@ if __name__=="__main__":
         if options.do_stack:
             meas_target = os.path.join(basestatsdir,options.out_stack)
         stats = options.stats
-        prog  = 'asegstats2table --common-segs'
-        if options.stats[0:2] == 'lh.' or options.stats[0:2]=='rh':
+        prog  = 'asegstats2table --common-segs --stats '+stats
+        if options.stats[0:3] == 'lh.' or options.stats[0:3]=='rh.':
             stats = options.stats[3:]
-            prog = 'aparcstats2table --common-parcs --hemi '+options.stats[0:2]        
-        cmd = prog+' --subjects '+all+' --meas '+options.meas+' --tablefile '+ meas_target+' -d space --stats '+stats
-        run_cmd(cmd,prog+' stacking did not work?')
-
-        # create tp1 table and mgh file
-        tp1tab = os.path.join(dirname,'tp1.'+options.stats+'.'+options.meas+'.dat')
-        cmd = 'head -n 2 '+meas_target
-        args = shlex.split(cmd)
-        output_f = open(tp1tab, 'w')
-        retcode = subprocess.Popen(args,stdout=output_f)
-        if retcode != 0 :
-            print 'ERROR: head on first 2 lines of time series table did not work?'
-        output_f.close()
-        tp1 = os.path.join(dirname,'tp1.'+options.stats+'.'+options.meas+'.mgh')
-        cmd = 'mri_convert --in_stats_table '+tp1tab+' '+tp1
-        run_cmd(cmd,'mri_convert tp1 from stats-table to mgh did not work?')
-        
+            if stats[-6:] == '.stats':
+               stats=stats[0:-6]
+            prog = 'aparcstats2table --common-parcs --hemi '+options.stats[0:2]+' --parc '+stats
+        cmd = prog+' --subjects '+all+' --meas '+options.meas+' --tablefile '+ meas_target+' -d space'
+        run_cmd(cmd,prog+' stacking did not work?')        
 
         #write X-matrix (times):
         x_target    = os.path.join(dirname,'X-long.mat')
@@ -431,7 +419,18 @@ if __name__=="__main__":
             run_cmd(cmd,'converting spc to statstable failed?') 
                 
         if options.out_pc1 is not None:
-            # convert tp1 
+            # create tp1 table and mgh file
+            tp1tab = os.path.join(dirname,'tp1.'+options.stats+'.'+options.meas+'.dat')
+            cmd = 'head -n 2 '+meas_target
+            args = shlex.split(cmd)
+            output_f = open(tp1tab, 'w')
+            retcode = subprocess.Popen(args,stdout=output_f)
+            if retcode != 0 :
+                print 'ERROR: head on first 2 lines of time series table did not work?'
+            output_f.close()
+            tp1 = os.path.join(dirname,'tp1.'+options.stats+'.'+options.meas+'.mgh')
+            cmd = 'mri_convert --in_stats_table '+tp1tab+' '+tp1
+            run_cmd(cmd,'mri_convert tp1 from stats-table to mgh did not work?')
             # compute pct change:
             outtmp = os.path.join(dirname,options.out_pc1+'.mgh')
             cmd = 'mris_calc -o '+outtmp+' '+beta1+' div '+tp1
@@ -468,7 +467,6 @@ if __name__=="__main__":
                
         print 'You can look at the result with, e.g.:'
         print '  nedit '+os.path.join(basestatsdir,outex)
-       # print '  tksurfer '+subjectid+' '+options.hemi+' pial -overlay '+allout[0]
         print
           
             
