@@ -21,7 +21,7 @@ echo >> $LOGFILE
 
 
 # Run configure
-./configure  --with-boost-dir=/homes/11/rge21/avebury01nfs/boost-1.41.0/ --with-cuda=/usr/local/cuda/3.02.16/cuda/ --enable-fermi-gpu >> $LOGFILE 2>&1
+./configure  --with-boost-dir=/homes/11/rge21/avebury01nfs/boost-1.41.0/ --with-cuda=/usr/local/cuda/3.2.16/cuda/ --enable-fermi-gpu >> $LOGFILE 2>&1
 if [ $? -ne 0 ]; then
     echo "NIGHTLY: configure failed"
     exit
