@@ -8,8 +8,8 @@
 # Original Author: Anastasia Yendiki
 # CVS Revision Info:
 #    $Author: ayendiki $
-#    $Date: 2011/03/17 18:14:22 $
-#    $Revision: 1.15 $
+#    $Date: 2011/03/23 04:35:05 $
+#    $Revision: 1.16 $
 #
 # Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
 #
@@ -25,7 +25,7 @@
 
 umask 002
 
-set VERSION = '$Id: trac-paths,v 1.15 2011/03/17 18:14:22 ayendiki Exp $'
+set VERSION = '$Id: trac-paths,v 1.16 2011/03/23 04:35:05 ayendiki Exp $'
 set ProgName = `basename $0`
 set inputargs = ($argv)
 
@@ -306,6 +306,8 @@ foreach ntrain ($ntrainlist)
             set cmd = $trcdir/dmri_pathstats
             set cmd = ($cmd --intrc  $outdir/$pathpre)
             set cmd = ($cmd --dtbase $dwidir/dtifit)
+            set cmd = ($cmd --path   $pathname)
+            set cmd = ($cmd --subj   $subj)
             set cmd = ($cmd --out    $outdir/$pathpre/pathstats.overall.txt)
             set cmd = ($cmd --outvox $outdir/$pathpre/pathstats.byvoxel.txt)
             echo $cmd |& tee -a $LF |& tee -a $CF
