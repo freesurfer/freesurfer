@@ -6,9 +6,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:45 $
- *    $Revision: 1.48 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/23 20:23:28 $
+ *    $Revision: 1.49 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -1196,7 +1196,7 @@ static int
 TiffWriteImage(IMAGE *I, const char*fname, int frame)
 {
   TIFF    *out ;
-  short   bits_per_sample, samples_per_pixel;
+  short   bits_per_sample, samples_per_pixel, sample_format;
   int     row, frames;
   byte *timage;
   tdata_t *buf;
@@ -1208,22 +1208,27 @@ TiffWriteImage(IMAGE *I, const char*fname, int frame)
   switch (I->pixel_format)
   {
   case PFBYTE:
+    sample_format = SAMPLEFORMAT_INT ;
     samples_per_pixel = 1 ;
     bits_per_sample = sizeof(byte)*8 ;
     break ;
   case PFSHORT:
+    sample_format = SAMPLEFORMAT_INT ;
     samples_per_pixel = 1;
     bits_per_sample = sizeof(short)*8;
     break;
   case PFINT:
+    sample_format = SAMPLEFORMAT_INT ;
     samples_per_pixel = 1 ;
     bits_per_sample = sizeof(int)*8 ;
     break ;
   case PFFLOAT:
+    sample_format = SAMPLEFORMAT_IEEEFP ;
     samples_per_pixel = 1 ;
     bits_per_sample = sizeof(float)*8 ;
     break ;
   case PFDOUBLE:
+    sample_format = SAMPLEFORMAT_IEEEFP ;
     samples_per_pixel = 1 ;
     bits_per_sample = sizeof(double)*8 ;
     break ;
@@ -1233,6 +1238,7 @@ TiffWriteImage(IMAGE *I, const char*fname, int frame)
                  "TiffWrite: pixel format %d not supported currently supported",
                  I->pixel_format)) ;
     samples_per_pixel = 3 ;
+    sample_format = SAMPLEFORMAT_UINT;
     bits_per_sample = 8 ;
     break ;
   }
@@ -1241,6 +1247,7 @@ TiffWriteImage(IMAGE *I, const char*fname, int frame)
 
   for (frames=0;frames<I->num_frame;frames++)
   {
+    TIFFSetField(out, TIFFTAG_SAMPLEFORMAT, (uint32) sample_format);
     TIFFSetField(out, TIFFTAG_IMAGEWIDTH, (uint32) I->cols);
     TIFFSetField(out, TIFFTAG_IMAGELENGTH, (uint32) I->rows);
     // orientation is bot-left
