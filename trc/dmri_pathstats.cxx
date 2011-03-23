@@ -8,8 +8,8 @@
  * Original Author: Anastasia Yendiki
  * CVS Revision Info:
  *    $Author: ayendiki $
- *    $Date: 2011/03/15 02:34:44 $
- *    $Revision: 1.4 $
+ *    $Date: 2011/03/23 04:32:42 $
+ *    $Revision: 1.5 $
  *
  * Copyright (C) 2010
  * The General Hospital Corporation (Boston, MA).
@@ -64,6 +64,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 static void dump_options(FILE *fp);
+static void WriteHeader(char *OutFile);
 
 int debug = 0, checkoptsonly = 0;
 
@@ -80,13 +81,15 @@ char *inTrkFile = NULL, *inRoi1File = NULL, *inRoi2File = NULL,
 MRI *l1, *l2, *l3, *v1;
 
 struct utsname uts;
-char *cmdline, cwd[2000];
+char *cmdline, cwd[2000], subjName[100], pathName[100] ;
 
 struct timeb cputimer;
 
 /*--------------------------------------------------*/
 int main(int argc, char **argv) {
-  int nargs, cputime;
+  int nargs, cputime, count, volume, lenmin, lenmax, lencent;
+  float lenavg;
+  vector<float> avg, wavg, cavg;
   vector<MRI *> meas;
   ofstream fout;
 
@@ -137,43 +140,13 @@ int main(int argc, char **argv) {
     meas.push_back(MRIread(fname));		// Fractional anisotropy
   }
 
-  if (outFile) {
-    fout.open(outFile, ios::out);
-
-    fout << "Count "
-         << "Volume "
-         << "Len_Min "
-         << "Len_Max "
-         << "Len_Avg "
-         << "Len_Center";
-
-    if (dtBase)
-      fout << " AD_Avg"
-           << " AD_Avg_Weight"
-           << " AD_Avg_Center"
-           << " RD_Avg"
-           << " RD_Avg_Weight"
-           << " RD_Avg_Center"
-           << " MD_Avg"
-           << " MD_Avg_Weight"
-           << " MD_Avg_Center"
-           << " FA_Avg"
-           << " FA_Avg_Weight"
-           << " FA_Avg_Center";
-
-    fout << endl;
-  }
-
   if (outVoxFile) {
-    ofstream fvox(outVoxFile, ios::out);
+    WriteHeader(outVoxFile);
 
-    fvox << "x "
-         << "y "
-         << "z "
-         << "AD "
-         << "RD "
-         << "MD "
-         << "FA" << endl;
+    ofstream fvox(outVoxFile, ios::app);
+    fvox << "# pathway start" << endl;
+    fvox << "x y z AD RD MD FA" << endl;
+    fvox.close();
   }
 
   if (inTrcDir > 0) {			// Probabilistic paths
@@ -181,7 +154,6 @@ int main(int argc, char **argv) {
     float wtot = 0, thresh = 0;
     char mname[PATH_MAX];
     vector<int> lengths;
-    vector<float> avg(meas.size(), 0), wavg(meas.size(), 0);
     vector<float>::iterator iavg, iwavg;
     MRI *post;
     ifstream infile;
@@ -194,16 +166,14 @@ int main(int argc, char **argv) {
       exit(1);
     }
 
-    while (infile >> len)
+    // Sum path lengths
+    lenavg = 0;
+    while (infile >> len) {
       lengths.push_back(len);
+      lenavg += len;
+    }
 
     infile.close();
-
-    // Sum path lengths
-    len = 0;
-    for (vector<int>::const_iterator ilen = lengths.begin();
-                                     ilen < lengths.end(); ilen++)
-      len += *ilen;
 
     // Read path posterior distribution
     sprintf(fname, "%s/path.pd.nii.gz", inTrcDir);
@@ -226,6 +196,11 @@ int main(int argc, char **argv) {
     thresh *= .2;
 
     // Compute average and weighted average of measures on thresholded posterior
+    avg.resize(meas.size());
+    fill(avg.begin(), avg.end(), 0.0);
+    wavg.resize(meas.size());
+    fill(wavg.begin(), wavg.end(), 0.0);
+
     for (int iz = 0; iz < nz; iz++)
       for (int iy = 0; iy < ny; iy++)
         for (int ix = 0; ix < nx; ix++) {
@@ -264,26 +239,15 @@ int main(int argc, char **argv) {
     myspline.InterpolateSpline();
 
     // Overall measures
-    if (outFile) {
-      fout << lengths.size() << " "
-           << nvox << " "
-           << *min_element(lengths.begin(), lengths.end()) << " "
-           << *max_element(lengths.begin(), lengths.end()) << " "
-           << ( (len > 0) ? (len / (float) lengths.size()) : 0 ) << " "
-           << (myspline.GetAllPointsEnd() - myspline.GetAllPointsBegin()) / 3;
+    count   = lengths.size();
+    volume  = nvox;
+    lenmin  = *min_element(lengths.begin(), lengths.end());
+    lenmax  = *max_element(lengths.begin(), lengths.end());
+    lenavg  = ( (lenavg > 0) ? (lenavg / (float) lengths.size()) : 0 );
+    lencent = (myspline.GetAllPointsEnd() - myspline.GetAllPointsBegin()) / 3;
 
-      if (dtBase) {
-        vector<float> avgmap = myspline.ComputeAvg(meas);
-
-        for (unsigned int k = 0; k < meas.size(); k++)
-          fout << " " << avg[k]
-               << " " << wavg[k]
-               << " " << avgmap[k];
-      }
-
-      fout << endl;
-      fout.close();
-    }
+    if (dtBase)
+      cavg = myspline.ComputeAvg(meas);
 
     // Measures by voxel on MAP streamline
     if (outVoxFile)
@@ -298,27 +262,17 @@ int main(int argc, char **argv) {
     myblood.FindCenterStreamline();
 
     // Overall measures
-    if (outFile) {
-      fout << myblood.GetNumStr() << " "
-           << myblood.GetVolume() << " "
-           << myblood.GetLengthMin() << " "
-           << myblood.GetLengthMax() << " "
-           << myblood.GetLengthAvg() << " "
-           << myblood.GetLengthCenter();
+    count   = myblood.GetNumStr();
+    volume  = myblood.GetVolume();
+    lenmin  = myblood.GetLengthMin();
+    lenmax  = myblood.GetLengthMax();
+    lenavg  = myblood.GetLengthAvg();
+    lencent = myblood.GetLengthCenter();
 
-      if (dtBase) {
-        vector<float> avgpath   = myblood.ComputeAvgPath(meas),
-                      wavgpath  = myblood.ComputeWeightAvgPath(meas),
-                      avgcenter = myblood.ComputeAvgCenter(meas);
-
-        for (unsigned int k = 0; k < meas.size(); k++)
-          fout << " " << avgpath[k]
-               << " " << wavgpath[k]
-               << " " << avgcenter[k];
-      }
-
-      fout << endl;
-      fout.close();
+    if (dtBase) {
+      avg  = myblood.ComputeAvgPath(meas);
+      wavg = myblood.ComputeWeightAvgPath(meas);
+      cavg = myblood.ComputeAvgCenter(meas);
     }
 
     // Measures by voxel on center streamline
@@ -330,8 +284,40 @@ int main(int argc, char **argv) {
       myblood.WriteCenterStreamline(outStrFile, inTrkFile);
   }
 
-  if (outFile)
+  if (outFile) {
+    WriteHeader(outFile);
+
+    fout.open(outFile, ios::app);
+
+    fout << "Count "      << count   << endl
+         << "Volume "     << volume  << endl
+         << "Len_Min "    << lenmin  << endl
+         << "Len_Max "    << lenmax  << endl
+         << "Len_Avg "    << lenavg  << endl
+         << "Len_Center " << lencent << endl;
+
+    if (dtBase)
+      fout << "AD_Avg "        << avg[0]  << endl
+           << "AD_Avg_Weight " << wavg[0] << endl
+           << "AD_Avg_Center " << cavg[0] << endl
+           << "RD_Avg "        << avg[1]  << endl
+           << "RD_Avg_Weight " << wavg[1] << endl
+           << "RD_Avg_Center " << cavg[1] << endl
+           << "MD_Avg "        << avg[2]  << endl
+           << "MD_Avg_Weight " << wavg[2] << endl
+           << "MD_Avg_Center " << cavg[2] << endl
+           << "FA_Avg "        << avg[3]  << endl
+           << "FA_Avg_Weight " << wavg[3] << endl
+           << "FA_Avg_Center " << cavg[3] << endl;
+
     fout.close();
+  }
+
+  if (outVoxFile) {
+    ofstream fvox(outVoxFile, ios::app);
+    fvox << "# pathway end" << endl;
+    fvox.close();
+  }
 
   cputime = TimerStop(&cputimer);
   printf("Done in %g sec.\n", cputime/1000.0);
@@ -384,6 +370,16 @@ static int parse_commandline(int argc, char **argv) {
       dtBase = fio_fullpath(pargv[0]);
       nargsused = 1;
     }
+    else if (!strcmp(option, "--path")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      strcpy(pathName, pargv[0]);
+      nargsused = 1;
+    }
+    else if (!strcmp(option, "--subj")) {
+      if (nargc < 1) CMDargNErr(option,1);
+      strcpy(subjName, pargv[0]);
+      nargsused = 1;
+    }
     else if (!strcmp(option, "--out")) {
       if (nargc < 1) CMDargNErr(option,1);
       outFile = fio_fullpath(pargv[0]);
@@ -419,6 +415,10 @@ static void print_usage(void)
   printf("     Input tracula directory\n");
   printf("   --dtbase <file>:\n");
   printf("     Base name of input dtifit files (optional)\n");
+  printf("   --path <name>:\n");
+  printf("     Name of pathway (optional, written to output files)\n");
+  printf("   --subj <name>:\n");
+  printf("     Name of subject (optional, written to output files)\n");
   printf("   --out <file>:\n");
   printf("     Output text file for overall path measures\n");
   printf("   --outvox <file>:\n");
@@ -477,6 +477,27 @@ static void check_options(void) {
 }
 
 /* --------------------------------------------- */
+static void WriteHeader(char *OutFile) {
+  ofstream fout(OutFile, ios::out);
+
+  fout << "# Title Pathway Statistics" << endl
+       << "#"                          << endl
+       << "# generating_program "      << Progname << endl
+       << "# cvs_version "             << vcid << endl
+       << "# cmdline "                 << cmdline << endl
+       << "# sysname "                 << uts.sysname << endl
+       << "# hostname "                << uts.nodename << endl
+       << "# machine "                 << uts.machine << endl
+       << "# user "                    << VERuser() << endl
+       << "# anatomy_type pathway"     << endl
+       << "#"                          << endl
+       << "# subjectname "             << subjName << endl
+       << "# pathwayname "             << pathName << endl
+       << "#"                          << endl;
+
+  fout.close();
+}
+
 static void dump_options(FILE *fp) {
   fprintf(fp,"\n");
   fprintf(fp,"%s\n",vcid);
@@ -497,6 +518,10 @@ static void dump_options(FILE *fp) {
     fprintf(fp, "Input tracula directory: %s\n", inTrcDir);
   if (dtBase)
     fprintf(fp, "Input DTI fit base: %s\n", dtBase);
+//  if (pathName)
+    fprintf(fp, "Pathway name: %s\n", pathName);
+//  if (subjName)
+    fprintf(fp, "Subject name: %s\n", subjName);
   if (outFile)
     fprintf(fp, "Output file for overall measures: %s\n", outFile);
   if (outVoxFile)
