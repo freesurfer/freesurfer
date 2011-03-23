@@ -12,8 +12,8 @@ AM_LDFLAGS=
 
 bin_PROGRAMS = mri_em_register
 mri_em_register_SOURCES=mri_em_register.c\
-                        findtranslation.cpp\
-                        emregisterutils.cpp
+                        findtranslation.cpp findtranslation.h\
+                        emregisterutils.cpp emregisterutils.h
 mri_em_register_LDADD= $(addprefix $(top_builddir)/, $(LIBS_MGH))
 mri_em_register_LDFLAGS=$(OS_LDFLAGS)
 
@@ -37,8 +37,8 @@ bin_PROGRAMS += mri_em_register_cuda
 
 mri_em_register_cuda_SOURCES = mri_em_register.c \
   em_register_cuda.cu em_register_cuda.h\
-  findtranslation.cpp\
-  emregisterutils.cpp
+  findtranslation.cpp findtranslation.h\
+  emregisterutils.cpp emregisterutils.h
 mri_em_register_cuda_CFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
 mri_em_register_cuda_CXXFLAGS = $(AM_CFLAGS) $(CUDA_CFLAGS) -DFS_CUDA
 mri_em_register_cuda_LDADD = $(addprefix $(top_builddir)/, $(LIBS_CUDA_MGH)) $(CUDA_LIBS)
