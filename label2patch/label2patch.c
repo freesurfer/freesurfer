@@ -7,9 +7,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: nicks $
- *    $Date: 2011/03/02 00:04:11 $
- *    $Revision: 1.3 $
+ *    $Author: fischl $
+ *    $Date: 2011/03/23 14:37:42 $
+ *    $Revision: 1.4 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -64,7 +64,7 @@ main(int argc, char *argv[]) {
   LABEL        *label ;
 
   /* rkt: check for and handle version tag */
-  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.3 2011/03/02 00:04:11 nicks Exp $", "$Name:  $");
+  nargs = handle_version_option (argc, argv, "$Id: label2patch.c,v 1.4 2011/03/23 14:37:42 fischl Exp $", "$Name:  $");
   if (nargs && argc - nargs == 1)
     exit (0);
   argc -= nargs;
@@ -179,6 +179,11 @@ get_option(int argc, char *argv[]) {
 }
 static void
 print_usage(void) {
-  printf("usage: %s <subject name> <hemi> <label file name> <output patch file>...\n",Progname);
+  printf("usage: %s [options] <subject name> <hemi> <label file name> <output patch file>...\n",Progname);
+  printf("where valid options are:\n") ;
+  printf("\t-dilate <n>  : dilate the label <n> times before creating the patch\n") ;
+  printf("\t-erode <n>   : erode the label <n> times before creating the patch\n") ;
+  printf("\t-close <n>   : close the label <n> times before creating the patch\n") ;
+  printf("\t-sdir <path> : use <path> as the SUBJECTS_DIR instead of the environment variable\n") ;
   exit(1) ;
 }
