@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description , arguments+ , outputs* , example* , bugs* ,  references* , reporting* ,see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mri_robust_template</name>
+	<synopsis>mri_robust_template --mov &lt;tp1.mgz&gt; &lt;tp2.mgz&gt; ... --template &lt;template.mgz&gt; [options]</synopsis>
+	<description>This program constructs an unbiased robust template for longitudinal volumes (within modality, 6-7 DOF). It uses an iterative method to construct a mean/median volume and the robust rigid registration of all input images to the current mean/median.
+
+  It is used for the MotionCorrection step in recon-all and for creating a within-subject template in the longitudinal stream (-base) in FreeSurfer.
+
+Important Note: For best performance the input images should all have the same intensity level! Good images are, for example, the T1.mgz and norm.mgz from the FreeSurfer stream. </description>
+  <arguments>
+    <positional>
+      <intro>None.</intro>
+    </positional>
+    <required-flagged>
+      <argument>--mov &lt;tp1.mgz&gt; &lt;tp2.mgz&gt;...</argument>
+      <explanation>input movable volumes to be aligned to common mean/median template</explanation>
+      <argument>--template &lt;template.mgz&gt;</argument>
+      <explanation>output template volume (final mean/median image)</explanation>
+      <intro>One of the following is required for sensitivity:</intro>
+      <argument>--sat &lt;real&gt;</argument>
+      <explanation>set outlier sensitivity manually (e.g. '--sat 4.685' ). Higher values mean less sensitivity.</explanation>
+      <argument>--satit</argument>
+      <explanation>auto-detect good sensitivity (recommended for head or full brain scans)</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--lta &lt;tp1.lta&gt; &lt;tp2.lta&gt; ...</argument>
+      <explanation>output xforms to template (for each input)</explanation>
+      <argument>--mapmov &lt;aligned1.mgz&gt; ...</argument>
+      <explanation>output images: map and resample each input to template</explanation>
+      <argument>--weights &lt;weights1.mgz&gt; ...</argument>
+      <explanation>output weights (outliers) in target space</explanation>
+      <argument>--average &lt;#&gt;</argument>
+      <explanation>construct template from: 0 Mean, 1 Median (default)</explanation>
+      <argument>--inittp &lt;#&gt;</argument>
+      <explanation>use TP# for spacial init (default random), 0: no init</explanation>
+      <argument>--fixtp</argument>
+      <explanation>map everthing to init TP# (init TP is not resampled)</explanation>
+      <argument>--iscale</argument>
+      <explanation>allow also intensity scaling (default off)</explanation>
+      <argument>--iscalein &lt;is1.txt&gt; &lt;is2.txt&gt; ...</argument>
+      <explanation>use initial intensity scales</explanation>
+      <argument>--iscaleout &lt;is1.txt&gt; &lt;is2.txt&gt; ...</argument>
+      <explanation>output final intensity scales (will activate --iscale)</explanation>
+      <argument>--ixforms &lt;t1.lta&gt; &lt;t2.lta&gt; ...</argument>
+      <explanation>use initial transforms (lta) on source  ('id'=identity)</explanation>
+      <argument>--vox2vox</argument>
+      <explanation>output VOX2VOX lta file (default is RAS2RAS)</explanation>
+      <argument>--leastsquares</argument>
+      <explanation>use least squares instead of robust M-estimator (for testing only)</explanation>
+      <argument>--noit</argument>
+      <explanation>do not iterate, just create first template</explanation>
+      <argument>--maxit &lt;#&gt;</argument>
+      <explanation>iterate max # times (if #tp&gt;2 default 6, else 5 for 2tp reg.)</explanation>
+      <argument>--highit &lt;#&gt;</argument>
+      <explanation>iterate max # times on highest resolution (default 5)</explanation>
+      <argument>--epsit &lt;real&gt;</argument>
+      <explanation>stop iterations when all tp transform updates fall below &lt;real&gt; (if #tp>2 default 0.03, else 0.01 for 2tp reg.)</explanation>
+      <argument>--subsample &lt;#&gt;</argument>
+      <explanation>subsample if dim &gt; # on all axes (default no subs.)</explanation>
+      <argument>--floattype</argument>
+      <explanation>convert images to float internally (default: keep input type)</explanation> 
+      <argument>--finalnearest</argument>
+      <explanation>use nearest neighbor in final interpolation when creating average. This is useful, e.g., when -noit and --ixforms are specified and brainmasks are mapped.</explanation> 
+      <argument>--doubleprec</argument>
+      <explanation>double precision (instead of float) internally (large memory usage!!!)</explanation>
+      <argument>--debug</argument>
+      <explanation>show debug output (default no debug output)</explanation>
+    </optional-flagged>
+  </arguments>
+	<example>mri_robust_template --mov tp1.mgz tp2.mgz tp3.mgz --template mean.mgz --lta tp1.lta tp2.lta tp3.lta --mapmov tp1tomean.mgz tp2tomean.mgz tp3tomean.mgz --average 0 --iscale --satit
+
+Constructs a mean (--average 0) template from tp1,tp2 and tp3 and outputs the mean.mgz, the corresponding transforms (tp?.lta) and aligned images (tp?tomean.mgz). Intensity scaling is allowed, the saturation/sensitivity for outliers is automatically computed (only possible for
+full head or full brain images). 
+
+View results:
+
+tkmedit -f mean.mgz -aux tp1tomean.mgz </example>
+<example>
+mri_robust_template --mov 001.mgz 002.mgz --average 1 --template rawavg.mgz --satit --inittp 1 --fixtp --noit --iscale --subsample 200
+
+Is used in the recon-all stream for motion correction of several (here two: 001.mgz and 002.mgz) inputs. In this case all follow-ups are registered to the first input (as specified with --inittp 1 --fixtp --noit) and the rawavg.mgz is output as the median image (--average 1). 
+</example>
+
+	<references>
+Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl.  NeuroImage 53 (4), pp. 1181-1196, 2010.
+  http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+  http://reuter.mit.edu/papers/reuter-robreg10.pdf 
+
+Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing, M. Reuter, B. Fischl.  NeuroImage , 2011.
+  http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+  http://reuter.mit.edu/papers/reuter-bias11.pdf 
+  </references>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mri_robust_register</see-also>
+</help>

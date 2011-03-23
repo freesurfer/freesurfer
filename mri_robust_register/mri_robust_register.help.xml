@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!DOCTYPE help [
+<!ENTITY lt "#38;#60;">
+<!ENTITY gt "&#62;">
+<!ENTITY amp "&#38;#38;">
+<!ELEMENT help (name , synopsis , description* , arguments+ , outputs* , example* , bugs* , references* , reporting* , see-also*)*>
+<!ELEMENT name (#PCDATA)>
+<!ELEMENT synopsis (#PCDATA)>
+<!ELEMENT description (#PCDATA)>
+<!ELEMENT arguments (positional* , required-flagged* , optional-flagged*)*>
+<!ELEMENT positional (intro* , argument* , explanation*)*>
+<!ELEMENT required-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT optional-flagged (intro* , argument* , explanation*)*>
+<!ELEMENT intro (#PCDATA)>
+<!ELEMENT argument (#PCDATA)>
+<!ELEMENT explanation (#PCDATA)>
+<!ELEMENT outputs (output* , explanation*)>
+<!ELEMENT output (#PCDATA)>
+<!ELEMENT example (#PCDATA)>
+<!ELEMENT bugs (#PCDATA)>
+<!ELEMENT references (#PCDATA)>
+<!ELEMENT reporting (#PCDATA)>
+<!ELEMENT see-also (#PCDATA)>
+]>
+
+<help>
+	<name>mri_robust_register</name>
+	<synopsis>mri_robust_register --mov &lt;mov.mgz&gt; --dst &lt;dst.mgz&gt; --lta &lt;reg.lta&gt; [options]</synopsis>
+	<description>This program computes an inverse consistent registration of two volumes (within modality, 6-7 DOF). It is robust with respect to outlier voxel or longitudinal change.
+	This program symmetrically aligns two volumes. It uses a method based on robust statistics to detect outliers and removes them from the registration. This leads to highly accurate registrations even with local changes in the image (e.g. jaw movement). The main purpose is to find the rigid registration (translation, rotation) of longitudinal data, but the method can be used to rigidly align different images. An additional optional intensity scale parameter can be used to adjust for global intensity differences. The extension to affine registration is being tested.
+	
+If the registration fails: 
+The registration can fail because of several reasons, most likely due to large intensity differences or non-linear differences in the image. You can try:
+ * Switch on intensity scaling (--iscale).
+ * When specifying a manual saturation (--sat) too many voxels might be considered outlier early in the process. You can check this by outputing the weights (--weights ow.mgz) and by looking at them in:
+   tkmedit -f dst.mgz -aux mov.mgz -overlay ow.mgz 
+If most of the brain is labeled outlier, try to set the saturation to a higher value (eg. --sat 12) or use --satit to automatically determine a good sat value.
+ * When using automatic saturation estimation (--satit) you can try specifying the sensitivity manually or play around with --wlimit (which is around 0.16 by default). A lower wlimit should reduce the number of outlier voxels.	</description>
+  <arguments>
+    <positional>
+      <intro>None.</intro>
+    </positional>
+    <required-flagged>
+      <argument>--mov &lt;mov.mgz&gt;</argument>
+      <explanation>input movable volume to be aligned to target</explanation>
+      <argument>--dst &lt;dst.mgz&gt;</argument>
+      <explanation>input target volume</explanation>
+      <argument>--lta &lt;reg.lta&gt;</argument>
+      <explanation>output registration (transform from mov to dst)</explanation>
+      <intro>One of the following is required for sensitivity:</intro>
+      <argument>--sat &lt;real&gt;</argument>
+      <explanation>set outlier sensitivity manually (e.g. '--sat 4.685' ). Higher values mean less sensitivity.</explanation>
+      <argument>--satit</argument>
+      <explanation>auto-detect good sensitivity (recommended for head or full brain scans)</explanation>
+    </required-flagged>
+    <optional-flagged>
+      <argument>--mapmov &lt;aligned.mgz&gt; </argument>
+      <explanation>output image: movable mapped and resampled at destination</explanation>
+      <argument>--weights &lt;weights.mgz&gt; </argument>
+      <explanation>output weights (outliers) in destination space</explanation>
+			<argument>--iscale </argument>
+			<explanation>estimate intensity scale factor (default no). Highly recommended for unnormalized images!</explanation>
+			<argument>--iscaleout &lt;fname.txt&gt;</argument>
+			<explanation>output txt file for iscale value (will activate --iscale). Default: no iscale output</explanation>
+			<argument>--iscalein &lt;fname.txt&gt;</argument>
+			<explanation>initial input txt file for iscale value (probably you want to also activate --iscale to estimate final value?)</explanation>
+			<argument>--transonly</argument>
+			<explanation>find 3 parameter translation only</explanation>
+			<argument>--ixform lta</argument>
+			<explanation>use initial transform lta on source ('id'=identity), default is align center (using moments)</explanation>
+			<argument>--initorient</argument>
+			<explanation>use moments for orientation init (default false). Recommended for stripped brains, but not with full head images with different cropping </explanation>
+			<argument>--noinit</argument>
+			<explanation>skip transform init, default: translation of centers</explanation>
+			<argument>--vox2vox</argument>
+			<explanation>output VOX2VOX lta file (default is RAS2RAS)</explanation>
+			<argument>--leastsquares</argument>
+			<explanation>use least squares instead of robust M-estimator (for testing only)</explanation>
+
+      <argument>--maxit &lt;#&gt;</argument>
+      <explanation>iterate max # times on each resolution (default 5)</explanation>
+      <argument>--highit &lt;#&gt;</argument>
+      <explanation>iterate max # times on highest resolution (default 5)</explanation>
+      <argument>--epsit &lt;real&gt;</argument>
+      <explanation>stop iterations when all tp transform updates fall below &lt;real&gt; (default 0.01)</explanation>
+			<argument>--nomulti</argument>
+			<explanation>work on highest resolution only (no multiscale)</explanation>
+			<argument>--wlimit &lt;real&gt;</argument>
+			<explanation>sets maximal outlier limit for --satit (default 0.16), reduce to decrease outlier sensitivity </explanation>
+			<argument>--subsample &lt;real&gt;</argument>
+			<explanation>subsample if dim &gt; # on all axes (default no subs.)</explanation>
+      <argument>--floattype</argument>
+      <explanation>convert images to float internally (default: keep input type)</explanation> 
+      <argument>--doubleprec</argument>
+      <explanation>double precision (instead of float) internally (large memory usage!!!)</explanation>
+			
+			<argument>--maskmov &lt;mask.mgz&gt;</argument>
+			<explanation>mask mov/src with mask.mgz</explanation>
+			<argument>--maskdst &lt;mask.mgz&gt;</argument>
+			<explanation>mask dst/target with mask.mgz</explanation>
+			<argument>--halfmov &lt;hm.mgz&gt;</argument>
+			<explanation>outputs half-way mov (mapped to halfway space)</explanation>
+			<argument>--halfdst &lt;hd.mgz&gt;</argument>
+			<explanation>outputs half-way dst (mapped to halfway space)</explanation>
+			<argument>--halfweights hw.mgz</argument>
+			<explanation>outputs half-way weights (mapped to halfway space)</explanation>
+			<argument>--halfmovlta hm.lta</argument>
+			<explanation>outputs transform from mov to half-way space</explanation>
+			<argument>--halfdstlta hd.lta</argument>
+			<explanation>outputs transform from dst to half-way space</explanation>
+
+      <argument>--debug</argument>
+      <explanation>show debug output (default no debug output)</explanation>
+      <argument>--verbose</argument>
+      <explanation>0 quiet, 1 normal (default), 2 detail</explanation>
+			
+    </optional-flagged>
+  </arguments>
+	<example>mri_robust_register --mov vol1.mgz --dst vol2.mgz --lta v1to2.lta --mapmov v1to2.mgz --weights v1to2-weights.mgz --iscale --satit
+
+Computes the rigid registration (6 degrees of freedom) of vol1.mgz to vol2.mgz using robust statistics and with an additional 7th global intensity scaling parameter (recommended e.g. for orig.mgz). The output is the transform (v1to2.lta) and v1to2.mgz (the aligned vol1.mgz to the target image). Additionally the weights of the robust registation (outlier detection) are saved. Everything can be viewed in tkmedit with:
+
+tkmedit -f vol2.mgz -aux v1to2.mgz -overlay v1to2-weights.mgz </example>
+	<example>mri_robust_register --mov vol1.mgz --dst vol2.mgz --lta v1to2.lta --halfmov h1.mgz --halfdst h2.mgz --halfmovlta h1.lta --halfdstlta h2.lta --iscale --satit
+	
+Computes the rigid robust registration with intensity scaling of vol1 to vol2 (the registration will be in v1to2.lta). Additionally outputs the half-way volumes h1 and h2 (with corresponding transforms h1.lta and h2.lta). As both volumes are mapped to the half-way space, they will both be resampled. This can be used to construct an unbiased mean volume (e.g. with mri_average) or to compute change maps. The output can be viewed with: 
+
+tkmedit -f h1.mgz -aux h2.mgz</example>
+	<references>
+Highly Accurate Inverse Consistent Registration: A Robust Approach, M. Reuter, H.D. Rosas, B. Fischl.  NeuroImage 53 (4), pp. 1181-1196, 2010.
+    http://dx.doi.org/10.1016/j.neuroimage.2010.07.020
+    http://reuter.mit.edu/papers/reuter-robreg10.pdf 
+
+Avoiding Asymmetry-Induced Bias in Longitudinal Image Processing, M. Reuter, B. Fischl.  NeuroImage , 2011.
+    http://dx.doi.org/10.1016/j.neuroimage.2011.02.076
+    http://reuter.mit.edu/papers/reuter-bias11.pdf 
+  </references>
+  <reporting>Report bugs to &lt;freesurfer@nmr.mgh.harvard.edu&gt;</reporting>
+	<see-also>mri_robust_template</see-also>
+</help>
