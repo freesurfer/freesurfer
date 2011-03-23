@@ -8,8 +8,8 @@
  * Original Author: Bruce Fischl
  * CVS Revision Info:
  *    $Author: fischl $
- *    $Date: 2011/03/23 19:15:07 $
- *    $Revision: 1.77 $
+ *    $Date: 2011/03/23 20:08:00 $
+ *    $Revision: 1.78 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -23,7 +23,7 @@
  *
  */
 
-char *MRI_INFO_VERSION = "$Revision: 1.77 $";
+char *MRI_INFO_VERSION = "$Revision: 1.78 $";
 
 #include <stdio.h>
 #include <sys/stat.h>
@@ -57,7 +57,7 @@ static void usage_exit(void);
 static void print_help(void) ;
 static void print_version(void) ;
 
-static char vcid[] = "$Id: mri_info.c,v 1.77 2011/03/23 19:15:07 fischl Exp $";
+static char vcid[] = "$Id: mri_info.c,v 1.78 2011/03/23 20:08:00 fischl Exp $";
 
 char *Progname ;
 static char *inputlist[100];
@@ -761,7 +761,7 @@ static void do_file(char *fname) {
       if (frame->label != 0)
         printf("\tlabel = %s (%d)\n", cma_label_to_name(frame->label), frame->label) ;
       if (!FZERO(frame->thresh))
-        printf("\tthresh = %2.1f deg\n", frame->thresh) ;
+        printf("\tthresh = %2.1f\n", frame->thresh) ;
     }
   }
 
