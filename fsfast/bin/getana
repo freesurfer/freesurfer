@@ -5,8 +5,8 @@
 # Original Author: Doug Greve
 # CVS Revision Info:
 #    $Author: greve $
-#    $Date: 2011/03/11 20:15:53 $
-#    $Revision: 1.6 $
+#    $Date: 2011/03/23 18:08:42 $
+#    $Revision: 1.7 $
 #
 # Copyright (C) 2002-2007,
 # The General Hospital Corporation (Boston, MA). 
@@ -22,7 +22,7 @@
 # Bug reports: analysis-bugs@nmr.mgh.harvard.edu
 #
 
-set VERSION = '$Id: getana,v 1.6 2011/03/11 20:15:53 greve Exp $';
+set VERSION = '$Id: getana,v 1.7 2011/03/23 18:08:42 greve Exp $';
 
 set analysis = ();
 set tag = ();
@@ -204,6 +204,12 @@ switch ($tag)
 
   case "UseB0DC":
     set result = `cat $info | awk '{if($1 == "UseB0DC") print $2}'`
+    breaksw;
+
+  case "scm":
+  case "ApplySubCortMask":
+    set result = `cat $info | awk '{if($1 == "ApplySubCortMask") print $2}'`
+    if($#result == 0) set result = 1;
     breaksw;
 
   case "inorm":
