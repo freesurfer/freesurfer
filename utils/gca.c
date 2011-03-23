@@ -13,9 +13,9 @@
 /*
  * Original Author: Bruce Fischl
  * CVS Revision Info:
- *    $Author: fischl $
- *    $Date: 2011/03/23 22:01:29 $
- *    $Revision: 1.293 $
+ *    $Author: ayendiki $
+ *    $Date: 2011/03/23 23:01:29 $
+ *    $Revision: 1.294 $
  *
  * Copyright © 2011 The General Hospital Corporation (Boston, MA) "MGH"
  *
@@ -11370,41 +11370,41 @@ cma_label_to_name(int label)
 
 
   if (label == lh_cst)
-    return("lh_cst") ;
+    return("Left Corticospinal Tract") ;
   if (label == rh_cst)
-    return("rh_cst") ;
+    return("Right Corticospinal Tract") ;
   if (label == lh_ilf)
-    return("lh_ilf") ;
+    return("Left Inferior Longitudinal Fasciculus") ;
   if (label == rh_ilf)
-    return("rh_ilf") ;
+    return("Right Inferior Longitudinal Fasciculus") ;
   if (label == lh_unc)
-    return("lh_unc") ;
+    return("Left Uncinate Fasciculus") ;
   if (label == rh_unc)
-    return("rh_unc") ;
+    return("Right Uncinate Fasciculus") ;
   if (label == fmajor)
-    return("fmajor") ;
+    return("Corpus Callosum Forceps Major") ;
   if (label == fminor)
-    return("fminor") ;
+    return("Corpus Callosum Forceps Minor") ;
   if (label == lh_atr)
-    return("lh_atr") ;
+    return("Left Anterior Thalamic Radiation") ;
   if (label == rh_atr)
-    return("rh_atr") ;
+    return("Right Anterior Thalamic Radiation") ;
   if (label == lh_ccg)
-    return("lh_ccg") ;
+    return("Left Cingulum - Cingulate Gyrus") ;
   if (label == rh_ccg)
-    return("rh_ccg") ;
+    return("Right Cingulum - Cingulate Gyrus") ;
   if (label == lh_cab)
-    return("lh_cab") ;
+    return("Left Cingulum - Angular Bundle") ;
   if (label == rh_cab)
-    return("rh_cab") ;
+    return("Right Cingulum - Angular Bundle") ;
   if (label == lh_slf)
-    return("lh_slf_") ;
+    return("Left Superior Longitudinal Fasciculus") ;
   if (label == rh_slf)
-    return("rh_slf_") ;
+    return("Right Superior Longitudinal Fasciculus") ;
   if (label == lh_slft)
-    return("lh_slft") ;
-  if (label == rh_slft)
-    return("rh_slft") ;
+    return("Left Superior Longitudinal Fasciculus - Temporal") ;
+  if (label == rh slft)
+    return("Right Superior Longitudinal Fasciculus - Temporal") ;
   return(name) ;
 }
 MRI *
