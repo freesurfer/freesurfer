@@ -1,12 +1,15 @@
 SUBDIRS=dicom xview pixrect sys NrrdIO topology fs_vnl
 
 EXTRA_DIST=\
+	affine.h \
+	affine.hpp \
+	affinegpu.hpp \
 	AFNI.h \
 	analyze.h \
-	anders.h \
 	annotation.h \
 	art1.h \
 	artmap.h \
+	aseg_edit_svm.h \
 	backprop.h \
 	bfileio.h \
 	box.h \
@@ -54,13 +57,32 @@ EXTRA_DIST=\
 	FsgdfPlot.h \
 	fsgdf_wrap.h \
 	fsglm.h \
+	fixedmap.hpp \
 	gcaboundary.h \
 	gca.h \
+	gcalinearnode.hpp \
+	gcalinearprior.hpp \
+	gcamcomputegradient_cuda.hpp \
+	gcamfots_cuda.hpp \
+	gcamorphcpu.hpp \
+	gcamorphenergy.hpp \
+	gcamorphgpu.hpp\
+	gcamorphtermgpu.hpp\
+	gcamorphtestutils.hpp\
+	gcamregisterlevel_cuda.hpp \
+	gcanodegpu.hpp \
+	gcapriorgpu.hpp \
+	gcasgpu.hpp \
+	gcautils.hpp \
 	gcamorph.h \
+	gcamorphtestutils.h \
+	gcamfots_cuda.h \
+	gcanodegpu.hpp \
 	gcarray.h \
 	gclass.h \
 	gcsa.h \
 	general.h \
+	generators.hpp \
 	getdelim.h \
 	getline.h \
 	gifti_io.h \
@@ -112,6 +134,7 @@ EXTRA_DIST=\
 	mincutils.h \
 	minc_volume_io.h \
 	minmaxrc.h \
+	minmax.hpp \
 	mosaic.h \
 	mri2.h \
 	mri_ca_configFile.h \
@@ -154,6 +177,22 @@ EXTRA_DIST=\
 	mriTransform.h \
 	mriTypes.h \
 	mriVolume.h \
+	mrivol2vol_cuda.h \
+	mriconvolve_cuda.h \
+	mrimean_cuda.h \
+	mrivol2vol_cuda.hpp \
+	mriconvolve_cuda.hpp \
+	mrimean_cuda.hpp \
+	mrilabels_cuda.hpp \
+	mrisurf_cuda.h \
+	mriframegpu.hpp \
+	volumegpu.hpp \
+	volumegpu_impl.hpp \
+	cudatypeutils.hpp \
+	cudacheck.h \
+	devicemanagement.h \
+	MRISOBBTree.h \
+	MRISdistancefield.h \
 	mthread.h \
 	nifti1.h \
 	nifti1_io.h \
@@ -191,6 +230,7 @@ EXTRA_DIST=\
 	svm.h \
 	tags.h \
 	talairachex.h \
+	testgpu.h \
 	TexFont.h \
 	thread.h \
 	timer.h \
@@ -201,11 +241,13 @@ EXTRA_DIST=\
 	typedefs.h \
 	unwarpGradientNonlinearity.h \
 	utils.h \
+	utilsmath.h \
 	version.h \
 	vlabels.h \
 	volcluster.h \
+	volumegpucompare.hpp \
+	volumecpu.hpp \
 	voxlist.h \
-	vss.h \
 	windiag.h \
 	x3DList.h \
 	xDebug.h \
@@ -217,7 +259,430 @@ EXTRA_DIST=\
 	xUndoList.h \
 	xUtilities.h \
 	xVoxel.h \
-	znzlib.h
+	znzlib.h \
+	thrust/CHANGELOG \
+	thrust/set_intersection.h \
+	thrust/binary_search.h \
+	thrust/generate.h \
+	thrust/iterator/iterator_traits.h \
+	thrust/iterator/iterator_adaptor.h \
+	thrust/iterator/reverse_iterator.h \
+	thrust/iterator/constant_iterator.h \
+	thrust/iterator/iterator_facade.h \
+	thrust/iterator/zip_iterator.h \
+	thrust/iterator/permutation_iterator.h \
+	thrust/iterator/iterator_categories.h \
+	thrust/iterator/transform_iterator.h \
+	thrust/iterator/counting_iterator.h \
+	thrust/iterator/detail/universal_categories.h \
+	thrust/iterator/detail/reverse_iterator_base.h \
+	thrust/iterator/detail/iterator_category_to_space.h \
+	thrust/iterator/detail/minimum_category.h \
+	thrust/iterator/detail/backend_iterator_categories.h \
+	thrust/iterator/detail/is_iterator_category.h \
+	thrust/iterator/detail/iterator_category_to_traversal.h \
+	thrust/iterator/detail/placement/is_placed.h \
+	thrust/iterator/detail/constant_iterator_base.h \
+	thrust/iterator/detail/backend_iterator_spaces.h \
+	thrust/iterator/detail/forced_iterator.h \
+	thrust/iterator/detail/minimum_space.h \
+	thrust/iterator/detail/any_space_tag.h \
+	thrust/iterator/detail/device_iterator_category_to_backend_space.h \
+	thrust/iterator/detail/zip_iterator_base.h \
+	thrust/iterator/detail/distance_from_result.h \
+	thrust/iterator/detail/normal_iterator.h \
+	thrust/iterator/detail/permutation_iterator_base.h \
+	thrust/for_each.h \
+	thrust/random/uniform_int_distribution.h \
+	thrust/random/subtract_with_carry_engine.h \
+	thrust/random/linear_congruential_engine.h \
+	thrust/random/discard_block_engine.h \
+	thrust/random/xor_combine_engine.h \
+	thrust/random/normal_distribution.h \
+	thrust/random/uniform_real_distribution.h \
+	thrust/random/linear_feedback_shift_engine.h \
+	thrust/random/detail/xor_combine_engine_max.h \
+	thrust/random/detail/linear_feedback_shift_engine_wordmask.h \
+	thrust/random/detail/mod.h \
+	thrust/random/detail/random_core_access.h \
+	thrust/random/detail/linear_congruential_engine_discard.h \
+	thrust/adjacent_difference.h \
+	thrust/unique.h \
+	thrust/distance.h \
+	thrust/tuple.h \
+	thrust/gather.h \
+	thrust/count.h \
+	thrust/device_new.h \
+	thrust/partition.h \
+	thrust/experimental/cuda/pinned_allocator.h \
+	thrust/experimental/cuda/ogl_interop_allocator.h \
+	thrust/device_vector.h \
+	thrust/functional.h \
+	thrust/sort.h \
+	thrust/utility.h \
+	thrust/uninitialized_fill.h \
+	thrust/random.h \
+	thrust/system/error_code.h \
+	thrust/system/cuda_error.h \
+	thrust/system/system_error.h \
+	thrust/system/detail/errno.h \
+	thrust/host_vector.h \
+	thrust/find.h \
+	thrust/transform_scan.h \
+	thrust/device_malloc_allocator.h \
+	thrust/system_error.h \
+	thrust/inner_product.h \
+	thrust/remove.h \
+	thrust/device_new_allocator.h \
+	thrust/scan.h \
+	thrust/version.h \
+	thrust/device_malloc.h \
+	thrust/transform.h \
+	thrust/sequence.h \
+	thrust/replace.h \
+	thrust/fill.h \
+	thrust/pair.h \
+	thrust/is_sorted.h \
+	thrust/swap.h \
+	thrust/equal.h \
+	thrust/advance.h \
+	thrust/reduce.h \
+	thrust/device_delete.h \
+	thrust/set_operations.h \
+	thrust/uninitialized_copy.h \
+	thrust/copy.h \
+	thrust/scatter.h \
+	thrust/transform_reduce.h \
+	thrust/device_allocator.h \
+	thrust/reverse.h \
+	thrust/mismatch.h \
+	thrust/logical.h \
+	thrust/extrema.h \
+	thrust/detail/util/align.h \
+	thrust/detail/util/blocking.h \
+	thrust/detail/device_ptr_traits.h \
+	thrust/detail/diagnostic.h \
+	thrust/detail/mpl/math.h \
+	thrust/detail/destroy.h \
+	thrust/detail/trivial_sequence.h \
+	thrust/detail/numeric_traits.h \
+	thrust/detail/integer_traits.h \
+	thrust/detail/tuple_meta_transform.h \
+	thrust/detail/static_assert.h \
+	thrust/detail/dispatch/binary_search.h \
+	thrust/detail/dispatch/for_each.h \
+	thrust/detail/dispatch/adjacent_difference.h \
+	thrust/detail/dispatch/unique.h \
+	thrust/detail/dispatch/distance.h \
+	thrust/detail/dispatch/destroy.h \
+	thrust/detail/dispatch/partition.h \
+	thrust/detail/dispatch/sort.h \
+	thrust/detail/dispatch/uninitialized_fill.h \
+	thrust/detail/dispatch/is_trivial_copy.h \
+	thrust/detail/dispatch/find.h \
+	thrust/detail/dispatch/remove.h \
+	thrust/detail/dispatch/scan.h \
+	thrust/detail/dispatch/fill.h \
+	thrust/detail/dispatch/advance.h \
+	thrust/detail/dispatch/reduce.h \
+	thrust/detail/dispatch/set_operations.h \
+	thrust/detail/dispatch/uninitialized_copy.h \
+	thrust/detail/dispatch/copy.h \
+	thrust/detail/dispatch/extrema.h \
+	thrust/detail/move.h \
+	thrust/detail/host/binary_search.h \
+	thrust/detail/host/for_each.h \
+	thrust/detail/host/adjacent_difference.h \
+	thrust/detail/host/unique.h \
+	thrust/detail/host/partition.h \
+	thrust/detail/host/sort.h \
+	thrust/detail/host/find.h \
+	thrust/detail/host/dispatch/copy.h \
+	thrust/detail/host/remove.h \
+	thrust/detail/host/scan.h \
+	thrust/detail/host/fill.h \
+	thrust/detail/host/reduce.h \
+	thrust/detail/host/set_operations.h \
+	thrust/detail/host/copy.h \
+	thrust/detail/host/extrema.h \
+	thrust/detail/host/detail/trivial_copy.h \
+	thrust/detail/host/detail/insertion_sort.h \
+	thrust/detail/host/detail/general_copy.h \
+	thrust/detail/host/detail/stable_merge_sort.h \
+	thrust/detail/host/detail/merge.h \
+	thrust/detail/host/detail/copy_backward.h \
+	thrust/detail/type_traits.h \
+	thrust/detail/tuple_transform.h \
+	thrust/detail/config/compiler.h \
+	thrust/detail/config/debug.h \
+	thrust/detail/config/device_backend.h \
+	thrust/detail/config/host_device.h \
+	thrust/detail/config/simple_defines.h \
+	thrust/detail/config/config.h \
+	thrust/detail/internal_functional.h \
+	thrust/detail/contiguous_storage.h \
+	thrust/detail/device/binary_search.h \
+	thrust/detail/device/for_each.h \
+	thrust/detail/device/dereference.h \
+	thrust/detail/device/adjacent_difference.h \
+	thrust/detail/device/unique.h \
+	thrust/detail/device/generic/binary_search.h \
+	thrust/detail/device/generic/malloc.h \
+	thrust/detail/device/generic/adjacent_difference.h \
+	thrust/detail/device/generic/unique.h \
+	thrust/detail/device/generic/partition.h \
+	thrust/detail/device/generic/copy_if.h \
+	thrust/detail/device/generic/no_throw_free.h \
+	thrust/detail/device/generic/find.h \
+	thrust/detail/device/generic/remove.h \
+	thrust/detail/device/generic/free.h \
+	thrust/detail/device/generic/scan_by_key.h \
+	thrust/detail/device/generic/fill.h \
+	thrust/detail/device/generic/reduce_by_key.h \
+	thrust/detail/device/generic/reduce.h \
+	thrust/detail/device/generic/set_operations.h \
+	thrust/detail/device/generic/copy.h \
+	thrust/detail/device/generic/extrema.h \
+	thrust/detail/device/partition.h \
+	thrust/detail/device/sort.h \
+	thrust/detail/device/no_throw_free.h \
+	thrust/detail/device/find.h \
+	thrust/detail/device/dispatch/for_each.h \
+	thrust/detail/device/dispatch/malloc.h \
+	thrust/detail/device/dispatch/sort.h \
+	thrust/detail/device/dispatch/no_throw_free.h \
+	thrust/detail/device/dispatch/free.h \
+	thrust/detail/device/dispatch/scan.h \
+	thrust/detail/device/dispatch/fill.h \
+	thrust/detail/device/dispatch/reduce.h \
+	thrust/detail/device/dispatch/set_operations.h \
+	thrust/detail/device/dispatch/uninitialized_copy.h \
+	thrust/detail/device/dispatch/copy.h \
+	thrust/detail/device/omp/for_each.h \
+	thrust/detail/device/omp/copy_host_or_any_to_device.h \
+	thrust/detail/device/omp/sort.h \
+	thrust/detail/device/omp/dispatch/sort.h \
+	thrust/detail/device/omp/dispatch/copy.h \
+	thrust/detail/device/omp/scan.h \
+	thrust/detail/device/omp/reduce.h \
+	thrust/detail/device/omp/copy_device_to_device.h \
+	thrust/detail/device/omp/copy_device_to_host_or_any.h \
+	thrust/detail/device/omp/copy.h \
+	thrust/detail/device/omp/detail/stable_merge_sort.h \
+	thrust/detail/device/internal_allocator.h \
+	thrust/detail/device/remove.h \
+	thrust/detail/device/scan.h \
+	thrust/detail/device/fill.h \
+	thrust/detail/device/reduce.h \
+	thrust/detail/device/set_operations.h \
+	thrust/detail/device/uninitialized_copy.h \
+	thrust/detail/device/copy.h \
+	thrust/detail/device/cuda/block/merging_sort.h \
+	thrust/detail/device/cuda/block/inclusive_scan.h \
+	thrust/detail/device/cuda/block/reduce.h \
+	thrust/detail/device/cuda/block/odd_even_sort.h \
+	thrust/detail/device/cuda/block/copy.h \
+	thrust/detail/device/cuda/for_each.h \
+	thrust/detail/device/cuda/malloc.h \
+	thrust/detail/device/cuda/launch_closure.h \
+	thrust/detail/device/cuda/partition.h \
+	thrust/detail/device/cuda/trivial_copy.h \
+	thrust/detail/device/cuda/sort.h \
+	thrust/detail/device/cuda/synchronize.h \
+	thrust/detail/device/cuda/copy_cross_space.h \
+	thrust/detail/device/cuda/arch.h \
+	thrust/detail/device/cuda/copy_if.h \
+	thrust/detail/device/cuda/no_throw_free.h \
+	thrust/detail/device/cuda/dispatch/scan.h \
+	thrust/detail/device/cuda/dispatch/reduce.h \
+	thrust/detail/device/cuda/dispatch/copy.h \
+	thrust/detail/device/cuda/free.h \
+	thrust/detail/device/cuda/scan.h \
+	thrust/detail/device/cuda/segmented_scan.h \
+	thrust/detail/device/cuda/fill.h \
+	thrust/detail/device/cuda/scalar/binary_search.h \
+	thrust/detail/device/cuda/scalar/rotate.h \
+	thrust/detail/device/cuda/reduce.h \
+	thrust/detail/device/cuda/copy_device_to_device.h \
+	thrust/detail/device/cuda/warp/any.h \
+	thrust/detail/device/cuda/warp/scan.h \
+	thrust/detail/device/cuda/set_operations.h \
+	thrust/detail/device/cuda/copy.h \
+	thrust/detail/device/cuda/extern_shared_ptr.h \
+	thrust/detail/device/cuda/detail/stable_radix_sort_util.h \
+	thrust/detail/device/cuda/detail/trivial_copy.h \
+	thrust/detail/device/cuda/detail/stable_radix_sort_bits.h \
+	thrust/detail/device/cuda/detail/stable_radix_sort.h \
+	thrust/detail/device/cuda/detail/stable_merge_sort.h \
+	thrust/detail/device/cuda/detail/safe_scan.h \
+	thrust/detail/device/cuda/detail/b40c/vector_types.h \
+	thrust/detail/device/cuda/detail/b40c/radixsort_scanscatter_kernel.h \
+	thrust/detail/device/cuda/detail/b40c/kernel_utils.h \
+	thrust/detail/device/cuda/detail/b40c/radixsort_api.h \
+	thrust/detail/device/cuda/detail/b40c/radixsort_kernel_common.h \
+	thrust/detail/device/cuda/detail/b40c/radixsort_reduction_kernel.h \
+	thrust/detail/device/cuda/detail/b40c/radixsort_key_conversion.h \
+	thrust/detail/device/cuda/detail/b40c/radixsort_spine_kernel.h \
+	thrust/detail/device/cuda/detail/fast_scan.h \
+	thrust/detail/device/extrema.h \
+	thrust/detail/type_traits/has_trivial_assign.h \
+	thrust/detail/raw_buffer.h \
+	thrust/detail/casts.h \
+	thrust/detail/cstdint.h \
+	thrust/detail/config.h \
+	thrust/detail/vector_base.h \
+	thrust/device_ptr.h \
+	thrust/device_reference.h \
+	thrust/device_free.h \
+	thrust/iterator/detail/permutation_iterator.inl \
+	thrust/iterator/detail/zip_iterator.inl \
+	thrust/iterator/detail/counting_iterator.inl \
+	thrust/iterator/detail/transform_iterator.inl \
+	thrust/iterator/detail/iterator_adaptor.inl \
+	thrust/iterator/detail/iterator_traits.inl \
+	thrust/iterator/detail/constant_iterator.inl \
+	thrust/iterator/detail/reverse_iterator.inl \
+	thrust/iterator/detail/iterator_facade.inl \
+	thrust/random/detail/linear_feedback_shift_engine.inl \
+	thrust/random/detail/xor_combine_engine.inl \
+	thrust/random/detail/discard_block_engine.inl \
+	thrust/random/detail/uniform_int_distribution.inl \
+	thrust/random/detail/linear_congruential_engine.inl \
+	thrust/random/detail/uniform_real_distribution.inl \
+	thrust/random/detail/normal_distribution.inl \
+	thrust/random/detail/subtract_with_carry_engine.inl \
+	thrust/experimental/cuda/detail/ogl_interop_allocator.inl \
+	thrust/system/detail/error_code.inl \
+	thrust/system/detail/system_error.inl \
+	thrust/system/detail/error_category.inl \
+	thrust/system/detail/error_condition.inl \
+	thrust/system/detail/cuda_error.inl \
+	thrust/detail/scan.inl \
+	thrust/detail/host_vector.inl \
+	thrust/detail/binary_search.inl \
+	thrust/detail/device_reference.inl \
+	thrust/detail/device_delete.inl \
+	thrust/detail/device_free.inl \
+	thrust/detail/inner_product.inl \
+	thrust/detail/device_malloc.inl \
+	thrust/detail/transform.inl \
+	thrust/detail/device_ptr.inl \
+	thrust/detail/mismatch.inl \
+	thrust/detail/tuple.inl \
+	thrust/detail/device_new.inl \
+	thrust/detail/transform_scan.inl \
+	thrust/detail/device_vector.inl \
+	thrust/detail/swap.inl \
+	thrust/detail/partition.inl \
+	thrust/detail/advance.inl \
+	thrust/detail/set_operations.inl \
+	thrust/detail/count.inl \
+	thrust/detail/host/for_each.inl \
+	thrust/detail/host/detail/merge.inl \
+	thrust/detail/host/detail/stable_merge_sort.inl \
+	thrust/detail/host/sort.inl \
+	thrust/detail/logical.inl \
+	thrust/detail/uninitialized_copy.inl \
+	thrust/detail/vector_base.inl \
+	thrust/detail/reverse.inl \
+	thrust/detail/generate.inl \
+	thrust/detail/for_each.inl \
+	thrust/detail/scatter.inl \
+	thrust/detail/find.inl \
+	thrust/detail/device/scan.inl \
+	thrust/detail/device/generic/binary_search.inl \
+	thrust/detail/device/generic/reduce_by_key.inl \
+	thrust/detail/device/generic/partition.inl \
+	thrust/detail/device/generic/scan_by_key.inl \
+	thrust/detail/device/generic/copy_if.inl \
+	thrust/detail/device/generic/find.inl \
+	thrust/detail/device/generic/unique.inl \
+	thrust/detail/device/generic/extrema.inl \
+	thrust/detail/device/generic/adjacent_difference.inl \
+	thrust/detail/device/generic/reduce.inl \
+	thrust/detail/device/generic/remove.inl \
+	thrust/detail/device/omp/copy_device_to_device.inl \
+	thrust/detail/device/omp/scan.inl \
+	thrust/detail/device/omp/copy_host_or_any_to_device.inl \
+	thrust/detail/device/omp/for_each.inl \
+	thrust/detail/device/omp/copy_device_to_host_or_any.inl \
+	thrust/detail/device/omp/reduce.inl \
+	thrust/detail/device/omp/detail/stable_merge_sort.inl \
+	thrust/detail/device/omp/sort.inl \
+	thrust/detail/device/for_each.inl \
+	thrust/detail/device/reduce.inl \
+	thrust/detail/device/fill.inl \
+	thrust/detail/device/cuda/scan.inl \
+	thrust/detail/device/cuda/synchronize.inl \
+	thrust/detail/device/cuda/segmented_scan.inl \
+	thrust/detail/device/cuda/no_throw_free.inl \
+	thrust/detail/device/cuda/dispatch/reduce.inl \
+	thrust/detail/device/cuda/set_operations.inl \
+	thrust/detail/device/cuda/trivial_copy.inl \
+	thrust/detail/device/cuda/copy_if.inl \
+	thrust/detail/device/cuda/for_each.inl \
+	thrust/detail/device/cuda/launch_closure.inl \
+	thrust/detail/device/cuda/arch.inl \
+	thrust/detail/device/cuda/reduce.inl \
+	thrust/detail/device/cuda/free.inl \
+	thrust/detail/device/cuda/fill.inl \
+	thrust/detail/device/cuda/malloc.inl \
+	thrust/detail/device/cuda/detail/stable_radix_sort_key_value.inl \
+	thrust/detail/device/cuda/detail/stable_merge_sort.inl \
+	thrust/detail/device/cuda/detail/safe_scan.inl \
+	thrust/detail/device/cuda/detail/stable_radix_sort.inl \
+	thrust/detail/device/cuda/detail/stable_radix_sort_merrill.inl \
+	thrust/detail/device/cuda/detail/fast_scan.inl \
+	thrust/detail/device/cuda/detail/stable_radix_sort_key.inl \
+	thrust/detail/device/cuda/sort.inl \
+	thrust/detail/device/sort.inl \
+	thrust/detail/pair.inl \
+	thrust/detail/gather.inl \
+	thrust/detail/contiguous_storage.inl \
+	thrust/detail/uninitialized_fill.inl \
+	thrust/detail/unique.inl \
+	thrust/detail/transform_reduce.inl \
+	thrust/detail/sequence.inl \
+	thrust/detail/extrema.inl \
+	thrust/detail/replace.inl \
+	thrust/detail/functional.inl \
+	thrust/detail/copy.inl \
+	thrust/detail/adjacent_difference.inl \
+	thrust/detail/swap_ranges.inl \
+	thrust/detail/reduce.inl \
+	thrust/detail/remove.inl \
+	thrust/detail/fill.inl \
+	thrust/detail/distance.inl \
+	thrust/detail/equal.inl \
+	thrust/detail/sort.inl \
+	thrust/detail/raw_buffer.inl
+
+if BUILDCUDA
+if HAVE_XXD
+
+# creates a file containing the output of nvcc --version,
+# for use in printing info on the nvidia compiler for diagnostics.
+BUILT_SOURCES=nvcc_version.h
+
+nvcc_version.h:
+	$(NVCC) --version > nvcc_version
+	echo "/* output of nvcc --version */" > nvcc_version.h
+	echo "/* example usage:" >> nvcc_version.h
+	echo "#include <strings.h>" >> nvcc_version.h
+	echo "#include \"nvcc_version.h\"" >> nvcc_version.h
+	echo "char buf[nvcc_version_len+1];" >> nvcc_version.h
+	echo "bcopy(nvcc_version,buf,nvcc_version_len);" >> nvcc_version.h
+	echo "buf[nvcc_version_len]=0;" >> nvcc_version.h
+	echo "printf(buf);" >> nvcc_version.h
+	echo "*/" >> nvcc_version.h
+	xxd -i nvcc_version >> nvcc_version.h
+
+clean-local:
+	rm -f nvcc_version
+
+EXTRA_DIST += nvcc_version.h
+endif
+endif
 
 # Our release target. Include files to be excluded here. They will be
 # found and removed after 'make install' is run during the 'make
